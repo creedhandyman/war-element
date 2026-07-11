@@ -1,4 +1,4 @@
-// War Element — alpha card set (32 cards: LEAF / PYRO / BORE / DUSK, 8 each).
+// War Element — alpha card set (34 cards: LEAF 9 / PYRO 8 / BORE 8 / DUSK 9).
 // Cards are pulled from the element card files and trimmed to alpha-scope
 // mechanics (keywords, one on-hit status rider, one Special via the handler
 // registry). Passives outside that surface are dropped for alpha; a few are
@@ -434,10 +434,10 @@ export const CARDS: CardDef[] = [
     element: "BORE",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 1,
+    cost: 2, // formula-correct: 4+6+2·2+6 = 20 → cost 2
     dmg: 4,
     hits: 1,
-    hp: 5,
+    hp: 6,
     sp: 6,
     shields: 2,
     keywords: {},
@@ -491,10 +491,9 @@ export const CARDS: CardDef[] = [
     hits: 1,
     hp: 11,
     sp: 7,
-    // Adapted for alpha: Lingering Venom (on-death) → STEALTH (per the UI
-    // mockup, which boards Widowbite with STEALTH).
     shields: 0,
-    keywords: { STEALTH: true },
+    keywords: {},
+    onDeath: { dmg: 10, pen: true }, // Lingering Venom: 10 DMG PEN to the killer
   },
   {
     id: "dusk_vamp",
@@ -597,13 +596,44 @@ export const CARDS: CardDef[] = [
     element: "DUSK",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 1,
+    cost: 2, // stat total 20 → cost 2 (Bone Shield's +3 is a passive grant)
     dmg: 5,
     hits: 1,
     hp: 7,
     sp: 8,
     shields: 3, // Bone Shield
     keywords: {},
+  },
+  {
+    id: "leaf_darth",
+    name: "Darth",
+    element: "LEAF",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 4,
+    hits: 1,
+    hp: 16,
+    sp: 8,
+    shields: 1,
+    // Shadow Step: STEALTH until first attack each round — exactly the
+    // alpha STEALTH keyword. (Dark Hunting is trap-like — out of alpha scope.)
+    keywords: { CRIT: true, STEALTH: true },
+  },
+  {
+    id: "dusk_crow",
+    name: "Crow",
+    element: "DUSK",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 1,
+    sp: 11,
+    shields: 0,
+    keywords: { FLYING: true },
+    onDeath: { dmg: 5 }, // Bird Bomb: explodes on whoever kills it
   },
 ];
 
@@ -617,9 +647,9 @@ export function getDef(defId: string): CardDef {
   return def;
 }
 
-// Fixed alpha decks (16 cards each): P1 runs LEAF+PYRO, P2 runs BORE+DUSK.
-// Each card appears once (once-per-game rule). LEAF is exactly 50% of P1's
-// deck, so the one alpha aura (Photosynthesis: +1 HP end of round) is active.
+// Fixed alpha decks (17 cards each): P1 runs LEAF+PYRO, P2 runs BORE+DUSK.
+// Each card appears once (once-per-game rule). LEAF is ≥50% of P1's deck,
+// so the one alpha aura (Photosynthesis: +1 HP end of round) is active.
 export const DECK_P1: string[] = CARDS.filter(
   (c) => c.element === "LEAF" || c.element === "PYRO",
 ).map((c) => c.id);

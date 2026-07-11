@@ -74,8 +74,8 @@ describe("FLYING & STEALTH", () => {
 
   it("STEALTH is untargetable until it attacks, then targetable that round", () => {
     const s = prepState();
-    const enemy = place(s, "leaf_alpha", "P1", 2, 0);
-    const sneak = place(s, "dusk_widowbite", "P2", 2, 1); // STEALTH
+    const enemy = place(s, "dusk_vamp", "P2", 2, 0);
+    const sneak = place(s, "leaf_darth", "P1", 2, 1); // Shadow Step: STEALTH
     expect(canTarget(s, enemy, sneak)).toBe(false);
     sneak.attackedThisRound = true; // it attacked → revealed for the round
     expect(canTarget(s, enemy, sneak)).toBe(true);

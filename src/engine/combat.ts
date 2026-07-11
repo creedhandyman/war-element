@@ -162,6 +162,20 @@ export function resolveHit(
   if (target.curHp <= 0) {
     result.targetDied = true;
     die(draft, target, `${aDef.name}'s ${opts.kind}`);
+    // On-death retaliation (Lingering Venom / Bird Bomb): hits the killer
+    // directly — no evasion, no chains (kind 'reflect' guards recursion; a
+    // retaliation-killed card's own rider stops at the already-dead attacker).
+    if (tDef.onDeath && opts.kind !== "reflect" && attacker.curHp > 0) {
+      draft.log.push(`${tDef.name} retaliates from the grave (${tDef.onDeath.dmg} DMG)!`);
+      const r = resolveHit(draft, target, attacker, {
+        kind: "reflect",
+        dmg: tDef.onDeath.dmg,
+        hits: 1,
+        pen: Boolean(tDef.onDeath.pen),
+        crit: false,
+      });
+      if (r.targetDied) result.attackerDied = true;
+    }
   }
 
   // REFLECT — plain damage back through the attacker's BLOCK + shield gate.

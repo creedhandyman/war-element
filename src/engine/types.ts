@@ -83,6 +83,10 @@ export interface CardDef {
   /** Catapult-style passives: this card may target the enemy Home row from
    *  anywhere (skips the Home Slot Targeting Rule). */
   ignoresHomeRule?: boolean;
+  /** On-death retaliation (Lingering Venom / Bird Bomb): when this card is
+   *  killed by an attack, deal dmg back to the killer. Direct damage — no
+   *  evasion, no reflect chains. DOT/self-damage deaths have no killer. */
+  onDeath?: { dmg: number; pen?: boolean };
   special?: SpecialDef;
   // future: spells / traps / talents / auras beyond the LEAF alpha aura
 }

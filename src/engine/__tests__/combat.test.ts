@@ -158,6 +158,28 @@ describe("on-hit keywords", () => {
     expect(t.status?.power).toBe(2);
   });
 
+  it("on-death retaliation: Widowbite's Lingering Venom hits the killer for 10 PEN", () => {
+    const s = duel();
+    const killer = place(s, "leaf_greegon", "P1", 2, 0, { curHp: 17, maxHp: 17, curShields: 2 });
+    const widow = place(s, "dusk_widowbite", "P2", 2, 1, { curHp: 3 });
+    const r = basicAttack(s, killer.instanceId, widow.instanceId); // 4 dmg kills it
+    expect(s.cards[widow.instanceId]).toBeUndefined();
+    // 10 PEN back: straight to HP, shields untouched
+    expect(killer.curHp).toBe(7);
+    expect(killer.curShields).toBe(2);
+    expect(r?.targetDied).toBe(true);
+  });
+
+  it("on-death retaliation can kill the killer (and stops there — no chains)", () => {
+    const s = duel();
+    const killer = place(s, "dusk_crow", "P1", 2, 0, { curHp: 1 }); // Crow also has onDeath
+    const widow = place(s, "dusk_widowbite", "P2", 2, 1, { curHp: 3 });
+    const r = basicAttack(s, killer.instanceId, widow.instanceId);
+    expect(s.cards[widow.instanceId]).toBeUndefined();
+    expect(s.cards[killer.instanceId]).toBeUndefined(); // died to the venom
+    expect(r?.attackerDied).toBe(true);
+  });
+
   it("a lethal volley kills and removes the card from the board", () => {
     const s = duel();
     const a = place(s, "pyro_ember_scorpion", "P1", 2, 0); // dmg 9

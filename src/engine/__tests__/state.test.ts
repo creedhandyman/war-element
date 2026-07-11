@@ -3,20 +3,35 @@
 import { describe, expect, it } from "vitest";
 import { createInitialState } from "../state";
 import { applyIntent, advance, advanceUntilInput } from "../phases";
-import { DECK_P1, DECK_P2 } from "../../data/cards";
+import { CARDS, DECK_P1, DECK_P2 } from "../../data/cards";
 import { HAND_CAP } from "../types";
 import { freshGame } from "./helpers";
 
 describe("setup", () => {
-  it("deals 5-card opening hands from 16-card decks", () => {
+  it("deals 5-card opening hands from 17-card decks", () => {
     const s = createInitialState(1);
-    expect(DECK_P1).toHaveLength(16);
-    expect(DECK_P2).toHaveLength(16);
+    expect(DECK_P1).toHaveLength(17);
+    expect(DECK_P2).toHaveLength(17);
     expect(s.players.P1.hand).toHaveLength(5);
     expect(s.players.P2.hand).toHaveLength(5);
-    expect(s.players.P1.deck).toHaveLength(11);
-    expect(s.players.P2.deck).toHaveLength(11);
+    expect(s.players.P1.deck).toHaveLength(12);
+    expect(s.players.P2.deck).toHaveLength(12);
     expect(s.phase).toBe("mulligan");
+  });
+
+  it("every card's cost matches the stat formula (total ≈ 5·cost + 10)", () => {
+    // shields count 2 points each; source-printed costs may drift ±2 total.
+    // Skeleton Knight's Bone Shield is a passive grant priced outside the total.
+    const exceptions = new Set(["dusk_skeleton_knight"]);
+    for (const def of CARDS) {
+      if (exceptions.has(def.id)) continue;
+      const total = def.dmg * def.hits + def.hp + def.shields * 2 + def.sp;
+      const expected = 5 * def.cost + 10;
+      expect(
+        Math.abs(total - expected),
+        `${def.id}: total ${total} vs 5·${def.cost}+10 = ${expected}`,
+      ).toBeLessThanOrEqual(2);
+    }
   });
 
   it("is deterministic for a given seed", () => {
@@ -47,7 +62,7 @@ describe("mulligan", () => {
     const toss = s.players.P1.hand.slice(0, 2).map((h) => h.handId);
     const next = applyIntent(s, { type: "MULLIGAN", player: "P1", returnHandIds: toss });
     expect(next.players.P1.hand).toHaveLength(5);
-    expect(next.players.P1.deck).toHaveLength(11);
+    expect(next.players.P1.deck).toHaveLength(12);
     expect(next.players.P1.mulliganDone).toBe(true);
     for (const id of toss)
       expect(next.players.P1.hand.some((h) => h.handId === id)).toBe(false);
