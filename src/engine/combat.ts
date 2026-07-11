@@ -336,6 +336,27 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
   },
 
+  /** Permanently steal max HP from one enemy (DUSK's Jacked-style theft). */
+  drainMax(draft, attacker, targets, params) {
+    const target = targets[0];
+    if (!target) return;
+    const amount = num(params, "amount", 1);
+    const stolen = Math.min(amount, target.maxHp - 1); // never below 1 max HP
+    if (stolen > 0) {
+      target.maxHp -= stolen;
+      target.curHp = Math.min(target.curHp, target.maxHp);
+      attacker.maxHp += stolen;
+      draft.log.push(
+        `${label(draft, attacker)} drains ${stolen} max HP from ${label(draft, target)}.`,
+      );
+    }
+    const selfShields = num(params, "selfShields", 0);
+    if (selfShields > 0) {
+      attacker.curShields += selfShields;
+      draft.log.push(`${label(draft, attacker)} gains +${selfShields} shields.`);
+    }
+  },
+
   /** Grant shields to one ally. */
   grantShield(draft, attacker, targets, params) {
     const target = targets[0];

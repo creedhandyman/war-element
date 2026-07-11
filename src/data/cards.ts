@@ -1,4 +1,4 @@
-// War Element — alpha card set (20 cards: LEAF / PYRO / BORE / DUSK).
+// War Element — alpha card set (32 cards: LEAF / PYRO / BORE / DUSK, 8 each).
 // Cards are pulled from the element card files and trimmed to alpha-scope
 // mechanics (keywords, one on-hit status rider, one Special via the handler
 // registry). Passives outside that surface are dropped for alpha; a few are
@@ -96,6 +96,59 @@ export const CARDS: CardDef[] = [
       targetSide: "enemy",
       text: "Deal 2 DMG to up to 3 opponents.",
     },
+  },
+
+  {
+    id: "leaf_squanch",
+    name: "Squanch",
+    element: "LEAF",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 4,
+    hits: 1,
+    hp: 23,
+    sp: 3,
+    shields: 0,
+    keywords: {},
+    special: {
+      name: "Bushwhacker",
+      cost: 2,
+      handler: "strike",
+      params: { dmg: 6, statusKind: "ROOT", statusDuration: 1 },
+      targetSide: "enemy",
+      text: "Deal 6 DMG and ROOT the target for 1 round.",
+    },
+  },
+  {
+    id: "leaf_leaf",
+    name: "Leaf",
+    element: "LEAF",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 2,
+    dmg: 2,
+    hits: 3,
+    hp: 5,
+    sp: 9,
+    shields: 0,
+    keywords: {},
+    onHitStatus: { kind: "BLEED", duration: 1, power: 1 }, // Magic Razor Leaf
+  },
+  {
+    id: "leaf_nettle",
+    name: "Nettle",
+    element: "LEAF",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 1,
+    hits: 3,
+    hp: 7,
+    sp: 5,
+    shields: 0,
+    keywords: {},
+    onHitStatus: { kind: "BLEED", duration: 1, power: 1 }, // Stinging Barbs
   },
 
   // ───────────────────────── PYRO ─────────────────────────
@@ -203,6 +256,57 @@ export const CARDS: CardDef[] = [
     onHitStatus: { kind: "BURN", duration: 2, power: 2 }, // Venomous Sting
   },
 
+  {
+    id: "pyro_sarra",
+    name: "Sarra",
+    element: "PYRO",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 4,
+    hits: 2,
+    hp: 14,
+    sp: 8,
+    shields: 1,
+    keywords: {},
+    special: {
+      name: "Bluflame Slashing",
+      cost: 3,
+      handler: "statusNova",
+      params: { statusKind: "BURN", statusPower: 3, statusDuration: 2, targets: 3 },
+      targetSide: "enemy",
+      text: "Apply BURN 3 for 2 rounds to up to 3 opponents.",
+    },
+  },
+  {
+    id: "pyro_flamehound",
+    name: "Flamehound",
+    element: "PYRO",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 2,
+    dmg: 5,
+    hits: 1,
+    hp: 7,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+  },
+  {
+    id: "pyro_spitfire",
+    name: "Spitfire",
+    element: "PYRO",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 3,
+    hits: 2,
+    hp: 11,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+  },
+
   // ───────────────────────── BORE ─────────────────────────
   {
     id: "bore_armadillo",
@@ -299,6 +403,58 @@ export const CARDS: CardDef[] = [
       targetSide: "ally",
       text: "Give an ally +2 shields.",
     },
+  },
+
+  {
+    id: "bore_rhe",
+    name: "Rhe",
+    element: "BORE",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 7,
+    hits: 1,
+    hp: 9,
+    sp: 8,
+    shields: 2,
+    keywords: {},
+    special: {
+      name: "Rigid Smash",
+      cost: 3,
+      handler: "strike",
+      // Adapted for alpha: 9 DMG + SLEEP 2 in a row → 5 DMG + SLEEP the target.
+      params: { dmg: 5, statusKind: "SLEEP", statusDuration: 1 },
+      targetSide: "enemy",
+      text: "Deal 5 DMG and SLEEP the target for 1 round.",
+    },
+  },
+  {
+    id: "bore_rockgoblin",
+    name: "Rock Goblin",
+    element: "BORE",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 4,
+    hits: 1,
+    hp: 5,
+    sp: 6,
+    shields: 2,
+    keywords: {},
+  },
+  {
+    id: "bore_hillbilly",
+    name: "Hillbilly",
+    element: "BORE",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 2,
+    hits: 1,
+    hp: 5,
+    sp: 2,
+    shields: 3,
+    keywords: {},
   },
 
   // ───────────────────────── DUSK ─────────────────────────
@@ -398,6 +554,57 @@ export const CARDS: CardDef[] = [
       text: "Deal 3 DMG (PEN) to up to 3 opponents.",
     },
   },
+  {
+    id: "dusk_haunt",
+    name: "Haunt",
+    element: "DUSK",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 5,
+    hits: 1,
+    hp: 13,
+    sp: 10,
+    shields: 0,
+    keywords: {},
+    special: {
+      name: "Jacked",
+      cost: 2,
+      handler: "drainMax",
+      params: { amount: 5, selfShields: 3 },
+      targetSide: "enemy",
+      text: "Permanently drain 5 max HP from the target. Gain +3 shields.",
+    },
+  },
+  {
+    id: "dusk_pumpkin",
+    name: "Pumpkin",
+    element: "DUSK",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 7,
+    sp: 5,
+    shields: 0,
+    keywords: {},
+    ignoresHomeRule: true, // Catapult: can target the whole battlefield
+  },
+  {
+    id: "dusk_skeleton_knight",
+    name: "Skeleton Knight",
+    element: "DUSK",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 5,
+    hits: 1,
+    hp: 7,
+    sp: 8,
+    shields: 3, // Bone Shield
+    keywords: {},
+  },
 ];
 
 export const CARD_INDEX: Record<string, CardDef> = Object.fromEntries(
@@ -410,9 +617,9 @@ export function getDef(defId: string): CardDef {
   return def;
 }
 
-// Fixed alpha decks: P1 runs LEAF+PYRO, P2 runs BORE+DUSK. Each card appears
-// once (once-per-game rule). LEAF is exactly 50% of P1's deck, so the one
-// alpha aura (Photosynthesis: LEAF cards +1 HP at end of round) is active.
+// Fixed alpha decks (16 cards each): P1 runs LEAF+PYRO, P2 runs BORE+DUSK.
+// Each card appears once (once-per-game rule). LEAF is exactly 50% of P1's
+// deck, so the one alpha aura (Photosynthesis: +1 HP end of round) is active.
 export const DECK_P1: string[] = CARDS.filter(
   (c) => c.element === "LEAF" || c.element === "PYRO",
 ).map((c) => c.id);

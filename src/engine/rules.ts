@@ -113,7 +113,11 @@ export function canTarget(
   }
 
   const defenderHome = homeRow(target.owner);
-  if (target.pos.row === defenderHome && defenderHome === homeRow(enemyOf(attacker.owner))) {
+  if (
+    target.pos.row === defenderHome &&
+    defenderHome === homeRow(enemyOf(attacker.owner)) &&
+    !aDef.ignoresHomeRule // Catapult-style passives skip this rule
+  ) {
     const ar = attacker.pos.row;
     const inMid = ar === 1 || ar === 2;
     const inThatHome = ar === defenderHome;

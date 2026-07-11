@@ -51,6 +51,17 @@ describe("Home Slot Targeting Rule", () => {
   });
 });
 
+describe("ignoresHomeRule (Pumpkin's Catapult)", () => {
+  it("may snipe the enemy Home row from its own Home row", () => {
+    const s = prepState();
+    const pumpkin = place(s, "dusk_pumpkin", "P2", 0, 0); // in its own home
+    const normal = place(s, "dusk_gool", "P2", 0, 1); // ordinary ranged
+    const camper = place(s, "leaf_fallona", "P1", 3, 0); // in P1's home row
+    expect(canTarget(s, pumpkin, camper)).toBe(true); // Catapult ignores the rule
+    expect(canTarget(s, normal, camper)).toBe(false); // everyone else obeys it
+  });
+});
+
 describe("FLYING & STEALTH", () => {
   it("FLYING is immune to melee, ranged hits it", () => {
     const s = prepState();

@@ -5,6 +5,7 @@
 import { getDef } from "../data/cards";
 import {
   boardCards,
+  cardAt,
   effectiveSp,
   isCaptured,
   moveReach,
@@ -51,13 +52,144 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
     }
   }
 
-  // 2. Advance one card toward the enemy Home if it looks survivable.
+  // 2. Capture step: an uncaptured enemy Home slot in reach is the win
+  //    condition itself — take it. (Also the endgame stall-breaker: forward-
+  //    only advancing never walks sideways along the enemy home row.)
   if (!state.prep?.movedThisTurn) {
-    const move = findAdvance(state, player);
+    const grab = findCaptureMove(state, player);
+    if (grab) return grab;
+  }
+
+  // 3. Advance one card toward the enemy Home if it looks survivable.
+  if (!state.prep?.movedThisTurn) {
+    const move = findAdvance(state, player, false);
     if (move) return move;
+    // Stall-breaker: total standoff (none of our cards can reach anything) —
+    // camping forever is a guaranteed non-win, so make progress toward the
+    // capture win regardless of the threat estimate. Without this, two ranged
+    // lines camp home rows (where nothing is targetable) until the round cap.
+    const standoff = boardCards(state, player).every(
+      (c) => validTargets(state, c.instanceId).length === 0,
+    );
+    if (standoff) {
+      const desperate = findAdvance(state, player, true) ?? findClosingMove(state, player);
+      if (desperate) return desperate;
+    }
   }
 
   return { type: "PASS", player };
+}
+
+/** Move a healthy card onto an uncaptured, open enemy Home slot if one is in reach. */
+function findCaptureMove(state: GameState, player: PlayerId): Intent | null {
+  const enemyHome = homeRow(enemyOf(player));
+  const movers = boardCards(state, player)
+    .filter((c) => moveReach(effectiveSp(state, c)) > 0)
+    // A card mid-capture (standing on a NOT-yet-captured enemy home slot)
+    // stays put — moving would reopen its slot and oscillate forever. Once
+    // its slot is permanently captured it's free to go take the next one.
+    .filter((c) => !isMidCapture(state, c, enemyHome))
+    // closest to the enemy home row first, tougher bodies as tie-break
+    .sort(
+      (a, b) =>
+        Math.abs(a.pos!.row - enemyHome) - Math.abs(b.pos!.row - enemyHome) ||
+        b.curHp + b.curShields * 2 - (a.curHp + a.curShields * 2),
+    );
+  for (const mover of movers) {
+    for (let col = 0; col < BOARD_SIZE; col++) {
+      if (state.slots[enemyHome][col].capturedBy) continue; // already locked
+      const to = { row: enemyHome, col } as Pos;
+      if (!canMove(state, player, mover.instanceId, to).ok) continue;
+      // Don't feed a chip-damage body into a defended slot: require the mover
+      // to plausibly survive the defender's round, unless nothing can reach it.
+      const threat = threatAt(state, mover, to);
+      if (threat < mover.curHp + mover.curShields * 2 || threat === 0) {
+        return { type: "MOVE", player, instanceId: mover.instanceId, to };
+      }
+    }
+  }
+  return null;
+}
+
+/** Mid-capture = standing on an enemy home slot that hasn't locked yet. */
+function isMidCapture(state: GameState, card: { pos: Pos | null }, enemyHome: number): boolean {
+  return (
+    card.pos !== null &&
+    card.pos.row === enemyHome &&
+    !state.slots[enemyHome][card.pos.col].capturedBy
+  );
+}
+
+/**
+ * BFS step-distance from `from` to the nearest uncaptured enemy Home slot,
+ * walking only cells a card may STOP on (empty + not locked). Routes around
+ * captured-slot walls that a straight-line metric can't.
+ */
+function bfsDistance(state: GameState, from: Pos, goals: Pos[]): number {
+  const goalKey = new Set(goals.map((g) => `${g.row},${g.col}`));
+  const seen = new Set([`${from.row},${from.col}`]);
+  let frontier: Pos[] = [from];
+  let dist = 0;
+  while (frontier.length > 0) {
+    if (frontier.some((p) => goalKey.has(`${p.row},${p.col}`))) return dist;
+    const next: Pos[] = [];
+    for (const p of frontier) {
+      for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+        const row = p.row + dr;
+        const col = p.col + dc;
+        if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) continue;
+        const key = `${row},${col}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        if (state.slots[row][col].capturedBy) continue; // can't stop on locked
+        if (cardAt(state, row, col)) continue; // occupied
+        next.push({ row, col } as Pos);
+      }
+    }
+    frontier = next;
+    dist++;
+  }
+  return Infinity;
+}
+
+/**
+ * Standoff fallback when forward-only advancing is walled off (e.g. by
+ * captured, locked slots): take any legal move that STRICTLY shrinks the
+ * BFS distance to the nearest uncaptured enemy Home slot. Strictly
+ * decreasing, so it can never oscillate; it routes around walls one move
+ * a turn.
+ */
+function findClosingMove(state: GameState, player: PlayerId): Intent | null {
+  const enemyHome = homeRow(enemyOf(player));
+  const goals: Pos[] = [];
+  for (let col = 0; col < BOARD_SIZE; col++) {
+    if (!state.slots[enemyHome][col].capturedBy)
+      goals.push({ row: enemyHome, col } as Pos);
+  }
+  if (goals.length === 0) return null;
+  const distToGoal = (p: Pos) => bfsDistance(state, p, goals);
+
+  const movers = boardCards(state, player)
+    .filter((c) => moveReach(effectiveSp(state, c)) > 0)
+    .filter((c) => !isMidCapture(state, c, enemyHome)) // mid-capture — stay put
+    .sort((a, b) => distToGoal(a.pos!) - distToGoal(b.pos!));
+  for (const mover of movers) {
+    const cur = distToGoal(mover.pos!);
+    let best: Pos | null = null;
+    let bestDist = cur;
+    for (let row = 0; row < BOARD_SIZE; row++)
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        const to = { row, col } as Pos;
+        if (!canMove(state, player, mover.instanceId, to).ok) continue;
+        const d = distToGoal(to);
+        if (d < bestDist) {
+          bestDist = d;
+          best = to;
+        }
+      }
+    if (best) return { type: "MOVE", player, instanceId: mover.instanceId, to: best };
+  }
+  return null;
 }
 
 /** Rough incoming damage at a position: sum of enemy volleys that could reach it. */
@@ -73,13 +205,22 @@ function threatAt(state: GameState, mover: CardInstance, pos: Pos): number {
   return total;
 }
 
-function findAdvance(state: GameState, player: PlayerId): Intent | null {
-  // Prefer the card already deepest into enemy territory.
+function findAdvance(
+  state: GameState,
+  player: PlayerId,
+  desperate: boolean,
+): Intent | null {
+  // Prefer the card already deepest into enemy territory; in a standoff,
+  // lead with the toughest body instead.
   const enemyHome = homeRow(enemyOf(player));
   const forward = player === "P2" ? 1 : -1; // P2 pushes toward row 3, P1 toward row 0
   const movers = boardCards(state, player)
     .filter((c) => moveReach(effectiveSp(state, c)) > 0)
-    .sort((a, b) => (b.pos!.row - a.pos!.row) * forward);
+    .sort((a, b) =>
+      desperate
+        ? b.curHp + b.curShields * 2 - (a.curHp + a.curShields * 2)
+        : (b.pos!.row - a.pos!.row) * forward,
+    );
 
   for (const mover of movers) {
     const reach = moveReach(effectiveSp(state, mover));
@@ -102,7 +243,7 @@ function findAdvance(state: GameState, player: PlayerId): Intent | null {
       const threat = threatAt(state, mover, to);
       const survivable =
         threat < mover.curHp + mover.curShields * 2 || (invading && mover.curHp > 6);
-      if (survivable) {
+      if (survivable || desperate) {
         return { type: "MOVE", player, instanceId: mover.instanceId, to };
       }
     }
@@ -171,6 +312,13 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
       const fresh = targets.filter((t) => !t.status);
       if (fresh.length >= 2) {
         return { action: "special", targetId: fresh[0].instanceId };
+      }
+    } else if (sp.handler === "drainMax") {
+      // Card text: drain the highest-max-HP opponent. Worth it while there's
+      // something meaty to steal from.
+      const fat = targets.reduce((b, t) => (t.maxHp > b.maxHp ? t : b), targets[0]);
+      if (fat && fat.maxHp >= 8) {
+        return { action: "special", targetId: fat.instanceId };
       }
     } else if (sp.handler === "grantShield") {
       const allies = validAllyTargets(state, instanceId).filter(

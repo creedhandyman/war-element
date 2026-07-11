@@ -36,8 +36,8 @@ npm run build    # tsc --noEmit + vite production build
 src/engine   pure TypeScript, zero React — types, state, rules (legality),
              combat (damage pipeline + special-handler registry), phases
              (round loop + intent reducer + advance() driver), ai, rng
-src/data     the 20 alpha cards as plain data (LEAF/PYRO for P1,
-             BORE/DUSK for P2 — each card once per game)
+src/data     the 32 alpha cards as plain data (LEAF/PYRO for P1,
+             BORE/DUSK for P2, 16-card decks — each card once per game)
 src/ui       React only renders state and dispatches intents
 src/engine/__tests__   Vitest suites for milestones 1–8, incl. full
              AI-vs-AI matches, determinism replay, and both win paths
@@ -59,7 +59,11 @@ replays exactly from its seed.
 - Card adaptations from the source files (flagged in `src/data/cards.ts`):
   Alpha's conditional lifesteal → plain LIFESTEAL; Granite Armadillo's
   Curl Up → BLOCK 2; Clubber's coin-flip reflect → REFLECT 1; Widowbite
-  gets STEALTH (as in the UI mockup) in place of its on-death passive.
+  gets STEALTH (as in the UI mockup) in place of its on-death passive;
+  Rhe's Rigid Smash → 5 DMG + SLEEP one target; passives outside the
+  alpha surface (on-summon effects, conditional buffs) are dropped.
+  Pumpkin's Catapult and Haunt's Jacked are implemented for real
+  (`ignoresHomeRule` flag / `drainMax` handler).
 - **Specials have a one-round cooldown** (alpha balance change from the
   rules doc's no-cooldown wording — stops SLEEP/AOE spam): after firing,
   a card must sit out one full round before firing again.

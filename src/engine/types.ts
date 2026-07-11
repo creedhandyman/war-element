@@ -80,6 +80,9 @@ export interface CardDef {
   keywords: Partial<Record<Keyword, number | true>>;
   /** Status applied by basic attacks that land at least one hit. */
   onHitStatus?: { kind: StatusKind; duration: number; power: number };
+  /** Catapult-style passives: this card may target the enemy Home row from
+   *  anywhere (skips the Home Slot Targeting Rule). */
+  ignoresHomeRule?: boolean;
   special?: SpecialDef;
   // future: spells / traps / talents / auras beyond the LEAF alpha aura
 }

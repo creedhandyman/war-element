@@ -166,6 +166,23 @@ describe("firing specials", () => {
     expect(next.log.some((l) => l.includes("wakes up"))).toBe(true);
   });
 
+  it("drainMax: Haunt permanently steals max HP and gains shields", () => {
+    const s = prepState();
+    s.players.P2.pool = 4;
+    const haunt = place(s, "dusk_haunt", "P2", 1, 0); // Jacked: drain 5, +3 shields
+    const fat = place(s, "leaf_greegon", "P1", 2, 0, { curHp: 15, maxHp: 17 });
+    place(s, "leaf_nettle", "P1", 2, 1, { curHp: 7, maxHp: 7 }); // skinnier bystander
+    s.phase = "battle";
+    s.battle = { queue: [haunt.instanceId], index: 0, awaitingInput: null };
+    const next = advance(s); // the AI drains the highest-max-HP target
+    const target = next.cards[fat.instanceId];
+    expect(target.maxHp).toBe(12);
+    expect(target.curHp).toBe(12); // clamped down to the new max
+    expect(next.cards[haunt.instanceId].maxHp).toBe(18); // 13 + 5 stolen
+    expect(next.cards[haunt.instanceId].curShields).toBe(3);
+    expect(next.players.P2.pool).toBe(2);
+  });
+
   it("grantShield: Smith reinforces an ally", () => {
     const s = prepState();
     s.players.P1.pool = 4;

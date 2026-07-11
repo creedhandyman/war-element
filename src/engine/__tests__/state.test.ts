@@ -8,14 +8,14 @@ import { HAND_CAP } from "../types";
 import { freshGame } from "./helpers";
 
 describe("setup", () => {
-  it("deals 5-card opening hands from 10-card decks", () => {
+  it("deals 5-card opening hands from 16-card decks", () => {
     const s = createInitialState(1);
-    expect(DECK_P1).toHaveLength(10);
-    expect(DECK_P2).toHaveLength(10);
+    expect(DECK_P1).toHaveLength(16);
+    expect(DECK_P2).toHaveLength(16);
     expect(s.players.P1.hand).toHaveLength(5);
     expect(s.players.P2.hand).toHaveLength(5);
-    expect(s.players.P1.deck).toHaveLength(5);
-    expect(s.players.P2.deck).toHaveLength(5);
+    expect(s.players.P1.deck).toHaveLength(11);
+    expect(s.players.P2.deck).toHaveLength(11);
     expect(s.phase).toBe("mulligan");
   });
 
@@ -47,7 +47,7 @@ describe("mulligan", () => {
     const toss = s.players.P1.hand.slice(0, 2).map((h) => h.handId);
     const next = applyIntent(s, { type: "MULLIGAN", player: "P1", returnHandIds: toss });
     expect(next.players.P1.hand).toHaveLength(5);
-    expect(next.players.P1.deck).toHaveLength(5);
+    expect(next.players.P1.deck).toHaveLength(11);
     expect(next.players.P1.mulliganDone).toBe(true);
     for (const id of toss)
       expect(next.players.P1.hand.some((h) => h.handId === id)).toBe(false);
