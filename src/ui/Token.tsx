@@ -1,5 +1,5 @@
 import type { CardInstance, GameState } from "../engine";
-import { effectiveDmg, effectiveSp, getDef } from "../engine";
+import { effectiveDmg, effectiveSp, getDef, legalMoves } from "../engine";
 import { EL_COLOR } from "./shared";
 
 const AUTO_LABEL = { manual: "MANUAL", basic: "AUTO", full: "FULL" } as const;
@@ -51,7 +51,7 @@ export function Token(props: {
         <span className="el-dot" style={{ background: EL_COLOR[def.element] }} />
       </div>
       <div className="tk-name">{def.name}</div>
-      <div>
+      <div className="tk-bottom">
         {kws && <div className="kw-line">{kws}</div>}
         <div className="tk-stats">
           <span
@@ -79,7 +79,27 @@ export function Token(props: {
           {AUTO_LABEL[card.autoMode]}
         </div>
       )}
-      <div className="sp-badge">👟{effectiveSp(game, card)}</div>
+      {(() => {
+        // Move indicator: glow the speed badge while this card may still move.
+        const canMoveNow =
+          mine &&
+          game.phase === "prep" &&
+          game.prep?.priority === "P1" &&
+          !game.prep.movedThisTurn &&
+          legalMoves(game, "P1", card.instanceId).length > 0;
+        return (
+          <div
+            className={`sp-badge ${canMoveNow ? "can-move" : ""}`}
+            title={
+              canMoveNow
+                ? "Can move this turn — click the card, then a green slot"
+                : "Speed (queue order + move reach)"
+            }
+          >
+            👟{effectiveSp(game, card)}
+          </div>
+        );
+      })()}
     </div>
   );
 }

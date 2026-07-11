@@ -301,6 +301,9 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
     const dmg = Number(params.dmg ?? 0);
     const hits = Number(params.hits ?? 1);
     const pen = Number(params.pen ?? 0) > 0;
+    // Magic is its own pool now — unspent surplus is wasted value, so be
+    // liberal when flush: fire anything decent, not only guaranteed kills.
+    const rich = state.players[card.owner].magicPool >= sp.cost + 2;
     if (sp.handler === "strike" || sp.handler === "barrage") {
       const kill = targets.find((t) => estimateVolley(dmg, hits, pen, t) >= t.curHp);
       const basicKillsIt =
@@ -308,19 +311,22 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
         estimateVolley(effectiveDmg(state, card), def.hits, Boolean(def.keywords.PEN), kill) >=
           kill.curHp;
       const wide = sp.handler === "barrage" && targets.length >= 3;
-      if ((kill && !basicKillsIt) || wide) {
+      const outDamagesBasic =
+        dmg * hits * (sp.handler === "barrage" ? Math.min(targets.length, Number(params.targets ?? 1)) : 1) >
+        effectiveDmg(state, card) * def.hits;
+      if ((kill && !basicKillsIt) || wide || (rich && outDamagesBasic)) {
         return { action: "special", targetId: kill?.instanceId ?? targets[0]?.instanceId };
       }
     } else if (sp.handler === "statusNova") {
       const fresh = targets.filter((t) => !t.status);
-      if (fresh.length >= 2) {
+      if (fresh.length >= 2 || (rich && fresh.length >= 1)) {
         return { action: "special", targetId: fresh[0].instanceId };
       }
     } else if (sp.handler === "drainMax") {
       // Card text: drain the highest-max-HP opponent. Worth it while there's
       // something meaty to steal from.
       const fat = targets.reduce((b, t) => (t.maxHp > b.maxHp ? t : b), targets[0]);
-      if (fat && fat.maxHp >= 8) {
+      if (fat && (fat.maxHp >= 8 || (rich && fat.maxHp >= 5))) {
         return { action: "special", targetId: fat.instanceId };
       }
     } else if (sp.handler === "grantShield") {

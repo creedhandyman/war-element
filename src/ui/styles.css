@@ -90,7 +90,12 @@ button { font-family: inherit; }
 .st-dmg { color: #ffab5e; } .st-hp { color: #7fe08a; } .st-sh { color: #8fc3ff; }
 .status-pip { position: absolute; top: 24px; left: 6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--accent); color: #12081f; font-size: 8px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 8px rgba(167, 139, 250, 0.6); }
 .sp-badge { position: absolute; top: 5px; right: 22px; font-size: 12px; font-weight: 800; color: var(--your-home-glow); background: rgba(0, 0, 0, 0.45); padding: 0 4px; border-radius: 5px; text-shadow: 0 1px 2px #000; }
-.kw-line { position: absolute; bottom: 17px; left: 6px; right: 6px; font-size: 7px; font-weight: 700; letter-spacing: 0.02em; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-badge.can-move { color: #06251a; background: var(--legal); text-shadow: none; box-shadow: 0 0 10px rgba(78, 203, 143, 0.7); animation: movepulse 1.5s ease-in-out infinite; }
+@keyframes movepulse { 0%, 100% { box-shadow: 0 0 6px rgba(78, 203, 143, 0.4); } 50% { box-shadow: 0 0 14px rgba(78, 203, 143, 0.9); } }
+/* bottom strip: stats sit above; keywords + auto badge share the strip */
+.tk-bottom { padding-bottom: 15px; }
+.kw-line { position: absolute; bottom: 5px; left: 48px; right: 5px; font-size: 7px; font-weight: 700; letter-spacing: 0.02em; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+.token.enemy .kw-line { left: 6px; text-align: left; }
 .pick-count { position: absolute; top: -8px; right: -6px; z-index: 4; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px; background: var(--legal); color: #06251a; font-size: 12px; font-weight: 900; display: grid; place-items: center; box-shadow: 0 0 12px rgba(78, 203, 143, 0.7); pointer-events: none; }
 .auto-btn { position: absolute; bottom: 4px; left: 4px; font-size: 8px; font-weight: 800; letter-spacing: 0.03em; padding: 2px 5px; border-radius: 6px; cursor: pointer; border: 1px solid var(--panel-line); background: rgba(0, 0, 0, 0.45); color: var(--ink-faint); transition: 0.15s; z-index: 3; }
 .auto-btn:hover { transform: scale(1.08); }
