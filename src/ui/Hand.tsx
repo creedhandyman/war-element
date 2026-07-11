@@ -35,6 +35,11 @@ export function Hand(props: {
             <div
               key={h.handId}
               className={cls}
+              style={{
+                backgroundImage: `linear-gradient(180deg, rgba(10,12,20,0.55), rgba(10,12,20,0.9) 70%), url(/cards/${def.id}.png)`,
+                backgroundSize: "cover",
+                backgroundPosition: "center top",
+              }}
               title={def.special ? `${def.special.name}: ${def.special.text}` : ""}
               onClick={() => props.onPick(h.handId)}
             >

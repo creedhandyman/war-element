@@ -25,8 +25,19 @@ export function Token(props: {
   ]
     .filter(Boolean)
     .join(" ");
+  // Card art: drop a PNG named <defId>.png into public/cards/ and it shows
+  // here automatically; a missing file silently falls back to the flat token.
+  const artStyle = {
+    backgroundImage: `linear-gradient(180deg, rgba(8,10,18,0.18) 30%, rgba(8,10,18,0.78) 78%), url(/cards/${def.id}.png)`,
+    backgroundSize: "cover",
+    backgroundPosition: "center top",
+  };
   return (
-    <div className={cls} title={def.special ? `${def.special.name}: ${def.special.text}` : def.name}>
+    <div
+      className={cls}
+      style={artStyle}
+      title={def.special ? `${def.special.name}: ${def.special.text}` : def.name}
+    >
       {card.status && (
         <div
           className="status-pip"
