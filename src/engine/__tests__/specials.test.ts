@@ -184,6 +184,41 @@ describe("firing specials", () => {
 });
 
 describe("special legality", () => {
+  it("multiple cards may each fire a Special in the same round if the pool affords it", () => {
+    const s = prepState();
+    s.players.P1.pool = 3; // Web Snare (1) + Leaf Storm (2) = exactly affordable
+    const silk = place(s, "dusk_silkstalker", "P1", 2, 0); // Web Snare, cost 1
+    const fallona = place(s, "leaf_fallona", "P1", 2, 1); // Leaf Storm, cost 2
+    const t = place(s, "bore_smith", "P2", 1, 0, { curHp: 11, curShields: 0 });
+    s.phase = "battle";
+    s.battle = {
+      queue: [silk.instanceId, fallona.instanceId],
+      index: 0,
+      awaitingInput: silk.instanceId,
+    };
+    let g = applyIntent(s, {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: t.instanceId,
+    });
+    expect(g.players.P1.pool).toBe(2);
+    // second card, same round: its own Special is fresh — only the pool gates it
+    g.battle!.awaitingInput = fallona.instanceId;
+    expect(canFireSpecial(g, fallona.instanceId).ok).toBe(true);
+    g = applyIntent(g, {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: t.instanceId,
+    });
+    expect(g.players.P1.pool).toBe(0);
+    expect(g.cards[t.instanceId].curHp).toBe(2); // 11 − 7 (Web Snare) − 2 (Leaf Storm)
+    // and both cards are now individually recharging
+    expect(g.cards[silk.instanceId].specialCooldown).toBe(2);
+    expect(g.cards[fallona.instanceId].specialCooldown).toBe(2);
+  });
+
   it("one-round cooldown: fire -> blocked next round -> available the round after", () => {
     const s = prepState();
     s.players.P1.pool = 9;
