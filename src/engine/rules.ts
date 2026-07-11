@@ -90,7 +90,8 @@ export function legalMoves(state: GameState, player: PlayerId, instanceId: strin
 
 /**
  * Can `attacker` target `target` with an attack or targeted special?
- * - Melee: same row or adjacent row only. Ranged: any slot.
+ * - Melee: adjacent squares only — the 8 surrounding cells (within 1 row AND
+ *   1 column, chess-king reach). Ranged: any slot.
  * - Home Slot Targeting Rule: a slot in the DEFENDER's home row can only be
  *   targeted from a Mid row (1/2) or from inside that home row itself.
  * - FLYING: immune to Melee. STEALTH: untargetable until it attacks.
@@ -109,7 +110,11 @@ export function canTarget(
   if (tDef.keywords.FLYING && aDef.attackType === "Melee") return false;
 
   if (aDef.attackType === "Melee") {
-    if (Math.abs(attacker.pos.row - target.pos.row) > 1) return false;
+    if (
+      Math.abs(attacker.pos.row - target.pos.row) > 1 ||
+      Math.abs(attacker.pos.col - target.pos.col) > 1
+    )
+      return false;
   }
 
   const defenderHome = homeRow(target.owner);

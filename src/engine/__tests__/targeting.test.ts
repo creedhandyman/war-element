@@ -5,15 +5,17 @@ import { canTarget, validTargets } from "../rules";
 import { place, prepState } from "./helpers";
 
 describe("melee vs ranged reach", () => {
-  it("melee hits same row and adjacent row only", () => {
+  it("melee hits the 8 adjacent squares only (king reach)", () => {
     const s = prepState();
-    const melee = place(s, "leaf_alpha", "P1", 2, 0); // Warrior, melee
-    const near = place(s, "dusk_vamp", "P2", 1, 3); // adjacent row
-    const same = place(s, "dusk_gool", "P2", 2, 3); // same row
-    const far = place(s, "dusk_ghastly", "P2", 0, 0); // two rows away — also P2 home
-    expect(canTarget(s, melee, near)).toBe(true);
-    expect(canTarget(s, melee, same)).toBe(true);
-    expect(canTarget(s, melee, far)).toBe(false);
+    const melee = place(s, "leaf_alpha", "P1", 2, 1); // Warrior, melee
+    const beside = place(s, "dusk_vamp", "P2", 2, 2); // same row, adjacent col
+    const diagonal = place(s, "dusk_gool", "P2", 1, 0); // adjacent row + col
+    const farCol = place(s, "dusk_ghastly", "P2", 1, 3); // adjacent row, 2 cols away
+    const farRow = place(s, "bore_smith", "P2", 0, 1); // two rows away — also P2 home
+    expect(canTarget(s, melee, beside)).toBe(true);
+    expect(canTarget(s, melee, diagonal)).toBe(true);
+    expect(canTarget(s, melee, farCol)).toBe(false); // no cross-board lunges
+    expect(canTarget(s, melee, farRow)).toBe(false);
   });
 
   it("ranged hits any slot (columns never matter)", () => {
@@ -36,8 +38,8 @@ describe("Home Slot Targeting Rule", () => {
 
   it("from a Mid row (or inside the enemy Home row) the enemy Home is targetable", () => {
     const s = prepState();
-    const inMid = place(s, "leaf_fallona", "P1", 2, 0);
-    const inTheirHome = place(s, "pyro_firebird", "P1", 0, 3);
+    const inMid = place(s, "leaf_fallona", "P1", 2, 0); // ranged
+    const inTheirHome = place(s, "pyro_firebird", "P1", 0, 1); // melee, beside the sitter
     const homeSitter = place(s, "dusk_gool", "P2", 0, 0);
     expect(canTarget(s, inMid, homeSitter)).toBe(true);
     expect(canTarget(s, inTheirHome, homeSitter)).toBe(true);
@@ -46,7 +48,7 @@ describe("Home Slot Targeting Rule", () => {
   it("an invader in MY home row is targetable from my home row (not an opp-home slot)", () => {
     const s = prepState();
     const defender = place(s, "leaf_alpha", "P1", 3, 0);
-    const invader = place(s, "dusk_vamp", "P2", 3, 2); // standing on P1 home
+    const invader = place(s, "dusk_vamp", "P2", 3, 1); // standing on P1 home, beside us
     expect(canTarget(s, defender, invader)).toBe(true);
   });
 });
