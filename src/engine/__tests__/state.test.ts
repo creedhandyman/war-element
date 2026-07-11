@@ -5,7 +5,7 @@ import { createInitialState } from "../state";
 import { applyIntent, advance, advanceUntilInput } from "../phases";
 import { CARDS, DECK_P1, DECK_P2 } from "../../data/cards";
 import { HAND_CAP } from "../types";
-import { freshGame } from "./helpers";
+import { freshGame, giveHand } from "./helpers";
 
 describe("setup", () => {
   it("deals 5-card opening hands from 17-card decks", () => {
@@ -80,11 +80,12 @@ describe("mulligan", () => {
     s = advanceUntilInput(s); // AI mulligans, draw + resource resolve
     expect(s.round).toBe(1);
     expect(s.phase).toBe("prep");
-    // round 1: drew 1 (hand 6), pool 1. (P2 may already have spent its pool
-    // if it won the coin flip and summoned before passing priority.)
+    // round 1: drew 1 (hand 6), summon pool 1, magic starts at 3. (P2 may
+    // already have spent its summon pool if it won the coin flip.)
     expect(s.players.P1.hand).toHaveLength(6);
-    expect(s.players.P1.pool).toBe(1);
-    expect(s.players.P2.pool).toBeLessThanOrEqual(1);
+    expect(s.players.P1.summonPool).toBe(1);
+    expect(s.players.P1.magicPool).toBe(3);
+    expect(s.players.P2.summonPool).toBeLessThanOrEqual(1);
   });
 });
 
@@ -124,22 +125,51 @@ describe("draw math", () => {
   });
 });
 
-describe("resource math", () => {
-  it("gains min(round, 10)", () => {
+describe("resource math (two pools)", () => {
+  it("summon pool gains min(round, 10); magic gains +1 from round 2", () => {
     const s = freshGame(9);
     s.phase = "resource";
     s.round = 12;
-    s.players.P1.pool = 0;
+    s.players.P1.summonPool = 0;
+    s.players.P1.magicPool = 3;
     const next = advance(s);
-    expect(next.players.P1.pool).toBe(10);
+    expect(next.players.P1.summonPool).toBe(10);
+    expect(next.players.P1.magicPool).toBe(4);
   });
 
-  it("caps carryover at 10 before the gain", () => {
+  it("magic starts at 3 and does NOT gain on round 1", () => {
+    const s = freshGame(9);
+    expect(s.players.P1.magicPool).toBe(3);
+    s.phase = "resource";
+    s.round = 1;
+    const next = advance(s);
+    expect(next.players.P1.magicPool).toBe(3);
+    expect(next.players.P1.summonPool).toBe(1);
+  });
+
+  it("both pools cap carryover at 10 before the gain", () => {
     const s = freshGame(9);
     s.phase = "resource";
     s.round = 3;
-    s.players.P1.pool = 14; // carryover clamps to 10
+    s.players.P1.summonPool = 14; // carryover clamps to 10
+    s.players.P1.magicPool = 14;
     const next = advance(s);
-    expect(next.players.P1.pool).toBe(13);
+    expect(next.players.P1.summonPool).toBe(13);
+    expect(next.players.P1.magicPool).toBe(11);
+  });
+
+  it("the pools never drain each other", () => {
+    const s = freshGame(9);
+    s.players.P1.mulliganDone = true;
+    s.players.P2.mulliganDone = true;
+    s.round = 4;
+    s.phase = "prep";
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    s.players.P1.summonPool = 5;
+    s.players.P1.magicPool = 5;
+    const handId = giveHand(s, "P1", "leaf_greegon"); // cost 3
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(next.players.P1.summonPool).toBe(2);
+    expect(next.players.P1.magicPool).toBe(5); // untouched
   });
 });

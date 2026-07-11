@@ -58,10 +58,13 @@ export interface StatusEffect {
 
 export interface SpecialDef {
   name: string;
-  cost: number; // paid from the shared pool in Battle Phase
+  cost: number; // paid from the MAGIC pool in Battle Phase
   handler: string; // key into the handler registry in combat.ts
   params?: Record<string, number | string>;
   targetSide: "enemy" | "ally";
+  /** Rounds locked out after firing. Omit for the standard 1-round floor;
+   *  a card may print a longer cooldown (2/3/5). */
+  cooldown?: number;
   text: string; // human-readable card text
 }
 
@@ -124,7 +127,13 @@ export interface HandCard {
 export interface PlayerState {
   deck: string[]; // defIds, top of deck = index 0
   hand: HandCard[];
-  pool: number;
+  /** Summon pool: gains = round # each round (cap 10 carryover). Pays for
+   *  summoning Champions only. */
+  summonPool: number;
+  /** Magic pool: starts at 3, +1 per round from round 2 (cap 10 carryover).
+   *  Pays for Specials (and, post-alpha, Spells). Never drains the summon
+   *  pool and vice-versa. */
+  magicPool: number;
   mulliganDone: boolean;
 }
 

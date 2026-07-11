@@ -18,7 +18,7 @@ function battleWith(s: GameState, activeId: string): GameState {
 describe("firing specials", () => {
   it("strike: damage + status + self-heal, and the pool is spent", () => {
     const s = prepState();
-    s.players.P1.pool = 5;
+    s.players.P1.magicPool = 5;
     const a = place(s, "leaf_sumerose", "P1", 2, 0, { curHp: 8, maxHp: 13 }); // Siphoning Slash cost 3
     const t = place(s, "bore_armadillo", "P2", 1, 0, { curHp: 15, curShields: 4 });
     const next = applyIntent(battleWith(s, a.instanceId), {
@@ -33,12 +33,12 @@ describe("firing specials", () => {
     expect(target.curShields).toBe(4);
     expect(target.status?.kind).toBe("BLEED");
     expect(next.cards[a.instanceId].curHp).toBe(11); // healed 3
-    expect(next.players.P1.pool).toBe(2);
+    expect(next.players.P1.magicPool).toBe(2);
   });
 
   it("barrage: hits up to N targets", () => {
     const s = prepState();
-    s.players.P1.pool = 5;
+    s.players.P1.magicPool = 5;
     const a = place(s, "leaf_fallona", "P1", 2, 0); // Leaf Storm: 2 dmg, 3 targets, cost 2
     const t1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
     const t2 = place(s, "dusk_ghastly", "P2", 1, 1, { curHp: 19 });
@@ -56,7 +56,7 @@ describe("firing specials", () => {
 
   it("barrage multi-selection: strikes exactly the picked targets, stacking repeats", () => {
     const s = prepState();
-    s.players.P1.pool = 5;
+    s.players.P1.magicPool = 5;
     const sol = place(s, "pyro_sol", "P1", 2, 0); // Pyro Ball Barrage: 3 dmg, up to 4 targets
     const t1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
     const t2 = place(s, "dusk_ghastly", "P2", 1, 1, { curHp: 19 });
@@ -75,7 +75,7 @@ describe("firing specials", () => {
 
   it("barrage rejects more picks than the special allows", () => {
     const s = prepState();
-    s.players.P1.pool = 5;
+    s.players.P1.magicPool = 5;
     const fallona = place(s, "leaf_fallona", "P1", 2, 0); // Leaf Storm: up to 3 targets
     const t = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
     expect(() =>
@@ -136,7 +136,7 @@ describe("firing specials", () => {
 
   it("statusNova: SLEEPs up to 2 targets; sleepers skip their turns", () => {
     const s = prepState();
-    s.players.P2.pool = 9;
+    s.players.P2.magicPool = 9;
     const sandman = place(s, "bore_sandman", "P2", 1, 0); // Nightmare cost 4
     const v1 = place(s, "leaf_alpha", "P1", 2, 0);
     const v2 = place(s, "leaf_greegon", "P1", 2, 1);
@@ -168,7 +168,7 @@ describe("firing specials", () => {
 
   it("drainMax: Haunt permanently steals max HP and gains shields", () => {
     const s = prepState();
-    s.players.P2.pool = 4;
+    s.players.P2.magicPool = 4;
     const haunt = place(s, "dusk_haunt", "P2", 1, 0); // Jacked: drain 5, +3 shields
     const fat = place(s, "leaf_greegon", "P1", 2, 0, { curHp: 15, maxHp: 17 });
     place(s, "leaf_nettle", "P1", 2, 1, { curHp: 7, maxHp: 7 }); // skinnier bystander
@@ -180,12 +180,12 @@ describe("firing specials", () => {
     expect(target.curHp).toBe(12); // clamped down to the new max
     expect(next.cards[haunt.instanceId].maxHp).toBe(18); // 13 + 5 stolen
     expect(next.cards[haunt.instanceId].curShields).toBe(3);
-    expect(next.players.P2.pool).toBe(2);
+    expect(next.players.P2.magicPool).toBe(2);
   });
 
   it("grantShield: Smith reinforces an ally", () => {
     const s = prepState();
-    s.players.P1.pool = 4;
+    s.players.P1.magicPool = 4;
     const smith = place(s, "bore_smith", "P1", 3, 0);
     const ally = place(s, "leaf_greegon", "P1", 2, 0, { curShields: 0 });
     place(s, "dusk_gool", "P2", 0, 1);
@@ -196,14 +196,14 @@ describe("firing specials", () => {
       targetId: ally.instanceId,
     });
     expect(next.cards[ally.instanceId].curShields).toBe(2);
-    expect(next.players.P1.pool).toBe(2);
+    expect(next.players.P1.magicPool).toBe(2);
   });
 });
 
 describe("special legality", () => {
   it("multiple cards may each fire a Special in the same round if the pool affords it", () => {
     const s = prepState();
-    s.players.P1.pool = 3; // Web Snare (1) + Leaf Storm (2) = exactly affordable
+    s.players.P1.magicPool = 3; // Web Snare (1) + Leaf Storm (2) = exactly affordable
     const silk = place(s, "dusk_silkstalker", "P1", 2, 0); // Web Snare, cost 1
     const fallona = place(s, "leaf_fallona", "P1", 2, 1); // Leaf Storm, cost 2
     const t = place(s, "bore_smith", "P2", 1, 0, { curHp: 11, curShields: 0 });
@@ -219,7 +219,7 @@ describe("special legality", () => {
       action: "special",
       targetId: t.instanceId,
     });
-    expect(g.players.P1.pool).toBe(2);
+    expect(g.players.P1.magicPool).toBe(2);
     // second card, same round: its own Special is fresh — only the pool gates it
     g.battle!.awaitingInput = fallona.instanceId;
     expect(canFireSpecial(g, fallona.instanceId).ok).toBe(true);
@@ -229,7 +229,7 @@ describe("special legality", () => {
       action: "special",
       targetId: t.instanceId,
     });
-    expect(g.players.P1.pool).toBe(0);
+    expect(g.players.P1.magicPool).toBe(0);
     expect(g.cards[t.instanceId].curHp).toBe(2); // 11 − 7 (Web Snare) − 2 (Leaf Storm)
     // and both cards are now individually recharging
     expect(g.cards[silk.instanceId].specialCooldown).toBe(2);
@@ -238,7 +238,7 @@ describe("special legality", () => {
 
   it("one-round cooldown: fire -> blocked next round -> available the round after", () => {
     const s = prepState();
-    s.players.P1.pool = 9;
+    s.players.P1.magicPool = 9;
     const a = place(s, "leaf_fallona", "P1", 2, 0); // Leaf Storm cost 2
     place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
     place(s, "leaf_alpha", "P1", 3, 0); // keeps P1 alive on board
@@ -261,7 +261,7 @@ describe("special legality", () => {
 
   it("summon-turn lockout: no Special the round a card lands", () => {
     const s = prepState();
-    s.players.P1.pool = 9;
+    s.players.P1.magicPool = 9;
     const a = place(s, "leaf_fallona", "P1", 3, 0, { summonedThisRound: true });
     place(s, "dusk_gool", "P2", 1, 0);
     expect(canFireSpecial(s, a.instanceId).ok).toBe(false);
@@ -273,7 +273,7 @@ describe("special legality", () => {
 
   it("rejects when the pool can't cover the cost", () => {
     const s = prepState();
-    s.players.P1.pool = 1;
+    s.players.P1.magicPool = 1;
     const a = place(s, "leaf_fallona", "P1", 3, 0); // Leaf Storm cost 2
     place(s, "dusk_gool", "P2", 1, 0);
     expect(canFireSpecial(s, a.instanceId).ok).toBe(false);
@@ -281,7 +281,7 @@ describe("special legality", () => {
 
   it("rejects when MUTED and when no valid target exists", () => {
     const s = prepState();
-    s.players.P1.pool = 9;
+    s.players.P1.magicPool = 9;
     const muted = place(s, "leaf_fallona", "P1", 3, 0, {
       status: { kind: "MUTED", duration: 1, power: 0, source: "BOLT" },
     });
@@ -289,7 +289,7 @@ describe("special legality", () => {
     expect(canFireSpecial(s, muted.instanceId).ok).toBe(false);
 
     const s2 = prepState();
-    s2.players.P1.pool = 9;
+    s2.players.P1.magicPool = 9;
     const alone = place(s2, "leaf_fallona", "P1", 3, 0);
     place(s2, "dusk_gool", "P2", 0, 0); // enemy home camper — unreachable from own home
     expect(canFireSpecial(s2, alone.instanceId).ok).toBe(false);
@@ -297,7 +297,7 @@ describe("special legality", () => {
 
   it("STUN blocks acting entirely (attack, Special — and movement in prep)", () => {
     const s = prepState();
-    s.players.P1.pool = 9;
+    s.players.P1.magicPool = 9;
     const stunned = place(s, "leaf_fallona", "P1", 2, 0, {
       status: { kind: "STUN", duration: 1, power: 0, source: "GALE" },
     });

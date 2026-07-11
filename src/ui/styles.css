@@ -115,8 +115,9 @@ button { font-family: inherit; }
 
 /* ===== bottom bar ===== */
 .bottom { grid-column: 1/4; display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 12px; padding: 8px 14px; min-height: 118px; }
-.resource { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-radius: 12px; background: var(--void-2); border: 1px solid var(--panel-line); flex: none; }
-.res-num { font-size: 40px; font-weight: 900; color: var(--your-home-glow); line-height: 1; min-width: 48px; text-align: center; text-shadow: 0 0 18px rgba(255, 206, 107, 0.35); }
+.resource { display: flex; align-items: center; gap: 16px; padding: 8px 16px; border-radius: 12px; background: var(--void-2); border: 1px solid var(--panel-line); flex: none; text-align: center; }
+.res-num { font-size: 34px; font-weight: 900; color: var(--your-home-glow); line-height: 1; min-width: 44px; text-align: center; text-shadow: 0 0 18px rgba(255, 206, 107, 0.35); }
+.res-num.magic { color: var(--accent); text-shadow: 0 0 18px rgba(167, 139, 250, 0.4); }
 .res-lbl { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); font-weight: 700; line-height: 1.4; }
 .res-opp { font-size: 10px; color: var(--ink-faint); font-weight: 700; }
 

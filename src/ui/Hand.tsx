@@ -22,7 +22,7 @@ export function Hand(props: {
       <div className="hand-cards">
         {p1.hand.map((h) => {
           const def = getDef(h.defId);
-          const affordable = def.cost <= p1.pool;
+          const affordable = def.cost <= p1.summonPool;
           const cls = [
             "hcard",
             myPrep && affordable ? "summonable" : "",

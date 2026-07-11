@@ -33,8 +33,8 @@ export function canSummon(
   const hand = state.players[player].hand.find((h) => h.handId === handId);
   if (!hand) return { ok: false, reason: "Card not in hand" };
   const def = getDef(hand.defId);
-  if (def.cost > state.players[player].pool)
-    return { ok: false, reason: "Not enough resources" };
+  if (def.cost > state.players[player].summonPool)
+    return { ok: false, reason: "Not enough summon resources" };
   const row = homeRow(player);
   if (col < 0 || col >= BOARD_SIZE) return { ok: false, reason: "Bad column" };
   if (isCaptured(state, row, col))
@@ -185,8 +185,8 @@ export function canFireSpecial(
     return { ok: false, reason: "Special is recharging (1-round cooldown)" };
   if (card.status?.kind === "MUTED") return { ok: false, reason: "MUTED" };
   if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
-  if (state.players[card.owner].pool < def.special.cost)
-    return { ok: false, reason: "Not enough resources" };
+  if (state.players[card.owner].magicPool < def.special.cost)
+    return { ok: false, reason: "Not enough magic" };
   const targets =
     def.special.targetSide === "ally"
       ? validAllyTargets(state, instanceId)

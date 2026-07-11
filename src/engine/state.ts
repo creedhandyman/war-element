@@ -44,7 +44,7 @@ export function createInitialState(seed: number): GameState {
 }
 
 function emptyPlayer(deck: string[]): PlayerState {
-  return { deck, hand: [], pool: 0, mulliganDone: false };
+  return { deck, hand: [], summonPool: 0, magicPool: 3, mulliganDone: false };
 }
 
 /** Draw up to n cards; at the hand cap the excess stays in the deck. */

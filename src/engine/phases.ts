@@ -60,7 +60,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       const hand = p.hand.find((h) => h.handId === intent.handId)!;
       const def = getDef(hand.defId);
       p.hand = p.hand.filter((h) => h.handId !== intent.handId);
-      p.pool -= def.cost;
+      p.summonPool -= def.cost;
       const inst = summonCard(draft, intent.player, hand.defId, {
         row: homeRow(intent.player),
         col: intent.col as 0 | 1 | 2 | 3,
@@ -143,12 +143,19 @@ function doDrawPhase(draft: GameState): void {
 }
 
 function doResourcePhase(draft: GameState): void {
+  // Two independent pools: summon = round # each round; magic starts at 3
+  // and gains +1 from round 2 on. Both cap unspent carryover at 10.
   const gain = Math.min(draft.round, 10);
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const p = draft.players[player];
-    p.pool = Math.min(p.pool, POOL_CARRYOVER_CAP) + gain;
+    p.summonPool = Math.min(p.summonPool, POOL_CARRYOVER_CAP) + gain;
+    if (draft.round > 1) {
+      p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + 1;
+    }
   }
-  draft.log.push(`— Round ${draft.round}: both pools +${gain}. —`);
+  draft.log.push(
+    `— Round ${draft.round}: summon +${gain}${draft.round > 1 ? ", magic +1" : ""}. —`,
+  );
   draft.phase = "prep";
   draft.prep = {
     priority: draft.firstPlayer,
@@ -221,8 +228,10 @@ function performBattleAction(
     } else {
       targets = valid;
     }
-    draft.players[card.owner].pool -= special.cost;
-    card.specialCooldown = 2; // ticks down each Cleanup → blocked next round
+    draft.players[card.owner].magicPool -= special.cost;
+    // 1-round floor; a printed longer cooldown overrides (+1 because the
+    // current round's Cleanup ticks it once).
+    card.specialCooldown = (special.cooldown ?? 1) + 1;
     card.attackedThisRound = true; // STEALTH breaks on any attack
     draft.log.push(`${label(draft, card)} fires ${special.name}!`);
     const handler = SPECIAL_HANDLERS[special.handler];

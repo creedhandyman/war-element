@@ -21,7 +21,7 @@ describe("AI heuristics", () => {
 
   it("summons the highest-cost affordable card, then eventually passes", () => {
     let s = prepState(5, "P2");
-    s.players.P2.pool = 4;
+    s.players.P2.summonPool = 4;
     // run AI intents until it passes; every one must apply without throwing
     for (let i = 0; i < 20; i++) {
       const intent = aiPrepIntent(s, "P2");
@@ -37,7 +37,7 @@ describe("AI heuristics", () => {
     const defender = place(s, "dusk_ghastly", "P2", 1, 0); // ranged, dmg 7
     const invader = place(s, "leaf_stickviper", "P1", 0, 3, { curHp: 3 }); // on P2 home!
     place(s, "leaf_greegon", "P1", 1, 1, { curHp: 2 }); // juicier kill elsewhere
-    s.players.P2.pool = 0; // no special
+    s.players.P2.magicPool = 0; // no special
     const choice = chooseBattleAction(s, defender.instanceId);
     expect(choice.action).toBe("basic");
     expect(choice.targetId).toBe(invader.instanceId);
@@ -45,7 +45,7 @@ describe("AI heuristics", () => {
 
   it("fires a kill-securing special it can afford", () => {
     const s = prepState();
-    s.players.P2.pool = 5;
+    s.players.P2.magicPool = 5;
     const ghastly = place(s, "dusk_ghastly", "P2", 1, 0); // Phantom Gouge: 3 PEN ×3 targets
     place(s, "bore_armadillo", "P1", 2, 0); // decoy so it's a real choice
     const shielded = place(s, "leaf_greegon", "P1", 2, 1, { curHp: 2, curShields: 5 });
@@ -92,8 +92,10 @@ describe("full AI-vs-AI matches (integration)", () => {
       seen.add(key);
       expect(c.curHp).toBeGreaterThan(0);
     }
-    expect(s.players.P1.pool).toBeGreaterThanOrEqual(0);
-    expect(s.players.P2.pool).toBeGreaterThanOrEqual(0);
+    expect(s.players.P1.summonPool).toBeGreaterThanOrEqual(0);
+    expect(s.players.P2.summonPool).toBeGreaterThanOrEqual(0);
+    expect(s.players.P1.magicPool).toBeGreaterThanOrEqual(0);
+    expect(s.players.P2.magicPool).toBeGreaterThanOrEqual(0);
     expect(s.players.P1.hand.length).toBeLessThanOrEqual(7);
     expect(s.players.P2.hand.length).toBeLessThanOrEqual(7);
   }
@@ -141,8 +143,8 @@ describe("AI vision (fog of war)", () => {
     const b = structuredClone(a);
     b.players.P1.hand = [];
     b.players.P1.deck = [];
-    a.players.P2.pool = 3;
-    b.players.P2.pool = 3;
+    a.players.P2.summonPool = 3;
+    b.players.P2.summonPool = 3;
     expect(aiPrepIntent(a, "P2")).toEqual(aiPrepIntent(b, "P2"));
   });
 

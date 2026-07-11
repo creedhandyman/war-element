@@ -111,8 +111,8 @@ export function App() {
       return;
     }
     const def = getDef(game.players.P1.hand.find((h) => h.handId === handId)!.defId);
-    if (def.cost > game.players.P1.pool) {
-      setHint(`⚠ Not enough resources for ${def.name} (cost ${def.cost}).`);
+    if (def.cost > game.players.P1.summonPool) {
+      setHint(`⚠ Not enough summon resources for ${def.name} (cost ${def.cost}).`);
       return;
     }
     setSel({ kind: "hand", handId });
