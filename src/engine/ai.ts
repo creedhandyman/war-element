@@ -318,7 +318,8 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
         return { action: "special", targetId: kill?.instanceId ?? targets[0]?.instanceId };
       }
     } else if (sp.handler === "statusNova") {
-      const fresh = targets.filter((t) => !t.status);
+      const novaKind = String(params.statusKind ?? "");
+      const fresh = targets.filter((t) => !t.statuses.some((st) => st.kind === novaKind));
       if (fresh.length >= 2 || (rich && fresh.length >= 1)) {
         return { action: "special", targetId: fresh[0].instanceId };
       }

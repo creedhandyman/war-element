@@ -274,7 +274,8 @@ function stepBattle(draft: GameState): boolean {
 
   // SLEEP is a full skip — only being hit wakes the sleeper (combat.ts).
   if (isActionBlocked(card)) {
-    draft.log.push(`${label(draft, card)} can't act (${card.status?.kind}).`);
+    const blocker = card.statuses.find((s) => s.kind === "STUN" || s.kind === "SLEEP");
+    draft.log.push(`${label(draft, card)} can't act (${blocker?.kind}).`);
     battle.index++;
     return true;
   }
@@ -341,19 +342,21 @@ function doCleanupPhase(draft: GameState): void {
 
   // 1. DOT — bypasses shields, straight to HP, no shield stripped…
   //    with one exception: BURN also strips 1 shield per tick (PYRO's shred).
+  //    Different DOT kinds coexist and each ticks (BLEED + BURN both hurt).
   for (const card of boardCards(draft)) {
-    const s = card.status;
-    if (!s) continue;
-    if (s.kind === "BLEED" || s.kind === "BURN" || s.kind === "SCALD" || s.kind === "DOT") {
-      card.curHp -= s.power;
-      draft.log.push(`${label(draft, card)} takes ${s.power} ${s.kind} damage.`);
-      if (s.kind === "BURN" && card.curShields > 0) {
-        card.curShields--;
-        draft.log.push(`${label(draft, card)}'s shields melt (−1).`);
-      }
-      if (card.curHp <= 0) {
-        draft.log.push(`${label(draft, card)} is defeated (${s.kind}).`);
-        removeCard(draft, card.instanceId);
+    for (const s of card.statuses) {
+      if (s.kind === "BLEED" || s.kind === "BURN" || s.kind === "SCALD" || s.kind === "DOT") {
+        card.curHp -= s.power;
+        draft.log.push(`${label(draft, card)} takes ${s.power} ${s.kind} damage.`);
+        if (s.kind === "BURN" && card.curShields > 0) {
+          card.curShields--;
+          draft.log.push(`${label(draft, card)}'s shields melt (−1).`);
+        }
+        if (card.curHp <= 0) {
+          draft.log.push(`${label(draft, card)} is defeated (${s.kind}).`);
+          removeCard(draft, card.instanceId);
+          break; // no further ticks on a dead card
+        }
       }
     }
   }
@@ -375,9 +378,8 @@ function doCleanupPhase(draft: GameState): void {
 
   // 3. Status durations tick down; expired statuses removed.
   for (const card of boardCards(draft)) {
-    if (!card.status) continue;
-    card.status.duration--;
-    if (card.status.duration <= 0) card.status = null;
+    for (const s of card.statuses) s.duration--;
+    card.statuses = card.statuses.filter((s) => s.duration > 0);
   }
 
   // 4. Clear round flags (STEALTH re-engages; summon lockout ends;

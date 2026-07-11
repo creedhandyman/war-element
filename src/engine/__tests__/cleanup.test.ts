@@ -20,6 +20,25 @@ describe("cleanup phase", () => {
     expect(after.curShields).toBe(4);
   });
 
+  it("different DOTs coexist and BOTH tick (BLEED + BURN)", () => {
+    const s = prepState();
+    const t = place(s, "bore_armadillo", "P2", 0, 0, {
+      curHp: 15,
+      maxHp: 15,
+      curShields: 2,
+    });
+    t.statuses = [
+      { kind: "BLEED", duration: 2, power: 2, source: "LEAF" },
+      { kind: "BURN", duration: 2, power: 3, source: "PYRO" },
+    ];
+    place(s, "leaf_alpha", "P1", 3, 0);
+    const next = advance(atCleanup(s));
+    const after = next.cards[t.instanceId];
+    expect(after.curHp).toBe(10); // 15 − 2 (BLEED) − 3 (BURN)
+    expect(after.curShields).toBe(1); // only BURN melts a shield
+    expect(after.statuses).toHaveLength(2); // both ticked down to 1 round left
+  });
+
   it("BURN is the exception: its tick also melts 1 shield", () => {
     const s = prepState();
     const t = place(s, "bore_armadillo", "P2", 0, 0, {
@@ -81,8 +100,8 @@ describe("cleanup phase", () => {
     });
     place(s, "dusk_gool", "P2", 0, 1);
     const next = advance(atCleanup(s));
-    expect(next.cards[oneRound.instanceId].status).toBeNull();
-    expect(next.cards[twoRounds.instanceId].status?.duration).toBe(1);
+    expect(next.cards[oneRound.instanceId].statuses).toHaveLength(0);
+    expect(next.cards[twoRounds.instanceId].statuses[0]?.duration).toBe(1);
   });
 
   it("clears summonedThisRound and re-engages STEALTH (attackedThisRound)", () => {

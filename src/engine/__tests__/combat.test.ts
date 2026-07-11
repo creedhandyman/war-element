@@ -146,17 +146,23 @@ describe("on-hit keywords", () => {
     expect(a.curHp).toBe(13); // one landed hit → REFLECT 1 back
   });
 
-  it("basic-attack status rider applies on a landed hit (newest overwrites)", () => {
+  it("different status kinds coexist; re-applying the same kind refreshes it", () => {
     const s = duel();
-    const a = place(s, "leaf_stickviper", "P1", 2, 0); // BLEED 2 on hit
+    const a = place(s, "leaf_stickviper", "P1", 2, 0); // BLEED 2 (2r) on hit
     const t = place(s, "dusk_gool", "P2", 2, 1, {
       curHp: 13,
       maxHp: 13,
       status: { kind: "FRIGHTEN", duration: 2, power: 0, source: "DUSK" },
     });
     basicAttack(s, a.instanceId, t.instanceId);
-    expect(t.status?.kind).toBe("BLEED"); // overwrote FRIGHTEN — 1 status max
-    expect(t.status?.power).toBe(2);
+    // BLEED joins FRIGHTEN — different kinds stack side by side
+    expect(t.statuses.map((x) => x.kind).sort()).toEqual(["BLEED", "FRIGHTEN"]);
+    // tick BLEED down, then hit again: same kind REFRESHES (no second entry)
+    t.statuses.find((x) => x.kind === "BLEED")!.duration = 1;
+    basicAttack(s, a.instanceId, t.instanceId);
+    const bleeds = t.statuses.filter((x) => x.kind === "BLEED");
+    expect(bleeds).toHaveLength(1);
+    expect(bleeds[0].duration).toBe(2); // refreshed back to the rider's 2 rounds
   });
 
   it("on-death retaliation: Widowbite's Lingering Venom hits the killer for 10 PEN", () => {

@@ -9,6 +9,7 @@ import type {
   PlayerId,
   PlayerState,
   Pos,
+  StatusKind,
 } from "./types";
 import { BOARD_SIZE, HAND_CAP, OPENING_HAND, enemyOf, homeRow } from "./types";
 
@@ -105,11 +106,15 @@ export function isCaptured(state: GameState, row: number, col: number): boolean 
   return state.slots[row][col].capturedBy !== null;
 }
 
+/** Does the card currently carry a status of this kind? */
+export function hasStatus(card: CardInstance, kind: StatusKind): boolean {
+  return card.statuses.some((s) => s.kind === kind);
+}
+
 /** Effective speed: ROOT and FREEZE pin SP to 0. */
 export function effectiveSp(_state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
-  if (card.status && (card.status.kind === "ROOT" || card.status.kind === "FREEZE"))
-    return 0;
+  if (hasStatus(card, "ROOT") || hasStatus(card, "FREEZE")) return 0;
   return def.sp;
 }
 
@@ -122,8 +127,8 @@ export function effectiveSp(_state: GameState, card: CardInstance): number {
 export function effectiveDmg(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   let dmg = def.dmg + card.dmgBonus;
-  if (card.status?.kind === "WEAKEN") dmg = Math.floor(dmg * 0.75);
-  if (card.status?.kind === "FREEZE") dmg = Math.floor(dmg * 0.5);
+  if (hasStatus(card, "WEAKEN")) dmg = Math.floor(dmg * 0.75);
+  if (hasStatus(card, "FREEZE")) dmg = Math.floor(dmg * 0.5);
   if (card.pos && (card.pos.row === 1 || card.pos.row === 2)) dmg += 1;
   for (const midRow of [1, 2]) {
     let held = 0;
@@ -161,7 +166,7 @@ export function summonCard(
     maxHp: def.hp,
     curShields: def.shields,
     dmgBonus: 0,
-    status: null,
+    statuses: [],
     summonedThisRound: true,
     specialCooldown: 0,
     attackedThisRound: false,

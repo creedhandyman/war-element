@@ -6,6 +6,7 @@ import {
   boardCards,
   cardAt,
   effectiveSp,
+  hasStatus,
   isCaptured,
   isContested,
   manhattan,
@@ -59,9 +60,9 @@ export function canMove(
   const card = state.cards[instanceId];
   if (!card || !card.pos) return { ok: false, reason: "No such card on board" };
   if (card.owner !== player) return { ok: false, reason: "Not your card" };
-  if (card.status?.kind === "STUN")
+  if (hasStatus(card, "STUN"))
     return { ok: false, reason: "STUNNED — no attack, move, or Special" };
-  if (card.status?.kind === "FRIGHTEN")
+  if (hasStatus(card, "FRIGHTEN"))
     return { ok: false, reason: "FRIGHTENED — cannot move" };
   const reach = moveReach(effectiveSp(state, card));
   if (reach === 0) return { ok: false, reason: "This card can't move (SP 0)" };
@@ -160,8 +161,7 @@ export function validAllyTargets(state: GameState, attackerId: string): CardInst
  * PARALYZE is a per-turn coin resolved at act time.)
  */
 export function isActionBlocked(card: CardInstance): boolean {
-  const k = card.status?.kind;
-  return k === "STUN" || k === "SLEEP";
+  return hasStatus(card, "STUN") || hasStatus(card, "SLEEP");
 }
 
 export function canBasicAttack(state: GameState, instanceId: string): boolean {
@@ -183,7 +183,7 @@ export function canFireSpecial(
     return { ok: false, reason: "Summon-turn lockout (basic attack only)" };
   if (card.specialCooldown > 0)
     return { ok: false, reason: "Special is recharging (1-round cooldown)" };
-  if (card.status?.kind === "MUTED") return { ok: false, reason: "MUTED" };
+  if (hasStatus(card, "MUTED")) return { ok: false, reason: "MUTED" };
   if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
   if (state.players[card.owner].magicPool < def.special.cost)
     return { ok: false, reason: "Not enough magic" };

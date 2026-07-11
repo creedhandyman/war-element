@@ -31,7 +31,7 @@ describe("firing specials", () => {
     const target = next.cards[t.instanceId];
     expect(target.curHp).toBe(12);
     expect(target.curShields).toBe(4);
-    expect(target.status?.kind).toBe("BLEED");
+    expect(target.statuses[0]?.kind).toBe("BLEED");
     expect(next.cards[a.instanceId].curHp).toBe(11); // healed 3
     expect(next.players.P1.magicPool).toBe(2);
   });
@@ -143,12 +143,12 @@ describe("firing specials", () => {
     s.phase = "battle";
     s.battle = { queue: [sandman.instanceId, v1.instanceId], index: 0, awaitingInput: null };
     let next = advance(s); // AI acts: Nightmare is its best opener vs 2 fresh targets
-    expect(next.cards[v1.instanceId].status?.kind).toBe("SLEEP");
-    expect(next.cards[v2.instanceId].status?.kind).toBe("SLEEP");
+    expect(next.cards[v1.instanceId].statuses[0]?.kind).toBe("SLEEP");
+    expect(next.cards[v2.instanceId].statuses[0]?.kind).toBe("SLEEP");
     // the sleeper's turn: full skip, no wake coin — SLEEP persists
     next = advance(next);
     expect(next.battle?.index).toBe(2);
-    expect(next.cards[v1.instanceId].status?.kind).toBe("SLEEP");
+    expect(next.cards[v1.instanceId].statuses[0]?.kind).toBe("SLEEP");
   });
 
   it("any hit jolts a sleeper awake (SLEEP removed)", () => {
@@ -162,7 +162,7 @@ describe("firing specials", () => {
     s.battle = { queue: [striker.instanceId], index: 0, awaitingInput: null };
     const next = advance(s); // vamp attacks the sleeping Greegon
     expect(next.cards[sleeper.instanceId].curHp).toBeLessThan(17);
-    expect(next.cards[sleeper.instanceId].status).toBeNull();
+    expect(next.cards[sleeper.instanceId].statuses).toHaveLength(0);
     expect(next.log.some((l) => l.includes("jolted awake"))).toBe(true);
   });
 

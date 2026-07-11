@@ -109,7 +109,10 @@ export interface CardInstance {
   maxHp: number; // can grow/shrink via DRAIN
   curShields: number;
   dmgBonus: number; // permanent modifiers (DRAIN-adjacent effects; 0 in alpha)
-  status: StatusEffect | null; // max ONE status per card (newest overwrites)
+  /** Active statuses. DIFFERENT kinds coexist (a card can be ROOTed and
+   *  BURNing); re-applying the SAME kind refreshes it instead of stacking —
+   *  same-kind stacking only when a card explicitly states it (future flag). */
+  statuses: StatusEffect[];
   summonedThisRound: boolean; // summon-turn Special lockout
   /** Specials have a one-round cooldown: firing sets 2, Cleanup ticks it down,
    *  and the Special is blocked while > 0 (so: skip one full round between uses). */

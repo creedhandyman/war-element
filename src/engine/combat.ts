@@ -14,7 +14,7 @@
 
 import { getDef } from "../data/cards";
 import { chance, coin } from "./rng";
-import { cardAt, effectiveDmg, removeCard } from "./state";
+import { cardAt, effectiveDmg, hasStatus, removeCard } from "./state";
 import type {
   CardInstance,
   Element,
@@ -38,7 +38,11 @@ export interface AttackResult {
   attackerDied: boolean; // via REFLECT
 }
 
-/** Statuses: 1 per card, newest overwrites. */
+/**
+ * Statuses: different kinds coexist on one card; re-applying the SAME kind
+ * refreshes it (newest replaces) rather than stacking. Same-kind stacking
+ * is reserved for cards that explicitly state it (none in alpha).
+ */
 export function applyStatus(
   draft: GameState,
   target: CardInstance,
@@ -47,9 +51,12 @@ export function applyStatus(
   power: number,
   source: Element,
 ): void {
-  target.status = { kind, duration, power, source };
+  const fresh = { kind, duration, power, source };
+  const existing = target.statuses.findIndex((s) => s.kind === kind);
+  if (existing >= 0) target.statuses[existing] = fresh;
+  else target.statuses.push(fresh);
   draft.log.push(
-    `${label(draft, target)} is afflicted: ${kind}${power ? ` ${power}` : ""} (${duration}r).`,
+    `${label(draft, target)} is afflicted: ${kind}${power ? ` ${power}` : ""} (${duration}r)${existing >= 0 ? " (refreshed)" : ""}.`,
   );
   // FRIGHTEN is a positioning effect: forced retreat 1 slot back toward the
   // target's own home row, if that slot is open (can also push an invader
@@ -144,8 +151,8 @@ export function resolveHit(
       `${label(draft, attacker)} hits ${label(draft, target)} for ${result.totalToHp} (${result.landedHits} hit${result.landedHits > 1 ? "s" : ""}).`,
     );
     // Any hit wakes a sleeper (SLEEP removed the moment it's struck).
-    if (target.status?.kind === "SLEEP" && target.curHp > 0) {
-      target.status = null;
+    if (hasStatus(target, "SLEEP") && target.curHp > 0) {
+      target.statuses = target.statuses.filter((s) => s.kind !== "SLEEP");
       draft.log.push(`${label(draft, target)} is jolted awake!`);
     }
   }
@@ -237,12 +244,12 @@ export function basicAttack(
     landedHits: 0, dodgedHits: 0, totalToHp: 0, targetDied: false, attackerDied: false,
   };
   // BLIND: −50% accuracy → coin; a miss negates the whole attack, no strip.
-  if (attacker.status?.kind === "BLIND" && !coin(draft)) {
+  if (hasStatus(attacker, "BLIND") && !coin(draft)) {
     draft.log.push(`${label(draft, attacker)} misses (BLIND).`);
     return missed;
   }
   // PARALYZE: 50% chance to attack at all.
-  if (attacker.status?.kind === "PARALYZE" && !chance(draft, 50)) {
+  if (hasStatus(attacker, "PARALYZE") && !chance(draft, 50)) {
     draft.log.push(`${label(draft, attacker)} is paralyzed and can't attack.`);
     return missed;
   }

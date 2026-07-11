@@ -8,7 +8,13 @@ import type {
   GameState,
   PlayerId,
   Pos,
+  StatusEffect,
 } from "../types";
+
+/** The status entry of the given kind, or the first one. */
+export function statusOf(card: CardInstance, kind?: string): StatusEffect | undefined {
+  return kind ? card.statuses.find((s) => s.kind === kind) : card.statuses[0];
+}
 
 export function freshGame(seed = 42): GameState {
   return createInitialState(seed);
@@ -26,18 +32,22 @@ export function prepState(seed = 42, priority: PlayerId = "P1"): GameState {
   return s;
 }
 
-/** Place a card directly on the board (bypasses summon rules; not summon-locked). */
+/** Place a card directly on the board (bypasses summon rules; not summon-locked).
+ *  Accepts a `status` shorthand override — it becomes the card's one entry in
+ *  the `statuses` array. */
 export function place(
   state: GameState,
   defId: string,
   owner: PlayerId,
   row: number,
   col: number,
-  overrides: Partial<CardInstance> = {},
+  overrides: Partial<CardInstance> & { status?: StatusEffect } = {},
 ): CardInstance {
   const inst = summonCard(state, owner, defId, { row, col } as Pos);
   inst.summonedThisRound = false;
-  Object.assign(inst, overrides);
+  const { status, ...rest } = overrides;
+  Object.assign(inst, rest);
+  if (status) inst.statuses = [status];
   return inst;
 }
 

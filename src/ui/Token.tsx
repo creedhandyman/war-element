@@ -38,14 +38,16 @@ export function Token(props: {
       style={artStyle}
       title={def.special ? `${def.special.name}: ${def.special.text}` : def.name}
     >
-      {card.status && (
+      {card.statuses.map((s, i) => (
         <div
+          key={s.kind}
           className="status-pip"
-          title={`${card.status.kind} ${card.status.power || ""} — ${card.status.duration} round(s)`}
+          style={{ top: 24 + i * 18 }}
+          title={`${s.kind} ${s.power || ""} — ${s.duration} round(s)`}
         >
-          {card.status.kind.slice(0, 3)}·{card.status.duration}
+          {s.kind.slice(0, 3)}·{s.duration}
         </div>
-      )}
+      ))}
       <div className="tk-top">
         <div className="tk-cost">{def.cost}</div>
         <span className="el-dot" style={{ background: EL_COLOR[def.element] }} />
