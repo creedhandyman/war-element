@@ -71,10 +71,13 @@ replays exactly from its seed.
   Alpha's conditional lifesteal → plain LIFESTEAL; Granite Armadillo's
   Curl Up → BLOCK 2; Clubber's coin-flip reflect → REFLECT 1; Widowbite
   gets STEALTH (as in the UI mockup) in place of its on-death passive;
-  Rhe's Rigid Smash → 5 DMG + SLEEP one target; passives outside the
-  alpha surface (on-summon effects, conditional buffs) are dropped.
-  Pumpkin's Catapult and Haunt's Jacked are implemented for real
-  (`ignoresHomeRule` flag / `drainMax` handler).
+  Rhe's Rigid Smash → 5 DMG + SLEEP one target; conditional-buff passives
+  are dropped. Working passive surfaces: keywords, basic-attack status
+  riders (`onHitStatus`), on-death retaliation (`onDeath`), **on-summon
+  effects** (`onSummon` — free, fired through the same handler registry;
+  Flamehound's Fire Blast, Fenrir's Fury Unleashed), Pumpkin's Catapult
+  (`ignoresHomeRule`), and Haunt's Jacked (`drainMax` handler). Not yet:
+  on-kill, on-being-hit, start-of-round spawns, and auras beyond LEAF's.
 - **Specials have a one-round cooldown** (alpha balance change from the
   rules doc's no-cooldown wording — stops SLEEP/AOE spam): after firing,
   a card must sit out one full round before firing again.

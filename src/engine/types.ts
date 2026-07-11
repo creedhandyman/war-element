@@ -90,6 +90,12 @@ export interface CardDef {
    *  killed by an attack, deal dmg back to the killer. Direct damage — no
    *  evasion, no reflect chains. DOT/self-damage deaths have no killer. */
   onDeath?: { dmg: number; pen?: boolean };
+  /** On-summon passive (Fire Blast / Fury Unleashed): fires the moment the
+   *  card lands, through the same handler registry as Specials. Free — not a
+   *  Special, so no magic cost, no cooldown, no summon-turn lockout. Targets
+   *  obey normal targeting rules; params.rowAhead=1 limits them to the row
+   *  directly ahead of where it was summoned. */
+  onSummon?: { handler: string; params?: Record<string, number | string> };
   special?: SpecialDef;
   // future: spells / traps / talents / auras beyond the LEAF alpha aura
 }

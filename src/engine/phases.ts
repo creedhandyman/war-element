@@ -70,6 +70,21 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       draft.log.push(
         `${intent.player} summons ${def.name} (cost ${def.cost}) into column ${intent.col}.`,
       );
+      // On-summon passive: fires immediately, free, via the handler registry.
+      if (def.onSummon) {
+        const params = def.onSummon.params ?? {};
+        let targets = validTargets(draft, inst.instanceId);
+        if (Number(params.rowAhead ?? 0) > 0 && inst.pos) {
+          const ahead = inst.pos.row + (intent.player === "P1" ? -1 : 1);
+          targets = targets.filter((t) => t.pos!.row === ahead);
+        }
+        if (targets.length > 0) {
+          const handler = SPECIAL_HANDLERS[def.onSummon.handler];
+          if (!handler) throw new Error(`Unknown onSummon handler: ${def.onSummon.handler}`);
+          draft.log.push(`${def.name}'s on-summon passive triggers!`);
+          handler(draft, inst, targets, params);
+        }
+      }
       return draft;
     }
     case "MOVE": {

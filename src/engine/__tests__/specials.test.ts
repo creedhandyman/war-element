@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
 import { canFireSpecial } from "../rules";
-import { atCleanup, place, prepState, seedForCoins } from "./helpers";
+import { atCleanup, giveHand, place, prepState, seedForCoins } from "./helpers";
 import { advance } from "../phases";
 import type { GameState } from "../types";
 
@@ -197,6 +197,43 @@ describe("firing specials", () => {
     });
     expect(next.cards[ally.instanceId].curShields).toBe(2);
     expect(next.players.P1.magicPool).toBe(2);
+  });
+});
+
+describe("on-summon passives", () => {
+  it("Flamehound's Fire Blast hits the row directly ahead the moment it lands", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 5;
+    s.players.P1.magicPool = 4;
+    const ahead = place(s, "dusk_gool", "P2", 2, 3, { curHp: 13 }); // row ahead of P1 home
+    const behind = place(s, "dusk_ghastly", "P2", 1, 0, { curHp: 19 }); // NOT the row ahead
+    const handId = giveHand(s, "P1", "pyro_flamehound");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(next.cards[ahead.instanceId].curHp).toBe(10); // 3 DMG (ranged reaches any column)
+    expect(next.cards[behind.instanceId].curHp).toBe(19); // untouched
+    expect(next.players.P1.magicPool).toBe(4); // free — it's a passive, not a Special
+    expect(next.log.some((l) => l.includes("on-summon"))).toBe(true);
+  });
+
+  it("fires nothing when the row ahead is empty (summon still succeeds)", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 5;
+    place(s, "dusk_gool", "P2", 0, 0); // enemy home only — unreachable & not row-ahead
+    const handId = giveHand(s, "P1", "pyro_flamehound");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(next.cards).toBeTruthy();
+    expect(next.log.some((l) => l.includes("on-summon"))).toBe(false);
+  });
+
+  it("a melee on-summon (Fenrir) respects king reach — only the adjacent column", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 5;
+    const close = place(s, "dusk_gool", "P2", 2, 1, { curHp: 13 }); // within king reach of col 0
+    const far = place(s, "dusk_vamp", "P2", 2, 3, { curHp: 6 }); // same row, 3 columns away
+    const handId = giveHand(s, "P1", "pyro_fenrir");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(next.cards[close.instanceId].curHp).toBe(10);
+    expect(next.cards[far.instanceId].curHp).toBe(6); // out of melee reach
   });
 });
 

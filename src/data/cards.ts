@@ -24,6 +24,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 1,
     keywords: { LIFESTEAL: true },
+    onHitStatus: { kind: "BLEED", duration: 2, power: 1 }, // Blood Bloom
     special: {
       name: "Siphoning Slash",
       cost: 3,
@@ -212,6 +213,9 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: { FLYING: true },
+    // Fury Unleashed: on summon, 3 DMG to the row directly ahead (melee king
+    // reach applies, so it hits at most the adjacent-column card there).
+    onSummon: { handler: "barrage", params: { dmg: 3, targets: 4, rowAhead: 1 } },
     special: {
       name: "Inferno Pounce",
       cost: 3,
@@ -294,6 +298,8 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    // Fire Blast: on summon, deal 3 DMG to opponents in the row directly ahead.
+    onSummon: { handler: "barrage", params: { dmg: 3, targets: 4, rowAhead: 1 } },
   },
   {
     id: "pyro_spitfire",
