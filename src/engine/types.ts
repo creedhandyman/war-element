@@ -101,6 +101,9 @@ export interface CardInstance {
   dmgBonus: number; // permanent modifiers (DRAIN-adjacent effects; 0 in alpha)
   status: StatusEffect | null; // max ONE status per card (newest overwrites)
   summonedThisRound: boolean; // summon-turn Special lockout
+  /** Specials have a one-round cooldown: firing sets 2, Cleanup ticks it down,
+   *  and the Special is blocked while > 0 (so: skip one full round between uses). */
+  specialCooldown: number;
   attackedThisRound: boolean; // STEALTH break tracking; reset each Cleanup
   autoMode: AutoMode;
   pos: Pos | null; // null only transiently (never for a living board card)

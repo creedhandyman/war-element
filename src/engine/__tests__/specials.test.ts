@@ -105,6 +105,29 @@ describe("firing specials", () => {
 });
 
 describe("special legality", () => {
+  it("one-round cooldown: fire -> blocked next round -> available the round after", () => {
+    const s = prepState();
+    s.players.P1.pool = 9;
+    const a = place(s, "leaf_fallona", "P1", 2, 0); // Leaf Storm cost 2
+    place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
+    place(s, "leaf_alpha", "P1", 3, 0); // keeps P1 alive on board
+    let g = applyIntent(battleWith(s, a.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+    });
+    expect(g.cards[a.instanceId].specialCooldown).toBe(2);
+    // Cleanup of the round it fired: cooldown ticks to 1 -> still blocked next round.
+    g = advance(atCleanup(g));
+    expect(g.cards[a.instanceId].specialCooldown).toBe(1);
+    expect(canFireSpecial(g, a.instanceId).ok).toBe(false);
+    expect(canFireSpecial(g, a.instanceId).reason).toMatch(/recharging/i);
+    // Next Cleanup: cooldown expires -> available again.
+    g = advance(atCleanup(g));
+    expect(g.cards[a.instanceId].specialCooldown).toBe(0);
+    expect(canFireSpecial(g, a.instanceId).ok).toBe(true);
+  });
+
   it("summon-turn lockout: no Special the round a card lands", () => {
     const s = prepState();
     s.players.P1.pool = 9;

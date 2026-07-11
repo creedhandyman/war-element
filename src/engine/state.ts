@@ -149,6 +149,7 @@ export function summonCard(
     dmgBonus: 0,
     status: null,
     summonedThisRound: true,
+    specialCooldown: 0,
     attackedThisRound: false,
     autoMode: "manual",
     pos,

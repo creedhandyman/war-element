@@ -163,6 +163,8 @@ export function canFireSpecial(
   if (!def.special) return { ok: false, reason: "No Special" };
   if (card.summonedThisRound)
     return { ok: false, reason: "Summon-turn lockout (basic attack only)" };
+  if (card.specialCooldown > 0)
+    return { ok: false, reason: "Special is recharging (1-round cooldown)" };
   if (card.status?.kind === "MUTED") return { ok: false, reason: "MUTED" };
   if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
   if (state.players[card.owner].pool < def.special.cost)

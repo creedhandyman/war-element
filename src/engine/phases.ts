@@ -197,6 +197,7 @@ function performBattleAction(
       targets = [chosen, ...targets.filter((t) => t.instanceId !== targetId)];
     }
     draft.players[card.owner].pool -= special.cost;
+    card.specialCooldown = 2; // ticks down each Cleanup → blocked next round
     card.attackedThisRound = true; // STEALTH breaks on any attack
     draft.log.push(`${label(draft, card)} fires ${special.name}!`);
     const handler = SPECIAL_HANDLERS[special.handler];
@@ -344,10 +345,12 @@ function doCleanupPhase(draft: GameState): void {
     if (card.status.duration <= 0) card.status = null;
   }
 
-  // 4. Clear round flags (STEALTH re-engages; summon lockout ends).
+  // 4. Clear round flags (STEALTH re-engages; summon lockout ends;
+  //    special cooldowns tick down).
   for (const card of boardCards(draft)) {
     card.summonedThisRound = false;
     card.attackedThisRound = false;
+    if (card.specialCooldown > 0) card.specialCooldown--;
   }
 
   // 5. Capture by survival: an enemy card still standing on a home slot at

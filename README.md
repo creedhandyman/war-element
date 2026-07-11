@@ -58,6 +58,9 @@ replays exactly from its seed.
   Alpha's conditional lifesteal → plain LIFESTEAL; Granite Armadillo's
   Curl Up → BLOCK 2; Clubber's coin-flip reflect → REFLECT 1; Widowbite
   gets STEALTH (as in the UI mockup) in place of its on-death passive.
+- **Specials have a one-round cooldown** (alpha balance change from the
+  rules doc's no-cooldown wording — stops SLEEP/AOE spam): after firing,
+  a card must sit out one full round before firing again.
 - Rules interpretations documented in code: resource carryover caps at 10
   *before* the round gain; REFLECT damage returns through the attacker's
   own BLOCK + shield gate (no evasion/crit/reflect chains); a sleeping
