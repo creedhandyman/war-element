@@ -51,11 +51,21 @@ replays exactly from its seed.
 
 - Per the alpha brief, this build uses a **draw/hand model** (5-card
   opening hand, draw 1/round, +1 every 5th, 7-card cap) with fixed
-  10-card decks — the full rules' visible-deck model returns post-alpha.
-- **King of the Hill** mid-row bonuses, Spells/Traps, Talents, EQUIP, and
-  all auras except LEAF **Photosynthesis** (+1 HP end of round, the one
-  alpha aura hook) are out of scope. GALE/AQUA/BOLT/DAWN cards aren't in
-  the set, so their statuses exist in the engine but are unused.
+  17-card decks — the full rules' visible-deck model returns post-alpha.
+- **King of the Hill is IN**: +1 DMG while in a Mid row, +1 board-wide
+  per fully-controlled Mid row (tokens show live effective damage).
+- Statuses follow the updated rules doc: BURN melts 1 shield per tick;
+  FREEZE = SP 0 + half damage; WEAKEN = −25%; STUN blocks attack, move,
+  and Special; SLEEP is a full skip until any hit wakes it; FRIGHTEN is a
+  forced retreat (1 slot back if open) + movement lock, not a skip.
+- Two deliberate deviations from the rules doc, per design rulings made
+  in playtesting: **melee reach is the 8 adjacent squares** (doc says
+  same/adjacent row with no column limit) and **Specials have a 1-round
+  cooldown** (doc says no cooldown). The doc should be updated to match.
+- Spells/Traps, Talents, EQUIP, and all auras except LEAF
+  **Photosynthesis** (+1 HP end of round, the one alpha aura hook) are
+  out of scope. GALE/AQUA/BOLT/DAWN cards aren't in the set, so their
+  statuses exist in the engine but are mostly unused.
 - Card adaptations from the source files (flagged in `src/data/cards.ts`):
   Alpha's conditional lifesteal → plain LIFESTEAL; Granite Armadillo's
   Curl Up → BLOCK 2; Clubber's coin-flip reflect → REFLECT 1; Widowbite

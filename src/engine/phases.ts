@@ -9,6 +9,7 @@ import {
   boardCards,
   cardAt,
   drawCards,
+  effectiveDmg,
   effectiveSp,
   hasCaptureWin,
   isEliminated,
@@ -262,17 +263,7 @@ function stepBattle(draft: GameState): boolean {
     return true;
   }
 
-  // SLEEP: coin flip to wake when the card would act; tails = it sleeps through.
-  if (card.status?.kind === "SLEEP") {
-    if (coin(draft)) {
-      card.status = null;
-      draft.log.push(`${label(draft, card)} wakes up!`);
-    } else {
-      draft.log.push(`${label(draft, card)} is asleep.`);
-      battle.index++;
-      return true;
-    }
-  }
+  // SLEEP is a full skip — only being hit wakes the sleeper (combat.ts).
   if (isActionBlocked(card)) {
     draft.log.push(`${label(draft, card)} can't act (${card.status?.kind}).`);
     battle.index++;
@@ -320,12 +311,12 @@ function stepBattle(draft: GameState): boolean {
 }
 
 export function pickBasicTarget(
-  _draft: GameState,
+  draft: GameState,
   attacker: CardInstance,
   targets: CardInstance[],
 ): CardInstance {
   const def = getDef(attacker.defId);
-  const volley = (def.dmg + attacker.dmgBonus) * def.hits;
+  const volley = effectiveDmg(draft, attacker) * def.hits;
   const killable = targets.filter((t) => {
     const tDef = getDef(t.defId);
     const shieldSoak = tDef.keywords.PEN ? 0 : t.curShields; // rough estimate
@@ -339,13 +330,18 @@ function doCleanupPhase(draft: GameState): void {
   draft.phase = "cleanup";
   draft.battle = null;
 
-  // 1. DOT — bypasses shields, straight to HP, no shield stripped.
+  // 1. DOT — bypasses shields, straight to HP, no shield stripped…
+  //    with one exception: BURN also strips 1 shield per tick (PYRO's shred).
   for (const card of boardCards(draft)) {
     const s = card.status;
     if (!s) continue;
     if (s.kind === "BLEED" || s.kind === "BURN" || s.kind === "SCALD" || s.kind === "DOT") {
       card.curHp -= s.power;
       draft.log.push(`${label(draft, card)} takes ${s.power} ${s.kind} damage.`);
+      if (s.kind === "BURN" && card.curShields > 0) {
+        card.curShields--;
+        draft.log.push(`${label(draft, card)}'s shields melt (−1).`);
+      }
       if (card.curHp <= 0) {
         draft.log.push(`${label(draft, card)} is defeated (${s.kind}).`);
         removeCard(draft, card.instanceId);

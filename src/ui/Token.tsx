@@ -1,5 +1,5 @@
 import type { CardInstance, GameState } from "../engine";
-import { effectiveSp, getDef } from "../engine";
+import { effectiveDmg, effectiveSp, getDef } from "../engine";
 import { EL_COLOR } from "./shared";
 
 const AUTO_LABEL = { manual: "MANUAL", basic: "AUTO", full: "FULL" } as const;
@@ -54,8 +54,11 @@ export function Token(props: {
       <div>
         {kws && <div className="kw-line">{kws}</div>}
         <div className="tk-stats">
-          <span className="st-dmg" title="Damage per hit × hits">
-            ⚔{def.dmg}
+          <span
+            className="st-dmg"
+            title={`Damage per hit × hits (printed ${def.dmg}; includes Mid-row control and status effects)`}
+          >
+            ⚔{effectiveDmg(game, card)}
             {def.hits > 1 ? `×${def.hits}` : ""}
           </span>
           {card.curShields > 0 && <span className="st-sh">🛡{card.curShields}</span>}

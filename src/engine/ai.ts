@@ -6,6 +6,7 @@ import { getDef } from "../data/cards";
 import {
   boardCards,
   cardAt,
+  effectiveDmg,
   effectiveSp,
   isCaptured,
   moveReach,
@@ -141,6 +142,9 @@ function bfsDistance(state: GameState, from: Pos, goals: Pos[]): number {
         const key = `${row},${col}`;
         if (seen.has(key)) continue;
         seen.add(key);
+        // A goal defended by an enemy card can't be stepped on, but standing
+        // NEXT to it is arrival — combat clears the squatter from there.
+        if (goalKey.has(key)) return dist + 1;
         if (state.slots[row][col].capturedBy) continue; // can't stop on locked
         if (cardAt(state, row, col)) continue; // occupied
         next.push({ row, col } as Pos);
@@ -198,8 +202,7 @@ function threatAt(state: GameState, mover: CardInstance, pos: Pos): number {
   let total = 0;
   for (const enemy of boardCards(state, enemyOf(mover.owner))) {
     if (canTarget(state, enemy, ghost)) {
-      const def = getDef(enemy.defId);
-      total += (def.dmg + enemy.dmgBonus) * def.hits;
+      total += effectiveDmg(state, enemy) * getDef(enemy.defId).hits;
     }
   }
   return total;
@@ -302,7 +305,7 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
       const kill = targets.find((t) => estimateVolley(dmg, hits, pen, t) >= t.curHp);
       const basicKillsIt =
         kill &&
-        estimateVolley(def.dmg + card.dmgBonus, def.hits, Boolean(def.keywords.PEN), kill) >=
+        estimateVolley(effectiveDmg(state, card), def.hits, Boolean(def.keywords.PEN), kill) >=
           kill.curHp;
       const wide = sp.handler === "barrage" && targets.length >= 3;
       if ((kill && !basicKillsIt) || wide) {
@@ -334,7 +337,7 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
   if (targets.length === 0) return { action: "skip" };
 
   const est = (t: CardInstance) =>
-    estimateVolley(def.dmg + card.dmgBonus, def.hits, Boolean(def.keywords.PEN), t);
+    estimateVolley(effectiveDmg(state, card), def.hits, Boolean(def.keywords.PEN), t);
 
   // Capture awareness: an invader standing on our own Home row dies first,
   // before it survives to a permanent capture.

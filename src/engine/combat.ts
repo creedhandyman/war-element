@@ -14,7 +14,7 @@
 
 import { getDef } from "../data/cards";
 import { chance, coin } from "./rng";
-import { effectiveDmg, removeCard } from "./state";
+import { cardAt, effectiveDmg, removeCard } from "./state";
 import type {
   CardInstance,
   Element,
@@ -51,6 +51,22 @@ export function applyStatus(
   draft.log.push(
     `${label(draft, target)} is afflicted: ${kind}${power ? ` ${power}` : ""} (${duration}r).`,
   );
+  // FRIGHTEN is a positioning effect: forced retreat 1 slot back toward the
+  // target's own home row, if that slot is open (can also push an invader
+  // off an uncaptured home slot — repelling without a kill).
+  if (kind === "FRIGHTEN" && target.pos) {
+    const back = target.owner === "P1" ? 1 : -1;
+    const row = target.pos.row + back;
+    if (
+      row >= 0 &&
+      row < draft.slots.length &&
+      !draft.slots[row][target.pos.col].capturedBy &&
+      !cardAt(draft, row, target.pos.col)
+    ) {
+      target.pos = { ...target.pos, row: row as 0 | 1 | 2 | 3 };
+      draft.log.push(`${label(draft, target)} retreats in fright!`);
+    }
+  }
 }
 
 export function label(_draft: GameState, card: CardInstance): string {
@@ -127,6 +143,11 @@ export function resolveHit(
     draft.log.push(
       `${label(draft, attacker)} hits ${label(draft, target)} for ${result.totalToHp} (${result.landedHits} hit${result.landedHits > 1 ? "s" : ""}).`,
     );
+    // Any hit wakes a sleeper (SLEEP removed the moment it's struck).
+    if (target.status?.kind === "SLEEP" && target.curHp > 0) {
+      target.status = null;
+      draft.log.push(`${label(draft, target)} is jolted awake!`);
+    }
   }
 
   // 5. On-hit keywords — basic attacks only.

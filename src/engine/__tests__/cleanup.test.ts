@@ -11,13 +11,28 @@ describe("cleanup phase", () => {
       curHp: 15,
       maxHp: 15,
       curShields: 4,
-      status: { kind: "BURN", duration: 2, power: 3, source: "PYRO" },
+      status: { kind: "DOT", duration: 2, power: 3, source: "DUSK" },
     });
     place(s, "leaf_alpha", "P1", 3, 0); // keep both boards non-empty
     const next = advance(atCleanup(s));
     const after = next.cards[t.instanceId];
     expect(after.curHp).toBe(12);
     expect(after.curShields).toBe(4);
+  });
+
+  it("BURN is the exception: its tick also melts 1 shield", () => {
+    const s = prepState();
+    const t = place(s, "bore_armadillo", "P2", 0, 0, {
+      curHp: 15,
+      maxHp: 15,
+      curShields: 4,
+      status: { kind: "BURN", duration: 2, power: 3, source: "PYRO" },
+    });
+    place(s, "leaf_alpha", "P1", 3, 0);
+    const next = advance(atCleanup(s));
+    const after = next.cards[t.instanceId];
+    expect(after.curHp).toBe(12); // damage still bypasses the gate
+    expect(after.curShields).toBe(3); // and one shield melts
   });
 
   it("DOT can kill; the card is removed", () => {

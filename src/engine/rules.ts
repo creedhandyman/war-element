@@ -59,6 +59,10 @@ export function canMove(
   const card = state.cards[instanceId];
   if (!card || !card.pos) return { ok: false, reason: "No such card on board" };
   if (card.owner !== player) return { ok: false, reason: "Not your card" };
+  if (card.status?.kind === "STUN")
+    return { ok: false, reason: "STUNNED — no attack, move, or Special" };
+  if (card.status?.kind === "FRIGHTEN")
+    return { ok: false, reason: "FRIGHTENED — cannot move" };
   const reach = moveReach(effectiveSp(state, card));
   if (reach === 0) return { ok: false, reason: "This card can't move (SP 0)" };
   if (to.row < 0 || to.row >= BOARD_SIZE || to.col < 0 || to.col >= BOARD_SIZE)
@@ -149,10 +153,15 @@ export function validAllyTargets(state: GameState, attackerId: string): CardInst
 
 // ── battle actions ──────────────────────────────────────────────────────────
 
-/** Statuses that block the card from acting at all this turn (SLEEP is coin-gated at act time). */
+/**
+ * Statuses that block the card from acting this turn:
+ * STUN = guaranteed full skip. SLEEP = full skip until a hit wakes it.
+ * (FREEZE only halves DMG + pins SP; FRIGHTEN is a positioning effect;
+ * PARALYZE is a per-turn coin resolved at act time.)
+ */
 export function isActionBlocked(card: CardInstance): boolean {
   const k = card.status?.kind;
-  return k === "STUN" || k === "FREEZE" || k === "FRIGHTEN";
+  return k === "STUN" || k === "SLEEP";
 }
 
 export function canBasicAttack(state: GameState, instanceId: string): boolean {

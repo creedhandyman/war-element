@@ -90,7 +90,8 @@ describe("firing specials", () => {
 
   it("multi-hit basic can split hits across targets (and still gate per target)", () => {
     const s = prepState();
-    const krysteel = place(s, "bore_krysteel", "P1", 2, 0, { autoMode: "manual" }); // 3 dmg × 3, CRIT
+    // home row: printed damage (a mid-row attacker would get the +1 hill bonus)
+    const krysteel = place(s, "bore_krysteel", "P1", 3, 0, { autoMode: "manual" }); // 3 dmg × 3, CRIT
     const t1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
     const t2 = place(s, "dusk_ghastly", "P2", 1, 1, { curHp: 19, curShields: 1 });
     s.rngState = seedForCoins(false, false, false); // no CRITs muddying the math
@@ -122,7 +123,7 @@ describe("firing specials", () => {
 
   it("a single pick still takes the full volley (AI / one-click path)", () => {
     const s = prepState();
-    const sol = place(s, "pyro_sol", "P1", 2, 0); // 3 dmg × 2 hits
+    const sol = place(s, "pyro_sol", "P1", 3, 0); // 3 dmg × 2 hits, home row (no hill bonus)
     const t = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
     const next = applyIntent(battleWith(s, sol.instanceId), {
       type: "BATTLE_ACTION",
@@ -133,7 +134,7 @@ describe("firing specials", () => {
     expect(next.cards[t.instanceId].curHp).toBe(7); // both hits landed on it
   });
 
-  it("statusNova: SLEEPs up to 2 targets; a sleeper skips its turn on tails", () => {
+  it("statusNova: SLEEPs up to 2 targets; sleepers skip their turns", () => {
     const s = prepState();
     s.players.P2.pool = 9;
     const sandman = place(s, "bore_sandman", "P2", 1, 0); // Nightmare cost 4
@@ -144,26 +145,25 @@ describe("firing specials", () => {
     let next = advance(s); // AI acts: Nightmare is its best opener vs 2 fresh targets
     expect(next.cards[v1.instanceId].status?.kind).toBe("SLEEP");
     expect(next.cards[v2.instanceId].status?.kind).toBe("SLEEP");
-    // force the sleeper's wake-coin to tails: it stays asleep and skips
-    next.rngState = seedForCoins(false);
+    // the sleeper's turn: full skip, no wake coin — SLEEP persists
     next = advance(next);
     expect(next.battle?.index).toBe(2);
     expect(next.cards[v1.instanceId].status?.kind).toBe("SLEEP");
   });
 
-  it("a sleeper wakes on heads and can act", () => {
+  it("any hit jolts a sleeper awake (SLEEP removed)", () => {
     const s = prepState();
-    const sleeper = place(s, "leaf_alpha", "P1", 2, 0, {
-      autoMode: "basic",
+    const sleeper = place(s, "leaf_greegon", "P1", 2, 0, {
+      curHp: 17,
       status: { kind: "SLEEP", duration: 2, power: 0, source: "BORE" },
     });
-    place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
+    const striker = place(s, "dusk_vamp", "P2", 1, 0);
     s.phase = "battle";
-    s.battle = { queue: [sleeper.instanceId], index: 0, awaitingInput: null };
-    s.rngState = seedForCoins(true); // wake!
-    const next = advance(s);
+    s.battle = { queue: [striker.instanceId], index: 0, awaitingInput: null };
+    const next = advance(s); // vamp attacks the sleeping Greegon
+    expect(next.cards[sleeper.instanceId].curHp).toBeLessThan(17);
     expect(next.cards[sleeper.instanceId].status).toBeNull();
-    expect(next.log.some((l) => l.includes("wakes up"))).toBe(true);
+    expect(next.log.some((l) => l.includes("jolted awake"))).toBe(true);
   });
 
   it("drainMax: Haunt permanently steals max HP and gains shields", () => {
@@ -295,16 +295,16 @@ describe("special legality", () => {
     expect(canFireSpecial(s2, alone.instanceId).ok).toBe(false);
   });
 
-  it("FRIGHTEN blocks acting entirely", () => {
+  it("STUN blocks acting entirely (attack, Special — and movement in prep)", () => {
     const s = prepState();
     s.players.P1.pool = 9;
-    const scared = place(s, "leaf_fallona", "P1", 2, 0, {
-      status: { kind: "FRIGHTEN", duration: 1, power: 0, source: "DUSK" },
+    const stunned = place(s, "leaf_fallona", "P1", 2, 0, {
+      status: { kind: "STUN", duration: 1, power: 0, source: "GALE" },
     });
     place(s, "dusk_gool", "P2", 1, 0);
-    expect(canFireSpecial(s, scared.instanceId).ok).toBe(false);
+    expect(canFireSpecial(s, stunned.instanceId).ok).toBe(false);
     s.phase = "battle";
-    s.battle = { queue: [scared.instanceId], index: 0, awaitingInput: null };
+    s.battle = { queue: [stunned.instanceId], index: 0, awaitingInput: null };
     const next = advance(s); // auto-skips, never awaits input
     expect(next.battle?.index).toBe(1);
     expect(next.log.some((l) => l.includes("can't act"))).toBe(true);

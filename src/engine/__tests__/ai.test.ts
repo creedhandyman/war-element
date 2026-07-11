@@ -127,8 +127,8 @@ describe("full AI-vs-AI matches (integration)", () => {
   });
 
   it("the capture win is reachable in play (some seed ends by capture)", () => {
-    // Seeds verified by an 80-seed scan after the 32-card set + AI stall fixes.
-    const results = [1, 3, 4, 8, 9, 13].map((seed) => playMatch(seed).win!.by);
+    // Seeds verified by an 80-seed scan after the updated status rules + KotH.
+    const results = [1, 3, 4, 6, 7, 8].map((seed) => playMatch(seed).win!.by);
     expect(results).toContain("capture");
   });
 });

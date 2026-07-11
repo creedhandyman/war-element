@@ -121,8 +121,9 @@ describe("EVASION", () => {
 describe("on-hit keywords", () => {
   it("LIFESTEAL heals damage dealt to HP, capped at max HP", () => {
     const s = duel();
-    const a = place(s, "leaf_sumerose", "P1", 2, 0, { curHp: 10, maxHp: 13 }); // LIFESTEAL, dmg 7
-    const t = place(s, "dusk_gool", "P2", 2, 1, { curHp: 13, maxHp: 13, curShields: 0 });
+    // attacker in its home row: printed damage, no King-of-the-Hill bonus
+    const a = place(s, "leaf_sumerose", "P1", 3, 0, { curHp: 10, maxHp: 13 }); // LIFESTEAL, dmg 7
+    const t = place(s, "dusk_gool", "P2", 2, 0, { curHp: 13, maxHp: 13, curShields: 0 });
     basicAttack(s, a.instanceId, t.instanceId);
     expect(t.curHp).toBe(6);
     expect(a.curHp).toBe(13); // healed 7 but capped at maxHp 13 (was 10, +3 used)

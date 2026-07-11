@@ -113,12 +113,26 @@ export function effectiveSp(_state: GameState, card: CardInstance): number {
   return def.sp;
 }
 
-/** Effective damage per hit: WEAKEN −1, FREEZE → 0 (min 0). */
-export function effectiveDmg(_state: GameState, card: CardInstance): number {
+/**
+ * Effective damage per hit:
+ * - WEAKEN −25% (round down), FREEZE −50% (round down)
+ * - King of the Hill: +1 while in a Mid row; +1 board-wide per fully
+ *   controlled Mid row (all 4 slots held by this card's owner).
+ */
+export function effectiveDmg(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   let dmg = def.dmg + card.dmgBonus;
-  if (card.status?.kind === "WEAKEN") dmg -= card.status.power || 1;
-  if (card.status?.kind === "FREEZE") dmg = 0;
+  if (card.status?.kind === "WEAKEN") dmg = Math.floor(dmg * 0.75);
+  if (card.status?.kind === "FREEZE") dmg = Math.floor(dmg * 0.5);
+  if (card.pos && (card.pos.row === 1 || card.pos.row === 2)) dmg += 1;
+  for (const midRow of [1, 2]) {
+    let held = 0;
+    for (let col = 0; col < BOARD_SIZE; col++) {
+      const occ = cardAt(state, midRow, col);
+      if (occ && occ.owner === card.owner) held++;
+    }
+    if (held === BOARD_SIZE) dmg += 1;
+  }
   return Math.max(0, dmg);
 }
 
