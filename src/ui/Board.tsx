@@ -6,6 +6,7 @@ export function Board(props: {
   game: GameState;
   legalSlots: Pos[]; // summon/move destinations
   legalTargetIds: string[]; // battle-phase target picks
+  pickCounts: Record<string, number>; // hits assigned per target so far
   hasSelection: boolean;
   selectedId: string | null;
   actingId: string | null;
@@ -43,6 +44,7 @@ export function Board(props: {
                   dimmed={dimmed}
                   contested={contested}
                   captured={game.slots[row][col].capturedBy}
+                  pickCount={card ? (props.pickCounts[card.instanceId] ?? 0) : 0}
                   selectedId={props.selectedId}
                   actingId={props.actingId}
                   onClick={props.onSlotClick}

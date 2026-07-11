@@ -84,13 +84,14 @@ button { font-family: inherit; }
 .tk-top { display: flex; justify-content: space-between; align-items: flex-start; }
 .tk-cost { width: 18px; height: 18px; border-radius: 50%; background: rgba(0, 0, 0, 0.4); display: grid; place-items: center; font-size: 10px; font-weight: 700; }
 .el-dot { width: 8px; height: 8px; border-radius: 2px; flex: none; }
-.tk-name { font-size: 10px; font-weight: 700; line-height: 1.05; text-shadow: 0 1px 3px #000; }
-.tk-stats { display: flex; gap: 5px; font-size: 10px; font-weight: 700; flex-wrap: wrap; }
-.tk-stats span { display: flex; align-items: center; gap: 2px; text-shadow: 0 1px 2px #000; }
-.st-dmg { color: #ff9b6b; } .st-hp { color: #7fe08a; } .st-sh { color: #7fb2ff; }
+.tk-name { font-size: 10.5px; font-weight: 700; line-height: 1.05; text-shadow: 0 1px 3px #000; }
+.tk-stats { display: flex; gap: 3px; font-size: 12px; font-weight: 800; flex-wrap: wrap; }
+.tk-stats span { display: flex; align-items: center; gap: 1px; padding: 0 3px; border-radius: 5px; background: rgba(0, 0, 0, 0.45); text-shadow: 0 1px 2px #000; line-height: 1.35; }
+.st-dmg { color: #ffab5e; } .st-hp { color: #7fe08a; } .st-sh { color: #8fc3ff; }
 .status-pip { position: absolute; top: 24px; left: 6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--accent); color: #12081f; font-size: 8px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 8px rgba(167, 139, 250, 0.6); }
-.sp-badge { position: absolute; bottom: 5px; right: 5px; font-size: 9px; font-weight: 800; color: var(--your-home-glow); }
+.sp-badge { position: absolute; top: 5px; right: 22px; font-size: 12px; font-weight: 800; color: var(--your-home-glow); background: rgba(0, 0, 0, 0.45); padding: 0 4px; border-radius: 5px; text-shadow: 0 1px 2px #000; }
 .kw-line { position: absolute; bottom: 17px; left: 6px; right: 6px; font-size: 7px; font-weight: 700; letter-spacing: 0.02em; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick-count { position: absolute; top: -8px; right: -6px; z-index: 4; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px; background: var(--legal); color: #06251a; font-size: 12px; font-weight: 900; display: grid; place-items: center; box-shadow: 0 0 12px rgba(78, 203, 143, 0.7); pointer-events: none; }
 .auto-btn { position: absolute; bottom: 4px; left: 4px; font-size: 8px; font-weight: 800; letter-spacing: 0.03em; padding: 2px 5px; border-radius: 6px; cursor: pointer; border: 1px solid var(--panel-line); background: rgba(0, 0, 0, 0.45); color: var(--ink-faint); transition: 0.15s; z-index: 3; }
 .auto-btn:hover { transform: scale(1.08); }
 .auto-btn.basic { color: #06251a; background: var(--legal); border-color: var(--legal); }

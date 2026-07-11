@@ -179,7 +179,11 @@ export type Intent =
       type: "BATTLE_ACTION";
       player: PlayerId;
       action: "basic" | "special" | "skip";
+      /** Single target: the full volley lands on it. */
       targetId?: string;
+      /** Multi-selection: one hit/strike per entry, in order; repeat an id to
+       *  stack ("up to N targets, or stacked on fewer"). */
+      targetIds?: string[];
     };
 
 export const HAND_CAP = 7;

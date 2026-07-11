@@ -43,13 +43,13 @@ export function Token(props: {
       <div>
         {kws && <div className="kw-line">{kws}</div>}
         <div className="tk-stats">
-          <span className="st-dmg">
+          <span className="st-dmg" title="Damage per hit × hits">
             ⚔{def.dmg}
             {def.hits > 1 ? `×${def.hits}` : ""}
           </span>
           {card.curShields > 0 && <span className="st-sh">🛡{card.curShields}</span>}
-          <span className="st-hp">
-            ♥{card.curHp}/{card.maxHp}
+          <span className="st-hp" title={`HP ${card.curHp} of ${card.maxHp}`}>
+            ♥{card.curHp === card.maxHp ? card.curHp : `${card.curHp}/${card.maxHp}`}
           </span>
         </div>
       </div>

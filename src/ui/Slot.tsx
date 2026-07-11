@@ -10,6 +10,7 @@ export function Slot(props: {
   dimmed: boolean;
   contested: boolean;
   captured: "P1" | "P2" | null;
+  pickCount: number;
   selectedId: string | null;
   actingId: string | null;
   onClick: (row: number, col: number) => void;
@@ -32,6 +33,11 @@ export function Slot(props: {
         <span className="lock" title={`Permanently captured by ${props.captured}`}>
           🔒
         </span>
+      )}
+      {props.pickCount > 0 && (
+        <div className="pick-count" title={`${props.pickCount} hit(s) assigned`}>
+          ×{props.pickCount}
+        </div>
       )}
       {props.card && (
         <Token

@@ -21,9 +21,11 @@ npm run build    # tsc --noEmit + vite production build
   glowing slot to move (one move per priority turn). **Pass Priority**
   when done; two consecutive passes start the Battle.
 - **Battle**: cards act in SP order (15 → 0). When one of yours is up,
-  pick **Basic / Special / Skip**, then click a glowing target. The badge
-  on each of your tokens cycles its auto mode: MANUAL → AUTO (basic only,
-  never spends pool) → FULL (may fire Specials).
+  pick **Basic / Special / Skip**, then click glowing targets. Multi-hit
+  cards (⚔X×N) and barrage Specials take up to N picks — spread them
+  across targets or repeat one to stack; it fires at the cap, or press
+  **Fire** early. The badge on each of your tokens cycles its auto mode:
+  MANUAL → AUTO (basic only, never spends pool) → FULL (may fire Specials).
 - **Win**: wipe the opponent out (board + hand + deck empty) or hold /
   permanently capture all 4 of their Home slots. An invader that survives
   a full round on a Home slot captures it forever.

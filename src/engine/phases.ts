@@ -111,7 +111,13 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       const card = draft.cards[activeId];
       if (!card || card.owner !== intent.player) throw new Error("Not your card");
       draft.battle.awaitingInput = null;
-      performBattleAction(draft, activeId, intent.action, intent.targetId);
+      const picks =
+        intent.targetIds && intent.targetIds.length > 0
+          ? intent.targetIds
+          : intent.targetId
+            ? [intent.targetId]
+            : undefined;
+      performBattleAction(draft, activeId, intent.action, picks);
       draft.battle.index++;
       return draft;
     }
@@ -169,12 +175,16 @@ function startBattle(draft: GameState): void {
   draft.log.push(`Battle! Queue: ${units.length} card(s).`);
 }
 
-/** Resolve one card's battle action. */
+/**
+ * Resolve one card's battle action. `picks` is an ordered target selection:
+ * a single entry takes the full volley / legacy auto-spread; multiple entries
+ * assign one hit (or one barrage strike) per entry, repeats stack.
+ */
 function performBattleAction(
   draft: GameState,
   instanceId: string,
   action: "basic" | "special" | "skip",
-  targetId?: string,
+  picks?: string[],
 ): void {
   const card = draft.cards[instanceId];
   if (!card) return;
@@ -187,14 +197,28 @@ function performBattleAction(
     if (!check.ok) throw new Error(`Can't fire Special: ${check.reason}`);
     const def = getDef(card.defId);
     const special = def.special!;
-    let targets =
+    const valid =
       special.targetSide === "ally"
         ? validAllyTargets(draft, instanceId)
         : validTargets(draft, instanceId);
-    if (targetId) {
-      const chosen = targets.find((t) => t.instanceId === targetId);
+    let targets: typeof valid;
+    if (picks && picks.length > 1) {
+      // Explicit multi-selection: one strike per entry, in order.
+      const maxPicks = Number(special.params?.targets ?? 1);
+      if (picks.length > maxPicks)
+        throw new Error(`Too many targets (max ${maxPicks})`);
+      targets = picks.map((id) => {
+        const t = valid.find((v) => v.instanceId === id);
+        if (!t) throw new Error("Illegal Special target");
+        return t;
+      });
+    } else if (picks && picks.length === 1) {
+      // Single pick: chosen first, then auto-spread over the rest (AI path).
+      const chosen = valid.find((t) => t.instanceId === picks[0]);
       if (!chosen) throw new Error("Illegal Special target");
-      targets = [chosen, ...targets.filter((t) => t.instanceId !== targetId)];
+      targets = [chosen, ...valid.filter((t) => t.instanceId !== picks[0])];
+    } else {
+      targets = valid;
     }
     draft.players[card.owner].pool -= special.cost;
     card.specialCooldown = 2; // ticks down each Cleanup → blocked next round
@@ -206,12 +230,18 @@ function performBattleAction(
     return;
   }
   // basic attack
-  const targets = validTargets(draft, instanceId);
-  const chosen = targetId
-    ? targets.find((t) => t.instanceId === targetId)
-    : targets[0];
-  if (!chosen) throw new Error("Illegal basic-attack target");
-  basicAttack(draft, instanceId, chosen.instanceId);
+  const def = getDef(card.defId);
+  const valid = validTargets(draft, instanceId);
+  const chosen =
+    picks && picks.length > 0 ? picks : valid[0] ? [valid[0].instanceId] : [];
+  if (chosen.length === 0) throw new Error("Illegal basic-attack target");
+  if (chosen.length > def.hits)
+    throw new Error(`Too many targets (this card has ${def.hits} hit(s))`);
+  for (const id of chosen) {
+    if (!valid.some((t) => t.instanceId === id))
+      throw new Error("Illegal basic-attack target");
+  }
+  basicAttack(draft, instanceId, chosen.length === 1 ? chosen[0] : chosen);
 }
 
 /**
@@ -259,7 +289,7 @@ function stepBattle(draft: GameState): boolean {
 
   if (card.owner === "P2") {
     const choice = chooseBattleAction(draft, id);
-    performBattleAction(draft, id, choice.action, choice.targetId);
+    performBattleAction(draft, id, choice.action, choice.targetId ? [choice.targetId] : undefined);
     battle.index++;
     return true;
   }
@@ -273,7 +303,7 @@ function stepBattle(draft: GameState): boolean {
     // Full auto may fire Specials and spend pool: fire if it can kill,
     // otherwise basic attack (mirrors the AI's restraint).
     const choice = chooseBattleAction(draft, id);
-    performBattleAction(draft, id, choice.action, choice.targetId);
+    performBattleAction(draft, id, choice.action, choice.targetId ? [choice.targetId] : undefined);
     battle.index++;
     return true;
   }
@@ -281,7 +311,7 @@ function stepBattle(draft: GameState): boolean {
     // Auto-basic: attack the lowest-HP reachable target it can kill, else lowest HP.
     const targets = validTargets(draft, id);
     const pick = pickBasicTarget(draft, card, targets);
-    performBattleAction(draft, id, "basic", pick.instanceId);
+    performBattleAction(draft, id, "basic", [pick.instanceId]);
   } else {
     performBattleAction(draft, id, "skip");
   }

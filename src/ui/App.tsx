@@ -30,6 +30,7 @@ export function App() {
   const [game, setGame] = useState<GameState>(() => createInitialState(newSeed()));
   const [sel, setSel] = useState<Selection>(null);
   const [pending, setPending] = useState<PendingBattle>(null);
+  const [picks, setPicks] = useState<string[]>([]);
   const [hint, setHint] = useState<string>(
     "Mulligan: click cards to send back, then confirm.",
   );
@@ -51,6 +52,7 @@ export function App() {
     prevPhaseKey.current = phaseKey;
     setSel(null);
     setPending(null);
+    setPicks([]);
     if (game.phase === "prep" && game.prep?.priority === "P1")
       setHint(
         "<b>Your prep turn.</b> Click a glowing hand card to summon (any number), move one board card, then Pass.",
@@ -67,6 +69,7 @@ export function App() {
       setGame(applyIntent(game, intent));
       setSel(null);
       setPending(null);
+      setPicks([]);
     } catch (e) {
       setHint(`⚠ ${(e as Error).message}`);
     }
@@ -116,18 +119,42 @@ export function App() {
     setHint(`Summoning <b>${def.name}</b> — tap a glowing Home slot.`);
   }
 
+  // Max target picks for the armed action: a card's hit count for basics,
+  // the barrage width for multi-target specials, 1 for everything else.
+  const maxPicks = (() => {
+    if (!awaitingId || !pending) return 1;
+    const def = getDef(game.cards[awaitingId].defId);
+    if (pending === "basic") return def.hits;
+    if (def.special?.handler === "barrage")
+      return Number(def.special.params?.targets ?? 1);
+    return 1;
+  })();
+
+  function firePicks(finalPicks: string[]) {
+    dispatch({
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: pending!,
+      targetIds: finalPicks,
+    });
+  }
+
   function onSlotClick(row: number, col: number) {
     const clicked = cardAt(game, row, col);
 
-    // Battle-phase target pick
+    // Battle-phase target pick — click up to maxPicks targets (repeat a
+    // target to stack hits on it); fires automatically at the cap.
     if (awaitingId && pending) {
       if (clicked && legalTargetIds.includes(clicked.instanceId)) {
-        dispatch({
-          type: "BATTLE_ACTION",
-          player: "P1",
-          action: pending,
-          targetId: clicked.instanceId,
-        });
+        const next = [...picks, clicked.instanceId];
+        if (next.length >= maxPicks) {
+          firePicks(next);
+        } else {
+          setPicks(next);
+          setHint(
+            `<b>${next.length}/${maxPicks}</b> hits assigned — click more targets (repeat to stack), or press <b>Fire</b>.`,
+          );
+        }
       } else {
         setHint("⚠ Not a legal target — glowing cards only.");
       }
@@ -223,6 +250,10 @@ export function App() {
         game={game}
         legalSlots={legalSlots}
         legalTargetIds={legalTargetIds}
+        pickCounts={picks.reduce<Record<string, number>>((acc, id) => {
+          acc[id] = (acc[id] ?? 0) + 1;
+          return acc;
+        }, {})}
         hasSelection={sel !== null}
         selectedId={sel?.kind === "card" ? sel.instanceId : null}
         actingId={awaitingId}
@@ -249,11 +280,22 @@ export function App() {
                 className={`bbtn ${pending === "basic" ? "armed" : ""}`}
                 disabled={!basicOk}
                 onClick={() => {
+                  if (pending === "basic" && picks.length > 0) {
+                    firePicks(picks); // fire early with the hits assigned so far
+                    return;
+                  }
                   setPending("basic");
-                  setHint("Pick a glowing target for the basic attack.");
+                  setPicks([]);
+                  setHint(
+                    activeDef.hits > 1
+                      ? `Basic attack: <b>${activeDef.dmg} DMG × ${activeDef.hits} hits</b> — click up to ${activeDef.hits} glowing targets (repeat one to stack).`
+                      : "Pick a glowing target for the basic attack.",
+                  );
                 }}
               >
-                ⚔ Basic Attack
+                {pending === "basic" && picks.length > 0
+                  ? `🔥 Fire (${picks.length}/${maxPicks})`
+                  : "⚔ Basic Attack"}
               </button>
               <button
                 className={`bbtn spec ${pending === "special" ? "armed" : ""}`}
@@ -264,13 +306,25 @@ export function App() {
                     : "No special"
                 }
                 onClick={() => {
+                  if (pending === "special" && picks.length > 0) {
+                    firePicks(picks);
+                    return;
+                  }
                   setPending("special");
+                  setPicks([]);
+                  const spec = activeDef.special!;
+                  const wide =
+                    spec.handler === "barrage" && Number(spec.params?.targets ?? 1) > 1;
                   setHint(
-                    `<b>${activeDef.special!.name}</b> (cost ${activeDef.special!.cost}) — pick a glowing target.`,
+                    wide
+                      ? `<b>${spec.name}</b> (cost ${spec.cost}) — click up to ${Number(spec.params?.targets)} glowing targets (repeat to stack), or Fire early.`
+                      : `<b>${spec.name}</b> (cost ${spec.cost}) — pick a glowing target.`,
                   );
                 }}
               >
-                ✦ Special{activeDef.special ? ` (${activeDef.special.cost})` : ""}
+                {pending === "special" && picks.length > 0
+                  ? `🔥 Fire (${picks.length}/${maxPicks})`
+                  : `✦ Special${activeDef.special ? ` (${activeDef.special.cost})` : ""}`}
               </button>
               <button
                 className="bbtn"
@@ -326,6 +380,7 @@ export function App() {
               onClick={() => {
                 setSel(null);
                 setPending(null);
+                setPicks([]);
               }}
             >
               Clear

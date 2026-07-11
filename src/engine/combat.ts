@@ -181,36 +181,68 @@ export function resolveHit(
   return result;
 }
 
-/** A full basic attack: BLIND accuracy check, then the pipeline. */
+/**
+ * A full basic attack: BLIND accuracy check, then the pipeline.
+ * `target` may be one instanceId (full volley on it) or an ordered pick list —
+ * one hit per entry, repeats stack ("dmg × N hits up to N targets").
+ */
 export function basicAttack(
   draft: GameState,
   attackerId: string,
-  targetId: string,
+  target: string | string[],
 ): AttackResult | null {
   const attacker = draft.cards[attackerId];
-  const target = draft.cards[targetId];
-  if (!attacker || !target) return null;
+  if (!attacker) return null;
+  const picks = Array.isArray(target) ? target : [target];
+  if (picks.length === 0) return null;
   const aDef = getDef(attacker.defId);
   attacker.attackedThisRound = true; // STEALTH breaks even on a miss
 
+  const missed: AttackResult = {
+    landedHits: 0, dodgedHits: 0, totalToHp: 0, targetDied: false, attackerDied: false,
+  };
   // BLIND: −50% accuracy → coin; a miss negates the whole attack, no strip.
   if (attacker.status?.kind === "BLIND" && !coin(draft)) {
     draft.log.push(`${label(draft, attacker)} misses (BLIND).`);
-    return { landedHits: 0, dodgedHits: 0, totalToHp: 0, targetDied: false, attackerDied: false };
+    return missed;
   }
   // PARALYZE: 50% chance to attack at all.
   if (attacker.status?.kind === "PARALYZE" && !chance(draft, 50)) {
     draft.log.push(`${label(draft, attacker)} is paralyzed and can't attack.`);
-    return { landedHits: 0, dodgedHits: 0, totalToHp: 0, targetDied: false, attackerDied: false };
+    return missed;
   }
 
-  return resolveHit(draft, attacker, target, {
-    kind: "basic",
-    dmg: effectiveDmg(draft, attacker),
-    hits: aDef.hits,
-    pen: Boolean(aDef.keywords.PEN),
-    crit: Boolean(aDef.keywords.CRIT),
-  });
+  // Allocate the volley: one pick takes every hit; multiple picks take one hit
+  // each (consecutive repeats of the same target merge into one gated volley).
+  const groups: { targetId: string; hits: number }[] = [];
+  if (picks.length === 1) {
+    groups.push({ targetId: picks[0], hits: aDef.hits });
+  } else {
+    for (const id of picks) {
+      const last = groups[groups.length - 1];
+      if (last && last.targetId === id) last.hits++;
+      else groups.push({ targetId: id, hits: 1 });
+    }
+  }
+
+  const agg: AttackResult = { ...missed };
+  for (const g of groups) {
+    const t = draft.cards[g.targetId];
+    if (!t || attacker.curHp <= 0) continue; // target fell / attacker died to REFLECT
+    const r = resolveHit(draft, attacker, t, {
+      kind: "basic",
+      dmg: effectiveDmg(draft, attacker),
+      hits: g.hits,
+      pen: Boolean(aDef.keywords.PEN),
+      crit: Boolean(aDef.keywords.CRIT),
+    });
+    agg.landedHits += r.landedHits;
+    agg.dodgedHits += r.dodgedHits;
+    agg.totalToHp += r.totalToHp;
+    agg.targetDied = agg.targetDied || r.targetDied;
+    agg.attackerDied = agg.attackerDied || r.attackerDied;
+  }
+  return agg;
 }
 
 // ── special-handler registry ────────────────────────────────────────────────
@@ -291,10 +323,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
   },
 
-  /** Apply a status to up to N valid enemy targets. No damage. */
+  /** Apply a status to up to N valid enemy targets (unique — stacking a
+   *  status on one target is meaningless, newest overwrites). */
   statusNova(draft, attacker, targets, params) {
     const n = num(params, "targets", 1);
-    for (const target of targets.slice(0, n)) {
+    const seen = new Set<string>();
+    for (const target of targets) {
+      if (seen.has(target.instanceId)) continue;
+      if (seen.size >= n) break;
+      seen.add(target.instanceId);
       maybeStatus(draft, attacker, target, params);
     }
   },
