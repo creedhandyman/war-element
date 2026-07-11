@@ -85,6 +85,7 @@ button { font-family: inherit; }
 .tk-cost { width: 18px; height: 18px; border-radius: 50%; background: rgba(0, 0, 0, 0.4); display: grid; place-items: center; font-size: 10px; font-weight: 700; }
 .el-dot { width: 8px; height: 8px; border-radius: 2px; flex: none; }
 .tk-name { font-size: 10.5px; font-weight: 700; line-height: 1.05; text-shadow: 0 1px 3px #000; }
+.tk-class { font-size: 7.5px; font-weight: 700; letter-spacing: 0.05em; color: var(--ink-dim); text-shadow: 0 1px 2px #000; margin-top: 1px; }
 .tk-stats { display: flex; gap: 3px; font-size: 12px; font-weight: 800; flex-wrap: wrap; }
 .tk-stats span { display: flex; align-items: center; gap: 1px; padding: 0 3px; border-radius: 5px; background: rgba(0, 0, 0, 0.45); text-shadow: 0 1px 2px #000; line-height: 1.35; }
 .st-dmg { color: #ffab5e; } .st-hp { color: #7fe08a; } .st-sh { color: #8fc3ff; }

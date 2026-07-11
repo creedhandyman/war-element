@@ -51,6 +51,9 @@ export function Token(props: {
         <span className="el-dot" style={{ background: EL_COLOR[def.element] }} />
       </div>
       <div className="tk-name">{def.name}</div>
+      <div className="tk-class" title={`${def.cardClass} · ${def.attackType}`}>
+        {def.attackType === "Melee" ? "🗡" : "🏹"} {def.cardClass.toUpperCase()}
+      </div>
       <div className="tk-bottom">
         {kws && <div className="kw-line">{kws}</div>}
         <div className="tk-stats">
