@@ -271,8 +271,8 @@ export function App() {
             <div className="bp-title">
               {activeDef.name} is up{" "}
               <small>
-                ⚔{activeDef.dmg}
-                {activeDef.hits > 1 ? `×${activeDef.hits}` : ""} · {activeDef.attackType}
+                ⚔{activeDef.hits > 1 ? `${activeDef.hits}×` : ""}
+                {activeDef.dmg} · {activeDef.attackType}
               </small>
             </div>
             <div className="bp-actions">
@@ -288,7 +288,7 @@ export function App() {
                   setPicks([]);
                   setHint(
                     activeDef.hits > 1
-                      ? `Basic attack: <b>${activeDef.dmg} DMG × ${activeDef.hits} hits</b> — click up to ${activeDef.hits} glowing targets (repeat one to stack).`
+                      ? `Basic attack: <b>${activeDef.hits} hits × ${activeDef.dmg} DMG</b> — click up to ${activeDef.hits} glowing targets (repeat one to stack).`
                       : "Pick a glowing target for the basic attack.",
                   );
                 }}
@@ -429,7 +429,7 @@ export function App() {
                     </div>
                     <div className="hc-name">{def.name}</div>
                     <div className="hc-stats">
-                      <span>⚔{def.dmg}{def.hits > 1 ? `×${def.hits}` : ""}</span>
+                      <span>⚔{def.hits > 1 ? `${def.hits}×` : ""}{def.dmg}</span>
                       <span>♥{def.hp}</span>
                       <span>👟{def.sp}</span>
                     </div>

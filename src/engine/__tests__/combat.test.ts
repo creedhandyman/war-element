@@ -140,10 +140,10 @@ describe("on-hit keywords", () => {
 
   it("REFLECT X returns X per landed hit (through the attacker's own gate)", () => {
     const s = duel();
-    const a = place(s, "leaf_alpha", "P1", 2, 0, { curHp: 14, maxHp: 14, curShields: 0 }); // dmg 4
-    const t = place(s, "bore_clubber", "P2", 2, 1, { curHp: 7, maxHp: 7, curShields: 2 }); // REFLECT 1
+    const a = place(s, "leaf_greegon", "P1", 3, 0, { curHp: 14, maxHp: 17, curShields: 0 }); // 1 hit × 4 dmg
+    const t = place(s, "bore_clubber", "P2", 2, 0, { curHp: 7, maxHp: 7, curShields: 2 }); // REFLECT 1
     basicAttack(s, a.instanceId, t.instanceId);
-    expect(a.curHp).toBe(13); // took REFLECT 1
+    expect(a.curHp).toBe(13); // one landed hit → REFLECT 1 back
   });
 
   it("basic-attack status rider applies on a landed hit (newest overwrites)", () => {

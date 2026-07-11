@@ -56,10 +56,10 @@ export function Token(props: {
         <div className="tk-stats">
           <span
             className="st-dmg"
-            title={`Damage per hit × hits (printed ${def.dmg}; includes Mid-row control and status effects)`}
+            title={`Hits × damage per hit (printed ${def.dmg}/hit; live value includes Mid-row control and statuses)`}
           >
-            ⚔{effectiveDmg(game, card)}
-            {def.hits > 1 ? `×${def.hits}` : ""}
+            ⚔{def.hits > 1 ? `${def.hits}×` : ""}
+            {effectiveDmg(game, card)}
           </span>
           {card.curShields > 0 && <span className="st-sh">🛡{card.curShields}</span>}
           <span className="st-hp" title={`HP ${card.curHp} of ${card.maxHp}`}>

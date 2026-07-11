@@ -17,7 +17,7 @@ describe("status effects on stats", () => {
 
   it("FREEZE pins SP to 0 and halves damage (round down) — but the card still acts", () => {
     const s = prepState();
-    const c = place(s, "leaf_alpha", "P1", 3, 0, {
+    const c = place(s, "leaf_greegon", "P1", 3, 0, {
       status: { kind: "FREEZE", duration: 1, power: 0, source: "AQUA" },
     });
     expect(effectiveSp(s, c)).toBe(0);
@@ -65,15 +65,15 @@ describe("FRIGHTEN forced retreat", () => {
 describe("King of the Hill", () => {
   it("+1 DMG while sitting in a Mid row", () => {
     const s = prepState();
-    const home = place(s, "leaf_alpha", "P1", 3, 0);
-    const mid = place(s, "pyro_firebird", "P1", 2, 1);
+    const home = place(s, "leaf_squanch", "P1", 3, 0); // 4 dmg
+    const mid = place(s, "pyro_firebird", "P1", 2, 1); // 5 dmg
     expect(effectiveDmg(s, home)).toBe(4); // printed
     expect(effectiveDmg(s, mid)).toBe(6); // printed 5 + mid-row 1
   });
 
   it("holding all 4 slots of one Mid row gives +1 DMG to the whole board", () => {
     const s = prepState();
-    const home = place(s, "leaf_alpha", "P1", 3, 0); // not in mid
+    const home = place(s, "leaf_squanch", "P1", 3, 0); // not in mid
     place(s, "leaf_greegon", "P1", 1, 0);
     place(s, "pyro_tiki", "P1", 1, 1);
     place(s, "pyro_fenrir", "P1", 1, 2);

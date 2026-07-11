@@ -109,10 +109,10 @@ describe("firing specials", () => {
 
   it("basic rejects more picks than the card has hits", () => {
     const s = prepState();
-    const vamp = place(s, "leaf_alpha", "P1", 2, 0); // 1 hit
+    const single = place(s, "leaf_greegon", "P1", 2, 0); // 1 hit
     const t = place(s, "dusk_gool", "P2", 1, 0);
     expect(() =>
-      applyIntent(battleWith(s, vamp.instanceId), {
+      applyIntent(battleWith(s, single.instanceId), {
         type: "BATTLE_ACTION",
         player: "P1",
         action: "basic",

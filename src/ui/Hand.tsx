@@ -49,7 +49,7 @@ export function Hand(props: {
               </div>
               <div className="hc-name">{def.name}</div>
               <div className="hc-stats">
-                <span>⚔{def.dmg}{def.hits > 1 ? `×${def.hits}` : ""}</span>
+                <span>⚔{def.hits > 1 ? `${def.hits}×` : ""}{def.dmg}</span>
                 {def.shields > 0 && <span>🛡{def.shields}</span>}
                 <span>♥{def.hp}</span>
                 <span>👟{def.sp}</span>

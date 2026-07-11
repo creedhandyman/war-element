@@ -1,4 +1,7 @@
 // War Element — alpha card set (34 cards: LEAF 9 / PYRO 8 / BORE 8 / DUSK 9).
+//
+// DAMAGE NOTATION: card text "A×B DMG" reads hits-first — A hits of B damage
+// each (e.g. Spitfire "2×3" = 2 hits × 3 dmg). Encoded as { hits: A, dmg: B }.
 // Cards are pulled from the element card files and trimmed to alpha-scope
 // mechanics (keywords, one on-hit status rider, one Special via the handler
 // registry). Passives outside that surface are dropped for alpha; a few are
@@ -67,8 +70,8 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 3,
-    dmg: 4,
-    hits: 1,
+    dmg: 1, // "4×1 DMG" = 4 hits × 1 dmg
+    hits: 4,
     hp: 14,
     sp: 7,
     shields: 0,
@@ -82,8 +85,8 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 3,
-    dmg: 5,
-    hits: 1,
+    dmg: 1, // "5×1 DMG" = 5 hits × 1 dmg
+    hits: 5,
     hp: 13,
     sp: 7,
     shields: 0,
@@ -127,8 +130,8 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 2,
-    dmg: 2,
-    hits: 3,
+    dmg: 3, // "2×3 DMG" = 2 hits × 3 dmg
+    hits: 2,
     hp: 5,
     sp: 9,
     shields: 0,
