@@ -3,10 +3,11 @@
 // abilities in cards.ts.
 
 import { describe, expect, it } from "vitest";
-import { basicAttack, effectiveBasicHits } from "../combat";
+import { basicAttack, effectiveBasicHits, SPECIAL_HANDLERS } from "../combat";
 import { applyFlow } from "../auras";
 import { advance, applyIntent } from "../phases";
-import { boardCards, effectiveDmg } from "../state";
+import { canFireSpecial } from "../rules";
+import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState } from "./helpers";
 
@@ -104,6 +105,82 @@ describe("King of the Hill: multi-hit cards get a hit, not per-hit DMG", () => {
     // Out of the mid rows, the multi-hit card is back to its printed hits.
     const home = place(s, "aqua_vaporem", "P1", 3, 2);
     expect(effectiveBasicHits(home)).toBe(5);
+  });
+});
+
+describe("timed team buffs & −SP debuffs", () => {
+  it("Golden Courage grants the team +1 DMG that lasts across a round", () => {
+    const s = prepState();
+    const dawn = place(s, "dawn_dawn", "P1", 3, 0);
+    const ally = place(s, "gale_hawk", "P1", 3, 1); // 8 DMG, home row (no KotH)
+    place(s, "dusk_gool", "P2", 0, 0); // keep P2 alive through Cleanup
+    SPECIAL_HANDLERS.heal(s, dawn, [dawn, ally], { amount: 0, targets: 99, buffDmg: 1, buffRounds: 2 });
+    expect(effectiveDmg(s, ally)).toBe(9); // 8 + 1
+    const r1 = advance(atCleanup(s)); // one Cleanup: buff 2→1, still active
+    expect(effectiveDmg(r1, r1.cards[ally.instanceId])).toBe(9);
+  });
+
+  it("Daybreak's +2 SP expires after one round", () => {
+    const s = prepState();
+    const sol = place(s, "dawn_solstice", "P1", 3, 0);
+    const ally = place(s, "aqua_spinefin", "P1", 3, 1); // SP 7, no end-of-round SP change
+    place(s, "dusk_gool", "P2", 0, 0);
+    SPECIAL_HANDLERS.heal(s, sol, [sol, ally], { amount: 0, targets: 99, buffSp: 2, buffRounds: 1 });
+    expect(effectiveSp(s, ally)).toBe(9); // 7 + 2
+    const r1 = advance(atCleanup(s));
+    expect(effectiveSp(r1, r1.cards[ally.instanceId])).toBe(7); // expired
+  });
+
+  it("Mighty Winds pushes enemies back and −8 SP for the round", () => {
+    const s = prepState();
+    const galeon = place(s, "gale_galeon", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20 }); // SP 8, mid row
+    SPECIAL_HANDLERS.statusNova(s, galeon, [foe], {
+      statusKind: "WEAKEN", statusDuration: 2, targets: 99, push: 2, spDebuff: 8, spDebuffRounds: 1,
+    });
+    expect(s.cards[foe.instanceId].pos!.row).toBe(0); // pushed back 2 → P2 home row
+    expect(effectiveSp(s, s.cards[foe.instanceId])).toBe(0); // 8 − 8
+  });
+
+  it("Purple Wind Surge applies −2 SP alongside its damage", () => {
+    const s = prepState();
+    const angale = place(s, "gale_angale", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20 }); // SP 8
+    SPECIAL_HANDLERS.barrage(s, angale, [foe], {
+      dmg: 1, hits: 4, targets: 3, statusKind: "WEAKEN", statusDuration: 2, spDebuff: 2, spDebuffRounds: 2,
+    });
+    expect(effectiveSp(s, s.cards[foe.instanceId])).toBe(6); // 8 − 2
+  });
+});
+
+describe("revive & transform", () => {
+  it("Bearocks revives once at 24 HP with SLEEP, then can be killed", () => {
+    const s = prepState();
+    const bear = place(s, "bore_bearocks", "P1", 3, 0, { curHp: 5, curShields: 0 });
+    const hawk = place(s, "gale_hawk", "P2", 0, 0); // 8 DMG
+    basicAttack(s, hawk.instanceId, bear.instanceId);
+    const b = s.cards[bear.instanceId];
+    expect(b).toBeDefined(); // survived via revive
+    expect(b.curHp).toBe(24);
+    expect(b.revived).toBe(true);
+    expect(b.statuses.some((x) => x.kind === "SLEEP")).toBe(true); // self-sleep bypasses immunity
+    b.curHp = 3;
+    basicAttack(s, hawk.instanceId, bear.instanceId);
+    expect(s.cards[bear.instanceId]).toBeUndefined(); // no second revive
+  });
+
+  it("Skelider dismounts below 10 HP: loses its Special and 5 SP, deals 5", () => {
+    const s = prepState();
+    const skel = place(s, "dusk_skelider", "P1", 3, 0, { curHp: 12, curShields: 0 });
+    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 20 }); // nearest enemy
+    const hawk = place(s, "gale_hawk", "P2", 0, 0); // 8 DMG → drops Skelider to 4
+    basicAttack(s, hawk.instanceId, skel.instanceId);
+    const sk = s.cards[skel.instanceId];
+    expect(sk.curHp).toBeLessThan(10);
+    expect(sk.transformed).toBe(true);
+    expect(canFireSpecial(s, sk.instanceId).ok).toBe(false); // Special lost
+    expect(effectiveSp(s, sk)).toBe(5); // 10 − 5
+    expect(s.cards[foe.instanceId].curHp).toBe(15); // 5 Dismount damage
   });
 });
 

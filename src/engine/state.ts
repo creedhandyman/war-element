@@ -122,7 +122,8 @@ export function hasStatus(card: CardInstance, kind: StatusKind): boolean {
 export function effectiveSp(_state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   if (hasStatus(card, "ROOT") || hasStatus(card, "FREEZE")) return 0;
-  return Math.max(0, def.sp + (card.spBonus ?? 0) + (card.spBonusRound ?? 0));
+  const buffSp = (card.buffs ?? []).reduce((n, b) => n + b.sp, 0);
+  return Math.max(0, def.sp + (card.spBonus ?? 0) + (card.spBonusRound ?? 0) + buffSp);
 }
 
 /**
@@ -133,7 +134,8 @@ export function effectiveSp(_state: GameState, card: CardInstance): number {
  */
 export function effectiveDmg(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
-  let dmg = def.dmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0);
+  const buffDmg = (card.buffs ?? []).reduce((n, b) => n + b.dmg, 0);
+  let dmg = def.dmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0) + buffDmg;
   if (hasStatus(card, "WEAKEN")) dmg = Math.floor(dmg * 0.75);
   if (hasStatus(card, "FREEZE")) dmg = Math.floor(dmg * 0.5);
   // King of the Hill (A): sitting in a Mid row grants +1 DMG — but ONLY to
@@ -183,6 +185,9 @@ export function summonCard(
     hitsBonusRound: 0,
     tempShields: 0,
     struckThisRound: {},
+    buffs: [],
+    revived: false,
+    transformed: false,
     statuses: [],
     summonedThisRound: true,
     specialCooldown: 0,

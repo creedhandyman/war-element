@@ -14,7 +14,7 @@
 
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
-import { boardCards, cardAt, effectiveDmg, hasStatus, removeCard } from "./state";
+import { boardCards, cardAt, effectiveDmg, hasStatus, manhattan, removeCard } from "./state";
 import type {
   CardInstance,
   Element,
@@ -99,9 +99,66 @@ export function label(_draft: GameState, card: CardInstance): string {
   return `${getDef(card.defId).name} (${card.owner})`;
 }
 
-function die(draft: GameState, card: CardInstance, cause: string): void {
+/** Defeat a card, honoring on-revive (Bearocks). Returns true if it was
+ *  actually removed, false if it revived and survives. */
+export function defeatCard(draft: GameState, card: CardInstance, cause: string): boolean {
+  const def = getDef(card.defId);
+  if (def.onRevive && !card.revived && card.pos) {
+    card.revived = true;
+    card.curHp = Math.max(1, Math.min(card.maxHp, def.onRevive.heal));
+    if (def.onRevive.sleep) {
+      // Self-inflicted downtime — bypasses statusImmune (Hibernation).
+      card.statuses = card.statuses.filter((s) => s.kind !== "SLEEP");
+      card.statuses.push({ kind: "SLEEP", duration: def.onRevive.sleep, power: 0, source: def.element });
+    }
+    draft.log.push(`${label(draft, card)} refuses to fall — it revives at ${card.curHp} HP!`);
+    return false;
+  }
   draft.log.push(`${label(draft, card)} is defeated (${cause}).`);
   removeCard(draft, card.instanceId);
+  return true;
+}
+
+/** Add a timed DMG/SP modifier (team buff or −SP debuff). */
+export function applyTimedBuff(card: CardInstance, dmg: number, sp: number, rounds: number): void {
+  if (rounds <= 0 || (dmg === 0 && sp === 0)) return;
+  card.buffs.push({ dmg, sp, rounds });
+}
+
+/** Blow a card back toward its OWN home row up to `steps` open slots (Mighty
+ *  Winds / Wind Guardian). Stops at its home row, a captured, or occupied slot. */
+export function pushBack(draft: GameState, card: CardInstance, steps: number): void {
+  const dir = card.owner === "P1" ? 1 : -1; // toward own home (P1 = row 3, P2 = row 0)
+  const home = homeRow(card.owner);
+  let moved = 0;
+  for (let i = 0; i < steps; i++) {
+    const pos = card.pos;
+    if (!pos || pos.row === home) break;
+    const row: number = pos.row + dir;
+    if (row < 0 || row >= BOARD_SIZE) break;
+    if (draft.slots[row][pos.col].capturedBy || cardAt(draft, row, pos.col)) break;
+    card.pos = { row: row as Pos["row"], col: pos.col };
+    moved++;
+  }
+  if (moved > 0) draft.log.push(`${label(draft, card)} is blown back ${moved} slot(s).`);
+}
+
+/** HP-threshold transform (Skelider Dismount): fires once when the card first
+ *  drops below its threshold. */
+export function checkLowHpTransform(draft: GameState, card: CardInstance): void {
+  const def = getDef(card.defId);
+  if (!def.onLowHp || card.transformed || card.curHp <= 0) return;
+  if (card.curHp >= def.onLowHp.threshold) return;
+  card.transformed = true;
+  draft.log.push(`${label(draft, card)} dismounts — it fights on as a common skeleton.`);
+  if (def.onLowHp.loseSp) card.spBonus -= def.onLowHp.loseSp;
+  if (def.onLowHp.dmg) {
+    const foes = boardCards(draft, enemyOf(card.owner)).filter((c) => c.curHp > 0);
+    const foe = card.pos
+      ? foes.reduce<CardInstance | null>((best, c) => (c.pos && (!best || manhattan(card.pos!, c.pos) < manhattan(card.pos!, best.pos!)) ? c : best), null)
+      : foes[0] ?? null;
+    if (foe) directDamage(draft, card, foe, def.onLowHp.dmg, false);
+  }
 }
 
 /**
@@ -197,10 +254,11 @@ export function resolveHit(
   }
 
   if (target.curHp <= 0) {
-    result.targetDied = true;
     const deathPos = target.pos ? { ...target.pos } : null;
     const deadOwner = target.owner;
-    die(draft, target, `${aDef.name}'s ${opts.kind}`);
+    const removed = defeatCard(draft, target, `${aDef.name}'s ${opts.kind}`);
+    if (!removed) return result; // revived — no kill/on-death triggers
+    result.targetDied = true;
     // On-kill trigger for the attacker (basic/special kills only).
     if ((opts.kind === "basic" || opts.kind === "special") && attacker.curHp > 0 && aDef.onKill) {
       applyOnKill(draft, attacker, aDef.onKill);
@@ -233,6 +291,9 @@ export function resolveHit(
       }
     }
   }
+
+  // Skelider Dismount: transform the first time it drops below its HP threshold.
+  if (target.curHp > 0) checkLowHpTransform(draft, target);
 
   // Thorns: retaliate when a surviving card is struck by a MELEE attacker.
   if (
@@ -537,6 +598,20 @@ function applySelfRiders(
   if (sp !== 0) caster.spBonus += sp;
 }
 
+/** Per-target special riders: forced push-back and a timed −SP debuff
+ *  (Mighty Winds, Purple Wind Surge). */
+function applyDebuffRiders(
+  draft: GameState,
+  target: CardInstance,
+  params: Record<string, number | string>,
+): void {
+  if (!draft.cards[target.instanceId] || target.curHp <= 0) return;
+  const push = num(params, "push");
+  if (push > 0) pushBack(draft, target, push);
+  const spDebuff = num(params, "spDebuff");
+  if (spDebuff > 0) applyTimedBuff(target, 0, -spDebuff, num(params, "spDebuffRounds", 1));
+}
+
 /** Apply a status to every enemy in the 8 slots adjacent to the caster
  *  (Squanch's Bushwhacker ROOT). */
 function adjacentCasterStatus(
@@ -573,10 +648,8 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (selfDamage > 0 && attacker.curHp > 0) {
       attacker.curHp -= selfDamage;
       draft.log.push(`${label(draft, attacker)} pays ${selfDamage} HP.`);
-      if (attacker.curHp <= 0) {
-        draft.log.push(`${label(draft, attacker)} is defeated (self-damage).`);
-        removeCard(draft, attacker.instanceId);
-      }
+      if (attacker.curHp <= 0) defeatCard(draft, attacker, "self-damage");
+      else checkLowHpTransform(draft, attacker);
     }
     const healSelf = num(params, "healSelf");
     if (healSelf > 0 && attacker.curHp > 0) {
@@ -607,6 +680,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         crit: num(params, "crit") > 0,
       });
       maybeStatus(draft, attacker, target, params);
+      applyDebuffRiders(draft, target, params); // Angale −SP
       if (attacker.curHp <= 0) break; // died to REFLECT mid-volley
     }
   },
@@ -621,6 +695,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (seen.size >= n) break;
       seen.add(target.instanceId);
       maybeStatus(draft, attacker, target, params);
+      applyDebuffRiders(draft, target, params); // Mighty Winds push + −SP
     }
     applySelfRiders(draft, attacker, params); // e.g. Guan's +5 max HP
   },
@@ -657,11 +732,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     );
   },
 
-  /** Heal up to N allies (chosen first), optionally cleansing them (DAWN). */
+  /** Heal up to N allies (chosen first), optionally cleansing them and/or
+   *  granting a timed team DMG/SP buff (Golden Courage, Daybreak). */
   heal(draft, attacker, targets, params) {
     const n = num(params, "targets", 1);
     const amount = num(params, "amount", 0);
     const doCleanse = num(params, "cleanse", 0) > 0;
+    const buffDmg = num(params, "buffDmg");
+    const buffSp = num(params, "buffSp");
+    const buffRounds = num(params, "buffRounds", 1);
     let healed = 0;
     for (const ally of targets.slice(0, n)) {
       if (amount > 0 && ally.curHp < ally.maxHp) {
@@ -669,7 +748,12 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         healed++;
       }
       if (doCleanse && ally.statuses.length) ally.statuses = [];
+      if (buffDmg > 0 || buffSp > 0) applyTimedBuff(ally, buffDmg, buffSp, buffRounds);
     }
+    if (buffDmg > 0 || buffSp > 0)
+      draft.log.push(
+        `${label(draft, attacker)} rallies the team (${buffDmg ? `+${buffDmg} DMG ` : ""}${buffSp ? `+${buffSp} SP ` : ""}for ${buffRounds}r).`,
+      );
     draft.log.push(
       `${label(draft, attacker)} restores allies (+${amount} HP${doCleanse ? ", CLEANSE" : ""}, ${healed} healed).`,
     );

@@ -125,6 +125,33 @@ export interface RoundTickDef {
   buffDmgEveryN?: { n: number; amount: number }; // +DMG every Nth round (stacking)
   scaldFrozen?: number; // apply SCALD N to FROZEN enemies (Freezer Burn)
   paralyzeOne?: number; // PARALYZE one un-paralyzed enemy for N rounds
+  pushEnemies?: number; // blow every enemy back N slots (Wind Guardian)
+}
+
+/** A temporary flat DMG/SP modifier with a Cleanup countdown. Positive = a buff
+ *  (Golden Courage team +DMG), negative = a debuff (Mighty Winds −SP). */
+export interface TimedBuff {
+  dmg: number;
+  sp: number;
+  rounds: number;
+}
+
+/** On-death revival (Bearocks Hibernation): the first time this card would be
+ *  defeated it instead survives at `heal` HP, optionally sleeping for `sleep`
+ *  rounds. Once only. */
+export interface OnReviveDef {
+  heal: number;
+  sleep?: number;
+}
+
+/** HP-threshold transformation (Skelider Dismount): the first time this card
+ *  drops below `threshold` HP it fires once — deal `dmg`, lose `loseSp` SP, and
+ *  (if loseSpecial) can no longer cast its Special. */
+export interface OnLowHpDef {
+  threshold: number;
+  dmg?: number;
+  loseSp?: number;
+  loseSpecial?: boolean;
 }
 
 export interface CardDef {
@@ -150,6 +177,10 @@ export interface CardDef {
   vsStatus?: VsStatusDef;
   /** Periodic self effect resolved each Cleanup. */
   roundTick?: RoundTickDef;
+  /** On-death revival (Bearocks). */
+  onRevive?: OnReviveDef;
+  /** HP-threshold transformation (Skelider Dismount). */
+  onLowHp?: OnLowHpDef;
   /** Catapult-style passives: this card may target the enemy Home row from
    *  anywhere (skips the Home Slot Targeting Rule). */
   ignoresHomeRule?: boolean;
@@ -203,6 +234,13 @@ export interface CardInstance {
   /** Basic hits this card has LANDED on each target this round (keyed by target
    *  instanceId). Powers first-hit-only / on-second-hit riders; reset in Cleanup. */
   struckThisRound: Record<string, number>;
+  /** Timed DMG/SP modifiers (team buffs, −SP debuffs); tick down each Cleanup. */
+  buffs: TimedBuff[];
+  /** On-revive guard (Bearocks) — set once it has revived, so it can't again. */
+  revived: boolean;
+  /** HP-threshold transform guard (Skelider) — set once Dismount has fired;
+   *  blocks the Special thereafter. */
+  transformed: boolean;
   /** Active statuses. DIFFERENT kinds coexist (a card can be ROOTed and
    *  BURNing); re-applying the SAME kind refreshes it instead of stacking —
    *  same-kind stacking only when a card explicitly states it (future flag). */

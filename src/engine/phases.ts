@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, type FlowMode, GALE_SP_CAP } from "./auras";
-import { applyStatus, basicAttack, directDamage, effectiveBasicHits, label, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, basicAttack, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, pushBack, SPECIAL_HANDLERS } from "./combat";
 import { coin } from "./rng";
 import {
   applyMulligan,
@@ -16,7 +16,6 @@ import {
   hasStatus,
   isEliminated,
   manhattan,
-  removeCard,
   summonCard,
 } from "./state";
 import {
@@ -490,6 +489,9 @@ function doRoundTicks(draft: GameState): void {
       const t = enemies().find((e) => !hasStatus(e, "PARALYZE"));
       if (t) applyStatus(draft, t, "PARALYZE", rt.paralyzeOne, 0, el);
     }
+    if (rt.pushEnemies) {
+      for (const e of enemies()) pushBack(draft, e, rt.pushEnemies);
+    }
     if (rt.pokeDmg || rt.pokeStatus) {
       const t = closest(card, enemies());
       if (t) {
@@ -539,9 +541,9 @@ function doCleanupPhase(draft: GameState): void {
           draft.log.push(`${label(draft, card)}'s shields melt (−1).`);
         }
         if (card.curHp <= 0) {
-          draft.log.push(`${label(draft, card)} is defeated (${s.kind}).`);
-          removeCard(draft, card.instanceId);
-          break; // no further ticks on a dead card
+          if (defeatCard(draft, card, s.kind)) break; // removed; no further ticks
+        } else {
+          checkLowHpTransform(draft, card); // Skelider Dismount can trigger on DOT
         }
       }
     }
@@ -576,6 +578,9 @@ function doCleanupPhase(draft: GameState): void {
     card.spBonusRound = 0;
     card.hitsBonusRound = 0;
     card.struckThisRound = {};
+    // Timed DMG/SP buffs & debuffs tick down; expired ones drop off.
+    for (const b of card.buffs) b.rounds--;
+    card.buffs = card.buffs.filter((b) => b.rounds > 0);
     // Temporary shields ("for the turn", e.g. Flow Change Frozen) expire.
     if (card.tempShields > 0) {
       card.curShields = Math.max(0, card.curShields - card.tempShields);

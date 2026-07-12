@@ -224,6 +224,7 @@ export function canFireSpecial(
   if (!card) return { ok: false, reason: "No such card" };
   const def = getDef(card.defId);
   if (!def.special) return { ok: false, reason: "No Special" };
+  if (card.transformed) return { ok: false, reason: "Dismounted — Special lost" };
   if (card.summonedThisRound)
     return { ok: false, reason: "Summon-turn lockout (basic attack only)" };
   if (card.specialCooldown > 0)

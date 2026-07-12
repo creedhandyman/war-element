@@ -93,6 +93,15 @@ export function CardDetail(props: {
     ].filter(Boolean);
     passives.push(`Each round: ${bits.join(" · ")}.`);
   }
+  if (def.onRevive)
+    passives.push(
+      `Revives once when defeated at ${def.onRevive.heal} HP${def.onRevive.sleep ? `, then sleeps ${def.onRevive.sleep} round(s)` : ""}.`,
+    );
+  if (def.onLowHp) {
+    const l = def.onLowHp;
+    const bits = [l.dmg && `deal ${l.dmg}`, l.loseSp && `−${l.loseSp} SP`, l.loseSpecial && "loses its Special"].filter(Boolean);
+    passives.push(`Below ${l.threshold} HP: ${bits.join(" · ")}.`);
+  }
   if (def.onSummon) passives.push("Fires an effect the moment it's summoned.");
   if (def.onDeath)
     passives.push(

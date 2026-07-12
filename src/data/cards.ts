@@ -14,11 +14,12 @@
 // (onHitByMelee), gated on-hit riders (chance/first-hit/second-hit), conditional
 // keywords vs a target's status (vsStatus), periodic self effects (roundTick),
 // on-death row-ahead AoE, on-summon ally buffs, and self/adjacent special
-// riders. All 8 element auras are implemented too (src/engine/auras.ts). A
-// handful of DEEP per-card mechanics remain unmodeled — noted inline as
-// NOTE/"not yet modeled" (token spawns, revives, transformations, traps,
-// forced push, damage-redirect, attack-allies-to-heal, recast specials, the
-// "Electrified" mark, and a few timed team buffs).
+// riders. All 8 element auras are implemented too (src/engine/auras.ts), plus
+// timed team buffs, forced push / −SP debuffs, on-death revive, and HP-threshold
+// transforms. A few DEEP per-card mechanics remain unmodeled — noted inline as
+// NOTE/"not yet modeled" (token/minion spawns, traps, damage-redirect,
+// attack-allies-to-heal, recast/persistent specials, status-absorbing barrier,
+// positional untargetability, and the "Electrified" mark).
 // Stat guideline: total ≈ 5*cost + 10, shields = 2 pts (stat rebalances vs the
 // docs are intentional alpha scope, not bugs).
 
@@ -565,6 +566,8 @@ export const CARDS: CardDef[] = [
     shields: 2,
     keywords: {},
     statusImmune: true, // Hibernation: immune to status effects
+    // On Death: revive once at 24 HP, then SLEEP itself for 1 round.
+    onRevive: { heal: 24, sleep: 1 },
     special: {
       name: "Blunt Bash",
       cost: 5,
@@ -765,6 +768,8 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 2,
     keywords: {},
+    // Dismount: below 10 HP, deal 5 DMG, lose 5 SP and the Special (basic skeleton).
+    onLowHp: { threshold: 10, dmg: 5, loseSp: 5, loseSpecial: true },
     special: {
       name: "Piercing Charge",
       cost: 4,
@@ -1093,9 +1098,10 @@ export const CARDS: CardDef[] = [
       name: "Daybreak",
       cost: 2,
       handler: "heal",
-      params: { amount: 5, targets: 99 },
+      // Heal all allies 5 HP and give them +2 SP for the round.
+      params: { amount: 5, targets: 99, buffSp: 2, buffRounds: 1 },
       targetSide: "ally",
-      text: "Heal every ally 5 HP.",
+      text: "Heal every ally 5 HP and give them +2 SP for the round.",
     },
   },
   {
@@ -1136,16 +1142,16 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 5,
     keywords: { FLYING: true },
-    // War Maiden (End of Round): heal all allies +3 HP. (Doc special also grants
-    // team +1 DMG for 2 rounds — a timed team buff not modeled yet.)
+    // War Maiden (End of Round): heal all allies +3 HP.
     roundTick: { healAllies: 3 },
     special: {
       name: "Golden Courage",
       cost: 3,
       handler: "heal",
-      params: { amount: 5, targets: 99, cleanse: 1 },
+      // Team +1 DMG for 2 rounds, heal 5, CLEANSE.
+      params: { amount: 5, targets: 99, cleanse: 1, buffDmg: 1, buffRounds: 2 },
       targetSide: "ally",
-      text: "Heal every ally 5 HP and CLEANSE them.",
+      text: "Heal every ally 5 HP, CLEANSE them, and give the team +1 DMG for 2 rounds.",
     },
   },
   {
@@ -1333,10 +1339,10 @@ export const CARDS: CardDef[] = [
       name: "Purple Wind Surge",
       cost: 2,
       handler: "barrage",
-      // printed "4×1 DMG to the row ahead + WEAKEN each" — 4 hits of 1 per target
-      params: { dmg: 1, hits: 4, targets: 3, statusKind: "WEAKEN", statusDuration: 2 },
+      // "4×1 DMG to the row ahead + WEAKEN + −2 SP each"
+      params: { dmg: 1, hits: 4, targets: 3, statusKind: "WEAKEN", statusDuration: 2, spDebuff: 2, spDebuffRounds: 2 },
       targetSide: "enemy",
-      text: "Deal 1 DMG × 4 and WEAKEN up to 3 opponents for 2 rounds.",
+      text: "Deal 1 DMG × 4, WEAKEN, and −2 SP to up to 3 opponents for 2 rounds.",
     },
   },
   {
@@ -1404,14 +1410,17 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 2,
     keywords: {},
+    // Wind Guardian (End of Round): blow opponents in range back 1 slot.
+    roundTick: { pushEnemies: 1 },
     special: {
       name: "Mighty Winds",
       cost: 3,
       handler: "statusNova",
-      params: { statusKind: "WEAKEN", statusDuration: 2, targets: 99 },
+      // Push all back 2, WEAKEN, and −8 SP for the round.
+      params: { statusKind: "WEAKEN", statusDuration: 2, targets: 99, push: 2, spDebuff: 8, spDebuffRounds: 1 },
       targetSide: "enemy",
-      ranged: true, // "push/WEAKEN all opponents" — reaches the whole board
-      text: "WEAKEN every opponent in range for 2 rounds.",
+      ranged: true, // reaches the whole board
+      text: "Push every opponent back 2, WEAKEN them (2r), and −8 SP for the round.",
     },
   },
   {
