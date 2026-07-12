@@ -22,6 +22,7 @@ import {
   canFireSpecial,
   canMove,
   canSummon,
+  canTarget,
   forwardAreaTargets,
   isActionBlocked,
   validAllyTargets,
@@ -106,6 +107,8 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       for (const guard of boardCards(draft, enemyOf(inst.owner))) {
         const gd = getDef(guard.defId);
         if (!gd.onOppSummon || guard.curHp <= 0 || !draft.cards[inst.instanceId]) continue;
+        // Only reacts to a newcomer it can actually reach (in targeting range).
+        if (!canTarget(draft, guard, inst)) continue;
         if (gd.onOppSummon.dmg && inst.curHp > 0) directDamage(draft, guard, inst, gd.onOppSummon.dmg, false);
         const st = gd.onOppSummon.status;
         if (st && inst.curHp > 0 && draft.cards[inst.instanceId])

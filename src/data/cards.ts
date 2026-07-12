@@ -1803,14 +1803,14 @@ export const CARDS: CardDef[] = [
     element: "BOLT",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 1,
+    cost: 2,
     dmg: 1,
     hits: 3,
     hp: 8,
     sp: 8,
     shields: 0,
     keywords: {},
-    // Shocker (On Opp Summon): PARALYZE the newly-summoned opponent for 1 round.
+    // Shocker: PARALYZE an opponent summoned within DrShock's range for 1 round.
     onOppSummon: { status: { kind: "PARALYZE", duration: 1, power: 0 } },
   },
 ];

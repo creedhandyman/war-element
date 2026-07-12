@@ -25,10 +25,9 @@ describe("setup", () => {
       "dusk_skeleton_knight",
       "bore_bearocks",
       "dusk_skelider",
-      // SP-heavy canon glass cannons: the doc costs them at 1 despite the high
+      // SP-heavy canon glass cannon: the doc costs it at 1 despite the high
       // SP inflating the stat total.
       "dawn_sparkle",
-      "bolt_drshock",
     ]);
     for (const def of CARDS) {
       if (exceptions.has(def.id)) continue;
