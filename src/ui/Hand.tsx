@@ -1,6 +1,7 @@
 import type { GameState, PlayerId } from "../engine";
 import { enemyOf, getDef } from "../engine";
 import { EL_COLOR } from "./shared";
+import { SpIcon } from "./icons";
 
 export function Hand(props: {
   game: GameState;
@@ -58,7 +59,7 @@ export function Hand(props: {
                 <span>⚔{def.hits > 1 ? `${def.hits}×` : ""}{def.dmg}</span>
                 {def.shields > 0 && <span>🛡{def.shields}</span>}
                 <span>♥{def.hp}</span>
-                <span>👟{def.sp}</span>
+                <span><SpIcon />{def.sp}</span>
               </div>
               <div className="hc-class">
                 {def.cardClass} · {def.attackType}

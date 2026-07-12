@@ -25,6 +25,7 @@ import {
 } from "../engine";
 import { Board } from "./Board";
 import { CardDetail } from "./CardDetail";
+import { SpIcon } from "./icons";
 import { Hand } from "./Hand";
 import { PhaseRibbon } from "./PhaseRibbon";
 import { ResourcePool } from "./ResourcePool";
@@ -526,7 +527,7 @@ export function App() {
                     <div className="hc-stats">
                       <span>⚔{def.hits > 1 ? `${def.hits}×` : ""}{def.dmg}</span>
                       <span>♥{def.hp}</span>
-                      <span>👟{def.sp}</span>
+                      <span><SpIcon />{def.sp}</span>
                     </div>
                     <div className="hc-class">{def.cardClass}</div>
                   </div>
@@ -728,7 +729,7 @@ export function App() {
                             <div className="dt-stats">
                               <span>⚔{d.hits > 1 ? `${d.hits}×` : ""}{d.dmg}</span>
                               <span>♥{d.hp}</span>
-                              <span>👟{d.sp}</span>
+                              <span><SpIcon />{d.sp}</span>
                             </div>
                           </div>
                         );

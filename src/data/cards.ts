@@ -1438,19 +1438,21 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 7, // LEGENDARY
-    dmg: 7,
+    dmg: 9,
     hits: 1,
-    hp: 27,
-    sp: 11,
-    shields: 0,
+    hp: 22,
+    sp: 13,
+    shields: 1,
     keywords: {},
+    // Harsh Winds: +4 DMG on the first strike vs each opponent.
+    firstStrikeBonus: 4,
     special: {
       name: "Tranq Feather Blade",
-      cost: 3,
+      cost: 2,
       handler: "strike",
-      params: { dmg: 5, pen: 1, statusKind: "STUN", statusDuration: 2 },
+      params: { dmg: 10, pen: 1, statusKind: "STUN", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 5 DMG (PEN) and STUN the target for 2 rounds.",
+      text: "Deal 10 DMG (PEN) and STUN the target for 2 rounds.",
     },
   },
 

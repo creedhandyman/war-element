@@ -107,8 +107,22 @@ button { font-family: inherit; }
 .tk-stats { display: flex; gap: 4px; font-size: 14px; font-weight: 800; flex-wrap: wrap; }
 .tk-stats span { display: flex; align-items: center; gap: 1px; padding: 0 4px; border-radius: 5px; background: rgba(0, 0, 0, 0.45); text-shadow: 0 1px 2px #000; line-height: 1.4; }
 .st-dmg { color: #ffab5e; } .st-hp { color: #7fe08a; } .st-sh { color: #8fc3ff; }
+/* HP flashes red on damage, green on healing so combat reads at a glance. */
+.st-hp.hp-hit { animation: hpHit 0.65s ease-out; }
+.st-hp.hp-heal { animation: hpHeal 0.65s ease-out; }
+@keyframes hpHit {
+  0% { color: #ff4d4d; transform: scale(1.35); text-shadow: 0 0 10px #ff4d4d; }
+  60% { color: #ff4d4d; text-shadow: 0 0 6px #ff4d4d; }
+  100% { color: #7fe08a; transform: scale(1); text-shadow: 0 1px 2px #000; }
+}
+@keyframes hpHeal {
+  0% { color: #46ff9e; transform: scale(1.35); text-shadow: 0 0 10px #46ff9e; }
+  60% { color: #46ff9e; text-shadow: 0 0 6px #46ff9e; }
+  100% { color: #7fe08a; transform: scale(1); text-shadow: 0 1px 2px #000; }
+}
 .status-pip { position: absolute; top: 28px; left: 7px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--accent); color: #12081f; font-size: 9px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 8px rgba(167, 139, 250, 0.6); }
-.sp-badge { position: absolute; top: 6px; right: 26px; font-size: 14px; font-weight: 800; color: var(--your-home-glow); background: rgba(0, 0, 0, 0.45); padding: 0 5px; border-radius: 5px; text-shadow: 0 1px 2px #000; }
+.sp-badge { position: absolute; top: 6px; right: 26px; display: inline-flex; align-items: center; gap: 1px; font-size: 14px; font-weight: 800; color: var(--your-home-glow); background: rgba(0, 0, 0, 0.45); padding: 1px 5px; border-radius: 5px; text-shadow: 0 1px 2px #000; }
+.sp-badge svg { filter: drop-shadow(0 1px 1px #000); }
 .sp-badge.can-move { color: #06251a; background: var(--legal); text-shadow: none; box-shadow: 0 0 10px rgba(78, 203, 143, 0.7); animation: movepulse 1.5s ease-in-out infinite; }
 @keyframes movepulse { 0%, 100% { box-shadow: 0 0 6px rgba(78, 203, 143, 0.4); } 50% { box-shadow: 0 0 14px rgba(78, 203, 143, 0.9); } }
 /* bottom strip: stats sit above; keywords + auto badge share the strip */

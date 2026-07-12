@@ -190,6 +190,9 @@ export interface CardDef {
   /** This card's attacks do NOT wake SLEEPING targets (Sandman's Nightmare —
    *  his hits ignore SLEEP's break-on-hit rule). */
   ignoresSleepWake?: boolean;
+  /** Bonus DMG on the FIRST basic attack this card lands against each distinct
+   *  opponent (Klipso's Harsh Winds), once per opponent for the game. */
+  firstStrikeBonus?: number;
   /** A flat bonus added ONCE to the total after a basic attack resolves (not
    *  per hit), gated on board conditions (Sandman). Lands on the primary target. */
   basicBonus?: {
@@ -250,6 +253,9 @@ export interface CardInstance {
   /** Basic hits this card has LANDED on each target this round (keyed by target
    *  instanceId). Powers first-hit-only / on-second-hit riders; reset in Cleanup. */
   struckThisRound: Record<string, number>;
+  /** Every opponent this card has landed a basic attack on (instanceIds).
+   *  Persistent — powers first-strike-per-opponent bonuses (Klipso Harsh Winds). */
+  struckEver: string[];
   /** Timed DMG/SP modifiers (team buffs, −SP debuffs); tick down each Cleanup. */
   buffs: TimedBuff[];
   /** On-revive guard (Bearocks) — set once it has revived, so it can't again. */

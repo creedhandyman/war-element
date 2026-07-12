@@ -216,6 +216,18 @@ describe("Fallona's Fall's Emergence scales Leaf Storm", () => {
   });
 });
 
+describe("Klipso's Harsh Winds", () => {
+  it("adds bonus DMG on the first strike vs an opponent, once", () => {
+    const s = prepState();
+    const klipso = place(s, "gale_klipso", "P1", 3, 0); // 9 DMG + 4 first-strike
+    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 60 });
+    basicAttack(s, klipso.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].curHp).toBe(47); // 60 − (9 + 4)
+    basicAttack(s, klipso.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].curHp).toBe(38); // 47 − 9 (no bonus the 2nd time)
+  });
+});
+
 describe("on-opponent-summon reactions", () => {
   it("Rock Goblin damages and DrShock paralyzes a card entering the battlefield", () => {
     const s = prepState(); // P1 has priority

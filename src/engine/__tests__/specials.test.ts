@@ -285,7 +285,7 @@ describe("GALE / BOLT lockdown & disruption", () => {
       player: "P1",
       action: "special",
     });
-    expect(next.cards[foe.instanceId].curHp).toBe(8); // 5 PEN ignores shields
+    expect(next.cards[foe.instanceId].curHp).toBe(3); // 10 PEN ignores shields
     expect(next.cards[foe.instanceId].curShields).toBe(4);
     expect(isActionBlocked(next.cards[foe.instanceId])).toBe(true); // STUN = can't act
   });

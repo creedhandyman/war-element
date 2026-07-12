@@ -1,8 +1,36 @@
+import { useEffect, useRef, useState } from "react";
 import type { CardInstance, GameState } from "../engine";
 import { effectiveBasicHits, effectiveDmg, effectiveSp, getDef, legalMoves } from "../engine";
 import { EL_COLOR } from "./shared";
+import { SpIcon } from "./icons";
 
 const AUTO_LABEL = { manual: "MANUAL", basic: "AUTO", full: "FULL" } as const;
+
+/** Flash the HP number red when it drops (damage) and green when it rises
+ *  (healing), so combat reads at a glance. Ignores same-slot card swaps. */
+function useHpFlash(instanceId: string, hp: number): "down" | "up" | null {
+  const prevHp = useRef(hp);
+  const prevId = useRef(instanceId);
+  const [flash, setFlash] = useState<"down" | "up" | null>(null);
+  useEffect(() => {
+    if (prevId.current !== instanceId) {
+      prevId.current = instanceId;
+      prevHp.current = hp;
+      setFlash(null);
+      return;
+    }
+    const prev = prevHp.current;
+    prevHp.current = hp;
+    if (hp < prev) setFlash("down");
+    else if (hp > prev) setFlash("up");
+  }, [hp, instanceId]);
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(null), 650);
+    return () => clearTimeout(t);
+  }, [flash]);
+  return flash;
+}
 
 export function Token(props: {
   game: GameState;
@@ -15,6 +43,7 @@ export function Token(props: {
   const def = getDef(card.defId);
   const mine = card.owner === "P1";
   const human = (game.humans ?? ["P1"]).includes(card.owner);
+  const hpFlash = useHpFlash(card.instanceId, card.curHp);
   const kws = Object.entries(def.keywords)
     .map(([k, v]) => (v === true ? k : `${k} ${v}`))
     .join(" · ");
@@ -72,7 +101,10 @@ export function Token(props: {
             {effectiveDmg(game, card)}
           </span>
           {card.curShields > 0 && <span className="st-sh">🛡{card.curShields}</span>}
-          <span className="st-hp" title={`HP ${card.curHp} of ${card.maxHp}`}>
+          <span
+            className={`st-hp ${hpFlash === "down" ? "hp-hit" : hpFlash === "up" ? "hp-heal" : ""}`}
+            title={`HP ${card.curHp} of ${card.maxHp}`}
+          >
             ♥{card.curHp === card.maxHp ? card.curHp : `${card.curHp}/${card.maxHp}`}
           </span>
         </div>
@@ -108,7 +140,8 @@ export function Token(props: {
                 : "Speed (queue order + move reach)"
             }
           >
-            👟{effectiveSp(game, card)}
+            <SpIcon />
+            {effectiveSp(game, card)}
           </div>
         );
       })()}

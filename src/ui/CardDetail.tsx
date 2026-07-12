@@ -1,6 +1,7 @@
 import type { CardInstance, GameState, PlayerId, StatusKind } from "../engine";
 import { effectiveBasicHits, effectiveDmg, effectiveSp, ELEMENT_AURA, getDef } from "../engine";
 import { EL_COLOR } from "./shared";
+import { SpIcon } from "./icons";
 
 // Plain-language blurb for each status kind, shown under a card's active effects.
 const STATUS_TEXT: Record<StatusKind, string> = {
@@ -107,6 +108,8 @@ export function CardDetail(props: {
     const bits = [o.dmg && `${o.dmg} DMG`, o.status && o.status.kind].filter(Boolean).join(" + ");
     passives.push(`When an enemy is summoned, hits it with ${bits}.`);
   }
+  if (def.firstStrikeBonus)
+    passives.push(`+${def.firstStrikeBonus} DMG on the first strike against each opponent.`);
   if (def.ignoresSleepWake) passives.push("Its attacks don't wake SLEEPING targets.");
   if (def.basicBonus) {
     const b = def.basicBonus;
@@ -191,7 +194,7 @@ export function CardDetail(props: {
               </div>
               <div className="cd-stat" title="Speed — queue order & move reach">
                 <span className="cd-lbl">SP</span>
-                <span className="cd-val">👟{sp}</span>
+                <span className="cd-val"><SpIcon />{sp}</span>
               </div>
             </div>
 

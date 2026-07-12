@@ -191,6 +191,7 @@ export function summonCard(
     hitsBonusRound: 0,
     tempShields: 0,
     struckThisRound: {},
+    struckEver: [],
     buffs: [],
     revived: false,
     transformed: false,

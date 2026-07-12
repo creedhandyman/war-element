@@ -393,6 +393,9 @@ export function basicAttack(
     }
     // Electrify (BOLT aura): +1 DMG vs any statused opponent.
     if (aDef.element === "BOLT" && t.statuses.length > 0) dmg += 1;
+    // Harsh Winds: bonus DMG the first time this card strikes a given opponent.
+    const firstStrike = Boolean(aDef.firstStrikeBonus) && !attacker.struckEver.includes(t.instanceId);
+    if (firstStrike) dmg += aDef.firstStrikeBonus!;
 
     const struckBefore = attacker.struckThisRound[t.instanceId] ?? 0;
     const r = resolveHit(draft, attacker, t, {
@@ -405,6 +408,7 @@ export function basicAttack(
     });
     if (r.landedHits > 0) {
       attacker.struckThisRound[t.instanceId] = struckBefore + r.landedHits;
+      if (firstStrike) attacker.struckEver.push(t.instanceId);
       applyOnHitRider(draft, attacker, t, struckBefore, r.landedHits);
       // Scorch (PYRO aura): apply BURN 1 (1r) if the target has no BURN yet, so
       // it never overwrites a stronger card-specific BURN rider.
