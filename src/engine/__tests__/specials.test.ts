@@ -38,10 +38,10 @@ describe("firing specials", () => {
     expect(next.players.P1.magicPool).toBe(2);
   });
 
-  it("barrage: hits up to N targets", () => {
+  it("barrage: hits every target (Leaf Storm = 3×1 to all)", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;
-    const a = place(s, "leaf_fallona", "P1", 2, 0); // Leaf Storm: 2 dmg, 3 targets, cost 2
+    const a = place(s, "leaf_fallona", "P1", 2, 0); // Leaf Storm: 1 dmg × 3, all targets
     const t1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
     const t2 = place(s, "dusk_ghastly", "P2", 1, 1, { curHp: 19 });
     const t3 = place(s, "bore_smith", "P2", 1, 2, { curHp: 11, curShields: 0 });
@@ -51,9 +51,9 @@ describe("firing specials", () => {
       action: "special",
       targetId: t1.instanceId,
     });
-    expect(next.cards[t1.instanceId].curHp).toBe(11);
-    expect(next.cards[t2.instanceId].curHp).toBe(17);
-    expect(next.cards[t3.instanceId].curHp).toBe(9);
+    expect(next.cards[t1.instanceId].curHp).toBe(10); // 13 − 3
+    expect(next.cards[t2.instanceId].curHp).toBe(16); // 19 − 3
+    expect(next.cards[t3.instanceId].curHp).toBe(8); // 11 − 3
   });
 
   it("barrage multi-selection: strikes exactly the picked targets, stacking repeats", () => {
@@ -78,14 +78,14 @@ describe("firing specials", () => {
   it("barrage rejects more picks than the special allows", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;
-    const fallona = place(s, "leaf_fallona", "P1", 2, 0); // Leaf Storm: up to 3 targets
+    const sol = place(s, "pyro_sol", "P1", 2, 0); // Pyro Ball Barrage: up to 4 targets
     const t = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
     expect(() =>
-      applyIntent(battleWith(s, fallona.instanceId), {
+      applyIntent(battleWith(s, sol.instanceId), {
         type: "BATTLE_ACTION",
         player: "P1",
         action: "special",
-        targetIds: [t.instanceId, t.instanceId, t.instanceId, t.instanceId],
+        targetIds: [t.instanceId, t.instanceId, t.instanceId, t.instanceId, t.instanceId],
       }),
     ).toThrow(/Too many targets/);
   });
@@ -199,6 +199,32 @@ describe("firing specials", () => {
     });
     expect(next.cards[ally.instanceId].curShields).toBe(2);
     expect(next.players.P1.magicPool).toBe(2);
+  });
+});
+
+describe("card-text audit fixes", () => {
+  it("Krysteel's Krystal Rain CRITs every unshielded target (barrage crit)", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    s.rngState = seedForCoins(true, true, true); // all crits land
+    const krysteel = place(s, "bore_krysteel", "P1", 2, 0); // 3 dmg CRIT, all targets
+    const t1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13, curShields: 0 });
+    const t2 = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 13, curShields: 0 });
+    const next = applyIntent(battleWith(s, krysteel.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+    });
+    expect(next.cards[t1.instanceId].curHp).toBe(7); // 3 → doubled to 6
+    expect(next.cards[t2.instanceId].curHp).toBe(7);
+  });
+
+  it("Gool's Spook FRIGHTENs on a basic hit (passive rider, no Special)", () => {
+    const s = prepState();
+    const gool = place(s, "dusk_gool", "P1", 2, 0);
+    const foe = place(s, "bore_smith", "P2", 1, 1, { curHp: 11 }); // beside → gets pushed back
+    basicAttack(s, gool.instanceId, foe.instanceId);
+    expect(foe.statuses.some((x) => x.kind === "FRIGHTEN")).toBe(true);
   });
 });
 
@@ -512,7 +538,7 @@ describe("special legality", () => {
       targetId: t.instanceId,
     });
     expect(g.players.P1.magicPool).toBe(0);
-    expect(g.cards[t.instanceId].curHp).toBe(2); // 11 − 7 (Web Snare) − 2 (Leaf Storm)
+    expect(g.cards[t.instanceId].curHp).toBe(1); // 11 − 7 (Web Snare) − 3 (Leaf Storm 3×1)
     // and both cards are now individually recharging
     expect(g.cards[silk.instanceId].specialCooldown).toBe(2);
     expect(g.cards[fallona.instanceId].specialCooldown).toBe(2);

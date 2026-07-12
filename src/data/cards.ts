@@ -102,9 +102,10 @@ export const CARDS: CardDef[] = [
       name: "Leaf Storm",
       cost: 2,
       handler: "barrage",
-      params: { dmg: 2, targets: 3 },
+      // printed "3×1 DMG to all opponents" — 3 hits of 1 per target
+      params: { dmg: 1, hits: 3, targets: 99 },
       targetSide: "enemy",
-      text: "Deal 2 DMG to up to 3 opponents.",
+      text: "Deal 1 DMG × 3 to every opponent in range.",
     },
   },
 
@@ -442,9 +443,10 @@ export const CARDS: CardDef[] = [
       name: "Krystal Rain",
       cost: 2,
       handler: "barrage",
-      params: { dmg: 3, targets: 3 },
+      // printed "3 DMG CRIT to all opponents"
+      params: { dmg: 3, targets: 99, crit: 1 },
       targetSide: "enemy",
-      text: "Deal 3 DMG to up to 3 opponents.",
+      text: "Deal 3 DMG (CRIT) to every opponent in range.",
     },
   },
   {
@@ -564,9 +566,10 @@ export const CARDS: CardDef[] = [
       name: "Web Snare",
       cost: 1,
       handler: "strike",
-      params: { dmg: 7 },
+      // printed "7 DMG and −50% accuracy for 2 rounds" — BLIND models the accuracy cut
+      params: { dmg: 7, statusKind: "BLIND", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 7 DMG to one opponent.",
+      text: "Deal 7 DMG and BLIND the target (−50% accuracy) for 2 rounds.",
     },
   },
   {
@@ -611,14 +614,8 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    special: {
-      name: "Spook",
-      cost: 2,
-      handler: "strike",
-      params: { dmg: 2, statusKind: "FRIGHTEN", statusDuration: 1 },
-      targetSide: "enemy",
-      text: "Deal 2 DMG and FRIGHTEN the target for 1 round.",
-    },
+    // Spook (On Hit): FRIGHTEN the opponent — a passive rider, not a Special.
+    onHitStatus: { kind: "FRIGHTEN", duration: 1, power: 0 },
   },
   {
     id: "dusk_ghastly",
@@ -637,9 +634,10 @@ export const CARDS: CardDef[] = [
       name: "Phantom Gouge",
       cost: 2,
       handler: "barrage",
-      params: { dmg: 3, targets: 3, pen: 1 },
+      // printed "3 DMG PEN to all opponents in range"
+      params: { dmg: 3, targets: 99, pen: 1 },
       targetSide: "enemy",
-      text: "Deal 3 DMG (PEN) to up to 3 opponents.",
+      text: "Deal 3 DMG (PEN) to every opponent in range.",
     },
   },
   {
@@ -942,9 +940,10 @@ export const CARDS: CardDef[] = [
       name: "Drowning Mist",
       cost: 2,
       handler: "barrage",
-      params: { dmg: 2, targets: 99 },
+      // printed "5×1 DMG to all opponents" — 5 hits of 1 per target (shreds shields)
+      params: { dmg: 1, hits: 5, targets: 99 },
       targetSide: "enemy",
-      text: "Deal 2 DMG to every opponent in range.",
+      text: "Deal 1 DMG × 5 to every opponent in range (shreds shields).",
     },
   },
 
@@ -1020,9 +1019,10 @@ export const CARDS: CardDef[] = [
       name: "Flashing Barrage",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 4, targets: 3, statusKind: "BLIND", statusDuration: 1 },
+      // printed "4×2 DMG and BLIND all opponents" — 4 hits of 2 to each, BLIND all
+      params: { dmg: 2, hits: 4, targets: 99, statusKind: "BLIND", statusDuration: 1 },
       targetSide: "enemy",
-      text: "Deal 4 DMG and BLIND up to 3 opponents for 1 round.",
+      text: "Deal 2 DMG × 4 and BLIND every opponent in range for 1 round.",
     },
   },
   {
@@ -1265,9 +1265,10 @@ export const CARDS: CardDef[] = [
       name: "Purple Wind Surge",
       cost: 2,
       handler: "barrage",
-      params: { dmg: 4, targets: 3, statusKind: "WEAKEN", statusDuration: 2 },
+      // printed "4×1 DMG to the row ahead + WEAKEN each" — 4 hits of 1 per target
+      params: { dmg: 1, hits: 4, targets: 3, statusKind: "WEAKEN", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 4 DMG and WEAKEN up to 3 opponents for 2 rounds.",
+      text: "Deal 1 DMG × 4 and WEAKEN up to 3 opponents for 2 rounds.",
     },
   },
   {
@@ -1431,9 +1432,10 @@ export const CARDS: CardDef[] = [
       name: "Discharge",
       cost: 2,
       handler: "barrage",
-      params: { dmg: 3, targets: 99, statusKind: "PARALYZE", statusDuration: 1 },
+      // printed "3×1 DMG and PARALYZE all opponents" — 3 hits of 1 per target
+      params: { dmg: 1, hits: 3, targets: 99, statusKind: "PARALYZE", statusDuration: 1 },
       targetSide: "enemy",
-      text: "Deal 3 DMG and PARALYZE every opponent in range for 1 round.",
+      text: "Deal 1 DMG × 3 and PARALYZE every opponent in range for 1 round.",
     },
   },
   {
@@ -1476,9 +1478,10 @@ export const CARDS: CardDef[] = [
       name: "Whip Strike",
       cost: 2,
       handler: "barrage",
-      params: { dmg: 3, targets: 99, statusKind: "PARALYZE", statusDuration: 1 },
+      // printed "2×3 DMG and PARALYZE all opponents" — 2 hits of 3 per target
+      params: { dmg: 3, hits: 2, targets: 99, statusKind: "PARALYZE", statusDuration: 1 },
       targetSide: "enemy",
-      text: "Deal 3 DMG and PARALYZE every opponent in range for 1 round.",
+      text: "Deal 3 DMG × 2 and PARALYZE every opponent in range for 1 round.",
     },
   },
   {

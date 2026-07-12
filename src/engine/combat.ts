@@ -353,8 +353,9 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
   },
 
-  /** Damage to up to N valid enemy targets (chosen target first). An optional
-   *  statusKind is applied to each surviving target (FREEZE/BLIND/SCALD nova). */
+  /** Damage to up to N valid enemy targets (chosen target first). Optional
+   *  hits (dmg × hits per target), pen, crit, and a statusKind applied to each
+   *  surviving target (FREEZE/BLIND/SCALD/PARALYZE nova). */
   barrage(draft, attacker, targets, params) {
     const n = num(params, "targets", 1);
     for (const target of targets.slice(0, n)) {
@@ -364,7 +365,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         dmg: num(params, "dmg"),
         hits: num(params, "hits", 1),
         pen: num(params, "pen") > 0,
-        crit: false,
+        crit: num(params, "crit") > 0,
       });
       maybeStatus(draft, attacker, target, params);
       if (attacker.curHp <= 0) break; // died to REFLECT mid-volley
