@@ -163,6 +163,12 @@ export function manhattan(a: Pos, b: Pos): number {
   return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
 }
 
+/** King-move (Chebyshev) distance — a diagonal step counts as 1. FLYING cards
+ *  measure movement this way, so they move freely diagonally. */
+export function chebyshev(a: Pos, b: Pos): number {
+  return Math.max(Math.abs(a.row - b.row), Math.abs(a.col - b.col));
+}
+
 export function summonCard(
   draft: GameState,
   player: PlayerId,

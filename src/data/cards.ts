@@ -150,10 +150,10 @@ export const CARDS: CardDef[] = [
       name: "Bushwhacker",
       cost: 2,
       handler: "strike",
-      // "6 DMG to one opponent AND ROOT all opponents adjacent to Squanch 1r"
-      params: { dmg: 6, adjStatusKind: "ROOT", adjStatusDuration: 1 },
+      // "6 DMG to one opponent AND ROOT all opponents adjacent to Squanch 2r"
+      params: { dmg: 6, adjStatusKind: "ROOT", adjStatusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 6 DMG and ROOT every opponent adjacent to Squanch for 1 round.",
+      text: "Deal 6 DMG and ROOT every opponent adjacent to Squanch for 2 rounds.",
     },
   },
   {
@@ -1047,9 +1047,9 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 2,
     keywords: { FLYING: true },
-    // Raising Star (End of Round): BLIND all opponents. (Doc also heals allies
-    // +1 on basic attacks — the attack-heal half isn't modeled yet.)
-    roundTick: { aoeStatus: { kind: "BLIND", duration: 1, power: 0 } },
+    // Raising Star (End of Round): BLIND the closest opponent. (Doc also heals
+    // allies +1 on basic attacks — the attack-heal half isn't modeled yet.)
+    roundTick: { pokeStatus: { kind: "BLIND", duration: 1, power: 0 } },
     special: {
       name: "Star Shower",
       cost: 2,
@@ -1172,11 +1172,11 @@ export const CARDS: CardDef[] = [
     keywords: {},
     special: {
       name: "Light Shield",
-      cost: 2,
+      cost: 1,
       handler: "grantShield",
-      params: { amount: 2 },
+      params: { amount: 3 },
       targetSide: "ally",
-      text: "Give an ally +2 shields.",
+      text: "Give an ally +3 shields.",
     },
   },
   {

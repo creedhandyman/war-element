@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { basicAttack, effectiveBasicHits, SPECIAL_HANDLERS } from "../combat";
 import { applyFlow } from "../auras";
 import { advance, applyIntent } from "../phases";
-import { canFireSpecial } from "../rules";
+import { canFireSpecial, canMove } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState } from "./helpers";
@@ -202,6 +202,17 @@ describe("revive & transform", () => {
     expect(canFireSpecial(s, sk.instanceId).ok).toBe(false); // Special lost
     expect(effectiveSp(s, sk)).toBe(5); // 10 − 5
     expect(s.cards[foe.instanceId].curHp).toBe(15); // 5 Dismount damage
+  });
+});
+
+describe("FLYING diagonal movement", () => {
+  it("a FLYING card moves diagonally for 1 space; a grounded one at reach 1 can't", () => {
+    const s = prepState(); // Prep, P1 has priority
+    const flyer = place(s, "pyro_fenrir", "P1", 3, 1); // FLYING, SP 7 → reach 1
+    expect(canMove(s, "P1", flyer.instanceId, { row: 2, col: 0 }).ok).toBe(true); // diagonal
+
+    const grounded = place(s, "leaf_squanch", "P1", 3, 3); // not FLYING, SP 3 → reach 1
+    expect(canMove(s, "P1", grounded.instanceId, { row: 2, col: 2 }).ok).toBe(false); // diagonal = 2 for it
   });
 });
 
