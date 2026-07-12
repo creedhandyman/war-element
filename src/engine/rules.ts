@@ -102,7 +102,8 @@ export function legalMoves(state: GameState, player: PlayerId, instanceId: strin
  *   1 column, chess-king reach). Ranged: any slot.
  * - Home Slot Targeting Rule: a slot in the DEFENDER's home row can only be
  *   targeted from a Mid row (1/2) or from inside that home row itself.
- * - FLYING: immune to Melee. STEALTH: untargetable until it attacks.
+ * - FLYING: immune to Melee — unless the attacker is ALSO flying (a flying
+ *   melee card can strike other fliers). STEALTH: untargetable until it attacks.
  */
 export function canTarget(
   _state: GameState,
@@ -117,7 +118,8 @@ export function canTarget(
   const melee = aDef.attackType === "Melee" && !asRanged;
 
   if (tDef.keywords.STEALTH && !target.attackedThisRound) return false;
-  if (tDef.keywords.FLYING && melee) return false;
+  // FLYING dodges melee — but a flying attacker can still strike other fliers.
+  if (tDef.keywords.FLYING && melee && !aDef.keywords.FLYING) return false;
 
   if (melee) {
     if (

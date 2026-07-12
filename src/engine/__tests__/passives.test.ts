@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { basicAttack, effectiveBasicHits, SPECIAL_HANDLERS } from "../combat";
 import { applyFlow } from "../auras";
 import { advance, applyIntent } from "../phases";
-import { canFireSpecial, canMove } from "../rules";
+import { canFireSpecial, canMove, canTarget } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState } from "./helpers";
@@ -202,6 +202,17 @@ describe("revive & transform", () => {
     expect(canFireSpecial(s, sk.instanceId).ok).toBe(false); // Special lost
     expect(effectiveSp(s, sk)).toBe(5); // 10 − 5
     expect(s.cards[foe.instanceId].curHp).toBe(15); // 5 Dismount damage
+  });
+});
+
+describe("FLYING melee targeting", () => {
+  it("a flier dodges grounded melee but not a flying melee attacker", () => {
+    const s = prepState();
+    const flyingTarget = place(s, "dusk_crow", "P2", 2, 1); // FLYING
+    const grounded = place(s, "gale_duster", "P1", 2, 0); // Melee, not flying
+    const flyingMelee = place(s, "pyro_fenrir", "P1", 2, 2); // Melee AND FLYING
+    expect(canTarget(s, grounded, flyingTarget)).toBe(false); // dodges grounded melee
+    expect(canTarget(s, flyingMelee, flyingTarget)).toBe(true); // flier can hit a flier
   });
 });
 
