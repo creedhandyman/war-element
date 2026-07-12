@@ -217,6 +217,39 @@ button { font-family: inherit; }
 .win-title.lose { color: var(--threat); }
 .win-title.win { color: var(--legal); }
 
+/* card inspector (click a played card) */
+.cd-modal { position: relative; text-align: left; max-width: 440px; width: min(440px, 92vw); padding: 20px; }
+.cd-x { position: absolute; top: 12px; right: 14px; background: none; border: none; color: var(--ink-dim); font-size: 16px; cursor: pointer; line-height: 1; padding: 4px; }
+.cd-x:hover { color: var(--ink); }
+.cd-body { display: flex; gap: 14px; }
+.cd-art { position: relative; width: 122px; height: 150px; flex: none; border-radius: 12px; border: 2px solid var(--panel-line); overflow: hidden; background: var(--void-2); }
+.cd-art img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+.cd-art.no-art::after { content: "No art"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-faint); font-size: 11px; }
+.cd-cost { position: absolute; top: 6px; left: 6px; width: 24px; height: 24px; border-radius: 50%; background: rgba(0,0,0,0.6); display: grid; place-items: center; font-size: 13px; font-weight: 800; }
+.cd-info { flex: 1; min-width: 0; }
+.cd-name { font-size: 19px; font-weight: 800; line-height: 1.1; }
+.cd-sub { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em; }
+.cd-sub span { padding: 2px 7px; border-radius: 6px; background: var(--void-2); color: var(--ink-dim); text-transform: uppercase; }
+.cd-el { color: #fff !important; }
+.cd-you { color: var(--your-home-glow) !important; }
+.cd-opp { color: var(--threat) !important; }
+.cd-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+.cd-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; border-radius: 8px; background: var(--void-2); }
+.cd-lbl { font-size: 8.5px; font-weight: 800; letter-spacing: 0.05em; color: var(--ink-faint); }
+.cd-val { font-size: 14px; font-weight: 800; }
+.cd-kws { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.cd-kw { font-size: 10px; font-weight: 800; letter-spacing: 0.04em; padding: 2px 7px; border-radius: 999px; background: rgba(143,195,255,0.14); color: #8fc3ff; }
+.cd-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--panel-line); }
+.cd-h { font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.cd-cost-pill { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: rgba(124,77,255,0.2); color: #b79bff; margin-left: auto; }
+.cd-text { font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; margin-top: 6px; }
+.cd-flag { font-size: 11px; font-weight: 700; color: var(--accent); margin-top: 8px; }
+.cd-list { list-style: none; margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
+.cd-list li { font-size: 12px; color: var(--ink-dim); line-height: 1.45; padding-left: 12px; position: relative; }
+.cd-list li::before { content: "•"; position: absolute; left: 0; color: var(--ink-faint); }
+.cd-actions { display: flex; gap: 8px; margin-top: 18px; }
+.cd-actions .lockin { flex: 1; }
+
 /* deck picker (pre-game) */
 .deck-picker { display: flex; align-items: flex-end; justify-content: center; gap: 16px; margin-bottom: 20px; }
 .deck-picker label { display: flex; flex-direction: column; gap: 6px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); font-weight: 700; text-align: left; }

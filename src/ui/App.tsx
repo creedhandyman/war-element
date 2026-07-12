@@ -17,6 +17,7 @@ import {
   validTargets,
 } from "../engine";
 import { Board } from "./Board";
+import { CardDetail } from "./CardDetail";
 import { Hand } from "./Hand";
 import { PhaseRibbon } from "./PhaseRibbon";
 import { ResourcePool } from "./ResourcePool";
@@ -38,6 +39,8 @@ export function App() {
   );
   const [mullToss, setMullToss] = useState<string[]>([]);
   const [surrenderArmed, setSurrenderArmed] = useState(false);
+  // Card inspector: clicking a played card opens a read-only detail panel.
+  const [detailId, setDetailId] = useState<string | null>(null);
   // Pre-game deck selection — the match doesn't run until Start.
   const [started, setStarted] = useState(false);
   const [p1Deck, setP1Deck] = useState("gale_bolt");
@@ -61,6 +64,7 @@ export function App() {
     setPending(null);
     setPicks([]);
     setSurrenderArmed(false);
+    setDetailId(null);
     if (game.phase === "prep" && game.prep?.priority === "P1")
       setHint(
         "<b>Your prep turn.</b> Click a glowing hand card to summon (any number), move one board card, then Pass.",
@@ -152,7 +156,8 @@ export function App() {
     const clicked = cardAt(game, row, col);
 
     // Battle-phase target pick — click up to maxPicks targets (repeat a
-    // target to stack hits on it); fires automatically at the cap.
+    // target to stack hits on it); fires automatically at the cap. A click on a
+    // non-target card just inspects it (the pick prompt stays armed).
     if (awaitingId && pending) {
       if (clicked && legalTargetIds.includes(clicked.instanceId)) {
         const next = [...picks, clicked.instanceId];
@@ -164,17 +169,20 @@ export function App() {
             `<b>${next.length}/${maxPicks}</b> hits assigned — click more targets (repeat to stack), or press <b>Fire</b>.`,
           );
         }
+      } else if (clicked) {
+        setDetailId(clicked.instanceId);
       } else {
         setHint("⚠ Not a legal target — glowing cards only.");
       }
       return;
     }
 
-    if (game.phase !== "prep" || game.prep?.priority !== "P1") return;
-
-    // Summon placement
-    if (sel?.kind === "hand") {
-      if (canSummon(game, "P1", sel.handId, col).ok && row === 3) {
+    // Summon placement — a hand card is armed; empty Home slots summon, but
+    // clicking an occupied slot inspects that card instead.
+    if (game.phase === "prep" && game.prep?.priority === "P1" && sel?.kind === "hand") {
+      if (clicked) {
+        setDetailId(clicked.instanceId);
+      } else if (canSummon(game, "P1", sel.handId, col).ok && row === 3) {
         dispatch({ type: "SUMMON", player: "P1", handId: sel.handId, col });
         setHint("Summoned. Keep going, or <b>Pass Priority</b>.");
       } else {
@@ -183,10 +191,11 @@ export function App() {
       return;
     }
 
-    // Move
-    if (sel?.kind === "card") {
-      if (clicked?.owner === "P1") {
-        setSel({ kind: "card", instanceId: clicked.instanceId }); // reselect
+    // Move destination — a board card is armed; empty green slots complete the
+    // move, clicking a card opens its detail (its Move button re-arms it).
+    if (game.phase === "prep" && game.prep?.priority === "P1" && sel?.kind === "card") {
+      if (clicked) {
+        setDetailId(clicked.instanceId);
         return;
       }
       const check = canMove(game, "P1", sel.instanceId, { row, col } as Pos);
@@ -200,17 +209,21 @@ export function App() {
       return;
     }
 
-    // Select own card to move
-    if (clicked?.owner === "P1") {
-      if (game.prep?.movedThisTurn) {
-        setHint("⚠ Already moved a card this turn. Summon or Pass.");
-        return;
-      }
-      setSel({ kind: "card", instanceId: clicked.instanceId });
-      setHint(
-        `Moving <b>${getDef(clicked.defId).name}</b> — green slots are in reach.`,
-      );
+    // Default: click any played card to inspect its art, stats, and abilities.
+    if (clicked) setDetailId(clicked.instanceId);
+  }
+
+  // Arm a move from the detail panel (own card, our prep, move still available).
+  function armMoveFromDetail(instanceId: string) {
+    setDetailId(null);
+    if (game.prep?.movedThisTurn) {
+      setHint("⚠ Already moved a card this turn. Summon or Pass.");
+      return;
     }
+    setSel({ kind: "card", instanceId });
+    setHint(
+      `Moving <b>${getDef(game.cards[instanceId].defId).name}</b> — green slots are in reach.`,
+    );
   }
 
   function onCycleAuto(instanceId: string) {
@@ -491,6 +504,22 @@ export function App() {
             </button>
           </div>
         </div>
+      )}
+
+      {detailId && game.cards[detailId] && (
+        <CardDetail
+          game={game}
+          card={game.cards[detailId]}
+          canMove={
+            game.cards[detailId].owner === "P1" &&
+            game.phase === "prep" &&
+            game.prep?.priority === "P1" &&
+            !game.prep.movedThisTurn &&
+            legalMoves(game, "P1", detailId).length > 0
+          }
+          onMove={() => armMoveFromDetail(detailId)}
+          onClose={() => setDetailId(null)}
+        />
       )}
 
       <WinScreen
