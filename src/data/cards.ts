@@ -880,10 +880,11 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Icicle Freeze",
       cost: 4,
-      handler: "strike",
-      params: { dmg: 4, hits: 2, statusKind: "FREEZE", statusDuration: 2 },
+      handler: "barrage",
+      // "2×4 DMG and FREEZE each target 2r" — hits two opponents.
+      params: { dmg: 4, hits: 2, targets: 2, statusKind: "FREEZE", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 4 DMG × 2 and FREEZE the target for 2 rounds.",
+      text: "Deal 4 DMG × 2 and FREEZE up to 2 opponents for 2 rounds.",
     },
   },
   {
