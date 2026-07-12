@@ -63,6 +63,8 @@ export function canMove(
   if (card.owner !== player) return { ok: false, reason: "Not your card" };
   if (hasStatus(card, "STUN"))
     return { ok: false, reason: "STUNNED — no attack, move, or Special" };
+  if (hasStatus(card, "SLEEP"))
+    return { ok: false, reason: "ASLEEP — cannot move until woken" };
   if (hasStatus(card, "FRIGHTEN"))
     return { ok: false, reason: "FRIGHTENED — cannot move" };
   const reach = moveReach(effectiveSp(state, card));

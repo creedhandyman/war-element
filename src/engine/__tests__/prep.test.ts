@@ -108,6 +108,14 @@ describe("movement", () => {
     });
     expect(canMove(s, "P1", c.instanceId, { row: 2, col: 0 }).ok).toBe(false);
   });
+
+  it("SLEEP prevents moving until woken", () => {
+    const s = prepState();
+    const c = place(s, "leaf_stickviper", "P1", 3, 0, {
+      status: { kind: "SLEEP", duration: 2, power: 0, source: "BORE" },
+    });
+    expect(canMove(s, "P1", c.instanceId, { row: 2, col: 0 }).ok).toBe(false);
+  });
 });
 
 describe("priority + passes", () => {
