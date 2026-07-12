@@ -274,7 +274,8 @@ export const CARDS: CardDef[] = [
       handler: "statusNova",
       params: { statusKind: "BURN", statusPower: 1, statusDuration: 2, targets: 99 },
       targetSide: "enemy",
-      text: "Apply BURN 1 for 2 rounds to every opponent Tiki can target.",
+      ranged: true, // "all opponents" — reaches the whole board
+      text: "Apply BURN 1 for 2 rounds to every opponent in range.",
     },
   },
   {
@@ -862,7 +863,8 @@ export const CARDS: CardDef[] = [
       handler: "statusNova",
       params: { statusKind: "FREEZE", statusDuration: 2, targets: 3 },
       targetSide: "enemy",
-      text: "FREEZE up to 3 opponents for 2 rounds.",
+      ranged: true, // "FREEZE all opponents ≤4 HP" — reaches the whole board
+      text: "FREEZE up to 3 opponents anywhere for 2 rounds.",
     },
   },
   {
@@ -1291,6 +1293,7 @@ export const CARDS: CardDef[] = [
       handler: "statusNova",
       params: { statusKind: "WEAKEN", statusDuration: 2, targets: 99 },
       targetSide: "enemy",
+      ranged: true, // "WEAKEN all opponents" — reaches the whole board
       text: "WEAKEN every opponent in range for 2 rounds.",
     },
   },
@@ -1313,6 +1316,7 @@ export const CARDS: CardDef[] = [
       handler: "barrage",
       params: { dmg: 5, targets: 99 },
       targetSide: "enemy",
+      ranged: true, // "5 DMG to all opponents" — reaches the whole board
       text: "Deal 5 DMG to every opponent in range.",
     },
   },
@@ -1335,6 +1339,7 @@ export const CARDS: CardDef[] = [
       handler: "statusNova",
       params: { statusKind: "WEAKEN", statusDuration: 2, targets: 99 },
       targetSide: "enemy",
+      ranged: true, // "push/WEAKEN all opponents" — reaches the whole board
       text: "WEAKEN every opponent in range for 2 rounds.",
     },
   },

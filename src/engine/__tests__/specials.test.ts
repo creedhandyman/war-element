@@ -203,6 +203,22 @@ describe("firing specials", () => {
 });
 
 describe("ranged specials on melee cards", () => {
+  it("WolfBane's Whirlwind Slasher (melee Warrior) hits a far target his basic can't", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const wolf = place(s, "gale_wolfbane", "P1", 2, 0); // Melee, ranged AOE special
+    const near = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 }); // melee-reachable
+    const far = place(s, "dusk_vamp", "P2", 1, 3, { curHp: 6 }); // 3 cols away — melee can't reach
+    const next = applyIntent(battleWith(s, wolf.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetIds: [near.instanceId, far.instanceId],
+    });
+    expect(next.cards[near.instanceId].curHp).toBe(8); // 13 − 5
+    expect(next.cards[far.instanceId].curHp).toBe(1); // 6 − 5, reached despite distance
+  });
+
   it("BlackBeard's Vapor Shark Cannon reaches a far target his melee basic can't", () => {
     const s = prepState();
     s.players.P1.magicPool = 6;
