@@ -7,14 +7,12 @@ import { CARDS, DECK_P1, DECK_P2 } from "../../data/cards";
 import { freshGame, giveHand } from "./helpers";
 
 describe("setup", () => {
-  it("deals 4-card opening hands from 19-card decks", () => {
+  it("deals 4-card opening hands, leaving the rest in each deck", () => {
     const s = createInitialState(1);
-    expect(DECK_P1).toHaveLength(19);
-    expect(DECK_P2).toHaveLength(19);
     expect(s.players.P1.hand).toHaveLength(4);
     expect(s.players.P2.hand).toHaveLength(4);
-    expect(s.players.P1.deck).toHaveLength(15);
-    expect(s.players.P2.deck).toHaveLength(15);
+    expect(s.players.P1.deck).toHaveLength(DECK_P1.length - 4);
+    expect(s.players.P2.deck).toHaveLength(DECK_P2.length - 4);
     expect(s.phase).toBe("mulligan");
   });
 
@@ -27,6 +25,10 @@ describe("setup", () => {
       "dusk_skeleton_knight",
       "bore_bearocks",
       "dusk_skelider",
+      // SP-heavy canon glass cannons: the doc costs them at 1 despite the high
+      // SP inflating the stat total.
+      "dawn_sparkle",
+      "bolt_drshock",
     ]);
     for (const def of CARDS) {
       if (exceptions.has(def.id)) continue;
@@ -67,7 +69,7 @@ describe("mulligan", () => {
     const toss = s.players.P1.hand.slice(0, 2).map((h) => h.handId);
     const next = applyIntent(s, { type: "MULLIGAN", player: "P1", returnHandIds: toss });
     expect(next.players.P1.hand).toHaveLength(4);
-    expect(next.players.P1.deck).toHaveLength(15);
+    expect(next.players.P1.deck).toHaveLength(DECK_P1.length - 4);
     expect(next.players.P1.mulliganDone).toBe(true);
     for (const id of toss)
       expect(next.players.P1.hand.some((h) => h.handId === id)).toBe(false);

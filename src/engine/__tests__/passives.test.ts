@@ -216,6 +216,20 @@ describe("Fallona's Fall's Emergence scales Leaf Storm", () => {
   });
 });
 
+describe("on-opponent-summon reactions", () => {
+  it("Rock Goblin damages and DrShock paralyzes a card entering the battlefield", () => {
+    const s = prepState(); // P1 has priority
+    s.players.P1.summonPool = 5;
+    place(s, "bore_rockgoblin", "P2", 0, 0); // Cave Guard: 4 DMG to newcomers
+    place(s, "bolt_drshock", "P2", 0, 1); // Shocker: PARALYZE newcomers
+    const handId = giveHand(s, "P1", "dusk_gool"); // HP 13
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const fresh = boardCards(next, "P1").find((c) => c.defId === "dusk_gool")!;
+    expect(fresh.curHp).toBe(9); // 13 − 4 Cave Guard
+    expect(fresh.statuses.some((x) => x.kind === "PARALYZE")).toBe(true); // Shocker
+  });
+});
+
 describe("FLYING melee targeting", () => {
   it("a flier dodges grounded melee but not a flying melee attacker", () => {
     const s = prepState();

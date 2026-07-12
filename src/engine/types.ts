@@ -181,6 +181,12 @@ export interface CardDef {
   onRevive?: OnReviveDef;
   /** HP-threshold transformation (Skelider Dismount). */
   onLowHp?: OnLowHpDef;
+  /** Reaction when an ENEMY card is summoned (Rock Goblin's Cave Guard,
+   *  DrShock's Shocker): zap the newcomer with damage and/or a status. */
+  onOppSummon?: {
+    dmg?: number;
+    status?: { kind: StatusKind; duration: number; power: number };
+  };
   /** This card's attacks do NOT wake SLEEPING targets (Sandman's Nightmare —
    *  his hits ignore SLEEP's break-on-hit rule). */
   ignoresSleepWake?: boolean;

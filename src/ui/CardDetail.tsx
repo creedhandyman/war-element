@@ -102,6 +102,11 @@ export function CardDetail(props: {
     const bits = [l.dmg && `deal ${l.dmg}`, l.loseSp && `−${l.loseSp} SP`, l.loseSpecial && "loses its Special"].filter(Boolean);
     passives.push(`Below ${l.threshold} HP: ${bits.join(" · ")}.`);
   }
+  if (def.onOppSummon) {
+    const o = def.onOppSummon;
+    const bits = [o.dmg && `${o.dmg} DMG`, o.status && o.status.kind].filter(Boolean).join(" + ");
+    passives.push(`When an enemy is summoned, hits it with ${bits}.`);
+  }
   if (def.ignoresSleepWake) passives.push("Its attacks don't wake SLEEPING targets.");
   if (def.basicBonus) {
     const b = def.basicBonus;

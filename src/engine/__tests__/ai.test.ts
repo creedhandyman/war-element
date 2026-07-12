@@ -105,9 +105,9 @@ describe("full AI-vs-AI matches (integration)", () => {
     expect(s.players.P2.summonPool).toBeGreaterThanOrEqual(0);
     expect(s.players.P1.magicPool).toBeGreaterThanOrEqual(0);
     expect(s.players.P2.magicPool).toBeGreaterThanOrEqual(0);
-    // No hand cap now; hands are still bounded by the deck size.
-    expect(s.players.P1.hand.length).toBeLessThanOrEqual(19);
-    expect(s.players.P2.hand.length).toBeLessThanOrEqual(19);
+    // No hand cap now; hands are still bounded by the (now larger) deck size.
+    expect(s.players.P1.hand.length).toBeLessThanOrEqual(25);
+    expect(s.players.P2.hand.length).toBeLessThanOrEqual(25);
   }
 
   function playMatch(seed: number, p1 = "leaf_pyro", p2 = "bore_dusk"): GameState {

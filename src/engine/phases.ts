@@ -101,6 +101,16 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         }
       }
       applyElementSummonAura(draft, inst);
+      // On-opponent-summon reactions: existing enemies zap the newcomer as it
+      // enters the battlefield (Cave Guard, Shocker).
+      for (const guard of boardCards(draft, enemyOf(inst.owner))) {
+        const gd = getDef(guard.defId);
+        if (!gd.onOppSummon || guard.curHp <= 0 || !draft.cards[inst.instanceId]) continue;
+        if (gd.onOppSummon.dmg && inst.curHp > 0) directDamage(draft, guard, inst, gd.onOppSummon.dmg, false);
+        const st = gd.onOppSummon.status;
+        if (st && inst.curHp > 0 && draft.cards[inst.instanceId])
+          applyStatus(draft, inst, st.kind, st.duration, st.power, gd.element);
+      }
       return draft;
     }
     case "MOVE": {

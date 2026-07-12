@@ -208,6 +208,9 @@ export function summonCard(
 export function removeCard(draft: GameState, instanceId: string): void {
   delete draft.cards[instanceId];
   if (draft.battle?.awaitingInput === instanceId) draft.battle.awaitingInput = null;
+  // A card awaiting its Flow Change pick can die first (e.g. onOppSummon) —
+  // don't leave a dangling pending reference.
+  if (draft.pendingFlow === instanceId) draft.pendingFlow = null;
 }
 
 /** Elimination check: no cards on board AND empty hand AND empty deck. */
