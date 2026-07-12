@@ -4,6 +4,7 @@
 // (shown in the card inspector); the actual effects live at each hook site.
 
 import { getDef } from "../data/cards";
+import { MULTI_HIT_BONUS_MIN } from "./types";
 import type { CardInstance, Element } from "./types";
 
 export interface AuraDef {
@@ -36,7 +37,7 @@ export const FLOW_MODES: Record<FlowMode, { label: string; blurb: string }> = {
  *  card already strikes multiple times, so a flat per-hit bonus would balloon
  *  (Vaporem 2×5, Sapphire 3×2, …). */
 export function liquidGivesHit(card: CardInstance): boolean {
-  return getDef(card.defId).hits > 1;
+  return getDef(card.defId).hits >= MULTI_HIT_BONUS_MIN;
 }
 
 /** Apply the chosen Flow Change buff (round-scoped — cleared each Cleanup;

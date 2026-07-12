@@ -91,20 +91,41 @@ describe("on-death row-ahead (Burnout)", () => {
   });
 });
 
-describe("King of the Hill: multi-hit cards get a hit, not per-hit DMG", () => {
-  it("single-hit card in a mid row gains +1 DMG; multi-hit card gains +1 hit", () => {
+describe("King of the Hill: only 4+ hit cards trade the mid DMG for a hit", () => {
+  it("1–3 hit cards gain +1 DMG in a mid row; 4+ hit cards gain +1 hit", () => {
     const s = prepState();
     const single = place(s, "pyro_firebird", "P1", 2, 0); // 5 dmg, 1 hit
-    expect(effectiveDmg(s, single)).toBe(6); // +1 DMG in mid (unchanged)
+    expect(effectiveDmg(s, single)).toBe(6); // +1 DMG in mid
     expect(effectiveBasicHits(single)).toBe(1);
 
-    const multi = place(s, "aqua_vaporem", "P1", 2, 1); // 2 dmg × 5 hits
-    expect(effectiveDmg(s, multi)).toBe(2); // NO per-hit +1
-    expect(effectiveBasicHits(multi)).toBe(6); // +1 hit instead
+    const twoHit = place(s, "gale_buf", "P1", 2, 1); // 2 dmg × 2 hits → below the 4 threshold
+    expect(effectiveDmg(s, twoHit)).toBe(3); // +1 DMG
+    expect(effectiveBasicHits(twoHit)).toBe(2); // NOT an extra hit
 
-    // Out of the mid rows, the multi-hit card is back to its printed hits.
-    const home = place(s, "aqua_vaporem", "P1", 3, 2);
+    const shredder = place(s, "aqua_vaporem", "P1", 2, 2); // 2 dmg × 5 hits
+    expect(effectiveDmg(s, shredder)).toBe(2); // NO per-hit +1
+    expect(effectiveBasicHits(shredder)).toBe(6); // +1 hit instead
+
+    const home = place(s, "aqua_vaporem", "P1", 3, 3); // off the mid rows
     expect(effectiveBasicHits(home)).toBe(5);
+  });
+
+  it("assignable hits include bonuses — no false 'too many targets' rejection", () => {
+    const s = prepState();
+    // Fenrir base 2 hits + a permanent on-kill hit = 3 assignable.
+    const fenrir = place(s, "pyro_fenrir", "P1", 1, 1, { hitsBonus: 1 });
+    const a = place(s, "dusk_gool", "P2", 0, 0, { curHp: 20 });
+    const b = place(s, "dusk_vamp", "P2", 0, 1, { curHp: 20 });
+    const c = place(s, "dawn_flash", "P2", 0, 2, { curHp: 20 });
+    s.phase = "battle";
+    s.battle = { queue: [fenrir.instanceId], index: 0, awaitingInput: fenrir.instanceId };
+    // 3 targets for a base-2-hit card would have thrown before the fix.
+    const next = applyIntent(s, {
+      type: "BATTLE_ACTION", player: "P1", action: "basic",
+      targetIds: [a.instanceId, b.instanceId, c.instanceId],
+    });
+    expect(next.cards[a.instanceId].curHp).toBeLessThan(20);
+    expect(next.cards[c.instanceId].curHp).toBeLessThan(20); // the 3rd hit landed
   });
 });
 

@@ -291,14 +291,15 @@ function performBattleAction(
     handler(draft, card, targets, special.params ?? {});
     return;
   }
-  // basic attack
-  const def = getDef(card.defId);
+  // basic attack — the assignable-hit ceiling includes on-kill / Flow / mid-row
+  // hit bonuses, not just the printed count.
+  const maxHits = effectiveBasicHits(card);
   const valid = validTargets(draft, instanceId);
   const chosen =
     picks && picks.length > 0 ? picks : valid[0] ? [valid[0].instanceId] : [];
   if (chosen.length === 0) throw new Error("Illegal basic-attack target");
-  if (chosen.length > def.hits)
-    throw new Error(`Too many targets (this card has ${def.hits} hit(s))`);
+  if (chosen.length > maxHits)
+    throw new Error(`Too many targets (this card has ${maxHits} hit(s))`);
   for (const id of chosen) {
     if (!valid.some((t) => t.instanceId === id))
       throw new Error("Illegal basic-attack target");

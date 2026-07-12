@@ -24,7 +24,7 @@ import type {
   Pos,
   StatusKind,
 } from "./types";
-import { BOARD_SIZE, enemyOf, homeRow } from "./types";
+import { BOARD_SIZE, MULTI_HIT_BONUS_MIN, enemyOf, homeRow } from "./types";
 
 /** Total basic hits including on-kill (Fenrir) and 1-turn (Flow Change) bonuses,
  *  plus the King-of-the-Hill mid-row bonus for multi-hit cards (they get +1 HIT
@@ -32,7 +32,7 @@ import { BOARD_SIZE, enemyOf, homeRow } from "./types";
 export function effectiveBasicHits(card: CardInstance): number {
   const def = getDef(card.defId);
   let hits = def.hits + (card.hitsBonus ?? 0) + (card.hitsBonusRound ?? 0);
-  if (def.hits > 1 && card.pos && (card.pos.row === 1 || card.pos.row === 2)) hits += 1;
+  if (def.hits >= MULTI_HIT_BONUS_MIN && card.pos && (card.pos.row === 1 || card.pos.row === 2)) hits += 1;
   return hits;
 }
 

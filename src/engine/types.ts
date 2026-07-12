@@ -350,6 +350,10 @@ export type Intent =
 export const OPENING_HAND = 4;
 export const POOL_CARRYOVER_CAP = 10;
 export const BOARD_SIZE = 4;
+/** Minimum printed hit count for the "gain +1 HIT instead of +1 DMG" rule
+ *  (King-of-the-Hill mid row, Flow Change Liquid). Cards below this get the flat
+ *  +DMG; only heavy multi-hit cards (4+) trade it for an extra hit. */
+export const MULTI_HIT_BONUS_MIN = 4;
 
 export function homeRow(player: PlayerId): 0 | 3 {
   return player === "P1" ? 3 : 0;
