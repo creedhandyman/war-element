@@ -14,10 +14,11 @@
 // (onHitByMelee), gated on-hit riders (chance/first-hit/second-hit), conditional
 // keywords vs a target's status (vsStatus), periodic self effects (roundTick),
 // on-death row-ahead AoE, on-summon ally buffs, and self/adjacent special
-// riders. A handful of DEEP mechanics remain unmodeled — noted inline as
+// riders. All 8 element auras are implemented too (src/engine/auras.ts). A
+// handful of DEEP per-card mechanics remain unmodeled — noted inline as
 // NOTE/"not yet modeled" (token spawns, revives, transformations, traps,
 // forced push, damage-redirect, attack-allies-to-heal, recast specials, the
-// "Electrified" mark, most element auras, and a few timed team buffs).
+// "Electrified" mark, and a few timed team buffs).
 // Stat guideline: total ≈ 5*cost + 10, shields = 2 pts (stat rebalances vs the
 // docs are intentional alpha scope, not bugs).
 

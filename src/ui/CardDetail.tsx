@@ -1,5 +1,5 @@
 import type { CardInstance, GameState, PlayerId, StatusKind } from "../engine";
-import { effectiveDmg, effectiveSp, getDef } from "../engine";
+import { effectiveDmg, effectiveSp, ELEMENT_AURA, getDef } from "../engine";
 import { EL_COLOR } from "./shared";
 
 // Plain-language blurb for each status kind, shown under a card's active effects.
@@ -36,8 +36,10 @@ export function CardDetail(props: {
     v === true ? k : `${k} ${v}`,
   );
 
-  // Passive one-liners derived from the card definition.
-  const passives: string[] = [];
+  // Passive one-liners derived from the card definition. The element aura
+  // (shared by every card of this element) leads the list.
+  const aura = ELEMENT_AURA[def.element];
+  const passives: string[] = [`${def.element} aura — ${aura.name}: ${aura.desc}`];
   if (def.onHitStatus) {
     const h = def.onHitStatus;
     const gate = h.chance != null ? `${h.chance}% chance to ` : h.firstHitOnly ? "first hit: " : h.onSecondHit ? "2nd hit: " : "";

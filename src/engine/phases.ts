@@ -2,6 +2,7 @@
 // All reducers clone the incoming state once and mutate only the clone.
 
 import { getDef } from "../data/cards";
+import { GALE_SP_CAP } from "./auras";
 import { applyStatus, basicAttack, directDamage, label, SPECIAL_HANDLERS } from "./combat";
 import { coin } from "./rng";
 import {
@@ -96,6 +97,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           }
         }
       }
+      applyElementSummonAura(draft, inst);
       return draft;
     }
     case "MOVE": {
@@ -401,6 +403,31 @@ function applyAllyOnSummon(
   }
 }
 
+/** Element auras that fire the moment a card is summoned. */
+function applyElementSummonAura(draft: GameState, inst: CardInstance): void {
+  const def = getDef(inst.defId);
+  switch (def.element) {
+    case "BORE": // Exostone — enters play with +2 shields.
+      inst.curShields += 2;
+      draft.log.push(`${def.name} hardens (Exostone +2 shields).`);
+      break;
+    case "AQUA": // Flow Change — +2 DMG for the turn.
+      inst.dmgBonusRound += 2;
+      break;
+    case "DAWN": { // Awakening — strike the nearest enemy for half its DMG.
+      const dmg = Math.floor(def.dmg / 2);
+      if (dmg > 0) {
+        const foe = closest(inst, boardCards(draft, enemyOf(inst.owner)).filter((c) => c.curHp > 0));
+        if (foe) {
+          draft.log.push(`${def.name} awakens — ${dmg} DMG to ${getDef(foe.defId).name}.`);
+          directDamage(draft, inst, foe, dmg, false);
+        }
+      }
+      break;
+    }
+  }
+}
+
 /** Resolve every card's periodic (end-of-round) self-driven passive. Runs in
  *  Cleanup after DOT/REGEN and status-duration ticks. */
 function doRoundTicks(draft: GameState): void {
@@ -491,7 +518,7 @@ function doCleanupPhase(draft: GameState): void {
     }
   }
 
-  // 2. REGEN heals (then the one alpha aura: LEAF Photosynthesis +1 HP).
+  // 2. REGEN heals, then the end-of-round element auras.
   for (const card of boardCards(draft)) {
     const def = getDef(card.defId);
     const regen = Number(def.keywords.REGEN ?? 0);
@@ -499,11 +526,10 @@ function doCleanupPhase(draft: GameState): void {
       card.curHp = Math.min(card.maxHp, card.curHp + regen);
       draft.log.push(`${label(draft, card)} regenerates ${regen}.`);
     }
-    // ALPHA AURA (the only aura implemented in alpha): Photosynthesis.
-    // Active because each fixed alpha deck is ≥50% its lead element.
-    if (def.element === "LEAF" && card.curHp < card.maxHp) {
-      card.curHp += 1;
-    }
+    // Photosynthesis (LEAF): heal +1 HP each round.
+    if (def.element === "LEAF" && card.curHp < card.maxHp) card.curHp += 1;
+    // Zephyr (GALE): +1 SP each round, total capped at 21.
+    if (def.element === "GALE" && def.sp + card.spBonus < GALE_SP_CAP) card.spBonus += 1;
   }
 
   // 3. Status durations tick down; expired statuses removed.

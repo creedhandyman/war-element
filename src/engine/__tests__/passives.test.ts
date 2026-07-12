@@ -4,8 +4,10 @@
 
 import { describe, expect, it } from "vitest";
 import { basicAttack } from "../combat";
-import { advance } from "../phases";
-import { atCleanup, place, prepState } from "./helpers";
+import { advance, applyIntent } from "../phases";
+import { boardCards } from "../state";
+import { getDef } from "../../data/cards";
+import { atCleanup, giveHand, place, prepState } from "./helpers";
 
 describe("on-kill triggers", () => {
   it("Fenrir gains a permanent +1 basic hit on a kill", () => {
@@ -84,5 +86,77 @@ describe("on-death row-ahead (Burnout)", () => {
     basicAttack(s, killer.instanceId, fb.instanceId);
     expect(s.cards[fb.instanceId]).toBeUndefined();
     expect(s.cards[victim.instanceId].curHp).toBe(2); // −4 Burnout
+  });
+});
+
+describe("element auras", () => {
+  it("Exostone (BORE): a summoned card enters with +2 shields", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 5;
+    const handId = giveHand(s, "P1", "bore_rockgoblin"); // base 2 shields
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const goblin = boardCards(next, "P1").find((c) => c.defId === "bore_rockgoblin")!;
+    expect(goblin.curShields).toBe(4); // 2 base + 2 Exostone
+  });
+
+  it("Zephyr (GALE): a GALE card gains +1 SP each Cleanup", () => {
+    const s = prepState();
+    const hawk = place(s, "gale_hawk", "P1", 2, 0);
+    place(s, "leaf_greegon", "P1", 3, 0); // keep P1 alive
+    place(s, "dusk_gool", "P2", 0, 0);
+    const next = advance(atCleanup(s));
+    expect(next.cards[hawk.instanceId].spBonus).toBe(1);
+  });
+
+  it("Scorch (PYRO): basic attacks apply BURN", () => {
+    const s = prepState();
+    const flame = place(s, "pyro_flamehound", "P1", 2, 0); // no BURN rider of its own
+    const t = place(s, "dusk_gool", "P2", 2, 1, { curHp: 15 });
+    basicAttack(s, flame.instanceId, t.instanceId);
+    expect(s.cards[t.instanceId].statuses.some((x) => x.kind === "BURN")).toBe(true);
+  });
+
+  it("Midnight Shade (DUSK): a dying DUSK card hits its killer for half its DMG", () => {
+    const s = prepState();
+    const killer = place(s, "gale_duster", "P1", 2, 0, { curHp: 5 });
+    const dusk = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 }); // DMG 2 → half 1
+    basicAttack(s, killer.instanceId, dusk.instanceId);
+    expect(s.cards[dusk.instanceId]).toBeUndefined();
+    expect(s.cards[killer.instanceId].curHp).toBe(4); // 5 − 1 Midnight Shade
+  });
+
+  it("Awakening (DAWN): summoning strikes the nearest enemy for half its DMG", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 5;
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 15 });
+    const handId = giveHand(s, "P1", "dawn_solstice"); // DMG 5 → half 2
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(next.cards[foe.instanceId].curHp).toBe(13); // 15 − 2 Awakening
+  });
+
+  it("Flow Change (AQUA): a summoned card gets +2 DMG for the turn", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 5;
+    const handId = giveHand(s, "P1", "aqua_spinefin");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const fin = boardCards(next, "P1").find((c) => getDef(c.defId).element === "AQUA")!;
+    expect(fin.dmgBonusRound).toBe(2);
+  });
+
+  it("Electrify (BOLT): +1 DMG vs a statused opponent", () => {
+    const withStatus = prepState();
+    const zap = place(withStatus, "bolt_zap", "P1", 3, 0); // DMG 5, home row (no KotH)
+    const t = place(withStatus, "dusk_gool", "P2", 3, 1, {
+      curHp: 20,
+      status: { kind: "ROOT", duration: 2, power: 0, source: "LEAF" },
+    });
+    basicAttack(withStatus, zap.instanceId, t.instanceId);
+    expect(withStatus.cards[t.instanceId].curHp).toBe(14); // 20 − 6 (5 + Electrify)
+
+    const noStatus = prepState();
+    const z2 = place(noStatus, "bolt_zap", "P1", 3, 0);
+    const t2 = place(noStatus, "dusk_gool", "P2", 3, 1, { curHp: 20 });
+    basicAttack(noStatus, z2.instanceId, t2.instanceId);
+    expect(noStatus.cards[t2.instanceId].curHp).toBe(15); // 20 − 5 (no bonus)
   });
 });

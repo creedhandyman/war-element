@@ -217,6 +217,15 @@ export function resolveHit(
         });
         if (r.targetDied) result.attackerDied = true;
       }
+    } else if (tDef.element === "DUSK" && opts.kind !== "reflect" && attacker.curHp > 0) {
+      // Midnight Shade (DUSK aura): a dying card deals half its DMG to the
+      // killer. Only when the card has no stronger card-specific onDeath.
+      const back = Math.floor(tDef.dmg / 2);
+      if (back > 0) {
+        draft.log.push(`${tDef.name} lashes out from the shadows (${back} DMG).`);
+        const r = resolveHit(draft, target, attacker, { kind: "reflect", dmg: back, hits: 1, pen: false, crit: false });
+        if (r.targetDied) result.attackerDied = true;
+      }
     }
   }
 
@@ -315,6 +324,8 @@ export function basicAttack(
       if (vs.lifesteal) lifesteal = true;
       healOnHit = vs.healOnHit ?? 0;
     }
+    // Electrify (BOLT aura): +1 DMG vs any statused opponent.
+    if (aDef.element === "BOLT" && t.statuses.length > 0) dmg += 1;
 
     const struckBefore = attacker.struckThisRound[t.instanceId] ?? 0;
     const r = resolveHit(draft, attacker, t, {
@@ -328,6 +339,11 @@ export function basicAttack(
     if (r.landedHits > 0) {
       attacker.struckThisRound[t.instanceId] = struckBefore + r.landedHits;
       applyOnHitRider(draft, attacker, t, struckBefore, r.landedHits);
+      // Scorch (PYRO aura): apply BURN 1 (1r) if the target has no BURN yet, so
+      // it never overwrites a stronger card-specific BURN rider.
+      if (aDef.element === "PYRO" && t.curHp > 0 && !hasStatus(t, "BURN")) {
+        applyStatus(draft, t, "BURN", 1, 1, "PYRO");
+      }
       if (healOnHit > 0 && attacker.curHp > 0) {
         attacker.curHp = Math.min(attacker.maxHp, attacker.curHp + healOnHit);
       }
