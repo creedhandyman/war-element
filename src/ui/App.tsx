@@ -410,18 +410,33 @@ export function App() {
 
         <div className="controls">
           <div className="hint" dangerouslySetInnerHTML={{ __html: hint }} />
-          <div className="ctl-row">
-            <div className="pass-dots" title="Two consecutive passes → Battle">
-              <span className={`pd ${(game.prep?.consecutivePasses ?? 0) >= 1 ? "on" : ""}`} />
-              <span className={`pd ${(game.prep?.consecutivePasses ?? 0) >= 2 ? "on" : ""}`} />
-            </div>
+          {/* Pass Priority is the primary action; secondary controls stack
+              underneath it so the hand keeps its width. */}
+          <button
+            className="lockin pass-btn"
+            disabled={!myPrep}
+            onClick={() => me && dispatch({ type: "PASS", player: me })}
+          >
+            {myPrep ? (
+              <>
+                Pass Priority
+                <span className="pass-dots" title="Two consecutive passes → Battle">
+                  <span className={`pd ${(game.prep?.consecutivePasses ?? 0) >= 1 ? "on" : ""}`} />
+                  <span className={`pd ${(game.prep?.consecutivePasses ?? 0) >= 2 ? "on" : ""}`} />
+                </span>
+              </>
+            ) : (
+              "Waiting…"
+            )}
+          </button>
+          <div className="ctl-sub">
             {myPrep && (
               <span className={`mv ${game.prep?.movedThisTurn ? "used" : ""}`}>
                 {game.prep?.movedThisTurn ? "Move: used" : "Move: available"}
               </span>
             )}
             <select
-              className="ghost"
+              className="ghost sm"
               title="Set every one of your board cards' auto mode"
               defaultValue=""
               onChange={(e) => {
@@ -430,14 +445,14 @@ export function App() {
               }}
             >
               <option value="" disabled>
-                Auto: all…
+                Auto…
               </option>
               <option value="manual">All Manual</option>
               <option value="basic">All Auto-Basic</option>
               <option value="full">All Full-Auto</option>
             </select>
             <button
-              className="ghost"
+              className="ghost sm"
               onClick={() => {
                 setSel(null);
                 setPending(null);
@@ -449,7 +464,7 @@ export function App() {
             </button>
             {game.win === null && me !== null && (
               <button
-                className={`ghost ${surrenderArmed ? "warn" : ""}`}
+                className={`ghost sm ${surrenderArmed ? "warn" : ""}`}
                 title="Concede the match"
                 onClick={() => {
                   if (surrenderArmed) {
@@ -461,20 +476,9 @@ export function App() {
                   }
                 }}
               >
-                {surrenderArmed
-                  ? "Confirm surrender?"
-                  : twoPlayer
-                    ? `${me} surrender`
-                    : "Surrender"}
+                {surrenderArmed ? "Confirm?" : twoPlayer ? `${me} surrender` : "Surrender"}
               </button>
             )}
-            <button
-              className="lockin"
-              disabled={!myPrep}
-              onClick={() => me && dispatch({ type: "PASS", player: me })}
-            >
-              {myPrep ? "Pass Priority" : "Waiting…"}
-            </button>
           </div>
         </div>
       </div>
