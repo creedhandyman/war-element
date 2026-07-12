@@ -20,6 +20,7 @@ import {
   canFireSpecial,
   canMove,
   canSummon,
+  forwardAreaTargets,
   isActionBlocked,
   validAllyTargets,
   validTargets,
@@ -71,13 +72,15 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         `${intent.player} summons ${def.name} (cost ${def.cost}) into column ${intent.col}.`,
       );
       // On-summon passive: fires immediately, free, via the handler registry.
+      // `spread` (columns each side) uses the forward-area projection — the
+      // blast reaches toward the enemy battlefield as far as the card's range
+      // allows and hits the side columns; without it, targets are unscoped.
       if (def.onSummon) {
         const params = def.onSummon.params ?? {};
-        let targets = validTargets(draft, inst.instanceId);
-        if (Number(params.rowAhead ?? 0) > 0 && inst.pos) {
-          const ahead = inst.pos.row + (intent.player === "P1" ? -1 : 1);
-          targets = targets.filter((t) => t.pos!.row === ahead);
-        }
+        const targets =
+          Number(params.spread ?? -1) >= 0
+            ? forwardAreaTargets(draft, inst, Number(params.spread))
+            : validTargets(draft, inst.instanceId);
         if (targets.length > 0) {
           const handler = SPECIAL_HANDLERS[def.onSummon.handler];
           if (!handler) throw new Error(`Unknown onSummon handler: ${def.onSummon.handler}`);

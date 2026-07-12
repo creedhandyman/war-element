@@ -257,40 +257,55 @@ describe("legendaries", () => {
   });
 });
 
-describe("on-summon passives", () => {
-  it("Flamehound's Fire Blast hits the row directly ahead the moment it lands", () => {
+describe("on-summon passives (forward-area projection)", () => {
+  it("Flamehound (ranged) blasts a 3-wide corridor reaching forward into the mid rows", () => {
     const s = prepState();
     s.players.P1.summonPool = 5;
     s.players.P1.magicPool = 4;
-    const ahead = place(s, "dusk_gool", "P2", 2, 3, { curHp: 13 }); // row ahead of P1 home
-    const behind = place(s, "dusk_ghastly", "P2", 1, 0, { curHp: 19 }); // NOT the row ahead
+    // Summoned to P1 home col 1. Corridor = cols 0/1/2, reaching forward.
+    const leftMid = place(s, "dusk_gool", "P2", 2, 0, { curHp: 13 }); // col 0, near mid
+    const rightMid = place(s, "dusk_ghastly", "P2", 2, 2, { curHp: 19 }); // col 2, near mid
+    const deep = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 6 }); // col 1, far mid — reached
+    const wide = place(s, "dusk_silkstalker", "P2", 2, 3, { curHp: 7 }); // col 3 — outside spread
     const handId = giveHand(s, "P1", "pyro_flamehound");
-    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
-    expect(next.cards[ahead.instanceId].curHp).toBe(10); // 3 DMG (ranged reaches any column)
-    expect(next.cards[behind.instanceId].curHp).toBe(19); // untouched
-    expect(next.players.P1.magicPool).toBe(4); // free — it's a passive, not a Special
-    expect(next.log.some((l) => l.includes("on-summon"))).toBe(true);
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    expect(next.cards[leftMid.instanceId].curHp).toBe(10); // 3 dmg (side hit)
+    expect(next.cards[rightMid.instanceId].curHp).toBe(16); // 3 dmg (side hit)
+    expect(next.cards[deep.instanceId].curHp).toBe(3); // 3 dmg (reached far)
+    expect(next.cards[wide.instanceId].curHp).toBe(7); // untouched (too wide)
+    expect(next.players.P1.magicPool).toBe(4); // free — a passive, not a Special
   });
 
-  it("fires nothing when the row ahead is empty (summon still succeeds)", () => {
+  it("the Home-Slot rule still gates the enemy home row from your own home", () => {
     const s = prepState();
     s.players.P1.summonPool = 5;
-    place(s, "dusk_gool", "P2", 0, 0); // enemy home only — unreachable & not row-ahead
+    const homeSitter = place(s, "dusk_gool", "P2", 0, 1, { curHp: 13 }); // enemy home, col 1
     const handId = giveHand(s, "P1", "pyro_flamehound");
-    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
-    expect(next.cards).toBeTruthy();
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    expect(next.cards[homeSitter.instanceId].curHp).toBe(13); // can't reach enemy home from home
     expect(next.log.some((l) => l.includes("on-summon"))).toBe(false);
   });
 
-  it("a melee on-summon (Fenrir) respects king reach — only the adjacent column", () => {
+  it("Spitfire (ranged) is a single-lane blast that reaches forward", () => {
     const s = prepState();
     s.players.P1.summonPool = 5;
-    const close = place(s, "dusk_gool", "P2", 2, 1, { curHp: 13 }); // within king reach of col 0
-    const far = place(s, "dusk_vamp", "P2", 2, 3, { curHp: 6 }); // same row, 3 columns away
+    const lane = place(s, "dusk_gool", "P2", 1, 1, { curHp: 13 }); // col 1, far mid — hit
+    const side = place(s, "dusk_vamp", "P2", 2, 0, { curHp: 6 }); // col 0 — outside lane
+    const handId = giveHand(s, "P1", "pyro_spitfire");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    expect(next.cards[lane.instanceId].curHp).toBe(10); // 3 dmg down the lane
+    expect(next.cards[side.instanceId].curHp).toBe(6); // untouched (spread 0)
+  });
+
+  it("a melee on-summon (Fenrir) reaches only one row ahead, but 3 wide", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 5;
+    const near = place(s, "dusk_gool", "P2", 2, 1, { curHp: 13 }); // adjacent row, side col
+    const deep = place(s, "dusk_vamp", "P2", 1, 0, { curHp: 6 }); // two rows ahead — melee can't reach
     const handId = giveHand(s, "P1", "pyro_fenrir");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
-    expect(next.cards[close.instanceId].curHp).toBe(10);
-    expect(next.cards[far.instanceId].curHp).toBe(6); // out of melee reach
+    expect(next.cards[near.instanceId].curHp).toBe(10); // hit (row ahead, within spread)
+    expect(next.cards[deep.instanceId].curHp).toBe(6); // melee depth 1 — not reached
   });
 });
 

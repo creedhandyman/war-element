@@ -237,9 +237,9 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: { FLYING: true },
-    // Fury Unleashed: on summon, 3 DMG to the row directly ahead (melee king
-    // reach applies, so it hits at most the adjacent-column card there).
-    onSummon: { handler: "barrage", params: { dmg: 3, targets: 4, rowAhead: 1 } },
+    // Fury Unleashed: on summon, 3 DMG to the 3-wide row directly ahead
+    // (melee → reaches one row forward, hitting left/mid/right).
+    onSummon: { handler: "barrage", params: { dmg: 3, spread: 1, targets: 99 } },
     special: {
       name: "Inferno Pounce",
       cost: 3,
@@ -322,8 +322,9 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // Fire Blast: on summon, deal 3 DMG to opponents in the row directly ahead.
-    onSummon: { handler: "barrage", params: { dmg: 3, targets: 4, rowAhead: 1 } },
+    // Fire Blast: on summon, blast the 3-wide corridor ahead (left/mid/right
+    // columns), reaching forward across the battlefield (ranged).
+    onSummon: { handler: "barrage", params: { dmg: 3, spread: 1, targets: 99 } },
   },
   {
     id: "pyro_spitfire",
@@ -338,6 +339,9 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    // Spit Shot: on summon, 3 DMG down its own lane, reaching forward across
+    // the battlefield (ranged, narrower than Flamehound's wide blast).
+    onSummon: { handler: "barrage", params: { dmg: 3, spread: 0, targets: 99 } },
   },
   {
     id: "pyro_volcanon",

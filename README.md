@@ -76,7 +76,11 @@ replays exactly from its seed.
   are dropped. Working passive surfaces: keywords, basic-attack status
   riders (`onHitStatus`), on-death retaliation (`onDeath`), **on-summon
   effects** (`onSummon` — free, fired through the same handler registry;
-  Flamehound's Fire Blast, Fenrir's Fury Unleashed), Pumpkin's Catapult
+  a `spread` param projects a forward corridor toward the enemy — `spread`
+  columns to each side, reaching one row for Melee or all the way to the
+  enemy battlefield for Ranged, via `forwardAreaTargets`. Flamehound's Fire
+  Blast = 3-wide far, Spitfire's Spit Shot = single-lane far, Fenrir's Fury
+  Unleashed = 3-wide one row), Pumpkin's Catapult
   (`ignoresHomeRule`), Haunt's Jacked (`drainMax` handler), and Bearocks'
   Hibernation (`statusImmune` — negative statuses fizzle). Not yet:
   on-kill, on-being-hit, start-of-round spawns, token/minion spawning,

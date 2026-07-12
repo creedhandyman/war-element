@@ -152,6 +152,38 @@ export function validAllyTargets(state: GameState, attackerId: string): CardInst
   return boardCards(state, attacker.owner);
 }
 
+/**
+ * Enemies inside a forward "corridor" projected from `card` toward the enemy
+ * home — used by on-summon blasts and other AOE-ahead effects.
+ * - Direction: toward the enemy home row.
+ * - `spread` = columns to EACH side (0 = a single lane, 1 = the card's column
+ *   plus left/right = 3 wide).
+ * - Depth by range: a Ranged card reaches all the way to the enemy battlefield;
+ *   a Melee card reaches one row ahead.
+ * - Still filtered by canTarget, so FLYING / STEALTH / the Home-Slot rule apply
+ *   (e.g. from your own home row the enemy home row stays off-limits).
+ */
+export function forwardAreaTargets(
+  state: GameState,
+  card: CardInstance,
+  spread: number,
+): CardInstance[] {
+  if (!card.pos) return [];
+  const def = getDef(card.defId);
+  const dir = card.owner === "P1" ? -1 : 1; // toward the enemy home
+  const enemyHome = homeRow(enemyOf(card.owner));
+  const maxDepth =
+    def.attackType === "Ranged" ? Math.max(1, Math.abs(enemyHome - card.pos.row)) : 1;
+  const out: CardInstance[] = [];
+  for (const enemy of boardCards(state, enemyOf(card.owner))) {
+    const dRow = (enemy.pos!.row - card.pos.row) * dir; // forward distance
+    const dCol = Math.abs(enemy.pos!.col - card.pos.col);
+    if (dRow >= 1 && dRow <= maxDepth && dCol <= spread && canTarget(state, card, enemy))
+      out.push(enemy);
+  }
+  return out;
+}
+
 // ── battle actions ──────────────────────────────────────────────────────────
 
 /**
