@@ -62,8 +62,7 @@ describe("summoning", () => {
 describe("movement", () => {
   it("SP 0 can't move", () => {
     const s = prepState();
-    const c = place(s, "bore_armadillo", "P1", 3, 0); // SP 0 — but P2 card... use P1
-    c.owner = "P1";
+    const c = place(s, "aqua_coralgolem", "P1", 3, 0); // SP 0
     expect(canMove(s, "P1", c.instanceId, { row: 2, col: 0 }).ok).toBe(false);
   });
 

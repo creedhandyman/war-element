@@ -384,7 +384,7 @@ export const CARDS: CardDef[] = [
     dmg: 2,
     hits: 1,
     hp: 15,
-    sp: 0, // SP 0 — can't move; exercises the movement floor
+    sp: 1,
     shields: 4,
     // Adapted for alpha: Curl Up (+2 shields when melee-targeted) → BLOCK 2.
     keywords: { BLOCK: 2 },
