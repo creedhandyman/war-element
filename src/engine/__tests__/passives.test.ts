@@ -205,6 +205,33 @@ describe("revive & transform", () => {
   });
 });
 
+describe("Sandman's Nightmare", () => {
+  it("his hits don't wake a sleeper, and add +5 vs a SLEEPING target (once)", () => {
+    const s = prepState();
+    const sandman = place(s, "bore_sandman", "P1", 3, 0); // home row: no mid bonus
+    const foe = place(s, "dusk_gool", "P2", 0, 0, {
+      curHp: 40,
+      status: { kind: "SLEEP", duration: 2, power: 0, source: "BORE" },
+    });
+    basicAttack(s, sandman.instanceId, foe.instanceId);
+    const f = s.cards[foe.instanceId];
+    expect(f.statuses.some((x) => x.kind === "SLEEP")).toBe(true); // never woke
+    expect(f.curHp).toBe(25); // 5×2 volley (10) + 5 Nightmare bonus
+  });
+
+  it("the bonus escalates: +2 in a mid row and +3 when the mid lane is crowded", () => {
+    const s = prepState();
+    const sandman = place(s, "bore_sandman", "P1", 2, 0); // mid row
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 80 });
+    place(s, "leaf_greegon", "P1", 2, 1); // 4 cards across the mid rows
+    place(s, "dusk_vamp", "P2", 1, 1);
+    basicAttack(s, sandman.instanceId, foe.instanceId);
+    // In a mid row a 5-hit card also gains the KotH +1 hit → 6×2 = 12,
+    // + midLane 2 + midLaneFull 3 = 17.
+    expect(s.cards[foe.instanceId].curHp).toBe(63);
+  });
+});
+
 describe("element auras", () => {
   it("Exostone (BORE): a summoned card enters with +2 shields", () => {
     const s = prepState();

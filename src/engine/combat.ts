@@ -226,8 +226,9 @@ export function resolveHit(
     draft.log.push(
       `${label(draft, attacker)} hits ${label(draft, target)} for ${result.totalToHp} (${result.landedHits} hit${result.landedHits > 1 ? "s" : ""}).`,
     );
-    // Any hit wakes a sleeper (SLEEP removed the moment it's struck).
-    if (hasStatus(target, "SLEEP") && target.curHp > 0) {
+    // Any hit wakes a sleeper (SLEEP removed the moment it's struck) — unless
+    // the attacker ignores that rule (Sandman's Nightmare).
+    if (hasStatus(target, "SLEEP") && target.curHp > 0 && !aDef.ignoresSleepWake) {
       target.statuses = target.statuses.filter((s) => s.kind !== "SLEEP");
       draft.log.push(`${label(draft, target)} is jolted awake!`);
     }
@@ -419,6 +420,22 @@ export function basicAttack(
     agg.totalToHp += r.totalToHp;
     agg.targetDied = agg.targetDied || r.targetDied;
     agg.attackerDied = agg.attackerDied || r.attackerDied;
+  }
+
+  // Sandman's Nightmare: a flat bonus added ONCE after the volley resolves (not
+  // per hit), landing on the primary target.
+  const bonus = aDef.basicBonus;
+  if (bonus && agg.landedHits > 0 && attacker.curHp > 0) {
+    const primary = draft.cards[groups[0].targetId];
+    let extra = 0;
+    if (bonus.midLane && attacker.pos && (attacker.pos.row === 1 || attacker.pos.row === 2)) extra += bonus.midLane;
+    if (bonus.midLaneFull && boardCards(draft).filter((c) => c.pos && (c.pos.row === 1 || c.pos.row === 2)).length >= 4)
+      extra += bonus.midLaneFull;
+    if (bonus.vsSleeping && primary && hasStatus(primary, "SLEEP")) extra += bonus.vsSleeping;
+    if (extra > 0 && primary && primary.curHp > 0) {
+      draft.log.push(`${label(draft, attacker)}'s nightmare deals +${extra} bonus damage.`);
+      if (directDamage(draft, attacker, primary, extra, false)) agg.targetDied = true;
+    }
   }
   return agg;
 }

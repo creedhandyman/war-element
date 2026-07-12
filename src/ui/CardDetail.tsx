@@ -102,6 +102,16 @@ export function CardDetail(props: {
     const bits = [l.dmg && `deal ${l.dmg}`, l.loseSp && `−${l.loseSp} SP`, l.loseSpecial && "loses its Special"].filter(Boolean);
     passives.push(`Below ${l.threshold} HP: ${bits.join(" · ")}.`);
   }
+  if (def.ignoresSleepWake) passives.push("Its attacks don't wake SLEEPING targets.");
+  if (def.basicBonus) {
+    const b = def.basicBonus;
+    const bits = [
+      b.midLane && `+${b.midLane} in a mid row`,
+      b.midLaneFull && `+${b.midLaneFull} if the mid lane is crowded`,
+      b.vsSleeping && `+${b.vsSleeping} vs a SLEEPING target`,
+    ].filter(Boolean);
+    passives.push(`Basic attacks deal bonus damage (once): ${bits.join(" · ")}.`);
+  }
   if (def.onSummon) passives.push("Fires an effect the moment it's summoned.");
   if (def.onDeath)
     passives.push(

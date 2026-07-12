@@ -442,15 +442,18 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 6,
-    dmg: 1,
-    hits: 10, // 10×1 — the shield shredder
+    dmg: 2, // "5×2 DMG"
+    hits: 5,
     hp: 19,
     sp: 9,
     shields: 1,
     keywords: {},
-    // Sandstorm (Aura): 1 DMG to all opponents each round. Plus 2× DMG vs SLEEPING.
+    // Sandstorm (Aura): 1 DMG to all opponents each round.
     roundTick: { aoeDmg: 1 },
-    vsStatus: { status: "SLEEP", dmgMult: 2 },
+    // Nightmare (passive): his hits never wake sleepers; and after a basic
+    // attack a flat bonus is added ONCE to the total (not per hit).
+    ignoresSleepWake: true,
+    basicBonus: { midLane: 2, midLaneFull: 3, vsSleeping: 5 },
     special: {
       name: "Nightmare",
       cost: 4,

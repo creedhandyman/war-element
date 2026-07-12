@@ -181,6 +181,16 @@ export interface CardDef {
   onRevive?: OnReviveDef;
   /** HP-threshold transformation (Skelider Dismount). */
   onLowHp?: OnLowHpDef;
+  /** This card's attacks do NOT wake SLEEPING targets (Sandman's Nightmare —
+   *  his hits ignore SLEEP's break-on-hit rule). */
+  ignoresSleepWake?: boolean;
+  /** A flat bonus added ONCE to the total after a basic attack resolves (not
+   *  per hit), gated on board conditions (Sandman). Lands on the primary target. */
+  basicBonus?: {
+    midLane?: number; // +N while this card sits in a Mid row
+    midLaneFull?: number; // +N when 4+ cards occupy the Mid rows
+    vsSleeping?: number; // +N when the primary target is SLEEPING
+  };
   /** Catapult-style passives: this card may target the enemy Home row from
    *  anywhere (skips the Home Slot Targeting Rule). */
   ignoresHomeRule?: boolean;
