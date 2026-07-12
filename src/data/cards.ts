@@ -381,7 +381,7 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     attackType: "Melee",
     cost: 3,
-    dmg: 2,
+    dmg: 1,
     hits: 1,
     hp: 15,
     sp: 1,
