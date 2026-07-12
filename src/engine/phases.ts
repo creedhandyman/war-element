@@ -47,6 +47,10 @@ function clone(state: GameState): GameState {
   return structuredClone(state);
 }
 
+/** After this round, the magic pool grows +2/round instead of +1 (late-game
+ *  fuel so Specials/spells stay castable in the endgame). */
+const MAGIC_RAMP_AFTER = 10;
+
 // ── intent reducer ──────────────────────────────────────────────────────────
 
 /** Apply one player intent. Throws on illegal intents (UI should pre-check via rules). */
@@ -189,18 +193,21 @@ function doDrawPhase(draft: GameState): void {
 }
 
 function doResourcePhase(draft: GameState): void {
-  // Two independent pools: summon = round # each round; magic starts at 3
-  // and gains +1 from round 2 on. Both cap unspent carryover at 10.
+  // Two independent pools: summon = round # each round; magic starts at 3 and
+  // gains +1 per round from round 2 on, ramping to +2 per round in the late game
+  // (after round 10) so the endgame doesn't starve for Special/spell fuel. Both
+  // cap unspent carryover at 10.
   const gain = Math.min(draft.round, 10);
+  const magicGain = draft.round > MAGIC_RAMP_AFTER ? 2 : 1;
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const p = draft.players[player];
     p.summonPool = Math.min(p.summonPool, POOL_CARRYOVER_CAP) + gain;
     if (draft.round > 1) {
-      p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + 1;
+      p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGain;
     }
   }
   draft.log.push(
-    `— Round ${draft.round}: summon +${gain}${draft.round > 1 ? ", magic +1" : ""}. —`,
+    `— Round ${draft.round}: summon +${gain}${draft.round > 1 ? `, magic +${magicGain}` : ""}. —`,
   );
   draft.phase = "prep";
   draft.prep = {

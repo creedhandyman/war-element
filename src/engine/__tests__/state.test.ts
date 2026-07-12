@@ -140,12 +140,23 @@ describe("resource math (two pools)", () => {
   it("summon pool gains min(round, 10); magic gains +1 from round 2", () => {
     const s = freshGame(9);
     s.phase = "resource";
+    s.round = 5;
+    s.players.P1.summonPool = 0;
+    s.players.P1.magicPool = 3;
+    const next = advance(s);
+    expect(next.players.P1.summonPool).toBe(5);
+    expect(next.players.P1.magicPool).toBe(4); // +1 in the early game
+  });
+
+  it("magic ramps to +2 per round after round 10", () => {
+    const s = freshGame(9);
+    s.phase = "resource";
     s.round = 12;
     s.players.P1.summonPool = 0;
     s.players.P1.magicPool = 3;
     const next = advance(s);
-    expect(next.players.P1.summonPool).toBe(10);
-    expect(next.players.P1.magicPool).toBe(4);
+    expect(next.players.P1.summonPool).toBe(10); // still min(round, 10)
+    expect(next.players.P1.magicPool).toBe(5); // 3 + 2 late-game gain
   });
 
   it("magic starts at 3 and does NOT gain on round 1", () => {
