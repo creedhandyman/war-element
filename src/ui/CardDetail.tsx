@@ -1,4 +1,4 @@
-import type { CardInstance, GameState, StatusKind } from "../engine";
+import type { CardInstance, GameState, PlayerId, StatusKind } from "../engine";
 import { effectiveDmg, effectiveSp, getDef } from "../engine";
 import { EL_COLOR } from "./shared";
 
@@ -22,13 +22,14 @@ const STATUS_TEXT: Record<StatusKind, string> = {
 export function CardDetail(props: {
   game: GameState;
   card: CardInstance;
+  viewer: PlayerId;
   canMove: boolean;
   onMove: () => void;
   onClose: () => void;
 }) {
   const { game, card } = props;
   const def = getDef(card.defId);
-  const mine = card.owner === "P1";
+  const mine = card.owner === props.viewer;
   const dmg = effectiveDmg(game, card);
   const sp = effectiveSp(game, card);
   const kws = Object.entries(def.keywords).map(([k, v]) =>

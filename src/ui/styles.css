@@ -250,6 +250,11 @@ button { font-family: inherit; }
 .cd-actions { display: flex; gap: 8px; margin-top: 18px; }
 .cd-actions .lockin { flex: 1; }
 
+/* mode toggle (pre-game: vs AI / 2 players) */
+.mode-toggle { display: flex; gap: 8px; justify-content: center; margin-bottom: 18px; }
+.mode-btn { font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 999px; background: var(--void-2); color: var(--ink-dim); border: 1px solid var(--panel-line); cursor: pointer; transition: 0.15s; }
+.mode-btn.on { background: linear-gradient(180deg, #c4b3ff, var(--accent)); color: var(--void); border-color: transparent; }
+
 /* deck picker (pre-game) */
 .deck-picker { display: flex; align-items: flex-end; justify-content: center; gap: 16px; margin-bottom: 20px; }
 .deck-picker label { display: flex; flex-direction: column; gap: 6px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); font-weight: 700; text-align: left; }

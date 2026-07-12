@@ -187,6 +187,10 @@ export interface GameState {
   rngState: number; // seeded RNG cursor — all randomness flows through this
   round: number;
   phase: Phase;
+  /** Which players are human-controlled. ["P1"] = vs-AI (default); ["P1","P2"]
+   *  = local hot-seat 2-player. The driver only auto-runs AI for players NOT
+   *  in this list. */
+  humans: PlayerId[];
   firstPlayer: PlayerId; // coin-flip winner; prep priority starts here each round
   players: Record<PlayerId, PlayerState>;
   /** All living board cards, keyed by instanceId. Board layout derived from pos. */

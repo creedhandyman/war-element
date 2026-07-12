@@ -17,11 +17,13 @@ export function createInitialState(
   seed: number,
   p1DeckId = "leaf_pyro",
   p2DeckId = "bore_dusk",
+  humans: PlayerId[] = ["P1"],
 ): GameState {
   const state: GameState = {
     rngState: seed | 0,
     round: 0,
     phase: "mulligan",
+    humans,
     firstPlayer: "P1",
     players: {
       P1: emptyPlayer(deckById(p1DeckId).cards.slice()),

@@ -30,6 +30,7 @@ export function SpeedQueue(props: { game: GameState }) {
             );
           const def = getDef(card.defId);
           const next = inBattle && i === game.battle!.index;
+          const isAI = !(game.humans ?? ["P1"]).includes(card.owner);
           const tag = plannedAction(game, id);
           return (
             <div
@@ -46,8 +47,8 @@ export function SpeedQueue(props: { game: GameState }) {
               <span className="qsp">{effectiveSp(game, card)}</span>
               <span className="el-dot" style={{ background: EL_COLOR[def.element] }} />
               <span className="qname">{def.name}</span>
-              {!done && card.owner === "P1" && <span className={`qtag ${tag}`}>{tag}</span>}
-              {!done && card.owner === "P2" && <span className="qtag AUTO">AI</span>}
+              {!done && !isAI && <span className={`qtag ${tag}`}>{tag}</span>}
+              {!done && isAI && <span className="qtag AUTO">AI</span>}
             </div>
           );
         })}

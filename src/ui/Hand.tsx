@@ -1,28 +1,31 @@
-import type { GameState } from "../engine";
-import { getDef } from "../engine";
+import type { GameState, PlayerId } from "../engine";
+import { enemyOf, getDef } from "../engine";
 import { EL_COLOR } from "./shared";
 
 export function Hand(props: {
   game: GameState;
+  player: PlayerId;
   selectedHandId: string | null;
   onPick: (handId: string) => void;
 }) {
-  const { game } = props;
-  const p1 = game.players.P1;
-  const myPrep = game.phase === "prep" && game.prep?.priority === "P1";
+  const { game, player } = props;
+  const me = game.players[player];
+  const opp = game.players[enemyOf(player)];
+  const twoP = (game.humans ?? ["P1"]).length > 1;
+  const myPrep = game.phase === "prep" && game.prep?.priority === player;
   return (
     <div className="hand">
       <div className="hand-head">
-        <span>Your Hand · {p1.hand.length}</span>
-        <span style={{ color: "var(--ink-faint)" }}>Deck {p1.deck.length}</span>
+        <span>{twoP ? `${player} Hand` : "Your Hand"} · {me.hand.length}</span>
+        <span style={{ color: "var(--ink-faint)" }}>Deck {me.deck.length}</span>
         <span style={{ color: "var(--ink-faint)" }}>
-          Opp hand {game.players.P2.hand.length} · deck hidden
+          Opp hand {opp.hand.length} · deck hidden
         </span>
       </div>
       <div className="hand-cards">
-        {p1.hand.map((h) => {
+        {me.hand.map((h) => {
           const def = getDef(h.defId);
-          const affordable = def.cost <= p1.summonPool;
+          const affordable = def.cost <= me.summonPool;
           const cls = [
             "hcard",
             myPrep && affordable ? "summonable" : "",
@@ -63,7 +66,7 @@ export function Hand(props: {
             </div>
           );
         })}
-        {p1.hand.length === 0 && (
+        {me.hand.length === 0 && (
           <span style={{ color: "var(--ink-faint)", fontSize: 11, alignSelf: "center" }}>
             Hand empty.
           </span>

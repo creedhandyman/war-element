@@ -67,7 +67,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         row: homeRow(intent.player),
         col: intent.col as 0 | 1 | 2 | 3,
       });
-      if (intent.player === "P2") inst.autoMode = "full";
+      if (!draft.humans.includes(intent.player)) inst.autoMode = "full";
       draft.prep!.consecutivePasses = 0;
       draft.log.push(
         `${intent.player} summons ${def.name} (cost ${def.cost}) into column ${intent.col}.`,
@@ -316,14 +316,15 @@ function stepBattle(draft: GameState): boolean {
     return true;
   }
 
-  if (card.owner === "P2") {
+  if (!draft.humans.includes(card.owner)) {
+    // AI-controlled card.
     const choice = chooseBattleAction(draft, id);
     performBattleAction(draft, id, choice.action, choice.targetId ? [choice.targetId] : undefined);
     battle.index++;
     return true;
   }
 
-  // P1 card:
+  // Human-controlled card — respects its auto mode:
   if (card.autoMode === "manual") {
     battle.awaitingInput = id;
     return false;
@@ -457,13 +458,35 @@ function doCleanupPhase(draft: GameState): void {
 
 // ── driver ──────────────────────────────────────────────────────────────────
 
-/** Does the game currently need P1's input? */
+/**
+ * Which human player must act right now, or null when the driver can advance
+ * (an AI is up, or a non-interactive phase is pending). Generalizes the old
+ * P1-only check to support hot-seat 2-player.
+ */
+export function needsInput(state: GameState): PlayerId | null {
+  const humans = state.humans ?? ["P1"];
+  if (state.phase === "gameover") return null;
+  if (state.phase === "mulligan") {
+    for (const p of ["P1", "P2"] as PlayerId[])
+      if (humans.includes(p) && !state.players[p].mulliganDone) return p;
+    return null;
+  }
+  if (state.phase === "prep") {
+    const pr = state.prep?.priority;
+    return pr && humans.includes(pr) ? pr : null;
+  }
+  if (state.phase === "battle") {
+    const a = state.battle?.awaitingInput;
+    if (!a) return null;
+    const owner = state.cards[a]?.owner;
+    return owner && humans.includes(owner) ? owner : null;
+  }
+  return null;
+}
+
+/** Does the game currently need a human's input? (true = the driver must wait) */
 export function needsP1Input(state: GameState): boolean {
-  if (state.phase === "gameover") return false;
-  if (state.phase === "mulligan") return !state.players.P1.mulliganDone;
-  if (state.phase === "prep") return state.prep?.priority === "P1";
-  if (state.phase === "battle") return state.battle?.awaitingInput !== null;
-  return false;
+  return needsInput(state) !== null;
 }
 
 /**
@@ -478,8 +501,11 @@ export function advance(state: GameState): GameState {
 
   switch (draft.phase) {
     case "mulligan": {
-      if (!draft.players.P2.mulliganDone) {
-        applyMulligan(draft, "P2", aiMulligan(draft));
+      // Auto-mulligan every AI (non-human) player that hasn't gone yet.
+      for (const p of ["P1", "P2"] as PlayerId[]) {
+        if (!draft.humans.includes(p) && !draft.players[p].mulliganDone) {
+          applyMulligan(draft, p, aiMulligan(draft));
+        }
       }
       if (draft.players.P1.mulliganDone && draft.players.P2.mulliganDone) {
         startRound(draft);

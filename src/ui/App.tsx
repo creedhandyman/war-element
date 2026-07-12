@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { GameState, Intent, Pos } from "../engine";
+import type { GameState, Intent, PlayerId, Pos } from "../engine";
 import {
   advance,
   applyIntent,
@@ -10,7 +10,9 @@ import {
   createInitialState,
   DECKS,
   getDef,
+  homeRow,
   legalMoves,
+  needsInput,
   needsP1Input,
   validAllyTargets,
   validSpecialTargets,
@@ -45,6 +47,17 @@ export function App() {
   const [started, setStarted] = useState(false);
   const [p1Deck, setP1Deck] = useState("gale_bolt");
   const [p2Deck, setP2Deck] = useState("aqua_dawn");
+  const [twoPlayer, setTwoPlayer] = useState(false);
+
+  // The human who must act right now (null while an AI acts or a phase
+  // animates). `view` holds the last active human so the hand/pools/labels
+  // don't flicker between turns; in vs-AI mode it's always P1.
+  const me = started ? needsInput(game) : null;
+  const [viewSide, setViewSide] = useState<PlayerId>("P1");
+  useEffect(() => {
+    if (me) setViewSide(me);
+  }, [me]);
+  const view: PlayerId = me ?? viewSide;
 
   // Auto-advance whenever the engine doesn't need P1's input (once started).
   useEffect(() => {
@@ -65,16 +78,20 @@ export function App() {
     setPicks([]);
     setSurrenderArmed(false);
     setDetailId(null);
-    if (game.phase === "prep" && game.prep?.priority === "P1")
+    const actor = needsInput(game);
+    if (game.phase === "prep" && actor)
       setHint(
-        "<b>Your prep turn.</b> Click a glowing hand card to summon (any number), move one board card, then Pass.",
+        `<b>${twoPlayer ? `${actor} prep turn` : "Your prep turn"}.</b> Click a glowing hand card to summon (any number), move one board card, then Pass.`,
       );
     else if (game.phase === "prep") setHint("Opponent has priority…");
     else if (game.battle?.awaitingInput) {
-      const def = getDef(game.cards[game.battle.awaitingInput].defId);
-      setHint(`<b>${def.name} is up.</b> Choose Basic, Special, or Skip.`);
+      const card = game.cards[game.battle.awaitingInput];
+      const def = getDef(card.defId);
+      setHint(
+        `<b>${def.name} is up${twoPlayer ? ` (${card.owner})` : ""}.</b> Choose Basic, Special, or Skip.`,
+      );
     }
-  }, [phaseKey, game]);
+  }, [phaseKey, game, twoPlayer]);
 
   function dispatch(intent: Intent) {
     try {
@@ -90,16 +107,17 @@ export function App() {
   // ── legality highlights ───────────────────────────────────────────────────
   const legalSlots: Pos[] = useMemo(() => {
     if (game.phase !== "prep") return [];
+    const hr = homeRow(view);
     if (sel?.kind === "hand") {
       const out: Pos[] = [];
       for (let col = 0; col < 4; col++)
-        if (canSummon(game, "P1", sel.handId, col).ok)
-          out.push({ row: 3, col } as Pos);
+        if (canSummon(game, view, sel.handId, col).ok)
+          out.push({ row: hr, col } as Pos);
       return out;
     }
-    if (sel?.kind === "card") return legalMoves(game, "P1", sel.instanceId);
+    if (sel?.kind === "card") return legalMoves(game, view, sel.instanceId);
     return [];
-  }, [game, sel]);
+  }, [game, sel, view]);
 
   const awaitingId = game.battle?.awaitingInput ?? null;
   const legalTargetIds: string[] = useMemo(() => {
@@ -118,12 +136,13 @@ export function App() {
 
   // ── interactions ──────────────────────────────────────────────────────────
   function onPickHand(handId: string) {
-    if (game.phase !== "prep" || game.prep?.priority !== "P1") {
+    if (!me || game.phase !== "prep" || game.prep?.priority !== me) {
       setHint("You can summon during your prep priority turn.");
       return;
     }
-    const def = getDef(game.players.P1.hand.find((h) => h.handId === handId)!.defId);
-    if (def.cost > game.players.P1.summonPool) {
+    const p = game.players[me];
+    const def = getDef(p.hand.find((h) => h.handId === handId)!.defId);
+    if (def.cost > p.summonPool) {
       setHint(`⚠ Not enough summon resources for ${def.name} (cost ${def.cost}).`);
       return;
     }
@@ -146,7 +165,7 @@ export function App() {
   function firePicks(finalPicks: string[]) {
     dispatch({
       type: "BATTLE_ACTION",
-      player: "P1",
+      player: awaitingId ? game.cards[awaitingId].owner : view,
       action: pending!,
       targetIds: finalPicks,
     });
@@ -179,28 +198,28 @@ export function App() {
 
     // Summon placement — a hand card is armed; empty Home slots summon, but
     // clicking an occupied slot inspects that card instead.
-    if (game.phase === "prep" && game.prep?.priority === "P1" && sel?.kind === "hand") {
+    if (me && game.phase === "prep" && game.prep?.priority === me && sel?.kind === "hand") {
       if (clicked) {
         setDetailId(clicked.instanceId);
-      } else if (canSummon(game, "P1", sel.handId, col).ok && row === 3) {
-        dispatch({ type: "SUMMON", player: "P1", handId: sel.handId, col });
+      } else if (canSummon(game, me, sel.handId, col).ok && row === homeRow(me)) {
+        dispatch({ type: "SUMMON", player: me, handId: sel.handId, col });
         setHint("Summoned. Keep going, or <b>Pass Priority</b>.");
       } else {
-        setHint(`⚠ ${canSummon(game, "P1", sel.handId, col).reason ?? "Home row only."}`);
+        setHint(`⚠ ${canSummon(game, me, sel.handId, col).reason ?? "Home row only."}`);
       }
       return;
     }
 
     // Move destination — a board card is armed; empty green slots complete the
     // move, clicking a card opens its detail (its Move button re-arms it).
-    if (game.phase === "prep" && game.prep?.priority === "P1" && sel?.kind === "card") {
+    if (me && game.phase === "prep" && game.prep?.priority === me && sel?.kind === "card") {
       if (clicked) {
         setDetailId(clicked.instanceId);
         return;
       }
-      const check = canMove(game, "P1", sel.instanceId, { row, col } as Pos);
+      const check = canMove(game, me, sel.instanceId, { row, col } as Pos);
       if (check.ok) {
-        dispatch({ type: "MOVE", player: "P1", instanceId: sel.instanceId, to: { row, col } as Pos });
+        dispatch({ type: "MOVE", player: me, instanceId: sel.instanceId, to: { row, col } as Pos });
         setHint("Moved (one move per turn). Summon more, or <b>Pass Priority</b>.");
       } else {
         setHint(`⚠ ${check.reason}`);
@@ -227,23 +246,28 @@ export function App() {
   }
 
   function onCycleAuto(instanceId: string) {
+    const owner = game.cards[instanceId]?.owner ?? view;
     const order = ["manual", "basic", "full"] as const;
     const cur = game.cards[instanceId]?.autoMode ?? "manual";
     const mode = order[(order.indexOf(cur) + 1) % 3];
-    dispatch({ type: "SET_AUTO", player: "P1", instanceId, mode });
+    dispatch({ type: "SET_AUTO", player: owner, instanceId, mode });
   }
 
   function setGlobalAuto(mode: "manual" | "basic" | "full") {
     let next = game;
     for (const c of Object.values(game.cards)) {
-      if (c.owner === "P1" && c.pos)
-        next = applyIntent(next, { type: "SET_AUTO", player: "P1", instanceId: c.instanceId, mode });
+      if (c.owner === view && c.pos)
+        next = applyIntent(next, { type: "SET_AUTO", player: view, instanceId: c.instanceId, mode });
     }
     setGame(next);
   }
 
   // ── mulligan ──────────────────────────────────────────────────────────────
-  const inMulligan = started && game.phase === "mulligan" && !game.players.P1.mulliganDone;
+  const inMulligan =
+    started &&
+    game.phase === "mulligan" &&
+    me !== null &&
+    !game.players[me].mulliganDone;
 
   // ── battle prompt ─────────────────────────────────────────────────────────
   const activeCard = awaitingId ? game.cards[awaitingId] : null;
@@ -251,7 +275,7 @@ export function App() {
   const specialCheck = awaitingId ? canFireSpecial(game, awaitingId) : { ok: false };
   const basicOk = awaitingId ? validTargets(game, awaitingId).length > 0 : false;
 
-  const myPrep = game.phase === "prep" && game.prep?.priority === "P1";
+  const myPrep = me !== null && game.phase === "prep" && game.prep?.priority === me;
 
   return (
     <div className="wrap">
@@ -286,7 +310,7 @@ export function App() {
       <SpeedQueue game={game} />
 
       <div className="bottom">
-        <ResourcePool game={game} />
+        <ResourcePool game={game} player={view} />
 
         {activeCard && activeDef ? (
           <div className="bprompt">
@@ -343,7 +367,7 @@ export function App() {
                   if (cap >= valid.length) {
                     dispatch({
                       type: "BATTLE_ACTION",
-                      player: "P1",
+                      player: activeCard.owner,
                       action: "special",
                       targetIds: valid.map((t) => t.instanceId),
                     });
@@ -362,7 +386,7 @@ export function App() {
               </button>
               <button
                 className="bbtn"
-                onClick={() => dispatch({ type: "BATTLE_ACTION", player: "P1", action: "skip" })}
+                onClick={() => dispatch({ type: "BATTLE_ACTION", player: activeCard.owner, action: "skip" })}
               >
                 Skip
               </button>
@@ -376,6 +400,7 @@ export function App() {
         ) : (
           <Hand
             game={game}
+            player={view}
             selectedHandId={sel?.kind === "hand" ? sel.handId : null}
             onPick={onPickHand}
           />
@@ -420,13 +445,13 @@ export function App() {
             >
               Clear
             </button>
-            {game.win === null && (
+            {game.win === null && me !== null && (
               <button
                 className={`ghost ${surrenderArmed ? "warn" : ""}`}
                 title="Concede the match"
                 onClick={() => {
                   if (surrenderArmed) {
-                    dispatch({ type: "SURRENDER", player: "P1" });
+                    dispatch({ type: "SURRENDER", player: me });
                     setSurrenderArmed(false);
                   } else {
                     setSurrenderArmed(true);
@@ -434,13 +459,17 @@ export function App() {
                   }
                 }}
               >
-                {surrenderArmed ? "Confirm surrender?" : "Surrender"}
+                {surrenderArmed
+                  ? "Confirm surrender?"
+                  : twoPlayer
+                    ? `${me} surrender`
+                    : "Surrender"}
               </button>
             )}
             <button
               className="lockin"
               disabled={!myPrep}
-              onClick={() => dispatch({ type: "PASS", player: "P1" })}
+              onClick={() => me && dispatch({ type: "PASS", player: me })}
             >
               {myPrep ? "Pass Priority" : "Waiting…"}
             </button>
@@ -448,16 +477,17 @@ export function App() {
         </div>
       </div>
 
-      {inMulligan && (
+      {inMulligan && me && (
         <div className="overlay">
           <div className="modal">
-            <h1>Opening Hand</h1>
+            <h1>{twoPlayer ? `${me} — Opening Hand` : "Opening Hand"}</h1>
             <p>
+              {twoPlayer ? `Player ${me}: hand the device over. ` : ""}
               Click any cards to send back — you'll reshuffle and redraw to 4. Keeping a
               cheap curve (1–4) makes the early rounds playable.
             </p>
             <div className="mull-cards">
-              {game.players.P1.hand.map((h) => {
+              {game.players[me].hand.map((h) => {
                 const def = getDef(h.defId);
                 const toss = mullToss.includes(h.handId);
                 return (
@@ -496,7 +526,8 @@ export function App() {
             <button
               className="lockin"
               onClick={() => {
-                dispatch({ type: "MULLIGAN", player: "P1", returnHandIds: mullToss });
+                if (!me) return;
+                dispatch({ type: "MULLIGAN", player: me, returnHandIds: mullToss });
                 setMullToss([]);
               }}
             >
@@ -510,12 +541,14 @@ export function App() {
         <CardDetail
           game={game}
           card={game.cards[detailId]}
+          viewer={view}
           canMove={
-            game.cards[detailId].owner === "P1" &&
+            me !== null &&
+            game.cards[detailId].owner === me &&
             game.phase === "prep" &&
-            game.prep?.priority === "P1" &&
+            game.prep?.priority === me &&
             !game.prep.movedThisTurn &&
-            legalMoves(game, "P1", detailId).length > 0
+            legalMoves(game, me, detailId).length > 0
           }
           onMove={() => armMoveFromDetail(detailId)}
           onClose={() => setDetailId(null)}
@@ -536,10 +569,28 @@ export function App() {
         <div className="overlay">
           <div className="modal">
             <h1>War Element</h1>
-            <p>Choose the decks, then start the match. You play the left deck (P1).</p>
+            <p>
+              {twoPlayer
+                ? "Two players share this device — you'll hand it back and forth each turn."
+                : "Choose the decks, then start the match. You play the left deck (P1)."}
+            </p>
+            <div className="mode-toggle">
+              <button
+                className={`mode-btn ${!twoPlayer ? "on" : ""}`}
+                onClick={() => setTwoPlayer(false)}
+              >
+                🤖 vs AI
+              </button>
+              <button
+                className={`mode-btn ${twoPlayer ? "on" : ""}`}
+                onClick={() => setTwoPlayer(true)}
+              >
+                👥 2 Players
+              </button>
+            </div>
             <div className="deck-picker">
               <label>
-                <span>Your deck (P1)</span>
+                <span>{twoPlayer ? "Player 1 deck" : "Your deck (P1)"}</span>
                 <select value={p1Deck} onChange={(e) => setP1Deck(e.target.value)}>
                   {DECKS.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -550,7 +601,7 @@ export function App() {
               </label>
               <span className="vs">vs</span>
               <label>
-                <span>Opponent (P2 · AI)</span>
+                <span>{twoPlayer ? "Player 2 deck" : "Opponent (P2 · AI)"}</span>
                 <select value={p2Deck} onChange={(e) => setP2Deck(e.target.value)}>
                   {DECKS.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -563,7 +614,9 @@ export function App() {
             <button
               className="lockin"
               onClick={() => {
-                setGame(createInitialState(newSeed(), p1Deck, p2Deck));
+                const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
+                setGame(createInitialState(newSeed(), p1Deck, p2Deck, humans));
+                setViewSide("P1");
                 setSel(null);
                 setPending(null);
                 setPicks([]);

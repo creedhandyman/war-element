@@ -14,6 +14,7 @@ export function Token(props: {
   const { game, card } = props;
   const def = getDef(card.defId);
   const mine = card.owner === "P1";
+  const human = (game.humans ?? ["P1"]).includes(card.owner);
   const kws = Object.entries(def.keywords)
     .map(([k, v]) => (v === true ? k : `${k} ${v}`))
     .join(" · ");
@@ -76,7 +77,7 @@ export function Token(props: {
           </span>
         </div>
       </div>
-      {mine && (
+      {human && (
         <div
           className={`auto-btn ${card.autoMode}`}
           title={`Auto mode: ${card.autoMode} — click to cycle`}
@@ -89,13 +90,15 @@ export function Token(props: {
         </div>
       )}
       {(() => {
-        // Move indicator: glow the speed badge while this card may still move.
+        // Move indicator: glow the speed badge while this card's owner may still
+        // move it (their prep turn, human-controlled). Works for P1 vs-AI and
+        // for either side in hot-seat 2-player.
         const canMoveNow =
-          mine &&
+          human &&
           game.phase === "prep" &&
-          game.prep?.priority === "P1" &&
+          game.prep?.priority === card.owner &&
           !game.prep.movedThisTurn &&
-          legalMoves(game, "P1", card.instanceId).length > 0;
+          legalMoves(game, card.owner, card.instanceId).length > 0;
         return (
           <div
             className={`sp-badge ${canMoveNow ? "can-move" : ""}`}
