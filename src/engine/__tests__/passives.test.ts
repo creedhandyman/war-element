@@ -134,13 +134,30 @@ describe("element auras", () => {
     expect(next.cards[foe.instanceId].curHp).toBe(13); // 15 − 2 Awakening
   });
 
-  it("Flow Change (AQUA): a summoned card gets +2 DMG for the turn", () => {
+  it("Flow Change (AQUA): a human summon defers the choice, then Liquid grants +2 DMG", () => {
     const s = prepState();
     s.players.P1.summonPool = 5;
     const handId = giveHand(s, "P1", "aqua_spinefin");
-    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
-    const fin = boardCards(next, "P1").find((c) => getDef(c.defId).element === "AQUA")!;
-    expect(fin.dmgBonusRound).toBe(2);
+    const summoned = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const fin = boardCards(summoned, "P1").find((c) => getDef(c.defId).element === "AQUA")!;
+    expect(summoned.pendingFlow).toBe(fin.instanceId); // deferred to the human
+    expect(fin.dmgBonusRound).toBe(0); // not applied until chosen
+    const picked = applyIntent(summoned, {
+      type: "FLOW_CHANGE", player: "P1", instanceId: fin.instanceId, mode: "water",
+    });
+    expect(picked.cards[fin.instanceId].dmgBonusRound).toBe(2);
+    expect(picked.pendingFlow).toBeNull();
+  });
+
+  it("Flow Change (AQUA): an AI summon auto-picks immediately (Tank → Frozen shields)", () => {
+    const s = prepState(42, "P2"); // P2 (AI) has priority
+    s.players.P2.summonPool = 5;
+    const handId = giveHand(s, "P2", "aqua_coralgolem"); // Tank, base 4 shields
+    const next = applyIntent(s, { type: "SUMMON", player: "P2", handId, col: 0 });
+    const golem = boardCards(next, "P2").find((c) => c.defId === "aqua_coralgolem")!;
+    expect(next.pendingFlow).toBeNull(); // no prompt for the AI
+    expect(golem.curShields).toBe(7); // 4 base + 3 Frozen
+    expect(golem.tempShields).toBe(3); // temporary — removed in Cleanup
   });
 
   it("Electrify (BOLT): +1 DMG vs a statused opponent", () => {

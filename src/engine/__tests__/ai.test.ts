@@ -60,6 +60,15 @@ describe("AI heuristics", () => {
 describe("full AI-vs-AI matches (integration)", () => {
   function driveP1(state: GameState): GameState {
     // P1 played by the same heuristic AI, through the public intent API only.
+    if (state.pendingFlow) {
+      const card = state.cards[state.pendingFlow];
+      return applyIntent(state, {
+        type: "FLOW_CHANGE",
+        player: card.owner,
+        instanceId: state.pendingFlow,
+        mode: "water",
+      });
+    }
     if (state.phase === "mulligan") {
       return applyIntent(state, {
         type: "MULLIGAN",

@@ -195,8 +195,10 @@ export interface CardInstance {
   curShields: number;
   dmgBonus: number; // permanent DMG modifiers (DRAIN, on-kill buffs)
   dmgBonusRound: number; // DMG buff that resets each Cleanup (on-kill "for the round")
-  spBonus: number; // permanent SP modifiers (on-kill buffs)
+  spBonus: number; // permanent SP modifiers (on-kill buffs, GALE Zephyr)
+  spBonusRound: number; // SP buff that resets each Cleanup (AQUA Flow Change Steam)
   hitsBonus: number; // permanent extra basic hits (Fenrir On Kill)
+  tempShields: number; // shields granted "for the turn" (removed in Cleanup)
   /** Basic hits this card has LANDED on each target this round (keyed by target
    *  instanceId). Powers first-hit-only / on-second-hit riders; reset in Cleanup. */
   struckThisRound: Record<string, number>;
@@ -278,6 +280,9 @@ export interface GameState {
   slots: SlotState[][];
   prep: PrepState | null;
   battle: BattleState | null;
+  /** A human just summoned an AQUA card and must pick its Flow Change buff
+   *  (instanceId). AI summons resolve immediately, so this only gates humans. */
+  pendingFlow: string | null;
   win: WinInfo | null;
   log: string[];
   nextId: number; // instance/hand id counter
@@ -290,6 +295,7 @@ export type Intent =
   | { type: "PASS"; player: PlayerId }
   | { type: "SET_AUTO"; player: PlayerId; instanceId: string; mode: AutoMode }
   | { type: "SURRENDER"; player: PlayerId }
+  | { type: "FLOW_CHANGE"; player: PlayerId; instanceId: string; mode: "water" | "ice" | "steam" }
   | {
       type: "BATTLE_ACTION";
       player: PlayerId;

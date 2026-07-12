@@ -10,6 +10,7 @@ import {
   createInitialState,
   deckById,
   DECKS,
+  FLOW_MODES,
   getDef,
   homeRow,
   legalMoves,
@@ -539,6 +540,33 @@ export function App() {
             >
               {mullToss.length > 0 ? `Return ${mullToss.length} & Redraw` : "Keep Hand"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {game.pendingFlow && game.cards[game.pendingFlow] && (
+        <div className="overlay">
+          <div className="modal flow-modal">
+            <h1>Flow Change</h1>
+            <p>
+              <b>{getDef(game.cards[game.pendingFlow].defId).name}</b> flows into being —
+              choose its boost for this turn.
+            </p>
+            <div className="flow-opts">
+              {(["water", "ice", "steam"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  className={`flow-opt flow-${mode}`}
+                  onClick={() => {
+                    const card = game.cards[game.pendingFlow!];
+                    dispatch({ type: "FLOW_CHANGE", player: card.owner, instanceId: card.instanceId, mode });
+                  }}
+                >
+                  <span className="flow-label">{FLOW_MODES[mode].label}</span>
+                  <span className="flow-blurb">{FLOW_MODES[mode].blurb}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

@@ -35,6 +35,7 @@ export function createInitialState(
     ),
     prep: null,
     battle: null,
+    pendingFlow: null,
     win: null,
     log: [],
     nextId: 1,
@@ -121,7 +122,7 @@ export function hasStatus(card: CardInstance, kind: StatusKind): boolean {
 export function effectiveSp(_state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   if (hasStatus(card, "ROOT") || hasStatus(card, "FREEZE")) return 0;
-  return Math.max(0, def.sp + card.spBonus);
+  return Math.max(0, def.sp + (card.spBonus ?? 0) + (card.spBonusRound ?? 0));
 }
 
 /**
@@ -132,7 +133,7 @@ export function effectiveSp(_state: GameState, card: CardInstance): number {
  */
 export function effectiveDmg(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
-  let dmg = def.dmg + card.dmgBonus + card.dmgBonusRound;
+  let dmg = def.dmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0);
   if (hasStatus(card, "WEAKEN")) dmg = Math.floor(dmg * 0.75);
   if (hasStatus(card, "FREEZE")) dmg = Math.floor(dmg * 0.5);
   if (card.pos && (card.pos.row === 1 || card.pos.row === 2)) dmg += 1;
@@ -174,7 +175,9 @@ export function summonCard(
     dmgBonus: 0,
     dmgBonusRound: 0,
     spBonus: 0,
+    spBonusRound: 0,
     hitsBonus: 0,
+    tempShields: 0,
     struckThisRound: {},
     statuses: [],
     summonedThisRound: true,

@@ -256,6 +256,17 @@ button { font-family: inherit; }
 .cd-actions { display: flex; gap: 8px; margin-top: 18px; }
 .cd-actions .lockin { flex: 1; }
 
+/* Flow Change choice (AQUA summon) */
+.flow-modal { max-width: 440px; }
+.flow-opts { display: flex; gap: 10px; margin-top: 4px; }
+.flow-opt { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 10px; border-radius: 12px; background: var(--void-2); border: 1px solid var(--panel-line); color: var(--ink); cursor: pointer; transition: 0.15s; }
+.flow-opt:hover { transform: translateY(-2px); border-color: var(--accent); }
+.flow-label { font-size: 15px; font-weight: 800; }
+.flow-blurb { font-size: 12px; font-weight: 700; color: var(--ink-dim); }
+.flow-water:hover { border-color: #2f8fd6; box-shadow: 0 0 16px rgba(47,143,214,0.35); }
+.flow-ice:hover { border-color: #8fc3ff; box-shadow: 0 0 16px rgba(143,195,255,0.35); }
+.flow-steam:hover { border-color: #c9d6e8; box-shadow: 0 0 16px rgba(201,214,232,0.3); }
+
 /* mode toggle (pre-game: vs AI / 2 players) */
 .mode-toggle { display: flex; gap: 8px; margin-bottom: 4px; }
 .mode-btn { flex: 1; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 999px; background: var(--void-2); color: var(--ink-dim); border: 1px solid var(--panel-line); cursor: pointer; transition: 0.15s; }

@@ -2,7 +2,7 @@
 // All reducers clone the incoming state once and mutate only the clone.
 
 import { getDef } from "../data/cards";
-import { GALE_SP_CAP } from "./auras";
+import { applyFlow, type FlowMode, GALE_SP_CAP } from "./auras";
 import { applyStatus, basicAttack, directDamage, label, SPECIAL_HANDLERS } from "./combat";
 import { coin } from "./rng";
 import {
@@ -138,6 +138,15 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       draft.battle = null;
       draft.prep = null;
       draft.log.push(`${intent.player} surrenders — ${enemyOf(intent.player)} wins.`);
+      return draft;
+    }
+    case "FLOW_CHANGE": {
+      if (draft.pendingFlow !== intent.instanceId) throw new Error("No pending Flow Change");
+      const card = draft.cards[intent.instanceId];
+      if (!card || card.owner !== intent.player) throw new Error("Not your card");
+      applyFlow(card, intent.mode as FlowMode);
+      draft.pendingFlow = null;
+      draft.log.push(`${getDef(card.defId).name} shifts state (Flow Change).`);
       return draft;
     }
     case "BATTLE_ACTION": {
@@ -403,6 +412,14 @@ function applyAllyOnSummon(
   }
 }
 
+/** AI's Flow Change pick: tanks/support shore up, fast strikers gain speed,
+ *  everyone else takes damage. */
+function aiFlowChoice(cardClass: string): FlowMode {
+  if (cardClass === "Tank" || cardClass === "Support") return "ice";
+  if (cardClass === "Assassin" || cardClass === "Ranger") return "steam";
+  return "water";
+}
+
 /** Element auras that fire the moment a card is summoned. */
 function applyElementSummonAura(draft: GameState, inst: CardInstance): void {
   const def = getDef(inst.defId);
@@ -411,9 +428,15 @@ function applyElementSummonAura(draft: GameState, inst: CardInstance): void {
       inst.curShields += 2;
       draft.log.push(`${def.name} hardens (Exostone +2 shields).`);
       break;
-    case "AQUA": // Flow Change — +2 DMG for the turn.
-      inst.dmgBonusRound += 2;
+    case "AQUA": { // Flow Change — a 1-turn choice.
+      if (draft.humans.includes(inst.owner)) {
+        // Human chooses via the UI; gate until they pick.
+        draft.pendingFlow = inst.instanceId;
+      } else {
+        applyFlow(inst, aiFlowChoice(def.cardClass));
+      }
       break;
+    }
     case "DAWN": { // Awakening — strike the nearest enemy for half its DMG.
       const dmg = Math.floor(def.dmg / 2);
       if (dmg > 0) {
@@ -544,7 +567,13 @@ function doCleanupPhase(draft: GameState): void {
     card.summonedThisRound = false;
     card.attackedThisRound = false;
     card.dmgBonusRound = 0;
+    card.spBonusRound = 0;
     card.struckThisRound = {};
+    // Temporary shields ("for the turn", e.g. Flow Change Frozen) expire.
+    if (card.tempShields > 0) {
+      card.curShields = Math.max(0, card.curShields - card.tempShields);
+      card.tempShields = 0;
+    }
     if (card.specialCooldown > 0) card.specialCooldown--;
   }
 
