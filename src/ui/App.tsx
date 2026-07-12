@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
 import type { GameState, Intent, Pos } from "../engine";
 import {
   advance,
@@ -413,13 +412,20 @@ export function App() {
                   <div
                     key={h.handId}
                     className={`mull-card carded ${toss ? "toss" : ""}`}
-                    style={{ ["--art"]: `url(/cards/${def.id}.png)` } as CSSProperties}
                     onClick={() =>
                       setMullToss((cur) =>
                         toss ? cur.filter((x) => x !== h.handId) : [...cur, h.handId],
                       )
                     }
                   >
+                    <img
+                      className="card-art"
+                      src={`/cards/${def.id}.png`}
+                      alt=""
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
                     <div className="hc-top">
                       <div className="hc-cost">{def.cost}</div>
                       <span className="el-dot" style={{ background: EL_COLOR[def.element] }} />

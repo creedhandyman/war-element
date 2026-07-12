@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import type { GameState } from "../engine";
 import { getDef, HAND_CAP } from "../engine";
 import { EL_COLOR } from "./shared";
@@ -36,10 +35,17 @@ export function Hand(props: {
             <div
               key={h.handId}
               className={`${cls} carded`}
-              style={{ ["--art"]: `url(/cards/${def.id}.png)` } as CSSProperties}
               title={def.special ? `${def.special.name}: ${def.special.text}` : ""}
               onClick={() => props.onPick(h.handId)}
             >
+              <img
+                className="card-art"
+                src={`/cards/${def.id}.png`}
+                alt=""
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
               <div className="hc-top">
                 <div className="hc-cost">{def.cost}</div>
                 <span className="el-dot" style={{ background: EL_COLOR[def.element] }} />
