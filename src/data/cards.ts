@@ -8,10 +8,18 @@
 //
 // DAMAGE NOTATION: card text "A×B DMG" reads hits-first — A hits of B damage
 // each (e.g. Spitfire "2×3" = 2 hits × 3 dmg). Encoded as { hits: A, dmg: B }.
-// Cards are pulled from the element card files and trimmed to alpha-scope
-// mechanics (keywords, one on-hit status rider, one Special via the handler
-// registry). Passives outside that surface are dropped for alpha; a few are
-// adapted (noted inline). Stat guideline: total ≈ 5*cost + 10, shields = 2 pts.
+// Cards are pulled from the element card files (Desktop\Everything\war element\
+// *_Cards.docx). Abilities were audited against those docs and the correct
+// passives restored where the engine supports them: onKill buffs, thorns
+// (onHitByMelee), gated on-hit riders (chance/first-hit/second-hit), conditional
+// keywords vs a target's status (vsStatus), periodic self effects (roundTick),
+// on-death row-ahead AoE, on-summon ally buffs, and self/adjacent special
+// riders. A handful of DEEP mechanics remain unmodeled — noted inline as
+// NOTE/"not yet modeled" (token spawns, revives, transformations, traps,
+// forced push, damage-redirect, attack-allies-to-heal, recast specials, the
+// "Electrified" mark, most element auras, and a few timed team buffs).
+// Stat guideline: total ≈ 5*cost + 10, shields = 2 pts (stat rebalances vs the
+// docs are intentional alpha scope, not bugs).
 
 import type { CardDef } from "../engine/types";
 
@@ -82,8 +90,18 @@ export const CARDS: CardDef[] = [
     hp: 14,
     sp: 7,
     shields: 0,
-    // Adapted for alpha: Gnashing Bite (LIFESTEAL vs ROOTed) → plain LIFESTEAL.
-    keywords: { LIFESTEAL: true },
+    keywords: {},
+    // Gnashing Bite: LIFESTEAL only on attacks against ROOTed opponents.
+    vsStatus: { status: "ROOT", lifesteal: true },
+    special: {
+      name: "Takedown",
+      cost: 1,
+      handler: "strike",
+      params: { dmg: 6, statusKind: "ROOT", statusDuration: 3 },
+      targetSide: "enemy",
+      cooldown: 0, // "no cooldown"
+      text: "Tackle an opponent for 6 DMG and ROOT them for 3 rounds.",
+    },
   },
   {
     id: "leaf_fallona",
@@ -98,6 +116,8 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
+    // Fall's Emergence: +1 DMG at the end of every 3rd round (stacking).
+    roundTick: { buffDmgEveryN: { n: 3, amount: 1 } },
     special: {
       name: "Leaf Storm",
       cost: 2,
@@ -122,13 +142,16 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 0,
     keywords: {},
+    // NOTE: Regenerative (On Hit → +1 shield next round, max 5) not yet modeled
+    // (no on-hit self-buff hook).
     special: {
       name: "Bushwhacker",
       cost: 2,
       handler: "strike",
-      params: { dmg: 6, statusKind: "ROOT", statusDuration: 1 },
+      // "6 DMG to one opponent AND ROOT all opponents adjacent to Squanch 1r"
+      params: { dmg: 6, adjStatusKind: "ROOT", adjStatusDuration: 1 },
       targetSide: "enemy",
-      text: "Deal 6 DMG and ROOT the target for 1 round.",
+      text: "Deal 6 DMG and ROOT every opponent adjacent to Squanch for 1 round.",
     },
   },
   {
@@ -174,14 +197,16 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 3,
     keywords: {},
+    // Transfusion (On Hit by Melee): apply BLEED 2 to the attacker. (Doc also
+    // heals Thorn from BLEED dealt each round — the heal half isn't modeled yet.)
+    onHitByMelee: { status: { kind: "BLEED", duration: 2, power: 2 } },
     special: {
       name: "Blood on the Petals",
       cost: 3,
       handler: "strike",
-      // printed "BLEED 5 DOT"; encoded as power 4 / 2r for alpha balance
-      params: { dmg: 7, pen: 1, statusKind: "BLEED", statusPower: 4, statusDuration: 2 },
+      params: { dmg: 7, pen: 1, statusKind: "BLEED", statusPower: 5, statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 7 DMG (PEN) and apply BLEED to the target.",
+      text: "Deal 7 DMG (PEN) and apply BLEED 5 to the target.",
     },
   },
 
@@ -221,6 +246,8 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
+    // Burnout (On Death): 4 DMG to the enemy row directly ahead.
+    onDeath: { dmg: 4, rowAhead: true },
     special: {
       name: "Flame Charge",
       cost: 1,
@@ -246,6 +273,8 @@ export const CARDS: CardDef[] = [
     // Fury Unleashed: on summon, 3 DMG to the 3-wide row directly ahead
     // (melee → reaches one row forward, hitting left/mid/right).
     onSummon: { handler: "barrage", params: { dmg: 3, spread: 1, targets: 99 } },
+    // On Kill: permanent +1 hit on the basic attack (stacks until Fenrir dies).
+    onKill: { buffHits: 1 },
     special: {
       name: "Inferno Pounce",
       cost: 3,
@@ -346,9 +375,8 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // Spit Shot: on summon, 3 DMG down its own lane, reaching forward across
-    // the battlefield (ranged, narrower than Flamehound's wide blast).
-    onSummon: { handler: "barrage", params: { dmg: 3, spread: 0, targets: 99 } },
+    // Spit Shot (On Summon): 3 DMG to up to 3 opponents.
+    onSummon: { handler: "barrage", params: { dmg: 3, targets: 3 } },
   },
   {
     id: "pyro_volcanon",
@@ -418,6 +446,9 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 1,
     keywords: {},
+    // Sandstorm (Aura): 1 DMG to all opponents each round. Plus 2× DMG vs SLEEPING.
+    roundTick: { aoeDmg: 1 },
+    vsStatus: { status: "SLEEP", dmgMult: 2 },
     special: {
       name: "Nightmare",
       cost: 4,
@@ -440,6 +471,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 1,
     keywords: { CRIT: true },
+    statusImmune: true, // Krysteellized Field: immune to negative statuses
     special: {
       name: "Krystal Rain",
       cost: 2,
@@ -463,14 +495,8 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 1,
     keywords: {},
-    special: {
-      name: "Reforged",
-      cost: 2,
-      handler: "grantShield",
-      params: { amount: 2 },
-      targetSide: "ally",
-      text: "Give an ally +2 shields.",
-    },
+    // Reforged (On Summon): give allies in the row directly ahead +2 shields.
+    onSummon: { handler: "grantShield", params: { amount: 2 }, targetSide: "ally" },
   },
 
   {
@@ -615,8 +641,8 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // Spook (On Hit): FRIGHTEN the opponent — a passive rider, not a Special.
-    onHitStatus: { kind: "FRIGHTEN", duration: 1, power: 0 },
+    // Spook (On Hit, first time only): FRIGHTEN the opponent.
+    onHitStatus: { kind: "FRIGHTEN", duration: 1, power: 0, firstHitOnly: true },
   },
   {
     id: "dusk_ghastly",
@@ -654,6 +680,8 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 0,
     keywords: {},
+    // Frightening (On Hit, first time only): FRIGHTEN the target for 1 round.
+    onHitStatus: { kind: "FRIGHTEN", duration: 1, power: 0, firstHitOnly: true },
     special: {
       name: "Jacked",
       cost: 2,
@@ -814,6 +842,8 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: { FLYING: true },
+    // Icy Swoop (End of Round): FREEZE the lowest-HP opponent for 1 round.
+    roundTick: { lowestEnemyStatus: { kind: "FREEZE", duration: 1, power: 0 } },
     special: {
       name: "Owl Hail",
       cost: 3,
@@ -836,6 +866,8 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 2,
     keywords: {},
+    // Freezer Burn (Aura): FROZEN opponents take SCALD 3 each round.
+    roundTick: { scaldFrozen: 3 },
     special: {
       name: "Icicle Freeze",
       cost: 4,
@@ -858,6 +890,8 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 4,
     keywords: {},
+    // King of Ice (On Hit by Melee): 50% chance to FREEZE the attacker 2 rounds.
+    onHitByMelee: { chance: 50, status: { kind: "FREEZE", duration: 2, power: 0 } },
     special: {
       name: "Polar Shift",
       cost: 4,
@@ -881,6 +915,8 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
+    // King of the Seas (On Kill): coin flip — gain +2 or +1 DMG permanently.
+    onKill: { coinBonusDmg: 2 },
     special: {
       name: "Vapor Shark Cannon",
       cost: 4,
@@ -904,6 +940,9 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 2,
     keywords: {},
+    // Vaporizer (On Kill): +1 SP and +1 DMG permanently. (Doc also pokes the
+    // lowest-HP enemy + repositions — those halves aren't modeled yet.)
+    onKill: { buffSp: 1, buffDmg: 1 },
     special: {
       name: "Geyser Gash",
       cost: 3,
@@ -940,6 +979,8 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    // Misty Haze: basic attacks BLIND (−50% accuracy) for a round.
+    onHitStatus: { kind: "BLIND", duration: 1, power: 0 },
     special: {
       name: "Drowning Mist",
       cost: 2,
@@ -997,6 +1038,9 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 2,
     keywords: { FLYING: true },
+    // Raising Star (End of Round): BLIND all opponents. (Doc also heals allies
+    // +1 on basic attacks — the attack-heal half isn't modeled yet.)
+    roundTick: { aoeStatus: { kind: "BLIND", duration: 1, power: 0 } },
     special: {
       name: "Star Shower",
       cost: 2,
@@ -1019,6 +1063,8 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 2,
     keywords: {},
+    // Shooting Stars (End of Round): 2 DMG to the closest opponent + BLIND them.
+    roundTick: { pokeDmg: 2, pokeStatus: { kind: "BLIND", duration: 1, power: 0 } },
     special: {
       name: "Flashing Barrage",
       cost: 3,
@@ -1064,6 +1110,9 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 2,
     keywords: { FLYING: true },
+    // First Responder (End of Round): heal the lowest-HP ally +4 HP. (Doc also
+    // lets basic attacks target allies to heal — not modeled yet.)
+    roundTick: { healLowestAlly: 4 },
     special: {
       name: "Battle Maiden",
       cost: 2,
@@ -1086,6 +1135,9 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 5,
     keywords: { FLYING: true },
+    // War Maiden (End of Round): heal all allies +3 HP. (Doc special also grants
+    // team +1 DMG for 2 rounds — a timed team buff not modeled yet.)
+    roundTick: { healAllies: 3 },
     special: {
       name: "Golden Courage",
       cost: 3,
@@ -1131,6 +1183,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     onDeath: { dmg: 7 }, // Flashing Final: Flash Ray Strike on the killer
+    onKill: { buffDmg: 2 }, // Flash Ray Strike On Kill → +2 DMG permanently
     special: {
       name: "Flash Ray Strike",
       cost: 2,
@@ -1153,6 +1206,9 @@ export const CARDS: CardDef[] = [
     sp: 14,
     shields: 1,
     keywords: {},
+    // Hot Shot (On Kill): +1 DMG for the rest of the round. (Doc also grants
+    // always-hit / ignore-EVASION — not modeled yet.)
+    onKill: { buffDmgRound: 1 },
     special: {
       name: "High Noon Revolver",
       cost: 3,
@@ -1179,6 +1235,8 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
+    // Dust Off (On Summon): +2 SP to self and the nearest ally.
+    onSummon: { handler: "buffSp", params: { amount: 2 }, targetSide: "ally" },
   },
   {
     id: "gale_luna",
@@ -1193,6 +1251,8 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 0,
     keywords: {},
+    // Omega Restore (On Kill): heal +2 HP per opponent killed.
+    onKill: { healSelf: 2 },
   },
   {
     id: "gale_hawk",
@@ -1242,7 +1302,8 @@ export const CARDS: CardDef[] = [
     hp: 18,
     sp: 3,
     shields: 0,
-    keywords: {},
+    // Roost: −1 DMG from all incoming (BLOCK 1) and +1 HP end of round (REGEN 1).
+    keywords: { BLOCK: 1, REGEN: 1 },
     special: {
       name: "Horn Toss",
       cost: 2,
@@ -1265,6 +1326,8 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: { FLYING: true },
+    // Alluring Aura (On Hit by Melee): the attacker is WEAKENed.
+    onHitByMelee: { status: { kind: "WEAKEN", duration: 2, power: 0 } },
     special: {
       name: "Purple Wind Surge",
       cost: 2,
@@ -1288,14 +1351,20 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
+    // Totem Alert (On Summon): WEAKEN the enemy row directly ahead.
+    onSummon: {
+      handler: "statusNova",
+      params: { statusKind: "WEAKEN", statusDuration: 2, spread: 1, targets: 99 },
+    },
     special: {
       name: "Vision of Fear",
       cost: 3,
       handler: "statusNova",
-      params: { statusKind: "WEAKEN", statusDuration: 2, targets: 99 },
+      // WEAKEN all + gain +5 max HP.
+      params: { statusKind: "WEAKEN", statusDuration: 2, targets: 99, selfMaxHp: 5 },
       targetSide: "enemy",
       ranged: true, // "WEAKEN all opponents" — reaches the whole board
-      text: "WEAKEN every opponent in range for 2 rounds.",
+      text: "WEAKEN every opponent in range for 2 rounds; gain +5 max HP.",
     },
   },
   {
@@ -1382,8 +1451,8 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 0,
     keywords: {},
-    // Stuck: on summon, blast 5 down its lane.
-    onSummon: { handler: "barrage", params: { dmg: 5, spread: 0, targets: 99 } },
+    // Stuck (On Summon): 5 DMG to one opponent in range.
+    onSummon: { handler: "barrage", params: { dmg: 5, targets: 1 } },
   },
   {
     id: "bolt_twotales",
@@ -1398,7 +1467,8 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 0,
     keywords: {},
-    onHitStatus: { kind: "PARALYZE", duration: 1, power: 0 }, // Buzz Whip
+    // Buzz Whip: basic attacks have a 50% chance to PARALYZE for the round.
+    onHitStatus: { kind: "PARALYZE", duration: 1, power: 0, chance: 50 },
   },
   {
     id: "bolt_zagphu",
@@ -1413,6 +1483,8 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    // Precision Strike: vs a PARALYZED opponent, basic attacks CRIT and heal +4.
+    vsStatus: { status: "PARALYZE", crit: true, healOnHit: 4 },
     special: {
       name: "Static Toss",
       cost: 2,
@@ -1458,7 +1530,8 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 2,
     keywords: {},
-    onHitStatus: { kind: "MUTED", duration: 1, power: 0 }, // Electro Wrap
+    // Electro Wrap (On Hit twice in one round): MUTE the target for the round.
+    onHitStatus: { kind: "MUTED", duration: 1, power: 0, onSecondHit: true },
     special: {
       name: "Web Shock",
       cost: 2,
@@ -1554,6 +1627,8 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 3,
     keywords: {},
+    // Static Electricity (Start of Round): PARALYZE an un-paralyzed enemy 2r.
+    roundTick: { paralyzeOne: 2 },
     special: {
       name: "StunGun",
       cost: 3,
@@ -1576,6 +1651,9 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 2,
     keywords: {},
+    // Powertrip (On Kill): 5 DMG to all enemies (doc: "Electrified" enemies —
+    // approximated to all, since the Electrified mark isn't modeled yet).
+    onKill: { aoeDmg: 5 },
     special: {
       name: "Gigavolt Strike",
       cost: 4,

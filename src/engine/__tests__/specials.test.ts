@@ -185,20 +185,14 @@ describe("firing specials", () => {
     expect(next.players.P2.magicPool).toBe(2);
   });
 
-  it("grantShield: Smith reinforces an ally", () => {
+  it("onSummon ally buff: Smith reinforces the row directly ahead on summon", () => {
     const s = prepState();
-    s.players.P1.magicPool = 4;
-    const smith = place(s, "bore_smith", "P1", 3, 0);
-    const ally = place(s, "leaf_greegon", "P1", 2, 0, { curShields: 0 });
-    place(s, "dusk_gool", "P2", 0, 1);
-    const next = applyIntent(battleWith(s, smith.instanceId), {
-      type: "BATTLE_ACTION",
-      player: "P1",
-      action: "special",
-      targetId: ally.instanceId,
-    });
+    s.players.P1.summonPool = 5;
+    const ally = place(s, "leaf_greegon", "P1", 2, 0, { curShields: 0 }); // row ahead
+    const handId = giveHand(s, "P1", "bore_smith");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    // Reforged fires on summon and shields allies in the row ahead (Greegon).
     expect(next.cards[ally.instanceId].curShields).toBe(2);
-    expect(next.players.P1.magicPool).toBe(2);
   });
 });
 
@@ -537,15 +531,15 @@ describe("on-summon passives (forward-area projection)", () => {
     expect(next.log.some((l) => l.includes("on-summon"))).toBe(false);
   });
 
-  it("Spitfire (ranged) is a single-lane blast that reaches forward", () => {
+  it("Spitfire's Spit Shot (on summon) hits up to 3 opponents", () => {
     const s = prepState();
     s.players.P1.summonPool = 5;
-    const lane = place(s, "dusk_gool", "P2", 1, 1, { curHp: 13 }); // col 1, far mid — hit
-    const side = place(s, "dusk_vamp", "P2", 2, 0, { curHp: 6 }); // col 0 — outside lane
+    const a = place(s, "dusk_gool", "P2", 1, 1, { curHp: 13 });
+    const b = place(s, "dusk_vamp", "P2", 2, 0, { curHp: 6 });
     const handId = giveHand(s, "P1", "pyro_spitfire");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
-    expect(next.cards[lane.instanceId].curHp).toBe(10); // 3 dmg down the lane
-    expect(next.cards[side.instanceId].curHp).toBe(6); // untouched (spread 0)
+    expect(next.cards[a.instanceId].curHp).toBe(10); // 3 dmg
+    expect(next.cards[b.instanceId].curHp).toBe(3); // also hit (up to 3 targets)
   });
 
   it("a melee on-summon (Fenrir) reaches only one row ahead, but 3 wide", () => {

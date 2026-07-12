@@ -38,14 +38,64 @@ export function CardDetail(props: {
 
   // Passive one-liners derived from the card definition.
   const passives: string[] = [];
-  if (def.onHitStatus)
+  if (def.onHitStatus) {
+    const h = def.onHitStatus;
+    const gate = h.chance != null ? `${h.chance}% chance to ` : h.firstHitOnly ? "first hit: " : h.onSecondHit ? "2nd hit: " : "";
     passives.push(
-      `Basic hits apply ${def.onHitStatus.kind}${def.onHitStatus.power ? ` (${def.onHitStatus.power})` : ""} for ${def.onHitStatus.duration} round(s).`,
+      `Basic hits ${gate}apply ${h.kind}${h.power ? ` (${h.power})` : ""} for ${h.duration} round(s).`,
     );
+  }
+  if (def.vsStatus) {
+    const v = def.vsStatus;
+    const parts = [
+      v.lifesteal && "LIFESTEAL",
+      v.crit && "CRIT",
+      v.bonusDmg && `+${v.bonusDmg} DMG`,
+      v.dmgMult && `×${v.dmgMult} DMG`,
+      v.healOnHit && `heal ${v.healOnHit}`,
+    ].filter(Boolean);
+    passives.push(`Vs ${v.status} targets, basics gain ${parts.join(" · ")}.`);
+  }
+  if (def.onHitByMelee) {
+    const m = def.onHitByMelee;
+    const bits = [m.dmg && `${m.dmg} DMG`, m.status && m.status.kind].filter(Boolean).join(" + ");
+    passives.push(`When hit by melee${m.chance ? ` (${m.chance}%)` : ""}: retaliate — ${bits}.`);
+  }
+  if (def.onKill) {
+    const k = def.onKill;
+    const bits = [
+      k.buffDmg && `+${k.buffDmg} DMG`,
+      k.buffDmgRound && `+${k.buffDmgRound} DMG (round)`,
+      k.buffHits && `+${k.buffHits} hit`,
+      k.buffSp && `+${k.buffSp} SP`,
+      k.coinBonusDmg && `+${k.coinBonusDmg}/${k.coinBonusDmg - 1} DMG`,
+      k.healSelf && `heal ${k.healSelf}`,
+      k.gainShields && `+${k.gainShields} shields`,
+      k.aoeDmg && `${k.aoeDmg} to all enemies`,
+    ].filter(Boolean);
+    passives.push(`On a kill: ${bits.join(" · ")}.`);
+  }
+  if (def.roundTick) {
+    const t = def.roundTick;
+    const bits = [
+      t.aoeDmg && `${t.aoeDmg} DMG to all enemies`,
+      t.aoeStatus && `${t.aoeStatus.kind} all enemies`,
+      t.scaldFrozen && `SCALD frozen enemies`,
+      t.lowestEnemyStatus && `${t.lowestEnemyStatus.kind} the lowest-HP enemy`,
+      t.paralyzeOne && `PARALYZE an enemy`,
+      (t.pokeDmg || t.pokeStatus) && `strike the closest enemy`,
+      t.healAllies && `heal all allies ${t.healAllies}`,
+      t.healLowestAlly && `heal the weakest ally ${t.healLowestAlly}`,
+      t.buffDmgEveryN && `+${t.buffDmgEveryN.amount} DMG every ${t.buffDmgEveryN.n} rounds`,
+    ].filter(Boolean);
+    passives.push(`Each round: ${bits.join(" · ")}.`);
+  }
   if (def.onSummon) passives.push("Fires an effect the moment it's summoned.");
   if (def.onDeath)
     passives.push(
-      `On death, deals ${def.onDeath.dmg}${def.onDeath.pen ? " piercing" : ""} damage back to its killer.`,
+      def.onDeath.rowAhead
+        ? `On death, blasts the enemy row ahead for ${def.onDeath.dmg}${def.onDeath.pen ? " (PEN)" : ""}.`
+        : `On death, deals ${def.onDeath.dmg}${def.onDeath.pen ? " piercing" : ""} damage back to its killer.`,
     );
   if (def.statusImmune) passives.push("Immune to negative statuses.");
   if (def.ignoresHomeRule)
