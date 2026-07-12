@@ -205,6 +205,17 @@ describe("revive & transform", () => {
   });
 });
 
+describe("Fallona's Fall's Emergence scales Leaf Storm", () => {
+  it("Leaf Storm's per-hit damage grows with the accumulated DMG bonus", () => {
+    const s = prepState();
+    const fallona = place(s, "leaf_fallona", "P1", 3, 0, { dmgBonus: 2 }); // +2 from Fall's Emergence
+    const foe = place(s, "dusk_gool", "P2", 0, 0, { curHp: 40 });
+    SPECIAL_HANDLERS.barrage(s, fallona, [foe], { dmg: 1, hits: 3, targets: 99, scaleDmg: 1 });
+    // each of 3 hits does 1 + 2 = 3 → 9 total (gool has no shields)
+    expect(s.cards[foe.instanceId].curHp).toBe(31);
+  });
+});
+
 describe("FLYING melee targeting", () => {
   it("a flier dodges grounded melee but not a flying melee attacker", () => {
     const s = prepState();

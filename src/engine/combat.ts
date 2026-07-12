@@ -687,11 +687,14 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
    *  surviving target (FREEZE/BLIND/SCALD/PARALYZE nova). */
   barrage(draft, attacker, targets, params) {
     const n = num(params, "targets", 1);
+    // scaleDmg: fold the caster's permanent DMG bonus into each hit (Fallona's
+    // Fall's Emergence boosts Leaf Storm too).
+    const dmg = num(params, "dmg") + (num(params, "scaleDmg") > 0 ? attacker.dmgBonus : 0);
     for (const target of targets.slice(0, n)) {
       if (!draft.cards[target.instanceId]) continue;
       resolveHit(draft, attacker, target, {
         kind: "special",
-        dmg: num(params, "dmg"),
+        dmg,
         hits: num(params, "hits", 1),
         pen: num(params, "pen") > 0,
         crit: num(params, "crit") > 0,

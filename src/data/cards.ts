@@ -118,16 +118,18 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // Fall's Emergence: +1 DMG at the end of every 3rd round (stacking).
+    // Fall's Emergence: +1 DMG at the end of every 3rd round (stacking). The
+    // bonus applies to her basic attack AND to Leaf Storm (scaleDmg).
     roundTick: { buffDmgEveryN: { n: 3, amount: 1 } },
     special: {
       name: "Leaf Storm",
       cost: 2,
       handler: "barrage",
-      // printed "3×1 DMG to all opponents" — 3 hits of 1 per target
-      params: { dmg: 1, hits: 3, targets: 99 },
+      // printed "3×1 DMG to all opponents" — 3 hits per target, each scaling
+      // with Fall's Emergence (base 1 + accumulated DMG bonus).
+      params: { dmg: 1, hits: 3, targets: 99, scaleDmg: 1 },
       targetSide: "enemy",
-      text: "Deal 1 DMG × 3 to every opponent in range.",
+      text: "Deal (1 + Fall's Emergence) DMG × 3 to every opponent in range.",
     },
   },
 
