@@ -1,9 +1,29 @@
 // Milestone 6: slot capture by survival + both win conditions.
 
 import { describe, expect, it } from "vitest";
-import { advance } from "../phases";
+import { advance, applyIntent } from "../phases";
 import { isContested } from "../state";
 import { atCleanup, place, prepState } from "./helpers";
+
+describe("surrender", () => {
+  it("P1 surrender ends the game as a P2 win", () => {
+    const s = prepState();
+    place(s, "leaf_alpha", "P1", 3, 0); // both sides still have cards
+    place(s, "dusk_gool", "P2", 0, 0);
+    const next = applyIntent(s, { type: "SURRENDER", player: "P1" });
+    expect(next.phase).toBe("gameover");
+    expect(next.win).toEqual({ winner: "P2", by: "surrender" });
+    expect(next.prep).toBeNull();
+  });
+
+  it("surrendering an already-over game is a no-op", () => {
+    const s = prepState();
+    s.phase = "gameover";
+    s.win = { winner: "P1", by: "capture" };
+    const next = applyIntent(s, { type: "SURRENDER", player: "P2" });
+    expect(next.win).toEqual({ winner: "P1", by: "capture" });
+  });
+});
 
 describe("slot capture", () => {
   it("an invader on a home slot contests it (blocks summons) but hasn't captured yet", () => {

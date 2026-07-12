@@ -122,6 +122,15 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       card.autoMode = intent.mode;
       return draft;
     }
+    case "SURRENDER": {
+      if (draft.phase === "gameover") return draft;
+      draft.win = { winner: enemyOf(intent.player), by: "surrender" };
+      draft.phase = "gameover";
+      draft.battle = null;
+      draft.prep = null;
+      draft.log.push(`${intent.player} surrenders — ${enemyOf(intent.player)} wins.`);
+      return draft;
+    }
     case "BATTLE_ACTION": {
       if (draft.phase !== "battle" || !draft.battle)
         throw new Error("Not the Battle Phase");

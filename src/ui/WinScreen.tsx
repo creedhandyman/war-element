@@ -11,11 +11,19 @@ export function WinScreen(props: { game: GameState; onNewGame: () => void }) {
           {youWon ? "VICTORY" : "DEFEAT"}
         </div>
         <p>
-          {win.winner === "P1" ? "You" : "The opponent"} won by{" "}
-          <b style={{ color: "var(--ink)" }}>
-            {win.by === "capture" ? "capturing all 4 Home slots" : "elimination"}
-          </b>{" "}
-          on round {props.game.round}.
+          {win.by === "surrender" ? (
+            <>
+              You surrendered the match on round {props.game.round}.
+            </>
+          ) : (
+            <>
+              {win.winner === "P1" ? "You" : "The opponent"} won by{" "}
+              <b style={{ color: "var(--ink)" }}>
+                {win.by === "capture" ? "capturing all 4 Home slots" : "elimination"}
+              </b>{" "}
+              on round {props.game.round}.
+            </>
+          )}
         </p>
         <button className="lockin" onClick={props.onNewGame}>
           New Match

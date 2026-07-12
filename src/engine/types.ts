@@ -180,7 +180,7 @@ export interface SlotState {
 
 export interface WinInfo {
   winner: PlayerId;
-  by: "capture" | "elimination";
+  by: "capture" | "elimination" | "surrender";
 }
 
 export interface GameState {
@@ -206,6 +206,7 @@ export type Intent =
   | { type: "MOVE"; player: PlayerId; instanceId: string; to: Pos }
   | { type: "PASS"; player: PlayerId }
   | { type: "SET_AUTO"; player: PlayerId; instanceId: string; mode: AutoMode }
+  | { type: "SURRENDER"; player: PlayerId }
   | {
       type: "BATTLE_ACTION";
       player: PlayerId;

@@ -37,6 +37,7 @@ export function App() {
     "Mulligan: click cards to send back, then confirm.",
   );
   const [mullToss, setMullToss] = useState<string[]>([]);
+  const [surrenderArmed, setSurrenderArmed] = useState(false);
   // Pre-game deck selection — the match doesn't run until Start.
   const [started, setStarted] = useState(false);
   const [p1Deck, setP1Deck] = useState("gale_bolt");
@@ -59,6 +60,7 @@ export function App() {
     setSel(null);
     setPending(null);
     setPicks([]);
+    setSurrenderArmed(false);
     if (game.phase === "prep" && game.prep?.priority === "P1")
       setHint(
         "<b>Your prep turn.</b> Click a glowing hand card to summon (any number), move one board card, then Pass.",
@@ -400,10 +402,28 @@ export function App() {
                 setSel(null);
                 setPending(null);
                 setPicks([]);
+                setSurrenderArmed(false);
               }}
             >
               Clear
             </button>
+            {game.win === null && (
+              <button
+                className={`ghost ${surrenderArmed ? "warn" : ""}`}
+                title="Concede the match"
+                onClick={() => {
+                  if (surrenderArmed) {
+                    dispatch({ type: "SURRENDER", player: "P1" });
+                    setSurrenderArmed(false);
+                  } else {
+                    setSurrenderArmed(true);
+                    setHint("⚠ Surrender? Click again to confirm, or Clear to cancel.");
+                  }
+                }}
+              >
+                {surrenderArmed ? "Confirm surrender?" : "Surrender"}
+              </button>
+            )}
             <button
               className="lockin"
               disabled={!myPrep}
