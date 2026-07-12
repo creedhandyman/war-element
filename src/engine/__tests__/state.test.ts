@@ -4,18 +4,17 @@ import { describe, expect, it } from "vitest";
 import { createInitialState } from "../state";
 import { applyIntent, advance, advanceUntilInput } from "../phases";
 import { CARDS, DECK_P1, DECK_P2 } from "../../data/cards";
-import { HAND_CAP } from "../types";
 import { freshGame, giveHand } from "./helpers";
 
 describe("setup", () => {
-  it("deals 5-card opening hands from 19-card decks", () => {
+  it("deals 4-card opening hands from 19-card decks", () => {
     const s = createInitialState(1);
     expect(DECK_P1).toHaveLength(19);
     expect(DECK_P2).toHaveLength(19);
-    expect(s.players.P1.hand).toHaveLength(5);
-    expect(s.players.P2.hand).toHaveLength(5);
-    expect(s.players.P1.deck).toHaveLength(14);
-    expect(s.players.P2.deck).toHaveLength(14);
+    expect(s.players.P1.hand).toHaveLength(4);
+    expect(s.players.P2.hand).toHaveLength(4);
+    expect(s.players.P1.deck).toHaveLength(15);
+    expect(s.players.P2.deck).toHaveLength(15);
     expect(s.phase).toBe("mulligan");
   });
 
@@ -63,12 +62,12 @@ describe("setup", () => {
 });
 
 describe("mulligan", () => {
-  it("returns a subset, reshuffles, redraws to 5", () => {
+  it("returns a subset, reshuffles, redraws to 4", () => {
     const s = freshGame(3);
     const toss = s.players.P1.hand.slice(0, 2).map((h) => h.handId);
     const next = applyIntent(s, { type: "MULLIGAN", player: "P1", returnHandIds: toss });
-    expect(next.players.P1.hand).toHaveLength(5);
-    expect(next.players.P1.deck).toHaveLength(14);
+    expect(next.players.P1.hand).toHaveLength(4);
+    expect(next.players.P1.deck).toHaveLength(15);
     expect(next.players.P1.mulliganDone).toBe(true);
     for (const id of toss)
       expect(next.players.P1.hand.some((h) => h.handId === id)).toBe(false);
@@ -86,9 +85,9 @@ describe("mulligan", () => {
     s = advanceUntilInput(s); // AI mulligans, draw + resource resolve
     expect(s.round).toBe(1);
     expect(s.phase).toBe("prep");
-    // round 1: drew 1 (hand 6), summon pool 1, magic starts at 3. (P2 may
-    // already have spent its summon pool if it won the coin flip.)
-    expect(s.players.P1.hand).toHaveLength(6);
+    // round 1: opening 4 + drew 1 = hand 5, summon pool 1, magic starts at 3.
+    // (P2 may already have spent its summon pool if it won the coin flip.)
+    expect(s.players.P1.hand).toHaveLength(5);
     expect(s.players.P1.summonPool).toBe(1);
     expect(s.players.P1.magicPool).toBe(3);
     expect(s.players.P2.summonPool).toBeLessThanOrEqual(1);
@@ -96,27 +95,33 @@ describe("mulligan", () => {
 });
 
 describe("draw math", () => {
-  it("draws 2 on every 5th round", () => {
-    const s = freshGame(9);
-    s.phase = "draw";
-    s.round = 5;
-    s.players.P1.hand = s.players.P1.hand.slice(0, 2); // room to draw
-    const before = s.players.P1.hand.length;
-    const next = advance(s);
-    expect(next.players.P1.hand.length).toBe(before + 2);
+  it("draws 1 per normal round, 3 on rounds 10 and 15", () => {
+    for (const [round, expected] of [
+      [4, 1],
+      [5, 1], // no longer a bonus round
+      [10, 3],
+      [15, 3],
+      [20, 1],
+    ] as const) {
+      const s = freshGame(9);
+      s.phase = "draw";
+      s.round = round;
+      const before = s.players.P1.hand.length;
+      const next = advance(s);
+      expect(next.players.P1.hand.length - before, `round ${round}`).toBe(expected);
+    }
   });
 
-  it("skips the excess draw at the 7-card cap (card stays in deck)", () => {
+  it("has no hand cap — draws keep filling the hand", () => {
     const s = freshGame(9);
     s.phase = "draw";
-    s.round = 1;
-    // pad hand to the cap
-    while (s.players.P1.hand.length < HAND_CAP)
+    s.round = 10; // draws 3
+    // pad hand well past the old cap of 7
+    while (s.players.P1.hand.length < 9)
       s.players.P1.hand.push({ handId: `h${s.nextId++}`, defId: "leaf_alpha" });
-    const deckBefore = s.players.P1.deck.length;
+    const before = s.players.P1.hand.length;
     const next = advance(s);
-    expect(next.players.P1.hand.length).toBe(HAND_CAP);
-    expect(next.players.P1.deck.length).toBe(deckBefore);
+    expect(next.players.P1.hand.length).toBe(before + 3);
   });
 
   it("empty deck draws nothing, no penalty", () => {

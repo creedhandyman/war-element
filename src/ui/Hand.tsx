@@ -1,5 +1,5 @@
 import type { GameState } from "../engine";
-import { getDef, HAND_CAP } from "../engine";
+import { getDef } from "../engine";
 import { EL_COLOR } from "./shared";
 
 export function Hand(props: {
@@ -13,7 +13,7 @@ export function Hand(props: {
   return (
     <div className="hand">
       <div className="hand-head">
-        <span>Your Hand · {p1.hand.length}/{HAND_CAP}</span>
+        <span>Your Hand · {p1.hand.length}</span>
         <span style={{ color: "var(--ink-faint)" }}>Deck {p1.deck.length}</span>
         <span style={{ color: "var(--ink-faint)" }}>
           Opp hand {game.players.P2.hand.length} · deck hidden

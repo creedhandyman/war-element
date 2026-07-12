@@ -151,8 +151,8 @@ function startRound(draft: GameState): void {
 }
 
 function doDrawPhase(draft: GameState): void {
-  // Draw 1 each, +1 on every 5th round. At the 7-card cap the draw is skipped.
-  const n = draft.round % 5 === 0 ? 2 : 1;
+  // Draw 1 each round, with a +2 bonus refuel (draw 3) on rounds 10 and 15.
+  const n = draft.round === 10 || draft.round === 15 ? 3 : 1;
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const drawn = drawCards(draft, player, n);
     if (drawn > 0) draft.log.push(`${player} draws ${drawn}.`);

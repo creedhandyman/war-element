@@ -11,7 +11,7 @@ import type {
   Pos,
   StatusKind,
 } from "./types";
-import { BOARD_SIZE, HAND_CAP, OPENING_HAND, enemyOf, homeRow } from "./types";
+import { BOARD_SIZE, OPENING_HAND, enemyOf, homeRow } from "./types";
 
 export function createInitialState(
   seed: number,
@@ -52,11 +52,11 @@ function emptyPlayer(deck: string[]): PlayerState {
   return { deck, hand: [], summonPool: 0, magicPool: 3, mulliganDone: false };
 }
 
-/** Draw up to n cards; at the hand cap the excess stays in the deck. */
+/** Draw up to n cards; an empty deck simply stops drawing (no penalty). */
 export function drawCards(draft: GameState, player: PlayerId, n: number): number {
   const p = draft.players[player];
   let drawn = 0;
-  while (drawn < n && p.deck.length > 0 && p.hand.length < HAND_CAP) {
+  while (drawn < n && p.deck.length > 0) {
     const defId = p.deck.shift()!;
     p.hand.push({ handId: `h${draft.nextId++}`, defId });
     drawn++;

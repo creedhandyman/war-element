@@ -53,9 +53,10 @@ replays exactly from its seed.
 
 ## Alpha scope notes (deliberate)
 
-- Per the alpha brief, this build uses a **draw/hand model** (5-card
-  opening hand, draw 1/round, +1 every 5th, 7-card cap) with fixed
-  17-card decks — the full rules' visible-deck model returns post-alpha.
+- Per the alpha brief, this build uses a **draw/hand model**: shuffle,
+  draw a **4-card** opening hand, draw **1/round** with a **+2 bonus
+  (draw 3) on rounds 10 and 15**, **no hand cap**, play only from hand.
+  Fixed 19-card decks; empty deck just stops drawing (no penalty).
 - **King of the Hill is IN**: +1 DMG while in a Mid row, +1 board-wide
   per fully-controlled Mid row (tokens show live effective damage).
 - Statuses follow the updated rules doc: BURN melts 1 shield per tick;

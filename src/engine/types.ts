@@ -214,8 +214,8 @@ export type Intent =
       targetIds?: string[];
     };
 
-export const HAND_CAP = 7;
-export const OPENING_HAND = 5;
+// No max hand size currently (per the rules brief — flag if hands balloon).
+export const OPENING_HAND = 4;
 export const POOL_CARRYOVER_CAP = 10;
 export const BOARD_SIZE = 4;
 

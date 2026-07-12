@@ -419,7 +419,7 @@ export function App() {
           <div className="modal">
             <h1>Opening Hand</h1>
             <p>
-              Click any cards to send back — you'll reshuffle and redraw to 5. Keeping a
+              Click any cards to send back — you'll reshuffle and redraw to 4. Keeping a
               cheap curve (1–4) makes the early rounds playable.
             </p>
             <div className="mull-cards">
