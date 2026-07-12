@@ -111,6 +111,8 @@ export function CardDetail(props: {
   if (def.firstStrikeBonus)
     passives.push(`+${def.firstStrikeBonus} DMG on the first strike against each opponent.`);
   if (def.ignoresSleepWake) passives.push("Its attacks don't wake SLEEPING targets.");
+  if (def.healsFromBleed)
+    passives.push("Each round, heals HP equal to the total BLEED damage its enemies take.");
   if (def.basicBonus) {
     const b = def.basicBonus;
     const bits = [

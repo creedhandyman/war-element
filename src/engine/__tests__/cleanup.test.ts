@@ -39,6 +39,37 @@ describe("cleanup phase", () => {
     expect(after.statuses).toHaveLength(2); // both ticked down to 1 round left
   });
 
+  it("Thorn's Transfusion heals for the total BLEED its enemies take", () => {
+    const s = prepState();
+    const thorn = place(s, "leaf_thorn", "P1", 3, 0, { curHp: 10, maxHp: 18 });
+    place(s, "bore_armadillo", "P2", 0, 0, {
+      curHp: 15,
+      maxHp: 15,
+      status: { kind: "BLEED", duration: 2, power: 2, source: "LEAF" },
+    });
+    place(s, "bore_armadillo", "P2", 0, 1, {
+      curHp: 15,
+      maxHp: 15,
+      status: { kind: "BLEED", duration: 2, power: 3, source: "LEAF" },
+    });
+    const next = advance(atCleanup(s));
+    // 2 + 3 = 5 BLEED dealt to P2 → Thorn drains 5 (10 → 15), then LEAF
+    // Photosynthesis adds its usual +1 (→ 16).
+    expect(next.cards[thorn.instanceId].curHp).toBe(16);
+  });
+
+  it("Thorn's Transfusion heal is capped at maxHp", () => {
+    const s = prepState();
+    const thorn = place(s, "leaf_thorn", "P1", 3, 0, { curHp: 17, maxHp: 18 });
+    place(s, "bore_armadillo", "P2", 0, 0, {
+      curHp: 15,
+      maxHp: 15,
+      status: { kind: "BLEED", duration: 2, power: 6, source: "LEAF" },
+    });
+    const next = advance(atCleanup(s));
+    expect(next.cards[thorn.instanceId].curHp).toBe(18); // 17 + min(1, 6)
+  });
+
   it("BURN is the exception: its tick also melts 1 shield", () => {
     const s = prepState();
     const t = place(s, "bore_armadillo", "P2", 0, 0, {

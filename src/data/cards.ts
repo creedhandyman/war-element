@@ -201,9 +201,11 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 3,
     keywords: {},
-    // Transfusion (On Hit by Melee): apply BLEED 2 to the attacker. (Doc also
-    // heals Thorn from BLEED dealt each round — the heal half isn't modeled yet.)
+    // Transfusion (On Hit by Melee): apply BLEED 2 to the attacker (stacks), and
+    // heal Thorn each round for the total BLEED damage dealt to its enemies at
+    // Cleanup (own + teammate BLEED — the team's BLEED cluster fuels Thorn).
     onHitByMelee: { status: { kind: "BLEED", duration: 2, power: 2 } },
+    healsFromBleed: true,
     special: {
       name: "Blood on the Petals",
       cost: 3,

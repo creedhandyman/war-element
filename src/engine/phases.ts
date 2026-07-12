@@ -552,10 +552,14 @@ function doCleanupPhase(draft: GameState): void {
   // 1. DOT — bypasses shields, straight to HP, no shield stripped…
   //    with one exception: BURN also strips 1 shield per tick (PYRO's shred).
   //    Different DOT kinds coexist and each ticks (BLEED + BURN both hurt).
+  //    BLEED damage is tallied per dealer side so Thorn's Transfusion can heal
+  //    from the total BLEED its enemies took (its own BLEED + any teammate's).
+  const bleedDealtBy: Record<PlayerId, number> = { P1: 0, P2: 0 };
   for (const card of boardCards(draft)) {
     for (const s of card.statuses) {
       if (s.kind === "BLEED" || s.kind === "BURN" || s.kind === "SCALD" || s.kind === "DOT") {
         card.curHp -= s.power;
+        if (s.kind === "BLEED") bleedDealtBy[enemyOf(card.owner)] += s.power;
         draft.log.push(`${label(draft, card)} takes ${s.power} ${s.kind} damage.`);
         if (s.kind === "BURN" && card.curShields > 0) {
           card.curShields--;
@@ -567,6 +571,16 @@ function doCleanupPhase(draft: GameState): void {
           checkLowHpTransform(draft, card); // Skelider Dismount can trigger on DOT
         }
       }
+    }
+  }
+
+  // 1b. Transfusion (Thorn): heal for the BLEED its side dealt this round.
+  for (const card of boardCards(draft)) {
+    const drained = bleedDealtBy[card.owner];
+    if (drained > 0 && getDef(card.defId).healsFromBleed && card.curHp < card.maxHp) {
+      const healed = Math.min(card.maxHp - card.curHp, drained);
+      card.curHp += healed;
+      draft.log.push(`${label(draft, card)} drains ${healed} HP from BLEED.`);
     }
   }
 
