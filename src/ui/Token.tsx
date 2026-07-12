@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { CardInstance, GameState } from "../engine";
 import { effectiveDmg, effectiveSp, getDef, legalMoves } from "../engine";
 import { EL_COLOR } from "./shared";
@@ -25,17 +26,15 @@ export function Token(props: {
   ]
     .filter(Boolean)
     .join(" ");
-  // Card art: drop a PNG named <defId>.png into public/cards/ and it shows
-  // here automatically; a missing file silently falls back to the flat token.
-  const artStyle = {
-    backgroundImage: `linear-gradient(180deg, rgba(8,10,18,0.18) 30%, rgba(8,10,18,0.78) 78%), url(/cards/${def.id}.png)`,
-    backgroundSize: "cover",
-    backgroundPosition: "center top",
-  };
+  // Card art renders on a dedicated ::before layer (via the --art variable) so
+  // the image gets its own contrast/saturation boost and only a bottom scrim
+  // (::after) — the top art stays clear while the stat row stays readable.
+  // Drop a PNG named <defId>.png into public/cards/; a missing file falls back
+  // to the flat token.
   return (
     <div
       className={cls}
-      style={artStyle}
+      style={{ ["--art"]: `url(/cards/${def.id}.png)` } as CSSProperties}
       title={def.special ? `${def.special.name}: ${def.special.text}` : def.name}
     >
       {card.statuses.map((s, i) => (

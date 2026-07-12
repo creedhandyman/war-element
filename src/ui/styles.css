@@ -81,6 +81,22 @@ button { font-family: inherit; }
 .token.enemy { background: linear-gradient(160deg, #3a2333, #241722); }
 .token.selected { outline: 2px solid var(--your-home-glow); outline-offset: 1px; }
 .token.acting { outline: 2px solid var(--accent); outline-offset: 1px; animation: qnext 1.3s infinite; }
+/* Art layer: the image gets its own contrast/saturation boost so it reads
+   crisp against the dark theme. A missing file loads nothing → the .mine/.enemy
+   base shows through. */
+.token::before {
+  content: ""; position: absolute; inset: 0; z-index: 0;
+  background-image: var(--art); background-size: cover; background-position: center top;
+  filter: contrast(1.08) saturate(1.16) brightness(1.05);
+}
+/* Scrim: transparent over the top art, darkening only the lower ~third where
+   the class line + stat row sit, so those stay legible. */
+.token::after {
+  content: ""; position: absolute; inset: 0; z-index: 0;
+  background: linear-gradient(180deg, rgba(6,8,14,0) 40%, rgba(6,8,14,0.42) 66%, rgba(6,8,14,0.9) 100%);
+}
+.token > .tk-top, .token > .tk-name, .token > .tk-class, .token > .tk-bottom { position: relative; z-index: 1; }
+.token .status-pip, .token .sp-badge { z-index: 2; }
 .tk-top { display: flex; justify-content: space-between; align-items: flex-start; }
 .tk-cost { width: 18px; height: 18px; border-radius: 50%; background: rgba(0, 0, 0, 0.4); display: grid; place-items: center; font-size: 10px; font-weight: 700; }
 .el-dot { width: 8px; height: 8px; border-radius: 2px; flex: none; }
@@ -144,6 +160,24 @@ button { font-family: inherit; }
 .hc-name { font-size: 10px; font-weight: 700; line-height: 1.1; min-height: 22px; }
 .hc-stats { font-size: 9px; color: var(--ink-dim); font-weight: 700; display: flex; gap: 5px; }
 .hc-class { font-size: 8px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* Layered card art for hand + mulligan cards (same approach as board tokens):
+   boosted image on ::before, bottom-weighted scrim on ::after, content above. */
+.carded { position: relative; overflow: hidden; }
+.carded::before {
+  content: ""; position: absolute; inset: 0; z-index: 0;
+  background-image: var(--art); background-size: cover; background-position: center top;
+  filter: contrast(1.08) saturate(1.16) brightness(1.05);
+}
+.carded::after {
+  content: ""; position: absolute; inset: 0; z-index: 0;
+  background: linear-gradient(180deg, rgba(8,10,16,0.05) 30%, rgba(8,10,16,0.55) 60%, rgba(8,10,16,0.92) 100%);
+}
+.carded > * { position: relative; z-index: 1; }
+/* keep the affordable-glow readable over art */
+.hcard.carded.summonable { background: var(--void-2); }
+.hc-name, .hc-stats span, .mull-card .hc-name { text-shadow: 0 1px 3px #000; }
+.carded .hc-stats { color: #cdd6e8; }
 
 /* controls */
 .controls { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex: none; }

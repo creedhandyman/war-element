@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import type { GameState, Intent, Pos } from "../engine";
 import {
   advance,
@@ -411,12 +412,8 @@ export function App() {
                 return (
                   <div
                     key={h.handId}
-                    className={`mull-card ${toss ? "toss" : ""}`}
-                    style={{
-                      backgroundImage: `linear-gradient(180deg, rgba(10,12,20,0.55), rgba(10,12,20,0.9) 70%), url(/cards/${def.id}.png)`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center top",
-                    }}
+                    className={`mull-card carded ${toss ? "toss" : ""}`}
+                    style={{ ["--art"]: `url(/cards/${def.id}.png)` } as CSSProperties}
                     onClick={() =>
                       setMullToss((cur) =>
                         toss ? cur.filter((x) => x !== h.handId) : [...cur, h.handId],

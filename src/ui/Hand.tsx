@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { GameState } from "../engine";
 import { getDef, HAND_CAP } from "../engine";
 import { EL_COLOR } from "./shared";
@@ -34,12 +35,8 @@ export function Hand(props: {
           return (
             <div
               key={h.handId}
-              className={cls}
-              style={{
-                backgroundImage: `linear-gradient(180deg, rgba(10,12,20,0.55), rgba(10,12,20,0.9) 70%), url(/cards/${def.id}.png)`,
-                backgroundSize: "cover",
-                backgroundPosition: "center top",
-              }}
+              className={`${cls} carded`}
+              style={{ ["--art"]: `url(/cards/${def.id}.png)` } as CSSProperties}
               title={def.special ? `${def.special.name}: ${def.special.text}` : ""}
               onClick={() => props.onPick(h.handId)}
             >
