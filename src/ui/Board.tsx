@@ -28,14 +28,20 @@ export function Board(props: {
               .filter((w) => w.row === row)
               .map((w) => {
                 const spell = getSpell(w.spellId);
+                const color = EL_COLOR[spell.element];
+                const tip = `${spell.name} (${w.owner === "P1" ? "yours" : "enemy"}) — ${spell.text} · ${w.roundsLeft} round(s) left`;
                 return (
-                  <div
-                    key={w.owner + w.spellId}
-                    className={`wallmark ${w.owner === "P1" ? "mine" : "enemy"}`}
-                    style={{ borderColor: EL_COLOR[spell.element], color: EL_COLOR[spell.element] }}
-                    title={`${spell.name} (${w.owner === "P1" ? "yours" : "enemy"}) — ${spell.text} · ${w.roundsLeft} round(s) left`}
-                  >
-                    {spell.name} · {w.roundsLeft}
+                  <div key={w.owner + w.spellId} className="wallframe" style={{ color }}>
+                    {/* Brackets framing the walled row for its duration. */}
+                    <span className="wallbracket left" title={tip} />
+                    <span className="wallbracket right" title={tip} />
+                    <span
+                      className={`wallmark ${w.owner === "P1" ? "mine" : "enemy"}`}
+                      style={{ borderColor: color }}
+                      title={tip}
+                    >
+                      {spell.name} · {w.roundsLeft}
+                    </span>
                   </div>
                 );
               })}

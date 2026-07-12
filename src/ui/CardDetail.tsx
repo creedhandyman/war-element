@@ -3,6 +3,50 @@ import { effectiveBasicHits, effectiveDmg, effectiveSp, ELEMENT_AURA, getDef } f
 import { EL_COLOR } from "./shared";
 import { SpIcon } from "./icons";
 
+/** Spell out an on-summon passive from its handler + params, instead of the old
+ *  catch-all "fires an effect". Mirrors how the effect actually resolves. */
+function describeOnSummon(os: {
+  handler: string;
+  params?: Record<string, number | string>;
+  targetSide?: string;
+}): string {
+  const p = os.params ?? {};
+  const n = (k: string) => Number(p[k] ?? 0);
+  const scope = () => {
+    if (os.targetSide === "ally") return "nearby allies";
+    if (p.spread != null) return "enemies in the area ahead";
+    const t = Number(p.targets ?? 1);
+    if (t >= 99) return "all enemies in range";
+    if (t === 1) return "one enemy";
+    return `${t} enemies`;
+  };
+  const status = () =>
+    p.statusKind
+      ? ` and applies ${p.statusKind}${p.statusDuration ? ` for ${n("statusDuration")} round(s)` : ""}`
+      : "";
+  switch (os.handler) {
+    case "barrage":
+    case "strike": {
+      const dmg = n("dmg");
+      const hits = n("hits");
+      const dmgStr = hits > 1 ? `${hits}×${dmg}` : `${dmg}`;
+      const push = n("push") ? ` and push them back ${n("push")}` : "";
+      const crit = n("crit") ? " (can crit)" : "";
+      return `On summon: deal ${dmgStr} DMG to ${scope()}${status()}${push}${crit}.`;
+    }
+    case "statusNova":
+      return `On summon: apply ${p.statusKind}${p.statusDuration ? ` for ${n("statusDuration")} round(s)` : ""} to ${scope()}.`;
+    case "grantShield":
+      return `On summon: give ${scope()} +${n("amount")} shield.`;
+    case "buffSp":
+      return `On summon: give ${scope()} +${n("amount")} SP.`;
+    case "heal":
+      return `On summon: heal ${scope()} ${n("amount")} HP.`;
+    default:
+      return "Fires an effect the moment it's summoned.";
+  }
+}
+
 // Plain-language blurb for each status kind, shown under a card's active effects.
 const STATUS_TEXT: Record<StatusKind, string> = {
   ROOT: "Rooted — can't move.",
@@ -122,7 +166,7 @@ export function CardDetail(props: {
     ].filter(Boolean);
     passives.push(`Basic attacks deal bonus damage (once): ${bits.join(" · ")}.`);
   }
-  if (def.onSummon) passives.push("Fires an effect the moment it's summoned.");
+  if (def.onSummon) passives.push(describeOnSummon(def.onSummon));
   if (def.onDeath)
     passives.push(
       def.onDeath.rowAhead

@@ -396,6 +396,7 @@ export function App() {
       <div className="bottom">
         <ResourcePool game={game} player={view} />
 
+        <div className="handcol">
         {activeCard && activeDef ? (
           <div className="bprompt">
             <div className="bp-title">
@@ -499,6 +500,7 @@ export function App() {
             onPick={onPickSpell}
           />
         )}
+        </div>
 
         <div className="controls">
           <div className="hint" dangerouslySetInnerHTML={{ __html: hint }} />
