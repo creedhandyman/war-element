@@ -524,6 +524,45 @@ function rowAhead(owner: CardInstance["owner"], row: number): number {
 
 /** Direct, trigger-free damage to a single card (used by on-kill / on-death /
  *  round-tick AoEs). Returns true if it killed the target. */
+/**
+ * Sourceless damage from a Spell (no attacker card). Honours BLOCK and the
+ * shield gate, wakes a struck sleeper, and resolves death via defeatCard.
+ * Skips EVASION and on-death "retaliate on the killer" chains — a Spell has no
+ * card to reflect back onto. Returns true if the target died.
+ */
+export function spellHit(
+  draft: GameState,
+  target: CardInstance,
+  dmg: number,
+  pen: boolean,
+): boolean {
+  const t = draft.cards[target.instanceId];
+  if (!t || t.curHp <= 0) return false;
+  const tDef = getDef(t.defId);
+  let remaining = dmg;
+  const block = Number(tDef.keywords.BLOCK ?? 0);
+  if (block > 0) remaining = Math.max(0, remaining - block); // BLOCK applies even to PEN
+  let toHp: number;
+  if (pen) {
+    toHp = remaining;
+  } else {
+    toHp = Math.max(0, remaining - t.curShields);
+    if (t.curShields > 0) t.curShields--;
+  }
+  t.curHp -= toHp;
+  draft.log.push(`${label(draft, t)} takes ${toHp} spell damage.`);
+  if (hasStatus(t, "SLEEP") && t.curHp > 0) {
+    t.statuses = t.statuses.filter((s) => s.kind !== "SLEEP");
+    draft.log.push(`${label(draft, t)} is jolted awake!`);
+  }
+  if (t.curHp <= 0) {
+    defeatCard(draft, t, "a spell");
+    return true;
+  }
+  checkLowHpTransform(draft, t);
+  return false;
+}
+
 export function directDamage(
   draft: GameState,
   source: CardInstance,

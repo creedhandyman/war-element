@@ -3,6 +3,7 @@
 
 import { getDef, deckById } from "../data/cards";
 import { coin, shuffle } from "./rng";
+import { spellbookFor } from "./spells";
 import type {
   CardInstance,
   GameState,
@@ -35,6 +36,7 @@ export function createInitialState(
     ),
     prep: null,
     battle: null,
+    walls: [],
     pendingFlow: null,
     win: null,
     log: [],
@@ -52,7 +54,14 @@ export function createInitialState(
 }
 
 function emptyPlayer(deck: string[]): PlayerState {
-  return { deck, hand: [], summonPool: 0, magicPool: 3, mulliganDone: false };
+  return {
+    deck,
+    hand: [],
+    spellbook: spellbookFor(deck),
+    summonPool: 0,
+    magicPool: 3,
+    mulliganDone: false,
+  };
 }
 
 /** Draw up to n cards; an empty deck simply stops drawing (no penalty). */

@@ -285,9 +285,64 @@ export interface HandCard {
   defId: string;
 }
 
+// ── Spells ───────────────────────────────────────────────────────────────────
+// A Spell is not a Champion: no stats, no board slot, can't be attacked. It's a
+// one-time Prep-Phase effect paid from the magic pool, once per game. (Canon
+// rules put Spells in the same deck as Champions; for now each player carries a
+// separate spellbook derived from their deck's elements — see spells.ts.)
+
+export type SpellKind = "damage" | "heal" | "wall";
+
+/** A row-level "wall" laid down by a Cost-4 spell. Occupies no slot; triggers
+ *  only when an ENEMY card MOVES into its row (ranged attacks pass through). */
+export interface WallState {
+  owner: PlayerId;
+  spellId: string;
+  row: number;
+  dmg: number;
+  status?: { kind: StatusKind; duration: number; power: number };
+  push?: number;
+  roundsLeft: number;
+}
+
+export interface SpellDef {
+  id: string;
+  name: string;
+  element: Element;
+  cost: number;
+  kind: SpellKind;
+  text: string;
+  // ── damage spells (need an enemy target) ──
+  dmg?: number;
+  pen?: boolean;
+  status?: { kind: StatusKind; duration: number; power: number }; // onto the enemy target
+  push?: number; // push the enemy target back N (if open)
+  // ── ally rider / heal (auto-picked ally of the spell's element) ──
+  allyShield?: number;
+  allyHeal?: number;
+  allyHealIfRooted?: number; // heal this instead when any opponent is ROOTed
+  drainMaxHp?: number; // steal N max HP from the enemy target → an ally
+  // ── wall spells (need a target row) ──
+  wall?: {
+    dmg: number;
+    status?: { kind: StatusKind; duration: number; power: number };
+    push?: number;
+    ownHomeOnly?: boolean;
+    rounds: number;
+  };
+}
+
+/** One entry in a player's spellbook — castable once per game. */
+export interface SpellSlot {
+  defId: string;
+  used: boolean;
+}
+
 export interface PlayerState {
   deck: string[]; // defIds, top of deck = index 0
   hand: HandCard[];
+  /** Spells available to this player this game (each castable once). */
+  spellbook: SpellSlot[];
   /** Summon pool: gains = round # each round (cap 10 carryover). Pays for
    *  summoning Champions only. */
   summonPool: number;
@@ -345,6 +400,8 @@ export interface GameState {
   slots: SlotState[][];
   prep: PrepState | null;
   battle: BattleState | null;
+  /** Active row-level Walls (Cost-4 spells). Empty until a wall is cast. */
+  walls: WallState[];
   /** A human just summoned an AQUA card and must pick its Flow Change buff
    *  (instanceId). AI summons resolve immediately, so this only gates humans. */
   pendingFlow: string | null;
@@ -357,6 +414,7 @@ export type Intent =
   | { type: "MULLIGAN"; player: PlayerId; returnHandIds: string[] }
   | { type: "SUMMON"; player: PlayerId; handId: string; col: number }
   | { type: "MOVE"; player: PlayerId; instanceId: string; to: Pos }
+  | { type: "CAST_SPELL"; player: PlayerId; spellId: string; targetId?: string; row?: number }
   | { type: "PASS"; player: PlayerId }
   | { type: "SET_AUTO"; player: PlayerId; instanceId: string; mode: AutoMode }
   | { type: "SURRENDER"; player: PlayerId }

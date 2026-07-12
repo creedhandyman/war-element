@@ -18,8 +18,10 @@ import type {
   GameState,
   PlayerId,
   Pos,
+  SpellDef,
 } from "./types";
 import { BOARD_SIZE, enemyOf, homeRow } from "./types";
+import { getSpell } from "./spells";
 
 // ── prep phase ──────────────────────────────────────────────────────────────
 
@@ -263,4 +265,104 @@ export function plannedAction(state: GameState, instanceId: string): PlannedActi
   if (card.owner === "P2") return "AUTO"; // the AI drives its own cards
   if (card.autoMode === "manual") return "YOU";
   return "AUTO";
+}
+
+// ── spells ────────────────────────────────────────────────────────────────────
+
+/** The Home Slot rule for Spells: a caster reaches their own Home + both Mid
+ *  rows freely, but to touch the ENEMY Home row they must already hold a card
+ *  in a Mid row (1/2) or in that enemy Home row. */
+function spellReachesEnemyHome(state: GameState, player: PlayerId): boolean {
+  const enemyHome = homeRow(enemyOf(player));
+  return boardCards(state, player).some(
+    (c) => c.pos != null && (c.pos.row === 1 || c.pos.row === 2 || c.pos.row === enemyHome),
+  );
+}
+
+/** Can `player` hit this enemy card with a damage Spell right now? */
+export function canSpellHitEnemy(
+  state: GameState,
+  player: PlayerId,
+  target: CardInstance,
+): boolean {
+  if (!target.pos || target.owner === player) return false;
+  const tDef = getDef(target.defId);
+  if (tDef.keywords.STEALTH && !target.attackedThisRound) return false;
+  const enemyHome = homeRow(enemyOf(player));
+  if (target.pos.row === enemyHome && !spellReachesEnemyHome(state, player)) return false;
+  return true;
+}
+
+/** Enemy cards a given damage Spell may target this Prep. */
+export function spellEnemyTargets(state: GameState, player: PlayerId): CardInstance[] {
+  return boardCards(state, enemyOf(player)).filter((t) => canSpellHitEnemy(state, player, t));
+}
+
+/** Can a wall Spell be laid on `row`? Own Home + both Mid rows freely; the enemy
+ *  Home row only with the qualifying-card rule; ownHomeOnly walls (Stone Wall)
+ *  restrict to the caster's Home. No two walls from the same owner on one row. */
+export function canPlaceWallRow(
+  state: GameState,
+  player: PlayerId,
+  spell: SpellDef,
+  row: number,
+): boolean {
+  if (!spell.wall) return false;
+  if (row < 0 || row >= BOARD_SIZE) return false;
+  if (state.walls.some((w) => w.owner === player && w.row === row)) return false;
+  const ownHome = homeRow(player);
+  const enemyHome = homeRow(enemyOf(player));
+  if (spell.wall.ownHomeOnly) return row === ownHome;
+  if (row === enemyHome) return spellReachesEnemyHome(state, player);
+  return true; // own Home or a Mid row
+}
+
+/** Rows a wall Spell may be placed on this Prep. */
+export function legalWallRows(state: GameState, player: PlayerId, spell: SpellDef): number[] {
+  const out: number[] = [];
+  for (let r = 0; r < BOARD_SIZE; r++)
+    if (canPlaceWallRow(state, player, spell, r)) out.push(r);
+  return out;
+}
+
+/** Master legality check for a CAST_SPELL intent (UI pre-checks, reducer enforces). */
+export function canCastSpell(
+  state: GameState,
+  player: PlayerId,
+  spellId: string,
+  opts: { targetId?: string; row?: number } = {},
+): { ok: boolean; reason?: string } {
+  if (state.phase !== "prep") return { ok: false, reason: "Not the Prep Phase" };
+  if (state.prep?.priority !== player) return { ok: false, reason: "You don't have priority" };
+  const p = state.players[player];
+  const slot = p.spellbook.find((s) => s.defId === spellId);
+  if (!slot) return { ok: false, reason: "Not in your spellbook" };
+  if (slot.used) return { ok: false, reason: "Already cast this game" };
+  let spell: SpellDef;
+  try {
+    spell = getSpell(spellId);
+  } catch {
+    return { ok: false, reason: "Unknown spell" };
+  }
+  if (p.magicPool < spell.cost) return { ok: false, reason: "Not enough magic" };
+
+  if (spell.kind === "wall") {
+    if (opts.row == null) return { ok: false, reason: "Pick a row" };
+    if (!canPlaceWallRow(state, player, spell, opts.row))
+      return { ok: false, reason: "Can't place a wall there" };
+    return { ok: true };
+  }
+  if (spell.kind === "damage") {
+    if (!opts.targetId) return { ok: false, reason: "Pick a target" };
+    const target = state.cards[opts.targetId];
+    if (!target || !canSpellHitEnemy(state, player, target))
+      return { ok: false, reason: "Illegal target" };
+    return { ok: true };
+  }
+  // heal / support: auto-targets an ally of the spell's element, no pick needed.
+  const hasAlly = boardCards(state, player).some(
+    (c) => c.curHp > 0 && getDef(c.defId).element === spell.element,
+  );
+  if (!hasAlly) return { ok: false, reason: `No ${spell.element} ally to heal` };
+  return { ok: true };
 }

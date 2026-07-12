@@ -3,7 +3,8 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, type FlowMode, GALE_SP_CAP } from "./auras";
-import { applyStatus, basicAttack, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, pushBack, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, basicAttack, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, pushBack, spellHit, SPECIAL_HANDLERS } from "./combat";
+import { getSpell } from "./spells";
 import { coin } from "./rng";
 import {
   applyMulligan,
@@ -19,6 +20,7 @@ import {
   summonCard,
 } from "./state";
 import {
+  canCastSpell,
   canFireSpecial,
   canMove,
   canSummon,
@@ -34,6 +36,7 @@ import type {
   GameState,
   Intent,
   PlayerId,
+  SpellDef,
 } from "./types";
 import {
   BOARD_SIZE,
@@ -124,12 +127,30 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       const check = canMove(draft, intent.player, intent.instanceId, intent.to);
       if (!check.ok) throw new Error(`Illegal move: ${check.reason}`);
       const card = draft.cards[intent.instanceId];
+      const fromRow = card.pos ? card.pos.row : -1;
       card.pos = { ...intent.to };
       draft.prep!.movedThisTurn = true;
       draft.prep!.consecutivePasses = 0;
       draft.log.push(
         `${intent.player} moves ${getDef(card.defId).name} to r${intent.to.row}c${intent.to.col}.`,
       );
+      triggerWalls(draft, card, fromRow); // crossing INTO an enemy Wall's row hurts
+      return draft;
+    }
+    case "CAST_SPELL": {
+      const check = canCastSpell(draft, intent.player, intent.spellId, {
+        targetId: intent.targetId,
+        row: intent.row,
+      });
+      if (!check.ok) throw new Error(`Illegal spell: ${check.reason}`);
+      const p = draft.players[intent.player];
+      const slot = p.spellbook.find((s) => s.defId === intent.spellId)!;
+      const spell = getSpell(intent.spellId);
+      p.magicPool -= spell.cost;
+      slot.used = true;
+      draft.prep!.consecutivePasses = 0;
+      draft.log.push(`${intent.player} casts ${spell.name}.`);
+      resolveSpell(draft, intent.player, spell, intent.targetId, intent.row);
       return draft;
     }
     case "PASS": {
@@ -188,6 +209,98 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       draft.battle.index++;
       return draft;
     }
+  }
+}
+
+// ── spells ────────────────────────────────────────────────────────────────────
+
+/** Auto-pick the neediest (lowest HP-ratio) living ally of `element` for a
+ *  Spell's support rider. Null if the caster has no such ally. */
+function pickSpellAlly(draft: GameState, player: PlayerId, element: SpellDef["element"]): CardInstance | null {
+  const allies = boardCards(draft, player).filter(
+    (c) => c.curHp > 0 && getDef(c.defId).element === element,
+  );
+  if (allies.length === 0) return null;
+  return allies.slice().sort((a, b) => a.curHp / a.maxHp - b.curHp / b.maxHp)[0];
+}
+
+/** Resolve a cast Spell's effect. Targeting was already validated by canCastSpell. */
+function resolveSpell(
+  draft: GameState,
+  player: PlayerId,
+  spell: SpellDef,
+  targetId?: string,
+  row?: number,
+): void {
+  if (spell.kind === "wall" && spell.wall && row != null) {
+    draft.walls.push({
+      owner: player,
+      spellId: spell.id,
+      row,
+      dmg: spell.wall.dmg,
+      status: spell.wall.status,
+      push: spell.wall.push,
+      roundsLeft: spell.wall.rounds,
+    });
+    draft.log.push(`${spell.name} rises across row ${row}.`);
+    return;
+  }
+
+  if (spell.kind === "heal") {
+    const ally = pickSpellAlly(draft, player, spell.element);
+    if (!ally) {
+      draft.log.push(`${spell.name} fizzles — no ${spell.element} ally to heal.`);
+      return;
+    }
+    const rooted = boardCards(draft, enemyOf(player)).some((c) => hasStatus(c, "ROOT"));
+    const amt = rooted && spell.allyHealIfRooted ? spell.allyHealIfRooted : spell.allyHeal ?? 0;
+    const healed = Math.min(amt, ally.maxHp - ally.curHp);
+    ally.curHp += healed;
+    draft.log.push(`${label(draft, ally)} heals ${healed} HP.`);
+    return;
+  }
+
+  // damage spell
+  const target = targetId ? draft.cards[targetId] : undefined;
+  if (target) {
+    const died = spellHit(draft, target, spell.dmg ?? 0, Boolean(spell.pen));
+    const alive = !died && !!draft.cards[target.instanceId] && target.curHp > 0;
+    if (alive && spell.status)
+      applyStatus(draft, target, spell.status.kind, spell.status.duration, spell.status.power, spell.element);
+    if (alive && spell.push) pushBack(draft, target, spell.push);
+    if (alive && spell.drainMaxHp && target.maxHp > 1) {
+      const steal = Math.min(spell.drainMaxHp, target.maxHp - 1);
+      target.maxHp -= steal;
+      target.curHp = Math.min(target.curHp, target.maxHp);
+      const ally = pickSpellAlly(draft, player, spell.element);
+      if (ally) {
+        ally.maxHp += steal;
+        ally.curHp += steal;
+        draft.log.push(`${label(draft, ally)} steals ${steal} max HP.`);
+      }
+    }
+  }
+  if (spell.allyShield) {
+    const ally = pickSpellAlly(draft, player, spell.element);
+    if (ally) {
+      ally.curShields += spell.allyShield;
+      draft.log.push(`${label(draft, ally)} gains ${spell.allyShield} shield.`);
+    }
+  }
+}
+
+/** A card that MOVED into an enemy Wall's row (row change only) eats it. */
+function triggerWalls(draft: GameState, card: CardInstance, fromRow: number): void {
+  if (!card.pos) return;
+  for (const w of draft.walls) {
+    if (w.owner === card.owner) continue; // your own wall never hits you
+    if (!card.pos || w.row !== card.pos.row || fromRow === w.row) continue;
+    draft.log.push(`${label(draft, card)} crosses ${getSpell(w.spellId).name}!`);
+    const died = spellHit(draft, card, w.dmg, false);
+    if (died || !draft.cards[card.instanceId] || card.curHp <= 0) continue;
+    if (w.status)
+      applyStatus(draft, card, w.status.kind, w.status.duration, w.status.power, getSpell(w.spellId).element);
+    if (w.push) pushBack(draft, card, w.push);
   }
 }
 
@@ -603,6 +716,12 @@ function doCleanupPhase(draft: GameState): void {
     for (const s of card.statuses) s.duration--;
     card.statuses = card.statuses.filter((s) => s.duration > 0);
   }
+
+  // 3b. Walls decay a round; expired ones lift.
+  for (const w of draft.walls) w.roundsLeft--;
+  const fallen = draft.walls.filter((w) => w.roundsLeft <= 0);
+  for (const w of fallen) draft.log.push(`${getSpell(w.spellId).name} fades from row ${w.row}.`);
+  draft.walls = draft.walls.filter((w) => w.roundsLeft > 0);
 
   // 4. Clear round flags (STEALTH re-engages; summon lockout ends;
   //    special cooldowns tick down; per-round DMG buffs + hit tracking reset).

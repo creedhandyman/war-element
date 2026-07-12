@@ -27,8 +27,14 @@ export {
   plannedAction,
   isActionBlocked,
   validSpecialTargets,
+  canCastSpell,
+  canSpellHitEnemy,
+  spellEnemyTargets,
+  canPlaceWallRow,
+  legalWallRows,
 } from "./rules";
 export type { PlannedAction } from "./rules";
+export { SPELLS, SPELL_INDEX, getSpell, isSpell, spellbookFor } from "./spells";
 export { applyIntent, advance, advanceUntilInput, needsP1Input, needsInput } from "./phases";
 export { effectiveBasicHits } from "./combat";
 export { aiMulligan, aiPrepIntent, chooseBattleAction } from "./ai";
