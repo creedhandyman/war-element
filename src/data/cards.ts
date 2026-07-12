@@ -1,4 +1,5 @@
-// War Element — alpha card set (34 cards: LEAF 9 / PYRO 8 / BORE 8 / DUSK 9).
+// War Element — alpha card set (38 cards: LEAF 10 / PYRO 9 / BORE 9 / DUSK 10).
+// Includes 4 Legendaries (cost 6-8): Thorn, Volcanon, Bearocks, Skelider.
 //
 // DAMAGE NOTATION: card text "A×B DMG" reads hits-first — A hits of B damage
 // each (e.g. Spitfire "2×3" = 2 hits × 3 dmg). Encoded as { hits: A, dmg: B }.
@@ -153,6 +154,29 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     onHitStatus: { kind: "BLEED", duration: 1, power: 1 }, // Stinging Barbs
+  },
+  {
+    id: "leaf_thorn",
+    name: "Thorn",
+    element: "LEAF",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 6, // LEGENDARY
+    dmg: 7,
+    hits: 1,
+    hp: 18,
+    sp: 9,
+    shields: 3,
+    keywords: {},
+    special: {
+      name: "Blood on the Petals",
+      cost: 3,
+      handler: "strike",
+      // printed "BLEED 5 DOT"; encoded as power 4 / 2r for alpha balance
+      params: { dmg: 7, pen: 1, statusKind: "BLEED", statusPower: 4, statusDuration: 2 },
+      targetSide: "enemy",
+      text: "Deal 7 DMG (PEN) and apply BLEED to the target.",
+    },
   },
 
   // ───────────────────────── PYRO ─────────────────────────
@@ -315,6 +339,29 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
   },
+  {
+    id: "pyro_volcanon",
+    name: "Volcanon",
+    element: "PYRO",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 6, // LEGENDARY
+    dmg: 11,
+    hits: 1,
+    hp: 21,
+    sp: 8,
+    shields: 0,
+    keywords: { FLYING: true },
+    special: {
+      name: "Eruption",
+      cost: 3,
+      handler: "strike",
+      // printed "5×2 DMG" = 5 hits of 2 — a shield shredder (strips up to 5)
+      params: { dmg: 2, hits: 5 },
+      targetSide: "enemy",
+      text: "Deal 2 DMG × 5 hits to one opponent (shreds shields).",
+    },
+  },
 
   // ───────────────────────── BORE ─────────────────────────
   {
@@ -464,6 +511,30 @@ export const CARDS: CardDef[] = [
     sp: 2,
     shields: 3,
     keywords: {},
+  },
+  {
+    id: "bore_bearocks",
+    name: "Bearocks",
+    element: "BORE",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 8, // LEGENDARY
+    dmg: 10,
+    hits: 1,
+    hp: 30,
+    sp: 3,
+    shields: 2,
+    keywords: {},
+    statusImmune: true, // Hibernation: immune to status effects
+    special: {
+      name: "Blunt Bash",
+      cost: 5,
+      handler: "strike",
+      // printed hits the row ahead; single-target in alpha (5 DMG + SLEEP 2r)
+      params: { dmg: 5, statusKind: "SLEEP", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "Deal 5 DMG and SLEEP the target for 2 rounds.",
+    },
   },
 
   // ───────────────────────── DUSK ─────────────────────────
@@ -643,6 +714,29 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { FLYING: true },
     onDeath: { dmg: 5 }, // Bird Bomb: explodes on whoever kills it
+  },
+  {
+    id: "dusk_skelider",
+    name: "Skelider",
+    element: "DUSK",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 8, // LEGENDARY
+    dmg: 5,
+    hits: 1,
+    hp: 26,
+    sp: 10,
+    shields: 2,
+    keywords: {},
+    special: {
+      name: "Piercing Charge",
+      cost: 4,
+      handler: "strike",
+      // printed also moves up to 4; alpha keeps the 15 PEN nuke
+      params: { dmg: 15, pen: 1 },
+      targetSide: "enemy",
+      text: "Deal 15 DMG (PEN) to one opponent.",
+    },
   },
 ];
 

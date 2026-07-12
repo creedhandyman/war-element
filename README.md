@@ -37,8 +37,9 @@ npm run build    # tsc --noEmit + vite production build
 src/engine   pure TypeScript, zero React — types, state, rules (legality),
              combat (damage pipeline + special-handler registry), phases
              (round loop + intent reducer + advance() driver), ai, rng
-src/data     the 32 alpha cards as plain data (LEAF/PYRO for P1,
-             BORE/DUSK for P2, 16-card decks — each card once per game)
+src/data     the 38 alpha cards as plain data (LEAF/PYRO for P1,
+             BORE/DUSK for P2, 19-card decks — each card once per game;
+             includes 4 Legendaries: Thorn, Volcanon, Bearocks, Skelider)
 src/ui       React only renders state and dispatches intents
 src/engine/__tests__   Vitest suites for milestones 1–8, incl. full
              AI-vs-AI matches, determinism replay, and both win paths
@@ -76,8 +77,12 @@ replays exactly from its seed.
   riders (`onHitStatus`), on-death retaliation (`onDeath`), **on-summon
   effects** (`onSummon` — free, fired through the same handler registry;
   Flamehound's Fire Blast, Fenrir's Fury Unleashed), Pumpkin's Catapult
-  (`ignoresHomeRule`), and Haunt's Jacked (`drainMax` handler). Not yet:
-  on-kill, on-being-hit, start-of-round spawns, and auras beyond LEAF's.
+  (`ignoresHomeRule`), Haunt's Jacked (`drainMax` handler), and Bearocks'
+  Hibernation (`statusImmune` — negative statuses fizzle). Not yet:
+  on-kill, on-being-hit, start-of-round spawns, token/minion spawning,
+  and auras beyond LEAF's. Legendary specials that spawn tokens (Efy,
+  Wraith) or move-and-strike (Skelider's charge) are simplified to their
+  damage/status core for alpha; the flavor returns with the spawn system.
 - **Specials have a one-round cooldown** (alpha balance change from the
   rules doc's no-cooldown wording — stops SLEEP/AOE spam): after firing,
   a card must sit out one full round before firing again.

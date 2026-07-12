@@ -51,6 +51,10 @@ export function applyStatus(
   power: number,
   source: Element,
 ): void {
+  if (getDef(target.defId).statusImmune) {
+    draft.log.push(`${label(draft, target)} is immune to status (${kind} fizzles).`);
+    return;
+  }
   const fresh = { kind, duration, power, source };
   const existing = target.statuses.findIndex((s) => s.kind === kind);
   if (existing >= 0) target.statuses[existing] = fresh;

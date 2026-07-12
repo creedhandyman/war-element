@@ -8,21 +8,27 @@ import { HAND_CAP } from "../types";
 import { freshGame, giveHand } from "./helpers";
 
 describe("setup", () => {
-  it("deals 5-card opening hands from 17-card decks", () => {
+  it("deals 5-card opening hands from 19-card decks", () => {
     const s = createInitialState(1);
-    expect(DECK_P1).toHaveLength(17);
-    expect(DECK_P2).toHaveLength(17);
+    expect(DECK_P1).toHaveLength(19);
+    expect(DECK_P2).toHaveLength(19);
     expect(s.players.P1.hand).toHaveLength(5);
     expect(s.players.P2.hand).toHaveLength(5);
-    expect(s.players.P1.deck).toHaveLength(12);
-    expect(s.players.P2.deck).toHaveLength(12);
+    expect(s.players.P1.deck).toHaveLength(14);
+    expect(s.players.P2.deck).toHaveLength(14);
     expect(s.phase).toBe("mulligan");
   });
 
   it("every card's cost matches the stat formula (total ≈ 5·cost + 10)", () => {
     // shields count 2 points each; source-printed costs may drift ±2 total.
     // Skeleton Knight's Bone Shield is a passive grant priced outside the total.
-    const exceptions = new Set(["dusk_skeleton_knight"]);
+    // Cost-8 Legendaries sit in the tier band (40-50 total) rather than the
+    // exact formula, and pay part of their cost in strong abilities/immunity.
+    const exceptions = new Set([
+      "dusk_skeleton_knight",
+      "bore_bearocks",
+      "dusk_skelider",
+    ]);
     for (const def of CARDS) {
       if (exceptions.has(def.id)) continue;
       const total = def.dmg * def.hits + def.hp + def.shields * 2 + def.sp;
@@ -62,7 +68,7 @@ describe("mulligan", () => {
     const toss = s.players.P1.hand.slice(0, 2).map((h) => h.handId);
     const next = applyIntent(s, { type: "MULLIGAN", player: "P1", returnHandIds: toss });
     expect(next.players.P1.hand).toHaveLength(5);
-    expect(next.players.P1.deck).toHaveLength(12);
+    expect(next.players.P1.deck).toHaveLength(14);
     expect(next.players.P1.mulliganDone).toBe(true);
     for (const id of toss)
       expect(next.players.P1.hand.some((h) => h.handId === id)).toBe(false);

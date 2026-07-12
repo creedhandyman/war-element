@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
+import { applyStatus } from "../combat";
 import { canFireSpecial } from "../rules";
 import { atCleanup, giveHand, place, prepState, seedForCoins } from "./helpers";
 import { advance } from "../phases";
@@ -197,6 +198,62 @@ describe("firing specials", () => {
     });
     expect(next.cards[ally.instanceId].curShields).toBe(2);
     expect(next.players.P1.magicPool).toBe(2);
+  });
+});
+
+describe("legendaries", () => {
+  it("Volcanon's Eruption is a 5-hit shred that strips a full shield stack", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const volcanon = place(s, "pyro_volcanon", "P1", 2, 0);
+    const t = place(s, "dusk_vamp", "P2", 1, 0, { curHp: 15, maxHp: 15, curShields: 4 });
+    const next = applyIntent(battleWith(s, volcanon.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+    });
+    // 5 hits of 2 vs 4 shields: hits 1-3 gated to 0, hit 4 lands 1, hit 5 lands 2;
+    // all 4 shields stripped. 3 total to HP.
+    expect(next.cards[t.instanceId].curShields).toBe(0);
+    expect(next.cards[t.instanceId].curHp).toBe(12);
+    expect(next.players.P1.magicPool).toBe(2);
+  });
+
+  it("Skelider's Piercing Charge is a 15 PEN nuke (ignores shields)", () => {
+    const s = prepState();
+    s.players.P2.magicPool = 6;
+    const skelider = place(s, "dusk_skelider", "P2", 1, 0);
+    const t = place(s, "leaf_greegon", "P1", 2, 0, { curHp: 17, maxHp: 17, curShields: 5 });
+    const next = applyIntent(battleWith(s, skelider.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P2",
+      action: "special",
+    });
+    expect(next.cards[t.instanceId].curHp).toBe(2); // 17 − 15, shields untouched
+    expect(next.cards[t.instanceId].curShields).toBe(5);
+  });
+
+  it("Bearocks' Hibernation makes every negative status fizzle", () => {
+    const s = prepState();
+    const bearocks = place(s, "bore_bearocks", "P2", 1, 0);
+    applyStatus(s, bearocks, "ROOT", 3, 0, "LEAF");
+    applyStatus(s, bearocks, "BURN", 2, 3, "PYRO");
+    expect(bearocks.statuses).toHaveLength(0);
+    expect(s.log.some((l) => l.includes("immune to status"))).toBe(true);
+  });
+
+  it("Bearocks' Blunt Bash still SLEEPs a normal target", () => {
+    const s = prepState();
+    s.players.P2.magicPool = 6;
+    const bearocks = place(s, "bore_bearocks", "P2", 1, 0);
+    const t = place(s, "leaf_greegon", "P1", 2, 0, { curHp: 17, maxHp: 17 });
+    const next = applyIntent(battleWith(s, bearocks.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P2",
+      action: "special",
+    });
+    expect(next.cards[t.instanceId].curHp).toBe(12); // 17 − 5
+    expect(next.cards[t.instanceId].statuses[0]?.kind).toBe("SLEEP");
   });
 });
 

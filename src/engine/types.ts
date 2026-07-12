@@ -86,6 +86,9 @@ export interface CardDef {
   /** Catapult-style passives: this card may target the enemy Home row from
    *  anywhere (skips the Home Slot Targeting Rule). */
   ignoresHomeRule?: boolean;
+  /** Hibernation-style passives: negative statuses never land on this card
+   *  (ROOT/BURN/SLEEP/etc. are all refused). */
+  statusImmune?: boolean;
   /** On-death retaliation (Lingering Venom / Bird Bomb): when this card is
    *  killed by an attack, deal dmg back to the killer. Direct damage — no
    *  evasion, no reflect chains. DOT/self-damage deaths have no killer. */
