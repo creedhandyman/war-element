@@ -44,6 +44,14 @@ export function Token(props: {
   const mine = card.owner === "P1";
   const human = (game.humans ?? ["P1"]).includes(card.owner);
   const hpFlash = useHpFlash(card.instanceId, card.curHp);
+  // Attack spotlight: during Battle, the card at the front of the speed queue is
+  // the one taking its turn — grow it slightly so you can see who's acting.
+  const battle = game.battle;
+  const isAttacking =
+    game.phase === "battle" &&
+    !!battle &&
+    battle.index < battle.queue.length &&
+    battle.queue[battle.index] === card.instanceId;
   // Move indicator: the SP stat glows while this card's owner may still move it.
   const canMoveNow =
     human &&
@@ -59,6 +67,7 @@ export function Token(props: {
     mine ? "mine" : "enemy",
     props.selected ? "selected" : "",
     props.acting ? "acting" : "",
+    isAttacking ? "attacking" : "",
   ]
     .filter(Boolean)
     .join(" ");
