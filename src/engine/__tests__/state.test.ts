@@ -141,12 +141,27 @@ describe("resource math (two pools)", () => {
   it("summon pool gains min(round, 10); magic gains +1 from round 2", () => {
     const s = freshGame(9);
     s.phase = "resource";
-    s.round = 5;
+    s.round = 4; // a non-bonus early round
     s.players.P1.summonPool = 0;
     s.players.P1.magicPool = 3;
     const next = advance(s);
-    expect(next.players.P1.summonPool).toBe(5);
+    expect(next.players.P1.summonPool).toBe(4);
     expect(next.players.P1.magicPool).toBe(4); // +1 in the early game
+  });
+
+  it("every 5th round pays a +2 magic bonus on top of the per-turn drip", () => {
+    // Round 5: +1 (early per-turn) + 2 (bonus) = +3.
+    const early = freshGame(9);
+    early.phase = "resource";
+    early.round = 5;
+    early.players.P1.magicPool = 3;
+    expect(advance(early).players.P1.magicPool).toBe(6);
+    // Round 15: +2 (late per-turn) + 2 (bonus) = +4.
+    const late = freshGame(9);
+    late.phase = "resource";
+    late.round = 15;
+    late.players.P1.magicPool = 3;
+    expect(advance(late).players.P1.magicPool).toBe(7);
   });
 
   it("magic ramps to +2 per round after round 10", () => {

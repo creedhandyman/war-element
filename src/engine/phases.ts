@@ -51,6 +51,10 @@ function clone(state: GameState): GameState {
  *  fuel so Specials/spells stay castable in the endgame). */
 const MAGIC_RAMP_AFTER = 10;
 
+/** Bonus magic paid on every 5th round (5, 10, 15, …) on top of the per-turn
+ *  drip, to accelerate Specials and shorten games. */
+const MAGIC_BONUS_EVERY_5 = 2;
+
 // ── intent reducer ──────────────────────────────────────────────────────────
 
 /** Apply one player intent. Throws on illegal intents (UI should pre-check via rules). */
@@ -207,10 +211,13 @@ function doDrawPhase(draft: GameState): void {
 function doResourcePhase(draft: GameState): void {
   // Two independent pools: summon = round # each round; magic starts at 3 and
   // gains +1 per round from round 2 on, ramping to +2 per round in the late game
-  // (after round 10) so the endgame doesn't starve for Special/spell fuel. Both
-  // cap unspent carryover at 10.
+  // (after round 10) so the endgame doesn't starve for Special/spell fuel. On
+  // top of the per-turn drip, every 5th round pays a +2 bonus so specials come
+  // online faster and games close out quicker. Both cap unspent carryover at 10.
   const gain = Math.min(draft.round, 10);
-  const magicGain = draft.round > MAGIC_RAMP_AFTER ? 2 : 1;
+  const perTurn = draft.round > MAGIC_RAMP_AFTER ? 2 : 1;
+  const bonus = draft.round % 5 === 0 ? MAGIC_BONUS_EVERY_5 : 0;
+  const magicGain = perTurn + bonus;
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const p = draft.players[player];
     p.summonPool = Math.min(p.summonPool, POOL_CARRYOVER_CAP) + gain;
