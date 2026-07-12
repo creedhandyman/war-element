@@ -8,6 +8,7 @@ import {
   canSummon,
   cardAt,
   createInitialState,
+  deckById,
   DECKS,
   getDef,
   homeRow,
@@ -48,6 +49,7 @@ export function App() {
   const [p1Deck, setP1Deck] = useState("gale_bolt");
   const [p2Deck, setP2Deck] = useState("aqua_dawn");
   const [twoPlayer, setTwoPlayer] = useState(false);
+  const [viewDeck, setViewDeck] = useState<"p1" | "p2">("p1"); // which deck's cards to preview
 
   // The human who must act right now (null while an AI acts or a phase
   // animates). `view` holds the last active human so the hand/pools/labels
@@ -567,31 +569,38 @@ export function App() {
 
       {!started && (
         <div className="overlay">
-          <div className="modal">
-            <h1>War Element</h1>
-            <p>
-              {twoPlayer
-                ? "Two players share this device — you'll hand it back and forth each turn."
-                : "Choose the decks, then start the match. You play the left deck (P1)."}
-            </p>
-            <div className="mode-toggle">
-              <button
-                className={`mode-btn ${!twoPlayer ? "on" : ""}`}
-                onClick={() => setTwoPlayer(false)}
-              >
-                🤖 vs AI
-              </button>
-              <button
-                className={`mode-btn ${twoPlayer ? "on" : ""}`}
-                onClick={() => setTwoPlayer(true)}
-              >
-                👥 2 Players
-              </button>
-            </div>
-            <div className="deck-picker">
-              <label>
+          <div className="modal picker">
+            {/* Left: the menu options, stacked vertically. */}
+            <div className="picker-menu">
+              <h1>War Element</h1>
+              <p>
+                {twoPlayer
+                  ? "Two players share this device — hand it back and forth each turn."
+                  : "Choose the decks, then start. You play P1."}
+              </p>
+              <div className="mode-toggle">
+                <button
+                  className={`mode-btn ${!twoPlayer ? "on" : ""}`}
+                  onClick={() => setTwoPlayer(false)}
+                >
+                  🤖 vs AI
+                </button>
+                <button
+                  className={`mode-btn ${twoPlayer ? "on" : ""}`}
+                  onClick={() => setTwoPlayer(true)}
+                >
+                  👥 2 Players
+                </button>
+              </div>
+              <label className="pick-field">
                 <span>{twoPlayer ? "Player 1 deck" : "Your deck (P1)"}</span>
-                <select value={p1Deck} onChange={(e) => setP1Deck(e.target.value)}>
+                <select
+                  value={p1Deck}
+                  onChange={(e) => {
+                    setP1Deck(e.target.value);
+                    setViewDeck("p1");
+                  }}
+                >
                   {DECKS.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.name}
@@ -599,10 +608,15 @@ export function App() {
                   ))}
                 </select>
               </label>
-              <span className="vs">vs</span>
-              <label>
+              <label className="pick-field">
                 <span>{twoPlayer ? "Player 2 deck" : "Opponent (P2 · AI)"}</span>
-                <select value={p2Deck} onChange={(e) => setP2Deck(e.target.value)}>
+                <select
+                  value={p2Deck}
+                  onChange={(e) => {
+                    setP2Deck(e.target.value);
+                    setViewDeck("p2");
+                  }}
+                >
                   {DECKS.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.name}
@@ -610,23 +624,80 @@ export function App() {
                   ))}
                 </select>
               </label>
+              <button
+                className="lockin"
+                onClick={() => {
+                  const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
+                  setGame(createInitialState(newSeed(), p1Deck, p2Deck, humans));
+                  setViewSide("P1");
+                  setSel(null);
+                  setPending(null);
+                  setPicks([]);
+                  setMullToss([]);
+                  setHint("Mulligan: click cards to send back, then confirm.");
+                  setStarted(true);
+                }}
+              >
+                Start Match
+              </button>
             </div>
-            <button
-              className="lockin"
-              onClick={() => {
-                const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
-                setGame(createInitialState(newSeed(), p1Deck, p2Deck, humans));
-                setViewSide("P1");
-                setSel(null);
-                setPending(null);
-                setPicks([]);
-                setMullToss([]);
-                setHint("Mulligan: click cards to send back, then confirm.");
-                setStarted(true);
-              }}
-            >
-              Start Match
-            </button>
+
+            {/* Right: the deck view — cards of the selected deck. */}
+            <div className="picker-view">
+              <div className="pv-tabs">
+                <button
+                  className={`pv-tab ${viewDeck === "p1" ? "on" : ""}`}
+                  onClick={() => setViewDeck("p1")}
+                >
+                  P1 · {deckById(p1Deck).name}
+                </button>
+                <button
+                  className={`pv-tab ${viewDeck === "p2" ? "on" : ""}`}
+                  onClick={() => setViewDeck("p2")}
+                >
+                  P2 · {deckById(p2Deck).name}
+                </button>
+              </div>
+              {(() => {
+                const cards = deckById(viewDeck === "p1" ? p1Deck : p2Deck).cards;
+                return (
+                  <>
+                    <div className="pv-count">{cards.length} cards</div>
+                    <div className="pv-grid">
+                      {cards.map((id) => {
+                        const d = getDef(id);
+                        return (
+                          <div
+                            key={id}
+                            className="deck-thumb carded"
+                            title={d.special ? `${d.special.name}: ${d.special.text}` : d.name}
+                          >
+                            <img
+                              className="card-art"
+                              src={`/cards/${d.id}.png`}
+                              alt=""
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                              }}
+                            />
+                            <div className="dt-top">
+                              <span className="dt-cost">{d.cost}</span>
+                              <span className="el-dot" style={{ background: EL_COLOR[d.element] }} />
+                            </div>
+                            <div className="dt-name">{d.name}</div>
+                            <div className="dt-stats">
+                              <span>⚔{d.hits > 1 ? `${d.hits}×` : ""}{d.dmg}</span>
+                              <span>♥{d.hp}</span>
+                              <span>👟{d.sp}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
           </div>
         </div>
       )}

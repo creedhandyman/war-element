@@ -251,12 +251,38 @@ button { font-family: inherit; }
 .cd-actions .lockin { flex: 1; }
 
 /* mode toggle (pre-game: vs AI / 2 players) */
-.mode-toggle { display: flex; gap: 8px; justify-content: center; margin-bottom: 18px; }
-.mode-btn { font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 999px; background: var(--void-2); color: var(--ink-dim); border: 1px solid var(--panel-line); cursor: pointer; transition: 0.15s; }
+.mode-toggle { display: flex; gap: 8px; margin-bottom: 4px; }
+.mode-btn { flex: 1; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 999px; background: var(--void-2); color: var(--ink-dim); border: 1px solid var(--panel-line); cursor: pointer; transition: 0.15s; }
 .mode-btn.on { background: linear-gradient(180deg, #c4b3ff, var(--accent)); color: var(--void); border-color: transparent; }
 
-/* deck picker (pre-game) */
-.deck-picker { display: flex; align-items: flex-end; justify-content: center; gap: 16px; margin-bottom: 20px; }
-.deck-picker label { display: flex; flex-direction: column; gap: 6px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); font-weight: 700; text-align: left; }
-.deck-picker select { font-size: 15px; font-weight: 700; padding: 9px 12px; border-radius: 10px; background: var(--void-2); color: var(--ink); border: 1px solid var(--panel-line); cursor: pointer; min-width: 160px; }
-.deck-picker .vs { color: var(--ink-faint); font-weight: 800; font-size: 13px; padding-bottom: 11px; }
+/* deck picker (pre-game): stacked menu column + wide deck-view card grid */
+.picker { display: flex; gap: 22px; text-align: left; max-width: min(880px, 94vw); align-items: stretch; padding: 22px; }
+.picker-menu { width: 236px; flex: none; display: flex; flex-direction: column; gap: 12px; }
+.picker-menu h1 { font-size: 22px; margin: 0; }
+.picker-menu p { font-size: 12px; color: var(--ink-dim); line-height: 1.45; margin: 0; }
+.pick-field { display: flex; flex-direction: column; gap: 5px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); font-weight: 700; }
+.pick-field select { font-size: 15px; font-weight: 700; padding: 9px 12px; border-radius: 10px; background: var(--void-2); color: var(--ink); border: 1px solid var(--panel-line); cursor: pointer; text-transform: none; letter-spacing: 0; }
+.picker-menu .lockin { margin-top: auto; }
+
+.picker-view { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; border-left: 1px solid var(--panel-line); padding-left: 22px; }
+.pv-tabs { display: flex; gap: 8px; }
+.pv-tab { flex: 1; font-size: 12px; font-weight: 700; padding: 7px 10px; border-radius: 8px; background: var(--void-2); color: var(--ink-dim); border: 1px solid var(--panel-line); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: 0.15s; }
+.pv-tab.on { border-color: var(--accent); color: var(--ink); background: rgba(167,139,250,0.14); }
+.pv-count { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
+.pv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 7px; max-height: 46vh; overflow-y: auto; padding-right: 4px; }
+
+.deck-thumb { position: relative; aspect-ratio: 3 / 4; border-radius: 9px; overflow: hidden; background: linear-gradient(160deg, #243250, #1a2136); border: 1px solid var(--panel-line); padding: 5px; display: flex; flex-direction: column; }
+.deck-thumb::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6,8,14,0) 42%, rgba(6,8,14,0.55) 66%, rgba(6,8,14,0.92) 100%); }
+.deck-thumb > * { position: relative; z-index: 1; }
+.dt-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.dt-cost { width: 18px; height: 18px; border-radius: 50%; background: rgba(0,0,0,0.5); display: grid; place-items: center; font-size: 10px; font-weight: 800; }
+.dt-name { margin-top: auto; font-size: 10px; font-weight: 800; line-height: 1.05; text-shadow: 0 1px 3px #000; }
+.dt-stats { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 2px; font-size: 9px; font-weight: 700; }
+.dt-stats span { text-shadow: 0 1px 2px #000; }
+
+@media (max-width: 640px) {
+  .picker { flex-direction: column; gap: 14px; }
+  .picker-menu { width: auto; }
+  .picker-view { border-left: none; border-top: 1px solid var(--panel-line); padding-left: 0; padding-top: 14px; }
+  .picker-menu .lockin { margin-top: 4px; }
+}
