@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
 import { canMove, canSummon } from "../rules";
-import { cardAt } from "../state";
+import { cardAt, moveReach } from "../state";
 import { giveHand, place, prepState } from "./helpers";
 
 describe("summoning", () => {
@@ -60,10 +60,12 @@ describe("summoning", () => {
 });
 
 describe("movement", () => {
-  it("SP 0 can't move", () => {
-    const s = prepState();
-    const c = place(s, "aqua_coralgolem", "P1", 3, 0); // SP 0
-    expect(canMove(s, "P1", c.instanceId, { row: 2, col: 0 }).ok).toBe(false);
+  it("movement tiers: SP 0 = 0 spaces, 1–7 = 1, 8–15 = 2", () => {
+    expect(moveReach(0)).toBe(0);
+    expect(moveReach(1)).toBe(1);
+    expect(moveReach(7)).toBe(1);
+    expect(moveReach(8)).toBe(2);
+    expect(moveReach(15)).toBe(2);
   });
 
   it("SP 1–7 moves 1 space, SP 8–15 moves 2", () => {
