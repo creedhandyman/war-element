@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
 import { applyStatus, basicAttack } from "../combat";
-import { canFireSpecial, isActionBlocked } from "../rules";
+import { canBasicAttack, canFireSpecial, isActionBlocked } from "../rules";
 import { effectiveDmg, effectiveSp } from "../state";
 import { atCleanup, giveHand, place, prepState, seedForCoins } from "./helpers";
 import { advance } from "../phases";
@@ -199,6 +199,26 @@ describe("firing specials", () => {
     });
     expect(next.cards[ally.instanceId].curShields).toBe(2);
     expect(next.players.P1.magicPool).toBe(2);
+  });
+});
+
+describe("ranged specials on melee cards", () => {
+  it("BlackBeard's Vapor Shark Cannon reaches a far target his melee basic can't", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const bb = place(s, "aqua_blackbeard", "P1", 2, 0); // Melee Warrior, ranged special
+    const far = place(s, "dusk_gool", "P2", 0, 3, { curHp: 13, curShields: 0 }); // enemy mid... row 0 col 3
+    // (row 0 = P2 home, but BlackBeard in a Mid row can target the enemy home)
+    expect(canBasicAttack(s, bb.instanceId)).toBe(false); // melee can't reach it
+    expect(canFireSpecial(s, bb.instanceId).ok).toBe(true); // ranged special can
+    const next = applyIntent(battleWith(s, bb.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetIds: [far.instanceId],
+    });
+    expect(next.cards[far.instanceId].curHp).toBe(8); // 13 − 5
+    expect(next.cards[far.instanceId].statuses[0]?.kind).toBe("SCALD");
   });
 });
 

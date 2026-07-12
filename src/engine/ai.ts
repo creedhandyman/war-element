@@ -17,6 +17,7 @@ import {
   canSummon,
   canTarget,
   validAllyTargets,
+  validSpecialTargets,
   validTargets,
 } from "./rules";
 import type {
@@ -293,6 +294,7 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
   const card = state.cards[instanceId]!;
   const def = getDef(card.defId);
   const targets = validTargets(state, instanceId);
+  const specTargets = validSpecialTargets(state, instanceId); // ranged-aware
   const specCheck = canFireSpecial(state, instanceId);
 
   if (specCheck.ok && def.special) {
@@ -305,28 +307,28 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
     // liberal when flush: fire anything decent, not only guaranteed kills.
     const rich = state.players[card.owner].magicPool >= sp.cost + 2;
     if (sp.handler === "strike" || sp.handler === "barrage") {
-      const kill = targets.find((t) => estimateVolley(dmg, hits, pen, t) >= t.curHp);
+      const kill = specTargets.find((t) => estimateVolley(dmg, hits, pen, t) >= t.curHp);
       const basicKillsIt =
         kill &&
         estimateVolley(effectiveDmg(state, card), def.hits, Boolean(def.keywords.PEN), kill) >=
           kill.curHp;
-      const wide = sp.handler === "barrage" && targets.length >= 3;
+      const wide = sp.handler === "barrage" && specTargets.length >= 3;
       const outDamagesBasic =
-        dmg * hits * (sp.handler === "barrage" ? Math.min(targets.length, Number(params.targets ?? 1)) : 1) >
+        dmg * hits * (sp.handler === "barrage" ? Math.min(specTargets.length, Number(params.targets ?? 1)) : 1) >
         effectiveDmg(state, card) * def.hits;
       if ((kill && !basicKillsIt) || wide || (rich && outDamagesBasic)) {
-        return { action: "special", targetId: kill?.instanceId ?? targets[0]?.instanceId };
+        return { action: "special", targetId: kill?.instanceId ?? specTargets[0]?.instanceId };
       }
     } else if (sp.handler === "statusNova") {
       const novaKind = String(params.statusKind ?? "");
-      const fresh = targets.filter((t) => !t.statuses.some((st) => st.kind === novaKind));
+      const fresh = specTargets.filter((t) => !t.statuses.some((st) => st.kind === novaKind));
       if (fresh.length >= 2 || (rich && fresh.length >= 1)) {
         return { action: "special", targetId: fresh[0].instanceId };
       }
     } else if (sp.handler === "drainMax") {
       // Card text: drain the highest-max-HP opponent. Worth it while there's
       // something meaty to steal from.
-      const fat = targets.reduce((b, t) => (t.maxHp > b.maxHp ? t : b), targets[0]);
+      const fat = specTargets.reduce((b, t) => (t.maxHp > b.maxHp ? t : b), specTargets[0]);
       if (fat && (fat.maxHp >= 8 || (rich && fat.maxHp >= 5))) {
         return { action: "special", targetId: fat.instanceId };
       }

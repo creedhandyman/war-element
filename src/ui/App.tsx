@@ -13,6 +13,7 @@ import {
   legalMoves,
   needsP1Input,
   validAllyTargets,
+  validSpecialTargets,
   validTargets,
 } from "../engine";
 import { Board } from "./Board";
@@ -103,7 +104,7 @@ export function App() {
       const list =
         def.special.targetSide === "ally"
           ? validAllyTargets(game, awaitingId)
-          : validTargets(game, awaitingId);
+          : validSpecialTargets(game, awaitingId);
       return list.map((t) => t.instanceId);
     }
     return validTargets(game, awaitingId).map((t) => t.instanceId);
@@ -320,7 +321,7 @@ export function App() {
                   const valid =
                     spec.targetSide === "ally"
                       ? validAllyTargets(game, awaitingId!)
-                      : validTargets(game, awaitingId!);
+                      : validSpecialTargets(game, awaitingId!);
                   const cap = Number(spec.params?.targets ?? 1);
                   // No choice to make (hits everyone it can reach, or only one
                   // legal target) → fire immediately on all of them.

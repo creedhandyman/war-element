@@ -23,6 +23,7 @@ import {
   forwardAreaTargets,
   isActionBlocked,
   validAllyTargets,
+  validSpecialTargets,
   validTargets,
 } from "./rules";
 import type {
@@ -226,7 +227,7 @@ function performBattleAction(
     const valid =
       special.targetSide === "ally"
         ? validAllyTargets(draft, instanceId)
-        : validTargets(draft, instanceId);
+        : validSpecialTargets(draft, instanceId);
     let targets: typeof valid;
     if (picks && picks.length > 1) {
       // Explicit multi-selection: one strike per entry, in order.

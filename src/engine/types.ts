@@ -62,6 +62,9 @@ export interface SpecialDef {
   handler: string; // key into the handler registry in combat.ts
   params?: Record<string, number | string>;
   targetSide: "enemy" | "ally";
+  /** This special reaches like a Ranged attack (any slot) even on a Melee
+   *  card — for "hit anywhere on the board" specials. */
+  ranged?: boolean;
   /** Rounds locked out after firing. Omit for the standard 1-round floor;
    *  a card may print a longer cooldown (2/3/5). */
   cooldown?: number;

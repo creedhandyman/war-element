@@ -884,7 +884,8 @@ export const CARDS: CardDef[] = [
       handler: "barrage",
       params: { dmg: 5, targets: 3, statusKind: "SCALD", statusPower: 2, statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 5 DMG and apply SCALD 2 (2r) to up to 3 opponents.",
+      ranged: true, // printed "3 opponents anywhere on the board"
+      text: "Deal 5 DMG and apply SCALD 2 (2r) to up to 3 opponents anywhere.",
     },
   },
   {

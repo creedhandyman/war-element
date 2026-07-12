@@ -26,6 +26,7 @@ export {
   canFireSpecial,
   plannedAction,
   isActionBlocked,
+  validSpecialTargets,
 } from "./rules";
 export type { PlannedAction } from "./rules";
 export { applyIntent, advance, advanceUntilInput, needsP1Input } from "./phases";

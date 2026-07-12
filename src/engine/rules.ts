@@ -105,16 +105,18 @@ export function canTarget(
   _state: GameState,
   attacker: CardInstance,
   target: CardInstance,
+  asRanged = false, // a ranged special ignores the melee reach/FLYING limits
 ): boolean {
   if (!attacker.pos || !target.pos) return false;
   if (target.owner === attacker.owner) return false;
   const aDef = getDef(attacker.defId);
   const tDef = getDef(target.defId);
+  const melee = aDef.attackType === "Melee" && !asRanged;
 
   if (tDef.keywords.STEALTH && !target.attackedThisRound) return false;
-  if (tDef.keywords.FLYING && aDef.attackType === "Melee") return false;
+  if (tDef.keywords.FLYING && melee) return false;
 
-  if (aDef.attackType === "Melee") {
+  if (melee) {
     if (
       Math.abs(attacker.pos.row - target.pos.row) > 1 ||
       Math.abs(attacker.pos.col - target.pos.col) > 1
@@ -150,6 +152,17 @@ export function validAllyTargets(state: GameState, attackerId: string): CardInst
   const attacker = state.cards[attackerId];
   if (!attacker || !attacker.pos) return [];
   return boardCards(state, attacker.owner);
+}
+
+/** Enemy targets for this card's Special — like validTargets, but a special
+ *  flagged `ranged` reaches any slot even on a Melee card. */
+export function validSpecialTargets(state: GameState, attackerId: string): CardInstance[] {
+  const attacker = state.cards[attackerId];
+  if (!attacker || !attacker.pos) return [];
+  const asRanged = Boolean(getDef(attacker.defId).special?.ranged);
+  return boardCards(state, enemyOf(attacker.owner)).filter((t) =>
+    canTarget(state, attacker, t, asRanged),
+  );
 }
 
 /**
@@ -222,7 +235,7 @@ export function canFireSpecial(
   const targets =
     def.special.targetSide === "ally"
       ? validAllyTargets(state, instanceId)
-      : validTargets(state, instanceId);
+      : validSpecialTargets(state, instanceId);
   if (targets.length === 0) return { ok: false, reason: "No valid target" };
   return { ok: true };
 }
