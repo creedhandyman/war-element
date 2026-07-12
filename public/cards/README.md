@@ -47,3 +47,17 @@ dusk_widowbite.png   · Widowbite         dusk_pumpkin.png  · Pumpkin
 dusk_vamp.png        · Vamp              dusk_skeleton_knight.png · Skeleton Knight
 dusk_gool.png        · Gool              dusk_crow.png     · Crow
 dusk_ghastly.png     · Ghastly           dusk_skelider.png · Skelider (Legendary)
+
+### AQUA (10) — new deck
+aqua_spinefin.png · Spinefin          aqua_polarking.png · Polar King (Legendary)
+aqua_bulletshrimp.png · Bullet Shrimp   aqua_blackbeard.png · BlackBeard
+aqua_polarbear.png · PolarBear         aqua_sapphire.png · Sapphire
+aqua_owlette.png · Owlette             aqua_coralgolem.png · Coral Golem
+aqua_phrost.png · Phrost (Legendary)   aqua_vaporem.png · Vaporem
+
+### DAWN (10) — new deck
+dawn_beam.png · Beam         dawn_amble.png · Amble
+dawn_flash.png · Flash       dawn_dawn.png · Dawn (Legendary)
+dawn_star.png · Star         dawn_veil.png · Veil
+dawn_kosmos.png · Kosmos (Legendary)   dawn_lazor.png · Lazor
+dawn_solstice.png · Solstice   dawn_clipsey.png · Clipsey

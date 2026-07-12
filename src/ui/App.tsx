@@ -8,6 +8,7 @@ import {
   canSummon,
   cardAt,
   createInitialState,
+  DECKS,
   getDef,
   legalMoves,
   needsP1Input,
@@ -35,14 +36,18 @@ export function App() {
     "Mulligan: click cards to send back, then confirm.",
   );
   const [mullToss, setMullToss] = useState<string[]>([]);
+  // Pre-game deck selection — the match doesn't run until Start.
+  const [started, setStarted] = useState(false);
+  const [p1Deck, setP1Deck] = useState("aqua_dawn");
+  const [p2Deck, setP2Deck] = useState("bore_dusk");
 
-  // Auto-advance whenever the engine doesn't need P1's input.
+  // Auto-advance whenever the engine doesn't need P1's input (once started).
   useEffect(() => {
-    if (game.phase === "gameover" || needsP1Input(game)) return;
+    if (!started || game.phase === "gameover" || needsP1Input(game)) return;
     const delay = game.phase === "battle" ? 480 : 260;
     const t = setTimeout(() => setGame((g) => advance(g)), delay);
     return () => clearTimeout(t);
-  }, [game]);
+  }, [game, started]);
 
   // Keep the hint fresh on phase/priority flips.
   const phaseKey = `${game.phase}:${game.prep?.priority ?? ""}:${game.battle?.awaitingInput ?? ""}`;
@@ -221,7 +226,7 @@ export function App() {
   }
 
   // ── mulligan ──────────────────────────────────────────────────────────────
-  const inMulligan = game.phase === "mulligan" && !game.players.P1.mulliganDone;
+  const inMulligan = started && game.phase === "mulligan" && !game.players.P1.mulliganDone;
 
   // ── battle prompt ─────────────────────────────────────────────────────────
   const activeCard = awaitingId ? game.cards[awaitingId] : null;
@@ -457,13 +462,58 @@ export function App() {
       <WinScreen
         game={game}
         onNewGame={() => {
-          setGame(createInitialState(newSeed()));
+          setStarted(false); // back to the deck picker
           setSel(null);
           setPending(null);
           setMullToss([]);
-          setHint("Mulligan: click cards to send back, then confirm.");
         }}
       />
+
+      {!started && (
+        <div className="overlay">
+          <div className="modal">
+            <h1>War Element</h1>
+            <p>Choose the decks, then start the match. You play the left deck (P1).</p>
+            <div className="deck-picker">
+              <label>
+                <span>Your deck (P1)</span>
+                <select value={p1Deck} onChange={(e) => setP1Deck(e.target.value)}>
+                  {DECKS.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <span className="vs">vs</span>
+              <label>
+                <span>Opponent (P2 · AI)</span>
+                <select value={p2Deck} onChange={(e) => setP2Deck(e.target.value)}>
+                  {DECKS.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <button
+              className="lockin"
+              onClick={() => {
+                setGame(createInitialState(newSeed(), p1Deck, p2Deck));
+                setSel(null);
+                setPending(null);
+                setPicks([]);
+                setMullToss([]);
+                setHint("Mulligan: click cards to send back, then confirm.");
+                setStarted(true);
+              }}
+            >
+              Start Match
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -338,6 +338,15 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
         (a) => a.curHp < a.maxHp / 2 || a.pos!.row === homeRow(enemyOf(card.owner)),
       );
       if (hurt) return { action: "special", targetId: hurt.instanceId };
+    } else if (sp.handler === "heal") {
+      const hurt = validAllyTargets(state, instanceId).filter((a) => a.curHp < a.maxHp);
+      const total = hurt.reduce((s, a) => s + (a.maxHp - a.curHp), 0);
+      if (hurt.length >= 2 || total >= Number(params.amount ?? 0) || (rich && hurt.length >= 1)) {
+        return { action: "special", targetId: hurt[0]?.instanceId };
+      }
+    } else if (sp.handler === "cleanse") {
+      const statused = validAllyTargets(state, instanceId).filter((a) => a.statuses.length > 0);
+      if (statused.length > 0) return { action: "special", targetId: statused[0].instanceId };
     }
   }
 

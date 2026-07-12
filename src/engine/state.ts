@@ -1,7 +1,7 @@
 // Game state construction + shared query helpers. Pure — reducers clone the
 // incoming state once (structuredClone) and mutate only the clone.
 
-import { getDef, DECK_P1, DECK_P2 } from "../data/cards";
+import { getDef, deckById } from "../data/cards";
 import { coin, shuffle } from "./rng";
 import type {
   CardInstance,
@@ -13,15 +13,19 @@ import type {
 } from "./types";
 import { BOARD_SIZE, HAND_CAP, OPENING_HAND, enemyOf, homeRow } from "./types";
 
-export function createInitialState(seed: number): GameState {
+export function createInitialState(
+  seed: number,
+  p1DeckId = "leaf_pyro",
+  p2DeckId = "bore_dusk",
+): GameState {
   const state: GameState = {
     rngState: seed | 0,
     round: 0,
     phase: "mulligan",
     firstPlayer: "P1",
     players: {
-      P1: emptyPlayer(DECK_P1.slice()),
-      P2: emptyPlayer(DECK_P2.slice()),
+      P1: emptyPlayer(deckById(p1DeckId).cards.slice()),
+      P2: emptyPlayer(deckById(p2DeckId).cards.slice()),
     },
     cards: {},
     slots: Array.from({ length: BOARD_SIZE }, () =>

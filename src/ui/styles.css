@@ -216,3 +216,9 @@ button { font-family: inherit; }
 .win-title { font-size: 30px; font-weight: 900; margin-bottom: 4px; }
 .win-title.lose { color: var(--threat); }
 .win-title.win { color: var(--legal); }
+
+/* deck picker (pre-game) */
+.deck-picker { display: flex; align-items: flex-end; justify-content: center; gap: 16px; margin-bottom: 20px; }
+.deck-picker label { display: flex; flex-direction: column; gap: 6px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); font-weight: 700; text-align: left; }
+.deck-picker select { font-size: 15px; font-weight: 700; padding: 9px 12px; border-radius: 10px; background: var(--void-2); color: var(--ink); border: 1px solid var(--panel-line); cursor: pointer; min-width: 160px; }
+.deck-picker .vs { color: var(--ink-faint); font-weight: 800; font-size: 13px; padding-bottom: 11px; }

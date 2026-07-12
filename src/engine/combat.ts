@@ -353,7 +353,8 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
   },
 
-  /** Damage to up to N valid enemy targets (chosen target first). */
+  /** Damage to up to N valid enemy targets (chosen target first). An optional
+   *  statusKind is applied to each surviving target (FREEZE/BLIND/SCALD nova). */
   barrage(draft, attacker, targets, params) {
     const n = num(params, "targets", 1);
     for (const target of targets.slice(0, n)) {
@@ -365,6 +366,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         pen: num(params, "pen") > 0,
         crit: false,
       });
+      maybeStatus(draft, attacker, target, params);
       if (attacker.curHp <= 0) break; // died to REFLECT mid-volley
     }
   },
@@ -412,5 +414,34 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     draft.log.push(
       `${label(draft, attacker)} grants +${amount} shields to ${label(draft, target)}.`,
     );
+  },
+
+  /** Heal up to N allies (chosen first), optionally cleansing them (DAWN). */
+  heal(draft, attacker, targets, params) {
+    const n = num(params, "targets", 1);
+    const amount = num(params, "amount", 0);
+    const doCleanse = num(params, "cleanse", 0) > 0;
+    let healed = 0;
+    for (const ally of targets.slice(0, n)) {
+      if (amount > 0 && ally.curHp < ally.maxHp) {
+        ally.curHp = Math.min(ally.maxHp, ally.curHp + amount);
+        healed++;
+      }
+      if (doCleanse && ally.statuses.length) ally.statuses = [];
+    }
+    draft.log.push(
+      `${label(draft, attacker)} restores allies (+${amount} HP${doCleanse ? ", CLEANSE" : ""}, ${healed} healed).`,
+    );
+  },
+
+  /** CLEANSE up to N allies — strip all negative statuses (DAWN). */
+  cleanse(draft, attacker, targets, params) {
+    const n = num(params, "targets", 1);
+    for (const ally of targets.slice(0, n)) {
+      if (ally.statuses.length) {
+        ally.statuses = [];
+        draft.log.push(`${label(draft, attacker)} cleanses ${label(draft, ally)}.`);
+      }
+    }
   },
 };

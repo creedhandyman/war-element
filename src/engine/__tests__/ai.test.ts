@@ -100,8 +100,8 @@ describe("full AI-vs-AI matches (integration)", () => {
     expect(s.players.P2.hand.length).toBeLessThanOrEqual(7);
   }
 
-  function playMatch(seed: number): GameState {
-    let s = createInitialState(seed);
+  function playMatch(seed: number, p1 = "leaf_pyro", p2 = "bore_dusk"): GameState {
+    let s = createInitialState(seed, p1, p2);
     for (let step = 0; step < 20_000; step++) {
       if (s.phase === "gameover") return s;
       s = needsP1Input(s) ? driveP1(s) : advance(s);
@@ -117,6 +117,17 @@ describe("full AI-vs-AI matches (integration)", () => {
       const end = playMatch(seed);
       expect(end.win).not.toBeNull();
       expect(["capture", "elimination"]).toContain(end.win!.by);
+    },
+  );
+
+  it.each([1, 5, 11, 23, 42])(
+    "seed %i: Aqua/Dawn deck completes a full match (both matchups)",
+    (seed) => {
+      // Aqua/Dawn as P1 vs Bore/Dusk, and mirror vs Leaf/Pyro.
+      const a = playMatch(seed, "aqua_dawn", "bore_dusk");
+      const b = playMatch(seed, "leaf_pyro", "aqua_dawn");
+      expect(a.win).not.toBeNull();
+      expect(b.win).not.toBeNull();
     },
   );
 

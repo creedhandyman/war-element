@@ -15,6 +15,8 @@ npm run build    # tsc --noEmit + vite production build
 
 ## How to play
 
+- **Deck select**: on launch (and after each match) pick your deck and the
+  AI's from Leaf/Pyro, Bore/Dusk, or Aqua/Dawn, then Start Match.
 - **Mulligan**: click opening-hand cards to send back, confirm, redraw.
 - **Prep**: glowing hand cards are affordable — click one, then a glowing
   Home slot to summon (any number per turn). Click a board card, then a
@@ -37,9 +39,9 @@ npm run build    # tsc --noEmit + vite production build
 src/engine   pure TypeScript, zero React — types, state, rules (legality),
              combat (damage pipeline + special-handler registry), phases
              (round loop + intent reducer + advance() driver), ai, rng
-src/data     the 38 alpha cards as plain data (LEAF/PYRO for P1,
-             BORE/DUSK for P2, 19-card decks — each card once per game;
-             includes 4 Legendaries: Thorn, Volcanon, Bearocks, Skelider)
+src/data     58 alpha cards as plain data across 6 elements, grouped into
+             three selectable decks (leaf_pyro, bore_dusk, aqua_dawn) via
+             the DECKS table; each card once per game. 8 Legendaries.
 src/ui       React only renders state and dispatches intents
 src/engine/__tests__   Vitest suites for milestones 1–8, incl. full
              AI-vs-AI matches, determinism replay, and both win paths

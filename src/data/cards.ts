@@ -1,5 +1,8 @@
-// War Element — alpha card set (38 cards: LEAF 10 / PYRO 9 / BORE 9 / DUSK 10).
-// Includes 4 Legendaries (cost 6-8): Thorn, Volcanon, Bearocks, Skelider.
+// War Element — alpha card set (58 cards across 6 elements).
+// P1 default: LEAF/PYRO. P2 default: BORE/DUSK. New: AQUA/DAWN (a testable
+// third deck — FREEZE/SCALD control + BLIND/CLEANSE/healing).
+// Legendaries (cost 6-8): Thorn, Volcanon, Bearocks, Skelider, Phrost,
+// Polar King, Kosmos, Dawn.
 //
 // DAMAGE NOTATION: card text "A×B DMG" reads hits-first — A hits of B damage
 // each (e.g. Spitfire "2×3" = 2 hits × 3 dmg). Encoded as { hits: A, dmg: B }.
@@ -742,6 +745,417 @@ export const CARDS: CardDef[] = [
       text: "Deal 15 DMG (PEN) to one opponent.",
     },
   },
+
+  // ───────────────────────── AQUA ─────────────────────────
+  // Element-locked: FREEZE (SP 0 + half DMG) and SCALD (DOT). Aura deferred.
+  {
+    id: "aqua_spinefin",
+    name: "Spinefin",
+    element: "AQUA",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 6,
+    hits: 1,
+    hp: 12,
+    sp: 7,
+    shields: 0,
+    keywords: {},
+  },
+  {
+    id: "aqua_bulletshrimp",
+    name: "Bullet Shrimp",
+    element: "AQUA",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 12,
+    hits: 1,
+    hp: 1,
+    sp: 7,
+    shields: 0,
+    keywords: {},
+    onHitStatus: { kind: "FREEZE", duration: 1, power: 0 }, // Thumper
+  },
+  {
+    id: "aqua_polarbear",
+    name: "PolarBear",
+    element: "AQUA",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 4,
+    hits: 1,
+    hp: 22,
+    sp: 4,
+    shields: 0,
+    keywords: {},
+    special: {
+      name: "Ice Crash Claw",
+      cost: 2,
+      handler: "strike",
+      params: { dmg: 3, hits: 2, statusKind: "FREEZE", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "Deal 3 DMG × 2 and FREEZE the target for 2 rounds.",
+    },
+  },
+  {
+    id: "aqua_owlette",
+    name: "Owlette",
+    element: "AQUA",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 5,
+    hits: 1,
+    hp: 12,
+    sp: 8,
+    shields: 0,
+    keywords: { FLYING: true },
+    special: {
+      name: "Owl Hail",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 4, targets: 3, statusKind: "FREEZE", statusDuration: 1 },
+      targetSide: "enemy",
+      text: "Deal 4 DMG and FREEZE up to 3 opponents for 1 round.",
+    },
+  },
+  {
+    id: "aqua_phrost",
+    name: "Phrost",
+    element: "AQUA",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 6, // LEGENDARY
+    dmg: 8,
+    hits: 1,
+    hp: 16,
+    sp: 12,
+    shields: 2,
+    keywords: {},
+    special: {
+      name: "Icicle Freeze",
+      cost: 4,
+      handler: "strike",
+      params: { dmg: 4, hits: 2, statusKind: "FREEZE", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "Deal 4 DMG × 2 and FREEZE the target for 2 rounds.",
+    },
+  },
+  {
+    id: "aqua_polarking",
+    name: "Polar King",
+    element: "AQUA",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 6, // LEGENDARY
+    dmg: 6,
+    hits: 1,
+    hp: 22,
+    sp: 4,
+    shields: 4,
+    keywords: {},
+    special: {
+      name: "Polar Shift",
+      cost: 4,
+      handler: "statusNova",
+      params: { statusKind: "FREEZE", statusDuration: 2, targets: 3 },
+      targetSide: "enemy",
+      text: "FREEZE up to 3 opponents for 2 rounds.",
+    },
+  },
+  {
+    id: "aqua_blackbeard",
+    name: "BlackBeard",
+    element: "AQUA",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 5,
+    hits: 1,
+    hp: 19,
+    sp: 6,
+    shields: 0,
+    keywords: {},
+    special: {
+      name: "Vapor Shark Cannon",
+      cost: 4,
+      handler: "barrage",
+      params: { dmg: 5, targets: 3, statusKind: "SCALD", statusPower: 2, statusDuration: 2 },
+      targetSide: "enemy",
+      text: "Deal 5 DMG and apply SCALD 2 (2r) to up to 3 opponents.",
+    },
+  },
+  {
+    id: "aqua_sapphire",
+    name: "Sapphire",
+    element: "AQUA",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 5,
+    dmg: 3,
+    hits: 2,
+    hp: 15,
+    sp: 10,
+    shields: 2,
+    keywords: {},
+    special: {
+      name: "Geyser Gash",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 3, targets: 2, statusKind: "SCALD", statusPower: 3, statusDuration: 2 },
+      targetSide: "enemy",
+      text: "Deal 3 DMG and apply SCALD 3 (2r) to up to 2 opponents.",
+    },
+  },
+  {
+    id: "aqua_coralgolem",
+    name: "Coral Golem",
+    element: "AQUA",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 2,
+    hits: 1,
+    hp: 15,
+    sp: 0,
+    shields: 4,
+    keywords: {},
+  },
+  {
+    id: "aqua_vaporem",
+    name: "Vaporem",
+    element: "AQUA",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 5,
+    dmg: 2,
+    hits: 5, // 2×5 shield shredder
+    hp: 17,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    special: {
+      name: "Drowning Mist",
+      cost: 2,
+      handler: "barrage",
+      params: { dmg: 2, targets: 99 },
+      targetSide: "enemy",
+      text: "Deal 2 DMG to every opponent in range.",
+    },
+  },
+
+  // ───────────────────────── DAWN ─────────────────────────
+  // Element-locked: BLIND (−50% accuracy) and CLEANSE. Aura deferred.
+  {
+    id: "dawn_beam",
+    name: "Beam",
+    element: "DAWN",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 1,
+    hits: 3,
+    hp: 5,
+    sp: 7,
+    shields: 0,
+    keywords: {},
+    // RayBeam: on summon, a single-lane blast that BLINDs down the column.
+    onSummon: { handler: "barrage", params: { dmg: 3, spread: 0, statusKind: "BLIND", statusDuration: 2, targets: 99 } },
+  },
+  {
+    id: "dawn_flash",
+    name: "Flash",
+    element: "DAWN",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 2,
+    sp: 10,
+    shields: 0,
+    keywords: {},
+    onHitStatus: { kind: "BLIND", duration: 1, power: 0 }, // Speed Flash
+  },
+  {
+    id: "dawn_star",
+    name: "Star",
+    element: "DAWN",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 2,
+    hits: 2,
+    hp: 9,
+    sp: 7,
+    shields: 2,
+    keywords: { FLYING: true },
+    special: {
+      name: "Star Shower",
+      cost: 2,
+      handler: "barrage",
+      params: { dmg: 4, targets: 99, statusKind: "BLIND", statusDuration: 1 },
+      targetSide: "enemy",
+      text: "Deal 4 DMG and BLIND every opponent in range.",
+    },
+  },
+  {
+    id: "dawn_kosmos",
+    name: "Kosmos",
+    element: "DAWN",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 6, // LEGENDARY
+    dmg: 2,
+    hits: 4,
+    hp: 18,
+    sp: 10,
+    shields: 2,
+    keywords: {},
+    special: {
+      name: "Flashing Barrage",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 4, targets: 3, statusKind: "BLIND", statusDuration: 1 },
+      targetSide: "enemy",
+      text: "Deal 4 DMG and BLIND up to 3 opponents for 1 round.",
+    },
+  },
+  {
+    id: "dawn_solstice",
+    name: "Solstice",
+    element: "DAWN",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 5,
+    hits: 1,
+    hp: 14,
+    sp: 7,
+    shields: 2,
+    keywords: {},
+    special: {
+      name: "Daybreak",
+      cost: 2,
+      handler: "heal",
+      params: { amount: 5, targets: 99 },
+      targetSide: "ally",
+      text: "Heal every ally 5 HP.",
+    },
+  },
+  {
+    id: "dawn_amble",
+    name: "Amble",
+    element: "DAWN",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 4,
+    hits: 1,
+    hp: 10,
+    sp: 7,
+    shields: 2,
+    keywords: { FLYING: true },
+    special: {
+      name: "Battle Maiden",
+      cost: 2,
+      handler: "heal",
+      params: { amount: 4, targets: 3 },
+      targetSide: "ally",
+      text: "Heal up to 3 allies 4 HP.",
+    },
+  },
+  {
+    id: "dawn_dawn",
+    name: "Dawn",
+    element: "DAWN",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 8, // LEGENDARY
+    dmg: 3,
+    hits: 3,
+    hp: 19,
+    sp: 12,
+    shields: 5,
+    keywords: { FLYING: true },
+    special: {
+      name: "Golden Courage",
+      cost: 3,
+      handler: "heal",
+      params: { amount: 5, targets: 99, cleanse: 1 },
+      targetSide: "ally",
+      text: "Heal every ally 5 HP and CLEANSE them.",
+    },
+  },
+  {
+    id: "dawn_veil",
+    name: "Veil",
+    element: "DAWN",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 3,
+    hits: 1,
+    hp: 20,
+    sp: 2,
+    shields: 3,
+    keywords: {},
+    special: {
+      name: "Light Shield",
+      cost: 2,
+      handler: "grantShield",
+      params: { amount: 2 },
+      targetSide: "ally",
+      text: "Give an ally +2 shields.",
+    },
+  },
+  {
+    id: "dawn_lazor",
+    name: "Lazor",
+    element: "DAWN",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 5,
+    hits: 1,
+    hp: 10,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    onDeath: { dmg: 7 }, // Flashing Final: Flash Ray Strike on the killer
+    special: {
+      name: "Flash Ray Strike",
+      cost: 2,
+      handler: "strike",
+      params: { dmg: 7 },
+      targetSide: "enemy",
+      text: "Deal 7 DMG to one opponent.",
+    },
+  },
+  {
+    id: "dawn_clipsey",
+    name: "Clipsey",
+    element: "DAWN",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 5,
+    dmg: 1,
+    hits: 7, // 7×1 shield shredder, SP 14
+    hp: 12,
+    sp: 14,
+    shields: 1,
+    keywords: {},
+    special: {
+      name: "High Noon Revolver",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 2, targets: 99 },
+      targetSide: "enemy",
+      text: "Deal 2 DMG to every opponent in range.",
+    },
+  },
 ];
 
 export const CARD_INDEX: Record<string, CardDef> = Object.fromEntries(
@@ -754,13 +1168,27 @@ export function getDef(defId: string): CardDef {
   return def;
 }
 
-// Fixed alpha decks (17 cards each): P1 runs LEAF+PYRO, P2 runs BORE+DUSK.
-// Each card appears once (once-per-game rule). LEAF is ≥50% of P1's deck,
-// so the one alpha aura (Photosynthesis: +1 HP end of round) is active.
-export const DECK_P1: string[] = CARDS.filter(
-  (c) => c.element === "LEAF" || c.element === "PYRO",
-).map((c) => c.id);
+// Element-pair decks. Each card appears once (once-per-game rule). LEAF is
+// ≥50% of the leaf_pyro deck, so its Photosynthesis aura is active there.
+const deckFor = (...els: string[]): string[] =>
+  CARDS.filter((c) => els.includes(c.element)).map((c) => c.id);
 
-export const DECK_P2: string[] = CARDS.filter(
-  (c) => c.element === "BORE" || c.element === "DUSK",
-).map((c) => c.id);
+export const DECK_P1: string[] = deckFor("LEAF", "PYRO");
+export const DECK_P2: string[] = deckFor("BORE", "DUSK");
+
+export interface DeckDef {
+  id: string;
+  name: string;
+  cards: string[];
+}
+
+/** Selectable decks for the pre-game picker. */
+export const DECKS: DeckDef[] = [
+  { id: "leaf_pyro", name: "Leaf / Pyro", cards: DECK_P1 },
+  { id: "bore_dusk", name: "Bore / Dusk", cards: DECK_P2 },
+  { id: "aqua_dawn", name: "Aqua / Dawn", cards: deckFor("AQUA", "DAWN") },
+];
+
+export function deckById(id: string): DeckDef {
+  return DECKS.find((d) => d.id === id) ?? DECKS[0];
+}

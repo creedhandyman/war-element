@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
 import { applyStatus } from "../combat";
 import { canFireSpecial } from "../rules";
+import { effectiveDmg, effectiveSp } from "../state";
 import { atCleanup, giveHand, place, prepState, seedForCoins } from "./helpers";
 import { advance } from "../phases";
 import type { GameState } from "../types";
@@ -198,6 +199,82 @@ describe("firing specials", () => {
     });
     expect(next.cards[ally.instanceId].curShields).toBe(2);
     expect(next.players.P1.magicPool).toBe(2);
+  });
+});
+
+describe("AQUA / DAWN handlers", () => {
+  it("barrage applies a status to each target (Owl Hail freezes the row)", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const owlette = place(s, "aqua_owlette", "P1", 2, 0); // 4 dmg, FREEZE 1, 3 targets
+    const a = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
+    const b = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 6 });
+    const next = applyIntent(battleWith(s, owlette.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+    });
+    expect(next.cards[a.instanceId].curHp).toBe(9);
+    expect(next.cards[b.instanceId].curHp).toBe(2);
+    expect(next.cards[a.instanceId].statuses[0]?.kind).toBe("FREEZE");
+    expect(next.cards[b.instanceId].statuses[0]?.kind).toBe("FREEZE");
+  });
+
+  it("heal restores allies (Solstice's Daybreak heals the team)", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 4;
+    const solstice = place(s, "dawn_solstice", "P1", 2, 0);
+    const hurt1 = place(s, "leaf_greegon", "P1", 3, 0, { curHp: 5, maxHp: 17 });
+    const hurt2 = place(s, "pyro_tiki", "P1", 3, 1, { curHp: 3, maxHp: 16 });
+    place(s, "dusk_gool", "P2", 0, 0);
+    const next = applyIntent(battleWith(s, solstice.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+    });
+    expect(next.cards[hurt1.instanceId].curHp).toBe(10); // +5
+    expect(next.cards[hurt2.instanceId].curHp).toBe(8); // +5
+  });
+
+  it("Dawn's Golden Courage heals AND cleanses the team", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const dawn = place(s, "dawn_dawn", "P1", 2, 0);
+    const ally = place(s, "leaf_greegon", "P1", 3, 0, {
+      curHp: 10,
+      maxHp: 17,
+      status: { kind: "FREEZE", duration: 2, power: 0, source: "AQUA" },
+    });
+    place(s, "dusk_gool", "P2", 0, 0);
+    const next = applyIntent(battleWith(s, dawn.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+    });
+    expect(next.cards[ally.instanceId].curHp).toBe(15); // +5
+    expect(next.cards[ally.instanceId].statuses).toHaveLength(0); // cleansed
+  });
+
+  it("Polar King's nova FREEZEs reachable opponents", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const polarKing = place(s, "aqua_polarking", "P1", 2, 0);
+    const foe = place(s, "pyro_ember_scorpion", "P2", 1, 0, { curHp: 8 });
+    const next = applyIntent(battleWith(s, polarKing.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+    });
+    expect(next.cards[foe.instanceId].statuses[0]?.kind).toBe("FREEZE");
+  });
+
+  it("FREEZE halves damage (round down) and pins SP", () => {
+    const s = prepState();
+    // home row: isolate FREEZE from the Mid-row King-of-the-Hill +1
+    const foe = place(s, "pyro_ember_scorpion", "P2", 0, 0, { curHp: 8 }); // 9 dmg base
+    applyStatus(s, foe, "FREEZE", 2, 0, "AQUA");
+    expect(effectiveSp(s, foe)).toBe(0);
+    expect(effectiveDmg(s, foe)).toBe(4); // floor(9 × 0.5)
   });
 });
 
