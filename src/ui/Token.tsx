@@ -1,5 +1,5 @@
 import type { CardInstance, GameState } from "../engine";
-import { effectiveDmg, effectiveSp, getDef, legalMoves } from "../engine";
+import { effectiveBasicHits, effectiveDmg, effectiveSp, getDef, legalMoves } from "../engine";
 import { EL_COLOR } from "./shared";
 
 const AUTO_LABEL = { manual: "MANUAL", basic: "AUTO", full: "FULL" } as const;
@@ -68,7 +68,7 @@ export function Token(props: {
             className="st-dmg"
             title={`Hits × damage per hit (printed ${def.dmg}/hit; live value includes Mid-row control and statuses)`}
           >
-            ⚔{def.hits > 1 ? `${def.hits}×` : ""}
+            ⚔{effectiveBasicHits(card) > 1 ? `${effectiveBasicHits(card)}×` : ""}
             {effectiveDmg(game, card)}
           </span>
           {card.curShields > 0 && <span className="st-sh">🛡{card.curShields}</span>}

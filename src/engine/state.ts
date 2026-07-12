@@ -136,7 +136,10 @@ export function effectiveDmg(state: GameState, card: CardInstance): number {
   let dmg = def.dmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0);
   if (hasStatus(card, "WEAKEN")) dmg = Math.floor(dmg * 0.75);
   if (hasStatus(card, "FREEZE")) dmg = Math.floor(dmg * 0.5);
-  if (card.pos && (card.pos.row === 1 || card.pos.row === 2)) dmg += 1;
+  // King of the Hill (A): sitting in a Mid row grants +1 DMG — but ONLY to
+  // single-hit cards. Multi-hit cards get +1 HIT instead (in effectiveBasicHits),
+  // so a flat per-hit +1 doesn't balloon on shredders.
+  if (card.pos && (card.pos.row === 1 || card.pos.row === 2) && def.hits === 1) dmg += 1;
   for (const midRow of [1, 2]) {
     let held = 0;
     for (let col = 0; col < BOARD_SIZE; col++) {

@@ -30,6 +30,7 @@ export {
 } from "./rules";
 export type { PlannedAction } from "./rules";
 export { applyIntent, advance, advanceUntilInput, needsP1Input, needsInput } from "./phases";
+export { effectiveBasicHits } from "./combat";
 export { aiMulligan, aiPrepIntent, chooseBattleAction } from "./ai";
 export { CARDS, CARD_INDEX, getDef, DECK_P1, DECK_P2, DECKS, deckById } from "../data/cards";
 export type { DeckDef } from "../data/cards";

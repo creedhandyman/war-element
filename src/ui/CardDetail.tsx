@@ -1,5 +1,5 @@
 import type { CardInstance, GameState, PlayerId, StatusKind } from "../engine";
-import { effectiveDmg, effectiveSp, ELEMENT_AURA, getDef } from "../engine";
+import { effectiveBasicHits, effectiveDmg, effectiveSp, ELEMENT_AURA, getDef } from "../engine";
 import { EL_COLOR } from "./shared";
 
 // Plain-language blurb for each status kind, shown under a card's active effects.
@@ -31,6 +31,7 @@ export function CardDetail(props: {
   const def = getDef(card.defId);
   const mine = card.owner === props.viewer;
   const dmg = effectiveDmg(game, card);
+  const hits = effectiveBasicHits(card);
   const sp = effectiveSp(game, card);
   const kws = Object.entries(def.keywords).map(([k, v]) =>
     v === true ? k : `${k} ${v}`,
@@ -150,7 +151,7 @@ export function CardDetail(props: {
               <div className="cd-stat" title="Live damage (printed value adjusted for Mid-row control & statuses)">
                 <span className="cd-lbl">DMG</span>
                 <span className="cd-val st-dmg">
-                  ⚔{def.hits > 1 ? `${def.hits}× ` : ""}
+                  ⚔{hits > 1 ? `${hits}× ` : ""}
                   {dmg}
                 </span>
               </div>

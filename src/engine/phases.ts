@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, type FlowMode, GALE_SP_CAP } from "./auras";
-import { applyStatus, basicAttack, directDamage, label, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, basicAttack, directDamage, effectiveBasicHits, label, SPECIAL_HANDLERS } from "./combat";
 import { coin } from "./rng";
 import {
   applyMulligan,
@@ -372,8 +372,7 @@ export function pickBasicTarget(
   attacker: CardInstance,
   targets: CardInstance[],
 ): CardInstance {
-  const def = getDef(attacker.defId);
-  const volley = effectiveDmg(draft, attacker) * def.hits;
+  const volley = effectiveDmg(draft, attacker) * effectiveBasicHits(attacker);
   const killable = targets.filter((t) => {
     const tDef = getDef(t.defId);
     const shieldSoak = tDef.keywords.PEN ? 0 : t.curShields; // rough estimate

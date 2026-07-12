@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { basicAttack, effectiveBasicHits } from "../combat";
 import { applyFlow } from "../auras";
 import { advance, applyIntent } from "../phases";
-import { boardCards } from "../state";
+import { boardCards, effectiveDmg } from "../state";
 import { getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState } from "./helpers";
 
@@ -90,6 +90,23 @@ describe("on-death row-ahead (Burnout)", () => {
   });
 });
 
+describe("King of the Hill: multi-hit cards get a hit, not per-hit DMG", () => {
+  it("single-hit card in a mid row gains +1 DMG; multi-hit card gains +1 hit", () => {
+    const s = prepState();
+    const single = place(s, "pyro_firebird", "P1", 2, 0); // 5 dmg, 1 hit
+    expect(effectiveDmg(s, single)).toBe(6); // +1 DMG in mid (unchanged)
+    expect(effectiveBasicHits(single)).toBe(1);
+
+    const multi = place(s, "aqua_vaporem", "P1", 2, 1); // 2 dmg × 5 hits
+    expect(effectiveDmg(s, multi)).toBe(2); // NO per-hit +1
+    expect(effectiveBasicHits(multi)).toBe(6); // +1 hit instead
+
+    // Out of the mid rows, the multi-hit card is back to its printed hits.
+    const home = place(s, "aqua_vaporem", "P1", 3, 2);
+    expect(effectiveBasicHits(home)).toBe(5);
+  });
+});
+
 describe("element auras", () => {
   it("Exostone (BORE): a summoned card enters with +2 shields", () => {
     const s = prepState();
@@ -153,14 +170,15 @@ describe("element auras", () => {
   it("Flow Change Liquid: +1 hit on a multi-hit card, +2 DMG on a single-hit card", () => {
     const s = prepState();
     // Vaporem strikes 2×5 — Liquid must add a HIT, not +2 to every hit.
-    const vap = place(s, "aqua_vaporem", "P1", 2, 0);
+    // Placed on the home row to isolate Liquid from the mid-lane hit bonus.
+    const vap = place(s, "aqua_vaporem", "P1", 3, 0);
     applyFlow(vap, "water");
     expect(vap.hitsBonusRound).toBe(1);
     expect(vap.dmgBonusRound).toBe(0);
     expect(effectiveBasicHits(vap)).toBe(6); // base 5 + 1
 
     // Spinefin is single-hit — Liquid gives the flat +2 DMG.
-    const fin = place(s, "aqua_spinefin", "P1", 3, 0);
+    const fin = place(s, "aqua_spinefin", "P1", 3, 1);
     applyFlow(fin, "water");
     expect(fin.dmgBonusRound).toBe(2);
     expect(fin.hitsBonusRound).toBe(0);

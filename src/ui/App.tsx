@@ -10,6 +10,8 @@ import {
   createInitialState,
   deckById,
   DECKS,
+  effectiveBasicHits,
+  effectiveDmg,
   FLOW_MODES,
   getDef,
   homeRow,
@@ -161,7 +163,7 @@ export function App() {
   const maxPicks = (() => {
     if (!awaitingId || !pending) return 1;
     const def = getDef(game.cards[awaitingId].defId);
-    if (pending === "basic") return def.hits;
+    if (pending === "basic") return effectiveBasicHits(game.cards[awaitingId]);
     const cap = Number(def.special?.params?.targets ?? 1);
     return Math.max(1, Math.min(cap, legalTargetIds.length));
   })();
@@ -321,8 +323,8 @@ export function App() {
             <div className="bp-title">
               {activeDef.name} is up{" "}
               <small>
-                ⚔{activeDef.hits > 1 ? `${activeDef.hits}×` : ""}
-                {activeDef.dmg} · {activeDef.attackType}
+                ⚔{effectiveBasicHits(activeCard) > 1 ? `${effectiveBasicHits(activeCard)}×` : ""}
+                {effectiveDmg(game, activeCard)} · {activeDef.attackType}
               </small>
             </div>
             <div className="bp-actions">
@@ -337,8 +339,8 @@ export function App() {
                   setPending("basic");
                   setPicks([]);
                   setHint(
-                    activeDef.hits > 1
-                      ? `Basic attack: <b>${activeDef.hits} hits × ${activeDef.dmg} DMG</b> — click up to ${activeDef.hits} glowing targets (repeat one to stack).`
+                    effectiveBasicHits(activeCard) > 1
+                      ? `Basic attack: <b>${effectiveBasicHits(activeCard)} hits × ${effectiveDmg(game, activeCard)} DMG</b> — click up to ${effectiveBasicHits(activeCard)} glowing targets (repeat one to stack).`
                       : "Pick a glowing target for the basic attack.",
                   );
                 }}
