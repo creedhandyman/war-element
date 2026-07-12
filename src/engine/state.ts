@@ -121,7 +121,7 @@ export function hasStatus(card: CardInstance, kind: StatusKind): boolean {
 export function effectiveSp(_state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   if (hasStatus(card, "ROOT") || hasStatus(card, "FREEZE")) return 0;
-  return def.sp;
+  return Math.max(0, def.sp + card.spBonus);
 }
 
 /**
@@ -132,7 +132,7 @@ export function effectiveSp(_state: GameState, card: CardInstance): number {
  */
 export function effectiveDmg(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
-  let dmg = def.dmg + card.dmgBonus;
+  let dmg = def.dmg + card.dmgBonus + card.dmgBonusRound;
   if (hasStatus(card, "WEAKEN")) dmg = Math.floor(dmg * 0.75);
   if (hasStatus(card, "FREEZE")) dmg = Math.floor(dmg * 0.5);
   if (card.pos && (card.pos.row === 1 || card.pos.row === 2)) dmg += 1;
@@ -172,6 +172,10 @@ export function summonCard(
     maxHp: def.hp,
     curShields: def.shields,
     dmgBonus: 0,
+    dmgBonusRound: 0,
+    spBonus: 0,
+    hitsBonus: 0,
+    struckThisRound: {},
     statuses: [],
     summonedThisRound: true,
     specialCooldown: 0,

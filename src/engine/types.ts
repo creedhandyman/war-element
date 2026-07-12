@@ -71,6 +71,62 @@ export interface SpecialDef {
   text: string; // human-readable card text
 }
 
+/** Status a basic attack applies. Optional gating restores the printed
+ *  "50% chance", "first time only", or "on the 2nd hit" riders. */
+export interface OnHitStatusDef {
+  kind: StatusKind;
+  duration: number;
+  power: number;
+  chance?: number; // 0–100; omit = always
+  firstHitOnly?: boolean; // only the first basic hit vs a given target each round
+  onSecondHit?: boolean; // only from the 2nd+ basic hit vs a target in a round
+}
+
+/** Thorns / retaliation when this card is hit by a MELEE attacker. */
+export interface OnHitByMeleeDef {
+  chance?: number; // 0–100; omit = always
+  dmg?: number; // direct damage back to the attacker
+  pen?: boolean;
+  status?: { kind: StatusKind; duration: number; power: number };
+}
+
+/** Fires when this card's basic/special attack KILLS an enemy (per kill). */
+export interface OnKillDef {
+  buffDmg?: number; // permanent +DMG (stacks)
+  buffDmgRound?: number; // +DMG for the rest of the round
+  buffSp?: number; // permanent +SP
+  buffHits?: number; // permanent +1 basic hit (stacks)
+  healSelf?: number; // heal self N
+  gainShields?: number;
+  aoeDmg?: number; // deal N to every reachable enemy
+  coinBonusDmg?: number; // coin flip: +this or +this−1 permanent DMG
+}
+
+/** A basic-attack conditional keyword that only applies vs a target already
+ *  carrying `status` (e.g. LIFESTEAL vs ROOTed, CRIT vs PARALYZED). */
+export interface VsStatusDef {
+  status: StatusKind;
+  lifesteal?: boolean;
+  crit?: boolean;
+  bonusDmg?: number; // +DMG per hit
+  dmgMult?: number; // multiply per-hit DMG (2 = double vs the status)
+  healOnHit?: number; // heal self N when a hit lands on such a target
+}
+
+/** A periodic self-driven effect resolved in Cleanup (end of round). */
+export interface RoundTickDef {
+  aoeDmg?: number; // damage every enemy in range
+  aoeStatus?: { kind: StatusKind; duration: number; power: number };
+  lowestEnemyStatus?: { kind: StatusKind; duration: number; power: number };
+  pokeDmg?: number; // damage the closest single enemy
+  pokeStatus?: { kind: StatusKind; duration: number; power: number };
+  healAllies?: number; // heal every ally N
+  healLowestAlly?: number; // heal the lowest-HP ally N
+  buffDmgEveryN?: { n: number; amount: number }; // +DMG every Nth round (stacking)
+  scaldFrozen?: number; // apply SCALD N to FROZEN enemies (Freezer Burn)
+  paralyzeOne?: number; // PARALYZE one un-paralyzed enemy for N rounds
+}
+
 export interface CardDef {
   id: string; // stable unique key, e.g. 'leaf_sumerose'
   name: string;
@@ -85,7 +141,15 @@ export interface CardDef {
   shields: number;
   keywords: Partial<Record<Keyword, number | true>>;
   /** Status applied by basic attacks that land at least one hit. */
-  onHitStatus?: { kind: StatusKind; duration: number; power: number };
+  onHitStatus?: OnHitStatusDef;
+  /** Thorns: retaliate when hit by a melee attacker. */
+  onHitByMelee?: OnHitByMeleeDef;
+  /** On-kill trigger (this card's attack defeats an enemy). */
+  onKill?: OnKillDef;
+  /** Conditional basic-attack keyword vs a target carrying a status. */
+  vsStatus?: VsStatusDef;
+  /** Periodic self effect resolved each Cleanup. */
+  roundTick?: RoundTickDef;
   /** Catapult-style passives: this card may target the enemy Home row from
    *  anywhere (skips the Home Slot Targeting Rule). */
   ignoresHomeRule?: boolean;
@@ -94,14 +158,23 @@ export interface CardDef {
   statusImmune?: boolean;
   /** On-death retaliation (Lingering Venom / Bird Bomb): when this card is
    *  killed by an attack, deal dmg back to the killer. Direct damage — no
-   *  evasion, no reflect chains. DOT/self-damage deaths have no killer. */
-  onDeath?: { dmg: number; pen?: boolean };
+   *  evasion, no reflect chains. DOT/self-damage deaths have no killer.
+   *  `rowAhead` (FireBird Burnout) instead blasts the enemy row directly ahead
+   *  of where this card died, regardless of who the killer was. */
+  onDeath?: { dmg: number; pen?: boolean; rowAhead?: boolean };
   /** On-summon passive (Fire Blast / Fury Unleashed): fires the moment the
    *  card lands, through the same handler registry as Specials. Free — not a
    *  Special, so no magic cost, no cooldown, no summon-turn lockout. Targets
    *  obey normal targeting rules; params.rowAhead=1 limits them to the row
    *  directly ahead of where it was summoned. */
-  onSummon?: { handler: string; params?: Record<string, number | string> };
+  onSummon?: {
+    handler: string;
+    params?: Record<string, number | string>;
+    /** Who the on-summon effect hits. Default "enemy". "ally" fires an ally
+     *  handler (grantShield/buffSp/heal) on friendly cards in the forward area
+     *  (Smith Reforged, Duster Dust Off). */
+    targetSide?: "enemy" | "ally";
+  };
   special?: SpecialDef;
   // future: spells / traps / talents / auras beyond the LEAF alpha aura
 }
@@ -120,7 +193,13 @@ export interface CardInstance {
   curHp: number;
   maxHp: number; // can grow/shrink via DRAIN
   curShields: number;
-  dmgBonus: number; // permanent modifiers (DRAIN-adjacent effects; 0 in alpha)
+  dmgBonus: number; // permanent DMG modifiers (DRAIN, on-kill buffs)
+  dmgBonusRound: number; // DMG buff that resets each Cleanup (on-kill "for the round")
+  spBonus: number; // permanent SP modifiers (on-kill buffs)
+  hitsBonus: number; // permanent extra basic hits (Fenrir On Kill)
+  /** Basic hits this card has LANDED on each target this round (keyed by target
+   *  instanceId). Powers first-hit-only / on-second-hit riders; reset in Cleanup. */
+  struckThisRound: Record<string, number>;
   /** Active statuses. DIFFERENT kinds coexist (a card can be ROOTed and
    *  BURNing); re-applying the SAME kind refreshes it instead of stacking —
    *  same-kind stacking only when a card explicitly states it (future flag). */

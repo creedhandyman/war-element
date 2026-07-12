@@ -13,16 +13,23 @@
 //   5. On-hit keywords: LIFESTEAL (basic), DRAIN (basic), REFLECT X.
 
 import { getDef } from "../data/cards";
-import { chance, coin } from "./rng";
-import { cardAt, effectiveDmg, hasStatus, removeCard } from "./state";
+import { chance, coin, pctChance } from "./rng";
+import { boardCards, cardAt, effectiveDmg, hasStatus, removeCard } from "./state";
 import type {
   CardInstance,
   Element,
   GameState,
+  OnHitByMeleeDef,
+  OnKillDef,
   Pos,
   StatusKind,
 } from "./types";
 import { BOARD_SIZE, enemyOf, homeRow } from "./types";
+
+/** Total basic hits including permanent on-kill bonuses (Fenrir). */
+export function effectiveBasicHits(card: CardInstance): number {
+  return getDef(card.defId).hits + card.hitsBonus;
+}
 
 export interface HitOptions {
   kind: "basic" | "special" | "reflect";
@@ -30,6 +37,7 @@ export interface HitOptions {
   hits: number;
   pen: boolean;
   crit: boolean; // CRIT keyword in play (basic attacks only)
+  lifesteal?: boolean; // conditional LIFESTEAL (vsStatus) beyond the keyword
 }
 
 export interface AttackResult {
@@ -163,9 +171,10 @@ export function resolveHit(
     }
   }
 
-  // 5. On-hit keywords — basic attacks only.
+  // 5. On-hit keywords — basic attacks only. (onHitStatus riders + vsStatus
+  //    heals are applied by basicAttack, which knows the per-target gating.)
   if (opts.kind === "basic" && result.landedHits > 0) {
-    if (aDef.keywords.LIFESTEAL && result.totalToHp > 0) {
+    if ((aDef.keywords.LIFESTEAL || opts.lifesteal) && result.totalToHp > 0) {
       const healed = Math.min(result.totalToHp, attacker.maxHp - attacker.curHp);
       if (healed > 0) {
         attacker.curHp += healed;
@@ -180,36 +189,48 @@ export function resolveHit(
         draft.log.push(`${aDef.name} drains 1 max HP from ${tDef.name}.`);
       }
     }
-    // Data-driven on-hit status rider (e.g. StickViper's BLEED).
-    if (aDef.onHitStatus && target.curHp > 0) {
-      applyStatus(
-        draft,
-        target,
-        aDef.onHitStatus.kind,
-        aDef.onHitStatus.duration,
-        aDef.onHitStatus.power,
-        aDef.element,
-      );
-    }
   }
 
   if (target.curHp <= 0) {
     result.targetDied = true;
+    const deathPos = target.pos ? { ...target.pos } : null;
+    const deadOwner = target.owner;
     die(draft, target, `${aDef.name}'s ${opts.kind}`);
-    // On-death retaliation (Lingering Venom / Bird Bomb): hits the killer
-    // directly — no evasion, no chains (kind 'reflect' guards recursion; a
-    // retaliation-killed card's own rider stops at the already-dead attacker).
-    if (tDef.onDeath && opts.kind !== "reflect" && attacker.curHp > 0) {
-      draft.log.push(`${tDef.name} retaliates from the grave (${tDef.onDeath.dmg} DMG)!`);
-      const r = resolveHit(draft, target, attacker, {
-        kind: "reflect",
-        dmg: tDef.onDeath.dmg,
-        hits: 1,
-        pen: Boolean(tDef.onDeath.pen),
-        crit: false,
-      });
-      if (r.targetDied) result.attackerDied = true;
+    // On-kill trigger for the attacker (basic/special kills only).
+    if ((opts.kind === "basic" || opts.kind === "special") && attacker.curHp > 0 && aDef.onKill) {
+      applyOnKill(draft, attacker, aDef.onKill);
     }
+    // On-death effects.
+    if (tDef.onDeath && opts.kind !== "reflect") {
+      if (tDef.onDeath.rowAhead && deathPos) {
+        // Burnout: blast the enemy row directly ahead of where it fell.
+        onDeathRowAhead(draft, target, deadOwner, deathPos, tDef.onDeath.dmg, Boolean(tDef.onDeath.pen));
+      } else if (attacker.curHp > 0) {
+        // Lingering Venom / Bird Bomb: retaliate on the killer directly.
+        draft.log.push(`${tDef.name} retaliates from the grave (${tDef.onDeath.dmg} DMG)!`);
+        const r = resolveHit(draft, target, attacker, {
+          kind: "reflect",
+          dmg: tDef.onDeath.dmg,
+          hits: 1,
+          pen: Boolean(tDef.onDeath.pen),
+          crit: false,
+        });
+        if (r.targetDied) result.attackerDied = true;
+      }
+    }
+  }
+
+  // Thorns: retaliate when a surviving card is struck by a MELEE attacker.
+  if (
+    opts.kind !== "reflect" &&
+    result.landedHits > 0 &&
+    target.curHp > 0 &&
+    attacker.curHp > 0 &&
+    aDef.attackType === "Melee" &&
+    tDef.onHitByMelee
+  ) {
+    const r = applyOnHitByMelee(draft, target, attacker, tDef.onHitByMelee);
+    if (r) result.attackerDied = true;
   }
 
   // REFLECT — plain damage back through the attacker's BLOCK + shield gate.
@@ -260,11 +281,12 @@ export function basicAttack(
     return missed;
   }
 
-  // Allocate the volley: one pick takes every hit; multiple picks take one hit
-  // each (consecutive repeats of the same target merge into one gated volley).
+  // Allocate the volley: one pick takes every hit (incl. permanent on-kill hit
+  // bonuses); multiple picks take one hit each (consecutive repeats of the same
+  // target merge into one gated volley).
   const groups: { targetId: string; hits: number }[] = [];
   if (picks.length === 1) {
-    groups.push({ targetId: picks[0], hits: aDef.hits });
+    groups.push({ targetId: picks[0], hits: effectiveBasicHits(attacker) });
   } else {
     for (const id of picks) {
       const last = groups[groups.length - 1];
@@ -277,13 +299,39 @@ export function basicAttack(
   for (const g of groups) {
     const t = draft.cards[g.targetId];
     if (!t || attacker.curHp <= 0) continue; // target fell / attacker died to REFLECT
+
+    // Conditional keyword vs the target's status (Gnashing Bite, Precision
+    // Strike, etc.): fold into this group's hit options.
+    let dmg = effectiveDmg(draft, attacker);
+    let crit = Boolean(aDef.keywords.CRIT);
+    let lifesteal = false;
+    let healOnHit = 0;
+    const vs = aDef.vsStatus;
+    const vsMatch = vs != null && hasStatus(t, vs.status);
+    if (vs && vsMatch) {
+      if (vs.dmgMult) dmg = Math.floor(dmg * vs.dmgMult);
+      if (vs.bonusDmg) dmg += vs.bonusDmg;
+      if (vs.crit) crit = true;
+      if (vs.lifesteal) lifesteal = true;
+      healOnHit = vs.healOnHit ?? 0;
+    }
+
+    const struckBefore = attacker.struckThisRound[t.instanceId] ?? 0;
     const r = resolveHit(draft, attacker, t, {
       kind: "basic",
-      dmg: effectiveDmg(draft, attacker),
+      dmg,
       hits: g.hits,
       pen: Boolean(aDef.keywords.PEN),
-      crit: Boolean(aDef.keywords.CRIT),
+      crit,
+      lifesteal,
     });
+    if (r.landedHits > 0) {
+      attacker.struckThisRound[t.instanceId] = struckBefore + r.landedHits;
+      applyOnHitRider(draft, attacker, t, struckBefore, r.landedHits);
+      if (healOnHit > 0 && attacker.curHp > 0) {
+        attacker.curHp = Math.min(attacker.maxHp, attacker.curHp + healOnHit);
+      }
+    }
     agg.landedHits += r.landedHits;
     agg.dodgedHits += r.dodgedHits;
     agg.totalToHp += r.totalToHp;
@@ -291,6 +339,24 @@ export function basicAttack(
     agg.attackerDied = agg.attackerDied || r.attackerDied;
   }
   return agg;
+}
+
+/** Apply a card's basic-attack status rider, honoring the printed gating
+ *  (chance %, first-hit-only, on-second-hit). `struckBefore` = hits landed on
+ *  this target earlier in the round; `landedNow` = hits from this attack. */
+function applyOnHitRider(
+  draft: GameState,
+  attacker: CardInstance,
+  target: CardInstance,
+  struckBefore: number,
+  landedNow: number,
+): void {
+  const rider = getDef(attacker.defId).onHitStatus;
+  if (!rider || target.curHp <= 0 || !draft.cards[target.instanceId]) return;
+  if (rider.firstHitOnly && struckBefore > 0) return; // already struck this round
+  if (rider.onSecondHit && struckBefore + landedNow < 2) return; // needs the 2nd hit
+  if (rider.chance != null && !pctChance(draft, rider.chance)) return;
+  applyStatus(draft, target, rider.kind, rider.duration, rider.power, getDef(attacker.defId).element);
 }
 
 // ── special-handler registry ────────────────────────────────────────────────
@@ -348,6 +414,127 @@ function chargeForward(draft: GameState, card: CardInstance, steps: number): voi
   if (moved > 0) draft.log.push(`${label(draft, card)} charges forward ${moved} slot(s).`);
 }
 
+/** Row directly ahead (toward the enemy home) of a given position. */
+function rowAhead(owner: CardInstance["owner"], row: number): number {
+  return owner === "P1" ? row - 1 : row + 1;
+}
+
+/** Direct, trigger-free damage to a single card (used by on-kill / on-death /
+ *  round-tick AoEs). Returns true if it killed the target. */
+export function directDamage(
+  draft: GameState,
+  source: CardInstance,
+  target: CardInstance,
+  dmg: number,
+  pen: boolean,
+): boolean {
+  if (!draft.cards[target.instanceId] || target.curHp <= 0) return false;
+  const r = resolveHit(draft, source, target, { kind: "reflect", dmg, hits: 1, pen, crit: false });
+  return r.targetDied;
+}
+
+/** Burnout: a dying card blasts the enemy cards in the row directly ahead. */
+function onDeathRowAhead(
+  draft: GameState,
+  dead: CardInstance,
+  deadOwner: CardInstance["owner"],
+  pos: Pos,
+  dmg: number,
+  pen: boolean,
+): void {
+  const row = rowAhead(deadOwner, pos.row);
+  if (row < 0 || row >= BOARD_SIZE) return;
+  const victims = boardCards(draft, enemyOf(deadOwner)).filter((c) => c.pos?.row === row);
+  if (victims.length === 0) return;
+  draft.log.push(`${getDef(dead.defId).name} erupts on death — ${dmg} DMG to the row ahead!`);
+  for (const v of victims) directDamage(draft, dead, v, dmg, pen);
+}
+
+/** Thorns: a struck card hits its melee attacker back with damage and/or a
+ *  status. Returns true if the retaliation killed the attacker. */
+function applyOnHitByMelee(
+  draft: GameState,
+  defender: CardInstance,
+  attacker: CardInstance,
+  def: OnHitByMeleeDef,
+): boolean {
+  if (def.chance != null && !pctChance(draft, def.chance)) return false;
+  let killed = false;
+  if (def.dmg && def.dmg > 0) {
+    draft.log.push(`${label(draft, defender)} retaliates — ${def.dmg} DMG to ${getDef(attacker.defId).name}.`);
+    killed = directDamage(draft, defender, attacker, def.dmg, Boolean(def.pen));
+  }
+  if (def.status && attacker.curHp > 0 && draft.cards[attacker.instanceId]) {
+    applyStatus(draft, attacker, def.status.kind, def.status.duration, def.status.power, getDef(defender.defId).element);
+  }
+  return killed;
+}
+
+/** On-kill: buff the killer / heal / blast. */
+function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef): void {
+  const name = getDef(killer.defId).name;
+  if (def.buffDmg) {
+    killer.dmgBonus += def.buffDmg;
+    draft.log.push(`${name} grows stronger (+${def.buffDmg} DMG) on the kill.`);
+  }
+  if (def.buffDmgRound) killer.dmgBonusRound += def.buffDmgRound;
+  if (def.buffSp) killer.spBonus += def.buffSp;
+  if (def.buffHits) {
+    killer.hitsBonus += def.buffHits;
+    draft.log.push(`${name} gains +${def.buffHits} hit on its basic attack.`);
+  }
+  if (def.coinBonusDmg) {
+    const bonus = coin(draft) ? def.coinBonusDmg : def.coinBonusDmg - 1;
+    killer.dmgBonus += bonus;
+    draft.log.push(`${name} claims the spoils (+${bonus} DMG).`);
+  }
+  if (def.healSelf) {
+    killer.curHp = Math.min(killer.maxHp, killer.curHp + def.healSelf);
+    draft.log.push(`${name} heals ${def.healSelf} on the kill.`);
+  }
+  if (def.gainShields) killer.curShields += def.gainShields;
+  if (def.aoeDmg) {
+    for (const e of boardCards(draft, enemyOf(killer.owner)))
+      directDamage(draft, killer, e, def.aoeDmg, false);
+    draft.log.push(`${name} discharges ${def.aoeDmg} to all enemies!`);
+  }
+}
+
+/** Post-special self buffs shared by handlers: +max HP, ±SP. */
+function applySelfRiders(
+  draft: GameState,
+  caster: CardInstance,
+  params: Record<string, number | string>,
+): void {
+  const maxHp = num(params, "selfMaxHp");
+  if (maxHp > 0) {
+    caster.maxHp += maxHp;
+    caster.curHp += maxHp;
+    draft.log.push(`${label(draft, caster)} gains +${maxHp} max HP.`);
+  }
+  const sp = num(params, "selfSp");
+  if (sp !== 0) caster.spBonus += sp;
+}
+
+/** Apply a status to every enemy in the 8 slots adjacent to the caster
+ *  (Squanch's Bushwhacker ROOT). */
+function adjacentCasterStatus(
+  draft: GameState,
+  caster: CardInstance,
+  params: Record<string, number | string>,
+): void {
+  const kind = params.adjStatusKind as StatusKind | undefined;
+  if (!kind || !caster.pos) return;
+  for (const e of boardCards(draft, enemyOf(caster.owner))) {
+    if (!e.pos) continue;
+    const dr = Math.abs(e.pos.row - caster.pos.row);
+    const dc = Math.abs(e.pos.col - caster.pos.col);
+    if (dr <= 1 && dc <= 1 && !(dr === 0 && dc === 0)) {
+      applyStatus(draft, e, kind, num(params, "adjStatusDuration", 1), num(params, "adjStatusPower", 0), getDef(caster.defId).element);
+    }
+  }
+}
+
 export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   /** Single-target damage w/ optional pen, self-damage, self-heal, status. */
   strike(draft, attacker, targets, params) {
@@ -373,6 +560,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const healSelf = num(params, "healSelf");
     if (healSelf > 0 && attacker.curHp > 0) {
       attacker.curHp = Math.min(attacker.maxHp, attacker.curHp + healSelf);
+    }
+    if (attacker.curHp > 0) {
+      adjacentCasterStatus(draft, attacker, params); // ROOT all adjacent (Squanch)
+      applySelfRiders(draft, attacker, params);
     }
     // Charge: a move-and-strike special advances the attacker toward the enemy
     // home (up to `charge` open steps) after it hits — its reach came from the
@@ -410,6 +601,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       seen.add(target.instanceId);
       maybeStatus(draft, attacker, target, params);
     }
+    applySelfRiders(draft, attacker, params); // e.g. Guan's +5 max HP
   },
 
   /** Permanently steal max HP from one enemy (DUSK's Jacked-style theft). */

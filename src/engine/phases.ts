@@ -2,7 +2,7 @@
 // All reducers clone the incoming state once and mutate only the clone.
 
 import { getDef } from "../data/cards";
-import { basicAttack, label, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, basicAttack, directDamage, label, SPECIAL_HANDLERS } from "./combat";
 import { coin } from "./rng";
 import {
   applyMulligan,
@@ -12,7 +12,9 @@ import {
   effectiveDmg,
   effectiveSp,
   hasCaptureWin,
+  hasStatus,
   isEliminated,
+  manhattan,
   removeCard,
   summonCard,
 } from "./state";
@@ -78,15 +80,20 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // allows and hits the side columns; without it, targets are unscoped.
       if (def.onSummon) {
         const params = def.onSummon.params ?? {};
-        const targets =
-          Number(params.spread ?? -1) >= 0
-            ? forwardAreaTargets(draft, inst, Number(params.spread))
-            : validTargets(draft, inst.instanceId);
-        if (targets.length > 0) {
-          const handler = SPECIAL_HANDLERS[def.onSummon.handler];
-          if (!handler) throw new Error(`Unknown onSummon handler: ${def.onSummon.handler}`);
-          draft.log.push(`${def.name}'s on-summon passive triggers!`);
-          handler(draft, inst, targets, params);
+        if (def.onSummon.targetSide === "ally") {
+          // Ally-buff on summon (Smith Reforged / Duster Dust Off).
+          applyAllyOnSummon(draft, inst, def.onSummon.handler, params);
+        } else {
+          const targets =
+            Number(params.spread ?? -1) >= 0
+              ? forwardAreaTargets(draft, inst, Number(params.spread))
+              : validTargets(draft, inst.instanceId);
+          if (targets.length > 0) {
+            const handler = SPECIAL_HANDLERS[def.onSummon.handler];
+            if (!handler) throw new Error(`Unknown onSummon handler: ${def.onSummon.handler}`);
+            draft.log.push(`${def.name}'s on-summon passive triggers!`);
+            handler(draft, inst, targets, params);
+          }
         }
       }
       return draft;
@@ -365,6 +372,100 @@ export function pickBasicTarget(
   return pool.reduce((best, t) => (t.curHp < best.curHp ? t : best), pool[0]);
 }
 
+/** Ally-facing on-summon passives (Smith Reforged: shields to the row ahead;
+ *  Duster Dust Off: +SP to self and a nearby ally). */
+function applyAllyOnSummon(
+  draft: GameState,
+  caster: CardInstance,
+  handler: string,
+  params: Record<string, number | string>,
+): void {
+  const amount = Number(params.amount ?? 0);
+  if (amount <= 0 || !caster.pos) return;
+  const dir = caster.owner === "P1" ? -1 : 1;
+  const aheadRow = caster.pos.row + dir;
+  const allies = boardCards(draft, caster.owner).filter((c) => c.instanceId !== caster.instanceId);
+
+  if (handler === "grantShield") {
+    // Allies in the row directly ahead of the caster.
+    const targets = allies.filter((c) => c.pos?.row === aheadRow);
+    for (const t of targets) t.curShields += amount;
+    if (targets.length > 0)
+      draft.log.push(`${getDef(caster.defId).name} reinforces ${targets.length} ally(ies) (+${amount} shields).`);
+  } else if (handler === "buffSp") {
+    // Self + the nearest ally.
+    caster.spBonus += amount;
+    const near = closest(caster, allies);
+    if (near) near.spBonus += amount;
+    draft.log.push(`${getDef(caster.defId).name} kicks up speed (+${amount} SP self${near ? " + ally" : ""}).`);
+  }
+}
+
+/** Resolve every card's periodic (end-of-round) self-driven passive. Runs in
+ *  Cleanup after DOT/REGEN and status-duration ticks. */
+function doRoundTicks(draft: GameState): void {
+  for (const card of boardCards(draft)) {
+    if (card.curHp <= 0) continue;
+    const rt = getDef(card.defId).roundTick;
+    if (!rt) continue;
+    const el = getDef(card.defId).element;
+    const enemies = () => boardCards(draft, enemyOf(card.owner)).filter((c) => c.curHp > 0);
+    const allies = () => boardCards(draft, card.owner).filter((c) => c.curHp > 0);
+
+    if (rt.buffDmgEveryN && draft.round % rt.buffDmgEveryN.n === 0) {
+      card.dmgBonus += rt.buffDmgEveryN.amount;
+      draft.log.push(`${label(draft, card)} sharpens (+${rt.buffDmgEveryN.amount} DMG).`);
+    }
+    if (rt.aoeDmg) {
+      for (const e of enemies()) directDamage(draft, card, e, rt.aoeDmg, false);
+      draft.log.push(`${label(draft, card)} sweeps the field (${rt.aoeDmg} DMG to all enemies).`);
+    }
+    if (rt.aoeStatus) {
+      for (const e of enemies()) applyStatus(draft, e, rt.aoeStatus.kind, rt.aoeStatus.duration, rt.aoeStatus.power, el);
+    }
+    if (rt.scaldFrozen) {
+      for (const e of enemies()) if (hasStatus(e, "FREEZE")) applyStatus(draft, e, "SCALD", 1, rt.scaldFrozen, el);
+    }
+    if (rt.lowestEnemyStatus) {
+      const t = lowestHp(enemies());
+      if (t) applyStatus(draft, t, rt.lowestEnemyStatus.kind, rt.lowestEnemyStatus.duration, rt.lowestEnemyStatus.power, el);
+    }
+    if (rt.paralyzeOne) {
+      const t = enemies().find((e) => !hasStatus(e, "PARALYZE"));
+      if (t) applyStatus(draft, t, "PARALYZE", rt.paralyzeOne, 0, el);
+    }
+    if (rt.pokeDmg || rt.pokeStatus) {
+      const t = closest(card, enemies());
+      if (t) {
+        if (rt.pokeDmg) directDamage(draft, card, t, rt.pokeDmg, false);
+        if (rt.pokeStatus && draft.cards[t.instanceId] && t.curHp > 0)
+          applyStatus(draft, t, rt.pokeStatus.kind, rt.pokeStatus.duration, rt.pokeStatus.power, el);
+      }
+    }
+    if (rt.healAllies) {
+      for (const a of allies()) a.curHp = Math.min(a.maxHp, a.curHp + rt.healAllies);
+      draft.log.push(`${label(draft, card)} restores allies (+${rt.healAllies} HP).`);
+    }
+    if (rt.healLowestAlly) {
+      const a = lowestHp(allies().filter((c) => c.curHp < c.maxHp));
+      if (a) a.curHp = Math.min(a.maxHp, a.curHp + rt.healLowestAlly);
+    }
+  }
+}
+
+function lowestHp(cards: CardInstance[]): CardInstance | null {
+  return cards.reduce<CardInstance | null>((best, c) => (!best || c.curHp < best.curHp ? c : best), null);
+}
+
+function closest(from: CardInstance, cards: CardInstance[]): CardInstance | null {
+  if (!from.pos) return cards[0] ?? null;
+  const fp = from.pos;
+  return cards.reduce<CardInstance | null>(
+    (best, c) => (c.pos && (!best || manhattan(fp, c.pos) < manhattan(fp, best.pos!)) ? c : best),
+    null,
+  );
+}
+
 function doCleanupPhase(draft: GameState): void {
   draft.phase = "cleanup";
   draft.battle = null;
@@ -412,12 +513,18 @@ function doCleanupPhase(draft: GameState): void {
   }
 
   // 4. Clear round flags (STEALTH re-engages; summon lockout ends;
-  //    special cooldowns tick down).
+  //    special cooldowns tick down; per-round DMG buffs + hit tracking reset).
   for (const card of boardCards(draft)) {
     card.summonedThisRound = false;
     card.attackedThisRound = false;
+    card.dmgBonusRound = 0;
+    card.struckThisRound = {};
     if (card.specialCooldown > 0) card.specialCooldown--;
   }
+
+  // 4b. Periodic self-driven passives (Sandstorm, Icy Swoop, Volt Turret,
+  //     Fall's Emergence, War Maiden, …) resolve here, after statuses ticked.
+  doRoundTicks(draft);
 
   // 5. Capture by survival: an enemy card still standing on a home slot at
   //    Cleanup captures it permanently.

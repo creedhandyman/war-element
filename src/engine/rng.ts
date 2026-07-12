@@ -33,6 +33,14 @@ export function chance(draft: GameState, pct: 25 | 50 | 75): boolean {
   return pct === 75 ? a || b : a && b;
 }
 
+/** Arbitrary-percentage roll (for data-driven card riders that print odds
+ *  outside the 25/50/75 coin ladder). Advances the cursor once. */
+export function pctChance(draft: GameState, pct: number): boolean {
+  if (pct >= 100) return true;
+  if (pct <= 0) return false;
+  return rand(draft) < pct / 100;
+}
+
 export function randInt(draft: GameState, maxExclusive: number): number {
   return Math.floor(rand(draft) * maxExclusive);
 }
