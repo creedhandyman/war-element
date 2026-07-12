@@ -38,8 +38,8 @@ export function App() {
   const [mullToss, setMullToss] = useState<string[]>([]);
   // Pre-game deck selection — the match doesn't run until Start.
   const [started, setStarted] = useState(false);
-  const [p1Deck, setP1Deck] = useState("aqua_dawn");
-  const [p2Deck, setP2Deck] = useState("bore_dusk");
+  const [p1Deck, setP1Deck] = useState("gale_bolt");
+  const [p2Deck, setP2Deck] = useState("aqua_dawn");
 
   // Auto-advance whenever the engine doesn't need P1's input (once started).
   useEffect(() => {

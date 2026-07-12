@@ -132,6 +132,16 @@ describe("full AI-vs-AI matches (integration)", () => {
     },
   );
 
+  it.each([2, 8, 17, 33, 50])(
+    "seed %i: Gale/Bolt deck completes a full match (both matchups)",
+    (seed) => {
+      const a = playMatch(seed, "gale_bolt", "aqua_dawn");
+      const b = playMatch(seed, "bore_dusk", "gale_bolt");
+      expect(a.win).not.toBeNull();
+      expect(b.win).not.toBeNull();
+    },
+  );
+
   it("replays identically from the same seed (determinism)", () => {
     const a = playMatch(7);
     const b = playMatch(7);

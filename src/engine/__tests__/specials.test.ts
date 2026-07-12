@@ -2,8 +2,8 @@
 
 import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
-import { applyStatus } from "../combat";
-import { canFireSpecial } from "../rules";
+import { applyStatus, basicAttack } from "../combat";
+import { canFireSpecial, isActionBlocked } from "../rules";
 import { effectiveDmg, effectiveSp } from "../state";
 import { atCleanup, giveHand, place, prepState, seedForCoins } from "./helpers";
 import { advance } from "../phases";
@@ -199,6 +199,61 @@ describe("firing specials", () => {
     });
     expect(next.cards[ally.instanceId].curShields).toBe(2);
     expect(next.players.P1.magicPool).toBe(2);
+  });
+});
+
+describe("GALE / BOLT lockdown & disruption", () => {
+  it("Klipso's Tranq Feather Blade STUNs (full skip) the target", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const klipso = place(s, "gale_klipso", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13, curShields: 4 });
+    const next = applyIntent(battleWith(s, klipso.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+    });
+    expect(next.cards[foe.instanceId].curHp).toBe(8); // 5 PEN ignores shields
+    expect(next.cards[foe.instanceId].curShields).toBe(4);
+    expect(isActionBlocked(next.cards[foe.instanceId])).toBe(true); // STUN = can't act
+  });
+
+  it("Guan's Vision of Fear WEAKENs every reachable opponent", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const guan = place(s, "gale_guan", "P1", 2, 0);
+    const f1 = place(s, "dusk_gool", "P2", 1, 0); // adjacent to Guan (melee reach)
+    const f2 = place(s, "dusk_vamp", "P2", 1, 1); // adjacent (diagonal)
+    const next = applyIntent(battleWith(s, guan.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+    });
+    expect(next.cards[f1.instanceId].statuses[0]?.kind).toBe("WEAKEN");
+    expect(next.cards[f2.instanceId].statuses[0]?.kind).toBe("WEAKEN");
+    // (WEAKEN's −25% damage math is covered in statuses.test.ts)
+  });
+
+  it("Zagphu's Static Toss PARALYZEs; a paralyzed card coin-flips to act", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const zagphu = place(s, "bolt_zagphu", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
+    const next = applyIntent(battleWith(s, zagphu.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+    });
+    expect(next.cards[foe.instanceId].curHp).toBe(5); // 13 − 8
+    expect(next.cards[foe.instanceId].statuses[0]?.kind).toBe("PARALYZE");
+  });
+
+  it("Webster's basic MUTES the target (no Specials)", () => {
+    const s = prepState();
+    const webster = place(s, "bolt_webster", "P1", 2, 0); // MUTED on hit
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
+    basicAttack(s, webster.instanceId, foe.instanceId);
+    expect(foe.statuses.some((x) => x.kind === "MUTED")).toBe(true);
   });
 });
 

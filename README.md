@@ -39,9 +39,9 @@ npm run build    # tsc --noEmit + vite production build
 src/engine   pure TypeScript, zero React — types, state, rules (legality),
              combat (damage pipeline + special-handler registry), phases
              (round loop + intent reducer + advance() driver), ai, rng
-src/data     58 alpha cards as plain data across 6 elements, grouped into
-             three selectable decks (leaf_pyro, bore_dusk, aqua_dawn) via
-             the DECKS table; each card once per game. 8 Legendaries.
+src/data     78 alpha cards as plain data across all 8 elements, grouped
+             into four selectable decks (leaf_pyro, bore_dusk, aqua_dawn,
+             gale_bolt) via the DECKS table; each card once per game.
 src/ui       React only renders state and dispatches intents
 src/engine/__tests__   Vitest suites for milestones 1–8, incl. full
              AI-vs-AI matches, determinism replay, and both win paths

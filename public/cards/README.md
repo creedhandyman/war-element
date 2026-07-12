@@ -61,3 +61,17 @@ dawn_flash.png · Flash       dawn_dawn.png · Dawn (Legendary)
 dawn_star.png · Star         dawn_veil.png · Veil
 dawn_kosmos.png · Kosmos (Legendary)   dawn_lazor.png · Lazor
 dawn_solstice.png · Solstice   dawn_clipsey.png · Clipsey
+
+### GALE (10) — new deck
+gale_duster.png · Duster     gale_angale.png · Angale
+gale_luna.png · Luna         gale_guan.png · Guan
+gale_hawk.png · Hawk         gale_wolfbane.png · WolfBane
+gale_vaga.png · Vaga         gale_galeon.png · Galeon (Legendary)
+gale_buf.png · Buf           gale_klipso.png · Klipso (Legendary)
+
+### BOLT (10) — new deck
+bolt_zap.png · Zap           bolt_lytning.png · Lytning
+bolt_twotales.png · TwoTales  bolt_sentry.png · Sentry
+bolt_zagphu.png · Zagphu     bolt_thundercat.png · ThunderCat
+bolt_static.png · Static     bolt_jackarc.png · Jack Arc (Legendary)
+bolt_webster.png · Webster   bolt_voltogon.png · Voltogon (Legendary)
