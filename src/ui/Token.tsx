@@ -41,7 +41,7 @@ export function Token(props: {
         <div
           key={s.kind}
           className="status-pip"
-          style={{ top: 24 + i * 18 }}
+          style={{ top: 28 + i * 20 }}
           title={`${s.kind} ${s.power || ""} — ${s.duration} round(s)`}
         >
           {s.kind.slice(0, 3)}·{s.duration}
