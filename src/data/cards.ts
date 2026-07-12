@@ -489,11 +489,11 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Rigid Smash",
       cost: 3,
-      handler: "strike",
-      // Adapted for alpha: 9 DMG + SLEEP 2 in a row → 5 DMG + SLEEP the target.
-      params: { dmg: 5, statusKind: "SLEEP", statusDuration: 1 },
+      handler: "barrage",
+      // printed "9 DMG and SLEEP 2 opponents in the row ahead"
+      params: { dmg: 6, targets: 2, statusKind: "SLEEP", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 5 DMG and SLEEP the target for 1 round.",
+      text: "Deal 6 DMG and SLEEP up to 2 opponents for 2 rounds.",
     },
   },
   {
@@ -541,11 +541,11 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Blunt Bash",
       cost: 5,
-      handler: "strike",
-      // printed hits the row ahead; single-target in alpha (5 DMG + SLEEP 2r)
-      params: { dmg: 5, statusKind: "SLEEP", statusDuration: 2 },
+      handler: "barrage",
+      // printed "5 DMG to opponents in the row directly ahead and SLEEP 2r"
+      params: { dmg: 5, targets: 3, statusKind: "SLEEP", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 5 DMG and SLEEP the target for 2 rounds.",
+      text: "Deal 5 DMG and SLEEP up to 3 opponents for 2 rounds.",
     },
   },
 
@@ -740,10 +740,11 @@ export const CARDS: CardDef[] = [
       name: "Piercing Charge",
       cost: 4,
       handler: "strike",
-      // printed also moves up to 4; alpha keeps the 15 PEN nuke
-      params: { dmg: 15, pen: 1 },
+      // printed "Move up to 4 and deal 15 PEN" — ranged reach + charge advance
+      params: { dmg: 15, pen: 1, charge: 4 },
+      ranged: true,
       targetSide: "enemy",
-      text: "Deal 15 DMG (PEN) to one opponent.",
+      text: "Charge up to 4 slots and deal 15 DMG (PEN) to one opponent.",
     },
   },
 
@@ -1525,13 +1526,19 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: {},
+    onHitStatus: { kind: "DOT", duration: 2, power: 1 }, // Lightning Scars
+    // On Summon: strike the closest opponent for 4 CRIT.
+    onSummon: { handler: "barrage", params: { dmg: 4, spread: 0, crit: 1, targets: 1 } },
     special: {
       name: "Claw Surge",
       cost: 2,
       handler: "strike",
-      params: { dmg: 8 },
+      // printed "Move up to 2 and deal 8 to an opponent in range" — ranged reach
+      // (the move) + charge advance afterward
+      params: { dmg: 8, charge: 2 },
+      ranged: true,
       targetSide: "enemy",
-      text: "Deal 8 DMG to one opponent.",
+      text: "Charge up to 2 slots and deal 8 DMG to one opponent.",
     },
   },
   {

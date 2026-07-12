@@ -19,8 +19,10 @@ import type {
   CardInstance,
   Element,
   GameState,
+  Pos,
   StatusKind,
 } from "./types";
+import { BOARD_SIZE, enemyOf, homeRow } from "./types";
 
 export interface HitOptions {
   kind: "basic" | "special" | "reflect";
@@ -325,6 +327,27 @@ function maybeStatus(
   );
 }
 
+/** Advance a card up to `steps` open slots toward the enemy home row (the
+ *  reposition half of a move-and-strike special). Stops at a captured/occupied
+ *  slot; can end on an uncaptured enemy home slot (a capture push). */
+function chargeForward(draft: GameState, card: CardInstance, steps: number): void {
+  const dir = card.owner === "P1" ? -1 : 1;
+  const enemyHome = homeRow(enemyOf(card.owner));
+  let moved = 0;
+  for (let i = 0; i < steps; i++) {
+    const pos = card.pos;
+    if (!pos) break;
+    const row: number = pos.row + dir;
+    if (row < 0 || row >= BOARD_SIZE) break;
+    if (draft.slots[row][pos.col].capturedBy) break;
+    if (cardAt(draft, row, pos.col)) break;
+    card.pos = { row: row as Pos["row"], col: pos.col };
+    moved++;
+    if (row === enemyHome) break; // stop on the enemy home row
+  }
+  if (moved > 0) draft.log.push(`${label(draft, card)} charges forward ${moved} slot(s).`);
+}
+
 export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   /** Single-target damage w/ optional pen, self-damage, self-heal, status. */
   strike(draft, attacker, targets, params) {
@@ -351,6 +374,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (healSelf > 0 && attacker.curHp > 0) {
       attacker.curHp = Math.min(attacker.maxHp, attacker.curHp + healSelf);
     }
+    // Charge: a move-and-strike special advances the attacker toward the enemy
+    // home (up to `charge` open steps) after it hits — its reach came from the
+    // ranged flag; this is the repositioning half of "move up to N and strike".
+    if (num(params, "charge") > 0 && attacker.curHp > 0) chargeForward(draft, attacker, num(params, "charge"));
   },
 
   /** Damage to up to N valid enemy targets (chosen target first). Optional

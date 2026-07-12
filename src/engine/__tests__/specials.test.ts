@@ -219,6 +219,22 @@ describe("ranged specials on melee cards", () => {
     expect(next.cards[far.instanceId].curHp).toBe(1); // 6 − 5, reached despite distance
   });
 
+  it("ThunderCat's Claw Surge reaches at range, then charges the caster forward", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const tc = place(s, "bolt_thundercat", "P1", 3, 0); // melee, ranged charge-2 special
+    const far = place(s, "dusk_gool", "P2", 1, 3, { curHp: 13 }); // far + off-column
+    expect(canBasicAttack(s, tc.instanceId)).toBe(false); // melee can't reach it
+    const next = applyIntent(battleWith(s, tc.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetIds: [far.instanceId],
+    });
+    expect(next.cards[far.instanceId].curHp).toBe(5); // 13 − 8 (reached via ranged)
+    expect(next.cards[tc.instanceId].pos).toEqual({ row: 1, col: 0 }); // charged 2 forward
+  });
+
   it("BlackBeard's Vapor Shark Cannon reaches a far target his melee basic can't", () => {
     const s = prepState();
     s.players.P1.magicPool = 6;
