@@ -13,6 +13,7 @@ import {
   FLOW_MODES,
   getDef,
   homeRow,
+  liquidGivesHit,
   legalMoves,
   needsInput,
   needsP1Input,
@@ -553,19 +554,24 @@ export function App() {
               choose its boost for this turn.
             </p>
             <div className="flow-opts">
-              {(["water", "ice", "steam"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  className={`flow-opt flow-${mode}`}
-                  onClick={() => {
-                    const card = game.cards[game.pendingFlow!];
-                    dispatch({ type: "FLOW_CHANGE", player: card.owner, instanceId: card.instanceId, mode });
-                  }}
-                >
-                  <span className="flow-label">{FLOW_MODES[mode].label}</span>
-                  <span className="flow-blurb">{FLOW_MODES[mode].blurb}</span>
-                </button>
-              ))}
+              {(["water", "ice", "steam"] as const).map((mode) => {
+                const multiHit = liquidGivesHit(game.cards[game.pendingFlow!]);
+                const blurb =
+                  mode === "water" && multiHit ? "+1 hit" : FLOW_MODES[mode].blurb;
+                return (
+                  <button
+                    key={mode}
+                    className={`flow-opt flow-${mode}`}
+                    onClick={() => {
+                      const card = game.cards[game.pendingFlow!];
+                      dispatch({ type: "FLOW_CHANGE", player: card.owner, instanceId: card.instanceId, mode });
+                    }}
+                  >
+                    <span className="flow-label">{FLOW_MODES[mode].label}</span>
+                    <span className="flow-blurb">{blurb}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

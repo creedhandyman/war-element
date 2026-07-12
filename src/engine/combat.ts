@@ -26,9 +26,9 @@ import type {
 } from "./types";
 import { BOARD_SIZE, enemyOf, homeRow } from "./types";
 
-/** Total basic hits including permanent on-kill bonuses (Fenrir). */
+/** Total basic hits including on-kill (Fenrir) and 1-turn (Flow Change) bonuses. */
 export function effectiveBasicHits(card: CardInstance): number {
-  return getDef(card.defId).hits + card.hitsBonus;
+  return getDef(card.defId).hits + (card.hitsBonus ?? 0) + (card.hitsBonusRound ?? 0);
 }
 
 export interface HitOptions {

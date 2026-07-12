@@ -3,6 +3,7 @@
 // The table below is the source of truth for the human-readable description
 // (shown in the card inspector); the actual effects live at each hook site.
 
+import { getDef } from "../data/cards";
 import type { CardInstance, Element } from "./types";
 
 export interface AuraDef {
@@ -15,7 +16,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN 1 (1 round, non-stacking)." },
   BORE: { name: "Exostone", desc: "Enters play with +2 shields." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals half its DMG back to the killer." },
-  AQUA: { name: "Flow Change", desc: "On summon, choose a 1-turn boost: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
+  AQUA: { name: "Flow Change", desc: "On summon, choose a 1-turn boost: Liquid +2 DMG (+1 hit if multi-hit) · Frozen +3 shields · Vapor +4 SP." },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for half its DMG." },
   GALE: { name: "Zephyr", desc: "End of round, +1 SP (caps at SP 21)." },
   BOLT: { name: "Electrify", desc: "+1 DMG against any opponent that has a status." },
@@ -31,11 +32,22 @@ export const FLOW_MODES: Record<FlowMode, { label: string; blurb: string }> = {
   steam: { label: "Vapor", blurb: "+4 SP" },
 };
 
+/** True when Liquid should grant an extra hit rather than +2 DMG — i.e. the
+ *  card already strikes multiple times, so a flat per-hit bonus would balloon
+ *  (Vaporem 2×5, Sapphire 3×2, …). */
+export function liquidGivesHit(card: CardInstance): boolean {
+  return getDef(card.defId).hits > 1;
+}
+
 /** Apply the chosen Flow Change buff (round-scoped — cleared each Cleanup;
  *  the shields are temporary and removed in Cleanup). */
 export function applyFlow(card: CardInstance, mode: FlowMode): void {
-  if (mode === "water") card.dmgBonusRound += 2;
-  else if (mode === "ice") {
+  if (mode === "water") {
+    // Liquid: +1 hit on multi-hit cards (avoids the per-hit +2 blowout),
+    // otherwise +2 DMG.
+    if (liquidGivesHit(card)) card.hitsBonusRound += 1;
+    else card.dmgBonusRound += 2;
+  } else if (mode === "ice") {
     card.curShields += 3;
     card.tempShields += 3;
   } else if (mode === "steam") card.spBonusRound += 4;

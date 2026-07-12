@@ -198,6 +198,7 @@ export interface CardInstance {
   spBonus: number; // permanent SP modifiers (on-kill buffs, GALE Zephyr)
   spBonusRound: number; // SP buff that resets each Cleanup (AQUA Flow Change Steam)
   hitsBonus: number; // permanent extra basic hits (Fenrir On Kill)
+  hitsBonusRound: number; // extra basic hits for the turn (Flow Change Liquid on multi-hit)
   tempShields: number; // shields granted "for the turn" (removed in Cleanup)
   /** Basic hits this card has LANDED on each target this round (keyed by target
    *  instanceId). Powers first-hit-only / on-second-hit riders; reset in Cleanup. */

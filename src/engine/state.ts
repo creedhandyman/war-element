@@ -177,6 +177,7 @@ export function summonCard(
     spBonus: 0,
     spBonusRound: 0,
     hitsBonus: 0,
+    hitsBonusRound: 0,
     tempShields: 0,
     struckThisRound: {},
     statuses: [],

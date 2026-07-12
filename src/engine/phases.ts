@@ -568,6 +568,7 @@ function doCleanupPhase(draft: GameState): void {
     card.attackedThisRound = false;
     card.dmgBonusRound = 0;
     card.spBonusRound = 0;
+    card.hitsBonusRound = 0;
     card.struckThisRound = {};
     // Temporary shields ("for the turn", e.g. Flow Change Frozen) expire.
     if (card.tempShields > 0) {

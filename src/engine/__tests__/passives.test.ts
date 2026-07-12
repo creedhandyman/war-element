@@ -3,7 +3,8 @@
 // abilities in cards.ts.
 
 import { describe, expect, it } from "vitest";
-import { basicAttack } from "../combat";
+import { basicAttack, effectiveBasicHits } from "../combat";
+import { applyFlow } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { boardCards } from "../state";
 import { getDef } from "../../data/cards";
@@ -147,6 +148,22 @@ describe("element auras", () => {
     });
     expect(picked.cards[fin.instanceId].dmgBonusRound).toBe(2);
     expect(picked.pendingFlow).toBeNull();
+  });
+
+  it("Flow Change Liquid: +1 hit on a multi-hit card, +2 DMG on a single-hit card", () => {
+    const s = prepState();
+    // Vaporem strikes 2×5 — Liquid must add a HIT, not +2 to every hit.
+    const vap = place(s, "aqua_vaporem", "P1", 2, 0);
+    applyFlow(vap, "water");
+    expect(vap.hitsBonusRound).toBe(1);
+    expect(vap.dmgBonusRound).toBe(0);
+    expect(effectiveBasicHits(vap)).toBe(6); // base 5 + 1
+
+    // Spinefin is single-hit — Liquid gives the flat +2 DMG.
+    const fin = place(s, "aqua_spinefin", "P1", 3, 0);
+    applyFlow(fin, "water");
+    expect(fin.dmgBonusRound).toBe(2);
+    expect(fin.hitsBonusRound).toBe(0);
   });
 
   it("Flow Change (AQUA): an AI summon auto-picks immediately (Tank → Frozen shields)", () => {

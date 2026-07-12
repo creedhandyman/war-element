@@ -33,5 +33,5 @@ export { applyIntent, advance, advanceUntilInput, needsP1Input, needsInput } fro
 export { aiMulligan, aiPrepIntent, chooseBattleAction } from "./ai";
 export { CARDS, CARD_INDEX, getDef, DECK_P1, DECK_P2, DECKS, deckById } from "../data/cards";
 export type { DeckDef } from "../data/cards";
-export { ELEMENT_AURA, GALE_SP_CAP, FLOW_MODES } from "./auras";
+export { ELEMENT_AURA, GALE_SP_CAP, FLOW_MODES, liquidGivesHit } from "./auras";
 export type { AuraDef, FlowMode } from "./auras";
