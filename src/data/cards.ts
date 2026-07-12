@@ -1151,9 +1151,10 @@ export const CARDS: CardDef[] = [
       name: "High Noon Revolver",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 2, targets: 99 },
+      // printed "7×1 DMG to all in range" — 7 hits of 1 per target (shreds shields)
+      params: { dmg: 1, hits: 7, targets: 99 },
       targetSide: "enemy",
-      text: "Deal 2 DMG to every opponent in range.",
+      text: "Deal 1 DMG × 7 to every opponent in range (shreds shields).",
     },
   },
 ];

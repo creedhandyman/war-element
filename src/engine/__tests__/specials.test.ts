@@ -242,6 +242,25 @@ describe("AQUA / DAWN handlers", () => {
     expect(next.players.P1.magicPool).toBe(3); // fired exactly once (cost 2)
   });
 
+  it("Clipsey's High Noon Revolver is a 7×1 volley on every target (shreds shields)", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const clipsey = place(s, "dawn_clipsey", "P1", 2, 0); // 1 dmg × 7, targets 99
+    const t1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13, curShields: 3 });
+    const t2 = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 6 });
+    const next = applyIntent(battleWith(s, clipsey.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetIds: [t1.instanceId, t2.instanceId],
+    });
+    // t1: 3 shields eat the first 3 hits (0 to HP each, stripped), then 4 hits × 1 = 4
+    expect(next.cards[t1.instanceId].curShields).toBe(0);
+    expect(next.cards[t1.instanceId].curHp).toBe(9); // 13 − 4
+    // t2: no shields, 7 × 1 = 7 to a 6-HP body → dies
+    expect(next.cards[t2.instanceId]).toBeUndefined();
+  });
+
   it("heal restores allies (Solstice's Daybreak heals the team)", () => {
     const s = prepState();
     s.players.P1.magicPool = 4;
