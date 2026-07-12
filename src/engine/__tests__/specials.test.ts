@@ -220,6 +220,28 @@ describe("AQUA / DAWN handlers", () => {
     expect(next.cards[b.instanceId].statuses[0]?.kind).toBe("FREEZE");
   });
 
+  it("a targets:99 AOE special hits every reachable target at once (Star Shower)", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const star = place(s, "dawn_star", "P1", 2, 0); // Star Shower: 4 dmg, BLIND, targets 99
+    const t1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
+    const t2 = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 6 });
+    const t3 = place(s, "dusk_ghastly", "P2", 1, 2, { curHp: 19 });
+    // The UI fires an AOE special with the full target list in one action.
+    const next = applyIntent(battleWith(s, star.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetIds: [t1.instanceId, t2.instanceId, t3.instanceId],
+    });
+    expect(next.cards[t1.instanceId].curHp).toBe(9);
+    expect(next.cards[t2.instanceId].curHp).toBe(2);
+    expect(next.cards[t3.instanceId].curHp).toBe(15);
+    for (const t of [t1, t2, t3])
+      expect(next.cards[t.instanceId].statuses[0]?.kind).toBe("BLIND");
+    expect(next.players.P1.magicPool).toBe(3); // fired exactly once (cost 2)
+  });
+
   it("heal restores allies (Solstice's Daybreak heals the team)", () => {
     const s = prepState();
     s.players.P1.magicPool = 4;

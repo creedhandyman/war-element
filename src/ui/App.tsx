@@ -124,15 +124,16 @@ export function App() {
     setHint(`Summoning <b>${def.name}</b> — tap a glowing Home slot.`);
   }
 
-  // Max target picks for the armed action: a card's hit count for basics,
-  // the barrage width for multi-target specials, 1 for everything else.
+  // Max target picks for the armed action. Basics: assign each of the card's
+  // hits (repeats stack). Specials: the `targets` param, but capped at how many
+  // valid targets actually exist — a "hit all" sentinel (99) never means "click
+  // 99 times", it means "everyone in range".
   const maxPicks = (() => {
     if (!awaitingId || !pending) return 1;
     const def = getDef(game.cards[awaitingId].defId);
     if (pending === "basic") return def.hits;
-    if (def.special?.handler === "barrage")
-      return Number(def.special.params?.targets ?? 1);
-    return 1;
+    const cap = Number(def.special?.params?.targets ?? 1);
+    return Math.max(1, Math.min(cap, legalTargetIds.length));
   })();
 
   function firePicks(finalPicks: string[]) {
@@ -315,15 +316,27 @@ export function App() {
                     firePicks(picks);
                     return;
                   }
+                  const spec = activeDef.special!;
+                  const valid =
+                    spec.targetSide === "ally"
+                      ? validAllyTargets(game, awaitingId!)
+                      : validTargets(game, awaitingId!);
+                  const cap = Number(spec.params?.targets ?? 1);
+                  // No choice to make (hits everyone it can reach, or only one
+                  // legal target) → fire immediately on all of them.
+                  if (cap >= valid.length) {
+                    dispatch({
+                      type: "BATTLE_ACTION",
+                      player: "P1",
+                      action: "special",
+                      targetIds: valid.map((t) => t.instanceId),
+                    });
+                    return;
+                  }
                   setPending("special");
                   setPicks([]);
-                  const spec = activeDef.special!;
-                  const wide =
-                    spec.handler === "barrage" && Number(spec.params?.targets ?? 1) > 1;
                   setHint(
-                    wide
-                      ? `<b>${spec.name}</b> (cost ${spec.cost}) — click up to ${Number(spec.params?.targets)} glowing targets (repeat to stack), or Fire early.`
-                      : `<b>${spec.name}</b> (cost ${spec.cost}) — pick a glowing target.`,
+                    `<b>${spec.name}</b> (cost ${spec.cost}) — pick up to ${cap} glowing target${cap > 1 ? "s (repeat to stack), or Fire early" : ""}.`,
                   );
                 }}
               >
