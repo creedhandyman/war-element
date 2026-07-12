@@ -16,6 +16,7 @@ export const EL_COLOR: Record<Element, string> = {
 export type Selection =
   | { kind: "hand"; handId: string }
   | { kind: "card"; instanceId: string }
+  | { kind: "spell"; spellId: string }
   | null;
 
 export type PendingBattle = "basic" | "special" | null;

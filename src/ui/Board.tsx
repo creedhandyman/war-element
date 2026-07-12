@@ -1,6 +1,7 @@
 import type { GameState, Pos } from "../engine";
-import { cardAt, isContested } from "../engine";
+import { cardAt, getSpell, isContested } from "../engine";
 import { Slot } from "./Slot";
+import { EL_COLOR } from "./shared";
 
 export function Board(props: {
   game: GameState;
@@ -23,6 +24,21 @@ export function Board(props: {
       <div className="board">
         {rows.map((row) => (
           <div className="brow" key={row}>
+            {game.walls
+              .filter((w) => w.row === row)
+              .map((w) => {
+                const spell = getSpell(w.spellId);
+                return (
+                  <div
+                    key={w.owner + w.spellId}
+                    className={`wallmark ${w.owner === "P1" ? "mine" : "enemy"}`}
+                    style={{ borderColor: EL_COLOR[spell.element], color: EL_COLOR[spell.element] }}
+                    title={`${spell.name} (${w.owner === "P1" ? "yours" : "enemy"}) — ${spell.text} · ${w.roundsLeft} round(s) left`}
+                  >
+                    {spell.name} · {w.roundsLeft}
+                  </div>
+                );
+              })}
             {rows.map((col) => {
               const card = cardAt(game, row, col);
               const legal =

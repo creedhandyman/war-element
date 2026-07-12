@@ -3,6 +3,7 @@ import type { GameState, Intent, PlayerId, Pos } from "../engine";
 import {
   advance,
   applyIntent,
+  canCastSpell,
   canFireSpecial,
   canMove,
   canSummon,
@@ -14,11 +15,14 @@ import {
   effectiveDmg,
   FLOW_MODES,
   getDef,
+  getSpell,
   homeRow,
   liquidGivesHit,
   legalMoves,
+  legalWallRows,
   needsInput,
   needsP1Input,
+  spellEnemyTargets,
   validAllyTargets,
   validSpecialTargets,
   validTargets,
@@ -30,6 +34,7 @@ import { Hand } from "./Hand";
 import { PhaseRibbon } from "./PhaseRibbon";
 import { ResourcePool } from "./ResourcePool";
 import { SpeedQueue } from "./SpeedQueue";
+import { SpellTray } from "./SpellTray";
 import { WinScreen } from "./WinScreen";
 import { EL_COLOR, type PendingBattle, type Selection } from "./shared";
 
@@ -123,11 +128,28 @@ export function App() {
       return out;
     }
     if (sel?.kind === "card") return legalMoves(game, view, sel.instanceId);
+    if (sel?.kind === "spell") {
+      const spell = getSpell(sel.spellId);
+      if (spell.kind === "wall") {
+        // Highlight every slot of each legal row so the whole row glows.
+        const out: Pos[] = [];
+        for (const r of legalWallRows(game, view, spell))
+          for (let col = 0; col < 4; col++) out.push({ row: r, col } as Pos);
+        return out;
+      }
+    }
     return [];
   }, [game, sel, view]);
 
   const awaitingId = game.battle?.awaitingInput ?? null;
   const legalTargetIds: string[] = useMemo(() => {
+    // Prep-phase damage spell armed → its legal enemy targets glow.
+    if (sel?.kind === "spell") {
+      const spell = getSpell(sel.spellId);
+      return spell.kind === "damage"
+        ? spellEnemyTargets(game, view).map((t) => t.instanceId)
+        : [];
+    }
     if (!awaitingId || !pending) return [];
     if (pending === "special") {
       const def = getDef(game.cards[awaitingId].defId);
@@ -139,7 +161,7 @@ export function App() {
       return list.map((t) => t.instanceId);
     }
     return validTargets(game, awaitingId).map((t) => t.instanceId);
-  }, [game, awaitingId, pending]);
+  }, [game, awaitingId, pending, sel, view]);
 
   // ── interactions ──────────────────────────────────────────────────────────
   function onPickHand(handId: string) {
@@ -155,6 +177,33 @@ export function App() {
     }
     setSel({ kind: "hand", handId });
     setHint(`Summoning <b>${def.name}</b> — tap a glowing Home slot.`);
+  }
+
+  function onPickSpell(spellId: string) {
+    if (!me || game.phase !== "prep" || game.prep?.priority !== me) {
+      setHint("You can cast spells during your prep priority turn.");
+      return;
+    }
+    const spell = getSpell(spellId);
+    // Heal/support spells auto-target an ally — cast on the spot (or explain why not).
+    if (spell.kind === "heal") {
+      const chk = canCastSpell(game, me, spellId, {});
+      if (chk.ok) {
+        dispatch({ type: "CAST_SPELL", player: me, spellId });
+        setHint(`Cast <b>${spell.name}</b>.`);
+      } else {
+        setHint(`⚠ ${chk.reason}`);
+      }
+      return;
+    }
+    setSel({ kind: "spell", spellId });
+    setPending(null);
+    setPicks([]);
+    setHint(
+      spell.kind === "wall"
+        ? `Casting <b>${spell.name}</b> — click a glowing row to raise it.`
+        : `Casting <b>${spell.name}</b> — click a glowing enemy target.`,
+    );
   }
 
   // Max target picks for the armed action. Basics: assign each of the card's
@@ -199,6 +248,34 @@ export function App() {
         setDetailId(clicked.instanceId);
       } else {
         setHint("⚠ Not a legal target — glowing cards only.");
+      }
+      return;
+    }
+
+    // Spell cast — a spell is armed. Damage spells hit a glowing enemy; wall
+    // spells drop onto any slot of a glowing row (a wall occupies no slot).
+    if (me && game.phase === "prep" && game.prep?.priority === me && sel?.kind === "spell") {
+      const spell = getSpell(sel.spellId);
+      if (spell.kind === "wall") {
+        const chk = canCastSpell(game, me, sel.spellId, { row });
+        if (chk.ok) {
+          dispatch({ type: "CAST_SPELL", player: me, spellId: sel.spellId, row });
+          setHint(`${spell.name} raised. Keep going, or <b>Pass Priority</b>.`);
+        } else if (clicked) {
+          setDetailId(clicked.instanceId);
+        } else {
+          setHint(`⚠ ${chk.reason}`);
+        }
+        return;
+      }
+      // damage spell
+      if (clicked && canCastSpell(game, me, sel.spellId, { targetId: clicked.instanceId }).ok) {
+        dispatch({ type: "CAST_SPELL", player: me, spellId: sel.spellId, targetId: clicked.instanceId });
+        setHint(`${spell.name} cast. Keep going, or <b>Pass Priority</b>.`);
+      } else if (clicked) {
+        setDetailId(clicked.instanceId);
+      } else {
+        setHint("⚠ Pick a glowing enemy target.");
       }
       return;
     }
@@ -410,6 +487,16 @@ export function App() {
             player={view}
             selectedHandId={sel?.kind === "hand" ? sel.handId : null}
             onPick={onPickHand}
+          />
+        )}
+
+        {me && game.phase === "prep" && (
+          <SpellTray
+            game={game}
+            player={me}
+            armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
+            myTurn={myPrep}
+            onPick={onPickSpell}
           />
         )}
 
