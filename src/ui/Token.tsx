@@ -44,6 +44,13 @@ export function Token(props: {
   const mine = card.owner === "P1";
   const human = (game.humans ?? ["P1"]).includes(card.owner);
   const hpFlash = useHpFlash(card.instanceId, card.curHp);
+  // Move indicator: the SP stat glows while this card's owner may still move it.
+  const canMoveNow =
+    human &&
+    game.phase === "prep" &&
+    game.prep?.priority === card.owner &&
+    !game.prep.movedThisTurn &&
+    legalMoves(game, card.owner, card.instanceId).length > 0;
   const kws = Object.entries(def.keywords)
     .map(([k, v]) => (v === true ? k : `${k} ${v}`))
     .join(" · ");
@@ -82,15 +89,17 @@ export function Token(props: {
           {s.kind.slice(0, 3)}·{s.duration}
         </div>
       ))}
+      {/* Top: name (with cost + element dot). */}
       <div className="tk-top">
-        <div className="tk-cost">{def.cost}</div>
+        <span className="tk-cost">{def.cost}</span>
+        <span className="tk-name">{def.name}</span>
         <span className="el-dot" style={{ background: EL_COLOR[def.element] }} />
       </div>
-      <div className="tk-name">{def.name}</div>
-      <div className="tk-class" title={`${def.cardClass} · ${def.attackType}`}>
-        {def.attackType === "Melee" ? "🗡" : "🏹"} {def.cardClass.toUpperCase()}
-      </div>
+      {/* Bottom: class line + the full stat row (DMG · shield · HP · SP). */}
       <div className="tk-bottom">
+        <div className="tk-class" title={`${def.cardClass} · ${def.attackType}`}>
+          {def.attackType === "Melee" ? "🗡" : "🏹"} {def.cardClass.toUpperCase()}
+        </div>
         {kws && <div className="kw-line">{kws}</div>}
         <div className="tk-stats">
           <span
@@ -107,6 +116,17 @@ export function Token(props: {
           >
             ♥{card.curHp === card.maxHp ? card.curHp : `${card.curHp}/${card.maxHp}`}
           </span>
+          <span
+            className={`st-sp ${canMoveNow ? "can-move" : ""}`}
+            title={
+              canMoveNow
+                ? "Can move this turn — click the card, then a green slot"
+                : "Speed (queue order + move reach)"
+            }
+          >
+            <SpIcon />
+            {effectiveSp(game, card)}
+          </span>
         </div>
       </div>
       {human && (
@@ -121,30 +141,6 @@ export function Token(props: {
           {AUTO_LABEL[card.autoMode]}
         </div>
       )}
-      {(() => {
-        // Move indicator: glow the speed badge while this card's owner may still
-        // move it (their prep turn, human-controlled). Works for P1 vs-AI and
-        // for either side in hot-seat 2-player.
-        const canMoveNow =
-          human &&
-          game.phase === "prep" &&
-          game.prep?.priority === card.owner &&
-          !game.prep.movedThisTurn &&
-          legalMoves(game, card.owner, card.instanceId).length > 0;
-        return (
-          <div
-            className={`sp-badge ${canMoveNow ? "can-move" : ""}`}
-            title={
-              canMoveNow
-                ? "Can move this turn — click the card, then a green slot"
-                : "Speed (queue order + move reach)"
-            }
-          >
-            <SpIcon />
-            {effectiveSp(game, card)}
-          </div>
-        );
-      })()}
     </div>
   );
 }
