@@ -8,9 +8,9 @@ import {
   canMove,
   canSummon,
   cardAt,
+  CORES,
+  coreById,
   createInitialState,
-  deckById,
-  DECKS,
   effectiveBasicHits,
   effectiveDmg,
   enemyOf,
@@ -23,6 +23,7 @@ import {
   legalWallRows,
   needsInput,
   needsP1Input,
+  pairingCards,
   spellEnemyTargets,
   validAllyTargets,
   validSpecialTargets,
@@ -57,8 +58,11 @@ export function App() {
   const [detailId, setDetailId] = useState<string | null>(null);
   // Pre-game deck selection — the match doesn't run until Start.
   const [started, setStarted] = useState(false);
-  const [p1Deck, setP1Deck] = useState("gale_bolt");
-  const [p2Deck, setP2Deck] = useState("aqua_dawn");
+  // Each player's deck is a PAIRING of two element cores (mix-and-match).
+  const [p1CoreA, setP1CoreA] = useState("pyro");
+  const [p1CoreB, setP1CoreB] = useState("aqua");
+  const [p2CoreA, setP2CoreA] = useState("dawn");
+  const [p2CoreB, setP2CoreB] = useState("bolt");
   const [twoPlayer, setTwoPlayer] = useState(false);
   const [viewDeck, setViewDeck] = useState<"p1" | "p2">("p1"); // which deck's cards to preview
 
@@ -748,43 +752,75 @@ export function App() {
                   👥 2 Players
                 </button>
               </div>
-              <label className="pick-field">
-                <span>{twoPlayer ? "Player 1 deck" : "Your deck (P1)"}</span>
-                <select
-                  value={p1Deck}
-                  onChange={(e) => {
-                    setP1Deck(e.target.value);
-                    setViewDeck("p1");
-                  }}
-                >
-                  {DECKS.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="pick-field">
-                <span>{twoPlayer ? "Player 2 deck" : "Opponent (P2 · AI)"}</span>
-                <select
-                  value={p2Deck}
-                  onChange={(e) => {
-                    setP2Deck(e.target.value);
-                    setViewDeck("p2");
-                  }}
-                >
-                  {DECKS.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="pick-field">
+                <span>{twoPlayer ? "Player 1 cores" : "Your cores (P1)"}</span>
+                <div className="core-pair">
+                  <select
+                    value={p1CoreA}
+                    onChange={(e) => {
+                      setP1CoreA(e.target.value);
+                      setViewDeck("p1");
+                    }}
+                  >
+                    {CORES.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.element})
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={p1CoreB}
+                    onChange={(e) => {
+                      setP1CoreB(e.target.value);
+                      setViewDeck("p1");
+                    }}
+                  >
+                    {CORES.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.element})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="pick-field">
+                <span>{twoPlayer ? "Player 2 cores" : "Opponent cores (P2 · AI)"}</span>
+                <div className="core-pair">
+                  <select
+                    value={p2CoreA}
+                    onChange={(e) => {
+                      setP2CoreA(e.target.value);
+                      setViewDeck("p2");
+                    }}
+                  >
+                    {CORES.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.element})
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={p2CoreB}
+                    onChange={(e) => {
+                      setP2CoreB(e.target.value);
+                      setViewDeck("p2");
+                    }}
+                  >
+                    {CORES.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.element})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <button
                 className="lockin"
                 onClick={() => {
                   const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
-                  setGame(createInitialState(newSeed(), p1Deck, p2Deck, humans));
+                  const p1Cards = pairingCards(p1CoreA, p1CoreB);
+                  const p2Cards = pairingCards(p2CoreA, p2CoreB);
+                  setGame(createInitialState(newSeed(), p1Cards, p2Cards, humans));
                   setViewSide("P1");
                   setSel(null);
                   setPending(null);
@@ -805,17 +841,20 @@ export function App() {
                   className={`pv-tab ${viewDeck === "p1" ? "on" : ""}`}
                   onClick={() => setViewDeck("p1")}
                 >
-                  P1 · {deckById(p1Deck).name}
+                  P1 · {coreById(p1CoreA).name} + {coreById(p1CoreB).name}
                 </button>
                 <button
                   className={`pv-tab ${viewDeck === "p2" ? "on" : ""}`}
                   onClick={() => setViewDeck("p2")}
                 >
-                  P2 · {deckById(p2Deck).name}
+                  P2 · {coreById(p2CoreA).name} + {coreById(p2CoreB).name}
                 </button>
               </div>
               {(() => {
-                const cards = deckById(viewDeck === "p1" ? p1Deck : p2Deck).cards;
+                const cards =
+                  viewDeck === "p1"
+                    ? pairingCards(p1CoreA, p1CoreB)
+                    : pairingCards(p2CoreA, p2CoreB);
                 return (
                   <>
                     <div className="pv-count">{cards.length} cards</div>

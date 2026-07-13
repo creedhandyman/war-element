@@ -14,10 +14,16 @@ import type {
 } from "./types";
 import { BOARD_SIZE, MULTI_HIT_BONUS_MIN, OPENING_HAND, enemyOf, homeRow } from "./types";
 
+/** A deck is either a registered deck/core id, or an explicit list of card ids
+ *  (a pairing built at the picker). */
+function resolveDeck(deck: string | string[]): string[] {
+  return Array.isArray(deck) ? deck.slice() : deckById(deck).cards.slice();
+}
+
 export function createInitialState(
   seed: number,
-  p1DeckId = "leaf_pyro",
-  p2DeckId = "bore_dusk",
+  p1Deck: string | string[] = "leaf_pyro",
+  p2Deck: string | string[] = "bore_dusk",
   humans: PlayerId[] = ["P1"],
 ): GameState {
   const state: GameState = {
@@ -27,8 +33,8 @@ export function createInitialState(
     humans,
     firstPlayer: "P1",
     players: {
-      P1: emptyPlayer(deckById(p1DeckId).cards.slice()),
-      P2: emptyPlayer(deckById(p2DeckId).cards.slice()),
+      P1: emptyPlayer(resolveDeck(p1Deck)),
+      P2: emptyPlayer(resolveDeck(p2Deck)),
     },
     cards: {},
     slots: Array.from({ length: BOARD_SIZE }, () =>

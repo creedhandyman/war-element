@@ -23,7 +23,7 @@
 // Stat guideline: total ≈ 5*cost + 10, shields = 2 pts (stat rebalances vs the
 // docs are intentional alpha scope, not bugs).
 
-import type { CardDef } from "../engine/types";
+import type { CardDef, Element } from "../engine/types";
 
 export const CARDS: CardDef[] = [
   // ───────────────────────── LEAF ─────────────────────────
@@ -1855,4 +1855,39 @@ export const DECKS: DeckDef[] = [
 
 export function deckById(id: string): DeckDef {
   return DECKS.find((d) => d.id === id) ?? DECKS[0];
+}
+
+// ── Element Cores ────────────────────────────────────────────────────────────
+// Eight single-element "cores" (named after each element's Mythic, per
+// Element_Cores.docx), built from the currently-implemented cards of that
+// element. Players mix any two cores into a pairing deck at the picker. NOTE:
+// these are the "thin" cores — the doc's full 14-card lists (incl. the 8
+// Mythics) aren't all built yet, so a core is however many of its element's
+// cards exist today.
+
+export interface CoreDef {
+  id: string; // element key: leaf | pyro | aqua | dawn | gale | bolt | dusk | bore
+  name: string; // Mythic / core name
+  element: Element;
+  cards: string[];
+}
+
+export const CORES: CoreDef[] = [
+  { id: "leaf", name: "Trinezer", element: "LEAF", cards: deckFor("LEAF") },
+  { id: "pyro", name: "Pyrogon", element: "PYRO", cards: deckFor("PYRO") },
+  { id: "aqua", name: "Kraken", element: "AQUA", cards: deckFor("AQUA") },
+  { id: "dawn", name: "Imperator", element: "DAWN", cards: deckFor("DAWN") },
+  { id: "gale", name: "Griffith", element: "GALE", cards: deckFor("GALE") },
+  { id: "bolt", name: "Elecdroid", element: "BOLT", cards: deckFor("BOLT") },
+  { id: "dusk", name: "Shadow Horsemen", element: "DUSK", cards: deckFor("DUSK") },
+  { id: "bore", name: "The DEEPEST", element: "BORE", cards: deckFor("BORE") },
+];
+
+export function coreById(id: string): CoreDef {
+  return CORES.find((c) => c.id === id) ?? CORES[0];
+}
+
+/** Combine two cores into a pairing deck (deduped — same core twice = mono). */
+export function pairingCards(coreA: string, coreB: string): string[] {
+  return [...new Set([...coreById(coreA).cards, ...coreById(coreB).cards])];
 }
