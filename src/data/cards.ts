@@ -680,6 +680,9 @@ export const CARDS: CardDef[] = [
       targetSide: "enemy",
       text: "Deal 3 DMG (PEN) to every opponent in range.",
     },
+    // Ethereal Trade (On Attack): +3 DMG per attack — basic AND Phantom Gouge —
+    // at the cost of 2 HP each time.
+    attackTrade: { bonusDmg: 3, hpCost: 2 },
   },
   {
     id: "dusk_haunt",

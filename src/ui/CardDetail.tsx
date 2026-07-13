@@ -166,6 +166,10 @@ export function CardDetail(props: {
     ].filter(Boolean);
     passives.push(`Basic attacks deal bonus damage (once): ${bits.join(" · ")}.`);
   }
+  if (def.attackTrade)
+    passives.push(
+      `Every attack (basic & Special) deals +${def.attackTrade.bonusDmg} DMG, but costs ${def.attackTrade.hpCost} HP.`,
+    );
   if (def.onSummon) passives.push(describeOnSummon(def.onSummon));
   if (def.onDeath)
     passives.push(

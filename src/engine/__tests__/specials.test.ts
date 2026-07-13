@@ -664,3 +664,52 @@ describe("special legality", () => {
     expect(next.log.some((l) => l.includes("can't act"))).toBe(true);
   });
 });
+
+describe("Ghastly — Ethereal Trade (on attack: +3 DMG, −2 HP)", () => {
+  it("basic attack deals +3 and Ghastly pays 2 HP", () => {
+    const s = prepState();
+    const g = place(s, "dusk_ghastly", "P1", 3, 0, { curHp: 19, maxHp: 19 }); // home row (no mid +1)
+    const t = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 0 });
+    const next = applyIntent(battleWith(s, g.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "basic",
+      targetId: t.instanceId,
+    });
+    expect(next.cards[t.instanceId].curHp).toBe(10); // 20 − (7 + 3)
+    expect(next.cards[g.instanceId].curHp).toBe(17); // paid 2
+  });
+
+  it("Phantom Gouge also gets +3 to every target, and pays 2 HP once", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const g = place(s, "dusk_ghastly", "P1", 3, 0, { curHp: 19, maxHp: 19 });
+    const t1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 3 });
+    const t2 = place(s, "dusk_gool", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    const next = applyIntent(battleWith(s, g.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: t1.instanceId,
+    });
+    expect(next.cards[t1.instanceId].curHp).toBe(14); // 20 − 6 (PEN ignores shields)
+    expect(next.cards[t1.instanceId].curShields).toBe(3); // PEN strips nothing
+    expect(next.cards[t2.instanceId].curHp).toBe(14); // 20 − 6
+    expect(next.cards[g.instanceId].curHp).toBe(17); // paid 2 once, not per target
+    expect(next.players.P1.magicPool).toBe(3); // 5 − 2 Special cost
+  });
+
+  it("the self-cost can be lethal — the attack still lands first", () => {
+    const s = prepState();
+    const g = place(s, "dusk_ghastly", "P1", 3, 0, { curHp: 2, maxHp: 19 });
+    const t = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 0 });
+    const next = applyIntent(battleWith(s, g.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "basic",
+      targetId: t.instanceId,
+    });
+    expect(next.cards[t.instanceId].curHp).toBe(10); // the hit resolves before the cost
+    expect(next.cards[g.instanceId]).toBeUndefined(); // Ghastly paid 2 and died
+  });
+});

@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, type FlowMode, GALE_SP_CAP } from "./auras";
-import { applyStatus, basicAttack, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, pushBack, spellHit, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, basicAttack, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, payAttackTrade, pushBack, spellHit, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { coin } from "./rng";
 import {
@@ -441,6 +441,8 @@ function performBattleAction(
     const handler = SPECIAL_HANDLERS[special.handler];
     if (!handler) throw new Error(`Unknown special handler: ${special.handler}`);
     handler(draft, card, targets, special.params ?? {});
+    // Ethereal Trade self-cost on an offensive Special (Phantom Gouge).
+    if (special.targetSide !== "ally") payAttackTrade(draft, card);
     return;
   }
   // basic attack — the assignable-hit ceiling includes on-kill / Flow / mid-row
@@ -457,6 +459,7 @@ function performBattleAction(
       throw new Error("Illegal basic-attack target");
   }
   basicAttack(draft, instanceId, chosen.length === 1 ? chosen[0] : chosen);
+  payAttackTrade(draft, card); // Ethereal Trade self-cost, once per basic attack
 }
 
 /**

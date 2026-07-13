@@ -200,6 +200,10 @@ export interface CardDef {
     midLaneFull?: number; // +N when 4+ cards occupy the Mid rows
     vsSleeping?: number; // +N when the primary target is SLEEPING
   };
+  /** Ethereal Trade (Ghastly): every ATTACK — basic AND an offensive Special —
+   *  deals +bonusDmg but the attacker pays hpCost HP once per attack (can be
+   *  lethal, like a self-damage Special). */
+  attackTrade?: { bonusDmg: number; hpCost: number };
   /** Catapult-style passives: this card may target the enemy Home row from
    *  anywhere (skips the Home Slot Targeting Rule). */
   ignoresHomeRule?: boolean;

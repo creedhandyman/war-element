@@ -356,6 +356,19 @@ export function resolveHit(
  * `target` may be one instanceId (full volley on it) or an ordered pick list —
  * one hit per entry, repeats stack ("dmg × N hits up to N targets").
  */
+/** Ethereal Trade's self-cost: pay hpCost HP once per attack action (basic or an
+ *  offensive Special). Can be lethal — the ghost strains itself. The +DMG half is
+ *  applied in the damage path (basicAttack / barrage). */
+export function payAttackTrade(draft: GameState, card: CardInstance): void {
+  const def = getDef(card.defId);
+  if (!def.attackTrade || !draft.cards[card.instanceId] || card.curHp <= 0) return;
+  const cost = def.attackTrade.hpCost;
+  if (cost <= 0) return;
+  card.curHp -= cost;
+  draft.log.push(`${label(draft, card)} pays ${cost} HP (Ethereal Trade).`);
+  if (card.curHp <= 0) defeatCard(draft, card, "Ethereal Trade");
+}
+
 export function basicAttack(
   draft: GameState,
   attackerId: string,
@@ -421,6 +434,8 @@ export function basicAttack(
     // Harsh Winds: bonus DMG the first time this card strikes a given opponent.
     const firstStrike = Boolean(aDef.firstStrikeBonus) && !attacker.struckEver.includes(t.instanceId);
     if (firstStrike) dmg += aDef.firstStrikeBonus!;
+    // Ethereal Trade: +DMG on the attack (the HP cost is paid once per action).
+    if (aDef.attackTrade) dmg += aDef.attackTrade.bonusDmg;
 
     const struckBefore = attacker.struckThisRound[t.instanceId] ?? 0;
     const r = resolveHit(draft, attacker, t, {
@@ -757,7 +772,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const n = num(params, "targets", 1);
     // scaleDmg: fold the caster's permanent DMG bonus into each hit (Fallona's
     // Fall's Emergence boosts Leaf Storm too).
-    const dmg = num(params, "dmg") + (num(params, "scaleDmg") > 0 ? attacker.dmgBonus : 0);
+    const dmg =
+      num(params, "dmg") +
+      (num(params, "scaleDmg") > 0 ? attacker.dmgBonus : 0) +
+      (getDef(attacker.defId).attackTrade?.bonusDmg ?? 0); // Ethereal Trade rides the Special too
     for (const target of targets.slice(0, n)) {
       if (!draft.cards[target.instanceId]) continue;
       resolveHit(draft, attacker, target, {
