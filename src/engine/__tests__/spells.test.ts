@@ -2,6 +2,7 @@
 // Home-slot targeting, wall placement / movement trigger / expiry.
 
 import { describe, expect, it } from "vitest";
+import { directDamage, wallEvasion, wallFlatReduction } from "../combat";
 import { applyIntent, advance } from "../phases";
 import { canCastSpell } from "../rules";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
@@ -94,7 +95,7 @@ describe("Cost-4 walls", () => {
     const s = prepState(42, "P2"); // give P2 priority so it can move
     // Lay P1's Firewall on Mid row 2 directly.
     s.walls = [
-      { owner: "P1", spellId: "pyro_firewall", row: 2, dmg: 3, status: { kind: "BURN", duration: 1, power: 1 }, roundsLeft: 3 },
+      { owner: "P1", spellId: "pyro_firewall", element: "PYRO", row: 2, dmg: 3, status: { kind: "BURN", duration: 1, power: 1 }, roundsLeft: 3 },
     ];
     const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 14, maxHp: 14, curShields: 0 });
     const next = applyIntent(s, {
@@ -109,7 +110,7 @@ describe("Cost-4 walls", () => {
 
   it("a caster's own card is unharmed crossing its own wall", () => {
     const s = prepState();
-    s.walls = [{ owner: "P1", spellId: "pyro_firewall", row: 2, dmg: 3, roundsLeft: 3 }];
+    s.walls = [{ owner: "P1", spellId: "pyro_firewall", element: "PYRO", row: 2, dmg: 3, roundsLeft: 3 }];
     const mine = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 14, maxHp: 14 });
     const next = applyIntent(s, {
       type: "MOVE",
@@ -122,7 +123,7 @@ describe("Cost-4 walls", () => {
 
   it("walls decay and lift after their duration", () => {
     const s = prepState();
-    s.walls = [{ owner: "P1", spellId: "pyro_firewall", row: 2, dmg: 3, roundsLeft: 1 }];
+    s.walls = [{ owner: "P1", spellId: "pyro_firewall", element: "PYRO", row: 2, dmg: 3, roundsLeft: 1 }];
     place(s, "leaf_alpha", "P1", 3, 0); // keep boards non-empty
     const next = advance(atCleanup(s));
     expect(next.walls).toHaveLength(0);
@@ -134,5 +135,68 @@ describe("Cost-4 walls", () => {
     s.players.P1.magicPool = 5;
     expect(canCastSpell(s, "P1", "bore_stone_wall", { row: 3 }).ok).toBe(true); // P1 home
     expect(canCastSpell(s, "P1", "bore_stone_wall", { row: 2 }).ok).toBe(false); // a Mid row
+  });
+
+  it("Stone Wall entry strips a shield before dealing its damage", () => {
+    const s = prepState(42, "P2");
+    s.walls = [
+      { owner: "P1", spellId: "bore_stone_wall", element: "BORE", row: 3, dmg: 3, stripShields: 1, allyBuff: { block: 2 }, roundsLeft: 3 },
+    ];
+    const foe = place(s, "leaf_alpha", "P2", 2, 0, { curHp: 14, maxHp: 14, curShields: 2 });
+    const next = applyIntent(s, {
+      type: "MOVE",
+      player: "P2",
+      instanceId: foe.instanceId,
+      to: { row: 3, col: 0 },
+    });
+    // strip 1 shield (2→1), then 3 DMG through the gate: 2 to HP, 1 more shield off.
+    expect(next.cards[foe.instanceId].curShields).toBe(0);
+    expect(next.cards[foe.instanceId].curHp).toBe(12);
+  });
+});
+
+describe("double-duty wall ally buffs", () => {
+  it("Stone Wall grants same-element allies +BLOCK, stacking with innate", () => {
+    const s = prepState();
+    s.walls = [
+      { owner: "P1", spellId: "bore_stone_wall", element: "BORE", row: 3, dmg: 3, allyBuff: { block: 2 }, roundsLeft: 3 },
+    ];
+    const plain = place(s, "bore_clubber", "P1", 3, 0, { curHp: 20, maxHp: 20, curShields: 0 }); // no innate BLOCK
+    const tanky = place(s, "bore_armadillo", "P1", 3, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // innate BLOCK 2
+    expect(wallFlatReduction(s, plain)).toBe(2);
+    const src = place(s, "leaf_alpha", "P2", 1, 0);
+    directDamage(s, src, plain, 6, false); // 6 − 2 (wall) = 4
+    expect(s.cards[plain.instanceId].curHp).toBe(16);
+    directDamage(s, src, tanky, 6, false); // 6 − (2 innate + 2 wall) = 2
+    expect(s.cards[tanky.instanceId].curHp).toBe(18);
+  });
+
+  it("the buff is scoped to the owner's same-element allies in the row", () => {
+    const s = prepState();
+    s.walls = [
+      { owner: "P1", spellId: "bore_stone_wall", element: "BORE", row: 3, dmg: 3, allyBuff: { block: 2 }, roundsLeft: 3 },
+    ];
+    const wrongEl = place(s, "leaf_alpha", "P1", 3, 0); // P1 but LEAF
+    const wrongRow = place(s, "bore_clubber", "P1", 2, 0); // BORE but not in the row
+    const enemy = place(s, "bore_clubber", "P2", 3, 3); // BORE but an enemy
+    expect(wallFlatReduction(s, wrongEl)).toBe(0);
+    expect(wallFlatReduction(s, wrongRow)).toBe(0);
+    expect(wallFlatReduction(s, enemy)).toBe(0);
+  });
+
+  it("Radiant Barrier gives DAWN allies −1, Veil gives DUSK allies EVASION", () => {
+    const s = prepState();
+    s.walls = [
+      { owner: "P1", spellId: "dawn_radiant_barrier", element: "DAWN", row: 2, dmg: 2, allyBuff: { dmgReduction: 1 }, roundsLeft: 3 },
+      { owner: "P1", spellId: "dusk_veil_of_shadows", element: "DUSK", row: 1, dmg: 2, allyBuff: { evasion: true }, roundsLeft: 3 },
+    ];
+    const dawnAlly = place(s, "dawn_beam", "P1", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 });
+    const duskAlly = place(s, "dusk_gool", "P1", 1, 0);
+    expect(wallFlatReduction(s, dawnAlly)).toBe(1);
+    expect(wallEvasion(s, duskAlly)).toBe(true);
+    expect(wallEvasion(s, dawnAlly)).toBe(false); // wrong element for the Veil
+    const src = place(s, "leaf_alpha", "P2", 0, 0);
+    directDamage(s, src, dawnAlly, 5, false); // 5 − 1 = 4
+    expect(s.cards[dawnAlly.instanceId].curHp).toBe(16);
   });
 });

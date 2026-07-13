@@ -236,10 +236,13 @@ function resolveSpell(
     draft.walls.push({
       owner: player,
       spellId: spell.id,
+      element: spell.element,
       row,
       dmg: spell.wall.dmg,
       status: spell.wall.status,
       push: spell.wall.push,
+      stripShields: spell.wall.stripShields,
+      allyBuff: spell.wall.allyBuff,
       roundsLeft: spell.wall.rounds,
     });
     draft.log.push(`${spell.name} rises across row ${row}.`);
@@ -296,6 +299,8 @@ function triggerWalls(draft: GameState, card: CardInstance, fromRow: number): vo
     if (w.owner === card.owner) continue; // your own wall never hits you
     if (!card.pos || w.row !== card.pos.row || fromRow === w.row) continue;
     draft.log.push(`${label(draft, card)} crosses ${getSpell(w.spellId).name}!`);
+    if (w.stripShields && card.curShields > 0)
+      card.curShields = Math.max(0, card.curShields - w.stripShields);
     const died = spellHit(draft, card, w.dmg, false);
     if (died || !draft.cards[card.instanceId] || card.curHp <= 0) continue;
     if (w.status)

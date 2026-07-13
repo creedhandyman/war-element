@@ -295,13 +295,24 @@ export type SpellKind = "damage" | "heal" | "wall";
 
 /** A row-level "wall" laid down by a Cost-4 spell. Occupies no slot; triggers
  *  only when an ENEMY card MOVES into its row (ranged attacks pass through). */
+/** A buff granted to the wall owner's SAME-element allies while they stand in
+ *  the wall's row (stacks additively with the card's own keywords). */
+export interface WallAllyBuff {
+  block?: number; // +BLOCK (Stone Wall)
+  evasion?: boolean; // EVASION (Veil of Shadows)
+  dmgReduction?: number; // flat −N incoming, unnamed (Radiant Barrier)
+}
+
 export interface WallState {
   owner: PlayerId;
   spellId: string;
+  element: Element;
   row: number;
   dmg: number;
   status?: { kind: StatusKind; duration: number; power: number };
   push?: number;
+  stripShields?: number; // strip N shields on entry, before the dmg (Stone Wall)
+  allyBuff?: WallAllyBuff;
   roundsLeft: number;
 }
 
@@ -327,7 +338,9 @@ export interface SpellDef {
     dmg: number;
     status?: { kind: StatusKind; duration: number; power: number };
     push?: number;
+    stripShields?: number;
     ownHomeOnly?: boolean;
+    allyBuff?: WallAllyBuff;
     rounds: number;
   };
 }

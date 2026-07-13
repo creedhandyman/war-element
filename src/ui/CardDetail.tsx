@@ -1,5 +1,5 @@
 import type { CardInstance, GameState, PlayerId, StatusKind } from "../engine";
-import { effectiveBasicHits, effectiveDmg, effectiveSp, ELEMENT_AURA, getDef } from "../engine";
+import { effectiveBasicHits, effectiveDmg, effectiveSp, ELEMENT_AURA, getDef, getSpell } from "../engine";
 import { EL_COLOR } from "./shared";
 import { SpIcon } from "./icons";
 
@@ -179,6 +179,19 @@ export function CardDetail(props: {
   if (def.special?.ranged)
     passives.push("Its Special reaches any slot on the board.");
 
+  // Buffs this card is currently getting from standing in a friendly wall's row.
+  const wallBuffs: string[] = [];
+  for (const w of game.walls) {
+    if (!w.allyBuff || w.owner !== card.owner || w.element !== def.element) continue;
+    if (!card.pos || card.pos.row !== w.row) continue;
+    const parts = [
+      w.allyBuff.block && `+${w.allyBuff.block} BLOCK`,
+      w.allyBuff.evasion && "EVASION",
+      w.allyBuff.dmgReduction && `−${w.allyBuff.dmgReduction} incoming DMG`,
+    ].filter(Boolean);
+    wallBuffs.push(`${getSpell(w.spellId).name}: ${parts.join(", ")}`);
+  }
+
   const specCd = card.specialCooldown > 0;
   const summonLock = card.summonedThisRound;
 
@@ -279,6 +292,17 @@ export function CardDetail(props: {
             <ul className="cd-list">
               {passives.map((p, i) => (
                 <li key={i}>{p}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {wallBuffs.length > 0 && (
+          <div className="cd-section">
+            <div className="cd-h">Wall cover</div>
+            <ul className="cd-list">
+              {wallBuffs.map((w, i) => (
+                <li key={i}>{w}</li>
               ))}
             </ul>
           </div>

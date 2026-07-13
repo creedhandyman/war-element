@@ -125,8 +125,8 @@ export const SPELLS: SpellDef[] = [
     element: "BORE",
     cost: 4,
     kind: "wall",
-    text: "Raise a wall of stone across your OWN Home row for 3 rounds. A card that MOVES in takes 3 DMG. Ranged passes through.",
-    wall: { dmg: 3, ownHomeOnly: true, rounds: 3 },
+    text: "Wall of stone across your OWN Home row for 3 rounds. A card that MOVES in loses 1 shield then takes 3 DMG. BORE allies in the row gain BLOCK 2. Ranged passes through.",
+    wall: { dmg: 3, stripShields: 1, ownHomeOnly: true, allyBuff: { block: 2 }, rounds: 3 },
   },
   {
     id: "dusk_veil_of_shadows",
@@ -134,8 +134,8 @@ export const SPELLS: SpellDef[] = [
     element: "DUSK",
     cost: 4,
     kind: "wall",
-    text: "Cloak a row in darkness for 3 rounds. A card that MOVES in takes 2 DMG and is FRIGHTENed 1 round. Ranged passes through.",
-    wall: { dmg: 2, status: { kind: "FRIGHTEN", duration: 1, power: 0 }, rounds: 3 },
+    text: "Cloak a row in darkness for 3 rounds. A card that MOVES in takes 2 DMG and is FRIGHTENed 1 round. DUSK allies in the row gain EVASION. Ranged passes through.",
+    wall: { dmg: 2, status: { kind: "FRIGHTEN", duration: 1, power: 0 }, allyBuff: { evasion: true }, rounds: 3 },
   },
   {
     id: "dawn_radiant_barrier",
@@ -143,8 +143,8 @@ export const SPELLS: SpellDef[] = [
     element: "DAWN",
     cost: 4,
     kind: "wall",
-    text: "A wall of light across a row for 3 rounds. A card that MOVES in takes 2 DMG and is BLINDed 1 round. Ranged passes through.",
-    wall: { dmg: 2, status: { kind: "BLIND", duration: 1, power: 0 }, rounds: 3 },
+    text: "A wall of light across a row for 3 rounds. A card that MOVES in takes 2 DMG and is BLINDed 1 round. DAWN allies in the row take 1 less DMG from all attacks. Ranged passes through.",
+    wall: { dmg: 2, status: { kind: "BLIND", duration: 1, power: 0 }, allyBuff: { dmgReduction: 1 }, rounds: 3 },
   },
 ];
 

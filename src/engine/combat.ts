@@ -26,6 +26,29 @@ import type {
 } from "./types";
 import { BOARD_SIZE, MULTI_HIT_BONUS_MIN, enemyOf, homeRow } from "./types";
 
+/** Flat pre-shield damage reduction a card gains from standing in a friendly
+ *  wall's row (Stone Wall BLOCK, Radiant Barrier −1). Same-element, wall owner's
+ *  allies only; stacks additively with the card's own BLOCK keyword. */
+export function wallFlatReduction(draft: GameState, card: CardInstance): number {
+  if (!card.pos) return 0;
+  const el = getDef(card.defId).element;
+  let sum = 0;
+  for (const w of draft.walls) {
+    if (w.owner !== card.owner || !w.allyBuff || w.row !== card.pos.row || w.element !== el) continue;
+    sum += Number(w.allyBuff.block ?? 0) + Number(w.allyBuff.dmgReduction ?? 0);
+  }
+  return sum;
+}
+
+/** Does this card gain EVASION from a friendly wall in its row (Veil of Shadows)? */
+export function wallEvasion(draft: GameState, card: CardInstance): boolean {
+  if (!card.pos) return false;
+  const el = getDef(card.defId).element;
+  return draft.walls.some(
+    (w) => w.owner === card.owner && !!w.allyBuff?.evasion && w.row === card.pos!.row && w.element === el,
+  );
+}
+
 /** Total basic hits including on-kill (Fenrir) and 1-turn (Flow Change) bonuses,
  *  plus the King-of-the-Hill mid-row bonus for multi-hit cards (they get +1 HIT
  *  in a mid row instead of the +1 DMG single-hit cards get — see effectiveDmg). */
@@ -185,8 +208,9 @@ export function resolveHit(
   for (let i = 0; i < opts.hits; i++) {
     if (target.curHp <= 0) break;
 
-    // 1. EVASION — not re-checked for reflect damage (no dodge chains).
-    if (opts.kind !== "reflect" && tDef.keywords.EVASION) {
+    // 1. EVASION — innate or granted by a friendly wall (Veil). Not re-checked
+    //    for reflect damage (no dodge chains).
+    if (opts.kind !== "reflect" && (tDef.keywords.EVASION || wallEvasion(draft, target))) {
       if (coin(draft)) {
         result.dodgedHits++;
         draft.log.push(`${label(draft, target)} evades a hit from ${aDef.name}.`);
@@ -194,9 +218,10 @@ export function resolveHit(
       }
     }
 
-    // 2. BLOCK — flat reduction, applies before shields and even to PEN.
+    // 2. BLOCK — flat reduction, applies before shields and even to PEN. Adds
+    //    the card's own BLOCK to any friendly wall reduction (Stone/Radiant).
     let remaining = opts.dmg;
-    const block = Number(tDef.keywords.BLOCK ?? 0);
+    const block = Number(tDef.keywords.BLOCK ?? 0) + wallFlatReduction(draft, target);
     if (block > 0) remaining = Math.max(0, remaining - block);
 
     // 3. Shield gate.
@@ -540,7 +565,7 @@ export function spellHit(
   if (!t || t.curHp <= 0) return false;
   const tDef = getDef(t.defId);
   let remaining = dmg;
-  const block = Number(tDef.keywords.BLOCK ?? 0);
+  const block = Number(tDef.keywords.BLOCK ?? 0) + wallFlatReduction(draft, t);
   if (block > 0) remaining = Math.max(0, remaining - block); // BLOCK applies even to PEN
   let toHp: number;
   if (pen) {
