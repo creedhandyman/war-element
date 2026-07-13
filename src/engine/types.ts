@@ -181,6 +181,9 @@ export interface OnLowHpDef {
 
 export interface CardDef {
   id: string; // stable unique key, e.g. 'leaf_sumerose'
+  /** Art filename stem under /cards (defaults to `id`). Set when the PNG is
+   *  named differently from the id (e.g. token/underscore variants). */
+  art?: string;
   name: string;
   element: Element;
   cardClass: CardClass;

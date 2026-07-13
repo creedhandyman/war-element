@@ -644,7 +644,7 @@ export function App() {
                   >
                     <img
                       className="card-art"
-                      src={`/cards/${def.id}.png`}
+                      src={`/cards/${def.art ?? def.id}.png`}
                       alt=""
                       onError={(e) => {
                         e.currentTarget.style.display = "none";
@@ -881,7 +881,7 @@ export function App() {
                           >
                             <img
                               className="card-art"
-                              src={`/cards/${d.id}.png`}
+                              src={`/cards/${d.art ?? d.id}.png`}
                               alt=""
                               onError={(e) => {
                                 e.currentTarget.style.display = "none";

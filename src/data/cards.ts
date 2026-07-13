@@ -69,6 +69,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "leaf_dartfrog",
+    art: "leaf_dart_frog",
     name: "Dart Frog",
     element: "LEAF",
     cardClass: "Ranger",
@@ -1879,6 +1880,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dusk_shadowhorsemen",
+    art: "dusk_shadow_horsemen",
     name: "Shadow Horsemen",
     element: "DUSK",
     cardClass: "Assassin",
@@ -1905,6 +1907,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bore_deepest",
+    art: "bore_the_deepest",
     name: "The DEEPEST",
     element: "BORE",
     cardClass: "Support",
@@ -2068,6 +2071,7 @@ export const CARDS: CardDef[] = [
 export const TOKENS: CardDef[] = [
   {
     id: "leaf_reptilian_tok",
+    art: "leaf_reptilian",
     name: "Reptilian",
     element: "LEAF",
     cardClass: "Assassin",
@@ -2083,6 +2087,7 @@ export const TOKENS: CardDef[] = [
   },
   {
     id: "dawn_heir_tok",
+    art: "dawn_heir",
     name: "Heir",
     element: "DAWN",
     cardClass: "Assassin",
