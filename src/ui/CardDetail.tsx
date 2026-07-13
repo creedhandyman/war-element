@@ -22,7 +22,7 @@ function describeOnSummon(os: {
   };
   const status = () =>
     p.statusKind
-      ? ` and applies ${p.statusKind}${p.statusDuration ? ` for ${n("statusDuration")} round(s)` : ""}`
+      ? ` and apply ${p.statusKind}${p.statusDuration ? ` for ${n("statusDuration")} round(s)` : ""}`
       : "";
   switch (os.handler) {
     case "barrage":
