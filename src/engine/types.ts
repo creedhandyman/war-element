@@ -204,6 +204,9 @@ export interface CardDef {
    *  deals +bonusDmg but the attacker pays hpCost HP once per attack (can be
    *  lethal, like a self-damage Special). */
   attackTrade?: { bonusDmg: number; hpCost: number };
+  /** On summon, spawn `count` token cards (Trinezer's Reptilian Screech). The
+   *  token's def lives in CARD_INDEX but never appears in a deck. */
+  summonSpawn?: { token: string; count: number };
   /** Catapult-style passives: this card may target the enemy Home row from
    *  anywhere (skips the Home Slot Targeting Rule). */
   ignoresHomeRule?: boolean;

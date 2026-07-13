@@ -221,6 +221,42 @@ export function summonCard(
   return inst;
 }
 
+/** Spawn `count` token cards adjacent to `spawner` (falling back to any open
+ *  board slot). Tokens are full CardInstances that act like any card; their defs
+ *  live in CARD_INDEX but not in CARDS, so they never enter a deck. */
+export function spawnTokens(
+  draft: GameState,
+  spawner: CardInstance,
+  tokenDefId: string,
+  count: number,
+): CardInstance[] {
+  if (!spawner.pos) return [];
+  const owner = spawner.owner;
+  const isOpen = (r: number, c: number) =>
+    r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE &&
+    !draft.slots[r][c].capturedBy && !cardAt(draft, r, c);
+  const slots: Pos[] = [];
+  const push = (r: number, c: number) => {
+    if (isOpen(r, c) && !slots.some((s) => s.row === r && s.col === c))
+      slots.push({ row: r as Pos["row"], col: c as Pos["col"] });
+  };
+  // Adjacent (chess-king) slots first, then any open slot on the board.
+  for (let dr = -1; dr <= 1; dr++)
+    for (let dc = -1; dc <= 1; dc++)
+      if (dr !== 0 || dc !== 0) push(spawner.pos.row + dr, spawner.pos.col + dc);
+  for (let r = 0; r < BOARD_SIZE; r++) for (let c = 0; c < BOARD_SIZE; c++) push(r, c);
+
+  const out: CardInstance[] = [];
+  for (const pos of slots.slice(0, count)) {
+    const tok = summonCard(draft, owner, tokenDefId, pos);
+    if (!draft.humans.includes(owner)) tok.autoMode = "full";
+    out.push(tok);
+  }
+  if (out.length > 0)
+    draft.log.push(`${getDef(tokenDefId).name} ×${out.length} spawns.`);
+  return out;
+}
+
 export function removeCard(draft: GameState, instanceId: string): void {
   delete draft.cards[instanceId];
   if (draft.battle?.awaitingInput === instanceId) draft.battle.awaitingInput = null;

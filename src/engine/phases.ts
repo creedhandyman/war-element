@@ -17,6 +17,7 @@ import {
   hasStatus,
   isEliminated,
   manhattan,
+  spawnTokens,
   summonCard,
 } from "./state";
 import {
@@ -109,6 +110,8 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           }
         }
       }
+      // Token spawns (Trinezer's Reptilian Screech).
+      if (def.summonSpawn) spawnTokens(draft, inst, def.summonSpawn.token, def.summonSpawn.count);
       applyElementSummonAura(draft, inst);
       // On-opponent-summon reactions: existing enemies zap the newcomer as it
       // enters the battlefield (Cave Guard, Shocker).

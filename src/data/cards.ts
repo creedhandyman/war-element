@@ -1690,6 +1690,35 @@ export const CARDS: CardDef[] = [
     },
   },
 
+  // ─────────────── MYTHICS (element core centerpieces) ───────────────
+  {
+    id: "leaf_trinezer",
+    name: "Trinezer",
+    element: "LEAF",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 8, // LEAF-doc spec (differs from Element_Cores' cost-9 / spawn-1-per-round)
+    dmg: 11,
+    hits: 1,
+    hp: 19,
+    sp: 15,
+    shields: 3,
+    keywords: {},
+    // Reptilian Screech (On Summon): spawn 3 Reptilian tokens (3/3/SP3).
+    summonSpawn: { token: "leaf_reptilian_tok", count: 3 },
+    special: {
+      name: "Jungle Culling",
+      cost: 4,
+      handler: "strike",
+      params: { dmg: 11 },
+      targetSide: "enemy",
+      ranged: true, // reaches the lowest-HP opponent anywhere
+      text: "Deal 11 DMG to a target (aim the lowest-HP opponent).",
+    },
+    // Reptile-ally aura (+1 DMG/+1 SP) and STEALTH-on-Culling-kill are deferred —
+    // per-card auras / conditional self-status aren't modelled yet.
+  },
+
   // ─────────────── EXPANSION: one more canon card per element ───────────────
   {
     id: "leaf_cactus",
@@ -1821,8 +1850,29 @@ export const CARDS: CardDef[] = [
   },
 ];
 
+// ── Tokens ───────────────────────────────────────────────────────────────────
+// Spawned by cards (Trinezer's Reptilian Screech, etc.), never dealt from a deck.
+// Kept OUT of CARDS so decks + the cost-formula test ignore them; merged into
+// CARD_INDEX below so getDef resolves them.
+export const TOKENS: CardDef[] = [
+  {
+    id: "leaf_reptilian_tok",
+    name: "Reptilian",
+    element: "LEAF",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 3,
+    sp: 3,
+    shields: 0,
+    keywords: {},
+  },
+];
+
 export const CARD_INDEX: Record<string, CardDef> = Object.fromEntries(
-  CARDS.map((c) => [c.id, c]),
+  [...CARDS, ...TOKENS].map((c) => [c.id, c]),
 );
 
 export function getDef(defId: string): CardDef {
