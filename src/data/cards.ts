@@ -544,7 +544,8 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 2,
     keywords: {},
-    // Cave Guard (On Opp enter battlefield): deal 4 DMG to them.
+    // Cave Guard (On Opp enter battlefield): deal 4 DMG to a newcomer summoned
+    // within Rock Goblin's (melee) range — gated by canTarget in the SUMMON reducer.
     onOppSummon: { dmg: 4 },
   },
   {

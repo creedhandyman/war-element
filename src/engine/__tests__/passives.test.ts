@@ -250,6 +250,16 @@ describe("on-opponent-summon reactions", () => {
     const g2 = boardCards(n2, "P1").find((c) => c.defId === "dusk_gool")!;
     expect(g2.statuses.some((x) => x.kind === "PARALYZE")).toBe(false); // out of range
   });
+
+  it("Rock Goblin's Cave Guard stays silent for a summon out of its melee range", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 5;
+    place(s, "bore_rockgoblin", "P2", 0, 3); // far corner — nowhere near (3,0)
+    const handId = giveHand(s, "P1", "dusk_gool"); // HP 13
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const fresh = boardCards(next, "P1").find((c) => c.defId === "dusk_gool")!;
+    expect(fresh.curHp).toBe(13); // untouched — Rock Goblin couldn't reach it
+  });
 });
 
 describe("FLYING melee targeting", () => {

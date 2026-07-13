@@ -150,7 +150,7 @@ export function CardDetail(props: {
   if (def.onOppSummon) {
     const o = def.onOppSummon;
     const bits = [o.dmg && `${o.dmg} DMG`, o.status && o.status.kind].filter(Boolean).join(" + ");
-    passives.push(`When an enemy is summoned, hits it with ${bits}.`);
+    passives.push(`When an enemy is summoned within range, hits it with ${bits}.`);
   }
   if (def.firstStrikeBonus)
     passives.push(`+${def.firstStrikeBonus} DMG on the first strike against each opponent.`);
