@@ -1733,12 +1733,11 @@ export const CARDS: CardDef[] = [
       name: "Jungle Culling",
       cost: 4,
       handler: "strike",
-      params: { dmg: 11 },
+      params: { dmg: 11, onKillSelfStatus: "STEALTH", onKillSelfStatusDuration: 2 },
       targetSide: "enemy",
       ranged: true, // reaches the lowest-HP opponent anywhere
-      text: "Deal 11 DMG to a target (aim the lowest-HP opponent).",
+      text: "Deal 11 DMG to a target (aim the lowest-HP); if it dies, gain STEALTH until end of next round.",
     },
-    // STEALTH-on-Culling-kill deferred (instance keywords aren't modelled yet).
   },
   {
     id: "pyro_pyrogon",

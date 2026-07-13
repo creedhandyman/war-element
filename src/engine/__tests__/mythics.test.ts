@@ -185,3 +185,34 @@ describe("splash damage", () => {
     expect(next.cards[far.instanceId].curHp).toBe(40); // out of splash range
   });
 });
+
+describe("Jungle Culling — STEALTH on kill", () => {
+  it("Trinezer gains STEALTH when the cull kills", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const trin = place(s, "leaf_trinezer", "P1", 3, 0);
+    const weak = place(s, "dusk_gool", "P2", 1, 0, { curHp: 5, maxHp: 20, curShields: 0 });
+    const next = applyIntent(battleWith(s, trin.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: weak.instanceId,
+    });
+    expect(next.cards[weak.instanceId]).toBeUndefined(); // culled
+    expect(statusOf(next.cards[trin.instanceId], "STEALTH")).toBeTruthy();
+  });
+
+  it("no STEALTH if the target survives the cull", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const trin = place(s, "leaf_trinezer", "P1", 3, 0);
+    const tough = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 0 });
+    const next = applyIntent(battleWith(s, trin.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: tough.instanceId,
+    });
+    expect(statusOf(next.cards[trin.instanceId], "STEALTH")).toBeFalsy();
+  });
+});

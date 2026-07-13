@@ -764,13 +764,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const target = targets[0];
     if (!target) return;
     const center = target.pos ? { ...target.pos } : null; // splash centre (target may die)
-    resolveHit(draft, attacker, target, {
+    const r = resolveHit(draft, attacker, target, {
       kind: "special",
       dmg: num(params, "dmg"),
       hits: num(params, "hits", 1),
       pen: num(params, "pen") > 0,
       crit: false,
     });
+    // Self-buff status only if the strike KILLED (Jungle Culling → STEALTH on kill).
+    const onKillStatus = params.onKillSelfStatus;
+    if (r.targetDied && typeof onKillStatus === "string" && onKillStatus && attacker.curHp > 0) {
+      applyStatus(draft, attacker, onKillStatus as StatusKind, num(params, "onKillSelfStatusDuration", 1), 0, getDef(attacker.defId).element);
+    }
     maybeStatus(draft, attacker, target, params);
     // Splash: reduced damage to enemies adjacent (chess-king) to the struck slot
     // (Dive Bomb 11, Shadow Charge 9).
