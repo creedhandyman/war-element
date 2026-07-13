@@ -312,8 +312,26 @@ export function App() {
       return;
     }
 
-    // Default: click any played card to inspect its art, stats, and abilities.
-    if (clicked) setDetailId(clicked.instanceId);
+    // Default: one of your cards that can move THIS turn jumps straight to its
+    // movement options (green slots); tap it again to inspect. Anything else
+    // (enemy cards, already-moved cards, other phases) opens the inspector.
+    if (clicked) {
+      const readyToMove =
+        me !== null &&
+        game.phase === "prep" &&
+        game.prep?.priority === me &&
+        !game.prep.movedThisTurn &&
+        clicked.owner === me &&
+        legalMoves(game, me, clicked.instanceId).length > 0;
+      if (readyToMove) {
+        setSel({ kind: "card", instanceId: clicked.instanceId });
+        setHint(
+          `Moving <b>${getDef(clicked.defId).name}</b> — tap a green slot, or tap the card again to inspect it.`,
+        );
+      } else {
+        setDetailId(clicked.instanceId);
+      }
+    }
   }
 
   // Arm a move from the detail panel (own card, our prep, move still available).
