@@ -763,6 +763,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   strike(draft, attacker, targets, params) {
     const target = targets[0];
     if (!target) return;
+    const center = target.pos ? { ...target.pos } : null; // splash centre (target may die)
     resolveHit(draft, attacker, target, {
       kind: "special",
       dmg: num(params, "dmg"),
@@ -771,6 +772,16 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       crit: false,
     });
     maybeStatus(draft, attacker, target, params);
+    // Splash: reduced damage to enemies adjacent (chess-king) to the struck slot
+    // (Dive Bomb 11, Shadow Charge 9).
+    const splash = num(params, "splash");
+    if (splash > 0 && center) {
+      for (const e of boardCards(draft, enemyOf(attacker.owner))) {
+        if (e.instanceId === target.instanceId || !e.pos) continue;
+        if (Math.max(Math.abs(e.pos.row - center.row), Math.abs(e.pos.col - center.col)) === 1)
+          directDamage(draft, attacker, e, splash, num(params, "pen") > 0);
+      }
+    }
     const selfDamage = num(params, "selfDamage");
     if (selfDamage > 0 && attacker.curHp > 0) {
       attacker.curHp -= selfDamage;

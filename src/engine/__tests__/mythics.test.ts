@@ -165,3 +165,23 @@ describe("temporary self-buffs (STEALTH / EVASION)", () => {
     expect(statusOf(next.cards[sh.instanceId], "EVASION")).toBeTruthy();
   });
 });
+
+describe("splash damage", () => {
+  it("Dive Bomb hits the target 27 and splashes 11 to adjacent enemies only", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const griff = place(s, "gale_griffith", "P1", 2, 0);
+    const main = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const adj = place(s, "leaf_alpha", "P2", 1, 2, { curHp: 40, maxHp: 40, curShields: 0 }); // adjacent to main
+    const far = place(s, "leaf_alpha", "P2", 1, 3, { curHp: 40, maxHp: 40, curShields: 0 }); // 2 away
+    const next = applyIntent(battleWith(s, griff.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: main.instanceId,
+    });
+    expect(next.cards[main.instanceId].curHp).toBe(40 - 27); // main hit
+    expect(next.cards[adj.instanceId].curHp).toBe(40 - 11); // splash
+    expect(next.cards[far.instanceId].curHp).toBe(40); // out of splash range
+  });
+});
