@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { directDamage, wallEvasion, wallFlatReduction } from "../combat";
 import { applyIntent, advance } from "../phases";
 import { canCastSpell } from "../rules";
-import { atCleanup, place, prepState, statusOf } from "./helpers";
+import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 
 /** Give P1 a single spell and enough magic to cast it. */
 function armSpell(s: ReturnType<typeof prepState>, defId: string, magic = 5) {
@@ -106,6 +106,49 @@ describe("Cost-4 walls", () => {
     });
     expect(next.cards[foe.instanceId].curHp).toBe(11); // took 3
     expect(statusOf(next.cards[foe.instanceId], "BURN")).toBeTruthy();
+  });
+
+  it("a fast card can't leap OVER a wall — passing its row still triggers it", () => {
+    const s = prepState(42, "P2");
+    s.walls = [
+      { owner: "P1", spellId: "pyro_firewall", element: "PYRO", row: 1, dmg: 3, status: { kind: "BURN", duration: 1, power: 1 }, roundsLeft: 3 },
+    ];
+    // leaf_sumerose SP 8 (reach 2): row 0 → row 2 vaults OVER the wall on row 1.
+    const foe = place(s, "leaf_sumerose", "P2", 0, 0, { curHp: 13, maxHp: 13, curShields: 0 });
+    const next = applyIntent(s, {
+      type: "MOVE",
+      player: "P2",
+      instanceId: foe.instanceId,
+      to: { row: 2, col: 0 },
+    });
+    expect(next.cards[foe.instanceId].curHp).toBe(10); // took 3 crossing row 1
+    expect(statusOf(next.cards[foe.instanceId], "BURN")).toBeTruthy();
+  });
+
+  it("FLYING cards soar over walls untouched", () => {
+    const s = prepState(42, "P2");
+    s.walls = [{ owner: "P1", spellId: "pyro_firewall", element: "PYRO", row: 2, dmg: 3, roundsLeft: 3 }];
+    const flyer = place(s, "pyro_fenrir", "P2", 1, 0, { curHp: 17, maxHp: 17, curShields: 0 }); // FLYING
+    const next = applyIntent(s, {
+      type: "MOVE",
+      player: "P2",
+      instanceId: flyer.instanceId,
+      to: { row: 2, col: 0 },
+    });
+    expect(next.cards[flyer.instanceId].curHp).toBe(17); // untouched
+  });
+
+  it("a card SUMMONED into an enemy wall's row is caught by it", () => {
+    const s = prepState(42, "P2"); // P2 has priority to summon
+    s.walls = [
+      { owner: "P1", spellId: "leaf_bramble_wall", element: "LEAF", row: 0, dmg: 2, status: { kind: "ROOT", duration: 1, power: 0 }, roundsLeft: 3 },
+    ];
+    const handId = giveHand(s, "P2", "leaf_alpha"); // non-flying
+    s.players.P2.summonPool = 5;
+    const next = applyIntent(s, { type: "SUMMON", player: "P2", handId, col: 0 });
+    const summoned = Object.values(next.cards).find((c) => c.owner === "P2" && c.pos?.row === 0);
+    expect(summoned!.curHp).toBe(12); // 14 − 2 from the Bramble Wall
+    expect(statusOf(summoned!, "ROOT")).toBeTruthy();
   });
 
   it("a caster's own card is unharmed crossing its own wall", () => {

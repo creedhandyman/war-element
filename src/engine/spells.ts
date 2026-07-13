@@ -80,7 +80,7 @@ export const SPELLS: SpellDef[] = [
     element: "PYRO",
     cost: 4,
     kind: "wall",
-    text: "Set a row ablaze for 3 rounds. A card that MOVES into it takes 3 DMG and BURN 1. Ranged passes through.",
+    text: "Set a row ablaze for 3 rounds. A card that MOVES into it takes 3 DMG and BURN 1. Ranged attacks and FLYING cards pass over.",
     wall: { dmg: 3, status: { kind: "BURN", duration: 1, power: 1 }, rounds: 3 },
   },
   {
@@ -89,7 +89,7 @@ export const SPELLS: SpellDef[] = [
     element: "LEAF",
     cost: 4,
     kind: "wall",
-    text: "Thorned vines across a row for 3 rounds. A card that MOVES in takes 2 DMG and is ROOTed 1 round. Ranged passes through.",
+    text: "Thorned vines across a row for 3 rounds. A card that MOVES in takes 2 DMG and is ROOTed 1 round. Ranged attacks and FLYING cards pass over.",
     wall: { dmg: 2, status: { kind: "ROOT", duration: 1, power: 0 }, rounds: 3 },
   },
   {
@@ -98,7 +98,7 @@ export const SPELLS: SpellDef[] = [
     element: "AQUA",
     cost: 4,
     kind: "wall",
-    text: "A wall of ice across a row for 3 rounds. A card that MOVES in takes 2 DMG and is FROZEN 1 round. Ranged passes through.",
+    text: "A wall of ice across a row for 3 rounds. A card that MOVES in takes 2 DMG and is FROZEN 1 round. Ranged attacks and FLYING cards pass over.",
     wall: { dmg: 2, status: { kind: "FREEZE", duration: 1, power: 0 }, rounds: 3 },
   },
   {
@@ -107,7 +107,7 @@ export const SPELLS: SpellDef[] = [
     element: "GALE",
     cost: 4,
     kind: "wall",
-    text: "Violent wind across a row for 3 rounds. A card that MOVES in takes 2 DMG and is pushed back 1. Ranged passes through.",
+    text: "Violent wind across a row for 3 rounds. A card that MOVES in takes 2 DMG and is pushed back 1. Ranged attacks and FLYING cards pass over.",
     wall: { dmg: 2, push: 1, rounds: 3 },
   },
   {
@@ -116,7 +116,7 @@ export const SPELLS: SpellDef[] = [
     element: "BOLT",
     cost: 4,
     kind: "wall",
-    text: "Charge a row with current for 3 rounds. A card that MOVES in takes 2 DMG and is PARALYZED 1 round. Ranged passes through.",
+    text: "Charge a row with current for 3 rounds. A card that MOVES in takes 2 DMG and is PARALYZED 1 round. Ranged attacks and FLYING cards pass over.",
     wall: { dmg: 2, status: { kind: "PARALYZE", duration: 1, power: 0 }, rounds: 3 },
   },
   {
@@ -125,7 +125,7 @@ export const SPELLS: SpellDef[] = [
     element: "BORE",
     cost: 4,
     kind: "wall",
-    text: "Wall of stone across your OWN Home row for 3 rounds. A card that MOVES in loses 1 shield then takes 3 DMG. BORE allies in the row gain BLOCK 2. Ranged passes through.",
+    text: "Wall of stone across your OWN Home row for 3 rounds. A card that MOVES in loses 1 shield then takes 3 DMG. BORE allies in the row gain BLOCK 2. Ranged attacks and FLYING cards pass over.",
     wall: { dmg: 3, stripShields: 1, ownHomeOnly: true, allyBuff: { block: 2 }, rounds: 3 },
   },
   {
@@ -134,7 +134,7 @@ export const SPELLS: SpellDef[] = [
     element: "DUSK",
     cost: 4,
     kind: "wall",
-    text: "Cloak a row in darkness for 3 rounds. A card that MOVES in takes 2 DMG and is FRIGHTENed 1 round. DUSK allies in the row gain EVASION. Ranged passes through.",
+    text: "Cloak a row in darkness for 3 rounds. A card that MOVES in takes 2 DMG and is FRIGHTENed 1 round. DUSK allies in the row gain EVASION. Ranged attacks and FLYING cards pass over.",
     wall: { dmg: 2, status: { kind: "FRIGHTEN", duration: 1, power: 0 }, allyBuff: { evasion: true }, rounds: 3 },
   },
   {
@@ -143,7 +143,7 @@ export const SPELLS: SpellDef[] = [
     element: "DAWN",
     cost: 4,
     kind: "wall",
-    text: "A wall of light across a row for 3 rounds. A card that MOVES in takes 2 DMG and is BLINDed 1 round. DAWN allies in the row take 1 less DMG from all attacks. Ranged passes through.",
+    text: "A wall of light across a row for 3 rounds. A card that MOVES in takes 2 DMG and is BLINDed 1 round. DAWN allies in the row take 1 less DMG from all attacks. Ranged attacks and FLYING cards pass over.",
     wall: { dmg: 2, status: { kind: "BLIND", duration: 1, power: 0 }, allyBuff: { dmgReduction: 1 }, rounds: 3 },
   },
 ];

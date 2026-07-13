@@ -37,6 +37,7 @@ import type {
   Intent,
   PlayerId,
   SpellDef,
+  WallState,
 } from "./types";
 import {
   BOARD_SIZE,
@@ -121,6 +122,9 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         if (st && inst.curHp > 0 && draft.cards[inst.instanceId])
           applyStatus(draft, inst, st.kind, st.duration, st.power, gd.element);
       }
+      // A card summoned into an enemy Wall's row eats it as it materialises
+      // (a wall on the opponent's own Home row punishes their summons).
+      if (draft.cards[inst.instanceId]) triggerWallsOnSummon(draft, inst);
       return draft;
     }
     case "MOVE": {
@@ -134,7 +138,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       draft.log.push(
         `${intent.player} moves ${getDef(card.defId).name} to r${intent.to.row}c${intent.to.col}.`,
       );
-      triggerWalls(draft, card, fromRow); // crossing INTO an enemy Wall's row hurts
+      triggerWallsOnMove(draft, card, fromRow); // crossing INTO/OVER an enemy Wall's row hurts
       return draft;
     }
     case "CAST_SPELL": {
@@ -293,19 +297,44 @@ function resolveSpell(
 }
 
 /** A card that MOVED into an enemy Wall's row (row change only) eats it. */
-function triggerWalls(draft: GameState, card: CardInstance, fromRow: number): void {
-  if (!card.pos) return;
-  for (const w of draft.walls) {
+/** Apply one Wall's cross effect to a card: strip shields, deal damage, then
+ *  (if it survived) apply the status / push. */
+function applyWall(draft: GameState, card: CardInstance, w: WallState): void {
+  draft.log.push(`${label(draft, card)} crosses ${getSpell(w.spellId).name}!`);
+  if (w.stripShields && card.curShields > 0)
+    card.curShields = Math.max(0, card.curShields - w.stripShields);
+  const died = spellHit(draft, card, w.dmg, false);
+  if (died || !draft.cards[card.instanceId] || card.curHp <= 0) return;
+  if (w.status)
+    applyStatus(draft, card, w.status.kind, w.status.duration, w.status.power, getSpell(w.spellId).element);
+  if (w.push) pushBack(draft, card, w.push);
+}
+
+/** A card that MOVED from `fromRow` to its current row crosses every enemy Wall
+ *  whose row lies in that vertical span — so a fast card (reach 2) can't leap
+ *  over a wall untouched. FLYING cards soar over walls entirely. */
+function triggerWallsOnMove(draft: GameState, card: CardInstance, fromRow: number): void {
+  if (!card.pos || getDef(card.defId).keywords.FLYING) return;
+  const toRow = card.pos.row;
+  for (const w of draft.walls.slice()) {
     if (w.owner === card.owner) continue; // your own wall never hits you
-    if (!card.pos || w.row !== card.pos.row || fromRow === w.row) continue;
-    draft.log.push(`${label(draft, card)} crosses ${getSpell(w.spellId).name}!`);
-    if (w.stripShields && card.curShields > 0)
-      card.curShields = Math.max(0, card.curShields - w.stripShields);
-    const died = spellHit(draft, card, w.dmg, false);
-    if (died || !draft.cards[card.instanceId] || card.curHp <= 0) continue;
-    if (w.status)
-      applyStatus(draft, card, w.status.kind, w.status.duration, w.status.power, getSpell(w.spellId).element);
-    if (w.push) pushBack(draft, card, w.push);
+    // crossed if the wall's row is in (fromRow → toRow], i.e. entered or passed.
+    const crossed = w.row !== fromRow && (w.row - fromRow) * (w.row - toRow) <= 0;
+    if (!crossed) continue;
+    applyWall(draft, card, w);
+    if (!draft.cards[card.instanceId] || card.curHp <= 0) break;
+  }
+}
+
+/** A card SUMMONED into a row triggers any enemy Wall already on that exact row
+ *  (a wall on the opponent's own Home row bites their summons). FLYING exempt. */
+function triggerWallsOnSummon(draft: GameState, card: CardInstance): void {
+  if (!card.pos || getDef(card.defId).keywords.FLYING) return;
+  const row = card.pos.row;
+  for (const w of draft.walls.slice()) {
+    if (w.owner === card.owner || w.row !== row) continue;
+    applyWall(draft, card, w);
+    if (!draft.cards[card.instanceId] || card.curHp <= 0) break;
   }
 }
 
