@@ -54,7 +54,7 @@ export function wallEvasion(draft: GameState, card: CardInstance): boolean {
  *  in a mid row instead of the +1 DMG single-hit cards get — see effectiveDmg). */
 export function effectiveBasicHits(card: CardInstance): number {
   const def = getDef(card.defId);
-  let hits = def.hits + (card.hitsBonus ?? 0) + (card.hitsBonusRound ?? 0);
+  let hits = def.hits + (card.hitsBonus ?? 0) + (card.hitsBonusRound ?? 0) + (card.loadedHits ?? 0);
   if (def.hits >= MULTI_HIT_BONUS_MIN && card.pos && (card.pos.row === 1 || card.pos.row === 2)) hits += 1;
   return hits;
 }
@@ -494,6 +494,7 @@ export function basicAttack(
       if (directDamage(draft, attacker, primary, extra, false)) agg.targetDied = true;
     }
   }
+  attacker.loadedHits = 0; // loaded darts are spent on this attack (Bleed Out)
   return agg;
 }
 

@@ -81,9 +81,16 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Darts: basic attacks apply BLEED 1 for 2 rounds (refreshes; true stacking
-    // isn't modelled). Bleed Out Talent (skip-to-load 3 darts) deferred —
-    // Talents aren't modelled yet.
+    // isn't modelled).
     onHitStatus: { kind: "BLEED", duration: 2, power: 1 },
+    // Bleed Out (Talent, free, once per game): fire it instead of attacking to
+    // load the darts; next basic fires as 3 (1 + 2 loaded).
+    talent: {
+      name: "Bleed Out",
+      text: "Skip this attack to load your darts — your next basic attack fires as 3 darts.",
+      handler: "loadHits",
+      params: { hits: 2 },
+    },
   },
   {
     id: "leaf_greegon",

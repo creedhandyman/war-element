@@ -155,6 +155,8 @@ export function CardDetail(props: {
     ].filter(Boolean);
     passives.push(`Aura — ${who} gain ${bits.join(" / ")}.`);
   }
+  if (def.talent)
+    passives.push(`Talent (free · once per game) — ${def.talent.name}: ${def.talent.text}`);
   if (def.onRevive)
     passives.push(
       `Revives once when defeated at ${def.onRevive.heal} HP${def.onRevive.sleep ? `, then sleeps ${def.onRevive.sleep} round(s)` : ""}.`,

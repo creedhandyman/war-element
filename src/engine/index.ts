@@ -24,6 +24,7 @@ export {
   validAllyTargets,
   canBasicAttack,
   canFireSpecial,
+  canFireTalent,
   plannedAction,
   isActionBlocked,
   validSpecialTargets,

@@ -1,9 +1,9 @@
 // Element-core Mythics + the token-spawn mechanic that several of them use.
 
 import { describe, expect, it } from "vitest";
-import { directDamage } from "../combat";
+import { directDamage, effectiveBasicHits } from "../combat";
 import { advance, applyIntent } from "../phases";
-import { canTarget } from "../rules";
+import { canFireTalent, canTarget } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
@@ -214,5 +214,33 @@ describe("Jungle Culling — STEALTH on kill", () => {
       targetId: tough.instanceId,
     });
     expect(statusOf(next.cards[trin.instanceId], "STEALTH")).toBeFalsy();
+  });
+});
+
+describe("Talents — Dart Frog's Bleed Out", () => {
+  it("loads darts so the next basic fires 3 hits; once per game, consumed on use", () => {
+    const s = prepState();
+    const frog = place(s, "leaf_dartfrog", "P1", 3, 0); // home row (no mid +1 DMG)
+    const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    // Fire the Talent (free, uses the turn instead of attacking).
+    const t1 = applyIntent(battleWith(s, frog.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "talent",
+    });
+    const f = t1.cards[frog.instanceId];
+    expect(f.talentUsed).toBe(true);
+    expect(effectiveBasicHits(f)).toBe(3); // 1 base + 2 loaded
+    expect(canFireTalent(t1, frog.instanceId).ok).toBe(false); // once per game
+
+    // Next basic fires as 3 darts (5 DMG each) and clears the load.
+    const t2 = applyIntent(battleWith(t1, frog.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "basic",
+      targetId: foe.instanceId,
+    });
+    expect(t2.cards[foe.instanceId].curHp).toBe(40 - 15); // 3 × 5
+    expect(t2.cards[frog.instanceId].loadedHits).toBe(0); // spent
   });
 });

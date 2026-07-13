@@ -5,6 +5,7 @@ import {
   applyIntent,
   canCastSpell,
   canFireSpecial,
+  canFireTalent,
   canMove,
   canSummon,
   cardAt,
@@ -380,6 +381,7 @@ export function App() {
   const activeCard = awaitingId ? game.cards[awaitingId] : null;
   const activeDef = activeCard ? getDef(activeCard.defId) : null;
   const specialCheck = awaitingId ? canFireSpecial(game, awaitingId) : { ok: false };
+  const talentCheck = awaitingId ? canFireTalent(game, awaitingId) : { ok: false };
   const basicOk = awaitingId ? validTargets(game, awaitingId).length > 0 : false;
 
   const myPrep = me !== null && game.phase === "prep" && game.prep?.priority === me;
@@ -499,6 +501,16 @@ export function App() {
                   ? `🔥 Fire (${picks.length}/${maxPicks})`
                   : `✦ Special${activeDef.special ? ` (${activeDef.special.cost})` : ""}`}
               </button>
+              {activeDef.talent && (
+                <button
+                  className="bbtn"
+                  disabled={!talentCheck.ok}
+                  title={`${activeDef.talent.name} (Talent, free · once per game): ${activeDef.talent.text}`}
+                  onClick={() => dispatch({ type: "BATTLE_ACTION", player: activeCard.owner, action: "talent" })}
+                >
+                  ★ {activeDef.talent.name}
+                </button>
+              )}
               <button
                 className="bbtn"
                 onClick={() => dispatch({ type: "BATTLE_ACTION", player: activeCard.owner, action: "skip" })}

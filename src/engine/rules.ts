@@ -225,6 +225,21 @@ export function canBasicAttack(state: GameState, instanceId: string): boolean {
   return validTargets(state, instanceId).length > 0;
 }
 
+/** A Talent is free and once-per-game; it fires in the Battle Phase instead of
+ *  a basic attack. */
+export function canFireTalent(
+  state: GameState,
+  instanceId: string,
+): { ok: boolean; reason?: string } {
+  const card = state.cards[instanceId];
+  if (!card) return { ok: false, reason: "No such card" };
+  const def = getDef(card.defId);
+  if (!def.talent) return { ok: false, reason: "No Talent" };
+  if (card.talentUsed) return { ok: false, reason: "Talent already used this game" };
+  if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
+  return { ok: true };
+}
+
 export function canFireSpecial(
   state: GameState,
   instanceId: string,

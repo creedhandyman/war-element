@@ -24,6 +24,7 @@ import {
 import {
   canCastSpell,
   canFireSpecial,
+  canFireTalent,
   canMove,
   canSummon,
   canTarget,
@@ -399,13 +400,26 @@ function startBattle(draft: GameState): void {
 function performBattleAction(
   draft: GameState,
   instanceId: string,
-  action: "basic" | "special" | "skip",
+  action: "basic" | "special" | "skip" | "talent",
   picks?: string[],
 ): void {
   const card = draft.cards[instanceId];
   if (!card) return;
   if (action === "skip") {
     draft.log.push(`${label(draft, card)} waits.`);
+    return;
+  }
+  if (action === "talent") {
+    const check = canFireTalent(draft, instanceId);
+    if (!check.ok) throw new Error(`Can't use Talent: ${check.reason}`);
+    const t = getDef(card.defId).talent!;
+    card.talentUsed = true;
+    card.attackedThisRound = true; // the Talent is this turn's action
+    draft.log.push(`${label(draft, card)} uses ${t.name}!`);
+    if (t.handler === "loadHits") {
+      card.loadedHits += Number(t.params?.hits ?? 0);
+      draft.log.push(`${label(draft, card)} loads its darts — next basic fires as ${getDef(card.defId).hits + card.loadedHits}.`);
+    }
     return;
   }
   if (action === "special") {

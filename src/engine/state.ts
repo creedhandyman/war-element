@@ -263,6 +263,8 @@ export function summonCard(
     buffs: [],
     revived: false,
     transformed: false,
+    talentUsed: false,
+    loadedHits: 0,
     statuses: [],
     summonedThisRound: true,
     specialCooldown: 0,

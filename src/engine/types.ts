@@ -239,6 +239,9 @@ export interface CardDef {
    *  a flat DMG/SP bonus to matching living allies (incl. itself if it matches).
    *  Non-stacking — the single highest matching aura applies, never sums. */
   aura?: AuraBonusDef;
+  /** A Talent: a FREE, once-per-game Battle-Phase ability (fired instead of a
+   *  basic attack). After it fires the card reverts to passive-only. */
+  talent?: { name: string; text: string; handler: string; params?: Record<string, number | string> };
   /** Catapult-style passives: this card may target the enemy Home row from
    *  anywhere (skips the Home Slot Targeting Rule). */
   ignoresHomeRule?: boolean;
@@ -306,6 +309,11 @@ export interface CardInstance {
   /** HP-threshold transform guard (Skelider) — set once Dismount has fired;
    *  blocks the Special thereafter. */
   transformed: boolean;
+  /** A Talent fires once per game; set true after it's used. */
+  talentUsed: boolean;
+  /** Extra basic hits queued for the NEXT basic attack (Dart Frog's loaded
+   *  darts). Consumed the next time this card basic-attacks. */
+  loadedHits: number;
   /** Active statuses. DIFFERENT kinds coexist (a card can be ROOTed and
    *  BURNing); re-applying the SAME kind refreshes it instead of stacking —
    *  same-kind stacking only when a card explicitly states it (future flag). */
@@ -474,7 +482,7 @@ export type Intent =
   | {
       type: "BATTLE_ACTION";
       player: PlayerId;
-      action: "basic" | "special" | "skip";
+      action: "basic" | "special" | "skip" | "talent";
       /** Single target: the full volley lands on it. */
       targetId?: string;
       /** Multi-selection: one hit/strike per entry, in order; repeat an id to
