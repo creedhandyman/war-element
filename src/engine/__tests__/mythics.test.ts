@@ -2,9 +2,10 @@
 
 import { describe, expect, it } from "vitest";
 import { directDamage } from "../combat";
-import { applyIntent } from "../phases";
-import { boardCards } from "../state";
-import { giveHand, place, prepState } from "./helpers";
+import { advance, applyIntent } from "../phases";
+import { boardCards, effectiveDmg, effectiveSp } from "../state";
+import { getDef } from "../../data/cards";
+import { atCleanup, place, prepState } from "./helpers";
 import type { GameState } from "../types";
 
 function battleWith(s: GameState, activeId: string): GameState {
@@ -15,25 +16,52 @@ function battleWith(s: GameState, activeId: string): GameState {
 }
 
 describe("token spawning", () => {
-  it("Trinezer's Reptilian Screech spawns 3 tokens on summon", () => {
+  it("Trinezer's Reptilian Screech spawns 1 Reptilian at end of round", () => {
     const s = prepState();
-    s.players.P1.summonPool = 10;
-    const handId = giveHand(s, "P1", "leaf_trinezer");
-    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
-    const mine = boardCards(next, "P1");
-    expect(mine).toHaveLength(4); // Trinezer + 3 Reptilians
-    expect(mine.filter((c) => c.defId === "leaf_reptilian_tok")).toHaveLength(3);
-    // tokens land adjacent to Trinezer (chess-king reach)
-    const trin = mine.find((c) => c.defId === "leaf_trinezer")!;
-    for (const tok of mine.filter((c) => c.defId === "leaf_reptilian_tok")) {
-      expect(Math.abs(tok.pos!.row - trin.pos!.row)).toBeLessThanOrEqual(1);
-      expect(Math.abs(tok.pos!.col - trin.pos!.col)).toBeLessThanOrEqual(1);
-    }
+    const trin = place(s, "leaf_trinezer", "P1", 2, 0); // mid row → open adjacent slots
+    place(s, "leaf_alpha", "P2", 0, 0); // keep P2 non-empty
+    const next = advance(atCleanup(s));
+    const reps = boardCards(next, "P1").filter((c) => c.defId === "leaf_reptilian_tok");
+    expect(reps).toHaveLength(1);
+    // lands in king's reach of Trinezer
+    const t = next.cards[trin.instanceId];
+    expect(Math.abs(reps[0].pos!.row - t.pos!.row)).toBeLessThanOrEqual(1);
+    expect(Math.abs(reps[0].pos!.col - t.pos!.col)).toBeLessThanOrEqual(1);
   });
 
   it("spawned tokens never enter the deck (they're not in CARDS)", async () => {
     const { CARDS } = await import("../../data/cards");
     expect(CARDS.some((c) => c.id === "leaf_reptilian_tok")).toBe(false);
+  });
+});
+
+describe("per-card auras", () => {
+  it("Trinezer's Brood Command gives Reptile allies +1 DMG / +1 SP", () => {
+    const s = prepState();
+    place(s, "leaf_trinezer", "P1", 3, 0);
+    const rep = place(s, "leaf_reptilian_tok", "P1", 3, 1); // Reptile
+    const nonRep = place(s, "leaf_alpha", "P1", 3, 2); // not Reptile
+    expect(effectiveDmg(s, rep)).toBe(3 + 1); // token base 3 + aura
+    expect(effectiveSp(s, rep)).toBe(3 + 1);
+    expect(effectiveDmg(s, nonRep)).toBe(getDef("leaf_alpha").dmg); // untouched
+    expect(effectiveSp(s, nonRep)).toBe(getDef("leaf_alpha").sp);
+  });
+
+  it("the aura is gone once Trinezer leaves the board (non-stacking, board-tied)", () => {
+    const s = prepState();
+    const rep = place(s, "leaf_reptilian_tok", "P1", 3, 1);
+    expect(effectiveDmg(s, rep)).toBe(3); // no Trinezer → no buff
+    place(s, "leaf_trinezer", "P1", 3, 0);
+    expect(effectiveDmg(s, rep)).toBe(4); // buffed while Trinezer is alive
+  });
+
+  it("Griffith's element aura gives GALE allies +1 SP", () => {
+    const s = prepState();
+    place(s, "gale_griffith", "P1", 2, 0);
+    const galeAlly = place(s, "gale_galeon", "P1", 3, 0);
+    const nonGale = place(s, "leaf_alpha", "P1", 3, 1);
+    expect(effectiveSp(s, galeAlly)).toBe(getDef("gale_galeon").sp + 1);
+    expect(effectiveSp(s, nonGale)).toBe(getDef("leaf_alpha").sp);
   });
 });
 

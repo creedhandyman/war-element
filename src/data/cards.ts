@@ -63,8 +63,27 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 0,
     keywords: {},
+    tribe: "Reptile", // fed by Trinezer's Brood Command
     onHitStatus: { kind: "BLEED", duration: 2, power: 2 },
     // Venomous: basic attacks apply BLEED 2 (non-stacking → newest overwrites).
+  },
+  {
+    id: "leaf_dartfrog",
+    name: "Dart Frog",
+    element: "LEAF",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 5,
+    hits: 1,
+    hp: 10,
+    sp: 10,
+    shields: 0,
+    keywords: {},
+    // Darts: basic attacks apply BLEED 1 for 2 rounds (refreshes; true stacking
+    // isn't modelled). Bleed Out Talent (skip-to-load 3 darts) deferred —
+    // Talents aren't modelled yet.
+    onHitStatus: { kind: "BLEED", duration: 2, power: 1 },
   },
   {
     id: "leaf_greegon",
@@ -1697,15 +1716,19 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 8, // LEAF-doc spec (differs from Element_Cores' cost-9 / spawn-1-per-round)
+    cost: 9,
     dmg: 11,
     hits: 1,
-    hp: 19,
+    hp: 23,
     sp: 15,
     shields: 3,
     keywords: {},
-    // Reptilian Screech (On Summon): spawn 3 Reptilian tokens (3/3/SP3).
-    summonSpawn: { token: "leaf_reptilian_tok", count: 3 },
+    tribe: "Reptile",
+    // Reptilian Screech (End of Round): spawn 1 Reptilian into an open king's-
+    // reach slot; no spawn if none is open.
+    roundTick: { spawn: { token: "leaf_reptilian_tok", count: 1, adjacentOnly: true } },
+    // Brood Command: Reptile allies (incl. Trinezer) gain +1 DMG / +1 SP.
+    aura: { scope: "tribe", match: "Reptile", dmg: 1, sp: 1 },
     special: {
       name: "Jungle Culling",
       cost: 4,
@@ -1715,8 +1738,7 @@ export const CARDS: CardDef[] = [
       ranged: true, // reaches the lowest-HP opponent anywhere
       text: "Deal 11 DMG to a target (aim the lowest-HP opponent).",
     },
-    // Reptile-ally aura (+1 DMG/+1 SP) and STEALTH-on-Culling-kill are deferred —
-    // per-card auras / conditional self-status aren't modelled yet.
+    // STEALTH-on-Culling-kill deferred (instance keywords aren't modelled yet).
   },
   {
     id: "pyro_pyrogon",
@@ -1809,8 +1831,11 @@ export const CARDS: CardDef[] = [
     sp: 17,
     shields: 0,
     keywords: { FLYING: true },
+    tribe: "Avian",
     // On Kill: permanent +2 SP.
     onKill: { buffSp: 2 },
+    // Aura: GALE allies gain +1 SP.
+    aura: { scope: "element", sp: 1 },
     special: {
       name: "Dive Bomb",
       cost: 5,
@@ -1819,7 +1844,7 @@ export const CARDS: CardDef[] = [
       targetSide: "enemy",
       text: "Deal 27 DMG to a target.",
     },
-    // GALE +1 SP aura, the 11-splash, and self-STEALTH are deferred.
+    // The 11-splash and self-STEALTH are deferred.
   },
   {
     id: "bolt_elecdroid",
@@ -2043,6 +2068,7 @@ export const TOKENS: CardDef[] = [
     sp: 3,
     shields: 0,
     keywords: {},
+    tribe: "Reptile",
   },
   {
     id: "dawn_heir_tok",

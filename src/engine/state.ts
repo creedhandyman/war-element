@@ -134,11 +134,41 @@ export function hasStatus(card: CardInstance, kind: StatusKind): boolean {
 }
 
 /** Effective speed: ROOT and FREEZE pin SP to 0. */
-export function effectiveSp(_state: GameState, card: CardInstance): number {
+/** Best (non-stacking) aura bonus a card gets from living allies whose aura
+ *  matches it — Trinezer's Brood Command (Reptile +1/+1), Griffith's GALE +SP.
+ *  The single highest matching bonus applies; auras never sum. */
+export function auraBonus(state: GameState, card: CardInstance, stat: "dmg" | "sp"): number {
+  const tDef = getDef(card.defId);
+  let best = 0;
+  for (const holder of boardCards(state, card.owner)) {
+    const hDef = getDef(holder.defId);
+    const a = hDef.aura;
+    if (!a) continue;
+    const matches =
+      a.scope === "all"
+        ? true
+        : a.scope === "element"
+          ? tDef.element === hDef.element
+          : a.scope === "tribe"
+            ? tDef.tribe != null && tDef.tribe === a.match
+            : a.scope === "class"
+              ? tDef.cardClass === a.match
+              : false;
+    if (!matches) continue;
+    const v = stat === "dmg" ? a.dmg ?? 0 : a.sp ?? 0;
+    if (v > best) best = v;
+  }
+  return best;
+}
+
+export function effectiveSp(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   if (hasStatus(card, "ROOT") || hasStatus(card, "FREEZE")) return 0;
   const buffSp = (card.buffs ?? []).reduce((n, b) => n + b.sp, 0);
-  return Math.max(0, def.sp + (card.spBonus ?? 0) + (card.spBonusRound ?? 0) + buffSp);
+  return Math.max(
+    0,
+    def.sp + (card.spBonus ?? 0) + (card.spBonusRound ?? 0) + buffSp + auraBonus(state, card, "sp"),
+  );
 }
 
 /**
@@ -150,7 +180,7 @@ export function effectiveSp(_state: GameState, card: CardInstance): number {
 export function effectiveDmg(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   const buffDmg = (card.buffs ?? []).reduce((n, b) => n + b.dmg, 0);
-  let dmg = def.dmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0) + buffDmg;
+  let dmg = def.dmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0) + buffDmg + auraBonus(state, card, "dmg");
   if (hasStatus(card, "WEAKEN")) dmg = Math.floor(dmg * 0.75);
   if (hasStatus(card, "FREEZE")) dmg = Math.floor(dmg * 0.5);
   // King of the Hill (A): sitting in a Mid row grants +1 DMG — but heavy
@@ -229,6 +259,7 @@ export function spawnTokens(
   spawner: CardInstance,
   tokenDefId: string,
   count: number,
+  adjacentOnly = false,
 ): CardInstance[] {
   if (!spawner.pos) return [];
   const owner = spawner.owner;
@@ -240,11 +271,12 @@ export function spawnTokens(
     if (isOpen(r, c) && !slots.some((s) => s.row === r && s.col === c))
       slots.push({ row: r as Pos["row"], col: c as Pos["col"] });
   };
-  // Adjacent (chess-king) slots first, then any open slot on the board.
+  // Adjacent (chess-king) slots first, then — unless adjacentOnly — any open slot.
   for (let dr = -1; dr <= 1; dr++)
     for (let dc = -1; dc <= 1; dc++)
       if (dr !== 0 || dc !== 0) push(spawner.pos.row + dr, spawner.pos.col + dc);
-  for (let r = 0; r < BOARD_SIZE; r++) for (let c = 0; c < BOARD_SIZE; c++) push(r, c);
+  if (!adjacentOnly)
+    for (let r = 0; r < BOARD_SIZE; r++) for (let c = 0; c < BOARD_SIZE; c++) push(r, c);
 
   const out: CardInstance[] = [];
   for (const pos of slots.slice(0, count)) {

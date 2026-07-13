@@ -127,6 +127,19 @@ export interface RoundTickDef {
   scaldFrozen?: number; // apply SCALD N to FROZEN enemies (Freezer Burn)
   paralyzeOne?: number; // PARALYZE one un-paralyzed enemy for N rounds
   pushEnemies?: number; // blow every enemy back N slots (Wind Guardian)
+  /** Spawn a token each round (Trinezer's Reptilian Screech). adjacentOnly =
+   *  only into an open king's-reach slot; no spawn if none is open. */
+  spawn?: { token: string; count: number; adjacentOnly?: boolean };
+}
+
+/** A persistent per-card aura (Brood Command, GALE +SP, …): a flat DMG/SP buff
+ *  to living allies matching `scope`. `match` names the tribe/class for those
+ *  scopes; the `element` scope uses the aura-holder's own element. */
+export interface AuraBonusDef {
+  scope: "element" | "tribe" | "class" | "all";
+  match?: string;
+  dmg?: number;
+  sp?: number;
 }
 
 /** A temporary flat DMG/SP modifier with a Cleanup countdown. Positive = a buff
@@ -210,9 +223,16 @@ export interface CardDef {
    *  deals +bonusDmg but the attacker pays hpCost HP once per attack (can be
    *  lethal, like a self-damage Special). */
   attackTrade?: { bonusDmg: number; hpCost: number };
-  /** On summon, spawn `count` token cards (Trinezer's Reptilian Screech). The
-   *  token's def lives in CARD_INDEX but never appears in a deck. */
+  /** On summon, spawn `count` token cards (one-shot). The token's def lives in
+   *  CARD_INDEX but never appears in a deck. */
   summonSpawn?: { token: string; count: number };
+  /** Tribe tag (Reptile, Dragon, SeaC, Avian, …) — used by tribe-scoped auras
+   *  and tribe payoffs. Free-text; no effect on its own. */
+  tribe?: string;
+  /** A persistent per-card aura: while this card is alive on the board, it grants
+   *  a flat DMG/SP bonus to matching living allies (incl. itself if it matches).
+   *  Non-stacking — the single highest matching aura applies, never sums. */
+  aura?: AuraBonusDef;
   /** Catapult-style passives: this card may target the enemy Home row from
    *  anywhere (skips the Home Slot Targeting Rule). */
   ignoresHomeRule?: boolean;

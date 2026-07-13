@@ -651,6 +651,10 @@ function doRoundTicks(draft: GameState): void {
     if (rt.pushEnemies) {
       for (const e of enemies()) pushBack(draft, e, rt.pushEnemies);
     }
+    if (rt.spawn) {
+      // Reptilian Screech: spawn a token into an open king's-reach slot.
+      spawnTokens(draft, card, rt.spawn.token, rt.spawn.count, rt.spawn.adjacentOnly);
+    }
     if (rt.pokeDmg || rt.pokeStatus) {
       const t = closest(card, enemies());
       if (t) {

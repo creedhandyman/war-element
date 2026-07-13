@@ -135,8 +135,18 @@ export function CardDetail(props: {
       t.healAllies && `heal all allies ${t.healAllies}`,
       t.healLowestAlly && `heal the weakest ally ${t.healLowestAlly}`,
       t.buffDmgEveryN && `+${t.buffDmgEveryN.amount} DMG every ${t.buffDmgEveryN.n} rounds`,
+      t.spawn && `spawn ${t.spawn.count} ${getDef(t.spawn.token).name} token${t.spawn.count > 1 ? "s" : ""}`,
     ].filter(Boolean);
     passives.push(`Each round: ${bits.join(" · ")}.`);
+  }
+  if (def.aura) {
+    const a = def.aura;
+    const who =
+      a.scope === "element" ? `${def.element} allies` :
+      a.scope === "tribe" ? `${a.match} allies` :
+      a.scope === "class" ? `${a.match} allies` : "all allies";
+    const bits = [a.dmg && `+${a.dmg} DMG`, a.sp && `+${a.sp} SP`].filter(Boolean);
+    passives.push(`Aura — ${who} gain ${bits.join(" / ")}.`);
   }
   if (def.onRevive)
     passives.push(
