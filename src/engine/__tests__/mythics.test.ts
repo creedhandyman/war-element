@@ -3,9 +3,10 @@
 import { describe, expect, it } from "vitest";
 import { directDamage } from "../combat";
 import { advance, applyIntent } from "../phases";
+import { canTarget } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
-import { atCleanup, place, prepState } from "./helpers";
+import { atCleanup, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
 function battleWith(s: GameState, activeId: string): GameState {
@@ -130,5 +131,37 @@ describe("Kraken — From the Deep", () => {
     expect(s.cards[kraken.instanceId].dmgBonus).toBe(3);
     expect(s.cards[kraken.instanceId].spBonus).toBe(3);
     expect(s.cards[kraken.instanceId].curShields).toBe(3);
+  });
+});
+
+describe("temporary self-buffs (STEALTH / EVASION)", () => {
+  it("Griffith's Dive Bomb grants STEALTH — he becomes untargetable", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const griff = place(s, "gale_griffith", "P1", 2, 0);
+    const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(battleWith(s, griff.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: foe.instanceId,
+    });
+    const g = next.cards[griff.instanceId];
+    expect(statusOf(g, "STEALTH")).toBeTruthy();
+    expect(canTarget(next, next.cards[foe.instanceId], g)).toBe(false); // untargetable
+  });
+
+  it("Shadow Horsemen's Shadow Charge grants EVASION", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const sh = place(s, "dusk_shadowhorsemen", "P1", 2, 0);
+    const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(battleWith(s, sh.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: foe.instanceId,
+    });
+    expect(statusOf(next.cards[sh.instanceId], "EVASION")).toBeTruthy();
   });
 });

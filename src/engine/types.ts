@@ -47,7 +47,11 @@ export type StatusKind =
   | "MUTED"
   | "SLEEP"
   | "FRIGHTEN"
-  | "BLIND";
+  | "BLIND"
+  // Buff statuses — a temporary grant of the like-named keyword, ticked down at
+  // Cleanup (Dive Bomb → STEALTH, Shadow Charge → EVASION).
+  | "STEALTH"
+  | "EVASION";
 
 export interface StatusEffect {
   kind: StatusKind;

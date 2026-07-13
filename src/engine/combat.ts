@@ -223,7 +223,7 @@ export function resolveHit(
 
     // 1. EVASION — innate or granted by a friendly wall (Veil). Not re-checked
     //    for reflect damage (no dodge chains).
-    if (opts.kind !== "reflect" && (tDef.keywords.EVASION || wallEvasion(draft, target))) {
+    if (opts.kind !== "reflect" && (tDef.keywords.EVASION || wallEvasion(draft, target) || hasStatus(target, "EVASION"))) {
       if (coin(draft)) {
         result.dodgedHits++;
         draft.log.push(`${label(draft, target)} evades a hit from ${aDef.name}.`);
@@ -714,6 +714,11 @@ function applySelfRiders(
   }
   const sp = num(params, "selfSp");
   if (sp !== 0) caster.spBonus += sp;
+  // Self-buff status on cast (Dive Bomb → STEALTH, Shadow Charge → EVASION).
+  const st = params.selfStatus;
+  if (typeof st === "string" && st) {
+    applyStatus(draft, caster, st as StatusKind, num(params, "selfStatusDuration", 1), 0, getDef(caster.defId).element);
+  }
 }
 
 /** Per-target special riders: forced push-back and a timed −SP debuff

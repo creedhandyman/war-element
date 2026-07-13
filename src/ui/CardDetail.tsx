@@ -62,6 +62,8 @@ const STATUS_TEXT: Record<StatusKind, string> = {
   SLEEP: "Asleep — can't act until it wakes.",
   FRIGHTEN: "Frightened — retreats and can't move forward.",
   BLIND: "Blinded — attacks have a 50% chance to miss.",
+  STEALTH: "Stealthed — can't be targeted.",
+  EVASION: "Evasive — 50% chance to dodge each hit.",
 };
 
 export function CardDetail(props: {

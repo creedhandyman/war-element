@@ -121,7 +121,7 @@ export function canTarget(
   const tDef = getDef(target.defId);
   const melee = aDef.attackType === "Melee" && !asRanged;
 
-  if (tDef.keywords.STEALTH && !target.attackedThisRound) return false;
+  if ((tDef.keywords.STEALTH && !target.attackedThisRound) || hasStatus(target, "STEALTH")) return false;
   // FLYING dodges melee — but a flying attacker can still strike other fliers.
   if (tDef.keywords.FLYING && melee && !aDef.keywords.FLYING) return false;
 
@@ -287,7 +287,7 @@ export function canSpellHitEnemy(
 ): boolean {
   if (!target.pos || target.owner === player) return false;
   const tDef = getDef(target.defId);
-  if (tDef.keywords.STEALTH && !target.attackedThisRound) return false;
+  if ((tDef.keywords.STEALTH && !target.attackedThisRound) || hasStatus(target, "STEALTH")) return false;
   const enemyHome = homeRow(enemyOf(player));
   if (target.pos.row === enemyHome && !spellReachesEnemyHome(state, player)) return false;
   return true;

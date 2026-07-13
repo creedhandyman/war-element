@@ -1841,11 +1841,11 @@ export const CARDS: CardDef[] = [
       name: "Dive Bomb",
       cost: 5,
       handler: "strike",
-      params: { dmg: 27 },
+      params: { dmg: 27, selfStatus: "STEALTH", selfStatusDuration: 1 },
       targetSide: "enemy",
-      text: "Deal 27 DMG to a target.",
+      text: "Deal 27 DMG to a target, then vanish into STEALTH until next round.",
     },
-    // The 11-splash and self-STEALTH are deferred.
+    // The 11-DMG splash is deferred.
   },
   {
     id: "bolt_elecdroid",
@@ -1891,12 +1891,12 @@ export const CARDS: CardDef[] = [
       name: "Shadow Charge",
       cost: 5,
       handler: "strike",
-      params: { dmg: 19, statusKind: "DOT", statusDuration: 1, statusPower: 9 },
+      params: { dmg: 19, statusKind: "DOT", statusDuration: 1, statusPower: 9, selfStatus: "EVASION", selfStatusDuration: 1 },
       targetSide: "enemy",
       ranged: true, // the dive reaches across the board
-      text: "Deal 19 DMG + 9 DOT to a target.",
+      text: "Deal 19 DMG + 9 DOT to a target and gain EVASION for a round.",
     },
-    // The 9-splash, self-EVASION, and 4-space move are deferred.
+    // The 9-DMG splash and the 4-space charge move are deferred.
   },
   {
     id: "bore_deepest",
