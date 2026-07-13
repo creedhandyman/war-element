@@ -15,6 +15,7 @@ import {
   effectiveSp,
   hasCaptureWin,
   hasStatus,
+  auraShieldBonus,
   isEliminated,
   manhattan,
   spawnTokens,
@@ -738,6 +739,9 @@ function doCleanupPhase(draft: GameState): void {
     if (def.element === "LEAF" && card.curHp < card.maxHp) card.curHp += 1;
     // Zephyr (GALE): +1 SP each round, total capped at 21.
     if (def.element === "GALE" && def.sp + card.spBonus < GALE_SP_CAP) card.spBonus += 1;
+    // Shield auras (The DEEPEST's Pressure): top up to printed + aura shields.
+    const shieldBonus = auraShieldBonus(draft, card);
+    if (shieldBonus > 0) card.curShields = Math.max(card.curShields, def.shields + shieldBonus);
   }
 
   // 3. Status durations tick down; expired statuses removed.

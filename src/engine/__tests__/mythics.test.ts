@@ -63,6 +63,32 @@ describe("per-card auras", () => {
     expect(effectiveSp(s, galeAlly)).toBe(getDef("gale_galeon").sp + 1);
     expect(effectiveSp(s, nonGale)).toBe(getDef("leaf_alpha").sp);
   });
+
+  it("Blood Ruby: DUSK allies' basics gain PEN (ignore shields)", () => {
+    const s = prepState();
+    place(s, "dusk_shadowhorsemen", "P1", 2, 1); // Blood Ruby holder (DUSK)
+    const ally = place(s, "dusk_gool", "P1", 2, 0); // DUSK ally
+    const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 5 });
+    const next = applyIntent(battleWith(s, ally.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "basic",
+      targetId: foe.instanceId,
+    });
+    expect(next.cards[foe.instanceId].curShields).toBe(5); // PEN strips no shield
+    expect(next.cards[foe.instanceId].curHp).toBeLessThan(20); // damage went straight to HP
+  });
+
+  it("Pressure: The DEEPEST tops BORE allies up to +2 shields each round", () => {
+    const s = prepState();
+    place(s, "bore_deepest", "P1", 2, 1); // Pressure holder (BORE)
+    const boreAlly = place(s, "bore_clubber", "P1", 2, 0, { curShields: 0 });
+    const nonBore = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0 });
+    place(s, "dusk_gool", "P2", 0, 0); // keep P2 non-empty
+    const next = advance(atCleanup(s));
+    expect(next.cards[boreAlly.instanceId].curShields).toBe(getDef("bore_clubber").shields + 2);
+    expect(next.cards[nonBore.instanceId].curShields).toBe(0); // untouched
+  });
 });
 
 describe("Trinezer — Jungle Culling", () => {

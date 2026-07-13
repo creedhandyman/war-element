@@ -5,6 +5,8 @@ import { getDef, deckById } from "../data/cards";
 import { coin, shuffle } from "./rng";
 import { spellbookFor } from "./spells";
 import type {
+  AuraBonusDef,
+  CardDef,
   CardInstance,
   GameState,
   PlayerId,
@@ -137,28 +139,49 @@ export function hasStatus(card: CardInstance, kind: StatusKind): boolean {
 /** Best (non-stacking) aura bonus a card gets from living allies whose aura
  *  matches it — Trinezer's Brood Command (Reptile +1/+1), Griffith's GALE +SP.
  *  The single highest matching bonus applies; auras never sum. */
+function auraMatches(a: AuraBonusDef, holderDef: CardDef, targetDef: CardDef): boolean {
+  switch (a.scope) {
+    case "all": return true;
+    case "element": return targetDef.element === holderDef.element;
+    case "tribe": return targetDef.tribe != null && targetDef.tribe === a.match;
+    case "class": return targetDef.cardClass === a.match;
+    default: return false;
+  }
+}
+
 export function auraBonus(state: GameState, card: CardInstance, stat: "dmg" | "sp"): number {
   const tDef = getDef(card.defId);
   let best = 0;
   for (const holder of boardCards(state, card.owner)) {
     const hDef = getDef(holder.defId);
-    const a = hDef.aura;
-    if (!a) continue;
-    const matches =
-      a.scope === "all"
-        ? true
-        : a.scope === "element"
-          ? tDef.element === hDef.element
-          : a.scope === "tribe"
-            ? tDef.tribe != null && tDef.tribe === a.match
-            : a.scope === "class"
-              ? tDef.cardClass === a.match
-              : false;
-    if (!matches) continue;
-    const v = stat === "dmg" ? a.dmg ?? 0 : a.sp ?? 0;
+    if (!hDef.aura || !auraMatches(hDef.aura, hDef, tDef)) continue;
+    const v = stat === "dmg" ? hDef.aura.dmg ?? 0 : hDef.aura.sp ?? 0;
     if (v > best) best = v;
   }
   return best;
+}
+
+/** Does a friendly aura grant this card's basic attacks PEN (Blood Ruby)? */
+export function auraHasPen(state: GameState, card: CardInstance): boolean {
+  const tDef = getDef(card.defId);
+  return boardCards(state, card.owner).some((holder) => {
+    const hDef = getDef(holder.defId);
+    return !!hDef.aura?.pen && auraMatches(hDef.aura, hDef, tDef);
+  });
+}
+
+/** The extra shields a card gets from friendly shield auras (Pressure) — the
+ *  highest matching aura's shields, or 0 if none. Each round it's topped up to
+ *  its printed shields + this bonus. */
+export function auraShieldBonus(state: GameState, card: CardInstance): number {
+  const tDef = getDef(card.defId);
+  let bonus = 0;
+  for (const holder of boardCards(state, card.owner)) {
+    const hDef = getDef(holder.defId);
+    if (!hDef.aura?.shields || !auraMatches(hDef.aura, hDef, tDef)) continue;
+    if (hDef.aura.shields > bonus) bonus = hDef.aura.shields;
+  }
+  return bonus;
 }
 
 export function effectiveSp(state: GameState, card: CardInstance): number {

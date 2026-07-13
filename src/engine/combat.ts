@@ -14,7 +14,7 @@
 
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
-import { boardCards, cardAt, effectiveDmg, hasStatus, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, boardCards, cardAt, effectiveDmg, hasStatus, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardInstance,
   Element,
@@ -455,7 +455,7 @@ export function basicAttack(
       kind: "basic",
       dmg,
       hits: g.hits,
-      pen: Boolean(aDef.keywords.PEN),
+      pen: Boolean(aDef.keywords.PEN) || auraHasPen(draft, attacker), // Blood Ruby
       crit,
       lifesteal,
     });

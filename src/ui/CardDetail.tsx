@@ -145,7 +145,12 @@ export function CardDetail(props: {
       a.scope === "element" ? `${def.element} allies` :
       a.scope === "tribe" ? `${a.match} allies` :
       a.scope === "class" ? `${a.match} allies` : "all allies";
-    const bits = [a.dmg && `+${a.dmg} DMG`, a.sp && `+${a.sp} SP`].filter(Boolean);
+    const bits = [
+      a.dmg && `+${a.dmg} DMG`,
+      a.sp && `+${a.sp} SP`,
+      a.shields && `+${a.shields} shields`,
+      a.pen && "PEN on basics",
+    ].filter(Boolean);
     passives.push(`Aura — ${who} gain ${bits.join(" / ")}.`);
   }
   if (def.onRevive)

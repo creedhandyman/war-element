@@ -140,6 +140,8 @@ export interface AuraBonusDef {
   match?: string;
   dmg?: number;
   sp?: number;
+  pen?: boolean; // matching allies' basic attacks gain PEN (Blood Ruby)
+  shields?: number; // matching allies are topped up to base+N shields each round (Pressure)
 }
 
 /** A temporary flat DMG/SP modifier with a Cleanup countdown. Positive = a buff

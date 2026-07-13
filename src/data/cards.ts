@@ -1783,6 +1783,7 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
+    tribe: "SeaC",
     // From the Deep: first time it drops to ≤8 HP, permanent +3 DMG/+3 SP/+3 shield.
     onLowHp: { threshold: 9, buffDmg: 3, buffSp: 3, gainShields: 3 },
     special: {
@@ -1884,6 +1885,8 @@ export const CARDS: CardDef[] = [
     sp: 13,
     shields: 0,
     keywords: {},
+    // Blood Ruby: DUSK allies' basic attacks gain PEN.
+    aura: { scope: "element", pen: true },
     special: {
       name: "Shadow Charge",
       cost: 5,
@@ -1893,7 +1896,7 @@ export const CARDS: CardDef[] = [
       ranged: true, // the dive reaches across the board
       text: "Deal 19 DMG + 9 DOT to a target.",
     },
-    // Blood Ruby PEN aura, the 9-splash, EVASION, and 4-space move are deferred.
+    // The 9-splash, self-EVASION, and 4-space move are deferred.
   },
   {
     id: "bore_deepest",
@@ -1908,6 +1911,9 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 8,
     keywords: { STEALTH: true }, // Abyssal Emergence — hidden until it attacks
+    tribe: "Cavernous",
+    // Pressure: BORE allies are topped up to +2 shields each round.
+    aura: { scope: "element", shields: 2 },
     special: {
       name: "Drilling Quake",
       cost: 5,
@@ -1916,7 +1922,7 @@ export const CARDS: CardDef[] = [
       targetSide: "enemy",
       text: "Sinkhole all opponents in range — 3 DMG + DOT 3 for 3 rounds.",
     },
-    // BORE +2 shield aura and the −5 SP / −accuracy sinkhole riders are deferred.
+    // The −5 SP / −accuracy sinkhole riders are deferred.
   },
 
   // ─────────────── EXPANSION: one more canon card per element ───────────────
