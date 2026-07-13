@@ -1,6 +1,7 @@
 // Element-core Mythics + the token-spawn mechanic that several of them use.
 
 import { describe, expect, it } from "vitest";
+import { directDamage } from "../combat";
 import { applyIntent } from "../phases";
 import { boardCards } from "../state";
 import { giveHand, place, prepState } from "./helpers";
@@ -49,5 +50,31 @@ describe("Trinezer — Jungle Culling", () => {
       targetId: foe.instanceId,
     });
     expect(next.cards[foe.instanceId].curHp).toBe(9); // 20 − 11
+  });
+});
+
+describe("Imperator — Strike of Dawn", () => {
+  it("spawns an Heir token", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const imp = place(s, "dawn_imperator", "P1", 3, 0);
+    const next = applyIntent(battleWith(s, imp.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+    });
+    expect(boardCards(next, "P1").some((c) => c.defId === "dawn_heir_tok")).toBe(true);
+  });
+});
+
+describe("Kraken — From the Deep", () => {
+  it("surges once (+3 DMG/+3 SP/+3 shield) when first dropping to ≤8 HP", () => {
+    const s = prepState();
+    const kraken = place(s, "aqua_kraken", "P1", 2, 0, { curHp: 10, maxHp: 42, curShields: 0 });
+    const src = place(s, "leaf_alpha", "P2", 1, 0);
+    directDamage(s, src, kraken, 5, false); // 10 → 5, crosses the threshold
+    expect(s.cards[kraken.instanceId].dmgBonus).toBe(3);
+    expect(s.cards[kraken.instanceId].spBonus).toBe(3);
+    expect(s.cards[kraken.instanceId].curShields).toBe(3);
   });
 });

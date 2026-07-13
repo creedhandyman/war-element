@@ -1718,6 +1718,181 @@ export const CARDS: CardDef[] = [
     // Reptile-ally aura (+1 DMG/+1 SP) and STEALTH-on-Culling-kill are deferred —
     // per-card auras / conditional self-status aren't modelled yet.
   },
+  {
+    id: "pyro_pyrogon",
+    name: "Pyrogon",
+    element: "PYRO",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 10,
+    dmg: 13,
+    hits: 1,
+    hp: 42,
+    sp: 7,
+    shields: 0,
+    keywords: {},
+    // On Summon: a free Flame Engulf (BURN the area ahead).
+    onSummon: {
+      handler: "barrage",
+      params: { dmg: 7, spread: 1, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
+    },
+    // On Kill: permanent +7 HP and +1 DMG.
+    onKill: { buffMaxHp: 7, buffDmg: 1 },
+    special: {
+      name: "Flame Engulf",
+      cost: 4,
+      handler: "barrage",
+      params: { dmg: 7, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
+      targetSide: "enemy",
+      text: "Deal 7 DMG + BURN 3 to every opponent in range.",
+    },
+    // Aura (Scorch BURN stacks) deferred.
+  },
+  {
+    id: "aqua_kraken",
+    name: "Kraken",
+    element: "AQUA",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 10,
+    dmg: 4,
+    hits: 3,
+    hp: 42,
+    sp: 6,
+    shields: 0,
+    keywords: {},
+    // From the Deep: first time it drops to ≤8 HP, permanent +3 DMG/+3 SP/+3 shield.
+    onLowHp: { threshold: 9, buffDmg: 3, buffSp: 3, gainShields: 3 },
+    special: {
+      name: "Black Wave Crash",
+      cost: 4,
+      handler: "barrage",
+      params: { dmg: 8, targets: 99, statusKind: "BLIND", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "Deal 8 DMG to all opponents and BLIND them 2 rounds (water in their eyes).",
+    },
+    // Aura (SeaC +4 max HP) + the 5-HP self-cost are deferred.
+  },
+  {
+    id: "dawn_imperator",
+    name: "Imperator",
+    element: "DAWN",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 10,
+    dmg: 10,
+    hits: 1,
+    hp: 26, // Element_Cores' corrected value (the printed 65-total 21-HP was a checksum error)
+    sp: 4,
+    shields: 10,
+    keywords: {},
+    special: {
+      name: "Strike of Dawn",
+      cost: 5,
+      handler: "spawn",
+      params: { token: "dawn_heir_tok", count: 1 },
+      targetSide: "ally", // no enemy target needed; always castable
+      text: "Spawn Heir (10/10/2🛡/SP10) in an open slot.",
+    },
+    // Triple Sun auras (Order/Chaos/Crowned) deferred.
+  },
+  {
+    id: "gale_griffith",
+    name: "Griffith",
+    element: "GALE",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 10,
+    dmg: 17,
+    hits: 1,
+    hp: 29,
+    sp: 17,
+    shields: 0,
+    keywords: { FLYING: true },
+    // On Kill: permanent +2 SP.
+    onKill: { buffSp: 2 },
+    special: {
+      name: "Dive Bomb",
+      cost: 5,
+      handler: "strike",
+      params: { dmg: 27 },
+      targetSide: "enemy",
+      text: "Deal 27 DMG to a target.",
+    },
+    // GALE +1 SP aura, the 11-splash, and self-STEALTH are deferred.
+  },
+  {
+    id: "bolt_elecdroid",
+    name: "Elecdroid",
+    element: "BOLT",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 10,
+    dmg: 15, // 5 + 10
+    hits: 1,
+    hp: 27,
+    sp: 10,
+    shields: 7,
+    keywords: {},
+    // Hyper Power Surge (On Kill): +5 DMG this round, +5 SP.
+    onKill: { buffDmgRound: 5, buffSp: 5 },
+    special: {
+      name: "Light Slasher",
+      cost: 5,
+      handler: "strike",
+      params: { dmg: 25 },
+      targetSide: "enemy",
+      text: "Deal a 25-DMG light combo to a target.",
+    },
+    // The on-Surge BOLT-ally aura is deferred.
+  },
+  {
+    id: "dusk_shadowhorsemen",
+    name: "Shadow Horsemen",
+    element: "DUSK",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 10,
+    dmg: 16,
+    hits: 1,
+    hp: 35, // 15 base + 20 Mount (baked in)
+    sp: 13,
+    shields: 0,
+    keywords: {},
+    special: {
+      name: "Shadow Charge",
+      cost: 5,
+      handler: "strike",
+      params: { dmg: 19, statusKind: "DOT", statusDuration: 1, statusPower: 9 },
+      targetSide: "enemy",
+      ranged: true, // the dive reaches across the board
+      text: "Deal 19 DMG + 9 DOT to a target.",
+    },
+    // Blood Ruby PEN aura, the 9-splash, EVASION, and 4-space move are deferred.
+  },
+  {
+    id: "bore_deepest",
+    name: "The DEEPEST",
+    element: "BORE",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 10,
+    dmg: 9,
+    hits: 1,
+    hp: 37,
+    sp: 5,
+    shields: 8,
+    keywords: { STEALTH: true }, // Abyssal Emergence — hidden until it attacks
+    special: {
+      name: "Drilling Quake",
+      cost: 5,
+      handler: "barrage",
+      params: { dmg: 3, targets: 99, statusKind: "DOT", statusDuration: 3, statusPower: 3 },
+      targetSide: "enemy",
+      text: "Sinkhole all opponents in range — 3 DMG + DOT 3 for 3 rounds.",
+    },
+    // BORE +2 shield aura and the −5 SP / −accuracy sinkhole riders are deferred.
+  },
 
   // ─────────────── EXPANSION: one more canon card per element ───────────────
   {
@@ -1867,6 +2042,20 @@ export const TOKENS: CardDef[] = [
     hp: 3,
     sp: 3,
     shields: 0,
+    keywords: {},
+  },
+  {
+    id: "dawn_heir_tok",
+    name: "Heir",
+    element: "DAWN",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 6,
+    dmg: 10,
+    hits: 1,
+    hp: 10,
+    sp: 10,
+    shields: 2,
     keywords: {},
   },
 ];

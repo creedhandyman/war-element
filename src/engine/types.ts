@@ -96,6 +96,7 @@ export interface OnKillDef {
   buffDmgRound?: number; // +DMG for the rest of the round
   buffSp?: number; // permanent +SP
   buffHits?: number; // permanent +1 basic hit (stacks)
+  buffMaxHp?: number; // permanent +max HP (Pyrogon)
   healSelf?: number; // heal self N
   gainShields?: number;
   aoeDmg?: number; // deal N to every reachable enemy
@@ -152,6 +153,11 @@ export interface OnLowHpDef {
   dmg?: number;
   loseSp?: number;
   loseSpecial?: boolean;
+  // One-time positive surge when first dropping below threshold (Kraken's
+  // From the Deep). Permanent, fires once (guarded by `transformed`).
+  buffDmg?: number;
+  buffSp?: number;
+  gainShields?: number;
 }
 
 export interface CardDef {

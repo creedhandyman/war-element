@@ -14,7 +14,7 @@
 
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
-import { boardCards, cardAt, effectiveDmg, hasStatus, manhattan, removeCard } from "./state";
+import { boardCards, cardAt, effectiveDmg, hasStatus, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardInstance,
   Element,
@@ -173,14 +173,27 @@ export function checkLowHpTransform(draft: GameState, card: CardInstance): void 
   if (!def.onLowHp || card.transformed || card.curHp <= 0) return;
   if (card.curHp >= def.onLowHp.threshold) return;
   card.transformed = true;
-  draft.log.push(`${label(draft, card)} dismounts — it fights on as a common skeleton.`);
-  if (def.onLowHp.loseSp) card.spBonus -= def.onLowHp.loseSp;
-  if (def.onLowHp.dmg) {
-    const foes = boardCards(draft, enemyOf(card.owner)).filter((c) => c.curHp > 0);
-    const foe = card.pos
-      ? foes.reduce<CardInstance | null>((best, c) => (c.pos && (!best || manhattan(card.pos!, c.pos) < manhattan(card.pos!, best.pos!)) ? c : best), null)
-      : foes[0] ?? null;
-    if (foe) directDamage(draft, card, foe, def.onLowHp.dmg, false);
+  const o = def.onLowHp;
+  // Skelider Dismount: lose SP + strike the nearest enemy.
+  if (o.loseSp || o.dmg) {
+    draft.log.push(`${label(draft, card)} dismounts — it fights on as a common skeleton.`);
+    if (o.loseSp) card.spBonus -= o.loseSp;
+    if (o.dmg) {
+      const foes = boardCards(draft, enemyOf(card.owner)).filter((c) => c.curHp > 0);
+      const foe = card.pos
+        ? foes.reduce<CardInstance | null>((best, c) => (c.pos && (!best || manhattan(card.pos!, c.pos) < manhattan(card.pos!, best.pos!)) ? c : best), null)
+        : foes[0] ?? null;
+      if (foe) directDamage(draft, card, foe, o.dmg, false);
+    }
+  }
+  // From the Deep (Kraken): one-time permanent surge on first dropping low.
+  if (o.buffDmg || o.buffSp || o.gainShields) {
+    if (o.buffDmg) card.dmgBonus += o.buffDmg;
+    if (o.buffSp) card.spBonus += o.buffSp;
+    if (o.gainShields) card.curShields += o.gainShields;
+    draft.log.push(
+      `${label(draft, card)} surges from the deep (+${o.buffDmg ?? 0} DMG / +${o.buffSp ?? 0} SP / +${o.gainShields ?? 0} shield).`,
+    );
   }
 }
 
@@ -665,6 +678,11 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef): vo
     killer.hitsBonus += def.buffHits;
     draft.log.push(`${name} gains +${def.buffHits} hit on its basic attack.`);
   }
+  if (def.buffMaxHp) {
+    killer.maxHp += def.buffMaxHp;
+    killer.curHp += def.buffMaxHp;
+    draft.log.push(`${name} feeds on the kill (+${def.buffMaxHp} HP).`);
+  }
   if (def.coinBonusDmg) {
     const bonus = coin(draft) ? def.coinBonusDmg : def.coinBonusDmg - 1;
     killer.dmgBonus += bonus;
@@ -732,6 +750,10 @@ function adjacentCasterStatus(
 }
 
 export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
+  /** Spawn N token cards near the caster (Imperator's Strike of Dawn → Heir). */
+  spawn(draft, attacker, _targets, params) {
+    spawnTokens(draft, attacker, String(params.token ?? ""), num(params, "count", 1));
+  },
   /** Single-target damage w/ optional pen, self-damage, self-heal, status. */
   strike(draft, attacker, targets, params) {
     const target = targets[0];

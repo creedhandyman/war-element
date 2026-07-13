@@ -28,6 +28,12 @@ describe("setup", () => {
       // SP-heavy canon glass cannon: the doc costs it at 1 despite the high
       // SP inflating the stat total.
       "dawn_sparkle",
+      // Cost-10 Mythics sit in the tier band (55-67 total) above the exact
+      // formula — they pay part of their cost in spawns / auras / on-kill snowball.
+      "gale_griffith",
+      "bolt_elecdroid",
+      "dusk_shadowhorsemen",
+      "bore_deepest",
     ]);
     for (const def of CARDS) {
       if (exceptions.has(def.id)) continue;
