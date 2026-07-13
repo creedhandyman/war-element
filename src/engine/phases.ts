@@ -122,9 +122,6 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         if (st && inst.curHp > 0 && draft.cards[inst.instanceId])
           applyStatus(draft, inst, st.kind, st.duration, st.power, gd.element);
       }
-      // A card summoned into an enemy Wall's row eats it as it materialises
-      // (a wall on the opponent's own Home row punishes their summons).
-      if (draft.cards[inst.instanceId]) triggerWallsOnSummon(draft, inst);
       return draft;
     }
     case "MOVE": {
@@ -321,18 +318,6 @@ function triggerWallsOnMove(draft: GameState, card: CardInstance, fromRow: numbe
     // crossed if the wall's row is in (fromRow → toRow], i.e. entered or passed.
     const crossed = w.row !== fromRow && (w.row - fromRow) * (w.row - toRow) <= 0;
     if (!crossed) continue;
-    applyWall(draft, card, w);
-    if (!draft.cards[card.instanceId] || card.curHp <= 0) break;
-  }
-}
-
-/** A card SUMMONED into a row triggers any enemy Wall already on that exact row
- *  (a wall on the opponent's own Home row bites their summons). FLYING exempt. */
-function triggerWallsOnSummon(draft: GameState, card: CardInstance): void {
-  if (!card.pos || getDef(card.defId).keywords.FLYING) return;
-  const row = card.pos.row;
-  for (const w of draft.walls.slice()) {
-    if (w.owner === card.owner || w.row !== row) continue;
     applyWall(draft, card, w);
     if (!draft.cards[card.instanceId] || card.curHp <= 0) break;
   }

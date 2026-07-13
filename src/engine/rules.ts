@@ -298,9 +298,10 @@ export function spellEnemyTargets(state: GameState, player: PlayerId): CardInsta
   return boardCards(state, enemyOf(player)).filter((t) => canSpellHitEnemy(state, player, t));
 }
 
-/** Can a wall Spell be laid on `row`? Own Home + both Mid rows freely; the enemy
- *  Home row only with the qualifying-card rule; ownHomeOnly walls (Stone Wall)
- *  restrict to the caster's Home. No two walls from the same owner on one row. */
+/** Can a wall Spell be laid on `row`? Own Home + both Mid rows only. The enemy
+ *  Home (summon) row is OFF-LIMITS — a wall there would root/freeze every one of
+ *  their summons for 3 rounds, which is too oppressive. ownHomeOnly walls (Stone
+ *  Wall) restrict to the caster's Home. No two walls from the same owner on one row. */
 export function canPlaceWallRow(
   state: GameState,
   player: PlayerId,
@@ -313,7 +314,7 @@ export function canPlaceWallRow(
   const ownHome = homeRow(player);
   const enemyHome = homeRow(enemyOf(player));
   if (spell.wall.ownHomeOnly) return row === ownHome;
-  if (row === enemyHome) return spellReachesEnemyHome(state, player);
+  if (row === enemyHome) return false; // never on the opponent's summon row
   return true; // own Home or a Mid row
 }
 

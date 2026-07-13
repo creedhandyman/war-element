@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { directDamage, wallEvasion, wallFlatReduction } from "../combat";
 import { applyIntent, advance } from "../phases";
 import { canCastSpell } from "../rules";
-import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
+import { atCleanup, place, prepState, statusOf } from "./helpers";
 
 /** Give P1 a single spell and enough magic to cast it. */
 function armSpell(s: ReturnType<typeof prepState>, defId: string, magic = 5) {
@@ -138,17 +138,14 @@ describe("Cost-4 walls", () => {
     expect(next.cards[flyer.instanceId].curHp).toBe(17); // untouched
   });
 
-  it("a card SUMMONED into an enemy wall's row is caught by it", () => {
-    const s = prepState(42, "P2"); // P2 has priority to summon
-    s.walls = [
-      { owner: "P1", spellId: "leaf_bramble_wall", element: "LEAF", row: 0, dmg: 2, status: { kind: "ROOT", duration: 1, power: 0 }, roundsLeft: 3 },
-    ];
-    const handId = giveHand(s, "P2", "leaf_alpha"); // non-flying
-    s.players.P2.summonPool = 5;
-    const next = applyIntent(s, { type: "SUMMON", player: "P2", handId, col: 0 });
-    const summoned = Object.values(next.cards).find((c) => c.owner === "P2" && c.pos?.row === 0);
-    expect(summoned!.curHp).toBe(12); // 14 − 2 from the Bramble Wall
-    expect(statusOf(summoned!, "ROOT")).toBeTruthy();
+  it("walls cannot be placed on the opponent's summon (Home) row", () => {
+    const s = prepState();
+    s.players.P1.spellbook = [{ defId: "leaf_bramble_wall", used: false }];
+    s.players.P1.magicPool = 5;
+    place(s, "leaf_alpha", "P1", 2, 3); // a qualifier in a Mid row still doesn't unlock it
+    expect(canCastSpell(s, "P1", "leaf_bramble_wall", { row: 0 }).ok).toBe(false); // P2 Home
+    expect(canCastSpell(s, "P1", "leaf_bramble_wall", { row: 2 }).ok).toBe(true); // a Mid row
+    expect(canCastSpell(s, "P1", "leaf_bramble_wall", { row: 3 }).ok).toBe(true); // own Home
   });
 
   it("a caster's own card is unharmed crossing its own wall", () => {
