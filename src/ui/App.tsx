@@ -13,6 +13,7 @@ import {
   DECKS,
   effectiveBasicHits,
   effectiveDmg,
+  enemyOf,
   FLOW_MODES,
   getDef,
   getSpell,
@@ -405,6 +406,13 @@ export function App() {
         hasSelection={sel !== null}
         selectedId={sel?.kind === "card" ? sel.instanceId : null}
         actingId={awaitingId}
+        grayTeam={
+          // On your prep turn (nothing armed), dim the idle opponent's team so
+          // it's clear whose move it is. A live selection uses the normal glow/dim.
+          game.phase === "prep" && me !== null && game.prep?.priority === me && sel === null
+            ? enemyOf(me)
+            : null
+        }
         onSlotClick={onSlotClick}
         onCycleAuto={onCycleAuto}
       />

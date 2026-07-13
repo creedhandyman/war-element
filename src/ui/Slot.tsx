@@ -8,6 +8,7 @@ export function Slot(props: {
   card: CardInstance | null;
   legal: boolean;
   dimmed: boolean;
+  grayed: boolean;
   contested: boolean;
   captured: "P1" | "P2" | null;
   pickCount: number;
@@ -22,6 +23,7 @@ export function Slot(props: {
     rowClass,
     props.legal ? "legal" : "",
     props.dimmed ? "dimmed" : "",
+    props.grayed ? "grayed" : "",
     props.contested ? "contested" : "",
     props.captured ? "captured" : "",
   ]

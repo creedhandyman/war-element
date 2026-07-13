@@ -1,4 +1,4 @@
-import type { GameState, Pos } from "../engine";
+import type { GameState, PlayerId, Pos } from "../engine";
 import { cardAt, getSpell, isContested } from "../engine";
 import { Slot } from "./Slot";
 import { EL_COLOR } from "./shared";
@@ -11,6 +11,7 @@ export function Board(props: {
   hasSelection: boolean;
   selectedId: string | null;
   actingId: string | null;
+  grayTeam: PlayerId | null; // whose cards to gray out (the idle team on your turn)
   onSlotClick: (row: number, col: number) => void;
   onCycleAuto: (instanceId: string) => void;
 }) {
@@ -64,6 +65,7 @@ export function Board(props: {
                   card={card}
                   legal={legal}
                   dimmed={dimmed}
+                  grayed={props.grayTeam !== null && card !== null && card.owner === props.grayTeam}
                   contested={contested}
                   captured={game.slots[row][col].capturedBy}
                   pickCount={card ? (props.pickCounts[card.instanceId] ?? 0) : 0}
