@@ -32,6 +32,38 @@ function useHpFlash(instanceId: string, hp: number): "down" | "up" | null {
   return flash;
 }
 
+/** Float a "CRIT" / "MISS" tag over the token when the engine's per-card fx
+ *  counters tick up (a crit landed / a hit was dodged). CRIT wins if both
+ *  happened in the same resolve. */
+function useCombatFx(instanceId: string, miss: number, crit: number) {
+  const prevMiss = useRef(miss);
+  const prevCrit = useRef(crit);
+  const prevId = useRef(instanceId);
+  const keyRef = useRef(0);
+  const [fx, setFx] = useState<{ kind: "CRIT" | "MISS"; key: number } | null>(null);
+  useEffect(() => {
+    if (prevId.current !== instanceId) {
+      prevId.current = instanceId;
+      prevMiss.current = miss;
+      prevCrit.current = crit;
+      setFx(null);
+      return;
+    }
+    let kind: "CRIT" | "MISS" | null = null;
+    if (crit > prevCrit.current) kind = "CRIT";
+    else if (miss > prevMiss.current) kind = "MISS";
+    prevMiss.current = miss;
+    prevCrit.current = crit;
+    if (kind) setFx({ kind, key: ++keyRef.current });
+  }, [miss, crit, instanceId]);
+  useEffect(() => {
+    if (!fx) return;
+    const t = setTimeout(() => setFx(null), 800);
+    return () => clearTimeout(t);
+  }, [fx]);
+  return fx;
+}
+
 export function Token(props: {
   game: GameState;
   card: CardInstance;
@@ -44,6 +76,7 @@ export function Token(props: {
   const mine = card.owner === "P1";
   const human = (game.humans ?? ["P1"]).includes(card.owner);
   const hpFlash = useHpFlash(card.instanceId, card.curHp);
+  const combatFx = useCombatFx(card.instanceId, card.fxMiss ?? 0, card.fxCrit ?? 0);
   // Attack spotlight: during Battle, the card at the front of the speed queue is
   // the one taking its turn — grow it slightly so you can see who's acting.
   const battle = game.battle;
@@ -88,6 +121,11 @@ export function Token(props: {
           e.currentTarget.style.display = "none";
         }}
       />
+      {combatFx && (
+        <div key={combatFx.key} className={`fx-float fx-${combatFx.kind.toLowerCase()}`}>
+          {combatFx.kind}
+        </div>
+      )}
       {card.statuses.map((s, i) => (
         <div
           key={s.kind}

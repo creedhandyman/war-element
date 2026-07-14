@@ -379,6 +379,11 @@ export interface CardInstance {
   /** Permanent reduction to this card's Special magic cost (Heir's King Me:
    *  each kill shaves 1 off Crowned). Floored at 0 when the cost is paid. */
   specialCostReduction: number;
+  /** UI-only transient combat counters — bumped when a hit on this card is
+   *  dodged/missed (fxMiss) or crits (fxCrit). The renderer floats "MISS"/"CRIT"
+   *  over the token when the count rises. No gameplay effect. */
+  fxMiss?: number;
+  fxCrit?: number;
   /** Extra basic hits queued for the NEXT basic attack (Dart Frog's loaded
    *  darts). Consumed the next time this card basic-attacks. */
   loadedHits: number;

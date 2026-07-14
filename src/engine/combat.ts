@@ -238,6 +238,7 @@ export function resolveHit(
     //    multi-hit lands some and whiffs others). Specials auto-hit.
     if (opts.kind === "basic" && hasStatus(attacker, "BLIND") && !coin(draft)) {
       result.dodgedHits++;
+      target.fxMiss = (target.fxMiss ?? 0) + 1;
       draft.log.push(`${label(draft, attacker)} misses (BLIND).`);
       continue;
     }
@@ -247,6 +248,7 @@ export function resolveHit(
     if (opts.kind !== "reflect" && (tDef.keywords.EVASION || wallEvasion(draft, target) || hasStatus(target, "EVASION"))) {
       if (coin(draft)) {
         result.dodgedHits++;
+        target.fxMiss = (target.fxMiss ?? 0) + 1;
         draft.log.push(`${label(draft, target)} evades a hit from ${aDef.name}.`);
         continue;
       }
@@ -277,6 +279,7 @@ export function resolveHit(
         if (coin(draft)) {
           remaining *= 2;
           result.critHits = (result.critHits ?? 0) + 1;
+          target.fxCrit = (target.fxCrit ?? 0) + 1;
           draft.log.push(`${aDef.name} CRITS ${tDef.name}!`);
         }
       }

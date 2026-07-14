@@ -152,6 +152,22 @@ button { font-family: inherit; }
   60% { color: #46ff9e; text-shadow: 0 0 6px #46ff9e; }
   100% { color: #7fe08a; transform: scale(1); text-shadow: 0 1px 2px #000; }
 }
+/* Floating "CRIT" / "MISS" tag that rises and fades over a token when a hit
+   crits or is dodged. */
+.fx-float {
+  position: absolute; left: 50%; top: 34%; transform: translateX(-50%);
+  pointer-events: none; z-index: 9; font-weight: 900; font-size: 17px;
+  letter-spacing: 1px; white-space: nowrap;
+  text-shadow: 0 1px 3px #000, 0 0 8px rgba(0, 0, 0, 0.8);
+  animation: fxRise 0.8s ease-out forwards;
+}
+.fx-crit { color: #ffd24a; text-shadow: 0 1px 3px #000, 0 0 12px rgba(255, 179, 0, 0.9); }
+.fx-miss { color: #d7dde6; }
+@keyframes fxRise {
+  0% { opacity: 0; transform: translate(-50%, 8px) scale(0.7); }
+  22% { opacity: 1; transform: translate(-50%, -1px) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -26px) scale(1); }
+}
 .status-pip { position: absolute; top: 28px; left: 7px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--accent); color: #12081f; font-size: 9px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 8px rgba(167, 139, 250, 0.6); }
 .tk-stats svg { filter: drop-shadow(0 1px 1px #000); }
 @keyframes movepulse { 0%, 100% { box-shadow: 0 0 6px rgba(78, 203, 143, 0.4); } 50% { box-shadow: 0 0 14px rgba(78, 203, 143, 0.9); } }
