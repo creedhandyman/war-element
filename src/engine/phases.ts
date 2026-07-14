@@ -365,9 +365,14 @@ function doResourcePhase(draft: GameState): void {
   draft.log.push(
     `— Round ${draft.round}: summon +${gain}${draft.round > 1 ? `, magic +${magicGain}` : ""}. —`,
   );
+  // Prep initiative alternates each round: the coin-flip winner preps first on
+  // odd rounds, the opponent on even ones — so neither side keeps the first-mover
+  // edge all game.
+  const firstThisRound =
+    draft.round % 2 === 1 ? draft.firstPlayer : enemyOf(draft.firstPlayer);
   draft.phase = "prep";
   draft.prep = {
-    priority: draft.firstPlayer,
+    priority: firstThisRound,
     consecutivePasses: 0,
     movedThisTurn: false,
   };

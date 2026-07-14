@@ -455,7 +455,7 @@ export interface GameState {
    *  = local hot-seat 2-player. The driver only auto-runs AI for players NOT
    *  in this list. */
   humans: PlayerId[];
-  firstPlayer: PlayerId; // coin-flip winner; prep priority starts here each round
+  firstPlayer: PlayerId; // coin-flip winner; preps first on ODD rounds (initiative alternates)
   players: Record<PlayerId, PlayerState>;
   /** All living board cards, keyed by instanceId. Board layout derived from pos. */
   cards: Record<string, CardInstance>;

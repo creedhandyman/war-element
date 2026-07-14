@@ -202,6 +202,19 @@ describe("resource math (two pools)", () => {
     expect(next.players.P1.magicPool).toBe(11);
   });
 
+  it("prep initiative alternates each round (odd = coin-flip winner)", () => {
+    const first = (round: number) => {
+      const s = freshGame(9);
+      s.firstPlayer = "P1";
+      s.phase = "resource";
+      s.round = round;
+      return advance(s).prep?.priority;
+    };
+    expect(first(1)).toBe("P1"); // odd → coin-flip winner
+    expect(first(2)).toBe("P2"); // even → the opponent
+    expect(first(3)).toBe("P1");
+  });
+
   it("the pools never drain each other", () => {
     const s = freshGame(9);
     s.players.P1.mulliganDone = true;
