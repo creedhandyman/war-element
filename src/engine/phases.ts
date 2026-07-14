@@ -31,8 +31,7 @@ import {
   canTarget,
   forwardAreaTargets,
   isActionBlocked,
-  validAllyTargets,
-  validSpecialTargets,
+  specialTargets,
   validTargets,
 } from "./rules";
 import type {
@@ -103,7 +102,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         } else {
           const targets =
             Number(params.spread ?? -1) >= 0
-              ? forwardAreaTargets(draft, inst, Number(params.spread))
+              ? forwardAreaTargets(draft, inst, Number(params.spread), params.forwardDepth != null ? Number(params.forwardDepth) : undefined)
               : validTargets(draft, inst.instanceId);
           if (targets.length > 0) {
             const handler = SPECIAL_HANDLERS[def.onSummon.handler];
@@ -440,10 +439,7 @@ function performBattleAction(
     if (!check.ok) throw new Error(`Can't fire Special: ${check.reason}`);
     const def = getDef(card.defId);
     const special = def.special!;
-    const valid =
-      special.targetSide === "ally"
-        ? validAllyTargets(draft, instanceId)
-        : validSpecialTargets(draft, instanceId);
+    const valid = specialTargets(draft, instanceId);
     let targets: typeof valid;
     if (picks && picks.length > 1) {
       // Explicit multi-selection: one strike per entry, in order.

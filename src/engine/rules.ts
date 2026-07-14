@@ -189,21 +189,42 @@ export function forwardAreaTargets(
   state: GameState,
   card: CardInstance,
   spread: number,
+  depth?: number, // explicit forward reach; projects past melee adjacency
 ): CardInstance[] {
   if (!card.pos) return [];
   const def = getDef(card.defId);
   const dir = card.owner === "P1" ? -1 : 1; // toward the enemy home
   const enemyHome = homeRow(enemyOf(card.owner));
   const maxDepth =
-    def.attackType === "Ranged" ? Math.max(1, Math.abs(enemyHome - card.pos.row)) : 1;
+    depth ?? (def.attackType === "Ranged" ? Math.max(1, Math.abs(enemyHome - card.pos.row)) : 1);
   const out: CardInstance[] = [];
   for (const enemy of boardCards(state, enemyOf(card.owner))) {
     const dRow = (enemy.pos!.row - card.pos.row) * dir; // forward distance
     const dCol = Math.abs(enemy.pos!.col - card.pos.col);
-    if (dRow >= 1 && dRow <= maxDepth && dCol <= spread && canTarget(state, card, enemy))
-      out.push(enemy);
+    if (dRow < 1 || dRow > maxDepth || dCol > spread) continue;
+    const eDef = getDef(enemy.defId);
+    if (depth != null) {
+      // A deep, committed corridor blast reaches past melee range and the Home
+      // Slot rule — only STEALTH keeps a card out of it.
+      if (eDef.keywords.STEALTH && !enemy.attackedThisRound) continue;
+    } else if (!canTarget(state, card, enemy)) {
+      continue;
+    }
+    out.push(enemy);
   }
   return out;
+}
+
+/** The enemy/ally set a card's Special reaches — ally-targeted, a forward
+ *  corridor (forwardDepth), or the normal special reach. */
+export function specialTargets(state: GameState, instanceId: string): CardInstance[] {
+  const card = state.cards[instanceId];
+  const special = card && getDef(card.defId).special;
+  if (!card || !special) return [];
+  if (special.targetSide === "ally") return validAllyTargets(state, instanceId);
+  const fd = Number(special.params?.forwardDepth ?? 0);
+  if (fd > 0) return forwardAreaTargets(state, card, Number(special.params?.spread ?? 0), fd);
+  return validSpecialTargets(state, instanceId);
 }
 
 // ── battle actions ──────────────────────────────────────────────────────────
@@ -257,11 +278,7 @@ export function canFireSpecial(
   if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
   if (state.players[card.owner].magicPool < def.special.cost)
     return { ok: false, reason: "Not enough magic" };
-  const targets =
-    def.special.targetSide === "ally"
-      ? validAllyTargets(state, instanceId)
-      : validSpecialTargets(state, instanceId);
-  if (targets.length === 0) return { ok: false, reason: "No valid target" };
+  if (specialTargets(state, instanceId).length === 0) return { ok: false, reason: "No valid target" };
   return { ok: true };
 }
 

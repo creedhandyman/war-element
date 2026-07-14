@@ -289,3 +289,25 @@ describe("Kraken — SeaC max-HP aura", () => {
     expect(effectiveMaxHp(s, nonSea)).toBe(getDef("leaf_alpha").hp);
   });
 });
+
+describe("Pyrogon — Flame Engulf reach", () => {
+  it("hits a 3-deep, 3-wide corridor ahead (past melee range and the Home rule)", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 4;
+    const pyro = place(s, "pyro_pyrogon", "P1", 3, 1); // own home row
+    const r2 = place(s, "leaf_alpha", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // 1 ahead
+    const r1 = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // 2 ahead
+    const r0 = place(s, "leaf_alpha", "P2", 0, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // 3 ahead (enemy home)
+    const wide = place(s, "leaf_alpha", "P2", 2, 3, { curHp: 20, maxHp: 20, curShields: 0 }); // too wide (col 3)
+    const next = applyIntent(battleWith(s, pyro.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: r2.instanceId,
+    });
+    expect(next.cards[r2.instanceId].curHp).toBe(13); // 20 − 7
+    expect(next.cards[r1.instanceId].curHp).toBe(13);
+    expect(next.cards[r0.instanceId].curHp).toBe(13);
+    expect(next.cards[wide.instanceId].curHp).toBe(20); // outside the corridor
+  });
+});

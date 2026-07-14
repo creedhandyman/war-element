@@ -1760,10 +1760,10 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // On Summon: a free Flame Engulf (BURN the area ahead).
+    // On Summon: a free Flame Engulf (BURN the 3-deep corridor ahead).
     onSummon: {
       handler: "barrage",
-      params: { dmg: 7, spread: 1, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
+      params: { dmg: 7, spread: 1, forwardDepth: 3, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
     },
     // On Kill: permanent +7 HP and +1 DMG.
     onKill: { buffMaxHp: 7, buffDmg: 1 },
@@ -1771,9 +1771,10 @@ export const CARDS: CardDef[] = [
       name: "Flame Engulf",
       cost: 4,
       handler: "barrage",
-      params: { dmg: 7, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
+      // Reaches up to 3 spaces ahead in a 3-wide corridor (projects past melee range).
+      params: { dmg: 7, spread: 1, forwardDepth: 3, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
       targetSide: "enemy",
-      text: "Deal 7 DMG + BURN 3 to every opponent in range.",
+      text: "Deal 7 DMG + BURN 3 to opponents up to 3 spaces ahead.",
     },
     // Aura (Scorch BURN stacks) deferred.
   },
