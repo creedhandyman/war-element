@@ -221,6 +221,14 @@ export function resolveHit(
   for (let i = 0; i < opts.hits; i++) {
     if (target.curHp <= 0) break;
 
+    // 0. BLIND — −50% accuracy, rolled PER HIT on a basic attack (so a blinded
+    //    multi-hit lands some and whiffs others). Specials auto-hit.
+    if (opts.kind === "basic" && hasStatus(attacker, "BLIND") && !coin(draft)) {
+      result.dodgedHits++;
+      draft.log.push(`${label(draft, attacker)} misses (BLIND).`);
+      continue;
+    }
+
     // 1. EVASION — innate or granted by a friendly wall (Veil). Not re-checked
     //    for reflect damage (no dodge chains).
     if (opts.kind !== "reflect" && (tDef.keywords.EVASION || wallEvasion(draft, target) || hasStatus(target, "EVASION"))) {
@@ -397,11 +405,7 @@ export function basicAttack(
   const missed: AttackResult = {
     landedHits: 0, dodgedHits: 0, totalToHp: 0, targetDied: false, attackerDied: false,
   };
-  // BLIND: −50% accuracy → coin; a miss negates the whole attack, no strip.
-  if (hasStatus(attacker, "BLIND") && !coin(draft)) {
-    draft.log.push(`${label(draft, attacker)} misses (BLIND).`);
-    return missed;
-  }
+  // (BLIND accuracy is rolled per hit inside resolveHit now.)
   // PARALYZE: 50% chance to attack at all.
   if (hasStatus(attacker, "PARALYZE") && !chance(draft, 50)) {
     draft.log.push(`${label(draft, attacker)} is paralyzed and can't attack.`);

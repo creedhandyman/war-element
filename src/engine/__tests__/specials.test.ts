@@ -715,3 +715,16 @@ describe("Ghastly — Ethereal Trade (on attack: +3 DMG, −2 HP)", () => {
     expect(next.cards[g.instanceId]).toBeUndefined(); // Ghastly paid 2 and died
   });
 });
+
+describe("accuracy per hit", () => {
+  it("BLIND is rolled PER HIT — a multi-hit attack lands some and misses some", () => {
+    const s = prepState();
+    const atk = place(s, "pyro_spitfire", "P1", 3, 0, {
+      status: { kind: "BLIND", duration: 2, power: 0, source: "DAWN" },
+    }); // 2-hit basic (3 DMG each), home row → no mid-row bonus
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    s.rngState = seedForCoins(true, false); // hit 1 lands, hit 2 whiffs
+    basicAttack(s, atk.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].curHp).toBe(40 - 3); // exactly one hit landed
+  });
+});
