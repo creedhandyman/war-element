@@ -99,11 +99,18 @@ export function applyStatus(
     return;
   }
   // Radiant Ward (Solstice): one team-wide barrier eats the first negative
-  // status to hit any ally each round.
+  // status to hit any ally each round — but only while a living ward-holder
+  // (Solstice) is on the board. A stale flag left after Solstice dies is
+  // cleared instead of absorbing.
   if (draft.players[target.owner].statusWard && NEGATIVE_STATUSES.includes(kind)) {
-    draft.players[target.owner].statusWard = false;
-    draft.log.push(`${label(draft, target)}'s team radiant ward absorbs the ${kind}.`);
-    return;
+    const wardAlive = boardCards(draft, target.owner).some(
+      (c) => c.curHp > 0 && getDef(c.defId).roundTick?.wardAllies,
+    );
+    draft.players[target.owner].statusWard = false; // spent, or cleared if stale
+    if (wardAlive) {
+      draft.log.push(`${label(draft, target)}'s team radiant ward absorbs the ${kind}.`);
+      return;
+    }
   }
   const fresh = { kind, duration, power, source };
   const existing = target.statuses.findIndex((s) => s.kind === kind);

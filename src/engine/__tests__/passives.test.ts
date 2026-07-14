@@ -198,6 +198,19 @@ describe("complex-tier passives (audit batch)", () => {
     expect(next.cards[ally.instanceId].statuses.some((st) => st.kind === "ROOT")).toBe(true);
   });
 
+  it("the ward does NOT absorb once Solstice (its provider) has died", () => {
+    const s = prepState();
+    const sol = place(s, "dawn_solstice", "P1", 3, 0);
+    const ally = place(s, "dawn_beam", "P1", 2, 0);
+    const next = advance(atCleanup(s)); // ward raised while Solstice lives
+    expect(next.players.P1.statusWard).toBe(true);
+    next.cards[sol.instanceId].curHp = 0; // Solstice dies mid-round
+    applyStatus(next, next.cards[ally.instanceId], "STUN", 2, 0, "BOLT");
+    // With no living ward-holder, the STUN lands and the stale flag clears.
+    expect(next.cards[ally.instanceId].statuses.some((st) => st.kind === "STUN")).toBe(true);
+    expect(next.players.P1.statusWard).toBe(false);
+  });
+
   it("Veil's Gate Keeper starts with the +8 golden shield and hardens on break", () => {
     const s = prepState();
     const veil = place(s, "dawn_veil", "P1", 2, 0); // base 3 + 8 grant = 11
