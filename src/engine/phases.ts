@@ -16,6 +16,7 @@ import {
   hasCaptureWin,
   hasStatus,
   auraShieldBonus,
+  effectiveMaxHp,
   isEliminated,
   manhattan,
   spawnTokens,
@@ -263,7 +264,7 @@ function resolveSpell(
     }
     const rooted = boardCards(draft, enemyOf(player)).some((c) => hasStatus(c, "ROOT"));
     const amt = rooted && spell.allyHealIfRooted ? spell.allyHealIfRooted : spell.allyHeal ?? 0;
-    const healed = Math.min(amt, ally.maxHp - ally.curHp);
+    const healed = Math.min(amt, effectiveMaxHp(draft, ally) - ally.curHp);
     ally.curHp += healed;
     draft.log.push(`${label(draft, ally)} heals ${healed} HP.`);
     return;
@@ -684,12 +685,12 @@ function doRoundTicks(draft: GameState): void {
       }
     }
     if (rt.healAllies) {
-      for (const a of allies()) a.curHp = Math.min(a.maxHp, a.curHp + rt.healAllies);
+      for (const a of allies()) a.curHp = Math.min(effectiveMaxHp(draft, a), a.curHp + rt.healAllies);
       draft.log.push(`${label(draft, card)} restores allies (+${rt.healAllies} HP).`);
     }
     if (rt.healLowestAlly) {
-      const a = lowestHp(allies().filter((c) => c.curHp < c.maxHp));
-      if (a) a.curHp = Math.min(a.maxHp, a.curHp + rt.healLowestAlly);
+      const a = lowestHp(allies().filter((c) => c.curHp < effectiveMaxHp(draft, c)));
+      if (a) a.curHp = Math.min(effectiveMaxHp(draft, a), a.curHp + rt.healLowestAlly);
     }
   }
 }
@@ -739,8 +740,8 @@ function doCleanupPhase(draft: GameState): void {
   // 1b. Transfusion (Thorn): heal for the BLEED its side dealt this round.
   for (const card of boardCards(draft)) {
     const drained = bleedDealtBy[card.owner];
-    if (drained > 0 && getDef(card.defId).healsFromBleed && card.curHp < card.maxHp) {
-      const healed = Math.min(card.maxHp - card.curHp, drained);
+    if (drained > 0 && getDef(card.defId).healsFromBleed && card.curHp < effectiveMaxHp(draft, card)) {
+      const healed = Math.min(effectiveMaxHp(draft, card) - card.curHp, drained);
       card.curHp += healed;
       draft.log.push(`${label(draft, card)} drains ${healed} HP from BLEED.`);
     }
@@ -750,17 +751,19 @@ function doCleanupPhase(draft: GameState): void {
   for (const card of boardCards(draft)) {
     const def = getDef(card.defId);
     const regen = Number(def.keywords.REGEN ?? 0);
-    if (regen > 0 && card.curHp < card.maxHp) {
-      card.curHp = Math.min(card.maxHp, card.curHp + regen);
+    if (regen > 0 && card.curHp < effectiveMaxHp(draft, card)) {
+      card.curHp = Math.min(effectiveMaxHp(draft, card), card.curHp + regen);
       draft.log.push(`${label(draft, card)} regenerates ${regen}.`);
     }
     // Photosynthesis (LEAF): heal +1 HP each round.
-    if (def.element === "LEAF" && card.curHp < card.maxHp) card.curHp += 1;
+    if (def.element === "LEAF" && card.curHp < effectiveMaxHp(draft, card)) card.curHp += 1;
     // Zephyr (GALE): +1 SP each round, total capped at 21.
     if (def.element === "GALE" && def.sp + card.spBonus < GALE_SP_CAP) card.spBonus += 1;
     // Shield auras (The DEEPEST's Pressure): top up to printed + aura shields.
     const shieldBonus = auraShieldBonus(draft, card);
     if (shieldBonus > 0) card.curShields = Math.max(card.curShields, def.shields + shieldBonus);
+    // Clamp HP to effective max — in case a maxHP aura (SeaC) just dropped.
+    card.curHp = Math.min(card.curHp, effectiveMaxHp(draft, card));
   }
 
   // 3. Status durations tick down; expired statuses removed.

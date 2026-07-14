@@ -161,6 +161,20 @@ export function auraBonus(state: GameState, card: CardInstance, stat: "dmg" | "s
   return best;
 }
 
+/** A card's effective max HP = its own maxHp plus the highest matching friendly
+ *  maxHP aura (Kraken's SeaC +4). Equals maxHp for cards under no such aura, so
+ *  it's a safe drop-in for every healing cap and the HP display. */
+export function effectiveMaxHp(state: GameState, card: CardInstance): number {
+  const tDef = getDef(card.defId);
+  let bonus = 0;
+  for (const holder of boardCards(state, card.owner)) {
+    const hDef = getDef(holder.defId);
+    if (!hDef.aura?.maxHp || !auraMatches(hDef.aura, hDef, tDef)) continue;
+    if (hDef.aura.maxHp > bonus) bonus = hDef.aura.maxHp;
+  }
+  return card.maxHp + bonus;
+}
+
 /** Does a friendly aura grant this card's basic attacks PEN (Blood Ruby)? */
 export function auraHasPen(state: GameState, card: CardInstance): boolean {
   const tDef = getDef(card.defId);

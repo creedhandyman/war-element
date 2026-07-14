@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CardInstance, GameState } from "../engine";
-import { effectiveBasicHits, effectiveDmg, effectiveSp, getDef, legalMoves } from "../engine";
+import { effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, getDef, legalMoves } from "../engine";
 import { EL_COLOR } from "./shared";
 import { SpIcon } from "./icons";
 
@@ -121,9 +121,9 @@ export function Token(props: {
           {card.curShields > 0 && <span className="st-sh">🛡{card.curShields}</span>}
           <span
             className={`st-hp ${hpFlash === "down" ? "hp-hit" : hpFlash === "up" ? "hp-heal" : ""}`}
-            title={`HP ${card.curHp} of ${card.maxHp}`}
+            title={`HP ${card.curHp} of ${effectiveMaxHp(game, card)}`}
           >
-            ♥{card.curHp === card.maxHp ? card.curHp : `${card.curHp}/${card.maxHp}`}
+            ♥{card.curHp === effectiveMaxHp(game, card) ? card.curHp : `${card.curHp}/${effectiveMaxHp(game, card)}`}
           </span>
           <span
             className={`st-sp ${canMoveNow ? "can-move" : ""}`}

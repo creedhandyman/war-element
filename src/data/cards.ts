@@ -1793,6 +1793,8 @@ export const CARDS: CardDef[] = [
     tribe: "SeaC",
     // From the Deep: first time it drops to ≤8 HP, permanent +3 DMG/+3 SP/+3 shield.
     onLowHp: { threshold: 9, buffDmg: 3, buffSp: 3, gainShields: 3 },
+    // Aura: SeaC allies gain +4 max HP.
+    aura: { scope: "tribe", match: "SeaC", maxHp: 4 },
     special: {
       name: "Black Wave Crash",
       cost: 4,
@@ -1801,7 +1803,7 @@ export const CARDS: CardDef[] = [
       targetSide: "enemy",
       text: "Deal 8 DMG to all opponents and BLIND them 2 rounds (water in their eyes).",
     },
-    // Aura (SeaC +4 max HP) + the 5-HP self-cost are deferred.
+    // The 5-HP self-cost on Black Wave Crash is deferred.
   },
   {
     id: "dawn_imperator",

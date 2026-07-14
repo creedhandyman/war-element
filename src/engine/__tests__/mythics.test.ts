@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { directDamage, effectiveBasicHits } from "../combat";
 import { advance, applyIntent } from "../phases";
 import { canFireTalent, canTarget } from "../rules";
-import { boardCards, effectiveDmg, effectiveSp } from "../state";
+import { boardCards, effectiveDmg, effectiveMaxHp, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
@@ -277,5 +277,15 @@ describe("Shadow Horsemen — charge move", () => {
       targetId: foe.instanceId,
     });
     expect(next.cards[sh.instanceId].pos!.row).toBeLessThan(3); // charged forward
+  });
+});
+
+describe("Kraken — SeaC max-HP aura", () => {
+  it("gives SeaC allies +4 effective max HP, others unaffected", () => {
+    const s = prepState();
+    const kraken = place(s, "aqua_kraken", "P1", 3, 0, { curHp: 42, maxHp: 42 });
+    const nonSea = place(s, "leaf_alpha", "P1", 3, 1);
+    expect(effectiveMaxHp(s, kraken)).toBe(46); // 42 + 4 (SeaC, self)
+    expect(effectiveMaxHp(s, nonSea)).toBe(getDef("leaf_alpha").hp);
   });
 });

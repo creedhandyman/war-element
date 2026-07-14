@@ -144,6 +144,7 @@ export interface AuraBonusDef {
   match?: string;
   dmg?: number;
   sp?: number;
+  maxHp?: number; // matching allies gain +N max HP while the holder lives (SeaC)
   pen?: boolean; // matching allies' basic attacks gain PEN (Blood Ruby)
   shields?: number; // matching allies are topped up to base+N shields each round (Pressure)
 }

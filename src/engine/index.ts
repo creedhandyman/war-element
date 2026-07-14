@@ -10,6 +10,7 @@ export {
   isCaptured,
   effectiveSp,
   effectiveDmg,
+  effectiveMaxHp,
   hasStatus,
   moveReach,
   isEliminated,

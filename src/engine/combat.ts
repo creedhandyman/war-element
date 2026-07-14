@@ -14,7 +14,7 @@
 
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
-import { auraHasPen, boardCards, cardAt, effectiveDmg, hasStatus, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, boardCards, cardAt, effectiveDmg, effectiveMaxHp, hasStatus, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardInstance,
   Element,
@@ -128,7 +128,7 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
   const def = getDef(card.defId);
   if (def.onRevive && !card.revived && card.pos) {
     card.revived = true;
-    card.curHp = Math.max(1, Math.min(card.maxHp, def.onRevive.heal));
+    card.curHp = Math.max(1, Math.min(effectiveMaxHp(draft, card), def.onRevive.heal));
     if (def.onRevive.sleep) {
       // Self-inflicted downtime — bypasses statusImmune (Hibernation).
       card.statuses = card.statuses.filter((s) => s.kind !== "SLEEP");
@@ -276,7 +276,7 @@ export function resolveHit(
   //    heals are applied by basicAttack, which knows the per-target gating.)
   if (opts.kind === "basic" && result.landedHits > 0) {
     if ((aDef.keywords.LIFESTEAL || opts.lifesteal) && result.totalToHp > 0) {
-      const healed = Math.min(result.totalToHp, attacker.maxHp - attacker.curHp);
+      const healed = Math.min(result.totalToHp, effectiveMaxHp(draft, attacker) - attacker.curHp);
       if (healed > 0) {
         attacker.curHp += healed;
         draft.log.push(`${aDef.name} lifesteals ${healed} HP.`);
@@ -469,7 +469,7 @@ export function basicAttack(
         applyStatus(draft, t, "BURN", 1, 1, "PYRO");
       }
       if (healOnHit > 0 && attacker.curHp > 0) {
-        attacker.curHp = Math.min(attacker.maxHp, attacker.curHp + healOnHit);
+        attacker.curHp = Math.min(effectiveMaxHp(draft, attacker), attacker.curHp + healOnHit);
       }
     }
     agg.landedHits += r.landedHits;
@@ -690,7 +690,7 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef): vo
     draft.log.push(`${name} claims the spoils (+${bonus} DMG).`);
   }
   if (def.healSelf) {
-    killer.curHp = Math.min(killer.maxHp, killer.curHp + def.healSelf);
+    killer.curHp = Math.min(effectiveMaxHp(draft, killer), killer.curHp + def.healSelf);
     draft.log.push(`${name} heals ${def.healSelf} on the kill.`);
   }
   if (def.gainShields) killer.curShields += def.gainShields;
@@ -797,7 +797,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     const healSelf = num(params, "healSelf");
     if (healSelf > 0 && attacker.curHp > 0) {
-      attacker.curHp = Math.min(attacker.maxHp, attacker.curHp + healSelf);
+      attacker.curHp = Math.min(effectiveMaxHp(draft, attacker), attacker.curHp + healSelf);
     }
     if (attacker.curHp > 0) {
       adjacentCasterStatus(draft, attacker, params); // ROOT all adjacent (Squanch)
@@ -898,7 +898,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     let healed = 0;
     for (const ally of targets.slice(0, n)) {
       if (amount > 0 && ally.curHp < ally.maxHp) {
-        ally.curHp = Math.min(ally.maxHp, ally.curHp + amount);
+        ally.curHp = Math.min(effectiveMaxHp(draft, ally), ally.curHp + amount);
         healed++;
       }
       if (doCleanse && ally.statuses.length) ally.statuses = [];

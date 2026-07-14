@@ -1,5 +1,5 @@
 import type { CardInstance, GameState, PlayerId, StatusKind } from "../engine";
-import { effectiveBasicHits, effectiveDmg, effectiveSp, ELEMENT_AURA, getDef, getSpell } from "../engine";
+import { effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, ELEMENT_AURA, getDef, getSpell } from "../engine";
 import { EL_COLOR } from "./shared";
 import { SpIcon } from "./icons";
 
@@ -267,7 +267,7 @@ export function CardDetail(props: {
               <div className="cd-stat" title="Current / max HP">
                 <span className="cd-lbl">HP</span>
                 <span className="cd-val st-hp">
-                  ♥{card.curHp === card.maxHp ? card.curHp : `${card.curHp}/${card.maxHp}`}
+                  ♥{card.curHp === effectiveMaxHp(game, card) ? card.curHp : `${card.curHp}/${effectiveMaxHp(game, card)}`}
                 </span>
               </div>
               <div className="cd-stat" title="Shields">
