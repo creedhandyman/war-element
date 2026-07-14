@@ -531,15 +531,17 @@ describe("on-summon passives (forward-area projection)", () => {
     expect(next.log.some((l) => l.includes("on-summon"))).toBe(false);
   });
 
-  it("Spitfire's Spit Shot (on summon) hits up to 3 opponents", () => {
+  it("Spitfire's Spit Shot (on summon) hits its own column, up to 2 spaces ahead", () => {
     const s = prepState();
     s.players.P1.summonPool = 5;
-    const a = place(s, "dusk_gool", "P2", 1, 1, { curHp: 13 });
-    const b = place(s, "dusk_vamp", "P2", 2, 0, { curHp: 6 });
+    const near = place(s, "dusk_gool", "P2", 2, 1, { curHp: 13 }); // 1 ahead, same col → hit
+    const far = place(s, "dusk_gool", "P2", 0, 1, { curHp: 13 }); // 3 ahead, same col → out of reach
+    const side = place(s, "dusk_vamp", "P2", 2, 0, { curHp: 6 }); // adjacent col → out of the lane
     const handId = giveHand(s, "P1", "pyro_spitfire");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
-    expect(next.cards[a.instanceId].curHp).toBe(10); // 3 dmg
-    expect(next.cards[b.instanceId].curHp).toBe(3); // also hit (up to 3 targets)
+    expect(next.cards[near.instanceId].curHp).toBe(10); // 3 dmg
+    expect(next.cards[far.instanceId].curHp).toBe(13); // depth 2 doesn't reach 3 ahead
+    expect(next.cards[side.instanceId].curHp).toBe(6); // off the column
   });
 
   it("a melee on-summon (Fenrir) reaches only one row ahead, but 3 wide", () => {

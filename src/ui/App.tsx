@@ -26,8 +26,8 @@ import {
   needsP1Input,
   pairingCards,
   spellEnemyTargets,
+  specialTargets,
   validAllyTargets,
-  validSpecialTargets,
   validTargets,
 } from "../engine";
 import { Board } from "./Board";
@@ -163,7 +163,7 @@ export function App() {
       const list =
         def.special.targetSide === "ally"
           ? validAllyTargets(game, awaitingId)
-          : validSpecialTargets(game, awaitingId);
+          : specialTargets(game, awaitingId);
       return list.map((t) => t.instanceId);
     }
     return validTargets(game, awaitingId).map((t) => t.instanceId);
@@ -240,6 +240,12 @@ export function App() {
     // target to stack hits on it); fires automatically at the cap. A click on a
     // non-target card just inspects it (the pick prompt stays armed).
     if (awaitingId && pending) {
+      // Area Special previewed: its zone is fixed, so a click just inspects —
+      // press Confirm to fire.
+      if (pending === "special" && specialAoE) {
+        if (clicked) setDetailId(clicked.instanceId);
+        return;
+      }
       if (clicked && legalTargetIds.includes(clicked.instanceId)) {
         const next = [...picks, clicked.instanceId];
         if (next.length >= maxPicks) {
@@ -383,6 +389,16 @@ export function App() {
   const specialCheck = awaitingId ? canFireSpecial(game, awaitingId) : { ok: false };
   const talentCheck = awaitingId ? canFireTalent(game, awaitingId) : { ok: false };
   const basicOk = awaitingId ? validTargets(game, awaitingId).length > 0 : false;
+  // An area Special with no manual pick to make (hits everything it reaches):
+  // it's previewed on the first click and fired on a Confirm.
+  const specialValid =
+    awaitingId && activeDef?.special
+      ? activeDef.special.targetSide === "ally"
+        ? validAllyTargets(game, awaitingId)
+        : specialTargets(game, awaitingId)
+      : [];
+  const specialAoE =
+    !!activeDef?.special && Number(activeDef.special.params?.targets ?? 1) >= specialValid.length;
 
   const myPrep = me !== null && game.phase === "prep" && game.prep?.priority === me;
 
@@ -469,36 +485,39 @@ export function App() {
                     : "No special"
                 }
                 onClick={() => {
-                  if (pending === "special" && picks.length > 0) {
-                    firePicks(picks);
-                    return;
-                  }
                   const spec = activeDef.special!;
-                  const valid =
-                    spec.targetSide === "ally"
-                      ? validAllyTargets(game, awaitingId!)
-                      : validSpecialTargets(game, awaitingId!);
-                  const cap = Number(spec.params?.targets ?? 1);
-                  // No choice to make (hits everyone it can reach, or only one
-                  // legal target) → fire immediately on all of them.
-                  if (cap >= valid.length) {
-                    dispatch({
-                      type: "BATTLE_ACTION",
-                      player: activeCard.owner,
-                      action: "special",
-                      targetIds: valid.map((t) => t.instanceId),
-                    });
+                  if (pending === "special") {
+                    // Second click = fire. Area Specials hit the whole previewed
+                    // zone; targeted ones fire the picks assigned so far.
+                    if (specialAoE) {
+                      dispatch({
+                        type: "BATTLE_ACTION",
+                        player: activeCard.owner,
+                        action: "special",
+                        targetIds: specialValid.map((t) => t.instanceId),
+                      });
+                    } else if (picks.length > 0) {
+                      firePicks(picks);
+                    }
                     return;
                   }
+                  // First click = arm and preview the affected area.
+                  const cap = Number(spec.params?.targets ?? 1);
                   setPending("special");
                   setPicks([]);
                   setHint(
-                    `<b>${spec.name}</b> (cost ${spec.cost}) — pick up to ${cap} glowing target${cap > 1 ? "s (repeat to stack), or Fire early" : ""}.`,
+                    specialAoE
+                      ? `<b>${spec.name}</b> hits the glowing area — press <b>Confirm</b> to fire.`
+                      : `<b>${spec.name}</b> (cost ${spec.cost}) — pick up to ${cap} glowing target${cap > 1 ? "s (repeat to stack), or Fire early" : ""}.`,
                   );
                 }}
               >
-                {pending === "special" && picks.length > 0
-                  ? `🔥 Fire (${picks.length}/${maxPicks})`
+                {pending === "special"
+                  ? specialAoE
+                    ? "✦ Confirm"
+                    : picks.length > 0
+                      ? `🔥 Fire (${picks.length}/${maxPicks})`
+                      : `✦ Special${activeDef.special ? ` (${activeDef.special.cost})` : ""}`
                   : `✦ Special${activeDef.special ? ` (${activeDef.special.cost})` : ""}`}
               </button>
               {activeDef.talent && (

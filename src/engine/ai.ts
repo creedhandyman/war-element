@@ -17,7 +17,7 @@ import {
   canSummon,
   canTarget,
   validAllyTargets,
-  validSpecialTargets,
+  specialTargets,
   validTargets,
 } from "./rules";
 import type {
@@ -294,7 +294,7 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
   const card = state.cards[instanceId]!;
   const def = getDef(card.defId);
   const targets = validTargets(state, instanceId);
-  const specTargets = validSpecialTargets(state, instanceId); // ranged-aware
+  const specTargets = specialTargets(state, instanceId); // ranged-aware + forward-corridor
   const specCheck = canFireSpecial(state, instanceId);
 
   if (specCheck.ok && def.special) {

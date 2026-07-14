@@ -408,8 +408,8 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // Spit Shot (On Summon): 3 DMG to up to 3 opponents.
-    onSummon: { handler: "barrage", params: { dmg: 3, targets: 3 } },
+    // Spit Shot (On Summon): 3 DMG straight ahead down its own column, up to 2 spaces.
+    onSummon: { handler: "barrage", params: { dmg: 3, spread: 0, forwardDepth: 2, targets: 99 } },
   },
   {
     id: "pyro_volcanon",
@@ -1760,10 +1760,10 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // On Summon: a free Flame Engulf (BURN the 3-deep corridor ahead).
+    // On Summon: a free Flame Engulf (BURN straight ahead, 3 deep).
     onSummon: {
       handler: "barrage",
-      params: { dmg: 7, spread: 1, forwardDepth: 3, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
+      params: { dmg: 7, spread: 0, forwardDepth: 3, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
     },
     // On Kill: permanent +7 HP and +1 DMG.
     onKill: { buffMaxHp: 7, buffDmg: 1 },
@@ -1771,10 +1771,10 @@ export const CARDS: CardDef[] = [
       name: "Flame Engulf",
       cost: 4,
       handler: "barrage",
-      // Reaches up to 3 spaces ahead in a 3-wide corridor (projects past melee range).
-      params: { dmg: 7, spread: 1, forwardDepth: 3, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
+      // A straight lane down its own column, up to 3 spaces ahead (spread 0).
+      params: { dmg: 7, spread: 0, forwardDepth: 3, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
       targetSide: "enemy",
-      text: "Deal 7 DMG + BURN 3 to opponents up to 3 spaces ahead.",
+      text: "Deal 7 DMG + BURN 3 to opponents in its own column, up to 3 spaces ahead.",
     },
     // Aura (Scorch BURN stacks) deferred.
   },

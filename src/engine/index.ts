@@ -29,6 +29,7 @@ export {
   plannedAction,
   isActionBlocked,
   validSpecialTargets,
+  specialTargets,
   canCastSpell,
   canSpellHitEnemy,
   spellEnemyTargets,
