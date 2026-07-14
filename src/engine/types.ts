@@ -117,6 +117,7 @@ export interface OnKillDef {
    *  status, the BOLT proxy), at most once per round. */
   aoeDmgElectrified?: number;
   coinBonusDmg?: number; // coin flip: +this or +this−1 permanent DMG
+  reduceSpecialCost?: number; // King Me (Heir): shave N off this card's Special cost per kill
 }
 
 /** A basic-attack conditional keyword that only applies vs a target already
@@ -375,6 +376,9 @@ export interface CardInstance {
   /** Per-round guard for Powertrip's once-per-round on-kill AoE (Voltogon).
    *  Reset each Cleanup. */
   onKillAoeFiredRound: boolean;
+  /** Permanent reduction to this card's Special magic cost (Heir's King Me:
+   *  each kill shaves 1 off Crowned). Floored at 0 when the cost is paid. */
+  specialCostReduction: number;
   /** Extra basic hits queued for the NEXT basic attack (Dart Frog's loaded
    *  darts). Consumed the next time this card basic-attacks. */
   loadedHits: number;

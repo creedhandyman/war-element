@@ -2158,6 +2158,16 @@ export const TOKENS: CardDef[] = [
     keywords: {},
     // Royal Guard: gain +1 shield each round.
     roundTick: { selfShields: 1 },
+    // King Me (On Kill): each kill shaves 1 off Crowned's cost.
+    onKill: { reduceSpecialCost: 1 },
+    special: {
+      name: "Crowned",
+      cost: 3,
+      handler: "empower",
+      params: { selfDmg: 5, selfMaxHp: 5, selfSp: 5 },
+      targetSide: "ally", // self-buff; always castable
+      text: "Gain +5 DMG, +5 HP, +5 SP permanently.",
+    },
   },
 ];
 

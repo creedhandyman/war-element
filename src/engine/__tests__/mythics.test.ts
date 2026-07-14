@@ -1,9 +1,9 @@
 // Element-core Mythics + the token-spawn mechanic that several of them use.
 
 import { describe, expect, it } from "vitest";
-import { directDamage, effectiveBasicHits } from "../combat";
+import { basicAttack, directDamage, effectiveBasicHits } from "../combat";
 import { advance, applyIntent } from "../phases";
-import { canFireSpecial, canFireTalent, canTarget } from "../rules";
+import { canFireSpecial, canFireTalent, canTarget, effectiveSpecialCost } from "../rules";
 import { boardCards, effectiveDmg, effectiveMaxHp, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
@@ -282,6 +282,37 @@ describe("The DEEPEST — Drilling Quake sinkhole", () => {
     }
     d.specialCooldown--; // 4th tick → 0
     expect(canFireSpecial(battleWith(next, d.instanceId), d.instanceId).ok).toBe(true);
+  });
+});
+
+describe("Heir — Crowned self-buff + King Me cost reduction", () => {
+  it("Crowned grants +5 DMG / +5 HP / +5 SP to itself", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const heir = place(s, "dawn_heir_tok", "P1", 2, 0, { curHp: 10, maxHp: 10 });
+    const before = { dmg: effectiveDmg(s, heir), sp: effectiveSp(s, heir), max: heir.maxHp };
+    const next = applyIntent(battleWith(s, heir.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: undefined,
+    });
+    const h = next.cards[heir.instanceId];
+    expect(effectiveDmg(next, h)).toBe(before.dmg + 5);
+    expect(effectiveSp(next, h)).toBe(before.sp + 5);
+    expect(h.maxHp).toBe(before.max + 5);
+    expect(h.curHp).toBe(15); // +5 HP healed with the max bump
+    expect(next.players.P1.magicPool).toBe(2); // paid the base cost 3
+  });
+
+  it("King Me shaves 1 off Crowned's cost per kill", () => {
+    const s = prepState();
+    const heir = place(s, "dawn_heir_tok", "P1", 2, 0);
+    place(s, "dusk_gool", "P2", 1, 0, { curHp: 20 }); // keep P2 on the board
+    const prey = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 }); // adjacent, dies
+    basicAttack(s, heir.instanceId, prey.instanceId);
+    expect(s.cards[heir.instanceId].specialCostReduction).toBe(1);
+    expect(effectiveSpecialCost(s.cards[heir.instanceId], 3)).toBe(2);
+    // With only 2 magic, the discounted Crowned is now castable.
+    s.players.P1.magicPool = 2;
+    expect(canFireSpecial(battleWith(s, heir.instanceId), heir.instanceId).ok).toBe(true);
   });
 });
 

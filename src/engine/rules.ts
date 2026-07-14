@@ -268,6 +268,11 @@ export function canFireTalent(
   return { ok: true };
 }
 
+/** A card's Special magic cost after King Me-style reductions (floored at 0). */
+export function effectiveSpecialCost(card: CardInstance, cost: number): number {
+  return Math.max(0, cost - (card.specialCostReduction ?? 0));
+}
+
 export function canFireSpecial(
   state: GameState,
   instanceId: string,
@@ -284,7 +289,7 @@ export function canFireSpecial(
     return { ok: false, reason: "Special is recharging (1-round cooldown)" };
   if (hasStatus(card, "MUTED")) return { ok: false, reason: "MUTED" };
   if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
-  if (!card.freeSpecial && state.players[card.owner].magicPool < def.special.cost)
+  if (!card.freeSpecial && state.players[card.owner].magicPool < effectiveSpecialCost(card, def.special.cost))
     return { ok: false, reason: "Not enough magic" };
   if (specialTargets(state, instanceId).length === 0) return { ok: false, reason: "No valid target" };
   return { ok: true };

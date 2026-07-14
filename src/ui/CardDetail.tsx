@@ -124,6 +124,7 @@ export function CardDetail(props: {
       k.gainShields && `+${k.gainShields} shields`,
       k.aoeDmg && `${k.aoeDmg} to all enemies`,
       k.aoeDmgElectrified && `${k.aoeDmgElectrified} to all electrified (statused) enemies, once/round`,
+      k.reduceSpecialCost && `Special costs ${k.reduceSpecialCost} less (King Me)`,
     ].filter(Boolean);
     passives.push(`On a kill: ${bits.join(" · ")}.`);
   }

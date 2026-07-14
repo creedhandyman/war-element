@@ -26,6 +26,7 @@ import {
 import {
   canCastSpell,
   canFireSpecial,
+  effectiveSpecialCost,
   canFireTalent,
   canMove,
   canSummon,
@@ -458,7 +459,7 @@ function performBattleAction(
     const wasFree = card.freeSpecial;
     card.freeSpecial = false; // consume the grant (a fresh kill re-grants it below)
     if (!wasFree) {
-      draft.players[card.owner].magicPool -= special.cost;
+      draft.players[card.owner].magicPool -= effectiveSpecialCost(card, special.cost);
       // 1-round floor; a printed longer cooldown overrides (+1 because the
       // current round's Cleanup ticks it once).
       card.specialCooldown = (special.cooldown ?? 1) + 1;

@@ -773,6 +773,10 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef): vo
     if (h > 0) draft.log.push(`${name} heals ${h} on the kill.`);
   }
   if (def.gainShields) killer.curShields += def.gainShields;
+  if (def.reduceSpecialCost) {
+    killer.specialCostReduction += def.reduceSpecialCost;
+    draft.log.push(`${name} tightens its grip (King Me — Special costs ${def.reduceSpecialCost} less).`);
+  }
   if (def.aoeDmg) {
     for (const e of boardCards(draft, enemyOf(killer.owner)))
       directDamage(draft, killer, e, def.aoeDmg, false);
@@ -1027,6 +1031,17 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     draft.log.push(
       `${label(draft, attacker)} restores allies (+${amount} HP${doCleanse ? ", CLEANSE" : ""}, ${healed} healed).`,
     );
+  },
+
+  /** Permanent self-buff (Heir's Crowned): +DMG / +max HP / +SP to the caster. */
+  empower(draft, attacker, _targets, params) {
+    const dmg = num(params, "selfDmg");
+    const hp = num(params, "selfMaxHp");
+    const sp = num(params, "selfSp");
+    if (dmg) attacker.dmgBonus += dmg;
+    if (hp > 0) { attacker.maxHp += hp; attacker.curHp += hp; }
+    if (sp) attacker.spBonus += sp;
+    draft.log.push(`${label(draft, attacker)} is Crowned (+${dmg} DMG, +${hp} HP, +${sp} SP)!`);
   },
 
   /** CLEANSE up to N allies — strip all negative statuses (DAWN). */
