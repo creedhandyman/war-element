@@ -57,6 +57,64 @@ describe("AI heuristics", () => {
   });
 });
 
+describe("AI — spells, utility specials, and talents", () => {
+  it("casts a Cost-1 damage spell to finish a killable opponent", () => {
+    const s = prepState(1, "P2");
+    s.players.P2.summonPool = 0; // skip the summon step
+    s.players.P2.magicPool = 2;
+    s.players.P2.spellbook = [{ defId: "pyro_spark", used: false }]; // 3 DMG
+    const prey = place(s, "leaf_greegon", "P1", 1, 0, { curHp: 2, curShields: 0 });
+    const intent = aiPrepIntent(s, "P2");
+    expect(intent.type).toBe("CAST_SPELL");
+    if (intent.type === "CAST_SPELL") {
+      expect(intent.spellId).toBe("pyro_spark");
+      expect(intent.targetId).toBe(prey.instanceId);
+    }
+  });
+
+  it("drops a wall on the row holding the most opponents", () => {
+    const s = prepState(1, "P2");
+    s.players.P2.summonPool = 0;
+    s.players.P2.magicPool = 4;
+    s.players.P2.spellbook = [{ defId: "pyro_firewall", used: false }]; // wall, cost 4
+    place(s, "leaf_greegon", "P1", 2, 0, { curHp: 20 }); // two on mid row 2
+    place(s, "leaf_greegon", "P1", 2, 1, { curHp: 20 });
+    place(s, "leaf_greegon", "P1", 1, 0, { curHp: 20 }); // only one on row 1
+    const intent = aiPrepIntent(s, "P2");
+    expect(intent.type).toBe("CAST_SPELL");
+    if (intent.type === "CAST_SPELL") {
+      expect(intent.spellId).toBe("pyro_firewall");
+      expect(intent.row).toBe(2); // the packed row
+    }
+  });
+
+  it("fires Heir's Crowned self-buff when it can't kill and magic is spare", () => {
+    const s = prepState(1, "P2");
+    s.players.P2.magicPool = 5;
+    const heir = place(s, "dawn_heir_tok", "P2", 2, 0);
+    place(s, "leaf_greegon", "P1", 1, 0, { curHp: 40, maxHp: 40 }); // too tough to kill
+    const choice = chooseBattleAction(s, heir.instanceId);
+    expect(choice.action).toBe("special");
+  });
+
+  it("uses Dart Frog's Bleed Out talent when there's no kill to take", () => {
+    const s = prepState(1, "P2");
+    const frog = place(s, "leaf_dartfrog", "P2", 2, 0);
+    place(s, "leaf_greegon", "P1", 1, 0, { curHp: 40, maxHp: 40 }); // adjacent, unkillable
+    const choice = chooseBattleAction(s, frog.instanceId);
+    expect(choice.action).toBe("talent");
+  });
+
+  it("won't fire a self-damaging Special that would kill the caster", () => {
+    const s = prepState(1, "P2");
+    s.players.P2.magicPool = 6;
+    const kraken = place(s, "aqua_kraken", "P2", 2, 0, { curHp: 4, maxHp: 42 }); // −5 would kill
+    place(s, "leaf_greegon", "P1", 1, 0, { curHp: 20 });
+    const choice = chooseBattleAction(s, kraken.instanceId);
+    expect(choice.action).not.toBe("special"); // basic instead — no suicide
+  });
+});
+
 describe("full AI-vs-AI matches (integration)", () => {
   function driveP1(state: GameState): GameState {
     // P1 played by the same heuristic AI, through the public intent API only.
