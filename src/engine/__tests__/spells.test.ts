@@ -91,6 +91,16 @@ describe("Support spells", () => {
 });
 
 describe("Cost-4 walls", () => {
+  it("erupts immediately on enemies already in the row when cast", () => {
+    const s = prepState(); // P1 has priority
+    s.players.P1.spellbook = [{ defId: "pyro_firewall", used: false }];
+    s.players.P1.magicPool = 4;
+    const foe = place(s, "leaf_alpha", "P2", 2, 0, { curHp: 14, maxHp: 14, curShields: 0 }); // already in Mid row 2
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "pyro_firewall", row: 2 });
+    expect(next.cards[foe.instanceId].curHp).toBe(11); // Firewall's 3 DMG on cast
+    expect(statusOf(next.cards[foe.instanceId], "BURN")).toBeTruthy();
+  });
+
   it("a wall triggers on an enemy MOVING into its row (dmg + status)", () => {
     const s = prepState(42, "P2"); // give P2 priority so it can move
     // Lay P1's Firewall on Mid row 2 directly.

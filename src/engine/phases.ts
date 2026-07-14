@@ -240,7 +240,7 @@ function resolveSpell(
   row?: number,
 ): void {
   if (spell.kind === "wall" && spell.wall && row != null) {
-    draft.walls.push({
+    const wall: WallState = {
       owner: player,
       spellId: spell.id,
       element: spell.element,
@@ -251,8 +251,15 @@ function resolveSpell(
       stripShields: spell.wall.stripShields,
       allyBuff: spell.wall.allyBuff,
       roundsLeft: spell.wall.rounds,
-    });
+    };
+    draft.walls.push(wall);
     draft.log.push(`${spell.name} rises across row ${row}.`);
+    // The wall erupts immediately on the enemies already standing in that row
+    // (FLYING cards are above it, same as the movement trigger).
+    for (const e of boardCards(draft, enemyOf(player))) {
+      if (!e.pos || e.pos.row !== row || getDef(e.defId).keywords.FLYING) continue;
+      applyWall(draft, e, wall);
+    }
     return;
   }
 
