@@ -353,22 +353,18 @@ function doDrawPhase(draft: GameState): void {
 }
 
 function doResourcePhase(draft: GameState): void {
-  // Two independent pools: summon = round # each round; magic starts at 3 and
-  // gains per round from round 2 on, scaling in 5-round brackets (+1 through
-  // rounds 1–5, +2 through 6–10, +3 through 11–15, +4 from 16 on) so the endgame
-  // has fuel for Specials/spells. Both cap unspent carryover at 10.
+  // Two independent pools: summon = round # each round; magic starts at 0 and
+  // drips every round (including round 1) in 5-round brackets (+1 through rounds
+  // 1–5, +2 through 6–10, +3 through 11–15, +4 from 16 on) so the endgame has
+  // fuel for Specials/spells. Both cap unspent carryover at 10.
   const gain = Math.min(draft.round, 10);
   const magicGain = magicGainForRound(draft.round);
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const p = draft.players[player];
     p.summonPool = Math.min(p.summonPool, POOL_CARRYOVER_CAP) + gain;
-    if (draft.round > 1) {
-      p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGain;
-    }
+    p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGain;
   }
-  draft.log.push(
-    `— Round ${draft.round}: summon +${gain}${draft.round > 1 ? `, magic +${magicGain}` : ""}. —`,
-  );
+  draft.log.push(`— Round ${draft.round}: summon +${gain}, magic +${magicGain}. —`);
   // Prep initiative alternates each round: the coin-flip winner preps first on
   // odd rounds, the opponent on even ones — so neither side keeps the first-mover
   // edge all game.

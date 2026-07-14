@@ -67,7 +67,7 @@ function emptyPlayer(deck: string[]): PlayerState {
     hand: [],
     spellbook: spellbookFor(deck),
     summonPool: 0,
-    magicPool: 3,
+    magicPool: 0,
     mulliganDone: false,
   };
 }

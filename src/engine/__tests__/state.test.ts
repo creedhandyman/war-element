@@ -92,11 +92,11 @@ describe("mulligan", () => {
     s = advanceUntilInput(s); // AI mulligans, draw + resource resolve
     expect(s.round).toBe(1);
     expect(s.phase).toBe("prep");
-    // round 1: opening 4 + drew 1 = hand 5, summon pool 1, magic starts at 3.
+    // round 1: opening 4 + drew 1 = hand 5, summon pool 1, magic 0 + round-1 drip 1.
     // (P2 may already have spent its summon pool if it won the coin flip.)
     expect(s.players.P1.hand).toHaveLength(5);
     expect(s.players.P1.summonPool).toBe(1);
-    expect(s.players.P1.magicPool).toBe(3);
+    expect(s.players.P1.magicPool).toBe(1);
     expect(s.players.P2.summonPool).toBeLessThanOrEqual(1);
   });
 });
@@ -183,13 +183,13 @@ describe("resource math (two pools)", () => {
     expect(next.players.P1.magicPool).toBe(6); // 3 + 3 (11–15 bracket)
   });
 
-  it("magic starts at 3 and does NOT gain on round 1", () => {
+  it("magic starts at 0 and drips +1 on round 1", () => {
     const s = freshGame(9);
-    expect(s.players.P1.magicPool).toBe(3);
+    expect(s.players.P1.magicPool).toBe(0);
     s.phase = "resource";
     s.round = 1;
     const next = advance(s);
-    expect(next.players.P1.magicPool).toBe(3);
+    expect(next.players.P1.magicPool).toBe(1); // 0 + round-1 bracket (+1)
     expect(next.players.P1.summonPool).toBe(1);
   });
 
