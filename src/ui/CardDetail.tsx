@@ -62,6 +62,7 @@ const STATUS_TEXT: Record<StatusKind, string> = {
   SLEEP: "Asleep — can't act until it wakes.",
   FRIGHTEN: "Frightened — retreats and can't move forward.",
   BLIND: "Blinded — attacks have a 50% chance to miss.",
+  SEAL: "Bluflamed — cannot be healed.",
   STEALTH: "Stealthed — can't be targeted.",
   EVASION: "Evasive — 50% chance to dodge each hit.",
 };
@@ -229,6 +230,16 @@ export function CardDetail(props: {
     );
   if (def.onHitByMelee?.doubleBurn)
     passives.push(`Hot Hot: when hit by melee, doubles the BURN already on the attacker.`);
+  if (def.onlyAdjacentAttackers)
+    passives.push(`Shadow: can only be attacked by adjacent opponents — ranged shots from afar miss.`);
+  if (def.firstStrikeBonus && def.firstStrikeEnemySideOnly)
+    passives.push(`On the enemy battlefield: +${def.firstStrikeBonus} DMG on the first strike against each opponent.`);
+  if (def.summonSelfShields)
+    passives.push(`Gate Keeper: raises a ${def.summonSelfShields}-shield golden wall on summon${def.onShieldBreak ? `; when it breaks, gains +${def.onShieldBreak.dmg ?? 0} DMG / +${def.onShieldBreak.sp ?? 0} SP` : ""}.`);
+  if (def.roundTick?.wardAllies)
+    passives.push(`Radiant Ward: each round, allies get a barrier that absorbs the next negative status.`);
+  if (def.roundTick?.cleanseAllies)
+    passives.push(`Crowned: cleanses all negative statuses from allies each round.`);
   if (def.special?.params?.freeRecastOnKill)
     passives.push(
       `On Kill, its Special recasts free next round (ignores cost & cooldown).`,

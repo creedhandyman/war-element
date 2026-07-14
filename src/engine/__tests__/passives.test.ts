@@ -3,11 +3,11 @@
 // abilities in cards.ts.
 
 import { describe, expect, it } from "vitest";
-import { basicAttack, effectiveBasicHits, SPECIAL_HANDLERS } from "../combat";
+import { applyStatus, basicAttack, effectiveBasicHits, SPECIAL_HANDLERS } from "../combat";
 import { applyFlow } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { canFireSpecial, canMove, canTarget } from "../rules";
-import { boardCards, effectiveDmg, effectiveSp } from "../state";
+import { boardCards, effectiveDmg, effectiveSp, healCard } from "../state";
 import { getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState, seedForCoins } from "./helpers";
 
@@ -141,6 +141,63 @@ describe("medium-tier passives (audit batch)", () => {
     basicAttack(s, melee.instanceId, spit.instanceId);
     const burn = s.cards[melee.instanceId].statuses.find((st) => st.kind === "BURN");
     expect(burn?.power).toBe(4); // 2 → doubled
+  });
+});
+
+describe("complex-tier passives (audit batch)", () => {
+  it("Sarra's Bluflame (SEAL) blocks all healing", () => {
+    const s = prepState();
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 5, maxHp: 20 });
+    expect(healCard(s, foe, 4)).toBe(4); // heals normally first
+    applyStatus(s, foe, "SEAL", 2, 0, "PYRO");
+    expect(healCard(s, foe, 4)).toBe(0); // sealed — no healing
+    expect(s.cards[foe.instanceId].curHp).toBe(9);
+  });
+
+  it("Vaga's Shadow lets only adjacent attackers reach it", () => {
+    const s = prepState();
+    const vaga = place(s, "gale_vaga", "P1", 2, 0);
+    const farRanged = place(s, "pyro_flamehound", "P2", 0, 0); // ranged, 2 rows away
+    const adjacent = place(s, "dusk_gool", "P2", 1, 1); // king-adjacent (ranged too)
+    expect(canTarget(s, farRanged, vaga)).toBe(false); // can't reach through Shadow
+    expect(canTarget(s, adjacent, vaga)).toBe(true); // adjacent reaches
+  });
+
+  it("Solstice's Radiant Ward absorbs one team status per round, then lets the next land", () => {
+    const s = prepState();
+    place(s, "dawn_solstice", "P1", 3, 0);
+    const ally = place(s, "dawn_beam", "P1", 2, 0);
+    const next = advance(atCleanup(s)); // roundTick raises the team ward
+    expect(next.players.P1.statusWard).toBe(true);
+    applyStatus(next, next.cards[ally.instanceId], "BURN", 2, 3, "PYRO"); // absorbed
+    expect(next.cards[ally.instanceId].statuses).toHaveLength(0);
+    expect(next.players.P1.statusWard).toBe(false); // ward spent
+    applyStatus(next, next.cards[ally.instanceId], "ROOT", 2, 0, "LEAF"); // now lands
+    expect(next.cards[ally.instanceId].statuses.some((st) => st.kind === "ROOT")).toBe(true);
+  });
+
+  it("Veil's Gate Keeper starts with the +8 golden shield and hardens on break", () => {
+    const s = prepState();
+    const veil = place(s, "dawn_veil", "P1", 2, 0); // base 3 + 8 grant = 11
+    expect(s.cards[veil.instanceId].curShields).toBe(11);
+    // Knock the shield to 0: place with 1 shield to see the break buff cleanly.
+    const veil2 = place(s, "dawn_veil", "P1", 3, 0, { curShields: 1 });
+    const hitter = place(s, "dusk_gool", "P2", 3, 1, { curHp: 20 });
+    basicAttack(s, hitter.instanceId, veil2.instanceId);
+    const v = s.cards[veil2.instanceId];
+    expect(v.curShields).toBe(0);
+    expect(v.dmgBonus).toBe(1); // Gate Keeper break buff
+    expect(v.spBonus).toBe(2);
+  });
+
+  it("Imperator's Crowned cleanses negative statuses from allies each round", () => {
+    const s = prepState();
+    place(s, "dawn_imperator", "P1", 2, 0);
+    const ally = place(s, "dawn_beam", "P1", 3, 0, {
+      status: { kind: "BURN", duration: 3, power: 2, source: "PYRO" },
+    });
+    const next = advance(atCleanup(s));
+    expect(next.cards[ally.instanceId].statuses.some((st) => st.kind === "BURN")).toBe(false);
   });
 });
 

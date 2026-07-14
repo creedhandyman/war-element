@@ -14,7 +14,7 @@
 
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
-import { auraHasPen, boardCards, cardAt, effectiveDmg, effectiveMaxHp, effectiveSp, hasStatus, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, boardCards, cardAt, effectiveDmg, effectiveMaxHp, effectiveSp, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardInstance,
   Element,
@@ -24,7 +24,7 @@ import type {
   Pos,
   StatusKind,
 } from "./types";
-import { BOARD_SIZE, MULTI_HIT_BONUS_MIN, enemyOf, homeRow } from "./types";
+import { BOARD_SIZE, MULTI_HIT_BONUS_MIN, NEGATIVE_STATUSES, enemyOf, homeRow } from "./types";
 
 /** Flat pre-shield damage reduction a card gains from standing in a friendly
  *  wall's row (Stone Wall BLOCK, Radiant Barrier −1). Same-element, wall owner's
@@ -96,6 +96,13 @@ export function applyStatus(
 ): void {
   if (getDef(target.defId).statusImmune) {
     draft.log.push(`${label(draft, target)} is immune to status (${kind} fizzles).`);
+    return;
+  }
+  // Radiant Ward (Solstice): one team-wide barrier eats the first negative
+  // status to hit any ally each round.
+  if (draft.players[target.owner].statusWard && NEGATIVE_STATUSES.includes(kind)) {
+    draft.players[target.owner].statusWard = false;
+    draft.log.push(`${label(draft, target)}'s team radiant ward absorbs the ${kind}.`);
     return;
   }
   const fresh = { kind, duration, power, source };
@@ -274,7 +281,16 @@ export function resolveHit(
         }
       }
       toHp = Math.max(0, remaining - target.curShields);
-      if (target.curShields > 0) target.curShields--;
+      if (target.curShields > 0) {
+        target.curShields--;
+        // Gate Keeper (Veil): the first time the shield wall breaks, harden up.
+        if (target.curShields === 0 && tDef.onShieldBreak && !target.shieldBroken) {
+          target.shieldBroken = true;
+          if (tDef.onShieldBreak.dmg) target.dmgBonus += tDef.onShieldBreak.dmg;
+          if (tDef.onShieldBreak.sp) target.spBonus += tDef.onShieldBreak.sp;
+          draft.log.push(`${label(draft, target)}'s shield shatters — it hardens (Gate Keeper).`);
+        }
+      }
     }
     target.curHp -= toHp;
     result.landedHits++;
@@ -301,11 +317,8 @@ export function resolveHit(
   //    heals are applied by basicAttack, which knows the per-target gating.)
   if (opts.kind === "basic" && result.landedHits > 0) {
     if ((aDef.keywords.LIFESTEAL || opts.lifesteal) && result.totalToHp > 0) {
-      const healed = Math.min(result.totalToHp, effectiveMaxHp(draft, attacker) - attacker.curHp);
-      if (healed > 0) {
-        attacker.curHp += healed;
-        draft.log.push(`${aDef.name} lifesteals ${healed} HP.`);
-      }
+      const healed = healCard(draft, attacker, result.totalToHp); // SEAL blocks it
+      if (healed > 0) draft.log.push(`${aDef.name} lifesteals ${healed} HP.`);
     }
     if (aDef.keywords.DRAIN) {
       if (target.maxHp > 1) {
@@ -467,8 +480,12 @@ export function basicAttack(
     }
     // Electrify (BOLT aura): +1 DMG vs any statused opponent.
     if (aDef.element === "BOLT" && t.statuses.length > 0) dmg += 1;
-    // Harsh Winds: bonus DMG the first time this card strikes a given opponent.
-    const firstStrike = Boolean(aDef.firstStrikeBonus) && !attacker.struckEver.includes(t.instanceId);
+    // Harsh Winds / Shadow: bonus DMG the first time this card strikes a given
+    // opponent. Vaga's version only counts while it stands on the enemy side.
+    const homeR = attacker.owner === "P1" ? 3 : 0;
+    const onEnemySide = attacker.pos != null && Math.abs(attacker.pos.row - homeR) >= 2;
+    const fsEligible = Boolean(aDef.firstStrikeBonus) && (!aDef.firstStrikeEnemySideOnly || onEnemySide);
+    const firstStrike = fsEligible && !attacker.struckEver.includes(t.instanceId);
     if (firstStrike) dmg += aDef.firstStrikeBonus!;
     // Ethereal Trade: +DMG on the attack (the HP cost is paid once per action).
     if (aDef.attackTrade) dmg += aDef.attackTrade.bonusDmg;
@@ -493,13 +510,11 @@ export function basicAttack(
       if (aDef.element === "PYRO" && t.curHp > 0 && !hasStatus(t, "BURN")) {
         applyStatus(draft, t, "BURN", 1, 1, "PYRO");
       }
-      if (healOnHit > 0 && attacker.curHp > 0) {
-        attacker.curHp = Math.min(effectiveMaxHp(draft, attacker), attacker.curHp + healOnHit);
-      }
+      if (healOnHit > 0 && attacker.curHp > 0) healCard(draft, attacker, healOnHit);
       // Hastened Assault: heal per critical hit landed.
       if (aDef.healPerCrit && r.critHits && attacker.curHp > 0) {
-        attacker.curHp = Math.min(effectiveMaxHp(draft, attacker), attacker.curHp + aDef.healPerCrit * r.critHits);
-        draft.log.push(`${label(draft, attacker)} feeds on the frenzy (+${aDef.healPerCrit * r.critHits} HP).`);
+        const h = healCard(draft, attacker, aDef.healPerCrit * r.critHits);
+        if (h > 0) draft.log.push(`${label(draft, attacker)} feeds on the frenzy (+${h} HP).`);
       }
     }
     agg.landedHits += r.landedHits;
@@ -754,8 +769,8 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef): vo
     draft.log.push(`${name} claims the spoils (+${bonus} DMG).`);
   }
   if (def.healSelf) {
-    killer.curHp = Math.min(effectiveMaxHp(draft, killer), killer.curHp + def.healSelf);
-    draft.log.push(`${name} heals ${def.healSelf} on the kill.`);
+    const h = healCard(draft, killer, def.healSelf);
+    if (h > 0) draft.log.push(`${name} heals ${h} on the kill.`);
   }
   if (def.gainShields) killer.curShields += def.gainShields;
   if (def.aoeDmg) {
@@ -889,9 +904,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       else checkLowHpTransform(draft, attacker);
     }
     const healSelf = num(params, "healSelf");
-    if (healSelf > 0 && attacker.curHp > 0) {
-      attacker.curHp = Math.min(effectiveMaxHp(draft, attacker), attacker.curHp + healSelf);
-    }
+    if (healSelf > 0 && attacker.curHp > 0) healCard(draft, attacker, healSelf);
     if (attacker.curHp > 0) {
       adjacentCasterStatus(draft, attacker, params); // ROOT all adjacent (Squanch)
       applySelfRiders(draft, attacker, params);
@@ -943,6 +956,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       seen.add(target.instanceId);
       maybeStatus(draft, attacker, target, params);
       applyDebuffRiders(draft, target, params); // Mighty Winds push + −SP
+      // Bluflames (Sarra): mark the target so it can't be healed.
+      const sealR = num(params, "sealRounds");
+      if (sealR > 0 && target.curHp > 0 && draft.cards[target.instanceId])
+        applyStatus(draft, target, "SEAL", sealR, 0, getDef(attacker.defId).element);
     }
     applySelfRiders(draft, attacker, params); // e.g. Guan's +5 max HP
   },
@@ -990,10 +1007,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const buffRounds = num(params, "buffRounds", 1);
     let healed = 0;
     for (const ally of targets.slice(0, n)) {
-      if (amount > 0 && ally.curHp < ally.maxHp) {
-        ally.curHp = Math.min(effectiveMaxHp(draft, ally), ally.curHp + amount);
-        healed++;
-      }
+      if (amount > 0 && healCard(draft, ally, amount) > 0) healed++;
       if (doCleanse && ally.statuses.length) ally.statuses = [];
       if (buffDmg > 0 || buffSp > 0) applyTimedBuff(ally, buffDmg, buffSp, buffRounds);
     }

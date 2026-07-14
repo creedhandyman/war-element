@@ -377,9 +377,10 @@ export const CARDS: CardDef[] = [
       name: "Bluflame Slashing",
       cost: 3,
       handler: "statusNova",
-      params: { statusKind: "BURN", statusPower: 3, statusDuration: 2, targets: 3 },
+      // Bluflame mark = SEAL (can't be healed) for the BURN's duration.
+      params: { statusKind: "BURN", statusPower: 3, statusDuration: 2, targets: 3, sealRounds: 2 },
       targetSide: "enemy",
-      text: "Apply BURN 3 for 2 rounds to up to 3 opponents.",
+      text: "Apply BURN 3 for 2 rounds to up to 3 opponents, and Bluflame them (cannot be healed).",
     },
   },
   {
@@ -1150,6 +1151,9 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 2,
     keywords: {},
+    // Radiant Ward: each round, raise a barrier over all allies that absorbs the
+    // next incoming negative status.
+    roundTick: { wardAllies: true },
     special: {
       name: "Daybreak",
       cost: 2,
@@ -1223,6 +1227,10 @@ export const CARDS: CardDef[] = [
     sp: 2,
     shields: 3,
     keywords: {},
+    // Gate Keeper: raises a massive golden shield (+8) on summon, and hardens
+    // (+1 DMG, +2 SP) the first time that shield is broken.
+    summonSelfShields: 8,
+    onShieldBreak: { dmg: 1, sp: 2 },
     special: {
       name: "Light Shield",
       cost: 1,
@@ -1346,6 +1354,11 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 0,
     keywords: {},
+    // Shadow: only adjacent attackers reach it; on the enemy side, +1 DMG on the
+    // first strike against each opponent.
+    onlyAdjacentAttackers: true,
+    firstStrikeBonus: 1,
+    firstStrikeEnemySideOnly: true,
     special: {
       name: "Extinguisher",
       cost: 1,
@@ -1845,15 +1858,18 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 10,
     keywords: {},
+    // Triple Sun — Crowned: CLEANSE all allies each round (strip negatives).
+    // (Order's shield-on-ally-summon and Chaos/Awakening remain deferred — the
+    //  "Awakening" bonus-attack mechanic is undefined elsewhere in the docs.)
+    roundTick: { cleanseAllies: true },
     special: {
       name: "Strike of Dawn",
       cost: 5,
       handler: "spawn",
       params: { token: "dawn_heir_tok", count: 1 },
       targetSide: "ally", // no enemy target needed; always castable
-      text: "Spawn Heir (10/10/2🛡/SP10) in an open slot.",
+      text: "Spawn Heir (10/10/2🛡/SP10) in an open slot. Crowned: cleanses allies each round.",
     },
-    // Triple Sun auras (Order/Chaos/Crowned) deferred.
   },
   {
     id: "gale_griffith",

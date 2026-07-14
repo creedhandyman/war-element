@@ -175,6 +175,17 @@ export function effectiveMaxHp(state: GameState, card: CardInstance): number {
   return card.maxHp + bonus;
 }
 
+/** The single choke-point for restoring HP. Honors Bluflame (SEAL): a sealed
+ *  card can't be healed by REGEN, LIFESTEAL/DRAIN, or aura heals. Caps at
+ *  effective max HP. Returns the amount actually restored (0 if blocked). */
+export function healCard(state: GameState, card: CardInstance, amount: number): number {
+  if (amount <= 0 || card.curHp <= 0) return 0;
+  if (hasStatus(card, "SEAL")) return 0; // Bluflame — no healing while sealed
+  const before = card.curHp;
+  card.curHp = Math.min(effectiveMaxHp(state, card), card.curHp + amount);
+  return card.curHp - before;
+}
+
 /** Does a friendly aura grant this card's basic attacks PEN (Blood Ruby)? */
 export function auraHasPen(state: GameState, card: CardInstance): boolean {
   const tDef = getDef(card.defId);
@@ -282,6 +293,7 @@ export function summonCard(
     talentUsed: false,
     freeSpecial: false,
     onHitBuffFired: false,
+    shieldBroken: false,
     loadedHits: 0,
     statuses: [],
     summonedThisRound: true,
@@ -290,6 +302,8 @@ export function summonCard(
     autoMode: "manual",
     pos,
   };
+  // Gate Keeper (Veil): raise the massive golden shield the moment it enters.
+  if (def.summonSelfShields) inst.curShields += def.summonSelfShields;
   draft.cards[inst.instanceId] = inst;
   return inst;
 }

@@ -124,6 +124,13 @@ export function canTarget(
   if ((tDef.keywords.STEALTH && !target.attackedThisRound) || hasStatus(target, "STEALTH")) return false;
   // FLYING dodges melee — but a flying attacker can still strike other fliers.
   if (tDef.keywords.FLYING && melee && !aDef.keywords.FLYING) return false;
+  // Shadow (Vaga): only adjacent attackers reach it — ranged shots from a row
+  // or more away find nothing to hit.
+  if (
+    tDef.onlyAdjacentAttackers &&
+    (Math.abs(attacker.pos.row - target.pos.row) > 1 || Math.abs(attacker.pos.col - target.pos.col) > 1)
+  )
+    return false;
 
   if (melee) {
     if (

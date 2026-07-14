@@ -48,10 +48,18 @@ export type StatusKind =
   | "SLEEP"
   | "FRIGHTEN"
   | "BLIND"
+  | "SEAL" // Bluflame (Sarra): cannot be healed while sealed
   // Buff statuses — a temporary grant of the like-named keyword, ticked down at
   // Cleanup (Dive Bomb → STEALTH, Shadow Charge → EVASION).
   | "STEALTH"
   | "EVASION";
+
+/** Negative statuses — the ones Radiant Ward absorbs and Crowned cleanses.
+ *  (STEALTH/EVASION are self-buffs and are excluded.) */
+export const NEGATIVE_STATUSES: StatusKind[] = [
+  "ROOT", "BLEED", "BURN", "SCALD", "DOT", "FREEZE", "STUN", "WEAKEN",
+  "PARALYZE", "MUTED", "SLEEP", "FRIGHTEN", "BLIND", "SEAL",
+];
 
 export interface StatusEffect {
   kind: StatusKind;
@@ -136,6 +144,8 @@ export interface RoundTickDef {
   selfShields?: number; // gain N shields each round (Heir's Royal Guard)
   pokeParalyzedDmg?: number; // deal N DMG to one PARALYZED enemy in range (Sentry's Volt Turret)
   aoeParalyzedDmg?: number; // deal N DMG to EVERY PARALYZED enemy in range (Lytning's Complete Circuit)
+  wardAllies?: boolean; // refresh a status-absorbing barrier on all allies (Solstice's Radiant Ward)
+  cleanseAllies?: boolean; // strip all negative statuses from allies (Imperator's Crowned)
   /** Spawn a token each round (Trinezer's Reptilian Screech). adjacentOnly =
    *  only into an open king's-reach slot; no spawn if none is open. */
   spawn?: { token: string; count: number; adjacentOnly?: boolean };
@@ -253,6 +263,18 @@ export interface CardDef {
   onHitAllyBuff?: { shields?: number; firstTimeOnly?: boolean };
   /** High Speed Impact (Hawk): +1 DMG per point of effective SP above 10. */
   highSpeedImpact?: boolean;
+  /** Shadow (Vaga): can only be attacked by ADJACENT opponents — attackers a row
+   *  or more away (incl. ranged) can't reach it. */
+  onlyAdjacentAttackers?: boolean;
+  /** Gate the firstStrikeBonus so it only applies while this card stands on the
+   *  enemy battlefield (Vaga's Shadow first-strike). */
+  firstStrikeEnemySideOnly?: boolean;
+  /** Gate Keeper (Veil): grant this many shields to SELF on summon (a passive
+   *  grant, not a base stat, so it stays off the cost curve). */
+  summonSelfShields?: number;
+  /** Gate Keeper (Veil): the first time this card's shields break to 0, gain
+   *  these permanent buffs. */
+  onShieldBreak?: { dmg?: number; sp?: number };
   /** Rocky Force Field (Rhe): a coin-flip chance (0–100) to dodge a RANGED
    *  attacker's hit entirely. */
   blocksRangedChance?: number;
@@ -345,6 +367,8 @@ export interface CardInstance {
   freeSpecial: boolean;
   /** One-shot guard for a firstTimeOnly onHitAllyBuff (Hillbilly's Hillside). */
   onHitBuffFired: boolean;
+  /** One-shot guard for Gate Keeper's shield-break buff (Veil). */
+  shieldBroken: boolean;
   /** Extra basic hits queued for the NEXT basic attack (Dart Frog's loaded
    *  darts). Consumed the next time this card basic-attacks. */
   loadedHits: number;
@@ -445,6 +469,9 @@ export interface PlayerState {
    *  pool and vice-versa. */
   magicPool: number;
   mulliganDone: boolean;
+  /** Radiant Ward (Solstice): a single team-wide barrier that absorbs the first
+   *  negative status to hit any ally this round. Refreshed each round it's up. */
+  statusWard?: boolean;
 }
 
 export type Phase =
