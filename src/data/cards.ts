@@ -1869,15 +1869,18 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 7,
     keywords: {},
-    // Hyper Power Surge (On Kill): +5 DMG this round, +5 SP.
+    // Hyper Power Surge (On Kill): +5 DMG this round, +5 SP (round-long, applies
+    // to future basics — separate from the combo's in-special escalation).
     onKill: { buffDmgRound: 5, buffSp: 5 },
     special: {
       name: "Light Slasher",
       cost: 5,
-      handler: "strike",
-      params: { dmg: 25 },
+      handler: "combo",
+      // 5 → 5 → 5 → 10 combo; a kill chains to the next enemy and raises the
+      // remaining hits +5 (that raise lasts only for this combo).
+      params: { dmg: 5, hits: 4, finisherDmg: 10, killBoost: 5 },
       targetSide: "enemy",
-      text: "Deal a 25-DMG light combo to a target.",
+      text: "5·5·5·10 combo on a target; on a kill, chain to the next enemy with +5 to the rest of the combo.",
     },
     // The on-Surge BOLT-ally aura is deferred.
   },

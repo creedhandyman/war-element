@@ -757,6 +757,33 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   spawn(draft, attacker, _targets, params) {
     spawnTokens(draft, attacker, String(params.token ?? ""), num(params, "count", 1));
   },
+  /** An escalating combo (Elecdroid's Light Slasher): a sequence of `hits` that
+   *  stays on a target until it dies, then chains to the next enemy. Each KILL
+   *  raises the remaining hits by `killBoost` — a SPECIAL-only tally that resets
+   *  when the combo ends (the last hit uses `finisherDmg`). */
+  combo(draft, attacker, targets, params) {
+    const hits = num(params, "hits", 1);
+    const base = num(params, "dmg");
+    const finisher = num(params, "finisherDmg", base);
+    const killBoost = num(params, "killBoost");
+    const pen = num(params, "pen") > 0;
+    const queue = targets.slice(); // picked target first, then the rest
+    let boost = 0; // escalation — local, so it lasts only for this combo
+    for (let i = 0; i < hits; i++) {
+      if (attacker.curHp <= 0) break; // died to REFLECT mid-combo
+      const target = queue.find((t) => {
+        const c = draft.cards[t.instanceId];
+        return c && c.curHp > 0;
+      });
+      if (!target) break; // nothing left to hit
+      const dmg = (i === hits - 1 ? finisher : base) + boost;
+      const r = resolveHit(draft, attacker, target, { kind: "special", dmg, hits: 1, pen, crit: false });
+      if (r.targetDied) {
+        boost += killBoost;
+        draft.log.push(`${label(draft, attacker)}'s combo surges (+${killBoost} to the next hit).`);
+      }
+    }
+  },
   /** Single-target damage w/ optional pen, self-damage, self-heal, status. */
   strike(draft, attacker, targets, params) {
     const target = targets[0];

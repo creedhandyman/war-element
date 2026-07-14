@@ -306,7 +306,7 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
     // Magic is its own pool now — unspent surplus is wasted value, so be
     // liberal when flush: fire anything decent, not only guaranteed kills.
     const rich = state.players[card.owner].magicPool >= sp.cost + 2;
-    if (sp.handler === "strike" || sp.handler === "barrage") {
+    if (sp.handler === "strike" || sp.handler === "barrage" || sp.handler === "combo") {
       const kill = specTargets.find((t) => estimateVolley(dmg, hits, pen, t) >= t.curHp);
       const basicKillsIt =
         kill &&

@@ -338,3 +338,21 @@ describe("The DEEPEST — STEALTH lifecycle", () => {
     expect(canTarget(afterBasic, afterBasic.cards[foe2.instanceId], dB)).toBe(true);
   });
 });
+
+describe("Elecdroid — Light Slasher combo", () => {
+  it("chains to the next enemy on a kill, raising the rest of the combo (special-only)", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const elec = place(s, "bolt_elecdroid", "P1", 2, 0);
+    const weak = place(s, "dusk_gool", "P2", 1, 0, { curHp: 5, maxHp: 5, curShields: 0 }); // dies to hit 1
+    const chained = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(battleWith(s, elec.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: weak.instanceId,
+    });
+    expect(next.cards[weak.instanceId]).toBeUndefined(); // killed by hit 1 (5)
+    // remaining hits chain to `chained`, each +5 from the kill: 10 + 10 + 15 = 35.
+    expect(next.cards[chained.instanceId].curHp).toBe(40 - 35);
+    // the combo's raise never persisted (no permanent DMG bonus from it).
+    expect(next.cards[elec.instanceId].dmgBonus).toBe(0);
+  });
+});
