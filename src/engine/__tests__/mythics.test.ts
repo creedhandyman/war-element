@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { directDamage, effectiveBasicHits } from "../combat";
 import { advance, applyIntent } from "../phases";
-import { canFireTalent, canTarget } from "../rules";
+import { canFireSpecial, canFireTalent, canTarget } from "../rules";
 import { boardCards, effectiveDmg, effectiveMaxHp, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
@@ -261,6 +261,27 @@ describe("The DEEPEST — Drilling Quake sinkhole", () => {
     expect(statusOf(f, "DOT")).toBeTruthy();
     expect(statusOf(f, "BLIND")).toBeTruthy();
     expect(effectiveSp(next, f)).toBe(getDef("leaf_alpha").sp - 5); // −5 SP
+  });
+
+  it("has a 3-round cooldown — locked out until three Cleanups have ticked it", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 10;
+    const deepest = place(s, "bore_deepest", "P1", 2, 0);
+    place(s, "leaf_alpha", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(battleWith(s, deepest.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: undefined,
+    });
+    const d = next.cards[deepest.instanceId];
+    expect(d.specialCooldown).toBe(4); // cooldown 3 (+1 for this round's Cleanup)
+    // Tick three rounds of Cleanup worth of cooldown; still blocked each time.
+    d.summonedThisRound = false;
+    next.players.P1.magicPool = 10;
+    for (let i = 0; i < 3; i++) {
+      d.specialCooldown--; // simulate a Cleanup tick
+      expect(canFireSpecial(battleWith(next, d.instanceId), d.instanceId).ok).toBe(false);
+    }
+    d.specialCooldown--; // 4th tick → 0
+    expect(canFireSpecial(battleWith(next, d.instanceId), d.instanceId).ok).toBe(true);
   });
 });
 

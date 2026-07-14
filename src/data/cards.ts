@@ -1956,6 +1956,7 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Drilling Quake",
       cost: 5,
+      cooldown: 3, // Sinkhole is a heavy AoE — 3-round lockout between casts
       handler: "barrage",
       // Sinkhole: DOT 3 (maybeStatus) + −5 SP (spDebuff) + −accuracy via BLIND
       // (debuffStatus) — all for 3 rounds.
@@ -1967,7 +1968,7 @@ export const CARDS: CardDef[] = [
         selfStatus: "STEALTH", selfStatusDuration: 1, // slips back underground after the quake
       },
       targetSide: "enemy",
-      text: "Sinkhole all opponents in range — DOT 3, −5 SP, −50% accuracy for 3 rounds — then re-STEALTH.",
+      text: "Sinkhole all opponents in range — DOT 3, −5 SP, −50% accuracy for 3 rounds — then re-STEALTH. 3-round cooldown.",
     },
   },
 
