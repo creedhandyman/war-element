@@ -1935,9 +1935,10 @@ export const CARDS: CardDef[] = [
         statusKind: "DOT", statusDuration: 3, statusPower: 3,
         spDebuff: 5, spDebuffRounds: 3,
         debuffStatus: "BLIND", debuffStatusRounds: 3,
+        selfStatus: "STEALTH", selfStatusDuration: 1, // slips back underground after the quake
       },
       targetSide: "enemy",
-      text: "Sinkhole all opponents in range — DOT 3, −5 SP, and −50% accuracy for 3 rounds.",
+      text: "Sinkhole all opponents in range — DOT 3, −5 SP, −50% accuracy for 3 rounds — then re-STEALTH.",
     },
   },
 

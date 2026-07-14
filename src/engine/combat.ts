@@ -715,11 +715,8 @@ function applySelfRiders(
   }
   const sp = num(params, "selfSp");
   if (sp !== 0) caster.spBonus += sp;
-  // Self-buff status on cast (Dive Bomb → STEALTH, Shadow Charge → EVASION).
-  const st = params.selfStatus;
-  if (typeof st === "string" && st) {
-    applyStatus(draft, caster, st as StatusKind, num(params, "selfStatusDuration", 1), 0, getDef(caster.defId).element);
-  }
+  // (selfStatus is applied once per Special in performBattleAction, so it works
+  // for every handler — barrage included — not just strike.)
 }
 
 /** Per-target special riders: forced push-back and a timed −SP debuff

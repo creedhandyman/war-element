@@ -311,3 +311,30 @@ describe("Pyrogon — Flame Engulf reach", () => {
     expect(next.cards[wide.instanceId].curHp).toBe(20); // outside the corridor
   });
 });
+
+describe("The DEEPEST — STEALTH lifecycle", () => {
+  it("re-STEALTHs after Drilling Quake (untargetable), but a basic attack leaves it exposed", () => {
+    // Special → regains STEALTH.
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const d = place(s, "bore_deepest", "P1", 2, 0);
+    const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const afterSpecial = applyIntent(battleWith(s, d.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    const dS = afterSpecial.cards[d.instanceId];
+    expect(statusOf(dS, "STEALTH")).toBeTruthy();
+    expect(canTarget(afterSpecial, afterSpecial.cards[foe.instanceId], dS)).toBe(false);
+
+    // Basic attack → no re-STEALTH; the keyword is broken for the round.
+    const s2 = prepState();
+    const d2 = place(s2, "bore_deepest", "P1", 2, 0);
+    const foe2 = place(s2, "leaf_alpha", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const afterBasic = applyIntent(battleWith(s2, d2.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "basic", targetId: foe2.instanceId,
+    });
+    const dB = afterBasic.cards[d2.instanceId];
+    expect(statusOf(dB, "STEALTH")).toBeFalsy();
+    expect(canTarget(afterBasic, afterBasic.cards[foe2.instanceId], dB)).toBe(true);
+  });
+});

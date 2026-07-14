@@ -40,6 +40,7 @@ import type {
   Intent,
   PlayerId,
   SpellDef,
+  StatusKind,
   WallState,
 } from "./types";
 import {
@@ -468,6 +469,11 @@ function performBattleAction(
     const handler = SPECIAL_HANDLERS[special.handler];
     if (!handler) throw new Error(`Unknown special handler: ${special.handler}`);
     handler(draft, card, targets, special.params ?? {});
+    // Self-buff status on cast (Dive Bomb → STEALTH, Shadow Charge → EVASION,
+    // Drilling Quake → re-STEALTH) — for any handler, once per Special.
+    const selfSt = special.params?.selfStatus;
+    if (typeof selfSt === "string" && selfSt && draft.cards[card.instanceId] && card.curHp > 0)
+      applyStatus(draft, card, selfSt as StatusKind, Number(special.params?.selfStatusDuration ?? 1), 0, def.element);
     // Ethereal Trade self-cost on an offensive Special (Phantom Gouge).
     if (special.targetSide !== "ally") payAttackTrade(draft, card);
     return;
