@@ -14,7 +14,7 @@
 
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
-import { auraHasPen, boardCards, cardAt, effectiveDmg, effectiveMaxHp, hasStatus, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, boardCards, cardAt, effectiveDmg, effectiveMaxHp, effectiveSp, hasStatus, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardInstance,
   Element,
@@ -78,6 +78,7 @@ export interface AttackResult {
   totalToHp: number;
   targetDied: boolean;
   attackerDied: boolean; // via REFLECT
+  critHits?: number; // hits that actually critted (Hastened Assault heal)
 }
 
 /**
@@ -219,6 +220,7 @@ export function resolveHit(
     totalToHp: 0,
     targetDied: false,
     attackerDied: false,
+    critHits: 0,
   };
   let reflectBack = 0;
 
@@ -243,6 +245,13 @@ export function resolveHit(
       }
     }
 
+    // 1b. Rocky Force Field (Rhe): coin-flip chance to shrug off a RANGED hit.
+    if (opts.kind !== "reflect" && tDef.blocksRangedChance && aDef.attackType === "Ranged" && pctChance(draft, tDef.blocksRangedChance)) {
+      result.dodgedHits++;
+      draft.log.push(`${label(draft, target)}'s force field deflects ${aDef.name}'s shot.`);
+      continue;
+    }
+
     // 2. BLOCK — flat reduction, applies before shields and even to PEN. Adds
     //    the card's own BLOCK to any friendly wall reduction (Stone/Radiant).
     let remaining = opts.dmg;
@@ -260,6 +269,7 @@ export function resolveHit(
       if (opts.crit && target.curShields === 0) {
         if (coin(draft)) {
           remaining *= 2;
+          result.critHits = (result.critHits ?? 0) + 1;
           draft.log.push(`${aDef.name} CRITS ${tDef.name}!`);
         }
       }
@@ -442,6 +452,8 @@ export function basicAttack(
     // Strike, etc.): fold into this group's hit options.
     let dmg = effectiveDmg(draft, attacker);
     let crit = Boolean(aDef.keywords.CRIT);
+    // Hastened Assault (WolfBane): CRIT only while faster than the target.
+    if (aDef.critIfFaster && effectiveSp(draft, attacker) > effectiveSp(draft, t)) crit = true;
     let lifesteal = false;
     let healOnHit = 0;
     const vs = aDef.vsStatus;
@@ -484,6 +496,11 @@ export function basicAttack(
       if (healOnHit > 0 && attacker.curHp > 0) {
         attacker.curHp = Math.min(effectiveMaxHp(draft, attacker), attacker.curHp + healOnHit);
       }
+      // Hastened Assault: heal per critical hit landed.
+      if (aDef.healPerCrit && r.critHits && attacker.curHp > 0) {
+        attacker.curHp = Math.min(effectiveMaxHp(draft, attacker), attacker.curHp + aDef.healPerCrit * r.critHits);
+        draft.log.push(`${label(draft, attacker)} feeds on the frenzy (+${aDef.healPerCrit * r.critHits} HP).`);
+      }
     }
     agg.landedHits += r.landedHits;
     agg.dodgedHits += r.dodgedHits;
@@ -508,10 +525,21 @@ export function basicAttack(
     }
   }
   attacker.loadedHits = 0; // loaded darts are spent on this attack (Bleed Out)
-  // Bad Temper (Volcanon): a landed basic attack grants a permanent self-buff.
-  if (aDef.onHitSelfBuff?.dmg && agg.landedHits > 0 && attacker.curHp > 0) {
-    attacker.dmgBonus += aDef.onHitSelfBuff.dmg;
-    draft.log.push(`${label(draft, attacker)}'s temper flares (+${aDef.onHitSelfBuff.dmg} DMG).`);
+  // Bad Temper (Volcanon) / Regenerative (Squanch): a landed basic attack grants
+  // a permanent self-buff — +DMG and/or +shields (capped at maxShields).
+  const osb = aDef.onHitSelfBuff;
+  if (osb && agg.landedHits > 0 && attacker.curHp > 0) {
+    if (osb.dmg) {
+      attacker.dmgBonus += osb.dmg;
+      draft.log.push(`${label(draft, attacker)}'s temper flares (+${osb.dmg} DMG).`);
+    }
+    if (osb.shields) {
+      const cap = osb.maxShields ?? Infinity;
+      if (attacker.curShields < cap) {
+        attacker.curShields = Math.min(cap, attacker.curShields + osb.shields);
+        draft.log.push(`${label(draft, attacker)} regrows bark (+${osb.shields} shield).`);
+      }
+    }
   }
   // Hillside (Hillbilly): a landed basic attack shields allies in the row ahead.
   const hab = aDef.onHitAllyBuff;
@@ -692,6 +720,12 @@ function applyOnHitByMelee(
   }
   if (def.status && attacker.curHp > 0 && draft.cards[attacker.instanceId]) {
     applyStatus(draft, attacker, def.status.kind, def.status.duration, def.status.power, getDef(defender.defId).element);
+  }
+  // Hot Hot (Spitfire): double the power of every BURN already on the attacker.
+  if (def.doubleBurn && attacker.curHp > 0) {
+    let boosted = false;
+    for (const st of attacker.statuses) if (st.kind === "BURN") { st.power *= 2; boosted = true; }
+    if (boosted) draft.log.push(`${getDef(defender.defId).name}'s heat doubles the BURN on ${getDef(attacker.defId).name}.`);
   }
   return killed;
 }

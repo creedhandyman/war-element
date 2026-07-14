@@ -55,13 +55,12 @@ function clone(state: GameState): GameState {
   return structuredClone(state);
 }
 
-/** After this round, the magic pool grows +2/round instead of +1 (late-game
- *  fuel so Specials/spells stay castable in the endgame). */
-const MAGIC_RAMP_AFTER = 10;
-
-/** Bonus magic paid on every 5th round (5, 10, 15, …) on top of the per-turn
- *  drip, to accelerate Specials and shorten games. */
-const MAGIC_BONUS_EVERY_5 = 2;
+/** Per-turn magic gain scales in 5-round brackets: rounds 1–5 give +1/turn,
+ *  6–10 give +2, 11–15 give +3, and 16+ give +4 — so the endgame ramps fuel for
+ *  Specials/spells. (Round 1 grants nothing; each side opens with a pool of 3.) */
+function magicGainForRound(round: number): number {
+  return Math.min(4, Math.ceil(round / 5));
+}
 
 // ── intent reducer ──────────────────────────────────────────────────────────
 
@@ -355,14 +354,11 @@ function doDrawPhase(draft: GameState): void {
 
 function doResourcePhase(draft: GameState): void {
   // Two independent pools: summon = round # each round; magic starts at 3 and
-  // gains +1 per round from round 2 on, ramping to +2 per round in the late game
-  // (after round 10) so the endgame doesn't starve for Special/spell fuel. On
-  // top of the per-turn drip, every 5th round pays a +2 bonus so specials come
-  // online faster and games close out quicker. Both cap unspent carryover at 10.
+  // gains per round from round 2 on, scaling in 5-round brackets (+1 through
+  // rounds 1–5, +2 through 6–10, +3 through 11–15, +4 from 16 on) so the endgame
+  // has fuel for Specials/spells. Both cap unspent carryover at 10.
   const gain = Math.min(draft.round, 10);
-  const perTurn = draft.round > MAGIC_RAMP_AFTER ? 2 : 1;
-  const bonus = draft.round % 5 === 0 ? MAGIC_BONUS_EVERY_5 : 0;
-  const magicGain = perTurn + bonus;
+  const magicGain = magicGainForRound(draft.round);
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const p = draft.players[player];
     p.summonPool = Math.min(p.summonPool, POOL_CARRYOVER_CAP) + gain;
@@ -711,6 +707,11 @@ function doRoundTicks(draft: GameState): void {
       // Volt Turret: zap one PARALYZED enemy the turret can reach.
       const t = closest(card, enemies().filter((e) => hasStatus(e, "PARALYZE") && canTarget(draft, card, e)));
       if (t) directDamage(draft, card, t, rt.pokeParalyzedDmg, false);
+    }
+    if (rt.aoeParalyzedDmg) {
+      // Complete Circuit: current flows through every PARALYZED enemy in range.
+      for (const e of enemies()) if (hasStatus(e, "PARALYZE") && canTarget(draft, card, e))
+        directDamage(draft, card, e, rt.aoeParalyzedDmg, false);
     }
     if (rt.spawn) {
       // Reptilian Screech: spawn a token into an open king's-reach slot.

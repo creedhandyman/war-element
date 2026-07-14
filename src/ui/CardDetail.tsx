@@ -211,6 +211,24 @@ export function CardDetail(props: {
     passives.push(
       `Hillside: ${def.onHitAllyBuff.firstTimeOnly ? "the first time it lands a hit, gives" : "landed hits give"} allies in the row ahead +${def.onHitAllyBuff.shields} shield.`,
     );
+  if (def.onHitSelfBuff?.shields)
+    passives.push(
+      `Regenerative: landed basic attacks grow +${def.onHitSelfBuff.shields} shield${def.onHitSelfBuff.maxShields ? ` (max ${def.onHitSelfBuff.maxShields})` : ""}.`,
+    );
+  if (def.highSpeedImpact)
+    passives.push(`High Speed Impact: +1 DMG for every point of SP above 10.`);
+  if (def.blocksRangedChance)
+    passives.push(`Rocky Force Field: ${def.blocksRangedChance}% chance to deflect a ranged attacker's hit.`);
+  if (def.critIfFaster)
+    passives.push(
+      `Hastened Assault: basic attacks CRIT while faster than the target${def.healPerCrit ? `, healing +${def.healPerCrit} HP per crit` : ""}.`,
+    );
+  if (def.roundTick?.aoeParalyzedDmg)
+    passives.push(
+      `End of round: deals ${def.roundTick.aoeParalyzedDmg} DMG to every PARALYZED opponent in range.`,
+    );
+  if (def.onHitByMelee?.doubleBurn)
+    passives.push(`Hot Hot: when hit by melee, doubles the BURN already on the attacker.`);
   if (def.special?.params?.freeRecastOnKill)
     passives.push(
       `On Kill, its Special recasts free next round (ignores cost & cooldown).`,

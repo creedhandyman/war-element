@@ -92,6 +92,7 @@ export interface OnHitByMeleeDef {
   dmg?: number; // direct damage back to the attacker
   pen?: boolean;
   status?: { kind: StatusKind; duration: number; power: number };
+  doubleBurn?: boolean; // Hot Hot (Spitfire): double the attacker's BURN power
 }
 
 /** Fires when this card's basic/special attack KILLS an enemy (per kill). */
@@ -134,6 +135,7 @@ export interface RoundTickDef {
   rowAheadDmg?: number; // deal N DMG to enemies in the row directly ahead (Sweeping Flames)
   selfShields?: number; // gain N shields each round (Heir's Royal Guard)
   pokeParalyzedDmg?: number; // deal N DMG to one PARALYZED enemy in range (Sentry's Volt Turret)
+  aoeParalyzedDmg?: number; // deal N DMG to EVERY PARALYZED enemy in range (Lytning's Complete Circuit)
   /** Spawn a token each round (Trinezer's Reptilian Screech). adjacentOnly =
    *  only into an open king's-reach slot; no spawn if none is open. */
   spawn?: { token: string; count: number; adjacentOnly?: boolean };
@@ -239,15 +241,26 @@ export interface CardDef {
   /** On summon, spawn `count` token cards (one-shot). The token's def lives in
    *  CARD_INDEX but never appears in a deck. */
   summonSpawn?: { token: string; count: number };
-  /** A permanent self-buff applied when a basic attack LANDS (once per attack),
-   *  e.g. Volcanon's Bad Temper (+1 DMG on hit). */
-  onHitSelfBuff?: { dmg?: number };
+  /** A permanent self-buff applied when a basic attack LANDS (once per attack):
+   *  Volcanon's Bad Temper (+1 DMG on hit) and Squanch's Regenerative (+1 shield
+   *  on hit, capped at `maxShields`). */
+  onHitSelfBuff?: { dmg?: number; shields?: number; maxShields?: number };
   /** Incinerate (Sol): consecutive hits on the same target within a round deal
    *  +1 DMG per hit (the ramp climbs with each landed hit). */
   incinerate?: boolean;
   /** Hillside (Hillbilly): when a basic attack lands, grant shields to allies in
    *  the row directly ahead. `firstTimeOnly` = only the first landed attack. */
   onHitAllyBuff?: { shields?: number; firstTimeOnly?: boolean };
+  /** High Speed Impact (Hawk): +1 DMG per point of effective SP above 10. */
+  highSpeedImpact?: boolean;
+  /** Rocky Force Field (Rhe): a coin-flip chance (0–100) to dodge a RANGED
+   *  attacker's hit entirely. */
+  blocksRangedChance?: number;
+  /** Hastened Assault (WolfBane): basic attacks CRIT only when this card is
+   *  faster (higher effective SP) than the target; `healPerCrit` heals on each
+   *  critical hit landed. */
+  critIfFaster?: boolean;
+  healPerCrit?: number;
   /** Tribe tag (Reptile, Dragon, SeaC, Avian, …) — used by tribe-scoped auras
    *  and tribe payoffs. Free-text; no effect on its own. */
   tribe?: string;

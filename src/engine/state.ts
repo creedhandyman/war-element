@@ -218,6 +218,8 @@ export function effectiveDmg(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   const buffDmg = (card.buffs ?? []).reduce((n, b) => n + b.dmg, 0);
   let dmg = def.dmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0) + buffDmg + auraBonus(state, card, "dmg");
+  // High Speed Impact (Hawk): +1 DMG for each point of SP above 10.
+  if (def.highSpeedImpact) dmg += Math.max(0, effectiveSp(state, card) - 10);
   if (hasStatus(card, "WEAKEN")) dmg = Math.floor(dmg * 0.75);
   if (hasStatus(card, "FREEZE")) dmg = Math.floor(dmg * 0.5);
   // King of the Hill (A): sitting in a Mid row grants +1 DMG — but heavy

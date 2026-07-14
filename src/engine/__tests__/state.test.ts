@@ -144,33 +144,35 @@ describe("draw math", () => {
 });
 
 describe("resource math (two pools)", () => {
-  it("summon pool gains min(round, 10); magic gains +1 from round 2", () => {
+  it("summon pool gains min(round, 10); magic gains +1 in the 1–5 bracket", () => {
     const s = freshGame(9);
     s.phase = "resource";
-    s.round = 4; // a non-bonus early round
+    s.round = 4;
     s.players.P1.summonPool = 0;
     s.players.P1.magicPool = 3;
     const next = advance(s);
     expect(next.players.P1.summonPool).toBe(4);
-    expect(next.players.P1.magicPool).toBe(4); // +1 in the early game
+    expect(next.players.P1.magicPool).toBe(4); // +1 (rounds 1–5)
   });
 
-  it("every 5th round pays a +2 magic bonus on top of the per-turn drip", () => {
-    // Round 5: +1 (early per-turn) + 2 (bonus) = +3.
-    const early = freshGame(9);
-    early.phase = "resource";
-    early.round = 5;
-    early.players.P1.magicPool = 3;
-    expect(advance(early).players.P1.magicPool).toBe(6);
-    // Round 15: +2 (late per-turn) + 2 (bonus) = +4.
-    const late = freshGame(9);
-    late.phase = "resource";
-    late.round = 15;
-    late.players.P1.magicPool = 3;
-    expect(advance(late).players.P1.magicPool).toBe(7);
+  it("magic gain scales in 5-round brackets (1/2/3/4)", () => {
+    const gain = (round: number) => {
+      const s = freshGame(9);
+      s.phase = "resource";
+      s.round = round;
+      s.players.P1.magicPool = 3;
+      return advance(s).players.P1.magicPool - 3;
+    };
+    expect(gain(5)).toBe(1); // last of the 1–5 bracket
+    expect(gain(6)).toBe(2); // first of 6–10
+    expect(gain(10)).toBe(2);
+    expect(gain(11)).toBe(3); // first of 11–15
+    expect(gain(15)).toBe(3);
+    expect(gain(16)).toBe(4); // 16+ caps at +4
+    expect(gain(30)).toBe(4);
   });
 
-  it("magic ramps to +2 per round after round 10", () => {
+  it("summon pool still caps its per-round gain at min(round, 10)", () => {
     const s = freshGame(9);
     s.phase = "resource";
     s.round = 12;
@@ -178,7 +180,7 @@ describe("resource math (two pools)", () => {
     s.players.P1.magicPool = 3;
     const next = advance(s);
     expect(next.players.P1.summonPool).toBe(10); // still min(round, 10)
-    expect(next.players.P1.magicPool).toBe(5); // 3 + 2 late-game gain
+    expect(next.players.P1.magicPool).toBe(6); // 3 + 3 (11–15 bracket)
   });
 
   it("magic starts at 3 and does NOT gain on round 1", () => {

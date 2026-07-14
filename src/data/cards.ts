@@ -173,8 +173,8 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 0,
     keywords: {},
-    // NOTE: Regenerative (On Hit → +1 shield next round, max 5) not yet modeled
-    // (no on-hit self-buff hook).
+    // Regenerative: a landed basic attack grows +1 shield (capped at 5).
+    onHitSelfBuff: { shields: 1, maxShields: 5 },
     special: {
       name: "Bushwhacker",
       cost: 2,
@@ -414,6 +414,8 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Spit Shot (On Summon): 3 DMG straight ahead down its own column, up to 2 spaces.
     onSummon: { handler: "barrage", params: { dmg: 3, spread: 0, forwardDepth: 2, targets: 99 } },
+    // Hot Hot (On Hit by Melee): double the BURN already on the attacker.
+    onHitByMelee: { doubleBurn: true },
   },
   {
     id: "pyro_volcanon",
@@ -557,6 +559,8 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 2,
     keywords: {},
+    // Rocky Force Field: 50% chance to deflect a ranged attacker's hit.
+    blocksRangedChance: 50,
     special: {
       name: "Rigid Smash",
       cost: 3,
@@ -1326,6 +1330,8 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
+    // High Speed Impact: +1 DMG per SP point above 10.
+    highSpeedImpact: true,
   },
   {
     id: "gale_vaga",
@@ -1438,7 +1444,11 @@ export const CARDS: CardDef[] = [
     hp: 17,
     sp: 4,
     shields: 0,
-    keywords: { CRIT: true },
+    keywords: {},
+    // Hastened Assault: CRIT only while faster than the target, and heal 3 HP
+    // per critical hit (was a flat, unconditional CRIT keyword).
+    critIfFaster: true,
+    healPerCrit: 3,
     special: {
       name: "Whirlwind Slasher",
       cost: 3,
@@ -1618,6 +1628,9 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    // Complete Circuit: each round, current arcs through every PARALYZED enemy
+    // in range for 2 DMG (Whip Strike sets up the stun; this punishes it).
+    roundTick: { aoeParalyzedDmg: 2 },
     special: {
       name: "Whip Strike",
       cost: 2,

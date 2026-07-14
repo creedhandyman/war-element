@@ -9,7 +9,7 @@ import { advance, applyIntent } from "../phases";
 import { canFireSpecial, canMove, canTarget } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
-import { atCleanup, giveHand, place, prepState } from "./helpers";
+import { atCleanup, giveHand, place, prepState, seedForCoins } from "./helpers";
 
 describe("on-kill triggers", () => {
   it("Fenrir gains a permanent +1 basic hit on a kill", () => {
@@ -68,6 +68,79 @@ describe("clean-win passives (audit batch)", () => {
     expect(s.cards[ally.instanceId].curShields).toBe(1);
     basicAttack(s, hill.instanceId, foe.instanceId); // second hit — one-shot, no more
     expect(s.cards[ally.instanceId].curShields).toBe(1);
+  });
+});
+
+describe("medium-tier passives (audit batch)", () => {
+  it("Hawk's High Speed Impact adds +1 DMG per SP above 10", () => {
+    const s = prepState();
+    const slow = place(s, "gale_hawk", "P1", 3, 0); // SP 7 → no bonus
+    expect(effectiveDmg(s, slow)).toBe(8);
+    const fast = place(s, "gale_hawk", "P1", 3, 1, { spBonus: 6 }); // SP 13 → +3
+    expect(effectiveSp(s, fast)).toBe(13);
+    expect(effectiveDmg(s, fast)).toBe(11);
+  });
+
+  it("Lytning's Complete Circuit zaps every PARALYZED enemy in Cleanup", () => {
+    const s = prepState();
+    place(s, "bolt_lytning", "P1", 3, 0);
+    place(s, "dawn_beam", "P1", 2, 0); // keep P1 alive
+    const stunned = place(s, "dusk_gool", "P2", 1, 0, {
+      curHp: 20, maxHp: 40, curShields: 0,
+      status: { kind: "PARALYZE", duration: 2, power: 0, source: "BOLT" },
+    });
+    const free = place(s, "dusk_gool", "P2", 1, 1, { curHp: 20, maxHp: 40, curShields: 0 });
+    const next = advance(atCleanup(s));
+    expect(next.cards[stunned.instanceId].curHp).toBe(18); // −2 Complete Circuit
+    expect(next.cards[free.instanceId].curHp).toBe(20); // not paralyzed → spared
+  });
+
+  it("Squanch's Regenerative grows a shield on hit, capped at 5", () => {
+    const s = prepState();
+    const sq = place(s, "leaf_squanch", "P1", 3, 0, { curShields: 0 });
+    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, sq.instanceId, foe.instanceId);
+    expect(s.cards[sq.instanceId].curShields).toBe(1);
+    s.cards[sq.instanceId].curShields = 5; // already at cap
+    basicAttack(s, sq.instanceId, foe.instanceId);
+    expect(s.cards[sq.instanceId].curShields).toBe(5); // no overflow
+  });
+
+  it("Rhe's Rocky Force Field can deflect a ranged hit (but not melee)", () => {
+    const s = prepState();
+    const rhe = place(s, "bore_rhe", "P1", 2, 0, { curHp: 9, curShields: 0 });
+    const ranged = place(s, "pyro_flamehound", "P2", 1, 0); // Ranged, 5 DMG
+    s.rngState = seedForCoins(true); // force the 50% deflect
+    basicAttack(s, ranged.instanceId, rhe.instanceId);
+    expect(s.cards[rhe.instanceId].curHp).toBe(9); // deflected, no damage
+
+    const s2 = prepState();
+    const rhe2 = place(s2, "bore_rhe", "P1", 2, 0, { curHp: 9, curShields: 0 });
+    const melee = place(s2, "dusk_gool", "P2", 2, 1, { curHp: 20 }); // Melee — unaffected
+    basicAttack(s2, melee.instanceId, rhe2.instanceId);
+    expect(s2.cards[rhe2.instanceId].curHp).toBeLessThan(9); // field doesn't stop melee
+  });
+
+  it("WolfBane's Hastened Assault CRITs only when faster, healing per crit", () => {
+    const s = prepState();
+    const wolf = place(s, "gale_wolfbane", "P1", 3, 0, { curHp: 10, maxHp: 17 }); // SP 4
+    const slow = place(s, "bore_hillbilly", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 }); // SP 2 < 4
+    s.rngState = seedForCoins(true); // crit coin succeeds
+    basicAttack(s, wolf.instanceId, slow.instanceId);
+    expect(s.cards[slow.instanceId].curHp).toBe(40 - 18); // 9 DMG doubled by CRIT
+    expect(s.cards[wolf.instanceId].curHp).toBe(13); // 10 + 3 heal per crit
+  });
+
+  it("Spitfire's Hot Hot doubles the BURN on a melee attacker", () => {
+    const s = prepState();
+    const spit = place(s, "pyro_spitfire", "P1", 2, 0, { curHp: 11 });
+    const melee = place(s, "bore_hillbilly", "P2", 2, 1, {
+      curHp: 20,
+      status: { kind: "BURN", duration: 2, power: 2, source: "PYRO" },
+    });
+    basicAttack(s, melee.instanceId, spit.instanceId);
+    const burn = s.cards[melee.instanceId].statuses.find((st) => st.kind === "BURN");
+    expect(burn?.power).toBe(4); // 2 → doubled
   });
 });
 
