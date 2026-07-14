@@ -182,12 +182,15 @@ export function pushBack(draft: GameState, card: CardInstance, steps: number): v
  *  drops below its threshold. */
 export function checkLowHpTransform(draft: GameState, card: CardInstance): void {
   const def = getDef(card.defId);
-  if (!def.onLowHp || card.transformed || card.curHp <= 0) return;
+  if (!def.onLowHp || card.onLowHpFired || card.curHp <= 0) return;
   if (card.curHp >= def.onLowHp.threshold) return;
-  card.transformed = true;
+  card.onLowHpFired = true;
   const o = def.onLowHp;
-  // Skelider Dismount: lose SP + strike the nearest enemy.
-  if (o.loseSp || o.dmg) {
+  // Skelider Dismount: it genuinely transforms — loses its Special (transformed),
+  // sheds SP, and strikes the nearest enemy. (A positive surge does NOT set
+  // `transformed`, so Kraken keeps Black Wave Crash.)
+  if (o.loseSp || o.dmg || o.loseSpecial) {
+    card.transformed = true;
     draft.log.push(`${label(draft, card)} dismounts — it fights on as a common skeleton.`);
     if (o.loseSp) card.spBonus -= o.loseSp;
     if (o.dmg) {
@@ -958,6 +961,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (typeof db === "string" && db && draft.cards[target.instanceId] && target.curHp > 0)
         applyStatus(draft, target, db as StatusKind, num(params, "debuffStatusRounds", 1), 0, getDef(attacker.defId).element);
       if (attacker.curHp <= 0) break; // died to REFLECT mid-volley
+    }
+    // Self-cost (Kraken's Black Wave Crash: "Lose 5 HP") — can dip the caster
+    // low enough to trip its own From the Deep surge.
+    const selfDamage = num(params, "selfDamage");
+    if (selfDamage > 0 && attacker.curHp > 0) {
+      attacker.curHp -= selfDamage;
+      draft.log.push(`${label(draft, attacker)} pays ${selfDamage} HP.`);
+      if (attacker.curHp <= 0) defeatCard(draft, attacker, "self-damage");
+      else checkLowHpTransform(draft, attacker);
     }
   },
 

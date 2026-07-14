@@ -379,6 +379,11 @@ export interface CardInstance {
   /** Permanent reduction to this card's Special magic cost (Heir's King Me:
    *  each kill shaves 1 off Crowned). Floored at 0 when the cost is paid. */
   specialCostReduction: number;
+  /** One-time guard for an onLowHp trigger (Kraken's From the Deep surge,
+   *  Skelider's Dismount) — fires once when the card first drops below its
+   *  threshold. Kept separate from `transformed` so a positive surge doesn't
+   *  cost the card its Special. */
+  onLowHpFired: boolean;
   /** UI-only transient combat counters — bumped when a hit on this card is
    *  dodged/missed (fxMiss) or crits (fxCrit). The renderer floats "MISS"/"CRIT"
    *  over the token when the count rises. No gameplay effect. */

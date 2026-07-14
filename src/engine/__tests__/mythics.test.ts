@@ -1,7 +1,7 @@
 // Element-core Mythics + the token-spawn mechanic that several of them use.
 
 import { describe, expect, it } from "vitest";
-import { basicAttack, directDamage, effectiveBasicHits } from "../combat";
+import { basicAttack, checkLowHpTransform, directDamage, effectiveBasicHits } from "../combat";
 import { advance, applyIntent } from "../phases";
 import { canFireSpecial, canFireTalent, canTarget, effectiveSpecialCost } from "../rules";
 import { boardCards, effectiveDmg, effectiveMaxHp, effectiveSp } from "../state";
@@ -131,6 +131,31 @@ describe("Kraken — From the Deep", () => {
     expect(s.cards[kraken.instanceId].dmgBonus).toBe(3);
     expect(s.cards[kraken.instanceId].spBonus).toBe(3);
     expect(s.cards[kraken.instanceId].curShields).toBe(3);
+  });
+
+  it("the surge does NOT cost Kraken his Special (only the surge, no dismount)", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const kraken = place(s, "aqua_kraken", "P1", 2, 0, { curHp: 8, maxHp: 42, curShields: 0 });
+    place(s, "leaf_alpha", "P2", 1, 0); // a target so the Special is castable
+    checkLowHpTransform(s, kraken);
+    const k = s.cards[kraken.instanceId];
+    expect(k.transformed).toBe(false); // not "dismounted"
+    expect(canFireSpecial(s, kraken.instanceId).ok).toBe(true); // Black Wave Crash intact
+  });
+
+  it("Black Wave Crash pays 5 HP and can trip From the Deep itself", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const kraken = place(s, "aqua_kraken", "P1", 2, 0, { curHp: 12, maxHp: 42, curShields: 0 });
+    const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(battleWith(s, kraken.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    const k = next.cards[kraken.instanceId];
+    expect(k.curHp).toBe(7); // 12 − 5 self-cost (surge grants shields, not HP)
+    expect(k.curShields).toBe(3); // From the Deep tripped by the self-cost
+    expect(k.dmgBonus).toBe(3);
   });
 });
 

@@ -1839,11 +1839,12 @@ export const CARDS: CardDef[] = [
       name: "Black Wave Crash",
       cost: 4,
       handler: "barrage",
-      params: { dmg: 8, targets: 99, statusKind: "BLIND", statusDuration: 2 },
+      // Lose 5 HP (can dip Kraken into From the Deep), 8 DMG to all, −accuracy
+      // via BLIND for 2 rounds.
+      params: { dmg: 8, targets: 99, statusKind: "BLIND", statusDuration: 2, selfDamage: 5 },
       targetSide: "enemy",
-      text: "Deal 8 DMG to all opponents and BLIND them 2 rounds (water in their eyes).",
+      text: "Lose 5 HP. Deal 8 DMG to all opponents and BLIND them 2 rounds (water in their eyes).",
     },
-    // The 5-HP self-cost on Black Wave Crash is deferred.
   },
   {
     id: "dawn_imperator",
