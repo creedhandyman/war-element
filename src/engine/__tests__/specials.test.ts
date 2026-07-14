@@ -133,7 +133,8 @@ describe("firing specials", () => {
       action: "basic",
       targetId: t.instanceId,
     });
-    expect(next.cards[t.instanceId].curHp).toBe(7); // both hits landed on it
+    // both hits landed; Incinerate ramps the 2nd (+1): 3 + 4 = 7 dealt
+    expect(next.cards[t.instanceId].curHp).toBe(6);
   });
 
   it("statusNova: SLEEPs up to 2 targets; sleepers skip their turns", () => {

@@ -257,6 +257,8 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 2,
     keywords: {},
+    // Incinerate: consecutive hits on the same target this round ramp +1 DMG/hit.
+    incinerate: true,
     special: {
       name: "Pyro Ball Barrage",
       cost: 3,
@@ -330,6 +332,8 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 2,
     keywords: {},
+    // Sweeping Flames (End of Round): 1 DMG to opponents in the row ahead.
+    roundTick: { rowAheadDmg: 1 },
     special: {
       name: "Axe Spin",
       cost: 3,

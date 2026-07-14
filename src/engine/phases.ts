@@ -697,6 +697,11 @@ function doRoundTicks(draft: GameState): void {
     if (rt.pushEnemies) {
       for (const e of enemies()) pushBack(draft, e, rt.pushEnemies);
     }
+    if (rt.rowAheadDmg && card.pos) {
+      // Sweeping Flames: burn whatever stands in the row directly ahead.
+      const ahead = card.owner === "P1" ? card.pos.row - 1 : card.pos.row + 1;
+      for (const e of enemies()) if (e.pos && e.pos.row === ahead) directDamage(draft, card, e, rt.rowAheadDmg, false);
+    }
     if (rt.spawn) {
       // Reptilian Screech: spawn a token into an open king's-reach slot.
       spawnTokens(draft, card, rt.spawn.token, rt.spawn.count, rt.spawn.adjacentOnly);

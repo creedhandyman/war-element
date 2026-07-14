@@ -193,6 +193,14 @@ export function CardDetail(props: {
     passives.push(
       `Bad Temper: permanently gains +${def.onHitSelfBuff.dmg} DMG each time a basic attack lands.`,
     );
+  if (def.incinerate)
+    passives.push(
+      `Incinerate: consecutive hits on the same target within a round deal +1 DMG each.`,
+    );
+  if (def.roundTick?.rowAheadDmg)
+    passives.push(
+      `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,
+    );
   if (def.special?.params?.freeRecastOnKill)
     passives.push(
       `On Kill, its Special recasts free next round (ignores cost & cooldown).`,

@@ -131,6 +131,7 @@ export interface RoundTickDef {
   scaldFrozen?: number; // apply SCALD N to FROZEN enemies (Freezer Burn)
   paralyzeOne?: number; // PARALYZE one un-paralyzed enemy for N rounds
   pushEnemies?: number; // blow every enemy back N slots (Wind Guardian)
+  rowAheadDmg?: number; // deal N DMG to enemies in the row directly ahead (Sweeping Flames)
   /** Spawn a token each round (Trinezer's Reptilian Screech). adjacentOnly =
    *  only into an open king's-reach slot; no spawn if none is open. */
   spawn?: { token: string; count: number; adjacentOnly?: boolean };
@@ -239,6 +240,9 @@ export interface CardDef {
   /** A permanent self-buff applied when a basic attack LANDS (once per attack),
    *  e.g. Volcanon's Bad Temper (+1 DMG on hit). */
   onHitSelfBuff?: { dmg?: number };
+  /** Incinerate (Sol): consecutive hits on the same target within a round deal
+   *  +1 DMG per hit (the ramp climbs with each landed hit). */
+  incinerate?: boolean;
   /** Tribe tag (Reptile, Dragon, SeaC, Avian, …) — used by tribe-scoped auras
    *  and tribe payoffs. Free-text; no effect on its own. */
   tribe?: string;

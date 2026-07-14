@@ -77,6 +77,32 @@ describe("roundTick self effects", () => {
     const next = advance(atCleanup(s));
     expect(next.cards[enemy.instanceId].curHp).toBe(12); // −1 Sandstorm
   });
+
+  it("Tiki's Sweeping Flames burns only the row directly ahead", () => {
+    const s = prepState();
+    const tiki = place(s, "pyro_tiki", "P1", 2, 0); // ahead = row 1
+    const inFront = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
+    const farBack = place(s, "dusk_gool", "P2", 0, 3, { curHp: 13 }); // not row ahead
+    const next = advance(atCleanup(s));
+    expect(next.cards[inFront.instanceId].curHp).toBe(12); // −1 Sweeping Flames
+    expect(next.cards[farBack.instanceId].curHp).toBe(13); // untouched
+    void tiki;
+  });
+});
+
+describe("Sol — Incinerate ramp", () => {
+  it("consecutive hits on the same target climb +1 DMG each", () => {
+    const s = prepState();
+    const sol = place(s, "pyro_sol", "P1", 3, 0); // 3 DMG × 2 hits, home row (no mid bonus)
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, sol.instanceId, foe.instanceId);
+    // hit 1 = 3, hit 2 = 3+1 = 4  → 7 total this round
+    expect(s.cards[foe.instanceId].curHp).toBe(40 - 7);
+    // next attack on the SAME target keeps ramping (struckBefore = 2):
+    // hit 3 = 3+2 = 5, hit 4 = 3+3 = 6 → 11 more
+    basicAttack(s, sol.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].curHp).toBe(40 - 7 - 11);
+  });
 });
 
 describe("on-death row-ahead (Burnout)", () => {

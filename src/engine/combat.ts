@@ -66,6 +66,10 @@ export interface HitOptions {
   pen: boolean;
   crit: boolean; // CRIT keyword in play (basic attacks only)
   lifesteal?: boolean; // conditional LIFESTEAL (vsStatus) beyond the keyword
+  /** Incinerate (Sol): each consecutive hit on the same target deals +1 DMG.
+   *  `incinerateBase` seeds the ramp with hits already landed this round. */
+  incinerate?: boolean;
+  incinerateBase?: number;
 }
 
 export interface AttackResult {
@@ -242,6 +246,9 @@ export function resolveHit(
     // 2. BLOCK — flat reduction, applies before shields and even to PEN. Adds
     //    the card's own BLOCK to any friendly wall reduction (Stone/Radiant).
     let remaining = opts.dmg;
+    // Incinerate ramp: +1 per consecutive landed hit on this target (this volley
+    // + hits already landed on it this round).
+    if (opts.incinerate) remaining += (opts.incinerateBase ?? 0) + result.landedHits;
     const block = Number(tDef.keywords.BLOCK ?? 0) + wallFlatReduction(draft, target);
     if (block > 0) remaining = Math.max(0, remaining - block);
 
@@ -462,6 +469,8 @@ export function basicAttack(
       pen: Boolean(aDef.keywords.PEN) || auraHasPen(draft, attacker), // Blood Ruby
       crit,
       lifesteal,
+      incinerate: aDef.incinerate, // Sol: consecutive same-target hits ramp +1
+      incinerateBase: struckBefore,
     });
     if (r.landedHits > 0) {
       attacker.struckThisRound[t.instanceId] = struckBefore + r.landedHits;
