@@ -123,6 +123,7 @@ export function CardDetail(props: {
       k.healSelf && `heal ${k.healSelf}`,
       k.gainShields && `+${k.gainShields} shields`,
       k.aoeDmg && `${k.aoeDmg} to all enemies`,
+      k.aoeDmgElectrified && `${k.aoeDmgElectrified} to all electrified (statused) enemies, once/round`,
     ].filter(Boolean);
     passives.push(`On a kill: ${bits.join(" · ")}.`);
   }

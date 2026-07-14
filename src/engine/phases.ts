@@ -828,6 +828,7 @@ function doCleanupPhase(draft: GameState): void {
   for (const card of boardCards(draft)) {
     card.summonedThisRound = false;
     card.attackedThisRound = false;
+    card.onKillAoeFiredRound = false; // Powertrip re-arms each round
     card.dmgBonusRound = 0;
     card.spBonusRound = 0;
     card.hitsBonusRound = 0;

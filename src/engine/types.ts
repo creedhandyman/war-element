@@ -113,6 +113,9 @@ export interface OnKillDef {
   healSelf?: number; // heal self N
   gainShields?: number;
   aoeDmg?: number; // deal N to every reachable enemy
+  /** Powertrip (Voltogon): deal N to every ELECTRIFIED enemy (= carrying any
+   *  status, the BOLT proxy), at most once per round. */
+  aoeDmgElectrified?: number;
   coinBonusDmg?: number; // coin flip: +this or +this−1 permanent DMG
 }
 
@@ -369,6 +372,9 @@ export interface CardInstance {
   onHitBuffFired: boolean;
   /** One-shot guard for Gate Keeper's shield-break buff (Veil). */
   shieldBroken: boolean;
+  /** Per-round guard for Powertrip's once-per-round on-kill AoE (Voltogon).
+   *  Reset each Cleanup. */
+  onKillAoeFiredRound: boolean;
   /** Extra basic hits queued for the NEXT basic attack (Dart Frog's loaded
    *  darts). Consumed the next time this card basic-attacks. */
   loadedHits: number;

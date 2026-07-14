@@ -778,6 +778,15 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef): vo
       directDamage(draft, killer, e, def.aoeDmg, false);
     draft.log.push(`${name} discharges ${def.aoeDmg} to all enemies!`);
   }
+  // Powertrip (Voltogon): once per round, jolt every ELECTRIFIED (statused) enemy.
+  if (def.aoeDmgElectrified && !killer.onKillAoeFiredRound) {
+    const shocked = boardCards(draft, enemyOf(killer.owner)).filter((e) => e.statuses.length > 0);
+    if (shocked.length > 0) {
+      killer.onKillAoeFiredRound = true;
+      for (const e of shocked) directDamage(draft, killer, e, def.aoeDmgElectrified, false);
+      draft.log.push(`${name} discharges ${def.aoeDmgElectrified} to all electrified enemies!`);
+    }
+  }
 }
 
 /** Post-special self buffs shared by handlers: +max HP, ±SP. */

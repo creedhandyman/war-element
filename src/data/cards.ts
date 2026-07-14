@@ -1743,9 +1743,9 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 2,
     keywords: {},
-    // Powertrip (On Kill): 5 DMG to all enemies (doc: "Electrified" enemies —
-    // approximated to all, since the Electrified mark isn't modeled yet).
-    onKill: { aoeDmg: 5 },
+    // Powertrip (On Kill, once per round): 5 DMG to all ELECTRIFIED opponents
+    // (= any statused enemy, the BOLT "electrified" proxy).
+    onKill: { aoeDmgElectrified: 5 },
     special: {
       name: "Gigavolt Strike",
       cost: 4,

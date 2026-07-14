@@ -294,6 +294,7 @@ export function summonCard(
     freeSpecial: false,
     onHitBuffFired: false,
     shieldBroken: false,
+    onKillAoeFiredRound: false,
     loadedHits: 0,
     statuses: [],
     summonedThisRound: true,

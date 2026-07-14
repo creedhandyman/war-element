@@ -144,6 +144,28 @@ describe("medium-tier passives (audit batch)", () => {
   });
 });
 
+describe("Voltogon — Powertrip (electrified-only, once per round)", () => {
+  it("only jolts statused enemies, and only on the first kill of the round", () => {
+    const s = prepState();
+    const volt = place(s, "bolt_voltogon", "P1", 2, 0); // dmg 7
+    const shocked = place(s, "dusk_gool", "P2", 1, 0, {
+      curHp: 20, maxHp: 40, curShields: 0,
+      status: { kind: "BURN", duration: 2, power: 2, source: "PYRO" },
+    });
+    const clean = place(s, "dusk_gool", "P2", 1, 1, { curHp: 20, maxHp: 40, curShields: 0 });
+    const prey1 = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 }); // adjacent, dies
+    basicAttack(s, volt.instanceId, prey1.instanceId);
+    expect(s.cards[prey1.instanceId]).toBeUndefined();
+    expect(s.cards[shocked.instanceId].curHp).toBe(15); // −5 Powertrip
+    expect(s.cards[clean.instanceId].curHp).toBe(20); // not electrified → spared
+
+    // A second kill in the SAME round does not re-fire Powertrip.
+    const prey2 = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 });
+    basicAttack(s, volt.instanceId, prey2.instanceId);
+    expect(s.cards[shocked.instanceId].curHp).toBe(15); // unchanged
+  });
+});
+
 describe("complex-tier passives (audit batch)", () => {
   it("Sarra's Bluflame (SEAL) blocks all healing", () => {
     const s = prepState();
