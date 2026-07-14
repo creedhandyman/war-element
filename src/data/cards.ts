@@ -1898,12 +1898,11 @@ export const CARDS: CardDef[] = [
       name: "Shadow Charge",
       cost: 5,
       handler: "strike",
-      params: { dmg: 19, splash: 9, statusKind: "DOT", statusDuration: 1, statusPower: 9, selfStatus: "EVASION", selfStatusDuration: 1 },
+      params: { dmg: 19, splash: 9, statusKind: "DOT", statusDuration: 1, statusPower: 9, selfStatus: "EVASION", selfStatusDuration: 1, charge: 4 },
       targetSide: "enemy",
       ranged: true, // the dive reaches across the board
-      text: "Deal 19 DMG + 9 DOT (+9 splash) and gain EVASION for a round.",
+      text: "Charge up to 4 spaces, deal 19 DMG + 9 DOT (+9 splash), and gain EVASION for a round.",
     },
-    // The 4-space charge move is deferred.
   },
   {
     id: "bore_deepest",
@@ -1926,11 +1925,17 @@ export const CARDS: CardDef[] = [
       name: "Drilling Quake",
       cost: 5,
       handler: "barrage",
-      params: { dmg: 3, targets: 99, statusKind: "DOT", statusDuration: 3, statusPower: 3 },
+      // Sinkhole: DOT 3 (maybeStatus) + −5 SP (spDebuff) + −accuracy via BLIND
+      // (debuffStatus) — all for 3 rounds.
+      params: {
+        dmg: 3, targets: 99,
+        statusKind: "DOT", statusDuration: 3, statusPower: 3,
+        spDebuff: 5, spDebuffRounds: 3,
+        debuffStatus: "BLIND", debuffStatusRounds: 3,
+      },
       targetSide: "enemy",
-      text: "Sinkhole all opponents in range — 3 DMG + DOT 3 for 3 rounds.",
+      text: "Sinkhole all opponents in range — DOT 3, −5 SP, and −50% accuracy for 3 rounds.",
     },
-    // The −5 SP / −accuracy sinkhole riders are deferred.
   },
 
   // ─────────────── EXPANSION: one more canon card per element ───────────────

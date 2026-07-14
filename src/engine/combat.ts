@@ -830,7 +830,11 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         crit: num(params, "crit") > 0,
       });
       maybeStatus(draft, attacker, target, params);
-      applyDebuffRiders(draft, target, params); // Angale −SP
+      applyDebuffRiders(draft, target, params); // −SP (Angale, sinkhole)
+      // A SECOND status alongside the primary (sinkhole = DOT + BLIND).
+      const db = params.debuffStatus;
+      if (typeof db === "string" && db && draft.cards[target.instanceId] && target.curHp > 0)
+        applyStatus(draft, target, db as StatusKind, num(params, "debuffStatusRounds", 1), 0, getDef(attacker.defId).element);
       if (attacker.curHp <= 0) break; // died to REFLECT mid-volley
     }
   },

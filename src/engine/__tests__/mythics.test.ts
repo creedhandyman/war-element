@@ -244,3 +244,38 @@ describe("Talents — Dart Frog's Bleed Out", () => {
     expect(t2.cards[frog.instanceId].loadedHits).toBe(0); // spent
   });
 });
+
+describe("The DEEPEST — Drilling Quake sinkhole", () => {
+  it("applies DOT + BLIND + a −5 SP debuff to opponents", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const deepest = place(s, "bore_deepest", "P1", 2, 0);
+    const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(battleWith(s, deepest.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: foe.instanceId,
+    });
+    const f = next.cards[foe.instanceId];
+    expect(statusOf(f, "DOT")).toBeTruthy();
+    expect(statusOf(f, "BLIND")).toBeTruthy();
+    expect(effectiveSp(next, f)).toBe(getDef("leaf_alpha").sp - 5); // −5 SP
+  });
+});
+
+describe("Shadow Horsemen — charge move", () => {
+  it("advances toward the enemy home with Shadow Charge", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const sh = place(s, "dusk_shadowhorsemen", "P1", 3, 0); // own home row
+    const foe = place(s, "leaf_alpha", "P2", 1, 3, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(battleWith(s, sh.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: foe.instanceId,
+    });
+    expect(next.cards[sh.instanceId].pos!.row).toBeLessThan(3); // charged forward
+  });
+});
