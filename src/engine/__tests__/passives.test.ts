@@ -23,6 +23,54 @@ describe("on-kill triggers", () => {
   });
 });
 
+describe("clean-win passives (audit batch)", () => {
+  it("Reptilian's Conspiracy grants +2 DMG/HP/SP on a kill", () => {
+    const s = prepState();
+    const rep = place(s, "leaf_reptilian_tok", "P1", 2, 0);
+    place(s, "dusk_gool", "P2", 1, 0, { curHp: 20 }); // keep P2 alive
+    const prey = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 });
+    const beforeMax = s.cards[rep.instanceId].maxHp;
+    basicAttack(s, rep.instanceId, prey.instanceId);
+    const r = s.cards[rep.instanceId];
+    expect(r.dmgBonus).toBe(2);
+    expect(r.spBonus).toBe(2);
+    expect(r.maxHp).toBe(beforeMax + 2);
+  });
+
+  it("Heir's Royal Guard adds +1 shield each round", () => {
+    const s = prepState();
+    const heir = place(s, "dawn_heir_tok", "P1", 2, 0, { curShields: 2 });
+    place(s, "dusk_gool", "P2", 1, 0); // keep both sides on the board
+    const next = advance(atCleanup(s));
+    expect(next.cards[heir.instanceId].curShields).toBe(3);
+  });
+
+  it("Sentry's Volt Turret zaps only a PARALYZED enemy in Cleanup", () => {
+    const s = prepState();
+    place(s, "bolt_sentry", "P1", 3, 0);
+    place(s, "dawn_beam", "P1", 2, 0); // keep P1 alive
+    const stunned = place(s, "dusk_gool", "P2", 1, 0, {
+      curHp: 20, maxHp: 40, curShields: 0,
+      status: { kind: "PARALYZE", duration: 2, power: 0, source: "BOLT" },
+    });
+    const healthy = place(s, "dusk_gool", "P2", 1, 1, { curHp: 20, maxHp: 40, curShields: 0 });
+    const next = advance(atCleanup(s));
+    expect(next.cards[stunned.instanceId].curHp).toBe(15); // −5 Volt Turret
+    expect(next.cards[healthy.instanceId].curHp).toBe(20); // spared
+  });
+
+  it("Hillbilly's Hillside shields the row-ahead ally once, on its first landed hit", () => {
+    const s = prepState();
+    const hill = place(s, "bore_hillbilly", "P1", 3, 0);
+    const ally = place(s, "dawn_beam", "P1", 2, 0, { curShields: 0 }); // row directly ahead
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, hill.instanceId, foe.instanceId);
+    expect(s.cards[ally.instanceId].curShields).toBe(1);
+    basicAttack(s, hill.instanceId, foe.instanceId); // second hit — one-shot, no more
+    expect(s.cards[ally.instanceId].curShields).toBe(1);
+  });
+});
+
 describe("vsStatus conditional keyword", () => {
   it("Alpha lifesteals only vs ROOTed targets (Gnashing Bite)", () => {
     const rooted = prepState();

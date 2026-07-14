@@ -513,6 +513,18 @@ export function basicAttack(
     attacker.dmgBonus += aDef.onHitSelfBuff.dmg;
     draft.log.push(`${label(draft, attacker)}'s temper flares (+${aDef.onHitSelfBuff.dmg} DMG).`);
   }
+  // Hillside (Hillbilly): a landed basic attack shields allies in the row ahead.
+  const hab = aDef.onHitAllyBuff;
+  if (hab?.shields && agg.landedHits > 0 && attacker.curHp > 0 && attacker.pos && !(hab.firstTimeOnly && attacker.onHitBuffFired)) {
+    const aheadRow = attacker.pos.row + (attacker.owner === "P1" ? -1 : 1);
+    const allies = boardCards(draft, attacker.owner).filter(
+      (c) => c.instanceId !== attacker.instanceId && c.pos?.row === aheadRow && c.curHp > 0,
+    );
+    for (const a of allies) a.curShields += hab.shields;
+    if (allies.length > 0)
+      draft.log.push(`${label(draft, attacker)} rallies ${allies.length} ally(ies) from the hill (+${hab.shields} shields).`);
+    attacker.onHitBuffFired = true;
+  }
   return agg;
 }
 

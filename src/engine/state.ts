@@ -279,6 +279,7 @@ export function summonCard(
     transformed: false,
     talentUsed: false,
     freeSpecial: false,
+    onHitBuffFired: false,
     loadedHits: 0,
     statuses: [],
     summonedThisRound: true,

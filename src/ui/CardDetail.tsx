@@ -201,6 +201,16 @@ export function CardDetail(props: {
     passives.push(
       `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,
     );
+  if (def.roundTick?.selfShields)
+    passives.push(`Royal Guard: gains +${def.roundTick.selfShields} shield each round.`);
+  if (def.roundTick?.pokeParalyzedDmg)
+    passives.push(
+      `End of round: deals ${def.roundTick.pokeParalyzedDmg} DMG to a PARALYZED opponent in range.`,
+    );
+  if (def.onHitAllyBuff?.shields)
+    passives.push(
+      `Hillside: ${def.onHitAllyBuff.firstTimeOnly ? "the first time it lands a hit, gives" : "landed hits give"} allies in the row ahead +${def.onHitAllyBuff.shields} shield.`,
+    );
   if (def.special?.params?.freeRecastOnKill)
     passives.push(
       `On Kill, its Special recasts free next round (ignores cost & cooldown).`,

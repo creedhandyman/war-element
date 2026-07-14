@@ -597,6 +597,8 @@ export const CARDS: CardDef[] = [
     sp: 2,
     shields: 3,
     keywords: {},
+    // Hillside (On Hit, first time): +1 shield to allies in the row directly ahead.
+    onHitAllyBuff: { shields: 1, firstTimeOnly: true },
   },
   {
     id: "bore_bearocks",
@@ -1639,6 +1641,8 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 3,
     keywords: {},
+    // Volt Turret (End of Round): 5 DMG to one PARALYZED opponent in range.
+    roundTick: { pokeParalyzedDmg: 5 },
     special: {
       name: "Static Blaster",
       cost: 2,
@@ -2105,6 +2109,8 @@ export const TOKENS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Reptile",
+    // Conspiracy (On Kill): +2 DMG, +2 HP (max), +2 SP.
+    onKill: { buffDmg: 2, buffMaxHp: 2, buffSp: 2 },
   },
   {
     id: "dawn_heir_tok",
@@ -2120,6 +2126,8 @@ export const TOKENS: CardDef[] = [
     sp: 10,
     shields: 2,
     keywords: {},
+    // Royal Guard: gain +1 shield each round.
+    roundTick: { selfShields: 1 },
   },
 ];
 

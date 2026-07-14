@@ -132,6 +132,8 @@ export interface RoundTickDef {
   paralyzeOne?: number; // PARALYZE one un-paralyzed enemy for N rounds
   pushEnemies?: number; // blow every enemy back N slots (Wind Guardian)
   rowAheadDmg?: number; // deal N DMG to enemies in the row directly ahead (Sweeping Flames)
+  selfShields?: number; // gain N shields each round (Heir's Royal Guard)
+  pokeParalyzedDmg?: number; // deal N DMG to one PARALYZED enemy in range (Sentry's Volt Turret)
   /** Spawn a token each round (Trinezer's Reptilian Screech). adjacentOnly =
    *  only into an open king's-reach slot; no spawn if none is open. */
   spawn?: { token: string; count: number; adjacentOnly?: boolean };
@@ -243,6 +245,9 @@ export interface CardDef {
   /** Incinerate (Sol): consecutive hits on the same target within a round deal
    *  +1 DMG per hit (the ramp climbs with each landed hit). */
   incinerate?: boolean;
+  /** Hillside (Hillbilly): when a basic attack lands, grant shields to allies in
+   *  the row directly ahead. `firstTimeOnly` = only the first landed attack. */
+  onHitAllyBuff?: { shields?: number; firstTimeOnly?: boolean };
   /** Tribe tag (Reptile, Dragon, SeaC, Avian, …) — used by tribe-scoped auras
    *  and tribe payoffs. Free-text; no effect on its own. */
   tribe?: string;
@@ -325,6 +330,8 @@ export interface CardInstance {
   /** The next Special use is free (no magic, no cooldown) — Volcanon's Eruption
    *  On Kill grants this for the following round. Consumed when the Special fires. */
   freeSpecial: boolean;
+  /** One-shot guard for a firstTimeOnly onHitAllyBuff (Hillbilly's Hillside). */
+  onHitBuffFired: boolean;
   /** Extra basic hits queued for the NEXT basic attack (Dart Frog's loaded
    *  darts). Consumed the next time this card basic-attacks. */
   loadedHits: number;

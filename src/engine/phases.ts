@@ -702,6 +702,16 @@ function doRoundTicks(draft: GameState): void {
       const ahead = card.owner === "P1" ? card.pos.row - 1 : card.pos.row + 1;
       for (const e of enemies()) if (e.pos && e.pos.row === ahead) directDamage(draft, card, e, rt.rowAheadDmg, false);
     }
+    if (rt.selfShields) {
+      // Royal Guard: replenish the guardian's shields each round.
+      card.curShields += rt.selfShields;
+      draft.log.push(`${label(draft, card)} raises its guard (+${rt.selfShields} shields).`);
+    }
+    if (rt.pokeParalyzedDmg) {
+      // Volt Turret: zap one PARALYZED enemy the turret can reach.
+      const t = closest(card, enemies().filter((e) => hasStatus(e, "PARALYZE") && canTarget(draft, card, e)));
+      if (t) directDamage(draft, card, t, rt.pokeParalyzedDmg, false);
+    }
     if (rt.spawn) {
       // Reptilian Screech: spawn a token into an open king's-reach slot.
       spawnTokens(draft, card, rt.spawn.token, rt.spawn.count, rt.spawn.adjacentOnly);
