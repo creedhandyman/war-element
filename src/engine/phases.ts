@@ -460,15 +460,31 @@ function performBattleAction(
     } else {
       targets = valid;
     }
-    draft.players[card.owner].magicPool -= special.cost;
-    // 1-round floor; a printed longer cooldown overrides (+1 because the
-    // current round's Cleanup ticks it once).
-    card.specialCooldown = (special.cooldown ?? 1) + 1;
+    // A free Special (Volcanon's On-Kill recast) skips the magic cost AND the
+    // cooldown, so it's usable the very next round; otherwise pay + recharge.
+    const wasFree = card.freeSpecial;
+    card.freeSpecial = false; // consume the grant (a fresh kill re-grants it below)
+    if (!wasFree) {
+      draft.players[card.owner].magicPool -= special.cost;
+      // 1-round floor; a printed longer cooldown overrides (+1 because the
+      // current round's Cleanup ticks it once).
+      card.specialCooldown = (special.cooldown ?? 1) + 1;
+    }
     card.attackedThisRound = true; // STEALTH breaks on any attack
     draft.log.push(`${label(draft, card)} fires ${special.name}!`);
     const handler = SPECIAL_HANDLERS[special.handler];
     if (!handler) throw new Error(`Unknown special handler: ${special.handler}`);
+    const enemiesBefore = boardCards(draft, enemyOf(card.owner)).length;
     handler(draft, card, targets, special.params ?? {});
+    // On Kill → grant a free recast next round (Volcanon's Eruption). Detect a
+    // kill by the enemy board shrinking across the handler.
+    if (
+      special.params?.freeRecastOnKill &&
+      draft.cards[card.instanceId] &&
+      card.curHp > 0 &&
+      boardCards(draft, enemyOf(card.owner)).length < enemiesBefore
+    )
+      card.freeSpecial = true;
     // Self-buff status on cast (Dive Bomb → STEALTH, Shadow Charge → EVASION,
     // Drilling Quake → re-STEALTH) — for any handler, once per Special.
     const selfSt = special.params?.selfStatus;

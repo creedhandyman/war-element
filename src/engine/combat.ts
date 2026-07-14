@@ -499,6 +499,11 @@ export function basicAttack(
     }
   }
   attacker.loadedHits = 0; // loaded darts are spent on this attack (Bleed Out)
+  // Bad Temper (Volcanon): a landed basic attack grants a permanent self-buff.
+  if (aDef.onHitSelfBuff?.dmg && agg.landedHits > 0 && attacker.curHp > 0) {
+    attacker.dmgBonus += aDef.onHitSelfBuff.dmg;
+    draft.log.push(`${label(draft, attacker)}'s temper flares (+${aDef.onHitSelfBuff.dmg} DMG).`);
+  }
   return agg;
 }
 
@@ -719,6 +724,11 @@ function applySelfRiders(
   }
   const sp = num(params, "selfSp");
   if (sp !== 0) caster.spBonus += sp;
+  const dmg = num(params, "selfDmg"); // permanent +DMG per use (Volcanon's Bad Temper)
+  if (dmg !== 0) {
+    caster.dmgBonus += dmg;
+    draft.log.push(`${label(draft, caster)} grows hotter (+${dmg} DMG).`);
+  }
   // (selfStatus is applied once per Special in performBattleAction, so it works
   // for every handler — barrage included — not just strike.)
 }

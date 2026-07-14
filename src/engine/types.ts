@@ -236,6 +236,9 @@ export interface CardDef {
   /** On summon, spawn `count` token cards (one-shot). The token's def lives in
    *  CARD_INDEX but never appears in a deck. */
   summonSpawn?: { token: string; count: number };
+  /** A permanent self-buff applied when a basic attack LANDS (once per attack),
+   *  e.g. Volcanon's Bad Temper (+1 DMG on hit). */
+  onHitSelfBuff?: { dmg?: number };
   /** Tribe tag (Reptile, Dragon, SeaC, Avian, …) — used by tribe-scoped auras
    *  and tribe payoffs. Free-text; no effect on its own. */
   tribe?: string;
@@ -315,6 +318,9 @@ export interface CardInstance {
   transformed: boolean;
   /** A Talent fires once per game; set true after it's used. */
   talentUsed: boolean;
+  /** The next Special use is free (no magic, no cooldown) — Volcanon's Eruption
+   *  On Kill grants this for the following round. Consumed when the Special fires. */
+  freeSpecial: boolean;
   /** Extra basic hits queued for the NEXT basic attack (Dart Frog's loaded
    *  darts). Consumed the next time this card basic-attacks. */
   loadedHits: number;

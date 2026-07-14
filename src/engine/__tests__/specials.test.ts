@@ -716,6 +716,60 @@ describe("Ghastly — Ethereal Trade (on attack: +3 DMG, −2 HP)", () => {
   });
 });
 
+describe("Volcanon — Bad Temper + Eruption riders", () => {
+  it("Bad Temper: a landed basic attack grants +1 permanent DMG", () => {
+    const s = prepState();
+    const v = place(s, "pyro_volcanon", "P1", 2, 0); // dmg 11, adjacent to foe
+    const t = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(battleWith(s, v.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "basic",
+      targetId: t.instanceId,
+    });
+    const vc = next.cards[v.instanceId];
+    expect(vc.dmgBonus).toBe(1); // temper flared on hit (permanent +1 DMG)
+  });
+
+  it("Eruption: costs 1 HP and grants +1 permanent DMG per use", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 3;
+    const v = place(s, "pyro_volcanon", "P1", 2, 0, { curHp: 21, maxHp: 21 });
+    const t = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(battleWith(s, v.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: t.instanceId,
+    });
+    const vc = next.cards[v.instanceId];
+    expect(vc.curHp).toBe(20); // paid 1 HP
+    expect(vc.dmgBonus).toBe(1); // Bad Temper's per-use growth
+    expect(next.cards[t.instanceId].curHp).toBe(30); // 2×5 = 10 dealt
+  });
+
+  it("On Kill: Eruption grants a free recast (ignores cost + cooldown)", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 3;
+    const v = place(s, "pyro_volcanon", "P1", 2, 0);
+    const t = place(s, "dusk_gool", "P2", 1, 0, { curHp: 6, maxHp: 20, curShields: 0 });
+    const next = applyIntent(battleWith(s, v.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: t.instanceId,
+    });
+    const vc = next.cards[v.instanceId];
+    expect(next.cards[t.instanceId]).toBeUndefined(); // 10 dmg killed the 6-HP foe
+    expect(vc.freeSpecial).toBe(true);
+    expect(next.players.P1.magicPool).toBe(0); // first use paid its 3
+    // A fresh foe: even with 0 magic AND on cooldown, the free recast can fire.
+    place(next, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    expect(vc.specialCooldown).toBeGreaterThan(0);
+    expect(canFireSpecial(battleWith(next, vc.instanceId), vc.instanceId).ok).toBe(true);
+  });
+});
+
 describe("accuracy per hit", () => {
   it("BLIND is rolled PER HIT — a multi-hit attack lands some and misses some", () => {
     const s = prepState();

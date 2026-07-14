@@ -189,6 +189,14 @@ export function CardDetail(props: {
     passives.push(
       `Every attack (basic & Special) deals +${def.attackTrade.bonusDmg} DMG, but costs ${def.attackTrade.hpCost} HP.`,
     );
+  if (def.onHitSelfBuff?.dmg)
+    passives.push(
+      `Bad Temper: permanently gains +${def.onHitSelfBuff.dmg} DMG each time a basic attack lands.`,
+    );
+  if (def.special?.params?.freeRecastOnKill)
+    passives.push(
+      `On Kill, its Special recasts free next round (ignores cost & cooldown).`,
+    );
   if (def.onSummon) passives.push(describeOnSummon(def.onSummon));
   if (def.onDeath)
     passives.push(

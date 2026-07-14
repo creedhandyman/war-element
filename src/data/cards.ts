@@ -424,14 +424,19 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: { FLYING: true },
+    // Bad Temper (passive): a landed basic attack grows Volcanon permanently.
+    onHitSelfBuff: { dmg: 1 },
     special: {
       name: "Eruption",
       cost: 3,
       handler: "strike",
-      // printed "5×2 DMG" = 5 hits of 2 — a shield shredder (strips up to 5)
-      params: { dmg: 2, hits: 5 },
+      // printed "5×2 DMG" = 5 hits of 2 — a shield shredder (strips up to 5).
+      // selfDamage 1 = "loses 1 HP per use"; selfDmg 1 = Bad Temper's "+1 DMG
+      // permanently after each Eruption"; freeRecastOnKill = "On Kill, use
+      // Eruption again next round at no cost."
+      params: { dmg: 2, hits: 5, selfDamage: 1, selfDmg: 1, freeRecastOnKill: 1 },
       targetSide: "enemy",
-      text: "Deal 2 DMG × 5 hits to one opponent (shreds shields).",
+      text: "Deal 2 DMG × 5 hits to one opponent (shreds shields). Costs 1 HP; +1 DMG per use; On Kill, recast free next round.",
     },
   },
 
