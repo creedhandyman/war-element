@@ -205,6 +205,9 @@ export interface CardDef {
    *  named differently from the id (e.g. token/underscore variants). */
   art?: string;
   name: string;
+  /** Collector rarity. Cosmetic today (drives a deck-builder badge); no engine
+   *  effect. Older alpha cards leave it undefined. */
+  rarity?: "mythic" | "legendary" | "epic" | "rare" | "common";
   element: Element;
   cardClass: CardClass;
   attackType: AttackType; // derived from class, stored for clarity

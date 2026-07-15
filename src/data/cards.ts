@@ -2119,6 +2119,379 @@ export const CARDS: CardDef[] = [
     // Shocker: PARALYZE an opponent summoned within DrShock's range for 1 round.
     onOppSummon: { status: { kind: "PARALYZE", duration: 1, power: 0 } },
   },
+
+  // ═════════════ RARE + EPIC EXPANSION (2 per element) ═════════════
+  // Pulled from the element card docs (*_Cards.docx). Each card carries a
+  // `rarity` tag. Stats are rebalanced to the 5·cost+10 curve (the docs'
+  // printed totals drift); the printed cost is kept unless it broke the curve
+  // (noted inline). Modeled mechanics only — a few doc riders stay unmodeled and
+  // are flagged, matching the rest of this file's convention. No art PNGs yet,
+  // so these fall back to the flat element token.
+
+  // ───────────────────────── LEAF ─────────────────────────
+  {
+    id: "leaf_citra",
+    name: "Citra",
+    rarity: "epic",
+    element: "LEAF",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 3,
+    hits: 2, // "2×3 DMG, PEN"
+    hp: 14,
+    sp: 8,
+    shields: 1,
+    keywords: { PEN: true },
+    // Acidic Leaf Blaze: basic attacks apply BLEED 2 for 1 round (non-stacking).
+    onHitStatus: { kind: "BLEED", duration: 1, power: 2 },
+    special: {
+      name: "Acidic Bloom",
+      cost: 3,
+      handler: "statusNova",
+      params: { statusKind: "BLEED", statusDuration: 4, statusPower: 2, targets: 4 },
+      targetSide: "enemy",
+      text: "Apply BLEED 2 for 4 rounds to up to 4 opponents.",
+    },
+  },
+  {
+    id: "leaf_guardian",
+    name: "Guardian",
+    rarity: "rare",
+    element: "LEAF",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 4,
+    hits: 1,
+    hp: 10,
+    sp: 4,
+    shields: 1,
+    keywords: {},
+    // On Summon: 3 DMG to opponents in the same + adjacent row (forward area).
+    onSummon: { handler: "barrage", params: { dmg: 3, spread: 1, targets: 99 } },
+    // On Kill: +2 DMG permanently.
+    onKill: { buffDmg: 2 },
+  },
+
+  // ───────────────────────── AQUA ─────────────────────────
+  {
+    id: "aqua_octoirate",
+    name: "Octoirate",
+    rarity: "epic",
+    element: "AQUA",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 4,
+    hits: 1,
+    hp: 14,
+    sp: 9,
+    shields: 0,
+    keywords: {},
+    tribe: "SeaC", // fed by Kraken's SeaC aura (+4 max HP)
+    // On Kill: +3 max HP permanently. (Sucker Sword's target-pull is unmodeled.)
+    onKill: { buffMaxHp: 3 },
+    special: {
+      name: "Wave Crash",
+      cost: 2,
+      handler: "barrage",
+      params: { dmg: 4, spread: 1, forwardDepth: 1, targets: 99 },
+      targetSide: "enemy",
+      text: "Deal 4 DMG to all opponents in the row directly ahead.",
+    },
+  },
+  {
+    id: "aqua_krakler",
+    name: "Krakler",
+    rarity: "rare",
+    element: "AQUA",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 9,
+    hits: 1,
+    hp: 8,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    tribe: "Kraken",
+    // Abyssal Grasp (On Summon): FREEZE an opponent in range for 2 rounds.
+    // (Doc also lays SCALD 3 — a second DoT status isn't modeled here.)
+    onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, statusKind: "FREEZE", statusDuration: 2 } },
+  },
+
+  // ───────────────────────── PYRO ─────────────────────────
+  {
+    id: "pyro_twins",
+    name: "Twins",
+    rarity: "epic",
+    element: "PYRO",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 5,
+    dmg: 2,
+    hits: 2, // "2×2 DMG"
+    hp: 29,
+    sp: 2,
+    shields: 0,
+    keywords: {},
+    // Rager Twins: +1 DMG permanently on every landed basic attack.
+    // (The "below 12 HP → half DMG" rage penalty is unmodeled.)
+    onHitSelfBuff: { dmg: 1 },
+    special: {
+      name: "Double Trouble",
+      cost: 2,
+      handler: "strike",
+      params: { dmg: 2, hits: 2, healSelf: 6 },
+      targetSide: "enemy",
+      text: "Deal 2×2 DMG to an opponent and gain +6 HP.",
+    },
+  },
+  {
+    id: "pyro_smog_card",
+    name: "Smog",
+    rarity: "rare",
+    element: "PYRO",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 0,
+    hits: 1,
+    hp: 15,
+    sp: 0,
+    shields: 0,
+    keywords: {},
+    // Black Smoke (End of Round): 1 DMG to opponents in the row directly ahead.
+    roundTick: { rowAheadDmg: 1 },
+  },
+
+  // ───────────────────────── BORE ─────────────────────────
+  {
+    id: "bore_shift",
+    name: "Shift",
+    rarity: "epic",
+    element: "BORE",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 2,
+    hits: 3, // "3×2 DMG"
+    hp: 8,
+    sp: 9,
+    shields: 1,
+    keywords: {},
+    special: {
+      name: "Quaking Comet",
+      cost: 2,
+      handler: "barrage",
+      // Magnitude Shift (per-use +1 DMG ramp) is unmodeled — flat each cast.
+      params: { dmg: 2, hits: 2, targets: 99 },
+      targetSide: "enemy",
+      text: "Deal 2×2 DMG to all opponents.",
+    },
+  },
+  {
+    id: "bore_warthog",
+    name: "Warthog",
+    rarity: "rare",
+    element: "BORE",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 5,
+    hits: 1,
+    hp: 6,
+    sp: 5,
+    shields: 2,
+    keywords: {},
+    // Tusk Rush (On Summon): charge — 5 DMG to opponents directly ahead.
+    // (The "keep charging on each kill" follow-up is unmodeled.)
+    onSummon: { handler: "barrage", params: { dmg: 5, spread: 1, forwardDepth: 1, targets: 99 } },
+  },
+
+  // ───────────────────────── GALE ─────────────────────────
+  {
+    id: "gale_whirlwolf",
+    name: "Whirlwolf",
+    rarity: "epic",
+    element: "GALE",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 3,
+    hits: 1,
+    hp: 14,
+    sp: 8,
+    shields: 0,
+    keywords: { FLYING: true },
+    tribe: "Avian",
+    // Hastening Breeze (On Summon): kick up speed (+5 SP to self + nearest ally).
+    // (Doc buffs ALL allies for a round; the engine grants self + nearest.)
+    onSummon: { handler: "buffSp", params: { amount: 5 }, targetSide: "ally" },
+    special: {
+      name: "Wave Pounce",
+      cost: 2,
+      handler: "barrage",
+      params: { dmg: 2, targets: 99, spDebuff: 3, spDebuffRounds: 1 },
+      targetSide: "enemy",
+      text: "Deal 2 DMG to all opponents and −3 SP for the round.",
+    },
+  },
+  {
+    id: "gale_hawko",
+    name: "Hawko",
+    rarity: "rare",
+    element: "GALE",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 3,
+    hits: 2, // "2×3 DMG"
+    hp: 11,
+    sp: 8,
+    shields: 0,
+    keywords: { FLYING: true },
+    tribe: "Avian",
+    // Aerial Dominance: 1 DMG to any opponent summoned within range.
+    onOppSummon: { dmg: 1 },
+  },
+
+  // ───────────────────────── BOLT ─────────────────────────
+  {
+    id: "bolt_thunder",
+    name: "Thunder",
+    rarity: "epic",
+    element: "BOLT",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 5, // doc prints cost 7; re-costed to fit the 5·cost+10 curve
+    dmg: 4,
+    hits: 2, // "2×4 DMG"
+    hp: 16,
+    sp: 11,
+    shields: 0,
+    keywords: {},
+    // Electrifying Thunder Clap (On Summon): 5 DMG to all opponents in range.
+    onSummon: { handler: "barrage", params: { dmg: 5, targets: 99 } },
+    special: {
+      name: "Arcing Strike",
+      cost: 2,
+      handler: "strike",
+      // 7 to the target, arcing 7 to each adjacent opponent (splash).
+      params: { dmg: 7, splash: 7 },
+      targetSide: "enemy",
+      text: "Deal 7 DMG to a target and 7 DMG to each adjacent opponent.",
+    },
+  },
+  {
+    id: "bolt_electricel",
+    name: "Electricel",
+    rarity: "rare",
+    element: "BOLT",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 1,
+    hits: 4, // "4×1 DMG"
+    hp: 3,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    // Wrap (On Summon): PARALYZE an opponent in range for 2 rounds.
+    onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, statusKind: "PARALYZE", statusDuration: 2 } },
+  },
+
+  // ───────────────────────── DUSK ─────────────────────────
+  {
+    id: "dusk_reaper",
+    name: "Reaper",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 7,
+    hits: 1,
+    hp: 9,
+    sp: 9,
+    shields: 0,
+    keywords: {},
+    tribe: "Skeleton",
+    // Soul Reaper (On Kill): +5 HP, +1 DMG permanently.
+    // (The doc's "CRIT for a turn" and Death's Approach reuse-on-kill are unmodeled.)
+    onKill: { healSelf: 5, buffDmg: 1 },
+    special: {
+      name: "Death's Approach",
+      cost: 2,
+      handler: "strike",
+      params: { dmg: 8, pen: 1 },
+      targetSide: "enemy",
+      text: "Deal 8 DMG (PEN) to an opponent.",
+    },
+  },
+  {
+    id: "dusk_skulldrake",
+    name: "SkullDrake",
+    rarity: "rare",
+    element: "DUSK",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 2,
+    dmg: 6,
+    hits: 1,
+    hp: 8,
+    sp: 6,
+    shields: 0,
+    keywords: {},
+    tribe: "Skeleton",
+    // Purple Flames (On Summon): apply DOT 2 for 3 rounds to the row directly ahead.
+    onSummon: { handler: "barrage", params: { dmg: 0, spread: 1, forwardDepth: 1, targets: 99, statusKind: "DOT", statusDuration: 3, statusPower: 2 } },
+  },
+
+  // ───────────────────────── DAWN ─────────────────────────
+  {
+    id: "dawn_radiance",
+    name: "Radiance",
+    rarity: "epic",
+    element: "DAWN",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 4, // doc prints cost 5; re-costed to fit the curve
+    dmg: 5,
+    hits: 1,
+    hp: 17,
+    sp: 4,
+    shields: 2,
+    keywords: {},
+    // (Brightest Warrior's summon-scaling buff is unmodeled.)
+    special: {
+      name: "SunSword Blasting Strike",
+      cost: 2,
+      handler: "strike",
+      ranged: true, // "any target"
+      params: { dmg: 11, selfDamage: 1 },
+      targetSide: "enemy",
+      text: "Lose 1 HP to deal 11 DMG to any target.",
+    },
+  },
+  {
+    id: "dawn_sphere",
+    name: "Sphere",
+    rarity: "rare",
+    element: "DAWN",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 2,
+    hits: 2, // "2×2 DMG"
+    hp: 4,
+    sp: 7,
+    shields: 0,
+    keywords: { PEN: true }, // Light Sphere — basic attacks gain PEN
+    // Light Sphere (On Summon): raise a +2 shield (a passive grant, off-curve).
+    summonSelfShields: 2,
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

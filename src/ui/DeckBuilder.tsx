@@ -11,7 +11,7 @@ import {
   validateDeck,
   type CustomDeck,
 } from "../data/custom-decks";
-import { EL_COLOR } from "./shared";
+import { EL_COLOR, RARITY_STYLE } from "./shared";
 import { SpIcon } from "./icons";
 
 const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
@@ -145,6 +145,14 @@ export function DeckBuilder(props: {
                       onError={(e) => { e.currentTarget.style.display = "none"; }}
                     />
                     {on && <div className="db-check">✓</div>}
+                    {d.rarity && RARITY_STYLE[d.rarity] && (
+                      <span
+                        className="dt-rarity"
+                        style={{ color: RARITY_STYLE[d.rarity].color, borderColor: RARITY_STYLE[d.rarity].color }}
+                      >
+                        {RARITY_STYLE[d.rarity].label}
+                      </span>
+                    )}
                     <div className="dt-top">
                       <span className="dt-cost">{d.cost}</span>
                       <span className="el-dot" style={{ background: EL_COLOR[d.element] }} />

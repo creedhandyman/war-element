@@ -14,6 +14,15 @@ export const EL_COLOR: Record<Element, string> = {
   DAWN: "#ffd54f",
 };
 
+// Collector rarity → badge color + short label. Undefined rarity shows nothing.
+export const RARITY_STYLE: Record<string, { color: string; label: string }> = {
+  mythic: { color: "#ff5db1", label: "MYTHIC" },
+  legendary: { color: "#ffb02e", label: "LEGEND" },
+  epic: { color: "#b06bff", label: "EPIC" },
+  rare: { color: "#4db6ff", label: "RARE" },
+  common: { color: "#8a8f98", label: "COMMON" },
+};
+
 // Per-element alchemical sigil — a small flourish on card faces.
 export const EL_SIGIL: Record<Element, string> = {
   LEAF: "🜁",
