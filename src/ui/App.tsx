@@ -32,6 +32,8 @@ import {
 } from "../engine";
 import { Board } from "./Board";
 import { CardDetail } from "./CardDetail";
+import { DeckBuilder } from "./DeckBuilder";
+import { loadCustomDecks, type CustomDeck } from "../data/custom-decks";
 import { SpIcon } from "./icons";
 import { Hand } from "./Hand";
 import { PhaseRibbon } from "./PhaseRibbon";
@@ -66,6 +68,20 @@ export function App() {
   const [p2CoreB, setP2CoreB] = useState("bolt");
   const [twoPlayer, setTwoPlayer] = useState(false);
   const [viewDeck, setViewDeck] = useState<"p1" | "p2">("p1"); // which deck's cards to preview
+  // Custom decks (a sandbox on top of the Cores). "" = use the two core selects.
+  const [customDecks, setCustomDecks] = useState<CustomDeck[]>(() => loadCustomDecks());
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [p1DeckId, setP1DeckId] = useState("");
+  const [p2DeckId, setP2DeckId] = useState("");
+  // A side's card list: a chosen custom deck, else the two-core pairing.
+  const resolveDeckCards = (deckId: string, coreA: string, coreB: string): string[] => {
+    const custom = deckId ? customDecks.find((d) => d.id === deckId) : undefined;
+    return custom ? custom.cards : pairingCards(coreA, coreB);
+  };
+  const deckLabel = (deckId: string, coreA: string, coreB: string): string => {
+    const custom = deckId ? customDecks.find((d) => d.id === deckId) : undefined;
+    return custom ? custom.name : `${coreById(coreA).name} + ${coreById(coreB).name}`;
+  };
 
   // The human who must act right now (null while an AI acts or a phase
   // animates). `view` holds the last active human so the hand/pools/labels
@@ -784,73 +800,80 @@ export function App() {
                 </button>
               </div>
               <div className="pick-field">
-                <span>{twoPlayer ? "Player 1 cores" : "Your cores (P1)"}</span>
-                <div className="core-pair">
-                  <select
-                    value={p1CoreA}
-                    onChange={(e) => {
-                      setP1CoreA(e.target.value);
-                      setViewDeck("p1");
-                    }}
-                  >
-                    {CORES.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.element})
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={p1CoreB}
-                    onChange={(e) => {
-                      setP1CoreB(e.target.value);
-                      setViewDeck("p1");
-                    }}
-                  >
-                    {CORES.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.element})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <span>{twoPlayer ? "Player 1 deck" : "Your deck (P1)"}</span>
+                <select
+                  className="deck-src"
+                  value={p1DeckId}
+                  onChange={(e) => { setP1DeckId(e.target.value); setViewDeck("p1"); }}
+                >
+                  <option value="">Core pairing ↓</option>
+                  {customDecks.map((d) => (
+                    <option key={d.id} value={d.id}>★ {d.name} ({d.cards.length})</option>
+                  ))}
+                </select>
+                {!p1DeckId && (
+                  <div className="core-pair">
+                    <select
+                      value={p1CoreA}
+                      onChange={(e) => { setP1CoreA(e.target.value); setViewDeck("p1"); }}
+                    >
+                      {CORES.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name} ({c.element})</option>
+                      ))}
+                    </select>
+                    <select
+                      value={p1CoreB}
+                      onChange={(e) => { setP1CoreB(e.target.value); setViewDeck("p1"); }}
+                    >
+                      {CORES.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name} ({c.element})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
               <div className="pick-field">
-                <span>{twoPlayer ? "Player 2 cores" : "Opponent cores (P2 · AI)"}</span>
-                <div className="core-pair">
-                  <select
-                    value={p2CoreA}
-                    onChange={(e) => {
-                      setP2CoreA(e.target.value);
-                      setViewDeck("p2");
-                    }}
-                  >
-                    {CORES.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.element})
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={p2CoreB}
-                    onChange={(e) => {
-                      setP2CoreB(e.target.value);
-                      setViewDeck("p2");
-                    }}
-                  >
-                    {CORES.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.element})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <span>{twoPlayer ? "Player 2 deck" : "Opponent deck (P2 · AI)"}</span>
+                <select
+                  className="deck-src"
+                  value={p2DeckId}
+                  onChange={(e) => { setP2DeckId(e.target.value); setViewDeck("p2"); }}
+                >
+                  <option value="">Core pairing ↓</option>
+                  {customDecks.map((d) => (
+                    <option key={d.id} value={d.id}>★ {d.name} ({d.cards.length})</option>
+                  ))}
+                </select>
+                {!p2DeckId && (
+                  <div className="core-pair">
+                    <select
+                      value={p2CoreA}
+                      onChange={(e) => { setP2CoreA(e.target.value); setViewDeck("p2"); }}
+                    >
+                      {CORES.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name} ({c.element})</option>
+                      ))}
+                    </select>
+                    <select
+                      value={p2CoreB}
+                      onChange={(e) => { setP2CoreB(e.target.value); setViewDeck("p2"); }}
+                    >
+                      {CORES.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name} ({c.element})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <button className="ghost db-open" onClick={() => setBuilderOpen(true)}>
+                  🛠 Build / edit custom decks
+                </button>
               </div>
               <button
                 className="lockin"
                 onClick={() => {
                   const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
-                  const p1Cards = pairingCards(p1CoreA, p1CoreB);
-                  const p2Cards = pairingCards(p2CoreA, p2CoreB);
+                  const p1Cards = resolveDeckCards(p1DeckId, p1CoreA, p1CoreB);
+                  const p2Cards = resolveDeckCards(p2DeckId, p2CoreA, p2CoreB);
                   setGame(createInitialState(newSeed(), p1Cards, p2Cards, humans));
                   setViewSide("P1");
                   setSel(null);
@@ -872,20 +895,20 @@ export function App() {
                   className={`pv-tab ${viewDeck === "p1" ? "on" : ""}`}
                   onClick={() => setViewDeck("p1")}
                 >
-                  P1 · {coreById(p1CoreA).name} + {coreById(p1CoreB).name}
+                  P1 · {deckLabel(p1DeckId, p1CoreA, p1CoreB)}
                 </button>
                 <button
                   className={`pv-tab ${viewDeck === "p2" ? "on" : ""}`}
                   onClick={() => setViewDeck("p2")}
                 >
-                  P2 · {coreById(p2CoreA).name} + {coreById(p2CoreB).name}
+                  P2 · {deckLabel(p2DeckId, p2CoreA, p2CoreB)}
                 </button>
               </div>
               {(() => {
                 const cards =
                   viewDeck === "p1"
-                    ? pairingCards(p1CoreA, p1CoreB)
-                    : pairingCards(p2CoreA, p2CoreB);
+                    ? resolveDeckCards(p1DeckId, p1CoreA, p1CoreB)
+                    : resolveDeckCards(p2DeckId, p2CoreA, p2CoreB);
                 return (
                   <>
                     <div className="pv-count">{cards.length} cards</div>
@@ -927,6 +950,17 @@ export function App() {
           </div>
         </div>
       )}
+
+      <DeckBuilder
+        open={builderOpen}
+        onClose={() => setBuilderOpen(false)}
+        onChange={(decks) => {
+          setCustomDecks(decks);
+          // Drop a side's selection if its custom deck was deleted.
+          if (p1DeckId && !decks.some((d) => d.id === p1DeckId)) setP1DeckId("");
+          if (p2DeckId && !decks.some((d) => d.id === p2DeckId)) setP2DeckId("");
+        }}
+      />
     </div>
   );
 }
