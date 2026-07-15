@@ -490,17 +490,18 @@ describe("on-opponent-summon reactions", () => {
     expect(g2.statuses.some((x) => x.kind === "PARALYZE")).toBe(false); // out of range
   });
 
-  it("BaBoom's Swinging Sweep booms every targetable enemy on summon, sparing the out-of-range home row", () => {
+  it("BaBoom's Swinging Sweep booms every enemy in king's reach on summon, sparing distant ones", () => {
     const s = prepState();
     s.players.P1.summonPool = 5;
-    const midA = place(s, "dusk_gool", "P2", 1, 3, { curHp: 20, maxHp: 40, curShields: 0 });
-    const midB = place(s, "dusk_gool", "P2", 2, 3, { curHp: 20, maxHp: 40, curShields: 0 });
-    const home = place(s, "dusk_gool", "P2", 0, 3, { curHp: 20, maxHp: 40, curShields: 0 });
+    // BaBoom summons at (3,0); king's reach is the adjacent tiles (2,0),(2,1),(3,1).
+    const near = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20, maxHp: 40, curShields: 0 }); // adjacent
+    const farCol = place(s, "dusk_gool", "P2", 2, 3, { curHp: 20, maxHp: 40, curShields: 0 }); // same row, too far
+    const farRow = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 40, curShields: 0 }); // 2 rows away
     const handId = giveHand(s, "P1", "pyro_baboom");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
-    expect(next.cards[midA.instanceId].curHp).toBe(18); // −2 boom (in range, any column)
-    expect(next.cards[midB.instanceId].curHp).toBe(18);
-    expect(next.cards[home.instanceId].curHp).toBe(20); // enemy home is unreachable from BaBoom's home row
+    expect(next.cards[near.instanceId].curHp).toBe(18); // −2 boom (adjacent)
+    expect(next.cards[farCol.instanceId].curHp).toBe(20); // out of king's reach
+    expect(next.cards[farRow.instanceId].curHp).toBe(20);
   });
 
   it("Rock Goblin's Cave Guard stays silent for a summon out of its melee range", () => {

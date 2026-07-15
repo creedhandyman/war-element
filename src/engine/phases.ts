@@ -104,13 +104,11 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           applyAllyOnSummon(draft, inst, def.onSummon.handler, params);
         } else {
           const targets =
-            params.allEnemies
-              // "hit all in range" — every targetable enemy on the board (a full
-              // blast; still respects STEALTH + the Home-slot rule via canTarget).
-              ? boardCards(draft, enemyOf(inst.owner)).filter((c) => c.curHp > 0 && canTarget(draft, inst, c, true))
-              : Number(params.spread ?? -1) >= 0
-                ? forwardAreaTargets(draft, inst, Number(params.spread), params.forwardDepth != null ? Number(params.forwardDepth) : undefined)
-                : validTargets(draft, inst.instanceId);
+            Number(params.spread ?? -1) >= 0
+              ? forwardAreaTargets(draft, inst, Number(params.spread), params.forwardDepth != null ? Number(params.forwardDepth) : undefined)
+              // No spread → every enemy in normal targeting range. For a melee
+              // card that's king's-move reach (the 8 adjacent tiles).
+              : validTargets(draft, inst.instanceId);
           if (targets.length > 0) {
             const handler = SPECIAL_HANDLERS[def.onSummon.handler];
             if (!handler) throw new Error(`Unknown onSummon handler: ${def.onSummon.handler}`);
