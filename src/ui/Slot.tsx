@@ -18,9 +18,11 @@ export function Slot(props: {
   onCycleAuto: (instanceId: string) => void;
 }) {
   const rowClass = ["row-opp", "row-mid", "row-mid", "row-your"][props.row];
+  const acting = props.card != null && props.actingId === props.card.instanceId;
   const cls = [
     "slot",
     rowClass,
+    acting ? "acting" : "",
     props.legal ? "legal" : "",
     props.dimmed ? "dimmed" : "",
     props.grayed ? "grayed" : "",

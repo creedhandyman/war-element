@@ -38,8 +38,12 @@ export function Board(props: {
           <span className="opp-pip magic">✦ {opp.magicPool}</span>
         </div>
       </div>
-      <div className="banner opp" style={{ color: "var(--opp-home-glow)" }}>
-        ▲ Opponent Home
+      <div className="crest opp">
+        <span className="crest-bar" />
+        <span className="crest-shield">✦</span>
+        <span className="crest-text">Opponent Home</span>
+        <span className="crest-shield">✦</span>
+        <span className="crest-bar" />
       </div>
       <div className="board">
         {rows.map((row) => (
@@ -98,8 +102,12 @@ export function Board(props: {
           </div>
         ))}
       </div>
-      <div className="banner your" style={{ color: "var(--your-home-glow)" }}>
-        ▼ Your Home
+      <div className="crest your">
+        <span className="crest-bar" />
+        <span className="crest-shield">✦</span>
+        <span className="crest-text">Your Home</span>
+        <span className="crest-shield">✦</span>
+        <span className="crest-bar" />
       </div>
     </div>
   );

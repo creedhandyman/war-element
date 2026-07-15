@@ -123,7 +123,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 @keyframes wispPulse { 0%, 100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.02); } }
 .battlefield-bg { display: none; }
-.banner { position: relative; z-index: 1; font-family: var(--head); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; text-shadow: 0 1px 3px #000; }
+/* Home-row crest: a shield emblem + label flanked by drape bars, tinted per
+   side (blue = opponent, gold = you). */
+.crest { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 10px; width: min(var(--board-size), 90%); --c: var(--gold-lit); }
+.crest.opp { --c: var(--opp-home-glow); }
+.crest.your { --c: var(--your-home-glow); }
+.crest-bar { flex: 1; max-width: 180px; height: 3px; border-radius: 2px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--c) 55%, transparent), transparent); box-shadow: 0 0 8px color-mix(in srgb, var(--c) 40%, transparent); }
+.crest-shield { width: 16px; height: 17px; flex: none; display: grid; place-items: center; font-size: 8px; color: #0d0c14; background: linear-gradient(180deg, var(--c), color-mix(in srgb, var(--c) 55%, #000)); clip-path: polygon(50% 0, 100% 20%, 100% 62%, 50% 100%, 0 62%, 0 20%); box-shadow: 0 0 10px color-mix(in srgb, var(--c) 55%, transparent); }
+.crest-text { font-family: var(--head); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700; color: var(--c); text-shadow: 0 1px 4px #000, 0 0 10px color-mix(in srgb, var(--c) 30%, transparent); white-space: nowrap; }
 /* Fog of war — the opponent's hand as face-down cards; deck hidden. */
 .opp-fog { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; }
 .opp-fan { display: flex; align-items: flex-end; height: 40px; padding-left: 8px; }
@@ -201,6 +208,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .slot.row-opp { --tile: var(--tile-opp); }
 .slot.row-mid { --tile: var(--tile-mid); }
 .slot.row-your { --tile: var(--tile-your); }
+/* the tile whose card is taking its turn pulses in its row colour */
+.slot.acting { animation: slotAct 1.15s ease-in-out infinite; z-index: 3; }
+@keyframes slotAct {
+  0%, 100% { box-shadow: 0 0 12px color-mix(in srgb, var(--tile) 35%, transparent), inset 0 0 18px rgba(0,0,0,0.5); }
+  50% { box-shadow: 0 0 26px color-mix(in srgb, var(--tile) 75%, transparent), 0 0 46px color-mix(in srgb, var(--tile) 38%, transparent), inset 0 0 16px rgba(0,0,0,0.4); }
+}
 /* the arcane compass sigil, tinted to the row colour, faint under the card */
 .slot::before {
   content: ""; position: absolute; inset: 11%; z-index: 0; pointer-events: none;
@@ -505,6 +518,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .cd-list { list-style: none; margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
 .cd-list li { font-size: 12px; color: var(--ink-dim); line-height: 1.45; padding-left: 12px; position: relative; }
 .cd-list li::before { content: "•"; position: absolute; left: 0; color: var(--ink-faint); }
+/* inline keyword chips + trigger tags inside card text */
+.txt-chip { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: 0.02em; line-height: 1.35; padding: 0 5px; margin: 0 1px; border-radius: 4px; border: 1px solid; background: color-mix(in srgb, currentColor 12%, transparent); vertical-align: baseline; }
+.txt-tag { display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.4; padding: 1px 5px; margin: 0 3px 0 1px; border-radius: 4px; color: var(--gold-lit); background: rgba(232, 200, 119, 0.12); border: 1px solid var(--gold-line); vertical-align: baseline; }
 .cd-actions { display: flex; gap: 8px; margin-top: 18px; }
 .cd-actions .lockin { flex: 1; }
 

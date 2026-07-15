@@ -1,7 +1,42 @@
+import type { ReactNode } from "react";
 import type { CardInstance, GameState, PlayerId, StatusKind } from "../engine";
 import { effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, ELEMENT_AURA, getDef, getSpell } from "../engine";
-import { EL_COLOR } from "./shared";
+import { EL_COLOR, KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 import { SpIcon } from "./icons";
+
+// Colour lookup for keyword/status terms so they render as chips in card text.
+const CHIP_COLOR: Record<string, string> = (() => {
+  const m: Record<string, string> = {};
+  for (const [k, v] of Object.entries(STATUS_STYLE)) m[k] = v.color;
+  for (const [k, v] of Object.entries(KEYWORD_STYLE)) m[k] = v.color;
+  return m;
+})();
+// Trigger phrases rendered as small labels (longest first so they win the match).
+const TAGS = [
+  "On Hit by Melee", "On Opp Summon", "Start of Round", "End of Round",
+  "On Summon", "On Attack", "On Death", "On Kill", "On Hit", "On CRIT", "On Low HP", "Passive", "Talent", "Aura",
+];
+
+/** Wrap keyword/status terms as colour chips and trigger phrases as tag labels
+ *  inside a card's text — the "scannable" text box from the redesign. */
+function chipify(text: string): ReactNode[] {
+  const terms = [...TAGS, ...Object.keys(CHIP_COLOR)];
+  const re = new RegExp(`\\b(${terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`, "gi");
+  const out: ReactNode[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let i = 0;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    const term = m[0];
+    const chip = CHIP_COLOR[term.toUpperCase()];
+    if (chip) out.push(<span key={i++} className="txt-chip" style={{ color: chip, borderColor: chip }}>{term}</span>);
+    else out.push(<span key={i++} className="txt-tag">{term}</span>);
+    last = m.index + term.length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
 
 /** Spell out an on-summon passive from its handler + params, instead of the old
  *  catch-all "fires an effect". Mirrors how the effect actually resolves. */
@@ -355,7 +390,7 @@ export function CardDetail(props: {
               ✦ {def.special.name}
               <span className="cd-cost-pill">Magic {def.special.cost}</span>
             </div>
-            <p className="cd-text">{def.special.text}</p>
+            <p className="cd-text">{chipify(def.special.text)}</p>
             {(specCd || summonLock) && (
               <div className="cd-flag">
                 {summonLock
@@ -371,7 +406,7 @@ export function CardDetail(props: {
             <div className="cd-h">Passives</div>
             <ul className="cd-list">
               {passives.map((p, i) => (
-                <li key={i}>{p}</li>
+                <li key={i}>{chipify(p)}</li>
               ))}
             </ul>
           </div>
