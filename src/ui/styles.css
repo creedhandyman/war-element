@@ -109,8 +109,32 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 /* ===== board ===== */
 .board-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; position: relative; min-height: 0; perspective: var(--board-perspective); perspective-origin: center 42%; }
+/* Elemental energy wisps curling in from the edges around the board. */
+.board-area::before {
+  content: ""; position: absolute; inset: -3%; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(circle at 3% 15%, rgba(76, 175, 109, 0.22), transparent 19%),
+    radial-gradient(circle at 97% 13%, rgba(207, 214, 234, 0.16), transparent 17%),
+    radial-gradient(circle at 1% 45%, rgba(224, 96, 96, 0.20), transparent 18%),
+    radial-gradient(circle at 99% 41%, rgba(156, 95, 212, 0.20), transparent 18%),
+    radial-gradient(circle at 5% 84%, rgba(255, 160, 64, 0.18), transparent 18%),
+    radial-gradient(circle at 95% 86%, rgba(77, 148, 232, 0.20), transparent 18%);
+  filter: blur(3px); animation: wispPulse 7s ease-in-out infinite;
+}
+@keyframes wispPulse { 0%, 100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.02); } }
 .battlefield-bg { display: none; }
 .banner { position: relative; z-index: 1; font-family: var(--head); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; text-shadow: 0 1px 3px #000; }
+/* Fog of war — the opponent's hand as face-down cards; deck hidden. */
+.opp-fog { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; }
+.opp-fan { display: flex; align-items: flex-end; height: 40px; padding-left: 8px; }
+.opp-back { position: relative; width: 26px; height: 37px; margin-left: -11px; border-radius: 4px; background: linear-gradient(160deg, #1d2438, #0e1322); border: 1px solid rgba(120, 150, 220, 0.5); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5), inset 0 0 8px rgba(120, 150, 220, 0.12); transform: rotate(calc(var(--i) * 5deg)); transform-origin: bottom center; }
+.opp-back::after { content: "✦"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; color: rgba(143, 183, 240, 0.45); }
+.opp-meta { font-size: 11px; color: var(--steel-lit); font-weight: 700; letter-spacing: 0.03em; line-height: 1.3; }
+.opp-hidden { display: block; font-size: 9px; color: var(--ink-faint); letter-spacing: 0.08em; text-transform: uppercase; }
+.opp-res { display: flex; gap: 8px; }
+.opp-pip { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+.opp-pip.summon { color: var(--steel-lit); background: rgba(21, 101, 192, 0.15); border: 1px solid rgba(120, 160, 230, 0.4); }
+.opp-pip.magic { color: #b6a6f2; background: rgba(90, 70, 180, 0.15); border: 1px solid rgba(150, 130, 240, 0.4); }
 /* Procedural battlefield — no photo. A carved-stone platform floating in space;
    the 4x4 grid fills it and each SLOT *is* a tile, so cards always sit dead-
    centre and it stays crisp at any size. The whole plane tilts back in 3D. */
@@ -302,7 +326,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .queue-help { font-size: 9px; color: var(--ink-faint); margin-top: 8px; line-height: 1.4; }
 
 /* ===== bottom bar ===== */
-.bottom { grid-column: 1/4; display: flex; align-items: center; gap: 12px; background: linear-gradient(180deg, rgba(30, 26, 20, 0.9), rgba(20, 17, 13, 0.9)); border: 1px solid var(--gold-line); border-radius: 12px; padding: 8px 14px; min-height: 118px; box-shadow: inset 0 0 40px rgba(201, 162, 75, 0.04); }
+.bottom { grid-column: 1/4; display: flex; align-items: center; gap: 12px; background: linear-gradient(180deg, rgba(30, 26, 20, 0.9), rgba(20, 17, 13, 0.9)); border: 1px solid var(--gold-line); border-radius: 12px; padding: 8px 14px; min-height: 132px; box-shadow: inset 0 0 40px rgba(201, 162, 75, 0.04); overflow: visible; }
 .resource { display: flex; align-items: center; gap: 20px; padding: 6px 14px; flex: none; }
 /* SUMMON (gold) + MAGIC (blue) diamond gems. */
 .res-gem { display: flex; align-items: center; gap: 11px; }
@@ -318,23 +342,56 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .res-gem.magic .gem-lbl { color: #9db1f5; }
 .gem-opp { font-size: 11px; color: var(--ink-faint); font-weight: 700; margin-top: 2px; }
 
-/* hand */
-.hand { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.hand-head { display: flex; align-items: center; gap: 10px; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); font-weight: 700; }
-.hand-cards { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 2px; }
-.hcard { width: 76px; flex: none; border-radius: 9px; background: var(--void-2); border: 1px solid var(--panel-line); padding: 6px 7px; cursor: pointer; transition: 0.15s; position: relative; }
-.hcard:hover { transform: translateY(-2px); }
-.hcard.summonable { border-color: var(--legal); background: linear-gradient(180deg, var(--legal-soft), var(--void-2) 70%); animation: cardglow 1.8s ease-in-out infinite; }
-@keyframes cardglow { 0%, 100% { box-shadow: 0 0 0 rgba(78, 203, 143, 0); } 50% { box-shadow: 0 0 14px rgba(78, 203, 143, 0.45); } }
-.hcard.unaffordable { opacity: 0.5; }
-.hcard.selected { outline: 2px solid var(--your-home-glow); }
-.hc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
-.hc-cost { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 800; background: #2a3348; }
-.hcard.summonable .hc-cost { background: var(--legal); color: #06251a; }
-.hcard.unaffordable .hc-cost { background: #3a2333; color: #e5533d; }
-.hc-name { font-size: 10px; font-weight: 700; line-height: 1.1; min-height: 22px; }
-.hc-stats { font-size: 9px; color: var(--ink-dim); font-weight: 700; display: flex; gap: 5px; }
+/* hand — a fanned floating arc; the deck sits as a stacked pile beside it. */
+.hand { flex: 1; display: flex; align-items: flex-end; justify-content: center; gap: 14px; min-width: 0; overflow: visible; }
+.hand-fan { flex: 1; display: flex; align-items: flex-end; justify-content: center; min-width: 0; overflow: visible; padding-top: 30px; }
+.hand-empty { color: var(--ink-faint); font-size: 12px; align-self: center; }
+
+/* Each hand card: full-bleed art, cost gem, element sigil, name/type/stats plate.
+   Fanned via per-card --rot/--ty; hover lifts it clear for reading. */
+.hcard {
+  width: 112px; height: 154px; flex: none; margin: 0 -19px; position: relative;
+  border-radius: 11px; cursor: pointer;
+  background: linear-gradient(180deg, #201d2b, #12111a);
+  border: 2px solid color-mix(in srgb, var(--el, #3a4258) 65%, #0d0c14);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6), 0 0 16px color-mix(in srgb, var(--el, #000) 28%, transparent);
+  transform-origin: 50% 135%;
+  transform: rotate(var(--rot, 0deg)) translateY(var(--ty, 0px));
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+.hcard.carded { overflow: visible; }
+.hcard.carded::after { border-radius: 9px; }
+.hcard .card-art { border-radius: 9px; }
+.hcard:hover { transform: translateY(-32px) scale(1.14); z-index: 50 !important; box-shadow: 0 24px 46px rgba(0, 0, 0, 0.7), 0 0 26px color-mix(in srgb, var(--el, #000) 55%, transparent); }
+.hcard.summonable { border-color: var(--legal); animation: cardglow 1.8s ease-in-out infinite; }
+@keyframes cardglow { 0%, 100% { box-shadow: 0 14px 30px rgba(0,0,0,0.6), 0 0 0 rgba(78,203,143,0); } 50% { box-shadow: 0 14px 30px rgba(0,0,0,0.6), 0 0 18px rgba(78,203,143,0.5); } }
+.hcard.unaffordable { opacity: 0.6; filter: grayscale(0.25); }
+.hcard.selected { outline: 2px solid var(--gold-lit); outline-offset: 1px; }
+/* cost gem (top-left) + element sigil (top-right) */
+.hcard .hc-cost {
+  position: absolute; top: -9px; left: -9px; z-index: 4; width: 32px; height: 32px;
+  border-radius: 50%; display: grid; place-items: center; font-size: 15px; font-weight: 800; color: #241a06;
+  background: radial-gradient(circle at 35% 30%, #f4d98c, #a8792a); border: 2px solid var(--gold-hi);
+  box-shadow: 0 0 12px rgba(232, 200, 119, 0.7); text-shadow: none;
+}
+.hcard.unaffordable .hc-cost { background: radial-gradient(circle at 35% 30%, #b98c8c, #6a3a3a); color: #f0d0d0; border-color: #c98a8a; box-shadow: none; }
+.hc-sigil { position: absolute; top: -7px; right: -7px; z-index: 4; width: 23px; height: 23px; border-radius: 50%; background: #0d0c14; border: 2px solid currentColor; display: grid; place-items: center; font-size: 12px; }
+.hc-plate { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 18px 7px 7px; background: linear-gradient(180deg, transparent, rgba(8,7,12,0.78) 32%, rgba(8,7,12,0.95)); border-radius: 0 0 9px 9px; }
+.hcard .hc-name { font-family: var(--head); font-size: 12.5px; font-weight: 700; text-align: center; color: #efe9d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px #000; min-height: 0; }
+.hc-type { text-align: center; font-size: 9px; color: var(--ink-dim); letter-spacing: 0.03em; margin-top: 1px; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hcard .hc-stats { display: flex; justify-content: space-between; gap: 2px; padding: 5px 3px 0; font-size: 12px; font-weight: 800; color: inherit; }
+.hcard .hc-stats .s-dmg { color: #ff7b7b; } .hcard .hc-stats .s-hp { color: #7fe09a; } .hcard .hc-stats .s-sh { color: #9fc8ea; } .hcard .hc-stats .s-sp { color: #ffd763; }
 .hc-class { font-size: 8px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* deck as a stacked pile with its count */
+.deck-stack { flex: none; position: relative; width: 56px; height: 76px; align-self: center; }
+.ds-plate, .ds-face { position: absolute; inset: 0; border-radius: 8px; border: 1px solid var(--gold-line); }
+.ds-plate { background: linear-gradient(160deg, #1b1826, #12101a); }
+.ds-plate:nth-child(1) { transform: translate(6px, 6px); }
+.ds-plate:nth-child(2) { transform: translate(3px, 3px); }
+.ds-face { background: linear-gradient(160deg, #2a2410, #171204); border: 1.5px solid var(--gold); display: grid; place-items: center; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5); }
+.ds-count { font-size: 21px; font-weight: 900; color: var(--gold-hi); text-shadow: 0 0 8px rgba(232, 200, 119, 0.6); }
+.ds-lbl { font-family: var(--head); font-size: 8px; letter-spacing: 0.14em; color: var(--gold-lit); }
 
 /* Layered card art for hand + mulligan cards (same <img> approach as tokens):
    real <img> beneath a bottom-weighted scrim, content above. */

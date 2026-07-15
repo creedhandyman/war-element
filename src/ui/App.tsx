@@ -451,6 +451,7 @@ export function App() {
             ? enemyOf(me)
             : null
         }
+        viewPlayer={view}
         onSlotClick={onSlotClick}
         onCycleAuto={onCycleAuto}
       />

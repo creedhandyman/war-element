@@ -1,5 +1,5 @@
 import type { GameState, PlayerId, Pos } from "../engine";
-import { cardAt, getSpell, isContested } from "../engine";
+import { cardAt, enemyOf, getSpell, isContested } from "../engine";
 import { Slot } from "./Slot";
 import { EL_COLOR } from "./shared";
 
@@ -12,13 +12,32 @@ export function Board(props: {
   selectedId: string | null;
   actingId: string | null;
   grayTeam: PlayerId | null; // whose cards to gray out (the idle team on your turn)
+  viewPlayer: PlayerId; // whose side you're looking from (the opponent is fogged)
   onSlotClick: (row: number, col: number) => void;
   onCycleAuto: (instanceId: string) => void;
 }) {
   const { game } = props;
   const rows = [0, 1, 2, 3] as const;
+  const opp = game.players[enemyOf(props.viewPlayer)];
+  const oppName = (game.humans ?? ["P1"]).length > 1 ? enemyOf(props.viewPlayer) : "Opponent";
   return (
     <div className="board-area">
+      {/* Fog of war: the opponent's hand is face-down; their deck is hidden. */}
+      <div className="opp-fog">
+        <div className="opp-fan" title={`${oppName}: ${opp.hand.length} cards in hand`}>
+          {Array.from({ length: Math.min(opp.hand.length, 8) }).map((_, i) => (
+            <span key={i} className="opp-back" style={{ ["--i" as string]: i - Math.min(opp.hand.length, 8) / 2 }} />
+          ))}
+        </div>
+        <div className="opp-meta">
+          <b>{oppName}</b> · {opp.hand.length} cards
+          <span className="opp-hidden">deck hidden</span>
+        </div>
+        <div className="opp-res">
+          <span className="opp-pip summon">◆ {opp.summonPool}</span>
+          <span className="opp-pip magic">✦ {opp.magicPool}</span>
+        </div>
+      </div>
       <div className="banner opp" style={{ color: "var(--opp-home-glow)" }}>
         ▲ Opponent Home
       </div>

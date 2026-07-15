@@ -14,6 +14,18 @@ export const EL_COLOR: Record<Element, string> = {
   DAWN: "#ffd54f",
 };
 
+// Per-element alchemical sigil — a small flourish on card faces.
+export const EL_SIGIL: Record<Element, string> = {
+  LEAF: "🜁",
+  AQUA: "🜄",
+  PYRO: "🜂",
+  BORE: "🜃",
+  GALE: "≋",
+  BOLT: "⚡",
+  DUSK: "☽",
+  DAWN: "☀",
+};
+
 // Per-element dark stripe pair — the card-token backdrop when art is missing.
 export const EL_STRIPE: Record<Element, [string, string]> = {
   LEAF: ["#16321c", "#0e2413"],
