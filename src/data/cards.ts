@@ -2019,8 +2019,9 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 0,
     keywords: {},
-    // Swinging Sweep (On Summon): 2 DMG to the row ahead and push each back 1.
-    onSummon: { handler: "barrage", params: { dmg: 2, spread: 1, targets: 99, push: 1 } },
+    // Swinging Sweep (On Summon): 2 DMG to ALL opponents in range (a full boom)
+    // and push each back 1.
+    onSummon: { handler: "barrage", params: { dmg: 2, allEnemies: 1, targets: 99, push: 1 } },
   },
   {
     id: "bore_cavedweller",

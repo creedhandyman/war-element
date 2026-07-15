@@ -490,6 +490,19 @@ describe("on-opponent-summon reactions", () => {
     expect(g2.statuses.some((x) => x.kind === "PARALYZE")).toBe(false); // out of range
   });
 
+  it("BaBoom's Swinging Sweep booms every targetable enemy on summon, sparing the out-of-range home row", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 5;
+    const midA = place(s, "dusk_gool", "P2", 1, 3, { curHp: 20, maxHp: 40, curShields: 0 });
+    const midB = place(s, "dusk_gool", "P2", 2, 3, { curHp: 20, maxHp: 40, curShields: 0 });
+    const home = place(s, "dusk_gool", "P2", 0, 3, { curHp: 20, maxHp: 40, curShields: 0 });
+    const handId = giveHand(s, "P1", "pyro_baboom");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(next.cards[midA.instanceId].curHp).toBe(18); // −2 boom (in range, any column)
+    expect(next.cards[midB.instanceId].curHp).toBe(18);
+    expect(next.cards[home.instanceId].curHp).toBe(20); // enemy home is unreachable from BaBoom's home row
+  });
+
   it("Rock Goblin's Cave Guard stays silent for a summon out of its melee range", () => {
     const s = prepState();
     s.players.P1.summonPool = 5;
