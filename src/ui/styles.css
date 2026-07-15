@@ -27,6 +27,20 @@
   --accent: var(--gold-lit);
   --head: "Cinzel", serif;
   --body-font: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  /* 3D board plane — the grid + cards tilt back as one flat plane. Nudge these
+     two to match the battlefield art: --board-tilt 0 = top-down (flat), higher =
+     more dramatic low-angle table; --board-perspective = camera distance
+     (smaller = stronger perspective). */
+  --board-tilt: 14deg;
+  --board-perspective: 1700px;
+  /* Grid overlay alignment onto the painted tiles. The playable 4x4 sits inside
+     the art's stone border — these insets/gap position the clickable grid over
+     it. Nudge to line the slots up with the painted tiles. */
+  --board-size: min(74vh, 680px);
+  --grid-pad-x: 14.5%;
+  --grid-pad-top: 14%;
+  --grid-pad-bottom: 12.5%;
+  --grid-gap: 1.4%;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; }
@@ -92,17 +106,25 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .rail.queue-rail .rail-title { color: var(--steel-lit); }
 
 /* ===== board ===== */
-.board-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; position: relative; min-height: 0; }
-/* The battlefield art as an ambient backdrop behind the grid. */
-.battlefield-bg {
-  position: absolute; inset: -6% -4%; z-index: 0; pointer-events: none;
-  background: url("/battlefield.png") center/contain no-repeat;
-  opacity: 0.22; filter: saturate(1.1) blur(1px);
-  mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, #000 55%, transparent 88%);
-  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, #000 55%, transparent 88%);
-}
+.board-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; position: relative; min-height: 0; perspective: var(--board-perspective); perspective-origin: center 42%; }
+.battlefield-bg { display: none; } /* the art is now the board surface itself */
 .banner { position: relative; z-index: 1; font-family: var(--head); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; text-shadow: 0 1px 3px #000; }
-.board { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(91, 155, 213, 0.06), rgba(224, 166, 53, 0.06)); border: 1px solid var(--gold-line); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55), inset 0 0 60px rgba(5, 6, 11, 0.5); }
+/* The board IS the battlefield art: a fixed-square surface, with the 4x4 grid
+   inset over the painted tiles. Grid + art are one element, so the 3D tilt
+   moves them together — they can never drift out of alignment. Cards lie flat
+   on the plane (they tilt with the board). */
+.board {
+  position: relative; z-index: 1; box-sizing: border-box;
+  width: var(--board-size); height: var(--board-size);
+  padding: var(--grid-pad-top) var(--grid-pad-x) var(--grid-pad-bottom);
+  display: flex; flex-direction: column; gap: var(--grid-gap);
+  background: url("/battlefield.png") center / 100% 100% no-repeat;
+  border-radius: 6px;
+  transform: rotateX(var(--board-tilt));
+  transform-origin: center 55%;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+.brow { flex: 1; display: flex; gap: var(--grid-gap); position: relative; min-height: 0; }
 .brow { display: flex; gap: 8px; position: relative; }
 /* Wall overlay: element-tinted brackets framing the walled row for its
    duration, plus a small label pill naming it and counting rounds left. */
@@ -127,10 +149,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Two walls on one row (both players): nudge the labels apart. */
 .wallmark.mine { left: 30%; }
 .wallmark.enemy { left: 70%; }
-.slot { width: 120px; height: 142px; border-radius: 11px; position: relative; cursor: pointer; background: rgba(18, 17, 26, 0.55); border: 2px solid var(--panel-line); transition: 0.18s; display: grid; place-items: center; backdrop-filter: blur(1px); }
-.slot.row-opp { border-color: rgba(120, 175, 255, 0.6); box-shadow: inset 0 0 26px rgba(91, 155, 213, 0.16), 0 0 14px rgba(91, 155, 213, 0.12); }
-.slot.row-mid { border-color: rgba(160, 168, 190, 0.45); }
-.slot.row-your { border-color: rgba(232, 200, 119, 0.6); box-shadow: inset 0 0 26px rgba(224, 166, 53, 0.18), 0 0 14px rgba(224, 166, 53, 0.14); }
+/* Slots fill their grid cell and sit transparent over the painted tiles — just
+   a soft rim so you can see the playable cells; the art shows through. */
+.slot { flex: 1; min-width: 0; aspect-ratio: 1; border-radius: 8px; position: relative; cursor: pointer; background: transparent; border: 1.5px solid transparent; transition: 0.18s; display: grid; place-items: center; }
+.slot.row-opp { border-color: rgba(120, 175, 255, 0.25); }
+.slot.row-mid { border-color: rgba(160, 168, 190, 0.16); }
+.slot.row-your { border-color: rgba(232, 200, 119, 0.25); }
 .slot.legal { border-color: var(--legal); animation: legalpulse 1.4s infinite; }
 @keyframes legalpulse {
   0%, 100% { box-shadow: 0 0 14px var(--legal-soft), inset 0 0 16px var(--legal-soft); }
@@ -145,7 +169,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .lock { position: absolute; top: 4px; right: 5px; font-size: 12px; opacity: 0.85; }
 
 /* token */
-.token { width: 110px; height: 132px; border-radius: 9px; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 7px; overflow: visible; transition: transform 0.15s ease, box-shadow 0.15s ease; border: 1.5px solid var(--el-rim, var(--panel-line)); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65), 0 0 15px color-mix(in srgb, var(--el-rim, #000) 30%, transparent); }
+.token { width: 94%; height: 94%; border-radius: 9px; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 6px; overflow: visible; transition: transform 0.15s ease, box-shadow 0.15s ease; border: 1.5px solid var(--el-rim, var(--panel-line)); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65), 0 0 15px color-mix(in srgb, var(--el-rim, #000) 30%, transparent); }
 .token.mine { background: linear-gradient(180deg, #1c1a26, #12111a); }
 .token.enemy { background: linear-gradient(180deg, #1c1a26, #12111a); }
 /* keyword pips (top edge) + status icons (bottom edge) */

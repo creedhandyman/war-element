@@ -19,7 +19,6 @@ export function Board(props: {
   const rows = [0, 1, 2, 3] as const;
   return (
     <div className="board-area">
-      <div className="battlefield-bg" aria-hidden="true" />
       <div className="banner opp" style={{ color: "var(--opp-home-glow)" }}>
         ▲ Opponent Home
       </div>
