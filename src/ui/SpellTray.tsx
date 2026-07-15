@@ -2,8 +2,8 @@ import type { GameState, PlayerId } from "../engine";
 import { getSpell } from "../engine";
 import { EL_COLOR } from "./shared";
 
-/** The human's spellbook as a row of cast buttons. Each spell is castable once
- *  per game (Prep Phase, paid from the magic pool). Greyed when spent, too
+/** The human's spellbook as a row of mini spell cards. Each spell is castable
+ *  once per game (Prep Phase, paid from the magic pool). Greyed when spent, too
  *  pricey, or it isn't your prep turn. */
 export function SpellTray(props: {
   game: GameState;
@@ -30,13 +30,14 @@ export function SpellTray(props: {
             <button
               key={slot.defId}
               className={`spellchip ${armed ? "armed" : ""} ${slot.used ? "used" : ""}`}
+              style={{ ["--el" as string]: EL_COLOR[spell.element] }}
               disabled={disabled}
               title={`${spell.name} (cost ${spell.cost}) — ${spell.text}${slot.used ? " · already cast" : afford ? "" : " · not enough magic"}`}
               onClick={() => props.onPick(slot.defId)}
             >
-              <span className="spellchip-dot" style={{ background: EL_COLOR[spell.element] }} />
-              <span className="spellchip-name">{spell.name}</span>
               <span className="spellchip-cost">{spell.cost}</span>
+              <span className="spellchip-art" />
+              <span className="spellchip-name">{spell.name}</span>
             </button>
           );
         })}

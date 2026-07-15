@@ -568,19 +568,18 @@ export function App() {
             onPick={onPickHand}
           />
         )}
-
-        {me && game.phase === "prep" && (
-          <SpellTray
-            game={game}
-            player={me}
-            armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
-            myTurn={myPrep}
-            onPick={onPickSpell}
-          />
-        )}
         </div>
 
         <div className="controls">
+          {me && game.phase === "prep" && (
+            <SpellTray
+              game={game}
+              player={me}
+              armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
+              myTurn={myPrep}
+              onPick={onPickSpell}
+            />
+          )}
           <div className="hint" dangerouslySetInnerHTML={{ __html: hint }} />
           {/* Pass Priority is the primary action; secondary controls stack
               underneath it so the hand keeps its width. */}

@@ -424,23 +424,31 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .handcol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
 .handcol > :first-child { flex: 1; min-height: 0; }
 
-/* Spell tray: the human's spellbook as cast chips, stacked below the hand. */
-.spelltray { display: flex; align-items: center; gap: 8px; flex: none; }
-.spelltray-label { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-dim); }
-.spelltray-row { display: flex; flex-wrap: wrap; gap: 5px; }
+/* Spell tray: the spellbook as a row of mini spell cards (bottom-right, by the
+   actions) — cost pip on top, an element-tinted art strip, then the name. */
+.spelltray { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.spelltray-label { font-family: var(--head); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); }
+.spelltray-row { display: flex; gap: 7px; flex-wrap: wrap; }
 .spellchip {
-  display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
-  font-size: 11px; font-weight: 700; color: var(--ink);
-  padding: 3px 8px; border-radius: 999px;
-  background: var(--void-2); border: 1px solid var(--panel-line);
+  position: relative; width: 50px; flex: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 10px 5px 6px; border-radius: 8px;
+  background: linear-gradient(180deg, #191c30, #0e1020);
+  border: 1.5px solid color-mix(in srgb, var(--el, #26307a) 60%, #0d0c14);
   transition: 0.14s;
 }
-.spellchip:hover:not(:disabled) { border-color: var(--your-home-glow); transform: translateY(-1px); }
-.spellchip.armed { border-color: var(--your-home-glow); box-shadow: 0 0 10px rgba(224, 166, 53, 0.5); background: rgba(224, 166, 53, 0.12); }
-.spellchip:disabled { opacity: 0.4; cursor: default; }
-.spellchip.used { text-decoration: line-through; }
-.spellchip-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-.spellchip-cost { font-size: 10px; font-weight: 800; color: var(--accent); }
+.spellchip:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--el, var(--steel-lit)); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5); }
+.spellchip.armed { border-color: var(--gold-lit); box-shadow: 0 0 12px rgba(232, 200, 119, 0.5); }
+.spellchip:disabled { opacity: 0.42; cursor: default; }
+.spellchip.used { opacity: 0.42; filter: grayscale(0.6); }
+.spellchip-cost {
+  position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+  width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 35% 30%, #7d92e8, #26307a); border: 1.5px solid #b9c8ff;
+  color: #fff; font-size: 11px; font-weight: 800; box-shadow: 0 0 8px rgba(130, 160, 255, 0.6);
+}
+.spellchip-art { width: 100%; height: 30px; border-radius: 4px; background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 55%, #0d0c14), #0b0d18); box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5); }
+.spellchip-name { font-size: 9.5px; font-weight: 700; color: #d8d2c0; text-align: center; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
 .controls { display: flex; flex-direction: column; gap: 7px; align-items: stretch; flex: none; width: 172px; }
 .hint { font-size: 11px; color: var(--ink-dim); text-align: right; line-height: 1.35; }
