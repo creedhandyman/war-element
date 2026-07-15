@@ -458,7 +458,7 @@ export function App() {
 
       <SpeedQueue game={game} />
 
-      <div className="bottom">
+      <div className={`bottom${!myPrep && activeCard === null ? " compact" : ""}`}>
         <ResourcePool game={game} player={view} />
 
         <div className="handcol">

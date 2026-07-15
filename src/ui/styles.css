@@ -339,7 +339,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .queue-help { font-size: 9px; color: var(--ink-faint); margin-top: 8px; line-height: 1.4; }
 
 /* ===== bottom bar ===== */
-.bottom { grid-column: 1/4; display: flex; align-items: center; gap: 12px; background: linear-gradient(180deg, rgba(30, 26, 20, 0.9), rgba(20, 17, 13, 0.9)); border: 1px solid var(--gold-line); border-radius: 12px; padding: 8px 14px; min-height: 132px; box-shadow: inset 0 0 40px rgba(201, 162, 75, 0.04); overflow: visible; }
+.bottom { grid-column: 1/4; display: flex; align-items: center; gap: 12px; background: linear-gradient(180deg, rgba(30, 26, 20, 0.9), rgba(20, 17, 13, 0.9)); border: 1px solid var(--gold-line); border-radius: 12px; padding: 8px 14px; min-height: 132px; box-shadow: inset 0 0 40px rgba(201, 162, 75, 0.04); overflow: visible; transition: min-height 0.28s ease, padding 0.28s ease; }
+/* Collapsed: the hand isn't usable (not your prep turn, no card up), so the
+   bar shrinks to give the battlefield more room — the non-essential controls
+   fold away and only a slim status + the shrunken hand/resources remain. */
+.bottom.compact { min-height: 58px; padding-top: 5px; padding-bottom: 5px; }
+.bottom.compact .ctl-sub { display: none; }
+.bottom.compact .spelltray { display: none; }
+.bottom.compact .pass-btn { display: none; } /* unusable when it's not your turn */
 .resource { display: flex; align-items: center; gap: 20px; padding: 6px 14px; flex: none; }
 /* SUMMON (gold) + MAGIC (blue) diamond gems. */
 .res-gem { display: flex; align-items: center; gap: 11px; }
@@ -370,7 +377,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6), 0 0 16px color-mix(in srgb, var(--el, #000) 28%, transparent);
   transform-origin: 50% 135%;
   transform: rotate(var(--rot, 0deg)) translateY(var(--ty, 0px));
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, height 0.26s ease, margin 0.26s ease;
 }
 .hcard.carded { overflow: visible; }
 .hcard.carded::after { border-radius: 9px; }
@@ -405,6 +412,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .ds-face { background: linear-gradient(160deg, #2a2410, #171204); border: 1.5px solid var(--gold); display: grid; place-items: center; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5); }
 .ds-count { font-size: 21px; font-weight: 900; color: var(--gold-hi); text-shadow: 0 0 8px rgba(232, 200, 119, 0.6); }
 .ds-lbl { font-family: var(--head); font-size: 8px; letter-spacing: 0.14em; color: var(--gold-lit); }
+
+/* Collapsed hand — a compact pile of art thumbnails when you can't act. Hovering
+   a card peeks it (scales up + shows its plate) without growing the bar. */
+.hand.collapsed .hand-fan { padding-top: 4px; }
+.hand.collapsed .hcard { height: 44px; margin: 0 -33px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); }
+.hand.collapsed .hc-plate { display: none; }
+.hand.collapsed .hc-sigil { display: none; }
+.hand.collapsed .hc-cost { width: 21px; height: 21px; font-size: 12px; top: -6px; left: -6px; }
+.hand.collapsed .deck-stack { width: 42px; height: 52px; }
+.hand.collapsed .ds-count { font-size: 15px; }
+.hand.collapsed .hcard:hover { transform: translateY(-72px) scale(2.7); z-index: 60 !important; }
+.hand.collapsed .hcard:hover .hc-plate { display: block; }
 
 /* Layered card art for hand + mulligan cards (same <img> approach as tokens):
    real <img> beneath a bottom-weighted scrim, content above. */

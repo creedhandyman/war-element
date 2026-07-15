@@ -16,7 +16,7 @@ export function Hand(props: {
   const center = (n - 1) / 2;
 
   return (
-    <div className="hand">
+    <div className={`hand${myPrep ? "" : " collapsed"}`}>
       {/* Deck as a stacked pile with its count. */}
       <div className="deck-stack" title={`Your deck — ${me.deck.length} cards`}>
         <span className="ds-plate" />
