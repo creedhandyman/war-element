@@ -14,7 +14,7 @@ export function SpeedQueue(props: { game: GameState }) {
         .map((c) => ({ id: c.instanceId, done: false }));
 
   return (
-    <div className="rail">
+    <div className="rail queue-rail">
       <div className="rail-title">Speed Queue · 15 → 0</div>
       <div className="queue-scale">
         {entries.map(({ id, done }, i) => {

@@ -1,33 +1,60 @@
-/* War Element — alpha UI. Visual language ported from war_element_battle_ui_2.html */
+/* War Element — battlefield redesign. Cosmic/gold fantasy language. */
 :root {
-  --void: #0b0e17;
-  --void-2: #121724;
-  --panel: #181e2e;
+  --void: #07070d;
+  --void-2: #12111a;
+  --panel: #16141f;
   --panel-line: #2a3348;
-  --ink: #e8ecf5;
-  --ink-dim: #8b96ad;
-  --ink-faint: #5a6478;
+  --ink: #e8e2d2;
+  --ink-dim: #a99f88;
+  --ink-faint: #6f6a5a;
+  /* Gold is the primary accent (SUMMON / "you" / chrome). */
+  --gold: #c9a24b;
+  --gold-lit: #e8c877;
+  --gold-hi: #ffe9b0;
+  --gold-line: rgba(201, 162, 75, 0.4);
+  /* Blue is the secondary accent (MAGIC / "enemy"). */
+  --steel: #5b74d8;
+  --steel-lit: #8fb7f0;
   --opp-home: #5b9bd5;
   --opp-home-glow: #8fc3ff;
-  --mid: #8892a6;
+  --mid: #8b8fa3;
   --your-home: #e0a635;
   --your-home-glow: #ffce6b;
   --legal: #4ecb8f;
   --legal-soft: rgba(78, 203, 143, 0.18);
   --threat: #e5533d;
   --threat-soft: rgba(229, 83, 61, 0.16);
-  --accent: #a78bfa;
+  --accent: var(--gold-lit);
+  --head: "Cinzel", serif;
+  --body-font: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; }
 body {
-  background: radial-gradient(120% 100% at 50% 0%, #101626 0%, var(--void) 60%);
   color: var(--ink);
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: var(--body-font);
   font-size: 14px;
   overflow: hidden;
+  background:
+    radial-gradient(circle at -6% -8%, rgba(76, 175, 109, 0.10), transparent 34%),
+    radial-gradient(circle at 106% -8%, rgba(149, 117, 255, 0.10), transparent 34%),
+    radial-gradient(circle at -6% 108%, rgba(224, 96, 96, 0.09), transparent 34%),
+    radial-gradient(circle at 106% 108%, rgba(77, 148, 232, 0.11), transparent 34%),
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(200, 215, 255, 0.5) 50%, transparent 51%),
+    radial-gradient(1px 1px at 78% 12%, rgba(255, 240, 210, 0.45) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 88% 62%, rgba(180, 200, 255, 0.4) 50%, transparent 51%),
+    radial-gradient(1px 1px at 6% 74%, rgba(255, 255, 255, 0.3) 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 62% 88%, rgba(200, 220, 255, 0.35) 50%, transparent 51%),
+    radial-gradient(ellipse 120% 90% at 50% 30%, #10121f 0%, #090a14 45%, #05060b 100%);
+}
+/* Gold filigree frame around the whole screen. */
+body::before {
+  content: ""; position: fixed; inset: 8px; border: 1px solid var(--gold-line);
+  border-radius: 10px; pointer-events: none; z-index: 50;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.6);
 }
 button { font-family: inherit; }
+h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 .wrap {
   display: grid;
@@ -39,26 +66,43 @@ button { font-family: inherit; }
 }
 
 /* ===== phase ribbon ===== */
-.phase-ribbon { grid-column: 1/4; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px; }
-.phase { padding: 6px 16px; border-radius: 20px; background: var(--panel); border: 1px solid var(--panel-line); color: var(--ink-faint); font-weight: 600; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; transition: 0.25s; }
-.phase.active { color: var(--void); background: linear-gradient(180deg, #c4b3ff, var(--accent)); border-color: transparent; box-shadow: 0 0 20px rgba(167, 139, 250, 0.4); }
-.phase-arrow { color: var(--ink-faint); font-size: 11px; }
-.waiting { margin-left: 14px; font-size: 11px; color: var(--accent); display: flex; align-items: center; gap: 6px; }
-.dot-pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pulse 1.2s infinite; }
+.phase-ribbon { grid-column: 1/4; display: flex; align-items: center; justify-content: center; gap: 22px; padding: 4px; }
+.phase-pills { display: flex; align-items: center; background: linear-gradient(180deg, #171528, #0e0d1a); border: 1px solid var(--gold-line); border-radius: 999px; padding: 5px 8px; box-shadow: 0 0 24px rgba(201, 162, 75, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06); }
+.phase { padding: 6px 15px; border-radius: 999px; color: var(--ink-faint); font-family: var(--head); font-weight: 700; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; transition: 0.25s; }
+.phase.active { color: #241a06; background: linear-gradient(180deg, var(--gold-lit), #b8903a); box-shadow: 0 0 16px rgba(232, 200, 119, 0.5); }
+.waiting { font-size: 12px; color: var(--gold-lit); display: flex; align-items: center; gap: 6px; font-style: italic; }
+.dot-pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--gold-lit); animation: pulse 1.2s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
-.roundchip { margin-left: 10px; font-size: 11px; color: var(--ink-dim); font-weight: 700; letter-spacing: 0.08em; }
+.roundchip { font-family: var(--head); font-size: 13px; color: var(--ink-dim); font-weight: 700; letter-spacing: 0.14em; }
+.roundchip b { color: var(--gold-lit); font-size: 20px; }
+.priority-chip { display: flex; align-items: center; gap: 8px; font-family: var(--head); font-size: 12px; letter-spacing: 0.12em; color: var(--ink-dim); }
+.priority-chip b { color: var(--gold-lit); }
+.pri-dot { width: 10px; height: 10px; border-radius: 50%; }
+.pri-dot.you { background: var(--gold-lit); box-shadow: 0 0 10px var(--gold-lit); }
+.pri-dot.opp { background: var(--steel-lit); box-shadow: 0 0 10px var(--steel-lit); }
 
-/* ===== left rail: log ===== */
-.rail { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 12px; padding: 12px; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
-.rail-title { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 10px; font-weight: 700; }
-.loglist { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; font-size: 11px; color: var(--ink-dim); line-height: 1.45; min-height: 0; }
-.loglist .me { color: var(--opp-home-glow); }
-.loglist div { border-bottom: 1px solid rgba(42, 51, 72, 0.5); padding-bottom: 3px; }
+/* ===== rails: log (left) + speed queue (right) ===== */
+.rail { background: linear-gradient(180deg, rgba(30, 26, 20, 0.92), rgba(20, 17, 13, 0.92)); border: 1px solid var(--gold-line); border-radius: 10px; padding: 12px; overflow: hidden; display: flex; flex-direction: column; min-height: 0; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 40px rgba(201, 162, 75, 0.05); }
+.rail-title { font-family: var(--head); font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold-lit); margin-bottom: 10px; font-weight: 700; }
+.loglist { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; font-size: 12.5px; color: var(--ink-dim); line-height: 1.4; min-height: 0; }
+.loglist .me { color: var(--gold-lit); }
+.loglist div { border-bottom: 1px solid rgba(201, 162, 75, 0.12); padding-bottom: 4px; }
+/* Speed Queue rail leans blue (initiative/enemy accent). */
+.rail.queue-rail { border-color: rgba(140, 160, 220, 0.35); }
+.rail.queue-rail .rail-title { color: var(--steel-lit); }
 
 /* ===== board ===== */
 .board-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; position: relative; min-height: 0; }
-.banner { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 700; }
-.board { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(91, 155, 213, 0.05), rgba(224, 166, 53, 0.05)); border: 1px solid var(--panel-line); }
+/* The battlefield art as an ambient backdrop behind the grid. */
+.battlefield-bg {
+  position: absolute; inset: -6% -4%; z-index: 0; pointer-events: none;
+  background: url("/battlefield.png") center/contain no-repeat;
+  opacity: 0.22; filter: saturate(1.1) blur(1px);
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, #000 55%, transparent 88%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, #000 55%, transparent 88%);
+}
+.banner { position: relative; z-index: 1; font-family: var(--head); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; text-shadow: 0 1px 3px #000; }
+.board { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(91, 155, 213, 0.06), rgba(224, 166, 53, 0.06)); border: 1px solid var(--gold-line); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55), inset 0 0 60px rgba(5, 6, 11, 0.5); }
 .brow { display: flex; gap: 8px; position: relative; }
 /* Wall overlay: element-tinted brackets framing the walled row for its
    duration, plus a small label pill naming it and counting rounds left. */
@@ -83,10 +127,10 @@ button { font-family: inherit; }
 /* Two walls on one row (both players): nudge the labels apart. */
 .wallmark.mine { left: 30%; }
 .wallmark.enemy { left: 70%; }
-.slot { width: 120px; height: 142px; border-radius: 11px; position: relative; cursor: pointer; background: var(--void-2); border: 2px solid var(--panel-line); transition: 0.18s; display: grid; place-items: center; }
-.row-opp .slot { border-color: rgba(91, 155, 213, 0.5); box-shadow: inset 0 0 24px rgba(91, 155, 213, 0.1); }
-.row-mid .slot { border-color: rgba(136, 146, 166, 0.4); }
-.row-your .slot { border-color: rgba(224, 166, 53, 0.5); box-shadow: inset 0 0 24px rgba(224, 166, 53, 0.1); }
+.slot { width: 120px; height: 142px; border-radius: 11px; position: relative; cursor: pointer; background: rgba(18, 17, 26, 0.55); border: 2px solid var(--panel-line); transition: 0.18s; display: grid; place-items: center; backdrop-filter: blur(1px); }
+.slot.row-opp { border-color: rgba(120, 175, 255, 0.6); box-shadow: inset 0 0 26px rgba(91, 155, 213, 0.16), 0 0 14px rgba(91, 155, 213, 0.12); }
+.slot.row-mid { border-color: rgba(160, 168, 190, 0.45); }
+.slot.row-your { border-color: rgba(232, 200, 119, 0.6); box-shadow: inset 0 0 26px rgba(224, 166, 53, 0.18), 0 0 14px rgba(224, 166, 53, 0.14); }
 .slot.legal { border-color: var(--legal); animation: legalpulse 1.4s infinite; }
 @keyframes legalpulse {
   0%, 100% { box-shadow: 0 0 14px var(--legal-soft), inset 0 0 16px var(--legal-soft); }
@@ -101,9 +145,15 @@ button { font-family: inherit; }
 .lock { position: absolute; top: 4px; right: 5px; font-size: 12px; opacity: 0.85; }
 
 /* token */
-.token { width: 110px; height: 132px; border-radius: 9px; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 7px; overflow: hidden; transition: transform 0.15s ease, box-shadow 0.15s ease; }
-.token.mine { background: linear-gradient(160deg, #243250, #1a2136); }
-.token.enemy { background: linear-gradient(160deg, #3a2333, #241722); }
+.token { width: 110px; height: 132px; border-radius: 9px; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 7px; overflow: visible; transition: transform 0.15s ease, box-shadow 0.15s ease; border: 1.5px solid var(--el-rim, var(--panel-line)); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65), 0 0 15px color-mix(in srgb, var(--el-rim, #000) 30%, transparent); }
+.token.mine { background: linear-gradient(180deg, #1c1a26, #12111a); }
+.token.enemy { background: linear-gradient(180deg, #1c1a26, #12111a); }
+/* keyword pips (top edge) + status icons (bottom edge) */
+.kw-pips { position: absolute; top: -9px; left: 4px; right: 4px; z-index: 5; display: flex; gap: 3px; justify-content: center; }
+.kw-pip { min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #0d0c14; border: 1px solid; font-size: 9.5px; font-weight: 800; line-height: 14px; display: grid; place-items: center; }
+.status-icons { position: absolute; bottom: -9px; left: 4px; right: 4px; z-index: 5; display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; }
+.status-icon { min-width: 17px; height: 17px; padding: 0 4px; border-radius: 8px; background: #0d0c14; border: 1px solid; font-size: 9.5px; font-weight: 800; line-height: 15px; display: grid; place-items: center; }
+.freeze-overlay { position: absolute; inset: 0; z-index: 3; border-radius: 8px; pointer-events: none; background: linear-gradient(160deg, rgba(140, 200, 255, 0.28), rgba(60, 120, 200, 0.16)); box-shadow: inset 0 0 16px rgba(160, 215, 255, 0.55); }
 .token.selected { outline: 2px solid var(--your-home-glow); outline-offset: 1px; }
 .token.acting { outline: 2px solid var(--accent); outline-offset: 1px; animation: qnext 1.3s infinite; }
 /* Attack spotlight: the card taking its turn in the speed queue grows and
@@ -117,13 +167,13 @@ button { font-family: inherit; }
    filter doesn't force a low-res rasterization. */
 .card-art {
   position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0;
-  object-fit: cover; object-position: center top;
+  object-fit: cover; object-position: center top; border-radius: 7px;
   pointer-events: none; filter: saturate(1.08);
 }
 /* Scrim: transparent over the top art, darkening only the lower ~third where
    the class line + stat row sit, so those stay legible. */
 .token::after {
-  content: ""; position: absolute; inset: 0; z-index: 0;
+  content: ""; position: absolute; inset: 0; z-index: 0; border-radius: 7px;
   background: linear-gradient(180deg, rgba(6,8,14,0) 40%, rgba(6,8,14,0.42) 66%, rgba(6,8,14,0.9) 100%);
 }
 .token > .tk-top, .token > .tk-bottom { position: relative; z-index: 1; }
@@ -184,8 +234,9 @@ button { font-family: inherit; }
 /* ===== right rail: speed queue ===== */
 .queue-scale { position: relative; flex: 1; overflow-y: auto; min-height: 0; }
 .qrow { display: flex; align-items: center; gap: 7px; padding: 4px 8px; border-radius: 7px; font-size: 11px; font-weight: 600; border: 1px solid transparent; margin-bottom: 4px; }
-.qrow.mine { background: rgba(78, 155, 213, 0.14); border-color: rgba(91, 155, 213, 0.3); }
-.qrow.enemy { background: rgba(229, 83, 61, 0.12); border-color: rgba(229, 83, 61, 0.3); }
+.qrow.mine { background: rgba(232, 200, 119, 0.12); border-color: var(--gold-line); }
+.qrow.enemy { background: rgba(110, 140, 240, 0.12); border-color: rgba(140, 160, 220, 0.35); }
+.qrow.mine .qsp { color: var(--gold-lit); } .qrow.enemy .qsp { color: var(--steel-lit); }
 .qrow.next { outline: 2px solid var(--accent); animation: qnext 1.3s infinite; }
 .qrow.done { opacity: 0.35; }
 @keyframes qnext { 0%, 100% { outline-color: rgba(167, 139, 250, 0.4); } 50% { outline-color: var(--accent); } }
@@ -198,12 +249,21 @@ button { font-family: inherit; }
 .queue-help { font-size: 9px; color: var(--ink-faint); margin-top: 8px; line-height: 1.4; }
 
 /* ===== bottom bar ===== */
-.bottom { grid-column: 1/4; display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 12px; padding: 8px 14px; min-height: 118px; }
-.resource { display: flex; align-items: center; gap: 16px; padding: 8px 16px; border-radius: 12px; background: var(--void-2); border: 1px solid var(--panel-line); flex: none; text-align: center; }
-.res-num { font-size: 34px; font-weight: 900; color: var(--your-home-glow); line-height: 1; min-width: 44px; text-align: center; text-shadow: 0 0 18px rgba(255, 206, 107, 0.35); }
-.res-num.magic { color: var(--accent); text-shadow: 0 0 18px rgba(167, 139, 250, 0.4); }
-.res-lbl { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); font-weight: 700; line-height: 1.4; }
-.res-opp { font-size: 10px; color: var(--ink-faint); font-weight: 700; }
+.bottom { grid-column: 1/4; display: flex; align-items: center; gap: 12px; background: linear-gradient(180deg, rgba(30, 26, 20, 0.9), rgba(20, 17, 13, 0.9)); border: 1px solid var(--gold-line); border-radius: 12px; padding: 8px 14px; min-height: 118px; box-shadow: inset 0 0 40px rgba(201, 162, 75, 0.04); }
+.resource { display: flex; align-items: center; gap: 20px; padding: 6px 14px; flex: none; }
+/* SUMMON (gold) + MAGIC (blue) diamond gems. */
+.res-gem { display: flex; align-items: center; gap: 11px; }
+.gem-face { width: 60px; height: 60px; position: relative; display: grid; place-items: center; }
+.gem-face::before { content: ""; position: absolute; inset: 0; transform: rotate(45deg); border-radius: 13px; }
+.res-gem.summon .gem-face::before { background: linear-gradient(160deg, #3a2c10, #1c1508); border: 2px solid var(--gold); box-shadow: 0 0 18px rgba(232, 200, 119, 0.4), inset 0 0 14px rgba(232, 200, 119, 0.22); }
+.res-gem.magic .gem-face::before { background: linear-gradient(160deg, #181c3a, #0b0d1e); border: 2px solid var(--steel); box-shadow: 0 0 18px rgba(110, 140, 240, 0.4), inset 0 0 14px rgba(110, 140, 240, 0.28); }
+.gem-val { position: relative; font-size: 22px; font-weight: 900; line-height: 1; }
+.res-gem.summon .gem-val { color: var(--gold-hi); text-shadow: 0 0 10px rgba(232, 200, 119, 0.7); }
+.res-gem.magic .gem-val { color: #b9c8ff; text-shadow: 0 0 10px rgba(130, 160, 255, 0.7); }
+.gem-lbl { font-family: var(--head); font-size: 12px; letter-spacing: 0.14em; font-weight: 700; }
+.res-gem.summon .gem-lbl { color: var(--gold-lit); }
+.res-gem.magic .gem-lbl { color: #9db1f5; }
+.gem-opp { font-size: 11px; color: var(--ink-faint); font-weight: 700; margin-top: 2px; }
 
 /* hand */
 .hand { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
@@ -269,7 +329,7 @@ button { font-family: inherit; }
 .ctl-sub { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; justify-content: flex-end; }
 .ghost.sm { padding: 6px 9px; font-size: 11px; border-radius: 8px; }
 .ctl-sub select.ghost.sm { max-width: 100%; }
-.lockin { padding: 10px 22px; border-radius: 10px; border: none; background: linear-gradient(180deg, #c4b3ff, var(--accent)); color: #160b28; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 0 4px 16px rgba(167, 139, 250, 0.35); transition: 0.15s; }
+.lockin { padding: 10px 22px; border-radius: 10px; border: 1px solid var(--gold-hi); background: linear-gradient(180deg, var(--gold-lit), #b8903a); color: #241a06; font-family: var(--head); font-weight: 800; letter-spacing: 0.06em; font-size: 13px; cursor: pointer; box-shadow: 0 0 24px rgba(232, 200, 119, 0.4), 0 4px 14px rgba(0, 0, 0, 0.5); transition: 0.15s; }
 .lockin:hover { transform: translateY(-1px); }
 .lockin:disabled { background: linear-gradient(180deg, #3a4258, #2a3348); color: var(--ink-faint); cursor: default; box-shadow: none; transform: none; }
 .ghost { padding: 9px 14px; border-radius: 10px; background: transparent; border: 1px solid var(--panel-line); color: var(--ink-dim); font-weight: 600; cursor: pointer; font-size: 12px; }
@@ -352,7 +412,7 @@ button { font-family: inherit; }
 /* mode toggle (pre-game: vs AI / 2 players) */
 .mode-toggle { display: flex; gap: 8px; margin-bottom: 4px; }
 .mode-btn { flex: 1; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 999px; background: var(--void-2); color: var(--ink-dim); border: 1px solid var(--panel-line); cursor: pointer; transition: 0.15s; }
-.mode-btn.on { background: linear-gradient(180deg, #c4b3ff, var(--accent)); color: var(--void); border-color: transparent; }
+.mode-btn.on { background: linear-gradient(180deg, var(--gold-lit), #b8903a); color: #241a06; border-color: transparent; }
 
 /* deck picker (pre-game): stacked menu column + wide deck-view card grid */
 .picker { display: flex; gap: 22px; text-align: left; max-width: min(880px, 94vw); align-items: stretch; padding: 22px; }

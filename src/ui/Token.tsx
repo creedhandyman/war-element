@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CardInstance, GameState } from "../engine";
 import { effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, getDef, legalMoves } from "../engine";
-import { EL_COLOR } from "./shared";
+import { EL_COLOR, KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 import { SpIcon } from "./icons";
 
 const AUTO_LABEL = { manual: "MANUAL", basic: "AUTO", full: "FULL" } as const;
@@ -92,9 +92,12 @@ export function Token(props: {
     game.prep?.priority === card.owner &&
     !game.prep.movedThisTurn &&
     legalMoves(game, card.owner, card.instanceId).length > 0;
-  const kws = Object.entries(def.keywords)
-    .map(([k, v]) => (v === true ? k : `${k} ${v}`))
-    .join(" · ");
+  // Keyword pips (top edge) — visual glyphs, not words.
+  const kwPips = Object.entries(def.keywords)
+    .filter(([, v]) => v)
+    .map(([k]) => ({ k, style: KEYWORD_STYLE[k] }))
+    .filter((x) => x.style);
+  const frozen = card.statuses.some((s) => s.kind === "FREEZE");
   const cls = [
     "token",
     mine ? "mine" : "enemy",
@@ -111,6 +114,7 @@ export function Token(props: {
   return (
     <div
       className={cls}
+      style={{ ["--el-rim" as string]: EL_COLOR[def.element] }}
       title={def.special ? `${def.special.name}: ${def.special.text}` : def.name}
     >
       <img
@@ -126,16 +130,33 @@ export function Token(props: {
           {combatFx.kind}
         </div>
       )}
-      {card.statuses.map((s, i) => (
-        <div
-          key={s.kind}
-          className="status-pip"
-          style={{ top: 28 + i * 20 }}
-          title={`${s.kind} ${s.power || ""} — ${s.duration} round(s)`}
-        >
-          {s.kind.slice(0, 3)}·{s.duration}
+      {frozen && <div className="freeze-overlay" />}
+      {kwPips.length > 0 && (
+        <div className="kw-pips">
+          {kwPips.map(({ k, style }) => (
+            <span key={k} className="kw-pip" style={{ borderColor: style.color, color: style.color }} title={k}>
+              {style.glyph}
+            </span>
+          ))}
         </div>
-      ))}
+      )}
+      {card.statuses.length > 0 && (
+        <div className="status-icons">
+          {card.statuses.map((s) => {
+            const st = STATUS_STYLE[s.kind];
+            return (
+              <span
+                key={s.kind}
+                className="status-icon"
+                style={{ borderColor: st.color, color: st.color }}
+                title={`${s.kind} ${s.power || ""} — ${s.duration} round(s)`}
+              >
+                {st.glyph}{s.duration}
+              </span>
+            );
+          })}
+        </div>
+      )}
       {/* Top: name (with cost + element dot). */}
       <div className="tk-top">
         <span className="tk-cost">{def.cost}</span>
@@ -147,7 +168,6 @@ export function Token(props: {
         <div className="tk-class" title={`${def.cardClass} · ${def.attackType}`}>
           {def.attackType === "Melee" ? "🗡" : "🏹"} {def.cardClass.toUpperCase()}
         </div>
-        {kws && <div className="kw-line">{kws}</div>}
         <div className="tk-stats">
           <span
             className="st-dmg"
