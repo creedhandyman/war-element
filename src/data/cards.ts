@@ -30,6 +30,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_sumerose",
     name: "Sumerose",
+    rarity: "epic",
     element: "LEAF",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -53,6 +54,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_stickviper",
     name: "StickViper",
+    rarity: "rare",
     element: "LEAF",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -71,6 +73,7 @@ export const CARDS: CardDef[] = [
     id: "leaf_dartfrog",
     art: "leaf_dart_frog",
     name: "Dart Frog",
+    rarity: "rare",
     element: "LEAF",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -96,6 +99,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_greegon",
     name: "Greegon",
+    rarity: "rare",
     element: "LEAF",
     cardClass: "Tank",
     attackType: "Melee",
@@ -110,6 +114,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_alpha",
     name: "Alpha",
+    rarity: "epic",
     element: "LEAF",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -135,6 +140,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_fallona",
     name: "Fallona",
+    rarity: "epic",
     element: "LEAF",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -163,6 +169,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_squanch",
     name: "Squanch",
+    rarity: "epic",
     element: "LEAF",
     cardClass: "Tank",
     attackType: "Melee",
@@ -188,6 +195,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_leaf",
     name: "Leaf",
+    rarity: "rare",
     element: "LEAF",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -203,6 +211,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_nettle",
     name: "Nettle",
+    rarity: "rare",
     element: "LEAF",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -218,6 +227,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_thorn",
     name: "Thorn",
+    rarity: "legendary",
     element: "LEAF",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -247,6 +257,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_sol",
     name: "Sol",
+    rarity: "legendary",
     element: "PYRO",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -271,6 +282,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_firebird",
     name: "FireBird",
+    rarity: "epic",
     element: "PYRO",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -295,6 +307,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_fenrir",
     name: "Fenrir",
+    rarity: "epic",
     element: "PYRO",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -322,6 +335,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_tiki",
     name: "Tiki",
+    rarity: "epic",
     element: "PYRO",
     cardClass: "Tank",
     attackType: "Melee",
@@ -347,6 +361,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_ember_scorpion",
     name: "Ember Scorpion",
+    rarity: "rare",
     element: "PYRO",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -363,6 +378,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_sarra",
     name: "Sarra",
+    rarity: "epic",
     element: "PYRO",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -386,6 +402,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_flamehound",
     name: "Flamehound",
+    rarity: "rare",
     element: "PYRO",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -403,6 +420,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_spitfire",
     name: "Spitfire",
+    rarity: "rare",
     element: "PYRO",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -421,6 +439,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_volcanon",
     name: "Volcanon",
+    rarity: "legendary",
     element: "PYRO",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -451,6 +470,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_armadillo",
     name: "Granite Armadillo",
+    rarity: "rare",
     element: "BORE",
     cardClass: "Tank",
     attackType: "Melee",
@@ -466,6 +486,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_clubber",
     name: "Clubber",
+    rarity: "rare",
     element: "BORE",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -481,6 +502,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_sandman",
     name: "Sandman",
+    rarity: "legendary",
     element: "BORE",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -509,6 +531,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_krysteel",
     name: "Krysteel",
+    rarity: "epic",
     element: "BORE",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -533,6 +556,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_smith",
     name: "Smith",
+    rarity: "rare",
     element: "BORE",
     cardClass: "Support",
     attackType: "Ranged",
@@ -550,6 +574,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_rhe",
     name: "Rhe",
+    rarity: "epic",
     element: "BORE",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -575,6 +600,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_rockgoblin",
     name: "Rock Goblin",
+    rarity: "rare",
     element: "BORE",
     cardClass: "Tank",
     attackType: "Melee",
@@ -592,6 +618,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_hillbilly",
     name: "Hillbilly",
+    rarity: "rare",
     element: "BORE",
     cardClass: "Tank",
     attackType: "Melee",
@@ -608,6 +635,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_bearocks",
     name: "Bearocks",
+    rarity: "legendary",
     element: "BORE",
     cardClass: "Tank",
     attackType: "Melee",
@@ -636,6 +664,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_silkstalker",
     name: "Silkstalker",
+    rarity: "epic",
     element: "DUSK",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -659,6 +688,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_widowbite",
     name: "Widowbite",
+    rarity: "rare",
     element: "DUSK",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -674,6 +704,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_vamp",
     name: "Vamp",
+    rarity: "rare",
     element: "DUSK",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -688,6 +719,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_gool",
     name: "Gool",
+    rarity: "rare",
     element: "DUSK",
     cardClass: "Support",
     attackType: "Ranged",
@@ -704,6 +736,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_ghastly",
     name: "Ghastly",
+    rarity: "epic",
     element: "DUSK",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -730,6 +763,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_haunt",
     name: "Haunt",
+    rarity: "epic",
     element: "DUSK",
     cardClass: "Support",
     attackType: "Ranged",
@@ -754,6 +788,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_pumpkin",
     name: "Pumpkin",
+    rarity: "rare",
     element: "DUSK",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -769,6 +804,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_skeleton_knight",
     name: "Skeleton Knight",
+    rarity: "rare",
     element: "DUSK",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -783,6 +819,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_darth",
     name: "Darth",
+    rarity: "epic",
     element: "LEAF",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -797,19 +834,20 @@ export const CARDS: CardDef[] = [
     keywords: { CRIT: true, STEALTH: true },
     // Dark Hunting: the doc's version is a trap (mark an enemy home slot; ROOT +
     // LIFESTEAL when a card enters it). Traps aren't modeled, so this is the
-    // immediate payoff — strike a target, ROOT it, and drain 4 HP.
+    // immediate payoff — strike a target, ROOT it, and LIFESTEAL the damage.
     special: {
       name: "Dark Hunting",
       cost: 3,
       handler: "strike",
-      params: { dmg: 5, statusKind: "ROOT", statusDuration: 1, healSelf: 4 },
+      params: { dmg: 7, statusKind: "ROOT", statusDuration: 2, lifesteal: 1 },
       targetSide: "enemy",
-      text: "Deal 5 DMG, ROOT the target for 1 round, and heal 4 HP.",
+      text: "Deal 7 DMG, ROOT the target for 2 rounds, and LIFESTEAL the damage dealt.",
     },
   },
   {
     id: "dusk_crow",
     name: "Crow",
+    rarity: "rare",
     element: "DUSK",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -825,6 +863,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_skelider",
     name: "Skelider",
+    rarity: "legendary",
     element: "DUSK",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -854,6 +893,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_spinefin",
     name: "Spinefin",
+    rarity: "rare",
     element: "AQUA",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -868,6 +908,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_bulletshrimp",
     name: "Bullet Shrimp",
+    rarity: "rare",
     element: "AQUA",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -883,6 +924,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_polarbear",
     name: "PolarBear",
+    rarity: "epic",
     element: "AQUA",
     cardClass: "Tank",
     attackType: "Melee",
@@ -905,6 +947,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_owlette",
     name: "Owlette",
+    rarity: "epic",
     element: "AQUA",
     cardClass: "Support",
     attackType: "Ranged",
@@ -929,6 +972,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_phrost",
     name: "Phrost",
+    rarity: "legendary",
     element: "AQUA",
     cardClass: "Support",
     attackType: "Ranged",
@@ -954,6 +998,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_polarking",
     name: "Polar King",
+    rarity: "legendary",
     element: "AQUA",
     cardClass: "Tank",
     attackType: "Melee",
@@ -979,6 +1024,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_blackbeard",
     name: "BlackBeard",
+    rarity: "epic",
     element: "AQUA",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -1004,6 +1050,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_sapphire",
     name: "Sapphire",
+    rarity: "epic",
     element: "AQUA",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -1029,6 +1076,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_coralgolem",
     name: "Coral Golem",
+    rarity: "rare",
     element: "AQUA",
     cardClass: "Tank",
     attackType: "Melee",
@@ -1043,6 +1091,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_vaporem",
     name: "Vaporem",
+    rarity: "epic",
     element: "AQUA",
     cardClass: "Support",
     attackType: "Ranged",
@@ -1071,6 +1120,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_beam",
     name: "Beam",
+    rarity: "rare",
     element: "DAWN",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -1087,6 +1137,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_flash",
     name: "Flash",
+    rarity: "rare",
     element: "DAWN",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -1102,6 +1153,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_star",
     name: "Star",
+    rarity: "epic",
     element: "DAWN",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -1127,6 +1179,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_kosmos",
     name: "Kosmos",
+    rarity: "legendary",
     element: "DAWN",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -1152,6 +1205,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_solstice",
     name: "Solstice",
+    rarity: "epic",
     element: "DAWN",
     cardClass: "Support",
     attackType: "Ranged",
@@ -1178,6 +1232,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_amble",
     name: "Amble",
+    rarity: "epic",
     element: "DAWN",
     cardClass: "Support",
     attackType: "Ranged",
@@ -1203,6 +1258,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_dawn",
     name: "Dawn",
+    rarity: "legendary",
     element: "DAWN",
     cardClass: "Support",
     attackType: "Ranged",
@@ -1228,6 +1284,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_veil",
     name: "Veil",
+    rarity: "epic",
     element: "DAWN",
     cardClass: "Tank",
     attackType: "Melee",
@@ -1254,6 +1311,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_lazor",
     name: "Lazor",
+    rarity: "epic",
     element: "DAWN",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -1278,6 +1336,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_clipsey",
     name: "Clipsey",
+    rarity: "epic",
     element: "DAWN",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -1307,6 +1366,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_duster",
     name: "Duster",
+    rarity: "rare",
     element: "GALE",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -1323,6 +1383,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_luna",
     name: "Luna",
+    rarity: "rare",
     element: "GALE",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -1339,6 +1400,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_hawk",
     name: "Hawk",
+    rarity: "epic",
     element: "GALE",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -1355,6 +1417,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_vaga",
     name: "Vaga",
+    rarity: "epic",
     element: "GALE",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -1382,6 +1445,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_buf",
     name: "Buf",
+    rarity: "epic",
     element: "GALE",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -1405,6 +1469,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_angale",
     name: "Angale",
+    rarity: "epic",
     element: "GALE",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -1430,6 +1495,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_guan",
     name: "Guan",
+    rarity: "epic",
     element: "GALE",
     cardClass: "Tank",
     attackType: "Melee",
@@ -1459,6 +1525,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_wolfbane",
     name: "WolfBane",
+    rarity: "epic",
     element: "GALE",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -1486,6 +1553,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_galeon",
     name: "Galeon",
+    rarity: "legendary",
     element: "GALE",
     cardClass: "Tank",
     attackType: "Melee",
@@ -1512,6 +1580,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_klipso",
     name: "Klipso",
+    rarity: "legendary",
     element: "GALE",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -1539,6 +1608,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_zap",
     name: "Zap",
+    rarity: "rare",
     element: "BOLT",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -1555,6 +1625,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_twotales",
     name: "TwoTales",
+    rarity: "rare",
     element: "BOLT",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -1571,6 +1642,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_zagphu",
     name: "Zagphu",
+    rarity: "epic",
     element: "BOLT",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -1595,6 +1667,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_static",
     name: "Static",
+    rarity: "epic",
     element: "BOLT",
     cardClass: "Support",
     attackType: "Ranged",
@@ -1618,6 +1691,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_webster",
     name: "Webster",
+    rarity: "epic",
     element: "BOLT",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -1642,6 +1716,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_lytning",
     name: "Lytning",
+    rarity: "epic",
     element: "BOLT",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -1668,6 +1743,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_sentry",
     name: "Sentry",
+    rarity: "epic",
     element: "BOLT",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -1692,6 +1768,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_thundercat",
     name: "ThunderCat",
+    rarity: "epic",
     element: "BOLT",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -1720,6 +1797,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_jackarc",
     name: "Jack Arc",
+    rarity: "legendary",
     element: "BOLT",
     cardClass: "Support",
     attackType: "Ranged",
@@ -1744,6 +1822,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_voltogon",
     name: "Voltogon",
+    rarity: "legendary",
     element: "BOLT",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -1771,6 +1850,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_trinezer",
     name: "Trinezer",
+    rarity: "mythic",
     element: "LEAF",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -1800,6 +1880,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_pyrogon",
     name: "Pyrogon",
+    rarity: "mythic",
     element: "PYRO",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -1831,6 +1912,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_kraken",
     name: "Kraken",
+    rarity: "mythic",
     element: "AQUA",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -1860,6 +1942,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_imperator",
     name: "Imperator",
+    rarity: "mythic",
     element: "DAWN",
     cardClass: "Tank",
     attackType: "Melee",
@@ -1886,6 +1969,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_griffith",
     name: "Griffith",
+    rarity: "mythic",
     element: "GALE",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -1913,6 +1997,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_elecdroid",
     name: "Elecdroid",
+    rarity: "mythic",
     element: "BOLT",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -1942,6 +2027,7 @@ export const CARDS: CardDef[] = [
     id: "dusk_shadowhorsemen",
     art: "dusk_shadow_horsemen",
     name: "Shadow Horsemen",
+    rarity: "mythic",
     element: "DUSK",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -1968,6 +2054,7 @@ export const CARDS: CardDef[] = [
     id: "bore_deepest",
     art: "bore_the_deepest",
     name: "The DEEPEST",
+    rarity: "mythic",
     element: "BORE",
     cardClass: "Warrior",
     attackType: "Ranged",
@@ -2004,6 +2091,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_cactus",
     name: "Cactus",
+    rarity: "rare",
     element: "LEAF",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -2020,6 +2108,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_baboom",
     name: "BaBoom",
+    rarity: "rare",
     element: "PYRO",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -2037,6 +2126,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_cavedweller",
     name: "CaveDweller",
+    rarity: "rare",
     element: "BORE",
     cardClass: "Support",
     attackType: "Ranged",
@@ -2053,6 +2143,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_spider",
     name: "Spider",
+    rarity: "rare",
     element: "DUSK",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -2069,6 +2160,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_subcool",
     name: "SubCool",
+    rarity: "rare",
     element: "AQUA",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -2085,6 +2177,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_sparkle",
     name: "Sparkle",
+    rarity: "rare",
     element: "DAWN",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -2101,6 +2194,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_skyforce",
     name: "Skyforce",
+    rarity: "rare",
     element: "GALE",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -2117,6 +2211,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_drshock",
     name: "DrShock",
+    rarity: "rare",
     element: "BOLT",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -2515,6 +2610,7 @@ export const TOKENS: CardDef[] = [
     id: "leaf_reptilian_tok",
     art: "leaf_reptilian",
     name: "Reptilian",
+    rarity: "rare",
     element: "LEAF",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -2533,6 +2629,7 @@ export const TOKENS: CardDef[] = [
     id: "dawn_heir_tok",
     art: "dawn_heir",
     name: "Heir",
+    rarity: "legendary",
     element: "DAWN",
     cardClass: "Assassin",
     attackType: "Melee",

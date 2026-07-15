@@ -38,6 +38,24 @@ describe("firing specials", () => {
     expect(next.players.P1.magicPool).toBe(2);
   });
 
+  it("strike lifesteal: Darth's Dark Hunting heals for the damage dealt + ROOT 2r", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const a = place(s, "leaf_darth", "P1", 2, 0, { curHp: 5, maxHp: 16 }); // Dark Hunting cost 3
+    const t = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, curShields: 0 });
+    const next = applyIntent(battleWith(s, a.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: t.instanceId,
+    });
+    const target = next.cards[t.instanceId];
+    expect(target.curHp).toBe(13); // 7 DMG to HP
+    expect(target.statuses.find((x) => x.kind === "ROOT")?.duration).toBe(2);
+    expect(next.cards[a.instanceId].curHp).toBe(12); // 5 + 7 lifesteal
+    expect(next.players.P1.magicPool).toBe(2);
+  });
+
   it("barrage: hits every target (Leaf Storm = 3×1 to all)", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;

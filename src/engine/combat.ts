@@ -931,6 +931,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     const healSelf = num(params, "healSelf");
     if (healSelf > 0 && attacker.curHp > 0) healCard(draft, attacker, healSelf);
+    // Lifesteal: heal the caster for the HP damage this strike dealt (Darth's
+    // Dark Hunting) — specials don't auto-lifesteal like basics do.
+    if (num(params, "lifesteal") > 0 && r.totalToHp > 0 && attacker.curHp > 0)
+      healCard(draft, attacker, r.totalToHp);
     if (attacker.curHp > 0) {
       adjacentCasterStatus(draft, attacker, params); // ROOT all adjacent (Squanch)
       applySelfRiders(draft, attacker, params);
