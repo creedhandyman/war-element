@@ -2250,6 +2250,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "pyro_smog_card",
+    art: "pyro_smog",
     name: "Smog",
     rarity: "rare",
     element: "PYRO",
