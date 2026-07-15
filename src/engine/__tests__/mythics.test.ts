@@ -80,14 +80,14 @@ describe("per-card auras", () => {
     expect(next.cards[foe.instanceId].curHp).toBeLessThan(20); // damage went straight to HP
   });
 
-  it("Pressure: The DEEPEST tops BORE allies up to +2 shields each round", () => {
+  it("Pressure: The DEEPEST tops BORE allies up to +1 shield each round", () => {
     const s = prepState();
     place(s, "bore_deepest", "P1", 2, 1); // Pressure holder (BORE)
     const boreAlly = place(s, "bore_clubber", "P1", 2, 0, { curShields: 0 });
     const nonBore = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0 });
     place(s, "dusk_gool", "P2", 0, 0); // keep P2 non-empty
     const next = advance(atCleanup(s));
-    expect(next.cards[boreAlly.instanceId].curShields).toBe(getDef("bore_clubber").shields + 2);
+    expect(next.cards[boreAlly.instanceId].curShields).toBe(getDef("bore_clubber").shields + 1);
     expect(next.cards[nonBore.instanceId].curShields).toBe(0); // untouched
   });
 });
