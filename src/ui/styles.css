@@ -36,11 +36,11 @@
   /* Grid overlay alignment onto the painted tiles. The playable 4x4 sits inside
      the art's stone border — these insets/gap position the clickable grid over
      it. Nudge to line the slots up with the painted tiles. */
-  --board-size: min(74vh, 680px);
-  --grid-pad-x: 14.5%;
-  --grid-pad-top: 14%;
-  --grid-pad-bottom: 12.5%;
-  --grid-gap: 1.4%;
+  --board-size: min(78vh, 720px);
+  --grid-pad-x: 17.3%;
+  --grid-pad-top: 16%;
+  --grid-pad-bottom: 13.5%;
+  --grid-gap: 1.6%;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; }
@@ -151,7 +151,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .wallmark.enemy { left: 70%; }
 /* Slots fill their grid cell and sit transparent over the painted tiles — just
    a soft rim so you can see the playable cells; the art shows through. */
-.slot { flex: 1; min-width: 0; aspect-ratio: 1; border-radius: 8px; position: relative; cursor: pointer; background: transparent; border: 1.5px solid transparent; transition: 0.18s; display: grid; place-items: center; }
+.slot { flex: 1; min-width: 0; min-height: 0; border-radius: 8px; position: relative; cursor: pointer; background: transparent; border: 1.5px solid transparent; transition: 0.18s; display: grid; place-items: center; }
 .slot.row-opp { border-color: rgba(120, 175, 255, 0.25); }
 .slot.row-mid { border-color: rgba(160, 168, 190, 0.16); }
 .slot.row-your { border-color: rgba(232, 200, 119, 0.25); }
