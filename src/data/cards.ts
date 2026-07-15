@@ -1958,7 +1958,7 @@ export const CARDS: CardDef[] = [
     art: "bore_the_deepest",
     name: "The DEEPEST",
     element: "BORE",
-    cardClass: "Support",
+    cardClass: "Warrior",
     attackType: "Ranged",
     cost: 10,
     dmg: 9,
@@ -1968,8 +1968,8 @@ export const CARDS: CardDef[] = [
     shields: 8,
     keywords: { STEALTH: true }, // Abyssal Emergence — hidden until it attacks
     tribe: "Cavernous",
-    // Pressure: BORE allies are topped up to +2 shields each round.
-    aura: { scope: "element", shields: 2 },
+    // Pressure: BORE allies are topped up to +1 shield each round.
+    aura: { scope: "element", shields: 1 },
     special: {
       name: "Drilling Quake",
       cost: 5,
