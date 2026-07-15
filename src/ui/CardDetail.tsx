@@ -88,6 +88,14 @@ function describeOnSummon(os: {
 export function describePassives(def: CardDef): string[] {
   const aura = ELEMENT_AURA[def.element];
   const passives: string[] = [`${def.element} aura — ${aura.name}: ${aura.desc}`];
+  // Passive-flavored keywords read as the card's own ability, not just a chip.
+  const kw = def.keywords;
+  if (kw.REGEN) passives.push(`REGEN ${kw.REGEN}: heals ${kw.REGEN} HP at the end of each round.`);
+  if (kw.LIFESTEAL) passives.push("LIFESTEAL: basic attacks heal it for the damage dealt.");
+  if (kw.DRAIN) passives.push("DRAIN: basic attacks steal max HP from the target (DUSK lifesteal).");
+  if (kw.BLOCK) passives.push(`BLOCK ${kw.BLOCK}: each shield soaks ${kw.BLOCK} extra DMG before it breaks.`);
+  if (kw.REFLECT) passives.push(`REFLECT ${kw.REFLECT}: returns ${kw.REFLECT} DMG to attackers.`);
+  if (kw.EVASION) passives.push("EVASION: ~50% chance to dodge each incoming hit.");
   if (def.onHitStatus) {
     const h = def.onHitStatus;
     const gate = h.chance != null ? `${h.chance}% chance to ` : h.firstHitOnly ? "first hit: " : h.onSecondHit ? "2nd hit: " : "";
@@ -141,7 +149,9 @@ export function describePassives(def: CardDef): string[] {
       t.buffDmgEveryN && `+${t.buffDmgEveryN.amount} DMG every ${t.buffDmgEveryN.n} rounds`,
       t.spawn && `spawn ${t.spawn.count} ${getDef(t.spawn.token).name} token${t.spawn.count > 1 ? "s" : ""}`,
     ].filter(Boolean);
-    passives.push(`Each round: ${bits.join(" · ")}.`);
+    // Some roundTick fields (selfShields, rowAheadDmg, ward/cleanse…) get their
+    // own dedicated line below — don't emit an empty "Each round: ." for those.
+    if (bits.length) passives.push(`Each round: ${bits.join(" · ")}.`);
   }
   if (def.aura) {
     const a = def.aura;
@@ -204,7 +214,7 @@ export function describePassives(def: CardDef): string[] {
       `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,
     );
   if (def.roundTick?.selfShields)
-    passives.push(`Royal Guard: gains +${def.roundTick.selfShields} shield each round.`);
+    passives.push(`Gains +${def.roundTick.selfShields} shield at the end of each round.`);
   if (def.roundTick?.pokeParalyzedDmg)
     passives.push(
       `End of round: deals ${def.roundTick.pokeParalyzedDmg} DMG to a PARALYZED opponent in range.`,
@@ -236,7 +246,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.firstStrikeBonus && def.firstStrikeEnemySideOnly)
     passives.push(`On the enemy battlefield: +${def.firstStrikeBonus} DMG on the first strike against each opponent.`);
   if (def.summonSelfShields)
-    passives.push(`Gate Keeper: raises a ${def.summonSelfShields}-shield golden wall on summon${def.onShieldBreak ? `; when it breaks, gains +${def.onShieldBreak.dmg ?? 0} DMG / +${def.onShieldBreak.sp ?? 0} SP` : ""}.`);
+    passives.push(`On summon, raises a ${def.summonSelfShields}-shield barrier${def.onShieldBreak ? `; when it breaks, gains +${def.onShieldBreak.dmg ?? 0} DMG / +${def.onShieldBreak.sp ?? 0} SP` : ""}.`);
   if (def.roundTick?.wardAllies)
     passives.push(`Radiant Ward: each round, allies get a barrier that absorbs the next negative status.`);
   if (def.roundTick?.cleanseAllies)

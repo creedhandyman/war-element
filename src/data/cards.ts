@@ -808,13 +808,16 @@ export const CARDS: CardDef[] = [
     element: "DUSK",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 2, // stat total 20 → cost 2 (Bone Shield's +3 is a passive grant)
+    cost: 2,
     dmg: 5,
     hits: 1,
     hp: 7,
     sp: 8,
-    shields: 3, // Bone Shield
+    shields: 0,
     keywords: {},
+    // Bone Shield: enters play with a +3 shield barrier (an off-curve passive
+    // grant, so it's not counted in the base-stat total).
+    summonSelfShields: 3,
   },
   {
     id: "leaf_darth",
@@ -904,6 +907,8 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
+    // Venom Spines: basic attacks apply SCALD 2 for 2 rounds (non-stacking).
+    onHitStatus: { kind: "SCALD", duration: 2, power: 2 },
   },
   {
     id: "aqua_bulletshrimp",
@@ -1087,6 +1092,10 @@ export const CARDS: CardDef[] = [
     sp: 1,
     shields: 4,
     keywords: {},
+    // Calcify: regrows +1 shield at the end of each round.
+    roundTick: { selfShields: 1 },
+    // Coral Spurs: 2 DMG back to melee attackers.
+    onHitByMelee: { dmg: 2 },
   },
   {
     id: "aqua_vaporem",

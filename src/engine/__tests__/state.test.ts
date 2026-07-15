@@ -18,11 +18,9 @@ describe("setup", () => {
 
   it("every card's cost matches the stat formula (total ≈ 5·cost + 10)", () => {
     // shields count 2 points each; source-printed costs may drift ±2 total.
-    // Skeleton Knight's Bone Shield is a passive grant priced outside the total.
     // Cost-8 Legendaries sit in the tier band (40-50 total) rather than the
     // exact formula, and pay part of their cost in strong abilities/immunity.
     const exceptions = new Set([
-      "dusk_skeleton_knight",
       "bore_bearocks",
       "dusk_skelider",
       // SP-heavy canon glass cannon: the doc costs it at 1 despite the high
