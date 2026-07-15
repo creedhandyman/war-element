@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import type { Element } from "../engine";
+import type { CardClass, Element } from "../engine";
+import { getDef } from "../engine";
 import {
   buildableCards,
   deleteCustomDeck,
@@ -12,9 +13,11 @@ import {
   type CustomDeck,
 } from "../data/custom-decks";
 import { EL_COLOR, RARITY_STYLE } from "./shared";
+import { chipify, describePassives } from "./CardDetail";
 import { SpIcon } from "./icons";
 
 const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
+const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
 
 /**
  * Build / edit / delete custom decks (12–20 cards). A sandbox for trying new
@@ -31,11 +34,29 @@ export function DeckBuilder(props: {
   const [name, setName] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
   const [filter, setFilter] = useState<Element | "ALL">("ALL");
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const pool = useMemo(() => buildableCards(), []);
   const shown = filter === "ALL" ? pool : pool.filter((c) => c.element === filter);
   const pickedSet = new Set(picked);
   const check = validateDeck(picked);
+
+  // Live composition of the deck being built — by element, class, and cost curve.
+  const stats = useMemo(() => {
+    const byElement: Record<string, number> = {};
+    const byClass: Record<string, number> = {};
+    const byCost: Record<number, number> = {};
+    let costSum = 0;
+    for (const id of picked) {
+      const d = getDef(id);
+      byElement[d.element] = (byElement[d.element] ?? 0) + 1;
+      byClass[d.cardClass] = (byClass[d.cardClass] ?? 0) + 1;
+      byCost[d.cost] = (byCost[d.cost] ?? 0) + 1;
+      costSum += d.cost;
+    }
+    const maxCostCount = Math.max(1, ...Object.values(byCost));
+    return { byElement, byClass, byCost, maxCostCount, avg: picked.length ? costSum / picked.length : 0 };
+  }, [picked]);
 
   if (!props.open) return null;
 
@@ -67,6 +88,7 @@ export function DeckBuilder(props: {
   }
 
   const countColor = check.ok ? "var(--legal)" : picked.length > MAX_DECK ? "var(--threat)" : "var(--muted)";
+  const detail = detailId ? getDef(detailId) : null;
 
   return (
     <div className="overlay" onClick={props.onClose}>
@@ -77,7 +99,7 @@ export function DeckBuilder(props: {
         </div>
 
         <div className="db-body">
-          {/* Left: saved decks + the current editor's meta. */}
+          {/* Left: saved decks, the editor's meta, and live deck composition. */}
           <div className="db-side">
             <input
               className="db-name"
@@ -98,6 +120,52 @@ export function DeckBuilder(props: {
             </div>
             {!check.ok && picked.length > 0 && <div className="db-warn">{check.reason}</div>}
 
+            {/* Deck composition — cards per element / class / cost. */}
+            {picked.length > 0 && (
+              <div className="db-stats">
+                <div className="db-stats-h">Composition · avg cost {stats.avg.toFixed(1)}</div>
+                <div className="dbs-block">
+                  <div className="dbs-lbl">Elements</div>
+                  <div className="dbs-tags">
+                    {ELEMENTS.filter((el) => stats.byElement[el]).map((el) => (
+                      <span key={el} className="dbs-tag" style={{ borderColor: EL_COLOR[el] }}>
+                        <span className="dbs-dot" style={{ background: EL_COLOR[el] }} />
+                        {el} {stats.byElement[el]}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="dbs-block">
+                  <div className="dbs-lbl">Classes</div>
+                  <div className="dbs-tags">
+                    {CLASSES.filter((c) => stats.byClass[c]).map((c) => (
+                      <span key={c} className="dbs-tag">{c} {stats.byClass[c]}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="dbs-block">
+                  <div className="dbs-lbl">Cost curve</div>
+                  <div className="dbs-curve">
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((cost) => {
+                      const n = stats.byCost[cost] ?? 0;
+                      return (
+                        <div key={cost} className="dbs-col" title={`Cost ${cost}: ${n}`}>
+                          <div className="dbs-bar-wrap">
+                            {n > 0 && (
+                              <div className="dbs-bar" style={{ height: `${(n / stats.maxCostCount) * 100}%` }}>
+                                <span className="dbs-barnum">{n}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="dbs-cost">{cost}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="db-saved">
               <div className="db-saved-h">Saved decks</div>
               {decks.length === 0 && <div className="db-empty">None yet — build one →</div>}
@@ -113,7 +181,7 @@ export function DeckBuilder(props: {
             </div>
           </div>
 
-          {/* Right: the card pool. Tap a card to add / remove it. */}
+          {/* Right: the card pool. Tap a card for details; the corner button adds. */}
           <div className="db-pool">
             <div className="db-filters">
               <button className={`db-fl ${filter === "ALL" ? "on" : ""}`} onClick={() => setFilter("ALL")}>All</button>
@@ -131,12 +199,16 @@ export function DeckBuilder(props: {
             <div className="db-grid">
               {shown.map((d) => {
                 const on = pickedSet.has(d.id);
+                const rar = d.rarity ? RARITY_STYLE[d.rarity] : null;
                 return (
-                  <button
+                  <div
                     key={d.id}
                     className={`deck-thumb carded db-card ${on ? "selected" : ""}`}
-                    title={d.special ? `${d.special.name}: ${d.special.text}` : d.name}
-                    onClick={() => toggle(d.id)}
+                    role="button"
+                    tabIndex={0}
+                    title={`${d.name} — tap for details`}
+                    onClick={() => setDetailId(d.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetailId(d.id); } }}
                   >
                     <img
                       className="card-art"
@@ -144,18 +216,23 @@ export function DeckBuilder(props: {
                       alt=""
                       onError={(e) => { e.currentTarget.style.display = "none"; }}
                     />
-                    {on && <div className="db-check">✓</div>}
-                    {d.rarity && RARITY_STYLE[d.rarity] && (
-                      <span
-                        className="dt-rarity"
-                        style={{ color: RARITY_STYLE[d.rarity].color, borderColor: RARITY_STYLE[d.rarity].color }}
-                      >
-                        {RARITY_STYLE[d.rarity].label}
-                      </span>
-                    )}
                     <div className="dt-top">
                       <span className="dt-cost">{d.cost}</span>
                       <span className="el-dot" style={{ background: EL_COLOR[d.element] }} />
+                      <div className="dt-tr">
+                        {rar && (
+                          <span className="dt-rarity" style={{ color: rar.color, borderColor: rar.color }}>
+                            {rar.label}
+                          </span>
+                        )}
+                        <button
+                          className={`dt-add ${on ? "on" : ""}`}
+                          title={on ? "Remove from deck" : "Add to deck"}
+                          onClick={(e) => { e.stopPropagation(); toggle(d.id); }}
+                        >
+                          {on ? "✓" : "+"}
+                        </button>
+                      </div>
                     </div>
                     <div className="dt-name">{d.name}</div>
                     <div className="dt-stats">
@@ -163,13 +240,83 @@ export function DeckBuilder(props: {
                       <span>♥{d.hp}</span>
                       <span><SpIcon />{d.sp}</span>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Expanded card details — a sub-overlay above the builder. */}
+      {detail && (
+        <div className="overlay dbd-overlay" onClick={(e) => { e.stopPropagation(); setDetailId(null); }}>
+          <div className="modal dbd-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="cd-x" title="Close" onClick={() => setDetailId(null)}>✕</button>
+            <div className="dbd-head">
+              <div className="dbd-art" style={{ borderColor: EL_COLOR[detail.element] }}>
+                <img
+                  src={`/cards/${detail.art ?? detail.id}.png`}
+                  alt=""
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                />
+                <span className="dbd-cost">{detail.cost}</span>
+              </div>
+              <div className="dbd-meta">
+                <div className="dbd-name">{detail.name}</div>
+                <div className="dbd-sub">
+                  <span className="dbd-el" style={{ background: EL_COLOR[detail.element] }}>{detail.element}</span>
+                  <span>{detail.cardClass}</span>
+                  <span>{detail.attackType === "Melee" ? "🗡 Melee" : "🏹 Ranged"}</span>
+                  {detail.rarity && RARITY_STYLE[detail.rarity] && (
+                    <span className="dbd-rar" style={{ color: RARITY_STYLE[detail.rarity].color, borderColor: RARITY_STYLE[detail.rarity].color }}>
+                      {RARITY_STYLE[detail.rarity].label}
+                    </span>
+                  )}
+                  {detail.tribe && <span className="dbd-tribe">{detail.tribe}</span>}
+                </div>
+                <div className="dbd-stats">
+                  <span className="st-dmg">⚔ {detail.hits > 1 ? `${detail.hits}× ` : ""}{detail.dmg}</span>
+                  <span className="st-hp">♥ {detail.hp}</span>
+                  <span className="st-sh">🛡 {detail.shields}</span>
+                  <span><SpIcon /> {detail.sp}</span>
+                </div>
+                {Object.keys(detail.keywords).length > 0 && (
+                  <div className="dbd-kws">
+                    {Object.entries(detail.keywords).map(([k, v]) => (
+                      <span key={k} className="dbd-kw">{v === true ? k : `${k} ${v}`}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {detail.special && (
+              <div className="dbd-sect">
+                <div className="dbd-h">Special · {detail.special.name} <span className="dbd-scost">{detail.special.cost}◆</span></div>
+                <p className="dbd-txt">{chipify(detail.special.text)}</p>
+              </div>
+            )}
+
+            <div className="dbd-sect">
+              <div className="dbd-h">Passives</div>
+              <ul className="dbd-passives">
+                {describePassives(detail).map((line, i) => (
+                  <li key={i}>{chipify(line)}</li>
+                ))}
+              </ul>
+            </div>
+
+            <button
+              className={pickedSet.has(detail.id) ? "ghost dbd-toggle" : "lockin dbd-toggle"}
+              disabled={!pickedSet.has(detail.id) && picked.length >= MAX_DECK}
+              onClick={() => toggle(detail.id)}
+            >
+              {pickedSet.has(detail.id) ? "− Remove from deck" : "+ Add to deck"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

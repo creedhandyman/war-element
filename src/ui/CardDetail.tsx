@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { CardInstance, GameState, PlayerId, StatusKind } from "../engine";
+import type { CardDef, CardInstance, GameState, PlayerId, StatusKind } from "../engine";
 import { effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, ELEMENT_AURA, getDef, getSpell } from "../engine";
 import { EL_COLOR, KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 import { SpIcon } from "./icons";
@@ -19,7 +19,7 @@ const TAGS = [
 
 /** Wrap keyword/status terms as colour chips and trigger phrases as tag labels
  *  inside a card's text — the "scannable" text box from the redesign. */
-function chipify(text: string): ReactNode[] {
+export function chipify(text: string): ReactNode[] {
   const terms = [...TAGS, ...Object.keys(CHIP_COLOR)];
   const re = new RegExp(`\\b(${terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`, "gi");
   const out: ReactNode[] = [];
@@ -82,46 +82,10 @@ function describeOnSummon(os: {
   }
 }
 
-// Plain-language blurb for each status kind, shown under a card's active effects.
-const STATUS_TEXT: Record<StatusKind, string> = {
-  ROOT: "Rooted — can't move.",
-  BLEED: "Bleeding — takes damage each round.",
-  BURN: "Burning — loses a shield (then HP) each round.",
-  SCALD: "Scalded — takes damage each round.",
-  DOT: "Damaged over time each round.",
-  FREEZE: "Frozen — SP 0 and takes half damage dealt.",
-  STUN: "Stunned — can't act.",
-  WEAKEN: "Weakened — deals ~25% less damage.",
-  PARALYZE: "Paralyzed — 50% chance to skip its action.",
-  MUTED: "Muted — can't fire its Special.",
-  SLEEP: "Asleep — can't act until it wakes.",
-  FRIGHTEN: "Frightened — retreats and can't move forward.",
-  BLIND: "Blinded — attacks have a 50% chance to miss.",
-  SEAL: "Bluflamed — cannot be healed.",
-  STEALTH: "Stealthed — can't be targeted.",
-  EVASION: "Evasive — 50% chance to dodge each hit.",
-};
-
-export function CardDetail(props: {
-  game: GameState;
-  card: CardInstance;
-  viewer: PlayerId;
-  canMove: boolean;
-  onMove: () => void;
-  onClose: () => void;
-}) {
-  const { game, card } = props;
-  const def = getDef(card.defId);
-  const mine = card.owner === props.viewer;
-  const dmg = effectiveDmg(game, card);
-  const hits = effectiveBasicHits(card);
-  const sp = effectiveSp(game, card);
-  const kws = Object.entries(def.keywords).map(([k, v]) =>
-    v === true ? k : `${k} ${v}`,
-  );
-
-  // Passive one-liners derived from the card definition. The element aura
-  // (shared by every card of this element) leads the list.
+/** Passive one-liners derived purely from a card definition (no live state).
+ *  The element aura (shared by every card of this element) leads the list.
+ *  Shared by the in-game CardDetail and the Deck Builder's card preview. */
+export function describePassives(def: CardDef): string[] {
   const aura = ELEMENT_AURA[def.element];
   const passives: string[] = [`${def.element} aura — ${aura.name}: ${aura.desc}`];
   if (def.onHitStatus) {
@@ -209,7 +173,7 @@ export function CardDetail(props: {
     const bits = [o.dmg && `${o.dmg} DMG`, o.status && o.status.kind].filter(Boolean).join(" + ");
     passives.push(`When an enemy is summoned within range, hits it with ${bits}.`);
   }
-  if (def.firstStrikeBonus)
+  if (def.firstStrikeBonus && !def.firstStrikeEnemySideOnly)
     passives.push(`+${def.firstStrikeBonus} DMG on the first strike against each opponent.`);
   if (def.ignoresSleepWake) passives.push("Its attacks don't wake SLEEPING targets.");
   if (def.healsFromBleed)
@@ -293,6 +257,50 @@ export function CardDetail(props: {
     passives.push("Can target the enemy Home row from anywhere.");
   if (def.special?.ranged)
     passives.push("Its Special reaches any slot on the board.");
+  return passives;
+}
+
+// Plain-language blurb for each status kind, shown under a card's active effects.
+const STATUS_TEXT: Record<StatusKind, string> = {
+  ROOT: "Rooted — can't move.",
+  BLEED: "Bleeding — takes damage each round.",
+  BURN: "Burning — loses a shield (then HP) each round.",
+  SCALD: "Scalded — takes damage each round.",
+  DOT: "Damaged over time each round.",
+  FREEZE: "Frozen — SP 0 and takes half damage dealt.",
+  STUN: "Stunned — can't act.",
+  WEAKEN: "Weakened — deals ~25% less damage.",
+  PARALYZE: "Paralyzed — 50% chance to skip its action.",
+  MUTED: "Muted — can't fire its Special.",
+  SLEEP: "Asleep — can't act until it wakes.",
+  FRIGHTEN: "Frightened — retreats and can't move forward.",
+  BLIND: "Blinded — attacks have a 50% chance to miss.",
+  SEAL: "Bluflamed — cannot be healed.",
+  STEALTH: "Stealthed — can't be targeted.",
+  EVASION: "Evasive — 50% chance to dodge each hit.",
+};
+
+export function CardDetail(props: {
+  game: GameState;
+  card: CardInstance;
+  viewer: PlayerId;
+  canMove: boolean;
+  onMove: () => void;
+  onClose: () => void;
+}) {
+  const { game, card } = props;
+  const def = getDef(card.defId);
+  const mine = card.owner === props.viewer;
+  const dmg = effectiveDmg(game, card);
+  const hits = effectiveBasicHits(card);
+  const sp = effectiveSp(game, card);
+  const kws = Object.entries(def.keywords).map(([k, v]) =>
+    v === true ? k : `${k} ${v}`,
+  );
+
+  // Passive one-liners derived from the card definition (shared with the
+  // Deck Builder preview).
+  const passives = describePassives(def);
 
   // Buffs this card is currently getting from standing in a friendly wall's row.
   const wallBuffs: string[] = [];
