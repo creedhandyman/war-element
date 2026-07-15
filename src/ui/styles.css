@@ -37,10 +37,12 @@
      the art's stone border — these insets/gap position the clickable grid over
      it. Nudge to line the slots up with the painted tiles. */
   --board-size: min(78vh, 720px);
-  --grid-pad-x: 17.3%;
-  --grid-pad-top: 16%;
-  --grid-pad-bottom: 13.5%;
-  --grid-gap: 1.6%;
+  --board-frame: 3%;   /* stone rim thickness around the grid */
+  --grid-gap: 1.6%;    /* glowing seam between tiles */
+  /* per-row tile glow colors (procedural battlefield) */
+  --tile-opp: #6fb0ff;
+  --tile-mid: #c9d2e8;
+  --tile-your: #ffcf6b;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; }
@@ -107,22 +109,29 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 /* ===== board ===== */
 .board-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; position: relative; min-height: 0; perspective: var(--board-perspective); perspective-origin: center 42%; }
-.battlefield-bg { display: none; } /* the art is now the board surface itself */
+.battlefield-bg { display: none; }
 .banner { position: relative; z-index: 1; font-family: var(--head); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; text-shadow: 0 1px 3px #000; }
-/* The board IS the battlefield art: a fixed-square surface, with the 4x4 grid
-   inset over the painted tiles. Grid + art are one element, so the 3D tilt
-   moves them together — they can never drift out of alignment. Cards lie flat
-   on the plane (they tilt with the board). */
+/* Procedural battlefield — no photo. A carved-stone platform floating in space;
+   the 4x4 grid fills it and each SLOT *is* a tile, so cards always sit dead-
+   centre and it stays crisp at any size. The whole plane tilts back in 3D. */
 .board {
   position: relative; z-index: 1; box-sizing: border-box;
   width: var(--board-size); height: var(--board-size);
-  padding: var(--grid-pad-top) var(--grid-pad-x) var(--grid-pad-bottom);
+  padding: var(--board-frame);
   display: flex; flex-direction: column; gap: var(--grid-gap);
-  background: url("/battlefield.png") center / 100% 100% no-repeat;
-  border-radius: 6px;
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 90% at 50% 24%, rgba(46, 52, 74, 0.45), rgba(8, 9, 15, 0.92)),
+    linear-gradient(180deg, #14161f, #0a0b12);
+  border: 1px solid var(--gold);
+  box-shadow:
+    0 34px 80px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 5px rgba(16, 15, 11, 0.95),
+    inset 0 0 0 6px var(--gold-line),
+    inset 0 0 90px rgba(0, 0, 0, 0.65),
+    0 0 40px rgba(201, 162, 75, 0.12);
   transform: rotateX(var(--board-tilt));
   transform-origin: center 55%;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
 }
 .brow { flex: 1; display: flex; gap: var(--grid-gap); position: relative; min-height: 0; }
 .brow { display: flex; gap: 8px; position: relative; }
@@ -149,12 +158,32 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Two walls on one row (both players): nudge the labels apart. */
 .wallmark.mine { left: 30%; }
 .wallmark.enemy { left: 70%; }
-/* Slots fill their grid cell and sit transparent over the painted tiles — just
-   a soft rim so you can see the playable cells; the art shows through. */
-.slot { flex: 1; min-width: 0; min-height: 0; border-radius: 8px; position: relative; cursor: pointer; background: transparent; border: 1.5px solid transparent; transition: 0.18s; display: grid; place-items: center; }
-.slot.row-opp { border-color: rgba(120, 175, 255, 0.25); }
-.slot.row-mid { border-color: rgba(160, 168, 190, 0.16); }
-.slot.row-your { border-color: rgba(232, 200, 119, 0.25); }
+/* Each slot IS a carved-stone tile: a stone face, a faint arcane compass sigil,
+   and a glowing edge in its row's colour. --tile drives the row hue. */
+.slot {
+  flex: 1; min-width: 0; min-height: 0; position: relative; cursor: pointer;
+  border-radius: 6px; display: grid; place-items: center; transition: 0.18s;
+  --tile: var(--tile-mid);
+  background:
+    radial-gradient(95% 95% at 50% 42%, rgba(70, 74, 92, 0.32), rgba(14, 16, 24, 0.6)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.014) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.14) 0 3px, transparent 3px 8px);
+  border: 1.5px solid color-mix(in srgb, var(--tile) 55%, transparent);
+  box-shadow:
+    0 0 12px color-mix(in srgb, var(--tile) 30%, transparent),
+    inset 0 0 18px rgba(0, 0, 0, 0.5),
+    inset 0 0 10px color-mix(in srgb, var(--tile) 10%, transparent);
+}
+.slot.row-opp { --tile: var(--tile-opp); }
+.slot.row-mid { --tile: var(--tile-mid); }
+.slot.row-your { --tile: var(--tile-your); }
+/* the arcane compass sigil, tinted to the row colour, faint under the card */
+.slot::before {
+  content: ""; position: absolute; inset: 11%; z-index: 0; pointer-events: none;
+  background: var(--tile); opacity: 0.15;
+  -webkit-mask: url("/tile-sigil.svg") center / contain no-repeat;
+  mask: url("/tile-sigil.svg") center / contain no-repeat;
+}
 .slot.legal { border-color: var(--legal); animation: legalpulse 1.4s infinite; }
 @keyframes legalpulse {
   0%, 100% { box-shadow: 0 0 14px var(--legal-soft), inset 0 0 16px var(--legal-soft); }
