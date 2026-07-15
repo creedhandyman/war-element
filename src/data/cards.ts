@@ -793,8 +793,19 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 1,
     // Shadow Step: STEALTH until first attack each round — exactly the
-    // alpha STEALTH keyword. (Dark Hunting is trap-like — out of alpha scope.)
+    // alpha STEALTH keyword.
     keywords: { CRIT: true, STEALTH: true },
+    // Dark Hunting: the doc's version is a trap (mark an enemy home slot; ROOT +
+    // LIFESTEAL when a card enters it). Traps aren't modeled, so this is the
+    // immediate payoff — strike a target, ROOT it, and drain 4 HP.
+    special: {
+      name: "Dark Hunting",
+      cost: 3,
+      handler: "strike",
+      params: { dmg: 5, statusKind: "ROOT", statusDuration: 1, healSelf: 4 },
+      targetSide: "enemy",
+      text: "Deal 5 DMG, ROOT the target for 1 round, and heal 4 HP.",
+    },
   },
   {
     id: "dusk_crow",

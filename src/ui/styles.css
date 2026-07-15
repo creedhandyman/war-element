@@ -599,7 +599,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 .deck-thumb { position: relative; aspect-ratio: 3 / 4; border-radius: 9px; overflow: hidden; background: linear-gradient(160deg, #243250, #1a2136); border: 1px solid var(--panel-line); padding: 5px; display: flex; flex-direction: column; }
 .deck-thumb::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6,8,14,0) 42%, rgba(6,8,14,0.55) 66%, rgba(6,8,14,0.92) 100%); }
-.deck-thumb > * { position: relative; z-index: 1; }
+/* Content sits above the art — but NOT .card-art itself, which must stay the
+   absolute full-bleed background (its base rule). Excluding it here is what the
+   .carded pattern already does; without the :not() the art dropped into flow. */
+.deck-thumb > *:not(.card-art) { position: relative; z-index: 1; }
 /* Top row: cost + element dot on the left; rarity + add button hug the right.
    Everything is inline (no absolute overlap of the cost badge). */
 .dt-top { display: flex; align-items: center; gap: 4px; }
