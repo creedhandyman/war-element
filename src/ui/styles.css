@@ -79,7 +79,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   height: 100vh;
   gap: 10px;
   padding: 10px;
+  position: relative; /* anchors the floating hand overlay */
 }
+
+/* Floating hand — sits over the bottom edge of the board, not inside the bar, so
+   the bar stays thin. Pops up on your turn, tucks low (collapsed) otherwise. */
+.hand-float {
+  position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%);
+  z-index: 40; width: min(820px, 62%); display: flex; justify-content: center;
+  pointer-events: none; transition: bottom 0.28s ease;
+}
+.hand-float .hand { pointer-events: auto; }
+.hand-float.up { bottom: 104px; } /* raised above the bar, over the board's bottom row */
 
 /* ===== phase ribbon ===== */
 .phase-ribbon { grid-column: 1/4; display: flex; align-items: center; justify-content: center; gap: 22px; padding: 4px; }
@@ -339,7 +350,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .queue-help { font-size: 9px; color: var(--ink-faint); margin-top: 8px; line-height: 1.4; }
 
 /* ===== bottom bar ===== */
-.bottom { grid-column: 1/4; display: flex; align-items: center; gap: 12px; background: linear-gradient(180deg, rgba(30, 26, 20, 0.9), rgba(20, 17, 13, 0.9)); border: 1px solid var(--gold-line); border-radius: 12px; padding: 8px 14px; min-height: 132px; box-shadow: inset 0 0 40px rgba(201, 162, 75, 0.04); overflow: visible; transition: min-height 0.28s ease, padding 0.28s ease; }
+.bottom { grid-column: 1/4; display: flex; align-items: flex-end; gap: 12px; background: linear-gradient(180deg, rgba(30, 26, 20, 0.9), rgba(20, 17, 13, 0.9)); border: 1px solid var(--gold-line); border-radius: 12px; padding: 8px 14px; min-height: 90px; box-shadow: inset 0 0 40px rgba(201, 162, 75, 0.04); overflow: visible; transition: min-height 0.28s ease, padding 0.28s ease; }
 /* Collapsed: the hand isn't usable (not your prep turn, no card up), so the
    bar shrinks to give the battlefield more room — the non-essential controls
    fold away and only a slim status + the shrunken hand/resources remain. */
@@ -447,11 +458,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    actions) — cost pip on top, an element-tinted art strip, then the name. */
 .spelltray { display: flex; flex-direction: column; gap: 6px; flex: none; }
 .spelltray-label { font-family: var(--head); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); }
-.spelltray-row { display: flex; gap: 7px; flex-wrap: wrap; }
+.spelltray-row { display: flex; gap: 6px; flex-wrap: nowrap; }
 .spellchip {
-  position: relative; width: 50px; flex: none; cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 10px 5px 6px; border-radius: 8px;
+  position: relative; width: 48px; flex: 1 1 0; min-width: 0; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 9px 4px 5px; border-radius: 8px;
   background: linear-gradient(180deg, #191c30, #0e1020);
   border: 1.5px solid color-mix(in srgb, var(--el, #26307a) 60%, #0d0c14);
   transition: 0.14s;
@@ -466,18 +477,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: radial-gradient(circle at 35% 30%, #7d92e8, #26307a); border: 1.5px solid #b9c8ff;
   color: #fff; font-size: 11px; font-weight: 800; box-shadow: 0 0 8px rgba(130, 160, 255, 0.6);
 }
-.spellchip-art { width: 100%; height: 30px; border-radius: 4px; background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 55%, #0d0c14), #0b0d18); box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5); }
+.spellchip-art { width: 100%; height: 24px; border-radius: 4px; background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 55%, #0d0c14), #0b0d18); box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5); }
 .spellchip-name { font-size: 9.5px; font-weight: 700; color: #d8d2c0; text-align: center; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
-.controls { display: flex; flex-direction: column; gap: 7px; align-items: stretch; flex: none; width: 172px; }
-.hint { font-size: 11px; color: var(--ink-dim); text-align: right; line-height: 1.35; }
+.controls { display: flex; flex-direction: column; gap: 6px; align-items: stretch; flex: none; width: 238px; }
+.hint { font-size: 11px; color: var(--ink-dim); text-align: right; line-height: 1.3; max-height: 30px; overflow: hidden; }
 .hint b { color: var(--ink); }
 /* Pass Priority: primary, full-width; the pass-dots ride inside it. */
-.pass-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 12px; }
+.pass-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 7px 12px; }
 .pass-btn .pass-dots { margin: 0; }
-/* Secondary controls stack under Pass Priority, wrapping as needed. */
-.ctl-sub { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; justify-content: flex-end; }
-.ghost.sm { padding: 6px 9px; font-size: 11px; border-radius: 8px; }
+/* Secondary controls sit in one compact row under Pass Priority. */
+.ctl-sub { display: flex; flex-wrap: nowrap; gap: 5px; align-items: center; justify-content: flex-end; }
+.ghost.sm { padding: 5px 8px; font-size: 10.5px; border-radius: 8px; white-space: nowrap; }
 .ctl-sub select.ghost.sm { max-width: 100%; }
 .lockin { padding: 10px 22px; border-radius: 10px; border: 1px solid var(--gold-hi); background: linear-gradient(180deg, var(--gold-lit), #b8903a); color: #241a06; font-family: var(--head); font-weight: 800; letter-spacing: 0.06em; font-size: 13px; cursor: pointer; box-shadow: 0 0 24px rgba(232, 200, 119, 0.4), 0 4px 14px rgba(0, 0, 0, 0.5); transition: 0.15s; }
 .lockin:hover { transform: translateY(-1px); }

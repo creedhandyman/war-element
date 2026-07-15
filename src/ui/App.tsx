@@ -560,14 +560,7 @@ export function App() {
               </div>
             )}
           </div>
-        ) : (
-          <Hand
-            game={game}
-            player={view}
-            selectedHandId={sel?.kind === "hand" ? sel.handId : null}
-            onPick={onPickHand}
-          />
-        )}
+        ) : null}
         </div>
 
         <div className="controls">
@@ -653,6 +646,19 @@ export function App() {
           </div>
         </div>
       </div>
+
+      {/* The hand floats over the bottom edge of the board — popped up when it's
+          your turn to act, tucked low otherwise — so the bar stays thin. */}
+      {started && activeCard === null && game.phase !== "mulligan" && (
+        <div className={`hand-float${myPrep ? " up" : ""}`}>
+          <Hand
+            game={game}
+            player={view}
+            selectedHandId={sel?.kind === "hand" ? sel.handId : null}
+            onPick={onPickHand}
+          />
+        </div>
+      )}
 
       {inMulligan && me && (
         <div className="overlay">
