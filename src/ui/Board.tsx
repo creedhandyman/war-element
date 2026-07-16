@@ -17,6 +17,8 @@ export function Board(props: {
   grayTeam: PlayerId | null; // whose cards to gray out (the idle team on your turn)
   viewPlayer: PlayerId; // whose side you're looking from (the opponent is fogged)
   onSlotClick: (row: number, col: number) => void;
+  onSlotDragOver: (row: number, col: number) => void; // drag-to-summon: hover
+  onSlotDrop: (row: number, col: number) => void; // drag-to-summon: drop
   onCycleAuto: (instanceId: string) => void;
 }) {
   const { game } = props;
@@ -101,10 +103,13 @@ export function Board(props: {
                   grayed={props.grayTeam !== null && card !== null && card.owner === props.grayTeam}
                   contested={contested}
                   captured={game.slots[row][col].capturedBy}
+                  canDrop={isLegalSlot}
                   pickCount={card ? (props.pickCounts[card.instanceId] ?? 0) : 0}
                   selectedId={props.selectedId}
                   actingId={props.actingId}
                   onClick={props.onSlotClick}
+                  onDragOver={props.onSlotDragOver}
+                  onDrop={props.onSlotDrop}
                   onCycleAuto={props.onCycleAuto}
                 />
               );

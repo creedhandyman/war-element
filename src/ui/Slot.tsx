@@ -14,10 +14,13 @@ export function Slot(props: {
   grayed: boolean;
   contested: boolean;
   captured: "P1" | "P2" | null;
+  canDrop: boolean; // a legal drag-to-summon drop target
   pickCount: number;
   selectedId: string | null;
   actingId: string | null;
   onClick: (row: number, col: number) => void;
+  onDragOver: (row: number, col: number) => void;
+  onDrop: (row: number, col: number) => void;
   onCycleAuto: (instanceId: string) => void;
 }) {
   const rowClass = ["row-opp", "row-mid", "row-mid", "row-your"][props.row];
@@ -38,7 +41,20 @@ export function Slot(props: {
     .filter(Boolean)
     .join(" ");
   return (
-    <div className={cls} onClick={() => props.onClick(props.row, props.col)}>
+    <div
+      className={cls}
+      onClick={() => props.onClick(props.row, props.col)}
+      onDragOver={(e) => {
+        if (!props.canDrop) return;
+        e.preventDefault(); // allow the drop
+        props.onDragOver(props.row, props.col);
+      }}
+      onDrop={(e) => {
+        if (!props.canDrop) return;
+        e.preventDefault();
+        props.onDrop(props.row, props.col);
+      }}
+    >
       {props.captured && (
         <span className="lock" title={`Permanently captured by ${props.captured}`}>
           🔒

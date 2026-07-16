@@ -8,6 +8,8 @@ export function Hand(props: {
   player: PlayerId;
   selectedHandId: string | null;
   onPick: (handId: string) => void;
+  onDragStartCard?: (handId: string) => void;
+  onDragEndCard?: () => void;
 }) {
   const { game, player } = props;
   const me = game.players[player];
@@ -53,6 +55,13 @@ export function Hand(props: {
                 zIndex: 30 - Math.round(Math.abs(off) * 2),
               }}
               title={def.special ? `${def.special.name}: ${def.special.text}` : def.name}
+              draggable={myPrep && affordable}
+              onDragStart={(e) => {
+                e.dataTransfer.setData("text/plain", h.handId);
+                e.dataTransfer.effectAllowed = "move";
+                props.onDragStartCard?.(h.handId);
+              }}
+              onDragEnd={() => props.onDragEndCard?.()}
               onClick={() => props.onPick(h.handId)}
             >
               <img

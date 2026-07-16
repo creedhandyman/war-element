@@ -56,6 +56,10 @@ export function App() {
   // A summon awaiting confirmation: the chosen hand card + home column. While
   // set, the board previews the on-summon damage area (red) and shows a confirm.
   const [staged, setStaged] = useState<{ handId: string; col: number } | null>(null);
+  // Drag-to-summon: the hand card being dragged + the home column under the
+  // cursor. Drives a LIVE on-summon area preview (red) as you drag over slots.
+  const [drag, setDrag] = useState<string | null>(null);
+  const [dragCol, setDragCol] = useState<number | null>(null);
   const [hint, setHint] = useState<string>(
     "Mulligan: click cards to send back, then confirm.",
   );
@@ -154,6 +158,40 @@ export function App() {
     setHint("Placement cancelled — pick another slot, or a different card.");
   }
 
+  // Drag-to-summon: grab a hand card, drag over a home slot (live red preview),
+  // drop to stage it for confirm.
+  function onDragStartCard(handId: string) {
+    if (me === null || game.phase !== "prep" || game.prep?.priority !== me) return;
+    const p = game.players[me];
+    const card = p.hand.find((h) => h.handId === handId);
+    if (!card || getDef(card.defId).cost > p.summonPool) return;
+    setSel({ kind: "hand", handId }); // arm so the legal home slots light up
+    setStaged(null);
+    setDrag(handId);
+    setDragCol(null);
+  }
+  function onDragEndCard() {
+    setDrag(null);
+    setDragCol(null);
+  }
+  function onSlotDragOver(_row: number, col: number) {
+    if (dragCol !== col) setDragCol(col);
+  }
+  function onSlotDrop(_row: number, col: number) {
+    if (drag === null || me === null) return;
+    const chk = canSummon(game, me, drag, col);
+    if (!chk.ok) {
+      setHint(`⚠ ${chk.reason ?? "Home row only."}`);
+      setDrag(null);
+      setDragCol(null);
+      return;
+    }
+    setStaged({ handId: drag, col });
+    setDrag(null);
+    setDragCol(null);
+    setHint("Confirm placement — <b>red</b> marks where its on-summon effect lands.");
+  }
+
   // ── legality highlights ───────────────────────────────────────────────────
   const legalSlots: Pos[] = useMemo(() => {
     if (game.phase !== "prep") return [];
@@ -211,17 +249,21 @@ export function App() {
     return true; // basic attack
   }, [legalTargetIds, sel, pending, awaitingId, game]);
 
-  // Staged summon: the chosen home slot + the red on-summon damage-area preview.
+  // The active placement — either a card being DRAGGED over a home column (live
+  // preview) or a STAGED summon awaiting confirm. Both drive the same red
+  // on-summon area preview + green "place here" slot.
+  const activeHandId = staged?.handId ?? drag ?? null;
+  const activeCol = staged ? staged.col : dragCol;
   const stagedSlot: Pos | null = useMemo(
-    () => (staged && me !== null ? ({ row: homeRow(me), col: staged.col } as Pos) : null),
-    [staged, me],
+    () => (activeHandId !== null && activeCol !== null && me !== null ? ({ row: homeRow(me), col: activeCol } as Pos) : null),
+    [activeHandId, activeCol, me],
   );
   const previewArea: Pos[] = useMemo(() => {
-    if (!staged || me === null) return [];
-    const h = game.players[me].hand.find((c) => c.handId === staged.handId);
+    if (activeHandId === null || activeCol === null || me === null) return [];
+    const h = game.players[me].hand.find((c) => c.handId === activeHandId);
     if (!h) return [];
-    return previewOnSummonArea(game, getDef(h.defId), me, { row: homeRow(me), col: staged.col } as Pos);
-  }, [staged, me, game]);
+    return previewOnSummonArea(game, getDef(h.defId), me, { row: homeRow(me), col: activeCol } as Pos);
+  }, [activeHandId, activeCol, me, game]);
   // Drop a stale stage if the context changes (different card, phase, priority).
   useEffect(() => {
     if (!staged) return;
@@ -503,6 +545,8 @@ export function App() {
         }
         viewPlayer={view}
         onSlotClick={onSlotClick}
+        onSlotDragOver={onSlotDragOver}
+        onSlotDrop={onSlotDrop}
         onCycleAuto={onCycleAuto}
       />
 
@@ -721,6 +765,8 @@ export function App() {
             player={view}
             selectedHandId={sel?.kind === "hand" ? sel.handId : null}
             onPick={onPickHand}
+            onDragStartCard={onDragStartCard}
+            onDragEndCard={onDragEndCard}
           />
         </div>
       )}
