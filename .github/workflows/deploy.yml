@@ -25,7 +25,23 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
+      # Check out WITHOUT pulling LFS blobs yet (we cache them below so we don't
+      # re-download ~837MB of card art on every deploy — that would burn the free
+      # LFS bandwidth quota fast). The working tree gets small pointer files here.
       - uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - name: Cache Git LFS objects (card art)
+        uses: actions/cache@v4
+        with:
+          path: .git/lfs
+          # Re-keys only when the art actually changes (pointer contents change).
+          key: lfs-${{ hashFiles('public/cards/*.png') }}
+          restore-keys: lfs-
+
+      - name: Materialize LFS files (from cache, or download on a miss)
+        run: git lfs pull
 
       - uses: actions/setup-node@v4
         with:

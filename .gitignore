@@ -2,11 +2,5 @@ node_modules/
 dist/
 *.local
 
-# Card art binaries — large (~2-3MB each). Served from disk in dev; not
-# version-controlled to keep the repo light. Use Git LFS if you want them
-# tracked. The filename guide (public/cards/README.md) stays in git.
-public/cards/*.png
-public/cards/*.jpg
-public/cards/*.jpeg
-public/cards/*.webp
+# Card art binaries (~3MB each) are tracked via Git LFS — see .gitattributes.
 .vercel
