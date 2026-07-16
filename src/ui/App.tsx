@@ -132,6 +132,18 @@ export function App() {
     return () => clearTimeout(t);
   }, [game, started, online]);
 
+  // Reliability heartbeat: whichever side currently "owns" the state (the player
+  // who must act, or the host during a no-input step) re-broadcasts it every few
+  // seconds, so a dropped/slow Realtime message self-heals instead of stalling.
+  // Only the owning side heartbeats, so the two never fight over the state.
+  useEffect(() => {
+    if (!online || !started || game.phase === "gameover") return;
+    const owns = actor === online.myId || (online.role === "host" && actor === null);
+    if (!owns) return;
+    const t = setInterval(() => roomRef.current?.sendState(game), 2500);
+    return () => clearInterval(t);
+  }, [online, started, game, actor]);
+
   // Keep the hint fresh on phase/priority flips.
   const phaseKey = `${game.phase}:${game.prep?.priority ?? ""}:${game.battle?.awaitingInput ?? ""}`;
   const prevPhaseKey = useRef(phaseKey);
