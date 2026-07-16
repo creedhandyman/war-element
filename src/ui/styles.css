@@ -119,7 +119,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .rail.queue-rail .rail-title { color: var(--steel-lit); }
 
 /* ===== board ===== */
-.board-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; position: relative; min-height: 0; perspective: var(--board-perspective); perspective-origin: center 42%; }
+.board-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; position: relative; min-height: 0; }
 /* Elemental energy wisps curling in from the edges around the board. */
 .board-area::before {
   content: ""; position: absolute; inset: -3%; z-index: 0; pointer-events: none;
@@ -172,8 +172,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     inset 0 0 0 6px var(--gold-line),
     inset 0 0 90px rgba(0, 0, 0, 0.65),
     0 0 40px rgba(201, 162, 75, 0.12);
-  transform: rotateX(var(--board-tilt));
-  transform-origin: center 55%;
+  /* Flat top-down board (3D tilt removed). */
 }
 .brow { flex: 1; display: flex; gap: var(--grid-gap); position: relative; min-height: 0; }
 .brow { display: flex; gap: 8px; position: relative; }
