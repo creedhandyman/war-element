@@ -9,3 +9,4 @@ public/cards/*.png
 public/cards/*.jpg
 public/cards/*.jpeg
 public/cards/*.webp
+.vercel
