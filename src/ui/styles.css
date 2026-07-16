@@ -500,6 +500,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .spellchip-art { width: 100%; height: 24px; border-radius: 4px; background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 55%, #0d0c14), #0b0d18); box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5); }
 .spellchip-name { font-size: 9.5px; font-weight: 700; color: #d8d2c0; text-align: center; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
+/* Right of the field: spell tray (top) stacked above the Speed Queue rail. */
+.rightcol { grid-column: 3; grid-row: 2; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.rightcol .rail { flex: 1; } /* the initiative (Speed Queue) rail fills the rest */
+/* Vertical spell tray — a rune panel of horizontal spell bars. */
+.spelltray.vertical { flex: none; background: linear-gradient(180deg, rgba(30,26,20,0.92), rgba(20,17,13,0.92)); border: 1px solid var(--gold-line); border-radius: 10px; padding: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 0 40px rgba(201,162,75,0.05); }
+.spelltray.vertical .spelltray-label { color: var(--gold-lit); font-size: 11px; letter-spacing: 0.16em; margin-bottom: 3px; }
+.spelltray.vertical .spelltray-row { flex-direction: column; gap: 8px; }
+.spelltray.vertical .spellchip { width: 100%; flex: none; flex-direction: row; align-items: center; gap: 9px; padding: 7px 10px 7px 30px; }
+.spelltray.vertical .spellchip-cost { top: 50%; left: 6px; transform: translateY(-50%); }
+.spelltray.vertical .spellchip-art { width: 26px; height: 26px; flex: none; }
+.spelltray.vertical .spellchip-name { text-align: left; flex: 1; font-size: 11.5px; }
+
 .controls { display: flex; flex-direction: column; gap: 6px; align-items: stretch; flex: none; width: 238px; }
 .hint { font-size: 11px; color: var(--ink-dim); text-align: right; line-height: 1.3; max-height: 30px; overflow: hidden; }
 .hint b { color: var(--ink); }

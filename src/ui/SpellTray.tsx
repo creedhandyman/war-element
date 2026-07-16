@@ -11,6 +11,7 @@ export function SpellTray(props: {
   armedSpellId: string | null;
   myTurn: boolean;
   onPick: (spellId: string) => void;
+  vertical?: boolean; // stack the chips in a column (right-of-field rail)
 }) {
   const { game, player } = props;
   const book = game.players[player].spellbook;
@@ -18,7 +19,7 @@ export function SpellTray(props: {
   const magic = game.players[player].magicPool;
 
   return (
-    <div className="spelltray">
+    <div className={`spelltray${props.vertical ? " vertical" : ""}`}>
       <div className="spelltray-label">Spells</div>
       <div className="spelltray-row">
         {book.map((slot) => {

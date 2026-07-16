@@ -677,7 +677,21 @@ export function App() {
         );
       })()}
 
-      <SpeedQueue game={game} />
+      {/* Right of the field: the spell tray sits above the initiative (Speed
+          Queue) rail. */}
+      <div className="rightcol">
+        {game.phase === "prep" && (
+          <SpellTray
+            game={game}
+            player={view}
+            armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
+            myTurn={myPrep}
+            onPick={onPickSpell}
+            vertical
+          />
+        )}
+        <SpeedQueue game={game} />
+      </div>
 
       <div className={`bottom${!myPrep && activeCard === null ? " compact" : ""}`}>
         <ResourcePool game={game} player={view} />
@@ -785,15 +799,6 @@ export function App() {
         </div>
 
         <div className="controls">
-          {me && game.phase === "prep" && (
-            <SpellTray
-              game={game}
-              player={me}
-              armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
-              myTurn={myPrep}
-              onPick={onPickSpell}
-            />
-          )}
           <div className="hint" dangerouslySetInnerHTML={{ __html: hint }} />
           {/* Pass Priority is the primary action; secondary controls stack
               underneath it so the hand keeps its width. */}
