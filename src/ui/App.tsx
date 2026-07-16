@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { GameState, Intent, PlayerId, Pos } from "../engine";
 import {
   advance,
@@ -61,6 +61,9 @@ export function App() {
   // cursor. Drives a LIVE on-summon area preview (red) as you drag over slots.
   const [drag, setDrag] = useState<string | null>(null);
   const [dragCol, setDragCol] = useState<number | null>(null);
+  // Mobile: which edge panel is open (Battle Log left / Spells right). Desktop
+  // shows both inline, so this stays null there.
+  const [mobilePanel, setMobilePanel] = useState<"log" | "spells" | null>(null);
   const [hint, setHint] = useState<string>(
     "Mulligan: click cards to send back, then confirm.",
   );
@@ -84,6 +87,7 @@ export function App() {
   const [netStatus, setNetStatus] = useState("");
   const roomRef = useRef<Room | null>(null);
   const onlineStartedRef = useRef(false);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
   const [viewDeck, setViewDeck] = useState<"p1" | "p2">("p1"); // which deck's cards to preview
   // Custom decks (a sandbox on top of the Cores). "" = use the two core selects.
   const [customDecks, setCustomDecks] = useState<CustomDeck[]>(() => loadCustomDecks());
@@ -155,6 +159,7 @@ export function App() {
     setPicks([]);
     setSurrenderArmed(false);
     setDetailId(null);
+    setMobilePanel(null); // close any mobile edge panel on a phase/turn flip
     const actor = needsInput(game);
     // Online: it's "my turn" only when the actor is my own side.
     const mine = online ? actor === online.myId : true;
@@ -257,6 +262,28 @@ export function App() {
   }
   // Tear the channel down if the tab closes / component unmounts.
   useEffect(() => () => roomRef.current?.close(), []);
+
+  // Publish the live height of the bottom control bar as `--bar-h` on :root. The
+  // mobile floating hand anchors above it (calc(var(--bar-h) + …)), so it clears
+  // the bar no matter how tall it renders (button wrap, safe-area, phone size).
+  // Synced before paint on every render (the bar remounts across phases and its
+  // height flips with the compact class), and a ResizeObserver — re-pointed at
+  // the current node each render — catches reflows that happen without a render
+  // (orientation change, mobile address-bar show/hide).
+  const barRoRef = useRef<ResizeObserver | null>(null);
+  useLayoutEffect(() => {
+    const bar = bottomRef.current;
+    if (!bar) return;
+    const apply = () =>
+      document.documentElement.style.setProperty("--bar-h", `${Math.round(bar.getBoundingClientRect().height)}px`);
+    apply();
+    barRoRef.current?.disconnect();
+    if (typeof ResizeObserver !== "undefined") {
+      barRoRef.current = new ResizeObserver(apply);
+      barRoRef.current.observe(bar);
+    }
+  });
+  useEffect(() => () => barRoRef.current?.disconnect(), []);
 
   // Confirm / cancel a staged summon placement.
   function confirmSummon() {
@@ -623,8 +650,11 @@ export function App() {
     <div className="wrap">
       <PhaseRibbon game={game} />
 
-      <div className="rail">
-        <div className="rail-title">Battle Log</div>
+      <div className={`rail${mobilePanel === "log" ? " mobile-open" : ""}`}>
+        <div className="rail-title">
+          Battle Log
+          <button className="panel-close" onClick={() => setMobilePanel(null)} aria-label="Close">✕</button>
+        </div>
         <div className="loglist">
           {game.log.slice(-40).map((l, i) => (
             <div key={i} className={l.includes("(P1)") ? "me" : ""}>
@@ -633,6 +663,20 @@ export function App() {
           ))}
         </div>
       </div>
+
+      {/* Mobile-only edge tabs — open the Log (left) / Spells (right) overlays. */}
+      <button
+        className="edge-tab left"
+        onClick={() => setMobilePanel(mobilePanel === "log" ? null : "log")}
+      >
+        <span>LOG</span>
+      </button>
+      <button
+        className="edge-tab right"
+        onClick={() => setMobilePanel(mobilePanel === "spells" ? null : "spells")}
+      >
+        <span>SPELLS</span>
+      </button>
 
       <Board
         game={game}
@@ -693,7 +737,31 @@ export function App() {
         <SpeedQueue game={game} />
       </div>
 
-      <div className={`bottom${!myPrep && activeCard === null ? " compact" : ""}`}>
+      {/* Mobile: the Spells tab opens the tray as a bottom sheet (spells are prep-only). */}
+      {mobilePanel === "spells" && (
+        <div className="mobile-sheet" onClick={() => setMobilePanel(null)}>
+          <div className="mobile-sheet-card" onClick={(e) => e.stopPropagation()}>
+            <div className="rail-title">
+              Spells
+              <button className="panel-close" onClick={() => setMobilePanel(null)} aria-label="Close">✕</button>
+            </div>
+            {game.phase === "prep" ? (
+              <SpellTray
+                game={game}
+                player={view}
+                armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
+                myTurn={myPrep}
+                onPick={(id) => { onPickSpell(id); setMobilePanel(null); }}
+                vertical
+              />
+            ) : (
+              <div className="sheet-empty">Spells can only be cast during your Prep turn.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div ref={bottomRef} className={`bottom${!myPrep && activeCard === null ? " compact" : ""}`}>
         <ResourcePool game={game} player={view} />
 
         <div className="handcol">

@@ -753,3 +753,124 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .db-pool { border-left: none; border-top: 1px solid var(--panel-line); padding-left: 0; padding-top: 12px; }
   .db-grid { max-height: 40vh; }
 }
+
+/* ══════════════════ MOBILE / PORTRAIT BATTLEFIELD ══════════════════
+   The desktop 3-column grid can't fit a phone, so below 760px the battle
+   reflows to: slim phase rail (top) · square board hero (center) · always-on
+   Speed-Queue strip (right edge) · Log + Spells behind edge tabs · crystals +
+   thumb Pass Priority + fanned hand (bottom). */
+.edge-tab { display: none; }
+.mobile-sheet { display: none; }
+.panel-close { display: none; }
+
+@media (max-width: 760px) {
+  :root { --board-size: min(calc(94vw - 48px), 50vh); }
+
+  .wrap {
+    display: flex; flex-direction: column; height: 100dvh; gap: 5px;
+    padding: calc(4px + env(safe-area-inset-top)) calc(4px + env(safe-area-inset-right))
+             calc(4px + env(safe-area-inset-bottom)) calc(4px + env(safe-area-inset-left));
+  }
+
+  /* Phase ribbon → slim top row */
+  .phase-ribbon { order: 0; flex: none; gap: 6px; flex-wrap: wrap; padding: 1px 0; }
+  .phase-pills { padding: 2px 4px; }
+  .phase { padding: 3px 6px; font-size: 8px; letter-spacing: 0.04em; }
+  .roundchip { font-size: 10px; } .roundchip b { font-size: 14px; }
+  .priority-chip, .waiting { font-size: 10px; }
+
+  /* Board → hero pinned to the TOP so the free space falls below it, where the
+     hand fan sits — that keeps the fan off the home-row slots (tap-to-summon)
+     and off the bottom bar. Right gutter reserved for the SP strip. */
+  .board-area { order: 1; flex: 1 1 auto; min-height: 0; padding: 2px 44px 0 2px; justify-content: flex-start; }
+  .board-area::before { display: none; } /* drop the corner wisps on tiny screens */
+
+  /* Bottom bar → compact crystals + Pass Priority; the hand fan floats above it */
+  .bottom { order: 2; grid-column: auto; min-height: 68px; padding: 6px 8px; gap: 8px; align-items: center; }
+  .handcol { display: none; }              /* the hand lives in the floating overlay */
+  /* Crystals → pure jewels (labels + opp mirror drop; opp pools already show up
+     top by the fog). Keeps the bottom bar narrow. */
+  .resource { gap: 7px; flex: none; }
+  .res-gem { padding: 0; gap: 0; }
+  .gem-info { display: none; }
+  .gem-face { width: 38px; height: 38px; }
+  .gem-val { font-size: 16px; }
+  .controls { width: auto; flex: 1; min-width: 0; gap: 4px; }
+  .hint { display: none; }
+  /* Keep the secondary controls on ONE row so the bar height stays predictable
+     (a wrapped 2nd row was ballooning it on 320px phones). */
+  .ctl-sub { justify-content: center; gap: 4px; flex-wrap: nowrap; }
+  .ctl-sub .mv { display: none; }          /* the move tell is redundant on mobile */
+  .ctl-sub .ghost.sm { font-size: 11px; padding: 5px 7px; }
+  .ctl-sub select.ghost.sm { max-width: 84px; }
+  .pass-btn { padding: 11px 10px; font-size: 12px; letter-spacing: 0.02em; }
+
+  /* Battle Log → off-canvas left drawer (LOG edge tab). Absolute to .wrap so it
+     tracks the layout viewport, not the (pane-quirky) visual one. */
+  .rail:not(.queue-rail) {
+    position: absolute; top: 0; left: 0; bottom: 0; z-index: 60; width: min(82vw, 320px);
+    border-radius: 0 14px 14px 0; transform: translateX(-103%);
+    transition: transform 0.26s ease; box-shadow: 8px 0 40px rgba(0,0,0,0.7);
+  }
+  .rail:not(.queue-rail).mobile-open { transform: translateX(0); }
+
+  /* Speed Queue → thin always-on strip on the right edge */
+  .rightcol {
+    position: absolute; top: 42px; right: 2px; bottom: 78px; width: 42px;
+    z-index: 25; grid-column: auto; grid-row: auto; gap: 0;
+  }
+  .rightcol .spelltray { display: none; }  /* spells move to the Spells sheet */
+  .rightcol .rail.queue-rail { flex: 1; padding: 5px 2px; }
+  .queue-rail .rail-title, .queue-rail .queue-help { display: none; }
+  .queue-rail .queue-scale { gap: 4px; }
+  .queue-rail .qrow { padding: 3px 1px; gap: 1px; flex-direction: column; align-items: center; }
+  .queue-rail .qname, .queue-rail .qtag { display: none; }
+  .queue-rail .qsp { font-size: 11px; }
+  .queue-rail .el-dot { width: 8px; height: 8px; }
+
+  /* Edge tabs */
+  .edge-tab {
+    display: flex; align-items: center; justify-content: center; position: absolute; top: 40%;
+    z-index: 40; width: 22px; height: 88px; padding: 0; cursor: pointer;
+    background: linear-gradient(180deg, rgba(30,26,20,0.96), rgba(20,17,13,0.96));
+    border: 1px solid var(--gold-line); color: var(--gold-lit);
+    font-family: var(--head); font-weight: 800; font-size: 9px; letter-spacing: 0.12em;
+  }
+  .edge-tab span { writing-mode: vertical-rl; text-orientation: mixed; }
+  .edge-tab.left { left: 0; border-radius: 0 10px 10px 0; border-left: none; }
+  .edge-tab.right { right: 0; border-radius: 10px 0 0 10px; border-right: none; top: 62%; }
+
+  /* Spells bottom sheet */
+  .mobile-sheet { display: flex; position: absolute; inset: 0; z-index: 62; background: rgba(6,8,14,0.55); align-items: flex-end; }
+  .mobile-sheet-card {
+    width: 100%; max-height: 62vh; overflow-y: auto; border-radius: 16px 16px 0 0;
+    background: linear-gradient(180deg, rgba(28,24,18,0.99), rgba(16,13,10,0.99));
+    border-top: 1px solid var(--gold-line); padding: 14px 14px calc(16px + env(safe-area-inset-bottom));
+  }
+  .mobile-sheet-card .spelltray.vertical { background: none; border: none; box-shadow: none; padding: 0; }
+  .sheet-empty { color: var(--ink-dim); font-size: 13px; padding: 8px 2px; }
+
+  .panel-close { display: inline-grid; place-items: center; margin-left: auto; width: 28px; height: 28px; border-radius: 8px; background: var(--void-2); border: 1px solid var(--panel-line); color: var(--ink-dim); cursor: pointer; font-size: 13px; }
+  .rail-title { display: flex; align-items: center; }
+
+  /* Floating hand — narrowed + shifted left so it clears the right SP strip,
+     and raised so it sits above the thin bottom bar. */
+  /* Collapsed peek (opponent/battle turns) tucks into the gap ABOVE the control
+     bar, not over it; the up state lifts higher for summoning. */
+  .hand-float { width: min(84vw, 440px); bottom: calc(var(--bar-h, 72px) + 34px); left: calc(50% - 24px); }
+  .hand-float.up { bottom: calc(var(--bar-h, 84px) + 46px); } /* clears the live bar height + fan dip */
+  /* Smaller, tighter-overlapping cards so the 7-card fan fits a phone width.
+     Pivot the fan at the card's bottom edge (not 135% below) so rotated cards
+     splay at the TOP instead of dipping their corners down over the bottom bar. */
+  .hand-float .hcard { width: 78px; height: 108px; margin: 0 -27px; transform-origin: 50% 96%; }
+  .hand-float .hcard:hover { transform: translateY(-22px) scale(1.12); }
+  .hand-float .hc-name { font-size: 11px; }
+  .hand-float .hc-type { font-size: 8px; }
+  .hand-float .hc-stats { font-size: 9px; }
+
+  /* Placement-confirm bar sits just above the (live-height) bottom bar, full width */
+  .summon-confirm { bottom: calc(var(--bar-h, 84px) + 6px); width: 92vw; flex-wrap: wrap; justify-content: center; }
+
+  /* Modals fit the viewport */
+  .modal, .cd-modal, .dbd-modal { max-width: 94vw; }
+}

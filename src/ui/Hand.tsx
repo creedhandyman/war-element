@@ -1,7 +1,23 @@
+import { useEffect, useState } from "react";
 import type { GameState, PlayerId } from "../engine";
 import { getDef } from "../engine";
 import { EL_COLOR, EL_SIGIL } from "./shared";
 import { SpIcon } from "./icons";
+
+/** True on phone-width viewports (matches the CSS mobile breakpoint). Re-renders
+ *  on resize/orientation change so the fan re-tightens live. */
+function useNarrow(): boolean {
+  const [narrow, setNarrow] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 760px)");
+    const on = () => setNarrow(mq.matches);
+    mq.addEventListener?.("change", on);
+    return () => mq.removeEventListener?.("change", on);
+  }, []);
+  return narrow;
+}
 
 export function Hand(props: {
   game: GameState;
@@ -16,6 +32,11 @@ export function Hand(props: {
   const myPrep = game.phase === "prep" && game.prep?.priority === player;
   const n = me.hand.length;
   const center = (n - 1) / 2;
+  // Phones get a tighter fan + shallower dip so even a hoarded 9-card hand stays
+  // within the viewport and clears the bottom control bar.
+  const narrow = useNarrow();
+  const rotStep = narrow ? 3.2 : 4.4;
+  const tyStep = narrow ? 3.5 : 7;
 
   return (
     <div className={`hand${myPrep ? "" : " collapsed"}`}>
@@ -34,8 +55,8 @@ export function Hand(props: {
           const def = getDef(h.defId);
           const affordable = def.cost <= me.summonPool;
           const off = i - center;
-          const rot = off * 4.4; // fan spread (deg)
-          const ty = Math.pow(Math.abs(off), 1.4) * 7; // outer cards dip lower
+          const rot = off * rotStep; // fan spread (deg)
+          const ty = Math.pow(Math.abs(off), 1.4) * tyStep; // outer cards dip lower
           const cls = [
             "hcard",
             myPrep && affordable ? "summonable" : "",
