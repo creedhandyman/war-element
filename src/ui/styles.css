@@ -611,6 +611,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .core-pair select { flex: 1; min-width: 0; }
 .picker-menu .lockin { margin-top: auto; }
 
+/* Online room panel (setup screen). */
+.online-panel { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+.online-panel .lockin { margin-top: 0; }
+.role-toggle { display: flex; gap: 8px; }
+.mode-btn.sm { font-size: 12px; padding: 6px 10px; }
+.mode-btn:disabled { opacity: 0.55; cursor: default; }
+.room-code { text-transform: uppercase; letter-spacing: 0.14em; text-align: center; font-size: 16px; }
+.net-status { font-size: 11px; line-height: 1.4; color: var(--ink-dim); background: var(--void-2); border: 1px solid var(--panel-line); border-radius: 8px; padding: 7px 9px; }
+.net-status.warn { color: var(--threat); border-color: var(--threat); }
+
 .picker-view { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; border-left: 1px solid var(--panel-line); padding-left: 22px; }
 .pv-tabs { display: flex; gap: 8px; }
 .pv-tab { flex: 1; font-size: 12px; font-weight: 700; padding: 7px 10px; border-radius: 8px; background: var(--void-2); color: var(--ink-dim); border: 1px solid var(--panel-line); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: 0.15s; }

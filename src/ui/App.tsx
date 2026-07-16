@@ -31,6 +31,7 @@ import {
   validAllyTargets,
   validTargets,
 } from "../engine";
+import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online";
 import { Board } from "./Board";
 import { CardDetail } from "./CardDetail";
 import { DeckBuilder } from "./DeckBuilder";
@@ -75,6 +76,14 @@ export function App() {
   const [p2CoreA, setP2CoreA] = useState("dawn");
   const [p2CoreB, setP2CoreB] = useState("bolt");
   const [twoPlayer, setTwoPlayer] = useState(false);
+  // Online PvP over Supabase Realtime. `online` is set once a room is live.
+  const [online, setOnline] = useState<{ role: Role; code: string; myId: PlayerId } | null>(null);
+  const [onlineMode, setOnlineMode] = useState(false); // setup screen: online vs local
+  const [onlineRole, setOnlineRole] = useState<Role>("host");
+  const [roomCode, setRoomCode] = useState("");
+  const [netStatus, setNetStatus] = useState("");
+  const roomRef = useRef<Room | null>(null);
+  const onlineStartedRef = useRef(false);
   const [viewDeck, setViewDeck] = useState<"p1" | "p2">("p1"); // which deck's cards to preview
   // Custom decks (a sandbox on top of the Cores). "" = use the two core selects.
   const [customDecks, setCustomDecks] = useState<CustomDeck[]>(() => loadCustomDecks());
@@ -94,20 +103,34 @@ export function App() {
   // The human who must act right now (null while an AI acts or a phase
   // animates). `view` holds the last active human so the hand/pools/labels
   // don't flicker between turns; in vs-AI mode it's always P1.
-  const me = started ? needsInput(game) : null;
+  // Whose input the game needs; online, I only act on MY turn (else null).
+  const actor = started ? needsInput(game) : null;
+  const me = online ? (actor === online.myId ? online.myId : null) : actor;
   const [viewSide, setViewSide] = useState<PlayerId>("P1");
   useEffect(() => {
     if (me) setViewSide(me);
   }, [me]);
-  const view: PlayerId = me ?? viewSide;
+  // Online: the board is always shown from MY side; local: follow the active human.
+  const view: PlayerId = online ? online.myId : (me ?? viewSide);
 
-  // Auto-advance whenever the engine doesn't need P1's input (once started).
+  // Auto-advance the non-interactive steps. Local: whoever's driving advances
+  // whenever no human is needed. Online: ONLY the host advances the shared
+  // no-input steps (and broadcasts) so the two clients never double-apply.
   useEffect(() => {
-    if (!started || game.phase === "gameover" || needsP1Input(game)) return;
+    if (!started || game.phase === "gameover") return;
+    if (online) {
+      if (online.role !== "host" || needsInput(game) !== null) return;
+    } else if (needsP1Input(game)) {
+      return;
+    }
     const delay = game.phase === "battle" ? 480 : 260;
-    const t = setTimeout(() => setGame((g) => advance(g)), delay);
+    const t = setTimeout(() => {
+      const next = advance(game);
+      setGame(next);
+      if (online) broadcast(next);
+    }, delay);
     return () => clearTimeout(t);
-  }, [game, started]);
+  }, [game, started, online]);
 
   // Keep the hint fresh on phase/priority flips.
   const phaseKey = `${game.phase}:${game.prep?.priority ?? ""}:${game.battle?.awaitingInput ?? ""}`;
@@ -121,31 +144,107 @@ export function App() {
     setSurrenderArmed(false);
     setDetailId(null);
     const actor = needsInput(game);
-    if (game.phase === "prep" && actor)
+    // Online: it's "my turn" only when the actor is my own side.
+    const mine = online ? actor === online.myId : true;
+    if (game.phase === "prep" && actor && mine)
       setHint(
-        `<b>${twoPlayer ? `${actor} prep turn` : "Your prep turn"}.</b> Click a glowing hand card to summon (any number), move one board card, then Pass.`,
+        `<b>${!online && twoPlayer ? `${actor} prep turn` : "Your prep turn"}.</b> Click a glowing hand card to summon (any number), move one board card, then Pass.`,
       );
-    else if (game.phase === "prep") setHint("Opponent has priority…");
+    else if (game.phase === "prep") setHint(online ? "⏳ Waiting for your opponent…" : "Opponent has priority…");
     else if (game.battle?.awaitingInput) {
       const card = game.cards[game.battle.awaitingInput];
       const def = getDef(card.defId);
-      setHint(
-        `<b>${def.name} is up${twoPlayer ? ` (${card.owner})` : ""}.</b> Choose Basic, Special, or Skip.`,
-      );
+      if (online && !mine) setHint(`⏳ ${def.name} (opponent) is up…`);
+      else
+        setHint(
+          `<b>${def.name} is up${!online && twoPlayer ? ` (${card.owner})` : ""}.</b> Choose Basic, Special, or Skip.`,
+        );
     }
-  }, [phaseKey, game, twoPlayer]);
+  }, [phaseKey, game, twoPlayer, online]);
+
+  function broadcast(state: GameState) {
+    roomRef.current?.sendState(state);
+  }
 
   function dispatch(intent: Intent) {
     try {
-      setGame(applyIntent(game, intent));
+      const next = applyIntent(game, intent);
+      setGame(next);
       setSel(null);
       setPending(null);
       setPicks([]);
       setStaged(null);
+      if (online) broadcast(next); // sync my move to the other client
     } catch (e) {
       setHint(`⚠ ${(e as Error).message}`);
     }
   }
+
+  // ── online rooms ──────────────────────────────────────────────────────────
+  function hostCreateRoom() {
+    if (!onlineConfigured) {
+      setNetStatus("⚠ Online isn't configured — set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY.");
+      return;
+    }
+    const code = (roomCode.trim() || Math.random().toString(36).slice(2, 7)).toUpperCase();
+    setRoomCode(code);
+    const hostCards = resolveDeckCards(p1DeckId, p1CoreA, p1CoreB);
+    setNetStatus(`Room ${code} open — share this code. Waiting for your buddy…`);
+    onlineStartedRef.current = false;
+    roomRef.current = joinRoom(code, "host", {
+      onState: (state) => setGame(state),
+      onJoin: (guestCards) => {
+        if (onlineStartedRef.current) return; // already playing — ignore re-joins
+        onlineStartedRef.current = true;
+        const g = createInitialState(newSeed(), hostCards, guestCards, ["P1", "P2"]);
+        setGame(g);
+        setViewSide("P1");
+        setSel(null); setPending(null); setPicks([]); setMullToss([]);
+        setHint("Buddy joined! Mulligan: click cards to send back, then confirm.");
+        setOnline({ role: "host", code, myId: "P1" });
+        setStarted(true);
+        roomRef.current?.sendState(g); // deal the opening state to the guest
+      },
+    });
+    setOnline({ role: "host", code, myId: "P1" });
+  }
+
+  function guestJoinRoom() {
+    if (!onlineConfigured) {
+      setNetStatus("⚠ Online isn't configured — set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY.");
+      return;
+    }
+    const code = roomCode.trim().toUpperCase();
+    if (!code) { setNetStatus("Enter the room code your buddy shared."); return; }
+    const guestCards = resolveDeckCards(p2DeckId, p2CoreA, p2CoreB);
+    setNetStatus(`Joining ${code}…`);
+    onlineStartedRef.current = false;
+    roomRef.current = joinRoom(code, "guest", {
+      onState: (state) => {
+        setGame(state);
+        if (!onlineStartedRef.current) {
+          onlineStartedRef.current = true;
+          setViewSide("P2");
+          setSel(null); setPending(null); setPicks([]); setMullToss([]);
+          setHint("Connected! Mulligan: click cards to send back, then confirm.");
+          setOnline({ role: "guest", code, myId: "P2" });
+          setStarted(true);
+        }
+      },
+      onSubscribed: () => roomRef.current?.sendJoin(guestCards),
+    });
+    setOnline({ role: "guest", code, myId: "P2" });
+  }
+
+  function leaveOnline() {
+    roomRef.current?.close();
+    roomRef.current = null;
+    onlineStartedRef.current = false;
+    setOnline(null);
+    setNetStatus("");
+  }
+  // Tear the channel down if the tab closes / component unmounts.
+  useEffect(() => () => roomRef.current?.close(), []);
 
   // Confirm / cancel a staged summon placement.
   function confirmSummon() {
@@ -479,6 +578,7 @@ export function App() {
         next = applyIntent(next, { type: "SET_AUTO", player: view, instanceId: c.instanceId, mode });
     }
     setGame(next);
+    if (online) broadcast(next); // keep the other client in sync
   }
 
   // ── mulligan ──────────────────────────────────────────────────────────────
@@ -884,6 +984,7 @@ export function App() {
       <WinScreen
         game={game}
         onNewGame={() => {
+          if (online) leaveOnline(); // tear down the room before returning
           setStarted(false); // back to the deck picker
           setSel(null);
           setPending(null);
@@ -898,26 +999,37 @@ export function App() {
             <div className="picker-menu">
               <h1>War Element</h1>
               <p>
-                {twoPlayer
-                  ? "Two players share this device — hand it back and forth each turn."
-                  : "Choose the decks, then start. You play P1."}
+                {onlineMode
+                  ? onlineRole === "host"
+                    ? "Host a room, share the code with your buddy, and pick your deck (P1)."
+                    : "Enter your buddy's room code, then pick your deck (P2)."
+                  : twoPlayer
+                    ? "Two players share this device — hand it back and forth each turn."
+                    : "Choose the decks, then start. You play P1."}
               </p>
               <div className="mode-toggle">
                 <button
-                  className={`mode-btn ${!twoPlayer ? "on" : ""}`}
-                  onClick={() => setTwoPlayer(false)}
+                  className={`mode-btn ${!twoPlayer && !onlineMode ? "on" : ""}`}
+                  onClick={() => { setOnlineMode(false); setTwoPlayer(false); }}
                 >
                   🤖 vs AI
                 </button>
                 <button
-                  className={`mode-btn ${twoPlayer ? "on" : ""}`}
-                  onClick={() => setTwoPlayer(true)}
+                  className={`mode-btn ${twoPlayer && !onlineMode ? "on" : ""}`}
+                  onClick={() => { setOnlineMode(false); setTwoPlayer(true); }}
                 >
                   👥 2 Players
                 </button>
+                <button
+                  className={`mode-btn ${onlineMode ? "on" : ""}`}
+                  onClick={() => setOnlineMode(true)}
+                >
+                  🌐 Online
+                </button>
               </div>
+              {(!onlineMode || onlineRole === "host") && (
               <div className="pick-field">
-                <span>{twoPlayer ? "Player 1 deck" : "Your deck (P1)"}</span>
+                <span>{onlineMode ? "Your deck (P1)" : twoPlayer ? "Player 1 deck" : "Your deck (P1)"}</span>
                 <select
                   className="deck-src"
                   value={p1DeckId}
@@ -949,8 +1061,10 @@ export function App() {
                   </div>
                 )}
               </div>
+              )}
+              {(!onlineMode || onlineRole === "guest") && (
               <div className="pick-field">
-                <span>{twoPlayer ? "Player 2 deck" : "Opponent deck (P2 · AI)"}</span>
+                <span>{onlineMode ? "Your deck (P2)" : twoPlayer ? "Player 2 deck" : "Opponent deck (P2 · AI)"}</span>
                 <select
                   className="deck-src"
                   value={p2DeckId}
@@ -981,28 +1095,77 @@ export function App() {
                     </select>
                   </div>
                 )}
-                <button className="ghost db-open" onClick={() => setBuilderOpen(true)}>
-                  🛠 Build / edit custom decks
-                </button>
               </div>
-              <button
-                className="lockin"
-                onClick={() => {
-                  const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
-                  const p1Cards = resolveDeckCards(p1DeckId, p1CoreA, p1CoreB);
-                  const p2Cards = resolveDeckCards(p2DeckId, p2CoreA, p2CoreB);
-                  setGame(createInitialState(newSeed(), p1Cards, p2Cards, humans));
-                  setViewSide("P1");
-                  setSel(null);
-                  setPending(null);
-                  setPicks([]);
-                  setMullToss([]);
-                  setHint("Mulligan: click cards to send back, then confirm.");
-                  setStarted(true);
-                }}
-              >
-                Start Match
+              )}
+              <button className="ghost db-open" onClick={() => setBuilderOpen(true)}>
+                🛠 Build / edit custom decks
               </button>
+
+              {!onlineMode ? (
+                <button
+                  className="lockin"
+                  onClick={() => {
+                    const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
+                    const p1Cards = resolveDeckCards(p1DeckId, p1CoreA, p1CoreB);
+                    const p2Cards = resolveDeckCards(p2DeckId, p2CoreA, p2CoreB);
+                    setGame(createInitialState(newSeed(), p1Cards, p2Cards, humans));
+                    setViewSide("P1");
+                    setSel(null);
+                    setPending(null);
+                    setPicks([]);
+                    setMullToss([]);
+                    setHint("Mulligan: click cards to send back, then confirm.");
+                    setStarted(true);
+                  }}
+                >
+                  Start Match
+                </button>
+              ) : (
+                <div className="online-panel">
+                  <div className="role-toggle">
+                    <button
+                      className={`mode-btn sm ${onlineRole === "host" ? "on" : ""}`}
+                      onClick={() => setOnlineRole("host")}
+                      disabled={!!online}
+                    >
+                      Host game
+                    </button>
+                    <button
+                      className={`mode-btn sm ${onlineRole === "guest" ? "on" : ""}`}
+                      onClick={() => setOnlineRole("guest")}
+                      disabled={!!online}
+                    >
+                      Join game
+                    </button>
+                  </div>
+                  <input
+                    className="db-name room-code"
+                    placeholder={onlineRole === "host" ? "Room code (blank = auto)" : "Enter buddy's code"}
+                    value={roomCode}
+                    onChange={(e) => setRoomCode(e.target.value)}
+                    maxLength={12}
+                    disabled={!!online}
+                  />
+                  {onlineRole === "host" ? (
+                    <button className="lockin" onClick={hostCreateRoom} disabled={!!online || !onlineConfigured}>
+                      Create room
+                    </button>
+                  ) : (
+                    <button className="lockin" onClick={guestJoinRoom} disabled={!!online || !onlineConfigured}>
+                      Join room
+                    </button>
+                  )}
+                  {netStatus && <div className="net-status">{netStatus}</div>}
+                  {online && (
+                    <button className="ghost" onClick={leaveOnline}>Cancel / leave room</button>
+                  )}
+                  {!onlineConfigured && (
+                    <div className="net-status warn">
+                      Online needs VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY — see README.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Right: the deck view — cards of the selected deck. */}
