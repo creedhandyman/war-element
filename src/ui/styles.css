@@ -763,7 +763,33 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .mobile-sheet { display: none; }
 .panel-close { display: none; }
 
-@media (max-width: 760px) and (orientation: portrait) {
+/* ══════════════════ ROTATE-TO-LANDSCAPE GATE ══════════════════
+   The battle is landscape-only on phones. When a touch device is held in
+   portrait during a match, App.tsx mounts this full-screen overlay over
+   everything (driven by measured innerH>innerW + pointer:coarse, NOT the flaky
+   `orientation` media feature). Rotating to landscape unmounts it. */
+.rotate-gate {
+  position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center;
+  padding: 24px; text-align: center;
+  background: radial-gradient(120% 90% at 50% 30%, #12131c, #050509 70%);
+  padding: calc(24px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right))
+           calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
+}
+.rotate-card { display: flex; flex-direction: column; align-items: center; gap: 16px; max-width: 320px; }
+.rotate-phone {
+  width: 58px; height: 92px; border-radius: 12px; border: 3px solid var(--gold-lit);
+  box-shadow: 0 0 26px rgba(232, 200, 119, 0.35), inset 0 0 18px rgba(232, 200, 119, 0.12);
+  animation: rotatehint 2.4s ease-in-out infinite; transform-origin: 50% 50%;
+}
+@keyframes rotatehint {
+  0%, 18% { transform: rotate(0deg); }
+  46%, 72% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+.rotate-title { font-family: var(--head); font-size: 22px; font-weight: 800; letter-spacing: 0.04em; color: var(--gold-lit); }
+.rotate-sub { font-size: 14px; color: var(--ink-dim); line-height: 1.45; }
+
+@media (max-width: 760px) and (min-height: 541px) {
   :root { --board-size: min(calc(94vw - 48px), 50vh); }
 
   .wrap {
@@ -875,18 +901,21 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .modal, .cd-modal, .dbd-modal { max-width: 94vw; }
 }
 
-/* ═══════════ LANDSCAPE PHONE — dedicated "PC view" (3-column desktop grid) ═══
-   A phone on its side is WIDE but very SHORT (~360-430px tall). Keep the full
-   desktop grid — Battle Log rail | board | Spells/Queue rail — and only shrink
-   every NON-board vertical consumer so nothing overflows. Board is height-driven
-   with an env()-aware safety margin, so it fills the short viewport yet can never
-   overflow even if the chrome estimate is a few px off. Rails stay at their
-   desktop track widths (most faithful, fewest overrides); the width-cap term
-   (100vw - 470) protects narrow phones (<~680px wide) from a board/rail collision.
-   max-height:540 targets phones-on-their-side and EXCLUDES tablets/desktops in
-   landscape (>600px tall), which keep the untouched desktop layout.
-   Placed AFTER the (portrait-scoped) mobile block so its :root override wins. */
-@media (orientation: landscape) and (max-height: 540px) {
+/* ═══════════ LANDSCAPE PHONE — the phone play surface (3-column "PC view") ═════
+   The game is LANDSCAPE-ONLY on phones: a phone held in portrait gets a JS
+   "rotate your device" overlay (see .rotate-gate + usePortraitPhone in App.tsx);
+   in landscape it gets this PC view. Keep the full desktop grid — Battle Log rail
+   | board | Spells/Queue rail — and only shrink every NON-board vertical consumer
+   so nothing overflows the short viewport. Board is height-driven with an
+   env()-aware margin so it fills the height yet can never overflow; the width-cap
+   term (100vw - 470) protects the narrowest phones from a board/rail collision.
+   GATE IS PURELY max-height:540 — no `orientation` feature (flaky on real
+   devices) and no min-width, so EVERY landscape phone qualifies (incl. a 667-wide
+   iPhone SE on its side). It's mutually exclusive with the mobile block's
+   min-height:541, so the two can never collide: short viewport → this PC view;
+   tall+narrow → mobile stack (only ever seen under the rotate overlay on phones,
+   or on a narrow desktop window); tall+wide → untouched desktop layout. */
+@media (max-height: 540px) {
   /* Height-driven board. 176px ≈ wrap vpad 10 + ribbon ~24 + 2 row-gaps 12 +
      board-area inner (fog 24 + 2 crests 28 + 3 gaps 12) 64 + bottom bar ~56.
      env() subtracts the notch/home-indicator. Width cap keeps the board off the

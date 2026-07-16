@@ -4,11 +4,11 @@ import { getDef } from "../engine";
 import { EL_COLOR, EL_SIGIL } from "./shared";
 import { SpIcon } from "./icons";
 
-/** True on phone-width viewports (portrait ≤760px) AND on short landscape phones
- *  (which can be wider than 760px but are height-constrained). Matches the CSS
- *  mobile + landscape breakpoints so the fan tightens the same way. Re-renders on
- *  resize/orientation change so it re-tightens live. */
-const NARROW_QUERY = "(max-width: 760px), (orientation: landscape) and (max-height: 540px)";
+/** True on phone-width viewports (≤760px wide) OR short viewports (≤540px tall,
+ *  i.e. a landscape phone). Mirrors the CSS mobile + landscape breakpoints — both
+ *  width/height only, no `orientation` (flaky on real devices) — so the fan
+ *  tightens the same way. Re-renders on resize/orientation change. */
+const NARROW_QUERY = "(max-width: 760px), (max-height: 540px)";
 function useNarrow(): boolean {
   const [narrow, setNarrow] = useState(
     () => typeof window !== "undefined" && window.matchMedia(NARROW_QUERY).matches,

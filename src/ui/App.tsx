@@ -49,6 +49,30 @@ function newSeed(): number {
   return (Math.random() * 0x7fffffff) | 0;
 }
 
+/** True when the app is on a TOUCH device held in PORTRAIT — the cue to show the
+ *  rotate-to-landscape gate (the battle is landscape-only on phones). Uses the
+ *  measured viewport aspect (innerH > innerW) + pointer:coarse, deliberately NOT
+ *  the `orientation` media feature, which mis-reports on some devices. Desktops
+ *  (fine pointer) never trigger it, so a narrow desktop window still plays. */
+function usePortraitPhone(): boolean {
+  const compute = () =>
+    typeof window !== "undefined" &&
+    (window.matchMedia?.("(pointer: coarse)").matches ?? false) &&
+    window.innerHeight > window.innerWidth;
+  const [portrait, setPortrait] = useState(compute);
+  useEffect(() => {
+    const on = () => setPortrait(compute());
+    on();
+    window.addEventListener("resize", on);
+    window.addEventListener("orientationchange", on);
+    return () => {
+      window.removeEventListener("resize", on);
+      window.removeEventListener("orientationchange", on);
+    };
+  }, []);
+  return portrait;
+}
+
 export function App() {
   const [game, setGame] = useState<GameState>(() => createInitialState(newSeed()));
   const [sel, setSel] = useState<Selection>(null);
@@ -69,6 +93,7 @@ export function App() {
   );
   const [mullToss, setMullToss] = useState<string[]>([]);
   const [surrenderArmed, setSurrenderArmed] = useState(false);
+  const portraitPhone = usePortraitPhone(); // → show the rotate-to-landscape gate during a match
   // Card inspector: clicking a played card opens a read-only detail panel.
   const [detailId, setDetailId] = useState<string | null>(null);
   // Pre-game deck selection — the match doesn't run until Start.
@@ -647,6 +672,7 @@ export function App() {
   const myPrep = me !== null && game.phase === "prep" && game.prep?.priority === me;
 
   return (
+    <>
     <div className="wrap">
       <PhaseRibbon game={game} />
 
@@ -1330,5 +1356,19 @@ export function App() {
         }}
       />
     </div>
+    {/* Landscape-only: a touch device in portrait during a match gets this gate
+        instead of the (unusable) narrow battle layout. Rotating unmounts it. */}
+    {started && portraitPhone && (
+      <div className="rotate-gate">
+        <div className="rotate-card">
+          <div className="rotate-phone" />
+          <div className="rotate-title">Rotate your device</div>
+          <div className="rotate-sub">
+            War Element plays in landscape — turn your phone sideways to keep going.
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
