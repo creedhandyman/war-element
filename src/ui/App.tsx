@@ -94,6 +94,11 @@ export function App() {
   const [mullToss, setMullToss] = useState<string[]>([]);
   const [surrenderArmed, setSurrenderArmed] = useState(false);
   const portraitPhone = usePortraitPhone(); // → show the rotate-to-landscape gate during a match
+  // Battle Log collapses to a thin strip to give the battlefield more room.
+  // Defaults collapsed on short (landscape-phone) viewports, open on desktop.
+  const [logCollapsed, setLogCollapsed] = useState(
+    () => typeof window !== "undefined" && (window.matchMedia?.("(max-height: 540px)").matches ?? false),
+  );
   // Card inspector: clicking a played card opens a read-only detail panel.
   const [detailId, setDetailId] = useState<string | null>(null);
   // Pre-game deck selection — the match doesn't run until Start.
@@ -673,10 +678,18 @@ export function App() {
 
   return (
     <>
-    <div className="wrap">
+    <div className={`wrap${logCollapsed ? " log-collapsed" : ""}`}>
       <PhaseRibbon game={game} />
 
-      <div className={`rail${mobilePanel === "log" ? " mobile-open" : ""}`}>
+      <div className={`rail log-rail${logCollapsed ? " collapsed" : ""}${mobilePanel === "log" ? " mobile-open" : ""}`}>
+        <button
+          className="rail-collapse"
+          onClick={() => setLogCollapsed((v) => !v)}
+          title={logCollapsed ? "Show battle log" : "Collapse battle log"}
+          aria-label={logCollapsed ? "Show battle log" : "Collapse battle log"}
+        >
+          {logCollapsed ? "☰" : "«"}
+        </button>
         <div className="rail-title">
           Battle Log
           <button className="panel-close" onClick={() => setMobilePanel(null)} aria-label="Close">✕</button>

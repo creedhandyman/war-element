@@ -1,0 +1,16 @@
+{
+  "name": "War Element",
+  "short_name": "War Element",
+  "description": "TCG × chess × war — command an elemental army on the 4×4 battlefield.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#050509",
+  "theme_color": "#050509",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
