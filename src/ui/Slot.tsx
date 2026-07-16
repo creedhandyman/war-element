@@ -7,6 +7,9 @@ export function Slot(props: {
   col: number;
   card: CardInstance | null;
   legal: boolean;
+  isTarget: boolean; // enemy attack/special target → red
+  preview: boolean; // on-summon damage-area preview → red
+  staged: boolean; // the home slot a summon is staged into → green ring
   dimmed: boolean;
   grayed: boolean;
   contested: boolean;
@@ -24,6 +27,9 @@ export function Slot(props: {
     rowClass,
     acting ? "acting" : "",
     props.legal ? "legal" : "",
+    props.isTarget ? "target" : "",
+    props.preview ? "preview" : "",
+    props.staged ? "staged" : "",
     props.dimmed ? "dimmed" : "",
     props.grayed ? "grayed" : "",
     props.contested ? "contested" : "",

@@ -1,8 +1,33 @@
 // Milestone 3: targeting — melee rows, ranged, Home Slot Rule, FLYING, STEALTH.
 
 import { describe, expect, it } from "vitest";
-import { canTarget, validTargets } from "../rules";
+import { canTarget, previewOnSummonArea, validTargets } from "../rules";
+import { getDef } from "../../data/cards";
 import { place, prepState } from "./helpers";
+import type { Pos } from "../types";
+
+const key = (p: Pos) => `${p.row},${p.col}`;
+
+describe("previewOnSummonArea (placement preview)", () => {
+  it("corridor blast (Pyrogon) → the 3 tiles in the row directly ahead", () => {
+    const s = prepState();
+    const area = previewOnSummonArea(s, getDef("pyro_pyrogon"), "P1", { row: 3, col: 1 });
+    expect(new Set(area.map(key))).toEqual(new Set(["2,0", "2,1", "2,2"]));
+  });
+
+  it("no-spread on-summon (Krakler) → the reachable enemy cards (king reach)", () => {
+    const s = prepState();
+    const near = place(s, "dusk_gool", "P2", 2, 1); // king-adjacent to home (3,1)
+    place(s, "dusk_vamp", "P2", 0, 0); // far away — out of a melee's reach
+    const area = previewOnSummonArea(s, getDef("aqua_krakler"), "P1", { row: 3, col: 1 });
+    expect(area.map(key)).toEqual([key(near.pos!)]);
+  });
+
+  it("ally / no-on-summon cards preview nothing", () => {
+    const s = prepState();
+    expect(previewOnSummonArea(s, getDef("leaf_greegon"), "P1", { row: 3, col: 1 })).toHaveLength(0);
+  });
+});
 
 describe("melee vs ranged reach", () => {
   it("melee hits the 8 adjacent squares only (king reach)", () => {

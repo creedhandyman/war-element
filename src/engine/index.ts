@@ -30,6 +30,7 @@ export {
   isActionBlocked,
   validSpecialTargets,
   specialTargets,
+  previewOnSummonArea,
   canCastSpell,
   canSpellHitEnemy,
   spellEnemyTargets,

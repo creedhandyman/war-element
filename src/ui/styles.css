@@ -243,6 +243,26 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .slot.contested { border-color: var(--threat); animation: threatpulse 1s infinite; }
 @keyframes threatpulse { 0%, 100% { border-color: rgba(229, 83, 61, 0.6); } 50% { border-color: var(--threat); } }
 .slot.captured { border-color: #c98a2b; box-shadow: inset 0 0 26px rgba(201, 138, 43, 0.25); cursor: default; }
+/* Enemy attack / special targets — RED (green stays for summon/move + ally). */
+.slot.target { border-color: var(--threat); animation: targetpulse 1.2s infinite; z-index: 2; }
+@keyframes targetpulse {
+  0%, 100% { box-shadow: 0 0 14px var(--threat-soft), inset 0 0 16px var(--threat-soft); }
+  50% { box-shadow: 0 0 26px rgba(229, 83, 61, 0.5), inset 0 0 22px var(--threat-soft); }
+}
+/* On-summon damage AREA preview — a red wash over every tile it will strike. */
+.slot.preview { border-color: var(--threat); animation: previewpulse 1.5s infinite; z-index: 2; }
+@keyframes previewpulse {
+  0%, 100% { box-shadow: inset 0 0 14px var(--threat-soft), 0 0 8px var(--threat-soft); }
+  50% { box-shadow: inset 0 0 24px rgba(229, 83, 61, 0.34), 0 0 16px rgba(229, 83, 61, 0.25); }
+}
+/* The home slot a summon is staged into — a bright green "place here" ring. */
+.slot.staged { border-color: var(--legal); box-shadow: 0 0 0 2px var(--legal), 0 0 22px rgba(78, 203, 143, 0.5), inset 0 0 18px var(--legal-soft); z-index: 3; }
+/* Staged-summon confirm bar — floats over the board's lower edge until Confirm/Cancel. */
+.summon-confirm { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 12px; background: linear-gradient(180deg, rgba(24, 20, 15, 0.98), rgba(15, 13, 10, 0.98)); border: 1px solid var(--threat); box-shadow: 0 10px 32px rgba(0, 0, 0, 0.65), 0 0 22px var(--threat-soft); }
+.sc-text { font-size: 13px; color: var(--ink); }
+.sc-red { color: var(--threat); font-weight: 800; }
+.summon-confirm .lockin { padding: 8px 16px; font-size: 12px; margin: 0; }
+.summon-confirm .ghost { padding: 8px 14px; }
 .lock { position: absolute; top: 4px; right: 5px; font-size: 12px; opacity: 0.85; }
 
 /* token */

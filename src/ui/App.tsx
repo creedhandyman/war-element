@@ -25,6 +25,7 @@ import {
   needsInput,
   needsP1Input,
   pairingCards,
+  previewOnSummonArea,
   spellEnemyTargets,
   specialTargets,
   validAllyTargets,
@@ -52,6 +53,9 @@ export function App() {
   const [sel, setSel] = useState<Selection>(null);
   const [pending, setPending] = useState<PendingBattle>(null);
   const [picks, setPicks] = useState<string[]>([]);
+  // A summon awaiting confirmation: the chosen hand card + home column. While
+  // set, the board previews the on-summon damage area (red) and shows a confirm.
+  const [staged, setStaged] = useState<{ handId: string; col: number } | null>(null);
   const [hint, setHint] = useState<string>(
     "Mulligan: click cards to send back, then confirm.",
   );
@@ -133,9 +137,21 @@ export function App() {
       setSel(null);
       setPending(null);
       setPicks([]);
+      setStaged(null);
     } catch (e) {
       setHint(`⚠ ${(e as Error).message}`);
     }
+  }
+
+  // Confirm / cancel a staged summon placement.
+  function confirmSummon() {
+    if (!staged || me === null) return;
+    dispatch({ type: "SUMMON", player: me, handId: staged.handId, col: staged.col });
+    setHint("Summoned. Keep going, or <b>Pass Priority</b>.");
+  }
+  function cancelSummon() {
+    setStaged(null);
+    setHint("Placement cancelled — pick another slot, or a different card.");
   }
 
   // ── legality highlights ───────────────────────────────────────────────────
@@ -184,6 +200,37 @@ export function App() {
     }
     return validTargets(game, awaitingId).map((t) => t.instanceId);
   }, [game, awaitingId, pending, sel, view]);
+
+  // Enemy targets (basics / attack-specials / damage spells) glow RED; friendly
+  // (ally-target heal specials) stay green.
+  const targetsAreEnemies = useMemo(() => {
+    if (legalTargetIds.length === 0) return false;
+    if (sel?.kind === "spell") return getSpell(sel.spellId).kind === "damage";
+    if (pending === "special" && awaitingId)
+      return getDef(game.cards[awaitingId].defId).special?.targetSide !== "ally";
+    return true; // basic attack
+  }, [legalTargetIds, sel, pending, awaitingId, game]);
+
+  // Staged summon: the chosen home slot + the red on-summon damage-area preview.
+  const stagedSlot: Pos | null = useMemo(
+    () => (staged && me !== null ? ({ row: homeRow(me), col: staged.col } as Pos) : null),
+    [staged, me],
+  );
+  const previewArea: Pos[] = useMemo(() => {
+    if (!staged || me === null) return [];
+    const h = game.players[me].hand.find((c) => c.handId === staged.handId);
+    if (!h) return [];
+    return previewOnSummonArea(game, getDef(h.defId), me, { row: homeRow(me), col: staged.col } as Pos);
+  }, [staged, me, game]);
+  // Drop a stale stage if the context changes (different card, phase, priority).
+  useEffect(() => {
+    if (!staged) return;
+    const ok =
+      me !== null && game.phase === "prep" && game.prep?.priority === me &&
+      sel?.kind === "hand" && sel.handId === staged.handId &&
+      game.players[me].hand.some((h) => h.handId === staged.handId);
+    if (!ok) setStaged(null);
+  }, [staged, me, game, sel]);
 
   // ── interactions ──────────────────────────────────────────────────────────
   function onPickHand(handId: string) {
@@ -308,14 +355,14 @@ export function App() {
       return;
     }
 
-    // Summon placement — a hand card is armed; empty Home slots summon, but
-    // clicking an occupied slot inspects that card instead.
+    // Summon placement — a hand card is armed; empty Home slots STAGE the summon
+    // (a confirm + red on-summon area preview), occupied slots inspect instead.
     if (me && game.phase === "prep" && game.prep?.priority === me && sel?.kind === "hand") {
       if (clicked) {
         setDetailId(clicked.instanceId);
       } else if (canSummon(game, me, sel.handId, col).ok && row === homeRow(me)) {
-        dispatch({ type: "SUMMON", player: me, handId: sel.handId, col });
-        setHint("Summoned. Keep going, or <b>Pass Priority</b>.");
+        setStaged({ handId: sel.handId, col });
+        setHint("Confirm placement — <b>red</b> marks where its on-summon effect lands.");
       } else {
         setHint(`⚠ ${canSummon(game, me, sel.handId, col).reason ?? "Home row only."}`);
       }
@@ -437,6 +484,9 @@ export function App() {
         game={game}
         legalSlots={legalSlots}
         legalTargetIds={legalTargetIds}
+        targetsAreEnemies={targetsAreEnemies}
+        previewArea={previewArea}
+        stagedSlot={stagedSlot}
         pickCounts={picks.reduce<Record<string, number>>((acc, id) => {
           acc[id] = (acc[id] ?? 0) + 1;
           return acc;
@@ -455,6 +505,21 @@ export function App() {
         onSlotClick={onSlotClick}
         onCycleAuto={onCycleAuto}
       />
+
+      {staged && me !== null && (() => {
+        const h = game.players[me].hand.find((c) => c.handId === staged.handId);
+        const name = h ? getDef(h.defId).name : "card";
+        return (
+          <div className="summon-confirm">
+            <span className="sc-text">
+              Place <b>{name}</b> at column {staged.col + 1}
+              {previewArea.length > 0 && <> · <span className="sc-red">red = on-summon strike area</span></>}?
+            </span>
+            <button className="lockin sc-yes" onClick={confirmSummon}>Confirm</button>
+            <button className="ghost sc-no" onClick={cancelSummon}>Cancel</button>
+          </div>
+        );
+      })()}
 
       <SpeedQueue game={game} />
 

@@ -5,8 +5,11 @@ import { EL_COLOR } from "./shared";
 
 export function Board(props: {
   game: GameState;
-  legalSlots: Pos[]; // summon/move destinations
-  legalTargetIds: string[]; // battle-phase target picks
+  legalSlots: Pos[]; // summon/move destinations (green)
+  legalTargetIds: string[]; // battle-phase / spell target picks
+  targetsAreEnemies: boolean; // true → target cards glow red (attack), false → green (ally)
+  previewArea: Pos[]; // red on-summon damage-area preview for a staged summon
+  stagedSlot: Pos | null; // the home slot a summon is staged into (awaiting confirm)
   pickCounts: Record<string, number>; // hits assigned per target so far
   hasSelection: boolean;
   selectedId: string | null;
@@ -71,11 +74,15 @@ export function Board(props: {
               })}
             {rows.map((col) => {
               const card = cardAt(game, row, col);
-              const legal =
-                props.legalSlots.some((p) => p.row === row && p.col === col) ||
-                (card !== null && props.legalTargetIds.includes(card.instanceId));
+              const isLegalSlot = props.legalSlots.some((p) => p.row === row && p.col === col);
+              const isTargetCard = card !== null && props.legalTargetIds.includes(card.instanceId);
+              const redTarget = isTargetCard && props.targetsAreEnemies;
+              const greenLegal = isLegalSlot || (isTargetCard && !props.targetsAreEnemies);
+              const preview = props.previewArea.some((p) => p.row === row && p.col === col);
+              const staged = props.stagedSlot != null && props.stagedSlot.row === row && props.stagedSlot.col === col;
               const dimmed =
-                (props.hasSelection || props.legalTargetIds.length > 0) && !legal;
+                (props.hasSelection || props.legalTargetIds.length > 0 || props.previewArea.length > 0) &&
+                !greenLegal && !redTarget && !preview && !staged;
               const contested =
                 (row === 0 && isContested(game, "P2", col)) ||
                 (row === 3 && isContested(game, "P1", col));
@@ -86,7 +93,10 @@ export function Board(props: {
                   row={row}
                   col={col}
                   card={card}
-                  legal={legal}
+                  legal={greenLegal}
+                  isTarget={redTarget}
+                  preview={preview}
+                  staged={staged}
                   dimmed={dimmed}
                   grayed={props.grayTeam !== null && card !== null && card.owner === props.grayTeam}
                   contested={contested}

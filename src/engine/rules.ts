@@ -14,6 +14,7 @@ import {
   moveReach,
 } from "./state";
 import type {
+  CardDef,
   CardInstance,
   GameState,
   PlayerId,
@@ -218,6 +219,52 @@ export function forwardAreaTargets(
       continue;
     }
     out.push(enemy);
+  }
+  return out;
+}
+
+/** Where a card's ON-SUMMON effect would land if summoned at `pos` — used by the
+ *  UI to preview the damage/effect AREA before the player confirms placement.
+ *  Returns board positions (the forward corridor tiles for a spread blast, or the
+ *  reachable enemy card slots otherwise). Empty for ally / no-on-summon cards.
+ *  Mirrors the on-summon target resolution in phases.ts. */
+export function previewOnSummonArea(
+  state: GameState,
+  def: CardDef,
+  owner: PlayerId,
+  pos: Pos,
+): Pos[] {
+  const os = def.onSummon;
+  if (!os || os.targetSide === "ally") return [];
+  const p = os.params ?? {};
+  const spread = Number(p.spread ?? -1);
+  const out: Pos[] = [];
+  if (spread >= 0) {
+    // Forward corridor: `spread` cols each side, `forwardDepth` rows deep
+    // (Ranged reaches the enemy home when no depth is given).
+    const dir = owner === "P1" ? -1 : 1;
+    const enemyHome = homeRow(enemyOf(owner));
+    const maxDepth =
+      p.forwardDepth != null
+        ? Number(p.forwardDepth)
+        : def.attackType === "Ranged"
+          ? Math.max(1, Math.abs(enemyHome - pos.row))
+          : 1;
+    for (let d = 1; d <= maxDepth; d++) {
+      const r = pos.row + dir * d;
+      if (r < 0 || r >= BOARD_SIZE) continue;
+      for (let dc = -spread; dc <= spread; dc++) {
+        const c = pos.col + dc;
+        if (c < 0 || c >= BOARD_SIZE) continue;
+        out.push({ row: r as Pos["row"], col: c as Pos["col"] });
+      }
+    }
+    return out;
+  }
+  // No spread → normal targeting reach (king's move for Melee, full for Ranged).
+  const ghost = { defId: def.id, owner, pos, attackedThisRound: false } as unknown as CardInstance;
+  for (const t of boardCards(state, enemyOf(owner))) {
+    if (t.pos && canTarget(state, ghost, t)) out.push({ ...t.pos });
   }
   return out;
 }
