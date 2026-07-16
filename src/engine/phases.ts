@@ -428,6 +428,13 @@ function performBattleAction(
     if (t.handler === "loadHits") {
       card.loadedHits += Number(t.params?.hits ?? 0);
       draft.log.push(`${label(draft, card)} loads its darts — next basic fires as ${getDef(card.defId).hits + card.loadedHits}.`);
+    } else if (t.handler === "empower") {
+      // Self-buff Talent (Hawk's Wind Surge): permanent +SP / +DMG.
+      const sp = Number(t.params?.selfSp ?? 0);
+      const dmg = Number(t.params?.selfDmg ?? 0);
+      if (sp) card.spBonus += sp;
+      if (dmg) card.dmgBonus += dmg;
+      draft.log.push(`${label(draft, card)} surges${sp ? ` +${sp} SP` : ""}${dmg ? ` +${dmg} DMG` : ""}.`);
     }
     return;
   }

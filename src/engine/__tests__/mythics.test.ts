@@ -272,6 +272,23 @@ describe("Talents — Dart Frog's Bleed Out", () => {
   });
 });
 
+describe("Talents — Hawk's Wind Surge", () => {
+  it("grants +2 SP, once per game", () => {
+    const s = prepState();
+    const hawk = place(s, "gale_hawk", "P1", 2, 0);
+    const before = effectiveSp(s, hawk);
+    const next = applyIntent(battleWith(s, hawk.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "talent",
+    });
+    const h = next.cards[hawk.instanceId];
+    expect(h.talentUsed).toBe(true);
+    expect(effectiveSp(next, h)).toBe(before + 2);
+    expect(canFireTalent(next, hawk.instanceId).ok).toBe(false); // once per game
+  });
+});
+
 describe("The DEEPEST — Drilling Quake sinkhole", () => {
   it("applies DOT + BLIND + a −5 SP debuff to opponents", () => {
     const s = prepState();

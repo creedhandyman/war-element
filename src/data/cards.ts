@@ -1425,15 +1425,13 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // High Speed Impact: +1 DMG per SP point above 10.
     highSpeedImpact: true,
-    // Wind Surge: gain +2 SP. (The "next basic hits +1 adjacent target" rider
-    // is unmodeled.)
-    special: {
+    // Wind Surge (Talent, free · once per game): gain +2 SP. (The "next basic
+    // hits +1 adjacent target" rider is unmodeled.)
+    talent: {
       name: "Wind Surge",
-      cost: 2,
+      text: "Gain +2 SP. (Next basic attack would hit +1 adjacent target.)",
       handler: "empower",
       params: { selfSp: 2 },
-      targetSide: "ally",
-      text: "Gain +2 SP.",
     },
   },
   {
