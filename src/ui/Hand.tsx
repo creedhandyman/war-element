@@ -4,14 +4,17 @@ import { getDef } from "../engine";
 import { EL_COLOR, EL_SIGIL } from "./shared";
 import { SpIcon } from "./icons";
 
-/** True on phone-width viewports (matches the CSS mobile breakpoint). Re-renders
- *  on resize/orientation change so the fan re-tightens live. */
+/** True on phone-width viewports (portrait ≤760px) AND on short landscape phones
+ *  (which can be wider than 760px but are height-constrained). Matches the CSS
+ *  mobile + landscape breakpoints so the fan tightens the same way. Re-renders on
+ *  resize/orientation change so it re-tightens live. */
+const NARROW_QUERY = "(max-width: 760px), (orientation: landscape) and (max-height: 540px)";
 function useNarrow(): boolean {
   const [narrow, setNarrow] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches,
+    () => typeof window !== "undefined" && window.matchMedia(NARROW_QUERY).matches,
   );
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 760px)");
+    const mq = window.matchMedia(NARROW_QUERY);
     const on = () => setNarrow(mq.matches);
     mq.addEventListener?.("change", on);
     return () => mq.removeEventListener?.("change", on);

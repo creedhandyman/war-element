@@ -944,7 +944,10 @@ export function App() {
       {/* The hand floats over the bottom edge of the board — popped up when it's
           your turn to act, tucked low otherwise — so the bar stays thin. */}
       {started && activeCard === null && game.phase !== "mulligan" && (
-        <div className={`hand-float${myPrep ? " up" : ""}`}>
+        // `placing` = a hand card is armed (choosing a Home slot). In the short
+        // landscape layout the fan overlaps the board, so CSS makes it pass taps
+        // through to the slots underneath while placing.
+        <div className={`hand-float${myPrep ? " up" : ""}${sel?.kind === "hand" ? " placing" : ""}`}>
           <Hand
             game={game}
             player={view}
