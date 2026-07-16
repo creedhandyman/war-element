@@ -537,8 +537,20 @@ describe("FLYING diagonal movement", () => {
   });
 });
 
+describe("Star's Raising Star", () => {
+  it("BLINDs ALL opponents each round, not just the closest", () => {
+    const s = prepState();
+    place(s, "dawn_star", "P1", 2, 0);
+    const near = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 }); // closest
+    const far = place(s, "dusk_gool", "P2", 1, 3, { curHp: 13 }); // far column
+    const next = advance(atCleanup(s));
+    expect(next.cards[near.instanceId].statuses.some((x) => x.kind === "BLIND")).toBe(true);
+    expect(next.cards[far.instanceId].statuses.some((x) => x.kind === "BLIND")).toBe(true);
+  });
+});
+
 describe("Sandman's Nightmare", () => {
-  it("his hits don't wake a sleeper, and add +5 vs a SLEEPING target (once)", () => {
+  it("his hits don't wake a sleeper, and deal 2× DMG to a SLEEPING target", () => {
     const s = prepState();
     const sandman = place(s, "bore_sandman", "P1", 3, 0); // home row: no mid bonus
     const foe = place(s, "dusk_gool", "P2", 0, 0, {
@@ -548,7 +560,7 @@ describe("Sandman's Nightmare", () => {
     basicAttack(s, sandman.instanceId, foe.instanceId);
     const f = s.cards[foe.instanceId];
     expect(f.statuses.some((x) => x.kind === "SLEEP")).toBe(true); // never woke
-    expect(f.curHp).toBe(25); // 5×2 volley (10) + 5 Nightmare bonus
+    expect(f.curHp).toBe(20); // 5 hits × (2 DMG ×2 vs SLEEPING) = 20
   });
 
   it("the bonus escalates: +2 in a mid row and +3 when the mid lane is crowded", () => {

@@ -550,17 +550,32 @@ describe("on-summon passives (forward-area projection)", () => {
     expect(next.log.some((l) => l.includes("on-summon"))).toBe(false);
   });
 
-  it("Spitfire's Spit Shot (on summon) hits its own column, up to 2 spaces ahead", () => {
+  it("Spitfire's Spit Shot (on summon) hits up to 3 opponents anywhere in range", () => {
     const s = prepState();
     s.players.P1.summonPool = 5;
-    const near = place(s, "dusk_gool", "P2", 2, 1, { curHp: 13 }); // 1 ahead, same col → hit
-    const far = place(s, "dusk_gool", "P2", 0, 1, { curHp: 13 }); // 3 ahead, same col → out of reach
-    const side = place(s, "dusk_vamp", "P2", 2, 0, { curHp: 6 }); // adjacent col → out of the lane
+    const a = place(s, "dusk_gool", "P2", 2, 1, { curHp: 13 }); // row ahead, same col
+    const b = place(s, "dusk_gool", "P2", 2, 2, { curHp: 13 }); // row ahead, far col
+    const c = place(s, "dusk_vamp", "P2", 1, 0, { curHp: 6 }); // two rows ahead, side col
     const handId = giveHand(s, "P1", "pyro_spitfire");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
-    expect(next.cards[near.instanceId].curHp).toBe(10); // 3 dmg
-    expect(next.cards[far.instanceId].curHp).toBe(13); // depth 2 doesn't reach 3 ahead
-    expect(next.cards[side.instanceId].curHp).toBe(6); // off the column
+    // 3 separate opponents (no shape constraint), 3 DMG each — all hit.
+    expect(next.cards[a.instanceId].curHp).toBe(10);
+    expect(next.cards[b.instanceId].curHp).toBe(10);
+    expect(next.cards[c.instanceId].curHp).toBe(3);
+  });
+
+  it("Krakler's Abyssal Grasp (on summon) applies BOTH SCALD 3 and FREEZE 2r", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 5;
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20 }); // king-adjacent to the home slot
+    const handId = giveHand(s, "P1", "aqua_krakler");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    const f = next.cards[foe.instanceId];
+    const scald = f.statuses.find((x) => x.kind === "SCALD");
+    const freeze = f.statuses.find((x) => x.kind === "FREEZE");
+    expect(scald?.power).toBe(3);
+    expect(scald?.duration).toBe(2);
+    expect(freeze?.duration).toBe(2);
   });
 
   it("a melee on-summon (Fenrir) reaches only one row ahead, but 3 wide", () => {

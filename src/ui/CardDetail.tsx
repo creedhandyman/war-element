@@ -55,19 +55,29 @@ function describeOnSummon(os: {
     if (t === 1) return "one enemy";
     return `${t} enemies`;
   };
-  const status = () =>
-    p.statusKind
-      ? ` and apply ${p.statusKind}${p.statusDuration ? ` for ${n("statusDuration")} round(s)` : ""}`
-      : "";
+  // Every status this on-summon applies — the primary (statusKind, may carry a
+  // DoT power) plus the secondary (debuffStatus, e.g. Krakler's FREEZE).
+  const statusParts = () => {
+    const parts: string[] = [];
+    if (p.statusKind)
+      parts.push(`${p.statusKind}${n("statusPower") ? ` ${n("statusPower")}` : ""}${p.statusDuration ? ` for ${n("statusDuration")} round(s)` : ""}`);
+    if (p.debuffStatus)
+      parts.push(`${p.debuffStatus}${p.debuffStatusRounds ? ` for ${n("debuffStatusRounds")} round(s)` : ""}`);
+    return parts;
+  };
   switch (os.handler) {
     case "barrage":
     case "strike": {
       const dmg = n("dmg");
       const hits = n("hits");
-      const dmgStr = hits > 1 ? `${hits}×${dmg}` : `${dmg}`;
       const push = n("push") ? ` and push them back ${n("push")}` : "";
       const crit = n("crit") ? " (can crit)" : "";
-      return `On summon: deal ${dmgStr} DMG to ${scope()}${status()}${push}${crit}.`;
+      const st = statusParts();
+      // A no-damage grasp (Krakler, Electricel) reads as a pure status apply.
+      if (dmg <= 0 && st.length)
+        return `On summon: apply ${st.join(" + ")} to ${scope()}${push}.`;
+      const dmgStr = hits > 1 ? `${hits}×${dmg}` : `${dmg}`;
+      return `On summon: deal ${dmgStr} DMG to ${scope()}${st.length ? ` and apply ${st.join(" + ")}` : ""}${push}${crit}.`;
     }
     case "statusNova":
       return `On summon: apply ${p.statusKind}${p.statusDuration ? ` for ${n("statusDuration")} round(s)` : ""} to ${scope()}.`;

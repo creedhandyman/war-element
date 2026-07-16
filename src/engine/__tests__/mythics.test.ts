@@ -6,7 +6,7 @@ import { advance, applyIntent } from "../phases";
 import { canFireSpecial, canFireTalent, canTarget, effectiveSpecialCost } from "../rules";
 import { boardCards, effectiveDmg, effectiveMaxHp, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
-import { atCleanup, place, prepState, statusOf } from "./helpers";
+import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
 function battleWith(s: GameState, activeId: string): GameState {
@@ -17,17 +17,19 @@ function battleWith(s: GameState, activeId: string): GameState {
 }
 
 describe("token spawning", () => {
-  it("Trinezer's Reptilian Screech spawns 1 Reptilian at end of round", () => {
+  it("Trinezer's Reptilian Screech spawns 3 Reptilians on summon (in king's reach)", () => {
     const s = prepState();
-    const trin = place(s, "leaf_trinezer", "P1", 2, 0); // mid row → open adjacent slots
+    s.players.P1.summonPool = 12; // Trinezer cost 9
     place(s, "leaf_alpha", "P2", 0, 0); // keep P2 non-empty
-    const next = advance(atCleanup(s));
+    const handId = giveHand(s, "P1", "leaf_trinezer");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
     const reps = boardCards(next, "P1").filter((c) => c.defId === "leaf_reptilian_tok");
-    expect(reps).toHaveLength(1);
-    // lands in king's reach of Trinezer
-    const t = next.cards[trin.instanceId];
-    expect(Math.abs(reps[0].pos!.row - t.pos!.row)).toBeLessThanOrEqual(1);
-    expect(Math.abs(reps[0].pos!.col - t.pos!.col)).toBeLessThanOrEqual(1);
+    expect(reps).toHaveLength(3);
+    const trin = boardCards(next, "P1").find((c) => c.defId === "leaf_trinezer")!;
+    for (const r of reps) {
+      expect(Math.abs(r.pos!.row - trin.pos!.row)).toBeLessThanOrEqual(1);
+      expect(Math.abs(r.pos!.col - trin.pos!.col)).toBeLessThanOrEqual(1);
+    }
   });
 
   it("spawned tokens never enter the deck (they're not in CARDS)", async () => {
@@ -368,24 +370,24 @@ describe("Kraken — SeaC max-HP aura", () => {
 });
 
 describe("Pyrogon — Flame Engulf reach", () => {
-  it("hits a 3-deep, 3-wide corridor ahead (past melee range and the Home rule)", () => {
+  it("hits the row directly ahead — 3 wide, 1 deep (past melee range and the Home rule)", () => {
     const s = prepState();
     s.players.P1.magicPool = 4;
     const pyro = place(s, "pyro_pyrogon", "P1", 3, 1); // own home row
-    const r2 = place(s, "leaf_alpha", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // 1 ahead
-    const r1 = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // 2 ahead
-    const r0 = place(s, "leaf_alpha", "P2", 0, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // 3 ahead (enemy home)
-    const wide = place(s, "leaf_alpha", "P2", 2, 3, { curHp: 20, maxHp: 20, curShields: 0 }); // too wide (col 3)
+    const ahead = place(s, "leaf_alpha", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // row ahead, same col
+    const side = place(s, "leaf_alpha", "P2", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 }); // row ahead, adj col
+    const deep = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // 2 rows ahead → out
+    const wide = place(s, "leaf_alpha", "P2", 2, 3, { curHp: 20, maxHp: 20, curShields: 0 }); // col 3 → too wide
     const next = applyIntent(battleWith(s, pyro.instanceId), {
       type: "BATTLE_ACTION",
       player: "P1",
       action: "special",
-      targetId: r2.instanceId,
+      targetId: ahead.instanceId,
     });
-    expect(next.cards[r2.instanceId].curHp).toBe(13); // 20 − 7
-    expect(next.cards[r1.instanceId].curHp).toBe(13);
-    expect(next.cards[r0.instanceId].curHp).toBe(13);
-    expect(next.cards[wide.instanceId].curHp).toBe(20); // outside the corridor
+    expect(next.cards[ahead.instanceId].curHp).toBe(13); // 20 − 7
+    expect(next.cards[side.instanceId].curHp).toBe(13); // within spread 1
+    expect(next.cards[deep.instanceId].curHp).toBe(20); // 2 rows ahead — not reached
+    expect(next.cards[wide.instanceId].curHp).toBe(20); // outside the width
   });
 });
 

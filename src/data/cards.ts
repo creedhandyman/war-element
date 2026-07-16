@@ -186,10 +186,10 @@ export const CARDS: CardDef[] = [
       name: "Bushwhacker",
       cost: 2,
       handler: "strike",
-      // "6 DMG to one opponent AND ROOT all opponents adjacent to Squanch 2r"
-      params: { dmg: 6, adjStatusKind: "ROOT", adjStatusDuration: 2 },
+      // "6 DMG to one opponent AND ROOT all opponents adjacent to Squanch 1r"
+      params: { dmg: 6, adjStatusKind: "ROOT", adjStatusDuration: 1 },
       targetSide: "enemy",
-      text: "Deal 6 DMG and ROOT every opponent adjacent to Squanch for 2 rounds.",
+      text: "Deal 6 DMG and ROOT every opponent adjacent to Squanch for 1 round.",
     },
   },
   {
@@ -393,10 +393,12 @@ export const CARDS: CardDef[] = [
       name: "Bluflame Slashing",
       cost: 3,
       handler: "statusNova",
-      // Bluflame mark = SEAL (can't be healed) for the BURN's duration.
-      params: { statusKind: "BURN", statusPower: 3, statusDuration: 2, targets: 3, sealRounds: 2 },
+      // Bluflame mark = SEAL (can't be healed) for the BURN's duration. Targets
+      // the row directly ahead (spread 1, one row deep). statusNova is required —
+      // it's the only handler that honors sealRounds.
+      params: { statusKind: "BURN", statusPower: 3, statusDuration: 2, spread: 1, forwardDepth: 1, targets: 99, sealRounds: 2 },
       targetSide: "enemy",
-      text: "Apply BURN 3 for 2 rounds to up to 3 opponents, and Bluflame them (cannot be healed).",
+      text: "Apply BURN 3 for 2 rounds to opponents in the row directly ahead, and Bluflame them (cannot be healed).",
     },
   },
   {
@@ -431,8 +433,8 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // Spit Shot (On Summon): 3 DMG straight ahead down its own column, up to 2 spaces.
-    onSummon: { handler: "barrage", params: { dmg: 3, spread: 0, forwardDepth: 2, targets: 99 } },
+    // Spit Shot (On Summon): 3 DMG to up to 3 opponents anywhere in range.
+    onSummon: { handler: "barrage", params: { dmg: 3, targets: 3 } },
     // Hot Hot (On Hit by Melee): double the BURN already on the attacker.
     onHitByMelee: { doubleBurn: true },
   },
@@ -515,10 +517,11 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Sandstorm (Aura): 1 DMG to all opponents each round.
     roundTick: { aoeDmg: 1 },
-    // Nightmare (passive): his hits never wake sleepers; and after a basic
-    // attack a flat bonus is added ONCE to the total (not per hit).
+    // Nightmare (passive): his hits never wake sleepers; deal 2× DMG to SLEEPING
+    // opponents; and a flat mid-lane bonus added ONCE to the total (not per hit).
     ignoresSleepWake: true,
-    basicBonus: { midLane: 2, midLaneFull: 3, vsSleeping: 5 },
+    vsStatus: { status: "SLEEP", dmgMult: 2 },
+    basicBonus: { midLane: 2, midLaneFull: 3 },
     special: {
       name: "Nightmare",
       cost: 4,
@@ -1140,8 +1143,8 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // RayBeam: on summon, a single-lane blast that BLINDs down the column.
-    onSummon: { handler: "barrage", params: { dmg: 3, spread: 0, statusKind: "BLIND", statusDuration: 2, targets: 99 } },
+    // RayBeam (On Summon): 3 DMG + BLIND 2r to a single opponent in range.
+    onSummon: { handler: "barrage", params: { dmg: 3, statusKind: "BLIND", statusDuration: 2, targets: 1 } },
   },
   {
     id: "dawn_flash",
@@ -1173,9 +1176,9 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 2,
     keywords: { FLYING: true },
-    // Raising Star (End of Round): BLIND the closest opponent. (Doc also heals
-    // allies +1 on basic attacks — the attack-heal half isn't modeled yet.)
-    roundTick: { pokeStatus: { kind: "BLIND", duration: 1, power: 0 } },
+    // Raising Star (End of Round): BLIND all opponents. (Doc also heals allies
+    // +1 on basic attacks — the attack-heal half isn't modeled yet.)
+    roundTick: { aoeStatus: { kind: "BLIND", duration: 1, power: 0 } },
     special: {
       name: "Star Shower",
       cost: 2,
@@ -1259,9 +1262,9 @@ export const CARDS: CardDef[] = [
       name: "Battle Maiden",
       cost: 2,
       handler: "heal",
-      params: { amount: 4, targets: 3 },
+      params: { amount: 4, targets: 3, buffDmg: 1, buffRounds: 1 },
       targetSide: "ally",
-      text: "Heal up to 3 allies 4 HP.",
+      text: "Heal up to 3 allies 4 HP and give them +1 DMG for the round.",
     },
   },
   {
@@ -1422,6 +1425,16 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // High Speed Impact: +1 DMG per SP point above 10.
     highSpeedImpact: true,
+    // Wind Surge: gain +2 SP. (The "next basic hits +1 adjacent target" rider
+    // is unmodeled.)
+    special: {
+      name: "Wind Surge",
+      cost: 2,
+      handler: "empower",
+      params: { selfSp: 2 },
+      targetSide: "ally",
+      text: "Gain +2 SP.",
+    },
   },
   {
     id: "gale_vaga",
@@ -1553,10 +1566,10 @@ export const CARDS: CardDef[] = [
       name: "Whirlwind Slasher",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 5, targets: 99 },
+      params: { dmg: 5, targets: 99, spDebuff: 2, spDebuffRounds: 1 },
       targetSide: "enemy",
       ranged: true, // "5 DMG to all opponents" — reaches the whole board
-      text: "Deal 5 DMG to every opponent in range.",
+      text: "Deal 5 DMG to every opponent and −2 SP for the round.",
     },
   },
   {
@@ -1606,9 +1619,9 @@ export const CARDS: CardDef[] = [
       name: "Tranq Feather Blade",
       cost: 2,
       handler: "strike",
-      params: { dmg: 10, pen: 1, statusKind: "STUN", statusDuration: 2 },
+      params: { dmg: 10, pen: 1, statusKind: "STUN", statusDuration: 3 },
       targetSide: "enemy",
-      text: "Deal 10 DMG (PEN) and STUN the target for 2 rounds.",
+      text: "Deal 10 DMG (PEN) and STUN the target for 3 rounds.",
     },
   },
 
@@ -1819,6 +1832,9 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Static Electricity (Start of Round): PARALYZE an un-paralyzed enemy 2r.
     roundTick: { paralyzeOne: 2 },
+    // Overclock (Aura): BOLT allies gain +2 SP. (Doc scopes it to the ARC tribe;
+    // ARC isn't tagged on the BOLT cards yet, so element scope is the stand-in.)
+    aura: { scope: "element", sp: 2 },
     special: {
       name: "StunGun",
       cost: 3,
@@ -1871,9 +1887,9 @@ export const CARDS: CardDef[] = [
     shields: 3,
     keywords: {},
     tribe: "Reptile",
-    // Reptilian Screech (End of Round): spawn 1 Reptilian into an open king's-
-    // reach slot; no spawn if none is open.
-    roundTick: { spawn: { token: "leaf_reptilian_tok", count: 1, adjacentOnly: true } },
+    // Reptilian Screech (On Summon): spawn 3 Reptilian tokens into open
+    // king's-reach slots (fills what's open; no spawn if none are).
+    summonSpawn: { token: "leaf_reptilian_tok", count: 3 },
     // Brood Command: Reptile allies (incl. Trinezer) gain +1 DMG / +1 SP.
     aura: { scope: "tribe", match: "Reptile", dmg: 1, sp: 1 },
     special: {
@@ -1900,10 +1916,10 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // On Summon: a free Flame Engulf (BURN straight ahead, 3 deep).
+    // On Summon: a free Flame Engulf (BURN 3 to the row directly ahead).
     onSummon: {
       handler: "barrage",
-      params: { dmg: 7, spread: 0, forwardDepth: 3, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
+      params: { dmg: 7, spread: 1, forwardDepth: 1, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
     },
     // On Kill: permanent +7 HP and +1 DMG.
     onKill: { buffMaxHp: 7, buffDmg: 1 },
@@ -1911,10 +1927,10 @@ export const CARDS: CardDef[] = [
       name: "Flame Engulf",
       cost: 4,
       handler: "barrage",
-      // A straight lane down its own column, up to 3 spaces ahead (spread 0).
-      params: { dmg: 7, spread: 0, forwardDepth: 3, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
+      // 7 DMG + BURN 3 to the row directly ahead (spread 1, one row deep).
+      params: { dmg: 7, spread: 1, forwardDepth: 1, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
       targetSide: "enemy",
-      text: "Deal 7 DMG + BURN 3 to opponents in its own column, up to 3 spaces ahead.",
+      text: "Deal 7 DMG + BURN 3 to opponents in the row directly ahead.",
     },
     // Aura (Scorch BURN stacks) deferred.
   },
@@ -2331,9 +2347,9 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Kraken",
-    // Abyssal Grasp (On Summon): FREEZE an opponent in range for 2 rounds.
-    // (Doc also lays SCALD 3 — a second DoT status isn't modeled here.)
-    onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, statusKind: "FREEZE", statusDuration: 2 } },
+    // Abyssal Grasp (On Summon): SCALD 3 for 2 rounds AND FREEZE an opponent in
+    // range for 2 rounds (primary SCALD DoT + secondary FREEZE via debuffStatus).
+    onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, statusKind: "SCALD", statusPower: 3, statusDuration: 2, debuffStatus: "FREEZE", debuffStatusRounds: 2 } },
   },
 
   // ───────────────────────── PYRO ─────────────────────────
