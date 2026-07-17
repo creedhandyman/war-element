@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { GameState, PlayerId } from "../engine";
 import { getDef } from "../engine";
-import { EL_COLOR, EL_SIGIL } from "./shared";
+import { EL_COLOR, EL_ICON } from "./shared";
 import { SpIcon } from "./icons";
 
 /** True on phone-width viewports (≤760px wide) OR short viewports (≤540px tall,
@@ -96,7 +96,7 @@ export function Hand(props: {
               />
               <div className="hc-cost">{def.cost}</div>
               <div className="hc-sigil" style={{ color: EL_COLOR[def.element] }}>
-                {EL_SIGIL[def.element]}
+                <img src={EL_ICON[def.element]} alt={def.element} draggable={false} />
               </div>
               <div className="hc-plate">
                 <div className="hc-name">{def.name}</div>

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { CardDef, CardInstance, GameState, PlayerId, StatusKind } from "../engine";
 import { effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, ELEMENT_AURA, getDef, getSpell } from "../engine";
-import { EL_COLOR, KEYWORD_STYLE, STATUS_STYLE } from "./shared";
+import { EL_COLOR, EL_ICON, KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 import { SpIcon } from "./icons";
 
 // Colour lookup for keyword/status terms so they render as chips in card text.
@@ -358,6 +358,9 @@ export function CardDetail(props: {
               }}
             />
             <span className="cd-cost">{def.cost}</span>
+            <span className="cd-el-badge" style={{ borderColor: EL_COLOR[def.element] }}>
+              <img src={EL_ICON[def.element]} alt={def.element} />
+            </span>
           </div>
 
           <div className="cd-info">

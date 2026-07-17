@@ -35,6 +35,19 @@ export const EL_SIGIL: Record<Element, string> = {
   DAWN: "☀",
 };
 
+// Painted element badges (public/elements/*.png) — used for the on-card element
+// mark and the card-detail chip in place of the plain glyph.
+export const EL_ICON: Record<Element, string> = {
+  LEAF: "/elements/leaf.png",
+  AQUA: "/elements/aqua.png",
+  PYRO: "/elements/pyro.png",
+  BORE: "/elements/bore.png",
+  GALE: "/elements/gale.png",
+  BOLT: "/elements/bolt.png",
+  DUSK: "/elements/dusk.png",
+  DAWN: "/elements/dawn.png",
+};
+
 // Per-element dark stripe pair — the card-token backdrop when art is missing.
 export const EL_STRIPE: Record<Element, [string, string]> = {
   LEAF: ["#16321c", "#0e2413"],
