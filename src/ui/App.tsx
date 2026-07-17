@@ -892,6 +892,12 @@ export function App() {
               onPick={onPickSpell}
             />
           </div>
+          {/* Portrait: a copy of the crystals down here in the action panel, clear
+              of the hand (the top .resource is CSS-hidden in portrait). Desktop
+              hides THIS one and keeps the top one. */}
+          <div className="panel-crystals">
+            <ResourcePool game={game} player={view} />
+          </div>
           {/* Pass Priority is the primary action; secondary controls stack
               underneath it so the hand keeps its width. */}
           <button

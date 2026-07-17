@@ -790,6 +790,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .mobile-sheet { display: none; }
 .panel-close { display: none; }
 .panel-spells { display: none; } /* portrait-only: spells live in the right rail on desktop */
+.panel-crystals { display: none; } /* portrait-only: desktop keeps the top .resource */
 
 @media (max-width: 760px) and (min-height: 541px) {
   :root { --board-size: min(calc(94vw - 48px), 50vh); }
@@ -824,12 +825,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      crystals bar pinned to the bottom instead of a tall empty box. */
   .bottom.compact { flex: 0 0 auto; min-height: 60px; gap: 6px; margin-top: auto; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
   .handcol { display: none; }              /* the hand lives in its own flow row */
-  /* Crystals → a centered jewel pair at the top of the panel. */
+  /* Crystals move DOWN into the action panel (just above Pass Priority) so the
+     fanned hand can't cover them — the top .resource is hidden; the panel copy
+     shows. */
+  .bottom > .resource { display: none; }
+  .panel-crystals { display: block; }
   .resource { gap: 22px; flex: none; justify-content: center; }
   .res-gem { padding: 0; gap: 8px; }
   .gem-info { display: none; }
-  .gem-face { width: 44px; height: 44px; }
-  .gem-val { font-size: 19px; }
+  .gem-face { width: 40px; height: 40px; }
+  .gem-val { font-size: 18px; }
   .controls { width: 100%; flex: none; flex-direction: column; align-items: stretch; gap: 10px; }
   .hint { display: none; }
   /* Big primary action. */
@@ -847,6 +852,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      these never rendered on a phone. */
   .bottom.acting .handcol { display: flex; flex: 1 1 auto; min-width: 0; width: 100%; }
   .bottom.acting .controls { display: none; } /* Pass/"Waiting…" not relevant mid-battle */
+  /* Mid-battle the hand isn't rendered, so the top crystals are safe to show
+     again (the panel copy is hidden with .controls above). */
+  .bottom.acting > .resource { display: flex; }
   /* Prompt fills the panel: title on top, big action buttons stretch to fill. */
   .bottom.acting .bprompt { width: 100%; flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; }
   .bottom.acting .bp-title { flex: none; font-size: 15px; font-weight: 800; text-align: center; }
