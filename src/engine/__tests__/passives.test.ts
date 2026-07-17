@@ -301,6 +301,17 @@ describe("roundTick self effects", () => {
     expect(next.cards[farBack.instanceId].curHp).toBe(13); // untouched
     void tiki;
   });
+
+  it("Smog's Black Smoke chokes every enemy in range, not just the row ahead", () => {
+    const s = prepState();
+    const smog = place(s, "pyro_smog_card", "P1", 2, 0); // ranged, mid row (clears the home-row rule)
+    const near = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 }); // row directly ahead
+    const far = place(s, "dusk_gool", "P2", 0, 3, { curHp: 13 }); // back home row — a ranged tick still reaches
+    const next = advance(atCleanup(s));
+    expect(next.cards[near.instanceId].curHp).toBe(12); // −1 Black Smoke
+    expect(next.cards[far.instanceId].curHp).toBe(12); // whole board, unlike Sweeping Flames' row-ahead
+    void smog;
+  });
 });
 
 describe("Sol — Incinerate ramp", () => {

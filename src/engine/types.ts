@@ -145,6 +145,7 @@ export interface RoundTickDef {
   paralyzeOne?: number; // PARALYZE one un-paralyzed enemy for N rounds
   pushEnemies?: number; // blow every enemy back N slots (Wind Guardian)
   rowAheadDmg?: number; // deal N DMG to enemies in the row directly ahead (Sweeping Flames)
+  inRangeDmg?: number; // deal N DMG to EVERY opponent this card can reach (Smog's Black Smoke)
   selfShields?: number; // gain N shields each round (Heir's Royal Guard)
   pokeParalyzedDmg?: number; // deal N DMG to one PARALYZED enemy in range (Sentry's Volt Turret)
   aoeParalyzedDmg?: number; // deal N DMG to EVERY PARALYZED enemy in range (Lytning's Complete Circuit)

@@ -223,6 +223,10 @@ export function describePassives(def: CardDef): string[] {
     passives.push(
       `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,
     );
+  if (def.roundTick?.inRangeDmg)
+    passives.push(
+      `End of round: deals ${def.roundTick.inRangeDmg} DMG to every opponent in range.`,
+    );
   if (def.roundTick?.selfShields)
     passives.push(`Gains +${def.roundTick.selfShields} shield at the end of each round.`);
   if (def.roundTick?.pokeParalyzedDmg)

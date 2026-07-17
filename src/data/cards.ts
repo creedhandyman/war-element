@@ -2393,8 +2393,8 @@ export const CARDS: CardDef[] = [
     sp: 0,
     shields: 0,
     keywords: {},
-    // Black Smoke (End of Round): 1 DMG to opponents in the row directly ahead.
-    roundTick: { rowAheadDmg: 1 },
+    // Black Smoke (End of Round): 1 DMG to every opponent in range (Ranged → the whole enemy board).
+    roundTick: { inRangeDmg: 1 },
   },
 
   // ───────────────────────── BORE ─────────────────────────

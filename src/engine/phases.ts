@@ -705,6 +705,12 @@ function doRoundTicks(draft: GameState): void {
       const ahead = card.owner === "P1" ? card.pos.row - 1 : card.pos.row + 1;
       for (const e of enemies()) if (e.pos && e.pos.row === ahead) directDamage(draft, card, e, rt.rowAheadDmg, false);
     }
+    if (rt.inRangeDmg) {
+      // Black Smoke: the haze chokes every opponent this card can reach.
+      const hit = enemies().filter((e) => canTarget(draft, card, e));
+      for (const e of hit) directDamage(draft, card, e, rt.inRangeDmg, false);
+      if (hit.length) draft.log.push(`${label(draft, card)} chokes ${hit.length === 1 ? "an enemy" : `${hit.length} enemies`} in range (${rt.inRangeDmg} DMG).`);
+    }
     if (rt.selfShields) {
       // Royal Guard: replenish the guardian's shields each round.
       card.curShields += rt.selfShields;
