@@ -417,13 +417,13 @@ describe("Kraken — SeaC max-HP aura", () => {
 });
 
 describe("Pyrogon — Flame Engulf reach", () => {
-  it("hits the row directly ahead — 3 wide, 1 deep (past melee range and the Home rule)", () => {
+  it("hits 3 wide, 2 deep — the row ahead plus the row behind it (past melee range and the Home rule)", () => {
     const s = prepState();
     s.players.P1.magicPool = 4;
     const pyro = place(s, "pyro_pyrogon", "P1", 3, 1); // own home row
     const ahead = place(s, "leaf_alpha", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // row ahead, same col
     const side = place(s, "leaf_alpha", "P2", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 }); // row ahead, adj col
-    const deep = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // 2 rows ahead → out
+    const deep = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // 2 rows ahead → the row behind
     const wide = place(s, "leaf_alpha", "P2", 2, 3, { curHp: 20, maxHp: 20, curShields: 0 }); // col 3 → too wide
     const next = applyIntent(battleWith(s, pyro.instanceId), {
       type: "BATTLE_ACTION",
@@ -433,7 +433,7 @@ describe("Pyrogon — Flame Engulf reach", () => {
     });
     expect(next.cards[ahead.instanceId].curHp).toBe(13); // 20 − 7
     expect(next.cards[side.instanceId].curHp).toBe(13); // within spread 1
-    expect(next.cards[deep.instanceId].curHp).toBe(20); // 2 rows ahead — not reached
+    expect(next.cards[deep.instanceId].curHp).toBe(13); // the row behind the front — now reached (2 deep)
     expect(next.cards[wide.instanceId].curHp).toBe(20); // outside the width
   });
 });

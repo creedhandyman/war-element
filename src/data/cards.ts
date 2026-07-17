@@ -1924,11 +1924,12 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Flame Engulf",
       cost: 4,
+      // 7 DMG + BURN 3 to a 3-wide corridor, TWO rows deep — the 3 opponents
+      // directly ahead plus the row behind them (spread 1, forwardDepth 2).
       handler: "barrage",
-      // 7 DMG + BURN 3 to the row directly ahead (spread 1, one row deep).
-      params: { dmg: 7, spread: 1, forwardDepth: 1, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
+      params: { dmg: 7, spread: 1, forwardDepth: 2, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
       targetSide: "enemy",
-      text: "Deal 7 DMG + BURN 3 to opponents in the row directly ahead.",
+      text: "Deal 7 DMG + BURN 3 to the 3 opponents directly ahead and the row behind them (2 rows deep).",
     },
     // Aura (Scorch BURN stacks) deferred.
   },
