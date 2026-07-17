@@ -2662,10 +2662,10 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     attackType: "Melee",
     cost: 1,
-    dmg: 3,
+    dmg: 2, // −1 DMG shifted into +1 SP (budget unchanged: 2 + 12 + 1 = 15 = 5·1+10)
     hits: 1,
     hp: 12,
-    sp: 0,
+    sp: 1,
     shields: 0,
     keywords: {},
     // Smokin' Dogs (End of Round): +1 DMG every round (doc caps at +5 — uncapped here).
