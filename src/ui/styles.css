@@ -570,6 +570,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 /* overlays */
 .overlay { position: fixed; inset: 0; background: rgba(6, 8, 14, 0.82); display: grid; place-items: center; z-index: 40; }
+/* Game-over screen must sit above ALL in-game UI (hand/deck reach z-index ~62),
+   so its New Match button is never covered. Higher than the base .overlay (which
+   the menu shares and must stay under the deck-builder). */
+.overlay.win-over { z-index: 100; }
 .modal { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 16px; padding: 26px; max-width: 640px; text-align: center; }
 .modal h1 { font-size: 22px; margin-bottom: 6px; }
 .modal p { color: var(--ink-dim); font-size: 13px; margin-bottom: 16px; line-height: 1.5; }

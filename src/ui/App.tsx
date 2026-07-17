@@ -1093,16 +1093,20 @@ export function App() {
         />
       )}
 
-      <WinScreen
-        game={game}
-        onNewGame={() => {
-          if (online) leaveOnline(); // tear down the room before returning
-          setStarted(false); // back to the deck picker
-          setSel(null);
-          setPending(null);
-          setMullToss([]);
-        }}
-      />
+      {/* Only during a match — New Match sets started=false, which hides this and
+          reveals the deck picker (game.win stays set until Start Match resets it). */}
+      {started && (
+        <WinScreen
+          game={game}
+          onNewGame={() => {
+            if (online) leaveOnline(); // tear down the room before returning
+            setStarted(false); // back to the deck picker
+            setSel(null);
+            setPending(null);
+            setMullToss([]);
+          }}
+        />
+      )}
 
       {!started && (
         <div className="overlay">
