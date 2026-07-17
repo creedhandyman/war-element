@@ -256,7 +256,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .slot.dimmed { opacity: 0.32; }
 /* Idle opponent team on your turn: grayscaled + dimmed, still clickable. */
-.slot.grayed .token { filter: grayscale(0.9) brightness(0.62); opacity: 0.72; transition: filter 0.2s, opacity 0.2s; }
+.slot.grayed .token { filter: grayscale(0.9) brightness(0.6); opacity: 0.5; transition: filter 0.2s, opacity 0.2s; }
 .slot.contested { border-color: var(--threat); animation: threatpulse 1s infinite; }
 @keyframes threatpulse { 0%, 100% { border-color: rgba(229, 83, 61, 0.6); } 50% { border-color: var(--threat); } }
 .slot.captured { border-color: #c98a2b; box-shadow: inset 0 0 26px rgba(201, 138, 43, 0.25); cursor: default; }
@@ -568,6 +568,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .bbtn.spec.armed { border-color: var(--accent); background: rgba(167, 139, 250, 0.15); color: var(--accent); }
 .bbtn:disabled { opacity: 0.4; cursor: default; }
 .bp-text { font-size: 10.5px; color: var(--ink-dim); }
+/* Opponent is mid-decision: a calm, centered "waiting" panel (no controls). */
+.bprompt.oppwait { align-items: center; justify-content: center; text-align: center; gap: 4px; }
+.bprompt.oppwait .bp-title { font-size: 13px; color: var(--ink-dim); }
 
 /* overlays */
 .overlay { position: fixed; inset: 0; background: rgba(6, 8, 14, 0.82); display: grid; place-items: center; z-index: 40; }
@@ -575,7 +578,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    hand/deck reach z-index ~62 and were covering them. Higher than the base
    .overlay (which the menu shares and must stay under the deck-builder). */
 .overlay.on-top { z-index: 100; }
-.modal { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 16px; padding: 26px; max-width: 640px; text-align: center; }
+.modal { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 16px; padding: 26px; max-width: 640px; max-height: 92dvh; overflow-y: auto; text-align: center; }
 .modal h1 { font-size: 22px; margin-bottom: 6px; }
 .modal p { color: var(--ink-dim); font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
 .mull-cards { display: flex; gap: 8px; justify-content: center; margin-bottom: 18px; }

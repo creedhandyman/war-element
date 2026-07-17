@@ -473,9 +473,13 @@ export function App() {
   })();
 
   function firePicks(finalPicks: string[]) {
+    if (!awaitingId) return;
+    const owner = game.cards[awaitingId].owner;
+    // Never issue an action for a card I don't control (online opponent / AI).
+    if (me !== owner) return;
     dispatch({
       type: "BATTLE_ACTION",
-      player: awaitingId ? game.cards[awaitingId].owner : view,
+      player: owner,
       action: pending!,
       targetIds: finalPicks,
     });
@@ -609,6 +613,8 @@ export function App() {
 
   function onCycleAuto(instanceId: string) {
     const owner = game.cards[instanceId]?.owner ?? view;
+    // Only ever toggle your OWN cards' auto mode — never the opponent's.
+    if (owner !== view) return;
     const order = ["manual", "basic", "full"] as const;
     const cur = game.cards[instanceId]?.autoMode ?? "manual";
     const mode = order[(order.indexOf(cur) + 1) % 3];
@@ -650,6 +656,17 @@ export function App() {
     !!activeDef?.special && Number(activeDef.special.params?.targets ?? 1) >= specialValid.length;
 
   const myPrep = me !== null && game.phase === "prep" && game.prep?.priority === me;
+  // I may drive the battle action panel ONLY when the card that's up is mine —
+  // never the opponent's (online) or the AI's. This is the single gate that
+  // stops "attacking as the opponent's card".
+  const iActBattle = activeCard !== null && me !== null && activeCard.owner === me;
+  // Online only: the opponent is mid-decision — either they hold prep priority,
+  // or their card is the one awaiting a battle action. Drives the waiting panel.
+  const oppId = online ? enemyOf(online.myId) : null;
+  const oppDeciding =
+    !!online &&
+    ((game.phase === "prep" && game.prep?.priority === oppId) ||
+      (activeCard !== null && activeCard.owner === oppId));
 
   return (
     <div className={`wrap${logCollapsed ? " log-collapsed" : ""}`}>
@@ -706,9 +723,13 @@ export function App() {
         selectedId={sel?.kind === "card" ? sel.instanceId : null}
         actingId={awaitingId}
         grayTeam={
-          // On your prep turn (nothing armed), dim the idle opponent's team so
-          // it's clear whose move it is. A live selection uses the normal glow/dim.
-          game.phase === "prep" && me !== null && game.prep?.priority === me && sel === null
+          // Throughout your prep turn, fade the idle opponent's team to ~50% so
+          // it's clear those pieces aren't yours to act on. The one exception is
+          // a damage spell you're aiming — then the enemy must stay lit to target.
+          game.phase === "prep" &&
+          me !== null &&
+          game.prep?.priority === me &&
+          !(sel?.kind === "spell" && getSpell(sel.spellId).kind === "damage")
             ? enemyOf(me)
             : null
         }
@@ -774,11 +795,20 @@ export function App() {
         </div>
       )}
 
-      <div ref={bottomRef} className={`bottom${!myPrep && activeCard === null ? " compact" : ""}${activeCard ? " acting" : ""}`}>
+      <div ref={bottomRef} className={`bottom${!myPrep && !iActBattle && !oppDeciding && activeCard === null ? " compact" : ""}${iActBattle || oppDeciding ? " acting" : ""}${oppDeciding ? " waiting" : ""}`}>
         <ResourcePool game={game} player={view} />
 
         <div className="handcol">
-        {activeCard && activeDef ? (
+        {oppDeciding ? (
+          <div className="bprompt oppwait">
+            <div className="bp-title">⏳ Waiting for your opponent…</div>
+            <div className="bp-text">
+              {activeCard && activeDef
+                ? `${activeDef.name} is choosing its action.`
+                : "They're taking their prep turn."}
+            </div>
+          </div>
+        ) : iActBattle && activeCard && activeDef ? (
           <div className="bprompt">
             <div className="bp-title">
               {activeDef.name} is up{" "}
@@ -1049,37 +1079,54 @@ export function App() {
         </div>
       )}
 
-      {game.pendingFlow && game.cards[game.pendingFlow] && (
-        <div className="overlay">
-          <div className="modal flow-modal">
-            <h1>Flow Change</h1>
-            <p>
-              <b>{getDef(game.cards[game.pendingFlow].defId).name}</b> flows into being —
-              choose its boost for this turn.
-            </p>
-            <div className="flow-opts">
-              {(["water", "ice", "steam"] as const).map((mode) => {
-                const multiHit = liquidGivesHit(game.cards[game.pendingFlow!]);
-                const blurb =
-                  mode === "water" && multiHit ? "+1 hit" : FLOW_MODES[mode].blurb;
-                return (
-                  <button
-                    key={mode}
-                    className={`flow-opt flow-${mode}`}
-                    onClick={() => {
-                      const card = game.cards[game.pendingFlow!];
-                      dispatch({ type: "FLOW_CHANGE", player: card.owner, instanceId: card.instanceId, mode });
-                    }}
-                  >
-                    <span className="flow-label">{FLOW_MODES[mode].label}</span>
-                    <span className="flow-blurb">{blurb}</span>
-                  </button>
-                );
-              })}
+      {game.pendingFlow && game.cards[game.pendingFlow] && (() => {
+        const flowCard = game.cards[game.pendingFlow!];
+        // Only the card's OWNER resolves its Flow Change. Online, the other
+        // player must not be able to pick for it — they see a waiting note.
+        const flowMine = !online || flowCard.owner === online.myId;
+        if (!flowMine)
+          return (
+            <div className="overlay">
+              <div className="modal flow-modal">
+                <h1>Flow Change</h1>
+                <p>
+                  ⏳ <b>{getDef(flowCard.defId).name}</b> is flowing into being —
+                  your opponent is choosing its boost.
+                </p>
+              </div>
+            </div>
+          );
+        return (
+          <div className="overlay">
+            <div className="modal flow-modal">
+              <h1>Flow Change</h1>
+              <p>
+                <b>{getDef(flowCard.defId).name}</b> flows into being —
+                choose its boost for this turn.
+              </p>
+              <div className="flow-opts">
+                {(["water", "ice", "steam"] as const).map((mode) => {
+                  const multiHit = liquidGivesHit(flowCard);
+                  const blurb =
+                    mode === "water" && multiHit ? "+1 hit" : FLOW_MODES[mode].blurb;
+                  return (
+                    <button
+                      key={mode}
+                      className={`flow-opt flow-${mode}`}
+                      onClick={() =>
+                        dispatch({ type: "FLOW_CHANGE", player: flowCard.owner, instanceId: flowCard.instanceId, mode })
+                      }
+                    >
+                      <span className="flow-label">{FLOW_MODES[mode].label}</span>
+                      <span className="flow-blurb">{blurb}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {detailId && game.cards[detailId] && (
         <CardDetail

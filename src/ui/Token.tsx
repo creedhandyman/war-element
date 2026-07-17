@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { CardInstance, GameState } from "../engine";
+import type { CardInstance, GameState, PlayerId } from "../engine";
 import { effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, getDef, legalMoves } from "../engine";
 import { EL_COLOR, KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 import { SpIcon } from "./icons";
@@ -67,13 +67,16 @@ function useCombatFx(instanceId: string, miss: number, crit: number) {
 export function Token(props: {
   game: GameState;
   card: CardInstance;
+  viewer: PlayerId; // the local player's side — "mine" is relative to this, not always P1
   selected: boolean;
   acting: boolean;
   onCycleAuto: (instanceId: string) => void;
 }) {
   const { game, card } = props;
   const def = getDef(card.defId);
-  const mine = card.owner === "P1";
+  // "Mine" is from the local viewer's seat (fixes the P2 guest, who used to see
+  // their own cards flagged as enemy and the opponent's as theirs).
+  const mine = card.owner === props.viewer;
   const human = (game.humans ?? ["P1"]).includes(card.owner);
   const hpFlash = useHpFlash(card.instanceId, card.curHp);
   const combatFx = useCombatFx(card.instanceId, card.fxMiss ?? 0, card.fxCrit ?? 0);
@@ -197,7 +200,7 @@ export function Token(props: {
           </span>
         </div>
       </div>
-      {human && (
+      {mine && human && (
         <div
           className={`auto-btn ${card.autoMode}`}
           title={`Auto mode: ${card.autoMode} — click to cycle`}

@@ -1,10 +1,11 @@
-import type { CardInstance, GameState } from "../engine";
+import type { CardInstance, GameState, PlayerId } from "../engine";
 import { Token } from "./Token";
 
 export function Slot(props: {
   game: GameState;
   row: number;
   col: number;
+  viewer: PlayerId; // the local player's side (threaded to Token for "mine")
   card: CardInstance | null;
   legal: boolean;
   isTarget: boolean; // enemy attack/special target → red
@@ -69,6 +70,7 @@ export function Slot(props: {
         <Token
           game={props.game}
           card={props.card}
+          viewer={props.viewer}
           selected={props.selectedId === props.card.instanceId}
           acting={props.actingId === props.card.instanceId}
           onCycleAuto={props.onCycleAuto}

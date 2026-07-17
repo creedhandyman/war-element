@@ -102,6 +102,7 @@ export function Board(props: {
                   game={game}
                   row={row}
                   col={col}
+                  viewer={props.viewPlayer}
                   card={card}
                   legal={greenLegal}
                   isTarget={redTarget}
