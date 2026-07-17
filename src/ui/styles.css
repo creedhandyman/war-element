@@ -893,7 +893,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      prep action panel (there's room), and retire the now-redundant SPELLS edge
      tab + sheet. Hidden mid-battle (spells are prep-only) with the controls. */
   .edge-tab.right { display: none; }
-  .panel-spells { display: block; width: 100%; }
+  /* Lift the spell row above the hand: the fanned cards dip down (transform) over
+     this thin row and would otherwise hide it ("spells can't be seen behind the
+     cards"). position+z-index puts the tappable chips on top of the card corners,
+     and a solid backing bar keeps the row readable instead of card art peeking
+     through the gaps. */
+  .panel-spells {
+    display: block; width: 100%; position: relative; z-index: 60;
+    background: linear-gradient(180deg, rgba(20, 17, 13, 0.94), rgba(14, 12, 9, 0.96));
+    border: 1px solid var(--gold-line); border-radius: 10px; padding: 6px 8px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.55);
+  }
   .panel-spells .spelltray { flex-direction: column; gap: 5px; background: none; border: none; box-shadow: none; padding: 0; }
   .panel-spells .spelltray-label { display: none; }  /* chips (name + cost) are self-evident */
   .panel-spells .spelltray-row { display: flex; flex-direction: row; gap: 8px; flex-wrap: nowrap; }

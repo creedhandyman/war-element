@@ -19,6 +19,62 @@ export interface CustomDeck {
   cards: string[]; // card ids (deck-eligible, no tokens, deduped)
 }
 
+/** Ready-to-play decks that ship with the game — curated dual-element builds
+ *  (low-to-high curve, one Mythic finisher each). They surface in the pre-game
+ *  picker alongside the Cores and any custom decks, and can't be edited/deleted
+ *  (they live in code, not localStorage). `premade: true` marks them so the UI
+ *  can label them and the delete-cleanup never drops their selection. */
+export interface PremadeDeck extends CustomDeck {
+  premade: true;
+}
+
+export const PREMADE_DECKS: PremadeDeck[] = [
+  {
+    id: "pre_inferno_blitz",
+    name: "Inferno Blitz",
+    premade: true,
+    // PYRO + BOLT — fast burn & shock aggression.
+    cards: [
+      "pyro_bbq", "bolt_zap", "bolt_electricel", "pyro_flamehound", "bolt_drshock",
+      "pyro_firebird", "pyro_ember_scorpion", "pyro_spitfire", "bolt_zagphu", "bolt_lytning",
+      "pyro_fenrir", "bolt_thundercat", "bolt_thunder", "pyro_pyrogon",
+    ],
+  },
+  {
+    id: "pre_frostkeep",
+    name: "Frostkeep",
+    premade: true,
+    // AQUA + BORE — tanky control that grinds you out.
+    cards: [
+      "aqua_subcool", "bore_hillbilly", "bore_crock", "aqua_bulletshrimp", "bore_smith",
+      "bore_rockgoblin", "aqua_spinefin", "aqua_owlette", "aqua_coralgolem", "bore_armadillo",
+      "bore_krysteel", "aqua_polarbear", "bore_sandman", "aqua_kraken",
+    ],
+  },
+  {
+    id: "pre_radiant_host",
+    name: "Radiant Host",
+    premade: true,
+    // DAWN + LEAF — support, heals and buffs behind a wall of bodies.
+    cards: [
+      "dawn_beam", "dawn_flash", "leaf_nettle", "leaf_stickviper", "dawn_sparkle",
+      "leaf_leaf", "leaf_guardian", "dawn_star", "dawn_amble", "leaf_dartfrog",
+      "leaf_fallona", "leaf_citra", "dawn_solstice", "dawn_imperator",
+    ],
+  },
+  {
+    id: "pre_nightfall",
+    name: "Nightfall",
+    premade: true,
+    // DUSK + GALE — evasive assassins that hit and vanish.
+    cards: [
+      "dusk_vamp", "dusk_crow", "dusk_spider", "gale_duster", "gale_luna",
+      "dusk_skeleton_knight", "dusk_silkstalker", "dusk_reaper", "gale_hawk", "gale_vaga",
+      "gale_buf", "gale_wolfbane", "gale_rayfen", "dusk_shadowhorsemen",
+    ],
+  },
+];
+
 /** Every card a player may put in a deck — the real CARDS list (tokens are
  *  excluded from CARDS by construction, so they can never be built with). */
 export function buildableCards(): CardDef[] {

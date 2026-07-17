@@ -35,7 +35,7 @@ import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online"
 import { Board } from "./Board";
 import { CardDetail } from "./CardDetail";
 import { DeckBuilder } from "./DeckBuilder";
-import { loadCustomDecks, type CustomDeck } from "../data/custom-decks";
+import { loadCustomDecks, PREMADE_DECKS, type CustomDeck } from "../data/custom-decks";
 import { SpIcon } from "./icons";
 import { Hand } from "./Hand";
 import { PhaseRibbon } from "./PhaseRibbon";
@@ -99,14 +99,16 @@ export function App() {
   const [builderOpen, setBuilderOpen] = useState(false);
   const [p1DeckId, setP1DeckId] = useState("");
   const [p2DeckId, setP2DeckId] = useState("");
-  // A side's card list: a chosen custom deck, else the two-core pairing.
+  // Selectable decks = the shipped premade builds + the player's own custom decks.
+  const deckPool: CustomDeck[] = [...PREMADE_DECKS, ...customDecks];
+  // A side's card list: a chosen premade/custom deck, else the two-core pairing.
   const resolveDeckCards = (deckId: string, coreA: string, coreB: string): string[] => {
-    const custom = deckId ? customDecks.find((d) => d.id === deckId) : undefined;
-    return custom ? custom.cards : pairingCards(coreA, coreB);
+    const chosen = deckId ? deckPool.find((d) => d.id === deckId) : undefined;
+    return chosen ? chosen.cards : pairingCards(coreA, coreB);
   };
   const deckLabel = (deckId: string, coreA: string, coreB: string): string => {
-    const custom = deckId ? customDecks.find((d) => d.id === deckId) : undefined;
-    return custom ? custom.name : `${coreById(coreA).name} + ${coreById(coreB).name}`;
+    const chosen = deckId ? deckPool.find((d) => d.id === deckId) : undefined;
+    return chosen ? chosen.name : `${coreById(coreA).name} + ${coreById(coreB).name}`;
   };
 
   // The human who must act right now (null while an AI acts or a phase
@@ -756,7 +758,8 @@ export function App() {
       })()}
 
       {/* Right of the field: the spell tray sits above the initiative (Speed
-          Queue) rail. */}
+          Queue) rail — the hand fans UP from the bottom bar, so the top of this
+          column is the spot the cards never reach. */}
       <div className="rightcol">
         {game.phase === "prep" && (
           <SpellTray
@@ -1205,9 +1208,18 @@ export function App() {
                   onChange={(e) => { setP1DeckId(e.target.value); setViewDeck("p1"); }}
                 >
                   <option value="">Core pairing ↓</option>
-                  {customDecks.map((d) => (
-                    <option key={d.id} value={d.id}>★ {d.name} ({d.cards.length})</option>
-                  ))}
+                  <optgroup label="Premade decks">
+                    {PREMADE_DECKS.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name} ({d.cards.length})</option>
+                    ))}
+                  </optgroup>
+                  {customDecks.length > 0 && (
+                    <optgroup label="Custom decks">
+                      {customDecks.map((d) => (
+                        <option key={d.id} value={d.id}>★ {d.name} ({d.cards.length})</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
                 {!p1DeckId && (
                   <div className="core-pair">
@@ -1240,9 +1252,18 @@ export function App() {
                   onChange={(e) => { setP2DeckId(e.target.value); setViewDeck("p2"); }}
                 >
                   <option value="">Core pairing ↓</option>
-                  {customDecks.map((d) => (
-                    <option key={d.id} value={d.id}>★ {d.name} ({d.cards.length})</option>
-                  ))}
+                  <optgroup label="Premade decks">
+                    {PREMADE_DECKS.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name} ({d.cards.length})</option>
+                    ))}
+                  </optgroup>
+                  {customDecks.length > 0 && (
+                    <optgroup label="Custom decks">
+                      {customDecks.map((d) => (
+                        <option key={d.id} value={d.id}>★ {d.name} ({d.cards.length})</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
                 {!p2DeckId && (
                   <div className="core-pair">
@@ -1405,9 +1426,11 @@ export function App() {
         onClose={() => setBuilderOpen(false)}
         onChange={(decks) => {
           setCustomDecks(decks);
-          // Drop a side's selection if its custom deck was deleted.
-          if (p1DeckId && !decks.some((d) => d.id === p1DeckId)) setP1DeckId("");
-          if (p2DeckId && !decks.some((d) => d.id === p2DeckId)) setP2DeckId("");
+          // Drop a side's selection if its custom deck was deleted — but never a
+          // premade (those live in code, not this list).
+          const stillValid = new Set([...PREMADE_DECKS.map((d) => d.id), ...decks.map((d) => d.id)]);
+          if (p1DeckId && !stillValid.has(p1DeckId)) setP1DeckId("");
+          if (p2DeckId && !stillValid.has(p2DeckId)) setP2DeckId("");
         }}
       />
     </div>
