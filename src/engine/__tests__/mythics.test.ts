@@ -323,6 +323,20 @@ describe("The DEEPEST — Drilling Quake sinkhole", () => {
     expect(effectiveSp(next, f)).toBe(getDef("leaf_alpha").sp - 5); // −5 SP
   });
 
+  it("is a RANGED Special (reaches a far opponent) even though the basic is Melee", () => {
+    expect(getDef("bore_deepest").attackType).toBe("Melee"); // Warrior → melee basic
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const deepest = place(s, "bore_deepest", "P1", 2, 0);
+    const near = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const far = place(s, "leaf_alpha", "P2", 0, 3, { curHp: 40, maxHp: 40, curShields: 0 }); // 2 rows + 3 cols away
+    const next = applyIntent(battleWith(s, deepest.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: near.instanceId,
+    });
+    expect(statusOf(next.cards[near.instanceId], "DOT")).toBeTruthy();
+    expect(statusOf(next.cards[far.instanceId], "DOT")).toBeTruthy(); // Sinkhole reached across the board
+  });
+
   it("has a 3-round cooldown — locked out until three Cleanups have ticked it", () => {
     const s = prepState();
     s.players.P1.magicPool = 10;

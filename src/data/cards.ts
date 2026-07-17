@@ -2080,7 +2080,7 @@ export const CARDS: CardDef[] = [
     rarity: "mythic",
     element: "BORE",
     cardClass: "Warrior",
-    attackType: "Ranged",
+    attackType: "Melee", // a Warrior fights up close; the ranged reach lives on the Special
     cost: 10,
     dmg: 9,
     hits: 1,
@@ -2096,6 +2096,7 @@ export const CARDS: CardDef[] = [
       cost: 5,
       cooldown: 3, // Sinkhole is a heavy AoE — 3-round lockout between casts
       handler: "barrage",
+      ranged: true, // "Sinkhole all opponents" reaches the whole board (basic is Melee now)
       // Sinkhole: DOT 3 (maybeStatus) + −5 SP (spDebuff) + −accuracy via BLIND
       // (debuffStatus) — all for 3 rounds.
       params: {
