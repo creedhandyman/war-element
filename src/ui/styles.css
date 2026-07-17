@@ -283,7 +283,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .lock { position: absolute; top: 4px; right: 5px; font-size: 12px; opacity: 0.85; }
 
 /* token */
-.token { width: 94%; height: 94%; border-radius: 9px; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 6px; overflow: visible; transition: transform 0.15s ease, box-shadow 0.15s ease; border: 1.5px solid var(--el-rim, var(--panel-line)); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65), 0 0 15px color-mix(in srgb, var(--el-rim, #000) 30%, transparent); }
+/* Absolute inset (not width/height:94%) so the token is a DEFINITE size = its
+   tile. A percentage height didn't resolve against the flex/grid tile, so the
+   token grew to its content height and overflowed the tile on small (mobile)
+   boards. Anchored to the slot (position:relative); overflow stays visible for
+   the CRIT/MISS float + keyword pips, and the content is shrunk to fit on mobile. */
+.token { position: absolute; inset: 3%; border-radius: 9px; display: flex; flex-direction: column; justify-content: space-between; padding: 6px; overflow: visible; transition: transform 0.15s ease, box-shadow 0.15s ease; border: 1.5px solid var(--el-rim, var(--panel-line)); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65), 0 0 15px color-mix(in srgb, var(--el-rim, #000) 30%, transparent); }
 .token.mine { background: linear-gradient(180deg, #1c1a26, #12111a); }
 .token.enemy { background: linear-gradient(180deg, #1c1a26, #12111a); }
 /* keyword pips (top edge) + status icons (bottom edge) */
@@ -781,32 +786,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .mobile-sheet { display: none; }
 .panel-close { display: none; }
 
-/* ══════════════════ ROTATE-TO-LANDSCAPE GATE ══════════════════
-   The battle is landscape-only on phones. When a touch device is held in
-   portrait during a match, App.tsx mounts this full-screen overlay over
-   everything (driven by measured innerH>innerW + pointer:coarse, NOT the flaky
-   `orientation` media feature). Rotating to landscape unmounts it. */
-.rotate-gate {
-  position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center;
-  padding: 24px; text-align: center;
-  background: radial-gradient(120% 90% at 50% 30%, #12131c, #050509 70%);
-  padding: calc(24px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right))
-           calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
-}
-.rotate-card { display: flex; flex-direction: column; align-items: center; gap: 16px; max-width: 320px; }
-.rotate-phone {
-  width: 58px; height: 92px; border-radius: 12px; border: 3px solid var(--gold-lit);
-  box-shadow: 0 0 26px rgba(232, 200, 119, 0.35), inset 0 0 18px rgba(232, 200, 119, 0.12);
-  animation: rotatehint 2.4s ease-in-out infinite; transform-origin: 50% 50%;
-}
-@keyframes rotatehint {
-  0%, 18% { transform: rotate(0deg); }
-  46%, 72% { transform: rotate(-90deg); }
-  100% { transform: rotate(0deg); }
-}
-.rotate-title { font-family: var(--head); font-size: 22px; font-weight: 800; letter-spacing: 0.04em; color: var(--gold-lit); }
-.rotate-sub { font-size: 14px; color: var(--ink-dim); line-height: 1.45; }
-
 @media (max-width: 760px) and (min-height: 541px) {
   :root { --board-size: min(calc(94vw - 48px), 50vh); }
 
@@ -823,14 +802,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .roundchip { font-size: 10px; } .roundchip b { font-size: 14px; }
   .priority-chip, .waiting { font-size: 10px; }
 
-  /* Board → hero pinned to the TOP so the free space falls below it, where the
-     hand fan sits — that keeps the fan off the home-row slots (tap-to-summon)
-     and off the bottom bar. Right gutter reserved for the SP strip. */
-  .board-area { order: 1; flex: 1 1 auto; min-height: 0; padding: 2px 44px 0 2px; justify-content: flex-start; }
+  /* Board → hero at the TOP (natural height); the hand takes the space below it
+     in normal flow. Right gutter reserved for the SP strip. */
+  .board-area { order: 1; flex: 0 0 auto; min-height: 0; padding: 2px 44px 0 2px; justify-content: flex-start; }
   .board-area::before { display: none; } /* drop the corner wisps on tiny screens */
 
-  /* Bottom bar → compact crystals + Pass Priority; the hand fan floats above it */
-  .bottom { order: 2; grid-column: auto; min-height: 68px; padding: 6px 8px; gap: 8px; align-items: center; }
+  /* Bottom bar → compact crystals + Pass Priority. margin-top:auto pins it to the
+     very bottom (thumb row) so the slack falls between the hand and the bar, and
+     the bar stays put even in Battle when the hand isn't rendered. */
+  .bottom { order: 3; grid-column: auto; min-height: 68px; padding: 6px 8px; gap: 8px; align-items: center; margin-top: auto; }
   .handcol { display: none; }              /* the hand lives in the floating overlay */
   /* Crystals → pure jewels (labels + opp mirror drop; opp pools already show up
      top by the fog). Keeps the bottom bar narrow. */
@@ -898,22 +878,29 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .rail-title { display: flex; align-items: center; }
   .log-rail .rail-collapse { display: none; }  /* drawer uses the ✕, not the collapse toggle */
 
-  /* Floating hand — narrowed + shifted left so it clears the right SP strip,
-     and raised so it sits above the thin bottom bar. */
-  /* Collapsed peek (opponent/battle turns) tucks into the gap ABOVE the control
-     bar, not over it; the up state lifts higher for summoning. */
-  .hand-float { width: min(84vw, 440px); bottom: calc(var(--bar-h, 72px) + 34px); left: calc(50% - 24px); }
-  .hand-float.up { bottom: calc(var(--bar-h, 84px) + 46px); } /* clears the live bar height + fan dip */
-  /* Smaller, tighter-overlapping cards so the 7-card fan fits a phone width.
-     Pivot the fan at the card's bottom edge (not 135% below) so rotated cards
-     splay at the TOP instead of dipping their corners down over the bottom bar. */
-  .hand-float .hcard { width: 78px; height: 108px; margin: 0 -27px; transform-origin: 50% 96%; }
-  .hand-float .hcard:hover { transform: translateY(-22px) scale(1.12); }
-  .hand-float .hc-name { font-size: 11px; }
-  .hand-float .hc-type { font-size: 8px; }
-  .hand-float .hc-stats { font-size: 9px; }
+  /* Hand → NORMAL FLOW directly below the board (not a floating overlay). A tall
+     portrait screen has the room, so the board slots stay fully visible/tappable
+     and the fan gets real space. Fills the slack under the board; right gutter
+     clears the SP strip. Bigger cards = "more room for cards". */
+  .hand-float {
+    order: 2; position: static; left: auto; bottom: auto; transform: none;
+    width: 100%; flex: 1 1 auto; min-height: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 6px 44px 0 4px; pointer-events: auto;
+  }
+  .hand-float.up { bottom: auto; } /* flow: same position on/off your turn */
+  .hand-float .hcard { width: 98px; height: 140px; margin: 0 -22px; transform-origin: 50% 96%; }
+  .hand-float .hcard:hover { transform: translateY(-26px) scale(1.14); z-index: 50 !important; }
+  .hand-float .hc-name { font-size: 12px; }
+  .hand-float .hc-type { font-size: 8.5px; }
+  .hand-float .hc-stats { font-size: 10px; }
+  /* Keep the hand full-size even on the opponent's turn (no tiny collapsed peek —
+     there's room in flow). */
+  .hand-float .hand.collapsed .hcard { height: 140px; margin: 0 -22px; }
+  .hand-float .hand.collapsed .hand-fan { padding-top: 30px; }
+  .hand-float .hand.collapsed .hc-sigil { display: grid; }
 
-  /* Placement-confirm bar sits just above the (live-height) bottom bar, full width */
+  /* Placement-confirm bar sits just above the bottom bar, full width */
   .summon-confirm { bottom: calc(var(--bar-h, 84px) + 6px); width: 92vw; flex-wrap: wrap; justify-content: center; }
 
   /* Modals fit the viewport */
@@ -1065,4 +1052,22 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     bottom: calc(var(--bar-h, 56px) + env(safe-area-inset-bottom, 0px) + 8px);
     width: auto; max-width: 92vw;
   }
+}
+
+/* ══════════ BOARD CARDS FIT SMALL (MOBILE) TILES ══════════
+   Phone boards have ~80px tiles; the desktop token content (name + class + full
+   stat row + auto button) is too tall for that and spilled past the tile. Shrink
+   every piece so a full card sits cleanly inside its space, in BOTH orientations
+   (portrait ≤760w OR landscape ≤540h). */
+@media (max-width: 760px), (max-height: 540px) {
+  .token { padding: 4px; }
+  .tk-name { font-size: 8.5px; }
+  .tk-cost { width: 14px; height: 14px; font-size: 8px; }
+  .tk-class { font-size: 6px; margin-bottom: 0; letter-spacing: 0.02em; }
+  .tk-stats { font-size: 8px; gap: 2px; }
+  .tk-stats span { padding: 0 2px; line-height: 1.2; }
+  .tk-bottom { gap: 1px; padding-bottom: 12px; }
+  .auto-btn { font-size: 6px; padding: 1px 3px; bottom: 3px; left: 3px; border-radius: 4px; }
+  .status-icons { gap: 2px; }
+  .status-icon, .kw-pip { font-size: 7px; }
 }
