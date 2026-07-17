@@ -158,10 +158,11 @@ export function Token(props: {
         </div>
       )}
       {/* Top: name (with cost + element dot). */}
+      {/* Element is shown by the card's border rim (--el-rim), so no separate
+          colour chip here — it only crowded the name on small board tiles. */}
       <div className="tk-top">
         <span className="tk-cost">{def.cost}</span>
         <span className="tk-name">{def.name}</span>
-        <span className="el-dot" style={{ background: EL_COLOR[def.element] }} />
       </div>
       {/* Bottom: class line + the full stat row (DMG · shield · HP · SP). */}
       <div className="tk-bottom">
