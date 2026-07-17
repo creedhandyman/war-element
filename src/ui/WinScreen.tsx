@@ -5,7 +5,7 @@ export function WinScreen(props: { game: GameState; onNewGame: () => void }) {
   if (!win) return null;
   const youWon = win.winner === "P1";
   return (
-    <div className="overlay win-over">
+    <div className="overlay on-top">
       <div className="modal">
         <div className={`win-title ${youWon ? "win" : "lose"}`}>
           {youWon ? "VICTORY" : "DEFEAT"}

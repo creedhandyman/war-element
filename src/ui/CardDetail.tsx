@@ -339,7 +339,7 @@ export function CardDetail(props: {
   const summonLock = card.summonedThisRound;
 
   return (
-    <div className="overlay" onClick={props.onClose}>
+    <div className="overlay on-top" onClick={props.onClose}>
       <div className="modal cd-modal" onClick={(e) => e.stopPropagation()}>
         <button className="cd-x" title="Close" onClick={props.onClose}>
           ✕
