@@ -35,6 +35,15 @@ export function DeckBuilder(props: {
   const [picked, setPicked] = useState<string[]>([]);
   const [filter, setFilter] = useState<Element | "ALL">("ALL");
   const [detailId, setDetailId] = useState<string | null>(null);
+  // Composition + Saved decks collapse to headers on phones so the card pool gets
+  // the room (open on desktop, where there's a side column for them). Default
+  // (null) follows the CURRENT viewport each render — evaluated live rather than
+  // at mount — until the user toggles.
+  const phone = typeof window !== "undefined" && (window.matchMedia?.("(max-width: 720px)").matches ?? false);
+  const [compOpen, setCompOpen] = useState<boolean | null>(null);
+  const [savedOpen, setSavedOpen] = useState<boolean | null>(null);
+  const compShown = compOpen ?? !phone;
+  const savedShown = savedOpen ?? !phone;
 
   const pool = useMemo(() => buildableCards(), []);
   const shown = filter === "ALL" ? pool : pool.filter((c) => c.element === filter);
@@ -123,7 +132,11 @@ export function DeckBuilder(props: {
             {/* Deck composition — cards per element / class / cost. */}
             {picked.length > 0 && (
               <div className="db-stats">
-                <div className="db-stats-h">Composition · avg cost {stats.avg.toFixed(1)}</div>
+                <button className="db-stats-h db-collapse" onClick={() => setCompOpen(!compShown)}>
+                  <span>Composition · avg cost {stats.avg.toFixed(1)}</span>
+                  <span className="db-chev">{compShown ? "▾" : "▸"}</span>
+                </button>
+                {compShown && (<>
                 <div className="dbs-block">
                   <div className="dbs-lbl">Elements</div>
                   <div className="dbs-tags">
@@ -163,11 +176,16 @@ export function DeckBuilder(props: {
                     })}
                   </div>
                 </div>
+                </>)}
               </div>
             )}
 
             <div className="db-saved">
-              <div className="db-saved-h">Saved decks</div>
+              <button className="db-saved-h db-collapse" onClick={() => setSavedOpen(!savedShown)}>
+                <span>Saved decks{decks.length ? ` (${decks.length})` : ""}</span>
+                <span className="db-chev">{savedShown ? "▾" : "▸"}</span>
+              </button>
+              {savedShown && (<>
               {decks.length === 0 && <div className="db-empty">None yet — build one →</div>}
               {decks.map((d) => (
                 <div key={d.id} className={`db-saved-row ${editingId === d.id ? "on" : ""}`}>
@@ -178,6 +196,7 @@ export function DeckBuilder(props: {
                   <button className="db-del" title="Delete" onClick={() => remove(d.id)}>🗑</button>
                 </div>
               ))}
+              </>)}
             </div>
           </div>
 

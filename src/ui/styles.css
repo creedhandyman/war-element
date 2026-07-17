@@ -736,6 +736,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* ── Deck composition stats (left panel) ─────────────────────────────── */
 .db-stats { margin-top: 4px; padding: 9px 10px; border: 1px solid var(--panel-line); border-radius: 10px; background: var(--void-2); display: flex; flex-direction: column; gap: 8px; }
 .db-stats-h { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-dim); font-weight: 800; }
+/* Collapsible section headers (Composition / Saved decks) — a button that keeps
+   the label look but adds a chevron; collapsed by default on phones. */
+.db-collapse { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; background: none; border: none; padding: 0; margin: 0; cursor: pointer; font: inherit; color: inherit; text-align: left; }
+.db-chev { flex: none; color: var(--ink-dim); font-size: 11px; }
 .dbs-block { display: flex; flex-direction: column; gap: 4px; }
 .dbs-lbl { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 .dbs-tags { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -774,11 +778,22 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .dbd-toggle { width: 100%; margin: 16px 0 0; padding: 11px; font-size: 13px; }
 
 @media (max-width: 720px) {
-  .deck-builder { width: auto; }
-  .db-body { flex-direction: column; }
-  .db-side { width: auto; }
-  .db-pool { border-left: none; border-top: 1px solid var(--panel-line); padding-left: 0; padding-top: 12px; }
-  .db-grid { max-height: 40vh; }
+  /* Fixed-height panel: compact header + collapsed sections on top, the card pool
+     fills the rest and scrolls on its own (no more scrolling the whole modal past
+     the composition + saved decks to reach the cards). */
+  .deck-builder {
+    width: auto; height: calc(100dvh - 20px); max-height: none; padding: 14px;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .db-head { flex: none; margin-bottom: 6px; }
+  .db-body { flex: 1 1 auto; min-height: 0; flex-direction: column; gap: 10px; }
+  .db-side { width: auto; flex: none; max-height: none; overflow: visible; gap: 7px; }
+  .db-pool {
+    flex: 1 1 auto; min-height: 0; gap: 8px;
+    border-left: none; border-top: 1px solid var(--panel-line); padding-left: 0; padding-top: 10px;
+  }
+  .db-filters { flex: none; }
+  .db-grid { flex: 1 1 auto; min-height: 0; max-height: none; } /* fills the pool + scrolls */
 }
 
 /* ══════════════════ MOBILE / PORTRAIT BATTLEFIELD ══════════════════
