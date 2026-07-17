@@ -9,8 +9,6 @@ import {
   canMove,
   canSummon,
   cardAt,
-  CORES,
-  coreById,
   createInitialState,
   effectiveBasicHits,
   effectiveDmg,
@@ -24,7 +22,6 @@ import {
   legalWallRows,
   needsInput,
   needsP1Input,
-  pairingCards,
   previewOnSummonArea,
   spellEnemyTargets,
   specialTargets,
@@ -78,11 +75,6 @@ export function App() {
   const [detailId, setDetailId] = useState<string | null>(null);
   // Pre-game deck selection — the match doesn't run until Start.
   const [started, setStarted] = useState(false);
-  // Each player's deck is a PAIRING of two element cores (mix-and-match).
-  const [p1CoreA, setP1CoreA] = useState("pyro");
-  const [p1CoreB, setP1CoreB] = useState("aqua");
-  const [p2CoreA, setP2CoreA] = useState("dawn");
-  const [p2CoreB, setP2CoreB] = useState("bolt");
   const [twoPlayer, setTwoPlayer] = useState(false);
   // Online PvP over Supabase Realtime. `online` is set once a room is live.
   const [online, setOnline] = useState<{ role: Role; code: string; myId: PlayerId } | null>(null);
@@ -94,22 +86,20 @@ export function App() {
   const onlineStartedRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [viewDeck, setViewDeck] = useState<"p1" | "p2">("p1"); // which deck's cards to preview
-  // Custom decks (a sandbox on top of the Cores). "" = use the two core selects.
   const [customDecks, setCustomDecks] = useState<CustomDeck[]>(() => loadCustomDecks());
   const [builderOpen, setBuilderOpen] = useState(false);
-  const [p1DeckId, setP1DeckId] = useState("");
-  const [p2DeckId, setP2DeckId] = useState("");
+  // Deck selection = a premade or custom deck (the old two-core pairing is gone).
+  // Each side defaults to a different premade so a match is one tap away.
+  const [p1DeckId, setP1DeckId] = useState(PREMADE_DECKS[0].id);
+  const [p2DeckId, setP2DeckId] = useState(PREMADE_DECKS[1].id);
   // Selectable decks = the shipped premade builds + the player's own custom decks.
   const deckPool: CustomDeck[] = [...PREMADE_DECKS, ...customDecks];
-  // A side's card list: a chosen premade/custom deck, else the two-core pairing.
-  const resolveDeckCards = (deckId: string, coreA: string, coreB: string): string[] => {
-    const chosen = deckId ? deckPool.find((d) => d.id === deckId) : undefined;
-    return chosen ? chosen.cards : pairingCards(coreA, coreB);
-  };
-  const deckLabel = (deckId: string, coreA: string, coreB: string): string => {
-    const chosen = deckId ? deckPool.find((d) => d.id === deckId) : undefined;
-    return chosen ? chosen.name : `${coreById(coreA).name} + ${coreById(coreB).name}`;
-  };
+  // Resolve a side's card list / label; fall back to the first premade if a
+  // selection ever goes missing (e.g. a custom deck deleted mid-session).
+  const resolveDeckCards = (deckId: string): string[] =>
+    (deckPool.find((d) => d.id === deckId) ?? PREMADE_DECKS[0]).cards;
+  const deckLabel = (deckId: string): string =>
+    (deckPool.find((d) => d.id === deckId) ?? PREMADE_DECKS[0]).name;
 
   // The human who must act right now (null while an AI acts or a phase
   // animates). `view` holds the last active human so the hand/pools/labels
@@ -212,7 +202,7 @@ export function App() {
     }
     const code = (roomCode.trim() || Math.random().toString(36).slice(2, 7)).toUpperCase();
     setRoomCode(code);
-    const hostCards = resolveDeckCards(p1DeckId, p1CoreA, p1CoreB);
+    const hostCards = resolveDeckCards(p1DeckId);
     setNetStatus(`Room ${code} open — share this code. Waiting for your buddy…`);
     onlineStartedRef.current = false;
     roomRef.current = joinRoom(code, "host", {
@@ -240,7 +230,7 @@ export function App() {
     }
     const code = roomCode.trim().toUpperCase();
     if (!code) { setNetStatus("Enter the room code your buddy shared."); return; }
-    const guestCards = resolveDeckCards(p2DeckId, p2CoreA, p2CoreB);
+    const guestCards = resolveDeckCards(p2DeckId);
     setNetStatus(`Joining ${code}…`);
     onlineStartedRef.current = false;
     roomRef.current = joinRoom(code, "guest", {
@@ -1215,7 +1205,6 @@ export function App() {
                   value={p1DeckId}
                   onChange={(e) => { setP1DeckId(e.target.value); setViewDeck("p1"); }}
                 >
-                  <option value="">Core pairing ↓</option>
                   <optgroup label="Premade decks">
                     {PREMADE_DECKS.map((d) => (
                       <option key={d.id} value={d.id}>{d.name} ({d.cards.length})</option>
@@ -1229,26 +1218,6 @@ export function App() {
                     </optgroup>
                   )}
                 </select>
-                {!p1DeckId && (
-                  <div className="core-pair">
-                    <select
-                      value={p1CoreA}
-                      onChange={(e) => { setP1CoreA(e.target.value); setViewDeck("p1"); }}
-                    >
-                      {CORES.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name} ({c.element})</option>
-                      ))}
-                    </select>
-                    <select
-                      value={p1CoreB}
-                      onChange={(e) => { setP1CoreB(e.target.value); setViewDeck("p1"); }}
-                    >
-                      {CORES.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name} ({c.element})</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
               </div>
               )}
               {(!onlineMode || onlineRole === "guest") && (
@@ -1259,7 +1228,6 @@ export function App() {
                   value={p2DeckId}
                   onChange={(e) => { setP2DeckId(e.target.value); setViewDeck("p2"); }}
                 >
-                  <option value="">Core pairing ↓</option>
                   <optgroup label="Premade decks">
                     {PREMADE_DECKS.map((d) => (
                       <option key={d.id} value={d.id}>{d.name} ({d.cards.length})</option>
@@ -1273,26 +1241,6 @@ export function App() {
                     </optgroup>
                   )}
                 </select>
-                {!p2DeckId && (
-                  <div className="core-pair">
-                    <select
-                      value={p2CoreA}
-                      onChange={(e) => { setP2CoreA(e.target.value); setViewDeck("p2"); }}
-                    >
-                      {CORES.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name} ({c.element})</option>
-                      ))}
-                    </select>
-                    <select
-                      value={p2CoreB}
-                      onChange={(e) => { setP2CoreB(e.target.value); setViewDeck("p2"); }}
-                    >
-                      {CORES.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name} ({c.element})</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
               </div>
               )}
               <button className="ghost db-open" onClick={() => setBuilderOpen(true)}>
@@ -1304,8 +1252,8 @@ export function App() {
                   className="lockin"
                   onClick={() => {
                     const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
-                    const p1Cards = resolveDeckCards(p1DeckId, p1CoreA, p1CoreB);
-                    const p2Cards = resolveDeckCards(p2DeckId, p2CoreA, p2CoreB);
+                    const p1Cards = resolveDeckCards(p1DeckId);
+                    const p2Cards = resolveDeckCards(p2DeckId);
                     setGame(createInitialState(newSeed(), p1Cards, p2Cards, humans));
                     setViewSide("P1");
                     setSel(null);
@@ -1373,20 +1321,20 @@ export function App() {
                   className={`pv-tab ${viewDeck === "p1" ? "on" : ""}`}
                   onClick={() => setViewDeck("p1")}
                 >
-                  P1 · {deckLabel(p1DeckId, p1CoreA, p1CoreB)}
+                  P1 · {deckLabel(p1DeckId)}
                 </button>
                 <button
                   className={`pv-tab ${viewDeck === "p2" ? "on" : ""}`}
                   onClick={() => setViewDeck("p2")}
                 >
-                  P2 · {deckLabel(p2DeckId, p2CoreA, p2CoreB)}
+                  P2 · {deckLabel(p2DeckId)}
                 </button>
               </div>
               {(() => {
                 const cards =
                   viewDeck === "p1"
-                    ? resolveDeckCards(p1DeckId, p1CoreA, p1CoreB)
-                    : resolveDeckCards(p2DeckId, p2CoreA, p2CoreB);
+                    ? resolveDeckCards(p1DeckId)
+                    : resolveDeckCards(p2DeckId);
                 return (
                   <>
                     <div className="pv-count">{cards.length} cards</div>
@@ -1434,11 +1382,11 @@ export function App() {
         onClose={() => setBuilderOpen(false)}
         onChange={(decks) => {
           setCustomDecks(decks);
-          // Drop a side's selection if its custom deck was deleted — but never a
-          // premade (those live in code, not this list).
+          // If a side's custom deck was deleted, fall back to the first premade
+          // (premades live in code, so they always stay valid).
           const stillValid = new Set([...PREMADE_DECKS.map((d) => d.id), ...decks.map((d) => d.id)]);
-          if (p1DeckId && !stillValid.has(p1DeckId)) setP1DeckId("");
-          if (p2DeckId && !stillValid.has(p2DeckId)) setP2DeckId("");
+          if (!stillValid.has(p1DeckId)) setP1DeckId(PREMADE_DECKS[0].id);
+          if (!stillValid.has(p2DeckId)) setP2DeckId(PREMADE_DECKS[0].id);
         }}
       />
     </div>

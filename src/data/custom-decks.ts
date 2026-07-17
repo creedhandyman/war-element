@@ -37,7 +37,7 @@ export const PREMADE_DECKS: PremadeDeck[] = [
     cards: [
       "pyro_bbq", "bolt_zap", "bolt_electricel", "pyro_flamehound", "bolt_drshock",
       "pyro_firebird", "pyro_ember_scorpion", "pyro_spitfire", "bolt_zagphu", "bolt_lytning",
-      "pyro_fenrir", "bolt_thundercat", "bolt_thunder", "pyro_pyrogon",
+      "pyro_baboom", "bolt_webster", "pyro_fenrir", "bolt_thundercat", "bolt_thunder", "pyro_pyrogon",
     ],
   },
   {
@@ -48,7 +48,7 @@ export const PREMADE_DECKS: PremadeDeck[] = [
     cards: [
       "aqua_subcool", "bore_hillbilly", "bore_crock", "aqua_bulletshrimp", "bore_smith",
       "bore_rockgoblin", "aqua_spinefin", "aqua_owlette", "aqua_coralgolem", "bore_armadillo",
-      "bore_krysteel", "aqua_polarbear", "bore_sandman", "aqua_kraken",
+      "aqua_octoirate", "bore_rhe", "bore_krysteel", "aqua_polarbear", "bore_sandman", "aqua_kraken",
     ],
   },
   {
@@ -59,7 +59,7 @@ export const PREMADE_DECKS: PremadeDeck[] = [
     cards: [
       "dawn_beam", "dawn_flash", "leaf_nettle", "leaf_stickviper", "dawn_sparkle",
       "leaf_leaf", "leaf_guardian", "dawn_star", "dawn_amble", "leaf_dartfrog",
-      "leaf_fallona", "leaf_citra", "dawn_solstice", "dawn_imperator",
+      "leaf_alpha", "dawn_radiance", "leaf_fallona", "leaf_citra", "dawn_solstice", "dawn_imperator",
     ],
   },
   {
@@ -70,7 +70,7 @@ export const PREMADE_DECKS: PremadeDeck[] = [
     cards: [
       "dusk_vamp", "dusk_crow", "dusk_spider", "gale_duster", "gale_luna",
       "dusk_skeleton_knight", "dusk_silkstalker", "dusk_reaper", "gale_hawk", "gale_vaga",
-      "gale_buf", "gale_wolfbane", "gale_rayfen", "dusk_shadowhorsemen",
+      "dusk_widowbite", "gale_hawko", "gale_buf", "gale_wolfbane", "gale_rayfen", "dusk_shadowhorsemen",
     ],
   },
 ];
