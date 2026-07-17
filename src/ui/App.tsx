@@ -903,7 +903,15 @@ export function App() {
                 Skip
               </button>
             </div>
-            {!specialCheck.ok && activeDef.special && (
+            {/* Armed special → show what it does (the hover title is invisible on
+                touch, and the hint row is hidden mid-battle on mobile). */}
+            {pending === "special" && activeDef.special && (
+              <div className="bp-text spec-desc">
+                <b>{activeDef.special.name}</b>
+                <span className="spec-cost"> · {activeDef.special.cost} SP</span> — {activeDef.special.text}
+              </div>
+            )}
+            {pending !== "special" && !specialCheck.ok && activeDef.special && (
               <div className="bp-text">
                 Special unavailable: {"reason" in specialCheck ? specialCheck.reason : ""}
               </div>

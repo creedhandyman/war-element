@@ -568,6 +568,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .bbtn.spec.armed { border-color: var(--accent); background: rgba(167, 139, 250, 0.15); color: var(--accent); }
 .bbtn:disabled { opacity: 0.4; cursor: default; }
 .bp-text { font-size: 10.5px; color: var(--ink-dim); }
+/* Armed-special description — accent the name in the Special's purple. */
+.spec-desc { color: var(--ink); line-height: 1.35; }
+.spec-desc b { color: var(--accent); }
+.spec-cost { color: var(--ink-dim); font-weight: 600; }
 /* Opponent is mid-decision: a calm, centered "waiting" panel (no controls). */
 .bprompt.oppwait { align-items: center; justify-content: center; text-align: center; gap: 4px; }
 .bprompt.oppwait .bp-title { font-size: 13px; color: var(--ink-dim); }
