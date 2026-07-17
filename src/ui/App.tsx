@@ -774,7 +774,7 @@ export function App() {
         </div>
       )}
 
-      <div ref={bottomRef} className={`bottom${!myPrep && activeCard === null ? " compact" : ""}`}>
+      <div ref={bottomRef} className={`bottom${!myPrep && activeCard === null ? " compact" : ""}${activeCard ? " acting" : ""}`}>
         <ResourcePool game={game} player={view} />
 
         <div className="handcol">
@@ -789,7 +789,7 @@ export function App() {
             </div>
             <div className="bp-actions">
               <button
-                className={`bbtn ${pending === "basic" ? "armed" : ""}`}
+                className={`bbtn atk ${pending === "basic" ? "armed" : ""}`}
                 disabled={!basicOk}
                 onClick={() => {
                   if (pending === "basic" && picks.length > 0) {
@@ -855,7 +855,7 @@ export function App() {
               </button>
               {activeDef.talent && (
                 <button
-                  className="bbtn"
+                  className="bbtn tal"
                   disabled={!talentCheck.ok}
                   title={`${activeDef.talent.name} (Talent, free · once per game): ${activeDef.talent.text}`}
                   onClick={() => dispatch({ type: "BATTLE_ACTION", player: activeCard.owner, action: "talent" })}
@@ -864,7 +864,7 @@ export function App() {
                 </button>
               )}
               <button
-                className="bbtn"
+                className="bbtn skip"
                 onClick={() => dispatch({ type: "BATTLE_ACTION", player: activeCard.owner, action: "skip" })}
               >
                 Skip
@@ -881,6 +881,17 @@ export function App() {
 
         <div className="controls">
           <div className="hint" dangerouslySetInnerHTML={{ __html: hint }} />
+          {/* Portrait: surface the spellbook right in the action panel (desktop
+              keeps its own tray in the right rail; this one is CSS-hidden there). */}
+          <div className="panel-spells">
+            <SpellTray
+              game={game}
+              player={view}
+              armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
+              myTurn={myPrep}
+              onPick={onPickSpell}
+            />
+          </div>
           {/* Pass Priority is the primary action; secondary controls stack
               underneath it so the hand keeps its width. */}
           <button
