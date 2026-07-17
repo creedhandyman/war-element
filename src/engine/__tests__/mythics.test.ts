@@ -211,6 +211,22 @@ describe("splash damage", () => {
     expect(next.cards[adj.instanceId].curHp).toBe(40 - 11); // splash
     expect(next.cards[far.instanceId].curHp).toBe(40); // out of splash range
   });
+
+  it("Griffith takes 10% recoil from Dive Bomb (27 dealt → 3 back)", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const griff = place(s, "gale_griffith", "P1", 2, 0);
+    const startHp = s.cards[griff.instanceId].curHp; // 29
+    const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(battleWith(s, griff.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: foe.instanceId,
+    });
+    expect(next.cards[foe.instanceId].curHp).toBe(40 - 27); // full hit
+    expect(next.cards[griff.instanceId].curHp).toBe(startHp - 3); // round(27 * 10%)
+  });
 });
 
 describe("Jungle Culling — STEALTH on kill", () => {

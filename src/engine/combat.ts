@@ -929,6 +929,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (attacker.curHp <= 0) defeatCard(draft, attacker, "self-damage");
       else checkLowHpTransform(draft, attacker);
     }
+    // Recoil: the caster takes back a % of the HP damage this strike dealt to the
+    // main target (Griffith's Dive Bomb — 10% recoil).
+    const recoilPct = num(params, "recoilPct");
+    if (recoilPct > 0 && r.totalToHp > 0 && attacker.curHp > 0) {
+      const recoil = Math.round((r.totalToHp * recoilPct) / 100);
+      if (recoil > 0) {
+        attacker.curHp -= recoil;
+        draft.log.push(`${label(draft, attacker)} takes ${recoil} recoil.`);
+        if (attacker.curHp <= 0) defeatCard(draft, attacker, "recoil");
+        else checkLowHpTransform(draft, attacker);
+      }
+    }
     const healSelf = num(params, "healSelf");
     if (healSelf > 0 && attacker.curHp > 0) healCard(draft, attacker, healSelf);
     // Lifesteal: heal the caster for the HP damage this strike dealt (Darth's

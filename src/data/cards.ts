@@ -2012,9 +2012,9 @@ export const CARDS: CardDef[] = [
       name: "Dive Bomb",
       cost: 5,
       handler: "strike",
-      params: { dmg: 27, splash: 11, selfStatus: "STEALTH", selfStatusDuration: 1 },
+      params: { dmg: 27, splash: 11, recoilPct: 10, selfStatus: "STEALTH", selfStatusDuration: 1 },
       targetSide: "enemy",
-      text: "Deal 27 DMG (+11 splash), then vanish into STEALTH until next round.",
+      text: "Deal 27 DMG (+11 splash) and take 10% recoil, then vanish into STEALTH until next round.",
     },
   },
   {
