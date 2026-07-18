@@ -500,6 +500,12 @@ export interface SpellDef {
   /** AoE spells (kind "aoe"): which opponents the dmg/status hits. "board" = all
    *  (no pick); "row" = a picked row; "tworows" = the picked row + the one behind. */
   area?: "row" | "board" | "tworows";
+  /** AoE double-damage rider: a target meeting this condition takes 2× the dmg
+   *  (Maelstrom vs FREEZE, Dawn's Judgment vs BLIND, Tremor vs "noShields"). */
+  doubleIf?: StatusKind | "noShields";
+  /** Cleanse rider: remove up to N negative statuses from each of the caster's
+   *  element allies (99 = all). Runs on support spells and on Judgment. */
+  cleanse?: number;
   // ── ally rider / support (auto-picked ally of the spell's element) ──
   allyShield?: number;
   allyHeal?: number;

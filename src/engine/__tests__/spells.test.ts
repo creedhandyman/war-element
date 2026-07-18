@@ -368,3 +368,74 @@ describe("AoE spells (row / two-row)", () => {
     expect(canCastSpell(s, "P1", "aqua_frost_patch", { row: 0 }).ok).toBe(true);
   });
 });
+
+describe("cleanse + board wipes", () => {
+  it("Cleansing Light strips all negative statuses from DAWN allies", () => {
+    const s = prepState();
+    armSpell(s, "dawn_cleansing_light", 2);
+    const ally = place(s, "dawn_beam", "P1", 3, 0, {
+      status: { kind: "ROOT", duration: 2, power: 0, source: "LEAF" },
+    });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dawn_cleansing_light" });
+    expect(statusOf(next.cards[ally.instanceId], "ROOT")).toBeFalsy();
+  });
+
+  it("Grove's Blessing heals all LEAF allies and cleanses one status each", () => {
+    const s = prepState();
+    armSpell(s, "leaf_groves_blessing", 5);
+    const a = place(s, "leaf_alpha", "P1", 3, 0, {
+      curHp: 5, maxHp: 14,
+      status: { kind: "BURN", duration: 2, power: 1, source: "PYRO" },
+    });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_groves_blessing" });
+    expect(next.cards[a.instanceId].curHp).toBe(10); // +5
+    expect(statusOf(next.cards[a.instanceId], "BURN")).toBeFalsy(); // cleansed
+  });
+
+  it("Judgment: 10 PEN to a foe + cleanse each DAWN ally", () => {
+    const s = prepState();
+    armSpell(s, "dawn_judgment", 7);
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, curShields: 5 });
+    const ally = place(s, "dawn_beam", "P1", 3, 0, {
+      status: { kind: "WEAKEN", duration: 2, power: 0, source: "GALE" },
+    });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dawn_judgment", targetId: foe.instanceId });
+    expect(next.cards[foe.instanceId].curHp).toBe(10); // 10 PEN (shields ignored)
+    expect(statusOf(next.cards[ally.instanceId], "WEAKEN")).toBeFalsy(); // cleansed
+  });
+
+  it("Lightning Storm: 8 to EVERY opponent + PARALYZE all", () => {
+    const s = prepState();
+    armSpell(s, "bolt_lightning_storm", 7);
+    const a = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, curShields: 0 });
+    const b = place(s, "dusk_vamp", "P2", 0, 3, { curHp: 20, curShields: 0 }); // different row — board hits all
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bolt_lightning_storm" });
+    expect(next.cards[a.instanceId].curHp).toBe(12); // 20 − 8
+    expect(next.cards[b.instanceId].curHp).toBe(12);
+    expect(statusOf(next.cards[a.instanceId], "PARALYZE")).toBeTruthy();
+    expect(statusOf(next.cards[b.instanceId], "PARALYZE")).toBeTruthy();
+  });
+
+  it("Maelstrom doubles its 8 DMG against FROZEN opponents", () => {
+    const s = prepState();
+    armSpell(s, "aqua_maelstrom", 9);
+    const frozen = place(s, "dusk_gool", "P2", 1, 0, {
+      curHp: 20, curShields: 0,
+      status: { kind: "FREEZE", duration: 1, power: 0, source: "AQUA" },
+    });
+    const normal = place(s, "dusk_skeleton_knight", "P2", 1, 1, { curHp: 20, curShields: 0 });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "aqua_maelstrom" });
+    expect(next.cards[frozen.instanceId].curHp).toBe(4); // 20 − 16 (doubled)
+    expect(next.cards[normal.instanceId].curHp).toBe(12); // 20 − 8
+  });
+
+  it("Tremor doubles against shieldless opponents only", () => {
+    const s = prepState();
+    armSpell(s, "bore_tremor", 9);
+    const bare = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, curShields: 0 });
+    const shielded = place(s, "dusk_skeleton_knight", "P2", 1, 1, { curHp: 20, curShields: 3 });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bore_tremor" });
+    expect(next.cards[bare.instanceId].curHp).toBe(4); // 0 shields → 16
+    expect(next.cards[shielded.instanceId].curHp).toBe(15); // 8 − 3 shields = 5 to HP (not doubled)
+  });
+});

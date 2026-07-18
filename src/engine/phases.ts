@@ -255,6 +255,22 @@ function pickSpellAlly(draft: GameState, player: PlayerId, element: SpellDef["el
   return allies.slice().sort((a, b) => a.curHp / a.maxHp - b.curHp / b.maxHp)[0];
 }
 
+/** Strip up to `n` negative statuses from a card (99 = all). Returns how many. */
+function cleanseCard(card: CardInstance, n: number): number {
+  let removed = 0;
+  card.statuses = card.statuses.filter((s) => {
+    if (removed < n && NEGATIVE_STATUSES.includes(s.kind)) { removed++; return false; }
+    return true;
+  });
+  return removed;
+}
+
+/** Cleanse every living element ally of the caster (used by damage-kind Judgment). */
+function cleanseSpellAllies(draft: GameState, player: PlayerId, element: SpellDef["element"], n: number): void {
+  for (const a of boardCards(draft, player))
+    if (a.curHp > 0 && getDef(a.defId).element === element) cleanseCard(a, n);
+}
+
 /** Resolve a cast Spell's effect. Targeting was already validated by canCastSpell. */
 function resolveSpell(
   draft: GameState,
@@ -298,7 +314,14 @@ function resolveSpell(
     };
     const targets = boardCards(draft, enemyOf(player)).filter((e) => e.curHp > 0 && inArea(e));
     for (const t of targets) {
-      if (spell.dmg) spellHit(draft, t, spell.dmg, Boolean(spell.pen));
+      if (spell.dmg) {
+        // doubleIf: a target meeting the condition takes 2× (Maelstrom / Tremor / Dawn's Judgment).
+        const boosted =
+          spell.doubleIf === "noShields" ? t.curShields === 0
+          : spell.doubleIf ? hasStatus(t, spell.doubleIf)
+          : false;
+        spellHit(draft, t, boosted ? spell.dmg * 2 : spell.dmg, Boolean(spell.pen));
+      }
       if (draft.cards[t.instanceId] && t.curHp > 0 && spell.status)
         applyStatus(draft, t, spell.status.kind, spell.status.duration, spell.status.power, spell.element);
     }
@@ -324,6 +347,7 @@ function resolveSpell(
       if (spell.allySp) ally.spBonus += spell.allySp;
       if (spell.allyStatus)
         applyStatus(draft, ally, spell.allyStatus.kind, spell.allyStatus.duration, spell.allyStatus.power, spell.element);
+      if (spell.cleanse) cleanseCard(ally, spell.cleanse);
     }
     const who = targets.length === 1 ? label(draft, targets[0]) : `${targets.length} ${spell.element} allies`;
     draft.log.push(`${spell.name} bolsters ${who}.`);
@@ -357,6 +381,9 @@ function resolveSpell(
       draft.log.push(`${label(draft, ally)} gains ${spell.allyShield} shield.`);
     }
   }
+  // Damage-kind cleanse rider (Judgment): tidy up the caster's own element allies.
+  // (Support spells cleanse their targets above and return before reaching here.)
+  if (spell.cleanse) cleanseSpellAllies(draft, player, spell.element, spell.cleanse);
 }
 
 /** A card that MOVED into an enemy Wall's row (row change only) eats it. */
