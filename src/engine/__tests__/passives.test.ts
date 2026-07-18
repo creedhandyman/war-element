@@ -697,4 +697,39 @@ describe("partial-effect fixes (Epic sweep)", () => {
     basicAttack(s, low.instanceId, foe.instanceId);
     expect(s.cards[foe.instanceId].curHp).toBe(18); // 2×2 halved → 1×2 = 2 dmg
   });
+
+  it("Zagphu's Precision Strike fires vs ANY statused (Electrified) foe, not just PARALYZED", () => {
+    const s = prepState();
+    const z = place(s, "bolt_zagphu", "P1", 3, 0, { curHp: 5, maxHp: 12 });
+    const foe = place(s, "dusk_gool", "P2", 2, 0, {
+      curHp: 30, curShields: 0,
+      status: { kind: "BURN", duration: 2, power: 1, source: "PYRO" }, // statused, NOT paralyzed
+    });
+    basicAttack(s, z.instanceId, foe.instanceId);
+    expect(s.cards[z.instanceId].curHp).toBe(9); // healOnHit +4 fired (anyStatus match)
+  });
+
+  it("Whirlwolf's Hastening Breeze gives +5 SP to ALL allies, not just the nearest", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 5;
+    const near = place(s, "leaf_greegon", "P1", 3, 0);
+    const far = place(s, "leaf_greegon", "P1", 3, 3); // farther than the nearest ally
+    const handId = giveHand(s, "P1", "gale_whirlwolf");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    expect(next.cards[near.instanceId].spBonus).toBe(5);
+    expect(next.cards[far.instanceId].spBonus).toBe(5); // all-allies, not self+nearest
+  });
+
+  it("Static Charge (On Kill) extends PARALYZE on already-paralyzed foes by 1 round", () => {
+    const s = prepState();
+    const stat = place(s, "bolt_static", "P1", 3, 0); // Ranged, dmg 4
+    const dying = place(s, "dusk_vamp", "P2", 1, 0, { curHp: 1, curShields: 0 });
+    const paralyzed = place(s, "dusk_gool", "P2", 1, 1, {
+      curHp: 20, curShields: 0,
+      status: { kind: "PARALYZE", duration: 2, power: 0, source: "BOLT" },
+    });
+    basicAttack(s, stat.instanceId, dying.instanceId);
+    expect(s.cards[dying.instanceId]).toBeUndefined(); // killed
+    expect(s.cards[paralyzed.instanceId].statuses.find((x) => x.kind === "PARALYZE")?.duration).toBe(3); // 2 → 3
+  });
 });

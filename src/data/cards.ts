@@ -1693,8 +1693,9 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // Precision Strike: vs a PARALYZED opponent, basic attacks CRIT and heal +4.
-    vsStatus: { status: "PARALYZE", crit: true, healOnHit: 4 },
+    // Precision Strike: vs an Electrified (any-statused) OR PARALYZED opponent,
+    // basic attacks CRIT and heal +4.
+    vsStatus: { status: "PARALYZE", anyStatus: true, crit: true, healOnHit: 4 },
     special: {
       name: "Static Toss",
       cost: 2,
@@ -1719,6 +1720,8 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "ARC",
+    // Static Charge (On Kill): extend PARALYZE on every already-paralyzed foe by 1r.
+    onKill: { extendStatus: { kind: "PARALYZE", rounds: 1 } },
     special: {
       name: "Discharge",
       cost: 2,
@@ -2483,9 +2486,9 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { FLYING: true },
     tribe: "Avian",
-    // Hastening Breeze (On Summon): kick up speed (+5 SP to self + nearest ally).
-    // (Doc buffs ALL allies for a round; the engine grants self + nearest.)
-    onSummon: { handler: "buffSp", params: { amount: 5 }, targetSide: "ally" },
+    // Hastening Breeze (On Summon): +5 SP to all allies (the whole team). Doc's
+    // "for a round" temporality isn't modeled — the SP grant is permanent.
+    onSummon: { handler: "buffSp", params: { amount: 5, allAllies: 1 }, targetSide: "ally" },
     special: {
       name: "Wave Pounce",
       cost: 2,

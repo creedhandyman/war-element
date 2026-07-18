@@ -122,12 +122,18 @@ export interface OnKillDef {
   aoeDmgElectrified?: number;
   coinBonusDmg?: number; // coin flip: +this or +this−1 permanent DMG
   reduceSpecialCost?: number; // King Me (Heir): shave N off this card's Special cost per kill
+  /** Static Charge (Static): on a kill, extend the named status on every enemy
+   *  that already carries it by `rounds` (deepen the crowd-control). */
+  extendStatus?: { kind: StatusKind; rounds: number };
 }
 
 /** A basic-attack conditional keyword that only applies vs a target already
  *  carrying `status` (e.g. LIFESTEAL vs ROOTed, CRIT vs PARALYZED). */
 export interface VsStatusDef {
   status: StatusKind;
+  /** Match ANY status instead of the named one — models "Electrified" (BOLT's
+   *  "has a status") triggers, e.g. Zagphu's "vs Electrified OR PARALYZED". */
+  anyStatus?: boolean;
   lifesteal?: boolean;
   crit?: boolean;
   bonusDmg?: number; // +DMG per hit

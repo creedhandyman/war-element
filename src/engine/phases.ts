@@ -629,11 +629,17 @@ function applyAllyOnSummon(
     if (targets.length > 0)
       draft.log.push(`${getDef(caster.defId).name} reinforces ${targets.length} ally(ies) (+${amount} shields).`);
   } else if (handler === "buffSp") {
-    // Self + the nearest ally.
     caster.spBonus += amount;
-    const near = closest(caster, allies);
-    if (near) near.spBonus += amount;
-    draft.log.push(`${getDef(caster.defId).name} kicks up speed (+${amount} SP self${near ? " + ally" : ""}).`);
+    if (params.allAllies) {
+      // Hastening Breeze (Whirlwolf): the whole team gains speed.
+      for (const a of allies) a.spBonus += amount;
+      draft.log.push(`${getDef(caster.defId).name} kicks up speed (+${amount} SP to all allies).`);
+    } else {
+      // Self + the nearest ally.
+      const near = closest(caster, allies);
+      if (near) near.spBonus += amount;
+      draft.log.push(`${getDef(caster.defId).name} kicks up speed (+${amount} SP self${near ? " + ally" : ""}).`);
+    }
   }
 }
 

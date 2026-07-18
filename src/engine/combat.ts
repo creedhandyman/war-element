@@ -515,7 +515,7 @@ export function basicAttack(
     let lifesteal = false;
     let healOnHit = 0;
     const vs = aDef.vsStatus;
-    const vsMatch = vs != null && hasStatus(t, vs.status);
+    const vsMatch = vs != null && (vs.anyStatus ? t.statuses.length > 0 : hasStatus(t, vs.status));
     if (vs && vsMatch) {
       if (vs.dmgMult) dmg = Math.floor(dmg * vs.dmgMult);
       if (vs.bonusDmg) dmg += vs.bonusDmg;
@@ -823,6 +823,15 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef): vo
     if (h > 0) draft.log.push(`${name} heals ${h} on the kill.`);
   }
   if (def.gainShields) killer.curShields += def.gainShields;
+  if (def.extendStatus) {
+    const { kind, rounds } = def.extendStatus;
+    let n = 0;
+    for (const e of boardCards(draft, enemyOf(killer.owner))) {
+      const st = e.statuses.find((s) => s.kind === kind);
+      if (st) { st.duration += rounds; n++; }
+    }
+    if (n > 0) draft.log.push(`${name} deepens ${kind} on ${n} foe(s) (+${rounds}r).`);
+  }
   if (def.reduceSpecialCost) {
     killer.specialCostReduction += def.reduceSpecialCost;
     draft.log.push(`${name} tightens its grip (King Me — Special costs ${def.reduceSpecialCost} less).`);
