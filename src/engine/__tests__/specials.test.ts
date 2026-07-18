@@ -111,6 +111,47 @@ describe("firing specials", () => {
     expect(next.cards[free.instanceId].curHp).toBe(6); // not paralyzed → untouched
   });
 
+  it("Vaga's Extinguisher only fires at foes under 9 HP (execute)", () => {
+    // A healthy foe directly ahead is NOT a legal Extinguisher target.
+    const s1 = prepState();
+    s1.players.P1.magicPool = 5;
+    const v1 = place(s1, "gale_vaga", "P1", 2, 0);
+    place(s1, "dusk_gool", "P2", 1, 0, { curHp: 20 });
+    expect(canFireSpecial(s1, v1.instanceId).ok).toBe(false);
+
+    // A <9-HP foe in the same slot IS a target — and gets executed.
+    const s2 = prepState();
+    s2.players.P1.magicPool = 5;
+    const v2 = place(s2, "gale_vaga", "P1", 2, 0);
+    const weak = place(s2, "dusk_vamp", "P2", 1, 0, { curHp: 5, curShields: 0 }); // ground, <9 HP
+    expect(canFireSpecial(s2, v2.instanceId).ok).toBe(true);
+    const next = applyIntent(battleWith(s2, v2.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: weak.instanceId,
+    });
+    expect(next.cards[weak.instanceId]).toBeUndefined(); // 8 PEN executes the 5-HP foe
+  });
+
+  it("Fenix's Phoenix Blast spreads BURN to the target's neighbors", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const f = place(s, "pyro_fenix", "P1", 2, 0); // Ranged; Phoenix Blast 8 + BURN 2 splash
+    const target = place(s, "dusk_gool", "P2", 1, 1, { curHp: 20, curShields: 0 });
+    const neighbor = place(s, "dusk_vamp", "P2", 1, 0, { curHp: 10, curShields: 0 }); // adjacent
+    const far = place(s, "dusk_crow", "P2", 0, 3, { curHp: 5 }); // not adjacent
+    const next = applyIntent(battleWith(s, f.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: target.instanceId,
+    });
+    expect(next.cards[target.instanceId].statuses.find((x) => x.kind === "BURN")).toBeTruthy();
+    expect(next.cards[neighbor.instanceId].statuses.find((x) => x.kind === "BURN")).toBeTruthy(); // splash
+    expect(next.cards[far.instanceId].statuses.find((x) => x.kind === "BURN")).toBeFalsy();
+  });
+
   it("barrage multi-selection: strikes exactly the picked targets, stacking repeats", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;

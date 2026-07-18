@@ -1377,9 +1377,10 @@ export const CARDS: CardDef[] = [
     sp: 14,
     shields: 1,
     keywords: {},
-    // Hot Shot (On Kill): +1 DMG for the rest of the round. (Doc also grants
-    // always-hit / ignore-EVASION — not modeled yet.)
+    // Hot Shot (On Kill): +1 DMG for the rest of the round.
     onKill: { buffDmgRound: 1 },
+    // High-noon aim: attacks never miss (ignores the caster's BLIND + target EVASION).
+    alwaysHit: true,
     special: {
       name: "High Noon Revolver",
       cost: 3,
@@ -1475,9 +1476,9 @@ export const CARDS: CardDef[] = [
       name: "Extinguisher",
       cost: 1,
       handler: "strike",
-      params: { dmg: 8, pen: 1 },
+      params: { dmg: 8, pen: 1, requireBelowHp: 9 },
       targetSide: "enemy",
-      text: "Deal 8 DMG (PEN) — a finisher for low-HP targets.",
+      text: "Deal 8 DMG (PEN) to a foe under 9 HP — an execute finisher.",
     },
   },
   {
@@ -2624,7 +2625,9 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 2,
     keywords: {},
-    // (Brightest Warrior's summon-scaling buff is unmodeled.)
+    // Brightest Warrior (On Summon): +1 max HP & +1 DMG per 7 max HP of the
+    // highest-HP opponent on the board.
+    summonScaleFromEnemy: { per: 7, dmg: 1, maxHp: 1 },
     special: {
       name: "SunSword Blasting Strike",
       cost: 2,
@@ -2676,11 +2679,10 @@ export const CARDS: CardDef[] = [
       name: "Phoenix Blast",
       cost: 2,
       handler: "strike",
-      // (Doc also spreads BURN 2 to the target's neighbors — target-adjacent
-      // status isn't modeled, so only the struck target burns.)
-      params: { dmg: 8, statusKind: "BURN", statusPower: 2, statusDuration: 2 },
+      // BURN 2 on the target spreads to its adjacent opponents (statusSplash).
+      params: { dmg: 8, statusKind: "BURN", statusPower: 2, statusDuration: 2, statusSplash: 1 },
       targetSide: "enemy",
-      text: "Deal 8 DMG and apply BURN 2 for 2 rounds.",
+      text: "Deal 8 DMG and apply BURN 2 (2r) to the target and its neighbors.",
     },
   },
   {

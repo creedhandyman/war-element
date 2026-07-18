@@ -274,6 +274,10 @@ export interface CardDef {
   /** On summon, spawn `count` token cards (one-shot). The token's def lives in
    *  CARD_INDEX but never appears in a deck. */
   summonSpawn?: { token: string; count: number };
+  /** Brightest Warrior (Radiance): on summon, scale up by the strongest foe —
+   *  +`dmg` DMG and/or +`maxHp` max HP for each `per` max-HP the highest-HP
+   *  opponent on the board has. */
+  summonScaleFromEnemy?: { per: number; dmg?: number; maxHp?: number };
   /** A permanent self-buff applied when a basic attack LANDS (once per attack):
    *  Volcanon's Bad Temper (+1 DMG on hit) and Squanch's Regenerative (+1 shield
    *  on hit, capped at `maxShields`). */
@@ -291,6 +295,9 @@ export interface CardDef {
   onHitAllyBuff?: { shields?: number; firstTimeOnly?: boolean };
   /** High Speed Impact (Hawk): +1 DMG per point of effective SP above 10. */
   highSpeedImpact?: boolean;
+  /** Hot Shot (Clipsey): attacks never miss — ignores the caster's own BLIND
+   *  and the target's EVASION (200% accuracy / ignore-evasion). */
+  alwaysHit?: boolean;
   /** Shadow (Vaga): can only be attacked by ADJACENT opponents — attackers a row
    *  or more away (incl. ranged) can't reach it. */
   onlyAdjacentAttackers?: boolean;

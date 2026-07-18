@@ -277,8 +277,14 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   if (!card || !special) return [];
   if (special.targetSide === "ally") return validAllyTargets(state, instanceId);
   const fd = Number(special.params?.forwardDepth ?? 0);
-  if (fd > 0) return forwardAreaTargets(state, card, Number(special.params?.spread ?? 0), fd);
-  return validSpecialTargets(state, instanceId);
+  let list =
+    fd > 0
+      ? forwardAreaTargets(state, card, Number(special.params?.spread ?? 0), fd)
+      : validSpecialTargets(state, instanceId);
+  // Extinguisher (Vaga): a finisher — only aimable at foes below the HP line.
+  const belowHp = Number(special.params?.requireBelowHp ?? 0);
+  if (belowHp > 0) list = list.filter((t) => t.curHp < belowHp);
+  return list;
 }
 
 // ── battle actions ──────────────────────────────────────────────────────────

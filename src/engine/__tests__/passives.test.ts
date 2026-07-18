@@ -732,4 +732,23 @@ describe("partial-effect fixes (Epic sweep)", () => {
     expect(s.cards[dying.instanceId]).toBeUndefined(); // killed
     expect(s.cards[paralyzed.instanceId].statuses.find((x) => x.kind === "PARALYZE")?.duration).toBe(3); // 2 → 3
   });
+
+  it("Clipsey's Hot Shot never misses — ignores the target's EVASION", () => {
+    const s = prepState();
+    const c = place(s, "dawn_clipsey", "P1", 3, 0); // 1×7 Ranged, alwaysHit
+    const eva = place(s, "dusk_silkstalker", "P2", 1, 0, { curHp: 20, curShields: 0 }); // EVASION keyword
+    basicAttack(s, c.instanceId, eva.instanceId);
+    expect(s.cards[eva.instanceId].curHp).toBe(13); // all 7 hits land (no dodge)
+  });
+
+  it("Radiance's Brightest Warrior scales off the strongest foe on summon", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 6;
+    place(s, "leaf_squanch", "P2", 0, 0, { maxHp: 23 }); // strongest foe: 23 max HP
+    const handId = giveHand(s, "P1", "dawn_radiance");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const rad = Object.values(next.cards).find((c) => c.defId === "dawn_radiance")!;
+    expect(rad.maxHp).toBe(20); // 17 + floor(23/7)=3
+    expect(rad.dmgBonus).toBe(3); // +3 DMG
+  });
 });

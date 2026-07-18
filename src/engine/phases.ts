@@ -123,6 +123,20 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           applyStatus(draft, inst, os.selfStatus, os.selfStatusDuration ?? 1, 0, def.element);
         }
       }
+      // Brightest Warrior (Radiance): scale off the strongest opponent on summon.
+      if (def.summonScaleFromEnemy) {
+        const cfg = def.summonScaleFromEnemy;
+        const topHp = boardCards(draft, enemyOf(inst.owner)).reduce(
+          (m, e) => Math.max(m, effectiveMaxHp(draft, e)),
+          0,
+        );
+        const n = Math.floor(topHp / cfg.per);
+        if (n > 0) {
+          if (cfg.maxHp) { inst.maxHp += n * cfg.maxHp; inst.curHp += n * cfg.maxHp; }
+          if (cfg.dmg) inst.dmgBonus += n * cfg.dmg;
+          draft.log.push(`${def.name} draws power from the strongest foe (+${n * (cfg.maxHp ?? 0)} HP, +${n * (cfg.dmg ?? 0)} DMG).`);
+        }
+      }
       // Token spawns (Trinezer's Reptilian Screech).
       if (def.summonSpawn) spawnTokens(draft, inst, def.summonSpawn.token, def.summonSpawn.count);
       applyElementSummonAura(draft, inst);

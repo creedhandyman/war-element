@@ -261,7 +261,7 @@ export function resolveHit(
 
     // 0. BLIND — −50% accuracy, rolled PER HIT on a basic attack (so a blinded
     //    multi-hit lands some and whiffs others). Specials auto-hit.
-    if (opts.kind === "basic" && hasStatus(attacker, "BLIND") && !coin(draft)) {
+    if (opts.kind === "basic" && !aDef.alwaysHit && hasStatus(attacker, "BLIND") && !coin(draft)) {
       result.dodgedHits++;
       target.fxMiss = (target.fxMiss ?? 0) + 1;
       draft.log.push(`${label(draft, attacker)} misses (BLIND).`);
@@ -269,8 +269,8 @@ export function resolveHit(
     }
 
     // 1. EVASION — innate or granted by a friendly wall (Veil). Not re-checked
-    //    for reflect damage (no dodge chains).
-    if (opts.kind !== "reflect" && (tDef.keywords.EVASION || wallEvasion(draft, target) || hasStatus(target, "EVASION"))) {
+    //    for reflect damage (no dodge chains). Hot Shot (alwaysHit) ignores it.
+    if (opts.kind !== "reflect" && !aDef.alwaysHit && (tDef.keywords.EVASION || wallEvasion(draft, target) || hasStatus(target, "EVASION"))) {
       if (coin(draft)) {
         result.dodgedHits++;
         target.fxMiss = (target.fxMiss ?? 0) + 1;
@@ -958,6 +958,16 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       applyStatus(draft, attacker, onKillStatus as StatusKind, num(params, "onKillSelfStatusDuration", 1), 0, getDef(attacker.defId).element);
     }
     maybeStatus(draft, attacker, target, params);
+    // statusSplash (Fenix's Phoenix Blast): the applied status also spreads to
+    // enemies adjacent (chess-king) to the struck slot.
+    if (params.statusSplash && typeof params.statusKind === "string" && center) {
+      const kind = params.statusKind as StatusKind;
+      for (const e of boardCards(draft, enemyOf(attacker.owner))) {
+        if (e.instanceId === target.instanceId || !e.pos || e.curHp <= 0) continue;
+        if (Math.max(Math.abs(e.pos.row - center.row), Math.abs(e.pos.col - center.col)) === 1)
+          applyStatus(draft, e, kind, num(params, "statusDuration", 1), num(params, "statusPower"), getDef(attacker.defId).element);
+      }
+    }
     // Boon Striker (Sticks): sap the target's NEXT basic attack by N (statusless).
     const nextDebuff = num(params, "nextAtkDebuff");
     if (nextDebuff > 0 && draft.cards[target.instanceId] && target.curHp > 0)
