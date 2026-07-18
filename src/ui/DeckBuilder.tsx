@@ -275,19 +275,21 @@ export function DeckBuilder(props: {
         <div className="overlay dbd-overlay" onClick={(e) => { e.stopPropagation(); setDetailId(null); }}>
           <div className="modal dbd-modal" onClick={(e) => e.stopPropagation()}>
             <button className="cd-x" title="Close" onClick={() => setDetailId(null)}>✕</button>
+            {/* Full, uncropped card art at the top of the expanded card. Collapses
+                cleanly if the card has no art yet (info still shows below). */}
+            <div className="dbd-art-full" style={{ borderColor: EL_COLOR[detail.element] }}>
+              <img
+                src={`/cards/${detail.art ?? detail.id}.png`}
+                alt={detail.name}
+                onError={(e) => { const h = e.currentTarget.closest(".dbd-art-full"); if (h) (h as HTMLElement).style.display = "none"; }}
+              />
+              <span className="dbd-cost">{detail.cost}</span>
+              <span className="dbd-el-badge" title={detail.element} style={{ borderColor: EL_COLOR[detail.element] }}>
+                <img src={EL_ICON[detail.element]} alt={detail.element} draggable={false}
+                  onError={(e) => { e.currentTarget.style.display = "none"; }} />
+              </span>
+            </div>
             <div className="dbd-head">
-              <div className="dbd-art" style={{ borderColor: EL_COLOR[detail.element] }}>
-                <img
-                  src={`/cards/${detail.art ?? detail.id}.png`}
-                  alt=""
-                  onError={(e) => { e.currentTarget.style.display = "none"; }}
-                />
-                <span className="dbd-cost">{detail.cost}</span>
-                <span className="dbd-el-badge" title={detail.element} style={{ borderColor: EL_COLOR[detail.element] }}>
-                  <img src={EL_ICON[detail.element]} alt={detail.element} draggable={false}
-                    onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                </span>
-              </div>
               <div className="dbd-meta">
                 <div className="dbd-name">{detail.name}</div>
                 <div className="dbd-sub">
