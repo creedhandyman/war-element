@@ -381,6 +381,14 @@ function spellReachesEnemyHome(state: GameState, player: PlayerId): boolean {
 }
 
 /** Can `player` hit this enemy card with a damage Spell right now? */
+/** A row an offensive AoE spell may target: any row except the opponent's Home
+ *  row, which stays off-limits until one of your cards reaches a Mid row (the
+ *  same Home-slot proxy that gates single-target spells). */
+export function canAoeRow(state: GameState, player: PlayerId, row: number): boolean {
+  if (row < 0 || row >= BOARD_SIZE) return false;
+  if (row === homeRow(enemyOf(player)) && !spellReachesEnemyHome(state, player)) return false;
+  return true;
+}
 export function canSpellHitEnemy(
   state: GameState,
   player: PlayerId,
@@ -452,6 +460,14 @@ export function canCastSpell(
     if (opts.row == null) return { ok: false, reason: "Pick a row" };
     if (!canPlaceWallRow(state, player, spell, opts.row))
       return { ok: false, reason: "Can't place a wall there" };
+    return { ok: true };
+  }
+  if (spell.kind === "aoe") {
+    if (spell.area === "board") return { ok: true }; // hits every opponent, no pick
+    if (opts.row == null) return { ok: false, reason: "Pick a row" };
+    if (!canAoeRow(state, player, opts.row)) return { ok: false, reason: "Can't reach that row" };
+    if (spell.area === "tworows" && opts.row + 1 >= BOARD_SIZE)
+      return { ok: false, reason: "No row behind that one" };
     return { ok: true };
   }
   if (spell.kind === "damage") {

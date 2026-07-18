@@ -332,3 +332,39 @@ describe("expansion spells (cost 3/5/7)", () => {
     expect(next.cards[off.instanceId].curShields).toBe(0); // spared
   });
 });
+
+describe("AoE spells (row / two-row)", () => {
+  it("Thorn Patch: BLEEDs every opponent in the chosen row, sparing other rows", () => {
+    const s = prepState();
+    armSpell(s, "leaf_thorn_patch", 2);
+    const a = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20 });
+    const b = place(s, "dusk_vamp", "P2", 1, 2, { curHp: 6 });
+    const other = place(s, "dusk_skeleton_knight", "P2", 2, 0, { curHp: 7 }); // different row
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_thorn_patch", row: 1 });
+    expect(statusOf(next.cards[a.instanceId], "BLEED")?.power).toBe(1);
+    expect(statusOf(next.cards[b.instanceId], "BLEED")).toBeTruthy();
+    expect(statusOf(next.cards[other.instanceId], "BLEED")).toBeFalsy(); // row 2, spared
+  });
+
+  it("Solar Flare: BLINDs opponents across the chosen row + the one behind it", () => {
+    const s = prepState();
+    armSpell(s, "dawn_solar_flare", 8);
+    const r1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20 });
+    const r2 = place(s, "dusk_vamp", "P2", 2, 0, { curHp: 6 });
+    const r3 = place(s, "dusk_skeleton_knight", "P2", 3, 0, { curHp: 7 }); // outside the pair (1,2)
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dawn_solar_flare", row: 1 });
+    expect(statusOf(next.cards[r1.instanceId], "BLIND")).toBeTruthy();
+    expect(statusOf(next.cards[r2.instanceId], "BLIND")).toBeTruthy();
+    expect(statusOf(next.cards[r3.instanceId], "BLIND")).toBeFalsy();
+  });
+
+  it("a row AoE needs a row, and the enemy Home row stays gated until reached", () => {
+    const s = prepState();
+    armSpell(s, "aqua_frost_patch", 2);
+    expect(canCastSpell(s, "P1", "aqua_frost_patch", {}).ok).toBe(false); // no row picked
+    expect(canCastSpell(s, "P1", "aqua_frost_patch", { row: 2 }).ok).toBe(true); // a Mid row
+    expect(canCastSpell(s, "P1", "aqua_frost_patch", { row: 0 }).ok).toBe(false); // P2 Home, not reached
+    place(s, "leaf_alpha", "P1", 2, 3); // a P1 card in a Mid row unlocks the reach
+    expect(canCastSpell(s, "P1", "aqua_frost_patch", { row: 0 }).ok).toBe(true);
+  });
+});

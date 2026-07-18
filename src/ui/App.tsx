@@ -3,6 +3,7 @@ import type { GameState, Intent, PlayerId, Pos } from "../engine";
 import {
   advance,
   applyIntent,
+  canAoeRow,
   canCastSpell,
   canFireSpecial,
   canFireTalent,
@@ -353,6 +354,16 @@ export function App() {
           for (let col = 0; col < 4; col++) out.push({ row: r, col } as Pos);
         return out;
       }
+      if (spell.kind === "aoe" && spell.area !== "board") {
+        // Row / two-row AoE: glow every legal target row.
+        const out: Pos[] = [];
+        for (let r = 0; r < 4; r++) {
+          if (!canAoeRow(game, view, r)) continue;
+          if (spell.area === "tworows" && r + 1 >= 4) continue;
+          for (let col = 0; col < 4; col++) out.push({ row: r, col } as Pos);
+        }
+        return out;
+      }
     }
     return [];
   }, [game, sel, view]);
@@ -436,8 +447,8 @@ export function App() {
       return;
     }
     const spell = getSpell(spellId);
-    // Heal/support spells auto-target an ally — cast on the spot (or explain why not).
-    if (spell.kind === "heal") {
+    // Heal/support (auto-target an ally) and board-wide AoE resolve on the spot.
+    if (spell.kind === "heal" || (spell.kind === "aoe" && spell.area === "board")) {
       const chk = canCastSpell(game, me, spellId, {});
       if (chk.ok) {
         dispatch({ type: "CAST_SPELL", player: me, spellId });
@@ -450,9 +461,11 @@ export function App() {
     setSel({ kind: "spell", spellId });
     setPending(null);
     setPicks([]);
+    // Walls + row/two-row AoE pick a row; damage spells pick an enemy.
+    const picksRow = spell.kind === "wall" || spell.kind === "aoe";
     setHint(
-      spell.kind === "wall"
-        ? `Casting <b>${spell.name}</b> — click a glowing row to raise it.`
+      picksRow
+        ? `Casting <b>${spell.name}</b> — click a glowing row.`
         : `Casting <b>${spell.name}</b> — click a glowing enemy target.`,
     );
   }
@@ -517,11 +530,12 @@ export function App() {
     // spells drop onto any slot of a glowing row (a wall occupies no slot).
     if (me && game.phase === "prep" && game.prep?.priority === me && sel?.kind === "spell") {
       const spell = getSpell(sel.spellId);
-      if (spell.kind === "wall") {
+      // Walls + row/two-row AoE spells drop onto any slot of a glowing row.
+      if (spell.kind === "wall" || (spell.kind === "aoe" && spell.area !== "board")) {
         const chk = canCastSpell(game, me, sel.spellId, { row });
         if (chk.ok) {
           dispatch({ type: "CAST_SPELL", player: me, spellId: sel.spellId, row });
-          setHint(`${spell.name} raised. Keep going, or <b>Pass Priority</b>.`);
+          setHint(`${spell.name} cast. Keep going, or <b>Pass Priority</b>.`);
         } else if (clicked) {
           setDetailId(clicked.instanceId);
         } else {

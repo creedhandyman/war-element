@@ -244,6 +244,60 @@ export const SPELLS: SpellDef[] = [
     pen: true,
     drainMaxHp: 3,
   },
+
+  // ───────── Cost 2 — row control (a chosen row of opponents) ─────────
+  {
+    id: "leaf_thorn_patch",
+    name: "Thorn Patch",
+    element: "LEAF",
+    cost: 2,
+    kind: "aoe",
+    area: "row",
+    text: "Apply BLEED 1 for 2 rounds to every opponent in a chosen row.",
+    status: { kind: "BLEED", duration: 2, power: 1 },
+  },
+  {
+    id: "aqua_frost_patch",
+    name: "Frost Patch",
+    element: "AQUA",
+    cost: 2,
+    kind: "aoe",
+    area: "row",
+    text: "FREEZE every opponent in a chosen row for 1 round.",
+    status: { kind: "FREEZE", duration: 1, power: 0 },
+  },
+  {
+    id: "gale_downdraft",
+    name: "Downdraft",
+    element: "GALE",
+    cost: 2,
+    kind: "aoe",
+    area: "row",
+    text: "WEAKEN every opponent in a chosen row for 2 rounds.",
+    status: { kind: "WEAKEN", duration: 2, power: 0 },
+  },
+  {
+    id: "bore_sand_trap",
+    name: "Sand Trap",
+    element: "BORE",
+    cost: 2,
+    kind: "aoe",
+    area: "row",
+    text: "SLEEP every opponent in a chosen row for 1 round.",
+    status: { kind: "SLEEP", duration: 1, power: 0 },
+  },
+
+  // ───────── Cost 8 — wide control (two adjacent rows) ─────────
+  {
+    id: "dawn_solar_flare",
+    name: "Solar Flare",
+    element: "DAWN",
+    cost: 8,
+    kind: "aoe",
+    area: "tworows",
+    text: "BLIND every opponent across two adjacent rows for 2 rounds.",
+    status: { kind: "BLIND", duration: 2, power: 0 },
+  },
 ];
 
 export const SPELL_INDEX: Record<string, SpellDef> = Object.fromEntries(

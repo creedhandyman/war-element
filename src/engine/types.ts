@@ -460,7 +460,7 @@ export interface HandCard {
 // rules put Spells in the same deck as Champions; for now each player carries a
 // separate spellbook derived from their deck's elements — see spells.ts.)
 
-export type SpellKind = "damage" | "heal" | "wall";
+export type SpellKind = "damage" | "heal" | "wall" | "aoe";
 
 /** A row-level "wall" laid down by a Cost-4 spell. Occupies no slot; triggers
  *  only when an ENEMY card MOVES into its row (ranged attacks pass through). */
@@ -497,6 +497,9 @@ export interface SpellDef {
   pen?: boolean;
   status?: { kind: StatusKind; duration: number; power: number }; // onto the enemy target
   push?: number; // push the enemy target back N (if open)
+  /** AoE spells (kind "aoe"): which opponents the dmg/status hits. "board" = all
+   *  (no pick); "row" = a picked row; "tworows" = the picked row + the one behind. */
+  area?: "row" | "board" | "tworows";
   // ── ally rider / support (auto-picked ally of the spell's element) ──
   allyShield?: number;
   allyHeal?: number;

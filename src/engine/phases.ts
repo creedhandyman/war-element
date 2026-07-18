@@ -287,6 +287,25 @@ function resolveSpell(
     return;
   }
 
+  if (spell.kind === "aoe") {
+    // Area damage/status: the whole board, one picked row, or the picked row +
+    // the one behind it (targeting was validated by canCastSpell).
+    const inArea = (e: CardInstance): boolean => {
+      if (spell.area === "board") return true;
+      if (row == null || !e.pos) return false;
+      if (spell.area === "tworows") return e.pos.row === row || e.pos.row === row + 1;
+      return e.pos.row === row;
+    };
+    const targets = boardCards(draft, enemyOf(player)).filter((e) => e.curHp > 0 && inArea(e));
+    for (const t of targets) {
+      if (spell.dmg) spellHit(draft, t, spell.dmg, Boolean(spell.pen));
+      if (draft.cards[t.instanceId] && t.curHp > 0 && spell.status)
+        applyStatus(draft, t, spell.status.kind, spell.status.duration, spell.status.power, spell.element);
+    }
+    draft.log.push(`${spell.name} sweeps ${targets.length} opponent(s)${targets.length ? "" : " — no one in range"}.`);
+    return;
+  }
+
   if (spell.kind === "heal") {
     // Support spell: heal / shield / +SP / grant a status to a single auto-picked
     // element ally, or to EVERY living element ally (allAllies).

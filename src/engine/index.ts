@@ -36,6 +36,7 @@ export {
   spellEnemyTargets,
   canPlaceWallRow,
   legalWallRows,
+  canAoeRow,
 } from "./rules";
 export type { PlannedAction } from "./rules";
 export { SPELLS, SPELL_INDEX, getSpell, isSpell, spellbookFor, spellbookFromIds, MAX_SPELLBOOK } from "./spells";
