@@ -20,6 +20,12 @@ import { SpIcon } from "./icons";
 const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
 const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
 
+// Card-pool sort options + rarity order (mythic first → common; unknown last).
+const SORTS = [["cost", "Cost"], ["rarity", "Rarity"], ["name", "Name"]] as const;
+type SortKey = (typeof SORTS)[number][0];
+const RARITY_RANK: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3, common: 4 };
+const rarityRank = (r?: string) => (r && r in RARITY_RANK ? RARITY_RANK[r] : 99);
+
 /**
  * Build / edit / delete custom decks (12–20 cards). A sandbox for trying new
  * cards without touching the Core system. Persists to localStorage; calls
@@ -36,6 +42,7 @@ export function DeckBuilder(props: {
   const [picked, setPicked] = useState<string[]>([]);
   const [pickedSpells, setPickedSpells] = useState<string[]>([]);
   const [filter, setFilter] = useState<Element | "ALL">("ALL");
+  const [sortBy, setSortBy] = useState<SortKey>("cost");
   const [detailId, setDetailId] = useState<string | null>(null);
   const [spellsOpen, setSpellsOpen] = useState<boolean | null>(null);
   // Composition + Saved decks collapse to headers on phones so the card pool gets
@@ -50,7 +57,17 @@ export function DeckBuilder(props: {
   const spellsShown = spellsOpen ?? !phone;
 
   const pool = useMemo(() => buildableCards(), []);
-  const shown = filter === "ALL" ? pool : pool.filter((c) => c.element === filter);
+  // Filter by element, then sort. Default "cost" reads the mana curve low→high,
+  // breaking ties by rarity (mythic first) then name.
+  const shown = useMemo(() => {
+    const base = filter === "ALL" ? pool : pool.filter((c) => c.element === filter);
+    return [...base].sort((a, b) => {
+      if (sortBy === "name") return a.name.localeCompare(b.name);
+      if (sortBy === "rarity")
+        return rarityRank(a.rarity) - rarityRank(b.rarity) || a.cost - b.cost || a.name.localeCompare(b.name);
+      return a.cost - b.cost || rarityRank(a.rarity) - rarityRank(b.rarity) || a.name.localeCompare(b.name);
+    });
+  }, [pool, filter, sortBy]);
   const pickedSet = new Set(picked);
   const check = validateDeck(picked);
 
@@ -274,6 +291,18 @@ export function DeckBuilder(props: {
                   style={filter === el ? { borderColor: EL_COLOR[el], color: EL_COLOR[el] } : undefined}
                 >
                   {el}
+                </button>
+              ))}
+            </div>
+            <div className="db-sort">
+              <span className="db-sort-lbl">Sort</span>
+              {SORTS.map(([key, label]) => (
+                <button
+                  key={key}
+                  className={`db-fl ${sortBy === key ? "on" : ""}`}
+                  onClick={() => setSortBy(key)}
+                >
+                  {label}
                 </button>
               ))}
             </div>
