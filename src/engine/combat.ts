@@ -534,6 +534,9 @@ export function basicAttack(
     if (firstStrike) dmg += aDef.firstStrikeBonus!;
     // Ethereal Trade: +DMG on the attack (the HP cost is paid once per action).
     if (aDef.attackTrade) dmg += aDef.attackTrade.bonusDmg;
+    // Rager (Twins): a rage downside — while below the HP line, DMG is halved.
+    if (aDef.weakBelowHp && attacker.curHp < aDef.weakBelowHp.hp)
+      dmg = Math.floor(dmg * aDef.weakBelowHp.dmgMult);
 
     const struckBefore = attacker.struckThisRound[t.instanceId] ?? 0;
     const r = resolveHit(draft, attacker, t, {
@@ -556,6 +559,8 @@ export function basicAttack(
         applyStatus(draft, t, "BURN", 1, 1, "PYRO");
       }
       if (healOnHit > 0 && attacker.curHp > 0) healCard(draft, attacker, healOnHit);
+      // Liquification (Bahari): flat heal per landed basic hit.
+      if (aDef.healPerHit && attacker.curHp > 0) healCard(draft, attacker, aDef.healPerHit * r.landedHits);
       // Hastened Assault: heal per critical hit landed.
       if (aDef.healPerCrit && r.critHits && attacker.curHp > 0) {
         const h = healCard(draft, attacker, aDef.healPerCrit * r.critHits);
@@ -998,13 +1003,17 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
    *  surviving target (FREEZE/BLIND/SCALD/PARALYZE nova). */
   barrage(draft, attacker, targets, params) {
     const n = num(params, "targets", 1);
+    // requireStatus (Sentry's Static Blaster): only foes carrying the named
+    // status are eligible — a paralyze-payoff nuke, not an unconditional AoE.
+    const req = typeof params.requireStatus === "string" ? params.requireStatus : "";
+    const pool = req ? targets.filter((t) => hasStatus(t, req as StatusKind)) : targets;
     // scaleDmg: fold the caster's permanent DMG bonus into each hit (Fallona's
     // Fall's Emergence boosts Leaf Storm too).
     const dmg =
       num(params, "dmg") +
       (num(params, "scaleDmg") > 0 ? attacker.dmgBonus : 0) +
       (getDef(attacker.defId).attackTrade?.bonusDmg ?? 0); // Ethereal Trade rides the Special too
-    for (const target of targets.slice(0, n)) {
+    for (const target of pool.slice(0, n)) {
       if (!draft.cards[target.instanceId]) continue;
       resolveHit(draft, attacker, target, {
         kind: "special",

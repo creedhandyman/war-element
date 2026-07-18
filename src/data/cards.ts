@@ -1803,9 +1803,9 @@ export const CARDS: CardDef[] = [
       name: "Static Blaster",
       cost: 2,
       handler: "barrage",
-      params: { dmg: 5, targets: 99 },
+      params: { dmg: 5, targets: 99, requireStatus: "PARALYZE" },
       targetSide: "enemy",
-      text: "Deal 5 DMG to every opponent in range.",
+      text: "Deal 5 DMG to every PARALYZED opponent in range.",
     },
   },
   {
@@ -2391,9 +2391,10 @@ export const CARDS: CardDef[] = [
     sp: 2,
     shields: 0,
     keywords: {},
-    // Rager Twins: +1 DMG permanently on every landed basic attack.
-    // (The "below 12 HP → half DMG" rage penalty is unmodeled.)
+    // Rager Twins: +1 DMG permanently on every landed basic attack — but its
+    // basics deal half DMG while below 12 HP (the rage downside).
     onHitSelfBuff: { dmg: 1 },
+    weakBelowHp: { hp: 12, dmgMult: 0.5 },
     special: {
       name: "Double Trouble",
       cost: 2,
@@ -2752,7 +2753,8 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Liquid",
-    // (Liquification — heal +1 HP on hit — is unmodeled.)
+    // Liquification: heal +1 HP per landed basic hit.
+    healPerHit: 1,
     special: {
       name: "Tsunami",
       cost: 3,

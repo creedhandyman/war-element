@@ -680,3 +680,21 @@ describe("element auras", () => {
     expect(noStatus.cards[t2.instanceId].curHp).toBe(15); // 20 − 5 (no bonus)
   });
 });
+
+describe("partial-effect fixes (Epic sweep)", () => {
+  it("Bahari's Liquification heals +1 per landed basic hit", () => {
+    const s = prepState();
+    const b = place(s, "aqua_bahari", "P1", 3, 0, { curHp: 5, maxHp: 12 }); // 2×2 Ranged, home row
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, curShields: 0 });
+    basicAttack(s, b.instanceId, foe.instanceId);
+    expect(s.cards[b.instanceId].curHp).toBe(7); // +1 × 2 landed hits
+  });
+
+  it("Twins' Rager halves its basic DMG while below 12 HP", () => {
+    const s = prepState();
+    const low = place(s, "pyro_twins", "P1", 3, 0, { curHp: 8, maxHp: 29 }); // home row, below 12
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 20, curShields: 0 });
+    basicAttack(s, low.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].curHp).toBe(18); // 2×2 halved → 1×2 = 2 dmg
+  });
+});

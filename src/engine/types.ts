@@ -272,6 +272,11 @@ export interface CardDef {
    *  Volcanon's Bad Temper (+1 DMG on hit) and Squanch's Regenerative (+1 shield
    *  on hit, capped at `maxShields`). */
   onHitSelfBuff?: { dmg?: number; shields?: number; maxShields?: number };
+  /** Liquification (Bahari): heal N HP per landed basic hit (unconditional). */
+  healPerHit?: number;
+  /** Rager (Twins): while this card is below `hp` HP, its basic attacks deal
+   *  `dmgMult`× damage (a rage downside). */
+  weakBelowHp?: { hp: number; dmgMult: number };
   /** Incinerate (Sol): consecutive hits on the same target within a round deal
    *  +1 DMG per hit (the ramp climbs with each landed hit). */
   incinerate?: boolean;

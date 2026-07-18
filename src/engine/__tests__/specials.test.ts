@@ -92,6 +92,25 @@ describe("firing specials", () => {
     expect(next.cards[t3.instanceId].curHp).toBe(8); // 11 − 3
   });
 
+  it("Sentry's Static Blaster only hits PARALYZED opponents", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const sen = place(s, "bolt_sentry", "P1", 2, 0); // Static Blaster: 5 to all PARALYZED
+    const par = place(s, "dusk_gool", "P2", 1, 0, {
+      curHp: 20, curShields: 0,
+      status: { kind: "PARALYZE", duration: 2, power: 0, source: "BOLT" },
+    });
+    const free = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 6, curShields: 0 }); // not paralyzed
+    const next = applyIntent(battleWith(s, sen.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: par.instanceId,
+    });
+    expect(next.cards[par.instanceId].curHp).toBe(15); // paralyzed → 5 dmg
+    expect(next.cards[free.instanceId].curHp).toBe(6); // not paralyzed → untouched
+  });
+
   it("barrage multi-selection: strikes exactly the picked targets, stacking repeats", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;
