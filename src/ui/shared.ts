@@ -10,7 +10,7 @@ export const EL_COLOR: Record<Element, string> = {
   BORE: "#a1887f",
   GALE: "#ffa040",
   BOLT: "#9575ff",
-  DUSK: "#9c5fd4",
+  DUSK: "#2c1547",
   DAWN: "#ffd54f",
 };
 
