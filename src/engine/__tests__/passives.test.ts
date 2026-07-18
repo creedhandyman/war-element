@@ -116,9 +116,9 @@ describe("medium-tier passives (audit batch)", () => {
 
     const s2 = prepState();
     const rhe2 = place(s2, "bore_rhe", "P1", 2, 0, { curHp: 9, curShields: 0 });
-    const melee = place(s2, "dusk_gool", "P2", 2, 1, { curHp: 20 }); // Melee — unaffected
+    const melee = place(s2, "dusk_vamp", "P2", 2, 1, { curHp: 20 }); // a REAL Melee attacker (Gool is Ranged)
     basicAttack(s2, melee.instanceId, rhe2.instanceId);
-    expect(s2.cards[rhe2.instanceId].curHp).toBeLessThan(9); // field doesn't stop melee
+    expect(s2.cards[rhe2.instanceId].curHp).toBeLessThan(9); // field only deflects ranged, never melee
   });
 
   it("WolfBane's Hastened Assault CRITs only when faster, healing per crit", () => {

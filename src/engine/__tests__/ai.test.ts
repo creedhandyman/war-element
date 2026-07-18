@@ -174,7 +174,11 @@ describe("full AI-vs-AI matches (integration)", () => {
       if (s.phase === "gameover") return s;
       s = needsP1Input(s) ? driveP1(s) : advance(s);
       assertInvariants(s);
-      if (s.round > 60) throw new Error("match exceeded 60 rounds");
+      // Guard against non-terminating matches. Raised 60→100 once the card pool
+      // gained sustain-heavy Legendaries (healers/tanks): high-sustain matchups
+      // can legitimately grind to ~75 rounds before a capture/elimination
+      // resolves them. A true stall runs indefinitely; 100 still catches that.
+      if (s.round > 100) throw new Error("match exceeded 100 rounds");
     }
     throw new Error("match exceeded step budget");
   }
