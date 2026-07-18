@@ -320,6 +320,7 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: { FLYING: true },
+    tribe: "Wolf",
     // Fury Unleashed: on summon, 3 DMG to the 3-wide row directly ahead
     // (melee → reaches one row forward, hitting left/mid/right).
     onSummon: { handler: "barrage", params: { dmg: 3, spread: 1, targets: 99 } },
@@ -678,6 +679,7 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 0,
     keywords: { EVASION: true }, // Silent Weaver
+    tribe: "Dark",
     special: {
       name: "Web Snare",
       cost: 1,
@@ -702,6 +704,7 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
+    tribe: "Dark",
     onDeath: { dmg: 10, pen: true }, // Lingering Venom: 10 DMG PEN to the killer
   },
   {
@@ -718,6 +721,7 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: { DRAIN: true }, // DUSK's lifesteal-equivalent
+    tribe: "Vamp",
   },
   {
     id: "dusk_gool",
@@ -733,6 +737,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    tribe: "Ghost",
     // Spook (On Hit, first time only): FRIGHTEN the opponent.
     onHitStatus: { kind: "FRIGHTEN", duration: 1, power: 0, firstHitOnly: true },
   },
@@ -750,6 +755,7 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 0,
     keywords: {},
+    tribe: "Ghost",
     special: {
       name: "Phantom Gouge",
       cost: 2,
@@ -777,6 +783,7 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 0,
     keywords: {},
+    tribe: "Ghost",
     // Frightening (On Hit, first time only): FRIGHTEN the target for 1 round.
     onHitStatus: { kind: "FRIGHTEN", duration: 1, power: 0, firstHitOnly: true },
     special: {
@@ -802,6 +809,7 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 0,
     keywords: {},
+    tribe: "Dark",
     ignoresHomeRule: true, // Catapult: can target the whole battlefield
   },
   {
@@ -818,6 +826,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    tribe: "Skeleton",
     // Bone Shield: enters play with a +3 shield barrier (an off-curve passive
     // grant, so it's not counted in the base-stat total).
     summonSelfShields: 3,
@@ -864,6 +873,7 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: { FLYING: true },
+    tribe: "Dark",
     onDeath: { dmg: 5 }, // Bird Bomb: explodes on whoever kills it
   },
   {
@@ -943,6 +953,7 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 0,
     keywords: {},
+    tribe: "Ice",
     // Polar Storm (On Summon): give allies in the row directly ahead +1 shield.
     // (Simplified from the canon 3-round ally buff + AoE — owner's call: shields only.)
     onSummon: { handler: "grantShield", params: { amount: 1 }, targetSide: "ally" },
@@ -969,6 +980,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: { FLYING: true },
+    tribe: "Avian",
     // Icy Swoop (End of Round): FREEZE the lowest-HP opponent for 1 round.
     roundTick: { lowestEnemyStatus: { kind: "FREEZE", duration: 1, power: 0 } },
     special: {
@@ -1046,6 +1058,7 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
+    tribe: "Pirate",
     // King of the Seas (On Kill): coin flip — gain +2 or +1 DMG permanently.
     onKill: { coinBonusDmg: 2 },
     special: {
@@ -1072,6 +1085,7 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 2,
     keywords: {},
+    tribe: "Dragon",
     // Vaporizer (On Kill): +1 SP and +1 DMG permanently. (Doc also pokes the
     // lowest-HP enemy + repositions — those halves aren't modeled yet.)
     onKill: { buffSp: 1, buffDmg: 1 },
@@ -1117,6 +1131,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    tribe: "Vapor",
     // Misty Haze: basic attacks BLIND (−50% accuracy) for a round.
     onHitStatus: { kind: "BLIND", duration: 1, power: 0 },
     special: {
@@ -1480,6 +1495,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     // Roost: −1 DMG from all incoming (BLOCK 1) and +1 HP end of round (REGEN 1).
     keywords: { BLOCK: 1, REGEN: 1 },
+    tribe: "Avian",
     special: {
       name: "Horn Toss",
       cost: 2,
@@ -1503,6 +1519,7 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: { FLYING: true },
+    tribe: "Avian",
     // Alluring Aura (On Hit by Melee): the attacker is WEAKENed.
     onHitByMelee: { status: { kind: "WEAKEN", duration: 2, power: 0 } },
     special: {
@@ -1701,6 +1718,7 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
+    tribe: "ARC",
     special: {
       name: "Discharge",
       cost: 2,
@@ -1725,6 +1743,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 2,
     keywords: {},
+    tribe: "ARC",
     // Electro Wrap (On Hit twice in one round): MUTE the target for the round.
     onHitStatus: { kind: "MUTED", duration: 1, power: 0, onSecondHit: true },
     special: {
@@ -1777,6 +1796,7 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 3,
     keywords: {},
+    tribe: "ARC",
     // Volt Turret (End of Round): 5 DMG to one PARALYZED opponent in range.
     roundTick: { pokeParalyzedDmg: 5 },
     special: {
@@ -2182,6 +2202,7 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 1,
     keywords: {},
+    tribe: "Spider",
     // Webbed (On Summon): FRIGHTEN one opponent for 1 round.
     onSummon: { handler: "statusNova", params: { statusKind: "FRIGHTEN", statusDuration: 1, targets: 1 } },
   },
