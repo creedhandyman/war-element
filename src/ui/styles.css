@@ -696,6 +696,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .picker { display: flex; gap: 22px; text-align: left; max-width: min(880px, 94vw); align-items: stretch; padding: 22px; }
 .picker-menu { width: 236px; flex: none; display: flex; flex-direction: column; gap: 12px; }
 .picker-menu h1 { font-size: 22px; margin: 0; }
+/* Title logo replaces the text heading on the start screen — full-width hero. */
+.title-logo { display: block; width: 100%; height: auto; border-radius: 10px; margin: 2px 0 0; }
 .picker-menu p { font-size: 12px; color: var(--ink-dim); line-height: 1.45; margin: 0; }
 .pick-field { display: flex; flex-direction: column; gap: 5px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); font-weight: 700; }
 .pick-field select { font-size: 15px; font-weight: 700; padding: 9px 12px; border-radius: 10px; background: var(--void-2); color: var(--ink); border: 1px solid var(--panel-line); cursor: pointer; text-transform: none; letter-spacing: 0; }

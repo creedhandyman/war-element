@@ -1173,7 +1173,10 @@ export function App() {
           <div className="modal picker">
             {/* Left: the menu options, stacked vertically. */}
             <div className="picker-menu">
-              <h1>War Element</h1>
+              <picture>
+                <source srcSet="/title.webp" type="image/webp" />
+                <img className="title-logo" src="/title.jpg" alt="War Element" />
+              </picture>
               <p>
                 {onlineMode
                   ? onlineRole === "host"
