@@ -524,7 +524,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: radial-gradient(circle at 35% 30%, #7d92e8, #26307a); border: 1.5px solid #b9c8ff;
   color: #fff; font-size: 11px; font-weight: 800; box-shadow: 0 0 8px rgba(130, 160, 255, 0.6);
 }
-.spellchip-art { width: 100%; height: 24px; border-radius: 4px; background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 55%, #0d0c14), #0b0d18); box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5); }
+.spellchip-art { width: 100%; height: 24px; border-radius: 4px; overflow: hidden; background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 55%, #0d0c14), #0b0d18); box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5); }
+.spellchip-art img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
 .spellchip-name { font-size: 9.5px; font-weight: 700; color: #d8d2c0; text-align: center; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
 /* Right of the field: spell tray (top) stacked above the Speed Queue rail. */
@@ -813,22 +814,94 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-spells { margin-top: 4px; padding: 9px 10px; border: 1px solid var(--gold-line); border-radius: 10px; background: var(--void-2); display: flex; flex-direction: column; gap: 8px; }
 .db-spells-h { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold-lit); font-weight: 800; }
 .db-spell-hint { font-size: 10px; color: var(--ink-faint); line-height: 1.35; }
-.db-spell-grid { display: flex; flex-direction: column; gap: 5px; }
+/* Mini spell cards — art preview on top, cost + add-mark in the corners, name
+   below. Spells without art fall back to the element-tinted placeholder. */
+.db-spell-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 7px; }
 .db-spell {
-  display: flex; align-items: center; gap: 8px; width: 100%;
-  padding: 5px 8px 5px 6px; border-radius: 8px; cursor: pointer; font: inherit;
-  border: 1px solid var(--panel-line);
-  border-left: 3px solid var(--el, var(--steel));
-  background: rgba(0,0,0,0.28); color: var(--ink);
-  transition: border-color 0.12s, background 0.12s;
+  position: relative; display: flex; flex-direction: column; cursor: pointer; font: inherit;
+  padding: 0 0 5px; border-radius: 9px; overflow: hidden;
+  border: 1.5px solid color-mix(in srgb, var(--el, var(--steel)) 55%, #0d0c14);
+  background: linear-gradient(180deg, #16182a, #0e1020); color: var(--ink);
+  transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s;
 }
-.db-spell:hover:not(:disabled) { border-color: var(--el, var(--steel-lit)); background: rgba(0,0,0,0.4); }
-.db-spell.on { border-color: var(--gold-lit); background: rgba(201,162,75,0.14); }
+.db-spell:hover:not(:disabled) { border-color: var(--el, var(--steel-lit)); transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.5); }
+.db-spell.on { border-color: var(--gold-lit); box-shadow: 0 0 0 1px var(--gold-lit), 0 0 12px rgba(201,162,75,0.35); }
 .db-spell:disabled { opacity: 0.4; cursor: default; }
-.db-spell-cost { flex: none; width: 17px; height: 17px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #1a140a; background: var(--el, var(--steel-lit)); }
-.db-spell-name { flex: 1; font-size: 11.5px; font-weight: 700; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.db-spell-mark { flex: none; font-size: 12px; font-weight: 900; color: var(--ink-dim); }
-.db-spell.on .db-spell-mark { color: var(--gold-lit); }
+.db-spell-art {
+  display: block; width: 100%; aspect-ratio: 1 / 1; overflow: hidden;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 45%, #0b0d16), #0b0d18);
+}
+.db-spell-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.db-spell-cost {
+  position: absolute; top: 4px; left: 4px; z-index: 2;
+  width: 19px; height: 19px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10.5px; font-weight: 800; color: #1a140a; background: var(--el, var(--steel-lit));
+  box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+.db-spell-mark {
+  position: absolute; top: 4px; right: 4px; z-index: 2;
+  width: 19px; height: 19px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 900; color: #d8d2c0; background: rgba(10,10,16,0.72);
+}
+.db-spell.on .db-spell-mark { color: #1a140a; background: var(--gold-lit); }
+.db-spell-name {
+  padding: 5px 5px 0; font-size: 10px; font-weight: 700; text-align: center; line-height: 1.15; color: #d8d2c0;
+  overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+
+/* ── Spell cast flash — full-screen art for ~2s, then the effect resolves ── */
+.castflash {
+  position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; pointer-events: auto;
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--el, #26307a) 28%, rgba(4,4,8,0.82)), rgba(4,4,8,0.93));
+  animation: castflash-scrim 2s ease-out both;
+}
+@keyframes castflash-scrim { 0% { opacity: 0; } 9% { opacity: 1; } 82% { opacity: 1; } 100% { opacity: 0; } }
+.castflash-burst {
+  position: absolute; width: min(78vw, 460px); aspect-ratio: 1; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,255,255,0.92), color-mix(in srgb, var(--el, #7d92e8) 60%, transparent) 42%, transparent 68%);
+  filter: blur(6px); animation: castflash-burst 2s ease-out both;
+}
+@keyframes castflash-burst {
+  0% { transform: scale(0.2); opacity: 0; }
+  14% { transform: scale(1.05); opacity: 0.95; }
+  40% { transform: scale(1.3); opacity: 0.3; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+.castflash-card {
+  position: relative; width: min(72vw, 300px); border-radius: 16px; overflow: hidden;
+  border: 2px solid var(--el, var(--gold-lit));
+  background: linear-gradient(180deg, #12131f, #0a0b12);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 22px 60px rgba(0,0,0,0.7), 0 0 46px color-mix(in srgb, var(--el, #7d92e8) 55%, transparent);
+  animation: castflash-card 2s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+@keyframes castflash-card {
+  0% { transform: scale(0.4) rotate(-6deg); opacity: 0; }
+  16% { transform: scale(1.06) rotate(1deg); opacity: 1; }
+  26% { transform: scale(1) rotate(0deg); }
+  84% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.05); opacity: 0; }
+}
+.castflash-art { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
+.castflash-noart {
+  display: grid; place-items: center; font-size: 120px; color: var(--el, #7d92e8);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 40%, #0b0d16), #0b0d18);
+  text-shadow: 0 0 30px var(--el, #7d92e8);
+}
+.castflash-cost {
+  position: absolute; top: 10px; left: 10px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 17px; font-weight: 800; color: #fff;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--el, #7d92e8) 80%, #fff), var(--el, #26307a));
+  border: 2px solid rgba(255,255,255,0.85); box-shadow: 0 0 12px color-mix(in srgb, var(--el, #7d92e8) 70%, transparent);
+}
+.castflash-meta { padding: 10px 12px 14px; text-align: center; }
+.castflash-name {
+  font-family: var(--head, inherit); font-size: 19px; font-weight: 800; letter-spacing: 0.02em; color: #f2ede0;
+  text-shadow: 0 0 14px color-mix(in srgb, var(--el, #7d92e8) 60%, transparent);
+}
+.castflash-text { margin-top: 4px; font-size: 11.5px; line-height: 1.35; color: var(--ink-dim, #a9a99c); }
+@media (prefers-reduced-motion: reduce) {
+  .castflash, .castflash-burst, .castflash-card { animation-duration: 0.01s; }
+}
 
 /* ── Expanded card detail (sub-overlay) ──────────────────────────────── */
 .dbd-overlay { z-index: 50; }

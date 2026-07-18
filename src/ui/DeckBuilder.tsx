@@ -13,7 +13,7 @@ import {
   validateDeck,
   type CustomDeck,
 } from "../data/custom-decks";
-import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
+import { EL_COLOR, EL_ICON, RARITY_STYLE, spellArtSrc } from "./shared";
 import { chipify, describePassives } from "./CardDetail";
 import { SpIcon } from "./icons";
 
@@ -228,9 +228,13 @@ export function DeckBuilder(props: {
                         title={`${s.name} (cost ${s.cost} · ${s.element}) — ${s.text}`}
                         onClick={() => toggleSpell(s.id)}
                       >
+                        <span className="db-spell-art">
+                          <img src={spellArtSrc(s.id)} alt="" draggable={false}
+                            onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                        </span>
                         <span className="db-spell-cost">{s.cost}</span>
-                        <span className="db-spell-name">{s.name}</span>
                         <span className="db-spell-mark">{on ? "✓" : "+"}</span>
+                        <span className="db-spell-name">{s.name}</span>
                       </button>
                     );
                   })}

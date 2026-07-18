@@ -2,3 +2,5 @@ public/cards/*.jpg filter=lfs diff=lfs merge=lfs -text
 public/cards/*.jpeg filter=lfs diff=lfs merge=lfs -text
 public/cards/*.webp filter=lfs diff=lfs merge=lfs -text
 public/cards/*.png filter=lfs diff=lfs merge=lfs -text
+public/spells/*.webp filter=lfs diff=lfs merge=lfs -text
+public/spells/*.png filter=lfs diff=lfs merge=lfs -text

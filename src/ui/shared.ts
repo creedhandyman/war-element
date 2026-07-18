@@ -35,6 +35,13 @@ export const EL_SIGIL: Record<Element, string> = {
   DAWN: "☀",
 };
 
+// Spell art lives at public/spells/<spellId>.webp (LFS-tracked, like card art).
+// Not every spell has art yet, so every render site guards with an onError that
+// falls back to the element-tinted placeholder.
+export function spellArtSrc(spellId: string): string {
+  return `/spells/${spellId}.webp`;
+}
+
 // Painted element badges (public/elements/*.png) — used for the on-card element
 // mark and the card-detail chip in place of the plain glyph.
 export const EL_ICON: Record<Element, string> = {

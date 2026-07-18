@@ -40,6 +40,7 @@ import { PhaseRibbon } from "./PhaseRibbon";
 import { ResourcePool } from "./ResourcePool";
 import { SpeedQueue } from "./SpeedQueue";
 import { SpellTray } from "./SpellTray";
+import { SpellCastFlash } from "./SpellCastFlash";
 import { WinScreen } from "./WinScreen";
 import { EL_COLOR, EL_ICON, type PendingBattle, type Selection } from "./shared";
 
@@ -74,6 +75,11 @@ export function App() {
   );
   // Card inspector: clicking a played card opens a read-only detail panel.
   const [detailId, setDetailId] = useState<string | null>(null);
+  // Spell cast animation: when I cast, we hold the intent, flash the spell art
+  // full-screen for ~2s, then dispatch so the effect resolves. `castTimerRef`
+  // guards against a second cast landing mid-flash + clears on unmount.
+  const [castFlash, setCastFlash] = useState<{ spellId: string } | null>(null);
+  const castTimerRef = useRef<number | null>(null);
   // Pre-game deck selection — the match doesn't run until Start.
   const [started, setStarted] = useState(false);
   const [twoPlayer, setTwoPlayer] = useState(false);
@@ -197,6 +203,28 @@ export function App() {
       setHint(`⚠ ${(e as Error).message}`);
     }
   }
+
+  // Cast a spell with a 2-second art flash, THEN resolve it. Every human cast
+  // (heal/board-AoE on pick; wall/row-AoE + damage on slot-click) routes through
+  // here so the spell's art gets its moment before the board changes. The intent
+  // is captured now and dispatched against the same (still-my-priority) state.
+  function castSpell(intent: Extract<Intent, { type: "CAST_SPELL" }>, doneHint: string) {
+    if (castTimerRef.current !== null) return; // a cast is already flashing
+    const spell = getSpell(intent.spellId);
+    setSel(null);
+    setPending(null);
+    setPicks([]);
+    setCastFlash({ spellId: spell.id });
+    setHint(`Casting <b>${spell.name}</b>…`);
+    castTimerRef.current = window.setTimeout(() => {
+      castTimerRef.current = null;
+      setCastFlash(null);
+      dispatch(intent);
+      setHint(doneHint);
+    }, 2000);
+  }
+  // Clear a pending flash timer if the app unmounts mid-cast.
+  useEffect(() => () => { if (castTimerRef.current !== null) window.clearTimeout(castTimerRef.current); }, []);
 
   // ── online rooms ──────────────────────────────────────────────────────────
   function hostCreateRoom() {
@@ -451,8 +479,7 @@ export function App() {
     if (spell.kind === "heal" || (spell.kind === "aoe" && spell.area === "board")) {
       const chk = canCastSpell(game, me, spellId, {});
       if (chk.ok) {
-        dispatch({ type: "CAST_SPELL", player: me, spellId });
-        setHint(`Cast <b>${spell.name}</b>.`);
+        castSpell({ type: "CAST_SPELL", player: me, spellId }, `Cast <b>${spell.name}</b>.`);
       } else {
         setHint(`⚠ ${chk.reason}`);
       }
@@ -534,8 +561,7 @@ export function App() {
       if (spell.kind === "wall" || (spell.kind === "aoe" && spell.area !== "board")) {
         const chk = canCastSpell(game, me, sel.spellId, { row });
         if (chk.ok) {
-          dispatch({ type: "CAST_SPELL", player: me, spellId: sel.spellId, row });
-          setHint(`${spell.name} cast. Keep going, or <b>Pass Priority</b>.`);
+          castSpell({ type: "CAST_SPELL", player: me, spellId: sel.spellId, row }, `${spell.name} cast. Keep going, or <b>Pass Priority</b>.`);
         } else if (clicked) {
           setDetailId(clicked.instanceId);
         } else {
@@ -545,8 +571,7 @@ export function App() {
       }
       // damage spell
       if (clicked && canCastSpell(game, me, sel.spellId, { targetId: clicked.instanceId }).ok) {
-        dispatch({ type: "CAST_SPELL", player: me, spellId: sel.spellId, targetId: clicked.instanceId });
-        setHint(`${spell.name} cast. Keep going, or <b>Pass Priority</b>.`);
+        castSpell({ type: "CAST_SPELL", player: me, spellId: sel.spellId, targetId: clicked.instanceId }, `${spell.name} cast. Keep going, or <b>Pass Priority</b>.`);
       } else if (clicked) {
         setDetailId(clicked.instanceId);
       } else {
@@ -1173,6 +1198,9 @@ export function App() {
           onClose={() => setDetailId(null)}
         />
       )}
+
+      {/* 2-second spell-cast flash — art blows up big before the effect resolves. */}
+      {castFlash && <SpellCastFlash spellId={castFlash.spellId} />}
 
       {/* Only during a match — New Match sets started=false, which hides this and
           reveals the deck picker (game.win stays set until Start Match resets it). */}
