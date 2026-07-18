@@ -593,8 +593,11 @@ export type Intent =
       targetIds?: string[];
     };
 
-// No max hand size currently (per the rules brief — flag if hands balloon).
 export const OPENING_HAND = 4;
+/** Max hand size — draws that would exceed this are skipped (the cards stay on
+ *  top of the deck, not burned). Bonus-draw rounds (10/15) partially fizzle when
+ *  you're near the cap; that's the intended cost of a hand limit. */
+export const HAND_CAP = 7;
 export const POOL_CARRYOVER_CAP = 10;
 export const BOARD_SIZE = 4;
 /** Minimum printed hit count for the "gain +1 HIT instead of +1 DMG" rule

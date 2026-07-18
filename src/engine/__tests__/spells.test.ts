@@ -68,6 +68,21 @@ describe("Cost-1 damage spells", () => {
     expect(next.players.P1.magicPool).toBe(2); // cost 1, from 3
   });
 
+  it("Jolt deals 3 and PARALYZEs the target (BOLT's cost-1)", () => {
+    const s = prepState();
+    armSpell(s, "bolt_jolt", 3);
+    const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 14, maxHp: 14, curShields: 0 });
+    const next = applyIntent(s, {
+      type: "CAST_SPELL",
+      player: "P1",
+      spellId: "bolt_jolt",
+      targetId: foe.instanceId,
+    });
+    expect(next.cards[foe.instanceId].curHp).toBe(11); // 14 − 3
+    expect(statusOf(next.cards[foe.instanceId], "PARALYZE")).toBeTruthy();
+    expect(next.players.P1.magicPool).toBe(2); // cost 1, from 3
+  });
+
   it("Gust pushes the target back a space", () => {
     const s = prepState();
     armSpell(s, "gale_gust", 3);

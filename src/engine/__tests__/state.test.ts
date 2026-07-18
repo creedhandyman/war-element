@@ -118,16 +118,27 @@ describe("draw math", () => {
     }
   });
 
-  it("has no hand cap — draws keep filling the hand", () => {
+  it("caps the hand at 7 — a bonus-draw round only fills up to the cap", () => {
     const s = freshGame(9);
     s.phase = "draw";
     s.round = 10; // draws 3
-    // pad hand well past the old cap of 7
-    while (s.players.P1.hand.length < 9)
+    // Pad to 6 so a 3-draw would overshoot the cap of 7.
+    while (s.players.P1.hand.length < 6)
       s.players.P1.hand.push({ handId: `h${s.nextId++}`, defId: "leaf_alpha" });
-    const before = s.players.P1.hand.length;
     const next = advance(s);
-    expect(next.players.P1.hand.length).toBe(before + 3);
+    expect(next.players.P1.hand.length).toBe(7); // 6 → 7, not 9
+  });
+
+  it("a hand already at the cap draws nothing, leaving cards on the deck", () => {
+    const s = freshGame(9);
+    s.phase = "draw";
+    s.round = 4; // would draw 1
+    while (s.players.P1.hand.length < 7)
+      s.players.P1.hand.push({ handId: `h${s.nextId++}`, defId: "leaf_alpha" });
+    const deckBefore = s.players.P1.deck.length;
+    const next = advance(s);
+    expect(next.players.P1.hand.length).toBe(7);
+    expect(next.players.P1.deck.length).toBe(deckBefore); // not burned
   });
 
   it("empty deck draws nothing, no penalty", () => {

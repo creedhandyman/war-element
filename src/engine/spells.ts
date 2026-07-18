@@ -85,6 +85,16 @@ export const SPELLS: SpellDef[] = [
     dmg: 3,
     status: { kind: "FREEZE", duration: 1, power: 0 },
   },
+  {
+    id: "bolt_jolt",
+    name: "Jolt",
+    element: "BOLT",
+    cost: 1,
+    kind: "damage",
+    text: "Deal 3 DMG to a target and PARALYZE them for 1 round.",
+    dmg: 3,
+    status: { kind: "PARALYZE", duration: 1, power: 0 },
+  },
 
   // ───────── Cost 4 — Walls (row-level, trigger on movement in) ─────────
   {

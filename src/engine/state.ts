@@ -14,7 +14,7 @@ import type {
   Pos,
   StatusKind,
 } from "./types";
-import { BOARD_SIZE, MULTI_HIT_BONUS_MIN, OPENING_HAND, enemyOf, homeRow } from "./types";
+import { BOARD_SIZE, HAND_CAP, MULTI_HIT_BONUS_MIN, OPENING_HAND, enemyOf, homeRow } from "./types";
 
 /** A deck is either a registered deck/core id, or an explicit list of card ids
  *  (a pairing built at the picker). */
@@ -75,11 +75,12 @@ function emptyPlayer(deck: string[], spellIds?: string[]): PlayerState {
   };
 }
 
-/** Draw up to n cards; an empty deck simply stops drawing (no penalty). */
+/** Draw up to n cards; an empty deck simply stops drawing (no penalty), and a
+ *  hand at HAND_CAP stops too (excess stays on top of the deck, not burned). */
 export function drawCards(draft: GameState, player: PlayerId, n: number): number {
   const p = draft.players[player];
   let drawn = 0;
-  while (drawn < n && p.deck.length > 0) {
+  while (drawn < n && p.deck.length > 0 && p.hand.length < HAND_CAP) {
     const defId = p.deck.shift()!;
     p.hand.push({ handId: `h${draft.nextId++}`, defId });
     drawn++;

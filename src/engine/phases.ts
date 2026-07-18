@@ -47,6 +47,7 @@ import type {
 } from "./types";
 import {
   BOARD_SIZE,
+  HAND_CAP,
   NEGATIVE_STATUSES,
   POOL_CARRYOVER_CAP,
   enemyOf,
@@ -357,6 +358,9 @@ function doDrawPhase(draft: GameState): void {
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const drawn = drawCards(draft, player, n);
     if (drawn > 0) draft.log.push(`${player} draws ${drawn}.`);
+    // A draw cut short by a full hand (not an empty deck) — surface why.
+    if (drawn < n && draft.players[player].hand.length >= HAND_CAP)
+      draft.log.push(`${player}'s hand is full (${HAND_CAP}) — held the draw.`);
   }
   draft.phase = "resource";
 }
