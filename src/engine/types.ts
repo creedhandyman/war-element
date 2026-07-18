@@ -146,6 +146,7 @@ export interface RoundTickDef {
   pushEnemies?: number; // blow every enemy back N slots (Wind Guardian)
   rowAheadDmg?: number; // deal N DMG to enemies in the row directly ahead (Sweeping Flames)
   inRangeDmg?: number; // deal N DMG to EVERY opponent this card can reach (Smog's Black Smoke)
+  inRangeDmgPen?: boolean; // make inRangeDmg PENetrate shields (UFO's Radiation)
   selfShields?: number; // gain N shields each round (Heir's Royal Guard)
   pokeParalyzedDmg?: number; // deal N DMG to one PARALYZED enemy in range (Sentry's Volt Turret)
   aoeParalyzedDmg?: number; // deal N DMG to EVERY PARALYZED enemy in range (Lytning's Complete Circuit)
@@ -183,6 +184,10 @@ export interface TimedBuff {
 export interface OnReviveDef {
   heal: number;
   sleep?: number;
+  /** Zombie Husk's Reanimation: instead of a one-time revive, come back on EVERY
+   *  death with every base stat (DMG/HP/SP) reduced by `decay`, until a stat would
+   *  hit 0 — then it stays dead. Revives at its (now lower) full HP. */
+  decay?: number;
 }
 
 /** HP-threshold transformation (Skelider Dismount): the first time this card
@@ -282,7 +287,7 @@ export interface CardDef {
   summonSelfShields?: number;
   /** Gate Keeper (Veil): the first time this card's shields break to 0, gain
    *  these permanent buffs. */
-  onShieldBreak?: { dmg?: number; sp?: number };
+  onShieldBreak?: { dmg?: number; sp?: number; status?: { kind: StatusKind; duration: number; power: number } };
   /** Rocky Force Field (Rhe): a coin-flip chance (0–100) to dodge a RANGED
    *  attacker's hit entirely. */
   blocksRangedChance?: number;
@@ -323,12 +328,19 @@ export interface CardDef {
    *  obey normal targeting rules; params.rowAhead=1 limits them to the row
    *  directly ahead of where it was summoned. */
   onSummon?: {
-    handler: string;
+    /** Optional — omit for a pure self-status on-summon (IcyNinza's Icy Mist). */
+    handler?: string;
     params?: Record<string, number | string>;
     /** Who the on-summon effect hits. Default "enemy". "ally" fires an ally
      *  handler (grantShield/buffSp/heal) on friendly cards in the forward area
      *  (Smith Reforged, Duster Dust Off). */
     targetSide?: "enemy" | "ally";
+    /** A buff status the summoned card grants ITSELF (e.g. STEALTH for N rounds). */
+    selfStatus?: StatusKind;
+    selfStatusDuration?: number;
+    /** IcyNinza's Icy Mist: while the self-status (STEALTH) is up, each kill
+     *  extends its duration by this many rounds. */
+    extendSelfStatusOnKill?: number;
   };
   special?: SpecialDef;
   // future: spells / traps / talents / auras beyond the LEAF alpha aura
@@ -365,6 +377,12 @@ export interface CardInstance {
   buffs: TimedBuff[];
   /** On-revive guard (Bearocks) — set once it has revived, so it can't again. */
   revived: boolean;
+  /** How many times a `decay` reviver (Zombie Husk) has come back — drives the
+   *  −1-per-death stat decay. */
+  reviveDecay?: number;
+  /** A flat one-shot penalty to this card's NEXT basic attack's damage (Sticks'
+   *  Boon Striker — statusless). Consumed and cleared after that attack. */
+  nextAttackDmgDebuff?: number;
   /** HP-threshold transform guard (Skelider) — set once Dismount has fired;
    *  blocks the Special thereafter. */
   transformed: boolean;

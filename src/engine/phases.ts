@@ -98,11 +98,12 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // blast reaches toward the enemy battlefield as far as the card's range
       // allows and hits the side columns; without it, targets are unscoped.
       if (def.onSummon) {
-        const params = def.onSummon.params ?? {};
-        if (def.onSummon.targetSide === "ally") {
+        const os = def.onSummon;
+        const params = os.params ?? {};
+        if (os.handler && os.targetSide === "ally") {
           // Ally-buff on summon (Smith Reforged / Duster Dust Off).
-          applyAllyOnSummon(draft, inst, def.onSummon.handler, params);
-        } else {
+          applyAllyOnSummon(draft, inst, os.handler, params);
+        } else if (os.handler) {
           const targets =
             Number(params.spread ?? -1) >= 0
               ? forwardAreaTargets(draft, inst, Number(params.spread), params.forwardDepth != null ? Number(params.forwardDepth) : undefined)
@@ -110,11 +111,15 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
               // card that's king's-move reach (the 8 adjacent tiles).
               : validTargets(draft, inst.instanceId);
           if (targets.length > 0) {
-            const handler = SPECIAL_HANDLERS[def.onSummon.handler];
-            if (!handler) throw new Error(`Unknown onSummon handler: ${def.onSummon.handler}`);
+            const handler = SPECIAL_HANDLERS[os.handler];
+            if (!handler) throw new Error(`Unknown onSummon handler: ${os.handler}`);
             draft.log.push(`${def.name}'s on-summon passive triggers!`);
             handler(draft, inst, targets, params);
           }
+        }
+        // A self-buff status on summon (IcyNinza's Icy Mist — STEALTH for N rounds).
+        if (os.selfStatus) {
+          applyStatus(draft, inst, os.selfStatus, os.selfStatusDuration ?? 1, 0, def.element);
         }
       }
       // Token spawns (Trinezer's Reptilian Screech).
@@ -706,10 +711,11 @@ function doRoundTicks(draft: GameState): void {
       for (const e of enemies()) if (e.pos && e.pos.row === ahead) directDamage(draft, card, e, rt.rowAheadDmg, false);
     }
     if (rt.inRangeDmg) {
-      // Black Smoke: the haze chokes every opponent this card can reach.
+      // Black Smoke / Radiation: hit every opponent this card can reach (UFO's
+      // radiation PENetrates shields).
       const hit = enemies().filter((e) => canTarget(draft, card, e));
-      for (const e of hit) directDamage(draft, card, e, rt.inRangeDmg, false);
-      if (hit.length) draft.log.push(`${label(draft, card)} chokes ${hit.length === 1 ? "an enemy" : `${hit.length} enemies`} in range (${rt.inRangeDmg} DMG).`);
+      for (const e of hit) directDamage(draft, card, e, rt.inRangeDmg, !!rt.inRangeDmgPen);
+      if (hit.length) draft.log.push(`${label(draft, card)} hits ${hit.length === 1 ? "an enemy" : `${hit.length} enemies`} in range (${rt.inRangeDmg} DMG${rt.inRangeDmgPen ? " PEN" : ""}).`);
     }
     if (rt.selfShields) {
       // Royal Guard: replenish the guardian's shields each round.

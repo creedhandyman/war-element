@@ -145,7 +145,22 @@ export function label(_draft: GameState, card: CardInstance): string {
  *  actually removed, false if it revived and survives. */
 export function defeatCard(draft: GameState, card: CardInstance, cause: string): boolean {
   const def = getDef(card.defId);
-  if (def.onRevive && !card.revived && card.pos) {
+  // Reanimation (Zombie Husk): comes back on EVERY death, each time weaker by
+  // `decay` on DMG/HP/SP, until a base stat would hit 0 — then it stays dead.
+  if (def.onRevive?.decay && card.pos) {
+    const d = def.onRevive.decay;
+    const nextCount = (card.reviveDecay ?? 0) + 1;
+    if (Math.min(def.dmg, def.hp, def.sp) - d * nextCount > 0) {
+      card.reviveDecay = nextCount;
+      card.dmgBonus -= d;
+      card.spBonus -= d;
+      card.maxHp = Math.max(1, card.maxHp - d);
+      card.curHp = card.maxHp;
+      draft.log.push(`${label(draft, card)} reanimates, weaker (−${d} to all stats).`);
+      return false;
+    }
+    // stats exhausted → it finally stays down (fall through to removal).
+  } else if (def.onRevive && !card.revived && card.pos) {
     card.revived = true;
     card.curHp = Math.max(1, Math.min(effectiveMaxHp(draft, card), def.onRevive.heal));
     if (def.onRevive.sleep) {
@@ -301,7 +316,11 @@ export function resolveHit(
           target.shieldBroken = true;
           if (tDef.onShieldBreak.dmg) target.dmgBonus += tDef.onShieldBreak.dmg;
           if (tDef.onShieldBreak.sp) target.spBonus += tDef.onShieldBreak.sp;
-          draft.log.push(`${label(draft, target)}'s shield shatters — it hardens (Gate Keeper).`);
+          // Buzz's Electro Shield: the shatter discharges into the attacker.
+          const brk = tDef.onShieldBreak.status;
+          if (brk && attacker.curHp > 0)
+            applyStatus(draft, attacker, brk.kind, brk.duration, brk.power, tDef.element);
+          draft.log.push(`${label(draft, target)}'s shield shatters${brk ? ` — ${brk.kind} discharge!` : " — it hardens."}`);
         }
       }
     }
@@ -350,8 +369,15 @@ export function resolveHit(
     if (!removed) return result; // revived — no kill/on-death triggers
     result.targetDied = true;
     // On-kill trigger for the attacker (basic/special kills only).
-    if ((opts.kind === "basic" || opts.kind === "special") && attacker.curHp > 0 && aDef.onKill) {
-      applyOnKill(draft, attacker, aDef.onKill);
+    if ((opts.kind === "basic" || opts.kind === "special") && attacker.curHp > 0) {
+      if (aDef.onKill) applyOnKill(draft, attacker, aDef.onKill);
+      // IcyNinza's Icy Mist: a kill while cloaked extends the STEALTH window.
+      const ext = aDef.onSummon?.extendSelfStatusOnKill;
+      const selfSt = aDef.onSummon?.selfStatus;
+      if (ext && selfSt) {
+        const st = attacker.statuses.find((s) => s.kind === selfSt);
+        if (st) st.duration += ext;
+      }
     }
     // On-death effects.
     if (tDef.onDeath && opts.kind !== "reflect") {
@@ -469,6 +495,11 @@ export function basicAttack(
     }
   }
 
+  // Boon Striker (Sticks): a one-shot, statusless flat DMG penalty on this
+  // attack, consumed here so it never lingers.
+  let atkDebuff = attacker.nextAttackDmgDebuff ?? 0;
+  if (atkDebuff) attacker.nextAttackDmgDebuff = undefined;
+
   const agg: AttackResult = { ...missed };
   for (const g of groups) {
     const t = draft.cards[g.targetId];
@@ -477,6 +508,7 @@ export function basicAttack(
     // Conditional keyword vs the target's status (Gnashing Bite, Precision
     // Strike, etc.): fold into this group's hit options.
     let dmg = effectiveDmg(draft, attacker);
+    if (atkDebuff) { dmg = Math.max(0, dmg - atkDebuff); atkDebuff = 0; } // Boon Striker, once
     let crit = Boolean(aDef.keywords.CRIT);
     // Hastened Assault (WolfBane): CRIT only while faster than the target.
     if (aDef.critIfFaster && effectiveSp(draft, attacker) > effectiveSp(draft, t)) crit = true;
@@ -912,6 +944,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       applyStatus(draft, attacker, onKillStatus as StatusKind, num(params, "onKillSelfStatusDuration", 1), 0, getDef(attacker.defId).element);
     }
     maybeStatus(draft, attacker, target, params);
+    // Boon Striker (Sticks): sap the target's NEXT basic attack by N (statusless).
+    const nextDebuff = num(params, "nextAtkDebuff");
+    if (nextDebuff > 0 && draft.cards[target.instanceId] && target.curHp > 0)
+      target.nextAttackDmgDebuff = nextDebuff;
     // Splash: reduced damage to enemies adjacent (chess-king) to the struck slot
     // (Dive Bomb 11, Shadow Charge 9).
     const splash = num(params, "splash");

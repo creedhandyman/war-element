@@ -41,12 +41,21 @@ export function chipify(text: string): ReactNode[] {
 /** Spell out an on-summon passive from its handler + params, instead of the old
  *  catch-all "fires an effect". Mirrors how the effect actually resolves. */
 function describeOnSummon(os: {
-  handler: string;
+  handler?: string;
   params?: Record<string, number | string>;
   targetSide?: string;
+  selfStatus?: string;
+  selfStatusDuration?: number;
+  extendSelfStatusOnKill?: number;
 }): string {
   const p = os.params ?? {};
   const n = (k: string) => Number(p[k] ?? 0);
+  // A pure self-status on-summon (IcyNinza's Icy Mist — no target handler).
+  if (!os.handler && os.selfStatus) {
+    const dur = os.selfStatusDuration ? ` for ${os.selfStatusDuration} round(s)` : "";
+    const ext = os.extendSelfStatusOnKill ? ` (+${os.extendSelfStatusOnKill} round per kill while cloaked)` : "";
+    return `On summon: gain ${os.selfStatus}${dur}${ext}.`;
+  }
   const scope = () => {
     if (os.targetSide === "ally") return "nearby allies";
     if (p.spread != null) return "enemies in the area ahead";
@@ -72,12 +81,13 @@ function describeOnSummon(os: {
       const hits = n("hits");
       const push = n("push") ? ` and push them back ${n("push")}` : "";
       const crit = n("crit") ? " (can crit)" : "";
+      const sap = n("nextAtkDebuff") ? ` and sap their next attack by ${n("nextAtkDebuff")}` : "";
       const st = statusParts();
       // A no-damage grasp (Krakler, Electricel) reads as a pure status apply.
       if (dmg <= 0 && st.length)
         return `On summon: apply ${st.join(" + ")} to ${scope()}${push}.`;
       const dmgStr = hits > 1 ? `${hits}×${dmg}` : `${dmg}`;
-      return `On summon: deal ${dmgStr} DMG to ${scope()}${st.length ? ` and apply ${st.join(" + ")}` : ""}${push}${crit}.`;
+      return `On summon: deal ${dmgStr} DMG to ${scope()}${st.length ? ` and apply ${st.join(" + ")}` : ""}${sap}${push}${crit}.`;
     }
     case "statusNova":
       return `On summon: apply ${p.statusKind}${p.statusDuration ? ` for ${n("statusDuration")} round(s)` : ""} to ${scope()}.`;
@@ -225,7 +235,7 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.roundTick?.inRangeDmg)
     passives.push(
-      `End of round: deals ${def.roundTick.inRangeDmg} DMG to every opponent in range.`,
+      `End of round: deals ${def.roundTick.inRangeDmg} DMG to every opponent in range${def.roundTick.inRangeDmgPen ? " (pierces shields)" : ""}.`,
     );
   if (def.roundTick?.selfShields)
     passives.push(`Gains +${def.roundTick.selfShields} shield at the end of each round.`);
@@ -259,8 +269,19 @@ export function describePassives(def: CardDef): string[] {
     passives.push(`Shadow: can only be attacked by adjacent opponents — ranged shots from afar miss.`);
   if (def.firstStrikeBonus && def.firstStrikeEnemySideOnly)
     passives.push(`On the enemy battlefield: +${def.firstStrikeBonus} DMG on the first strike against each opponent.`);
-  if (def.summonSelfShields)
-    passives.push(`On summon, raises a ${def.summonSelfShields}-shield barrier${def.onShieldBreak ? `; when it breaks, gains +${def.onShieldBreak.dmg ?? 0} DMG / +${def.onShieldBreak.sp ?? 0} SP` : ""}.`);
+  if (def.summonSelfShields) {
+    const sb = def.onShieldBreak;
+    let breakClause = "";
+    if (sb) {
+      const gains: string[] = [];
+      if (sb.dmg) gains.push(`+${sb.dmg} DMG`);
+      if (sb.sp) gains.push(`+${sb.sp} SP`);
+      if (sb.status)
+        breakClause = `; when it breaks, ${sb.status.kind}s the attacker${sb.status.duration ? ` for ${sb.status.duration} round(s)` : ""}`;
+      else if (gains.length) breakClause = `; when it breaks, gains ${gains.join(" / ")}`;
+    }
+    passives.push(`On summon, raises a ${def.summonSelfShields}-shield barrier${breakClause}.`);
+  }
   if (def.roundTick?.wardAllies)
     passives.push(`Radiant Ward: each round, allies get a barrier that absorbs the next negative status.`);
   if (def.roundTick?.cleanseAllies)
