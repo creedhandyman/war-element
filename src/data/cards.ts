@@ -594,10 +594,10 @@ export const CARDS: CardDef[] = [
       name: "Rigid Smash",
       cost: 3,
       handler: "barrage",
-      // printed "9 DMG and SLEEP 2 opponents in the row ahead"
-      params: { dmg: 6, targets: 2, statusKind: "SLEEP", statusDuration: 2 },
+      // canon "9 DMG and SLEEP 2 opponents in the row ahead" (restored to 9)
+      params: { dmg: 9, targets: 2, statusKind: "SLEEP", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 6 DMG and SLEEP up to 2 opponents for 2 rounds.",
+      text: "Deal 9 DMG and SLEEP up to 2 opponents for 2 rounds.",
     },
   },
   {
@@ -943,6 +943,9 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 0,
     keywords: {},
+    // Polar Storm (On Summon): give allies in the row directly ahead +1 shield.
+    // (Simplified from the canon 3-round ally buff + AoE — owner's call: shields only.)
+    onSummon: { handler: "grantShield", params: { amount: 1 }, targetSide: "ally" },
     special: {
       name: "Ice Crash Claw",
       cost: 2,

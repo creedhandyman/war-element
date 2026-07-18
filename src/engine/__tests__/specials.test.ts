@@ -231,6 +231,15 @@ describe("firing specials", () => {
     // Reforged fires on summon and shields allies in the row ahead (Greegon).
     expect(next.cards[ally.instanceId].curShields).toBe(2);
   });
+
+  it("onSummon ally buff: PolarBear's Polar Storm shields the row ahead +1", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 5;
+    const ally = place(s, "leaf_greegon", "P1", 2, 0, { curShields: 0 }); // row ahead
+    const handId = giveHand(s, "P1", "aqua_polarbear");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(next.cards[ally.instanceId].curShields).toBe(1);
+  });
 });
 
 describe("ranged specials on melee cards", () => {
