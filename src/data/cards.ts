@@ -1552,11 +1552,11 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 4,
+    cost: 5,
     dmg: 9,
     hits: 1,
     hp: 17,
-    sp: 4,
+    sp: 9, // restored to canon SP 9 (with the +1 cost, budget stays exact: 9+17+9=35)
     shields: 0,
     keywords: {},
     // Hastened Assault: CRIT only while faster than the target, and heal 3 HP
