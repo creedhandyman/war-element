@@ -918,17 +918,21 @@ export function App() {
         <div className="controls">
           <div className="hint" dangerouslySetInnerHTML={{ __html: hint }} />
           {/* Portrait: surface the spellbook right in the action panel (desktop
-              keeps its own tray in the right rail; this one is CSS-hidden there). */}
-          <div className="panel-spells">
-            <SpellTray
-              game={game}
-              player={view}
-              armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
-              myTurn={myPrep}
-              onPick={onPickSpell}
-              collapsible
-            />
-          </div>
+              keeps its own tray in the right rail; this one is CSS-hidden there).
+              Prep-only — otherwise the book shows behind the pre-game menu and
+              during battle, where spells can't be cast. */}
+          {game.phase === "prep" && (
+            <div className="panel-spells">
+              <SpellTray
+                game={game}
+                player={view}
+                armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
+                myTurn={myPrep}
+                onPick={onPickSpell}
+                collapsible
+              />
+            </div>
+          )}
           {/* Portrait: a copy of the crystals down here in the action panel, clear
               of the hand (the top .resource is CSS-hidden in portrait). Desktop
               hides THIS one and keeps the top one. */}
