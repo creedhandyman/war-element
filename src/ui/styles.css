@@ -818,12 +818,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .panel-crystals { display: none; } /* portrait-only: desktop keeps the top .resource */
 
 @media (max-width: 760px) and (min-height: 541px) {
-  :root { --board-size: min(calc(94vw - 48px), 50vh); }
+  /* Max the battlefield: it fills the full width between the side rails (log /
+     speed queue) and grows down to the top of the hand. The height term is the
+     binding one on a normal phone — it's tuned to the compacted panel below so
+     the board is as large as possible while the action controls stay on-screen. */
+  :root { --board-size: min(calc(100vw - 46px), calc(100dvh - 468px)); }
 
   .wrap {
-    display: flex; flex-direction: column; height: 100dvh; gap: 5px;
-    padding: calc(4px + env(safe-area-inset-top)) calc(4px + env(safe-area-inset-right))
-             calc(4px + env(safe-area-inset-bottom)) calc(4px + env(safe-area-inset-left));
+    display: flex; flex-direction: column; height: 100dvh; gap: 2px;
+    padding: calc(2px + env(safe-area-inset-top)) calc(4px + env(safe-area-inset-right))
+             calc(2px + env(safe-area-inset-bottom)) calc(4px + env(safe-area-inset-left));
   }
 
   /* Phase ribbon → slim top row */
@@ -835,16 +839,22 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
   /* Board → hero at the TOP (natural height); the hand takes the space below it
      in normal flow. Right gutter reserved for the SP strip. */
-  .board-area { order: 1; flex: 0 0 auto; min-height: 0; padding: 2px 44px 0 2px; justify-content: flex-start; }
+  .board-area { order: 1; flex: 0 0 auto; min-height: 0; padding: 2px 44px 0 2px; justify-content: flex-start; gap: 3px; }
   .board-area::before { display: none; } /* drop the corner wisps on tiny screens */
+  /* Slim the home-crest ribbons so the board keeps its size while the action
+     panel stays fully on-screen (the crest is just an orientation label). */
+  .crest { gap: 5px; }
+  .crest-text { font-size: 10px; letter-spacing: 0.12em; }
+  .crest-bar { max-width: 120px; }
+  .crest-shield { width: 13px; height: 14px; }
 
   /* Bottom → a big ACTION PANEL (flex:1) that fills the space under the hand:
      crystals row on top, a large Pass Priority, then full-width Auto/Clear/
      Surrender buttons (no more tiny plain-text controls). */
   .bottom {
-    order: 3; grid-column: auto; flex: 1 1 auto; min-height: 96px;
+    order: 3; grid-column: auto; flex: 1 1 auto; min-height: 84px;
     flex-direction: column; justify-content: center; align-items: stretch;
-    gap: 9px; padding: 12px 12px calc(10px + env(safe-area-inset-bottom));
+    gap: 6px; padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
   }
   /* Not your turn: Pass + sub-buttons hide, so collapse the panel back to a thin
      crystals bar pinned to the bottom instead of a tall empty box. */
@@ -858,12 +868,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .resource { gap: 22px; flex: none; justify-content: center; }
   .res-gem { padding: 0; gap: 8px; }
   .gem-info { display: none; }
-  .gem-face { width: 40px; height: 40px; }
-  .gem-val { font-size: 18px; }
-  .controls { width: 100%; flex: none; flex-direction: column; align-items: stretch; gap: 10px; }
+  .gem-face { width: 32px; height: 32px; }
+  .gem-val { font-size: 17px; }
+  .controls { width: 100%; flex: none; flex-direction: column; align-items: stretch; gap: 6px; }
   .hint { display: none; }
-  /* Big primary action. */
-  .pass-btn { width: 100%; padding: 17px 12px; font-size: 17px; letter-spacing: 0.05em; }
+  /* Big primary action (kept prominent, just less vertical padding). */
+  .pass-btn { width: 100%; padding: 8px 12px; font-size: 16px; letter-spacing: 0.05em; }
   .pass-btn:disabled { opacity: 0.85; } /* "Waiting…" still reads as a full-size button */
   /* Auto / Clear / Surrender → full-width equal buttons, real presence. */
   .ctl-sub { width: 100%; display: flex; gap: 10px; flex-wrap: nowrap; justify-content: stretch; }
@@ -905,13 +915,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .panel-spells {
     display: block; width: 100%; position: relative; z-index: 60;
     background: linear-gradient(180deg, rgba(20, 17, 13, 0.94), rgba(14, 12, 9, 0.96));
-    border: 1px solid var(--gold-line); border-radius: 10px; padding: 6px 8px;
+    border: 1px solid var(--gold-line); border-radius: 10px; padding: 3px 8px;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.55);
   }
   .panel-spells .spelltray { flex-direction: column; gap: 5px; background: none; border: none; box-shadow: none; padding: 0; }
   .panel-spells .spelltray-label { display: none; }  /* chips (name + cost) are self-evident */
   .panel-spells .spelltray-row { display: flex; flex-direction: row; gap: 8px; flex-wrap: nowrap; }
-  .panel-spells .spellchip { flex: 1 1 0; min-width: 0; flex-direction: row; align-items: center; gap: 6px; padding: 9px 6px 9px 26px; }
+  .panel-spells .spellchip { flex: 1 1 0; min-width: 0; flex-direction: row; align-items: center; gap: 6px; padding: 5px 6px 5px 26px; }
   .panel-spells .spellchip-cost { top: 50%; left: 5px; transform: translateY(-50%); }
   .panel-spells .spellchip-art { width: 20px; height: 20px; flex: none; }
   .panel-spells .spellchip-name { font-size: 10.5px; text-align: left; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -973,17 +983,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     order: 2; position: static; left: auto; bottom: auto; transform: none;
     width: 100%; flex: 0 0 auto; min-height: 0;
     display: flex; align-items: center; justify-content: center;
-    padding: 8px 44px 0 4px; pointer-events: auto;
+    padding: 2px 44px 0 4px; pointer-events: auto;
   }
   .hand-float.up { bottom: auto; } /* flow: same position on/off your turn */
-  .hand-float .hcard { width: 98px; height: 140px; margin: 0 -22px; transform-origin: 50% 96%; }
+  .hand-float .hcard { width: 88px; height: 106px; margin: 0 -22px; transform-origin: 50% 96%; }
   .hand-float .hcard:hover { transform: translateY(-26px) scale(1.14); z-index: 50 !important; }
   .hand-float .hc-name { font-size: 12px; }
   .hand-float .hc-type { font-size: 8.5px; }
   .hand-float .hc-stats { font-size: 10px; }
   /* Keep the hand full-size even on the opponent's turn (no tiny collapsed peek —
      there's room in flow). */
-  .hand-float .hand.collapsed .hcard { height: 140px; margin: 0 -22px; }
+  .hand-float .hand.collapsed .hcard { height: 106px; margin: 0 -22px; }
   .hand-float .hand.collapsed .hand-fan { padding-top: 30px; }
   .hand-float .hand.collapsed .hc-sigil { display: grid; }
 
