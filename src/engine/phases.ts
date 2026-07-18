@@ -472,11 +472,14 @@ function performBattleAction(
     } else {
       targets = valid;
     }
+    // A Talent Special (a demoted Epic's one-shot) is free and consumed forever.
     // A free Special (Volcanon's On-Kill recast) skips the magic cost AND the
     // cooldown, so it's usable the very next round; otherwise pay + recharge.
     const wasFree = card.freeSpecial;
     card.freeSpecial = false; // consume the grant (a fresh kill re-grants it below)
-    if (!wasFree) {
+    if (special.talent) {
+      card.talentUsed = true; // once per game — no cost, no cooldown
+    } else if (!wasFree) {
       draft.players[card.owner].magicPool -= effectiveSpecialCost(card, special.cost);
       // 1-round floor; a printed longer cooldown overrides (+1 because the
       // current round's Cleanup ticks it once).

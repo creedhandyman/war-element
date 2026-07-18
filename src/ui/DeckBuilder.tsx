@@ -379,7 +379,7 @@ export function DeckBuilder(props: {
 
             {detail.special && (
               <div className="dbd-sect">
-                <div className="dbd-h">Special · {detail.special.name} <span className="dbd-scost">{detail.special.cost}◆</span></div>
+                <div className="dbd-h">{detail.special.talent ? "Talent" : "Special"} · {detail.special.name} <span className="dbd-scost">{detail.special.talent ? "1×" : `${detail.special.cost}◆`}</span></div>
                 <p className="dbd-txt">{chipify(detail.special.text)}</p>
               </div>
             )}

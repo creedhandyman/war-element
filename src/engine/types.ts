@@ -80,6 +80,10 @@ export interface SpecialDef {
   /** Rounds locked out after firing. Omit for the standard 1-round floor;
    *  a card may print a longer cooldown (2/3/5). */
   cooldown?: number;
+  /** Talent mode: the Special is FREE and fires only ONCE per game (no magic
+   *  cost, no cooldown, gone after one use). Used when an Epic is demoted to
+   *  Rare — its Special becomes a one-shot Talent. Reuses `card.talentUsed`. */
+  talent?: boolean;
   text: string; // human-readable card text
 }
 

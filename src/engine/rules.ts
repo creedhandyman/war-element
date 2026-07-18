@@ -331,12 +331,15 @@ export function canFireSpecial(
   if (card.transformed) return { ok: false, reason: "Dismounted — Special lost" };
   if (card.summonedThisRound)
     return { ok: false, reason: "Summon-turn lockout (basic attack only)" };
+  // Talent Special: free + once per game (shares the talentUsed flag).
+  if (def.special.talent && card.talentUsed)
+    return { ok: false, reason: "Talent already used this game" };
   // A free Special (Volcanon's On-Kill recast) ignores cooldown + magic cost.
-  if (!card.freeSpecial && card.specialCooldown > 0)
+  if (!card.freeSpecial && !def.special.talent && card.specialCooldown > 0)
     return { ok: false, reason: "Special is recharging (1-round cooldown)" };
   if (hasStatus(card, "MUTED")) return { ok: false, reason: "MUTED" };
   if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
-  if (!card.freeSpecial && state.players[card.owner].magicPool < effectiveSpecialCost(card, def.special.cost))
+  if (!card.freeSpecial && !def.special.talent && state.players[card.owner].magicPool < effectiveSpecialCost(card, def.special.cost))
     return { ok: false, reason: "Not enough magic" };
   if (specialTargets(state, instanceId).length === 0) return { ok: false, reason: "No valid target" };
   return { ok: true };

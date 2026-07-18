@@ -114,7 +114,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_alpha",
     name: "Alpha",
-    rarity: "epic",
+    rarity: "rare",
     element: "LEAF",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -127,14 +127,16 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Gnashing Bite: LIFESTEAL only on attacks against ROOTed opponents.
     vsStatus: { status: "ROOT", lifesteal: true },
+    // Demoted Epic→Rare: Takedown becomes a one-shot Talent (free, once per game)
+    // instead of a repeatable SP-cost Special.
     special: {
       name: "Takedown",
-      cost: 1,
+      cost: 0,
+      talent: true,
       handler: "strike",
       params: { dmg: 6, statusKind: "ROOT", statusDuration: 3 },
       targetSide: "enemy",
-      cooldown: 0, // "no cooldown"
-      text: "Tackle an opponent for 6 DMG and ROOT them for 3 rounds.",
+      text: "Talent (once per game): tackle an opponent for 6 DMG and ROOT them for 3 rounds.",
     },
   },
   {

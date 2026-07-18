@@ -443,11 +443,14 @@ export function CardDetail(props: {
         {def.special && (
           <div className="cd-section">
             <div className="cd-h">
-              ✦ {def.special.name}
-              <span className="cd-cost-pill">Magic {def.special.cost}</span>
+              {def.special.talent ? "★" : "✦"} {def.special.name}
+              <span className="cd-cost-pill">{def.special.talent ? "Talent" : `Magic ${def.special.cost}`}</span>
             </div>
             <p className="cd-text">{chipify(def.special.text)}</p>
-            {(specCd || summonLock) && (
+            {def.special.talent && card.talentUsed && (
+              <div className="cd-flag">Talent spent — once per game.</div>
+            )}
+            {!def.special.talent && (specCd || summonLock) && (
               <div className="cd-flag">
                 {summonLock
                   ? "Can't fire the round it's summoned."

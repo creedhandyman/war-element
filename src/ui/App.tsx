@@ -838,11 +838,13 @@ export function App() {
                   : "⚔ Basic Attack"}
               </button>
               <button
-                className={`bbtn spec ${pending === "special" ? "armed" : ""}`}
+                className={`bbtn ${activeDef.special?.talent ? "tal" : "spec"} ${pending === "special" ? "armed" : ""}`}
                 disabled={!specialCheck.ok}
                 title={
                   activeDef.special
-                    ? `${activeDef.special.name} (cost ${activeDef.special.cost}): ${activeDef.special.text}`
+                    ? activeDef.special.talent
+                      ? `${activeDef.special.name} (Talent, free · once per game): ${activeDef.special.text}`
+                      : `${activeDef.special.name} (cost ${activeDef.special.cost}): ${activeDef.special.text}`
                     : "No special"
                 }
                 onClick={() => {
@@ -869,17 +871,18 @@ export function App() {
                   setHint(
                     specialAoE
                       ? `<b>${spec.name}</b> hits the glowing area — press <b>Confirm</b> to fire.`
-                      : `<b>${spec.name}</b> (cost ${spec.cost}) — pick up to ${cap} glowing target${cap > 1 ? "s (repeat to stack), or Fire early" : ""}.`,
+                      : `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${spec.cost})`} — pick up to ${cap} glowing target${cap > 1 ? "s (repeat to stack), or Fire early" : ""}.`,
                   );
                 }}
               >
-                {pending === "special"
-                  ? specialAoE
-                    ? "✦ Confirm"
-                    : picks.length > 0
-                      ? `🔥 Fire (${picks.length}/${maxPicks})`
-                      : `✦ Special${activeDef.special ? ` (${activeDef.special.cost})` : ""}`
-                  : `✦ Special${activeDef.special ? ` (${activeDef.special.cost})` : ""}`}
+                {(() => {
+                  const rest = activeDef.special?.talent
+                    ? `★ ${activeDef.special.name}`
+                    : `✦ Special${activeDef.special ? ` (${activeDef.special.cost})` : ""}`;
+                  if (pending === "special")
+                    return specialAoE ? "✦ Confirm" : picks.length > 0 ? `🔥 Fire (${picks.length}/${maxPicks})` : rest;
+                  return rest;
+                })()}
               </button>
               {activeDef.talent && (
                 <button
@@ -903,7 +906,7 @@ export function App() {
             {pending === "special" && activeDef.special && (
               <div className="bp-text spec-desc">
                 <b>{activeDef.special.name}</b>
-                <span className="spec-cost"> · {activeDef.special.cost} SP</span> — {activeDef.special.text}
+                <span className="spec-cost"> · {activeDef.special.talent ? "Talent · once per game" : `${activeDef.special.cost} SP`}</span> — {activeDef.special.text}
               </div>
             )}
             {pending !== "special" && !specialCheck.ok && activeDef.special && (
