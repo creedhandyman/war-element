@@ -1951,12 +1951,13 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Flame Engulf",
       cost: 4,
+      cooldown: 3, // heavy 2-row AoE — 3-round lockout between casts
       // 7 DMG + BURN 3 to a 3-wide corridor, TWO rows deep — the 3 opponents
       // directly ahead plus the row behind them (spread 1, forwardDepth 2).
       handler: "barrage",
       params: { dmg: 7, spread: 1, forwardDepth: 2, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
       targetSide: "enemy",
-      text: "Deal 7 DMG + BURN 3 to the 3 opponents directly ahead and the row behind them (2 rows deep).",
+      text: "Deal 7 DMG + BURN 3 to the 3 opponents directly ahead and the row behind them (2 rows deep). 3-round cooldown.",
     },
     // Aura (Scorch BURN stacks) deferred.
   },
@@ -2011,10 +2012,11 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Strike of Dawn",
       cost: 5,
+      cooldown: 3, // spawns a 10/10 Heir — 3-round lockout between casts
       handler: "spawn",
       params: { token: "dawn_heir_tok", count: 1 },
       targetSide: "ally", // no enemy target needed; always castable
-      text: "Spawn Heir (10/10/2🛡/SP10) in an open slot. Crowned: cleanses allies each round.",
+      text: "Spawn Heir (10/10/2🛡/SP10) in an open slot. Crowned: cleanses allies each round. 3-round cooldown.",
     },
   },
   {
@@ -2039,10 +2041,11 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Dive Bomb",
       cost: 5,
+      cooldown: 3, // huge nuke + STEALTH escape — 3-round lockout between casts
       handler: "strike",
       params: { dmg: 27, splash: 11, recoilPct: 10, selfStatus: "STEALTH", selfStatusDuration: 1 },
       targetSide: "enemy",
-      text: "Deal 27 DMG (+11 splash) and take 10% recoil, then vanish into STEALTH until next round.",
+      text: "Deal 27 DMG (+11 splash) and take 10% recoil, then vanish into STEALTH until next round. 3-round cooldown.",
     },
   },
   {
@@ -2065,12 +2068,13 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Light Slasher",
       cost: 5,
+      cooldown: 3, // chaining 4-hit combo — 3-round lockout between casts
       handler: "combo",
       // 5 → 5 → 5 → 10 combo; a kill chains to the next enemy and raises the
       // remaining hits +5 (that raise lasts only for this combo).
       params: { dmg: 5, hits: 4, finisherDmg: 10, killBoost: 5 },
       targetSide: "enemy",
-      text: "5·5·5·10 combo on a target; on a kill, chain to the next enemy with +5 to the rest of the combo.",
+      text: "5·5·5·10 combo on a target; on a kill, chain to the next enemy with +5 to the rest of the combo. 3-round cooldown.",
     },
     // The on-Surge BOLT-ally aura is deferred.
   },
@@ -2094,11 +2098,12 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Shadow Charge",
       cost: 5,
+      cooldown: 3, // charge nuke + EVASION escape — 3-round lockout between casts
       handler: "strike",
       params: { dmg: 19, splash: 9, statusKind: "DOT", statusDuration: 1, statusPower: 9, selfStatus: "EVASION", selfStatusDuration: 1, charge: 4 },
       targetSide: "enemy",
       ranged: true, // the dive reaches across the board
-      text: "Charge up to 4 spaces, deal 19 DMG + 9 DOT (+9 splash), and gain EVASION for a round.",
+      text: "Charge up to 4 spaces, deal 19 DMG + 9 DOT (+9 splash), and gain EVASION for a round. 3-round cooldown.",
     },
   },
   {
