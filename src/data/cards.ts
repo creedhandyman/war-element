@@ -435,8 +435,6 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Spit Shot (On Summon): 3 DMG to up to 3 opponents anywhere in range.
     onSummon: { handler: "barrage", params: { dmg: 3, targets: 3 } },
-    // Hot Hot (On Hit by Melee): double the BURN already on the attacker.
-    onHitByMelee: { doubleBurn: true },
   },
   {
     id: "pyro_volcanon",

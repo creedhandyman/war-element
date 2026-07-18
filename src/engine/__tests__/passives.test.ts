@@ -130,18 +130,6 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[slow.instanceId].curHp).toBe(40 - 18); // 9 DMG doubled by CRIT
     expect(s.cards[wolf.instanceId].curHp).toBe(13); // 10 + 3 heal per crit
   });
-
-  it("Spitfire's Hot Hot doubles the BURN on a melee attacker", () => {
-    const s = prepState();
-    const spit = place(s, "pyro_spitfire", "P1", 2, 0, { curHp: 11 });
-    const melee = place(s, "bore_hillbilly", "P2", 2, 1, {
-      curHp: 20,
-      status: { kind: "BURN", duration: 2, power: 2, source: "PYRO" },
-    });
-    basicAttack(s, melee.instanceId, spit.instanceId);
-    const burn = s.cards[melee.instanceId].statuses.find((st) => st.kind === "BURN");
-    expect(burn?.power).toBe(4); // 2 → doubled
-  });
 });
 
 describe("Voltogon — Powertrip (electrified-only, once per round)", () => {
