@@ -98,6 +98,9 @@ export function App() {
   // selection ever goes missing (e.g. a custom deck deleted mid-session).
   const resolveDeckCards = (deckId: string): string[] =>
     (deckPool.find((d) => d.id === deckId) ?? PREMADE_DECKS[0]).cards;
+  // A deck's hand-picked spellbook (empty = engine auto-derives from elements).
+  const resolveDeckSpells = (deckId: string): string[] =>
+    (deckPool.find((d) => d.id === deckId) ?? PREMADE_DECKS[0]).spells ?? [];
   const deckLabel = (deckId: string): string =>
     (deckPool.find((d) => d.id === deckId) ?? PREMADE_DECKS[0]).name;
 
@@ -203,14 +206,15 @@ export function App() {
     const code = (roomCode.trim() || Math.random().toString(36).slice(2, 7)).toUpperCase();
     setRoomCode(code);
     const hostCards = resolveDeckCards(p1DeckId);
+    const hostSpells = resolveDeckSpells(p1DeckId);
     setNetStatus(`Room ${code} open — share this code. Waiting for your buddy…`);
     onlineStartedRef.current = false;
     roomRef.current = joinRoom(code, "host", {
       onState: (state) => setGame(state),
-      onJoin: (guestCards) => {
+      onJoin: (guestCards, guestSpells) => {
         if (onlineStartedRef.current) return; // already playing — ignore re-joins
         onlineStartedRef.current = true;
-        const g = createInitialState(newSeed(), hostCards, guestCards, ["P1", "P2"]);
+        const g = createInitialState(newSeed(), hostCards, guestCards, ["P1", "P2"], hostSpells, guestSpells);
         setGame(g);
         setViewSide("P1");
         setSel(null); setPending(null); setPicks([]); setMullToss([]);
@@ -231,6 +235,7 @@ export function App() {
     const code = roomCode.trim().toUpperCase();
     if (!code) { setNetStatus("Enter the room code your buddy shared."); return; }
     const guestCards = resolveDeckCards(p2DeckId);
+    const guestSpells = resolveDeckSpells(p2DeckId);
     setNetStatus(`Joining ${code}…`);
     onlineStartedRef.current = false;
     roomRef.current = joinRoom(code, "guest", {
@@ -245,7 +250,7 @@ export function App() {
           setStarted(true);
         }
       },
-      onSubscribed: () => roomRef.current?.sendJoin(guestCards),
+      onSubscribed: () => roomRef.current?.sendJoin(guestCards, guestSpells),
     });
     setOnline({ role: "guest", code, myId: "P2" });
   }
@@ -921,6 +926,7 @@ export function App() {
               armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
               myTurn={myPrep}
               onPick={onPickSpell}
+              collapsible
             />
           </div>
           {/* Portrait: a copy of the crystals down here in the action panel, clear
@@ -1254,7 +1260,10 @@ export function App() {
                     const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
                     const p1Cards = resolveDeckCards(p1DeckId);
                     const p2Cards = resolveDeckCards(p2DeckId);
-                    setGame(createInitialState(newSeed(), p1Cards, p2Cards, humans));
+                    setGame(createInitialState(
+                      newSeed(), p1Cards, p2Cards, humans,
+                      resolveDeckSpells(p1DeckId), resolveDeckSpells(p2DeckId),
+                    ));
                     setViewSide("P1");
                     setSel(null);
                     setPending(null);

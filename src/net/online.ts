@@ -24,8 +24,9 @@ export type Role = "host" | "guest";
 export interface Room {
   /** Broadcast a freshly-produced game state to the other client. */
   sendState: (state: GameState) => void;
-  /** Guest → host: announce arrival with the guest's resolved deck (card ids). */
-  sendJoin: (cards: string[]) => void;
+  /** Guest → host: announce arrival with the guest's resolved deck (card ids)
+   *  and hand-picked spellbook (spell ids; empty = auto-from-elements). */
+  sendJoin: (cards: string[], spells?: string[]) => void;
   /** Leave + tear down the channel. */
   close: () => void;
 }
@@ -40,7 +41,7 @@ export function joinRoom(
   role: Role,
   handlers: {
     onState: (state: GameState) => void;
-    onJoin?: (cards: string[]) => void; // host only
+    onJoin?: (cards: string[], spells?: string[]) => void; // host only
     onSubscribed?: () => void;
   },
 ): Room {
@@ -53,7 +54,7 @@ export function joinRoom(
   );
   if (role === "host") {
     channel.on("broadcast", { event: "join" }, ({ payload }) =>
-      handlers.onJoin?.(payload.cards as string[]),
+      handlers.onJoin?.(payload.cards as string[], payload.spells as string[] | undefined),
     );
   }
   channel.subscribe((status) => {
@@ -62,8 +63,8 @@ export function joinRoom(
   return {
     sendState: (state) =>
       void channel.send({ type: "broadcast", event: "state", payload: { state } }),
-    sendJoin: (cards) =>
-      void channel.send({ type: "broadcast", event: "join", payload: { cards } }),
+    sendJoin: (cards, spells) =>
+      void channel.send({ type: "broadcast", event: "join", payload: { cards, spells } }),
     close: () => void supabase.removeChannel(channel),
   };
 }

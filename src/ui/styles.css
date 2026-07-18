@@ -539,6 +539,48 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .spelltray.vertical .spellchip-art { width: 26px; height: 26px; flex: none; }
 .spelltray.vertical .spellchip-name { text-align: left; flex: 1; font-size: 11.5px; }
 
+/* Collapsed spellbook — a centered "book" that taps open to the spell chips.
+   Keeps the battlefield clear until you reach for a spell. */
+.spellbook { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: none; }
+.spellbook-toggle {
+  display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px 7px 11px;
+  border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--gold-line);
+  background: linear-gradient(180deg, rgba(30,26,20,0.95), rgba(20,17,13,0.95));
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5), inset 0 0 24px rgba(201,162,75,0.06);
+  font: inherit;
+}
+.spellbook-toggle:hover { border-color: var(--gold-lit); box-shadow: 0 8px 26px rgba(0,0,0,0.55), inset 0 0 26px rgba(201,162,75,0.12); }
+.spellbook.open .spellbook-toggle { border-color: var(--gold-lit); }
+.sb-ico { font-size: 16px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
+.sb-label { font-family: var(--head); font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-lit); }
+.sb-count {
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10.5px; font-weight: 800; color: #1a140a;
+  background: var(--gold-lit); box-shadow: 0 0 8px rgba(232,200,119,0.4);
+}
+.sb-count.spent { background: #5a5348; color: #cfc6b4; box-shadow: none; }
+/* The popover of chips floats above the book so it never pushes layout. */
+.spellbook-pop {
+  background: linear-gradient(180deg, rgba(30,26,20,0.97), rgba(20,17,13,0.97));
+  border: 1px solid var(--gold-line); border-radius: 12px; padding: 10px;
+  box-shadow: 0 10px 34px rgba(0,0,0,0.6), inset 0 0 40px rgba(201,162,75,0.05);
+}
+.spellbook-pop .spelltray-row { flex-direction: column; gap: 8px; }
+.spellbook-pop .spellchip { width: 100%; flex: none; flex-direction: row; align-items: center; gap: 9px; padding: 7px 10px 7px 30px; min-width: 148px; }
+.spellbook-pop .spellchip-cost { top: 50%; left: 6px; transform: translateY(-50%); }
+.spellbook-pop .spellchip-art { width: 26px; height: 26px; flex: none; }
+.spellbook-pop .spellchip-name { text-align: left; flex: 1; font-size: 11.5px; }
+/* Beat the portrait `.panel-spells .spelltray-row` (equal-specificity, later in
+   source): keep the book's popover a tidy vertical stack that pops UP, not a row
+   that runs off the screen. */
+.panel-spells .spellbook-pop .spelltray-row { flex-direction: column; gap: 7px; }
+.panel-spells .spellbook-pop .spellchip { flex: none; width: 100%; flex-direction: row; align-items: center; gap: 9px; padding: 7px 10px 7px 30px; }
+.panel-spells .spellbook-pop .spellchip-cost { top: 50%; left: 6px; transform: translateY(-50%); width: 18px; height: 18px; font-size: 10px; }
+.panel-spells .spellbook-pop .spellchip-art { width: 24px; height: 24px; flex: none; }
+.panel-spells .spellbook-pop .spellchip-name { text-align: left; flex: 1; font-size: 11.5px; white-space: normal; }
+
 .controls { display: flex; flex-direction: column; gap: 6px; align-items: stretch; flex: none; width: 238px; }
 .hint { font-size: 11px; color: var(--ink-dim); text-align: right; line-height: 1.3; max-height: 30px; overflow: hidden; }
 .hint b { color: var(--ink); }
@@ -764,6 +806,27 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .dbs-bar { width: 100%; min-height: 3px; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, var(--accent), rgba(167,139,250,0.4)); display: flex; align-items: flex-start; justify-content: center; }
 .dbs-barnum { font-size: 8px; font-weight: 900; color: #fff; text-shadow: 0 1px 2px #000; margin-top: -1px; }
 .dbs-cost { font-size: 8px; font-weight: 700; color: var(--ink-dim); }
+
+/* ── Deck spellbook picker (up to 5 spells the deck carries) ──────────── */
+.db-spells { margin-top: 4px; padding: 9px 10px; border: 1px solid var(--gold-line); border-radius: 10px; background: var(--void-2); display: flex; flex-direction: column; gap: 8px; }
+.db-spells-h { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold-lit); font-weight: 800; }
+.db-spell-hint { font-size: 10px; color: var(--ink-faint); line-height: 1.35; }
+.db-spell-grid { display: flex; flex-direction: column; gap: 5px; }
+.db-spell {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 5px 8px 5px 6px; border-radius: 8px; cursor: pointer; font: inherit;
+  border: 1px solid var(--panel-line);
+  border-left: 3px solid var(--el, var(--steel));
+  background: rgba(0,0,0,0.28); color: var(--ink);
+  transition: border-color 0.12s, background 0.12s;
+}
+.db-spell:hover:not(:disabled) { border-color: var(--el, var(--steel-lit)); background: rgba(0,0,0,0.4); }
+.db-spell.on { border-color: var(--gold-lit); background: rgba(201,162,75,0.14); }
+.db-spell:disabled { opacity: 0.4; cursor: default; }
+.db-spell-cost { flex: none; width: 17px; height: 17px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #1a140a; background: var(--el, var(--steel-lit)); }
+.db-spell-name { flex: 1; font-size: 11.5px; font-weight: 700; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-spell-mark { flex: none; font-size: 12px; font-weight: 900; color: var(--ink-dim); }
+.db-spell.on .db-spell-mark { color: var(--gold-lit); }
 
 /* ── Expanded card detail (sub-overlay) ──────────────────────────────── */
 .dbd-overlay { z-index: 50; }

@@ -3,7 +3,7 @@
 
 import { getDef, deckById } from "../data/cards";
 import { coin, shuffle } from "./rng";
-import { spellbookFor } from "./spells";
+import { spellbookFor, spellbookFromIds } from "./spells";
 import type {
   AuraBonusDef,
   CardDef,
@@ -27,6 +27,8 @@ export function createInitialState(
   p1Deck: string | string[] = "leaf_pyro",
   p2Deck: string | string[] = "bore_dusk",
   humans: PlayerId[] = ["P1"],
+  p1Spells?: string[],
+  p2Spells?: string[],
 ): GameState {
   const state: GameState = {
     rngState: seed | 0,
@@ -35,8 +37,8 @@ export function createInitialState(
     humans,
     firstPlayer: "P1",
     players: {
-      P1: emptyPlayer(resolveDeck(p1Deck)),
-      P2: emptyPlayer(resolveDeck(p2Deck)),
+      P1: emptyPlayer(resolveDeck(p1Deck), p1Spells),
+      P2: emptyPlayer(resolveDeck(p2Deck), p2Spells),
     },
     cards: {},
     slots: Array.from({ length: BOARD_SIZE }, () =>
@@ -61,11 +63,12 @@ export function createInitialState(
   return state;
 }
 
-function emptyPlayer(deck: string[]): PlayerState {
+function emptyPlayer(deck: string[], spellIds?: string[]): PlayerState {
   return {
     deck,
     hand: [],
-    spellbook: spellbookFor(deck),
+    // A deck's hand-picked spellbook wins; otherwise derive one from its elements.
+    spellbook: spellIds && spellIds.length ? spellbookFromIds(spellIds) : spellbookFor(deck),
     summonPool: 0,
     magicPool: 0,
     mulliganDone: false,

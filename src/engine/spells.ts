@@ -8,7 +8,10 @@
 // deck — contained, and easy to migrate to same-deck later.
 
 import { getDef } from "../data/cards";
-import type { Element, SpellDef } from "./types";
+import type { Element, SpellDef, SpellSlot } from "./types";
+
+/** A custom spellbook holds at most this many spells (each castable once). */
+export const MAX_SPELLBOOK = 5;
 
 export const SPELLS: SpellDef[] = [
   // ───────── Cost 1 — small damage / support ─────────
@@ -71,6 +74,16 @@ export const SPELLS: SpellDef[] = [
     text: "Deal 3 DMG to a target and DRAIN 1 max HP to a DUSK ally.",
     dmg: 3,
     drainMaxHp: 1,
+  },
+  {
+    id: "aqua_frost_shard",
+    name: "Frost Shard",
+    element: "AQUA",
+    cost: 1,
+    kind: "damage",
+    text: "Deal 3 DMG to a target and FREEZE them for 1 round.",
+    dmg: 3,
+    status: { kind: "FREEZE", duration: 1, power: 0 },
   },
 
   // ───────── Cost 4 — Walls (row-level, trigger on movement in) ─────────
@@ -163,11 +176,28 @@ export function isSpell(id: string): boolean {
 }
 
 /** Build a player's spellbook from the elements present in their deck: every
- *  implemented spell whose element the deck plays, castable once. */
-export function spellbookFor(deck: string[]): { defId: string; used: boolean }[] {
+ *  implemented spell whose element the deck plays, castable once. This is the
+ *  default when a deck carries no hand-picked spellbook. */
+export function spellbookFor(deck: string[]): SpellSlot[] {
   const elements = new Set<Element>(deck.map((id) => getDef(id).element));
   return SPELLS.filter((s) => elements.has(s.element)).map((s) => ({
     defId: s.id,
     used: false,
   }));
+}
+
+/** Build a spellbook from an explicit, ordered list of spell ids (a deck's
+ *  custom spellbook). Unknown ids are dropped, duplicates removed, and the
+ *  result is capped at MAX_SPELLBOOK — so a bad/oversized saved book can never
+ *  break match setup. */
+export function spellbookFromIds(ids: string[]): SpellSlot[] {
+  const seen = new Set<string>();
+  const book: SpellSlot[] = [];
+  for (const id of ids) {
+    if (seen.has(id) || !isSpell(id)) continue;
+    seen.add(id);
+    book.push({ defId: id, used: false });
+    if (book.length >= MAX_SPELLBOOK) break;
+  }
+  return book;
 }

@@ -5,11 +5,13 @@
 // the deterministic engine reducer).
 
 import { CARDS, CARD_INDEX } from "./cards";
+import { isSpell, MAX_SPELLBOOK } from "../engine/spells";
 import type { CardDef } from "../engine/types";
 
 export const MIN_DECK = 12;
 export const MAX_DECK = 20;
 export const TARGET_DECK = 16;
+export const MAX_SPELLS = MAX_SPELLBOOK; // a deck's spellbook holds up to 5
 
 const STORAGE_KEY = "we_custom_decks_v1";
 
@@ -17,6 +19,21 @@ export interface CustomDeck {
   id: string;
   name: string;
   cards: string[]; // card ids (deck-eligible, no tokens, deduped)
+  spells?: string[]; // hand-picked spellbook (0–5 spell ids); absent = auto-from-elements
+}
+
+/** Sanitize a spellbook: keep only real, deduped spell ids, capped at MAX_SPELLS. */
+export function sanitizeSpells(ids: string[] | undefined): string[] {
+  if (!Array.isArray(ids)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of ids) {
+    if (typeof id !== "string" || seen.has(id) || !isSpell(id)) continue;
+    seen.add(id);
+    out.push(id);
+    if (out.length >= MAX_SPELLS) break;
+  }
+  return out;
 }
 
 /** Ready-to-play decks that ship with the game — curated dual-element builds
@@ -111,7 +128,11 @@ export function loadCustomDecks(): CustomDeck[] {
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter((d) => d && typeof d.id === "string" && typeof d.name === "string" && Array.isArray(d.cards))
-      .map((d) => ({ ...d, cards: d.cards.filter((id) => CARD_INDEX[id] && isBuildable(id)) }));
+      .map((d) => ({
+        ...d,
+        cards: d.cards.filter((id) => CARD_INDEX[id] && isBuildable(id)),
+        spells: sanitizeSpells(d.spells),
+      }));
   } catch {
     return [];
   }
@@ -132,10 +153,15 @@ function newDeckId(): string {
 }
 
 /** Insert or update a deck (matched by id). Returns the updated list. */
-export function saveCustomDeck(deck: { id?: string; name: string; cards: string[] }): CustomDeck[] {
+export function saveCustomDeck(deck: { id?: string; name: string; cards: string[]; spells?: string[] }): CustomDeck[] {
   const decks = loadCustomDecks();
   const id = deck.id ?? newDeckId();
-  const entry: CustomDeck = { id, name: deck.name.trim() || "Untitled deck", cards: deck.cards.slice() };
+  const entry: CustomDeck = {
+    id,
+    name: deck.name.trim() || "Untitled deck",
+    cards: deck.cards.slice(),
+    spells: sanitizeSpells(deck.spells),
+  };
   const idx = decks.findIndex((d) => d.id === id);
   if (idx >= 0) decks[idx] = entry;
   else decks.push(entry);

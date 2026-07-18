@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import type { CardClass, Element } from "../engine";
-import { getDef } from "../engine";
+import { getDef, SPELLS } from "../engine";
 import {
   buildableCards,
   deleteCustomDeck,
   loadCustomDecks,
   MAX_DECK,
+  MAX_SPELLS,
   MIN_DECK,
   saveCustomDeck,
   TARGET_DECK,
@@ -33,8 +34,10 @@ export function DeckBuilder(props: {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
+  const [pickedSpells, setPickedSpells] = useState<string[]>([]);
   const [filter, setFilter] = useState<Element | "ALL">("ALL");
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [spellsOpen, setSpellsOpen] = useState<boolean | null>(null);
   // Composition + Saved decks collapse to headers on phones so the card pool gets
   // the room (open on desktop, where there's a side column for them). Default
   // (null) follows the CURRENT viewport each render — evaluated live rather than
@@ -44,6 +47,7 @@ export function DeckBuilder(props: {
   const [savedOpen, setSavedOpen] = useState<boolean | null>(null);
   const compShown = compOpen ?? !phone;
   const savedShown = savedOpen ?? !phone;
+  const spellsShown = spellsOpen ?? !phone;
 
   const pool = useMemo(() => buildableCards(), []);
   const shown = filter === "ALL" ? pool : pool.filter((c) => c.element === filter);
@@ -72,19 +76,25 @@ export function DeckBuilder(props: {
   function toggle(id: string) {
     setPicked((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= MAX_DECK ? cur : [...cur, id]));
   }
+  // A deck's spellbook: up to MAX_SPELLS spells, castable once each in a match.
+  function toggleSpell(id: string) {
+    setPickedSpells((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= MAX_SPELLS ? cur : [...cur, id]));
+  }
   function reset() {
     setEditingId(null);
     setName("");
     setPicked([]);
+    setPickedSpells([]);
   }
   function loadForEdit(d: CustomDeck) {
     setEditingId(d.id);
     setName(d.name);
     setPicked(d.cards.slice());
+    setPickedSpells((d.spells ?? []).slice());
   }
   function save() {
     if (!check.ok) return;
-    const next = saveCustomDeck({ id: editingId ?? undefined, name, cards: picked });
+    const next = saveCustomDeck({ id: editingId ?? undefined, name, cards: picked, spells: pickedSpells });
     setDecks(next);
     props.onChange(next);
     reset();
@@ -98,6 +108,17 @@ export function DeckBuilder(props: {
 
   const countColor = check.ok ? "var(--legal)" : picked.length > MAX_DECK ? "var(--threat)" : "var(--muted)";
   const detail = detailId ? getDef(detailId) : null;
+
+  // Spell picker order: spells whose element the deck plays float to the top
+  // (their ally riders will actually land), then by cost, then name.
+  const deckEls = new Set(picked.map((id) => getDef(id).element));
+  const sortedSpells = [...SPELLS].sort((a, b) => {
+    const ai = deckEls.has(a.element) ? 0 : 1;
+    const bi = deckEls.has(b.element) ? 0 : 1;
+    if (ai !== bi) return ai - bi;
+    if (a.cost !== b.cost) return a.cost - b.cost;
+    return a.name.localeCompare(b.name);
+  });
 
   return (
     <div className="overlay" onClick={props.onClose}>
@@ -180,6 +201,43 @@ export function DeckBuilder(props: {
               </div>
             )}
 
+            {/* Spellbook — up to 5 spells this deck carries into a match (each
+                castable once). None picked = the engine auto-fills one from the
+                deck's elements, exactly as before. */}
+            <div className="db-spells">
+              <button className="db-spells-h db-collapse" onClick={() => setSpellsOpen(!spellsShown)}>
+                <span>Spellbook · {pickedSpells.length}/{MAX_SPELLS}</span>
+                <span className="db-chev">{spellsShown ? "▾" : "▸"}</span>
+              </button>
+              {spellsShown && (<>
+                <div className="db-spell-hint">
+                  {pickedSpells.length === 0
+                    ? "None picked — auto-filled from your deck's elements at match start."
+                    : "Tap a spell to add or remove it. Off-element ally riders simply fizzle."}
+                </div>
+                <div className="db-spell-grid">
+                  {sortedSpells.map((s) => {
+                    const on = pickedSpells.includes(s.id);
+                    const full = !on && pickedSpells.length >= MAX_SPELLS;
+                    return (
+                      <button
+                        key={s.id}
+                        className={`db-spell ${on ? "on" : ""}`}
+                        style={{ ["--el" as string]: EL_COLOR[s.element] }}
+                        disabled={full}
+                        title={`${s.name} (cost ${s.cost} · ${s.element}) — ${s.text}`}
+                        onClick={() => toggleSpell(s.id)}
+                      >
+                        <span className="db-spell-cost">{s.cost}</span>
+                        <span className="db-spell-name">{s.name}</span>
+                        <span className="db-spell-mark">{on ? "✓" : "+"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>)}
+            </div>
+
             <div className="db-saved">
               <button className="db-saved-h db-collapse" onClick={() => setSavedOpen(!savedShown)}>
                 <span>Saved decks{decks.length ? ` (${decks.length})` : ""}</span>
@@ -191,7 +249,7 @@ export function DeckBuilder(props: {
                 <div key={d.id} className={`db-saved-row ${editingId === d.id ? "on" : ""}`}>
                   <button className="db-load" onClick={() => loadForEdit(d)} title="Edit this deck">
                     <b>{d.name}</b>
-                    <span>{d.cards.length} cards</span>
+                    <span>{d.cards.length} cards{d.spells && d.spells.length ? ` · ${d.spells.length} spells` : ""}</span>
                   </button>
                   <button className="db-del" title="Delete" onClick={() => remove(d.id)}>🗑</button>
                 </div>
