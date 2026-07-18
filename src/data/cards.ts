@@ -1948,8 +1948,8 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "SeaC",
-    // From the Deep: first time it drops to ≤8 HP, permanent +3 DMG/+3 SP/+3 shield.
-    onLowHp: { threshold: 9, buffDmg: 3, buffSp: 3, gainShields: 3 },
+    // From the Deep: first time it drops to ≤16 HP, permanent +3 DMG/+3 SP/+3 shield.
+    onLowHp: { threshold: 17, buffDmg: 3, buffSp: 3, gainShields: 3 },
     // Aura: SeaC allies gain +4 max HP.
     aura: { scope: "tribe", match: "SeaC", maxHp: 4 },
     special: {
@@ -2657,7 +2657,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "pyro_bbq",
-    name: "BBQ",
+    name: "Grill",
     rarity: "rare",
     element: "PYRO",
     cardClass: "Tank",

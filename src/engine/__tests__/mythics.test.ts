@@ -125,11 +125,11 @@ describe("Imperator — Strike of Dawn", () => {
 });
 
 describe("Kraken — From the Deep", () => {
-  it("surges once (+3 DMG/+3 SP/+3 shield) when first dropping to ≤8 HP", () => {
+  it("surges once (+3 DMG/+3 SP/+3 shield) when first dropping to ≤16 HP", () => {
     const s = prepState();
-    const kraken = place(s, "aqua_kraken", "P1", 2, 0, { curHp: 10, maxHp: 42, curShields: 0 });
+    const kraken = place(s, "aqua_kraken", "P1", 2, 0, { curHp: 20, maxHp: 42, curShields: 0 });
     const src = place(s, "leaf_alpha", "P2", 1, 0);
-    directDamage(s, src, kraken, 5, false); // 10 → 5, crosses the threshold
+    directDamage(s, src, kraken, 5, false); // 20 → 15, crosses the ≤16 threshold
     expect(s.cards[kraken.instanceId].dmgBonus).toBe(3);
     expect(s.cards[kraken.instanceId].spBonus).toBe(3);
     expect(s.cards[kraken.instanceId].curShields).toBe(3);
@@ -149,13 +149,13 @@ describe("Kraken — From the Deep", () => {
   it("Black Wave Crash pays 5 HP and can trip From the Deep itself", () => {
     const s = prepState();
     s.players.P1.magicPool = 6;
-    const kraken = place(s, "aqua_kraken", "P1", 2, 0, { curHp: 12, maxHp: 42, curShields: 0 });
+    const kraken = place(s, "aqua_kraken", "P1", 2, 0, { curHp: 20, maxHp: 42, curShields: 0 });
     const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     const next = applyIntent(battleWith(s, kraken.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
     });
     const k = next.cards[kraken.instanceId];
-    expect(k.curHp).toBe(7); // 12 − 5 self-cost (surge grants shields, not HP)
+    expect(k.curHp).toBe(15); // 20 − 5 self-cost drops it past 16 (surge grants shields, not HP)
     expect(k.curShields).toBe(3); // From the Deep tripped by the self-cost
     expect(k.dmgBonus).toBe(3);
   });
