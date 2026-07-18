@@ -280,3 +280,55 @@ describe("double-duty wall ally buffs", () => {
     expect(s.cards[dawnAlly.instanceId].curHp).toBe(16);
   });
 });
+
+describe("expansion spells (cost 3/5/7)", () => {
+  it("Vortex Strike (cost 7): 10 PEN straight through shields + STUN 1", () => {
+    const s = prepState();
+    armSpell(s, "gale_vortex_strike", 7);
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 15, maxHp: 15, curShields: 4 });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "gale_vortex_strike", targetId: foe.instanceId });
+    expect(next.cards[foe.instanceId].curHp).toBe(5); // 10 PEN to HP
+    expect(next.cards[foe.instanceId].curShields).toBe(4); // shields untouched
+    expect(statusOf(next.cards[foe.instanceId], "STUN")).toBeTruthy();
+    expect(next.players.P1.magicPool).toBe(0);
+  });
+
+  it("Soul Rend (cost 7): 10 PEN + DRAIN 3 max HP to a DUSK ally", () => {
+    const s = prepState();
+    armSpell(s, "dusk_soul_rend", 7);
+    const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 14, maxHp: 14, curShields: 0 });
+    const ally = place(s, "dusk_vamp", "P1", 3, 0, { curHp: 6, maxHp: 6 });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dusk_soul_rend", targetId: foe.instanceId });
+    expect(next.cards[foe.instanceId].curHp).toBe(4); // 14 − 10 PEN
+    expect(next.cards[foe.instanceId].maxHp).toBe(11); // −3 max HP
+    expect(next.cards[ally.instanceId].maxHp).toBe(9); // +3 max HP stolen
+  });
+
+  it("Bulwark (cost 3): +3 shield to a BORE ally", () => {
+    const s = prepState();
+    armSpell(s, "bore_bulwark", 3);
+    const ally = place(s, "bore_armadillo", "P1", 3, 0, { curShields: 0 });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bore_bulwark" });
+    expect(next.cards[ally.instanceId].curShields).toBe(3);
+  });
+
+  it("Shadow Step (cost 3): cloaks a DUSK ally in EVASION for 2 rounds", () => {
+    const s = prepState();
+    armSpell(s, "dusk_shadow_step", 3);
+    const ally = place(s, "dusk_vamp", "P1", 3, 0);
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dusk_shadow_step" });
+    expect(statusOf(next.cards[ally.instanceId], "EVASION")?.duration).toBe(2);
+  });
+
+  it("Fortify (cost 5): +2 shield to EVERY BORE ally, sparing other elements", () => {
+    const s = prepState();
+    armSpell(s, "bore_fortify", 5);
+    const a = place(s, "bore_armadillo", "P1", 3, 0, { curShields: 0 });
+    const b = place(s, "bore_clubber", "P1", 3, 1, { curShields: 2 });
+    const off = place(s, "leaf_alpha", "P1", 3, 2, { curShields: 0 }); // not BORE
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bore_fortify" });
+    expect(next.cards[a.instanceId].curShields).toBe(2);
+    expect(next.cards[b.instanceId].curShields).toBe(4);
+    expect(next.cards[off.instanceId].curShields).toBe(0); // spared
+  });
+});

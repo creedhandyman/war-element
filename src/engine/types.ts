@@ -497,10 +497,15 @@ export interface SpellDef {
   pen?: boolean;
   status?: { kind: StatusKind; duration: number; power: number }; // onto the enemy target
   push?: number; // push the enemy target back N (if open)
-  // ── ally rider / heal (auto-picked ally of the spell's element) ──
+  // ── ally rider / support (auto-picked ally of the spell's element) ──
   allyShield?: number;
   allyHeal?: number;
   allyHealIfRooted?: number; // heal this instead when any opponent is ROOTed
+  allySp?: number; // grant the ally +N SP (Tailwind)
+  allyStatus?: { kind: StatusKind; duration: number; power: number }; // e.g. EVASION (Shadow Step)
+  /** Apply the ally rider(s) to EVERY living ally of the spell's element instead
+   *  of a single auto-picked one (Fortify, team heals). */
+  allAllies?: boolean;
   drainMaxHp?: number; // steal N max HP from the enemy target → an ally
   // ── wall spells (need a target row) ──
   wall?: {

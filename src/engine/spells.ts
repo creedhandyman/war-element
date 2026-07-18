@@ -169,6 +169,81 @@ export const SPELLS: SpellDef[] = [
     text: "A wall of light across a row for 3 rounds. A card that MOVES in takes 2 DMG and is BLINDed 1 round. DAWN allies in the row take 1 less DMG from all attacks. Ranged attacks and FLYING cards pass over.",
     wall: { dmg: 2, status: { kind: "BLIND", duration: 1, power: 0 }, allyBuff: { dmgReduction: 1 }, rounds: 3 },
   },
+
+  // ───────── Cost 3 — ally support (auto-targets an ally of the element) ─────────
+  {
+    id: "bore_bulwark",
+    name: "Bulwark",
+    element: "BORE",
+    cost: 3,
+    kind: "heal",
+    text: "Give a BORE ally +3 shield.",
+    allyShield: 3,
+  },
+  {
+    id: "gale_tailwind",
+    name: "Tailwind",
+    element: "GALE",
+    cost: 3,
+    kind: "heal",
+    text: "Give a GALE ally +5 SP (jumps it up the Speed queue).",
+    allySp: 5,
+  },
+  {
+    id: "dusk_shadow_step",
+    name: "Shadow Step",
+    element: "DUSK",
+    cost: 3,
+    kind: "heal",
+    text: "Cloak a DUSK ally in EVASION for 2 rounds.",
+    allyStatus: { kind: "EVASION", duration: 2, power: 0 },
+  },
+
+  // ───────── Cost 5 — team defense ─────────
+  {
+    id: "bore_fortify",
+    name: "Fortify",
+    element: "BORE",
+    cost: 5,
+    kind: "heal",
+    text: "Give ALL BORE allies +2 shield.",
+    allyShield: 2,
+    allAllies: true,
+  },
+
+  // ───────── Cost 7 — anti-shield strikes (10 PEN, ignore shields) ─────────
+  {
+    id: "gale_vortex_strike",
+    name: "Vortex Strike",
+    element: "GALE",
+    cost: 7,
+    kind: "damage",
+    text: "Deal 10 DMG (PEN) to a target and STUN them for 1 round.",
+    dmg: 10,
+    pen: true,
+    status: { kind: "STUN", duration: 1, power: 0 },
+  },
+  {
+    id: "bore_shatterpoint",
+    name: "Shatterpoint",
+    element: "BORE",
+    cost: 7,
+    kind: "damage",
+    text: "Deal 10 DMG (PEN) to a target — ignores shields entirely.",
+    dmg: 10,
+    pen: true,
+  },
+  {
+    id: "dusk_soul_rend",
+    name: "Soul Rend",
+    element: "DUSK",
+    cost: 7,
+    kind: "damage",
+    text: "Deal 10 DMG (PEN) to a target and DRAIN 3 max HP to a DUSK ally.",
+    dmg: 10,
+    pen: true,
+    drainMaxHp: 3,
+  },
 ];
 
 export const SPELL_INDEX: Record<string, SpellDef> = Object.fromEntries(

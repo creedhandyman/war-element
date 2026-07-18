@@ -288,15 +288,26 @@ function resolveSpell(
   }
 
   if (spell.kind === "heal") {
-    const ally = pickSpellAlly(draft, player, spell.element);
-    if (!ally) {
-      draft.log.push(`${spell.name} fizzles — no ${spell.element} ally to heal.`);
+    // Support spell: heal / shield / +SP / grant a status to a single auto-picked
+    // element ally, or to EVERY living element ally (allAllies).
+    const targets = spell.allAllies
+      ? boardCards(draft, player).filter((c) => c.curHp > 0 && getDef(c.defId).element === spell.element)
+      : [pickSpellAlly(draft, player, spell.element)].filter((a): a is CardInstance => a != null);
+    if (targets.length === 0) {
+      draft.log.push(`${spell.name} fizzles — no ${spell.element} ally.`);
       return;
     }
     const rooted = boardCards(draft, enemyOf(player)).some((c) => hasStatus(c, "ROOT"));
-    const amt = rooted && spell.allyHealIfRooted ? spell.allyHealIfRooted : spell.allyHeal ?? 0;
-    const healed = healCard(draft, ally, amt);
-    draft.log.push(`${label(draft, ally)} heals ${healed} HP.`);
+    const healAmt = rooted && spell.allyHealIfRooted ? spell.allyHealIfRooted : spell.allyHeal ?? 0;
+    for (const ally of targets) {
+      if (healAmt > 0) healCard(draft, ally, healAmt);
+      if (spell.allyShield) ally.curShields += spell.allyShield;
+      if (spell.allySp) ally.spBonus += spell.allySp;
+      if (spell.allyStatus)
+        applyStatus(draft, ally, spell.allyStatus.kind, spell.allyStatus.duration, spell.allyStatus.power, spell.element);
+    }
+    const who = targets.length === 1 ? label(draft, targets[0]) : `${targets.length} ${spell.element} allies`;
+    draft.log.push(`${spell.name} bolsters ${who}.`);
     return;
   }
 
