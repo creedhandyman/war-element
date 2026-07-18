@@ -12,7 +12,7 @@ import {
   validateDeck,
   type CustomDeck,
 } from "../data/custom-decks";
-import { EL_COLOR, RARITY_STYLE } from "./shared";
+import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { chipify, describePassives } from "./CardDetail";
 import { SpIcon } from "./icons";
 
@@ -237,7 +237,10 @@ export function DeckBuilder(props: {
                     />
                     <div className="dt-top">
                       <span className="dt-cost">{d.cost}</span>
-                      <span className="el-dot" style={{ background: EL_COLOR[d.element] }} />
+                      <span className="dt-el" title={d.element} style={{ borderColor: EL_COLOR[d.element] }}>
+                        <img src={EL_ICON[d.element]} alt={d.element} draggable={false}
+                          onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                      </span>
                       <div className="dt-tr">
                         {rar && (
                           <span className="dt-rarity" style={{ color: rar.color, borderColor: rar.color }}>
@@ -280,6 +283,10 @@ export function DeckBuilder(props: {
                   onError={(e) => { e.currentTarget.style.display = "none"; }}
                 />
                 <span className="dbd-cost">{detail.cost}</span>
+                <span className="dbd-el-badge" title={detail.element} style={{ borderColor: EL_COLOR[detail.element] }}>
+                  <img src={EL_ICON[detail.element]} alt={detail.element} draggable={false}
+                    onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                </span>
               </div>
               <div className="dbd-meta">
                 <div className="dbd-name">{detail.name}</div>

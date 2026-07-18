@@ -40,7 +40,7 @@ import { ResourcePool } from "./ResourcePool";
 import { SpeedQueue } from "./SpeedQueue";
 import { SpellTray } from "./SpellTray";
 import { WinScreen } from "./WinScreen";
-import { EL_COLOR, type PendingBattle, type Selection } from "./shared";
+import { EL_COLOR, EL_ICON, type PendingBattle, type Selection } from "./shared";
 
 function newSeed(): number {
   return (Math.random() * 0x7fffffff) | 0;
@@ -1357,7 +1357,10 @@ export function App() {
                             />
                             <div className="dt-top">
                               <span className="dt-cost">{d.cost}</span>
-                              <span className="el-dot" style={{ background: EL_COLOR[d.element] }} />
+                              <span className="dt-el" title={d.element} style={{ borderColor: EL_COLOR[d.element] }}>
+                                <img src={EL_ICON[d.element]} alt={d.element} draggable={false}
+                                  onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                              </span>
                             </div>
                             <div className="dt-name">{d.name}</div>
                             <div className="dt-stats">

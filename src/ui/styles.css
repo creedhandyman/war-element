@@ -325,6 +325,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .tk-top { display: flex; align-items: center; gap: 4px; }
 .tk-cost { width: 19px; height: 19px; flex: none; border-radius: 50%; background: rgba(0, 0, 0, 0.5); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
 .el-dot { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+/* Element logo badge on deck-builder card thumbnails (mirrors the hand sigil). */
+.dt-el { width: 18px; height: 18px; flex: none; border-radius: 50%; overflow: hidden; border: 1.5px solid; background: #0d0c14; display: grid; place-items: center; }
+.dt-el img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .tk-name { flex: 1; min-width: 0; font-size: 12px; font-weight: 800; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px #000, 0 0 3px #000; }
 .tk-class { font-size: 8.5px; font-weight: 700; letter-spacing: 0.05em; color: var(--ink-dim); text-shadow: 0 1px 2px #000; margin-bottom: 2px; }
 .tk-stats { display: flex; gap: 3px; font-size: 12.5px; font-weight: 800; flex-wrap: wrap; }
@@ -769,6 +772,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .dbd-art { width: 92px; height: 122px; flex: none; border-radius: 10px; border: 2px solid; overflow: hidden; position: relative; background: linear-gradient(160deg, #243250, #1a2136); }
 .dbd-art img { width: 100%; height: 100%; object-fit: cover; }
 .dbd-cost { position: absolute; top: 5px; left: 5px; width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,0.6); display: grid; place-items: center; font-size: 12px; font-weight: 900; }
+.dbd-el-badge { position: absolute; top: 5px; right: 5px; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; border: 2px solid; background: #0d0c14; }
+.dbd-el-badge img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .dbd-meta { flex: 1; min-width: 0; }
 .dbd-name { font-size: 20px; font-weight: 900; line-height: 1.1; }
 .dbd-sub { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; font-size: 11px; color: var(--ink-dim); font-weight: 700; }
