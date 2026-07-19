@@ -9,6 +9,7 @@ import type {
   AuraBonusDef,
   CardDef,
   CardInstance,
+  FieldBuff,
   GameState,
   PlayerId,
   PlayerState,
@@ -48,6 +49,7 @@ export function createInitialState(
     prep: null,
     battle: null,
     walls: [],
+    fields: [],
     pendingFlow: null,
     win: null,
     log: [],
@@ -218,13 +220,22 @@ export function auraShieldBonus(state: GameState, card: CardInstance): number {
   return bonus;
 }
 
+/** The value of a Field buff flag currently boosting this card: from an active
+ *  Field owned by the card's controller whose element matches the card's (0 if
+ *  none). One field per owner, so at most one can match. */
+export function fieldBonus(state: GameState, card: CardInstance, key: keyof FieldBuff): number {
+  const el = getDef(card.defId).element;
+  const f = state.fields.find((fs) => fs.owner === card.owner && fs.element === el);
+  return f ? (f[key] ?? 0) : 0;
+}
+
 export function effectiveSp(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   if (hasStatus(card, "ROOT") || hasStatus(card, "FREEZE")) return 0;
   const buffSp = (card.buffs ?? []).reduce((n, b) => n + b.sp, 0);
   return Math.max(
     0,
-    def.sp + (card.spBonus ?? 0) + (card.spBonusRound ?? 0) + buffSp + auraBonus(state, card, "sp"),
+    def.sp + (card.spBonus ?? 0) + (card.spBonusRound ?? 0) + buffSp + auraBonus(state, card, "sp") + fieldBonus(state, card, "sp"),
   );
 }
 
@@ -237,7 +248,7 @@ export function effectiveSp(state: GameState, card: CardInstance): number {
 export function effectiveDmg(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   const buffDmg = (card.buffs ?? []).reduce((n, b) => n + b.dmg, 0);
-  let dmg = def.dmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0) + buffDmg + auraBonus(state, card, "dmg");
+  let dmg = def.dmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0) + buffDmg + auraBonus(state, card, "dmg") + fieldBonus(state, card, "dmgBonus");
   // High Speed Impact (Hawk): +1 DMG for each point of SP above 10.
   if (def.highSpeedImpact) dmg += Math.max(0, effectiveSp(state, card) - 10);
   if (hasStatus(card, "WEAKEN")) dmg = Math.floor(dmg * 0.75);

@@ -14,6 +14,7 @@ import {
   drawCards,
   effectiveDmg,
   effectiveSp,
+  fieldBonus,
   hasCaptureWin,
   hasStatus,
   auraShieldBonus,
@@ -303,6 +304,14 @@ function resolveSpell(
       if (!e.pos || e.pos.row !== row || getDef(e.defId).keywords.FLYING) continue;
       applyWall(draft, e, wall);
     }
+    return;
+  }
+
+  if (spell.kind === "field" && spell.field) {
+    // Board-wide terrain: buffs the caster's element allies for a few rounds.
+    const { rounds, ...buff } = spell.field;
+    draft.fields.push({ owner: player, spellId: spell.id, element: spell.element, roundsLeft: rounds, ...buff });
+    draft.log.push(`${spell.name} blankets the battlefield for ${rounds} rounds.`);
     return;
   }
 
@@ -934,6 +943,12 @@ function doCleanupPhase(draft: GameState): void {
     if (def.element === "LEAF") healCard(draft, card, 1);
     // Zephyr (GALE): +1 SP each round, total capped at 21.
     if (def.element === "GALE" && def.sp + card.spBonus < GALE_SP_CAP) card.spBonus += 1;
+    // Field per-round buffs: REGEN (Lushfield/Blazing Sun), shields (Downpour).
+    const fRegen = fieldBonus(draft, card, "regen");
+    if (fRegen > 0 && healCard(draft, card, fRegen) > 0)
+      draft.log.push(`${label(draft, card)} draws +${fRegen} HP from the field.`);
+    const fShield = fieldBonus(draft, card, "shield");
+    if (fShield > 0) card.curShields += fShield;
     // Shield auras (The DEEPEST's Pressure): top up to printed + aura shields.
     const shieldBonus = auraShieldBonus(draft, card);
     if (shieldBonus > 0) card.curShields = Math.max(card.curShields, def.shields + shieldBonus);
@@ -952,6 +967,12 @@ function doCleanupPhase(draft: GameState): void {
   const fallen = draft.walls.filter((w) => w.roundsLeft <= 0);
   for (const w of fallen) draft.log.push(`${getSpell(w.spellId).name} fades from row ${w.row}.`);
   draft.walls = draft.walls.filter((w) => w.roundsLeft > 0);
+
+  // 3c. Fields decay a round; expired ones lift.
+  for (const f of draft.fields) f.roundsLeft--;
+  for (const f of draft.fields.filter((f) => f.roundsLeft <= 0))
+    draft.log.push(`${getSpell(f.spellId).name} fades from the battlefield.`);
+  draft.fields = draft.fields.filter((f) => f.roundsLeft > 0);
 
   // 4. Clear round flags (STEALTH re-engages; summon lockout ends;
   //    special cooldowns tick down; per-round DMG buffs + hit tracking reset).

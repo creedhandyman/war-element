@@ -217,6 +217,30 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Two walls on one row (both players): nudge the labels apart. */
 .wallmark.mine { left: 30%; }
 .wallmark.enemy { left: 70%; }
+
+/* Fields (Cost-6 terrain): a board-wide elemental haze framed like a wall.
+   Screen-blended + moderate opacity so cards stay readable through the wash. */
+.fieldhaze {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none; border-radius: 16px;
+  mix-blend-mode: screen; animation: fieldpulse 3.6s ease-in-out infinite;
+  background:
+    radial-gradient(125% 90% at 50% 45%, color-mix(in srgb, var(--el) 30%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--el) 14%, transparent), transparent 55%);
+  box-shadow:
+    inset 0 0 70px color-mix(in srgb, var(--el) 32%, transparent),
+    inset 0 0 0 2px color-mix(in srgb, var(--el) 50%, transparent);
+}
+@keyframes fieldpulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.9; } }
+.fieldmark {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  pointer-events: auto; z-index: 6;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.02em; white-space: nowrap;
+  padding: 2px 9px; border-radius: 999px;
+  background: rgba(4, 4, 8, 0.85); border: 1.5px solid currentColor;
+  box-shadow: 0 0 12px color-mix(in srgb, currentColor 50%, transparent);
+}
+.fieldhaze.mine .fieldmark { bottom: 8px; }
+.fieldhaze.enemy .fieldmark { top: 8px; }
 /* Each slot IS a carved-stone tile: a stone face, a faint arcane compass sigil,
    and a glowing edge in its row's colour. --tile drives the row hue. */
 .slot {

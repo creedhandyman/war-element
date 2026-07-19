@@ -394,6 +394,84 @@ export const SPELLS: SpellDef[] = [
     dmg: 8,
     doubleIf: "BLIND",
   },
+
+  // ─────────────── FIELDS (Cost 6, board-wide terrain, 3 rounds) ───────────────
+  // The mirror of a Wall: empowers the caster's SAME-element allies. This pass
+  // implements each field's CORE buff; the fiddly secondary riders (BURN-persist,
+  // −1 special cost, see-STEALTH, Flow re-choose, DRAIN+1, first-hit EVASION,
+  // status-duration +1) are deferred — noted per field below.
+  {
+    id: "leaf_lushfield",
+    name: "Lushfield",
+    element: "LEAF",
+    cost: 6,
+    kind: "field",
+    text: "Field (3 rounds): your LEAF allies REGEN 2 HP each round.",
+    field: { rounds: 3, regen: 2 }, // (defer: BLEED/ROOT last +1 round)
+  },
+  {
+    id: "aqua_downpour",
+    name: "Downpour",
+    element: "AQUA",
+    cost: 6,
+    kind: "field",
+    text: "Field (3 rounds): your AQUA allies gain +2 shield each round.",
+    field: { rounds: 3, shield: 2 }, // (defer: re-pick Flow Change each round)
+  },
+  {
+    id: "pyro_heatwave",
+    name: "Heatwave",
+    element: "PYRO",
+    cost: 6,
+    kind: "field",
+    text: "Field (3 rounds): your PYRO allies deal +2 DMG.",
+    field: { rounds: 3, dmgBonus: 2 }, // (defer: BURN never expires)
+  },
+  {
+    id: "gale_jetstream",
+    name: "Jetstream",
+    element: "GALE",
+    cost: 6,
+    kind: "field",
+    text: "Field (3 rounds): your GALE allies gain +3 SP.",
+    field: { rounds: 3, sp: 3 }, // (defer: knockback +1 space)
+  },
+  {
+    id: "bolt_power_grid",
+    name: "Power Grid",
+    element: "BOLT",
+    cost: 6,
+    kind: "field",
+    text: "Field (3 rounds): your BOLT allies gain +2 SP.",
+    field: { rounds: 3, sp: 2 }, // stand-in (defer: Specials −1 cost, Electrify +2)
+  },
+  {
+    id: "bore_bedrock",
+    name: "Bedrock",
+    element: "BORE",
+    cost: 6,
+    kind: "field",
+    text: "Field (3 rounds): your BORE allies gain BLOCK 1 and REFLECT 1.",
+    field: { rounds: 3, block: 1, reflect: 1 }, // full effect
+  },
+  {
+    id: "dusk_nightfall",
+    name: "Nightfall",
+    element: "DUSK",
+    cost: 6,
+    kind: "field",
+    text: "Field (3 rounds): your DUSK allies gain REFLECT 1.",
+    field: { rounds: 3, reflect: 1 }, // stand-in (defer: DRAIN +1, first-hit EVASION)
+  },
+  {
+    id: "dawn_blazing_sun",
+    name: "Blazing Sun",
+    element: "DAWN",
+    cost: 6,
+    kind: "field",
+    text: "Field (3 rounds): your DAWN allies heal 2 HP each round.",
+    field: { rounds: 3, regen: 2 }, // (defer: +100% accuracy, see/target STEALTH)
+  },
 ];
 
 export const SPELL_INDEX: Record<string, SpellDef> = Object.fromEntries(

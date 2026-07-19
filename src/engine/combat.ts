@@ -15,7 +15,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
 import { creditDamage, creditKill } from "./stats";
-import { auraHasPen, boardCards, cardAt, effectiveDmg, effectiveMaxHp, effectiveSp, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, boardCards, cardAt, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardInstance,
   Element,
@@ -294,7 +294,7 @@ export function resolveHit(
     // Incinerate ramp: +1 per consecutive landed hit on this target (this volley
     // + hits already landed on it this round).
     if (opts.incinerate) remaining += (opts.incinerateBase ?? 0) + result.landedHits;
-    const block = Number(tDef.keywords.BLOCK ?? 0) + wallFlatReduction(draft, target);
+    const block = Number(tDef.keywords.BLOCK ?? 0) + wallFlatReduction(draft, target) + fieldBonus(draft, target, "block");
     if (block > 0) remaining = Math.max(0, remaining - block);
 
     // 3. Shield gate.
@@ -331,7 +331,7 @@ export function resolveHit(
     result.totalToHp += toHp;
 
     // 5 (per landed hit). REFLECT accumulates; resolved after the volley.
-    const reflect = Number(tDef.keywords.REFLECT ?? 0);
+    const reflect = Number(tDef.keywords.REFLECT ?? 0) + fieldBonus(draft, target, "reflect");
     if (reflect > 0 && opts.kind !== "reflect") reflectBack += reflect;
   }
 
@@ -726,7 +726,7 @@ export function spellHit(
   if (!t || t.curHp <= 0) return false;
   const tDef = getDef(t.defId);
   let remaining = dmg;
-  const block = Number(tDef.keywords.BLOCK ?? 0) + wallFlatReduction(draft, t);
+  const block = Number(tDef.keywords.BLOCK ?? 0) + wallFlatReduction(draft, t) + fieldBonus(draft, t, "block");
   if (block > 0) remaining = Math.max(0, remaining - block); // BLOCK applies even to PEN
   let toHp: number;
   if (pen) {

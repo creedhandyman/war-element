@@ -464,7 +464,9 @@ export interface HandCard {
 // (Chill: an attack on a foe, or a shield on an ally). It reuses the damage
 // fields (dmg/status) for the attack mode and allyShield for the shield mode;
 // the CAST_SPELL intent's `mode` picks which.
-export type SpellKind = "damage" | "heal" | "wall" | "aoe" | "choice";
+// "field" = a Cost-6 board-wide terrain buff (the mirror of a Wall): no target,
+// empowers the caster's SAME-element allies for a few rounds. See FieldState.
+export type SpellKind = "damage" | "heal" | "wall" | "aoe" | "choice" | "field";
 
 /** A row-level "wall" laid down by a Cost-4 spell. Occupies no slot; triggers
  *  only when an ENEMY card MOVES into its row (ranged attacks pass through). */
@@ -489,6 +491,28 @@ export interface WallState {
   roundsLeft: number;
 }
 
+/** A Cost-6 Field's buffs, granted to the caster's SAME-element allies while
+ *  it's up. Per-round (applied at Cleanup): `regen` heals, `shield` adds armor.
+ *  Passive-while-up (read live by the effective-stat / combat helpers):
+ *  `sp`, `dmgBonus`, `block`, `reflect`. */
+export interface FieldBuff {
+  regen?: number;
+  shield?: number;
+  sp?: number;
+  dmgBonus?: number;
+  block?: number;
+  reflect?: number;
+}
+
+/** A live board-wide Field (the mirror of a WallState). No slot/row; buffs the
+ *  owner's element allies for `roundsLeft` rounds, then lifts at Cleanup. */
+export interface FieldState extends FieldBuff {
+  owner: PlayerId;
+  spellId: string;
+  element: Element;
+  roundsLeft: number;
+}
+
 export interface SpellDef {
   id: string;
   name: string;
@@ -496,6 +520,8 @@ export interface SpellDef {
   cost: number;
   kind: SpellKind;
   text: string;
+  /** Field spells (kind "field"): the board-wide buff + how long it lasts. */
+  field?: FieldBuff & { rounds: number };
   // ── damage spells (need an enemy target) ──
   dmg?: number;
   pen?: boolean;
@@ -630,6 +656,8 @@ export interface GameState {
   battle: BattleState | null;
   /** Active row-level Walls (Cost-4 spells). Empty until a wall is cast. */
   walls: WallState[];
+  /** Active board-wide Fields (Cost-6 spells). Empty until a field is cast. */
+  fields: FieldState[];
   /** A human just summoned an AQUA card and must pick its Flow Change buff
    *  (instanceId). AI summons resolve immediately, so this only gates humans. */
   pendingFlow: string | null;

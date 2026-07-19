@@ -59,6 +59,25 @@ export function Board(props: {
         <span className="crest-bar" />
       </div>
       <div className="board">
+        {/* Fields (Cost-6 terrain) — a board-wide haze in the element colour,
+            framed like a wall. pointer-events:none so slots stay clickable. */}
+        {game.fields.map((f) => {
+          const spell = getSpell(f.spellId);
+          const color = EL_COLOR[f.element];
+          const tip = `${spell.name} (${f.owner === "P1" ? "yours" : "enemy"}) — ${spell.text} · ${f.roundsLeft} round(s) left`;
+          return (
+            <div
+              key={f.owner + f.spellId}
+              className={`fieldhaze ${f.owner === "P1" ? "mine" : "enemy"}`}
+              style={{ ["--el" as string]: color }}
+              title={tip}
+            >
+              <span className="fieldmark" style={{ borderColor: color, color }} title={tip}>
+                {spell.name} · {f.roundsLeft}
+              </span>
+            </div>
+          );
+        })}
         {rows.map((row) => (
           <div className="brow" key={row} data-row={row}>
             {game.walls

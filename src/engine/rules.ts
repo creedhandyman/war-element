@@ -470,6 +470,12 @@ export function canCastSpell(
       return { ok: false, reason: "No row behind that one" };
     return { ok: true };
   }
+  if (spell.kind === "field") {
+    // Board-wide, no target. One Field per owner at a time.
+    if (state.fields.some((f) => f.owner === player))
+      return { ok: false, reason: "You already have a Field active" };
+    return { ok: true };
+  }
   if (spell.kind === "damage") {
     if (!opts.targetId) return { ok: false, reason: "Pick a target" };
     const target = state.cards[opts.targetId];
