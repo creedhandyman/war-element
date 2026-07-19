@@ -150,7 +150,10 @@ function auraMatches(a: AuraBonusDef, holderDef: CardDef, targetDef: CardDef): b
   switch (a.scope) {
     case "all": return true;
     case "element": return targetDef.element === holderDef.element;
-    case "tribe": return targetDef.tribe != null && targetDef.tribe === a.match;
+    // A card can carry more than one tribe (Ravven is Dark AND Avian), so it
+    // answers to either tribe's aura.
+    case "tribe": return targetDef.tribe != null && a.match != null &&
+      (Array.isArray(targetDef.tribe) ? targetDef.tribe.includes(a.match) : targetDef.tribe === a.match);
     case "class": return targetDef.cardClass === a.match;
     default: return false;
   }

@@ -203,6 +203,12 @@ export function describePassives(def: CardDef): string[] {
     const bits = [o.dmg && `${o.dmg} DMG`, o.status && o.status.kind].filter(Boolean).join(" + ");
     passives.push(`When an enemy is summoned within range, hits it with ${bits}.`);
   }
+  if (def.critStatus)
+    passives.push(
+      `Any CRIT it lands applies ${def.critStatus.kind} for ${def.critStatus.duration} round${def.critStatus.duration > 1 ? "s" : ""}.`,
+    );
+  if (def.evasionEnemySideOnly)
+    passives.push("Shadow Haunter: its EVASION is live only while it stands on the opponent's battlefield.");
   if (def.onHitZap)
     passives.push(
       `Jelly Shock: when it's hit and survives, discharges ${def.onHitZap.dmg} DMG into the attacker — melee or ranged — and every enemy standing next to it${def.onHitZap.status ? ` (+${def.onHitZap.status.kind})` : ""}.`,
@@ -262,6 +268,10 @@ export function describePassives(def: CardDef): string[] {
   if (def.critIfFaster)
     passives.push(
       `Hastened Assault: basic attacks CRIT while faster than the target${def.healPerCrit ? `, healing +${def.healPerCrit} HP per crit` : ""}.`,
+    );
+  if (def.roundTick?.rootedDmg)
+    passives.push(
+      `Trapper — end of round: deals ${def.roundTick.rootedDmg} DMG to every ROOTed opponent, anywhere on the board.`,
     );
   if (def.roundTick?.aoeParalyzedDmg)
     passives.push(

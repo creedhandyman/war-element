@@ -3223,6 +3223,67 @@ export const CARDS: CardDef[] = [
     onShieldBreak: { status: { kind: "PARALYZE", duration: 1, power: 0 } },
   },
 
+  {
+    id: "leaf_fallow",
+    name: "Fallow",
+    rarity: "legendary",
+    element: "LEAF",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 7,
+    hits: 1,
+    hp: 20,
+    sp: 11,
+    shields: 1,
+    keywords: { CRIT: true },
+    // Trapper (End of Round): the snares bite everything they're holding.
+    roundTick: { rootedDmg: 2 },
+    // Aura: a landed CRIT pins its victim — which then walks straight into
+    // Trapper at end of round. The two passives are one engine.
+    critStatus: { kind: "ROOT", duration: 1, power: 0 },
+    special: {
+      name: "Hunting Season",
+      cost: 4,
+      handler: "barrage",
+      // alwaysHit: aimed shots. Specials already ignore the caster's BLIND, so
+      // this is what carries the "ignores accuracy checks" half — it also
+      // pierces EVASION, which nothing else about the volley would.
+      params: { dmg: 3, targets: 4, crit: 1, alwaysHit: 1 },
+      targetSide: "enemy",
+      text: "Deal 3 DMG CRIT to 4 opponents. Auto-hits — ignores BLIND and EVASION.",
+    },
+  },
+  {
+    id: "dusk_ravven",
+    name: "Ravven",
+    rarity: "legendary",
+    element: "DUSK",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 4,
+    hits: 2,
+    hp: 17,
+    sp: 11,
+    shields: 2,
+    keywords: { FLYING: true, EVASION: true },
+    tribe: ["Dark", "Avian"],
+    // Shadow Haunter: the EVASION keyword above is CONDITIONAL — it only lives
+    // while Ravven stands on the opponent's battlefield. On its own ground it
+    // dodges nothing. Read via hasEvasion(), never keywords.EVASION.
+    evasionEnemySideOnly: true,
+    special: {
+      name: "Night Stalk",
+      cost: 3,
+      handler: "empower",
+      // buffRounds makes it temporary — +3 DMG that expires, not a permanent ramp.
+      params: { selfDmg: 3, buffRounds: 3 },
+      targetSide: "ally", // self-buff; always castable (same as Heir's Crowned)
+      text: "Gain +3 DMG for 3 rounds.",
+    },
+  },
+
   // ── Rarity fill-in ─────────────────────────────────────────────────────────
   // One card per element, each dropped into that element's thinnest rarity, to
   // even out a spread that had run from 4 to 8 epics and 5 to 10 rares. Stats

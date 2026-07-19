@@ -29,6 +29,22 @@ import type {
 } from "./types";
 import { BOARD_SIZE, MULTI_HIT_BONUS_MIN, NEGATIVE_STATUSES, enemyOf, homeRow } from "./types";
 
+/** Whether a card is standing on the ENEMY half of the board — two rows or more
+ *  from its own home. Gates Vaga's first-strike and Ravven's Shadow Haunter. */
+export function onEnemySide(card: CardInstance): boolean {
+  return card.pos != null && Math.abs(card.pos.row - homeRow(card.owner)) >= 2;
+}
+
+/** Does this card's own EVASION keyword apply right now? Usually just "does it
+ *  have the keyword", but Ravven's is gated to the enemy battlefield. Both the
+ *  dodge roll and the AI's threat estimate go through here so they can't drift
+ *  apart — an AI that thinks a card dodges when it doesn't misplays every turn. */
+export function hasEvasion(card: CardInstance): boolean {
+  const def = getDef(card.defId);
+  if (!def.keywords.EVASION) return false;
+  return def.evasionEnemySideOnly ? onEnemySide(card) : true;
+}
+
 /** Flat pre-shield damage reduction a card gains from standing in a friendly
  *  wall's row (Stone Wall BLOCK, Radiant Barrier −1). Same-element, wall owner's
  *  allies only; stacks additively with the card's own BLOCK keyword. */
@@ -73,6 +89,9 @@ export interface HitOptions {
    *  `incinerateBase` seeds the ramp with hits already landed this round. */
   incinerate?: boolean;
   incinerateBase?: number;
+  /** This particular attack ignores accuracy checks (Fallow's Hunting Season).
+   *  Card-level `alwaysHit` is the whole card; this is one Special. */
+  alwaysHit?: boolean;
 }
 
 export interface AttackResult {
@@ -273,7 +292,7 @@ export function resolveHit(
 
     // 1. EVASION — innate or granted by a friendly wall (Veil). Not re-checked
     //    for reflect damage (no dodge chains). Hot Shot (alwaysHit) ignores it.
-    if (opts.kind !== "reflect" && !aDef.alwaysHit && (tDef.keywords.EVASION || wallEvasion(draft, target) || hasStatus(target, "EVASION") || fieldEvasion(draft, target))) {
+    if (opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && (hasEvasion(target) || wallEvasion(draft, target) || hasStatus(target, "EVASION") || fieldEvasion(draft, target))) {
       if (coin(draft)) {
         result.dodgedHits++;
         target.fxMiss = (target.fxMiss ?? 0) + 1;
@@ -345,6 +364,12 @@ export function resolveHit(
     if (hasStatus(target, "SLEEP") && target.curHp > 0 && !aDef.ignoresSleepWake) {
       target.statuses = target.statuses.filter((s) => s.kind !== "SLEEP");
       draft.log.push(`${label(draft, target)} is jolted awake!`);
+    }
+    // Fallow's aura: a CRIT that lands pins its victim. Checked once for the
+    // whole volley — a multi-hit that crits twice still applies one ROOT.
+    if (aDef.critStatus && (result.critHits ?? 0) > 0 && target.curHp > 0) {
+      const cs = aDef.critStatus;
+      applyStatus(draft, target, cs.kind, cs.duration, cs.power, aDef.element);
     }
   }
 
@@ -548,9 +573,7 @@ export function basicAttack(
     if (aDef.element === "BOLT" && t.statuses.length > 0) dmg += 1 + fieldBonus(draft, attacker, "electrify");
     // Harsh Winds / Shadow: bonus DMG the first time this card strikes a given
     // opponent. Vaga's version only counts while it stands on the enemy side.
-    const homeR = attacker.owner === "P1" ? 3 : 0;
-    const onEnemySide = attacker.pos != null && Math.abs(attacker.pos.row - homeR) >= 2;
-    const fsEligible = Boolean(aDef.firstStrikeBonus) && (!aDef.firstStrikeEnemySideOnly || onEnemySide);
+    const fsEligible = Boolean(aDef.firstStrikeBonus) && (!aDef.firstStrikeEnemySideOnly || onEnemySide(attacker));
     const firstStrike = fsEligible && !attacker.struckEver.includes(t.instanceId);
     if (firstStrike) dmg += aDef.firstStrikeBonus!;
     // Ethereal Trade: +DMG on the attack (the HP cost is paid once per action).
@@ -1089,6 +1112,8 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         hits: num(params, "hits", 1),
         pen: num(params, "pen") > 0,
         crit: num(params, "crit") > 0,
+        // Hunting Season: the volley is aimed, not sprayed — EVASION doesn't save you.
+        alwaysHit: num(params, "alwaysHit") > 0,
       });
       maybeStatus(draft, attacker, target, params);
       applyDebuffRiders(draft, target, params); // −SP (Angale, sinkhole)
@@ -1189,6 +1214,14 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const dmg = num(params, "selfDmg");
     const hp = num(params, "selfMaxHp");
     const sp = num(params, "selfSp");
+    // buffRounds turns the grant TEMPORARY (Ravven's Night Stalk). Without it
+    // the buff is permanent, as Heir's Crowned has always been.
+    const rounds = num(params, "buffRounds");
+    if (rounds > 0) {
+      applyTimedBuff(attacker, dmg, sp, rounds);
+      draft.log.push(`${label(draft, attacker)} slips into the dark (+${dmg} DMG for ${rounds} rounds).`);
+      return;
+    }
     if (dmg) attacker.dmgBonus += dmg;
     if (hp > 0) { attacker.maxHp += hp; attacker.curHp += hp; }
     if (sp) attacker.spBonus += sp;

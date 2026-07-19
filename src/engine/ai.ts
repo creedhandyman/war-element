@@ -12,6 +12,7 @@ import {
   isCaptured,
   moveReach,
 } from "./state";
+import { hasEvasion } from "./combat";
 import {
   canCastSpell,
   canFireSpecial,
@@ -346,8 +347,9 @@ export function estimateVolley(
 /** EVASION means ~half the hits whiff — the kill math shouldn't trust a volley
  *  that only *just* covers an evasive target's HP. */
 function isEvasive(target: CardInstance): boolean {
-  const d = getDef(target.defId);
-  return Boolean(d.keywords.EVASION) || target.statuses.some((s) => s.kind === "EVASION");
+  // hasEvasion, not keywords.EVASION — Ravven only dodges on enemy ground, and
+  // the AI must read it the same way the dodge roll does.
+  return hasEvasion(target) || target.statuses.some((s) => s.kind === "EVASION");
 }
 
 /** Will `volley` reliably kill `target`? Evasive targets need double, since

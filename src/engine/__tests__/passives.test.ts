@@ -3,13 +3,22 @@
 // abilities in cards.ts.
 
 import { describe, expect, it } from "vitest";
-import { applyStatus, basicAttack, effectiveBasicHits, SPECIAL_HANDLERS } from "../combat";
+import { applyStatus, basicAttack, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS } from "../combat";
 import { applyFlow } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { canFireSpecial, canMove, canTarget } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard } from "../state";
 import { getDef } from "../../data/cards";
-import { atCleanup, giveHand, place, prepState, seedForCoins } from "./helpers";
+import { atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
+import type { GameState } from "../types";
+
+/** Park the battle so `active` is the card awaiting P1's input. */
+function battleFor(s: GameState, active: string): GameState {
+  s.phase = "battle";
+  s.prep = null;
+  s.battle = { queue: [active], index: 0, awaitingInput: active };
+  return s;
+}
 
 describe("on-kill triggers", () => {
   it("Fenrir gains a permanent +1 basic hit on a kill", () => {
@@ -106,6 +115,66 @@ describe("medium-tier passives (audit batch)", () => {
     const next = advance(atCleanup(s));
     expect(next.cards[sq.instanceId].curShields).toBe(2); // one hit, one shield
     expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
+  });
+
+  it("Ravven's EVASION is dead on its own ground and live on the enemy's", () => {
+    const s = prepState();
+    // P1 home is row 3, so rows 0-1 are the enemy battlefield.
+    const home = place(s, "dusk_ravven", "P1", 3, 0);
+    const raiding = place(s, "dusk_ravven", "P1", 1, 0);
+    expect(hasEvasion(s.cards[home.instanceId])).toBe(false);
+    expect(hasEvasion(s.cards[raiding.instanceId])).toBe(true);
+    // …and an unconditional evader is unaffected by the new gate.
+    const plain = place(s, "gale_tumbleweed", "P1", 3, 2);
+    expect(hasEvasion(s.cards[plain.instanceId])).toBe(true);
+  });
+
+  it("Fallow's CRIT pins its victim, and Trapper bites every ROOTed foe at Cleanup", () => {
+    const s = prepState();
+    s.rngState = seedForCoins(true); // force the CRIT roll to land
+    const fallow = place(s, "leaf_fallow", "P1", 2, 0);
+    const prey = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, curShields: 0 });
+    // ROOTed but far away — Trapper is range-free, so it still gets bitten.
+    // Needs maxHp too: Cleanup clamps curHp to the effective max.
+    const distant = place(s, "dusk_ghastly", "P2", 0, 3, { curHp: 20, maxHp: 20 });
+    applyStatus(s, distant, "ROOT", 3, 0, "LEAF");
+    basicAttack(s, fallow.instanceId, prey.instanceId);
+    expect(statusOf(s.cards[prey.instanceId], "ROOT")?.duration).toBe(1); // CRIT pinned it
+    const next = advance(atCleanup(s));
+    expect(next.cards[distant.instanceId].curHp).toBe(18); // 2 from the traps
+  });
+
+  it("Hunting Season auto-hits through EVASION that a basic would whiff", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 4;
+    s.rngState = seedForCoins(true, true, true); // every dodge roll would succeed
+    const fallow = place(s, "leaf_fallow", "P1", 2, 0);
+    const dodger = place(s, "gale_tumbleweed", "P2", 1, 0, { curHp: 20, curShields: 0 });
+    const next = applyIntent(battleFor(s, fallow.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: dodger.instanceId,
+    });
+    expect(next.cards[dodger.instanceId].curHp).toBeLessThan(20); // the volley landed
+  });
+
+  it("Night Stalk's +3 DMG expires instead of ramping forever", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 3;
+    const ravven = place(s, "dusk_ravven", "P1", 2, 0);
+    place(s, "dusk_gool", "P2", 1, 0); // keep both boards alive
+    const base = effectiveDmg(s, s.cards[ravven.instanceId]);
+    let next = applyIntent(battleFor(s, ravven.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: ravven.instanceId,
+    });
+    expect(effectiveDmg(next, next.cards[ravven.instanceId])).toBe(base + 3);
+    expect(next.cards[ravven.instanceId].dmgBonus).toBe(0); // timed, not permanent
+    for (let i = 0; i < 3; i++) next = advance(atCleanup(next));
+    expect(effectiveDmg(next, next.cards[ravven.instanceId])).toBe(base); // worn off
   });
 
   it("Jellyfish's Jelly Shock zaps a RANGED attacker that thorns would miss", () => {

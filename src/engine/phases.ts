@@ -850,6 +850,14 @@ function doRoundTicks(draft: GameState): void {
       const t = closest(card, enemies().filter((e) => hasStatus(e, "PARALYZE") && canTarget(draft, card, e)));
       if (t) directDamage(draft, card, t, rt.pokeParalyzedDmg, false);
     }
+    if (rt.rootedDmg) {
+      // Trapper (Fallow): the snares bite at the end of every round. Anything
+      // held in place takes the hit wherever it is — a trap doesn't need range.
+      const caught = enemies().filter((e) => hasStatus(e, "ROOT"));
+      for (const e of caught) directDamage(draft, card, e, rt.rootedDmg, false);
+      if (caught.length)
+        draft.log.push(`${label(draft, card)}'s traps bite ${caught.length} snared foe(s) for ${rt.rootedDmg}.`);
+    }
     if (rt.aoeParalyzedDmg) {
       // Complete Circuit: current flows through every PARALYZED enemy in range.
       for (const e of enemies()) if (hasStatus(e, "PARALYZE") && canTarget(draft, card, e))

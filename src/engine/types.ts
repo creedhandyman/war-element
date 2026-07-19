@@ -143,6 +143,7 @@ export interface VsStatusDef {
 
 /** A periodic self-driven effect resolved in Cleanup (end of round). */
 export interface RoundTickDef {
+  rootedDmg?: number; // Trapper (Fallow): damage every ROOTed enemy, range-free
   aoeDmg?: number; // damage every enemy in range
   aoeStatus?: { kind: StatusKind; duration: number; power: number };
   lowestEnemyStatus?: { kind: StatusKind; duration: number; power: number };
@@ -314,6 +315,13 @@ export interface CardDef {
   /** Gate the firstStrikeBonus so it only applies while this card stands on the
    *  enemy battlefield (Vaga's Shadow first-strike). */
   firstStrikeEnemySideOnly?: boolean;
+  /** Shadow Haunter (Ravven): its EVASION is CONDITIONAL — live only while the
+   *  card stands on the enemy battlefield. On its own ground it dodges nothing,
+   *  so the keyword is a raider's reward, not a permanent shield. Read through
+   *  `hasEvasion()`, never `keywords.EVASION` directly, or the gate is skipped. */
+  evasionEnemySideOnly?: boolean;
+  /** Fallow's trapper aura: a landed CRIT pins whatever it hits. */
+  critStatus?: { kind: StatusKind; duration: number; power: number };
   /** Gate Keeper (Veil): grant this many shields to SELF on summon (a passive
    *  grant, not a base stat, so it stays off the cost curve). */
   summonSelfShields?: number;
@@ -330,7 +338,7 @@ export interface CardDef {
   healPerCrit?: number;
   /** Tribe tag (Reptile, Dragon, SeaC, Avian, …) — used by tribe-scoped auras
    *  and tribe payoffs. Free-text; no effect on its own. */
-  tribe?: string;
+  tribe?: string | string[];
   /** A persistent per-card aura: while this card is alive on the board, it grants
    *  a flat DMG/SP bonus to matching living allies (incl. itself if it matches).
    *  Non-stacking — the single highest matching aura applies, never sums. */
