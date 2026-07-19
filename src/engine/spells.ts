@@ -89,8 +89,8 @@ export const SPELLS: SpellDef[] = [
     allyShield: 4,
   },
   {
-    id: "bolt_jolt",
-    name: "Jolt",
+    id: "bolt_zap",
+    name: "Zap",
     element: "BOLT",
     cost: 1,
     kind: "damage",
