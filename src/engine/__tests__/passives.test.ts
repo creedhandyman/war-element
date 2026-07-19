@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS } from "../combat";
 import { applyFlow } from "../auras";
 import { advance, applyIntent } from "../phases";
-import { canFireSpecial, canMove, canTarget, validTargets } from "../rules";
+import { canFireSpecial, canFireTalent, canMove, canTarget, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard } from "../state";
 import { getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
@@ -115,6 +115,23 @@ describe("medium-tier passives (audit batch)", () => {
     const next = advance(atCleanup(s));
     expect(next.cards[sq.instanceId].curShields).toBe(2); // one hit, one shield
     expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
+  });
+
+  it("Tumbleweed's Roll Through is a one-shot Talent: free, then spent", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 0; // a Talent costs nothing — this must not block it
+    const weed = place(s, "gale_tumbleweed", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30, curShields: 0 });
+    const next = applyIntent(battleFor(s, weed.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "talent",
+      targetId: foe.instanceId,
+    });
+    expect(next.cards[foe.instanceId].curHp).toBe(25); // 5 DMG landed
+    expect(next.players.P1.magicPool).toBe(0); // nothing paid
+    expect(next.cards[weed.instanceId].talentUsed).toBe(true);
+    expect(canFireTalent(next, weed.instanceId).ok).toBe(false); // gone for the game
   });
 
   it("Sprinu's basic can be aimed at a hurt ally to heal it instead", () => {

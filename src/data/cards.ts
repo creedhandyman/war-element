@@ -3578,13 +3578,12 @@ export const CARDS: CardDef[] = [
     shields: 0,
     // Nothing lands cleanly on something that never stops rolling.
     keywords: { EVASION: true },
-    special: {
+    // Rares carry Talents, not repeatable Specials: free, but once per game.
+    talent: {
       name: "Roll Through",
-      cost: 2,
       handler: "strike",
       params: { dmg: 5, charge: 1 },
-      targetSide: "enemy",
-      text: "Deal 5 DMG, then roll 1 slot toward the enemy home.",
+      text: "Once per game: deal 5 DMG, then roll 1 slot toward the enemy home.",
     },
   },
   {
