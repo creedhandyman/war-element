@@ -1321,16 +1321,20 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   /** Permanent self-buff (Heir's Crowned): +DMG / +max HP / +SP to the caster. */
   /** Flaming Slasher (SSeerr): light the blade. The next `attacks` basic attacks
    *  leave the named status on whatever they hit. */
-  loadOnHit(draft, attacker, _targets, params) {
+  loadOnHit(draft, attacker, targets, params) {
     attacker.loadedOnHit = {
       kind: String(params.statusKind ?? "BURN") as StatusKind,
       duration: num(params, "statusDuration", 1),
       power: num(params, "statusPower"),
       attacks: num(params, "attacks", 1),
     };
-    draft.log.push(
-      `${label(draft, attacker)} sets its blade alight — the next ${num(params, "attacks", 1)} attacks burn.`,
-    );
+    draft.log.push(`${label(draft, attacker)} sets its blade alight.`);
+    // The cast IS the first swing: strike now, and that hit spends the first
+    // charge itself. Ordering matters — the load has to be in place before the
+    // attack resolves or the opening hit would land without the burn.
+    if (num(params, "strikeOnCast") > 0 && targets[0] && attacker.curHp > 0) {
+      basicAttack(draft, attacker.instanceId, targets[0].instanceId);
+    }
   },
 
   /** Rock Slide (Monger): a volley of boulders, each an independent coin flip.

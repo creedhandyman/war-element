@@ -203,7 +203,22 @@ describe("medium-tier passives (audit batch)", () => {
     }
   });
 
-  it("SSeerr's Flaming Slasher burns the next two attacks, then stops", () => {
+  it("SSeerr's arrival burns the WHOLE row ahead, edge column included", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 8;
+    // Summons into P1's home row at col 0; the row ahead is row 2. The far
+    // corner is 3 columns away — spread 1 would have left it untouched.
+    const near = place(s, "dusk_gool", "P2", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
+    const far = place(s, "dusk_vamp", "P2", 2, 3, { curHp: 30, maxHp: 30, curShields: 0 });
+    const offRow = place(s, "dusk_crow", "P2", 1, 3, { curHp: 30, maxHp: 30, curShields: 0 });
+    const handId = giveHand(s, "P1", "pyro_sseerr");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(next.cards[near.instanceId].curHp).toBe(27);
+    expect(next.cards[far.instanceId].curHp).toBe(27);
+    expect(next.cards[offRow.instanceId].curHp).toBe(30); // depth 1 — one row only
+  });
+
+  it("SSeerr's Flaming Slasher strikes on cast and burns that hit and one more", () => {
     const s = prepState();
     s.players.P1.magicPool = 2;
     const sseerr = place(s, "pyro_sseerr", "P1", 2, 0);
@@ -212,12 +227,15 @@ describe("medium-tier passives (audit batch)", () => {
       type: "BATTLE_ACTION",
       player: "P1",
       action: "special",
-      targetId: sseerr.instanceId,
+      targetId: foe.instanceId,
     });
-    expect(next.cards[sseerr.instanceId].loadedOnHit?.attacks).toBe(2);
+    // The cast swung: damage landed AND the burn is already on, from charge one.
+    expect(next.cards[foe.instanceId].curHp).toBeLessThan(60);
+    expect(statusOf(next.cards[foe.instanceId], "BURN")?.power).toBe(4);
+    expect(next.cards[sseerr.instanceId].loadedOnHit?.attacks).toBe(1); // one left
+    next.cards[foe.instanceId].statuses = [];
     basicAttack(next, sseerr.instanceId, foe.instanceId);
     expect(statusOf(next.cards[foe.instanceId], "BURN")?.power).toBe(4);
-    basicAttack(next, sseerr.instanceId, foe.instanceId);
     expect(next.cards[sseerr.instanceId].loadedOnHit).toBeUndefined(); // both spent
     // The third attack still burns — but that's PYRO's Scorch aura (BURN 1),
     // not the Slasher's BURN 4. Power is what distinguishes them.

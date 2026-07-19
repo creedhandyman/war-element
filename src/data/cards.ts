@@ -3366,19 +3366,22 @@ export const CARDS: CardDef[] = [
     // Dragon's Blade: it grows into the fight — +1 DMG and +1 SP every 2nd round,
     // stacking with no ceiling.
     roundTick: { buffDmgEveryN: { n: 2, amount: 1, sp: 1 } },
-    // Arrives breathing fire down the lane directly ahead.
+    // Arrives breathing fire across the whole row directly ahead. spread is the
+    // column reach to EACH side, so on a 4-wide board 3 is what actually covers
+    // the full row from any column — spread 1 would leave the far edge standing.
     onSummon: {
       handler: "barrage",
-      params: { dmg: 3, targets: 8, spread: 1, forwardDepth: 1 },
+      params: { dmg: 3, targets: 8, spread: 3, forwardDepth: 1 },
     },
     special: {
       name: "Flaming Slasher",
       cost: 2,
       handler: "loadOnHit",
-      // Doesn't strike — it lights the blade for the next two attacks.
-      params: { statusKind: "BURN", statusPower: 4, statusDuration: 2, attacks: 2 },
-      targetSide: "ally", // self-targeting; always castable
-      text: "Your next 2 basic attacks apply BURN 4 for 2 rounds.",
+      // Lights the blade AND swings with it — the cast strike spends the first
+      // of the two charges, so the burn starts landing immediately.
+      params: { statusKind: "BURN", statusPower: 4, statusDuration: 2, attacks: 2, strikeOnCast: 1 },
+      targetSide: "enemy",
+      text: "Strike an opponent. That hit and your next basic attack apply BURN 4 for 2 rounds.",
     },
   },
   {
