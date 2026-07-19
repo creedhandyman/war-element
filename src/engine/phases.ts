@@ -338,6 +338,12 @@ function resolveSpell(
         applyStatus(draft, t, spell.status.kind, spell.status.duration, spell.status.power, spell.element);
     }
     draft.log.push(`${spell.name} sweeps ${targets.length} opponent(s)${targets.length ? "" : " — no one in range"}.`);
+    // Total Network Control: a permanent discount on the caster's BOLT Specials.
+    if (spell.grantBoltDiscount) {
+      const p = draft.players[player];
+      p.boltDiscount = (p.boltDiscount ?? 0) + spell.grantBoltDiscount;
+      draft.log.push(`${player}'s BOLT Specials cost ${spell.grantBoltDiscount} less for the rest of the game (min 1).`);
+    }
     return;
   }
 
@@ -584,7 +590,7 @@ function performBattleAction(
     if (special.talent) {
       card.talentUsed = true; // once per game — no cost, no cooldown
     } else if (!wasFree) {
-      draft.players[card.owner].magicPool -= effectiveSpecialCost(card, special.cost);
+      draft.players[card.owner].magicPool -= effectiveSpecialCost(draft, card, special.cost);
       // 1-round floor; a printed longer cooldown overrides (+1 because the
       // current round's Cleanup ticks it once).
       card.specialCooldown = (special.cooldown ?? 1) + 1;

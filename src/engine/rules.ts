@@ -321,9 +321,13 @@ export function canFireTalent(
   return { ok: true };
 }
 
-/** A card's Special magic cost after King Me-style reductions (floored at 0). */
-export function effectiveSpecialCost(card: CardInstance, cost: number): number {
-  return Math.max(0, cost - (card.specialCostReduction ?? 0));
+/** A card's Special magic cost after reductions. King Me (per-card) floors at 0;
+ *  the BOLT ultimate's permanent per-player discount applies to BOLT cards and
+ *  floors at 1. */
+export function effectiveSpecialCost(state: GameState, card: CardInstance, cost: number): number {
+  const base = Math.max(0, cost - (card.specialCostReduction ?? 0));
+  const bolt = getDef(card.defId).element === "BOLT" ? (state.players[card.owner].boltDiscount ?? 0) : 0;
+  return bolt > 0 ? Math.max(1, base - bolt) : base;
 }
 
 export function canFireSpecial(
@@ -345,7 +349,7 @@ export function canFireSpecial(
     return { ok: false, reason: "Special is recharging (1-round cooldown)" };
   if (hasStatus(card, "MUTED")) return { ok: false, reason: "MUTED" };
   if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
-  if (!card.freeSpecial && !def.special.talent && state.players[card.owner].magicPool < effectiveSpecialCost(card, def.special.cost))
+  if (!card.freeSpecial && !def.special.talent && state.players[card.owner].magicPool < effectiveSpecialCost(state, card, def.special.cost))
     return { ok: false, reason: "Not enough magic" };
   if (specialTargets(state, instanceId).length === 0) return { ok: false, reason: "No valid target" };
   return { ok: true };

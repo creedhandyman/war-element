@@ -395,6 +395,21 @@ export const SPELLS: SpellDef[] = [
     doubleIf: "BLIND",
   },
 
+  {
+    // BOLT's Cost-10 ultimate — not a damage nuke, but its identity made
+    // permanent: shut the enemy's tools down for two rounds, then make every
+    // BOLT Special (current AND future) cost 1 less (min 1) for the rest of the game.
+    id: "bolt_total_network_control",
+    name: "Total Network Control",
+    element: "BOLT",
+    cost: 10,
+    kind: "aoe",
+    area: "board",
+    text: "MUTE every opponent for 2 rounds. Then, for the rest of the game, your BOLT Specials cost 1 less (min 1).",
+    status: { kind: "MUTED", duration: 2, power: 0 },
+    grantBoltDiscount: 1,
+  },
+
   // ─────────────── FIELDS (Cost 6, board-wide terrain, 3 rounds) ───────────────
   // The mirror of a Wall: empowers the caster's SAME-element allies. This pass
   // implements each field's CORE buff; the fiddly secondary riders (BURN-persist,
@@ -460,8 +475,8 @@ export const SPELLS: SpellDef[] = [
     element: "DUSK",
     cost: 6,
     kind: "field",
-    text: "Field (3 rounds): your DUSK allies gain REFLECT 1.",
-    field: { rounds: 3, reflect: 1 }, // stand-in (defer: DRAIN +1, first-hit EVASION)
+    text: "Field (3 rounds): your DUSK allies gain EVASION.",
+    field: { rounds: 3, evasion: true }, // full EVASION (defer: DRAIN +1, first-hit-only)
   },
   {
     id: "dawn_blazing_sun",

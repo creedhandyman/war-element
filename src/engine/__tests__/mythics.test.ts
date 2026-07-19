@@ -383,7 +383,7 @@ describe("Heir — Crowned self-buff + King Me cost reduction", () => {
     const prey = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 }); // adjacent, dies
     basicAttack(s, heir.instanceId, prey.instanceId);
     expect(s.cards[heir.instanceId].specialCostReduction).toBe(1);
-    expect(effectiveSpecialCost(s.cards[heir.instanceId], 3)).toBe(2);
+    expect(effectiveSpecialCost(s, s.cards[heir.instanceId], 3)).toBe(2);
     // With only 2 magic, the discounted Crowned is now castable.
     s.players.P1.magicPool = 2;
     expect(canFireSpecial(battleWith(s, heir.instanceId), heir.instanceId).ok).toBe(true);

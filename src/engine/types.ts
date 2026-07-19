@@ -502,6 +502,7 @@ export interface FieldBuff {
   dmgBonus?: number;
   block?: number;
   reflect?: number;
+  evasion?: boolean; // element allies gain EVASION while up (Nightfall)
 }
 
 /** A live board-wide Field (the mirror of a WallState). No slot/row; buffs the
@@ -533,6 +534,9 @@ export interface SpellDef {
   /** AoE double-damage rider: a target meeting this condition takes 2× the dmg
    *  (Maelstrom vs FREEZE, Dawn's Judgment vs BLIND, Tremor vs "noShields"). */
   doubleIf?: StatusKind | "noShields";
+  /** Total Network Control: permanently discount the caster's BOLT Specials by N
+   *  (min 1) for the rest of the game — applied after the AoE resolves. */
+  grantBoltDiscount?: number;
   /** Cleanse rider: remove up to N negative statuses from each of the caster's
    *  element allies (99 = all). Runs on support spells and on Judgment. */
   cleanse?: number;
@@ -580,6 +584,9 @@ export interface PlayerState {
   /** Radiant Ward (Solstice): a single team-wide barrier that absorbs the first
    *  negative status to hit any ally this round. Refreshed each round it's up. */
   statusWard?: boolean;
+  /** Total Network Control (BOLT ultimate): a permanent −N to this player's BOLT
+   *  Specials (min 1), applied to current AND future BOLT cards for the game. */
+  boltDiscount?: number;
 }
 
 export type Phase =

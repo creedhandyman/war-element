@@ -9,7 +9,6 @@ import type {
   AuraBonusDef,
   CardDef,
   CardInstance,
-  FieldBuff,
   GameState,
   PlayerId,
   PlayerState,
@@ -223,10 +222,20 @@ export function auraShieldBonus(state: GameState, card: CardInstance): number {
 /** The value of a Field buff flag currently boosting this card: from an active
  *  Field owned by the card's controller whose element matches the card's (0 if
  *  none). One field per owner, so at most one can match. */
-export function fieldBonus(state: GameState, card: CardInstance, key: keyof FieldBuff): number {
+export function fieldBonus(
+  state: GameState,
+  card: CardInstance,
+  key: "regen" | "shield" | "sp" | "dmgBonus" | "block" | "reflect",
+): number {
   const el = getDef(card.defId).element;
   const f = state.fields.find((fs) => fs.owner === card.owner && fs.element === el);
   return f ? (f[key] ?? 0) : 0;
+}
+
+/** Whether an active Field grants this card EVASION (Nightfall — DUSK). */
+export function fieldEvasion(state: GameState, card: CardInstance): boolean {
+  const el = getDef(card.defId).element;
+  return state.fields.some((f) => f.owner === card.owner && f.element === el && !!f.evasion);
 }
 
 export function effectiveSp(state: GameState, card: CardInstance): number {

@@ -15,7 +15,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
 import { creditDamage, creditKill } from "./stats";
-import { auraHasPen, boardCards, cardAt, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, boardCards, cardAt, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardInstance,
   Element,
@@ -272,7 +272,7 @@ export function resolveHit(
 
     // 1. EVASION — innate or granted by a friendly wall (Veil). Not re-checked
     //    for reflect damage (no dodge chains). Hot Shot (alwaysHit) ignores it.
-    if (opts.kind !== "reflect" && !aDef.alwaysHit && (tDef.keywords.EVASION || wallEvasion(draft, target) || hasStatus(target, "EVASION"))) {
+    if (opts.kind !== "reflect" && !aDef.alwaysHit && (tDef.keywords.EVASION || wallEvasion(draft, target) || hasStatus(target, "EVASION") || fieldEvasion(draft, target))) {
       if (coin(draft)) {
         result.dodgedHits++;
         target.fxMiss = (target.fxMiss ?? 0) + 1;
