@@ -6,6 +6,7 @@ import { advance, applyIntent, needsP1Input } from "../phases";
 import { canFireSpecial, validTargets } from "../rules";
 import { boardCards, createInitialState } from "../state";
 import type { GameState } from "../types";
+import { MAX_ROUNDS } from "../types";
 import { getDef } from "../../data/cards";
 import { place, prepState } from "./helpers";
 
@@ -174,11 +175,11 @@ describe("full AI-vs-AI matches (integration)", () => {
       if (s.phase === "gameover") return s;
       s = needsP1Input(s) ? driveP1(s) : advance(s);
       assertInvariants(s);
-      // Guard against non-terminating matches. Raised 60→100 once the card pool
-      // gained sustain-heavy Legendaries (healers/tanks): high-sustain matchups
-      // can legitimately grind to ~75 rounds before a capture/elimination
-      // resolves them. A true stall runs indefinitely; 100 still catches that.
-      if (s.round > 100) throw new Error("match exceeded 100 rounds");
+      // MAX_ROUNDS ends every match now, so overshooting it at all means the cap
+      // itself is broken — not that the matchup is slow. One round of slack for
+      // the Cleanup that decides it.
+      if (s.round > MAX_ROUNDS + 1)
+        throw new Error(`match exceeded the ${MAX_ROUNDS}-round cap (reached ${s.round})`);
     }
     throw new Error("match exceeded step budget");
   }
@@ -188,21 +189,20 @@ describe("full AI-vs-AI matches (integration)", () => {
     (seed) => {
       const end = playMatch(seed);
       expect(end.win).not.toBeNull();
-      expect(["capture", "elimination"]).toContain(end.win!.by);
+      expect(["capture", "elimination", "timeout"]).toContain(end.win!.by);
     },
   );
 
-  // KNOWN DEFECT — do not "fix" this by adding seeds back. Aqua/Dawn vs
-  // Bore/Dusk deadlocks on seeds 10, 16 and 42: the board freezes completely
+  // Seeds 10, 16 and 42 deadlocked here once: the board froze completely
   // (identical card count and HP from round ~60 to 160+, per-round DOT exactly
-  // cancelled by healing) and the match never terminates. Two engine gaps meet
-  // there: the AI's stall-breaker in ai.ts only fires when EVERY card on a side
-  // has no target, so one card with a live target strands the rest out of reach
-  // forever; and there is no round cap or stalemate rule, so nothing ends it.
-  // Pre-existing — 200 matches on the pre-2026-07 card pool never hit it, but
-  // any deck change can reshuffle a match into it. Seed 42 was swapped for 7
-  // here so the suite stays honest about what it covers; the stall is real.
-  it.each([1, 5, 7, 9, 23])(
+  // cancelled by healing) and the match never terminated, because nothing in the
+  // engine bounded match length. They are back in this list, but be clear about
+  // what they now prove: the later card rebuild reshuffled all three out of that
+  // trajectory, and they resolve by capture inside 35 rounds without the cap ever
+  // firing. They are coverage, NOT a test of MAX_ROUNDS — that is verified
+  // directly in cleanup.test.ts, and playMatch's guard above catches a match that
+  // outruns the cap.
+  it.each([1, 5, 7, 9, 10, 16, 23, 42])(
     "seed %i: Aqua/Dawn deck completes a full match (both matchups)",
     (seed) => {
       // Aqua/Dawn as P1 vs Bore/Dusk, and mirror vs Leaf/Pyro.

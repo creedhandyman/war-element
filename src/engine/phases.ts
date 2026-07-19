@@ -50,6 +50,7 @@ import type {
 import {
   BOARD_SIZE,
   HAND_CAP,
+  MAX_ROUNDS,
   NEGATIVE_STATUSES,
   POOL_CARRYOVER_CAP,
   enemyOf,
@@ -456,6 +457,41 @@ function triggerWallsOnMove(draft: GameState, card: CardInstance, fromRow: numbe
 }
 
 // ── phase transitions ───────────────────────────────────────────────────────
+
+/** The match hit MAX_ROUNDS. Decide it on progress toward the real win
+ *  conditions rather than calling it off: home slots captured first (that IS
+ *  the win condition), then cards left standing, then total HP. A null winner
+ *  means all three were level — a true draw, and the UI says so. */
+function decideOnTime(draft: GameState): void {
+  const captured = (p: PlayerId) =>
+    draft.slots.flat().filter((s) => s.capturedBy === p).length;
+  const standing = (p: PlayerId) => boardCards(draft, p).length;
+  const totalHp = (p: PlayerId) => boardCards(draft, p).reduce((n, c) => n + c.curHp, 0);
+
+  let winner: PlayerId | null = null;
+  let reason = "dead level";
+  for (const [name, metric] of [
+    ["home slots captured", captured],
+    ["cards still standing", standing],
+    ["total HP", totalHp],
+  ] as [string, (p: PlayerId) => number][]) {
+    const a = metric("P1");
+    const b = metric("P2");
+    if (a !== b) {
+      winner = a > b ? "P1" : "P2";
+      reason = `${name} ${Math.max(a, b)}–${Math.min(a, b)}`;
+      break;
+    }
+  }
+
+  draft.win = { winner, by: "timeout" };
+  draft.phase = "gameover";
+  draft.log.push(
+    winner
+      ? `Round ${draft.round} — time. ${winner} takes it on ${reason}.`
+      : `Round ${draft.round} — time. Dead level: the match is a draw.`,
+  );
+}
 
 function startRound(draft: GameState): void {
   draft.round++;
@@ -1064,6 +1100,13 @@ function doCleanupPhase(draft: GameState): void {
       draft.log.push(`${player} WINS by elimination!`);
       return;
     }
+  }
+
+  // 7. Time limit. Nothing else in the engine bounds a match, so this is what
+  //    stops a frozen board running forever.
+  if (draft.round >= MAX_ROUNDS) {
+    decideOnTime(draft);
+    return;
   }
 
   startRound(draft);

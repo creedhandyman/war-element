@@ -658,8 +658,9 @@ export interface SlotState {
 }
 
 export interface WinInfo {
-  winner: PlayerId;
-  by: "capture" | "elimination" | "surrender";
+  /** null only on a timeout that nothing could separate — a genuine draw. */
+  winner: PlayerId | null;
+  by: "capture" | "elimination" | "surrender" | "timeout";
 }
 
 /** Post-match analytics, accumulated live in the reducer. `dmg` is HP damage
@@ -747,6 +748,11 @@ export const BOARD_SIZE = 4;
  *  (King-of-the-Hill mid row, Flow Change Liquid). Cards below this get the flat
  *  +DMG; only heavy multi-hit cards (4+) trade it for an extra hit. */
 export const MULTI_HIT_BONUS_MIN = 4;
+/** Hard ceiling on match length. Without one a match can run forever: two sides
+ *  whose survivors can't reach each other, with per-round chip damage exactly
+ *  offset by healing, sit frozen indefinitely. At the ceiling the match is
+ *  decided on progress instead (see decideOnTime). */
+export const MAX_ROUNDS = 50;
 
 export function homeRow(player: PlayerId): 0 | 3 {
   return player === "P1" ? 3 : 0;

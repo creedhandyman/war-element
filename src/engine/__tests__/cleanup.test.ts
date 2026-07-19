@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { advance } from "../phases";
 import { atCleanup, place, prepState } from "./helpers";
+import { MAX_ROUNDS } from "../types";
 
 describe("cleanup phase", () => {
   it("DOT bypasses shields, hits HP directly, strips nothing", () => {
@@ -155,5 +156,60 @@ describe("cleanup phase", () => {
     const next = advance(atCleanup(s));
     expect(next.round).toBe(beforeRound + 1);
     expect(next.phase).toBe("draw");
+  });
+});
+
+describe("the round cap", () => {
+  /** A live board parked on the final round, so the next Cleanup decides it. */
+  function atFinalRound() {
+    const s = prepState();
+    s.round = MAX_ROUNDS;
+    return s;
+  }
+
+  it("ends the match at MAX_ROUNDS instead of starting another round", () => {
+    const s = atFinalRound();
+    place(s, "leaf_alpha", "P1", 3, 0);
+    place(s, "dusk_gool", "P2", 0, 1);
+    const next = advance(atCleanup(s));
+    expect(next.phase).toBe("gameover");
+    expect(next.win?.by).toBe("timeout");
+    expect(next.round).toBe(MAX_ROUNDS); // no further round was started
+  });
+
+  it("decides on captured home slots before anything else", () => {
+    const s = atFinalRound();
+    // P2 is far ahead on the board but P1 holds a home slot — the slot wins it,
+    // because that IS the win condition.
+    place(s, "leaf_alpha", "P1", 3, 0, { curHp: 1 });
+    place(s, "dusk_gool", "P2", 0, 1, { curHp: 40, maxHp: 40 });
+    place(s, "dusk_vamp", "P2", 0, 2, { curHp: 40, maxHp: 40 });
+    s.slots[0][3].capturedBy = "P1";
+    const next = advance(atCleanup(s));
+    expect(next.win).toEqual({ winner: "P1", by: "timeout" });
+  });
+
+  it("falls through to cards standing, then to total HP", () => {
+    const byCount = atFinalRound();
+    place(byCount, "leaf_alpha", "P1", 3, 0, { curHp: 1 });
+    place(byCount, "leaf_greegon", "P1", 3, 1, { curHp: 1 });
+    place(byCount, "dusk_gool", "P2", 0, 1, { curHp: 40, maxHp: 40 });
+    expect(advance(atCleanup(byCount)).win?.winner).toBe("P1"); // 2 cards vs 1
+
+    const byHp = atFinalRound();
+    place(byHp, "leaf_alpha", "P1", 3, 0, { curHp: 5 });
+    place(byHp, "dusk_gool", "P2", 0, 1, { curHp: 12, maxHp: 40 });
+    expect(advance(atCleanup(byHp)).win?.winner).toBe("P2"); // level on cards, 12 > 5
+  });
+
+  it("calls a dead-level board a draw rather than inventing a winner", () => {
+    const s = atFinalRound();
+    // Neither BORE nor DUSK heals at Cleanup — a LEAF card here would take
+    // Photosynthesis's +1 HP first and break the tie before it was judged.
+    place(s, "bore_armadillo", "P1", 3, 0, { curHp: 9, maxHp: 40 });
+    place(s, "dusk_gool", "P2", 0, 1, { curHp: 9, maxHp: 40 });
+    const next = advance(atCleanup(s));
+    expect(next.phase).toBe("gameover");
+    expect(next.win).toEqual({ winner: null, by: "timeout" });
   });
 });

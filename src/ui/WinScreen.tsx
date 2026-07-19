@@ -9,6 +9,7 @@ export function WinScreen(props: { game: GameState; onNewGame: () => void }) {
   const win = game.win;
   if (!win) return null;
   const youWon = win.winner === "P1";
+  const drawn = win.winner === null; // timeout with nothing to separate the sides
 
   const s = game.stats;
   const cards = Object.values(s.byCard);
@@ -37,12 +38,24 @@ export function WinScreen(props: { game: GameState; onNewGame: () => void }) {
   return (
     <div className="overlay on-top">
       <div className="modal">
-        <div className={`win-title ${youWon ? "win" : "lose"}`}>
-          {youWon ? "VICTORY" : "DEFEAT"}
+        <div className={`win-title ${drawn ? "" : youWon ? "win" : "lose"}`}>
+          {drawn ? "DRAW" : youWon ? "VICTORY" : "DEFEAT"}
         </div>
         <p>
           {win.by === "surrender" ? (
             <>You surrendered the match on round {game.round}.</>
+          ) : drawn ? (
+            <>
+              Time ran out on round {game.round} with{" "}
+              <b style={{ color: "var(--ink)" }}>nothing to separate you</b>.
+            </>
+          ) : win.by === "timeout" ? (
+            <>
+              Time ran out on round {game.round}.{" "}
+              {win.winner === "P1" ? "You take it" : "The opponent takes it"} on{" "}
+              <b style={{ color: "var(--ink)" }}>the board</b> — captures first, then cards
+              standing, then HP.
+            </>
           ) : (
             <>
               {win.winner === "P1" ? "You" : "The opponent"} won by{" "}
