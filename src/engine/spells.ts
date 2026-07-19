@@ -457,8 +457,8 @@ export const SPELLS: SpellDef[] = [
     element: "BOLT",
     cost: 6,
     kind: "field",
-    text: "Field (3 rounds): your BOLT allies gain +2 SP.",
-    field: { rounds: 3, sp: 2 }, // stand-in (defer: Specials −1 cost, Electrify +2)
+    text: "Field (3 rounds): your BOLT Specials cost 1 less (min 1), and Electrify hits statused foes for +2 (instead of +1).",
+    field: { rounds: 3, specialDiscount: 1, electrify: 1 }, // electrify:1 = the extra on top of the base +1
   },
   {
     id: "bore_bedrock",

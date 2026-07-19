@@ -1,7 +1,7 @@
 // Fields (Cost-6 board-wide terrain) — cast, element-scoped buffs, one-per-owner.
 
 import { describe, expect, it } from "vitest";
-import { resolveHit } from "../combat";
+import { applyStatus, basicAttack, resolveHit } from "../combat";
 import { applyIntent } from "../phases";
 import { canCastSpell, effectiveSpecialCost } from "../rules";
 import { effectiveDmg, effectiveSp, fieldBonus, fieldEvasion } from "../state";
@@ -69,6 +69,33 @@ describe("Fields (Cost-6 terrain)", () => {
     const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dusk_nightfall" });
     expect(fieldEvasion(n, n.cards[dusk.instanceId])).toBe(true);
     expect(fieldEvasion(n, n.cards[leaf.instanceId])).toBe(false);
+  });
+});
+
+describe("Power Grid (BOLT field)", () => {
+  it("discounts BOLT Specials by 1 (min 1) while up; non-BOLT untouched", () => {
+    const s = prepState();
+    s.players.P1.spellbook = [{ defId: "bolt_power_grid", used: false }];
+    s.players.P1.magicPool = 6;
+    const bolt = place(s, "bolt_thunder", "P1", 2, 0);
+    const leaf = place(s, "leaf_alpha", "P1", 2, 1);
+    const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bolt_power_grid" });
+    expect(effectiveSpecialCost(n, n.cards[bolt.instanceId], 3)).toBe(2); // −1
+    expect(effectiveSpecialCost(n, n.cards[bolt.instanceId], 1)).toBe(1); // floors at 1
+    expect(effectiveSpecialCost(n, n.cards[leaf.instanceId], 3)).toBe(3); // non-BOLT
+  });
+
+  it("boosts Electrify to +2 DMG vs a statused foe", () => {
+    const run = (withField: boolean) => {
+      const s = prepState();
+      const bolt = place(s, "bolt_kore", "P1", 2, 0); // BOLT, no crit/evasion
+      const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+      applyStatus(s, foe, "WEAKEN", 2, 0, "BOLT"); // foe is now "statused"
+      if (withField) s.fields.push({ owner: "P1", spellId: "bolt_power_grid", element: "BOLT", roundsLeft: 3, electrify: 1 });
+      basicAttack(s, bolt.instanceId, foe.instanceId);
+      return 40 - s.cards[foe.instanceId].curHp;
+    };
+    expect(run(true) - run(false)).toBe(1); // +1 Electrify becomes +2
   });
 });
 

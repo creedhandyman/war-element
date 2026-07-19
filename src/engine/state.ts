@@ -225,7 +225,7 @@ export function auraShieldBonus(state: GameState, card: CardInstance): number {
 export function fieldBonus(
   state: GameState,
   card: CardInstance,
-  key: "regen" | "shield" | "sp" | "dmgBonus" | "block" | "reflect",
+  key: "regen" | "shield" | "sp" | "dmgBonus" | "block" | "reflect" | "specialDiscount" | "electrify",
 ): number {
   const el = getDef(card.defId).element;
   const f = state.fields.find((fs) => fs.owner === card.owner && fs.element === el);

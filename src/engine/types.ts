@@ -502,7 +502,9 @@ export interface FieldBuff {
   dmgBonus?: number;
   block?: number;
   reflect?: number;
-  evasion?: boolean; // element allies gain EVASION while up (Nightfall)
+  evasion?: boolean;      // element allies gain EVASION while up (Nightfall)
+  specialDiscount?: number; // BOLT Specials cost −N while up (Power Grid), floors at 1
+  electrify?: number;       // +N extra Electrify DMG vs statused foes (Power Grid)
 }
 
 /** A live board-wide Field (the mirror of a WallState). No slot/row; buffs the

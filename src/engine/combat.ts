@@ -531,8 +531,8 @@ export function basicAttack(
       if (vs.lifesteal) lifesteal = true;
       healOnHit = vs.healOnHit ?? 0;
     }
-    // Electrify (BOLT aura): +1 DMG vs any statused opponent.
-    if (aDef.element === "BOLT" && t.statuses.length > 0) dmg += 1;
+    // Electrify (BOLT aura): +1 DMG vs any statused opponent — +2 under Power Grid.
+    if (aDef.element === "BOLT" && t.statuses.length > 0) dmg += 1 + fieldBonus(draft, attacker, "electrify");
     // Harsh Winds / Shadow: bonus DMG the first time this card strikes a given
     // opponent. Vaga's version only counts while it stands on the enemy side.
     const homeR = attacker.owner === "P1" ? 3 : 0;

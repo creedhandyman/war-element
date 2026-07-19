@@ -7,6 +7,7 @@ import {
   cardAt,
   chebyshev,
   effectiveSp,
+  fieldBonus,
   hasStatus,
   isCaptured,
   isContested,
@@ -325,9 +326,13 @@ export function canFireTalent(
  *  the BOLT ultimate's permanent per-player discount applies to BOLT cards and
  *  floors at 1. */
 export function effectiveSpecialCost(state: GameState, card: CardInstance, cost: number): number {
-  const base = Math.max(0, cost - (card.specialCostReduction ?? 0));
-  const bolt = getDef(card.defId).element === "BOLT" ? (state.players[card.owner].boltDiscount ?? 0) : 0;
-  return bolt > 0 ? Math.max(1, base - bolt) : base;
+  const base = Math.max(0, cost - (card.specialCostReduction ?? 0)); // King Me (per-card)
+  // BOLT discounts: Total Network Control (permanent, per-player) + Power Grid
+  // (temporary, per-field). fieldBonus only matches a BOLT card to a BOLT field,
+  // so a non-BOLT card never picks up a specialDiscount.
+  const permBolt = getDef(card.defId).element === "BOLT" ? (state.players[card.owner].boltDiscount ?? 0) : 0;
+  const total = permBolt + fieldBonus(state, card, "specialDiscount");
+  return total > 0 ? Math.max(1, base - total) : base;
 }
 
 export function canFireSpecial(
