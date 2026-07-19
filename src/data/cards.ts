@@ -1181,6 +1181,23 @@ export const CARDS: CardDef[] = [
     onHitStatus: { kind: "BLIND", duration: 1, power: 0 }, // Speed Flash
   },
   {
+    id: "dawn_musk_ox",
+    name: "Musk Ox",
+    rarity: "rare",
+    element: "DAWN",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 6,
+    hits: 1,
+    hp: 12,
+    sp: 2,
+    shields: 0,
+    // Thick Hide: −1 DMG from every incoming attack (flat, applies pre-shield
+    // and even to PEN) — that's exactly what BLOCK does.
+    keywords: { BLOCK: 1 },
+  },
+  {
     id: "dawn_star",
     name: "Star",
     rarity: "epic",
@@ -2474,23 +2491,6 @@ export const CARDS: CardDef[] = [
     // Tusk Rush (On Summon): charge — 5 DMG to opponents directly ahead.
     // (The "keep charging on each kill" follow-up is unmodeled.)
     onSummon: { handler: "barrage", params: { dmg: 5, spread: 1, forwardDepth: 1, targets: 99 } },
-  },
-  {
-    id: "bore_musk_ox",
-    name: "Musk Ox",
-    rarity: "rare",
-    element: "BORE",
-    cardClass: "Warrior",
-    attackType: "Melee",
-    cost: 2,
-    dmg: 6,
-    hits: 1,
-    hp: 12,
-    sp: 2,
-    shields: 0,
-    // Thick Hide: −1 DMG from every incoming attack (flat, applies pre-shield
-    // and even to PEN) — that's exactly what BLOCK does.
-    keywords: { BLOCK: 1 },
   },
 
   // ───────────────────────── GALE ─────────────────────────
