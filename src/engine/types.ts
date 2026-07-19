@@ -168,6 +168,10 @@ export interface RoundTickDef {
   pushEnemies?: number; // blow every enemy back N slots (Wind Guardian)
   rowAheadDmg?: number; // deal N DMG to enemies in the row directly ahead (Sweeping Flames)
   inRangeDmg?: number; // deal N DMG to EVERY opponent this card can reach (Smog's Black Smoke)
+  /** Electrifying (Jolt): apply a status to every opponent this card can REACH
+   *  at end of round. Distinct from aoeStatus, which ignores range and marks the
+   *  whole enemy board. */
+  inRangeStatus?: { kind: StatusKind; duration: number; power: number };
   inRangeDmgPen?: boolean; // make inRangeDmg PENetrate shields (UFO's Radiation)
   selfShields?: number; // gain N shields each round (Heir's Royal Guard)
   pokeParalyzedDmg?: number; // deal N DMG to one PARALYZED enemy in range (Sentry's Volt Turret)

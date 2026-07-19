@@ -3482,10 +3482,14 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 0,
     keywords: {},
-    // Electrifying: touching it marks you. ELECTRIFIED does nothing by itself —
-    // its whole job is to BE a status, so BOLT's Electrify aura (+1 DMG vs a
-    // statused target) turns the mark into damage for the whole BOLT side.
-    onHitByMelee: { anyAttacker: true, status: { kind: "ELECTRIFIED", duration: 2, power: 0 } },
+    // Electrifying: at the end of every round the current arcs into everything
+    // Jolt can reach and marks it ELECTRIFIED. Proactive, not reactive — you no
+    // longer have to hit Jolt to get marked, you only have to stand near it, so
+    // a 16 HP wall that nobody wants to approach becomes a real zone threat.
+    // ELECTRIFIED does nothing by itself; its whole job is to BE a status, so
+    // BOLT's Electrify aura (+1 DMG vs a statused target) turns the zone into
+    // damage for the entire BOLT side.
+    roundTick: { inRangeStatus: { kind: "ELECTRIFIED", duration: 2, power: 0 } },
   },
 
   // ── Rarity fill-in ─────────────────────────────────────────────────────────

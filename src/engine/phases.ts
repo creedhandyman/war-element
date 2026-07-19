@@ -867,6 +867,14 @@ function doRoundTicks(draft: GameState): void {
     if (rt.aoeStatus) {
       for (const e of enemies()) applyStatus(draft, e, rt.aoeStatus.kind, rt.aoeStatus.duration, rt.aoeStatus.power, el);
     }
+    if (rt.inRangeStatus) {
+      // Electrifying: the current arcs to whatever is close enough to touch.
+      const marked = enemies().filter((e) => canTarget(draft, card, e));
+      for (const e of marked)
+        applyStatus(draft, e, rt.inRangeStatus.kind, rt.inRangeStatus.duration, rt.inRangeStatus.power, el);
+      if (marked.length)
+        draft.log.push(`${label(draft, card)} arcs — ${marked.length} opponent(s) ${rt.inRangeStatus.kind}.`);
+    }
     if (rt.scaldFrozen) {
       for (const e of enemies()) if (hasStatus(e, "FREEZE")) applyStatus(draft, e, "SCALD", 1, rt.scaldFrozen, el);
     }

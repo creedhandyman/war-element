@@ -265,18 +265,28 @@ describe("medium-tier passives (audit batch)", () => {
     expect(statusOf(s.cards[shooter.instanceId], "WEAKEN")?.duration).toBe(2);
   });
 
-  it("Jolt marks its attacker Electrified, and BOLT allies cash the mark in", () => {
+  it("Jolt Electrifies everything in reach each round — and spares what's out of it", () => {
     const s = prepState();
-    const jolt = place(s, "bolt_jolt", "P1", 2, 0);
-    const shooter = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30, curShields: 0 });
-    basicAttack(s, shooter.instanceId, jolt.instanceId);
-    expect(statusOf(s.cards[shooter.instanceId], "ELECTRIFIED")?.duration).toBe(2);
-    // The mark does nothing by itself; its value is that BOLT's Electrify aura
-    // (+1 DMG vs a statused target) now applies. Buzz hits for 2, +1 from King
-    // of the Hill for standing in a mid row, +1 for the mark = 4.
+    place(s, "bolt_jolt", "P1", 2, 1);
+    // Melee, SP 3 → reach 1, so the zone is the 8 tiles around it.
+    const near = place(s, "dusk_gool", "P2", 1, 1, { curHp: 30, maxHp: 30, curShields: 0 });
+    const far = place(s, "dusk_vamp", "P2", 0, 3, { curHp: 20, maxHp: 20 });
+    const next = advance(atCleanup(s));
+    expect(statusOf(next.cards[near.instanceId], "ELECTRIFIED")?.duration).toBe(2);
+    expect(statusOf(next.cards[far.instanceId], "ELECTRIFIED")).toBeUndefined();
+  });
+
+  it("the Electrified mark is what BOLT allies actually cash in", () => {
+    const s = prepState();
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30, curShields: 0 });
     const buzz = place(s, "bolt_buzz", "P1", 2, 1);
-    basicAttack(s, buzz.instanceId, shooter.instanceId);
-    expect(s.cards[shooter.instanceId].curHp).toBe(26);
+    // Unmarked: 2 DMG + 1 King of the Hill (buzz stands in a mid row) = 3.
+    basicAttack(s, buzz.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].curHp).toBe(27);
+    // Marked: Electrify adds another +1 vs a statused target = 4.
+    applyStatus(s, s.cards[foe.instanceId], "ELECTRIFIED", 2, 0, "BOLT");
+    basicAttack(s, buzz.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].curHp).toBe(23);
   });
 
   it("Shimmering Featherrows volleys three targets, then cloaks the eagle", () => {
