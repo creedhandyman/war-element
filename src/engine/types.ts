@@ -587,6 +587,31 @@ export interface WinInfo {
   by: "capture" | "elimination" | "surrender";
 }
 
+/** Post-match analytics, accumulated live in the reducer. `dmg` is HP damage
+ *  dealt to enemies; `heal` is HP restored (self-sustain + support); `captures`
+ *  are enemy Home slots locked; `kills` are enemy cards defeated. */
+export interface CardStat {
+  defId: string;
+  name: string;
+  owner: PlayerId;
+  dmg: number;
+  heal: number;
+  captures: number;
+  kills: number;
+}
+export interface SideStat {
+  dmg: number;
+  heal: number;
+  captures: number;
+  kills: number;
+}
+export interface MatchStats {
+  /** Per source card, keyed by instanceId (survives the card's death). */
+  byCard: Record<string, CardStat>;
+  /** Per-side totals — includes spell/player-level contributions with no card. */
+  byPlayer: Record<PlayerId, SideStat>;
+}
+
 export interface GameState {
   rngState: number; // seeded RNG cursor — all randomness flows through this
   round: number;
@@ -611,6 +636,7 @@ export interface GameState {
   win: WinInfo | null;
   log: string[];
   nextId: number; // instance/hand id counter
+  stats: MatchStats; // post-match analytics (damage/heal/captures/kills)
 }
 
 export type Intent =

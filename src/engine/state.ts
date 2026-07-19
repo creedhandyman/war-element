@@ -4,6 +4,7 @@
 import { getDef, deckById } from "../data/cards";
 import { coin, shuffle } from "./rng";
 import { spellbookFor, spellbookFromIds } from "./spells";
+import { creditHeal, emptyStats } from "./stats";
 import type {
   AuraBonusDef,
   CardDef,
@@ -51,6 +52,7 @@ export function createInitialState(
     win: null,
     log: [],
     nextId: 1,
+    stats: emptyStats(),
   };
   shuffle(state, state.players.P1.deck);
   shuffle(state, state.players.P2.deck);
@@ -182,12 +184,15 @@ export function effectiveMaxHp(state: GameState, card: CardInstance): number {
 /** The single choke-point for restoring HP. Honors Bluflame (SEAL): a sealed
  *  card can't be healed by REGEN, LIFESTEAL/DRAIN, or aura heals. Caps at
  *  effective max HP. Returns the amount actually restored (0 if blocked). */
-export function healCard(state: GameState, card: CardInstance, amount: number): number {
+export function healCard(state: GameState, card: CardInstance, amount: number, by?: CardInstance | PlayerId): number {
   if (amount <= 0 || card.curHp <= 0) return 0;
   if (hasStatus(card, "SEAL")) return 0; // Bluflame — no healing while sealed
   const before = card.curHp;
   card.curHp = Math.min(effectiveMaxHp(state, card), card.curHp + amount);
-  return card.curHp - before;
+  const healed = card.curHp - before;
+  // Credit the healer: an explicit source, else the recipient (self-sustain).
+  creditHeal(state.stats, by ?? card, healed);
+  return healed;
 }
 
 /** Does a friendly aura grant this card's basic attacks PEN (Blood Ruby)? */

@@ -5,6 +5,7 @@ import { getDef } from "../data/cards";
 import { applyFlow, type FlowMode, GALE_SP_CAP } from "./auras";
 import { applyStatus, basicAttack, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, payAttackTrade, pushBack, spellHit, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
+import { creditCapture } from "./stats";
 import { coin } from "./rng";
 import {
   applyMulligan,
@@ -322,7 +323,7 @@ function resolveSpell(
           spell.doubleIf === "noShields" ? t.curShields === 0
           : spell.doubleIf ? hasStatus(t, spell.doubleIf)
           : false;
-        spellHit(draft, t, boosted ? spell.dmg * 2 : spell.dmg, Boolean(spell.pen));
+        spellHit(draft, t, boosted ? spell.dmg * 2 : spell.dmg, Boolean(spell.pen), player);
       }
       if (draft.cards[t.instanceId] && t.curHp > 0 && spell.status)
         applyStatus(draft, t, spell.status.kind, spell.status.duration, spell.status.power, spell.element);
@@ -344,7 +345,7 @@ function resolveSpell(
     const rooted = boardCards(draft, enemyOf(player)).some((c) => hasStatus(c, "ROOT"));
     const healAmt = rooted && spell.allyHealIfRooted ? spell.allyHealIfRooted : spell.allyHeal ?? 0;
     for (const ally of targets) {
-      if (healAmt > 0) healCard(draft, ally, healAmt);
+      if (healAmt > 0) healCard(draft, ally, healAmt, player);
       if (spell.allyShield) ally.curShields += spell.allyShield;
       if (spell.allySp) ally.spBonus += spell.allySp;
       if (spell.allyStatus)
@@ -370,7 +371,7 @@ function resolveSpell(
     }
     const tgt = targetId ? draft.cards[targetId] : undefined;
     if (tgt) {
-      const died = spellHit(draft, tgt, spell.dmg ?? 0, Boolean(spell.pen));
+      const died = spellHit(draft, tgt, spell.dmg ?? 0, Boolean(spell.pen), player);
       if (!died && draft.cards[tgt.instanceId] && tgt.curHp > 0 && spell.status)
         applyStatus(draft, tgt, spell.status.kind, spell.status.duration, spell.status.power, spell.element);
     }
@@ -380,7 +381,7 @@ function resolveSpell(
   // damage spell
   const target = targetId ? draft.cards[targetId] : undefined;
   if (target) {
-    const died = spellHit(draft, target, spell.dmg ?? 0, Boolean(spell.pen));
+    const died = spellHit(draft, target, spell.dmg ?? 0, Boolean(spell.pen), player);
     const alive = !died && !!draft.cards[target.instanceId] && target.curHp > 0;
     if (alive && spell.status)
       applyStatus(draft, target, spell.status.kind, spell.status.duration, spell.status.power, spell.element);
@@ -416,7 +417,7 @@ function applyWall(draft: GameState, card: CardInstance, w: WallState): void {
   draft.log.push(`${label(draft, card)} crosses ${getSpell(w.spellId).name}!`);
   if (w.stripShields && card.curShields > 0)
     card.curShields = Math.max(0, card.curShields - w.stripShields);
-  const died = spellHit(draft, card, w.dmg, false);
+  const died = spellHit(draft, card, w.dmg, false, w.owner);
   if (died || !draft.cards[card.instanceId] || card.curHp <= 0) return;
   if (w.status)
     applyStatus(draft, card, w.status.kind, w.status.duration, w.status.power, getSpell(w.spellId).element);
@@ -852,12 +853,12 @@ function doRoundTicks(draft: GameState): void {
       }
     }
     if (rt.healAllies) {
-      for (const a of allies()) healCard(draft, a, rt.healAllies);
+      for (const a of allies()) healCard(draft, a, rt.healAllies, card);
       draft.log.push(`${label(draft, card)} restores allies (+${rt.healAllies} HP).`);
     }
     if (rt.healLowestAlly) {
       const a = lowestHp(allies().filter((c) => c.curHp < effectiveMaxHp(draft, c)));
-      if (a) healCard(draft, a, rt.healLowestAlly);
+      if (a) healCard(draft, a, rt.healLowestAlly, card);
     }
     if (rt.wardAllies) {
       // Radiant Ward: raise a single team-wide barrier (absorbs one status/round).
@@ -986,6 +987,7 @@ function doCleanupPhase(draft: GameState): void {
       const occ = cardAt(draft, row, col);
       if (occ && occ.owner !== player) {
         draft.slots[row][col].capturedBy = occ.owner;
+        creditCapture(draft.stats, occ);
         draft.log.push(
           `${label(draft, occ)} survives on ${player}'s home slot ${col} — permanently captured!`,
         );

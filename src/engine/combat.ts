@@ -14,6 +14,7 @@
 
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
+import { creditDamage, creditKill } from "./stats";
 import { auraHasPen, boardCards, cardAt, effectiveDmg, effectiveMaxHp, effectiveSp, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardInstance,
@@ -21,6 +22,7 @@ import type {
   GameState,
   OnHitByMeleeDef,
   OnKillDef,
+  PlayerId,
   Pos,
   StatusKind,
 } from "./types";
@@ -345,6 +347,11 @@ export function resolveHit(
     }
   }
 
+  // Tally HP damage dealt to an enemy (basics, specials, and directDamage all
+  // funnel through here) for the post-match stats.
+  if (result.totalToHp > 0 && target.owner !== attacker.owner)
+    creditDamage(draft.stats, attacker, attacker.owner, result.totalToHp);
+
   // 5. On-hit keywords — basic attacks only. (onHitStatus riders + vsStatus
   //    heals are applied by basicAttack, which knows the per-target gating.)
   if (opts.kind === "basic" && result.landedHits > 0) {
@@ -368,6 +375,7 @@ export function resolveHit(
     const removed = defeatCard(draft, target, `${aDef.name}'s ${opts.kind}`);
     if (!removed) return result; // revived — no kill/on-death triggers
     result.targetDied = true;
+    if (target.owner !== attacker.owner) creditKill(draft.stats, attacker, attacker.owner);
     // On-kill trigger for the attacker (basic/special kills only).
     if ((opts.kind === "basic" || opts.kind === "special") && attacker.curHp > 0) {
       if (aDef.onKill) applyOnKill(draft, attacker, aDef.onKill);
@@ -712,6 +720,7 @@ export function spellHit(
   target: CardInstance,
   dmg: number,
   pen: boolean,
+  by?: PlayerId,
 ): boolean {
   const t = draft.cards[target.instanceId];
   if (!t || t.curHp <= 0) return false;
@@ -727,12 +736,14 @@ export function spellHit(
     if (t.curShields > 0) t.curShields--;
   }
   t.curHp -= toHp;
+  if (by) creditDamage(draft.stats, null, by, toHp); // spell damage → caster's side total
   draft.log.push(`${label(draft, t)} takes ${toHp} spell damage.`);
   if (hasStatus(t, "SLEEP") && t.curHp > 0) {
     t.statuses = t.statuses.filter((s) => s.kind !== "SLEEP");
     draft.log.push(`${label(draft, t)} is jolted awake!`);
   }
   if (t.curHp <= 0) {
+    if (by) creditKill(draft.stats, null, by);
     defeatCard(draft, t, "a spell");
     return true;
   }
@@ -1122,7 +1133,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const buffRounds = num(params, "buffRounds", 1);
     let healed = 0;
     for (const ally of targets.slice(0, n)) {
-      if (amount > 0 && healCard(draft, ally, amount) > 0) healed++;
+      if (amount > 0 && healCard(draft, ally, amount, attacker) > 0) healed++;
       if (doCleanse && ally.statuses.length) ally.statuses = [];
       if (buffDmg > 0 || buffSp > 0) applyTimedBuff(ally, buffDmg, buffSp, buffRounds);
     }
