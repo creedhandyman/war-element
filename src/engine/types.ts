@@ -505,6 +505,9 @@ export interface FieldBuff {
   evasion?: boolean;      // element allies gain EVASION while up (Nightfall)
   specialDiscount?: number; // BOLT Specials cost −N while up (Power Grid), floors at 1
   electrify?: number;       // +N extra Electrify DMG vs statused foes (Power Grid)
+  /** Heatwave: BURN the field owner inflicted on its ENEMIES stops expiring
+   *  while the field is up (their BURN durations don't tick down). */
+  burnPersists?: boolean;
 }
 
 /** A live board-wide Field (the mirror of a WallState). No slot/row; buffs the

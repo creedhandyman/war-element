@@ -237,8 +237,8 @@ export const SPELLS: SpellDef[] = [
     pen: true,
   },
   {
-    id: "dusk_soul_rend",
-    name: "Soul Rend",
+    id: "dusk_phantom_spikes",
+    name: "Phantom Spikes",
     element: "DUSK",
     cost: 7,
     kind: "damage",
@@ -439,8 +439,8 @@ export const SPELLS: SpellDef[] = [
     element: "PYRO",
     cost: 6,
     kind: "field",
-    text: "Field (3 rounds): your PYRO allies deal +2 DMG.",
-    field: { rounds: 3, dmgBonus: 2 }, // (defer: BURN never expires)
+    text: "Field (3 rounds): BURN you inflict never expires — your opponents' BURN stops ticking down.",
+    field: { rounds: 3, burnPersists: true }, // full doc effect
   },
   {
     id: "gale_jetstream",

@@ -962,9 +962,15 @@ function doCleanupPhase(draft: GameState): void {
     card.curHp = Math.min(card.curHp, effectiveMaxHp(draft, card));
   }
 
-  // 3. Status durations tick down; expired statuses removed.
+  // 3. Status durations tick down; expired statuses removed. Heatwave (PYRO
+  //    field) freezes BURN on its owner's ENEMIES — their BURN never ticks while
+  //    the field is up, so it keeps burning until the field lifts.
   for (const card of boardCards(draft)) {
-    for (const s of card.statuses) s.duration--;
+    const burnFrozen = draft.fields.some((f) => f.burnPersists && f.owner === enemyOf(card.owner));
+    for (const s of card.statuses) {
+      if (burnFrozen && s.kind === "BURN") continue;
+      s.duration--;
+    }
     card.statuses = card.statuses.filter((s) => s.duration > 0);
   }
 

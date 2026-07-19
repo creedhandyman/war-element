@@ -2,10 +2,10 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, resolveHit } from "../combat";
-import { applyIntent } from "../phases";
+import { advance, applyIntent } from "../phases";
 import { canCastSpell, effectiveSpecialCost } from "../rules";
-import { effectiveDmg, effectiveSp, fieldBonus, fieldEvasion } from "../state";
-import { place, prepState, statusOf } from "./helpers";
+import { effectiveSp, fieldBonus, fieldEvasion } from "../state";
+import { atCleanup, place, prepState, statusOf } from "./helpers";
 
 function arm(s: ReturnType<typeof prepState>, ids: string[], magic = 12) {
   s.players.P1.spellbook = ids.map((defId) => ({ defId, used: false }));
@@ -28,20 +28,13 @@ describe("Fields (Cost-6 terrain)", () => {
     expect(fieldBonus(n, n.cards[foeBore.instanceId], "block")).toBe(0); // enemy side
   });
 
-  it("Heatwave adds +2 DMG and Jetstream +3 SP to their element allies", () => {
-    const s1 = prepState();
-    arm(s1, ["pyro_heatwave"]);
-    const pyro = place(s1, "pyro_bbq", "P1", 2, 0);
-    const before = effectiveDmg(s1, s1.cards[pyro.instanceId]);
-    const n1 = applyIntent(s1, { type: "CAST_SPELL", player: "P1", spellId: "pyro_heatwave" });
-    expect(effectiveDmg(n1, n1.cards[pyro.instanceId]) - before).toBe(2);
-
-    const s2 = prepState();
-    arm(s2, ["gale_jetstream"]);
-    const gale = place(s2, "gale_duster", "P1", 2, 0);
-    const spBefore = effectiveSp(s2, s2.cards[gale.instanceId]);
-    const n2 = applyIntent(s2, { type: "CAST_SPELL", player: "P1", spellId: "gale_jetstream" });
-    expect(effectiveSp(n2, n2.cards[gale.instanceId]) - spBefore).toBe(3);
+  it("Jetstream adds +3 SP to its element allies", () => {
+    const s = prepState();
+    arm(s, ["gale_jetstream"]);
+    const gale = place(s, "gale_duster", "P1", 2, 0);
+    const spBefore = effectiveSp(s, s.cards[gale.instanceId]);
+    const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "gale_jetstream" });
+    expect(effectiveSp(n, n.cards[gale.instanceId]) - spBefore).toBe(3);
   });
 
   it("Bedrock's BLOCK 1 softens a hit on a BORE ally", () => {
@@ -59,6 +52,21 @@ describe("Fields (Cost-6 terrain)", () => {
     arm(s, ["bore_bedrock", "gale_jetstream"]);
     const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bore_bedrock" });
     expect(canCastSpell(n, "P1", "gale_jetstream", {}).ok).toBe(false);
+  });
+
+  it("Heatwave freezes BURN on the caster's enemies (it stops ticking down)", () => {
+    const run = (withField: boolean) => {
+      const s = prepState();
+      const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+      applyStatus(s, foe, "BURN", 2, 1, "PYRO");
+      if (withField) {
+        s.fields.push({ owner: "P1", spellId: "pyro_heatwave", element: "PYRO", roundsLeft: 3, burnPersists: true });
+      }
+      const next = advance(atCleanup(s));
+      return statusOf(next.cards[foe.instanceId], "BURN")?.duration ?? 0;
+    };
+    expect(run(false)).toBe(1); // normally ticks 2 → 1
+    expect(run(true)).toBe(2); // Heatwave: frozen at 2
   });
 
   it("Nightfall grants EVASION to DUSK allies only", () => {

@@ -97,7 +97,7 @@ export const PREMADE_DECKS: PremadeDeck[] = [
       "dusk_widowbite", "gale_hawk", "gale_vaga", "dusk_ghastly", "dusk_haunt",
       "gale_rayfen", "gale_wolfbane", "gale_tempest", "dusk_nightfang", "gale_klipso", "dusk_shadowhorsemen",
     ],
-    spells: ["dusk_chill_touch", "gale_downdraft", "dusk_shadow_step", "dusk_veil_of_shadows", "dusk_soul_rend"],
+    spells: ["dusk_chill_touch", "gale_downdraft", "dusk_shadow_step", "dusk_veil_of_shadows", "dusk_phantom_spikes"],
   },
 ];
 

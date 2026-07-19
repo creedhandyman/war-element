@@ -308,12 +308,12 @@ describe("expansion spells (cost 3/5/7)", () => {
     expect(next.players.P1.magicPool).toBe(0);
   });
 
-  it("Soul Rend (cost 7): 10 PEN + DRAIN 3 max HP to a DUSK ally", () => {
+  it("Phantom Spikes (cost 7): 10 PEN + DRAIN 3 max HP to a DUSK ally", () => {
     const s = prepState();
-    armSpell(s, "dusk_soul_rend", 7);
+    armSpell(s, "dusk_phantom_spikes", 7);
     const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 14, maxHp: 14, curShields: 0 });
     const ally = place(s, "dusk_vamp", "P1", 3, 0, { curHp: 6, maxHp: 6 });
-    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dusk_soul_rend", targetId: foe.instanceId });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dusk_phantom_spikes", targetId: foe.instanceId });
     expect(next.cards[foe.instanceId].curHp).toBe(4); // 14 − 10 PEN
     expect(next.cards[foe.instanceId].maxHp).toBe(11); // −3 max HP
     expect(next.cards[ally.instanceId].maxHp).toBe(9); // +3 max HP stolen
