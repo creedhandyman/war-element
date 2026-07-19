@@ -440,7 +440,7 @@ export function canCastSpell(
   state: GameState,
   player: PlayerId,
   spellId: string,
-  opts: { targetId?: string; row?: number } = {},
+  opts: { targetId?: string; row?: number; mode?: "attack" | "shield" } = {},
 ): { ok: boolean; reason?: string } {
   if (state.phase !== "prep") return { ok: false, reason: "Not the Prep Phase" };
   if (state.prep?.priority !== player) return { ok: false, reason: "You don't have priority" };
@@ -471,6 +471,21 @@ export function canCastSpell(
     return { ok: true };
   }
   if (spell.kind === "damage") {
+    if (!opts.targetId) return { ok: false, reason: "Pick a target" };
+    const target = state.cards[opts.targetId];
+    if (!target || !canSpellHitEnemy(state, player, target))
+      return { ok: false, reason: "Illegal target" };
+    return { ok: true };
+  }
+  if (spell.kind === "choice") {
+    // Shield mode → auto-targets an element ally; attack mode → an enemy target.
+    if (opts.mode === "shield") {
+      const hasAlly = boardCards(state, player).some(
+        (c) => c.curHp > 0 && getDef(c.defId).element === spell.element,
+      );
+      if (!hasAlly) return { ok: false, reason: `No ${spell.element} ally to shield` };
+      return { ok: true };
+    }
     if (!opts.targetId) return { ok: false, reason: "Pick a target" };
     const target = state.cards[opts.targetId];
     if (!target || !canSpellHitEnemy(state, player, target))

@@ -80,6 +80,8 @@ export function App() {
   // guards against a second cast landing mid-flash + clears on unmount.
   const [castFlash, setCastFlash] = useState<{ spellId: string } | null>(null);
   const castTimerRef = useRef<number | null>(null);
+  // A modal "choice" spell (Chill) awaiting its mode pick (attack vs shield).
+  const [spellChoice, setSpellChoice] = useState<string | null>(null);
   // Pre-game deck selection — the match doesn't run until Start.
   const [started, setStarted] = useState(false);
   const [twoPlayer, setTwoPlayer] = useState(false);
@@ -401,7 +403,7 @@ export function App() {
     // Prep-phase damage spell armed → its legal enemy targets glow.
     if (sel?.kind === "spell") {
       const spell = getSpell(sel.spellId);
-      return spell.kind === "damage"
+      return spell.kind === "damage" || spell.kind === "choice"
         ? spellEnemyTargets(game, view).map((t) => t.instanceId)
         : [];
     }
@@ -422,7 +424,7 @@ export function App() {
   // (ally-target heal specials) stay green.
   const targetsAreEnemies = useMemo(() => {
     if (legalTargetIds.length === 0) return false;
-    if (sel?.kind === "spell") return getSpell(sel.spellId).kind === "damage";
+    if (sel?.kind === "spell") { const k = getSpell(sel.spellId).kind; return k === "damage" || k === "choice"; }
     if (pending === "special" && awaitingId)
       return getDef(game.cards[awaitingId].defId).special?.targetSide !== "ally";
     return true; // basic attack
@@ -475,6 +477,12 @@ export function App() {
       return;
     }
     const spell = getSpell(spellId);
+    // Modal "choice" spell (Chill): pick attack vs shield before targeting.
+    if (spell.kind === "choice") {
+      setSpellChoice(spellId);
+      setHint(`<b>${spell.name}</b> — choose how to cast.`);
+      return;
+    }
     // Heal/support (auto-target an ally) and board-wide AoE resolve on the spot.
     if (spell.kind === "heal" || (spell.kind === "aoe" && spell.area === "board")) {
       const chk = canCastSpell(game, me, spellId, {});
@@ -495,6 +503,28 @@ export function App() {
         ? `Casting <b>${spell.name}</b> — click a glowing row.`
         : `Casting <b>${spell.name}</b> — click a glowing enemy target.`,
     );
+  }
+
+  // Resolve a modal "choice" spell's mode. Shield auto-targets an ally and casts
+  // now; Attack arms the enemy-target flow (fired on the next slot click).
+  function chooseSpellMode(mode: "attack" | "shield") {
+    if (!me || !spellChoice) return;
+    const spellId = spellChoice;
+    const spell = getSpell(spellId);
+    setSpellChoice(null);
+    if (mode === "shield") {
+      const chk = canCastSpell(game, me, spellId, { mode: "shield" });
+      if (chk.ok) {
+        castSpell({ type: "CAST_SPELL", player: me, spellId, mode: "shield" }, `Cast <b>${spell.name}</b> — shielded an ally.`);
+      } else {
+        setHint(`⚠ ${chk.reason}`);
+      }
+      return;
+    }
+    setSel({ kind: "spell", spellId, mode: "attack" });
+    setPending(null);
+    setPicks([]);
+    setHint(`Casting <b>${spell.name}</b> — click a glowing enemy to freeze.`);
   }
 
   // Max target picks for the armed action. Basics: assign each of the card's
@@ -569,9 +599,9 @@ export function App() {
         }
         return;
       }
-      // damage spell
-      if (clicked && canCastSpell(game, me, sel.spellId, { targetId: clicked.instanceId }).ok) {
-        castSpell({ type: "CAST_SPELL", player: me, spellId: sel.spellId, targetId: clicked.instanceId }, `${spell.name} cast. Keep going, or <b>Pass Priority</b>.`);
+      // damage spell (and Chill's attack mode) — hit the glowing enemy.
+      if (clicked && canCastSpell(game, me, sel.spellId, { targetId: clicked.instanceId, mode: sel.mode }).ok) {
+        castSpell({ type: "CAST_SPELL", player: me, spellId: sel.spellId, targetId: clicked.instanceId, mode: sel.mode }, `${spell.name} cast. Keep going, or <b>Pass Priority</b>.`);
       } else if (clicked) {
         setDetailId(clicked.instanceId);
       } else {
@@ -765,7 +795,7 @@ export function App() {
           game.phase === "prep" &&
           me !== null &&
           game.prep?.priority === me &&
-          !(sel?.kind === "spell" && getSpell(sel.spellId).kind === "damage")
+          !(sel?.kind === "spell" && ["damage", "choice"].includes(getSpell(sel.spellId).kind))
             ? enemyOf(me)
             : null
         }
@@ -1198,6 +1228,33 @@ export function App() {
           onClose={() => setDetailId(null)}
         />
       )}
+
+      {/* Modal "choice" spell (Chill) — strike a foe or shield an ally. */}
+      {spellChoice && (() => {
+        const spell = getSpell(spellChoice);
+        const cancel = () => { setSpellChoice(null); setHint("Cast cancelled."); };
+        return (
+          <div className="overlay spellchoice-overlay" onClick={cancel}>
+            <div className="spellchoice" onClick={(e) => e.stopPropagation()} style={{ ["--el" as string]: EL_COLOR[spell.element] }}>
+              <div className="spellchoice-name">{spell.name}</div>
+              <div className="spellchoice-sub">Choose how to cast</div>
+              <div className="spellchoice-opts">
+                <button className="spellchoice-opt atk" onClick={() => chooseSpellMode("attack")}>
+                  <span className="sco-ico">⚔️</span>
+                  <span className="sco-name">Strike a foe</span>
+                  <span className="sco-desc">{spell.dmg} DMG{spell.status ? ` · FREEZE ${spell.status.duration}` : ""}</span>
+                </button>
+                <button className="spellchoice-opt def" onClick={() => chooseSpellMode("shield")}>
+                  <span className="sco-ico">🛡️</span>
+                  <span className="sco-name">Shield an ally</span>
+                  <span className="sco-desc">+{spell.allyShield} shield</span>
+                </button>
+              </div>
+              <button className="spellchoice-cancel" onClick={cancel}>Cancel</button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 2-second spell-cast flash — art blows up big before the effect resolves. */}
       {castFlash && <SpellCastFlash spellId={castFlash.spellId} />}

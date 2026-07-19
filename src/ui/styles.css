@@ -905,6 +905,34 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .castflash, .castflash-burst, .castflash-card { animation-duration: 0.01s; }
 }
 
+/* ── Modal "choice" spell picker (Chill: strike a foe vs shield an ally) ── */
+.spellchoice-overlay { z-index: 72; }
+.spellchoice {
+  width: min(88vw, 340px); padding: 18px 16px 12px; border-radius: 16px; text-align: center;
+  border: 1.5px solid var(--el, var(--gold-line));
+  background: linear-gradient(180deg, #14161f, #0b0c12);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 34px color-mix(in srgb, var(--el, #26307a) 45%, transparent);
+}
+.spellchoice-name { font-family: var(--head, inherit); font-size: 21px; font-weight: 800; color: #f2ede0; }
+.spellchoice-sub { font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-dim); margin-top: 2px; }
+.spellchoice-opts { display: flex; gap: 10px; margin: 14px 0 8px; }
+.spellchoice-opt {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 14px 8px; border-radius: 12px; cursor: pointer; font: inherit; color: var(--ink);
+  border: 1.5px solid var(--panel-line); background: rgba(255,255,255,0.03); transition: 0.14s;
+}
+.spellchoice-opt:hover { transform: translateY(-2px); }
+.spellchoice-opt.atk:hover { border-color: var(--threat); box-shadow: 0 6px 18px rgba(0,0,0,0.5), 0 0 16px var(--threat-soft); }
+.spellchoice-opt.def:hover { border-color: var(--legal); box-shadow: 0 6px 18px rgba(0,0,0,0.5), 0 0 16px var(--legal-soft); }
+.sco-ico { font-size: 26px; line-height: 1; }
+.sco-name { font-size: 13px; font-weight: 800; }
+.sco-desc { font-size: 10.5px; color: var(--ink-dim); }
+.spellchoice-cancel {
+  font-size: 11px; font-weight: 700; color: var(--ink-dim); background: none; border: none; cursor: pointer;
+  padding: 5px 12px; border-radius: 8px;
+}
+.spellchoice-cancel:hover { color: var(--ink); background: rgba(255,255,255,0.05); }
+
 /* ── Expanded card detail (sub-overlay) ──────────────────────────────── */
 .dbd-overlay { z-index: 50; }
 .dbd-modal { max-width: min(460px, 92vw); width: 460px; text-align: left; padding: 22px; position: relative; max-height: 88vh; overflow-y: auto; }

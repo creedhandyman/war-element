@@ -172,6 +172,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       const check = canCastSpell(draft, intent.player, intent.spellId, {
         targetId: intent.targetId,
         row: intent.row,
+        mode: intent.mode,
       });
       if (!check.ok) throw new Error(`Illegal spell: ${check.reason}`);
       const p = draft.players[intent.player];
@@ -181,7 +182,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       slot.used = true;
       draft.prep!.consecutivePasses = 0;
       draft.log.push(`${intent.player} casts ${spell.name}.`);
-      resolveSpell(draft, intent.player, spell, intent.targetId, intent.row);
+      resolveSpell(draft, intent.player, spell, intent.targetId, intent.row, intent.mode);
       return draft;
     }
     case "PASS": {
@@ -278,6 +279,7 @@ function resolveSpell(
   spell: SpellDef,
   targetId?: string,
   row?: number,
+  mode?: "attack" | "shield",
 ): void {
   if (spell.kind === "wall" && spell.wall && row != null) {
     const wall: WallState = {
@@ -351,6 +353,27 @@ function resolveSpell(
     }
     const who = targets.length === 1 ? label(draft, targets[0]) : `${targets.length} ${spell.element} allies`;
     draft.log.push(`${spell.name} bolsters ${who}.`);
+    return;
+  }
+
+  if (spell.kind === "choice") {
+    // Modal (Chill): SHIELD an auto-picked element ally, or STRIKE an enemy.
+    if (mode === "shield") {
+      const ally = pickSpellAlly(draft, player, spell.element);
+      if (ally && spell.allyShield) {
+        ally.curShields += spell.allyShield;
+        draft.log.push(`${spell.name}: ${label(draft, ally)} gains ${spell.allyShield} shield.`);
+      } else {
+        draft.log.push(`${spell.name} fizzles — no ${spell.element} ally.`);
+      }
+      return;
+    }
+    const tgt = targetId ? draft.cards[targetId] : undefined;
+    if (tgt) {
+      const died = spellHit(draft, tgt, spell.dmg ?? 0, Boolean(spell.pen));
+      if (!died && draft.cards[tgt.instanceId] && tgt.curHp > 0 && spell.status)
+        applyStatus(draft, tgt, spell.status.kind, spell.status.duration, spell.status.power, spell.element);
+    }
     return;
   }
 

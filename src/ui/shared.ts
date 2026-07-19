@@ -104,7 +104,7 @@ export const KEYWORD_STYLE: Record<string, { glyph: string; color: string }> = {
 export type Selection =
   | { kind: "hand"; handId: string }
   | { kind: "card"; instanceId: string }
-  | { kind: "spell"; spellId: string }
+  | { kind: "spell"; spellId: string; mode?: "attack" | "shield" }
   | null;
 
 export type PendingBattle = "basic" | "special" | null;

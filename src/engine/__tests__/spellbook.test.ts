@@ -8,13 +8,13 @@ import { createInitialState } from "../state";
 describe("spellbookFromIds", () => {
   it("keeps order, drops unknowns, dedupes, and caps at MAX_SPELLBOOK", () => {
     const ids = [
-      "pyro_spark", "not_a_spell", "aqua_frost_shard", "pyro_spark", // dup
+      "pyro_spark", "not_a_spell", "aqua_chill", "pyro_spark", // dup
       "gale_gust", "dawn_sunbeam", "bore_pebble_toss", "dusk_chill_touch", // → 6 valid uniques
     ];
     const book = spellbookFromIds(ids);
     expect(book.length).toBe(MAX_SPELLBOOK); // capped at 5
     expect(book.map((s) => s.defId)).toEqual([
-      "pyro_spark", "aqua_frost_shard", "gale_gust", "dawn_sunbeam", "bore_pebble_toss",
+      "pyro_spark", "aqua_chill", "gale_gust", "dawn_sunbeam", "bore_pebble_toss",
     ]);
     expect(book.every((s) => s.used === false)).toBe(true);
   });
@@ -28,7 +28,7 @@ describe("createInitialState spellbook wiring", () => {
   const deck = ["leaf_alpha", "leaf_nettle"]; // all-LEAF: auto-book would be LEAF spells only
 
   it("uses a deck's explicit spellbook verbatim (any element allowed)", () => {
-    const spells = ["pyro_spark", "aqua_frost_shard"]; // off-element on purpose
+    const spells = ["pyro_spark", "aqua_chill"]; // off-element on purpose
     const g = createInitialState(1, deck, deck, ["P1"], spells, undefined);
     expect(g.players.P1.spellbook.map((s) => s.defId)).toEqual(spells);
     // P2 got no explicit book → auto-derived from its (LEAF) deck, so no PYRO/AQUA.

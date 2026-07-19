@@ -53,18 +53,33 @@ describe("Cost-1 damage spells", () => {
     expect(canCastSpell(s, "P1", "pyro_spark", { targetId: foe.instanceId }).ok).toBe(false);
   });
 
-  it("Frost Shard deals 3 and FREEZEs the target (AQUA's cost-1)", () => {
+  it("Chill (attack) deals 3 and FREEZEs the target (AQUA's cost-1)", () => {
     const s = prepState();
-    armSpell(s, "aqua_frost_shard", 3);
+    armSpell(s, "aqua_chill", 3);
     const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 14, maxHp: 14, curShields: 0 });
     const next = applyIntent(s, {
       type: "CAST_SPELL",
       player: "P1",
-      spellId: "aqua_frost_shard",
+      spellId: "aqua_chill",
       targetId: foe.instanceId,
+      mode: "attack",
     });
     expect(next.cards[foe.instanceId].curHp).toBe(11); // 14 − 3
     expect(statusOf(next.cards[foe.instanceId], "FREEZE")).toBeTruthy();
+    expect(next.players.P1.magicPool).toBe(2); // cost 1, from 3
+  });
+
+  it("Chill (shield) grants +4 shield to an AQUA ally, no target needed", () => {
+    const s = prepState();
+    armSpell(s, "aqua_chill", 3);
+    const ally = place(s, "aqua_spinefin", "P1", 2, 0, { curHp: 8, maxHp: 12, curShields: 1 });
+    const next = applyIntent(s, {
+      type: "CAST_SPELL",
+      player: "P1",
+      spellId: "aqua_chill",
+      mode: "shield",
+    });
+    expect(next.cards[ally.instanceId].curShields).toBe(5); // 1 + 4
     expect(next.players.P1.magicPool).toBe(2); // cost 1, from 3
   });
 

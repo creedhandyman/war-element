@@ -460,7 +460,11 @@ export interface HandCard {
 // rules put Spells in the same deck as Champions; for now each player carries a
 // separate spellbook derived from their deck's elements — see spells.ts.)
 
-export type SpellKind = "damage" | "heal" | "wall" | "aoe";
+// "choice" = a modal spell the caster resolves one of two ways at cast time
+// (Chill: an attack on a foe, or a shield on an ally). It reuses the damage
+// fields (dmg/status) for the attack mode and allyShield for the shield mode;
+// the CAST_SPELL intent's `mode` picks which.
+export type SpellKind = "damage" | "heal" | "wall" | "aoe" | "choice";
 
 /** A row-level "wall" laid down by a Cost-4 spell. Occupies no slot; triggers
  *  only when an ENEMY card MOVES into its row (ranged attacks pass through). */
@@ -613,7 +617,7 @@ export type Intent =
   | { type: "MULLIGAN"; player: PlayerId; returnHandIds: string[] }
   | { type: "SUMMON"; player: PlayerId; handId: string; col: number }
   | { type: "MOVE"; player: PlayerId; instanceId: string; to: Pos }
-  | { type: "CAST_SPELL"; player: PlayerId; spellId: string; targetId?: string; row?: number }
+  | { type: "CAST_SPELL"; player: PlayerId; spellId: string; targetId?: string; row?: number; mode?: "attack" | "shield" }
   | { type: "PASS"; player: PlayerId }
   | { type: "SET_AUTO"; player: PlayerId; instanceId: string; mode: AutoMode }
   | { type: "SURRENDER"; player: PlayerId }

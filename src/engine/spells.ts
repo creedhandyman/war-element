@@ -76,14 +76,17 @@ export const SPELLS: SpellDef[] = [
     drainMaxHp: 1,
   },
   {
-    id: "aqua_frost_shard",
-    name: "Frost Shard",
+    id: "aqua_chill",
+    name: "Chill",
     element: "AQUA",
     cost: 1,
-    kind: "damage",
-    text: "Deal 3 DMG to a target and FREEZE them for 1 round.",
+    kind: "choice",
+    // Modal: STRIKE a foe (3 DMG + FREEZE 1) OR SHIELD an AQUA ally (+4). The
+    // caster picks the mode at cast; the ice-shard vs water-shield of the art.
+    text: "Choose — strike a foe for 3 DMG + FREEZE 1, or shield an AQUA ally +4.",
     dmg: 3,
     status: { kind: "FREEZE", duration: 1, power: 0 },
+    allyShield: 4,
   },
   {
     id: "bolt_jolt",
