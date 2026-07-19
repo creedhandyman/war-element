@@ -232,8 +232,8 @@ export const SPELLS: SpellDef[] = [
     element: "BORE",
     cost: 7,
     kind: "damage",
-    text: "Deal 10 DMG (PEN) to a target — ignores shields entirely.",
-    dmg: 10,
+    text: "Deal 12 DMG (PEN) to a target — ignores shields entirely.",
+    dmg: 12,
     pen: true,
   },
   {
