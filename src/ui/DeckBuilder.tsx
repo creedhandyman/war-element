@@ -347,21 +347,21 @@ export function DeckBuilder(props: {
                         <img src={EL_ICON[d.element]} alt={d.element} draggable={false}
                           onError={(e) => { e.currentTarget.style.display = "none"; }} />
                       </span>
-                      <div className="dt-tr">
-                        {rar && (
-                          <span className="dt-rarity" style={{ color: rar.color, borderColor: rar.color }}>
-                            {rar.label}
-                          </span>
-                        )}
-                        <button
-                          className={`dt-add ${on ? "on" : ""}`}
-                          title={on ? "Remove from deck" : "Add to deck"}
-                          onClick={(e) => { e.stopPropagation(); toggle(d.id); }}
-                        >
-                          {on ? "✓" : "+"}
-                        </button>
-                      </div>
+                      <button
+                        className={`dt-add ${on ? "on" : ""}`}
+                        title={on ? "Remove from deck" : "Add to deck"}
+                        onClick={(e) => { e.stopPropagation(); toggle(d.id); }}
+                      >
+                        {on ? "✓" : "+"}
+                      </button>
                     </div>
+                    {/* Rarity sits on its own line — in the top row it fought the
+                        +Add button for space and got crushed on long labels. */}
+                    {rar && (
+                      <span className="dt-rarity" style={{ color: rar.color, borderColor: rar.color }}>
+                        {rar.label}
+                      </span>
+                    )}
                     <div className="dt-name">{d.name}</div>
                     <div className="dt-stats">
                       <span>⚔{d.hits > 1 ? `${d.hits}×` : ""}{d.dmg}</span>
