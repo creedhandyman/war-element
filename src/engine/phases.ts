@@ -142,7 +142,8 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         }
       }
       // Token spawns (Trinezer's Reptilian Screech).
-      if (def.summonSpawn) spawnTokens(draft, inst, def.summonSpawn.token, def.summonSpawn.count);
+      if (def.summonSpawn)
+        spawnTokens(draft, inst, def.summonSpawn.token, def.summonSpawn.count, def.summonSpawn.adjacentOnly);
       applyElementSummonAura(draft, inst);
       // On-opponent-summon reactions: existing enemies zap the newcomer as it
       // enters the battlefield (Cave Guard, Shocker).
@@ -856,7 +857,8 @@ function doRoundTicks(draft: GameState): void {
 
     if (rt.buffDmgEveryN && draft.round % rt.buffDmgEveryN.n === 0) {
       card.dmgBonus += rt.buffDmgEveryN.amount;
-      draft.log.push(`${label(draft, card)} sharpens (+${rt.buffDmgEveryN.amount} DMG).`);
+      if (rt.buffDmgEveryN.sp) card.spBonus += rt.buffDmgEveryN.sp; // Dragon's Blade
+      draft.log.push(`${label(draft, card)} sharpens (+${rt.buffDmgEveryN.amount} DMG${rt.buffDmgEveryN.sp ? ` +${rt.buffDmgEveryN.sp} SP` : ""}).`);
     }
     if (rt.aoeDmg) {
       for (const e of enemies()) directDamage(draft, card, e, rt.aoeDmg, false);

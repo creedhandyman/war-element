@@ -487,6 +487,21 @@ export function resolveHit(
     if (r) result.attackerDied = true;
   }
 
+  // Pride Guardian (Monger): the first time each ally takes a hit, its guardian
+  // throws it a shield. Once per ally for the game, tracked on the ally so two
+  // guardians can't double up on the same teammate.
+  if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && !target.guardedByPride) {
+    const guardian = boardCards(draft, target.owner).find(
+      (c) => c.instanceId !== target.instanceId && c.curHp > 0 && getDef(c.defId).onAllyHitShield,
+    );
+    if (guardian) {
+      const n = getDef(guardian.defId).onAllyHitShield!;
+      target.guardedByPride = true;
+      target.curShields += n;
+      draft.log.push(`${label(draft, guardian)} shields ${label(draft, target)} (+${n}).`);
+    }
+  }
+
   // Jelly Shock: a struck survivor discharges into the attacker AND everything
   // enemy standing next to it. Skipped for `reflect` hits — that's the kind
   // directDamage uses, so the discharge can't set off another discharge.
@@ -657,6 +672,17 @@ export function basicAttack(
       draft.log.push(`${label(draft, attacker)}'s nightmare deals +${extra} bonus damage.`);
       if (directDamage(draft, attacker, primary, extra, false)) agg.targetDied = true;
     }
+  }
+  // Flaming Slasher: a status riding the next few attacks. Spent per ATTACK, not
+  // per hit, and only when something actually landed.
+  const lit = attacker.loadedOnHit;
+  if (lit && agg.landedHits > 0) {
+    for (const g of groups) {
+      const t = draft.cards[g.targetId];
+      if (t && t.curHp > 0) applyStatus(draft, t, lit.kind, lit.duration, lit.power, aDef.element);
+    }
+    lit.attacks -= 1;
+    if (lit.attacks <= 0) attacker.loadedOnHit = undefined;
   }
   attacker.loadedHits = 0; // loaded darts are spent on this attack (Bleed Out)
   // Dirt Driller: the ambush is spent, and breaking cover ends the STEALTH that
@@ -1246,6 +1272,47 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   },
 
   /** Permanent self-buff (Heir's Crowned): +DMG / +max HP / +SP to the caster. */
+  /** Flaming Slasher (SSeerr): light the blade. The next `attacks` basic attacks
+   *  leave the named status on whatever they hit. */
+  loadOnHit(draft, attacker, _targets, params) {
+    attacker.loadedOnHit = {
+      kind: String(params.statusKind ?? "BURN") as StatusKind,
+      duration: num(params, "statusDuration", 1),
+      power: num(params, "statusPower"),
+      attacks: num(params, "attacks", 1),
+    };
+    draft.log.push(
+      `${label(draft, attacker)} sets its blade alight — the next ${num(params, "attacks", 1)} attacks burn.`,
+    );
+  },
+
+  /** Rock Slide (Monger): a volley of boulders, each an independent coin flip.
+   *  Every one that misses is a boulder still in hand — it becomes shielding
+   *  instead, so a bad roll arms the tank rather than wasting the Special. */
+  rockslide(draft, attacker, targets, params) {
+    const shots = num(params, "hits", 1);
+    const dmg = num(params, "dmg");
+    const perMiss = num(params, "shieldPerMiss", 2);
+    const target = targets[0];
+    let hit = 0;
+    let missed = 0;
+    for (let i = 0; i < shots; i++) {
+      const t = target && draft.cards[target.instanceId];
+      if (!t || t.curHp <= 0 || attacker.curHp <= 0) break;
+      if (coin(draft)) {
+        resolveHit(draft, attacker, t, { kind: "special", dmg, hits: 1, pen: false, crit: false });
+        hit++;
+      } else {
+        missed++;
+      }
+    }
+    if (missed > 0 && attacker.curHp > 0) {
+      attacker.curShields += missed * perMiss;
+      draft.log.push(`${label(draft, attacker)} keeps ${missed} boulder(s) — +${missed * perMiss} shields.`);
+    }
+    if (hit > 0) draft.log.push(`${label(draft, attacker)} lands ${hit} of ${shots} boulders.`);
+  },
+
   /** Dirt Driller (Obsidi): drop underground — STEALTH for up to `stealthRounds`
    *  — and load the ambush that comes up out of it. The damage lands on the NEXT
    *  basic attack, which is also what ends the STEALTH. */

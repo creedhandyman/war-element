@@ -117,6 +117,75 @@ describe("medium-tier passives (audit batch)", () => {
     expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
   });
 
+  it("Kinguin lands with its guard on adjacent slots", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 6;
+    place(s, "dusk_gool", "P2", 0, 0); // keep P2 alive
+    const handId = giveHand(s, "P1", "aqua_kinguin");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    const king = Object.values(next.cards).find((c) => c.defId === "aqua_kinguin")!;
+    const guard = Object.values(next.cards).filter((c) => c.defId === "aqua_guin_tok");
+    expect(guard).toHaveLength(2);
+    for (const g of guard) {
+      expect(g.owner).toBe("P1");
+      // adjacentOnly — every escort is within a king's move of Kinguin.
+      expect(Math.max(Math.abs(g.pos!.row - king.pos!.row), Math.abs(g.pos!.col - king.pos!.col))).toBe(1);
+    }
+  });
+
+  it("SSeerr's Flaming Slasher burns the next two attacks, then stops", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 2;
+    const sseerr = place(s, "pyro_sseerr", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    const next = applyIntent(battleFor(s, sseerr.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: sseerr.instanceId,
+    });
+    expect(next.cards[sseerr.instanceId].loadedOnHit?.attacks).toBe(2);
+    basicAttack(next, sseerr.instanceId, foe.instanceId);
+    expect(statusOf(next.cards[foe.instanceId], "BURN")?.power).toBe(4);
+    basicAttack(next, sseerr.instanceId, foe.instanceId);
+    expect(next.cards[sseerr.instanceId].loadedOnHit).toBeUndefined(); // both spent
+    // The third attack still burns — but that's PYRO's Scorch aura (BURN 1),
+    // not the Slasher's BURN 4. Power is what distinguishes them.
+    next.cards[foe.instanceId].statuses = [];
+    basicAttack(next, sseerr.instanceId, foe.instanceId);
+    expect(statusOf(next.cards[foe.instanceId], "BURN")?.power).toBe(1);
+  });
+
+  it("Monger's missed boulders come back as shields", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 2;
+    // Force every one of the five coin flips to MISS — the worst roll should
+    // still be worth casting: 5 misses × 2 = 10 shields on top of its printed 1.
+    s.rngState = seedForCoins(false, false, false, false, false);
+    const monger = place(s, "bore_monger", "P1", 2, 0, { curShields: 1 });
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    const next = applyIntent(battleFor(s, monger.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: foe.instanceId,
+    });
+    expect(next.cards[foe.instanceId].curHp).toBe(60); // every boulder whiffed
+    expect(next.cards[monger.instanceId].curShields).toBe(11);
+  });
+
+  it("Monger's Pride Guardian shields each ally on its first hit only", () => {
+    const s = prepState();
+    place(s, "bore_monger", "P1", 3, 0);
+    const ally = place(s, "bore_armadillo", "P1", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 });
+    const foe = place(s, "dusk_gool", "P2", 1, 0);
+    basicAttack(s, foe.instanceId, ally.instanceId);
+    expect(s.cards[ally.instanceId].curShields).toBe(2); // guarded
+    s.cards[ally.instanceId].curShields = 0; // strip it and get hit again
+    basicAttack(s, foe.instanceId, ally.instanceId);
+    expect(s.cards[ally.instanceId].curShields).toBe(0); // the guard was one-time
+  });
+
   it("Windsor's Right Through Me WEAKENs even a RANGED attacker", () => {
     const s = prepState();
     const windsor = place(s, "gale_windsor", "P1", 3, 0);

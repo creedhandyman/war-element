@@ -3285,6 +3285,84 @@ export const CARDS: CardDef[] = [
   },
 
   {
+    id: "pyro_sseerr",
+    name: "SSeerr",
+    rarity: "epic",
+    element: "PYRO",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 7,
+    hits: 1,
+    hp: 12,
+    sp: 9,
+    shields: 1,
+    keywords: {},
+    tribe: "Dragon",
+    // Dragon's Blade: it grows into the fight — +1 DMG and +1 SP every 2nd round,
+    // stacking with no ceiling.
+    roundTick: { buffDmgEveryN: { n: 2, amount: 1, sp: 1 } },
+    // Arrives breathing fire down the lane directly ahead.
+    onSummon: {
+      handler: "barrage",
+      params: { dmg: 3, targets: 8, spread: 1, forwardDepth: 1 },
+    },
+    special: {
+      name: "Flaming Slasher",
+      cost: 2,
+      handler: "loadOnHit",
+      // Doesn't strike — it lights the blade for the next two attacks.
+      params: { statusKind: "BURN", statusPower: 4, statusDuration: 2, attacks: 2 },
+      targetSide: "ally", // self-targeting; always castable
+      text: "Your next 2 basic attacks apply BURN 4 for 2 rounds.",
+    },
+  },
+  {
+    id: "bore_monger",
+    name: "Monger",
+    rarity: "epic",
+    element: "BORE",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 5,
+    hits: 1,
+    hp: 21,
+    sp: 3,
+    shields: 1,
+    keywords: {},
+    // Pride Guardian: the first hit any teammate takes, Monger throws it a slab.
+    onAllyHitShield: 2,
+    special: {
+      name: "Rock Slide",
+      cost: 2,
+      handler: "rockslide",
+      // Five boulders, each a coin flip. Every miss becomes 2 shields instead of
+      // nothing, so a cold streak arms the tank rather than wasting the cast.
+      params: { dmg: 4, hits: 5, shieldPerMiss: 2 },
+      targetSide: "enemy",
+      text: "Throw 5 boulders for 4 DMG each — 50% to hit. Every miss becomes +2 shields.",
+    },
+  },
+  {
+    id: "aqua_kinguin",
+    name: "Kinguin",
+    rarity: "rare",
+    element: "AQUA",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 3,
+    hits: 1,
+    hp: 8,
+    sp: 4,
+    shields: 2,
+    keywords: {},
+    // King's Guard: it never lands alone. adjacentOnly keeps the guard AT its
+    // side — a scattered escort would defeat the point.
+    summonSpawn: { token: "aqua_guin_tok", count: 2, adjacentOnly: true },
+  },
+  {
     id: "dawn_goldeneagle",
     name: "GoldenEagle",
     rarity: "rare",
@@ -3542,6 +3620,22 @@ export const TOKENS: CardDef[] = [
       targetSide: "ally", // self-buff; always castable
       text: "Gain +5 DMG, +5 HP, +5 SP permanently.",
     },
+  },
+  {
+    id: "aqua_guin_tok",
+    art: "aqua_kinguin", // no art of its own — it borrows its king's
+    name: "Guin",
+    rarity: "rare",
+    element: "AQUA",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 2,
+    hits: 1,
+    hp: 3,
+    sp: 5,
+    shields: 0,
+    keywords: {},
   },
 ];
 

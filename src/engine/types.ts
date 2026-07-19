@@ -157,7 +157,8 @@ export interface RoundTickDef {
   pokeStatus?: { kind: StatusKind; duration: number; power: number };
   healAllies?: number; // heal every ally N
   healLowestAlly?: number; // heal the lowest-HP ally N
-  buffDmgEveryN?: { n: number; amount: number }; // +DMG every Nth round (stacking)
+  /** +DMG (and optionally +SP) every Nth round, stacking (Dragon's Blade). */
+  buffDmgEveryN?: { n: number; amount: number; sp?: number };
   scaldFrozen?: number; // apply SCALD N to FROZEN enemies (Freezer Burn)
   paralyzeOne?: number; // PARALYZE one un-paralyzed enemy for N rounds
   pushEnemies?: number; // blow every enemy back N slots (Wind Guardian)
@@ -287,7 +288,7 @@ export interface CardDef {
   attackTrade?: { bonusDmg: number; hpCost: number };
   /** On summon, spawn `count` token cards (one-shot). The token's def lives in
    *  CARD_INDEX but never appears in a deck. */
-  summonSpawn?: { token: string; count: number };
+  summonSpawn?: { token: string; count: number; adjacentOnly?: boolean };
   /** Brightest Warrior (Radiance): on summon, scale up by the strongest foe —
    *  +`dmg` DMG and/or +`maxHp` max HP for each `per` max-HP the highest-HP
    *  opponent on the board has. */
@@ -338,6 +339,9 @@ export interface CardDef {
   /** Obsidian Claws (Obsidi): SP is replaced by this while the card is
    *  STEALTHed — underground it moves far faster than it does in the open. */
   spWhileStealthed?: number;
+  /** Pride Guardian (Monger): the first time each ALLY takes a hit, this card
+   *  throws it `shields`. Once per ally, tracked on the ally itself. */
+  onAllyHitShield?: number;
   /** Gate Keeper (Veil): grant this many shields to SELF on summon (a passive
    *  grant, not a base stat, so it stays off the cost curve). */
   summonSelfShields?: number;
@@ -433,8 +437,14 @@ export interface CardInstance {
   /** An ambush loaded into the NEXT basic attack (Obsidi's Dirt Driller): it
    *  overrides both DMG and hit count for that one attack, then clears. */
   loadedStrike?: { dmg: number; hits: number };
+  /** A status riding the next `attacks` basic attacks (SSeerr's Flaming
+   *  Slasher). Decremented once per attack that lands, not per hit. */
+  loadedOnHit?: { kind: StatusKind; duration: number; power: number; attacks: number };
   /** One-shot guard for a `oneUse` onAllyKilled (Shine's Brightling Ball). */
   allyKilledFired: boolean;
+  /** Set once this card has been shielded by a Pride Guardian, so the guard
+   *  spends itself once per ALLY rather than once per hit. */
+  guardedByPride?: boolean;
   /** Every opponent this card has landed a basic attack on (instanceIds).
    *  Persistent — powers first-strike-per-opponent bonuses (Klipso Harsh Winds). */
   struckEver: string[];
