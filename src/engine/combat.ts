@@ -17,6 +17,7 @@ import { chance, coin, pctChance } from "./rng";
 import { creditDamage, creditKill } from "./stats";
 import { auraHasPen, boardCards, cardAt, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
 import type {
+  CardDef,
   CardInstance,
   Element,
   GameState,
@@ -437,6 +438,13 @@ export function resolveHit(
     if (r) result.attackerDied = true;
   }
 
+  // Jelly Shock: a struck survivor discharges into the attacker AND everything
+  // enemy standing next to it. Skipped for `reflect` hits — that's the kind
+  // directDamage uses, so the discharge can't set off another discharge.
+  if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && tDef.onHitZap) {
+    if (applyOnHitZap(draft, target, attacker, tDef.onHitZap)) result.attackerDied = true;
+  }
+
   // REFLECT — plain damage back through the attacker's BLOCK + shield gate.
   // No EVASION/CRIT/REFLECT on the bounce (no chains).
   if (reflectBack > 0 && attacker.curHp > 0) {
@@ -800,6 +808,40 @@ function applyOnHitByMelee(
     if (boosted) draft.log.push(`${getDef(defender.defId).name}'s heat doubles the BURN on ${getDef(attacker.defId).name}.`);
   }
   return killed;
+}
+
+/** Jelly Shock (Jellyfish): the defender discharges after surviving a hit —
+ *  `dmg` to whoever struck it, plus every enemy in the 8 slots around it. The
+ *  attacker is zapped even from range, which is the whole point: thorns only
+ *  answer melee, this answers everyone. Returns true if the attacker died. */
+function applyOnHitZap(
+  draft: GameState,
+  defender: CardInstance,
+  attacker: CardInstance,
+  def: NonNullable<CardDef["onHitZap"]>,
+): boolean {
+  const zapped: CardInstance[] = [];
+  if (attacker.curHp > 0 && draft.cards[attacker.instanceId]) zapped.push(attacker);
+  if (defender.pos) {
+    for (const e of boardCards(draft, enemyOf(defender.owner))) {
+      if (!e.pos || e.curHp <= 0) continue;
+      if (e.instanceId === attacker.instanceId) continue; // already in the list
+      const dr = Math.abs(e.pos.row - defender.pos.row);
+      const dc = Math.abs(e.pos.col - defender.pos.col);
+      if (dr <= 1 && dc <= 1 && !(dr === 0 && dc === 0)) zapped.push(e);
+    }
+  }
+  if (zapped.length === 0) return false;
+  draft.log.push(`${label(draft, defender)} discharges — ${def.dmg} to ${zapped.length} target(s).`);
+  let attackerDied = false;
+  for (const e of zapped) {
+    const died = directDamage(draft, defender, e, def.dmg, false);
+    if (died && e.instanceId === attacker.instanceId) attackerDied = true;
+    if (def.status && !died && draft.cards[e.instanceId] && e.curHp > 0) {
+      applyStatus(draft, e, def.status.kind, def.status.duration, def.status.power, getDef(defender.defId).element);
+    }
+  }
+  return attackerDied;
 }
 
 /** On-kill: buff the killer / heal / blast. */

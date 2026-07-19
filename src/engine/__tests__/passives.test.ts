@@ -108,6 +108,35 @@ describe("medium-tier passives (audit batch)", () => {
     expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
   });
 
+  it("Jellyfish's Jelly Shock zaps a RANGED attacker that thorns would miss", () => {
+    const s = prepState();
+    const jelly = place(s, "bolt_jellyfish", "P1", 3, 0, { curHp: 15 });
+    const sniper = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 }); // Ranged, far off
+    basicAttack(s, sniper.instanceId, jelly.instanceId);
+    expect(s.cards[sniper.instanceId].curHp).toBe(11); // 2 discharge, from across the board
+  });
+
+  it("Jelly Shock splashes every enemy beside it, not just the attacker", () => {
+    const s = prepState();
+    const jelly = place(s, "bolt_jellyfish", "P1", 2, 1, { curHp: 15 });
+    const puncher = place(s, "dusk_gool", "P2", 2, 2, { curHp: 13 }); // adjacent attacker
+    const beside = place(s, "dusk_vamp", "P2", 1, 0, { curHp: 12 }); // diagonal bystander
+    const far = place(s, "dusk_crow", "P2", 0, 3, { curHp: 12 }); // out of the cluster
+    basicAttack(s, puncher.instanceId, jelly.instanceId);
+    expect(s.cards[puncher.instanceId].curHp).toBe(11); // zapped as the attacker
+    expect(s.cards[beside.instanceId].curHp).toBe(10); // zapped for standing too close
+    expect(s.cards[far.instanceId].curHp).toBe(12); // untouched
+  });
+
+  it("Jelly Shock stays quiet when the Jellyfish dies to the hit", () => {
+    const s = prepState();
+    const jelly = place(s, "bolt_jellyfish", "P1", 2, 1, { curHp: 2 });
+    const killer = place(s, "dusk_gool", "P2", 2, 2, { curHp: 13 }); // 4 DMG → lethal
+    basicAttack(s, killer.instanceId, jelly.instanceId);
+    expect(s.cards[jelly.instanceId]).toBeUndefined(); // it died
+    expect(s.cards[killer.instanceId].curHp).toBe(13); // no posthumous discharge
+  });
+
   it("Regenerative counts a hit its shield soaked, and grows that shield back", () => {
     const s = prepState();
     const sq = place(s, "leaf_squanch", "P1", 3, 0, { curShields: 1 });

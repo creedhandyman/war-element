@@ -3222,6 +3222,168 @@ export const CARDS: CardDef[] = [
     summonSelfShields: 1,
     onShieldBreak: { status: { kind: "PARALYZE", duration: 1, power: 0 } },
   },
+
+  // ── Rarity fill-in ─────────────────────────────────────────────────────────
+  // One card per element, each dropped into that element's thinnest rarity, to
+  // even out a spread that had run from 4 to 8 epics and 5 to 10 rares. Stats
+  // hold the house budget: dmg×hits + hp + 2×shields + sp = 5×cost + 10.
+  {
+    id: "pyro_ash_boar",
+    name: "Ash Boar",
+    rarity: "epic",
+    element: "PYRO",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 8,
+    hits: 1,
+    hp: 19,
+    sp: 3,
+    shields: 0,
+    keywords: {},
+    // Cinder Charge: it hits hardest on the first impact with a fresh opponent —
+    // +3 DMG the first time it lands on each distinct enemy (once each, forever).
+    firstStrikeBonus: 3,
+    special: {
+      name: "Trample",
+      cost: 3,
+      handler: "strike",
+      // Barrels one slot deeper into enemy ground after connecting.
+      params: { dmg: 7, charge: 1 },
+      targetSide: "enemy",
+      text: "Deal 7 DMG, then charge 1 slot toward the enemy home.",
+    },
+  },
+  {
+    id: "bore_obsidi",
+    name: "Obsidi",
+    rarity: "epic",
+    element: "BORE",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 6,
+    hits: 1,
+    hp: 16,
+    sp: 2,
+    shields: 3,
+    keywords: { BLOCK: 2 },
+    special: {
+      name: "Drill Down",
+      cost: 3,
+      handler: "strike",
+      // The drill-horn goes through armour, not around it.
+      params: { dmg: 9, pen: 1 },
+      targetSide: "enemy",
+      text: "Deal 9 DMG that ignores shields (PEN).",
+    },
+  },
+  {
+    id: "aqua_piranha",
+    name: "Piranha",
+    rarity: "rare",
+    element: "AQUA",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 2,
+    hits: 3,
+    hp: 11,
+    sp: 3,
+    shields: 0,
+    keywords: {},
+    // Feeding Frenzy: blood in the water. Against anything already BLEEDing its
+    // bites hit harder and feed it.
+    vsStatus: { status: "BLEED", bonusDmg: 1, lifesteal: true },
+    special: {
+      name: "Blood Scent",
+      cost: 2,
+      handler: "strike",
+      params: { dmg: 3, hits: 2, statusKind: "BLEED", statusDuration: 2, statusPower: 2 },
+      targetSide: "enemy",
+      text: "Bite twice for 3 DMG each and leave BLEED 2 for 2 rounds.",
+    },
+  },
+  {
+    id: "gale_tumbleweed",
+    name: "Tumbleweed",
+    rarity: "rare",
+    element: "GALE",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 4,
+    hits: 1,
+    hp: 9,
+    sp: 7,
+    shields: 0,
+    // Nothing lands cleanly on something that never stops rolling.
+    keywords: { EVASION: true },
+    special: {
+      name: "Roll Through",
+      cost: 2,
+      handler: "strike",
+      params: { dmg: 5, charge: 1 },
+      targetSide: "enemy",
+      text: "Deal 5 DMG, then roll 1 slot toward the enemy home.",
+    },
+  },
+  {
+    id: "bolt_jellyfish",
+    name: "Jellyfish",
+    rarity: "rare",
+    element: "BOLT",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 5,
+    hits: 1,
+    hp: 15,
+    sp: 5,
+    shields: 0,
+    keywords: {},
+    // Jelly Shock: touch it and the whole cluster lights up — 2 DMG to whoever
+    // struck it (range is no protection) and to every enemy standing beside it.
+    onHitZap: { dmg: 2 },
+    special: {
+      name: "Storm Conduit",
+      cost: 2,
+      handler: "strike",
+      params: { dmg: 6, statusKind: "PARALYZE", statusDuration: 1, statusPower: 0 },
+      targetSide: "enemy",
+      text: "Deal 6 DMG and PARALYZE the target for 1 round.",
+    },
+  },
+  {
+    id: "dawn_shine",
+    name: "Shine",
+    rarity: "rare",
+    element: "DAWN",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 6,
+    hits: 1,
+    hp: 14,
+    sp: 5,
+    shields: 0,
+    keywords: {},
+    // Glare: a starburst to the eyes the first time it catches someone. Gated to
+    // first contact deliberately: DAWN already fields Raising Star (blinds the
+    // whole enemy board each round) and Speed Flash, so a third UNGATED blind
+    // would let one core keep everything at half accuracy indefinitely. Control
+    // statuses follow the FRIGHTEN precedent (firstHitOnly); only damage-over-
+    // time riders like BLEED/BURN run ungated.
+    onHitStatus: { kind: "BLIND", duration: 1, power: 0, firstHitOnly: true },
+    special: {
+      name: "Sunburst",
+      cost: 2,
+      handler: "strike",
+      params: { dmg: 7, statusKind: "BLIND", statusDuration: 2, statusPower: 0 },
+      targetSide: "enemy",
+      text: "Deal 7 DMG and BLIND the target for 2 rounds.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

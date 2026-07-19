@@ -203,6 +203,10 @@ export function describePassives(def: CardDef): string[] {
     const bits = [o.dmg && `${o.dmg} DMG`, o.status && o.status.kind].filter(Boolean).join(" + ");
     passives.push(`When an enemy is summoned within range, hits it with ${bits}.`);
   }
+  if (def.onHitZap)
+    passives.push(
+      `Jelly Shock: when it's hit and survives, discharges ${def.onHitZap.dmg} DMG into the attacker — melee or ranged — and every enemy standing next to it${def.onHitZap.status ? ` (+${def.onHitZap.status.kind})` : ""}.`,
+    );
   if (def.firstStrikeBonus && !def.firstStrikeEnemySideOnly)
     passives.push(`+${def.firstStrikeBonus} DMG on the first strike against each opponent.`);
   if (def.ignoresSleepWake) passives.push("Its attacks don't wake SLEEPING targets.");

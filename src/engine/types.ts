@@ -238,6 +238,13 @@ export interface CardDef {
   onHitStatus?: OnHitStatusDef;
   /** Thorns: retaliate when hit by a melee attacker. */
   onHitByMelee?: OnHitByMeleeDef;
+  /** Jelly Shock (Jellyfish): discharge when HIT and still standing — `dmg` to
+   *  the attacker plus every enemy adjacent to this card. Unlike thorns it
+   *  answers RANGED attackers too, and it splashes rather than hitting one. */
+  onHitZap?: {
+    dmg: number;
+    status?: { kind: StatusKind; duration: number; power: number };
+  };
   /** On-kill trigger (this card's attack defeats an enemy). */
   onKill?: OnKillDef;
   /** Conditional basic-attack keyword vs a target carrying a status. */
