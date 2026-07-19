@@ -6,6 +6,7 @@ import {
   boardCards,
   cardAt,
   chebyshev,
+  effectiveMaxHp,
   effectiveSp,
   fieldBonus,
   hasStatus,
@@ -160,9 +161,17 @@ export function canTarget(
 export function validTargets(state: GameState, attackerId: string): CardInstance[] {
   const attacker = state.cards[attackerId];
   if (!attacker || !attacker.pos) return [];
-  return boardCards(state, enemyOf(attacker.owner)).filter((t) =>
+  const enemies = boardCards(state, enemyOf(attacker.owner)).filter((t) =>
     canTarget(state, attacker, t),
   );
+  // Morning Dew (Sprinu): a healer aims its basic at hurt friends too. Only
+  // wounded allies are offered — healing something at full HP is a wasted turn,
+  // and it keeps the AI from picking one.
+  if (!getDef(attacker.defId).basicHealsAllies) return enemies;
+  const hurtAllies = boardCards(state, attacker.owner).filter(
+    (a) => a.instanceId !== attackerId && a.curHp > 0 && a.curHp < effectiveMaxHp(state, a),
+  );
+  return [...enemies, ...hurtAllies];
 }
 
 /** Ally cards a friendly-targeted special may pick (any ally on board, incl. self). */

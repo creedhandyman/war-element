@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS } from "../combat";
 import { applyFlow } from "../auras";
 import { advance, applyIntent } from "../phases";
-import { canFireSpecial, canMove, canTarget } from "../rules";
+import { canFireSpecial, canMove, canTarget, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard } from "../state";
 import { getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
@@ -115,6 +115,59 @@ describe("medium-tier passives (audit batch)", () => {
     const next = advance(atCleanup(s));
     expect(next.cards[sq.instanceId].curShields).toBe(2); // one hit, one shield
     expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
+  });
+
+  it("Sprinu's basic can be aimed at a hurt ally to heal it instead", () => {
+    const s = prepState();
+    const sprinu = place(s, "leaf_sprinu", "P1", 3, 0);
+    const hurt = place(s, "leaf_greegon", "P1", 3, 1, { curHp: 5, maxHp: 20 });
+    const full = place(s, "leaf_alpha", "P1", 2, 0, { curHp: 20, maxHp: 20 });
+    place(s, "dusk_gool", "P2", 0, 0);
+    // Only the WOUNDED ally is offered — healing a full-HP card wastes a turn.
+    const offered = validTargets(s, sprinu.instanceId).map((t) => t.instanceId);
+    expect(offered).toContain(hurt.instanceId);
+    expect(offered).not.toContain(full.instanceId);
+    basicAttack(s, sprinu.instanceId, hurt.instanceId);
+    expect(s.cards[hurt.instanceId].curHp).toBe(9); // healed for its 4 DMG, not struck
+  });
+
+  it("Morning Dew waters LEAF allies only", () => {
+    const s = prepState();
+    place(s, "leaf_sprinu", "P1", 3, 0);
+    const leafy = place(s, "leaf_greegon", "P1", 3, 1, { curHp: 5, maxHp: 20 });
+    const other = place(s, "bore_armadillo", "P1", 2, 0, { curHp: 5, maxHp: 20 });
+    place(s, "dusk_gool", "P2", 0, 0);
+    const next = advance(atCleanup(s));
+    // 5 + 2 (greegon's own REGEN) + 1 (Morning Dew) + 1 (LEAF Photosynthesis).
+    // Drop the dew and this reads 8, so the number does pin the passive.
+    expect(next.cards[leafy.instanceId].curHp).toBe(9);
+    expect(next.cards[other.instanceId].curHp).toBe(5); // BORE gets neither dew nor Photosynthesis
+  });
+
+  it("Wedded Wraith raises a Specter on every kill", () => {
+    const s = prepState();
+    const wraith = place(s, "dusk_wedded_wraith", "P1", 2, 0);
+    const prey = place(s, "leaf_greegon", "P2", 1, 0, { curHp: 2, curShields: 0 });
+    place(s, "leaf_alpha", "P2", 0, 0); // keep P2 alive
+    basicAttack(s, wraith.instanceId, prey.instanceId);
+    expect(s.cards[prey.instanceId]).toBeUndefined();
+    const risen = Object.values(s.cards).filter((c) => c.defId === "dusk_specter_tok");
+    expect(risen).toHaveLength(1);
+    expect(risen[0].owner).toBe("P1");
+  });
+
+  it("Last Waltz lifts surviving Ghosts and frightens the living", () => {
+    const s = prepState();
+    const wraith = place(s, "dusk_wedded_wraith", "P1", 2, 1, { curHp: 2, curShields: 0 });
+    const ghost = place(s, "dusk_gool", "P1", 3, 0); // Ghost tribe ally
+    const notGhost = place(s, "leaf_alpha", "P1", 3, 1);
+    const killer = place(s, "leaf_greegon", "P2", 1, 1, { curHp: 30, maxHp: 30 });
+    const ghostDmgBefore = effectiveDmg(s, s.cards[ghost.instanceId]);
+    basicAttack(s, killer.instanceId, wraith.instanceId);
+    expect(s.cards[wraith.instanceId]).toBeUndefined();
+    expect(effectiveDmg(s, s.cards[ghost.instanceId])).toBe(ghostDmgBefore + 2);
+    expect(s.cards[notGhost.instanceId].dmgBonus).toBe(0); // tribe-scoped
+    expect(statusOf(s.cards[killer.instanceId], "FRIGHTEN")?.duration).toBe(1);
   });
 
   it("Kinguin lands with its guard on adjacent slots", () => {

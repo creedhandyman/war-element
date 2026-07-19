@@ -15,7 +15,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
 import { creditDamage, creditKill } from "./stats";
-import { auraHasPen, boardCards, cardAt, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -441,6 +441,27 @@ export function resolveHit(
         }
       }
     }
+    // Last Waltz: fires on ANY death, killer or not — the ballroom dances on.
+    // Runs before the damage-retaliation branch below so the tribe buff lands
+    // even when the same onDeath also strikes back.
+    if (tDef.onDeath?.allyTribeBuffDmg) {
+      const { tribe, dmg } = tDef.onDeath.allyTribeBuffDmg;
+      const kin = boardCards(draft, deadOwner).filter((a) => {
+        const t = getDef(a.defId).tribe;
+        return a.curHp > 0 && (Array.isArray(t) ? t.includes(tribe) : t === tribe);
+      });
+      for (const a of kin) a.dmgBonus += dmg;
+      if (kin.length)
+        draft.log.push(`${tDef.name}'s last waltz lifts ${kin.length} ${tribe}(s) (+${dmg} DMG, permanently).`);
+    }
+    if (tDef.onDeath?.frightenInRange && deathPos) {
+      const scared = boardCards(draft, enemyOf(deadOwner)).filter(
+        (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, deathPos) <= 1,
+      );
+      for (const e of scared)
+        applyStatus(draft, e, "FRIGHTEN", tDef.onDeath.frightenInRange, 0, tDef.element);
+      if (scared.length) draft.log.push(`The dread of her passing drives ${scared.length} back.`);
+    }
     // On-death effects.
     if (tDef.onDeath && opts.kind !== "reflect") {
       if (tDef.onDeath.rowAhead && deathPos) {
@@ -555,6 +576,18 @@ export function basicAttack(
   if (picks.length === 0) return null;
   const aDef = getDef(attacker.defId);
   attacker.attackedThisRound = true; // STEALTH breaks even on a miss
+
+  // Morning Dew (Sprinu): aimed at an ALLY, the basic is a heal for its DMG —
+  // no hit roll, no statuses, no riders. Checked before anything else so none of
+  // the combat machinery below ever sees a friendly target.
+  if (aDef.basicHealsAllies) {
+    const first = draft.cards[picks[0]];
+    if (first && first.owner === attacker.owner && first.instanceId !== attackerId) {
+      const healed = healCard(draft, first, effectiveDmg(draft, attacker), attacker.owner);
+      draft.log.push(`${label(draft, attacker)} tends ${label(draft, first)} (+${healed} HP).`);
+      return { landedHits: 0, dodgedHits: 0, totalToHp: 0, targetDied: false, attackerDied: false };
+    }
+  }
 
   const missed: AttackResult = {
     landedHits: 0, dodgedHits: 0, totalToHp: 0, targetDied: false, attackerDied: false,
@@ -933,6 +966,11 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef): vo
   }
   if (def.buffDmgRound) killer.dmgBonusRound += def.buffDmgRound;
   if (def.buffSp) killer.spBonus += def.buffSp;
+  if (def.spawnToken) {
+    // Harvester: the fallen get up again on her side.
+    const raised = spawnTokens(draft, killer, def.spawnToken.token, def.spawnToken.count);
+    if (raised.length) draft.log.push(`${name} harvests the fallen — ${raised.length} rise.`);
+  }
   if (def.buffHits) {
     killer.hitsBonus += def.buffHits;
     draft.log.push(`${name} gains +${def.buffHits} hit on its basic attack.`);
@@ -1182,6 +1220,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     // Charging Tusks: the boar doesn't stop where it hit — it keeps going.
     if (num(params, "charge") > 0 && attacker.curHp > 0) chargeForward(draft, attacker, num(params, "charge"));
+    // Root Spring: the same burst that snares the enemy waters its own side.
+    const healEl = typeof params.healAlliesElement === "string" ? params.healAlliesElement : "";
+    const healAmt = num(params, "healAllies");
+    if (healEl && healAmt > 0 && attacker.curHp > 0) {
+      let touched = 0;
+      for (const a of boardCards(draft, attacker.owner))
+        if (getDef(a.defId).element === healEl && healCard(draft, a, healAmt, attacker.owner) > 0) touched++;
+      if (touched) draft.log.push(`${label(draft, attacker)} waters ${touched} ${healEl} ally(ies) (+${healAmt} HP).`);
+    }
     // Shimmering Featherrows: loose the volley, then vanish back into the light.
     if (num(params, "stealthRounds") > 0 && attacker.curHp > 0)
       applyStatus(draft, attacker, "STEALTH", num(params, "stealthRounds"), 0, getDef(attacker.defId).element);

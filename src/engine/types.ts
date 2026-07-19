@@ -126,6 +126,8 @@ export interface OnKillDef {
   /** Powertrip (Voltogon): deal N to every ELECTRIFIED enemy (= carrying any
    *  status, the BOLT proxy), at most once per round. */
   aoeDmgElectrified?: number;
+  /** Harvester (Wedded Wraith): every kill raises another token. */
+  spawnToken?: { token: string; count: number };
   coinBonusDmg?: number; // coin flip: +this or +this−1 permanent DMG
   reduceSpecialCost?: number; // King Me (Heir): shave N off this card's Special cost per kill
   /** Static Charge (Static): on a kill, extend the named status on every enemy
@@ -150,6 +152,8 @@ export interface VsStatusDef {
 /** A periodic self-driven effect resolved in Cleanup (end of round). */
 export interface RoundTickDef {
   rootedDmg?: number; // Trapper (Fallow): damage every ROOTed enemy, range-free
+  /** Morning Dew (Sprinu): heal every ally of this element at end of round. */
+  roundHealElement?: { element: Element; amount: number };
   aoeDmg?: number; // damage every enemy in range
   aoeStatus?: { kind: StatusKind; duration: number; power: number };
   lowestEnemyStatus?: { kind: StatusKind; duration: number; power: number };
@@ -342,6 +346,9 @@ export interface CardDef {
   /** Pride Guardian (Monger): the first time each ALLY takes a hit, this card
    *  throws it `shields`. Once per ally, tracked on the ally itself. */
   onAllyHitShield?: number;
+  /** Morning Dew (Sprinu): its basic attack may be aimed at an ALLY, healing
+   *  them for its DMG instead of striking. Allies become legal basic targets. */
+  basicHealsAllies?: boolean;
   /** Gate Keeper (Veil): grant this many shields to SELF on summon (a passive
    *  grant, not a base stat, so it stays off the cost curve). */
   summonSelfShields?: number;
@@ -381,7 +388,15 @@ export interface CardDef {
    *  evasion, no reflect chains. DOT/self-damage deaths have no killer.
    *  `rowAhead` (FireBird Burnout) instead blasts the enemy row directly ahead
    *  of where this card died, regardless of who the killer was. */
-  onDeath?: { dmg: number; pen?: boolean; rowAhead?: boolean };
+  onDeath?: {
+    dmg: number;
+    pen?: boolean;
+    rowAhead?: boolean;
+    /** Last Waltz (Wedded Wraith): as she falls, every surviving ally of this
+     *  tribe takes a permanent +DMG, and enemies in range are FRIGHTENed. */
+    allyTribeBuffDmg?: { tribe: string; dmg: number };
+    frightenInRange?: number; // rounds of FRIGHTEN on reachable enemies
+  };
   /** On-summon passive (Fire Blast / Fury Unleashed): fires the moment the
    *  card lands, through the same handler registry as Specials. Free — not a
    *  Special, so no magic cost, no cooldown, no summon-turn lockout. Targets

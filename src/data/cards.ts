@@ -3285,6 +3285,70 @@ export const CARDS: CardDef[] = [
   },
 
   {
+    id: "leaf_sprinu",
+    name: "Sprinu",
+    rarity: "epic",
+    element: "LEAF",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 4,
+    hits: 1,
+    hp: 13,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    // Morning Dew, both halves: the dew each round, and a basic attack that can
+    // be aimed at a hurt friend to heal for its DMG instead of striking.
+    roundTick: { roundHealElement: { element: "LEAF", amount: 1 } },
+    basicHealsAllies: true,
+    special: {
+      name: "Root Spring",
+      cost: 2,
+      handler: "barrage",
+      // One burst: snares the enemy and waters its own side.
+      params: {
+        dmg: 3, hits: 2, targets: 8,
+        statusKind: "ROOT", statusDuration: 1,
+        healAlliesElement: "LEAF", healAllies: 4,
+      },
+      targetSide: "enemy",
+      text: "Deal 3×2 DMG and ROOT for 1 round, then heal LEAF allies 4 HP.",
+    },
+  },
+  {
+    id: "dusk_wedded_wraith",
+    name: "Wedded Wraith",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 8,
+    hits: 1,
+    hp: 11,
+    sp: 9,
+    shields: 1,
+    keywords: {},
+    tribe: "Ghost",
+    // Harvester: every kill raises another Specter.
+    onKill: { spawnToken: { token: "dusk_specter_tok", count: 1 } },
+    // Last Waltz: the ballroom dances on. Fires on ANY death, not just a kill.
+    onDeath: {
+      dmg: 0,
+      allyTribeBuffDmg: { tribe: "Ghost", dmg: 2 },
+      frightenInRange: 1,
+    },
+    special: {
+      name: "Shadow Summon",
+      cost: 3,
+      handler: "spawn",
+      params: { token: "dusk_specter_tok", count: 3 },
+      targetSide: "ally", // self-targeting; always castable
+      text: "Spawn 3 Specters (3 DMG / 1 HP / SP 7).",
+    },
+  },
+  {
     id: "pyro_sseerr",
     name: "SSeerr",
     rarity: "epic",
@@ -3620,6 +3684,23 @@ export const TOKENS: CardDef[] = [
       targetSide: "ally", // self-buff; always castable
       text: "Gain +5 DMG, +5 HP, +5 SP permanently.",
     },
+  },
+  {
+    id: "dusk_specter_tok",
+    art: "dusk_wedded_wraith", // borrows the wraith's art
+    name: "Specter",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 1,
+    sp: 7,
+    shields: 0,
+    keywords: {},
+    tribe: "Ghost", // so Last Waltz lifts them
   },
   {
     id: "aqua_guin_tok",

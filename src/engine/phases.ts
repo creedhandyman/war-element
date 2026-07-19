@@ -903,6 +903,13 @@ function doRoundTicks(draft: GameState): void {
       const t = closest(card, enemies().filter((e) => hasStatus(e, "PARALYZE") && canTarget(draft, card, e)));
       if (t) directDamage(draft, card, t, rt.pokeParalyzedDmg, false);
     }
+    if (rt.roundHealElement) {
+      // Morning Dew: the dew settles on its own kind only.
+      const { element, amount } = rt.roundHealElement;
+      let touched = 0;
+      for (const a of allies()) if (getDef(a.defId).element === element && healCard(draft, a, amount) > 0) touched++;
+      if (touched) draft.log.push(`${label(draft, card)}'s dew settles on ${touched} ${element} ally(ies) (+${amount} HP).`);
+    }
     if (rt.rootedDmg) {
       // Trapper (Fallow): the snares bite at the end of every round. Anything
       // held in place takes the hit wherever it is — a trap doesn't need range.
