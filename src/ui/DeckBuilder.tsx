@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CardClass, Element } from "../engine";
 import { getDef, SPELLS } from "../engine";
 import {
@@ -88,6 +88,20 @@ export function DeckBuilder(props: {
     return { byElement, byClass, byCost, maxCostCount, avg: picked.length ? costSum / picked.length : 0 };
   }, [picked]);
 
+  // Keep the spellbook tied to the deck's elements: drop any picked spell whose
+  // element the deck no longer plays (e.g. after pulling the last card of that
+  // element) — plus any stale/unknown id. Runs on deck edits + on load.
+  useEffect(() => {
+    const els = new Set(picked.map((id) => getDef(id).element));
+    setPickedSpells((cur) => {
+      const next = cur.filter((id) => {
+        const el = SPELLS.find((s) => s.id === id)?.element;
+        return el != null && els.has(el);
+      });
+      return next.length === cur.length ? cur : next;
+    });
+  }, [picked]);
+
   if (!props.open) return null;
 
   function toggle(id: string) {
@@ -126,16 +140,13 @@ export function DeckBuilder(props: {
   const countColor = check.ok ? "var(--legal)" : picked.length > MAX_DECK ? "var(--threat)" : "var(--muted)";
   const detail = detailId ? getDef(detailId) : null;
 
-  // Spell picker order: spells whose element the deck plays float to the top
-  // (their ally riders will actually land), then by cost, then name.
+  // The spellbook is restricted to the deck's own elements — only spells whose
+  // element the deck actually plays are offered (others would just fizzle in
+  // play). Sorted by cost then name.
   const deckEls = new Set(picked.map((id) => getDef(id).element));
-  const sortedSpells = [...SPELLS].sort((a, b) => {
-    const ai = deckEls.has(a.element) ? 0 : 1;
-    const bi = deckEls.has(b.element) ? 0 : 1;
-    if (ai !== bi) return ai - bi;
-    if (a.cost !== b.cost) return a.cost - b.cost;
-    return a.name.localeCompare(b.name);
-  });
+  const deckSpells = SPELLS
+    .filter((s) => deckEls.has(s.element))
+    .sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name));
 
   return (
     <div className="overlay" onClick={props.onClose}>
@@ -228,12 +239,15 @@ export function DeckBuilder(props: {
               </button>
               {spellsShown && (<>
                 <div className="db-spell-hint">
-                  {pickedSpells.length === 0
+                  {deckEls.size === 0
+                    ? "Add cards to your deck to unlock its element spells."
+                    : pickedSpells.length === 0
                     ? "None picked — auto-filled from your deck's elements at match start."
-                    : "Tap a spell to add or remove it. Off-element ally riders simply fizzle."}
+                    : "Tap a spell to add or remove it."}
                 </div>
+                {deckSpells.length > 0 && (
                 <div className="db-spell-grid">
-                  {sortedSpells.map((s) => {
+                  {deckSpells.map((s) => {
                     const on = pickedSpells.includes(s.id);
                     const full = !on && pickedSpells.length >= MAX_SPELLS;
                     return (
@@ -256,6 +270,7 @@ export function DeckBuilder(props: {
                     );
                   })}
                 </div>
+                )}
               </>)}
             </div>
 
