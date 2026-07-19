@@ -1018,7 +1018,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   }
   .db-head { flex: none; margin-bottom: 6px; }
   .db-body { flex: 1 1 auto; min-height: 0; flex-direction: column; gap: 10px; }
-  .db-side { width: auto; flex: none; max-height: none; overflow: visible; gap: 7px; }
+  /* The side column scrolls on its own: with the spellbook expanded (a grid of
+     art cards) it's far taller than the panel, and the modal is overflow:hidden
+     — without this you simply can't reach the spells below the fold. Capped so
+     the card pool still gets room underneath. */
+  .db-side {
+    width: auto; flex: none; gap: 7px;
+    max-height: 55vh; overflow-y: auto; overscroll-behavior: contain;
+  }
   .db-pool {
     flex: 1 1 auto; min-height: 0; gap: 8px;
     border-left: none; border-top: 1px solid var(--panel-line); padding-left: 0; padding-top: 10px;
