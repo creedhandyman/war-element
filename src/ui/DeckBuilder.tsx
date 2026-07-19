@@ -355,8 +355,9 @@ export function DeckBuilder(props: {
                         {on ? "✓" : "+"}
                       </button>
                     </div>
-                    {/* Rarity sits on its own line — in the top row it fought the
-                        +Add button for space and got crushed on long labels. */}
+                    {/* Rarity is absolutely positioned (see styles.css) as a vertical
+                        strip in the bottom-right corner — out of the art's face and
+                        clear of the +Add button. Must stay a direct child of .deck-thumb. */}
                     {rar && (
                       <span className="dt-rarity" style={{ color: rar.color, borderColor: rar.color }}>
                         {rar.label}
