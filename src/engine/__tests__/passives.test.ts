@@ -401,11 +401,13 @@ describe("medium-tier passives (audit batch)", () => {
     expect(hasEvasion(s.cards[plain.instanceId])).toBe(true);
   });
 
-  it("Fallow's CRIT pins its victim, and Trapper bites every ROOTed foe at Cleanup", () => {
+  it("Fallow pins what it hits even through shields, and Trapper bites at Cleanup", () => {
     const s = prepState();
-    s.rngState = seedForCoins(true); // force the CRIT roll to land
     const fallow = place(s, "leaf_fallow", "P1", 2, 0);
-    const prey = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, curShields: 0 });
+    // SHIELDED on purpose. The aura used to ride the crit roll, which cannot
+    // even be attempted while shields are up — this target was rooted 0% of the
+    // time, and Trapper starved with it.
+    const prey = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, curShields: 3 });
     // ROOTed but far away — Trapper is range-free, so it still gets bitten.
     // Needs maxHp too: Cleanup clamps curHp to the effective max.
     const distant = place(s, "dusk_ghastly", "P2", 0, 3, { curHp: 20, maxHp: 20 });

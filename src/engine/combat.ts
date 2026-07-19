@@ -368,9 +368,13 @@ export function resolveHit(
       target.statuses = target.statuses.filter((s) => s.kind !== "SLEEP");
       draft.log.push(`${label(draft, target)} is jolted awake!`);
     }
-    // Fallow's aura: a CRIT that lands pins its victim. Checked once for the
-    // whole volley — a multi-hit that crits twice still applies one ROOT.
-    if (aDef.critStatus && (result.critHits ?? 0) > 0 && target.curHp > 0) {
+    // Fallow's trapper aura: its hits pin. Gated on HOLDING the CRIT keyword,
+    // not on a crit LANDING — the crit roll needs an unshielded target and then
+    // a coin flip, which measured 0% against anything with a shield and 51%
+    // otherwise. Tied to that, the aura almost never fired, and Trapper (which
+    // eats ROOTed enemies) starved with it. An Aura should be constant.
+    // Once per volley: a multi-hit still applies one ROOT.
+    if (aDef.critStatus && aDef.keywords.CRIT && target.curHp > 0) {
       const cs = aDef.critStatus;
       applyStatus(draft, target, cs.kind, cs.duration, cs.power, aDef.element);
     }

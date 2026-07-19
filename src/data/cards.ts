@@ -3239,8 +3239,11 @@ export const CARDS: CardDef[] = [
     keywords: { CRIT: true },
     // Trapper (End of Round): the snares bite everything they're holding.
     roundTick: { rootedDmg: 2 },
-    // Aura: a landed CRIT pins its victim — which then walks straight into
-    // Trapper at end of round. The two passives are one engine.
+    // Aura: everything Fallow hits is pinned — and then walks straight into
+    // Trapper at end of round. The two passives are one engine, so this fires on
+    // any landed hit rather than on the crit ROLL: the roll needs an unshielded
+    // target plus a coin flip, which measured 0% against a shielded card and
+    // starved Trapper along with it.
     critStatus: { kind: "ROOT", duration: 1, power: 0 },
     special: {
       name: "Hunting Season",
