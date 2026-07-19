@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { CardDef, CardInstance, GameState, PlayerId, StatusKind } from "../engine";
-import { effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, ELEMENT_AURA, getDef, getSpell } from "../engine";
+import { effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, effectiveSpecialCost, ELEMENT_AURA, getDef, getSpell } from "../engine";
 import { EL_COLOR, EL_ICON, KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 import { SpIcon } from "./icons";
 
@@ -444,7 +444,7 @@ export function CardDetail(props: {
           <div className="cd-section">
             <div className="cd-h">
               {def.special.talent ? "★" : "✦"} {def.special.name}
-              <span className="cd-cost-pill">{def.special.talent ? "Talent" : `Magic ${def.special.cost}`}</span>
+              <span className="cd-cost-pill">{def.special.talent ? "Talent" : `Magic ${effectiveSpecialCost(props.game, card, def.special.cost)}`}</span>
             </div>
             <p className="cd-text">{chipify(def.special.text)}</p>
             {def.special.talent && card.talentUsed && (

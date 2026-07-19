@@ -26,6 +26,7 @@ export {
   canBasicAttack,
   canFireSpecial,
   canFireTalent,
+  effectiveSpecialCost,
   plannedAction,
   isActionBlocked,
   validSpecialTargets,

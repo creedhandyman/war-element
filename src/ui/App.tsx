@@ -13,6 +13,7 @@ import {
   createInitialState,
   effectiveBasicHits,
   effectiveDmg,
+  effectiveSpecialCost,
   enemyOf,
   FLOW_MODES,
   getDef,
@@ -735,6 +736,10 @@ export function App() {
   const activeCard = awaitingId ? game.cards[awaitingId] : null;
   const activeDef = activeCard ? getDef(activeCard.defId) : null;
   const specialCheck = awaitingId ? canFireSpecial(game, awaitingId) : { ok: false };
+  // What the Special ACTUALLY costs right now — after King Me, Power Grid, and
+  // Total Network Control. The engine charges this, so the UI must show it too.
+  const specCost =
+    activeCard && activeDef?.special ? effectiveSpecialCost(game, activeCard, activeDef.special.cost) : 0;
   const talentCheck = awaitingId ? canFireTalent(game, awaitingId) : { ok: false };
   const basicOk = awaitingId ? validTargets(game, awaitingId).length > 0 : false;
   // An area Special with no manual pick to make (hits everything it reaches):
@@ -940,7 +945,7 @@ export function App() {
                   activeDef.special
                     ? activeDef.special.talent
                       ? `${activeDef.special.name} (Talent, free · once per game): ${activeDef.special.text}`
-                      : `${activeDef.special.name} (cost ${activeDef.special.cost}): ${activeDef.special.text}`
+                      : `${activeDef.special.name} (cost ${specCost}): ${activeDef.special.text}`
                     : "No special"
                 }
                 onClick={() => {
@@ -967,14 +972,14 @@ export function App() {
                   setHint(
                     specialAoE
                       ? `<b>${spec.name}</b> hits the glowing area — press <b>Confirm</b> to fire.`
-                      : `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${spec.cost})`} — pick up to ${cap} glowing target${cap > 1 ? "s (repeat to stack), or Fire early" : ""}.`,
+                      : `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — pick up to ${cap} glowing target${cap > 1 ? "s (repeat to stack), or Fire early" : ""}.`,
                   );
                 }}
               >
                 {(() => {
                   const rest = activeDef.special?.talent
                     ? `★ ${activeDef.special.name}`
-                    : `✦ Special${activeDef.special ? ` (${activeDef.special.cost})` : ""}`;
+                    : `✦ Special${activeDef.special ? ` (${specCost})` : ""}`;
                   if (pending === "special")
                     return specialAoE ? "✦ Confirm" : picks.length > 0 ? `🔥 Fire (${picks.length}/${maxPicks})` : rest;
                   return rest;
@@ -1002,7 +1007,7 @@ export function App() {
             {pending === "special" && activeDef.special && (
               <div className="bp-text spec-desc">
                 <b>{activeDef.special.name}</b>
-                <span className="spec-cost"> · {activeDef.special.talent ? "Talent · once per game" : `${activeDef.special.cost} SP`}</span> — {activeDef.special.text}
+                <span className="spec-cost"> · {activeDef.special.talent ? "Talent · once per game" : `${specCost} SP`}</span> — {activeDef.special.text}
               </div>
             )}
             {pending !== "special" && !specialCheck.ok && activeDef.special && (
