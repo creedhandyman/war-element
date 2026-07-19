@@ -50,45 +50,54 @@ export const PREMADE_DECKS: PremadeDeck[] = [
     id: "pre_inferno_blitz",
     name: "Inferno Blitz",
     premade: true,
-    // PYRO + BOLT — fast burn & shock aggression.
+    // PYRO + BOLT — fast burn & shock aggression. Aggressive curve topping out
+    // in Volcanon/Magmaw/Stormcaller (lege) into Pyrogon (myth).
     cards: [
-      "pyro_bbq", "bolt_zap", "bolt_electricel", "pyro_flamehound", "bolt_drshock",
-      "pyro_firebird", "pyro_ember_scorpion", "pyro_spitfire", "bolt_zagphu", "bolt_lytning",
-      "pyro_baboom", "bolt_webster", "pyro_fenrir", "bolt_thundercat", "bolt_thunder", "pyro_pyrogon",
+      "bolt_zap", "bolt_electricel", "pyro_flamehound", "pyro_baboom", "pyro_firebird",
+      "pyro_ember_scorpion", "bolt_zagphu", "bolt_lytning", "pyro_fenix", "bolt_thundercat",
+      "pyro_sarra", "bolt_thunder", "pyro_volcanon", "pyro_magmaw", "bolt_stormcaller", "pyro_pyrogon",
     ],
+    spells: ["pyro_spark", "bolt_zap", "pyro_firewall", "bolt_overload_field", "bolt_lightning_storm"],
   },
   {
     id: "pre_frostkeep",
     name: "Frostkeep",
     premade: true,
-    // AQUA + BORE — tanky control that grinds you out.
+    // AQUA + BORE — tanky control that grinds you out. Ramps through Sandman/
+    // Polarking/Glacius/Bastion (lege) into Kraken (myth). Frost Patch → Maelstrom
+    // (2× vs FROZEN) is the payoff.
     cards: [
-      "aqua_subcool", "bore_hillbilly", "bore_crock", "aqua_bulletshrimp", "bore_smith",
-      "bore_rockgoblin", "aqua_spinefin", "aqua_owlette", "aqua_coralgolem", "bore_armadillo",
-      "aqua_octoirate", "bore_rhe", "bore_krysteel", "aqua_polarbear", "bore_sandman", "aqua_kraken",
+      "aqua_subcool", "bore_hillbilly", "aqua_bulletshrimp", "aqua_octoirate", "bore_rollo",
+      "aqua_owlette", "bore_shift", "aqua_polarbear", "bore_rhe", "aqua_blackbeard",
+      "aqua_sapphire", "bore_sandman", "aqua_polarking", "aqua_glacius", "bore_bastion", "aqua_kraken",
     ],
+    spells: ["aqua_chill", "aqua_frost_patch", "bore_stone_wall", "bore_shatterpoint", "aqua_maelstrom"],
   },
   {
     id: "pre_radiant_host",
     name: "Radiant Host",
     premade: true,
-    // DAWN + LEAF — support, heals and buffs behind a wall of bodies.
+    // DAWN + LEAF — heals & buffs behind a wall of bodies. Value engine through
+    // Kosmos/Elderroot/Aurelion (lege) into Imperator (myth).
     cards: [
-      "dawn_beam", "dawn_flash", "leaf_nettle", "leaf_stickviper", "dawn_sparkle",
-      "leaf_leaf", "leaf_guardian", "dawn_star", "dawn_amble", "leaf_dartfrog",
-      "leaf_alpha", "dawn_radiance", "leaf_fallona", "leaf_citra", "dawn_solstice", "dawn_imperator",
+      "dawn_beam", "leaf_nettle", "leaf_guardian", "leaf_leaf", "dawn_star",
+      "dawn_amble", "leaf_fallona", "leaf_dartfrog", "dawn_solstice", "leaf_citra",
+      "leaf_sumerose", "dawn_clipsey", "dawn_kosmos", "leaf_elderroot", "dawn_aurelion", "dawn_imperator",
     ],
+    spells: ["leaf_sprout", "dawn_cleansing_light", "dawn_radiant_barrier", "leaf_groves_blessing", "dawn_solar_flare"],
   },
   {
     id: "pre_nightfall",
     name: "Nightfall",
     premade: true,
-    // DUSK + GALE — evasive assassins that hit and vanish.
+    // DUSK + GALE — evasive assassins that hit and vanish. Tempo into Tempest/
+    // Nightfang/Klipso (lege) and Shadow Horsemen (myth).
     cards: [
-      "dusk_vamp", "dusk_crow", "dusk_spider", "gale_duster", "gale_luna",
-      "dusk_skeleton_knight", "dusk_silkstalker", "dusk_reaper", "gale_hawk", "gale_vaga",
-      "dusk_widowbite", "gale_hawko", "gale_buf", "gale_wolfbane", "gale_rayfen", "dusk_shadowhorsemen",
+      "dusk_crow", "gale_duster", "gale_luna", "dusk_reaper", "dusk_silkstalker",
+      "dusk_widowbite", "gale_hawk", "gale_vaga", "dusk_ghastly", "dusk_haunt",
+      "gale_rayfen", "gale_wolfbane", "gale_tempest", "dusk_nightfang", "gale_klipso", "dusk_shadowhorsemen",
     ],
+    spells: ["dusk_chill_touch", "gale_downdraft", "dusk_shadow_step", "dusk_veil_of_shadows", "dusk_soul_rend"],
   },
 ];
 
