@@ -955,6 +955,17 @@ function doCleanupPhase(draft: GameState): void {
       draft.log.push(`${label(draft, card)} draws +${fRegen} HP from the field.`);
     const fShield = fieldBonus(draft, card, "shield");
     if (fShield > 0) card.curShields += fShield;
+    // Regenerative (Squanch): bark back over every hit it soaked this round —
+    // one hit, one shield — until it's sitting on the cap.
+    const sph = def.shieldPerHitTaken;
+    if (sph && card.hitsTakenThisRound > 0) {
+      const cap = sph.maxShields ?? Infinity;
+      const grown = Math.min(cap - card.curShields, card.hitsTakenThisRound * sph.shields);
+      if (grown > 0) {
+        card.curShields += grown;
+        draft.log.push(`${label(draft, card)} regrows bark (+${grown} shield${grown > 1 ? "s" : ""}).`);
+      }
+    }
     // Shield auras (The DEEPEST's Pressure): top up to printed + aura shields.
     const shieldBonus = auraShieldBonus(draft, card);
     if (shieldBonus > 0) card.curShields = Math.max(card.curShields, def.shields + shieldBonus);
@@ -996,6 +1007,7 @@ function doCleanupPhase(draft: GameState): void {
     card.spBonusRound = 0;
     card.hitsBonusRound = 0;
     card.struckThisRound = {};
+    card.hitsTakenThisRound = 0; // Regenerative already cashed these in above
     // Timed DMG/SP buffs & debuffs tick down; expired ones drop off.
     for (const b of card.buffs) b.rounds--;
     card.buffs = card.buffs.filter((b) => b.rounds > 0);

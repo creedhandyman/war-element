@@ -95,15 +95,44 @@ describe("medium-tier passives (audit batch)", () => {
     expect(next.cards[free.instanceId].curHp).toBe(20); // not paralyzed → spared
   });
 
-  it("Squanch's Regenerative grows a shield on hit, capped at 5", () => {
+  it("Squanch's Regenerative banks enemy hits and cashes them in at Cleanup", () => {
     const s = prepState();
     const sq = place(s, "leaf_squanch", "P1", 3, 0, { curShields: 0 });
-    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const foe = place(s, "dusk_gool", "P2", 3, 1);
+    basicAttack(s, foe.instanceId, sq.instanceId);
+    basicAttack(s, foe.instanceId, sq.instanceId);
+    expect(s.cards[sq.instanceId].hitsTakenThisRound).toBe(2);
+    expect(s.cards[sq.instanceId].curShields).toBe(0); // nothing yet — it pays at end of round
+    const next = advance(atCleanup(s));
+    expect(next.cards[sq.instanceId].curShields).toBe(2); // one hit, one shield
+    expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
+  });
+
+  it("Regenerative counts a hit its shield soaked, and grows that shield back", () => {
+    const s = prepState();
+    const sq = place(s, "leaf_squanch", "P1", 3, 0, { curShields: 1 });
+    const foe = place(s, "dusk_gool", "P2", 3, 1);
+    basicAttack(s, foe.instanceId, sq.instanceId);
+    expect(s.cards[sq.instanceId].curShields).toBe(0); // the shield ate the hit
+    const next = advance(atCleanup(s));
+    expect(next.cards[sq.instanceId].curShields).toBe(1); // …and bark grows back over it
+  });
+
+  it("Regenerative tops out at 5 shields", () => {
+    const s = prepState();
+    const sq = place(s, "leaf_squanch", "P1", 3, 0, { curShields: 4, hitsTakenThisRound: 3 });
+    place(s, "dusk_gool", "P2", 3, 1); // keep P2's board alive
+    const next = advance(atCleanup(s));
+    expect(next.cards[sq.instanceId].curShields).toBe(5); // 4 + 3 clamped to the cap
+  });
+
+  it("Regenerative is defensive — Squanch's own landed attacks grow nothing", () => {
+    const s = prepState();
+    const sq = place(s, "leaf_squanch", "P1", 3, 0, { curShields: 0 });
+    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 40, maxHp: 40 });
     basicAttack(s, sq.instanceId, foe.instanceId);
-    expect(s.cards[sq.instanceId].curShields).toBe(1);
-    s.cards[sq.instanceId].curShields = 5; // already at cap
-    basicAttack(s, sq.instanceId, foe.instanceId);
-    expect(s.cards[sq.instanceId].curShields).toBe(5); // no overflow
+    const next = advance(atCleanup(s));
+    expect(next.cards[sq.instanceId].curShields).toBe(0);
   });
 
   it("Rhe's Rocky Force Field can deflect a ranged hit (but not melee)", () => {

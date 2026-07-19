@@ -352,6 +352,11 @@ export function resolveHit(
   if (result.totalToHp > 0 && target.owner !== attacker.owner)
     creditDamage(draft.stats, attacker, attacker.owner, result.totalToHp);
 
+  // Count enemy hits TAKEN (Squanch's Regenerative cashes these in at Cleanup).
+  // Counts the hit, not the damage — one fully absorbed by shields still landed.
+  if (result.landedHits > 0 && target.owner !== attacker.owner)
+    target.hitsTakenThisRound += result.landedHits;
+
   // 5. On-hit keywords — basic attacks only. (onHitStatus riders + vsStatus
   //    heals are applied by basicAttack, which knows the per-target gating.)
   if (opts.kind === "basic" && result.landedHits > 0) {
@@ -598,21 +603,12 @@ export function basicAttack(
     }
   }
   attacker.loadedHits = 0; // loaded darts are spent on this attack (Bleed Out)
-  // Bad Temper (Volcanon) / Regenerative (Squanch): a landed basic attack grants
-  // a permanent self-buff — +DMG and/or +shields (capped at maxShields).
+  // Bad Temper (Volcanon) / Rager Twins: a landed basic attack permanently grows
+  // the attacker's DMG.
   const osb = aDef.onHitSelfBuff;
   if (osb && agg.landedHits > 0 && attacker.curHp > 0) {
-    if (osb.dmg) {
-      attacker.dmgBonus += osb.dmg;
-      draft.log.push(`${label(draft, attacker)}'s temper flares (+${osb.dmg} DMG).`);
-    }
-    if (osb.shields) {
-      const cap = osb.maxShields ?? Infinity;
-      if (attacker.curShields < cap) {
-        attacker.curShields = Math.min(cap, attacker.curShields + osb.shields);
-        draft.log.push(`${label(draft, attacker)} regrows bark (+${osb.shields} shield).`);
-      }
-    }
+    attacker.dmgBonus += osb.dmg;
+    draft.log.push(`${label(draft, attacker)}'s temper flares (+${osb.dmg} DMG).`);
   }
   // Hillside (Hillbilly): a landed basic attack shields allies in the row ahead.
   const hab = aDef.onHitAllyBuff;

@@ -279,9 +279,12 @@ export interface CardDef {
    *  opponent on the board has. */
   summonScaleFromEnemy?: { per: number; dmg?: number; maxHp?: number };
   /** A permanent self-buff applied when a basic attack LANDS (once per attack):
-   *  Volcanon's Bad Temper (+1 DMG on hit) and Squanch's Regenerative (+1 shield
-   *  on hit, capped at `maxShields`). */
-  onHitSelfBuff?: { dmg?: number; shields?: number; maxShields?: number };
+   *  Volcanon's Bad Temper and the Rager Twins (+1 DMG on hit). */
+  onHitSelfBuff?: { dmg: number };
+  /** Regenerative (Squanch): a DEFENSIVE passive. At the end of each round it
+   *  gains `shields` armor for every enemy hit it TOOK that round — one hit, one
+   *  shield — until it is sitting on `maxShields` total. */
+  shieldPerHitTaken?: { shields: number; maxShields?: number };
   /** Liquification (Bahari): heal N HP per landed basic hit (unconditional). */
   healPerHit?: number;
   /** Rager (Twins): while this card is below `hp` HP, its basic attacks deal
@@ -392,6 +395,10 @@ export interface CardInstance {
   /** Basic hits this card has LANDED on each target this round (keyed by target
    *  instanceId). Powers first-hit-only / on-second-hit riders; reset in Cleanup. */
   struckThisRound: Record<string, number>;
+  /** Enemy hits this card has TAKEN this round — every attack that connected,
+   *  including one fully soaked by shields. Powers Squanch's Regenerative, which
+   *  cashes it in at Cleanup; reset there too. */
+  hitsTakenThisRound: number;
   /** Every opponent this card has landed a basic attack on (instanceIds).
    *  Persistent — powers first-strike-per-opponent bonuses (Klipso Harsh Winds). */
   struckEver: string[];

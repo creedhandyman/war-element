@@ -182,8 +182,8 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 0,
     keywords: {},
-    // Regenerative: a landed basic attack grows +1 shield (capped at 5).
-    onHitSelfBuff: { shields: 1, maxShields: 5 },
+    // Regenerative: at end of round, +1 shield per enemy hit taken (capped at 5).
+    shieldPerHitTaken: { shields: 1, maxShields: 5 },
     special: {
       name: "Bushwhacker",
       cost: 2,

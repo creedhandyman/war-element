@@ -247,9 +247,9 @@ export function describePassives(def: CardDef): string[] {
     passives.push(
       `Hillside: ${def.onHitAllyBuff.firstTimeOnly ? "the first time it lands a hit, gives" : "landed hits give"} allies in the row ahead +${def.onHitAllyBuff.shields} shield.`,
     );
-  if (def.onHitSelfBuff?.shields)
+  if (def.shieldPerHitTaken)
     passives.push(
-      `Regenerative: landed basic attacks grow +${def.onHitSelfBuff.shields} shield${def.onHitSelfBuff.maxShields ? ` (max ${def.onHitSelfBuff.maxShields})` : ""}.`,
+      `Regenerative: at the end of each round, grows +${def.shieldPerHitTaken.shields} shield for every enemy hit it took that round${def.shieldPerHitTaken.maxShields ? ` (max ${def.shieldPerHitTaken.maxShields})` : ""}.`,
     );
   if (def.highSpeedImpact)
     passives.push(`High Speed Impact: +1 DMG for every point of SP above 10.`);

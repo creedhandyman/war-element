@@ -315,6 +315,7 @@ export function summonCard(
     hitsBonusRound: 0,
     tempShields: 0,
     struckThisRound: {},
+    hitsTakenThisRound: 0,
     struckEver: [],
     buffs: [],
     revived: false,
