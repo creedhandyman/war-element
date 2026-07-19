@@ -188,10 +188,10 @@ export const CARDS: CardDef[] = [
       name: "Bushwhacker",
       cost: 2,
       handler: "strike",
-      // "6 DMG to one opponent AND ROOT all opponents adjacent to Squanch 1r"
-      params: { dmg: 6, adjStatusKind: "ROOT", adjStatusDuration: 1 },
+      // "6 DMG to one opponent AND ROOT all opponents adjacent to Squanch 2r"
+      params: { dmg: 6, adjStatusKind: "ROOT", adjStatusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 6 DMG and ROOT every opponent adjacent to Squanch for 1 round.",
+      text: "Deal 6 DMG and ROOT every opponent adjacent to Squanch for 2 rounds.",
     },
   },
   {

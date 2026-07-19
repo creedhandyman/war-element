@@ -56,6 +56,27 @@ describe("firing specials", () => {
     expect(next.players.P1.magicPool).toBe(2);
   });
 
+  it("Squanch's Bushwhacker ROOTs every adjacent opponent for 2 rounds", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 3;
+    const sq = place(s, "leaf_squanch", "P1", 2, 1); // Bushwhacker cost 2
+    const primary = place(s, "dusk_gool", "P2", 1, 1, { curHp: 20, curShields: 0 });
+    const beside = place(s, "bore_armadillo", "P2", 1, 0); // diagonal → still adjacent
+    const far = place(s, "dusk_vamp", "P2", 0, 3); // two rows off → out of the thicket
+    const next = applyIntent(battleWith(s, sq.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: primary.instanceId,
+    });
+    const root = (id: string) => next.cards[id].statuses.find((x) => x.kind === "ROOT");
+    expect(next.cards[primary.instanceId].curHp).toBe(14); // 6 DMG
+    expect(root(primary.instanceId)?.duration).toBe(2);
+    expect(root(beside.instanceId)?.duration).toBe(2);
+    expect(root(far.instanceId)).toBeUndefined();
+    expect(next.players.P1.magicPool).toBe(1);
+  });
+
   it("talent Special: Alpha's Takedown fires FREE once, then is spent for the game", () => {
     const s = prepState();
     s.players.P1.magicPool = 3;
