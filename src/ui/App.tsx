@@ -80,6 +80,11 @@ export function App() {
   // guards against a second cast landing mid-flash + clears on unmount.
   const [castFlash, setCastFlash] = useState<{ spellId: string } | null>(null);
   const castTimerRef = useRef<number | null>(null);
+  // Opponent casts (AI / online-remote) resolve outside castSpell, so we detect
+  // a newly-used spell in their book and flash its art too — with its own timer
+  // so it never clobbers a local flash-then-cast in flight.
+  const oppFlashTimerRef = useRef<number | null>(null);
+  const prevOppUsedRef = useRef<Set<string>>(new Set());
   // A modal "choice" spell (Chill) awaiting its mode pick (attack vs shield).
   const [spellChoice, setSpellChoice] = useState<string | null>(null);
   // Pre-game deck selection — the match doesn't run until Start.
@@ -225,8 +230,30 @@ export function App() {
       setHint(doneHint);
     }, 2000);
   }
-  // Clear a pending flash timer if the app unmounts mid-cast.
-  useEffect(() => () => { if (castTimerRef.current !== null) window.clearTimeout(castTimerRef.current); }, []);
+  // Clear pending flash timers if the app unmounts mid-cast.
+  useEffect(() => () => {
+    if (castTimerRef.current !== null) window.clearTimeout(castTimerRef.current);
+    if (oppFlashTimerRef.current !== null) window.clearTimeout(oppFlashTimerRef.current);
+  }, []);
+
+  // Show the opponent's spell casts too. Their book's `used` flags flip when the
+  // AI/remote casts (outside castSpell), so diff for a freshly-used spell and
+  // flash its art. Hot-seat: both sides cast locally, so castSpell already covers
+  // it. Skipped while a local flash-then-cast is mid-flight (don't interrupt it).
+  useEffect(() => {
+    const opp: PlayerId | null = online ? enemyOf(online.myId) : twoPlayer ? null : "P2";
+    if (!opp) return;
+    const book = game.players[opp]?.spellbook ?? [];
+    const nowUsed = new Set(book.filter((s) => s.used).map((s) => s.defId));
+    let fresh: string | null = null;
+    for (const id of nowUsed) if (!prevOppUsedRef.current.has(id)) { fresh = id; break; }
+    prevOppUsedRef.current = nowUsed; // resets naturally to {} on a new match
+    if (fresh && castTimerRef.current === null) {
+      setCastFlash({ spellId: fresh });
+      if (oppFlashTimerRef.current !== null) window.clearTimeout(oppFlashTimerRef.current);
+      oppFlashTimerRef.current = window.setTimeout(() => { oppFlashTimerRef.current = null; setCastFlash(null); }, 2000);
+    }
+  }, [game, online, twoPlayer]);
 
   // ── online rooms ──────────────────────────────────────────────────────────
   function hostCreateRoom() {

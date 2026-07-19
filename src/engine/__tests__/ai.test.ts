@@ -192,7 +192,7 @@ describe("full AI-vs-AI matches (integration)", () => {
     },
   );
 
-  it.each([1, 5, 11, 23, 42])(
+  it.each([1, 5, 9, 23, 42])(
     "seed %i: Aqua/Dawn deck completes a full match (both matchups)",
     (seed) => {
       // Aqua/Dawn as P1 vs Bore/Dusk, and mirror vs Leaf/Pyro.

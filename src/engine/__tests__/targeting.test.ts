@@ -9,10 +9,10 @@ import type { Pos } from "../types";
 const key = (p: Pos) => `${p.row},${p.col}`;
 
 describe("previewOnSummonArea (placement preview)", () => {
-  it("corridor blast (Pyrogon) → the 3 tiles in the row directly ahead", () => {
+  it("corridor blast (Pyrogon) → the 3-wide corridor, 2 rows deep (matches its Special)", () => {
     const s = prepState();
     const area = previewOnSummonArea(s, getDef("pyro_pyrogon"), "P1", { row: 3, col: 1 });
-    expect(new Set(area.map(key))).toEqual(new Set(["2,0", "2,1", "2,2"]));
+    expect(new Set(area.map(key))).toEqual(new Set(["2,0", "2,1", "2,2", "1,0", "1,1", "1,2"]));
   });
 
   it("no-spread on-summon (Krakler) → the reachable enemy cards (king reach)", () => {

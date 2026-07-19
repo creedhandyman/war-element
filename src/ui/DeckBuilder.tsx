@@ -444,7 +444,7 @@ export function DeckBuilder(props: {
             <button
               className={pickedSet.has(detail.id) ? "ghost dbd-toggle" : "lockin dbd-toggle"}
               disabled={!pickedSet.has(detail.id) && picked.length >= MAX_DECK}
-              onClick={() => toggle(detail.id)}
+              onClick={() => { toggle(detail.id); setDetailId(null); }}
             >
               {pickedSet.has(detail.id) ? "− Remove from deck" : "+ Add to deck"}
             </button>

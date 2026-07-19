@@ -1941,10 +1941,10 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // On Summon: a free Flame Engulf (BURN 3 to the row directly ahead).
+    // On Summon: a free Flame Engulf — same reach as the Special (2 rows deep).
     onSummon: {
       handler: "barrage",
-      params: { dmg: 7, spread: 1, forwardDepth: 1, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
+      params: { dmg: 7, spread: 1, forwardDepth: 2, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
     },
     // On Kill: permanent +7 HP and +1 DMG.
     onKill: { buffMaxHp: 7, buffDmg: 1 },

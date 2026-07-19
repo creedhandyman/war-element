@@ -686,7 +686,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 /* card inspector (click a played card) */
 .cd-modal { position: relative; text-align: left; max-width: 440px; width: min(440px, 92vw); padding: 20px; }
-.cd-x { position: absolute; top: 12px; right: 14px; background: none; border: none; color: var(--ink-dim); font-size: 16px; cursor: pointer; line-height: 1; padding: 4px; }
+.cd-x { position: absolute; top: 12px; right: 14px; z-index: 5; background: none; border: none; color: var(--ink-dim); font-size: 16px; cursor: pointer; line-height: 1; padding: 4px; }
 .cd-x:hover { color: var(--ink); }
 .cd-body { display: flex; gap: 14px; }
 .cd-art { position: relative; width: 122px; height: 150px; flex: none; border-radius: 12px; border: 2px solid var(--panel-line); overflow: hidden; background: var(--void-2); }
