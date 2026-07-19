@@ -117,6 +117,45 @@ describe("medium-tier passives (audit batch)", () => {
     expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
   });
 
+  it("Windsor's Right Through Me WEAKENs even a RANGED attacker", () => {
+    const s = prepState();
+    const windsor = place(s, "gale_windsor", "P1", 3, 0);
+    // Ranged: classic melee-only thorns would never answer this one.
+    const shooter = place(s, "dusk_gool", "P2", 1, 0);
+    basicAttack(s, shooter.instanceId, windsor.instanceId);
+    expect(statusOf(s.cards[shooter.instanceId], "WEAKEN")?.duration).toBe(2);
+  });
+
+  it("Jolt marks its attacker Electrified, and BOLT allies cash the mark in", () => {
+    const s = prepState();
+    const jolt = place(s, "bolt_jolt", "P1", 2, 0);
+    const shooter = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30, curShields: 0 });
+    basicAttack(s, shooter.instanceId, jolt.instanceId);
+    expect(statusOf(s.cards[shooter.instanceId], "ELECTRIFIED")?.duration).toBe(2);
+    // The mark does nothing by itself; its value is that BOLT's Electrify aura
+    // (+1 DMG vs a statused target) now applies. Buzz hits for 2, +1 from King
+    // of the Hill for standing in a mid row, +1 for the mark = 4.
+    const buzz = place(s, "bolt_buzz", "P1", 2, 1);
+    basicAttack(s, buzz.instanceId, shooter.instanceId);
+    expect(s.cards[shooter.instanceId].curHp).toBe(26);
+  });
+
+  it("Shimmering Featherrows volleys three targets, then cloaks the eagle", () => {
+    const s = prepState();
+    const eagle = place(s, "dawn_goldeneagle", "P1", 2, 0);
+    const a = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 0 });
+    const b = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    const c = place(s, "dusk_crow", "P2", 1, 2, { curHp: 20, maxHp: 20, curShields: 0 });
+    const next = applyIntent(battleFor(s, eagle.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "talent",
+      targetId: a.instanceId,
+    });
+    for (const t of [a, b, c]) expect(next.cards[t.instanceId].curHp).toBe(17); // 3 apiece
+    expect(statusOf(next.cards[eagle.instanceId], "STEALTH")?.duration).toBe(2);
+  });
+
   it("Shine's Brightling Ball answers the killer, once per game", () => {
     const s = prepState();
     place(s, "dawn_shine", "P1", 3, 0);

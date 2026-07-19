@@ -288,6 +288,21 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   return list;
 }
 
+/** Legal targets for a TALENT that hits something. Talents carry no targetSide
+ *  or range of their own, so this is plain enemy targeting at the card's normal
+ *  reach, honouring forwardDepth/spread if the talent asks for a corridor.
+ *  (specialTargets can't serve here — it returns [] for a card with no Special,
+ *  which is exactly the shape of a talent-only card like GoldenEagle.) */
+export function talentTargets(state: GameState, instanceId: string): CardInstance[] {
+  const card = state.cards[instanceId];
+  const talent = card && getDef(card.defId).talent;
+  if (!card || !talent) return [];
+  const fd = Number(talent.params?.forwardDepth ?? 0);
+  return fd > 0
+    ? forwardAreaTargets(state, card, Number(talent.params?.spread ?? 0), fd)
+    : validSpecialTargets(state, instanceId);
+}
+
 // ── battle actions ──────────────────────────────────────────────────────────
 
 /**

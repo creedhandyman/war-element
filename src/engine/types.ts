@@ -49,6 +49,9 @@ export type StatusKind =
   | "FRIGHTEN"
   | "BLIND"
   | "SEAL" // Bluflame (Sarra): cannot be healed while sealed
+  /** Electrified (Jolt): inert on its own — it exists to BE a status, so BOLT's
+   *  Electrify aura (+1 DMG vs any statused target) picks the marked card up. */
+  | "ELECTRIFIED"
   // Buff statuses — a temporary grant of the like-named keyword, ticked down at
   // Cleanup (Dive Bomb → STEALTH, Shadow Charge → EVASION).
   | "STEALTH"
@@ -58,7 +61,7 @@ export type StatusKind =
  *  (STEALTH/EVASION are self-buffs and are excluded.) */
 export const NEGATIVE_STATUSES: StatusKind[] = [
   "ROOT", "BLEED", "BURN", "SCALD", "DOT", "FREEZE", "STUN", "WEAKEN",
-  "PARALYZE", "MUTED", "SLEEP", "FRIGHTEN", "BLIND", "SEAL",
+  "PARALYZE", "MUTED", "SLEEP", "FRIGHTEN", "BLIND", "SEAL", "ELECTRIFIED",
 ];
 
 export interface StatusEffect {
@@ -100,6 +103,9 @@ export interface OnHitStatusDef {
 
 /** Thorns / retaliation when this card is hit by a MELEE attacker. */
 export interface OnHitByMeleeDef {
+  /** Answer RANGED attackers too (Windsor's Right Through Me, Jolt's
+   *  Electrifying). Default false keeps the classic melee-only thorns. */
+  anyAttacker?: boolean;
   chance?: number; // 0–100; omit = always
   dmg?: number; // direct damage back to the attacker
   pen?: boolean;

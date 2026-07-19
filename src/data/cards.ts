@@ -3284,6 +3284,68 @@ export const CARDS: CardDef[] = [
     },
   },
 
+  {
+    id: "dawn_goldeneagle",
+    name: "GoldenEagle",
+    rarity: "rare",
+    element: "DAWN",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 1,
+    hits: 5,
+    hp: 6,
+    sp: 12,
+    shields: 1,
+    keywords: { FLYING: true },
+    // Soaring Sun: it climbs. +1 DMG every third round, stacking, forever.
+    roundTick: { buffDmgEveryN: { n: 3, amount: 1 } },
+    talent: {
+      name: "Shimmering Featherrows",
+      handler: "barrage",
+      // Volley first, then vanish — stealthRounds cloaks the caster afterwards.
+      params: { dmg: 3, targets: 3, stealthRounds: 2 },
+      text: "Deal 3 DMG to 3 opponents, then gain STEALTH for 2 rounds.",
+    },
+  },
+  {
+    id: "gale_windsor",
+    name: "Windsor",
+    rarity: "rare",
+    element: "GALE",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 3,
+    hits: 1,
+    hp: 13,
+    sp: 9,
+    shields: 0,
+    keywords: {},
+    // Right Through Me: hit it and the wind goes straight through you —
+    // anyAttacker, so shooters get WEAKENed at range too.
+    onHitByMelee: { anyAttacker: true, status: { kind: "WEAKEN", duration: 2, power: 0 } },
+  },
+  {
+    id: "bolt_jolt",
+    name: "Jolt",
+    rarity: "rare",
+    element: "BOLT",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 1,
+    hits: 1,
+    hp: 16,
+    sp: 3,
+    shields: 0,
+    keywords: {},
+    // Electrifying: touching it marks you. ELECTRIFIED does nothing by itself —
+    // its whole job is to BE a status, so BOLT's Electrify aura (+1 DMG vs a
+    // statused target) turns the mark into damage for the whole BOLT side.
+    onHitByMelee: { anyAttacker: true, status: { kind: "ELECTRIFIED", duration: 2, power: 0 } },
+  },
+
   // ── Rarity fill-in ─────────────────────────────────────────────────────────
   // One card per element, each dropped into that element's thinnest rarity, to
   // even out a spread that had run from 4 to 8 epics and 5 to 10 rares. Stats
@@ -3291,7 +3353,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_ash_boar",
     name: "Ash Boar",
-    rarity: "epic",
+    rarity: "rare",
     element: "PYRO",
     cardClass: "Warrior",
     attackType: "Melee",

@@ -83,6 +83,7 @@ export const STATUS_STYLE: Record<StatusKind, { glyph: string; color: string }> 
   FRIGHTEN: { glyph: "💀", color: "#9c5fd4" },
   BLIND: { glyph: "👁", color: "#ffd54f" },
   SEAL: { glyph: "🚱", color: "#e0a0e0" },
+  ELECTRIFIED: { glyph: "⚡", color: "#7c4dff" }, // BOLT violet — distinct from PARALYZE's yellow
   STEALTH: { glyph: "◌", color: "#8b93a8" },
   EVASION: { glyph: "〰", color: "#a8d4e8" },
 };

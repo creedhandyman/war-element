@@ -36,6 +36,7 @@ import {
   forwardAreaTargets,
   isActionBlocked,
   specialTargets,
+  talentTargets,
   validTargets,
 } from "./rules";
 import type {
@@ -590,6 +591,20 @@ function performBattleAction(
       if (sp) card.spBonus += sp;
       if (dmg) card.dmgBonus += dmg;
       draft.log.push(`${label(draft, card)} surges${sp ? ` +${sp} SP` : ""}${dmg ? ` +${dmg} DMG` : ""}.`);
+    } else {
+      // Everything else runs through the shared registry, exactly as a Special
+      // does. Before this, a Talent naming any other handler was marked used and
+      // then did NOTHING — silently, with no error to notice.
+      const handler = SPECIAL_HANDLERS[t.handler];
+      if (!handler) throw new Error(`Unknown talent handler: ${t.handler}`);
+      const valid = talentTargets(draft, instanceId);
+      const chosen = picks?.[0] ? valid.find((v) => v.instanceId === picks[0]) : undefined;
+      // Chosen target first, then the rest — multi-target talents spread over
+      // whatever else is in range, same ordering the Special path uses.
+      const targets = chosen
+        ? [chosen, ...valid.filter((v) => v.instanceId !== chosen.instanceId)]
+        : valid;
+      handler(draft, card, targets, t.params ?? {});
     }
     return;
   }

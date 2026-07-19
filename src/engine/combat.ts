@@ -473,13 +473,14 @@ export function resolveHit(
   // Skelider Dismount: transform the first time it drops below its HP threshold.
   if (target.curHp > 0) checkLowHpTransform(draft, target);
 
-  // Thorns: retaliate when a surviving card is struck by a MELEE attacker.
+  // Thorns: retaliate when a surviving card is struck. Melee-only by default;
+  // `anyAttacker` cards answer shooters as well.
   if (
     opts.kind !== "reflect" &&
     result.landedHits > 0 &&
     target.curHp > 0 &&
     attacker.curHp > 0 &&
-    aDef.attackType === "Melee" &&
+    (aDef.attackType === "Melee" || tDef.onHitByMelee?.anyAttacker) &&
     tDef.onHitByMelee
   ) {
     const r = applyOnHitByMelee(draft, target, attacker, tDef.onHitByMelee);
@@ -1155,6 +1156,9 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     // Charging Tusks: the boar doesn't stop where it hit — it keeps going.
     if (num(params, "charge") > 0 && attacker.curHp > 0) chargeForward(draft, attacker, num(params, "charge"));
+    // Shimmering Featherrows: loose the volley, then vanish back into the light.
+    if (num(params, "stealthRounds") > 0 && attacker.curHp > 0)
+      applyStatus(draft, attacker, "STEALTH", num(params, "stealthRounds"), 0, getDef(attacker.defId).element);
     // Self-cost (Kraken's Black Wave Crash: "Lose 5 HP") — can dip the caster
     // low enough to trip its own From the Deep surge.
     const selfDamage = num(params, "selfDamage");

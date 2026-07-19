@@ -344,6 +344,7 @@ const STATUS_TEXT: Record<StatusKind, string> = {
   FRIGHTEN: "Frightened — retreats and can't move forward.",
   BLIND: "Blinded — attacks have a 50% chance to miss.",
   SEAL: "Bluflamed — cannot be healed.",
+  ELECTRIFIED: "Electrified — BOLT cards deal +1 DMG to it.",
   STEALTH: "Stealthed — can't be targeted.",
   EVASION: "Evasive — 50% chance to dodge each hit.",
 };
