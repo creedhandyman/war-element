@@ -3295,24 +3295,19 @@ export const CARDS: CardDef[] = [
     element: "PYRO",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 4,
-    dmg: 8,
+    cost: 3,
+    dmg: 5,
     hits: 1,
-    hp: 19,
-    sp: 3,
+    hp: 15,
+    sp: 5,
     shields: 0,
     keywords: {},
-    // Cinder Charge: it hits hardest on the first impact with a fresh opponent —
-    // +3 DMG the first time it lands on each distinct enemy (once each, forever).
-    firstStrikeBonus: 3,
-    special: {
-      name: "Trample",
-      cost: 3,
-      handler: "strike",
-      // Barrels one slot deeper into enemy ground after connecting.
-      params: { dmg: 7, charge: 1 },
-      targetSide: "enemy",
-      text: "Deal 7 DMG, then charge 1 slot toward the enemy home.",
+    // Charging Tusks (On Summon): it arrives mid-charge — everything in reach
+    // takes 4, then it keeps going one more slot into enemy ground. `targets: 8`
+    // is "all of them"; a board only ever holds 8 enemies.
+    onSummon: {
+      handler: "barrage",
+      params: { dmg: 4, targets: 8, charge: 1 },
     },
   },
   {
@@ -3320,23 +3315,27 @@ export const CARDS: CardDef[] = [
     name: "Obsidi",
     rarity: "epic",
     element: "BORE",
-    cardClass: "Tank",
+    cardClass: "Assassin",
     attackType: "Melee",
-    cost: 4,
-    dmg: 6,
-    hits: 1,
-    hp: 16,
-    sp: 2,
+    cost: 5,
+    dmg: 4,
+    hits: 2,
+    hp: 12,
+    sp: 8,
     shields: 3,
-    keywords: { BLOCK: 2 },
+    keywords: { BLOCK: 1 },
+    // Obsidian Claws: it tunnels. Out of sight it covers ground it never could
+    // above, so STEALTH replaces its printed SP with 11.
+    spWhileStealthed: 11,
     special: {
-      name: "Drill Down",
+      name: "Dirt Driller",
       cost: 3,
-      handler: "strike",
-      // The drill-horn goes through armour, not around it.
-      params: { dmg: 9, pen: 1 },
-      targetSide: "enemy",
-      text: "Deal 9 DMG that ignores shields (PEN).",
+      handler: "burrow",
+      // Two-stage: STEALTH now (up to 2 rounds), and the 6×2 comes up out of the
+      // ground on the next basic attack — which is also what breaks cover.
+      params: { dmg: 6, hits: 2, stealthRounds: 2 },
+      targetSide: "ally", // self-targeting; always castable
+      text: "Gain STEALTH for up to 2 rounds. Your next attack erupts for 6×2 DMG.",
     },
   },
   {
@@ -3344,25 +3343,20 @@ export const CARDS: CardDef[] = [
     name: "Piranha",
     rarity: "rare",
     element: "AQUA",
-    cardClass: "Warrior",
+    cardClass: "Assassin",
     attackType: "Melee",
-    cost: 2,
-    dmg: 2,
-    hits: 3,
-    hp: 11,
-    sp: 3,
+    cost: 1,
+    dmg: 4,
+    hits: 1,
+    hp: 3,
+    sp: 8,
     shields: 0,
     keywords: {},
-    // Feeding Frenzy: blood in the water. Against anything already BLEEDing its
-    // bites hit harder and feed it.
-    vsStatus: { status: "BLEED", bonusDmg: 1, lifesteal: true },
-    special: {
-      name: "Blood Scent",
-      cost: 2,
-      handler: "strike",
-      params: { dmg: 3, hits: 2, statusKind: "BLEED", statusDuration: 2, statusPower: 2 },
-      targetSide: "enemy",
-      text: "Bite twice for 3 DMG each and leave BLEED 2 for 2 rounds.",
+    // Chomp (On Summon): the shoal hits the water biting — two 1-DMG bites into
+    // everything in reach, each leaving BLEED 2 for 2 rounds.
+    onSummon: {
+      handler: "barrage",
+      params: { dmg: 1, hits: 2, targets: 8, statusKind: "BLEED", statusDuration: 2, statusPower: 2 },
     },
   },
   {
@@ -3406,13 +3400,12 @@ export const CARDS: CardDef[] = [
     // Jelly Shock: touch it and the whole cluster lights up — 2 DMG to whoever
     // struck it (range is no protection) and to every enemy standing beside it.
     onHitZap: { dmg: 2 },
-    special: {
+    // Storm Conduit is a TALENT, not a Special: once per game, free, no cooldown.
+    talent: {
       name: "Storm Conduit",
-      cost: 2,
       handler: "strike",
-      params: { dmg: 6, statusKind: "PARALYZE", statusDuration: 1, statusPower: 0 },
-      targetSide: "enemy",
-      text: "Deal 6 DMG and PARALYZE the target for 1 round.",
+      params: { dmg: 6, statusKind: "PARALYZE", statusDuration: 3, statusPower: 0 },
+      text: "Deal 6 DMG and PARALYZE the target for 3 rounds.",
     },
   },
   {
@@ -3422,28 +3415,17 @@ export const CARDS: CardDef[] = [
     element: "DAWN",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 3,
-    dmg: 6,
-    hits: 1,
-    hp: 14,
-    sp: 5,
+    cost: 2,
+    dmg: 1,
+    hits: 3,
+    hp: 11,
+    sp: 6,
     shields: 0,
     keywords: {},
-    // Glare: a starburst to the eyes the first time it catches someone. Gated to
-    // first contact deliberately: DAWN already fields Raising Star (blinds the
-    // whole enemy board each round) and Speed Flash, so a third UNGATED blind
-    // would let one core keep everything at half accuracy indefinitely. Control
-    // statuses follow the FRIGHTEN precedent (firstHitOnly); only damage-over-
-    // time riders like BLEED/BURN run ungated.
-    onHitStatus: { kind: "BLIND", duration: 1, power: 0, firstHitOnly: true },
-    special: {
-      name: "Sunburst",
-      cost: 2,
-      handler: "strike",
-      params: { dmg: 7, statusKind: "BLIND", statusDuration: 2, statusPower: 0 },
-      targetSide: "enemy",
-      text: "Deal 7 DMG and BLIND the target for 2 rounds.",
-    },
+    // Brightling Ball: it doesn't defend allies, it avenges them. The first time
+    // any ally falls, the killer eats 4 and fights blind for 3 rounds. Once per
+    // game — a single answer, saved for whoever takes the first one.
+    onAllyKilled: { dmg: 4, status: { kind: "BLIND", duration: 3, power: 0 }, oneUse: true },
   },
 ];
 

@@ -203,6 +203,15 @@ export function describePassives(def: CardDef): string[] {
     const bits = [o.dmg && `${o.dmg} DMG`, o.status && o.status.kind].filter(Boolean).join(" + ");
     passives.push(`When an enemy is summoned within range, hits it with ${bits}.`);
   }
+  if (def.onAllyKilled) {
+    const o = def.onAllyKilled;
+    const bits = [o.dmg && `${o.dmg} DMG`, o.status && `${o.status.kind} ${o.status.duration}r`].filter(Boolean).join(" + ");
+    passives.push(
+      `Brightling Ball: when an ally is killed, answers the killer with ${bits}${o.oneUse ? " (once per game)" : ""}.`,
+    );
+  }
+  if (def.spWhileStealthed != null)
+    passives.push(`Obsidian Claws: SP becomes ${def.spWhileStealthed} while STEALTHed (underground).`);
   if (def.critStatus)
     passives.push(
       `Any CRIT it lands applies ${def.critStatus.kind} for ${def.critStatus.duration} round${def.critStatus.duration > 1 ? "s" : ""}.`,

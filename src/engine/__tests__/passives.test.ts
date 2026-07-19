@@ -117,6 +117,60 @@ describe("medium-tier passives (audit batch)", () => {
     expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
   });
 
+  it("Shine's Brightling Ball answers the killer, once per game", () => {
+    const s = prepState();
+    place(s, "dawn_shine", "P1", 3, 0);
+    // curShields:0 matters — armadillo ships with 4, which would eat the hit.
+    const ally = place(s, "bore_armadillo", "P1", 2, 0, { curHp: 2, curShields: 0 }); // BLOCK 2, so 4−2 kills
+    const killer = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
+    basicAttack(s, killer.instanceId, ally.instanceId);
+    expect(s.cards[ally.instanceId]).toBeUndefined();
+    expect(s.cards[killer.instanceId].curHp).toBe(9); // 4 back from Shine
+    expect(statusOf(s.cards[killer.instanceId], "BLIND")?.duration).toBe(3);
+    // A second ally falls — the one-shot is already spent.
+    s.cards[killer.instanceId].statuses = []; // clear that BLIND so the kill is reliable
+    const ally2 = place(s, "bore_armadillo", "P1", 2, 1, { curHp: 2, curShields: 0 });
+    basicAttack(s, killer.instanceId, ally2.instanceId);
+    expect(s.cards[ally2.instanceId]).toBeUndefined();
+    expect(s.cards[killer.instanceId].curHp).toBe(9); // no second answer
+  });
+
+  it("Dirt Driller hides Obsidi, speeds it underground, and erupts once", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 3;
+    const obsidi = place(s, "bore_obsidi", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    expect(effectiveSp(s, s.cards[obsidi.instanceId])).toBe(8); // above ground
+    const next = applyIntent(battleFor(s, obsidi.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: obsidi.instanceId, // self-targeted burrow
+    });
+    expect(statusOf(next.cards[obsidi.instanceId], "STEALTH")).toBeTruthy();
+    expect(effectiveSp(next, next.cards[obsidi.instanceId])).toBe(11); // Obsidian Claws
+    // The ambush overrides its printed 4×2 — 6×2 comes up out of the ground.
+    basicAttack(next, obsidi.instanceId, foe.instanceId);
+    expect(next.cards[foe.instanceId].curHp).toBe(28); // 40 − 12
+    expect(statusOf(next.cards[obsidi.instanceId], "STEALTH")).toBeUndefined(); // cover broken
+    // …and it's spent: the follow-up is its printed attack again. 4×2 plus
+    // King of the Hill's mid-row +1 DMG = 10 — note the loaded 6×2 was FLAT and
+    // took no such bonus, which is what "deal 6×2 DMG" should mean.
+    basicAttack(next, obsidi.instanceId, foe.instanceId);
+    expect(next.cards[foe.instanceId].curHp).toBe(18); // 28 − 10
+  });
+
+  it("Ash Boar's Charging Tusks hits what's in reach on arrival, then charges in", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 6;
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    const handId = giveHand(s, "P1", "pyro_ash_boar");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const boar = Object.values(next.cards).find((c) => c.defId === "pyro_ash_boar")!;
+    expect(next.cards[foe.instanceId].curHp).toBe(16); // took the 4 on arrival
+    expect(boar.pos!.row).toBe(2); // charged off its home row (3 → 2)
+  });
+
   it("Ravven's EVASION is dead on its own ground and live on the enemy's", () => {
     const s = prepState();
     // P1 home is row 3, so rows 0-1 are the enemy battlefield.

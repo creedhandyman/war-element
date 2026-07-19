@@ -73,6 +73,9 @@ export function wallEvasion(draft: GameState, card: CardInstance): boolean {
  *  in a mid row instead of the +1 DMG single-hit cards get — see effectiveDmg). */
 export function effectiveBasicHits(card: CardInstance): number {
   const def = getDef(card.defId);
+  // A loaded ambush (Dirt Driller) IS the attack — exactly its hit count, with
+  // none of the usual stacking.
+  if (card.loadedStrike) return card.loadedStrike.hits;
   let hits = def.hits + (card.hitsBonus ?? 0) + (card.hitsBonusRound ?? 0) + (card.loadedHits ?? 0);
   if (def.hits >= MULTI_HIT_BONUS_MIN && card.pos && (card.pos.row === 1 || card.pos.row === 2)) hits += 1;
   return hits;
@@ -418,6 +421,26 @@ export function resolveHit(
         if (st) st.duration += ext;
       }
     }
+    // Brightling Ball: the dead card's surviving ALLIES answer the killer.
+    // Gated off `reflect` so a retaliation kill can't set off another round of
+    // retaliation, and the answer itself goes out as reflect for the same reason.
+    if (opts.kind !== "reflect" && attacker.curHp > 0 && target.owner !== attacker.owner) {
+      for (const ally of boardCards(draft, deadOwner)) {
+        const aoDef = getDef(ally.defId).onAllyKilled;
+        if (!aoDef || ally.curHp <= 0) continue;
+        if (aoDef.oneUse && ally.allyKilledFired) continue;
+        ally.allyKilledFired = true;
+        draft.log.push(`${label(draft, ally)} answers for ${tDef.name}!`);
+        if (aoDef.dmg && directDamage(draft, ally, attacker, aoDef.dmg, false)) {
+          result.attackerDied = true;
+          break; // killer is gone; nothing left to punish
+        }
+        if (aoDef.status && attacker.curHp > 0 && draft.cards[attacker.instanceId]) {
+          const st = aoDef.status;
+          applyStatus(draft, attacker, st.kind, st.duration, st.power, getDef(ally.defId).element);
+        }
+      }
+    }
     // On-death effects.
     if (tDef.onDeath && opts.kind !== "reflect") {
       if (tDef.onDeath.rowAhead && deathPos) {
@@ -553,7 +576,8 @@ export function basicAttack(
 
     // Conditional keyword vs the target's status (Gnashing Bite, Precision
     // Strike, etc.): fold into this group's hit options.
-    let dmg = effectiveDmg(draft, attacker);
+    // A loaded ambush replaces the printed damage outright (Dirt Driller's 6×2).
+    let dmg = attacker.loadedStrike ? attacker.loadedStrike.dmg : effectiveDmg(draft, attacker);
     if (atkDebuff) { dmg = Math.max(0, dmg - atkDebuff); atkDebuff = 0; } // Boon Striker, once
     let crit = Boolean(aDef.keywords.CRIT);
     // Hastened Assault (WolfBane): CRIT only while faster than the target.
@@ -634,6 +658,12 @@ export function basicAttack(
     }
   }
   attacker.loadedHits = 0; // loaded darts are spent on this attack (Bleed Out)
+  // Dirt Driller: the ambush is spent, and breaking cover ends the STEALTH that
+  // set it up — "until next attack" is literal.
+  if (attacker.loadedStrike) {
+    attacker.loadedStrike = undefined;
+    attacker.statuses = attacker.statuses.filter((s) => s.kind !== "STEALTH");
+  }
   // Bad Temper (Volcanon) / Rager Twins: a landed basic attack permanently grows
   // the attacker's DMG.
   const osb = aDef.onHitSelfBuff;
@@ -1123,6 +1153,8 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         applyStatus(draft, target, db as StatusKind, num(params, "debuffStatusRounds", 1), 0, getDef(attacker.defId).element);
       if (attacker.curHp <= 0) break; // died to REFLECT mid-volley
     }
+    // Charging Tusks: the boar doesn't stop where it hit — it keeps going.
+    if (num(params, "charge") > 0 && attacker.curHp > 0) chargeForward(draft, attacker, num(params, "charge"));
     // Self-cost (Kraken's Black Wave Crash: "Lose 5 HP") — can dip the caster
     // low enough to trip its own From the Deep surge.
     const selfDamage = num(params, "selfDamage");
@@ -1210,6 +1242,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   },
 
   /** Permanent self-buff (Heir's Crowned): +DMG / +max HP / +SP to the caster. */
+  /** Dirt Driller (Obsidi): drop underground — STEALTH for up to `stealthRounds`
+   *  — and load the ambush that comes up out of it. The damage lands on the NEXT
+   *  basic attack, which is also what ends the STEALTH. */
+  burrow(draft, attacker, _targets, params) {
+    const rounds = num(params, "stealthRounds", 2);
+    applyStatus(draft, attacker, "STEALTH", rounds, 0, getDef(attacker.defId).element);
+    attacker.loadedStrike = { dmg: num(params, "dmg"), hits: num(params, "hits", 1) };
+    draft.log.push(
+      `${label(draft, attacker)} burrows out of sight — next strike hits for ${num(params, "dmg")}×${num(params, "hits", 1)}.`,
+    );
+  },
+
   empower(draft, attacker, _targets, params) {
     const dmg = num(params, "selfDmg");
     const hp = num(params, "selfMaxHp");

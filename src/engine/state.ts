@@ -245,9 +245,12 @@ export function effectiveSp(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   if (hasStatus(card, "ROOT") || hasStatus(card, "FREEZE")) return 0;
   const buffSp = (card.buffs ?? []).reduce((n, b) => n + b.sp, 0);
+  // Obsidian Claws (Obsidi): underground it REPLACES the printed SP rather than
+  // adding to it — bonuses still stack on top of the new base.
+  const base = def.spWhileStealthed != null && hasStatus(card, "STEALTH") ? def.spWhileStealthed : def.sp;
   return Math.max(
     0,
-    def.sp + (card.spBonus ?? 0) + (card.spBonusRound ?? 0) + buffSp + auraBonus(state, card, "sp") + fieldBonus(state, card, "sp"),
+    base + (card.spBonus ?? 0) + (card.spBonusRound ?? 0) + buffSp + auraBonus(state, card, "sp") + fieldBonus(state, card, "sp"),
   );
 }
 
@@ -319,6 +322,7 @@ export function summonCard(
     tempShields: 0,
     struckThisRound: {},
     hitsTakenThisRound: 0,
+    allyKilledFired: false,
     struckEver: [],
     buffs: [],
     revived: false,

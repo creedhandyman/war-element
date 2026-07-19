@@ -322,6 +322,16 @@ export interface CardDef {
   evasionEnemySideOnly?: boolean;
   /** Fallow's trapper aura: a landed CRIT pins whatever it hits. */
   critStatus?: { kind: StatusKind; duration: number; power: number };
+  /** Brightling Ball (Shine): when an ALLY of this card is killed, it answers
+   *  the killer. `oneUse` spends it for the rest of the game. */
+  onAllyKilled?: {
+    dmg?: number;
+    status?: { kind: StatusKind; duration: number; power: number };
+    oneUse?: boolean;
+  };
+  /** Obsidian Claws (Obsidi): SP is replaced by this while the card is
+   *  STEALTHed — underground it moves far faster than it does in the open. */
+  spWhileStealthed?: number;
   /** Gate Keeper (Veil): grant this many shields to SELF on summon (a passive
    *  grant, not a base stat, so it stays off the cost curve). */
   summonSelfShields?: number;
@@ -414,6 +424,11 @@ export interface CardInstance {
    *  including one fully soaked by shields. Powers Squanch's Regenerative, which
    *  cashes it in at Cleanup; reset there too. */
   hitsTakenThisRound: number;
+  /** An ambush loaded into the NEXT basic attack (Obsidi's Dirt Driller): it
+   *  overrides both DMG and hit count for that one attack, then clears. */
+  loadedStrike?: { dmg: number; hits: number };
+  /** One-shot guard for a `oneUse` onAllyKilled (Shine's Brightling Ball). */
+  allyKilledFired: boolean;
   /** Every opponent this card has landed a basic attack on (instanceIds).
    *  Persistent — powers first-strike-per-opponent bonuses (Klipso Harsh Winds). */
   struckEver: string[];
