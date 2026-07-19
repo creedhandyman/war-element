@@ -113,7 +113,7 @@ export function describePassives(def: CardDef): string[] {
   if (kw.REGEN) passives.push(`REGEN ${kw.REGEN}: heals ${kw.REGEN} HP at the end of each round.`);
   if (kw.LIFESTEAL) passives.push("LIFESTEAL: basic attacks heal it for the damage dealt.");
   if (kw.DRAIN) passives.push("DRAIN: basic attacks steal max HP from the target (DUSK lifesteal).");
-  if (kw.BLOCK) passives.push(`BLOCK ${kw.BLOCK}: each shield soaks ${kw.BLOCK} extra DMG before it breaks.`);
+  if (kw.BLOCK) passives.push(`BLOCK ${kw.BLOCK}: every incoming hit is reduced by ${kw.BLOCK} — before shields, and even against PEN.`);
   if (kw.REFLECT) passives.push(`REFLECT ${kw.REFLECT}: returns ${kw.REFLECT} DMG to attackers.`);
   if (kw.EVASION) passives.push("EVASION: ~50% chance to dodge each incoming hit.");
   if (def.onHitStatus) {
