@@ -3482,14 +3482,16 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 0,
     keywords: {},
-    // Electrifying: at the end of every round the current arcs into everything
-    // Jolt can reach and marks it ELECTRIFIED. Proactive, not reactive — you no
-    // longer have to hit Jolt to get marked, you only have to stand near it, so
-    // a 16 HP wall that nobody wants to approach becomes a real zone threat.
-    // ELECTRIFIED does nothing by itself; its whole job is to BE a status, so
-    // BOLT's Electrify aura (+1 DMG vs a statused target) turns the zone into
-    // damage for the entire BOLT side.
+    // Electrifying, both halves. The ZONE is the threat: at the end of every
+    // round the current arcs into everything Jolt can reach. The ON-HIT mark is
+    // the backstop — it answers RANGED attackers, who shoot Jolt from outside
+    // its reach and would otherwise never be marked at all. Together there is no
+    // safe way to engage it: close in and the zone takes you, shoot it and the
+    // counterpunch does. ELECTRIFIED does nothing by itself; its whole job is to
+    // BE a status, so BOLT's Electrify aura (+1 DMG vs a statused target) turns
+    // either mark into damage for the entire BOLT side.
     roundTick: { inRangeStatus: { kind: "ELECTRIFIED", duration: 2, power: 0 } },
+    onHitByMelee: { anyAttacker: true, status: { kind: "ELECTRIFIED", duration: 2, power: 0 } },
   },
 
   // ── Rarity fill-in ─────────────────────────────────────────────────────────

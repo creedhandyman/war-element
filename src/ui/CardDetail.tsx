@@ -137,7 +137,11 @@ export function describePassives(def: CardDef): string[] {
   if (def.onHitByMelee) {
     const m = def.onHitByMelee;
     const bits = [m.dmg && `${m.dmg} DMG`, m.status && m.status.kind].filter(Boolean).join(" + ");
-    passives.push(`When hit by melee${m.chance ? ` (${m.chance}%)` : ""}: retaliate — ${bits}.`);
+    // anyAttacker cards (Jolt, Windsor) answer shooters too — saying "by melee"
+    // there would be a straight lie on the card face.
+    passives.push(
+      `When hit${m.anyAttacker ? " (melee or ranged)" : " by melee"}${m.chance ? ` (${m.chance}%)` : ""}: retaliate — ${bits}.`,
+    );
   }
   if (def.onKill) {
     const k = def.onKill;

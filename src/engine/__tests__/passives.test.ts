@@ -276,6 +276,18 @@ describe("medium-tier passives (audit batch)", () => {
     expect(statusOf(next.cards[far.instanceId], "ELECTRIFIED")).toBeUndefined();
   });
 
+  it("Jolt's on-hit mark is the backstop for shooters the zone can't reach", () => {
+    const s = prepState();
+    const jolt = place(s, "bolt_jolt", "P1", 3, 0);
+    // Two rows out: it can shoot Jolt, but it sits outside Jolt's reach-1 zone,
+    // so ONLY the on-hit half can mark it.
+    const sniper = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30 });
+    const next = advance(atCleanup(s));
+    expect(statusOf(next.cards[sniper.instanceId], "ELECTRIFIED")).toBeUndefined(); // zone missed it
+    basicAttack(next, sniper.instanceId, jolt.instanceId);
+    expect(statusOf(next.cards[sniper.instanceId], "ELECTRIFIED")?.duration).toBe(2);
+  });
+
   it("the Electrified mark is what BOLT allies actually cash in", () => {
     const s = prepState();
     const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30, curShields: 0 });
