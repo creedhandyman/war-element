@@ -33,12 +33,12 @@ describe("setup", () => {
       "bolt_elecdroid",
       "dusk_shadowhorsemen",
       "bore_deepest",
-      // Promoted tokens. Both sit ~6 BELOW the formula, the opposite direction
-      // from the mythics above: their stat lines were drawn for something you
-      // get spawned for free, and the power lives in the ability instead —
-      // Reptilian's stacking on-kill, Heir's Crowned + King Me snowball. Left
-      // as printed so a spawned copy behaves identically to a drafted one.
-      "leaf_reptilian_tok",
+      // Promoted token. Sits 6 BELOW the formula, the opposite direction from
+      // the mythics above: its stat line was drawn for something you get spawned
+      // for free, and the power lives in Crowned + King Me instead. Left as
+      // printed so a spawned copy behaves identically to a drafted one.
+      // (Reptilian used to be here too. Its SP buffs brought it to 13 vs 15,
+      // inside the band, so it is held to the formula again like anything else.)
       "dawn_heir_tok",
     ]);
     for (const def of CARDS) {
