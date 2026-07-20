@@ -3698,7 +3698,7 @@ export const TOKENS: CardDef[] = [
   },
   {
     id: "dusk_specter_tok",
-    art: "dusk_wedded_wraith", // borrows the wraith's art
+    art: "dusk_specter",
     name: "Specter",
     rarity: "epic",
     element: "DUSK",
@@ -3715,7 +3715,7 @@ export const TOKENS: CardDef[] = [
   },
   {
     id: "aqua_guin_tok",
-    art: "aqua_kinguin", // no art of its own — it borrows its king's
+    art: "aqua_guin",
     name: "Guin",
     rarity: "rare",
     element: "AQUA",
