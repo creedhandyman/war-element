@@ -1615,10 +1615,10 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 6, // LEGENDARY
+    cost: 7, // LEGENDARY
     dmg: 4,
     hits: 2,
-    hp: 22,
+    hp: 27,
     sp: 6,
     shields: 2,
     keywords: {},
@@ -3239,11 +3239,11 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Ranger",
     attackType: "Ranged",
-    cost: 6,
-    dmg: 7,
+    cost: 7,
+    dmg: 8,
     hits: 1,
-    hp: 20,
-    sp: 11,
+    hp: 21,
+    sp: 12,
     shields: 1,
     keywords: { CRIT: true },
     // Trapper (End of Round): the snares bite everything they're holding.
