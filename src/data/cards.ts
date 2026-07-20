@@ -1657,9 +1657,11 @@ export const CARDS: CardDef[] = [
       name: "Tranq Feather Blade",
       cost: 2,
       handler: "strike",
-      params: { dmg: 10, pen: 1, statusKind: "STUN", statusDuration: 3 },
+      // STUN is a full skip, not a debuff — 3 rounds took a card out of the game
+      // almost entirely for a Cost-2 Special.
+      params: { dmg: 10, pen: 1, statusKind: "STUN", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 10 DMG (PEN) and STUN the target for 3 rounds.",
+      text: "Deal 10 DMG (PEN) and STUN the target for 2 rounds.",
     },
   },
 
