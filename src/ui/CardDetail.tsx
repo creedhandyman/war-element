@@ -136,7 +136,11 @@ export function describePassives(def: CardDef): string[] {
       v.dmgMult && `×${v.dmgMult} DMG`,
       v.healOnHit && `heal ${v.healOnHit}`,
     ].filter(Boolean);
-    passives.push(`Vs ${v.status} targets, basics gain ${parts.join(" · ")}.`);
+    // anyStatus means it triggers off ANY status, not the named one — saying
+    // "Vs PARALYZE targets" would understate it badly.
+    passives.push(
+      `Vs ${v.anyStatus ? "any target carrying a status" : `${v.status} targets`}, basics gain ${parts.join(" · ")}.`,
+    );
   }
   if (def.onHitByMelee) {
     const m = def.onHitByMelee;
@@ -154,6 +158,11 @@ export function describePassives(def: CardDef): string[] {
       k.buffDmgRound && `+${k.buffDmgRound} DMG (round)`,
       k.buffHits && `+${k.buffHits} hit`,
       k.buffSp && `+${k.buffSp} SP`,
+      k.buffMaxHp && `+${k.buffMaxHp} max HP`,
+      k.spawnToken &&
+        `raises ${k.spawnToken.count} ${getDef(k.spawnToken.token).name}${k.spawnToken.count > 1 ? "s" : ""}`,
+      k.extendStatus &&
+        `extends ${k.extendStatus.kind} on every enemy by ${k.extendStatus.rounds} round${k.extendStatus.rounds > 1 ? "s" : ""}`,
       k.coinBonusDmg && `+${k.coinBonusDmg}/${k.coinBonusDmg - 1} DMG`,
       k.healSelf && `heal ${k.healSelf}`,
       k.gainShields && `+${k.gainShields} shields`,
@@ -214,6 +223,7 @@ export function describePassives(def: CardDef): string[] {
     const bits = [
       a.dmg && `+${a.dmg} DMG`,
       a.sp && `+${a.sp} SP`,
+      a.maxHp && `+${a.maxHp} max HP`,
       a.shields && `+${a.shields} shields`,
       a.pen && "PEN on basics",
     ].filter(Boolean);
@@ -223,7 +233,11 @@ export function describePassives(def: CardDef): string[] {
     passives.push(`Talent (free · once per game) — ${def.talent.name}: ${def.talent.text}`);
   if (def.onRevive)
     passives.push(
-      `Revives once when defeated at ${def.onRevive.heal} HP${def.onRevive.sleep ? `, then sleeps ${rounds(def.onRevive.sleep)}` : ""}.`,
+      // decay turns a one-time revive into an every-death one that grinds itself
+      // down — "revives once" was the opposite of what the card does.
+      def.onRevive.decay
+        ? `Revives on EVERY death at ${def.onRevive.heal} HP, losing ${def.onRevive.decay} from each stat each time — when a stat would reach 0 it stays down.`
+        : `Revives once when defeated at ${def.onRevive.heal} HP${def.onRevive.sleep ? `, then sleeps ${rounds(def.onRevive.sleep)}` : ""}.`,
     );
   if (def.onLowHp) {
     const l = def.onLowHp;

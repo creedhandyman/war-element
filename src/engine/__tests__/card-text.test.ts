@@ -102,6 +102,39 @@ describe("card text covers every mechanic", () => {
     expect(wrong, `spell text out of sync with params:\n  ${wrong.join("\n  ")}`).toEqual([]);
   });
 
+  it("every SUB-field of a composite ability is mentioned too", () => {
+    // The gap that let +max HP ship invisible on Pyrogon, Octoirate and
+    // Reptilian: the outer field (onKill) produced a line, so the coverage check
+    // passed, while one of its sub-values was silently dropped from that line.
+    // Compare the text with and without each sub-field — if removing it doesn't
+    // change the text, it was never being said.
+    const SUBS: Record<string, string[]> = {
+      onKill: ["buffDmg", "buffDmgRound", "buffSp", "buffHits", "buffMaxHp", "healSelf",
+               "gainShields", "aoeDmg", "aoeDmgElectrified", "spawnToken", "coinBonusDmg",
+               "reduceSpecialCost", "extendStatus"],
+      vsStatus: ["anyStatus", "lifesteal", "crit", "bonusDmg", "dmgMult", "healOnHit"],
+      onRevive: ["heal", "sleep", "decay"],
+      aura: ["dmg", "sp", "maxHp", "shields", "pen"],
+      onLowHp: ["dmg", "loseSp", "loseSpecial"],
+    };
+    const silent: string[] = [];
+    for (const def of all) {
+      for (const [outer, keys] of Object.entries(SUBS)) {
+        const o = (def as unknown as Record<string, Record<string, unknown>>)[outer];
+        if (!o) continue;
+        for (const k of keys) {
+          if (o[k] == null) continue;
+          const stripped = { ...o };
+          delete stripped[k];
+          const withIt = describePassives(def).join("|");
+          const without = describePassives({ ...def, [outer]: stripped } as typeof def).join("|");
+          if (withIt === without) silent.push(`${def.id}.${outer}.${k}`);
+        }
+      }
+    }
+    expect(silent, `sub-fields absent from the card text:\n  ${silent.join("\n  ")}`).toEqual([]);
+  });
+
   it("no card is left with nothing but its element aura", () => {
     // A card whose only line is the free element aura tells the player nothing
     // about itself. Stat-only vanilla cards are legitimate, so this only flags
