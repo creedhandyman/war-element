@@ -52,12 +52,20 @@ export const PREMADE_DECKS: PremadeDeck[] = [
     premade: true,
     // PYRO + BOLT — fast burn & shock aggression. Aggressive curve topping out
     // in Volcanon/Magmaw/Stormcaller (lege) into Pyrogon (myth).
+    // Cut for the new arrivals: Electricel (1x4 into 3 HP — Zap already holds the
+    // fragile 1-drop), Ember Scorpion (no ability at all), Zagphu and Sarra (the
+    // 3 and 4 slots were six and four deep).
     cards: [
-      "bolt_zap", "bolt_electricel", "pyro_flamehound", "pyro_baboom", "pyro_firebird",
-      "pyro_ember_scorpion", "bolt_zagphu", "bolt_lytning", "pyro_fenix", "bolt_thundercat",
-      "pyro_sarra", "bolt_thunder", "pyro_volcanon", "pyro_magmaw", "bolt_stormcaller", "pyro_pyrogon",
+      "bolt_zap", "bolt_jolt", "pyro_flamehound", "pyro_baboom", "pyro_ash_boar",
+      "bolt_jellyfish", "pyro_firebird", "bolt_lytning", "pyro_fenix", "pyro_sseerr",
+      "bolt_thundercat", "bolt_thunder", "pyro_volcanon", "pyro_magmaw", "bolt_stormcaller",
+      "pyro_pyrogon",
     ],
-    spells: ["pyro_spark", "bolt_zap", "pyro_firewall", "bolt_overload_field", "bolt_lightning_storm"],
+    // Spark out, Power Grid in. The deck now runs Jolt, whose whole job is
+    // marking foes ELECTRIFIED — Power Grid turns that mark from +1 into +2 for
+    // the entire BOLT side and discounts their Specials. Spark was also the
+    // second of two Cost-1 damage spells alongside Zap.
+    spells: ["bolt_zap", "pyro_firewall", "bolt_overload_field", "bolt_power_grid", "bolt_lightning_storm"],
   },
   {
     id: "pre_frostkeep",
@@ -66,10 +74,15 @@ export const PREMADE_DECKS: PremadeDeck[] = [
     // AQUA + BORE — tanky control that grinds you out. Ramps through Sandman/
     // Polarking/Glacius/Bastion (lege) into Kraken (myth). Frost Patch → Maelstrom
     // (2× vs FROZEN) is the payoff.
+    // Cut: Bullet Shrimp (12 DMG on 1 HP — dies to anything, and Piranha now
+    // covers that slot), Rollo and Sapphire (plain bodies in crowded slots), and
+    // Bastion — with Polar King, Sandman, Glacius and Kraken the 6+ end was five
+    // deep in a sixteen-card deck.
     cards: [
-      "aqua_subcool", "bore_hillbilly", "aqua_bulletshrimp", "aqua_octoirate", "bore_rollo",
-      "aqua_owlette", "bore_shift", "aqua_polarbear", "bore_rhe", "aqua_blackbeard",
-      "aqua_sapphire", "bore_sandman", "aqua_polarking", "aqua_glacius", "bore_bastion", "aqua_kraken",
+      "bore_hillbilly", "aqua_piranha", "aqua_subcool", "aqua_kinguin", "aqua_octoirate",
+      "aqua_owlette", "bore_shift", "aqua_blackbeard", "bore_monger", "aqua_polarbear",
+      "bore_rhe", "bore_obsidi", "aqua_polarking", "bore_sandman", "aqua_glacius",
+      "aqua_kraken",
     ],
     spells: ["aqua_chill", "aqua_frost_patch", "bore_stone_wall", "bore_shatterpoint", "aqua_maelstrom"],
   },
@@ -79,12 +92,19 @@ export const PREMADE_DECKS: PremadeDeck[] = [
     premade: true,
     // DAWN + LEAF — heals & buffs behind a wall of bodies. Value engine through
     // Kosmos/Elderroot/Aurelion (lege) into Imperator (myth).
+    // Cut: Nettle, Star and Fallona (the 3 slot ran six deep), and Kosmos to
+    // thin a top end that was five cards at 6+. Lands 8 DAWN / 8 LEAF.
     cards: [
-      "dawn_beam", "leaf_nettle", "leaf_guardian", "leaf_leaf", "dawn_star",
-      "dawn_amble", "leaf_fallona", "leaf_dartfrog", "dawn_solstice", "leaf_citra",
-      "leaf_sumerose", "dawn_clipsey", "dawn_kosmos", "leaf_elderroot", "dawn_aurelion", "dawn_imperator",
+      "dawn_beam", "leaf_guardian", "leaf_leaf", "dawn_shine", "dawn_amble",
+      "leaf_dartfrog", "dawn_goldeneagle", "leaf_sprinu", "leaf_citra", "dawn_solstice",
+      "leaf_sumerose", "dawn_clipsey", "leaf_elderroot", "dawn_aurelion", "leaf_fallow",
+      "dawn_imperator",
     ],
-    spells: ["leaf_sprout", "dawn_cleansing_light", "dawn_radiant_barrier", "leaf_groves_blessing", "dawn_solar_flare"],
+    // Radiant Barrier out, Bramble Wall in — same cost, same slot, but ROOT now
+    // has two payoffs in this deck: Fallow's Trapper hits every ROOTed opponent
+    // at end of round, and Sprout already heals 5 instead of 3 while any
+    // opponent is ROOTed.
+    spells: ["leaf_sprout", "dawn_cleansing_light", "leaf_bramble_wall", "leaf_groves_blessing", "dawn_solar_flare"],
   },
   {
     id: "pre_nightfall",
@@ -92,12 +112,19 @@ export const PREMADE_DECKS: PremadeDeck[] = [
     premade: true,
     // DUSK + GALE — evasive assassins that hit and vanish. Tempo into Tempest/
     // Nightfang/Klipso (lege) and Shadow Horsemen (myth).
+    // Cut: Crow (3 DMG on 1 HP), Silkstalker and Rayfen (crowded 3 and 4 slots),
+    // and Tempest to thin a five-card 6+ top. Lands 8 DUSK / 8 GALE.
     cards: [
-      "dusk_crow", "gale_duster", "gale_luna", "dusk_reaper", "dusk_silkstalker",
-      "dusk_widowbite", "gale_hawk", "gale_vaga", "dusk_ghastly", "dusk_haunt",
-      "gale_rayfen", "gale_wolfbane", "gale_tempest", "dusk_nightfang", "gale_klipso", "dusk_shadowhorsemen",
+      "gale_duster", "gale_luna", "gale_tumbleweed", "gale_hawk", "dusk_reaper",
+      "gale_vaga", "dusk_widowbite", "gale_windsor", "dusk_ghastly", "dusk_haunt",
+      "dusk_wedded_wraith", "gale_wolfbane", "dusk_ravven", "gale_klipso", "dusk_nightfang",
+      "dusk_shadowhorsemen",
     ],
-    spells: ["dusk_chill_touch", "gale_downdraft", "dusk_shadow_step", "dusk_veil_of_shadows", "dusk_phantom_spikes"],
+    // Shadow Step out, Nightfall in — the deck finally runs its namesake. Wedded
+    // Wraith floods the board with Specters, so cloaking the whole DUSK side
+    // beats cloaking one card, and it covers Ravven everywhere instead of only
+    // on enemy ground where its own EVASION lives.
+    spells: ["dusk_chill_touch", "gale_downdraft", "dusk_veil_of_shadows", "dusk_nightfall", "dusk_phantom_spikes"],
   },
 ];
 
