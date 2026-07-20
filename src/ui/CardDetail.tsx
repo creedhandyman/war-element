@@ -155,7 +155,10 @@ export function describePassives(def: CardDef): string[] {
       k.gainShields && `+${k.gainShields} shields`,
       k.aoeDmg && `${k.aoeDmg} to all enemies`,
       k.aoeDmgElectrified && `${k.aoeDmgElectrified} to all electrified (statused) enemies, once/round`,
-      k.reduceSpecialCost && `Special costs ${k.reduceSpecialCost} less (King Me)`,
+      // Name the Special outright and say it stacks — "Special costs 1 less"
+      // read as a flat, one-off, possibly team-wide discount.
+      k.reduceSpecialCost &&
+        `permanently shaves ${k.reduceSpecialCost} off its own ${def.special?.name ?? "Special"} cost, stacking (King Me)`,
     ].filter(Boolean);
     passives.push(`On a kill: ${bits.join(" · ")}.`);
   }

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS } from "../combat";
 import { applyFlow } from "../auras";
 import { advance, applyIntent } from "../phases";
-import { canFireSpecial, canFireTalent, canMove, canTarget, specialTargets, validTargets } from "../rules";
+import { canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard } from "../state";
 import { CARDS, getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
@@ -115,6 +115,29 @@ describe("medium-tier passives (audit batch)", () => {
     const next = advance(atCleanup(s));
     expect(next.cards[sq.instanceId].curShields).toBe(2); // one hit, one shield
     expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
+  });
+
+  it("Heir's King Me cheapens its OWN Crowned, stacking per kill", () => {
+    const s = prepState();
+    const heir = place(s, "dawn_heir_tok", "P1", 2, 0);
+    const printed = getDef("dawn_heir_tok").special!.cost; // 3
+    const cost = () => effectiveSpecialCost(s, s.cards[heir.instanceId], printed);
+    // A second Heir must NOT get cheaper off the first one's kills — the
+    // discount lives on the instance, not the player or the card def.
+    const other = place(s, "dawn_heir_tok", "P1", 3, 0);
+    expect(cost()).toBe(printed);
+    for (let i = 0; i < 2; i++) {
+      const prey = place(s, "dusk_gool", "P2", 1, i, { curHp: 1, curShields: 0 });
+      place(s, "dusk_vamp", "P2", 0, i); // keep P2's board alive
+      basicAttack(s, heir.instanceId, prey.instanceId);
+      expect(s.cards[prey.instanceId]).toBeUndefined();
+    }
+    expect(s.cards[heir.instanceId].specialCostReduction).toBe(2);
+    expect(cost()).toBe(printed - 2); // 3 → 1
+    expect(effectiveSpecialCost(s, s.cards[other.instanceId], printed)).toBe(printed);
+    // …and the discount is honoured at the gate, not just in the display.
+    s.players.P1.magicPool = 1;
+    expect(canFireSpecial(s, heir.instanceId).ok).toBe(true);
   });
 
   it("self-targeting Specials offer only the caster, never the whole team", () => {
