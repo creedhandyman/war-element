@@ -884,6 +884,26 @@ export function directDamage(
   return r.targetDied;
 }
 
+/** End-of-round tick damage (Black Smoke, Radiation, Complete Circuit, Trapper).
+ *  Same as directDamage, but a kill fires the ticking card's onKill. The main
+ *  death path gates onKill to basic/special kills, which would leave a 0-DMG
+ *  card like Smog — whose only kill route IS its tick — unable to ever trigger
+ *  its own on-kill passive. Returns true if the target died. */
+export function tickDamage(
+  draft: GameState,
+  source: CardInstance,
+  target: CardInstance,
+  dmg: number,
+  pen: boolean,
+): boolean {
+  const died = directDamage(draft, source, target, dmg, pen);
+  if (died && source.curHp > 0) {
+    const def = getDef(source.defId);
+    if (def.onKill) applyOnKill(draft, source, def.onKill);
+  }
+  return died;
+}
+
 /** Burnout: a dying card blasts the enemy cards in the row directly ahead. */
 function onDeathRowAhead(
   draft: GameState,

@@ -2450,6 +2450,12 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Black Smoke (End of Round): 1 DMG to every opponent in range (Ranged → the whole enemy board).
     roundTick: { inRangeDmg: 1 },
+    // Creeping Cloud: +1 SP per kill. It prints SP 0 — a cloud that cannot move
+    // at all — and the only thing that can kill for it is Black Smoke, so every
+    // point of speed is earned by choking something out. (Tick kills feed onKill
+    // via tickDamage; the ordinary death path only counts basic/special kills,
+    // which a 0-DMG card can never land.)
+    onKill: { buffSp: 1 },
   },
 
   // ───────────────────────── BORE ─────────────────────────

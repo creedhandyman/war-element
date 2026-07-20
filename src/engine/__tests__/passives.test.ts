@@ -117,6 +117,24 @@ describe("medium-tier passives (audit batch)", () => {
     expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
   });
 
+  it("Smog gains speed from its Black Smoke kills, which nothing else could grant it", () => {
+    const s = prepState();
+    const smog = place(s, "pyro_smog_card", "P1", 3, 0);
+    expect(effectiveSp(s, s.cards[smog.instanceId])).toBe(0); // a cloud that can't move
+    // Two enemies on 1 HP: Black Smoke's end-of-round tick finishes both.
+    const a = place(s, "dusk_gool", "P2", 1, 0, { curHp: 1, curShields: 0 });
+    const b = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 1, curShields: 0 });
+    place(s, "dusk_crow", "P2", 0, 3, { curHp: 20, maxHp: 20 }); // survivor, keeps P2 alive
+    const next = advance(atCleanup(s));
+    expect(next.cards[a.instanceId]).toBeUndefined();
+    expect(next.cards[b.instanceId]).toBeUndefined();
+    // The whole point: these are TICK kills. The ordinary death path only fires
+    // onKill for basic/special kills, and Smog has 0 DMG so it can never land
+    // one — without tickDamage feeding onKill, this passive would be dead.
+    expect(next.cards[smog.instanceId].spBonus).toBe(2);
+    expect(effectiveSp(next, next.cards[smog.instanceId])).toBe(2);
+  });
+
   it("Crowned locks out for 3 rounds — the permanent buff can't compound every turn", () => {
     const s = prepState();
     s.players.P1.magicPool = 20;

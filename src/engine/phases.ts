@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, type FlowMode, GALE_SP_CAP } from "./auras";
-import { applyStatus, basicAttack, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, payAttackTrade, pushBack, spellHit, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, basicAttack, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, payAttackTrade, pushBack, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin } from "./rng";
@@ -861,7 +861,7 @@ function doRoundTicks(draft: GameState): void {
       draft.log.push(`${label(draft, card)} sharpens (+${rt.buffDmgEveryN.amount} DMG${rt.buffDmgEveryN.sp ? ` +${rt.buffDmgEveryN.sp} SP` : ""}).`);
     }
     if (rt.aoeDmg) {
-      for (const e of enemies()) directDamage(draft, card, e, rt.aoeDmg, false);
+      for (const e of enemies()) tickDamage(draft, card, e, rt.aoeDmg, false);
       draft.log.push(`${label(draft, card)} sweeps the field (${rt.aoeDmg} DMG to all enemies).`);
     }
     if (rt.aoeStatus) {
@@ -892,13 +892,13 @@ function doRoundTicks(draft: GameState): void {
     if (rt.rowAheadDmg && card.pos) {
       // Sweeping Flames: burn whatever stands in the row directly ahead.
       const ahead = card.owner === "P1" ? card.pos.row - 1 : card.pos.row + 1;
-      for (const e of enemies()) if (e.pos && e.pos.row === ahead) directDamage(draft, card, e, rt.rowAheadDmg, false);
+      for (const e of enemies()) if (e.pos && e.pos.row === ahead) tickDamage(draft, card, e, rt.rowAheadDmg, false);
     }
     if (rt.inRangeDmg) {
       // Black Smoke / Radiation: hit every opponent this card can reach (UFO's
       // radiation PENetrates shields).
       const hit = enemies().filter((e) => canTarget(draft, card, e));
-      for (const e of hit) directDamage(draft, card, e, rt.inRangeDmg, !!rt.inRangeDmgPen);
+      for (const e of hit) tickDamage(draft, card, e, rt.inRangeDmg, !!rt.inRangeDmgPen);
       if (hit.length) draft.log.push(`${label(draft, card)} hits ${hit.length === 1 ? "an enemy" : `${hit.length} enemies`} in range (${rt.inRangeDmg} DMG${rt.inRangeDmgPen ? " PEN" : ""}).`);
     }
     if (rt.selfShields) {
@@ -909,7 +909,7 @@ function doRoundTicks(draft: GameState): void {
     if (rt.pokeParalyzedDmg) {
       // Volt Turret: zap one PARALYZED enemy the turret can reach.
       const t = closest(card, enemies().filter((e) => hasStatus(e, "PARALYZE") && canTarget(draft, card, e)));
-      if (t) directDamage(draft, card, t, rt.pokeParalyzedDmg, false);
+      if (t) tickDamage(draft, card, t, rt.pokeParalyzedDmg, false);
     }
     if (rt.roundHealElement) {
       // Morning Dew: the dew settles on its own kind only.
@@ -922,14 +922,14 @@ function doRoundTicks(draft: GameState): void {
       // Trapper (Fallow): the snares bite at the end of every round. Anything
       // held in place takes the hit wherever it is — a trap doesn't need range.
       const caught = enemies().filter((e) => hasStatus(e, "ROOT"));
-      for (const e of caught) directDamage(draft, card, e, rt.rootedDmg, false);
+      for (const e of caught) tickDamage(draft, card, e, rt.rootedDmg, false);
       if (caught.length)
         draft.log.push(`${label(draft, card)}'s traps bite ${caught.length} snared foe(s) for ${rt.rootedDmg}.`);
     }
     if (rt.aoeParalyzedDmg) {
       // Complete Circuit: current flows through every PARALYZED enemy in range.
       for (const e of enemies()) if (hasStatus(e, "PARALYZE") && canTarget(draft, card, e))
-        directDamage(draft, card, e, rt.aoeParalyzedDmg, false);
+        tickDamage(draft, card, e, rt.aoeParalyzedDmg, false);
     }
     if (rt.spawn) {
       // Reptilian Screech: spawn a token into an open king's-reach slot.
@@ -938,7 +938,7 @@ function doRoundTicks(draft: GameState): void {
     if (rt.pokeDmg || rt.pokeStatus) {
       const t = closest(card, enemies());
       if (t) {
-        if (rt.pokeDmg) directDamage(draft, card, t, rt.pokeDmg, false);
+        if (rt.pokeDmg) tickDamage(draft, card, t, rt.pokeDmg, false);
         if (rt.pokeStatus && draft.cards[t.instanceId] && t.curHp > 0)
           applyStatus(draft, t, rt.pokeStatus.kind, rt.pokeStatus.duration, rt.pokeStatus.power, el);
       }
