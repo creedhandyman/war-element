@@ -1161,7 +1161,8 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       else checkLowHpTransform(draft, attacker);
     }
     // Recoil: the caster takes back a % of the HP damage this strike dealt to the
-    // main target (Griffith's Dive Bomb — 10% recoil).
+    // main target (Griffith's Dive Bomb). Self-inflicted and lethal — a dive that
+    // lands hard enough can finish an already-wounded caster.
     const recoilPct = num(params, "recoilPct");
     if (recoilPct > 0 && r.totalToHp > 0 && attacker.curHp > 0) {
       const recoil = Math.round((r.totalToHp * recoilPct) / 100);

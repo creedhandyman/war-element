@@ -2060,9 +2060,12 @@ export const CARDS: CardDef[] = [
       cost: 5,
       cooldown: 3, // huge nuke + STEALTH escape — 3-round lockout between casts
       handler: "strike",
-      params: { dmg: 27, splash: 11, recoilPct: 10, selfStatus: "STEALTH", selfStatusDuration: 1 },
+      // recoilPct is a share of the HP damage DEALT to the main target, so the
+      // cost scales with how well the dive lands: ~7 back on a clean 27, less
+      // into shields. At 25% it can finish a wounded Griffith outright.
+      params: { dmg: 27, splash: 11, recoilPct: 25, selfStatus: "STEALTH", selfStatusDuration: 1 },
       targetSide: "enemy",
-      text: "Deal 27 DMG (+11 splash) and take 10% recoil, then vanish into STEALTH until next round. 3-round cooldown.",
+      text: "Deal 27 DMG (+11 splash) and take 25% recoil, then vanish into STEALTH until next round. 3-round cooldown.",
     },
   },
   {

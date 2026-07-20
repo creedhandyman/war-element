@@ -212,7 +212,7 @@ describe("splash damage", () => {
     expect(next.cards[far.instanceId].curHp).toBe(40); // out of splash range
   });
 
-  it("Griffith takes 10% recoil from Dive Bomb (27 dealt → 3 back)", () => {
+  it("Griffith takes 25% recoil from Dive Bomb (27 dealt → 7 back)", () => {
     const s = prepState();
     s.players.P1.magicPool = 6;
     const griff = place(s, "gale_griffith", "P1", 2, 0);
@@ -225,7 +225,7 @@ describe("splash damage", () => {
       targetId: foe.instanceId,
     });
     expect(next.cards[foe.instanceId].curHp).toBe(40 - 27); // full hit
-    expect(next.cards[griff.instanceId].curHp).toBe(startHp - 3); // round(27 * 10%)
+    expect(next.cards[griff.instanceId].curHp).toBe(startHp - 7); // round(27 * 25%)
   });
 });
 
