@@ -5,6 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 import { CARDS, TOKENS } from "../../data/cards";
+import { SPELLS } from "../spells";
 import { describePassives } from "../../ui/CardDetail";
 
 /** Card-def fields that carry a real ability the player should be told about.
@@ -64,6 +65,41 @@ describe("card text covers every mechanic", () => {
       }
     }
     expect(silent, `these roundTick effects render no card text:\n  ${silent.join("\n  ")}`).toEqual([]);
+  });
+
+  it("every spell's text states the numbers it actually uses", () => {
+    // Spell text is hand-written, so the risk isn't a missing description — it's
+    // one that drifts from the params after a balance change. Check the figures
+    // a player would act on actually appear.
+    const wrong: string[] = [];
+    for (const s of SPELLS) {
+      const t = s.text;
+      if (!t || t.length < 10) { wrong.push(`${s.id}: no text`); continue; }
+      const say = (v: number | undefined, label: string) => {
+        if (v == null || v === 0) return;
+        if (!new RegExp(`\\b${v}\\b`).test(t)) wrong.push(`${s.id}: ${label} ${v} not in text`);
+      };
+      say(s.dmg, "dmg");
+      say(s.allyHeal, "allyHeal");
+      say(s.allyShield, "allyShield");
+      say(s.allySp, "allySp");
+      say(s.drainMaxHp, "drainMaxHp");
+      say(s.wall?.dmg, "wall dmg");
+      say(s.wall?.rounds, "wall rounds");
+      say(s.field?.rounds, "field rounds");
+      // Statuses must be named, or the player can't know what they're applying.
+      // Card text uses natural English, so accept the irregular forms: FREEZE
+      // reads as "FROZEN", MUTED as "MUTE". The regular ones (ROOTed, BLINDed,
+      // PARALYZED, FRIGHTENed) all contain their kind as a prefix already.
+      const ALIAS: Record<string, string[]> = { FREEZE: ["FREEZE", "FROZEN"], MUTED: ["MUTED", "MUTE"] };
+      for (const [st, where] of [[s.status, "status"], [s.wall?.status, "wall status"]] as const) {
+        if (!st) continue;
+        const forms = ALIAS[st.kind] ?? [st.kind];
+        if (!forms.some((f) => t.toUpperCase().includes(f)))
+          wrong.push(`${s.id}: ${where} ${st.kind} not named in text`);
+      }
+    }
+    expect(wrong, `spell text out of sync with params:\n  ${wrong.join("\n  ")}`).toEqual([]);
   });
 
   it("no card is left with nothing but its element aura", () => {

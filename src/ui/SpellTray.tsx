@@ -52,7 +52,15 @@ export function SpellTray(props: {
                 onError={(e) => { e.currentTarget.style.display = "none"; }}
               />
             </span>
-            <span className="spellchip-name">{spell.name}</span>
+            {/* Name + rules stack together so the row-shaped chips (phone
+                spellbook, desktop rail) can show both. The rules used to live
+                only in `title`, which never renders on touch — and heal / field
+                / board-AoE spells cast the instant you tap them, so there was no
+                later moment to read what you'd just committed to. */}
+            <span className="spellchip-body">
+              <span className="spellchip-name">{spell.name}</span>
+              <span className="spellchip-text">{spell.text}</span>
+            </span>
           </button>
         );
       })}
