@@ -33,6 +33,13 @@ describe("setup", () => {
       "bolt_elecdroid",
       "dusk_shadowhorsemen",
       "bore_deepest",
+      // Promoted tokens. Both sit ~6 BELOW the formula, the opposite direction
+      // from the mythics above: their stat lines were drawn for something you
+      // get spawned for free, and the power lives in the ability instead —
+      // Reptilian's stacking on-kill, Heir's Crowned + King Me snowball. Left
+      // as printed so a spawned copy behaves identically to a drafted one.
+      "leaf_reptilian_tok",
+      "dawn_heir_tok",
     ]);
     for (const def of CARDS) {
       if (exceptions.has(def.id)) continue;

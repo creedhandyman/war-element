@@ -32,9 +32,21 @@ describe("token spawning", () => {
     }
   });
 
-  it("spawned tokens never enter the deck (they're not in CARDS)", async () => {
+  it("pure tokens never enter the deck (they're not in CARDS)", async () => {
     const { CARDS } = await import("../../data/cards");
-    expect(CARDS.some((c) => c.id === "leaf_reptilian_tok")).toBe(false);
+    // Guin and Specter exist only to be spawned — nothing should let them be
+    // drafted. (Reptilian and Heir were promoted OUT of this set on purpose and
+    // are draftable now; they are still spawned by Trinezer and Imperator.)
+    expect(CARDS.some((c) => c.id === "aqua_guin_tok")).toBe(false);
+    expect(CARDS.some((c) => c.id === "dusk_specter_tok")).toBe(false);
+  });
+
+  it("the promoted tokens are draftable AND still spawnable", async () => {
+    const { CARDS, getDef } = await import("../../data/cards");
+    for (const id of ["leaf_reptilian_tok", "dawn_heir_tok"]) {
+      expect(CARDS.some((c) => c.id === id), `${id} draftable`).toBe(true);
+      expect(getDef(id).id, `${id} still resolves for spawners`).toBe(id);
+    }
   });
 });
 

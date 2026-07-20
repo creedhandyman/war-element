@@ -3645,13 +3645,13 @@ export const CARDS: CardDef[] = [
     // game — a single answer, saved for whoever takes the first one.
     onAllyKilled: { dmg: 4, status: { kind: "BLIND", duration: 3, power: 0 }, oneUse: true },
   },
-];
 
-// ── Tokens ───────────────────────────────────────────────────────────────────
-// Spawned by cards (Trinezer's Reptilian Screech, etc.), never dealt from a deck.
-// Kept OUT of CARDS so decks + the cost-formula test ignore them; merged into
-// CARD_INDEX below so getDef resolves them.
-export const TOKENS: CardDef[] = [
+  // ── Promoted from tokens ───────────────────────────────────────────────────
+  // Reptilian and Heir are still SPAWNED (Trinezer's Screech, Imperator's Strike
+  // of Dawn) — moving them into CARDS only additionally makes them draftable.
+  // getDef resolves them the same either way, since CARD_INDEX merges both lists.
+  // Both sit under the stat curve on purpose: they are ability-carried, and they
+  // are listed in the cost-formula test's exceptions for that reason.
   {
     id: "leaf_reptilian_tok",
     art: "leaf_reptilian",
@@ -3699,6 +3699,14 @@ export const TOKENS: CardDef[] = [
       text: "Gain +5 DMG, +5 HP, +5 SP permanently.",
     },
   },
+];
+
+// ── Tokens ───────────────────────────────────────────────────────────────────
+// Spawned by cards, never dealt from a deck. Kept OUT of CARDS so decks + the
+// cost-formula test ignore them; merged into CARD_INDEX below so getDef resolves
+// them. (Reptilian and Heir used to live here — they are draftable now, but are
+// still spawned by Trinezer and Imperator exactly as before.)
+export const TOKENS: CardDef[] = [
   {
     id: "dusk_specter_tok",
     art: "dusk_specter",
