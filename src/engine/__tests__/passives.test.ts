@@ -117,6 +117,31 @@ describe("medium-tier passives (audit batch)", () => {
     expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
   });
 
+  it("Crowned locks out for 3 rounds — the permanent buff can't compound every turn", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 20;
+    const heir = place(s, "dawn_heir_tok", "P1", 2, 0);
+    place(s, "dusk_gool", "P2", 0, 0); // keep both boards alive through Cleanup
+    let g = applyIntent(battleFor(s, heir.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: heir.instanceId,
+    });
+    expect(g.cards[heir.instanceId].dmgBonus).toBe(5); // it fired
+    expect(canFireSpecial(g, heir.instanceId).ok).toBe(false); // and locked
+    // Count Cleanups until it frees up rather than hardcoding: the engine sets
+    // cooldown+1 to absorb the cast round's own Cleanup, so a "3-round lockout"
+    // is 4 ticks. Measuring it keeps the test honest about that quirk.
+    let ticks = 0;
+    while (!canFireSpecial(g, heir.instanceId).ok && ticks < 10) {
+      g = advance(atCleanup(g));
+      ticks++;
+    }
+    expect(ticks).toBe(4); // 3 full rounds skipped, plus the cast round's tick
+    expect(g.players.P1.magicPool).toBeGreaterThanOrEqual(3); // affordable again too
+  });
+
   it("Heir's King Me cheapens its OWN Crowned, stacking per kill", () => {
     const s = prepState();
     const heir = place(s, "dawn_heir_tok", "P1", 2, 0);

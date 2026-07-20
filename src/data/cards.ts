@@ -3693,10 +3693,15 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Crowned",
       cost: 3,
+      // The only PERMANENT stat grant in the game, and King Me drives its cost
+      // toward zero, so the default 1-round gap let it be cast almost every
+      // other round and compound without limit. 3 matches every other
+      // game-warping Special.
+      cooldown: 3,
       handler: "empower",
       params: { selfDmg: 5, selfMaxHp: 5, selfSp: 5 },
       targetSide: "self",
-      text: "Gain +5 DMG, +5 HP, +5 SP permanently.",
+      text: "Gain +5 DMG, +5 HP, +5 SP permanently. 3-round cooldown.",
     },
   },
 ];
