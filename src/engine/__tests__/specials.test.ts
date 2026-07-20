@@ -176,20 +176,40 @@ describe("firing specials", () => {
   it("barrage multi-selection: strikes exactly the picked targets, stacking repeats", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;
-    const sol = place(s, "pyro_sol", "P1", 2, 0); // Pyro Ball Barrage: 3 dmg, up to 4 targets
-    const t1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
-    const t2 = place(s, "dusk_ghastly", "P2", 1, 1, { curHp: 19 });
+    // Star Shower (4 DMG, targets 99). Deliberately NOT Sol — Sol is a
+    // single-target 4-hit volley now, and its Incinerate would ramp the numbers.
+    const star = place(s, "dawn_star", "P1", 2, 0);
+    const t1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 0 });
+    const t2 = place(s, "dusk_ghastly", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 });
     place(s, "bore_smith", "P2", 1, 2, { curHp: 11 }); // NOT picked — must be untouched
-    const next = applyIntent(battleWith(s, sol.instanceId), {
+    const next = applyIntent(battleWith(s, star.instanceId), {
       type: "BATTLE_ACTION",
       player: "P1",
       action: "special",
       targetIds: [t1.instanceId, t1.instanceId, t1.instanceId, t2.instanceId], // stack 3 on t1
     });
-    expect(next.cards[t1.instanceId].curHp).toBe(4); // 3 strikes × 3
+    expect(next.cards[t1.instanceId].curHp).toBe(8); // 3 strikes × 4
     expect(next.cards[t2.instanceId].curHp).toBe(16); // 1 strike
-    expect(next.cards[sol.instanceId]).toBeTruthy();
+    expect(next.cards[star.instanceId]).toBeTruthy();
     expect(next.log.filter((l) => l.includes("Smith")).length).toBe(0);
+  });
+
+  it("Sol's Pyro Ball Barrage is 4 hits on ONE target, and Incinerate ramps them", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 3;
+    const sol = place(s, "pyro_sol", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const bystander = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 20, maxHp: 20 });
+    const next = applyIntent(battleWith(s, sol.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: foe.instanceId,
+    });
+    // 3 + 4 + 5 + 6 = 18. Flat it would be 12 — the ramp is the point, and it
+    // only exists because the volley stays on one target.
+    expect(next.cards[foe.instanceId].curHp).toBe(22);
+    expect(next.cards[bystander.instanceId].curHp).toBe(20); // single-target now
   });
 
   it("barrage rejects more picks than the special allows", () => {

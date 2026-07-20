@@ -276,9 +276,13 @@ export const CARDS: CardDef[] = [
       name: "Pyro Ball Barrage",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 3, targets: 4 },
+      // Four hits into ONE target, not one hit across four. That's the whole
+      // point: Incinerate ramps on consecutive hits against the SAME target, so
+      // spreading the volley guaranteed the passive did nothing. Stacked it
+      // reads 3 + 4 + 5 + 6 = 18.
+      params: { dmg: 3, hits: 4, targets: 1 },
       targetSide: "enemy",
-      text: "Deal 3 DMG to up to 4 opponents.",
+      text: "Deal 3 DMG up to 4 times to one opponent — Incinerate ramps each hit.",
     },
   },
   {

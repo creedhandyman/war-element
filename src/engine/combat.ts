@@ -1256,6 +1256,12 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         crit: num(params, "crit") > 0,
         // Hunting Season: the volley is aimed, not sprayed — EVASION doesn't save you.
         alwaysHit: num(params, "alwaysHit") > 0,
+        // Incinerate (Sol) rides the Special too, not just basics. Seeded with
+        // hits already landed on this target this round, same as basicAttack —
+        // the ramp is "consecutive hits on the same target within a round",
+        // and it shouldn't reset just because the hits came from a Special.
+        incinerate: getDef(attacker.defId).incinerate,
+        incinerateBase: attacker.struckThisRound[target.instanceId] ?? 0,
       });
       maybeStatus(draft, attacker, target, params);
       // Bat Swarm: the volley feeds. DRAIN the keyword only rides basics, so a
