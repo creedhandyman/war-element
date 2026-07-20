@@ -240,7 +240,7 @@ export function describePassives(def: CardDef): string[] {
     passives.push(`Obsidian Claws: SP becomes ${def.spWhileStealthed} while STEALTHed (underground).`);
   if (def.critStatus)
     passives.push(
-      `Every hit it lands applies ${def.critStatus.kind} for ${def.critStatus.duration} round${def.critStatus.duration > 1 ? "s" : ""}.`,
+      `Aura — while it's on the board, every hit YOUR SIDE lands applies ${def.critStatus.kind} for ${rounds(def.critStatus.duration)}.`,
     );
   if (def.evasionEnemySideOnly)
     passives.push("Shadow Haunter: its EVASION is live only while it stands on the opponent's battlefield.");

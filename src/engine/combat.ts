@@ -368,15 +368,26 @@ export function resolveHit(
       target.statuses = target.statuses.filter((s) => s.kind !== "SLEEP");
       draft.log.push(`${label(draft, target)} is jolted awake!`);
     }
-    // Fallow's trapper aura: its hits pin. Gated on HOLDING the CRIT keyword,
-    // not on a crit LANDING — the crit roll needs an unshielded target and then
+    // Trapper aura (Fallow): a real AURA — EVERY ally's hits pin, not just the
+    // holder's own, so it is sourced from the board rather than from aDef.
+    //
+    // Not gated on a crit LANDING: that roll needs an unshielded target and then
     // a coin flip, which measured 0% against anything with a shield and 51%
-    // otherwise. Tied to that, the aura almost never fired, and Trapper (which
-    // eats ROOTed enemies) starved with it. An Aura should be constant.
-    // Once per volley: a multi-hit still applies one ROOT.
-    if (aDef.critStatus && aDef.keywords.CRIT && target.curHp > 0) {
-      const cs = aDef.critStatus;
-      applyStatus(draft, target, cs.kind, cs.duration, cs.power, aDef.element);
+    // otherwise, and Trapper (which eats ROOTed enemies) starved with it.
+    //
+    // `kind !== "reflect"` keeps it to real attacks. Trapper's own end-of-round
+    // tick resolves as reflect, so without this the aura would re-pin everything
+    // Trapper just hit, every round, forever.
+    if (opts.kind !== "reflect" && target.curHp > 0) {
+      const pinner = boardCards(draft, attacker.owner).find((c) => {
+        const d = getDef(c.defId);
+        return c.curHp > 0 && d.critStatus && d.keywords.CRIT;
+      });
+      if (pinner) {
+        const pd = getDef(pinner.defId);
+        const cs = pd.critStatus!;
+        applyStatus(draft, target, cs.kind, cs.duration, cs.power, pd.element);
+      }
     }
   }
 

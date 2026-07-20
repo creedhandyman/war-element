@@ -557,6 +557,54 @@ describe("medium-tier passives (audit batch)", () => {
     expect(hasEvasion(s.cards[plain.instanceId])).toBe(true);
   });
 
+  it("Fallow's aura pins for the WHOLE side, not just its own hits", () => {
+    const s = prepState();
+    place(s, "leaf_fallow", "P1", 3, 0); // just standing there
+    const leafAlly = place(s, "leaf_alpha", "P1", 2, 0);
+    const otherAlly = place(s, "pyro_firebird", "P1", 2, 1); // not even LEAF
+    const a = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    const b = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    basicAttack(s, leafAlly.instanceId, a.instanceId);
+    basicAttack(s, otherAlly.instanceId, b.instanceId);
+    expect(statusOf(s.cards[a.instanceId], "ROOT")?.duration).toBe(2);
+    expect(statusOf(s.cards[b.instanceId], "ROOT")?.duration).toBe(2); // any ally, any element
+  });
+
+  it("a ROOT Fallow applies survives to feed Trapper — the engine connects", () => {
+    // The whole point of the pair, and it was broken: Cleanup ticks statuses at
+    // step 3 but runs Trapper at 4b, so the old 1-round ROOT expired first and
+    // Trapper measured 0 damage. Duration 2 is what closes the loop.
+    const s = prepState();
+    const fallow = place(s, "leaf_fallow", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    basicAttack(s, fallow.instanceId, foe.instanceId);
+    const afterHit = s.cards[foe.instanceId].curHp;
+    const next = advance(atCleanup(s));
+    expect(next.cards[foe.instanceId].curHp).toBe(afterHit - 2); // Trapper bit
+    expect(statusOf(next.cards[foe.instanceId], "ROOT")?.duration).toBe(1); // still pinned for its Prep
+  });
+
+  it("the pin aura dies with Fallow — no Fallow on board, no ROOT", () => {
+    const s = prepState();
+    const ally = place(s, "leaf_alpha", "P1", 2, 0); // Fallow deliberately absent
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    basicAttack(s, ally.instanceId, foe.instanceId);
+    expect(statusOf(s.cards[foe.instanceId], "ROOT")).toBeUndefined();
+  });
+
+  it("Trapper's own tick can't re-pin its victims into a permanent lock", () => {
+    const s = prepState();
+    place(s, "leaf_fallow", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    applyStatus(s, foe, "ROOT", 2, 0, "LEAF");
+    // Trapper's bite resolves as `reflect`, which the aura skips. Without that
+    // guard the bite would re-pin its own victim every round and ROOT would
+    // never expire — so after one Cleanup this must be 1, not back up to 2.
+    const next = advance(atCleanup(s));
+    expect(next.cards[foe.instanceId].curHp).toBe(58); // Trapper landed
+    expect(statusOf(next.cards[foe.instanceId], "ROOT")?.duration).toBe(1); // ticked down, not renewed
+  });
+
   it("Fallow pins what it hits even through shields, and Trapper bites at Cleanup", () => {
     const s = prepState();
     const fallow = place(s, "leaf_fallow", "P1", 2, 0);
@@ -569,7 +617,7 @@ describe("medium-tier passives (audit batch)", () => {
     const distant = place(s, "dusk_ghastly", "P2", 0, 3, { curHp: 20, maxHp: 20 });
     applyStatus(s, distant, "ROOT", 3, 0, "LEAF");
     basicAttack(s, fallow.instanceId, prey.instanceId);
-    expect(statusOf(s.cards[prey.instanceId], "ROOT")?.duration).toBe(1); // CRIT pinned it
+    expect(statusOf(s.cards[prey.instanceId], "ROOT")?.duration).toBe(2); // pinned
     const next = advance(atCleanup(s));
     expect(next.cards[distant.instanceId].curHp).toBe(18); // 2 from the traps
   });

@@ -3254,12 +3254,20 @@ export const CARDS: CardDef[] = [
     keywords: { CRIT: true },
     // Trapper (End of Round): the snares bite everything they're holding.
     roundTick: { rootedDmg: 2 },
-    // Aura: everything Fallow hits is pinned — and then walks straight into
-    // Trapper at end of round. The two passives are one engine, so this fires on
-    // any landed hit rather than on the crit ROLL: the roll needs an unshielded
-    // target plus a coin flip, which measured 0% against a shielded card and
-    // starved Trapper along with it.
-    critStatus: { kind: "ROOT", duration: 1, power: 0 },
+    // Aura, in the real sense: while Fallow is on the board, everything YOUR
+    // WHOLE SIDE hits is pinned — then walks into Trapper at end of round. The
+    // two passives are one engine, and the team-wide reach is what makes it an
+    // engine rather than a solo gimmick.
+    //
+    // Fires on any landed hit, not on the crit ROLL: that roll needs an
+    // unshielded target plus a coin flip, measured 0% against a shielded card,
+    // which starved Trapper along with it.
+    // duration 2, not 1, and it matters twice. Cleanup ticks statuses down at
+    // step 3 but runs Trapper at step 4b, so a 1-round ROOT is already gone when
+    // Trapper looks for it — measured: 0 damage. And ROOT blocks MOVEMENT, which
+    // happens in Prep, so a ROOT applied during Battle with duration 1 expires
+    // before the victim's next Prep and never stops a single move.
+    critStatus: { kind: "ROOT", duration: 2, power: 0 },
     special: {
       name: "Hunting Season",
       cost: 4,
@@ -3325,13 +3333,16 @@ export const CARDS: CardDef[] = [
       cost: 2,
       handler: "barrage",
       // One burst: snares the enemy and waters its own side.
+      // statusDuration 2, same reason as Fallow: a Special resolves in Battle,
+      // Prep already happened, and a 1-round ROOT expires at that same Cleanup —
+      // so it would never stop a single move. 2 costs the victim one Prep.
       params: {
         dmg: 3, hits: 2, targets: 8,
-        statusKind: "ROOT", statusDuration: 1,
+        statusKind: "ROOT", statusDuration: 2,
         healAlliesElement: "LEAF", healAllies: 4,
       },
       targetSide: "enemy",
-      text: "Deal 3×2 DMG and ROOT for 1 round, then heal LEAF allies 4 HP.",
+      text: "Deal 3×2 DMG and ROOT for 2 rounds, then heal LEAF allies 4 HP.",
     },
   },
   {
