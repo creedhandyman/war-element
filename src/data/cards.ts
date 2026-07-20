@@ -1645,10 +1645,12 @@ export const CARDS: CardDef[] = [
     cost: 7, // LEGENDARY
     dmg: 9,
     hits: 1,
-    hp: 22,
+    hp: 19,
     sp: 13,
     shields: 1,
-    keywords: {},
+    // EVASION paid for in HP: the stat formula doesn't price keywords, so the
+    // −3 is what keeps it honest rather than a free upgrade.
+    keywords: { EVASION: true },
     // Harsh Winds: +4 DMG on the first strike vs each opponent.
     firstStrikeBonus: 4,
     special: {
