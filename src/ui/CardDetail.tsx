@@ -197,7 +197,13 @@ export function describePassives(def: CardDef): string[] {
       );
     // Some roundTick fields (selfShields, rowAheadDmg, ward/cleanse…) get their
     // own dedicated line below — don't emit an empty "Each round: ." for those.
-    if (bits.length) passives.push(`Each round: ${bits.join(" · ")}.`);
+    // "Each round" would be a lie for a firstRoundOnly tick — it fires once.
+    if (bits.length)
+      passives.push(
+        t.firstRoundOnly
+          ? `Once, at the end of the round it lands: ${bits.join(" · ")}.`
+          : `Each round: ${bits.join(" · ")}.`,
+      );
   }
   if (def.aura) {
     const a = def.aura;

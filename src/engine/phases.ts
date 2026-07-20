@@ -856,6 +856,13 @@ function doRoundTicks(draft: GameState): void {
     if (card.curHp <= 0) continue;
     const rt = getDef(card.defId).roundTick;
     if (!rt) continue;
+    // firstRoundOnly: fires on the card's first Cleanup after landing, then
+    // never again. Can't lean on summonedThisRound — step 4 clears it just
+    // before this runs — so the spent state lives on the instance.
+    if (rt.firstRoundOnly) {
+      if (card.roundTickFired) continue;
+      card.roundTickFired = true;
+    }
     const el = getDef(card.defId).element;
     const enemies = () => boardCards(draft, enemyOf(card.owner)).filter((c) => c.curHp > 0);
     const allies = () => boardCards(draft, card.owner).filter((c) => c.curHp > 0);

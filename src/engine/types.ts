@@ -155,6 +155,11 @@ export interface VsStatusDef {
 
 /** A periodic self-driven effect resolved in Cleanup (end of round). */
 export interface RoundTickDef {
+  /** Fire this tick ONCE — on the card's first end-of-round after it lands —
+   *  instead of every round (Star's Raising Star). Gating on match round 1
+   *  would be dead weight: the summon pool starts at 0, so nothing costing more
+   *  than nothing is even on the board that round. */
+  firstRoundOnly?: boolean;
   rootedDmg?: number; // Trapper (Fallow): damage every ROOTed enemy, range-free
   /** Morning Dew (Sprinu): heal every ally of this element at end of round. */
   roundHealElement?: { element: Element; amount: number };
@@ -465,6 +470,8 @@ export interface CardInstance {
   loadedOnHit?: { kind: StatusKind; duration: number; power: number; attacks: number };
   /** One-shot guard for a `oneUse` onAllyKilled (Shine's Brightling Ball). */
   allyKilledFired: boolean;
+  /** One-shot guard for a `firstRoundOnly` roundTick (Star's Raising Star). */
+  roundTickFired?: boolean;
   /** Set once this card has been shielded by a Pride Guardian, so the guard
    *  spends itself once per ALLY rather than once per hit. */
   guardedByPride?: boolean;

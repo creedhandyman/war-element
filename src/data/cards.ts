@@ -1211,9 +1211,12 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 2,
     keywords: { FLYING: true },
-    // Raising Star (End of Round): BLIND all opponents. (Doc also heals allies
-    // +1 on basic attacks — the attack-heal half isn't modeled yet.)
-    roundTick: { aoeStatus: { kind: "BLIND", duration: 1, power: 0 } },
+    // Raising Star: BLINDs the enemy board ONCE, at the end of the round it
+    // lands, for one round. It used to fire every round forever, which — next to
+    // Speed Flash and Shine — meant DAWN could hold the whole opposing board at
+    // half accuracy indefinitely. (Doc also heals allies +1 on basic attacks;
+    // that half isn't modeled yet.)
+    roundTick: { firstRoundOnly: true, aoeStatus: { kind: "BLIND", duration: 1, power: 0 } },
     special: {
       name: "Star Shower",
       cost: 2,

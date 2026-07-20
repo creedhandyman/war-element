@@ -92,6 +92,21 @@ describe("added cards: every ability fires", () => {
     for (const r of risen) expect(r.owner).toBe("P1");
   });
 
+  it("Star's Raising Star blinds the board once, not every round", () => {
+    const s = prepState();
+    place(s, "dawn_star", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 0, 0, { curHp: 40, maxHp: 40 });
+    // First Cleanup: it fires.
+    let g = advance(atCleanup(s));
+    expect(statusOf(g.cards[foe.instanceId], "BLIND")?.duration).toBe(1);
+    // Second: BLIND ticks off and is NOT reapplied. Before firstRoundOnly this
+    // renewed every round, so the enemy board never saw a clear turn.
+    g = advance(atCleanup(g));
+    expect(statusOf(g.cards[foe.instanceId], "BLIND")).toBeUndefined();
+    g = advance(atCleanup(g));
+    expect(statusOf(g.cards[foe.instanceId], "BLIND")).toBeUndefined();
+  });
+
   it("Tumbleweed's EVASION is real — a volley into it whiffs some hits", () => {
     const s = prepState();
     const weed = place(s, "gale_tumbleweed", "P1", 2, 0, { curHp: 99, maxHp: 99, curShields: 0 });
