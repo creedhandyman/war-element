@@ -56,8 +56,11 @@ describe("per-card auras", () => {
     place(s, "leaf_trinezer", "P1", 3, 0);
     const rep = place(s, "leaf_reptilian_tok", "P1", 3, 1); // Reptile
     const nonRep = place(s, "leaf_alpha", "P1", 3, 2); // not Reptile
-    expect(effectiveDmg(s, rep)).toBe(3 + 1); // token base 3 + aura
-    expect(effectiveSp(s, rep)).toBe(3 + 1);
+    // Read the base off the def — hardcoding it meant a stat tweak to Reptilian
+    // failed this test, which is about the AURA, not about Reptilian's numbers.
+    const base = getDef("leaf_reptilian_tok");
+    expect(effectiveDmg(s, rep)).toBe(base.dmg + 1);
+    expect(effectiveSp(s, rep)).toBe(base.sp + 1);
     expect(effectiveDmg(s, nonRep)).toBe(getDef("leaf_alpha").dmg); // untouched
     expect(effectiveSp(s, nonRep)).toBe(getDef("leaf_alpha").sp);
   });

@@ -3694,7 +3694,7 @@ export const CARDS: CardDef[] = [
     dmg: 3,
     hits: 1,
     hp: 3,
-    sp: 3,
+    sp: 6,
     shields: 0,
     keywords: {},
     tribe: "Reptile",
