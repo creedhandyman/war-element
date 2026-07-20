@@ -3,7 +3,7 @@
 // abilities in cards.ts.
 
 import { describe, expect, it } from "vitest";
-import { applyStatus, basicAttack, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS } from "../combat";
+import { applyStatus, basicAttack, drainMaxHp, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS } from "../combat";
 import { applyFlow } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
@@ -194,6 +194,34 @@ describe("medium-tier passives (audit batch)", () => {
     }
     expect(ticks).toBe(4); // 3 full rounds skipped, plus the cast round's tick
     expect(g.players.P1.magicPool).toBeGreaterThanOrEqual(3); // affordable again too
+  });
+
+  it("Scarlett's Bat Swarm drains max HP from every opponent it hits", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 2;
+    const scarlett = place(s, "dusk_scarlett", "P1", 2, 0);
+    const a = place(s, "leaf_greegon", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 0 });
+    const b = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    const before = s.cards[scarlett.instanceId].maxHp;
+    const next = applyIntent(battleFor(s, scarlett.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "special",
+      targetId: a.instanceId,
+    });
+    for (const t of [a, b]) expect(next.cards[t.instanceId].maxHp).toBe(19); // 1 stolen each
+    expect(next.cards[scarlett.instanceId].maxHp).toBe(before + 2); // and banked
+  });
+
+  it("draining never takes an opponent's last point of max HP", () => {
+    const s = prepState();
+    const scarlett = place(s, "dusk_scarlett", "P1", 2, 0);
+    // maxHp 1 already — there is nothing left to take without hitting zero.
+    const husk = place(s, "leaf_greegon", "P2", 1, 0, { curHp: 1, maxHp: 1, curShields: 0 });
+    const before = s.cards[scarlett.instanceId].maxHp;
+    expect(drainMaxHp(s, s.cards[scarlett.instanceId], s.cards[husk.instanceId], 1)).toBe(0);
+    expect(s.cards[husk.instanceId].maxHp).toBe(1);
+    expect(s.cards[scarlett.instanceId].maxHp).toBe(before); // nothing banked either
   });
 
   it("Heir's King Me cheapens its OWN Crowned, stacking per kill", () => {

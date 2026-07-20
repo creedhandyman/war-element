@@ -2867,9 +2867,11 @@ export const CARDS: CardDef[] = [
       cost: 2,
       handler: "barrage",
       // (Doc's 75% per-target hit chance isn't modeled — it lands on all.)
-      params: { dmg: 2, targets: 99 },
+      // drain: 1 per target, matching the DRAIN keyword's rate. The keyword only
+      // rides basic attacks, so the Special has to ask for it explicitly.
+      params: { dmg: 2, targets: 99, drain: 1 },
       targetSide: "enemy",
-      text: "Deal 2 DMG to all opponents.",
+      text: "Deal 2 DMG to all opponents and DRAIN 1 max HP from each.",
     },
   },
 

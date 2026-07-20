@@ -397,14 +397,7 @@ export function resolveHit(
       const healed = healCard(draft, attacker, result.totalToHp); // SEAL blocks it
       if (healed > 0) draft.log.push(`${aDef.name} lifesteals ${healed} HP.`);
     }
-    if (aDef.keywords.DRAIN) {
-      if (target.maxHp > 1) {
-        target.maxHp -= 1;
-        target.curHp = Math.min(target.curHp, target.maxHp);
-        attacker.maxHp += 1;
-        draft.log.push(`${aDef.name} drains 1 max HP from ${tDef.name}.`);
-      }
-    }
+    if (aDef.keywords.DRAIN) drainMaxHp(draft, attacker, target, 1);
   }
 
   if (target.curHp <= 0) {
@@ -884,6 +877,24 @@ export function directDamage(
   return r.targetDied;
 }
 
+/** DUSK lifesteal: move `amount` MAX HP from target to attacker. Never takes the
+ *  last point — a card drained to 0 max HP would be unkillable-by-drain nonsense.
+ *  Shared by the DRAIN keyword (basics) and drain-riding Specials (Bat Swarm). */
+export function drainMaxHp(
+  draft: GameState,
+  attacker: CardInstance,
+  target: CardInstance,
+  amount: number,
+): number {
+  const taken = Math.max(0, Math.min(amount, target.maxHp - 1));
+  if (taken <= 0) return 0;
+  target.maxHp -= taken;
+  target.curHp = Math.min(target.curHp, target.maxHp);
+  attacker.maxHp += taken;
+  draft.log.push(`${label(draft, attacker)} drains ${taken} max HP from ${label(draft, target)}.`);
+  return taken;
+}
+
 /** End-of-round tick damage (Black Smoke, Radiation, Complete Circuit, Trapper).
  *  Same as directDamage, but a kill fires the ticking card's onKill. The main
  *  death path gates onKill to basic/special kills, which would leave a 0-DMG
@@ -1236,6 +1247,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         alwaysHit: num(params, "alwaysHit") > 0,
       });
       maybeStatus(draft, attacker, target, params);
+      // Bat Swarm: the volley feeds. DRAIN the keyword only rides basics, so a
+      // Special that should drain has to ask for it.
+      if (num(params, "drain") > 0 && draft.cards[target.instanceId] && target.curHp > 0)
+        drainMaxHp(draft, attacker, target, num(params, "drain"));
       applyDebuffRiders(draft, target, params); // −SP (Angale, sinkhole)
       // A SECOND status alongside the primary (sinkhole = DOT + BLIND).
       const db = params.debuffStatus;
