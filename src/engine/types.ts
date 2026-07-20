@@ -549,7 +549,7 @@ export interface HandCard {
 // the CAST_SPELL intent's `mode` picks which.
 // "field" = a Cost-6 board-wide terrain buff (the mirror of a Wall): no target,
 // empowers the caster's SAME-element allies for a few rounds. See FieldState.
-export type SpellKind = "damage" | "heal" | "wall" | "aoe" | "choice" | "field";
+export type SpellKind = "damage" | "heal" | "wall" | "aoe" | "choice" | "field" | "convert";
 
 /** A row-level "wall" laid down by a Cost-4 spell. Occupies no slot; triggers
  *  only when an ENEMY card MOVES into its row (ranged attacks pass through). */
@@ -611,6 +611,9 @@ export interface SpellDef {
   text: string;
   /** Field spells (kind "field"): the board-wide buff + how long it lasts. */
   field?: FieldBuff & { rounds: number };
+  /** Conversion spells (kind "convert"): the magic paid as `cost` comes back as
+   *  N summoning resource. No target — it just moves value between the pools. */
+  gainSummon?: number;
   // ── damage spells (need an enemy target) ──
   dmg?: number;
   pen?: boolean;

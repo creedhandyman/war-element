@@ -319,6 +319,17 @@ function resolveSpell(
     return;
   }
 
+  if (spell.kind === "convert" && spell.gainSummon) {
+    // The magic was already deducted by the CAST_SPELL intent; this is the
+    // other half of the trade. No carryover clamp — that only applies to what
+    // survives into the next round, so spending it this round is the point.
+    draft.players[player].summonPool += spell.gainSummon;
+    draft.log.push(
+      `${spell.name} converts ${spell.cost} magic into ${spell.gainSummon} summoning resource.`,
+    );
+    return;
+  }
+
   if (spell.kind === "aoe") {
     // Area damage/status: the whole board, one picked row, or the picked row +
     // the one behind it (targeting was validated by canCastSpell).

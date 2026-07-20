@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { directDamage, wallEvasion, wallFlatReduction } from "../combat";
 import { applyIntent, advance } from "../phases";
 import { canCastSpell } from "../rules";
-import { atCleanup, place, prepState, statusOf } from "./helpers";
+import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 
 /** Give P1 a single spell and enough magic to cast it. */
 function armSpell(s: ReturnType<typeof prepState>, defId: string, magic = 5) {
@@ -452,5 +452,46 @@ describe("cleanse + board wipes", () => {
     const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bore_tremor" });
     expect(next.cards[bare.instanceId].curHp).toBe(4); // 0 shields → 16
     expect(next.cards[shielded.instanceId].curHp).toBe(15); // 8 − 3 shields = 5 to HP (not doubled)
+  });
+});
+
+describe("Power Converter (pool conversion)", () => {
+  it("spends 6 magic and hands back 4 summoning resource", () => {
+    const s = prepState();
+    armSpell(s, "bolt_power_rebate", 6);
+    s.players.P1.summonPool = 2;
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bolt_power_rebate" });
+    expect(next.players.P1.magicPool).toBe(0);
+    expect(next.players.P1.summonPool).toBe(6); // 2 + 4
+    expect(next.players.P1.spellbook[0].used).toBe(true);
+  });
+
+  it("needs no target — it is legal with an empty board", () => {
+    const s = prepState();
+    armSpell(s, "bolt_power_rebate", 6);
+    expect(canCastSpell(s, "P1", "bolt_power_rebate", {}).ok).toBe(true);
+  });
+
+  it("is blocked one magic short", () => {
+    const s = prepState();
+    armSpell(s, "bolt_power_rebate", 5);
+    const chk = canCastSpell(s, "P1", "bolt_power_rebate", {});
+    expect(chk.ok).toBe(false);
+    expect(chk.reason).toBe("Not enough magic");
+  });
+
+  it("the converted resource is real — it pays for a summon you couldn't afford", () => {
+    // The whole point of the trade: banked magic becomes board presence now.
+    const s = prepState();
+    armSpell(s, "bolt_power_rebate", 6);
+    s.players.P1.summonPool = 1; // greegon costs 3 — short by 2
+    const handId = giveHand(s, "P1", "leaf_greegon");
+    expect(() =>
+      applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 }),
+    ).toThrow();
+    let next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bolt_power_rebate" });
+    next = applyIntent(next, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(next.players.P1.summonPool).toBe(2); // 1 + 4 − 3
+    expect(Object.values(next.cards).some((c) => c.defId === "leaf_greegon")).toBe(true);
   });
 });

@@ -461,6 +461,18 @@ export const SPELLS: SpellDef[] = [
     field: { rounds: 3, specialDiscount: 1, electrify: 1 }, // electrify:1 = the extra on top of the base +1
   },
   {
+    // The id matches its art file (public/spells/bolt_power_rebate.webp), which
+    // was drawn for the older "Power Rebate" design. The spell was rebuilt as a
+    // pool converter; the id is left alone so spellArtSrc() keeps resolving.
+    id: "bolt_power_rebate",
+    name: "Power Converter",
+    element: "BOLT",
+    cost: 6,
+    kind: "convert",
+    text: "Spend 6 magic to gain 4 summoning resource.",
+    gainSummon: 4,
+  },
+  {
     id: "bore_bedrock",
     name: "Bedrock",
     element: "BORE",

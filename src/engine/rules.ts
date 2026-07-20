@@ -534,6 +534,11 @@ export function canCastSpell(
       return { ok: false, reason: "You already have a Field active" };
     return { ok: true };
   }
+  if (spell.kind === "convert") {
+    // Pure pool conversion — no target, no board state to check. The magic
+    // check above is the only gate.
+    return { ok: true };
+  }
   if (spell.kind === "damage") {
     if (!opts.targetId) return { ok: false, reason: "Pick a target" };
     const target = state.cards[opts.targetId];

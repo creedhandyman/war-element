@@ -84,6 +84,10 @@ describe("card text covers every mechanic", () => {
       say(s.allyShield, "allyShield");
       say(s.allySp, "allySp");
       say(s.drainMaxHp, "drainMaxHp");
+      say(s.gainSummon, "gainSummon");
+      // A converter's text has to state BOTH sides of the trade, or the player
+      // can't tell what the exchange rate is.
+      if (s.kind === "convert") say(s.cost, "cost (magic spent)");
       say(s.wall?.dmg, "wall dmg");
       say(s.wall?.rounds, "wall rounds");
       say(s.field?.rounds, "field rounds");

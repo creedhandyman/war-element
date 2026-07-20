@@ -513,8 +513,14 @@ export function App() {
       setHint(`<b>${spell.name}</b> — choose how to cast.`);
       return;
     }
-    // Heal/support (auto-target an ally), board-wide AoE, and Fields resolve on the spot.
-    if (spell.kind === "heal" || spell.kind === "field" || (spell.kind === "aoe" && spell.area === "board")) {
+    // Heal/support (auto-target an ally), board-wide AoE, Fields, and pool
+    // conversions all resolve on the spot — nothing to pick.
+    if (
+      spell.kind === "heal" ||
+      spell.kind === "field" ||
+      spell.kind === "convert" ||
+      (spell.kind === "aoe" && spell.area === "board")
+    ) {
       const chk = canCastSpell(game, me, spellId, {});
       if (chk.ok) {
         castSpell({ type: "CAST_SPELL", player: me, spellId }, `Cast <b>${spell.name}</b>.`);
