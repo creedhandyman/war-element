@@ -26,6 +26,7 @@ import {
   summonCard,
 } from "./state";
 import {
+  basicIsInert,
   canCastSpell,
   canFireSpecial,
   effectiveSpecialCost,
@@ -714,9 +715,13 @@ function stepBattle(draft: GameState): boolean {
     return true;
   }
 
-  const canBasic = validTargets(draft, id).length > 0;
+  // An inert basic (0 DMG, no on-hit effect) doesn't count as an action — a
+  // turret like UFO would otherwise stop the round to ask where to aim an
+  // attack that cannot do anything.
+  const canBasic = !basicIsInert(draft, card) && validTargets(draft, id).length > 0;
   const canSpec = canFireSpecial(draft, id).ok;
-  if (!canBasic && !canSpec) {
+  const canTal = canFireTalent(draft, id).ok;
+  if (!canBasic && !canSpec && !canTal) {
     draft.log.push(`${label(draft, card)} has no valid action.`);
     battle.index++;
     return true;

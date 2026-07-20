@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS } from "../combat";
 import { applyFlow } from "../auras";
 import { advance, applyIntent } from "../phases";
-import { canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
+import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard } from "../state";
 import { CARDS, getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
@@ -115,6 +115,42 @@ describe("medium-tier passives (audit batch)", () => {
     const next = advance(atCleanup(s));
     expect(next.cards[sq.instanceId].curShields).toBe(2); // one hit, one shield
     expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
+  });
+
+  it("UFO's inert basic is skipped, but Smog's still attacks (PYRO burns on hit)", () => {
+    const s = prepState();
+    // Home row on purpose: King of the Hill grants +1 DMG in a MID row, so a
+    // mid-board UFO really does deal 1 and is correctly NOT inert there. The
+    // check reads effective damage, not the printed number, so the skip is
+    // positional — it only fires when the card genuinely cannot do anything.
+    const ufo = place(s, "bore_ufo", "P1", 3, 0);
+    const smog = place(s, "pyro_smog_card", "P1", 3, 1);
+    place(s, "dusk_gool", "P2", 2, 0); // a reachable target for both
+    expect(basicIsInert(s, s.cards[ufo.instanceId])).toBe(true);
+    expect(basicIsInert(s, place(s, "bore_ufo", "P1", 2, 2))).toBe(false); // mid row: 1 DMG
+    // Smog is PYRO, so Scorch burns whatever it touches — worth a turn.
+    expect(basicIsInert(s, s.cards[smog.instanceId])).toBe(false);
+    // Exactly one card in the whole set is inert — the predicate is not
+    // quietly silencing anything else.
+    const inert = CARDS.filter((d) => {
+      const c = place(s, d.id, "P2", 0, 3);
+      const r = basicIsInert(s, c);
+      delete s.cards[c.instanceId];
+      return r;
+    }).map((d) => d.id);
+    expect(inert).toEqual(["bore_ufo"]);
+  });
+
+  it("a card with only an inert basic takes no turn at all", () => {
+    const s = prepState();
+    const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump
+    place(s, "dusk_gool", "P2", 2, 0);
+    s.phase = "battle";
+    s.battle = { queue: [ufo.instanceId], index: 0, awaitingInput: null };
+    const next = advance(s);
+    // It never awaits input — the queue steps straight past it.
+    expect(next.battle?.awaitingInput ?? null).toBeNull();
+    expect(next.log.some((l) => /UFO.*no valid action/.test(l))).toBe(true);
   });
 
   it("Smog gains speed from its Black Smoke kills, which nothing else could grant it", () => {

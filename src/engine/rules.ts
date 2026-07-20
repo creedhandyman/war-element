@@ -6,6 +6,7 @@ import {
   boardCards,
   cardAt,
   chebyshev,
+  effectiveDmg,
   effectiveMaxHp,
   effectiveSp,
   fieldBonus,
@@ -298,6 +299,27 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   const belowHp = Number(special.params?.requireBelowHp ?? 0);
   if (belowHp > 0) list = list.filter((t) => t.curHp < belowHp);
   return list;
+}
+
+/** Would this card's basic attack accomplish literally nothing? True only for a
+ *  0-DMG card that also carries no on-hit effect of any kind. Such a card is
+ *  skipped rather than prompted, so a pure turret (UFO) does not stop the game
+ *  each round to ask where to aim an attack that cannot do anything.
+ *
+ *  Deliberately conservative — anything that makes contact matter keeps the
+ *  attack. PYRO always burns on hit (Scorch), which is why Smog still attacks;
+ *  BOLT's Electrify turns 0 DMG into 1 against a statused target. The one thing
+ *  knowingly given up is stripping a shield with a 0-damage hit, which is a side
+ *  effect of the damage gate rather than a designed ability. */
+export function basicIsInert(state: GameState, card: CardInstance): boolean {
+  const def = getDef(card.defId);
+  if (effectiveDmg(state, card) > 0) return false;
+  if (def.element === "PYRO" || def.element === "BOLT") return false; // element on-hit auras
+  if (def.onHitStatus || def.vsStatus || def.onHitZap || def.onHitSelfBuff) return false;
+  if (def.onHitAllyBuff || def.healPerHit || def.healPerCrit || def.critStatus) return false;
+  if (def.basicHealsAllies || def.onKill || def.basicBonus || def.firstStrikeBonus) return false;
+  if (def.keywords.LIFESTEAL || def.keywords.DRAIN || def.keywords.CRIT) return false;
+  return true;
 }
 
 /** Legal targets for a TALENT that hits something. Talents carry no targetSide
