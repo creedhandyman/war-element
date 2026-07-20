@@ -453,8 +453,10 @@ export function App() {
   const targetsAreEnemies = useMemo(() => {
     if (legalTargetIds.length === 0) return false;
     if (sel?.kind === "spell") { const k = getSpell(sel.spellId).kind; return k === "damage" || k === "choice"; }
-    if (pending === "special" && awaitingId)
-      return getDef(game.cards[awaitingId].defId).special?.targetSide !== "ally";
+    if (pending === "special" && awaitingId) {
+      const side = getDef(game.cards[awaitingId].defId).special?.targetSide;
+      return side !== "ally" && side !== "self"; // self-buffs aren't hostile targets
+    }
     return true; // basic attack
   }, [legalTargetIds, sel, pending, awaitingId, game]);
 

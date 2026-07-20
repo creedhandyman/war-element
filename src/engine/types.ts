@@ -76,7 +76,11 @@ export interface SpecialDef {
   cost: number; // paid from the MAGIC pool in Battle Phase
   handler: string; // key into the handler registry in combat.ts
   params?: Record<string, number | string>;
-  targetSide: "enemy" | "ally";
+  /** "self" = the caster is the only target. Use it for Specials whose handler
+   *  ignores `targets` entirely (empower, spawn, burrow); marking those "ally"
+   *  makes the UI demand a pick from every ally on the board for an effect that
+   *  never touches them. */
+  targetSide: "enemy" | "ally" | "self";
   /** This special reaches like a Ranged attack (any slot) even on a Melee
    *  card — for "hit anywhere on the board" specials. */
   ranged?: boolean;

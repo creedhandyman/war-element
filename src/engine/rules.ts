@@ -285,6 +285,9 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   const card = state.cards[instanceId];
   const special = card && getDef(card.defId).special;
   if (!card || !special) return [];
+  // Self-targeting: the caster is the whole target list, so the UI has exactly
+  // one "choice" and fires straight through instead of prompting.
+  if (special.targetSide === "self") return [card];
   if (special.targetSide === "ally") return validAllyTargets(state, instanceId);
   const fd = Number(special.params?.forwardDepth ?? 0);
   let list =

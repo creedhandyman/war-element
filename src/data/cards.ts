@@ -2032,7 +2032,7 @@ export const CARDS: CardDef[] = [
       cooldown: 3, // spawns a 10/10 Heir — 3-round lockout between casts
       handler: "spawn",
       params: { token: "dawn_heir_tok", count: 1 },
-      targetSide: "ally", // no enemy target needed; always castable
+      targetSide: "self",
       text: "Spawn Heir (10/10/2🛡/SP10) in an open slot. Crowned: cleanses allies each round. 3-round cooldown.",
     },
   },
@@ -3285,7 +3285,7 @@ export const CARDS: CardDef[] = [
       handler: "empower",
       // buffRounds makes it temporary — +3 DMG that expires, not a permanent ramp.
       params: { selfDmg: 3, buffRounds: 3 },
-      targetSide: "ally", // self-buff; always castable (same as Heir's Crowned)
+      targetSide: "self",
       text: "Gain +3 DMG for 3 rounds.",
     },
   },
@@ -3350,7 +3350,7 @@ export const CARDS: CardDef[] = [
       cost: 3,
       handler: "spawn",
       params: { token: "dusk_specter_tok", count: 3 },
-      targetSide: "ally", // self-targeting; always castable
+      targetSide: "self",
       text: "Spawn 3 Specters (3 DMG / 1 HP / SP 7).",
     },
   },
@@ -3553,7 +3553,7 @@ export const CARDS: CardDef[] = [
       // Two-stage: STEALTH now (up to 2 rounds), and the 6×2 comes up out of the
       // ground on the next basic attack — which is also what breaks cover.
       params: { dmg: 6, hits: 2, stealthRounds: 2 },
-      targetSide: "ally", // self-targeting; always castable
+      targetSide: "self",
       text: "Gain STEALTH for up to 2 rounds. Your next attack erupts for 6×2 DMG.",
     },
   },
@@ -3695,7 +3695,7 @@ export const CARDS: CardDef[] = [
       cost: 3,
       handler: "empower",
       params: { selfDmg: 5, selfMaxHp: 5, selfSp: 5 },
-      targetSide: "ally", // self-buff; always castable
+      targetSide: "self",
       text: "Gain +5 DMG, +5 HP, +5 SP permanently.",
     },
   },
