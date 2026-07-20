@@ -52,7 +52,7 @@ function describeOnSummon(os: {
   const n = (k: string) => Number(p[k] ?? 0);
   // A pure self-status on-summon (IcyNinza's Icy Mist — no target handler).
   if (!os.handler && os.selfStatus) {
-    const dur = os.selfStatusDuration ? ` for ${os.selfStatusDuration} round(s)` : "";
+    const dur = os.selfStatusDuration ? ` for ${rounds(os.selfStatusDuration)}` : "";
     const ext = os.extendSelfStatusOnKill ? ` (+${os.extendSelfStatusOnKill} round per kill while cloaked)` : "";
     return `On summon: gain ${os.selfStatus}${dur}${ext}.`;
   }
@@ -69,9 +69,9 @@ function describeOnSummon(os: {
   const statusParts = () => {
     const parts: string[] = [];
     if (p.statusKind)
-      parts.push(`${p.statusKind}${n("statusPower") ? ` ${n("statusPower")}` : ""}${p.statusDuration ? ` for ${n("statusDuration")} round(s)` : ""}`);
+      parts.push(`${p.statusKind}${n("statusPower") ? ` ${n("statusPower")}` : ""}${p.statusDuration ? ` for ${rounds(n("statusDuration"))}` : ""}`);
     if (p.debuffStatus)
-      parts.push(`${p.debuffStatus}${p.debuffStatusRounds ? ` for ${n("debuffStatusRounds")} round(s)` : ""}`);
+      parts.push(`${p.debuffStatus}${p.debuffStatusRounds ? ` for ${rounds(n("debuffStatusRounds"))}` : ""}`);
     return parts;
   };
   switch (os.handler) {
@@ -90,7 +90,7 @@ function describeOnSummon(os: {
       return `On summon: deal ${dmgStr} DMG to ${scope()}${st.length ? ` and apply ${st.join(" + ")}` : ""}${sap}${push}${crit}.`;
     }
     case "statusNova":
-      return `On summon: apply ${p.statusKind}${p.statusDuration ? ` for ${n("statusDuration")} round(s)` : ""} to ${scope()}.`;
+      return `On summon: apply ${p.statusKind}${p.statusDuration ? ` for ${rounds(n("statusDuration"))}` : ""} to ${scope()}.`;
     case "grantShield":
       return `On summon: give ${scope()} +${n("amount")} shield.`;
     case "buffSp":
@@ -101,6 +101,10 @@ function describeOnSummon(os: {
       return "Fires an effect the moment it's summoned.";
   }
 }
+
+/** "1 round" / "2 rounds". The card face used to print a literal "round(s)" in
+ *  eight places, which read like unfinished copy. */
+const rounds = (n: number) => `${n} round${n === 1 ? "" : "s"}`;
 
 /** Passive one-liners derived purely from a card definition (no live state).
  *  The element aura (shared by every card of this element) leads the list.
@@ -120,7 +124,7 @@ export function describePassives(def: CardDef): string[] {
     const h = def.onHitStatus;
     const gate = h.chance != null ? `${h.chance}% chance to ` : h.firstHitOnly ? "first hit: " : h.onSecondHit ? "2nd hit: " : "";
     passives.push(
-      `Basic hits ${gate}apply ${h.kind}${h.power ? ` (${h.power})` : ""} for ${h.duration} round(s).`,
+      `Basic hits ${gate}apply ${h.kind}${h.power ? ` (${h.power})` : ""} for ${rounds(h.duration)}.`,
     );
   }
   if (def.vsStatus) {
@@ -164,18 +168,33 @@ export function describePassives(def: CardDef): string[] {
   }
   if (def.roundTick) {
     const t = def.roundTick;
+    // Each bit says the AMOUNT and WHO it hits. The old wording ("SCALD frozen
+    // enemies", "strike the closest enemy", "+1 DMG every 3 rounds") named the
+    // effect but not its size, whether it stacked, or how long it lasted — you
+    // had to read the source to find out what the card actually did.
+    const forR = (n: number) => `${n} round${n > 1 ? "s" : ""}`;
     const bits = [
-      t.aoeDmg && `${t.aoeDmg} DMG to all enemies`,
-      t.aoeStatus && `${t.aoeStatus.kind} all enemies`,
-      t.scaldFrozen && `SCALD frozen enemies`,
-      t.lowestEnemyStatus && `${t.lowestEnemyStatus.kind} the lowest-HP enemy`,
-      t.paralyzeOne && `PARALYZE an enemy`,
-      (t.pokeDmg || t.pokeStatus) && `strike the closest enemy`,
-      t.healAllies && `heal all allies ${t.healAllies}`,
-      t.healLowestAlly && `heal the weakest ally ${t.healLowestAlly}`,
-      t.buffDmgEveryN && `+${t.buffDmgEveryN.amount} DMG every ${t.buffDmgEveryN.n} rounds`,
+      t.aoeDmg && `${t.aoeDmg} DMG to every opponent`,
+      t.aoeStatus && `${t.aoeStatus.kind} every opponent for ${forR(t.aoeStatus.duration)}`,
+      t.scaldFrozen && `SCALD ${t.scaldFrozen} on every FROZEN opponent`,
+      t.lowestEnemyStatus &&
+        `${t.lowestEnemyStatus.kind} the weakest opponent for ${forR(t.lowestEnemyStatus.duration)}`,
+      t.paralyzeOne && `PARALYZE one opponent for ${forR(t.paralyzeOne)}`,
+      t.pokeDmg && `${t.pokeDmg} DMG to the closest opponent`,
+      t.pokeStatus && `${t.pokeStatus.kind} the closest opponent for ${forR(t.pokeStatus.duration)}`,
+      t.pushEnemies && `push every opponent back ${t.pushEnemies} slot${t.pushEnemies > 1 ? "s" : ""}`,
+      t.healAllies && `heal every ally ${t.healAllies} HP`,
+      t.healLowestAlly && `heal the most wounded ally ${t.healLowestAlly} HP`,
+      t.roundHealElement &&
+        `heal every ${t.roundHealElement.element} ally ${t.roundHealElement.amount} HP`,
       t.spawn && `spawn ${t.spawn.count} ${getDef(t.spawn.token).name} token${t.spawn.count > 1 ? "s" : ""}`,
     ].filter(Boolean);
+    // Not an every-round effect, so it gets its own line — "Each round: every 3
+    // rounds…" reads as a contradiction.
+    if (t.buffDmgEveryN)
+      passives.push(
+        `Every ${t.buffDmgEveryN.n} rounds: permanently gains +${t.buffDmgEveryN.amount} DMG${t.buffDmgEveryN.sp ? ` and +${t.buffDmgEveryN.sp} SP` : ""} (stacking).`,
+      );
     // Some roundTick fields (selfShields, rowAheadDmg, ward/cleanse…) get their
     // own dedicated line below — don't emit an empty "Each round: ." for those.
     if (bits.length) passives.push(`Each round: ${bits.join(" · ")}.`);
@@ -198,7 +217,7 @@ export function describePassives(def: CardDef): string[] {
     passives.push(`Talent (free · once per game) — ${def.talent.name}: ${def.talent.text}`);
   if (def.onRevive)
     passives.push(
-      `Revives once when defeated at ${def.onRevive.heal} HP${def.onRevive.sleep ? `, then sleeps ${def.onRevive.sleep} round(s)` : ""}.`,
+      `Revives once when defeated at ${def.onRevive.heal} HP${def.onRevive.sleep ? `, then sleeps ${rounds(def.onRevive.sleep)}` : ""}.`,
     );
   if (def.onLowHp) {
     const l = def.onLowHp;
@@ -311,7 +330,7 @@ export function describePassives(def: CardDef): string[] {
       if (sb.dmg) gains.push(`+${sb.dmg} DMG`);
       if (sb.sp) gains.push(`+${sb.sp} SP`);
       if (sb.status)
-        breakClause = `; when it breaks, ${sb.status.kind}s the attacker${sb.status.duration ? ` for ${sb.status.duration} round(s)` : ""}`;
+        breakClause = `; when it breaks, ${sb.status.kind}s the attacker${sb.status.duration ? ` for ${rounds(sb.status.duration)}` : ""}`;
       else if (gains.length) breakClause = `; when it breaks, gains ${gains.join(" / ")}`;
     }
     passives.push(`On summon, raises a ${def.summonSelfShields}-shield barrier${breakClause}.`);
@@ -336,6 +355,38 @@ export function describePassives(def: CardDef): string[] {
     passives.push("Can target the enemy Home row from anywhere.");
   if (def.special?.ranged)
     passives.push("Its Special reaches any slot on the board.");
+
+  // ── Previously undescribed passives ────────────────────────────────────────
+  // These all had real mechanical effects but no card text, so the only way to
+  // learn what a card did was to read the source. Wording matches the ACTUAL
+  // behaviour, which in a few cases differs from the type comments: aoeDmg,
+  // aoeStatus and pushEnemies hit the whole enemy board, not just what's in
+  // range.
+  if (def.summonSpawn) {
+    const { token, count, adjacentOnly } = def.summonSpawn;
+    const tokName = (() => { try { return getDef(token).name; } catch { return "token"; } })();
+    passives.push(
+      `On summon: brings ${count} ${tokName}${count > 1 ? "s" : ""} onto the board${adjacentOnly ? ", right beside it" : ""}.`,
+    );
+  }
+  if (def.alwaysHit)
+    passives.push("Hot Shot: its attacks never miss — ignores its own BLIND and the target's EVASION.");
+  if (def.basicHealsAllies)
+    passives.push("Its basic attack can be aimed at a wounded ally to heal them for its DMG instead of striking.");
+  if (def.healPerHit)
+    passives.push(`Liquification: heals ${def.healPerHit} HP for every basic hit it lands.`);
+  if (def.onAllyHitShield)
+    passives.push(`Pride Guardian: the first time each ally is hit, gives that ally +${def.onAllyHitShield} shield.`);
+  if (def.summonScaleFromEnemy) {
+    const sc = def.summonScaleFromEnemy;
+    const gains = [sc.dmg && `+${sc.dmg} DMG`, sc.maxHp && `+${sc.maxHp} max HP`].filter(Boolean).join(" and ");
+    passives.push(`Brightest Warrior: on summon, gains ${gains} for every ${sc.per} max HP the toughest opponent has.`);
+  }
+  if (def.weakBelowHp)
+    passives.push(
+      `Below ${def.weakBelowHp.hp} HP its basic attacks are weakened${def.weakBelowHp.dmgMult === 0.5 ? " to half damage" : ` (×${def.weakBelowHp.dmgMult} DMG)`}.`,
+    );
+
   return passives;
 }
 
@@ -489,7 +540,7 @@ export function CardDetail(props: {
               <div className="cd-flag">
                 {summonLock
                   ? "Can't fire the round it's summoned."
-                  : `Recharging — ready in ${card.specialCooldown} round(s).`}
+                  : `Recharging — ready in ${rounds(card.specialCooldown)}.`}
               </div>
             )}
           </div>
