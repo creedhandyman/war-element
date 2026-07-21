@@ -1,4 +1,5 @@
 import type { CardInstance, GameState, PlayerId } from "../engine";
+import { enemyOf, homeRow } from "../engine";
 import { Token } from "./Token";
 
 export function Slot(props: {
@@ -24,7 +25,18 @@ export function Slot(props: {
   onDrop: (row: number, col: number) => void;
   onCycleAuto: (instanceId: string) => void;
 }) {
-  const rowClass = ["row-opp", "row-mid", "row-mid", "row-your"][props.row];
+  // Derived from the board size, not a fixed 4-entry table. That table tinted
+  // row 3 as "yours" and had no entry at all for row 4, so on a 5×5 the home
+  // colour sat one row forward of the real home row and the back row was blank.
+  // Viewer-relative: the row you summon into is always "yours", whichever side
+  // you're playing.
+  const { boardSize } = props.game;
+  const rowClass =
+    props.row === homeRow(props.viewer, boardSize)
+      ? "row-your"
+      : props.row === homeRow(enemyOf(props.viewer), boardSize)
+        ? "row-opp"
+        : "row-mid";
   const acting = props.card != null && props.actingId === props.card.instanceId;
   const cls = [
     "slot",

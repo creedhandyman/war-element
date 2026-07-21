@@ -12,14 +12,18 @@
   --gold-lit: #e8c877;
   --gold-hi: #ffe9b0;
   --gold-line: rgba(201, 162, 75, 0.4);
-  /* Blue is the secondary accent (MAGIC / "enemy"). */
+  /* Blue is the secondary accent (MAGIC). */
   --steel: #5b74d8;
   --steel-lit: #8fb7f0;
-  --opp-home: #5b9bd5;
-  --opp-home-glow: #8fc3ff;
+  /* Side colours are VIEWER-relative: the row you summon into is blue, the row
+     you are attacking is red, whichever side you are playing. The opponent red
+     is deliberately deeper and less orange than --threat (#e5533d) so a hostile
+     home row never reads as an attack-target highlight. */
+  --opp-home: #b8433c;
+  --opp-home-glow: #ff9a90;
   --mid: #8b8fa3;
-  --your-home: #e0a635;
-  --your-home-glow: #ffce6b;
+  --your-home: #3d7fd6;
+  --your-home-glow: #86bdff;
   --legal: #4ecb8f;
   --legal-soft: rgba(78, 203, 143, 0.18);
   --threat: #e5533d;
@@ -40,9 +44,9 @@
   --board-frame: 3%;   /* stone rim thickness around the grid */
   --grid-gap: 1.6%;    /* glowing seam between tiles */
   /* per-row tile glow colors (procedural battlefield) */
-  --tile-opp: #6fb0ff;
+  --tile-opp: #ff8578;
   --tile-mid: #c9d2e8;
-  --tile-your: #ffcf6b;
+  --tile-your: #6fb0ff;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; }
@@ -450,7 +454,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .qname { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .qtag { font-size: 8px; font-weight: 800; padding: 1px 5px; border-radius: 5px; letter-spacing: 0.05em; flex: none; }
 .qtag.AUTO { background: var(--legal-soft); color: var(--legal); }
-.qtag.YOU { background: rgba(255, 206, 107, 0.15); color: var(--your-home-glow); }
+.qtag.YOU { background: rgba(134, 189, 255, 0.15); color: var(--your-home-glow); }  /* tint follows --your-home-glow (blue) */
 .qtag.SKIP { background: rgba(90, 100, 120, 0.2); color: var(--ink-faint); }
 .queue-help { font-size: 9px; color: var(--ink-faint); margin-top: 8px; line-height: 1.4; }
 

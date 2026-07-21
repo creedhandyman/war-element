@@ -30,10 +30,11 @@ export function Board(props: {
   const ascending = Array.from({ length: game.boardSize }, (_, i) => i);
   const rows: number[] = props.viewPlayer === "P2" ? [...ascending].reverse() : ascending;
   const cols: number[] = ascending; // columns stay left-to-right (vertical flip only)
-  // Team colours are fixed per player: P1 = gold, P2 = blue. Crests are tinted by
-  // team so the bottom (viewer's home) matches its tile colour on both sides.
-  const homeGlow = props.viewPlayer === "P1" ? "var(--your-home-glow)" : "var(--opp-home-glow)";
-  const foeGlow = props.viewPlayer === "P1" ? "var(--opp-home-glow)" : "var(--your-home-glow)";
+  // Side colours are viewer-relative now (see Slot.tsx): your home row is blue
+  // and the enemy's is red on both sides of a hot-seat game, so the crests no
+  // longer swap by player — the bottom one is always "yours".
+  const homeGlow = "var(--your-home-glow)";
+  const foeGlow = "var(--opp-home-glow)";
   const opp = game.players[enemyOf(props.viewPlayer)];
   const oppName = (game.humans ?? ["P1"]).length > 1 ? enemyOf(props.viewPlayer) : "Opponent";
   return (
