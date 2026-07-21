@@ -293,6 +293,23 @@ export function moveReach(sp: number): number {
   return sp <= 7 ? 1 : 2;
 }
 
+/**
+ * How far this card may ACTUALLY move — the SP curve above, then PARALYZE.
+ *
+ * PARALYZE caps movement at a single step. It doesn't pin the card the way ROOT
+ * and FREEZE do (those zero SP outright); it costs the sprint. So it only bites
+ * the fast cards: anything at SP 7 or below already moves 1 and feels nothing,
+ * while an SP 8+ runner loses half its reach until the jolt wears off.
+ *
+ * Every caller must use THIS, not moveReach() directly — the AI and the legality
+ * check both compute reach, and if they disagreed the AI would offer moves the
+ * rules then reject.
+ */
+export function moveReachFor(state: GameState, card: CardInstance): number {
+  const reach = moveReach(effectiveSp(state, card));
+  return hasStatus(card, "PARALYZE") ? Math.min(reach, 1) : reach;
+}
+
 export function manhattan(a: Pos, b: Pos): number {
   return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
 }

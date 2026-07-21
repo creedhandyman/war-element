@@ -8,13 +8,12 @@ import {
   chebyshev,
   effectiveDmg,
   effectiveMaxHp,
-  effectiveSp,
   fieldBonus,
   hasStatus,
   isCaptured,
   isContested,
   manhattan,
-  moveReach,
+  moveReachFor,
 } from "./state";
 import type {
   CardDef,
@@ -73,7 +72,7 @@ export function canMove(
     return { ok: false, reason: "ASLEEP — cannot move until woken" };
   if (hasStatus(card, "FRIGHTEN"))
     return { ok: false, reason: "FRIGHTENED — cannot move" };
-  const reach = moveReach(effectiveSp(state, card));
+  const reach = moveReachFor(state, card);
   if (reach === 0) return { ok: false, reason: "This card can't move (SP 0)" };
   if (to.row < 0 || to.row >= state.boardSize || to.col < 0 || to.col >= state.boardSize)
     return { ok: false, reason: "Off the board" };

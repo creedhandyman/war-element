@@ -8,9 +8,8 @@ import {
   boardCards,
   cardAt,
   effectiveDmg,
-  effectiveSp,
   isCaptured,
-  moveReach,
+  moveReachFor,
 } from "./state";
 import { hasEvasion } from "./combat";
 import {
@@ -146,7 +145,7 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
 function findCaptureMove(state: GameState, player: PlayerId): Intent | null {
   const enemyHome = homeRow(enemyOf(player), state.boardSize);
   const movers = boardCards(state, player)
-    .filter((c) => moveReach(effectiveSp(state, c)) > 0)
+    .filter((c) => moveReachFor(state, c) > 0)
     // A card mid-capture (standing on a NOT-yet-captured enemy home slot)
     // stays put — moving would reopen its slot and oscillate forever. Once
     // its slot is permanently captured it's free to go take the next one.
@@ -235,7 +234,7 @@ function findClosingMove(state: GameState, player: PlayerId): Intent | null {
   const distToGoal = (p: Pos) => bfsDistance(state, p, goals);
 
   const movers = boardCards(state, player)
-    .filter((c) => moveReach(effectiveSp(state, c)) > 0)
+    .filter((c) => moveReachFor(state, c) > 0)
     .filter((c) => !isMidCapture(state, c, enemyHome)) // mid-capture — stay put
     .sort((a, b) => distToGoal(a.pos!) - distToGoal(b.pos!));
   for (const mover of movers) {
@@ -281,7 +280,7 @@ function findAdvance(
   const enemyHome = homeRow(enemyOf(player), state.boardSize);
   const forward = player === "P2" ? 1 : -1; // P2 pushes toward row 3, P1 toward row 0
   const movers = boardCards(state, player)
-    .filter((c) => moveReach(effectiveSp(state, c)) > 0)
+    .filter((c) => moveReachFor(state, c) > 0)
     .sort((a, b) =>
       desperate
         ? b.curHp + b.curShields * 2 - (a.curHp + a.curShields * 2)
@@ -289,7 +288,7 @@ function findAdvance(
     );
 
   for (const mover of movers) {
-    const reach = moveReach(effectiveSp(state, mover));
+    const reach = moveReachFor(state, mover);
     const candidates: Pos[] = [];
     for (let d = reach; d >= 1; d--) {
       const row = mover.pos!.row + d * forward;

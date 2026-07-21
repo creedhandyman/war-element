@@ -2,8 +2,8 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus } from "../combat";
-import { canMove, isActionBlocked } from "../rules";
-import { effectiveDmg, effectiveSp } from "../state";
+import { canMove, isActionBlocked, legalMoves } from "../rules";
+import { effectiveDmg, effectiveSp, moveReachFor } from "../state";
 import { place, prepState } from "./helpers";
 
 describe("status effects on stats", () => {
@@ -83,5 +83,59 @@ describe("King of the Hill", () => {
     // the enemy gets nothing from OUR row control
     const foe = place(s, "dusk_vamp", "P2", 0, 0);
     expect(effectiveDmg(s, foe)).toBe(2);
+  });
+});
+
+describe("PARALYZE — mobility", () => {
+  /** Legal move count for a card, optionally paralysed. */
+  const moves = (defId: string, paralysed: boolean) => {
+    const s = prepState();
+    const c = place(s, defId, "P1", 2, 1);
+    if (paralysed) applyStatus(s, c, "PARALYZE", 2, 0, "BOLT");
+    return { reach: moveReachFor(s, s.cards[c.instanceId]), sp: effectiveSp(s, s.cards[c.instanceId]) };
+  };
+
+  it("halves a fast card's reach: 2 steps become 1", () => {
+    // Klipso is SP 8+ — over the moveReach threshold, so it normally strides 2.
+    const before = moves("gale_klipso", false);
+    const after = moves("gale_klipso", true);
+    expect(before.sp).toBeGreaterThan(7);
+    expect(before.reach).toBe(2);
+    expect(after.reach).toBe(1);
+  });
+
+  it("a slow card feels nothing — it already moved 1", () => {
+    // The point of pinning it to mobility: PARALYZE is a tax on speed, not a
+    // second ROOT. Anything at SP 7 or under is unchanged.
+    const s = prepState();
+    const slow = place(s, "bore_armadillo", "P1", 2, 1);
+    expect(effectiveSp(s, s.cards[slow.instanceId])).toBeLessThanOrEqual(7);
+    const before = moveReachFor(s, s.cards[slow.instanceId]);
+    applyStatus(s, slow, "PARALYZE", 2, 0, "BOLT");
+    expect(moveReachFor(s, s.cards[slow.instanceId])).toBe(before);
+  });
+
+  it("it slows, it does not pin — SP is untouched and the card can still move", () => {
+    // ROOT and FREEZE zero SP outright; PARALYZE must stay distinct from both,
+    // or the three statuses collapse into one.
+    const s = prepState();
+    const c = place(s, "gale_klipso", "P1", 2, 1);
+    const spBefore = effectiveSp(s, s.cards[c.instanceId]);
+    applyStatus(s, c, "PARALYZE", 2, 0, "BOLT");
+    expect(effectiveSp(s, s.cards[c.instanceId])).toBe(spBefore); // not zeroed
+    expect(moveReachFor(s, s.cards[c.instanceId])).toBe(1); // still mobile
+    expect(legalMoves(s, "P1", c.instanceId).length).toBeGreaterThan(0);
+  });
+
+  it("the legality check agrees — a 2-step move is refused while paralysed", () => {
+    // The AI and canMove both read moveReachFor; if they disagreed the AI would
+    // offer moves the rules then reject.
+    const s = prepState();
+    const c = place(s, "gale_klipso", "P1", 2, 1);
+    const twoAway = { row: 0, col: 1 };
+    expect(canMove(s, "P1", c.instanceId, twoAway).ok).toBe(true);
+    applyStatus(s, c, "PARALYZE", 2, 0, "BOLT");
+    expect(canMove(s, "P1", c.instanceId, twoAway).ok).toBe(false);
+    expect(canMove(s, "P1", c.instanceId, { row: 1, col: 1 }).ok).toBe(true); // one step still fine
   });
 });

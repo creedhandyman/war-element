@@ -420,7 +420,7 @@ const STATUS_TEXT: Record<StatusKind, string> = {
   FREEZE: "Frozen — SP 0 and takes half damage dealt.",
   STUN: "Stunned — can't act.",
   WEAKEN: "Weakened — deals ~25% less damage.",
-  PARALYZE: "Paralyzed — 50% chance to skip its action.",
+  PARALYZE: "Paralyzed — 50% chance to skip its action, and moves only 1 space (no effect on SP 7 and under).",
   MUTED: "Muted — can't fire its Special.",
   SLEEP: "Asleep — can't act until it wakes.",
   FRIGHTEN: "Frightened — retreats and can't move forward.",

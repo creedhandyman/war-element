@@ -13,6 +13,7 @@ export {
   effectiveMaxHp,
   hasStatus,
   moveReach,
+  moveReachFor,
   isEliminated,
   hasCaptureWin,
 } from "./state";
