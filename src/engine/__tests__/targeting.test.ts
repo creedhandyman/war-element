@@ -1,7 +1,7 @@
 // Milestone 3: targeting — melee rows, ranged, Home Slot Rule, FLYING, STEALTH.
 
 import { describe, expect, it } from "vitest";
-import { canTarget, previewOnSummonArea, rangedCanSee, validSpecialTargets, validTargets } from "../rules";
+import { canTarget, previewOnSummonArea, rangedCanSee, rangedReachFor, validSpecialTargets, validTargets } from "../rules";
 import { getDef } from "../../data/cards";
 import { place, prepState } from "./helpers";
 import type { Pos } from "../types";
@@ -147,11 +147,12 @@ describe("ranged reach — 2 king-steps, blocked on straight lines", () => {
     const frog = place(s, "leaf_dartfrog", "P1", 1, 3, { autoMode: "manual" });
     const rhe = place(s, "bore_rhe", "P2", 2, 1);
     const hillbilly = place(s, "bore_hillbilly", "P2", 0, 1);
-    const far = place(s, "aqua_blackbeard", "P2", 2, 0); // 3 columns across — still out
     const ids = validTargets(s, frog.instanceId).map((t) => t.instanceId);
     expect(ids).toContain(rhe.instanceId);
     expect(ids).toContain(hillbilly.instanceId);
-    expect(ids).not.toContain(far.instanceId);
+    // No "still out of range" case here on purpose: r1c3 is off P1's home row,
+    // so the King of the Hill reach bonus applies and 3 king-steps covers the
+    // whole 4x4. The out-of-range case is tested from a home row instead.
   });
 
   it("knight-shaped shots arc — nothing can screen them", () => {
@@ -202,8 +203,10 @@ describe("ranged reach — 2 king-steps, blocked on straight lines", () => {
   it("specials are exempt — they keep the full board", () => {
     const s = prepState();
     s.players.P2.magicPool = 20;
-    const me = place(s, "dusk_ghastly", "P2", 3, 0, { autoMode: "manual" });
-    const offRay = place(s, "leaf_greegon", "P1", 1, 3); // off-ray AND 3 away
+    // On its OWN home row, so reach stays 2 — otherwise the advanced bonus puts
+    // the whole 4x4 inside basic range and there is nothing left to compare.
+    const me = place(s, "dusk_ghastly", "P2", 0, 0, { autoMode: "manual" });
+    const offRay = place(s, "leaf_greegon", "P1", 2, 3); // 3 king-steps away
     expect(validTargets(s, me.instanceId).map((t) => t.instanceId)).not.toContain(offRay.instanceId);
     // …but the Special still reaches it.
     expect(validSpecialTargets(s, me.instanceId).map((t) => t.instanceId)).toContain(offRay.instanceId);
@@ -217,5 +220,52 @@ describe("ranged reach — 2 king-steps, blocked on straight lines", () => {
     const ids = validTargets(s, me.instanceId).map((t) => t.instanceId);
     expect(ids).toContain(beside.instanceId);
     expect(ids).not.toContain(twoAway.instanceId);
+  });
+});
+
+describe("King of the Hill — reach", () => {
+  const reachOf = (row: number) => {
+    const s = prepState();
+    const me = place(s, "dusk_ghastly", "P2", row, 0, { autoMode: "manual" }); // Ranged
+    return rangedReachFor(s, me);
+  };
+
+  it("a Ranged card gains +1 reach once it leaves its own summoning row", () => {
+    // P2 summons into row 0. Sitting there is short-sighted; anywhere else is
+    // "advanced" — including deep in enemy territory.
+    expect(reachOf(0)).toBe(2); // own home row
+    expect(reachOf(1)).toBe(3);
+    expect(reachOf(2)).toBe(3);
+    expect(reachOf(3)).toBe(3); // the ENEMY home row still counts as advanced
+  });
+
+  it("it is the card's OWN row that matters, not a fixed row number", () => {
+    // P1 summons into row 3, so the rows are mirrored for it.
+    const s = prepState();
+    const p1 = place(s, "leaf_dartfrog", "P1", 3, 0, { autoMode: "manual" });
+    const p2 = place(s, "dusk_ghastly", "P2", 3, 1, { autoMode: "manual" });
+    expect(rangedReachFor(s, p1)).toBe(2); // row 3 IS P1's home
+    expect(rangedReachFor(s, p2)).toBe(3); // same row, but advanced for P2
+  });
+
+  it("the extra square is real: a 3-step target is reachable only when advanced", () => {
+    const build = (row: number) => {
+      const s = prepState();
+      const me = place(s, "dusk_ghastly", "P2", row, 0, { autoMode: "manual" });
+      const far = place(s, "leaf_greegon", "P1", row === 0 ? 2 : 3, 3); // 3 steps out
+      return validTargets(s, me.instanceId).map((t) => t.instanceId).includes(far.instanceId);
+    };
+    expect(build(0)).toBe(false); // on the summoning row — 3 is too far
+    expect(build(1)).toBe(true);  // advanced — the third step lands
+  });
+
+  it("melee gains nothing — it keeps king-step adjacency", () => {
+    const s = prepState();
+    const melee = place(s, "leaf_sticks", "P1", 1, 1, { autoMode: "manual" }); // advanced Melee
+    const adjacent = place(s, "dusk_gool", "P2", 0, 1);
+    const twoAway = place(s, "dusk_vamp", "P2", 1, 3);
+    const ids = validTargets(s, melee.instanceId).map((t) => t.instanceId);
+    expect(ids).toContain(adjacent.instanceId);
+    expect(ids).not.toContain(twoAway.instanceId); // still 1 space, bonus or not
   });
 });

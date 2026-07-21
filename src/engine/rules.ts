@@ -24,7 +24,7 @@ import type {
   Pos,
   SpellDef,
 } from "./types";
-import { enemyOf, homeRow } from "./types";
+import { enemyOf, homeRow, isMidRow } from "./types";
 import { getSpell } from "./spells";
 
 // ── prep phase ──────────────────────────────────────────────────────────────
@@ -142,6 +142,7 @@ export function rangedCanSee(
   from: Pos,
   to: Pos,
   shooter: PlayerId,
+  reach: number = RANGED_REACH,
 ): boolean {
   const dr = to.row - from.row;
   const dc = to.col - from.col;
@@ -149,7 +150,7 @@ export function rangedCanSee(
   const adc = Math.abs(dc);
   if (adr === 0 && adc === 0) return false;
   const dist = Math.max(adr, adc);
-  if (dist > RANGED_REACH) return false;
+  if (dist > reach) return false;
   // Straight line → walk it and let an ENEMY body in between stop the shot.
   const onLine = dr === 0 || dc === 0 || adr === adc;
   if (onLine) {
@@ -162,6 +163,23 @@ export function rangedCanSee(
     }
   }
   return true;
+}
+
+/**
+ * How far this card's BASIC attack reaches, in king-steps.
+ *
+ * King of the Hill's reach half: a card that has left its OWN summoning row
+ * sees one square further. Holding the back line keeps you short-sighted;
+ * pushing off it is what buys the extra square, and a shooter that has fought
+ * all the way onto the enemy's home row keeps the bonus.
+ *
+ * Melee is deliberately excluded — it keeps plain king-step adjacency, so this
+ * never turns a melee card into a reach-2 attacker. Returns the base reach for
+ * a melee card anyway; the melee branch in canTarget never consults it.
+ */
+export function rangedReachFor(state: GameState, card: CardInstance): number {
+  const advanced = card.pos != null && card.pos.row !== homeRow(card.owner, state.boardSize);
+  return RANGED_REACH + (advanced ? 1 : 0);
 }
 
 export function canTarget(
@@ -195,10 +213,12 @@ export function canTarget(
     )
       return false;
   } else if (forBasic) {
-    // Ranged BASIC: a queen's line, RANGED_REACH long, blocked by bodies.
-    // Specials are deliberately exempt — they keep their old full-board reach,
-    // so the AoE specials tuned in the balance pass are untouched.
-    if (!rangedCanSee(state, attacker.pos, target.pos, attacker.owner)) return false;
+    // Ranged BASIC: king-step reach, blocked by enemy bodies on a straight line.
+    // Reach is 2 from the summoning row and 3 once advanced off it — see
+    // rangedReachFor. Specials are deliberately exempt and keep their full-board
+    // reach, so the AoE specials tuned in the balance pass are untouched.
+    const reach = rangedReachFor(state, attacker);
+    if (!rangedCanSee(state, attacker.pos, target.pos, attacker.owner, reach)) return false;
   }
 
   const defenderHome = homeRow(target.owner, state.boardSize);
@@ -499,7 +519,7 @@ export function plannedAction(state: GameState, instanceId: string): PlannedActi
 function spellReachesEnemyHome(state: GameState, player: PlayerId): boolean {
   const enemyHome = homeRow(enemyOf(player), state.boardSize);
   return boardCards(state, player).some(
-    (c) => c.pos != null && (c.pos.row === 1 || c.pos.row === 2 || c.pos.row === enemyHome),
+    (c) => c.pos != null && (isMidRow(c.pos.row) || c.pos.row === enemyHome),
   );
 }
 

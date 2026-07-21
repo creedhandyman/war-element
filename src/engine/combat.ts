@@ -27,7 +27,7 @@ import type {
   Pos,
   StatusKind,
 } from "./types";
-import { NEGATIVE_STATUSES, enemyOf, hillGivesHit, homeRow } from "./types";
+import { NEGATIVE_STATUSES, enemyOf, hillGivesHit, homeRow, isMidRow } from "./types";
 
 /** Whether a card is standing on the ENEMY half of the board — two rows or more
  *  from its own home. Gates Vaga's first-strike and Ravven's Shadow Haunter. */
@@ -79,7 +79,7 @@ export function effectiveBasicHits(card: CardInstance): number {
   let hits = def.hits + (card.hitsBonus ?? 0) + (card.hitsBonusRound ?? 0) + (card.loadedHits ?? 0);
   // King of the Hill, the +1 HIT half. hillGivesHit() is the single source of
   // truth — effectiveDmg takes the exact complement.
-  if (hillGivesHit(def.dmg, def.hits) && card.pos && (card.pos.row === 1 || card.pos.row === 2)) hits += 1;
+  if (hillGivesHit(def.dmg, def.hits) && card.pos && isMidRow(card.pos.row)) hits += 1;
   return hits;
 }
 
@@ -710,8 +710,8 @@ export function basicAttack(
   if (bonus && agg.landedHits > 0 && attacker.curHp > 0) {
     const primary = draft.cards[groups[0].targetId];
     let extra = 0;
-    if (bonus.midLane && attacker.pos && (attacker.pos.row === 1 || attacker.pos.row === 2)) extra += bonus.midLane;
-    if (bonus.midLaneFull && boardCards(draft).filter((c) => c.pos && (c.pos.row === 1 || c.pos.row === 2)).length >= 4)
+    if (bonus.midLane && attacker.pos && isMidRow(attacker.pos.row)) extra += bonus.midLane;
+    if (bonus.midLaneFull && boardCards(draft).filter((c) => c.pos && isMidRow(c.pos.row)).length >= 4)
       extra += bonus.midLaneFull;
     if (bonus.vsSleeping && primary && hasStatus(primary, "SLEEP")) extra += bonus.vsSleeping;
     if (extra > 0 && primary && primary.curHp > 0) {

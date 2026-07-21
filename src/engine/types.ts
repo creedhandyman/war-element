@@ -841,6 +841,18 @@ export function homeRow(player: PlayerId, boardSize: number): number {
   return player === "P1" ? boardSize - 1 : 0;
 }
 
+/** The contested middle — where King of the Hill pays out (+1 DMG or +1 HIT,
+ *  and +1 ranged reach).
+ *
+ *  Rows 1 and 2 at BOTH board sizes. On a 5×5 that deliberately leaves row 3
+ *  out: whether the large board's middle is rows 1–3 or just row 2 is an open
+ *  design call, and widening it here would silently re-tune every hill bonus at
+ *  once. This is the single definition — change it here and every consumer
+ *  follows. */
+export function isMidRow(row: number): boolean {
+  return row === 1 || row === 2;
+}
+
 export function enemyOf(player: PlayerId): PlayerId {
   return player === "P1" ? "P2" : "P1";
 }

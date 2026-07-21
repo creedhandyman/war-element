@@ -15,7 +15,7 @@ import type {
   Pos,
   StatusKind,
 } from "./types";
-import { BOARD_SIZE, HAND_CAP, OPENING_HAND, enemyOf, hillGivesHit, homeRow } from "./types";
+import { BOARD_SIZE, HAND_CAP, OPENING_HAND, enemyOf, hillGivesHit, homeRow, isMidRow } from "./types";
 
 /** A deck is either a registered deck/core id, or an explicit list of card ids
  *  (a pairing built at the picker). */
@@ -274,8 +274,9 @@ export function effectiveDmg(state: GameState, card: CardInstance): number {
   // multi-hit cards get +1 HIT instead (in effectiveBasicHits), so a flat
   // per-hit +1 doesn't balloon on shredders. hillGivesHit() decides which half,
   // and this is its exact complement.
-  if (card.pos && (card.pos.row === 1 || card.pos.row === 2) && !hillGivesHit(def.dmg, def.hits)) dmg += 1;
-  for (const midRow of [1, 2]) {
+  if (card.pos && isMidRow(card.pos.row) && !hillGivesHit(def.dmg, def.hits)) dmg += 1;
+  for (let midRow = 0; midRow < state.boardSize; midRow++) {
+    if (!isMidRow(midRow)) continue;
     let held = 0;
     for (let col = 0; col < state.boardSize; col++) {
       const occ = cardAt(state, midRow, col);
