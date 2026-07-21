@@ -91,6 +91,10 @@ export function App() {
   // Pre-game deck selection — the match doesn't run until Start.
   const [started, setStarted] = useState(false);
   const [twoPlayer, setTwoPlayer] = useState(false);
+  /** Battlefield size for the NEXT match. 4 = standard, 5 = the large board.
+   *  Online: only the host's choice counts — the guest receives the host's whole
+   *  state, board size included, so there is nothing to agree on. */
+  const [boardSize, setBoardSize] = useState(4);
   // Online PvP over Supabase Realtime. `online` is set once a room is live.
   const [online, setOnline] = useState<{ role: Role; code: string; myId: PlayerId } | null>(null);
   const [onlineMode, setOnlineMode] = useState(false); // setup screen: online vs local
@@ -266,6 +270,10 @@ export function App() {
     setRoomCode(code);
     const hostCards = resolveDeckCards(p1DeckId);
     const hostSpells = resolveDeckSpells(p1DeckId);
+    // Snapshotted like the deck above: onJoin fires much later, and reading
+    // `boardSize` from the closure then would take whatever the picker showed
+    // at join time rather than what the host actually opened the room with.
+    const hostBoardSize = boardSize;
     setNetStatus(`Room ${code} open — share this code. Waiting for your buddy…`);
     onlineStartedRef.current = false;
     roomRef.current = joinRoom(code, "host", {
@@ -273,7 +281,7 @@ export function App() {
       onJoin: (guestCards, guestSpells) => {
         if (onlineStartedRef.current) return; // already playing — ignore re-joins
         onlineStartedRef.current = true;
-        const g = createInitialState(newSeed(), hostCards, guestCards, ["P1", "P2"], hostSpells, guestSpells);
+        const g = createInitialState(newSeed(), hostCards, guestCards, ["P1", "P2"], hostSpells, guestSpells, hostBoardSize);
         setGame(g);
         setViewSide("P1");
         setSel(null); setPending(null); setPicks([]); setMullToss([]);
@@ -1353,6 +1361,27 @@ export function App() {
                   🌐 Online
                 </button>
               </div>
+              {/* Battlefield size. Hidden for an online GUEST: the host deals the
+                  whole state, board size included, so the guest has no say. */}
+              {(!onlineMode || onlineRole === "host") && (
+                <div className="pick-field">
+                  <span>Battlefield</span>
+                  <div className="mode-toggle">
+                    <button
+                      className={`mode-btn sm ${boardSize === 4 ? "on" : ""}`}
+                      onClick={() => setBoardSize(4)}
+                    >
+                      4×4 · Standard
+                    </button>
+                    <button
+                      className={`mode-btn sm ${boardSize === 5 ? "on" : ""}`}
+                      onClick={() => setBoardSize(5)}
+                    >
+                      5×5 · Large
+                    </button>
+                  </div>
+                </div>
+              )}
               {(!onlineMode || onlineRole === "host") && (
               <div className="pick-field">
                 <span>{onlineMode ? "Your deck (P1)" : twoPlayer ? "Player 1 deck" : "Your deck (P1)"}</span>
@@ -1413,6 +1442,7 @@ export function App() {
                     setGame(createInitialState(
                       newSeed(), p1Cards, p2Cards, humans,
                       resolveDeckSpells(p1DeckId), resolveDeckSpells(p2DeckId),
+                      boardSize,
                     ));
                     setViewSide("P1");
                     setSel(null);
