@@ -544,12 +544,13 @@ export const CARDS: CardDef[] = [
     cardClass: "Ranger",
     attackType: "Ranged",
     cost: 4,
-    // 4×2, down from 3×3. Fewer, bigger shards: less raw output (8 vs 9) and
-    // one less CRIT roll per attack — CRIT is rolled per hit, so a 3-hit
-    // basic was getting three bites at it. The bigger shards do cut BLOCK and
-    // other flat per-hit reduction better, which is the trade.
-    dmg: 4,
-    hits: 2,
+    // 4 hits × 2, from 3×3. A shard-spray shredder: one less raw damage (8 vs
+    // 9) bought with a 4th hit. Each hit strips a shield and rolls CRIT
+    // separately, so it chews shield stacks and fishes for crits far better.
+    // The cost is flat per-hit reduction — BLOCK is subtracted from each shard
+    // BEFORE the crit doubles it, so BLOCK 2 zeroes this basic outright.
+    dmg: 2,
+    hits: 4,
     hp: 10,
     sp: 8,
     shields: 1,
