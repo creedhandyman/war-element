@@ -93,7 +93,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   pointer-events: none; transition: bottom 0.28s ease;
 }
 .hand-float .hand { pointer-events: auto; }
-.hand-float.up { bottom: 104px; } /* raised above the bar, over the board's bottom row */
+/* Raised on your turn. --hand-up is THE number to tune if the fan sits wrong:
+   104px was chosen to clear the ~90px bottom bar entirely, which is what put the
+   cards up over the board's bottom row. */
+.hand-float.up { bottom: var(--hand-up, 104px); }
+
+/* PC only: bring the raised fan down into the bottom band instead of lifting it
+   over the board. Short landscape (max-height:540px) is deliberately excluded —
+   it has no vertical room to spare and keeps the full 104px lift; mobile
+   portrait doesn't use this at all (the hand is in normal flow there). */
+@media (min-width: 761px) and (min-height: 541px) {
+  .wrap { --hand-up: 16px; }
+}
 
 /* ===== phase ribbon ===== */
 .phase-ribbon { grid-column: 1/4; display: flex; align-items: center; justify-content: center; gap: 22px; padding: 4px; }
@@ -557,9 +568,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .spellchip-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 100%; }
 .spellchip-text { display: none; }
 
-/* Right of the field: spell tray (top) stacked above the Speed Queue rail. */
+/* Right of the field: Speed Queue rail on top, spell tray beneath it. */
 .rightcol { grid-column: 3; grid-row: 2; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 .rightcol .rail { flex: 1; } /* the initiative (Speed Queue) rail fills the rest */
+
+/* Desktop only: the tray used to sit ABOVE the Speed Queue, pushing the rail
+   down the column. Ordered below it instead, so the queue reads first and the
+   spells sit at the foot of the column. Mobile is untouched — there the tray is
+   hidden from this column entirely and opens as the Spells bottom sheet, and
+   the JSX order stays tray-then-queue for that path. */
+@media (min-width: 761px) and (min-height: 541px) {
+  .rightcol .spelltray.vertical { order: 2; }
+  .rightcol .rail.queue-rail { order: 1; }
+}
 /* Vertical spell tray — a rune panel of horizontal spell bars. */
 .spelltray.vertical { flex: none; background: linear-gradient(180deg, rgba(30,26,20,0.92), rgba(20,17,13,0.92)); border: 1px solid var(--gold-line); border-radius: 10px; padding: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 0 40px rgba(201,162,75,0.05); }
 .spelltray.vertical .spelltray-label { color: var(--gold-lit); font-size: 11px; letter-spacing: 0.16em; margin-bottom: 3px; }

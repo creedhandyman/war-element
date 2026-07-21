@@ -861,9 +861,10 @@ export function App() {
         );
       })()}
 
-      {/* Right of the field: the spell tray sits above the initiative (Speed
-          Queue) rail — the hand fans UP from the bottom bar, so the top of this
-          column is the spot the cards never reach. */}
+      {/* Right of the field: the initiative (Speed Queue) rail and the spell
+          tray. Source order is tray-first because the mobile path needs it that
+          way; on desktop CSS `order` flips them so the queue reads first and the
+          spells sit beneath it (see .rightcol in styles.css). */}
       <div className="rightcol">
         {game.phase === "prep" && (
           <SpellTray
