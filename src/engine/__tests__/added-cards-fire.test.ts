@@ -73,7 +73,7 @@ describe("added cards: every ability fires", () => {
     const next = applyIntent(battleFor(s, sprinu.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
     });
-    expect(next.cards[foe.instanceId].curHp).toBe(24); // 3 DMG x2 bites
+    expect(next.cards[foe.instanceId].curHp).toBe(28); // 2 DMG (cut from 3x2 — see the card)
     expect(statusOf(next.cards[foe.instanceId], "ROOT")?.duration).toBe(2);
     expect(next.cards[hurtLeaf.instanceId].curHp).toBe(9); // +4, LEAF only
     expect(next.cards[notLeaf.instanceId].curHp).toBe(5); // BORE ally untouched

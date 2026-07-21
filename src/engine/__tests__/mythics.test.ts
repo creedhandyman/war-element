@@ -497,3 +497,50 @@ describe("Elecdroid — Light Slasher combo", () => {
     expect(next.cards[elec.instanceId].dmgBonus).toBe(0);
   });
 });
+
+describe("Trinezer — Jungle Culling (PEN + Culling the Weak)", () => {
+  it("PEN drives the 11 straight past a shield wall to finish the target", () => {
+    // A finisher aimed at the lowest-HP enemy is useless if shields eat it, and
+    // the shielded survivor is exactly what a cost-9 mythic is meant to remove.
+    const s = prepState();
+    s.players.P1.magicPool = 20;
+    const tri = place(s, "leaf_trinezer", "P1", 2, 1, { autoMode: "manual" });
+    const prey = place(s, "dusk_gool", "P2", 1, 1, { curHp: 4, maxHp: 40, curShields: 9 });
+    const next = applyIntent(battleWith(s, tri.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: prey.instanceId,
+    });
+    expect(next.cards[prey.instanceId]).toBeUndefined(); // 9 shields ignored
+    expect(statusOf(next.cards[tri.instanceId], "STEALTH")).toBeDefined(); // on-kill rider intact
+  });
+
+  it("a Special kill permanently lifts EVERY ally, Trinezer included", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 20;
+    const tri = place(s, "leaf_trinezer", "P1", 2, 1, { autoMode: "manual" });
+    const mate = place(s, "leaf_cactus", "P1", 3, 0); // not a Reptile — the aura must not be what moves it
+    const prey = place(s, "dusk_gool", "P2", 1, 1, { curHp: 4, maxHp: 40, curShields: 9 });
+    const triBefore = effectiveDmg(s, s.cards[tri.instanceId]);
+    const mateBefore = effectiveDmg(s, s.cards[mate.instanceId]);
+    const next = applyIntent(battleWith(s, tri.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: prey.instanceId,
+    });
+    expect(effectiveDmg(next, next.cards[mate.instanceId])).toBe(mateBefore + 1);
+    expect(effectiveDmg(next, next.cards[tri.instanceId])).toBe(triBefore + 1);
+    expect(next.cards[mate.instanceId].dmgBonus).toBe(1); // permanent, not a round buff
+  });
+
+  it("Culling the Weak is Special-only — a basic kill grants nothing", () => {
+    // The buff rides the Special's params rather than the card's onKill, so a
+    // basic that happens to finish something must not pay out a team-wide buff.
+    const s = prepState();
+    const tri = place(s, "leaf_trinezer", "P1", 2, 1, { autoMode: "manual" });
+    const mate = place(s, "leaf_cactus", "P1", 3, 0);
+    const prey = place(s, "dusk_gool", "P2", 1, 1, { curHp: 2, maxHp: 40, curShields: 0 });
+    const before = effectiveDmg(s, s.cards[mate.instanceId]);
+    const next = applyIntent(battleWith(s, tri.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "basic", targetIds: [prey.instanceId],
+    });
+    expect(next.cards[prey.instanceId]).toBeUndefined(); // the basic did kill
+    expect(effectiveDmg(next, next.cards[mate.instanceId])).toBe(before); // no payout
+  });
+});

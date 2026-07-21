@@ -1957,10 +1957,18 @@ export const CARDS: CardDef[] = [
       name: "Jungle Culling",
       cost: 4,
       handler: "strike",
-      params: { dmg: 11, onKillSelfStatus: "STEALTH", onKillSelfStatusDuration: 2 },
+      // Buffed: a cost-9 mythic was measured at 2.8 damage per magic — the
+      // WORST value in LEAF, below a cost-2 Squanch. PEN makes the 11 land on
+      // the armoured targets a finisher is aimed at, and Culling the Weak turns
+      // each kill into a permanent, stacking team-wide +1 DMG.
+      params: {
+        dmg: 11, pen: 1,
+        onKillSelfStatus: "STEALTH", onKillSelfStatusDuration: 2,
+        onKillAllyBuffDmg: 1,
+      },
       targetSide: "enemy",
       ranged: true, // reaches the lowest-HP opponent anywhere
-      text: "Deal 11 DMG to a target (aim the lowest-HP); if it dies, gain STEALTH until end of next round.",
+      text: "Deal 11 DMG (PEN) to a target (aim the lowest-HP). On a kill: gain STEALTH until end of next round, and Culling the Weak gives EVERY ally +1 DMG permanently.",
     },
   },
   {
@@ -3353,13 +3361,18 @@ export const CARDS: CardDef[] = [
       // statusDuration 2, same reason as Fallow: a Special resolves in Battle,
       // Prep already happened, and a 1-round ROOT expires at that same Cleanup —
       // so it would never stop a single move. 2 costs the victim one Prep.
+      // 2×1, down from 3×2. Measured at 12 damage per magic across a 4-card
+      // board — double the next LEAF special and 4× the cost-9 mythic, on a
+      // cost-3 SUPPORT that also roots the board and heals the team. The reach
+      // and the ROOT are the identity; the damage was the outlier, so only the
+      // damage was cut. Now 8 for 2 magic (4.0/magic).
       params: {
-        dmg: 3, hits: 2, targets: 8,
+        dmg: 2, hits: 1, targets: 8,
         statusKind: "ROOT", statusDuration: 2,
         healAlliesElement: "LEAF", healAllies: 4,
       },
       targetSide: "enemy",
-      text: "Deal 3×2 DMG and ROOT for 2 rounds, then heal LEAF allies 4 HP.",
+      text: "Deal 2 DMG and ROOT for 2 rounds, then heal LEAF allies 4 HP.",
     },
   },
   {

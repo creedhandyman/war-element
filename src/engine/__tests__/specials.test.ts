@@ -1021,3 +1021,26 @@ describe("accuracy per hit", () => {
     expect(s.cards[foe.instanceId].curHp).toBe(40 - 3); // exactly one hit landed
   });
 });
+
+describe("Sprinu — Root Spring stays control, not a board wipe", () => {
+  it("roots the whole board and heals, but the damage is no longer the point", () => {
+    // Measured at 12 damage per magic before the cut — double the next LEAF
+    // special and 4x the cost-9 mythic, on a cost-3 Support. Only the damage
+    // was reduced; the board-wide ROOT and the team heal are the identity.
+    const s = prepState();
+    s.players.P1.magicPool = 20;
+    const sprinu = place(s, "leaf_sprinu", "P1", 2, 1, { autoMode: "manual" });
+    const hurt = place(s, "leaf_cactus", "P1", 3, 0, { curHp: 1, maxHp: 20 });
+    const foes = [0, 1, 2, 3].map((c) =>
+      place(s, "dusk_gool", "P2", 1, c, { curHp: 400, maxHp: 400, curShields: 0 }),
+    );
+    const next = applyIntent(battleWith(s, sprinu.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foes[0].instanceId,
+    });
+    const dealt = foes.reduce((t, f) => t + (400 - next.cards[f.instanceId].curHp), 0);
+    expect(dealt).toBe(8); // 2 x 4 targets, for 2 magic
+    for (const f of foes)
+      expect(next.cards[f.instanceId].statuses.find((x) => x.kind === "ROOT")?.duration).toBe(2);
+    expect(next.cards[hurt.instanceId].curHp).toBe(5); // 1 + 4 team heal
+  });
+});

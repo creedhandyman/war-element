@@ -1170,6 +1170,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (r.targetDied && typeof onKillStatus === "string" && onKillStatus && attacker.curHp > 0) {
       applyStatus(draft, attacker, onKillStatus as StatusKind, num(params, "onKillSelfStatusDuration", 1), 0, getDef(attacker.defId).element);
     }
+    // Culling the Weak (Trinezer): a kill made BY this Special lifts the whole
+    // side, permanently and cumulatively. Lives on the Special's params rather
+    // than the card's onKill so it can't also fire off a basic attack.
+    const cullBuff = num(params, "onKillAllyBuffDmg");
+    if (r.targetDied && cullBuff > 0) {
+      const kin = boardCards(draft, attacker.owner).filter((a) => a.curHp > 0);
+      for (const a of kin) a.dmgBonus += cullBuff;
+      if (kin.length)
+        draft.log.push(
+          `${getDef(attacker.defId).name} culls the weak — ${kin.length} ally(s) gain +${cullBuff} DMG, permanently.`,
+        );
+    }
     maybeStatus(draft, attacker, target, params);
     // statusSplash (Fenix's Phoenix Blast): the applied status also spreads to
     // enemies adjacent (chess-king) to the struck slot.
