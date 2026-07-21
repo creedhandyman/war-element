@@ -248,10 +248,14 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Blood on the Petals",
       cost: 3,
-      handler: "strike",
-      params: { dmg: 7, pen: 1, statusKind: "BLEED", statusPower: 5, statusDuration: 2 },
+      // Was a single-target strike, measured the worst legendary damage special
+      // in the game (2.3/magic, below a cost-2 epic). Now a sweep of up to 3 —
+      // BLEED drops 5 -> 3 to pay for the extra reach, and Thorn's healsFromBleed
+      // drinks from all three.
+      handler: "barrage",
+      params: { dmg: 7, pen: 1, targets: 3, statusKind: "BLEED", statusPower: 3, statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 7 DMG (PEN) and apply BLEED 5 to the target.",
+      text: "Sweep up to 3 opponents in range for 7 DMG (PEN) each and apply BLEED 3.",
     },
   },
 
@@ -773,9 +777,14 @@ export const CARDS: CardDef[] = [
       cost: 2,
       handler: "barrage",
       // printed "3 DMG PEN to all opponents in range"
-      params: { dmg: 3, targets: 99, pen: 1 },
+      // targets 99 -> 2. Measured at 12.0 damage per magic across a 4-card
+      // board — tied for the highest in the game, on a cost-4 epic. The printed
+      // 3 lands as 6 because attackTrade adds its +3 to the Special too, which
+      // is what made a board-wide PEN wipe out of a 2-magic cast. PEN and the
+      // multi-target feel stay; the full-board reach is what went.
+      params: { dmg: 3, targets: 2, pen: 1 },
       targetSide: "enemy",
-      text: "Deal 3 DMG (PEN) to every opponent in range.",
+      text: "Deal 3 DMG (PEN) to up to 2 opponents in range.",
     },
     // Ethereal Trade (On Attack): +3 DMG per attack — basic AND Phantom Gouge —
     // at the cost of 2 HP each time.
@@ -1817,9 +1826,13 @@ export const CARDS: CardDef[] = [
       cost: 2,
       handler: "barrage",
       // printed "2×3 DMG and PARALYZE all opponents" — 2 hits of 3 per target
-      params: { dmg: 3, hits: 2, targets: 99, statusKind: "PARALYZE", statusDuration: 1 },
+      // hits 2 -> 1. Measured at 12.0 damage per magic — tied for the highest
+      // in the game, on a cost-3 epic that ALSO paralyzes the whole board. Same
+      // cut as Sprinu: the board-wide PARALYZE is the identity, so the reach and
+      // the control stay and only the damage halves.
+      params: { dmg: 3, hits: 1, targets: 99, statusKind: "PARALYZE", statusDuration: 1 },
       targetSide: "enemy",
-      text: "Deal 3 DMG × 2 and PARALYZE every opponent in range for 1 round.",
+      text: "Deal 3 DMG and PARALYZE every opponent in range for 1 round.",
     },
   },
   {

@@ -1044,3 +1044,57 @@ describe("Sprinu — Root Spring stays control, not a board wipe", () => {
     expect(next.cards[hurt.instanceId].curHp).toBe(5); // 1 + 4 team heal
   });
 });
+
+describe("outlier cuts and the Thorn sweep", () => {
+  /** Four fat dummies in reach; returns damage dealt and how many were touched. */
+  function sweep(defId: string, magic = 30) {
+    const s = prepState();
+    s.players.P1.magicPool = magic;
+    const me = place(s, defId, "P1", 2, 1, { autoMode: "manual" });
+    const foes = [0, 1, 2, 3].map((c) =>
+      place(s, "dusk_gool", "P2", 1, c, { curHp: 900, maxHp: 900, curShields: 0 }),
+    );
+    const next = applyIntent(battleWith(s, me.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foes[0].instanceId,
+    });
+    const dealt = foes.reduce((t, f) => t + (900 - next.cards[f.instanceId].curHp), 0);
+    const touched = foes.filter((f) => next.cards[f.instanceId].curHp < 900).length;
+    return { next, foes, dealt, touched };
+  }
+
+  it("Thorn sweeps 3 opponents for 7 PEN each and leaves BLEED 3", () => {
+    const { next, foes, dealt, touched } = sweep("leaf_thorn");
+    expect(touched).toBe(3); // up to 3, not the whole board
+    expect(dealt).toBe(21); // 7 x 3
+    for (const f of foes.slice(0, 3))
+      expect(next.cards[f.instanceId].statuses.find((x) => x.kind === "BLEED")?.power).toBe(3);
+  });
+
+  it("Thorn's sweep still PENetrates — shields don't blunt it", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 30;
+    const thorn = place(s, "leaf_thorn", "P1", 2, 1, { autoMode: "manual" });
+    const walled = place(s, "dusk_gool", "P2", 1, 1, { curHp: 900, maxHp: 900, curShields: 6 });
+    const next = applyIntent(battleWith(s, thorn.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: walled.instanceId,
+    });
+    expect(next.cards[walled.instanceId].curHp).toBe(893); // full 7 through 6 shields
+    expect(next.cards[walled.instanceId].curShields).toBe(6); // PEN leaves them standing
+  });
+
+  it("Ghastly's Phantom Gouge is capped at 2 targets, not the board", () => {
+    // 12.0 dmg/magic before the cut. The printed 3 lands as 6 because
+    // attackTrade adds its +3 to the Special as well.
+    const { dealt, touched } = sweep("dusk_ghastly");
+    expect(touched).toBe(2);
+    expect(dealt).toBe(12); // 6 x 2, for 2 magic
+  });
+
+  it("Lytning still paralyzes the whole board — only the damage halved", () => {
+    const { next, foes, dealt, touched } = sweep("bolt_lytning");
+    expect(touched).toBe(4); // reach kept
+    expect(dealt).toBe(12); // 3 x 4, down from 6 x 4
+    for (const f of foes)
+      expect(next.cards[f.instanceId].statuses.find((x) => x.kind === "PARALYZE")).toBeDefined();
+  });
+});
