@@ -294,7 +294,23 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .slot.grayed .token { filter: grayscale(0.9) brightness(0.6); opacity: 0.5; transition: filter 0.2s, opacity 0.2s; }
 .slot.contested { border-color: var(--threat); animation: threatpulse 1s infinite; }
 @keyframes threatpulse { 0%, 100% { border-color: rgba(229, 83, 61, 0.6); } 50% { border-color: var(--threat); } }
-.slot.captured { border-color: #c98a2b; box-shadow: inset 0 0 26px rgba(201, 138, 43, 0.25); cursor: default; }
+/* Captured ground — permanently dead, nobody may summon or move here. The old
+   look was a gold border + gold inner glow, which on YOUR home row (--tile-your
+   is also gold, #ffcf6b) was nearly invisible: a captured home slot read as just
+   another empty summon slot. It now drops the row tint entirely and wears hazard
+   stripes — a treatment nothing else on the board uses — so it reads as captured
+   on the gold home row, the blue enemy row and the pale mid rows alike. */
+.slot.captured {
+  --tile: #9aa0b0; /* stop inheriting the row's gold/blue so it can't blend in */
+  border: 1.5px dashed rgba(232, 236, 248, 0.65);
+  background:
+    repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.62) 0 7px, rgba(226, 232, 248, 0.13) 7px 14px),
+    radial-gradient(95% 95% at 50% 42%, rgba(38, 41, 52, 0.92), rgba(9, 10, 16, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.65), inset 0 0 24px rgba(0, 0, 0, 0.72);
+  cursor: default;
+}
+/* Mute the row sigil underneath — it's the loudest remaining row cue. */
+.slot.captured::before { opacity: 0.05; }
 /* Enemy attack / special targets — RED (green stays for summon/move + ally). */
 .slot.target { border-color: var(--threat); animation: targetpulse 1.2s infinite; z-index: 2; }
 @keyframes targetpulse {
@@ -315,7 +331,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .sc-red { color: var(--threat); font-weight: 800; }
 .summon-confirm .lockin { padding: 8px 16px; font-size: 12px; margin: 0; }
 .summon-confirm .ghost { padding: 8px 14px; }
-.lock { position: absolute; top: 4px; right: 5px; font-size: 12px; opacity: 0.85; }
+/* Capture marker. Was a bare 12px emoji at 85% opacity in the corner, which on
+   a busy board was easy to miss entirely — it's now a filled chip so the tile
+   states WHY it's dead, not just that it looks different. */
+.lock {
+  position: absolute; top: 3px; right: 3px; z-index: 3;
+  display: grid; place-items: center; width: 17px; height: 17px;
+  font-size: 10px; line-height: 1; border-radius: 50%;
+  background: rgba(10, 11, 16, 0.9); border: 1px solid rgba(232, 236, 248, 0.55);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); opacity: 1;
+}
 
 /* token */
 /* Absolute inset (not width/height:94%) so the token is a DEFINITE size = its
