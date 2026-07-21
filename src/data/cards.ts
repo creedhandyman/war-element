@@ -247,11 +247,15 @@ export const CARDS: CardDef[] = [
     healsFromBleed: true,
     special: {
       name: "Blood on the Petals",
-      cost: 3,
-      // Was a single-target strike, measured the worst legendary damage special
-      // in the game (2.3/magic, below a cost-2 epic). Now a sweep of up to 3 —
-      // BLEED drops 5 -> 3 to pay for the extra reach, and Thorn's healsFromBleed
-      // drinks from all three.
+      // 4, up from 3. Was a single-target strike and the worst legendary damage
+      // special in the game (2.3/magic). The sweep fixed that too well: 21 burst
+      // plus BLEED 3 running 2 rounds on three targets is 39 damage, which at
+      // cost 3 came out at 13.0/magic — the highest in the game, above the two
+      // outliers cut in the same pass. The extra magic prices the sweep instead
+      // of shrinking it (9.75/magic).
+      cost: 4,
+      // Now a sweep of up to 3 — BLEED drops 5 -> 3 to pay for the extra reach,
+      // and Thorn's healsFromBleed drinks from all three.
       handler: "barrage",
       params: { dmg: 7, pen: 1, targets: 3, statusKind: "BLEED", statusPower: 3, statusDuration: 2 },
       targetSide: "enemy",
@@ -1830,9 +1834,15 @@ export const CARDS: CardDef[] = [
       // in the game, on a cost-3 epic that ALSO paralyzes the whole board. Same
       // cut as Sprinu: the board-wide PARALYZE is the identity, so the reach and
       // the control stay and only the damage halves.
-      params: { dmg: 3, hits: 1, targets: 99, statusKind: "PARALYZE", statusDuration: 1 },
+      //
+      // statusDuration 2, not 1, and it's what makes Static Discharge real: the
+      // roundTick above hits PARALYZED enemies at Cleanup step 4b, but statuses
+      // tick down at step 3 — so a 1-round PARALYZE was always gone before its
+      // own tick looked for it. Measured 0 damage from the combo. Same trap as
+      // Fallow's ROOT feeding Trapper.
+      params: { dmg: 3, hits: 1, targets: 99, statusKind: "PARALYZE", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 3 DMG and PARALYZE every opponent in range for 1 round.",
+      text: "Deal 3 DMG and PARALYZE every opponent in range for 2 rounds.",
     },
   },
   {

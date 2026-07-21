@@ -1095,6 +1095,16 @@ describe("outlier cuts and the Thorn sweep", () => {
     expect(touched).toBe(4); // reach kept
     expect(dealt).toBe(12); // 3 x 4, down from 6 x 4
     for (const f of foes)
-      expect(next.cards[f.instanceId].statuses.find((x) => x.kind === "PARALYZE")).toBeDefined();
+      expect(next.cards[f.instanceId].statuses.find((x) => x.kind === "PARALYZE")?.duration).toBe(2);
+  });
+
+  it("Lytning's Static Discharge actually fires — the combo was dead at PARALYZE 1", () => {
+    // Cleanup ticks statuses down at step 3 but runs roundTick at 4b, so a
+    // 1-round PARALYZE expired before its own tick looked for it: measured 0
+    // damage from the combo, every round. Duration 2 is what closes the loop.
+    const { next, foes, dealt } = sweep("bolt_lytning");
+    const after = advance(atCleanup(next));
+    const total = foes.reduce((t, f) => t + (900 - after.cards[f.instanceId].curHp), 0);
+    expect(total).toBe(dealt + 8); // 2 DMG on each of the 4 still-PARALYZED foes
   });
 });
