@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
-import { applyStatus, basicAttack } from "../combat";
+import { applyStatus, basicAttack, effectiveBasicHits } from "../combat";
 import { canBasicAttack, canFireSpecial, isActionBlocked } from "../rules";
 import { effectiveDmg, effectiveSp } from "../state";
 import { atCleanup, giveHand, place, prepState, seedForCoins } from "./helpers";
@@ -289,6 +289,20 @@ describe("firing specials", () => {
     // lands clean for 2 — 3 total. Each still strips one, which is the point.
     expect(n2.cards[w2.instanceId].curShields).toBe(0); // all three stripped
     expect(n2.cards[w2.instanceId].curHp).toBe(17);
+  });
+
+  it("at 4 hits Krysteel takes King of the Hill as +1 HIT, not +1 DMG", () => {
+    // The threshold nobody would see coming from the stat line: hits < 4 gets
+    // +1 DMG in a mid row, 4+ gets +1 HIT instead (MULTI_HIT_BONUS_MIN). The
+    // 3×3 → 2×4 swap crossed it, so the mid-row profile went 4×3=12 raw to
+    // 2×5=10 — most of the nerf actually lives here, not in the printed 9→8.
+    const s = prepState();
+    const home = place(s, "bore_krysteel", "P1", 3, 0); // own back row
+    const mid = place(s, "bore_krysteel", "P1", 2, 0); // the aggressive slot
+    expect(effectiveDmg(s, s.cards[home.instanceId])).toBe(2);
+    expect(effectiveBasicHits(s.cards[home.instanceId])).toBe(4); // 8 raw
+    expect(effectiveDmg(s, s.cards[mid.instanceId])).toBe(2); // NOT 3 — no per-shard bump
+    expect(effectiveBasicHits(s.cards[mid.instanceId])).toBe(5); // 10 raw
   });
 
   it("BLOCK 2 zeroes Krysteel's basic outright — the spray's hard counter", () => {

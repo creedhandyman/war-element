@@ -544,11 +544,14 @@ export const CARDS: CardDef[] = [
     cardClass: "Ranger",
     attackType: "Ranged",
     cost: 4,
-    // 4 hits × 2, from 3×3. A shard-spray shredder: one less raw damage (8 vs
-    // 9) bought with a 4th hit. Each hit strips a shield and rolls CRIT
-    // separately, so it chews shield stacks and fishes for crits far better.
-    // The cost is flat per-hit reduction — BLOCK is subtracted from each shard
-    // BEFORE the crit doubles it, so BLOCK 2 zeroes this basic outright.
+    // 4 hits × 2, from 3×3 — a nerf, and a bigger one than 9→8 raw looks.
+    // Going to 4 hits crosses MULTI_HIT_BONUS_MIN, which flips which King of
+    // the Hill bonus a mid row pays: under 4 hits it's +1 DMG (every shard),
+    // at 4+ it's +1 HIT. So the mid row went 4×3=12 to 2×5=10, while its own
+    // back row went 9 to 8. Measured, both rows.
+    // The upside is hit COUNT — each shard strips a shield and rolls CRIT
+    // separately, so it shreds stacks. The downside is flat reduction: BLOCK
+    // is charged per shard BEFORE the crit doubles, so BLOCK 2 zeroes it.
     dmg: 2,
     hits: 4,
     hp: 10,
