@@ -27,7 +27,7 @@ import type {
   Pos,
   StatusKind,
 } from "./types";
-import { BOARD_SIZE, MULTI_HIT_BONUS_MIN, NEGATIVE_STATUSES, enemyOf, homeRow } from "./types";
+import { BOARD_SIZE, NEGATIVE_STATUSES, enemyOf, hillGivesHit, homeRow } from "./types";
 
 /** Whether a card is standing on the ENEMY half of the board — two rows or more
  *  from its own home. Gates Vaga's first-strike and Ravven's Shadow Haunter. */
@@ -77,7 +77,9 @@ export function effectiveBasicHits(card: CardInstance): number {
   // none of the usual stacking.
   if (card.loadedStrike) return card.loadedStrike.hits;
   let hits = def.hits + (card.hitsBonus ?? 0) + (card.hitsBonusRound ?? 0) + (card.loadedHits ?? 0);
-  if (def.hits >= MULTI_HIT_BONUS_MIN && card.pos && (card.pos.row === 1 || card.pos.row === 2)) hits += 1;
+  // King of the Hill, the +1 HIT half. hillGivesHit() is the single source of
+  // truth — effectiveDmg takes the exact complement.
+  if (hillGivesHit(def.dmg, def.hits) && card.pos && (card.pos.row === 1 || card.pos.row === 2)) hits += 1;
   return hits;
 }
 

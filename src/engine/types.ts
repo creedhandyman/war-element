@@ -797,6 +797,23 @@ export const BOARD_SIZE = 4;
  *  (King-of-the-Hill mid row, Flow Change Liquid). Cards below this get the flat
  *  +DMG; only heavy multi-hit cards (4+) trade it for an extra hit. */
 export const MULTI_HIT_BONUS_MIN = 4;
+/** Which half of the King-of-the-Hill mid-row bonus a card takes: `true` = +1
+ *  HIT (worth its DMG), `false` = +1 DMG (worth its hit count).
+ *
+ *  The +1 HIT branch exists so a heavy shredder doesn't balloon — Clipsey at
+ *  1×7 would become 2×7 = 14 on a flat +1 DMG. But for a 1-damage card that
+ *  branch is worth only +1, which made a 4th printed hit an actual DOWNGRADE:
+ *  1×4 delivered 5 in a mid row while 1×3 delivered 6, so the card printing
+ *  MORE raw damage hit for less. Low-damage cards up to 5 hits therefore keep
+ *  the DMG branch; 6+ hits stay on the HIT branch, where ballooning is the real
+ *  risk.
+ *
+ *  Both call sites (effectiveDmg, effectiveBasicHits) MUST read this one
+ *  function — they are exact complements, and a card that satisfied both (or
+ *  neither) would get a double bonus (or none). */
+export function hillGivesHit(dmg: number, hits: number): boolean {
+  return hits >= MULTI_HIT_BONUS_MIN && !(dmg === 1 && hits <= 5);
+}
 /** Hard ceiling on match length. Without one a match can run forever: two sides
  *  whose survivors can't reach each other, with per-round chip damage exactly
  *  offset by healing, sit frozen indefinitely. At the ceiling the match is

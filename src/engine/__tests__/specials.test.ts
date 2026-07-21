@@ -5,6 +5,7 @@ import { applyIntent } from "../phases";
 import { applyStatus, basicAttack, effectiveBasicHits } from "../combat";
 import { canBasicAttack, canFireSpecial, isActionBlocked } from "../rules";
 import { effectiveDmg, effectiveSp } from "../state";
+import { CARDS } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState, seedForCoins } from "./helpers";
 import { advance } from "../phases";
 import type { GameState } from "../types";
@@ -1132,6 +1133,50 @@ describe("repriced board specials", () => {
       const me = place(s, id, "P1", 2, 1, { autoMode: "manual" });
       place(s, "dusk_gool", "P2", 1, 0, { curHp: 900, maxHp: 900, curShields: 0 });
       expect(canFireSpecial(s, me.instanceId).ok, id).toBe(false);
+    }
+  });
+});
+
+describe("King of the Hill — which half of the bonus a mid row pays", () => {
+  const mid = (id: string) => {
+    const s = prepState();
+    const c = place(s, id, "P1", 2, 1, { autoMode: "manual" });
+    return effectiveDmg(s, s.cards[c.instanceId]) * effectiveBasicHits(s.cards[c.instanceId]);
+  };
+
+  it("a 4th printed hit no longer makes a card WEAKER in a mid row", () => {
+    // The inversion this fixed: Electricel prints 1x4 (4 raw) and DrShock 1x3
+    // (3 raw), yet the +1 HIT branch left Electricel on 5 in a mid row while
+    // DrShock got +1 DMG and reached 6 — more printed damage, less delivered.
+    expect(mid("bolt_drshock")).toBe(6);
+    expect(mid("bolt_electricel")).toBe(8);
+    expect(mid("bolt_electricel")).toBeGreaterThan(mid("bolt_drshock"));
+    expect(mid("dawn_goldeneagle")).toBe(10); // 1x5, same branch
+  });
+
+  it("heavy shredders keep the +1 HIT branch — no ballooning", () => {
+    // Clipsey on a flat +1 DMG would be 2x7 = 14, which is the whole reason the
+    // HIT branch exists. 6+ hits stay on it.
+    expect(mid("dawn_clipsey")).toBe(8); // 1x7 -> 1x8
+  });
+
+  it("cards above 1 base damage are untouched by the carve-out", () => {
+    // Guards the balance work: these were tuned against the +1 HIT branch and
+    // must not quietly gain a point of damage from this rule.
+    expect(mid("bore_krysteel")).toBe(10); // 2x4 -> 2x5
+    expect(mid("dawn_kosmos")).toBe(10);
+    expect(mid("aqua_vaporem")).toBe(12); // 2x5 -> 2x6
+  });
+
+  it("the two halves are exact complements — never both, never neither", () => {
+    // effectiveDmg and effectiveBasicHits read hillGivesHit() from opposite
+    // sides. If they ever drift, a card gets a double bonus or none at all.
+    for (const d of CARDS) {
+      const s = prepState();
+      const c = place(s, d.id, "P1", 2, 1, { autoMode: "manual" });
+      const gotHit = effectiveBasicHits(s.cards[c.instanceId]) > d.hits;
+      const gotDmg = effectiveDmg(s, s.cards[c.instanceId]) > d.dmg;
+      expect(gotHit && gotDmg, `${d.id} got BOTH halves`).toBe(false);
     }
   });
 });
