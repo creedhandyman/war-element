@@ -1108,3 +1108,30 @@ describe("outlier cuts and the Thorn sweep", () => {
     expect(total).toBe(dealt + 8); // 2 DMG on each of the 4 still-PARALYZED foes
   });
 });
+
+describe("repriced board specials", () => {
+  // Both were cheap enough to fire every single round, which is what made them
+  // board-deleters. The casts are unchanged - only the price is.
+  it("Krystal Rain and Whip Strike each cost 3 magic", () => {
+    for (const [id, cost] of [["bore_krysteel", 3], ["bolt_lytning", 3]] as const) {
+      const s = prepState();
+      s.players.P1.magicPool = 9;
+      const me = place(s, id, "P1", 2, 1, { autoMode: "manual" });
+      const foes = [0, 1].map((c) => place(s, "dusk_gool", "P2", 1, c, { curHp: 900, maxHp: 900, curShields: 0 }));
+      const next = applyIntent(battleWith(s, me.instanceId), {
+        type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foes[0].instanceId,
+      });
+      expect(9 - next.players.P1.magicPool, id).toBe(cost);
+    }
+  });
+
+  it("2 magic no longer buys either one", () => {
+    for (const id of ["bore_krysteel", "bolt_lytning"]) {
+      const s = prepState();
+      s.players.P1.magicPool = 2; // was exactly enough before
+      const me = place(s, id, "P1", 2, 1, { autoMode: "manual" });
+      place(s, "dusk_gool", "P2", 1, 0, { curHp: 900, maxHp: 900, curShields: 0 });
+      expect(canFireSpecial(s, me.instanceId).ok, id).toBe(false);
+    }
+  });
+});

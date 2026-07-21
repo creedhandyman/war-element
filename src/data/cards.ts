@@ -569,7 +569,11 @@ export const CARDS: CardDef[] = [
     statusImmune: true, // Krysteellized Field: immune to negative statuses
     special: {
       name: "Krystal Rain",
-      cost: 2,
+      // 3, up from 2. The board-deleting engine: 3 DMG with a CRIT roll on
+      // EVERY opponent in range, measured at 12 flat / 24 all-crit against a
+      // four-card board, from a mid row, with no cooldown. The problem was
+      // never one cast — it was that 2 magic made it the default every round.
+      cost: 3,
       handler: "barrage",
       // printed "3 DMG CRIT to all opponents"
       params: { dmg: 3, targets: 99, crit: 1 },
@@ -1827,7 +1831,11 @@ export const CARDS: CardDef[] = [
     roundTick: { aoeParalyzedDmg: 2 },
     special: {
       name: "Whip Strike",
-      cost: 2,
+      // 3, up from 2. Reviving Static Discharge (PARALYZE 1 -> 2) handed back
+      // most of the damage cut — 12.0 -> 6.0 -> 10.0/magic — and doubled the
+      // board-wide control on top. Pricing the cast keeps the combo whole
+      // rather than breaking it again: ~6.7/magic.
+      cost: 3,
       handler: "barrage",
       // printed "2×3 DMG and PARALYZE all opponents" — 2 hits of 3 per target
       // hits 2 -> 1. Measured at 12.0 damage per magic — tied for the highest
