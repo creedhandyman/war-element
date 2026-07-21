@@ -64,6 +64,35 @@ function useCombatFx(instanceId: string, miss: number, crit: number) {
   return fx;
 }
 
+/** A one-shot motion class for auras that deal damage with no battle turn
+ *  behind them, so the HP change isn't unexplained. Same counter trick as
+ *  useCombatFx: the engine bumps a number, a rise plays the animation once.
+ *  The class is stripped again after the keyframes finish, so the next trigger
+ *  re-adds it and restarts cleanly — no render key, which would remount the
+ *  token and reload its art. */
+function useMotionFx(instanceId: string, lunge: number, recoil: number) {
+  const prev = useRef({ lunge, recoil, id: instanceId });
+  const [fx, setFx] = useState<{ cls: "lunging" | "recoiling" } | null>(null);
+  useEffect(() => {
+    if (prev.current.id !== instanceId) {
+      prev.current = { lunge, recoil, id: instanceId };
+      setFx(null);
+      return;
+    }
+    let cls: "lunging" | "recoiling" | null = null;
+    if (lunge > prev.current.lunge) cls = "lunging";
+    else if (recoil > prev.current.recoil) cls = "recoiling";
+    prev.current = { lunge, recoil, id: instanceId };
+    if (cls) setFx({ cls });
+  }, [lunge, recoil, instanceId]);
+  useEffect(() => {
+    if (!fx) return;
+    const t = setTimeout(() => setFx(null), 420); // must outlast the keyframes
+    return () => clearTimeout(t);
+  }, [fx]);
+  return fx;
+}
+
 export function Token(props: {
   game: GameState;
   card: CardInstance;
@@ -80,6 +109,7 @@ export function Token(props: {
   const human = (game.humans ?? ["P1"]).includes(card.owner);
   const hpFlash = useHpFlash(card.instanceId, card.curHp);
   const combatFx = useCombatFx(card.instanceId, card.fxMiss ?? 0, card.fxCrit ?? 0);
+  const motionFx = useMotionFx(card.instanceId, card.fxLunge ?? 0, card.fxRecoil ?? 0);
   // Attack spotlight: during Battle, the card at the front of the speed queue is
   // the one taking its turn — grow it slightly so you can see who's acting.
   const battle = game.battle;
@@ -107,6 +137,10 @@ export function Token(props: {
     props.selected ? "selected" : "",
     props.acting ? "acting" : "",
     isAttacking ? "attacking" : "",
+    // Lunge fires toward the enemy, which is UP the screen for the viewer's own
+    // cards and DOWN for the opponent's — the board is drawn viewer-home-at-
+    // bottom, so the direction has to follow `mine`, not the owner id.
+    motionFx ? `${motionFx.cls} ${mine ? "fx-up" : "fx-down"}` : "",
   ]
     .filter(Boolean)
     .join(" ");

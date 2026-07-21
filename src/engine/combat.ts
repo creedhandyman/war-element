@@ -498,6 +498,11 @@ export function resolveHit(
       const back = Math.floor(tDef.dmg / 2);
       if (back > 0) {
         draft.log.push(`${tDef.name} lashes out from the shadows (${back} DMG).`);
+        // Telegraph on the KILLER, not the source: defeatCard has already
+        // removed the dying card from state.cards, so there is nothing left on
+        // the board to animate. The recoil on whoever landed the killing blow is
+        // the only place this can be shown.
+        attacker.fxRecoil = (attacker.fxRecoil ?? 0) + 1;
         const r = resolveHit(draft, target, attacker, { kind: "reflect", dmg: back, hits: 1, pen: false, crit: false });
         if (r.targetDied) result.attackerDied = true;
       }

@@ -853,6 +853,10 @@ function applyElementSummonAura(draft: GameState, inst: CardInstance): void {
         const foe = closest(inst, boardCards(draft, enemyOf(inst.owner)).filter((c) => c.curHp > 0));
         if (foe) {
           draft.log.push(`${def.name} awakens — ${dmg} DMG to ${getDef(foe.defId).name}.`);
+          // Telegraph it: this strike lands the moment the card is placed, with
+          // no battle turn behind it, so without a lunge the target just loses
+          // HP for no visible reason.
+          inst.fxLunge = (inst.fxLunge ?? 0) + 1;
           directDamage(draft, inst, foe, dmg, false);
         }
       }

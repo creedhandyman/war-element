@@ -520,6 +520,15 @@ export interface CardInstance {
    *  over the token when the count rises. No gameplay effect. */
   fxMiss?: number;
   fxCrit?: number;
+  /** Bumped when this card lands an OUT-OF-TURN strike that has no attack
+   *  animation of its own — currently DAWN's Awakening, which fires the instant
+   *  the card is summoned. The renderer plays a quick lunge so the damage isn't
+   *  unexplained. */
+  fxLunge?: number;
+  /** Bumped when this card is struck by a DYING card's parting shot (DUSK's
+   *  Midnight Shade). The source is already off the board by then and cannot be
+   *  animated, so the telegraph has to live on the card taking the hit. */
+  fxRecoil?: number;
   /** Extra basic hits queued for the NEXT basic attack (Dart Frog's loaded
    *  darts). Consumed the next time this card basic-attacks. */
   loadedHits: number;

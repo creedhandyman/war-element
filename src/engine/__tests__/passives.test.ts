@@ -1377,3 +1377,41 @@ describe("partial-effect fixes (Epic sweep)", () => {
     expect(rad.dmgBonus).toBe(3); // +3 DMG
   });
 });
+
+describe("element-aura telegraphs (fx counters)", () => {
+  it("DAWN's Awakening bumps fxLunge on the card that strikes", () => {
+    // Fires on SUMMON, outside any battle turn — without a counter the victim
+    // just loses HP with nothing on screen to explain it.
+    const s = prepState();
+    s.players.P1.summonPool = 9;
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    // Musk Ox, not GoldenEagle: Awakening is floor(dmg / 2), and a 1-DMG card
+    // deals 0, so the aura never fires and there'd be nothing to telegraph.
+    const handId = giveHand(s, "P1", "dawn_musk_ox"); // DAWN, 6 DMG -> strikes for 3
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const summoned = boardCards(next, "P1").find((c) => c.defId === "dawn_musk_ox")!;
+    expect(next.cards[foe.instanceId].curHp).toBe(37); // it really struck
+    expect(summoned.fxLunge ?? 0).toBe(1);
+  });
+
+  it("DUSK's Midnight Shade bumps fxRecoil on the KILLER, not the corpse", () => {
+    // The dying card is removed by defeatCard before the aura resolves, so the
+    // telegraph has to live on the survivor or it can never be drawn.
+    const s = prepState();
+    const killer = place(s, "leaf_alpha", "P1", 2, 0, { curHp: 30, maxHp: 30 });
+    const dusk = place(s, "dusk_gool", "P2", 1, 0, { curHp: 1, maxHp: 20, curShields: 0 });
+    basicAttack(s, killer.instanceId, dusk.instanceId);
+    expect(s.cards[dusk.instanceId]).toBeUndefined(); // corpse is gone
+    expect(s.cards[killer.instanceId].fxRecoil ?? 0).toBe(1);
+  });
+
+  it("an ordinary kill leaves the counters alone", () => {
+    // Guards against the telegraph firing on every death and becoming noise.
+    const s = prepState();
+    const killer = place(s, "leaf_alpha", "P1", 2, 0, { curHp: 30, maxHp: 30 });
+    const plain = place(s, "leaf_greegon", "P2", 1, 0, { curHp: 1, maxHp: 20, curShields: 0 }); // not DUSK
+    basicAttack(s, killer.instanceId, plain.instanceId);
+    expect(s.cards[killer.instanceId].fxRecoil ?? 0).toBe(0);
+    expect(s.cards[killer.instanceId].fxLunge ?? 0).toBe(0);
+  });
+});

@@ -367,6 +367,47 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    lifts above its neighbours so it's obvious who's acting. */
 .token.attacking { z-index: 6; box-shadow: 0 0 0 2px var(--accent), 0 0 26px 5px rgba(224, 166, 53, 0.55), 0 8px 20px rgba(0, 0, 0, 0.55); animation: attackpop 0.9s ease-in-out infinite; }
 @keyframes attackpop { 0%, 100% { transform: scale(1.11); } 50% { transform: scale(1.16); } }
+
+/* ── Out-of-turn strike telegraphs ────────────────────────────────────────────
+   Some auras deal damage with no battle turn behind them, so HP just dropped
+   for no visible reason. DAWN's Awakening fires the instant a card is summoned:
+   the summoned card lunges at its victim. DUSK's Midnight Shade fires as a card
+   DIES — that card is already off the board and cannot be animated, so the
+   killer takes a knock-back instead.
+
+   Direction follows the card's facing, not its owner: the board is drawn with
+   the viewer's home at the bottom, so the viewer's cards face UP and the
+   opponent's face DOWN (.fx-up / .fx-down, set in Token.tsx from `mine`).
+
+   Declared AFTER .token.attacking on purpose — that runs an infinite transform
+   animation, and for these ~0.3s the one-shot should win. */
+.token.lunging.fx-up { animation: lungeUp 300ms ease-out; z-index: 7; }
+.token.lunging.fx-down { animation: lungeDown 300ms ease-out; z-index: 7; }
+@keyframes lungeUp {
+  0% { transform: translateY(0) scale(1); }
+  40% { transform: translateY(-22%) scale(1.12); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes lungeDown {
+  0% { transform: translateY(0) scale(1); }
+  40% { transform: translateY(22%) scale(1.12); }
+  100% { transform: translateY(0) scale(1); }
+}
+/* Knocked backwards — away from the enemy it was facing. */
+.token.recoiling.fx-up { animation: recoilUp 320ms ease-out; z-index: 7; }
+.token.recoiling.fx-down { animation: recoilDown 320ms ease-out; z-index: 7; }
+@keyframes recoilUp {
+  0% { transform: translateY(0) rotate(0); }
+  30% { transform: translateY(15%) rotate(-4deg); }
+  62% { transform: translateY(-5%) rotate(2deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+@keyframes recoilDown {
+  0% { transform: translateY(0) rotate(0); }
+  30% { transform: translateY(-15%) rotate(4deg); }
+  62% { transform: translateY(5%) rotate(-2deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
 /* Art as a real <img>: browsers give <img> their best (multi-tap) downsampling,
    which stays smooth even at the ~9x downscale from the 1024px source — far
    sharper than a CSS background-image. A missing file hides the img (onError),
@@ -1028,6 +1069,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .castflash-text { margin-top: 4px; font-size: 11.5px; line-height: 1.35; color: var(--ink-dim, #a9a99c); }
 @media (prefers-reduced-motion: reduce) {
   .castflash, .castflash-burst, .castflash-card { animation-duration: 0.01s; }
+  /* The telegraphs are motion-only; drop them rather than jolt the board. */
+  .token.lunging, .token.recoiling { animation: none; }
 }
 
 /* ── Modal "choice" spell picker (Chill: strike a foe vs shield an ally) ── */
