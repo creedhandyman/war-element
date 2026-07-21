@@ -118,23 +118,51 @@ describe("FLYING & STEALTH", () => {
   });
 });
 
-describe("ranged queen-line", () => {
-  it("coverage from a mid slot, 4x4", () => {
+describe("ranged reach — 2 king-steps, blocked on straight lines", () => {
+  it("reaches every square within 2 king-steps, knight-shapes included", () => {
     const s = prepState();
     const me = place(s, "dusk_ghastly", "P2", 2, 1, { autoMode: "manual" }); // Ranged
-    const grid: string[] = [];
-    for (let r = 0; r < 4; r++) {
-      let row = "";
-      for (let c = 0; c < 4; c++) {
-        if (r === 2 && c === 1) { row += " R "; continue; }
-        row += rangedCanSee(s, me.pos!, { row: r, col: c } as Pos) ? " X " : " . ";
-      }
-      grid.push(row);
-    }
-    console.log("\n  ranged at (2,1) — X = can hit, . = cannot:\n" + grid.map((g) => "    " + g).join("\n"));
-    expect(rangedCanSee(s, me.pos!, { row: 0, col: 1 })).toBe(true);  // 2 straight
-    expect(rangedCanSee(s, me.pos!, { row: 0, col: 3 })).toBe(true);  // 2 diagonal
-    expect(rangedCanSee(s, me.pos!, { row: 0, col: 2 })).toBe(false); // knight-square
+    expect(rangedCanSee(s, me.pos!, { row: 0, col: 1 })).toBe(true); // 2 straight
+    expect(rangedCanSee(s, me.pos!, { row: 0, col: 3 })).toBe(true); // 2 diagonal
+    // Knight-shaped: one row over, two columns across. Ray-only targeting left
+    // these permanently unhittable though they sit 2 steps away — the hole this
+    // rule was widened to close.
+    expect(rangedCanSee(s, me.pos!, { row: 0, col: 2 })).toBe(true);
+    expect(rangedCanSee(s, me.pos!, { row: 0, col: 0 })).toBe(true);
+  });
+
+  it("3 king-steps is still out of reach", () => {
+    const s = prepState();
+    const me = place(s, "dusk_ghastly", "P2", 0, 0, { autoMode: "manual" });
+    expect(rangedCanSee(s, me.pos!, { row: 2, col: 2 })).toBe(true);  // exactly 2
+    expect(rangedCanSee(s, me.pos!, { row: 3, col: 0 })).toBe(false); // 3 straight
+    expect(rangedCanSee(s, me.pos!, { row: 1, col: 3 })).toBe(false); // 3 across
+  });
+
+  it("the reported gap: a Ranger on r1c3 can shoot r2c1", () => {
+    // Straight from a real game — Dart Frog on r1c3, Rhe on r2c1 and Hillbilly
+    // on r0c1 both two king-steps away, and Basic Attack greyed out entirely
+    // because neither enemy happened to sit on a ray.
+    const s = prepState();
+    const frog = place(s, "leaf_dartfrog", "P1", 1, 3, { autoMode: "manual" });
+    const rhe = place(s, "bore_rhe", "P2", 2, 1);
+    const hillbilly = place(s, "bore_hillbilly", "P2", 0, 1);
+    const far = place(s, "aqua_blackbeard", "P2", 2, 0); // 3 columns across — still out
+    const ids = validTargets(s, frog.instanceId).map((t) => t.instanceId);
+    expect(ids).toContain(rhe.instanceId);
+    expect(ids).toContain(hillbilly.instanceId);
+    expect(ids).not.toContain(far.instanceId);
+  });
+
+  it("knight-shaped shots arc — nothing can screen them", () => {
+    // No single square sits between r1c3 and r2c1, so there is nothing for a
+    // body to stand on. Occupying both plausible paths must not block it.
+    const s = prepState();
+    const frog = place(s, "leaf_dartfrog", "P1", 1, 3, { autoMode: "manual" });
+    const rhe = place(s, "bore_rhe", "P2", 2, 1);
+    place(s, "leaf_alpha", "P1", 1, 2);
+    place(s, "leaf_greegon", "P1", 2, 2);
+    expect(validTargets(s, frog.instanceId).map((t) => t.instanceId)).toContain(rhe.instanceId);
   });
 
   it("a body on the ray blocks the shot beyond it — and IS the target", () => {

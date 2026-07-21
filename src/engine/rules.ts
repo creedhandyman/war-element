@@ -113,24 +113,28 @@ export function legalMoves(state: GameState, player: PlayerId, instanceId: strin
  * - FLYING: immune to Melee — unless the attacker is ALSO flying (a flying
  *   melee card can strike other fliers). STEALTH: untargetable until it attacks.
  */
-/** How far a ranged BASIC attack sees along one of its rays. */
+/** How far a ranged BASIC attack sees, in king-steps (Chebyshev distance). */
 export const RANGED_REACH = 2;
 
 /**
- * Ranged line of sight — a queen's move in chess, capped at RANGED_REACH.
+ * Ranged line of sight: everything within RANGED_REACH king-steps — a 5×5 box
+ * centred on the shooter — with bodies blocking along the straight lines.
  *
- * The target must lie on one of the 8 rays (same row, same column, or a true
- * diagonal) within RANGED_REACH spaces, and any card standing on the ray STOPS
- * the shot beyond it. The blocker itself stays a legal target — you can always
- * shoot the thing in your face.
+ * Range is Chebyshev distance, NOT a queen's ray. Ray-only left holes at the
+ * knight-shaped squares (one row over, two columns across): a card two steps
+ * away, plainly beside you, was untargetable at any odds. The gap showed up in
+ * play — a Dart Frog on r1c3 could not shoot Rhe on r2c1 and had its whole
+ * attack greyed out with two enemies standing next to it.
  *
- * Blocking is symmetric: your own cards screen just as enemy ones do, which is
- * the point — a front line now physically shields the back row it stands in
- * front of, and your own tank can get in your archer's way.
+ * Blocking still applies, but only where a straight line exists (same row,
+ * same column, or a true diagonal). On those the single intervening square
+ * stops the shot; the blocker itself stays a legal target, since you can always
+ * shoot the thing in your face. Knight-shaped shots have no single line to
+ * interrupt, so they arc over the gap and cannot be screened.
  *
- * Squares off every ray are unreachable at ANY distance: from (2,2) on a 5x5
- * that is (0,1) (0,3) (1,0) (1,4) (3,0) (3,4) (4,1) (4,3) — the knight-squares.
- * Reposition to open a line.
+ * Blocking is symmetric: your own cards screen just as enemy ones do, so a
+ * front line physically shields the row behind it — and your own tank can get
+ * in your archer's way.
  */
 export function rangedCanSee(state: GameState, from: Pos, to: Pos): boolean {
   const dr = to.row - from.row;
@@ -138,14 +142,17 @@ export function rangedCanSee(state: GameState, from: Pos, to: Pos): boolean {
   const adr = Math.abs(dr);
   const adc = Math.abs(dc);
   if (adr === 0 && adc === 0) return false;
-  if (!(dr === 0 || dc === 0 || adr === adc)) return false; // off-ray
   const dist = Math.max(adr, adc);
   if (dist > RANGED_REACH) return false;
-  const sr = Math.sign(dr);
-  const sc = Math.sign(dc);
-  for (let i = 1; i < dist; i++) {
-    // Stop BEFORE the target: a body between blocks, the target itself doesn't.
-    if (cardAt(state, from.row + sr * i, from.col + sc * i)) return false;
+  // Straight line → walk it and let a body in between stop the shot.
+  const onLine = dr === 0 || dc === 0 || adr === adc;
+  if (onLine) {
+    const sr = Math.sign(dr);
+    const sc = Math.sign(dc);
+    for (let i = 1; i < dist; i++) {
+      // Stop BEFORE the target: a body between blocks, the target itself doesn't.
+      if (cardAt(state, from.row + sr * i, from.col + sc * i)) return false;
+    }
   }
   return true;
 }
