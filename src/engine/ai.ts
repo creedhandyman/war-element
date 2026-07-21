@@ -33,7 +33,7 @@ import type {
   PlayerId,
   Pos,
 } from "./types";
-import { BOARD_SIZE, enemyOf, homeRow } from "./types";
+import { enemyOf, homeRow } from "./types";
 
 // ── mulligan ────────────────────────────────────────────────────────────────
 
@@ -53,7 +53,7 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
     .slice()
     .sort((a, b) => getDef(b.defId).cost - getDef(a.defId).cost);
   for (const h of hand) {
-    for (let col = 0; col < BOARD_SIZE; col++) {
+    for (let col = 0; col < state.boardSize; col++) {
       if (canSummon(state, player, h.handId, col).ok) {
         return { type: "SUMMON", player, handId: h.handId, col };
       }
@@ -158,7 +158,7 @@ function findCaptureMove(state: GameState, player: PlayerId): Intent | null {
         b.curHp + b.curShields * 2 - (a.curHp + a.curShields * 2),
     );
   for (const mover of movers) {
-    for (let col = 0; col < BOARD_SIZE; col++) {
+    for (let col = 0; col < state.boardSize; col++) {
       if (state.slots[enemyHome][col].capturedBy) continue; // already locked
       const to = { row: enemyHome, col } as Pos;
       if (!canMove(state, player, mover.instanceId, to).ok) continue;
@@ -199,7 +199,7 @@ function bfsDistance(state: GameState, from: Pos, goals: Pos[]): number {
       for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
         const row = p.row + dr;
         const col = p.col + dc;
-        if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) continue;
+        if (row < 0 || row >= state.boardSize || col < 0 || col >= state.boardSize) continue;
         const key = `${row},${col}`;
         if (seen.has(key)) continue;
         seen.add(key);
@@ -227,7 +227,7 @@ function bfsDistance(state: GameState, from: Pos, goals: Pos[]): number {
 function findClosingMove(state: GameState, player: PlayerId): Intent | null {
   const enemyHome = homeRow(enemyOf(player));
   const goals: Pos[] = [];
-  for (let col = 0; col < BOARD_SIZE; col++) {
+  for (let col = 0; col < state.boardSize; col++) {
     if (!state.slots[enemyHome][col].capturedBy)
       goals.push({ row: enemyHome, col } as Pos);
   }
@@ -242,8 +242,8 @@ function findClosingMove(state: GameState, player: PlayerId): Intent | null {
     const cur = distToGoal(mover.pos!);
     let best: Pos | null = null;
     let bestDist = cur;
-    for (let row = 0; row < BOARD_SIZE; row++)
-      for (let col = 0; col < BOARD_SIZE; col++) {
+    for (let row = 0; row < state.boardSize; row++)
+      for (let col = 0; col < state.boardSize; col++) {
         const to = { row, col } as Pos;
         if (!canMove(state, player, mover.instanceId, to).ok) continue;
         const d = distToGoal(to);
@@ -293,13 +293,13 @@ function findAdvance(
     const candidates: Pos[] = [];
     for (let d = reach; d >= 1; d--) {
       const row = mover.pos!.row + d * forward;
-      if (row < 0 || row >= BOARD_SIZE) continue;
+      if (row < 0 || row >= state.boardSize) continue;
       const clamped = forward === 1 ? Math.min(enemyHome, row) : Math.max(enemyHome, row);
       if (clamped === mover.pos!.row) continue;
       const remaining = reach - Math.abs(clamped - mover.pos!.row);
       for (let dc = -remaining; dc <= remaining; dc++) {
         const col = mover.pos!.col + dc;
-        if (col < 0 || col >= BOARD_SIZE) continue;
+        if (col < 0 || col >= state.boardSize) continue;
         candidates.push({ row: clamped, col } as Pos);
       }
     }

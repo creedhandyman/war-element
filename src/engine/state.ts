@@ -30,6 +30,7 @@ export function createInitialState(
   humans: PlayerId[] = ["P1"],
   p1Spells?: string[],
   p2Spells?: string[],
+  boardSize: number = BOARD_SIZE,
 ): GameState {
   const state: GameState = {
     rngState: seed | 0,
@@ -42,8 +43,9 @@ export function createInitialState(
       P2: emptyPlayer(resolveDeck(p2Deck), p2Spells),
     },
     cards: {},
-    slots: Array.from({ length: BOARD_SIZE }, () =>
-      Array.from({ length: BOARD_SIZE }, () => ({ capturedBy: null })),
+    boardSize,
+    slots: Array.from({ length: boardSize }, () =>
+      Array.from({ length: boardSize }, () => ({ capturedBy: null })),
     ),
     prep: null,
     battle: null,
@@ -275,11 +277,11 @@ export function effectiveDmg(state: GameState, card: CardInstance): number {
   if (card.pos && (card.pos.row === 1 || card.pos.row === 2) && !hillGivesHit(def.dmg, def.hits)) dmg += 1;
   for (const midRow of [1, 2]) {
     let held = 0;
-    for (let col = 0; col < BOARD_SIZE; col++) {
+    for (let col = 0; col < state.boardSize; col++) {
       const occ = cardAt(state, midRow, col);
       if (occ && occ.owner === card.owner) held++;
     }
-    if (held === BOARD_SIZE) dmg += 1;
+    if (held === state.boardSize) dmg += 1;
   }
   return Math.max(0, dmg);
 }
@@ -362,7 +364,7 @@ export function spawnTokens(
   if (!spawner.pos) return [];
   const owner = spawner.owner;
   const isOpen = (r: number, c: number) =>
-    r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE &&
+    r >= 0 && r < draft.boardSize && c >= 0 && c < draft.boardSize &&
     !draft.slots[r][c].capturedBy && !cardAt(draft, r, c);
   const slots: Pos[] = [];
   const push = (r: number, c: number) => {
@@ -374,7 +376,7 @@ export function spawnTokens(
     for (let dc = -1; dc <= 1; dc++)
       if (dr !== 0 || dc !== 0) push(spawner.pos.row + dr, spawner.pos.col + dc);
   if (!adjacentOnly)
-    for (let r = 0; r < BOARD_SIZE; r++) for (let c = 0; c < BOARD_SIZE; c++) push(r, c);
+    for (let r = 0; r < draft.boardSize; r++) for (let c = 0; c < draft.boardSize; c++) push(r, c);
 
   const out: CardInstance[] = [];
   for (const pos of slots.slice(0, count)) {
@@ -412,7 +414,7 @@ export function isEliminated(state: GameState, player: PlayerId): boolean {
 export function hasCaptureWin(state: GameState, player: PlayerId): boolean {
   const opp = enemyOf(player);
   const row = homeRow(opp);
-  for (let col = 0; col < BOARD_SIZE; col++) {
+  for (let col = 0; col < state.boardSize; col++) {
     if (state.slots[row][col].capturedBy === player) continue;
     const occ = cardAt(state, row, col);
     if (occ && occ.owner === player) continue;

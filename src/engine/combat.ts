@@ -27,7 +27,7 @@ import type {
   Pos,
   StatusKind,
 } from "./types";
-import { BOARD_SIZE, NEGATIVE_STATUSES, enemyOf, hillGivesHit, homeRow } from "./types";
+import { NEGATIVE_STATUSES, enemyOf, hillGivesHit, homeRow } from "./types";
 
 /** Whether a card is standing on the ENEMY half of the board — two rows or more
  *  from its own home. Gates Vaga's first-strike and Ravven's Shadow Haunter. */
@@ -158,7 +158,7 @@ export function applyStatus(
       !draft.slots[row][target.pos.col].capturedBy &&
       !cardAt(draft, row, target.pos.col)
     ) {
-      target.pos = { ...target.pos, row: row as 0 | 1 | 2 | 3 };
+      target.pos = { ...target.pos, row };
       draft.log.push(`${label(draft, target)} retreats in fright!`);
     }
   }
@@ -219,7 +219,7 @@ export function pushBack(draft: GameState, card: CardInstance, steps: number): v
     const pos = card.pos;
     if (!pos || pos.row === home) break;
     const row: number = pos.row + dir;
-    if (row < 0 || row >= BOARD_SIZE) break;
+    if (row < 0 || row >= draft.boardSize) break;
     if (draft.slots[row][pos.col].capturedBy || cardAt(draft, row, pos.col)) break;
     card.pos = { row: row as Pos["row"], col: pos.col };
     moved++;
@@ -822,7 +822,7 @@ function chargeForward(draft: GameState, card: CardInstance, steps: number): voi
     const pos = card.pos;
     if (!pos) break;
     const row: number = pos.row + dir;
-    if (row < 0 || row >= BOARD_SIZE) break;
+    if (row < 0 || row >= draft.boardSize) break;
     if (draft.slots[row][pos.col].capturedBy) break;
     if (cardAt(draft, row, pos.col)) break;
     card.pos = { row: row as Pos["row"], col: pos.col };
@@ -941,7 +941,7 @@ function onDeathRowAhead(
   pen: boolean,
 ): void {
   const row = rowAhead(deadOwner, pos.row);
-  if (row < 0 || row >= BOARD_SIZE) return;
+  if (row < 0 || row >= draft.boardSize) return;
   const victims = boardCards(draft, enemyOf(deadOwner)).filter((c) => c.pos?.row === row);
   if (victims.length === 0) return;
   draft.log.push(`${getDef(dead.defId).name} erupts on death — ${dmg} DMG to the row ahead!`);

@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { createInitialState } from "../state";
+import { canSummon } from "../rules";
 import { applyIntent, advance, advanceUntilInput } from "../phases";
 import { CARDS, DECK_P1, DECK_P2 } from "../../data/cards";
 import { freshGame, giveHand } from "./helpers";
@@ -247,5 +248,43 @@ describe("resource math (two pools)", () => {
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     expect(next.players.P1.summonPool).toBe(2);
     expect(next.players.P1.magicPool).toBe(5); // untouched
+  });
+});
+
+describe("board size lives on the state", () => {
+  it("defaults to 4x4", () => {
+    const s = createInitialState(1);
+    expect(s.boardSize).toBe(4);
+    expect(s.slots.length).toBe(4);
+    expect(s.slots.every((r) => r.length === 4)).toBe(true);
+  });
+
+  it("a 5x5 match really is 5x5 — slots and bounds both follow the state", () => {
+    const s = createInitialState(1, "leaf_pyro", "bore_dusk", ["P1"], undefined, undefined, 5);
+    expect(s.boardSize).toBe(5);
+    expect(s.slots.length).toBe(5);
+    expect(s.slots.every((r) => r.length === 5)).toBe(true);
+  });
+
+  it("column 4 is summonable on a 5x5 and rejected on a 4x4", () => {
+    // The real proof the refactor bites: the column bound is read from
+    // state.boardSize, not from a module constant. Col 4 does not exist on the
+    // standard board and must still be refused there.
+    const arm = (size: number) => {
+      const s = createInitialState(1, "leaf_pyro", "bore_dusk", ["P1"], undefined, undefined, size);
+      s.players.P1.mulliganDone = true;
+      s.players.P2.mulliganDone = true;
+      s.round = 1;
+      s.phase = "prep";
+      s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+      s.players.P1.summonPool = 9;
+      const handId = `h${s.nextId++}`;
+      s.players.P1.hand.push({ handId, defId: "leaf_greegon" });
+      return { s, handId };
+    };
+    const big = arm(5);
+    expect(canSummon(big.s, "P1", big.handId, 4).ok).toBe(true);
+    const std = arm(4);
+    expect(canSummon(std.s, "P1", std.handId, 4).ok).toBe(false);
   });
 });

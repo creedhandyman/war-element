@@ -397,7 +397,7 @@ export function App() {
     const hr = homeRow(view);
     if (sel?.kind === "hand") {
       const out: Pos[] = [];
-      for (let col = 0; col < 4; col++)
+      for (let col = 0; col < game.boardSize; col++)
         if (canSummon(game, view, sel.handId, col).ok)
           out.push({ row: hr, col } as Pos);
       return out;
@@ -409,16 +409,16 @@ export function App() {
         // Highlight every slot of each legal row so the whole row glows.
         const out: Pos[] = [];
         for (const r of legalWallRows(game, view, spell))
-          for (let col = 0; col < 4; col++) out.push({ row: r, col } as Pos);
+          for (let col = 0; col < game.boardSize; col++) out.push({ row: r, col } as Pos);
         return out;
       }
       if (spell.kind === "aoe" && spell.area !== "board") {
         // Row / two-row AoE: glow every legal target row.
         const out: Pos[] = [];
-        for (let r = 0; r < 4; r++) {
+        for (let r = 0; r < game.boardSize; r++) {
           if (!canAoeRow(game, view, r)) continue;
-          if (spell.area === "tworows" && r + 1 >= 4) continue;
-          for (let col = 0; col < 4; col++) out.push({ row: r, col } as Pos);
+          if (spell.area === "tworows" && r + 1 >= game.boardSize) continue;
+          for (let col = 0; col < game.boardSize; col++) out.push({ row: r, col } as Pos);
         }
         return out;
       }

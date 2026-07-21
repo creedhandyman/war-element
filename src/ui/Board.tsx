@@ -1,5 +1,5 @@
 import type { GameState, PlayerId, Pos } from "../engine";
-import { cardAt, enemyOf, getSpell, isContested } from "../engine";
+import { cardAt, enemyOf, getSpell, homeRow, isContested } from "../engine";
 import { Slot } from "./Slot";
 import { EL_COLOR } from "./shared";
 
@@ -25,8 +25,11 @@ export function Board(props: {
   // Render so the VIEWER's home is always at the bottom. P1 home is row 3
   // (already bottom); for P2 we flip the row order so their home (row 0) sits at
   // the bottom and the opponent's is up top. Clicks still carry the true row/col.
-  const rows: number[] = props.viewPlayer === "P2" ? [3, 2, 1, 0] : [0, 1, 2, 3];
-  const cols: number[] = [0, 1, 2, 3]; // columns stay left-to-right (vertical flip only)
+  // Built from game.boardSize, not a literal [0,1,2,3], so a 5x5 match renders
+  // without touching this file.
+  const ascending = Array.from({ length: game.boardSize }, (_, i) => i);
+  const rows: number[] = props.viewPlayer === "P2" ? [...ascending].reverse() : ascending;
+  const cols: number[] = ascending; // columns stay left-to-right (vertical flip only)
   // Team colours are fixed per player: P1 = gold, P2 = blue. Crests are tinted by
   // team so the bottom (viewer's home) matches its tile colour on both sides.
   const homeGlow = props.viewPlayer === "P1" ? "var(--your-home-glow)" : "var(--opp-home-glow)";
@@ -113,8 +116,8 @@ export function Board(props: {
                 (props.hasSelection || props.legalTargetIds.length > 0 || props.previewArea.length > 0) &&
                 !greenLegal && !redTarget && !preview && !staged;
               const contested =
-                (row === 0 && isContested(game, "P2", col)) ||
-                (row === 3 && isContested(game, "P1", col));
+                (row === homeRow("P2") && isContested(game, "P2", col)) ||
+                (row === homeRow("P1") && isContested(game, "P1", col));
               return (
                 <Slot
                   key={col}

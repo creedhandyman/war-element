@@ -24,7 +24,7 @@ import type {
   Pos,
   SpellDef,
 } from "./types";
-import { BOARD_SIZE, enemyOf, homeRow } from "./types";
+import { enemyOf, homeRow } from "./types";
 import { getSpell } from "./spells";
 
 // ── prep phase ──────────────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ export function canSummon(
   if (def.cost > state.players[player].summonPool)
     return { ok: false, reason: "Not enough summon resources" };
   const row = homeRow(player);
-  if (col < 0 || col >= BOARD_SIZE) return { ok: false, reason: "Bad column" };
+  if (col < 0 || col >= state.boardSize) return { ok: false, reason: "Bad column" };
   if (isCaptured(state, row, col))
     return { ok: false, reason: "Slot is permanently captured" };
   if (isContested(state, player, col))
@@ -75,7 +75,7 @@ export function canMove(
     return { ok: false, reason: "FRIGHTENED — cannot move" };
   const reach = moveReach(effectiveSp(state, card));
   if (reach === 0) return { ok: false, reason: "This card can't move (SP 0)" };
-  if (to.row < 0 || to.row >= BOARD_SIZE || to.col < 0 || to.col >= BOARD_SIZE)
+  if (to.row < 0 || to.row >= state.boardSize || to.col < 0 || to.col >= state.boardSize)
     return { ok: false, reason: "Off the board" };
   // FLYING cards move like a chess king — a diagonal step costs 1, not 2.
   const flying = Boolean(getDef(card.defId).keywords.FLYING);
@@ -94,8 +94,8 @@ export function canMove(
 /** All slots `instanceId` may legally move to right now. */
 export function legalMoves(state: GameState, player: PlayerId, instanceId: string): Pos[] {
   const out: Pos[] = [];
-  for (let row = 0; row < BOARD_SIZE; row++)
-    for (let col = 0; col < BOARD_SIZE; col++) {
+  for (let row = 0; row < state.boardSize; row++)
+    for (let col = 0; col < state.boardSize; col++) {
       const pos = { row, col } as Pos;
       if (canMove(state, player, instanceId, pos).ok) out.push(pos);
     }
@@ -314,10 +314,10 @@ export function previewOnSummonArea(
           : 1;
     for (let d = 1; d <= maxDepth; d++) {
       const r = pos.row + dir * d;
-      if (r < 0 || r >= BOARD_SIZE) continue;
+      if (r < 0 || r >= state.boardSize) continue;
       for (let dc = -spread; dc <= spread; dc++) {
         const c = pos.col + dc;
-        if (c < 0 || c >= BOARD_SIZE) continue;
+        if (c < 0 || c >= state.boardSize) continue;
         out.push({ row: r as Pos["row"], col: c as Pos["col"] });
       }
     }
@@ -494,7 +494,7 @@ function spellReachesEnemyHome(state: GameState, player: PlayerId): boolean {
  *  row, which stays off-limits until one of your cards reaches a Mid row (the
  *  same Home-slot proxy that gates single-target spells). */
 export function canAoeRow(state: GameState, player: PlayerId, row: number): boolean {
-  if (row < 0 || row >= BOARD_SIZE) return false;
+  if (row < 0 || row >= state.boardSize) return false;
   if (row === homeRow(enemyOf(player)) && !spellReachesEnemyHome(state, player)) return false;
   return true;
 }
@@ -527,7 +527,7 @@ export function canPlaceWallRow(
   row: number,
 ): boolean {
   if (!spell.wall) return false;
-  if (row < 0 || row >= BOARD_SIZE) return false;
+  if (row < 0 || row >= state.boardSize) return false;
   if (state.walls.some((w) => w.owner === player && w.row === row)) return false;
   const ownHome = homeRow(player);
   const enemyHome = homeRow(enemyOf(player));
@@ -539,7 +539,7 @@ export function canPlaceWallRow(
 /** Rows a wall Spell may be placed on this Prep. */
 export function legalWallRows(state: GameState, player: PlayerId, spell: SpellDef): number[] {
   const out: number[] = [];
-  for (let r = 0; r < BOARD_SIZE; r++)
+  for (let r = 0; r < state.boardSize; r++)
     if (canPlaceWallRow(state, player, spell, r)) out.push(r);
   return out;
 }
@@ -575,7 +575,7 @@ export function canCastSpell(
     if (spell.area === "board") return { ok: true }; // hits every opponent, no pick
     if (opts.row == null) return { ok: false, reason: "Pick a row" };
     if (!canAoeRow(state, player, opts.row)) return { ok: false, reason: "Can't reach that row" };
-    if (spell.area === "tworows" && opts.row + 1 >= BOARD_SIZE)
+    if (spell.area === "tworows" && opts.row + 1 >= state.boardSize)
       return { ok: false, reason: "No row behind that one" };
     return { ok: true };
   }

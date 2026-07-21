@@ -436,9 +436,13 @@ export interface CardDef {
 
 export type AutoMode = "manual" | "basic" | "full";
 
+/** A board coordinate. Plain numbers, not a 0|1|2|3 literal union: the union
+ *  pinned the whole game to a 4×4 grid at the TYPE level, so no larger board was
+ *  expressible. Bounds are enforced at runtime against `state.boardSize`
+ *  (canSummon / canMoveTo / the walkers all range-check), not by the type. */
 export interface Pos {
-  row: 0 | 1 | 2 | 3;
-  col: 0 | 1 | 2 | 3;
+  row: number;
+  col: number;
 }
 
 export interface CardInstance {
@@ -749,7 +753,11 @@ export interface GameState {
   players: Record<PlayerId, PlayerState>;
   /** All living board cards, keyed by instanceId. Board layout derived from pos. */
   cards: Record<string, CardInstance>;
-  /** 4×4 slot metadata, [row][col]. */
+  /** Width AND height of the square battlefield for THIS match. Lives on the
+   *  state rather than as a module constant so more than one board size can
+   *  exist at once (4×4 standard, 5×5 mode). `slots` is always boardSize². */
+  boardSize: number;
+  /** Slot metadata, [row][col]. `boardSize` × `boardSize`. */
   slots: SlotState[][];
   prep: PrepState | null;
   battle: BattleState | null;
@@ -792,6 +800,10 @@ export const OPENING_HAND = 4;
  *  you're near the cap; that's the intended cost of a hand limit. */
 export const HAND_CAP = 7;
 export const POOL_CARRYOVER_CAP = 10;
+/** DEFAULT board size for a new match. The live value is `state.boardSize` —
+ *  read that, not this, anywhere a GameState is in scope. This constant only
+ *  seeds a new game and serves as the fallback for the handful of pure helpers
+ *  that take an explicit size. */
 export const BOARD_SIZE = 4;
 /** Minimum printed hit count for the "gain +1 HIT instead of +1 DMG" rule
  *  (King-of-the-Hill mid row, Flow Change Liquid). Cards below this get the flat

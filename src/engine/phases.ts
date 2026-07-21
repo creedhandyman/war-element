@@ -50,7 +50,6 @@ import type {
   WallState,
 } from "./types";
 import {
-  BOARD_SIZE,
   HAND_CAP,
   MAX_ROUNDS,
   NEGATIVE_STATUSES,
@@ -92,7 +91,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       p.summonPool -= def.cost;
       const inst = summonCard(draft, intent.player, hand.defId, {
         row: homeRow(intent.player),
-        col: intent.col as 0 | 1 | 2 | 3,
+        col: intent.col,
       });
       if (!draft.humans.includes(intent.player)) inst.autoMode = "full";
       draft.prep!.consecutivePasses = 0;
@@ -1128,7 +1127,7 @@ function doCleanupPhase(draft: GameState): void {
   //    Cleanup captures it permanently.
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const row = homeRow(player);
-    for (let col = 0; col < BOARD_SIZE; col++) {
+    for (let col = 0; col < draft.boardSize; col++) {
       if (draft.slots[row][col].capturedBy) continue;
       const occ = cardAt(draft, row, col);
       if (occ && occ.owner !== player) {
