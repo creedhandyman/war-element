@@ -580,7 +580,7 @@ describe("medium-tier passives (audit batch)", () => {
     basicAttack(s, fallow.instanceId, foe.instanceId);
     const afterHit = s.cards[foe.instanceId].curHp;
     const next = advance(atCleanup(s));
-    expect(next.cards[foe.instanceId].curHp).toBe(afterHit - 2); // Trapper bit
+    expect(next.cards[foe.instanceId].curHp).toBe(afterHit - 1); // Trapper bit
     expect(statusOf(next.cards[foe.instanceId], "ROOT")?.duration).toBe(1); // still pinned for its Prep
   });
 
@@ -601,7 +601,7 @@ describe("medium-tier passives (audit batch)", () => {
     // guard the bite would re-pin its own victim every round and ROOT would
     // never expire — so after one Cleanup this must be 1, not back up to 2.
     const next = advance(atCleanup(s));
-    expect(next.cards[foe.instanceId].curHp).toBe(58); // Trapper landed
+    expect(next.cards[foe.instanceId].curHp).toBe(59); // Trapper landed
     expect(statusOf(next.cards[foe.instanceId], "ROOT")?.duration).toBe(1); // ticked down, not renewed
   });
 
@@ -619,7 +619,7 @@ describe("medium-tier passives (audit batch)", () => {
     basicAttack(s, fallow.instanceId, prey.instanceId);
     expect(statusOf(s.cards[prey.instanceId], "ROOT")?.duration).toBe(2); // pinned
     const next = advance(atCleanup(s));
-    expect(next.cards[distant.instanceId].curHp).toBe(18); // 2 from the traps
+    expect(next.cards[distant.instanceId].curHp).toBe(19); // 1 from the traps
   });
 
   it("Hunting Season auto-hits through EVASION that a basic would whiff", () => {

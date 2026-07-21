@@ -544,8 +544,12 @@ export const CARDS: CardDef[] = [
     cardClass: "Ranger",
     attackType: "Ranged",
     cost: 4,
-    dmg: 3,
-    hits: 3,
+    // 4×2, down from 3×3. Fewer, bigger shards: less raw output (8 vs 9) and
+    // one less CRIT roll per attack — CRIT is rolled per hit, so a 3-hit
+    // basic was getting three bites at it. The bigger shards do cut BLOCK and
+    // other flat per-hit reduction better, which is the trade.
+    dmg: 4,
+    hits: 2,
     hp: 10,
     sp: 8,
     shields: 1,
@@ -3260,7 +3264,9 @@ export const CARDS: CardDef[] = [
     shields: 1,
     keywords: { CRIT: true },
     // Trapper (End of Round): the snares bite everything they're holding.
-    roundTick: { rootedDmg: 2 },
+    // 1, down from 2. The aura pins the whole side's targets, so this ticks on
+    // most of the enemy board at once — the reach is the power, not the number.
+    roundTick: { rootedDmg: 1 },
     // Aura, in the real sense: while Fallow is on the board, everything YOUR
     // WHOLE SIDE hits is pinned — then walks into Trapper at end of round. The
     // two passives are one engine, and the team-wide reach is what makes it an

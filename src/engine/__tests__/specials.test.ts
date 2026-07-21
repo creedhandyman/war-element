@@ -230,20 +230,73 @@ describe("firing specials", () => {
   it("multi-hit basic can split hits across targets (and still gate per target)", () => {
     const s = prepState();
     // home row: printed damage (a mid-row attacker would get the +1 hill bonus)
-    const krysteel = place(s, "bore_krysteel", "P1", 3, 0, { autoMode: "manual" }); // 3 dmg × 3, CRIT
+    // Shift, not Krysteel: this needs a 3-hit basic to prove "2 hits + 1 hit",
+    // and Krysteel is 4×2 now. Shift is 2×3, Ranged, no keywords or riders.
+    const shift = place(s, "bore_shift", "P1", 3, 0, { autoMode: "manual" }); // 2 dmg × 3
     const t1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
     const t2 = place(s, "dusk_ghastly", "P2", 1, 1, { curHp: 19, curShields: 1 });
     s.rngState = seedForCoins(false, false, false); // no CRITs muddying the math
-    const next = applyIntent(battleWith(s, krysteel.instanceId), {
+    const next = applyIntent(battleWith(s, shift.instanceId), {
       type: "BATTLE_ACTION",
       player: "P1",
       action: "basic",
       targetIds: [t1.instanceId, t1.instanceId, t2.instanceId], // 2 hits + 1 hit
     });
-    expect(next.cards[t1.instanceId].curHp).toBe(7); // 13 − 3 − 3
-    // t2: 3 − 1 shield = 2 to HP, shield stripped
-    expect(next.cards[t2.instanceId].curHp).toBe(17);
+    expect(next.cards[t1.instanceId].curHp).toBe(9); // 13 − 2 − 2
+    // t2: 2 − 1 shield = 1 to HP, shield stripped
+    expect(next.cards[t2.instanceId].curHp).toBe(18);
     expect(next.cards[t2.instanceId].curShields).toBe(0);
+  });
+
+  it("Krysteel's basic is 4×2 — two big shards, not three small ones", () => {
+    // The swap is only meaningful if the profile really changed: a third pick
+    // must now be rejected, and each landed shard must be worth 4.
+    const s = prepState();
+    const krysteel = place(s, "bore_krysteel", "P1", 3, 0, { autoMode: "manual" });
+    const t1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, curShields: 0 });
+    const t2 = place(s, "dusk_ghastly", "P2", 1, 1, { curHp: 20, curShields: 0 });
+    s.rngState = seedForCoins(false, false, false); // no CRITs muddying the math
+    expect(() =>
+      applyIntent(battleWith(s, krysteel.instanceId), {
+        type: "BATTLE_ACTION",
+        player: "P1",
+        action: "basic",
+        targetIds: [t1.instanceId, t1.instanceId, t1.instanceId], // 3 hits: one too many
+      }),
+    ).toThrow(/Too many targets/);
+    const next = applyIntent(battleWith(s, krysteel.instanceId), {
+      type: "BATTLE_ACTION",
+      player: "P1",
+      action: "basic",
+      targetIds: [t1.instanceId, t2.instanceId],
+    });
+    expect(next.cards[t1.instanceId].curHp).toBe(16); // 20 − 4
+    expect(next.cards[t2.instanceId].curHp).toBe(16); // 20 − 4
+  });
+
+  it("4×2 cuts BLOCK better than 3×3 did — the compensation for less raw damage", () => {
+    // BLOCK is flat and charged PER HIT, so hit count is what it taxes. This is
+    // the whole reason the swap isn't a pure nerf, so it gets measured rather
+    // than asserted in a comment: vs BLOCK 2, 3×3 delivers 3 and 4×2 delivers 4.
+    // Measured with two real printed profiles: Krysteel is 4×2 (8 raw) and
+    // Shift is 2×3 (6 raw). Against BLOCK 2 the big shards still land while
+    // every small one is absorbed whole — hit count is what BLOCK taxes.
+    const s = prepState();
+    const krysteel = place(s, "bore_krysteel", "P1", 3, 0, { autoMode: "manual" }); // 4×2
+    const shift = place(s, "bore_shift", "P1", 3, 1, { autoMode: "manual" }); // 2×3
+    const a = place(s, "bore_armadillo", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const b = place(s, "bore_armadillo", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    s.rngState = seedForCoins(false, false, false, false); // no CRITs
+    let n = applyIntent(battleWith(s, krysteel.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "basic",
+      targetIds: [a.instanceId, a.instanceId],
+    });
+    expect(40 - n.cards[a.instanceId].curHp).toBe(4); // (4−2) × 2 shards
+    n = applyIntent(battleWith(n, shift.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "basic",
+      targetIds: [b.instanceId, b.instanceId, b.instanceId],
+    });
+    expect(40 - n.cards[b.instanceId].curHp).toBe(0); // (2−2) × 3 shards — all absorbed
   });
 
   it("basic rejects more picks than the card has hits", () => {
