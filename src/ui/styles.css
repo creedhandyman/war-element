@@ -294,8 +294,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   50% { box-shadow: 0 0 24px rgba(78, 203, 143, 0.4), inset 0 0 22px var(--legal-soft); }
 }
 .slot.dimmed { opacity: 0.32; }
-/* Idle opponent team on your turn: grayscaled + dimmed, still clickable. */
-.slot.grayed .token { filter: grayscale(0.9) brightness(0.6); opacity: 0.5; transition: filter 0.2s, opacity 0.2s; }
+/* Idle opponent team on your turn: dimmed only, still clickable. No grayscale —
+   it drained the element rim and the card art, which are what you read the
+   board by; opacity alone is enough to say "not acting right now". */
+.slot.grayed .token { opacity: 0.7; transition: opacity 0.2s; }
 .slot.contested { border-color: var(--threat); animation: threatpulse 1s infinite; }
 @keyframes threatpulse { 0%, 100% { border-color: rgba(229, 83, 61, 0.6); } 50% { border-color: var(--threat); } }
 /* Captured ground — permanently dead, nobody may summon or move here. The old
