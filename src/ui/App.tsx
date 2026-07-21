@@ -394,7 +394,7 @@ export function App() {
   // ── legality highlights ───────────────────────────────────────────────────
   const legalSlots: Pos[] = useMemo(() => {
     if (game.phase !== "prep") return [];
-    const hr = homeRow(view);
+    const hr = homeRow(view, game.boardSize);
     if (sel?.kind === "hand") {
       const out: Pos[] = [];
       for (let col = 0; col < game.boardSize; col++)
@@ -466,14 +466,14 @@ export function App() {
   const activeHandId = staged?.handId ?? drag ?? null;
   const activeCol = staged ? staged.col : dragCol;
   const stagedSlot: Pos | null = useMemo(
-    () => (activeHandId !== null && activeCol !== null && me !== null ? ({ row: homeRow(me), col: activeCol } as Pos) : null),
+    () => (activeHandId !== null && activeCol !== null && me !== null ? ({ row: homeRow(me, game.boardSize), col: activeCol } as Pos) : null),
     [activeHandId, activeCol, me],
   );
   const previewArea: Pos[] = useMemo(() => {
     if (activeHandId === null || activeCol === null || me === null) return [];
     const h = game.players[me].hand.find((c) => c.handId === activeHandId);
     if (!h) return [];
-    return previewOnSummonArea(game, getDef(h.defId), me, { row: homeRow(me), col: activeCol } as Pos);
+    return previewOnSummonArea(game, getDef(h.defId), me, { row: homeRow(me, game.boardSize), col: activeCol } as Pos);
   }, [activeHandId, activeCol, me, game]);
   // Drop a stale stage if the context changes (different card, phase, priority).
   useEffect(() => {
@@ -651,7 +651,7 @@ export function App() {
     if (me && game.phase === "prep" && game.prep?.priority === me && sel?.kind === "hand") {
       if (clicked) {
         setDetailId(clicked.instanceId);
-      } else if (canSummon(game, me, sel.handId, col).ok && row === homeRow(me)) {
+      } else if (canSummon(game, me, sel.handId, col).ok && row === homeRow(me, game.boardSize)) {
         setStaged({ handId: sel.handId, col });
         setHint("Confirm placement — <b>red</b> marks where its on-summon effect lands.");
       } else {

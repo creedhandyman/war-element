@@ -550,11 +550,11 @@ describe("medium-tier passives (audit batch)", () => {
     // P1 home is row 3, so rows 0-1 are the enemy battlefield.
     const home = place(s, "dusk_ravven", "P1", 3, 0);
     const raiding = place(s, "dusk_ravven", "P1", 1, 0);
-    expect(hasEvasion(s.cards[home.instanceId])).toBe(false);
-    expect(hasEvasion(s.cards[raiding.instanceId])).toBe(true);
+    expect(hasEvasion(s.cards[home.instanceId], s.boardSize)).toBe(false);
+    expect(hasEvasion(s.cards[raiding.instanceId], s.boardSize)).toBe(true);
     // …and an unconditional evader is unaffected by the new gate.
     const plain = place(s, "gale_tumbleweed", "P1", 3, 2);
-    expect(hasEvasion(s.cards[plain.instanceId])).toBe(true);
+    expect(hasEvasion(s.cards[plain.instanceId], s.boardSize)).toBe(true);
   });
 
   it("Fallow's aura pins for the WHOLE side — on a CRIT, from any element", () => {

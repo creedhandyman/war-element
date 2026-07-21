@@ -832,8 +832,13 @@ export function hillGivesHit(dmg: number, hits: number): boolean {
  *  decided on progress instead (see decideOnTime). */
 export const MAX_ROUNDS = 50;
 
-export function homeRow(player: PlayerId): 0 | 3 {
-  return player === "P1" ? 3 : 0;
+/** The back row a player summons into and defends. P2 is always row 0; P1 is
+ *  the far edge, which depends on how big the board is — hence the required
+ *  `boardSize`. It has NO default on purpose: a silent fallback to 4 would put
+ *  P1's home in the middle of a 5×5 and leave the last row dead, which is
+ *  exactly the bug this replaced. Pass `state.boardSize`. */
+export function homeRow(player: PlayerId, boardSize: number): number {
+  return player === "P1" ? boardSize - 1 : 0;
 }
 
 export function enemyOf(player: PlayerId): PlayerId {

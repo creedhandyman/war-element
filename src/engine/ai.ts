@@ -102,7 +102,7 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
   const p = state.players[player];
   const book = p.spellbook.filter((s) => !s.used);
   if (book.length === 0) return null;
-  const myHome = homeRow(player);
+  const myHome = homeRow(player, state.boardSize);
 
   // 1. Damage spell → secure a kill. One-shot economy: only for an actual kill.
   const enemies = spellEnemyTargets(state, player);
@@ -144,7 +144,7 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
 
 /** Move a healthy card onto an uncaptured, open enemy Home slot if one is in reach. */
 function findCaptureMove(state: GameState, player: PlayerId): Intent | null {
-  const enemyHome = homeRow(enemyOf(player));
+  const enemyHome = homeRow(enemyOf(player), state.boardSize);
   const movers = boardCards(state, player)
     .filter((c) => moveReach(effectiveSp(state, c)) > 0)
     // A card mid-capture (standing on a NOT-yet-captured enemy home slot)
@@ -225,7 +225,7 @@ function bfsDistance(state: GameState, from: Pos, goals: Pos[]): number {
  * a turn.
  */
 function findClosingMove(state: GameState, player: PlayerId): Intent | null {
-  const enemyHome = homeRow(enemyOf(player));
+  const enemyHome = homeRow(enemyOf(player), state.boardSize);
   const goals: Pos[] = [];
   for (let col = 0; col < state.boardSize; col++) {
     if (!state.slots[enemyHome][col].capturedBy)
@@ -278,7 +278,7 @@ function findAdvance(
 ): Intent | null {
   // Prefer the card already deepest into enemy territory; in a standoff,
   // lead with the toughest body instead.
-  const enemyHome = homeRow(enemyOf(player));
+  const enemyHome = homeRow(enemyOf(player), state.boardSize);
   const forward = player === "P2" ? 1 : -1; // P2 pushes toward row 3, P1 toward row 0
   const movers = boardCards(state, player)
     .filter((c) => moveReach(effectiveSp(state, c)) > 0)
@@ -348,16 +348,16 @@ export function estimateVolley(
 
 /** EVASION means ~half the hits whiff — the kill math shouldn't trust a volley
  *  that only *just* covers an evasive target's HP. */
-function isEvasive(target: CardInstance): boolean {
+function isEvasive(target: CardInstance, boardSize: number): boolean {
   // hasEvasion, not keywords.EVASION — Ravven only dodges on enemy ground, and
   // the AI must read it the same way the dodge roll does.
-  return hasEvasion(target) || target.statuses.some((s) => s.kind === "EVASION");
+  return hasEvasion(target, boardSize) || target.statuses.some((s) => s.kind === "EVASION");
 }
 
 /** Will `volley` reliably kill `target`? Evasive targets need double, since
  *  roughly half the hits are expected to miss. */
-function willKill(target: CardInstance, volley: number): boolean {
-  return volley >= target.curHp * (isEvasive(target) ? 2 : 1);
+function willKill(target: CardInstance, volley: number, boardSize: number): boolean {
+  return volley >= target.curHp * (isEvasive(target, boardSize) ? 2 : 1);
 }
 
 /**
@@ -377,7 +377,7 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
   // Specials/Talents (empower, spawn, load-darts) defer to it.
   const est = (t: CardInstance) =>
     estimateVolley(effectiveDmg(state, card), def.hits, Boolean(def.keywords.PEN), t);
-  const basicCanKill = targets.some((t) => willKill(t, est(t)));
+  const basicCanKill = targets.some((t) => willKill(t, est(t), state.boardSize));
 
   if (specCheck.ok && def.special) {
     const sp = def.special;
@@ -395,9 +395,9 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
     if (selfKills) {
       // fall through to the basic-attack policy below
     } else if (sp.handler === "strike" || sp.handler === "barrage" || sp.handler === "combo") {
-      const kill = specTargets.find((t) => willKill(t, estimateVolley(dmg, hits, pen, t)));
+      const kill = specTargets.find((t) => willKill(t, estimateVolley(dmg, hits, pen, t), state.boardSize));
       const basicKillsIt =
-        kill && willKill(kill, estimateVolley(effectiveDmg(state, card), def.hits, Boolean(def.keywords.PEN), kill));
+        kill && willKill(kill, estimateVolley(effectiveDmg(state, card), def.hits, Boolean(def.keywords.PEN), kill), state.boardSize);
       const wide = sp.handler === "barrage" && specTargets.length >= 3;
       const outDamagesBasic =
         dmg * hits * (sp.handler === "barrage" ? Math.min(specTargets.length, Number(params.targets ?? 1)) : 1) >
@@ -430,7 +430,7 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
         (a) => a.instanceId !== instanceId,
       );
       const hurt = allies.find(
-        (a) => a.curHp < a.maxHp / 2 || a.pos!.row === homeRow(enemyOf(card.owner)),
+        (a) => a.curHp < a.maxHp / 2 || a.pos!.row === homeRow(enemyOf(card.owner), state.boardSize),
       );
       if (hurt) return { action: "special", targetId: hurt.instanceId };
     } else if (sp.handler === "heal") {
@@ -462,12 +462,12 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
 
   // Capture awareness: an invader standing on our own Home row dies first,
   // before it survives to a permanent capture.
-  const myHome = homeRow(card.owner);
+  const myHome = homeRow(card.owner, state.boardSize);
   const invaders = targets.filter((t) => t.pos!.row === myHome);
   const pool = invaders.length > 0 ? invaders : targets;
 
   // Kill the lowest-HP target we can actually finish…
-  const killable = pool.filter((t) => willKill(t, est(t)));
+  const killable = pool.filter((t) => willKill(t, est(t), state.boardSize));
   if (killable.length > 0) {
     const pick = killable.reduce((b, t) => (t.curHp < b.curHp ? t : b));
     return { action: "basic", targetId: pick.instanceId };

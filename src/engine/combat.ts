@@ -31,18 +31,18 @@ import { NEGATIVE_STATUSES, enemyOf, hillGivesHit, homeRow } from "./types";
 
 /** Whether a card is standing on the ENEMY half of the board — two rows or more
  *  from its own home. Gates Vaga's first-strike and Ravven's Shadow Haunter. */
-export function onEnemySide(card: CardInstance): boolean {
-  return card.pos != null && Math.abs(card.pos.row - homeRow(card.owner)) >= 2;
+export function onEnemySide(card: CardInstance, boardSize: number): boolean {
+  return card.pos != null && Math.abs(card.pos.row - homeRow(card.owner, boardSize)) >= 2;
 }
 
 /** Does this card's own EVASION keyword apply right now? Usually just "does it
  *  have the keyword", but Ravven's is gated to the enemy battlefield. Both the
  *  dodge roll and the AI's threat estimate go through here so they can't drift
  *  apart — an AI that thinks a card dodges when it doesn't misplays every turn. */
-export function hasEvasion(card: CardInstance): boolean {
+export function hasEvasion(card: CardInstance, boardSize: number): boolean {
   const def = getDef(card.defId);
   if (!def.keywords.EVASION) return false;
-  return def.evasionEnemySideOnly ? onEnemySide(card) : true;
+  return def.evasionEnemySideOnly ? onEnemySide(card, boardSize) : true;
 }
 
 /** Flat pre-shield damage reduction a card gains from standing in a friendly
@@ -213,7 +213,7 @@ export function applyTimedBuff(card: CardInstance, dmg: number, sp: number, roun
  *  Winds / Wind Guardian). Stops at its home row, a captured, or occupied slot. */
 export function pushBack(draft: GameState, card: CardInstance, steps: number): void {
   const dir = card.owner === "P1" ? 1 : -1; // toward own home (P1 = row 3, P2 = row 0)
-  const home = homeRow(card.owner);
+  const home = homeRow(card.owner, draft.boardSize);
   let moved = 0;
   for (let i = 0; i < steps; i++) {
     const pos = card.pos;
@@ -297,7 +297,7 @@ export function resolveHit(
 
     // 1. EVASION — innate or granted by a friendly wall (Veil). Not re-checked
     //    for reflect damage (no dodge chains). Hot Shot (alwaysHit) ignores it.
-    if (opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && (hasEvasion(target) || wallEvasion(draft, target) || hasStatus(target, "EVASION") || fieldEvasion(draft, target))) {
+    if (opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && (hasEvasion(target, draft.boardSize) || wallEvasion(draft, target) || hasStatus(target, "EVASION") || fieldEvasion(draft, target))) {
       if (coin(draft)) {
         result.dodgedHits++;
         target.fxMiss = (target.fxMiss ?? 0) + 1;
@@ -659,7 +659,7 @@ export function basicAttack(
     if (aDef.element === "BOLT" && t.statuses.length > 0) dmg += 1 + fieldBonus(draft, attacker, "electrify");
     // Harsh Winds / Shadow: bonus DMG the first time this card strikes a given
     // opponent. Vaga's version only counts while it stands on the enemy side.
-    const fsEligible = Boolean(aDef.firstStrikeBonus) && (!aDef.firstStrikeEnemySideOnly || onEnemySide(attacker));
+    const fsEligible = Boolean(aDef.firstStrikeBonus) && (!aDef.firstStrikeEnemySideOnly || onEnemySide(attacker, draft.boardSize));
     const firstStrike = fsEligible && !attacker.struckEver.includes(t.instanceId);
     if (firstStrike) dmg += aDef.firstStrikeBonus!;
     // Ethereal Trade: +DMG on the attack (the HP cost is paid once per action).
@@ -816,7 +816,7 @@ function maybeStatus(
  *  slot; can end on an uncaptured enemy home slot (a capture push). */
 function chargeForward(draft: GameState, card: CardInstance, steps: number): void {
   const dir = card.owner === "P1" ? -1 : 1;
-  const enemyHome = homeRow(enemyOf(card.owner));
+  const enemyHome = homeRow(enemyOf(card.owner), draft.boardSize);
   let moved = 0;
   for (let i = 0; i < steps; i++) {
     const pos = card.pos;

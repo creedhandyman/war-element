@@ -43,7 +43,7 @@ export function canSummon(
   const def = getDef(hand.defId);
   if (def.cost > state.players[player].summonPool)
     return { ok: false, reason: "Not enough summon resources" };
-  const row = homeRow(player);
+  const row = homeRow(player, state.boardSize);
   if (col < 0 || col >= state.boardSize) return { ok: false, reason: "Bad column" };
   if (isCaptured(state, row, col))
     return { ok: false, reason: "Slot is permanently captured" };
@@ -187,10 +187,10 @@ export function canTarget(
     if (!rangedCanSee(state, attacker.pos, target.pos)) return false;
   }
 
-  const defenderHome = homeRow(target.owner);
+  const defenderHome = homeRow(target.owner, state.boardSize);
   if (
     target.pos.row === defenderHome &&
-    defenderHome === homeRow(enemyOf(attacker.owner)) &&
+    defenderHome === homeRow(enemyOf(attacker.owner), state.boardSize) &&
     !aDef.ignoresHomeRule // Catapult-style passives skip this rule
   ) {
     const ar = attacker.pos.row;
@@ -264,7 +264,7 @@ export function forwardAreaTargets(
   if (!card.pos) return [];
   const def = getDef(card.defId);
   const dir = card.owner === "P1" ? -1 : 1; // toward the enemy home
-  const enemyHome = homeRow(enemyOf(card.owner));
+  const enemyHome = homeRow(enemyOf(card.owner), state.boardSize);
   const maxDepth =
     depth ?? (def.attackType === "Ranged" ? Math.max(1, Math.abs(enemyHome - card.pos.row)) : 1);
   const out: CardInstance[] = [];
@@ -305,7 +305,7 @@ export function previewOnSummonArea(
     // Forward corridor: `spread` cols each side, `forwardDepth` rows deep
     // (Ranged reaches the enemy home when no depth is given).
     const dir = owner === "P1" ? -1 : 1;
-    const enemyHome = homeRow(enemyOf(owner));
+    const enemyHome = homeRow(enemyOf(owner), state.boardSize);
     const maxDepth =
       p.forwardDepth != null
         ? Number(p.forwardDepth)
@@ -483,7 +483,7 @@ export function plannedAction(state: GameState, instanceId: string): PlannedActi
  *  rows freely, but to touch the ENEMY Home row they must already hold a card
  *  in a Mid row (1/2) or in that enemy Home row. */
 function spellReachesEnemyHome(state: GameState, player: PlayerId): boolean {
-  const enemyHome = homeRow(enemyOf(player));
+  const enemyHome = homeRow(enemyOf(player), state.boardSize);
   return boardCards(state, player).some(
     (c) => c.pos != null && (c.pos.row === 1 || c.pos.row === 2 || c.pos.row === enemyHome),
   );
@@ -495,7 +495,7 @@ function spellReachesEnemyHome(state: GameState, player: PlayerId): boolean {
  *  same Home-slot proxy that gates single-target spells). */
 export function canAoeRow(state: GameState, player: PlayerId, row: number): boolean {
   if (row < 0 || row >= state.boardSize) return false;
-  if (row === homeRow(enemyOf(player)) && !spellReachesEnemyHome(state, player)) return false;
+  if (row === homeRow(enemyOf(player), state.boardSize) && !spellReachesEnemyHome(state, player)) return false;
   return true;
 }
 export function canSpellHitEnemy(
@@ -506,7 +506,7 @@ export function canSpellHitEnemy(
   if (!target.pos || target.owner === player) return false;
   const tDef = getDef(target.defId);
   if ((tDef.keywords.STEALTH && !target.attackedThisRound) || hasStatus(target, "STEALTH")) return false;
-  const enemyHome = homeRow(enemyOf(player));
+  const enemyHome = homeRow(enemyOf(player), state.boardSize);
   if (target.pos.row === enemyHome && !spellReachesEnemyHome(state, player)) return false;
   return true;
 }
@@ -529,8 +529,8 @@ export function canPlaceWallRow(
   if (!spell.wall) return false;
   if (row < 0 || row >= state.boardSize) return false;
   if (state.walls.some((w) => w.owner === player && w.row === row)) return false;
-  const ownHome = homeRow(player);
-  const enemyHome = homeRow(enemyOf(player));
+  const ownHome = homeRow(player, state.boardSize);
+  const enemyHome = homeRow(enemyOf(player), state.boardSize);
   if (spell.wall.ownHomeOnly) return row === ownHome;
   if (row === enemyHome) return false; // never on the opponent's summon row
   return true; // own Home or a Mid row

@@ -10,7 +10,7 @@ import type { CardDef } from "../engine/types";
 
 export const MIN_DECK = 12;
 export const MAX_DECK = 20;
-export const TARGET_DECK = 16;
+export const TARGET_DECK = 18;
 export const MAX_SPELLS = MAX_SPELLBOOK; // a deck's spellbook holds up to 5
 
 const STORAGE_KEY = "we_custom_decks_v1";
@@ -59,7 +59,7 @@ export const PREMADE_DECKS: PremadeDeck[] = [
       "bolt_zap", "bolt_jolt", "pyro_flamehound", "pyro_baboom", "pyro_ash_boar",
       "bolt_jellyfish", "pyro_firebird", "bolt_lytning", "pyro_fenix", "pyro_sseerr",
       "bolt_thundercat", "bolt_thunder", "pyro_volcanon", "pyro_magmaw", "bolt_stormcaller",
-      "pyro_pyrogon",
+      "pyro_pyrogon", "bolt_electricel", "bolt_drshock",
     ],
     // Spark out, Power Grid in. The deck now runs Jolt, whose whole job is
     // marking foes ELECTRIFIED — Power Grid turns that mark from +1 into +2 for
@@ -82,7 +82,7 @@ export const PREMADE_DECKS: PremadeDeck[] = [
       "bore_hillbilly", "aqua_piranha", "aqua_subcool", "aqua_kinguin", "aqua_octoirate",
       "aqua_owlette", "bore_shift", "aqua_blackbeard", "bore_monger", "aqua_polarbear",
       "bore_rhe", "bore_obsidi", "aqua_polarking", "bore_sandman", "aqua_glacius",
-      "aqua_kraken",
+      "aqua_kraken", "bore_armadillo", "bore_krysteel",
     ],
     spells: ["aqua_chill", "aqua_frost_patch", "bore_stone_wall", "bore_shatterpoint", "aqua_maelstrom"],
   },
@@ -98,7 +98,7 @@ export const PREMADE_DECKS: PremadeDeck[] = [
       "dawn_beam", "leaf_guardian", "leaf_leaf", "dawn_shine", "dawn_amble",
       "leaf_dartfrog", "dawn_goldeneagle", "leaf_sprinu", "leaf_citra", "dawn_solstice",
       "leaf_sumerose", "dawn_clipsey", "leaf_elderroot", "dawn_aurelion", "leaf_fallow",
-      "dawn_imperator",
+      "dawn_imperator", "leaf_nettle", "dawn_star",
     ],
     // Radiant Barrier out, Bramble Wall in — same cost, same slot, but ROOT now
     // has two payoffs in this deck: Fallow's Trapper hits every ROOTed opponent
@@ -118,7 +118,7 @@ export const PREMADE_DECKS: PremadeDeck[] = [
       "gale_duster", "gale_luna", "gale_tumbleweed", "gale_hawk", "dusk_reaper",
       "gale_vaga", "dusk_widowbite", "gale_windsor", "dusk_ghastly", "dusk_haunt",
       "dusk_wedded_wraith", "gale_wolfbane", "dusk_ravven", "gale_klipso", "dusk_nightfang",
-      "dusk_shadowhorsemen",
+      "dusk_shadowhorsemen", "gale_rayfen", "dusk_silkstalker",
     ],
     // Shadow Step out, Nightfall in — the deck finally runs its namesake. Wedded
     // Wraith floods the board with Specters, so cloaking the whole DUSK side

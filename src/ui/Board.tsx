@@ -116,8 +116,8 @@ export function Board(props: {
                 (props.hasSelection || props.legalTargetIds.length > 0 || props.previewArea.length > 0) &&
                 !greenLegal && !redTarget && !preview && !staged;
               const contested =
-                (row === homeRow("P2") && isContested(game, "P2", col)) ||
-                (row === homeRow("P1") && isContested(game, "P1", col));
+                (row === homeRow("P2", game.boardSize) && isContested(game, "P2", col)) ||
+                (row === homeRow("P1", game.boardSize) && isContested(game, "P1", col));
               return (
                 <Slot
                   key={col}

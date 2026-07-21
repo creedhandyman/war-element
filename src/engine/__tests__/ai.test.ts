@@ -171,8 +171,8 @@ describe("full AI-vs-AI matches (integration)", () => {
     expect(s.players.P2.hand.length).toBeLessThanOrEqual(25);
   }
 
-  function playMatch(seed: number, p1 = "leaf_pyro", p2 = "bore_dusk"): GameState {
-    let s = createInitialState(seed, p1, p2);
+  function playMatch(seed: number, p1 = "leaf_pyro", p2 = "bore_dusk", boardSize?: number): GameState {
+    let s = createInitialState(seed, p1, p2, undefined, undefined, undefined, boardSize);
     for (let step = 0; step < 20_000; step++) {
       if (s.phase === "gameover") return s;
       s = needsP1Input(s) ? driveP1(s) : advance(s);
@@ -185,6 +185,17 @@ describe("full AI-vs-AI matches (integration)", () => {
     }
     throw new Error("match exceeded step budget");
   }
+
+
+  it("a 5x5 match plays out properly — every row used, decided not timed out", () => {
+    // Before homeRow took the board size, a 5x5 ran P1's home at row 3, leaving
+    // row 4 dead ground: matches limped to the round cap without a capture.
+    const end = playMatch(7, "leaf_pyro", "bore_dusk", 5);
+    expect(end.boardSize).toBe(5);
+    expect(end.win).not.toBeNull();
+    expect(end.win!.by).toBe("capture");
+    expect(end.round).toBeLessThan(MAX_ROUNDS);
+  });
 
   it.each([1, 2, 3, 7, 13, 42, 60, 80])(
     "seed %i: completes with a winner and no illegal states",

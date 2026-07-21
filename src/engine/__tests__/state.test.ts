@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { createInitialState } from "../state";
 import { canSummon } from "../rules";
+import { homeRow } from "../types";
 import { applyIntent, advance, advanceUntilInput } from "../phases";
 import { CARDS, DECK_P1, DECK_P2 } from "../../data/cards";
 import { freshGame, giveHand } from "./helpers";
@@ -264,6 +265,15 @@ describe("board size lives on the state", () => {
     expect(s.boardSize).toBe(5);
     expect(s.slots.length).toBe(5);
     expect(s.slots.every((r) => r.length === 5)).toBe(true);
+  });
+
+  it("homeRow follows the board: P1 defends the far edge, P2 always row 0", () => {
+    // The bug this replaced: a hardcoded 0|3 put P1's home in the MIDDLE of a
+    // 5x5 and left the last row as dead ground nothing could summon into.
+    expect(homeRow("P2", 4)).toBe(0);
+    expect(homeRow("P1", 4)).toBe(3);
+    expect(homeRow("P2", 5)).toBe(0);
+    expect(homeRow("P1", 5)).toBe(4);
   });
 
   it("column 4 is summonable on a 5x5 and rejected on a 4x4", () => {

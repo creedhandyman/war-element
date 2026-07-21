@@ -90,7 +90,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       p.hand = p.hand.filter((h) => h.handId !== intent.handId);
       p.summonPool -= def.cost;
       const inst = summonCard(draft, intent.player, hand.defId, {
-        row: homeRow(intent.player),
+        row: homeRow(intent.player, draft.boardSize),
         col: intent.col,
       });
       if (!draft.humans.includes(intent.player)) inst.autoMode = "full";
@@ -1126,7 +1126,7 @@ function doCleanupPhase(draft: GameState): void {
   // 5. Capture by survival: an enemy card still standing on a home slot at
   //    Cleanup captures it permanently.
   for (const player of ["P1", "P2"] as PlayerId[]) {
-    const row = homeRow(player);
+    const row = homeRow(player, draft.boardSize);
     for (let col = 0; col < draft.boardSize; col++) {
       if (draft.slots[row][col].capturedBy) continue;
       const occ = cardAt(draft, row, col);

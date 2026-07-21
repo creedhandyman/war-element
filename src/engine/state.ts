@@ -129,7 +129,7 @@ export function boardCards(state: GameState, owner?: PlayerId): CardInstance[] {
 
 /** Contested = enemy card standing on an uncaptured home slot of `player`. */
 export function isContested(state: GameState, player: PlayerId, col: number): boolean {
-  const row = homeRow(player);
+  const row = homeRow(player, state.boardSize);
   if (state.slots[row][col].capturedBy) return false;
   const occ = cardAt(state, row, col);
   return occ !== null && occ.owner !== player;
@@ -413,7 +413,7 @@ export function isEliminated(state: GameState, player: PlayerId): boolean {
  */
 export function hasCaptureWin(state: GameState, player: PlayerId): boolean {
   const opp = enemyOf(player);
-  const row = homeRow(opp);
+  const row = homeRow(opp, state.boardSize);
   for (let col = 0; col < state.boardSize; col++) {
     if (state.slots[row][col].capturedBy === player) continue;
     const occ = cardAt(state, row, col);
