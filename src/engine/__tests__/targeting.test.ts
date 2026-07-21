@@ -122,21 +122,21 @@ describe("ranged reach — 2 king-steps, blocked on straight lines", () => {
   it("reaches every square within 2 king-steps, knight-shapes included", () => {
     const s = prepState();
     const me = place(s, "dusk_ghastly", "P2", 2, 1, { autoMode: "manual" }); // Ranged
-    expect(rangedCanSee(s, me.pos!, { row: 0, col: 1 })).toBe(true); // 2 straight
-    expect(rangedCanSee(s, me.pos!, { row: 0, col: 3 })).toBe(true); // 2 diagonal
+    expect(rangedCanSee(s, me.pos!, { row: 0, col: 1 }, "P2")).toBe(true); // 2 straight
+    expect(rangedCanSee(s, me.pos!, { row: 0, col: 3 }, "P2")).toBe(true); // 2 diagonal
     // Knight-shaped: one row over, two columns across. Ray-only targeting left
     // these permanently unhittable though they sit 2 steps away — the hole this
     // rule was widened to close.
-    expect(rangedCanSee(s, me.pos!, { row: 0, col: 2 })).toBe(true);
-    expect(rangedCanSee(s, me.pos!, { row: 0, col: 0 })).toBe(true);
+    expect(rangedCanSee(s, me.pos!, { row: 0, col: 2 }, "P2")).toBe(true);
+    expect(rangedCanSee(s, me.pos!, { row: 0, col: 0 }, "P2")).toBe(true);
   });
 
   it("3 king-steps is still out of reach", () => {
     const s = prepState();
     const me = place(s, "dusk_ghastly", "P2", 0, 0, { autoMode: "manual" });
-    expect(rangedCanSee(s, me.pos!, { row: 2, col: 2 })).toBe(true);  // exactly 2
-    expect(rangedCanSee(s, me.pos!, { row: 3, col: 0 })).toBe(false); // 3 straight
-    expect(rangedCanSee(s, me.pos!, { row: 1, col: 3 })).toBe(false); // 3 across
+    expect(rangedCanSee(s, me.pos!, { row: 2, col: 2 }, "P2")).toBe(true);  // exactly 2
+    expect(rangedCanSee(s, me.pos!, { row: 3, col: 0 }, "P2")).toBe(false); // 3 straight
+    expect(rangedCanSee(s, me.pos!, { row: 1, col: 3 }, "P2")).toBe(false); // 3 across
   });
 
   it("the reported gap: a Ranger on r1c3 can shoot r2c1", () => {
@@ -175,12 +175,28 @@ describe("ranged reach — 2 king-steps, blocked on straight lines", () => {
     expect(ids).not.toContain(far.instanceId);  // screened
   });
 
-  it("blocking is symmetric — your OWN card screens your archer too", () => {
+  it("allies do NOT block — you shoot straight past your own front line", () => {
+    // Chess would screen here, but you advance into your own firing lane
+    // constantly, and an archer silently disarmed by its own tank reads as a
+    // bug rather than a tactic.
     const s = prepState();
     const me = place(s, "dusk_ghastly", "P2", 3, 1, { autoMode: "manual" });
-    place(s, "dusk_gool", "P2", 2, 1); // an ALLY standing in the lane
+    place(s, "dusk_gool", "P2", 2, 1); // an ALLY standing squarely in the lane
     const far = place(s, "leaf_greegon", "P1", 1, 1);
-    expect(validTargets(s, me.instanceId).map((t) => t.instanceId)).not.toContain(far.instanceId);
+    expect(validTargets(s, me.instanceId).map((t) => t.instanceId)).toContain(far.instanceId);
+  });
+
+  it("an ally and an enemy on the same square-count behave differently", () => {
+    // Same geometry, same distance — only the blocker's side changes.
+    const build = (blockerOwner: "P1" | "P2") => {
+      const s = prepState();
+      const me = place(s, "dusk_ghastly", "P2", 3, 1, { autoMode: "manual" });
+      place(s, blockerOwner === "P2" ? "dusk_gool" : "leaf_alpha", blockerOwner, 2, 1);
+      const far = place(s, "leaf_greegon", "P1", 1, 1);
+      return validTargets(s, me.instanceId).map((t) => t.instanceId).includes(far.instanceId);
+    };
+    expect(build("P2")).toBe(true);  // ally in the lane — shot goes past
+    expect(build("P1")).toBe(false); // enemy in the lane — shot is stopped
   });
 
   it("specials are exempt — they keep the full board", () => {

@@ -132,11 +132,17 @@ export const RANGED_REACH = 2;
  * shoot the thing in your face. Knight-shaped shots have no single line to
  * interrupt, so they arc over the gap and cannot be screened.
  *
- * Blocking is symmetric: your own cards screen just as enemy ones do, so a
- * front line physically shields the row behind it — and your own tank can get
- * in your archer's way.
+ * Only ENEMY bodies block. Chess would have your own pieces screen too, but a
+ * formation that silently disarms your own archer reads as a broken UI rather
+ * than as a tactic — you advance into your own firing lane constantly. Allies
+ * are shot past; the enemy front line is what shields their back row.
  */
-export function rangedCanSee(state: GameState, from: Pos, to: Pos): boolean {
+export function rangedCanSee(
+  state: GameState,
+  from: Pos,
+  to: Pos,
+  shooter: PlayerId,
+): boolean {
   const dr = to.row - from.row;
   const dc = to.col - from.col;
   const adr = Math.abs(dr);
@@ -144,14 +150,15 @@ export function rangedCanSee(state: GameState, from: Pos, to: Pos): boolean {
   if (adr === 0 && adc === 0) return false;
   const dist = Math.max(adr, adc);
   if (dist > RANGED_REACH) return false;
-  // Straight line → walk it and let a body in between stop the shot.
+  // Straight line → walk it and let an ENEMY body in between stop the shot.
   const onLine = dr === 0 || dc === 0 || adr === adc;
   if (onLine) {
     const sr = Math.sign(dr);
     const sc = Math.sign(dc);
     for (let i = 1; i < dist; i++) {
       // Stop BEFORE the target: a body between blocks, the target itself doesn't.
-      if (cardAt(state, from.row + sr * i, from.col + sc * i)) return false;
+      const between = cardAt(state, from.row + sr * i, from.col + sc * i);
+      if (between && between.owner !== shooter) return false;
     }
   }
   return true;
@@ -191,7 +198,7 @@ export function canTarget(
     // Ranged BASIC: a queen's line, RANGED_REACH long, blocked by bodies.
     // Specials are deliberately exempt — they keep their old full-board reach,
     // so the AoE specials tuned in the balance pass are untouched.
-    if (!rangedCanSee(state, attacker.pos, target.pos)) return false;
+    if (!rangedCanSee(state, attacker.pos, target.pos, attacker.owner)) return false;
   }
 
   const defenderHome = homeRow(target.owner, state.boardSize);
