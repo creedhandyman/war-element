@@ -368,17 +368,20 @@ export function resolveHit(
       target.statuses = target.statuses.filter((s) => s.kind !== "SLEEP");
       draft.log.push(`${label(draft, target)} is jolted awake!`);
     }
-    // Trapper aura (Fallow): a real AURA — EVERY ally's hits pin, not just the
-    // holder's own, so it is sourced from the board rather than from aDef.
+    // Trapper aura (Fallow): a real AURA — EVERY ally's hits can pin, not just
+    // the holder's own, so it is sourced from the board rather than from aDef.
     //
-    // Not gated on a crit LANDING: that roll needs an unshielded target and then
-    // a coin flip, which measured 0% against anything with a shield and 51%
-    // otherwise, and Trapper (which eats ROOTed enemies) starved with it.
+    // Gated on the volley actually CRITting. It briefly fired on any landed
+    // hit, which made every ally a pinner and the ROOT close to guaranteed. The
+    // crit gate is the cost of that reach: the roll needs an unshielded target
+    // and then a coin flip, and an ally with no CRIT of its own never rolls.
+    // This block sits AFTER the per-hit loop, so it reads the volley-level
+    // critHits tally rather than any single hit.
     //
     // `kind !== "reflect"` keeps it to real attacks. Trapper's own end-of-round
     // tick resolves as reflect, so without this the aura would re-pin everything
     // Trapper just hit, every round, forever.
-    if (opts.kind !== "reflect" && target.curHp > 0) {
+    if ((result.critHits ?? 0) > 0 && opts.kind !== "reflect" && target.curHp > 0) {
       const pinner = boardCards(draft, attacker.owner).find((c) => {
         const d = getDef(c.defId);
         return c.curHp > 0 && d.critStatus && d.keywords.CRIT;

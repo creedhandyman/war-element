@@ -557,17 +557,31 @@ describe("medium-tier passives (audit batch)", () => {
     expect(hasEvasion(s.cards[plain.instanceId])).toBe(true);
   });
 
-  it("Fallow's aura pins for the WHOLE side, not just its own hits", () => {
+  it("Fallow's aura pins for the WHOLE side — on a CRIT, from any element", () => {
     const s = prepState();
     place(s, "leaf_fallow", "P1", 3, 0); // just standing there
-    const leafAlly = place(s, "leaf_alpha", "P1", 2, 0);
-    const otherAlly = place(s, "pyro_firebird", "P1", 2, 1); // not even LEAF
+    const leafAlly = place(s, "leaf_darth", "P1", 2, 0); // CRIT, LEAF
+    const otherAlly = place(s, "aqua_icyninza", "P1", 2, 1); // CRIT, not even LEAF
     const a = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
     const b = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    s.rngState = seedForCoins(true, true); // both crit rolls land
     basicAttack(s, leafAlly.instanceId, a.instanceId);
     basicAttack(s, otherAlly.instanceId, b.instanceId);
     expect(statusOf(s.cards[a.instanceId], "ROOT")?.duration).toBe(2);
     expect(statusOf(s.cards[b.instanceId], "ROOT")?.duration).toBe(2); // any ally, any element
+  });
+
+  it("an ally with no CRIT of its own can never trigger the pin", () => {
+    // The gate's real cost: the aura reaches the whole side, but only the part
+    // of it that can roll a crit at all. Alpha has no CRIT keyword, so it never
+    // rolls — no seed can make this one pin.
+    const s = prepState();
+    place(s, "leaf_fallow", "P1", 3, 0);
+    const plain = place(s, "leaf_alpha", "P1", 2, 0); // keywords: {} — no CRIT
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    s.rngState = seedForCoins(true, true, true, true, true); // every flip would succeed
+    basicAttack(s, plain.instanceId, foe.instanceId);
+    expect(statusOf(s.cards[foe.instanceId], "ROOT")).toBeUndefined();
   });
 
   it("a ROOT Fallow applies survives to feed Trapper — the engine connects", () => {
@@ -577,6 +591,7 @@ describe("medium-tier passives (audit batch)", () => {
     const s = prepState();
     const fallow = place(s, "leaf_fallow", "P1", 2, 0);
     const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    s.rngState = seedForCoins(true); // the aura is crit-gated — land the roll
     basicAttack(s, fallow.instanceId, foe.instanceId);
     const afterHit = s.cards[foe.instanceId].curHp;
     const next = advance(atCleanup(s));
@@ -605,20 +620,25 @@ describe("medium-tier passives (audit batch)", () => {
     expect(statusOf(next.cards[foe.instanceId], "ROOT")?.duration).toBe(1); // ticked down, not renewed
   });
 
-  it("Fallow pins what it hits even through shields, and Trapper bites at Cleanup", () => {
+  it("shields are immune to the pin — the crit gate can't even roll through them", () => {
+    // The blunt consequence of gating on the crit, recorded so it is a decision
+    // and not a surprise: the crit roll is only attempted when curShields === 0,
+    // so a shielded card cannot be ROOTed by the aura at any odds. Strip the
+    // shields first and it pins normally.
     const s = prepState();
     const fallow = place(s, "leaf_fallow", "P1", 2, 0);
-    // SHIELDED on purpose. The aura used to ride the crit roll, which cannot
-    // even be attempted while shields are up — this target was rooted 0% of the
-    // time, and Trapper starved with it.
-    const prey = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, curShields: 3 });
-    // ROOTed but far away — Trapper is range-free, so it still gets bitten.
-    // Needs maxHp too: Cleanup clamps curHp to the effective max.
-    const distant = place(s, "dusk_ghastly", "P2", 0, 3, { curHp: 20, maxHp: 20 });
-    applyStatus(s, distant, "ROOT", 3, 0, "LEAF");
-    basicAttack(s, fallow.instanceId, prey.instanceId);
-    expect(statusOf(s.cards[prey.instanceId], "ROOT")?.duration).toBe(2); // pinned
-    const next = advance(atCleanup(s));
+    const walled = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30, curShields: 3 });
+    s.rngState = seedForCoins(true, true, true, true); // every flip would succeed
+    basicAttack(s, fallow.instanceId, walled.instanceId);
+    expect(statusOf(s.cards[walled.instanceId], "ROOT")).toBeUndefined();
+
+    // Trapper itself is unchanged: range-free, and it bites anything ROOTed
+    // however that ROOT got there.
+    const s2 = prepState();
+    place(s2, "leaf_fallow", "P1", 2, 0);
+    const distant = place(s2, "dusk_ghastly", "P2", 0, 3, { curHp: 20, maxHp: 20 });
+    applyStatus(s2, distant, "ROOT", 3, 0, "LEAF");
+    const next = advance(atCleanup(s2));
     expect(next.cards[distant.instanceId].curHp).toBe(19); // 1 from the traps
   });
 
