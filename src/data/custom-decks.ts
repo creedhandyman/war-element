@@ -8,9 +8,28 @@ import { CARDS, CARD_INDEX } from "./cards";
 import { isSpell, MAX_SPELLBOOK } from "../engine/spells";
 import type { CardDef } from "../engine/types";
 
-export const MIN_DECK = 12;
-export const MAX_DECK = 20;
-export const TARGET_DECK = 18;
+/** Deck-size rules for one battlefield. The bigger board holds more cards, so
+ *  it wants a deeper deck — 25 slots and a longer game against 16 and a short
+ *  one. Spellbooks are unchanged (MAX_SPELLBOOK) at either size. */
+export interface DeckLimits {
+  min: number;
+  max: number;
+  target: number;
+}
+const DECK_LIMITS: Record<number, DeckLimits> = {
+  4: { min: 12, max: 20, target: 18 },
+  5: { min: 20, max: 30, target: 28 },
+};
+/** Limits for a board size; anything unrecognised falls back to the standard. */
+export function deckLimits(boardSize = 4): DeckLimits {
+  return DECK_LIMITS[boardSize] ?? DECK_LIMITS[4];
+}
+
+// Standard-board shorthands. Prefer deckLimits(boardSize) anywhere the mode is
+// known — these are only the 4×4 numbers.
+export const MIN_DECK = DECK_LIMITS[4].min;
+export const MAX_DECK = DECK_LIMITS[4].max;
+export const TARGET_DECK = DECK_LIMITS[4].target;
 export const MAX_SPELLS = MAX_SPELLBOOK; // a deck's spellbook holds up to 5
 
 const STORAGE_KEY = "we_custom_decks_v1";
@@ -43,13 +62,17 @@ export function sanitizeSpells(ids: string[] | undefined): string[] {
  *  can label them and the delete-cleanup never drops their selection. */
 export interface PremadeDeck extends CustomDeck {
   premade: true;
+  /** Which battlefield this build is sized for. The picker only offers decks
+   *  matching the selected mode, so a 28-card list never shows up for a 4×4. */
+  boardSize: 4 | 5;
 }
 
-export const PREMADE_DECKS: PremadeDeck[] = [
+const STANDARD_DECKS: PremadeDeck[] = [
   {
     id: "pre_inferno_blitz",
     name: "Inferno Blitz",
     premade: true,
+    boardSize: 4,
     // PYRO + BOLT — fast burn & shock aggression. Aggressive curve topping out
     // in Volcanon/Magmaw/Stormcaller (lege) into Pyrogon (myth).
     // Cut for the new arrivals: Electricel (1x4 into 3 HP — Zap already holds the
@@ -71,6 +94,7 @@ export const PREMADE_DECKS: PremadeDeck[] = [
     id: "pre_frostkeep",
     name: "Frostkeep",
     premade: true,
+    boardSize: 4,
     // AQUA + BORE — tanky control that grinds you out. Ramps through Sandman/
     // Polarking/Glacius/Bastion (lege) into Kraken (myth). Frost Patch → Maelstrom
     // (2× vs FROZEN) is the payoff.
@@ -90,6 +114,7 @@ export const PREMADE_DECKS: PremadeDeck[] = [
     id: "pre_radiant_host",
     name: "Radiant Host",
     premade: true,
+    boardSize: 4,
     // DAWN + LEAF — heals & buffs behind a wall of bodies. Value engine through
     // Kosmos/Elderroot/Aurelion (lege) into Imperator (myth).
     // Cut: Nettle, Star and Fallona (the 3 slot ran six deep), and Kosmos to
@@ -110,6 +135,7 @@ export const PREMADE_DECKS: PremadeDeck[] = [
     id: "pre_nightfall",
     name: "Nightfall",
     premade: true,
+    boardSize: 4,
     // DUSK + GALE — evasive assassins that hit and vanish. Tempo into Tempest/
     // Nightfang/Klipso (lege) and Shadow Horsemen (myth).
     // Cut: Crow (3 DMG on 1 HP), Silkstalker and Rayfen (crowded 3 and 4 slots),
@@ -128,6 +154,59 @@ export const PREMADE_DECKS: PremadeDeck[] = [
   },
 ];
 
+/** The ten cards each standard deck gains on the large board, keyed by its id.
+ *  Five per element so every build stays an even 14/14, and deliberately
+ *  bottom-heavy: a 28-card deck draws the same one-per-round, so padding the
+ *  top would just mean more dead openers. Each list is drawn from that deck's
+ *  own two elements. */
+const LARGE_EXTRAS: Record<string, string[]> = {
+  // +5 BOLT / +5 PYRO, all 1–4 cost — the deck is an aggro shell and wants
+  // early bodies, not a second wave of finishers.
+  pre_inferno_blitz: [
+    "bolt_twotales", "bolt_kore", "bolt_buzz", "bolt_static", "bolt_webster",
+    "pyro_smog_card", "pyro_bbq", "pyro_ingit", "pyro_spitfire", "pyro_fenrir",
+  ],
+  // +6 BORE / +4 AQUA — evens the 8/10 split the standard build carries.
+  // Nothing above 5: it already tops out at 6,6,7,10.
+  pre_frostkeep: [
+    "bore_cavedweller", "bore_crock", "bore_clubber", "bore_smith", "bore_rockgoblin",
+    "bore_rollo", "aqua_icyninza", "aqua_krakler", "aqua_bahari", "aqua_vaporem",
+  ],
+  // +5 DAWN / +5 LEAF — more bodies to hide the healers behind, which is the
+  // deck's whole plan.
+  pre_radiant_host: [
+    "dawn_sphere", "dawn_glime", "dawn_musk_ox", "dawn_lazor", "dawn_veil",
+    "leaf_stickviper", "leaf_cactus", "leaf_greegon", "leaf_alpha", "leaf_squanch",
+  ],
+  // +5 GALE / +5 DUSK — cheap evasive tempo, in keeping with the shell.
+  pre_nightfall: [
+    "gale_skyforce", "gale_toxhawk", "gale_whirlwolf", "gale_hawko", "gale_guan",
+    "dusk_vamp", "dusk_spider", "dusk_skeleton_knight", "dusk_gool", "dusk_scarlett",
+  ],
+};
+
+/** The large-board build of a standard deck: the same shell plus its extras.
+ *  Derived rather than written out again, so editing a standard list can't
+ *  leave its 5×5 twin behind. */
+function largeVariant(base: PremadeDeck): PremadeDeck {
+  return {
+    ...base,
+    id: `${base.id}_5`,
+    boardSize: 5,
+    cards: [...base.cards, ...(LARGE_EXTRAS[base.id] ?? [])],
+  };
+}
+
+export const PREMADE_DECKS: PremadeDeck[] = [
+  ...STANDARD_DECKS,
+  ...STANDARD_DECKS.map(largeVariant),
+];
+
+/** The premade builds sized for a given battlefield. */
+export function premadeDecksFor(boardSize: number): PremadeDeck[] {
+  return PREMADE_DECKS.filter((d) => d.boardSize === (boardSize === 5 ? 5 : 4));
+}
+
 /** Every card a player may put in a deck — the real CARDS list (tokens are
  *  excluded from CARDS by construction, so they can never be built with). */
 export function buildableCards(): CardDef[] {
@@ -145,12 +224,13 @@ export interface DeckValidation {
 }
 
 /** A deck is valid when it's 12–20 unique, buildable cards. */
-export function validateDeck(cards: string[]): DeckValidation {
+export function validateDeck(cards: string[], boardSize = 4): DeckValidation {
+  const { min, max } = deckLimits(boardSize);
   const unique = new Set(cards);
   if (unique.size !== cards.length) return { ok: false, reason: "Duplicate cards" };
   if (cards.some((id) => !isBuildable(id))) return { ok: false, reason: "Unknown card" };
-  if (cards.length < MIN_DECK) return { ok: false, reason: `Need at least ${MIN_DECK} cards` };
-  if (cards.length > MAX_DECK) return { ok: false, reason: `At most ${MAX_DECK} cards` };
+  if (cards.length < min) return { ok: false, reason: `Need at least ${min} cards` };
+  if (cards.length > max) return { ok: false, reason: `At most ${max} cards` };
   return { ok: true };
 }
 

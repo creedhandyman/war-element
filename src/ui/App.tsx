@@ -34,7 +34,7 @@ import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online"
 import { Board } from "./Board";
 import { CardDetail } from "./CardDetail";
 import { DeckBuilder } from "./DeckBuilder";
-import { loadCustomDecks, PREMADE_DECKS, type CustomDeck } from "../data/custom-decks";
+import { loadCustomDecks, PREMADE_DECKS, premadeDecksFor, type CustomDeck } from "../data/custom-decks";
 import { SpIcon } from "./icons";
 import { Hand } from "./Hand";
 import { PhaseRibbon } from "./PhaseRibbon";
@@ -109,19 +109,44 @@ export function App() {
   const [builderOpen, setBuilderOpen] = useState(false);
   // Deck selection = a premade or custom deck (the old two-core pairing is gone).
   // Each side defaults to a different premade so a match is one tap away.
-  const [p1DeckId, setP1DeckId] = useState(PREMADE_DECKS[0].id);
-  const [p2DeckId, setP2DeckId] = useState(PREMADE_DECKS[1].id);
-  // Selectable decks = the shipped premade builds + the player's own custom decks.
-  const deckPool: CustomDeck[] = [...PREMADE_DECKS, ...customDecks];
+  // Seeded from the STANDARD builds — boardSize starts at 4, and the remap
+  // effect below re-points these if the player switches battlefield.
+  const [p1DeckId, setP1DeckId] = useState(premadeDecksFor(4)[0].id);
+  const [p2DeckId, setP2DeckId] = useState(premadeDecksFor(4)[1].id);
+  // Premade builds sized for the CHOSEN battlefield — a 28-card large build must
+  // never show up in a 4x4 picker, and vice versa.
+  const modePremades = premadeDecksFor(boardSize);
+  // Selectable decks = those + the player's own custom decks. Custom decks have
+  // no board size of their own and are offered in both modes; the engine never
+  // enforces deck length at match start, so a short deck simply runs out sooner.
+  const deckPool: CustomDeck[] = [...modePremades, ...customDecks];
   // Resolve a side's card list / label; fall back to the first premade if a
   // selection ever goes missing (e.g. a custom deck deleted mid-session).
   const resolveDeckCards = (deckId: string): string[] =>
-    (deckPool.find((d) => d.id === deckId) ?? PREMADE_DECKS[0]).cards;
+    (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).cards;
   // A deck's hand-picked spellbook (empty = engine auto-derives from elements).
   const resolveDeckSpells = (deckId: string): string[] =>
-    (deckPool.find((d) => d.id === deckId) ?? PREMADE_DECKS[0]).spells ?? [];
+    (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).spells ?? [];
   const deckLabel = (deckId: string): string =>
-    (deckPool.find((d) => d.id === deckId) ?? PREMADE_DECKS[0]).name;
+    (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).name;
+
+  // Switching battlefield re-points a premade selection at the same archetype's
+  // build for the new size (Inferno Blitz 4x4 <-> Inferno Blitz 5x5) rather than
+  // dumping the player back to the first deck. Custom decks are left alone.
+  useEffect(() => {
+    const remap = (id: string): string => {
+      if (modePremades.some((d) => d.id === id)) return id;
+      if (customDecks.some((d) => d.id === id)) return id;
+      const base = id.endsWith("_5") ? id.slice(0, -2) : id;
+      const want = boardSize === 5 ? `${base}_5` : base;
+      return modePremades.some((d) => d.id === want) ? want : modePremades[0].id;
+    };
+    setP1DeckId(remap);
+    setP2DeckId(remap);
+    // modePremades is derived from boardSize; depending on it directly would
+    // re-run every render since it's a fresh array each time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardSize, customDecks]);
 
   // The human who must act right now (null while an AI acts or a phase
   // animates). `view` holds the last active human so the hand/pools/labels
@@ -1391,7 +1416,7 @@ export function App() {
                   onChange={(e) => { setP1DeckId(e.target.value); setViewDeck("p1"); }}
                 >
                   <optgroup label="Premade decks">
-                    {PREMADE_DECKS.map((d) => (
+                    {modePremades.map((d) => (
                       <option key={d.id} value={d.id}>{d.name} ({d.cards.length})</option>
                     ))}
                   </optgroup>
@@ -1414,7 +1439,7 @@ export function App() {
                   onChange={(e) => { setP2DeckId(e.target.value); setViewDeck("p2"); }}
                 >
                   <optgroup label="Premade decks">
-                    {PREMADE_DECKS.map((d) => (
+                    {modePremades.map((d) => (
                       <option key={d.id} value={d.id}>{d.name} ({d.cards.length})</option>
                     ))}
                   </optgroup>
@@ -1570,6 +1595,7 @@ export function App() {
       )}
 
       <DeckBuilder
+        boardSize={boardSize}
         open={builderOpen}
         onClose={() => setBuilderOpen(false)}
         onChange={(decks) => {
@@ -1577,8 +1603,10 @@ export function App() {
           // If a side's custom deck was deleted, fall back to the first premade
           // (premades live in code, so they always stay valid).
           const stillValid = new Set([...PREMADE_DECKS.map((d) => d.id), ...decks.map((d) => d.id)]);
-          if (!stillValid.has(p1DeckId)) setP1DeckId(PREMADE_DECKS[0].id);
-          if (!stillValid.has(p2DeckId)) setP2DeckId(PREMADE_DECKS[0].id);
+          // Fall back within the CURRENT battlefield, not to a 4x4 build while
+          // the player is set up for 5x5.
+          if (!stillValid.has(p1DeckId)) setP1DeckId(modePremades[0].id);
+          if (!stillValid.has(p2DeckId)) setP2DeckId(modePremades[0].id);
         }}
       />
     </div>

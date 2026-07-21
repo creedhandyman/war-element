@@ -5,11 +5,9 @@ import {
   buildableCards,
   deleteCustomDeck,
   loadCustomDecks,
-  MAX_DECK,
+  deckLimits,
   MAX_SPELLS,
-  MIN_DECK,
   saveCustomDeck,
-  TARGET_DECK,
   validateDeck,
   type CustomDeck,
 } from "../data/custom-decks";
@@ -35,7 +33,11 @@ export function DeckBuilder(props: {
   open: boolean;
   onClose: () => void;
   onChange: (decks: CustomDeck[]) => void;
+  /** Battlefield the player is building for — decides the legal deck size
+   *  (18 on the standard board, 28 on the large one). */
+  boardSize?: number;
 }) {
+  const limits = deckLimits(props.boardSize ?? 4);
   const [decks, setDecks] = useState<CustomDeck[]>(() => loadCustomDecks());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -69,7 +71,7 @@ export function DeckBuilder(props: {
     });
   }, [pool, filter, sortBy]);
   const pickedSet = new Set(picked);
-  const check = validateDeck(picked);
+  const check = validateDeck(picked, props.boardSize ?? 4);
 
   // Live composition of the deck being built — by element, class, and cost curve.
   const stats = useMemo(() => {
@@ -105,7 +107,7 @@ export function DeckBuilder(props: {
   if (!props.open) return null;
 
   function toggle(id: string) {
-    setPicked((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= MAX_DECK ? cur : [...cur, id]));
+    setPicked((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= limits.max ? cur : [...cur, id]));
   }
   // A deck's spellbook: up to MAX_SPELLS spells, castable once each in a match.
   function toggleSpell(id: string) {
@@ -137,7 +139,7 @@ export function DeckBuilder(props: {
     if (editingId === id) reset();
   }
 
-  const countColor = check.ok ? "var(--legal)" : picked.length > MAX_DECK ? "var(--threat)" : "var(--muted)";
+  const countColor = check.ok ? "var(--legal)" : picked.length > limits.max ? "var(--threat)" : "var(--muted)";
   const detail = detailId ? getDef(detailId) : null;
 
   // The spellbook is restricted to the deck's own elements — only spells whose
@@ -167,8 +169,8 @@ export function DeckBuilder(props: {
               maxLength={28}
             />
             <div className="db-count" style={{ color: countColor }}>
-              {picked.length} / {MAX_DECK}
-              <span className="db-hint"> · {MIN_DECK}–{MAX_DECK} (aim {TARGET_DECK})</span>
+              {picked.length} / {limits.max}
+              <span className="db-hint"> · {limits.min}–{limits.max} (aim {limits.target})</span>
             </div>
             <div className="db-actions">
               <button className="lockin" disabled={!check.ok} onClick={save}>
@@ -444,7 +446,7 @@ export function DeckBuilder(props: {
 
             <button
               className={pickedSet.has(detail.id) ? "ghost dbd-toggle" : "lockin dbd-toggle"}
-              disabled={!pickedSet.has(detail.id) && picked.length >= MAX_DECK}
+              disabled={!pickedSet.has(detail.id) && picked.length >= limits.max}
               onClick={() => { toggle(detail.id); setDetailId(null); }}
             >
               {pickedSet.has(detail.id) ? "− Remove from deck" : "+ Add to deck"}
