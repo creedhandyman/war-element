@@ -113,11 +113,49 @@ export function legalMoves(state: GameState, player: PlayerId, instanceId: strin
  * - FLYING: immune to Melee — unless the attacker is ALSO flying (a flying
  *   melee card can strike other fliers). STEALTH: untargetable until it attacks.
  */
+/** How far a ranged BASIC attack sees along one of its rays. */
+export const RANGED_REACH = 2;
+
+/**
+ * Ranged line of sight — a queen's move in chess, capped at RANGED_REACH.
+ *
+ * The target must lie on one of the 8 rays (same row, same column, or a true
+ * diagonal) within RANGED_REACH spaces, and any card standing on the ray STOPS
+ * the shot beyond it. The blocker itself stays a legal target — you can always
+ * shoot the thing in your face.
+ *
+ * Blocking is symmetric: your own cards screen just as enemy ones do, which is
+ * the point — a front line now physically shields the back row it stands in
+ * front of, and your own tank can get in your archer's way.
+ *
+ * Squares off every ray are unreachable at ANY distance: from (2,2) on a 5x5
+ * that is (0,1) (0,3) (1,0) (1,4) (3,0) (3,4) (4,1) (4,3) — the knight-squares.
+ * Reposition to open a line.
+ */
+export function rangedCanSee(state: GameState, from: Pos, to: Pos): boolean {
+  const dr = to.row - from.row;
+  const dc = to.col - from.col;
+  const adr = Math.abs(dr);
+  const adc = Math.abs(dc);
+  if (adr === 0 && adc === 0) return false;
+  if (!(dr === 0 || dc === 0 || adr === adc)) return false; // off-ray
+  const dist = Math.max(adr, adc);
+  if (dist > RANGED_REACH) return false;
+  const sr = Math.sign(dr);
+  const sc = Math.sign(dc);
+  for (let i = 1; i < dist; i++) {
+    // Stop BEFORE the target: a body between blocks, the target itself doesn't.
+    if (cardAt(state, from.row + sr * i, from.col + sc * i)) return false;
+  }
+  return true;
+}
+
 export function canTarget(
-  _state: GameState,
+  state: GameState,
   attacker: CardInstance,
   target: CardInstance,
   asRanged = false, // a ranged special ignores the melee reach/FLYING limits
+  forBasic = false, // BASIC attacks only: applies the ranged queen-line limit
 ): boolean {
   if (!attacker.pos || !target.pos) return false;
   if (target.owner === attacker.owner) return false;
@@ -142,6 +180,11 @@ export function canTarget(
       Math.abs(attacker.pos.col - target.pos.col) > 1
     )
       return false;
+  } else if (forBasic) {
+    // Ranged BASIC: a queen's line, RANGED_REACH long, blocked by bodies.
+    // Specials are deliberately exempt — they keep their old full-board reach,
+    // so the AoE specials tuned in the balance pass are untouched.
+    if (!rangedCanSee(state, attacker.pos, target.pos)) return false;
   }
 
   const defenderHome = homeRow(target.owner);
@@ -159,11 +202,19 @@ export function canTarget(
 }
 
 /** Enemy cards `attacker` can currently hit with a basic attack / enemy-targeted special. */
-export function validTargets(state: GameState, attackerId: string): CardInstance[] {
+export function validTargets(
+  state: GameState,
+  attackerId: string,
+  forBasic = true,
+): CardInstance[] {
   const attacker = state.cards[attackerId];
   if (!attacker || !attacker.pos) return [];
+  // forBasic defaults TRUE: this is the basic-attack target list (UI, AI, the
+  // battle resolver). On-summon abilities borrow it for "everything in normal
+  // range" and pass false — they are not basics and keep the old full reach,
+  // same exemption the Specials get.
   const enemies = boardCards(state, enemyOf(attacker.owner)).filter((t) =>
-    canTarget(state, attacker, t),
+    canTarget(state, attacker, t, false, forBasic),
   );
   // Morning Dew (Sprinu): a healer aims its basic at hurt friends too. Only
   // wounded allies are offered — healing something at full HP is a wasted turn,

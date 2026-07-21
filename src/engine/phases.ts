@@ -114,8 +114,10 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
             Number(params.spread ?? -1) >= 0
               ? forwardAreaTargets(draft, inst, Number(params.spread), params.forwardDepth != null ? Number(params.forwardDepth) : undefined)
               // No spread → every enemy in normal targeting range. For a melee
-              // card that's king's-move reach (the 8 adjacent tiles).
-              : validTargets(draft, inst.instanceId);
+              // card that's king's-move reach (the 8 adjacent tiles). `false` =
+              // not a basic attack, so a Ranged card's on-summon burst keeps its
+              // full-board reach instead of being cut to the queen line.
+              : validTargets(draft, inst.instanceId, false);
           if (targets.length > 0) {
             const handler = SPECIAL_HANDLERS[os.handler];
             if (!handler) throw new Error(`Unknown onSummon handler: ${os.handler}`);

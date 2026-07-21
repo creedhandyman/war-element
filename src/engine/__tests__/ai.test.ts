@@ -35,9 +35,11 @@ describe("AI heuristics", () => {
 
   it("prioritizes killing an invader on its own home row", () => {
     const s = prepState();
-    const defender = place(s, "dusk_ghastly", "P2", 1, 0); // ranged, dmg 7
+    // Both candidates sit on a ray within the ranged queen-line reach — the
+    // point of the test is the PRIORITY, not whether it can reach at all.
+    const defender = place(s, "dusk_ghastly", "P2", 1, 3); // ranged, dmg 7
     const invader = place(s, "leaf_stickviper", "P1", 0, 3, { curHp: 3 }); // on P2 home!
-    place(s, "leaf_greegon", "P1", 1, 1, { curHp: 2 }); // juicier kill elsewhere
+    place(s, "leaf_greegon", "P1", 1, 2, { curHp: 2 }); // juicier kill elsewhere
     s.players.P2.magicPool = 0; // no special
     const choice = chooseBattleAction(s, defender.instanceId);
     expect(choice.action).toBe("basic");

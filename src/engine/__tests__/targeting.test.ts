@@ -1,7 +1,7 @@
 // Milestone 3: targeting — melee rows, ranged, Home Slot Rule, FLYING, STEALTH.
 
 import { describe, expect, it } from "vitest";
-import { canTarget, previewOnSummonArea, validTargets } from "../rules";
+import { canTarget, previewOnSummonArea, rangedCanSee, validSpecialTargets, validTargets } from "../rules";
 import { getDef } from "../../data/cards";
 import { place, prepState } from "./helpers";
 import type { Pos } from "../types";
@@ -115,5 +115,63 @@ describe("FLYING & STEALTH", () => {
     place(s, "dusk_gool", "P2", 1, 1);
     const ids = validTargets(s, me.instanceId).map((t) => t.defId);
     expect(ids).toEqual(["dusk_gool"]);
+  });
+});
+
+describe("ranged queen-line", () => {
+  it("coverage from a mid slot, 4x4", () => {
+    const s = prepState();
+    const me = place(s, "dusk_ghastly", "P2", 2, 1, { autoMode: "manual" }); // Ranged
+    const grid: string[] = [];
+    for (let r = 0; r < 4; r++) {
+      let row = "";
+      for (let c = 0; c < 4; c++) {
+        if (r === 2 && c === 1) { row += " R "; continue; }
+        row += rangedCanSee(s, me.pos!, { row: r, col: c } as Pos) ? " X " : " . ";
+      }
+      grid.push(row);
+    }
+    console.log("\n  ranged at (2,1) — X = can hit, . = cannot:\n" + grid.map((g) => "    " + g).join("\n"));
+    expect(rangedCanSee(s, me.pos!, { row: 0, col: 1 })).toBe(true);  // 2 straight
+    expect(rangedCanSee(s, me.pos!, { row: 0, col: 3 })).toBe(true);  // 2 diagonal
+    expect(rangedCanSee(s, me.pos!, { row: 0, col: 2 })).toBe(false); // knight-square
+  });
+
+  it("a body on the ray blocks the shot beyond it — and IS the target", () => {
+    const s = prepState();
+    const me = place(s, "dusk_ghastly", "P2", 3, 1, { autoMode: "manual" });
+    const near = place(s, "leaf_alpha", "P1", 2, 1);  // directly ahead, 1 away
+    const far = place(s, "leaf_greegon", "P1", 1, 1); // 2 ahead, behind `near`
+    const ids = validTargets(s, me.instanceId).map((t) => t.instanceId);
+    expect(ids).toContain(near.instanceId);     // the blocker is hittable
+    expect(ids).not.toContain(far.instanceId);  // screened
+  });
+
+  it("blocking is symmetric — your OWN card screens your archer too", () => {
+    const s = prepState();
+    const me = place(s, "dusk_ghastly", "P2", 3, 1, { autoMode: "manual" });
+    place(s, "dusk_gool", "P2", 2, 1); // an ALLY standing in the lane
+    const far = place(s, "leaf_greegon", "P1", 1, 1);
+    expect(validTargets(s, me.instanceId).map((t) => t.instanceId)).not.toContain(far.instanceId);
+  });
+
+  it("specials are exempt — they keep the full board", () => {
+    const s = prepState();
+    s.players.P2.magicPool = 20;
+    const me = place(s, "dusk_ghastly", "P2", 3, 0, { autoMode: "manual" });
+    const offRay = place(s, "leaf_greegon", "P1", 1, 3); // off-ray AND 3 away
+    expect(validTargets(s, me.instanceId).map((t) => t.instanceId)).not.toContain(offRay.instanceId);
+    // …but the Special still reaches it.
+    expect(validSpecialTargets(s, me.instanceId).map((t) => t.instanceId)).toContain(offRay.instanceId);
+  });
+
+  it("melee is untouched — still king's move, still 1 space", () => {
+    const s = prepState();
+    const me = place(s, "leaf_sticks", "P1", 2, 1, { autoMode: "manual" }); // Melee
+    const beside = place(s, "dusk_gool", "P2", 1, 2);
+    const twoAway = place(s, "dusk_vamp", "P2", 0, 1); // on a ray, but 2 out
+    const ids = validTargets(s, me.instanceId).map((t) => t.instanceId);
+    expect(ids).toContain(beside.instanceId);
+    expect(ids).not.toContain(twoAway.instanceId);
   });
 });

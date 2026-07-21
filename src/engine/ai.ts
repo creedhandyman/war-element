@@ -262,7 +262,9 @@ function threatAt(state: GameState, mover: CardInstance, pos: Pos): number {
   const ghost: CardInstance = { ...mover, pos: { ...pos } };
   let total = 0;
   for (const enemy of boardCards(state, enemyOf(mover.owner))) {
-    if (canTarget(state, enemy, ghost)) {
+    // forBasic: this models incoming BASIC volleys, so it must respect the same
+    // queen-line reach the attacker would actually be held to.
+    if (canTarget(state, enemy, ghost, false, true)) {
       total += effectiveDmg(state, enemy) * getDef(enemy.defId).hits;
     }
   }

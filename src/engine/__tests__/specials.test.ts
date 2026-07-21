@@ -234,9 +234,11 @@ describe("firing specials", () => {
     // Shift rather than Krysteel: this is about the split mechanic, not a card,
     // and Shift is a keyword-free 2×3 — no CRIT to suppress, so the arithmetic
     // stands on its own instead of on a seeded coin.
-    const shift = place(s, "bore_shift", "P1", 3, 0, { autoMode: "manual" }); // 2 dmg × 3
-    const t1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
-    const t2 = place(s, "dusk_ghastly", "P2", 1, 1, { curHp: 19, curShields: 1 });
+    // Both targets sit on a ray one space out (straight ahead and diagonal), so
+    // the ranged queen-line reach isn't what's under test here.
+    const shift = place(s, "bore_shift", "P1", 3, 1, { autoMode: "manual" }); // 2 dmg × 3
+    const t1 = place(s, "dusk_gool", "P2", 2, 1, { curHp: 13 });
+    const t2 = place(s, "dusk_ghastly", "P2", 2, 2, { curHp: 19, curShields: 1 });
     s.rngState = seedForCoins(false, false, false); // no CRITs muddying the math
     const next = applyIntent(battleWith(s, shift.instanceId), {
       type: "BATTLE_ACTION",
