@@ -1417,3 +1417,39 @@ describe("element-aura telegraphs (fx counters)", () => {
     expect(s.cards[killer.instanceId].fxLunge ?? 0).toBe(0);
   });
 });
+
+describe("Hawko — Aerial Dominance", () => {
+  it("clips an enemy summoned inside its range", () => {
+    // P1 summons into its OWN home row (3); Hawko watches from P2's mid row.
+    const s = prepState();
+    s.players.P1.summonPool = 9;
+    place(s, "gale_hawko", "P2", 2, 0);
+    const handId = giveHand(s, "P1", "dusk_gool");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const fresh = boardCards(next, "P1").find((c) => c.defId === "dusk_gool")!;
+    expect(getDef("dusk_gool").hp - fresh.curHp).toBe(1);
+  });
+
+  it("...and stays silent for one summoned out of reach", () => {
+    // The reaction is gated on canTarget, so it is a zone of control rather
+    // than a free tax on every summon the opponent makes.
+    const s = prepState();
+    s.players.P1.summonPool = 9;
+    place(s, "gale_hawko", "P2", 0, 3); // its own home row, far corner
+    const handId = giveHand(s, "P1", "dusk_gool");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const fresh = boardCards(next, "P1").find((c) => c.defId === "dusk_gool")!;
+    expect(fresh.curHp).toBe(getDef("dusk_gool").hp); // untouched
+  });
+
+  it("is fast enough to act before almost anything (SP 14)", () => {
+    // The whole point of the HP 11 -> 5 / SP 8 -> 14 rebuild. If the speed did
+    // not translate into queue position, the trade bought nothing.
+    const s = prepState();
+    const hawko = place(s, "gale_hawko", "P1", 2, 0);
+    const brute = place(s, "bore_clubber", "P2", 1, 0);
+    expect(effectiveSp(s, s.cards[hawko.instanceId])).toBeGreaterThan(
+      effectiveSp(s, s.cards[brute.instanceId]),
+    );
+  });
+});

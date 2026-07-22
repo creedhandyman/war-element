@@ -2666,9 +2666,12 @@ export const CARDS: CardDef[] = [
     attackType: "Ranged",
     cost: 3,
     dmg: 3,
-    hits: 2, // "2×3 DMG"
-    hp: 11,
-    sp: 8,
+    hits: 2, // "2x3 DMG" = 2 hits of 3
+    // Rebuilt as a glass-cannon harasser: HP 11 -> 5, SP 8 -> 14. Same 25-point
+    // budget for cost 3, just poured into speed. FLYING already keeps melee off
+    // it, so 5 HP only matters to ranged answers.
+    hp: 5,
+    sp: 14,
     shields: 0,
     keywords: { FLYING: true },
     tribe: "Avian",
