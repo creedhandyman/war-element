@@ -58,6 +58,9 @@ function describeOnSummon(os: {
   }
   const scope = () => {
     if (os.targetSide === "ally") return "nearby allies";
+    // Wildfire is a zone on the enemy back line, not a volley at whatever is
+    // reachable — "all enemies in range" was simply wrong for it.
+    if (p.enemyHomeRow != null) return "every opponent in their Home row";
     if (p.spread != null) return "enemies in the area ahead";
     const t = Number(p.targets ?? 1);
     if (t >= 99) return "all enemies in range";
@@ -89,6 +92,8 @@ function describeOnSummon(os: {
       const dmgStr = hits > 1 ? `${hits}×${dmg}` : `${dmg}`;
       return `On summon: deal ${dmgStr} DMG to ${scope()}${st.length ? ` and apply ${st.join(" + ")}` : ""}${sap}${push}${crit}.`;
     }
+    case "overload":
+      return "On summon: fires its Special — already-PARALYZED opponents are held 1 round longer, everyone else is marked ELECTRIFIED.";
     case "statusNova":
       return `On summon: apply ${p.statusKind}${p.statusDuration ? ` for ${rounds(n("statusDuration"))}` : ""} to ${scope()}.`;
     case "grantShield":
@@ -112,6 +117,12 @@ const rounds = (n: number) => `${n} round${n === 1 ? "" : "s"}`;
 export function describePassives(def: CardDef): string[] {
   const aura = ELEMENT_AURA[def.element];
   const passives: string[] = [`${def.element} aura — ${aura.name}: ${aura.desc}`];
+  /** Push a line, prefixed with the card's own name for that passive when it
+   *  has one. `key` is the def field the line was derived from. */
+  const named = (key: string, text: string) => {
+    const n = def.passiveNames?.[key];
+    passives.push(n ? `${n} — ${text}` : text);
+  };
   // Passive-flavored keywords read as the card's own ability, not just a chip.
   const kw = def.keywords;
   if (kw.REGEN) passives.push(`REGEN ${kw.REGEN}: heals ${kw.REGEN} HP at the end of each round.`);
@@ -208,7 +219,8 @@ export function describePassives(def: CardDef): string[] {
     // own dedicated line below — don't emit an empty "Each round: ." for those.
     // "Each round" would be a lie for a firstRoundOnly tick — it fires once.
     if (bits.length)
-      passives.push(
+      named(
+        "roundTick",
         t.firstRoundOnly
           ? `Once, at the end of the round it lands: ${bits.join(" · ")}.`
           : `Each round: ${bits.join(" · ")}.`,
@@ -353,8 +365,15 @@ export function describePassives(def: CardDef): string[] {
         breakClause = `; when it breaks, ${sb.status.kind}s the attacker${sb.status.duration ? ` for ${rounds(sb.status.duration)}` : ""}`;
       else if (gains.length) breakClause = `; when it breaks, gains ${gains.join(" / ")}`;
     }
-    passives.push(`On summon, raises a ${def.summonSelfShields}-shield barrier${breakClause}.`);
+    named("summonSelfShields", `On summon, raises a ${def.summonSelfShields}-shield barrier${breakClause}.`);
   }
+  if (def.roundTick?.selfHpCost)
+    named("selfHpCost", `Each round it pays ${def.roundTick.selfHpCost} of its own HP to do so (never lethal).`);
+  if (def.roundTick?.spawnTriggerAt && def.special)
+    named(
+      "spawnTriggerAt",
+      `Every ${def.roundTick.spawnTriggerAt} raised, ${def.special.name} fires free.`,
+    );
   if (def.roundTick?.wardAllies)
     passives.push(`Radiant Ward: each round, allies get a barrier that absorbs the next negative status.`);
   if (def.roundTick?.cleanseAllies)
@@ -364,11 +383,44 @@ export function describePassives(def: CardDef): string[] {
       `On Kill, its Special recasts free next round (ignores cost & cooldown).`,
     );
   if (def.onSummon) passives.push(describeOnSummon(def.onSummon));
-  if (def.onDeath)
-    passives.push(
-      def.onDeath.rowAhead
-        ? `On death, blasts the enemy row ahead for ${def.onDeath.dmg}${def.onDeath.pen ? " (PEN)" : ""}.`
-        : `On death, deals ${def.onDeath.dmg}${def.onDeath.pen ? " piercing" : ""} damage back to its killer.`,
+  if (def.onDeath) {
+    const od = def.onDeath;
+    const parts: string[] = [];
+    // Only claim damage when there IS damage — WarPhant carries dmg 0 purely to
+    // hang a spawn off, and read as "deals 0 damage back to its killer".
+    if (od.dmg > 0)
+      parts.push(
+        od.rowAhead
+          ? `blasts the enemy row ahead for ${od.dmg}${od.pen ? " (PEN)" : ""}`
+          : `deals ${od.dmg}${od.pen ? " piercing" : ""} damage back to its killer`,
+      );
+    if (od.spawnToken)
+      parts.push(
+        `raises ${od.spawnToken.count} ${getDef(od.spawnToken.token).name}${od.spawnToken.count > 1 ? "s" : ""}`,
+      );
+    if (od.frightenInRange) parts.push(`FRIGHTENs nearby enemies for ${rounds(od.frightenInRange)}`);
+    if (od.allyTribeBuffDmg)
+      parts.push(`gives surviving ${od.allyTribeBuffDmg.tribe}s +${od.allyTribeBuffDmg.dmg} DMG permanently`);
+    if (parts.length) named("onDeath", `On death, ${parts.join(" · ")}.`);
+  }
+  // ── passives that previously rendered NOTHING at all ──────────────────────
+  if (def.meleeBonusDmg)
+    named("meleeBonusDmg", `Basic attacks hit an ADJACENT target for +${def.meleeBonusDmg} DMG.`);
+  if (def.onEnterEnemySide)
+    named(
+      "onEnterEnemySide",
+      `On moving onto enemy ground: deal ${def.onEnterEnemySide.dmg}${def.onEnterEnemySide.pen ? " piercing" : ""} DMG to an opponent in range.`,
+    );
+  if (def.onEnterMidRow)
+    named("onEnterMidRow", `On moving into a Mid row: gain +${def.onEnterMidRow.shields} shield.`);
+  if (def.onHitPush)
+    named("onHitPush", `Every landed hit shoves the victim back ${def.onHitPush} slot (if open).`);
+  if (def.burnPersistsWhileAlive)
+    named("burnPersistsWhileAlive", "While it lives, BURN it inflicts on opponents never expires.");
+  if (def.roundTick?.aoeElectrifiedDmg)
+    named(
+      "aoeElectrifiedDmg",
+      `End of round: deals ${def.roundTick.aoeElectrifiedDmg} DMG to every ELECTRIFIED opponent in range.`,
     );
   if (def.statusImmune) passives.push("Immune to negative statuses.");
   if (def.ignoresHomeRule)

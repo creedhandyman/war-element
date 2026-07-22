@@ -20,6 +20,10 @@ const ABILITY_FIELDS = [
   "healsFromBleed", "onHitAllyBuff", "onHitZap", "critStatus", "onAllyKilled",
   "spWhileStealthed", "onAllyHitShield", "basicHealsAllies",
   "evasionEnemySideOnly",
+  // Wave 1/2 additions — every one of these shipped with NO card text at all
+  // until this list caught up, which is exactly what the list is for.
+  "meleeBonusDmg", "onEnterEnemySide", "onEnterMidRow", "onHitPush",
+  "burnPersistsWhileAlive",
 ] as const;
 
 /** Every effect a roundTick can carry. */
@@ -28,7 +32,7 @@ const ROUND_TICK_KEYS = [
   "healAllies", "healLowestAlly", "buffDmgEveryN", "scaldFrozen", "paralyzeOne",
   "pushEnemies", "rowAheadDmg", "inRangeDmg", "inRangeStatus", "selfShields",
   "pokeParalyzedDmg", "aoeParalyzedDmg", "rootedDmg", "roundHealElement",
-  "spawn",
+  "spawn", "aoeElectrifiedDmg", "selfHpCost", "spawnTriggerAt",
 ] as const;
 
 describe("card text covers every mechanic", () => {
@@ -120,6 +124,7 @@ describe("card text covers every mechanic", () => {
       onRevive: ["heal", "sleep", "decay"],
       aura: ["dmg", "sp", "maxHp", "shields", "pen"],
       onLowHp: ["dmg", "loseSp", "loseSpecial"],
+      onDeath: ["dmg", "rowAhead", "spawnToken", "frightenInRange", "allyTribeBuffDmg"],
     };
     const silent: string[] = [];
     for (const def of all) {
@@ -127,7 +132,11 @@ describe("card text covers every mechanic", () => {
         const o = (def as unknown as Record<string, Record<string, unknown>>)[outer];
         if (!o) continue;
         for (const k of keys) {
-          if (o[k] == null) continue;
+          // A sub-field set to 0 or false is not a claim — WarPhant and Wedded
+          // Wraith both carry onDeath.dmg: 0 purely to hang a spawn or a tribe
+          // buff off, and "deals 0 damage back to its killer" was precisely the
+          // nonsense this pass removed.
+          if (o[k] == null || o[k] === 0 || o[k] === false) continue;
           const stripped = { ...o };
           delete stripped[k];
           const withIt = describePassives(def).join("|");

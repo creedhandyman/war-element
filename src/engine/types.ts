@@ -374,6 +374,12 @@ export interface CardDef {
   basicHealsAllies?: boolean;
   /** Gate Keeper (Veil): grant this many shields to SELF on summon (a passive
    *  grant, not a base stat, so it stays off the cost curve). */
+  /** Display names for this card's passives, keyed by the def field each one
+   *  comes from. The card face prints "Wind Wake — every landed hit shoves…"
+   *  instead of an unnamed sentence. Per-CARD, not per-field, because the same
+   *  mechanic is named differently on different cards: summonSelfShields is
+   *  "War Ready" on WarPhant and "War Mount" on RohoJohn. */
+  passiveNames?: Record<string, string>;
   summonSelfShields?: number;
   /** War Mount (RohoJohn): a mounted Ranger also mauls what it stands beside —
    *  its BASIC gains +N damage against a target inside melee reach. Modelled as

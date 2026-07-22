@@ -3812,7 +3812,8 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 0,
     keywords: {},
-    summonSelfShields: 5, // War Mount: rides in armoured...
+    passiveNames: { summonSelfShields: "War Mount", meleeBonusDmg: "War Mount" },
+    summonSelfShields: 5, // rides in armoured...
     meleeBonusDmg: 6, // ...and the mount mauls whatever it stands beside.
     special: {
       name: "Cougar Pounce",
@@ -3839,6 +3840,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Discharges into whatever it marked. The literal ELECTRIFIED status, so it
     // combos with its OWN Special rather than with any stray DOT on the board.
+    passiveNames: { aoeElectrifiedDmg: "Static Discharge" },
     roundTick: { aoeElectrifiedDmg: 2 },
     // "On Summon: use Special" needs no new mechanic — the same handler and
     // params, wired to the summon trigger.
@@ -3899,8 +3901,9 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 0,
     keywords: {},
-    // Stomp fires on the CROSSING onto enemy ground, not on every step taken
-    // once it is already there.
+    // Fires on the CROSSING onto enemy ground, not on every step taken once it
+    // is already there.
+    passiveNames: { onEnterEnemySide: "Stomp" },
     onEnterEnemySide: { dmg: 1 },
   },
   // ── Wave 2 ────────────────────────────────────────────────────────────────
@@ -3919,7 +3922,8 @@ export const CARDS: CardDef[] = [
     shields: 1,
     keywords: { FLYING: true },
     tribe: "Avian",
-    onHitPush: 1, // Wind Wake — every landed hit shoves the victim a slot back
+    passiveNames: { onHitPush: "Wind Wake" },
+    onHitPush: 1, // every landed hit shoves the victim a slot back
     special: {
       name: "Blue Wind Spiral",
       cost: 3,
@@ -3944,7 +3948,12 @@ export const CARDS: CardDef[] = [
     sp: 1,
     shields: 0,
     keywords: {},
-    summonSelfShields: 4, // War Ready: the Hardened Gold Armor it rides in with
+    passiveNames: {
+      summonSelfShields: "War Ready",
+      onEnterMidRow: "War Ready",
+      onDeath: "Last Rider",
+    },
+    summonSelfShields: 4, // the Hardened Gold Armor it rides in with
     onEnterMidRow: { shields: 2 }, // ...and it plates up on reaching the middle
     onDeath: { dmg: 0, spawnToken: { token: "dawn_warrider_tok", count: 1 } },
     special: {
@@ -3976,8 +3985,9 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Zombie",
     summonSpawn: { token: "dusk_zombie_tok", count: 1 },
-    // Dead Clock: one body a round, paid in its own HP; every 3 raised, Horde
-    // fires free and the tally resets.
+    // One body a round, paid in its own HP; every 3 raised, Horde fires free
+    // and the tally resets.
+    passiveNames: { roundTick: "Dead Clock", selfHpCost: "Dead Clock", spawnTriggerAt: "Dead Clock" },
     roundTick: {
       spawn: { token: "dusk_zombie_tok", count: 1 },
       selfHpCost: 3,
@@ -4006,7 +4016,8 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 3,
     keywords: {},
-    // Wildfire: the blaze it lit never dies down while Scorch is standing.
+    // The blaze it lit never dies down while Scorch is standing.
+    passiveNames: { burnPersistsWhileAlive: "Wildfire" },
     burnPersistsWhileAlive: true,
     onSummon: {
       handler: "barrage",
