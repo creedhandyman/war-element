@@ -601,6 +601,12 @@ export interface FieldBuff {
   evasion?: boolean;      // element allies gain EVASION while up (Nightfall)
   specialDiscount?: number; // BOLT Specials cost −N while up (Power Grid), floors at 1
   electrify?: number;       // +N extra Electrify DMG vs statused foes (Power Grid)
+  /** Blazing Sun: the field owner's element allies cannot miss — negates BLIND,
+   *  the target's EVASION, and any other roll-to-hit. */
+  neverMiss?: boolean;
+  /** Blazing Sun: the field owner's element allies can see and target STEALTH
+   *  cards, which are otherwise untargetable until they attack. */
+  seeStealth?: boolean;
   /** Lushfield: statuses of these kinds, applied by the field owner's side,
    *  land with +`rounds` extra duration. Declared as data rather than hardcoded
    *  to BLEED/ROOT so another element's field can reuse the mechanic. */

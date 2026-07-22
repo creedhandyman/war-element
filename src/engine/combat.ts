@@ -15,7 +15,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
 import { creditDamage, creditKill } from "./stats";
-import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldPushBonus, fieldStatusExtend, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -297,12 +297,15 @@ export function resolveHit(
   };
   let reflectBack = 0;
 
+  // Blazing Sun (DAWN field): "their attacks cannot miss". Read once — it can't
+  // change mid-volley — and applied to every roll-to-hit below.
+  const fieldNeverMiss = fieldFlag(draft, attacker, "neverMiss");
   for (let i = 0; i < opts.hits; i++) {
     if (target.curHp <= 0) break;
 
     // 0. BLIND — −50% accuracy, rolled PER HIT on a basic attack (so a blinded
     //    multi-hit lands some and whiffs others). Specials auto-hit.
-    if (opts.kind === "basic" && !aDef.alwaysHit && hasStatus(attacker, "BLIND") && !coin(draft)) {
+    if (opts.kind === "basic" && !aDef.alwaysHit && !fieldNeverMiss && hasStatus(attacker, "BLIND") && !coin(draft)) {
       result.dodgedHits++;
       target.fxMiss = (target.fxMiss ?? 0) + 1;
       draft.log.push(`${label(draft, attacker)} misses (BLIND).`);
@@ -311,7 +314,7 @@ export function resolveHit(
 
     // 1. EVASION — innate or granted by a friendly wall (Veil). Not re-checked
     //    for reflect damage (no dodge chains). Hot Shot (alwaysHit) ignores it.
-    if (opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && (hasEvasion(target, draft.boardSize) || wallEvasion(draft, target) || hasStatus(target, "EVASION") || fieldEvasion(draft, target))) {
+    if (opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !fieldNeverMiss && (hasEvasion(target, draft.boardSize) || wallEvasion(draft, target) || hasStatus(target, "EVASION") || fieldEvasion(draft, target))) {
       if (coin(draft)) {
         result.dodgedHits++;
         target.fxMiss = (target.fxMiss ?? 0) + 1;
@@ -321,7 +324,15 @@ export function resolveHit(
     }
 
     // 1b. Rocky Force Field (Rhe): coin-flip chance to shrug off a RANGED hit.
-    if (opts.kind !== "reflect" && tDef.blocksRangedChance && aDef.attackType === "Ranged" && pctChance(draft, tDef.blocksRangedChance)) {
+    if (
+      opts.kind !== "reflect" &&
+      !fieldNeverMiss && // Blazing Sun beats it; card-level alwaysHit does NOT —
+      // those cards print "ignores BLIND and EVASION", and widening that here
+      // would silently rebalance Hot Shot and Hunting Season.
+      tDef.blocksRangedChance &&
+      aDef.attackType === "Ranged" &&
+      pctChance(draft, tDef.blocksRangedChance)
+    ) {
       result.dodgedHits++;
       draft.log.push(`${label(draft, target)}'s force field deflects ${aDef.name}'s shot.`);
       continue;

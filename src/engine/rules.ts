@@ -9,6 +9,7 @@ import {
   effectiveDmg,
   effectiveMaxHp,
   fieldBonus,
+  fieldFlag,
   hasStatus,
   isCaptured,
   isContested,
@@ -194,7 +195,13 @@ export function canTarget(
   const tDef = getDef(target.defId);
   const melee = aDef.attackType === "Melee" && !asRanged;
 
-  if ((tDef.keywords.STEALTH && !target.attackedThisRound) || hasStatus(target, "STEALTH")) return false;
+  // STEALTH: untargetable until it attacks — unless the attacker is standing in
+  // its own Blazing Sun, the one effect in the game that reveals cloaked cards.
+  if (
+    ((tDef.keywords.STEALTH && !target.attackedThisRound) || hasStatus(target, "STEALTH")) &&
+    !fieldFlag(state, attacker, "seeStealth")
+  )
+    return false;
   // FLYING dodges melee — but a flying attacker can still strike other fliers.
   if (tDef.keywords.FLYING && melee && !aDef.keywords.FLYING) return false;
   // Shadow (Vaga): only adjacent attackers reach it — ranged shots from a row

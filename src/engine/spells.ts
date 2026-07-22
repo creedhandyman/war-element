@@ -498,8 +498,8 @@ export const SPELLS: SpellDef[] = [
     element: "DAWN",
     cost: 6,
     kind: "field",
-    text: "Field (3 rounds): your DAWN allies heal 2 HP each round.",
-    field: { rounds: 3, regen: 2 }, // (defer: +100% accuracy, see/target STEALTH)
+    text: "Field (3 rounds): your DAWN allies heal 2 HP each round, cannot miss, and can see and target STEALTH cards.",
+    field: { rounds: 3, regen: 2, neverMiss: true, seeStealth: true },
   },
 ];
 

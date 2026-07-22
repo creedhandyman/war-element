@@ -263,10 +263,21 @@ export function fieldPushBonus(state: GameState, owner: PlayerId): number {
   return state.fields.find((f) => f.owner === owner && f.push)?.push ?? 0;
 }
 
+/** A boolean Field grant, element-matched to the card the same way fieldBonus
+ *  is: only a DUSK card under its owner's DUSK field gets Nightfall's EVASION,
+ *  only a DAWN card under Blazing Sun stops missing. */
+export function fieldFlag(
+  state: GameState,
+  card: CardInstance,
+  key: "evasion" | "neverMiss" | "seeStealth",
+): boolean {
+  const el = getDef(card.defId).element;
+  return state.fields.some((f) => f.owner === card.owner && f.element === el && !!f[key]);
+}
+
 /** Whether an active Field grants this card EVASION (Nightfall — DUSK). */
 export function fieldEvasion(state: GameState, card: CardInstance): boolean {
-  const el = getDef(card.defId).element;
-  return state.fields.some((f) => f.owner === card.owner && f.element === el && !!f.evasion);
+  return fieldFlag(state, card, "evasion");
 }
 
 export function effectiveSp(state: GameState, card: CardInstance): number {

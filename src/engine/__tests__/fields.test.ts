@@ -3,9 +3,9 @@
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, resolveHit } from "../combat";
 import { advance, applyIntent } from "../phases";
-import { canCastSpell, effectiveSpecialCost } from "../rules";
+import { canCastSpell, canTarget, effectiveSpecialCost, validTargets } from "../rules";
 import { effectiveSp, fieldBonus, fieldEvasion } from "../state";
-import { atCleanup, place, prepState, statusOf } from "./helpers";
+import { atCleanup, place, prepState, seedForCoins, statusOf } from "./helpers";
 
 function arm(s: ReturnType<typeof prepState>, ids: string[], magic = 12) {
   s.players.P1.spellbook = ids.map((defId) => ({ defId, used: false }));
@@ -271,5 +271,73 @@ describe("Lushfield — BLEED / ROOT last +1 round", () => {
     n = advance(atCleanup(n));
     n = advance(atCleanup(n));
     expect(statusOf(n.cards[foe.instanceId], "ROOT")?.duration).toBe(1); // still pinned
+  });
+});
+
+describe("Blazing Sun — cannot miss, sees STEALTH", () => {
+  const armSun = (dawnCard = "dawn_beam") => {
+    const s = prepState();
+    s.players.P1.spellbook = [{ defId: "dawn_blazing_sun", used: false }];
+    s.players.P1.magicPool = 12;
+    const me = place(s, dawnCard, "P1", 2, 1, { autoMode: "manual" });
+    return { s, me };
+  };
+  const light = (st: ReturnType<typeof armSun>["s"]) =>
+    applyIntent(st, { type: "CAST_SPELL", player: "P1", spellId: "dawn_blazing_sun" });
+
+  it("BLIND no longer costs it hits", () => {
+    // Every coin seeded to FAIL: without the field a blinded basic whiffs each hit.
+    const { s, me } = armSun();
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 400, maxHp: 400, curShields: 0 });
+    applyStatus(s, s.cards[me.instanceId], "BLIND", 3, 0, "DAWN");
+    s.rngState = seedForCoins(false, false, false, false);
+    const n = light(s);
+    basicAttack(n, me.instanceId, foe.instanceId);
+    expect(400 - n.cards[foe.instanceId].curHp).toBeGreaterThan(0);
+  });
+
+  it("EVASION no longer dodges it", () => {
+    const { s, me } = armSun();
+    const dodger = place(s, "gale_tumbleweed", "P2", 1, 1, { curHp: 400, maxHp: 400, curShields: 0 });
+    s.rngState = seedForCoins(true, true, true, true); // every dodge roll would succeed
+    const n = light(s);
+    basicAttack(n, me.instanceId, dodger.instanceId);
+    expect(400 - n.cards[dodger.instanceId].curHp).toBeGreaterThan(0);
+  });
+
+  it("without the field that same evasive target does dodge", () => {
+    // Guards the test above from passing for the wrong reason.
+    const { s, me } = armSun();
+    const dodger = place(s, "gale_tumbleweed", "P2", 1, 1, { curHp: 400, maxHp: 400, curShields: 0 });
+    s.rngState = seedForCoins(true, true, true, true);
+    basicAttack(s, me.instanceId, dodger.instanceId); // no cast
+    expect(400 - s.cards[dodger.instanceId].curHp).toBe(0);
+  });
+
+  it("a cloaked card becomes targetable", () => {
+    const { s, me } = armSun();
+    const sneak = place(s, "leaf_darth", "P2", 1, 1); // STEALTH until it attacks
+    expect(canTarget(s, s.cards[me.instanceId], s.cards[sneak.instanceId])).toBe(false);
+    const n = light(s);
+    expect(canTarget(n, n.cards[me.instanceId], n.cards[sneak.instanceId])).toBe(true);
+    expect(validTargets(n, me.instanceId).map((t) => t.instanceId)).toContain(sneak.instanceId);
+  });
+
+  it("it reveals for DAWN only — a non-DAWN ally still can't see the cloak", () => {
+    // Element-matched like every other field grant: the buff is "your DAWN
+    // allies", not "your whole side".
+    const { s } = armSun();
+    const other = place(s, "leaf_greegon", "P1", 2, 0, { autoMode: "manual" });
+    const sneak = place(s, "leaf_darth", "P2", 1, 1);
+    const n = light(s);
+    expect(canTarget(n, n.cards[other.instanceId], n.cards[sneak.instanceId])).toBe(false);
+  });
+
+  it("the ENEMY's Blazing Sun doesn't reveal cloaks to you", () => {
+    const s = prepState();
+    s.fields.push({ owner: "P2", spellId: "dawn_blazing_sun", element: "DAWN", roundsLeft: 3, seeStealth: true, neverMiss: true });
+    const me = place(s, "dawn_beam", "P1", 2, 1, { autoMode: "manual" });
+    const sneak = place(s, "leaf_darth", "P2", 1, 1);
+    expect(canTarget(s, s.cards[me.instanceId], s.cards[sneak.instanceId])).toBe(false);
   });
 });
