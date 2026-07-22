@@ -2198,7 +2198,12 @@ export const CARDS: CardDef[] = [
     hp: 37,
     sp: 5,
     shields: 8,
-    keywords: { STEALTH: true }, // Abyssal Emergence — hidden until it attacks
+    // NO innate STEALTH. Abyssal Emergence is something it DOES, not something
+    // it arrives with: the keyword cloaked it from the moment it was summoned,
+    // so a cost-10 body sat untargetable before doing anything to earn it. The
+    // Special's `selfStatus: STEALTH` is now the only source — it surfaces,
+    // quakes, and slips back under.
+    keywords: {},
     tribe: "Cavernous",
     // Pressure: BORE allies are topped up to +1 shield each round.
     aura: { scope: "element", shields: 1 },
@@ -2218,7 +2223,7 @@ export const CARDS: CardDef[] = [
         selfStatus: "STEALTH", selfStatusDuration: 1, // slips back underground after the quake
       },
       targetSide: "enemy",
-      text: "Sinkhole all opponents in range — DOT 3, −5 SP, −50% accuracy for 3 rounds — then re-STEALTH. 3-round cooldown.",
+      text: "Sinkhole all opponents in range — DOT 3, −5 SP, −50% accuracy for 3 rounds — then slip into STEALTH. 3-round cooldown.",
     },
   },
 

@@ -544,3 +544,43 @@ describe("Trinezer — Jungle Culling (PEN + Culling the Weak)", () => {
     expect(effectiveDmg(next, next.cards[mate.instanceId])).toBe(before); // no payout
   });
 });
+
+describe("The DEEPEST — Abyssal Emergence is earned, not innate", () => {
+  it("it is targetable the moment it lands", () => {
+    // It used to carry the STEALTH keyword, which hid a cost-10 body from the
+    // instant it was summoned — untargetable before doing anything for it.
+    const s = prepState();
+    const deep = place(s, "bore_deepest", "P1", 2, 1);
+    const foe = place(s, "dusk_gool", "P2", 1, 1);
+    expect(getDef("bore_deepest").keywords.STEALTH).toBeUndefined();
+    expect(canTarget(s, s.cards[foe.instanceId], s.cards[deep.instanceId])).toBe(true);
+  });
+
+  it("Drilling Quake is what puts it under — and that still hides it", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 12;
+    const deep = place(s, "bore_deepest", "P1", 2, 1, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 90, maxHp: 90, curShields: 0 });
+    const next = applyIntent(battleWith(s, deep.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    expect(statusOf(next.cards[deep.instanceId], "STEALTH")).toBeDefined();
+    expect(canTarget(next, next.cards[foe.instanceId], next.cards[deep.instanceId])).toBe(false);
+  });
+
+  it("the quake itself still lands everything it used to", () => {
+    // Guards the edit: removing a keyword must not have disturbed the Special.
+    const s = prepState();
+    s.players.P1.magicPool = 12;
+    const deep = place(s, "bore_deepest", "P1", 2, 1, { autoMode: "manual" });
+    const near = place(s, "dusk_gool", "P2", 1, 1, { curHp: 90, maxHp: 90, curShields: 0 });
+    const far = place(s, "dusk_vamp", "P2", 0, 3, { curHp: 90, maxHp: 90, curShields: 0 });
+    const next = applyIntent(battleWith(s, deep.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: near.instanceId,
+    });
+    expect(90 - next.cards[near.instanceId].curHp).toBe(3);
+    expect(90 - next.cards[far.instanceId].curHp).toBe(3); // ranged: reaches the far corner
+    expect(statusOf(next.cards[near.instanceId], "DOT")?.power).toBe(3);
+    expect(statusOf(next.cards[near.instanceId], "BLIND")?.duration).toBe(3);
+  });
+});
