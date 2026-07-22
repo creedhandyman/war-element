@@ -421,8 +421,8 @@ export const SPELLS: SpellDef[] = [
     element: "LEAF",
     cost: 6,
     kind: "field",
-    text: "Field (3 rounds): your LEAF allies REGEN 2 HP each round.",
-    field: { rounds: 3, regen: 2 }, // (defer: BLEED/ROOT last +1 round)
+    text: "Field (3 rounds): your LEAF allies REGEN 2 HP each round, and every BLEED and ROOT you apply lasts 1 round longer.",
+    field: { rounds: 3, regen: 2, extendStatus: { kinds: ["BLEED", "ROOT"], rounds: 1 } },
   },
   {
     id: "aqua_downpour",

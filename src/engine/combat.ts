@@ -15,7 +15,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
 import { creditDamage, creditKill } from "./stats";
-import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldPushBonus, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldPushBonus, fieldStatusExtend, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -139,12 +139,17 @@ export function applyStatus(
       return;
     }
   }
-  const fresh = { kind, duration, power, source };
+  // Lushfield (LEAF field): the BLEED and ROOT its owner applies land with an
+  // extra round on them. Added HERE so it covers every source at once — basics,
+  // Specials, spells, walls and round-ticks all funnel through applyStatus.
+  const extend = fieldStatusExtend(draft, target, kind);
+  const dur = duration + extend;
+  const fresh = { kind, duration: dur, power, source };
   const existing = target.statuses.findIndex((s) => s.kind === kind);
   if (existing >= 0) target.statuses[existing] = fresh;
   else target.statuses.push(fresh);
   draft.log.push(
-    `${label(draft, target)} is afflicted: ${kind}${power ? ` ${power}` : ""} (${duration}r)${existing >= 0 ? " (refreshed)" : ""}.`,
+    `${label(draft, target)} is afflicted: ${kind}${power ? ` ${power}` : ""} (${dur}r)${extend ? " +field" : ""}${existing >= 0 ? " (refreshed)" : ""}.`,
   );
   // FRIGHTEN is a positioning effect: forced retreat 1 slot back toward the
   // target's own home row, if that slot is open (can also push an invader

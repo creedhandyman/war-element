@@ -237,6 +237,25 @@ export function fieldBonus(
   return f ? (f[key] ?? 0) : 0;
 }
 
+/**
+ * Extra duration a status gains from an ENEMY field (Lushfield — LEAF).
+ *
+ * Keyed on the victim rather than the applier. applyStatus has 31 call sites
+ * and no idea who caused the status, and threading a player through all of them
+ * is exactly the kind of change where one gets missed. The inference is exact
+ * here: nothing in the game applies BLEED or ROOT to a friendly card — the only
+ * ally-targeted status is Shadow Step's EVASION, and wall ally-buffs are
+ * block/evasion/dmgReduction — so a BLEED or ROOT landing on someone who is NOT
+ * the field owner's card was, by definition, applied by that owner's side.
+ */
+export function fieldStatusExtend(state: GameState, victim: CardInstance, kind: StatusKind): number {
+  for (const f of state.fields) {
+    if (f.owner === victim.owner) continue; // your own field never lengthens what lands on you
+    if (f.extendStatus?.kinds.includes(kind)) return f.extendStatus.rounds;
+  }
+  return 0;
+}
+
 /** Extra knockback distance the field owner's push effects travel (Jetstream —
  *  GALE). Keyed on the PUSHER's side rather than the victim's, and not element
  *  matched: a push can originate from a spell or a wall, which have no card. */

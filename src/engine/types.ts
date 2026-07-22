@@ -601,6 +601,10 @@ export interface FieldBuff {
   evasion?: boolean;      // element allies gain EVASION while up (Nightfall)
   specialDiscount?: number; // BOLT Specials cost −N while up (Power Grid), floors at 1
   electrify?: number;       // +N extra Electrify DMG vs statused foes (Power Grid)
+  /** Lushfield: statuses of these kinds, applied by the field owner's side,
+   *  land with +`rounds` extra duration. Declared as data rather than hardcoded
+   *  to BLEED/ROOT so another element's field can reuse the mechanic. */
+  extendStatus?: { kinds: StatusKind[]; rounds: number };
   /** Nightfall: every DRAIN instance steals +N extra max HP. Element-matched
    *  like the other bonuses, so only DUSK cards under a DUSK field get it. */
   drainBonus?: number;

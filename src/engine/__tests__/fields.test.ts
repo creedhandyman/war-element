@@ -206,3 +206,70 @@ describe("Jetstream — push +1", () => {
     expect(n.cards[foe.instanceId].pos!.row).toBe(1); // still just the printed 1
   });
 });
+
+describe("Lushfield — BLEED / ROOT last +1 round", () => {
+  const armLush = () => {
+    const s = prepState();
+    s.players.P1.spellbook = [{ defId: "leaf_lushfield", used: false }];
+    s.players.P1.magicPool = 12;
+    place(s, "leaf_greegon", "P1", 3, 0); // a LEAF ally so the field has a home
+    return s;
+  };
+
+  it("a ROOT the owner applies lands with an extra round", () => {
+    const s = armLush();
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+    const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_lushfield" });
+    applyStatus(n, n.cards[foe.instanceId], "ROOT", 2, 0, "LEAF");
+    expect(statusOf(n.cards[foe.instanceId], "ROOT")?.duration).toBe(3);
+  });
+
+  it("BLEED too, and from ANY source — this rides applyStatus, not one card", () => {
+    // Basics, Specials, spells, walls and round-ticks all funnel through
+    // applyStatus, so covering it there covers every source at once.
+    const s = armLush();
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+    const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_lushfield" });
+    applyStatus(n, n.cards[foe.instanceId], "BLEED", 2, 1, "LEAF");
+    expect(statusOf(n.cards[foe.instanceId], "BLEED")?.duration).toBe(3);
+  });
+
+  it("other statuses are untouched", () => {
+    const s = armLush();
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+    const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_lushfield" });
+    applyStatus(n, n.cards[foe.instanceId], "BURN", 2, 1, "PYRO");
+    applyStatus(n, n.cards[foe.instanceId], "FREEZE", 2, 0, "AQUA");
+    expect(statusOf(n.cards[foe.instanceId], "BURN")?.duration).toBe(2);
+    expect(statusOf(n.cards[foe.instanceId], "FREEZE")?.duration).toBe(2);
+  });
+
+  it("it does NOT lengthen what the enemy puts on the field owner's own cards", () => {
+    // The whole reason the lookup skips a field whose owner matches the victim:
+    // otherwise casting Lushfield would extend the ROOTs being used against you.
+    const s = armLush();
+    const mine = place(s, "leaf_greegon", "P1", 2, 0, { curHp: 40, maxHp: 40 });
+    const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_lushfield" });
+    applyStatus(n, n.cards[mine.instanceId], "ROOT", 2, 0, "DUSK");
+    expect(statusOf(n.cards[mine.instanceId], "ROOT")?.duration).toBe(2);
+  });
+
+  it("without the field the same ROOT is the plain duration", () => {
+    const s = prepState();
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+    applyStatus(s, s.cards[foe.instanceId], "ROOT", 2, 0, "LEAF");
+    expect(statusOf(s.cards[foe.instanceId], "ROOT")?.duration).toBe(2);
+  });
+
+  it("the longer ROOT really survives an extra Cleanup", () => {
+    // Duration is only meaningful if it outlasts the tick — 2r would expire
+    // after two cleanups, 3r has to still be there.
+    const s = armLush();
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 400, maxHp: 400 });
+    let n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_lushfield" });
+    applyStatus(n, n.cards[foe.instanceId], "ROOT", 2, 0, "LEAF");
+    n = advance(atCleanup(n));
+    n = advance(atCleanup(n));
+    expect(statusOf(n.cards[foe.instanceId], "ROOT")?.duration).toBe(1); // still pinned
+  });
+});
