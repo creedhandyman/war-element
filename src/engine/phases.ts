@@ -51,6 +51,7 @@ import type {
 } from "./types";
 import {
   HAND_CAP,
+  isMidRow,
   MAX_ROUNDS,
   NEGATIVE_STATUSES,
   POOL_CARRYOVER_CAP,
@@ -110,7 +111,16 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           applyAllyOnSummon(draft, inst, os.handler, params);
         } else if (os.handler) {
           const targets =
-            Number(params.spread ?? -1) >= 0
+            // Wildfire (Scorch): a ZONE, not an attack — it sets the enemy home
+            // row alight from wherever it stands. Sourced here rather than
+            // filtered from validTargets, because the Home Slot rule blocks a
+            // card in its OWN home row from targeting the enemy's at all, so
+            // the normal list comes back empty and the effect never fired.
+            Number(params.enemyHomeRow ?? 0) > 0
+              ? boardCards(draft, enemyOf(inst.owner)).filter(
+                  (e) => e.curHp > 0 && e.pos?.row === homeRow(enemyOf(inst.owner), draft.boardSize),
+                )
+            : Number(params.spread ?? -1) >= 0
               ? forwardAreaTargets(draft, inst, Number(params.spread), params.forwardDepth != null ? Number(params.forwardDepth) : undefined)
               // No spread → every enemy in normal targeting range. For a melee
               // card that's king's-move reach (the 8 adjacent tiles). `false` =
@@ -176,6 +186,14 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         `${intent.player} moves ${getDef(card.defId).name} to r${intent.to.row}c${intent.to.col}.`,
       );
       triggerWallsOnMove(draft, card, fromRow); // crossing INTO/OVER an enemy Wall's row hurts
+      // War Ready (WarPhant): armour plates up as it reaches the contested
+      // middle. Crossing-gated like Stomp — shuffling between two mid rows is
+      // not a shield farm.
+      const ready = getDef(card.defId).onEnterMidRow;
+      if (ready && card.curHp > 0 && !isMidRow(fromRow) && isMidRow(card.pos!.row)) {
+        card.curShields += ready.shields;
+        draft.log.push(`${getDef(card.defId).name} braces for the middle (+${ready.shields} shield).`);
+      }
       const stomp = getDef(card.defId).onEnterEnemySide;
       if (stomp && !wasOnEnemySide && card.curHp > 0 && onEnemySide(card, draft.boardSize)) {
         // The nearest opponent it can actually reach — a landing that finds
@@ -930,6 +948,30 @@ function doRoundTicks(draft: GameState): void {
       const t = enemies().find((e) => !hasStatus(e, "PARALYZE"));
       if (t) applyStatus(draft, t, "PARALYZE", rt.paralyzeOne, 0, el);
     }
+    if (rt.spawn && rt.selfHpCost) {
+      // Dead Clock (RIP): a body every round, paid for in its own flesh. Floors
+      // at 1 HP — the clock stalls rather than killing the thing winding it.
+      if (card.curHp > rt.selfHpCost) {
+        card.curHp -= rt.selfHpCost;
+        const before = boardCards(draft, card.owner).length;
+        spawnTokens(draft, card, rt.spawn.token, rt.spawn.count, rt.spawn.adjacentOnly);
+        const raised = boardCards(draft, card.owner).length - before;
+        card.spawnTally = (card.spawnTally ?? 0) + raised;
+        if (raised > 0)
+          draft.log.push(`${label(draft, card)} winds the Dead Clock (−${rt.selfHpCost} HP, ${raised} raised).`);
+        // Horde: once the clock has raised enough, the Special fires free and
+        // the tally resets, so it's a repeating cycle rather than a one-off.
+        const def = getDef(card.defId);
+        if (rt.spawnTriggerAt && def.special && (card.spawnTally ?? 0) >= rt.spawnTriggerAt) {
+          card.spawnTally = 0;
+          const handler = SPECIAL_HANDLERS[def.special.handler];
+          if (handler) {
+            draft.log.push(`${label(draft, card)}'s horde answers!`);
+            handler(draft, card, [], def.special.params ?? {});
+          }
+        }
+      }
+    }
     if (rt.aoeElectrifiedDmg) {
       // Shoksa: the literal ELECTRIFIED status, which its own Special applies —
       // deliberately NOT the "carries any status" proxy Voltogon uses, so the
@@ -1042,9 +1084,15 @@ function doCleanupPhase(draft: GameState): void {
   for (const card of boardCards(draft)) {
     for (const s of card.statuses) {
       if (s.kind === "BLEED" || s.kind === "BURN" || s.kind === "SCALD" || s.kind === "DOT") {
-        card.curHp -= s.power;
+        // Accelerator (Scorch): BURN on an enemy hits double while the side that
+        // lit it is accelerating. Attributed from the VICTIM's side, the same
+        // inference Lushfield uses — nobody burns their own cards.
+        const boosted =
+          s.kind === "BURN" && (draft.players[enemyOf(card.owner)].burnBoostRounds ?? 0) > 0;
+        const dot = boosted ? s.power * 2 : s.power;
+        card.curHp -= dot;
         if (s.kind === "BLEED") bleedDealtBy[enemyOf(card.owner)] += s.power;
-        draft.log.push(`${label(draft, card)} takes ${s.power} ${s.kind} damage.`);
+        draft.log.push(`${label(draft, card)} takes ${dot} ${s.kind} damage${boosted ? " (accelerated)" : ""}.`);
         if (s.kind === "BURN" && card.curShields > 0) {
           card.curShields--;
           draft.log.push(`${label(draft, card)}'s shields melt (−1).`);
@@ -1106,7 +1154,13 @@ function doCleanupPhase(draft: GameState): void {
   //    field) freezes BURN on its owner's ENEMIES — their BURN never ticks while
   //    the field is up, so it keeps burning until the field lifts.
   for (const card of boardCards(draft)) {
-    const burnFrozen = draft.fields.some((f) => f.burnPersists && f.owner === enemyOf(card.owner));
+    // Heatwave freezes BURN from a FIELD; Wildfire (Scorch) does the same from a
+    // living CARD — the fire keeps burning as long as the arsonist is standing.
+    const burnFrozen =
+      draft.fields.some((f) => f.burnPersists && f.owner === enemyOf(card.owner)) ||
+      boardCards(draft, enemyOf(card.owner)).some(
+        (c) => c.curHp > 0 && getDef(c.defId).burnPersistsWhileAlive,
+      );
     for (const s of card.statuses) {
       if (burnFrozen && s.kind === "BURN") continue;
       s.duration--;
@@ -1121,6 +1175,10 @@ function doCleanupPhase(draft: GameState): void {
   draft.walls = draft.walls.filter((w) => w.roundsLeft > 0);
 
   // 3c. Fields decay a round; expired ones lift.
+  for (const p of ["P1", "P2"] as PlayerId[]) {
+    const left = draft.players[p].burnBoostRounds ?? 0;
+    if (left > 0) draft.players[p].burnBoostRounds = left - 1;
+  }
   for (const f of draft.fields) f.roundsLeft--;
   for (const f of draft.fields.filter((f) => f.roundsLeft <= 0))
     draft.log.push(`${getSpell(f.spellId).name} fades from the battlefield.`);

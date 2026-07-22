@@ -504,6 +504,12 @@ export function resolveHit(
       if (kin.length)
         draft.log.push(`${tDef.name}'s last waltz lifts ${kin.length} ${tribe}(s) (+${dmg} DMG, permanently).`);
     }
+    if (tDef.onDeath?.spawnToken && deathPos) {
+      // WarPhant: the rider outlives the mount. Spawned from the dead card, so
+      // it lands around where it fell.
+      const st = tDef.onDeath.spawnToken;
+      spawnTokens(draft, target, st.token, st.count);
+    }
     if (tDef.onDeath?.frightenInRange && deathPos) {
       const scared = boardCards(draft, enemyOf(deadOwner)).filter(
         (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, deathPos) <= 1,
@@ -581,6 +587,10 @@ export function resolveHit(
   // Jelly Shock: a struck survivor discharges into the attacker AND everything
   // enemy standing next to it. Skipped for `reflect` hits — that's the kind
   // directDamage uses, so the discharge can't set off another discharge.
+  // Wind Wake (Wista): every landed hit shoves the victim back a slot. Gated on
+  // a real landed hit so a fully-dodged volley moves nobody.
+  if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && aDef.onHitPush)
+    pushBack(draft, target, aDef.onHitPush, attacker.owner);
   if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && tDef.onHitZap) {
     if (applyOnHitZap(draft, target, attacker, tDef.onHitZap)) result.attackerDied = true;
   }
@@ -1308,6 +1318,16 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const n = num(params, "targets", 1);
     // Timberer (Lumberjack): scope the volley to the row directly ahead — the
     // tree falls forward, it doesn't scatter across the board.
+    // Wildfire (Scorch): scope the volley to the enemy's own home row.
+    if (num(params, "enemyHomeRow") > 0) {
+      const row = homeRow(enemyOf(attacker.owner), draft.boardSize);
+      targets = targets.filter((t) => t.pos?.row === row);
+    }
+    // Battle Charge (WarPhant): "straight ahead" is the card's own column.
+    if (num(params, "sameColumn") > 0 && attacker.pos) {
+      const col = attacker.pos.col;
+      targets = targets.filter((t) => t.pos?.col === col);
+    }
     if (num(params, "rowAhead") > 0 && attacker.pos) {
       const row = rowAhead(attacker.owner, attacker.pos.row);
       targets = targets.filter((t) => t.pos?.row === row);
@@ -1401,6 +1421,37 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     applySelfRiders(draft, attacker, params); // e.g. Guan's +5 max HP
   },
+  /**
+   * Blue Wind Spiral (Wista): a shot that ricochets. It lands on the target,
+   * then leaps to any not-yet-hit opponent within one slot of the LAST one it
+   * struck, up to `bounces` times.
+   *
+   * Each landing is a normal hit, so Wind Wake's shove fires on every one of
+   * them — which is the point: the spiral scatters a clustered board. Capped
+   * and no-repeat, so a packed board can't loop it forever.
+   */
+  spiral(draft, attacker, targets, params) {
+    const dmg = num(params, "dmg");
+    const maxHops = num(params, "bounces", 3);
+    const hit = new Set<string>();
+    let current = targets[0];
+    for (let i = 0; i <= maxHops && current; i++) {
+      if (attacker.curHp <= 0) break;
+      const live = draft.cards[current.instanceId];
+      if (!live || live.curHp <= 0) break;
+      hit.add(current.instanceId);
+      const from = live.pos;
+      resolveHit(draft, attacker, live, { kind: "special", dmg, hits: 1, pen: false, crit: false });
+      if (!from) break;
+      // Next link: nearest un-hit opponent within one slot of where this one WAS
+      // (it may have just been shoved by Wind Wake).
+      current = boardCards(draft, enemyOf(attacker.owner)).find(
+        (e) => !hit.has(e.instanceId) && e.curHp > 0 && e.pos != null && chebyshev(e.pos, from) <= 1,
+      )!;
+    }
+    draft.log.push(`${label(draft, attacker)}'s spiral touches ${hit.size} opponent(s).`);
+  },
+
   /**
    * Static Pressure Overload (Shoksa): a conditional two-way nova — already
    * PARALYZED opponents have it EXTENDED, everyone else is merely marked
@@ -1560,6 +1611,25 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (hp > 0) { attacker.maxHp += hp; attacker.curHp += hp; }
     if (sp) attacker.spBonus += sp;
     draft.log.push(`${label(draft, attacker)} is Crowned (+${dmg} DMG, +${hp} HP, +${sp} SP)!`);
+  },
+
+  /**
+   * Accelerator (Scorch): fan the flames. For `rounds`, every BURN this side has
+   * on an opponent deals double, and same-element allies pick up +SP. Neither
+   * half fits empower (self-only) or statusNova (one status, to enemies).
+   */
+  accelerate(draft, attacker, _targets, params) {
+    const rounds = num(params, "rounds", 2);
+    const sp = num(params, "allySp");
+    draft.players[attacker.owner].burnBoostRounds = rounds;
+    const el = getDef(attacker.defId).element;
+    const kin = boardCards(draft, attacker.owner).filter(
+      (a) => a.curHp > 0 && getDef(a.defId).element === el,
+    );
+    if (sp > 0) for (const a of kin) applyTimedBuff(a, 0, sp, rounds);
+    draft.log.push(
+      `${label(draft, attacker)} accelerates the burn (2x BURN for ${rounds}r, +${sp} SP to ${kin.length} ${el} all(y/ies)).`,
+    );
   },
 
   /** CLEANSE up to N allies — strip all negative statuses (DAWN). */

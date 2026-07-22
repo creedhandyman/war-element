@@ -213,3 +213,104 @@ describe("wave 1: RohoJohn, Shoksa, Lumberjack, Bootlegger", () => {
     expect(60 - n.cards[foe.instanceId].curHp).toBe(1); // still 1
   });
 });
+
+describe("wave 2: Wista, WarPhant, RIP, Scorch", () => {
+  it("Wista's spiral ricochets through a cluster and shoves each one", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const wista = place(s, "gale_wista", "P1", 3, 1, { autoMode: "manual" });
+    // A chain: each within 1 slot of the previous.
+    const a = place(s, "dusk_gool", "P2", 2, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    const b = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    const lone = place(s, "dusk_crow", "P2", 0, 3, { curHp: 60, maxHp: 60, curShields: 0 });
+    const next = applyIntent(battleFor(s, wista.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: a.instanceId,
+    });
+    expect(60 - next.cards[a.instanceId].curHp).toBe(4);
+    expect(60 - next.cards[b.instanceId].curHp).toBe(4); // it leapt across
+    expect(next.cards[lone.instanceId].curHp).toBe(60); // nothing within a slot of the chain
+  });
+
+  it("Wind Wake shoves on a plain basic too", () => {
+    const s = prepState();
+    const wista = place(s, "gale_wista", "P1", 2, 1, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    basicAttack(s, wista.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].pos!.row).toBe(0); // blown back toward its own home
+  });
+
+  it("WarPhant arrives armoured, plates up crossing into the middle, once", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 9;
+    const handId = giveHand(s, "P1", "dawn_warphant");
+    let n = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    const phant = boardCards(n, "P1").find((c) => c.defId === "dawn_warphant")!;
+    expect(phant.curShields).toBe(4); // War Ready on arrival
+    n.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    n = applyIntent(n, { type: "MOVE", player: "P1", instanceId: phant.instanceId, to: { row: 2, col: 1 } });
+    expect(n.cards[phant.instanceId].curShields).toBe(6); // crossed into a mid row
+    // Shuffling WITHIN the middle must not farm it.
+    n.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    n = applyIntent(n, { type: "MOVE", player: "P1", instanceId: phant.instanceId, to: { row: 2, col: 2 } });
+    expect(n.cards[phant.instanceId].curShields).toBe(6);
+  });
+
+  it("WarPhant leaves a WarRider behind when it falls", () => {
+    const s = prepState();
+    const phant = place(s, "dawn_warphant", "P1", 2, 1, { curHp: 1, maxHp: 29, curShields: 0 });
+    const killer = place(s, "dusk_gool", "P2", 1, 1);
+    basicAttack(s, killer.instanceId, phant.instanceId);
+    expect(s.cards[phant.instanceId]).toBeUndefined();
+    const rider = Object.values(s.cards).filter((c) => c.defId === "dawn_warrider_tok");
+    expect(rider).toHaveLength(1);
+    expect(rider[0].owner).toBe("P1");
+  });
+
+  it("RIP winds the Dead Clock: a body a round, paid in HP", () => {
+    const s = prepState();
+    const rip = place(s, "dusk_rip", "P1", 3, 1, { curHp: 33, maxHp: 33 });
+    place(s, "dusk_gool", "P2", 0, 0); // keep both sides alive
+    const next = advance(atCleanup(s));
+    expect(next.cards[rip.instanceId].curHp).toBe(30); // −3
+    expect(Object.values(next.cards).filter((c) => c.defId === "dusk_zombie_tok").length).toBeGreaterThan(0);
+  });
+
+  it("...and Horde fires free once the clock has raised three", () => {
+    const s = prepState();
+    const rip = place(s, "dusk_rip", "P1", 3, 1, { curHp: 33, maxHp: 33 });
+    place(s, "dusk_gool", "P2", 0, 0);
+    let n: GameState = s;
+    for (let i = 0; i < 3; i++) n = advance(atCleanup(n));
+    const risen = Object.values(n.cards).filter((c) => c.defId === "dusk_zombie_tok").length;
+    // 3 from the clock + 2 from the Horde it triggered = more than the clock alone.
+    expect(risen).toBeGreaterThan(3);
+    expect(n.cards[rip.instanceId].spawnTally).toBe(0); // tally reset, so it cycles
+  });
+
+  it("Scorch sets the enemy home row alight on arrival", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 6;
+    const home = place(s, "dusk_gool", "P2", 0, 0, { curHp: 40, maxHp: 40 });
+    const forward = place(s, "dusk_vamp", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+    const handId = giveHand(s, "P1", "pyro_scorch");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(statusOf(next.cards[home.instanceId], "BURN")?.power).toBe(1);
+    expect(statusOf(next.cards[forward.instanceId], "BURN")).toBeUndefined(); // home row only
+  });
+
+  it("Wildfire keeps that BURN alive while Scorch stands, and it doubles under Accelerator", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const scorch = place(s, "pyro_scorch", "P1", 3, 1, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 0, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    applyStatus(s, foe, "BURN", 1, 2, "PYRO"); // 1 round left, 2 power
+    let n = applyIntent(battleFor(s, scorch.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: scorch.instanceId,
+    });
+    n = advance(atCleanup(n));
+    // Accelerator doubles it: 2 power -> 4 damage.
+    expect(60 - n.cards[foe.instanceId].curHp).toBe(4);
+    // Wildfire: a 1-round BURN would have expired — Scorch is alive, so it stays.
+    expect(statusOf(n.cards[foe.instanceId], "BURN")).toBeDefined();
+  });
+});

@@ -3898,6 +3898,126 @@ export const CARDS: CardDef[] = [
     // once it is already there.
     onEnterEnemySide: { dmg: 1 },
   },
+  // ── Wave 2 ────────────────────────────────────────────────────────────────
+  {
+    id: "gale_wista",
+    name: "Wista",
+    rarity: "epic",
+    element: "GALE",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 5,
+    dmg: 4,
+    hits: 2,
+    hp: 15,
+    sp: 10,
+    shields: 1,
+    keywords: { FLYING: true },
+    tribe: "Avian",
+    onHitPush: 1, // Wind Wake — every landed hit shoves the victim a slot back
+    special: {
+      name: "Blue Wind Spiral",
+      cost: 3,
+      handler: "spiral",
+      // Each landing is a real hit, so Wind Wake fires on every bounce.
+      params: { dmg: 4, bounces: 3 },
+      targetSide: "enemy",
+      text: "Deal 4 DMG that ricochets between opponents standing within 1 space of each other (up to 4 landings). Wind Wake shoves each one hit.",
+    },
+  },
+  {
+    id: "dawn_warphant",
+    name: "WarPhant",
+    rarity: "epic",
+    element: "DAWN",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 5,
+    dmg: 5,
+    hits: 1,
+    hp: 29,
+    sp: 1,
+    shields: 0,
+    keywords: {},
+    summonSelfShields: 4, // War Ready: the Hardened Gold Armor it rides in with
+    onEnterMidRow: { shields: 2 }, // ...and it plates up on reaching the middle
+    onDeath: { dmg: 0, spawnToken: { token: "dawn_warrider_tok", count: 1 } },
+    special: {
+      name: "Battle Charge",
+      cost: 3,
+      handler: "barrage",
+      // sameColumn = "straight ahead"; charge walks it up to 4 slots forward.
+      params: { dmg: 10, targets: 99, sameColumn: 1, charge: 4 },
+      targetSide: "enemy",
+      text: "Charge up to 4 spaces forward, dealing 10 DMG to every opponent straight ahead.",
+    },
+  },
+  {
+    id: "dusk_rip",
+    name: "RIP",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 5,
+    // 0 DMG on purpose: RIP never swings. basicIsInert already skips the attack
+    // prompt for a 0-damage card, and its Special is free, so it always has a
+    // meaningful action.
+    dmg: 0,
+    hits: 1,
+    hp: 33,
+    sp: 0,
+    shields: 0,
+    keywords: {},
+    tribe: "Zombie",
+    summonSpawn: { token: "dusk_zombie_tok", count: 1 },
+    // Dead Clock: one body a round, paid in its own HP; every 3 raised, Horde
+    // fires free and the tally resets.
+    roundTick: {
+      spawn: { token: "dusk_zombie_tok", count: 1 },
+      selfHpCost: 3,
+      spawnTriggerAt: 3,
+    },
+    special: {
+      name: "Horde",
+      cost: 0,
+      handler: "spawn",
+      params: { token: "dusk_zombie_tok", count: 2 },
+      targetSide: "self",
+      text: "Spawn 2 Zombie Husks. Fires free on its own whenever the Dead Clock has raised 3.",
+    },
+  },
+  {
+    id: "pyro_scorch",
+    name: "Scorch",
+    rarity: "rare",
+    element: "PYRO",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 3,
+    hits: 1,
+    hp: 8,
+    sp: 8,
+    shields: 3,
+    keywords: {},
+    // Wildfire: the blaze it lit never dies down while Scorch is standing.
+    burnPersistsWhileAlive: true,
+    onSummon: {
+      handler: "barrage",
+      // The enemy home row, set alight the moment it arrives.
+      params: { dmg: 0, targets: 99, statusKind: "BURN", statusDuration: 1, statusPower: 1, enemyHomeRow: 1 },
+      targetSide: "enemy",
+    },
+    special: {
+      name: "Accelerator",
+      cost: 3,
+      handler: "accelerate",
+      params: { rounds: 2, allySp: 1 },
+      targetSide: "self",
+      text: "For 2 rounds: every BURN on an opponent deals double, and PYRO allies gain +1 SP.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
@@ -3938,6 +4058,39 @@ export const TOKENS: CardDef[] = [
     sp: 5,
     shields: 0,
     keywords: {},
+  },
+  {
+    id: "dawn_warrider_tok",
+    art: "dawn_warphant",
+    name: "WarRider",
+    rarity: "epic",
+    element: "DAWN",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 5,
+    hits: 1,
+    hp: 7,
+    sp: 7,
+    shields: 0,
+    keywords: {},
+  },
+  {
+    id: "dusk_zombie_tok",
+    art: "dusk_zombie_husk",
+    name: "Zombie Husk",
+    rarity: "rare",
+    element: "DUSK",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 3,
+    sp: 4,
+    shields: 0,
+    keywords: {},
+    tribe: "Zombie",
   },
 ];
 

@@ -194,6 +194,12 @@ export interface RoundTickDef {
    *  "carries any status" proxy that onKill.aoeDmgElectrified uses. */
   aoeElectrifiedDmg?: number;
   spawn?: { token: string; count: number; adjacentOnly?: boolean };
+  /** Dead Clock (RIP): the tick costs the ticker HP. Never self-lethal — it
+   *  floors at 1, so the clock stalls rather than killing its own owner. */
+  selfHpCost?: number;
+  /** Horde (RIP): once `spawn` has raised this many bodies in total, fire the
+   *  card's Special for free and reset the tally. */
+  spawnTriggerAt?: number;
 }
 
 /** A persistent per-card aura (Brood Command, GALE +SP, …): a flat DMG/SP buff
@@ -377,6 +383,15 @@ export interface CardDef {
   /** Stomp (Bootlegger): fires the moment this card MOVES onto the enemy half
    *  of the board (two-plus rows from its own home), once per crossing. */
   onEnterEnemySide?: { dmg: number; pen?: boolean };
+  /** War Ready (WarPhant): shields gained on CROSSING into a Mid row. Read on
+   *  both sides of the step like Stomp, so shuffling between two mid rows does
+   *  not farm it. */
+  onEnterMidRow?: { shields: number };
+  /** Wind Wake (Wista): every landed hit shoves the victim back a slot. */
+  onHitPush?: number;
+  /** Wildfire (Scorch): while this card LIVES, BURN it inflicted on enemies
+   *  stops ticking down — the card-bound twin of Heatwave's field effect. */
+  burnPersistsWhileAlive?: boolean;
   /** Gate Keeper (Veil): the first time this card's shields break to 0, gain
    *  these permanent buffs. */
   onShieldBreak?: { dmg?: number; sp?: number; status?: { kind: StatusKind; duration: number; power: number } };
@@ -420,6 +435,8 @@ export interface CardDef {
     /** Last Waltz (Wedded Wraith): as she falls, every surviving ally of this
      *  tribe takes a permanent +DMG, and enemies in range are FRIGHTENed. */
     allyTribeBuffDmg?: { tribe: string; dmg: number };
+    /** WarPhant: the rider survives the mount and keeps fighting. */
+    spawnToken?: { token: string; count: number };
     frightenInRange?: number; // rounds of FRIGHTEN on reachable enemies
   };
   /** On-summon passive (Fire Blast / Fury Unleashed): fires the moment the
@@ -486,6 +503,8 @@ export interface CardInstance {
   loadedOnHit?: { kind: StatusKind; duration: number; power: number; attacks: number };
   /** One-shot guard for a `oneUse` onAllyKilled (Shine's Brightling Ball). */
   allyKilledFired: boolean;
+  /** Dead Clock (RIP): bodies raised so far, counted toward spawnTriggerAt. */
+  spawnTally?: number;
   /** One-shot guard for a `firstRoundOnly` roundTick (Star's Raising Star). */
   roundTickFired?: boolean;
   /** Set once this card has been shielded by a Pride Guardian, so the guard
@@ -715,6 +734,9 @@ export interface PlayerState {
    *  pool and vice-versa. */
   magicPool: number;
   mulliganDone: boolean;
+  /** Accelerator (Scorch): rounds remaining in which BURN this player inflicted
+   *  on its ENEMIES deals double. Ticked down in Cleanup. */
+  burnBoostRounds?: number;
   /** Radiant Ward (Solstice): a single team-wide barrier that absorbs the first
    *  negative status to hit any ally this round. Refreshed each round it's up. */
   statusWard?: boolean;

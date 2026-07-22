@@ -130,15 +130,17 @@ describe("medium-tier passives (audit batch)", () => {
     expect(basicIsInert(s, place(s, "bore_ufo", "P1", 2, 2))).toBe(false); // mid row: 1 DMG
     // Smog is PYRO, so Scorch burns whatever it touches — worth a turn.
     expect(basicIsInert(s, s.cards[smog.instanceId])).toBe(false);
-    // Exactly one card in the whole set is inert — the predicate is not
-    // quietly silencing anything else.
+    // The full census — the predicate must not be quietly silencing anything
+    // else. UFO prints 0 DMG with no on-hit rider; RIP prints 0 DMG on purpose
+    // and never swings at all (its Special is free, so it always has a real
+    // action). Any OTHER name appearing here is a bug.
     const inert = CARDS.filter((d) => {
       const c = place(s, d.id, "P2", 0, 3);
       const r = basicIsInert(s, c);
       delete s.cards[c.instanceId];
       return r;
     }).map((d) => d.id);
-    expect(inert).toEqual(["bore_ufo"]);
+    expect(inert.sort()).toEqual(["bore_ufo", "dusk_rip"]);
   });
 
   it("a card with only an inert basic takes no turn at all", () => {
