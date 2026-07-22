@@ -210,7 +210,7 @@ export function describePassives(def: CardDef): string[] {
       t.healLowestAlly && `heal the most wounded ally ${t.healLowestAlly} HP`,
       t.roundHealElement &&
         `heal every ${t.roundHealElement.element} ally ${t.roundHealElement.amount} HP`,
-      t.spawn && `spawn ${t.spawn.count} ${getDef(t.spawn.token).name} token${t.spawn.count > 1 ? "s" : ""}`,
+      t.spawn && `raise ${t.spawn.count} ${getDef(t.spawn.token).name}${t.spawn.count > 1 ? "s" : ""}`,
     ].filter(Boolean);
     // Not an every-round effect, so it gets its own line — "Each round: every 3
     // rounds…" reads as a contradiction.

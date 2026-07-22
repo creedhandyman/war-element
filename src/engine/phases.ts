@@ -1076,8 +1076,11 @@ function doRoundTicks(draft: GameState): void {
       for (const e of enemies()) if (hasStatus(e, "PARALYZE") && canTarget(draft, card, e))
         tickDamage(draft, card, e, rt.aoeParalyzedDmg, false);
     }
-    if (rt.spawn) {
+    if (rt.spawn && !rt.selfHpCost) {
       // Reptilian Screech: spawn a token into an open king's-reach slot.
+      // Guarded on selfHpCost: a spawn that charges HP (RIP's Dead Clock) is
+      // handled by its own block above, tally and Horde trigger included.
+      // Without the guard BOTH blocks ran and the clock raised two a round.
       spawnTokens(draft, card, rt.spawn.token, rt.spawn.count, rt.spawn.adjacentOnly);
     }
     if (rt.pokeDmg || rt.pokeStatus) {

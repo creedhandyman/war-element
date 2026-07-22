@@ -272,7 +272,26 @@ describe("wave 2: Wista, WarPhant, RIP, Scorch", () => {
     place(s, "dusk_gool", "P2", 0, 0); // keep both sides alive
     const next = advance(atCleanup(s));
     expect(next.cards[rip.instanceId].curHp).toBe(30); // −3
-    expect(Object.values(next.cards).filter((c) => c.defId === "dusk_zombie_tok").length).toBeGreaterThan(0);
+    expect(Object.values(next.cards).filter((c) => c.defId === "dusk_zombie_husk").length).toBeGreaterThan(0);
+  });
+
+  it("the clock raises exactly ONE a round — not two", () => {
+    // roundTick.spawn had a pre-existing generic handler as well as the
+    // HP-charging one; both ran, and the clock quietly raised double.
+    const s = prepState();
+    s.players.P1.summonPool = 9;
+    const handId = giveHand(s, "P1", "dusk_rip");
+    let n = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    place(n, "dusk_gool", "P2", 0, 0);
+    const husks = (g: GameState) =>
+      boardCards(g, "P1").filter((c) => c.defId === "dusk_zombie_husk").length;
+    expect(husks(n)).toBe(1); // on summon
+    n = advance(atCleanup(n));
+    expect(husks(n)).toBe(2); // +1
+    n = advance(atCleanup(n));
+    expect(husks(n)).toBe(3); // +1
+    n = advance(atCleanup(n));
+    expect(husks(n)).toBe(6); // +1 from the clock, +2 as Horde answers
   });
 
   it("...and Horde fires free once the clock has raised three", () => {
@@ -281,7 +300,7 @@ describe("wave 2: Wista, WarPhant, RIP, Scorch", () => {
     place(s, "dusk_gool", "P2", 0, 0);
     let n: GameState = s;
     for (let i = 0; i < 3; i++) n = advance(atCleanup(n));
-    const risen = Object.values(n.cards).filter((c) => c.defId === "dusk_zombie_tok").length;
+    const risen = Object.values(n.cards).filter((c) => c.defId === "dusk_zombie_husk").length;
     // 3 from the clock + 2 from the Horde it triggered = more than the clock alone.
     expect(risen).toBeGreaterThan(3);
     expect(n.cards[rip.instanceId].spawnTally).toBe(0); // tally reset, so it cycles
