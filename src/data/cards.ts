@@ -2381,7 +2381,10 @@ export const CARDS: CardDef[] = [
     element: "DAWN",
     cardClass: "Ranger",
     attackType: "Ranged",
-    cost: 1,
+    // Cost 2, not 1: at 4+2+14 = 20 points it was a full 5 over the cost-1
+    // budget (15), which is why it needed a budget-test exemption. 20 is exactly
+    // 5*2+10, so it is held to the formula like anything else now.
+    cost: 2,
     dmg: 2,
     hits: 2,
     hp: 2,

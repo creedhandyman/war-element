@@ -25,9 +25,10 @@ describe("setup", () => {
     const exceptions = new Set([
       "bore_bearocks",
       "dusk_skelider",
-      // SP-heavy canon glass cannons: the doc keeps the high SP despite it
+      // SP-heavy canon glass cannon: the doc keeps the high SP despite it
       // inflating the stat total past the ±2 band.
-      "dawn_sparkle",
+      // (Sparkle used to be here. It was 5 over the cost-1 budget; repricing it
+      // to cost 2 puts it exactly on the formula, so it is guarded again.)
       "gale_toxhawk",
       // Cost-10 Mythics sit in the tier band (55-67 total) above the exact
       // formula — they pay part of their cost in spawns / auras / on-kill snowball.
