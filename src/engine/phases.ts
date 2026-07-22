@@ -1022,6 +1022,17 @@ function doRoundTicks(draft: GameState): void {
         }
       }
     }
+    if (rt.enemyHomeRowStatus) {
+      // The ground itself is burning: everything standing on the enemy's home
+      // row catches, including whatever they just summoned into it. Range is
+      // irrelevant — it's a zone, not a shot, so canTarget is not consulted.
+      const st = rt.enemyHomeRowStatus;
+      const row = homeRow(enemyOf(card.owner), draft.boardSize);
+      const caught = enemies().filter((e) => e.pos?.row === row);
+      for (const e of caught) applyStatus(draft, e, st.kind, st.duration, st.power, el);
+      if (caught.length)
+        draft.log.push(`${label(draft, card)}'s wildfire still burns — ${caught.length} caught in it.`);
+    }
     if (rt.aoeElectrifiedDmg) {
       // Shoksa: the literal ELECTRIFIED status, which its own Special applies —
       // deliberately NOT the "carries any status" proxy Voltogon uses, so the

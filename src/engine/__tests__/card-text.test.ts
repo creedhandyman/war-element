@@ -32,7 +32,7 @@ const ROUND_TICK_KEYS = [
   "healAllies", "healLowestAlly", "buffDmgEveryN", "scaldFrozen", "paralyzeOne",
   "pushEnemies", "rowAheadDmg", "inRangeDmg", "inRangeStatus", "selfShields",
   "pokeParalyzedDmg", "aoeParalyzedDmg", "rootedDmg", "roundHealElement",
-  "spawn", "aoeElectrifiedDmg", "selfHpCost", "spawnTriggerAt",
+  "spawn", "aoeElectrifiedDmg", "selfHpCost", "spawnTriggerAt", "enemyHomeRowStatus",
 ] as const;
 
 describe("card text covers every mechanic", () => {

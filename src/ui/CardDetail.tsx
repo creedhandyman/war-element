@@ -420,6 +420,13 @@ export function describePassives(def: CardDef): string[] {
     named("onHitPush", `Every landed hit shoves the victim back ${def.onHitPush} slot (if open).`);
   if (def.burnPersistsWhileAlive)
     named("burnPersistsWhileAlive", "While it lives, BURN it inflicts on opponents never expires.");
+  if (def.roundTick?.enemyHomeRowStatus) {
+    const st = def.roundTick.enemyHomeRowStatus;
+    named(
+      "enemyHomeRowStatus",
+      `The enemy Home row stays alight: each round it applies ${st.kind}${st.power ? ` ${st.power}` : ""} to everything standing there.`,
+    );
+  }
   if (def.roundTick?.aoeElectrifiedDmg)
     named(
       "aoeElectrifiedDmg",

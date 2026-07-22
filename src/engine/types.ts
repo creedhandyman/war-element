@@ -189,6 +189,11 @@ export interface RoundTickDef {
   cleanseAllies?: boolean; // strip all negative statuses from allies (Imperator's Crowned)
   /** Spawn a token each round (Trinezer's Reptilian Screech). adjacentOnly =
    *  only into an open king's-reach slot; no spawn if none is open. */
+  /** Wildfire (Scorch): re-apply a status to every opponent standing in THEIR
+   *  home row, each round. The on-summon burst only catches whoever happens to
+   *  be there at that instant — and enemies summon INTO that row, so without
+   *  this the ground never stays lit and the card reads as doing nothing. */
+  enemyHomeRowStatus?: { kind: StatusKind; duration: number; power: number };
   /** Shoksa: damage every ELECTRIFIED opponent in range at end of round. Reads
    *  the literal ELECTRIFIED status (what its own Special applies), NOT the
    *  "carries any status" proxy that onKill.aoeDmgElectrified uses. */

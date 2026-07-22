@@ -335,3 +335,61 @@ describe("wave 2: Wista, WarPhant, RIP, Scorch", () => {
     expect(statusOf(n.cards[foe.instanceId], "BURN")).toBeDefined();
   });
 });
+
+describe("Scorch — Wildfire is a standing zone, not a one-shot", () => {
+  it("lights the row even when it was EMPTY on arrival", () => {
+    // The reported bug: enemies advance off their home row, so at the moment
+    // Scorch lands there is often nobody standing in it — and the card did
+    // nothing at all, then or ever.
+    const s = prepState();
+    s.players.P1.summonPool = 9;
+    place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 }); // forward, not home
+    const handId = giveHand(s, "P1", "pyro_scorch");
+    let n = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    // Someone retreats into the burning row.
+    const late = place(n, "dusk_vamp", "P2", 0, 2, { curHp: 40, maxHp: 40 });
+    n = advance(atCleanup(n));
+    expect(statusOf(n.cards[late.instanceId], "BURN")?.power).toBe(1);
+  });
+
+  it("catches a card SUMMONED into the row afterwards", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 9;
+    place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+    const handId = giveHand(s, "P1", "pyro_scorch");
+    let n = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    n.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    n.players.P2.summonPool = 9;
+    const h2 = giveHand(n, "P2", "dusk_vamp");
+    n = applyIntent(n, { type: "SUMMON", player: "P2", handId: h2, col: 2 });
+    const newcomer = boardCards(n, "P2").find((c) => c.defId === "dusk_vamp")!;
+    n = advance(atCleanup(n));
+    expect(statusOf(n.cards[newcomer.instanceId], "BURN")).toBeDefined();
+  });
+
+  it("only THEIR home row burns — the rest of the board is untouched", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 9;
+    const home = place(s, "dusk_gool", "P2", 0, 0, { curHp: 40, maxHp: 40 });
+    const forward = place(s, "dusk_vamp", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+    const handId = giveHand(s, "P1", "pyro_scorch");
+    let n = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    n = advance(atCleanup(n));
+    expect(statusOf(n.cards[home.instanceId], "BURN")).toBeDefined();
+    expect(statusOf(n.cards[forward.instanceId], "BURN")).toBeUndefined();
+  });
+
+  it("the fire goes out when Scorch does", () => {
+    // burnPersistsWhileAlive stops BURN expiring; once the arsonist is gone the
+    // ground stops re-lighting AND the existing burn starts ticking down again.
+    const s = prepState();
+    const scorch = place(s, "pyro_scorch", "P1", 3, 1);
+    const foe = place(s, "dusk_gool", "P2", 0, 0, { curHp: 400, maxHp: 400 });
+    applyStatus(s, foe, "BURN", 1, 1, "PYRO");
+    let n = advance(atCleanup(s));
+    expect(statusOf(n.cards[foe.instanceId], "BURN")).toBeDefined(); // held by Wildfire
+    delete n.cards[scorch.instanceId]; // Scorch falls
+    n = advance(atCleanup(n));
+    expect(statusOf(n.cards[foe.instanceId], "BURN")).toBeUndefined(); // burns out
+  });
+});
