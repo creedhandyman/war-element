@@ -258,6 +258,19 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       if (draft.pendingFlow !== intent.instanceId) throw new Error("No pending Flow Change");
       const card = draft.cards[intent.instanceId];
       if (!card || card.owner !== intent.player) throw new Error("Not your card");
+      if (draft.pendingFlowAll) {
+        // Downpour: one pick, applied to the caster's whole element.
+        const el = getDef(card.defId).element;
+        const kin = boardCards(draft, card.owner).filter(
+          (c) => c.curHp > 0 && getDef(c.defId).element === el,
+        );
+        for (const c of kin) applyFlow(c, intent.mode as FlowMode);
+        draft.pendingFlow = null;
+        draft.pendingFlowAll = false;
+        draft.log.push(`Downpour re-shapes ${kin.length} ${el} all(y/ies) (${intent.mode}).`);
+        openFlowRepick(draft); // hot-seat: the other side may be waiting too
+        return draft;
+      }
       applyFlow(card, intent.mode as FlowMode);
       draft.pendingFlow = null;
       draft.log.push(`${getDef(card.defId).name} shifts state (Flow Change).`);
@@ -579,6 +592,10 @@ function doResourcePhase(draft: GameState): void {
   const firstThisRound =
     draft.round % 2 === 1 ? draft.firstPlayer : enemyOf(draft.firstPlayer);
   draft.phase = "prep";
+  // Downpour: the tide re-shapes your side every round. Opened HERE, at the top
+  // of the round — Flow buffs are round-scoped and wiped in Cleanup, so a
+  // re-pick offered at end of round would be erased before it did anything.
+  openFlowRepick(draft);
   draft.prep = {
     priority: firstThisRound,
     consecutivePasses: 0,
@@ -862,6 +879,39 @@ function aiFlowChoice(cardClass: string): FlowMode {
   if (cardClass === "Tank" || cardClass === "Support") return "ice";
   if (cardClass === "Assassin" || cardClass === "Ranger") return "steam";
   return "water";
+}
+
+/**
+ * Downpour's per-round Flow re-pick. AI sides resolve instantly; a human side
+ * gets the normal Flow prompt, flagged to apply to its whole element.
+ *
+ * Only ONE prompt can be open at a time (pendingFlow is a single slot), so this
+ * stops at the first human that needs one and is called again once that choice
+ * resolves — which matters in hot-seat, where both sides can hold a Downpour.
+ */
+export function openFlowRepick(draft: GameState): void {
+  if (draft.pendingFlow) return; // a prompt is already up
+  for (const p of ["P1", "P2"] as PlayerId[]) {
+    const field = draft.fields.find((f) => f.owner === p && f.flowRepick);
+    // One offer per player per round. This function is called again after a
+    // choice resolves (to catch the other side in hot-seat), and without the
+    // marker it would just re-prompt whoever had only now answered.
+    if (!field || field.repickRound === draft.round) continue;
+    const kin = boardCards(draft, p).filter(
+      (c) => c.curHp > 0 && getDef(c.defId).element === field.element,
+    );
+    if (kin.length === 0) continue;
+    if (!draft.humans.includes(p)) {
+      for (const c of kin) applyFlow(c, aiFlowChoice(getDef(c.defId).cardClass));
+      field.repickRound = draft.round;
+      draft.log.push(`${p}'s Downpour re-shapes ${kin.length} ${field.element} all(y/ies).`);
+      continue;
+    }
+    field.repickRound = draft.round;
+    draft.pendingFlow = kin[0].instanceId;
+    draft.pendingFlowAll = true;
+    return; // one prompt at a time
+  }
 }
 
 /** Element auras that fire the moment a card is summoned. */

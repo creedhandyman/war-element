@@ -1247,8 +1247,8 @@ export function App() {
               <div className="modal flow-modal">
                 <h1>Flow Change</h1>
                 <p>
-                  ⏳ <b>{getDef(flowCard.defId).name}</b> is flowing into being —
-                  your opponent is choosing its boost.
+                  ⏳ {game.pendingFlowAll ? "Downpour is re-shaping their side" : <><b>{getDef(flowCard.defId).name}</b> is flowing into being</>} —
+                  your opponent is choosing the boost.
                 </p>
               </div>
             </div>
@@ -1258,8 +1258,18 @@ export function App() {
             <div className="modal flow-modal">
               <h1>Flow Change</h1>
               <p>
-                <b>{getDef(flowCard.defId).name}</b> flows into being —
-                choose its boost for this turn.
+                {game.pendingFlowAll ? (
+                  <>
+                    <b>Downpour</b> — the tide re-shapes your{" "}
+                    {getDef(flowCard.defId).element} side. Choose this round's boost
+                    for <b>all</b> of them.
+                  </>
+                ) : (
+                  <>
+                    <b>{getDef(flowCard.defId).name}</b> flows into being —
+                    choose its boost for this turn.
+                  </>
+                )}
               </p>
               <div className="flow-opts">
                 {(["water", "ice", "steam"] as const).map((mode) => {

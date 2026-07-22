@@ -6,6 +6,7 @@ import { advance, applyIntent } from "../phases";
 import { canCastSpell, canTarget, effectiveSpecialCost, validTargets } from "../rules";
 import { effectiveSp, fieldBonus, fieldEvasion } from "../state";
 import { atCleanup, place, prepState, seedForCoins, statusOf } from "./helpers";
+import type { GameState } from "../types";
 
 function arm(s: ReturnType<typeof prepState>, ids: string[], magic = 12) {
   s.players.P1.spellbook = ids.map((defId) => ({ defId, used: false }));
@@ -339,5 +340,85 @@ describe("Blazing Sun — cannot miss, sees STEALTH", () => {
     const me = place(s, "dawn_beam", "P1", 2, 1, { autoMode: "manual" });
     const sneak = place(s, "leaf_darth", "P2", 1, 1);
     expect(canTarget(s, s.cards[me.instanceId], s.cards[sneak.instanceId])).toBe(false);
+  });
+});
+
+describe("Downpour — the Flow re-pick", () => {
+  /** A round-1 state with Downpour up for P1 and two AQUA allies. */
+  const armed = (humans: ("P1" | "P2")[] = ["P1"]) => {
+    const s = prepState();
+    s.humans = humans;
+    s.fields.push({ owner: "P1", spellId: "aqua_downpour", element: "AQUA", roundsLeft: 3, shield: 2, flowRepick: true });
+    const a = place(s, "aqua_subcool", "P1", 3, 0);
+    const b = place(s, "aqua_owlette", "P1", 3, 1);
+    place(s, "dusk_gool", "P2", 0, 0);
+    return { s, a, b };
+  };
+  /** Run the round machinery from Cleanup round into the next round's Prep. */
+  const intoNextRound = (g: GameState) => {
+    let n = advance(atCleanup(g)); // cleanup -> draw
+    for (let i = 0; i < 4 && n.phase !== "prep"; i++) n = advance(n);
+    return n;
+  };
+
+  it("an AI side re-picks by itself, every round, with no prompt", () => {
+    const { s, a } = armed([]); // nobody human — P1 is AI
+    const n = intoNextRound(s);
+    expect(n.pendingFlow).toBeNull(); // never blocks an AI
+    // SubCool is a MAGE, so aiFlowChoice falls through to water (+2 DMG) —
+    // not the ice a Tank/Support would take.
+    expect(n.cards[a.instanceId].dmgBonusRound).toBe(2);
+  });
+
+  it("a human side gets ONE prompt flagged for the whole element", () => {
+    const { s, a, b } = armed();
+    const n = intoNextRound(s);
+    expect(n.pendingFlow).toBeTruthy();
+    expect(n.pendingFlowAll).toBe(true);
+    // Nothing applied until the player actually chooses.
+    expect(n.cards[a.instanceId].spBonusRound).toBe(0);
+    expect(n.cards[b.instanceId].spBonusRound).toBe(0);
+  });
+
+  it("one pick lands on EVERY AQUA ally, not just the prompted card", () => {
+    const { s, a, b } = armed();
+    let n = intoNextRound(s);
+    n = applyIntent(n, { type: "FLOW_CHANGE", player: "P1", instanceId: n.pendingFlow!, mode: "steam" });
+    expect(n.cards[a.instanceId].spBonusRound).toBe(4);
+    expect(n.cards[b.instanceId].spBonusRound).toBe(4);
+    expect(n.pendingFlow).toBeNull();
+    expect(n.pendingFlowAll).toBe(false);
+  });
+
+  it("it comes back the NEXT round too — that is the whole point", () => {
+    // Flow buffs are round-scoped and wiped in Cleanup, so the re-pick has to
+    // reopen at the top of each round or the field does nothing after round 1.
+    const { s, a } = armed();
+    let n = intoNextRound(s);
+    n = applyIntent(n, { type: "FLOW_CHANGE", player: "P1", instanceId: n.pendingFlow!, mode: "steam" });
+    expect(n.cards[a.instanceId].spBonusRound).toBe(4);
+    n = intoNextRound(n);
+    expect(n.cards[a.instanceId].spBonusRound).toBe(0); // last round's pick expired
+    expect(n.pendingFlowAll).toBe(true); // ...and a fresh pick is offered
+  });
+
+  it("no field, no prompt", () => {
+    const s = prepState();
+    place(s, "aqua_subcool", "P1", 3, 0);
+    place(s, "dusk_gool", "P2", 0, 0);
+    let n = advance(atCleanup(s));
+    for (let i = 0; i < 4 && n.phase !== "prep"; i++) n = advance(n);
+    expect(n.pendingFlow).toBeNull();
+  });
+
+  it("a Downpour with no AQUA allies left doesn't hang the round on a prompt", () => {
+    const s = prepState();
+    s.humans = ["P1"];
+    s.fields.push({ owner: "P1", spellId: "aqua_downpour", element: "AQUA", roundsLeft: 3, shield: 2, flowRepick: true });
+    place(s, "leaf_greegon", "P1", 3, 0); // not AQUA
+    place(s, "dusk_gool", "P2", 0, 0);
+    let n = advance(atCleanup(s));
+    for (let i = 0; i < 4 && n.phase !== "prep"; i++) n = advance(n);
+    expect(n.pendingFlow).toBeNull();
   });
 });

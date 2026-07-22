@@ -638,6 +638,9 @@ export interface FieldBuff {
   evasion?: boolean;      // element allies gain EVASION while up (Nightfall)
   specialDiscount?: number; // BOLT Specials cost −N while up (Power Grid), floors at 1
   electrify?: number;       // +N extra Electrify DMG vs statused foes (Power Grid)
+  /** Downpour: at the start of every round the owner re-picks a Flow Change and
+   *  it lands on ALL their element allies, not just a newly-summoned one. */
+  flowRepick?: boolean;
   /** Blazing Sun: the field owner's element allies cannot miss — negates BLIND,
    *  the target's EVASION, and any other roll-to-hit. */
   neverMiss?: boolean;
@@ -668,6 +671,10 @@ export interface FieldState extends FieldBuff {
   spellId: string;
   element: Element;
   roundsLeft: number;
+  /** Downpour: the round its Flow re-pick was last offered. Without this the
+   *  re-entrant check that catches a SECOND player in hot-seat immediately
+   *  re-opens the prompt for the player who just answered — forever. */
+  repickRound?: number;
 }
 
 export interface SpellDef {
@@ -835,6 +842,10 @@ export interface GameState {
   /** A human just summoned an AQUA card and must pick its Flow Change buff
    *  (instanceId). AI summons resolve immediately, so this only gates humans. */
   pendingFlow: string | null;
+  /** Downpour re-pick: the pending choice applies to EVERY element ally of
+   *  pendingFlow's owner, not just that card. pendingFlow still names one of
+   *  them so the existing prompt has something to render. */
+  pendingFlowAll?: boolean;
   win: WinInfo | null;
   log: string[];
   nextId: number; // instance/hand id counter

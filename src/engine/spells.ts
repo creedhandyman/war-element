@@ -430,8 +430,8 @@ export const SPELLS: SpellDef[] = [
     element: "AQUA",
     cost: 6,
     kind: "field",
-    text: "Field (3 rounds): your AQUA allies gain +2 shield each round.",
-    field: { rounds: 3, shield: 2 }, // (defer: re-pick Flow Change each round)
+    text: "Field (3 rounds): your AQUA allies gain +2 shield each round, and you re-pick Flow Change for all of them every round.",
+    field: { rounds: 3, shield: 2, flowRepick: true },
   },
   {
     id: "pyro_heatwave",
