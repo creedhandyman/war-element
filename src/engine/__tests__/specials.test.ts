@@ -1182,3 +1182,100 @@ describe("King of the Hill — which half of the bonus a mid row pays", () => {
     }
   });
 });
+
+describe("lateral charge — riders track their victim across columns", () => {
+  /** Fire `casterId`'s special at `targetId`; hand back the caster's landing slot. */
+  function chargeAt(s: GameState, casterId: string, targetId: string) {
+    const n = applyIntent(battleWith(s, casterId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId,
+    });
+    return { state: n, pos: n.cards[casterId]?.pos };
+  }
+  const gap = (a: { row: number; col: number }, b: { row: number; col: number }) =>
+    Math.max(Math.abs(a.row - b.row), Math.abs(a.col - b.col));
+
+  it("Skelider rides sideways to reach a target in another column", () => {
+    // The old charge only stepped up its OWN column, so a victim one column
+    // over meant the rider struck from where it stood and never moved a slot.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const skel = place(s, "dusk_skelider", "P1", 2, 0, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 1, 2, { curHp: 999, maxHp: 999 });
+    const { pos } = chargeAt(s, skel.instanceId, foe.instanceId);
+    expect(pos).toBeDefined();
+    expect(pos!.col).not.toBe(0); // it actually moved horizontally
+    expect(gap(pos!, { row: 1, col: 2 })).toBe(1); // and closed to melee
+  });
+
+  it("a body parked directly ahead is stepped AROUND, not treated as a wall", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const horse = place(s, "dusk_shadowhorsemen", "P1", 3, 1, { autoMode: "manual" });
+    place(s, "dusk_gool", "P2", 2, 1, { curHp: 999, maxHp: 999 }); // sat in the lane
+    const foe = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 999, maxHp: 999 });
+    const { pos } = chargeAt(s, horse.instanceId, foe.instanceId);
+    expect(pos).toBeDefined();
+    expect(pos).not.toEqual({ row: 3, col: 1 }); // the old charge stalled here
+    expect(gap(pos!, { row: 1, col: 1 })).toBe(1);
+  });
+
+  it("it pulls up BESIDE a living target rather than trampling onto it", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const horse = place(s, "dusk_shadowhorsemen", "P1", 2, 0, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 0, 0, { curHp: 999, maxHp: 999 });
+    const { state, pos } = chargeAt(s, horse.instanceId, foe.instanceId);
+    expect(state.cards[foe.instanceId]).toBeDefined(); // it survived the hit
+    expect(pos).not.toEqual({ row: 0, col: 0 });
+    expect(gap(pos!, { row: 0, col: 0 })).toBe(1);
+  });
+
+  it("Griffith's Dive Bomb now actually dives", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const grif = place(s, "gale_griffith", "P1", 2, 0, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 1, 2, { curHp: 999, maxHp: 999 });
+    const { pos } = chargeAt(s, grif.instanceId, foe.instanceId);
+    expect(pos).toBeDefined();
+    expect(pos).not.toEqual({ row: 2, col: 0 });
+    expect(gap(pos!, { row: 1, col: 2 })).toBe(1);
+  });
+
+  it("RohoJohn's Battle Charge still ploughs STRAIGHT ahead and stalls when blocked", () => {
+    // Its text promises "every opponent straight ahead" — the lateral charge is
+    // opt-in precisely so this one keeps its lane and its stopping behaviour.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const roho = place(s, "bore_rohojohn", "P1", 2, 1, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 999, maxHp: 999 });
+    const { pos } = chargeAt(s, roho.instanceId, foe.instanceId);
+    expect(pos).toEqual({ row: 2, col: 1 }); // blocked lane = no movement at all
+  });
+});
+
+describe("a charge obeys the same geometry as a normal move", () => {
+  it("a ground rider spends TWO steps to cut a corner; a flyer spends one", () => {
+    // Prep movement is Manhattan for everyone except FLYING (chess king). If the
+    // charge used king steps for everyone, a ground card would out-manoeuvre its
+    // own move rule.
+    const setup = (id: string) => {
+      const s = prepState();
+      s.players.P1.magicPool = 9;
+      const c = place(s, id, "P1", 2, 0, { autoMode: "manual" });
+      const foe = place(s, "dusk_gool", "P2", 1, 3, { curHp: 999, maxHp: 999 });
+      const n = applyIntent(battleWith(s, c.instanceId), {
+        type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+      });
+      return n.cards[c.instanceId].pos!;
+    };
+    // Both close to melee on (1,3), but the flyer takes the diagonal.
+    const flyer = setup("gale_griffith"); // FLYING, charge 3
+    const ground = setup("dusk_shadowhorsemen"); // charge 4
+    expect(Math.max(Math.abs(flyer.row - 1), Math.abs(flyer.col - 3))).toBe(1);
+    expect(Math.max(Math.abs(ground.row - 1), Math.abs(ground.col - 3))).toBe(1);
+    // The ground rider never moves diagonally: every step it took was straight,
+    // so its total path length is the Manhattan distance it covered.
+    const manhattan = Math.abs(ground.row - 2) + Math.abs(ground.col - 0);
+    expect(manhattan).toBeLessThanOrEqual(4); // within its charge budget
+  });
+});

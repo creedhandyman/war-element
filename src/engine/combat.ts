@@ -896,6 +896,64 @@ function chargeForward(draft: GameState, card: CardInstance, steps: number): voi
   if (moved > 0) draft.log.push(`${label(draft, card)} charges forward ${moved} slot(s).`);
 }
 
+/** Charge that HOMES IN on the slot it struck instead of ploughing straight up
+ *  its own column — it may move horizontally and diagonally to get there. A
+ *  column-locked charge simply stalled whenever anything stood in the lane, so
+ *  a rider whose victim was one column over never moved at all. Pulls up
+ *  BESIDE a living target (it closes to melee, it doesn't trample through);
+ *  if the strike killed the target the vacated slot is fair game to land on. */
+function chargeToward(draft: GameState, card: CardInstance, steps: number, dest: Pos): void {
+  const enemyHome = homeRow(enemyOf(card.owner), draft.boardSize);
+  // Same geometry the PREP move uses: FLYING walks like a chess king, everyone
+  // else is orthogonal, so a ground rider spends two of its steps to cut a
+  // corner. A charge that ignored this would out-manoeuvre normal movement.
+  const flying = Boolean(getDef(card.defId).keywords.FLYING);
+  const open = (r: number, c: number) =>
+    r >= 0 && r < draft.boardSize && c >= 0 && c < draft.boardSize &&
+    !draft.slots[r][c].capturedBy && !cardAt(draft, r, c);
+  let moved = 0;
+  for (let i = 0; i < steps; i++) {
+    const pos = card.pos;
+    if (!pos) break;
+    const gapR = dest.row - pos.row;
+    const gapC = dest.col - pos.col;
+    if (gapR === 0 && gapC === 0) break; // standing on it (target died here)
+    // Already beside a target that is still standing — close enough, stop.
+    if (Math.max(Math.abs(gapR), Math.abs(gapC)) <= 1 && cardAt(draft, dest.row, dest.col)) break;
+    const dr = Math.sign(gapR);
+    const dc = Math.sign(gapC);
+    // Prefer the diagonal, then close the wider gap first. If all of those are
+    // blocked, take a DETOUR that still makes progress on the long axis — a
+    // body parked directly ahead used to stop the charge dead, which is the
+    // most common case there is.
+    const tries: Array<[number, number]> = [];
+    if (flying && dr !== 0 && dc !== 0) tries.push([dr, dc]);
+    if (Math.abs(gapR) >= Math.abs(gapC)) {
+      if (dr !== 0) tries.push([dr, 0]);
+      if (dc !== 0) tries.push([0, dc]);
+    } else {
+      if (dc !== 0) tries.push([0, dc]);
+      if (dr !== 0) tries.push([dr, 0]);
+    }
+    // Detours around a blocker: a flyer cuts the corner, a ground rider has to
+    // sidestep and then resume.
+    if (flying) {
+      if (dr !== 0) tries.push([dr, 1], [dr, -1]);
+      else tries.push([1, dc], [-1, dc]);
+    } else if (dr !== 0) tries.push([0, 1], [0, -1]);
+    else tries.push([1, 0], [-1, 0]);
+    const seen = new Set<string>();
+    const step = tries
+      .filter(([sr, sc]) => (seen.has(`${sr},${sc}`) ? false : (seen.add(`${sr},${sc}`), true)))
+      .find(([sr, sc]) => open(pos.row + sr, pos.col + sc));
+    if (!step) break;
+    card.pos = { row: pos.row + step[0], col: pos.col + step[1] };
+    moved++;
+    if (card.pos.row === enemyHome) break; // a charge ends on the enemy home row
+  }
+  if (moved > 0) draft.log.push(`${label(draft, card)} charges ${moved} slot(s) to close the gap.`);
+}
+
 /** Row directly ahead (toward the enemy home) of a given position. */
 function rowAhead(owner: CardInstance["owner"], row: number): number {
   return owner === "P1" ? row - 1 : row + 1;
@@ -1323,7 +1381,13 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // Charge: a move-and-strike special advances the attacker toward the enemy
     // home (up to `charge` open steps) after it hits — its reach came from the
     // ranged flag; this is the repositioning half of "move up to N and strike".
-    if (num(params, "charge") > 0 && attacker.curHp > 0) chargeForward(draft, attacker, num(params, "charge"));
+    // `chargeLateral` rides toward the slot it struck (sideways and diagonals
+    // allowed) instead of straight up its own column.
+    if (num(params, "charge") > 0 && attacker.curHp > 0) {
+      if (num(params, "chargeLateral") > 0 && center)
+        chargeToward(draft, attacker, num(params, "charge"), center);
+      else chargeForward(draft, attacker, num(params, "charge"));
+    }
   },
 
   /** Damage to up to N valid enemy targets (chosen target first). Optional

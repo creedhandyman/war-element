@@ -945,11 +945,13 @@ export const CARDS: CardDef[] = [
       name: "Piercing Charge",
       cost: 4,
       handler: "strike",
-      // printed "Move up to 4 and deal 15 PEN" — ranged reach + charge advance
-      params: { dmg: 15, pen: 1, charge: 4 },
+      // printed "Move up to 4 and deal 15 PEN" — ranged reach + charge advance.
+      // chargeLateral: the rider tracks its victim across columns instead of
+      // ploughing straight ahead, so a blocked lane no longer pins it in place.
+      params: { dmg: 15, pen: 1, charge: 4, chargeLateral: 1 },
       ranged: true,
       targetSide: "enemy",
-      text: "Charge up to 4 slots and deal 15 DMG (PEN) to one opponent.",
+      text: "Ride up to 4 slots in any direction toward your target and deal 15 DMG (PEN) to it.",
     },
   },
 
@@ -2160,9 +2162,13 @@ export const CARDS: CardDef[] = [
       // recoilPct is a share of the HP damage DEALT to the main target, so the
       // cost scales with how well the dive lands: ~7 back on a clean 27, less
       // into shields. At 25% it can finish a wounded Griffith outright.
-      params: { dmg: 27, splash: 11, recoilPct: 25, selfStatus: "STEALTH", selfStatusDuration: 1 },
+      // The dive now actually DIVES: it closes up to 3 slots onto whatever it
+      // hit, in any direction (it flies, so sideways and diagonals are free).
+      // That plants a 29-HP mythic deep in enemy ground — STEALTH covers the
+      // landing for exactly one round, so the reposition is a real gamble.
+      params: { dmg: 27, splash: 11, recoilPct: 25, selfStatus: "STEALTH", selfStatusDuration: 1, charge: 3, chargeLateral: 1 },
       targetSide: "enemy",
-      text: "Deal 27 DMG (+11 splash) and take 25% recoil, then vanish into STEALTH until next round. 3-round cooldown.",
+      text: "Dive up to 3 spaces in any direction onto your target, deal 27 DMG (+11 splash) and take 25% recoil, then vanish into STEALTH until next round. 3-round cooldown.",
     },
   },
   {
@@ -2218,10 +2224,10 @@ export const CARDS: CardDef[] = [
       cost: 5,
       cooldown: 3, // charge nuke + EVASION escape — 3-round lockout between casts
       handler: "strike",
-      params: { dmg: 19, splash: 9, statusKind: "DOT", statusDuration: 1, statusPower: 9, selfStatus: "EVASION", selfStatusDuration: 1, charge: 4 },
+      params: { dmg: 19, splash: 9, statusKind: "DOT", statusDuration: 1, statusPower: 9, selfStatus: "EVASION", selfStatusDuration: 1, charge: 4, chargeLateral: 1 },
       targetSide: "enemy",
       ranged: true, // the dive reaches across the board
-      text: "Charge up to 4 spaces, deal 19 DMG + 9 DOT (+9 splash), and gain EVASION for a round. 3-round cooldown.",
+      text: "Ride up to 4 spaces in any direction toward your target, deal 19 DMG + 9 DOT (+9 splash), and gain EVASION for a round. 3-round cooldown.",
     },
   },
   {
