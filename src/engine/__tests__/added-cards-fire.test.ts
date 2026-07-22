@@ -379,17 +379,35 @@ describe("Scorch — Wildfire is a standing zone, not a one-shot", () => {
     expect(statusOf(n.cards[forward.instanceId], "BURN")).toBeUndefined();
   });
 
-  it("the fire goes out when Scorch does", () => {
-    // burnPersistsWhileAlive stops BURN expiring; once the arsonist is gone the
-    // ground stops re-lighting AND the existing burn starts ticking down again.
+  it("the burn runs 3 rounds and then goes out — it is not permanent", () => {
+    // Wildfire re-lights the row each round while Scorch stands, so anything
+    // parked there is topped back up to 3. Kill Scorch and the ground stops
+    // burning: the last application ticks down and expires.
     const s = prepState();
     const scorch = place(s, "pyro_scorch", "P1", 3, 1);
     const foe = place(s, "dusk_gool", "P2", 0, 0, { curHp: 400, maxHp: 400 });
-    applyStatus(s, foe, "BURN", 1, 1, "PYRO");
     let n = advance(atCleanup(s));
-    expect(statusOf(n.cards[foe.instanceId], "BURN")).toBeDefined(); // held by Wildfire
-    delete n.cards[scorch.instanceId]; // Scorch falls
+    expect(statusOf(n.cards[foe.instanceId], "BURN")?.duration).toBe(3); // freshly lit
     n = advance(atCleanup(n));
-    expect(statusOf(n.cards[foe.instanceId], "BURN")).toBeUndefined(); // burns out
+    expect(statusOf(n.cards[foe.instanceId], "BURN")?.duration).toBe(3); // topped back up
+    delete n.cards[scorch.instanceId]; // Scorch falls — the ground goes cold
+    n = advance(atCleanup(n));
+    expect(statusOf(n.cards[foe.instanceId], "BURN")?.duration).toBe(2); // now it ticks
+    n = advance(atCleanup(n));
+    n = advance(atCleanup(n));
+    expect(statusOf(n.cards[foe.instanceId], "BURN")).toBeUndefined(); // burnt out
+  });
+
+  it("a card that LEAVES the row burns for the rest of its 3 rounds", () => {
+    // The point of a real duration: walking out of the fire no longer clears it
+    // instantly, but it does stop being topped up.
+    const s = prepState();
+    place(s, "pyro_scorch", "P1", 3, 1);
+    const foe = place(s, "dusk_gool", "P2", 0, 0, { curHp: 400, maxHp: 400 });
+    let n = advance(atCleanup(s));
+    expect(statusOf(n.cards[foe.instanceId], "BURN")?.duration).toBe(3);
+    n.cards[foe.instanceId].pos = { row: 2, col: 0 }; // steps off the burning row
+    n = advance(atCleanup(n));
+    expect(statusOf(n.cards[foe.instanceId], "BURN")?.duration).toBe(2); // ticking, not topped
   });
 });

@@ -4080,19 +4080,16 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 3,
     keywords: {},
-    // The blaze it lit never dies down while Scorch is standing — and the ground
-    // stays lit, so anything that walks or is summoned onto it catches too.
-    passiveNames: {
-      burnPersistsWhileAlive: "Wildfire",
-      roundTick: "Wildfire",
-      onSummon: "Wildfire",
-    },
-    burnPersistsWhileAlive: true,
-    roundTick: { enemyHomeRowStatus: { kind: "BURN", duration: 1, power: 1 } },
+    // The ground stays lit while Scorch stands, so anything that walks or is
+    // summoned onto the enemy home row catches. The BURN itself now runs out
+    // after 3 rounds rather than never — leave the row (or kill Scorch) and it
+    // burns down instead of lasting the match.
+    passiveNames: { roundTick: "Wildfire", onSummon: "Wildfire" },
+    roundTick: { enemyHomeRowStatus: { kind: "BURN", duration: 3, power: 1 } },
     onSummon: {
       handler: "barrage",
       // The enemy home row, set alight the moment it arrives.
-      params: { dmg: 0, targets: 99, statusKind: "BURN", statusDuration: 1, statusPower: 1, enemyHomeRow: 1 },
+      params: { dmg: 0, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 1, enemyHomeRow: 1 },
       targetSide: "enemy",
     },
     special: {

@@ -400,9 +400,6 @@ export interface CardDef {
   onEnterMidRow?: { shields: number };
   /** Wind Wake (Wista): every landed hit shoves the victim back a slot. */
   onHitPush?: number;
-  /** Wildfire (Scorch): while this card LIVES, BURN it inflicted on enemies
-   *  stops ticking down — the card-bound twin of Heatwave's field effect. */
-  burnPersistsWhileAlive?: boolean;
   /** Gate Keeper (Veil): the first time this card's shields break to 0, gain
    *  these permanent buffs. */
   onShieldBreak?: { dmg?: number; sp?: number; status?: { kind: StatusKind; duration: number; power: number } };

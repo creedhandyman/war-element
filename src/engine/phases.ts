@@ -1218,13 +1218,9 @@ function doCleanupPhase(draft: GameState): void {
   //    field) freezes BURN on its owner's ENEMIES — their BURN never ticks while
   //    the field is up, so it keeps burning until the field lifts.
   for (const card of boardCards(draft)) {
-    // Heatwave freezes BURN from a FIELD; Wildfire (Scorch) does the same from a
-    // living CARD — the fire keeps burning as long as the arsonist is standing.
-    const burnFrozen =
-      draft.fields.some((f) => f.burnPersists && f.owner === enemyOf(card.owner)) ||
-      boardCards(draft, enemyOf(card.owner)).some(
-        (c) => c.curHp > 0 && getDef(c.defId).burnPersistsWhileAlive,
-      );
+    // Heatwave (PYRO field) freezes BURN on its owner's ENEMIES — their BURN
+    // never ticks while the field is up, so it keeps burning until it lifts.
+    const burnFrozen = draft.fields.some((f) => f.burnPersists && f.owner === enemyOf(card.owner));
     for (const s of card.statuses) {
       if (burnFrozen && s.kind === "BURN") continue;
       s.duration--;
