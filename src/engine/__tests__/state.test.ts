@@ -303,3 +303,24 @@ describe("board size lives on the state", () => {
     expect(canSummon(std.s, "P1", std.handId, 4).ok).toBe(false);
   });
 });
+
+describe("rarity floor: a Special is an epic-and-up privilege", () => {
+  it("no RARE card carries a Special — talents excepted", () => {
+    // Design rule, not a mechanic: rarity is cosmetic (Deck Builder sorting and
+    // a badge), so nothing enforces this at runtime and a rare could quietly
+    // ship with a Special again. A TALENT is deliberately exempt — it costs 0,
+    // fires free exactly once per game and is then spent, which is a different
+    // thing from a repeatable Special even though it rides the same field.
+    const offenders = CARDS.filter(
+      (c) => c.rarity === "rare" && c.special && !c.special.talent,
+    ).map((c) => `${c.id} (${c.special!.name})`);
+    expect(offenders, `rare cards with a Special:\n  ${offenders.join("\n  ")}`).toEqual([]);
+  });
+
+  it("the talent exemption is narrow — exactly one card uses it", () => {
+    // If this count climbs, "talents are exempt" has quietly become a loophole
+    // for putting Specials on rares.
+    const talents = CARDS.filter((c) => c.rarity === "rare" && c.special?.talent);
+    expect(talents.map((c) => c.id)).toEqual(["leaf_alpha"]);
+  });
+});

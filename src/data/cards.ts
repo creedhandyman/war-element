@@ -3943,7 +3943,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_lumberjack",
     name: "Lumberjack",
-    rarity: "rare",
+    rarity: "epic", // it has a Special, and Specials are epic-and-up
     element: "LEAF",
     cardClass: "Tank",
     attackType: "Melee",
@@ -4097,7 +4097,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_scorch",
     name: "Scorch",
-    rarity: "rare",
+    rarity: "epic", // it has a Special, and Specials are epic-and-up
     element: "PYRO",
     cardClass: "Support",
     attackType: "Ranged",
