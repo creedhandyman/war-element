@@ -1308,9 +1308,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   }
   .rail:not(.queue-rail).mobile-open { transform: translateX(0); }
 
-  /* Speed Queue → thin always-on strip on the right edge */
+  /* Speed Queue → thin always-on strip on the right edge.
+     The bottom offset tracks the ACTION PANEL's real height via --bar-h (set by
+     App.tsx's ResizeObserver, the same var the summon-confirm and hand already
+     use). It was a flat 78px, but the portrait panel is `flex: 1 1 auto` and
+     grows to fit Pass Priority, the crystals and the sub-buttons — several times
+     78px on your turn — so the rail ran straight down over the panel. The
+     fallback only applies before the first measurement. */
   .rightcol {
-    position: absolute; top: 42px; right: 2px; bottom: 78px; width: 42px;
+    position: absolute; top: 42px; right: 2px; width: 42px;
+    /* No safe-area term here: --bar-h is a getBoundingClientRect height, and the
+       bar's own padding-bottom already carries env(safe-area-inset-bottom), so
+       adding it again would lift the rail by the inset twice. */
+    bottom: calc(var(--bar-h, 78px) + 8px);
     z-index: 25; grid-column: auto; grid-row: auto; gap: 0;
   }
   .rightcol .spelltray { display: none; }  /* spells move to the Spells sheet */
