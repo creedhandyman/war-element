@@ -448,8 +448,8 @@ export const SPELLS: SpellDef[] = [
     element: "GALE",
     cost: 6,
     kind: "field",
-    text: "Field (3 rounds): your GALE allies gain +3 SP.",
-    field: { rounds: 3, sp: 3 }, // (defer: knockback +1 space)
+    text: "Field (3 rounds): your GALE allies gain +3 SP, and every push you cause travels 1 space further.",
+    field: { rounds: 3, sp: 3, push: 1 },
   },
   {
     id: "bolt_power_grid",
@@ -487,8 +487,10 @@ export const SPELLS: SpellDef[] = [
     element: "DUSK",
     cost: 6,
     kind: "field",
-    text: "Field (3 rounds): your DUSK allies gain EVASION.",
-    field: { rounds: 3, evasion: true }, // full EVASION (defer: DRAIN +1, first-hit-only)
+    text: "Field (3 rounds): your DUSK allies gain EVASION, and every DRAIN steals 1 extra max HP.",
+    // NOTE: the EVASION here is full-time; the design doc scopes it to the FIRST
+    // hit taken each round, which is still deferred.
+    field: { rounds: 3, evasion: true, drainBonus: 1 },
   },
   {
     id: "dawn_blazing_sun",

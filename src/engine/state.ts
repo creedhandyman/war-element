@@ -230,11 +230,18 @@ export function auraShieldBonus(state: GameState, card: CardInstance): number {
 export function fieldBonus(
   state: GameState,
   card: CardInstance,
-  key: "regen" | "shield" | "sp" | "dmgBonus" | "block" | "reflect" | "specialDiscount" | "electrify",
+  key: "regen" | "shield" | "sp" | "dmgBonus" | "block" | "reflect" | "specialDiscount" | "electrify" | "drainBonus",
 ): number {
   const el = getDef(card.defId).element;
   const f = state.fields.find((fs) => fs.owner === card.owner && fs.element === el);
   return f ? (f[key] ?? 0) : 0;
+}
+
+/** Extra knockback distance the field owner's push effects travel (Jetstream —
+ *  GALE). Keyed on the PUSHER's side rather than the victim's, and not element
+ *  matched: a push can originate from a spell or a wall, which have no card. */
+export function fieldPushBonus(state: GameState, owner: PlayerId): number {
+  return state.fields.find((f) => f.owner === owner && f.push)?.push ?? 0;
 }
 
 /** Whether an active Field grants this card EVASION (Nightfall — DUSK). */

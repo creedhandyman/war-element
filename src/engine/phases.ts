@@ -416,7 +416,7 @@ function resolveSpell(
     const alive = !died && !!draft.cards[target.instanceId] && target.curHp > 0;
     if (alive && spell.status)
       applyStatus(draft, target, spell.status.kind, spell.status.duration, spell.status.power, spell.element);
-    if (alive && spell.push) pushBack(draft, target, spell.push);
+    if (alive && spell.push) pushBack(draft, target, spell.push, player);
     if (alive && spell.drainMaxHp && target.maxHp > 1) {
       const steal = Math.min(spell.drainMaxHp, target.maxHp - 1);
       target.maxHp -= steal;
@@ -452,7 +452,7 @@ function applyWall(draft: GameState, card: CardInstance, w: WallState): void {
   if (died || !draft.cards[card.instanceId] || card.curHp <= 0) return;
   if (w.status)
     applyStatus(draft, card, w.status.kind, w.status.duration, w.status.power, getSpell(w.spellId).element);
-  if (w.push) pushBack(draft, card, w.push);
+  if (w.push) pushBack(draft, card, w.push, w.owner);
 }
 
 /** A card that MOVED from `fromRow` to its current row crosses every enemy Wall
@@ -915,7 +915,7 @@ function doRoundTicks(draft: GameState): void {
       if (t) applyStatus(draft, t, "PARALYZE", rt.paralyzeOne, 0, el);
     }
     if (rt.pushEnemies) {
-      for (const e of enemies()) pushBack(draft, e, rt.pushEnemies);
+      for (const e of enemies()) pushBack(draft, e, rt.pushEnemies, card.owner);
     }
     if (rt.rowAheadDmg && card.pos) {
       // Sweeping Flames: burn whatever stands in the row directly ahead.

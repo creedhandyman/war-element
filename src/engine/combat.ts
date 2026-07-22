@@ -15,7 +15,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
 import { creditDamage, creditKill } from "./stats";
-import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldPushBonus, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -211,11 +211,20 @@ export function applyTimedBuff(card: CardInstance, dmg: number, sp: number, roun
 
 /** Blow a card back toward its OWN home row up to `steps` open slots (Mighty
  *  Winds / Wind Guardian). Stops at its home row, a captured, or occupied slot. */
-export function pushBack(draft: GameState, card: CardInstance, steps: number): void {
+/** Blow `card` back toward its own home. `pusher` is the side CAUSING the push
+ *  (not the victim) — Jetstream adds +1 space to everything its owner shoves,
+ *  and that bonus has to be read from the pusher's fields, never the target's. */
+export function pushBack(
+  draft: GameState,
+  card: CardInstance,
+  steps: number,
+  pusher?: PlayerId,
+): void {
   const dir = card.owner === "P1" ? 1 : -1; // toward own home (P1 = row 3, P2 = row 0)
   const home = homeRow(card.owner, draft.boardSize);
+  const total = steps + (pusher ? fieldPushBonus(draft, pusher) : 0);
   let moved = 0;
-  for (let i = 0; i < steps; i++) {
+  for (let i = 0; i < total; i++) {
     const pos = card.pos;
     if (!pos || pos.row === home) break;
     const row: number = pos.row + dir;
@@ -907,7 +916,12 @@ export function drainMaxHp(
   target: CardInstance,
   amount: number,
 ): number {
-  const taken = Math.max(0, Math.min(amount, target.maxHp - 1));
+  // Nightfall (DUSK field): "all DRAIN steals +1 max HP per instance". Applied
+  // HERE, at the one choke-point every drain funnels through — the keyword on a
+  // basic and the `drain` param on a Special both land here, so neither can be
+  // missed and a future third caller inherits it automatically.
+  const boosted = amount + fieldBonus(draft, attacker, "drainBonus");
+  const taken = Math.max(0, Math.min(boosted, target.maxHp - 1));
   if (taken <= 0) return 0;
   target.maxHp -= taken;
   target.curHp = Math.min(target.curHp, target.maxHp);
@@ -1104,10 +1118,11 @@ function applyDebuffRiders(
   draft: GameState,
   target: CardInstance,
   params: Record<string, number | string>,
+  attacker?: CardInstance,
 ): void {
   if (!draft.cards[target.instanceId] || target.curHp <= 0) return;
   const push = num(params, "push");
-  if (push > 0) pushBack(draft, target, push);
+  if (push > 0) pushBack(draft, target, push, attacker?.owner);
   const spDebuff = num(params, "spDebuff");
   if (spDebuff > 0) applyTimedBuff(target, 0, -spDebuff, num(params, "spDebuffRounds", 1));
 }
@@ -1290,7 +1305,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       // Special that should drain has to ask for it.
       if (num(params, "drain") > 0 && draft.cards[target.instanceId] && target.curHp > 0)
         drainMaxHp(draft, attacker, target, num(params, "drain"));
-      applyDebuffRiders(draft, target, params); // −SP (Angale, sinkhole)
+      applyDebuffRiders(draft, target, params, attacker); // −SP (Angale, sinkhole)
       // A SECOND status alongside the primary (sinkhole = DOT + BLIND).
       const db = params.debuffStatus;
       if (typeof db === "string" && db && draft.cards[target.instanceId] && target.curHp > 0)
@@ -1332,7 +1347,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (seen.size >= n) break;
       seen.add(target.instanceId);
       maybeStatus(draft, attacker, target, params);
-      applyDebuffRiders(draft, target, params); // Mighty Winds push + −SP
+      applyDebuffRiders(draft, target, params, attacker); // Mighty Winds push + −SP
       // Bluflames (Sarra): mark the target so it can't be healed.
       const sealR = num(params, "sealRounds");
       if (sealR > 0 && target.curHp > 0 && draft.cards[target.instanceId])

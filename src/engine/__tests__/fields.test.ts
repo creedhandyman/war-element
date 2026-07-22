@@ -125,3 +125,84 @@ describe("Total Network Control (BOLT Cost-10 ultimate)", () => {
     expect(effectiveSpecialCost(n, n.cards[leaf.instanceId], 3)).toBe(3); // non-BOLT untouched
   });
 });
+
+describe("Nightfall — DRAIN +1", () => {
+  const arm = (id: string) => {
+    const s = prepState();
+    s.players.P1.spellbook = [{ defId: id, used: false }];
+    s.players.P1.magicPool = 12;
+    return s;
+  };
+
+  it("every DRAIN instance steals 1 extra max HP", () => {
+    const s = arm("dusk_nightfall");
+    const thief = place(s, "dusk_vamp", "P1", 2, 0); // DUSK, DRAIN keyword
+    const prey = place(s, "leaf_greegon", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const before = { prey: prey.maxHp, thief: thief.maxHp };
+    const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dusk_nightfall" });
+    basicAttack(n, thief.instanceId, prey.instanceId);
+    // 1 from the keyword + 1 from the field.
+    expect(before.prey - n.cards[prey.instanceId].maxHp).toBe(2);
+    expect(n.cards[thief.instanceId].maxHp - before.thief).toBe(2);
+  });
+
+  it("without the field it is the plain 1", () => {
+    const s = prepState();
+    const thief = place(s, "dusk_vamp", "P1", 2, 0);
+    const prey = place(s, "leaf_greegon", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const before = prey.maxHp;
+    basicAttack(s, thief.instanceId, prey.instanceId);
+    expect(before - s.cards[prey.instanceId].maxHp).toBe(1);
+  });
+
+  it("the ENEMY's Nightfall doesn't boost your drains", () => {
+    // fieldBonus matches owner AND element; a field the opponent owns must not
+    // leak into your steal.
+    const s = prepState();
+    s.fields.push({ owner: "P2", spellId: "dusk_nightfall", element: "DUSK", roundsLeft: 3, drainBonus: 1 });
+    const thief = place(s, "dusk_vamp", "P1", 2, 0);
+    const prey = place(s, "leaf_greegon", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const before = prey.maxHp;
+    basicAttack(s, thief.instanceId, prey.instanceId);
+    expect(before - s.cards[prey.instanceId].maxHp).toBe(1);
+  });
+});
+
+describe("Jetstream — push +1", () => {
+  it("a spell's knockback travels one space further", () => {
+    const s = prepState();
+    s.players.P1.spellbook = [
+      { defId: "gale_jetstream", used: false },
+      { defId: "gale_gust", used: false }, // 3 DMG + push 1
+    ];
+    s.players.P1.magicPool = 20;
+    place(s, "gale_duster", "P1", 3, 0); // a GALE ally so the field has a home
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    let n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "gale_jetstream" });
+    n = applyIntent(n, { type: "CAST_SPELL", player: "P1", spellId: "gale_gust", targetId: foe.instanceId });
+    // P2 is blown back toward row 0: 1 printed + 1 from the field = 2 rows.
+    expect(n.cards[foe.instanceId].pos!.row).toBe(0);
+  });
+
+  it("without the field the same push moves it one row", () => {
+    const s = prepState();
+    s.players.P1.spellbook = [{ defId: "gale_gust", used: false }];
+    s.players.P1.magicPool = 20;
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "gale_gust", targetId: foe.instanceId });
+    expect(n.cards[foe.instanceId].pos!.row).toBe(1);
+  });
+
+  it("the bonus follows the PUSHER, not the card being pushed", () => {
+    // pushBack takes the victim, so reading the field off that card would credit
+    // the wrong side entirely — here the victim's owner has the field and must
+    // NOT get a longer shove out of it.
+    const s = prepState();
+    s.players.P1.spellbook = [{ defId: "gale_gust", used: false }];
+    s.players.P1.magicPool = 20;
+    s.fields.push({ owner: "P2", spellId: "gale_jetstream", element: "GALE", roundsLeft: 3, push: 1 });
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "gale_gust", targetId: foe.instanceId });
+    expect(n.cards[foe.instanceId].pos!.row).toBe(1); // still just the printed 1
+  });
+});

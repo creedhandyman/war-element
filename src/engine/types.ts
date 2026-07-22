@@ -601,6 +601,14 @@ export interface FieldBuff {
   evasion?: boolean;      // element allies gain EVASION while up (Nightfall)
   specialDiscount?: number; // BOLT Specials cost −N while up (Power Grid), floors at 1
   electrify?: number;       // +N extra Electrify DMG vs statused foes (Power Grid)
+  /** Nightfall: every DRAIN instance steals +N extra max HP. Element-matched
+   *  like the other bonuses, so only DUSK cards under a DUSK field get it. */
+  drainBonus?: number;
+  /** Jetstream: every knockback the field OWNER causes travels +N further.
+   *  Owner-scoped, not element-matched — the text reads "all knockback / push
+   *  effects", and a push can come from a spell or a wall with no card behind
+   *  it at all. */
+  push?: number;
   /** Heatwave: BURN the field owner inflicted on its ENEMIES stops expiring
    *  while the field is up (their BURN durations don't tick down). */
   burnPersists?: boolean;
