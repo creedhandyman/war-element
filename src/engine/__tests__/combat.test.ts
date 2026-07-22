@@ -2,7 +2,8 @@
 
 import { describe, expect, it } from "vitest";
 import { basicAttack, resolveHit } from "../combat";
-import { place, prepState, seedForCoins } from "./helpers";
+import { advance } from "../phases";
+import { atCleanup, place, prepState, seedForCoins, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
 function duel(seed = 42): GameState {
@@ -165,26 +166,56 @@ describe("on-hit keywords", () => {
     expect(bleeds[0].duration).toBe(2); // refreshed back to the rider's 2 rounds
   });
 
-  it("on-death retaliation: Widowbite's Lingering Venom hits the killer for 10 PEN", () => {
+  it("Lingering Venom poisons the killer instead of hitting it", () => {
+    // It used to slap the killer for 10 PEN on the spot. Now there is no impact
+    // damage at all — the killer walks away untouched but carrying the venom.
     const s = duel();
     const killer = place(s, "leaf_greegon", "P1", 2, 0, { curHp: 17, maxHp: 17, curShields: 2 });
     const widow = place(s, "dusk_widowbite", "P2", 2, 1, { curHp: 3 });
-    const r = basicAttack(s, killer.instanceId, widow.instanceId); // 4 dmg kills it
+    basicAttack(s, killer.instanceId, widow.instanceId); // 4 dmg kills it
     expect(s.cards[widow.instanceId]).toBeUndefined();
-    // 10 PEN back: straight to HP, shields untouched
-    expect(killer.curHp).toBe(7);
+    expect(killer.curHp).toBe(17); // no instant retaliation any more
     expect(killer.curShields).toBe(2);
-    expect(r?.targetDied).toBe(true);
+    const dot = statusOf(s.cards[killer.instanceId], "DOT");
+    expect(dot?.power).toBe(5);
+    expect(dot?.duration).toBe(3);
   });
 
-  it("on-death retaliation can kill the killer (and stops there — no chains)", () => {
+  it("...and the venom actually ticks — 15 over three rounds", () => {
+    // A DOT that never resolves is the whole point of the card, so measure it
+    // rather than trusting the status was attached. Deliberately NOT a LEAF
+    // killer: Photosynthesis + REGEN heal 3 a round, which nets the venom down
+    // to 2 a tick and makes the number say nothing about the venom itself.
     const s = duel();
-    const killer = place(s, "dusk_crow", "P1", 2, 0, { curHp: 1 }); // Crow also has onDeath
+    const killer = place(s, "dusk_vamp", "P1", 2, 0, { curHp: 99, maxHp: 99, curShields: 0 });
+    const widow = place(s, "dusk_widowbite", "P2", 2, 1, { curHp: 3 });
+    basicAttack(s, killer.instanceId, widow.instanceId);
+    let n = s;
+    for (let i = 0; i < 3; i++) n = advance(atCleanup(n));
+    expect(99 - n.cards[killer.instanceId].curHp).toBe(15);
+    expect(statusOf(n.cards[killer.instanceId], "DOT")).toBeUndefined(); // burnt out
+  });
+
+  it("a killer OUT of its reach walks away clean", () => {
+    // inRangeOnly: Widowbite is Melee, so its grudge reaches one slot. Picking
+    // it off from further away is now the safe way to handle it.
+    const s = duel();
+    const sniper = place(s, "dawn_sparkle", "P1", 0, 3, { curHp: 30, maxHp: 30 });
+    const widow = place(s, "dusk_widowbite", "P2", 2, 1, { curHp: 3 });
+    basicAttack(s, sniper.instanceId, widow.instanceId);
+    expect(s.cards[widow.instanceId]).toBeUndefined();
+    expect(statusOf(s.cards[sniper.instanceId], "DOT")).toBeUndefined();
+  });
+
+  it("the venom can still finish a wounded killer, just not instantly", () => {
+    const s = duel();
+    const killer = place(s, "dusk_crow", "P1", 2, 0, { curHp: 4, maxHp: 20 });
     const widow = place(s, "dusk_widowbite", "P2", 2, 1, { curHp: 3 });
     const r = basicAttack(s, killer.instanceId, widow.instanceId);
-    expect(s.cards[widow.instanceId]).toBeUndefined();
-    expect(s.cards[killer.instanceId]).toBeUndefined(); // died to the venom
-    expect(r?.attackerDied).toBe(true);
+    expect(s.cards[killer.instanceId]).toBeDefined(); // survives the kill itself
+    expect(r?.attackerDied).toBeFalsy();
+    const n = advance(atCleanup(s)); // first venom tick: 5 vs 4 HP
+    expect(n.cards[killer.instanceId]).toBeUndefined();
   });
 
   it("a lethal volley kills and removes the card from the board", () => {
@@ -194,5 +225,28 @@ describe("on-hit keywords", () => {
     const r = basicAttack(s, a.instanceId, t.instanceId);
     expect(r?.targetDied).toBe(true);
     expect(s.cards[t.instanceId]).toBeUndefined();
+  });
+});
+
+describe("on-death retaliation only reaches killers the corpse could have hit", () => {
+  it("Crock's Deathroll thrashes an adjacent killer", () => {
+    const s = prepState();
+    const killer = place(s, "dusk_vamp", "P1", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
+    const crock = place(s, "bore_crock", "P2", 2, 1, { curHp: 1, curShields: 0 });
+    basicAttack(s, killer.instanceId, crock.instanceId);
+    expect(s.cards[crock.instanceId]).toBeUndefined();
+    expect(30 - s.cards[killer.instanceId].curHp).toBe(5);
+  });
+
+  it("...but never a killer it could not have reached", () => {
+    // A death roll is a melee thrash. It was landing on ranged killers clear
+    // across the board, which made picking Crock off from range strictly worse
+    // than walking up to it.
+    const s = prepState();
+    const sniper = place(s, "dawn_sparkle", "P1", 0, 3, { curHp: 30, maxHp: 30, curShields: 0 });
+    const crock = place(s, "bore_crock", "P2", 2, 1, { curHp: 1, curShields: 0 });
+    basicAttack(s, sniper.instanceId, crock.instanceId);
+    expect(s.cards[crock.instanceId]).toBeUndefined();
+    expect(s.cards[sniper.instanceId].curHp).toBe(30); // untouched
   });
 });

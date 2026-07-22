@@ -14,6 +14,7 @@
 
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
+import { RANGED_REACH } from "./rules";
 import { creditDamage, creditKill } from "./stats";
 import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
 import type {
@@ -536,16 +537,38 @@ export function resolveHit(
         // Burnout: blast the enemy row directly ahead of where it fell.
         onDeathRowAhead(draft, target, deadOwner, deathPos, tDef.onDeath.dmg, Boolean(tDef.onDeath.pen));
       } else if (attacker.curHp > 0) {
-        // Lingering Venom / Bird Bomb: retaliate on the killer directly.
-        draft.log.push(`${tDef.name} retaliates from the grave (${tDef.onDeath.dmg} DMG)!`);
-        const r = resolveHit(draft, target, attacker, {
-          kind: "reflect",
-          dmg: tDef.onDeath.dmg,
-          hits: 1,
-          pen: Boolean(tDef.onDeath.pen),
-          crit: false,
-        });
-        if (r.targetDied) result.attackerDied = true;
+        // Lingering Venom (Widowbite): a melee grudge can't reach a killer who
+        // never came close. Measured from the slot it fell on, using the dying
+        // card's OWN reach, so a sniper walks away clean.
+        const reachable =
+          !tDef.onDeath.inRangeOnly ||
+          (deathPos != null &&
+            attacker.pos != null &&
+            chebyshev(deathPos, attacker.pos) <=
+              (tDef.attackType === "Melee" ? 1 : RANGED_REACH));
+        if (reachable) {
+          // Bird Bomb: retaliate on the killer directly. A venom carries no
+          // impact damage, so only announce a hit when there is one.
+          if (tDef.onDeath.dmg > 0) {
+            draft.log.push(`${tDef.name} retaliates from the grave (${tDef.onDeath.dmg} DMG)!`);
+            const r = resolveHit(draft, target, attacker, {
+              kind: "reflect",
+              dmg: tDef.onDeath.dmg,
+              hits: 1,
+              pen: Boolean(tDef.onDeath.pen),
+              crit: false,
+            });
+            if (r.targetDied) result.attackerDied = true;
+          }
+          // The venom outlives the spider — applied even if the bite dealt 0.
+          const ks = tDef.onDeath.killerStatus;
+          if (ks && draft.cards[attacker.instanceId] && attacker.curHp > 0) {
+            applyStatus(draft, attacker, ks.kind, ks.duration, ks.power, tDef.element);
+            draft.log.push(
+              `${tDef.name}'s venom lingers — ${label(draft, attacker)} takes ${ks.kind} ${ks.power} for ${ks.duration} rounds.`,
+            );
+          }
+        }
       }
     } else if (tDef.element === "DUSK" && opts.kind !== "reflect" && attacker.curHp > 0) {
       // Midnight Shade (DUSK aura): a dying card deals half its DMG to the

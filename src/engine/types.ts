@@ -455,6 +455,13 @@ export interface CardDef {
     /** WarPhant: the rider survives the mount and keeps fighting. */
     spawnToken?: { token: string; count: number };
     frightenInRange?: number; // rounds of FRIGHTEN on reachable enemies
+    /** Lingering Venom (Widowbite): the killer is left carrying a status rather
+     *  than just taking a hit back. Applied even when `dmg` is 0. */
+    killerStatus?: { kind: StatusKind; duration: number; power: number };
+    /** Gate the retaliation on the killer being within the DYING card's own
+     *  attack reach, measured from the slot it fell on — a melee card's grudge
+     *  can't cross the board, so a sniper picks it off unpunished. */
+    inRangeOnly?: boolean;
   };
   /** On-summon passive (Fire Blast / Fury Unleashed): fires the moment the
    *  card lands, through the same handler registry as Specials. Free — not a

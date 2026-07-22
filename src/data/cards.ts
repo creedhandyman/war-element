@@ -741,9 +741,15 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    tribe: "Dark",
+    tribe: "Spider",
+    // Lingering Venom (On Death): was a 10 PEN slap at the killer. It is now a
+    // venom — no impact damage at all, the killer just walks away carrying 5
+    // DOT for 3 rounds (15 total, if it lives that long). inRangeOnly: a melee
+    // grudge only reaches a killer that came within a slot of it, so a ranged
+    // pick-off is now clean. NOTE a card-specific onDeath REPLACES DUSK's
+    // Midnight Shade retaliation, so it trades that instant 3 for the venom.
     passiveNames: { onDeath: "Lingering Venom" },
-    onDeath: { dmg: 10, pen: true }, // Lingering Venom: 10 DMG PEN to the killer
+    onDeath: { dmg: 0, inRangeOnly: true, killerStatus: { kind: "DOT", duration: 3, power: 5 } },
   },
   {
     id: "dusk_vamp",
@@ -2890,9 +2896,11 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // Deathroll (On Death): deal 5 DMG to the attacker.
+    // Deathroll (On Death): deal 5 DMG to the attacker — but only one it can
+    // actually reach. A death roll is a melee thrash; it was landing on ranged
+    // killers clear across the board.
     passiveNames: { onDeath: "Deathroll" },
-    onDeath: { dmg: 5 },
+    onDeath: { dmg: 5, inRangeOnly: true },
   },
   {
     id: "aqua_bahari",

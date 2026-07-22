@@ -411,7 +411,14 @@ export function describePassives(def: CardDef): string[] {
     if (od.frightenInRange) parts.push(`FRIGHTENs nearby enemies for ${rounds(od.frightenInRange)}`);
     if (od.allyTribeBuffDmg)
       parts.push(`gives surviving ${od.allyTribeBuffDmg.tribe}s +${od.allyTribeBuffDmg.dmg} DMG permanently`);
-    if (parts.length) named("onDeath", `On death, ${parts.join(" · ")}.`);
+    if (od.killerStatus)
+      parts.push(
+        `leaves its killer with ${od.killerStatus.kind} ${od.killerStatus.power} for ${rounds(od.killerStatus.duration)}`,
+      );
+    // The range gate is the difference between "never kill it" and "kill it from
+    // two slots away", so it has to be on the card, not just in the code.
+    const gate = od.inRangeOnly ? " if the killer is within its reach" : "";
+    if (parts.length) named("onDeath", `On death, ${parts.join(" · ")}${gate}.`);
   }
   // ── passives that previously rendered NOTHING at all ──────────────────────
   if (def.meleeBonusDmg)

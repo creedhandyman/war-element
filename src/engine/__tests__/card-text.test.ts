@@ -124,7 +124,8 @@ describe("card text covers every mechanic", () => {
       onRevive: ["heal", "sleep", "decay", "maxRevives"],
       aura: ["dmg", "sp", "maxHp", "shields", "pen"],
       onLowHp: ["dmg", "loseSp", "loseSpecial"],
-      onDeath: ["dmg", "rowAhead", "spawnToken", "frightenInRange", "allyTribeBuffDmg"],
+      onDeath: ["dmg", "rowAhead", "spawnToken", "frightenInRange", "allyTribeBuffDmg",
+                "killerStatus", "inRangeOnly"],
     };
     const silent: string[] = [];
     for (const def of all) {
