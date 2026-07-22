@@ -193,7 +193,12 @@ describe("full AI-vs-AI matches (integration)", () => {
     const end = playMatch(7, "leaf_pyro", "bore_dusk", 5);
     expect(end.boardSize).toBe(5);
     expect(end.win).not.toBeNull();
-    expect(end.win!.by).toBe("capture");
+    // "Decided", not a specific win type. This used to assert `by === "capture"`,
+    // which quietly made a board-GEOMETRY test depend on card balance: buffing
+    // Ghastly flipped this seed to a round-43 elimination, which is just as
+    // decisive. The bug being guarded is a match limping to the round cap, and
+    // that is exactly what these two assertions catch.
+    expect(end.win!.by).not.toBe("timeout");
     expect(end.round).toBeLessThan(MAX_ROUNDS);
   });
 

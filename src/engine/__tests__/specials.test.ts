@@ -936,9 +936,9 @@ describe("Ghastly — Ethereal Trade (on attack: +3 DMG, −2 HP)", () => {
       action: "special",
       targetId: t1.instanceId,
     });
-    expect(next.cards[t1.instanceId].curHp).toBe(14); // 20 − 6 (PEN ignores shields)
+    expect(next.cards[t1.instanceId].curHp).toBe(12); // 20 − 8 (PEN ignores shields)
     expect(next.cards[t1.instanceId].curShields).toBe(3); // PEN strips nothing
-    expect(next.cards[t2.instanceId].curHp).toBe(14); // 20 − 6
+    expect(next.cards[t2.instanceId].curHp).toBe(12); // 20 − 8
     expect(next.cards[g.instanceId].curHp).toBe(17); // paid 2 once, not per target
     expect(next.players.P1.magicPool).toBe(3); // 5 − 2 Special cost
   });
@@ -1086,11 +1086,12 @@ describe("outlier cuts and the Thorn sweep", () => {
   });
 
   it("Ghastly's Phantom Gouge is capped at 2 targets, not the board", () => {
-    // 12.0 dmg/magic before the cut. The printed 3 lands as 6 because
-    // attackTrade adds its +3 to the Special as well.
+    // The cap is what pays for the damage: it hit the whole board at 12.0
+    // dmg/magic before the cut. The printed 5 lands as 8 because attackTrade
+    // adds its +3 to the Special as well.
     const { dealt, touched } = sweep("dusk_ghastly");
     expect(touched).toBe(2);
-    expect(dealt).toBe(12); // 6 x 2, for 2 magic
+    expect(dealt).toBe(16); // 8 x 2, for 2 magic
   });
 
   it("Lytning still paralyzes the whole board — only the damage halved", () => {

@@ -805,15 +805,15 @@ export const CARDS: CardDef[] = [
       name: "Phantom Gouge",
       cost: 2,
       handler: "barrage",
-      // printed "3 DMG PEN to all opponents in range"
-      // targets 99 -> 2. Measured at 12.0 damage per magic across a 4-card
-      // board — tied for the highest in the game, on a cost-4 epic. The printed
-      // 3 lands as 6 because attackTrade adds its +3 to the Special too, which
-      // is what made a board-wide PEN wipe out of a 2-magic cast. PEN and the
-      // multi-target feel stay; the full-board reach is what went.
-      params: { dmg: 3, targets: 2, pen: 1 },
+      // printed "3 DMG PEN to all opponents in range" — targets 99 -> 2, because
+      // a board-wide PEN wipe for 2 magic measured 12.0 dmg/magic, tied for the
+      // highest in the game on a cost-4 epic. The 2-target cap is what pays for
+      // the damage; the printed number is now 5.
+      // NOTE each target takes 8, not 5: attackTrade (Ethereal Trade) adds its
+      // +3 to the Special as well as to basics. 8 x 2 = 16 for 2 magic.
+      params: { dmg: 5, targets: 2, pen: 1 },
       targetSide: "enemy",
-      text: "Deal 3 DMG (PEN) to up to 2 opponents in range.",
+      text: "Deal 5 DMG (PEN) to up to 2 opponents in range.",
     },
     // Ethereal Trade (On Attack): +3 DMG per attack — basic AND Phantom Gouge —
     // at the cost of 2 HP each time.

@@ -44,6 +44,7 @@ export function DeckBuilder(props: {
   const [picked, setPicked] = useState<string[]>([]);
   const [pickedSpells, setPickedSpells] = useState<string[]>([]);
   const [filter, setFilter] = useState<Element | "ALL">("ALL");
+  const [classFilter, setClassFilter] = useState<CardClass | "ALL">("ALL");
   const [sortBy, setSortBy] = useState<SortKey>("cost");
   const [detailId, setDetailId] = useState<string | null>(null);
   const [spellsOpen, setSpellsOpen] = useState<boolean | null>(null);
@@ -59,17 +60,22 @@ export function DeckBuilder(props: {
   const spellsShown = spellsOpen ?? !phone;
 
   const pool = useMemo(() => buildableCards(), []);
-  // Filter by element, then sort. Default "cost" reads the mana curve low→high,
-  // breaking ties by rarity (mythic first) then name.
+  // Filter by element and class (they stack — GALE + Ranger narrows to both),
+  // then sort. Default "cost" reads the mana curve low→high, breaking ties by
+  // rarity (mythic first) then name.
   const shown = useMemo(() => {
-    const base = filter === "ALL" ? pool : pool.filter((c) => c.element === filter);
+    const base = pool.filter(
+      (c) =>
+        (filter === "ALL" || c.element === filter) &&
+        (classFilter === "ALL" || c.cardClass === classFilter),
+    );
     return [...base].sort((a, b) => {
       if (sortBy === "name") return a.name.localeCompare(b.name);
       if (sortBy === "rarity")
         return rarityRank(a.rarity) - rarityRank(b.rarity) || a.cost - b.cost || a.name.localeCompare(b.name);
       return a.cost - b.cost || rarityRank(a.rarity) - rarityRank(b.rarity) || a.name.localeCompare(b.name);
     });
-  }, [pool, filter, sortBy]);
+  }, [pool, filter, classFilter, sortBy]);
   const pickedSet = new Set(picked);
   const check = validateDeck(picked, props.boardSize ?? 4);
 
@@ -310,6 +316,34 @@ export function DeckBuilder(props: {
                   {el}
                 </button>
               ))}
+            </div>
+            <div className="db-sort">
+              <span className="db-sort-lbl">Class</span>
+              <button
+                className={`db-fl ${classFilter === "ALL" ? "on" : ""}`}
+                onClick={() => setClassFilter("ALL")}
+              >
+                All
+              </button>
+              {CLASSES.map((c) => {
+                // Dim a class the current element filter has none of, rather
+                // than hiding it — a row that reshuffles as you switch element
+                // is harder to hit than one that stays put.
+                const n = pool.filter(
+                  (d) => d.cardClass === c && (filter === "ALL" || d.element === filter),
+                ).length;
+                return (
+                  <button
+                    key={c}
+                    className={`db-fl ${classFilter === c ? "on" : ""}`}
+                    onClick={() => setClassFilter(c)}
+                    style={n === 0 && classFilter !== c ? { opacity: 0.35 } : undefined}
+                    title={`${n} card${n === 1 ? "" : "s"}`}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
             </div>
             <div className="db-sort">
               <span className="db-sort-lbl">Sort</span>
