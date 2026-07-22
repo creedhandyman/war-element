@@ -1706,7 +1706,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const rounds = num(params, "buffRounds");
     if (rounds > 0) {
       applyTimedBuff(attacker, dmg, sp, rounds);
-      draft.log.push(`${label(draft, attacker)} slips into the dark (+${dmg} DMG for ${rounds} rounds).`);
+      // Was hardcoded to Ravven's "+N DMG" flavour, which read as "+0 DMG" for
+      // any timed buff that grants SP instead (Hawk's Glide Rush).
+      const parts = [dmg ? `+${dmg} DMG` : "", sp ? `+${sp} SP` : ""].filter(Boolean);
+      draft.log.push(`${label(draft, attacker)} surges (${parts.join(", ")} for ${rounds} rounds).`);
       return;
     }
     if (dmg) attacker.dmgBonus += dmg;

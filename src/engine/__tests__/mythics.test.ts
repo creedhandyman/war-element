@@ -303,8 +303,8 @@ describe("Talents — Dart Frog's Bleed Out", () => {
   });
 });
 
-describe("Talents — Hawk's Wind Surge", () => {
-  it("grants +2 SP, once per game", () => {
+describe("Talents — Hawk's Glide Rush", () => {
+  it("grants +3 SP and EVASION, once per game", () => {
     const s = prepState();
     const hawk = place(s, "gale_hawk", "P1", 2, 0);
     const before = effectiveSp(s, hawk);
@@ -315,8 +315,46 @@ describe("Talents — Hawk's Wind Surge", () => {
     });
     const h = next.cards[hawk.instanceId];
     expect(h.talentUsed).toBe(true);
-    expect(effectiveSp(next, h)).toBe(before + 2);
+    expect(effectiveSp(next, h)).toBe(before + 3);
+    expect(statusOf(h, "EVASION")?.duration).toBe(2);
     expect(canFireTalent(next, hawk.instanceId).ok).toBe(false); // once per game
+  });
+
+  it("both halves EXPIRE after 2 rounds — the SP is a loan, not a gift", () => {
+    // The talent branch used to re-do empower's maths inline and ignored
+    // buffRounds entirely, so a temporary buff was silently granted forever.
+    //
+    // Measured against a CONTROL Hawk rather than absolute numbers: GALE's
+    // Zephyr aura hands every GALE card +1 SP at the end of every round, so a
+    // raw reading climbs on its own and says nothing about the talent.
+    const s = prepState();
+    const hawk = place(s, "gale_hawk", "P1", 2, 0);
+    const control = place(s, "gale_hawk", "P1", 2, 1);
+    const lead = (g: GameState) =>
+      effectiveSp(g, g.cards[hawk.instanceId]) - effectiveSp(g, g.cards[control.instanceId]);
+    expect(lead(s)).toBe(0);
+    let n = applyIntent(battleWith(s, hawk.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "talent",
+    });
+    expect(lead(n)).toBe(3);
+    n = advance(atCleanup(n));
+    expect(lead(n)).toBe(3); // round 2 of 2
+    n = advance(atCleanup(n));
+    expect(lead(n)).toBe(0); // expired — no permanent gain
+    expect(statusOf(n.cards[hawk.instanceId], "EVASION")).toBeUndefined();
+  });
+
+  it("the speed actually feeds High Speed Impact", () => {
+    // Hawk deals +1 DMG per SP above 10 and sits at 7, so the talent is what
+    // switches its own passive on. If the SP buff were cosmetic this is where
+    // it would show.
+    const s = prepState();
+    const hawk = place(s, "gale_hawk", "P1", 2, 0, { spBonus: 2 }); // 9 SP: still under
+    const beforeDmg = effectiveDmg(s, s.cards[hawk.instanceId]);
+    const next = applyIntent(battleWith(s, hawk.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "talent",
+    });
+    expect(effectiveDmg(next, next.cards[hawk.instanceId])).toBeGreaterThan(beforeDmg);
   });
 });
 

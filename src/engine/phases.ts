@@ -650,12 +650,12 @@ function performBattleAction(
       card.loadedHits += Number(t.params?.hits ?? 0);
       draft.log.push(`${label(draft, card)} loads its darts — next basic fires as ${getDef(card.defId).hits + card.loadedHits}.`);
     } else if (t.handler === "empower") {
-      // Self-buff Talent (Hawk's Wind Surge): permanent +SP / +DMG.
-      const sp = Number(t.params?.selfSp ?? 0);
-      const dmg = Number(t.params?.selfDmg ?? 0);
-      if (sp) card.spBonus += sp;
-      if (dmg) card.dmgBonus += dmg;
-      draft.log.push(`${label(draft, card)} surges${sp ? ` +${sp} SP` : ""}${dmg ? ` +${dmg} DMG` : ""}.`);
+      // Self-buff Talent (Hawk's Glide Rush). Routed through the SHARED handler
+      // rather than re-doing the maths here — the old inline copy silently
+      // ignored `buffRounds`, so a talent asking for a TEMPORARY buff quietly
+      // granted a permanent one. Passes no targets: empower only reads the
+      // caster, and talentTargets would be empty for a self-buff anyway.
+      SPECIAL_HANDLERS.empower(draft, card, [], t.params ?? {});
     } else {
       // Everything else runs through the shared registry, exactly as a Special
       // does. Before this, a Talent naming any other handler was marked used and
@@ -671,6 +671,11 @@ function performBattleAction(
         : valid;
       handler(draft, card, targets, t.params ?? {});
     }
+    // A self-status rider, same as Specials get in the branch below — without
+    // this a Talent could name selfStatus and be silently ignored.
+    const tSelfSt = t.params?.selfStatus;
+    if (typeof tSelfSt === "string" && tSelfSt && card.curHp > 0)
+      applyStatus(draft, card, tSelfSt as StatusKind, Number(t.params?.selfStatusDuration ?? 1), 0, getDef(card.defId).element);
     return;
   }
   if (action === "special") {

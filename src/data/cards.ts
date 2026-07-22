@@ -1520,7 +1520,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_hawk",
     name: "Hawk",
-    rarity: "epic",
+    rarity: "rare", // a Talent is not a Special — talents are tier-free
     element: "GALE",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -1534,13 +1534,15 @@ export const CARDS: CardDef[] = [
     // High Speed Impact: +1 DMG per SP point above 10.
     passiveNames: { highSpeedImpact: "High Speed Impact" },
     highSpeedImpact: true,
-    // Wind Surge (Talent, free · once per game): gain +2 SP. (The "next basic
-    // hits +1 adjacent target" rider is unmodeled.)
+    // Glide Rush (Talent, free · once per game): +3 SP and EVASION, both for 2
+    // rounds. The SP is TEMPORARY (buffRounds) — it feeds High Speed Impact
+    // above, so for those two rounds a 7 SP Hawk is at 10 and every further
+    // point of SP it can find turns straight into damage.
     talent: {
-      name: "Wind Surge",
-      text: "Gain +2 SP. (Next basic attack would hit +1 adjacent target.)",
+      name: "Glide Rush",
+      text: "Gain +3 SP and EVASION for 2 rounds.",
       handler: "empower",
-      params: { selfSp: 2 },
+      params: { selfSp: 3, buffRounds: 2, selfStatus: "EVASION", selfStatusDuration: 2 },
     },
   },
   {
