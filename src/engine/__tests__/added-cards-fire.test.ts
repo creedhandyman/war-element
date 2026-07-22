@@ -291,7 +291,9 @@ describe("wave 2: Wista, WarPhant, RIP, Scorch", () => {
     n = advance(atCleanup(n));
     expect(husks(n)).toBe(3); // +1
     n = advance(atCleanup(n));
-    expect(husks(n)).toBe(6); // +1 from the clock, +2 as Horde answers
+    expect(husks(n)).toBe(4); // +1 — the Horde does NOT fire on the third any more
+    n = advance(atCleanup(n));
+    expect(husks(n)).toBe(7); // +1 from the clock, +2 as Horde answers on the fourth
   });
 
   it("...and Horde fires free once the clock has raised three", () => {
@@ -299,10 +301,10 @@ describe("wave 2: Wista, WarPhant, RIP, Scorch", () => {
     const rip = place(s, "dusk_rip", "P1", 3, 1, { curHp: 33, maxHp: 33 });
     place(s, "dusk_gool", "P2", 0, 0);
     let n: GameState = s;
-    for (let i = 0; i < 3; i++) n = advance(atCleanup(n));
+    for (let i = 0; i < 4; i++) n = advance(atCleanup(n)); // threshold is 4 raises
     const risen = Object.values(n.cards).filter((c) => c.defId === "dusk_zombie_husk").length;
-    // 3 from the clock + 2 from the Horde it triggered = more than the clock alone.
-    expect(risen).toBeGreaterThan(3);
+    // 4 from the clock + 2 from the Horde it triggered = more than the clock alone.
+    expect(risen).toBeGreaterThan(4);
     expect(n.cards[rip.instanceId].spawnTally).toBe(0); // tally reset, so it cycles
   });
 

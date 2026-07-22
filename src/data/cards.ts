@@ -4049,13 +4049,13 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Zombie",
     summonSpawn: { token: "dusk_zombie_husk", count: 1 },
-    // One body a round, paid in its own HP; every 3 raised, Horde fires free
+    // One body a round, paid in its own HP; every 4 raised, Horde fires free
     // and the tally resets.
     passiveNames: { roundTick: "Dead Clock", selfHpCost: "Dead Clock", spawnTriggerAt: "Dead Clock" },
     roundTick: {
       spawn: { token: "dusk_zombie_husk", count: 1 },
       selfHpCost: 3,
-      spawnTriggerAt: 3,
+      spawnTriggerAt: 4,
     },
     special: {
       name: "Horde",
@@ -4063,7 +4063,7 @@ export const CARDS: CardDef[] = [
       handler: "spawn",
       params: { token: "dusk_zombie_husk", count: 2 },
       targetSide: "self",
-      text: "Spawn 2 Zombie Husks. Fires free on its own whenever the Dead Clock has raised 3.",
+      text: "Spawn 2 Zombie Husks. Fires free on its own whenever the Dead Clock has raised 4.",
     },
   },
   {
