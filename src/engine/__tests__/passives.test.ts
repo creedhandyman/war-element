@@ -1453,3 +1453,29 @@ describe("Hawko — Aerial Dominance", () => {
     );
   });
 });
+
+describe("Sphere — one heavy shot instead of a 2x2 volley", () => {
+  it("BLOCK 2 only halves it now, where it used to blank the volley", () => {
+    // BLOCK is flat and charged PER HIT. At 2x2 every shard was fully absorbed
+    // (0 through), so armour was a hard counter. A single 4 pays BLOCK once.
+    const s = prepState();
+    const sphere = place(s, "dawn_sphere", "P1", 3, 0, { autoMode: "manual" });
+    const armour = place(s, "bore_armadillo", "P2", 2, 0, {
+      curHp: 40, maxHp: 40, curShields: 0, // shields off: BLOCK alone under test
+    }); // BLOCK 2
+    basicAttack(s, sphere.instanceId, armour.instanceId);
+    expect(40 - s.cards[armour.instanceId].curHp).toBe(2); // 4 − BLOCK 2, once
+  });
+
+  it("the printed DMG also doubles its DAWN Awakening on summon", () => {
+    // Awakening strikes for floor(printed DMG / 2) — it reads the printed
+    // number, NOT dmg x hits, so moving 2x2 to 1x4 quietly doubles it from 1
+    // to 2. Easy to ship without noticing.
+    const s = prepState();
+    s.players.P1.summonPool = 6;
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const handId = giveHand(s, "P1", "dawn_sphere");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(40 - next.cards[foe.instanceId].curHp).toBe(2);
+  });
+});

@@ -2379,7 +2379,10 @@ export const CARDS: CardDef[] = [
     name: "Sparkle",
     rarity: "rare",
     element: "DAWN",
-    cardClass: "Ranger",
+    // Mage, not Ranger. Class is not cosmetic: the AI's threat score gives
+    // Assassins and Mages a +100 bias, so a 2 HP Sparkle is now the first thing
+    // an AI opponent reaches for.
+    cardClass: "Mage",
     attackType: "Ranged",
     // Cost 1 at 4+2+9 = 15, exactly 5*1+10. It used to run SP 14, which put it 5
     // over the cost-1 budget and earned it a budget-test exemption; trimming the
@@ -2814,8 +2817,12 @@ export const CARDS: CardDef[] = [
     // Cost 2 at 4+7+9 = 20, exactly 5*2+10. The printed 0 shields is what the
     // formula reads; the +2 barrier below is an off-curve on-summon grant.
     cost: 2,
-    dmg: 2,
-    hits: 2, // "2x2 DMG" = 2 hits of 2
+    // One heavy shot instead of 2x2. Same 4 raw, but it lands very differently:
+    // BLOCK is subtracted PER HIT, so BLOCK 2 used to zero the whole volley and
+    // now only halves it. It also raises the DAWN Awakening on-summon strike
+    // (floor(dmg/2)) from 1 to 2, since that reads printed DMG, not dmg x hits.
+    dmg: 4,
+    hits: 1,
     hp: 7,
     sp: 9,
     shields: 0,
