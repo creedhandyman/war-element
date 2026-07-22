@@ -322,7 +322,12 @@ export function forwardAreaTargets(
     }
     out.push(enemy);
   }
-  return out;
+  // Nearest first. Timberer ROOTs "the first target the volley lands on", and
+  // for a corridor that has to mean the closest one — board order is arbitrary,
+  // so without this the tree pinned whichever body the array happened to list.
+  return out.sort(
+    (a, b) => (a.pos!.row - card.pos!.row) * dir - (b.pos!.row - card.pos!.row) * dir,
+  );
 }
 
 /** Where a card's ON-SUMMON effect would land if summoned at `pos` — used by the

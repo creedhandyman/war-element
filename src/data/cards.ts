@@ -3947,15 +3947,19 @@ export const CARDS: CardDef[] = [
       name: "Timberer",
       cost: 2,
       handler: "barrage",
-      // rowAhead scopes the volley to the row directly in front; firstOnlyStatus
-      // keeps the ROOT on whatever the tree lands on first, not the whole row.
+      // The tree falls DOWN ITS OWN COLUMN: spread 0 = a single lane,
+      // forwardDepth 3 = the three slots ahead of it, which on a 4x4 carries all
+      // the way into the enemy summoning row. A forwardDepth corridor
+      // deliberately projects past melee reach and the Home-Slot rule, so a
+      // Lumberjack standing on its own home row can still fell into theirs.
+      // firstOnlyStatus keeps the ROOT on the NEAREST body it lands on.
       params: {
-        dmg: 4, pen: 1, targets: 99, rowAhead: 1,
+        dmg: 4, pen: 1, targets: 99, forwardDepth: 3, spread: 0,
         statusKind: "ROOT", statusDuration: 2, firstOnlyStatus: 1,
         selfShields: 3,
       },
       targetSide: "enemy",
-      text: "Deal 4 DMG (PEN) to every opponent in the row straight ahead, ROOT the first for 2 rounds, and gain 3 shield.",
+      text: "Fell a tree straight down your own column: 4 DMG (PEN) to every opponent in the 3 slots ahead, reaching into their summoning row. ROOT the nearest for 2 rounds and gain 3 shield.",
     },
   },
   {

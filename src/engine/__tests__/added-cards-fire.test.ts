@@ -180,24 +180,42 @@ describe("wave 1: RohoJohn, Shoksa, Lumberjack, Bootlegger", () => {
     expect(next.cards[clean.instanceId].curHp).toBe(60); // unmarked, untouched
   });
 
-  it("Lumberjack fells the row AHEAD only, ROOTs the first, and braces", () => {
+  it("Lumberjack fells straight down its OWN column, 3 slots deep", () => {
+    // The tree used to fall sideways across the row directly ahead. It now drops
+    // down the lane in front of it — and a forwardDepth corridor projects past
+    // melee reach AND the Home-Slot rule, so it reaches from its own home row
+    // all the way into the enemy summoning row.
     const s = prepState();
     s.players.P1.magicPool = 6;
-    const jack = place(s, "leaf_lumberjack", "P1", 2, 1, { autoMode: "manual", curShields: 0 });
-    const a = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 9 });
-    const b = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 9 });
-    const behind = place(s, "dusk_crow", "P2", 0, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    const jack = place(s, "leaf_lumberjack", "P1", 3, 1, { autoMode: "manual", curShields: 0 });
+    const near = place(s, "dusk_gool", "P2", 2, 1, { curHp: 60, maxHp: 60, curShields: 9 });
+    const mid = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 9 });
+    const summonRow = place(s, "dusk_crow", "P2", 0, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    const beside = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
     const next = applyIntent(battleFor(s, jack.instanceId), {
-      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: a.instanceId,
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: near.instanceId,
     });
-    // PEN: the 9 shields do not stop it.
-    expect(60 - next.cards[a.instanceId].curHp).toBe(4);
-    expect(60 - next.cards[b.instanceId].curHp).toBe(4);
-    expect(next.cards[behind.instanceId].curHp).toBe(60); // a row further back — untouched
-    // ROOT lands on exactly one of the two.
-    const rooted = [a, b].filter((t) => statusOf(next.cards[t.instanceId], "ROOT"));
-    expect(rooted).toHaveLength(1);
+    // All three slots in the lane, PEN straight through the 9 shields.
+    expect(60 - next.cards[near.instanceId].curHp).toBe(4);
+    expect(60 - next.cards[mid.instanceId].curHp).toBe(4);
+    expect(60 - next.cards[summonRow.instanceId].curHp).toBe(4); // landed in their home row
+    expect(next.cards[beside.instanceId].curHp).toBe(60); // a lane over — untouched
     expect(next.cards[jack.instanceId].curShields).toBe(3);
+  });
+
+  it("...and the ROOT pins the NEAREST body in the lane, not an arbitrary one", () => {
+    // firstOnlyStatus means "the first thing the tree lands on". Board order is
+    // arbitrary, so the corridor has to be distance-sorted for that to hold.
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const jack = place(s, "leaf_lumberjack", "P1", 3, 1, { autoMode: "manual", curShields: 0 });
+    const far = place(s, "dusk_crow", "P2", 0, 1, { curHp: 60, maxHp: 60 });
+    const near = place(s, "dusk_gool", "P2", 2, 1, { curHp: 60, maxHp: 60 }); // placed LAST
+    const next = applyIntent(battleFor(s, jack.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: near.instanceId,
+    });
+    expect(statusOf(next.cards[near.instanceId], "ROOT")?.duration).toBe(2);
+    expect(statusOf(next.cards[far.instanceId], "ROOT")).toBeUndefined();
   });
 
   it("Bootlegger stomps on the crossing into enemy ground — once", () => {
