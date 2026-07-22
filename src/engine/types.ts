@@ -819,16 +819,33 @@ export interface CardStat {
   defId: string;
   name: string;
   owner: PlayerId;
+  /** Offence: HP damage dealt to enemies. */
   dmg: number;
+  /** Support: HP restored to others AND to itself — credited to the HEALER.
+   *  See `healRecv` for the other half; conflating the two made a card that
+   *  got healed look like the one doing the healing. */
   heal: number;
   captures: number;
   kills: number;
+  /** Defence: HP damage this card absorbed. A tank's whole contribution was
+   *  invisible in the report before this. */
+  taken: number;
+  /** HP restored TO this card, by anyone (including itself). */
+  healRecv: number;
+  /** Negative statuses landed on this card — how hard it got locked down. */
+  debuffs: number;
+  /** Times it was put down (a reviving card can do this more than once). */
+  deaths: number;
 }
 export interface SideStat {
   dmg: number;
   heal: number;
   captures: number;
   kills: number;
+  taken: number;
+  healRecv: number;
+  debuffs: number;
+  deaths: number;
 }
 export interface MatchStats {
   /** Per source card, keyed by instanceId (survives the card's death). */

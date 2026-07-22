@@ -196,8 +196,11 @@ export function healCard(state: GameState, card: CardInstance, amount: number, b
   const before = card.curHp;
   card.curHp = Math.min(effectiveMaxHp(state, card), card.curHp + amount);
   const healed = card.curHp - before;
-  // Credit the healer: an explicit source, else the recipient (self-sustain).
-  creditHeal(state.stats, by ?? card, healed);
+  // Credit the HEALER (`by`) and the recipient separately. `by` used to default
+  // to the recipient, which quietly filed every unattributed heal as the
+  // patient's own self-sustain — self-heals now say so explicitly at the call
+  // site instead, so a missing source stays visibly unattributed.
+  creditHeal(state.stats, by ?? null, healed, card);
   return healed;
 }
 

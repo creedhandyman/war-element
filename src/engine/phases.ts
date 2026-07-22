@@ -1086,7 +1086,7 @@ function doRoundTicks(draft: GameState): void {
       // Morning Dew: the dew settles on its own kind only.
       const { element, amount } = rt.roundHealElement;
       let touched = 0;
-      for (const a of allies()) if (getDef(a.defId).element === element && healCard(draft, a, amount) > 0) touched++;
+      for (const a of allies()) if (getDef(a.defId).element === element && healCard(draft, a, amount, card) > 0) touched++;
       if (touched) draft.log.push(`${label(draft, card)}'s dew settles on ${touched} ${element} ally(ies) (+${amount} HP).`);
     }
     if (rt.rootedDmg) {
@@ -1189,7 +1189,7 @@ function doCleanupPhase(draft: GameState): void {
   for (const card of boardCards(draft)) {
     const drained = bleedDealtBy[card.owner];
     if (drained > 0 && getDef(card.defId).healsFromBleed) {
-      const healed = healCard(draft, card, drained);
+      const healed = healCard(draft, card, drained, card);
       if (healed > 0) draft.log.push(`${label(draft, card)} drains ${healed} HP from BLEED.`);
     }
   }
@@ -1198,16 +1198,16 @@ function doCleanupPhase(draft: GameState): void {
   for (const card of boardCards(draft)) {
     const def = getDef(card.defId);
     const regen = Number(def.keywords.REGEN ?? 0);
-    if (regen > 0 && healCard(draft, card, regen) > 0) {
+    if (regen > 0 && healCard(draft, card, regen, card) > 0) {
       draft.log.push(`${label(draft, card)} regenerates ${regen}.`);
     }
     // Photosynthesis (LEAF): heal +1 HP each round.
-    if (def.element === "LEAF") healCard(draft, card, 1);
+    if (def.element === "LEAF") healCard(draft, card, 1, card);
     // Zephyr (GALE): +1 SP each round, total capped at 21.
     if (def.element === "GALE" && def.sp + card.spBonus < GALE_SP_CAP) card.spBonus += 1;
     // Field per-round buffs: REGEN (Lushfield/Blazing Sun), shields (Downpour).
     const fRegen = fieldBonus(draft, card, "regen");
-    if (fRegen > 0 && healCard(draft, card, fRegen) > 0)
+    if (fRegen > 0 && healCard(draft, card, fRegen, card) > 0)
       draft.log.push(`${label(draft, card)} draws +${fRegen} HP from the field.`);
     const fShield = fieldBonus(draft, card, "shield");
     if (fShield > 0) card.curShields += fShield;

@@ -15,7 +15,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
 import { RANGED_REACH } from "./rules";
-import { creditDamage, creditKill } from "./stats";
+import { creditDamage, creditDeath, creditDebuff, creditKill } from "./stats";
 import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardDef,
@@ -149,6 +149,9 @@ export function applyStatus(
   const existing = target.statuses.findIndex((s) => s.kind === kind);
   if (existing >= 0) target.statuses[existing] = fresh;
   else target.statuses.push(fresh);
+  // Counted HERE, past every immunity / ward / fizzle gate above, so the report
+  // reflects control that actually landed rather than control attempted.
+  if (NEGATIVE_STATUSES.includes(kind)) creditDebuff(draft.stats, target);
   draft.log.push(
     `${label(draft, target)} is afflicted: ${kind}${power ? ` ${power}` : ""} (${dur}r)${extend ? " +field" : ""}${existing >= 0 ? " (refreshed)" : ""}.`,
   );
@@ -206,6 +209,7 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
     return false;
   }
   draft.log.push(`${label(draft, card)} is defeated (${cause}).`);
+  creditDeath(draft.stats, card);
   removeCard(draft, card.instanceId);
   return true;
 }
@@ -449,7 +453,7 @@ export function resolveHit(
   // Tally HP damage dealt to an enemy (basics, specials, and directDamage all
   // funnel through here) for the post-match stats.
   if (result.totalToHp > 0 && target.owner !== attacker.owner)
-    creditDamage(draft.stats, attacker, attacker.owner, result.totalToHp);
+    creditDamage(draft.stats, attacker, attacker.owner, result.totalToHp, target);
 
   // Count enemy hits TAKEN (Squanch's Regenerative cashes these in at Cleanup).
   // Counts the hit, not the damage — one fully absorbed by shields still landed.
@@ -460,7 +464,7 @@ export function resolveHit(
   //    heals are applied by basicAttack, which knows the per-target gating.)
   if (opts.kind === "basic" && result.landedHits > 0) {
     if ((aDef.keywords.LIFESTEAL || opts.lifesteal) && result.totalToHp > 0) {
-      const healed = healCard(draft, attacker, result.totalToHp); // SEAL blocks it
+      const healed = healCard(draft, attacker, result.totalToHp, attacker); // SEAL blocks it
       if (healed > 0) draft.log.push(`${aDef.name} lifesteals ${healed} HP.`);
     }
     if (aDef.keywords.DRAIN) drainMaxHp(draft, attacker, target, 1);
@@ -775,12 +779,12 @@ export function basicAttack(
       if (aDef.element === "PYRO" && t.curHp > 0 && !hasStatus(t, "BURN")) {
         applyStatus(draft, t, "BURN", 1, 1, "PYRO");
       }
-      if (healOnHit > 0 && attacker.curHp > 0) healCard(draft, attacker, healOnHit);
+      if (healOnHit > 0 && attacker.curHp > 0) healCard(draft, attacker, healOnHit, attacker);
       // Liquification (Bahari): flat heal per landed basic hit.
-      if (aDef.healPerHit && attacker.curHp > 0) healCard(draft, attacker, aDef.healPerHit * r.landedHits);
+      if (aDef.healPerHit && attacker.curHp > 0) healCard(draft, attacker, aDef.healPerHit * r.landedHits, attacker);
       // Hastened Assault: heal per critical hit landed.
       if (aDef.healPerCrit && r.critHits && attacker.curHp > 0) {
-        const h = healCard(draft, attacker, aDef.healPerCrit * r.critHits);
+        const h = healCard(draft, attacker, aDef.healPerCrit * r.critHits, attacker);
         if (h > 0) draft.log.push(`${label(draft, attacker)} feeds on the frenzy (+${h} HP).`);
       }
     }
@@ -1011,7 +1015,7 @@ export function spellHit(
     if (t.curShields > 0) t.curShields--;
   }
   t.curHp -= toHp;
-  if (by) creditDamage(draft.stats, null, by, toHp); // spell damage → caster's side total
+  if (by) creditDamage(draft.stats, null, by, toHp, target); // spell damage → caster's side total
   draft.log.push(`${label(draft, t)} takes ${toHp} spell damage.`);
   if (hasStatus(t, "SLEEP") && t.curHp > 0) {
     t.statuses = t.statuses.filter((s) => s.kind !== "SLEEP");
@@ -1187,7 +1191,7 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef): vo
     draft.log.push(`${name} claims the spoils (+${bonus} DMG).`);
   }
   if (def.healSelf) {
-    const h = healCard(draft, killer, def.healSelf);
+    const h = healCard(draft, killer, def.healSelf, killer);
     if (h > 0) draft.log.push(`${name} heals ${h} on the kill.`);
   }
   if (def.gainShields) killer.curShields += def.gainShields;
@@ -1392,11 +1396,11 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       }
     }
     const healSelf = num(params, "healSelf");
-    if (healSelf > 0 && attacker.curHp > 0) healCard(draft, attacker, healSelf);
+    if (healSelf > 0 && attacker.curHp > 0) healCard(draft, attacker, healSelf, attacker);
     // Lifesteal: heal the caster for the HP damage this strike dealt (Darth's
     // Dark Hunting) — specials don't auto-lifesteal like basics do.
     if (num(params, "lifesteal") > 0 && r.totalToHp > 0 && attacker.curHp > 0)
-      healCard(draft, attacker, r.totalToHp);
+      healCard(draft, attacker, r.totalToHp, attacker);
     if (attacker.curHp > 0) {
       adjacentCasterStatus(draft, attacker, params); // ROOT all adjacent (Squanch)
       applySelfRiders(draft, attacker, params);
