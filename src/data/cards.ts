@@ -927,8 +927,11 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { FLYING: true },
     tribe: "Dark",
+    // Bird Bomb: explodes on whoever kills it — but only a killer close enough
+    // to be caught in it. Crow is FLYING, so in practice its killers are ranged;
+    // the gate is what makes standing off and shooting it the safe play.
     passiveNames: { onDeath: "Bird Bomb" },
-    onDeath: { dmg: 5 }, // Bird Bomb: explodes on whoever kills it
+    onDeath: { dmg: 5, inRangeOnly: true },
   },
   {
     id: "dusk_skelider",

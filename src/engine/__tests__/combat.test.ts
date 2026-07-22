@@ -250,3 +250,25 @@ describe("on-death retaliation only reaches killers the corpse could have hit", 
     expect(s.cards[sniper.instanceId].curHp).toBe(30); // untouched
   });
 });
+
+describe("Bird Bomb only catches a killer standing in the blast", () => {
+  it("an adjacent killer eats it", () => {
+    const s = prepState();
+    const killer = place(s, "dawn_sparkle", "P1", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
+    const crow = place(s, "dusk_crow", "P2", 2, 1, { curHp: 1, curShields: 0 });
+    basicAttack(s, killer.instanceId, crow.instanceId);
+    expect(s.cards[crow.instanceId]).toBeUndefined();
+    expect(30 - s.cards[killer.instanceId].curHp).toBe(5);
+  });
+
+  it("...and one shooting from further off does not", () => {
+    // Crow FLIES, so melee can't touch it and its killers are almost always
+    // ranged. Before the gate every shot traded 5 damage no matter the range.
+    const s = prepState();
+    const sniper = place(s, "dawn_sparkle", "P1", 0, 3, { curHp: 30, maxHp: 30, curShields: 0 });
+    const crow = place(s, "dusk_crow", "P2", 2, 1, { curHp: 1, curShields: 0 });
+    basicAttack(s, sniper.instanceId, crow.instanceId);
+    expect(s.cards[crow.instanceId]).toBeUndefined();
+    expect(s.cards[sniper.instanceId].curHp).toBe(30);
+  });
+});
