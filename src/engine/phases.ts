@@ -1245,6 +1245,7 @@ function doCleanupPhase(draft: GameState): void {
     card.hitsBonusRound = 0;
     card.struckThisRound = {};
     card.hitsTakenThisRound = 0; // Regenerative already cashed these in above
+    card.fieldEvasionUsed = false; // Nightfall's cover returns next round
     // Timed DMG/SP buffs & debuffs tick down; expired ones drop off.
     for (const b of card.buffs) b.rounds--;
     card.buffs = card.buffs.filter((b) => b.rounds > 0);

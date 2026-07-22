@@ -487,9 +487,7 @@ export const SPELLS: SpellDef[] = [
     element: "DUSK",
     cost: 6,
     kind: "field",
-    text: "Field (3 rounds): your DUSK allies gain EVASION, and every DRAIN steals 1 extra max HP.",
-    // NOTE: the EVASION here is full-time; the design doc scopes it to the FIRST
-    // hit taken each round, which is still deferred.
+    text: "Field (3 rounds): your DUSK allies dodge the FIRST hit they take each round, and every DRAIN steals 1 extra max HP.",
     field: { rounds: 3, evasion: true, drainBonus: 1 },
   },
   {

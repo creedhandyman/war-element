@@ -422,3 +422,56 @@ describe("Downpour — the Flow re-pick", () => {
     expect(n.pendingFlow).toBeNull();
   });
 });
+
+describe("Nightfall — EVASION covers the FIRST hit each round only", () => {
+  const armed = () => {
+    const s = prepState();
+    s.fields.push({ owner: "P1", spellId: "dusk_nightfall", element: "DUSK", roundsLeft: 3, evasion: true, drainBonus: 1 });
+    const me = place(s, "dusk_gool", "P1", 2, 0, { curHp: 400, maxHp: 400, curShields: 0 });
+    const foe = place(s, "leaf_alpha", "P2", 1, 0, { autoMode: "manual" });
+    return { s, me, foe };
+  };
+
+  it("it covers the first HIT, not the first attack — the rest of the volley lands", () => {
+    // Alpha is 1x4 and stands in a mid row, so King of the Hill makes it 2x4 = 8.
+    // One hit is dodged; the other three land for 6. A cover that stopped the
+    // whole VOLLEY would read 400 here, which is the mistake worth pinning.
+    const { s, me, foe } = armed();
+    s.rngState = seedForCoins(true, true, true, true); // every dodge roll would succeed
+    basicAttack(s, foe.instanceId, me.instanceId);
+    expect(s.cards[me.instanceId].curHp).toBe(394); // 8 − 2 for the one dodged hit
+    expect(s.cards[me.instanceId].fieldEvasionUsed).toBe(true);
+    basicAttack(s, foe.instanceId, me.instanceId);
+    // Same round, cover spent: the full volley lands despite the seed.
+    expect(s.cards[me.instanceId].curHp).toBe(386);
+  });
+
+  it("a failed roll still spends it — it covers the hit, it isn't a re-roll", () => {
+    const { s, me, foe } = armed();
+    s.rngState = seedForCoins(false, false, false, false); // the dodge fails
+    basicAttack(s, foe.instanceId, me.instanceId);
+    expect(s.cards[me.instanceId].curHp).toBeLessThan(400); // it landed
+    expect(s.cards[me.instanceId].fieldEvasionUsed).toBe(true); // and the cover is gone
+  });
+
+  it("the cover comes back next round", () => {
+    const { s, me, foe } = armed();
+    s.rngState = seedForCoins(true, true, true, true);
+    basicAttack(s, foe.instanceId, me.instanceId);
+    expect(s.cards[me.instanceId].fieldEvasionUsed).toBe(true);
+    const next = advance(atCleanup(s));
+    expect(next.cards[me.instanceId].fieldEvasionUsed).toBe(false);
+  });
+
+  it("a card with STANDING evasion doesn't burn the field's cover", () => {
+    // Tumbleweed dodges on its own every hit; spending Nightfall's single cover
+    // on it would quietly waste the field.
+    const s = prepState();
+    s.fields.push({ owner: "P1", spellId: "dusk_nightfall", element: "DUSK", roundsLeft: 3, evasion: true });
+    const weed = place(s, "gale_tumbleweed", "P1", 2, 0, { curHp: 400, maxHp: 400, curShields: 0 });
+    const foe = place(s, "leaf_alpha", "P2", 1, 0, { autoMode: "manual" });
+    s.rngState = seedForCoins(true, true, true, true);
+    basicAttack(s, foe.instanceId, weed.instanceId);
+    expect(s.cards[weed.instanceId].fieldEvasionUsed).toBeFalsy();
+  });
+});

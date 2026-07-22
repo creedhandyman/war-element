@@ -314,7 +314,18 @@ export function resolveHit(
 
     // 1. EVASION — innate or granted by a friendly wall (Veil). Not re-checked
     //    for reflect damage (no dodge chains). Hot Shot (alwaysHit) ignores it.
-    if (opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !fieldNeverMiss && (hasEvasion(target, draft.boardSize) || wallEvasion(draft, target) || hasStatus(target, "EVASION") || fieldEvasion(draft, target))) {
+    // Standing EVASION — innate, a friendly wall (Veil), or the granted status.
+    // These re-roll on every hit.
+    const standingEvasion =
+      hasEvasion(target, draft.boardSize) || wallEvasion(draft, target) || hasStatus(target, "EVASION");
+    // Nightfall's is NOT standing: it covers the FIRST hit taken each round
+    // only. Checked after the standing sources so a card that already dodges
+    // everything doesn't burn the field's one cover for nothing, and spent on
+    // the attempt whether or not the coin comes good.
+    const fieldEva =
+      !standingEvasion && !target.fieldEvasionUsed && fieldEvasion(draft, target);
+    if (opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !fieldNeverMiss && (standingEvasion || fieldEva)) {
+      if (fieldEva) target.fieldEvasionUsed = true;
       if (coin(draft)) {
         result.dodgedHits++;
         target.fxMiss = (target.fxMiss ?? 0) + 1;

@@ -501,6 +501,10 @@ export interface CardInstance {
    *  including one fully soaked by shields. Powers Squanch's Regenerative, which
    *  cashes it in at Cleanup; reset there too. */
   hitsTakenThisRound: number;
+  /** Nightfall (DUSK field): its EVASION covers only the FIRST hit taken each
+   *  round, so the cover is spent on the first attempt — landed or dodged — and
+   *  cleared again in Cleanup. */
+  fieldEvasionUsed?: boolean;
   /** An ambush loaded into the NEXT basic attack (Obsidi's Dirt Driller): it
    *  overrides both DMG and hit count for that one attack, then clears. */
   loadedStrike?: { dmg: number; hits: number };
