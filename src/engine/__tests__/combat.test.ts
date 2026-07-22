@@ -1,7 +1,7 @@
 // Milestone 4: the combat pipeline — worked examples from the rules FAQ.
 
 import { describe, expect, it } from "vitest";
-import { basicAttack, resolveHit } from "../combat";
+import { applyStatus, basicAttack, resolveHit } from "../combat";
 import { advance } from "../phases";
 import { atCleanup, place, prepState, seedForCoins, statusOf } from "./helpers";
 import type { GameState } from "../types";
@@ -187,7 +187,11 @@ describe("on-hit keywords", () => {
     // killer: Photosynthesis + REGEN heal 3 a round, which nets the venom down
     // to 2 a tick and makes the number say nothing about the venom itself.
     const s = duel();
-    const killer = place(s, "dusk_vamp", "P1", 2, 0, { curHp: 99, maxHp: 99, curShields: 0 });
+    // The killer must neither lifesteal nor regenerate, or the net-HP reading
+    // stops being a measurement of the venom. Vamp has DRAIN (which now heals
+    // AND raises max HP); a LEAF card heals +1 a round from Photosynthesis.
+    // Guan is keyword-free and GALE, whose aura only grants SP.
+    const killer = place(s, "gale_guan", "P1", 2, 0, { curHp: 99, maxHp: 99, curShields: 0 });
     const widow = place(s, "dusk_widowbite", "P2", 2, 1, { curHp: 3 });
     basicAttack(s, killer.instanceId, widow.instanceId);
     let n = s;
@@ -231,7 +235,8 @@ describe("on-hit keywords", () => {
 describe("on-death retaliation only reaches killers the corpse could have hit", () => {
   it("Crock's Deathroll thrashes an adjacent killer", () => {
     const s = prepState();
-    const killer = place(s, "dusk_vamp", "P1", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
+    // Keyword-free, non-regenerating killer, so the 5 measured is Deathroll.
+    const killer = place(s, "gale_guan", "P1", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
     const crock = place(s, "bore_crock", "P2", 2, 1, { curHp: 1, curShields: 0 });
     basicAttack(s, killer.instanceId, crock.instanceId);
     expect(s.cards[crock.instanceId]).toBeUndefined();
@@ -270,5 +275,41 @@ describe("Bird Bomb only catches a killer standing in the blast", () => {
     basicAttack(s, sniper.instanceId, crow.instanceId);
     expect(s.cards[crow.instanceId]).toBeUndefined();
     expect(s.cards[sniper.instanceId].curHp).toBe(30);
+  });
+});
+
+describe("DRAIN — lifesteal that also grows the drainer", () => {
+  it("heals for the damage dealt AND takes a point of max HP", () => {
+    const s = prepState();
+    const vamp = place(s, "dusk_vamp", "P1", 2, 0, { curHp: 4, maxHp: 10, curShields: 0 });
+    const prey = place(s, "gale_guan", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const dealt = 40 - (basicAttack(s, vamp.instanceId, prey.instanceId), s.cards[prey.instanceId].curHp);
+    expect(dealt).toBeGreaterThan(0);
+    expect(s.cards[vamp.instanceId].maxHp).toBe(11); // +1 stolen ceiling
+    expect(s.cards[prey.instanceId].maxHp).toBe(39); // ...off the victim
+    expect(s.cards[vamp.instanceId].curHp).toBe(4 + dealt); // and healed like LIFESTEAL
+  });
+
+  it("the stolen ceiling is available to the SAME hit's heal", () => {
+    // Ordering matters: healCard caps at effectiveMaxHp, so if the heal ran
+    // before the max-HP theft, a drainer sitting at full HP would gain nothing
+    // and the last point of every drain-heal would be silently clipped.
+    const s = prepState();
+    const vamp = place(s, "dusk_vamp", "P1", 2, 0, { curHp: 10, maxHp: 10, curShields: 0 });
+    const prey = place(s, "gale_guan", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, vamp.instanceId, prey.instanceId);
+    expect(s.cards[vamp.instanceId].maxHp).toBe(11);
+    expect(s.cards[vamp.instanceId].curHp).toBe(11); // filled the new point, not stuck at 10
+  });
+
+  it("SEAL stops the healing but not the theft", () => {
+    // healCard refuses a sealed card; drainMaxHp is a separate transfer.
+    const s = prepState();
+    const vamp = place(s, "dusk_vamp", "P1", 2, 0, { curHp: 4, maxHp: 10, curShields: 0 });
+    applyStatus(s, vamp, "SEAL", 2, 0, "PYRO");
+    const prey = place(s, "gale_guan", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, vamp.instanceId, prey.instanceId);
+    expect(s.cards[vamp.instanceId].curHp).toBe(4); // sealed — no heal
+    expect(s.cards[vamp.instanceId].maxHp).toBe(11); // theft still lands
   });
 });

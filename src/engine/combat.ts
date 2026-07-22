@@ -463,11 +463,18 @@ export function resolveHit(
   // 5. On-hit keywords — basic attacks only. (onHitStatus riders + vsStatus
   //    heals are applied by basicAttack, which knows the per-target gating.)
   if (opts.kind === "basic" && result.landedHits > 0) {
-    if ((aDef.keywords.LIFESTEAL || opts.lifesteal) && result.totalToHp > 0) {
-      const healed = healCard(draft, attacker, result.totalToHp, attacker); // SEAL blocks it
-      if (healed > 0) draft.log.push(`${aDef.name} lifesteals ${healed} HP.`);
-    }
+    // DRAIN runs BEFORE the heal, deliberately. It raises the attacker's max HP,
+    // and healCard caps at effectiveMaxHp — so draining first means the new
+    // ceiling is already in place and the heal can actually use it. The other
+    // order silently clipped the last points of every drain-heal.
     if (aDef.keywords.DRAIN) drainMaxHp(draft, attacker, target, 1);
+    // DRAIN is LIFESTEAL that also grows: it heals for the damage dealt exactly
+    // like LIFESTEAL, on top of the max HP it just took.
+    if ((aDef.keywords.LIFESTEAL || aDef.keywords.DRAIN || opts.lifesteal) && result.totalToHp > 0) {
+      const healed = healCard(draft, attacker, result.totalToHp, attacker); // SEAL blocks it
+      if (healed > 0)
+        draft.log.push(`${aDef.name} ${aDef.keywords.DRAIN ? "drains" : "lifesteals"} ${healed} HP.`);
+    }
   }
 
   if (target.curHp <= 0) {
@@ -1472,6 +1479,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       struck++;
       // Bat Swarm: the volley feeds. DRAIN the keyword only rides basics, so a
       // Special that should drain has to ask for it.
+      // NOTE this is max-HP theft ONLY, no lifesteal — unlike the DRAIN keyword.
+      // Bat Swarm's text promises exactly that ("DRAIN 1 max HP from each") and
+      // it fires at every target on the board, so healing per target would be a
+      // different card.
       if (num(params, "drain") > 0 && draft.cards[target.instanceId] && target.curHp > 0)
         drainMaxHp(draft, attacker, target, num(params, "drain"));
       applyDebuffRiders(draft, target, params, attacker); // −SP (Angale, sinkhole)
