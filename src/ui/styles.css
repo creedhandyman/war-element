@@ -666,7 +666,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 /* Collapsed spellbook — a centered "book" that taps open to the spell chips.
    Keeps the battlefield clear until you reach for a spell. */
-.spellbook { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: none; }
+.spellbook { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; flex: none; }
 .spellbook-toggle {
   display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px 7px 11px;
   border-radius: 999px; cursor: pointer;
@@ -686,12 +686,23 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: var(--gold-lit); box-shadow: 0 0 8px rgba(232,200,119,0.4);
 }
 .sb-count.spent { background: #5a5348; color: #cfc6b4; box-shadow: none; }
-/* The popover of chips floats above the book so it never pushes layout. */
+/* The popover of chips floats above the book so it never pushes layout — it is
+   ABSOLUTE for that reason. In normal flow it sat above the toggle in the same
+   column and shoved the button down: with five spells open on a phone the whole
+   list is taller than the viewport, so the "Spells" button (which is also how
+   you CLOSE the list) was pushed off the bottom edge and became unreachable.
+   max-height keeps a long spellbook scrolling inside itself instead of growing
+   past the top of the screen. */
 .spellbook-pop {
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  z-index: 60; max-height: 58vh; overflow-y: auto; overscroll-behavior: contain;
   background: linear-gradient(180deg, rgba(30,26,20,0.97), rgba(20,17,13,0.97));
   border: 1px solid var(--gold-line); border-radius: 12px; padding: 10px;
   box-shadow: 0 10px 34px rgba(0,0,0,0.6), inset 0 0 40px rgba(201,162,75,0.05);
 }
+/* Portrait: the chips carry full rules text, so give the floating panel a real
+   width instead of letting it shrink-wrap to the longest word. */
+.panel-spells .spellbook-pop { width: min(92vw, 360px); }
 .spellbook-pop .spelltray-row { flex-direction: column; gap: 8px; }
 .spellbook-pop .spellchip { width: 100%; flex: none; flex-direction: row; align-items: center; gap: 9px; padding: 7px 10px 7px 30px; min-width: 148px; }
 .spellbook-pop .spellchip-cost { top: 50%; left: 6px; transform: translateY(-50%); }
