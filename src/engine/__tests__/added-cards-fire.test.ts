@@ -5,9 +5,9 @@
 // Fallow's aura sat behind a crit roll it could almost never win.
 
 import { describe, expect, it } from "vitest";
-import { basicAttack } from "../combat";
+import { applyStatus, basicAttack } from "../combat";
 import { advance, applyIntent } from "../phases";
-import { effectiveDmg, effectiveSp } from "../state";
+import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
@@ -118,5 +118,98 @@ describe("added cards: every ability fires", () => {
       s.cards[weed.instanceId].curHp = 99; // keep it alive for the sample
     }
     expect(dodged).toBeGreaterThan(0); // ~50% expected; any dodge proves it's wired
+  });
+});
+
+describe("wave 1: RohoJohn, Shoksa, Lumberjack, Bootlegger", () => {
+  it("RohoJohn's War Mount arrives armoured and mauls at melee range", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 9;
+    const near = place(s, "dusk_gool", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    const handId = giveHand(s, "P1", "bore_rohojohn");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const roho = boardCards(next, "P1").find((c) => c.defId === "bore_rohojohn")!;
+    expect(roho.curShields).toBe(7); // War Mount +5, plus BORE's Exostone aura +2
+    basicAttack(next, roho.instanceId, near.instanceId);
+    // 7 printed + 6 War Mount, because the target is adjacent.
+    expect(60 - next.cards[near.instanceId].curHp).toBe(13);
+  });
+
+  it("...but the mount bonus needs the target BESIDE it, not just in range", () => {
+    const s = prepState();
+    const roho = place(s, "bore_rohojohn", "P1", 3, 0, { autoMode: "manual" });
+    const far = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    basicAttack(s, roho.instanceId, far.instanceId);
+    expect(60 - s.cards[far.instanceId].curHp).toBe(7); // printed only
+  });
+
+  it("Cougar Pounce lands 10 and puts the target to SLEEP", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const roho = place(s, "bore_rohojohn", "P1", 2, 1, { autoMode: "manual" });
+    const prey = place(s, "dusk_gool", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    const next = applyIntent(battleFor(s, roho.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: prey.instanceId,
+    });
+    expect(60 - next.cards[prey.instanceId].curHp).toBe(10);
+    expect(statusOf(next.cards[prey.instanceId], "SLEEP")?.duration).toBe(2);
+  });
+
+  it("Shoksa fires its Special on summon: marks the clean, deepens the held", () => {
+    const s = prepState();
+    s.players.P1.summonPool = 9;
+    const held = place(s, "dusk_gool", "P2", 2, 0, { curHp: 60, maxHp: 60 });
+    const clean = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 60, maxHp: 60 });
+    applyStatus(s, held, "PARALYZE", 1, 0, "BOLT");
+    const handId = giveHand(s, "P1", "bolt_shoksa");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(statusOf(next.cards[held.instanceId], "PARALYZE")?.duration).toBe(2); // 1 -> 2
+    expect(statusOf(next.cards[clean.instanceId], "ELECTRIFIED")).toBeDefined();
+    expect(statusOf(next.cards[clean.instanceId], "PARALYZE")).toBeUndefined();
+  });
+
+  it("Shoksa discharges into what it marked at end of round", () => {
+    const s = prepState();
+    const shoksa = place(s, "bolt_shoksa", "P1", 2, 1, { autoMode: "manual" });
+    const marked = place(s, "dusk_gool", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    const clean = place(s, "dusk_vamp", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    applyStatus(s, marked, "ELECTRIFIED", 3, 0, "BOLT");
+    void shoksa;
+    const next = advance(atCleanup(s));
+    expect(60 - next.cards[marked.instanceId].curHp).toBe(2);
+    expect(next.cards[clean.instanceId].curHp).toBe(60); // unmarked, untouched
+  });
+
+  it("Lumberjack fells the row AHEAD only, ROOTs the first, and braces", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const jack = place(s, "leaf_lumberjack", "P1", 2, 1, { autoMode: "manual", curShields: 0 });
+    const a = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 9 });
+    const b = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 9 });
+    const behind = place(s, "dusk_crow", "P2", 0, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    const next = applyIntent(battleFor(s, jack.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: a.instanceId,
+    });
+    // PEN: the 9 shields do not stop it.
+    expect(60 - next.cards[a.instanceId].curHp).toBe(4);
+    expect(60 - next.cards[b.instanceId].curHp).toBe(4);
+    expect(next.cards[behind.instanceId].curHp).toBe(60); // a row further back — untouched
+    // ROOT lands on exactly one of the two.
+    const rooted = [a, b].filter((t) => statusOf(next.cards[t.instanceId], "ROOT"));
+    expect(rooted).toHaveLength(1);
+    expect(next.cards[jack.instanceId].curShields).toBe(3);
+  });
+
+  it("Bootlegger stomps on the crossing into enemy ground — once", () => {
+    const s = prepState();
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const boot = place(s, "aqua_bootlegger", "P1", 2, 0); // own half (P1 home = 3)
+    const foe = place(s, "dusk_gool", "P2", 0, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    let n = applyIntent(s, { type: "MOVE", player: "P1", instanceId: boot.instanceId, to: { row: 1, col: 0 } });
+    expect(60 - n.cards[foe.instanceId].curHp).toBe(1); // crossed → stomped
+    // Shuffling around once already there must NOT stomp again.
+    n.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    n = applyIntent(n, { type: "MOVE", player: "P1", instanceId: boot.instanceId, to: { row: 1, col: 1 } });
+    expect(60 - n.cards[foe.instanceId].curHp).toBe(1); // still 1
   });
 });

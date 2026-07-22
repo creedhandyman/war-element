@@ -3788,6 +3788,116 @@ export const CARDS: CardDef[] = [
       text: "Gain +5 DMG, +5 HP, +5 SP permanently. 3-round cooldown.",
     },
   },
+  // ── Wave 1 of the eight new element cards ──────────────────────────────────
+  {
+    id: "bore_rohojohn",
+    name: "RohoJohn",
+    rarity: "epic",
+    element: "BORE",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 5,
+    // 31 vs the formula's 35 — deliberately under-statted, and listed in
+    // state.test.ts's exceptions. War Mount pays the difference twice over: +5
+    // shield on arrival plus a permanent +6 on every basic landed from melee
+    // range.
+    dmg: 7,
+    hits: 1,
+    hp: 12,
+    sp: 12,
+    shields: 0,
+    keywords: {},
+    summonSelfShields: 5, // War Mount: rides in armoured...
+    meleeBonusDmg: 6, // ...and the mount mauls whatever it stands beside.
+    special: {
+      name: "Cougar Pounce",
+      cost: 3,
+      handler: "strike",
+      params: { dmg: 10, statusKind: "SLEEP", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "Deal 10 DMG to an opponent in range and SLEEP them for 2 rounds.",
+    },
+  },
+  {
+    id: "bolt_shoksa",
+    name: "Shoksa",
+    rarity: "epic",
+    element: "BOLT",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 6,
+    hits: 1,
+    hp: 12,
+    sp: 12,
+    shields: 0,
+    keywords: {},
+    // Discharges into whatever it marked. The literal ELECTRIFIED status, so it
+    // combos with its OWN Special rather than with any stray DOT on the board.
+    roundTick: { aoeElectrifiedDmg: 2 },
+    // "On Summon: use Special" needs no new mechanic — the same handler and
+    // params, wired to the summon trigger.
+    onSummon: {
+      handler: "overload",
+      params: { paralyzeExtend: 1, markRounds: 1 },
+      targetSide: "enemy",
+    },
+    special: {
+      name: "Static Pressure Overload",
+      cost: 2,
+      handler: "overload",
+      params: { paralyzeExtend: 1, markRounds: 1 },
+      targetSide: "enemy",
+      text: "PARALYZE lasts 1 round longer on every already-PARALYZED opponent; everyone else is marked ELECTRIFIED for the round.",
+    },
+  },
+  {
+    id: "leaf_lumberjack",
+    name: "Lumberjack",
+    rarity: "rare",
+    element: "LEAF",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 4,
+    hits: 1,
+    hp: 16,
+    sp: 5,
+    shields: 0,
+    keywords: {},
+    special: {
+      name: "Timberer",
+      cost: 2,
+      handler: "barrage",
+      // rowAhead scopes the volley to the row directly in front; firstOnlyStatus
+      // keeps the ROOT on whatever the tree lands on first, not the whole row.
+      params: {
+        dmg: 4, pen: 1, targets: 99, rowAhead: 1,
+        statusKind: "ROOT", statusDuration: 2, firstOnlyStatus: 1,
+        selfShields: 3,
+      },
+      targetSide: "enemy",
+      text: "Deal 4 DMG (PEN) to every opponent in the row straight ahead, ROOT the first for 2 rounds, and gain 3 shield.",
+    },
+  },
+  {
+    id: "aqua_bootlegger",
+    name: "Bootlegger",
+    rarity: "rare",
+    element: "AQUA",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 9,
+    sp: 3,
+    shields: 0,
+    keywords: {},
+    // Stomp fires on the CROSSING onto enemy ground, not on every step taken
+    // once it is already there.
+    onEnterEnemySide: { dmg: 1 },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

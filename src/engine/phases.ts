@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, type FlowMode, GALE_SP_CAP } from "./auras";
-import { applyStatus, basicAttack, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, payAttackTrade, pushBack, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, basicAttack, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, onEnemySide, payAttackTrade, pushBack, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin } from "./rng";
@@ -166,6 +166,9 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       if (!check.ok) throw new Error(`Illegal move: ${check.reason}`);
       const card = draft.cards[intent.instanceId];
       const fromRow = card.pos ? card.pos.row : -1;
+      // Stomp (Bootlegger) reads BOTH sides of the step, so it fires on the
+      // crossing itself rather than every time it shuffles around enemy ground.
+      const wasOnEnemySide = onEnemySide(card, draft.boardSize);
       card.pos = { ...intent.to };
       draft.prep!.movedThisTurn = true;
       draft.prep!.consecutivePasses = 0;
@@ -173,6 +176,19 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         `${intent.player} moves ${getDef(card.defId).name} to r${intent.to.row}c${intent.to.col}.`,
       );
       triggerWallsOnMove(draft, card, fromRow); // crossing INTO/OVER an enemy Wall's row hurts
+      const stomp = getDef(card.defId).onEnterEnemySide;
+      if (stomp && !wasOnEnemySide && card.curHp > 0 && onEnemySide(card, draft.boardSize)) {
+        // The nearest opponent it can actually reach — a landing that finds
+        // nobody simply does nothing.
+        const prey = closest(card, boardCards(draft, enemyOf(card.owner)).filter(
+          (e) => e.curHp > 0 && canTarget(draft, card, e),
+        ));
+        if (prey) {
+          draft.log.push(`${getDef(card.defId).name} lands hard — ${stomp.dmg} DMG to ${getDef(prey.defId).name}.`);
+          card.fxLunge = (card.fxLunge ?? 0) + 1; // telegraph: no battle turn behind it
+          directDamage(draft, card, prey, stomp.dmg, Boolean(stomp.pen));
+        }
+      }
       return draft;
     }
     case "CAST_SPELL": {
@@ -913,6 +929,15 @@ function doRoundTicks(draft: GameState): void {
     if (rt.paralyzeOne) {
       const t = enemies().find((e) => !hasStatus(e, "PARALYZE"));
       if (t) applyStatus(draft, t, "PARALYZE", rt.paralyzeOne, 0, el);
+    }
+    if (rt.aoeElectrifiedDmg) {
+      // Shoksa: the literal ELECTRIFIED status, which its own Special applies —
+      // deliberately NOT the "carries any status" proxy Voltogon uses, so the
+      // card combos with itself rather than with every DOT on the board.
+      const zapped = enemies().filter((e) => hasStatus(e, "ELECTRIFIED") && canTarget(draft, card, e));
+      for (const e of zapped) tickDamage(draft, card, e, rt.aoeElectrifiedDmg, false);
+      if (zapped.length)
+        draft.log.push(`${label(draft, card)} discharges into ${zapped.length} Electrified opponent(s).`);
     }
     if (rt.pushEnemies) {
       for (const e of enemies()) pushBack(draft, e, rt.pushEnemies, card.owner);

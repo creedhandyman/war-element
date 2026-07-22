@@ -189,6 +189,10 @@ export interface RoundTickDef {
   cleanseAllies?: boolean; // strip all negative statuses from allies (Imperator's Crowned)
   /** Spawn a token each round (Trinezer's Reptilian Screech). adjacentOnly =
    *  only into an open king's-reach slot; no spawn if none is open. */
+  /** Shoksa: damage every ELECTRIFIED opponent in range at end of round. Reads
+   *  the literal ELECTRIFIED status (what its own Special applies), NOT the
+   *  "carries any status" proxy that onKill.aoeDmgElectrified uses. */
+  aoeElectrifiedDmg?: number;
   spawn?: { token: string; count: number; adjacentOnly?: boolean };
 }
 
@@ -365,6 +369,14 @@ export interface CardDef {
   /** Gate Keeper (Veil): grant this many shields to SELF on summon (a passive
    *  grant, not a base stat, so it stays off the cost curve). */
   summonSelfShields?: number;
+  /** War Mount (RohoJohn): a mounted Ranger also mauls what it stands beside —
+   *  its BASIC gains +N damage against a target inside melee reach. Modelled as
+   *  a proximity bonus rather than a literal second attack, which keeps it on
+   *  one damage path instead of inventing a dual-attack system. */
+  meleeBonusDmg?: number;
+  /** Stomp (Bootlegger): fires the moment this card MOVES onto the enemy half
+   *  of the board (two-plus rows from its own home), once per crossing. */
+  onEnterEnemySide?: { dmg: number; pen?: boolean };
   /** Gate Keeper (Veil): the first time this card's shields break to 0, gain
    *  these permanent buffs. */
   onShieldBreak?: { dmg?: number; sp?: number; status?: { kind: StatusKind; duration: number; power: number } };

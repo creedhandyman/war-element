@@ -341,6 +341,18 @@ export function resolveHit(
     // 2. BLOCK — flat reduction, applies before shields and even to PEN. Adds
     //    the card's own BLOCK to any friendly wall reduction (Stone/Radiant).
     let remaining = opts.dmg;
+    // War Mount (RohoJohn): the mount mauls whatever the Ranger stands beside —
+    // its BASIC hits an ADJACENT target for extra. Applied here rather than in
+    // effectiveDmg because it depends on the TARGET's distance, which
+    // effectiveDmg has no way to see.
+    if (
+      opts.kind === "basic" &&
+      aDef.meleeBonusDmg &&
+      attacker.pos &&
+      target.pos &&
+      chebyshev(attacker.pos, target.pos) <= 1
+    )
+      remaining += aDef.meleeBonusDmg;
     // Incinerate ramp: +1 per consecutive landed hit on this target (this volley
     // + hits already landed on it this round).
     if (opts.incinerate) remaining += (opts.incinerateBase ?? 0) + result.landedHits;
@@ -1119,6 +1131,11 @@ function applySelfRiders(
   }
   const sp = num(params, "selfSp");
   if (sp !== 0) caster.spBonus += sp;
+  const shields = num(params, "selfShields"); // Timberer: brace behind the felled tree
+  if (shields > 0) {
+    caster.curShields += shields;
+    draft.log.push(`${label(draft, caster)} braces (+${shields} shield).`);
+  }
   const dmg = num(params, "selfDmg"); // permanent +DMG per use (Volcanon's Bad Temper)
   if (dmg !== 0) {
     caster.dmgBonus += dmg;
@@ -1289,6 +1306,12 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
    *  surviving target (FREEZE/BLIND/SCALD/PARALYZE nova). */
   barrage(draft, attacker, targets, params) {
     const n = num(params, "targets", 1);
+    // Timberer (Lumberjack): scope the volley to the row directly ahead — the
+    // tree falls forward, it doesn't scatter across the board.
+    if (num(params, "rowAhead") > 0 && attacker.pos) {
+      const row = rowAhead(attacker.owner, attacker.pos.row);
+      targets = targets.filter((t) => t.pos?.row === row);
+    }
     // requireStatus (Sentry's Static Blaster): only foes carrying the named
     // status are eligible — a paralyze-payoff nuke, not an unconditional AoE.
     const req = typeof params.requireStatus === "string" ? params.requireStatus : "";
@@ -1299,6 +1322,9 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       num(params, "dmg") +
       (num(params, "scaleDmg") > 0 ? attacker.dmgBonus : 0) +
       (getDef(attacker.defId).attackTrade?.bonusDmg ?? 0); // Ethereal Trade rides the Special too
+    // Timberer: ROOT only the FIRST target the volley lands on, not the row.
+    const firstOnly = num(params, "firstOnlyStatus") > 0;
+    let struck = 0;
     for (const target of pool.slice(0, n)) {
       if (!draft.cards[target.instanceId]) continue;
       resolveHit(draft, attacker, target, {
@@ -1316,7 +1342,8 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         incinerate: getDef(attacker.defId).incinerate,
         incinerateBase: attacker.struckThisRound[target.instanceId] ?? 0,
       });
-      maybeStatus(draft, attacker, target, params);
+      if (!firstOnly || struck === 0) maybeStatus(draft, attacker, target, params);
+      struck++;
       // Bat Swarm: the volley feeds. DRAIN the keyword only rides basics, so a
       // Special that should drain has to ask for it.
       if (num(params, "drain") > 0 && draft.cards[target.instanceId] && target.curHp > 0)
@@ -1351,6 +1378,9 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (attacker.curHp <= 0) defeatCard(draft, attacker, "self-damage");
       else checkLowHpTransform(draft, attacker);
     }
+    // Self-riders (Timberer's brace, Volcanon's ramp) — barrage never applied
+    // these, so any `self*` param on a barrage Special was silently inert.
+    applySelfRiders(draft, attacker, params);
   },
 
   /** Apply a status to up to N valid enemy targets (unique — stacking a
@@ -1370,6 +1400,34 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         applyStatus(draft, target, "SEAL", sealR, 0, getDef(attacker.defId).element);
     }
     applySelfRiders(draft, attacker, params); // e.g. Guan's +5 max HP
+  },
+  /**
+   * Static Pressure Overload (Shoksa): a conditional two-way nova — already
+   * PARALYZED opponents have it EXTENDED, everyone else is merely marked
+   * ELECTRIFIED. statusNova can't express this because it applies one status to
+   * everything; the whole point here is that the two groups get different
+   * treatment, which is what makes it scale with a board you've already locked.
+   */
+  overload(draft, attacker, targets, params) {
+    const extend = num(params, "paralyzeExtend", 1);
+    const markRounds = num(params, "markRounds", 1);
+    const el = getDef(attacker.defId).element;
+    let deepened = 0;
+    let marked = 0;
+    for (const t of targets) {
+      if (t.curHp <= 0 || !draft.cards[t.instanceId]) continue;
+      const par = t.statuses.find((st) => st.kind === "PARALYZE");
+      if (par) {
+        par.duration += extend;
+        deepened++;
+      } else {
+        applyStatus(draft, t, "ELECTRIFIED", markRounds, 0, el);
+        marked++;
+      }
+    }
+    draft.log.push(
+      `${label(draft, attacker)} overloads the grid — ${deepened} held longer, ${marked} marked.`,
+    );
   },
 
   /** Permanently steal max HP from one enemy (DUSK's Jacked-style theft). */
