@@ -86,6 +86,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Darts: basic attacks apply BLEED 1 for 2 rounds (refreshes; true stacking
     // isn't modelled).
+    passiveNames: { onHitStatus: "Darts" },
     onHitStatus: { kind: "BLEED", duration: 2, power: 1 },
     // Bleed Out (Talent, free, once per game): fire it instead of attacking to
     // load the darts; next basic fires as 3 (1 + 2 loaded).
@@ -126,6 +127,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Gnashing Bite: LIFESTEAL only on attacks against ROOTed opponents.
+    passiveNames: { vsStatus: "Gnashing Bite" },
     vsStatus: { status: "ROOT", lifesteal: true },
     // Demoted Epic→Rare: Takedown becomes a one-shot Talent (free, once per game)
     // instead of a repeatable SP-cost Special.
@@ -183,6 +185,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Regenerative: at end of round, +1 shield per enemy hit taken (capped at 5).
+    passiveNames: { shieldPerHitTaken: "Regenerative" },
     shieldPerHitTaken: { shields: 1, maxShields: 5 },
     special: {
       name: "Bushwhacker",
@@ -243,6 +246,7 @@ export const CARDS: CardDef[] = [
     // Transfusion (On Hit by Melee): apply BLEED 2 to the attacker (stacks), and
     // heal Thorn each round for the total BLEED damage dealt to its enemies at
     // Cleanup (own + teammate BLEED — the team's BLEED cluster fuels Thorn).
+    passiveNames: { onHitByMelee: "Transfusion" },
     onHitByMelee: { status: { kind: "BLEED", duration: 2, power: 2 } },
     healsFromBleed: true,
     special: {
@@ -279,6 +283,7 @@ export const CARDS: CardDef[] = [
     shields: 2,
     keywords: {},
     // Incinerate: consecutive hits on the same target this round ramp +1 DMG/hit.
+    passiveNames: { incinerate: "Incinerate" },
     incinerate: true,
     special: {
       name: "Pyro Ball Barrage",
@@ -308,6 +313,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Burnout (On Death): 4 DMG to the enemy row directly ahead.
+    passiveNames: { onDeath: "Burnout" },
     onDeath: { dmg: 4, rowAhead: true },
     special: {
       name: "Flame Charge",
@@ -466,6 +472,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { FLYING: true },
     // Bad Temper (passive): a landed basic attack grows Volcanon permanently.
+    passiveNames: { onHitSelfBuff: "Bad Temper" },
     onHitSelfBuff: { dmg: 1 },
     special: {
       name: "Eruption",
@@ -532,6 +539,7 @@ export const CARDS: CardDef[] = [
     roundTick: { aoeDmg: 1 },
     // Nightmare (passive): his hits never wake sleepers; deal 2× DMG to SLEEPING
     // opponents; and a flat mid-lane bonus added ONCE to the total (not per hit).
+    passiveNames: { ignoresSleepWake: "Nightmare" },
     ignoresSleepWake: true,
     vsStatus: { status: "SLEEP", dmgMult: 2 },
     basicBonus: { midLane: 2, midLaneFull: 3 },
@@ -566,6 +574,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 1,
     keywords: { CRIT: true },
+    passiveNames: { statusImmune: "Krysteellized Field" },
     statusImmune: true, // Krysteellized Field: immune to negative statuses
     special: {
       name: "Krystal Rain",
@@ -614,6 +623,7 @@ export const CARDS: CardDef[] = [
     shields: 2,
     keywords: {},
     // Rocky Force Field: 50% chance to deflect a ranged attacker's hit.
+    passiveNames: { blocksRangedChance: "Rocky Force Field" },
     blocksRangedChance: 50,
     special: {
       name: "Rigid Smash",
@@ -641,6 +651,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Cave Guard (On Opp enter battlefield): deal 4 DMG to a newcomer summoned
     // within Rock Goblin's (melee) range — gated by canTarget in the SUMMON reducer.
+    passiveNames: { onOppSummon: "Cave Guard" },
     onOppSummon: { dmg: 4 },
   },
   {
@@ -658,6 +669,7 @@ export const CARDS: CardDef[] = [
     shields: 3,
     keywords: {},
     // Hillside (On Hit, first time): +1 shield to allies in the row directly ahead.
+    passiveNames: { onHitAllyBuff: "Hillside" },
     onHitAllyBuff: { shields: 1, firstTimeOnly: true },
   },
   {
@@ -674,6 +686,7 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 2,
     keywords: {},
+    passiveNames: { statusImmune: "Hibernation" },
     statusImmune: true, // Hibernation: immune to status effects
     // On Death: revive once at 24 HP, then SLEEP itself for 1 round.
     onRevive: { heal: 24, sleep: 1 },
@@ -729,6 +742,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Dark",
+    passiveNames: { onDeath: "Lingering Venom" },
     onDeath: { dmg: 10, pen: true }, // Lingering Venom: 10 DMG PEN to the killer
   },
   {
@@ -763,6 +777,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Ghost",
     // Spook (On Hit, first time only): FRIGHTEN the opponent.
+    passiveNames: { onHitStatus: "Spook" },
     onHitStatus: { kind: "FRIGHTEN", duration: 1, power: 0, firstHitOnly: true },
   },
   {
@@ -796,6 +811,7 @@ export const CARDS: CardDef[] = [
     },
     // Ethereal Trade (On Attack): +3 DMG per attack — basic AND Phantom Gouge —
     // at the cost of 2 HP each time.
+    passiveNames: { attackTrade: "Ethereal Trade" },
     attackTrade: { bonusDmg: 3, hpCost: 2 },
   },
   {
@@ -814,6 +830,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Ghost",
     // Frightening (On Hit, first time only): FRIGHTEN the target for 1 round.
+    passiveNames: { onHitStatus: "Frightening" },
     onHitStatus: { kind: "FRIGHTEN", duration: 1, power: 0, firstHitOnly: true },
     special: {
       name: "Jacked",
@@ -839,6 +856,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Dark",
+    passiveNames: { ignoresHomeRule: "Catapult" },
     ignoresHomeRule: true, // Catapult: can target the whole battlefield
   },
   {
@@ -903,6 +921,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { FLYING: true },
     tribe: "Dark",
+    passiveNames: { onDeath: "Bird Bomb" },
     onDeath: { dmg: 5 }, // Bird Bomb: explodes on whoever kills it
   },
   {
@@ -920,6 +939,7 @@ export const CARDS: CardDef[] = [
     shields: 2,
     keywords: {},
     // Dismount: below 10 HP, deal 5 DMG, lose 5 SP and the Special (basic skeleton).
+    passiveNames: { onLowHp: "Dismount" },
     onLowHp: { threshold: 10, dmg: 5, loseSp: 5, loseSpecial: true },
     special: {
       name: "Piercing Charge",
@@ -950,6 +970,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Venom Spines: basic attacks apply SCALD 2 for 2 rounds (non-stacking).
+    passiveNames: { onHitStatus: "Venom Spines" },
     onHitStatus: { kind: "SCALD", duration: 2, power: 2 },
   },
   {
@@ -1062,6 +1083,7 @@ export const CARDS: CardDef[] = [
     shields: 4,
     keywords: {},
     // King of Ice (On Hit by Melee): 50% chance to FREEZE the attacker 2 rounds.
+    passiveNames: { onHitByMelee: "King of Ice" },
     onHitByMelee: { chance: 50, status: { kind: "FREEZE", duration: 2, power: 0 } },
     special: {
       name: "Polar Shift",
@@ -1089,6 +1111,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Pirate",
     // King of the Seas (On Kill): coin flip — gain +2 or +1 DMG permanently.
+    passiveNames: { onKill: "King of the Seas" },
     onKill: { coinBonusDmg: 2 },
     special: {
       name: "Vapor Shark Cannon",
@@ -1117,6 +1140,7 @@ export const CARDS: CardDef[] = [
     tribe: "Dragon",
     // Vaporizer (On Kill): +1 SP and +1 DMG permanently. (Doc also pokes the
     // lowest-HP enemy + repositions — those halves aren't modeled yet.)
+    passiveNames: { onKill: "Vaporizer" },
     onKill: { buffSp: 1, buffDmg: 1 },
     special: {
       name: "Geyser Gash",
@@ -1144,6 +1168,7 @@ export const CARDS: CardDef[] = [
     // Calcify: regrows +1 shield at the end of each round.
     roundTick: { selfShields: 1 },
     // Coral Spurs: 2 DMG back to melee attackers.
+    passiveNames: { onHitByMelee: "Coral Spurs" },
     onHitByMelee: { dmg: 2 },
   },
   {
@@ -1162,6 +1187,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Vapor",
     // Misty Haze: basic attacks BLIND (−50% accuracy) for a round.
+    passiveNames: { onHitStatus: "Misty Haze" },
     onHitStatus: { kind: "BLIND", duration: 1, power: 0 },
     special: {
       name: "Drowning Mist",
@@ -1401,6 +1427,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    passiveNames: { onDeath: "Flashing Final" },
     onDeath: { dmg: 7 }, // Flashing Final: Flash Ray Strike on the killer
     onKill: { buffDmg: 2 }, // Flash Ray Strike On Kill → +2 DMG permanently
     special: {
@@ -1427,6 +1454,7 @@ export const CARDS: CardDef[] = [
     shields: 1,
     keywords: {},
     // Hot Shot (On Kill): +1 DMG for the rest of the round.
+    passiveNames: { onKill: "Hot Shot" },
     onKill: { buffDmgRound: 1 },
     // High-noon aim: attacks never miss (ignores the caster's BLIND + target EVASION).
     alwaysHit: true,
@@ -1475,6 +1503,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Omega Restore (On Kill): heal +2 HP per opponent killed.
+    passiveNames: { onKill: "Omega Restore" },
     onKill: { healSelf: 2 },
   },
   {
@@ -1492,6 +1521,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // High Speed Impact: +1 DMG per SP point above 10.
+    passiveNames: { highSpeedImpact: "High Speed Impact" },
     highSpeedImpact: true,
     // Wind Surge (Talent, free · once per game): gain +2 SP. (The "next basic
     // hits +1 adjacent target" rider is unmodeled.)
@@ -1571,6 +1601,7 @@ export const CARDS: CardDef[] = [
     keywords: { FLYING: true },
     tribe: "Avian",
     // Alluring Aura (On Hit by Melee): the attacker is WEAKENed.
+    passiveNames: { onHitByMelee: "Alluring Aura" },
     onHitByMelee: { status: { kind: "WEAKEN", duration: 2, power: 0 } },
     special: {
       name: "Purple Wind Surge",
@@ -1628,6 +1659,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Hastened Assault: CRIT only while faster than the target, and heal 3 HP
     // per critical hit (was a flat, unconditional CRIT keyword).
+    passiveNames: { critIfFaster: "Hastened Assault" },
     critIfFaster: true,
     healPerCrit: 3,
     special: {
@@ -1684,6 +1716,7 @@ export const CARDS: CardDef[] = [
     // −3 is what keeps it honest rather than a free upgrade.
     keywords: { EVASION: true },
     // Harsh Winds: +4 DMG on the first strike vs each opponent.
+    passiveNames: { firstStrikeBonus: "Harsh Winds" },
     firstStrikeBonus: 4,
     special: {
       name: "Tranq Feather Blade",
@@ -1731,6 +1764,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Buzz Whip: basic attacks have a 50% chance to PARALYZE for the round.
+    passiveNames: { onHitStatus: "Buzz Whip" },
     onHitStatus: { kind: "PARALYZE", duration: 1, power: 0, chance: 50 },
   },
   {
@@ -1749,6 +1783,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Precision Strike: vs an Electrified (any-statused) OR PARALYZED opponent,
     // basic attacks CRIT and heal +4.
+    passiveNames: { vsStatus: "Precision Strike" },
     vsStatus: { status: "PARALYZE", anyStatus: true, crit: true, healOnHit: 4 },
     special: {
       name: "Static Toss",
@@ -1775,6 +1810,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "ARC",
     // Static Charge (On Kill): extend PARALYZE on every already-paralyzed foe by 1r.
+    passiveNames: { onKill: "Static Charge" },
     onKill: { extendStatus: { kind: "PARALYZE", rounds: 1 } },
     special: {
       name: "Discharge",
@@ -1802,6 +1838,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "ARC",
     // Electro Wrap (On Hit twice in one round): MUTE the target for the round.
+    passiveNames: { onHitStatus: "Electro Wrap" },
     onHitStatus: { kind: "MUTED", duration: 1, power: 0, onSecondHit: true },
     special: {
       name: "Web Shock",
@@ -1952,6 +1989,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Powertrip (On Kill, once per round): 5 DMG to all ELECTRIFIED opponents
     // (= any statused enemy, the BOLT "electrified" proxy).
+    passiveNames: { onKill: "Powertrip" },
     onKill: { aoeDmgElectrified: 5 },
     special: {
       name: "Gigavolt Strike",
@@ -2052,6 +2090,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "SeaC",
     // From the Deep: first time it drops to ≤16 HP, permanent +3 DMG/+3 SP/+3 shield.
+    passiveNames: { onLowHp: "From the Deep" },
     onLowHp: { threshold: 17, buffDmg: 3, buffSp: 3, gainShields: 3 },
     // Aura: SeaC allies gain +4 max HP.
     aura: { scope: "tribe", match: "SeaC", maxHp: 4 },
@@ -2142,6 +2181,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Hyper Power Surge (On Kill): +5 DMG this round, +5 SP (round-long, applies
     // to future basics — separate from the combo's in-special escalation).
+    passiveNames: { onKill: "Hyper Power Surge" },
     onKill: { buffDmgRound: 5, buffSp: 5 },
     special: {
       name: "Light Slasher",
@@ -2243,6 +2283,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Needles (On Hit by Melee): deal 1 DMG back to the attacker.
+    passiveNames: { onHitByMelee: "Needles" },
     onHitByMelee: { dmg: 1 },
   },
   {
@@ -2313,6 +2354,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Too Cool: basic attacks have a 50% chance to FREEZE for 1 round.
+    passiveNames: { onHitStatus: "Too Cool" },
     onHitStatus: { kind: "FREEZE", duration: 1, power: 0, chance: 50 },
   },
   {
@@ -2330,6 +2372,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Fickle Wand: basic attacks have a 25% chance to BLIND for 1 round.
+    passiveNames: { onHitStatus: "Fickle Wand" },
     onHitStatus: { kind: "BLIND", duration: 1, power: 0, chance: 25 },
   },
   {
@@ -2364,6 +2407,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Shocker: PARALYZE an opponent summoned within DrShock's range for 1 round.
+    passiveNames: { onOppSummon: "Shocker" },
     onOppSummon: { status: { kind: "PARALYZE", duration: 1, power: 0 } },
   },
 
@@ -2391,6 +2435,7 @@ export const CARDS: CardDef[] = [
     shields: 1,
     keywords: { PEN: true },
     // Acidic Leaf Blaze: basic attacks apply BLEED 2 for 1 round (non-stacking).
+    passiveNames: { onHitStatus: "Acidic Leaf Blaze" },
     onHitStatus: { kind: "BLEED", duration: 1, power: 2 },
     special: {
       name: "Acidic Bloom",
@@ -2485,6 +2530,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Rager Twins: +1 DMG permanently on every landed basic attack — but its
     // basics deal half DMG while below 12 HP (the rage downside).
+    passiveNames: { onHitSelfBuff: "Rager Twins" },
     onHitSelfBuff: { dmg: 1 },
     weakBelowHp: { hp: 12, dmgMult: 0.5 },
     special: {
@@ -2518,6 +2564,7 @@ export const CARDS: CardDef[] = [
     // point of speed is earned by choking something out. (Tick kills feed onKill
     // via tickDamage; the ordinary death path only counts basic/special kills,
     // which a 0-DMG card can never land.)
+    passiveNames: { onKill: "Creeping Cloud" },
     onKill: { buffSp: 1 },
   },
 
@@ -2609,6 +2656,7 @@ export const CARDS: CardDef[] = [
     keywords: { FLYING: true },
     tribe: "Avian",
     // Aerial Dominance: 1 DMG to any opponent summoned within range.
+    passiveNames: { onOppSummon: "Aerial Dominance" },
     onOppSummon: { dmg: 1 },
   },
 
@@ -2675,6 +2723,7 @@ export const CARDS: CardDef[] = [
     tribe: "Skeleton",
     // Soul Reaper (On Kill): +5 HP, +1 DMG permanently.
     // (The doc's "CRIT for a turn" and Death's Approach reuse-on-kill are unmodeled.)
+    passiveNames: { onKill: "Soul Reaper" },
     onKill: { healSelf: 5, buffDmg: 1 },
     special: {
       name: "Death's Approach",
@@ -2768,6 +2817,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Burning Ashes (On Death): revive once at 1 HP. (Doc also grants +4 shields
     // and a skipped turn on revive — not modeled.)
+    passiveNames: { onRevive: "Burning Ashes" },
     onRevive: { heal: 1 },
     special: {
       name: "Phoenix Blast",
@@ -2835,6 +2885,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Deathroll (On Death): deal 5 DMG to the attacker.
+    passiveNames: { onDeath: "Deathroll" },
     onDeath: { dmg: 5 },
   },
   {
@@ -2853,6 +2904,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Liquid",
     // Liquification: heal +1 HP per landed basic hit.
+    passiveNames: { healPerHit: "Liquification" },
     healPerHit: 1,
     special: {
       name: "Tsunami",
@@ -2953,6 +3005,7 @@ export const CARDS: CardDef[] = [
     shields: 5,
     keywords: {},
     // Basic attacks entangle: ROOT the target (SP→0, can't move) for a round.
+    passiveNames: { onHitStatus: "Basic attacks entangle" },
     onHitStatus: { kind: "ROOT", duration: 1, power: 0 },
     // Ancient grove: LEAF allies gain +3 max HP while it lives (non-stacking).
     aura: { scope: "element", maxHp: 3 },
@@ -2980,6 +3033,7 @@ export const CARDS: CardDef[] = [
     shields: 5,
     keywords: {},
     // Feeds on the slain: each kill grants a permanent +2 DMG.
+    passiveNames: { onKill: "Feeds on the slain" },
     onKill: { buffDmg: 2 },
     special: {
       name: "Molten Rampage",
@@ -3059,6 +3113,7 @@ export const CARDS: CardDef[] = [
     keywords: { EVASION: true },
     // High Speed Impact: +1 DMG per point of SP above 10 (GALE's +1 SP/round
     // climbs this over time).
+    passiveNames: { highSpeedImpact: "High Speed Impact" },
     highSpeedImpact: true,
     special: {
       name: "Cyclone Strike",
@@ -3220,6 +3275,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Hot Hot (On Hit by Melee): double the BURN stacked on the attacker.
+    passiveNames: { onHitByMelee: "Hot Hot" },
     onHitByMelee: { doubleBurn: true },
   },
   {
@@ -3275,6 +3331,7 @@ export const CARDS: CardDef[] = [
     tribe: "Zombie",
     // Reanimation (On Death): comes back on every death, each time −1 to all stats,
     // until a stat would hit 0 — then it stays down.
+    passiveNames: { onRevive: "Reanimation" },
     onRevive: { heal: 7, decay: 1 },
   },
   {
@@ -3427,6 +3484,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Ghost",
     // Harvester: every kill raises another Specter.
+    passiveNames: { onDeath: "Last Waltz", onKill: "Harvester" },
     onKill: { spawnToken: { token: "dusk_specter_tok", count: 1 } },
     // Last Waltz: the ballroom dances on. Fires on ANY death, not just a kill.
     onDeath: {
@@ -3494,6 +3552,7 @@ export const CARDS: CardDef[] = [
     shields: 1,
     keywords: {},
     // Pride Guardian: the first hit any teammate takes, Monger throws it a slab.
+    passiveNames: { onAllyHitShield: "Pride Guardian" },
     onAllyHitShield: 2,
     special: {
       name: "Rock Slide",
@@ -3564,6 +3623,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Right Through Me: hit it and the wind goes straight through you —
     // anyAttacker, so shooters get WEAKENed at range too.
+    passiveNames: { onHitByMelee: "Right Through Me" },
     onHitByMelee: { anyAttacker: true, status: { kind: "WEAKEN", duration: 2, power: 0 } },
   },
   {
@@ -3706,6 +3766,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Jelly Shock: touch it and the whole cluster lights up — 2 DMG to whoever
     // struck it (range is no protection) and to every enemy standing beside it.
+    passiveNames: { onHitZap: "Jelly Shock" },
     onHitZap: { dmg: 2 },
     // Storm Conduit is a TALENT, not a Special: once per game, free, no cooldown.
     talent: {
@@ -3732,6 +3793,7 @@ export const CARDS: CardDef[] = [
     // Brightling Ball: it doesn't defend allies, it avenges them. The first time
     // any ally falls, the killer eats 4 and fights blind for 3 rounds. Once per
     // game — a single answer, saved for whoever takes the first one.
+    passiveNames: { onAllyKilled: "Brightling Ball" },
     onAllyKilled: { dmg: 4, status: { kind: "BLIND", duration: 3, power: 0 }, oneUse: true },
   },
 
@@ -3758,6 +3820,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Reptile",
     // Conspiracy (On Kill): +2 DMG, +2 HP (max), +2 SP.
+    passiveNames: { onKill: "Conspiracy" },
     onKill: { buffDmg: 2, buffMaxHp: 2, buffSp: 2 },
   },
   {
@@ -3778,6 +3841,7 @@ export const CARDS: CardDef[] = [
     // Royal Guard: gain +1 shield each round.
     roundTick: { selfShields: 1 },
     // King Me (On Kill): each kill shaves 1 off Crowned's cost.
+    passiveNames: { onKill: "King Me" },
     onKill: { reduceSpecialCost: 1 },
     special: {
       name: "Crowned",

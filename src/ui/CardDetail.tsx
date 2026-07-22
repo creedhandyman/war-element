@@ -121,7 +121,10 @@ export function describePassives(def: CardDef): string[] {
    *  has one. `key` is the def field the line was derived from. */
   const named = (key: string, text: string) => {
     const n = def.passiveNames?.[key];
-    passives.push(n ? `${n} — ${text}` : text);
+    // Some descriptions already open with the ability's name (Regenerative,
+    // Hastened Assault, Obsidian Claws…). Prefixing those produced
+    // "Regenerative — Regenerative: …", so only prefix when it isn't there.
+    passives.push(n && !text.startsWith(n) ? `${n} — ${text}` : text);
   };
   // Passive-flavored keywords read as the card's own ability, not just a chip.
   const kw = def.keywords;
@@ -134,7 +137,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.onHitStatus) {
     const h = def.onHitStatus;
     const gate = h.chance != null ? `${h.chance}% chance to ` : h.firstHitOnly ? "first hit: " : h.onSecondHit ? "2nd hit: " : "";
-    passives.push(
+    named("onHitStatus", 
       `Basic hits ${gate}apply ${h.kind}${h.power ? ` (${h.power})` : ""} for ${rounds(h.duration)}.`,
     );
   }
@@ -149,7 +152,7 @@ export function describePassives(def: CardDef): string[] {
     ].filter(Boolean);
     // anyStatus means it triggers off ANY status, not the named one — saying
     // "Vs PARALYZE targets" would understate it badly.
-    passives.push(
+    named("vsStatus", 
       `Vs ${v.anyStatus ? "any target carrying a status" : `${v.status} targets`}, basics gain ${parts.join(" · ")}.`,
     );
   }
@@ -158,7 +161,7 @@ export function describePassives(def: CardDef): string[] {
     const bits = [m.dmg && `${m.dmg} DMG`, m.status && m.status.kind].filter(Boolean).join(" + ");
     // anyAttacker cards (Jolt, Windsor) answer shooters too — saying "by melee"
     // there would be a straight lie on the card face.
-    passives.push(
+    named("onHitByMelee", 
       `When hit${m.anyAttacker ? " (melee or ranged)" : " by melee"}${m.chance ? ` (${m.chance}%)` : ""}: retaliate — ${bits}.`,
     );
   }
@@ -184,7 +187,7 @@ export function describePassives(def: CardDef): string[] {
       k.reduceSpecialCost &&
         `permanently shaves ${k.reduceSpecialCost} off its own ${def.special?.name ?? "Special"} cost, stacking (King Me)`,
     ].filter(Boolean);
-    passives.push(`On a kill: ${bits.join(" · ")}.`);
+    named("onKill", `On a kill: ${bits.join(" · ")}.`);
   }
   if (def.roundTick) {
     const t = def.roundTick;
@@ -244,7 +247,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.talent)
     passives.push(`Talent (free · once per game) — ${def.talent.name}: ${def.talent.text}`);
   if (def.onRevive)
-    passives.push(
+    named("onRevive", 
       // decay turns a one-time revive into an every-death one that grinds itself
       // down — "revives once" was the opposite of what the card does.
       def.onRevive.decay
@@ -254,17 +257,17 @@ export function describePassives(def: CardDef): string[] {
   if (def.onLowHp) {
     const l = def.onLowHp;
     const bits = [l.dmg && `deal ${l.dmg}`, l.loseSp && `−${l.loseSp} SP`, l.loseSpecial && "loses its Special"].filter(Boolean);
-    passives.push(`Below ${l.threshold} HP: ${bits.join(" · ")}.`);
+    named("onLowHp", `Below ${l.threshold} HP: ${bits.join(" · ")}.`);
   }
   if (def.onOppSummon) {
     const o = def.onOppSummon;
     const bits = [o.dmg && `${o.dmg} DMG`, o.status && o.status.kind].filter(Boolean).join(" + ");
-    passives.push(`When an enemy is summoned within range, hits it with ${bits}.`);
+    named("onOppSummon", `When an enemy is summoned within range, hits it with ${bits}.`);
   }
   if (def.onAllyKilled) {
     const o = def.onAllyKilled;
     const bits = [o.dmg && `${o.dmg} DMG`, o.status && `${o.status.kind} ${o.status.duration}r`].filter(Boolean).join(" + ");
-    passives.push(
+    named("onAllyKilled", 
       `Brightling Ball: when an ally is killed, answers the killer with ${bits}${o.oneUse ? " (once per game)" : ""}.`,
     );
   }
@@ -277,14 +280,14 @@ export function describePassives(def: CardDef): string[] {
   if (def.evasionEnemySideOnly)
     passives.push("Shadow Haunter: its EVASION is live only while it stands on the opponent's battlefield.");
   if (def.onHitZap)
-    passives.push(
+    named("onHitZap", 
       `Jelly Shock: when it's hit and survives, discharges ${def.onHitZap.dmg} DMG into the attacker — melee or ranged — and every enemy standing next to it${def.onHitZap.status ? ` (+${def.onHitZap.status.kind})` : ""}.`,
     );
   if (def.firstStrikeBonus && !def.firstStrikeEnemySideOnly)
-    passives.push(`+${def.firstStrikeBonus} DMG on the first strike against each opponent.`);
-  if (def.ignoresSleepWake) passives.push("Its attacks don't wake SLEEPING targets.");
+    named("firstStrikeBonus", `+${def.firstStrikeBonus} DMG on the first strike against each opponent.`);
+  if (def.ignoresSleepWake) named("ignoresSleepWake", "Its attacks don't wake SLEEPING targets.");
   if (def.healsFromBleed)
-    passives.push("Each round, heals HP equal to the total BLEED damage its enemies take.");
+    named("healsFromBleed", "Each round, heals HP equal to the total BLEED damage its enemies take.");
   if (def.basicBonus) {
     const b = def.basicBonus;
     const bits = [
@@ -292,18 +295,18 @@ export function describePassives(def: CardDef): string[] {
       b.midLaneFull && `+${b.midLaneFull} if the mid lane is crowded`,
       b.vsSleeping && `+${b.vsSleeping} vs a SLEEPING target`,
     ].filter(Boolean);
-    passives.push(`Basic attacks deal bonus damage (once): ${bits.join(" · ")}.`);
+    named("basicBonus", `Basic attacks deal bonus damage (once): ${bits.join(" · ")}.`);
   }
   if (def.attackTrade)
-    passives.push(
+    named("attackTrade", 
       `Every attack (basic & Special) deals +${def.attackTrade.bonusDmg} DMG, but costs ${def.attackTrade.hpCost} HP.`,
     );
   if (def.onHitSelfBuff?.dmg)
-    passives.push(
+    named("onHitSelfBuff", 
       `Bad Temper: permanently gains +${def.onHitSelfBuff.dmg} DMG each time a basic attack lands.`,
     );
   if (def.incinerate)
-    passives.push(
+    named("incinerate", 
       `Incinerate: consecutive hits on the same target within a round deal +1 DMG each.`,
     );
   if (def.roundTick?.rowAheadDmg)
@@ -325,19 +328,19 @@ export function describePassives(def: CardDef): string[] {
       `End of round: deals ${def.roundTick.pokeParalyzedDmg} DMG to a PARALYZED opponent in range.`,
     );
   if (def.onHitAllyBuff?.shields)
-    passives.push(
+    named("onHitAllyBuff", 
       `Hillside: ${def.onHitAllyBuff.firstTimeOnly ? "the first time it lands a hit, gives" : "landed hits give"} allies in the row ahead +${def.onHitAllyBuff.shields} shield.`,
     );
   if (def.shieldPerHitTaken)
-    passives.push(
+    named("shieldPerHitTaken", 
       `Regenerative: at the end of each round, grows +${def.shieldPerHitTaken.shields} shield for every enemy hit it took that round${def.shieldPerHitTaken.maxShields ? ` (max ${def.shieldPerHitTaken.maxShields})` : ""}.`,
     );
   if (def.highSpeedImpact)
-    passives.push(`High Speed Impact: +1 DMG for every point of SP above 10.`);
+    named("highSpeedImpact", `High Speed Impact: +1 DMG for every point of SP above 10.`);
   if (def.blocksRangedChance)
-    passives.push(`Rocky Force Field: ${def.blocksRangedChance}% chance to deflect a ranged attacker's hit.`);
+    named("blocksRangedChance", `Rocky Force Field: ${def.blocksRangedChance}% chance to deflect a ranged attacker's hit.`);
   if (def.critIfFaster)
-    passives.push(
+    named("critIfFaster", 
       `Hastened Assault: basic attacks CRIT while faster than the target${def.healPerCrit ? `, healing +${def.healPerCrit} HP per crit` : ""}.`,
     );
   if (def.roundTick?.rootedDmg)
@@ -349,11 +352,11 @@ export function describePassives(def: CardDef): string[] {
       `End of round: deals ${def.roundTick.aoeParalyzedDmg} DMG to every PARALYZED opponent in range.`,
     );
   if (def.onHitByMelee?.doubleBurn)
-    passives.push(`Hot Hot: when hit by melee, doubles the BURN already on the attacker.`);
+    named("onHitByMelee", `Hot Hot: when hit by melee, doubles the BURN already on the attacker.`);
   if (def.onlyAdjacentAttackers)
     passives.push(`Shadow: can only be attacked by adjacent opponents — ranged shots from afar miss.`);
   if (def.firstStrikeBonus && def.firstStrikeEnemySideOnly)
-    passives.push(`On the enemy battlefield: +${def.firstStrikeBonus} DMG on the first strike against each opponent.`);
+    named("firstStrikeBonus", `On the enemy battlefield: +${def.firstStrikeBonus} DMG on the first strike against each opponent.`);
   if (def.summonSelfShields) {
     const sb = def.onShieldBreak;
     let breakClause = "";
@@ -422,9 +425,9 @@ export function describePassives(def: CardDef): string[] {
       "aoeElectrifiedDmg",
       `End of round: deals ${def.roundTick.aoeElectrifiedDmg} DMG to every ELECTRIFIED opponent in range.`,
     );
-  if (def.statusImmune) passives.push("Immune to negative statuses.");
+  if (def.statusImmune) named("statusImmune", "Immune to negative statuses.");
   if (def.ignoresHomeRule)
-    passives.push("Can target the enemy Home row from anywhere.");
+    named("ignoresHomeRule", "Can target the enemy Home row from anywhere.");
   if (def.special?.ranged)
     passives.push("Its Special reaches any slot on the board.");
 
@@ -446,16 +449,16 @@ export function describePassives(def: CardDef): string[] {
   if (def.basicHealsAllies)
     passives.push("Its basic attack can be aimed at a wounded ally to heal them for its DMG instead of striking.");
   if (def.healPerHit)
-    passives.push(`Liquification: heals ${def.healPerHit} HP for every basic hit it lands.`);
+    named("healPerHit", `Liquification: heals ${def.healPerHit} HP for every basic hit it lands.`);
   if (def.onAllyHitShield)
-    passives.push(`Pride Guardian: the first time each ally is hit, gives that ally +${def.onAllyHitShield} shield.`);
+    named("onAllyHitShield", `Pride Guardian: the first time each ally is hit, gives that ally +${def.onAllyHitShield} shield.`);
   if (def.summonScaleFromEnemy) {
     const sc = def.summonScaleFromEnemy;
     const gains = [sc.dmg && `+${sc.dmg} DMG`, sc.maxHp && `+${sc.maxHp} max HP`].filter(Boolean).join(" and ");
     passives.push(`Brightest Warrior: on summon, gains ${gains} for every ${sc.per} max HP the toughest opponent has.`);
   }
   if (def.weakBelowHp)
-    passives.push(
+    named("weakBelowHp", 
       `Below ${def.weakBelowHp.hp} HP its basic attacks are weakened${def.weakBelowHp.dmgMult === 0.5 ? " to half damage" : ` (×${def.weakBelowHp.dmgMult} DMG)`}.`,
     );
 
