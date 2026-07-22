@@ -251,7 +251,9 @@ export function describePassives(def: CardDef): string[] {
       // decay turns a one-time revive into an every-death one that grinds itself
       // down — "revives once" was the opposite of what the card does.
       def.onRevive.decay
-        ? `Revives on EVERY death at ${def.onRevive.heal} HP, losing ${def.onRevive.decay} from each stat each time — when a stat would reach 0 it stays down.`
+        ? def.onRevive.maxRevives
+          ? `Gets back up ${def.onRevive.maxRevives === 1 ? "once" : `${def.onRevive.maxRevives} times`} at ${def.onRevive.heal} HP, losing ${def.onRevive.decay} from each stat — after that it stays down.`
+          : `Revives on EVERY death at ${def.onRevive.heal} HP, losing ${def.onRevive.decay} from each stat each time — when a stat would reach 0 it stays down.`
         : `Revives once when defeated at ${def.onRevive.heal} HP${def.onRevive.sleep ? `, then sleeps ${rounds(def.onRevive.sleep)}` : ""}.`,
     );
   if (def.onLowHp) {
@@ -377,6 +379,11 @@ export function describePassives(def: CardDef): string[] {
       "spawnTriggerAt",
       `Every ${def.roundTick.spawnTriggerAt} raised, ${def.special.name} fires free.`,
     );
+  if (def.roundTick?.spawnMaxAlive)
+    named(
+      "spawnMaxAlive",
+      `It won't raise another while ${def.roundTick.spawnMaxAlive} of its bodies still stand — clear one to start the clock again.`,
+    );
   if (def.roundTick?.wardAllies)
     passives.push(`Radiant Ward: each round, allies get a barrier that absorbs the next negative status.`);
   if (def.roundTick?.cleanseAllies)
@@ -443,10 +450,10 @@ export function describePassives(def: CardDef): string[] {
   // aoeStatus and pushEnemies hit the whole enemy board, not just what's in
   // range.
   if (def.summonSpawn) {
-    const { token, count, adjacentOnly } = def.summonSpawn;
+    const { token, count, adjacentOnly, spawnRadius } = def.summonSpawn;
     const tokName = (() => { try { return getDef(token).name; } catch { return "token"; } })();
     passives.push(
-      `On summon: brings ${count} ${tokName}${count > 1 ? "s" : ""} onto the board${adjacentOnly ? ", right beside it" : ""}.`,
+      `On summon: brings ${count} ${tokName}${count > 1 ? "s" : ""} onto the board${adjacentOnly ? ", right beside it" : spawnRadius ? `, within ${spawnRadius} spaces of it` : ""}.`,
     );
   }
   if (def.alwaysHit)

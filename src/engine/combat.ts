@@ -182,7 +182,8 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
   if (def.onRevive?.decay && card.pos) {
     const d = def.onRevive.decay;
     const nextCount = (card.reviveDecay ?? 0) + 1;
-    if (Math.min(def.dmg, def.hp, def.sp) - d * nextCount > 0) {
+    const capped = nextCount > (def.onRevive.maxRevives ?? Infinity);
+    if (!capped && Math.min(def.dmg, def.hp, def.sp) - d * nextCount > 0) {
       card.reviveDecay = nextCount;
       card.dmgBonus -= d;
       card.spBonus -= d;
@@ -1203,7 +1204,10 @@ function adjacentCasterStatus(
 export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   /** Spawn N token cards near the caster (Imperator's Strike of Dawn → Heir). */
   spawn(draft, attacker, _targets, params) {
-    spawnTokens(draft, attacker, String(params.token ?? ""), num(params, "count", 1));
+    // `radius` tethers the bodies to the summoner (RIP's Horde), so the burst
+    // can't drop husks across the board while the round-tick is leashed.
+    const radius = params.radius == null ? undefined : num(params, "radius", 1);
+    spawnTokens(draft, attacker, String(params.token ?? ""), num(params, "count", 1), radius);
   },
   /** An escalating combo (Elecdroid's Light Slasher): a sequence of `hits` that
    *  stays on a target until it dies, then chains to the next enemy. Each KILL

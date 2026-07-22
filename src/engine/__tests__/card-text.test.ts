@@ -32,6 +32,7 @@ const ROUND_TICK_KEYS = [
   "pushEnemies", "rowAheadDmg", "inRangeDmg", "inRangeStatus", "selfShields",
   "pokeParalyzedDmg", "aoeParalyzedDmg", "rootedDmg", "roundHealElement",
   "spawn", "aoeElectrifiedDmg", "selfHpCost", "spawnTriggerAt", "enemyHomeRowStatus",
+  "spawnMaxAlive",
 ] as const;
 
 describe("card text covers every mechanic", () => {
@@ -120,7 +121,7 @@ describe("card text covers every mechanic", () => {
                "gainShields", "aoeDmg", "aoeDmgElectrified", "spawnToken", "coinBonusDmg",
                "reduceSpecialCost", "extendStatus"],
       vsStatus: ["anyStatus", "lifesteal", "crit", "bonusDmg", "dmgMult", "healOnHit"],
-      onRevive: ["heal", "sleep", "decay"],
+      onRevive: ["heal", "sleep", "decay", "maxRevives"],
       aura: ["dmg", "sp", "maxHp", "shields", "pen"],
       onLowHp: ["dmg", "loseSp", "loseSpecial"],
       onDeath: ["dmg", "rowAhead", "spawnToken", "frightenInRange", "allyTribeBuffDmg"],

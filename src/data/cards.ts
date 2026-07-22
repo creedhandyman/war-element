@@ -3329,10 +3329,11 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Zombie",
-    // Reanimation (On Death): comes back on every death, each time −1 to all stats,
-    // until a stat would hit 0 — then it stays down.
+    // Reanimation (On Death): gets back up ONCE, −1 to all stats. It used to come
+    // back on every death until a stat hit 0, which was three lives on a 1-cost
+    // token and the reason a board of husks was unclearable.
     passiveNames: { onRevive: "Reanimation" },
-    onRevive: { heal: 7, decay: 1 },
+    onRevive: { heal: 7, decay: 1, maxRevives: 1 },
   },
   {
     id: "bolt_buzz",
@@ -4048,22 +4049,28 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Zombie",
-    summonSpawn: { token: "dusk_zombie_husk", count: 1 },
-    // One body a round, paid in its own HP; every 4 raised, Horde fires free
-    // and the tally resets.
-    passiveNames: { roundTick: "Dead Clock", selfHpCost: "Dead Clock", spawnTriggerAt: "Dead Clock" },
+    summonSpawn: { token: "dusk_zombie_husk", count: 1, spawnRadius: 2 },
+    // One body a round, paid in its own HP, and only ever within 2 spaces of the
+    // grave it crawled out of. The clock jams at 4 standing husks: unleashed it
+    // simply ate the board (14 husks / 42 DMG a round by round 10). Every 4
+    // raised, Horde fires free and the tally resets.
+    passiveNames: {
+      roundTick: "Dead Clock", selfHpCost: "Dead Clock",
+      spawnTriggerAt: "Dead Clock", spawnMaxAlive: "Dead Clock",
+    },
     roundTick: {
-      spawn: { token: "dusk_zombie_husk", count: 1 },
+      spawn: { token: "dusk_zombie_husk", count: 1, spawnRadius: 2 },
       selfHpCost: 3,
       spawnTriggerAt: 4,
+      spawnMaxAlive: 4,
     },
     special: {
       name: "Horde",
       cost: 0,
       handler: "spawn",
-      params: { token: "dusk_zombie_husk", count: 2 },
+      params: { token: "dusk_zombie_husk", count: 2, radius: 2 },
       targetSide: "self",
-      text: "Spawn 2 Zombie Husks. Fires free on its own whenever the Dead Clock has raised 4.",
+      text: "Spawn 2 Zombie Husks within 2 spaces. Fires free on its own whenever the Dead Clock has raised 4.",
     },
   },
   {

@@ -198,13 +198,19 @@ export interface RoundTickDef {
    *  the literal ELECTRIFIED status (what its own Special applies), NOT the
    *  "carries any status" proxy that onKill.aoeDmgElectrified uses. */
   aoeElectrifiedDmg?: number;
-  spawn?: { token: string; count: number; adjacentOnly?: boolean };
+  spawn?: { token: string; count: number; adjacentOnly?: boolean; spawnRadius?: number };
   /** Dead Clock (RIP): the tick costs the ticker HP. Never self-lethal — it
    *  floors at 1, so the clock stalls rather than killing its own owner. */
   selfHpCost?: number;
   /** Horde (RIP): once `spawn` has raised this many bodies in total, fire the
    *  card's Special for free and reset the tally. */
   spawnTriggerAt?: number;
+  /** Dead Clock leash (RIP): the clock won't wind — and pays no HP — while this
+   *  many of its own tokens are already standing. Without it the only limit was
+   *  running out of board, which is how RIP reached 14 husks. Killing one is
+   *  what buys the horde its next body. A Horde burst may still overshoot it;
+   *  the clock then stays jammed until the count falls back under. */
+  spawnMaxAlive?: number;
 }
 
 /** A persistent per-card aura (Brood Command, GALE +SP, …): a flat DMG/SP buff
@@ -234,10 +240,13 @@ export interface TimedBuff {
 export interface OnReviveDef {
   heal: number;
   sleep?: number;
-  /** Zombie Husk's Reanimation: instead of a one-time revive, come back on EVERY
-   *  death with every base stat (DMG/HP/SP) reduced by `decay`, until a stat would
-   *  hit 0 — then it stays dead. Revives at its (now lower) full HP. */
+  /** Zombie Husk's Reanimation: instead of a one-time revive, come back with
+   *  every base stat (DMG/HP/SP) reduced by `decay`, until a stat would hit 0 —
+   *  then it stays dead. Revives at its (now lower) full HP. */
   decay?: number;
+  /** Hard ceiling on how many times a decaying revive may fire. Without it the
+   *  only limit is the stat floor, which let a 1-cost token soak three lives. */
+  maxRevives?: number;
 }
 
 /** HP-threshold transformation (Skelider Dismount): the first time this card
@@ -320,7 +329,7 @@ export interface CardDef {
   attackTrade?: { bonusDmg: number; hpCost: number };
   /** On summon, spawn `count` token cards (one-shot). The token's def lives in
    *  CARD_INDEX but never appears in a deck. */
-  summonSpawn?: { token: string; count: number; adjacentOnly?: boolean };
+  summonSpawn?: { token: string; count: number; adjacentOnly?: boolean; spawnRadius?: number };
   /** Brightest Warrior (Radiance): on summon, scale up by the strongest foe —
    *  +`dmg` DMG and/or +`maxHp` max HP for each `per` max-HP the highest-HP
    *  opponent on the board has. */

@@ -414,7 +414,9 @@ export function spawnTokens(
   spawner: CardInstance,
   tokenDefId: string,
   count: number,
-  adjacentOnly = false,
+  /** How far from the spawner a body may land, in king-moves. `1` is the old
+   *  adjacentOnly. Omit for the default: prefer adjacent, then anywhere open. */
+  radius?: number,
 ): CardInstance[] {
   if (!spawner.pos) return [];
   const owner = spawner.owner;
@@ -426,11 +428,16 @@ export function spawnTokens(
     if (isOpen(r, c) && !slots.some((s) => s.row === r && s.col === c))
       slots.push({ row: r as Pos["row"], col: c as Pos["col"] });
   };
-  // Adjacent (chess-king) slots first, then — unless adjacentOnly — any open slot.
-  for (let dr = -1; dr <= 1; dr++)
-    for (let dc = -1; dc <= 1; dc++)
-      if (dr !== 0 || dc !== 0) push(spawner.pos.row + dr, spawner.pos.col + dc);
-  if (!adjacentOnly)
+  // Nearest ring first, working outward, so bodies pack around the spawner
+  // rather than scattering. With no radius the search then opens to the whole
+  // board; with one, the horde is physically tethered to whatever raised it.
+  const reach = radius ?? 1;
+  for (let ring = 1; ring <= reach; ring++)
+    for (let dr = -ring; dr <= ring; dr++)
+      for (let dc = -ring; dc <= ring; dc++)
+        if (Math.max(Math.abs(dr), Math.abs(dc)) === ring)
+          push(spawner.pos.row + dr, spawner.pos.col + dc);
+  if (radius == null)
     for (let r = 0; r < draft.boardSize; r++) for (let c = 0; c < draft.boardSize; c++) push(r, c);
 
   const out: CardInstance[] = [];

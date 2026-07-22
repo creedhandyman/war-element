@@ -155,7 +155,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       }
       // Token spawns (Trinezer's Reptilian Screech).
       if (def.summonSpawn)
-        spawnTokens(draft, inst, def.summonSpawn.token, def.summonSpawn.count, def.summonSpawn.adjacentOnly);
+        spawnTokens(draft, inst, def.summonSpawn.token, def.summonSpawn.count, def.summonSpawn.adjacentOnly ? 1 : def.summonSpawn.spawnRadius);
       applyElementSummonAura(draft, inst);
       // On-opponent-summon reactions: existing enemies zap the newcomer as it
       // enters the battlefield (Cave Guard, Shocker).
@@ -1001,10 +1001,20 @@ function doRoundTicks(draft: GameState): void {
     if (rt.spawn && rt.selfHpCost) {
       // Dead Clock (RIP): a body every round, paid for in its own flesh. Floors
       // at 1 HP — the clock stalls rather than killing the thing winding it.
-      if (card.curHp > rt.selfHpCost) {
+      // The leash is the real brake: while `spawnMaxAlive` of its tokens stand,
+      // the clock jams and pays nothing, so the horde holds at a size the
+      // opponent can fight through instead of eating the board. Clearing a husk
+      // is what earns the next one.
+      const penned =
+        rt.spawnMaxAlive != null &&
+        boardCards(draft, card.owner).filter((c) => c.defId === rt.spawn!.token).length >=
+          rt.spawnMaxAlive;
+      if (penned) {
+        draft.log.push(`${label(draft, card)}'s Dead Clock jams — the horde is already at full strength.`);
+      } else if (card.curHp > rt.selfHpCost) {
         card.curHp -= rt.selfHpCost;
         const before = boardCards(draft, card.owner).length;
-        spawnTokens(draft, card, rt.spawn.token, rt.spawn.count, rt.spawn.adjacentOnly);
+        spawnTokens(draft, card, rt.spawn.token, rt.spawn.count, rt.spawn.adjacentOnly ? 1 : rt.spawn.spawnRadius);
         const raised = boardCards(draft, card.owner).length - before;
         card.spawnTally = (card.spawnTally ?? 0) + raised;
         if (raised > 0)
@@ -1092,7 +1102,7 @@ function doRoundTicks(draft: GameState): void {
       // Guarded on selfHpCost: a spawn that charges HP (RIP's Dead Clock) is
       // handled by its own block above, tally and Horde trigger included.
       // Without the guard BOTH blocks ran and the clock raised two a round.
-      spawnTokens(draft, card, rt.spawn.token, rt.spawn.count, rt.spawn.adjacentOnly);
+      spawnTokens(draft, card, rt.spawn.token, rt.spawn.count, rt.spawn.adjacentOnly ? 1 : rt.spawn.spawnRadius);
     }
     if (rt.pokeDmg || rt.pokeStatus) {
       const t = closest(card, enemies());

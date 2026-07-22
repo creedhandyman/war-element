@@ -5,7 +5,7 @@
 // Fallow's aura sat behind a crit roll it could almost never win.
 
 import { describe, expect, it } from "vitest";
-import { applyStatus, basicAttack } from "../combat";
+import { applyStatus, basicAttack, defeatCard } from "../combat";
 import { advance, applyIntent } from "../phases";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
@@ -283,6 +283,7 @@ describe("wave 2: Wista, WarPhant, RIP, Scorch", () => {
     const handId = giveHand(s, "P1", "dusk_rip");
     let n = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
     place(n, "dusk_gool", "P2", 0, 0);
+    const rip = boardCards(n, "P1").find((c) => c.defId === "dusk_rip")!.instanceId;
     const husks = (g: GameState) =>
       boardCards(g, "P1").filter((c) => c.defId === "dusk_zombie_husk").length;
     expect(husks(n)).toBe(1); // on summon
@@ -292,20 +293,61 @@ describe("wave 2: Wista, WarPhant, RIP, Scorch", () => {
     expect(husks(n)).toBe(3); // +1
     n = advance(atCleanup(n));
     expect(husks(n)).toBe(4); // +1 — the Horde does NOT fire on the third any more
+    // ...and now the leash bites. Four bodies stand, so the clock jams: no fifth
+    // husk, and RIP stops paying HP for the privilege.
+    const hpAtCap = n.cards[rip].curHp;
     n = advance(atCleanup(n));
-    expect(husks(n)).toBe(7); // +1 from the clock, +2 as Horde answers on the fourth
+    expect(husks(n)).toBe(4);
+    expect(n.cards[rip].curHp).toBe(hpAtCap); // jammed clocks are free
+    n = advance(atCleanup(n));
+    expect(husks(n)).toBe(4); // and it stays there indefinitely
   });
 
-  it("...and Horde fires free once the clock has raised three", () => {
+  it("clearing husks is what restarts the clock", () => {
+    // The whole point of the leash: the horde is a fixed-size problem you can
+    // fight through, and RIP only raises more as you cut bodies down. A Horde
+    // burst is allowed to overshoot the cap — the clock just stays jammed until
+    // the count comes back under it.
+    const s = prepState();
+    const rip = place(s, "dusk_rip", "P1", 3, 1, { curHp: 33, maxHp: 33 });
+    place(s, "dusk_gool", "P2", 0, 0);
+    const husks = (g: GameState) =>
+      boardCards(g, "P1").filter((c) => c.defId === "dusk_zombie_husk");
+    let n: GameState = s;
+    for (let i = 0; i < 8; i++) n = advance(atCleanup(n));
+    const capped = husks(n).length;
+    expect(capped).toBeGreaterThanOrEqual(4); // at or over the leash (Horde overshoots)
+    const hpJammed = n.cards[rip.instanceId].curHp;
+    n = advance(atCleanup(n));
+    expect(husks(n).length).toBe(capped); // jammed: no new body...
+    expect(n.cards[rip.instanceId].curHp).toBe(hpJammed); // ...and no HP spent
+    // Cut the horde back under the leash — Reanimation means two kills a husk.
+    while (husks(n).length >= 4) {
+      const victim = husks(n)[0].instanceId;
+      defeatCard(n, n.cards[victim], "test");
+      if (n.cards[victim]) defeatCard(n, n.cards[victim], "test");
+    }
+    const room = husks(n).length;
+    n = advance(atCleanup(n));
+    expect(husks(n).length).toBeGreaterThan(room); // the clock winds again
+    expect(n.cards[rip.instanceId].curHp).toBeLessThan(hpJammed); // and pays for it
+  });
+
+  it("every body it raises lands within 2 spaces of the grave", () => {
+    // The horde is tethered to RIP: husks used to be placed anywhere open on the
+    // board once the ring beside it filled, which scattered a free army.
     const s = prepState();
     const rip = place(s, "dusk_rip", "P1", 3, 1, { curHp: 33, maxHp: 33 });
     place(s, "dusk_gool", "P2", 0, 0);
     let n: GameState = s;
-    for (let i = 0; i < 4; i++) n = advance(atCleanup(n)); // threshold is 4 raises
-    const risen = Object.values(n.cards).filter((c) => c.defId === "dusk_zombie_husk").length;
-    // 4 from the clock + 2 from the Horde it triggered = more than the clock alone.
-    expect(risen).toBeGreaterThan(4);
-    expect(n.cards[rip.instanceId].spawnTally).toBe(0); // tally reset, so it cycles
+    for (let i = 0; i < 6; i++) n = advance(atCleanup(n));
+    const husks = boardCards(n, "P1").filter((c) => c.defId === "dusk_zombie_husk");
+    expect(husks.length).toBeGreaterThan(0);
+    const home = n.cards[rip.instanceId].pos!;
+    for (const h of husks) {
+      const d = Math.max(Math.abs(h.pos!.row - home.row), Math.abs(h.pos!.col - home.col));
+      expect(d, `husk at ${h.pos!.row},${h.pos!.col} is ${d} from RIP`).toBeLessThanOrEqual(2);
+    }
   });
 
   it("Scorch sets the enemy home row alight on arrival", () => {
@@ -331,7 +373,8 @@ describe("wave 2: Wista, WarPhant, RIP, Scorch", () => {
     n = advance(atCleanup(n));
     // Accelerator doubles it: 2 power -> 4 damage.
     expect(60 - n.cards[foe.instanceId].curHp).toBe(4);
-    // Wildfire: a 1-round BURN would have expired — Scorch is alive, so it stays.
+    // Wildfire: the 1-round BURN expires, but the row is re-lit the same cleanup
+    // while Scorch stands, so the target is still burning.
     expect(statusOf(n.cards[foe.instanceId], "BURN")).toBeDefined();
   });
 });
