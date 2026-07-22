@@ -25,11 +25,10 @@ describe("setup", () => {
     const exceptions = new Set([
       "bore_bearocks",
       "dusk_skelider",
-      // SP-heavy canon glass cannon: the doc keeps the high SP despite it
-      // inflating the stat total past the ±2 band.
-      // (Sparkle used to be here. It was 5 over the cost-1 budget; repricing it
-      // to cost 2 puts it exactly on the formula, so it is guarded again.)
-      "gale_toxhawk",
+      // (Sparkle and ToxHawk both used to sit here as "SP-heavy glass cannons"
+      // running past the ±2 band. Sparkle traded SP 14 -> 9 to pay for cost 1,
+      // and ToxHawk dropped 2 HP to land 2 over at cost 2. Both are inside the
+      // band now and are guarded by this test like anything else.)
       // Cost-10 Mythics sit in the tier band (55-67 total) above the exact
       // formula — they pay part of their cost in spawns / auras / on-kill snowball.
       "gale_griffith",

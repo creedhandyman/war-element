@@ -2381,14 +2381,14 @@ export const CARDS: CardDef[] = [
     element: "DAWN",
     cardClass: "Ranger",
     attackType: "Ranged",
-    // Cost 2, not 1: at 4+2+14 = 20 points it was a full 5 over the cost-1
-    // budget (15), which is why it needed a budget-test exemption. 20 is exactly
-    // 5*2+10, so it is held to the formula like anything else now.
-    cost: 2,
+    // Cost 1 at 4+2+9 = 15, exactly 5*1+10. It used to run SP 14, which put it 5
+    // over the cost-1 budget and earned it a budget-test exemption; trimming the
+    // speed pays for the price instead.
+    cost: 1,
     dmg: 2,
     hits: 2,
     hp: 2,
-    sp: 14,
+    sp: 9,
     shields: 0,
     keywords: {},
     // Fickle Wand: basic attacks have a 25% chance to BLIND for 1 round.
@@ -2811,11 +2811,13 @@ export const CARDS: CardDef[] = [
     element: "DAWN",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 1,
+    // Cost 2 at 4+7+9 = 20, exactly 5*2+10. The printed 0 shields is what the
+    // formula reads; the +2 barrier below is an off-curve on-summon grant.
+    cost: 2,
     dmg: 2,
-    hits: 2, // "2×2 DMG"
-    hp: 4,
-    sp: 7,
+    hits: 2, // "2x2 DMG" = 2 hits of 2
+    hp: 7,
+    sp: 9,
     shields: 0,
     keywords: { PEN: true }, // Light Sphere — basic attacks gain PEN
     // Light Sphere (On Summon): raise a +2 shield (a passive grant, off-curve).
@@ -3331,8 +3333,10 @@ export const CARDS: CardDef[] = [
     cost: 2,
     dmg: 3,
     hits: 1,
-    hp: 8,
-    sp: 13, // SP-heavy flyer — sits above the stat curve (budget-test exempt)
+    // 3+6+13 = 22 vs a cost-2 budget of 20 — 2 over, i.e. inside the +/-2 band.
+    // At 8 HP it was 4 over and needed a budget-test exemption; it no longer does.
+    hp: 6,
+    sp: 13, // SP-heavy flyer, still riding the top of the curve
     shields: 0,
     // Tox: a flyer whose basic attacks leave a generic DOT ticking (GALE owns no
     // named DOT status, so this is element-free).
