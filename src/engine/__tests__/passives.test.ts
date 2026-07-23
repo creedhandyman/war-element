@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, drainMaxHp, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS } from "../combat";
-import { applyFlow } from "../auras";
+import { applyFlow, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard } from "../state";
@@ -1271,18 +1271,22 @@ describe("element auras", () => {
     expect(next.cards[foe.instanceId].curHp).toBe(13); // 15 − 2 Awakening
   });
 
-  it("Flow Change (AQUA): a human summon defers the choice, then Liquid grants +2 DMG", () => {
+  it("Flow Change (AQUA): a human summon defers the choice, then Liquid grants +2 DMG permanently", () => {
     const s = prepState();
     s.players.P1.summonPool = 5;
     const handId = giveHand(s, "P1", "aqua_spinefin");
     const summoned = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const fin = boardCards(summoned, "P1").find((c) => getDef(c.defId).element === "AQUA")!;
     expect(summoned.pendingFlow).toBe(fin.instanceId); // deferred to the human
-    expect(fin.dmgBonusRound).toBe(0); // not applied until chosen
+    expect(fin.dmgBonus).toBe(0); // not applied until chosen
     const picked = applyIntent(summoned, {
       type: "FLOW_CHANGE", player: "P1", instanceId: fin.instanceId, mode: "water",
     });
-    expect(picked.cards[fin.instanceId].dmgBonusRound).toBe(2);
+    // dmgBonus, not dmgBonusRound: the SUMMON pick persists now. It used to be
+    // wiped at the next Cleanup, so an AQUA card got its aura for one round and
+    // never again — the weakest aura in the game by structure.
+    expect(picked.cards[fin.instanceId].dmgBonus).toBe(2);
+    expect(picked.cards[fin.instanceId].dmgBonusRound).toBe(0);
     expect(picked.pendingFlow).toBeNull();
   });
 
@@ -1311,7 +1315,7 @@ describe("element auras", () => {
     const golem = boardCards(next, "P2").find((c) => c.defId === "aqua_coralgolem")!;
     expect(next.pendingFlow).toBeNull(); // no prompt for the AI
     expect(golem.curShields).toBe(7); // 4 base + 3 Frozen
-    expect(golem.tempShields).toBe(3); // temporary — removed in Cleanup
+    expect(golem.tempShields).toBe(0); // KEPT — tempShields is the refund marker
   });
 
   it("Electrify (BOLT): +2 DMG vs a statused opponent", () => {
@@ -1537,5 +1541,54 @@ describe("Electrify sets up its own payoff", () => {
     const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 30, maxHp: 30, curShields: 0 });
     basicAttack(s, other.instanceId, foe.instanceId);
     expect(statusOf(s.cards[foe.instanceId], "ELECTRIFIED")).toBeUndefined();
+  });
+});
+
+describe("the reworked PYRO and AQUA auras", () => {
+  it("Scorch STACKS: repeat basics deepen the burn instead of doing nothing", () => {
+    // It used to skip a target that already had BURN, so PYRO's own repeat
+    // attacks — and its card-specific BURN riders — did nothing for each other.
+    const s = prepState();
+    const pyro = place(s, "pyro_firebird", "P1", 3, 0, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    basicAttack(s, pyro.instanceId, foe.instanceId);
+    expect(statusOf(s.cards[foe.instanceId], "BURN")?.power).toBe(1);
+    basicAttack(s, pyro.instanceId, foe.instanceId);
+    expect(statusOf(s.cards[foe.instanceId], "BURN")?.power).toBe(2);
+  });
+
+  it("...and stops at the cap", () => {
+    const s = prepState();
+    const pyro = place(s, "pyro_firebird", "P1", 3, 0, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 999, maxHp: 999, curShields: 0 });
+    for (let i = 0; i < 8; i++) basicAttack(s, pyro.instanceId, foe.instanceId);
+    expect(statusOf(s.cards[foe.instanceId], "BURN")?.power).toBe(PYRO_BURN_STACK_CAP);
+  });
+
+  it("...and builds ON a card's stronger BURN rider rather than replacing it", () => {
+    const s = prepState();
+    const pyro = place(s, "pyro_firebird", "P1", 3, 0, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    applyStatus(s, s.cards[foe.instanceId], "BURN", 3, 3, "PYRO"); // a real rider
+    basicAttack(s, pyro.instanceId, foe.instanceId);
+    const b = statusOf(s.cards[foe.instanceId], "BURN")!;
+    expect(b.power).toBe(4); // added to, never overwritten down to 1
+    expect(b.duration).toBe(3); // and its duration survives
+  });
+
+  it("an AQUA summon pick survives Cleanup; a Downpour re-pick does not", () => {
+    // Downpour re-picks Flow for every AQUA ally EVERY round, so a permanent
+    // grant there would stack +2 DMG a round without limit. Only the summon
+    // pick persists.
+    const s = prepState();
+    const fin = place(s, "aqua_spinefin", "P1", 3, 0);
+    applyFlow(s.cards[fin.instanceId], "water", true); // summon pick
+    applyFlow(s.cards[fin.instanceId], "water"); // Downpour re-pick
+    expect(s.cards[fin.instanceId].dmgBonus).toBe(2);
+    expect(s.cards[fin.instanceId].dmgBonusRound).toBe(2);
+    place(s, "dusk_gool", "P2", 0, 1);
+    const n = advance(atCleanup(s));
+    expect(n.cards[fin.instanceId].dmgBonus).toBe(2); // kept
+    expect(n.cards[fin.instanceId].dmgBonusRound).toBe(0); // wiped, as before
   });
 });

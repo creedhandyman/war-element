@@ -283,7 +283,9 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         openFlowRepick(draft); // hot-seat: the other side may be waiting too
         return draft;
       }
-      applyFlow(card, intent.mode as FlowMode);
+      // The human's SUMMON pick — permanent, matching the AI path above. The
+      // Downpour branch a few lines up stays round-scoped on purpose.
+      applyFlow(card, intent.mode as FlowMode, true);
       draft.pendingFlow = null;
       draft.log.push(`${getDef(card.defId).name} shifts state (Flow Change).`);
       return draft;
@@ -962,7 +964,7 @@ function applyElementSummonAura(draft: GameState, inst: CardInstance): void {
         // Human chooses via the UI; gate until they pick.
         draft.pendingFlow = inst.instanceId;
       } else {
-        applyFlow(inst, aiFlowChoice(def.cardClass));
+        applyFlow(inst, aiFlowChoice(def.cardClass), true); // summon pick persists
       }
       break;
     }

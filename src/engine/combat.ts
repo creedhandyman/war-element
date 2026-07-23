@@ -15,6 +15,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
 import { RANGED_REACH } from "./rules";
+import { PYRO_BURN_STACK_CAP } from "./auras";
 import { creditDamage, creditDeath, creditDebuff, creditKill } from "./stats";
 import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
 import type {
@@ -799,10 +800,21 @@ export function basicAttack(
       attacker.struckThisRound[t.instanceId] = struckBefore + r.landedHits;
       if (firstStrike) attacker.struckEver.push(t.instanceId);
       applyOnHitRider(draft, attacker, t, struckBefore, r.landedHits);
-      // Scorch (PYRO aura): apply BURN 1 (1r) if the target has no BURN yet, so
-      // it never overwrites a stronger card-specific BURN rider.
-      if (aDef.element === "PYRO" && t.curHp > 0 && !hasStatus(t, "BURN")) {
-        applyStatus(draft, t, "BURN", 1, 1, "PYRO");
+      // Scorch (PYRO aura): every basic feeds the fire. A fresh target catches
+      // BURN 1; one already burning has its BURN STACK by 1, up to the cap.
+      //
+      // It used to skip a target that already had BURN entirely, so PYRO's own
+      // repeat attacks — and its card-specific BURN riders — did nothing for
+      // each other. Stacking ADDS to whatever is there rather than replacing it,
+      // so a stronger card BURN is still never overwritten, only built on.
+      if (aDef.element === "PYRO" && t.curHp > 0) {
+        const burning = t.statuses.find((x) => x.kind === "BURN");
+        if (!burning) applyStatus(draft, t, "BURN", 1, 1, "PYRO");
+        else if (burning.power < PYRO_BURN_STACK_CAP) {
+          burning.power += 1;
+          burning.duration = Math.max(burning.duration, 1);
+          draft.log.push(`${label(draft, t)}'s burn deepens (BURN ${burning.power}).`);
+        }
       }
       // Electrify (BOLT aura), second half: a basic hit leaves the target
       // ELECTRIFIED, so the aura SETS UP its own payoff instead of waiting on
