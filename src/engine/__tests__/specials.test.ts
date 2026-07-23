@@ -730,7 +730,7 @@ describe("legendaries", () => {
 });
 
 describe("on-summon passives (forward-area projection)", () => {
-  it("Flamehound (ranged) blasts a 3-wide corridor reaching forward into the mid rows", () => {
+  it("Flamehound's 3-wide corridor reaches forward, but only catches the 2 NEAREST", () => {
     const s = prepState();
     s.players.P1.summonPool = 5;
     s.players.P1.magicPool = 4;
@@ -741,9 +741,14 @@ describe("on-summon passives (forward-area projection)", () => {
     const wide = place(s, "dusk_silkstalker", "P2", 2, 3, { curHp: 7 }); // col 3 — outside spread
     const handId = giveHand(s, "P1", "pyro_flamehound");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    // Capped at 2 targets in the audit — uncapped, this cost-2 card put 12 on the
+    // board on arrival, beating cost-3 Spitfire's 9. Corridors are sorted
+    // nearest-first, so the cap costs it DEPTH: the two adjacent cards are hit
+    // and the one further down the lane is now spared. The SHAPE is unchanged —
+    // three columns wide, still reaching past melee range.
     expect(next.cards[leftMid.instanceId].curHp).toBe(10); // 3 dmg (side hit)
     expect(next.cards[rightMid.instanceId].curHp).toBe(16); // 3 dmg (side hit)
-    expect(next.cards[deep.instanceId].curHp).toBe(3); // 3 dmg (reached far)
+    expect(next.cards[deep.instanceId].curHp).toBe(6); // spared by the 2-target cap
     expect(next.cards[wide.instanceId].curHp).toBe(7); // untouched (too wide)
     expect(next.players.P1.magicPool).toBe(4); // free — a passive, not a Special
   });

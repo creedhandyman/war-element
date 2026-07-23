@@ -114,3 +114,39 @@ describe("rare passives", () => {
     expect(statusOf(s.cards[attacker.instanceId], "PARALYZE")).toBeTruthy();
   });
 });
+
+describe("rare audit — uncapped on-summon corridors", () => {
+  /** Summon `id` into a packed enemy cluster; return the immediate damage. */
+  function arrival(id: string): number {
+    const s = prepState();
+    s.players.P1.summonPool = 20;
+    const foes = [[2, 0], [2, 1], [2, 2], [1, 1]].map(([r, c]) =>
+      place(s, "dusk_gool", "P2", r, c, { curHp: 500, maxHp: 500, curShields: 0 }));
+    const handId = giveHand(s, "P1", id);
+    const n = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    return foes.reduce((a, f) => a + (500 - (n.cards[f.instanceId]?.curHp ?? 0)), 0);
+  }
+
+  it("Flamehound's corridor is capped, so a cost-2 no longer beats a cost-3", () => {
+    // Both cards do the same job. Flamehound's corridor was uncapped and
+    // Spitfire's was capped at 3, so the CHEAPER card hit for more: 12 vs 9.
+    const hound = arrival("pyro_flamehound");
+    const spitfire = arrival("pyro_spitfire");
+    expect(hound).toBe(6); // 2 x 3
+    expect(hound / 2).toBeLessThanOrEqual(spitfire / 3); // per cost, no longer ahead
+  });
+
+  it("Warthog's corridor is capped too", () => {
+    // 15 on arrival off a cost-2 body was the most of any rare by some way.
+    // Still 5 per target — its corridor reaches only ONE row, so it has to be
+    // in contact, unlike Flamehound's shot.
+    expect(arrival("bore_warthog")).toBe(10); // 2 x 5
+  });
+
+  it("a rare's on-summon stays under a cost-3 special's output", () => {
+    // The tier line worth holding: free arrival damage should not rival what an
+    // epic pays magic for. Piranha at 6 off a 1-cost is the top of the tier.
+    for (const id of ["pyro_flamehound", "bore_warthog", "aqua_piranha", "bolt_zap"])
+      expect(arrival(id), `${id} arrives too hot`).toBeLessThanOrEqual(10);
+  });
+});

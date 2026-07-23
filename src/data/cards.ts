@@ -441,7 +441,12 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Fire Blast: on summon, blast the 3-wide corridor ahead (left/mid/right
     // columns), reaching forward across the battlefield (ranged).
-    onSummon: { handler: "barrage", params: { dmg: 3, spread: 1, targets: 99 } },
+    // targets 99 -> 2. The corridor was UNCAPPED, so this cost-2 card put 12 damage
+    // on the board on arrival while cost-3 Spitfire — capped at 3 targets —
+    // managed 9: the cheaper card was strictly better at the one thing they both
+    // do. Two targets is 6, the same 3-per-cost as Spitfire. The 3-wide corridor
+    // SHAPE is untouched.
+    onSummon: { handler: "barrage", params: { dmg: 3, spread: 1, targets: 2 } },
   },
   {
     id: "pyro_spitfire",
@@ -2689,7 +2694,12 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Tusk Rush (On Summon): charge — 5 DMG to opponents directly ahead.
     // (The "keep charging on each kill" follow-up is unmodeled.)
-    onSummon: { handler: "barrage", params: { dmg: 5, spread: 1, forwardDepth: 1, targets: 99 } },
+    // targets 99 -> 2, the same uncapped-corridor problem Flamehound had: 15
+    // damage on arrival off a cost-2 body, by some way the most of any rare.
+    // Kept at 5 per target rather than cut to Flamehound's 3, because this
+    // corridor only reaches ONE row ahead — Warthog has to be in contact to
+    // connect at all, where Flamehound's shot carries down the board.
+    onSummon: { handler: "barrage", params: { dmg: 5, spread: 1, forwardDepth: 1, targets: 2 } },
   },
 
   // ───────────────────────── GALE ─────────────────────────
@@ -2759,7 +2769,10 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Electrifying Thunder Clap (On Summon): 5 DMG to all opponents in range.
-    onSummon: { handler: "barrage", params: { dmg: 5, targets: 99 } },
+    // 5 -> 3. A free board-wide hit on arrival, on top of an Arcing Strike that
+    // was already the most efficient Special in the game — none of the per-cast
+    // figures in the epic audit captured this half of the card.
+    onSummon: { handler: "barrage", params: { dmg: 3, targets: 99 } },
     special: {
       name: "Arcing Strike",
       cost: 2,
@@ -3008,11 +3021,17 @@ export const CARDS: CardDef[] = [
     healPerHit: 1,
     special: {
       name: "Tsunami",
-      cost: 3,
+      // cost 3 -> 4 and a printed 3-round cooldown. It measured 24 burst for 3
+      // magic off a COST-3 body — 12 damage/round, the top of its bracket by
+      // some way (Lytning 10, Fallona 6) — and like most epics it was running on
+      // the 1-round default lockout. Board-wide damage now costs more and comes
+      // round less often; the 6 itself is untouched.
+      cost: 4,
+      cooldown: 3,
       handler: "barrage",
       params: { dmg: 6, targets: 99, spDebuff: 3, spDebuffRounds: 1 },
       targetSide: "enemy",
-      text: "Deal 6 DMG to all opponents and −3 SP for the round.",
+      text: "Deal 6 DMG to all opponents and −3 SP for the round. 3-round cooldown.",
     },
   },
   {
