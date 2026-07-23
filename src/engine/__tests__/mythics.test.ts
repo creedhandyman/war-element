@@ -658,3 +658,58 @@ describe("Dive Bomb's WEAKEN is real, not just a chip on the card", () => {
     expect(statusOf(n.cards[foe.instanceId], "WEAKEN")).toBeUndefined();
   });
 });
+
+describe("mythic balance pass — measured outliers", () => {
+  it("Shadow Charge has NO splash: everything lands on the card it rode into", () => {
+    // The splash was never covered by a test, which is how 9 to every neighbour
+    // on top of a 19 + 9 DOT single target went unremarked.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const rider = place(s, "dusk_shadowhorsemen", "P1", 2, 1, { autoMode: "manual" });
+    const main = place(s, "dusk_gool", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const beside = place(s, "dusk_gool", "P2", 1, 2, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = applyIntent(battleWith(s, rider.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: main.instanceId,
+    });
+    expect(99 - n.cards[main.instanceId].curHp).toBe(19);
+    expect(n.cards[beside.instanceId].curHp).toBe(99); // untouched — splash gone
+    expect(statusOf(n.cards[main.instanceId], "DOT")?.power).toBe(9);
+    expect(statusOf(n.cards[beside.instanceId], "DOT")).toBeUndefined();
+  });
+
+  it("Black Wave Crash is on a 3-round lockout like every other mythic", () => {
+    // It carried NO printed cooldown, so it ran on the 1-round default: a
+    // board-wide 8 + BLIND every other round for 4 magic, which measured at
+    // double any other mythic's damage per round.
+    const s = prepState();
+    s.players.P1.magicPool = 20;
+    const kraken = place(s, "aqua_kraken", "P1", 2, 1, { curHp: 42, maxHp: 42, autoMode: "manual" });
+    place(s, "dusk_gool", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    let g = applyIntent(battleWith(s, kraken.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special",
+    });
+    expect(g.cards[kraken.instanceId].specialCooldown).toBe(4); // 3 printed + 1
+    for (let i = 0; i < 3; i++) {
+      g = advance(atCleanup(g));
+      expect(canFireSpecial(g, kraken.instanceId).ok).toBe(false);
+    }
+    g = advance(atCleanup(g));
+    expect(canFireSpecial(g, kraken.instanceId).ok).toBe(true);
+  });
+
+  it("Flame Engulf burns for 2, not 3 — the tail was bigger than the hit", () => {
+    // The corridor catches up to six cards; at power 3 over 3 rounds that was 9
+    // per victim on top of the 7, and Pyrogon measured the highest sustained
+    // output of any mythic by half again.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const pyro = place(s, "pyro_pyrogon", "P1", 3, 1, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = applyIntent(battleWith(s, pyro.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    expect(99 - n.cards[foe.instanceId].curHp).toBe(7); // the hit is untouched
+    expect(statusOf(n.cards[foe.instanceId], "BURN")?.power).toBe(2);
+    expect(statusOf(n.cards[foe.instanceId], "BURN")?.duration).toBe(3);
+  });
+});

@@ -2081,9 +2081,14 @@ export const CARDS: CardDef[] = [
       // 7 DMG + BURN 3 to a 3-wide corridor, TWO rows deep — the 3 opponents
       // directly ahead plus the row behind them (spread 1, forwardDepth 2).
       handler: "barrage",
-      params: { dmg: 7, spread: 1, forwardDepth: 2, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 3 },
+      // BURN power 3 -> 2. The corridor can catch six cards, and at power 3 for
+      // 3 rounds the burn was 9 per victim — more than the hit itself, and the
+      // reason Pyrogon measured 16 damage/round against a cluster, the highest
+      // of any mythic by half again. The 7 up front is untouched; it is the
+      // sustained tail that was out of band.
+      params: { dmg: 7, spread: 1, forwardDepth: 2, targets: 99, statusKind: "BURN", statusDuration: 3, statusPower: 2 },
       targetSide: "enemy",
-      text: "Deal 7 DMG + BURN 3 to the 3 opponents directly ahead and the row behind them (2 rows deep). 3-round cooldown.",
+      text: "Deal 7 DMG + BURN 2 to the 3 opponents directly ahead and the row behind them (2 rows deep). 3-round cooldown.",
     },
     // Aura (Scorch BURN stacks) deferred.
   },
@@ -2110,12 +2115,17 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Black Wave Crash",
       cost: 4,
+      // It was the ONLY mythic damage Special with no printed cooldown, so it
+      // ran on the default 1-round lockout — a board-wide 8 + BLIND every other
+      // round for 4 magic, measured at 12 damage/round against a cluster, double
+      // any other mythic on that pace. 3 brings it in line with its peers.
+      cooldown: 3,
       handler: "barrage",
       // Lose 5 HP (can dip Kraken into From the Deep), 8 DMG to all, −accuracy
       // via BLIND for 2 rounds.
       params: { dmg: 8, targets: 99, statusKind: "BLIND", statusDuration: 2, selfDamage: 5 },
       targetSide: "enemy",
-      text: "Lose 5 HP. Deal 8 DMG to all opponents and BLIND them 2 rounds (water in their eyes).",
+      text: "Lose 5 HP. Deal 8 DMG to all opponents and BLIND them 2 rounds (water in their eyes). 3-round cooldown.",
     },
   },
   {
@@ -2245,10 +2255,13 @@ export const CARDS: CardDef[] = [
       cost: 5,
       cooldown: 3, // charge nuke + EVASION escape — 3-round lockout between casts
       handler: "strike",
-      params: { dmg: 19, splash: 9, statusKind: "DOT", statusDuration: 1, statusPower: 9, selfStatus: "EVASION", selfStatusDuration: 1, charge: 4, chargeLateral: 1, chargeFirst: 1 },
+      // Splash removed: 9 to every neighbour on top of a 19 + 9 DOT single
+      // target made a well-placed ride a board wipe. It is a rider's nuke now —
+      // everything it does lands on the one card it charged.
+      params: { dmg: 19, statusKind: "DOT", statusDuration: 1, statusPower: 9, selfStatus: "EVASION", selfStatusDuration: 1, charge: 4, chargeLateral: 1, chargeFirst: 1 },
       targetSide: "enemy",
       ranged: true, // the dive reaches across the board
-      text: "Ride up to 4 spaces in any direction toward your target, deal 19 DMG + 9 DOT (+9 splash), and gain EVASION for a round. 3-round cooldown.",
+      text: "Ride up to 4 spaces in any direction toward your target, deal 19 DMG + 9 DOT, and gain EVASION for a round. 3-round cooldown.",
     },
   },
   {
