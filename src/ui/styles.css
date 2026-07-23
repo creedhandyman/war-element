@@ -1579,20 +1579,24 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: radial-gradient(circle, rgba(255,255,255,0.9), color-mix(in srgb, var(--rar, #ffb02e) 62%, transparent) 44%, transparent 70%);
   filter: blur(7px); animation: castflash-burst 2s ease-out both;
 }
+/* Badge + card scale in together — the entrance animation lives on the stack,
+   not the card, now that the two are siblings. */
+.announce-stack {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  animation: castflash-card 2s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
 .announce-card {
   position: relative; width: min(72vw, 300px); border-radius: 16px; overflow: hidden;
   border: 2px solid var(--rar, var(--gold-lit));
   background: linear-gradient(180deg, #12131f, #0a0b12);
   box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 22px 60px rgba(0,0,0,0.72),
               0 0 54px color-mix(in srgb, var(--rar, #ffb02e) 60%, transparent);
-  animation: castflash-card 2s cubic-bezier(0.2, 0.9, 0.25, 1) both;
 }
 .announce-rar {
-  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1;
-  font-family: var(--head); font-size: 11px; font-weight: 900; letter-spacing: 0.18em;
-  padding: 4px 12px; border-radius: 999px; color: #14100a; white-space: nowrap;
+  font-family: var(--head); font-size: 12px; font-weight: 900; letter-spacing: 0.2em;
+  padding: 5px 16px; border-radius: 999px; color: #14100a; white-space: nowrap;
   background: var(--rar, var(--gold-lit));
-  box-shadow: 0 0 18px color-mix(in srgb, var(--rar, #ffb02e) 75%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--rar, #ffb02e) 80%, transparent);
 }
 .announce-art { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
 .announce-noart {

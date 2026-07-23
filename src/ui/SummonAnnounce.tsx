@@ -33,31 +33,38 @@ export function SummonAnnounce({ defId, mine }: { defId: string; mine: boolean }
       }}
     >
       <div className="announce-burst" />
-      <div className="announce-card">
+      {/* Badge sits ABOVE the card rather than on the art. It has to live
+          outside .announce-card to do that at all — the card clips its children
+          (overflow: hidden), so no amount of offset would lift it clear. The
+          entrance animation moved up to .announce-stack so the two still scale
+          in as one piece. */}
+      <div className="announce-stack">
         <div className="announce-rar">{rar?.label ?? "POWERFUL"}</div>
-        {artOk ? (
-          <img
-            className="announce-art"
-            src={`/cards/${def.art ?? def.id}.png`}
-            alt={def.name}
-            draggable={false}
-            onError={() => setArtOk(false)}
-          />
-        ) : (
-          <div className="announce-art announce-noart">
-            <span>{EL_SIGIL[def.element]}</span>
-          </div>
-        )}
-        <div className="announce-meta">
-          <div className="announce-name">{def.name}</div>
-          <div className="announce-sub">
-            {def.element} · {def.cardClass} · {def.attackType}
-          </div>
-          <div className="announce-stats">
-            <span>⚔ {def.hits > 1 ? `${def.hits}×${def.dmg}` : def.dmg}</span>
-            <span>♥ {def.hp}</span>
-            {def.shields > 0 && <span>🛡 {def.shields}</span>}
-            <span>⚡ {def.sp}</span>
+        <div className="announce-card">
+          {artOk ? (
+            <img
+              className="announce-art"
+              src={`/cards/${def.art ?? def.id}.png`}
+              alt={def.name}
+              draggable={false}
+              onError={() => setArtOk(false)}
+            />
+          ) : (
+            <div className="announce-art announce-noart">
+              <span>{EL_SIGIL[def.element]}</span>
+            </div>
+          )}
+          <div className="announce-meta">
+            <div className="announce-name">{def.name}</div>
+            <div className="announce-sub">
+              {def.element} · {def.cardClass} · {def.attackType}
+            </div>
+            <div className="announce-stats">
+              <span>⚔ {def.hits > 1 ? `${def.hits}×${def.dmg}` : def.dmg}</span>
+              <span>♥ {def.hp}</span>
+              {def.shields > 0 && <span>🛡 {def.shields}</span>}
+              <span>⚡ {def.sp}</span>
+            </div>
           </div>
         </div>
       </div>
