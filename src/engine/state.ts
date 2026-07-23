@@ -72,8 +72,11 @@ function emptyPlayer(deck: string[], spellIds?: string[]): PlayerState {
   return {
     deck,
     hand: [],
-    // A deck's hand-picked spellbook wins; otherwise derive one from its elements.
-    spellbook: spellIds && spellIds.length ? spellbookFromIds(spellIds) : spellbookFor(deck),
+    // A hand-picked spellbook wins — INCLUDING an empty one. `undefined` means
+    // "this deck never chose", so derive from its elements; `[]` means "chose
+    // none", which used to fall through to the derive branch and hand a
+    // spell-less deck the entire elemental set.
+    spellbook: spellIds ? spellbookFromIds(spellIds) : spellbookFor(deck),
     summonPool: 0,
     magicPool: 0,
     mulliganDone: false,

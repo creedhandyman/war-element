@@ -520,10 +520,12 @@ export function isSpell(id: string): boolean {
  *  default when a deck carries no hand-picked spellbook. */
 export function spellbookFor(deck: string[]): SpellSlot[] {
   const elements = new Set<Element>(deck.map((id) => getDef(id).element));
-  return SPELLS.filter((s) => elements.has(s.element)).map((s) => ({
-    defId: s.id,
-    used: false,
-  }));
+  // Capped at MAX_SPELLBOOK like a hand-picked book. Uncapped, a two-element
+  // deck derived up to THIRTEEN spells and the battle tray was unusable —
+  // "at most this many spells" has to hold however the book was built.
+  return SPELLS.filter((s) => elements.has(s.element))
+    .slice(0, MAX_SPELLBOOK)
+    .map((s) => ({ defId: s.id, used: false }));
 }
 
 /** Build a spellbook from an explicit, ordered list of spell ids (a deck's

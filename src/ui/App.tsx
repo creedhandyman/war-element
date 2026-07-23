@@ -132,9 +132,12 @@ export function App() {
   // selection ever goes missing (e.g. a custom deck deleted mid-session).
   const resolveDeckCards = (deckId: string): string[] =>
     (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).cards;
-  // A deck's hand-picked spellbook (empty = engine auto-derives from elements).
-  const resolveDeckSpells = (deckId: string): string[] =>
-    (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).spells ?? [];
+  // A deck's hand-picked spellbook. `undefined` is passed through UNCHANGED so
+  // the engine can tell "this deck never picked spells" (derive from elements)
+  // from "it picked none" (play with none). Flattening both to [] here is what
+  // gave a spell-less deck the whole elemental set in battle.
+  const resolveDeckSpells = (deckId: string): string[] | undefined =>
+    (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).spells;
   const deckLabel = (deckId: string): string =>
     (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).name;
 

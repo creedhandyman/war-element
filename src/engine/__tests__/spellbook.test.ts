@@ -44,3 +44,36 @@ describe("createInitialState spellbook wiring", () => {
     );
   });
 });
+
+describe("a deck that chose NO spells plays with none", () => {
+  it("an empty spell list is honoured, not treated as 'unspecified'", () => {
+    // The reported bug: a deck saved with no spells showed the whole elemental
+    // set in battle and crowded the tray. `[]` fell through to the auto-derive
+    // branch because the guard tested `.length`, so "chose none" and "never
+    // chose" were the same thing to the engine.
+    const s = createInitialState(1, "leaf_pyro", "bore_dusk", ["P1"], [], []);
+    expect(s.players.P1.spellbook).toHaveLength(0);
+    expect(s.players.P2.spellbook).toHaveLength(0);
+  });
+
+  it("...while UNDEFINED still auto-derives from the deck's elements", () => {
+    // The distinction has to survive: premades without a spells key rely on it.
+    const s = createInitialState(1, "leaf_pyro", "bore_dusk", ["P1"], undefined, undefined);
+    expect(s.players.P1.spellbook.length).toBeGreaterThan(0);
+  });
+
+  it("a derived book is capped like a hand-picked one", () => {
+    // Uncapped, a two-element deck derived up to THIRTEEN spells — over twice
+    // the limit a player is allowed to build, and unusable in the tray.
+    for (const deck of ["leaf_pyro", "bore_dusk", "aqua_dawn"]) {
+      const s = createInitialState(1, deck, deck, ["P1"], undefined, undefined);
+      expect(s.players.P1.spellbook.length, `${deck} derived too many`)
+        .toBeLessThanOrEqual(MAX_SPELLBOOK);
+    }
+  });
+
+  it("a hand-picked book is unaffected", () => {
+    const s = createInitialState(1, "leaf_pyro", "bore_dusk", ["P1"], ["leaf_sprout"], []);
+    expect(s.players.P1.spellbook.map((x) => x.defId)).toEqual(["leaf_sprout"]);
+  });
+});
