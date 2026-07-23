@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { applyStatus } from "../combat";
 import { canMove, isActionBlocked, legalMoves } from "../rules";
 import { getDef } from "../../data/cards";
+import { SP_SLOW_MAX } from "../state";
 import { effectiveDmg, effectiveSp, moveReachFor } from "../state";
 import { place, prepState } from "./helpers";
 
@@ -99,21 +100,22 @@ describe("PARALYZE — mobility", () => {
     return { reach: moveReachFor(s, s.cards[c.instanceId]), sp: effectiveSp(s, s.cards[c.instanceId]) };
   };
 
-  it("halves a fast card's reach: 2 steps become 1", () => {
-    // Klipso is SP 8+ — over the moveReach threshold, so it normally strides 2.
+  it("cuts a quick card to a single step, whatever tier it was in", () => {
+    // PARALYZE caps movement at 1, so it costs a mid card one slot and a FAST
+    // card two. Klipso sits above the slow band and normally strides at least 2.
     const before = moves("gale_klipso", false);
     const after = moves("gale_klipso", true);
-    expect(before.sp).toBeGreaterThan(7);
-    expect(before.reach).toBe(2);
+    expect(before.sp).toBeGreaterThan(SP_SLOW_MAX);
+    expect(before.reach).toBeGreaterThanOrEqual(2);
     expect(after.reach).toBe(1);
   });
 
   it("a slow card feels nothing — it already moved 1", () => {
     // The point of pinning it to mobility: PARALYZE is a tax on speed, not a
-    // second ROOT. Anything at SP 7 or under is unchanged.
+    // second ROOT. Anything in the SLOW band already moves 1 and feels nothing.
     const s = prepState();
     const slow = place(s, "bore_armadillo", "P1", 2, 1);
-    expect(effectiveSp(s, s.cards[slow.instanceId])).toBeLessThanOrEqual(7);
+    expect(effectiveSp(s, s.cards[slow.instanceId])).toBeLessThanOrEqual(SP_SLOW_MAX);
     const before = moveReachFor(s, s.cards[slow.instanceId]);
     applyStatus(s, slow, "PARALYZE", 2, 0, "BOLT");
     expect(moveReachFor(s, s.cards[slow.instanceId])).toBe(before);

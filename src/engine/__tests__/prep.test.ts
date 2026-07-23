@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
 import { canMove, canSummon } from "../rules";
-import { cardAt, moveReach } from "../state";
+import { cardAt, moveReach, SP_MID_MAX, SP_SLOW_MAX } from "../state";
 import { giveHand, place, prepState } from "./helpers";
 import { getDef } from "../../data/cards";
 import type { GameState } from "../types";
@@ -62,12 +62,16 @@ describe("summoning", () => {
 });
 
 describe("movement", () => {
-  it("movement tiers: SP 0 = 0 spaces, 1–7 = 1, 8–15 = 2", () => {
+  it("movement tiers: 0 = pinned, slow 1–5 = 1, mid 6–10 = 2, fast 11+ = 3", () => {
+    // Every boundary here is a balance cliff — one printed SP across a line is
+    // a whole extra slot of reach — so both sides of each are pinned.
     expect(moveReach(0)).toBe(0);
     expect(moveReach(1)).toBe(1);
-    expect(moveReach(7)).toBe(1);
-    expect(moveReach(8)).toBe(2);
-    expect(moveReach(15)).toBe(2);
+    expect(moveReach(SP_SLOW_MAX)).toBe(1);
+    expect(moveReach(SP_SLOW_MAX + 1)).toBe(2);
+    expect(moveReach(SP_MID_MAX)).toBe(2);
+    expect(moveReach(SP_MID_MAX + 1)).toBe(3);
+    expect(moveReach(21)).toBe(3); // the GALE Zephyr cap still lands in fast
   });
 
   it("SP 1–7 moves 1 space, SP 8–15 moves 2", () => {

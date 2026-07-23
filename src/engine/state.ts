@@ -330,10 +330,26 @@ export function effectiveDmg(state: GameState, card: CardInstance): number {
   return Math.max(0, dmg);
 }
 
-/** Movement tier: SP 0 = 0 spaces, 1–7 = 1, 8–15 = 2. */
+/** Speed tiers. Movement is a STEP FUNCTION of SP, so these boundaries are
+ *  balance cliffs: one printed point across a line is a whole extra slot of
+ *  board reach, while the stat-budget formula prices SP linearly and knows
+ *  nothing about them. Named constants so the cliffs are at least greppable.
+ *
+ *      slow  1-5  -> 1 space
+ *      mid   6-10 -> 2
+ *      fast  11+  -> 3
+ *
+ *  Replaces a two-tier split at 7/8, which put 97 of 162 cards in a single
+ *  bucket and left SP largely inert as a stat — below the line it bought
+ *  nothing, above it nothing further. */
+export const SP_SLOW_MAX = 5;
+export const SP_MID_MAX = 10;
+
 export function moveReach(sp: number): number {
-  if (sp <= 0) return 0;
-  return sp <= 7 ? 1 : 2;
+  if (sp <= 0) return 0; // ROOT / FREEZE pin a card outright
+  if (sp <= SP_SLOW_MAX) return 1;
+  if (sp <= SP_MID_MAX) return 2;
+  return 3;
 }
 
 /**
