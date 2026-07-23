@@ -589,9 +589,17 @@ export function resolveHit(
         }
       }
     } else if (tDef.element === "DUSK" && opts.kind !== "reflect" && attacker.curHp > 0) {
-      // Midnight Shade (DUSK aura): a dying card deals half its DMG to the
+      // Midnight Shade (DUSK aura): a dying card deals a THIRD of its DMG to the
       // killer. Only when the card has no stronger card-specific onDeath.
-      const back = Math.floor(tDef.dmg / 2);
+      //
+      // Cut from a half. Measured at ~10 procs a game, it is the only aura in
+      // the game that pays out for LOSING cards — which is precisely the
+      // disposable-body strategy DUSK is already best at: 7 of its cards cost 2
+      // or less, two of them are spawnable tokens, and it fields and loses more
+      // bodies than any other element. Free damage on every one of those deaths,
+      // with no cost, cooldown or counterplay, is what made attacking into DUSK
+      // a losing trade even when the individual cards were not tough.
+      const back = Math.floor(tDef.dmg / 3);
       if (back > 0) {
         draft.log.push(`${tDef.name} lashes out from the shadows (${back} DMG).`);
         // Telegraph on the KILLER, not the source: defeatCard has already

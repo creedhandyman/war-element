@@ -1236,13 +1236,28 @@ describe("element auras", () => {
     expect(s.cards[t.instanceId].statuses.some((x) => x.kind === "BURN")).toBe(true);
   });
 
-  it("Midnight Shade (DUSK): a dying DUSK card hits its killer for half its DMG", () => {
+  it("Midnight Shade (DUSK): a dying DUSK card hits its killer for a THIRD of its DMG", () => {
+    // Cut from a half. It fired ~10 times a game — the only aura that pays out
+    // for LOSING cards, which is exactly the disposable-body game DUSK is best
+    // at (7 of its cards cost 2 or less, two of them spawnable tokens).
     const s = prepState();
-    const killer = place(s, "gale_duster", "P1", 2, 0, { curHp: 5 });
-    const dusk = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 }); // DMG 2 → half 1
+    const killer = place(s, "gale_duster", "P1", 2, 0, { curHp: 9 });
+    const dusk = place(s, "dusk_reaper", "P2", 2, 1, { curHp: 1 }); // DMG 7 → third 2
     basicAttack(s, killer.instanceId, dusk.instanceId);
     expect(s.cards[dusk.instanceId]).toBeUndefined();
-    expect(s.cards[killer.instanceId].curHp).toBe(4); // 5 − 1 Midnight Shade
+    expect(s.cards[killer.instanceId].curHp).toBe(7); // 9 − 2 (was 3 at a half)
+  });
+
+  it("...and the cheapest bodies now lash out for nothing at all", () => {
+    // A consequence worth pinning rather than discovering: at 2 DMG the third
+    // floors to zero, so Vamp and Spider — the throwaway cards the aura most
+    // rewarded losing — give their killer nothing back.
+    const s = prepState();
+    const killer = place(s, "gale_duster", "P1", 2, 0, { curHp: 5 });
+    const vamp = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 }); // DMG 2 → third 0
+    basicAttack(s, killer.instanceId, vamp.instanceId);
+    expect(s.cards[vamp.instanceId]).toBeUndefined();
+    expect(s.cards[killer.instanceId].curHp).toBe(5); // untouched
   });
 
   it("Awakening (DAWN): summoning strikes the nearest enemy for half its DMG", () => {

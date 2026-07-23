@@ -16,7 +16,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP, and gain +1 shield (max 3) if they were hit that round." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN 1 (1 round, non-stacking)." },
   BORE: { name: "Exostone", desc: "Enters play with +2 shields." },
-  DUSK: { name: "Midnight Shade", desc: "On death, deals half its DMG back to the killer." },
+  DUSK: { name: "Midnight Shade", desc: "On death, deals a third of its DMG back to the killer." },
   AQUA: { name: "Flow Change", desc: "On summon, choose a 1-turn boost: Liquid +2 DMG (+1 hit if multi-hit) · Frozen +3 shields · Vapor +4 SP." },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for half its DMG." },
   GALE: { name: "Zephyr", desc: "End of round, +1 SP (caps at SP 21)." },
