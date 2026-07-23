@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
 import { basicAttack, directDamage, applyStatus } from "../combat";
 import { canTarget } from "../rules";
-import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
+import { atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
 
 describe("rare passives", () => {
   it("BORE UFO — Radiation deals 2 PEN each Cleanup, straight through shields", () => {
@@ -27,15 +27,42 @@ describe("rare passives", () => {
     expect(next.cards[foe.instanceId].nextAttackDmgDebuff).toBe(2); // −2 on its next basic
   });
 
-  it("AQUA IcyNinza — Icy Mist cloaks it in STEALTH for 2 rounds on summon", () => {
+  it("AQUA IcyNinza — Icy Mist cloaks it in STEALTH for 1 round on summon", () => {
     const s = prepState();
     s.players.P1.summonPool = 5;
     const handId = giveHand(s, "P1", "aqua_icyninza");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const ninja = Object.values(next.cards).find((c) => c.defId === "aqua_icyninza")!;
-    expect(statusOf(ninja, "STEALTH")?.duration).toBe(2);
+    expect(statusOf(ninja, "STEALTH")?.duration).toBe(1); // cut from 2
     const foe = place(next, "dusk_gool", "P2", 1, 0);
     expect(canTarget(next, next.cards[foe.instanceId], ninja)).toBe(false); // untargetable
+  });
+
+  it("...and it opens with a 3 DMG attack that can CRIT, before vanishing", () => {
+    // The opener asks for `crit` explicitly: IcyNinza's CRIT keyword only rides
+    // BASIC attacks, so an on-summon handler lands uncritted without it. CRIT is
+    // a coin flip on an unshielded target, so the roll is seeded — asserting a
+    // flat 6 would pass or fail on the RNG.
+    const s = prepState();
+    s.rngState = seedForCoins(true); // the crit connects
+    s.players.P1.summonPool = 5;
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const handId = giveHand(s, "P1", "aqua_icyninza");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(40 - next.cards[foe.instanceId].curHp).toBe(6); // 3, doubled
+    // ...and the cloak still lands, because the handler resolves first.
+    const ninja = Object.values(next.cards).find((c) => c.defId === "aqua_icyninza")!;
+    expect(statusOf(ninja, "STEALTH")?.duration).toBe(1);
+  });
+
+  it("...and lands its flat 3 when the crit misses", () => {
+    const s = prepState();
+    s.rngState = seedForCoins(false); // no crit
+    s.players.P1.summonPool = 5;
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const handId = giveHand(s, "P1", "aqua_icyninza");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(40 - next.cards[foe.instanceId].curHp).toBe(3);
   });
 
   it("PYRO Ingit — Hot Hot doubles the BURN on a melee attacker", () => {

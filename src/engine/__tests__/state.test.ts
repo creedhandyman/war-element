@@ -25,6 +25,11 @@ describe("setup", () => {
     const exceptions = new Set([
       "bore_bearocks",
       "dusk_skelider",
+      // Bootlegger: 3+9+2*2+6 = 22 vs a cost-1 budget of 15, i.e. 7 over — by far
+      // the widest exemption in this list. Deliberately priced that way as an
+      // armoured runner (2 shields + SP 6 + a 3 DMG Stomp on the crossing);
+      // holding it to the formula would mean cost 2, or gutting its 9 HP.
+      "aqua_bootlegger",
       // (Sparkle and ToxHawk both used to sit here as "SP-heavy glass cannons"
       // running past the ±2 band. Sparkle traded SP 14 -> 9 to pay for cost 1,
       // and ToxHawk dropped 2 HP to land 2 over at cost 2. Both are inside the

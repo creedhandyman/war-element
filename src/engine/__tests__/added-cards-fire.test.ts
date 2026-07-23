@@ -224,11 +224,11 @@ describe("wave 1: RohoJohn, Shoksa, Lumberjack, Bootlegger", () => {
     const boot = place(s, "aqua_bootlegger", "P1", 2, 0); // own half (P1 home = 3)
     const foe = place(s, "dusk_gool", "P2", 0, 0, { curHp: 60, maxHp: 60, curShields: 0 });
     let n = applyIntent(s, { type: "MOVE", player: "P1", instanceId: boot.instanceId, to: { row: 1, col: 0 } });
-    expect(60 - n.cards[foe.instanceId].curHp).toBe(1); // crossed → stomped
+    expect(60 - n.cards[foe.instanceId].curHp).toBe(3); // crossed → stomped
     // Shuffling around once already there must NOT stomp again.
     n.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
     n = applyIntent(n, { type: "MOVE", player: "P1", instanceId: boot.instanceId, to: { row: 1, col: 1 } });
-    expect(60 - n.cards[foe.instanceId].curHp).toBe(1); // still 1
+    expect(60 - n.cards[foe.instanceId].curHp).toBe(3); // still 3, not 6
   });
 });
 

@@ -3289,10 +3289,21 @@ export const CARDS: CardDef[] = [
     hp: 8,
     sp: 8,
     shields: 0,
-    // Always CRITs (keyword). Icy Mist (On Summon): cloak in STEALTH for 2 rounds,
-    // extended +1 round for each kill made while cloaked.
+    // Always CRITs (keyword) — but the keyword only rides BASIC attacks, so the
+    // on-summon opener asks for `crit` explicitly or it would land uncritted.
+    // Icy Mist (On Summon): open with a 3 DMG CRIT on one opponent in range,
+    // then cloak in STEALTH for 1 round, extended +1 for each kill while cloaked.
+    // The handler resolves BEFORE the self-status, so it strikes and then vanishes.
     keywords: { CRIT: true },
-    onSummon: { selfStatus: "STEALTH", selfStatusDuration: 2, extendSelfStatusOnKill: 1 },
+    passiveNames: { onSummon: "Icy Mist" },
+    onSummon: {
+      handler: "barrage",
+      params: { dmg: 3, targets: 1, crit: 1 },
+      targetSide: "enemy",
+      selfStatus: "STEALTH",
+      selfStatusDuration: 1,
+      extendSelfStatusOnKill: 1,
+    },
   },
   {
     id: "pyro_ingit",
@@ -4003,13 +4014,16 @@ export const CARDS: CardDef[] = [
     dmg: 3,
     hits: 1,
     hp: 9,
-    sp: 3,
-    shields: 0,
+    // Shields 0 -> 2 and SP 3 -> 6: an armoured runner that gets there first.
+    // This puts it 7 over the cost-1 budget (22 vs 15) and it is budget-test
+    // exempt as a result — a deliberate call, not drift. See state.test.ts.
+    sp: 6,
+    shields: 2,
     keywords: {},
     // Fires on the CROSSING onto enemy ground, not on every step taken once it
-    // is already there.
+    // is already there. 1 -> 3 DMG, so the invasion actually hurts.
     passiveNames: { onEnterEnemySide: "Stomp" },
-    onEnterEnemySide: { dmg: 1 },
+    onEnterEnemySide: { dmg: 3 },
   },
   // ── Wave 2 ────────────────────────────────────────────────────────────────
   {

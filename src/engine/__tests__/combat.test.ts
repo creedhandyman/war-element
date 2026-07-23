@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, resolveHit } from "../combat";
+import { getDef } from "../../data/cards";
 import { advance } from "../phases";
 import { atCleanup, place, prepState, seedForCoins, statusOf } from "./helpers";
 import type { GameState } from "../types";
@@ -279,15 +280,30 @@ describe("Bird Bomb only catches a killer standing in the blast", () => {
 });
 
 describe("DRAIN — lifesteal that also grows the drainer", () => {
-  it("heals for the damage dealt AND takes a point of max HP", () => {
+  it("heals for HALF the damage dealt AND takes a point of max HP", () => {
     const s = prepState();
     const vamp = place(s, "dusk_vamp", "P1", 2, 0, { curHp: 4, maxHp: 10, curShields: 0 });
     const prey = place(s, "gale_guan", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
-    const dealt = 40 - (basicAttack(s, vamp.instanceId, prey.instanceId), s.cards[prey.instanceId].curHp);
+    basicAttack(s, vamp.instanceId, prey.instanceId);
+    const dealt = 40 - s.cards[prey.instanceId].curHp;
     expect(dealt).toBeGreaterThan(0);
     expect(s.cards[vamp.instanceId].maxHp).toBe(11); // +1 stolen ceiling
     expect(s.cards[prey.instanceId].maxHp).toBe(39); // ...off the victim
-    expect(s.cards[vamp.instanceId].curHp).toBe(4 + dealt); // and healed like LIFESTEAL
+    // Half rate, floored — DRAIN feeds slower than LIFESTEAL, which returns all.
+    expect(s.cards[vamp.instanceId].curHp).toBe(4 + Math.floor(dealt / 2));
+  });
+
+  it("a 1-damage drain returns nothing (the half rate floors)", () => {
+    // On its HOME row deliberately: a mid row would hand it King of the Hill's
+    // +1 DMG and the hit would no longer be the 1 this test is about.
+    const s = prepState();
+    const vamp = place(s, "dusk_vamp", "P1", 3, 0, { curHp: 4, maxHp: 10, curShields: 0 });
+    const prey = place(s, "gale_guan", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    s.cards[vamp.instanceId].dmgBonus = 1 - getDef("dusk_vamp").dmg; // pin the hit to 1
+    basicAttack(s, vamp.instanceId, prey.instanceId);
+    expect(40 - s.cards[prey.instanceId].curHp).toBe(1);
+    expect(s.cards[vamp.instanceId].curHp).toBe(4); // floor(1/2) = no heal...
+    expect(s.cards[vamp.instanceId].maxHp).toBe(11); // ...but the theft still lands
   });
 
   it("the stolen ceiling is available to the SAME hit's heal", () => {

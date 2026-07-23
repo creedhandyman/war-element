@@ -468,12 +468,19 @@ export function resolveHit(
     // ceiling is already in place and the heal can actually use it. The other
     // order silently clipped the last points of every drain-heal.
     if (aDef.keywords.DRAIN) drainMaxHp(draft, attacker, target, 1);
-    // DRAIN is LIFESTEAL that also grows: it heals for the damage dealt exactly
-    // like LIFESTEAL, on top of the max HP it just took.
-    if ((aDef.keywords.LIFESTEAL || aDef.keywords.DRAIN || opts.lifesteal) && result.totalToHp > 0) {
-      const healed = healCard(draft, attacker, result.totalToHp, attacker); // SEAL blocks it
+    // DRAIN is LIFESTEAL that also grows — but it feeds at HALF rate: it heals
+    // for half the damage dealt, on top of the 1 max HP it just took. LIFESTEAL
+    // still returns the full amount, and a card carrying both takes the better
+    // (full) rate rather than the two cancelling out.
+    const drains = aDef.keywords.LIFESTEAL || aDef.keywords.DRAIN || opts.lifesteal;
+    if (drains && result.totalToHp > 0) {
+      const fullRate = Boolean(aDef.keywords.LIFESTEAL || opts.lifesteal);
+      // floor, matching every other halving in the game (DAWN's Awakening,
+      // FREEZE's damage cut) — so a 1-damage drain returns nothing.
+      const amount = fullRate ? result.totalToHp : Math.floor(result.totalToHp / 2);
+      const healed = amount > 0 ? healCard(draft, attacker, amount, attacker) : 0; // SEAL blocks it
       if (healed > 0)
-        draft.log.push(`${aDef.name} ${aDef.keywords.DRAIN ? "drains" : "lifesteals"} ${healed} HP.`);
+        draft.log.push(`${aDef.name} ${fullRate ? "lifesteals" : "drains"} ${healed} HP.`);
     }
   }
 
