@@ -32,6 +32,7 @@ import {
   effectiveSpecialCost,
   canFireTalent,
   canMove,
+  shoveTarget,
   canSummon,
   canTarget,
   forwardAreaTargets,
@@ -179,6 +180,17 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // Stomp (Bootlegger) reads BOTH sides of the step, so it fires on the
       // crossing itself rather than every time it shuffles around enemy ground.
       const wasOnEnemySide = onEnemySide(card, draft.boardSize);
+      // Trample Through (WarPhant): stepping onto a weaker enemy drives it back
+      // a square first, then the mover takes the slot. Resolved from the same
+      // helper canMove used to approve it, so the two cannot disagree about
+      // which square the victim ends on.
+      const shove = shoveTarget(draft, card, intent.to);
+      if (shove) {
+        shove.victim.pos = { ...shove.dest };
+        draft.log.push(
+          `${getDef(card.defId).name} bulls ${getDef(shove.victim.defId).name} back to r${shove.dest.row}c${shove.dest.col}.`,
+        );
+      }
       card.pos = { ...intent.to };
       draft.prep!.movedThisTurn = true;
       draft.prep!.consecutivePasses = 0;

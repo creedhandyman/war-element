@@ -1482,6 +1482,46 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
   },
 
+  /** Battle Charge (WarPhant): rumble forward, then hit the column it is facing
+   *  in two tiers — the FIRST opponent in the lane takes `dmg` and is driven
+   *  back a slot, and every opponent packed CONTIGUOUSLY behind it takes
+   *  `chainDmg`. The chain stops at the first gap: this is a mass of muscle
+   *  shunting a stack, so it travels only as far as bodies are actually
+   *  touching, not down the whole column. */
+  battleCharge(draft, attacker, _targets, params) {
+    if (num(params, "charge") > 0) chargeForward(draft, attacker, num(params, "charge"));
+    const pos = attacker.pos;
+    if (!pos) return;
+    const dir = attacker.owner === "P1" ? -1 : 1; // toward the enemy home row
+    // Everything ahead in this column, nearest first.
+    const lane = boardCards(draft, enemyOf(attacker.owner))
+      .filter((e) => e.pos && e.pos.col === pos.col && (e.pos.row - pos.row) * dir > 0)
+      .sort((a, b) => (a.pos!.row - pos.row) * dir - (b.pos!.row - pos.row) * dir);
+    if (lane.length === 0) return;
+    // Contiguous run: each next body must sit directly against the previous one.
+    const run = [lane[0]];
+    for (let i = 1; i < lane.length; i++) {
+      if (Math.abs(lane[i].pos!.row - run[run.length - 1].pos!.row) !== 1) break;
+      run.push(lane[i]);
+    }
+    const chain = num(params, "chainDmg");
+    // Back to front, so a body shunted backwards cannot land on one that has
+    // not been dealt with yet.
+    for (let i = run.length - 1; i >= 1; i--)
+      if (chain > 0) directDamage(draft, attacker, run[i], chain, num(params, "pen") > 0);
+    const first = run[0];
+    if (draft.cards[first.instanceId] && first.curHp > 0) {
+      directDamage(draft, attacker, first, num(params, "dmg"), num(params, "pen") > 0);
+      // Shoved AFTER the damage — a victim that died is already gone, and the
+      // survivor gets driven off the slot the charge just claimed.
+      if (draft.cards[first.instanceId] && first.curHp > 0)
+        pushBack(draft, first, num(params, "push", 1), attacker.owner);
+    }
+    draft.log.push(
+      `${label(draft, attacker)} rumbles through ${run.length} opponent(s) in the lane.`,
+    );
+  },
+
   /** Damage to up to N valid enemy targets (chosen target first). Optional
    *  hits (dmg × hits per target), pen, crit, and a statusKind applied to each
    *  surviving target (FREEZE/BLIND/SCALD/PARALYZE nova). */

@@ -53,6 +53,38 @@ export function canSummon(
   return { ok: true };
 }
 
+/** Trample Through (WarPhant): the shove a MOVE would perform, or null if this
+ *  move is not one. Exported so the reducer resolves exactly what canMove
+ *  approved rather than re-deriving it and risking the two drifting apart.
+ *
+ *  Conditions, all required: the mover has the trait, the step is a single
+ *  square, the destination holds an ENEMY, that enemy is strictly weaker by
+ *  effective max HP (auras count), and the square directly beyond it — same
+ *  direction, so the victim is driven straight back — is on the board, open and
+ *  uncaptured. */
+export function shoveTarget(
+  state: GameState,
+  card: CardInstance,
+  to: Pos,
+): { victim: CardInstance; dest: Pos } | null {
+  if (!card.pos || !getDef(card.defId).shoveWeaker) return null;
+  const dr = to.row - card.pos.row;
+  const dc = to.col - card.pos.col;
+  if (Math.max(Math.abs(dr), Math.abs(dc)) !== 1) return null; // one square only
+  const victim = cardAt(state, to.row, to.col);
+  if (!victim || victim.owner === card.owner) return null;
+  if (effectiveMaxHp(state, victim) >= effectiveMaxHp(state, card)) return null;
+  const beyond = { row: to.row + dr, col: to.col + dc };
+  if (
+    beyond.row < 0 || beyond.row >= state.boardSize ||
+    beyond.col < 0 || beyond.col >= state.boardSize ||
+    state.slots[beyond.row][beyond.col].capturedBy ||
+    cardAt(state, beyond.row, beyond.col)
+  )
+    return null;
+  return { victim, dest: beyond };
+}
+
 export function canMove(
   state: GameState,
   player: PlayerId,
@@ -86,7 +118,7 @@ export function canMove(
   if (dist === 0) return { ok: false, reason: "Already there" };
   if (dist > reach)
     return { ok: false, reason: `Too far (reach ${reach})` };
-  if (cardAt(state, to.row, to.col))
+  if (cardAt(state, to.row, to.col) && !shoveTarget(state, card, to))
     return { ok: false, reason: "Destination occupied" };
   // Captured slots are locked: cards may pass through, but can't stop on one.
   if (isCaptured(state, to.row, to.col))

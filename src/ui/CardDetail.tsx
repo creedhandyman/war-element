@@ -356,6 +356,10 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.onHitByMelee?.doubleBurn)
     named("onHitByMelee", `Hot Hot: when hit by melee, doubles the BURN already on the attacker.`);
+  if (def.shoveWeaker)
+    passives.push(
+      "Trample Through: in Prep it can step onto an adjacent opponent with less max HP, shoving it back a slot and taking the square (needs the slot behind it open).",
+    );
   if (def.mounted)
     passives.push(
       "Mounted: moves like a chess king — a diagonal step costs 1, not 2 (lost if it dismounts).",

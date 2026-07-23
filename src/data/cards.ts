@@ -4150,17 +4150,31 @@ export const CARDS: CardDef[] = [
       onDeath: "Last Rider",
     },
     mounted: true, // an armoured elephant IS the mount — king-move in Prep
+    // Trample Through: in PREP it may step onto an adjacent enemy with less
+    // effective max HP, shoving it one slot further along the same line and
+    // taking the square. Needs the slot beyond the victim open — nothing gets
+    // crushed against a wall or another body.
+    shoveWeaker: true,
     summonSelfShields: 4, // the Hardened Gold Armor it rides in with
     onEnterMidRow: { shields: 2 }, // ...and it plates up on reaching the middle
     onDeath: { dmg: 0, spawnToken: { token: "dawn_warrider_tok", count: 1 } },
     special: {
       name: "Battle Charge",
       cost: 3,
-      handler: "barrage",
-      // sameColumn = "straight ahead"; charge walks it up to 4 slots forward.
-      params: { dmg: 10, targets: 99, sameColumn: 1, charge: 4, chargeFirst: 1 },
+      handler: "battleCharge",
+      // Two tiers down the lane instead of a flat 10 to everyone ahead: the
+      // FIRST opponent takes 10 and is shoved back, and anything packed
+      // contiguously behind it takes 7. The chain stops at the first gap, so
+      // the charge shunts a stack rather than raking the whole column.
+      params: { dmg: 10, chainDmg: 7, push: 1, charge: 4 },
+      // ranged: the same defect Rollo and Tempest had. WarPhant is MELEE, so
+      // without this the "charge up to 4 spaces forward" could only be cast at
+      // something already touching it — there was never a lane to charge down.
+      // The handler picks its own victims from the column, so the target choice
+      // only has to make the cast legal.
+      ranged: true,
       targetSide: "enemy",
-      text: "Charge up to 4 spaces forward, dealing 10 DMG to every opponent straight ahead.",
+      text: "Charge up to 4 spaces forward: 10 DMG to the first opponent in your column and shove it back, plus 7 DMG to any opponents touching behind it.",
     },
   },
   {

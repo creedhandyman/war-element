@@ -360,6 +360,11 @@ export interface CardDef {
   /** Shadow (Vaga): can only be attacked by ADJACENT opponents — attackers a row
    *  or more away (incl. ranged) can't reach it. */
   onlyAdjacentAttackers?: boolean;
+  /** Trample Through (WarPhant): in PREP it may step INTO an adjacent enemy with
+   *  less effective max HP, shoving it one slot further along the same line and
+   *  taking the vacated square. Needs the slot beyond the victim to be open and
+   *  uncaptured — nothing is crushed against a wall or another body. */
+  shoveWeaker?: boolean;
   /** This card rides something. Mounted cards move like a chess king in Prep —
    *  a diagonal costs one step, not two — the same footing FLYING already had.
    *  A mount that is LOST puts its rider back on foot: Skelider's Dismount sets

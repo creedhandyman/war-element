@@ -7,7 +7,7 @@
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard } from "../combat";
 import { advance, applyIntent } from "../phases";
-import { canFireSpecial } from "../rules";
+import { canFireSpecial, canMove } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
@@ -553,5 +553,109 @@ describe("RIP — Horde is free from the clock, paid for by hand", () => {
     expect(40 - n.cards[foe.instanceId].curHp).toBe(3); // the quake connected
     expect(statusOf(n.cards[foe.instanceId], "DOT")?.power).toBe(3);
     expect(statusOf(n.cards[deep.instanceId], "STEALTH")).toBeDefined(); // slipped under
+  });
+});
+
+describe("WarPhant — Trample Through (Prep) and the reworked Battle Charge", () => {
+  function armPrep(s: GameState) {
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    return s;
+  }
+  function battleFor2(s: GameState, id: string) {
+    s.phase = "battle"; s.prep = null;
+    s.battle = { queue: [id], index: 0, awaitingInput: id };
+    return s;
+  }
+
+  it("shoves a weaker adjacent enemy back and takes its slot", () => {
+    const s = armPrep(prepState());
+    const wp = place(s, "dawn_warphant", "P1", 2, 1);
+    const weak = place(s, "dusk_gool", "P2", 1, 1, { curHp: 13, maxHp: 13 });
+    const n = applyIntent(s, {
+      type: "MOVE", player: "P1", instanceId: wp.instanceId, to: { row: 1, col: 1 },
+    });
+    expect(n.cards[wp.instanceId].pos).toEqual({ row: 1, col: 1 }); // took the square
+    expect(n.cards[weak.instanceId].pos).toEqual({ row: 0, col: 1 }); // driven straight back
+  });
+
+  it("will not shove something with equal or greater max HP", () => {
+    const s = armPrep(prepState());
+    const wp = place(s, "dawn_warphant", "P1", 2, 1);
+    const tough = place(s, "dusk_gool", "P2", 1, 1, { curHp: 99, maxHp: 99 });
+    expect(canMove(s, "P1", wp.instanceId, { row: 1, col: 1 }).ok).toBe(false);
+    void tough;
+  });
+
+  it("will not shove when the slot beyond is blocked or off the board", () => {
+    // Nothing gets crushed: a victim with its back to a body, or to the edge,
+    // simply cannot be moved and the step stays illegal.
+    const s = armPrep(prepState());
+    const wp = place(s, "dawn_warphant", "P1", 2, 1);
+    place(s, "dusk_gool", "P2", 1, 1, { curHp: 13, maxHp: 13 });
+    place(s, "dusk_vamp", "P2", 0, 1, { curHp: 13, maxHp: 13 }); // blocks the shove
+    expect(canMove(s, "P1", wp.instanceId, { row: 1, col: 1 }).ok).toBe(false);
+
+    const edge = armPrep(prepState());
+    const wp2 = place(edge, "dawn_warphant", "P1", 1, 1);
+    place(edge, "dusk_gool", "P2", 0, 1, { curHp: 13, maxHp: 13 }); // its back is the wall
+    expect(canMove(edge, "P1", wp2.instanceId, { row: 0, col: 1 }).ok).toBe(false);
+  });
+
+  it("only WarPhant does it — an ordinary card still cannot enter an occupied slot", () => {
+    const s = armPrep(prepState());
+    const grunt = place(s, "bore_clubber", "P1", 2, 1);
+    place(s, "dusk_gool", "P2", 1, 1, { curHp: 13, maxHp: 13 });
+    expect(canMove(s, "P1", grunt.instanceId, { row: 1, col: 1 }).ok).toBe(false);
+  });
+
+  it("Battle Charge: 10 to the first in the lane, 7 to those packed behind", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const wp = place(s, "dawn_warphant", "P1", 3, 1, { autoMode: "manual" });
+    const first = place(s, "dusk_gool", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const behind = place(s, "dusk_vamp", "P2", 0, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = applyIntent(battleFor2(s, wp.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: first.instanceId,
+    });
+    expect(99 - n.cards[first.instanceId].curHp).toBe(10);
+    expect(99 - n.cards[behind.instanceId].curHp).toBe(7);
+    expect(n.cards[wp.instanceId].pos).toEqual({ row: 2, col: 1 }); // rumbled forward
+  });
+
+  it("...and shoves the first one back when there is room behind it", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const wp = place(s, "dawn_warphant", "P1", 3, 1, { autoMode: "manual" });
+    const first = place(s, "dusk_gool", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = applyIntent(battleFor2(s, wp.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: first.instanceId,
+    });
+    expect(99 - n.cards[first.instanceId].curHp).toBe(10);
+    expect(n.cards[first.instanceId].pos).toEqual({ row: 0, col: 1 }); // driven back
+  });
+
+  it("the chain stops at a GAP — it shunts a stack, not the whole column", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const wp = place(s, "dawn_warphant", "P1", 3, 1, { autoMode: "manual" });
+    const first = place(s, "dusk_gool", "P2", 2, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const gapped = place(s, "dusk_vamp", "P2", 0, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = applyIntent(battleFor2(s, wp.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: first.instanceId,
+    });
+    expect(99 - n.cards[first.instanceId].curHp).toBe(10);
+    expect(n.cards[gapped.instanceId].curHp).toBe(99); // a row 1 gap shields it
+  });
+
+  it("cards in OTHER columns are untouched", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const wp = place(s, "dawn_warphant", "P1", 3, 1, { autoMode: "manual" });
+    const first = place(s, "dusk_gool", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const aside = place(s, "dusk_vamp", "P2", 1, 2, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = applyIntent(battleFor2(s, wp.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: first.instanceId,
+    });
+    expect(n.cards[aside.instanceId].curHp).toBe(99);
   });
 });
