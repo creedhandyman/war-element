@@ -2899,10 +2899,15 @@ export const CARDS: CardDef[] = [
       name: "Rolling Bash",
       cost: 2,
       handler: "strike",
-      params: { dmg: 3, hits: 3 },
+      // Rover, modeled at last: ranged targeting picks an opponent anywhere in
+      // range, then Rollo ROLLS UP TO 2 SLOTS INTO THEM and bashes — chargeFirst
+      // puts the movement before the hit. Without the ranged flag this would do
+      // nothing: a Melee card is already adjacent when it attacks, so there is
+      // no gap left to roll across.
+      params: { dmg: 3, hits: 3, charge: 2, chargeLateral: 1, chargeFirst: 1 },
+      ranged: true,
       targetSide: "enemy",
-      // (Rover — move up to 2 after attacking — is unmodeled.)
-      text: "Deal 3×3 DMG to an opponent.",
+      text: "Roll up to 2 slots into an opponent in range, then deal 3×3 DMG.",
     },
   },
   {

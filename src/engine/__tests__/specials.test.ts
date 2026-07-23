@@ -1280,3 +1280,56 @@ describe("a charge obeys the same geometry as a normal move", () => {
     expect(manhattan).toBeLessThanOrEqual(4); // within its charge budget
   });
 });
+
+describe("Rollo — Rover rolls in FIRST, then bashes", () => {
+  it("closes a 2-slot gap and lands the full 3x3", () => {
+    // Before this, Rolling Bash was melee-reach with an unmodeled Rover: it
+    // could only hit a card already adjacent, so it reached exactly as far as
+    // its own basic attack for 2 magic, and never moved.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const rollo = place(s, "bore_rollo", "P1", 3, 0, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = applyIntent(battleWith(s, rollo.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    expect(99 - n.cards[foe.instanceId].curHp).toBe(9); // 3 hits of 3
+    // It rolled in rather than striking from home — and pulls up BESIDE the
+    // target, never onto it.
+    const p = n.cards[rollo.instanceId].pos!;
+    expect(p).not.toEqual({ row: 3, col: 0 });
+    expect(Math.max(Math.abs(p.row - 1), Math.abs(p.col - 0))).toBe(1);
+  });
+
+  it("the roll lands BEFORE the hit — proven by a kill", () => {
+    // Position alone cannot separate the two orderings: a charge either side of
+    // the strike ends up beside a LIVING target. The tell is a target that DIES.
+    // Rolling first, Rollo pulls up beside a body that is still standing and so
+    // stops short of its slot. Rolling after, the slot is already vacated and
+    // chargeToward would walk straight onto it.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const rollo = place(s, "bore_rollo", "P1", 3, 1, { autoMode: "manual" });
+    const doomed = place(s, "dusk_gool", "P2", 1, 1, { curHp: 2, maxHp: 2, curShields: 0 });
+    const n = applyIntent(battleWith(s, rollo.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: doomed.instanceId,
+    });
+    expect(n.cards[doomed.instanceId]).toBeUndefined(); // it died to the bash
+    expect(n.cards[rollo.instanceId].pos).toEqual({ row: 2, col: 1 }); // stopped BESIDE it
+  });
+
+  it("other chargers still move AFTER their strike", () => {
+    // chargeFirst is opt-in: Skelider's Piercing Charge keeps striking from
+    // range and repositioning afterwards, which is what its text promises. Same
+    // kill tell — it takes the slot its victim just vacated.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const skel = place(s, "dusk_skelider", "P1", 3, 1, { autoMode: "manual" });
+    const doomed = place(s, "dusk_gool", "P2", 1, 1, { curHp: 2, maxHp: 2, curShields: 0 });
+    const n = applyIntent(battleWith(s, skel.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: doomed.instanceId,
+    });
+    expect(n.cards[doomed.instanceId]).toBeUndefined();
+    expect(n.cards[skel.instanceId].pos).toEqual({ row: 1, col: 1 }); // walked ONTO it
+  });
+});

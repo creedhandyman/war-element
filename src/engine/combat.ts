@@ -1340,6 +1340,16 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const target = targets[0];
     if (!target) return;
     const center = target.pos ? { ...target.pos } : null; // splash centre (target may die)
+    // Rover (Rollo): the roll comes BEFORE the bash — it closes the distance and
+    // THEN hits, rather than striking from where it stood and repositioning
+    // after. `chargeFirst` chooses which side of the strike the movement lands
+    // on; without it `charge` keeps its original after-the-hit behaviour, which
+    // is what every existing charger (Skelider, Shadow Horsemen, Griffith) wants.
+    const chargeFirst = num(params, "chargeFirst") > 0;
+    if (chargeFirst && num(params, "charge") > 0 && center) {
+      if (num(params, "chargeLateral") > 0) chargeToward(draft, attacker, num(params, "charge"), center);
+      else chargeForward(draft, attacker, num(params, "charge"));
+    }
     const r = resolveHit(draft, attacker, target, {
       kind: "special",
       dmg: num(params, "dmg"),
@@ -1424,7 +1434,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // ranged flag; this is the repositioning half of "move up to N and strike".
     // `chargeLateral` rides toward the slot it struck (sideways and diagonals
     // allowed) instead of straight up its own column.
-    if (num(params, "charge") > 0 && attacker.curHp > 0) {
+    if (!chargeFirst && num(params, "charge") > 0 && attacker.curHp > 0) {
       if (num(params, "chargeLateral") > 0 && center)
         chargeToward(draft, attacker, num(params, "charge"), center);
       else chargeForward(draft, attacker, num(params, "charge"));
