@@ -2171,15 +2171,25 @@ export const CARDS: CardDef[] = [
       cooldown: 3, // huge nuke + STEALTH escape — 3-round lockout between casts
       handler: "strike",
       // recoilPct is a share of the HP damage DEALT to the main target, so the
-      // cost scales with how well the dive lands: ~7 back on a clean 27, less
+      // cost scales with how well the dive lands: ~6 back on a clean 24, less
       // into shields. At 25% it can finish a wounded Griffith outright.
-      // The dive now actually DIVES: it closes up to 3 slots onto whatever it
-      // hit, in any direction (it flies, so sideways and diagonals are free).
-      // That plants a 29-HP mythic deep in enemy ground — STEALTH covers the
-      // landing for exactly one round, so the reposition is a real gamble.
-      params: { dmg: 27, splash: 11, recoilPct: 25, selfStatus: "STEALTH", selfStatusDuration: 1, charge: 3, chargeLateral: 1, chargeFirst: 1 },
+      // The dive DIVES: it closes up to 3 slots onto whatever it hit, in any
+      // direction (it flies, so sideways and diagonals are free). That plants a
+      // 29-HP mythic deep in enemy ground — STEALTH covers the landing for
+      // exactly one round, so the reposition is a real gamble.
+      // Trimmed 27 -> 24 and splash 11 -> 5, with the lost burst paid back as
+      // WEAKEN 2 on the main target (-25% of ITS damage, per effectiveDmg). The
+      // splash cut is the big one: 11 was most of a second full hit landing on
+      // every neighbour. maybeStatus applies to the struck target only, so the
+      // splashed neighbours take damage and nothing else.
+      params: {
+        dmg: 24, splash: 5, recoilPct: 25,
+        statusKind: "WEAKEN", statusDuration: 2,
+        selfStatus: "STEALTH", selfStatusDuration: 1,
+        charge: 3, chargeLateral: 1, chargeFirst: 1,
+      },
       targetSide: "enemy",
-      text: "Dive up to 3 spaces in any direction onto your target, deal 27 DMG (+11 splash) and take 25% recoil, then vanish into STEALTH until next round. 3-round cooldown.",
+      text: "Dive up to 3 spaces in any direction onto your target, deal 24 DMG (+5 splash) and WEAKEN it for 2 rounds, taking 25% recoil, then vanish into STEALTH until next round. 3-round cooldown.",
     },
   },
   {

@@ -209,7 +209,7 @@ describe("temporary self-buffs (STEALTH / EVASION)", () => {
 });
 
 describe("splash damage", () => {
-  it("Dive Bomb hits the target 27 and splashes 11 to adjacent enemies only", () => {
+  it("Dive Bomb hits the target 24 and splashes 5 to adjacent enemies only", () => {
     const s = prepState();
     s.players.P1.magicPool = 6;
     const griff = place(s, "gale_griffith", "P1", 2, 0);
@@ -222,12 +222,16 @@ describe("splash damage", () => {
       action: "special",
       targetId: main.instanceId,
     });
-    expect(next.cards[main.instanceId].curHp).toBe(40 - 27); // main hit
-    expect(next.cards[adj.instanceId].curHp).toBe(40 - 11); // splash
+    expect(next.cards[main.instanceId].curHp).toBe(40 - 24); // main hit
+    expect(next.cards[adj.instanceId].curHp).toBe(40 - 5); // splash, cut from 11
     expect(next.cards[far.instanceId].curHp).toBe(40); // out of splash range
+    // The WEAKEN rides the STRUCK target only — maybeStatus takes the single
+    // target, so a splashed neighbour eats damage and nothing else.
+    expect(statusOf(next.cards[main.instanceId], "WEAKEN")?.duration).toBe(2);
+    expect(statusOf(next.cards[adj.instanceId], "WEAKEN")).toBeUndefined();
   });
 
-  it("Griffith takes 25% recoil from Dive Bomb (27 dealt → 7 back)", () => {
+  it("Griffith takes 25% recoil from Dive Bomb (24 dealt → 6 back)", () => {
     const s = prepState();
     s.players.P1.magicPool = 6;
     const griff = place(s, "gale_griffith", "P1", 2, 0);
@@ -239,8 +243,8 @@ describe("splash damage", () => {
       action: "special",
       targetId: foe.instanceId,
     });
-    expect(next.cards[foe.instanceId].curHp).toBe(40 - 27); // full hit
-    expect(next.cards[griff.instanceId].curHp).toBe(startHp - 7); // round(27 * 25%)
+    expect(next.cards[foe.instanceId].curHp).toBe(40 - 24); // full hit
+    expect(next.cards[griff.instanceId].curHp).toBe(startHp - 6); // round(24 * 25%)
   });
 });
 
@@ -620,5 +624,37 @@ describe("The DEEPEST — Abyssal Emergence is earned, not innate", () => {
     expect(90 - next.cards[far.instanceId].curHp).toBe(3); // ranged: reaches the far corner
     expect(statusOf(next.cards[near.instanceId], "DOT")?.power).toBe(3);
     expect(statusOf(next.cards[near.instanceId], "BLIND")?.duration).toBe(3);
+  });
+});
+
+describe("Dive Bomb's WEAKEN is real, not just a chip on the card", () => {
+  it("the struck target hits 25% softer for the next two rounds", () => {
+    // WEAKEN is read by effectiveDmg (-25%, floored). Asserting the status
+    // attached proves nothing about whether it does anything.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const griff = place(s, "gale_griffith", "P1", 2, 0);
+    const foe = place(s, "leaf_thorn", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const before = effectiveDmg(s, s.cards[foe.instanceId]);
+    const n = applyIntent(battleWith(s, griff.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    const after = effectiveDmg(n, n.cards[foe.instanceId]);
+    expect(after).toBe(Math.floor(before * 0.75));
+    expect(after).toBeLessThan(before); // guards the floor from swallowing it
+  });
+
+  it("...and wears off after two rounds", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const griff = place(s, "gale_griffith", "P1", 2, 0);
+    const foe = place(s, "leaf_thorn", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    let n = applyIntent(battleWith(s, griff.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    n = advance(atCleanup(n));
+    expect(statusOf(n.cards[foe.instanceId], "WEAKEN")?.duration).toBe(1);
+    n = advance(atCleanup(n));
+    expect(statusOf(n.cards[foe.instanceId], "WEAKEN")).toBeUndefined();
   });
 });
