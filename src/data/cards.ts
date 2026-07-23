@@ -2764,10 +2764,14 @@ export const CARDS: CardDef[] = [
       name: "Arcing Strike",
       cost: 2,
       handler: "strike",
-      // 7 to the target, arcing 7 to each adjacent opponent (splash).
-      params: { dmg: 7, splash: 7 },
+      // Splash 7 -> 3. It arced the FULL hit to every neighbour, so a target in a
+      // cluster took 28 for 2 magic — 14.0 damage per magic, the most efficient
+      // card in the game, ahead of every legendary and mythic (Griffith is 7.8).
+      // Griffith's own splash is 5 on a 24 hit; an arc should be a graze, not a
+      // second full strike on each body. The 7 up front is untouched.
+      params: { dmg: 7, splash: 3 },
       targetSide: "enemy",
-      text: "Deal 7 DMG to a target and 7 DMG to each adjacent opponent.",
+      text: "Deal 7 DMG to a target and 3 DMG to each adjacent opponent.",
     },
   },
   {

@@ -1381,3 +1381,23 @@ describe("Wedded Wraith — Shadow Summon is on a 3-round lockout", () => {
     expect(canFireSpecial(g, wraith.instanceId).ok).toBe(true);
   });
 });
+
+describe("epic audit — Thunder's Arcing Strike", () => {
+  it("hits the target 7 and arcs 3 to each neighbour, not another full 7", () => {
+    // It arced the FULL hit, so a target in a cluster ate 28 for 2 magic —
+    // 14.0 damage per magic, the most efficient card in the game, ahead of every
+    // legendary and mythic. An arc should be a graze, not a second strike.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const thunder = place(s, "bolt_thunder", "P1", 2, 1, { autoMode: "manual" });
+    const main = place(s, "dusk_gool", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const beside = place(s, "dusk_gool", "P2", 1, 2, { curHp: 99, maxHp: 99, curShields: 0 });
+    const far = place(s, "dusk_gool", "P2", 0, 3, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = applyIntent(battleWith(s, thunder.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: main.instanceId,
+    });
+    expect(99 - n.cards[main.instanceId].curHp).toBe(7); // the hit is untouched
+    expect(99 - n.cards[beside.instanceId].curHp).toBe(3); // arc, down from 7
+    expect(n.cards[far.instanceId].curHp).toBe(99); // splash is adjacency-only
+  });
+});
