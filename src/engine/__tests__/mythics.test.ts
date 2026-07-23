@@ -839,3 +839,56 @@ describe("Shadow Charge — the trample and full PEN", () => {
     expect(n.cards[friend.instanceId].curHp).toBe(99);
   });
 });
+
+describe("Shadow Charge rides diagonally, and tramples along the diagonal", () => {
+  it("cuts the corner instead of stepping around in an L", () => {
+    // Ground chargers are orthogonal-only by default, mirroring prep movement
+    // where a diagonal costs a non-FLYING card two of its steps. Before this,
+    // riding from (2,0) at a target on (0,2) walked (1,0) then (0,0) and ended
+    // up two columns adrift of what it was charging.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const rider = place(s, "dusk_shadowhorsemen", "P1", 2, 0, { autoMode: "manual" });
+    const target = place(s, "dusk_gool", "P2", 0, 2, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = applyIntent(battleWith(s, rider.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: target.instanceId,
+    });
+    const p = n.cards[rider.instanceId].pos!;
+    expect(p).not.toEqual({ row: 0, col: 0 }); // the old orthogonal detour
+    expect(Math.max(Math.abs(p.row - 0), Math.abs(p.col - 2))).toBe(1); // pulled up beside it
+    expect(99 - n.cards[target.instanceId].curHp).toBe(19);
+  });
+
+  it("everything beside the diagonal path is trampled, diagonals included", () => {
+    // Adjacency is Chebyshev, so a card sitting off the corner of the ride
+    // counts as passed just as much as one directly beside it.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const rider = place(s, "dusk_shadowhorsemen", "P1", 2, 0, { autoMode: "manual" });
+    const target = place(s, "dusk_gool", "P2", 0, 2, { curHp: 99, maxHp: 99, curShields: 6 });
+    const offCorner = place(s, "dusk_gool", "P2", 2, 2, { curHp: 99, maxHp: 99, curShields: 6 });
+    const n = applyIntent(battleWith(s, rider.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: target.instanceId,
+    });
+    expect(99 - n.cards[offCorner.instanceId].curHp).toBe(5);
+    expect(n.cards[offCorner.instanceId].curShields).toBe(6); // PEN, as with the rest
+  });
+
+  it("other ground chargers still step orthogonally, and fall short because of it", () => {
+    // chargeDiagonal is opt-in per Special. Rollo has the same lateral charge
+    // but no flag, so it spends a step per axis: over a 2-slot budget it cannot
+    // close a diagonal gap that a corner-cutter would reach. Final position is
+    // usually a poor tell (both walkers stop on becoming adjacent), so this
+    // picks the geometry where the budget actually runs out.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const rollo = place(s, "bore_rollo", "P1", 3, 0, { autoMode: "manual" }); // charge 2
+    const target = place(s, "dusk_gool", "P2", 1, 3, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = applyIntent(battleWith(s, rollo.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: target.instanceId,
+    });
+    const p = n.cards[rollo.instanceId].pos!;
+    // Two orthogonal steps leave it 2 away; two diagonal steps would have closed it.
+    expect(Math.max(Math.abs(p.row - 1), Math.abs(p.col - 3))).toBeGreaterThan(1);
+  });
+});

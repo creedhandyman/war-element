@@ -2276,7 +2276,12 @@ export const CARDS: CardDef[] = [
       // construction, and DOT already bypasses shields at the Cleanup tick, so
       // armour blunts none of it.
       params: {
-        dmg: 19, pen: 1, trampleDmg: 5,
+        // chargeDiagonal: the horse cuts corners. Ground chargers are otherwise
+        // orthogonal-only, mirroring prep movement (where a diagonal costs a
+        // non-FLYING card two of its steps) — this Special is an explicit
+        // exception, so the ride threads a formation instead of stepping around
+        // it in an L. It reaches further per step AND changes who gets trampled.
+        dmg: 19, pen: 1, trampleDmg: 5, chargeDiagonal: 1,
         statusKind: "DOT", statusDuration: 1, statusPower: 9,
         selfStatus: "EVASION", selfStatusDuration: 1,
         charge: 4, chargeLateral: 1, chargeFirst: 1,

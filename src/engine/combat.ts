@@ -954,13 +954,19 @@ function chargeToward(
    *  trampled underfoot, which the movement rules do not allow. The destination
    *  is excluded: it eats the full strike instead. */
   trampleDmg = 0,
+  /** Let a GROUND charger cut corners. Normally only FLYING may step
+   *  diagonally, matching how prep movement charges a ground card two points
+   *  for a diagonal — a charge that ignored that would out-manoeuvre the move
+   *  rules. A card can opt out of that per-Special (Shadow Charge does: the
+   *  horse rides where it likes). */
+  diagonal = false,
 ): void {
   const enemyHome = homeRow(enemyOf(card.owner), draft.boardSize);
   const run = trampleDmg > 0 ? new Set<string>() : null;
   // Same geometry the PREP move uses: FLYING walks like a chess king, everyone
   // else is orthogonal, so a ground rider spends two of its steps to cut a
   // corner. A charge that ignored this would out-manoeuvre normal movement.
-  const flying = Boolean(getDef(card.defId).keywords.FLYING);
+  const canDiagonal = diagonal || Boolean(getDef(card.defId).keywords.FLYING);
   const open = (r: number, c: number) =>
     r >= 0 && r < draft.boardSize && c >= 0 && c < draft.boardSize &&
     !draft.slots[r][c].capturedBy && !cardAt(draft, r, c);
@@ -980,7 +986,7 @@ function chargeToward(
     // body parked directly ahead used to stop the charge dead, which is the
     // most common case there is.
     const tries: Array<[number, number]> = [];
-    if (flying && dr !== 0 && dc !== 0) tries.push([dr, dc]);
+    if (canDiagonal && dr !== 0 && dc !== 0) tries.push([dr, dc]);
     if (Math.abs(gapR) >= Math.abs(gapC)) {
       if (dr !== 0) tries.push([dr, 0]);
       if (dc !== 0) tries.push([0, dc]);
@@ -990,7 +996,7 @@ function chargeToward(
     }
     // Detours around a blocker: a flyer cuts the corner, a ground rider has to
     // sidestep and then resume.
-    if (flying) {
+    if (canDiagonal) {
       if (dr !== 0) tries.push([dr, 1], [dr, -1]);
       else tries.push([1, dc], [-1, dc]);
     } else if (dr !== 0) tries.push([0, 1], [0, -1]);
@@ -1379,7 +1385,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const chargeFirst = num(params, "chargeFirst") > 0;
     if (chargeFirst && num(params, "charge") > 0 && center) {
       if (num(params, "chargeLateral") > 0)
-        chargeToward(draft, attacker, num(params, "charge"), center, num(params, "trampleDmg"));
+        chargeToward(
+          draft, attacker, num(params, "charge"), center,
+          num(params, "trampleDmg"), num(params, "chargeDiagonal") > 0,
+        );
       else chargeForward(draft, attacker, num(params, "charge"));
     }
     const r = resolveHit(draft, attacker, target, {
