@@ -68,7 +68,10 @@ describe("rare passives", () => {
 
   it("PYRO Ingit — Hot Hot doubles the BURN on a melee attacker", () => {
     const s = prepState();
-    const ingit = place(s, "pyro_ingit", "P1", 2, 0);
+    // Explicit HP so the test is not coupled to Ingit's printed line: the PYRO
+    // sweep left it on 8, and Alpha in a mid row lands exactly 8 (1 DMG + King
+    // of the Hill, four times), so it was dying before Hot Hot could fire.
+    const ingit = place(s, "pyro_ingit", "P1", 2, 0, { curHp: 30, maxHp: 30 });
     const attacker = place(s, "leaf_alpha", "P2", 2, 1, { curHp: 20 });
     applyStatus(s, s.cards[attacker.instanceId], "BURN", 2, 2, "PYRO"); // power 2
     basicAttack(s, attacker.instanceId, ingit.instanceId);

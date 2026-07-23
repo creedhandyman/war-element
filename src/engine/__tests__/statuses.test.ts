@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { applyStatus } from "../combat";
 import { canMove, isActionBlocked, legalMoves } from "../rules";
+import { getDef } from "../../data/cards";
 import { effectiveDmg, effectiveSp, moveReachFor } from "../state";
 import { place, prepState } from "./helpers";
 
@@ -65,10 +66,13 @@ describe("FRIGHTEN forced retreat", () => {
 describe("King of the Hill", () => {
   it("+1 DMG while sitting in a Mid row", () => {
     const s = prepState();
-    const home = place(s, "leaf_squanch", "P1", 3, 0); // 4 dmg
-    const mid = place(s, "pyro_firebird", "P1", 2, 1); // 5 dmg
-    expect(effectiveDmg(s, home)).toBe(4); // printed
-    expect(effectiveDmg(s, mid)).toBe(6); // printed 5 + mid-row 1
+    // Printed values read off the defs: this test is about the MID-ROW bonus,
+    // not about either card's numbers, and hardcoding them made a PYRO stat
+    // sweep fail a King-of-the-Hill test.
+    const home = place(s, "leaf_squanch", "P1", 3, 0);
+    const mid = place(s, "pyro_firebird", "P1", 2, 1);
+    expect(effectiveDmg(s, home)).toBe(getDef("leaf_squanch").dmg); // printed
+    expect(effectiveDmg(s, mid)).toBe(getDef("pyro_firebird").dmg + 1); // + mid-row 1
   });
 
   it("holding all 4 slots of one Mid row gives +1 DMG to the whole board", () => {
@@ -78,8 +82,8 @@ describe("King of the Hill", () => {
     place(s, "pyro_tiki", "P1", 1, 1);
     place(s, "pyro_fenrir", "P1", 1, 2);
     const inRow = place(s, "pyro_firebird", "P1", 1, 3);
-    expect(effectiveDmg(s, home)).toBe(5); // 4 + full-row 1
-    expect(effectiveDmg(s, inRow)).toBe(7); // 5 + mid-row 1 + full-row 1
+    expect(effectiveDmg(s, home)).toBe(getDef("leaf_squanch").dmg + 1); // + full-row 1
+    expect(effectiveDmg(s, inRow)).toBe(getDef("pyro_firebird").dmg + 2); // + mid-row + full-row
     // the enemy gets nothing from OUR row control
     const foe = place(s, "dusk_vamp", "P2", 0, 0);
     expect(effectiveDmg(s, foe)).toBe(2);

@@ -968,8 +968,8 @@ describe("on-death row-ahead (Burnout)", () => {
 describe("King of the Hill: only 4+ hit cards trade the mid DMG for a hit", () => {
   it("1–3 hit cards gain +1 DMG in a mid row; 4+ hit cards gain +1 hit", () => {
     const s = prepState();
-    const single = place(s, "pyro_firebird", "P1", 2, 0); // 5 dmg, 1 hit
-    expect(effectiveDmg(s, single)).toBe(6); // +1 DMG in mid
+    const single = place(s, "pyro_firebird", "P1", 2, 0); // 1 hit
+    expect(effectiveDmg(s, single)).toBe(getDef("pyro_firebird").dmg + 1); // +1 DMG in mid
     expect(effectiveBasicHits(single)).toBe(1);
 
     const twoHit = place(s, "gale_buf", "P1", 2, 1); // 2 dmg × 2 hits → below the 4 threshold
