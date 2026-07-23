@@ -3556,10 +3556,11 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Shadow Summon",
       cost: 3,
+      cooldown: 3, // three bodies a cast is board presence — 3-round lockout
       handler: "spawn",
       params: { token: "dusk_specter_tok", count: 3 },
       targetSide: "self",
-      text: "Spawn 3 Specters (3 DMG / 1 HP / SP 7).",
+      text: "Spawn 3 Specters (3 DMG / 1 HP / SP 7). 3-round cooldown.",
     },
   },
   {

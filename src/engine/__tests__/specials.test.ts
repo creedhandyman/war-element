@@ -1354,3 +1354,28 @@ describe("Rollo — Rover rolls in FIRST, then bashes", () => {
     expect(n.cards[weed.instanceId].pos).toEqual({ row: 2, col: 1 }); // rolled onto it
   });
 });
+
+describe("Wedded Wraith — Shadow Summon is on a 3-round lockout", () => {
+  it("blocks for three rounds, not one", () => {
+    // It was on the DEFAULT cooldown (specialCooldown 2 = a single blocked
+    // round), so three Specters a cast could land every other round.
+    const s = prepState();
+    s.players.P1.magicPool = 20;
+    const wraith = place(s, "dusk_wedded_wraith", "P1", 2, 1, { autoMode: "manual" });
+    place(s, "dusk_gool", "P2", 0, 0);
+    let g = applyIntent(battleWith(s, wraith.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: wraith.instanceId,
+    });
+    expect(g.cards[wraith.instanceId].specialCooldown).toBe(4); // (3 printed) + 1
+    // Three Cleanups still blocked; the fourth frees it. The +1 exists because
+    // the round it fired ticks once itself.
+    for (const expected of [3, 2, 1]) {
+      g = advance(atCleanup(g));
+      expect(g.cards[wraith.instanceId].specialCooldown).toBe(expected);
+      expect(canFireSpecial(g, wraith.instanceId).ok).toBe(false);
+    }
+    g = advance(atCleanup(g));
+    expect(g.cards[wraith.instanceId].specialCooldown).toBe(0);
+    expect(canFireSpecial(g, wraith.instanceId).ok).toBe(true);
+  });
+});
