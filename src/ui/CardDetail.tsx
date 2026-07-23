@@ -356,6 +356,10 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.onHitByMelee?.doubleBurn)
     named("onHitByMelee", `Hot Hot: when hit by melee, doubles the BURN already on the attacker.`);
+  if (def.mounted)
+    passives.push(
+      "Mounted: moves like a chess king — a diagonal step costs 1, not 2 (lost if it dismounts).",
+    );
   if (def.basicLineReach)
     named(
       "basicLineReach",

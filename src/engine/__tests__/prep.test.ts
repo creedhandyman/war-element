@@ -5,6 +5,8 @@ import { applyIntent } from "../phases";
 import { canMove, canSummon } from "../rules";
 import { cardAt, moveReach } from "../state";
 import { giveHand, place, prepState } from "./helpers";
+import { getDef } from "../../data/cards";
+import type { GameState } from "../types";
 
 describe("summoning", () => {
   it("summons into an open home slot, paying cost", () => {
@@ -162,3 +164,45 @@ function placeP2(s: ReturnType<typeof prepState>): string {
   const c = place(s, "dusk_vamp", "P2", 0, 3);
   return c.instanceId;
 }
+
+describe("mounted cards move like a king in Prep", () => {
+  const diagonalOk = (s: GameState, id: string) =>
+    canMove(s, "P1", id, { row: 1, col: 1 }).ok;
+
+  it("a diagonal costs a mounted card ONE step, not two", () => {
+    // Prep movement is Manhattan for everyone but FLYING, so a diagonal used to
+    // cost two of a rider's steps. Now the four mounted cards pay one, matching
+    // how Shadow Charge already rides.
+    for (const id of ["dusk_shadowhorsemen", "bore_rohojohn", "dusk_skelider", "dawn_warphant"]) {
+      const s = prepState();
+      const c = place(s, id, "P1", 2, 2);
+      s.cards[c.instanceId].spBonus = 1 - getDef(id).sp; // pin reach to exactly 1
+      expect(diagonalOk(s, c.instanceId), `${id} could not step diagonally`).toBe(true);
+    }
+  });
+
+  it("...and an unmounted card still cannot", () => {
+    const s = prepState();
+    const c = place(s, "bore_clubber", "P1", 2, 2);
+    s.cards[c.instanceId].spBonus = 1 - getDef("bore_clubber").sp;
+    expect(diagonalOk(s, c.instanceId)).toBe(false); // Manhattan 2 > reach 1
+  });
+
+  it("Dismount puts the rider back on foot — the king-move goes with the mount", () => {
+    // Skelider's Dismount sets `transformed`. Losing the horse should cost it
+    // the horse's movement, or "mounted" would just be a permanent keyword.
+    const s = prepState();
+    const skel = place(s, "dusk_skelider", "P1", 2, 2);
+    s.cards[skel.instanceId].spBonus = 1 - getDef("dusk_skelider").sp;
+    expect(diagonalOk(s, skel.instanceId)).toBe(true);
+    s.cards[skel.instanceId].transformed = true; // thrown from the saddle
+    expect(diagonalOk(s, skel.instanceId)).toBe(false);
+  });
+
+  it("the straight step is unchanged either way", () => {
+    const s = prepState();
+    const roho = place(s, "bore_rohojohn", "P1", 2, 2);
+    s.cards[roho.instanceId].spBonus = 1 - getDef("bore_rohojohn").sp;
+    expect(canMove(s, "P1", roho.instanceId, { row: 1, col: 2 }).ok).toBe(true);
+  });
+});

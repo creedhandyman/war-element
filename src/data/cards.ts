@@ -950,6 +950,9 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 2,
     keywords: {},
+    // Mounted until Dismount: below 10 HP it loses the mount, and with it the
+    // king-move — `transformed` gates that, so a dismounted rider walks.
+    mounted: true,
     // Dismount: below 10 HP, deal 5 DMG, lose 5 SP and the Special (basic skeleton).
     passiveNames: { onLowHp: "Dismount" },
     onLowHp: { threshold: 10, dmg: 5, loseSp: 5, loseSpecial: true },
@@ -2253,6 +2256,7 @@ export const CARDS: CardDef[] = [
     dmg: 16,
     hits: 1,
     hp: 35, // 15 base + 20 Mount (baked in)
+    mounted: true, // rides — moves like a king in Prep, same as its charge
     sp: 13,
     shields: 0,
     keywords: {},
@@ -3992,6 +3996,7 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 0,
     keywords: {},
+    mounted: true, // War Mount — a king-move in Prep
     passiveNames: { summonSelfShields: "War Mount", meleeBonusDmg: "War Mount" },
     summonSelfShields: 5, // rides in armoured...
     meleeBonusDmg: 6, // ...and the mount mauls whatever it stands beside.
@@ -4140,6 +4145,7 @@ export const CARDS: CardDef[] = [
       onEnterMidRow: "War Ready",
       onDeath: "Last Rider",
     },
+    mounted: true, // an armoured elephant IS the mount — king-move in Prep
     summonSelfShields: 4, // the Hardened Gold Armor it rides in with
     onEnterMidRow: { shields: 2 }, // ...and it plates up on reaching the middle
     onDeath: { dmg: 0, spawnToken: { token: "dawn_warrider_tok", count: 1 } },

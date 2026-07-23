@@ -360,6 +360,11 @@ export interface CardDef {
   /** Shadow (Vaga): can only be attacked by ADJACENT opponents — attackers a row
    *  or more away (incl. ranged) can't reach it. */
   onlyAdjacentAttackers?: boolean;
+  /** This card rides something. Mounted cards move like a chess king in Prep —
+   *  a diagonal costs one step, not two — the same footing FLYING already had.
+   *  A mount that is LOST puts its rider back on foot: Skelider's Dismount sets
+   *  `transformed`, and the king-move goes with it. */
+  mounted?: boolean;
   /** Long Reach (Shadow Horsemen): a MELEE card whose BASIC attack also reaches
    *  up to N along the four straight lines — ahead, behind, and to either side.
    *  Diagonals are NOT extended; those stay at the usual adjacent step, so the
