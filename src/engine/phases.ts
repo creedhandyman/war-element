@@ -1238,10 +1238,18 @@ function doCleanupPhase(draft: GameState): void {
     // the rest of the time. LEAF measured worst on BOTH axes despite mid-pack
     // printed stats, which is what pointed at the aura rather than the cards.
     if (def.element === "LEAF") {
-      const grown = healCard(draft, card, 2, card);
-      if (grown === 0 && card.curShields < LEAF_SHIELD_CAP) {
+      healCard(draft, card, 2, card);
+      // The bark thickens where it was struck: a LEAF card that TOOK a hit this
+      // round banks +1 shield, capped. Read before step 4b clears the counter.
+      //
+      // This trigger replaced "when at full health", which measured almost
+      // nothing: in the seat where LEAF actually needed help it was under fire
+      // every round, so it always took the heal branch and never reached full
+      // health to bank anything. The armour paid out only when it was already
+      // winning the exchange. Now it pays when it is losing one.
+      if (card.hitsTakenThisRound > 0 && card.curShields < LEAF_SHIELD_CAP) {
         card.curShields += 1;
-        draft.log.push(`${label(draft, card)} hardens in the light (+1 shield).`);
+        draft.log.push(`${label(draft, card)}'s bark thickens where it was struck (+1 shield).`);
       }
     }
     // Zephyr (GALE): +1 SP each round, total capped at 21.

@@ -106,9 +106,9 @@ describe("medium-tier passives (audit batch)", () => {
 
   it("Squanch's Regenerative banks enemy hits and cashes them in at Cleanup", () => {
     const s = prepState();
-    // Held BELOW max HP on purpose: Photosynthesis hardens a full-health LEAF
-    // card into +1 shield, which would masquerade as Regenerative firing. Hurt,
-    // the aura heals instead and leaves the shield count alone.
+    // Squanch is LEAF as well as Regenerative, and Photosynthesis now also banks
+    // a shield on a round it was hit — so a struck Squanch draws from BOTH. The
+    // two are counted separately below rather than folded together.
     const sq = place(s, "leaf_squanch", "P1", 3, 0, { curShields: 0, curHp: 20, maxHp: 23 });
     const foe = place(s, "dusk_gool", "P2", 3, 1);
     basicAttack(s, foe.instanceId, sq.instanceId);
@@ -116,7 +116,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[sq.instanceId].hitsTakenThisRound).toBe(2);
     expect(s.cards[sq.instanceId].curShields).toBe(0); // nothing yet — it pays at end of round
     const next = advance(atCleanup(s));
-    expect(next.cards[sq.instanceId].curShields).toBe(2); // one hit, one shield
+    expect(next.cards[sq.instanceId].curShields).toBe(3); // 2 Regenerative + 1 Photosynthesis
     expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
   });
 
@@ -716,7 +716,8 @@ describe("medium-tier passives (audit batch)", () => {
     basicAttack(s, foe.instanceId, sq.instanceId);
     expect(s.cards[sq.instanceId].curShields).toBe(0); // the shield ate the hit
     const next = advance(atCleanup(s));
-    expect(next.cards[sq.instanceId].curShields).toBe(1); // …and bark grows back over it
+    // 1 Regenerative + 1 Photosynthesis: being LEAF, a struck Squanch banks both.
+    expect(next.cards[sq.instanceId].curShields).toBe(2);
   });
 
   it("Regenerative tops out at 5 shields", () => {

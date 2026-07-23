@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { advance } from "../phases";
 import { atCleanup, place, prepState } from "./helpers";
 import { LEAF_SHIELD_CAP } from "../auras";
+import { basicAttack } from "../combat";
 import { MAX_ROUNDS } from "../types";
 
 describe("cleanup phase", () => {
@@ -215,41 +216,45 @@ describe("the round cap", () => {
   });
 });
 
-describe("Photosynthesis hardens when there is nothing to heal", () => {
-  it("a full-health LEAF card banks a shield instead of wasting the tick", () => {
-    // The structural flaw this fixes: healCard caps at max HP, so the game's
-    // only defensive aura paid out NOTHING while you were healthy and 1 HP when
-    // you were losing. LEAF measured worst on both offence and defence despite
-    // mid-pack printed stats, which is what pointed at the aura, not the cards.
+describe("Photosynthesis: heal 2, and bark up where it was struck", () => {
+  it("a LEAF card that was HIT banks a shield", () => {
+    // The trigger is damage TAKEN, not full health. Full-health was tried first
+    // and measured almost nothing: in the seat where LEAF needed the help it was
+    // under fire every round, so it never reached full health to bank anything.
     const s = prepState();
-    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0 }); // full HP
-    place(s, "dusk_gool", "P2", 0, 1);
+    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0, curHp: 10, maxHp: 14 });
+    const foe = place(s, "dusk_gool", "P2", 3, 1);
+    basicAttack(s, foe.instanceId, leaf.instanceId);
     const n = advance(atCleanup(s));
     expect(n.cards[leaf.instanceId].curShields).toBe(1);
   });
 
-  it("...but heals first when it is hurt, and does not do both", () => {
+  it("an untouched LEAF card banks nothing — it only heals", () => {
     const s = prepState();
-    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 5, maxHp: 14, curShields: 0 });
+    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0, curHp: 5, maxHp: 14 });
     place(s, "dusk_gool", "P2", 0, 1);
     const n = advance(atCleanup(s));
     expect(n.cards[leaf.instanceId].curHp).toBe(7); // +2
-    expect(n.cards[leaf.instanceId].curShields).toBe(0); // no shield while wounded
+    expect(n.cards[leaf.instanceId].curShields).toBe(0); // never struck
   });
 
   it("the armour stops at 3 — a comeback aura, not a stall engine", () => {
     const s = prepState();
-    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0 });
-    place(s, "dusk_gool", "P2", 0, 1);
+    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0, curHp: 99, maxHp: 99 });
+    const foe = place(s, "dusk_gool", "P2", 3, 1);
     let n = s;
-    for (let i = 0; i < 6; i++) n = advance(atCleanup(n));
-    expect(n.cards[leaf.instanceId].curShields).toBe(LEAF_SHIELD_CAP);
+    for (let i = 0; i < 6; i++) {
+      basicAttack(n, foe.instanceId, leaf.instanceId);
+      n = advance(atCleanup(n));
+    }
+    expect(n.cards[leaf.instanceId].curShields).toBeLessThanOrEqual(LEAF_SHIELD_CAP);
   });
 
   it("non-LEAF cards get neither half", () => {
     const s = prepState();
     const pyro = place(s, "pyro_firebird", "P1", 3, 1, { curShields: 0 });
-    place(s, "dusk_gool", "P2", 0, 1);
+    const foe = place(s, "dusk_gool", "P2", 3, 2);
+    basicAttack(s, foe.instanceId, pyro.instanceId);
     const n = advance(atCleanup(s));
     expect(n.cards[pyro.instanceId].curShields).toBe(0);
   });
