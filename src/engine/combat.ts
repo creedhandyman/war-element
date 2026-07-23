@@ -1446,6 +1446,13 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
    *  surviving target (FREEZE/BLIND/SCALD/PARALYZE nova). */
   barrage(draft, attacker, targets, params) {
     const n = num(params, "targets", 1);
+    // Rover (see strike): move BEFORE the volley. Deliberately above the target
+    // filters below, so "everyone straight ahead" is read from where the charger
+    // ENDS UP rather than where it started. Forward-only — `chargeLateral` has no
+    // meaning for a volley with many targets, and neither barrage charger wants it.
+    const chargeFirst = num(params, "chargeFirst") > 0;
+    if (chargeFirst && num(params, "charge") > 0)
+      chargeForward(draft, attacker, num(params, "charge"));
     // Timberer (Lumberjack): scope the volley to the row directly ahead — the
     // tree falls forward, it doesn't scatter across the board.
     // Wildfire (Scorch): scope the volley to the enemy's own home row.
@@ -1510,7 +1517,8 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (attacker.curHp <= 0) break; // died to REFLECT mid-volley
     }
     // Charging Tusks: the boar doesn't stop where it hit — it keeps going.
-    if (num(params, "charge") > 0 && attacker.curHp > 0) chargeForward(draft, attacker, num(params, "charge"));
+    if (!chargeFirst && num(params, "charge") > 0 && attacker.curHp > 0)
+      chargeForward(draft, attacker, num(params, "charge"));
     // Root Spring: the same burst that snares the enemy waters its own side.
     const healEl = typeof params.healAlliesElement === "string" ? params.healAlliesElement : "";
     const healAmt = num(params, "healAllies");

@@ -1318,18 +1318,39 @@ describe("Rollo — Rover rolls in FIRST, then bashes", () => {
     expect(n.cards[rollo.instanceId].pos).toEqual({ row: 2, col: 1 }); // stopped BESIDE it
   });
 
-  it("other chargers still move AFTER their strike", () => {
-    // chargeFirst is opt-in: Skelider's Piercing Charge keeps striking from
-    // range and repositioning afterwards, which is what its text promises. Same
-    // kill tell — it takes the slot its victim just vacated.
+  it("every rider now closes BEFORE it strikes, not after", () => {
+    // Same kill tell, applied across the roster: a rider that moved first pulls
+    // up beside a body still standing; one that moved after would take the slot
+    // its victim just vacated. All of these read as move-then-hit in their card
+    // text ("Ride up to 4 slots ... and deal", "Dive ... onto your target"), and
+    // the implementation used to do the opposite.
+    for (const id of ["dusk_skelider", "dusk_shadowhorsemen", "bolt_thundercat", "gale_tempest"]) {
+      const s = prepState();
+      s.players.P1.magicPool = 9;
+      const rider = place(s, id, "P1", 3, 1, { autoMode: "manual" });
+      const doomed = place(s, "dusk_gool", "P2", 1, 1, { curHp: 2, maxHp: 2, curShields: 0 });
+      const n = applyIntent(battleWith(s, rider.instanceId), {
+        type: "BATTLE_ACTION", player: "P1", action: "special", targetId: doomed.instanceId,
+      });
+      expect(n.cards[doomed.instanceId], `${id} failed to kill`).toBeUndefined();
+      expect(n.cards[rider.instanceId].pos, `${id} walked onto the corpse`)
+        .not.toEqual({ row: 1, col: 1 });
+    }
+  });
+
+  it("...but the two cards whose text says otherwise still hit FIRST", () => {
+    // Tumbleweed's reads "deal 5 DMG, THEN roll 1 slot", and Ash Boar's charge is
+    // an ON-SUMMON that tramples through. Both deliberately skip chargeFirst, so
+    // this pins the divergence as a choice rather than an oversight.
     const s = prepState();
     s.players.P1.magicPool = 9;
-    const skel = place(s, "dusk_skelider", "P1", 3, 1, { autoMode: "manual" });
-    const doomed = place(s, "dusk_gool", "P2", 1, 1, { curHp: 2, maxHp: 2, curShields: 0 });
-    const n = applyIntent(battleWith(s, skel.instanceId), {
-      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: doomed.instanceId,
+    // Its roll rides a TALENT, not a Special — hence the different action here.
+    const weed = place(s, "gale_tumbleweed", "P1", 3, 1, { autoMode: "manual" });
+    const doomed = place(s, "dusk_gool", "P2", 2, 1, { curHp: 2, maxHp: 2, curShields: 0 });
+    const n = applyIntent(battleWith(s, weed.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "talent", targetId: doomed.instanceId,
     });
     expect(n.cards[doomed.instanceId]).toBeUndefined();
-    expect(n.cards[skel.instanceId].pos).toEqual({ row: 1, col: 1 }); // walked ONTO it
+    expect(n.cards[weed.instanceId].pos).toEqual({ row: 2, col: 1 }); // rolled onto it
   });
 });

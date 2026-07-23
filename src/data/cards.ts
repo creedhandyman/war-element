@@ -957,7 +957,7 @@ export const CARDS: CardDef[] = [
       // printed "Move up to 4 and deal 15 PEN" — ranged reach + charge advance.
       // chargeLateral: the rider tracks its victim across columns instead of
       // ploughing straight ahead, so a blocked lane no longer pins it in place.
-      params: { dmg: 15, pen: 1, charge: 4, chargeLateral: 1 },
+      params: { dmg: 15, pen: 1, charge: 4, chargeLateral: 1, chargeFirst: 1 },
       ranged: true,
       targetSide: "enemy",
       text: "Ride up to 4 slots in any direction toward your target and deal 15 DMG (PEN) to it.",
@@ -1952,7 +1952,7 @@ export const CARDS: CardDef[] = [
       handler: "strike",
       // printed "Move up to 2 and deal 8 to an opponent in range" — ranged reach
       // (the move) + charge advance afterward
-      params: { dmg: 8, charge: 2 },
+      params: { dmg: 8, charge: 2, chargeFirst: 1 },
       ranged: true,
       targetSide: "enemy",
       text: "Charge up to 2 slots and deal 8 DMG to one opponent.",
@@ -2177,7 +2177,7 @@ export const CARDS: CardDef[] = [
       // hit, in any direction (it flies, so sideways and diagonals are free).
       // That plants a 29-HP mythic deep in enemy ground — STEALTH covers the
       // landing for exactly one round, so the reposition is a real gamble.
-      params: { dmg: 27, splash: 11, recoilPct: 25, selfStatus: "STEALTH", selfStatusDuration: 1, charge: 3, chargeLateral: 1 },
+      params: { dmg: 27, splash: 11, recoilPct: 25, selfStatus: "STEALTH", selfStatusDuration: 1, charge: 3, chargeLateral: 1, chargeFirst: 1 },
       targetSide: "enemy",
       text: "Dive up to 3 spaces in any direction onto your target, deal 27 DMG (+11 splash) and take 25% recoil, then vanish into STEALTH until next round. 3-round cooldown.",
     },
@@ -2235,7 +2235,7 @@ export const CARDS: CardDef[] = [
       cost: 5,
       cooldown: 3, // charge nuke + EVASION escape — 3-round lockout between casts
       handler: "strike",
-      params: { dmg: 19, splash: 9, statusKind: "DOT", statusDuration: 1, statusPower: 9, selfStatus: "EVASION", selfStatusDuration: 1, charge: 4, chargeLateral: 1 },
+      params: { dmg: 19, splash: 9, statusKind: "DOT", statusDuration: 1, statusPower: 9, selfStatus: "EVASION", selfStatusDuration: 1, charge: 4, chargeLateral: 1, chargeFirst: 1 },
       targetSide: "enemy",
       ranged: true, // the dive reaches across the board
       text: "Ride up to 4 spaces in any direction toward your target, deal 19 DMG + 9 DOT (+9 splash), and gain EVASION for a round. 3-round cooldown.",
@@ -3161,7 +3161,12 @@ export const CARDS: CardDef[] = [
       name: "Cyclone Strike",
       cost: 3,
       handler: "strike",
-      params: { dmg: 8, charge: 3, pen: 1 },
+      // ranged + chargeFirst together, exactly as on Rollo: Tempest is MELEE, so
+      // without reach its "charge up to 3 slots" had nothing to cross — the
+      // target was already adjacent and the charge moved zero. The reach is what
+      // makes the promised charge exist.
+      params: { dmg: 8, charge: 3, pen: 1, chargeFirst: 1 },
+      ranged: true,
       targetSide: "enemy",
       text: "Charge up to 3 slots and strike one opponent for 8 DMG (PEN).",
     },
@@ -3729,6 +3734,8 @@ export const CARDS: CardDef[] = [
     // Charging Tusks (On Summon): it arrives mid-charge — everything in reach
     // takes 4, then it keeps going one more slot into enemy ground. `targets: 8`
     // is "all of them"; a board only ever holds 8 enemies.
+    // NO chargeFirst, unlike the other chargers: this is an ON-SUMMON, so there
+    // is nothing to roll in from, and the boar is meant to trample THROUGH.
     onSummon: {
       handler: "barrage",
       params: { dmg: 4, targets: 8, charge: 1 },
@@ -3803,6 +3810,8 @@ export const CARDS: CardDef[] = [
       name: "Roll Through",
       handler: "strike",
       params: { dmg: 5, charge: 1 },
+      // NO chargeFirst: this one hits and THEN rolls away, which is what its
+      // text promises and what a once-per-game escape wants to be.
       text: "Once per game: deal 5 DMG, then roll 1 slot toward the enemy home.",
     },
   },
@@ -4088,7 +4097,7 @@ export const CARDS: CardDef[] = [
       cost: 3,
       handler: "barrage",
       // sameColumn = "straight ahead"; charge walks it up to 4 slots forward.
-      params: { dmg: 10, targets: 99, sameColumn: 1, charge: 4 },
+      params: { dmg: 10, targets: 99, sameColumn: 1, charge: 4, chargeFirst: 1 },
       targetSide: "enemy",
       text: "Charge up to 4 spaces forward, dealing 10 DMG to every opponent straight ahead.",
     },
