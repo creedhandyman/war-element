@@ -3302,7 +3302,7 @@ export const CARDS: CardDef[] = [
       // untargetable until it next attacks).
       params: { amount: 12, deleteOnly: 1, selfStatus: "STEALTH", selfStatusDuration: 2 },
       targetSide: "enemy",
-      text: "Delete 12 max HP from an opponent, then slip into STEALTH until you next attack.",
+      text: "Delete 12 max HP from an opponent — destroying it outright if it has 12 or less — then slip into STEALTH until you next attack.",
     },
   },
   {

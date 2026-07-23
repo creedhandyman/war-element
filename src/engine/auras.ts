@@ -20,7 +20,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   AQUA: { name: "Flow Change", desc: "On summon, choose a 1-turn boost: Liquid +2 DMG (+1 hit if multi-hit) · Frozen +3 shields · Vapor +4 SP." },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for half its DMG." },
   GALE: { name: "Zephyr", desc: "End of round, +1 SP (caps at SP 21)." },
-  BOLT: { name: "Electrify", desc: "+1 DMG against any opponent that has a status." },
+  BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +2 DMG to any opponent carrying a status." },
 };
 
 export const GALE_SP_CAP = 21;

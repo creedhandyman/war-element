@@ -768,8 +768,11 @@ export function basicAttack(
       if (vs.lifesteal) lifesteal = true;
       healOnHit = vs.healOnHit ?? 0;
     }
-    // Electrify (BOLT aura): +1 DMG vs any statused opponent — +2 under Power Grid.
-    if (aDef.element === "BOLT" && t.statuses.length > 0) dmg += 1 + fieldBonus(draft, attacker, "electrify");
+    // Electrify (BOLT aura): +2 DMG vs any statused opponent — +3 under Power
+    // Grid. Raised from +1: even once the aura was made self-enabling (see the
+    // ELECTRIFIED rider below) a single point moved BOLT's win rate 38% -> 39%,
+    // i.e. not at all. On BOLT's ~5-damage cards +1 is a rounding error.
+    if (aDef.element === "BOLT" && t.statuses.length > 0) dmg += 2 + fieldBonus(draft, attacker, "electrify");
     // Harsh Winds / Shadow: bonus DMG the first time this card strikes a given
     // opponent. Vaga's version only counts while it stands on the enemy side.
     const fsEligible = Boolean(aDef.firstStrikeBonus) && (!aDef.firstStrikeEnemySideOnly || onEnemySide(attacker, draft.boardSize));
@@ -800,6 +803,19 @@ export function basicAttack(
       // it never overwrites a stronger card-specific BURN rider.
       if (aDef.element === "PYRO" && t.curHp > 0 && !hasStatus(t, "BURN")) {
         applyStatus(draft, t, "BURN", 1, 1, "PYRO");
+      }
+      // Electrify (BOLT aura), second half: a basic hit leaves the target
+      // ELECTRIFIED, so the aura SETS UP its own payoff instead of waiting on
+      // another card to apply a status first.
+      //
+      // BOLT measured worst on offence despite the SECOND-best printed damage
+      // per cost, which is the same shape LEAF had: the cards were fine, the
+      // aura was not. +1 DMG "vs a statused opponent" did nothing on the opening
+      // hit of any exchange, and PYRO's equivalent has always done its own
+      // setup. Applied only when the target carries NO status yet, so it never
+      // overwrites a real debuff with an inert marker.
+      if (aDef.element === "BOLT" && t.curHp > 0 && t.statuses.length === 0) {
+        applyStatus(draft, t, "ELECTRIFIED", 1, 0, "BOLT");
       }
       if (healOnHit > 0 && attacker.curHp > 0) healCard(draft, attacker, healOnHit, attacker);
       // Liquification (Bahari): flat heal per landed basic hit.
@@ -1717,12 +1733,25 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const target = targets[0];
     if (!target) return;
     const amount = num(params, "amount", 1);
-    const stolen = Math.min(amount, target.maxHp - 1); // never below 1 max HP
     // `deleteOnly` (Nightfang's Soul Slash): destroy the max HP instead of
     // taking it. The caster gains nothing, so the swing is the amount itself
     // rather than double it, and the assassin does not inflate its own HP bar
-    // every cast.
+    // every cast. It also carves LETHALLY — a target whose whole max HP fits
+    // inside the cut is carved away entirely.
+    //
+    // The transfer path keeps its 1-max-HP floor: a card you are draining has
+    // to survive to be drained again, and an unkillable-by-drain card is the
+    // nonsense that floor was written for. Deleting is a different act.
     const deleteOnly = num(params, "deleteOnly") > 0;
+    if (deleteOnly && target.maxHp <= amount) {
+      target.maxHp = 0;
+      target.curHp = 0;
+      draft.log.push(`${label(draft, attacker)} carves ${label(draft, target)} out of existence.`);
+      defeatCard(draft, target, `${getDef(attacker.defId).name}'s soul slash`);
+      applySelfRiders(draft, attacker, params);
+      return;
+    }
+    const stolen = Math.min(amount, target.maxHp - 1); // never below 1 max HP
     if (stolen > 0) {
       target.maxHp -= stolen;
       target.curHp = Math.min(target.curHp, target.maxHp);

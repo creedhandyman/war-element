@@ -472,12 +472,14 @@ describe("medium-tier passives (audit batch)", () => {
     const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30, curShields: 0 });
     const buzz = place(s, "bolt_buzz", "P1", 2, 1);
     // Unmarked: 2 DMG + 1 King of the Hill (buzz stands in a mid row) = 3.
+    // The hit ALSO leaves the target ELECTRIFIED now — Electrify sets up its own
+    // payoff rather than waiting on another card to apply a status.
     basicAttack(s, buzz.instanceId, foe.instanceId);
     expect(s.cards[foe.instanceId].curHp).toBe(27);
-    // Marked: Electrify adds another +1 vs a statused target = 4.
-    applyStatus(s, s.cards[foe.instanceId], "ELECTRIFIED", 2, 0, "BOLT");
+    expect(statusOf(s.cards[foe.instanceId], "ELECTRIFIED")).toBeTruthy();
+    // Marked: Electrify adds +2 vs a statused target = 5.
     basicAttack(s, buzz.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curHp).toBe(23);
+    expect(s.cards[foe.instanceId].curHp).toBe(22);
   });
 
   it("Shimmering Featherrows volleys three targets, then cloaks the eagle", () => {
@@ -1312,7 +1314,7 @@ describe("element auras", () => {
     expect(golem.tempShields).toBe(3); // temporary — removed in Cleanup
   });
 
-  it("Electrify (BOLT): +1 DMG vs a statused opponent", () => {
+  it("Electrify (BOLT): +2 DMG vs a statused opponent", () => {
     const withStatus = prepState();
     const zap = place(withStatus, "bolt_zap", "P1", 3, 0); // DMG 5, home row (no KotH)
     const t = place(withStatus, "dusk_gool", "P2", 3, 1, {
@@ -1320,7 +1322,7 @@ describe("element auras", () => {
       status: { kind: "ROOT", duration: 2, power: 0, source: "LEAF" },
     });
     basicAttack(withStatus, zap.instanceId, t.instanceId);
-    expect(withStatus.cards[t.instanceId].curHp).toBe(14); // 20 − 6 (5 + Electrify)
+    expect(withStatus.cards[t.instanceId].curHp).toBe(13); // 20 − 7 (5 + Electrify 2)
 
     const noStatus = prepState();
     const z2 = place(noStatus, "bolt_zap", "P1", 3, 0);
@@ -1499,5 +1501,41 @@ describe("Sphere — one heavy shot instead of a 2x2 volley", () => {
     const handId = giveHand(s, "P1", "dawn_sphere");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     expect(40 - next.cards[foe.instanceId].curHp).toBe(2);
+  });
+});
+
+describe("Electrify sets up its own payoff", () => {
+  it("a BOLT basic leaves the target ELECTRIFIED", () => {
+    // BOLT measured WORST on offence despite the second-best printed damage per
+    // cost — the same shape LEAF had. "+1 vs a statused opponent" did nothing on
+    // the opening hit of any exchange, while PYRO's equivalent has always done
+    // its own setup.
+    const s = prepState();
+    const zap = place(s, "bolt_zap", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 30, maxHp: 30, curShields: 0 });
+    basicAttack(s, zap.instanceId, foe.instanceId);
+    expect(statusOf(s.cards[foe.instanceId], "ELECTRIFIED")).toBeTruthy();
+  });
+
+  it("...but never overwrites a real debuff with the inert marker", () => {
+    // ELECTRIFIED exists only to BE a status. Stamping it over a ROOT would
+    // trade a genuine effect for a bookkeeping mark.
+    const s = prepState();
+    const zap = place(s, "bolt_zap", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 3, 1, {
+      curHp: 30, maxHp: 30, curShields: 0,
+      status: { kind: "ROOT", duration: 2, power: 0, source: "LEAF" },
+    });
+    basicAttack(s, zap.instanceId, foe.instanceId);
+    expect(statusOf(s.cards[foe.instanceId], "ROOT")).toBeTruthy();
+    expect(statusOf(s.cards[foe.instanceId], "ELECTRIFIED")).toBeUndefined();
+  });
+
+  it("non-BOLT cards mark nothing", () => {
+    const s = prepState();
+    const other = place(s, "gale_duster", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 30, maxHp: 30, curShields: 0 });
+    basicAttack(s, other.instanceId, foe.instanceId);
+    expect(statusOf(s.cards[foe.instanceId], "ELECTRIFIED")).toBeUndefined();
   });
 });

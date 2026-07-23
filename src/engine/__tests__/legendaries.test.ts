@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { applyIntent, advance } from "../phases";
 import { effectiveDmg } from "../state";
 import { getDef } from "../../data/cards";
+import { drainMaxHp } from "../combat";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
@@ -137,20 +138,41 @@ describe("legendary specials", () => {
     expect(statusOf(next.cards[nf.instanceId], "STEALTH")).toBeTruthy();
   });
 
-  it("...and it still cannot delete a card out of existence", () => {
-    // drainMaxHp floors at 1 max HP. With the amount doubled to 12 that guard
-    // matters far more than it did at 6 — most of the roster is under 12.
+  it("...and a target that fits inside the cut is carved away entirely", () => {
+    // Soul Slash kills outright at 12 max HP or less. drainMaxHp's 1-max-HP
+    // floor still guards the TRANSFER path — a card you drain has to survive to
+    // be drained again — but deleting is a different act and may be lethal.
     const s = prepState();
     s.players.P1.magicPool = 4;
     const nf = place(s, "dusk_nightfang", "P1", 2, 0);
     // NOT a flier: Nightfang is Melee, and FLYING dodges melee entirely, so a
-    // Crow here is simply untargetable rather than a frail test subject.
+    // Crow here would be untargetable rather than a frail test subject.
     const frail = place(s, "dusk_gool", "P2", 1, 0, { curHp: 5, maxHp: 5 });
     const next = applyIntent(battleWith(s, nf.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: frail.instanceId,
     });
-    expect(next.cards[frail.instanceId].maxHp).toBe(1);
-    expect(next.cards[frail.instanceId].curHp).toBeGreaterThan(0);
+    expect(next.cards[frail.instanceId]).toBeUndefined(); // gone
+  });
+
+  it("...but 13 max HP survives on 1 — the cut is 12, not a round-up", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 4;
+    const nf = place(s, "dusk_nightfang", "P1", 2, 0);
+    const survivor = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13, maxHp: 13 });
+    const next = applyIntent(battleWith(s, nf.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: survivor.instanceId,
+    });
+    expect(next.cards[survivor.instanceId].maxHp).toBe(1);
+    expect(next.cards[survivor.instanceId].curHp).toBe(1);
+  });
+
+  it("a normal DRAIN still cannot kill — the floor is transfer-only", () => {
+    // Vamp's DRAIN keyword shares the helper. It must keep the 1-HP floor.
+    const s = prepState();
+    const vamp = place(s, "dusk_vamp", "P1", 2, 0, { autoMode: "manual" });
+    const prey = place(s, "gale_guan", "P2", 2, 1, { curHp: 1, maxHp: 1, curShields: 0 });
+    drainMaxHp(s, s.cards[vamp.instanceId], s.cards[prey.instanceId], 12);
+    expect(s.cards[prey.instanceId].maxHp).toBe(1); // floored, not carved
   });
 
   it("Nightfang's stat line is inside the cost-7 budget", () => {
