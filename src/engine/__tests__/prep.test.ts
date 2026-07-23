@@ -62,16 +62,31 @@ describe("summoning", () => {
 });
 
 describe("movement", () => {
-  it("movement tiers: 0 = pinned, slow 1–5 = 1, mid 6–10 = 2, fast 11+ = 3", () => {
-    // Every boundary here is a balance cliff — one printed SP across a line is
-    // a whole extra slot of reach — so both sides of each are pinned.
+  it("movement tiers: 0 = pinned, slow 1–5 = 1, mid and fast = 2", () => {
+    // Reach TOPS OUT at 2. The fast tier's payoff is the king-move (below), not
+    // a third step: extra reach compounded with board depth, handing the quick
+    // elements a 76% win rate on 5x5, while cutting corners is worth the same
+    // on any board size.
     expect(moveReach(0)).toBe(0);
     expect(moveReach(1)).toBe(1);
     expect(moveReach(SP_SLOW_MAX)).toBe(1);
     expect(moveReach(SP_SLOW_MAX + 1)).toBe(2);
     expect(moveReach(SP_MID_MAX)).toBe(2);
-    expect(moveReach(SP_MID_MAX + 1)).toBe(3);
-    expect(moveReach(21)).toBe(3); // the GALE Zephyr cap still lands in fast
+    expect(moveReach(SP_MID_MAX + 1)).toBe(2);
+    expect(moveReach(21)).toBe(2); // the GALE Zephyr cap changes nothing
+  });
+
+  it("the FAST tier cuts corners — that is what it buys", () => {
+    // A diagonal costs a mid card 2 of its 2 steps (Manhattan) and a fast card
+    // 1 (Chebyshev), so only the fast card can go diagonally AND keep moving.
+    const s = prepState();
+    const mid = place(s, "dusk_gool", "P1", 2, 1); // mid band
+    const fast = place(s, "dusk_silkstalker", "P1", 2, 3); // SP 12
+    expect(moveReach(getDef("dusk_gool").sp)).toBe(2);
+    expect(moveReach(getDef("dusk_silkstalker").sp)).toBe(2); // same reach...
+    // ...but only the fast one reaches TWO diagonal steps away.
+    expect(canMove(s, "P1", fast.instanceId, { row: 0, col: 1 }).ok).toBe(true);
+    expect(canMove(s, "P1", mid.instanceId, { row: 0, col: 3 }).ok).toBe(false);
   });
 
   it("each tier walks its own distance on the board", () => {
@@ -91,24 +106,26 @@ describe("movement", () => {
     expect(canMove(s, "P1", mid.instanceId, { row: 0, col: 3 }).ok).toBe(true); // dist 2
   });
 
-  it("no card may cross from its own Home row to the enemy's in one move", () => {
-    // The fast tier reaches 3 and a 4x4 board is exactly 3 rows deep, so without
-    // this a quick card could leave the back line and take a capture slot before
-    // the opponent had a turn to answer. Crossing costs two moves now.
+  it("the home-to-home rule holds, though nothing can currently reach that far", () => {
+    // Kept as a GUARD, not an active rule. With reach capped at 2 and the home
+    // rows 3 apart on a 4x4 (4 on a 5x5), no card can make the crossing in one
+    // move anyway — the cap that made this rule necessary is gone. It stays so
+    // that raising reach later cannot silently re-open the dash.
     const s = prepState();
-    const runner = place(s, "pyro_sol", "P1", 3, 1); // fast band
-    expect(moveReach(getDef("pyro_sol").sp)).toBe(3);
+    const runner = place(s, "dusk_silkstalker", "P1", 3, 1); // fastest in the game
     const dash = canMove(s, "P1", runner.instanceId, { row: 0, col: 1 });
     expect(dash.ok).toBe(false);
-    expect(dash.reason).toMatch(/Home row/i);
-    // ...but the same 3 steps are fine when they stop short of the back line.
-    expect(canMove(s, "P1", runner.instanceId, { row: 1, col: 1 }).ok).toBe(true);
+    // The DISTANCE check answers first, which is the proof: the crossing is out
+    // of range on its own, so the rule never has to fire. If a future reach
+    // change makes it reachable, this reason flips to the Home-row one and the
+    // rule catches it.
+    expect(dash.reason).toMatch(/Too far/i);
   });
 
   it("...and it only blocks the DASH, not the destination", () => {
     // From a mid row the enemy home row is still a legal landing.
     const s = prepState();
-    const runner = place(s, "pyro_sol", "P1", 1, 1);
+    const runner = place(s, "dusk_silkstalker", "P1", 1, 1);
     expect(canMove(s, "P1", runner.instanceId, { row: 0, col: 1 }).ok).toBe(true);
   });
 

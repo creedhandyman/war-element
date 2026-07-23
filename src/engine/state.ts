@@ -337,7 +337,11 @@ export function effectiveDmg(state: GameState, card: CardInstance): number {
  *
  *      slow  1-5  -> 1 space
  *      mid   6-10 -> 2
- *      fast  11+  -> 3
+ *      fast  11+  -> 2, and moves like a KING (diagonals cost 1)
+ *
+ *  The fast tier buys MANOEUVRABILITY, not reach. A third step compounded with
+ *  board depth — on a 5x5 it handed GALE and BOLT a 76% win rate against a 40
+ *  point spread — whereas cutting corners is worth the same on any board size.
  *
  *  Replaces a two-tier split at 7/8, which put 97 of 162 cards in a single
  *  bucket and left SP largely inert as a stat — below the line it bought
@@ -348,8 +352,20 @@ export const SP_MID_MAX = 10;
 export function moveReach(sp: number): number {
   if (sp <= 0) return 0; // ROOT / FREEZE pin a card outright
   if (sp <= SP_SLOW_MAX) return 1;
-  if (sp <= SP_MID_MAX) return 2;
-  return 3;
+  return 2; // mid and fast both stride 2 — fast pays off in the king-move
+}
+
+/** Does this card cut corners? FLYING and mounted cards always have; the FAST
+ *  speed tier now does too, which is what that tier buys instead of a third
+ *  step. A diagonal costs such a card 1 rather than 2.
+ *
+ *  `transformed` is Skelider's Dismount: lose the mount, lose the king-move. */
+export function movesLikeKing(def: CardDef, card: CardInstance, sp: number): boolean {
+  return (
+    Boolean(def.keywords.FLYING) ||
+    (Boolean(def.mounted) && !card.transformed) ||
+    sp > SP_MID_MAX
+  );
 }
 
 /**

@@ -14,7 +14,9 @@ import {
   isCaptured,
   isContested,
   manhattan,
+  effectiveSp,
   moveReachFor,
+  movesLikeKing,
 } from "./state";
 import type {
   CardDef,
@@ -109,12 +111,11 @@ export function canMove(
   if (reach === 0) return { ok: false, reason: "This card can't move (SP 0)" };
   if (to.row < 0 || to.row >= state.boardSize || to.col < 0 || to.col >= state.boardSize)
     return { ok: false, reason: "Off the board" };
-  // FLYING and MOUNTED cards move like a chess king — a diagonal step costs 1,
-  // not 2. `transformed` is Skelider's Dismount: lose the mount, lose the
-  // king-move and walk like everything else.
-  const mDef = getDef(card.defId);
-  const kingMove = Boolean(mDef.keywords.FLYING) || (Boolean(mDef.mounted) && !card.transformed);
-  const dist = kingMove ? chebyshev(card.pos, to) : manhattan(card.pos, to);
+  // FLYING, MOUNTED and FAST-tier cards move like a chess king — a diagonal step
+  // costs 1, not 2. See movesLikeKing.
+  const dist = movesLikeKing(getDef(card.defId), card, effectiveSp(state, card))
+    ? chebyshev(card.pos, to)
+    : manhattan(card.pos, to);
   if (dist === 0) return { ok: false, reason: "Already there" };
   if (dist > reach)
     return { ok: false, reason: `Too far (reach ${reach})` };
