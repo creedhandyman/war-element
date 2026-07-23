@@ -1718,12 +1718,19 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (!target) return;
     const amount = num(params, "amount", 1);
     const stolen = Math.min(amount, target.maxHp - 1); // never below 1 max HP
+    // `deleteOnly` (Nightfang's Soul Slash): destroy the max HP instead of
+    // taking it. The caster gains nothing, so the swing is the amount itself
+    // rather than double it, and the assassin does not inflate its own HP bar
+    // every cast.
+    const deleteOnly = num(params, "deleteOnly") > 0;
     if (stolen > 0) {
       target.maxHp -= stolen;
       target.curHp = Math.min(target.curHp, target.maxHp);
-      attacker.maxHp += stolen;
+      if (!deleteOnly) attacker.maxHp += stolen;
       draft.log.push(
-        `${label(draft, attacker)} drains ${stolen} max HP from ${label(draft, target)}.`,
+        deleteOnly
+          ? `${label(draft, attacker)} carves ${stolen} max HP out of ${label(draft, target)} — gone for good.`
+          : `${label(draft, attacker)} drains ${stolen} max HP from ${label(draft, target)}.`,
       );
     }
     const selfShields = num(params, "selfShields", 0);

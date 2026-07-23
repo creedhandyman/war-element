@@ -3282,21 +3282,27 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 7,
-    dmg: 7,
+    // 9/25/0sh/9sp = 43 against a cost-7 budget of 45, inside the band. Armour
+    // traded for reach and speed: it was 7/24/4sh/6sp, which read as a bruiser
+    // rather than the assassin its class says it is.
+    dmg: 9,
     hits: 1,
-    hp: 24,
-    sp: 6,
-    shields: 4,
+    hp: 25,
+    sp: 9,
+    shields: 0,
     keywords: { LIFESTEAL: true },
     special: {
-      name: "Soul Drain",
+      name: "Soul Slash",
       cost: 4,
       handler: "drainMax",
-      // Permanently steal 6 max HP, then slip into STEALTH (selfStatus rider,
+      // DELETE, not steal: `deleteOnly` destroys the max HP instead of moving
+      // it, so Nightfang gains nothing. 6-stolen was a 12-point swing (they lose
+      // 6, it gains 6); 12-deleted is the same 12-point swing with the caster's
+      // own HP bar left alone. Then it slips into STEALTH (selfStatus rider,
       // untargetable until it next attacks).
-      params: { amount: 6, selfStatus: "STEALTH", selfStatusDuration: 2 },
+      params: { amount: 12, deleteOnly: 1, selfStatus: "STEALTH", selfStatusDuration: 2 },
       targetSide: "enemy",
-      text: "Steal 6 max HP from an opponent, then slip into STEALTH until you next attack.",
+      text: "Delete 12 max HP from an opponent, then slip into STEALTH until you next attack.",
     },
   },
   {

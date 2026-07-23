@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { applyIntent, advance } from "../phases";
 import { effectiveDmg } from "../state";
+import { getDef } from "../../data/cards";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
@@ -116,7 +117,10 @@ describe("legendary specials", () => {
     expect(statusOf(next.cards[f2.instanceId], "PARALYZE")).toBeTruthy();
   });
 
-  it("DUSK Nightfang — Soul Drain steals 6 max HP and cloaks in STEALTH", () => {
+  it("DUSK Nightfang — Soul Slash DELETES 12 max HP and cloaks in STEALTH", () => {
+    // Delete, not steal. Nightfang gains nothing: 6-stolen was a 12-point swing
+    // (they lose 6, it gains 6); 12-deleted is the same swing with the caster's
+    // own HP bar left out of it.
     const s = prepState();
     s.players.P1.magicPool = 4;
     const nf = place(s, "dusk_nightfang", "P1", 2, 0);
@@ -128,9 +132,31 @@ describe("legendary specials", () => {
       action: "special",
       targetId: foe.instanceId,
     });
-    expect(next.cards[foe.instanceId].maxHp).toBe(14); // −6 max HP
-    expect(next.cards[nf.instanceId].maxHp).toBe(baseMax + 6); // stolen onto Nightfang
+    expect(next.cards[foe.instanceId].maxHp).toBe(8); // −12 max HP
+    expect(next.cards[nf.instanceId].maxHp).toBe(baseMax); // ...and NOT onto Nightfang
     expect(statusOf(next.cards[nf.instanceId], "STEALTH")).toBeTruthy();
+  });
+
+  it("...and it still cannot delete a card out of existence", () => {
+    // drainMaxHp floors at 1 max HP. With the amount doubled to 12 that guard
+    // matters far more than it did at 6 — most of the roster is under 12.
+    const s = prepState();
+    s.players.P1.magicPool = 4;
+    const nf = place(s, "dusk_nightfang", "P1", 2, 0);
+    // NOT a flier: Nightfang is Melee, and FLYING dodges melee entirely, so a
+    // Crow here is simply untargetable rather than a frail test subject.
+    const frail = place(s, "dusk_gool", "P2", 1, 0, { curHp: 5, maxHp: 5 });
+    const next = applyIntent(battleWith(s, nf.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: frail.instanceId,
+    });
+    expect(next.cards[frail.instanceId].maxHp).toBe(1);
+    expect(next.cards[frail.instanceId].curHp).toBeGreaterThan(0);
+  });
+
+  it("Nightfang's stat line is inside the cost-7 budget", () => {
+    const d = getDef("dusk_nightfang");
+    expect(d.dmg * d.hits + d.hp + d.shields * 2 + d.sp).toBe(43); // vs 5*7+10 = 45
+    expect(d.keywords.LIFESTEAL).toBe(true);
   });
 
   it("BORE Bastion — Boulder Barrage reaches a far enemy (ranged) and WEAKENs it", () => {
