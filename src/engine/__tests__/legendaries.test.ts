@@ -155,3 +155,36 @@ describe("legendary specials", () => {
     expect(next.cards[b.instanceId].curShields).toBe(2);
   });
 });
+
+describe("legendary audit — Flashing Barrage", () => {
+  it("is 3 hits of 2 to every opponent in range, with a board-wide BLIND", () => {
+    // It was 4 hits: 8 damage to EVERY reachable card for 3 magic, measured at
+    // 10.7 per magic across a cluster — higher than any MYTHIC special, off a
+    // cost-6 body. The BLIND was always the point; the volley outgrew it.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const kosmos = place(s, "dawn_kosmos", "P1", 2, 1, { autoMode: "manual" });
+    const a = place(s, "dusk_gool", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const b = place(s, "dusk_gool", "P2", 1, 2, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = applyIntent(battleWith(s, kosmos.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: a.instanceId,
+    });
+    expect(99 - n.cards[a.instanceId].curHp).toBe(6); // 3 x 2, down from 8
+    expect(99 - n.cards[b.instanceId].curHp).toBe(6); // it still hits everyone
+    expect(statusOf(n.cards[a.instanceId], "BLIND")?.duration).toBe(1);
+    expect(statusOf(n.cards[b.instanceId], "BLIND")?.duration).toBe(1);
+  });
+
+  it("every hit still strips a shield — the volley is unchanged in kind", () => {
+    // Cutting a hit costs it a shield strip too; worth pinning, since that is
+    // what the multi-hit shape is FOR.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const kosmos = place(s, "dawn_kosmos", "P1", 2, 1, { autoMode: "manual" });
+    const armoured = place(s, "dusk_gool", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 5 });
+    const n = applyIntent(battleWith(s, kosmos.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: armoured.instanceId,
+    });
+    expect(n.cards[armoured.instanceId].curShields).toBe(2); // 5 − 3 hits
+  });
+});

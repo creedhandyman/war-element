@@ -1313,9 +1313,14 @@ export const CARDS: CardDef[] = [
       cost: 3,
       handler: "barrage",
       // printed "4×2 DMG and BLIND all opponents" — 4 hits of 2 to each, BLIND all
-      params: { dmg: 2, hits: 4, targets: 99, statusKind: "BLIND", statusDuration: 1 },
+      // hits 4 -> 3. At 4 this was 8 damage to EVERY opponent in range for 3
+      // magic — measured at 32 burst across a four-card cluster, i.e. 10.7 per
+      // magic, higher than any MYTHIC special and roughly double the legendary
+      // median, off a cost-6 body. The board-wide BLIND is the real prize here;
+      // the volley behind it did not need to be the best in the game as well.
+      params: { dmg: 2, hits: 3, targets: 99, statusKind: "BLIND", statusDuration: 1 },
       targetSide: "enemy",
-      text: "Deal 2 DMG × 4 and BLIND every opponent in range for 1 round.",
+      text: "Deal 2 DMG × 3 and BLIND every opponent in range for 1 round.",
     },
   },
   {
