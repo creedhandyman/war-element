@@ -101,7 +101,10 @@ describe("per-card auras", () => {
     const s = prepState();
     place(s, "bore_deepest", "P1", 2, 1); // Pressure holder (BORE)
     const boreAlly = place(s, "bore_clubber", "P1", 2, 0, { curShields: 0 });
-    const nonBore = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0 });
+    // Deliberately NOT a LEAF card: Photosynthesis now hardens a full-health
+    // LEAF ally into +1 shield, which would look exactly like Pressure leaking
+    // onto a non-BORE target. GALE has no shield aura.
+    const nonBore = place(s, "gale_duster", "P1", 3, 0, { curShields: 0 });
     place(s, "dusk_gool", "P2", 0, 0); // keep P2 non-empty
     const next = advance(atCleanup(s));
     expect(next.cards[boreAlly.instanceId].curShields).toBe(getDef("bore_clubber").shields + 1);

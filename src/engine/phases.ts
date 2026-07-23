@@ -2,7 +2,7 @@
 // All reducers clone the incoming state once and mutate only the clone.
 
 import { getDef } from "../data/cards";
-import { applyFlow, type FlowMode, GALE_SP_CAP } from "./auras";
+import { applyFlow, type FlowMode, GALE_SP_CAP, LEAF_SHIELD_CAP } from "./auras";
 import { applyStatus, basicAttack, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, onEnemySide, payAttackTrade, pushBack, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
@@ -1231,8 +1231,19 @@ function doCleanupPhase(draft: GameState): void {
     if (regen > 0 && healCard(draft, card, regen, card) > 0) {
       draft.log.push(`${label(draft, card)} regenerates ${regen}.`);
     }
-    // Photosynthesis (LEAF): heal +1 HP each round.
-    if (def.element === "LEAF") healCard(draft, card, 1, card);
+    // Photosynthesis (LEAF): +2 HP each round — and when there is nothing to
+    // heal, the growth hardens into armour instead (+1 shield, capped).
+    // It was +1 HP and NOTHING at full health, so the game's only defensive
+    // aura paid out exactly when you were already losing and was dead weight
+    // the rest of the time. LEAF measured worst on BOTH axes despite mid-pack
+    // printed stats, which is what pointed at the aura rather than the cards.
+    if (def.element === "LEAF") {
+      const grown = healCard(draft, card, 2, card);
+      if (grown === 0 && card.curShields < LEAF_SHIELD_CAP) {
+        card.curShields += 1;
+        draft.log.push(`${label(draft, card)} hardens in the light (+1 shield).`);
+      }
+    }
     // Zephyr (GALE): +1 SP each round, total capped at 21.
     if (def.element === "GALE" && def.sp + card.spBonus < GALE_SP_CAP) card.spBonus += 1;
     // Field per-round buffs: REGEN (Lushfield/Blazing Sun), shields (Downpour).

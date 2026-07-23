@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { advance } from "../phases";
 import { atCleanup, place, prepState } from "./helpers";
+import { LEAF_SHIELD_CAP } from "../auras";
 import { MAX_ROUNDS } from "../types";
 
 describe("cleanup phase", () => {
@@ -55,8 +56,8 @@ describe("cleanup phase", () => {
     });
     const next = advance(atCleanup(s));
     // 2 + 3 = 5 BLEED dealt to P2 → Thorn drains 5 (10 → 15), then LEAF
-    // Photosynthesis adds its usual +1 (→ 16).
-    expect(next.cards[thorn.instanceId].curHp).toBe(16);
+    // Photosynthesis adds its +2 (→ 17).
+    expect(next.cards[thorn.instanceId].curHp).toBe(17);
   });
 
   it("Thorn's Transfusion heal is capped at maxHp", () => {
@@ -108,18 +109,18 @@ describe("cleanup phase", () => {
     });
     place(s, "dusk_gool", "P2", 0, 1);
     const next = advance(atCleanup(s));
-    // 2 -1 (BURN) +2 (REGEN) +1 (LEAF Photosynthesis aura) = 4
-    expect(next.cards[t.instanceId].curHp).toBe(4);
+    // 2 -1 (BURN) +2 (REGEN) +2 (LEAF Photosynthesis aura) = 5
+    expect(next.cards[t.instanceId].curHp).toBe(5);
   });
 
-  it("the LEAF alpha aura gives +1 HP at end of round (LEAF cards only)", () => {
+  it("the LEAF alpha aura gives +2 HP at end of round (LEAF cards only)", () => {
     const s = prepState();
     const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 5, maxHp: 14 });
     const pyro = place(s, "pyro_firebird", "P1", 3, 1, { curHp: 5, maxHp: 11 });
     place(s, "dusk_gool", "P2", 0, 1);
     const next = advance(atCleanup(s));
-    expect(next.cards[leaf.instanceId].curHp).toBe(6);
-    expect(next.cards[pyro.instanceId].curHp).toBe(5);
+    expect(next.cards[leaf.instanceId].curHp).toBe(7); // +2, raised from +1
+    expect(next.cards[pyro.instanceId].curHp).toBe(5); // non-LEAF untouched
   });
 
   it("status durations tick down and expire", () => {
@@ -211,5 +212,45 @@ describe("the round cap", () => {
     const next = advance(atCleanup(s));
     expect(next.phase).toBe("gameover");
     expect(next.win).toEqual({ winner: null, by: "timeout" });
+  });
+});
+
+describe("Photosynthesis hardens when there is nothing to heal", () => {
+  it("a full-health LEAF card banks a shield instead of wasting the tick", () => {
+    // The structural flaw this fixes: healCard caps at max HP, so the game's
+    // only defensive aura paid out NOTHING while you were healthy and 1 HP when
+    // you were losing. LEAF measured worst on both offence and defence despite
+    // mid-pack printed stats, which is what pointed at the aura, not the cards.
+    const s = prepState();
+    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0 }); // full HP
+    place(s, "dusk_gool", "P2", 0, 1);
+    const n = advance(atCleanup(s));
+    expect(n.cards[leaf.instanceId].curShields).toBe(1);
+  });
+
+  it("...but heals first when it is hurt, and does not do both", () => {
+    const s = prepState();
+    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 5, maxHp: 14, curShields: 0 });
+    place(s, "dusk_gool", "P2", 0, 1);
+    const n = advance(atCleanup(s));
+    expect(n.cards[leaf.instanceId].curHp).toBe(7); // +2
+    expect(n.cards[leaf.instanceId].curShields).toBe(0); // no shield while wounded
+  });
+
+  it("the armour stops at 3 — a comeback aura, not a stall engine", () => {
+    const s = prepState();
+    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0 });
+    place(s, "dusk_gool", "P2", 0, 1);
+    let n = s;
+    for (let i = 0; i < 6; i++) n = advance(atCleanup(n));
+    expect(n.cards[leaf.instanceId].curShields).toBe(LEAF_SHIELD_CAP);
+  });
+
+  it("non-LEAF cards get neither half", () => {
+    const s = prepState();
+    const pyro = place(s, "pyro_firebird", "P1", 3, 1, { curShields: 0 });
+    place(s, "dusk_gool", "P2", 0, 1);
+    const n = advance(atCleanup(s));
+    expect(n.cards[pyro.instanceId].curShields).toBe(0);
   });
 });

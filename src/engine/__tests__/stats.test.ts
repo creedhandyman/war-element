@@ -63,11 +63,11 @@ describe("match stats", () => {
     const n = advance(atCleanup(s));
     const sprinu = n.stats.byCard[dew.instanceId];
     const nettle = n.stats.byCard[ally.instanceId];
-    // Nettle is restored 2: 1 from the dew, 1 from its own LEAF Photosynthesis.
-    expect(nettle.healRecv).toBe(2);
-    // Of that, exactly 1 is Nettle's OWN work (Photosynthesis). Before the fix
-    // it read 2, because the dew was filed under whoever it landed on.
-    expect(nettle.heal).toBe(1);
+    // Nettle is restored 3: 1 from the dew, 2 from its own LEAF Photosynthesis.
+    expect(nettle.healRecv).toBe(3);
+    // Of that, exactly 2 is Nettle's OWN work (Photosynthesis). Before the fix
+    // it read 3, because the dew was filed under whoever it landed on.
+    expect(nettle.heal).toBe(2);
     // ...and the dew is credited to Sprinu, which used to show 0 healing done
     // despite being the only dedicated healer on the board.
     expect(sprinu.heal).toBe(1);

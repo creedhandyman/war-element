@@ -13,7 +13,7 @@ export interface AuraDef {
 }
 
 export const ELEMENT_AURA: Record<Element, AuraDef> = {
-  LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +1 HP." },
+  LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP — or harden into +1 shield (max 3) if already at full health." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN 1 (1 round, non-stacking)." },
   BORE: { name: "Exostone", desc: "Enters play with +2 shields." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals half its DMG back to the killer." },
@@ -24,6 +24,11 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
 };
 
 export const GALE_SP_CAP = 21;
+
+/** Photosynthesis stores at most this much armour. Uncapped, a LEAF board left
+ *  alone would plate up indefinitely and the aura would stop being a comeback
+ *  mechanic and start being a stall engine. */
+export const LEAF_SHIELD_CAP = 3;
 
 // AQUA Flow Change — the three-way summon choice (all "for 1 turn").
 export type FlowMode = "water" | "ice" | "steam";

@@ -106,7 +106,10 @@ describe("medium-tier passives (audit batch)", () => {
 
   it("Squanch's Regenerative banks enemy hits and cashes them in at Cleanup", () => {
     const s = prepState();
-    const sq = place(s, "leaf_squanch", "P1", 3, 0, { curShields: 0 });
+    // Held BELOW max HP on purpose: Photosynthesis hardens a full-health LEAF
+    // card into +1 shield, which would masquerade as Regenerative firing. Hurt,
+    // the aura heals instead and leaves the shield count alone.
+    const sq = place(s, "leaf_squanch", "P1", 3, 0, { curShields: 0, curHp: 20, maxHp: 23 });
     const foe = place(s, "dusk_gool", "P2", 3, 1);
     basicAttack(s, foe.instanceId, sq.instanceId);
     basicAttack(s, foe.instanceId, sq.instanceId);
@@ -313,9 +316,9 @@ describe("medium-tier passives (audit batch)", () => {
     const other = place(s, "bore_armadillo", "P1", 2, 0, { curHp: 5, maxHp: 20 });
     place(s, "dusk_gool", "P2", 0, 0);
     const next = advance(atCleanup(s));
-    // 5 + 2 (greegon's own REGEN) + 1 (Morning Dew) + 1 (LEAF Photosynthesis).
-    // Drop the dew and this reads 8, so the number does pin the passive.
-    expect(next.cards[leafy.instanceId].curHp).toBe(9);
+    // 5 + 2 (greegon's own REGEN) + 1 (Morning Dew) + 2 (LEAF Photosynthesis).
+    // Drop the dew and this reads 9, so the number does pin the passive.
+    expect(next.cards[leafy.instanceId].curHp).toBe(10);
     expect(next.cards[other.instanceId].curHp).toBe(5); // BORE gets neither dew nor Photosynthesis
   });
 
@@ -726,7 +729,10 @@ describe("medium-tier passives (audit batch)", () => {
 
   it("Regenerative is defensive — Squanch's own landed attacks grow nothing", () => {
     const s = prepState();
-    const sq = place(s, "leaf_squanch", "P1", 3, 0, { curShields: 0 });
+    // Below max HP for the same reason as the test above: a full-health LEAF
+    // card now hardens into +1 shield from Photosynthesis, which would read as
+    // Regenerative firing off its own attack. Hurt, the aura heals instead.
+    const sq = place(s, "leaf_squanch", "P1", 3, 0, { curShields: 0, curHp: 20, maxHp: 23 });
     const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 40, maxHp: 40 });
     basicAttack(s, sq.instanceId, foe.instanceId);
     const next = advance(atCleanup(s));
