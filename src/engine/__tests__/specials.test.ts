@@ -1065,11 +1065,13 @@ describe("outlier cuts and the Thorn sweep", () => {
     return { next, foes, dealt, touched };
   }
 
-  it("Thorn sweeps 3 opponents for 7 PEN each and leaves BLEED 3", () => {
+  it("Thorn sweeps 2 opponents for 7 PEN each and leaves BLEED 3", () => {
+    // Cut from 3. It measured 19.5 damage/round (21 burst + 18 BLEED) — the
+    // highest sustained output of any legendary, above every mythic.
     const { next, foes, dealt, touched } = sweep("leaf_thorn");
-    expect(touched).toBe(3); // up to 3, not the whole board
-    expect(dealt).toBe(21); // 7 x 3
-    for (const f of foes.slice(0, 3))
+    expect(touched).toBe(2); // up to 2, not the whole board
+    expect(dealt).toBe(14); // 7 x 2
+    for (const f of foes.slice(0, 2))
       expect(next.cards[f.instanceId].statuses.find((x) => x.kind === "BLEED")?.power).toBe(3);
   });
 

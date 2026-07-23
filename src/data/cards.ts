@@ -261,9 +261,12 @@ export const CARDS: CardDef[] = [
       // Now a sweep of up to 3 — BLEED drops 5 -> 3 to pay for the extra reach,
       // and Thorn's healsFromBleed drinks from all three.
       handler: "barrage",
-      params: { dmg: 7, pen: 1, targets: 3, statusKind: "BLEED", statusPower: 3, statusDuration: 2 },
+      // Sweep 3 -> 2. It measured 19.5 damage/round (21 burst + 18 BLEED), the
+      // highest sustained output of any legendary and above every mythic; two
+      // targets brings it to about 13, in line with the top of the tier.
+      params: { dmg: 7, pen: 1, targets: 2, statusKind: "BLEED", statusPower: 3, statusDuration: 2 },
       targetSide: "enemy",
-      text: "Sweep up to 3 opponents in range for 7 DMG (PEN) each and apply BLEED 3.",
+      text: "Sweep up to 2 opponents in range for 7 DMG (PEN) each and apply BLEED 3.",
     },
   },
 
@@ -2265,13 +2268,22 @@ export const CARDS: CardDef[] = [
       cost: 5,
       cooldown: 3, // charge nuke + EVASION escape — 3-round lockout between casts
       handler: "strike",
-      // Splash removed: 9 to every neighbour on top of a 19 + 9 DOT single
-      // target made a well-placed ride a board wipe. It is a rider's nuke now —
-      // everything it does lands on the one card it charged.
-      params: { dmg: 19, statusKind: "DOT", statusDuration: 1, statusPower: 9, selfStatus: "EVASION", selfStatusDuration: 1, charge: 4, chargeLateral: 1, chargeFirst: 1 },
+      // The board-wide splash is gone; what replaced it is a TRAMPLE tied to the
+      // path — 5 PEN to anything the rider passes close to on its way in, once
+      // each. That rewards riding through a formation instead of paying out
+      // regardless of where the target stood.
+      // Every part of this pierces: the 19 carries `pen`, the trample is PEN by
+      // construction, and DOT already bypasses shields at the Cleanup tick, so
+      // armour blunts none of it.
+      params: {
+        dmg: 19, pen: 1, trampleDmg: 5,
+        statusKind: "DOT", statusDuration: 1, statusPower: 9,
+        selfStatus: "EVASION", selfStatusDuration: 1,
+        charge: 4, chargeLateral: 1, chargeFirst: 1,
+      },
       targetSide: "enemy",
       ranged: true, // the dive reaches across the board
-      text: "Ride up to 4 spaces in any direction toward your target, deal 19 DMG + 9 DOT, and gain EVASION for a round. 3-round cooldown.",
+      text: "Ride up to 4 spaces in any direction toward your target, dealing 5 DMG (PEN) to every opponent you pass. Then hit it for 19 DMG (PEN) + 9 DOT and gain EVASION for a round. 3-round cooldown.",
     },
   },
   {

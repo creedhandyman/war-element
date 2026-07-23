@@ -770,3 +770,72 @@ describe("Shadow Horsemen — Long Reach", () => {
     expect(canHit(s, grunt.instanceId, far.instanceId)).toBe(false);
   });
 });
+
+describe("Shadow Charge — the trample and full PEN", () => {
+  /** Rider on a MID row: from its own home row the Home-Slot rule forbids
+   *  targeting the enemy home row, and the cast is rejected outright. */
+  function ride(s: GameState, riderId: string, targetId: string) {
+    return applyIntent(battleWith(s, riderId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId,
+    });
+  }
+
+  it("hits what the rider passes for 5, and the target for 19", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const rider = place(s, "dusk_shadowhorsemen", "P1", 2, 0, { autoMode: "manual" });
+    const target = place(s, "dusk_gool", "P2", 0, 0, { curHp: 99, maxHp: 99, curShields: 0 });
+    // Beside the lane, not on it — charges route AROUND bodies rather than
+    // through them, so "passed" means adjacent to a slot the rider entered.
+    const bystander = place(s, "dusk_gool", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = ride(s, rider.instanceId, target.instanceId);
+    expect(99 - n.cards[bystander.instanceId].curHp).toBe(5); // trampled in passing
+    expect(99 - n.cards[target.instanceId].curHp).toBe(19); // full strike, not 19 + 5
+  });
+
+  it("a bystander is trampled ONCE, however many path slots it stands beside", () => {
+    // Victims are collected into a Set during the ride and resolved after it, so
+    // a card adjacent to several slots of the path still takes 5, not a multiple.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const rider = place(s, "dusk_shadowhorsemen", "P1", 2, 0, { autoMode: "manual" });
+    const target = place(s, "dusk_gool", "P2", 1, 3, { curHp: 99, maxHp: 99, curShields: 0 });
+    const bystander = place(s, "dusk_gool", "P2", 2, 2, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = ride(s, rider.instanceId, target.instanceId);
+    expect(99 - n.cards[bystander.instanceId].curHp).toBe(5);
+  });
+
+  it("every part of it pierces — armour blunts none of the ride", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const rider = place(s, "dusk_shadowhorsemen", "P1", 2, 0, { autoMode: "manual" });
+    const target = place(s, "dusk_gool", "P2", 0, 0, { curHp: 99, maxHp: 99, curShields: 8 });
+    const bystander = place(s, "dusk_gool", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 8 });
+    const n = ride(s, rider.instanceId, target.instanceId);
+    expect(99 - n.cards[target.instanceId].curHp).toBe(19);
+    expect(n.cards[target.instanceId].curShields).toBe(8); // PEN strips nothing
+    expect(99 - n.cards[bystander.instanceId].curHp).toBe(5);
+    expect(n.cards[bystander.instanceId].curShields).toBe(8);
+  });
+
+  it("...and the DOT tail ignores armour too", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const rider = place(s, "dusk_shadowhorsemen", "P1", 2, 0, { autoMode: "manual" });
+    const target = place(s, "dusk_gool", "P2", 0, 0, { curHp: 99, maxHp: 99, curShields: 8 });
+    let n = ride(s, rider.instanceId, target.instanceId);
+    n = advance(atCleanup(n));
+    expect(99 - n.cards[target.instanceId].curHp).toBe(19 + 9);
+    expect(n.cards[target.instanceId].curShields).toBe(8);
+  });
+
+  it("allies riding alongside are not trampled", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const rider = place(s, "dusk_shadowhorsemen", "P1", 2, 0, { autoMode: "manual" });
+    const target = place(s, "dusk_gool", "P2", 0, 0, { curHp: 99, maxHp: 99, curShields: 0 });
+    const friend = place(s, "dusk_vamp", "P1", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = ride(s, rider.instanceId, target.instanceId);
+    expect(n.cards[friend.instanceId].curHp).toBe(99);
+  });
+});

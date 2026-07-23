@@ -943,8 +943,20 @@ function chargeForward(draft: GameState, card: CardInstance, steps: number): voi
  *  a rider whose victim was one column over never moved at all. Pulls up
  *  BESIDE a living target (it closes to melee, it doesn't trample through);
  *  if the strike killed the target the vacated slot is fair game to land on. */
-function chargeToward(draft: GameState, card: CardInstance, steps: number, dest: Pos): void {
+function chargeToward(
+  draft: GameState,
+  card: CardInstance,
+  steps: number,
+  dest: Pos,
+  /** Trample (Shadow Horsemen): every enemy the rider passes CLOSE TO on its way
+   *  takes this much, PEN, once each. Charges route AROUND bodies rather than
+   *  through them, so "passed" means adjacent to a slot the rider entered — not
+   *  trampled underfoot, which the movement rules do not allow. The destination
+   *  is excluded: it eats the full strike instead. */
+  trampleDmg = 0,
+): void {
   const enemyHome = homeRow(enemyOf(card.owner), draft.boardSize);
+  const run = trampleDmg > 0 ? new Set<string>() : null;
   // Same geometry the PREP move uses: FLYING walks like a chess king, everyone
   // else is orthogonal, so a ground rider spends two of its steps to cut a
   // corner. A charge that ignored this would out-manoeuvre normal movement.
@@ -990,9 +1002,28 @@ function chargeToward(draft: GameState, card: CardInstance, steps: number, dest:
     if (!step) break;
     card.pos = { row: pos.row + step[0], col: pos.col + step[1] };
     moved++;
+    if (run) {
+      // Collect as we go, damage after the ride — resolving mid-move could kill
+      // a blocker and change the lane the rider is still walking.
+      for (const e of boardCards(draft, enemyOf(card.owner))) {
+        if (!e.pos || (e.pos.row === dest.row && e.pos.col === dest.col)) continue;
+        if (chebyshev(e.pos, card.pos) <= 1) run.add(e.instanceId);
+      }
+    }
     if (card.pos.row === enemyHome) break; // a charge ends on the enemy home row
   }
   if (moved > 0) draft.log.push(`${label(draft, card)} charges ${moved} slot(s) to close the gap.`);
+  if (run && run.size > 0) {
+    let hit = 0;
+    for (const id of run) {
+      const e = draft.cards[id];
+      if (!e || e.curHp <= 0) continue;
+      directDamage(draft, card, e, trampleDmg, true); // PEN — hooves ignore armour
+      hit++;
+    }
+    if (hit > 0)
+      draft.log.push(`${label(draft, card)} tramples ${hit} opponent(s) on the ride (${trampleDmg} PEN each).`);
+  }
 }
 
 /** Row directly ahead (toward the enemy home) of a given position. */
@@ -1347,7 +1378,8 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // is what every existing charger (Skelider, Shadow Horsemen, Griffith) wants.
     const chargeFirst = num(params, "chargeFirst") > 0;
     if (chargeFirst && num(params, "charge") > 0 && center) {
-      if (num(params, "chargeLateral") > 0) chargeToward(draft, attacker, num(params, "charge"), center);
+      if (num(params, "chargeLateral") > 0)
+        chargeToward(draft, attacker, num(params, "charge"), center, num(params, "trampleDmg"));
       else chargeForward(draft, attacker, num(params, "charge"));
     }
     const r = resolveHit(draft, attacker, target, {
