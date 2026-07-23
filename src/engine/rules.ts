@@ -118,6 +118,17 @@ export function canMove(
   if (dist === 0) return { ok: false, reason: "Already there" };
   if (dist > reach)
     return { ok: false, reason: `Too far (reach ${reach})` };
+  // No home-to-home dash: a card standing on its OWN home row may not land on
+  // the enemy's in a single move. With the fast tier reaching 3 slots, a 4x4
+  // board is exactly 3 rows deep — so a quick card could otherwise leave the
+  // back line and take a capture slot in one step, before the opponent had a
+  // turn to answer it. Crossing still takes two moves; this costs the dash, not
+  // the destination.
+  if (
+    card.pos.row === homeRow(card.owner, state.boardSize) &&
+    to.row === homeRow(enemyOf(card.owner), state.boardSize)
+  )
+    return { ok: false, reason: "Can't cross from your Home row to theirs in one move" };
   if (cardAt(state, to.row, to.col) && !shoveTarget(state, card, to))
     return { ok: false, reason: "Destination occupied" };
   // Captured slots are locked: cards may pass through, but can't stop on one.

@@ -74,15 +74,42 @@ describe("movement", () => {
     expect(moveReach(21)).toBe(3); // the GALE Zephyr cap still lands in fast
   });
 
-  it("SP 1–7 moves 1 space, SP 8–15 moves 2", () => {
+  it("each tier walks its own distance on the board", () => {
+    // Cards picked by tier and asserted against moveReach, not against
+    // remembered numbers: the SP pass moved several cards across a boundary and
+    // a hardcoded "Greegon is slow" broke this test rather than catching a bug.
     const s = prepState();
-    const slow = place(s, "leaf_greegon", "P1", 3, 0); // SP 4
-    const fast = place(s, "leaf_stickviper", "P1", 3, 3); // SP 10
-    expect(canMove(s, "P1", slow.instanceId, { row: 2, col: 0 }).ok).toBe(true);
-    expect(canMove(s, "P1", slow.instanceId, { row: 1, col: 0 }).ok).toBe(false);
-    expect(canMove(s, "P1", fast.instanceId, { row: 1, col: 3 }).ok).toBe(true);
-    expect(canMove(s, "P1", fast.instanceId, { row: 2, col: 2 }).ok).toBe(true); // diagonal-ish, dist 2
-    expect(canMove(s, "P1", fast.instanceId, { row: 0, col: 3 }).ok).toBe(false); // dist 3
+    const slow = place(s, "bore_armadillo", "P1", 2, 0); // slow band
+    const mid = place(s, "leaf_stickviper", "P1", 2, 3); // mid band
+    expect(moveReach(getDef("bore_armadillo").sp)).toBe(1);
+    expect(moveReach(getDef("leaf_stickviper").sp)).toBe(2);
+    expect(canMove(s, "P1", slow.instanceId, { row: 1, col: 0 }).ok).toBe(true);
+    expect(canMove(s, "P1", slow.instanceId, { row: 0, col: 0 }).ok).toBe(false); // 2 away
+    expect(canMove(s, "P1", mid.instanceId, { row: 1, col: 3 }).ok).toBe(true);
+    // Straight up the column: a ground card pays MANHATTAN, so (2,3)->(0,2)
+    // would be 3, not 2. Only FLYING and mounted cards cut corners.
+    expect(canMove(s, "P1", mid.instanceId, { row: 0, col: 3 }).ok).toBe(true); // dist 2
+  });
+
+  it("no card may cross from its own Home row to the enemy's in one move", () => {
+    // The fast tier reaches 3 and a 4x4 board is exactly 3 rows deep, so without
+    // this a quick card could leave the back line and take a capture slot before
+    // the opponent had a turn to answer. Crossing costs two moves now.
+    const s = prepState();
+    const runner = place(s, "pyro_sol", "P1", 3, 1); // fast band
+    expect(moveReach(getDef("pyro_sol").sp)).toBe(3);
+    const dash = canMove(s, "P1", runner.instanceId, { row: 0, col: 1 });
+    expect(dash.ok).toBe(false);
+    expect(dash.reason).toMatch(/Home row/i);
+    // ...but the same 3 steps are fine when they stop short of the back line.
+    expect(canMove(s, "P1", runner.instanceId, { row: 1, col: 1 }).ok).toBe(true);
+  });
+
+  it("...and it only blocks the DASH, not the destination", () => {
+    // From a mid row the enemy home row is still a legal landing.
+    const s = prepState();
+    const runner = place(s, "pyro_sol", "P1", 1, 1);
+    expect(canMove(s, "P1", runner.instanceId, { row: 0, col: 1 }).ok).toBe(true);
   });
 
   it("can't move onto an occupied or captured slot", () => {
