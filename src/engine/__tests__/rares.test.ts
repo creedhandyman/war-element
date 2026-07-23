@@ -9,12 +9,15 @@ import { getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
 
 describe("rare passives", () => {
-  it("BORE UFO — Radiation deals 2 PEN each Cleanup, straight through shields", () => {
+  it("BORE UFO — Radiation deals 1 PEN each Cleanup, straight through shields", () => {
+    // Halved from 2: it is untargetable by melee since UFO gained FLYING, ticks
+    // every round with no cost or cooldown, and hits everything in range at
+    // once, so the per-target number is the only lever holding it down.
     const s = prepState();
     place(s, "bore_ufo", "P1", 2, 0);
     const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13, curShields: 5 });
     const next = advance(atCleanup(s));
-    expect(next.cards[foe.instanceId].curHp).toBe(11); // −2 to HP…
+    expect(next.cards[foe.instanceId].curHp).toBe(12); // −1 to HP…
     expect(next.cards[foe.instanceId].curShields).toBe(5); // …shields untouched (PEN)
   });
 
@@ -185,7 +188,7 @@ describe("UFO flies", () => {
     place(s2, "bore_ufo", "P1", 2, 0);
     const foe = place(s2, "dusk_gool", "P2", 1, 0, { curHp: 13, curShields: 5 });
     const n = advance(atCleanup(s2));
-    expect(n.cards[foe.instanceId].curHp).toBe(11);
+    expect(n.cards[foe.instanceId].curHp).toBe(12); // 1 PEN, cut from 2
     expect(n.cards[foe.instanceId].curShields).toBe(5); // PEN
   });
 });

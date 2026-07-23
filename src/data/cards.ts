@@ -3362,8 +3362,11 @@ export const CARDS: CardDef[] = [
     // = 5*3+10, still exactly on budget) — this is pure evasiveness, which suits
     // a 0-DMG turret whose whole job is to sit in range and irradiate.
     keywords: { FLYING: true },
-    // Radiation (End of Round): 2 DMG PEN (bypasses shields) to every opponent in range.
-    roundTick: { inRangeDmg: 2, inRangeDmgPen: true },
+    // Radiation (End of Round): 1 DMG PEN (bypasses shields) to every opponent in
+    // range. Halved from 2 — it is untargetable by melee since UFO gained FLYING,
+    // ticks EVERY round with no cost or cooldown, and hits everything in range at
+    // once, so the per-target number is the only thing holding it down.
+    roundTick: { inRangeDmg: 1, inRangeDmgPen: true },
   },
   {
     id: "leaf_sticks",
