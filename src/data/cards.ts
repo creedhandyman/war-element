@@ -1008,7 +1008,7 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     attackType: "Melee",
     cost: 4,
-    dmg: 4,
+    dmg: 5, // +1: 5+22+4 = 31 vs a cost-4 budget of 30, inside the ±2 band
     hits: 1,
     hp: 22,
     sp: 4,
@@ -4014,11 +4014,11 @@ export const CARDS: CardDef[] = [
     dmg: 3,
     hits: 1,
     hp: 9,
-    // Shields 0 -> 2 and SP 3 -> 6: an armoured runner that gets there first.
-    // This puts it 7 over the cost-1 budget (22 vs 15) and it is budget-test
-    // exempt as a result — a deliberate call, not drift. See state.test.ts.
+    // SP 3 -> 6: a runner that gets there first and hurts on the crossing. It
+    // briefly carried 2 shields as well; those are off again, which cuts it from
+    // 7 over the cost-1 budget to 3 over (18 vs 15). Still budget-test exempt.
     sp: 6,
-    shields: 2,
+    shields: 0,
     keywords: {},
     // Fires on the CROSSING onto enemy ground, not on every step taken once it
     // is already there. 1 -> 3 DMG, so the invasion actually hurts.

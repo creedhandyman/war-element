@@ -1563,3 +1563,51 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .status-icons { gap: 2px; }
   .status-icon, .kw-pip { font-size: 7px; }
 }
+
+/* ── Powerful-creature entrance (legendary+) ──────────────────────────────
+   Mirrors .castflash's timing exactly (2s, same scrim/burst/card curves) so a
+   summon announcement and a spell flash feel like the same game. The one extra
+   is --rar, the rarity colour, which rings the card and tints the label — a
+   MYTHIC should not read the same as a LEGEND. */
+.announce {
+  position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; pointer-events: auto;
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--el, #26307a) 30%, rgba(4,4,8,0.84)), rgba(4,4,8,0.94));
+  animation: castflash-scrim 2s ease-out both;
+}
+.announce-burst {
+  position: absolute; width: min(86vw, 520px); aspect-ratio: 1; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,255,255,0.9), color-mix(in srgb, var(--rar, #ffb02e) 62%, transparent) 44%, transparent 70%);
+  filter: blur(7px); animation: castflash-burst 2s ease-out both;
+}
+.announce-card {
+  position: relative; width: min(72vw, 300px); border-radius: 16px; overflow: hidden;
+  border: 2px solid var(--rar, var(--gold-lit));
+  background: linear-gradient(180deg, #12131f, #0a0b12);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 22px 60px rgba(0,0,0,0.72),
+              0 0 54px color-mix(in srgb, var(--rar, #ffb02e) 60%, transparent);
+  animation: castflash-card 2s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.announce-rar {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1;
+  font-family: var(--head); font-size: 11px; font-weight: 900; letter-spacing: 0.18em;
+  padding: 4px 12px; border-radius: 999px; color: #14100a; white-space: nowrap;
+  background: var(--rar, var(--gold-lit));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--rar, #ffb02e) 75%, transparent);
+}
+.announce-art { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
+.announce-noart {
+  display: grid; place-items: center; font-size: 120px; color: var(--el, #7d92e8);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 40%, #0b0d16), #0b0d18);
+  text-shadow: 0 0 30px var(--el, #7d92e8);
+}
+.announce-meta { padding: 10px 12px 14px; text-align: center; }
+.announce-name { font-family: var(--head); font-size: 21px; font-weight: 900; color: #f4efe2; letter-spacing: 0.02em; }
+.announce-sub { margin-top: 2px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--ink-dim); }
+.announce-stats { display: flex; justify-content: center; gap: 12px; margin-top: 7px;
+  font-size: 13px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.announce-who {
+  position: absolute; bottom: max(9vh, 54px); font-family: var(--head); font-size: 12px;
+  font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim);
+  animation: castflash-scrim 2s ease-out both;
+}

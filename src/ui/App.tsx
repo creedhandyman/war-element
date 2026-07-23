@@ -41,6 +41,7 @@ import { PhaseRibbon } from "./PhaseRibbon";
 import { ResourcePool } from "./ResourcePool";
 import { SpeedQueue } from "./SpeedQueue";
 import { SpellTray } from "./SpellTray";
+import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { WinScreen } from "./WinScreen";
 import { EL_COLOR, EL_ICON, type PendingBattle, type Selection } from "./shared";
@@ -86,6 +87,13 @@ export function App() {
   // so it never clobbers a local flash-then-cast in flight.
   const oppFlashTimerRef = useRef<number | null>(null);
   const prevOppUsedRef = useRef<Set<string>>(new Set());
+  // Powerful-creature entrance: legendary and above get their art announced
+  // full-screen. My own summon holds the intent and dispatches AFTER the
+  // announcement (a true preview); the opponent's resolves outside our dispatch,
+  // so those are detected on arrival — see the effect below.
+  const [announce, setAnnounce] = useState<{ defId: string; mine: boolean } | null>(null);
+  const announceTimerRef = useRef<number | null>(null);
+  const seenBigRef = useRef<Set<string>>(new Set());
   // A modal "choice" spell (Chill) awaiting its mode pick (attack vs shield).
   const [spellChoice, setSpellChoice] = useState<string | null>(null);
   // Pre-game deck selection — the match doesn't run until Start.
@@ -264,6 +272,7 @@ export function App() {
   useEffect(() => () => {
     if (castTimerRef.current !== null) window.clearTimeout(castTimerRef.current);
     if (oppFlashTimerRef.current !== null) window.clearTimeout(oppFlashTimerRef.current);
+    if (announceTimerRef.current !== null) window.clearTimeout(announceTimerRef.current);
   }, []);
 
   // Show the opponent's spell casts too. Their book's `used` flags flip when the
@@ -284,6 +293,41 @@ export function App() {
       oppFlashTimerRef.current = window.setTimeout(() => { oppFlashTimerRef.current = null; setCastFlash(null); }, 2000);
     }
   }, [game, online, twoPlayer]);
+
+  // Announce the OPPONENT's powerful creatures. Their summons resolve outside
+  // confirmSummon (AI / remote), so we diff the board for a legendary+ instance
+  // we have not seen before. Keyed by instanceId, which is unique per summon, so
+  // a card that leaves and is re-summoned announces again — but the same card
+  // sitting on the board across renders never re-fires. Skipped while a local
+  // announcement or cast flash is mid-flight so nothing gets clobbered.
+  useEffect(() => {
+    if (!started) return;
+    const opp: PlayerId | null = online ? enemyOf(online.myId) : twoPlayer ? null : "P2";
+    let fresh: string | null = null;
+    for (const c of Object.values(game.cards)) {
+      if (!c.pos) continue;
+      // Keyed by instanceId (unique per summon), so a card sitting on the board
+      // across renders never re-fires, while a re-summoned one announces again.
+      // EVERY new card is marked seen, mine included — my own already got its
+      // preview in confirmSummon, and the owner check below skips it regardless.
+      if (seenBigRef.current.has(c.instanceId)) continue;
+      seenBigRef.current.add(c.instanceId);
+      if (opp && c.owner === opp && announces(c.defId) && fresh === null) fresh = c.defId;
+    }
+    if (fresh && announceTimerRef.current === null && castTimerRef.current === null) {
+      setAnnounce({ defId: fresh, mine: false });
+      announceTimerRef.current = window.setTimeout(() => {
+        announceTimerRef.current = null;
+        setAnnounce(null);
+      }, 2000);
+    }
+  }, [game, online, twoPlayer, started]);
+
+  // A new match wipes the board; forget what we announced so the next game's
+  // legendaries get their entrance too.
+  useEffect(() => {
+    if (!started) seenBigRef.current = new Set();
+  }, [started]);
 
   // ── online rooms ──────────────────────────────────────────────────────────
   function hostCreateRoom() {
@@ -382,7 +426,26 @@ export function App() {
   // Confirm / cancel a staged summon placement.
   function confirmSummon() {
     if (!staged || me === null) return;
-    dispatch({ type: "SUMMON", player: me, handId: staged.handId, col: staged.col });
+    const intent: Intent = { type: "SUMMON", player: me, handId: staged.handId, col: staged.col };
+    const card = game.players[me].hand.find((h) => h.handId === staged.handId);
+    // A legendary+ gets its art up BEFORE it lands, the same hold-then-dispatch
+    // the spell flash uses. Guarded on the timer so a second summon can't land
+    // mid-announcement and dispatch out of order.
+    if (card && announces(card.defId) && announceTimerRef.current === null) {
+      const defId = card.defId;
+      setStaged(null);
+      setSel(null);
+      setAnnounce({ defId, mine: true });
+      setHint(`Summoning <b>${getDef(defId).name}</b>…`);
+      announceTimerRef.current = window.setTimeout(() => {
+        announceTimerRef.current = null;
+        setAnnounce(null);
+        dispatch(intent);
+        setHint("Summoned. Keep going, or <b>Pass Priority</b>.");
+      }, 2000);
+      return;
+    }
+    dispatch(intent);
     setHint("Summoned. Keep going, or <b>Pass Priority</b>.");
   }
   function cancelSummon() {
@@ -1342,6 +1405,7 @@ export function App() {
 
       {/* 2-second spell-cast flash — art blows up big before the effect resolves. */}
       {castFlash && <SpellCastFlash spellId={castFlash.spellId} />}
+      {announce && <SummonAnnounce defId={announce.defId} mine={announce.mine} />}
 
       {/* Only during a match — New Match sets started=false, which hides this and
           reveals the deck picker (game.win stays set until Start Match resets it). */}
