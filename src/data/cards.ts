@@ -2278,9 +2278,12 @@ export const CARDS: CardDef[] = [
         spDebuff: 5, spDebuffRounds: 3,
         debuffStatus: "BLIND", debuffStatusRounds: 3,
         selfStatus: "STEALTH", selfStatusDuration: 1, // slips back underground after the quake
+        // Surfacing costs it. Deliberately NO selfHpLethal — a 10-cost mythic
+        // deleting itself is a misclick, so the cast is refused at 5 HP or less.
+        selfHpCost: 5,
       },
       targetSide: "enemy",
-      text: "Sinkhole all opponents in range — DOT 3, −5 SP, −50% accuracy for 3 rounds — then slip into STEALTH. 3-round cooldown.",
+      text: "Tear off 5 HP to sinkhole all opponents in range — DOT 3, −5 SP, −50% accuracy for 3 rounds — then slip into STEALTH. 3-round cooldown.",
     },
   },
 
@@ -4124,9 +4127,11 @@ export const CARDS: CardDef[] = [
       handler: "spawn",
       // selfHpCost is charged on the MANUAL cast only — the Dead Clock's
       // auto-fire calls the handler directly and pays nothing.
-      params: { token: "dusk_zombie_husk", count: 2, radius: 2, selfHpCost: 6 },
+      // selfHpLethal: RIP may spend its LAST 6 HP here. The husks are raised
+      // before it falls, so going out to leave two more bodies is a real play.
+      params: { token: "dusk_zombie_husk", count: 2, radius: 2, selfHpCost: 6, selfHpLethal: 1 },
       targetSide: "self",
-      text: "Tear off 6 HP to spawn 2 Zombie Husks within 2 spaces. Fires FREE on its own whenever the Dead Clock has raised 4.",
+      text: "Tear off 6 HP to spawn 2 Zombie Husks within 2 spaces — RIP may spend its last. Fires FREE on its own whenever the Dead Clock has raised 4.",
     },
   },
   {

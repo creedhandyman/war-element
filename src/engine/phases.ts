@@ -721,8 +721,11 @@ function performBattleAction(
     // lives on the manual path ON PURPOSE — the Dead Clock's free auto-fire
     // invokes the handler directly and never reaches here, so the clock's payout
     // stays free while pressing the button yourself is paid for in flesh.
-    // canFireSpecial refuses the cast when the cost would be lethal, matching
-    // the Dead Clock's own "never kills the thing winding it" contract.
+    // canFireSpecial refuses a lethal cost unless the Special opts into
+    // `selfHpLethal` (RIP's Horde does). The HP is paid HERE, before the
+    // handler, but the DEATH is settled after it — a suicide cast has to raise
+    // its bodies first, because spawnTokens places them around the spawner and
+    // a removed card has no position left to place them around.
     const selfHpCost = Number(special.params?.selfHpCost ?? 0);
     if (selfHpCost > 0) {
       card.curHp -= selfHpCost;
@@ -749,6 +752,10 @@ function performBattleAction(
       applyStatus(draft, card, selfSt as StatusKind, Number(special.params?.selfStatusDuration ?? 1), 0, def.element);
     // Ethereal Trade self-cost on an offensive Special (Phantom Gouge).
     if (special.targetSide !== "ally") payAttackTrade(draft, card);
+    // ...and only NOW does a card that paid a lethal HP cost fall. Its effect has
+    // fully resolved by this point, which is what makes the trade worth making.
+    if (selfHpCost > 0 && draft.cards[card.instanceId] && card.curHp <= 0)
+      defeatCard(draft, card, `${special.name} self-cost`);
     return;
   }
   // basic attack — the assignable-hit ceiling includes on-kill / Flow / mid-row

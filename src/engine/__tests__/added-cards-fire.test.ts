@@ -508,17 +508,50 @@ describe("RIP — Horde is free from the clock, paid for by hand", () => {
     expect(n.cards[rip.instanceId].curHp).toBe(33 - 4 * 3); // ONLY the 3-per-wind
   });
 
-  it("it refuses the cast when 6 HP would kill it", () => {
-    // Matches the Dead Clock's contract: it stalls rather than killing the thing
-    // winding it. Without this a player could delete their own RIP by accident.
+  it("RIP may spend its LAST 6 HP — and the husks land before it falls", () => {
+    // The suicide play. Order is the whole point: pay, resolve, THEN die. If the
+    // death settled first, spawnTokens would have no spawner position to place
+    // bodies around and the trade would buy nothing.
     const s = prepState();
-    const rip = place(s, "dusk_rip", "P1", 3, 1, { curHp: 6, maxHp: 33, autoMode: "manual" });
+    const rip = place(s, "dusk_rip", "P1", 3, 1, { curHp: 4, maxHp: 33, autoMode: "manual" });
     place(s, "dusk_gool", "P2", 0, 0);
-    expect(canFireSpecial(s, rip.instanceId).ok).toBe(false);
-    expect(() => forceHorde(s, rip.instanceId)).toThrow(/Not enough HP/);
-    // One point more and it goes through, landing it on 1 HP.
-    s.cards[rip.instanceId].curHp = 7;
-    expect(canFireSpecial(s, rip.instanceId).ok).toBe(true);
-    expect(forceHorde(s, rip.instanceId).cards[rip.instanceId].curHp).toBe(1);
+    const husks = (g: GameState) =>
+      boardCards(g, "P1").filter((c) => c.defId === "dusk_zombie_husk").length;
+    const before = husks(s);
+    expect(canFireSpecial(s, rip.instanceId).ok).toBe(true); // allowed at lethal cost
+    const n = forceHorde(s, rip.instanceId);
+    expect(n.cards[rip.instanceId]).toBeUndefined(); // RIP is gone...
+    expect(husks(n)).toBe(before + 2); // ...and its last two bodies are standing
+  });
+
+  it("The DEEPEST refuses the same trade — it does not opt in", () => {
+    // selfHpLethal is per-Special on purpose: Drilling Quake costs 5 HP but a
+    // 10-cost mythic deleting itself is a misclick, not a closing play.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const deep = place(s, "bore_deepest", "P1", 3, 1, { curHp: 5, maxHp: 37, autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40 });
+    expect(canFireSpecial(s, deep.instanceId).ok).toBe(false);
+    // A point above the cost and it fires, surfacing at 1 HP.
+    s.cards[deep.instanceId].curHp = 6;
+    expect(canFireSpecial(s, deep.instanceId).ok).toBe(true);
+    const n = applyIntent(battleFor(s, deep.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    expect(n.cards[deep.instanceId].curHp).toBe(1);
+  });
+
+  it("The DEEPEST's quake still lands its full sinkhole after paying", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const deep = place(s, "bore_deepest", "P1", 3, 1, { curHp: 37, maxHp: 37, autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const n = applyIntent(battleFor(s, deep.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    expect(n.cards[deep.instanceId].curHp).toBe(32); // 37 − 5
+    expect(40 - n.cards[foe.instanceId].curHp).toBe(3); // the quake connected
+    expect(statusOf(n.cards[foe.instanceId], "DOT")?.power).toBe(3);
+    expect(statusOf(n.cards[deep.instanceId], "STEALTH")).toBeDefined(); // slipped under
   });
 });
