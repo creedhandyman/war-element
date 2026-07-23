@@ -4,7 +4,8 @@
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
 import { basicAttack, directDamage, applyStatus } from "../combat";
-import { canTarget } from "../rules";
+import { canMove, canTarget } from "../rules";
+import { getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
 
 describe("rare passives", () => {
@@ -148,5 +149,40 @@ describe("rare audit — uncapped on-summon corridors", () => {
     // epic pays magic for. Piranha at 6 off a 1-cost is the top of the tier.
     for (const id of ["pyro_flamehound", "bore_warthog", "aqua_piranha", "bolt_zap"])
       expect(arrival(id), `${id} arrives too hot`).toBeLessThanOrEqual(10);
+  });
+});
+
+describe("UFO flies", () => {
+  it("melee cannot reach it — but another flier can", () => {
+    const s = prepState();
+    const ufo = place(s, "bore_ufo", "P1", 2, 1);
+    const grunt = place(s, "bore_clubber", "P2", 2, 2); // Melee, adjacent
+    const flier = place(s, "dusk_crow", "P2", 2, 0); // Melee but FLYING
+    expect(canTarget(s, s.cards[grunt.instanceId], s.cards[ufo.instanceId])).toBe(false);
+    expect(canTarget(s, s.cards[flier.instanceId], s.cards[ufo.instanceId])).toBe(true);
+  });
+
+  it("...and ranged attackers still shoot it down", () => {
+    // FLYING dodges melee only. A turret that nothing could answer would be a
+    // very different card.
+    const s = prepState();
+    const ufo = place(s, "bore_ufo", "P1", 2, 1);
+    const archer = place(s, "dawn_sparkle", "P2", 1, 1); // Ranged
+    expect(canTarget(s, s.cards[archer.instanceId], s.cards[ufo.instanceId])).toBe(true);
+  });
+
+  it("it moves like a king in Prep, and still irradiates through shields", () => {
+    const s = prepState();
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const ufo = place(s, "bore_ufo", "P1", 2, 1);
+    s.cards[ufo.instanceId].spBonus = 1 - getDef("bore_ufo").sp; // reach exactly 1
+    expect(canMove(s, "P1", ufo.instanceId, { row: 1, col: 2 }).ok).toBe(true); // diagonal
+    // Radiation is untouched by the keyword.
+    const s2 = prepState();
+    place(s2, "bore_ufo", "P1", 2, 0);
+    const foe = place(s2, "dusk_gool", "P2", 1, 0, { curHp: 13, curShields: 5 });
+    const n = advance(atCleanup(s2));
+    expect(n.cards[foe.instanceId].curHp).toBe(11);
+    expect(n.cards[foe.instanceId].curShields).toBe(5); // PEN
   });
 });

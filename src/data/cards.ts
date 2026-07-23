@@ -3344,7 +3344,11 @@ export const CARDS: CardDef[] = [
     hp: 6,
     sp: 13,
     shields: 3,
-    keywords: {},
+    // FLYING: it hovers. Melee cannot touch it unless the attacker also flies,
+    // and it moves like a chess king in Prep. Stats are unchanged (0+6+6+13 = 25
+    // = 5*3+10, still exactly on budget) — this is pure evasiveness, which suits
+    // a 0-DMG turret whose whole job is to sit in range and irradiate.
+    keywords: { FLYING: true },
     // Radiation (End of Round): 2 DMG PEN (bypasses shields) to every opponent in range.
     roundTick: { inRangeDmg: 2, inRangeDmgPen: true },
   },
