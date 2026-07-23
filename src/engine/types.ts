@@ -360,6 +360,14 @@ export interface CardDef {
   /** Shadow (Vaga): can only be attacked by ADJACENT opponents — attackers a row
    *  or more away (incl. ranged) can't reach it. */
   onlyAdjacentAttackers?: boolean;
+  /** Long Reach (Shadow Horsemen): a MELEE card whose BASIC attack also reaches
+   *  up to N along the four straight lines — ahead, behind, and to either side.
+   *  Diagonals are NOT extended; those stay at the usual adjacent step, so the
+   *  threat range is a cross laid over the king-move square rather than a bigger
+   *  box. Enemy bodies in between block it, the same rule ranged shots follow —
+   *  a rider reaches PAST its own allies but not through an enemy front line.
+   *  Basics only: melee Specials keep their own reach. */
+  basicLineReach?: number;
   /** Gate the firstStrikeBonus so it only applies while this card stands on the
    *  enemy battlefield (Vaga's Shadow first-strike). */
   firstStrikeEnemySideOnly?: boolean;

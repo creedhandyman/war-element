@@ -213,11 +213,25 @@ export function canTarget(
     return false;
 
   if (melee) {
-    if (
-      Math.abs(attacker.pos.row - target.pos.row) > 1 ||
-      Math.abs(attacker.pos.col - target.pos.col) > 1
-    )
-      return false;
+    const dRow = Math.abs(attacker.pos.row - target.pos.row);
+    const dCol = Math.abs(attacker.pos.col - target.pos.col);
+    if (dRow > 1 || dCol > 1) {
+      // Long Reach (Shadow Horsemen): a BASIC may also strike along the four
+      // straight lines out to `basicLineReach`. Everything off those lines stays
+      // at melee's usual one step, so this widens the threat into a cross rather
+      // than into a bigger square.
+      const lineReach = forBasic ? aDef.basicLineReach ?? 0 : 0;
+      const onLine = dRow === 0 || dCol === 0;
+      if (
+        lineReach < 2 ||
+        !onLine ||
+        Math.max(dRow, dCol) > lineReach ||
+        // Reuse the ranged sight rule so an enemy standing in the lane screens
+        // the card behind it — a lance does not reach through a body.
+        !rangedCanSee(state, attacker.pos, target.pos, attacker.owner, lineReach)
+      )
+        return false;
+    }
   } else if (forBasic) {
     // Ranged BASIC: king-step reach, blocked by enemy bodies on a straight line.
     // Reach is 2 from the summoning row and 3 once advanced off it — see

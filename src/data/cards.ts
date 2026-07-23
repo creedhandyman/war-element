@@ -2248,6 +2248,11 @@ export const CARDS: CardDef[] = [
     sp: 13,
     shields: 0,
     keywords: {},
+    // Long Reach: the lance carries. Its BASIC strikes up to 2 slots straight
+    // ahead, behind, or to either side — diagonals stay at the usual one step,
+    // so the threat is a cross rather than a wider box.
+    passiveNames: { basicLineReach: "Long Reach" },
+    basicLineReach: 2,
     // Blood Ruby: DUSK allies' basic attacks gain PEN.
     aura: { scope: "element", pen: true },
     special: {

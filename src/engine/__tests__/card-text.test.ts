@@ -22,7 +22,7 @@ const ABILITY_FIELDS = [
   "evasionEnemySideOnly",
   // Wave 1/2 additions — every one of these shipped with NO card text at all
   // until this list caught up, which is exactly what the list is for.
-  "meleeBonusDmg", "onEnterEnemySide", "onEnterMidRow", "onHitPush",
+  "meleeBonusDmg", "onEnterEnemySide", "onEnterMidRow", "onHitPush", "basicLineReach",
 ] as const;
 
 /** Every effect a roundTick can carry. */

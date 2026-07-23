@@ -713,3 +713,60 @@ describe("mythic balance pass — measured outliers", () => {
     expect(statusOf(n.cards[foe.instanceId], "BURN")?.duration).toBe(3);
   });
 });
+
+describe("Shadow Horsemen — Long Reach", () => {
+  const canHit = (s: GameState, a: string, t: string) =>
+    canTarget(s, s.cards[a], s.cards[t], false, true);
+
+  it("strikes 2 slots straight ahead and to either side", () => {
+    const s = prepState();
+    const rider = place(s, "dusk_shadowhorsemen", "P1", 2, 2);
+    const ahead = place(s, "dusk_gool", "P2", 0, 2); // 2 forward
+    const left = place(s, "dusk_gool", "P2", 2, 0); // 2 across
+    expect(canHit(s, rider.instanceId, ahead.instanceId)).toBe(true);
+    expect(canHit(s, rider.instanceId, left.instanceId)).toBe(true);
+  });
+
+  it("...and behind it too — the lance swings both ways", () => {
+    const s = prepState();
+    const rider = place(s, "dusk_shadowhorsemen", "P1", 1, 1);
+    const behind = place(s, "dusk_gool", "P2", 3, 1); // 2 slots back
+    expect(canHit(s, rider.instanceId, behind.instanceId)).toBe(true);
+  });
+
+  it("does NOT extend the diagonals — the reach is a cross, not a box", () => {
+    const s = prepState();
+    const rider = place(s, "dusk_shadowhorsemen", "P1", 2, 2);
+    const diag = place(s, "dusk_gool", "P2", 0, 0); // 2 out on the diagonal
+    expect(canHit(s, rider.instanceId, diag.instanceId)).toBe(false);
+    // ...while a single diagonal step is still fine, as it always was.
+    const near = place(s, "dusk_gool", "P2", 1, 1);
+    expect(canHit(s, rider.instanceId, near.instanceId)).toBe(true);
+  });
+
+  it("an enemy in the lane screens the card behind it", () => {
+    const s = prepState();
+    const rider = place(s, "dusk_shadowhorsemen", "P1", 2, 1);
+    const far = place(s, "dusk_gool", "P2", 0, 1);
+    expect(canHit(s, rider.instanceId, far.instanceId)).toBe(true);
+    place(s, "dusk_vamp", "P2", 1, 1); // steps into the lane
+    expect(canHit(s, rider.instanceId, far.instanceId)).toBe(false);
+  });
+
+  it("it reaches PAST its own allies, and only basics get the reach", () => {
+    const s = prepState();
+    const rider = place(s, "dusk_shadowhorsemen", "P1", 2, 1);
+    const far = place(s, "dusk_gool", "P2", 0, 1);
+    place(s, "dusk_gool", "P1", 1, 1); // an ALLY in the lane
+    expect(canHit(s, rider.instanceId, far.instanceId)).toBe(true);
+    // forBasic=false (the melee-Special path) falls back to one step.
+    expect(canTarget(s, s.cards[rider.instanceId], s.cards[far.instanceId], false, false)).toBe(false);
+  });
+
+  it("other melee cards are unaffected", () => {
+    const s = prepState();
+    const grunt = place(s, "bore_clubber", "P1", 2, 1);
+    const far = place(s, "dusk_gool", "P2", 0, 1);
+    expect(canHit(s, grunt.instanceId, far.instanceId)).toBe(false);
+  });
+});

@@ -356,6 +356,11 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.onHitByMelee?.doubleBurn)
     named("onHitByMelee", `Hot Hot: when hit by melee, doubles the BURN already on the attacker.`);
+  if (def.basicLineReach)
+    named(
+      "basicLineReach",
+      `Basic attacks reach up to ${def.basicLineReach} slots straight ahead, behind, or to either side (not diagonally). An enemy in the lane blocks it.`,
+    );
   if (def.onlyAdjacentAttackers)
     passives.push(`Shadow: can only be attacked by adjacent opponents — ranged shots from afar miss.`);
   if (def.firstStrikeBonus && def.firstStrikeEnemySideOnly)
