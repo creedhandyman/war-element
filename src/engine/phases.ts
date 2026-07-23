@@ -717,6 +717,17 @@ function performBattleAction(
       card.specialCooldown = (special.cooldown ?? 1) + 1;
     }
     card.attackedThisRound = true; // STEALTH breaks on any attack
+    // Horde (RIP): a MANUALLY fired Special can cost HP as well as magic. This
+    // lives on the manual path ON PURPOSE — the Dead Clock's free auto-fire
+    // invokes the handler directly and never reaches here, so the clock's payout
+    // stays free while pressing the button yourself is paid for in flesh.
+    // canFireSpecial refuses the cast when the cost would be lethal, matching
+    // the Dead Clock's own "never kills the thing winding it" contract.
+    const selfHpCost = Number(special.params?.selfHpCost ?? 0);
+    if (selfHpCost > 0) {
+      card.curHp -= selfHpCost;
+      draft.log.push(`${label(draft, card)} tears off ${selfHpCost} HP to force ${special.name}.`);
+    }
     draft.log.push(`${label(draft, card)} fires ${special.name}!`);
     const handler = SPECIAL_HANDLERS[special.handler];
     if (!handler) throw new Error(`Unknown special handler: ${special.handler}`);

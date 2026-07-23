@@ -501,6 +501,12 @@ export function canFireSpecial(
   if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
   if (!card.freeSpecial && !def.special.talent && state.players[card.owner].magicPool < effectiveSpecialCost(state, card, def.special.cost))
     return { ok: false, reason: "Not enough magic" };
+  // A Special charged in HP (RIP's Horde) can't be forced when it would be
+  // lethal — the same contract the Dead Clock keeps: it stalls, it never kills
+  // its own owner. The free auto-fire doesn't route through here at all.
+  const hpCost = Number(def.special.params?.selfHpCost ?? 0);
+  if (hpCost > 0 && card.curHp <= hpCost)
+    return { ok: false, reason: `Not enough HP (costs ${hpCost})` };
   if (specialTargets(state, instanceId).length === 0) return { ok: false, reason: "No valid target" };
   return { ok: true };
 }

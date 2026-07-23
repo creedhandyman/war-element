@@ -7,6 +7,7 @@
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard } from "../combat";
 import { advance, applyIntent } from "../phases";
+import { canFireSpecial } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
@@ -470,5 +471,54 @@ describe("Scorch — Wildfire is a standing zone, not a one-shot", () => {
     n.cards[foe.instanceId].pos = { row: 2, col: 0 }; // steps off the burning row
     n = advance(atCleanup(n));
     expect(statusOf(n.cards[foe.instanceId], "BURN")?.duration).toBe(2); // ticking, not topped
+  });
+});
+
+describe("RIP — Horde is free from the clock, paid for by hand", () => {
+  /** Park the battle so RIP is awaiting input, then fire its Special. */
+  function forceHorde(s: GameState, ripId: string) {
+    return applyIntent(battleFor(s, ripId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: ripId,
+    });
+  }
+
+  it("a MANUAL cast tears off 6 HP", () => {
+    const s = prepState();
+    const rip = place(s, "dusk_rip", "P1", 3, 1, { curHp: 33, maxHp: 33, autoMode: "manual" });
+    place(s, "dusk_gool", "P2", 0, 0);
+    const husks = (g: GameState) =>
+      boardCards(g, "P1").filter((c) => c.defId === "dusk_zombie_husk").length;
+    const before = husks(s);
+    const n = forceHorde(s, rip.instanceId);
+    expect(n.cards[rip.instanceId].curHp).toBe(27); // 33 − 6
+    expect(husks(n)).toBe(before + 2); // and it still raised the bodies
+  });
+
+  it("...but the Dead Clock's own auto-fire stays free", () => {
+    // The whole point of putting the cost on the manual path: the clock invokes
+    // the handler directly, so its payout is not taxed. RIP pays only the 3 HP
+    // per wind it always did — 4 winds = 12, never 12 + 6.
+    const s = prepState();
+    const rip = place(s, "dusk_rip", "P1", 3, 1, { curHp: 33, maxHp: 33 });
+    place(s, "dusk_gool", "P2", 0, 0);
+    let n: GameState = s;
+    for (let i = 0; i < 4; i++) n = advance(atCleanup(n)); // crosses the tally-4 trigger
+    const husks = boardCards(n, "P1").filter((c) => c.defId === "dusk_zombie_husk").length;
+    expect(husks).toBeGreaterThan(4); // Horde fired on top of the clock's raises
+    expect(n.cards[rip.instanceId].curHp).toBe(33 - 4 * 3); // ONLY the 3-per-wind
+  });
+
+  it("it refuses the cast when 6 HP would kill it", () => {
+    // Matches the Dead Clock's contract: it stalls rather than killing the thing
+    // winding it. Without this a player could delete their own RIP by accident.
+    const s = prepState();
+    const rip = place(s, "dusk_rip", "P1", 3, 1, { curHp: 6, maxHp: 33, autoMode: "manual" });
+    place(s, "dusk_gool", "P2", 0, 0);
+    expect(canFireSpecial(s, rip.instanceId).ok).toBe(false);
+    expect(() => forceHorde(s, rip.instanceId)).toThrow(/Not enough HP/);
+    // One point more and it goes through, landing it on 1 HP.
+    s.cards[rip.instanceId].curHp = 7;
+    expect(canFireSpecial(s, rip.instanceId).ok).toBe(true);
+    expect(forceHorde(s, rip.instanceId).cards[rip.instanceId].curHp).toBe(1);
   });
 });

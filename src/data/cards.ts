@@ -4122,9 +4122,11 @@ export const CARDS: CardDef[] = [
       name: "Horde",
       cost: 0,
       handler: "spawn",
-      params: { token: "dusk_zombie_husk", count: 2, radius: 2 },
+      // selfHpCost is charged on the MANUAL cast only — the Dead Clock's
+      // auto-fire calls the handler directly and pays nothing.
+      params: { token: "dusk_zombie_husk", count: 2, radius: 2, selfHpCost: 6 },
       targetSide: "self",
-      text: "Spawn 2 Zombie Husks within 2 spaces. Fires free on its own whenever the Dead Clock has raised 4.",
+      text: "Tear off 6 HP to spawn 2 Zombie Husks within 2 spaces. Fires FREE on its own whenever the Dead Clock has raised 4.",
     },
   },
   {
