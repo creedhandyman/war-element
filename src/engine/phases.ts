@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, type FlowMode, GALE_SP_CAP, LEAF_SHIELD_CAP } from "./auras";
-import { applyStatus, applyTimedBuff, basicAttack, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, onEnemySide, payAttackTrade, pushBack, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, onEnemySide, payAttackTrade, pushBack, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin } from "./rng";
@@ -130,7 +130,14 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
               // not a basic attack, so a Ranged card's on-summon burst keeps its
               // full-board reach instead of being cut to the queen line.
               : validTargets(draft, inst.instanceId, false);
-          if (targets.length > 0) {
+          // Dragon's Bane ambush: the on-summon shot only exists when there is
+          // something worth ambushing. Without this filter it would fire at
+          // whatever happened to be nearest.
+          const picked = Number(params.onlyVsTarget ?? 0) > 0
+            ? targets.filter((t) => matchesVsTarget(def, t))
+            : targets;
+          if (picked.length > 0) {
+            const targets = picked;
             const handler = SPECIAL_HANDLERS[os.handler];
             if (!handler) throw new Error(`Unknown onSummon handler: ${os.handler}`);
             draft.log.push(`${def.name}'s on-summon passive triggers!`);
@@ -175,7 +182,8 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         if (!gd.onOppSummon || guard.curHp <= 0 || !draft.cards[inst.instanceId]) continue;
         // Only reacts to a newcomer it can actually reach (in targeting range).
         if (!canTarget(draft, guard, inst)) continue;
-        if (gd.onOppSummon.dmg && inst.curHp > 0) directDamage(draft, guard, inst, gd.onOppSummon.dmg, false);
+        if (gd.onOppSummon.dmg && inst.curHp > 0)
+          directDamage(draft, guard, inst, gd.onOppSummon.dmg, false, Boolean(gd.onOppSummon.crit));
         const st = gd.onOppSummon.status;
         if (st && inst.curHp > 0 && draft.cards[inst.instanceId])
           applyStatus(draft, inst, st.kind, st.duration, st.power, gd.element);
@@ -756,7 +764,13 @@ function startRound(draft: GameState): void {
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const pending = draft.players[player].wakePending;
     if (!pending || pending.round >= draft.round) continue;
-    draft.players[player].wakePending = undefined;
+    // Re-arm while the effect that does the killing is still running, with a
+    // FRESH baseline so a body is never harvested twice.
+    const left = (pending.roundsLeft ?? 1) - 1;
+    draft.players[player].wakePending =
+      left > 0
+        ? { round: draft.round, deaths: draft.stats.byPlayer[enemyOf(player)].deaths, token: pending.token, roundsLeft: left }
+        : undefined;
     const killed = draft.stats.byPlayer[enemyOf(player)].deaths - pending.deaths;
     if (killed <= 0) continue;
     // Spawned around the caster's own home row, like any other token.
@@ -959,6 +973,33 @@ function performBattleAction(
     const selfSt = special.params?.selfStatus;
     if (typeof selfSt === "string" && selfSt && draft.cards[card.instanceId] && card.curHp > 0)
       applyStatus(draft, card, selfSt as StatusKind, Number(special.params?.selfStatusDuration ?? 1), 0, def.element);
+    // Meltdown: light the channel. From here the roundTick keeps the attack
+    // going every Cleanup until it is broken or paid out.
+    if (Number(special.params?.startsChannel ?? 0) > 0 && draft.cards[card.instanceId] && card.curHp > 0) {
+      // The opening eruption, free of the per-round HP toll (the cast already
+      // paid magic for it), then the channel takes over from next Cleanup.
+      const ch = def.roundTick?.channel;
+      if (ch) {
+        const hit = eruptRowAhead(draft, card, ch.rowAheadDmg);
+        draft.log.push(`${label(draft, card)} erupts — ${hit} caught in the row ahead.`);
+      }
+      card.channelOn = true;
+      draft.log.push(`${label(draft, card)} goes critical — the meltdown continues each round.`);
+    }
+    // Toxic Eruption: arm the raise-the-dead harvest. Rides on the Special's
+    // params rather than a handler so the DOT and the harvest stay independent —
+    // the kills it collects are made by the poison over the following rounds,
+    // not by the cast itself.
+    const raise = special.params?.reviveAsToken;
+    if (typeof raise === "string" && raise) {
+      draft.players[card.owner].wakePending = {
+        round: draft.round,
+        deaths: draft.stats.byPlayer[enemyOf(card.owner)].deaths,
+        token: raise,
+        roundsLeft: Number(special.params?.reviveRounds ?? 1),
+      };
+      draft.log.push(`${label(draft, card)} seeds the rot — what dies now rises for ${card.owner}.`);
+    }
     // Ethereal Trade self-cost on an offensive Special (Phantom Gouge).
     if (special.targetSide !== "ally") payAttackTrade(draft, card);
     // ...and only NOW does a card that paid a lethal HP cost fall. Its effect has
@@ -1084,6 +1125,23 @@ function applyAllyOnSummon(
   const aheadRow = caster.pos.row + dir;
   const allies = boardCards(draft, caster.owner).filter((c) => c.instanceId !== caster.instanceId);
 
+  if (handler === "empowerElement") {
+    // Trial by Fire (Magmadon): every ally of the caster's OWN element pays 1 HP
+    // for a round of +DMG. A tithe, not a gift — and it never takes an ally's
+    // last point, so it cannot kill the team it is meant to lift.
+    const el = getDef(caster.defId).element;
+    const hpCost = Number(params.hpCost ?? 0);
+    const kin = allies.filter((c) => c.curHp > 0 && getDef(c.defId).element === el && c.curHp > hpCost);
+    for (const a of kin) {
+      if (hpCost > 0) a.curHp -= hpCost;
+      applyTimedBuff(a, amount, 0, Number(params.rounds ?? 1));
+    }
+    if (kin.length)
+      draft.log.push(
+        `${getDef(caster.defId).name} tempers ${kin.length} ${el} ally(ies) — ${hpCost} HP each for +${amount} DMG.`,
+      );
+    return;
+  }
   if (handler === "grantShield") {
     // Allies in the row directly ahead of the caster.
     const targets = allies.filter((c) => c.pos?.row === aheadRow);
@@ -1179,6 +1237,18 @@ function applyElementSummonAura(draft: GameState, inst: CardInstance): void {
       break;
     }
   }
+}
+
+/** Meltdown's blast: `dmg` to every living opponent in the row directly ahead.
+ *  Shared by the Special that lights the channel and by each round the channel
+ *  sustains it, so the opening eruption and the ones that follow are the same
+ *  effect rather than two implementations that can drift apart. */
+function eruptRowAhead(draft: GameState, card: CardInstance, dmg: number): number {
+  if (!card.pos || dmg <= 0) return 0;
+  const ahead = card.pos.row + (card.owner === "P1" ? -1 : 1);
+  const caught = boardCards(draft, enemyOf(card.owner)).filter((e) => e.curHp > 0 && e.pos?.row === ahead);
+  for (const e of caught) tickDamage(draft, card, e, dmg, false);
+  return caught.length;
 }
 
 /** Resolve every card's periodic (end-of-round) self-driven passive. Runs in
@@ -1286,6 +1356,33 @@ function doRoundTicks(draft: GameState): void {
     }
     if (rt.pushEnemies) {
       for (const e of enemies()) pushBack(draft, e, rt.pushEnemies, card.owner);
+    }
+    // Scorched Fury: bleed 1, run 2 hotter next round. Floors at 1 HP so the
+    // engine stalls rather than killing its own owner.
+    if (rt.selfBurnForDmg) {
+      const { hp, dmg } = rt.selfBurnForDmg;
+      if (card.curHp > hp) {
+        card.curHp -= hp;
+        applyTimedBuff(card, dmg, 0, 1);
+        draft.log.push(`${label(draft, card)} stokes itself (−${hp} HP, +${dmg} DMG next round).`);
+      }
+    }
+    // Meltdown's sustained blast. Scoped to its own block so the rest of the
+    // tick (Scorched Fury) runs regardless of whether the Special is lit.
+    if (rt.channel && card.channelOn) {
+      if (hasStatus(card, "FREEZE") || hasStatus(card, "ROOT")) {
+        card.channelOn = false;
+        draft.log.push(`${label(draft, card)}'s meltdown is smothered.`);
+      } else if (card.curHp <= rt.channel.hpCost) {
+        // Can't afford the round: it stops channelling rather than dying to its
+        // own Special.
+        card.channelOn = false;
+        draft.log.push(`${label(draft, card)} burns out — the meltdown ends.`);
+      } else {
+        card.curHp -= rt.channel.hpCost;
+        eruptRowAhead(draft, card, rt.channel.rowAheadDmg);
+        draft.log.push(`${label(draft, card)} erupts again (−${rt.channel.hpCost} HP).`);
+      }
     }
     if (rt.rowAheadDmg && card.pos) {
       // Sweeping Flames: burn whatever stands in the row directly ahead.

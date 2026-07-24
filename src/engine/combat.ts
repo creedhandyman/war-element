@@ -572,6 +572,14 @@ export function resolveHit(
       const st = tDef.onDeath.spawnToken;
       spawnTokens(draft, target, st.token, st.count);
     }
+    if (tDef.onDeath?.splashInRange && deathPos) {
+      const near = boardCards(draft, enemyOf(deadOwner)).filter(
+        (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, deathPos) <= 1,
+      );
+      for (const e of near) directDamage(draft, target, e, tDef.onDeath.splashInRange, false);
+      if (near.length)
+        draft.log.push(`${tDef.name} bursts — ${near.length} nearby take ${tDef.onDeath.splashInRange}.`);
+    }
     if (tDef.onDeath?.frightenInRange && deathPos) {
       const scared = boardCards(draft, enemyOf(deadOwner)).filter(
         (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, deathPos) <= 1,
@@ -799,6 +807,9 @@ export function basicAttack(
       if (vs.lifesteal) lifesteal = true;
       healOnHit = vs.healOnHit ?? 0;
     }
+    // Dragon's Bane: the same shape as vsStatus above, but matched on the
+    // target's tribe / size rather than a status it happens to be carrying.
+    if (aDef.vsTarget?.bonusDmg && matchesVsTarget(aDef, t)) dmg += aDef.vsTarget.bonusDmg;
     // Electrify (BOLT aura): +2 DMG vs any statused opponent — +3 under Power
     // Grid. Raised from +1: even once the aura was made self-enabling (see the
     // ELECTRIFIED rider below) a single point moved BOLT's win rate 38% -> 39%,
@@ -962,6 +973,22 @@ export type SpecialHandler = (
 function num(params: Record<string, number | string>, key: string, fallback = 0): number {
   const v = params[key];
   return typeof v === "number" ? v : fallback;
+}
+
+/** Is `target` what this card is built to hunt? (Drakonbane's Dragon's Bane.)
+ *  Shared by the basic-attack bonus, the Special's damage split, and the
+ *  on-summon ambush, so the three can never disagree about what counts. */
+export function matchesVsTarget(def: CardDef, target: CardInstance): boolean {
+  const vt = def.vsTarget;
+  if (!vt) return false;
+  const tDef = getDef(target.defId);
+  if (vt.tribe != null) {
+    const tribe = tDef.tribe;
+    const has = Array.isArray(tribe) ? tribe.includes(vt.tribe) : tribe === vt.tribe;
+    if (has) return true;
+  }
+  if (vt.hpAbove != null && target.curHp > vt.hpAbove) return true;
+  return false;
 }
 
 function maybeStatus(
@@ -1153,9 +1180,10 @@ export function directDamage(
   target: CardInstance,
   dmg: number,
   pen: boolean,
+  crit = false,
 ): boolean {
   if (!draft.cards[target.instanceId] || target.curHp <= 0) return false;
-  const r = resolveHit(draft, source, target, { kind: "reflect", dmg, hits: 1, pen, crit: false });
+  const r = resolveHit(draft, source, target, { kind: "reflect", dmg, hits: 1, pen, crit });
   return r.targetDied;
 }
 
@@ -1409,7 +1437,12 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // `radius` tethers the bodies to the summoner (RIP's Horde), so the burst
     // can't drop husks across the board while the round-tick is leashed.
     const radius = params.radius == null ? undefined : num(params, "radius", 1);
-    spawnTokens(draft, attacker, String(params.token ?? ""), num(params, "count", 1), radius);
+    // No token named → nothing to raise. Magmadon's Meltdown routes through here
+    // because its whole effect is a rider (the row-ahead eruption + the
+    // channel), and an unguarded getDef("") threw mid-battle.
+    const token = String(params.token ?? "");
+    if (!token) return;
+    spawnTokens(draft, attacker, token, num(params, "count", 1), radius);
   },
   /** An escalating combo (Elecdroid's Light Slasher): a sequence of `hits` that
    *  stays on a target until it dies, then chains to the next enemy. Each KILL
@@ -1457,13 +1490,23 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         );
       else chargeForward(draft, attacker, num(params, "charge"));
     }
+    // Sunlight Strike: a bigger number against what this card hunts. Read
+    // through the SAME matcher as the passive, so "vs Dragons" means one thing.
+    const baneDmg = num(params, "dmgVsTarget");
+    const dmgNow =
+      baneDmg > 0 && matchesVsTarget(getDef(attacker.defId), target) ? baneDmg : num(params, "dmg");
     const r = resolveHit(draft, attacker, target, {
       kind: "special",
-      dmg: num(params, "dmg"),
+      dmg: dmgNow,
       hits: num(params, "hits", 1),
       pen: num(params, "pen") > 0,
       crit: false,
     });
+    const killShields = num(params, "onKillSelfShields");
+    if (r.targetDied && killShields > 0 && attacker.curHp > 0) {
+      attacker.curShields += killShields;
+      draft.log.push(`${label(draft, attacker)} basks in the kill (+${killShields} shield).`);
+    }
     // Self-buff status only if the strike KILLED (Jungle Culling → STEALTH on kill).
     const onKillStatus = params.onKillSelfStatus;
     if (r.targetDied && typeof onKillStatus === "string" && onKillStatus && attacker.curHp > 0) {
@@ -1482,6 +1525,9 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         );
     }
     maybeStatus(draft, attacker, target, params);
+    // Shared per-target riders (push, timed −SP). barrage has always called
+    // these; strike had not, so a single-target Special could not sap speed.
+    applyDebuffRiders(draft, target, params, attacker);
     // statusSplash (Fenix's Phoenix Blast): the applied status also spreads to
     // enemies adjacent (chess-king) to the struck slot.
     if (params.statusSplash && typeof params.statusKind === "string" && center) {

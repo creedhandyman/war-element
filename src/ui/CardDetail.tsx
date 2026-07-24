@@ -340,6 +340,13 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.highSpeedImpact)
     named("highSpeedImpact", `High Speed Impact: +1 DMG for every point of SP above 10.`);
+  if (def.vsTarget?.bonusDmg) {
+    const vt = def.vsTarget;
+    const who = [vt.tribe ? `${vt.tribe}s` : "", vt.hpAbove != null ? `anything above ${vt.hpAbove} HP` : ""]
+      .filter(Boolean)
+      .join(" and ");
+    named("vsTarget", `Basic attacks deal +${vt.bonusDmg} DMG against ${who}.`);
+  }
   if (def.intimidate)
     named(
       "intimidate",
@@ -427,6 +434,7 @@ export function describePassives(def: CardDef): string[] {
       parts.push(
         `raises ${od.spawnToken.count} ${getDef(od.spawnToken.token).name}${od.spawnToken.count > 1 ? "s" : ""}`,
       );
+    if (od.splashInRange) parts.push(`deals ${od.splashInRange} DMG to every opponent beside it`);
     if (od.frightenInRange) parts.push(`FRIGHTENs nearby enemies for ${rounds(od.frightenInRange)}`);
     if (od.allyTribeBuffDmg)
       parts.push(`gives surviving ${od.allyTribeBuffDmg.tribe}s +${od.allyTribeBuffDmg.dmg} DMG permanently`);

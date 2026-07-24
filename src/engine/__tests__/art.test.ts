@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CARDS } from "../../data/cards";
+import { CARDS, TOKENS } from "../../data/cards";
 import { SPELLS } from "../spells";
 
 // Missing art fails SILENTLY — a broken <img> and nothing else. No console
@@ -34,8 +34,11 @@ describe("every card and spell has its art on disk", () => {
   });
 
   it("cards", () => {
+    // TOKENS are a separate array (kept out of decks), and were not covered here
+    // until a spawned card needed art of its own — a missing token plate is just
+    // as invisible as a missing card one.
     // `art` is the escape hatch for a file that can't be named after the id.
-    const missing = CARDS.filter((c) => !cardArt.has(`${c.art ?? c.id}.png`)).map(
+    const missing = [...CARDS, ...TOKENS].filter((c) => !cardArt.has(`${c.art ?? c.id}.png`)).map(
       (c) => `${c.id} (${c.name})${c.art ? ` -> art: "${c.art}"` : ""}`,
     );
     expect(missing, `cards with no art file:\n  ${missing.join("\n  ")}`).toEqual([]);

@@ -2039,6 +2039,152 @@ export const CARDS: CardDef[] = [
 
   // ─────────────── MYTHICS (element core centerpieces) ───────────────
   {
+    // 7 + 38 + 5 = 50, exactly a cost-8 budget.
+    id: "pyro_magmadon",
+    name: "Magmadon",
+    rarity: "legendary",
+    element: "PYRO",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 8,
+    dmg: 7,
+    hits: 1,
+    hp: 38,
+    sp: 5,
+    shields: 0,
+    keywords: {},
+    tribe: "Volcanic",
+    // Scorched Fury, in two halves: the tick below bleeds 1 HP each Cleanup for
+    // +2 DMG the following round, and furyBelowHp adds a further flat +2 once
+    // it drops under 5. A 38 HP body that gets angrier the longer it burns.
+    passiveNames: { roundTick: "Scorched Fury", furyBelowHp: "Scorched Fury" },
+    furyBelowHp: { hp: 5, dmg: 2 },
+    roundTick: {
+      selfBurnForDmg: { hp: 1, dmg: 2 },
+      // ...and the Meltdown channel, which only runs once the Special lights it.
+      channel: { hpCost: 2, rowAheadDmg: 3 },
+    },
+    // Trial by Fire: the whole PYRO line pays a point of blood for a round of
+    // fire the moment Magmadon lands.
+    onSummon: {
+      handler: "empowerElement",
+      targetSide: "ally",
+      params: { amount: 2, hpCost: 1, rounds: 1 },
+    },
+    special: {
+      name: "Meltdown",
+      cost: 4,
+      // No handler damage of its own: startsChannel fires the row-ahead blast
+      // immediately and then hands the attack to the roundTick above. `spawn`
+      // with no token is the codebase's existing no-op handler for a Special
+      // whose whole effect is a rider.
+      handler: "spawn",
+      params: { startsChannel: 1 },
+      targetSide: "self",
+      text: "Deal 3 DMG to the row directly ahead, then keep erupting every round for 2 HP a round — until Magmadon dies, or is FROZEN or ROOTED.",
+    },
+  },
+  {
+    // 6 + 31 + 3 = 40, exactly a cost-6 budget.
+    id: "dusk_zombination",
+    name: "Zombination",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 6,
+    dmg: 6,
+    hits: 1,
+    hp: 31,
+    sp: 3,
+    shields: 0,
+    keywords: {},
+    tribe: "Dark",
+    special: {
+      name: "Toxic Eruption",
+      cost: 3,
+      handler: "statusNova",
+      // DOT 4 for 3 rounds to everything in range (targets 99 = all of them),
+      // and the harvest runs for those same 3 rounds — so a body that finally
+      // succumbs on the third tick still rises. The poison does the killing;
+      // reviveAsToken only decides who gets the corpse.
+      params: {
+        targets: 99,
+        statusKind: "DOT", statusPower: 4, statusDuration: 3,
+        reviveAsToken: "dusk_zombie_tok", reviveRounds: 3,
+      },
+      targetSide: "enemy",
+      text: "Deal 4 DOT for 3 rounds to every opponent in range. Anything that dies while it runs rises as your Zombie.",
+    },
+  },
+  {
+    // 7 + 14 + (3x2) + 3 = 30, exactly a cost-4 budget.
+    id: "dawn_drakonbane",
+    name: "Drakonbane",
+    rarity: "epic",
+    element: "DAWN",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 7,
+    hits: 1,
+    hp: 14,
+    sp: 3,
+    shields: 3,
+    keywords: {},
+    // Dragon's Bane: +2 on BASICS against a Dragon or anything still above 25
+    // HP (current, not max — see vsTarget). Specials carry their own printed
+    // number, exactly as vsStatus works, so Sunlight Strike is 14/10 flat.
+    passiveNames: { vsTarget: "Dragon's Bane" },
+    vsTarget: { tribe: "Dragon", hpAbove: 25, bonusDmg: 2 },
+    // ...and if it lands next to such a target, it opens on it immediately.
+    // onlyVsTarget gates the shot: no bane-worthy enemy in range, no ambush.
+    onSummon: {
+      handler: "strike",
+      params: { dmg: 7, onlyVsTarget: 1 },
+    },
+    special: {
+      name: "Sunlight Strike",
+      cost: 2,
+      handler: "strike",
+      params: { dmg: 10, dmgVsTarget: 14, onKillSelfShields: 2 },
+      targetSide: "enemy",
+      text: "Deal 14 DMG to a Dragon (or anything above 25 HP), 10 DMG otherwise. On Kill: gain 2 shield.",
+    },
+  },
+  {
+    // 10 + 24 + 2 + 9 = 45, exactly a cost-7 budget.
+    id: "gale_bluejay",
+    name: "Bluejay",
+    rarity: "legendary",
+    element: "GALE",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 7,
+    dmg: 5,
+    hits: 2, // "2x5 DMG"
+    hp: 24,
+    sp: 9,
+    shields: 1,
+    keywords: {},
+    tribe: "Avian",
+    // Gustarrows (On Opp Summon): a reaction shot at anything that arrives in
+    // range. Can CRIT, so an unshielded newcomer sometimes eats 4.
+    passiveNames: { onOppSummon: "Gustarrows" },
+    onOppSummon: { dmg: 2, crit: true },
+    special: {
+      name: "Twin Wind Strikes",
+      cost: 4,
+      handler: "strike",
+      // 2x7 into one target, and the pair lands -5 SP + WEAKEN for 2 rounds.
+      // The debuff is applied ONCE for the Special, not once per hit — stacking
+      // it would read -10 SP, which pins nearly every card in the game to 0.
+      params: { dmg: 7, hits: 2, statusKind: "WEAKEN", statusDuration: 2, spDebuff: 5, spDebuffRounds: 2 },
+      targetSide: "enemy",
+      text: "Deal 2×7 DMG to one opponent, then sap 5 SP and WEAKEN it for 2 rounds.",
+    },
+  },
+  {
     // LEAF's heaviest body: an oak that starts LITERALLY rooted (SP 0 — it
     // cannot move at all) and has to tear itself out of the ground to advance.
     // 6 + 55 = 61 against a cost-10 budget of 60.
@@ -4348,6 +4494,30 @@ export const CARDS: CardDef[] = [
 // them. (Reptilian and Heir used to live here — they are draftable now, but are
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
+  {
+    // Raised by Toxic Eruption. Same 3/3/4 frame as Risen; reuses the husk art
+    // (there is no separate Zombie plate in the files).
+    id: "dusk_zombie_tok",
+    art: "dusk_zombie_husk",
+    name: "Zombie",
+    rarity: "rare",
+    element: "DUSK",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 3,
+    sp: 4,
+    shields: 0,
+    keywords: {},
+    tribe: "Dark",
+    // Contagion. Lives on the ZOMBIE, not on Zombination, so it fires however
+    // the body falls — and keeps firing after its summoner is gone, which is
+    // what makes a raised horde worth killing carefully.
+    passiveNames: { onDeath: "Contagion" },
+    onDeath: { dmg: 0, splashInRange: 2 },
+  },
   {
     // Wake of the Dead's payout. A separate token from Specter (3/1/SP7) because
     // the spec prints this one at 3/3/SP4 — sturdier, slower, and raised from a

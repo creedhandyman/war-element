@@ -342,6 +342,10 @@ function dmgBeforeIntimidation(state: GameState, card: CardInstance): number {
   let dmg = def.dmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0) + buffDmg + auraBonus(state, card, "dmg") + fieldBonus(state, card, "dmgBonus");
   // High Speed Impact (Hawk): +1 DMG for each point of SP above 10.
   if (def.highSpeedImpact) dmg += Math.max(0, effectiveSp(state, card) - 10);
+  // Scorched Fury: hotter as it burns down. Before WEAKEN/FREEZE so those
+  // still scale the whole number, like every other flat bonus above.
+  const fury = def.furyBelowHp;
+  if (fury && card.curHp < fury.hp) dmg += fury.dmg;
   if (hasStatus(card, "WEAKEN")) dmg = Math.floor(dmg * 0.75);
   if (hasStatus(card, "FREEZE")) dmg = Math.floor(dmg * 0.5);
   // King of the Hill (A): sitting in a Mid row grants +1 DMG — but heavy

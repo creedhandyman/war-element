@@ -23,6 +23,8 @@ const ABILITY_FIELDS = [
   // Wave 1/2 additions — every one of these shipped with NO card text at all
   // until this list caught up, which is exactly what the list is for.
   "meleeBonusDmg", "onEnterEnemySide", "onEnterMidRow", "onHitPush", "basicLineReach", "mounted", "shoveWeaker",
+  // Wave 3 — Oakgre's enemy-facing aura and Drakonbane's target-keyed bonus.
+  "intimidate", "vsTarget",
 ] as const;
 
 /** Every effect a roundTick can carry. */

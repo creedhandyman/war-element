@@ -160,6 +160,22 @@ export interface RoundTickDef {
    *  would be dead weight: Gold starts at 0, so nothing costing more
    *  than nothing is even on the board that round. */
   firstRoundOnly?: boolean;
+  /** Scorched Fury (Magmadon): pay `hp` of its own each Cleanup to run `dmg`
+   *  hotter for the NEXT round. Deliberately not RIP's `selfHpCost`, which is
+   *  wired to the spawn clock — sharing that field would couple two unrelated
+   *  cards' bleed rules. Floors at 1 HP: the passive is an engine, not a
+   *  suicide timer. */
+  selfBurnForDmg?: { hp: number; dmg: number };
+  /** Meltdown (Magmadon): a SUSTAINED Special. Runs only while the card is
+   *  channelling, costs `hpCost` every round it continues, and breaks on death,
+   *  FREEZE or ROOT — the Special says "until frozen or rooted", so hard control
+   *  is the counterplay it is priced against.
+   *
+   *  Its own field rather than a flag over the whole roundTick: Magmadon's
+   *  Scorched Fury lives in that same tick and must keep running whether or not
+   *  the Special is lit. Gating the tick wholesale silently switched the passive
+   *  off, which is exactly what the first version did. */
+  channel?: { hpCost: number; rowAheadDmg: number };
   rootedDmg?: number; // Trapper (Fallow): damage every ROOTed enemy, range-free
   /** Morning Dew (Sprinu): heal every ally of this element at end of round. */
   roundHealElement?: { element: Element; amount: number };
@@ -298,6 +314,14 @@ export interface CardDef {
   onKill?: OnKillDef;
   /** Conditional basic-attack keyword vs a target carrying a status. */
   vsStatus?: VsStatusDef;
+  /** Dragon's Bane (Drakonbane): a bonus keyed on WHAT the target IS rather
+   *  than what status it carries — a tribe, or simply a big enough body. The
+   *  two conditions are OR'd: either one makes a target "bane-worthy".
+   *
+   *  `hpAbove` reads CURRENT HP, not max. A wounded giant stops being the thing
+   *  a bane hunter is built to kill, which is also what keeps a cost-4 card
+   *  from carrying a permanent +2 against the whole top of the curve. */
+  vsTarget?: { tribe?: string; hpAbove?: number; bonusDmg?: number };
   /** Periodic self effect resolved each Cleanup. */
   roundTick?: RoundTickDef;
   /** On-death revival (Bearocks). */
@@ -308,6 +332,9 @@ export interface CardDef {
    *  DrShock's Shocker): zap the newcomer with damage and/or a status. */
   onOppSummon?: {
     dmg?: number;
+    /** The reaction shot can CRIT (Bluejay's Gustarrows). Same coin as any
+     *  other CRIT — 50%, and only against an unshielded target. */
+    crit?: boolean;
     status?: { kind: StatusKind; duration: number; power: number };
   };
   /** This card's attacks do NOT wake SLEEPING targets (Sandman's Nightmare —
@@ -346,6 +373,10 @@ export interface CardDef {
   /** Rager (Twins): while this card is below `hp` HP, its basic attacks deal
    *  `dmgMult`× damage (a rage downside). */
   weakBelowHp?: { hp: number; dmgMult: number };
+  /** Scorched Fury's second half (Magmadon): a FLAT bonus once the card drops
+   *  below `hp`. The mirror of weakBelowHp — a wounded volcano hits harder, not
+   *  softer, which is what makes bleeding itself out a plan rather than a cost. */
+  furyBelowHp?: { hp: number; dmg: number };
   /** Incinerate (Sol): consecutive hits on the same target within a round deal
    *  +1 DMG per hit (the ramp climbs with each landed hit). */
   incinerate?: boolean;
@@ -482,6 +513,11 @@ export interface CardDef {
     /** WarPhant: the rider survives the mount and keeps fighting. */
     spawnToken?: { token: string; count: number };
     frightenInRange?: number; // rounds of FRIGHTEN on reachable enemies
+    /** Contagion (Zombination's zombies): damage to enemies ADJACENT TO THE
+     *  SLOT IT FELL ON. Distinct from `dmg`, which retaliates against whoever
+     *  landed the kill — a zombie bursting is not a grudge, so it hits whatever
+     *  was standing next to it however it died. */
+    splashInRange?: number;
     /** Lingering Venom (Widowbite): the killer is left carrying a status rather
      *  than just taking a hit back. Applied even when `dmg` is 0. */
     killerStatus?: { kind: StatusKind; duration: number; power: number };
@@ -586,6 +622,9 @@ export interface CardInstance {
   /** The next Special use is free (no magic, no cooldown) — Volcanon's Eruption
    *  On Kill grants this for the following round. Consumed when the Special fires. */
   freeSpecial: boolean;
+  /** Meltdown is running (Magmadon). Set when the Special is cast, cleared on
+   *  FREEZE / ROOT / death. */
+  channelOn?: boolean;
   /** One-shot guard for a firstTimeOnly onHitAllyBuff (Hillbilly's Hillside). */
   onHitBuffFired: boolean;
   /** One-shot guard for Gate Keeper's shield-break buff (Veil). */
@@ -894,7 +933,11 @@ export interface PlayerState {
   /** Wake of the Dead, armed. `deaths` is the opponent's death count at the
    *  moment of casting, so only kills made AFTER it resolves are harvested —
    *  the spell says "killed this round", not "killed so far". */
-  wakePending?: { round: number; deaths: number; token: string };
+  /** An armed "anything that dies becomes mine" harvest. `roundsLeft` lets it
+   *  span several rounds (Toxic Eruption's DOT kills over 3) rather than only
+   *  the round it was cast — each Start of Round it banks what died, re-arms
+   *  with a fresh baseline, and counts down. */
+  wakePending?: { round: number; deaths: number; token: string; roundsLeft?: number };
   /** Volcanic Eruption: permanent +DMG for this player's cards of that element. */
   elementDmgBuff?: { element: Element; amount: number };
   /** The Cost-10 ultimates' lasting engines, keyed by element. Read at Cleanup
