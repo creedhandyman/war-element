@@ -29,6 +29,8 @@ import {
   specialTargets,
   validAllyTargets,
   validTargets,
+  boardCards,
+  isCaptured,
 } from "../engine";
 import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online";
 import { Board } from "./Board";
@@ -96,6 +98,11 @@ export function App() {
   const seenBigRef = useRef<Set<string>>(new Set());
   // A modal "choice" spell (Chill) awaiting its mode pick (attack vs shield).
   const [spellChoice, setSpellChoice] = useState<string | null>(null);
+  // Rewire / Full Reroute: the only spells that pick more than one thing.
+  // `ids` are the cards being moved; `slots` their destinations, index-matched.
+  // Reroute alternates card -> slot -> card -> slot; Rewire collects two cards
+  // and no slots, because the pair simply trade squares.
+  const [spellPicks, setSpellPicks] = useState<{ ids: string[]; slots: Pos[] }>({ ids: [], slots: [] });
   // Pre-game deck selection — the match doesn't run until Start.
   const [started, setStarted] = useState(false);
   const [twoPlayer, setTwoPlayer] = useState(false);
@@ -245,6 +252,7 @@ export function App() {
       setSel(null);
       setPending(null);
       setPicks([]);
+      setSpellPicks({ ids: [], slots: [] }); // never carry a half-built cast over
       setStaged(null);
       if (online) broadcast(next); // sync my move to the other client
     } catch (e) {
@@ -504,6 +512,19 @@ export function App() {
     if (sel?.kind === "card") return legalMoves(game, view, sel.instanceId);
     if (sel?.kind === "spell") {
       const spell = getSpell(sel.spellId);
+      // Full Reroute alternates: after picking a card, every open slot lights up.
+      if (spell.rerouteCount && spellPicks.ids.length > spellPicks.slots.length) {
+        const open: Pos[] = [];
+        for (let r = 0; r < game.boardSize; r++)
+          for (let c = 0; c < game.boardSize; c++) {
+            const occ = cardAt(game, r, c);
+            const vacating = occ != null && spellPicks.ids.includes(occ.instanceId);
+            const taken = spellPicks.slots.some((o) => o.row === r && o.col === c);
+            if ((!occ || vacating) && !isCaptured(game, r, c) && !taken)
+              open.push({ row: r, col: c } as Pos);
+          }
+        return open;
+      }
       if (spell.kind === "trap") {
         // Any empty, uncaptured, untrapped square — anywhere on the board. Range
         // is not the constraint for a mine; the opponent's movement is.
@@ -540,6 +561,12 @@ export function App() {
     // Prep-phase damage spell armed → its legal enemy targets glow.
     if (sel?.kind === "spell") {
       const spell = getSpell(sel.spellId);
+      // Rewire / Full Reroute pick the caster's OWN cards — the ones not yet
+      // chosen glow, so the second pick cannot repeat the first.
+      if (spell.swapAllies || (spell.rerouteCount && spellPicks.ids.length === spellPicks.slots.length))
+        return boardCards(game, view)
+          .filter((c) => c.curHp > 0 && !spellPicks.ids.includes(c.instanceId))
+          .map((c) => c.instanceId);
       return spell.kind === "damage" || spell.kind === "choice"
         ? spellEnemyTargets(game, view).map((t) => t.instanceId)
         : [];
@@ -641,11 +668,16 @@ export function App() {
     setSel({ kind: "spell", spellId });
     setPending(null);
     setPicks([]);
+    setSpellPicks({ ids: [], slots: [] });
     // Walls + row/two-row AoE pick a row; traps pick a single empty SLOT;
     // damage spells pick an enemy.
     const picksRow = spell.kind === "wall" || spell.kind === "aoe";
     setHint(
-      spell.kind === "trap"
+      spell.swapAllies
+        ? `Casting <b>${spell.name}</b> — click two of your own cards to swap them.`
+      : spell.rerouteCount
+        ? `Casting <b>${spell.name}</b> — click one of your cards, then where it should go.`
+      : spell.kind === "trap"
         ? `Setting <b>${spell.name}</b> — click a glowing empty slot. Only you will see it.`
         : picksRow
           ? `Casting <b>${spell.name}</b> — click a glowing row.`
@@ -735,6 +767,78 @@ export function App() {
     // spells drop onto any slot of a glowing row (a wall occupies no slot).
     if (me && game.phase === "prep" && game.prep?.priority === me && sel?.kind === "spell") {
       const spell = getSpell(sel.spellId);
+      // Rewire: two of your own cards, then they trade squares.
+      if (spell.swapAllies) {
+        if (!clicked || clicked.owner !== me) {
+          setHint("⚠ Pick one of your own cards.");
+          return;
+        }
+        if (spellPicks.ids.includes(clicked.instanceId)) {
+          setHint("⚠ Pick a DIFFERENT second card.");
+          return;
+        }
+        const ids = [...spellPicks.ids, clicked.instanceId];
+        if (ids.length < 2) {
+          setSpellPicks({ ids, slots: [] });
+          setHint(`<b>${getDef(clicked.defId).name}</b> selected — now click the card to swap it with.`);
+          return;
+        }
+        const chk = canCastSpell(game, me, sel.spellId, { targetIds: ids });
+        if (chk.ok) {
+          setSpellPicks({ ids: [], slots: [] });
+          castSpell(
+            { type: "CAST_SPELL", player: me, spellId: sel.spellId, targetIds: ids },
+            `${spell.name} cast. Keep going, or <b>Pass Priority</b>.`,
+          );
+        } else {
+          setSpellPicks({ ids: [], slots: [] });
+          setHint(`⚠ ${chk.reason}`);
+        }
+        return;
+      }
+      // Full Reroute: alternate card -> destination, up to its limit. It fires
+      // as soon as the last pair is complete.
+      if (spell.rerouteCount) {
+        const needCard = spellPicks.ids.length === spellPicks.slots.length;
+        if (needCard) {
+          if (!clicked || clicked.owner !== me) {
+            setHint("⚠ Pick one of your own cards to move.");
+            return;
+          }
+          if (spellPicks.ids.includes(clicked.instanceId)) {
+            setHint("⚠ That card is already being moved.");
+            return;
+          }
+          setSpellPicks({ ids: [...spellPicks.ids, clicked.instanceId], slots: spellPicks.slots });
+          setHint(`<b>${getDef(clicked.defId).name}</b> selected — now click where it should go.`);
+          return;
+        }
+        // Placing. The square may be one an earlier pick is vacating.
+        const vacating = clicked != null && spellPicks.ids.includes(clicked.instanceId);
+        if ((clicked && !vacating) || isCaptured(game, row, col)) {
+          setHint("⚠ Pick an open slot.");
+          return;
+        }
+        const slots = [...spellPicks.slots, { row, col } as Pos];
+        const ids = spellPicks.ids;
+        const done = slots.length >= (spell.rerouteCount ?? 1) || boardCards(game, me).length <= slots.length;
+        if (!done) {
+          setSpellPicks({ ids, slots });
+          setHint(`Placed. Pick another card to move, or <b>Pass Priority</b> to stop.`);
+          return;
+        }
+        const chk = canCastSpell(game, me, sel.spellId, { targetIds: ids, slots });
+        setSpellPicks({ ids: [], slots: [] });
+        if (chk.ok) {
+          castSpell(
+            { type: "CAST_SPELL", player: me, spellId: sel.spellId, targetIds: ids, slots },
+            `${spell.name} cast. Keep going, or <b>Pass Priority</b>.`,
+          );
+        } else {
+          setHint(`⚠ ${chk.reason}`);
+        }
+        return;
+      }
       // Traps take a single SLOT, not a row — the whole point is the one square.
       if (spell.kind === "trap") {
         const chk = canCastSpell(game, me, sel.spellId, { row, col });
