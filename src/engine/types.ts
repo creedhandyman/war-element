@@ -540,7 +540,6 @@ export interface CardDef {
      *  SLOT IT FELL ON. Distinct from `dmg`, which retaliates against whoever
      *  landed the kill — a zombie bursting is not a grudge, so it hits whatever
      *  was standing next to it however it died. */
-    splashInRange?: number;
     /** Prism: as it falls it hands its armed Enchantment to an ally. Passes on
      *  whatever was actually loaded, or this mode when nothing was. */
     passEnchant?: EnchantMode;

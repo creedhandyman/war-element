@@ -4662,12 +4662,10 @@ export const TOKENS: CardDef[] = [
     sp: 4,
     shields: 0,
     keywords: {},
-    tribe: "Dark",
-    // Contagion. Lives on the ZOMBIE, not on Zombination, so it fires however
-    // the body falls — and keeps firing after its summoner is gone, which is
-    // what makes a raised horde worth killing carefully.
-    passiveNames: { onDeath: "Contagion" },
-    onDeath: { dmg: 0, splashInRange: 2 },
+    // Zombie, not Dark: Contagion is the ZOMBIE tribe's trait now (in defeatCard),
+    // so every Zombie — this token, the Husk, anything raised — bursts on death.
+    // No per-card onDeath needed; the tribe carries it.
+    tribe: "Zombie",
   },
   {
     // Wake of the Dead's payout. A separate token from Specter (3/1/SP7) because

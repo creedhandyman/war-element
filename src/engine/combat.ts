@@ -222,6 +222,19 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
   // Before removeCard, while the dying card still has a slot to spawn around.
   const st = def.onDeath?.spawnToken;
   if (st && card.pos) spawnTokens(draft, card, st.token, st.count);
+  // Contagion — the ZOMBIE tribe's trait, not one token's onDeath: every Zombie
+  // bursts when it falls, spraying each adjacent opponent. Lives here at the
+  // single death choke-point, so a Zombie killed by DOT or a tick bursts too
+  // (the old per-card version was in resolveHit and only fired on an attack).
+  if (card.pos && tribeOf(card, "Zombie")) {
+    const dp = card.pos;
+    const near = boardCards(draft, enemyOf(card.owner)).filter(
+      (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, dp) <= 1,
+    );
+    for (const e of near) directDamage(draft, card, e, CONTAGION_SPLASH, false);
+    if (near.length)
+      draft.log.push(`${getDef(card.defId).name} bursts — Contagion hits ${near.length} for ${CONTAGION_SPLASH}.`);
+  }
   // Prism: the enchantment outlives the enchanter. Handed to the ally with the
   // most damage behind it — the charge is a single swing, so it is worth most
   // on whoever hits hardest. Passes on what Prism actually had armed, falling
@@ -643,14 +656,6 @@ export function resolveHit(
       for (const a of kin) a.dmgBonus += dmg;
       if (kin.length)
         draft.log.push(`${tDef.name}'s last waltz lifts ${kin.length} ${tribe}(s) (+${dmg} DMG, permanently).`);
-    }
-    if (tDef.onDeath?.splashInRange && deathPos) {
-      const near = boardCards(draft, enemyOf(deadOwner)).filter(
-        (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, deathPos) <= 1,
-      );
-      for (const e of near) directDamage(draft, target, e, tDef.onDeath.splashInRange, false);
-      if (near.length)
-        draft.log.push(`${tDef.name} bursts — ${near.length} nearby take ${tDef.onDeath.splashInRange}.`);
     }
     if (tDef.onDeath?.frightenInRange && deathPos) {
       const scared = boardCards(draft, enemyOf(deadOwner)).filter(
@@ -1091,6 +1096,9 @@ export function matchesVsTarget(def: CardDef, target: CardInstance): boolean {
 
 /** Does a card carry `tribe`? Cards may hold several (Ravven is Dark AND
  *  Avian), so this has to handle both shapes. */
+/** Contagion: a dying Zombie sprays every adjacent opponent. */
+export const CONTAGION_SPLASH = 2;
+
 function tribeOf(card: CardInstance, tribe: string): boolean {
   const t = getDef(card.defId).tribe;
   return Array.isArray(t) ? t.includes(tribe) : t === tribe;

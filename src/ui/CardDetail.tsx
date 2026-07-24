@@ -126,6 +126,10 @@ const rounds = (n: number) => `${n} round${n === 1 ? "" : "s"}`;
 export function describePassives(def: CardDef): string[] {
   const aura = ELEMENT_AURA[def.element];
   const passives: string[] = [`${def.element} aura — ${aura.name}: ${aura.desc}`];
+  // Contagion is a TRIBE trait, not a card field — every Zombie bursts on death.
+  const tribes = Array.isArray(def.tribe) ? def.tribe : def.tribe ? [def.tribe] : [];
+  if (tribes.includes("Zombie"))
+    passives.push("Contagion (Zombie): when it dies, deals 2 DMG to every opponent beside it.");
   /** Push a line, prefixed with the card's own name for that passive when it
    *  has one. `key` is the def field the line was derived from. */
   const named = (key: string, text: string) => {
@@ -449,7 +453,6 @@ export function describePassives(def: CardDef): string[] {
       parts.push(
         `raises ${od.spawnToken.count} ${getDef(od.spawnToken.token).name}${od.spawnToken.count > 1 ? "s" : ""}`,
       );
-    if (od.splashInRange) parts.push(`deals ${od.splashInRange} DMG to every opponent beside it`);
     if (od.passEnchant) parts.push("hands its armed Enchantment to the ally with the highest DMG");
     if (od.frightenInRange) parts.push(`FRIGHTENs nearby enemies for ${rounds(od.frightenInRange)}`);
     if (od.allyTribeBuffDmg)

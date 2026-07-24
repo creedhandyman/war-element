@@ -143,7 +143,34 @@ describe("Zombination", () => {
       type: "BATTLE_ACTION", player: "P2", action: "basic", targetId: zom.instanceId,
     });
     expect(next.cards[zom.instanceId]?.curHp ?? 0).toBeLessThanOrEqual(0);
-    expect(next.cards[beside.instanceId].curHp).toBeLessThan(30); // caught the burst
+    expect(next.cards[beside.instanceId].curHp).toBe(30 - 2); // caught the burst
+  });
+
+  it("Contagion is the ZOMBIE tribe's trait — the Husk bursts too", () => {
+    // Contagion is no longer one token's onDeath; every Zombie-tribe card carries
+    // it. Zombie Husk (tribe Zombie) now bursts on death like the Zombie token.
+    const s = prepState();
+    const husk = place(s, "dusk_zombie_husk", "P1", 2, 1, { curHp: 1, maxHp: 8 });
+    const beside = place(s, "dusk_gool", "P2", 2, 2, { curHp: 30, maxHp: 30, curShields: 0 });
+    const killer = place(s, "leaf_greegon", "P2", 1, 1, { curHp: 30, maxHp: 30 });
+    const next = applyIntent(battleWith(s, killer.instanceId), {
+      type: "BATTLE_ACTION", player: "P2", action: "basic", targetId: husk.instanceId,
+    });
+    expect(next.cards[beside.instanceId].curHp).toBe(30 - 2);
+  });
+
+  it("...and it bursts however the body falls — a DOT kill triggers it", () => {
+    // The old per-card version was in resolveHit and only fired on an ATTACK.
+    // In defeatCard now, so a Zombie finished by poison bursts just the same.
+    const s = prepState();
+    const zom = place(s, "dusk_zombie_tok", "P1", 2, 1, { curHp: 2, maxHp: 3 });
+    zom.statuses = [{ kind: "DOT", duration: 2, power: 5, source: "DUSK" }];
+    // A non-healing neighbour: a LEAF card would REGEN/Photosynthesis the 2 back
+    // in the very cleanup the burst lands in.
+    const beside = place(s, "dusk_gool", "P2", 2, 2, { curHp: 30, maxHp: 30, curShields: 0 });
+    const next = advance(atCleanup(s));
+    expect(next.cards[zom.instanceId]?.curHp ?? 0).toBeLessThanOrEqual(0);
+    expect(next.cards[beside.instanceId].curHp).toBe(30 - 2); // Contagion still fired
   });
 });
 
