@@ -26,7 +26,7 @@ const ABILITY_FIELDS = [
   // Wave 3 — Oakgre's enemy-facing aura and Drakonbane's target-keyed bonus.
   "intimidate", "vsTarget",
   // Wave 3b — Magalogoon, Keeper, Prism.
-  "stealthBreaksOnMove", "hiveAbsorb", "startsWithFreeSpecial",
+  "stealthWhenIdle", "hiveAbsorb", "startsWithFreeSpecial", "diesAfterAttacking",
 ] as const;
 
 /** Every effect a roundTick can carry. */

@@ -326,10 +326,15 @@ export interface CardDef {
    *  a bane hunter is built to kill, which is also what keeps a cost-4 card
    *  from carrying a permanent +2 against the whole top of the curve. */
   vsTarget?: { tribe?: string; hpAbove?: number; bonusDmg?: number };
-  /** Swamp Monster (Magalogoon): a STRICTER STEALTH keyword. The plain keyword
-   *  hides a card until it attacks; this also gives it up the moment it moves,
-   *  so staying buried is a real choice rather than a free rider. */
-  stealthBreaksOnMove?: boolean;
+  /** Swamp Monster (Magalogoon): stealth as a CONDITIONAL passive, not a
+   *  standing keyword. The card is hidden ONLY while it has neither moved nor
+   *  attacked this round — so it is never "always" stealthed the way the STEALTH
+   *  keyword is. Read exclusively through isStealthed(). */
+  stealthWhenIdle?: boolean;
+  /** Stinger Buzz (Beebot): a one-shot. The round it ATTACKS, it dies at that
+   *  round's Cleanup — the sting is spent and the bee is gone. Its on-hit DOT
+   *  still lands and still ticks; the corpse just doesn't linger. */
+  diesAfterAttacking?: boolean;
   /** Elemental Fury (Prism): lands with its Special already paid for, so the
    *  first Enchantment is free. */
   startsWithFreeSpecial?: boolean;

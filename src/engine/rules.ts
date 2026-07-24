@@ -229,6 +229,24 @@ export function rangedReachFor(state: GameState, card: CardInstance): number {
   return RANGED_REACH + (advanced ? 1 : 0);
 }
 
+/** Is `card` currently hidden by stealth — untargetable by an ordinary attack?
+ *  The SINGLE source of truth, because three call sites read it and drifted:
+ *  two ignored Magalogoon's move-break and hid it "all the time".
+ *
+ *  Three ways to be hidden, and Magalogoon's is deliberately NOT the keyword:
+ *   - a granted STEALTH status (always hides);
+ *   - the STEALTH keyword — hides until the card attacks this round
+ *     (IcyNinza, Obsidi);
+ *   - Swamp Monster (Magalogoon) — a CONDITIONAL passive, hidden only while it
+ *     has neither moved nor attacked this round. No standing keyword, so it is
+ *     never "always" stealthed. */
+export function isStealthed(def: CardDef, card: CardInstance): boolean {
+  if (hasStatus(card, "STEALTH")) return true;
+  if (def.keywords.STEALTH && !card.attackedThisRound) return true;
+  if (def.stealthWhenIdle && !card.attackedThisRound && !card.movedThisRound) return true;
+  return false;
+}
+
 export function canTarget(
   state: GameState,
   attacker: CardInstance,
@@ -242,15 +260,9 @@ export function canTarget(
   const tDef = getDef(target.defId);
   const melee = aDef.attackType === "Melee" && !asRanged;
 
-  // STEALTH: untargetable until it attacks — unless the attacker is standing in
-  // its own Blazing Sun, the one effect in the game that reveals cloaked cards.
-  if (
-    ((tDef.keywords.STEALTH &&
-      !target.attackedThisRound &&
-      !(tDef.stealthBreaksOnMove && target.movedThisRound)) ||
-      hasStatus(target, "STEALTH")) &&
-    !fieldFlag(state, attacker, "seeStealth")
-  )
+  // STEALTH: untargetable — unless the attacker is standing in its own Blazing
+  // Sun, the one effect in the game that reveals cloaked cards.
+  if (isStealthed(tDef, target) && !fieldFlag(state, attacker, "seeStealth"))
     return false;
   // FLYING dodges melee — but a flying attacker can still strike other fliers.
   if (tDef.keywords.FLYING && melee && !aDef.keywords.FLYING) return false;
@@ -380,7 +392,7 @@ export function forwardAreaTargets(
     if (depth != null) {
       // A deep, committed corridor blast reaches past melee range and the Home
       // Slot rule — only STEALTH keeps a card out of it.
-      if (eDef.keywords.STEALTH && !enemy.attackedThisRound) continue;
+      if (isStealthed(eDef, enemy)) continue;
     } else if (!canTarget(state, card, enemy)) {
       continue;
     }
@@ -626,7 +638,7 @@ export function canSpellHitEnemy(
 ): boolean {
   if (!target.pos || target.owner === player) return false;
   const tDef = getDef(target.defId);
-  if ((tDef.keywords.STEALTH && !target.attackedThisRound) || hasStatus(target, "STEALTH")) return false;
+  if (isStealthed(tDef, target)) return false;
   const enemyHome = homeRow(enemyOf(player), state.boardSize);
   if (target.pos.row === enemyHome && !spellReachesEnemyHome(state, player)) return false;
   return true;

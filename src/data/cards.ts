@@ -998,6 +998,7 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
+    tribe: "SeaC", // school of the sea — shares Kraken's +4 max HP aura
     // Venom Spines: basic attacks apply SCALD 2 for 2 rounds (non-stacking).
     passiveNames: { onHitStatus: "Venom Spines" },
     onHitStatus: { kind: "SCALD", duration: 2, power: 2 },
@@ -1016,6 +1017,7 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
+    tribe: "SeaC", // school of the sea — shares Kraken's +4 max HP aura
     onHitStatus: { kind: "FREEZE", duration: 1, power: 0 }, // Thumper
   },
   {
@@ -2118,12 +2120,13 @@ export const CARDS: CardDef[] = [
     hp: 33,
     sp: 4,
     shields: 0,
-    // Swamp Monster: the STEALTH keyword already means "untargetable until it
-    // attacks"; stealthBreaksOnMove tightens it so sitting still is the price.
-    // Both flags clear each Cleanup, so a round spent buried re-hides it.
-    keywords: { STEALTH: true },
-    passiveNames: { stealthBreaksOnMove: "Swamp Monster" },
-    stealthBreaksOnMove: true,
+    // Swamp Monster: stealth is a PASSIVE, not a keyword — Magalogoon is hidden
+    // only while it has neither moved nor attacked this round, and gains nothing
+    // the rest of the time. The movedThisRound/attackedThisRound flags clear
+    // each Cleanup, so a round spent still re-buries it.
+    keywords: {},
+    passiveNames: { stealthWhenIdle: "Swamp Monster" },
+    stealthWhenIdle: true,
     tribe: "SeaC",
     special: {
       name: "Bog Ambush",
@@ -2274,13 +2277,15 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Twin Wind Strikes",
       cost: 4,
-      handler: "strike",
-      // 2x7 into one target, and the pair lands -5 SP + WEAKEN for 2 rounds.
-      // The debuff is applied ONCE for the Special, not once per hit — stacking
-      // it would read -10 SP, which pins nearly every card in the game to 0.
-      params: { dmg: 7, hits: 2, statusKind: "WEAKEN", statusDuration: 2, spDebuff: 5, spDebuffRounds: 2 },
+      // barrage, not strike: TWO 7-DMG strikes the caster assigns — one each to
+      // two foes, or both onto one. Each strike carries -5 SP + WEAKEN, applied
+      // PER strike (barrage runs maybeStatus + applyDebuffRiders every target
+      // slot). Double-tapping one target is now the FOCUS play the card asks
+      // for: 14 DMG and a stacked -10 SP, at the cost of hitting only one.
+      handler: "barrage",
+      params: { dmg: 7, hits: 1, targets: 2, statusKind: "WEAKEN", statusDuration: 2, spDebuff: 5, spDebuffRounds: 2 },
       targetSide: "enemy",
-      text: "Deal 2×7 DMG to one opponent, then sap 5 SP and WEAKEN it for 2 rounds.",
+      text: "Two 7-DMG strikes — split across two opponents, or both onto one. Each saps 5 SP and WEAKENs for 2 rounds, so a double hit stacks to 14 DMG and −10 SP.",
     },
   },
   {
@@ -4168,12 +4173,13 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 1,
-    dmg: 4,
-    hits: 1,
+    dmg: 2, // 2x2 — a shoal that bites twice (4+3+8 = 15, on a cost-1 budget)
+    hits: 2,
     hp: 3,
     sp: 8,
     shields: 0,
     keywords: {},
+    tribe: "SeaC", // school of the sea — shares Kraken's +4 max HP aura
     // Chomp (On Summon): the shoal hits the water biting — two 1-DMG bites into
     // everything in reach, each leaving BLEED 2 for 2 rounds.
     onSummon: {
@@ -4604,20 +4610,27 @@ export const TOKENS: CardDef[] = [
     // Command. Deliberately NOT given FLYING: they exist to be killed in
     // Keeper's place, and melee has to be able to reach them for that to be a
     // real trade rather than a free damage sponge.
+    // 2 + 3 + (1x2) + 8 = 15, exactly a cost-1 budget.
     id: "bolt_beebot",
     name: "Beebot",
     rarity: "rare",
     element: "BOLT",
-    cardClass: "Ranger",
+    cardClass: "Assassin",
     attackType: "Ranged",
     cost: 1,
-    dmg: 1,
+    dmg: 2,
     hits: 1,
     hp: 3,
-    sp: 6,
-    shields: 0,
+    sp: 8,
+    shields: 1,
     keywords: {},
     tribe: "Bot",
+    // Stinger Buzz: every sting leaves 2 DOT for 2 rounds — BOLT's ONLY DOT, a
+    // deliberate exception for Keeper's swarm — and the bee dies at the Cleanup
+    // of the round it stings. A one-shot: it lands, it poisons, it's gone.
+    passiveNames: { onHitStatus: "Stinger Buzz", diesAfterAttacking: "Stinger Buzz" },
+    onHitStatus: { kind: "DOT", duration: 2, power: 2 },
+    diesAfterAttacking: true,
   },
   {
     // Raised by Toxic Eruption. Same 3/3/4 frame as Risen; reuses the husk art

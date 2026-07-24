@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
 import { basicAttack, directDamage } from "../combat";
-import { canTarget } from "../rules";
+import { canSpellHitEnemy, canTarget } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
+import { getDef } from "../../data/cards";
 import type { GameState, Pos } from "../types";
 
 function battleWith(s: GameState, activeId: string): GameState {
@@ -42,6 +43,23 @@ describe("Magalogoon", () => {
       type: "MOVE", player: "P1", instanceId: mag.instanceId, to: { row: 2, col: 0 } as Pos,
     });
     expect(next.cards[mag.instanceId].movedThisRound).toBe(true);
+  });
+
+  it("stealth breaks EVERYWHERE once it moves — not just for attacks", () => {
+    // The bug: two of the three stealth call sites ignored movedThisRound, so a
+    // moved Magalogoon was still un-spell-targetable and un-corridor-hittable —
+    // stealthed "all the time" from those angles. All three read one predicate
+    // now, so a spell can hit it the instant it moves.
+    const s = prepState();
+    const mag = place(s, "aqua_magalogoon", "P1", 2, 0);
+    expect(canSpellHitEnemy(s, "P2", s.cards[mag.instanceId])).toBe(false); // buried
+    s.cards[mag.instanceId].movedThisRound = true;
+    expect(canSpellHitEnemy(s, "P2", s.cards[mag.instanceId])).toBe(true); // surfaced
+  });
+
+  it("carries no STEALTH keyword — the hiding is purely the passive", () => {
+    expect(getDef("aqua_magalogoon").keywords.STEALTH).toBeUndefined();
+    expect(getDef("aqua_magalogoon").stealthWhenIdle).toBe(true);
   });
 
   it("Bog Ambush drags the target into Magalogoon's row, hits for 8, and blinds it", () => {
@@ -204,14 +222,47 @@ describe("Prism", () => {
   it("on death it hands its armed Enchantment to the strongest ally", () => {
     const s = prepState();
     s.players.P1.magicPool = 9;
+    // Allies on the home row (3) so the Mid-row King of the Hill bonus doesn't
+    // muddy the DMG comparison. Greegon (4) clearly out-hits Vamp (2).
     const p = place(s, "bore_prism", "P1", 2, 0, { curHp: 4, maxHp: 14, curShields: 0 });
-    const weak = place(s, "bolt_beebot", "P1", 2, 2, { curHp: 5, maxHp: 5 });
-    const strong = place(s, "dusk_vamp", "P1", 2, 3, { curHp: 30, maxHp: 30 });
+    const weak = place(s, "dusk_vamp", "P1", 3, 2, { curHp: 30, maxHp: 30 });
+    const strong = place(s, "leaf_greegon", "P1", 3, 3, { curHp: 30, maxHp: 30 });
     const armed = arm(s, p.instanceId, "burning");
     const killer = place(armed, "leaf_alpha", "P2", 1, 0, { curHp: 30, maxHp: 30 });
     directDamage(armed, armed.cards[killer.instanceId], armed.cards[p.instanceId], 50, true);
     expect(armed.cards[p.instanceId]?.curHp ?? 0).toBeLessThanOrEqual(0);
     expect(armed.cards[strong.instanceId].enchant).toBe("burning");
     expect(armed.cards[weak.instanceId].enchant).toBeUndefined();
+  });
+});
+
+describe("Beebot's Stinger Buzz", () => {
+  it("its sting leaves 2 DOT for 2 rounds", () => {
+    const s = prepState();
+    const bot = place(s, "bolt_beebot", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 30, maxHp: 30, curShields: 0 });
+    basicAttack(s, bot.instanceId, foe.instanceId);
+    expect(statusOf(s.cards[foe.instanceId], "DOT")?.power).toBe(2);
+    expect(statusOf(s.cards[foe.instanceId], "DOT")?.duration).toBe(2);
+  });
+
+  it("dies at the Cleanup of the round it attacks — but its DOT stays behind", () => {
+    const s = prepState();
+    const bot = place(s, "bolt_beebot", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 30, maxHp: 30, curShields: 0 });
+    basicAttack(s, bot.instanceId, foe.instanceId);
+    expect(s.cards[bot.instanceId].attackedThisRound).toBe(true);
+    const next = advance(atCleanup(s));
+    // the bee is gone…
+    expect(next.cards[bot.instanceId]?.curHp ?? 0).toBeLessThanOrEqual(0);
+    // …and the poison it left is still ticking on the target.
+    expect(statusOf(next.cards[foe.instanceId], "DOT")).toBeTruthy();
+  });
+
+  it("a Beebot that has NOT attacked survives the Cleanup", () => {
+    const s = prepState();
+    const bot = place(s, "bolt_beebot", "P1", 2, 0);
+    const next = advance(atCleanup(s));
+    expect(next.cards[bot.instanceId]?.curHp).toBeGreaterThan(0);
   });
 });

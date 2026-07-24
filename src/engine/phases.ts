@@ -1624,6 +1624,14 @@ function doCleanupPhase(draft: GameState): void {
     draft.log.push(`${getSpell(f.spellId).name} fades from the battlefield.`);
   draft.fields = draft.fields.filter((f) => f.roundsLeft > 0);
 
+  // 3c. Kamikaze (Beebot's Stinger Buzz): anything that dies the round it acts
+  //      goes now — while attackedThisRound is still set, since step 4 below
+  //      clears it. Its on-hit DOT was already applied and stays on the target.
+  for (const card of boardCards(draft)) {
+    if (getDef(card.defId).diesAfterAttacking && card.attackedThisRound && card.curHp > 0)
+      defeatCard(draft, card, "spent its sting");
+  }
+
   // 4. Clear round flags (STEALTH re-engages; summon lockout ends;
   //    special cooldowns tick down; per-round DMG buffs + hit tracking reset).
   // System Override lasts THIS round only — cleared with the other round-scoped

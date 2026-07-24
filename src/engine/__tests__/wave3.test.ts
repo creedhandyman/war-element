@@ -24,17 +24,39 @@ describe("Bluejay", () => {
     expect(newcomer.curHp).toBeLessThan(15); // 2, or 4 if the CRIT coin landed
   });
 
-  it("Twin Wind Strikes lands WEAKEN and saps 5 SP", () => {
+  it("Twin Wind Strikes DOUBLE-tapped: 14 DMG, WEAKEN, and a STACKED −10 SP", () => {
     const s = prepState();
     s.players.P1.magicPool = 9;
     const jay = place(s, "gale_bluejay", "P1", 3, 0);
     const foe = place(s, "leaf_greegon", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     const before = effectiveSp(s, foe);
-    const next = fire(s, jay.instanceId, foe.instanceId);
+    // Both strikes onto one target — the focus play.
+    const next = applyIntent(battleWith(s, jay.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetIds: [foe.instanceId, foe.instanceId],
+    });
     const hit = next.cards[foe.instanceId];
-    expect(hit.curHp).toBe(40 - 14); // 2x7
+    expect(hit.curHp).toBe(40 - 14); // 7 + 7
     expect(statusOf(hit, "WEAKEN")).toBeTruthy();
-    expect(effectiveSp(next, hit)).toBe(before - 5);
+    // Two −5 SP buffs are stacked. effectiveSp FLOORS at 0 (Greegon's 6 − 10
+    // clamps), so the stack is read off the buffs directly, not the total.
+    expect(hit.buffs.filter((b) => b.sp === -5)).toHaveLength(2);
+    expect(effectiveSp(next, hit)).toBe(Math.max(0, before - 10));
+  });
+
+  it("...or SPLIT across two foes: 7 and −5 SP to each", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const jay = place(s, "gale_bluejay", "P1", 3, 0);
+    const a = place(s, "leaf_greegon", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const b = place(s, "leaf_greegon", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const spA = effectiveSp(s, a), spB = effectiveSp(s, b);
+    const next = applyIntent(battleWith(s, jay.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetIds: [a.instanceId, b.instanceId],
+    });
+    expect(next.cards[a.instanceId].curHp).toBe(40 - 7);
+    expect(next.cards[b.instanceId].curHp).toBe(40 - 7);
+    expect(effectiveSp(next, next.cards[a.instanceId])).toBe(spA - 5);
+    expect(effectiveSp(next, next.cards[b.instanceId])).toBe(spB - 5);
   });
 });
 
