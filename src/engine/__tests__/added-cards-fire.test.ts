@@ -7,7 +7,7 @@
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard } from "../combat";
 import { advance, applyIntent } from "../phases";
-import { canFireSpecial, canMove } from "../rules";
+import { canFireSpecial, canMove, legalMoves } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
@@ -657,5 +657,31 @@ describe("WarPhant — Trample Through (Prep) and the reworked Battle Charge", (
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: first.instanceId,
     });
     expect(n.cards[aside.instanceId].curHp).toBe(99);
+  });
+});
+
+describe("Trample Through is reachable through the normal move flow", () => {
+  it("the victim's slot is a LEGAL MOVE, not a special action", () => {
+    // The UI drives movement off legalMoves + canMove. If a shove did not appear
+    // there it would be unreachable by hand however the click handler behaved —
+    // which is the half of the bug the engine is responsible for.
+    const s = prepState();
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const wp = place(s, "dawn_warphant", "P1", 2, 1);
+    const weak = place(s, "dusk_gool", "P2", 1, 1, { curHp: 13, maxHp: 13 });
+    const moves = legalMoves(s, "P1", wp.instanceId);
+    expect(moves.some((p) => p.row === 1 && p.col === 1), "shove target not offered").toBe(true);
+    // ...and a slot it CANNOT shove into stays absent.
+    const tough = place(s, "dusk_vamp", "P2", 2, 2, { curHp: 99, maxHp: 99 });
+    expect(legalMoves(s, "P1", wp.instanceId).some((p) => p.row === 2 && p.col === 2)).toBe(false);
+    void weak; void tough;
+  });
+
+  it("an ordinary card offers no occupied slot at all", () => {
+    const s = prepState();
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const grunt = place(s, "bore_clubber", "P1", 2, 1);
+    place(s, "dusk_gool", "P2", 1, 1, { curHp: 13, maxHp: 13 });
+    expect(legalMoves(s, "P1", grunt.instanceId).some((p) => p.row === 1 && p.col === 1)).toBe(false);
   });
 });

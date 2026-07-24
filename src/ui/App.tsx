@@ -889,14 +889,20 @@ export function App() {
       return;
     }
 
-    // Move destination — a board card is armed; empty green slots complete the
-    // move, clicking a card opens its detail (its Move button re-arms it).
+    // Move destination — a board card is armed; green slots complete the move,
+    // clicking anything else opens its detail (its Move button re-arms it).
     if (me && game.phase === "prep" && game.prep?.priority === me && sel?.kind === "card") {
-      if (clicked) {
+      // Try the MOVE before falling back to the inspector, even on an occupied
+      // slot. This used to open the card detail for any occupied square and
+      // return — written when no move could ever target one. Trample Through
+      // (WarPhant) broke that assumption: shoving a weaker enemy makes ITS slot
+      // a legal destination, so the shove was unreachable by hand — the square
+      // glowed green and clicking it just opened the victim's card.
+      const check = canMove(game, me, sel.instanceId, { row, col } as Pos);
+      if (clicked && !check.ok) {
         setDetailId(clicked.instanceId);
         return;
       }
-      const check = canMove(game, me, sel.instanceId, { row, col } as Pos);
       if (check.ok) {
         dispatch({ type: "MOVE", player: me, instanceId: sel.instanceId, to: { row, col } as Pos });
         setHint("Moved (one move per turn). Summon more, or <b>Pass Priority</b>.");
