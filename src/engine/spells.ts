@@ -913,6 +913,35 @@ export function isSpell(id: string): boolean {
 /** Build a player's spellbook from the elements present in their deck: every
  *  implemented spell whose element the deck plays, castable once. This is the
  *  default when a deck carries no hand-picked spellbook. */
+/** What a spell asks the caster to choose before it can resolve.
+ *
+ *  "none"   resolves on the spot — heal (auto-targets an ally), field, board
+ *           AoE, and the targetless conversions.
+ *  "enemy"  a single opposing card.
+ *  "row"    a row of the board (walls, row/two-row AoE).
+ *  "slot"   one empty square (traps).
+ *  "cards"  two or more of the caster's OWN cards (Rewire, Full Reroute).
+ *  "mode"   a modal choice first (Chill).
+ *
+ *  This lives in the engine because THREE separate places in the UI encode it —
+ *  whether the tray arms or fires immediately, which squares light up, and what
+ *  the click handler does with them — and each got it wrong independently:
+ *  traps had their column dropped, and Rewire/Full Reroute auto-fired with no
+ *  picks and so could never be cast by hand at all. One function, one answer,
+ *  covered by a test that walks every spell in the set.
+ */
+export function spellPickKind(
+  spell: SpellDef,
+): "none" | "enemy" | "row" | "slot" | "cards" | "mode" {
+  if (spell.swapAllies || spell.rerouteCount) return "cards";
+  if (spell.kind === "choice") return "mode";
+  if (spell.kind === "trap") return "slot";
+  if (spell.kind === "wall") return "row";
+  if (spell.kind === "aoe") return spell.area === "board" ? "none" : "row";
+  if (spell.kind === "damage") return "enemy";
+  return "none"; // heal, field, convert
+}
+
 export function spellbookFor(deck: string[]): SpellSlot[] {
   const elements = new Set<Element>(deck.map((id) => getDef(id).element));
   // Capped at MAX_SPELLBOOK like a hand-picked book. Uncapped, a two-element

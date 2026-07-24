@@ -18,6 +18,7 @@ import {
   FLOW_MODES,
   getDef,
   getSpell,
+  spellPickKind,
   homeRow,
   liquidGivesHit,
   legalMoves,
@@ -649,14 +650,11 @@ export function App() {
       setHint(`<b>${spell.name}</b> — choose how to cast.`);
       return;
     }
-    // Heal/support (auto-target an ally), board-wide AoE, Fields, and pool
-    // conversions all resolve on the spot — nothing to pick.
-    if (
-      spell.kind === "heal" ||
-      spell.kind === "field" ||
-      spell.kind === "convert" ||
-      (spell.kind === "aoe" && spell.area === "board")
-    ) {
+    // Anything that asks the player for nothing resolves on the spot. Read from
+    // spellPickKind rather than re-derived here — this decision is duplicated in
+    // the highlight and the click handler, and getting it wrong makes a spell
+    // uncastable by hand (which it did, twice).
+    if (spellPickKind(spell) === "none") {
       const chk = canCastSpell(game, me, spellId, {});
       if (chk.ok) {
         castSpell({ type: "CAST_SPELL", player: me, spellId }, `Cast <b>${spell.name}</b>.`);
