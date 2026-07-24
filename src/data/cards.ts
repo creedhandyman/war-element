@@ -1801,7 +1801,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Buzz Whip: basic attacks have a 50% chance to PARALYZE for the round.
     passiveNames: { onHitStatus: "Buzz Whip" },
-    onHitStatus: { kind: "PARALYZE", duration: 1, power: 0, chance: 50 },
+    onHitStatus: { kind: "PARALYZE", duration: 2, power: 0, chance: 50 },
   },
   {
     id: "bolt_zagphu",
@@ -1853,9 +1853,9 @@ export const CARDS: CardDef[] = [
       cost: 2,
       handler: "barrage",
       // printed "3×1 DMG and PARALYZE all opponents" — 3 hits of 1 per target
-      params: { dmg: 1, hits: 3, targets: 99, statusKind: "PARALYZE", statusDuration: 1 },
+      params: { dmg: 1, hits: 3, targets: 99, statusKind: "PARALYZE", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 1 DMG × 3 and PARALYZE every opponent in range for 1 round.",
+      text: "Deal 1 DMG × 3 and PARALYZE every opponent in range for 2 rounds.",
     },
   },
   {
@@ -2501,9 +2501,9 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // Shocker: PARALYZE an opponent summoned within DrShock's range for 1 round.
+    // Shocker: PARALYZE an opponent summoned within DrShock's range for 2 rounds.
     passiveNames: { onOppSummon: "Shocker" },
-    onOppSummon: { status: { kind: "PARALYZE", duration: 1, power: 0 } },
+    onOppSummon: { status: { kind: "PARALYZE", duration: 2, power: 0 } },
   },
 
   // ═════════════ RARE + EPIC EXPANSION (2 per element) ═════════════
@@ -3510,14 +3510,14 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Electro Shield (On Summon): a 2-shield barrier; when it BREAKS, PARALYZE
-    // the attacker that shattered it for 1 turn.
+    // the attacker that shattered it for 2 rounds.
     //
     // Raised from 1. At a single shield the barrier popped to the first hit of
     // any multi-hit attack, so the PARALYZE fired immediately and the "shield"
     // half did no shielding at all. Two makes it survive a hit, which is what
     // makes the break a real decision for the attacker.
     summonSelfShields: 2,
-    onShieldBreak: { status: { kind: "PARALYZE", duration: 1, power: 0 } },
+    onShieldBreak: { status: { kind: "PARALYZE", duration: 2, power: 0 } },
   },
 
   {

@@ -141,7 +141,7 @@ describe("rare passives", () => {
     s.cards[breaker.instanceId].attackedThisRound = false; // let it swing again
     basicAttack(s, breaker.instanceId, buzz.instanceId);
     expect(s.cards[buzz.instanceId].curShields).toBe(0);
-    expect(statusOf(s.cards[breaker.instanceId], "PARALYZE")).toBeTruthy();
+    expect(statusOf(s.cards[breaker.instanceId], "PARALYZE")?.duration).toBe(2);
   });
 });
 

@@ -94,9 +94,9 @@ export const SPELLS: SpellDef[] = [
     element: "BOLT",
     cost: 1,
     kind: "damage",
-    text: "Deal 3 DMG to a target and PARALYZE them for 1 round.",
+    text: "Deal 3 DMG to a target and PARALYZE them for 2 rounds.",
     dmg: 3,
-    status: { kind: "PARALYZE", duration: 1, power: 0 },
+    status: { kind: "PARALYZE", duration: 2, power: 0 },
   },
 
   // ───────── Cost 4 — Walls (row-level, trigger on movement in) ─────────
@@ -142,8 +142,8 @@ export const SPELLS: SpellDef[] = [
     element: "BOLT",
     cost: 4,
     kind: "wall",
-    text: "Charge a row with current for 3 rounds. A card that MOVES in takes 2 DMG and is PARALYZED 1 round. Ranged attacks and FLYING cards pass over.",
-    wall: { dmg: 2, status: { kind: "PARALYZE", duration: 1, power: 0 }, rounds: 3 },
+    text: "Charge a row with current for 3 rounds. A card that MOVES in takes 2 DMG and is PARALYZED 2 rounds. Ranged attacks and FLYING cards pass over.",
+    wall: { dmg: 2, status: { kind: "PARALYZE", duration: 2, power: 0 }, rounds: 3 },
   },
   {
     id: "bore_stone_wall",
@@ -355,9 +355,9 @@ export const SPELLS: SpellDef[] = [
     cost: 7,
     kind: "aoe",
     area: "board",
-    text: "Deal 8 DMG to every opponent and PARALYZE each for 1 round.",
+    text: "Deal 8 DMG to every opponent and PARALYZE each for 2 rounds.",
     dmg: 8,
-    status: { kind: "PARALYZE", duration: 1, power: 0 },
+    status: { kind: "PARALYZE", duration: 2, power: 0 },
   },
 
   // ───────── Cost 9 — board wipes that punish a condition (double DMG) ─────────
