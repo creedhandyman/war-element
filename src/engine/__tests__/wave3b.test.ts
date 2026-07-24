@@ -169,7 +169,7 @@ describe("Keeper", () => {
 });
 
 describe("Prism", () => {
-  const arm = (s: GameState, id: string, mode: "sharpen" | "burning" | "freezing" | "stunning") =>
+  const arm = (s: GameState, id: string, mode: "sharpen" | "burning" | "freezing" | "sleeping") =>
     applyIntent(battleWith(s, id), { type: "BATTLE_ACTION", player: "P1", action: "special", mode });
 
   it("Elemental Fury means the first Enchantment is free", () => {
@@ -200,7 +200,7 @@ describe("Prism", () => {
     expect(mid - armed.cards[foe.instanceId].curHp).toBe(base);
   });
 
-  it("Freezing saps 5 SP and Stunning puts the target to SLEEP", () => {
+  it("Freezing saps 5 SP; Sleeping puts the target to SLEEP; Burning leaves a DOT", () => {
     const cold = prepState();
     cold.players.P1.magicPool = 9;
     const p1 = place(cold, "bore_prism", "P1", 2, 0);
@@ -210,13 +210,26 @@ describe("Prism", () => {
     basicAttack(a1, p1.instanceId, f1.instanceId);
     expect(effectiveSp(a1, a1.cards[f1.instanceId])).toBe(spBefore - 5);
 
-    const stun = prepState();
-    stun.players.P1.magicPool = 9;
-    const p2 = place(stun, "bore_prism", "P1", 2, 0);
-    const f2 = place(stun, "dusk_gool", "P2", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
-    const a2 = arm(stun, p2.instanceId, "stunning");
+    const sleep = prepState();
+    sleep.players.P1.magicPool = 9;
+    const p2 = place(sleep, "bore_prism", "P1", 2, 0);
+    const f2 = place(sleep, "dusk_gool", "P2", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
+    const a2 = arm(sleep, p2.instanceId, "sleeping");
     basicAttack(a2, p2.instanceId, f2.instanceId);
     expect(statusOf(a2.cards[f2.instanceId], "SLEEP")).toBeTruthy();
+
+    // Burning is a DOT now, not flat damage: the swing deals base, and a DOT 2
+    // (2 rounds) rides the target instead of +2 on the hit.
+    const burn = prepState();
+    burn.players.P1.magicPool = 9;
+    const p3 = place(burn, "bore_prism", "P1", 2, 0);
+    const f3 = place(burn, "dusk_gool", "P2", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
+    const base = effectiveDmg(burn, p3);
+    const a3 = arm(burn, p3.instanceId, "burning");
+    basicAttack(a3, p3.instanceId, f3.instanceId);
+    expect(90 - a3.cards[f3.instanceId].curHp).toBe(base); // no flat bonus on the swing
+    expect(statusOf(a3.cards[f3.instanceId], "DOT")?.power).toBe(2);
+    expect(statusOf(a3.cards[f3.instanceId], "DOT")?.duration).toBe(2);
   });
 
   it("on death it hands its armed Enchantment to the strongest ally", () => {

@@ -869,7 +869,8 @@ export function basicAttack(
     const ench = attacker.enchant;
     if (ench) {
       attacker.enchant = undefined;
-      if (ench === "burning") dmg += 2;
+      // Burning is a DOT rider now (applied on the landed hit below), not flat
+      // damage — only Sharpen touches the swing's number.
       if (ench === "sharpen") dmg += 5;
       draft.log.push(`${label(draft, attacker)}'s weapon flares — ${ench}.`);
     }
@@ -931,7 +932,9 @@ export function basicAttack(
       // charge (it was consumed above) but lands nothing, which is the same
       // deal every other on-hit rider gets.
       if (ench === "freezing" && t.curHp > 0) applyTimedBuff(t, 0, -5, 2);
-      if (ench === "stunning" && t.curHp > 0)
+      if (ench === "burning" && t.curHp > 0)
+        applyStatus(draft, t, "DOT", 2, 2, getDef(attacker.defId).element); // 2 DOT for 2 rounds
+      if (ench === "sleeping" && t.curHp > 0)
         applyStatus(draft, t, "SLEEP", 1, 0, getDef(attacker.defId).element);
       attacker.struckThisRound[t.instanceId] = struckBefore + r.landedHits;
       if (firstStrike) attacker.struckEver.push(t.instanceId);

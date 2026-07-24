@@ -2077,7 +2077,7 @@ export const CARDS: CardDef[] = [
       handler: "spawn",
       params: {},
       targetSide: "self",
-      text: "Enchant the next basic attack — Freezing (−5 SP), Burning (+2 DMG), Stunning (SLEEP 1), or Sharpen (+5 DMG).",
+      text: "Enchant the next basic attack — Freezing (−5 SP), Burning (2 DOT), Sleeping (SLEEP 1), or Sharpen (+5 DMG).",
     },
   },
   {

@@ -1591,9 +1591,9 @@ export function App() {
         };
         const OPTS: [EnchantMode, string, string, string][] = [
           ["sharpen", "🗡️", "Sharpen", "+5 DMG"],
-          ["burning", "🔥", "Burning", "+2 DMG"],
+          ["burning", "🔥", "Burning", "2 DOT for 2 rounds"],
           ["freezing", "❄️", "Freezing", "−5 SP for 2 rounds"],
-          ["stunning", "💫", "Stunning", "SLEEP 1 round"],
+          ["sleeping", "😴", "Sleeping", "SLEEP 1 round"],
         ];
         return (
           <div className="overlay spellchoice-overlay" onClick={cancel}>

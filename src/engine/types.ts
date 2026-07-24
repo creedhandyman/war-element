@@ -36,7 +36,7 @@ export type Keyword =
 
 /** Prism's four single-use weapon buffs. Each is spent by the next basic
  *  attack the holder makes, and only one can be armed at a time. */
-export type EnchantMode = "freezing" | "burning" | "stunning" | "sharpen";
+export type EnchantMode = "freezing" | "burning" | "sleeping" | "sharpen";
 
 export type StatusKind =
   | "ROOT"
