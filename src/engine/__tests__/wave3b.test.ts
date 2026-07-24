@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
 import { basicAttack, directDamage } from "../combat";
 import { canSpellHitEnemy, canTarget } from "../rules";
-import { boardCards, effectiveDmg, effectiveSp } from "../state";
+import { boardCards, effectiveDmg, effectiveSp, spawnTokens } from "../state";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import { getDef } from "../../data/cards";
 import type { GameState, Pos } from "../types";
@@ -316,5 +316,27 @@ describe("LEAF Overgrowth aura (offensive half)", () => {
     const base = getDef("bore_clubber").dmg;
     basicAttack(s, bore.instanceId, foe.instanceId);
     expect(40 - s.cards[foe.instanceId].curHp).toBe(base); // no aura, no +3
+  });
+});
+
+describe("tokens never spawn on the opponent's summoning row", () => {
+  it("a spawner ON the enemy home row raises its bodies elsewhere, not beside it there", () => {
+    const s = prepState();
+    const enemyHome = 0; // P2's home row, from P1's perspective
+    // A P1 spawner standing on the enemy home row (mid-capture, say).
+    const spawner = place(s, "dusk_zombination", "P1", enemyHome, 1);
+    const raised = spawnTokens(s, spawner, "dusk_zombie_tok", 3);
+    expect(raised.length).toBeGreaterThan(0);
+    for (const tok of raised)
+      expect(tok.pos!.row, `token at r${tok.pos!.row}`).not.toBe(enemyHome);
+  });
+
+  it("fills every OTHER open square before giving up, so the count still lands", () => {
+    // Radius-less spawn opens to the whole board — minus the enemy home row.
+    const s = prepState();
+    const spawner = place(s, "bolt_keeper", "P1", 2, 2);
+    const raised = spawnTokens(s, spawner, "bolt_beebot", 5);
+    expect(raised.length).toBe(5);
+    expect(raised.every((t) => t.pos!.row !== 0)).toBe(true); // none on P2's home row
   });
 });

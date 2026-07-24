@@ -493,8 +493,14 @@ export function spawnTokens(
 ): CardInstance[] {
   if (!spawner.pos) return [];
   const owner = spawner.owner;
+  // Never drop a body onto the OPPONENT's summoning row. A token landing there
+  // sits in the enemy's home slots — free pressure the raiser never had to walk
+  // in, and it clogs the squares the opponent needs to summon into. Tokens push
+  // out from their spawner; they don't teleport onto the enemy's back line.
+  const enemyHome = homeRow(enemyOf(owner), draft.boardSize);
   const isOpen = (r: number, c: number) =>
     r >= 0 && r < draft.boardSize && c >= 0 && c < draft.boardSize &&
+    r !== enemyHome &&
     !draft.slots[r][c].capturedBy && !cardAt(draft, r, c);
   const slots: Pos[] = [];
   const push = (r: number, c: number) => {
