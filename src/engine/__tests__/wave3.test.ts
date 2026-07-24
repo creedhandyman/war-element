@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
-import { boardCards, effectiveDmg, effectiveSp } from "../state";
+import { boardCards, effectiveDmg, effectiveMaxHp, effectiveSp } from "../state";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
@@ -163,5 +163,44 @@ describe("Magmadon", () => {
     expect(effectiveDmg(next, next.cards[pyro.instanceId])).toBe(pyroDmg + 2);
     expect(next.cards[other.instanceId].curHp).toBe(20); // spared
     expect(effectiveDmg(next, next.cards[other.instanceId])).toBe(otherDmg);
+  });
+});
+
+describe("Krakler joins SeaC", () => {
+  it("picks up Kraken's SeaC aura (+4 max HP) it never got as a tribe of one", () => {
+    const alone = prepState();
+    const solo = place(alone, "aqua_krakler", "P1", 3, 0);
+    const base = effectiveMaxHp(alone, solo);
+
+    const schooled = prepState();
+    const kra = place(schooled, "aqua_krakler", "P1", 3, 0);
+    place(schooled, "aqua_kraken", "P1", 3, 1);
+    expect(effectiveMaxHp(schooled, schooled.cards[kra.instanceId])).toBe(base + 4);
+  });
+});
+
+describe("Zombie Husk raises a Zombie instead of getting back up", () => {
+  it("the chain terminates — a Zombie leaves nothing behind when IT falls", () => {
+    // The worry with a death-spawns-a-body rule is an unkillable loop. A husk
+    // yields exactly one Zombie; a Zombie yields none (it bursts instead).
+    const s = prepState();
+    const zom = place(s, "dusk_zombie_tok", "P1", 2, 1, { curHp: 1, maxHp: 3 });
+    const killer = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 30, maxHp: 30 });
+    const next = applyIntent(battleWith(s, killer.instanceId), {
+      type: "BATTLE_ACTION", player: "P2", action: "basic", targetId: zom.instanceId,
+    });
+    expect(boardCards(next, "P1").filter((c) => c.defId === "dusk_zombie_tok")).toHaveLength(0);
+  });
+
+  it("...and it rises however the husk died, not only to a basic attack", () => {
+    // spawnToken sits outside the retaliation branch, so a DOT / tick kill
+    // raises one just the same. Worth pinning: the horde's whole point is that
+    // clearing it by attrition does not work.
+    const s = prepState();
+    const husk = place(s, "dusk_zombie_husk", "P1", 2, 0, { curHp: 2, maxHp: 8 });
+    husk.statuses = [{ kind: "DOT", duration: 2, power: 5, source: "DUSK" }];
+    const next = advance(atCleanup(s));
+    expect(next.cards[husk.instanceId]?.curHp ?? 0).toBeLessThanOrEqual(0);
+    expect(boardCards(next, "P1").filter((c) => c.defId === "dusk_zombie_tok")).toHaveLength(1);
   });
 });

@@ -6,6 +6,7 @@ import { advance, applyIntent } from "../phases";
 import { basicAttack, directDamage, applyStatus } from "../combat";
 import { canMove, canTarget } from "../rules";
 import { getDef } from "../../data/cards";
+import { boardCards } from "../state";
 import { atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
 
 describe("rare passives", () => {
@@ -100,16 +101,18 @@ describe("rare passives", () => {
     expect(statusOf(s.cards[foe.instanceId], "DOT")).toBeTruthy();
   });
 
-  it("DUSK Zombie Husk — Reanimation revives it weaker (−1 all stats) on death", () => {
+  it("DUSK Zombie Husk — Reanimation leaves a ZOMBIE, not a weaker husk", () => {
+    // It used to get back up as itself at −1 to every stat. Now the husk stays
+    // dead and a Zombie token (3/3/SP4, carrying Contagion) takes its place —
+    // still exactly one body per death, so the horde stays bounded.
     const s = prepState();
     const husk = place(s, "dusk_zombie_husk", "P1", 2, 0, { curHp: 7, maxHp: 7 });
     const src = place(s, "leaf_alpha", "P2", 1, 0);
     directDamage(s, src, s.cards[husk.instanceId], 20, false); // lethal
-    const h = s.cards[husk.instanceId];
-    expect(h).toBeTruthy(); // still on the board (reanimated)
-    expect(h.curHp).toBe(6); // maxHp 7 − 1
-    expect(h.reviveDecay).toBe(1);
-    expect(h.dmgBonus).toBe(-1); // −1 DMG too
+    expect(s.cards[husk.instanceId]?.curHp ?? 0).toBeLessThanOrEqual(0); // stays down
+    const risen = boardCards(s, "P1").filter((c) => c.defId === "dusk_zombie_tok");
+    expect(risen).toHaveLength(1);
+    expect(risen[0].curHp).toBe(3);
   });
 
   it("BOLT Buzz — a 2-shield barrier that SURVIVES the first hit", () => {

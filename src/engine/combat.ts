@@ -214,6 +214,14 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
   }
   draft.log.push(`${label(draft, card)} is defeated (${cause}).`);
   creditDeath(draft.stats, card);
+  // A body left behind (WarPhant's rider outliving the mount, Zombie Husk's
+  // Reanimation raising a Zombie). Spawned HERE, at the single removal
+  // choke-point, rather than in resolveHit — there it only fired for deaths
+  // caused by an attack, so a husk finished off by a DOT or a round tick left
+  // nothing, and WarPhant's rider quietly failed to appear the same way.
+  // Before removeCard, while the dying card still has a slot to spawn around.
+  const st = def.onDeath?.spawnToken;
+  if (st && card.pos) spawnTokens(draft, card, st.token, st.count);
   removeCard(draft, card.instanceId);
   return true;
 }
@@ -565,12 +573,6 @@ export function resolveHit(
       for (const a of kin) a.dmgBonus += dmg;
       if (kin.length)
         draft.log.push(`${tDef.name}'s last waltz lifts ${kin.length} ${tribe}(s) (+${dmg} DMG, permanently).`);
-    }
-    if (tDef.onDeath?.spawnToken && deathPos) {
-      // WarPhant: the rider outlives the mount. Spawned from the dead card, so
-      // it lands around where it fell.
-      const st = tDef.onDeath.spawnToken;
-      spawnTokens(draft, target, st.token, st.count);
     }
     if (tDef.onDeath?.splashInRange && deathPos) {
       const near = boardCards(draft, enemyOf(deadOwner)).filter(

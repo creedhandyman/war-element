@@ -2783,7 +2783,10 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    tribe: "Kraken",
+    // SeaC, not a tribe of one: "Kraken" was Krakler's alone and nothing keyed
+    // on it, so it bought nothing. Under SeaC it picks up Kraken's own aura
+    // (+4 max HP to SeaC allies) like the rest of the school.
+    tribe: "SeaC",
     // Abyssal Grasp (On Summon): SCALD 3 for 2 rounds AND FREEZE an opponent in
     // range for 2 rounds (primary SCALD DoT + secondary FREEZE via debuffStatus).
     onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, statusKind: "SCALD", statusPower: 3, statusDuration: 2, debuffStatus: "FREEZE", debuffStatusRounds: 2 } },
@@ -3670,11 +3673,13 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Zombie",
-    // Reanimation (On Death): gets back up ONCE, −1 to all stats. It used to come
-    // back on every death until a stat hit 0, which was three lives on a 1-cost
-    // token and the reason a board of husks was unclearable.
-    passiveNames: { onRevive: "Reanimation" },
-    onRevive: { heal: 7, decay: 1, maxRevives: 1 },
+    // Reanimation (On Death): the husk no longer gets back up as ITSELF — what
+    // rises is a Zombie (3/3/SP4, carrying Contagion). Still exactly one body
+    // per death, so the horde is bounded as before, but the thing you now have
+    // to kill twice is a different card rather than a decayed copy — and a
+    // Zombie bursts when it falls, which a husk never did.
+    passiveNames: { onDeath: "Reanimation" },
+    onDeath: { dmg: 0, spawnToken: { token: "dusk_zombie_tok", count: 1 } },
   },
   {
     id: "bolt_buzz",
@@ -4498,7 +4503,7 @@ export const TOKENS: CardDef[] = [
     // Raised by Toxic Eruption. Same 3/3/4 frame as Risen; reuses the husk art
     // (there is no separate Zombie plate in the files).
     id: "dusk_zombie_tok",
-    art: "dusk_zombie_husk",
+    art: "dusk_zombie",
     name: "Zombie",
     rarity: "rare",
     element: "DUSK",
