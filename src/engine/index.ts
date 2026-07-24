@@ -36,6 +36,7 @@ export {
   canCastSpell,
   canSpellHitEnemy,
   spellEnemyTargets,
+  spellAllyTargets,
   canPlaceWallRow,
   legalWallRows,
   canAoeRow,

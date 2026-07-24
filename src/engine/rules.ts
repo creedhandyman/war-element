@@ -27,7 +27,7 @@ import type {
   SpellDef,
 } from "./types";
 import { enemyOf, homeRow, isMidRow } from "./types";
-import { getSpell } from "./spells";
+import { getSpell, spellPickKind } from "./spells";
 
 // ── prep phase ──────────────────────────────────────────────────────────────
 
@@ -663,6 +663,23 @@ export function legalWallRows(state: GameState, player: PlayerId, spell: SpellDe
 }
 
 /** Master legality check for a CAST_SPELL intent (UI pre-checks, reducer enforces). */
+/** The living cards a caster may aim an "ally"-pick spell at: their own side,
+ *  of the spell's element. The element lock is part of what the spell costs —
+ *  a LEAF ward mends LEAF — so widening it here would be a balance change
+ *  rather than a UI one.
+ *
+ *  Single source of truth for which cards glow, which clicks are accepted, and
+ *  which the AI chooses between. */
+export function spellAllyTargets(
+  state: GameState,
+  player: PlayerId,
+  spell: SpellDef,
+): CardInstance[] {
+  return boardCards(state, player).filter(
+    (c) => c.curHp > 0 && getDef(c.defId).element === spell.element,
+  );
+}
+
 export function canCastSpell(
   state: GameState,
   player: PlayerId,
@@ -775,13 +792,11 @@ export function canCastSpell(
     return { ok: true };
   }
   if (spell.kind === "choice") {
-    // Shield mode → auto-targets an element ally; attack mode → an enemy target.
+    // Shield mode → an element ally; attack mode → an enemy target.
     if (opts.mode === "shield") {
-      const hasAlly = boardCards(state, player).some(
-        (c) => c.curHp > 0 && getDef(c.defId).element === spell.element,
-      );
-      if (!hasAlly) return { ok: false, reason: `No ${spell.element} ally to shield` };
-      return { ok: true };
+      const allies = spellAllyTargets(state, player, spell);
+      if (allies.length === 0) return { ok: false, reason: `No ${spell.element} ally to shield` };
+      return allyPick(allies, opts.targetId);
     }
     if (!opts.targetId) return { ok: false, reason: "Pick a target" };
     const target = state.cards[opts.targetId];
@@ -789,10 +804,21 @@ export function canCastSpell(
       return { ok: false, reason: "Illegal target" };
     return { ok: true };
   }
-  // heal / support: auto-targets an ally of the spell's element, no pick needed.
-  const hasAlly = boardCards(state, player).some(
-    (c) => c.curHp > 0 && getDef(c.defId).element === spell.element,
-  );
-  if (!hasAlly) return { ok: false, reason: `No ${spell.element} ally to heal` };
+  // heal / support. `allAllies` bolsters the whole element and has nothing to
+  // aim; the single-target ones are AIMED by the caster.
+  const allies = spellAllyTargets(state, player, spell);
+  if (allies.length === 0) return { ok: false, reason: `No ${spell.element} ally to heal` };
+  if (spellPickKind(spell) !== "ally") return { ok: true };
+  return allyPick(allies, opts.targetId);
+}
+
+/** Shared tail for the ally-aimed spells. The target is REQUIRED: "this spell
+ *  needs a pick" and "this spell is refused without one" have to be the same
+ *  statement, or the tray fires it into whatever the engine felt like choosing —
+ *  which is the auto-cast this replaced. */
+function allyPick(allies: CardInstance[], targetId?: string): { ok: boolean; reason?: string } {
+  if (!targetId) return { ok: false, reason: "Pick an ally" };
+  if (!allies.some((c) => c.instanceId === targetId))
+    return { ok: false, reason: "Pick one of your own matching allies" };
   return { ok: true };
 }

@@ -920,8 +920,9 @@ export function isSpell(id: string): boolean {
  *  "enemy"  a single opposing card.
  *  "row"    a row of the board (walls, row/two-row AoE).
  *  "slot"   one empty square (traps).
+ *  "ally"   a single one of the caster's own cards, of the spell's element.
  *  "cards"  two or more of the caster's OWN cards (Rewire, Full Reroute).
- *  "mode"   a modal choice first (Chill).
+ *  "mode"   a modal choice first (Chill), which then asks for a card itself.
  *
  *  This lives in the engine because THREE separate places in the UI encode it —
  *  whether the tray arms or fires immediately, which squares light up, and what
@@ -932,15 +933,22 @@ export function isSpell(id: string): boolean {
  */
 export function spellPickKind(
   spell: SpellDef,
-): "none" | "enemy" | "row" | "slot" | "cards" | "mode" {
+): "none" | "enemy" | "ally" | "row" | "slot" | "cards" | "mode" {
   if (spell.swapAllies || spell.rerouteCount) return "cards";
   if (spell.kind === "choice") return "mode";
   if (spell.kind === "trap") return "slot";
   if (spell.kind === "wall") return "row";
   if (spell.kind === "aoe") return spell.area === "board" ? "none" : "row";
   if (spell.kind === "damage") return "enemy";
-  return "none"; // heal, field, convert
+  // A support spell that lands on ONE ally is a targeted spell and the caster
+  // should aim it. It used to auto-fire at whichever kin had the lowest HP
+  // fraction, which is only ever right by accident: the card you want shielded
+  // before a push, or SP'd to reach a Home slot, is rarely the hurt one. Heals
+  // that hit every ally (`allAllies`) still have nothing to pick.
+  if (spell.kind === "heal") return spell.allAllies ? "none" : "ally";
+  return "none"; // field, convert
 }
+
 
 export function spellbookFor(deck: string[]): SpellSlot[] {
   const elements = new Set<Element>(deck.map((id) => getDef(id).element));

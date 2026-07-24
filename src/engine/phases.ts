@@ -330,6 +330,22 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
 
 /** Auto-pick the neediest (lowest HP-ratio) living ally of `element` for a
  *  Spell's support rider. Null if the caster has no such ally. */
+/** The ally a support spell lands on when the caster named one. Re-validated
+ *  here rather than trusted: the reducer is the authority, and an online
+ *  opponent's intent arrives as data. Falls through to `pickSpellAlly` when no
+ *  target was named (scripted casts, and the AI's own fallback). */
+function namedSpellAlly(
+  draft: GameState,
+  player: PlayerId,
+  element: SpellDef["element"],
+  targetId?: string,
+): CardInstance | null {
+  const named = targetId ? draft.cards[targetId] : undefined;
+  if (named && named.owner === player && named.pos && named.curHp > 0 && getDef(named.defId).element === element)
+    return named;
+  return pickSpellAlly(draft, player, element);
+}
+
 function pickSpellAlly(draft: GameState, player: PlayerId, element: SpellDef["element"]): CardInstance | null {
   const allies = boardCards(draft, player).filter(
     (c) => c.curHp > 0 && getDef(c.defId).element === element,
@@ -545,11 +561,11 @@ function resolveSpell(
   }
 
   if (spell.kind === "heal") {
-    // Support spell: heal / shield / +SP / grant a status to a single auto-picked
-    // element ally, or to EVERY living element ally (allAllies).
+    // Support spell: heal / shield / +SP / grant a status to a single ally the
+    // CASTER aims at, or to EVERY living element ally (allAllies).
     const targets = spell.allAllies
       ? boardCards(draft, player).filter((c) => c.curHp > 0 && getDef(c.defId).element === spell.element)
-      : [pickSpellAlly(draft, player, spell.element)].filter((a): a is CardInstance => a != null);
+      : [namedSpellAlly(draft, player, spell.element, targetId)].filter((a): a is CardInstance => a != null);
     if (targets.length === 0) {
       draft.log.push(`${spell.name} fizzles — no ${spell.element} ally.`);
       return;
@@ -572,7 +588,7 @@ function resolveSpell(
   if (spell.kind === "choice") {
     // Modal (Chill): SHIELD an auto-picked element ally, or STRIKE an enemy.
     if (mode === "shield") {
-      const ally = pickSpellAlly(draft, player, spell.element);
+      const ally = namedSpellAlly(draft, player, spell.element, targetId);
       if (ally && spell.allyShield) {
         ally.curShields += spell.allyShield;
         draft.log.push(`${spell.name}: ${label(draft, ally)} gains ${spell.allyShield} shield.`);

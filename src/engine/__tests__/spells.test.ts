@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 import { directDamage, wallEvasion, wallFlatReduction } from "../combat";
 import { applyIntent, advance } from "../phases";
 import { canCastSpell } from "../rules";
-import { SPELLS } from "../spells";
+import { SPELLS, spellPickKind, getSpell } from "../spells";
+import { getDef } from "../../data/cards";
 import { boardCards, effectiveDmg } from "../state";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
@@ -72,7 +73,7 @@ describe("Cost-1 damage spells", () => {
     expect(next.players.P1.magicPool).toBe(2); // cost 1, from 3
   });
 
-  it("Chill (shield) grants +4 shield to an AQUA ally, no target needed", () => {
+  it("Chill (shield) grants +4 shield to the AQUA ally the caster names", () => {
     const s = prepState();
     armSpell(s, "aqua_chill", 3);
     const ally = place(s, "aqua_spinefin", "P1", 2, 0, { curHp: 8, maxHp: 12, curShields: 1 });
@@ -81,6 +82,7 @@ describe("Cost-1 damage spells", () => {
       player: "P1",
       spellId: "aqua_chill",
       mode: "shield",
+      targetId: ally.instanceId,
     });
     expect(next.cards[ally.instanceId].curShields).toBe(5); // 1 + 4
     expect(next.players.P1.magicPool).toBe(2); // cost 1, from 3
@@ -128,13 +130,93 @@ describe("Home-slot targeting for spells", () => {
 });
 
 describe("Support spells", () => {
-  it("Sprout heals a LEAF ally, and is illegal with none on board", () => {
+  it("Sprout heals the LEAF ally named, and is illegal with none on board", () => {
     const s = prepState();
     armSpell(s, "leaf_sprout", 3);
     expect(canCastSpell(s, "P1", "leaf_sprout", {}).ok).toBe(false); // no LEAF ally yet
     const ally = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 5, maxHp: 14 });
-    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_sprout" });
+    // Still illegal unnamed: a targeted spell must be refused without a target,
+    // or the tray fires it at whoever the engine picked.
+    expect(canCastSpell(s, "P1", "leaf_sprout", {}).ok).toBe(false);
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "leaf_sprout", targetId: ally.instanceId,
+    });
     expect(next.cards[ally.instanceId].curHp).toBe(8); // +3
+  });
+});
+
+describe("single-target support spells are AIMED, not auto-cast", () => {
+  // The whole point of the change. These spells used to resolve the instant you
+  // tapped them, onto whichever kin had the lowest HP fraction. That is only
+  // right by accident: the card you want shielded before a push, or given SP to
+  // reach a Home slot, is usually the HEALTHY one at the front — never the pick
+  // the engine made. Each test below names the ally the auto-picker would NOT
+  // have chosen, so a regression to auto-targeting fails loudly.
+
+  it("heals the named ally even when another is far more hurt", () => {
+    const s = prepState();
+    armSpell(s, "leaf_sprout", 3);
+    const dying = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 1, maxHp: 14 });
+    const healthy = place(s, "leaf_greegon", "P1", 3, 1, { curHp: 12, maxHp: 14 });
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "leaf_sprout", targetId: healthy.instanceId,
+    });
+    expect(next.cards[healthy.instanceId].curHp).toBe(14); // +3, capped at max
+    expect(next.cards[dying.instanceId].curHp).toBe(1); // untouched — NOT auto-picked
+  });
+
+  it("shields the named ally, not the neediest one (Bulwark)", () => {
+    const s = prepState();
+    armSpell(s, "bore_bulwark", 3);
+    const dying = place(s, "bore_armadillo", "P1", 3, 0, { curHp: 1, maxHp: 20, curShields: 0 });
+    const healthy = place(s, "bore_clubber", "P1", 3, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "bore_bulwark", targetId: healthy.instanceId,
+    });
+    expect(next.cards[healthy.instanceId].curShields).toBe(3);
+    expect(next.cards[dying.instanceId].curShields).toBe(0);
+  });
+
+  it("Chill's shield mode aims too", () => {
+    const s = prepState();
+    armSpell(s, "aqua_chill", 3);
+    const dying = place(s, "aqua_spinefin", "P1", 3, 0, { curHp: 1, maxHp: 20, curShields: 0 });
+    const healthy = place(s, "aqua_bootlegger", "P1", 3, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "aqua_chill",
+      mode: "shield", targetId: healthy.instanceId,
+    });
+    expect(next.cards[healthy.instanceId].curShields).toBe(4);
+    expect(next.cards[dying.instanceId].curShields).toBe(0);
+  });
+
+  it("refuses an enemy, an off-element ally, and no target at all", () => {
+    const s = prepState();
+    armSpell(s, "leaf_sprout", 3);
+    const kin = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 5, maxHp: 14 });
+    const offElement = place(s, "pyro_firebird", "P1", 3, 1, { curHp: 5, maxHp: 14 });
+    const foe = place(s, "leaf_greegon", "P2", 1, 0, { curHp: 5, maxHp: 14 });
+    expect(canCastSpell(s, "P1", "leaf_sprout", {}).ok).toBe(false);
+    // An ENEMY LEAF card matches the element but not the side — the element gate
+    // must not be the only thing checked.
+    expect(canCastSpell(s, "P1", "leaf_sprout", { targetId: foe.instanceId }).ok).toBe(false);
+    expect(canCastSpell(s, "P1", "leaf_sprout", { targetId: offElement.instanceId }).ok).toBe(false);
+    expect(canCastSpell(s, "P1", "leaf_sprout", { targetId: kin.instanceId }).ok).toBe(true);
+  });
+
+  it("but an allAllies support spell still needs no pick", () => {
+    // Fortify hits every BORE ally — there is nothing to aim, so it must stay a
+    // one-tap cast. Making ALL support spells targeted would have broken these.
+    const s = prepState();
+    armSpell(s, "bore_fortify", 5);
+    place(s, "bore_armadillo", "P1", 3, 0, { curShields: 0 });
+    expect(spellPickKind(getSpell("bore_fortify"))).toBe("none");
+    expect(canCastSpell(s, "P1", "bore_fortify", {}).ok).toBe(true);
+  });
+
+  it("every single-target support spell in the set is classified \"ally\"", () => {
+    for (const spell of SPELLS.filter((x) => x.kind === "heal" && !x.allAllies))
+      expect(spellPickKind(spell), spell.id).toBe("ally");
   });
 });
 
@@ -326,7 +408,9 @@ describe("expansion spells (cost 3/5/7)", () => {
     const s = prepState();
     armSpell(s, "bore_bulwark", 3);
     const ally = place(s, "bore_armadillo", "P1", 3, 0, { curShields: 0 });
-    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bore_bulwark" });
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "bore_bulwark", targetId: ally.instanceId,
+    });
     expect(next.cards[ally.instanceId].curShields).toBe(3);
   });
 
@@ -334,7 +418,9 @@ describe("expansion spells (cost 3/5/7)", () => {
     const s = prepState();
     armSpell(s, "dusk_shadow_step", 3);
     const ally = place(s, "dusk_vamp", "P1", 3, 0);
-    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dusk_shadow_step" });
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "dusk_shadow_step", targetId: ally.instanceId,
+    });
     expect(statusOf(next.cards[ally.instanceId], "EVASION")?.duration).toBe(2);
   });
 
@@ -625,6 +711,12 @@ describe("every spell in the set actually resolves", () => {
       if (spell.kind === "damage" || spell.kind === "choice") {
         opts.targetId = foe.instanceId;
         opts.mode = "attack";
+      }
+      // Single-target support spells are AIMED. Built from spellPickKind rather
+      // than a hand-kept list so this net keeps covering them as the set grows.
+      if (spellPickKind(spell) === "ally") {
+        const kin = boardCards(s, "P1").find((c) => getDef(c.defId).element === spell.element);
+        if (kin) opts.targetId = kin.instanceId;
       }
       if (spell.kind === "wall" || (spell.kind === "aoe" && spell.area !== "board")) {
         // Stone Wall is the one wall restricted to the caster's OWN Home row —

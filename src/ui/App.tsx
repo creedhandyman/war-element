@@ -27,6 +27,7 @@ import {
   needsP1Input,
   previewOnSummonArea,
   spellEnemyTargets,
+  spellAllyTargets,
   specialTargets,
   validAllyTargets,
   validTargets,
@@ -557,6 +558,23 @@ export function App() {
     return [];
   }, [game, sel, view]);
 
+  // Which SIDE the armed spell is asking the caster to click, if it wants a card
+  // at all. Three separate things read this — which cards glow, what colour they
+  // glow, and whether the opponent's team is dimmed — and they each used to
+  // re-derive it from `spell.kind`, which is why they disagreed. One answer.
+  const armedPickSide = useMemo<"enemy" | "ally" | null>(() => {
+    if (sel?.kind !== "spell") return null;
+    const spell = getSpell(sel.spellId);
+    switch (spellPickKind(spell)) {
+      case "enemy": return "enemy";
+      case "ally":
+      case "cards": return "ally";
+      // A modal spell asks for its mode first; the mode decides the side.
+      case "mode": return sel.mode === "shield" ? "ally" : sel.mode ? "enemy" : null;
+      default: return null; // row / slot / nothing — not a card pick
+    }
+  }, [sel]);
+
   const awaitingId = game.battle?.awaitingInput ?? null;
   const legalTargetIds: string[] = useMemo(() => {
     // Prep-phase damage spell armed → its legal enemy targets glow.
@@ -568,7 +586,9 @@ export function App() {
         return boardCards(game, view)
           .filter((c) => c.curHp > 0 && !spellPicks.ids.includes(c.instanceId))
           .map((c) => c.instanceId);
-      return spell.kind === "damage" || spell.kind === "choice"
+      if (armedPickSide === "ally")
+        return spellAllyTargets(game, view, spell).map((c) => c.instanceId);
+      return armedPickSide === "enemy"
         ? spellEnemyTargets(game, view).map((t) => t.instanceId)
         : [];
     }
@@ -583,19 +603,19 @@ export function App() {
       return list.map((t) => t.instanceId);
     }
     return validTargets(game, awaitingId).map((t) => t.instanceId);
-  }, [game, awaitingId, pending, sel, view]);
+  }, [game, awaitingId, pending, sel, view, armedPickSide, spellPicks]);
 
   // Enemy targets (basics / attack-specials / damage spells) glow RED; friendly
   // (ally-target heal specials) stay green.
   const targetsAreEnemies = useMemo(() => {
     if (legalTargetIds.length === 0) return false;
-    if (sel?.kind === "spell") { const k = getSpell(sel.spellId).kind; return k === "damage" || k === "choice"; }
+    if (sel?.kind === "spell") return armedPickSide === "enemy";
     if (pending === "special" && awaitingId) {
       const side = getDef(game.cards[awaitingId].defId).special?.targetSide;
       return side !== "ally" && side !== "self"; // self-buffs aren't hostile targets
     }
     return true; // basic attack
-  }, [legalTargetIds, sel, pending, awaitingId, game]);
+  }, [legalTargetIds, sel, pending, awaitingId, game, armedPickSide]);
 
   // The active placement — either a card being DRAGGED over a home column (live
   // preview) or a STAGED summon awaiting confirm. Both drive the same red
@@ -679,30 +699,36 @@ export function App() {
         ? `Setting <b>${spell.name}</b> — click a glowing empty slot. Only you will see it.`
         : picksRow
           ? `Casting <b>${spell.name}</b> — click a glowing row.`
+        : spellPickKind(spell) === "ally"
+          ? `Casting <b>${spell.name}</b> — click the ${spell.element} ally to bolster.`
           : `Casting <b>${spell.name}</b> — click a glowing enemy target.`,
     );
   }
 
-  // Resolve a modal "choice" spell's mode. Shield auto-targets an ally and casts
-  // now; Attack arms the enemy-target flow (fired on the next slot click).
+  // Resolve a modal "choice" spell's mode. EITHER mode then arms a card pick —
+  // shield used to fire immediately at whichever ally had the lowest HP, which
+  // took the decision away from the caster in the one spell built around making
+  // a decision.
   function chooseSpellMode(mode: "attack" | "shield") {
     if (!me || !spellChoice) return;
     const spellId = spellChoice;
     const spell = getSpell(spellId);
     setSpellChoice(null);
-    if (mode === "shield") {
-      const chk = canCastSpell(game, me, spellId, { mode: "shield" });
-      if (chk.ok) {
-        castSpell({ type: "CAST_SPELL", player: me, spellId, mode: "shield" }, `Cast <b>${spell.name}</b> — shielded an ally.`);
-      } else {
-        setHint(`⚠ ${chk.reason}`);
-      }
+    // Fail early rather than arming a pick with nothing to pick from.
+    const chk = canCastSpell(game, me, spellId, { mode });
+    if (!chk.ok) {
+      setHint(`⚠ ${chk.reason}`);
       return;
     }
-    setSel({ kind: "spell", spellId, mode: "attack" });
+    setSel({ kind: "spell", spellId, mode });
     setPending(null);
     setPicks([]);
-    setHint(`Casting <b>${spell.name}</b> — click a glowing enemy to freeze.`);
+    setSpellPicks({ ids: [], slots: [] });
+    setHint(
+      mode === "shield"
+        ? `Casting <b>${spell.name}</b> — click the ${spell.element} ally to shield.`
+        : `Casting <b>${spell.name}</b> — click a glowing enemy to freeze.`,
+    );
   }
 
   // Max target picks for the armed action. Basics: assign each of the card's
@@ -862,13 +888,15 @@ export function App() {
         }
         return;
       }
-      // damage spell (and Chill's attack mode) — hit the glowing enemy.
+      // Single-card spells — a damage spell's enemy, or a support spell's ally
+      // (including both of Chill's modes). Same shape either way: the click IS
+      // the target, and canCastSpell decides whether it's a legal one.
       if (clicked && canCastSpell(game, me, sel.spellId, { targetId: clicked.instanceId, mode: sel.mode }).ok) {
         castSpell({ type: "CAST_SPELL", player: me, spellId: sel.spellId, targetId: clicked.instanceId, mode: sel.mode }, `${spell.name} cast. Keep going, or <b>Pass Priority</b>.`);
       } else if (clicked) {
         setDetailId(clicked.instanceId);
       } else {
-        setHint("⚠ Pick a glowing enemy target.");
+        setHint(armedPickSide === "ally" ? "⚠ Pick a glowing ally." : "⚠ Pick a glowing enemy target.");
       }
       return;
     }
@@ -1068,7 +1096,7 @@ export function App() {
           game.phase === "prep" &&
           me !== null &&
           game.prep?.priority === me &&
-          !(sel?.kind === "spell" && ["damage", "choice"].includes(getSpell(sel.spellId).kind))
+          armedPickSide !== "enemy"
             ? enemyOf(me)
             : null
         }

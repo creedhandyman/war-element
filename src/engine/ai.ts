@@ -3,7 +3,7 @@
 // would see (its own hand + the board — it never reads P1's hand or deck).
 
 import { getDef } from "../data/cards";
-import { getSpell } from "./spells";
+import { getSpell, spellPickKind } from "./spells";
 import {
   boardCards,
   cardAt,
@@ -15,6 +15,7 @@ import {
 import { hasEvasion } from "./combat";
 import {
   canCastSpell,
+  spellAllyTargets,
   canFireSpecial,
   canFireTalent,
   canMove,
@@ -109,6 +110,12 @@ function woundedTotal(state: GameState, player: PlayerId): number {
 }
 
 /** How many of the caster cards carry a negative status right now. */
+/** How many negative statuses a card is carrying — the "who needs the cleanse
+ *  most" score. */
+function countNegative(card: CardInstance): number {
+  return card.statuses.filter((s) => NEGATIVE_STATUSES.includes(s.kind)).length;
+}
+
 function afflictedCount(state: GameState, player: PlayerId): number {
   return boardCards(state, player).filter(
     (c) => c.curHp > 0 && c.statuses.some((x) => NEGATIVE_STATUSES.includes(x.kind)),
@@ -230,13 +237,23 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
     const worth = (spell.allyHeal ?? 0) + (spell.allyHealIfRooted ?? 0);
     const cleansing = (spell.cleanse ?? 0) > 0 && afflictedCount(state, player) >= 2;
     if (!cleansing && woundedTotal(state, player) < Math.max(4, worth)) continue;
-    // No targetId: the reducer auto-picks the neediest element ally. But it
-    // FIZZLES when the caster has none of that element on the board, and a
-    // fizzle still spends the one-shot — so check for one first.
-    const hasKin = mine.some((c) => getDef(c.defId).element === spell.element);
-    if (!hasKin) continue;
-    if (canCastSpell(state, player, spell.id).ok)
-      return { type: "CAST_SPELL", player, spellId: spell.id };
+    // These AIM now rather than auto-resolving, so the AI names its ally like
+    // a player does. It FIZZLES when the caster has none of that element on the
+    // board, and a fizzle still spends the one-shot — so require a target.
+    const kin = spellAllyTargets(state, player, spell);
+    if (kin.length === 0) continue;
+    // Neediest kin: a cleanse wants the most afflicted card, everything else
+    // wants the one closest to dying.
+    const pick = kin
+      .slice()
+      .sort((a, b) =>
+        cleansing
+          ? countNegative(b) - countNegative(a)
+          : a.curHp / a.maxHp - b.curHp / b.maxHp,
+      )[0];
+    const opts = spellPickKind(spell) === "ally" ? { targetId: pick.instanceId } : {};
+    if (canCastSpell(state, player, spell.id, opts).ok)
+      return { type: "CAST_SPELL", player, spellId: spell.id, ...opts };
   }
 
   // 6. Trap -> a mine on the square the opponent most wants to walk onto. It
@@ -346,11 +363,16 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
         targetId: kill.instanceId,
         mode: "attack",
       };
+    // Shield mode now aims too — brace the ally closest to dying.
+    const kin = spellAllyTargets(state, player, spell)
+      .slice()
+      .sort((a, b) => a.curHp / a.maxHp - b.curHp / b.maxHp)[0];
     if (
+      kin &&
       woundedTotal(state, player) >= 6 &&
-      canCastSpell(state, player, spell.id, { mode: "shield" }).ok
+      canCastSpell(state, player, spell.id, { mode: "shield", targetId: kin.instanceId }).ok
     )
-      return { type: "CAST_SPELL", player, spellId: spell.id, mode: "shield" };
+      return { type: "CAST_SPELL", player, spellId: spell.id, mode: "shield", targetId: kin.instanceId };
   }
   return null;
 }
