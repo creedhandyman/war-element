@@ -992,6 +992,16 @@ function performBattleAction(
     if (def.enchanter && draft.cards[card.instanceId] && card.curHp > 0) {
       card.enchant = mode ?? "sharpen";
       draft.log.push(`${label(draft, card)} enchants its weapon — ${card.enchant}.`);
+      // Cast AND strike: if a foe is in reach, swing right away so the enchant
+      // isn't a wasted turn — the basic spends the charge. Otherwise the charge
+      // is stored for a future basic. Auto-picks the lowest-HP reachable enemy;
+      // the caster chose the enchant mode, not a target.
+      const reach = validTargets(draft, card.instanceId);
+      if (reach.length > 0) {
+        const tgt = reach.slice().sort((a, b) => a.curHp - b.curHp)[0];
+        draft.log.push(`${label(draft, card)} strikes at once with its enchanted weapon.`);
+        basicAttack(draft, card.instanceId, tgt.instanceId);
+      }
     }
     // Meltdown: light the channel. From here the roundTick keeps the attack
     // going every Cleanup until it is broken or paid out.

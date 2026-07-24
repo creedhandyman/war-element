@@ -204,32 +204,47 @@ describe("Prism", () => {
     expect(canFireSpecial(battleWith(ctrl, oak.instanceId), oak.instanceId).ok).toBe(false);
   });
 
-  it("Sharpen adds 5 to the next basic and is then spent", () => {
+  it("Sharpen: cast-and-strike lands base+5 at once, then the next swing is ordinary", () => {
     const s = prepState();
     s.players.P1.magicPool = 9;
     const p = place(s, "bore_prism", "P1", 2, 0);
     const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
-    const armed = arm(s, p.instanceId, "sharpen");
-    expect(armed.cards[p.instanceId].enchant).toBe("sharpen");
-    const base = effectiveDmg(armed, armed.cards[p.instanceId]);
-    basicAttack(armed, p.instanceId, foe.instanceId);
+    const base = effectiveDmg(s, p);
+    const armed = arm(s, p.instanceId, "sharpen"); // foe in range → strikes immediately
     expect(90 - armed.cards[foe.instanceId].curHp).toBe(base + 5);
-    expect(armed.cards[p.instanceId].enchant).toBeUndefined(); // single use
-    // ...and the swing after it is ordinary again.
+    expect(armed.cards[p.instanceId].enchant).toBeUndefined(); // spent by the auto-strike
+    // A later swing is ordinary again.
     armed.cards[p.instanceId].struckThisRound = {};
     const mid = armed.cards[foe.instanceId].curHp;
     basicAttack(armed, p.instanceId, foe.instanceId);
     expect(mid - armed.cards[foe.instanceId].curHp).toBe(base);
   });
 
-  it("Freezing saps 5 SP; Sleeping puts the target to SLEEP; Burning leaves a DOT", () => {
+  it("stores the charge when NO opponent is in range, then spends it on the next basic", () => {
+    // Prism is melee; a foe two rows away is out of reach, so cast-and-strike
+    // banks the enchant instead of wasting it. A later basic spends it.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const p = place(s, "bore_prism", "P1", 3, 0); // home row
+    const far = place(s, "dusk_gool", "P2", 0, 3, { curHp: 90, maxHp: 90, curShields: 0 }); // far
+    const armed = arm(s, p.instanceId, "sharpen");
+    expect(armed.cards[p.instanceId].enchant).toBe("sharpen"); // stored, not spent
+    expect(armed.cards[far.instanceId].curHp).toBe(90); // nobody was hit
+    // now put a foe in reach and swing — the stored Sharpen rides it
+    const near = place(armed, "dusk_gool", "P2", 2, 0, { curHp: 90, maxHp: 90, curShields: 0 });
+    const base = effectiveDmg(armed, armed.cards[p.instanceId]);
+    basicAttack(armed, p.instanceId, near.instanceId);
+    expect(90 - armed.cards[near.instanceId].curHp).toBe(base + 5);
+    expect(armed.cards[p.instanceId].enchant).toBeUndefined();
+  });
+
+  it("Freezing / Sleeping / Burning each ride the cast-and-strike hit", () => {
     const cold = prepState();
     cold.players.P1.magicPool = 9;
     const p1 = place(cold, "bore_prism", "P1", 2, 0);
     const f1 = place(cold, "dusk_gool", "P2", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
     const spBefore = effectiveSp(cold, f1);
-    const a1 = arm(cold, p1.instanceId, "freezing");
-    basicAttack(a1, p1.instanceId, f1.instanceId);
+    const a1 = arm(cold, p1.instanceId, "freezing"); // strikes at once
     expect(effectiveSp(a1, a1.cards[f1.instanceId])).toBe(spBefore - 5);
 
     const sleep = prepState();
@@ -237,18 +252,15 @@ describe("Prism", () => {
     const p2 = place(sleep, "bore_prism", "P1", 2, 0);
     const f2 = place(sleep, "dusk_gool", "P2", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
     const a2 = arm(sleep, p2.instanceId, "sleeping");
-    basicAttack(a2, p2.instanceId, f2.instanceId);
     expect(statusOf(a2.cards[f2.instanceId], "SLEEP")).toBeTruthy();
 
-    // Burning is a DOT now, not flat damage: the swing deals base, and a DOT 2
-    // (2 rounds) rides the target instead of +2 on the hit.
+    // Burning is a DOT: the strike deals base, and a DOT 2 (2 rounds) rides it.
     const burn = prepState();
     burn.players.P1.magicPool = 9;
     const p3 = place(burn, "bore_prism", "P1", 2, 0);
     const f3 = place(burn, "dusk_gool", "P2", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
     const base = effectiveDmg(burn, p3);
     const a3 = arm(burn, p3.instanceId, "burning");
-    basicAttack(a3, p3.instanceId, f3.instanceId);
     expect(90 - a3.cards[f3.instanceId].curHp).toBe(base); // no flat bonus on the swing
     expect(statusOf(a3.cards[f3.instanceId], "DOT")?.power).toBe(2);
     expect(statusOf(a3.cards[f3.instanceId], "DOT")?.duration).toBe(2);

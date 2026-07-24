@@ -2074,14 +2074,14 @@ export const CARDS: CardDef[] = [
     onDeath: { dmg: 0, passEnchant: "sharpen" },
     special: {
       name: "Enchantment",
-      cost: 2,
+      cost: 1,
       // The Special IS the arming — `enchanter` above does the work in the
       // reducer, from the mode the caster picked. spawn with no token is the
       // codebase's no-op handler.
       handler: "spawn",
       params: {},
       targetSide: "self",
-      text: "Enchant the next basic attack — Freezing (−5 SP), Burning (2 DOT), Sleeping (SLEEP 1), or Sharpen (+5 DMG).",
+      text: "Enchant your weapon — Freezing (−5 SP), Burning (2 DOT), Sleeping (SLEEP 1), or Sharpen (+5 DMG) — then strike at once if an opponent is in range, otherwise store the charge for your next basic.",
     },
   },
   {
