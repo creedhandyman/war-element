@@ -11,26 +11,26 @@ import type { GameState } from "../types";
 describe("summoning", () => {
   it("summons into an open home slot, paying cost", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const handId = giveHand(s, "P1", "leaf_greegon"); // cost 3
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 2 });
     const card = cardAt(next, 3, 2);
     expect(card?.defId).toBe("leaf_greegon");
     expect(card?.summonedThisRound).toBe(true);
-    expect(next.players.P1.summonPool).toBe(2);
+    expect(next.players.P1.gold).toBe(2);
     expect(next.players.P1.hand.some((h) => h.handId === handId)).toBe(false);
   });
 
   it("rejects: not enough resources", () => {
     const s = prepState();
-    s.players.P1.summonPool = 2;
+    s.players.P1.gold = 2;
     const handId = giveHand(s, "P1", "leaf_greegon");
     expect(canSummon(s, "P1", handId, 0).ok).toBe(false);
   });
 
   it("rejects: occupied, contested, and captured slots", () => {
     const s = prepState();
-    s.players.P1.summonPool = 10;
+    s.players.P1.gold = 10;
     const handId = giveHand(s, "P1", "leaf_greegon");
     place(s, "leaf_alpha", "P1", 3, 0); // occupied by own card
     place(s, "dusk_vamp", "P2", 3, 1); // enemy on our home = contested
@@ -43,14 +43,14 @@ describe("summoning", () => {
 
   it("rejects summoning without priority", () => {
     const s = prepState(42, "P2");
-    s.players.P1.summonPool = 10;
+    s.players.P1.gold = 10;
     const handId = giveHand(s, "P1", "leaf_greegon");
     expect(canSummon(s, "P1", handId, 0).ok).toBe(false);
   });
 
   it("allows multiple summons in one priority turn", () => {
     const s = prepState();
-    s.players.P1.summonPool = 10;
+    s.players.P1.gold = 10;
     const h1 = giveHand(s, "P1", "leaf_greegon");
     const h2 = giveHand(s, "P1", "leaf_alpha");
     let next = applyIntent(s, { type: "SUMMON", player: "P1", handId: h1, col: 0 });
@@ -180,7 +180,7 @@ describe("priority + passes", () => {
 
   it("an action resets the consecutive-pass counter", () => {
     let s = prepState(42, "P1");
-    s.players.P2.summonPool = 5;
+    s.players.P2.gold = 5;
     const handId = giveHand(s, "P2", "dusk_vamp");
     s = applyIntent(s, { type: "PASS", player: "P1" }); // passes=1, P2 priority
     s = applyIntent(s, { type: "SUMMON", player: "P2", handId, col: 0 });

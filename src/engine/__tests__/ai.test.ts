@@ -22,7 +22,7 @@ describe("AI heuristics", () => {
 
   it("summons the highest-cost affordable card, then eventually passes", () => {
     let s = prepState(5, "P2");
-    s.players.P2.summonPool = 4;
+    s.players.P2.gold = 4;
     // run AI intents until it passes; every one must apply without throwing
     for (let i = 0; i < 20; i++) {
       const intent = aiPrepIntent(s, "P2");
@@ -63,7 +63,7 @@ describe("AI heuristics", () => {
 describe("AI — spells, utility specials, and talents", () => {
   it("casts a Cost-1 damage spell to finish a killable opponent", () => {
     const s = prepState(1, "P2");
-    s.players.P2.summonPool = 0; // skip the summon step
+    s.players.P2.gold = 0; // skip the summon step
     s.players.P2.magicPool = 2;
     s.players.P2.spellbook = [{ defId: "pyro_spark", used: false }]; // 3 DMG
     const prey = place(s, "leaf_greegon", "P1", 1, 0, { curHp: 2, curShields: 0 });
@@ -77,7 +77,7 @@ describe("AI — spells, utility specials, and talents", () => {
 
   it("drops a wall on the row holding the most opponents", () => {
     const s = prepState(1, "P2");
-    s.players.P2.summonPool = 0;
+    s.players.P2.gold = 0;
     s.players.P2.magicPool = 4;
     s.players.P2.spellbook = [{ defId: "pyro_firewall", used: false }]; // wall, cost 4
     place(s, "leaf_greegon", "P1", 2, 0, { curHp: 20 }); // two on mid row 2
@@ -162,8 +162,8 @@ describe("full AI-vs-AI matches (integration)", () => {
       seen.add(key);
       expect(c.curHp).toBeGreaterThan(0);
     }
-    expect(s.players.P1.summonPool).toBeGreaterThanOrEqual(0);
-    expect(s.players.P2.summonPool).toBeGreaterThanOrEqual(0);
+    expect(s.players.P1.gold).toBeGreaterThanOrEqual(0);
+    expect(s.players.P2.gold).toBeGreaterThanOrEqual(0);
     expect(s.players.P1.magicPool).toBeGreaterThanOrEqual(0);
     expect(s.players.P2.magicPool).toBeGreaterThanOrEqual(0);
     // No hand cap now; hands are still bounded by the (now larger) deck size.
@@ -264,8 +264,8 @@ describe("AI vision (fog of war)", () => {
     const b = structuredClone(a);
     b.players.P1.hand = [];
     b.players.P1.deck = [];
-    a.players.P2.summonPool = 3;
-    b.players.P2.summonPool = 3;
+    a.players.P2.gold = 3;
+    b.players.P2.gold = 3;
     expect(aiPrepIntent(a, "P2")).toEqual(aiPrepIntent(b, "P2"));
   });
 

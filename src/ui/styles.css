@@ -184,7 +184,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .opp-hidden { display: block; font-size: 9px; color: var(--ink-faint); letter-spacing: 0.08em; text-transform: uppercase; }
 .opp-res { display: flex; gap: 8px; }
 .opp-pip { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
-.opp-pip.summon { color: var(--steel-lit); background: rgba(21, 101, 192, 0.15); border: 1px solid rgba(120, 160, 230, 0.4); }
+.opp-pip.gold { color: var(--gold-lit); background: rgba(201, 162, 75, 0.15); border: 1px solid var(--gold-line); }
 .opp-pip.magic { color: #b6a6f2; background: rgba(90, 70, 180, 0.15); border: 1px solid rgba(150, 130, 240, 0.4); }
 /* Procedural battlefield — no photo. A carved-stone platform floating in space;
    the 4x4 grid fills it and each SLOT *is* a tile, so cards always sit dead-
@@ -535,13 +535,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .res-gem { display: flex; align-items: center; gap: 11px; }
 .gem-face { width: 60px; height: 60px; position: relative; display: grid; place-items: center; }
 .gem-face::before { content: ""; position: absolute; inset: 0; transform: rotate(45deg); border-radius: 13px; }
-.res-gem.summon .gem-face::before { background: linear-gradient(160deg, #3a2c10, #1c1508); border: 2px solid var(--gold); box-shadow: 0 0 18px rgba(232, 200, 119, 0.4), inset 0 0 14px rgba(232, 200, 119, 0.22); }
+.res-gem.gold .gem-face::before { background: linear-gradient(160deg, #3a2c10, #1c1508); border: 2px solid var(--gold); box-shadow: 0 0 18px rgba(232, 200, 119, 0.4), inset 0 0 14px rgba(232, 200, 119, 0.22); }
 .res-gem.magic .gem-face::before { background: linear-gradient(160deg, #181c3a, #0b0d1e); border: 2px solid var(--steel); box-shadow: 0 0 18px rgba(110, 140, 240, 0.4), inset 0 0 14px rgba(110, 140, 240, 0.28); }
 .gem-val { position: relative; font-size: 22px; font-weight: 900; line-height: 1; }
-.res-gem.summon .gem-val { color: var(--gold-hi); text-shadow: 0 0 10px rgba(232, 200, 119, 0.7); }
+.res-gem.gold .gem-val { color: var(--gold-hi); text-shadow: 0 0 10px rgba(232, 200, 119, 0.7); }
 .res-gem.magic .gem-val { color: #b9c8ff; text-shadow: 0 0 10px rgba(130, 160, 255, 0.7); }
 .gem-lbl { font-family: var(--head); font-size: 12px; letter-spacing: 0.14em; font-weight: 700; }
-.res-gem.summon .gem-lbl { color: var(--gold-lit); }
+.res-gem.gold .gem-lbl { color: var(--gold-lit); }
 .res-gem.magic .gem-lbl { color: #9db1f5; }
 .gem-opp { font-size: 11px; color: var(--ink-faint); font-weight: 700; margin-top: 2px; }
 

@@ -350,7 +350,7 @@ describe("medium-tier passives (audit batch)", () => {
 
   it("Kinguin lands with its guard on adjacent slots", () => {
     const s = prepState();
-    s.players.P1.summonPool = 6;
+    s.players.P1.gold = 6;
     place(s, "dusk_gool", "P2", 0, 0); // keep P2 alive
     const handId = giveHand(s, "P1", "aqua_kinguin");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
@@ -366,7 +366,7 @@ describe("medium-tier passives (audit batch)", () => {
 
   it("SSeerr's arrival burns the WHOLE row ahead, edge column included", () => {
     const s = prepState();
-    s.players.P1.summonPool = 8;
+    s.players.P1.gold = 8;
     // Summons into P1's home row at col 0; the row ahead is row 2. The far
     // corner is 3 columns away — spread 1 would have left it untouched.
     const near = place(s, "dusk_gool", "P2", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
@@ -543,7 +543,7 @@ describe("medium-tier passives (audit batch)", () => {
 
   it("Ash Boar's Charging Tusks hits what's in reach on arrival, then charges in", () => {
     const s = prepState();
-    s.players.P1.summonPool = 6;
+    s.players.P1.gold = 6;
     const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 });
     const handId = giveHand(s, "P1", "pyro_ash_boar");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
@@ -1105,7 +1105,7 @@ describe("Klipso's Harsh Winds", () => {
 describe("on-opponent-summon reactions", () => {
   it("react only to a newcomer IN RANGE: mid-row reactors zap, back-row ones don't", () => {
     const s = prepState(); // P1 has priority
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     // In range of the P1 home row (mid row = can reach it).
     place(s, "bore_rockgoblin", "P2", 2, 0); // Cave Guard: 4 DMG (adjacent to (3,0))
     place(s, "bolt_drshock", "P2", 2, 1); // Shocker: PARALYZE (ranged, from mid)
@@ -1117,7 +1117,7 @@ describe("on-opponent-summon reactions", () => {
 
     // A reactor parked on its own home row can't reach the enemy home slot → no effect.
     const s2 = prepState();
-    s2.players.P1.summonPool = 5;
+    s2.players.P1.gold = 5;
     place(s2, "bolt_drshock", "P2", 0, 0); // back home row — out of range
     const h2 = giveHand(s2, "P1", "dusk_gool");
     const n2 = applyIntent(s2, { type: "SUMMON", player: "P1", handId: h2, col: 0 });
@@ -1127,7 +1127,7 @@ describe("on-opponent-summon reactions", () => {
 
   it("BaBoom's Swinging Sweep booms every enemy in king's reach on summon, sparing distant ones", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     // BaBoom summons at (3,0); king's reach is the adjacent tiles (2,0),(2,1),(3,1).
     const near = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20, maxHp: 40, curShields: 0 }); // adjacent
     const farCol = place(s, "dusk_gool", "P2", 2, 3, { curHp: 20, maxHp: 40, curShields: 0 }); // same row, too far
@@ -1141,7 +1141,7 @@ describe("on-opponent-summon reactions", () => {
 
   it("Rock Goblin's Cave Guard stays silent for a summon out of its melee range", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     place(s, "bore_rockgoblin", "P2", 0, 3); // far corner — nowhere near (3,0)
     const handId = giveHand(s, "P1", "dusk_gool"); // HP 13
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
@@ -1214,7 +1214,7 @@ describe("Sandman's Nightmare", () => {
 describe("element auras", () => {
   it("Exostone (BORE): a summoned card enters with +2 shields", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const handId = giveHand(s, "P1", "bore_rockgoblin"); // base 2 shields
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const goblin = boardCards(next, "P1").find((c) => c.defId === "bore_rockgoblin")!;
@@ -1264,7 +1264,7 @@ describe("element auras", () => {
 
   it("Awakening (DAWN): summoning strikes the nearest enemy for half its DMG", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 15 });
     const handId = giveHand(s, "P1", "dawn_solstice"); // DMG 5 → half 2
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
@@ -1273,7 +1273,7 @@ describe("element auras", () => {
 
   it("Flow Change (AQUA): a human summon defers the choice, then Liquid grants +2 DMG permanently", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const handId = giveHand(s, "P1", "aqua_spinefin");
     const summoned = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const fin = boardCards(summoned, "P1").find((c) => getDef(c.defId).element === "AQUA")!;
@@ -1309,7 +1309,7 @@ describe("element auras", () => {
 
   it("Flow Change (AQUA): an AI summon auto-picks immediately (Tank → Frozen shields)", () => {
     const s = prepState(42, "P2"); // P2 (AI) has priority
-    s.players.P2.summonPool = 5;
+    s.players.P2.gold = 5;
     const handId = giveHand(s, "P2", "aqua_coralgolem"); // Tank, base 4 shields
     const next = applyIntent(s, { type: "SUMMON", player: "P2", handId, col: 0 });
     const golem = boardCards(next, "P2").find((c) => c.defId === "aqua_coralgolem")!;
@@ -1366,7 +1366,7 @@ describe("partial-effect fixes (Epic sweep)", () => {
 
   it("Whirlwolf's Hastening Breeze gives +5 SP to ALL allies, not just the nearest", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const near = place(s, "leaf_greegon", "P1", 3, 0);
     const far = place(s, "leaf_greegon", "P1", 3, 3); // farther than the nearest ally
     const handId = giveHand(s, "P1", "gale_whirlwolf");
@@ -1398,7 +1398,7 @@ describe("partial-effect fixes (Epic sweep)", () => {
 
   it("Radiance's Brightest Warrior scales off the strongest foe on summon", () => {
     const s = prepState();
-    s.players.P1.summonPool = 6;
+    s.players.P1.gold = 6;
     place(s, "leaf_squanch", "P2", 0, 0, { maxHp: 23 }); // strongest foe: 23 max HP
     const handId = giveHand(s, "P1", "dawn_radiance");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
@@ -1413,7 +1413,7 @@ describe("element-aura telegraphs (fx counters)", () => {
     // Fires on SUMMON, outside any battle turn — without a counter the victim
     // just loses HP with nothing on screen to explain it.
     const s = prepState();
-    s.players.P1.summonPool = 9;
+    s.players.P1.gold = 9;
     const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     // Musk Ox, not GoldenEagle: Awakening is floor(dmg / 2), and a 1-DMG card
     // deals 0, so the aura never fires and there'd be nothing to telegraph.
@@ -1450,7 +1450,7 @@ describe("Hawko — Aerial Dominance", () => {
   it("clips an enemy summoned inside its range", () => {
     // P1 summons into its OWN home row (3); Hawko watches from P2's mid row.
     const s = prepState();
-    s.players.P1.summonPool = 9;
+    s.players.P1.gold = 9;
     place(s, "gale_hawko", "P2", 2, 0);
     const handId = giveHand(s, "P1", "dusk_gool");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
@@ -1462,7 +1462,7 @@ describe("Hawko — Aerial Dominance", () => {
     // The reaction is gated on canTarget, so it is a zone of control rather
     // than a free tax on every summon the opponent makes.
     const s = prepState();
-    s.players.P1.summonPool = 9;
+    s.players.P1.gold = 9;
     place(s, "gale_hawko", "P2", 0, 3); // its own home row, far corner
     const handId = giveHand(s, "P1", "dusk_gool");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
@@ -1500,7 +1500,7 @@ describe("Sphere — one heavy shot instead of a 2x2 volley", () => {
     // number, NOT dmg x hits, so moving 2x2 to 1x4 quietly doubles it from 1
     // to 2. Easy to ship without noticing.
     const s = prepState();
-    s.players.P1.summonPool = 6;
+    s.players.P1.gold = 6;
     const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     const handId = giveHand(s, "P1", "dawn_sphere");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });

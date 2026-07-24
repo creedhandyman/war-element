@@ -61,7 +61,7 @@ export function DeckBuilder(props: {
 
   const pool = useMemo(() => buildableCards(), []);
   // Filter by element and class (they stack — GALE + Ranger narrows to both),
-  // then sort. Default "cost" reads the mana curve low→high, breaking ties by
+  // then sort. Default "cost" reads the Gold curve low→high, breaking ties by
   // rarity (mythic first) then name.
   const shown = useMemo(() => {
     const base = pool.filter(

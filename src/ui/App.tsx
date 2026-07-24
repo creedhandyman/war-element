@@ -472,7 +472,7 @@ export function App() {
     if (me === null || game.phase !== "prep" || game.prep?.priority !== me) return;
     const p = game.players[me];
     const card = p.hand.find((h) => h.handId === handId);
-    if (!card || getDef(card.defId).cost > p.summonPool) return;
+    if (!card || getDef(card.defId).cost > p.gold) return;
     setSel({ kind: "hand", handId }); // arm so the legal home slots light up
     setStaged(null);
     setDrag(handId);
@@ -650,8 +650,8 @@ export function App() {
     }
     const p = game.players[me];
     const def = getDef(p.hand.find((h) => h.handId === handId)!.defId);
-    if (def.cost > p.summonPool) {
-      setHint(`⚠ Not enough summon resources for ${def.name} (cost ${def.cost}).`);
+    if (def.cost > p.gold) {
+      setHint(`⚠ Not enough Gold for ${def.name} (costs ${def.cost}).`);
       return;
     }
     setSel({ kind: "hand", handId });

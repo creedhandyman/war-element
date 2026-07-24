@@ -51,8 +51,8 @@ export function Board(props: {
           <span className="opp-hidden">deck hidden</span>
         </div>
         <div className="opp-res">
-          <span className="opp-pip summon">◆ {opp.summonPool}</span>
-          <span className="opp-pip magic">✦ {opp.magicPool}</span>
+          <span className="opp-pip gold" title="Gold">◆ {opp.gold}</span>
+          <span className="opp-pip magic" title="Magic">✦ {opp.magicPool}</span>
         </div>
       </div>
       <div className="crest opp" style={{ ["--c" as string]: foeGlow }}>

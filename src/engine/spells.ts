@@ -471,8 +471,8 @@ export const SPELLS: SpellDef[] = [
     // left a hole at 5 and a collision at 6.
     cost: 5,
     kind: "convert",
-    text: "Spend 5 magic to gain 6 summoning resource.",
-    gainSummon: 6,
+    text: "Spend 5 Magic to gain 6 Gold.",
+    gainGold: 6,
   },
   {
     id: "bolt_recon_ping",

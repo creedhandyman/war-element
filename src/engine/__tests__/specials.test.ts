@@ -405,7 +405,7 @@ describe("firing specials", () => {
 
   it("onSummon ally buff: Smith reinforces the row directly ahead on summon", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const ally = place(s, "leaf_greegon", "P1", 2, 0, { curShields: 0 }); // row ahead
     const handId = giveHand(s, "P1", "bore_smith");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
@@ -415,7 +415,7 @@ describe("firing specials", () => {
 
   it("onSummon ally buff: PolarBear's Polar Storm shields the row ahead +1", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const ally = place(s, "leaf_greegon", "P1", 2, 0, { curShields: 0 }); // row ahead
     const handId = giveHand(s, "P1", "aqua_polarbear");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
@@ -732,7 +732,7 @@ describe("legendaries", () => {
 describe("on-summon passives (forward-area projection)", () => {
   it("Flamehound's 3-wide corridor reaches forward, but only catches the 2 NEAREST", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     s.players.P1.magicPool = 4;
     // Summoned to P1 home col 1. Corridor = cols 0/1/2, reaching forward.
     const leftMid = place(s, "dusk_gool", "P2", 2, 0, { curHp: 13 }); // col 0, near mid
@@ -755,7 +755,7 @@ describe("on-summon passives (forward-area projection)", () => {
 
   it("the Home-Slot rule still gates the enemy home row from your own home", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const homeSitter = place(s, "dusk_gool", "P2", 0, 1, { curHp: 13 }); // enemy home, col 1
     const handId = giveHand(s, "P1", "pyro_flamehound");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
@@ -765,7 +765,7 @@ describe("on-summon passives (forward-area projection)", () => {
 
   it("Spitfire's Spit Shot (on summon) hits up to 3 opponents anywhere in range", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const a = place(s, "dusk_gool", "P2", 2, 1, { curHp: 13 }); // row ahead, same col
     const b = place(s, "dusk_gool", "P2", 2, 2, { curHp: 13 }); // row ahead, far col
     const c = place(s, "dusk_vamp", "P2", 1, 0, { curHp: 6 }); // two rows ahead, side col
@@ -779,7 +779,7 @@ describe("on-summon passives (forward-area projection)", () => {
 
   it("Krakler's Abyssal Grasp (on summon) applies BOTH SCALD 3 and FREEZE 2r", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20 }); // king-adjacent to the home slot
     const handId = giveHand(s, "P1", "aqua_krakler");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
@@ -793,7 +793,7 @@ describe("on-summon passives (forward-area projection)", () => {
 
   it("a melee on-summon (Fenrir) reaches only one row ahead, but 3 wide", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const near = place(s, "dusk_gool", "P2", 2, 1, { curHp: 13 }); // adjacent row, side col
     const deep = place(s, "dusk_vamp", "P2", 1, 0, { curHp: 6 }); // two rows ahead — melee can't reach
     const handId = giveHand(s, "P1", "pyro_fenrir");

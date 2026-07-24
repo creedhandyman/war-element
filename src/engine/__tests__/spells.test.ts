@@ -551,10 +551,10 @@ describe("Power Rebate (pool conversion)", () => {
     // timing tool rather than a straight loss.
     const s = prepState();
     armSpell(s, "bolt_power_rebate", 5);
-    s.players.P1.summonPool = 2;
+    s.players.P1.gold = 2;
     const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bolt_power_rebate" });
     expect(next.players.P1.magicPool).toBe(0);
-    expect(next.players.P1.summonPool).toBe(8); // 2 + 6
+    expect(next.players.P1.gold).toBe(8); // 2 + 6
     expect(next.players.P1.spellbook[0].used).toBe(true);
   });
 
@@ -576,14 +576,14 @@ describe("Power Rebate (pool conversion)", () => {
     // The whole point of the trade: banked magic becomes board presence now.
     const s = prepState();
     armSpell(s, "bolt_power_rebate", 5);
-    s.players.P1.summonPool = 1; // greegon costs 3 — short by 2
+    s.players.P1.gold = 1; // greegon costs 3 — short by 2
     const handId = giveHand(s, "P1", "leaf_greegon");
     expect(() =>
       applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 }),
     ).toThrow();
     let next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bolt_power_rebate" });
     next = applyIntent(next, { type: "SUMMON", player: "P1", handId, col: 0 });
-    expect(next.players.P1.summonPool).toBe(4); // 1 + 6 − 3
+    expect(next.players.P1.gold).toBe(4); // 1 + 6 − 3
     expect(Object.values(next.cards).some((c) => c.defId === "leaf_greegon")).toBe(true);
   });
 });

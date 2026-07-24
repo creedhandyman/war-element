@@ -78,7 +78,7 @@ function emptyPlayer(deck: string[], spellIds?: string[]): PlayerState {
     // none", which used to fall through to the derive branch and hand a
     // spell-less deck the entire elemental set.
     spellbook: spellIds ? spellbookFromIds(spellIds) : spellbookFor(deck),
-    summonPool: 0,
+    gold: 0,
     magicPool: 0,
     mulliganDone: false,
   };

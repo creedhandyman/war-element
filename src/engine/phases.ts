@@ -92,7 +92,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       const hand = p.hand.find((h) => h.handId === intent.handId)!;
       const def = getDef(hand.defId);
       p.hand = p.hand.filter((h) => h.handId !== intent.handId);
-      p.summonPool -= def.cost;
+      p.gold -= def.cost;
       const inst = summonCard(draft, intent.player, hand.defId, {
         row: homeRow(intent.player, draft.boardSize),
         col: intent.col,
@@ -463,13 +463,13 @@ function resolveSpell(
     draft.log.push(`${player} pings the network — the opposing hand is exposed this round.`);
     return;
   }
-  if (spell.kind === "convert" && spell.gainSummon) {
+  if (spell.kind === "convert" && spell.gainGold) {
     // The magic was already deducted by the CAST_SPELL intent; this is the
     // other half of the trade. No carryover clamp — that only applies to what
     // survives into the next round, so spending it this round is the point.
-    draft.players[player].summonPool += spell.gainSummon;
+    draft.players[player].gold += spell.gainGold;
     draft.log.push(
-      `${spell.name} converts ${spell.cost} magic into ${spell.gainSummon} summoning resource.`,
+      `${spell.name} converts ${spell.cost} Magic into ${spell.gainGold} Gold.`,
     );
     return;
   }
@@ -791,7 +791,7 @@ function doResourcePhase(draft: GameState): void {
   const magicGain = magicGainForRound(draft.round);
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const p = draft.players[player];
-    p.summonPool = Math.min(p.summonPool, POOL_CARRYOVER_CAP) + gain;
+    p.gold = Math.min(p.gold, POOL_CARRYOVER_CAP) + gain;
     p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGain;
   }
   draft.log.push(`— Round ${draft.round}: summon +${gain}, magic +${magicGain}. —`);

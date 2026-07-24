@@ -56,7 +56,7 @@ export function Hand(props: {
       <div className="hand-fan">
         {me.hand.map((h, i) => {
           const def = getDef(h.defId);
-          const affordable = def.cost <= me.summonPool;
+          const affordable = def.cost <= me.gold;
           const off = i - center;
           const rot = off * rotStep; // fan spread (deg)
           const ty = Math.pow(Math.abs(off), 1.4) * tyStep; // outer cards dip lower

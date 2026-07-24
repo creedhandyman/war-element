@@ -19,7 +19,7 @@ function battleWith(s: GameState, activeId: string): GameState {
 describe("token spawning", () => {
   it("Trinezer's Reptilian Screech spawns 3 Reptilians on summon (in king's reach)", () => {
     const s = prepState();
-    s.players.P1.summonPool = 12; // Trinezer cost 9
+    s.players.P1.gold = 12; // Trinezer cost 9
     place(s, "leaf_alpha", "P2", 0, 0); // keep P2 non-empty
     const handId = giveHand(s, "P1", "leaf_trinezer");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });

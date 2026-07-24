@@ -43,8 +43,8 @@ export function canSummon(
   const hand = state.players[player].hand.find((h) => h.handId === handId);
   if (!hand) return { ok: false, reason: "Card not in hand" };
   const def = getDef(hand.defId);
-  if (def.cost > state.players[player].summonPool)
-    return { ok: false, reason: "Not enough summon resources" };
+  if (def.cost > state.players[player].gold)
+    return { ok: false, reason: "Not enough Gold" };
   const row = homeRow(player, state.boardSize);
   if (col < 0 || col >= state.boardSize) return { ok: false, reason: "Bad column" };
   if (isCaptured(state, row, col))

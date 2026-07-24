@@ -157,7 +157,7 @@ export interface VsStatusDef {
 export interface RoundTickDef {
   /** Fire this tick ONCE — on the card's first end-of-round after it lands —
    *  instead of every round (Star's Raising Star). Gating on match round 1
-   *  would be dead weight: the summon pool starts at 0, so nothing costing more
+   *  would be dead weight: Gold starts at 0, so nothing costing more
    *  than nothing is even on the board that round. */
   firstRoundOnly?: boolean;
   rootedDmg?: number; // Trapper (Fallow): damage every ROOTed enemy, range-free
@@ -755,8 +755,8 @@ export interface SpellDef {
   /** Field spells (kind "field"): the board-wide buff + how long it lasts. */
   field?: FieldBuff & { rounds: number };
   /** Conversion spells (kind "convert"): the magic paid as `cost` comes back as
-   *  N summoning resource. No target — it just moves value between the pools. */
-  gainSummon?: number;
+   *  N Gold. No target — it just moves value between the two resources. */
+  gainGold?: number;
   // ── damage spells (need an enemy target) ──
   dmg?: number;
   pen?: boolean;
@@ -857,9 +857,10 @@ export interface PlayerState {
   hand: HandCard[];
   /** Spells available to this player this game (each castable once). */
   spellbook: SpellSlot[];
-  /** Summon pool: gains = round # each round (cap 10 carryover). Pays for
+  /** GOLD — the summoning resource. Gains = round # each round (cap 10
+   *  carryover). Pays for
    *  summoning Champions only. */
-  summonPool: number;
+  gold: number;
   /** Magic pool: starts at 3, +1 per round from round 2 (cap 10 carryover).
    *  Pays for Specials (and, post-alpha, Spells). Never drains the summon
    *  pool and vice-versa. */

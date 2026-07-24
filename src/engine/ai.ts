@@ -333,14 +333,14 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
       };
   }
 
-  // 8. Convert -> magic into summoning resource. Only when something in hand is
+  // 8. Convert -> Magic into Gold. Only when something in hand is
   //    unaffordable now and the conversion would actually unlock it.
   for (const slot of of("convert")) {
     const spell = getSpell(slot.defId);
     const cheapest = p.hand.reduce((m, h) => Math.min(m, getDef(h.defId).cost), Infinity);
-    const gain = spell.gainSummon ?? 0;
+    const gain = spell.gainGold ?? 0;
     const stuck =
-      cheapest !== Infinity && p.summonPool < cheapest && p.summonPool + gain >= cheapest;
+      cheapest !== Infinity && p.gold < cheapest && p.gold + gain >= cheapest;
     if (!stuck) continue;
     if (canCastSpell(state, player, spell.id).ok)
       return { type: "CAST_SPELL", player, spellId: spell.id };

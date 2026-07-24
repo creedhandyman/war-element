@@ -112,9 +112,9 @@ describe("mulligan", () => {
     // round 1: opening 4 + drew 1 = hand 5, summon pool 1, magic 0 + round-1 drip 1.
     // (P2 may already have spent its summon pool if it won the coin flip.)
     expect(s.players.P1.hand).toHaveLength(5);
-    expect(s.players.P1.summonPool).toBe(1);
+    expect(s.players.P1.gold).toBe(1);
     expect(s.players.P1.magicPool).toBe(1);
-    expect(s.players.P2.summonPool).toBeLessThanOrEqual(1);
+    expect(s.players.P2.gold).toBeLessThanOrEqual(1);
   });
 });
 
@@ -176,10 +176,10 @@ describe("resource math (two pools)", () => {
     const s = freshGame(9);
     s.phase = "resource";
     s.round = 4;
-    s.players.P1.summonPool = 0;
+    s.players.P1.gold = 0;
     s.players.P1.magicPool = 3;
     const next = advance(s);
-    expect(next.players.P1.summonPool).toBe(4);
+    expect(next.players.P1.gold).toBe(4);
     expect(next.players.P1.magicPool).toBe(4); // +1 (rounds 1–5)
   });
 
@@ -204,10 +204,10 @@ describe("resource math (two pools)", () => {
     const s = freshGame(9);
     s.phase = "resource";
     s.round = 12;
-    s.players.P1.summonPool = 0;
+    s.players.P1.gold = 0;
     s.players.P1.magicPool = 3;
     const next = advance(s);
-    expect(next.players.P1.summonPool).toBe(10); // still min(round, 10)
+    expect(next.players.P1.gold).toBe(10); // still min(round, 10)
     expect(next.players.P1.magicPool).toBe(6); // 3 + 3 (11–15 bracket)
   });
 
@@ -218,17 +218,17 @@ describe("resource math (two pools)", () => {
     s.round = 1;
     const next = advance(s);
     expect(next.players.P1.magicPool).toBe(1); // 0 + round-1 bracket (+1)
-    expect(next.players.P1.summonPool).toBe(1);
+    expect(next.players.P1.gold).toBe(1);
   });
 
   it("both pools cap carryover at 10 before the gain", () => {
     const s = freshGame(9);
     s.phase = "resource";
     s.round = 3;
-    s.players.P1.summonPool = 14; // carryover clamps to 10
+    s.players.P1.gold = 14; // carryover clamps to 10
     s.players.P1.magicPool = 14;
     const next = advance(s);
-    expect(next.players.P1.summonPool).toBe(13);
+    expect(next.players.P1.gold).toBe(13);
     expect(next.players.P1.magicPool).toBe(11);
   });
 
@@ -252,11 +252,11 @@ describe("resource math (two pools)", () => {
     s.round = 4;
     s.phase = "prep";
     s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     s.players.P1.magicPool = 5;
     const handId = giveHand(s, "P1", "leaf_greegon"); // cost 3
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
-    expect(next.players.P1.summonPool).toBe(2);
+    expect(next.players.P1.gold).toBe(2);
     expect(next.players.P1.magicPool).toBe(5); // untouched
   });
 });
@@ -296,7 +296,7 @@ describe("board size lives on the state", () => {
       s.round = 1;
       s.phase = "prep";
       s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
-      s.players.P1.summonPool = 9;
+      s.players.P1.gold = 9;
       const handId = `h${s.nextId++}`;
       s.players.P1.hand.push({ handId, defId: "leaf_greegon" });
       return { s, handId };

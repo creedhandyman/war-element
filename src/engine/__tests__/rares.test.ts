@@ -23,7 +23,7 @@ describe("rare passives", () => {
 
   it("LEAF Sticks — Boon Striker hits for 7 on summon and saps the target's next attack", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 20, curShields: 0 }); // adjacent to home (3,0)
     const handId = giveHand(s, "P1", "leaf_sticks");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
@@ -33,7 +33,7 @@ describe("rare passives", () => {
 
   it("AQUA IcyNinza — Icy Mist cloaks it in STEALTH for 1 round on summon", () => {
     const s = prepState();
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const handId = giveHand(s, "P1", "aqua_icyninza");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const ninja = Object.values(next.cards).find((c) => c.defId === "aqua_icyninza")!;
@@ -49,7 +49,7 @@ describe("rare passives", () => {
     // flat 6 would pass or fail on the RNG.
     const s = prepState();
     s.rngState = seedForCoins(true); // the crit connects
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     const handId = giveHand(s, "P1", "aqua_icyninza");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
@@ -62,7 +62,7 @@ describe("rare passives", () => {
   it("...and lands its flat 3 when the crit misses", () => {
     const s = prepState();
     s.rngState = seedForCoins(false); // no crit
-    s.players.P1.summonPool = 5;
+    s.players.P1.gold = 5;
     const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     const handId = giveHand(s, "P1", "aqua_icyninza");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
@@ -149,7 +149,7 @@ describe("rare audit — uncapped on-summon corridors", () => {
   /** Summon `id` into a packed enemy cluster; return the immediate damage. */
   function arrival(id: string): number {
     const s = prepState();
-    s.players.P1.summonPool = 20;
+    s.players.P1.gold = 20;
     const foes = [[2, 0], [2, 1], [2, 2], [1, 1]].map(([r, c]) =>
       place(s, "dusk_gool", "P2", r, c, { curHp: 500, maxHp: 500, curShields: 0 }));
     const handId = giveHand(s, "P1", id);

@@ -4,7 +4,7 @@ import { getSpell } from "../engine";
 import { EL_COLOR, spellArtSrc } from "./shared";
 
 /** The human's spellbook. Each spell is castable once per game (Prep Phase, paid
- *  from the magic pool). Greyed when spent, too pricey, or it isn't your prep
+ *  from Magic). Greyed when spent, too pricey, or it isn't your prep
  *  turn. Two shapes: the classic inline tray, and — with `collapsible` — a single
  *  centered "book" that taps open to reveal the spells (keeps the battlefield
  *  clear until you reach for a spell). */
@@ -37,7 +37,7 @@ export function SpellTray(props: {
             className={`spellchip ${armed ? "armed" : ""} ${slot.used ? "used" : ""}`}
             style={{ ["--el" as string]: EL_COLOR[spell.element] }}
             disabled={disabled}
-            title={`${spell.name} (cost ${spell.cost}) — ${spell.text}${slot.used ? " · already cast" : afford ? "" : " · not enough magic"}`}
+            title={`${spell.name} (cost ${spell.cost}) — ${spell.text}${slot.used ? " · already cast" : afford ? "" : " · not enough Magic"}`}
             onClick={() => {
               props.onPick(slot.defId);
               if (props.collapsible) setOpen(false);

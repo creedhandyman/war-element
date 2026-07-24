@@ -23,7 +23,7 @@ function battleFor(s: GameState, active: string): GameState {
 describe("added cards: every ability fires", () => {
   it("Piranha's Chomp bites everything in reach on arrival, with BLEED", () => {
     const s = prepState();
-    s.players.P1.summonPool = 6;
+    s.players.P1.gold = 6;
     // Melee reach 1 from P1's home row, so row 2 is in range.
     const near = place(s, "dusk_gool", "P2", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 });
     const far = place(s, "dusk_vamp", "P2", 0, 3, { curHp: 20, maxHp: 20 });
@@ -125,7 +125,7 @@ describe("added cards: every ability fires", () => {
 describe("wave 1: RohoJohn, Shoksa, Lumberjack, Bootlegger", () => {
   it("RohoJohn's War Mount arrives armoured and mauls at melee range", () => {
     const s = prepState();
-    s.players.P1.summonPool = 9;
+    s.players.P1.gold = 9;
     const near = place(s, "dusk_gool", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 0 });
     const handId = giveHand(s, "P1", "bore_rohojohn");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
@@ -158,7 +158,7 @@ describe("wave 1: RohoJohn, Shoksa, Lumberjack, Bootlegger", () => {
 
   it("Shoksa fires its Special on summon: marks the clean, deepens the held", () => {
     const s = prepState();
-    s.players.P1.summonPool = 9;
+    s.players.P1.gold = 9;
     const held = place(s, "dusk_gool", "P2", 2, 0, { curHp: 60, maxHp: 60 });
     const clean = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 60, maxHp: 60 });
     applyStatus(s, held, "PARALYZE", 1, 0, "BOLT");
@@ -260,7 +260,7 @@ describe("wave 2: Wista, WarPhant, RIP, Scorch", () => {
 
   it("WarPhant arrives armoured, plates up crossing into the middle, once", () => {
     const s = prepState();
-    s.players.P1.summonPool = 9;
+    s.players.P1.gold = 9;
     const handId = giveHand(s, "P1", "dawn_warphant");
     let n = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
     const phant = boardCards(n, "P1").find((c) => c.defId === "dawn_warphant")!;
@@ -298,7 +298,7 @@ describe("wave 2: Wista, WarPhant, RIP, Scorch", () => {
     // roundTick.spawn had a pre-existing generic handler as well as the
     // HP-charging one; both ran, and the clock quietly raised double.
     const s = prepState();
-    s.players.P1.summonPool = 9;
+    s.players.P1.gold = 9;
     const handId = giveHand(s, "P1", "dusk_rip");
     let n = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
     place(n, "dusk_gool", "P2", 0, 0);
@@ -371,7 +371,7 @@ describe("wave 2: Wista, WarPhant, RIP, Scorch", () => {
 
   it("Scorch sets the enemy home row alight on arrival", () => {
     const s = prepState();
-    s.players.P1.summonPool = 6;
+    s.players.P1.gold = 6;
     const home = place(s, "dusk_gool", "P2", 0, 0, { curHp: 40, maxHp: 40 });
     const forward = place(s, "dusk_vamp", "P2", 1, 0, { curHp: 40, maxHp: 40 });
     const handId = giveHand(s, "P1", "pyro_scorch");
@@ -404,7 +404,7 @@ describe("Scorch — Wildfire is a standing zone, not a one-shot", () => {
     // Scorch lands there is often nobody standing in it — and the card did
     // nothing at all, then or ever.
     const s = prepState();
-    s.players.P1.summonPool = 9;
+    s.players.P1.gold = 9;
     place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 }); // forward, not home
     const handId = giveHand(s, "P1", "pyro_scorch");
     let n = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
@@ -416,12 +416,12 @@ describe("Scorch — Wildfire is a standing zone, not a one-shot", () => {
 
   it("catches a card SUMMONED into the row afterwards", () => {
     const s = prepState();
-    s.players.P1.summonPool = 9;
+    s.players.P1.gold = 9;
     place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
     const handId = giveHand(s, "P1", "pyro_scorch");
     let n = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     n.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
-    n.players.P2.summonPool = 9;
+    n.players.P2.gold = 9;
     const h2 = giveHand(n, "P2", "dusk_vamp");
     n = applyIntent(n, { type: "SUMMON", player: "P2", handId: h2, col: 2 });
     const newcomer = boardCards(n, "P2").find((c) => c.defId === "dusk_vamp")!;
@@ -431,7 +431,7 @@ describe("Scorch — Wildfire is a standing zone, not a one-shot", () => {
 
   it("only THEIR home row burns — the rest of the board is untouched", () => {
     const s = prepState();
-    s.players.P1.summonPool = 9;
+    s.players.P1.gold = 9;
     const home = place(s, "dusk_gool", "P2", 0, 0, { curHp: 40, maxHp: 40 });
     const forward = place(s, "dusk_vamp", "P2", 1, 0, { curHp: 40, maxHp: 40 });
     const handId = giveHand(s, "P1", "pyro_scorch");
