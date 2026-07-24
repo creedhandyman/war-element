@@ -2380,11 +2380,14 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 2,
-    dmg: 6,
-    hits: 1,
-    hp: 6,
-    sp: 8,
-    shields: 0,
+    // 2x2 + 10 + 2*1 + 6 = 22 against a cost-2 budget of 20 — 2 over, inside
+    // the band. Trades the single heavy swing this session's PYRO sweep gave it
+    // for a two-hit line with real bulk behind it.
+    dmg: 2,
+    hits: 2,
+    hp: 10,
+    sp: 6,
+    shields: 1,
     keywords: {},
     // Swinging Sweep (On Summon): 2 DMG to every opponent in king's-move reach
     // (the adjacent tiles) and push each back 1.
