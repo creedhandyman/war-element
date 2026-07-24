@@ -730,6 +730,10 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 0,
     keywords: { EVASION: true }, // Silent Weaver
+    // Its dodge only works while it is on the ENEMY's side (like Ravven). It
+    // stalks evasive but is exposed defending its own ground — a defensive nerf,
+    // since permanent everywhere-evasion made it far too hard to remove at home.
+    evasionEnemySideOnly: true,
     tribe: "Dark",
     special: {
       name: "Web Snare",
@@ -2207,7 +2211,7 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 0,
     keywords: {},
-    tribe: "Dark",
+    tribe: "Zombie", // the zombie lord itself — was mistakenly "Dark"
     // Contagion (Aura): while Zombination lives, every one of its Zombies that
     // dies sprays 2 DMG to opponents beside it. Strictly Zombination's effect —
     // it ends the instant Zombination is gone.
@@ -3616,7 +3620,7 @@ export const CARDS: CardDef[] = [
       // 6, it gains 6); 12-deleted is the same 12-point swing with the caster's
       // own HP bar left alone. Then it slips into STEALTH (selfStatus rider,
       // untargetable until it next attacks).
-      params: { amount: 12, deleteOnly: 1, selfStatus: "STEALTH", selfStatusDuration: 2 },
+      params: { amount: 12, deleteOnly: 1, selfStatus: "STEALTH", selfStatusDuration: 1 },
       targetSide: "enemy",
       text: "Delete 12 max HP from an opponent — destroying it outright if it has 12 or less — then slip into STEALTH until you next attack.",
     },

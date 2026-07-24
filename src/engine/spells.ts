@@ -160,8 +160,8 @@ export const SPELLS: SpellDef[] = [
     element: "DUSK",
     cost: 4,
     kind: "wall",
-    text: "Cloak a row in darkness for 3 rounds. A card that MOVES in takes 2 DMG and is FRIGHTENed 1 round. DUSK allies in the row gain EVASION. Ranged attacks and FLYING cards pass over.",
-    wall: { dmg: 2, status: { kind: "FRIGHTEN", duration: 1, power: 0 }, allyBuff: { evasion: true }, rounds: 3 },
+    text: "Cloak a row in darkness for 2 rounds. A card that MOVES in takes 2 DMG and is FRIGHTENed 1 round. DUSK allies in the row gain EVASION. Ranged attacks and FLYING cards pass over.",
+    wall: { dmg: 2, status: { kind: "FRIGHTEN", duration: 1, power: 0 }, allyBuff: { evasion: true }, rounds: 2 },
   },
   {
     id: "dawn_radiant_barrier",
@@ -198,8 +198,8 @@ export const SPELLS: SpellDef[] = [
     element: "DUSK",
     cost: 3,
     kind: "heal",
-    text: "Cloak a DUSK ally in EVASION for 2 rounds.",
-    allyStatus: { kind: "EVASION", duration: 2, power: 0 },
+    text: "Cloak a DUSK ally in EVASION for 1 round.",
+    allyStatus: { kind: "EVASION", duration: 1, power: 0 },
   },
 
   // ───────── Cost 5 — team defense ─────────

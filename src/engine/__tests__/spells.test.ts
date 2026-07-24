@@ -414,14 +414,14 @@ describe("expansion spells (cost 3/5/7)", () => {
     expect(next.cards[ally.instanceId].curShields).toBe(3);
   });
 
-  it("Shadow Step (cost 3): cloaks a DUSK ally in EVASION for 2 rounds", () => {
+  it("Shadow Step (cost 3): cloaks a DUSK ally in EVASION for 1 round", () => {
     const s = prepState();
     armSpell(s, "dusk_shadow_step", 3);
     const ally = place(s, "dusk_vamp", "P1", 3, 0);
     const next = applyIntent(s, {
       type: "CAST_SPELL", player: "P1", spellId: "dusk_shadow_step", targetId: ally.instanceId,
     });
-    expect(statusOf(next.cards[ally.instanceId], "EVASION")?.duration).toBe(2);
+    expect(statusOf(next.cards[ally.instanceId], "EVASION")?.duration).toBe(1);
   });
 
   it("Fortify (cost 5): +2 shield to EVERY BORE ally, sparing other elements", () => {
