@@ -112,13 +112,36 @@ describe("rare passives", () => {
     expect(h.dmgBonus).toBe(-1); // −1 DMG too
   });
 
-  it("BOLT Buzz — its Electro Shield PARALYZEs the attacker when it breaks", () => {
+  it("BOLT Buzz — a 2-shield barrier that SURVIVES the first hit", () => {
+    // Raised from 1. At a single shield the barrier popped to the opening hit
+    // of any attack, so it never actually shielded anything — it was a PARALYZE
+    // trigger wearing a shield's name.
     const s = prepState();
     const buzz = place(s, "bolt_buzz", "P1", 2, 0);
-    expect(s.cards[buzz.instanceId].curShields).toBe(1); // summonSelfShields
-    const attacker = place(s, "leaf_alpha", "P2", 2, 1, { curHp: 20 }); // breaks the 1 shield
-    basicAttack(s, attacker.instanceId, buzz.instanceId);
-    expect(statusOf(s.cards[attacker.instanceId], "PARALYZE")).toBeTruthy();
+    expect(s.cards[buzz.instanceId].curShields).toBe(2);
+    // A SINGLE-hit attacker on purpose: each hit strips one shield regardless of
+    // its damage, so a multi-hit card (Nettle is 1x3) chews through both at once
+    // and the test would be measuring hit count, not the barrier.
+    const chip = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 20 });
+    basicAttack(s, chip.instanceId, buzz.instanceId);
+    expect(s.cards[buzz.instanceId].curShields).toBeGreaterThan(0); // still standing
+    expect(statusOf(s.cards[chip.instanceId], "PARALYZE")).toBeUndefined(); // not yet
+  });
+
+  it("...and PARALYZEs whoever finally shatters it", () => {
+    const s = prepState();
+    const buzz = place(s, "bolt_buzz", "P1", 2, 0);
+    // Two swings, because a hit strips ONE shield however hard it lands — which
+    // is the whole point of raising the barrier to 2.
+    // Low damage on purpose: Ember Scorpion's 9 would kill Buzz outright on the
+    // second swing, and a dead card has no barrier left to shatter.
+    const breaker = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 20 });
+    basicAttack(s, breaker.instanceId, buzz.instanceId);
+    expect(statusOf(s.cards[breaker.instanceId], "PARALYZE")).toBeUndefined(); // held
+    s.cards[breaker.instanceId].attackedThisRound = false; // let it swing again
+    basicAttack(s, breaker.instanceId, buzz.instanceId);
+    expect(s.cards[buzz.instanceId].curShields).toBe(0);
+    expect(statusOf(s.cards[breaker.instanceId], "PARALYZE")).toBeTruthy();
   });
 });
 

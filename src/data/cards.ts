@@ -3509,9 +3509,14 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // Electro Shield (On Summon): +1 barrier; when it BREAKS, PARALYZE the attacker
-    // that shattered it for 1 turn.
-    summonSelfShields: 1,
+    // Electro Shield (On Summon): a 2-shield barrier; when it BREAKS, PARALYZE
+    // the attacker that shattered it for 1 turn.
+    //
+    // Raised from 1. At a single shield the barrier popped to the first hit of
+    // any multi-hit attack, so the PARALYZE fired immediately and the "shield"
+    // half did no shielding at all. Two makes it survive a hit, which is what
+    // makes the break a real decision for the attacker.
+    summonSelfShields: 2,
     onShieldBreak: { status: { kind: "PARALYZE", duration: 1, power: 0 } },
   },
 
@@ -4343,7 +4348,9 @@ export const TOKENS: CardDef[] = [
   },
   {
     id: "dawn_warrider_tok",
-    art: "dawn_warphant",
+    // Its own art at last — it was borrowing WarPhant's, which made the rider
+    // and the mount it outlives look like the same card.
+    art: "dawn_warrider",
     name: "WarRider",
     rarity: "epic",
     element: "DAWN",
