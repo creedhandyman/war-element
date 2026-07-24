@@ -274,7 +274,49 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
       return { type: "CAST_SPELL", player, spellId: spell.id, row: best.row, col: best.col };
   }
 
-  // 7. Convert -> magic into summoning resource. Only when something in hand is
+  // 7. Repositioning (Rewire, Full Reroute) -> pull a card that is about to die
+  //    out of reach, or push one onto an uncaptured enemy Home slot. Both cost a
+  //    one-shot, so they need a real reason: a card under lethal threat, or a
+  //    capture that wins ground.
+  for (const slot of [...of("convert")]) {
+    const spell = getSpell(slot.defId);
+    if (!spell.swapAllies && !spell.rerouteCount) continue;
+    const mine = boardCards(state, player).filter((c) => c.curHp > 0);
+    if (mine.length < (spell.swapAllies ? 2 : 1)) continue;
+    // Who is in the most danger where they stand?
+    const scored = mine
+      .map((c) => ({ c, risk: threatAt(state, c, c.pos!) - (c.curHp + c.curShields * 2) }))
+      .sort((a, b) => b.risk - a.risk);
+    const doomed = scored[0];
+    if (!doomed || doomed.risk < 0) continue; // nobody is actually losing the trade
+    if (spell.rerouteCount) {
+      // Move it somewhere nothing can reach it; take an open enemy Home slot if
+      // one is going spare, since that is the win condition itself.
+      const enemyHome = homeRow(enemyOf(player), state.boardSize);
+      let best: Pos | null = null;
+      let bestRisk = doomed.risk;
+      for (let r = 0; r < state.boardSize; r++)
+        for (let c = 0; c < state.boardSize; c++) {
+          if (cardAt(state, r, c) || isCaptured(state, r, c)) continue;
+          const risk = threatAt(state, doomed.c, { row: r, col: c } as Pos) - (doomed.c.curHp + doomed.c.curShields * 2);
+          const capture = r === enemyHome ? -6 : 0; // treat a capture as worth taking
+          if (risk + capture < bestRisk) { bestRisk = risk + capture; best = { row: r, col: c } as Pos; }
+        }
+      if (best && canCastSpell(state, player, spell.id, { targetIds: [doomed.c.instanceId], slots: [best] }).ok)
+        return { type: "CAST_SPELL", player, spellId: spell.id, targetIds: [doomed.c.instanceId], slots: [best] };
+      continue;
+    }
+    // Rewire: trade places with the safest ally, so the hurt one steps back.
+    const safest = scored[scored.length - 1];
+    if (safest && safest.c.instanceId !== doomed.c.instanceId &&
+        canCastSpell(state, player, spell.id, { targetIds: [doomed.c.instanceId, safest.c.instanceId] }).ok)
+      return {
+        type: "CAST_SPELL", player, spellId: spell.id,
+        targetIds: [doomed.c.instanceId, safest.c.instanceId],
+      };
+  }
+
+  // 8. Convert -> magic into summoning resource. Only when something in hand is
   //    unaffordable now and the conversion would actually unlock it.
   for (const slot of of("convert")) {
     const spell = getSpell(slot.defId);
@@ -287,7 +329,7 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
       return { type: "CAST_SPELL", player, spellId: spell.id };
   }
 
-  // 8. Choice (Chill) -> attack mode when it kills, else shield an ally while
+  // 9. Choice (Chill) -> attack mode when it kills, else shield an ally while
   //    the board is under real pressure. Never cast for nothing.
   for (const slot of of("choice")) {
     const spell = getSpell(slot.defId);

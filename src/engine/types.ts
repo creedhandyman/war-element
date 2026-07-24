@@ -809,6 +809,14 @@ export interface SpellDef {
   allyDmgRound?: number;
   /** System Override: every Special the caster fires costs N less this round. */
   specialDiscountRound?: number;
+  /** Rewire: swap the board positions of two of the caster's own cards. */
+  swapAllies?: boolean;
+  /** Full Reroute: freely relocate up to N of the caster's cards to open slots,
+   *  ignoring their SP movement tier for this cast. */
+  rerouteCount?: number;
+  /** Wake of the Dead: opponents killed for the REST OF THIS ROUND come back at
+   *  the start of the next one as this token, under the caster's control. */
+  reviveAsToken?: string;
   /** Recon Ping: reveal the opponent's hand for the rest of this round. */
   revealHand?: boolean;
   /** Trap spells: the payload delivered when an enemy steps on the square. */
@@ -873,6 +881,10 @@ export interface PlayerState {
   /** Recon Ping: the round through which this player's hand is visible to the
    *  opponent. Information, not board state — the UI reads it. */
   handRevealedUntilRound?: number;
+  /** Wake of the Dead, armed. `deaths` is the opponent's death count at the
+   *  moment of casting, so only kills made AFTER it resolves are harvested —
+   *  the spell says "killed this round", not "killed so far". */
+  wakePending?: { round: number; deaths: number; token: string };
   /** Volcanic Eruption: permanent +DMG for this player's cards of that element. */
   elementDmgBuff?: { element: Element; amount: number };
   /** The Cost-10 ultimates' lasting engines, keyed by element. Read at Cleanup
@@ -1002,7 +1014,19 @@ export type Intent =
   | { type: "MULLIGAN"; player: PlayerId; returnHandIds: string[] }
   | { type: "SUMMON"; player: PlayerId; handId: string; col: number }
   | { type: "MOVE"; player: PlayerId; instanceId: string; to: Pos }
-  | { type: "CAST_SPELL"; player: PlayerId; spellId: string; targetId?: string; row?: number; col?: number; mode?: "attack" | "shield" }
+  | {
+      type: "CAST_SPELL";
+      player: PlayerId;
+      spellId: string;
+      targetId?: string;
+      row?: number;
+      col?: number;
+      mode?: "attack" | "shield";
+      /** Rewire / Full Reroute: the caster's own cards being moved. */
+      targetIds?: string[];
+      /** Full Reroute: where each of `targetIds` is going, index-matched. */
+      slots?: Pos[];
+    }
   | { type: "PASS"; player: PlayerId }
   | { type: "SET_AUTO"; player: PlayerId; instanceId: string; mode: AutoMode }
   | { type: "SURRENDER"; player: PlayerId }

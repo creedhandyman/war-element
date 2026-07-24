@@ -860,6 +860,40 @@ export const SPELLS: SpellDef[] = [
     grantElementPerm: { healPerRound: 2 },
   },
 
+  // ───────── The last three ───────────────────────────────────────────────
+  // Held back from the ladder pass because each needed engine work the other 25
+  // did not: multi-card targeting for the two BOLT ones, and death-tracking
+  // across a round for Wake of the Dead.
+  {
+    id: "bolt_rewire",
+    name: "Rewire",
+    element: "BOLT",
+    cost: 3,
+    kind: "convert", // targetless branch; the picks ride targetIds
+    text: "Instantly swap the board positions of two of your own cards.",
+    swapAllies: true,
+  },
+  {
+    id: "bolt_full_reroute",
+    name: "Full Reroute",
+    element: "BOLT",
+    cost: 8,
+    kind: "convert",
+    text: "Instantly move any 2 of your cards to open slots anywhere on the board, ignoring their SP movement limit.",
+    rerouteCount: 2,
+  },
+  {
+    id: "dusk_wake_of_the_dead",
+    name: "Wake of the Dead",
+    element: "DUSK",
+    cost: 5,
+    kind: "aoe",
+    area: "board",
+    text: "Deal 3 DMG to every opponent. Anything you kill for the rest of this round rises next round as a Risen (3 DMG / 3 HP / SP 4) under your control.",
+    dmg: 3,
+    reviveAsToken: "dusk_risen_tok",
+  },
+
 ];
 
 export const SPELL_INDEX: Record<string, SpellDef> = Object.fromEntries(

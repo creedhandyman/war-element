@@ -4314,6 +4314,26 @@ export const CARDS: CardDef[] = [
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
   {
+    // Wake of the Dead's payout. A separate token from Specter (3/1/SP7) because
+    // the spec prints this one at 3/3/SP4 — sturdier, slower, and raised from a
+    // corpse rather than summoned by a Wraith.
+    id: "dusk_risen_tok",
+    art: "dusk_specter",
+    name: "Risen",
+    rarity: "rare",
+    element: "DUSK",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 3,
+    sp: 4,
+    shields: 0,
+    keywords: {},
+    tribe: "Dark",
+  },
+  {
     id: "dusk_specter_tok",
     art: "dusk_specter",
     name: "Specter",

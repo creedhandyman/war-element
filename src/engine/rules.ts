@@ -667,7 +667,14 @@ export function canCastSpell(
   state: GameState,
   player: PlayerId,
   spellId: string,
-  opts: { targetId?: string; row?: number; col?: number; mode?: "attack" | "shield" } = {},
+  opts: {
+    targetId?: string;
+    row?: number;
+    col?: number;
+    mode?: "attack" | "shield";
+    targetIds?: string[];
+    slots?: Pos[];
+  } = {},
 ): { ok: boolean; reason?: string } {
   if (state.phase !== "prep") return { ok: false, reason: "Not the Prep Phase" };
   if (state.prep?.priority !== player) return { ok: false, reason: "You don't have priority" };
@@ -695,6 +702,45 @@ export function canCastSpell(
     if (!canAoeRow(state, player, opts.row)) return { ok: false, reason: "Can't reach that row" };
     if (spell.area === "tworows" && opts.row + 1 >= state.boardSize)
       return { ok: false, reason: "No row behind that one" };
+    return { ok: true };
+  }
+  if (spell.swapAllies) {
+    // Exactly two of the caster's OWN cards, both on the board. Nothing else to
+    // check: the two are trading squares, so neither destination can be blocked.
+    const ids = opts.targetIds ?? [];
+    if (ids.length !== 2) return { ok: false, reason: "Pick two of your cards" };
+    if (ids[0] === ids[1]) return { ok: false, reason: "Pick two DIFFERENT cards" };
+    for (const id of ids) {
+      const c = state.cards[id];
+      if (!c || !c.pos) return { ok: false, reason: "No such card" };
+      if (c.owner !== player) return { ok: false, reason: "Not your card" };
+    }
+    if (boardCards(state, player).length < 2) return { ok: false, reason: "Not enough cards on the board" };
+    return { ok: true };
+  }
+  if (spell.rerouteCount) {
+    // Up to N of the caster's cards, each with a destination. Destinations must
+    // be open and uncaptured, and distinct from each other — this bypasses the
+    // SP movement tier, not the rules about where a card may stand.
+    const ids = opts.targetIds ?? [];
+    const slots = opts.slots ?? [];
+    if (ids.length === 0) return { ok: false, reason: "Pick a card to move" };
+    if (ids.length > spell.rerouteCount) return { ok: false, reason: `At most ${spell.rerouteCount} cards` };
+    if (slots.length !== ids.length) return { ok: false, reason: "Every card needs a destination" };
+    for (let i = 0; i < ids.length; i++) {
+      const c = state.cards[ids[i]];
+      if (!c || !c.pos || c.owner !== player) return { ok: false, reason: "Not your card" };
+      const to = slots[i];
+      if (to.row < 0 || to.row >= state.boardSize || to.col < 0 || to.col >= state.boardSize)
+        return { ok: false, reason: "Off the board" };
+      if (isCaptured(state, to.row, to.col)) return { ok: false, reason: "That slot is captured" };
+      // The slot must be empty, OR held by one of the cards being moved out of
+      // it in this same cast — a formation can rotate through its own squares.
+      const occ = cardAt(state, to.row, to.col);
+      if (occ && !ids.includes(occ.instanceId)) return { ok: false, reason: "That slot is occupied" };
+      if (slots.some((o, j) => j !== i && o.row === to.row && o.col === to.col))
+        return { ok: false, reason: "Two cards can't share a slot" };
+    }
     return { ok: true };
   }
   if (spell.kind === "trap") {

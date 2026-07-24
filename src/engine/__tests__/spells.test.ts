@@ -6,7 +6,7 @@ import { directDamage, wallEvasion, wallFlatReduction } from "../combat";
 import { applyIntent, advance } from "../phases";
 import { canCastSpell } from "../rules";
 import { SPELLS } from "../spells";
-import { effectiveDmg } from "../state";
+import { boardCards, effectiveDmg } from "../state";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
@@ -632,6 +632,12 @@ describe("every spell in the set actually resolves", () => {
         opts.row = spell.id === "bore_stone_wall" ? 3 : 1;
       }
       if (spell.kind === "trap") { opts.row = 0; opts.col = 3; }
+      // Rewire / Full Reroute take CARD picks rather than a row or a target.
+      if (spell.swapAllies || spell.rerouteCount) {
+        const mine = boardCards(s, "P1").slice(0, 2);
+        opts.targetIds = mine.map((c) => c.instanceId);
+        if (spell.rerouteCount) opts.slots = [{ row: 1, col: 3 }, { row: 0, col: 0 }];
+      }
       const chk = canCastSpell(s, "P1", spell.id, opts as never);
       if (!chk.ok) { bad.push(`${spell.id}: illegal — ${chk.reason}`); continue; }
       try {
@@ -641,12 +647,114 @@ describe("every spell in the set actually resolves", () => {
     expect(bad, `spells that failed to resolve:\n  ${bad.join("\n  ")}`).toEqual([]);
   });
 
-  it("every element has a full 1-10 ladder with a Wall at 4 and a Field at 6", () => {
+  it("every element has a COMPLETE 1-10 ladder with a Wall at 4 and a Field at 6", () => {
     for (const el of ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"]) {
       const mine = SPELLS.filter((s) => s.element === el);
-      expect(mine.length, `${el} has only ${mine.length} spells`).toBeGreaterThanOrEqual(8);
+      // Every rung, 1 through 10, no gaps — the thing the ladders were built for.
+      const missing = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter((c) => !mine.some((s) => s.cost === c));
+      expect(missing, `${el} is missing cost ${missing.join(", ")}`).toEqual([]);
+      expect(mine.length, `${el} has only ${mine.length} spells`).toBeGreaterThanOrEqual(10);
       expect(mine.some((s) => s.kind === "wall" && s.cost === 4), `${el} has no Cost-4 Wall`).toBe(true);
       expect(mine.some((s) => s.kind === "field" && s.cost === 6), `${el} has no Cost-6 Field`).toBe(true);
     }
+  });
+});
+
+describe("the last three: Rewire, Full Reroute, Wake of the Dead", () => {
+  function arm(s: GameState, id: string, magic = 20) {
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    s.players.P1.magicPool = magic;
+    s.players.P1.spellbook = [{ defId: id, used: false }];
+    return s;
+  }
+
+  it("Rewire swaps two of your own cards", () => {
+    const s = arm(prepState(), "bolt_rewire");
+    const a = place(s, "leaf_alpha", "P1", 3, 0);
+    const b = place(s, "dusk_gool", "P1", 1, 2);
+    const n = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "bolt_rewire",
+      targetIds: [a.instanceId, b.instanceId],
+    });
+    expect(n.cards[a.instanceId].pos).toEqual({ row: 1, col: 2 });
+    expect(n.cards[b.instanceId].pos).toEqual({ row: 3, col: 0 });
+  });
+
+  it("...and refuses an enemy card or a repeated pick", () => {
+    const s = arm(prepState(), "bolt_rewire");
+    const mine = place(s, "leaf_alpha", "P1", 3, 0);
+    const theirs = place(s, "dusk_gool", "P2", 1, 2);
+    expect(canCastSpell(s, "P1", "bolt_rewire", { targetIds: [mine.instanceId, theirs.instanceId] }).ok).toBe(false);
+    expect(canCastSpell(s, "P1", "bolt_rewire", { targetIds: [mine.instanceId, mine.instanceId] }).ok).toBe(false);
+  });
+
+  it("Full Reroute relocates two cards past their SP tier", () => {
+    const s = arm(prepState(), "bolt_full_reroute");
+    // Armadillo is SP 1 — it normally moves ONE slot. This carries it across.
+    const slow = place(s, "bore_armadillo", "P1", 3, 0);
+    const other = place(s, "leaf_alpha", "P1", 3, 1);
+    const n = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "bolt_full_reroute",
+      targetIds: [slow.instanceId, other.instanceId],
+      slots: [{ row: 1, col: 3 }, { row: 2, col: 2 }],
+    });
+    expect(n.cards[slow.instanceId].pos).toEqual({ row: 1, col: 3 });
+    expect(n.cards[other.instanceId].pos).toEqual({ row: 2, col: 2 });
+  });
+
+  it("...and a formation may rotate THROUGH its own squares", () => {
+    // The subtle one: B moves into the square A is vacating in the same cast.
+    // Resolving card-by-card would find A still standing there and refuse.
+    const s = arm(prepState(), "bolt_full_reroute");
+    const a = place(s, "leaf_alpha", "P1", 3, 0);
+    const b = place(s, "dusk_gool", "P1", 3, 1);
+    expect(canCastSpell(s, "P1", "bolt_full_reroute", {
+      targetIds: [a.instanceId, b.instanceId],
+      slots: [{ row: 2, col: 0 }, { row: 3, col: 0 }],
+    }).ok).toBe(true);
+    const n = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "bolt_full_reroute",
+      targetIds: [a.instanceId, b.instanceId],
+      slots: [{ row: 2, col: 0 }, { row: 3, col: 0 }],
+    });
+    expect(n.cards[b.instanceId].pos).toEqual({ row: 3, col: 0 });
+  });
+
+  it("...but not onto an occupied or shared slot", () => {
+    const s = arm(prepState(), "bolt_full_reroute");
+    const a = place(s, "leaf_alpha", "P1", 3, 0);
+    const b = place(s, "dusk_gool", "P1", 3, 1);
+    place(s, "dusk_vamp", "P2", 1, 1); // a body in the way
+    expect(canCastSpell(s, "P1", "bolt_full_reroute", {
+      targetIds: [a.instanceId], slots: [{ row: 1, col: 1 }],
+    }).ok).toBe(false);
+    expect(canCastSpell(s, "P1", "bolt_full_reroute", {
+      targetIds: [a.instanceId, b.instanceId],
+      slots: [{ row: 2, col: 2 }, { row: 2, col: 2 }], // both to one square
+    }).ok).toBe(false);
+  });
+
+  it("Wake of the Dead raises what it kills, at the START of the next round", () => {
+    const s = arm(prepState(), "dusk_wake_of_the_dead");
+    place(s, "dusk_gool", "P1", 3, 0); // an anchor for the spawn
+    // Two frail opponents the 3 DMG will finish outright.
+    place(s, "dusk_crow", "P2", 1, 1, { curHp: 2, maxHp: 2, curShields: 0 });
+    place(s, "dusk_spider", "P2", 1, 2, { curHp: 2, maxHp: 2, curShields: 0 });
+    let n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dusk_wake_of_the_dead" });
+    // Nothing yet — the dead get up NEXT round, not on the cast.
+    expect(boardCards(n, "P1").filter((c) => c.defId === "dusk_risen_tok")).toHaveLength(0);
+    expect(n.players.P1.wakePending).toBeTruthy();
+    n = advance(atCleanup(n));
+    expect(boardCards(n, "P1").filter((c) => c.defId === "dusk_risen_tok").length).toBeGreaterThan(0);
+    expect(n.players.P1.wakePending).toBeUndefined(); // spent
+  });
+
+  it("...and harvests nothing when nothing dies", () => {
+    const s = arm(prepState(), "dusk_wake_of_the_dead");
+    place(s, "dusk_gool", "P1", 3, 0);
+    place(s, "dusk_vamp", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 }); // survives
+    let n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dusk_wake_of_the_dead" });
+    n = advance(atCleanup(n));
+    expect(boardCards(n, "P1").filter((c) => c.defId === "dusk_risen_tok")).toHaveLength(0);
   });
 });

@@ -50,6 +50,7 @@ import type {
   SpellDef,
   StatusKind,
   WallState,
+  Pos,
 } from "./types";
 import {
   HAND_CAP,
@@ -236,6 +237,8 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         targetId: intent.targetId,
         row: intent.row,
         col: intent.col, // trap spells target a SLOT, not just a row
+        targetIds: intent.targetIds, // Rewire / Full Reroute
+        slots: intent.slots,
         mode: intent.mode,
       });
       if (!check.ok) throw new Error(`Illegal spell: ${check.reason}`);
@@ -246,7 +249,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       slot.used = true;
       draft.prep!.consecutivePasses = 0;
       draft.log.push(`${intent.player} casts ${spell.name}.`);
-      resolveSpell(draft, intent.player, spell, intent.targetId, intent.row, intent.mode, intent.col);
+      resolveSpell(draft, intent.player, spell, intent.targetId, intent.row, intent.mode, intent.col, intent.targetIds, intent.slots);
       return draft;
     }
     case "PASS": {
@@ -360,6 +363,8 @@ function resolveSpell(
   row?: number,
   mode?: "attack" | "shield",
   col?: number,
+  targetIds?: string[],
+  slots?: Pos[],
 ): void {
   if (spell.kind === "wall" && spell.wall && row != null) {
     const wall: WallState = {
@@ -393,6 +398,42 @@ function resolveSpell(
     return;
   }
 
+  if (spell.swapAllies && targetIds && targetIds.length === 2) {
+    const a = draft.cards[targetIds[0]];
+    const b = draft.cards[targetIds[1]];
+    if (a?.pos && b?.pos) {
+      const tmp = { ...a.pos };
+      a.pos = { ...b.pos };
+      b.pos = tmp;
+      draft.log.push(`${getDef(a.defId).name} and ${getDef(b.defId).name} swap places.`);
+    }
+    return;
+  }
+  if (spell.rerouteCount && targetIds && slots) {
+    // Lift them all off the board FIRST, then set them down. Otherwise a card
+    // moving into a square its own ally is vacating this same cast would be
+    // blocked by a body that is about to leave.
+    const movers = targetIds.map((id) => draft.cards[id]).filter((c): c is CardInstance => !!c?.pos);
+    for (const m of movers) m.pos = null;
+    movers.forEach((m, i) => { m.pos = { ...slots[i] }; });
+    draft.log.push(`${player} reroutes ${movers.length} card(s).`);
+    return;
+  }
+  if (spell.reviveAsToken) {
+    // ARM it, then fall through so the spell's own damage still resolves — this
+    // is a rider on an AoE, not a spell in itself. An early return here meant
+    // Wake of the Dead dealt nothing and therefore killed nothing to raise.
+    //
+    // The baseline is taken BEFORE the damage lands, so kills made by this very
+    // cast count toward the harvest, which is what "anything you kill for the
+    // rest of this round" has to mean.
+    draft.players[player].wakePending = {
+      round: draft.round,
+      deaths: draft.stats.byPlayer[enemyOf(player)].deaths,
+      token: spell.reviveAsToken,
+    };
+    draft.log.push(`${player} calls on the dead — anything that falls this round answers.`);
+  }
   if (spell.specialDiscountRound) {
     const pl = draft.players[player];
     pl.specialDiscountRound = (pl.specialDiscountRound ?? 0) + spell.specialDiscountRound;
@@ -692,6 +733,23 @@ function decideOnTime(draft: GameState): void {
 
 function startRound(draft: GameState): void {
   draft.round++;
+  // Wake of the Dead: everything the caster killed during the armed round gets
+  // back up on their side. Resolved HERE rather than on death so the count is
+  // final — a card that revived (Zombie Husk) and fell again should not pay out
+  // twice, and the stats ledger already de-duplicates that for us.
+  for (const player of ["P1", "P2"] as PlayerId[]) {
+    const pending = draft.players[player].wakePending;
+    if (!pending || pending.round >= draft.round) continue;
+    draft.players[player].wakePending = undefined;
+    const killed = draft.stats.byPlayer[enemyOf(player)].deaths - pending.deaths;
+    if (killed <= 0) continue;
+    // Spawned around the caster's own home row, like any other token.
+    const anchor = boardCards(draft, player)[0];
+    if (!anchor) continue;
+    const risen = spawnTokens(draft, anchor, pending.token, killed);
+    if (risen.length)
+      draft.log.push(`${risen.length} of the fallen rise for ${player}.`);
+  }
   draft.phase = "draw";
 }
 
