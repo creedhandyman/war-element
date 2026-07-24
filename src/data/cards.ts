@@ -111,6 +111,12 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: { REGEN: 2 }, // Canopy: REGEN 2 at end of round
+    // Bramble: its basic leaves BLEED 1 for 2 rounds. Greegon was a pure wall —
+    // 4 DMG, REGEN, and nothing offensive — so it never closed anything and got
+    // no value from LEAF's Overgrowth aura. The thorns give it a bite AND set up
+    // its own +4 on the follow-up hit.
+    passiveNames: { onHitStatus: "Bramble" },
+    onHitStatus: { kind: "BLEED", duration: 2, power: 1 },
   },
   {
     id: "leaf_alpha",
@@ -2653,9 +2659,13 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
-    // Needles (On Hit by Melee): deal 1 DMG back to the attacker.
+    // Needles (On Hit by Melee): a melee attacker takes 2 back AND is left
+    // BLEEDing 2 for 2. Was a limp 1-DMG poke — Cactus was the weakest LEAF
+    // card, a 2-DMG body with a rounding-error thorn and no aura synergy. The
+    // spines now stick and fester, and the wound they open lets a LEAF ally
+    // cut +4 into the attacker via Overgrowth.
     passiveNames: { onHitByMelee: "Needles" },
-    onHitByMelee: { dmg: 1 },
+    onHitByMelee: { dmg: 2, status: { kind: "BLEED", duration: 2, power: 2 } },
   },
   {
     id: "pyro_baboom",

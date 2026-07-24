@@ -47,7 +47,7 @@ function describeOnSummon(os: {
   selfStatus?: string;
   selfStatusDuration?: number;
   extendSelfStatusOnKill?: number;
-}): string {
+}, vsTarget?: { tribe?: string; hpAbove?: number }): string {
   const p = os.params ?? {};
   const n = (k: string) => Number(p[k] ?? 0);
   // A pure self-status on-summon (IcyNinza's Icy Mist — no target handler).
@@ -57,6 +57,15 @@ function describeOnSummon(os: {
     return `On summon: gain ${os.selfStatus}${dur}${ext}.`;
   }
   const scope = () => {
+    // Dragon's Bane ambush (Drakonbane): the nearest bane-worthy foe ANYWHERE
+    // on the board — no range limit, mirroring DAWN's Awakening.
+    if (Number(p.onlyVsTarget ?? 0) > 0 && vsTarget) {
+      const who = [
+        vsTarget.tribe ? `${vsTarget.tribe}` : "",
+        vsTarget.hpAbove != null ? `a foe above ${vsTarget.hpAbove} HP` : "",
+      ].filter(Boolean).join(" or ");
+      return `the nearest ${who} on the board`;
+    }
     if (os.targetSide === "ally") return "nearby allies";
     // Wildfire is a zone on the enemy back line, not a volley at whatever is
     // reachable — "all enemies in range" was simply wrong for it.
@@ -424,7 +433,7 @@ export function describePassives(def: CardDef): string[] {
     passives.push(
       `On Kill, its Special recasts free next round (ignores cost & cooldown).`,
     );
-  if (def.onSummon) passives.push(describeOnSummon(def.onSummon));
+  if (def.onSummon) passives.push(describeOnSummon(def.onSummon, def.vsTarget));
   if (def.onDeath) {
     const od = def.onDeath;
     const parts: string[] = [];
