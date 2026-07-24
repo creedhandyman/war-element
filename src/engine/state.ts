@@ -306,7 +306,37 @@ export function effectiveSp(state: GameState, card: CardInstance): number {
  * - King of the Hill: +1 while in a Mid row; +1 board-wide per fully
  *   controlled Mid row (all 4 slots held by this card's owner).
  */
+/** How much an enemy intimidator shaves off this card's basic damage.
+ *
+ *  Non-stacking, like every other aura here: the single strongest applicable
+ *  one wins rather than summing. Both sides of the comparison use
+ *  `dmgBeforeIntimidation`, which is what keeps this terminating — two Oakgres
+ *  facing each other across a mirror match would otherwise each need the
+ *  other's final DMG to compute their own. */
+function intimidationPenalty(state: GameState, card: CardInstance, ownDmg: number): number {
+  if (!card.pos) return 0;
+  let worst = 0;
+  for (const holder of boardCards(state, enemyOf(card.owner))) {
+    const hDef = getDef(holder.defId);
+    if (!hDef.intimidate || !holder.pos) continue;
+    if (Math.abs(holder.pos.row - card.pos.row) > hDef.intimidate.rows) continue;
+    // Strictly lower. A card that has matched the intimidator is no longer
+    // afraid of it — that is the whole reason Oakgre's own DMG can grow.
+    if (ownDmg >= dmgBeforeIntimidation(state, holder)) continue;
+    if (hDef.intimidate.dmg > worst) worst = hDef.intimidate.dmg;
+  }
+  return worst;
+}
+
 export function effectiveDmg(state: GameState, card: CardInstance): number {
+  const base = dmgBeforeIntimidation(state, card);
+  return Math.max(0, base - intimidationPenalty(state, card, base));
+}
+
+/** Everything except Intimidation. Split out so the intimidator's own damage —
+ *  the number an enemy is measured against — can be read without re-entering
+ *  the penalty that depends on it. */
+function dmgBeforeIntimidation(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   const buffDmg = (card.buffs ?? []).reduce((n, b) => n + b.dmg, 0);
   let dmg = def.dmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0) + buffDmg + auraBonus(state, card, "dmg") + fieldBonus(state, card, "dmgBonus");

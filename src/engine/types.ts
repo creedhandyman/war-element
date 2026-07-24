@@ -412,6 +412,15 @@ export interface CardDef {
    *  mechanic is named differently on different cards: summonSelfShields is
    *  "War Ready" on WarPhant and "War Mount" on RohoJohn. */
   passiveNames?: Record<string, string>;
+  /** Intimidation (Oakgre): while this card lives, every ENEMY within `rows`
+   *  rows of it whose own DMG is LOWER than this card's loses `dmg` from its
+   *  BASIC attacks. Unlike `aura` — which buffs allies by tribe/class/element —
+   *  this reaches across the board and is gated on a live stat comparison, so a
+   *  card that grows past the intimidator stops being cowed by it.
+   *
+   *  Only basics: it is read inside effectiveDmg, and Specials carry their own
+   *  printed damage rather than routing through it. */
+  intimidate?: { dmg: number; rows: number };
   summonSelfShields?: number;
   /** War Mount (RohoJohn): a mounted Ranger also mauls what it stands beside —
    *  its BASIC gains +N damage against a target inside melee reach. Modelled as

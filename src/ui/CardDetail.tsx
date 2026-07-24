@@ -340,6 +340,11 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.highSpeedImpact)
     named("highSpeedImpact", `High Speed Impact: +1 DMG for every point of SP above 10.`);
+  if (def.intimidate)
+    named(
+      "intimidate",
+      `Aura: opponents within ${def.intimidate.rows === 1 ? "one row" : `${def.intimidate.rows} rows`} whose DMG is lower than this card's CURRENT DMG lose ${def.intimidate.dmg} DMG from their basic attacks.`,
+    );
   if (def.blocksRangedChance)
     named("blocksRangedChance", `Rocky Force Field: ${def.blocksRangedChance}% chance to deflect a ranged attacker's hit.`);
   if (def.critIfFaster)

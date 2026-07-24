@@ -2039,6 +2039,41 @@ export const CARDS: CardDef[] = [
 
   // ─────────────── MYTHICS (element core centerpieces) ───────────────
   {
+    // LEAF's heaviest body: an oak that starts LITERALLY rooted (SP 0 — it
+    // cannot move at all) and has to tear itself out of the ground to advance.
+    // 6 + 55 = 61 against a cost-10 budget of 60.
+    id: "leaf_oakgre",
+    name: "Oakgre",
+    rarity: "mythic",
+    element: "LEAF",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 10,
+    dmg: 6,
+    hits: 1,
+    hp: 55,
+    sp: 0, // rooted — moveReach(0) is 0. Uprooted is the only way it ever moves.
+    shields: 0,
+    keywords: {},
+    // Intimidation (Aura): anything weaker than Oakgre flinches. Gated on a LIVE
+    // comparison, so as Uprooted grows its DMG the aura catches more of the
+    // board — and a card that out-grows Oakgre walks out from under it.
+    passiveNames: { intimidate: "Intimidation" },
+    intimidate: { dmg: 1, rows: 1 },
+    special: {
+      name: "Uprooted",
+      cost: 5,
+      handler: "empower",
+      // No buffRounds, so both grants are PERMANENT and stack across casts.
+      // The +3 SP is what unpins it: 0 -> 3 clears moveReach's zero and puts it
+      // in the slow tier (1 space). selfHpCost is refused when lethal — it does
+      // not opt into selfHpLethal, so Oakgre can never tear itself apart.
+      params: { selfHpCost: 9, selfDmg: 2, selfSp: 3 },
+      targetSide: "self",
+      text: "Lose 9 HP. Permanently gain +2 DMG and +3 SP (it can move for the rest of the game).",
+    },
+  },
+  {
     id: "leaf_trinezer",
     name: "Trinezer",
     rarity: "mythic",
