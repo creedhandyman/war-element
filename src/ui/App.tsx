@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { GameState, Intent, PlayerId, Pos } from "../engine";
+import type { EnchantMode, GameState, Intent, PlayerId, Pos } from "../engine";
 import {
   advance,
   applyIntent,
@@ -100,6 +100,10 @@ export function App() {
   const seenBigRef = useRef<Set<string>>(new Set());
   // A modal "choice" spell (Chill) awaiting its mode pick (attack vs shield).
   const [spellChoice, setSpellChoice] = useState<string | null>(null);
+  // Prism's Enchantment: the instanceId waiting on a four-way pick. Without a
+  // picker the Special is literally uncastable by hand — the same shape as the
+  // trap column and Rewire's card picks, both of which shipped unreachable.
+  const [enchantFor, setEnchantFor] = useState<string | null>(null);
   // Rewire / Full Reroute: the only spells that pick more than one thing.
   // `ids` are the cards being moved; `slots` their destinations, index-matched.
   // Reroute alternates card -> slot -> card -> slot; Rewire collects two cards
@@ -1235,6 +1239,13 @@ export function App() {
                     }
                     return;
                   }
+                  // Prism: the Special asks WHICH enchantment before anything
+                  // else, and takes no target at all.
+                  if (activeDef.enchanter) {
+                    setEnchantFor(activeCard.instanceId);
+                    setHint(`<b>${spec.name}</b> — choose an enchantment.`);
+                    return;
+                  }
                   // First click = arm and preview the affected area.
                   const cap = Number(spec.params?.targets ?? 1);
                   setPending("special");
@@ -1561,6 +1572,42 @@ export function App() {
                   <span className="sco-name">Shield an ally</span>
                   <span className="sco-desc">+{spell.allyShield} shield</span>
                 </button>
+              </div>
+              <button className="spellchoice-cancel" onClick={cancel}>Cancel</button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {enchantFor && (() => {
+        const card = game.cards[enchantFor];
+        const cancel = () => { setEnchantFor(null); setHint("Enchantment cancelled."); };
+        const pick = (mode: EnchantMode, label: string) => {
+          setEnchantFor(null);
+          setPending(null);
+          setPicks([]);
+          dispatch({ type: "BATTLE_ACTION", player: card.owner, action: "special", mode });
+          setHint(`Weapon enchanted — <b>${label}</b> rides the next basic attack.`);
+        };
+        const OPTS: [EnchantMode, string, string, string][] = [
+          ["sharpen", "🗡️", "Sharpen", "+5 DMG"],
+          ["burning", "🔥", "Burning", "+2 DMG"],
+          ["freezing", "❄️", "Freezing", "−5 SP for 2 rounds"],
+          ["stunning", "💫", "Stunning", "SLEEP 1 round"],
+        ];
+        return (
+          <div className="overlay spellchoice-overlay" onClick={cancel}>
+            <div className="spellchoice" onClick={(e) => e.stopPropagation()} style={{ ["--el" as string]: EL_COLOR[getDef(card.defId).element] }}>
+              <div className="spellchoice-name">Enchantment</div>
+              <div className="spellchoice-sub">Choose one — it rides the next basic attack</div>
+              <div className="spellchoice-opts ench">
+                {OPTS.map(([mode, ico, name, desc]) => (
+                  <button key={mode} className="spellchoice-opt atk" onClick={() => pick(mode, name)}>
+                    <span className="sco-ico">{ico}</span>
+                    <span className="sco-name">{name}</span>
+                    <span className="sco-desc">{desc}</span>
+                  </button>
+                ))}
               </div>
               <button className="spellchoice-cancel" onClick={cancel}>Cancel</button>
             </div>

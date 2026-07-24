@@ -245,7 +245,10 @@ export function canTarget(
   // STEALTH: untargetable until it attacks — unless the attacker is standing in
   // its own Blazing Sun, the one effect in the game that reveals cloaked cards.
   if (
-    ((tDef.keywords.STEALTH && !target.attackedThisRound) || hasStatus(target, "STEALTH")) &&
+    ((tDef.keywords.STEALTH &&
+      !target.attackedThisRound &&
+      !(tDef.stealthBreaksOnMove && target.movedThisRound)) ||
+      hasStatus(target, "STEALTH")) &&
     !fieldFlag(state, attacker, "seeStealth")
   )
     return false;

@@ -14,7 +14,7 @@
 
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
-import { RANGED_REACH } from "./rules";
+import { RANGED_REACH, canTarget } from "./rules";
 import { PYRO_BURN_STACK_CAP } from "./auras";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
@@ -222,7 +222,40 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
   // Before removeCard, while the dying card still has a slot to spawn around.
   const st = def.onDeath?.spawnToken;
   if (st && card.pos) spawnTokens(draft, card, st.token, st.count);
+  // Prism: the enchantment outlives the enchanter. Handed to the ally with the
+  // most damage behind it — the charge is a single swing, so it is worth most
+  // on whoever hits hardest. Passes on what Prism actually had armed, falling
+  // back to the declared mode when it died with an empty weapon.
+  if (def.onDeath?.passEnchant) {
+    const heir = boardCards(draft, card.owner)
+      .filter((c) => c.curHp > 0 && c.instanceId !== card.instanceId && !c.enchant)
+      .sort((a, b) => effectiveDmg(draft, b) - effectiveDmg(draft, a))[0];
+    if (heir) {
+      heir.enchant = card.enchant ?? def.onDeath.passEnchant;
+      draft.log.push(`${label(draft, card)} passes its ${heir.enchant} enchantment to ${label(draft, heir)}.`);
+    }
+  }
   removeCard(draft, card.instanceId);
+  return true;
+}
+
+/** Bog Ambush: haul `victim` into `row`. Prefers the column it already stands
+ *  in — straight back through the water — and otherwise takes the nearest free
+ *  column in that row. A full row means no drag; the damage still lands, which
+ *  is the right failure: the Special should never be a dead cast.
+ *
+ *  The inverse of pushBack, which only ever moves a card AWAY. Returns whether
+ *  it actually moved. */
+export function dragInto(draft: GameState, victim: CardInstance, row: number): boolean {
+  if (!victim.pos || row < 0 || row >= draft.boardSize) return false;
+  if (victim.pos.row === row) return false;
+  const free = (c: number) => !cardAt(draft, row, c) && !draft.slots[row][c].capturedBy;
+  const cols = [...Array(draft.boardSize).keys()].sort(
+    (a, b) => Math.abs(a - victim.pos!.col) - Math.abs(b - victim.pos!.col),
+  );
+  const dest = cols.find(free);
+  if (dest == null) return false;
+  victim.pos = { row, col: dest };
   return true;
 }
 
@@ -337,6 +370,20 @@ export function resolveHit(
       draft.log.push(`${label(draft, attacker)} loses the shot in the fog.`);
       continue;
     }
+    // Bog Ambush's murk: a flat 25% whiff on basics, no status attached, so
+    // nothing cleanses it. Rolled per hit exactly like BLIND above.
+    if (
+      opts.kind === "basic" &&
+      !aDef.alwaysHit &&
+      !fieldNeverMiss &&
+      (attacker.accuracyDebuffRounds ?? 0) > 0 &&
+      chance(draft, 25)
+    ) {
+      result.dodgedHits++;
+      target.fxMiss = (target.fxMiss ?? 0) + 1;
+      draft.log.push(`${label(draft, attacker)} swings blind through the murk.`);
+      continue;
+    }
     if (opts.kind === "basic" && !aDef.alwaysHit && !fieldNeverMiss && hasStatus(attacker, "BLIND") && !coin(draft)) {
       result.dodgedHits++;
       target.fxMiss = (target.fxMiss ?? 0) + 1;
@@ -432,6 +479,29 @@ export function resolveHit(
             applyStatus(draft, attacker, brk.kind, brk.duration, brk.power, tDef.element);
           draft.log.push(`${label(draft, target)}'s shield shatters${brk ? ` — ${brk.kind} discharge!` : " — it hardens."}`);
         }
+      }
+    }
+    // Hive Mind: the swarm eats part of the hit. Between the shield gate and
+    // the HP, so it divides real damage rather than damage the armour was
+    // already going to stop.
+    // Every source, not just attacks: directDamage (auras, ticks, splash,
+    // retaliation) runs as kind "reflect", and excluding it meant the swarm sat
+    // and watched Keeper take chip damage it was summoned to eat.
+    const hive = tDef.hiveAbsorb;
+    if (hive && toHp > 0) {
+      let quota = Math.floor((toHp * hive.pct) / 100);
+      const swarm = boardCards(draft, target.owner).filter(
+        (c) => c.curHp > 0 && c.instanceId !== target.instanceId && tribeOf(c, hive.tribe),
+      );
+      for (const bot of swarm) {
+        if (quota <= 0) break;
+        const eaten = Math.min(quota, bot.curHp);
+        bot.curHp -= eaten;
+        quota -= eaten;
+        toHp -= eaten;
+        creditDamage(draft.stats, null, attacker.owner, eaten, bot);
+        draft.log.push(`${getDef(bot.defId).name} takes ${eaten} for ${label(draft, target)}.`);
+        if (bot.curHp <= 0) defeatCard(draft, bot, "shielding the hive");
       }
     }
     target.curHp -= toHp;
@@ -794,6 +864,15 @@ export function basicAttack(
     // Strike, etc.): fold into this group's hit options.
     // A loaded ambush replaces the printed damage outright (Dirt Driller's 6×2).
     let dmg = attacker.loadedStrike ? attacker.loadedStrike.dmg : effectiveDmg(draft, attacker);
+    // Prism's Enchantment: spent by THIS swing, whoever is carrying it. Cleared
+    // up front so a mid-volley death or a re-entrant call can't spend it twice.
+    const ench = attacker.enchant;
+    if (ench) {
+      attacker.enchant = undefined;
+      if (ench === "burning") dmg += 2;
+      if (ench === "sharpen") dmg += 5;
+      draft.log.push(`${label(draft, attacker)}'s weapon flares — ${ench}.`);
+    }
     if (atkDebuff) { dmg = Math.max(0, dmg - atkDebuff); atkDebuff = 0; } // Boon Striker, once
     let crit = Boolean(aDef.keywords.CRIT);
     // Hastened Assault (WolfBane): CRIT only while faster than the target.
@@ -840,6 +919,13 @@ export function basicAttack(
       incinerateBase: struckBefore,
     });
     if (r.landedHits > 0) {
+      // The two enchantments that ride the TARGET rather than the damage. Only
+      // on a landed hit — an enchanted swing that whiffs still spends the
+      // charge (it was consumed above) but lands nothing, which is the same
+      // deal every other on-hit rider gets.
+      if (ench === "freezing" && t.curHp > 0) applyTimedBuff(t, 0, -5, 2);
+      if (ench === "stunning" && t.curHp > 0)
+        applyStatus(draft, t, "SLEEP", 1, 0, getDef(attacker.defId).element);
       attacker.struckThisRound[t.instanceId] = struckBefore + r.landedHits;
       if (firstStrike) attacker.struckEver.push(t.instanceId);
       applyOnHitRider(draft, attacker, t, struckBefore, r.landedHits);
@@ -991,6 +1077,13 @@ export function matchesVsTarget(def: CardDef, target: CardInstance): boolean {
   }
   if (vt.hpAbove != null && target.curHp > vt.hpAbove) return true;
   return false;
+}
+
+/** Does a card carry `tribe`? Cards may hold several (Ravven is Dark AND
+ *  Avian), so this has to handle both shapes. */
+function tribeOf(card: CardInstance, tribe: string): boolean {
+  const t = getDef(card.defId).tribe;
+  return Array.isArray(t) ? t.includes(tribe) : t === tribe;
 }
 
 function maybeStatus(
@@ -1540,6 +1633,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
           applyStatus(draft, e, kind, num(params, "statusDuration", 1), num(params, "statusPower"), getDef(attacker.defId).element);
       }
     }
+    // Bog Ambush: haul the target into the caster's row BEFORE anything that
+    // reads position, then blind it. Both riders are statusless on purpose.
+    if (num(params, "dragToCaster") > 0 && attacker.pos && draft.cards[target.instanceId] && target.curHp > 0) {
+      if (dragInto(draft, target, attacker.pos.row))
+        draft.log.push(`${label(draft, attacker)} drags ${getDef(target.defId).name} into the bog.`);
+    }
+    const murk = num(params, "accuracyDebuffRounds");
+    if (murk > 0 && draft.cards[target.instanceId] && target.curHp > 0)
+      target.accuracyDebuffRounds = Math.max(target.accuracyDebuffRounds ?? 0, murk);
     // Boon Striker (Sticks): sap the target's NEXT basic attack by N (statusless).
     const nextDebuff = num(params, "nextAtkDebuff");
     if (nextDebuff > 0 && draft.cards[target.instanceId] && target.curHp > 0)
@@ -1950,6 +2052,30 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     draft.log.push(
       `${label(draft, attacker)} burrows out of sight — next strike hits for ${num(params, "dmg")}×${num(params, "hits", 1)}.`,
     );
+  },
+
+  /** Storm Swarm (Keeper): raise one Beebot per ELECTRIFIED opponent, then set
+   *  the whole swarm on the board. The spawn scales off the enemy's status, so
+   *  the Special is worth nothing until BOLT has done its job first. */
+  stormSwarm(draft, attacker, targets, params) {
+    const token = String(params.token ?? "");
+    const marked = boardCards(draft, enemyOf(attacker.owner)).filter(
+      (e) => e.curHp > 0 && e.statuses.length > 0,
+    ).length;
+    if (marked > 0 && token) spawnTokens(draft, attacker, token, marked);
+    // ...then every Beebot still standing takes a swing, the new ones included.
+    const swarm = boardCards(draft, attacker.owner).filter(
+      (c) => c.curHp > 0 && c.defId === token,
+    );
+    let stung = 0;
+    for (const bot of swarm) {
+      const prey = targets.find((t) => t.curHp > 0 && canTarget(draft, bot, t))
+        ?? boardCards(draft, enemyOf(attacker.owner)).find((e) => e.curHp > 0 && canTarget(draft, bot, e));
+      if (!prey) continue;
+      basicAttack(draft, bot.instanceId, prey.instanceId);
+      stung++;
+    }
+    draft.log.push(`Storm Swarm: ${marked} raised, ${stung} Beebot(s) sting.`);
   },
 
   empower(draft, attacker, _targets, params) {

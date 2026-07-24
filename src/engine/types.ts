@@ -34,6 +34,10 @@ export type Keyword =
   | "EVASION"
   | "DRAIN";
 
+/** Prism's four single-use weapon buffs. Each is spent by the next basic
+ *  attack the holder makes, and only one can be armed at a time. */
+export type EnchantMode = "freezing" | "burning" | "stunning" | "sharpen";
+
 export type StatusKind =
   | "ROOT"
   | "BLEED"
@@ -322,6 +326,20 @@ export interface CardDef {
    *  a bane hunter is built to kill, which is also what keeps a cost-4 card
    *  from carrying a permanent +2 against the whole top of the curve. */
   vsTarget?: { tribe?: string; hpAbove?: number; bonusDmg?: number };
+  /** Swamp Monster (Magalogoon): a STRICTER STEALTH keyword. The plain keyword
+   *  hides a card until it attacks; this also gives it up the moment it moves,
+   *  so staying buried is a real choice rather than a free rider. */
+  stealthBreaksOnMove?: boolean;
+  /** Elemental Fury (Prism): lands with its Special already paid for, so the
+   *  first Enchantment is free. */
+  startsWithFreeSpecial?: boolean;
+  /** Prism's Special arms an Enchantment rather than doing anything itself. */
+  enchanter?: boolean;
+  /** Hive Mind (Keeper): living allies of `tribe` soak up to `pct`% of the HP
+   *  damage aimed at this card. Applied AFTER the shield gate, so it splits
+   *  what would actually have reached HP — and capped by what the swarm can
+   *  actually take, since a 3 HP Beebot cannot absorb 20. */
+  hiveAbsorb?: { tribe: string; pct: number };
   /** Periodic self effect resolved each Cleanup. */
   roundTick?: RoundTickDef;
   /** On-death revival (Bearocks). */
@@ -518,6 +536,9 @@ export interface CardDef {
      *  landed the kill — a zombie bursting is not a grudge, so it hits whatever
      *  was standing next to it however it died. */
     splashInRange?: number;
+    /** Prism: as it falls it hands its armed Enchantment to an ally. Passes on
+     *  whatever was actually loaded, or this mode when nothing was. */
+    passEnchant?: EnchantMode;
     /** Lingering Venom (Widowbite): the killer is left carrying a status rather
      *  than just taking a hit back. Applied even when `dmg` is 0. */
     killerStatus?: { kind: StatusKind; duration: number; power: number };
@@ -589,6 +610,9 @@ export interface CardInstance {
   /** An ambush loaded into the NEXT basic attack (Obsidi's Dirt Driller): it
    *  overrides both DMG and hit count for that one attack, then clears. */
   loadedStrike?: { dmg: number; hits: number };
+  /** An armed Enchantment (Prism). Spent by the next BASIC attack this card
+   *  makes, whoever is holding it — Prism can hand one on as it dies. */
+  enchant?: EnchantMode;
   /** A status riding the next `attacks` basic attacks (SSeerr's Flaming
    *  Slasher). Decremented once per attack that lands, not per hit. */
   loadedOnHit?: { kind: StatusKind; duration: number; power: number; attacks: number };
@@ -666,6 +690,14 @@ export interface CardInstance {
    *  and the Special is blocked while > 0 (so: skip one full round between uses). */
   specialCooldown: number;
   attackedThisRound: boolean; // STEALTH break tracking; reset each Cleanup
+  /** Swamp Monster (Magalogoon): moving breaks its STEALTH as surely as
+   *  attacking does. Per-CARD, unlike prep.movedThisTurn which is the
+   *  one-move-per-turn budget for the whole side. Reset each Cleanup. */
+  movedThisRound?: boolean;
+  /** Bog Ambush: rounds left of a flat -25% accuracy. Deliberately NOT a status
+   *  — the card reads "murky water in their eyes, flat effect, no status tag",
+   *  so it survives cleanses and shows up nowhere in the status row. */
+  accuracyDebuffRounds?: number;
   autoMode: AutoMode;
   pos: Pos | null; // null only transiently (never for a living board card)
 }
@@ -1094,6 +1126,8 @@ export type Intent =
       type: "BATTLE_ACTION";
       player: PlayerId;
       action: "basic" | "special" | "skip" | "talent";
+      /** Prism's Enchantment: which of the four buffs the caster picked. */
+      mode?: EnchantMode;
       /** Single target: the full volley lands on it. */
       targetId?: string;
       /** Multi-selection: one hit/strike per entry, in order; repeat an id to

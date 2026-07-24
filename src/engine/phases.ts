@@ -43,6 +43,7 @@ import {
   validTargets,
 } from "./rules";
 import type {
+  EnchantMode,
   CardInstance,
   GameState,
   Intent,
@@ -102,6 +103,10 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       draft.log.push(
         `${intent.player} summons ${def.name} (cost ${def.cost}) into column ${intent.col}.`,
       );
+      // Elemental Fury (Prism): lands with its Special already charged. OUTSIDE
+      // the onSummon block below — Prism has no onSummon, so nesting it there
+      // meant the passive never fired at all.
+      if (def.startsWithFreeSpecial) inst.freeSpecial = true;
       // On-summon passive: fires immediately, free, via the handler registry.
       // `spread` (columns each side) uses the forward-area projection — the
       // blast reaches toward the enemy battlefield as far as the card's range
@@ -211,6 +216,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       }
       card.pos = { ...intent.to };
       draft.prep!.movedThisTurn = true;
+      card.movedThisRound = true; // Swamp Monster: moving gives up the muck
       draft.prep!.consecutivePasses = 0;
       draft.log.push(
         `${intent.player} moves ${getDef(card.defId).name} to r${intent.to.row}c${intent.to.col}.`,
@@ -327,7 +333,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           : intent.targetId
             ? [intent.targetId]
             : undefined;
-      performBattleAction(draft, activeId, intent.action, picks);
+      performBattleAction(draft, activeId, intent.action, picks, intent.mode);
       draft.battle.index++;
       return draft;
     }
@@ -855,6 +861,7 @@ function performBattleAction(
   instanceId: string,
   action: "basic" | "special" | "skip" | "talent",
   picks?: string[],
+  mode?: EnchantMode,
 ): void {
   const card = draft.cards[instanceId];
   if (!card) return;
@@ -973,6 +980,13 @@ function performBattleAction(
     const selfSt = special.params?.selfStatus;
     if (typeof selfSt === "string" && selfSt && draft.cards[card.instanceId] && card.curHp > 0)
       applyStatus(draft, card, selfSt as StatusKind, Number(special.params?.selfStatusDuration ?? 1), 0, def.element);
+    // Prism's Enchantment: the whole Special is arming a charge. The mode comes
+    // from the intent (the player picked it in the modal), defaulting to Sharpen
+    // so a headless or scripted cast still does something coherent.
+    if (def.enchanter && draft.cards[card.instanceId] && card.curHp > 0) {
+      card.enchant = mode ?? "sharpen";
+      draft.log.push(`${label(draft, card)} enchants its weapon — ${card.enchant}.`);
+    }
     // Meltdown: light the channel. From here the roundTick keeps the attack
     // going every Cleanup until it is broken or paid out.
     if (Number(special.params?.startsChannel ?? 0) > 0 && draft.cards[card.instanceId] && card.curHp > 0) {
@@ -1619,6 +1633,8 @@ function doCleanupPhase(draft: GameState): void {
   for (const card of boardCards(draft)) {
     card.summonedThisRound = false;
     card.attackedThisRound = false;
+    card.movedThisRound = false;
+    if (card.accuracyDebuffRounds) card.accuracyDebuffRounds -= 1;
     card.onKillAoeFiredRound = false; // Powertrip re-arms each round
     card.dmgBonusRound = 0;
     card.spBonusRound = 0;

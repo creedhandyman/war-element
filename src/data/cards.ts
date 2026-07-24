@@ -2039,6 +2039,105 @@ export const CARDS: CardDef[] = [
 
   // ─────────────── MYTHICS (element core centerpieces) ───────────────
   {
+    // 7 + 14 + (4x2) + 11 = 40, exactly a cost-6 budget.
+    id: "bore_prism",
+    name: "Prism",
+    rarity: "epic",
+    element: "BORE",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 6,
+    dmg: 7,
+    hits: 1,
+    hp: 14,
+    sp: 11,
+    shields: 4,
+    keywords: {},
+    // Elemental Fury: it lands with the Special already paid for, so the first
+    // Enchantment costs nothing.
+    passiveNames: { startsWithFreeSpecial: "Elemental Fury", onDeath: "Elemental Fury" },
+    startsWithFreeSpecial: true,
+    enchanter: true,
+    // ...and the last one it was holding is handed on as it dies.
+    onDeath: { dmg: 0, passEnchant: "sharpen" },
+    special: {
+      name: "Enchantment",
+      cost: 2,
+      // The Special IS the arming — `enchanter` above does the work in the
+      // reducer, from the mode the caster picked. spawn with no token is the
+      // codebase's no-op handler.
+      handler: "spawn",
+      params: {},
+      targetSide: "self",
+      text: "Enchant the next basic attack — Freezing (−5 SP), Burning (+2 DMG), Stunning (SLEEP 1), or Sharpen (+5 DMG).",
+    },
+  },
+  {
+    // 11 + 17 + (1x2) + 10 = 40, exactly a cost-6 budget.
+    id: "bolt_keeper",
+    name: "Keeper",
+    rarity: "epic",
+    element: "BOLT",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 11,
+    hits: 1,
+    hp: 17,
+    sp: 10,
+    shields: 1,
+    keywords: {},
+    // Hive Command: the swarm is only a threat because of this. A 1 DMG Beebot
+    // stings for 4 while Keeper lives, and drops back to 1 the moment it dies.
+    aura: { scope: "tribe", match: "Bot", dmg: 3 },
+    // Hive Mind: half of everything aimed at a 17 HP body goes into the swarm
+    // instead — but only as far as the swarm's own HP will stretch.
+    passiveNames: { hiveAbsorb: "Hive Mind", summonSpawn: "Hive Mind" },
+    hiveAbsorb: { tribe: "Bot", pct: 50 },
+    summonSpawn: { token: "bolt_beebot", count: 2 },
+    special: {
+      name: "Storm Swarm",
+      cost: 3,
+      handler: "stormSwarm",
+      params: { token: "bolt_beebot" },
+      targetSide: "enemy",
+      text: "Raise one Beebot per ELECTRIFIED opponent, then every Beebot on the board stings.",
+    },
+  },
+  {
+    // 8 + 33 + 4 = 45, exactly a cost-7 budget.
+    id: "aqua_magalogoon",
+    name: "Magalogoon",
+    rarity: "legendary",
+    element: "AQUA",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 7,
+    dmg: 8,
+    hits: 1,
+    hp: 33,
+    sp: 4,
+    shields: 0,
+    // Swamp Monster: the STEALTH keyword already means "untargetable until it
+    // attacks"; stealthBreaksOnMove tightens it so sitting still is the price.
+    // Both flags clear each Cleanup, so a round spent buried re-hides it.
+    keywords: { STEALTH: true },
+    passiveNames: { stealthBreaksOnMove: "Swamp Monster" },
+    stealthBreaksOnMove: true,
+    tribe: "SeaC",
+    special: {
+      name: "Bog Ambush",
+      cost: 4,
+      handler: "strike",
+      // Drag first, then 8 DMG, then the murk. The accuracy debuff is a flat
+      // 25% whiff carried on the card rather than a status — nothing cleanses
+      // water in the eyes.
+      params: { dmg: 8, dragToCaster: 1, accuracyDebuffRounds: 2 },
+      targetSide: "enemy",
+      text: "Drag an opponent from an adjacent row into this row, deal 8 DMG, and cloud their eyes — 25% of their basic hits miss for 2 rounds.",
+    },
+  },
+  {
     // 7 + 38 + 5 = 50, exactly a cost-8 budget.
     id: "pyro_magmadon",
     name: "Magmadon",
@@ -4499,6 +4598,27 @@ export const CARDS: CardDef[] = [
 // them. (Reptilian and Heir used to live here — they are draftable now, but are
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
+  {
+    // Keeper's swarm. The spec did not print a line for it, so: small, cheap to
+    // lose, and only dangerous in numbers — 1 DMG base becomes 4 under Hive
+    // Command. Deliberately NOT given FLYING: they exist to be killed in
+    // Keeper's place, and melee has to be able to reach them for that to be a
+    // real trade rather than a free damage sponge.
+    id: "bolt_beebot",
+    name: "Beebot",
+    rarity: "rare",
+    element: "BOLT",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 1,
+    hits: 1,
+    hp: 3,
+    sp: 6,
+    shields: 0,
+    keywords: {},
+    tribe: "Bot",
+  },
   {
     // Raised by Toxic Eruption. Same 3/3/4 frame as Risen; reuses the husk art
     // (there is no separate Zombie plate in the files).
