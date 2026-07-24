@@ -2044,7 +2044,7 @@ export const CARDS: CardDef[] = [
     // 7 + 14 + (4x2) + 11 = 40, exactly a cost-6 budget.
     id: "bore_prism",
     name: "Prism",
-    rarity: "epic",
+    rarity: "legendary",
     element: "BORE",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -2078,7 +2078,7 @@ export const CARDS: CardDef[] = [
     // 11 + 17 + (1x2) + 10 = 40, exactly a cost-6 budget.
     id: "bolt_keeper",
     name: "Keeper",
-    rarity: "epic",
+    rarity: "legendary",
     element: "BOLT",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -2190,7 +2190,7 @@ export const CARDS: CardDef[] = [
     // 6 + 31 + 3 = 40, exactly a cost-6 budget.
     id: "dusk_zombination",
     name: "Zombination",
-    rarity: "epic",
+    rarity: "legendary",
     element: "DUSK",
     cardClass: "Tank",
     attackType: "Melee",
@@ -2780,15 +2780,18 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 2,
-    dmg: 1,
-    hits: 3,
+    dmg: 3, // one 3-DMG jolt (was 1x3); 3 + 8 + 8 = 19, a cost-2 budget
+    hits: 1,
     hp: 8,
     sp: 8,
     shields: 0,
     keywords: {},
-    // Shocker: PARALYZE an opponent summoned within DrShock's range for 2 rounds.
+    // Shocker: ELECTRIFY an opponent summoned within DrShock's range for 2
+    // rounds — it no longer PARALYZEs. ELECTRIFIED is BOLT's own "carries a
+    // status" marker, so every BOLT card on the field then reads +2 DMG into
+    // the newcomer via the Electrify aura. A setup, where PARALYZE was a lock.
     passiveNames: { onOppSummon: "Shocker" },
-    onOppSummon: { status: { kind: "PARALYZE", duration: 2, power: 0 } },
+    onOppSummon: { status: { kind: "ELECTRIFIED", duration: 2, power: 0 } },
   },
 
   // ═════════════ RARE + EPIC EXPANSION (2 per element) ═════════════

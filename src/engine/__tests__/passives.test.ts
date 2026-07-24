@@ -1108,12 +1108,12 @@ describe("on-opponent-summon reactions", () => {
     s.players.P1.gold = 5;
     // In range of the P1 home row (mid row = can reach it).
     place(s, "bore_rockgoblin", "P2", 2, 0); // Cave Guard: 4 DMG (adjacent to (3,0))
-    place(s, "bolt_drshock", "P2", 2, 1); // Shocker: PARALYZE (ranged, from mid)
+    place(s, "bolt_drshock", "P2", 2, 1); // Shocker: ELECTRIFIED (ranged, from mid)
     const handId = giveHand(s, "P1", "dusk_gool"); // HP 13
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const fresh = boardCards(next, "P1").find((c) => c.defId === "dusk_gool")!;
     expect(fresh.curHp).toBe(9); // 13 − 4 Cave Guard
-    expect(fresh.statuses.some((x) => x.kind === "PARALYZE")).toBe(true);
+    expect(fresh.statuses.some((x) => x.kind === "ELECTRIFIED")).toBe(true);
 
     // A reactor parked on its own home row can't reach the enemy home slot → no effect.
     const s2 = prepState();
@@ -1122,7 +1122,7 @@ describe("on-opponent-summon reactions", () => {
     const h2 = giveHand(s2, "P1", "dusk_gool");
     const n2 = applyIntent(s2, { type: "SUMMON", player: "P1", handId: h2, col: 0 });
     const g2 = boardCards(n2, "P1").find((c) => c.defId === "dusk_gool")!;
-    expect(g2.statuses.some((x) => x.kind === "PARALYZE")).toBe(false); // out of range
+    expect(g2.statuses.some((x) => x.kind === "ELECTRIFIED")).toBe(false); // out of range
   });
 
   it("BaBoom's Swinging Sweep booms every enemy in king's reach on summon, sparing distant ones", () => {

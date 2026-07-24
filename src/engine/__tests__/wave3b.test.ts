@@ -3,7 +3,7 @@ import { advance, applyIntent } from "../phases";
 import { basicAttack, directDamage } from "../combat";
 import { canSpellHitEnemy, canTarget } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
-import { atCleanup, place, prepState, statusOf } from "./helpers";
+import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import { getDef } from "../../data/cards";
 import type { GameState, Pos } from "../types";
 
@@ -264,5 +264,26 @@ describe("Beebot's Stinger Buzz", () => {
     const bot = place(s, "bolt_beebot", "P1", 2, 0);
     const next = advance(atCleanup(s));
     expect(next.cards[bot.instanceId]?.curHp).toBeGreaterThan(0);
+  });
+});
+
+describe("DrShock — Shocker ELECTRIFIES (no longer PARALYZE)", () => {
+  it("marks a newcomer in range ELECTRIFIED, and never PARALYZE", () => {
+    const s = prepState();
+    s.players.P1.gold = 5;
+    place(s, "bolt_drshock", "P2", 2, 1); // ranged, reaches the P1 home slot
+    const handId = giveHand(s, "P1", "dusk_gool");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const fresh = boardCards(next, "P1").find((c) => c.defId === "dusk_gool")!;
+    expect(statusOf(fresh, "ELECTRIFIED")).toBeTruthy();
+    expect(statusOf(fresh, "PARALYZE")).toBeUndefined();
+  });
+
+  it("its basic is a single 3-DMG hit", () => {
+    const s = prepState();
+    const dr = place(s, "bolt_drshock", "P1", 3, 0); // home row — no King-of-the-Hill bonus
+    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 30, maxHp: 30, curShields: 0 });
+    basicAttack(s, dr.instanceId, foe.instanceId);
+    expect(30 - s.cards[foe.instanceId].curHp).toBe(3);
   });
 });

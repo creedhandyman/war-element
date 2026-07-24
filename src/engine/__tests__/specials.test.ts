@@ -1155,12 +1155,15 @@ describe("King of the Hill — which half of the bonus a mid row pays", () => {
   };
 
   it("a 4th printed hit no longer makes a card WEAKER in a mid row", () => {
-    // The inversion this fixed: Electricel prints 1x4 (4 raw) and DrShock 1x3
+    // The inversion this fixed: Electricel prints 1x4 (4 raw) and a 1x3 card
     // (3 raw), yet the +1 HIT branch left Electricel on 5 in a mid row while
-    // DrShock got +1 DMG and reached 6 — more printed damage, less delivered.
-    expect(mid("bolt_drshock")).toBe(6);
+    // the 1x3 card got +1 DMG and reached 6 — more printed damage, less
+    // delivered. (Was DrShock, until it became a single 3-DMG hit; Nettle is
+    // the 1x3 exemplar now, and its LEAF aura is an end-of-round heal, not a
+    // DMG buff, so a lone card still reads a clean 6.)
+    expect(mid("leaf_nettle")).toBe(6);
     expect(mid("bolt_electricel")).toBe(8);
-    expect(mid("bolt_electricel")).toBeGreaterThan(mid("bolt_drshock"));
+    expect(mid("bolt_electricel")).toBeGreaterThan(mid("leaf_nettle"));
     expect(mid("dawn_goldeneagle")).toBe(10); // 1x5, same branch
   });
 
