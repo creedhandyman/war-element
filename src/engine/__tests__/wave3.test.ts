@@ -107,6 +107,19 @@ describe("Drakonbane", () => {
     const sp = applyIntent(spared, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });
     expect(boardCards(sp, "P2")[0].curHp).toBe(10 - 3); // Awakening only — no ambush
   });
+
+  it("the ambush REACHES a bane target across the board, not just an adjacent one", () => {
+    // The reported bug: gated to melee king's-reach the ambush effectively never
+    // fired — Drakonbane lands on its home row and a big enemy is rarely sitting
+    // next to it. It pounces the nearest bane-worthy foe at any range now, the
+    // same way DAWN's own Awakening reaches the nearest enemy.
+    const s = prepState();
+    s.players.P1.gold = 20;
+    const far = place(s, "leaf_greegon", "P2", 0, 2, { curHp: 30, maxHp: 30, curShields: 0 }); // far corner, out of melee reach
+    s.players.P1.hand = [{ handId: "h1", defId: "dawn_drakonbane" }];
+    const n = applyIntent(s, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });
+    expect(n.cards[far.instanceId].curHp).toBeLessThanOrEqual(30 - 7); // the 7 ambush landed
+  });
 });
 
 describe("Zombination", () => {

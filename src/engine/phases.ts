@@ -135,11 +135,17 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
               // not a basic attack, so a Ranged card's on-summon burst keeps its
               // full-board reach instead of being cut to the queen line.
               : validTargets(draft, inst.instanceId, false);
-          // Dragon's Bane ambush: the on-summon shot only exists when there is
-          // something worth ambushing. Without this filter it would fire at
-          // whatever happened to be nearest.
+          // Dragon's Bane ambush (Drakonbane): a hunter pounces its prey wherever
+          // it stands, so this scans the WHOLE board for a bane-worthy enemy and
+          // strikes the NEAREST — the same reach DAWN's own Awakening aura uses,
+          // and NOT the melee king's-reach `targets` above. Gated on melee
+          // adjacency it effectively never fired: Drakonbane lands on its home
+          // row and a big enemy is rarely sitting next to it at summon. Still
+          // exists only when there IS something worth ambushing (the filter).
           const picked = Number(params.onlyVsTarget ?? 0) > 0
-            ? targets.filter((t) => matchesVsTarget(def, t))
+            ? boardCards(draft, enemyOf(inst.owner))
+                .filter((t) => t.curHp > 0 && matchesVsTarget(def, t) && t.pos != null)
+                .sort((a, b) => manhattan(inst.pos!, a.pos!) - manhattan(inst.pos!, b.pos!))
             : targets;
           if (picked.length > 0) {
             const targets = picked;
