@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
 import { basicAttack, directDamage } from "../combat";
-import { canSpellHitEnemy, canTarget } from "../rules";
+import { canFireSpecial, canSpellHitEnemy, canTarget } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, spawnTokens } from "../state";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import { getDef } from "../../data/cards";
@@ -180,6 +180,28 @@ describe("Prism", () => {
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });
     const prism = boardCards(next, "P1").find((c) => c.defId === "bore_prism")!;
     expect(prism.freeSpecial).toBe(true);
+  });
+
+  it("...and the charge is usable the SAME turn it lands, past the summon lockout", () => {
+    // The reported bug: freeSpecial was set on summon, but the summon-turn
+    // lockout (checked first) blocked ALL specials, so "arrives charged" could
+    // not actually be used until next round. Now the Fury charge bypasses it —
+    // and ONLY the Fury charge (an ordinary summoned card stays locked out).
+    const s = prepState();
+    const prism = place(s, "bore_prism", "P1", 2, 0, { freeSpecial: true, summonedThisRound: true });
+    s.players.P1.magicPool = 0;
+    expect(canFireSpecial(battleWith(s, prism.instanceId), prism.instanceId).ok).toBe(true);
+    const armed = applyIntent(battleWith(s, prism.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", mode: "sharpen",
+    });
+    expect(armed.cards[prism.instanceId].enchant).toBe("sharpen");
+    expect(armed.cards[prism.instanceId].freeSpecial).toBe(false); // charge spent
+
+    // Control: a normal card summoned this round is still locked out of its Special.
+    const ctrl = prepState();
+    const oak = place(ctrl, "leaf_oakgre", "P1", 3, 0, { summonedThisRound: true });
+    ctrl.players.P1.magicPool = 20;
+    expect(canFireSpecial(battleWith(ctrl, oak.instanceId), oak.instanceId).ok).toBe(false);
   });
 
   it("Sharpen adds 5 to the next basic and is then spent", () => {

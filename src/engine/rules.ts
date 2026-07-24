@@ -568,7 +568,13 @@ export function canFireSpecial(
   const def = getDef(card.defId);
   if (!def.special) return { ok: false, reason: "No Special" };
   if (card.transformed) return { ok: false, reason: "Dismounted — Special lost" };
-  if (card.summonedThisRound)
+  // Summon-turn lockout: a card just summoned may basic-attack but not fire its
+  // Special. Elemental Fury (Prism) is the one exception — it "arrives with its
+  // Special already charged", so the FREE first cast is usable the moment it
+  // lands. Only that charge bypasses; once spent (freeSpecial cleared) Prism is
+  // locked out like anything else. Volcanon's on-kill freeSpecial does NOT open
+  // this door — the gate is startsWithFreeSpecial, not freeSpecial alone.
+  if (card.summonedThisRound && !(def.startsWithFreeSpecial && card.freeSpecial))
     return { ok: false, reason: "Summon-turn lockout (basic attack only)" };
   // Talent Special: free + once per game (shares the talentUsed flag).
   if (def.special.talent && card.talentUsed)
