@@ -523,9 +523,17 @@ export function spellbookFor(deck: string[]): SpellSlot[] {
   // Capped at MAX_SPELLBOOK like a hand-picked book. Uncapped, a two-element
   // deck derived up to THIRTEEN spells and the battle tray was unusable —
   // "at most this many spells" has to hold however the book was built.
-  return SPELLS.filter((s) => elements.has(s.element))
-    .slice(0, MAX_SPELLBOOK)
-    .map((s) => ({ defId: s.id, used: false }));
+  //
+  // One of each KIND first, then fill. A plain slice(0, 5) took the first five
+  // in declaration order, which is grouped by kind — so a book came out as
+  // damage,damage,wall,wall,wall and the later kinds could never appear at all
+  // (the game's only `convert` spell is declared at index 42 and was
+  // unreachable). Deriving a book should sample the element, not the file.
+  const pool = SPELLS.filter((s) => elements.has(s.element));
+  const seen = new Set<string>();
+  const spread = pool.filter((s) => (seen.has(s.kind) ? false : (seen.add(s.kind), true)));
+  const book = [...spread, ...pool.filter((s) => !spread.includes(s))].slice(0, MAX_SPELLBOOK);
+  return book.map((s) => ({ defId: s.id, used: false }));
 }
 
 /** Build a spellbook from an explicit, ordered list of spell ids (a deck's

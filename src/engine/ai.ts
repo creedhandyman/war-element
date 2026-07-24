@@ -8,6 +8,7 @@ import {
   boardCards,
   cardAt,
   effectiveDmg,
+  effectiveMaxHp,
   isCaptured,
   moveReachFor,
 } from "./state";
@@ -31,8 +32,9 @@ import type {
   Intent,
   PlayerId,
   Pos,
+  StatusKind,
 } from "./types";
-import { enemyOf, homeRow } from "./types";
+import { enemyOf, homeRow, NEGATIVE_STATUSES } from "./types";
 
 // ── mulligan ────────────────────────────────────────────────────────────────
 
@@ -97,17 +99,55 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
  * a damage spell that finishes an opponent (prefer an invader on our Home),
  * or a wall over the placeable row holding the most opponents (≥2).
  */
+/** Total HP the caster side is missing — the yardstick for whether a heal is
+ *  worth spending a one-shot spell on. */
+function woundedTotal(state: GameState, player: PlayerId): number {
+  return boardCards(state, player).reduce(
+    (a, c) => a + Math.max(0, effectiveMaxHp(state, c) - c.curHp),
+    0,
+  );
+}
+
+/** How many of the caster cards carry a negative status right now. */
+function afflictedCount(state: GameState, player: PlayerId): number {
+  return boardCards(state, player).filter(
+    (c) => c.curHp > 0 && c.statuses.some((x) => NEGATIVE_STATUSES.includes(x.kind)),
+  ).length;
+}
+
+/** Does this card satisfy an AoE spell double-damage rider? */
+function matchesDoubleIf(target: CardInstance, cond: StatusKind | "noShields"): boolean {
+  return cond === "noShields"
+    ? target.curShields <= 0
+    : target.statuses.some((s) => s.kind === cond);
+}
+
+/**
+ * Pick a spell to cast, across EVERY spell kind.
+ *
+ * Spells are one-shot for the whole game, so each branch carries a threshold it
+ * has to clear before spending one — otherwise the AI dumps its entire book on
+ * round one for marginal value. Ordered by how decisive the effect is rather
+ * than by cost.
+ *
+ * Previously only `damage` and `wall` were considered, so 28 of the 46 spells
+ * in the game (heal, aoe, field, convert, choice — 61% of the book) were dead
+ * weight in the AI hands. That also meant no balance run ever exercised them.
+ */
 function findSpellCast(state: GameState, player: PlayerId): Intent | null {
   const p = state.players[player];
   const book = p.spellbook.filter((s) => !s.used);
   if (book.length === 0) return null;
   const myHome = homeRow(player, state.boardSize);
+  const foes = boardCards(state, enemyOf(player)).filter((c) => c.curHp > 0);
+  const mine = boardCards(state, player).filter((c) => c.curHp > 0);
+  const affordable = book.filter((s) => p.magicPool >= getSpell(s.defId).cost);
+  const of = (kind: string) => affordable.filter((s) => getSpell(s.defId).kind === kind);
 
-  // 1. Damage spell → secure a kill. One-shot economy: only for an actual kill.
+  // 1. Damage spell -> secure a kill. One-shot economy: only for an actual kill.
   const enemies = spellEnemyTargets(state, player);
-  for (const slot of book) {
+  for (const slot of of("damage")) {
     const spell = getSpell(slot.defId);
-    if (spell.kind !== "damage" || p.magicPool < spell.cost) continue;
     const dmg = spell.dmg ?? 0;
     const pen = Boolean(spell.pen);
     const killable = enemies.filter((t) => estimateVolley(dmg, 1, pen, t) >= t.curHp);
@@ -120,16 +160,50 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
       return { type: "CAST_SPELL", player, spellId: spell.id, targetId: target.instanceId };
   }
 
-  // 2. Wall spell → drop it on the legal row holding the most opponents (≥2).
-  for (const slot of book) {
+  // 2. AoE -> the row (or board) where it does the most work. Scored on real
+  //    damage against real HP so it fires on a cluster it can actually hurt
+  //    rather than on a headcount; a kill counts double.
+  for (const slot of of("aoe")) {
     const spell = getSpell(slot.defId);
-    if (spell.kind !== "wall" || p.magicPool < spell.cost) continue;
+    const dmg = spell.dmg ?? 0;
+    const pen = Boolean(spell.pen);
+    const score = (hit: CardInstance[]) =>
+      hit.reduce((a, t) => {
+        const raw = spell.doubleIf && matchesDoubleIf(t, spell.doubleIf) ? dmg * 2 : dmg;
+        const dealt = estimateVolley(raw, 1, pen, t);
+        return a + Math.min(dealt, t.curHp) + (dealt >= t.curHp ? t.curHp : 0);
+      }, 0);
+    if (spell.area === "board") {
+      // No pick to make. Worth a one-shot once it lands on two or more bodies.
+      if (foes.length >= 2 && canCastSpell(state, player, spell.id).ok)
+        return { type: "CAST_SPELL", player, spellId: spell.id };
+      continue;
+    }
+    let bestRow = -1;
+    let best = 0;
+    for (let r = 0; r < state.boardSize; r++) {
+      if (!canCastSpell(state, player, spell.id, { row: r }).ok) continue;
+      const hit = foes.filter(
+        (e) => e.pos!.row === r || (spell.area === "tworows" && e.pos!.row === r + 1),
+      );
+      if (hit.length < 2) continue; // one body does not justify a one-shot
+      const v = score(hit);
+      if (v > best) {
+        best = v;
+        bestRow = r;
+      }
+    }
+    if (bestRow >= 0)
+      return { type: "CAST_SPELL", player, spellId: spell.id, row: bestRow };
+  }
+
+  // 3. Wall -> the legal row holding the most opponents (2+).
+  for (const slot of of("wall")) {
+    const spell = getSpell(slot.defId);
     let bestRow = -1;
     let bestCount = 1; // require at least 2 to justify the one-shot
     for (const r of legalWallRows(state, player, spell)) {
-      const count = boardCards(state, enemyOf(player)).filter(
-        (e) => e.curHp > 0 && e.pos!.row === r,
-      ).length;
+      const count = foes.filter((e) => e.pos!.row === r).length;
       if (count > bestCount) {
         bestCount = count;
         bestRow = r;
@@ -137,6 +211,69 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
     }
     if (bestRow >= 0 && canCastSpell(state, player, spell.id, { row: bestRow }).ok)
       return { type: "CAST_SPELL", player, spellId: spell.id, row: bestRow };
+  }
+
+  // 4. Field -> a board-wide, multi-round buff. Only one per side at a time, so
+  //    hold it until there is a board worth buffing rather than an empty one.
+  for (const slot of of("field")) {
+    const spell = getSpell(slot.defId);
+    if (mine.length < 2) continue;
+    if (canCastSpell(state, player, spell.id).ok)
+      return { type: "CAST_SPELL", player, spellId: spell.id };
+  }
+
+  // 5. Heal / support -> once the side has taken real damage, or a cleanse has
+  //    two or more afflicted allies to clear. The threshold stops it burning a
+  //    one-shot to top a card up by a point.
+  for (const slot of of("heal")) {
+    const spell = getSpell(slot.defId);
+    const worth = (spell.allyHeal ?? 0) + (spell.allyHealIfRooted ?? 0);
+    const cleansing = (spell.cleanse ?? 0) > 0 && afflictedCount(state, player) >= 2;
+    if (!cleansing && woundedTotal(state, player) < Math.max(4, worth)) continue;
+    // No targetId: the reducer auto-picks the neediest element ally. But it
+    // FIZZLES when the caster has none of that element on the board, and a
+    // fizzle still spends the one-shot — so check for one first.
+    const hasKin = mine.some((c) => getDef(c.defId).element === spell.element);
+    if (!hasKin) continue;
+    if (canCastSpell(state, player, spell.id).ok)
+      return { type: "CAST_SPELL", player, spellId: spell.id };
+  }
+
+  // 6. Convert -> magic into summoning resource. Only when something in hand is
+  //    unaffordable now and the conversion would actually unlock it.
+  for (const slot of of("convert")) {
+    const spell = getSpell(slot.defId);
+    const cheapest = p.hand.reduce((m, h) => Math.min(m, getDef(h.defId).cost), Infinity);
+    const gain = spell.gainSummon ?? 0;
+    const stuck =
+      cheapest !== Infinity && p.summonPool < cheapest && p.summonPool + gain >= cheapest;
+    if (!stuck) continue;
+    if (canCastSpell(state, player, spell.id).ok)
+      return { type: "CAST_SPELL", player, spellId: spell.id };
+  }
+
+  // 7. Choice (Chill) -> attack mode when it kills, else shield an ally while
+  //    the board is under real pressure. Never cast for nothing.
+  for (const slot of of("choice")) {
+    const spell = getSpell(slot.defId);
+    const dmg = spell.dmg ?? 0;
+    const kill = enemies.find((t) => estimateVolley(dmg, 1, Boolean(spell.pen), t) >= t.curHp);
+    if (
+      kill &&
+      canCastSpell(state, player, spell.id, { targetId: kill.instanceId, mode: "attack" }).ok
+    )
+      return {
+        type: "CAST_SPELL",
+        player,
+        spellId: spell.id,
+        targetId: kill.instanceId,
+        mode: "attack",
+      };
+    if (
+      woundedTotal(state, player) >= 6 &&
+      canCastSpell(state, player, spell.id, { mode: "shield" }).ok
+    )
+      return { type: "CAST_SPELL", player, spellId: spell.id, mode: "shield" };
   }
   return null;
 }
@@ -441,6 +578,39 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
     } else if (sp.handler === "cleanse") {
       const statused = validAllyTargets(state, instanceId).filter((a) => a.statuses.length > 0);
       if (statused.length > 0) return { action: "special", targetId: statused[0].instanceId };
+
+      // ── handlers below here were previously unreachable ──────────────────
+      // Seven of the sixteen Specials in the game fell through every branch and
+      // so were NEVER fired by the AI: it basic-attacked with those cards all
+      // game. Their damage was also invisible to every balance run.
+    } else if (sp.handler === "spiral" || sp.handler === "rockslide" || sp.handler === "battleCharge") {
+      // Multi-target damage that picks its own victims from the board (a
+      // ricochet chain, a scatter of shots, a lane). Target choice barely
+      // matters, so the question is only whether there is enough on the board
+      // to be worth the pool.
+      const kill = specTargets.find((t) => willKill(t, estimateVolley(dmg, hits, pen, t), state.boardSize));
+      if (kill) return { action: "special", targetId: kill.instanceId };
+      if (specTargets.length >= 2 || (rich && specTargets.length >= 1))
+        return { action: "special", targetId: specTargets[0]?.instanceId };
+    } else if (sp.handler === "overload") {
+      // Electrified/PARALYZE spread: pure control, no damage. Worth it on a
+      // cluster, or on anything at all when the pool is spare.
+      if (specTargets.length >= 2 || (rich && specTargets.length >= 1))
+        return { action: "special", targetId: specTargets[0]?.instanceId };
+    } else if (sp.handler === "burrow") {
+      // Vanish and LOAD a heavier strike for next turn. Only when there is no
+      // kill on the table now — it gives up this turn's attack entirely — and
+      // never while a strike is already loaded.
+      if (!basicCanKill && !card.loadedStrike) return { action: "special" };
+    } else if (sp.handler === "loadOnHit") {
+      // Arms an on-hit status rider for the coming attacks. Same trade as
+      // burrow: it spends the turn, so only take it with nothing to finish.
+      if (!basicCanKill && targets.length > 0) return { action: "special", targetId: targets[0].instanceId };
+    } else if (sp.handler === "accelerate") {
+      // Team SP buff — the payoff is board mobility next Prep, so it wants
+      // allies on the board and nothing more urgent to do with the turn.
+      const allies = boardCards(state, card.owner).filter((a) => a.curHp > 0);
+      if (!basicCanKill && allies.length >= 2) return { action: "special" };
     }
   }
 

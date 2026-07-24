@@ -2,7 +2,8 @@
 // fresh game (explicit book wins; empty falls back to auto-from-elements).
 
 import { describe, expect, it } from "vitest";
-import { spellbookFromIds, spellbookFor, MAX_SPELLBOOK } from "../spells";
+import { spellbookFromIds, spellbookFor, getSpell, MAX_SPELLBOOK } from "../spells";
+import { CORES, deckById } from "../../data/cards";
 import { createInitialState } from "../state";
 
 describe("spellbookFromIds", () => {
@@ -75,5 +76,30 @@ describe("a deck that chose NO spells plays with none", () => {
   it("a hand-picked book is unaffected", () => {
     const s = createInitialState(1, "leaf_pyro", "bore_dusk", ["P1"], ["leaf_sprout"], []);
     expect(s.players.P1.spellbook.map((x) => x.defId)).toEqual(["leaf_sprout"]);
+  });
+});
+
+describe("a derived book samples the element, not the file", () => {
+  it("takes one of each KIND before doubling up", () => {
+    // A plain slice(0, 5) took the first five in DECLARATION order, and SPELLS
+    // is grouped by kind — so books came out as damage,damage,wall,wall,wall
+    // and the later kinds could never appear. The game's only `convert` spell
+    // is declared at index 42 and was unreachable in every derived book.
+    const book = spellbookFor(deckById("gale_bolt").cards).map((s) => getSpell(s.defId).kind);
+    expect(new Set(book).size).toBe(book.length); // no kind repeats while others wait
+  });
+
+  it("a single-element BOLT deck can now derive its convert spell", () => {
+    // The game's only convert spell. A two-element PAIR has more kinds than the
+    // 5 slots, so convert can still lose the draw there — this asserts it is
+    // REACHABLE, which under the old first-five slice it never was.
+    const bolt = CORES.find((c) => c.id === "bolt")!;
+    const book = spellbookFor(bolt.cards).map((s) => s.defId);
+    expect(book).toContain("bolt_power_rebate");
+  });
+
+  it("...and the cap still holds", () => {
+    for (const deck of ["leaf_pyro", "bore_dusk", "aqua_dawn", "gale_bolt"])
+      expect(spellbookFor(deckById(deck).cards).length).toBeLessThanOrEqual(MAX_SPELLBOOK);
   });
 });
