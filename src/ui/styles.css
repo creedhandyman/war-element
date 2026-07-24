@@ -235,24 +235,44 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 /* Fields (Cost-6 terrain): a board-wide elemental haze framed like a wall.
    Screen-blended + moderate opacity so cards stay readable through the wash. */
+/* A field is board-wide terrain and should read as such at a glance. The RING
+   and the HAZE are split deliberately:
+
+   the haze (::before) keeps mix-blend-mode: screen and the slow pulse, because
+   that is what makes it look like atmosphere rather than a UI panel;
+
+   the ring lives on the element itself, composited NORMALLY and not pulsing.
+   It used to be an inset shadow at 50% colour inside the blended, pulsing
+   layer — diluted twice over, which is why a field was easy to miss entirely. */
 .fieldhaze {
   position: absolute; inset: 0; z-index: 3; pointer-events: none; border-radius: 16px;
+  border: 3px solid var(--el);
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--el) 70%, transparent),
+    inset 0 0 22px color-mix(in srgb, var(--el) 45%, transparent);
+}
+.fieldhaze::before {
+  content: ""; position: absolute; inset: -3px; border-radius: inherit; pointer-events: none;
   mix-blend-mode: screen; animation: fieldpulse 3.6s ease-in-out infinite;
   background:
     radial-gradient(125% 90% at 50% 45%, color-mix(in srgb, var(--el) 30%, transparent), transparent 70%),
     linear-gradient(180deg, color-mix(in srgb, var(--el) 14%, transparent), transparent 55%);
-  box-shadow:
-    inset 0 0 70px color-mix(in srgb, var(--el) 32%, transparent),
-    inset 0 0 0 2px color-mix(in srgb, var(--el) 50%, transparent);
+  box-shadow: inset 0 0 70px color-mix(in srgb, var(--el) 32%, transparent);
 }
+/* Two fields can be up at once — one per side. Insetting the enemy's keeps both
+   rings visible instead of the second sitting exactly on top of the first. */
+.fieldhaze.enemy { inset: 5px; }
 @keyframes fieldpulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.9; } }
+@media (prefers-reduced-motion: reduce) {
+  .fieldhaze::before { animation: none; opacity: 0.75; }
+}
 .fieldmark {
   position: absolute; left: 50%; transform: translateX(-50%);
   pointer-events: auto; z-index: 6;
-  font-size: 10px; font-weight: 800; letter-spacing: 0.02em; white-space: nowrap;
-  padding: 2px 9px; border-radius: 999px;
-  background: rgba(4, 4, 8, 0.85); border: 1.5px solid currentColor;
-  box-shadow: 0 0 12px color-mix(in srgb, currentColor 50%, transparent);
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.03em; white-space: nowrap;
+  padding: 3px 11px; border-radius: 999px;
+  background: rgba(4, 4, 8, 0.92); border: 2px solid currentColor;
+  box-shadow: 0 0 16px color-mix(in srgb, currentColor 75%, transparent);
 }
 .fieldhaze.mine .fieldmark { bottom: 8px; }
 .fieldhaze.enemy .fieldmark { top: 8px; }
