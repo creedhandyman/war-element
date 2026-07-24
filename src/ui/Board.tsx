@@ -108,6 +108,12 @@ export function Board(props: {
             {cols.map((col) => {
               const card = cardAt(game, row, col);
               const isLegalSlot = props.legalSlots.some((p) => p.row === row && p.col === col);
+              // Traps are CONCEALED: the viewer sees only their own. Rendering
+              // the opponent's — even faintly — would defeat the mechanic, so
+              // this is gated on viewPlayer rather than on ownership alone.
+              const myTrap = game.traps.find(
+                (t) => t.owner === props.viewPlayer && t.pos.row === row && t.pos.col === col,
+              );
               const isTargetCard = card !== null && props.legalTargetIds.includes(card.instanceId);
               const redTarget = isTargetCard && props.targetsAreEnemies;
               const greenLegal = isLegalSlot || (isTargetCard && !props.targetsAreEnemies);
@@ -135,6 +141,7 @@ export function Board(props: {
                   grayed={props.grayTeam !== null && card !== null && card.owner === props.grayTeam}
                   contested={contested}
                   captured={game.slots[row][col].capturedBy}
+                  trap={myTrap ?? null}
                   canDrop={isLegalSlot}
                   pickCount={card ? (props.pickCounts[card.instanceId] ?? 0) : 0}
                   selectedId={props.selectedId}

@@ -1615,3 +1615,30 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim);
   animation: castflash-scrim 2s ease-out both;
 }
+
+/* ── Traps: the viewer's OWN mines, never the opponent's ──────────────────
+   Deliberately quiet — a dashed diamond in the slot corner, not a card-sized
+   badge. It has to be findable at a glance without competing with the pieces,
+   and it sits under Token in z-order so it never covers a card that walks on.
+   The pulse is what makes it legible on a busy board; it stops on hover so the
+   tooltip is readable. */
+.slot.trapped { position: relative; }
+.trapmark {
+  position: absolute; bottom: 3px; right: 4px; z-index: 1; pointer-events: auto;
+  font-size: 13px; line-height: 1; opacity: 0.85; cursor: help;
+  filter: drop-shadow(0 0 4px currentColor);
+  animation: trap-idle 2.6s ease-in-out infinite;
+}
+.trapmark:hover { opacity: 1; animation: none; }
+@keyframes trap-idle {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.95; transform: scale(1.12); }
+}
+/* A faint corner wash so the square itself reads as prepared ground. */
+.slot.trapped::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: radial-gradient(circle at 100% 100%, rgba(255,160,60,0.16), transparent 58%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .trapmark { animation: none; opacity: 0.85; }
+}

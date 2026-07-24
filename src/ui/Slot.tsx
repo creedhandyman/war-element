@@ -1,5 +1,6 @@
-import type { CardInstance, GameState, PlayerId } from "../engine";
-import { enemyOf, homeRow } from "../engine";
+import type { CardInstance, GameState, PlayerId, TrapState } from "../engine";
+import { enemyOf, getSpell, homeRow } from "../engine";
+import { EL_COLOR } from "./shared";
 import { Token } from "./Token";
 
 export function Slot(props: {
@@ -16,6 +17,10 @@ export function Slot(props: {
   grayed: boolean;
   contested: boolean;
   captured: "P1" | "P2" | null;
+  /** The viewer's OWN trap on this square, if any. Traps are concealed, so the
+   *  caller passes one only when it belongs to the player looking at the board —
+   *  never the opponent's, at any opacity. */
+  trap: TrapState | null;
   canDrop: boolean; // a legal drag-to-summon drop target
   pickCount: number;
   selectedId: string | null;
@@ -50,6 +55,7 @@ export function Slot(props: {
     props.grayed ? "grayed" : "",
     props.contested ? "contested" : "",
     props.captured ? "captured" : "",
+    props.trap ? "trapped" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -71,6 +77,15 @@ export function Slot(props: {
       {props.captured && (
         <span className="lock" title={`Permanently captured by ${props.captured}`}>
           🔒
+        </span>
+      )}
+      {props.trap && (
+        <span
+          className="trapmark"
+          style={{ color: EL_COLOR[props.trap.element] }}
+          title={`${getSpell(props.trap.spellId).name} — ${getSpell(props.trap.spellId).text}\n\nOnly you can see this.`}
+        >
+          ◈
         </span>
       )}
       {props.pickCount > 0 && (

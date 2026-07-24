@@ -504,6 +504,16 @@ export function App() {
     if (sel?.kind === "card") return legalMoves(game, view, sel.instanceId);
     if (sel?.kind === "spell") {
       const spell = getSpell(sel.spellId);
+      if (spell.kind === "trap") {
+        // Any empty, uncaptured, untrapped square — anywhere on the board. Range
+        // is not the constraint for a mine; the opponent's movement is.
+        const slots: Pos[] = [];
+        for (let r = 0; r < game.boardSize; r++)
+          for (let c = 0; c < game.boardSize; c++)
+            if (canCastSpell(game, view, spell.id, { row: r, col: c }).ok)
+              slots.push({ row: r, col: c } as Pos);
+        return slots;
+      }
       if (spell.kind === "wall") {
         // Highlight every slot of each legal row so the whole row glows.
         const out: Pos[] = [];
@@ -631,12 +641,15 @@ export function App() {
     setSel({ kind: "spell", spellId });
     setPending(null);
     setPicks([]);
-    // Walls + row/two-row AoE pick a row; damage spells pick an enemy.
+    // Walls + row/two-row AoE pick a row; traps pick a single empty SLOT;
+    // damage spells pick an enemy.
     const picksRow = spell.kind === "wall" || spell.kind === "aoe";
     setHint(
-      picksRow
-        ? `Casting <b>${spell.name}</b> — click a glowing row.`
-        : `Casting <b>${spell.name}</b> — click a glowing enemy target.`,
+      spell.kind === "trap"
+        ? `Setting <b>${spell.name}</b> — click a glowing empty slot. Only you will see it.`
+        : picksRow
+          ? `Casting <b>${spell.name}</b> — click a glowing row.`
+          : `Casting <b>${spell.name}</b> — click a glowing enemy target.`,
     );
   }
 
@@ -722,6 +735,19 @@ export function App() {
     // spells drop onto any slot of a glowing row (a wall occupies no slot).
     if (me && game.phase === "prep" && game.prep?.priority === me && sel?.kind === "spell") {
       const spell = getSpell(sel.spellId);
+      // Traps take a single SLOT, not a row — the whole point is the one square.
+      if (spell.kind === "trap") {
+        const chk = canCastSpell(game, me, sel.spellId, { row, col });
+        if (chk.ok) {
+          castSpell(
+            { type: "CAST_SPELL", player: me, spellId: sel.spellId, row, col },
+            `${spell.name} set. Keep going, or <b>Pass Priority</b>.`,
+          );
+        } else {
+          setHint(`⚠ ${chk.reason}`);
+        }
+        return;
+      }
       // Walls + row/two-row AoE spells drop onto any slot of a glowing row.
       if (spell.kind === "wall" || (spell.kind === "aoe" && spell.area !== "board")) {
         const chk = canCastSpell(game, me, sel.spellId, { row });
