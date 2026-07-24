@@ -439,8 +439,8 @@ export const SPELLS: SpellDef[] = [
     element: "PYRO",
     cost: 6,
     kind: "field",
-    text: "Field (3 rounds): BURN you inflict never expires — your opponents' BURN stops ticking down.",
-    field: { rounds: 3, burnPersists: true }, // full doc effect
+    text: "Field (3 rounds): your PYRO allies gain +1 DMG, and BURN you inflict never expires — your opponents' BURN stops ticking down.",
+    field: { rounds: 3, burnPersists: true, dmgBonus: 1 },
   },
   {
     id: "gale_jetstream",
@@ -499,6 +499,87 @@ export const SPELLS: SpellDef[] = [
     text: "Field (3 rounds): your DAWN allies heal 2 HP each round, cannot miss, and can see and target STEALTH cards.",
     field: { rounds: 3, regen: 2, neverMiss: true, seeStealth: true },
   },
+  // ───────── PYRO ladder ─────────────────────────────────────────────────
+  // PYRO had THREE spells (damage/wall/field) where DAWN and BORE have eight,
+  // which is the likeliest remaining explanation for it measuring last on every
+  // balance run this session. These fill the ladder out to cost 1-10.
+  {
+    id: "pyro_ember_trap",
+    name: "Ember Trap",
+    element: "PYRO",
+    cost: 2,
+    kind: "trap",
+    text: "Hide a trap on an empty slot. The first opponent to MOVE onto it takes 5 DMG and BURN 2 for 2 rounds.",
+    trap: { dmg: 5, status: { kind: "BURN", duration: 2, power: 2 } },
+  },
+  {
+    id: "pyro_flare_push",
+    name: "Flare Push",
+    element: "PYRO",
+    cost: 3,
+    kind: "damage",
+    text: "Deal 4 DMG (PEN) to a target and push it back 1 space (if open).",
+    dmg: 4,
+    pen: true,
+    push: 1,
+  },
+  {
+    id: "pyro_ashfall",
+    name: "Ashfall",
+    element: "PYRO",
+    cost: 5,
+    kind: "aoe",
+    area: "board",
+    text: "Deal 3 DMG to every opponent and BURN 2 each for 2 rounds.",
+    dmg: 3,
+    status: { kind: "BURN", duration: 2, power: 2 },
+  },
+  {
+    id: "pyro_meltdown",
+    name: "Meltdown",
+    element: "PYRO",
+    cost: 7,
+    kind: "damage",
+    text: "Deal 10 DMG (PEN — ignores shields entirely) to a target and BURN 4 for 3 rounds.",
+    dmg: 10,
+    pen: true,
+    status: { kind: "BURN", duration: 3, power: 4 },
+  },
+  {
+    id: "pyro_inferno_pit",
+    name: "Inferno Pit",
+    element: "PYRO",
+    cost: 8,
+    kind: "trap",
+    // No PEN on purpose: the payload stays pure BURN so it does not step on
+    // Meltdown's anti-shield niche one cost below it.
+    text: "Hide a trap on an empty slot. The first opponent to MOVE onto it — and every opponent beside it — takes 8 DMG and BURN 4 for 3 rounds.",
+    trap: { dmg: 8, status: { kind: "BURN", duration: 3, power: 4 }, splash: true },
+  },
+  {
+    id: "pyro_cataclysm",
+    name: "Cataclysm",
+    element: "PYRO",
+    cost: 9,
+    kind: "aoe",
+    area: "board",
+    text: "Deal 8 DMG to every opponent — 16 to anything already BURNing.",
+    dmg: 8,
+    doubleIf: "BURN",
+  },
+  {
+    id: "pyro_volcanic_eruption",
+    name: "Volcanic Eruption",
+    element: "PYRO",
+    cost: 10,
+    kind: "aoe",
+    area: "board",
+    text: "Deal 15 DMG to every opponent and BURN 5 each for 3 rounds. For the rest of the game, your PYRO allies permanently gain +2 DMG.",
+    dmg: 15,
+    status: { kind: "BURN", duration: 3, power: 5 },
+    grantElementDmg: 2,
+  },
+
 ];
 
 export const SPELL_INDEX: Record<string, SpellDef> = Object.fromEntries(

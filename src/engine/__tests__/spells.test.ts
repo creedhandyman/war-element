@@ -5,7 +5,9 @@ import { describe, expect, it } from "vitest";
 import { directDamage, wallEvasion, wallFlatReduction } from "../combat";
 import { applyIntent, advance } from "../phases";
 import { canCastSpell } from "../rules";
+import { effectiveDmg } from "../state";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
+import type { GameState } from "../types";
 
 /** Give P1 a single spell and enough magic to cast it. */
 function armSpell(s: ReturnType<typeof prepState>, defId: string, magic = 5) {
@@ -493,5 +495,102 @@ describe("Power Converter (pool conversion)", () => {
     next = applyIntent(next, { type: "SUMMON", player: "P1", handId, col: 0 });
     expect(next.players.P1.summonPool).toBe(2); // 1 + 4 − 3
     expect(Object.values(next.cards).some((c) => c.defId === "leaf_greegon")).toBe(true);
+  });
+});
+
+describe("traps — a hidden mine on one square", () => {
+  function armPrep(s: GameState) {
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    s.players.P1.magicPool = 20;
+    s.players.P1.spellbook = [
+      { defId: "pyro_ember_trap", used: false },
+      { defId: "pyro_inferno_pit", used: false },
+    ];
+    return s;
+  }
+  const lay = (s: GameState, id: string, row: number, col: number) =>
+    applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: id, row, col });
+
+  it("fires when an enemy MOVES onto it, and is spent", () => {
+    let s = armPrep(prepState());
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    s = lay(s, "pyro_ember_trap", 2, 1);
+    s.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    const n = applyIntent(s, { type: "MOVE", player: "P2", instanceId: foe.instanceId, to: { row: 2, col: 1 } });
+    expect(40 - n.cards[foe.instanceId].curHp).toBe(5);
+    expect(statusOf(n.cards[foe.instanceId], "BURN")?.power).toBe(2);
+    expect(n.traps).toHaveLength(0); // one square, one time
+  });
+
+  it("does NOT fire for the caster's own cards", () => {
+    let s = armPrep(prepState());
+    const mine = place(s, "leaf_alpha", "P1", 3, 1, { curHp: 20, maxHp: 20 });
+    s = lay(s, "pyro_ember_trap", 2, 1);
+    const n = applyIntent(s, { type: "MOVE", player: "P1", instanceId: mine.instanceId, to: { row: 2, col: 1 } });
+    expect(n.cards[mine.instanceId].curHp).toBe(20);
+    expect(n.traps).toHaveLength(1); // still waiting
+  });
+
+  it("does not fire for an enemy standing NEXT to it — only for stepping on", () => {
+    let s = armPrep(prepState());
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    s = lay(s, "pyro_ember_trap", 2, 1);
+    s.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    const n = applyIntent(s, { type: "MOVE", player: "P2", instanceId: foe.instanceId, to: { row: 2, col: 0 } });
+    expect(n.cards[foe.instanceId].curHp).toBe(40);
+    expect(n.traps).toHaveLength(1);
+  });
+
+  it("Inferno Pit also catches everything beside the victim", () => {
+    let s = armPrep(prepState());
+    const walker = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const beside = place(s, "dusk_vamp", "P2", 1, 2, { curHp: 40, maxHp: 40, curShields: 0 });
+    const far = place(s, "dusk_crow", "P2", 0, 3, { curHp: 40, maxHp: 40, curShields: 0 });
+    s = lay(s, "pyro_inferno_pit", 2, 1);
+    s.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    const n = applyIntent(s, { type: "MOVE", player: "P2", instanceId: walker.instanceId, to: { row: 2, col: 1 } });
+    expect(40 - n.cards[walker.instanceId].curHp).toBe(8);
+    expect(40 - n.cards[beside.instanceId].curHp).toBe(8); // adjacent to the pit
+    expect(n.cards[far.instanceId].curHp).toBe(40); // out of it
+  });
+
+  it("cannot be laid on an occupied, captured or already-trapped square", () => {
+    const s = armPrep(prepState());
+    place(s, "dusk_gool", "P2", 1, 1);
+    s.slots[1][2].capturedBy = "P2";
+    expect(canCastSpell(s, "P1", "pyro_ember_trap", { row: 1, col: 1 }).ok).toBe(false);
+    expect(canCastSpell(s, "P1", "pyro_ember_trap", { row: 1, col: 2 }).ok).toBe(false);
+    const laid = lay(s, "pyro_ember_trap", 2, 2);
+    expect(canCastSpell(laid, "P1", "pyro_inferno_pit", { row: 2, col: 2 }).ok).toBe(false);
+    expect(canCastSpell(laid, "P1", "pyro_inferno_pit", { row: 2, col: 3 }).ok).toBe(true);
+  });
+
+  it("the shared log does not give its square away", () => {
+    // Both players read the log. A trap the opponent can locate from it is not
+    // hidden, so the placement line names the spell and nothing else.
+    let s = armPrep(prepState());
+    place(s, "dusk_gool", "P2", 1, 1);
+    s = lay(s, "pyro_ember_trap", 2, 3);
+    const line = s.log[s.log.length - 1];
+    expect(line).toMatch(/Ember Trap/);
+    expect(line).not.toMatch(/r2|c3|row|col/i);
+  });
+});
+
+describe("Volcanic Eruption's permanent grant", () => {
+  it("buffs PYRO allies on board AND ones summoned later", () => {
+    const s = prepState();
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    s.players.P1.magicPool = 20;
+    s.players.P1.spellbook = [{ defId: "pyro_volcanic_eruption", used: false }];
+    const onBoard = place(s, "pyro_firebird", "P1", 3, 0);
+    const notPyro = place(s, "leaf_alpha", "P1", 3, 1);
+    place(s, "dusk_gool", "P2", 0, 0, { curHp: 99, maxHp: 99, curShields: 0 });
+    const base = effectiveDmg(s, s.cards[onBoard.instanceId]);
+    const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "pyro_volcanic_eruption" });
+    expect(effectiveDmg(n, n.cards[onBoard.instanceId])).toBe(base + 2);
+    expect(n.cards[notPyro.instanceId].dmgBonus).toBe(0); // element-gated
+    // Recorded on the player, so it is not just a one-off sweep of the board.
+    expect(n.players.P1.elementDmgBuff).toEqual({ element: "PYRO", amount: 2 });
   });
 });

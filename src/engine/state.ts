@@ -50,6 +50,7 @@ export function createInitialState(
     prep: null,
     battle: null,
     walls: [],
+    traps: [],
     fields: [],
     pendingFlow: null,
     win: null,

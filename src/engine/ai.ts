@@ -239,7 +239,42 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
       return { type: "CAST_SPELL", player, spellId: spell.id };
   }
 
-  // 6. Convert -> magic into summoning resource. Only when something in hand is
+  // 6. Trap -> a mine on the square the opponent most wants to walk onto. It
+  //    never expires, so there is no rush, but it is worth laying once there is
+  //    an enemy on the board that might actually move.
+  //
+  //    Scored by how likely a square is to be STEPPED ON: its own uncaptured
+  //    Home slots first (an invader has to stand there to capture, and that is
+  //    the one move it cannot decline), then squares adjacent to advancing
+  //    enemies. A trap on an unreachable square is a wasted one-shot.
+  for (const slot of of("trap")) {
+    const spell = getSpell(slot.defId);
+    if (foes.length === 0) continue;
+    const home = homeRow(player, state.boardSize);
+    let best: Pos | null = null;
+    let bestScore = 0;
+    for (let row = 0; row < state.boardSize; row++) {
+      for (let col = 0; col < state.boardSize; col++) {
+        if (!canCastSpell(state, player, spell.id, { row, col }).ok) continue;
+        // An uncaptured home slot is the square the opponent is obliged to enter.
+        let score = row === home && !isCaptured(state, row, col) ? 6 : 0;
+        // ...otherwise, how many enemies could reach it on their next move?
+        for (const e of foes) {
+          const d = Math.max(Math.abs(e.pos!.row - row), Math.abs(e.pos!.col - col));
+          if (d <= moveReachFor(state, e)) score += 3;
+          else if (d <= moveReachFor(state, e) + 1) score += 1;
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          best = { row, col } as Pos;
+        }
+      }
+    }
+    if (best && bestScore >= 3)
+      return { type: "CAST_SPELL", player, spellId: spell.id, row: best.row, col: best.col };
+  }
+
+  // 7. Convert -> magic into summoning resource. Only when something in hand is
   //    unaffordable now and the conversion would actually unlock it.
   for (const slot of of("convert")) {
     const spell = getSpell(slot.defId);
@@ -252,7 +287,7 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
       return { type: "CAST_SPELL", player, spellId: spell.id };
   }
 
-  // 7. Choice (Chill) -> attack mode when it kills, else shield an ally while
+  // 8. Choice (Chill) -> attack mode when it kills, else shield an ally while
   //    the board is under real pressure. Never cast for nothing.
   for (const slot of of("choice")) {
     const spell = getSpell(slot.defId);

@@ -639,7 +639,31 @@ export interface HandCard {
 // the CAST_SPELL intent's `mode` picks which.
 // "field" = a Cost-6 board-wide terrain buff (the mirror of a Wall): no target,
 // empowers the caster's SAME-element allies for a few rounds. See FieldState.
-export type SpellKind = "damage" | "heal" | "wall" | "aoe" | "choice" | "field" | "convert";
+// "trap" = a Cost-2/8 hidden mine on a single EMPTY slot. Unlike a wall (a
+// whole row, visible, expiring) a trap is one square, concealed from the
+// opponent, and waits indefinitely until an enemy MOVES onto it.
+export type SpellKind =
+  | "damage" | "heal" | "wall" | "aoe" | "choice" | "field" | "convert" | "trap";
+
+/** A hidden mine on ONE slot, laid by a trap spell. Occupies no space and does
+ *  not block movement or line of sight — it simply waits. Triggers when an
+ *  ENEMY card MOVES onto its square (ranged attacks and adjacency do nothing),
+ *  then is spent.
+ *
+ *  Distinct from a Wall in three ways: a single square rather than a row, no
+ *  expiry, and CONCEALED — the UI shows it to its owner only, so walking into
+ *  one is a real mistake rather than a visible toll. */
+export interface TrapState {
+  owner: PlayerId;
+  spellId: string;
+  element: Element;
+  pos: Pos;
+  dmg: number;
+  pen?: boolean;
+  status?: { kind: StatusKind; duration: number; power: number };
+  /** Inferno Pit: the payload also hits opponents adjacent to the victim. */
+  splash?: boolean;
+}
 
 /** A row-level "wall" laid down by a Cost-4 spell. Occupies no slot; triggers
  *  only when an ENEMY card MOVES into its row (ranged attacks pass through). */
@@ -743,6 +767,12 @@ export interface SpellDef {
   /** Total Network Control: permanently discount the caster's BOLT Specials by N
    *  (min 1) for the rest of the game — applied after the AoE resolves. */
   grantBoltDiscount?: number;
+  /** Volcanic Eruption: permanently grant every SAME-element ally +N DMG for the
+   *  rest of the game, applied after the AoE resolves. Unlike the BOLT discount
+   *  this lands on the CARDS, so it also covers allies summoned later. */
+  grantElementDmg?: number;
+  /** Trap spells: the payload delivered when an enemy steps on the square. */
+  trap?: { dmg: number; pen?: boolean; status?: { kind: StatusKind; duration: number; power: number }; splash?: boolean };
   /** Cleanse rider: remove up to N negative statuses from each of the caster's
    *  element allies (99 = all). Runs on support spells and on Judgment. */
   cleanse?: number;
@@ -796,6 +826,8 @@ export interface PlayerState {
   /** Total Network Control (BOLT ultimate): a permanent −N to this player's BOLT
    *  Specials (min 1), applied to current AND future BOLT cards for the game. */
   boltDiscount?: number;
+  /** Volcanic Eruption: permanent +DMG for this player's cards of that element. */
+  elementDmgBuff?: { element: Element; amount: number };
 }
 
 export type Phase =
@@ -894,6 +926,7 @@ export interface GameState {
   battle: BattleState | null;
   /** Active row-level Walls (Cost-4 spells). Empty until a wall is cast. */
   walls: WallState[];
+  traps: TrapState[];
   /** Active board-wide Fields (Cost-6 spells). Empty until a field is cast. */
   fields: FieldState[];
   /** A human just summoned an AQUA card and must pick its Flow Change buff
@@ -913,7 +946,7 @@ export type Intent =
   | { type: "MULLIGAN"; player: PlayerId; returnHandIds: string[] }
   | { type: "SUMMON"; player: PlayerId; handId: string; col: number }
   | { type: "MOVE"; player: PlayerId; instanceId: string; to: Pos }
-  | { type: "CAST_SPELL"; player: PlayerId; spellId: string; targetId?: string; row?: number; mode?: "attack" | "shield" }
+  | { type: "CAST_SPELL"; player: PlayerId; spellId: string; targetId?: string; row?: number; col?: number; mode?: "attack" | "shield" }
   | { type: "PASS"; player: PlayerId }
   | { type: "SET_AUTO"; player: PlayerId; instanceId: string; mode: AutoMode }
   | { type: "SURRENDER"; player: PlayerId }

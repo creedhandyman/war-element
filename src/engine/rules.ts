@@ -664,7 +664,7 @@ export function canCastSpell(
   state: GameState,
   player: PlayerId,
   spellId: string,
-  opts: { targetId?: string; row?: number; mode?: "attack" | "shield" } = {},
+  opts: { targetId?: string; row?: number; col?: number; mode?: "attack" | "shield" } = {},
 ): { ok: boolean; reason?: string } {
   if (state.phase !== "prep") return { ok: false, reason: "Not the Prep Phase" };
   if (state.prep?.priority !== player) return { ok: false, reason: "You don't have priority" };
@@ -692,6 +692,19 @@ export function canCastSpell(
     if (!canAoeRow(state, player, opts.row)) return { ok: false, reason: "Can't reach that row" };
     if (spell.area === "tworows" && opts.row + 1 >= state.boardSize)
       return { ok: false, reason: "No row behind that one" };
+    return { ok: true };
+  }
+  if (spell.kind === "trap") {
+    // One EMPTY, uncaptured square, and never one that already holds a trap.
+    // Anywhere on the board is fair: the point of a mine is that the opponent
+    // chooses to walk onto it, so range is not the constraint — their movement is.
+    if (opts.row == null || opts.col == null) return { ok: false, reason: "Pick a slot" };
+    if (opts.row < 0 || opts.row >= state.boardSize || opts.col < 0 || opts.col >= state.boardSize)
+      return { ok: false, reason: "Off the board" };
+    if (cardAt(state, opts.row, opts.col)) return { ok: false, reason: "That slot is occupied" };
+    if (isCaptured(state, opts.row, opts.col)) return { ok: false, reason: "That slot is captured" };
+    if (state.traps.some((t) => t.pos.row === opts.row && t.pos.col === opts.col))
+      return { ok: false, reason: "Already trapped" };
     return { ok: true };
   }
   if (spell.kind === "field") {

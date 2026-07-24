@@ -11,6 +11,7 @@ import {
   applyMulligan,
   boardCards,
   cardAt,
+  chebyshev,
   drawCards,
   effectiveDmg,
   effectiveSp,
@@ -197,6 +198,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       draft.log.push(
         `${intent.player} moves ${getDef(card.defId).name} to r${intent.to.row}c${intent.to.col}.`,
       );
+      triggerTrapOnMove(draft, card); // a hidden mine on the destination square
       triggerWallsOnMove(draft, card, fromRow); // crossing INTO/OVER an enemy Wall's row hurts
       // War Ready (WarPhant): armour plates up as it reaches the contested
       // middle. Crossing-gated like Stomp — shuffling between two mid rows is
@@ -225,6 +227,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       const check = canCastSpell(draft, intent.player, intent.spellId, {
         targetId: intent.targetId,
         row: intent.row,
+        col: intent.col, // trap spells target a SLOT, not just a row
         mode: intent.mode,
       });
       if (!check.ok) throw new Error(`Illegal spell: ${check.reason}`);
@@ -235,7 +238,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       slot.used = true;
       draft.prep!.consecutivePasses = 0;
       draft.log.push(`${intent.player} casts ${spell.name}.`);
-      resolveSpell(draft, intent.player, spell, intent.targetId, intent.row, intent.mode);
+      resolveSpell(draft, intent.player, spell, intent.targetId, intent.row, intent.mode, intent.col);
       return draft;
     }
     case "PASS": {
@@ -348,6 +351,7 @@ function resolveSpell(
   targetId?: string,
   row?: number,
   mode?: "attack" | "shield",
+  col?: number,
 ): void {
   if (spell.kind === "wall" && spell.wall && row != null) {
     const wall: WallState = {
@@ -416,10 +420,46 @@ function resolveSpell(
     }
     draft.log.push(`${spell.name} sweeps ${targets.length} opponent(s)${targets.length ? "" : " — no one in range"}.`);
     // Total Network Control: a permanent discount on the caster's BOLT Specials.
+    if (spell.grantElementDmg) {
+      // Lands on the CARDS, and is recorded on the player so allies summoned
+      // later inherit it too — the spell says "for the rest of the game".
+      const n = spell.grantElementDmg;
+      const kin = boardCards(draft, player).filter(
+        (c) => c.curHp > 0 && getDef(c.defId).element === spell.element,
+      );
+      for (const c of kin) c.dmgBonus += n;
+      draft.players[player].elementDmgBuff = {
+        element: spell.element,
+        amount: (draft.players[player].elementDmgBuff?.amount ?? 0) + n,
+      };
+      draft.log.push(
+        `${player}'s ${spell.element} allies gain +${n} DMG for the rest of the game (${kin.length} on board).`,
+      );
+    }
     if (spell.grantBoltDiscount) {
       const p = draft.players[player];
       p.boltDiscount = (p.boltDiscount ?? 0) + spell.grantBoltDiscount;
       draft.log.push(`${player}'s BOLT Specials cost ${spell.grantBoltDiscount} less for the rest of the game (min 1).`);
+    }
+    return;
+  }
+
+  if (spell.kind === "trap") {
+    const t = spell.trap;
+    if (t && row != null && col != null) {
+      draft.traps.push({
+        owner: player,
+        spellId: spell.id,
+        element: spell.element,
+        pos: { row, col },
+        dmg: t.dmg,
+        pen: t.pen,
+        status: t.status,
+        splash: t.splash,
+      });
+      // Deliberately vague in the shared log: both players read this, and a trap
+      // the opponent can locate from the log is not hidden.
+      draft.log.push(`${player} sets ${spell.name}.`);
     }
     return;
   }
@@ -500,6 +540,36 @@ function resolveSpell(
   // Damage-kind cleanse rider (Judgment): tidy up the caster's own element allies.
   // (Support spells cleanse their targets above and return before reaching here.)
   if (spell.cleanse) cleanseSpellAllies(draft, player, spell.element, spell.cleanse);
+}
+
+/** A card that MOVED onto an enemy trap sets it off. One square, one time: the
+ *  trap is spent whether or not the victim survives.
+ *
+ *  Runs BEFORE the wall check so a card that walks into a trapped square inside
+ *  a walled row takes both, in the order they were laid down. */
+function triggerTrapOnMove(draft: GameState, card: CardInstance): void {
+  if (!card.pos) return;
+  const i = draft.traps.findIndex(
+    (t) => t.owner !== card.owner && t.pos.row === card.pos!.row && t.pos.col === card.pos!.col,
+  );
+  if (i < 0) return;
+  const trap = draft.traps[i];
+  draft.traps.splice(i, 1); // spent on trigger, survivor or not
+  const name = getSpell(trap.spellId).name;
+  draft.log.push(`${label(draft, card)} steps on ${name}!`);
+  const victims = [card];
+  if (trap.splash) {
+    // Inferno Pit: everything of the victim's side packed around the square.
+    for (const e of boardCards(draft, card.owner))
+      if (e.instanceId !== card.instanceId && e.pos && chebyshev(e.pos, trap.pos) <= 1)
+        victims.push(e);
+  }
+  for (const v of victims) {
+    if (!draft.cards[v.instanceId] || v.curHp <= 0) continue;
+    if (trap.dmg > 0) spellHit(draft, v, trap.dmg, Boolean(trap.pen), trap.owner);
+    if (trap.status && draft.cards[v.instanceId] && v.curHp > 0)
+      applyStatus(draft, v, trap.status.kind, trap.status.duration, trap.status.power, trap.element);
+  }
 }
 
 /** A card that MOVED into an enemy Wall's row (row change only) eats it. */
