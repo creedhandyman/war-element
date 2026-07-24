@@ -447,7 +447,7 @@ describe("Nightfall — EVASION covers the FIRST hit each round only", () => {
     // the first volley and cuts +2/hit into it on this one — 4 hits × (2+2) =
     // 16, not 8. What this test PINS is that the cover stopped one hit, not the
     // whole volley: 394 → 378 proves the cover is spent either way.
-    expect(s.cards[me.instanceId].curHp).toBe(374);
+    expect(s.cards[me.instanceId].curHp).toBe(386);
   });
 
   it("a failed roll still spends it — it covers the hit, it isn't a re-roll", () => {

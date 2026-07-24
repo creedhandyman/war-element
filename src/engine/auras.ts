@@ -13,7 +13,7 @@ export interface AuraDef {
 }
 
 export const ELEMENT_AURA: Record<Element, AuraDef> = {
-  LEAF: { name: "Photosynthesis", desc: "Basic attacks make a foe BLEED, and LEAF cards deal +3 DMG to a BLEEDing or ROOTed enemy. End of round, LEAF cards heal +2 HP, and gain +1 shield (max 3) if they were hit that round." },
+  LEAF: { name: "Photosynthesis", desc: "LEAF cards deal +4 DMG to a BLEEDing or ROOTed enemy. End of round, LEAF cards heal +2 HP, and gain +1 shield (max 3) if they were hit that round." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 4 on the same target." },
   BORE: { name: "Exostone", desc: "Enters play with +2 shields." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals a third of its DMG back to the killer." },

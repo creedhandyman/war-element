@@ -896,12 +896,13 @@ export function basicAttack(
     // ELECTRIFIED rider below) a single point moved BOLT's win rate 38% -> 39%,
     // i.e. not at all. On BOLT's ~5-damage cards +1 is a rounding error.
     if (aDef.element === "BOLT" && t.statuses.length > 0) dmg += 2 + fieldBonus(draft, attacker, "electrify");
-    // Overgrowth (LEAF aura, offensive half): +2 DMG into a foe already BLEEDing
-    // or ROOTed. LEAF measured worst on BOTH axes; its aura was PURELY defensive
-    // (heal + bark shield), so it had no offensive identity at all where every
-    // other element does. Self-enabling below, exactly like Electrify — the
-    // opening hit sets the BLEED, the follow-ups cut into it.
-    if (aDef.element === "LEAF" && (hasStatus(t, "BLEED") || hasStatus(t, "ROOT"))) dmg += 3;
+    // Overgrowth (LEAF aura, offensive half): +4 DMG into a foe already BLEEDing
+    // or ROOTed. LEAF's aura was PURELY defensive (heal + bark shield) — this is
+    // its offensive identity, paid off by the many LEAF cards that ROOT/BLEED on
+    // their own (Alpha, Nettle, Thorn, Fallow…). Deliberately NOT self-enabling:
+    // an earlier version had every LEAF basic apply BLEED, which was too much —
+    // a whole element carrying a universal DoT.
+    if (aDef.element === "LEAF" && (hasStatus(t, "BLEED") || hasStatus(t, "ROOT"))) dmg += 4;
     // Harsh Winds / Shadow: bonus DMG the first time this card strikes a given
     // opponent. Vaga's version only counts while it stands on the enemy side.
     const fsEligible = Boolean(aDef.firstStrikeBonus) && (!aDef.firstStrikeEnemySideOnly || onEnemySide(attacker, draft.boardSize));
@@ -963,13 +964,6 @@ export function basicAttack(
       // overwrites a real debuff with an inert marker.
       if (aDef.element === "BOLT" && t.curHp > 0 && t.statuses.length === 0) {
         applyStatus(draft, t, "ELECTRIFIED", 1, 0, "BOLT");
-      }
-      // Overgrowth (LEAF aura), self-enable: a LEAF basic leaves BLEED 1 on a
-      // foe carrying no status yet, so the aura sets up its own +2 rather than
-      // waiting on another card. Never overwrites a real debuff (the guard),
-      // and the many LEAF cards that already apply BLEED/ROOT just skip it.
-      if (aDef.element === "LEAF" && t.curHp > 0 && t.statuses.length === 0) {
-        applyStatus(draft, t, "BLEED", 2, 2, "LEAF");
       }
       if (healOnHit > 0 && attacker.curHp > 0) healCard(draft, attacker, healOnHit, attacker);
       // Liquification (Bahari): flat heal per landed basic hit.

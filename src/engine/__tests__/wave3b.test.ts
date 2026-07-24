@@ -290,23 +290,16 @@ describe("DrShock — Shocker ELECTRIFIES (no longer PARALYZE)", () => {
 
 describe("LEAF Overgrowth aura (offensive half)", () => {
   // LEAF's aura was purely defensive and it measured worst on BOTH axes. This
-  // is the self-enabling offence that mirrors BOLT's Electrify: a basic BLEEDs
-  // an unstatused foe, and LEAF cuts +3 into anything BLEEDing or ROOTed.
-  it("a LEAF basic BLEEDs a foe that carried no status", () => {
-    const s = prepState();
-    const leaf = place(s, "leaf_greegon", "P1", 3, 0); // 4 DMG, no on-hit status of its own
-    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
-    basicAttack(s, leaf.instanceId, foe.instanceId);
-    expect(statusOf(s.cards[foe.instanceId], "BLEED")).toBeTruthy();
-  });
-
+  // is its offence: +3 into anything BLEEDing or ROOTed, paid off by the LEAF
+  // cards that apply those on their own. (An earlier self-BLEED-on-every-basic
+  // was cut as overkill.)
   it("cuts +3 into a BLEEDing foe — and nothing extra into a clean one", () => {
     const bleeding = prepState();
     const l1 = place(bleeding, "leaf_greegon", "P1", 3, 0);
     const f1 = place(bleeding, "dusk_gool", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
     f1.statuses = [{ kind: "BLEED", duration: 2, power: 1, source: "LEAF" }];
     basicAttack(bleeding, l1.instanceId, f1.instanceId);
-    expect(40 - bleeding.cards[f1.instanceId].curHp).toBe(4 + 3); // Greegon 4 + aura 3
+    expect(40 - bleeding.cards[f1.instanceId].curHp).toBe(4 + 4); // Greegon 4 + aura 4
 
     const clean = prepState();
     const l2 = place(clean, "leaf_greegon", "P1", 3, 0);
