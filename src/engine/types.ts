@@ -702,6 +702,10 @@ export interface FieldBuff {
   evasion?: boolean;      // element allies gain EVASION while up (Nightfall)
   specialDiscount?: number; // BOLT Specials cost −N while up (Power Grid), floors at 1
   electrify?: number;       // +N extra Electrify DMG vs statused foes (Power Grid)
+  /** Dense Fog (AQUA): the only field that debuffs the OPPONENT rather than
+   *  buffing its owner — every attack by the field owner's ENEMIES rolls to
+   *  miss, the same coin the BLIND check uses. */
+  enemyMissChance?: boolean;
   /** Downpour: at the start of every round the owner re-picks a Flow Change and
    *  it lands on ALL their element allies, not just a newly-summoned one. */
   flowRepick?: boolean;
@@ -771,6 +775,42 @@ export interface SpellDef {
    *  rest of the game, applied after the AoE resolves. Unlike the BOLT discount
    *  this lands on the CARDS, so it also covers allies summoned later. */
   grantElementDmg?: number;
+  /** The Cost-10 ultimates: a PERMANENT, element-wide grant for the rest of the
+   *  game. Recorded on the player so allies summoned later inherit it too —
+   *  "for the rest of the game" has to mean the game, not the board as it stood.
+   *  The per-round halves (shield/heal) are paid out at Cleanup. */
+  grantElementPerm?: {
+    sp?: number;
+    shieldPerRound?: number;
+    healPerRound?: number;
+    /** Endless Night: DUSK allies gain the DRAIN keyword if they lack it. */
+    drain?: boolean;
+  };
+  /** Sap N SP from every target for the round (99 = drop it to nothing).
+   *  Round-scoped, so it wears off at Cleanup like Flow Change's boosts. */
+  spDebuff?: number;
+  /** Steam Vent: this status lands INSTEAD of the plain damage, and only when
+   *  the target is already FROZEN — cold and heat refusing to cancel out. */
+  statusIfFrozen?: { kind: StatusKind; duration: number; power: number };
+  /** Withering Grasp: heal an element ally for the HP damage this spell dealt. */
+  healAllyForDamage?: boolean;
+  /** Bloodroot Surge: heal every element ally for the TOTAL DOT this spell just
+   *  queued up across the enemy board (power x duration x targets). */
+  healAlliesForStatus?: boolean;
+  /** Heart of the Forest: restore every element ally to full HP. */
+  healAlliesFull?: boolean;
+  /** Glacial Wave / Landslide: element allies standing INSIDE the AoE's area
+   *  gain shields — the area is the same one the enemies were hit in. */
+  allyShieldInArea?: number;
+  /** Harvest: DRAIN N max HP from every target, spread across the caster's
+   *  surviving element allies. */
+  drainMaxHpAll?: number;
+  /** Grace: +N DMG to the healed ally for the round. */
+  allyDmgRound?: number;
+  /** System Override: every Special the caster fires costs N less this round. */
+  specialDiscountRound?: number;
+  /** Recon Ping: reveal the opponent's hand for the rest of this round. */
+  revealHand?: boolean;
   /** Trap spells: the payload delivered when an enemy steps on the square. */
   trap?: { dmg: number; pen?: boolean; status?: { kind: StatusKind; duration: number; power: number }; splash?: boolean };
   /** Cleanse rider: remove up to N negative statuses from each of the caster's
@@ -826,8 +866,24 @@ export interface PlayerState {
   /** Total Network Control (BOLT ultimate): a permanent −N to this player's BOLT
    *  Specials (min 1), applied to current AND future BOLT cards for the game. */
   boltDiscount?: number;
+  /** System Override: EVERY Special this player casts costs N less, for THIS
+   *  round only (boltDiscount is the permanent, BOLT-only version). Cleared at
+   *  Cleanup. */
+  specialDiscountRound?: number;
+  /** Recon Ping: the round through which this player's hand is visible to the
+   *  opponent. Information, not board state — the UI reads it. */
+  handRevealedUntilRound?: number;
   /** Volcanic Eruption: permanent +DMG for this player's cards of that element. */
   elementDmgBuff?: { element: Element; amount: number };
+  /** The Cost-10 ultimates' lasting engines, keyed by element. Read at Cleanup
+   *  (shield/heal), on summon (sp), and by the DRAIN keyword check. */
+  elementPerm?: {
+    element: Element;
+    sp?: number;
+    shieldPerRound?: number;
+    healPerRound?: number;
+    drain?: boolean;
+  };
 }
 
 export type Phase =

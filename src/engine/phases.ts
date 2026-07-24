@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, type FlowMode, GALE_SP_CAP, LEAF_SHIELD_CAP } from "./auras";
-import { applyStatus, basicAttack, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, onEnemySide, payAttackTrade, pushBack, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, applyTimedBuff, basicAttack, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, onEnemySide, payAttackTrade, pushBack, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin } from "./rng";
@@ -158,6 +158,14 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // Token spawns (Trinezer's Reptilian Screech).
       if (def.summonSpawn)
         spawnTokens(draft, inst, def.summonSpawn.token, def.summonSpawn.count, def.summonSpawn.adjacentOnly ? 1 : def.summonSpawn.spawnRadius);
+      // A permanent element grant already in force covers cards summoned after
+      // it resolved — otherwise "for the rest of the game" would quietly mean
+      // "for the cards that happened to be out".
+      const permOnSummon = draft.players[inst.owner].elementPerm;
+      if (permOnSummon && def.element === permOnSummon.element && permOnSummon.sp)
+        inst.spBonus += permOnSummon.sp;
+      const dmgPerm = draft.players[inst.owner].elementDmgBuff;
+      if (dmgPerm && def.element === dmgPerm.element) inst.dmgBonus += dmgPerm.amount;
       applyElementSummonAura(draft, inst);
       // On-opponent-summon reactions: existing enemies zap the newcomer as it
       // enters the battlefield (Cave Guard, Shocker).
@@ -385,6 +393,19 @@ function resolveSpell(
     return;
   }
 
+  if (spell.specialDiscountRound) {
+    const pl = draft.players[player];
+    pl.specialDiscountRound = (pl.specialDiscountRound ?? 0) + spell.specialDiscountRound;
+    draft.log.push(`${player}'s Specials cost ${spell.specialDiscountRound} less this round.`);
+    return;
+  }
+  if (spell.revealHand) {
+    // Pure information: the opposing hand is legible for the rest of this round.
+    // Nothing on the board changes, which is the point of the card.
+    draft.players[enemyOf(player)].handRevealedUntilRound = draft.round;
+    draft.log.push(`${player} pings the network — the opposing hand is exposed this round.`);
+    return;
+  }
   if (spell.kind === "convert" && spell.gainSummon) {
     // The magic was already deducted by the CAST_SPELL intent; this is the
     // other half of the trade. No carryover clamp — that only applies to what
@@ -435,6 +456,24 @@ function resolveSpell(
       draft.log.push(
         `${player}'s ${spell.element} allies gain +${n} DMG for the rest of the game (${kin.length} on board).`,
       );
+    }
+    if (spell.grantElementPerm) {
+      const g = spell.grantElementPerm;
+      const prev = draft.players[player].elementPerm;
+      draft.players[player].elementPerm = {
+        element: spell.element,
+        sp: (prev?.sp ?? 0) + (g.sp ?? 0),
+        shieldPerRound: (prev?.shieldPerRound ?? 0) + (g.shieldPerRound ?? 0),
+        healPerRound: (prev?.healPerRound ?? 0) + (g.healPerRound ?? 0),
+        drain: prev?.drain || g.drain,
+      };
+      // The SP half lands on the cards standing now; later arrivals pick it up
+      // from the player record when they are summoned.
+      if (g.sp) {
+        for (const c of boardCards(draft, player))
+          if (getDef(c.defId).element === spell.element) c.spBonus += g.sp;
+      }
+      draft.log.push(`${player}'s ${spell.element} allies are permanently changed.`);
     }
     if (spell.grantBoltDiscount) {
       const p = draft.players[player];
@@ -518,6 +557,18 @@ function resolveSpell(
     if (alive && spell.status)
       applyStatus(draft, target, spell.status.kind, spell.status.duration, spell.status.power, spell.element);
     if (alive && spell.push) pushBack(draft, target, spell.push, player);
+    // Pressure Crush: sap the target's SP for the round (99 = to nothing).
+    if (alive && spell.spDebuff)
+      applyTimedBuff(target, 0, -Math.min(spell.spDebuff, effectiveSp(draft, target)), 1);
+    // Steam Vent: SCALD lands only on a target ALREADY frozen — the card exists
+    // to reward having set the freeze up, so it does nothing to a warm target.
+    if (alive && spell.statusIfFrozen && hasStatus(target, "FREEZE"))
+      applyStatus(draft, target, spell.statusIfFrozen.kind, spell.statusIfFrozen.duration, spell.statusIfFrozen.power, spell.element);
+    // Withering Grasp: the damage dealt is fed straight back to an ally.
+    if (spell.healAllyForDamage && spell.dmg) {
+      const ally = pickSpellAlly(draft, player, spell.element);
+      if (ally) healCard(draft, ally, spell.dmg, player);
+    }
     if (alive && spell.drainMaxHp && target.maxHp > 1) {
       const steal = Math.min(spell.drainMaxHp, target.maxHp - 1);
       target.maxHp -= steal;
@@ -1324,6 +1375,14 @@ function doCleanupPhase(draft: GameState): void {
         draft.log.push(`${label(draft, card)}'s bark thickens where it was struck (+1 shield).`);
       }
     }
+    // The Cost-10 permanent engines (Mountain's Fall, Eternal Dawn, Tsunami,
+    // Heart of the Forest). Read from the OWNER's record, so a card summoned
+    // after the spell resolved is covered too.
+    const perm = draft.players[card.owner].elementPerm;
+    if (perm && def.element === perm.element) {
+      if (perm.shieldPerRound) card.curShields += perm.shieldPerRound;
+      if (perm.healPerRound) healCard(draft, card, perm.healPerRound, card);
+    }
     // Zephyr (GALE): +1 SP each round, total capped at 21.
     if (def.element === "GALE" && def.sp + card.spBonus < GALE_SP_CAP) card.spBonus += 1;
     // Field per-round buffs: REGEN (Lushfield/Blazing Sun), shields (Downpour).
@@ -1382,6 +1441,10 @@ function doCleanupPhase(draft: GameState): void {
 
   // 4. Clear round flags (STEALTH re-engages; summon lockout ends;
   //    special cooldowns tick down; per-round DMG buffs + hit tracking reset).
+  // System Override lasts THIS round only — cleared with the other round-scoped
+  // state so it cannot leak into the next.
+  draft.players.P1.specialDiscountRound = 0;
+  draft.players.P2.specialDiscountRound = 0;
   for (const card of boardCards(draft)) {
     card.summonedThisRound = false;
     card.attackedThisRound = false;

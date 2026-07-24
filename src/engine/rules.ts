@@ -537,7 +537,10 @@ export function effectiveSpecialCost(state: GameState, card: CardInstance, cost:
   // (temporary, per-field). fieldBonus only matches a BOLT card to a BOLT field,
   // so a non-BOLT card never picks up a specialDiscount.
   const permBolt = getDef(card.defId).element === "BOLT" ? (state.players[card.owner].boltDiscount ?? 0) : 0;
-  const total = permBolt + fieldBonus(state, card, "specialDiscount");
+  // System Override: this round only, and NOT element-gated — it discounts
+  // every Special the caster fires, which is the whole point of the spell.
+  const roundWide = state.players[card.owner].specialDiscountRound ?? 0;
+  const total = permBolt + roundWide + fieldBonus(state, card, "specialDiscount");
   return total > 0 ? Math.max(1, base - total) : base;
 }
 

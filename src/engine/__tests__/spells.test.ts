@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { directDamage, wallEvasion, wallFlatReduction } from "../combat";
 import { applyIntent, advance } from "../phases";
 import { canCastSpell } from "../rules";
+import { SPELLS } from "../spells";
 import { effectiveDmg } from "../state";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
@@ -457,26 +458,29 @@ describe("cleanse + board wipes", () => {
   });
 });
 
-describe("Power Converter (pool conversion)", () => {
-  it("spends 6 magic and hands back 4 summoning resource", () => {
+describe("Power Rebate (pool conversion)", () => {
+  it("spends 5 magic and hands back 6 summoning resource", () => {
+    // Retuned from 6->4 when it moved to Cost 5: BOLT carried two Cost-6 spells,
+    // leaving a hole at 5. It is now a net GAIN of 1, which is what makes it a
+    // timing tool rather than a straight loss.
     const s = prepState();
-    armSpell(s, "bolt_power_rebate", 6);
+    armSpell(s, "bolt_power_rebate", 5);
     s.players.P1.summonPool = 2;
     const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bolt_power_rebate" });
     expect(next.players.P1.magicPool).toBe(0);
-    expect(next.players.P1.summonPool).toBe(6); // 2 + 4
+    expect(next.players.P1.summonPool).toBe(8); // 2 + 6
     expect(next.players.P1.spellbook[0].used).toBe(true);
   });
 
   it("needs no target — it is legal with an empty board", () => {
     const s = prepState();
-    armSpell(s, "bolt_power_rebate", 6);
+    armSpell(s, "bolt_power_rebate", 5);
     expect(canCastSpell(s, "P1", "bolt_power_rebate", {}).ok).toBe(true);
   });
 
   it("is blocked one magic short", () => {
     const s = prepState();
-    armSpell(s, "bolt_power_rebate", 5);
+    armSpell(s, "bolt_power_rebate", 4);
     const chk = canCastSpell(s, "P1", "bolt_power_rebate", {});
     expect(chk.ok).toBe(false);
     expect(chk.reason).toBe("Not enough magic");
@@ -485,7 +489,7 @@ describe("Power Converter (pool conversion)", () => {
   it("the converted resource is real — it pays for a summon you couldn't afford", () => {
     // The whole point of the trade: banked magic becomes board presence now.
     const s = prepState();
-    armSpell(s, "bolt_power_rebate", 6);
+    armSpell(s, "bolt_power_rebate", 5);
     s.players.P1.summonPool = 1; // greegon costs 3 — short by 2
     const handId = giveHand(s, "P1", "leaf_greegon");
     expect(() =>
@@ -493,7 +497,7 @@ describe("Power Converter (pool conversion)", () => {
     ).toThrow();
     let next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bolt_power_rebate" });
     next = applyIntent(next, { type: "SUMMON", player: "P1", handId, col: 0 });
-    expect(next.players.P1.summonPool).toBe(2); // 1 + 4 − 3
+    expect(next.players.P1.summonPool).toBe(4); // 1 + 6 − 3
     expect(Object.values(next.cards).some((c) => c.defId === "leaf_greegon")).toBe(true);
   });
 });
@@ -592,5 +596,57 @@ describe("Volcanic Eruption's permanent grant", () => {
     expect(n.cards[notPyro.instanceId].dmgBonus).toBe(0); // element-gated
     // Recorded on the player, so it is not just a one-off sweep of the board.
     expect(n.players.P1.elementDmgBuff).toEqual({ element: "PYRO", amount: 2 });
+  });
+});
+
+describe("every spell in the set actually resolves", () => {
+  it("casts all of them without throwing", () => {
+    // A coverage net, not a behaviour test: 27 spells were added at once, and a
+    // rider that references a field the resolver never reads fails silently —
+    // the spell is spent and nothing happens. This catches that.
+    const bad: string[] = [];
+    for (const spell of SPELLS) {
+      const s: GameState = prepState();
+      s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+      s.players.P1.magicPool = 30;
+      s.players.P1.spellbook = [{ defId: spell.id, used: false }];
+      // One ally of every element, so element-gated riders always have a target.
+      place(s, "leaf_greegon", "P1", 3, 0, { curHp: 5, maxHp: 20 });
+      place(s, "pyro_firebird", "P1", 3, 1, { curHp: 5, maxHp: 20 });
+      place(s, "aqua_spinefin", "P1", 3, 2, { curHp: 5, maxHp: 20 });
+      place(s, "bolt_zap", "P1", 3, 3, { curHp: 5, maxHp: 20 });
+      place(s, "dusk_gool", "P1", 2, 0, { curHp: 5, maxHp: 20 });
+      place(s, "dawn_sparkle", "P1", 2, 1, { curHp: 5, maxHp: 20 });
+      place(s, "gale_duster", "P1", 2, 2, { curHp: 5, maxHp: 20 });
+      place(s, "bore_clubber", "P1", 2, 3, { curHp: 5, maxHp: 20 });
+      const foe = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 40, maxHp: 40 });
+      place(s, "dusk_crow", "P2", 1, 2, { curHp: 40, maxHp: 40 });
+      const opts: Record<string, unknown> = {};
+      if (spell.kind === "damage" || spell.kind === "choice") {
+        opts.targetId = foe.instanceId;
+        opts.mode = "attack";
+      }
+      if (spell.kind === "wall" || (spell.kind === "aoe" && spell.area !== "board")) {
+        // Stone Wall is the one wall restricted to the caster's OWN Home row —
+        // deliberate (BORE fortifies rather than pushes), so it gets row 3.
+        opts.row = spell.id === "bore_stone_wall" ? 3 : 1;
+      }
+      if (spell.kind === "trap") { opts.row = 0; opts.col = 3; }
+      const chk = canCastSpell(s, "P1", spell.id, opts as never);
+      if (!chk.ok) { bad.push(`${spell.id}: illegal — ${chk.reason}`); continue; }
+      try {
+        applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: spell.id, ...(opts as object) } as never);
+      } catch (e) { bad.push(`${spell.id}: THREW ${(e as Error).message}`); }
+    }
+    expect(bad, `spells that failed to resolve:\n  ${bad.join("\n  ")}`).toEqual([]);
+  });
+
+  it("every element has a full 1-10 ladder with a Wall at 4 and a Field at 6", () => {
+    for (const el of ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"]) {
+      const mine = SPELLS.filter((s) => s.element === el);
+      expect(mine.length, `${el} has only ${mine.length} spells`).toBeGreaterThanOrEqual(8);
+      expect(mine.some((s) => s.kind === "wall" && s.cost === 4), `${el} has no Cost-4 Wall`).toBe(true);
+      expect(mine.some((s) => s.kind === "field" && s.cost === 6), `${el} has no Cost-6 Field`).toBe(true);
+    }
   });
 });

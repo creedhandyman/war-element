@@ -90,8 +90,11 @@ describe("card text covers every mechanic", () => {
       say(s.drainMaxHp, "drainMaxHp");
       say(s.gainSummon, "gainSummon");
       // A converter's text has to state BOTH sides of the trade, or the player
-      // can't tell what the exchange rate is.
-      if (s.kind === "convert") say(s.cost, "cost (magic spent)");
+      // can't tell what the exchange rate is. Keyed on gainSummon rather than on
+      // the KIND: Recon Ping and System Override are targetless utility spells
+      // that ride the same branch without trading anything, and demanding they
+      // print their cost would be asking for a number that means nothing.
+      if (s.gainSummon) say(s.cost, "cost (magic spent)");
       say(s.wall?.dmg, "wall dmg");
       say(s.wall?.rounds, "wall rounds");
       say(s.field?.rounds, "field rounds");

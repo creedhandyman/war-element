@@ -312,6 +312,19 @@ export function resolveHit(
 
     // 0. BLIND — −50% accuracy, rolled PER HIT on a basic attack (so a blinded
     //    multi-hit lands some and whiffs others). Specials auto-hit.
+    // Dense Fog (AQUA): the ENEMY's field makes this attack roll to miss, on the
+    // same coin BLIND uses. Read from the OPPONENT's fields, not the attacker's
+    // — it is the only field in the game that debuffs the other side.
+    const fogged =
+      opts.kind === "basic" &&
+      !aDef.alwaysHit &&
+      !fieldNeverMiss &&
+      draft.fields.some((f) => f.owner !== attacker.owner && f.enemyMissChance);
+    if (fogged && !coin(draft)) {
+      result.dodgedHits = (result.dodgedHits ?? 0) + 1;
+      draft.log.push(`${label(draft, attacker)} loses the shot in the fog.`);
+      continue;
+    }
     if (opts.kind === "basic" && !aDef.alwaysHit && !fieldNeverMiss && hasStatus(attacker, "BLIND") && !coin(draft)) {
       result.dodgedHits++;
       target.fxMiss = (target.fxMiss ?? 0) + 1;
@@ -468,12 +481,17 @@ export function resolveHit(
     // and healCard caps at effectiveMaxHp — so draining first means the new
     // ceiling is already in place and the heal can actually use it. The other
     // order silently clipped the last points of every drain-heal.
-    if (aDef.keywords.DRAIN) drainMaxHp(draft, attacker, target, 1);
+    // Endless Night can GRANT drain to a whole element for the rest of the game,
+    // so the keyword is read through the player record as well as the card.
+    const granted = draft.players[attacker.owner].elementPerm;
+    const hasDrain =
+      aDef.keywords.DRAIN || (granted?.drain && granted.element === aDef.element);
+    if (hasDrain) drainMaxHp(draft, attacker, target, 1);
     // DRAIN is LIFESTEAL that also grows — but it feeds at HALF rate: it heals
     // for half the damage dealt, on top of the 1 max HP it just took. LIFESTEAL
     // still returns the full amount, and a card carrying both takes the better
     // (full) rate rather than the two cancelling out.
-    const drains = aDef.keywords.LIFESTEAL || aDef.keywords.DRAIN || opts.lifesteal;
+    const drains = aDef.keywords.LIFESTEAL || hasDrain || opts.lifesteal;
     if (drains && result.totalToHp > 0) {
       const fullRate = Boolean(aDef.keywords.LIFESTEAL || opts.lifesteal);
       // floor, matching every other halving in the game (DAWN's Awakening,
