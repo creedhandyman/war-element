@@ -287,3 +287,41 @@ describe("DrShock — Shocker ELECTRIFIES (no longer PARALYZE)", () => {
     expect(30 - s.cards[foe.instanceId].curHp).toBe(3);
   });
 });
+
+describe("LEAF Overgrowth aura (offensive half)", () => {
+  // LEAF's aura was purely defensive and it measured worst on BOTH axes. This
+  // is the self-enabling offence that mirrors BOLT's Electrify: a basic BLEEDs
+  // an unstatused foe, and LEAF cuts +3 into anything BLEEDing or ROOTed.
+  it("a LEAF basic BLEEDs a foe that carried no status", () => {
+    const s = prepState();
+    const leaf = place(s, "leaf_greegon", "P1", 3, 0); // 4 DMG, no on-hit status of its own
+    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, leaf.instanceId, foe.instanceId);
+    expect(statusOf(s.cards[foe.instanceId], "BLEED")).toBeTruthy();
+  });
+
+  it("cuts +3 into a BLEEDing foe — and nothing extra into a clean one", () => {
+    const bleeding = prepState();
+    const l1 = place(bleeding, "leaf_greegon", "P1", 3, 0);
+    const f1 = place(bleeding, "dusk_gool", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    f1.statuses = [{ kind: "BLEED", duration: 2, power: 1, source: "LEAF" }];
+    basicAttack(bleeding, l1.instanceId, f1.instanceId);
+    expect(40 - bleeding.cards[f1.instanceId].curHp).toBe(4 + 3); // Greegon 4 + aura 3
+
+    const clean = prepState();
+    const l2 = place(clean, "leaf_greegon", "P1", 3, 0);
+    const f2 = place(clean, "dusk_gool", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(clean, l2.instanceId, f2.instanceId);
+    expect(40 - clean.cards[f2.instanceId].curHp).toBe(4); // no bonus on the opening hit
+  });
+
+  it("is LEAF-only — a BORE card gets no bonus vs a BLEEDing foe", () => {
+    const s = prepState();
+    const bore = place(s, "bore_clubber", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    foe.statuses = [{ kind: "BLEED", duration: 2, power: 1, source: "LEAF" }];
+    const base = getDef("bore_clubber").dmg;
+    basicAttack(s, bore.instanceId, foe.instanceId);
+    expect(40 - s.cards[foe.instanceId].curHp).toBe(base); // no aura, no +3
+  });
+});
