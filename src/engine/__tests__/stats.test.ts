@@ -117,3 +117,45 @@ describe("match stats", () => {
     expect(s.stats.byPlayer.P1.dmg).toBe(0);
   });
 });
+
+describe("shields are measured, not just HP loss", () => {
+  it("records what the armour stopped, separately from what got through", () => {
+    // The gap this closes: `taken` counts HP loss only, so damage a shield ate
+    // appeared NOWHERE. A shield element looked defensively weak precisely when
+    // its armour was working.
+    const s = prepState();
+    const a = place(s, "leaf_alpha", "P1", 2, 0);
+    const t = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 3 });
+    resolveHit(s, a, t, { kind: "special", dmg: 10, hits: 1, pen: false, crit: false });
+    // 3 shields absorb 3; the remaining 7 lands on HP.
+    expect(s.stats.byCard[t.instanceId].shielded).toBe(3);
+    expect(s.stats.byCard[t.instanceId].taken).toBe(7);
+    expect(s.stats.byPlayer.P2.shielded).toBe(3);
+  });
+
+  it("a FULLY absorbed hit still counts — that is the shield doing its whole job", () => {
+    const s = prepState();
+    const a = place(s, "leaf_alpha", "P1", 2, 0);
+    const t = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 9 });
+    resolveHit(s, a, t, { kind: "special", dmg: 4, hits: 1, pen: false, crit: false });
+    expect(s.stats.byCard[t.instanceId].shielded).toBe(4);
+    expect(s.stats.byCard[t.instanceId].taken).toBe(0); // nothing reached HP
+  });
+
+  it("PEN bypasses the gate, so it shields nothing", () => {
+    const s = prepState();
+    const a = place(s, "leaf_alpha", "P1", 2, 0);
+    const t = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 5 });
+    resolveHit(s, a, t, { kind: "special", dmg: 6, hits: 1, pen: true, crit: false });
+    expect(s.stats.byCard[t.instanceId].shielded).toBe(0);
+    expect(s.stats.byCard[t.instanceId].taken).toBe(6); // straight through
+  });
+
+  it("friendly fire is not credited, same as damage", () => {
+    const s = prepState();
+    const a = place(s, "leaf_alpha", "P1", 2, 0);
+    const friend = place(s, "leaf_nettle", "P1", 2, 1, { curHp: 20, maxHp: 20, curShields: 4 });
+    resolveHit(s, a, friend, { kind: "special", dmg: 3, hits: 1, pen: false, crit: false });
+    expect(s.stats.byPlayer.P1.shielded).toBe(0);
+  });
+});

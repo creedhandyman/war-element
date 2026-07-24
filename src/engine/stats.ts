@@ -13,7 +13,7 @@ import { getDef } from "../data/cards";
 import type { CardInstance, MatchStats, PlayerId } from "./types";
 
 function zeroSide() {
-  return { dmg: 0, heal: 0, captures: 0, kills: 0, taken: 0, healRecv: 0, debuffs: 0, deaths: 0 };
+  return { dmg: 0, heal: 0, captures: 0, kills: 0, taken: 0, shielded: 0, healRecv: 0, debuffs: 0, deaths: 0 };
 }
 
 export function emptyStats(): MatchStats {
@@ -29,7 +29,7 @@ function cardRow(stats: MatchStats, card: CardInstance) {
       name: getDef(card.defId).name,
       owner: card.owner,
       dmg: 0, heal: 0, captures: 0, kills: 0,
-      taken: 0, healRecv: 0, debuffs: 0, deaths: 0,
+      taken: 0, shielded: 0, healRecv: 0, debuffs: 0, deaths: 0,
     };
     stats.byCard[card.instanceId] = row;
   }
@@ -79,6 +79,16 @@ export function creditHeal(
     stats.byPlayer[target.owner].healRecv += amount;
     cardRow(stats, target).healRecv += amount;
   }
+}
+
+/** Credit damage a card's SHIELDS absorbed before it reached HP. Separate from
+ *  `taken` because they answer different questions: taken is how much a card
+ *  endured, shielded is how much its armour prevented. Reporting only the first
+ *  makes a shield element look defensively weak precisely when it is working. */
+export function creditShielded(stats: MatchStats, target: CardInstance, amount: number): void {
+  if (amount <= 0) return;
+  stats.byPlayer[target.owner].shielded += amount;
+  cardRow(stats, target).shielded += amount;
 }
 
 /** Credit a negative status landing on `target`. applyStatus carries an Element

@@ -810,7 +810,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    fixed and tabular so the numbers line up down the column. It scrolls inside
    itself rather than widening the modal on a phone. */
 .mr-roster { margin-top: 9px; border-top: 1px dashed var(--panel-line); padding-top: 7px; overflow-x: auto; }
-.mr-cr { display: grid; grid-template-columns: minmax(58px, 1fr) repeat(8, 22px); gap: 2px; align-items: baseline;
+.mr-cr { display: grid; grid-template-columns: minmax(52px, 1fr) repeat(9, 21px); gap: 2px; align-items: baseline;
   font-size: 11px; padding: 2px 0; color: var(--ink-dim); }
 .mr-cr.head { color: var(--ink-faint); font-size: 10px; border-bottom: 1px solid var(--panel-line); padding-bottom: 3px; margin-bottom: 2px; }
 .mr-cr.top .mr-cr-name { color: var(--gold-lit); font-weight: 800; }

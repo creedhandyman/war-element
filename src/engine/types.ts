@@ -948,6 +948,11 @@ export interface CardStat {
   /** Defence: HP damage this card absorbed. A tank's whole contribution was
    *  invisible in the report before this. */
   taken: number;
+  /** Damage its SHIELDS ate before any of it reached HP. `taken` counts HP loss
+   *  only, so without this an armour card looks like it barely defended — the
+   *  damage it stopped never appeared anywhere. Shield-based elements (BORE,
+   *  AQUA) are unmeasurable on `taken` alone. */
+  shielded: number;
   /** HP restored TO this card, by anyone (including itself). */
   healRecv: number;
   /** Negative statuses landed on this card — how hard it got locked down. */
@@ -961,6 +966,7 @@ export interface SideStat {
   captures: number;
   kills: number;
   taken: number;
+  shielded: number;
   healRecv: number;
   debuffs: number;
   deaths: number;

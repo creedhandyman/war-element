@@ -1,16 +1,19 @@
 import type { CardStat, GameState, PlayerId } from "../engine";
 
 /** MVP weighting: captures win the game, kills swing it, then raw output.
- *  `taken` counts at half — soaking damage is a real contribution, but a tank
- *  that only ever got hit should not outrank the card that did the work. */
+ *  `taken` and `shielded` count at half — absorbing damage is a real
+ *  contribution, but a tank that only ever got hit should not outrank the card
+ *  that did the work. Shielded counts too, or an armour card's whole job stays
+ *  invisible to the award. */
 const mvpScore = (c: CardStat) =>
-  c.dmg + c.heal + c.taken * 0.5 + c.kills * 4 + c.captures * 12;
+  c.dmg + c.heal + (c.taken + c.shielded) * 0.5 + c.kills * 4 + c.captures * 12;
 const sideName = (p: PlayerId) => (p === "P1" ? "You" : "Opponent");
 
 /** The columns of the per-card table, in display order. */
 const COLS = [
   ["dmg", "⚔", "Damage dealt"],
-  ["taken", "🛡", "Damage taken"],
+  ["taken", "💥", "Damage taken"],
+  ["shielded", "🛡", "Damage its shields absorbed"],
   ["heal", "✚", "Healing done"],
   ["healRecv", "♥", "Healing received"],
   ["kills", "💀", "Kills"],
@@ -57,6 +60,7 @@ export function WinScreen(props: { game: GameState; onNewGame: () => void }) {
         <div className="mr-side-h">{sideName(p)}{win.winner === p ? " · won" : ""}</div>
         <div className="mr-row"><span>Damage dealt</span><b>{t.dmg}</b></div>
         <div className="mr-row"><span>Damage taken</span><b>{t.taken}</b></div>
+        <div className="mr-row"><span>Shields absorbed</span><b>{t.shielded}</b></div>
         <div className="mr-row"><span>Healing done</span><b>{t.heal}</b></div>
         <div className="mr-row"><span>Kills · losses</span><b>{t.kills} · {t.deaths}</b></div>
         <div className="mr-row"><span>Statuses suffered</span><b>{t.debuffs}</b></div>
@@ -119,7 +123,8 @@ export function WinScreen(props: { game: GameState; onNewGame: () => void }) {
                 <div className="mr-mvp-name">{mvp.name} <span className="mr-mvp-side">· {sideName(mvp.owner)}</span></div>
                 <div className="mr-mvp-line">
                   {mvp.dmg > 0 && <span title="Damage dealt">⚔ {mvp.dmg}</span>}
-                  {mvp.taken > 0 && <span title="Damage taken">🛡 {mvp.taken}</span>}
+                  {mvp.taken > 0 && <span title="Damage taken">💥 {mvp.taken}</span>}
+                  {mvp.shielded > 0 && <span title="Damage its shields absorbed">🛡 {mvp.shielded}</span>}
                   {mvp.heal > 0 && <span title="Healing done">✚ {mvp.heal}</span>}
                   {mvp.kills > 0 && <span title="Kills">💀 {mvp.kills}</span>}
                   {mvp.captures > 0 && <span title="Home slots captured">🚩 {mvp.captures}</span>}

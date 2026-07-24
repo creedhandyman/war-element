@@ -16,7 +16,7 @@ import { getDef } from "../data/cards";
 import { chance, coin, pctChance } from "./rng";
 import { RANGED_REACH } from "./rules";
 import { PYRO_BURN_STACK_CAP } from "./auras";
-import { creditDamage, creditDeath, creditDebuff, creditKill } from "./stats";
+import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardDef,
@@ -105,6 +105,9 @@ export interface AttackResult {
   landedHits: number;
   dodgedHits: number;
   totalToHp: number;
+  /** Damage the target's shields ate. PEN bypasses the gate entirely, so a
+   *  piercing hit always contributes 0 here. */
+  totalShielded: number;
   targetDied: boolean;
   attackerDied: boolean; // via REFLECT
   critHits?: number; // hits that actually critted (Hastened Assault heal)
@@ -298,6 +301,7 @@ export function resolveHit(
     landedHits: 0,
     dodgedHits: 0,
     totalToHp: 0,
+    totalShielded: 0,
     targetDied: false,
     attackerDied: false,
     critHits: 0,
@@ -404,6 +408,9 @@ export function resolveHit(
         }
       }
       toHp = Math.max(0, remaining - target.curShields);
+      // What the armour actually stopped. Measured BEFORE the shield is stripped
+      // below, since the strip changes curShields for the next hit.
+      result.totalShielded += remaining - toHp;
       if (target.curShields > 0) {
         target.curShields--;
         // Gate Keeper (Veil): the first time the shield wall breaks, harden up.
@@ -468,6 +475,11 @@ export function resolveHit(
   // funnel through here) for the post-match stats.
   if (result.totalToHp > 0 && target.owner !== attacker.owner)
     creditDamage(draft.stats, attacker, attacker.owner, result.totalToHp, target);
+  // Armour that held. Credited even on a hit that dealt no HP damage at all —
+  // a fully-absorbed hit is the shield doing its whole job, and counting only
+  // HP loss is what made shield elements unmeasurable.
+  if (result.totalShielded > 0 && target.owner !== attacker.owner)
+    creditShielded(draft.stats, target, result.totalShielded);
 
   // Count enemy hits TAKEN (Squanch's Regenerative cashes these in at Cleanup).
   // Counts the hit, not the damage — one fully absorbed by shields still landed.
@@ -730,12 +742,12 @@ export function basicAttack(
     if (first && first.owner === attacker.owner && first.instanceId !== attackerId) {
       const healed = healCard(draft, first, effectiveDmg(draft, attacker), attacker.owner);
       draft.log.push(`${label(draft, attacker)} tends ${label(draft, first)} (+${healed} HP).`);
-      return { landedHits: 0, dodgedHits: 0, totalToHp: 0, targetDied: false, attackerDied: false };
+      return { landedHits: 0, dodgedHits: 0, totalToHp: 0, totalShielded: 0, targetDied: false, attackerDied: false };
     }
   }
 
   const missed: AttackResult = {
-    landedHits: 0, dodgedHits: 0, totalToHp: 0, targetDied: false, attackerDied: false,
+    landedHits: 0, dodgedHits: 0, totalToHp: 0, totalShielded: 0, targetDied: false, attackerDied: false,
   };
   // (BLIND accuracy is rolled per hit inside resolveHit now.)
   // PARALYZE: 50% chance to attack at all.
