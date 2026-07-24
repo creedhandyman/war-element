@@ -2208,6 +2208,11 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Dark",
+    // Contagion (Aura): while Zombination lives, every one of its Zombies that
+    // dies sprays 2 DMG to opponents beside it. Strictly Zombination's effect —
+    // it ends the instant Zombination is gone.
+    passiveNames: { contagionAura: "Contagion" },
+    contagionAura: true,
     special: {
       name: "Toxic Eruption",
       cost: 3,

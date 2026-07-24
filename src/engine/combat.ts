@@ -222,11 +222,15 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
   // Before removeCard, while the dying card still has a slot to spawn around.
   const st = def.onDeath?.spawnToken;
   if (st && card.pos) spawnTokens(draft, card, st.token, st.count);
-  // Contagion — the ZOMBIE tribe's trait, not one token's onDeath: every Zombie
-  // bursts when it falls, spraying each adjacent opponent. Lives here at the
-  // single death choke-point, so a Zombie killed by DOT or a tick bursts too
-  // (the old per-card version was in resolveHit and only fired on an attack).
-  if (card.pos && tribeOf(card, "Zombie")) {
+  // Contagion — Zombination's AURA, not a tribe trait: a friendly Zombie's death
+  // sprays each adjacent opponent, but ONLY while a Zombination lives to project
+  // it. Gone the moment Zombination falls. Fires at the single death choke-point
+  // so a Zombie killed by DOT or a tick bursts too, not just an attack.
+  if (
+    card.pos &&
+    tribeOf(card, "Zombie") &&
+    boardCards(draft, card.owner).some((c) => c.curHp > 0 && getDef(c.defId).contagionAura)
+  ) {
     const dp = card.pos;
     const near = boardCards(draft, enemyOf(card.owner)).filter(
       (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, dp) <= 1,

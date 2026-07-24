@@ -126,10 +126,7 @@ const rounds = (n: number) => `${n} round${n === 1 ? "" : "s"}`;
 export function describePassives(def: CardDef): string[] {
   const aura = ELEMENT_AURA[def.element];
   const passives: string[] = [`${def.element} aura — ${aura.name}: ${aura.desc}`];
-  // Contagion is a TRIBE trait, not a card field — every Zombie bursts on death.
-  const tribes = Array.isArray(def.tribe) ? def.tribe : def.tribe ? [def.tribe] : [];
-  if (tribes.includes("Zombie"))
-    passives.push("Contagion (Zombie): when it dies, deals 2 DMG to every opponent beside it.");
+
   /** Push a line, prefixed with the card's own name for that passive when it
    *  has one. `key` is the def field the line was derived from. */
   const named = (key: string, text: string) => {
@@ -357,6 +354,8 @@ export function describePassives(def: CardDef): string[] {
     named("stealthWhenIdle", "Buried in the muck: hidden and untargetable each round it neither moves nor attacks — doing either gives it up until the next round it stays still.");
   if (def.hiveAbsorb)
     named("hiveAbsorb", `Living ${def.hiveAbsorb.tribe} allies soak up to ${def.hiveAbsorb.pct}% of the damage aimed at this card, as far as their own HP stretches.`);
+  if (def.contagionAura)
+    named("contagionAura", "Aura: while this card lives, every one of your Zombies that dies deals 2 DMG to each opponent beside it.");
   if (def.startsWithFreeSpecial)
     named("startsWithFreeSpecial", "Arrives with its Special already charged — the first cast is free.");
   if (def.vsTarget?.bonusDmg) {

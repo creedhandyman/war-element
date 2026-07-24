@@ -340,6 +340,11 @@ export interface CardDef {
   startsWithFreeSpecial?: boolean;
   /** Prism's Special arms an Enchantment rather than doing anything itself. */
   enchanter?: boolean;
+  /** Contagion (Zombination): while THIS card lives, the death of any friendly
+   *  Zombie sprays 2 DMG to opponents beside the corpse. It is Zombination's
+   *  aura — strictly its effect — so it stops the moment Zombination is gone,
+   *  unlike a trait baked into the tribe. */
+  contagionAura?: boolean;
   /** Hive Mind (Keeper): living allies of `tribe` soak up to `pct`% of the HP
    *  damage aimed at this card. Applied AFTER the shield gate, so it splits
    *  what would actually have reached HP — and capped by what the swarm can
