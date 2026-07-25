@@ -1250,16 +1250,15 @@ describe("element auras", () => {
     expect(s.cards[killer.instanceId].curHp).toBe(7); // 9 − 2 (was 3 at a half)
   });
 
-  it("...and the cheapest bodies now lash out for nothing at all", () => {
-    // A consequence worth pinning rather than discovering: at 2 DMG the third
-    // floors to zero, so Vamp and Spider — the throwaway cards the aura most
-    // rewarded losing — give their killer nothing back.
+  it("...and even the cheapest bodies bite back for at least 1", () => {
+    // Floored at 1: at 2 DMG the third rounds to 0, but a dying DUSK card always
+    // lashes for at least a point — so Vamp/Spider still cost their killer.
     const s = prepState();
-    const killer = place(s, "gale_duster", "P1", 2, 0, { curHp: 5 });
-    const vamp = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 }); // DMG 2 → third 0
+    const killer = place(s, "gale_duster", "P1", 2, 0, { curHp: 5, curShields: 0 });
+    const vamp = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 }); // DMG 2 → floored to 1
     basicAttack(s, killer.instanceId, vamp.instanceId);
     expect(s.cards[vamp.instanceId]).toBeUndefined();
-    expect(s.cards[killer.instanceId].curHp).toBe(5); // untouched
+    expect(s.cards[killer.instanceId].curHp).toBe(4); // 5 − 1 Midnight Shade floor
   });
 
   it("Awakening (DAWN): summoning strikes the nearest enemy for half its DMG", () => {

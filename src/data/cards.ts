@@ -3816,9 +3816,10 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 1,
     keywords: {},
-    // Rock Slide (On Summon): drop 5 rocks at the nearest opponent, 1 DMG each,
-    // each a coin to land (reuses the rockslide handler; no shields on a miss).
-    onSummon: { handler: "rockslide", params: { dmg: 1, hits: 5, shieldPerMiss: 0, reachNearest: 1 }, targetSide: "enemy" },
+    // Rock Slide (On Summon): 5 rocks (1 DMG each) scattered RANDOMLY over the
+    // opponents in range, each a coin to land. Ranged, so validTargets already
+    // gives the in-range foes — spread picks a random one per rock; no shields.
+    onSummon: { handler: "rockslide", params: { dmg: 1, hits: 5, shieldPerMiss: 0, scatter: 1 }, targetSide: "enemy" },
   },
   {
     id: "dusk_harve",

@@ -91,6 +91,23 @@ describe("wave 4 — cost-1, one per element", () => {
     expect(total).toBeGreaterThan(0);
   });
 
+  it("...and the rocks SCATTER — with two foes in range, both get hit over time", () => {
+    let hitA = 0, hitB = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const s = prepState(seed);
+      s.players.P1.gold = 5;
+      const a = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+      const b = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+      const h = giveHand(s, "P1", "bore_kcor");
+      const n = applyIntent(s, { type: "SUMMON", player: "P1", handId: h, col: 0 });
+      if (n.cards[a.instanceId].curHp < 40) hitA++;
+      if (n.cards[b.instanceId].curHp < 40) hitB++;
+    }
+    // A single-target slide would leave one of them untouched every game.
+    expect(hitA).toBeGreaterThan(0);
+    expect(hitB).toBeGreaterThan(0);
+  });
+
   it("Harve: Dancing Shadow raises a Specter on summon", () => {
     const s = prepState();
     s.players.P1.gold = 5;

@@ -13,7 +13,7 @@
 //   5. On-hit keywords: LIFESTEAL (basic), DRAIN (basic), REFLECT X.
 
 import { getDef } from "../data/cards";
-import { chance, coin, pctChance } from "./rng";
+import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget } from "./rules";
 import { PYRO_BURN_STACK_CAP } from "./auras";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
@@ -719,8 +719,9 @@ export function resolveHit(
       // bodies than any other element. Free damage on every one of those deaths,
       // with no cost, cooldown or counterplay, is what made attacking into DUSK
       // a losing trade even when the individual cards were not tough.
-      const back = Math.floor(tDef.dmg / 3);
-      if (back > 0) {
+      // At least 1 — a dying DUSK card always bites back, even a 0-DMG support.
+      const back = Math.max(1, Math.floor(tDef.dmg / 3));
+      {
         draft.log.push(`${tDef.name} lashes out from the shadows (${back} DMG).`);
         // Telegraph on the KILLER, not the source: defeatCard has already
         // removed the dying card from state.cards, so there is nothing left on
@@ -2079,12 +2080,19 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const shots = num(params, "hits", 1);
     const dmg = num(params, "dmg");
     const perMiss = num(params, "shieldPerMiss", 2);
-    const target = targets[0];
+    // scatter (Kcor): each rock lands on a RANDOM in-range opponent instead of
+    // pounding one target (Monger). Every rock is still a coin to land. NOT
+    // named `spread` — the onSummon sourcing reads that as forward-area columns.
+    const spread = num(params, "scatter") > 0;
     let hit = 0;
     let missed = 0;
     for (let i = 0; i < shots; i++) {
-      const t = target && draft.cards[target.instanceId];
-      if (!t || t.curHp <= 0 || attacker.curHp <= 0) break;
+      if (attacker.curHp <= 0) break;
+      const live = spread
+        ? targets.filter((c) => draft.cards[c.instanceId] && c.curHp > 0)
+        : (targets[0] && draft.cards[targets[0].instanceId] && targets[0].curHp > 0 ? [targets[0]] : []);
+      if (live.length === 0) break;
+      const t = spread ? live[randInt(draft, live.length)] : live[0];
       if (coin(draft)) {
         resolveHit(draft, attacker, t, { kind: "special", dmg, hits: 1, pen: false, crit: false });
         hit++;
