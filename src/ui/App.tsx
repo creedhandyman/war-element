@@ -1216,8 +1216,14 @@ export function App() {
                   }
                   if (pending === "basic") {
                     // Second tap. Targets picked → fire them. None picked → AUTO-FIRE
-                    // at the default target (a double-tap is a quick attack).
-                    firePicks(picks); // [] → the engine auto-picks the first valid target
+                    // at the lowest-HP enemy (a double-tap is a quick finisher).
+                    if (picks.length > 0) {
+                      firePicks(picks);
+                      return;
+                    }
+                    const enemies = validTargets(game, awaitingId!).filter((t) => t.owner !== activeCard.owner);
+                    const lowest = enemies.length ? enemies.reduce((lo, t) => (t.curHp < lo.curHp ? t : lo)) : null;
+                    firePicks(lowest ? [lowest.instanceId] : []); // fallback: engine default if no enemy in range
                     return;
                   }
                   // First tap (idle, or an un-targeted Special) — arm the basic.
