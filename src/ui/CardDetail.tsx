@@ -466,6 +466,7 @@ export function describePassives(def: CardDef): string[] {
       parts.push(
         `raises ${od.spawnToken.count} ${getDef(od.spawnToken.token).name}${od.spawnToken.count > 1 ? "s" : ""}`,
       );
+    if (od.roundEndAoe) parts.push(`calls down a meteor — ${od.roundEndAoe} DMG to every opponent at the end of the round`);
     if (od.passEnchant) parts.push("hands its armed Enchantment to the ally with the highest DMG");
     if (od.frightenInRange) parts.push(`FRIGHTENs nearby enemies for ${rounds(od.frightenInRange)}`);
     if (od.allyTribeBuffDmg)

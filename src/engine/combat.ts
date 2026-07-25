@@ -256,6 +256,13 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
       draft.log.push(`${label(draft, card)} passes its ${heir.enchant} enchantment to ${label(draft, heir)}.`);
     }
   }
+  // Meteor (Cosmic): a dying card can flag a strike that lands at round end —
+  // 3 DMG to every opponent, fired from Cleanup (see doCleanupPhase).
+  if (def.onDeath?.roundEndAoe) {
+    const owner = draft.players[card.owner];
+    (owner.pendingMeteors ??= []).push({ round: draft.round, dmg: def.onDeath.roundEndAoe, source: card });
+    draft.log.push(`${label(draft, card)} calls down a meteor — it strikes at round's end.`);
+  }
   // Carnage (Zhunk): every living card that feeds on this tribe grows a little.
   // At the death choke-point, so a Zombie lost to a DOT or a tick counts too.
   for (const c of boardCards(draft)) {

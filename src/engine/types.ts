@@ -564,6 +564,9 @@ export interface CardDef {
     dmg: number;
     pen?: boolean;
     rowAhead?: boolean;
+    /** Meteor (Cosmic): as it dies it flags a strike that lands at the END of
+     *  the round — `roundEndAoe` DMG to every opponent, fired from Cleanup. */
+    roundEndAoe?: number;
     /** Last Waltz (Wedded Wraith): as she falls, every surviving ally of this
      *  tribe takes a permanent +DMG, and enemies in range are FRIGHTENed. */
     allyTribeBuffDmg?: { tribe: string; dmg: number };
@@ -1008,6 +1011,10 @@ export interface PlayerState {
    *  the round it was cast — each Start of Round it banks what died, re-arms
    *  with a fresh baseline, and counts down. */
   wakePending?: { round: number; deaths: number; token: string; roundsLeft?: number };
+  /** Meteor (Cosmic): pending round-end strikes armed by a death this round.
+   *  Each fires at the Cleanup of its `round`, hitting the owner's opponents.
+   *  `source` is the (now-removed) caster, kept only for damage crediting. */
+  pendingMeteors?: { round: number; dmg: number; source: CardInstance }[];
   /** Volcanic Eruption: permanent +DMG for this player's cards of that element. */
   elementDmgBuff?: { element: Element; amount: number };
   /** The Cost-10 ultimates' lasting engines, keyed by element. Read at Cleanup

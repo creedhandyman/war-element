@@ -5079,10 +5079,10 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 1,
     keywords: {},
-    // Meteor (On Death): a parting burst on the killer. (Doc's 3-turn delayed
-    // board-wide meteor trimmed to an immediate strike — no death-timer yet.)
+    // Meteor (On Death): as Cosmic falls it calls down a strike that lands at
+    // the END of the round — 3 DMG to every opponent.
     passiveNames: { onDeath: "Meteor" },
-    onDeath: { dmg: 3 },
+    onDeath: { dmg: 0, roundEndAoe: 3 },
   },
   {
     id: "dawn_reflection",

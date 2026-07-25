@@ -1663,6 +1663,20 @@ function doCleanupPhase(draft: GameState): void {
     }
   }
 
+  // 1c. Meteor (Cosmic): pending round-end strikes land now — dmg to every
+  // opponent of the owner. Fire those due this round, then drop them.
+  for (const pl of ["P1", "P2"] as PlayerId[]) {
+    const pend = draft.players[pl].pendingMeteors;
+    if (!pend?.length) continue;
+    const due = pend.filter((m) => m.round <= draft.round);
+    draft.players[pl].pendingMeteors = pend.filter((m) => m.round > draft.round);
+    for (const m of due) {
+      const foes = boardCards(draft, enemyOf(pl)).filter((c) => c.curHp > 0);
+      for (const e of foes) tickDamage(draft, m.source, e, m.dmg, false);
+      if (foes.length) draft.log.push(`A meteor crashes down — ${m.dmg} DMG to ${foes.length} opponent(s).`);
+    }
+  }
+
   // 2. REGEN heals, then the end-of-round element auras.
   for (const card of boardCards(draft)) {
     const def = getDef(card.defId);
