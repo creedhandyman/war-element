@@ -156,7 +156,7 @@ export function Token(props: {
     >
       <img
         className="card-art"
-        src={`/cards/${def.art ?? def.id}.png`}
+        src={`/cards/${def.art ?? def.id}.webp`}
         alt=""
         onError={(e) => {
           e.currentTarget.style.display = "none";

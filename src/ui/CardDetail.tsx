@@ -606,7 +606,7 @@ export function CardDetail(props: {
         <div className="cd-body">
           <div className="cd-art" style={{ borderColor: EL_COLOR[def.element] }}>
             <img
-              src={`/cards/${def.art ?? def.id}.png`}
+              src={`/cards/${def.art ?? def.id}.webp`}
               alt=""
               onError={(e) => {
                 (e.currentTarget.parentElement as HTMLElement).classList.add(

@@ -373,7 +373,7 @@ export function DeckBuilder(props: {
                   >
                     <img
                       className="card-art"
-                      src={`/cards/${d.art ?? d.id}.png`}
+                      src={`/cards/${d.art ?? d.id}.webp`}
                       alt=""
                       onError={(e) => { e.currentTarget.style.display = "none"; }}
                     />
@@ -422,7 +422,7 @@ export function DeckBuilder(props: {
                 cleanly if the card has no art yet (info still shows below). */}
             <div className="dbd-art-full" style={{ borderColor: EL_COLOR[detail.element] }}>
               <img
-                src={`/cards/${detail.art ?? detail.id}.png`}
+                src={`/cards/${detail.art ?? detail.id}.webp`}
                 alt={detail.name}
                 onError={(e) => { const h = e.currentTarget.closest(".dbd-art-full"); if (h) (h as HTMLElement).style.display = "none"; }}
               />

@@ -44,7 +44,7 @@ export function SummonAnnounce({ defId, mine }: { defId: string; mine: boolean }
           {artOk ? (
             <img
               className="announce-art"
-              src={`/cards/${def.art ?? def.id}.png`}
+              src={`/cards/${def.art ?? def.id}.webp`}
               alt={def.name}
               draggable={false}
               onError={() => setArtOk(false)}

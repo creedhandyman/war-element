@@ -7,7 +7,7 @@ import { SPELLS } from "../spells";
 // a file named gale_force.webp for a spell whose id is gale_gale_force, and the
 // only way anyone finds that is by looking at the screen.
 //
-// The UI builds these as `/spells/${id}.webp` and `/cards/${art ?? id}.png`, so
+// The UI builds these as `/spells/${id}.webp` and `/cards/${art ?? id}.webp`, so
 // the id IS the filename.
 //
 // Listed with import.meta.glob rather than fs.existsSync, for two reasons:
@@ -19,7 +19,7 @@ const basenames = (glob: Record<string, unknown>): Set<string> =>
 
 describe("every card and spell has its art on disk", () => {
   const spellArt = basenames(import.meta.glob("../../../public/spells/*.webp"));
-  const cardArt = basenames(import.meta.glob("../../../public/cards/*.png"));
+  const cardArt = basenames(import.meta.glob("../../../public/cards/*.webp"));
 
   it("finds the art directories at all", () => {
     // Guard the guard: a bad glob path yields {} and every check below would
@@ -38,7 +38,7 @@ describe("every card and spell has its art on disk", () => {
     // until a spawned card needed art of its own — a missing token plate is just
     // as invisible as a missing card one.
     // `art` is the escape hatch for a file that can't be named after the id.
-    const missing = [...CARDS, ...TOKENS].filter((c) => !cardArt.has(`${c.art ?? c.id}.png`)).map(
+    const missing = [...CARDS, ...TOKENS].filter((c) => !cardArt.has(`${c.art ?? c.id}.webp`)).map(
       (c) => `${c.id} (${c.name})${c.art ? ` -> art: "${c.art}"` : ""}`,
     );
     expect(missing, `cards with no art file:\n  ${missing.join("\n  ")}`).toEqual([]);

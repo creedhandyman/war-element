@@ -1512,7 +1512,7 @@ export function App() {
                   >
                     <img
                       className="card-art"
-                      src={`/cards/${def.art ?? def.id}.png`}
+                      src={`/cards/${def.art ?? def.id}.webp`}
                       alt=""
                       onError={(e) => {
                         e.currentTarget.style.display = "none";
@@ -1921,7 +1921,7 @@ export function App() {
                           >
                             <img
                               className="card-art"
-                              src={`/cards/${d.art ?? d.id}.png`}
+                              src={`/cards/${d.art ?? d.id}.webp`}
                               alt=""
                               onError={(e) => {
                                 e.currentTarget.style.display = "none";
