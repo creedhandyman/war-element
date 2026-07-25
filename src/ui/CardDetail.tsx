@@ -557,6 +557,8 @@ export function describePassives(def: CardDef): string[] {
     passives.push("Its basic attack can be aimed at a wounded ally to heal them for its DMG instead of striking.");
   if (def.basicHealsTeam)
     named("basicHealsTeam", `Raising Star: a landed basic attack also heals every ally +${def.basicHealsTeam} HP.`);
+  if (def.idleBuff)
+    named("idleBuff", `Liquid Serenity: on a round it doesn't attack, heals +${def.idleBuff.heal} and gains +${def.idleBuff.dmg} DMG next round.`);
   if (def.pullOnAttack)
     named("pullOnAttack", `${def.id === "aqua_octoirate" ? "Sucker Sword" : "Harpoon Hook"}: a landed basic drags the struck enemy ${def.pullOnAttack} slot${def.pullOnAttack > 1 ? "s" : ""} toward it.`);
   if (def.healPerHit)

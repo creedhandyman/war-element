@@ -1770,6 +1770,21 @@ function doCleanupPhase(draft: GameState): void {
     }
     // Shell Tuck's shaky aim wears off.
     if ((card.attackMissRounds ?? 0) > 0) card.attackMissRounds = (card.attackMissRounds ?? 0) - 1;
+    // Mind Bubble Channeling (Anos): pay out this round's tick.
+    if ((card.channelBuffRounds ?? 0) > 0) {
+      if (card.channelBuffDmg) card.dmgBonus += card.channelBuffDmg;
+      if (card.channelBuffHeal) healCard(draft, card, card.channelBuffHeal, card);
+      card.statuses = card.statuses.filter((s) => s.kind !== "BURN" && s.kind !== "SCALD"); // CLEANSE (DAWN-locked → burns only)
+      card.channelBuffRounds = (card.channelBuffRounds ?? 0) - 1;
+      draft.log.push(`${label(draft, card)}'s bubble mends it (+${card.channelBuffDmg ?? 0} DMG, +${card.channelBuffHeal ?? 0} HP).`);
+    }
+    // Liquid Serenity (Anos): reward a round spent NOT attacking.
+    const idle = getDef(card.defId).idleBuff;
+    if (idle && !card.attackedThisRound && card.curHp > 0) {
+      healCard(draft, card, idle.heal, card);
+      applyTimedBuff(card, idle.dmg, 0, 1);
+      draft.log.push(`${label(draft, card)} rests in serenity (+${idle.heal} HP, +${idle.dmg} DMG next round).`);
+    }
     // Photosynthesis (LEAF): +2 HP each round — and when there is nothing to
     // heal, the growth hardens into armour instead (+1 shield, capped).
     // It was +1 HP and NOTHING at full health, so the game's only defensive

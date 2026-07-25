@@ -5658,6 +5658,63 @@ export const CARDS: CardDef[] = [
       text: "ROOT every already-ROOTed opponent for 2 additional rounds.",
     },
   },
+  {
+    id: "aqua_anos",
+    name: "Anos",
+    rarity: "epic",
+    element: "AQUA",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 6,
+    hits: 1,
+    hp: 16,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    tribe: "Liquid",
+    // Liquid Serenity (End of Round): if Anos didn't attack this round, heal +8
+    // and gain +1 DMG next round.
+    passiveNames: { idleBuff: "Liquid Serenity" },
+    idleBuff: { heal: 8, dmg: 1 },
+    // Mind Bubble Channeling: for 2 rounds, each Cleanup gain +1 DMG, heal +4,
+    // and self-cleanse (burns only — CLEANSE is DAWN-locked).
+    special: {
+      name: "Mind Bubble Channeling",
+      cost: 2,
+      handler: "channelBuff",
+      params: { dmg: 1, heal: 4, rounds: 2 },
+      targetSide: "self",
+      text: "For 2 rounds, each round end: +1 DMG, heal +4, and cleanse your own BURN/SCALD.",
+    },
+  },
+  {
+    id: "aqua_cryo",
+    name: "Cryo",
+    rarity: "epic",
+    element: "AQUA",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 5,
+    hits: 1,
+    hp: 15,
+    sp: 5,
+    shields: 3,
+    keywords: {},
+    tribe: "Ice",
+    // Mega Icicle: 5 DMG to a 2×2 area; a target already FROZEN has its remaining
+    // FREEZE doubled (Cryo Freeze).
+    special: {
+      name: "Mega Icicle",
+      cost: 2,
+      handler: "areaBlast",
+      params: { dmg: 5, freezeDouble: 1 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Throw an icicle dealing 5 DMG to a 2×2 area; a FROZEN target's FREEZE is doubled.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

@@ -2201,6 +2201,37 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.attackMissRounds = num(params, "missRounds");
     draft.log.push(`${label(draft, attacker)} tucks into its shell (+${sh} shields, aim shaken ${attacker.attackMissRounds}r).`);
   },
+  /** Mind Bubble Channeling (Anos): arm a sustained self-buff that pays out each
+   *  Cleanup for `rounds` — +DMG, a heal, and a self-cleanse. */
+  channelBuff(draft, attacker, _targets, params) {
+    attacker.channelBuffDmg = num(params, "dmg");
+    attacker.channelBuffHeal = num(params, "heal");
+    attacker.channelBuffRounds = num(params, "rounds", 2);
+    draft.log.push(`${label(draft, attacker)} withdraws into a bubble of calm.`);
+  },
+  /** Mega Icicle (Cryo): 5 DMG to a 2×2 block anchored on the target; a target
+   *  already FROZEN has its remaining FREEZE doubled (Cryo Freeze). */
+  areaBlast(draft, attacker, targets, params) {
+    const dmg = num(params, "dmg");
+    const target = targets[0];
+    if (!target?.pos) return;
+    const { row, col } = target.pos;
+    const cells = [[row, col], [row, col + 1], [row + 1, col], [row + 1, col + 1]];
+    const hit = new Set<string>();
+    for (const [r, c] of cells) {
+      const victim = boardCards(draft, enemyOf(attacker.owner)).find(
+        (e) => e.curHp > 0 && e.pos?.row === r && e.pos?.col === c && !hit.has(e.instanceId),
+      );
+      if (!victim) continue;
+      hit.add(victim.instanceId);
+      resolveHit(draft, attacker, victim, { kind: "special", dmg, hits: 1, pen: false, crit: false });
+      if (num(params, "freezeDouble") > 0 && draft.cards[victim.instanceId] && victim.curHp > 0) {
+        const fz = victim.statuses.find((s) => s.kind === "FREEZE");
+        if (fz) { fz.duration *= 2; draft.log.push(`${label(draft, victim)}'s freeze deepens (${fz.duration}r).`); }
+      }
+    }
+    draft.log.push(`${label(draft, attacker)} shatters a 2×2 zone (${hit.size} hit).`);
+  },
   /** Whinter's Bundle (Whintey): deepen the frost — extend a named status on
    *  every opponent already carrying it. */
   extendStatusAll(draft, attacker, _targets, params) {

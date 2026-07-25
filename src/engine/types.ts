@@ -390,6 +390,9 @@ export interface CardDef {
   potionOnHit?: boolean;
   /** Raising Star (Star): a landed basic also heals every ally +N HP. */
   basicHealsTeam?: number;
+  /** Liquid Serenity (Anos): at end of a round in which it did NOT attack, heal
+   *  `heal` and gain `dmg` DMG for the next round. */
+  idleBuff?: { heal: number; dmg: number };
   /** Elemental Fury (Prism): lands with its Special already paid for, so the
    *  first Enchantment is free. */
   startsWithFreeSpecial?: boolean;
@@ -735,6 +738,11 @@ export interface CardInstance {
    *  Cleanup until `regenRoundsLeft` reaches 0. */
   regenRoundsLeft?: number;
   regenPower?: number;
+  /** Mind Bubble Channeling (Anos): each Cleanup while `channelBuffRounds` > 0,
+   *  gain `channelBuffDmg` DMG, heal `channelBuffHeal`, and self-cleanse. */
+  channelBuffRounds?: number;
+  channelBuffDmg?: number;
+  channelBuffHeal?: number;
   /** Overheating (Heatsink Golem): the target its coils discharged into last
    *  round — a repeat is what doubles the burst. */
   lastOverheatTargetId?: string;
