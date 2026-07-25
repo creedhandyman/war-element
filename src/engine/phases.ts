@@ -107,6 +107,8 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // the onSummon block below — Prism has no onSummon, so nesting it there
       // meant the passive never fired at all.
       if (def.startsWithFreeSpecial) inst.freeSpecial = true;
+      // Fog Settlement (Misty): the owner's battlefield fogs over on summon.
+      if (def.summonFog) draft.players[inst.owner].foggedRounds = def.summonFog;
       // On-summon passive: fires immediately, free, via the handler registry.
       // `spread` (columns each side) uses the forward-area projection — the
       // blast reaches toward the enemy battlefield as far as the card's range
@@ -1648,6 +1650,8 @@ function doCleanupPhase(draft: GameState): void {
   for (const p of ["P1", "P2"] as PlayerId[]) {
     const left = draft.players[p].burnBoostRounds ?? 0;
     if (left > 0) draft.players[p].burnBoostRounds = left - 1;
+    const fog = draft.players[p].foggedRounds ?? 0;
+    if (fog > 0) draft.players[p].foggedRounds = fog - 1;
   }
   for (const f of draft.fields) f.roundsLeft--;
   for (const f of draft.fields.filter((f) => f.roundsLeft <= 0))

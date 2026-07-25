@@ -160,6 +160,7 @@ export function describePassives(def: CardDef): string[] {
       v.bonusDmg && `+${v.bonusDmg} DMG`,
       v.dmgMult && `×${v.dmgMult} DMG`,
       v.healOnHit && `heal ${v.healOnHit}`,
+      v.pen && "PEN",
     ].filter(Boolean);
     // anyStatus means it triggers off ANY status, not the named one — saying
     // "Vs PARALYZE targets" would understate it badly.
@@ -192,6 +193,7 @@ export function describePassives(def: CardDef): string[] {
       k.healSelf && `heal ${k.healSelf}`,
       k.gainShields && `+${k.gainShields} shields`,
       k.aoeDmg && `${k.aoeDmg} to all enemies`,
+      k.nearestVolley && `${k.nearestVolley.dmg}×${k.nearestVolley.hits} to the closest opponent`,
       k.aoeDmgElectrified && `${k.aoeDmgElectrified} to all electrified (statused) enemies, once/round`,
       // Name the Special outright and say it stacks — "Special costs 1 less"
       // read as a flat, one-off, possibly team-wide discount.
@@ -416,6 +418,8 @@ export function describePassives(def: CardDef): string[] {
     }
     named("summonSelfShields", `On summon, raises a ${def.summonSelfShields}-shield barrier${breakClause}.`);
   }
+  if (def.summonFog)
+    named("summonFog", `On summon, fog rolls over your battlefield for ${rounds(def.summonFog)} — every enemy basic aimed at your cards has a 50% chance to whiff (flat, no status).`);
   if (def.roundTick?.selfHpCost)
     named("selfHpCost", `Each round it pays ${def.roundTick.selfHpCost} of its own HP to do so (never lethal).`);
   if (def.roundTick?.spawnTriggerAt && def.special)
@@ -476,7 +480,9 @@ export function describePassives(def: CardDef): string[] {
   if (def.onEnterMidRow)
     named("onEnterMidRow", `On moving into a Mid row: gain +${def.onEnterMidRow.shields} shield.`);
   if (def.onHitPush)
-    named("onHitPush", `Every landed hit shoves the victim back ${def.onHitPush} slot (if open).`);
+    named("onHitPush", def.onHitPush >= 5
+      ? "Every landed hit blows the target all the way back to its own Home row (as far as open slots allow)."
+      : `Every landed hit shoves the victim back ${def.onHitPush} slot (if open).`);
   if (def.roundTick?.enemyHomeRowStatus) {
     const st = def.roundTick.enemyHomeRowStatus;
     named(

@@ -1,0 +1,101 @@
+import { describe, expect, it } from "vitest";
+import { applyIntent } from "../phases";
+import { basicAttack } from "../combat";
+import { boardCards } from "../state";
+import { giveHand, place, prepState, statusOf } from "./helpers";
+
+describe("wave 4 — cost-1, one per element", () => {
+  it("Birch: a KILL flows into a 4×1 volley on the nearest survivor", () => {
+    const s = prepState();
+    const birch = place(s, "leaf_birch", "P1", 2, 0, { autoMode: "manual" });
+    const dying = place(s, "dusk_gool", "P2", 2, 1, { curHp: 1, maxHp: 20, curShields: 0 });
+    const next = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 3 });
+    basicAttack(s, birch.instanceId, dying.instanceId);
+    expect(s.cards[dying.instanceId]?.curHp ?? 0).toBeLessThanOrEqual(0); // killed
+    // 4 separate 1-DMG hits into the survivor: strips its 3 shields, then 1 to HP.
+    expect(s.cards[next.instanceId].curShields).toBe(0);
+    expect(s.cards[next.instanceId].curHp).toBe(19);
+  });
+
+  it("Staph: Fire Stick BURNs the nearest foe on summon", () => {
+    const s = prepState();
+    s.players.P1.gold = 5;
+    const foe = place(s, "dusk_gool", "P2", 1, 2, { curHp: 40, maxHp: 40 }); // not adjacent
+    const h = giveHand(s, "P1", "pyro_staph");
+    const n = applyIntent(s, { type: "SUMMON", player: "P1", handId: h, col: 0 });
+    expect(statusOf(n.cards[foe.instanceId], "BURN")?.power).toBe(2);
+  });
+
+  it("Misty: Fog Settlement makes enemy basics whiff, then clears", () => {
+    const s = prepState();
+    s.players.P1.gold = 5;
+    const h = giveHand(s, "P1", "aqua_misty");
+    const n = applyIntent(s, { type: "SUMMON", player: "P1", handId: h, col: 0 });
+    expect(n.players.P1.foggedRounds).toBe(1);
+    // 200 enemy swings at a P1 card — a 50% fog has to move landed off 100%.
+    const attacker = place(n, "dusk_gool", "P2", 2, 1);
+    let landed = 0;
+    for (let i = 0; i < 200; i++) {
+      const victim = place(n, "leaf_greegon", "P1", 3, 3, { curHp: 999, maxHp: 999, curShields: 0 });
+      const before = victim.curHp;
+      basicAttack(n, attacker.instanceId, victim.instanceId);
+      if (n.cards[victim.instanceId].curHp < before) landed++;
+      n.cards[attacker.instanceId].attackedThisRound = false;
+      n.cards[attacker.instanceId].struckThisRound = {};
+      delete n.cards[victim.instanceId];
+    }
+    expect(landed).toBeGreaterThan(50);
+    expect(landed).toBeLessThan(180); // roughly half whiff
+  });
+
+  it("Sirocco: Windfist blows the target back to its Home row", () => {
+    const s = prepState();
+    const siro = place(s, "gale_sirocco", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 }); // mid row
+    basicAttack(s, siro.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].pos?.row).toBe(0); // P2 home row
+  });
+
+  it("Stingray: Piercing Pulse gives PEN vs an ELECTRIFIED foe", () => {
+    // Shielded target: without PEN the shields eat hits; with it, straight to HP.
+    const plain = prepState();
+    const r1 = place(plain, "bolt_stingray", "P1", 2, 0);
+    const f1 = place(plain, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 5 });
+    basicAttack(plain, r1.instanceId, f1.instanceId);
+    const plainToHp = 40 - plain.cards[f1.instanceId].curHp;
+
+    const zapped = prepState();
+    const r2 = place(zapped, "bolt_stingray", "P1", 2, 0);
+    const f2 = place(zapped, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 5 });
+    f2.statuses = [{ kind: "ELECTRIFIED", duration: 2, power: 0, source: "BOLT" }];
+    basicAttack(zapped, r2.instanceId, f2.instanceId);
+    const penToHp = 40 - zapped.cards[f2.instanceId].curHp;
+    expect(penToHp).toBeGreaterThan(plainToHp); // PEN bypassed the shields
+  });
+
+  it("Kcor: Rock Slide drops up to 5 rocks on the nearest foe", () => {
+    // Each rock is a coin, so over many summons the total must be > 0 (they land)
+    // and no single slide exceeds 5 (five rocks, 1 each).
+    let total = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      const s = prepState(seed);
+      s.players.P1.gold = 5;
+      const foe = place(s, "dusk_gool", "P2", 1, 2, { curHp: 40, maxHp: 40, curShields: 0 });
+      const h = giveHand(s, "P1", "bore_kcor");
+      const n = applyIntent(s, { type: "SUMMON", player: "P1", handId: h, col: 0 });
+      const dealt = 40 - n.cards[foe.instanceId].curHp;
+      expect(dealt).toBeGreaterThanOrEqual(0);
+      expect(dealt).toBeLessThanOrEqual(5);
+      total += dealt;
+    }
+    expect(total).toBeGreaterThan(0);
+  });
+
+  it("Harve: Dancing Shadow raises a Specter on summon", () => {
+    const s = prepState();
+    s.players.P1.gold = 5;
+    const h = giveHand(s, "P1", "dusk_harve");
+    const n = applyIntent(s, { type: "SUMMON", player: "P1", handId: h, col: 0 });
+    expect(boardCards(n, "P1").filter((c) => c.defId === "dusk_specter_tok")).toHaveLength(1);
+  });
+});

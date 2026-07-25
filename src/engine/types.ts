@@ -140,6 +140,9 @@ export interface OnKillDef {
   aoeDmgElectrified?: number;
   /** Harvester (Wedded Wraith): every kill raises another token. */
   spawnToken?: { token: string; count: number };
+  /** Quadruple Strike (Birch): on a kill, hit the CLOSEST surviving enemy for
+   *  dmg×hits (a shield-shredding follow-up, distinct from aoeDmg's spray). */
+  nearestVolley?: { dmg: number; hits: number };
   coinBonusDmg?: number; // coin flip: +this or +this−1 permanent DMG
   reduceSpecialCost?: number; // King Me (Heir): shave N off this card's Special cost per kill
   /** Static Charge (Static): on a kill, extend the named status on every enemy
@@ -159,6 +162,7 @@ export interface VsStatusDef {
   bonusDmg?: number; // +DMG per hit
   dmgMult?: number; // multiply per-hit DMG (2 = double vs the status)
   healOnHit?: number; // heal self N when a hit lands on such a target
+  pen?: boolean; // basic gains PEN vs such a target (Stingray's Piercing Pulse)
 }
 
 /** A periodic self-driven effect resolved in Cleanup (end of round). */
@@ -485,6 +489,9 @@ export interface CardDef {
    *  printed damage rather than routing through it. */
   intimidate?: { dmg: number; rows: number };
   summonSelfShields?: number;
+  /** Fog Settlement (Misty): on summon, its owner's battlefield gains N rounds
+   *  of the fog (see PlayerState.foggedRounds). */
+  summonFog?: number;
   /** War Mount (RohoJohn): a mounted Ranger also mauls what it stands beside —
    *  its BASIC gains +N damage against a target inside melee reach. Modelled as
    *  a proximity bonus rather than a literal second attack, which keeps it on
@@ -958,6 +965,10 @@ export interface PlayerState {
   /** Accelerator (Scorch): rounds remaining in which BURN this player inflicted
    *  on its ENEMIES deals double. Ticked down in Cleanup. */
   burnBoostRounds?: number;
+  /** Fog Settlement (Misty): rounds left of a board-wide −50% accuracy on
+   *  attacks aimed at THIS player's cards. Flat coin, not a status — uncleansed.
+   *  Decrements each Cleanup. */
+  foggedRounds?: number;
   /** Radiant Ward (Solstice): a single team-wide barrier that absorbs the first
    *  negative status to hit any ally this round. Refreshed each round it's up. */
   statusWard?: boolean;

@@ -387,6 +387,20 @@ export function resolveHit(
       draft.log.push(`${label(draft, attacker)} loses the shot in the fog.`);
       continue;
     }
+    // Fog Settlement (Misty): attacks aimed at a fogged player's cards whiff on
+    // a coin — board-wide, flat, uncleansable. Rolled per hit like BLIND.
+    if (
+      opts.kind === "basic" &&
+      !aDef.alwaysHit &&
+      !fieldNeverMiss &&
+      (draft.players[target.owner].foggedRounds ?? 0) > 0 &&
+      !coin(draft)
+    ) {
+      result.dodgedHits++;
+      target.fxMiss = (target.fxMiss ?? 0) + 1;
+      draft.log.push(`${label(draft, attacker)} loses the shot in Misty's fog.`);
+      continue;
+    }
     if (opts.kind === "basic" && !aDef.alwaysHit && !fieldNeverMiss && hasStatus(attacker, "BLIND") && !coin(draft)) {
       result.dodgedHits++;
       target.fxMiss = (target.fxMiss ?? 0) + 1;
@@ -874,6 +888,7 @@ export function basicAttack(
     // Hastened Assault (WolfBane): CRIT only while faster than the target.
     if (aDef.critIfFaster && effectiveSp(draft, attacker) > effectiveSp(draft, t)) crit = true;
     let lifesteal = false;
+    let vsPen = false; // Stingray's Piercing Pulse — PEN vs an Electrified foe
     let healOnHit = 0;
     const vs = aDef.vsStatus;
     const vsMatch = vs != null && (vs.anyStatus ? t.statuses.length > 0 : hasStatus(t, vs.status));
@@ -882,6 +897,7 @@ export function basicAttack(
       if (vs.bonusDmg) dmg += vs.bonusDmg;
       if (vs.crit) crit = true;
       if (vs.lifesteal) lifesteal = true;
+      if (vs.pen) vsPen = true;
       healOnHit = vs.healOnHit ?? 0;
     }
     // Dragon's Bane: the same shape as vsStatus above, but matched on the
@@ -908,7 +924,7 @@ export function basicAttack(
       kind: "basic",
       dmg,
       hits: g.hits,
-      pen: Boolean(aDef.keywords.PEN) || auraHasPen(draft, attacker), // Blood Ruby
+      pen: Boolean(aDef.keywords.PEN) || auraHasPen(draft, attacker) || vsPen, // Blood Ruby / Piercing Pulse
       crit,
       lifesteal,
       incinerate: aDef.incinerate, // Sol: consecutive same-target hits ramp +1
@@ -1442,6 +1458,16 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef): vo
     // Harvester: the fallen get up again on her side.
     const raised = spawnTokens(draft, killer, def.spawnToken.token, def.spawnToken.count);
     if (raised.length) draft.log.push(`${name} harvests the fallen — ${raised.length} rise.`);
+  }
+  // Quadruple Strike (Birch): the kill flows into the nearest survivor.
+  if (def.nearestVolley && killer.pos && killer.curHp > 0) {
+    const prey = boardCards(draft, enemyOf(killer.owner))
+      .filter((e) => e.curHp > 0 && e.pos)
+      .sort((a, b) => manhattan(killer.pos!, a.pos!) - manhattan(killer.pos!, b.pos!))[0];
+    if (prey) {
+      draft.log.push(`${name} strikes on — ${def.nearestVolley.dmg}×${def.nearestVolley.hits} to ${getDef(prey.defId).name}.`);
+      resolveHit(draft, killer, prey, { kind: "special", dmg: def.nearestVolley.dmg, hits: def.nearestVolley.hits, pen: false, crit: false });
+    }
   }
   if (def.buffHits) {
     killer.hitsBonus += def.buffHits;
