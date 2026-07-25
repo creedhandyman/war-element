@@ -4946,10 +4946,11 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Seed Roll (On Summon): the acorn rolls one slot forward as it lands, so a
-    // 0-SP wall still starts a step up the lane. (Doc's Root Growth — 2× healing
-    // received — omitted; no heal-multiplier field in the engine yet.)
-    passiveNames: { summonAdvance: "Seed Roll" },
+    // 0-SP wall still starts a step up the lane. Root Growth: it drinks in 2×
+    // from every healing source (REGEN, aura heals, ally lifesteal…).
+    passiveNames: { summonAdvance: "Seed Roll", healReceivedMult: "Root Growth" },
     summonAdvance: 1,
+    healReceivedMult: 2,
   },
   {
     id: "pyro_sparky",
@@ -5155,8 +5156,10 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 0,
     keywords: {},
-    // A hardy backline body. (Doc's Offspring on-death revive trimmed — no
-    // self-revive field wired up here yet.)
+    // Offspring (On Death): sprouts back up at half HP. (Doc's coin-flip SECOND
+    // revive trimmed — one comeback for now.)
+    passiveNames: { onRevive: "Offspring" },
+    onRevive: { heal: 7 },
   },
   {
     id: "pyro_heatsink_golem",
@@ -5191,7 +5194,10 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: {},
-    // A fast striker. (Doc's Boomer delayed-detonation double-hit trimmed.)
+    // Boomer: consecutive hits on the same target within a round ramp up
+    // (Incinerate). (Doc's exact turn-2 double trimmed to the built-in ramp.)
+    passiveNames: { incinerate: "Boomer" },
+    incinerate: true,
   },
   {
     id: "pyro_taper",
@@ -5226,7 +5232,10 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
-    // A cold-snap caster. (Doc's Freeze Tag on-kill retaliation FREEZE trimmed.)
+    // Freeze Tag: a 25% chance to FREEZE on a basic hit. (A simpler take than the
+    // doc's on-kill retaliation, using the same coin-flip on-hit.)
+    passiveNames: { onHitStatus: "Freeze Tag" },
+    onHitStatus: { kind: "FREEZE", duration: 1, power: 0, chance: 25 },
   },
   {
     id: "aqua_harp",
@@ -5242,7 +5251,9 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 0,
     keywords: {},
-    // A harpooner. (Doc's Harpoon Hook pull-on-attack trimmed for now.)
+    // Its basic can aim at a hurt ally to heal them. (Doc's Harpoon Hook
+    // pull-on-attack isn't modeled — no pull-toward mechanic yet.)
+    basicHealsAllies: true,
   },
   {
     id: "bolt_scrapper",
@@ -5258,8 +5269,9 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
-    // A salvage brawler. (Doc's Jolt Fist 25%-PARALYZE-on-hit trimmed — no
-    // chance-gated onHitStatus here yet.)
+    // Jolt Fist: a 25% chance to PARALYZE on a basic hit.
+    passiveNames: { onHitStatus: "Jolt Fist" },
+    onHitStatus: { kind: "PARALYZE", duration: 1, power: 0, chance: 25 },
   },
   {
     id: "bore_sling",
@@ -5293,7 +5305,9 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Zombie",
-    // A shambling wall. (Doc's Carnage — grow when a Zombie dies — trimmed.)
+    // Carnage: grows +1 DMG / +1 HP every time any Zombie falls.
+    passiveNames: { onTribeDeath: "Carnage" },
+    onTribeDeath: { tribe: "Zombie", dmg: 1, hp: 1 },
   },
   {
     id: "dawn_stbern",
