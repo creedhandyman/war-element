@@ -511,6 +511,9 @@ export interface CardDef {
    *  both sides of the step like Stomp, so shuffling between two mid rows does
    *  not farm it. */
   onEnterMidRow?: { shields: number };
+  /** Seed Roll (OAK): on summon, roll forward this many rows toward the enemy
+   *  home, stopping at the first occupied/captured slot or the board edge. */
+  summonAdvance?: number;
   /** Wind Wake (Wista): every landed hit shoves the victim back a slot. */
   onHitPush?: number;
   /** Gate Keeper (Veil): the first time this card's shields break to 0, gain

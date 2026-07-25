@@ -103,6 +103,20 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       draft.log.push(
         `${intent.player} summons ${def.name} (cost ${def.cost}) into column ${intent.col}.`,
       );
+      // Seed Roll (OAK): the acorn rolls forward on landing — advance toward the
+      // enemy home, one slot at a time, until something blocks it or the edge.
+      if (def.summonAdvance && inst.pos) {
+        const dir = intent.player === "P1" ? -1 : 1;
+        let rolled = 0;
+        while (rolled < def.summonAdvance && inst.pos) {
+          const nextRow: number = inst.pos.row + dir;
+          if (nextRow < 0 || nextRow >= draft.boardSize) break;
+          if (cardAt(draft, nextRow, inst.pos.col) || draft.slots[nextRow][inst.pos.col].capturedBy) break;
+          inst.pos = { row: nextRow as Pos["row"], col: inst.pos.col };
+          rolled++;
+        }
+        if (rolled > 0) draft.log.push(`${def.name} rolls forward ${rolled} slot(s) on summon.`);
+      }
       // Elemental Fury (Prism): lands with its Special already charged. OUTSIDE
       // the onSummon block below — Prism has no onSummon, so nesting it there
       // meant the passive never fired at all.
@@ -220,6 +234,10 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         if (st && inst.curHp > 0 && draft.cards[inst.instanceId])
           applyStatus(draft, inst, st.kind, st.duration, st.power, gd.element);
       }
+      // A deferred Flow pick (AQUA) whose card just died to an onOppSummon zap
+      // would leave pendingFlow pointing at a corpse — the game would then stall
+      // waiting on a choice for a card that no longer exists. Clear it.
+      if (draft.pendingFlow && !draft.cards[draft.pendingFlow]) draft.pendingFlow = null;
       return draft;
     }
     case "MOVE": {
