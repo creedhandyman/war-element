@@ -215,6 +215,26 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       for (const guard of boardCards(draft, enemyOf(inst.owner))) {
         const gd = getDef(guard.defId);
         if (!gd.onOppSummon || guard.curHp <= 0 || !draft.cards[inst.instanceId]) continue;
+        // Burning Bark (Sparky): hop to the closest empty slot adjacent to the
+        // newcomer before reacting, chasing fresh arrivals into BURN range.
+        if (gd.onOppSummon.chase && inst.pos && guard.pos) {
+          let best: { row: number; col: number } | null = null;
+          let bestD = Infinity;
+          for (let dr = -1; dr <= 1; dr++)
+            for (let dc = -1; dc <= 1; dc++) {
+              if (dr === 0 && dc === 0) continue;
+              const r = inst.pos.row + dr;
+              const c = inst.pos.col + dc;
+              if (r < 0 || r >= draft.boardSize || c < 0 || c >= draft.boardSize) continue;
+              if (draft.slots[r][c].capturedBy || cardAt(draft, r, c)) continue;
+              const d = Math.abs(r - guard.pos.row) + Math.abs(c - guard.pos.col);
+              if (d < bestD) { bestD = d; best = { row: r, col: c }; }
+            }
+          if (best) {
+            guard.pos = { row: best.row as Pos["row"], col: best.col };
+            draft.log.push(`${gd.name} scurries in beside ${getDef(inst.defId).name}.`);
+          }
+        }
         // Only reacts to a newcomer it can actually reach (in targeting range).
         if (!canTarget(draft, guard, inst)) continue;
         if (gd.onOppSummon.dmg && inst.curHp > 0) {
@@ -1592,6 +1612,18 @@ function doRoundTicks(draft: GameState): void {
         boardCards(draft, card.owner).filter((c) => c.defId === rt.spawn!.token).length >= rt.spawnMaxAlive;
       if (!atCap)
         spawnTokens(draft, card, rt.spawn.token, rt.spawn.count, rt.spawn.adjacentOnly ? 1 : rt.spawn.spawnRadius);
+    }
+    if (rt.overheatDmg) {
+      // Overheating (Heatsink Golem): discharge into the closest opponent — and
+      // DOUBLE it when the coils hit the same target as last round.
+      const t = closest(card, enemies());
+      if (t) {
+        const repeat = card.lastOverheatTargetId === t.instanceId;
+        const dmg = repeat ? rt.overheatDmg * 2 : rt.overheatDmg;
+        tickDamage(draft, card, t, dmg, false);
+        card.lastOverheatTargetId = t.instanceId;
+        draft.log.push(`${label(draft, card)}'s coils discharge ${dmg}${repeat ? " (built-up heat)" : ""} into ${label(draft, t)}.`);
+      }
     }
     if (rt.pokeDmg || rt.pokeStatus) {
       const t = closest(card, enemies());

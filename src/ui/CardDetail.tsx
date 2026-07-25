@@ -225,6 +225,7 @@ export function describePassives(def: CardDef): string[] {
         `heal every ${t.roundHealElement.element} ally ${t.roundHealElement.amount} HP`,
       t.spawn && `raise ${t.spawn.count} ${getDef(t.spawn.token).name}${t.spawn.count > 1 ? "s" : ""}`,
       t.drainAdjacent && `drain ${t.drainAdjacent} HP from an adjacent opponent`,
+      t.overheatDmg && `${t.overheatDmg} DMG to the closest opponent (2× on a repeat target)`,
     ].filter(Boolean);
     // Not an every-round effect, so it gets its own line — "Each round: every 3
     // rounds…" reads as a contradiction.
@@ -283,7 +284,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.onOppSummon) {
     const o = def.onOppSummon;
     const bits = [o.dmg && `${o.dmg} DMG`, o.status && o.status.kind].filter(Boolean).join(" + ");
-    named("onOppSummon", `When an enemy is summoned within range, hits it with ${bits}.`);
+    named("onOppSummon", `When an enemy is summoned${o.chase ? ", hops to the closest empty adjacent slot and" : " within range,"} hits it with ${bits}.`);
   }
   if (def.onAllyKilled) {
     const o = def.onAllyKilled;
@@ -327,9 +328,11 @@ export function describePassives(def: CardDef): string[] {
       `Bad Temper: permanently gains +${def.onHitSelfBuff.dmg} DMG each time a basic attack lands.`,
     );
   if (def.incinerate)
-    named("incinerate", 
+    named("incinerate",
       `Incinerate: consecutive hits on the same target within a round deal +1 DMG each.`,
     );
+  if (def.boomer)
+    named("boomer", `Boomer: base damage the first strike on a target, then double on every strike after.`);
   if (def.roundTick?.rowAheadDmg)
     passives.push(
       `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,
@@ -472,6 +475,8 @@ export function describePassives(def: CardDef): string[] {
       parts.push(
         `raises ${od.spawnToken.count} ${getDef(od.spawnToken.token).name}${od.spawnToken.count > 1 ? "s" : ""}`,
       );
+    if (od.aoeDmg) parts.push(`bursts for ${od.aoeDmg} DMG to every opponent`);
+    if (od.farRowStatus) parts.push(`applies ${od.farRowStatus.kind} ${od.farRowStatus.power} to opponents in their far row for ${rounds(od.farRowStatus.duration)}`);
     if (od.roundEndAoe) parts.push(`calls down a meteor — ${od.roundEndAoe} DMG to every opponent at the end of the round`);
     if (od.passEnchant) parts.push("hands its armed Enchantment to the ally with the highest DMG");
     if (od.frightenInRange) parts.push(`FRIGHTENs nearby enemies for ${rounds(od.frightenInRange)}`);

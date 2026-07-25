@@ -4969,10 +4969,10 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // Burning Bark: sears each new enemy arrival with BURN as it lands. (Doc's
-    // hop-to-an-adjacent-slot omitted; the BURN-on-opponent-summon is the core.)
+    // Burning Bark: when an opponent is summoned, Sparky hops to the closest
+    // empty adjacent slot and sears it with BURN 1.
     passiveNames: { onOppSummon: "Burning Bark" },
-    onOppSummon: { status: { kind: "BURN", duration: 1, power: 1 } },
+    onOppSummon: { chase: true, status: { kind: "BURN", duration: 1, power: 1 } },
   },
   {
     id: "gale_ollie",
@@ -5026,10 +5026,9 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // Pop (On Death): bursts on the killer. (Doc's "1 to all" trimmed to the
-    // killer — no on-death board-wide AoE field yet.)
+    // Pop (On Death): bursts across the whole enemy board for 1.
     passiveNames: { onDeath: "Pop" },
-    onDeath: { dmg: 1 },
+    onDeath: { dmg: 0, aoeDmg: 1 },
   },
   {
     id: "aqua_buccaneers",
@@ -5180,10 +5179,10 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 0,
     keywords: {},
-    // Overheating (End of Round): its coils discharge 1 DMG to whatever's in reach.
-    // (Doc's escalating 2× on repeat hits trimmed.)
+    // Overheating (End of Round): 1 DMG to the closest opponent — doubled when
+    // it's the same target as last round, as the built-up heat discharges.
     passiveNames: { roundTick: "Overheating" },
-    roundTick: { inRangeDmg: 1 },
+    roundTick: { overheatDmg: 1 },
   },
   {
     id: "pyro_firecrack",
@@ -5199,10 +5198,10 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: {},
-    // Boomer: consecutive hits on the same target within a round ramp up
-    // (Incinerate). (Doc's exact turn-2 double trimmed to the built-in ramp.)
-    passiveNames: { incinerate: "Boomer" },
-    incinerate: true,
+    // Boomer: base damage the first time it strikes a target, then a doubled
+    // detonation on every strike after that (delayed detonation).
+    passiveNames: { boomer: "Boomer" },
+    boomer: true,
   },
   {
     id: "pyro_taper",
@@ -5218,10 +5217,10 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // Out with a Bang (On Death): a parting burst on the killer. (Doc's far-row
-    // BURN trimmed to a simple on-death strike.)
+    // Out with a Bang (On Death): applies BURN 1 to opponents in the far (home)
+    // row — stacks with the Scorch aura.
     passiveNames: { onDeath: "Out with a Bang" },
-    onDeath: { dmg: 1 },
+    onDeath: { dmg: 0, farRowStatus: { kind: "BURN", duration: 1, power: 1 } },
   },
   {
     id: "aqua_arctik",
@@ -5351,10 +5350,18 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
-    // Wax Bomb: basics leave a lingering BURN. (Doc's delayed 5-DMG detonation
-    // trimmed to a DOT.)
+    // Wax Bomb: a basic hit plants a charge that detonates for 5 at the next
+    // round end (a single delayed explosion, not a recurring burn).
     passiveNames: { onHitStatus: "Wax Bomb" },
-    onHitStatus: { kind: "BURN", duration: 2, power: 2 },
+    onHitStatus: { kind: "DOT", duration: 1, power: 5 },
+    // 5 Wicked Frag (Talent, free, once per game): 5 DMG to a target, 3 to all
+    // other opponents.
+    talent: {
+      name: "5 Wicked Frag",
+      text: "Once per game, free: deal 5 DMG to a target and 3 DMG to all other opponents.",
+      handler: "fragBlast",
+      params: { dmg: 5, splash: 3 },
+    },
   },
   {
     id: "aqua_tide",

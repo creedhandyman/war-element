@@ -740,6 +740,20 @@ export function resolveHit(
     }
     // On-death effects.
     if (tDef.onDeath && opts.kind !== "reflect") {
+      // Pop (Florence): an immediate burst across the whole enemy board.
+      if (tDef.onDeath.aoeDmg) {
+        const foes = boardCards(draft, enemyOf(deadOwner)).filter((e) => e.curHp > 0);
+        for (const e of foes) directDamage(draft, target, e, tDef.onDeath.aoeDmg, false);
+        draft.log.push(`${tDef.name} pops — ${tDef.onDeath.aoeDmg} DMG to every opponent.`);
+      }
+      // Out with a Bang (Taper): scorch the enemy's far (home) row on the way out.
+      if (tDef.onDeath.farRowStatus) {
+        const fr = tDef.onDeath.farRowStatus;
+        const home = homeRow(enemyOf(deadOwner), draft.boardSize);
+        const back = boardCards(draft, enemyOf(deadOwner)).filter((e) => e.curHp > 0 && e.pos?.row === home);
+        for (const e of back) applyStatus(draft, e, fr.kind, fr.duration, fr.power, tDef.element);
+        if (back.length) draft.log.push(`${tDef.name} goes out with a bang — ${fr.kind} on ${back.length} far-row foe(s).`);
+      }
       if (tDef.onDeath.rowAhead && deathPos) {
         // Burnout: blast the enemy row directly ahead of where it fell.
         onDeathRowAhead(draft, target, deadOwner, deathPos, tDef.onDeath.dmg, Boolean(tDef.onDeath.pen));
@@ -989,6 +1003,13 @@ export function basicAttack(
     if (aDef.weakBelowHp && attacker.curHp < aDef.weakBelowHp.hp)
       dmg = Math.floor(dmg * aDef.weakBelowHp.dmgMult);
 
+    // Boomer (Firecrack): base damage the first time it strikes a given target,
+    // then a doubled detonation on every strike after that.
+    if (aDef.boomer) {
+      attacker.boomerStruck ??= [];
+      if (attacker.boomerStruck.includes(t.instanceId)) dmg *= 2;
+      else attacker.boomerStruck.push(t.instanceId);
+    }
     const struckBefore = attacker.struckThisRound[t.instanceId] ?? 0;
     const r = resolveHit(draft, attacker, t, {
       kind: "basic",
@@ -2053,6 +2074,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       directDamage(draft, attacker, f, dmg, pen);
     }
     draft.log.push(`${label(draft, attacker)}'s Thunder Strike hits ${foes.length} ${need ? need.toLowerCase() : "enemy"}(s) for ${dmg}.`);
+  },
+  /** 5 Wicked Frag (Wick's Talent): a heavy hit on the chosen target and a
+   *  smaller splash to every other opponent. */
+  fragBlast(draft, attacker, targets, params) {
+    const dmg = num(params, "dmg");
+    const splash = num(params, "splash");
+    const primary = targets[0];
+    if (primary && primary.curHp > 0) directDamage(draft, attacker, primary, dmg, false);
+    for (const e of boardCards(draft, enemyOf(attacker.owner))) {
+      if (e.curHp > 0 && e.instanceId !== primary?.instanceId) directDamage(draft, attacker, e, splash, false);
+    }
+    draft.log.push(`${label(draft, attacker)}'s frag bursts (${dmg} to the target, ${splash} to the rest).`);
   },
   /** War Cry (Golde): a rallying shout — the caster plates up and the whole team
    *  hits harder for the round. */

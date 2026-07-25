@@ -192,6 +192,9 @@ export interface RoundTickDef {
   /** Constriction (Python): while adjacent to an opponent, drain N HP from it at
    *  end of round — deal N to the nearest adjacent enemy and heal that much. */
   drainAdjacent?: number;
+  /** Overheating (Heatsink Golem): end of round, N DMG to the closest opponent;
+   *  DOUBLED when it's the same target as last round (heat builds up). */
+  overheatDmg?: number;
   /** Morning Dew (Sprinu): heal every ally of this element at end of round. */
   roundHealElement?: { element: Element; amount: number };
   aoeDmg?: number; // damage every enemy in range
@@ -360,6 +363,9 @@ export interface CardDef {
    *  leaves it at 1 HP instead, cloaked in STEALTH and regenerating as the tail
    *  regrows. */
   deathSave?: { stealth?: number; regen?: { power: number; rounds: number } };
+  /** Boomer (Firecrack): the second+ basic hit against a given opponent deals
+   *  DOUBLE base damage — a delayed detonation on the repeat strike. */
+  boomer?: boolean;
   /** Elemental Fury (Prism): lands with its Special already paid for, so the
    *  first Enchantment is free. */
   startsWithFreeSpecial?: boolean;
@@ -394,6 +400,9 @@ export interface CardDef {
      *  other CRIT — 50%, and only against an unshielded target. */
     crit?: boolean;
     status?: { kind: StatusKind; duration: number; power: number };
+    /** Burning Bark (Sparky): first hop to the closest empty slot adjacent to
+     *  the newcomer, then apply the reaction — chasing every fresh arrival. */
+    chase?: boolean;
   };
   /** This card's attacks do NOT wake SLEEPING targets (Sandman's Nightmare —
    *  his hits ignore SLEEP's break-on-hit rule). */
@@ -578,6 +587,11 @@ export interface CardDef {
     dmg: number;
     pen?: boolean;
     rowAhead?: boolean;
+    /** Pop (Florence): as it dies, deal this to EVERY opponent immediately. */
+    aoeDmg?: number;
+    /** Out with a Bang (Taper): on death, apply a status to every opponent in
+     *  their far (home) row. */
+    farRowStatus?: { kind: StatusKind; duration: number; power: number };
     /** Meteor (Cosmic): as it dies it flags a strike that lands at the END of
      *  the round — `roundEndAoe` DMG to every opponent, fired from Cleanup. */
     roundEndAoe?: number;
@@ -696,6 +710,12 @@ export interface CardInstance {
    *  Cleanup until `regenRoundsLeft` reaches 0. */
   regenRoundsLeft?: number;
   regenPower?: number;
+  /** Overheating (Heatsink Golem): the target its coils discharged into last
+   *  round — a repeat is what doubles the burst. */
+  lastOverheatTargetId?: string;
+  /** Boomer (Firecrack): opponents this card has already struck at least once —
+   *  a second strike vs the same target detonates for double. */
+  boomerStruck?: string[];
   /** How many times a `decay` reviver (Zombie Husk) has come back — drives the
    *  −1-per-death stat decay. */
   reviveDecay?: number;
