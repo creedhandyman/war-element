@@ -718,10 +718,16 @@ export function App() {
     const spellId = spellChoice;
     const spell = getSpell(spellId);
     setSpellChoice(null);
-    // Fail early rather than arming a pick with nothing to pick from.
-    const chk = canCastSpell(game, me, spellId, { mode });
-    if (!chk.ok) {
-      setHint(`⚠ ${chk.reason}`);
+    // Fail early only if there is NOTHING to aim this mode at — check
+    // AVAILABILITY, not a specific pick. canCastSpell({ mode }) demands a
+    // targetId a choice spell can't have yet (the player clicks it next), so it
+    // always failed here and the targeting never armed.
+    const available =
+      mode === "shield"
+        ? spellAllyTargets(game, me, spell).length > 0
+        : spellEnemyTargets(game, me).length > 0;
+    if (!available) {
+      setHint(mode === "shield" ? `⚠ No ${spell.element} ally to shield.` : "⚠ No enemy in range.");
       return;
     }
     setSel({ kind: "spell", spellId, mode });
