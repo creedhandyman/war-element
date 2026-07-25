@@ -1207,21 +1207,33 @@ export function App() {
                 className={`bbtn atk ${pending === "basic" ? "armed" : ""}`}
                 disabled={!basicOk}
                 onClick={() => {
-                  if (pending === "basic" && picks.length > 0) {
-                    firePicks(picks); // fire early with the hits assigned so far
+                  // Don't let a stray tap on Attack wipe targets already picked for
+                  // a Special (choosing allies to assist / enemies to hit). Keep the
+                  // selection and say how to switch on purpose.
+                  if (pending === "special" && picks.length > 0) {
+                    setHint("⚠ Special targets are still armed — press <b>Clear</b> first to switch to a basic attack.");
                     return;
                   }
+                  if (pending === "basic") {
+                    // Second tap. Targets picked → fire them. None picked → AUTO-FIRE
+                    // at the default target (a double-tap is a quick attack).
+                    firePicks(picks); // [] → the engine auto-picks the first valid target
+                    return;
+                  }
+                  // First tap (idle, or an un-targeted Special) — arm the basic.
                   setPending("basic");
                   setPicks([]);
                   setHint(
                     effectiveBasicHits(activeCard) > 1
-                      ? `Basic attack: <b>${effectiveBasicHits(activeCard)} hits × ${effectiveDmg(game, activeCard)} DMG</b> — click up to ${effectiveBasicHits(activeCard)} glowing targets (repeat one to stack).`
-                      : "Pick a glowing target for the basic attack.",
+                      ? `Basic attack: <b>${effectiveBasicHits(activeCard)} hits × ${effectiveDmg(game, activeCard)} DMG</b> — tap up to ${effectiveBasicHits(activeCard)} glowing targets (repeat to stack), or tap <b>Attack</b> again to auto-fire.`
+                      : "Tap a glowing target, or tap <b>Basic Attack</b> again to auto-fire the nearest.",
                   );
                 }}
               >
-                {pending === "basic" && picks.length > 0
-                  ? `🔥 Fire (${picks.length}/${maxPicks})`
+                {pending === "basic"
+                  ? picks.length > 0
+                    ? `🔥 Fire (${picks.length}/${maxPicks})`
+                    : "⚔ Auto-fire"
                   : "⚔ Basic Attack"}
               </button>
               <button
@@ -1236,6 +1248,12 @@ export function App() {
                 }
                 onClick={() => {
                   const spec = activeDef.special!;
+                  // Symmetric to Attack: don't let a stray tap wipe basic-attack
+                  // targets already picked.
+                  if (pending === "basic" && picks.length > 0) {
+                    setHint("⚠ Basic-attack targets are still armed — press <b>Clear</b> first to switch to the Special.");
+                    return;
+                  }
                   if (pending === "special") {
                     // Second click = fire. Area Specials hit the whole previewed
                     // zone; targeted ones fire the picks assigned so far.
