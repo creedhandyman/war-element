@@ -4997,6 +4997,124 @@ export const CARDS: CardDef[] = [
     // A fast FLYING scout. (Doc's Sky Scout — +1 target to allies on entering a
     // Mid row — omitted for now; a plain flying support body.)
   },
+
+  // ── Class-per-cost grid, COST 1 (batch 2: cells needing a small mechanic, all
+  //    reusing existing handlers). Fills PYRO Ranger, AQUA Ranger, BORE Warrior/
+  //    Mage, DAWN Tank/Support. Kits kept thin (coverage first). ──
+  {
+    id: "pyro_florence",
+    name: "Florence",
+    rarity: "rare",
+    element: "PYRO",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 2,
+    hits: 2,
+    hp: 4,
+    sp: 7,
+    shields: 0,
+    keywords: {},
+    // Pop (On Death): bursts on the killer. (Doc's "1 to all" trimmed to the
+    // killer — no on-death board-wide AoE field yet.)
+    passiveNames: { onDeath: "Pop" },
+    onDeath: { dmg: 1 },
+  },
+  {
+    id: "aqua_buccaneers",
+    name: "Buccaneers",
+    rarity: "rare",
+    element: "AQUA",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 2,
+    hits: 2,
+    hp: 3,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    // Back-ups (On Summon): a volley at up to 3 foes on arrival. (Doc's straight-
+    // line column shot + on-death self-copy trimmed for now.)
+    passiveNames: { onSummon: "Back-ups" },
+    onSummon: { handler: "barrage", params: { dmg: 2, targets: 3 }, targetSide: "enemy" },
+  },
+  {
+    id: "bore_iron",
+    name: "Iron",
+    rarity: "rare",
+    element: "BORE",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 3,
+    sp: 3,
+    shields: 3,
+    keywords: {},
+    // Plate Cover (On Summon): shields the row ahead (Smith's grantShield).
+    passiveNames: { onSummon: "Plate Cover" },
+    onSummon: { handler: "grantShield", params: { amount: 2 }, targetSide: "ally" },
+  },
+  {
+    id: "bore_cosmic",
+    name: "Cosmic",
+    rarity: "rare",
+    element: "BORE",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 4,
+    sp: 6,
+    shields: 1,
+    keywords: {},
+    // Meteor (On Death): a parting burst on the killer. (Doc's 3-turn delayed
+    // board-wide meteor trimmed to an immediate strike — no death-timer yet.)
+    passiveNames: { onDeath: "Meteor" },
+    onDeath: { dmg: 3 },
+  },
+  {
+    id: "dawn_reflection",
+    name: "Reflection",
+    rarity: "rare",
+    element: "DAWN",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 1,
+    hits: 1,
+    hp: 12,
+    sp: 2,
+    shields: 0,
+    keywords: {},
+    // Light Screen (On Summon): raises a shield wall for the row ahead.
+    passiveNames: { onSummon: "Light Screen" },
+    onSummon: { handler: "grantShield", params: { amount: 4 }, targetSide: "ally" },
+  },
+  {
+    id: "dawn_able",
+    name: "Able",
+    rarity: "rare",
+    element: "DAWN",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 1,
+    hits: 1,
+    hp: 12,
+    sp: 2,
+    shields: 0,
+    keywords: {},
+    // Emergency Support: mends the DAWN line each round, and its basic can aim at
+    // a hurt ally to heal. (Doc's "only when an ally drops below 4 HP" trimmed to
+    // a steady heal — a thin but on-theme medic.)
+    passiveNames: { roundTick: "Emergency Support" },
+    roundTick: { roundHealElement: { element: "DAWN", amount: 2 } },
+    basicHealsAllies: true,
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
