@@ -136,6 +136,7 @@ export interface OnKillDef {
   healSelf?: number; // heal self N
   gainShields?: number;
   aoeDmg?: number; // deal N to every reachable enemy
+  blindInRange?: number; // Star Blaster (Raya): BLIND nearby enemies N rounds
   /** Powertrip (Voltogon): deal N to every ELECTRIFIED enemy (= carrying any
    *  status, the BOLT proxy), at most once per round. */
   aoeDmgElectrified?: number;
@@ -202,6 +203,9 @@ export interface RoundTickDef {
   /** Frosty Bites (Whintey): at end of round, ROOT one opponent whose effective
    *  SP is 0 for this many rounds. */
   rootZeroSp?: number;
+  /** Magic Ropes (Ty): each round, lock this many in-range opponents out of
+   *  their Specials for the coming round. */
+  lockEnemySpecials?: number;
   /** Morning Dew (Sprinu): heal every ally of this element at end of round. */
   roundHealElement?: { element: Element; amount: number };
   aoeDmg?: number; // damage every enemy in range
@@ -1110,6 +1114,9 @@ export interface PlayerState {
   /** Sky Scout (Syt Bird): rounds left in which this player's single-target
    *  basics also clip one enemy adjacent to their target. Ticked in Cleanup. */
   basicSplashRounds?: number;
+  /** Orbital Shot (Raya): delayed single-target strikes that land on a later
+   *  round's Cleanup. */
+  pendingArrows?: { round: number; dmg: number; targetId: string; source: CardInstance }[];
   /** Radiant Ward (Solstice): a single team-wide barrier that absorbs the first
    *  negative status to hit any ally this round. Refreshed each round it's up. */
   statusWard?: boolean;

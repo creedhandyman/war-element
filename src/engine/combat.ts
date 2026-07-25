@@ -1768,6 +1768,14 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef): vo
     if (h > 0) draft.log.push(`${name} heals ${h} on the kill.`);
   }
   if (def.gainShields) killer.curShields += def.gainShields;
+  // Star Blaster (Raya): a kill BLINDs nearby opponents for the round.
+  if (def.blindInRange && killer.pos) {
+    const near = boardCards(draft, enemyOf(killer.owner)).filter(
+      (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, killer.pos!) <= 1,
+    );
+    for (const e of near) applyStatus(draft, e, "BLIND", def.blindInRange, 0, getDef(killer.defId).element);
+    if (near.length) draft.log.push(`${name}'s Star Blaster BLINDs ${near.length} nearby foe(s).`);
+  }
   if (def.extendStatus) {
     const { kind, rounds } = def.extendStatus;
     let n = 0;
@@ -2276,6 +2284,22 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.electroSurgeActive = true;
     if (es?.shield) attacker.curShields += es.shield;
     draft.log.push(`${label(draft, attacker)} charges its Electro Surge (+${es?.shield ?? 0} shield).`);
+  },
+  /** Orbital Shot (Raya): mark a target; a 14-DMG arrow falls on it next round. */
+  orbitalShot(draft, attacker, targets, params) {
+    const target = targets[0];
+    if (!target) return;
+    const arrows = (draft.players[attacker.owner].pendingArrows ??= []);
+    arrows.push({ round: draft.round + 1, dmg: num(params, "dmg", 14), targetId: target.instanceId, source: attacker });
+    draft.log.push(`${label(draft, attacker)} paints ${label(draft, target)} — an arrow falls next round.`);
+  },
+  /** Lacing Knots (Ty): reap every opponent still bound by Magic Ropes (i.e. with
+   *  locked Specials). */
+  lacingKnots(draft, attacker, _targets, params) {
+    const dmg = num(params, "dmg", 8);
+    const roped = boardCards(draft, enemyOf(attacker.owner)).filter((e) => e.curHp > 0 && (e.specialLockedRounds ?? 0) > 0);
+    for (const e of roped) resolveHit(draft, attacker, e, { kind: "special", dmg, hits: 1, pen: false, crit: false });
+    draft.log.push(`${label(draft, attacker)} yanks the knots — ${dmg} DMG to ${roped.length} bound foe(s).`);
   },
   /** Sweep (Brute): swing at every opponent in the row directly ahead with a
    *  basic attack, gaining shields per kill. */

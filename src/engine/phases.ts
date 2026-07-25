@@ -1625,6 +1625,14 @@ function doRoundTicks(draft: GameState): void {
         draft.log.push(`${label(draft, card)}'s frost roots ${label(draft, stuck)} (${rt.rootZeroSp}r).`);
       }
     }
+    if (rt.lockEnemySpecials) {
+      // Magic Ropes (Ty): wrap up N reachable opponents — their Specials are
+      // disabled for the coming round. (doRoundTicks runs after the lock tick-
+      // down, so a value of 1 survives to next round.)
+      const roped = enemies().filter((e) => e.curHp > 0 && canTarget(draft, card, e)).slice(0, rt.lockEnemySpecials);
+      for (const e of roped) e.specialLockedRounds = Math.max(e.specialLockedRounds ?? 0, 1);
+      if (roped.length) draft.log.push(`${label(draft, card)}'s Magic Ropes bind ${roped.length} opponent(s).`);
+    }
     if (rt.aoeParalyzedDmg) {
       // Complete Circuit: current flows through every PARALYZED enemy in range.
       for (const e of enemies()) if (hasStatus(e, "PARALYZE") && canTarget(draft, card, e))
@@ -1759,6 +1767,19 @@ function doCleanupPhase(draft: GameState): void {
       const foes = boardCards(draft, enemyOf(pl)).filter((c) => c.curHp > 0);
       for (const e of foes) tickDamage(draft, m.source, e, m.dmg, false);
       if (foes.length) draft.log.push(`A meteor crashes down — ${m.dmg} DMG to ${foes.length} opponent(s).`);
+    }
+    // Orbital Shot (Raya): delayed single-target arrows land on their due round.
+    const arrows = draft.players[pl].pendingArrows;
+    if (arrows?.length) {
+      const dueArrows = arrows.filter((a) => a.round <= draft.round);
+      draft.players[pl].pendingArrows = arrows.filter((a) => a.round > draft.round);
+      for (const a of dueArrows) {
+        const t = draft.cards[a.targetId];
+        if (t && t.curHp > 0) {
+          tickDamage(draft, a.source, t, a.dmg, false);
+          draft.log.push(`An orbital arrow falls — ${a.dmg} DMG to ${label(draft, t)}.`);
+        }
+      }
     }
   }
 

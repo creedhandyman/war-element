@@ -5971,6 +5971,63 @@ export const CARDS: CardDef[] = [
       text: "Deal 4 DMG (CRIT, PEN) to all opponents in range.",
     },
   },
+  {
+    id: "dawn_ty",
+    name: "Ty",
+    rarity: "epic",
+    element: "DAWN",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 6,
+    hits: 1,
+    hp: 12,
+    sp: 7,
+    shields: 2,
+    keywords: {},
+    // Magic Ropes (each round): bind 2 in-range opponents — their Specials are
+    // disabled for the coming round.
+    passiveNames: { roundTick: "Magic Ropes" },
+    roundTick: { lockEnemySpecials: 2 },
+    // Lacing Knots: 8 DMG to every opponent still bound by Magic Ropes.
+    special: {
+      name: "Lacing Knots",
+      cost: 3,
+      handler: "lacingKnots",
+      params: { dmg: 8 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Deal 8 DMG to all opponents bound by Magic Ropes (locked Specials) this round.",
+    },
+  },
+  {
+    id: "dawn_raya",
+    name: "Raya",
+    rarity: "epic",
+    element: "DAWN",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 7,
+    hits: 1,
+    hp: 10,
+    sp: 7,
+    shields: 2,
+    keywords: {},
+    // Star Blaster (On Kill): BLIND nearby opponents for the round.
+    passiveNames: { onKill: "Star Blaster" },
+    onKill: { blindInRange: 1 },
+    // Orbital Shot: mark a target; a 14-DMG arrow falls on it next round.
+    special: {
+      name: "Orbital Shot",
+      cost: 2,
+      handler: "orbitalShot",
+      params: { dmg: 14 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Choose a target; an arrow falls at the start of next round dealing 14 DMG to it.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

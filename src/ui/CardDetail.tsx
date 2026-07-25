@@ -197,6 +197,7 @@ export function describePassives(def: CardDef): string[] {
       k.healSelf && `heal ${k.healSelf}`,
       k.gainShields && `+${k.gainShields} shields`,
       k.aoeDmg && `${k.aoeDmg} to all enemies`,
+      k.blindInRange && `BLIND nearby opponents for ${k.blindInRange} round${k.blindInRange > 1 ? "s" : ""}`,
       k.nearestVolley && `${k.nearestVolley.dmg}×${k.nearestVolley.hits} to the closest opponent`,
       k.aoeDmgElectrified && `${k.aoeDmgElectrified} to all electrified (statused) enemies, once/round`,
       // Name the Special outright and say it stacks — "Special costs 1 less"
@@ -232,6 +233,7 @@ export function describePassives(def: CardDef): string[] {
       t.overheatDmg && `${t.overheatDmg} DMG to the closest opponent (2× on a repeat target)`,
       t.healWoundedAllies && `heal allies under ${t.healWoundedAllies.underHp} HP by +${t.healWoundedAllies.amount}`,
       t.rootZeroSp && `ROOT an opponent with 0 SP for ${t.rootZeroSp} rounds`,
+      t.lockEnemySpecials && `bind ${t.lockEnemySpecials} opponents — their Specials are disabled next round`,
     ].filter(Boolean);
     // Not an every-round effect, so it gets its own line — "Each round: every 3
     // rounds…" reads as a contradiction.
