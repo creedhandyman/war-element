@@ -477,6 +477,8 @@ export function summonCard(
   };
   // Gate Keeper (Veil): raise the massive golden shield the moment it enters.
   if (def.summonSelfShields) inst.curShields += def.summonSelfShields;
+  // Electro Surge (Surge): starts armed the moment it lands.
+  if (def.electroSurge) inst.electroSurgeActive = true;
   draft.cards[inst.instanceId] = inst;
   return inst;
 }

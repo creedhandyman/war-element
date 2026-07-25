@@ -348,6 +348,12 @@ export function describePassives(def: CardDef): string[] {
     named("critPen", `Crack Shot: when its CRIT lands, the hit also pierces shields.`);
   if (def.potionOnHit)
     named("potionOnHit", `Magic Potion: a landed basic hurls a random potion — poison (DOT 1), 3 damage, or FRIGHTEN 2.`);
+  if (def.electroSurge)
+    named("electroSurge", `Electro Surge: armed on summon. While armed it's immune to status; the next hit it takes PARALYZEs the attacker ${def.electroSurge.paralyze} rounds, deals ${def.electroSurge.dmg} back, and deactivates.`);
+  if (def.firePassiveSpecial)
+    named("firePassiveSpecial", `High Voltage Sentry: auto-fires its Special for free${def.firePassiveSpecial.onFirstHit ? " the first time it hits" : ""}${def.firePassiveSpecial.onDeath ? " and when it dies" : ""}.`);
+  if (def.jackpot)
+    named("jackpot", `Jackpot: a basic CRIT fires its Special for free; ${def.jackpot.critsForBonus} crits in one round grant +${def.jackpot.bonusHp} HP and +${def.jackpot.bonusDmg} DMG.`);
   if (def.roundTick?.rowAheadDmg)
     passives.push(
       `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,

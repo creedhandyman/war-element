@@ -385,9 +385,20 @@ export interface CardDef {
   /** Crack Shot (Sling): when this card's CRIT coin lands, the hit also PIERCES —
    *  so the crit can fire against a shielded target and skip the shield. */
   critPen?: boolean;
+  /** Electro Surge (Surge): a reactive charge. Starts active on summon and is
+   *  re-armed by the Special (+`shield`). While active the card is status-immune
+   *  (Surge Protector); the first time it's hit while active it PARALYZEs the
+   *  attacker `paralyze` rounds, deals `dmg` back, and deactivates. */
+  electroSurge?: { paralyze: number; dmg: number; shield: number };
   /** Magic Potion (Hix): a landed basic hurls a random potion at the target —
    *  Poison (DOT 1), Damage (3), or Sleep (FRIGHTEN 2). */
   potionOnHit?: boolean;
+  /** High Voltage Sentry (Voltcher): auto-fires this card's own Special for free
+   *  the first time it lands a hit and/or when it dies. */
+  firePassiveSpecial?: { onFirstHit?: boolean; onDeath?: boolean };
+  /** Jackpot (Striik): a basic CRIT auto-fires the Special free; `critsForBonus`
+   *  crits in one round grants +bonusHp / +bonusDmg (once per round). */
+  jackpot?: { critsForBonus: number; bonusHp: number; bonusDmg: number };
   /** Raising Star (Star): a landed basic also heals every ally +N HP. */
   basicHealsTeam?: number;
   /** Liquid Serenity (Anos): at end of a round in which it did NOT attack, heal
@@ -734,6 +745,12 @@ export interface CardInstance {
   secondReviveUsed?: boolean;
   /** Gecko Tail Drop: the once-per-game cheat-death has fired. */
   deathSaveUsed?: boolean;
+  /** Electro Surge (Surge): whether the reactive charge is currently armed. */
+  electroSurgeActive?: boolean;
+  /** High Voltage Sentry (Voltcher): its free first-hit Special has fired. */
+  autoSpecialFired?: boolean;
+  /** Jackpot (Striik): basic crits landed so far this round. */
+  critsThisRound?: number;
   /** A granted heal-over-time (Tail Drop's regrow): heals `regenPower` at each
    *  Cleanup until `regenRoundsLeft` reaches 0. */
   regenRoundsLeft?: number;

@@ -134,6 +134,11 @@ export function applyStatus(
     draft.log.push(`${label(draft, target)} is immune to status (${kind} fizzles).`);
     return;
   }
+  // Surge Protector: while Electro Surge is armed, Surge shrugs off negatives.
+  if (target.electroSurgeActive && NEGATIVE_STATUSES.includes(kind)) {
+    draft.log.push(`${label(draft, target)}'s Surge Protector absorbs ${kind}.`);
+    return;
+  }
   // Radiant Ward (Solstice): one team-wide barrier eats the first negative
   // status to hit any ally each round — but only while a living ward-holder
   // (Solstice) is on the board. A stale flag left after Solstice dies is
@@ -238,6 +243,11 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
       draft.log.push(`${label(draft, card)} refuses to fall — it revives at ${card.curHp} HP!`);
       return false;
     }
+  }
+  // High Voltage Sentry (Voltcher): one last Thunderbird as it falls.
+  if (def.firePassiveSpecial?.onDeath && card.pos) {
+    draft.log.push(`${label(draft, card)}'s High Voltage Sentry discharges on death!`);
+    fireCardSpecial(draft, card);
   }
   draft.log.push(`${label(draft, card)} is defeated (${cause}).`);
   creditDeath(draft.stats, card);
@@ -851,6 +861,20 @@ export function resolveHit(
     if (r) result.attackerDied = true;
   }
 
+  // Electro Surge (Surge): being hit while armed discharges — PARALYZE the
+  // attacker, deal damage back, and deactivate. Any attacker, once per charge.
+  if (
+    opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 &&
+    tDef.electroSurge && target.electroSurgeActive
+  ) {
+    target.electroSurgeActive = false;
+    if (attacker.curHp > 0 && draft.cards[attacker.instanceId]) {
+      applyStatus(draft, attacker, "PARALYZE", tDef.electroSurge.paralyze, 0, tDef.element);
+      draft.log.push(`${label(draft, target)}'s Electro Surge discharges into ${getDef(attacker.defId).name}!`);
+      if (directDamage(draft, target, attacker, tDef.electroSurge.dmg, false)) result.attackerDied = true;
+    }
+  }
+
   // Pride Guardian (Monger): the first time each ally takes a hit, its guardian
   // throws it a shield. Once per ally for the game, tracked on the ally so two
   // guardians can't double up on the same teammate.
@@ -910,6 +934,21 @@ export function payAttackTrade(draft: GameState, card: CardInstance): void {
   card.curHp -= cost;
   draft.log.push(`${label(draft, card)} pays ${cost} HP (Ethereal Trade).`);
   if (card.curHp <= 0) defeatCard(draft, card, "Ethereal Trade");
+}
+
+/** Fire a card's OWN Special for free (no magic cost, no targeting UI) — used by
+ *  passives that auto-cast (Voltcher's High Voltage Sentry, Striik's Jackpot). */
+function fireCardSpecial(draft: GameState, card: CardInstance): void {
+  const sp = getDef(card.defId).special;
+  if (!sp) return;
+  const handler = SPECIAL_HANDLERS[sp.handler];
+  if (!handler) return;
+  const targets = sp.targetSide === "enemy"
+    ? boardCards(draft, enemyOf(card.owner)).filter((e) => e.curHp > 0)
+    : sp.targetSide === "ally"
+      ? boardCards(draft, card.owner).filter((a) => a.curHp > 0)
+      : [];
+  handler(draft, card, targets, sp.params ?? {});
 }
 
 export function basicAttack(
@@ -1111,6 +1150,7 @@ export function basicAttack(
     agg.landedHits += r.landedHits;
     agg.dodgedHits += r.dodgedHits;
     agg.totalToHp += r.totalToHp;
+    agg.critHits = (agg.critHits ?? 0) + (r.critHits ?? 0);
     agg.targetDied = agg.targetDied || r.targetDied;
     agg.attackerDied = agg.attackerDied || r.attackerDied;
   }
@@ -1201,6 +1241,26 @@ export function basicAttack(
         if (primary.curHp > 0 && draft.cards[primary.instanceId])
           basicAttack(draft, archer.instanceId, primary.instanceId, true);
       }
+    }
+  }
+  // High Voltage Sentry (Voltcher): the first landed hit auto-fires Thunderbird.
+  if (aDef.firePassiveSpecial?.onFirstHit && !attacker.autoSpecialFired && agg.landedHits > 0 && attacker.curHp > 0) {
+    attacker.autoSpecialFired = true;
+    draft.log.push(`${label(draft, attacker)}'s High Voltage Sentry triggers Thunderbird!`);
+    fireCardSpecial(draft, attacker);
+  }
+  // Jackpot (Striik): a basic CRIT auto-fires the Special for free; N crits in a
+  // round grant a one-time HP/DMG bonus.
+  if (aDef.jackpot && (agg.critHits ?? 0) > 0 && attacker.curHp > 0) {
+    const before = attacker.critsThisRound ?? 0;
+    attacker.critsThisRound = before + (agg.critHits ?? 0);
+    draft.log.push(`${label(draft, attacker)} hits the Jackpot — Purple Strikes fires free!`);
+    fireCardSpecial(draft, attacker);
+    if (before < aDef.jackpot.critsForBonus && attacker.critsThisRound >= aDef.jackpot.critsForBonus) {
+      attacker.maxHp += aDef.jackpot.bonusHp;
+      attacker.curHp += aDef.jackpot.bonusHp;
+      attacker.dmgBonus += aDef.jackpot.bonusDmg;
+      draft.log.push(`${label(draft, attacker)} jackpots ${aDef.jackpot.critsForBonus} crits (+${aDef.jackpot.bonusHp} HP, +${aDef.jackpot.bonusDmg} DMG)!`);
     }
   }
   // Harpoon Hook (Harp) / Sucker Sword (Octoirate): reel each struck enemy in
@@ -2200,6 +2260,13 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.attackMissPct = num(params, "missPct");
     attacker.attackMissRounds = num(params, "missRounds");
     draft.log.push(`${label(draft, attacker)} tucks into its shell (+${sh} shields, aim shaken ${attacker.attackMissRounds}r).`);
+  },
+  /** Electro Surge (Surge): re-arm the reactive charge and plate up. */
+  electroSurge(draft, attacker, _targets, _params) {
+    const es = getDef(attacker.defId).electroSurge;
+    attacker.electroSurgeActive = true;
+    if (es?.shield) attacker.curShields += es.shield;
+    draft.log.push(`${label(draft, attacker)} charges its Electro Surge (+${es?.shield ?? 0} shield).`);
   },
   /** Feather Fan (Fano): lift every SLOWER teammate up to Fano's SP for a round. */
   featherFan(draft, attacker, _targets, _params) {
