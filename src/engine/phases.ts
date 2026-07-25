@@ -1802,7 +1802,7 @@ export function advance(state: GameState): GameState {
       // Auto-mulligan every AI (non-human) player that hasn't gone yet.
       for (const p of ["P1", "P2"] as PlayerId[]) {
         if (!draft.humans.includes(p) && !draft.players[p].mulliganDone) {
-          applyMulligan(draft, p, aiMulligan(draft));
+          applyMulligan(draft, p, aiMulligan(draft, p));
         }
       }
       if (draft.players.P1.mulliganDone && draft.players.P2.mulliganDone) {
@@ -1817,8 +1817,10 @@ export function advance(state: GameState): GameState {
       doResourcePhase(draft);
       return draft;
     case "prep": {
-      // AI priority turn: one intent per advance() call.
-      const intent = aiPrepIntent(draft);
+      // AI priority turn: one intent per advance() call. Drive whichever player
+      // holds priority — normally P2, but a fully-AI game (humans=[]) also drives
+      // P1 here, so read the player from prep rather than defaulting to P2.
+      const intent = aiPrepIntent(draft, draft.prep?.priority ?? "P2");
       return applyIntent(draft, intent);
     }
     case "battle": {
