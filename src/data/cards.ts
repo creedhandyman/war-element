@@ -4773,10 +4773,6 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "pyro_slag_tortoise",
-    // PLACEHOLDER ART: no pyro_slag_tortoise.png is staged yet, so this borrows
-    // the heatsink-golem construct art. Drop in public/cards/pyro_slag_tortoise.png
-    // and delete this `art` line to use the real image.
-    art: "pyro_heatsink_golem",
     name: "Slag Tortoise",
     rarity: "rare",
     element: "PYRO",
@@ -4908,6 +4904,98 @@ export const CARDS: CardDef[] = [
     // ~16 points in testing. As a cheap footnote it measures balance-neutral.
     passiveNames: { onEnterMidRow: "Frontline Scout" },
     onEnterMidRow: { shields: 2 },
+  },
+
+  // ── Class-per-cost grid, COST 1 (batch 1: cells with a doc card + staged art
+  //    and no new engine code). Fills LEAF c1 Tank/Assassin, PYRO c1 Assassin,
+  //    GALE c1 Ranger/Support. Remaining c1 gaps need art or a new mechanic. ──
+  {
+    id: "leaf_stickers",
+    name: "Stickers",
+    rarity: "rare",
+    element: "LEAF",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 1,
+    hits: 4,
+    hp: 3,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    // Sticky: each of its four little jabs leaves BLEED — a cheap BLEED feeder.
+    passiveNames: { onHitStatus: "Sticky" },
+    onHitStatus: { kind: "BLEED", duration: 1, power: 1 },
+  },
+  {
+    id: "leaf_oak",
+    name: "OAK",
+    rarity: "rare",
+    element: "LEAF",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 1,
+    hits: 1,
+    hp: 14,
+    sp: 0,
+    shields: 0,
+    keywords: {},
+    // A rooted 14-HP wall. (Doc's Root Growth — 2× healing received — omitted; no
+    // heal-multiplier field in the engine yet.)
+  },
+  {
+    id: "pyro_sparky",
+    name: "Sparky",
+    rarity: "rare",
+    element: "PYRO",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 4,
+    hits: 1,
+    hp: 4,
+    sp: 7,
+    shields: 0,
+    keywords: {},
+    // Burning Bark: sears each new enemy arrival with BURN as it lands. (Doc's
+    // hop-to-an-adjacent-slot omitted; the BURN-on-opponent-summon is the core.)
+    passiveNames: { onOppSummon: "Burning Bark" },
+    onOppSummon: { status: { kind: "BURN", duration: 1, power: 1 } },
+  },
+  {
+    id: "gale_ollie",
+    name: "Ollie",
+    rarity: "rare",
+    element: "GALE",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 2,
+    hits: 1,
+    hp: 2,
+    sp: 11,
+    shields: 0,
+    keywords: { FLYING: true },
+    // A fast flyer. (Doc's Flying Arrow — piggyback the ally-ahead's shot —
+    // omitted; a plain FLYING harasser for now.)
+  },
+  {
+    id: "gale_syt_bird",
+    name: "Syt Bird",
+    rarity: "rare",
+    element: "GALE",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 2,
+    hits: 1,
+    hp: 2,
+    sp: 11,
+    shields: 0,
+    keywords: { FLYING: true },
+    // A fast FLYING scout. (Doc's Sky Scout — +1 target to allies on entering a
+    // Mid row — omitted for now; a plain flying support body.)
   },
 ];
 
