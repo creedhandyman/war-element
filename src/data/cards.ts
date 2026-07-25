@@ -2104,9 +2104,13 @@ export const CARDS: CardDef[] = [
     aura: { scope: "tribe", match: "Bot", dmg: 3 },
     // Hive Mind: half of everything aimed at a 17 HP body goes into the swarm
     // instead — but only as far as the swarm's own HP will stretch.
-    passiveNames: { hiveAbsorb: "Hive Mind", summonSpawn: "Hive Mind" },
+    passiveNames: { hiveAbsorb: "Hive Mind", summonSpawn: "Hive Mind", roundTick: "Hive Command" },
     hiveAbsorb: { tribe: "Bot", pct: 50 },
     summonSpawn: { token: "bolt_beebot", count: 2 },
+    // Hive Command also breeds: one fresh Beebot at the end of every round,
+    // replacing the ones that spent themselves stinging. Capped so the swarm
+    // holds at a size the opponent can fight through rather than eating the board.
+    roundTick: { spawn: { token: "bolt_beebot", count: 1 }, spawnMaxAlive: 4 },
     special: {
       name: "Storm Swarm",
       cost: 3,

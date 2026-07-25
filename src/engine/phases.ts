@@ -1457,11 +1457,17 @@ function doRoundTicks(draft: GameState): void {
         tickDamage(draft, card, e, rt.aoeParalyzedDmg, false);
     }
     if (rt.spawn && !rt.selfHpCost) {
-      // Reptilian Screech: spawn a token into an open king's-reach slot.
-      // Guarded on selfHpCost: a spawn that charges HP (RIP's Dead Clock) is
-      // handled by its own block above, tally and Horde trigger included.
-      // Without the guard BOTH blocks ran and the clock raised two a round.
-      spawnTokens(draft, card, rt.spawn.token, rt.spawn.count, rt.spawn.adjacentOnly ? 1 : rt.spawn.spawnRadius);
+      // Reptilian Screech / Hive Command (Keeper): spawn a token into an open
+      // king's-reach slot each round. Guarded on selfHpCost: a spawn that charges
+      // HP (RIP's Dead Clock) is handled by its own block above, tally and Horde
+      // trigger included. Without the guard BOTH blocks ran and the clock raised
+      // two a round. `spawnMaxAlive` caps the standing count so the trickle can't
+      // flood the board (Keeper's bees, which otherwise never stop).
+      const atCap =
+        rt.spawnMaxAlive != null &&
+        boardCards(draft, card.owner).filter((c) => c.defId === rt.spawn!.token).length >= rt.spawnMaxAlive;
+      if (!atCap)
+        spawnTokens(draft, card, rt.spawn.token, rt.spawn.count, rt.spawn.adjacentOnly ? 1 : rt.spawn.spawnRadius);
     }
     if (rt.pokeDmg || rt.pokeStatus) {
       const t = closest(card, enemies());

@@ -426,7 +426,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.roundTick?.spawnMaxAlive)
     named(
       "spawnMaxAlive",
-      `It won't raise another while ${def.roundTick.spawnMaxAlive} of its bodies still stand — clear one to start the clock again.`,
+      `It won't raise another while ${def.roundTick.spawnMaxAlive} of its bodies still stand — clear one before it breeds again.`,
     );
   if (def.roundTick?.wardAllies)
     passives.push(`Radiant Ward: each round, allies get a barrier that absorbs the next negative status.`);

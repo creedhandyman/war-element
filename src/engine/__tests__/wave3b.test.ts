@@ -150,6 +150,27 @@ describe("Keeper", () => {
     expect(s.cards[keep.instanceId].curHp).toBe(17 - 6);
   });
 
+  it("Hive Command breeds one Beebot at the end of each round", () => {
+    const s = prepState();
+    const keep = place(s, "bolt_keeper", "P1", 2, 0);
+    const before = boardCards(s, "P1").filter((c) => c.defId === "bolt_beebot").length;
+    const next = advance(atCleanup(s));
+    const after = boardCards(next, "P1").filter((c) => c.defId === "bolt_beebot").length;
+    expect(after).toBe(before + 1);
+    void keep;
+  });
+
+  it("...but the trickle caps out — it won't flood the board", () => {
+    const s = prepState();
+    place(s, "bolt_keeper", "P1", 2, 0);
+    // Seed the board at the cap (4 Beebots already standing).
+    for (let i = 0; i < 4; i++) place(s, "bolt_beebot", "P1", i < 2 ? 3 : 1, i % 2, { curHp: 3, maxHp: 3 });
+    const before = boardCards(s, "P1").filter((c) => c.defId === "bolt_beebot").length;
+    const next = advance(atCleanup(s));
+    const after = boardCards(next, "P1").filter((c) => c.defId === "bolt_beebot").length;
+    expect(after).toBe(before); // at cap → no new bee
+  });
+
   it("Storm Swarm raises one Beebot per statused opponent and they all sting", () => {
     const s = prepState();
     s.players.P1.magicPool = 9;
