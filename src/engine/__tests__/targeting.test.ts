@@ -80,13 +80,20 @@ describe("Home Slot Targeting Rule", () => {
 });
 
 describe("ignoresHomeRule (Pumpkin's Catapult)", () => {
-  it("may snipe the enemy Home row from its own Home row", () => {
+  it("lobs across the whole board — as a BASIC, over a screen and the home rule", () => {
     const s = prepState();
-    const pumpkin = place(s, "dusk_pumpkin", "P2", 0, 0); // in its own home
-    const normal = place(s, "dusk_gool", "P2", 0, 1); // ordinary ranged
-    const camper = place(s, "leaf_fallona", "P1", 3, 0); // in P1's home row
-    expect(canTarget(s, pumpkin, camper)).toBe(true); // Catapult ignores the rule
-    expect(canTarget(s, normal, camper)).toBe(false); // everyone else obeys it
+    const pumpkin = place(s, "dusk_pumpkin", "P2", 0, 0); // its own home, far corner
+    const normal = place(s, "dusk_gool", "P2", 0, 1); // ordinary ranged, same spot
+    const camper = place(s, "leaf_fallona", "P1", 3, 0); // P1 home row — 3 rows away
+    place(s, "leaf_alpha", "P1", 2, 0); // a body screening the lane
+    // The basic-attack path (forBasic) is where the ranged-reach cap lived and
+    // quietly grounded Catapult. It must clear the cap, the sight screen, AND
+    // the home rule — a lobbed shot reaches the whole battlefield.
+    expect(canTarget(s, pumpkin, camper, false, true)).toBe(true);
+    // an ordinary ranged basic can do none of that from the back corner.
+    expect(canTarget(s, normal, camper, false, true)).toBe(false);
+    // the non-basic path (unchanged) still reaches too.
+    expect(canTarget(s, pumpkin, camper)).toBe(true);
   });
 });
 

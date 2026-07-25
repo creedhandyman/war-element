@@ -321,11 +321,15 @@ export function canTarget(
       // screen of enemy bodies — sound reaches, a projectile doesn't.
       if (!rangedCanSee(state, attacker.pos, target.pos, attacker.owner, state.boardSize)) return false;
     }
-  } else if (forBasic) {
+  } else if (forBasic && !aDef.ignoresHomeRule) {
     // Ranged BASIC: king-step reach, blocked by enemy bodies on a straight line.
     // Reach is 2 from the summoning row and 3 once advanced off it — see
     // rangedReachFor. Specials are deliberately exempt and keep their full-board
     // reach, so the AoE specials tuned in the balance pass are untouched.
+    // Catapult (Pumpkin's ignoresHomeRule) is ALSO exempt — it lobs over the
+    // whole battlefield, so it skips both this reach cap and the sight screen,
+    // the same as a ranged Special. Without this the reach cap (added after
+    // Catapult shipped) quietly grounded it, worst on the bigger board.
     const reach = rangedReachFor(state, attacker);
     if (!rangedCanSee(state, attacker.pos, target.pos, attacker.owner, reach)) return false;
   }
