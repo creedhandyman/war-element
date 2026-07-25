@@ -401,6 +401,8 @@ export function describePassives(def: CardDef): string[] {
       "basicLineReach",
       `Basic attacks reach up to ${def.basicLineReach} slots straight ahead, behind, or to either side (not diagonally). An enemy in the lane blocks it.`,
     );
+  if (def.targetsOnSound)
+    named("targetsOnSound", `Blind — it aims by sound. Its basic attack can only hit an enemy in king reach (right beside it) or one that MOVED this round; a stationary far enemy is silent and can't be targeted. Its board-wide Special is felt through the ground and ignores this.`);
   if (def.onlyAdjacentAttackers)
     passives.push(`Shadow: can only be attacked by adjacent opponents — ranged shots from afar miss.`);
   if (def.firstStrikeBonus && def.firstStrikeEnemySideOnly)

@@ -387,8 +387,8 @@ describe("The DEEPEST — Drilling Quake sinkhole", () => {
     expect(effectiveSp(next, f)).toBe(getDef("leaf_alpha").sp - 5); // −5 SP
   });
 
-  it("is a RANGED Special (reaches a far opponent) even though the basic is Melee", () => {
-    expect(getDef("bore_deepest").attackType).toBe("Melee"); // Warrior → melee basic
+  it("is a RANGED Special (reaches a far opponent)", () => {
+    expect(getDef("bore_deepest").attackType).toBe("Ranged"); // blind sonar-support
     const s = prepState();
     s.players.P1.magicPool = 6;
     const deepest = place(s, "bore_deepest", "P1", 2, 0);
@@ -499,6 +499,47 @@ describe("Pyrogon — Flame Engulf reach", () => {
     expect(next.cards[side.instanceId].curHp).toBe(13); // within spread 1
     expect(next.cards[deep.instanceId].curHp).toBe(13); // the row behind the front — now reached (2 deep)
     expect(next.cards[wide.instanceId].curHp).toBe(20); // outside the width
+  });
+});
+
+describe("The DEEPEST — Echolocation (blind, aims by sound)", () => {
+  it("can't hit a stationary far enemy — but CAN once it has moved this round", () => {
+    const s = prepState();
+    const deepest = place(s, "bore_deepest", "P1", 2, 0);
+    const far = place(s, "leaf_alpha", "P2", 0, 2, { curHp: 40, maxHp: 40 }); // far, not king-adjacent
+    // Silent: stationary and out of arm's reach → untargetable by a basic.
+    expect(canTarget(s, deepest, far, false, true)).toBe(false);
+    // It moved this round → footsteps heard → now targetable (sightline is clear).
+    far.movedThisRound = true;
+    expect(canTarget(s, deepest, far, false, true)).toBe(true);
+  });
+
+  it("can always hit a king-adjacent enemy, moved or not", () => {
+    const s = prepState();
+    const deepest = place(s, "bore_deepest", "P1", 2, 0);
+    const close = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 40, maxHp: 40 }); // diagonal, king reach
+    expect(close.movedThisRound).toBeFalsy();
+    expect(canTarget(s, deepest, close, false, true)).toBe(true);
+  });
+
+  it("a heard (moved) far enemy is still screened by an enemy body in the lane", () => {
+    const s = prepState();
+    const deepest = place(s, "bore_deepest", "P1", 2, 0);
+    const behind = place(s, "leaf_alpha", "P2", 0, 0, { curHp: 40, maxHp: 40 });
+    place(s, "leaf_greegon", "P2", 1, 0, { curHp: 40, maxHp: 40 }); // blocker directly ahead in the column
+    behind.movedThisRound = true; // it moved, so it's "heard"…
+    expect(canTarget(s, deepest, behind, false, true)).toBe(false); // …but the shot can't pass through the body
+  });
+
+  it("the Special ignores Echolocation — the quake reaches a stationary far enemy", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const deepest = place(s, "bore_deepest", "P1", 2, 0);
+    const far = place(s, "leaf_alpha", "P2", 0, 3, { curHp: 40, maxHp: 40, curShields: 0 }); // stationary + far
+    const next = applyIntent(battleWith(s, deepest.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: far.instanceId,
+    });
+    expect(statusOf(next.cards[far.instanceId], "DOT")).toBeTruthy(); // felt through the ground
   });
 });
 

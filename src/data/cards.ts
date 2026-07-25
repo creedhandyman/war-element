@@ -2621,14 +2621,18 @@ export const CARDS: CardDef[] = [
     name: "The DEEPEST",
     rarity: "mythic",
     element: "BORE",
-    cardClass: "Warrior",
-    attackType: "Melee", // a Warrior fights up close; the ranged reach lives on the Special
+    cardClass: "Support",
+    attackType: "Ranged", // a blind sonar-support that shells from the back — Echolocation gates what it can hit
     cost: 10,
     dmg: 9,
     hits: 1,
     hp: 39,
-    sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space); the 3 SP went to HP, so the slowness is the whole cost
+    sp: 3, // juggernaut pace — it sits still and listens; slowness suits a blind sniper
     shields: 8,
+    // Echolocation: BLIND — it can only aim a basic at an enemy in king reach or
+    // one that MOVED this round (footsteps). See `targetsOnSound` in canTarget.
+    passiveNames: { targetsOnSound: "Echolocation" },
+    targetsOnSound: true,
     // NO innate STEALTH. Abyssal Emergence is something it DOES, not something
     // it arrives with: the keyword cloaked it from the moment it was summoned,
     // so a cost-10 body sat untargetable before doing anything to earn it. The
@@ -2643,7 +2647,7 @@ export const CARDS: CardDef[] = [
       cost: 5,
       cooldown: 3, // Sinkhole is a heavy AoE — 3-round lockout between casts
       handler: "barrage",
-      ranged: true, // "Sinkhole all opponents" reaches the whole board (basic is Melee now)
+      ranged: true, // "Sinkhole all opponents" reaches the whole board — the quake is felt through the ground, so it ignores Echolocation's sound gate
       // Sinkhole: DOT 3 (maybeStatus) + −5 SP (spDebuff) + −accuracy via BLIND
       // (debuffStatus) — all for 3 rounds.
       params: {

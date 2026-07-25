@@ -294,6 +294,19 @@ export function canTarget(
       )
         return false;
     }
+  } else if (forBasic && aDef.targetsOnSound) {
+    // Echolocation (The DEEPEST): blind, aims by sound. A basic can only find a
+    // target that is right beside it (king reach) or that MOVED this round —
+    // footsteps it hears anywhere on the board. A stationary far enemy is silent.
+    const dRow = Math.abs(attacker.pos.row - target.pos.row);
+    const dCol = Math.abs(attacker.pos.col - target.pos.col);
+    const kingClose = dRow <= 1 && dCol <= 1;
+    if (!kingClose) {
+      if (!target.movedThisRound) return false;
+      // It hears the movement anywhere, but the shot still can't pass through a
+      // screen of enemy bodies — sound reaches, a projectile doesn't.
+      if (!rangedCanSee(state, attacker.pos, target.pos, attacker.owner, state.boardSize)) return false;
+    }
   } else if (forBasic) {
     // Ranged BASIC: king-step reach, blocked by enemy bodies on a straight line.
     // Reach is 2 from the summoning row and 3 once advanced off it — see

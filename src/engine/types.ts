@@ -445,6 +445,13 @@ export interface CardDef {
    *  a rider reaches PAST its own allies but not through an enemy front line.
    *  Basics only: melee Specials keep their own reach. */
   basicLineReach?: number;
+  /** Echolocation (The DEEPEST): the card is BLIND and aims by sound. Its BASIC
+   *  attack can only find a target that is either right beside it (king reach,
+   *  chebyshev ≤ 1) or that MOVED this round — footsteps it can hear anywhere on
+   *  the board. A stationary enemy out of arm's reach is silent and untargetable.
+   *  Basics only; a board-wide Special (its Sinkhole quake) is felt through the
+   *  ground and ignores this. */
+  targetsOnSound?: boolean;
   /** Gate the firstStrikeBonus so it only applies while this card stands on the
    *  enemy battlefield (Vaga's Shadow first-strike). */
   firstStrikeEnemySideOnly?: boolean;
