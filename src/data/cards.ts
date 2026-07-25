@@ -61,8 +61,8 @@ export const CARDS: CardDef[] = [
     cost: 1,
     dmg: 2,
     hits: 1,
-    hp: 4,
-    sp: 9, // a fast snake — HP is just enough to survive one 1-cost spell (3 dmg)
+    hp: 5,
+    sp: 9, // a fast snake — 5 HP survives a 1-cost spell AND one weak hit (2+5+9=16, +1 over cost-1)
     shields: 0,
     keywords: {},
     tribe: "Reptile", // fed by Trinezer's Brood Command
