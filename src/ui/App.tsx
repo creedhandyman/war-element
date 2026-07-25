@@ -31,6 +31,7 @@ import {
   specialTargets,
   validAllyTargets,
   validTargets,
+  distributeBasicHits,
   boardCards,
   isCaptured,
 } from "../engine";
@@ -1250,15 +1251,15 @@ export function App() {
                     return;
                   }
                   if (pending === "basic") {
-                    // Second tap. Targets picked → fire them. None picked → AUTO-FIRE
-                    // at the lowest-HP enemy (a double-tap is a quick finisher).
+                    // Second tap. Targets picked → fire them. None picked → AUTO-FIRE:
+                    // lowest-HP enemy for a single hit, or a smart spread for a
+                    // multi-hit volley (no overkill — same engine helper the AI uses).
                     if (picks.length > 0) {
                       firePicks(picks);
                       return;
                     }
                     const enemies = validTargets(game, awaitingId!).filter((t) => t.owner !== activeCard.owner);
-                    const lowest = enemies.length ? enemies.reduce((lo, t) => (t.curHp < lo.curHp ? t : lo)) : null;
-                    firePicks(lowest ? [lowest.instanceId] : []); // fallback: engine default if no enemy in range
+                    firePicks(enemies.length ? distributeBasicHits(game, activeCard, enemies) : []);
                     return;
                   }
                   // First tap (idle, or an un-targeted Special) — arm the basic.

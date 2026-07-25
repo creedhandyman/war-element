@@ -1117,7 +1117,15 @@ function stepBattle(draft: GameState): boolean {
   if (!draft.humans.includes(card.owner)) {
     // AI-controlled card.
     const choice = chooseBattleAction(draft, id);
-    performBattleAction(draft, id, choice.action, choice.targetId ? [choice.targetId] : undefined);
+    // A multi-hit basic spreads instead of overkilling one target (see
+    // distributeBasicHits); every other action keeps its single chosen target.
+    const picks =
+      choice.action === "basic" && effectiveBasicHits(card) > 1
+        ? distributeBasicHits(draft, card, validTargets(draft, id))
+        : choice.targetId
+          ? [choice.targetId]
+          : undefined;
+    performBattleAction(draft, id, choice.action, picks);
     battle.index++;
     return true;
   }
@@ -1131,15 +1139,21 @@ function stepBattle(draft: GameState): boolean {
     // Full auto may fire Specials and spend pool: fire if it can kill,
     // otherwise basic attack (mirrors the AI's restraint).
     const choice = chooseBattleAction(draft, id);
-    performBattleAction(draft, id, choice.action, choice.targetId ? [choice.targetId] : undefined);
+    const picks =
+      choice.action === "basic" && effectiveBasicHits(card) > 1
+        ? distributeBasicHits(draft, card, validTargets(draft, id))
+        : choice.targetId
+          ? [choice.targetId]
+          : undefined;
+    performBattleAction(draft, id, choice.action, picks);
     battle.index++;
     return true;
   }
   if (canBasic) {
-    // Auto-basic: attack the lowest-HP reachable target it can kill, else lowest HP.
+    // Auto-basic: lowest-HP reachable target it can kill, else lowest HP — and a
+    // multi-hit volley spreads its surplus onto fresh targets instead of overkill.
     const targets = validTargets(draft, id);
-    const pick = pickBasicTarget(draft, card, targets);
-    performBattleAction(draft, id, "basic", [pick.instanceId]);
+    performBattleAction(draft, id, "basic", distributeBasicHits(draft, card, targets));
   } else {
     performBattleAction(draft, id, "skip");
   }
@@ -1160,6 +1174,47 @@ export function pickBasicTarget(
   });
   const pool = killable.length > 0 ? killable : targets;
   return pool.reduce((best, t) => (t.curHp < best.curHp ? t : best), pool[0]);
+}
+
+/** Spread a MULTI-HIT basic across targets instead of dumping every hit on one.
+ *  resolveHit stops the instant a target dies (combat.ts), so a 4×3 volley aimed
+ *  at a 2-HP card lands ONE hit and simply LOSES the other three — they don't
+ *  carry to the next enemy. This walks the hits, sending each to the best live
+ *  target (one this hit can finish, else the lowest-HP), simulating shields/HP so
+ *  the surplus flows onto fresh bodies. Returns one id per hit; basicAttack
+ *  merges consecutive repeats into a single gated volley. Single-hit basics and
+ *  lone targets fall back to the normal one-pick behavior, unchanged. */
+export function distributeBasicHits(
+  draft: GameState,
+  attacker: CardInstance,
+  targets: CardInstance[],
+): string[] {
+  const hits = effectiveBasicHits(attacker);
+  if (hits <= 1 || targets.length <= 1)
+    return [pickBasicTarget(draft, attacker, targets).instanceId];
+  const d = effectiveDmg(draft, attacker);
+  const pen = Boolean(getDef(attacker.defId).keywords.PEN);
+  const sim = targets.map((t) => ({ id: t.instanceId, hp: t.curHp, sh: pen ? 0 : t.curShields }));
+  const out: string[] = [];
+  for (let h = 0; h < hits; h++) {
+    const live = sim.filter((s) => s.hp > 0);
+    // Nothing left to kill in reach → keep the surplus on the lowest-HP body (a
+    // single target so it stays one volley; there's no better use for them).
+    if (live.length === 0) {
+      out.push(sim.reduce((a, b) => (b.hp < a.hp ? b : a), sim[0]).id);
+      continue;
+    }
+    // Prefer a target THIS hit can finish (the lowest such); else the lowest-HP
+    // live target so we chip the thing closest to dying.
+    const finishers = live.filter((s) => s.hp <= Math.max(0, d - s.sh));
+    const src = finishers.length ? finishers : live;
+    const pick = src.reduce((a, b) => (b.hp < a.hp ? b : a), src[0]);
+    out.push(pick.id);
+    const toHp = Math.max(0, d - pick.sh);
+    if (pick.sh > 0) pick.sh -= 1;
+    pick.hp -= toHp;
+  }
+  return out;
 }
 
 /** Ally-facing on-summon passives (Smith Reforged: shields to the row ahead;

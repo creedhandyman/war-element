@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, resolveHit } from "../combat";
 import { getDef } from "../../data/cards";
-import { advance } from "../phases";
+import { advance, distributeBasicHits } from "../phases";
 import { atCleanup, place, prepState, seedForCoins, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
@@ -328,5 +328,37 @@ describe("DRAIN — lifesteal that also grows the drainer", () => {
     basicAttack(s, vamp.instanceId, prey.instanceId);
     expect(s.cards[vamp.instanceId].curHp).toBe(4); // sealed — no heal
     expect(s.cards[vamp.instanceId].maxHp).toBe(11); // theft still lands
+  });
+});
+
+describe("multi-hit auto-basic — spread, don't overkill", () => {
+  it("a 4-hit volley finishes the 1-HP body with ONE hit and carries the rest", () => {
+    const s = prepState();
+    const alpha = place(s, "leaf_alpha", "P1", 3, 0); // 1 DMG × 4, home row → no mid-row bonus
+    const weak = place(s, "dusk_gool", "P2", 2, 0, { curHp: 1, maxHp: 20, curShields: 0 });
+    const tough = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const picks = distributeBasicHits(s, alpha, [weak, tough]);
+    expect(picks.length).toBe(4);
+    expect(picks.filter((id) => id === weak.instanceId).length).toBe(1); // just enough to kill it
+    expect(picks.filter((id) => id === tough.instanceId).length).toBe(3); // the other 3 don't vanish
+  });
+
+  it("...and firing that distribution kills the weak one AND damages the next", () => {
+    const s = prepState();
+    const alpha = place(s, "leaf_alpha", "P1", 3, 0);
+    const weak = place(s, "dusk_gool", "P2", 2, 0, { curHp: 1, maxHp: 20, curShields: 0 });
+    const tough = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, alpha.instanceId, distributeBasicHits(s, alpha, [weak, tough]));
+    expect(s.cards[weak.instanceId]?.curHp ?? 0).toBeLessThanOrEqual(0); // dead on one hit
+    expect(40 - s.cards[tough.instanceId].curHp).toBe(3); // the surplus 3 hits landed here
+  });
+
+  it("a single-hit basic is unchanged — one pick, the lowest-HP killable", () => {
+    const s = prepState();
+    const mono = place(s, "dusk_gool", "P2", 3, 0); // 4 DMG × 1
+    const weak = place(s, "leaf_greegon", "P1", 2, 0, { curHp: 2, maxHp: 20, curShields: 0 });
+    const tough = place(s, "leaf_greegon", "P1", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const picks = distributeBasicHits(s, mono, [weak, tough]);
+    expect(picks).toEqual([weak.instanceId]);
   });
 });
