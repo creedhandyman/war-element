@@ -99,6 +99,10 @@ export interface HitOptions {
   /** This particular attack ignores accuracy checks (Fallow's Hunting Season).
    *  Card-level `alwaysHit` is the whole card; this is one Special. */
   alwaysHit?: boolean;
+  /** Suppress the generic "X hits Y for N" line — the caller has better context
+   *  and will log it itself (e.g. an on-opponent-summon reaction, which otherwise
+   *  reads like an ordinary attack with no hint it fired off a summon). */
+  silent?: boolean;
 }
 
 export interface AttackResult {
@@ -531,9 +535,10 @@ export function resolveHit(
   }
 
   if (result.landedHits > 0) {
-    draft.log.push(
-      `${label(draft, attacker)} hits ${label(draft, target)} for ${result.totalToHp} (${result.landedHits} hit${result.landedHits > 1 ? "s" : ""}).`,
-    );
+    if (!opts.silent)
+      draft.log.push(
+        `${label(draft, attacker)} hits ${label(draft, target)} for ${result.totalToHp} (${result.landedHits} hit${result.landedHits > 1 ? "s" : ""}).`,
+      );
     // Any hit wakes a sleeper (SLEEP removed the moment it's struck) — unless
     // the attacker ignores that rule (Sandman's Nightmare).
     if (hasStatus(target, "SLEEP") && target.curHp > 0 && !aDef.ignoresSleepWake) {
@@ -1350,9 +1355,10 @@ export function directDamage(
   dmg: number,
   pen: boolean,
   crit = false,
+  silent = false,
 ): boolean {
   if (!draft.cards[target.instanceId] || target.curHp <= 0) return false;
-  const r = resolveHit(draft, source, target, { kind: "reflect", dmg, hits: 1, pen, crit });
+  const r = resolveHit(draft, source, target, { kind: "reflect", dmg, hits: 1, pen, crit, silent });
   return r.targetDied;
 }
 

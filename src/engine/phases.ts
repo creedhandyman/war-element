@@ -203,8 +203,19 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         if (!gd.onOppSummon || guard.curHp <= 0 || !draft.cards[inst.instanceId]) continue;
         // Only reacts to a newcomer it can actually reach (in targeting range).
         if (!canTarget(draft, guard, inst)) continue;
-        if (gd.onOppSummon.dmg && inst.curHp > 0)
-          directDamage(draft, guard, inst, gd.onOppSummon.dmg, false, Boolean(gd.onOppSummon.crit));
+        if (gd.onOppSummon.dmg && inst.curHp > 0) {
+          // Log it under the passive's name — the generic "hits for N" line reads
+          // like an ordinary attack and gives no hint the summon itself triggered
+          // it ("my card spawned with 3 damage and nothing explains why"). Measure
+          // what actually landed (shields absorb some), then say who did it.
+          const before = inst.curShields + inst.curHp;
+          directDamage(draft, guard, inst, gd.onOppSummon.dmg, false, Boolean(gd.onOppSummon.crit), true);
+          const dealt = before - (inst.curShields + inst.curHp);
+          const pName = gd.passiveNames?.onOppSummon ?? gd.name;
+          draft.log.push(
+            `${pName}: ${getDef(guard.defId).name} strikes ${getDef(inst.defId).name} for ${dealt} as it enters.`,
+          );
+        }
         const st = gd.onOppSummon.status;
         if (st && inst.curHp > 0 && draft.cards[inst.instanceId])
           applyStatus(draft, inst, st.kind, st.duration, st.power, gd.element);
