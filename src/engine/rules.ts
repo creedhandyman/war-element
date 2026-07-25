@@ -599,6 +599,8 @@ export function canFireSpecial(
   const def = getDef(card.defId);
   if (!def.special) return { ok: false, reason: "No Special" };
   if (card.transformed) return { ok: false, reason: "Dismounted — Special lost" };
+  // Diagnosis / Red Shift / Magic Ropes: this card's Specials are locked out.
+  if ((card.specialLockedRounds ?? 0) > 0) return { ok: false, reason: "Specials locked (quarantined)" };
   // Summon-turn lockout: a card just summoned may basic-attack but not fire its
   // Special. Elemental Fury (Prism) is the one exception — it "arrives with its
   // Special already charged", so the FREE first cast is usable the moment it

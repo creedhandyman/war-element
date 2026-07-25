@@ -113,6 +113,8 @@ function describeOnSummon(os: {
       return `On summon: heal ${scope()} ${n("amount")} HP.`;
     case "surfsUp":
       return `On summon: a wave deals ${n("dmg")} DMG to the enemy row ahead and heals all allies ${n("heal")} HP.`;
+    case "lockSpecials":
+      return `On summon: opponents cannot use their Specials this round.`;
     default:
       return "Fires an effect the moment it's summoned.";
   }
@@ -360,6 +362,8 @@ export function describePassives(def: CardDef): string[] {
     named("bonusVsShield", `Diamond's Edge: basic attacks deal ${def.bonusVsShield}× damage against a shielded target.`);
   if (def.onSpecialUse)
     named("onSpecialUse", `Golden Resonance: each Special use grants +${def.onSpecialUse.shields} shields and +${def.onSpecialUse.dmg} DMG (stacking).`);
+  if (def.onCritDebuff)
+    named("onCritDebuff", `Brutal: a basic CRIT saps ${def.onCritDebuff} DMG off the target's own attacks for the round.`);
   if (def.roundTick?.rowAheadDmg)
     passives.push(
       `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,

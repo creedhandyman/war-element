@@ -408,6 +408,9 @@ export interface CardDef {
   /** Golden Resonance (Lithara): each successful Special use grants +shields and
    *  +DMG (stacking). */
   onSpecialUse?: { shields: number; dmg: number };
+  /** Brutal (Brute): a basic CRIT saps N DMG off the target's attacks for the
+   *  round. */
+  onCritDebuff?: number;
   /** Raising Star (Star): a landed basic also heals every ally +N HP. */
   basicHealsTeam?: number;
   /** Liquid Serenity (Anos): at end of a round in which it did NOT attack, heal
@@ -762,6 +765,9 @@ export interface CardInstance {
   critsThisRound?: number;
   /** HP lost this round (Bolder's Vengeance reflects it). Reset at Cleanup. */
   dmgTakenThisRound?: number;
+  /** Diagnosis / Red Shift / Magic Ropes: rounds this card cannot fire Specials.
+   *  Ticked down at Cleanup. */
+  specialLockedRounds?: number;
   /** A granted heal-over-time (Tail Drop's regrow): heals `regenPower` at each
    *  Cleanup until `regenRoundsLeft` reaches 0. */
   regenRoundsLeft?: number;

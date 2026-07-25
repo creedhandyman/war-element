@@ -1148,6 +1148,8 @@ export function basicAttack(
       }
       // Liquification (Bahari): flat heal per landed basic hit.
       if (aDef.healPerHit && attacker.curHp > 0) healCard(draft, attacker, aDef.healPerHit * r.landedHits, attacker);
+      // Brutal (Brute): a CRIT saps the target's own attacks for the round.
+      if (aDef.onCritDebuff && r.critHits && t.curHp > 0) applyTimedBuff(t, -aDef.onCritDebuff, 0, 1);
       // Hastened Assault: heal per critical hit landed.
       if (aDef.healPerCrit && r.critHits && attacker.curHp > 0) {
         const h = healCard(draft, attacker, aDef.healPerCrit * r.critHits, attacker);
@@ -2274,6 +2276,39 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.electroSurgeActive = true;
     if (es?.shield) attacker.curShields += es.shield;
     draft.log.push(`${label(draft, attacker)} charges its Electro Surge (+${es?.shield ?? 0} shield).`);
+  },
+  /** Sweep (Brute): swing at every opponent in the row directly ahead with a
+   *  basic attack, gaining shields per kill. */
+  sweep(draft, attacker, _targets, params) {
+    if (!attacker.pos) return;
+    const row = rowAhead(attacker.owner, attacker.pos.row);
+    const foes = boardCards(draft, enemyOf(attacker.owner)).filter((e) => e.curHp > 0 && e.pos?.row === row);
+    const per = num(params, "shieldPerKill", 2);
+    let kills = 0;
+    for (const foe of foes) {
+      if (!draft.cards[foe.instanceId] || foe.curHp <= 0 || attacker.curHp <= 0) continue;
+      const r = basicAttack(draft, attacker.instanceId, foe.instanceId);
+      if (r?.targetDied) kills++;
+    }
+    if (kills > 0) {
+      attacker.curShields += per * kills;
+      draft.log.push(`${label(draft, attacker)} sweeps ${kills} down (+${per * kills} shields).`);
+    }
+  },
+  /** Diagnosis / Red Shift (Plaguecrow + its RedRaven): quarantine opponents out
+   *  of their Specials for the round. */
+  lockSpecials(draft, attacker, targets, params) {
+    const n = num(params, "count", 99);
+    const rounds = num(params, "rounds", 1);
+    const pool = targets.length ? targets : boardCards(draft, enemyOf(attacker.owner));
+    let locked = 0;
+    for (const e of pool) {
+      if (e.curHp > 0 && e.owner !== attacker.owner && locked < n) {
+        e.specialLockedRounds = Math.max(e.specialLockedRounds ?? 0, rounds);
+        locked++;
+      }
+    }
+    draft.log.push(`${label(draft, attacker)} locks ${locked} opponent(s) out of their Specials.`);
   },
   /** Vengeance (Bolder): hurl back the damage it soaked this round (with PEN) and
    *  SLEEP an opponent. */

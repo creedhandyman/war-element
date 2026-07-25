@@ -5912,6 +5912,65 @@ export const CARDS: CardDef[] = [
       text: "Deal 5 DMG to a single target and SLEEP it until end of round.",
     },
   },
+  {
+    id: "dusk_brute",
+    name: "Brute",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 4,
+    hits: 1,
+    hp: 17,
+    sp: 5,
+    shields: 2,
+    keywords: { CRIT: true },
+    tribe: "Skeleton",
+    // Brutal (On CRIT): the target loses 1 DMG on its attacks for the round.
+    passiveNames: { onCritDebuff: "Brutal" },
+    onCritDebuff: 1,
+    // Sweep: basic-attack every opponent in the row ahead; +2 shields per kill.
+    special: {
+      name: "Sweep",
+      cost: 3,
+      handler: "sweep",
+      params: { shieldPerKill: 2 },
+      targetSide: "enemy",
+      text: "Attack every opponent in the row directly ahead; gain +2 shields per kill.",
+    },
+  },
+  {
+    id: "dusk_plaguecrow",
+    name: "Plaguecrow",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 4,
+    hits: 2,
+    hp: 11,
+    sp: 11,
+    shields: 0,
+    keywords: { CRIT: true, PEN: true },
+    tribe: "Skeleton",
+    // Diagnosis (On Summon): opponents cannot use Specials this round.
+    passiveNames: { onSummon: "Diagnosis", onDeath: "Plague" },
+    onSummon: { handler: "lockSpecials", params: { rounds: 1 }, targetSide: "enemy" },
+    // On Death: raise a RedRaven, which imposes the same quarantine (Red Shift).
+    onDeath: { dmg: 0, spawnToken: { token: "dusk_redreven", count: 1 } },
+    // Miasma Burst: 4 DMG CRIT + PEN to all opponents in range.
+    special: {
+      name: "Miasma Burst",
+      cost: 2,
+      handler: "barrage",
+      params: { dmg: 4, targets: 99, crit: 1, pen: 1 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Deal 4 DMG (CRIT, PEN) to all opponents in range.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
@@ -5920,6 +5979,25 @@ export const CARDS: CardDef[] = [
 // them. (Reptilian and Heir used to live here — they are draftable now, but are
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
+  {
+    id: "dusk_redreven",
+    name: "RedRaven",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 6,
+    hits: 1,
+    hp: 9,
+    sp: 9,
+    shields: 0,
+    keywords: {},
+    tribe: "Skeleton",
+    // Red Shift (On Summon): opponents cannot use Specials this round.
+    passiveNames: { onSummon: "Red Shift" },
+    onSummon: { handler: "lockSpecials", params: { rounds: 1 }, targetSide: "enemy" },
+  },
   {
     id: "leaf_acorn_tok",
     art: "leaf_acorn",
