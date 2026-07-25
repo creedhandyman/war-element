@@ -203,15 +203,15 @@ describe("medium-tier passives (audit batch)", () => {
 
   it("Scarlett's Bat Swarm drains max HP from every opponent it hits", () => {
     const s = prepState();
-    s.players.P1.magicPool = 2;
     const scarlett = place(s, "dusk_scarlett", "P1", 2, 0);
     const a = place(s, "leaf_greegon", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 0 });
     const b = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 });
     const before = s.cards[scarlett.instanceId].maxHp;
+    // Bat Swarm is now a once-per-game Talent (free), not a Special.
     const next = applyIntent(battleFor(s, scarlett.instanceId), {
       type: "BATTLE_ACTION",
       player: "P1",
-      action: "special",
+      action: "talent",
       targetId: a.instanceId,
     });
     for (const t of [a, b]) expect(next.cards[t.instanceId].maxHp).toBe(19); // 1 stolen each

@@ -344,6 +344,8 @@ export function describePassives(def: CardDef): string[] {
     named("skyScout", `Sky Scout: when it enters a Mid row, allies' basic attacks hit +1 adjacent target for the round.`);
   if (def.critPen)
     named("critPen", `Crack Shot: when its CRIT lands, the hit also pierces shields.`);
+  if (def.potionOnHit)
+    named("potionOnHit", `Magic Potion: a landed basic hurls a random potion — poison (DOT 1), 3 damage, or FRIGHTEN 2.`);
   if (def.roundTick?.rowAheadDmg)
     passives.push(
       `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,

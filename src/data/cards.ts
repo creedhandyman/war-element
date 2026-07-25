@@ -3418,7 +3418,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_scarlett",
     name: "Scarlett",
-    rarity: "epic",
+    rarity: "rare",
     element: "DUSK",
     cardClass: "Support",
     attackType: "Ranged",
@@ -3428,18 +3428,16 @@ export const CARDS: CardDef[] = [
     hp: 10,
     sp: 11,
     shields: 0,
-    keywords: { DRAIN: true }, // Bloody Bite
+    keywords: { DRAIN: true }, // Bloody Bite: basics DRAIN
     tribe: "Vamp",
-    special: {
+    // Bat Swarm (Talent, free, once per game): swarm all opponents for 2 each,
+    // draining 1 max HP from each (the swarm feeds). Retiered Epic→Rare per the
+    // doc, Special→Talent. (Doc's 75% per-target hit chance isn't modeled.)
+    talent: {
       name: "Bat Swarm",
-      cost: 2,
+      text: "Once per game, free: deal 2 DMG to all opponents and DRAIN 1 max HP from each.",
       handler: "barrage",
-      // (Doc's 75% per-target hit chance isn't modeled — it lands on all.)
-      // drain: 1 per target, matching the DRAIN keyword's rate. The keyword only
-      // rides basic attacks, so the Special has to ask for it explicitly.
       params: { dmg: 2, targets: 99, drain: 1 },
-      targetSide: "enemy",
-      text: "Deal 2 DMG to all opponents and DRAIN 1 max HP from each.",
     },
   },
 
@@ -5557,10 +5555,12 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Dark",
-    // Magic Potion (On Death): the flask shatters on the killer. (Doc's random
-    // on-attack potion + far-row throw trimmed to an on-death burst.)
-    passiveNames: { onDeath: "Magic Potion" },
-    onDeath: { dmg: 3 },
+    // Magic Potion (On Attack): a landed basic hurls a random potion — poison
+    // (DOT 1), damage (3), or FRIGHTEN 2. On Death: the flasks shatter across the
+    // enemy row directly ahead.
+    passiveNames: { potionOnHit: "Magic Potion", onDeath: "Magic Potion" },
+    potionOnHit: true,
+    onDeath: { dmg: 3, rowAhead: true },
   },
   {
     id: "dawn_golde",

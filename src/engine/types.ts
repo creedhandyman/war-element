@@ -378,6 +378,9 @@ export interface CardDef {
   /** Crack Shot (Sling): when this card's CRIT coin lands, the hit also PIERCES —
    *  so the crit can fire against a shielded target and skip the shield. */
   critPen?: boolean;
+  /** Magic Potion (Hix): a landed basic hurls a random potion at the target —
+   *  Poison (DOT 1), Damage (3), or Sleep (FRIGHTEN 2). */
+  potionOnHit?: boolean;
   /** Elemental Fury (Prism): lands with its Special already paid for, so the
    *  first Enchantment is free. */
   startsWithFreeSpecial?: boolean;

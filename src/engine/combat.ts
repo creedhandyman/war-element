@@ -1081,6 +1081,20 @@ export function basicAttack(
       if (aDef.element === "BOLT" && t.curHp > 0 && t.statuses.length === 0) {
         applyStatus(draft, t, "ELECTRIFIED", 1, 0, "BOLT");
       }
+      // Magic Potion (Hix): a landed basic hurls a random flask at the target.
+      if (aDef.potionOnHit && t.curHp > 0 && draft.cards[t.instanceId]) {
+        const roll = randInt(draft, 3);
+        if (roll === 0) {
+          applyStatus(draft, t, "DOT", 2, 1, aDef.element);
+          draft.log.push(`${label(draft, attacker)}'s potion splashes poison (DOT 1).`);
+        } else if (roll === 1) {
+          draft.log.push(`${label(draft, attacker)}'s potion bursts for 3.`);
+          if (directDamage(draft, attacker, t, 3, false)) agg.targetDied = true;
+        } else {
+          applyStatus(draft, t, "FRIGHTEN", 2, 0, aDef.element);
+          draft.log.push(`${label(draft, attacker)}'s potion terrifies (FRIGHTEN 2).`);
+        }
+      }
       if (healOnHit > 0 && attacker.curHp > 0) healCard(draft, attacker, healOnHit, attacker);
       // Liquification (Bahari): flat heal per landed basic hit.
       if (aDef.healPerHit && attacker.curHp > 0) healCard(draft, attacker, aDef.healPerHit * r.landedHits, attacker);
