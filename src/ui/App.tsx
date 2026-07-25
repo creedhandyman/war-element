@@ -195,14 +195,20 @@ export function App() {
     } else if (needsP1Input(game)) {
       return;
     }
-    const delay = game.phase === "battle" ? 480 : 260;
+    // Pace the AI to the on-screen theatrics: while a summon announcement or a
+    // spell cast-flash is playing, hold the next step until it clears. The AI
+    // used to fire every ~480ms regardless, so back-to-back announce-worthy
+    // plays landed on top of each other — the second got skipped or clobbered
+    // mid-flight. Waiting the full overlay out lets each entrance actually show.
+    const showing = announce !== null || castFlash !== null;
+    const delay = showing ? 2200 : game.phase === "battle" ? 480 : 260;
     const t = setTimeout(() => {
       const next = advance(game);
       setGame(next);
       if (online) broadcast(next);
     }, delay);
     return () => clearTimeout(t);
-  }, [game, started, online]);
+  }, [game, started, online, announce, castFlash]);
 
   // Reliability heartbeat: whichever side currently "owns" the state (the player
   // who must act, or the host during a no-input step) re-broadcasts it every few
