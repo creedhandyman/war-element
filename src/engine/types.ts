@@ -390,10 +390,11 @@ export interface CardDef {
    *  so the crit can fire against a shielded target and skip the shield. */
   critPen?: boolean;
   /** Electro Surge (Surge): a reactive charge. Starts active on summon and is
-   *  re-armed by the Special (+`shield`). While active the card is status-immune
-   *  (Surge Protector); the first time it's hit while active it PARALYZEs the
-   *  attacker `paralyze` rounds, deals `dmg` back, and deactivates. */
-  electroSurge?: { paralyze: number; dmg: number; shield: number };
+   *  re-armed by the Special, which also grants +`shield` and +`dmgBoost` DMG
+   *  for `boostRounds` rounds. While active the card is status-immune (Surge
+   *  Protector); the first time it's hit while active it PARALYZEs the attacker
+   *  `paralyze` rounds and deactivates. */
+  electroSurge?: { paralyze: number; shield: number; dmgBoost: number; boostRounds: number };
   /** Magic Potion (Hix): a landed basic hurls a random potion at the target —
    *  Poison (DOT 1), Damage (3), or Sleep (FRIGHTEN 2). */
   potionOnHit?: boolean;

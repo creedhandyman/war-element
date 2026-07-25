@@ -875,8 +875,7 @@ export function resolveHit(
     target.electroSurgeActive = false;
     if (attacker.curHp > 0 && draft.cards[attacker.instanceId]) {
       applyStatus(draft, attacker, "PARALYZE", tDef.electroSurge.paralyze, 0, tDef.element);
-      draft.log.push(`${label(draft, target)}'s Electro Surge discharges into ${getDef(attacker.defId).name}!`);
-      if (directDamage(draft, target, attacker, tDef.electroSurge.dmg, false)) result.attackerDied = true;
+      draft.log.push(`${label(draft, target)}'s Electro Surge discharges — ${getDef(attacker.defId).name} is PARALYZED!`);
     }
   }
 
@@ -2278,12 +2277,14 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.attackMissRounds = num(params, "missRounds");
     draft.log.push(`${label(draft, attacker)} tucks into its shell (+${sh} shields, aim shaken ${attacker.attackMissRounds}r).`);
   },
-  /** Electro Surge (Surge): re-arm the reactive charge and plate up. */
+  /** Electro Surge (Surge): re-arm the reactive charge, plate up, and surge with
+   *  a timed DMG boost. */
   electroSurge(draft, attacker, _targets, _params) {
     const es = getDef(attacker.defId).electroSurge;
     attacker.electroSurgeActive = true;
     if (es?.shield) attacker.curShields += es.shield;
-    draft.log.push(`${label(draft, attacker)} charges its Electro Surge (+${es?.shield ?? 0} shield).`);
+    if (es?.dmgBoost) applyTimedBuff(attacker, es.dmgBoost, 0, es.boostRounds);
+    draft.log.push(`${label(draft, attacker)} charges its Electro Surge (+${es?.shield ?? 0} shield, +${es?.dmgBoost ?? 0} DMG for ${es?.boostRounds ?? 0}r).`);
   },
   /** Orbital Shot (Raya): mark a target; a 14-DMG arrow falls on it next round. */
   orbitalShot(draft, attacker, targets, params) {

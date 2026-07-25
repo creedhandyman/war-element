@@ -5759,9 +5759,9 @@ export const CARDS: CardDef[] = [
     tribe: "ARC",
     // Surge Protector + Electro Surge: starts armed on summon; while armed it's
     // status-immune, and the first hit it takes discharges — PARALYZE the
-    // attacker 3r, 5 DMG back, then deactivate.
+    // attacker 3r, then deactivate.
     passiveNames: { electroSurge: "Electro Surge" },
-    electroSurge: { paralyze: 3, dmg: 5, shield: 1 },
+    electroSurge: { paralyze: 3, shield: 1, dmgBoost: 5, boostRounds: 2 },
     // Live current: +2 SP every round (stacking).
     roundTick: { buffDmgEveryN: { n: 1, amount: 0, sp: 2 } },
     special: {
@@ -5770,7 +5770,7 @@ export const CARDS: CardDef[] = [
       handler: "electroSurge",
       params: {},
       targetSide: "self",
-      text: "Re-arm Electro Surge and gain +1 shield. While armed: status-immune, and the next hit PARALYZEs the attacker 3 rounds + 5 DMG.",
+      text: "Re-arm Electro Surge: +1 shield and +5 DMG for 2 rounds. While armed: status-immune, and the next hit PARALYZEs the attacker 3 rounds.",
     },
   },
   {
