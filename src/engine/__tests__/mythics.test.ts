@@ -111,7 +111,10 @@ describe("per-card auras", () => {
     const nonBore = place(s, "gale_duster", "P1", 3, 0, { curShields: 0 });
     place(s, "dusk_gool", "P2", 0, 0); // keep P2 non-empty
     const next = advance(atCleanup(s));
-    expect(next.cards[boreAlly.instanceId].curShields).toBe(getDef("bore_clubber").shields + 1);
+    // Pressure now REGENERATES +1 shield per round (up to printed + aura) instead
+    // of instantly refilling to that ceiling — a stripped ally climbs back one
+    // shield at a time, so from 0 it's at 1 after a single Cleanup.
+    expect(next.cards[boreAlly.instanceId].curShields).toBe(1);
     expect(next.cards[nonBore.instanceId].curShields).toBe(0); // untouched
   });
 });

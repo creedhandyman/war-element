@@ -340,7 +340,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       }
       // The human's SUMMON pick — permanent, matching the AI path above. The
       // Downpour branch a few lines up stays round-scoped on purpose.
-      applyFlow(card, intent.mode as FlowMode, true);
+      applyFlow(card, intent.mode as FlowMode, false, 3); // Flow lasts 3 rounds now
       draft.pendingFlow = null;
       draft.log.push(`${getDef(card.defId).name} shifts state (Flow Change).`);
       return draft;
@@ -1323,7 +1323,7 @@ function applyElementSummonAura(draft: GameState, inst: CardInstance): void {
         // Human chooses via the UI; gate until they pick.
         draft.pendingFlow = inst.instanceId;
       } else {
-        applyFlow(inst, aiFlowChoice(def.cardClass), true); // summon pick persists
+        applyFlow(inst, aiFlowChoice(def.cardClass), false, 3); // summon pick lasts 3 rounds
       }
       break;
     }
@@ -1685,9 +1685,15 @@ function doCleanupPhase(draft: GameState): void {
         draft.log.push(`${label(draft, card)} regrows bark (+${grown} shield${grown > 1 ? "s" : ""}).`);
       }
     }
-    // Shield auras (The DEEPEST's Pressure): top up to printed + aura shields.
+    // Shield auras (The DEEPEST's Pressure): regenerate the aura's shields each
+    // round, +bonus per turn up to printed + aura shields. Was an instant refill
+    // to that ceiling (Math.max), so a card that lost several shields regained
+    // them all in one round — reads as "gains 2+ per turn". Now it trickles the
+    // aura value (e.g. +1) per round, which is both what the number promises and
+    // a fair rein on BORE's shield sustain.
     const shieldBonus = auraShieldBonus(draft, card);
-    if (shieldBonus > 0) card.curShields = Math.max(card.curShields, def.shields + shieldBonus);
+    if (shieldBonus > 0)
+      card.curShields = Math.min(def.shields + shieldBonus, card.curShields + shieldBonus);
     // Clamp HP to effective max — in case a maxHP aura (SeaC) just dropped.
     card.curHp = Math.min(card.curHp, effectiveMaxHp(draft, card));
   }
