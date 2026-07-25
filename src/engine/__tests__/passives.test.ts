@@ -552,6 +552,21 @@ describe("medium-tier passives (audit batch)", () => {
     expect(boar.pos!.row).toBe(2); // charged off its home row (3 → 2)
   });
 
+  it("Ash Boar TRAMPLES THROUGH a foe directly ahead (doesn't stall on it)", () => {
+    // Regression: the boar "keeps going" via a forward charge, which stalls on
+    // the first occupied slot — so a foe in its OWN column (the one it just hit)
+    // used to block it, and the boar that's "meant to trample THROUGH" didn't
+    // move at all. Now it phases past the struck body to the next open slot.
+    const s = prepState();
+    s.players.P1.gold = 6;
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 }); // directly ahead, same column
+    const handId = giveHand(s, "P1", "pyro_ash_boar");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const boar = Object.values(next.cards).find((c) => c.defId === "pyro_ash_boar")!;
+    expect(next.cards[foe.instanceId].curHp).toBe(36); // still landed the 4
+    expect(boar.pos!.row).toBe(1); // phased PAST the foe at row 2 to the open slot beyond
+  });
+
   it("Ravven's EVASION is dead on its own ground and live on the enemy's", () => {
     const s = prepState();
     // P1 home is row 3, so rows 0-1 are the enemy battlefield.

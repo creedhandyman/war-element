@@ -1905,8 +1905,13 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (attacker.curHp <= 0) break; // died to REFLECT mid-volley
     }
     // Charging Tusks: the boar doesn't stop where it hit — it keeps going.
-    if (!chargeFirst && num(params, "charge") > 0 && attacker.curHp > 0)
-      chargeForward(draft, attacker, num(params, "charge"));
+    // rollThrough phases PAST the body it just struck — chargeForward would stall
+    // on it (the same trap Tumbleweed's Roll Through hit); plain `charge` keeps the
+    // stop-at-first-body form for anything that wants it.
+    if (!chargeFirst && attacker.curHp > 0) {
+      if (num(params, "rollThrough") > 0) chargeThrough(draft, attacker, num(params, "rollThrough"));
+      else if (num(params, "charge") > 0) chargeForward(draft, attacker, num(params, "charge"));
+    }
     // Root Spring: the same burst that snares the enemy waters its own side.
     const healEl = typeof params.healAlliesElement === "string" ? params.healAlliesElement : "";
     const healAmt = num(params, "healAllies");

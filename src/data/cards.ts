@@ -4297,7 +4297,7 @@ export const CARDS: CardDef[] = [
     // is nothing to roll in from, and the boar is meant to trample THROUGH.
     onSummon: {
       handler: "barrage",
-      params: { dmg: 4, targets: 8, charge: 1 },
+      params: { dmg: 4, targets: 8, rollThrough: 1 },
     },
   },
   {
