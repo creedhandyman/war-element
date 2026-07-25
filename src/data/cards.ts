@@ -3024,13 +3024,17 @@ export const CARDS: CardDef[] = [
     sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space); the 3 SP went to HP, so the slowness is the whole cost
     shields: 2,
     keywords: {},
-    // Tusk Rush (On Summon): charge — 5 DMG to opponents directly ahead.
+    // Tusk Rush (On Summon): it rolls one slot forward (Seed Roll's mechanic),
+    // THEN gores — 5 DMG to opponents directly ahead of where it ends up. The
+    // charge finally moves it, not just the tusks.
     // (The "keep charging on each kill" follow-up is unmodeled.)
     // targets 99 -> 2, the same uncapped-corridor problem Flamehound had: 15
     // damage on arrival off a cost-2 body, by some way the most of any rare.
     // Kept at 5 per target rather than cut to Flamehound's 3, because this
     // corridor only reaches ONE row ahead — Warthog has to be in contact to
     // connect at all, where Flamehound's shot carries down the board.
+    passiveNames: { summonAdvance: "Tusk Rush" },
+    summonAdvance: 1,
     onSummon: { handler: "barrage", params: { dmg: 5, spread: 1, forwardDepth: 1, targets: 2 } },
   },
 
@@ -4941,8 +4945,11 @@ export const CARDS: CardDef[] = [
     sp: 0,
     shields: 0,
     keywords: {},
-    // A rooted 14-HP wall. (Doc's Root Growth — 2× healing received — omitted; no
-    // heal-multiplier field in the engine yet.)
+    // Seed Roll (On Summon): the acorn rolls one slot forward as it lands, so a
+    // 0-SP wall still starts a step up the lane. (Doc's Root Growth — 2× healing
+    // received — omitted; no heal-multiplier field in the engine yet.)
+    passiveNames: { summonAdvance: "Seed Roll" },
+    summonAdvance: 1,
   },
   {
     id: "pyro_sparky",
@@ -5112,6 +5119,199 @@ export const CARDS: CardDef[] = [
     // a hurt ally to heal. (Doc's "only when an ally drops below 4 HP" trimmed to
     // a steady heal — a thin but on-theme medic.)
     passiveNames: { roundTick: "Emergency Support" },
+    roundTick: { roundHealElement: { element: "DAWN", amount: 2 } },
+    basicHealsAllies: true,
+  },
+
+  // ── Class-per-cost grid, COST 2 (thin kits, coverage first) ──
+  {
+    id: "leaf_python",
+    name: "Python",
+    rarity: "rare",
+    element: "LEAF",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 1,
+    hits: 1,
+    hp: 17,
+    sp: 2,
+    shields: 0,
+    // Constriction → LIFESTEAL: it drains what it bites. (Doc's "adjacent, end of
+    // round" trimmed to the keyword.)
+    keywords: { LIFESTEAL: true },
+  },
+  {
+    id: "leaf_weeds",
+    name: "Weeds",
+    rarity: "rare",
+    element: "LEAF",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 2,
+    dmg: 2,
+    hits: 1,
+    hp: 14,
+    sp: 4,
+    shields: 0,
+    keywords: {},
+    // A hardy backline body. (Doc's Offspring on-death revive trimmed — no
+    // self-revive field wired up here yet.)
+  },
+  {
+    id: "pyro_heatsink_golem",
+    name: "Heatsink Golem",
+    rarity: "rare",
+    element: "PYRO",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 2,
+    hits: 1,
+    hp: 15,
+    sp: 3,
+    shields: 0,
+    keywords: {},
+    // Overheating (End of Round): its coils discharge 1 DMG to whatever's in reach.
+    // (Doc's escalating 2× on repeat hits trimmed.)
+    passiveNames: { roundTick: "Overheating" },
+    roundTick: { inRangeDmg: 1 },
+  },
+  {
+    id: "pyro_firecrack",
+    name: "Firecrack",
+    rarity: "rare",
+    element: "PYRO",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 5,
+    hits: 1,
+    hp: 4,
+    sp: 11,
+    shields: 0,
+    keywords: {},
+    // A fast striker. (Doc's Boomer delayed-detonation double-hit trimmed.)
+  },
+  {
+    id: "pyro_taper",
+    name: "Taper",
+    rarity: "rare",
+    element: "PYRO",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 2,
+    dmg: 5,
+    hits: 1,
+    hp: 8,
+    sp: 7,
+    shields: 0,
+    keywords: {},
+    // Out with a Bang (On Death): a parting burst on the killer. (Doc's far-row
+    // BURN trimmed to a simple on-death strike.)
+    passiveNames: { onDeath: "Out with a Bang" },
+    onDeath: { dmg: 1 },
+  },
+  {
+    id: "aqua_arctik",
+    name: "Arctik",
+    rarity: "rare",
+    element: "AQUA",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 2,
+    dmg: 4,
+    hits: 1,
+    hp: 7,
+    sp: 9,
+    shields: 0,
+    keywords: {},
+    // A cold-snap caster. (Doc's Freeze Tag on-kill retaliation FREEZE trimmed.)
+  },
+  {
+    id: "aqua_harp",
+    name: "Harp",
+    rarity: "rare",
+    element: "AQUA",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 2,
+    dmg: 6,
+    hits: 1,
+    hp: 9,
+    sp: 5,
+    shields: 0,
+    keywords: {},
+    // A harpooner. (Doc's Harpoon Hook pull-on-attack trimmed for now.)
+  },
+  {
+    id: "bolt_scrapper",
+    name: "Scrapper",
+    rarity: "rare",
+    element: "BOLT",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 5,
+    hits: 1,
+    hp: 9,
+    sp: 6,
+    shields: 0,
+    keywords: {},
+    // A salvage brawler. (Doc's Jolt Fist 25%-PARALYZE-on-hit trimmed — no
+    // chance-gated onHitStatus here yet.)
+  },
+  {
+    id: "bore_sling",
+    name: "Sling",
+    rarity: "rare",
+    element: "BORE",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 2,
+    dmg: 2,
+    hits: 2,
+    hp: 3,
+    sp: 11,
+    shields: 1,
+    // Crack Shot → CRIT: it lands crushing shots. (Doc's coin-flip CRIT+PEN
+    // trimmed to the keyword.)
+    keywords: { CRIT: true },
+  },
+  {
+    id: "dusk_zhunk",
+    name: "Zhunk",
+    rarity: "rare",
+    element: "DUSK",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 4,
+    hits: 1,
+    hp: 14,
+    sp: 2,
+    shields: 0,
+    keywords: {},
+    tribe: "Zombie",
+    // A shambling wall. (Doc's Carnage — grow when a Zombie dies — trimmed.)
+  },
+  {
+    id: "dawn_stbern",
+    name: "St.Bern",
+    rarity: "rare",
+    element: "DAWN",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 2,
+    dmg: 3,
+    hits: 1,
+    hp: 12,
+    sp: 6,
+    shields: 0,
+    keywords: {},
+    // Rescue Pack: mends the DAWN line each round and can aim its basic at a hurt
+    // ally. (Doc's "only when an ally drops below 4 HP" trimmed to a steady heal.)
+    passiveNames: { roundTick: "Rescue Pack" },
     roundTick: { roundHealElement: { element: "DAWN", amount: 2 } },
     basicHealsAllies: true,
   },
