@@ -123,9 +123,9 @@ describe("rare passives", () => {
     const buzz = place(s, "bolt_buzz", "P1", 2, 0);
     expect(s.cards[buzz.instanceId].curShields).toBe(2);
     // A SINGLE-hit attacker on purpose: each hit strips one shield regardless of
-    // its damage, so a multi-hit card (Nettle is 1x3) chews through both at once
-    // and the test would be measuring hit count, not the barrier.
-    const chip = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 20 });
+    // its damage, so a multi-hit card (Nettle is 1x3, Vamp is 1x2) chews through
+    // both at once and the test would be measuring hit count, not the barrier.
+    const chip = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20 });
     basicAttack(s, chip.instanceId, buzz.instanceId);
     expect(s.cards[buzz.instanceId].curShields).toBeGreaterThan(0); // still standing
     expect(statusOf(s.cards[chip.instanceId], "PARALYZE")).toBeUndefined(); // not yet
@@ -136,9 +136,10 @@ describe("rare passives", () => {
     const buzz = place(s, "bolt_buzz", "P1", 2, 0);
     // Two swings, because a hit strips ONE shield however hard it lands — which
     // is the whole point of raising the barrier to 2.
-    // Low damage on purpose: Ember Scorpion's 9 would kill Buzz outright on the
-    // second swing, and a dead card has no barrier left to shatter.
-    const breaker = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 20 });
+    // Low damage + single hit on purpose: Ember Scorpion's 9 would kill Buzz
+    // outright on the second swing, and a dead card has no barrier left to
+    // shatter. (Vamp is 1×2 now, so it's no longer the single-hit body here.)
+    const breaker = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20 });
     basicAttack(s, breaker.instanceId, buzz.instanceId);
     expect(statusOf(s.cards[breaker.instanceId], "PARALYZE")).toBeUndefined(); // held
     s.cards[breaker.instanceId].attackedThisRound = false; // let it swing again

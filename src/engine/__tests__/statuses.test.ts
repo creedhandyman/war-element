@@ -87,7 +87,7 @@ describe("King of the Hill", () => {
     expect(effectiveDmg(s, inRow)).toBe(getDef("pyro_firebird").dmg + 2); // + mid-row + full-row
     // the enemy gets nothing from OUR row control
     const foe = place(s, "dusk_vamp", "P2", 0, 0);
-    expect(effectiveDmg(s, foe)).toBe(2);
+    expect(effectiveDmg(s, foe)).toBe(getDef("dusk_vamp").dmg);
   });
 });
 

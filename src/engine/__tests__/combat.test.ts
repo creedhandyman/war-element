@@ -299,7 +299,8 @@ describe("DRAIN — lifesteal that also grows the drainer", () => {
     const s = prepState();
     const vamp = place(s, "dusk_vamp", "P1", 3, 0, { curHp: 4, maxHp: 10, curShields: 0 });
     const prey = place(s, "gale_guan", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
-    s.cards[vamp.instanceId].dmgBonus = 1 - getDef("dusk_vamp").dmg; // pin the hit to 1
+    s.cards[vamp.instanceId].dmgBonus = 1 - getDef("dusk_vamp").dmg; // pin per-hit dmg to 1
+    s.cards[vamp.instanceId].hitsBonus = 1 - getDef("dusk_vamp").hits; // one bite (Vamp is 1×2 now)
     basicAttack(s, vamp.instanceId, prey.instanceId);
     expect(40 - s.cards[prey.instanceId].curHp).toBe(1);
     expect(s.cards[vamp.instanceId].curHp).toBe(4); // floor(1/2) = no heal...

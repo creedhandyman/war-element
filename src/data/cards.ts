@@ -780,8 +780,8 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 1,
-    dmg: 2,
-    hits: 1,
+    dmg: 1,
+    hits: 2, // two small bites — each DRAINs, so it lifesteals twice per swing
     hp: 6,
     sp: 7,
     shields: 0,
@@ -3158,12 +3158,13 @@ export const CARDS: CardDef[] = [
     passiveNames: { onKill: "Soul Reaper" },
     onKill: { healSelf: 5, buffDmg: 1 },
     special: {
-      name: "Death's Approach",
+      name: "Scythe Throw",
       cost: 2,
       handler: "strike",
-      params: { dmg: 8, pen: 1 },
+      ranged: true, // the reaper hurls its scythe — reaches any opponent on the board
+      params: { dmg: 7, pen: 1 },
       targetSide: "enemy",
-      text: "Deal 8 DMG (PEN) to an opponent.",
+      text: "Hurl the scythe — 7 DMG (PEN) to any opponent, anywhere.",
     },
   },
   {

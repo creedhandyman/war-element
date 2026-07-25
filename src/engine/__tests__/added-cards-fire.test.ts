@@ -712,3 +712,28 @@ describe("Trample Through is reachable through the normal move flow", () => {
     expect(legalMoves(s, "P1", grunt.instanceId).some((p) => p.row === 1 && p.col === 1)).toBe(false);
   });
 });
+
+describe("Reaper's Scythe Throw — ranged 7 DMG PEN", () => {
+  it("hurls across the board and pierces shields for 7", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const reaper = place(s, "dusk_reaper", "P1", 3, 0, { autoMode: "manual" }); // back row
+    const far = place(s, "dusk_gool", "P2", 1, 3, { curHp: 40, maxHp: 40, curShields: 5 }); // far + shielded
+    const next = applyIntent(battleFor(s, reaper.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: far.instanceId,
+    });
+    expect(next.cards[far.instanceId].curHp).toBe(33); // 7 straight to HP…
+    expect(next.cards[far.instanceId].curShields).toBe(5); // …PEN, so the shields are untouched
+  });
+});
+
+describe("Vamp — two draining bites (1×2)", () => {
+  it("lands 2 hits of 1 and DRAINs on both", () => {
+    const s = prepState();
+    const vamp = place(s, "dusk_vamp", "P1", 3, 0, { curHp: 3, maxHp: 6, curShields: 0 }); // home row, no mid bonus
+    const prey = place(s, "gale_guan", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, vamp.instanceId, prey.instanceId);
+    expect(40 - s.cards[prey.instanceId].curHp).toBe(2); // two 1-damage bites
+    expect(s.cards[prey.instanceId].maxHp).toBeLessThan(40); // DRAIN rode both hits
+  });
+});
