@@ -196,10 +196,10 @@ describe("wave 1: RohoJohn, Shoksa, Lumberjack, Bootlegger", () => {
     const next = applyIntent(battleFor(s, jack.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: near.instanceId,
     });
-    // All three slots in the lane, PEN straight through the 9 shields.
-    expect(60 - next.cards[near.instanceId].curHp).toBe(4);
-    expect(60 - next.cards[mid.instanceId].curHp).toBe(4);
-    expect(60 - next.cards[summonRow.instanceId].curHp).toBe(4); // landed in their home row
+    // All three slots in the lane, PEN straight through the 9 shields (Timberer 6).
+    expect(60 - next.cards[near.instanceId].curHp).toBe(6);
+    expect(60 - next.cards[mid.instanceId].curHp).toBe(6);
+    expect(60 - next.cards[summonRow.instanceId].curHp).toBe(6); // landed in their home row
     expect(next.cards[beside.instanceId].curHp).toBe(60); // a lane over — untouched
     expect(next.cards[jack.instanceId].curShields).toBe(3);
   });

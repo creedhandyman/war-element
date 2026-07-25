@@ -37,8 +37,8 @@ export const CARDS: CardDef[] = [
     cost: 4,
     dmg: 7,
     hits: 1,
-    hp: 13,
-    sp: 8,
+    hp: 15,
+    sp: 6, // was 8 — into HP so it survives to lifesteal
     shields: 1,
     keywords: { LIFESTEAL: true },
     onHitStatus: { kind: "BLEED", duration: 2, power: 1 }, // Blood Bloom
@@ -61,8 +61,8 @@ export const CARDS: CardDef[] = [
     cost: 1,
     dmg: 2,
     hits: 1,
-    hp: 3,
-    sp: 10,
+    hp: 7,
+    sp: 6, // was 10 — traded speed for HP so it lives to bite
     shields: 0,
     keywords: {},
     tribe: "Reptile", // fed by Trinezer's Brood Command
@@ -4438,12 +4438,12 @@ export const CARDS: CardDef[] = [
       // Lumberjack standing on its own home row can still fell into theirs.
       // firstOnlyStatus keeps the ROOT on the NEAREST body it lands on.
       params: {
-        dmg: 4, pen: 1, targets: 99, forwardDepth: 3, spread: 0,
+        dmg: 6, pen: 1, targets: 99, forwardDepth: 3, spread: 0, // dmg 4 -> 6
         statusKind: "ROOT", statusDuration: 2, firstOnlyStatus: 1,
         selfShields: 3,
       },
       targetSide: "enemy",
-      text: "Fell a tree straight down your own column: 4 DMG (PEN) to every opponent in the 3 slots ahead, reaching into their summoning row. ROOT the nearest for 2 rounds and gain 3 shield.",
+      text: "Fell a tree straight down your own column: 6 DMG (PEN) to every opponent in the 3 slots ahead, reaching into their summoning row. ROOT the nearest for 2 rounds and gain 3 shield.",
     },
   },
   {
