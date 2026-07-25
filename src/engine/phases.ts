@@ -1564,6 +1564,17 @@ function doRoundTicks(draft: GameState): void {
       if (caught.length)
         draft.log.push(`${label(draft, card)}'s traps bite ${caught.length} snared foe(s) for ${rt.rootedDmg}.`);
     }
+    if (rt.drainAdjacent) {
+      // Constriction (Python): squeeze the nearest adjacent opponent — deal N and
+      // heal that much. A LIFESTEAL that doesn't wait on a basic attack.
+      const near = enemies().filter((e) => e.pos && card.pos && chebyshev(e.pos, card.pos) <= 1);
+      const prey = closest(card, near);
+      if (prey) {
+        tickDamage(draft, card, prey, rt.drainAdjacent, false);
+        const h = healCard(draft, card, rt.drainAdjacent, card);
+        draft.log.push(`${label(draft, card)} constricts ${label(draft, prey)} (${rt.drainAdjacent} DMG, +${h} HP).`);
+      }
+    }
     if (rt.aoeParalyzedDmg) {
       // Complete Circuit: current flows through every PARALYZED enemy in range.
       for (const e of enemies()) if (hasStatus(e, "PARALYZE") && canTarget(draft, card, e))
@@ -1684,7 +1695,13 @@ function doCleanupPhase(draft: GameState): void {
   // 2. REGEN heals, then the end-of-round element auras.
   for (const card of boardCards(draft)) {
     const def = getDef(card.defId);
-    const regen = Number(def.keywords.REGEN ?? 0);
+    // Innate REGEN plus any GRANTED, timed heal-over-time (Gecko's Tail Drop
+    // regrow), which ticks its own countdown down.
+    let regen = Number(def.keywords.REGEN ?? 0);
+    if ((card.regenRoundsLeft ?? 0) > 0) {
+      regen += card.regenPower ?? 0;
+      card.regenRoundsLeft = (card.regenRoundsLeft ?? 0) - 1;
+    }
     if (regen > 0 && healCard(draft, card, regen, card) > 0) {
       draft.log.push(`${label(draft, card)} regenerates ${regen}.`);
     }

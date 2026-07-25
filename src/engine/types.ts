@@ -189,6 +189,9 @@ export interface RoundTickDef {
    *  off, which is exactly what the first version did. */
   channel?: { hpCost: number; rowAheadDmg: number };
   rootedDmg?: number; // Trapper (Fallow): damage every ROOTed enemy, range-free
+  /** Constriction (Python): while adjacent to an opponent, drain N HP from it at
+   *  end of round — deal N to the nearest adjacent enemy and heal that much. */
+  drainAdjacent?: number;
   /** Morning Dew (Sprinu): heal every ally of this element at end of round. */
   roundHealElement?: { element: Element; amount: number };
   aoeDmg?: number; // damage every enemy in range
@@ -278,6 +281,9 @@ export interface OnReviveDef {
   /** Hard ceiling on how many times a decaying revive may fire. Without it the
    *  only limit is the stat floor, which let a 1-cost token soak three lives. */
   maxRevives?: number;
+  /** Offspring (Weeds): after the guaranteed first revive, a `secondChance`%
+   *  coin flip on the NEXT death grants one more revive. */
+  secondChance?: number;
 }
 
 /** HP-threshold transformation (Skelider Dismount): the first time this card
@@ -350,6 +356,10 @@ export interface CardDef {
    *  attack, drag the struck enemy this many slots toward the attacker —
    *  reeling a ranged/backline target into melee range. */
   pullOnAttack?: number;
+  /** Tail Drop (Gecko): a once-per-game cheat-death. The first lethal blow
+   *  leaves it at 1 HP instead, cloaked in STEALTH and regenerating as the tail
+   *  regrows. */
+  deathSave?: { stealth?: number; regen?: { power: number; rounds: number } };
   /** Elemental Fury (Prism): lands with its Special already paid for, so the
    *  first Enchantment is free. */
   startsWithFreeSpecial?: boolean;
@@ -677,6 +687,15 @@ export interface CardInstance {
   buffs: TimedBuff[];
   /** On-revive guard (Bearocks) — set once it has revived, so it can't again. */
   revived: boolean;
+  /** Weeds Offspring: the coin-flip SECOND revive has been rolled (win or lose),
+   *  so it never rolls again. */
+  secondReviveUsed?: boolean;
+  /** Gecko Tail Drop: the once-per-game cheat-death has fired. */
+  deathSaveUsed?: boolean;
+  /** A granted heal-over-time (Tail Drop's regrow): heals `regenPower` at each
+   *  Cleanup until `regenRoundsLeft` reaches 0. */
+  regenRoundsLeft?: number;
+  regenPower?: number;
   /** How many times a `decay` reviver (Zombie Husk) has come back — drives the
    *  −1-per-death stat decay. */
   reviveDecay?: number;

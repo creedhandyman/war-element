@@ -189,6 +189,19 @@ export function label(_draft: GameState, card: CardInstance): string {
  *  actually removed, false if it revived and survives. */
 export function defeatCard(draft: GameState, card: CardInstance, cause: string): boolean {
   const def = getDef(card.defId);
+  // Tail Drop (Gecko): a once-per-game cheat-death. The lethal blow leaves it at
+  // 1 HP, cloaked in STEALTH, regenerating as the tail regrows.
+  if (def.deathSave && !card.deathSaveUsed && card.pos) {
+    card.deathSaveUsed = true;
+    card.curHp = 1;
+    if (def.deathSave.stealth) applyStatus(draft, card, "STEALTH", def.deathSave.stealth, 0, def.element);
+    if (def.deathSave.regen) {
+      card.regenPower = def.deathSave.regen.power;
+      card.regenRoundsLeft = def.deathSave.regen.rounds;
+    }
+    draft.log.push(`${label(draft, card)} drops its tail and slips away at 1 HP!`);
+    return false;
+  }
   // Reanimation (Zombie Husk): comes back on EVERY death, each time weaker by
   // `decay` on DMG/HP/SP, until a base stat would hit 0 — then it stays dead.
   if (def.onRevive?.decay && card.pos) {
@@ -205,16 +218,26 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
       return false;
     }
     // stats exhausted → it finally stays down (fall through to removal).
-  } else if (def.onRevive && !card.revived && card.pos) {
-    card.revived = true;
-    card.curHp = Math.max(1, Math.min(effectiveMaxHp(draft, card), def.onRevive.heal));
-    if (def.onRevive.sleep) {
-      // Self-inflicted downtime — bypasses statusImmune (Hibernation).
-      card.statuses = card.statuses.filter((s) => s.kind !== "SLEEP");
-      card.statuses.push({ kind: "SLEEP", duration: def.onRevive.sleep, power: 0, source: def.element });
+  } else if (def.onRevive && card.pos && (!card.revived || (def.onRevive.secondChance && !card.secondReviveUsed))) {
+    // First revive is guaranteed; a second (Weeds Offspring) is a coin flip that
+    // is only rolled once — win or lose, it never rolls again.
+    let doRevive = true;
+    if (card.revived) {
+      card.secondReviveUsed = true;
+      doRevive = pctChance(draft, def.onRevive.secondChance!);
+      if (!doRevive) draft.log.push(`${label(draft, card)}'s offspring fails to take root.`);
     }
-    draft.log.push(`${label(draft, card)} refuses to fall — it revives at ${card.curHp} HP!`);
-    return false;
+    if (doRevive) {
+      card.revived = true;
+      card.curHp = Math.max(1, Math.min(effectiveMaxHp(draft, card), def.onRevive.heal));
+      if (def.onRevive.sleep) {
+        // Self-inflicted downtime — bypasses statusImmune (Hibernation).
+        card.statuses = card.statuses.filter((s) => s.kind !== "SLEEP");
+        card.statuses.push({ kind: "SLEEP", duration: def.onRevive.sleep, power: 0, source: def.element });
+      }
+      draft.log.push(`${label(draft, card)} refuses to fall — it revives at ${card.curHp} HP!`);
+      return false;
+    }
   }
   draft.log.push(`${label(draft, card)} is defeated (${cause}).`);
   creditDeath(draft.stats, card);

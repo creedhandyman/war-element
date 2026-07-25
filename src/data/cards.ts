@@ -4770,12 +4770,13 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Reptile",
-    // Venomous Bite: basics apply a light BLEED — another feeder for Thorn's
-    // heal-off-BLEED payoff, and a THIRD Reptile body so Trinezer's tribe aura
-    // (+1 DMG/+1 SP to Reptiles) finally has real targets. (Doc's one-time
-    // Tail-Drop death-save omitted — no cheat-death mechanic in the engine yet.)
+    // Venomous Bite: basics apply a light BLEED — a feeder for Thorn's
+    // heal-off-BLEED payoff, and a third Reptile body for Trinezer's tribe aura.
     passiveNames: { onHitStatus: "Venomous Bite" },
     onHitStatus: { kind: "BLEED", duration: 1, power: 1 },
+    // Tail Drop: the first lethal hit leaves Gecko at 1 HP with STEALTH 1r, then
+    // REGEN 2 for 2 rounds as the tail regrows. Once per game.
+    deathSave: { stealth: 1, regen: { power: 2, rounds: 2 } },
   },
   {
     id: "pyro_slag_tortoise",
@@ -5140,9 +5141,11 @@ export const CARDS: CardDef[] = [
     hp: 17,
     sp: 2,
     shields: 0,
-    // Constriction → LIFESTEAL: it drains what it bites. (Doc's "adjacent, end of
-    // round" trimmed to the keyword.)
-    keywords: { LIFESTEAL: true },
+    keywords: {},
+    // Constriction: while adjacent to an opponent, drains 2 HP from it at end of
+    // round (deal 2, heal 2) — a squeeze that doesn't need to swing.
+    passiveNames: { roundTick: "Constriction" },
+    roundTick: { drainAdjacent: 2 },
   },
   {
     id: "leaf_weeds",
@@ -5158,10 +5161,10 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 0,
     keywords: {},
-    // Offspring (On Death): sprouts back up at half HP. (Doc's coin-flip SECOND
-    // revive trimmed — one comeback for now.)
+    // Offspring (On Death): sprouts back up at half HP, with a 50% coin flip to
+    // revive a second time.
     passiveNames: { onRevive: "Offspring" },
-    onRevive: { heal: 7 },
+    onRevive: { heal: 7, secondChance: 50 },
   },
   {
     id: "pyro_heatsink_golem",

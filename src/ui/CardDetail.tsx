@@ -224,6 +224,7 @@ export function describePassives(def: CardDef): string[] {
       t.roundHealElement &&
         `heal every ${t.roundHealElement.element} ally ${t.roundHealElement.amount} HP`,
       t.spawn && `raise ${t.spawn.count} ${getDef(t.spawn.token).name}${t.spawn.count > 1 ? "s" : ""}`,
+      t.drainAdjacent && `drain ${t.drainAdjacent} HP from an adjacent opponent`,
     ].filter(Boolean);
     // Not an every-round effect, so it gets its own line — "Each round: every 3
     // rounds…" reads as a contradiction.
@@ -267,7 +268,12 @@ export function describePassives(def: CardDef): string[] {
         ? def.onRevive.maxRevives
           ? `Gets back up ${def.onRevive.maxRevives === 1 ? "once" : `${def.onRevive.maxRevives} times`} at ${def.onRevive.heal} HP, losing ${def.onRevive.decay} from each stat — after that it stays down.`
           : `Revives on EVERY death at ${def.onRevive.heal} HP, losing ${def.onRevive.decay} from each stat each time — when a stat would reach 0 it stays down.`
-        : `Revives once when defeated at ${def.onRevive.heal} HP${def.onRevive.sleep ? `, then sleeps ${rounds(def.onRevive.sleep)}` : ""}.`,
+        : `Revives when defeated at ${def.onRevive.heal} HP${def.onRevive.secondChance ? `, with a ${def.onRevive.secondChance}% chance to revive a second time` : " once"}${def.onRevive.sleep ? `, then sleeps ${rounds(def.onRevive.sleep)}` : ""}.`,
+    );
+  if (def.deathSave)
+    named(
+      "deathSave",
+      `Tail Drop: the first lethal hit leaves it at 1 HP${def.deathSave.stealth ? ` with STEALTH ${rounds(def.deathSave.stealth)}` : ""}${def.deathSave.regen ? ` and REGEN ${def.deathSave.regen.power} for ${rounds(def.deathSave.regen.rounds)}` : ""}. Once per game.`,
     );
   if (def.onLowHp) {
     const l = def.onLowHp;
