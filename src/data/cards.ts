@@ -5715,6 +5715,33 @@ export const CARDS: CardDef[] = [
       text: "Throw an icicle dealing 5 DMG to a 2×2 area; a FROZEN target's FREEZE is doubled.",
     },
   },
+  {
+    id: "gale_fano",
+    name: "Fano",
+    rarity: "epic",
+    element: "GALE",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 5,
+    hits: 1,
+    hp: 12,
+    sp: 9,
+    shields: 2,
+    keywords: {},
+    // Blade Breaker (On Attack): 50% chance to WEAKEN the target.
+    passiveNames: { onHitStatus: "Blade Breaker" },
+    onHitStatus: { kind: "WEAKEN", duration: 1, power: 0, chance: 50 },
+    // Feather Fan: give every slower teammate Fano's SP value for 1 round.
+    special: {
+      name: "Feather Fan",
+      cost: 1,
+      handler: "featherFan",
+      params: {},
+      targetSide: "self",
+      text: "Give every slower teammate Fano's SP value for 1 round.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

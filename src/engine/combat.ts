@@ -2201,6 +2201,17 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.attackMissRounds = num(params, "missRounds");
     draft.log.push(`${label(draft, attacker)} tucks into its shell (+${sh} shields, aim shaken ${attacker.attackMissRounds}r).`);
   },
+  /** Feather Fan (Fano): lift every SLOWER teammate up to Fano's SP for a round. */
+  featherFan(draft, attacker, _targets, _params) {
+    const mySp = effectiveSp(draft, attacker);
+    let n = 0;
+    for (const a of boardCards(draft, attacker.owner)) {
+      if (a.instanceId === attacker.instanceId || a.curHp <= 0) continue;
+      const gap = mySp - effectiveSp(draft, a);
+      if (gap > 0) { applyTimedBuff(a, 0, gap, 1); n++; }
+    }
+    draft.log.push(`${label(draft, attacker)} fans ${n} slower teammate(s) up to SP ${mySp}.`);
+  },
   /** Mind Bubble Channeling (Anos): arm a sustained self-buff that pays out each
    *  Cleanup for `rounds` — +DMG, a heal, and a self-cleanse. */
   channelBuff(draft, attacker, _targets, params) {
