@@ -1299,6 +1299,9 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_star",
     name: "Star",
+    // Doc "retiers" Star to Rare but keeps its Star Shower Special; a Special is
+    // structurally Epic in this codebase (a Rare gets a passive or a once-per-game
+    // Talent), so it stays Epic. The faithful fix here is the missing passive half.
     rarity: "epic",
     element: "DAWN",
     cardClass: "Mage",
@@ -1306,15 +1309,15 @@ export const CARDS: CardDef[] = [
     cost: 3,
     dmg: 2,
     hits: 2,
-    hp: 9,
+    hp: 10,
     sp: 7,
     shields: 2,
     keywords: { FLYING: true },
-    // Raising Star: BLINDs the enemy board ONCE, at the end of the round it
-    // lands, for one round. It used to fire every round forever, which — next to
-    // Speed Flash and Shine — meant DAWN could hold the whole opposing board at
-    // half accuracy indefinitely. (Doc also heals allies +1 on basic attacks;
-    // that half isn't modeled yet.)
+    // Raising Star: BLINDs the enemy board (once, the round it lands — the
+    // every-round version let DAWN perma-BLIND the board, so it's held to a
+    // single fire for balance) AND its basic attacks heal all allies +1.
+    passiveNames: { basicHealsTeam: "Raising Star" },
+    basicHealsTeam: 1,
     roundTick: { firstRoundOnly: true, aoeStatus: { kind: "BLIND", duration: 1, power: 0 } },
     special: {
       name: "Star Shower",
@@ -5122,11 +5125,10 @@ export const CARDS: CardDef[] = [
     sp: 2,
     shields: 0,
     keywords: {},
-    // Emergency Support: mends the DAWN line each round, and its basic can aim at
-    // a hurt ally to heal. (Doc's "only when an ally drops below 4 HP" trimmed to
-    // a steady heal — a thin but on-theme medic.)
+    // Emergency Support: at end of round, heal any ally that's dropped below
+    // 4 HP by +2. Its basic can also aim at a hurt ally to heal.
     passiveNames: { roundTick: "Emergency Support" },
-    roundTick: { roundHealElement: { element: "DAWN", amount: 2 } },
+    roundTick: { healWoundedAllies: { underHp: 4, amount: 2 } },
     basicHealsAllies: true,
   },
 
@@ -5333,10 +5335,10 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
-    // Rescue Pack: mends the DAWN line each round and can aim its basic at a hurt
-    // ally. (Doc's "only when an ally drops below 4 HP" trimmed to a steady heal.)
+    // Rescue Pack: at end of round, heal any ally that's fallen to 1 HP by +4.
+    // Its basic can also aim at a hurt ally to heal.
     passiveNames: { roundTick: "Rescue Pack" },
-    roundTick: { roundHealElement: { element: "DAWN", amount: 2 } },
+    roundTick: { healWoundedAllies: { underHp: 2, amount: 4 } },
     basicHealsAllies: true,
   },
 
@@ -5603,9 +5605,12 @@ export const CARDS: CardDef[] = [
     hp: 19,
     sp: 2,
     shields: 1,
-    // A stolid 19-HP wall that shrugs hits (BLOCK). (Doc's Fountain — SP-sap on
-    // hit + can't-be-moved — trimmed; no immovable flag yet.)
+    // Fountain (On Hit by Melee): saps 1 SP from the attacker; Oxin also can't be
+    // moved by opponent abilities. Plus BLOCK 1 — a stolid 19-HP wall.
     keywords: { BLOCK: 1 },
+    passiveNames: { onHitByMelee: "Fountain" },
+    onHitByMelee: { spDrain: 1 },
+    pushImmune: true,
   },
 ];
 

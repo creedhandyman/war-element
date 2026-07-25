@@ -1654,6 +1654,14 @@ function doRoundTicks(draft: GameState): void {
       const a = lowestHp(allies().filter((c) => c.curHp < effectiveMaxHp(draft, c)));
       if (a) healCard(draft, a, rt.healLowestAlly, card);
     }
+    if (rt.healWoundedAllies) {
+      // Emergency Support (Able) / Rescue Pack (St.Bern): mend any ally that's
+      // dropped under the threshold.
+      const { underHp, amount } = rt.healWoundedAllies;
+      const hurt = allies().filter((c) => c.curHp > 0 && c.curHp < underHp);
+      for (const a of hurt) healCard(draft, a, amount, card);
+      if (hurt.length) draft.log.push(`${label(draft, card)} rushes aid to ${hurt.length} wounded ally(ies) (+${amount} HP).`);
+    }
     if (rt.wardAllies) {
       // Radiant Ward: raise a single team-wide barrier (absorbs one status/round).
       draft.players[card.owner].statusWard = true;

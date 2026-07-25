@@ -1096,6 +1096,10 @@ export function basicAttack(
         }
       }
       if (healOnHit > 0 && attacker.curHp > 0) healCard(draft, attacker, healOnHit, attacker);
+      // Raising Star (Star): a landed basic bathes the whole team in light.
+      if (aDef.basicHealsTeam) {
+        for (const a of boardCards(draft, attacker.owner)) if (a.curHp > 0) healCard(draft, a, aDef.basicHealsTeam, attacker);
+      }
       // Liquification (Bahari): flat heal per landed basic hit.
       if (aDef.healPerHit && attacker.curHp > 0) healCard(draft, attacker, aDef.healPerHit * r.landedHits, attacker);
       // Hastened Assault: heal per critical hit landed.
@@ -1603,6 +1607,11 @@ function applyOnHitByMelee(
   }
   if (def.status && attacker.curHp > 0 && draft.cards[attacker.instanceId]) {
     applyStatus(draft, attacker, def.status.kind, def.status.duration, def.status.power, getDef(defender.defId).element);
+  }
+  // Fountain (Oxin): the spring saps the attacker's momentum.
+  if (def.spDrain && attacker.curHp > 0) {
+    attacker.spBonus -= def.spDrain;
+    draft.log.push(`${label(draft, defender)}'s fountain saps ${def.spDrain} SP from ${getDef(attacker.defId).name}.`);
   }
   // Hot Hot (Spitfire): double the power of every BURN already on the attacker.
   if (def.doubleBurn && attacker.curHp > 0) {

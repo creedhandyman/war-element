@@ -123,6 +123,7 @@ export interface OnHitByMeleeDef {
   pen?: boolean;
   status?: { kind: StatusKind; duration: number; power: number };
   doubleBurn?: boolean; // Hot Hot (Spitfire): double the attacker's BURN power
+  spDrain?: number; // Fountain (Oxin): sap N SP from the melee attacker
 }
 
 /** Fires when this card's basic/special attack KILLS an enemy (per kill). */
@@ -195,6 +196,9 @@ export interface RoundTickDef {
   /** Overheating (Heatsink Golem): end of round, N DMG to the closest opponent;
    *  DOUBLED when it's the same target as last round (heat builds up). */
   overheatDmg?: number;
+  /** Emergency Support (Able) / Rescue Pack (St.Bern): heal every ally whose
+   *  curHp is under `underHp` by `amount` at end of round. */
+  healWoundedAllies?: { underHp: number; amount: number };
   /** Morning Dew (Sprinu): heal every ally of this element at end of round. */
   roundHealElement?: { element: Element; amount: number };
   aoeDmg?: number; // damage every enemy in range
@@ -381,6 +385,8 @@ export interface CardDef {
   /** Magic Potion (Hix): a landed basic hurls a random potion at the target —
    *  Poison (DOT 1), Damage (3), or Sleep (FRIGHTEN 2). */
   potionOnHit?: boolean;
+  /** Raising Star (Star): a landed basic also heals every ally +N HP. */
+  basicHealsTeam?: number;
   /** Elemental Fury (Prism): lands with its Special already paid for, so the
    *  first Enchantment is free. */
   startsWithFreeSpecial?: boolean;

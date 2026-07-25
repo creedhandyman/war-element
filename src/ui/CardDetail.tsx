@@ -172,7 +172,7 @@ export function describePassives(def: CardDef): string[] {
   }
   if (def.onHitByMelee) {
     const m = def.onHitByMelee;
-    const bits = [m.dmg && `${m.dmg} DMG`, m.status && m.status.kind].filter(Boolean).join(" + ");
+    const bits = [m.dmg && `${m.dmg} DMG`, m.status && m.status.kind, m.spDrain && `−${m.spDrain} SP`].filter(Boolean).join(" + ");
     // anyAttacker cards (Jolt, Windsor) answer shooters too — saying "by melee"
     // there would be a straight lie on the card face.
     named("onHitByMelee", 
@@ -228,6 +228,7 @@ export function describePassives(def: CardDef): string[] {
       t.spawn && `raise ${t.spawn.count} ${getDef(t.spawn.token).name}${t.spawn.count > 1 ? "s" : ""}`,
       t.drainAdjacent && `drain ${t.drainAdjacent} HP from an adjacent opponent`,
       t.overheatDmg && `${t.overheatDmg} DMG to the closest opponent (2× on a repeat target)`,
+      t.healWoundedAllies && `heal allies under ${t.healWoundedAllies.underHp} HP by +${t.healWoundedAllies.amount}`,
     ].filter(Boolean);
     // Not an every-round effect, so it gets its own line — "Each round: every 3
     // rounds…" reads as a contradiction.
@@ -553,6 +554,8 @@ export function describePassives(def: CardDef): string[] {
     passives.push("Hot Shot: its attacks never miss — ignores its own BLIND and the target's EVASION.");
   if (def.basicHealsAllies)
     passives.push("Its basic attack can be aimed at a wounded ally to heal them for its DMG instead of striking.");
+  if (def.basicHealsTeam)
+    named("basicHealsTeam", `Raising Star: a landed basic attack also heals every ally +${def.basicHealsTeam} HP.`);
   if (def.pullOnAttack)
     named("pullOnAttack", `${def.id === "aqua_octoirate" ? "Sucker Sword" : "Harpoon Hook"}: a landed basic drags the struck enemy ${def.pullOnAttack} slot${def.pullOnAttack > 1 ? "s" : ""} toward it.`);
   if (def.healPerHit)
