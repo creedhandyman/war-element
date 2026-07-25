@@ -5628,6 +5628,36 @@ export const CARDS: CardDef[] = [
     onHitByMelee: { spDrain: 1 },
     pushImmune: true,
   },
+
+  // ───────────────────── COST-4 EPICS (grid fill) ─────────────────────
+  {
+    id: "leaf_whintey",
+    name: "Whintey",
+    rarity: "epic",
+    element: "LEAF",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 6,
+    hits: 1,
+    hp: 13,
+    sp: 9,
+    shields: 1,
+    keywords: {},
+    // Frosty Bites (End of Round): ROOT an opponent with 0 SP for 2 rounds.
+    passiveNames: { rootZeroSp: "Frosty Bites" },
+    roundTick: { rootZeroSp: 2 },
+    // Whinter's Bundle: extend the ROOT on every already-ROOTed opponent by 2.
+    special: {
+      name: "Whinter's Bundle",
+      cost: 2,
+      handler: "extendStatusAll",
+      params: { status: "ROOT", addRounds: 2 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "ROOT every already-ROOTed opponent for 2 additional rounds.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

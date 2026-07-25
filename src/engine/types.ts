@@ -199,6 +199,9 @@ export interface RoundTickDef {
   /** Emergency Support (Able) / Rescue Pack (St.Bern): heal every ally whose
    *  curHp is under `underHp` by `amount` at end of round. */
   healWoundedAllies?: { underHp: number; amount: number };
+  /** Frosty Bites (Whintey): at end of round, ROOT one opponent whose effective
+   *  SP is 0 for this many rounds. */
+  rootZeroSp?: number;
   /** Morning Dew (Sprinu): heal every ally of this element at end of round. */
   roundHealElement?: { element: Element; amount: number };
   aoeDmg?: number; // damage every enemy in range

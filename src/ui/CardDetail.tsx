@@ -229,6 +229,7 @@ export function describePassives(def: CardDef): string[] {
       t.drainAdjacent && `drain ${t.drainAdjacent} HP from an adjacent opponent`,
       t.overheatDmg && `${t.overheatDmg} DMG to the closest opponent (2× on a repeat target)`,
       t.healWoundedAllies && `heal allies under ${t.healWoundedAllies.underHp} HP by +${t.healWoundedAllies.amount}`,
+      t.rootZeroSp && `ROOT an opponent with 0 SP for ${t.rootZeroSp} rounds`,
     ].filter(Boolean);
     // Not an every-round effect, so it gets its own line — "Each round: every 3
     // rounds…" reads as a contradiction.

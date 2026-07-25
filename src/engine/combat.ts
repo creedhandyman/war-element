@@ -2201,6 +2201,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.attackMissRounds = num(params, "missRounds");
     draft.log.push(`${label(draft, attacker)} tucks into its shell (+${sh} shields, aim shaken ${attacker.attackMissRounds}r).`);
   },
+  /** Whinter's Bundle (Whintey): deepen the frost — extend a named status on
+   *  every opponent already carrying it. */
+  extendStatusAll(draft, attacker, _targets, params) {
+    const kind = String(params.status ?? "ROOT") as StatusKind;
+    const add = num(params, "addRounds", 2);
+    let n = 0;
+    for (const e of boardCards(draft, enemyOf(attacker.owner))) {
+      const st = e.statuses.find((s) => s.kind === kind);
+      if (st && e.curHp > 0) { st.duration += add; n++; }
+    }
+    draft.log.push(`${label(draft, attacker)} deepens the ${kind} on ${n} opponent(s) (+${add}r).`);
+  },
   /** War Cry (Golde): a rallying shout — the caster plates up and the whole team
    *  hits harder for the round. */
   warCry(draft, attacker, _targets, params) {

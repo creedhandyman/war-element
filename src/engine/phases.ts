@@ -1608,6 +1608,16 @@ function doRoundTicks(draft: GameState): void {
         draft.log.push(`${label(draft, card)} constricts ${label(draft, prey)} (${rt.drainAdjacent} DMG, +${h} HP).`);
       }
     }
+    if (rt.rootZeroSp) {
+      // Frosty Bites (Whintey): the winter cold seizes a spent, motionless foe.
+      const stuck = enemies().find(
+        (e) => e.curHp > 0 && effectiveSp(draft, e) <= 0 && !hasStatus(e, "ROOT"),
+      );
+      if (stuck) {
+        applyStatus(draft, stuck, "ROOT", rt.rootZeroSp, 0, getDef(card.defId).element);
+        draft.log.push(`${label(draft, card)}'s frost roots ${label(draft, stuck)} (${rt.rootZeroSp}r).`);
+      }
+    }
     if (rt.aoeParalyzedDmg) {
       // Complete Circuit: current flows through every PARALYZED enemy in range.
       for (const e of enemies()) if (hasStatus(e, "PARALYZE") && canTarget(draft, card, e))
