@@ -713,7 +713,7 @@ describe("Trample Through is reachable through the normal move flow", () => {
   });
 });
 
-describe("Reaper's Scythe Throw — ranged 7 DMG PEN", () => {
+describe("Reaper's Death's Approach — ranged 7 DMG PEN", () => {
   it("hurls across the board and pierces shields for 7", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;

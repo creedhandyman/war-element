@@ -3158,7 +3158,7 @@ export const CARDS: CardDef[] = [
     passiveNames: { onKill: "Soul Reaper" },
     onKill: { healSelf: 5, buffDmg: 1 },
     special: {
-      name: "Scythe Throw",
+      name: "Death's Approach",
       cost: 2,
       handler: "strike",
       ranged: true, // the reaper hurls its scythe — reaches any opponent on the board
