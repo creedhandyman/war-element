@@ -1578,15 +1578,17 @@ export function App() {
                 ) : (
                   <>
                     <b>{getDef(flowCard.defId).name}</b> flows into being —
-                    choose its boost for this turn.
+                    choose its boost for 3 rounds.
                   </>
                 )}
               </p>
               <div className="flow-opts">
                 {(["water", "ice", "steam"] as const).map((mode) => {
+                  // Only Downpour's round-scoped re-pick still turns Liquid into
+                  // +1 hit on a multi-hit card; the timed summon grant is +2 DMG.
                   const multiHit = liquidGivesHit(flowCard);
                   const blurb =
-                    mode === "water" && multiHit ? "+1 hit" : FLOW_MODES[mode].blurb;
+                    mode === "water" && multiHit && game.pendingFlowAll ? "+1 hit" : FLOW_MODES[mode].blurb;
                   return (
                     <button
                       key={mode}

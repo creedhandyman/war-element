@@ -17,7 +17,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 4 on the same target." },
   BORE: { name: "Exostone", desc: "Enters play with +2 shields." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals a third of its DMG back to the killer." },
-  AQUA: { name: "Flow Change", desc: "On summon, choose a PERMANENT boost: Liquid +2 DMG (+1 hit if multi-hit) · Frozen +3 shields · Vapor +4 SP." },
+  AQUA: { name: "Flow Change", desc: "On summon, choose a boost for 3 rounds: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for half its DMG." },
   GALE: { name: "Zephyr", desc: "End of round, +1 SP (caps at SP 21)." },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +2 DMG to any opponent carrying a status." },
@@ -35,7 +35,7 @@ export const LEAF_SHIELD_CAP = 3;
  *  chip damage. */
 export const PYRO_BURN_STACK_CAP = 4;
 
-// AQUA Flow Change — the three-way summon choice (all "for 1 turn").
+// AQUA Flow Change — the three-way summon choice (the summon pick lasts 3 rounds).
 export type FlowMode = "water" | "ice" | "steam";
 export const FLOW_MODES: Record<FlowMode, { label: string; blurb: string }> = {
   water: { label: "Liquid", blurb: "+2 DMG" },
@@ -50,22 +50,16 @@ export function liquidGivesHit(card: CardInstance): boolean {
   return getDef(card.defId).hits >= MULTI_HIT_BONUS_MIN;
 }
 
-/** Apply the chosen Flow Change buff (round-scoped — cleared each Cleanup;
- *  the shields are temporary and removed in Cleanup). */
-/** Flow Change is PERMANENT, not a one-turn boost.
+/** Apply the chosen Flow Change buff.
  *
- *  It used to write the `*Round` fields, which Cleanup wipes — so an AQUA card
- *  got its pick for the single round it landed and nothing ever again. Every
- *  other element's aura either persists (BORE's +2 shields) or re-fires every
- *  round (LEAF, GALE, PYRO, BOLT, DUSK). One turn, once, on summon made AQUA's
- *  the weakest aura in the game by structure, and it measured joint-worst on
- *  offence. The SUMMON pick now persists, which puts it on the same footing as
- *  BORE's entry shields.
+ *  `rounds > 0` (the SUMMON pick) grants a TIMED buff that lasts that many rounds
+ *  then fades — the current design: on-summon Flow lasts 3 rounds. It used to be
+ *  round-scoped (one round only, the weakest aura in the game), then permanent;
+ *  3 rounds is the middle ground.
  *
- *  `permanent` is opt-in for exactly that reason: Downpour re-picks Flow for
- *  every AQUA ally EVERY round, so a permanent grant there would stack +2 DMG a
- *  round without limit. That path keeps the round-scoped version it was
- *  designed around. */
+ *  `permanent`/round-scoped remain for Downpour, which re-picks Flow for every
+ *  AQUA ally EVERY round — a timed or permanent grant there would stack without
+ *  limit, so that path keeps the one-round version it was designed around. */
 export function applyFlow(card: CardInstance, mode: FlowMode, permanent = false, rounds = 0): void {
   // The SUMMON pick now grants a TIMED buff (rounds > 0) instead of a permanent
   // one — Flow Change lasts 3 rounds, then fades. Pushed straight onto the same
