@@ -66,21 +66,30 @@ export function liquidGivesHit(card: CardInstance): boolean {
  *  every AQUA ally EVERY round, so a permanent grant there would stack +2 DMG a
  *  round without limit. That path keeps the round-scoped version it was
  *  designed around. */
-export function applyFlow(card: CardInstance, mode: FlowMode, permanent = false): void {
+export function applyFlow(card: CardInstance, mode: FlowMode, permanent = false, rounds = 0): void {
+  // The SUMMON pick now grants a TIMED buff (rounds > 0) instead of a permanent
+  // one — Flow Change lasts 3 rounds, then fades. Pushed straight onto the same
+  // `buffs` array applyTimedBuff uses (avoids an auras→combat import cycle); the
+  // Cleanup that ticks those handles the expiry.
+  const timed = rounds > 0;
   if (mode === "water") {
     // Liquid: +1 hit on multi-hit cards (avoids the per-hit +2 blowout),
-    // otherwise +2 DMG.
-    if (liquidGivesHit(card)) {
+    // otherwise +2 DMG. The timed grant uses flat +2 DMG for all — on a
+    // temporary buff the multi-hit blowout no longer needs guarding against.
+    if (timed) card.buffs.push({ dmg: 2, sp: 0, rounds });
+    else if (liquidGivesHit(card)) {
       if (permanent) card.hitsBonus += 1;
       else card.hitsBonusRound += 1;
     } else if (permanent) card.dmgBonus += 2;
     else card.dmgBonusRound += 2;
   } else if (mode === "ice") {
     card.curShields += 3;
-    // tempShields is the refund marker: a permanent grant simply omits it.
-    if (!permanent) card.tempShields += 3;
+    // tempShields is the round-scoped refund marker; a permanent OR timed grant
+    // omits it (timed shields simply last until spent — no per-round shield timer).
+    if (!permanent && !timed) card.tempShields += 3;
   } else if (mode === "steam") {
-    if (permanent) card.spBonus += 4;
+    if (timed) card.buffs.push({ dmg: 0, sp: 4, rounds });
+    else if (permanent) card.spBonus += 4;
     else card.spBonusRound += 4;
   }
 }

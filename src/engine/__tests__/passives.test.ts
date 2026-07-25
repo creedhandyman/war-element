@@ -1285,22 +1285,24 @@ describe("element auras", () => {
     expect(next.cards[foe.instanceId].curHp).toBe(13); // 15 − 2 Awakening
   });
 
-  it("Flow Change (AQUA): a human summon defers the choice, then Liquid grants +2 DMG permanently", () => {
+  it("Flow Change (AQUA): a human summon defers the choice; Liquid grants +2 DMG for 3 rounds", () => {
     const s = prepState();
     s.players.P1.gold = 5;
     const handId = giveHand(s, "P1", "aqua_spinefin");
     const summoned = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const fin = boardCards(summoned, "P1").find((c) => getDef(c.defId).element === "AQUA")!;
     expect(summoned.pendingFlow).toBe(fin.instanceId); // deferred to the human
-    expect(fin.dmgBonus).toBe(0); // not applied until chosen
+    const base = getDef("aqua_spinefin").dmg;
     const picked = applyIntent(summoned, {
       type: "FLOW_CHANGE", player: "P1", instanceId: fin.instanceId, mode: "water",
     });
-    // dmgBonus, not dmgBonusRound: the SUMMON pick persists now. It used to be
-    // wiped at the next Cleanup, so an AQUA card got its aura for one round and
-    // never again — the weakest aura in the game by structure.
-    expect(picked.cards[fin.instanceId].dmgBonus).toBe(2);
-    expect(picked.cards[fin.instanceId].dmgBonusRound).toBe(0);
+    // The SUMMON pick is a TIMED buff now (3 rounds), not permanent — it rides the
+    // `buffs` array (so effectiveDmg reflects it) rather than dmgBonus, and fades
+    // after 3 Cleanups instead of lasting the whole game.
+    const c = picked.cards[fin.instanceId];
+    expect(c.dmgBonus).toBe(0);
+    expect(c.buffs.some((b) => b.dmg === 2 && b.rounds === 3)).toBe(true);
+    expect(effectiveDmg(picked, c)).toBe(base + 2);
     expect(picked.pendingFlow).toBeNull();
   });
 
