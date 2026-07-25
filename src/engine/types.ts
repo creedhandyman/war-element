@@ -362,6 +362,11 @@ export interface CardDef {
   roundTick?: RoundTickDef;
   /** On-death revival (Bearocks). */
   onRevive?: OnReviveDef;
+  /** Root Growth (OAK): all healing this card receives is multiplied by N. */
+  healReceivedMult?: number;
+  /** Carnage (Zhunk): when any card of `tribe` dies anywhere, this card gains
+   *  the listed permanent stat bumps. */
+  onTribeDeath?: { tribe: string; dmg?: number; hp?: number; sp?: number };
   /** HP-threshold transformation (Skelider Dismount). */
   onLowHp?: OnLowHpDef;
   /** Reaction when an ENEMY card is summoned (Rock Goblin's Cave Guard,

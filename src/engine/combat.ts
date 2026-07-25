@@ -256,6 +256,16 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
       draft.log.push(`${label(draft, card)} passes its ${heir.enchant} enchantment to ${label(draft, heir)}.`);
     }
   }
+  // Carnage (Zhunk): every living card that feeds on this tribe grows a little.
+  // At the death choke-point, so a Zombie lost to a DOT or a tick counts too.
+  for (const c of boardCards(draft)) {
+    const ot = getDef(c.defId).onTribeDeath;
+    if (!ot || c.curHp <= 0 || c.instanceId === card.instanceId || !tribeOf(card, ot.tribe)) continue;
+    if (ot.dmg) c.dmgBonus += ot.dmg;
+    if (ot.sp) c.spBonus += ot.sp;
+    if (ot.hp) { c.maxHp += ot.hp; c.curHp += ot.hp; }
+    draft.log.push(`${label(draft, c)} feeds on the fallen ${ot.tribe}.`);
+  }
   removeCard(draft, card.instanceId);
   return true;
 }

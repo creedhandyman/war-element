@@ -198,7 +198,9 @@ export function healCard(state: GameState, card: CardInstance, amount: number, b
   if (amount <= 0 || card.curHp <= 0) return 0;
   if (hasStatus(card, "SEAL")) return 0; // Bluflame — no healing while sealed
   const before = card.curHp;
-  card.curHp = Math.min(effectiveMaxHp(state, card), card.curHp + amount);
+  // Root Growth (OAK): drinks in double (or more) from every healing source.
+  const mult = getDef(card.defId).healReceivedMult ?? 1;
+  card.curHp = Math.min(effectiveMaxHp(state, card), card.curHp + amount * mult);
   const healed = card.curHp - before;
   // Credit the HEALER (`by`) and the recipient separately. `by` used to default
   // to the recipient, which quietly filed every unattributed heal as the
