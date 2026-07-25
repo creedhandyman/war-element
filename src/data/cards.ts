@@ -5296,9 +5296,11 @@ export const CARDS: CardDef[] = [
     hp: 3,
     sp: 11,
     shields: 1,
-    // Crack Shot → CRIT: it lands crushing shots. (Doc's coin-flip CRIT+PEN
-    // trimmed to the keyword.)
+    // Crack Shot: a 50% coin (the CRIT keyword) to deal a crushing shot — and
+    // when it crits, the shot also PIERCES shields.
     keywords: { CRIT: true },
+    passiveNames: { critPen: "Crack Shot" },
+    critPen: true,
   },
   {
     id: "dusk_zhunk",
@@ -5440,9 +5442,15 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Punch Drunk: the second hit on a target within a round puts it to SLEEP.
-    // (Doc's Roll-Out combo Talent trimmed.)
     passiveNames: { onHitStatus: "Punch Drunk" },
     onHitStatus: { kind: "SLEEP", duration: 1, power: 0, onSecondHit: true },
+    // Roll Out Combo Killer (Talent, free, once per game): a 1→2→3→4 DMG combo.
+    talent: {
+      name: "Roll Out Combo Killer",
+      text: "Once per game, free: hit with a 1 → 2 → 3 → 4 DMG combo.",
+      handler: "combo",
+      params: { hits: 4, dmg: 1, ramp: 1 },
+    },
   },
   {
     id: "bore_stone",
@@ -5458,10 +5466,19 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 2,
     keywords: {},
-    // Quartz Hound (On Summon): arrives plated in +3 shields. (Doc's bonus attack
-    // + Search-and-Rescue talent trimmed.)
+    // Quartz Hound (On Summon): arrives with +3 shields, and adds a 2-DMG strike
+    // to every basic attack (basicBonus.flat).
     passiveNames: { summonSelfShields: "Quartz Hound" },
     summonSelfShields: 3,
+    basicBonus: { flat: 2 },
+    // Search and Rescue (Talent, free, once per game): swap board spots with an
+    // ally.
+    talent: {
+      name: "Search and Rescue",
+      text: "Once per game, free: trade board positions with an ally.",
+      handler: "swapAlly",
+      params: {},
+    },
   },
   {
     id: "dusk_sarachnid",

@@ -375,6 +375,9 @@ export interface CardDef {
   /** Sky Scout (Syt Bird): entering a Mid row lets allied basics hit +1 adjacent
    *  target for the round. */
   skyScout?: boolean;
+  /** Crack Shot (Sling): when this card's CRIT coin lands, the hit also PIERCES —
+   *  so the crit can fire against a shielded target and skip the shield. */
+  critPen?: boolean;
   /** Elemental Fury (Prism): lands with its Special already paid for, so the
    *  first Enchantment is free. */
   startsWithFreeSpecial?: boolean;
@@ -425,6 +428,7 @@ export interface CardDef {
     midLane?: number; // +N while this card sits in a Mid row
     midLaneFull?: number; // +N when 4+ cards occupy the Mid rows
     vsSleeping?: number; // +N when the primary target is SLEEPING
+    flat?: number; // Quartz Hound (Stone): an unconditional extra N added to the volley
   };
   /** Ethereal Trade (Ghastly): every ATTACK — basic AND an offensive Special —
    *  deals +bonusDmg but the attacker pays hpCost HP once per attack (can be

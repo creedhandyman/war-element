@@ -549,17 +549,21 @@ export function resolveHit(
 
     // 3. Shield gate.
     let toHp: number;
-    if (opts.pen) {
+    // Crack Shot (Sling): a crushing shot both DOUBLES and PIERCES on the coin.
+    // `critPen` lets the crit fire even against a shielded target (and then skips
+    // the shield); a plain CRIT still needs an unshielded target. Gated on
+    // !opts.pen so an ordinary piercing hit behaves exactly as before.
+    let pierces = opts.pen;
+    if (opts.crit && !opts.pen && (target.curShields === 0 || aDef.critPen) && coin(draft)) {
+      remaining *= 2;
+      result.critHits = (result.critHits ?? 0) + 1;
+      target.fxCrit = (target.fxCrit ?? 0) + 1;
+      draft.log.push(`${aDef.name} CRITS ${tDef.name}!`);
+      if (aDef.critPen) pierces = true;
+    }
+    if (pierces) {
       toHp = remaining; // no shield stripped
     } else {
-      if (opts.crit && target.curShields === 0) {
-        if (coin(draft)) {
-          remaining *= 2;
-          result.critHits = (result.critHits ?? 0) + 1;
-          target.fxCrit = (target.fxCrit ?? 0) + 1;
-          draft.log.push(`${aDef.name} CRITS ${tDef.name}!`);
-        }
-      }
       toHp = Math.max(0, remaining - target.curShields);
       // What the armour actually stopped. Measured BEFORE the shield is stripped
       // below, since the strip changes curShields for the next hit.
@@ -1099,6 +1103,7 @@ export function basicAttack(
   if (bonus && agg.landedHits > 0 && attacker.curHp > 0) {
     const primary = draft.cards[groups[0].targetId];
     let extra = 0;
+    if (bonus.flat) extra += bonus.flat; // Quartz Hound: an added 2-DMG strike
     if (bonus.midLane && attacker.pos && isMidRow(attacker.pos.row)) extra += bonus.midLane;
     if (bonus.midLaneFull && boardCards(draft).filter((c) => c.pos && isMidRow(c.pos.row)).length >= 4)
       extra += bonus.midLaneFull;
@@ -1784,6 +1789,8 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const base = num(params, "dmg");
     const finisher = num(params, "finisherDmg", base);
     const killBoost = num(params, "killBoost");
+    // `ramp` grows each successive strike (R.O.C.K's Roll Out: 1→2→3→4).
+    const ramp = num(params, "ramp", 0);
     const pen = num(params, "pen") > 0;
     const queue = targets.slice(); // picked target first, then the rest
     let boost = 0; // escalation — local, so it lasts only for this combo
@@ -1794,7 +1801,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         return c && c.curHp > 0;
       });
       if (!target) break; // nothing left to hit
-      const dmg = (i === hits - 1 ? finisher : base) + boost;
+      const dmg = (i === hits - 1 ? finisher : base) + boost + i * ramp;
       const r = resolveHit(draft, attacker, target, { kind: "special", dmg, hits: 1, pen, crit: false });
       if (r.targetDied) {
         boost += killBoost;
@@ -2135,6 +2142,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (e.curHp > 0 && e.instanceId !== primary?.instanceId) directDamage(draft, attacker, e, splash, false);
     }
     draft.log.push(`${label(draft, attacker)}'s frag bursts (${dmg} to the target, ${splash} to the rest).`);
+  },
+  /** Search and Rescue (Stone's Talent): swap board positions with a chosen
+   *  ally — pull a hurt teammate out of the line, or dive in yourself. */
+  swapAlly(draft, attacker, targets, _params) {
+    const ally = targets.find(
+      (t) => t.owner === attacker.owner && t.instanceId !== attacker.instanceId && t.curHp > 0 && t.pos,
+    );
+    if (!ally || !attacker.pos || !ally.pos) return;
+    const tmp = attacker.pos;
+    attacker.pos = ally.pos;
+    ally.pos = tmp;
+    draft.log.push(`${label(draft, attacker)} trades places with ${label(draft, ally)}.`);
   },
   /** Surfs Up (Tide): a wave that hits the enemy row directly ahead and buoys
    *  the whole crew. */
