@@ -716,6 +716,10 @@ export interface CardInstance {
   /** Boomer (Firecrack): opponents this card has already struck at least once —
    *  a second strike vs the same target detonates for double. */
   boomerStruck?: string[];
+  /** Shell Tuck (Tide): while tucked in, this card's OWN basic attacks miss
+   *  `attackMissPct`% of the time, for `attackMissRounds` more rounds. */
+  attackMissPct?: number;
+  attackMissRounds?: number;
   /** How many times a `decay` reviver (Zombie Husk) has come back — drives the
    *  −1-per-death stat decay. */
   reviveDecay?: number;

@@ -111,6 +111,8 @@ function describeOnSummon(os: {
       return `On summon: give ${scope()} +${n("amount")} SP.`;
     case "heal":
       return `On summon: heal ${scope()} ${n("amount")} HP.`;
+    case "surfsUp":
+      return `On summon: a wave deals ${n("dmg")} DMG to the enemy row ahead and heals all allies ${n("heal")} HP.`;
     default:
       return "Fires an effect the moment it's summoned.";
   }

@@ -1737,6 +1737,8 @@ function doCleanupPhase(draft: GameState): void {
     if (regen > 0 && healCard(draft, card, regen, card) > 0) {
       draft.log.push(`${label(draft, card)} regenerates ${regen}.`);
     }
+    // Shell Tuck's shaky aim wears off.
+    if ((card.attackMissRounds ?? 0) > 0) card.attackMissRounds = (card.attackMissRounds ?? 0) - 1;
     // Photosynthesis (LEAF): +2 HP each round — and when there is nothing to
     // heal, the growth hardens into armour instead (+1 shield, capped).
     // It was +1 HP and NOTHING at full health, so the game's only defensive

@@ -5044,10 +5044,12 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // Back-ups (On Summon): a volley at up to 3 foes on arrival. (Doc's straight-
-    // line column shot + on-death self-copy trimmed for now.)
+    // Back-ups (On Summon): a shot straight down its column, hitting every
+    // opponent in that line for 2. (Doc's on-death self-copy is deferred — a
+    // full copy would recurse its own On-Death, and there's no non-recursive
+    // Buccaneers token/art to spawn instead.)
     passiveNames: { onSummon: "Back-ups" },
-    onSummon: { handler: "barrage", params: { dmg: 2, targets: 3 }, targetSide: "enemy" },
+    onSummon: { handler: "barrage", params: { dmg: 2, sameColumn: 1, targets: 99 }, targetSide: "enemy" },
   },
   {
     id: "bore_iron",
@@ -5377,10 +5379,19 @@ export const CARDS: CardDef[] = [
     sp: 2,
     shields: 3,
     keywords: {},
-    // Surfs Up (On Summon): a wave 2 DMG to the row ahead. (Doc's ally-heal +
-    // Shell Tuck talent trimmed.)
+    tribe: "SeaC",
+    // Surfs Up (On Summon): a wave 2 DMG to the enemy row ahead, and +2 HP to the
+    // whole crew.
     passiveNames: { onSummon: "Surfs Up" },
-    onSummon: { handler: "barrage", params: { dmg: 2, spread: 1, forwardDepth: 1, targets: 3 } },
+    onSummon: { handler: "surfsUp", params: { dmg: 2, heal: 2 }, targetSide: "enemy" },
+    // Shell Tuck (Talent, free, once per game): gain 6 shields; Tide's basics
+    // suffer −50% accuracy for 2 rounds.
+    talent: {
+      name: "Shell Tuck",
+      text: "Once per game, free: gain 6 shields, but Tide's basic attacks miss 50% of the time for 2 rounds.",
+      handler: "shellTuck",
+      params: { shields: 6, missPct: 50, missRounds: 2 },
+    },
   },
   {
     id: "bolt_storm",

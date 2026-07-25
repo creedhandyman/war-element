@@ -475,6 +475,17 @@ export function resolveHit(
       draft.log.push(`${label(draft, attacker)} misses (BLIND).`);
       continue;
     }
+    // Shell Tuck (Tide): a flat self-inflicted accuracy penalty on its own basics
+    // — the trade for tucking up behind 6 shields.
+    if (
+      opts.kind === "basic" && !aDef.alwaysHit && !fieldNeverMiss &&
+      (attacker.attackMissRounds ?? 0) > 0 && pctChance(draft, attacker.attackMissPct ?? 0)
+    ) {
+      result.dodgedHits++;
+      target.fxMiss = (target.fxMiss ?? 0) + 1;
+      draft.log.push(`${label(draft, attacker)} swings wide, tucked in.`);
+      continue;
+    }
 
     // 1. EVASION — innate or granted by a friendly wall (Veil). Not re-checked
     //    for reflect damage (no dodge chains). Hot Shot (alwaysHit) ignores it.
@@ -2086,6 +2097,29 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (e.curHp > 0 && e.instanceId !== primary?.instanceId) directDamage(draft, attacker, e, splash, false);
     }
     draft.log.push(`${label(draft, attacker)}'s frag bursts (${dmg} to the target, ${splash} to the rest).`);
+  },
+  /** Surfs Up (Tide): a wave that hits the enemy row directly ahead and buoys
+   *  the whole crew. */
+  surfsUp(draft, attacker, _targets, params) {
+    const dmg = num(params, "dmg");
+    const heal = num(params, "heal");
+    if (attacker.pos) {
+      const row = rowAhead(attacker.owner, attacker.pos.row);
+      for (const e of boardCards(draft, enemyOf(attacker.owner)))
+        if (e.curHp > 0 && e.pos?.row === row)
+          resolveHit(draft, attacker, e, { kind: "special", dmg, hits: 1, pen: false, crit: false });
+    }
+    if (heal > 0) for (const a of boardCards(draft, attacker.owner)) if (a.curHp > 0) healCard(draft, a, heal, attacker);
+    draft.log.push(`${label(draft, attacker)} sends a wave ahead (${dmg}) and buoys the crew (+${heal} HP).`);
+  },
+  /** Shell Tuck (Tide's Talent): plate up hard, at the cost of a couple of rounds
+   *  of shaky aim. */
+  shellTuck(draft, attacker, _targets, params) {
+    const sh = num(params, "shields");
+    attacker.curShields += sh;
+    attacker.attackMissPct = num(params, "missPct");
+    attacker.attackMissRounds = num(params, "missRounds");
+    draft.log.push(`${label(draft, attacker)} tucks into its shell (+${sh} shields, aim shaken ${attacker.attackMissRounds}r).`);
   },
   /** War Cry (Golde): a rallying shout — the caster plates up and the whole team
    *  hits harder for the round. */
