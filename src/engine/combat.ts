@@ -1042,7 +1042,10 @@ function applyOnHitRider(
   if (rider.firstHitOnly && struckBefore > 0) return; // already struck this round
   if (rider.onSecondHit && struckBefore + landedNow < 2) return; // needs the 2nd hit
   if (rider.chance != null && !pctChance(draft, rider.chance)) return;
-  applyStatus(draft, target, rider.kind, rider.duration, rider.power, getDef(attacker.defId).element);
+  const el = getDef(attacker.defId).element;
+  if (rider.stack)
+    stackStatus(draft, target, rider.kind, rider.duration, rider.power, rider.stackCap ?? 99, el);
+  else applyStatus(draft, target, rider.kind, rider.duration, rider.power, el);
 }
 
 // ── special-handler registry ────────────────────────────────────────────────
@@ -1087,6 +1090,29 @@ function tribeOf(card: CardInstance, tribe: string): boolean {
   return Array.isArray(t) ? t.includes(tribe) : t === tribe;
 }
 
+/** Apply a status that STACKS its power onto an existing one of the same kind
+ *  (capped) instead of replacing it — Thorn's cumulative BLEED. Duration is
+ *  refreshed to the longer of the two. Falls back to a plain apply when nothing
+ *  is there yet. */
+function stackStatus(
+  draft: GameState,
+  target: CardInstance,
+  kind: StatusKind,
+  duration: number,
+  power: number,
+  cap: number,
+  element: Element,
+): void {
+  const existing = target.statuses.find((st) => st.kind === kind);
+  if (existing) {
+    existing.power = Math.min(cap, existing.power + power);
+    existing.duration = Math.max(existing.duration, duration);
+    draft.log.push(`${label(draft, target)}'s ${kind} deepens (${kind} ${existing.power}).`);
+  } else {
+    applyStatus(draft, target, kind, duration, power, element);
+  }
+}
+
 function maybeStatus(
   draft: GameState,
   attacker: CardInstance,
@@ -1095,14 +1121,14 @@ function maybeStatus(
 ): void {
   const kind = params.statusKind as StatusKind | undefined;
   if (!kind || target.curHp <= 0 || !draft.cards[target.instanceId]) return;
-  applyStatus(
-    draft,
-    target,
-    kind,
-    num(params, "statusDuration", 1),
-    num(params, "statusPower", 0),
-    getDef(attacker.defId).element,
-  );
+  const el = getDef(attacker.defId).element;
+  // statusStack (Thorn's Blood on the Petals): the Special's BLEED stacks too,
+  // so a basic-stacked wound isn't reset when the sweep re-fires.
+  if (num(params, "statusStack") > 0) {
+    stackStatus(draft, target, kind, num(params, "statusDuration", 1), num(params, "statusPower", 0), num(params, "statusStackCap", 99), el);
+    return;
+  }
+  applyStatus(draft, target, kind, num(params, "statusDuration", 1), num(params, "statusPower", 0), el);
 }
 
 /** Advance a card up to `steps` open slots toward the enemy home row (the

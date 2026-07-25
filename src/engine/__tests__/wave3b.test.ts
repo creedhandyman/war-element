@@ -368,3 +368,33 @@ describe("tokens never spawn on the opponent's summoning row", () => {
     expect(raised.every((t) => t.pos!.row !== 0)).toBe(true); // none on P2's home row
   });
 });
+
+describe("Thorn — cumulative BLEED", () => {
+  it("each basic deepens BLEED, and it stacks onto the Special's", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const thorn = place(s, "leaf_thorn", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
+    basicAttack(s, thorn.instanceId, foe.instanceId);
+    expect(statusOf(s.cards[foe.instanceId], "BLEED")?.power).toBe(1);
+    s.cards[thorn.instanceId].struckThisRound = {};
+    basicAttack(s, thorn.instanceId, foe.instanceId);
+    expect(statusOf(s.cards[foe.instanceId], "BLEED")?.power).toBe(2); // stacked, not refreshed to 1
+    // Special adds its BLEED 3 ON TOP rather than resetting to 3.
+    const next = applyIntent(battleWith(s, thorn.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    expect(statusOf(next.cards[foe.instanceId], "BLEED")?.power).toBe(5); // 2 + 3
+  });
+
+  it("stacks are capped at 6", () => {
+    const s = prepState();
+    const thorn = place(s, "leaf_thorn", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 999, maxHp: 999, curShields: 0 });
+    for (let i = 0; i < 10; i++) {
+      s.cards[thorn.instanceId].struckThisRound = {};
+      basicAttack(s, thorn.instanceId, foe.instanceId);
+    }
+    expect(statusOf(s.cards[foe.instanceId], "BLEED")?.power).toBe(6);
+  });
+});

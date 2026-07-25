@@ -107,6 +107,10 @@ export interface OnHitStatusDef {
   chance?: number; // 0–100; omit = always
   firstHitOnly?: boolean; // only the first basic hit vs a given target each round
   onSecondHit?: boolean; // only from the 2nd+ basic hit vs a target in a round
+  /** ADD this power onto an existing same-kind status instead of replacing it
+   *  (Thorn's cumulative BLEED — each basic deepens the wound). */
+  stack?: boolean;
+  stackCap?: number; // ceiling for the stacked power
 }
 
 /** Thorns / retaliation when this card is hit by a MELEE attacker. */

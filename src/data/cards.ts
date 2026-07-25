@@ -248,10 +248,14 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 3,
     keywords: {},
+    // Barbed Basics: every basic deepens the wound — BLEED 1 for 2 rounds that
+    // STACKS (up to 6), onto its own prior hits AND onto the Special's BLEED.
+    // Feeds Transfusion, which drinks from all the BLEED Thorn's side deals.
     // Transfusion (On Hit by Melee): apply BLEED 2 to the attacker (stacks), and
     // heal Thorn each round for the total BLEED damage dealt to its enemies at
     // Cleanup (own + teammate BLEED — the team's BLEED cluster fuels Thorn).
-    passiveNames: { onHitByMelee: "Transfusion" },
+    passiveNames: { onHitStatus: "Barbed Basics", onHitByMelee: "Transfusion" },
+    onHitStatus: { kind: "BLEED", duration: 2, power: 1, stack: true, stackCap: 6 },
     onHitByMelee: { status: { kind: "BLEED", duration: 2, power: 2 } },
     healsFromBleed: true,
     special: {
@@ -269,9 +273,9 @@ export const CARDS: CardDef[] = [
       // Sweep 3 -> 2. It measured 19.5 damage/round (21 burst + 18 BLEED), the
       // highest sustained output of any legendary and above every mythic; two
       // targets brings it to about 13, in line with the top of the tier.
-      params: { dmg: 7, pen: 1, targets: 2, statusKind: "BLEED", statusPower: 3, statusDuration: 2 },
+      params: { dmg: 7, pen: 1, targets: 2, statusKind: "BLEED", statusPower: 3, statusDuration: 2, statusStack: 1, statusStackCap: 6 },
       targetSide: "enemy",
-      text: "Sweep up to 2 opponents in range for 7 DMG (PEN) each and apply BLEED 3.",
+      text: "Sweep up to 2 opponents in range for 7 DMG (PEN) each and stack BLEED 3 (basics keep deepening it).",
     },
   },
 
