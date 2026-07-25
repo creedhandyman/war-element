@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyIntent, advance } from "../phases";
-import { effectiveDmg } from "../state";
+import { effectiveDmg, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
 import { drainMaxHp } from "../combat";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
@@ -69,20 +69,22 @@ describe("legendary specials", () => {
     expect(statusOf(next.cards[f2.instanceId], "FREEZE")).toBeTruthy();
   });
 
-  it("DAWN Aurelion — Dawn's Rally heals allies and grants +2 DMG", () => {
+  it("DAWN Aurelion — Dawn's Rally heals 3 and grants +2 DMG / +2 SP", () => {
     const s = prepState();
     s.players.P1.magicPool = 4;
     const au = place(s, "dawn_aurelion", "P1", 2, 0);
     const ally = place(s, "leaf_greegon", "P1", 3, 0, { curHp: 5, maxHp: 17 });
     place(s, "dusk_gool", "P2", 0, 0);
     const baseDmg = effectiveDmg(s, s.cards[ally.instanceId]);
+    const baseSp = effectiveSp(s, s.cards[ally.instanceId]);
     const next = applyIntent(battleWith(s, au.instanceId), {
       type: "BATTLE_ACTION",
       player: "P1",
       action: "special",
     });
-    expect(next.cards[ally.instanceId].curHp).toBe(10); // +5 HP
+    expect(next.cards[ally.instanceId].curHp).toBe(8); // +3 HP
     expect(effectiveDmg(next, next.cards[ally.instanceId])).toBe(baseDmg + 2); // +2 DMG buff
+    expect(effectiveSp(next, next.cards[ally.instanceId])).toBe(baseSp + 2); // +2 SP buff
   });
 
   it("GALE Tempest — Cyclone Strike hits for 8 PEN; High Speed Impact boosts its basic", () => {

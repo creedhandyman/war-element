@@ -1417,10 +1417,10 @@ describe("element-aura telegraphs (fx counters)", () => {
     const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     // Musk Ox, not GoldenEagle: Awakening is floor(dmg / 2), and a 1-DMG card
     // deals 0, so the aura never fires and there'd be nothing to telegraph.
-    const handId = giveHand(s, "P1", "dawn_musk_ox"); // DAWN, 6 DMG -> strikes for 3
+    const handId = giveHand(s, "P1", "dawn_musk_ox"); // DAWN, 5 DMG -> strikes for 2
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const summoned = boardCards(next, "P1").find((c) => c.defId === "dawn_musk_ox")!;
-    expect(next.cards[foe.instanceId].curHp).toBe(37); // it really struck
+    expect(next.cards[foe.instanceId].curHp).toBe(38); // it really struck (40 − floor(5/2))
     expect(summoned.fxLunge ?? 0).toBe(1);
   });
 

@@ -1287,9 +1287,9 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 2,
-    dmg: 6,
+    dmg: 5,
     hits: 1,
-    hp: 12,
+    hp: 13,
     sp: 2,
     shields: 0,
     // Thick Hide: −1 DMG from every incoming attack (flat, applies pre-shield
@@ -3526,11 +3526,11 @@ export const CARDS: CardDef[] = [
     cardClass: "Support",
     attackType: "Ranged",
     cost: 7,
-    dmg: 4,
+    dmg: 5,
     hits: 1,
     hp: 21,
-    sp: 6,
-    shields: 7,
+    sp: 9,
+    shields: 5, // 5+21+10+9 = 45, a cost-7 legend budget
     keywords: {},
     // Radiant Ward: each round the whole team gains a barrier that absorbs the
     // next negative status.
@@ -3539,9 +3539,9 @@ export const CARDS: CardDef[] = [
       name: "Dawn's Rally",
       cost: 4,
       handler: "heal",
-      params: { targets: 99, amount: 5, buffDmg: 2, buffRounds: 2 },
+      params: { targets: 99, amount: 3, buffDmg: 2, buffSp: 2, buffRounds: 2 },
       targetSide: "ally",
-      text: "Heal all allies 5 HP and grant them +2 DMG for 2 rounds.",
+      text: "Heal all allies 3 HP and grant them +2 DMG and +2 speed for 2 rounds.",
     },
   },
   {
