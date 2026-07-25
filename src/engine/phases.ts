@@ -1037,6 +1037,13 @@ function performBattleAction(
     if (!handler) throw new Error(`Unknown special handler: ${special.handler}`);
     const enemiesBefore = boardCards(draft, enemyOf(card.owner)).length;
     handler(draft, card, targets, special.params ?? {});
+    // Golden Resonance (Lithara): each successful Special use hardens + sharpens.
+    const osu = getDef(card.defId).onSpecialUse;
+    if (osu && draft.cards[card.instanceId] && card.curHp > 0) {
+      card.curShields += osu.shields;
+      card.dmgBonus += osu.dmg;
+      draft.log.push(`${label(draft, card)} resonates (+${osu.shields} shields, +${osu.dmg} DMG).`);
+    }
     // On Kill → grant a free recast next round (Volcanon's Eruption). Detect a
     // kill by the enemy board shrinking across the handler.
     if (
@@ -1899,6 +1906,7 @@ function doCleanupPhase(draft: GameState): void {
     card.attackedThisRound = false;
     card.movedThisRound = false;
     card.critsThisRound = 0; // Jackpot (Striik) counts crits per round
+    card.dmgTakenThisRound = 0; // Vengeance (Bolder) reflects only this round's damage
     card.onKillAoeFiredRound = false; // Powertrip re-arms each round
     card.dmgBonusRound = 0;
     card.spBonusRound = 0;

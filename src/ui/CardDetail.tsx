@@ -354,6 +354,12 @@ export function describePassives(def: CardDef): string[] {
     named("firePassiveSpecial", `High Voltage Sentry: auto-fires its Special for free${def.firePassiveSpecial.onFirstHit ? " the first time it hits" : ""}${def.firePassiveSpecial.onDeath ? " and when it dies" : ""}.`);
   if (def.jackpot)
     named("jackpot", `Jackpot: a basic CRIT fires its Special for free; ${def.jackpot.critsForBonus} crits in one round grant +${def.jackpot.bonusHp} HP and +${def.jackpot.bonusDmg} DMG.`);
+  if (def.blockVsClasses)
+    named("blockVsClasses", `Iron Ore: takes half damage from ${def.blockVsClasses.join(" and ")} attackers.`);
+  if (def.bonusVsShield)
+    named("bonusVsShield", `Diamond's Edge: basic attacks deal ${def.bonusVsShield}× damage against a shielded target.`);
+  if (def.onSpecialUse)
+    named("onSpecialUse", `Golden Resonance: each Special use grants +${def.onSpecialUse.shields} shields and +${def.onSpecialUse.dmg} DMG (stacking).`);
   if (def.roundTick?.rowAheadDmg)
     passives.push(
       `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,

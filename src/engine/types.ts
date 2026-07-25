@@ -399,6 +399,15 @@ export interface CardDef {
   /** Jackpot (Striik): a basic CRIT auto-fires the Special free; `critsForBonus`
    *  crits in one round grants +bonusHp / +bonusDmg (once per round). */
   jackpot?: { critsForBonus: number; bonusHp: number; bonusDmg: number };
+  /** Iron Ore (Bolder): take half damage (round down) from attackers of these
+   *  classes. */
+  blockVsClasses?: string[];
+  /** Diamond's Edge (Sheish): basic attacks multiply their damage by this vs a
+   *  SHIELDED target. */
+  bonusVsShield?: number;
+  /** Golden Resonance (Lithara): each successful Special use grants +shields and
+   *  +DMG (stacking). */
+  onSpecialUse?: { shields: number; dmg: number };
   /** Raising Star (Star): a landed basic also heals every ally +N HP. */
   basicHealsTeam?: number;
   /** Liquid Serenity (Anos): at end of a round in which it did NOT attack, heal
@@ -751,6 +760,8 @@ export interface CardInstance {
   autoSpecialFired?: boolean;
   /** Jackpot (Striik): basic crits landed so far this round. */
   critsThisRound?: number;
+  /** HP lost this round (Bolder's Vengeance reflects it). Reset at Cleanup. */
+  dmgTakenThisRound?: number;
   /** A granted heal-over-time (Tail Drop's regrow): heals `regenPower` at each
    *  Cleanup until `regenRoundsLeft` reaches 0. */
   regenRoundsLeft?: number;

@@ -556,6 +556,8 @@ export function resolveHit(
     if (opts.incinerate) remaining += (opts.incinerateBase ?? 0) + result.landedHits;
     const block = Number(tDef.keywords.BLOCK ?? 0) + wallFlatReduction(draft, target) + fieldBonus(draft, target, "block");
     if (block > 0) remaining = Math.max(0, remaining - block);
+    // Iron Ore (Bolder): half damage (round down) from Ranger/Assassin attackers.
+    if (tDef.blockVsClasses?.includes(getDef(attacker.defId).cardClass)) remaining = Math.floor(remaining / 2);
 
     // 3. Shield gate.
     let toHp: number;
@@ -676,6 +678,9 @@ export function resolveHit(
   // Counts the hit, not the damage — one fully absorbed by shields still landed.
   if (result.landedHits > 0 && target.owner !== attacker.owner)
     target.hitsTakenThisRound += result.landedHits;
+  // HP actually lost this round (Bolder's Vengeance reflects it back).
+  if (result.totalToHp > 0 && target.owner !== attacker.owner)
+    target.dmgTakenThisRound = (target.dmgTakenThisRound ?? 0) + result.totalToHp;
 
   // 5. On-hit keywords — basic attacks only. (onHitStatus riders + vsStatus
   //    heals are applied by basicAttack, which knows the per-target gating.)
@@ -1067,6 +1072,8 @@ export function basicAttack(
       if (attacker.boomerStruck.includes(t.instanceId)) dmg *= 2;
       else attacker.boomerStruck.push(t.instanceId);
     }
+    // Diamond's Edge (Sheish): basics hit harder against a shielded target.
+    if (aDef.bonusVsShield && t.curShields > 0) dmg *= aDef.bonusVsShield;
     const struckBefore = attacker.struckThisRound[t.instanceId] ?? 0;
     const r = resolveHit(draft, attacker, t, {
       kind: "basic",
@@ -2267,6 +2274,35 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.electroSurgeActive = true;
     if (es?.shield) attacker.curShields += es.shield;
     draft.log.push(`${label(draft, attacker)} charges its Electro Surge (+${es?.shield ?? 0} shield).`);
+  },
+  /** Vengeance (Bolder): hurl back the damage it soaked this round (with PEN) and
+   *  SLEEP an opponent. */
+  vengeance(draft, attacker, targets, params) {
+    const dmg = attacker.dmgTakenThisRound ?? 0;
+    const primary = targets[0];
+    if (primary && primary.curHp > 0 && dmg > 0) {
+      draft.log.push(`${label(draft, attacker)} avenges ${dmg} damage (PEN).`);
+      directDamage(draft, attacker, primary, dmg, true);
+    }
+    const sleepTarget = targets.find((t) => t.curHp > 0 && draft.cards[t.instanceId]);
+    if (sleepTarget) applyStatus(draft, sleepTarget, "SLEEP", num(params, "sleep", 2), 0, getDef(attacker.defId).element);
+  },
+  /** Diamond Assault (Sheish): 5 DMG to two opponents, then bank shields equal to
+   *  the amount broken. */
+  diamondAssault(draft, attacker, targets, params) {
+    const dmg = num(params, "dmg", 5);
+    const n = num(params, "targets", 2);
+    let broken = 0;
+    for (const target of targets.slice(0, n)) {
+      if (!draft.cards[target.instanceId] || target.curHp <= 0) continue;
+      const before = target.curShields;
+      resolveHit(draft, attacker, target, { kind: "special", dmg, hits: 1, pen: false, crit: false });
+      broken += Math.max(0, before - (draft.cards[target.instanceId]?.curShields ?? 0));
+    }
+    if (broken > 0) {
+      attacker.curShields += broken;
+      draft.log.push(`${label(draft, attacker)} hardens (+${broken} shields from the break).`);
+    }
   },
   /** Feather Fan (Fano): lift every SLOWER teammate up to Fano's SP for a round. */
   featherFan(draft, attacker, _targets, _params) {

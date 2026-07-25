@@ -5828,6 +5828,90 @@ export const CARDS: CardDef[] = [
       text: "Deal CRIT damage to opponents in the row directly ahead and mark them Electrified permanently.",
     },
   },
+  {
+    id: "bore_bolder",
+    name: "Bolder",
+    rarity: "epic",
+    element: "BORE",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 5,
+    hits: 1,
+    hp: 16,
+    sp: 3,
+    shields: 3,
+    keywords: {},
+    // Iron Ore: take half damage (round down) from Ranger + Assassin attackers.
+    passiveNames: { blockVsClasses: "Iron Ore" },
+    blockVsClasses: ["Ranger", "Assassin"],
+    // Vengeance: deal the damage Bolder took this round back (with PEN) and SLEEP
+    // an opponent 2 rounds.
+    special: {
+      name: "Vengeance",
+      cost: 2,
+      handler: "vengeance",
+      params: { sleep: 2 },
+      targetSide: "enemy",
+      text: "Deal PEN damage equal to what Bolder took this round, and SLEEP an opponent for 2 rounds.",
+    },
+  },
+  {
+    id: "bore_sheish",
+    name: "Sheish",
+    rarity: "epic",
+    element: "BORE",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 7,
+    hits: 1,
+    hp: 11,
+    sp: 8,
+    shields: 2,
+    keywords: {},
+    // Diamond's Edge: basic attacks deal 2× damage vs a shielded target.
+    passiveNames: { bonusVsShield: "Diamond's Edge" },
+    bonusVsShield: 2,
+    // Diamond Assault: 5 DMG to two opponents, then bank shields equal to what
+    // was broken.
+    special: {
+      name: "Diamond Assault",
+      cost: 2,
+      handler: "diamondAssault",
+      params: { dmg: 5, targets: 2 },
+      targetSide: "enemy",
+      text: "Deal 5 DMG to two opponents, then gain shields equal to the amount of shields broken.",
+    },
+  },
+  {
+    id: "bore_lithara",
+    name: "Lithara",
+    rarity: "epic",
+    element: "BORE",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 4,
+    hits: 1,
+    hp: 10,
+    sp: 5,
+    shields: 5,
+    keywords: {},
+    // Golden Resonance: each successful Special use grants +2 shields and +1 DMG.
+    passiveNames: { onSpecialUse: "Golden Resonance" },
+    onSpecialUse: { shields: 2, dmg: 1 },
+    // Earth Shatter: 5 DMG to a single target and SLEEP it until end of round.
+    special: {
+      name: "Earth Shatter",
+      cost: 2,
+      handler: "barrage",
+      params: { dmg: 5, targets: 1, statusKind: "SLEEP", statusDuration: 1 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Deal 5 DMG to a single target and SLEEP it until end of round.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
