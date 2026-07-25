@@ -369,6 +369,8 @@ export function describePassives(def: CardDef): string[] {
     named("onCritDebuff", `Brutal: a basic CRIT saps ${def.onCritDebuff} DMG off the target's own attacks for the round.`);
   if (def.evadeVsSlower)
     named("evadeVsSlower", `Unpredictable: a slower attacker (lower SP) has only a 50% chance to hit it.`);
+  if (def.summonSelfBuff)
+    named("summonSelfBuff", `Ride or Die: enters play with +${def.summonSelfBuff.dmg} DMG and +${def.summonSelfBuff.hp} HP.`);
   if (def.roundTick?.rowAheadDmg)
     passives.push(
       `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,

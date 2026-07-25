@@ -6091,6 +6091,34 @@ export const CARDS: CardDef[] = [
       text: "DRAIN 2 max HP from all other cards on the battlefield and add the total to Violet's max HP.",
     },
   },
+  {
+    id: "gale_omega",
+    name: "Omega",
+    rarity: "epic",
+    element: "GALE",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 5,
+    dmg: 7,
+    hits: 1,
+    hp: 13,
+    sp: 12,
+    shields: 1,
+    keywords: {},
+    // Ride or Die: Luna grants +3 DMG and +8 HP on summon; each kill grants +2 HP.
+    passiveNames: { summonSelfBuff: "Ride or Die", onKill: "Ride or Die" },
+    summonSelfBuff: { dmg: 3, hp: 8 },
+    onKill: { buffMaxHp: 2 },
+    // Search and Destroy: charge up to 3 into the enemy field and deal 10 DMG.
+    special: {
+      name: "Search and Destroy",
+      cost: 2,
+      handler: "strike",
+      params: { chargeFirst: 1, charge: 3, dmg: 10 },
+      targetSide: "enemy",
+      text: "Move up to 3 spaces into the enemy battlefield and deal 10 DMG to an opponent in range.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

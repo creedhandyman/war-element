@@ -422,6 +422,9 @@ export interface CardDef {
   /** Unpredictable (Ender): a SLOWER attacker (lower effective SP) has only a
    *  50% chance to hit — a conditional EVASION. */
   evadeVsSlower?: boolean;
+  /** Ride or Die (Omega): Luna grants a permanent +dmg / +hp the moment it
+   *  lands. Applied at instance creation so it never misses. */
+  summonSelfBuff?: { dmg: number; hp: number };
   /** Raising Star (Star): a landed basic also heals every ally +N HP. */
   basicHealsTeam?: number;
   /** Liquid Serenity (Anos): at end of a round in which it did NOT attack, heal
