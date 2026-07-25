@@ -296,6 +296,12 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         card.curShields += ready.shields;
         draft.log.push(`${getDef(card.defId).name} braces for the middle (+${ready.shields} shield).`);
       }
+      // Sky Scout (Syt Bird): reaching the middle lets the team's basics clip an
+      // extra adjacent target for the round.
+      if (getDef(card.defId).skyScout && card.curHp > 0 && !isMidRow(fromRow) && isMidRow(card.pos!.row)) {
+        draft.players[card.owner].basicSplashRounds = 1;
+        draft.log.push(`${getDef(card.defId).name} scouts the field — allies' shots spread this round.`);
+      }
       const stomp = getDef(card.defId).onEnterEnemySide;
       if (stomp && !wasOnEnemySide && card.curHp > 0 && onEnemySide(card, draft.boardSize)) {
         // The nearest opponent it can actually reach — a landing that finds
@@ -1293,15 +1299,22 @@ function applyAllyOnSummon(
     if (targets.length > 0)
       draft.log.push(`${getDef(caster.defId).name} reinforces ${targets.length} ally(ies) (+${amount} shields).`);
   } else if (handler === "buffSp") {
-    caster.spBonus += amount;
+    // `rounds` turns the grant TEMPORARY (Whirlwolf's Hastening Breeze is "for
+    // the round"); otherwise it's a permanent spBonus as before.
+    const rounds = Number(params.rounds ?? 0);
+    const grant = (c: CardInstance) => {
+      if (rounds > 0) applyTimedBuff(c, 0, amount, rounds);
+      else c.spBonus += amount;
+    };
+    grant(caster);
     if (params.allAllies) {
       // Hastening Breeze (Whirlwolf): the whole team gains speed.
-      for (const a of allies) a.spBonus += amount;
-      draft.log.push(`${getDef(caster.defId).name} kicks up speed (+${amount} SP to all allies).`);
+      for (const a of allies) grant(a);
+      draft.log.push(`${getDef(caster.defId).name} kicks up speed (+${amount} SP to all allies${rounds ? ` for ${rounds}r` : ""}).`);
     } else {
       // Self + the nearest ally.
       const near = closest(caster, allies);
-      if (near) near.spBonus += amount;
+      if (near) grant(near);
       draft.log.push(`${getDef(caster.defId).name} kicks up speed (+${amount} SP self${near ? " + ally" : ""}).`);
     }
   }
@@ -1826,6 +1839,8 @@ function doCleanupPhase(draft: GameState): void {
     if (left > 0) draft.players[p].burnBoostRounds = left - 1;
     const fog = draft.players[p].foggedRounds ?? 0;
     if (fog > 0) draft.players[p].foggedRounds = fog - 1;
+    const splash = draft.players[p].basicSplashRounds ?? 0;
+    if (splash > 0) draft.players[p].basicSplashRounds = splash - 1;
   }
   for (const f of draft.fields) f.roundsLeft--;
   for (const f of draft.fields.filter((f) => f.roundsLeft <= 0))

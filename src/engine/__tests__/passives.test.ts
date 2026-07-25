@@ -1380,15 +1380,16 @@ describe("partial-effect fixes (Epic sweep)", () => {
     expect(s.cards[z.instanceId].curHp).toBe(9); // healOnHit +4 fired (anyStatus match)
   });
 
-  it("Whirlwolf's Hastening Breeze gives +5 SP to ALL allies, not just the nearest", () => {
+  it("Whirlwolf's Hastening Breeze gives +5 SP to ALL allies for the round", () => {
     const s = prepState();
     s.players.P1.gold = 5;
     const near = place(s, "leaf_greegon", "P1", 3, 0);
     const far = place(s, "leaf_greegon", "P1", 3, 3); // farther than the nearest ally
     const handId = giveHand(s, "P1", "gale_whirlwolf");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
-    expect(next.cards[near.instanceId].spBonus).toBe(5);
-    expect(next.cards[far.instanceId].spBonus).toBe(5); // all-allies, not self+nearest
+    // A TIMED grant now (doc: "for the round"), so it rides `buffs`, not spBonus.
+    expect(next.cards[near.instanceId].buffs.some((b) => b.sp === 5)).toBe(true);
+    expect(next.cards[far.instanceId].buffs.some((b) => b.sp === 5)).toBe(true); // all-allies, not self+nearest
   });
 
   it("Static Charge (On Kill) extends PARALYZE on already-paralyzed foes by 1 round", () => {

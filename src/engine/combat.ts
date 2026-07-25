@@ -337,6 +337,7 @@ export function pushBack(
   steps: number,
   pusher?: PlayerId,
 ): void {
+  if (getDef(card.defId).pushImmune) return; // Braced Stance: it doesn't budge
   const dir = card.owner === "P1" ? 1 : -1; // toward own home (P1 = row 3, P2 = row 0)
   const home = homeRow(card.owner, draft.boardSize);
   const total = steps + (pusher ? fieldPushBonus(draft, pusher) : 0);
@@ -363,6 +364,7 @@ export function pullToward(
   steps: number,
   puller: PlayerId,
 ): void {
+  if (getDef(card.defId).pushImmune) return; // Braced Stance: can't be reeled either
   const dir = puller === "P1" ? 1 : -1; // toward the puller's home (P1 = row 3, P2 = row 0)
   let moved = 0;
   for (let i = 0; i < steps; i++) {
@@ -910,6 +912,7 @@ export function basicAttack(
   draft: GameState,
   attackerId: string,
   target: string | string[],
+  fromFollowup = false,
 ): AttackResult | null {
   const attacker = draft.cards[attackerId];
   if (!attacker) return null;
@@ -1141,6 +1144,41 @@ export function basicAttack(
     if (allies.length > 0)
       draft.log.push(`${label(draft, attacker)} rallies ${allies.length} ally(ies) from the hill (+${hab.shields} shields).`);
     attacker.onHitBuffFired = true;
+  }
+  // Sky Scout (Syt Bird): while the owner's scout buff is up, a single-target
+  // basic also clips ONE enemy adjacent to the primary target. Not for the
+  // follow-up shots themselves (no chains).
+  if (
+    !fromFollowup && agg.landedHits > 0 && attacker.curHp > 0 &&
+    (draft.players[attacker.owner].basicSplashRounds ?? 0) > 0
+  ) {
+    const primary = draft.cards[groups[0]?.targetId];
+    if (primary?.pos) {
+      const splash = boardCards(draft, enemyOf(attacker.owner)).find(
+        (e) => e.curHp > 0 && e.instanceId !== primary.instanceId && e.pos != null && chebyshev(e.pos, primary.pos!) <= 1,
+      );
+      if (splash) {
+        resolveHit(draft, attacker, splash, { kind: "basic", dmg: effectiveDmg(draft, attacker), hits: 1, pen: false, crit: false });
+        draft.log.push(`${label(draft, attacker)}'s shot clips ${label(draft, splash)} (Sky Scout).`);
+      }
+    }
+  }
+  // Flying Arrow (Ollie): an allied Ollie standing directly behind this attacker
+  // looses its own shot at the same target. Guarded so a follow-up can't chain.
+  if (!fromFollowup && agg.landedHits > 0 && attacker.pos) {
+    const primary = draft.cards[groups[0]?.targetId];
+    if (primary && primary.curHp > 0) {
+      const archers = boardCards(draft, attacker.owner).filter(
+        (a) =>
+          a.instanceId !== attacker.instanceId && a.curHp > 0 && getDef(a.defId).flyingArrow &&
+          a.pos != null && attacker.pos != null && a.pos.col === attacker.pos.col &&
+          rowAhead(a.owner, a.pos.row) === attacker.pos.row,
+      );
+      for (const archer of archers) {
+        if (primary.curHp > 0 && draft.cards[primary.instanceId])
+          basicAttack(draft, archer.instanceId, primary.instanceId, true);
+      }
+    }
   }
   // Harpoon Hook (Harp) / Sucker Sword (Octoirate): reel each struck enemy in
   // toward the attacker. Only when something landed and the attacker is still

@@ -335,6 +335,12 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.boomer)
     named("boomer", `Boomer: base damage the first strike on a target, then double on every strike after.`);
+  if (def.pushImmune)
+    named("pushImmune", `Braced Stance: immune to knockback and pull effects.`);
+  if (def.flyingArrow)
+    named("flyingArrow", `Flying Arrow: also attacks whatever the ally directly in front of it strikes with a basic attack.`);
+  if (def.skyScout)
+    named("skyScout", `Sky Scout: when it enters a Mid row, allies' basic attacks hit +1 adjacent target for the round.`);
   if (def.roundTick?.rowAheadDmg)
     passives.push(
       `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,

@@ -3044,7 +3044,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_whirlwolf",
     name: "Whirlwolf",
-    rarity: "epic",
+    rarity: "rare",
     element: "GALE",
     cardClass: "Support",
     attackType: "Ranged",
@@ -3055,17 +3055,16 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: { FLYING: true },
-    tribe: "Avian",
-    // Hastening Breeze (On Summon): +5 SP to all allies (the whole team). Doc's
-    // "for a round" temporality isn't modeled — the SP grant is permanent.
-    onSummon: { handler: "buffSp", params: { amount: 5, allAllies: 1 }, targetSide: "ally" },
-    special: {
+    tribe: ["Avian", "Wolf"],
+    // Hastening Breeze (On Summon): +5 SP to all allies for the round.
+    onSummon: { handler: "buffSp", params: { amount: 5, allAllies: 1, rounds: 1 }, targetSide: "ally" },
+    // Wave Pounce (Talent, free, once per game): −3 SP to all opponents for the
+    // round and 2 DMG.
+    talent: {
       name: "Wave Pounce",
-      cost: 2,
+      text: "Once per game, free: deal 2 DMG to all opponents and drop their SP by 3 for the round.",
       handler: "barrage",
       params: { dmg: 2, targets: 99, spDebuff: 3, spDebuffRounds: 1 },
-      targetSide: "enemy",
-      text: "Deal 2 DMG to all opponents and −3 SP for the round.",
     },
   },
   {
@@ -4829,10 +4828,11 @@ export const CARDS: CardDef[] = [
     hp: 16,
     sp: 1,
     shields: 3,
-    // Braced Stance: −1 DMG from everything (flat) and it plants in a lane — the
-    // sturdy body GALE's fragile fliers never had. (Doc's push-immunity omitted;
-    // no knockback-immune flag in the engine, and the flat reduction carries it.)
+    // Braced Stance: −1 DMG from every incoming attack (BLOCK) and immune to
+    // knockback/pull — it plants and lets GALE's storms wash over it.
     keywords: { BLOCK: 1 },
+    passiveNames: { pushImmune: "Braced Stance" },
+    pushImmune: true,
   },
   {
     id: "bolt_junker",
@@ -4988,8 +4988,10 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: { FLYING: true },
-    // A fast flyer. (Doc's Flying Arrow — piggyback the ally-ahead's shot —
-    // omitted; a plain FLYING harasser for now.)
+    // Flying Arrow: also fires at whatever the ally directly in front of it just
+    // struck with a basic attack.
+    passiveNames: { flyingArrow: "Flying Arrow" },
+    flyingArrow: true,
   },
   {
     id: "gale_syt_bird",
@@ -5005,8 +5007,10 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: { FLYING: true },
-    // A fast FLYING scout. (Doc's Sky Scout — +1 target to allies on entering a
-    // Mid row — omitted for now; a plain flying support body.)
+    // Sky Scout: when Syt Bird enters a Mid row, allies' basic attacks hit +1
+    // adjacent target for the round.
+    passiveNames: { skyScout: "Sky Scout" },
+    skyScout: true,
   },
 
   // ── Class-per-cost grid, COST 1 (batch 2: cells needing a small mechanic, all

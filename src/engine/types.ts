@@ -366,6 +366,15 @@ export interface CardDef {
   /** Boomer (Firecrack): the second+ basic hit against a given opponent deals
    *  DOUBLE base damage — a delayed detonation on the repeat strike. */
   boomer?: boolean;
+  /** Braced Stance (Stormhide Bison): immune to knockback / pull — it plants and
+   *  the storms other GALE cards ride wash over it. */
+  pushImmune?: boolean;
+  /** Flying Arrow (Ollie): also fires at whatever the ally directly in front of
+   *  it just struck with a basic attack. */
+  flyingArrow?: boolean;
+  /** Sky Scout (Syt Bird): entering a Mid row lets allied basics hit +1 adjacent
+   *  target for the round. */
+  skyScout?: boolean;
   /** Elemental Fury (Prism): lands with its Special already paid for, so the
    *  first Enchantment is free. */
   startsWithFreeSpecial?: boolean;
@@ -1040,6 +1049,9 @@ export interface PlayerState {
    *  attacks aimed at THIS player's cards. Flat coin, not a status — uncleansed.
    *  Decrements each Cleanup. */
   foggedRounds?: number;
+  /** Sky Scout (Syt Bird): rounds left in which this player's single-target
+   *  basics also clip one enemy adjacent to their target. Ticked in Cleanup. */
+  basicSplashRounds?: number;
   /** Radiant Ward (Solstice): a single team-wide barrier that absorbs the first
    *  negative status to hit any ally this round. Refreshed each round it's up. */
   statusWard?: boolean;
