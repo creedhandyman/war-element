@@ -529,6 +529,8 @@ export function describePassives(def: CardDef): string[] {
     passives.push("Hot Shot: its attacks never miss — ignores its own BLIND and the target's EVASION.");
   if (def.basicHealsAllies)
     passives.push("Its basic attack can be aimed at a wounded ally to heal them for its DMG instead of striking.");
+  if (def.pullOnAttack)
+    named("pullOnAttack", `${def.id === "aqua_octoirate" ? "Sucker Sword" : "Harpoon Hook"}: a landed basic drags the struck enemy ${def.pullOnAttack} slot${def.pullOnAttack > 1 ? "s" : ""} toward it.`);
   if (def.healPerHit)
     named("healPerHit", `Liquification: heals ${def.healPerHit} HP for every basic hit it lands.`);
   if (def.onAllyHitShield)

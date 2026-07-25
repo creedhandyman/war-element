@@ -2896,8 +2896,10 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "SeaC", // fed by Kraken's SeaC aura (+4 max HP)
-    // On Kill: +3 max HP permanently. (Sucker Sword's target-pull is unmodeled.)
+    // On Kill: +3 max HP permanently. Sucker Sword: a landed basic drags the
+    // struck enemy 1 slot toward Octoirate.
     onKill: { buffMaxHp: 3 },
+    pullOnAttack: 1,
     special: {
       name: "Wave Crash",
       cost: 2,
@@ -5251,9 +5253,9 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 0,
     keywords: {},
-    // Its basic can aim at a hurt ally to heal them. (Doc's Harpoon Hook
-    // pull-on-attack isn't modeled — no pull-toward mechanic yet.)
-    basicHealsAllies: true,
+    // Harpoon Hook: a landed basic drags the struck enemy 1 slot toward Harp,
+    // reeling a backline threat into the front line.
+    pullOnAttack: 1,
   },
   {
     id: "bolt_scrapper",
@@ -5373,7 +5375,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_storm",
     name: "Storm",
-    rarity: "rare",
+    rarity: "epic",
     element: "BOLT",
     cardClass: "Assassin",
     attackType: "Melee",
@@ -5384,10 +5386,19 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // Supercell: builds power every round (+1 DMG, +1 SP). (Doc's +2 HP/3-round
-    // cap trimmed to a steady ramp.)
+    // Supercell: +1 DMG, +2 HP, +1 SP every round for its first 3 rounds.
     passiveNames: { buffDmgEveryN: "Supercell" },
-    roundTick: { buffDmgEveryN: { n: 1, amount: 1, sp: 1 } },
+    roundTick: { buffDmgEveryN: { n: 1, amount: 1, sp: 1, hp: 2, maxTicks: 3 } },
+    // Thunder Strike: 5 DMG to every ELECTRIFIED opponent (BOLT lights them up).
+    special: {
+      name: "Thunder Strike",
+      cost: 1,
+      handler: "smite",
+      params: { dmg: 5, requireStatus: "ELECTRIFIED" },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Deal 5 DMG to every ELECTRIFIED opponent.",
+    },
   },
   {
     id: "bore_rock",
@@ -5430,7 +5441,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_sarachnid",
     name: "Sarachnid",
-    rarity: "rare",
+    rarity: "epic",
     element: "DUSK",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -5442,15 +5453,26 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Spider",
-    // Silk Chase: basics FRIGHTEN the prey. (Doc's Spider spawns + swarm attack
-    // trimmed — no Spider token wired up yet.)
-    passiveNames: { onHitStatus: "Silk Chase" },
-    onHitStatus: { kind: "FRIGHTEN", duration: 1, power: 0 },
+    // Nesting: spawns a Spider on summon and one more each round (capped so the
+    // board can't flood).
+    summonSpawn: { token: "dusk_spider", count: 1 },
+    roundTick: { spawn: { token: "dusk_spider", count: 1 }, spawnMaxAlive: 4 },
+    passiveNames: { roundTick: "Nesting" },
+    // Silk Chase: every allied Spider takes a swing, each opponent hit is
+    // FRIGHTENed, and Sarachnid heals 2 HP per hit landed.
+    special: {
+      name: "Silk Chase",
+      cost: 2,
+      handler: "tribeSwarm",
+      params: { tribe: "Spider", frighten: 1, healPerHit: 2 },
+      targetSide: "enemy",
+      text: "Every allied Spider attacks; each opponent hit is FRIGHTENed 1 round and Sarachnid heals 2 HP per hit.",
+    },
   },
   {
     id: "dusk_spectra",
     name: "Spectra",
-    rarity: "rare",
+    rarity: "epic",
     element: "DUSK",
     cardClass: "Tank",
     attackType: "Melee",
@@ -5460,10 +5482,23 @@ export const CARDS: CardDef[] = [
     hp: 13,
     sp: 10,
     shields: 0,
+    keywords: {},
     tribe: "Ghost",
-    // A ghost that phases hits (EVASION) and crits. (Doc's Opaque Realm ally-
-    // cloak + Strength Sap DRAIN trimmed.)
-    keywords: { EVASION: true, CRIT: true },
+    // Strength Sap: a melee attacker leaves WEAKENed (−25% DMG) — the ghost
+    // saps its strength. (EVASION is no longer innate; it's granted on demand
+    // by Opaque Realm below.)
+    passiveNames: { onHitByMelee: "Strength Sap" },
+    onHitByMelee: { status: { kind: "WEAKEN", duration: 1, power: 0 } },
+    // Opaque Realm: cloak Spectra and whoever stands directly behind it in
+    // EVASION for 2 rounds.
+    special: {
+      name: "Opaque Realm",
+      cost: 2,
+      handler: "veilBehind",
+      params: { rounds: 2 },
+      targetSide: "self",
+      text: "Give Spectra and the ally directly behind it EVASION for 2 rounds.",
+    },
   },
   {
     id: "dusk_hix",
@@ -5488,7 +5523,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_golde",
     name: "Golde",
-    rarity: "rare",
+    rarity: "epic",
     element: "DAWN",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -5499,10 +5534,19 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 2,
     keywords: {},
-    // Relentless (On Hit by Melee): strikes 2 back at the attacker. (Doc's War
-    // Cry team-buff special trimmed.)
+    // Relentless (On Hit by Melee): strikes 2 back at the attacker.
     passiveNames: { onHitByMelee: "Relentless" },
     onHitByMelee: { dmg: 2 },
+    // War Cry: Golde plates up (+2 shields) and rallies the team (+1 DMG) for
+    // the round.
+    special: {
+      name: "War Cry",
+      cost: 1,
+      handler: "warCry",
+      params: { selfShields: 2, buffDmg: 1, buffRounds: 1 },
+      targetSide: "self",
+      text: "Gain 2 shields, then give the team +1 DMG for the round.",
+    },
   },
   {
     id: "dawn_oxin",

@@ -330,6 +330,30 @@ export function pushBack(
   if (moved > 0) draft.log.push(`${label(draft, card)} is blown back ${moved} slot(s).`);
 }
 
+/** The inverse of pushBack: drag `card` toward the puller's home row (i.e.
+ *  toward the attacker), one column-aligned step at a time. Stops at the board
+ *  edge or the first occupied/captured slot — so it reels a target in until it
+ *  bumps up against the puller's line. Used by Harpoon Hook / Sucker Sword. */
+export function pullToward(
+  draft: GameState,
+  card: CardInstance,
+  steps: number,
+  puller: PlayerId,
+): void {
+  const dir = puller === "P1" ? 1 : -1; // toward the puller's home (P1 = row 3, P2 = row 0)
+  let moved = 0;
+  for (let i = 0; i < steps; i++) {
+    const pos = card.pos;
+    if (!pos) break;
+    const row: number = pos.row + dir;
+    if (row < 0 || row >= draft.boardSize) break;
+    if (draft.slots[row][pos.col].capturedBy || cardAt(draft, row, pos.col)) break;
+    card.pos = { row: row as Pos["row"], col: pos.col };
+    moved++;
+  }
+  if (moved > 0) draft.log.push(`${label(draft, card)} is dragged in ${moved} slot(s).`);
+}
+
 /** HP-threshold transform (Skelider Dismount): fires once when the card first
  *  drops below its threshold. */
 export function checkLowHpTransform(draft: GameState, card: CardInstance): void {
@@ -1062,6 +1086,18 @@ export function basicAttack(
     if (allies.length > 0)
       draft.log.push(`${label(draft, attacker)} rallies ${allies.length} ally(ies) from the hill (+${hab.shields} shields).`);
     attacker.onHitBuffFired = true;
+  }
+  // Harpoon Hook (Harp) / Sucker Sword (Octoirate): reel each struck enemy in
+  // toward the attacker. Only when something landed and the attacker is still
+  // standing; allies (Morning-Dew-style friendly aims) are never dragged.
+  if (aDef.pullOnAttack && agg.landedHits > 0 && attacker.curHp > 0) {
+    const seen = new Set<string>();
+    for (const g of groups) {
+      if (seen.has(g.targetId)) continue;
+      seen.add(g.targetId);
+      const t = draft.cards[g.targetId];
+      if (t && t.curHp > 0 && t.owner !== attacker.owner) pullToward(draft, t, aDef.pullOnAttack, attacker.owner);
+    }
   }
   return agg;
 }
@@ -1978,6 +2014,69 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         applyStatus(draft, target, "SEAL", sealR, 0, getDef(attacker.defId).element);
     }
     applySelfRiders(draft, attacker, params); // e.g. Guan's +5 max HP
+  },
+  /** Thunder Strike (Storm): pure damage to every opponent carrying a required
+   *  status (ELECTRIFIED) — ignores range, so it reaches whatever BOLT has
+   *  already lit up. */
+  smite(draft, attacker, _targets, params) {
+    const dmg = num(params, "dmg");
+    const need = String(params.requireStatus ?? "");
+    const pen = num(params, "pen") > 0;
+    const foes = boardCards(draft, enemyOf(attacker.owner)).filter(
+      (e) => e.curHp > 0 && (!need || hasStatus(e, need as StatusKind)),
+    );
+    for (const f of foes) {
+      if (attacker.curHp <= 0) break;
+      directDamage(draft, attacker, f, dmg, pen);
+    }
+    draft.log.push(`${label(draft, attacker)}'s Thunder Strike hits ${foes.length} ${need ? need.toLowerCase() : "enemy"}(s) for ${dmg}.`);
+  },
+  /** War Cry (Golde): a rallying shout — the caster plates up and the whole team
+   *  hits harder for the round. */
+  warCry(draft, attacker, _targets, params) {
+    const sh = num(params, "selfShields");
+    const buffDmg = num(params, "buffDmg");
+    const rounds = num(params, "buffRounds", 1);
+    if (sh) attacker.curShields += sh;
+    const allies = boardCards(draft, attacker.owner).filter((a) => a.curHp > 0);
+    if (buffDmg > 0) for (const a of allies) applyTimedBuff(a, buffDmg, 0, rounds);
+    draft.log.push(`${label(draft, attacker)} lets out a War Cry (+${sh} shields, +${buffDmg} DMG to ${allies.length} all(y/ies) for ${rounds}r).`);
+  },
+  /** Silk Chase (Sarachnid): every allied Spider takes a swing; each opponent
+   *  struck is FRIGHTENed, and the caster feeds on the hunt. */
+  tribeSwarm(draft, attacker, targets, params) {
+    const tribe = String(params.tribe ?? "");
+    const frightenR = num(params, "frighten");
+    const healPer = num(params, "healPerHit");
+    const swarm = boardCards(draft, attacker.owner).filter(
+      (c) => c.curHp > 0 && getDef(c.defId).tribe === tribe,
+    );
+    let hits = 0;
+    for (const sp of swarm) {
+      if (sp.curHp <= 0) continue;
+      const prey = targets.find((t) => t.curHp > 0 && canTarget(draft, sp, t))
+        ?? boardCards(draft, enemyOf(attacker.owner)).find((e) => e.curHp > 0 && canTarget(draft, sp, e));
+      if (!prey) continue;
+      const r = basicAttack(draft, sp.instanceId, prey.instanceId);
+      if (r && r.landedHits > 0) {
+        hits += r.landedHits;
+        if (frightenR > 0 && prey.curHp > 0 && draft.cards[prey.instanceId])
+          applyStatus(draft, prey, "FRIGHTEN", frightenR, 0, getDef(attacker.defId).element);
+      }
+    }
+    if (healPer > 0 && hits > 0 && attacker.curHp > 0) healCard(draft, attacker, healPer * hits, attacker);
+    draft.log.push(`Silk Chase: ${swarm.length} ${tribe || "ally"}(s) strike (${hits} hit(s)).`);
+  },
+  /** Opaque Realm (Spectra): cloak the caster and whoever stands directly behind
+   *  it in EVASION for a couple of rounds. */
+  veilBehind(draft, attacker, _targets, params) {
+    const rounds = num(params, "rounds", 2);
+    const behindRow = attacker.pos ? attacker.pos.row + (attacker.owner === "P1" ? 1 : -1) : -99;
+    const crew = boardCards(draft, attacker.owner).filter(
+      (a) => a.curHp > 0 && (a.instanceId === attacker.instanceId || a.pos?.row === behindRow),
+    );
+    for (const a of crew) applyStatus(draft, a, "EVASION", rounds, 0, getDef(attacker.defId).element);
+    draft.log.push(`${label(draft, attacker)} draws the Opaque Realm over ${crew.length} all(y/ies) (EVASION ${rounds}r).`);
   },
   /**
    * Blue Wind Spiral (Wista): a shot that ricochets. It lands on the target,

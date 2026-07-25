@@ -1408,10 +1408,14 @@ function doRoundTicks(draft: GameState): void {
       if (rolled > 0) draft.log.push(`${label(draft, card)} rolls forward ${rolled} slot(s).`);
     }
 
-    if (rt.buffDmgEveryN && draft.round % rt.buffDmgEveryN.n === 0) {
-      card.dmgBonus += rt.buffDmgEveryN.amount;
-      if (rt.buffDmgEveryN.sp) card.spBonus += rt.buffDmgEveryN.sp; // Dragon's Blade
-      draft.log.push(`${label(draft, card)} sharpens (+${rt.buffDmgEveryN.amount} DMG${rt.buffDmgEveryN.sp ? ` +${rt.buffDmgEveryN.sp} SP` : ""}).`);
+    if (rt.buffDmgEveryN && draft.round % rt.buffDmgEveryN.n === 0
+        && (!rt.buffDmgEveryN.maxTicks || (card.rampTicks ?? 0) < rt.buffDmgEveryN.maxTicks)) {
+      const bn = rt.buffDmgEveryN;
+      card.dmgBonus += bn.amount;
+      if (bn.sp) card.spBonus += bn.sp; // Dragon's Blade
+      if (bn.hp) { card.maxHp += bn.hp; card.curHp += bn.hp; } // Supercell's +HP ramp
+      if (bn.maxTicks) card.rampTicks = (card.rampTicks ?? 0) + 1;
+      draft.log.push(`${label(draft, card)} sharpens (+${bn.amount} DMG${bn.sp ? ` +${bn.sp} SP` : ""}${bn.hp ? ` +${bn.hp} HP` : ""}).`);
     }
     if (rt.aoeDmg) {
       for (const e of enemies()) tickDamage(draft, card, e, rt.aoeDmg, false);

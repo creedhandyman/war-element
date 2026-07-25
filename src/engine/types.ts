@@ -199,7 +199,7 @@ export interface RoundTickDef {
   healAllies?: number; // heal every ally N
   healLowestAlly?: number; // heal the lowest-HP ally N
   /** +DMG (and optionally +SP) every Nth round, stacking (Dragon's Blade). */
-  buffDmgEveryN?: { n: number; amount: number; sp?: number };
+  buffDmgEveryN?: { n: number; amount: number; sp?: number; hp?: number; maxTicks?: number };
   scaldFrozen?: number; // apply SCALD N to FROZEN enemies (Freezer Burn)
   paralyzeOne?: number; // PARALYZE one un-paralyzed enemy for N rounds
   pushEnemies?: number; // blow every enemy back N slots (Wind Guardian)
@@ -346,6 +346,10 @@ export interface CardDef {
    *  round's Cleanup — the sting is spent and the bee is gone. Its on-hit DOT
    *  still lands and still ticks; the corpse just doesn't linger. */
   diesAfterAttacking?: boolean;
+  /** Harpoon Hook (Harp) / Sucker Sword (Octoirate): after a landed basic
+   *  attack, drag the struck enemy this many slots toward the attacker —
+   *  reeling a ranged/backline target into melee range. */
+  pullOnAttack?: number;
   /** Elemental Fury (Prism): lands with its Special already paid for, so the
    *  first Enchantment is free. */
   startsWithFreeSpecial?: boolean;
@@ -692,6 +696,9 @@ export interface CardInstance {
   channelOn?: boolean;
   /** One-shot guard for a firstTimeOnly onHitAllyBuff (Hillbilly's Hillside). */
   onHitBuffFired: boolean;
+  /** How many times a capped `buffDmgEveryN` ramp has fired (Storm's Supercell
+   *  stops after `maxTicks` rounds). Absent = never ramped. */
+  rampTicks?: number;
   /** One-shot guard for Gate Keeper's shield-break buff (Veil). */
   shieldBroken: boolean;
   /** Per-round guard for Powertrip's once-per-round on-kill AoE (Voltogon).
