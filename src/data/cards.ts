@@ -4747,6 +4747,168 @@ export const CARDS: CardDef[] = [
       text: "For 2 rounds: every BURN on an opponent deals double, and PYRO allies gain +1 SP.",
     },
   },
+
+  // ── Balance pass: one new card per element (from the conversion doc) ──────────
+  {
+    id: "leaf_gecko",
+    name: "Gecko",
+    rarity: "rare",
+    element: "LEAF",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 6,
+    hits: 1,
+    hp: 10,
+    sp: 9,
+    shields: 0,
+    keywords: {},
+    tribe: "Reptile",
+    // Venomous Bite: basics apply a light BLEED — another feeder for Thorn's
+    // heal-off-BLEED payoff, and a THIRD Reptile body so Trinezer's tribe aura
+    // (+1 DMG/+1 SP to Reptiles) finally has real targets. (Doc's one-time
+    // Tail-Drop death-save omitted — no cheat-death mechanic in the engine yet.)
+    passiveNames: { onHitStatus: "Venomous Bite" },
+    onHitStatus: { kind: "BLEED", duration: 1, power: 1 },
+  },
+  {
+    id: "pyro_slag_tortoise",
+    // PLACEHOLDER ART: no pyro_slag_tortoise.png is staged yet, so this borrows
+    // the heatsink-golem construct art. Drop in public/cards/pyro_slag_tortoise.png
+    // and delete this `art` line to use the real image.
+    art: "pyro_heatsink_golem",
+    name: "Slag Tortoise",
+    rarity: "rare",
+    element: "PYRO",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 2,
+    hits: 1,
+    hp: 15,
+    sp: 0,
+    shields: 4,
+    // Molten Shell: −1 DMG from every incoming hit (flat, pre-shield, even PEN)
+    // — that's exactly BLOCK. PYRO's first proper wall to hold a lane.
+    keywords: { BLOCK: 1 },
+  },
+  {
+    id: "aqua_anglerfish",
+    name: "Anglerfish",
+    rarity: "rare",
+    element: "AQUA",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 2,
+    hits: 2,
+    hp: 6,
+    sp: 5,
+    shields: 0,
+    keywords: {},
+    // A small deep-water striker, deliberately a low-footprint 1-drop. AQUA is
+    // already the strongest element: at Cost 3 (and even vanilla) this card added
+    // a strong mid-body and shoved AQUA to a 67% outlier. Shrunk to a Cost-1
+    // filler it measures balance-neutral, keeping the one-per-element pass from
+    // widening the very spread it's meant to close. (Doc's "Lure" fog dropped for
+    // the same reason — it was a second team-wide Misty.)
+  },
+  {
+    id: "gale_stormhide_bison",
+    name: "Stormhide Bison",
+    rarity: "rare",
+    element: "GALE",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 2,
+    hits: 1,
+    hp: 16,
+    sp: 1,
+    shields: 3,
+    // Braced Stance: −1 DMG from everything (flat) and it plants in a lane — the
+    // sturdy body GALE's fragile fliers never had. (Doc's push-immunity omitted;
+    // no knockback-immune flag in the engine, and the flat reduction carries it.)
+    keywords: { BLOCK: 1 },
+  },
+  {
+    id: "bolt_junker",
+    name: "Junker",
+    rarity: "rare",
+    element: "BOLT",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 2,
+    hits: 1,
+    hp: 11,
+    sp: 1,
+    shields: 1,
+    keywords: {},
+    // Stop Sign: swing at it in melee and the scavenged scrap-shield bites back.
+    passiveNames: { onHitByMelee: "Stop Sign" },
+    onHitByMelee: { dmg: 2 },
+  },
+  {
+    id: "bore_old_timer",
+    name: "Old Timer",
+    rarity: "rare",
+    element: "BORE",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 2,
+    dmg: 4,
+    hits: 2,
+    hp: 7,
+    sp: 3,
+    shields: 1,
+    // Rocking Chair: patches itself up each round from that porch rocker (REGEN).
+    // (Doc's self-cleanse omitted — kept as the plain heal it reads as.)
+    keywords: { REGEN: 2 },
+  },
+  {
+    id: "dusk_soul_wisp",
+    name: "Soul Wisp",
+    rarity: "rare",
+    element: "DUSK",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 2,
+    hits: 1,
+    hp: 10,
+    sp: 13,
+    shields: 0,
+    keywords: {},
+    tribe: "Ghost",
+    // Wandering Light: a soul-fire wisp mending the fallen — the sustain DUSK
+    // wants most on the big board. Heals the DUSK side +2 at end of round and can
+    // aim its basic at a hurt ally.
+    passiveNames: { roundTick: "Wandering Light" },
+    roundTick: { roundHealElement: { element: "DUSK", amount: 2 } },
+    basicHealsAllies: true,
+  },
+  {
+    id: "dawn_roy",
+    name: "Roy",
+    rarity: "rare",
+    element: "DAWN",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 2,
+    hp: 8,
+    hits: 1,
+    sp: 3,
+    shields: 1,
+    keywords: {},
+    // Frontline Scout: plates up (+2 shields) the moment it pushes into the mid.
+    // Shrunk to a Cost-1 filler on purpose: at Cost 2 it displaced DAWN's stronger
+    // bodies in the AI's summon order and dragged the already-top DAWN core down
+    // ~16 points in testing. As a cheap footnote it measures balance-neutral.
+    passiveNames: { onEnterMidRow: "Frontline Scout" },
+    onEnterMidRow: { shields: 2 },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
