@@ -5762,6 +5762,8 @@ export const CARDS: CardDef[] = [
     // attacker 3r, 5 DMG back, then deactivate.
     passiveNames: { electroSurge: "Electro Surge" },
     electroSurge: { paralyze: 3, dmg: 5, shield: 1 },
+    // Live current: +2 SP every round (stacking).
+    roundTick: { buffDmgEveryN: { n: 1, amount: 0, sp: 2 } },
     special: {
       name: "Electro Surge",
       cost: 1,

@@ -239,7 +239,7 @@ export function describePassives(def: CardDef): string[] {
     // rounds…" reads as a contradiction.
     if (t.buffDmgEveryN)
       passives.push(
-        `Every ${t.buffDmgEveryN.n} rounds: permanently gains +${t.buffDmgEveryN.amount} DMG${t.buffDmgEveryN.sp ? ` and +${t.buffDmgEveryN.sp} SP` : ""} (stacking).`,
+        `Every ${t.buffDmgEveryN.n} rounds: permanently gains ${[t.buffDmgEveryN.amount ? `+${t.buffDmgEveryN.amount} DMG` : "", t.buffDmgEveryN.sp ? `+${t.buffDmgEveryN.sp} SP` : "", t.buffDmgEveryN.hp ? `+${t.buffDmgEveryN.hp} HP` : ""].filter(Boolean).join(", ")} (stacking).`,
       );
     // Some roundTick fields (selfShields, rowAheadDmg, ward/cleanse…) get their
     // own dedicated line below — don't emit an empty "Each round: ." for those.

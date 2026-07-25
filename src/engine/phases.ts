@@ -1455,7 +1455,8 @@ function doRoundTicks(draft: GameState): void {
       if (bn.sp) card.spBonus += bn.sp; // Dragon's Blade
       if (bn.hp) { card.maxHp += bn.hp; card.curHp += bn.hp; } // Supercell's +HP ramp
       if (bn.maxTicks) card.rampTicks = (card.rampTicks ?? 0) + 1;
-      draft.log.push(`${label(draft, card)} sharpens (+${bn.amount} DMG${bn.sp ? ` +${bn.sp} SP` : ""}${bn.hp ? ` +${bn.hp} HP` : ""}).`);
+      const parts = [bn.amount ? `+${bn.amount} DMG` : "", bn.sp ? `+${bn.sp} SP` : "", bn.hp ? `+${bn.hp} HP` : ""].filter(Boolean);
+      draft.log.push(`${label(draft, card)} sharpens (${parts.join(" ")}).`);
     }
     if (rt.aoeDmg) {
       for (const e of enemies()) tickDamage(draft, card, e, rt.aoeDmg, false);
