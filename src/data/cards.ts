@@ -2670,7 +2670,7 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 2,
-    dmg: 2,
+    dmg: 3, // 2->3
     hits: 1,
     hp: 12,
     sp: 6,
@@ -2868,7 +2868,7 @@ export const CARDS: CardDef[] = [
     hits: 1,
     hp: 8,
     sp: 6,
-    shields: 1,
+    shields: 2, // 1->2
     keywords: {},
     // On Summon: 3 DMG to opponents in the same + adjacent row (forward area).
     onSummon: { handler: "barrage", params: { dmg: 3, spread: 1, targets: 99 } },
@@ -4306,7 +4306,7 @@ export const CARDS: CardDef[] = [
     cost: 1,
     dmg: 3,
     hits: 1,
-    hp: 3,
+    hp: 5, // 3->5 (3+5+7 = 15, exactly a cost-1 budget)
     sp: 7,
     shields: 0,
     keywords: {},
