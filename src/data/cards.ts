@@ -3827,11 +3827,11 @@ export const CARDS: CardDef[] = [
     element: "DUSK",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 1,
+    cost: 2,
     dmg: 4,
     hits: 1,
     hp: 6,
-    sp: 5,
+    sp: 10, // cost 1->2, sp 5->10 (4+6+10 = 20, a cost-2 budget)
     shields: 0,
     keywords: {},
     tribe: "Ghost",
@@ -4428,26 +4428,6 @@ export const CARDS: CardDef[] = [
   // Both sit under the stat curve on purpose: they are ability-carried, and they
   // are listed in the cost-formula test's exceptions for that reason.
   {
-    id: "leaf_reptilian_tok",
-    art: "leaf_reptilian",
-    name: "Reptilian",
-    rarity: "rare",
-    element: "LEAF",
-    cardClass: "Assassin",
-    attackType: "Melee",
-    cost: 1,
-    dmg: 3,
-    hits: 1,
-    hp: 5, // 3->5 (3+5+7 = 15, exactly a cost-1 budget)
-    sp: 7,
-    shields: 0,
-    keywords: {},
-    tribe: "Reptile",
-    // Conspiracy (On Kill): +2 DMG, +2 HP (max), +2 SP.
-    passiveNames: { onKill: "Conspiracy" },
-    onKill: { buffDmg: 2, buffMaxHp: 2, buffSp: 2 },
-  },
-  {
     id: "dawn_heir_tok",
     art: "dawn_heir",
     name: "Heir",
@@ -4768,6 +4748,26 @@ export const CARDS: CardDef[] = [
 // them. (Reptilian and Heir used to live here — they are draftable now, but are
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
+  {
+    id: "leaf_reptilian_tok",
+    art: "leaf_reptilian",
+    name: "Reptilian",
+    rarity: "rare",
+    element: "LEAF",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 5, // 3->5 (3+5+7 = 15, exactly a cost-1 budget)
+    sp: 7,
+    shields: 0,
+    keywords: {},
+    tribe: "Reptile",
+    // Conspiracy (On Kill): +2 DMG, +2 HP (max), +2 SP.
+    passiveNames: { onKill: "Conspiracy" },
+    onKill: { buffDmg: 2, buffMaxHp: 2, buffSp: 2 },
+  },
   {
     // Keeper's swarm. The spec did not print a line for it, so: small, cheap to
     // lose, and only dangerous in numbers — 1 DMG base becomes 4 under Hive

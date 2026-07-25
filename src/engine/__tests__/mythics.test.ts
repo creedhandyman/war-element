@@ -41,12 +41,16 @@ describe("token spawning", () => {
     expect(CARDS.some((c) => c.id === "dusk_specter_tok")).toBe(false);
   });
 
-  it("the promoted tokens are draftable AND still spawnable", async () => {
+  it("Heir stays a promoted (draftable) token; Reptilian is spawn-only", async () => {
     const { CARDS, getDef } = await import("../../data/cards");
-    for (const id of ["leaf_reptilian_tok", "dawn_heir_tok"]) {
-      expect(CARDS.some((c) => c.id === id), `${id} draftable`).toBe(true);
-      expect(getDef(id).id, `${id} still resolves for spawners`).toBe(id);
-    }
+    // DAWN's Heir stays draftable AND spawnable — kept promoted so DAWN holds
+    // the same 22-card count as every other element.
+    expect(CARDS.some((c) => c.id === "dawn_heir_tok"), "heir draftable").toBe(true);
+    expect(getDef("dawn_heir_tok").id).toBe("dawn_heir_tok");
+    // Reptilian is Trinezer-spawn-only now — un-promoted so LEAF isn't over by
+    // one draftable card. Still resolves for the spawner, just not in decks.
+    expect(CARDS.some((c) => c.id === "leaf_reptilian_tok"), "reptilian NOT draftable").toBe(false);
+    expect(getDef("leaf_reptilian_tok").id, "reptilian still spawnable").toBe("leaf_reptilian_tok");
   });
 });
 
