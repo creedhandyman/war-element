@@ -130,10 +130,10 @@ describe("wave 1: RohoJohn, Shoksa, Lumberjack, Bootlegger", () => {
     const handId = giveHand(s, "P1", "bore_rohojohn");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const roho = boardCards(next, "P1").find((c) => c.defId === "bore_rohojohn")!;
-    expect(roho.curShields).toBe(7); // War Mount +5, plus BORE's Exostone aura +2
+    expect(roho.curShields).toBe(5); // War Mount +3, plus BORE's Exostone aura +2
     basicAttack(next, roho.instanceId, near.instanceId);
-    // 7 printed + 6 War Mount, because the target is adjacent.
-    expect(60 - next.cards[near.instanceId].curHp).toBe(13);
+    // 7 printed + 4 War Mount, because the target is adjacent.
+    expect(60 - next.cards[near.instanceId].curHp).toBe(11);
   });
 
   it("...but the mount bonus needs the target BESIDE it, not just in range", () => {

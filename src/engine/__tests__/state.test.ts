@@ -47,9 +47,9 @@ describe("setup", () => {
       // inside the band, so it is held to the formula again like anything else.)
       "dawn_heir_tok",
       // Ability-carried, same reasoning as the mythics above but downward: 31 vs
-      // 35. War Mount hands it +5 shield on arrival AND a permanent +6 on every
-      // basic landed from melee range — comfortably more than the 4 points the
-      // printed line gives up.
+      // 35. War Mount hands it +3 shield on arrival AND a permanent +4 on every
+      // basic landed from melee range — still more than the 4 points the printed
+      // line gives up (trimmed from +5 / +6 after it measured OP).
       "bore_rohojohn",
     ]);
     for (const def of CARDS) {

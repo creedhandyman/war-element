@@ -4355,9 +4355,11 @@ export const CARDS: CardDef[] = [
     attackType: "Ranged",
     cost: 5,
     // 31 vs the formula's 35 — deliberately under-statted, and listed in
-    // state.test.ts's exceptions. War Mount pays the difference twice over: +5
-    // shield on arrival plus a permanent +6 on every basic landed from melee
-    // range.
+    // state.test.ts's exceptions. War Mount pays the difference: +3 shield on
+    // arrival plus a permanent +4 on every basic landed from melee range.
+    // Was +5 / +6 — measured the top damage carry in BORE by 40% (9.1/game vs
+    // the field's 6.5) on a body that also tanks and king-moves, so both riders
+    // came down.
     dmg: 7,
     hits: 1,
     hp: 12,
@@ -4366,8 +4368,8 @@ export const CARDS: CardDef[] = [
     keywords: {},
     mounted: true, // War Mount — a king-move in Prep
     passiveNames: { summonSelfShields: "War Mount", meleeBonusDmg: "War Mount" },
-    summonSelfShields: 5, // rides in armoured...
-    meleeBonusDmg: 6, // ...and the mount mauls whatever it stands beside.
+    summonSelfShields: 3, // rides in armoured...
+    meleeBonusDmg: 4, // ...and the mount mauls whatever it stands beside.
     special: {
       name: "Cougar Pounce",
       cost: 3,
