@@ -313,6 +313,27 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   0%, 100% { box-shadow: 0 0 14px var(--legal-soft), inset 0 0 16px var(--legal-soft); }
   50% { box-shadow: 0 0 24px rgba(78, 203, 143, 0.4), inset 0 0 22px var(--legal-soft); }
 }
+/* Movable nudge: on your prep turn, before you've spent your one move, each of
+   your pieces that CAN move wears a soft cyan ring + a floating ⤢ badge. Cyan,
+   deliberately NOT the green of a destination slot — the card says "pick me",
+   the green slot says "go here", so the two cues never blur together. Yields the
+   instant you arm anything (movableIds empties), so it never clutters targeting. */
+.slot.movable { border-color: rgba(56, 189, 248, 0.65); animation: movablepulse 1.6s ease-in-out infinite; z-index: 2; }
+@keyframes movablepulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(56, 189, 248, 0.28), inset 0 0 12px rgba(56, 189, 248, 0.12); }
+  50% { box-shadow: 0 0 18px rgba(56, 189, 248, 0.6), inset 0 0 16px rgba(56, 189, 248, 0.24); }
+}
+.move-badge {
+  position: absolute; top: -7px; left: -6px; z-index: 4;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(8, 30, 46, 0.92); color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.7);
+  font-size: 12px; font-weight: 900; line-height: 1;
+  display: grid; place-items: center;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.55);
+  pointer-events: none; animation: badgeBob 1.6s ease-in-out infinite;
+}
+@keyframes badgeBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
 .slot.dimmed { opacity: 0.32; }
 /* Idle opponent team on your turn: dimmed only, still clickable. No grayscale —
    it drained the element rim and the card art, which are what you read the

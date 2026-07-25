@@ -1033,6 +1033,18 @@ export function App() {
     !!activeDef?.special && Number(activeDef.special.params?.targets ?? 1) >= specialValid.length;
 
   const myPrep = me !== null && game.phase === "prep" && game.prep?.priority === me;
+  // Gentle nudge: on your prep turn, before you've spent your one move and while
+  // nothing else is armed, softly ring the cards that can actually move so a new
+  // player can see there's a move to make (and which pieces it's open to). It
+  // yields the moment you arm anything — the specific action's green slots take
+  // over — so it never fights the targeting UI.
+  const movableIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!myPrep || me === null || sel !== null || game.prep?.movedThisTurn) return ids;
+    for (const c of Object.values(game.cards))
+      if (c.owner === me && c.pos && legalMoves(game, me, c.instanceId).length > 0) ids.add(c.instanceId);
+    return ids;
+  }, [game, myPrep, me, sel]);
   // I may drive the battle action panel ONLY when the card that's up is mine —
   // never the opponent's (online) or the AI's. This is the single gate that
   // stops "attacking as the opponent's card".
@@ -1097,6 +1109,7 @@ export function App() {
           return acc;
         }, {})}
         hasSelection={sel !== null}
+        movableIds={movableIds}
         selectedId={sel?.kind === "card" ? sel.instanceId : null}
         actingId={awaitingId}
         grayTeam={

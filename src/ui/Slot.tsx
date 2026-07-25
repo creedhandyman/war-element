@@ -15,6 +15,7 @@ export function Slot(props: {
   staged: boolean; // the home slot a summon is staged into → green ring
   dimmed: boolean;
   grayed: boolean;
+  movable: boolean; // your card that can move this turn → a soft nudge ring
   contested: boolean;
   captured: "P1" | "P2" | null;
   /** The viewer's OWN trap on this square, if any. Traps are concealed, so the
@@ -53,6 +54,7 @@ export function Slot(props: {
     props.staged ? "staged" : "",
     props.dimmed ? "dimmed" : "",
     props.grayed ? "grayed" : "",
+    props.movable ? "movable" : "",
     props.contested ? "contested" : "",
     props.captured ? "captured" : "",
     props.trap ? "trapped" : "",
@@ -86,6 +88,11 @@ export function Slot(props: {
           title={`${getSpell(props.trap.spellId).name} — ${getSpell(props.trap.spellId).text}\n\nOnly you can see this.`}
         >
           ◈
+        </span>
+      )}
+      {props.movable && (
+        <span className="move-badge" title="Can move this turn — tap to see where">
+          ⤢
         </span>
       )}
       {props.pickCount > 0 && (

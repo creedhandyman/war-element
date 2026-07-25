@@ -12,6 +12,7 @@ export function Board(props: {
   stagedSlot: Pos | null; // the home slot a summon is staged into (awaiting confirm)
   pickCounts: Record<string, number>; // hits assigned per target so far
   hasSelection: boolean;
+  movableIds: Set<string>; // your cards that can move this turn → a soft nudge ring
   selectedId: string | null;
   actingId: string | null;
   grayTeam: PlayerId | null; // whose cards to gray out (the idle team on your turn)
@@ -139,6 +140,7 @@ export function Board(props: {
                   staged={staged}
                   dimmed={dimmed}
                   grayed={props.grayTeam !== null && card !== null && card.owner === props.grayTeam}
+                  movable={card !== null && props.movableIds.has(card.instanceId)}
                   contested={contested}
                   captured={game.slots[row][col].capturedBy}
                   trap={myTrap ?? null}
