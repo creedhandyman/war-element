@@ -528,8 +528,8 @@ export const CARDS: CardDef[] = [
     cost: 2,
     dmg: 4,
     hits: 1,
-    hp: 7,
-    sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space) for a net -2
+    hp: 9,
+    sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space); the 3 SP went to HP, so the slowness is the whole cost
     shields: 2,
     // Adapted for alpha: HomeRun (50% reflect ranged) → REFLECT 1.
     keywords: { REFLECT: 1 },
@@ -658,8 +658,8 @@ export const CARDS: CardDef[] = [
     cost: 2, // formula-correct: 4+6+2·2+6 = 20 → cost 2
     dmg: 4,
     hits: 1,
-    hp: 7,
-    sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space) for a net -2
+    hp: 9,
+    sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space); the 3 SP went to HP, so the slowness is the whole cost
     shields: 2,
     keywords: {},
     // Cave Guard (On Opp enter battlefield): deal 4 DMG to a newcomer summoned
@@ -2622,8 +2622,8 @@ export const CARDS: CardDef[] = [
     cost: 10,
     dmg: 9,
     hits: 1,
-    hp: 37,
-    sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space) for a net -2
+    hp: 39,
+    sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space); the 3 SP went to HP, so the slowness is the whole cost
     shields: 8,
     // NO innate STEALTH. Abyssal Emergence is something it DOES, not something
     // it arrives with: the keyword cloaked it from the moment it was summoned,
@@ -3012,8 +3012,8 @@ export const CARDS: CardDef[] = [
     cost: 2,
     dmg: 5,
     hits: 1,
-    hp: 6,
-    sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space) for a net -2
+    hp: 8,
+    sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space); the 3 SP went to HP, so the slowness is the whole cost
     shields: 2,
     keywords: {},
     // Tusk Rush (On Summon): charge — 5 DMG to opponents directly ahead.
@@ -3286,8 +3286,8 @@ export const CARDS: CardDef[] = [
     cost: 3,
     dmg: 4,
     hits: 1,
-    hp: 14,
-    sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space) for a net -2
+    hp: 16,
+    sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space); the 3 SP went to HP, so the slowness is the whole cost
     shields: 1,
     keywords: {},
     special: {
