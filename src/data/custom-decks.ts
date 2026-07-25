@@ -88,11 +88,13 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "bolt_thundercat", "bolt_thunder", "pyro_volcanon", "pyro_magmaw", "bolt_stormcaller",
       "pyro_pyrogon", "bolt_stingray", "bolt_drshock",
     ],
-    // Spark out, Power Grid in. The deck now runs Jolt, whose whole job is
-    // marking foes ELECTRIFIED — Power Grid turns that mark from +1 into +2 for
-    // the entire BOLT side and discounts their Specials. Spark was also the
-    // second of two Cost-1 damage spells alongside Zap.
-    spells: ["bolt_zap", "pyro_firewall", "bolt_overload_field", "bolt_power_grid", "bolt_lightning_storm"],
+    // Spellbook reworked for the capture race: aggro was losing by round-7
+    // capture (a tanky body parked on its home). This book clears invaders and
+    // defends the home instead of buffing — Flare Push (4 PEN + shove it off the
+    // slot), Ember Trap (punish the move-in), Overload Field (a PARALYZE wall),
+    // Zap (PARALYZE removal), Lightning Storm (an 8-to-all + PARALYZE reset).
+    // Out: the value field (Power Grid) and the redundant second wall (Firewall).
+    spells: ["bolt_zap", "pyro_flare_push", "pyro_ember_trap", "bolt_overload_field", "bolt_lightning_storm"],
   },
   {
     id: "pre_frostkeep",
@@ -164,7 +166,14 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // Wraith floods the board with Specters, so cloaking the whole DUSK side
     // beats cloaking one card, and it covers Ravven everywhere instead of only
     // on enemy ground where its own EVASION lives.
-    spells: ["dusk_chill_touch", "gale_downdraft", "dusk_veil_of_shadows", "dusk_nightfall", "dusk_phantom_spikes"],
+    // Spellbook reworked for the capture race (same problem as Inferno). GALE's
+    // push is the answer: Gust shoves an invader off the home slot, Squall Line
+    // is a push-wall on the home row. Bone Snare traps the move-in (FRIGHTEN),
+    // Chill Touch is cheap removal, and Wake of the Dead (3-to-all, and kills
+    // rise as Risen under your control) both clears invaders AND hands the deck
+    // the bodies it needs to contest home. Out: the value field (Nightfall), the
+    // soft WEAKEN (Downdraft), and Phantom Spikes.
+    spells: ["gale_gust", "dusk_chill_touch", "dusk_bone_snare", "gale_squall_line", "dusk_wake_of_the_dead"],
   },
 ];
 
