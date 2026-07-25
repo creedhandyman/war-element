@@ -4369,10 +4369,11 @@ export const CARDS: CardDef[] = [
     talent: {
       name: "Roll Through",
       handler: "strike",
-      params: { dmg: 5, charge: 1 },
-      // NO chargeFirst: this one hits and THEN rolls away, which is what its
-      // text promises and what a once-per-game escape wants to be.
-      text: "Once per game: deal 5 DMG, then roll 1 slot toward the enemy home.",
+      params: { dmg: 5, rollThrough: 1 },
+      // Hits, THEN rolls THROUGH — past the struck body to the first open slot
+      // toward the enemy home. Plain charge stalled on the target it just hit,
+      // which made a talent named Roll Through do nothing in the common case.
+      text: "Once per game: deal 5 DMG, then roll through to the first open slot toward the enemy home.",
     },
   },
   {

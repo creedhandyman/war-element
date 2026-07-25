@@ -1169,6 +1169,36 @@ function chargeForward(draft: GameState, card: CardInstance, steps: number): voi
   if (moved > 0) draft.log.push(`${label(draft, card)} charges forward ${moved} slot(s).`);
 }
 
+/** Roll Through (Tumbleweed): advance toward the enemy home PAST occupied slots,
+ *  landing in the first open one at least `minSteps` forward — a phase-through,
+ *  not a stop-at-the-first-body. Plain chargeForward stalled the instant the
+ *  struck enemy stood directly ahead, so a talent literally called "Roll
+ *  Through" never moved against the target it just hit. Still can't stop on a
+ *  captured slot or leave the board; may land ON the enemy home (its whole
+ *  direction is toward it). */
+function chargeThrough(draft: GameState, card: CardInstance, minSteps: number): void {
+  if (!card.pos) return;
+  const dir = card.owner === "P1" ? -1 : 1;
+  const enemyHome = homeRow(enemyOf(card.owner), draft.boardSize);
+  const col = card.pos.col;
+  let row = card.pos.row;
+  let stepped = 0;
+  while (true) {
+    const next = row + dir;
+    if (next < 0 || next >= draft.boardSize) break; // off the board
+    if (draft.slots[next][col].capturedBy) break; // can't stop on / pass a locked slot
+    row = next;
+    stepped++;
+    if (!cardAt(draft, row, col) && stepped >= minSteps) {
+      card.pos = { row: row as Pos["row"], col };
+      draft.log.push(`${label(draft, card)} rolls through — ${stepped} slot(s) forward.`);
+      return;
+    }
+    if (row === enemyHome) break; // don't roll past the enemy home row
+  }
+  // nowhere open to land: it stays put (still dealt its damage).
+}
+
 /** Charge that HOMES IN on the slot it struck instead of ploughing straight up
  *  its own column — it may move horizontally and diagonally to get there. A
  *  column-locked charge simply stalled whenever anything stood in the lane, so
@@ -1749,10 +1779,13 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // ranged flag; this is the repositioning half of "move up to N and strike".
     // `chargeLateral` rides toward the slot it struck (sideways and diagonals
     // allowed) instead of straight up its own column.
-    if (!chargeFirst && num(params, "charge") > 0 && attacker.curHp > 0) {
-      if (num(params, "chargeLateral") > 0 && center)
-        chargeToward(draft, attacker, num(params, "charge"), center);
-      else chargeForward(draft, attacker, num(params, "charge"));
+    if (!chargeFirst && attacker.curHp > 0) {
+      if (num(params, "rollThrough") > 0) chargeThrough(draft, attacker, num(params, "rollThrough"));
+      else if (num(params, "charge") > 0) {
+        if (num(params, "chargeLateral") > 0 && center)
+          chargeToward(draft, attacker, num(params, "charge"), center);
+        else chargeForward(draft, attacker, num(params, "charge"));
+      }
     }
   },
 

@@ -108,6 +108,33 @@ describe("added cards: every ability fires", () => {
     expect(statusOf(g.cards[foe.instanceId], "BLIND")).toBeUndefined();
   });
 
+  it("Tumbleweed's Roll Through rolls PAST the enemy it just hit", () => {
+    // The bug: plain charge stalled on an enemy directly ahead — the common
+    // case — so a talent named Roll Through did nothing. It phases through now.
+    const s = prepState();
+    const tw = place(s, "gale_tumbleweed", "P1", 2, 0, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 }); // directly ahead
+    const next = applyIntent(battleFor(s, tw.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "talent", targetId: foe.instanceId,
+    });
+    expect(next.cards[foe.instanceId].curHp).toBe(35); // 5 DMG landed
+    expect(next.cards[tw.instanceId].pos?.row).toBe(0); // rolled THROUGH to the open slot beyond
+  });
+
+  it("Tumbleweed's Roll Through stays put when there's nowhere open to land", () => {
+    // Enemy ahead AND the slot beyond is occupied too — it can't phase to an
+    // open slot, so it just deals its damage.
+    const s = prepState();
+    const tw = place(s, "gale_tumbleweed", "P1", 2, 0, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    place(s, "dusk_crow", "P2", 0, 0, { curHp: 40, maxHp: 40 }); // slot beyond blocked
+    const next = applyIntent(battleFor(s, tw.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "talent", targetId: foe.instanceId,
+    });
+    expect(next.cards[foe.instanceId].curHp).toBe(35); // still hit
+    expect(next.cards[tw.instanceId].pos?.row).toBe(2); // stayed
+  });
+
   it("Tumbleweed's EVASION is real — a volley into it whiffs some hits", () => {
     const s = prepState();
     const weed = place(s, "gale_tumbleweed", "P1", 2, 0, { curHp: 99, maxHp: 99, curShields: 0 });
