@@ -906,13 +906,6 @@ export function basicAttack(
     // ELECTRIFIED rider below) a single point moved BOLT's win rate 38% -> 39%,
     // i.e. not at all. On BOLT's ~5-damage cards +1 is a rounding error.
     if (aDef.element === "BOLT" && t.statuses.length > 0) dmg += 2 + fieldBonus(draft, attacker, "electrify");
-    // Overgrowth (LEAF aura, offensive half): +4 DMG into a foe already BLEEDing
-    // or ROOTed. LEAF's aura was PURELY defensive (heal + bark shield) — this is
-    // its offensive identity, paid off by the many LEAF cards that ROOT/BLEED on
-    // their own (Alpha, Nettle, Thorn, Fallow…). Deliberately NOT self-enabling:
-    // an earlier version had every LEAF basic apply BLEED, which was too much —
-    // a whole element carrying a universal DoT.
-    if (aDef.element === "LEAF" && (hasStatus(t, "BLEED") || hasStatus(t, "ROOT"))) dmg += 4;
     // Harsh Winds / Shadow: bonus DMG the first time this card strikes a given
     // opponent. Vaga's version only counts while it stands on the enemy side.
     const fsEligible = Boolean(aDef.firstStrikeBonus) && (!aDef.firstStrikeEnemySideOnly || onEnemySide(attacker, draft.boardSize));
