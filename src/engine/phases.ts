@@ -1393,6 +1393,21 @@ function doRoundTicks(draft: GameState): void {
     const enemies = () => boardCards(draft, enemyOf(card.owner)).filter((c) => c.curHp > 0);
     const allies = () => boardCards(draft, card.owner).filter((c) => c.curHp > 0);
 
+    // Seed Roll (Acorn): trundle forward toward the enemy home each round, one
+    // open slot at a time — the same walk as OAK's on-summon roll, per round.
+    if (rt.advance && card.pos) {
+      const dir = card.owner === "P1" ? -1 : 1;
+      let rolled = 0;
+      while (rolled < rt.advance && card.pos) {
+        const nextRow: number = card.pos.row + dir;
+        if (nextRow < 0 || nextRow >= draft.boardSize) break;
+        if (cardAt(draft, nextRow, card.pos.col) || draft.slots[nextRow][card.pos.col].capturedBy) break;
+        card.pos = { row: nextRow as Pos["row"], col: card.pos.col };
+        rolled++;
+      }
+      if (rolled > 0) draft.log.push(`${label(draft, card)} rolls forward ${rolled} slot(s).`);
+    }
+
     if (rt.buffDmgEveryN && draft.round % rt.buffDmgEveryN.n === 0) {
       card.dmgBonus += rt.buffDmgEveryN.amount;
       if (rt.buffDmgEveryN.sp) card.spBonus += rt.buffDmgEveryN.sp; // Dragon's Blade

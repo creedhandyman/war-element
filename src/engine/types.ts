@@ -215,6 +215,9 @@ export interface RoundTickDef {
   aoeParalyzedDmg?: number; // deal N DMG to EVERY PARALYZED enemy in range (Lytning's Complete Circuit)
   wardAllies?: boolean; // refresh a status-absorbing barrier on all allies (Solstice's Radiant Ward)
   cleanseAllies?: boolean; // strip all negative statuses from allies (Imperator's Crowned)
+  /** Seed Roll (Acorn token): roll forward N rows toward the enemy home each
+   *  round, stopping at the first occupied/captured slot or the board edge. */
+  advance?: number;
   /** Spawn a token each round (Trinezer's Reptilian Screech). adjacentOnly =
    *  only into an open king's-reach slot; no spawn if none is open. */
   /** Wildfire (Scorch): re-apply a status to every opponent standing in THEIR

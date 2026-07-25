@@ -338,6 +338,14 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.roundTick?.selfShields)
     passives.push(`Gains +${def.roundTick.selfShields} shield at the end of each round.`);
+  if (def.roundTick?.advance)
+    named("roundTick", `Seed Roll: rolls ${def.roundTick.advance} slot${def.roundTick.advance === 1 ? "" : "s"} forward toward the enemy home at the end of each round (until blocked).`);
+  if (def.summonAdvance)
+    named("summonAdvance", `On summon: rolls ${def.summonAdvance} slot${def.summonAdvance === 1 ? "" : "s"} forward toward the enemy home (until blocked).`);
+  if (def.healReceivedMult && def.healReceivedMult !== 1)
+    named("healReceivedMult", `Root Growth: all healing it receives is multiplied ${def.healReceivedMult}×.`);
+  if (def.onTribeDeath)
+    named("onTribeDeath", `Carnage: whenever any ${def.onTribeDeath.tribe} dies, gains ${[def.onTribeDeath.dmg && `+${def.onTribeDeath.dmg} DMG`, def.onTribeDeath.hp && `+${def.onTribeDeath.hp} HP`, def.onTribeDeath.sp && `+${def.onTribeDeath.sp} SP`].filter(Boolean).join(" / ")} permanently.`);
   if (def.roundTick?.pokeParalyzedDmg)
     passives.push(
       `End of round: deals ${def.roundTick.pokeParalyzedDmg} DMG to a PARALYZED opponent in range.`,

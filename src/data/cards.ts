@@ -4945,11 +4945,11 @@ export const CARDS: CardDef[] = [
     sp: 0,
     shields: 0,
     keywords: {},
-    // Seed Roll (On Summon): the acorn rolls one slot forward as it lands, so a
-    // 0-SP wall still starts a step up the lane. Root Growth: it drinks in 2×
-    // from every healing source (REGEN, aura heals, ally lifesteal…).
-    passiveNames: { summonAdvance: "Seed Roll", healReceivedMult: "Root Growth" },
-    summonAdvance: 1,
+    // On Summon: drops an Acorn — a 2/3/3 seedling that Seed-Rolls one slot
+    // forward each round. Root Growth: OAK drinks in 2× from every healing
+    // source (REGEN, aura heals, ally lifesteal…).
+    passiveNames: { summonSpawn: "Acorn Drop", healReceivedMult: "Root Growth" },
+    summonSpawn: { token: "leaf_acorn_tok", count: 1 },
     healReceivedMult: 2,
   },
   {
@@ -5337,6 +5337,25 @@ export const CARDS: CardDef[] = [
 // them. (Reptilian and Heir used to live here — they are draftable now, but are
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
+  {
+    id: "leaf_acorn_tok",
+    art: "leaf_acorn",
+    name: "Acorn",
+    rarity: "rare",
+    element: "LEAF",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 2,
+    hits: 1,
+    hp: 3,
+    sp: 3,
+    shields: 0,
+    keywords: {},
+    // Seed Roll: rolls one slot forward toward the enemy home at end of each round.
+    passiveNames: { roundTick: "Seed Roll" },
+    roundTick: { advance: 1 },
+  },
   {
     id: "leaf_reptilian_tok",
     art: "leaf_reptilian",
