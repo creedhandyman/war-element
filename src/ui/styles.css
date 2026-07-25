@@ -770,6 +770,21 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .bprompt { display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .bp-title { font-size: 12px; font-weight: 800; }
 .bp-title small { color: var(--ink-dim); font-weight: 600; }
+.ench-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: capitalize;
+  color: #ffe9a8;
+  background: rgba(180, 120, 20, 0.28);
+  border: 1px solid rgba(255, 200, 90, 0.55);
+  box-shadow: 0 0 8px rgba(255, 190, 70, 0.35);
+  vertical-align: middle;
+}
 .bp-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .bbtn { padding: 8px 14px; border-radius: 9px; border: 1px solid var(--panel-line); background: var(--void-2); color: var(--ink); font-weight: 700; font-size: 12px; cursor: pointer; transition: 0.12s; }
 .bbtn:hover:not(:disabled) { border-color: var(--legal); }

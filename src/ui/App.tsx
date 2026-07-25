@@ -1193,8 +1193,14 @@ export function App() {
               {activeDef.name} is up{" "}
               <small>
                 ⚔{effectiveBasicHits(activeCard) > 1 ? `${effectiveBasicHits(activeCard)}×` : ""}
-                {effectiveDmg(game, activeCard)} · {activeDef.attackType}
+                {effectiveDmg(game, activeCard) + (activeCard.enchant === "sharpen" ? 5 : 0)} · {activeDef.attackType}
               </small>
+              {activeCard.enchant && (
+                <span className="ench-chip" title="Enchantment armed — rides the next basic attack">
+                  🗡 {activeCard.enchant}
+                  {activeCard.enchant === "sharpen" ? " +5 DMG" : activeCard.enchant === "burning" ? " · 2 DOT" : activeCard.enchant === "freezing" ? " · −5 SP" : " · SLEEP 1"}
+                </span>
+              )}
             </div>
             <div className="bp-actions">
               <button
