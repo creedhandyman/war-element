@@ -206,6 +206,9 @@ export interface RoundTickDef {
   /** Magic Ropes (Ty): each round, lock this many in-range opponents out of
    *  their Specials for the coming round. */
   lockEnemySpecials?: number;
+  /** Draining Siphon (Violet): at end of round, DRAIN N max HP from every
+   *  opponent within 1 space. */
+  drainMaxAdjacent?: number;
   /** Morning Dew (Sprinu): heal every ally of this element at end of round. */
   roundHealElement?: { element: Element; amount: number };
   aoeDmg?: number; // damage every enemy in range
@@ -416,6 +419,9 @@ export interface CardDef {
   /** Brutal (Brute): a basic CRIT saps N DMG off the target's attacks for the
    *  round. */
   onCritDebuff?: number;
+  /** Unpredictable (Ender): a SLOWER attacker (lower effective SP) has only a
+   *  50% chance to hit — a conditional EVASION. */
+  evadeVsSlower?: boolean;
   /** Raising Star (Star): a landed basic also heals every ally +N HP. */
   basicHealsTeam?: number;
   /** Liquid Serenity (Anos): at end of a round in which it did NOT attack, heal

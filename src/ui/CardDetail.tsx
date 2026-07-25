@@ -234,6 +234,7 @@ export function describePassives(def: CardDef): string[] {
       t.healWoundedAllies && `heal allies under ${t.healWoundedAllies.underHp} HP by +${t.healWoundedAllies.amount}`,
       t.rootZeroSp && `ROOT an opponent with 0 SP for ${t.rootZeroSp} rounds`,
       t.lockEnemySpecials && `bind ${t.lockEnemySpecials} opponents — their Specials are disabled next round`,
+      t.drainMaxAdjacent && `DRAIN ${t.drainMaxAdjacent} max HP from every adjacent opponent`,
     ].filter(Boolean);
     // Not an every-round effect, so it gets its own line — "Each round: every 3
     // rounds…" reads as a contradiction.
@@ -366,6 +367,8 @@ export function describePassives(def: CardDef): string[] {
     named("onSpecialUse", `Golden Resonance: each Special use grants +${def.onSpecialUse.shields} shields and +${def.onSpecialUse.dmg} DMG (stacking).`);
   if (def.onCritDebuff)
     named("onCritDebuff", `Brutal: a basic CRIT saps ${def.onCritDebuff} DMG off the target's own attacks for the round.`);
+  if (def.evadeVsSlower)
+    named("evadeVsSlower", `Unpredictable: a slower attacker (lower SP) has only a 50% chance to hit it.`);
   if (def.roundTick?.rowAheadDmg)
     passives.push(
       `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,

@@ -520,6 +520,16 @@ export function resolveHit(
         continue;
       }
     }
+    // Unpredictable (Ender): a SLOWER attacker has only a 50% chance to connect.
+    if (
+      opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !fieldNeverMiss &&
+      tDef.evadeVsSlower && effectiveSp(draft, attacker) < effectiveSp(draft, target) && coin(draft)
+    ) {
+      result.dodgedHits++;
+      target.fxMiss = (target.fxMiss ?? 0) + 1;
+      draft.log.push(`${label(draft, target)} is too unpredictable — ${aDef.name} misses.`);
+      continue;
+    }
 
     // 1b. Rocky Force Field (Rhe): coin-flip chance to shrug off a RANGED hit.
     if (
@@ -2285,6 +2295,36 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (es?.shield) attacker.curShields += es.shield;
     if (es?.dmgBoost) applyTimedBuff(attacker, es.dmgBoost, 0, es.boostRounds);
     draft.log.push(`${label(draft, attacker)} charges its Electro Surge (+${es?.shield ?? 0} shield, +${es?.dmgBoost ?? 0} DMG for ${es?.boostRounds ?? 0}r).`);
+  },
+  /** Dark Warp (Ender): swap places with an opponent and blast it. */
+  darkWarp(draft, attacker, targets, params) {
+    const target = targets[0];
+    if (!target || !target.pos || !attacker.pos) return;
+    const tmp = attacker.pos;
+    attacker.pos = target.pos;
+    target.pos = tmp;
+    draft.log.push(`${label(draft, attacker)} warps in, swapping with ${label(draft, target)}.`);
+    resolveHit(draft, attacker, target, { kind: "special", dmg: num(params, "dmg", 8), hits: 1, pen: false, crit: false });
+  },
+  /** Bloody Exchange (Violet): DRAIN 2 max HP from every card on the board and
+   *  bank the whole total onto Violet's own max HP. */
+  bloodyExchange(draft, attacker, _targets, params) {
+    const per = num(params, "amount", 2);
+    let total = 0;
+    for (const c of boardCards(draft)) {
+      if (c.instanceId === attacker.instanceId || c.curHp <= 0) continue;
+      const take = Math.min(per, c.maxHp - 1);
+      if (take > 0) {
+        c.maxHp -= take;
+        if (c.curHp > c.maxHp) c.curHp = c.maxHp;
+        total += take;
+      }
+    }
+    if (total > 0) {
+      attacker.maxHp += total;
+      attacker.curHp += total;
+      draft.log.push(`${label(draft, attacker)}'s Bloody Exchange drains ${total} max HP to itself.`);
+    }
   },
   /** Orbital Shot (Raya): mark a target; a 14-DMG arrow falls on it next round. */
   orbitalShot(draft, attacker, targets, params) {

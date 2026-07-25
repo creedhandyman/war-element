@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, type FlowMode, GALE_SP_CAP, LEAF_SHIELD_CAP } from "./auras";
-import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, effectiveBasicHits, label, onEnemySide, payAttackTrade, pushBack, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, label, onEnemySide, payAttackTrade, pushBack, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin } from "./rng";
@@ -1625,6 +1625,13 @@ function doRoundTicks(draft: GameState): void {
         applyStatus(draft, stuck, "ROOT", rt.rootZeroSp, 0, getDef(card.defId).element);
         draft.log.push(`${label(draft, card)}'s frost roots ${label(draft, stuck)} (${rt.rootZeroSp}r).`);
       }
+    }
+    if (rt.drainMaxAdjacent) {
+      // Draining Siphon (Violet): bleed max HP from every adjacent opponent.
+      const near = enemies().filter((e) => e.curHp > 0 && e.pos && card.pos && chebyshev(e.pos, card.pos) <= 1);
+      let total = 0;
+      for (const e of near) total += drainMaxHp(draft, card, e, rt.drainMaxAdjacent);
+      if (total > 0) draft.log.push(`${label(draft, card)}'s siphon drains ${total} max HP from ${near.length} foe(s).`);
     }
     if (rt.lockEnemySpecials) {
       // Magic Ropes (Ty): wrap up N reachable opponents — their Specials are

@@ -5598,14 +5598,14 @@ export const CARDS: CardDef[] = [
     passiveNames: { onHitByMelee: "Relentless" },
     onHitByMelee: { dmg: 2 },
     // War Cry: Golde plates up (+2 shields) and rallies the team (+1 DMG) for
-    // the round.
+    // 2 rounds.
     special: {
       name: "War Cry",
       cost: 1,
       handler: "warCry",
-      params: { selfShields: 2, buffDmg: 1, buffRounds: 1 },
+      params: { selfShields: 2, buffDmg: 1, buffRounds: 2 },
       targetSide: "self",
-      text: "Gain 2 shields, then give the team +1 DMG for the round.",
+      text: "Gain 2 shields, then give the team +1 DMG for 2 rounds.",
     },
   },
   {
@@ -6028,6 +6028,67 @@ export const CARDS: CardDef[] = [
       targetSide: "enemy",
       ranged: true,
       text: "Choose a target; an arrow falls at the start of next round dealing 14 DMG to it.",
+    },
+  },
+
+  // ───────────────────── COST-5 EPICS (grid fill) ─────────────────────
+  {
+    id: "dusk_ender",
+    name: "Ender",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 5,
+    dmg: 8,
+    hits: 1,
+    hp: 16,
+    sp: 11,
+    shields: 0,
+    keywords: {},
+    tribe: ["Skeleton", "ScareKrow"],
+    // Unpredictable: a slower opponent has only a 50% chance to hit Ender.
+    passiveNames: { evadeVsSlower: "Unpredictable" },
+    evadeVsSlower: true,
+    // Dark Warp: swap places with any opponent and deal 8 DMG to it.
+    special: {
+      name: "Dark Warp",
+      cost: 2,
+      handler: "darkWarp",
+      params: { dmg: 8 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Swap places with any opponent and deal 8 DMG to it.",
+    },
+  },
+  {
+    id: "dusk_violet",
+    name: "Violet",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 5,
+    dmg: 2,
+    hits: 3,
+    hp: 13,
+    sp: 12,
+    shields: 2,
+    keywords: { FLYING: true, DRAIN: true },
+    tribe: "Vamp",
+    // Draining Siphon (End of Round): DRAIN 3 max HP from opponents within 1
+    // space. Basics carry DRAIN (keyword).
+    passiveNames: { roundTick: "Draining Siphon" },
+    roundTick: { drainMaxAdjacent: 3 },
+    // Bloody Exchange: DRAIN 2 max HP from every other card on the board and bank
+    // the total onto Violet's own max HP.
+    special: {
+      name: "Bloody Exchange",
+      cost: 3,
+      handler: "bloodyExchange",
+      params: { amount: 2 },
+      targetSide: "self",
+      text: "DRAIN 2 max HP from all other cards on the battlefield and add the total to Violet's max HP.",
     },
   },
 ];
