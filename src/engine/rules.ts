@@ -25,6 +25,7 @@ import type {
   PlayerId,
   Pos,
   SpellDef,
+  StatusKind,
 } from "./types";
 import { enemyOf, homeRow, isMidRow } from "./types";
 import { getSpell, spellPickKind } from "./spells";
@@ -158,7 +159,9 @@ export function legalMoves(state: GameState, player: PlayerId, instanceId: strin
  * - Home Slot Targeting Rule: a slot in the DEFENDER's home row can only be
  *   targeted from a Mid row (1/2) or from inside that home row itself.
  * - FLYING: immune to Melee — unless the attacker is ALSO flying (a flying
- *   melee card can strike other fliers). STEALTH: untargetable until it attacks.
+ *   melee card can strike other fliers), OR the flier is grounded by a pinning
+ *   status (ROOT/FREEZE/STUN/SLEEP/PARALYZE), so melee lands. STEALTH:
+ *   untargetable until it attacks.
  */
 /** How far a ranged BASIC attack sees, in king-steps (Chebyshev distance). */
 export const RANGED_REACH = 2;
@@ -247,6 +250,15 @@ export function isStealthed(def: CardDef, card: CardInstance): boolean {
   return false;
 }
 
+/** Statuses that drag a FLYING card out of the air. It stays aloft by actively
+ *  flying, so anything that pins or incapacitates it — rooted, frozen, stunned,
+ *  asleep, or paralysed — drops it to the ground where melee can reach. Pure
+ *  damage/vision debuffs (BLEED/BURN/WEAKEN/BLIND) leave it flying. */
+const GROUNDING_STATUSES: StatusKind[] = ["ROOT", "FREEZE", "STUN", "SLEEP", "PARALYZE"];
+export function isGrounded(card: CardInstance): boolean {
+  return GROUNDING_STATUSES.some((s) => hasStatus(card, s));
+}
+
 export function canTarget(
   state: GameState,
   attacker: CardInstance,
@@ -264,8 +276,10 @@ export function canTarget(
   // Sun, the one effect in the game that reveals cloaked cards.
   if (isStealthed(tDef, target) && !fieldFlag(state, attacker, "seeStealth"))
     return false;
-  // FLYING dodges melee — but a flying attacker can still strike other fliers.
-  if (tDef.keywords.FLYING && melee && !aDef.keywords.FLYING) return false;
+  // FLYING dodges melee — but a flying attacker can still strike other fliers,
+  // and a flier pinned by a grounding status (rooted/frozen/stunned/asleep/
+  // paralysed) is dragged out of the air, so melee connects on it too.
+  if (tDef.keywords.FLYING && melee && !aDef.keywords.FLYING && !isGrounded(target)) return false;
   // Shadow (Vaga): only adjacent attackers reach it — ranged shots from a row
   // or more away find nothing to hit.
   if (

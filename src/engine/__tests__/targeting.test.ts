@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { canTarget, previewOnSummonArea, rangedCanSee, rangedReachFor, validSpecialTargets, validTargets } from "../rules";
+import { applyStatus } from "../combat";
 import { getDef } from "../../data/cards";
 import { place, prepState } from "./helpers";
 import type { Pos } from "../types";
@@ -97,6 +98,22 @@ describe("FLYING & STEALTH", () => {
     const flyer = place(s, "pyro_fenrir", "P1", 2, 0); // FLYING
     expect(canTarget(s, melee, flyer)).toBe(false);
     expect(canTarget(s, ranged, flyer)).toBe(true);
+  });
+
+  it("a grounded flier (ROOT/FREEZE/etc.) can be hit by melee", () => {
+    const s = prepState();
+    const melee = place(s, "dusk_vamp", "P2", 1, 0); // Melee, adjacent below
+    const flyer = place(s, "pyro_fenrir", "P1", 2, 0); // FLYING
+    expect(canTarget(s, melee, flyer)).toBe(false); // airborne — melee whiffs
+    applyStatus(s, flyer, "ROOT", 2, 0, "LEAF");
+    expect(canTarget(s, melee, flyer)).toBe(true); // rooted → grounded → melee lands
+    flyer.statuses = [];
+    applyStatus(s, flyer, "FREEZE", 2, 0, "AQUA");
+    expect(canTarget(s, melee, flyer)).toBe(true); // frozen grounds it too
+    // …but a pure damage/vision debuff does NOT pull it out of the air.
+    flyer.statuses = [];
+    applyStatus(s, flyer, "BURN", 2, 1, "PYRO");
+    expect(canTarget(s, melee, flyer)).toBe(false);
   });
 
   it("STEALTH is untargetable until it attacks, then targetable that round", () => {
