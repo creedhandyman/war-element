@@ -146,6 +146,14 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
             ? boardCards(draft, enemyOf(inst.owner))
                 .filter((t) => t.curHp > 0 && matchesVsTarget(def, t) && t.pos != null)
                 .sort((a, b) => manhattan(inst.pos!, a.pos!) - manhattan(inst.pos!, b.pos!))
+          // reachNearest (Sticks' Boon Striker): pounce the NEAREST enemy
+          // anywhere, same as the bane path but unfiltered. Gated on melee
+          // king's-reach it almost never fired — Sticks lands on its home row
+          // and a foe is rarely adjacent, so the sap "did nothing" on summon.
+            : Number(params.reachNearest ?? 0) > 0
+            ? boardCards(draft, enemyOf(inst.owner))
+                .filter((t) => t.curHp > 0 && t.pos != null)
+                .sort((a, b) => manhattan(inst.pos!, a.pos!) - manhattan(inst.pos!, b.pos!))
             : targets;
           if (picked.length > 0) {
             const targets = picked;

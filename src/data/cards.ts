@@ -3703,9 +3703,10 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 0,
     keywords: {},
-    // Boon Striker (On Summon): strike a reachable opponent for 7 and sap its NEXT
-    // basic attack by 2 (a flat, statusless debuff).
-    onSummon: { handler: "strike", params: { dmg: 7, nextAtkDebuff: 2 }, targetSide: "enemy" },
+    // Boon Striker (On Summon): strike the NEAREST opponent for 7 and sap its
+    // NEXT basic attack by 2 (a flat, statusless debuff). reachNearest lets it
+    // pounce a foe anywhere — melee-gated it never fired from the home row.
+    onSummon: { handler: "strike", params: { dmg: 7, nextAtkDebuff: 2, reachNearest: 1 }, targetSide: "enemy" },
   },
   {
     id: "aqua_icyninza",

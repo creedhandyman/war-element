@@ -398,3 +398,30 @@ describe("Thorn — cumulative BLEED", () => {
     expect(statusOf(s.cards[foe.instanceId], "BLEED")?.power).toBe(6);
   });
 });
+
+describe("Sticks — Boon Striker reaches its prey", () => {
+  it("on summon, saps the NEAREST foe's next attack even across the board", () => {
+    // The bug: gated to melee king's reach it never fired from the home row, so
+    // the attack-sap "did nothing." It pounces the nearest enemy anywhere now.
+    const s = prepState();
+    s.players.P1.gold = 5;
+    const far = place(s, "dusk_gool", "P2", 0, 2, { curHp: 40, maxHp: 40, curShields: 0 }); // enemy back line
+    const h = giveHand(s, "P1", "leaf_sticks");
+    const n = applyIntent(s, { type: "SUMMON", player: "P1", handId: h, col: 0 });
+    expect(n.cards[far.instanceId].curHp).toBe(40 - 7); // struck for 7
+    expect(n.cards[far.instanceId].nextAttackDmgDebuff).toBe(2); // and sapped
+  });
+
+  it("...and the sap actually cuts the next basic, once", () => {
+    const s = prepState();
+    s.players.P1.gold = 5;
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const h = giveHand(s, "P1", "leaf_sticks");
+    const n = applyIntent(s, { type: "SUMMON", player: "P1", handId: h, col: 0 });
+    const victim = place(n, "leaf_greegon", "P1", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const foeDmg = effectiveDmg(n, n.cards[foe.instanceId]);
+    basicAttack(n, foe.instanceId, victim.instanceId);
+    expect(40 - n.cards[victim.instanceId].curHp).toBe(foeDmg - 2); // sapped
+    expect(n.cards[foe.instanceId].nextAttackDmgDebuff).toBeUndefined(); // spent
+  });
+});
