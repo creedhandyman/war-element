@@ -78,11 +78,15 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // Cut for the new arrivals: Electricel (1x4 into 3 HP — Zap already holds the
     // fragile 1-drop), Ember Scorpion (no ability at all), Zagphu and Sarra (the
     // 3 and 4 slots were six and four deep).
+    // Refresh: dropped bolt_electricel (a 1×4 on 3 HP that measured ~0 impact)
+    // and pyro_baboom (rarely reached the board) for two on-theme cheap cards —
+    // Stingray PENs an ELECTRIFIED foe (feeds the Jolt/Electrify plan), Staph
+    // BURNs on summon.
     cards: [
-      "bolt_zap", "bolt_jolt", "pyro_flamehound", "pyro_baboom", "pyro_ash_boar",
+      "bolt_zap", "bolt_jolt", "pyro_flamehound", "pyro_staph", "pyro_ash_boar",
       "bolt_jellyfish", "pyro_firebird", "bolt_lytning", "pyro_fenix", "pyro_sseerr",
       "bolt_thundercat", "bolt_thunder", "pyro_volcanon", "pyro_magmaw", "bolt_stormcaller",
-      "pyro_pyrogon", "bolt_electricel", "bolt_drshock",
+      "pyro_pyrogon", "bolt_stingray", "bolt_drshock",
     ],
     // Spark out, Power Grid in. The deck now runs Jolt, whose whole job is
     // marking foes ELECTRIFIED — Power Grid turns that mark from +1 into +2 for
@@ -102,11 +106,14 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // covers that slot), Rollo and Sapphire (plain bodies in crowded slots), and
     // Bastion — with Polar King, Sandman, Glacius and Kraken the 6+ end was five
     // deep in a sixteen-card deck.
+    // Refresh: dropped aqua_piranha (appeared constantly, measured ~0 impact) and
+    // bore_armadillo (rarely reached the board) for Misty (Fog utility) and
+    // RohoJohn — a ranged 7 that gives the grind deck a backline poke it lacked.
     cards: [
-      "bore_hillbilly", "aqua_piranha", "aqua_subcool", "aqua_kinguin", "aqua_octoirate",
+      "bore_hillbilly", "aqua_misty", "aqua_subcool", "aqua_kinguin", "aqua_octoirate",
       "aqua_owlette", "bore_shift", "aqua_blackbeard", "bore_monger", "aqua_polarbear",
       "bore_rhe", "bore_obsidi", "aqua_polarking", "bore_sandman", "aqua_glacius",
-      "aqua_kraken", "bore_armadillo", "bore_krysteel",
+      "aqua_kraken", "bore_rohojohn", "bore_krysteel",
     ],
     spells: ["aqua_chill", "aqua_frost_patch", "bore_stone_wall", "bore_shatterpoint", "aqua_maelstrom"],
   },
@@ -119,11 +126,15 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // Kosmos/Elderroot/Aurelion (lege) into Imperator (myth).
     // Cut: Nettle, Star and Fallona (the 3 slot ran six deep), and Kosmos to
     // thin a top end that was five cards at 6+. Lands 8 DAWN / 8 LEAF.
+    // Refresh: dropped leaf_nettle and dawn_shine (both low-impact) for Birch
+    // (a KILL flows into a 4×1 volley — recent) and Drakonbane, a real assassin
+    // threat. (Birch not Stickviper here: Stickviper is already in this deck's
+    // 5×5 extras, and adding it to the base would duplicate it there.)
     cards: [
-      "dawn_beam", "leaf_guardian", "leaf_leaf", "dawn_shine", "dawn_amble",
+      "dawn_beam", "leaf_guardian", "leaf_leaf", "dawn_drakonbane", "dawn_amble",
       "leaf_dartfrog", "dawn_goldeneagle", "leaf_sprinu", "leaf_citra", "dawn_solstice",
       "leaf_sumerose", "dawn_clipsey", "leaf_elderroot", "dawn_aurelion", "leaf_fallow",
-      "dawn_imperator", "leaf_nettle", "dawn_star",
+      "dawn_imperator", "leaf_birch", "dawn_star",
     ],
     // Radiant Barrier out, Bramble Wall in — same cost, same slot, but ROOT now
     // has two payoffs in this deck: Fallow's Trapper hits every ROOTed opponent
@@ -140,9 +151,12 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // Nightfang/Klipso (lege) and Shadow Horsemen (myth).
     // Cut: Crow (3 DMG on 1 HP), Silkstalker and Rayfen (crowded 3 and 4 slots),
     // and Tempest to thin a five-card 6+ top. Lands 8 DUSK / 8 GALE.
+    // Refresh: dropped gale_duster (~0 impact) and dusk_widowbite (low impact)
+    // for Sirocco (Windfist knockback — recent) and SkullDrake, a ranged 7 that
+    // gives the DUSK side a backline punch.
     cards: [
-      "gale_duster", "gale_luna", "gale_tumbleweed", "gale_hawk", "dusk_reaper",
-      "gale_vaga", "dusk_widowbite", "gale_windsor", "dusk_ghastly", "dusk_haunt",
+      "gale_sirocco", "gale_luna", "gale_tumbleweed", "gale_hawk", "dusk_reaper",
+      "gale_vaga", "dusk_skulldrake", "gale_windsor", "dusk_ghastly", "dusk_haunt",
       "dusk_wedded_wraith", "gale_wolfbane", "dusk_ravven", "gale_klipso", "dusk_nightfang",
       "dusk_shadowhorsemen", "gale_rayfen", "dusk_silkstalker",
     ],
