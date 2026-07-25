@@ -1045,6 +1045,22 @@ export function App() {
       if (c.owner === me && c.pos && legalMoves(game, me, c.instanceId).length > 0) ids.add(c.instanceId);
     return ids;
   }, [game, myPrep, me, sel]);
+  // Idle-turn prompt: on your prep turn, is there ANY play left — a move you
+  // haven't spent, a summon you can afford, or a spell you can cast? If not, the
+  // only thing to do is Pass, so we nudge that button (below). Computed raw
+  // (ignores `sel`) — it's about what's possible this turn, not what's armed.
+  const hasAnyPlay = useMemo(() => {
+    if (!myPrep || me === null) return true; // never prompt when it isn't my turn
+    if (!game.prep?.movedThisTurn)
+      for (const c of Object.values(game.cards))
+        if (c.owner === me && c.pos && legalMoves(game, me, c.instanceId).length > 0) return true;
+    for (const h of game.players[me].hand)
+      for (let col = 0; col < game.boardSize; col++)
+        if (canSummon(game, me, h.handId, col).ok) return true;
+    for (const s of game.players[me].spellbook ?? [])
+      if (!s.used && game.players[me].magicPool >= getSpell(s.defId).cost) return true;
+    return false;
+  }, [game, myPrep, me]);
   // I may drive the battle action panel ONLY when the card that's up is mine —
   // never the opponent's (online) or the AI's. This is the single gate that
   // stops "attacking as the opponent's card".
@@ -1256,7 +1272,7 @@ export function App() {
                   : "⚔ Basic Attack"}
               </button>
               <button
-                className={`bbtn ${activeDef.special?.talent ? "tal" : "spec"} ${pending === "special" ? "armed" : ""}`}
+                className={`bbtn ${activeDef.special?.talent ? "tal" : "spec"} ${pending === "special" ? "armed" : ""} ${specialCheck.ok && pending === null ? "ready" : ""}`}
                 disabled={!specialCheck.ok}
                 title={
                   activeDef.special
@@ -1376,7 +1392,7 @@ export function App() {
           {/* Pass Priority is the primary action; secondary controls stack
               underneath it so the hand keeps its width. */}
           <button
-            className="lockin pass-btn"
+            className={`lockin pass-btn ${myPrep && sel === null && !hasAnyPlay ? "nudge" : ""}`}
             disabled={!myPrep}
             onClick={() => me && dispatch({ type: "PASS", player: me })}
           >
@@ -1394,7 +1410,7 @@ export function App() {
           </button>
           <div className="ctl-sub">
             {myPrep && (
-              <span className={`mv ${game.prep?.movedThisTurn ? "used" : ""}`}>
+              <span className={`mv ${game.prep?.movedThisTurn ? "used" : "ready"}`}>
                 {game.prep?.movedThisTurn ? "Move: used" : "Move: available"}
               </span>
             )}

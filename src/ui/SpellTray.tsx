@@ -31,10 +31,13 @@ export function SpellTray(props: {
         const afford = magic >= spell.cost;
         const disabled = !props.myTurn || slot.used || !afford;
         const armed = props.armedSpellId === slot.defId;
+        // Castable RIGHT NOW (your turn, unspent, affordable) and not already
+        // armed → a soft ready-glow so you can see what you can actually cast.
+        const ready = props.myTurn && !slot.used && afford && !armed;
         return (
           <button
             key={slot.defId}
-            className={`spellchip ${armed ? "armed" : ""} ${slot.used ? "used" : ""}`}
+            className={`spellchip ${armed ? "armed" : ""} ${slot.used ? "used" : ""} ${ready ? "ready" : ""}`}
             style={{ ["--el" as string]: EL_COLOR[spell.element] }}
             disabled={disabled}
             title={`${spell.name} (cost ${spell.cost}) — ${spell.text}${slot.used ? " · already cast" : afford ? "" : " · not enough Magic"}`}
@@ -67,15 +70,19 @@ export function SpellTray(props: {
     </div>
   );
 
+  // Any spell castable right now — used to nudge the collapsed book so you know
+  // there's something worth opening it for.
+  const anyCastable = props.myTurn && book.some((s) => !s.used && magic >= getSpell(s.defId).cost);
+
   // Collapsed book: a centered toggle that opens the chips in a small popover.
   if (props.collapsible) {
     return (
       <div className={`spellbook${open ? " open" : ""}${props.vertical ? " vertical" : ""}`}>
         {open && <div className="spellbook-pop">{chips}</div>}
         <button
-          className="spellbook-toggle"
+          className={`spellbook-toggle ${anyCastable && !open ? "has-ready" : ""}`}
           onClick={() => setOpen((o) => !o)}
-          title="Your spellbook — tap to cast a spell"
+          title={anyCastable ? "Your spellbook — you have a spell you can cast" : "Your spellbook — tap to cast a spell"}
         >
           <span className="sb-ico">📖</span>
           <span className="sb-label">Spells</span>

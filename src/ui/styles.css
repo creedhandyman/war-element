@@ -812,6 +812,29 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .bbtn.armed { border-color: var(--legal); background: var(--legal-soft); color: var(--legal); }
 .bbtn.spec.armed { border-color: var(--accent); background: rgba(167, 139, 250, 0.15); color: var(--accent); }
 .bbtn:disabled { opacity: 0.4; cursor: default; }
+/* ── Guiding nudges: soft, non-blocking cues that point at what you CAN do.
+   Each yields to the real armed/active states — they only show while idle. ── */
+.mv.ready { animation: mvpulse 1.5s ease-in-out infinite; }
+@keyframes mvpulse { 0%, 100% { opacity: 0.72; text-shadow: none; } 50% { opacity: 1; text-shadow: 0 0 8px var(--legal-soft); } }
+/* Special affordable & off-cooldown, nothing armed yet → breathe its rim. */
+.bbtn.spec.ready { border-color: var(--accent); animation: readyglow 1.7s ease-in-out infinite; }
+.bbtn.tal.ready { border-color: var(--gold-lit); animation: readyglowGold 1.7s ease-in-out infinite; }
+@keyframes readyglow { 0%, 100% { box-shadow: 0 0 4px rgba(167, 139, 250, 0.25); } 50% { box-shadow: 0 0 14px rgba(167, 139, 250, 0.6); } }
+@keyframes readyglowGold { 0%, 100% { box-shadow: 0 0 4px rgba(232, 200, 119, 0.3); } 50% { box-shadow: 0 0 15px rgba(232, 200, 119, 0.65); } }
+/* Nothing left to do but Pass → gently pull the eye to it. */
+.pass-btn.nudge { animation: passnudge 1.5s ease-in-out infinite; }
+@keyframes passnudge {
+  0%, 100% { box-shadow: 0 0 24px rgba(232, 200, 119, 0.4), 0 4px 14px rgba(0, 0, 0, 0.5); }
+  50% { box-shadow: 0 0 32px rgba(232, 200, 119, 0.85), 0 4px 14px rgba(0, 0, 0, 0.5); transform: translateY(-1px); }
+}
+/* A spell you can actually cast right now → soft element-tinted ready-glow. */
+.spellchip.ready { border-color: color-mix(in srgb, var(--el, var(--legal)) 60%, transparent); animation: chipready 1.8s ease-in-out infinite; }
+@keyframes chipready {
+  0%, 100% { box-shadow: 0 0 5px color-mix(in srgb, var(--el, #7dd3fc) 25%, transparent); }
+  50% { box-shadow: 0 0 14px color-mix(in srgb, var(--el, #7dd3fc) 55%, transparent); }
+}
+/* Collapsed book holds a castable spell → glow the toggle so it's worth opening. */
+.spellbook-toggle.has-ready { border-color: var(--gold-lit); animation: readyglowGold 1.9s ease-in-out infinite; }
 .bp-text { font-size: 10.5px; color: var(--ink-dim); }
 /* Armed-special description — accent the name in the Special's purple. */
 .spec-desc { color: var(--ink); line-height: 1.35; }
