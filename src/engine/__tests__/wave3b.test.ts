@@ -62,46 +62,37 @@ describe("Magalogoon", () => {
     expect(getDef("aqua_magalogoon").stealthWhenIdle).toBe(true);
   });
 
-  it("Bog Ambush drags the target into Magalogoon's row, hits for 8, and blinds it", () => {
+  it("Bog Ambush drags a foe into Magalogoon's row, hits for 10, and mires −4 SP permanently", () => {
     const s = prepState();
     s.players.P1.magicPool = 9;
     const mag = place(s, "aqua_magalogoon", "P1", 2, 0);
     const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const spBefore = effectiveSp(s, foe);
     const next = applyIntent(battleWith(s, mag.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
     });
     const hit = next.cards[foe.instanceId];
     expect(hit.pos?.row).toBe(2); // hauled into the bog
-    expect(hit.curHp).toBe(40 - 8);
-    expect(hit.accuracyDebuffRounds).toBe(2);
-    // Flat, untagged: it must NOT show up as a status (nothing cleanses it).
-    expect(hit.statuses.length).toBe(0);
+    expect(hit.curHp).toBe(40 - 10);
+    // Permanent SP cut — a spBonus modifier, not a timed buff, so no round entry.
+    expect(hit.spBonus).toBe(-4);
+    expect(effectiveSp(next, hit)).toBe(Math.max(0, spBefore - 4));
+    expect(hit.buffs.filter((b) => b.sp !== 0)).toHaveLength(0); // not a timed buff
+    expect(hit.statuses.length).toBe(0); // no status tag
   });
 
-  it("the murk actually makes basics whiff, and expires", () => {
-    // Measured over many swings: a 25% miss chance has to move the landed count
-    // off 100%, or the debuff is decorative.
+  it("...and it reaches TWO rows away to pull a foe closer (ranged special)", () => {
+    // Bog Ambush is a ranged special now (2-space reach), so it can drag a foe
+    // that a melee card could never touch — from the enemy back line into range.
     const s = prepState();
-    const attacker = place(s, "dusk_gool", "P2", 1, 0, { accuracyDebuffRounds: 2 });
-    let landed = 0;
-    for (let i = 0; i < 200; i++) {
-      const foe = place(s, "leaf_greegon", "P2", 2, 2, { curHp: 999, maxHp: 999, curShields: 0 });
-      foe.owner = "P1";
-      const before = foe.curHp;
-      basicAttack(s, attacker.instanceId, foe.instanceId);
-      if (foe.curHp < before) landed++;
-      s.cards[attacker.instanceId].attackedThisRound = false;
-      s.cards[attacker.instanceId].struckThisRound = {};
-      delete s.cards[foe.instanceId];
-    }
-    expect(landed).toBeGreaterThan(100); // most land…
-    expect(landed).toBeLessThan(200); // …but not all
-  });
-
-  it("the murk counts down each Cleanup", () => {
-    const s = prepState();
-    const c = place(s, "dusk_gool", "P1", 2, 0, { accuracyDebuffRounds: 2 });
-    expect(advance(atCleanup(s)).cards[c.instanceId].accuracyDebuffRounds).toBe(1);
+    s.players.P1.magicPool = 9;
+    const mag = place(s, "aqua_magalogoon", "P1", 2, 0);
+    const far = place(s, "dusk_gool", "P2", 0, 0, { curHp: 40, maxHp: 40, curShields: 0 }); // 2 rows away
+    const next = applyIntent(battleWith(s, mag.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: far.instanceId,
+    });
+    expect(next.cards[far.instanceId].pos?.row).toBe(2); // dragged all the way in
+    expect(next.cards[far.instanceId].curHp).toBe(40 - 10);
   });
 });
 

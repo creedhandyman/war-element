@@ -703,10 +703,6 @@ export interface CardInstance {
    *  attacking does. Per-CARD, unlike prep.movedThisTurn which is the
    *  one-move-per-turn budget for the whole side. Reset each Cleanup. */
   movedThisRound?: boolean;
-  /** Bog Ambush: rounds left of a flat -25% accuracy. Deliberately NOT a status
-   *  — the card reads "murky water in their eyes, flat effect, no status tag",
-   *  so it survives cleanses and shows up nowhere in the status row. */
-  accuracyDebuffRounds?: number;
   autoMode: AutoMode;
   pos: Pos | null; // null only transiently (never for a living board card)
 }

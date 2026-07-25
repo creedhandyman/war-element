@@ -2143,14 +2143,15 @@ export const CARDS: CardDef[] = [
     tribe: "SeaC",
     special: {
       name: "Bog Ambush",
-      cost: 4,
+      cost: 3,
       handler: "strike",
+      ranged: true, // 2-space reach — drags a foe from up to 2 rows away
       // Drag first, then 8 DMG, then the murk. The accuracy debuff is a flat
       // 25% whiff carried on the card rather than a status — nothing cleanses
       // water in the eyes.
-      params: { dmg: 8, dragToCaster: 1, accuracyDebuffRounds: 2 },
+      params: { dmg: 10, dragToCaster: 1, spDebuffPerm: 4 },
       targetSide: "enemy",
-      text: "Drag an opponent from an adjacent row into this row, deal 8 DMG, and cloud their eyes — 25% of their basic hits miss for 2 rounds.",
+      text: "Drag an opponent from up to two rows away into this row, deal 10 DMG, and mire them — 4 SP, permanently.",
     },
   },
   {

@@ -387,20 +387,6 @@ export function resolveHit(
       draft.log.push(`${label(draft, attacker)} loses the shot in the fog.`);
       continue;
     }
-    // Bog Ambush's murk: a flat 25% whiff on basics, no status attached, so
-    // nothing cleanses it. Rolled per hit exactly like BLIND above.
-    if (
-      opts.kind === "basic" &&
-      !aDef.alwaysHit &&
-      !fieldNeverMiss &&
-      (attacker.accuracyDebuffRounds ?? 0) > 0 &&
-      chance(draft, 25)
-    ) {
-      result.dodgedHits++;
-      target.fxMiss = (target.fxMiss ?? 0) + 1;
-      draft.log.push(`${label(draft, attacker)} swings blind through the murk.`);
-      continue;
-    }
     if (opts.kind === "basic" && !aDef.alwaysHit && !fieldNeverMiss && hasStatus(attacker, "BLIND") && !coin(draft)) {
       result.dodgedHits++;
       target.fxMiss = (target.fxMiss ?? 0) + 1;
@@ -1654,9 +1640,13 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (dragInto(draft, target, attacker.pos.row))
         draft.log.push(`${label(draft, attacker)} drags ${getDef(target.defId).name} into the bog.`);
     }
-    const murk = num(params, "accuracyDebuffRounds");
-    if (murk > 0 && draft.cards[target.instanceId] && target.curHp > 0)
-      target.accuracyDebuffRounds = Math.max(target.accuracyDebuffRounds ?? 0, murk);
+    // Bog Ambush: a PERMANENT speed cut — the muck clings. spBonus is the
+    // permanent SP modifier, so this sticks for the game (no round countdown).
+    const spPerm = num(params, "spDebuffPerm");
+    if (spPerm > 0 && draft.cards[target.instanceId] && target.curHp > 0) {
+      target.spBonus -= spPerm;
+      draft.log.push(`${getDef(target.defId).name} is mired — ${spPerm} SP, permanently.`);
+    }
     // Boon Striker (Sticks): sap the target's NEXT basic attack by N (statusless).
     const nextDebuff = num(params, "nextAtkDebuff");
     if (nextDebuff > 0 && draft.cards[target.instanceId] && target.curHp > 0)

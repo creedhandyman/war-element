@@ -1664,7 +1664,6 @@ function doCleanupPhase(draft: GameState): void {
     card.summonedThisRound = false;
     card.attackedThisRound = false;
     card.movedThisRound = false;
-    if (card.accuracyDebuffRounds) card.accuracyDebuffRounds -= 1;
     card.onKillAoeFiredRound = false; // Powertrip re-arms each round
     card.dmgBonusRound = 0;
     card.spBonusRound = 0;
