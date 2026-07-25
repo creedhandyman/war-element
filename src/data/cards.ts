@@ -3403,20 +3403,36 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_kore",
     name: "Kore",
-    rarity: "rare",
+    // Promoted from the old Rare Cost-1/2 "Electric Pulse" Tank to the Epic
+    // reactor-mech the doc describes; its vacated Rare Tank slot is Junker
+    // (bolt_junker). NOTE: the doc wants new reactor-mech art — until that lands
+    // the card keeps its existing bolt_kore.webp image.
+    rarity: "epic",
     element: "BOLT",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 2,
-    dmg: 2,
+    cost: 5,
+    dmg: 5,
     hits: 1,
-    hp: 16,
-    sp: 2,
-    shields: 0,
+    hp: 18,
+    sp: 6,
+    shields: 3,
     keywords: {},
-    // Electric Pulse (End of Round): 1 DMG to all opponents. (Doc's one-round
-    // ally +DMG boost isn't modeled.)
-    roundTick: { aoeDmg: 1 },
+    tribe: "ARC",
+    // Living Reactor (Start of Round): +1 shield every round, no cap — the
+    // reactor never stops drawing power.
+    passiveNames: { selfShields: "Living Reactor" },
+    roundTick: { selfShields: 1 },
+    // Core Overload: release the built-up charge — 8 DMG to all opponents in
+    // range and PARALYZE each for 1 round.
+    special: {
+      name: "Core Overload",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 8, targets: 99, statusKind: "PARALYZE", statusDuration: 1 },
+      targetSide: "enemy",
+      text: "Deal 8 DMG to all opponents in range and PARALYZE each for 1 round.",
+    },
   },
   {
     id: "dusk_scarlett",
