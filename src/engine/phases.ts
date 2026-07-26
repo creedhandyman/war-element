@@ -2013,6 +2013,7 @@ function doCleanupPhase(draft: GameState): void {
     card.dmgTakenThisRound = 0; // Vengeance (Bolder) reflects only this round's damage
     card.weaponSwitchedRound = false; // Power Grab (General): one switch per round
     card.kingWildFiredRound = false; // King of the Wild (Leo): one buff per round
+    card.allyKilledFiredRound = false; // Overwatch (Warden): one answer per round
     card.onKillAoeFiredRound = false; // Powertrip re-arms each round
     card.dmgBonusRound = 0;
     card.spBonusRound = 0;

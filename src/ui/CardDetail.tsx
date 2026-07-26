@@ -302,9 +302,9 @@ export function describePassives(def: CardDef): string[] {
   if (def.onAllyKilled) {
     const o = def.onAllyKilled;
     const bits = [o.dmg && `${o.dmg} DMG`, o.status && `${o.status.kind} ${o.status.duration}r`].filter(Boolean).join(" + ");
-    named("onAllyKilled", 
-      `Brightling Ball: when an ally is killed, answers the killer with ${bits}${o.oneUse ? " (once per game)" : ""}.`,
-    );
+    const nm = def.passiveNames?.onAllyKilled ?? "Brightling Ball";
+    const cadence = o.oncePerRound ? " (once per round)" : o.oneUse ? " (once per game)" : "";
+    passives.push(`${nm}: when an ally is killed, answers the killer with ${bits}${cadence}.`);
   }
   if (def.spWhileStealthed != null)
     passives.push(`Obsidian Claws: SP becomes ${def.spWhileStealthed} while STEALTHed (underground).`);

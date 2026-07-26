@@ -610,6 +610,8 @@ export interface CardDef {
     dmg?: number;
     status?: { kind: StatusKind; duration: number; power: number };
     oneUse?: boolean;
+    /** Warden's Overwatch: answer at most once per ROUND (not once per game). */
+    oncePerRound?: boolean;
   };
   /** Obsidian Claws (Obsidi): SP is replaced by this while the card is
    *  STEALTHed — underground it moves far faster than it does in the open. */
@@ -808,6 +810,8 @@ export interface CardInstance {
   orbs?: string[];
   /** Aurora's rotation index for the orb an enemy death recharges. */
   orbCycle?: number;
+  /** Per-round guard for a `oncePerRound` onAllyKilled (Warden's Overwatch). */
+  allyKilledFiredRound?: boolean;
   /** One-shot guard for a `oneUse` onAllyKilled (Shine's Brightling Ball). */
   allyKilledFired: boolean;
   /** Dead Clock (RIP): bodies raised so far, counted toward spawnTriggerAt. */

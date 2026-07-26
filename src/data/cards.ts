@@ -6871,9 +6871,10 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 4,
     keywords: {},
-    // Overwatch: when a LEAF ally dies, Warden strikes the killer for 8 (once).
+    // Overwatch: when an ally is killed, answer the killer with 7 DMG (once per
+    // round).
     passiveNames: { onAllyKilled: "Overwatch" },
-    onAllyKilled: { dmg: 8, oneUse: true },
+    onAllyKilled: { dmg: 7, oncePerRound: true },
     // Justice: 2×4 DMG (PEN) to all opponents in range, draining from them.
     special: {
       name: "Justice",

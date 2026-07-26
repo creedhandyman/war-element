@@ -868,7 +868,9 @@ export function resolveHit(
         const aoDef = getDef(ally.defId).onAllyKilled;
         if (!aoDef || ally.curHp <= 0) continue;
         if (aoDef.oneUse && ally.allyKilledFired) continue;
+        if (aoDef.oncePerRound && ally.allyKilledFiredRound) continue;
         ally.allyKilledFired = true;
+        ally.allyKilledFiredRound = true;
         draft.log.push(`${label(draft, ally)} answers for ${tDef.name}!`);
         if (aoDef.dmg && directDamage(draft, ally, attacker, aoDef.dmg, false)) {
           result.attackerDied = true;
