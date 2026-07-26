@@ -6870,16 +6870,15 @@ export const CARDS: CardDef[] = [
     tribe: "Vamp",
     // Blood Mending: basic attacks DRAIN (lifesteal). (Doc's on-enemy-death team
     // heal aura simplified out.)
-    // Moon Frenzy: 5 DMG to all opponents (each a 50% coin — approximated as a
-    // full volley).
+    // Moon Frenzy: 3 DMG to all opponents, draining from each (DUSK lifesteal).
     special: {
       name: "Moon Frenzy",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 5, targets: 99 },
+      params: { dmg: 3, targets: 99, drain: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "Attack all opponents for 5 DMG.",
+      text: "Attack all opponents for 3 DMG and DRAIN from each.",
     },
   },
 ];
