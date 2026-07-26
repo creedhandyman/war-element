@@ -895,6 +895,14 @@ export function resolveHit(
     // On-kill trigger for the attacker (basic/special kills only).
     if ((opts.kind === "basic" || opts.kind === "special") && attacker.curHp > 0) {
       if (aDef.onKill) applyOnKill(draft, attacker, aDef.onKill);
+      // Gaslighting (Liza): an allied enabler spurs whoever lands the kill.
+      for (const gl of boardCards(draft, attacker.owner)) {
+        const akb = getDef(gl.defId).allyKillBuff;
+        if (gl.curHp > 0 && akb) {
+          applyTimedBuff(attacker, akb.dmg, 0, akb.rounds);
+          draft.log.push(`${label(draft, gl)}'s Gaslighting spurs ${label(draft, attacker)} (+${akb.dmg} DMG for ${akb.rounds}r).`);
+        }
+      }
       // BlastOff (FireFly): a kill fires its Special for free and lifts it into
       // the air. The autoFiring guard stops a BlastOff kill from recursing.
       if (aDef.firePassiveSpecial?.onKill) {
@@ -3011,6 +3019,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.flyingRoundsLeft = Math.max(attacker.flyingRoundsLeft ?? 0, rounds);
     draft.players[attacker.owner].basicSplashRounds = Math.max(draft.players[attacker.owner].basicSplashRounds ?? 0, rounds);
     draft.log.push(`${label(draft, attacker)} charges its gauntlets (+${dmg} DMG, FLYING, +1 splash target for ${rounds}r).`);
+  },
+  /** Igniter (Liza): find a DOT on the target and double both its power and its
+   *  remaining duration — turn a smoulder into an inferno. */
+  igniter(draft, attacker, targets, _params) {
+    const t = targets[0];
+    if (!t) return;
+    const DOTS: StatusKind[] = ["BURN", "BLEED", "SCALD", "DOT"];
+    const dot = t.statuses.find((s) => DOTS.includes(s.kind));
+    if (!dot) { draft.log.push(`${label(draft, attacker)} finds nothing to ignite on ${label(draft, t)}.`); return; }
+    dot.power *= 2;
+    dot.duration *= 2;
+    draft.log.push(`${label(draft, attacker)} ignites the ${dot.kind} on ${label(draft, t)} — ${dot.power} for ${dot.duration}r.`);
   },
   /** Mark of Hoax: brand one opponent — while marked, EVERY basic attack against
    *  it is a guaranteed CRIT, and its death banks Hoax a guaranteed dodge. */

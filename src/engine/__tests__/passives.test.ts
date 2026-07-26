@@ -387,6 +387,29 @@ describe("medium-tier passives (audit batch)", () => {
     expect(40 - s.cards[adj.instanceId].curHp).toBe(3); // shatter splash
   });
 
+  it("Liza's Igniter doubles a DOT's power and remaining duration", () => {
+    const s = prepState();
+    const liza = place(s, "pyro_liza", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 0, {
+      curHp: 40, maxHp: 40, status: { kind: "BURN", duration: 2, power: 3, source: "PYRO" },
+    });
+    SPECIAL_HANDLERS.igniter(s, s.cards[liza.instanceId], [s.cards[foe.instanceId]], {});
+    const burn = s.cards[foe.instanceId].statuses.find((st) => st.kind === "BURN")!;
+    expect(burn.power).toBe(6);
+    expect(burn.duration).toBe(4);
+  });
+
+  it("Liza's Gaslighting buffs the ally that lands a kill", () => {
+    const s = prepState();
+    place(s, "pyro_liza", "P1", 3, 3); // the enabler
+    const ally = place(s, "dusk_gool", "P1", 3, 0); // 4 DMG killer
+    const prey = place(s, "dusk_gool", "P2", 2, 0, { curHp: 2, maxHp: 2, curShields: 0 });
+    const base = effectiveDmg(s, s.cards[ally.instanceId]);
+    basicAttack(s, ally.instanceId, prey.instanceId);
+    expect(s.cards[prey.instanceId]).toBeUndefined(); // killed
+    expect(effectiveDmg(s, s.cards[ally.instanceId])).toBe(base + 1); // Gaslighting +1 DMG
+  });
+
   it("a card with only an inert basic takes no turn at all", () => {
     const s = prepState();
     const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump

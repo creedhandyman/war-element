@@ -671,6 +671,12 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
         const dmg = Number(sp.params?.dmg ?? 4);
         if (prey && (willKill(prey, dmg, state.boardSize) || rich)) return { action: "special", targetId: prey.instanceId };
       }
+    } else if (sp.handler === "igniter") {
+      // Cheap DOT amplifier — fire whenever an opponent is carrying a DOT worth
+      // doubling.
+      const dots = ["BURN", "BLEED", "SCALD", "DOT"];
+      const withDot = specTargets.find((t) => t.statuses.some((st) => dots.includes(st.kind)));
+      if (withDot) return { action: "special", targetId: withDot.instanceId };
     } else if (sp.handler === "markTarget") {
       // Mark of Hoax: brand the meatiest survivor — the guaranteed-CRIT payoff
       // is biggest on a high-HP target. Take it when there's no kill to secure.

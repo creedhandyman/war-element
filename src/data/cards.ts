@@ -7905,6 +7905,35 @@ export const CARDS: CardDef[] = [
       text: "Deal 18 DMG to a target and splash SCALD 6 (DOT, 2 rounds) to adjacent opponents.",
     },
   },
+  {
+    id: "pyro_liza",
+    name: "Liza",
+    rarity: "epic",
+    element: "PYRO",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 2,
+    hits: 2,
+    hp: 11,
+    sp: 8,
+    shields: 1,
+    keywords: {},
+    // Gaslighting: when an ally lands a kill, that ally gains +1 DMG until the
+    // end of next round.
+    passiveNames: { allyKillBuff: "Gaslighting" },
+    allyKillBuff: { dmg: 1, rounds: 2 },
+    // Igniter: double the power AND remaining duration of a DOT on an opponent.
+    special: {
+      name: "Igniter",
+      cost: 1,
+      handler: "igniter",
+      params: {},
+      targetSide: "enemy",
+      ranged: true,
+      text: "Double the damage and remaining duration of one DOT on an opponent.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

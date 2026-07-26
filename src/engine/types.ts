@@ -447,6 +447,9 @@ export interface CardDef {
   onEnemySpecial?: { status: { kind: StatusKind; duration: number; power: number } };
   /** Graveyard (Destro): +1 DMG for every allied card that has died this game. */
   graveyardDmg?: boolean;
+  /** Gaslighting (Liza): when any ALLY lands a kill, that ally gains +`dmg` DMG
+   *  for `rounds` (until end of next round). */
+  allyKillBuff?: { dmg: number; rounds: number };
   /** Extra element/class/tribe auras beyond the primary `aura` (SirCrest's dual
    *  AQUA+PYRO mastery, Kloud's Mage+Ranged buff). */
   auras?: AuraBonusDef[];

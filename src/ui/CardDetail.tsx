@@ -282,6 +282,8 @@ export function describePassives(def: CardDef): string[] {
     passives.push(`Bounty: when an opponent fires a Special, they take ${def.onEnemySpecial.status.kind}${def.onEnemySpecial.status.power ? ` ${def.onEnemySpecial.status.power}` : ""} for ${def.onEnemySpecial.status.duration} round(s).`);
   if (def.graveyardDmg)
     passives.push(`Graveyard: +1 DMG for every allied card that has died this game.`);
+  if (def.allyKillBuff)
+    passives.push(`Gaslighting: when an ally lands a kill, that ally gains +${def.allyKillBuff.dmg} DMG for ${def.allyKillBuff.rounds} round(s).`);
   if (def.bonusVsClass)
     named("bonusVsClass", `Explosive Power: basic attacks deal ${def.bonusVsClass.mult}× damage against ${def.bonusVsClass.classes.join(" / ")} targets.`);
   if (def.talent)
