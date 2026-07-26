@@ -6148,6 +6148,41 @@ export const CARDS: CardDef[] = [
       text: "Deal 1 DMG to up to 8 opponents and move up to 3 spaces.",
     },
   },
+  {
+    id: "bolt_general",
+    name: "General",
+    rarity: "epic",
+    element: "BOLT",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 5,
+    dmg: 6,
+    hits: 1,
+    hp: 16,
+    sp: 9,
+    shields: 2,
+    keywords: {},
+    tribe: "ARC",
+    // Power Grab (On Move, once/round): cycle the Basic Attack Weapon, changing
+    // its basic's dmg × hits. Weapon 0 is the printed 6×1.
+    passiveNames: { weaponModes: "Power Grab" },
+    weaponModes: [
+      { name: "Standard", dmg: 6, hits: 1, spCost: 0 },
+      { name: "AKVolt Shot", dmg: 5, hits: 2, spCost: 1 },
+      { name: "ARC88", dmg: 2, hits: 4, spCost: 2 },
+      { name: "ThunderRPG", dmg: 10, hits: 1, spCost: 3 },
+    ],
+    // Spraying Thunder: rake the row ahead with the current weapon.
+    special: {
+      name: "Spraying Thunder",
+      cost: 3,
+      handler: "sprayWeapon",
+      params: {},
+      targetSide: "enemy",
+      ranged: true,
+      text: "Attack every opponent in the row directly ahead using the current Basic Attack Weapon.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

@@ -374,6 +374,8 @@ export function describePassives(def: CardDef): string[] {
     named("evadeVsSlower", `Unpredictable: a slower attacker (lower SP) has only a 50% chance to hit it.`);
   if (def.summonSelfBuff)
     named("summonSelfBuff", `Ride or Die: enters play with +${def.summonSelfBuff.dmg} DMG and +${def.summonSelfBuff.hp} HP.`);
+  if (def.weaponModes)
+    named("weaponModes", `Power Grab: on move (once/round), cycle its Basic Attack Weapon — ${def.weaponModes.map((w) => `${w.name} ${w.dmg}×${w.hits}`).join(", ")}.`);
   if (def.roundTick?.rowAheadDmg)
     passives.push(
       `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,

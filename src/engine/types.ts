@@ -426,6 +426,10 @@ export interface CardDef {
   /** Ride or Die (Omega): Luna grants a permanent +dmg / +hp the moment it
    *  lands. Applied at instance creation so it never misses. */
   summonSelfBuff?: { dmg: number; hp: number };
+  /** Power Grab (General): switchable basic-attack weapons. On move (once/round)
+   *  it cycles to the next, paying that weapon's `spCost`, changing its basic's
+   *  dmg × hits. Index 0 is the starting weapon. */
+  weaponModes?: { name: string; dmg: number; hits: number; spCost: number }[];
   /** Raising Star (Star): a landed basic also heals every ally +N HP. */
   basicHealsTeam?: number;
   /** Liquid Serenity (Anos): at end of a round in which it did NOT attack, heal
@@ -776,6 +780,10 @@ export interface CardInstance {
   electroSurgeActive?: boolean;
   /** BlastOff (FireFly): rounds of granted temporary FLIGHT remaining. */
   flyingRoundsLeft?: number;
+  /** Power Grab (General): index of the current weapon; whether it already
+   *  switched this round. */
+  weaponMode?: number;
+  weaponSwitchedRound?: boolean;
   /** High Voltage Sentry (Voltcher): its free first-hit Special has fired. */
   autoSpecialFired?: boolean;
   /** Jackpot (Striik): basic crits landed so far this round. */

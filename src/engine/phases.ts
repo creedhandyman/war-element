@@ -282,6 +282,17 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       card.pos = { ...intent.to };
       draft.prep!.movedThisTurn = true;
       card.movedThisRound = true; // Swamp Monster: moving gives up the muck
+      // Power Grab (General): a move cycles to the next Basic Attack Weapon,
+      // once per round. (The doc's per-weapon ⚡ cost is simplified out.)
+      {
+        const gd = getDef(card.defId);
+        if (gd.weaponModes && !card.weaponSwitchedRound) {
+          const next = ((card.weaponMode ?? 0) + 1) % gd.weaponModes.length;
+          card.weaponMode = next;
+          card.weaponSwitchedRound = true;
+          draft.log.push(`${gd.name} racks its ${gd.weaponModes[next].name} (${gd.weaponModes[next].dmg}×${gd.weaponModes[next].hits}).`);
+        }
+      }
       draft.prep!.consecutivePasses = 0;
       draft.log.push(
         `${intent.player} moves ${getDef(card.defId).name} to r${intent.to.row}c${intent.to.col}.`,
@@ -1940,6 +1951,7 @@ function doCleanupPhase(draft: GameState): void {
     card.movedThisRound = false;
     card.critsThisRound = 0; // Jackpot (Striik) counts crits per round
     card.dmgTakenThisRound = 0; // Vengeance (Bolder) reflects only this round's damage
+    card.weaponSwitchedRound = false; // Power Grab (General): one switch per round
     card.onKillAoeFiredRound = false; // Powertrip re-arms each round
     card.dmgBonusRound = 0;
     card.spBonusRound = 0;

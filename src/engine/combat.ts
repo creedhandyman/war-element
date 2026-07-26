@@ -83,7 +83,9 @@ export function effectiveBasicHits(card: CardInstance): number {
   // A loaded ambush (Dirt Driller) IS the attack — exactly its hit count, with
   // none of the usual stacking.
   if (card.loadedStrike) return card.loadedStrike.hits;
-  let hits = def.hits + (card.hitsBonus ?? 0) + (card.hitsBonusRound ?? 0) + (card.loadedHits ?? 0);
+  // Power Grab (General): the equipped weapon sets the base hit count.
+  const baseHits = def.weaponModes ? def.weaponModes[card.weaponMode ?? 0].hits : def.hits;
+  let hits = baseHits + (card.hitsBonus ?? 0) + (card.hitsBonusRound ?? 0) + (card.loadedHits ?? 0);
   // King of the Hill, the +1 HIT half. hillGivesHit() is the single source of
   // truth — effectiveDmg takes the exact complement.
   if (hillGivesHit(def.dmg, def.hits) && card.pos && isMidRow(card.pos.row)) hits += 1;
@@ -2328,6 +2330,17 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (es?.shield) attacker.curShields += es.shield;
     if (es?.dmgBoost) applyTimedBuff(attacker, es.dmgBoost, 0, es.boostRounds);
     draft.log.push(`${label(draft, attacker)} charges its Electro Surge (+${es?.shield ?? 0} shield, +${es?.dmgBoost ?? 0} DMG for ${es?.boostRounds ?? 0}r).`);
+  },
+  /** Spraying Thunder (General): rake the row directly ahead with the currently
+   *  equipped Basic Attack Weapon (its dmg × hits). */
+  sprayWeapon(draft, attacker, _targets, _params) {
+    if (!attacker.pos) return;
+    const row = rowAhead(attacker.owner, attacker.pos.row);
+    const foes = boardCards(draft, enemyOf(attacker.owner)).filter((e) => e.curHp > 0 && e.pos?.row === row);
+    const dmg = effectiveDmg(draft, attacker);
+    const hits = effectiveBasicHits(attacker);
+    for (const e of foes) resolveHit(draft, attacker, e, { kind: "special", dmg, hits, pen: false, crit: false });
+    draft.log.push(`${label(draft, attacker)} sprays thunder across ${foes.length} foe(s) (${dmg}×${hits}).`);
   },
   /** Flying Flame Strike (FireFly): a spray of 1-DMG hits across up to N distinct
    *  opponents, then a forward reposition. */
