@@ -309,6 +309,20 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[foe.instanceId].attackMissRounds).toBe(2);
   });
 
+  it("Totem's team aura gives an ally's basic an extra adjacent target", () => {
+    const splashDealt = (withTotem: boolean) => {
+      const s = prepState();
+      const gool = place(s, "dusk_gool", "P1", 3, 0); // 4 DMG, no splash of its own
+      if (withTotem) place(s, "gale_totem", "P1", 3, 1); // aura holder, same side
+      const primary = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+      const adj = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+      basicAttack(s, gool.instanceId, primary.instanceId);
+      return 40 - s.cards[adj.instanceId].curHp;
+    };
+    expect(splashDealt(false)).toBe(0); // no aura → single target
+    expect(splashDealt(true)).toBe(4); // aura → the adjacent foe is clipped for full basic
+  });
+
   it("a card with only an inert basic takes no turn at all", () => {
     const s = prepState();
     const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump

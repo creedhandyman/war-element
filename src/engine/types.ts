@@ -664,6 +664,10 @@ export interface CardDef {
   /** Blinding Star (Supernova): while this card lives, opponents' basic attacks
    *  hit ONE fewer target — their extra/splash target is suppressed. */
   blindingStar?: boolean;
+  /** Totem's team aura: while this card lives, its side's basic attacks also
+   *  clip ONE extra adjacent target for full basic damage. (The mirror of
+   *  Blinding Star; the two cancel out.) */
+  splashAura?: boolean;
   summonSelfShields?: number;
   /** Fog Settlement (Misty): on summon, its owner's battlefield gains N rounds
    *  of the fog (see PlayerState.foggedRounds). */

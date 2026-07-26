@@ -469,6 +469,8 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.blindingStar)
     named("blindingStar", `Blinding Star (Aura): while it lives, opponents' basic attacks hit one fewer target (their splash is suppressed).`);
+  if (def.splashAura)
+    named("splashAura", `Aura: while it lives, allied basic attacks also clip one extra adjacent target for full damage.`);
   if (def.blocksRangedChance) {
     const nm = def.passiveNames?.blocksRangedChance ?? "Rocky Force Field";
     passives.push(def.blocksRangedChance >= 100

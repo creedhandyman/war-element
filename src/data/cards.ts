@@ -6755,6 +6755,9 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { FLYING: true },
     tribe: "Avian",
+    // Totem Spirit (Aura): while Totem lives, the team's basics clip +1 target.
+    passiveNames: { splashAura: "Totem Spirit" },
+    splashAura: true,
     // Raise the Totem Pole (On Summon): plant a Pole that scorches the row ahead.
     summonSpawn: { token: "gale_totem_pole", count: 1 },
     // Rampage: gain +1 DMG for 3 rounds.

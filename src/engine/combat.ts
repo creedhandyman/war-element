@@ -1434,9 +1434,12 @@ export function basicAttack(
   // Blinding Star (Supernova): a living enemy holder suppresses this attacker's
   // ONE extra splash target — its basics hit one fewer.
   const blinded = boardCards(draft, enemyOf(attacker.owner)).some((e) => e.curHp > 0 && getDef(e.defId).blindingStar);
+  // Totem's team aura: a living ally holder grants the whole side the extra
+  // adjacent target, standing (no timer). Blinding Star still cancels it.
+  const splashAura = boardCards(draft, attacker.owner).some((a) => a.curHp > 0 && getDef(a.defId).splashAura);
   if (
     !fromFollowup && agg.landedHits > 0 && attacker.curHp > 0 && !blinded &&
-    (draft.players[attacker.owner].basicSplashRounds ?? 0) > 0
+    ((draft.players[attacker.owner].basicSplashRounds ?? 0) > 0 || splashAura)
   ) {
     const primary = draft.cards[groups[0]?.targetId];
     if (primary?.pos) {
