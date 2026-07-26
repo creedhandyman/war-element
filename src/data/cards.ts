@@ -6702,6 +6702,61 @@ export const CARDS: CardDef[] = [
       text: "Deal 6 DMG to opponents in the adjacent row.",
     },
   },
+  {
+    id: "gale_eagon",
+    name: "Eagon",
+    rarity: "legendary",
+    element: "GALE",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 6,
+    dmg: 7,
+    hits: 1,
+    hp: 22,
+    sp: 7,
+    shields: 2,
+    keywords: {},
+    tribe: ["Dragon", "Avian"],
+    // Vision Guard (On Hit): 50% chance to deflect — take half, deal half back.
+    passiveNames: { onHitDeflect: "Vision Guard" },
+    onHitDeflect: 50,
+    // Dark Wind Wave: 5 DMG to the far row, shoving survivors toward the near row.
+    special: {
+      name: "Dark Wind Wave",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 5, enemyHomeRow: 1, targets: 99, push: 1 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Deal 5 DMG to opponents in the far row, pushing them toward the near row.",
+    },
+  },
+  {
+    id: "gale_totem",
+    name: "Totem",
+    rarity: "legendary",
+    element: "GALE",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 6,
+    hits: 1,
+    hp: 23,
+    sp: 11,
+    shields: 0,
+    keywords: { FLYING: true },
+    tribe: "Avian",
+    // Rampage: gain +1 DMG for 3 rounds. (Doc's Totem's Pole token spawn +
+    // team +1-target aura + row damage are simplified out — no Pole art yet.)
+    special: {
+      name: "Rampage",
+      cost: 2,
+      handler: "empower",
+      params: { selfDmg: 1, buffRounds: 3 },
+      targetSide: "self",
+      text: "Gain +1 DMG for 3 rounds.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
