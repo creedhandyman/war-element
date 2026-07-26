@@ -8078,7 +8078,7 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Ranger",
     attackType: "Ranged",
-    cost: 3,
+    cost: 4,
     dmg: 3,
     hits: 2,
     hp: 12,

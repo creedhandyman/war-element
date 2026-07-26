@@ -25,9 +25,6 @@ describe("setup", () => {
     const exceptions = new Set([
       "bore_bearocks",
       "dusk_skelider",
-      // 28 vs a Cost-3 budget of 25 — but it also raises a free ToxHawk each
-      // round, so the printed line stays modest for what it fields.
-      "gale_masala",
       // Crystal tank: 52 vs a Cost-9 budget of 55 (3 under). Its uncapped
       // per-round shield growth carries the missing points — a deliberate
       // defensive exception, downward like Siren/Rubyo.
