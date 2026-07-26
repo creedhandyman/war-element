@@ -6999,7 +6999,7 @@ export const CARDS: CardDef[] = [
     // foe so every basic against it is a guaranteed CRIT.
     special: {
       name: "Mark of Hoax",
-      cost: 2,
+      cost: 4,
       handler: "markTarget",
       params: {},
       targetSide: "enemy",
@@ -7492,7 +7492,7 @@ export const CARDS: CardDef[] = [
     hp: 14,
     sp: 7,
     shields: 0,
-    keywords: { FLYING: true },
+    keywords: {},
     // Drone Sweep: when an opponent is summoned, hop to the nearest slot beside
     // the newcomer and peck it for 2.
     passiveNames: { onOppSummon: "Drone Sweep" },
