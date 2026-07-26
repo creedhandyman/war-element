@@ -7258,6 +7258,118 @@ export const CARDS: CardDef[] = [
       params: { dmg: 8, targets: 1 },
     },
   },
+  {
+    id: "aqua_icynin",
+    name: "ICYNIN",
+    rarity: "epic",
+    element: "AQUA",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 4,
+    hits: 1,
+    hp: 10,
+    sp: 11,
+    shields: 0,
+    keywords: { CRIT: true },
+    tribe: ["Ice", "Dragon"],
+    // Frozen Serpent: basics FREEZE a foe. (Doc's on-CRIT gate + shatter-splash
+    // simplified.)
+    passiveNames: { onHitStatus: "Frozen Serpent" },
+    onHitStatus: { kind: "FREEZE", duration: 1, power: 0, chance: 50 },
+    // Icy Storm: 3 DMG to 2 opponents. (Doc's STEALTH 2 simplified out.)
+    special: {
+      name: "Icy Storm",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 3, targets: 2 },
+      targetSide: "enemy",
+      text: "Deal 3 DMG to 2 opponents.",
+    },
+  },
+  {
+    id: "aqua_liquark",
+    name: "Liquark",
+    rarity: "epic",
+    element: "AQUA",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 6,
+    hits: 1,
+    hp: 18,
+    sp: 6,
+    shields: 0,
+    keywords: {},
+    tribe: "SeaC",
+    // Lurk (On Summon): arrives cloaked (STEALTH 2) and hungry (+4 DMG). (Doc's
+    // +4 SP + on-attack break simplified.)
+    passiveNames: { onSummon: "Lurk" },
+    summonSelfBuff: { dmg: 4, hp: 0 },
+    onSummon: { selfStatus: "STEALTH", selfStatusDuration: 2 },
+    // Bloody Waters: 4 DMG to the lowest-HP opponent.
+    special: {
+      name: "Bloody Waters",
+      cost: 2,
+      handler: "barrage",
+      params: { dmg: 4, targets: 1, lowestHp: 1 },
+      targetSide: "enemy",
+      text: "Deal 4 DMG to the lowest-HP opponent (heal on the kill).",
+    },
+  },
+  {
+    id: "aqua_blackice",
+    name: "Blackice",
+    rarity: "epic",
+    element: "AQUA",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 2,
+    hits: 1,
+    hp: 16,
+    sp: 3,
+    shields: 2,
+    keywords: {},
+    tribe: "Ice",
+    // Icicle Shields: arrives plated in +3 shields. (Doc's shields-as-weapon
+    // basic simplified to a static 2 DMG so it isn't inert.)
+    passiveNames: { summonSelfShields: "Icicle Shields" },
+    summonSelfShields: 3,
+    // Avalanche: 3 DMG to the enemy row ahead.
+    special: {
+      name: "Avalanche",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 3, rowAhead: 1, targets: 99 },
+      targetSide: "enemy",
+      text: "Deal 3 DMG to opponents in the row directly ahead.",
+    },
+  },
+  {
+    id: "aqua_siphon",
+    name: "Siphon",
+    rarity: "rare",
+    element: "AQUA",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 4,
+    hits: 1,
+    hp: 10,
+    sp: 7,
+    shields: 2,
+    keywords: {},
+    tribe: "Liquid",
+    // Cyclone (Talent, free, once per game): rake the adjacent row. (Doc's
+    // CLEANSE-allies + on-move weapon switch simplified.)
+    talent: {
+      name: "Cyclone",
+      text: "Once per game, free: hit all opponents in the adjacent row.",
+      handler: "barrage",
+      params: { dmg: 4, rowAhead: 1, targets: 99 },
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
