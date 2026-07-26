@@ -7031,11 +7031,9 @@ export const CARDS: CardDef[] = [
     shields: 3,
     keywords: {},
     tribe: "Ghost",
-    // White Shadow (On Summon): arrives plated in shields. Graveyard: +1 DMG for
-    // every allied card that has died. On Death: revives once.
-    passiveNames: { summonSelfShields: "White Shadow", onRevive: "Ghost Return", graveyardDmg: "Graveyard" },
+    // White Shadow (On Summon): arrives plated in shields. On Death: revives once.
+    passiveNames: { summonSelfShields: "White Shadow", onRevive: "Ghost Return" },
     summonSelfShields: 3,
-    graveyardDmg: true,
     onRevive: { heal: 8 },
     // Flaming Chains: DRAIN 2 max HP from all opponents and WEAKEN them 2 rounds.
     special: {

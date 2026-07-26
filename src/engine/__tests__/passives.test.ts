@@ -366,15 +366,6 @@ describe("medium-tier passives (audit batch)", () => {
     expect(delta("pyro_scully")).toBe(1); // PYRO ally
   });
 
-  it("Destro's Graveyard adds +1 DMG per fallen ally", () => {
-    const s = prepState();
-    const destro = place(s, "dusk_destro", "P1", 3, 0);
-    const base = effectiveDmg(s, s.cards[destro.instanceId]);
-    const ally = place(s, "dusk_gool", "P1", 3, 1, { curHp: 1, maxHp: 10 });
-    defeatCard(s, s.cards[ally.instanceId], "test");
-    expect(effectiveDmg(s, s.cards[destro.instanceId])).toBe(base + 1);
-  });
-
   it("Dyna's Demolition Charge deals 4 + half the target's current HP", () => {
     const s = prepState();
     const dyna = place(s, "pyro_dyna", "P1", 3, 0);
