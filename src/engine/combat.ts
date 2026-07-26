@@ -47,6 +47,11 @@ export function hasEvasion(card: CardInstance, boardSize: number): boolean {
   return def.evasionEnemySideOnly ? onEnemySide(card, boardSize) : true;
 }
 
+/** FLYING — the innate keyword OR a granted temporary flight (FireFly's BlastOff). */
+export function isFlying(card: CardInstance): boolean {
+  return Boolean(getDef(card.defId).keywords.FLYING) || (card.flyingRoundsLeft ?? 0) > 0;
+}
+
 /** Flat pre-shield damage reduction a card gains from standing in a friendly
  *  wall's row (Stone Wall BLOCK, Radiant Barrier −1). Same-element, wall owner's
  *  allies only; stacks additively with the card's own BLOCK keyword. */
@@ -731,6 +736,14 @@ export function resolveHit(
     // On-kill trigger for the attacker (basic/special kills only).
     if ((opts.kind === "basic" || opts.kind === "special") && attacker.curHp > 0) {
       if (aDef.onKill) applyOnKill(draft, attacker, aDef.onKill);
+      // BlastOff (FireFly): a kill fires its Special for free and lifts it into
+      // the air. The autoFiring guard stops a BlastOff kill from recursing.
+      if (aDef.firePassiveSpecial?.onKill) {
+        draft.log.push(`${aDef.name} blasts off — free Flying Flame Strike!`);
+        fireCardSpecial(draft, attacker);
+        if (aDef.firePassiveSpecial.grantFlyingRounds && draft.cards[attacker.instanceId] && attacker.curHp > 0)
+          attacker.flyingRoundsLeft = aDef.firePassiveSpecial.grantFlyingRounds;
+      }
       // IcyNinza's Icy Mist: a kill while cloaked extends the STEALTH window.
       const ext = aDef.onSummon?.extendSelfStatusOnKill;
       const selfSt = aDef.onSummon?.selfStatus;
@@ -950,13 +963,33 @@ export function payAttackTrade(draft: GameState, card: CardInstance): void {
   if (card.curHp <= 0) defeatCard(draft, card, "Ethereal Trade");
 }
 
+/** Cards currently mid auto-cast — a transient guard so an on-kill free-Special
+ *  (FireFly's BlastOff) can't recurse into itself forever. */
+const autoFiring = new Set<string>();
+
 /** Fire a card's OWN Special for free (no magic cost, no targeting UI) — used by
- *  passives that auto-cast (Voltcher's High Voltage Sentry, Striik's Jackpot). */
+ *  passives that auto-cast (Voltcher's High Voltage Sentry, Striik's Jackpot,
+ *  FireFly's BlastOff). */
 function fireCardSpecial(draft: GameState, card: CardInstance): void {
   const sp = getDef(card.defId).special;
   if (!sp) return;
+  if (autoFiring.has(card.instanceId)) return; // re-entrancy guard (BlastOff)
   const handler = SPECIAL_HANDLERS[sp.handler];
   if (!handler) return;
+  autoFiring.add(card.instanceId);
+  try {
+    fireCardSpecialInner(draft, card, sp, handler);
+  } finally {
+    autoFiring.delete(card.instanceId);
+  }
+}
+
+function fireCardSpecialInner(
+  draft: GameState,
+  card: CardInstance,
+  sp: NonNullable<CardDef["special"]>,
+  handler: SpecialHandler,
+): void {
   const targets = sp.targetSide === "enemy"
     ? boardCards(draft, enemyOf(card.owner)).filter((e) => e.curHp > 0)
     : sp.targetSide === "ally"
@@ -1480,7 +1513,7 @@ function chargeToward(
   // Same geometry the PREP move uses: FLYING walks like a chess king, everyone
   // else is orthogonal, so a ground rider spends two of its steps to cut a
   // corner. A charge that ignored this would out-manoeuvre normal movement.
-  const canDiagonal = diagonal || Boolean(getDef(card.defId).keywords.FLYING);
+  const canDiagonal = diagonal || isFlying(card);
   const open = (r: number, c: number) =>
     r >= 0 && r < draft.boardSize && c >= 0 && c < draft.boardSize &&
     !draft.slots[r][c].capturedBy && !cardAt(draft, r, c);
@@ -2295,6 +2328,21 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (es?.shield) attacker.curShields += es.shield;
     if (es?.dmgBoost) applyTimedBuff(attacker, es.dmgBoost, 0, es.boostRounds);
     draft.log.push(`${label(draft, attacker)} charges its Electro Surge (+${es?.shield ?? 0} shield, +${es?.dmgBoost ?? 0} DMG for ${es?.boostRounds ?? 0}r).`);
+  },
+  /** Flying Flame Strike (FireFly): a spray of 1-DMG hits across up to N distinct
+   *  opponents, then a forward reposition. */
+  flameStrike(draft, attacker, targets, params) {
+    const dmg = num(params, "dmg", 1);
+    const n = num(params, "targets", 8);
+    let hit = 0;
+    for (const t of targets.slice(0, n)) {
+      if (draft.cards[t.instanceId] && t.curHp > 0 && attacker.curHp > 0) {
+        resolveHit(draft, attacker, t, { kind: "special", dmg, hits: 1, pen: false, crit: false });
+        hit++;
+      }
+    }
+    if (num(params, "move") > 0 && attacker.curHp > 0) chargeForward(draft, attacker, num(params, "move"));
+    draft.log.push(`${label(draft, attacker)}'s Flying Flame Strike scorches ${hit} target(s).`);
   },
   /** Dark Warp (Ender): swap places with an opponent and blast it. */
   darkWarp(draft, attacker, targets, params) {

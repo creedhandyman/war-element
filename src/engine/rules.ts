@@ -279,7 +279,10 @@ export function canTarget(
   // FLYING dodges melee — but a flying attacker can still strike other fliers,
   // and a flier pinned by a grounding status (rooted/frozen/stunned/asleep/
   // paralysed) is dragged out of the air, so melee connects on it too.
-  if (tDef.keywords.FLYING && melee && !aDef.keywords.FLYING && !isGrounded(target)) return false;
+  // FLYING here is the keyword OR FireFly's granted temporary flight.
+  const targetFlying = tDef.keywords.FLYING || (target.flyingRoundsLeft ?? 0) > 0;
+  const attackerFlying = aDef.keywords.FLYING || (attacker.flyingRoundsLeft ?? 0) > 0;
+  if (targetFlying && melee && !attackerFlying && !isGrounded(target)) return false;
   // Shadow (Vaga): only adjacent attackers reach it — ranged shots from a row
   // or more away find nothing to hit.
   if (

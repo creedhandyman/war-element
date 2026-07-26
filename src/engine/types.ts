@@ -401,9 +401,10 @@ export interface CardDef {
   /** Magic Potion (Hix): a landed basic hurls a random potion at the target —
    *  Poison (DOT 1), Damage (3), or Sleep (FRIGHTEN 2). */
   potionOnHit?: boolean;
-  /** High Voltage Sentry (Voltcher): auto-fires this card's own Special for free
-   *  the first time it lands a hit and/or when it dies. */
-  firePassiveSpecial?: { onFirstHit?: boolean; onDeath?: boolean };
+  /** High Voltage Sentry (Voltcher) / BlastOff (FireFly): auto-fires this card's
+   *  own Special for free on a first hit, on death, and/or on a kill.
+   *  `grantFlyingRounds` grants temporary FLYING after an on-kill fire. */
+  firePassiveSpecial?: { onFirstHit?: boolean; onDeath?: boolean; onKill?: boolean; grantFlyingRounds?: number };
   /** Jackpot (Striik): a basic CRIT auto-fires the Special free; `critsForBonus`
    *  crits in one round grants +bonusHp / +bonusDmg (once per round). */
   jackpot?: { critsForBonus: number; bonusHp: number; bonusDmg: number };
@@ -773,6 +774,8 @@ export interface CardInstance {
   deathSaveUsed?: boolean;
   /** Electro Surge (Surge): whether the reactive charge is currently armed. */
   electroSurgeActive?: boolean;
+  /** BlastOff (FireFly): rounds of granted temporary FLIGHT remaining. */
+  flyingRoundsLeft?: number;
   /** High Voltage Sentry (Voltcher): its free first-hit Special has fired. */
   autoSpecialFired?: boolean;
   /** Jackpot (Striik): basic crits landed so far this round. */

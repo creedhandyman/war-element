@@ -1808,6 +1808,8 @@ function doCleanupPhase(draft: GameState): void {
     if ((card.attackMissRounds ?? 0) > 0) card.attackMissRounds = (card.attackMissRounds ?? 0) - 1;
     // A special-lockout (Diagnosis / Red Shift / Magic Ropes) wears off.
     if ((card.specialLockedRounds ?? 0) > 0) card.specialLockedRounds = (card.specialLockedRounds ?? 0) - 1;
+    // BlastOff's temporary flight fades.
+    if ((card.flyingRoundsLeft ?? 0) > 0) card.flyingRoundsLeft = (card.flyingRoundsLeft ?? 0) - 1;
     // Mind Bubble Channeling (Anos): pay out this round's tick.
     if ((card.channelBuffRounds ?? 0) > 0) {
       if (card.channelBuffDmg) card.dmgBonus += card.channelBuffDmg;

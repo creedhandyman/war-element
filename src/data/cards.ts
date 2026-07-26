@@ -6119,6 +6119,35 @@ export const CARDS: CardDef[] = [
       text: "Move up to 3 spaces into the enemy battlefield and deal 10 DMG to an opponent in range.",
     },
   },
+  {
+    id: "pyro_firefly",
+    name: "FireFly",
+    rarity: "epic",
+    element: "PYRO",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 5,
+    dmg: 2,
+    hits: 4,
+    hp: 13,
+    sp: 12,
+    shields: 1,
+    keywords: {},
+    // BlastOff (On Kill): fire Flying Flame Strike for free, then gain FLYING
+    // until the end of next round.
+    passiveNames: { firePassiveSpecial: "BlastOff" },
+    firePassiveSpecial: { onKill: true, grantFlyingRounds: 2 },
+    // Flying Flame Strike: 1 DMG to up to 8 opponents, then move up to 3 spaces.
+    special: {
+      name: "Flying Flame Strike",
+      cost: 2,
+      handler: "flameStrike",
+      params: { dmg: 1, targets: 8, move: 3 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Deal 1 DMG to up to 8 opponents and move up to 3 spaces.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

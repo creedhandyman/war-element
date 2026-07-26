@@ -355,8 +355,11 @@ export function describePassives(def: CardDef): string[] {
     named("potionOnHit", `Magic Potion: a landed basic hurls a random potion — poison (DOT 1), 3 damage, or FRIGHTEN 2.`);
   if (def.electroSurge)
     named("electroSurge", `Electro Surge: armed on summon. While armed it's immune to status; the next hit it takes PARALYZEs the attacker ${def.electroSurge.paralyze} rounds and deactivates.`);
-  if (def.firePassiveSpecial)
-    named("firePassiveSpecial", `High Voltage Sentry: auto-fires its Special for free${def.firePassiveSpecial.onFirstHit ? " the first time it hits" : ""}${def.firePassiveSpecial.onDeath ? " and when it dies" : ""}.`);
+  if (def.firePassiveSpecial) {
+    const f = def.firePassiveSpecial;
+    const when = [f.onFirstHit && "the first time it hits", f.onKill && "on a kill", f.onDeath && "when it dies"].filter(Boolean).join(", ");
+    named("firePassiveSpecial", `Auto-fires its Special for free ${when}${f.grantFlyingRounds ? `, then gains FLYING for ${f.grantFlyingRounds} rounds` : ""}.`);
+  }
   if (def.jackpot)
     named("jackpot", `Jackpot: a basic CRIT fires its Special for free; ${def.jackpot.critsForBonus} crits in one round grant +${def.jackpot.bonusHp} HP and +${def.jackpot.bonusDmg} DMG.`);
   if (def.blockVsClasses)
