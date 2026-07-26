@@ -144,7 +144,7 @@ describe("medium-tier passives (audit batch)", () => {
       delete s.cards[c.instanceId];
       return r;
     }).map((d) => d.id);
-    expect(inert.sort()).toEqual(["bore_ufo", "dusk_doom", "dusk_rip"]);
+    expect(inert.sort()).toEqual(["bore_ufo", "dusk_doom", "dusk_rip", "leaf_walking_tree"]);
   });
 
   it("Doom's Boom ticks down over 4 rounds, then levels the enemy board and dies", () => {

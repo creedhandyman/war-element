@@ -6318,16 +6318,15 @@ export const CARDS: CardDef[] = [
     passiveNames: { refreshShieldsTo: "Nature's Protection", aura: "Shared Grove" },
     roundTick: { refreshShieldsTo: 2 },
     aura: { scope: "element", shields: 1 },
-    // Emergence: raise a Walking Tree token in an adjacent slot (it rolls forward
-    // and scorches the row ahead each round). (Doc's shared aura is simplified to
-    // Efy's own bark-refresh.)
+    // Emergence: raise a Walking Tree in an adjacent slot (it marches forward,
+    // drops fruit, and heals allies each round).
     special: {
       name: "Emergence",
       cost: 4,
       handler: "spawn",
       params: { token: "leaf_walking_tree", count: 1, radius: 1 },
       targetSide: "self",
-      text: "Spawn a Walking Tree in an adjacent slot; it rolls forward and deals 6 DMG to the row ahead each round.",
+      text: "Spawn a Walking Tree in an adjacent slot; each round it marches forward, hits an opponent for 3, and heals an ally 3.",
     },
   },
   {
@@ -7949,14 +7948,6 @@ export const CARDS: CardDef[] = [
       text: "Deal 8 DMG (4 CRIT), piercing shields, and ROOT the target for 3 rounds.",
     },
   },
-];
-
-// ── Tokens ───────────────────────────────────────────────────────────────────
-// Spawned by cards, never dealt from a deck. Kept OUT of CARDS so decks + the
-// cost-formula test ignore them; merged into CARD_INDEX below so getDef resolves
-// them. (Reptilian and Heir used to live here — they are draftable now, but are
-// still spawned by Trinezer and Imperator exactly as before.)
-export const TOKENS: CardDef[] = [
   {
     id: "leaf_walking_tree",
     name: "Walking Tree",
@@ -7967,14 +7958,26 @@ export const TOKENS: CardDef[] = [
     cost: 2,
     dmg: 0,
     hits: 1,
-    hp: 10,
+    hp: 20,
     sp: 0,
     shields: 0,
     keywords: {},
-    // Moving Forest: rolls forward each round and scorches the row ahead for 6.
-    passiveNames: { roundTick: "Moving Forest" },
-    roundTick: { rowAheadDmg: 6, advance: 1 },
+    // Moving Forest (End of Round): march forward one space if it's open (this
+    // overrides its SP 0), and drop fruit — 3 DMG to the nearest opponent and
+    // +3 HP to the lowest-HP ally.
+    passiveNames: { roundTick: "Moving Forest", healReceivedMult: "Root Growth" },
+    roundTick: { advance: 1, pokeDmg: 3, healLowestAlly: 3 },
+    // Root Growth: drinks in 2× from every healing source.
+    healReceivedMult: 2,
   },
+];
+
+// ── Tokens ───────────────────────────────────────────────────────────────────
+// Spawned by cards, never dealt from a deck. Kept OUT of CARDS so decks + the
+// cost-formula test ignore them; merged into CARD_INDEX below so getDef resolves
+// them. (Reptilian and Heir used to live here — they are draftable now, but are
+// still spawned by Trinezer and Imperator exactly as before.)
+export const TOKENS: CardDef[] = [
   {
     id: "dusk_redreven",
     name: "RedRaven",
