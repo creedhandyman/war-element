@@ -25,6 +25,10 @@ describe("setup", () => {
     const exceptions = new Set([
       "bore_bearocks",
       "dusk_skelider",
+      // Ability-carried, downward: 52 vs a Cost-9 budget of 55. SkullKing raises
+      // 2 Skeletons on summon + 2 every round + a SkullDrake on its Special, and
+      // buffs the whole bone army — the free bodies carry the missing points.
+      "dusk_skullking",
       // Bootlegger: 3+9+6 = 18 vs a cost-1 budget of 15, i.e. 3 over. Deliberate
       // — a 1-cost runner carrying SP 6 and a 3 DMG Stomp on the crossing.
       // (It was 7 over while it also had 2 shields; those came back off.)

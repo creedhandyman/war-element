@@ -436,6 +436,24 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[bark.instanceId].curShields).toBe(5); // 3 → 4 → 5, then capped
   });
 
+  it("SkullKing's King's SkullDrake DOTs the row ahead and raises a SkullDrake", () => {
+    const s = prepState();
+    const king = place(s, "dusk_skullking", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    SPECIAL_HANDLERS.barrage(s, s.cards[king.instanceId], [s.cards[foe.instanceId]],
+      { dmg: 0, rowAhead: 1, targets: 99, statusKind: "DOT", statusPower: 3, statusDuration: 3, spawnToken: "dusk_skulldrake_tok", spawnCount: 1 });
+    expect(s.cards[foe.instanceId].statuses.some((st) => st.kind === "DOT")).toBe(true);
+    expect(boardCards(s, "P1").filter((c) => c.defId === "dusk_skulldrake_tok").length).toBe(1);
+  });
+
+  it("SkullKing's King of Bones aura gives Skeleton allies +2 DMG", () => {
+    const s = prepState();
+    const skel = place(s, "dusk_skeleton_tok", "P1", 3, 0);
+    const base = effectiveDmg(s, s.cards[skel.instanceId]);
+    place(s, "dusk_skullking", "P1", 3, 1); // King of Bones aura
+    expect(effectiveDmg(s, s.cards[skel.instanceId]) - base).toBe(2);
+  });
+
   it("a card with only an inert basic takes no turn at all", () => {
     const s = prepState();
     const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump

@@ -7970,6 +7970,40 @@ export const CARDS: CardDef[] = [
     // Root Growth: drinks in 2× from every healing source.
     healReceivedMult: 2,
   },
+  {
+    id: "dusk_skullking",
+    name: "SkullKing",
+    rarity: "mythic",
+    element: "DUSK",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 9,
+    dmg: 11,
+    hits: 1,
+    hp: 32,
+    sp: 9,
+    shields: 0,
+    keywords: {},
+    tribe: "Skeleton",
+    // King of Bones (Aura): Skeleton allies (skeletons, SkullDrakes, the King)
+    // gain +2 DMG and are topped up +1 shield each round.
+    passiveNames: { aura: "King of Bones", summonSpawn: "Dead Court", roundTick: "Dead Siege" },
+    aura: { scope: "tribe", match: "Skeleton", dmg: 2, shields: 1 },
+    // On Summon: raise 2 Skeletons at his side.
+    summonSpawn: { token: "dusk_skeleton_tok", count: 2 },
+    // Dead Siege (End of Round): raise 2 more Skeletons (capped at 6 standing).
+    roundTick: { spawn: { token: "dusk_skeleton_tok", count: 2 }, spawnMaxAlive: 6 },
+    // King's SkullDrake: DOT the row ahead and raise an attacking SkullDrake.
+    special: {
+      name: "King's SkullDrake",
+      cost: 4,
+      handler: "barrage",
+      params: { dmg: 0, rowAhead: 1, targets: 99, statusKind: "DOT", statusPower: 3, statusDuration: 3, spawnToken: "dusk_skulldrake_tok", spawnCount: 1 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Apply DOT 3 (3 rounds) to opponents in the row directly ahead and raise an attacking SkullDrake.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
@@ -8190,6 +8224,40 @@ export const TOKENS: CardDef[] = [
     // Totem Wrath (End of Round): crackling energy scorches the row ahead.
     passiveNames: { roundTick: "Totem Wrath" },
     roundTick: { rowAheadDmg: 2 },
+  },
+  {
+    id: "dusk_skeleton_tok",
+    art: "dusk_skeleton_knight",
+    name: "Skeleton",
+    rarity: "rare",
+    element: "DUSK",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 3,
+    hits: 1,
+    hp: 2,
+    sp: 6,
+    shields: 0,
+    keywords: {},
+    tribe: "Skeleton",
+  },
+  {
+    id: "dusk_skulldrake_tok",
+    art: "dusk_skulldrake",
+    name: "SkullDrake",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 11,
+    hits: 1,
+    hp: 10,
+    sp: 9,
+    shields: 0,
+    keywords: {},
+    tribe: "Skeleton",
   },
 ];
 

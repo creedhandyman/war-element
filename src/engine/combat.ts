@@ -2528,6 +2528,9 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       }
       if (stolen) draft.log.push(`${label(draft, attacker)} magnetizes ${stolen} shield(s) away.`);
     }
+    // spawnToken (SkullKing's King's SkullDrake): raise a token alongside the volley.
+    if (typeof params.spawnToken === "string" && params.spawnToken)
+      spawnTokens(draft, attacker, params.spawnToken, num(params, "spawnCount", 1), num(params, "spawnRadius", 1));
     // cleanseAllies (Siphon's Cyclone): the winds scrub debuffs off the whole team.
     if (num(params, "cleanseAllies") > 0) {
       let cleaned = 0;
