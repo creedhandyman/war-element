@@ -2709,6 +2709,22 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.regenPower = num(params, "power", 5);
     draft.log.push(`${label(draft, attacker)} basks in golden light (+${attacker.regenPower} HP/round for ${attacker.regenRoundsLeft}r).`);
   },
+  /** Flash Squad (Commander): order the allies in the row ahead to each fire a
+   *  basic attack. */
+  flashSquad(draft, attacker, _targets, _params) {
+    if (!attacker.pos) return;
+    const row = rowAhead(attacker.owner, attacker.pos.row);
+    const squad = boardCards(draft, attacker.owner).filter(
+      (a) => a.instanceId !== attacker.instanceId && a.curHp > 0 && a.pos?.row === row,
+    );
+    let acted = 0;
+    for (const a of squad) {
+      if (a.curHp <= 0) continue;
+      const prey = boardCards(draft, enemyOf(attacker.owner)).find((e) => e.curHp > 0 && canTarget(draft, a, e));
+      if (prey) { basicAttack(draft, a.instanceId, prey.instanceId); acted++; }
+    }
+    draft.log.push(`${label(draft, attacker)} calls the Flash Squad — ${acted} ally(ies) open fire.`);
+  },
   /** Fryer (Shock): 2×2 to every opponent, recomputed per target so the caster's
    *  DMG bonuses — including Overcharge's +1-for-the-round earned on a kill mid-
    *  Fryer — carry onto the opponents struck after. */
