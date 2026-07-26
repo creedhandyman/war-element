@@ -7412,15 +7412,16 @@ export const CARDS: CardDef[] = [
     roundTick: { healAllies: 1 },
     // Radiant Guardian (On Summon): arrives with a sturdy bodyguard at her side.
     summonSpawn: { token: "dawn_radiant_guardian", count: 1 },
-    // Blinding Sunrise: BLIND all opponents for the round.
+    // Blinding Sunrise: BLIND all opponents for the round AND call another
+    // Radiant Guardian to her side.
     special: {
       name: "Blinding Sunrise",
       cost: 3,
       handler: "statusNova",
-      params: { statusKind: "BLIND", statusDuration: 1, targets: 99 },
+      params: { statusKind: "BLIND", statusDuration: 1, targets: 99, spawnToken: "dawn_radiant_guardian", spawnCount: 1, spawnRadius: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "BLIND all opponents for the round.",
+      text: "BLIND all opponents for the round and summon a Radiant Guardian.",
     },
   },
   {

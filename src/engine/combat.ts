@@ -2550,6 +2550,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (sealR > 0 && target.curHp > 0 && draft.cards[target.instanceId])
         applyStatus(draft, target, "SEAL", sealR, 0, getDef(attacker.defId).element);
     }
+    // Solara's Blinding Sunrise also calls another Radiant Guardian to her side.
+    const spawnTok = typeof params.spawnToken === "string" ? params.spawnToken : "";
+    if (spawnTok && attacker.curHp > 0)
+      spawnTokens(draft, attacker, spawnTok, num(params, "spawnCount", 1), num(params, "spawnRadius", 1));
     applySelfRiders(draft, attacker, params); // e.g. Guan's +5 max HP
   },
   /** Thunder Strike (Storm): pure damage to every opponent carrying a required
