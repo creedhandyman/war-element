@@ -200,6 +200,24 @@ export function label(_draft: GameState, card: CardInstance): string {
 /** Defeat a card, honoring on-revive (Bearocks). Returns true if it was
  *  actually removed, false if it revived and survives. */
 export function defeatCard(draft: GameState, card: CardInstance, cause: string): boolean {
+  // Sea Terror (Siren): a transformed form doesn't die — it reverts to the
+  // original card at full HP.
+  if (card.transformedFrom && card.pos) {
+    const orig = getDef(card.transformedFrom);
+    card.defId = card.transformedFrom;
+    card.transformedFrom = undefined;
+    card.maxHp = orig.hp;
+    card.curHp = orig.hp; // reverts at FULL HP
+    card.curShields = orig.shields;
+    card.dmgBonus = 0;
+    card.spBonus = 0;
+    card.hitsBonus = 0;
+    card.buffs = [];
+    card.statuses = [];
+    card.transformed = false;
+    draft.log.push(`The ${cause} shatters the form — ${label(draft, card)} returns at full HP!`);
+    return false;
+  }
   const def = getDef(card.defId);
   // Tail Drop (Gecko): a once-per-game cheat-death. The lethal blow leaves it at
   // 1 HP, cloaked in STEALTH, regenerating as the tail regrows.
@@ -2550,6 +2568,31 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   scopeUp(draft, attacker, _targets, params) {
     attacker.loadedBasicDmg = { dmg: num(params, "dmg", 2), attacks: num(params, "attacks", 3) };
     draft.log.push(`${label(draft, attacker)} scopes in — its next ${attacker.loadedBasicDmg.attacks} shots hit for +${attacker.loadedBasicDmg.dmg}.`);
+  },
+  /** Sea Terror (Siren): transform into another card. It takes on the new form's
+   *  stats and fires that form's On Summon; when the form dies it reverts (see
+   *  defeatCard). */
+  transform(draft, attacker, _targets, params) {
+    const into = String(params.into ?? "");
+    if (!into) return;
+    const newDef = getDef(into);
+    attacker.transformedFrom = attacker.defId;
+    attacker.defId = into;
+    // Take the new form's fresh body; wipe the old form's stat mods.
+    attacker.maxHp = newDef.hp;
+    attacker.curHp = newDef.hp;
+    attacker.curShields = newDef.shields;
+    attacker.dmgBonus = 0;
+    attacker.spBonus = 0;
+    attacker.hitsBonus = 0;
+    attacker.buffs = [];
+    draft.log.push(`${label(draft, attacker)} erupts — it transforms into ${newDef.name}!`);
+    // Fire the new form's On Summon (Krakler's Abyssal Grasp).
+    const os = newDef.onSummon;
+    if (os?.handler) {
+      const handler = SPECIAL_HANDLERS[os.handler];
+      if (handler) handler(draft, attacker, boardCards(draft, enemyOf(attacker.owner)).filter((e) => e.curHp > 0), os.params ?? {});
+    }
   },
   /** Grand Finally (Dynomight): a two-tier blast — big to the adjacent row,
    *  smaller to everyone else — paid for with a chunk of its own HP. */

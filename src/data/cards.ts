@@ -6458,16 +6458,16 @@ export const CARDS: CardDef[] = [
     // Siren Song (On Hit): FREEZE the attacker for 1 round.
     passiveNames: { onHitByMelee: "Siren Song" },
     onHitByMelee: { anyAttacker: true, status: { kind: "FREEZE", duration: 1, power: 0 } },
-    // Sea Terror: a monstrous burst — 9 DMG and FREEZE 3 to a foe. (Doc's full
-    // transform into Krakler + SCALD is simplified to the terror strike.)
+    // Sea Terror: transform into Krakler (9/8/SP8). Krakler's Abyssal Grasp fires
+    // on the change (SCALD 3 + FREEZE a foe); when Krakler dies, Siren returns at
+    // full HP.
     special: {
       name: "Sea Terror",
       cost: 4,
-      handler: "barrage",
-      params: { dmg: 9, targets: 1, statusKind: "FREEZE", statusDuration: 3 },
-      targetSide: "enemy",
-      ranged: true,
-      text: "Deal 9 DMG and FREEZE an opponent for 3 rounds.",
+      handler: "transform",
+      params: { into: "aqua_krakler" },
+      targetSide: "self",
+      text: "Transform into Krakler (9/8/SP8), applying SCALD 3 + FREEZE. When Krakler dies, revert to Siren at full HP.",
     },
   },
   {
