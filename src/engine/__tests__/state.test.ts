@@ -55,6 +55,9 @@ describe("setup", () => {
       // Greegon (4/17/SP4) on summon, so the free body carries the missing 13
       // points — a deliberate stat exception.
       "leaf_rubyo",
+      // Ability-carried, downward: 40 vs a Cost-7 budget of 45. Siren's
+      // transform-into-Krakler kit carries the missing value (cost 7, no bump).
+      "aqua_siren",
     ]);
     for (const def of CARDS) {
       if (exceptions.has(def.id)) continue;

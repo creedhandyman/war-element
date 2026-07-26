@@ -6447,7 +6447,9 @@ export const CARDS: CardDef[] = [
     element: "AQUA",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 6,
+    // Cost 7 with no stat bump (Total 40 vs the Cost-7 budget of 45) — the
+    // transform-into-Krakler kit carries the missing value. Stat exception.
+    cost: 7,
     dmg: 2,
     hits: 4,
     hp: 17,
