@@ -7540,14 +7540,14 @@ export const CARDS: CardDef[] = [
     element: "BORE",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 6,
+    cost: 5,
     dmg: 6,
     hits: 1,
-    hp: 24,
+    hp: 19,
     sp: 6,
     shields: 2,
-    // Dragon Born: gemstone scales REFLECT 3 damage back at melee attackers.
-    keywords: { REFLECT: 3 },
+    // Dragon Born: gemstone scales REFLECT 2 damage back at melee attackers.
+    keywords: { REFLECT: 2 },
     // Dragon's Reprisal: a scorching gem-lance to one foe.
     special: {
       name: "Dragon's Reprisal",
