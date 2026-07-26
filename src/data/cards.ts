@@ -7394,8 +7394,9 @@ export const CARDS: CardDef[] = [
     // Morning Glow (End of Round): heal all allies +1.
     passiveNames: { roundTick: "Morning Glow" },
     roundTick: { healAllies: 1 },
-    // Blinding Sunrise: BLIND all opponents for the round. (Doc's Radiant
-    // Guardian spawn simplified — no clean guardian token/art.)
+    // Radiant Guardian (On Summon): arrives with a sturdy bodyguard at her side.
+    summonSpawn: { token: "dawn_radiant_guardian", count: 1 },
+    // Blinding Sunrise: BLIND all opponents for the round.
     special: {
       name: "Blinding Sunrise",
       cost: 3,
@@ -8107,6 +8108,22 @@ export const TOKENS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
+  },
+  {
+    id: "dawn_radiant_guardian",
+    name: "Radiant Guardian",
+    rarity: "epic",
+    element: "DAWN",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 3,
+    hits: 1,
+    hp: 14,
+    sp: 4,
+    shields: 3,
+    // A sturdy bodyguard summoned by Solara — soaks damage behind BLOCK 1.
+    keywords: { BLOCK: 1 },
   },
 ];
 
