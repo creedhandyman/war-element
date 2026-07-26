@@ -182,11 +182,11 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 4,
-    dmg: 4,
+    cost: 5,
+    dmg: 5,
     hits: 1,
-    hp: 23,
-    sp: 3,
+    hp: 26,
+    sp: 4,
     shields: 0,
     keywords: {},
     // Regenerative: at end of round, +1 shield per enemy hit taken (capped at 5).
@@ -4133,7 +4133,7 @@ export const CARDS: CardDef[] = [
     hp: 9,
     sp: 11,
     shields: 1,
-    keywords: {},
+    keywords: { EVASION: true },
     tribe: "Dragon",
     // Dragon's Blade: it grows into the fight — +1 DMG and +1 SP every 2nd round,
     // stacking with no ceiling.
@@ -6334,8 +6334,8 @@ export const CARDS: CardDef[] = [
     cardClass: "Support",
     attackType: "Ranged",
     cost: 6,
-    dmg: 2,
-    hits: 3,
+    dmg: 3,
+    hits: 2,
     hp: 24,
     sp: 10,
     shields: 0,
@@ -6344,16 +6344,16 @@ export const CARDS: CardDef[] = [
     // LEAF allies +4 each round.
     passiveNames: { rootFastest: "Grounded", roundHealElement: "Season's Bloom" },
     roundTick: { rootFastest: 2, roundHealElement: { element: "LEAF", amount: 4 } },
-    // Spiraling Root Coil: ROOT up to 4 opponents in the adjacent row AND the
-    // roots snake on to snare the row beyond it too.
+    // Spiraling Root Coil: ROOT up to 4 in the adjacent row for 2 rounds NOW; the
+    // roots creep on to ROOT up to 4 in the far row for 1 round NEXT round.
     special: {
       name: "Spiraling Root Coil",
       cost: 4,
       handler: "barrage",
-      params: { dmg: 0, rowAhead: 1, targets: 4, statusKind: "ROOT", statusDuration: 2, farRowStatus: 1 },
+      params: { dmg: 0, rowAhead: 1, targets: 4, statusKind: "ROOT", statusDuration: 2, farRowRootNext: 1, farRowRootCount: 4, farRowRootDuration: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "ROOT up to 4 opponents in the adjacent row for 2 rounds, and ROOT the row beyond it too.",
+      text: "ROOT up to 4 opponents in the adjacent row for 2 rounds. Next round, ROOT up to 4 in the far row for 1 round.",
     },
   },
   {
@@ -6388,7 +6388,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_rubyo",
     name: "Rubyo",
-    rarity: "legendary",
+    rarity: "epic",
     element: "LEAF",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -7932,6 +7932,35 @@ export const CARDS: CardDef[] = [
       targetSide: "enemy",
       ranged: true,
       text: "Double the damage and remaining duration of one DOT on an opponent.",
+    },
+  },
+  {
+    id: "leaf_bark_bushmen",
+    name: "Bark",
+    rarity: "epic",
+    element: "LEAF",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 2,
+    hits: 2,
+    hp: 9,
+    sp: 11,
+    shields: 3,
+    keywords: {},
+    // Bark Shield (End of Round): +1 shield each round, capping at 5.
+    passiveNames: { roundTick: "Bark Shield" },
+    roundTick: { selfShields: 1, selfShieldsMax: 5 },
+    // Night Spear: a crushing, piercing spear (4 crit = 8, ignores shields) that
+    // ROOTs the target for 3 rounds.
+    special: {
+      name: "Night Spear",
+      cost: 2,
+      handler: "strike",
+      params: { dmg: 8, pen: 1, statusKind: "ROOT", statusDuration: 3 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Deal 8 DMG (4 CRIT), piercing shields, and ROOT the target for 3 rounds.",
     },
   },
 ];

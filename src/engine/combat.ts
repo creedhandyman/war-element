@@ -1799,7 +1799,7 @@ function chargeToward(
 }
 
 /** Row directly ahead (toward the enemy home) of a given position. */
-function rowAhead(owner: CardInstance["owner"], row: number): number {
+export function rowAhead(owner: CardInstance["owner"], row: number): number {
   return owner === "P1" ? row - 1 : row + 1;
 }
 
@@ -2504,6 +2504,16 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         if (farRowStatus > 0 && farStatusKind && draft.cards[e.instanceId] && e.curHp > 0)
           applyStatus(draft, e, farStatusKind, num(params, "statusDuration", 1), num(params, "statusPower"), getDef(attacker.defId).element);
       }
+    }
+    // farRowRootNext (Season): the roots snake on — a DELAYED ROOT lands on the
+    // far row at the START of next round (fired from Cleanup).
+    if (num(params, "farRowRootNext") > 0) {
+      (draft.players[attacker.owner].pendingFarRoots ??= []).push({
+        roundsLeft: 1, // fires at the next Cleanup, rooting the far row for next round
+        source: attacker,
+        count: num(params, "farRowRootCount", 4),
+        duration: num(params, "farRowRootDuration", 1),
+      });
     }
     // stealShields (Steel's Magnetic Steel): pull a shield off each struck foe
     // and bank it onto the caster's own armour.

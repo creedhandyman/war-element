@@ -250,6 +250,7 @@ export interface RoundTickDef {
   inRangeStatus?: { kind: StatusKind; duration: number; power: number };
   inRangeDmgPen?: boolean; // make inRangeDmg PENetrate shields (UFO's Radiation)
   selfShields?: number; // gain N shields each round (Heir's Royal Guard)
+  selfShieldsMax?: number; // cap the self-shield stack (Bark Shield: max 5)
   pokeParalyzedDmg?: number; // deal N DMG to one PARALYZED enemy in range (Sentry's Volt Turret)
   aoeParalyzedDmg?: number; // deal N DMG to EVERY PARALYZED enemy in range (Lytning's Complete Circuit)
   wardAllies?: boolean; // refresh a status-absorbing barrier on all allies (Solstice's Radiant Ward)
@@ -1298,6 +1299,10 @@ export interface PlayerState {
    *  Each fires at the Cleanup of its `round`, hitting the owner's opponents.
    *  `source` is the (now-removed) caster, kept only for damage crediting. */
   pendingMeteors?: { round: number; dmg: number; source: CardInstance }[];
+  /** Spiraling Root Coil (Season): a next-round ROOT scheduled on the far row.
+   *  `roundsLeft` counts down each Cleanup; at 0 it roots up to `count` opponents
+   *  in the source's far row for `duration`. */
+  pendingFarRoots?: { roundsLeft: number; source: CardInstance; count: number; duration: number }[];
   /** Volcanic Eruption: permanent +DMG for this player's cards of that element. */
   elementDmgBuff?: { element: Element; amount: number };
   /** The Cost-10 ultimates' lasting engines, keyed by element. Read at Cleanup

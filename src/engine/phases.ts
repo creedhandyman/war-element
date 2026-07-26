@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, type FlowMode, GALE_SP_CAP, LEAF_SHIELD_CAP } from "./auras";
-import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, label, onEnemySide, payAttackTrade, pushBack, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, label, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin } from "./rng";
@@ -1632,9 +1632,13 @@ function doRoundTicks(draft: GameState): void {
       if (hit.length) draft.log.push(`${label(draft, card)} hits ${hit.length === 1 ? "an enemy" : `${hit.length} enemies`} in range (${rt.inRangeDmg} DMG${rt.inRangeDmgPen ? " PEN" : ""}).`);
     }
     if (rt.selfShields) {
-      // Royal Guard: replenish the guardian's shields each round.
-      card.curShields += rt.selfShields;
-      draft.log.push(`${label(draft, card)} raises its guard (+${rt.selfShields} shields).`);
+      // Royal Guard: replenish the guardian's shields each round. Bark Shield
+      // caps the stack at `selfShieldsMax`.
+      const cap = rt.selfShieldsMax ?? Infinity;
+      if (card.curShields < cap) {
+        card.curShields = Math.min(cap, card.curShields + rt.selfShields);
+        draft.log.push(`${label(draft, card)} raises its guard (+${rt.selfShields} shields).`);
+      }
     }
     if (rt.pokeParalyzedDmg) {
       // Volt Turret: zap one PARALYZED enemy the turret can reach.
@@ -1878,6 +1882,24 @@ function doCleanupPhase(draft: GameState): void {
           draft.log.push(`An orbital arrow falls — ${a.dmg} DMG to ${label(draft, t)}.`);
         }
       }
+    }
+  }
+
+  // Spiraling Root Coil follow-up (Season): scheduled far-row ROOTs count down
+  // and fire on their due Cleanup. Its own loop so a card with roots but no
+  // meteors isn't skipped by the meteor guard above.
+  for (const pl of ["P1", "P2"] as PlayerId[]) {
+    const roots = draft.players[pl].pendingFarRoots;
+    if (!roots?.length) continue;
+    for (const r of roots) r.roundsLeft -= 1;
+    const dueRoots = roots.filter((r) => r.roundsLeft <= 0);
+    draft.players[pl].pendingFarRoots = roots.filter((r) => r.roundsLeft > 0);
+    for (const r of dueRoots) {
+      if (!r.source.pos || r.source.curHp <= 0) continue;
+      const far = rowAhead(pl, rowAhead(pl, r.source.pos.row));
+      const targets = boardCards(draft, enemyOf(pl)).filter((e) => e.curHp > 0 && e.pos?.row === far).slice(0, r.count);
+      for (const e of targets) applyStatus(draft, e, "ROOT", r.duration, 0, getDef(r.source.defId).element);
+      if (targets.length) draft.log.push(`The creeping roots snare ${targets.length} in the far row.`);
     }
   }
 

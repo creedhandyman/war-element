@@ -410,6 +410,32 @@ describe("medium-tier passives (audit batch)", () => {
     expect(effectiveDmg(s, s.cards[ally.instanceId])).toBe(base + 1); // Gaslighting +1 DMG
   });
 
+  it("Season's Spiraling Root Coil roots the far row a round LATER", () => {
+    let s = prepState();
+    const season = place(s, "leaf_season", "P1", 3, 0);
+    const adj = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40 });
+    const far = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+    SPECIAL_HANDLERS.barrage(s, s.cards[season.instanceId], [s.cards[adj.instanceId], s.cards[far.instanceId]],
+      { dmg: 0, rowAhead: 1, targets: 4, statusKind: "ROOT", statusDuration: 2, farRowRootNext: 1, farRowRootCount: 4, farRowRootDuration: 1 });
+    expect(s.cards[adj.instanceId].statuses.some((st) => st.kind === "ROOT")).toBe(true); // adjacent now
+    expect(s.cards[far.instanceId].statuses.some((st) => st.kind === "ROOT")).toBe(false); // far NOT yet
+    expect(s.players.P1.pendingFarRoots?.length).toBe(1); // scheduled for next round
+    // Advance rounds until the delayed root fires (drains the queue).
+    let fired = false;
+    for (let i = 0; i < 3 && !fired; i++) {
+      s = advance(atCleanup(s));
+      fired = (s.players.P1.pendingFarRoots ?? []).length === 0;
+    }
+    expect(fired).toBe(true);
+  });
+
+  it("Bark Shield gains +1 shield each round, capped at 5", () => {
+    let s = prepState();
+    const bark = place(s, "leaf_bark_bushmen", "P1", 3, 0, { curShields: 3 });
+    for (let i = 0; i < 5; i++) s = advance(atCleanup(s));
+    expect(s.cards[bark.instanceId].curShields).toBe(5); // 3 → 4 → 5, then capped
+  });
+
   it("a card with only an inert basic takes no turn at all", () => {
     const s = prepState();
     const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump
