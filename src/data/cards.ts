@@ -8004,6 +8004,36 @@ export const CARDS: CardDef[] = [
       text: "Apply DOT 3 (3 rounds) to opponents in the row directly ahead and raise an attacking SkullDrake.",
     },
   },
+  {
+    id: "bore_the_coreborer",
+    name: "The Coreborer",
+    rarity: "mythic",
+    element: "BORE",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 9,
+    dmg: 8,
+    hits: 1,
+    hp: 25,
+    sp: 5,
+    shields: 12,
+    keywords: {},
+    tribe: "Cavernous",
+    // Crystal Growth (End of Round): +1 shield, stacking with no cap.
+    passiveNames: { roundTick: "Crystal Growth" },
+    roundTick: { selfShields: 1 },
+    // Core Drill: burrow straight through its own column, 12 PEN to every
+    // opponent standing in it.
+    special: {
+      name: "Core Drill",
+      cost: 5,
+      handler: "barrage",
+      params: { dmg: 12, pen: 1, sameColumn: 1, targets: 99 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Burrow through the column directly ahead, dealing 12 DMG (PEN) to every opponent in it.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

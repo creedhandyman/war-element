@@ -25,6 +25,10 @@ describe("setup", () => {
     const exceptions = new Set([
       "bore_bearocks",
       "dusk_skelider",
+      // Crystal tank: 62 vs a Cost-9 budget of 55. Its 12 shields (+ uncapped
+      // per-round growth) are its whole identity — a deliberate defensive
+      // exception, like the mythics below.
+      "bore_the_coreborer",
       // Ability-carried, downward: 52 vs a Cost-9 budget of 55. SkullKing raises
       // 2 Skeletons on summon + 2 every round + a SkullDrake on its Special, and
       // buffs the whole bone army — the free bodies carry the missing points.
