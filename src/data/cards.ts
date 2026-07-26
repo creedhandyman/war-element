@@ -6309,9 +6309,11 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 2,
     keywords: {},
-    // Nature's Protection (End of Round): refresh shields back up to 2.
-    passiveNames: { refreshShieldsTo: "Nature's Protection" },
+    // Nature's Protection (End of Round): refresh Efy's shields back up to 2.
+    // Shared Grove (Aura): LEAF allies are topped up +1 shield each round too.
+    passiveNames: { refreshShieldsTo: "Nature's Protection", aura: "Shared Grove" },
     roundTick: { refreshShieldsTo: 2 },
+    aura: { scope: "element", shields: 1 },
     // Emergence: raise a Walking Tree token in an adjacent slot (it rolls forward
     // and scorches the row ahead each round). (Doc's shared aura is simplified to
     // Efy's own bark-refresh.)
@@ -6460,10 +6462,11 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Liquid",
-    // Rainstorm: basic attacks splash 2 DMG to one adjacent opponent. (Doc's
-    // team splash aura simplified to Rain's own splash.)
-    passiveNames: { basicSplash: "Rainstorm" },
+    // Rainstorm: basic attacks splash 2 DMG to one adjacent opponent, and while
+    // Rain lives the whole team's basics clip +1 adjacent target (team aura).
+    passiveNames: { basicSplash: "Rainstorm", splashAura: "Downpour" },
     basicSplash: 2,
+    splashAura: true,
     // Scoped 50GAL: scope in — the next basic shot spreads across up to 3
     // targets (range = extra shots, replacing the deleted +2 RANGE).
     special: {
@@ -6511,12 +6514,12 @@ export const CARDS: CardDef[] = [
     element: "DAWN",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 6,
+    cost: 7,
     dmg: 7,
     hits: 1,
     hp: 25,
     sp: 7,
-    shields: 1,
+    shields: 2,
     keywords: {},
     // King of the Wild (On Opp Summon, once/round): gain +2 shields and +1 DMG
     // for the round.
@@ -7094,7 +7097,9 @@ export const CARDS: CardDef[] = [
     passiveNames: { onSummon: "Volcanic Arrival", onHitSelfBuff: "Burning Roar", onKill: "Volcanic Charge" },
     onSummon: { handler: "barrage", params: { dmg: 0, rowAhead: 1, targets: 99, statusKind: "BURN", statusPower: 2, statusDuration: 3 }, targetSide: "enemy" },
     onHitSelfBuff: { dmg: 1 },
-    onKill: { buffDmg: 2 },
+    // Volcanic Charge (On Kill): +2 DMG permanently AND a 3-DMG eruption across
+    // the whole enemy board.
+    onKill: { buffDmg: 2, aoeDmg: 3 },
     // Volcanic Charge: charge up to 3 forward and deal 12 to the first opponent
     // hit. (Doc's on-kill 6-splash simplified; the +2-DMG-on-kill is the onKill.)
     special: {
@@ -7152,10 +7157,12 @@ export const CARDS: CardDef[] = [
     sp: 0,
     shields: 0,
     keywords: { REGEN: 3 },
-    // Super Weed: REGEN 3 each round; a melee attacker takes 1 back. (Doc's
-    // maxHP-stacking + Bramble mark simplified.)
-    passiveNames: { onHitByMelee: "Super Weed" },
-    onHitByMelee: { dmg: 1 },
+    // Super Weed: REGEN 3 each round and grows +2 max HP (it just keeps
+    // spreading). Bramble: a melee attacker takes 1 back and is left with a
+    // clinging thorn (DOT 1 for 2 rounds).
+    passiveNames: { onHitByMelee: "Bramble", roundTick: "Super Weed" },
+    roundTick: { buffDmgEveryN: { n: 1, amount: 0, hp: 2 } },
+    onHitByMelee: { dmg: 1, status: { kind: "DOT", duration: 2, power: 1 } },
     // Razor Guard: 3 DMG to a target and up to 2 nearby.
     special: {
       name: "Razor Guard",

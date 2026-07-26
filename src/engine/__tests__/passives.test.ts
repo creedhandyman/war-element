@@ -243,18 +243,19 @@ describe("medium-tier passives (audit batch)", () => {
     expect(40 - s.cards[other.instanceId].curHp).toBe(2);
   });
 
-  it("Supernova's Blinding Star suppresses an enemy basic's splash target", () => {
+  it("Supernova's Blinding Star cancels a granted splash target", () => {
     const splashDealt = (withStar: boolean) => {
       const s = prepState();
-      const rain = place(s, "aqua_rain", "P1", 3, 0); // Rainstorm: basicSplash 2
-      const primary = place(s, "dusk_crow", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
-      const adj = place(s, "dusk_crow", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
-      if (withStar) place(s, "dawn_supernova", "P2", 0, 3); // Blinding Star on Rain's enemy side
-      basicAttack(s, rain.instanceId, primary.instanceId);
+      const gool = place(s, "dusk_gool", "P1", 3, 0); // 4 DMG, no splash of its own
+      place(s, "gale_totem", "P1", 3, 1); // splashAura grants P1 the extra target
+      const primary = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+      const adj = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+      if (withStar) place(s, "dawn_supernova", "P2", 0, 3); // Blinding Star on the enemy side
+      basicAttack(s, gool.instanceId, primary.instanceId);
       return 40 - s.cards[adj.instanceId].curHp;
     };
-    expect(splashDealt(false)).toBe(2); // control — the splash lands
-    expect(splashDealt(true)).toBe(0); // Blinding Star eats the extra target
+    expect(splashDealt(false)).toBe(4); // Totem grants the extra target (full basic)
+    expect(splashDealt(true)).toBe(0); // Blinding Star cancels it
   });
 
   it("Liquark's Lurk gives +4 DMG/+4 SP while STEALTHed, lost the moment it attacks", () => {
