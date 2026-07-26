@@ -710,7 +710,13 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
     } else if (sp.handler === "loadOnHit") {
       // Arms an on-hit status rider for the coming attacks. Same trade as
       // burrow: it spends the turn, so only take it with nothing to finish.
-      if (!basicCanKill && targets.length > 0) return { action: "special", targetId: targets[0].instanceId };
+      // Self-targeted loaders (Woof's Heat Crunch) fire with no target; the
+      // strike-on-cast variants (Flaming Slasher) aim at a foe.
+      if (sp.targetSide === "self") {
+        if (!basicCanKill) return { action: "special" };
+      } else if (!basicCanKill && targets.length > 0) {
+        return { action: "special", targetId: targets[0].instanceId };
+      }
     } else if (sp.handler === "accelerate") {
       // Team SP buff — the payoff is board mobility next Prep, so it wants
       // allies on the board and nothing more urgent to do with the turn.

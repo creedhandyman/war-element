@@ -7370,6 +7370,90 @@ export const CARDS: CardDef[] = [
       params: { dmg: 4, rowAhead: 1, targets: 99 },
     },
   },
+  {
+    id: "dawn_solara",
+    name: "Solara",
+    rarity: "epic",
+    element: "DAWN",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 8,
+    hits: 1,
+    hp: 11,
+    sp: 11,
+    shields: 1,
+    keywords: {},
+    // Morning Glow (End of Round): heal all allies +1.
+    passiveNames: { roundTick: "Morning Glow" },
+    roundTick: { healAllies: 1 },
+    // Blinding Sunrise: BLIND all opponents for the round. (Doc's Radiant
+    // Guardian spawn simplified — no clean guardian token/art.)
+    special: {
+      name: "Blinding Sunrise",
+      cost: 3,
+      handler: "statusNova",
+      params: { statusKind: "BLIND", statusDuration: 1, targets: 99 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "BLIND all opponents for the round.",
+    },
+  },
+  {
+    id: "dawn_ariel",
+    name: "Ariel",
+    rarity: "epic",
+    element: "DAWN",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 7,
+    hits: 1,
+    hp: 11,
+    sp: 7,
+    shields: 2,
+    keywords: {},
+    // Dawning Assault (On Summon): 7 DMG to a foe. (Doc's −50% accuracy debuff +
+    // on-death chip simplified.)
+    passiveNames: { onSummon: "Dawning Assault" },
+    onSummon: { handler: "strike", params: { dmg: 7, reachNearest: 1 }, targetSide: "enemy" },
+    // 100,000°: +14 DMG on the next basic attack (with PEN, folded in).
+    special: {
+      name: "100,000°",
+      cost: 2,
+      handler: "empower",
+      params: { selfDmg: 14, buffRounds: 1 },
+      targetSide: "self",
+      text: "Your next basic attack deals +14 DMG (PEN).",
+    },
+  },
+  {
+    id: "dawn_sircrest",
+    name: "SirCrest",
+    rarity: "epic",
+    element: "DAWN",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 3,
+    hits: 2,
+    hp: 17,
+    sp: 7,
+    shields: 0,
+    keywords: {},
+    // Aqua & Pyro Mastery: (Doc's dual AQUA+PYRO auras simplified — kept as the
+    // Burning Waterfall special.)
+    // Burning Waterfall: BURN 2 + SCALD 2 to all opponents in range.
+    special: {
+      name: "Burning Waterfall",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 0, targets: 99, statusKind: "BURN", statusPower: 2, statusDuration: 2, debuffStatus: "SCALD", debuffStatusRounds: 2 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Apply BURN 2 and SCALD 2 to all opponents in range.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
