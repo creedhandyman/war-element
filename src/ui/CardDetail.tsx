@@ -452,8 +452,12 @@ export function describePassives(def: CardDef): string[] {
       "intimidate",
       `Aura: opponents within ${def.intimidate.rows === 1 ? "one row" : `${def.intimidate.rows} rows`} whose DMG is lower than this card's CURRENT DMG lose ${def.intimidate.dmg} DMG from their basic attacks.`,
     );
-  if (def.blocksRangedChance)
-    named("blocksRangedChance", `Rocky Force Field: ${def.blocksRangedChance}% chance to deflect a ranged attacker's hit.`);
+  if (def.blocksRangedChance) {
+    const nm = def.passiveNames?.blocksRangedChance ?? "Rocky Force Field";
+    passives.push(def.blocksRangedChance >= 100
+      ? `${nm}: immune to Ranged attacks.`
+      : `${nm}: ${def.blocksRangedChance}% chance to deflect a ranged attacker's hit.`);
+  }
   if (def.critIfFaster)
     named("critIfFaster", 
       `Hastened Assault: basic attacks CRIT while faster than the target${def.healPerCrit ? `, healing +${def.healPerCrit} HP per crit` : ""}.`,

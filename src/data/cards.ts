@@ -6667,7 +6667,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Striking Defense: immune to Ranged attacks; a melee attacker takes 3 back.
-    passiveNames: { onHitByMelee: "Striking Defense" },
+    passiveNames: { onHitByMelee: "Striking Defense", blocksRangedChance: "Striking Defense" },
     blocksRangedChance: 100,
     onHitByMelee: { dmg: 3 },
     // Razr Lightning Bladerang: 7 DMG to a target + a 7-power DOT for 1 round.
