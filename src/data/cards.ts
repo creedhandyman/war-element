@@ -6324,9 +6324,9 @@ export const CARDS: CardDef[] = [
       name: "Emergence",
       cost: 4,
       handler: "spawn",
-      params: { token: "leaf_walking_tree", count: 1, radius: 1 },
+      params: { token: "leaf_walking_tree", count: 1, radius: 1, healAllies: 4 },
       targetSide: "self",
-      text: "Spawn a Walking Tree in an adjacent slot; each round it marches forward, hits an opponent for 3, and heals an ally 3.",
+      text: "Spawn a Walking Tree in an adjacent slot and heal all allies 4; each round the tree marches forward, hits an opponent for 3, and heals an ally 3.",
     },
   },
   {
@@ -7951,7 +7951,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_walking_tree",
     name: "Walking Tree",
-    rarity: "epic",
+    rarity: "rare",
     element: "LEAF",
     cardClass: "Support",
     attackType: "Ranged",

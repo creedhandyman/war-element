@@ -2179,6 +2179,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const token = String(params.token ?? "");
     if (!token) return;
     spawnTokens(draft, attacker, token, num(params, "count", 1), radius);
+    // Grove's Blessing: the same burst that raises the tree tops up every ally
+    // on the caster's side (Efy's Emergence). Element-agnostic — heals all.
+    const healAmt = num(params, "healAllies");
+    if (healAmt > 0 && attacker.curHp > 0) {
+      let touched = 0;
+      for (const a of boardCards(draft, attacker.owner))
+        if (healCard(draft, a, healAmt, attacker.owner) > 0) touched++;
+      if (touched) draft.log.push(`${label(draft, attacker)} heals ${touched} ally(ies) (+${healAmt} HP).`);
+    }
   },
   /** An escalating combo (Elecdroid's Light Slasher): a sequence of `hits` that
    *  stays on a target until it dies, then chains to the next enemy. Each KILL
