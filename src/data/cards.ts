@@ -2000,34 +2000,6 @@ export const CARDS: CardDef[] = [
     },
   },
   {
-    id: "bolt_jackarc",
-    name: "Jack Arc",
-    rarity: "legendary",
-    element: "BOLT",
-    cardClass: "Support",
-    attackType: "Ranged",
-    cost: 8, // LEGENDARY
-    dmg: 3,
-    hits: 2,
-    hp: 26,
-    sp: 12,
-    shields: 3,
-    keywords: {},
-    // Static Electricity (Start of Round): PARALYZE an un-paralyzed enemy 2r.
-    roundTick: { paralyzeOne: 2 },
-    // Overclock (Aura): BOLT allies gain +2 SP. (Doc scopes it to the ARC tribe;
-    // ARC isn't tagged on the BOLT cards yet, so element scope is the stand-in.)
-    aura: { scope: "element", sp: 2 },
-    special: {
-      name: "StunGun",
-      cost: 3,
-      handler: "barrage",
-      params: { dmg: 4, targets: 3, statusKind: "PARALYZE", statusDuration: 3 },
-      targetSide: "enemy",
-      text: "Blast up to 3 targets for 4 DMG and PARALYZE for 3 rounds.",
-    },
-  },
-  {
     id: "bolt_voltogon",
     name: "Voltogon",
     rarity: "legendary",
