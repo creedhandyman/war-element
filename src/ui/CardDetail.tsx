@@ -743,8 +743,8 @@ export function CardDetail(props: {
               <div className="cd-stat" title="Live damage (printed value adjusted for Mid-row control & statuses)">
                 <span className="cd-lbl">DMG</span>
                 <span className="cd-val st-dmg">
-                  ⚔{hits > 1 ? <span className="atk-x">{hits}× </span> : ""}
-                  <span className="atk-dmg">{dmg}</span>
+                  ⚔<span className="atk-dmg">{dmg}</span>
+                  {hits > 1 ? <span className="atk-x"> ×{hits}</span> : ""}
                 </span>
               </div>
               <div className="cd-stat" title="Current / max HP">

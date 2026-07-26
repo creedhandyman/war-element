@@ -401,7 +401,7 @@ export function DeckBuilder(props: {
                     )}
                     <div className="dt-name">{d.name}</div>
                     <div className="dt-stats">
-                      <span className="s-dmg">⚔{d.hits > 1 ? <span className="atk-x">{d.hits}×</span> : ""}<span className="atk-dmg">{d.dmg}</span></span>
+                      <span className="s-dmg">⚔<span className="atk-dmg">{d.dmg}</span>{d.hits > 1 ? <span className="atk-x"> ×{d.hits}</span> : ""}</span>
                       <span className="s-hp">♥{d.hp}</span>
                       <span className="s-sp"><SpIcon />{d.sp}</span>
                     </div>
@@ -447,7 +447,7 @@ export function DeckBuilder(props: {
                   {detail.tribe && <span className="dbd-tribe">{detail.tribe}</span>}
                 </div>
                 <div className="dbd-stats">
-                  <span className="st-dmg">⚔ {detail.hits > 1 ? <span className="atk-x">{detail.hits}× </span> : ""}<span className="atk-dmg">{detail.dmg}</span></span>
+                  <span className="st-dmg">⚔ <span className="atk-dmg">{detail.dmg}</span>{detail.hits > 1 ? <span className="atk-x"> ×{detail.hits}</span> : ""}</span>
                   <span className="st-hp">♥ {detail.hp}</span>
                   <span className="st-sh">🛡 {detail.shields}</span>
                   <span className="st-sp"><SpIcon /> {detail.sp}</span>

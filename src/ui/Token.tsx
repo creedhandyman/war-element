@@ -211,8 +211,8 @@ export function Token(props: {
             className="st-dmg"
             title={`Hits × damage per hit (printed ${def.dmg}/hit; live value includes Mid-row control and statuses)`}
           >
-            ⚔{effectiveBasicHits(card) > 1 ? <span className="atk-x">{effectiveBasicHits(card)}×</span> : ""}
-            <span className="atk-dmg">{effectiveDmg(game, card)}</span>
+            ⚔<span className="atk-dmg">{effectiveDmg(game, card)}</span>
+            {effectiveBasicHits(card) > 1 ? <span className="atk-x"> ×{effectiveBasicHits(card)}</span> : ""}
           </span>
           {card.curShields > 0 && <span className="st-sh">🛡{card.curShields}</span>}
           <span

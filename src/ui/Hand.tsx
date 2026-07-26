@@ -102,7 +102,7 @@ export function Hand(props: {
                 <div className="hc-name">{def.name}</div>
                 <div className="hc-type">{def.cardClass} · {def.attackType}</div>
                 <div className="hc-stats">
-                  <span className="s-dmg">⚔{def.hits > 1 ? <span className="atk-x">{def.hits}×</span> : ""}<span className="atk-dmg">{def.dmg}</span></span>
+                  <span className="s-dmg">⚔<span className="atk-dmg">{def.dmg}</span>{def.hits > 1 ? <span className="atk-x"> ×{def.hits}</span> : ""}</span>
                   <span className="s-hp">♥{def.hp}</span>
                   {def.shields > 0 && <span className="s-sh">🛡{def.shields}</span>}
                   <span className="s-sp"><SpIcon />{def.sp}</span>
