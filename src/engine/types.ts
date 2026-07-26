@@ -450,6 +450,9 @@ export interface CardDef {
   lowHpNova?: { belowHp: number; dmg: number; push: number };
   /** Salvage (VVulture): whenever ANY card dies, gain `salvageOnDeath` max HP. */
   salvageOnDeath?: number;
+  /** Blood Moon (Scar): when an opponent dies while this card lives, heal it and
+   *  all its allies `deathHealAura` HP. */
+  deathHealAura?: number;
   /** Acorn Drop (OAK): every landed hit it TAKES sprouts `count` token(s). */
   spawnOnHitTaken?: { token: string; count: number };
   /** Rainstorm (Rain): a landed basic also splashes N DMG to one adjacent enemy. */

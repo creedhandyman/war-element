@@ -384,6 +384,8 @@ export function describePassives(def: CardDef): string[] {
     named("lowHpNova", `Mega Push: while below ${def.lowHpNova.belowHp} HP, a landed basic also deals ${def.lowHpNova.dmg} to every opponent and pushes them back ${def.lowHpNova.push}.`);
   if (def.salvageOnDeath)
     named("salvageOnDeath", `Salvage: whenever any card dies, gain +${def.salvageOnDeath} max HP.`);
+  if (def.deathHealAura)
+    named("deathHealAura", `Blood Moon: when an opponent dies, heal it and all allies +${def.deathHealAura} HP.`);
   if (def.spawnOnHitTaken)
     named("spawnOnHitTaken", `Acorn Drop: every hit it takes sprouts ${def.spawnOnHitTaken.count} ${getDef(def.spawnOnHitTaken.token).name}.`);
   if (def.basicSplash)

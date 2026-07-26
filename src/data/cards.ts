@@ -6868,8 +6868,10 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { FLYING: true, DRAIN: true },
     tribe: "Vamp",
-    // Blood Mending: basic attacks DRAIN (lifesteal). (Doc's on-enemy-death team
-    // heal aura simplified out.)
+    // Blood Mending: basic attacks DRAIN (lifesteal). Blood Moon (Aura): when an
+    // opponent dies, heal Scar and its allies +1.
+    passiveNames: { deathHealAura: "Blood Moon" },
+    deathHealAura: 1,
     // Moon Frenzy: 3 DMG to all opponents, draining from each (DUSK lifesteal).
     special: {
       name: "Moon Frenzy",

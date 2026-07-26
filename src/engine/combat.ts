@@ -361,6 +361,14 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
       c.curHp += sal;
     }
   }
+  // Blood Moon (Scar): an opponent's death heals it and its allies.
+  for (const c of boardCards(draft)) {
+    const dh = getDef(c.defId).deathHealAura;
+    if (dh && c.curHp > 0 && c.owner !== card.owner) {
+      for (const a of boardCards(draft, c.owner)) if (a.curHp > 0) healCard(draft, a, dh, c);
+      draft.log.push(`${label(draft, c)} feeds on the fallen — the team heals +${dh}.`);
+    }
+  }
   // Life Cycle (Aurora): an opponent's death recharges one Light Orb (cycling
   // blue -> green -> red).
   for (const c of boardCards(draft)) {
