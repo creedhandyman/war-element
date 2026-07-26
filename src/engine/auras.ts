@@ -14,7 +14,7 @@ export interface AuraDef {
 
 export const ELEMENT_AURA: Record<Element, AuraDef> = {
   LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP, and gain +1 shield (max 3) if they were hit that round." },
-  PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 4 on the same target." },
+  PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
   BORE: { name: "Exostone", desc: "Enters play with +2 shields." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals a third of its DMG back to the killer." },
   AQUA: { name: "Flow Change", desc: "On summon, choose a boost for 3 rounds: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
@@ -33,7 +33,7 @@ export const LEAF_SHIELD_CAP = 3;
 /** Scorch stacks its BURN to here and no further. Uncapped, a multi-hit PYRO
  *  card would stack a lethal DOT off one attack and the aura would stop being
  *  chip damage. */
-export const PYRO_BURN_STACK_CAP = 4;
+export const PYRO_BURN_STACK_CAP = 5;
 
 // AQUA Flow Change — the three-way summon choice (the summon pick lasts 3 rounds).
 export type FlowMode = "water" | "ice" | "steam";

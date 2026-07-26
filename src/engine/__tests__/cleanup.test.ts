@@ -38,7 +38,7 @@ describe("cleanup phase", () => {
     const next = advance(atCleanup(s));
     const after = next.cards[t.instanceId];
     expect(after.curHp).toBe(10); // 15 − 2 (BLEED) − 3 (BURN)
-    expect(after.curShields).toBe(1); // only BURN melts a shield
+    expect(after.curShields).toBe(0); // only BURN melts shields (−2)
     expect(after.statuses).toHaveLength(2); // both ticked down to 1 round left
   });
 
@@ -73,7 +73,7 @@ describe("cleanup phase", () => {
     expect(next.cards[thorn.instanceId].curHp).toBe(18); // 17 + min(1, 6)
   });
 
-  it("BURN is the exception: its tick also melts 1 shield", () => {
+  it("BURN is the exception: its tick also melts shields", () => {
     const s = prepState();
     const t = place(s, "bore_armadillo", "P2", 0, 0, {
       curHp: 15,
@@ -85,7 +85,7 @@ describe("cleanup phase", () => {
     const next = advance(atCleanup(s));
     const after = next.cards[t.instanceId];
     expect(after.curHp).toBe(12); // damage still bypasses the gate
-    expect(after.curShields).toBe(3); // and one shield melts
+    expect(after.curShields).toBe(2); // and shields melt (−2)
   });
 
   it("DOT can kill; the card is removed", () => {
