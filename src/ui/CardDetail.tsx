@@ -230,6 +230,7 @@ export function describePassives(def: CardDef): string[] {
         `heal every ${t.roundHealElement.element} ally ${t.roundHealElement.amount} HP`,
       t.spawn && `raise ${t.spawn.count} ${getDef(t.spawn.token).name}${t.spawn.count > 1 ? "s" : ""}`,
       t.drainAdjacent && `drain ${t.drainAdjacent} HP from an adjacent opponent`,
+      t.pokeAheadAdvance && `gore the enemy directly ahead for ${t.pokeAheadAdvance} (advance into its slot on a kill)`,
       t.overheatDmg && `${t.overheatDmg} DMG to the closest opponent (2× on a repeat target)`,
       t.healWoundedAllies && `heal allies under ${t.healWoundedAllies.underHp} HP by +${t.healWoundedAllies.amount}`,
       t.rootZeroSp && `ROOT an opponent with 0 SP for ${t.rootZeroSp} rounds`,
@@ -376,6 +377,10 @@ export function describePassives(def: CardDef): string[] {
     named("summonSelfBuff", `Ride or Die: enters play with +${def.summonSelfBuff.dmg} DMG and +${def.summonSelfBuff.hp} HP.`);
   if (def.lure)
     named("lure", `Lure: on summon, attackers have −${def.lure.pct}% accuracy against it for ${def.lure.rounds} round${def.lure.rounds > 1 ? "s" : ""}.`);
+  if (def.lowHpNova)
+    named("lowHpNova", `Mega Push: while below ${def.lowHpNova.belowHp} HP, a landed basic also deals ${def.lowHpNova.dmg} to every opponent and pushes them back ${def.lowHpNova.push}.`);
+  if (def.salvageOnDeath)
+    named("salvageOnDeath", `Salvage: whenever any card dies, gain +${def.salvageOnDeath} max HP.`);
   if (def.weaponModes)
     named("weaponModes", `Power Grab: on move (once/round), cycle its Basic Attack Weapon — ${def.weaponModes.map((w) => `${w.name} ${w.dmg}×${w.hits}`).join(", ")}.`);
   if (def.roundTick?.rowAheadDmg)

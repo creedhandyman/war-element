@@ -313,6 +313,14 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
     if (ot.hp) { c.maxHp += ot.hp; c.curHp += ot.hp; }
     draft.log.push(`${label(draft, c)} feeds on the fallen ${ot.tribe}.`);
   }
+  // Salvage (VVulture): any card's death feeds the scavenger's max HP.
+  for (const c of boardCards(draft)) {
+    const sal = getDef(c.defId).salvageOnDeath;
+    if (sal && c.curHp > 0 && c.instanceId !== card.instanceId) {
+      c.maxHp += sal;
+      c.curHp += sal;
+    }
+  }
   removeCard(draft, card.instanceId);
   return true;
 }
@@ -1325,6 +1333,13 @@ export function basicAttack(
       attacker.dmgBonus += aDef.jackpot.bonusDmg;
       draft.log.push(`${label(draft, attacker)} jackpots ${aDef.jackpot.critsForBonus} crits (+${aDef.jackpot.bonusHp} HP, +${aDef.jackpot.bonusDmg} DMG)!`);
     }
+  }
+  // Mega Push (Megair): a desperation nova while it's nearly dead.
+  if (aDef.lowHpNova && agg.landedHits > 0 && attacker.curHp > 0 && attacker.curHp < aDef.lowHpNova.belowHp) {
+    const foes = boardCards(draft, enemyOf(attacker.owner)).filter((e) => e.curHp > 0);
+    for (const e of foes) directDamage(draft, attacker, e, aDef.lowHpNova.dmg, false);
+    for (const e of foes) pushBack(draft, e, aDef.lowHpNova.push, attacker.owner);
+    if (foes.length) draft.log.push(`${label(draft, attacker)} unleashes Mega Push (${aDef.lowHpNova.dmg} + knockback to all).`);
   }
   // Harpoon Hook (Harp) / Sucker Sword (Octoirate): reel each struck enemy in
   // toward the attacker. Only when something landed and the attacker is still
@@ -2679,12 +2694,13 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
 
   /** Grant shields to one ally. */
   grantShield(draft, attacker, targets, params) {
-    const target = targets[0];
-    if (!target) return;
+    const target = targets[0] ?? attacker; // self-shield specials pass no enemy
     const amount = num(params, "amount", 1);
     target.curShields += amount;
+    const heal = num(params, "heal");
+    if (heal > 0) healCard(draft, target, heal, attacker); // Roosting Wing Shield
     draft.log.push(
-      `${label(draft, attacker)} grants +${amount} shields to ${label(draft, target)}.`,
+      `${label(draft, attacker)} grants +${amount} shields${heal > 0 ? ` and +${heal} HP` : ""} to ${label(draft, target)}.`,
     );
   },
 

@@ -661,13 +661,19 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
         return { action: "special", targetId: fat.instanceId };
       }
     } else if (sp.handler === "grantShield") {
-      const allies = validAllyTargets(state, instanceId).filter(
-        (a) => a.instanceId !== instanceId,
-      );
-      const hurt = allies.find(
-        (a) => a.curHp < a.maxHp / 2 || a.pos!.row === homeRow(enemyOf(card.owner), state.boardSize),
-      );
-      if (hurt) return { action: "special", targetId: hurt.instanceId };
+      if (sp.targetSide === "self") {
+        // Roosting Wing Shield (VVulture): a self shield-up + heal. Take it when
+        // not securing a kill and there's magic to spare.
+        if (!basicCanKill && (rich || card.curHp < card.maxHp)) return { action: "special" };
+      } else {
+        const allies = validAllyTargets(state, instanceId).filter(
+          (a) => a.instanceId !== instanceId,
+        );
+        const hurt = allies.find(
+          (a) => a.curHp < a.maxHp / 2 || a.pos!.row === homeRow(enemyOf(card.owner), state.boardSize),
+        );
+        if (hurt) return { action: "special", targetId: hurt.instanceId };
+      }
     } else if (sp.handler === "heal") {
       const hurt = validAllyTargets(state, instanceId).filter((a) => a.curHp < a.maxHp);
       const total = hurt.reduce((s, a) => s + (a.maxHp - a.curHp), 0);

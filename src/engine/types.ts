@@ -209,6 +209,9 @@ export interface RoundTickDef {
   /** Draining Siphon (Violet): at end of round, DRAIN N max HP from every
    *  opponent within 1 space. */
   drainMaxAdjacent?: number;
+  /** Twisted Rush (Wailverine): deal N DMG to the enemy directly ahead; if it
+   *  dies, Wailverine advances into its slot. Pair with firstRoundOnly. */
+  pokeAheadAdvance?: number;
   /** Morning Dew (Sprinu): heal every ally of this element at end of round. */
   roundHealElement?: { element: Element; amount: number };
   aoeDmg?: number; // damage every enemy in range
@@ -429,6 +432,11 @@ export interface CardDef {
   /** Lure (Anglerfish): on summon, attackers have `pct`% reduced accuracy against
    *  this card for `rounds` rounds. */
   lure?: { pct: number; rounds: number };
+  /** Mega Push (Megair): while below `belowHp` HP, a landed basic also deals
+   *  `dmg` to every opponent and pushes them all back `push` spaces. */
+  lowHpNova?: { belowHp: number; dmg: number; push: number };
+  /** Salvage (VVulture): whenever ANY card dies, gain `salvageOnDeath` max HP. */
+  salvageOnDeath?: number;
   /** Power Grab (General): switchable basic-attack weapons. On move (once/round)
    *  it cycles to the next, paying that weapon's `spCost`, changing its basic's
    *  dmg × hits. Index 0 is the starting weapon. */

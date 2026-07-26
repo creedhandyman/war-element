@@ -1682,6 +1682,21 @@ function doRoundTicks(draft: GameState): void {
         draft.log.push(`${label(draft, card)}'s coils discharge ${dmg}${repeat ? " (built-up heat)" : ""} into ${label(draft, t)}.`);
       }
     }
+    if (rt.pokeAheadAdvance && card.pos) {
+      // Twisted Rush (Wailverine): gore the enemy directly ahead; step into its
+      // slot if it falls.
+      const row = card.pos.row + (card.owner === "P1" ? -1 : 1);
+      const ahead = enemies().find((e) => e.curHp > 0 && e.pos?.row === row && e.pos?.col === card.pos!.col);
+      if (ahead) {
+        const slot = { ...ahead.pos! };
+        const died = tickDamage(draft, card, ahead, rt.pokeAheadAdvance, false);
+        draft.log.push(`${label(draft, card)} gores ahead for ${rt.pokeAheadAdvance}.`);
+        if (died && card.curHp > 0 && !cardAt(draft, slot.row, slot.col)) {
+          card.pos = { row: slot.row as Pos["row"], col: slot.col };
+          draft.log.push(`${label(draft, card)} surges into the empty slot.`);
+        }
+      }
+    }
     if (rt.pokeDmg || rt.pokeStatus) {
       const t = closest(card, enemies());
       if (t) {
