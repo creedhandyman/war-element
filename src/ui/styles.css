@@ -618,8 +618,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .hc-plate { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 18px 7px 7px; background: linear-gradient(180deg, transparent, rgba(8,7,12,0.78) 32%, rgba(8,7,12,0.95)); border-radius: 0 0 9px 9px; }
 .hcard .hc-name { font-family: var(--head); font-size: 12.5px; font-weight: 700; text-align: center; color: #efe9d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px #000; min-height: 0; }
 .hc-type { text-align: center; font-size: 9px; color: var(--ink-dim); letter-spacing: 0.03em; margin-top: 1px; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hcard .hc-stats { display: flex; justify-content: space-between; gap: 2px; padding: 5px 3px 0; font-size: 12px; font-weight: 800; color: inherit; }
+.hcard .hc-stats { display: flex; justify-content: space-between; gap: 2px; padding: 5px 3px 0; font-size: 12px; font-weight: 800; color: inherit; align-items: center; }
 .s-dmg { color: var(--stat-dmg); } .s-hp { color: var(--stat-hp); } .s-sh { color: var(--stat-sh); } .s-sp { color: var(--stat-sp); }
+/* The SP stat carries an inline SVG icon (1em tall) where its siblings use text
+   glyphs; flex-centering each stat span keeps the icon + number on the same
+   centerline instead of riding higher than the rest. */
+.hc-stats span, .dt-stats span, .announce-stats span, .cd-val { display: inline-flex; align-items: center; }
 /* Multi-attack readability: the DAMAGE value sits right next to the sword and
    is red like it (⚔4 reads as one all-red unit), while the "×N" hit-count
    trails off to the side in white so the two numbers never blur (⚔[4][ ×2]). */
