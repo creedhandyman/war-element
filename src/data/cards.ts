@@ -916,18 +916,21 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Ranger",
     attackType: "Ranged",
-    cost: 4,
-    dmg: 4,
+    cost: 5,
+    dmg: 6,
     hits: 1,
-    hp: 16,
-    sp: 8,
+    hp: 17,
+    sp: 10,
     shields: 1,
     // Shadow Step: STEALTH until first attack each round — exactly the
     // alpha STEALTH keyword.
     keywords: { CRIT: true, STEALTH: true },
-    // Dark Hunting: the doc's version is a trap (mark an enemy home slot; ROOT +
-    // LIFESTEAL when a card enters it). Traps aren't modeled, so this is the
-    // immediate payoff — strike a target, ROOT it, and LIFESTEAL the damage.
+    // Predator's Snare (On Kill): lay a trap on the slot the prey fell on. The
+    // next opponent to walk onto it eats the SAME payload as Dark Hunting —
+    // 7 DMG, ROOT 2, and LIFESTEAL to Darth.
+    passiveNames: { onKill: "Predator's Snare" },
+    onKill: { setTrap: { dmg: 7, rootDuration: 2, lifesteal: 1 } },
+    // Dark Hunting: strike a target, ROOT it, and LIFESTEAL the damage.
     special: {
       name: "Dark Hunting",
       cost: 3,

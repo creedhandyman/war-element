@@ -156,6 +156,10 @@ export interface OnKillDef {
   /** Static Charge (Static): on a kill, extend the named status on every enemy
    *  that already carries it by `rounds` (deepen the crowd-control). */
   extendStatus?: { kind: StatusKind; rounds: number };
+  /** Dark Hunting (Darth): a kill lays a trap on the slot where the victim fell.
+   *  The next enemy to MOVE onto it takes `dmg`, is ROOTed `rootDuration` rounds,
+   *  and the killer LIFESTEALs the HP dealt — the same payload as his Special. */
+  setTrap?: { dmg: number; rootDuration: number; lifesteal?: number };
 }
 
 /** A basic-attack conditional keyword that only applies vs a target already
@@ -1061,7 +1065,11 @@ export type SpellKind =
  *  one is a real mistake rather than a visible toll. */
 export interface TrapState {
   owner: PlayerId;
-  spellId: string;
+  /** Set for trap SPELLS (names/logs via getSpell). On-kill traps laid by a
+   *  card (Darth) leave this empty and carry `label` instead. */
+  spellId?: string;
+  /** Display name when there's no spell behind the trap (Darth's Dark Hunting). */
+  label?: string;
   element: Element;
   pos: Pos;
   dmg: number;
@@ -1069,6 +1077,10 @@ export interface TrapState {
   status?: { kind: StatusKind; duration: number; power: number };
   /** Inferno Pit: the payload also hits opponents adjacent to the victim. */
   splash?: boolean;
+  /** Dark Hunting: heal `sourceId` by the HP the primary victim loses when the
+   *  trap springs (LIFESTEAL), mirroring Darth's Special. */
+  lifesteal?: number;
+  sourceId?: string;
 }
 
 /** A row-level "wall" laid down by a Cost-4 spell. Occupies no slot; triggers

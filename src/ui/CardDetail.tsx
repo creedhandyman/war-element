@@ -210,6 +210,8 @@ export function describePassives(def: CardDef): string[] {
       // read as a flat, one-off, possibly team-wide discount.
       k.reduceSpecialCost &&
         `permanently shaves ${k.reduceSpecialCost} off its own ${def.special?.name ?? "Special"} cost, stacking (King Me)`,
+      k.setTrap &&
+        `lays a trap where the victim fell — the next enemy to step on it takes ${k.setTrap.dmg} DMG${k.setTrap.rootDuration ? `, ROOT ${k.setTrap.rootDuration}` : ""}${k.setTrap.lifesteal ? " and is LIFESTEALED" : ""}`,
     ].filter(Boolean);
     named("onKill", `On a kill: ${bits.join(" · ")}.`);
   }

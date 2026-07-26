@@ -908,7 +908,7 @@ export function resolveHit(
     if (target.owner !== attacker.owner) creditKill(draft.stats, attacker, attacker.owner);
     // On-kill trigger for the attacker (basic/special kills only).
     if ((opts.kind === "basic" || opts.kind === "special") && attacker.curHp > 0) {
-      if (aDef.onKill) applyOnKill(draft, attacker, aDef.onKill);
+      if (aDef.onKill) applyOnKill(draft, attacker, aDef.onKill, deathPos);
       // Gaslighting (Liza): an allied enabler spurs whoever lands the kill.
       for (const gl of boardCards(draft, attacker.owner)) {
         const akb = getDef(gl.defId).allyKillBuff;
@@ -2007,8 +2007,29 @@ function applyOnHitZap(
 }
 
 /** On-kill: buff the killer / heal / blast. */
-function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef): void {
+function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, deathPos?: Pos | null): void {
   const name = getDef(killer.defId).name;
+  // Dark Hunting (Darth): lay a trap on the slot the victim just vacated. The
+  // next opponent to walk onto it springs the same payload as his Special —
+  // reuses the trap-spell infrastructure (triggerTrapOnMove), so every movement
+  // path that already sets off spell traps sets this off too.
+  if (def.setTrap && deathPos &&
+      !draft.traps.some((t) => t.pos.row === deathPos.row && t.pos.col === deathPos.col)) {
+    const kd = getDef(killer.defId);
+    draft.traps.push({
+      owner: killer.owner,
+      label: `${kd.name}'s Dark Hunting trap`,
+      element: kd.element,
+      pos: { ...deathPos },
+      dmg: def.setTrap.dmg,
+      status: def.setTrap.rootDuration > 0
+        ? { kind: "ROOT", duration: def.setTrap.rootDuration, power: 0 }
+        : undefined,
+      lifesteal: def.setTrap.lifesteal,
+      sourceId: killer.instanceId,
+    });
+    draft.log.push(`${name} hides a trap where its prey fell.`);
+  }
   if (def.buffDmg) {
     killer.dmgBonus += def.buffDmg;
     draft.log.push(`${name} grows stronger (+${def.buffDmg} DMG) on the kill.`);

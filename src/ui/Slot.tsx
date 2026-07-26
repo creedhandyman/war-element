@@ -85,7 +85,11 @@ export function Slot(props: {
         <span
           className="trapmark"
           style={{ color: EL_COLOR[props.trap.element] }}
-          title={`${getSpell(props.trap.spellId).name} — ${getSpell(props.trap.spellId).text}\n\nOnly you can see this.`}
+          title={`${
+            props.trap.spellId
+              ? `${getSpell(props.trap.spellId).name} — ${getSpell(props.trap.spellId).text}`
+              : props.trap.label ?? "Hidden trap"
+          }\n\nOnly you can see this.`}
         >
           ◈
         </span>

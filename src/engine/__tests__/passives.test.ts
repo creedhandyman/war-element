@@ -368,6 +368,28 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[foe.instanceId].statuses.some((x) => x.kind === "BURN")).toBe(true);
   });
 
+  it("Darth's Predator's Snare: a kill lays a trap that springs on the next enemy to step on it", () => {
+    const s = prepState();
+    const darth = place(s, "leaf_darth", "P1", 3, 1, { curHp: 17, maxHp: 17 });
+    // A fragile foe Darth one-shots (6 DMG, CRIT → 12).
+    const prey = place(s, "dusk_gool", "P2", 2, 1, { curHp: 2, maxHp: 2, curShields: 0 });
+    basicAttack(s, darth.instanceId, prey.instanceId);
+    // The prey fell; a trap owned by P1 now sits on its old slot.
+    const trap = s.traps.find((t) => t.pos.row === 2 && t.pos.col === 1);
+    expect(trap).toBeTruthy();
+    expect(trap!.owner).toBe("P1");
+    // Wound Darth so the LIFESTEAL is observable.
+    s.cards[darth.instanceId].curHp = 5;
+    // An enemy walks onto the trapped slot.
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    s.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    const n = applyIntent(s, { type: "MOVE", player: "P2", instanceId: foe.instanceId, to: { row: 2, col: 1 } });
+    expect(40 - n.cards[foe.instanceId].curHp).toBe(7); // Dark Hunting's 7 DMG
+    expect(statusOf(n.cards[foe.instanceId], "ROOT")).toBeTruthy(); // ROOT 2
+    expect(n.cards[darth.instanceId].curHp).toBe(12); // LIFESTEAL 7 (5 → 12)
+    expect(n.traps).toHaveLength(0); // one square, one time — spent
+  });
+
   it("Dyna's Demolition Charge deals 4 + half the target's current HP", () => {
     const s = prepState();
     const dyna = place(s, "pyro_dyna", "P1", 3, 0);

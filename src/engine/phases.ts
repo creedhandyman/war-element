@@ -772,7 +772,7 @@ function triggerTrapOnMove(draft: GameState, card: CardInstance): void {
   if (i < 0) return;
   const trap = draft.traps[i];
   draft.traps.splice(i, 1); // spent on trigger, survivor or not
-  const name = getSpell(trap.spellId).name;
+  const name = trap.spellId ? getSpell(trap.spellId).name : (trap.label ?? "a hidden trap");
   draft.log.push(`${label(draft, card)} steps on ${name}!`);
   const victims = [card];
   if (trap.splash) {
@@ -783,9 +783,16 @@ function triggerTrapOnMove(draft: GameState, card: CardInstance): void {
   }
   for (const v of victims) {
     if (!draft.cards[v.instanceId] || v.curHp <= 0) continue;
+    const hpBefore = v.curHp;
     if (trap.dmg > 0) spellHit(draft, v, trap.dmg, Boolean(trap.pen), trap.owner);
     if (trap.status && draft.cards[v.instanceId] && v.curHp > 0)
       applyStatus(draft, v, trap.status.kind, trap.status.duration, trap.status.power, trap.element);
+    // Dark Hunting LIFESTEAL: the trapper drains the HP the primary victim lost.
+    if (trap.lifesteal && trap.sourceId && v.instanceId === card.instanceId) {
+      const dealt = Math.max(0, hpBefore - v.curHp);
+      const src = draft.cards[trap.sourceId];
+      if (src && src.curHp > 0 && dealt > 0) healCard(draft, src, dealt, src);
+    }
   }
 }
 
