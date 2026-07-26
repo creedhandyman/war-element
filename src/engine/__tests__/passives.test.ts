@@ -287,6 +287,18 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[liq.instanceId].statuses.some((st) => st.kind === "STEALTH")).toBe(true);
   });
 
+  it("Skrow spawns Crows — 2 on death (Goodnight), 3 from Bird Bomb", () => {
+    const s = prepState();
+    const skrow = place(s, "dusk_skrow", "P1", 2, 1);
+    const crows = () => boardCards(s, "P1").filter((c) => c.defId === "dusk_crow").length;
+    // Bird Bomb talent → 3 Crows.
+    SPECIAL_HANDLERS.spawn(s, s.cards[skrow.instanceId], [], { token: "dusk_crow", count: 3 });
+    expect(crows()).toBe(3);
+    // Goodnight (on death) → 2 more.
+    defeatCard(s, s.cards[skrow.instanceId], "test");
+    expect(crows()).toBe(5);
+  });
+
   it("a card with only an inert basic takes no turn at all", () => {
     const s = prepState();
     const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump
