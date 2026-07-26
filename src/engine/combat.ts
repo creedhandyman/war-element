@@ -537,6 +537,16 @@ export function resolveHit(
       draft.log.push(`${label(draft, target)} is too unpredictable — ${aDef.name} misses.`);
       continue;
     }
+    // Lure (Anglerfish): its glow disorients attackers — a flat accuracy debuff.
+    if (
+      opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !fieldNeverMiss &&
+      (target.incomingMissRounds ?? 0) > 0 && pctChance(draft, target.incomingMissPct ?? 0)
+    ) {
+      result.dodgedHits++;
+      target.fxMiss = (target.fxMiss ?? 0) + 1;
+      draft.log.push(`${aDef.name} loses ${label(draft, target)} in its lure.`);
+      continue;
+    }
 
     // 1b. Rocky Force Field (Rhe): coin-flip chance to shrug off a RANGED hit.
     if (

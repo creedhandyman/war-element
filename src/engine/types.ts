@@ -426,6 +426,9 @@ export interface CardDef {
   /** Ride or Die (Omega): Luna grants a permanent +dmg / +hp the moment it
    *  lands. Applied at instance creation so it never misses. */
   summonSelfBuff?: { dmg: number; hp: number };
+  /** Lure (Anglerfish): on summon, attackers have `pct`% reduced accuracy against
+   *  this card for `rounds` rounds. */
+  lure?: { pct: number; rounds: number };
   /** Power Grab (General): switchable basic-attack weapons. On move (once/round)
    *  it cycles to the next, paying that weapon's `spCost`, changing its basic's
    *  dmg × hits. Index 0 is the starting weapon. */
@@ -812,6 +815,10 @@ export interface CardInstance {
    *  `attackMissPct`% of the time, for `attackMissRounds` more rounds. */
   attackMissPct?: number;
   attackMissRounds?: number;
+  /** Lure (Anglerfish): INCOMING attacks miss `incomingMissPct`% of the time for
+   *  `incomingMissRounds` more rounds — a flat accuracy debuff on its attackers. */
+  incomingMissPct?: number;
+  incomingMissRounds?: number;
   /** How many times a `decay` reviver (Zombie Husk) has come back — drives the
    *  −1-per-death stat decay. */
   reviveDecay?: number;

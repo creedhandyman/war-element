@@ -481,6 +481,8 @@ export function summonCard(
   if (def.summonSelfShields) inst.curShields += def.summonSelfShields;
   // Electro Surge (Surge): starts armed the moment it lands.
   if (def.electroSurge) inst.electroSurgeActive = true;
+  // Lure (Anglerfish): its disorienting glow is up the moment it lands.
+  if (def.lure) { inst.incomingMissPct = def.lure.pct; inst.incomingMissRounds = def.lure.rounds; }
   // Ride or Die (Omega): Luna's buff applies the instant it enters play.
   if (def.summonSelfBuff) {
     inst.dmgBonus += def.summonSelfBuff.dmg;

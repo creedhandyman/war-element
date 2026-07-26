@@ -4819,18 +4819,16 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 1,
-    dmg: 2,
-    hits: 2,
+    dmg: 3,
+    hits: 1,
     hp: 6,
     sp: 5,
     shields: 0,
     keywords: {},
-    // A small deep-water striker, deliberately a low-footprint 1-drop. AQUA is
-    // already the strongest element: at Cost 3 (and even vanilla) this card added
-    // a strong mid-body and shoved AQUA to a 67% outlier. Shrunk to a Cost-1
-    // filler it measures balance-neutral, keeping the one-per-element pass from
-    // widening the very spread it's meant to close. (Doc's "Lure" fog dropped for
-    // the same reason — it was a second team-wide Misty.)
+    // Lure (On Summon): opponents in range have −25% accuracy against Anglerfish
+    // for 1 round.
+    passiveNames: { lure: "Lure" },
+    lure: { pct: 25, rounds: 1 },
   },
   {
     id: "gale_stormhide_bison",
@@ -5685,7 +5683,7 @@ export const CARDS: CardDef[] = [
       handler: "channelBuff",
       params: { dmg: 1, heal: 4, rounds: 2 },
       targetSide: "self",
-      text: "For 2 rounds, each round end: +1 DMG, heal +4, and cleanse your own BURN/SCALD.",
+      text: "For 2 rounds, each round end: +1 DMG, heal +4, and fully cleanse yourself.",
     },
   },
   {
@@ -5703,6 +5701,9 @@ export const CARDS: CardDef[] = [
     shields: 3,
     keywords: {},
     tribe: "Ice",
+    // Cold Snap: basic attacks deal +2 DMG to a FROZEN opponent.
+    passiveNames: { vsStatus: "Cold Snap" },
+    vsStatus: { status: "FREEZE", bonusDmg: 2 },
     // Mega Icicle: 5 DMG to a 2×2 area; a target already FROZEN has its remaining
     // FREEZE doubled (Cryo Freeze).
     special: {

@@ -1817,6 +1817,8 @@ function doCleanupPhase(draft: GameState): void {
     }
     // Shell Tuck's shaky aim wears off.
     if ((card.attackMissRounds ?? 0) > 0) card.attackMissRounds = (card.attackMissRounds ?? 0) - 1;
+    // Anglerfish's Lure fades.
+    if ((card.incomingMissRounds ?? 0) > 0) card.incomingMissRounds = (card.incomingMissRounds ?? 0) - 1;
     // A special-lockout (Diagnosis / Red Shift / Magic Ropes) wears off.
     if ((card.specialLockedRounds ?? 0) > 0) card.specialLockedRounds = (card.specialLockedRounds ?? 0) - 1;
     // BlastOff's temporary flight fades.
@@ -1825,7 +1827,7 @@ function doCleanupPhase(draft: GameState): void {
     if ((card.channelBuffRounds ?? 0) > 0) {
       if (card.channelBuffDmg) card.dmgBonus += card.channelBuffDmg;
       if (card.channelBuffHeal) healCard(draft, card, card.channelBuffHeal, card);
-      card.statuses = card.statuses.filter((s) => s.kind !== "BURN" && s.kind !== "SCALD"); // CLEANSE (DAWN-locked → burns only)
+      card.statuses = card.statuses.filter((s) => !NEGATIVE_STATUSES.includes(s.kind)); // full self-CLEANSE
       card.channelBuffRounds = (card.channelBuffRounds ?? 0) - 1;
       draft.log.push(`${label(draft, card)}'s bubble mends it (+${card.channelBuffDmg ?? 0} DMG, +${card.channelBuffHeal ?? 0} HP).`);
     }
