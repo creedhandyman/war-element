@@ -1221,8 +1221,6 @@ export function basicAttack(
     }
     // Diamond's Edge (Sheish): basics hit harder against a shielded target.
     if (aDef.bonusVsShield && t.curShields > 0) dmg *= aDef.bonusVsShield;
-    // Scoped 50GAL (Rain): a loaded, upgraded shot hits for +N.
-    if ((attacker.loadedBasicDmg?.attacks ?? 0) > 0) dmg += attacker.loadedBasicDmg!.dmg;
     const struckBefore = attacker.struckThisRound[t.instanceId] ?? 0;
     const r = resolveHit(draft, attacker, t, {
       kind: "basic",
@@ -1328,11 +1326,6 @@ export function basicAttack(
       draft.log.push(`${label(draft, attacker)}'s nightmare deals +${extra} bonus damage.`);
       if (directDamage(draft, attacker, primary, extra, false)) agg.targetDied = true;
     }
-  }
-  // Scoped 50GAL (Rain): spend one upgraded shot per ATTACK (not per hit).
-  if (!fromFollowup && (attacker.loadedBasicDmg?.attacks ?? 0) > 0) {
-    attacker.loadedBasicDmg!.attacks -= 1;
-    if (attacker.loadedBasicDmg!.attacks <= 0) attacker.loadedBasicDmg = undefined;
   }
   // Flaming Slasher: a status riding the next few attacks. Spent per ATTACK, not
   // per hit, and only when something actually landed.
@@ -2607,11 +2600,11 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       draft.log.push(`${label(draft, attacker)} hardens (+${broken} shields from the break).`);
     }
   },
-  /** Scoped 50GAL (Rain): load a burst of upgraded basics — the next N each hit
-   *  for +DMG (like Bleed Out's loaded darts). */
+  /** Scoped 50GAL (Rain): load extra shots onto the NEXT basic so it can spread
+   *  across up to N targets (Bleed Out's loaded-darts mechanic). */
   scopeUp(draft, attacker, _targets, params) {
-    attacker.loadedBasicDmg = { dmg: num(params, "dmg", 2), attacks: num(params, "attacks", 3) };
-    draft.log.push(`${label(draft, attacker)} scopes in — its next ${attacker.loadedBasicDmg.attacks} shots hit for +${attacker.loadedBasicDmg.dmg}.`);
+    attacker.loadedHits += num(params, "hits", 2);
+    draft.log.push(`${label(draft, attacker)} scopes in — its next shot spreads to up to ${getDef(attacker.defId).hits + attacker.loadedHits} targets.`);
   },
   /** Light Orb Creation (Aurora): conjure the three orbs (blue/green/red). */
   spawnOrbs(draft, attacker, _targets, _params) {

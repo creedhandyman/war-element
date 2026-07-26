@@ -793,8 +793,6 @@ export interface CardInstance {
   /** A status riding the next `attacks` basic attacks (SSeerr's Flaming
    *  Slasher). Decremented once per attack that lands, not per hit. */
   loadedOnHit?: { kind: StatusKind; duration: number; power: number; attacks: number };
-  /** Scoped 50GAL (Rain): the next `attacks` basic attacks each deal +`dmg`. */
-  loadedBasicDmg?: { dmg: number; attacks: number };
   /** Sea Terror (Siren): while transformed into another card, the defId to
    *  revert to when this form dies. Set on transform, cleared on revert. */
   transformedFrom?: string;

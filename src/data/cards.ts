@@ -6491,15 +6491,15 @@ export const CARDS: CardDef[] = [
     // team splash aura simplified to Rain's own splash.)
     passiveNames: { basicSplash: "Rainstorm" },
     basicSplash: 2,
-    // Scoped 50GAL: load 3 upgraded shots — the next 3 basic attacks each deal
-    // +2 DMG (range removed in this ruleset).
+    // Scoped 50GAL: scope in — the next basic shot spreads across up to 3
+    // targets (range = extra shots, replacing the deleted +2 RANGE).
     special: {
       name: "Scoped 50GAL",
       cost: 3,
       handler: "scopeUp",
-      params: { dmg: 2, attacks: 3 },
+      params: { hits: 2 },
       targetSide: "self",
-      text: "Your next 3 basic attacks each deal +2 DMG.",
+      text: "Your next basic attack fires 3 shots and can aim across up to 3 opponents.",
     },
   },
   {
