@@ -7461,19 +7461,17 @@ export const CARDS: CardDef[] = [
     element: "DAWN",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 4,
+    cost: 5,
     dmg: 3,
     hits: 2,
     hp: 17,
     sp: 7,
-    shields: 0,
+    shields: 2,
     keywords: {},
-    // Aqua & Pyro Mastery (Aura): AQUA and PYRO allies each gain +1 basic DMG.
-    passiveNames: { aura: "Aqua & Pyro Mastery" },
-    auras: [
-      { scope: "element", match: "AQUA", dmg: 1 },
-      { scope: "element", match: "PYRO", dmg: 1 },
-    ],
+    // A DAWN mage who wields both fire and water: he carries the PYRO Scorch
+    // aura (his basics apply BURN) and the AQUA Flow Change aura (on-summon
+    // boost pick), on top of his native DAWN Awakening.
+    elementAuras: ["PYRO", "AQUA"],
     // Burning Waterfall: BURN 2 + SCALD 2 to all opponents in range.
     special: {
       name: "Burning Waterfall",

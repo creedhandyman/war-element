@@ -453,9 +453,15 @@ export interface CardDef {
   /** Gaslighting (Liza): when any ALLY lands a kill, that ally gains +`dmg` DMG
    *  for `rounds` (until end of next round). */
   allyKillBuff?: { dmg: number; rounds: number };
-  /** Extra element/class/tribe auras beyond the primary `aura` (SirCrest's dual
-   *  AQUA+PYRO mastery, Kloud's Mage+Ranged buff). */
+  /** Extra element/class/tribe auras beyond the primary `aura` (Kloud's
+   *  Mage+Ranged buff). */
   auras?: AuraBonusDef[];
+  /** Extra ELEMENT auras this card carries beyond its own element (SirCrest,
+   *  a DAWN mage who also wields PYRO Scorch and AQUA Flow Change). The card
+   *  behaves as if it belonged to each listed element for aura purposes — its
+   *  basics apply that element's on-hit aura, and it runs that element's
+   *  on-summon aura when it lands. */
+  elementAuras?: Element[];
   /** Golden Resonance (Lithara): each successful Special use grants +shields and
    *  +DMG (stacking). */
   onSpecialUse?: { shields: number; dmg: number };

@@ -15,7 +15,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget } from "./rules";
-import { PYRO_BURN_STACK_CAP } from "./auras";
+import { PYRO_BURN_STACK_CAP, hasElementAura } from "./auras";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
 import type {
@@ -1341,7 +1341,7 @@ export function basicAttack(
       // repeat attacks — and its card-specific BURN riders — did nothing for
       // each other. Stacking ADDS to whatever is there rather than replacing it,
       // so a stronger card BURN is still never overwritten, only built on.
-      if (aDef.element === "PYRO" && t.curHp > 0) {
+      if (hasElementAura(aDef, "PYRO") && t.curHp > 0) {
         const burning = t.statuses.find((x) => x.kind === "BURN");
         if (!burning) applyStatus(draft, t, "BURN", 1, 1, "PYRO");
         else if (burning.power < PYRO_BURN_STACK_CAP) {

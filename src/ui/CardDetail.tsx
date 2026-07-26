@@ -129,8 +129,12 @@ const rounds = (n: number) => `${n} round${n === 1 ? "" : "s"}`;
  *  The element aura (shared by every card of this element) leads the list.
  *  Shared by the in-game CardDetail and the Deck Builder's card preview. */
 export function describePassives(def: CardDef): string[] {
-  const aura = ELEMENT_AURA[def.element];
-  const passives: string[] = [`${def.element} aura — ${aura.name}: ${aura.desc}`];
+  const passives: string[] = [];
+  // The card's own element aura, plus any it borrows (SirCrest's PYRO + AQUA).
+  for (const el of [def.element, ...(def.elementAuras ?? [])]) {
+    const a = ELEMENT_AURA[el];
+    passives.push(`${el} aura — ${a.name}: ${a.desc}`);
+  }
 
   /** Push a line, prefixed with the card's own name for that passive when it
    *  has one. `key` is the def field the line was derived from. */

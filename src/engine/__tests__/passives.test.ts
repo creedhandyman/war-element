@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS } from "../combat";
-import { applyFlow, PYRO_BURN_STACK_CAP } from "../auras";
+import { applyFlow, hasElementAura, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard } from "../state";
@@ -354,16 +354,18 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[steel.instanceId].curShields).toBe(7); // +1 stolen from each of the two
   });
 
-  it("SirCrest's dual mastery buffs both an AQUA and a PYRO ally", () => {
-    const delta = (defId: string) => {
-      const on = prepState(); place(on, "dawn_sircrest", "P1", 3, 3);
-      const ally1 = place(on, defId, "P1", 3, 0);
-      const off = prepState();
-      const ally2 = place(off, defId, "P1", 3, 0);
-      return effectiveDmg(on, on.cards[ally1.instanceId]) - effectiveDmg(off, off.cards[ally2.instanceId]);
-    };
-    expect(delta("aqua_rain")).toBe(1); // AQUA ally
-    expect(delta("pyro_scully")).toBe(1); // PYRO ally
+  it("SirCrest wields the PYRO (Scorch) and AQUA (Flow Change) element auras", () => {
+    const def = getDef("dawn_sircrest");
+    // Carries both borrowed element auras, plus his native DAWN.
+    expect(hasElementAura(def, "PYRO")).toBe(true);
+    expect(hasElementAura(def, "AQUA")).toBe(true);
+    expect(hasElementAura(def, "DAWN")).toBe(true);
+    // Scorch in action: his basic attack sets the target alight (BURN).
+    const s = prepState();
+    const sir = place(s, "dawn_sircrest", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, sir.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].statuses.some((x) => x.kind === "BURN")).toBe(true);
   });
 
   it("Dyna's Demolition Charge deals 4 + half the target's current HP", () => {

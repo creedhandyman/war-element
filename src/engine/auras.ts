@@ -5,7 +5,13 @@
 
 import { getDef } from "../data/cards";
 import { MULTI_HIT_BONUS_MIN } from "./types";
-import type { CardInstance, Element } from "./types";
+import type { CardDef, CardInstance, Element } from "./types";
+
+/** Does this card carry element `el`'s aura? True for its own element, plus any
+ *  extra elements it borrows via `elementAuras` (SirCrest's PYRO/AQUA mastery). */
+export function hasElementAura(def: CardDef, el: Element): boolean {
+  return def.element === el || !!def.elementAuras?.includes(el);
+}
 
 export interface AuraDef {
   name: string;

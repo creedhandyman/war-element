@@ -44,7 +44,9 @@ import {
 } from "./rules";
 import type {
   EnchantMode,
+  CardDef,
   CardInstance,
+  Element,
   GameState,
   Intent,
   PlayerId,
@@ -1407,10 +1409,21 @@ export function openFlowRepick(draft: GameState): void {
   }
 }
 
-/** Element auras that fire the moment a card is summoned. */
+/** Element auras that fire the moment a card is summoned. Runs the card's own
+ *  element aura plus any it borrows via `elementAuras` (SirCrest's AQUA Flow
+ *  Change on top of his DAWN Awakening). */
 function applyElementSummonAura(draft: GameState, inst: CardInstance): void {
   const def = getDef(inst.defId);
-  switch (def.element) {
+  const seen = new Set<Element>();
+  for (const el of [def.element, ...(def.elementAuras ?? [])]) {
+    if (seen.has(el)) continue;
+    seen.add(el);
+    applyOneElementSummonAura(draft, inst, def, el);
+  }
+}
+
+function applyOneElementSummonAura(draft: GameState, inst: CardInstance, def: CardDef, el: Element): void {
+  switch (el) {
     case "BORE": // Exostone — enters play with +2 shields.
       inst.curShields += 2;
       draft.log.push(`${def.name} hardens (Exostone +2 shields).`);
@@ -1851,8 +1864,8 @@ function doCleanupPhase(draft: GameState): void {
         if (s.kind === "BLEED") bleedDealtBy[enemyOf(card.owner)] += s.power;
         draft.log.push(`${label(draft, card)} takes ${dot} ${s.kind} damage${boosted ? " (accelerated)" : ""}.`);
         if (s.kind === "BURN" && card.curShields > 0) {
-          card.curShields--;
-          draft.log.push(`${label(draft, card)}'s shields melt (−1).`);
+          card.curShields = Math.max(0, card.curShields - 2); // PYRO shred: melts 2 shields/tick
+          draft.log.push(`${label(draft, card)}'s shields melt (−2).`);
         }
         if (card.curHp <= 0) {
           if (defeatCard(draft, card, s.kind)) break; // removed; no further ticks
