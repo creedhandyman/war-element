@@ -37,7 +37,10 @@ export function DeckBuilder(props: {
    *  (18 on the standard board, 28 on the large one). */
   boardSize?: number;
 }) {
-  const limits = deckLimits(props.boardSize ?? 4);
+  // Which battlefield this deck is being built for — you can build an 18-card
+  // (4×4) or a 28-card (5×5) deck regardless of the current game mode.
+  const [buildSize, setBuildSize] = useState<number>(props.boardSize ?? 4);
+  const limits = deckLimits(buildSize);
   const [decks, setDecks] = useState<CustomDeck[]>(() => loadCustomDecks());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -77,7 +80,7 @@ export function DeckBuilder(props: {
     });
   }, [pool, filter, classFilter, sortBy]);
   const pickedSet = new Set(picked);
-  const check = validateDeck(picked, props.boardSize ?? 4);
+  const check = validateDeck(picked, buildSize);
 
   // Live composition of the deck being built — by element, class, and cost curve.
   const stats = useMemo(() => {
@@ -174,6 +177,10 @@ export function DeckBuilder(props: {
               onChange={(e) => setName(e.target.value)}
               maxLength={28}
             />
+            <div className="db-size">
+              <button className={buildSize === 4 ? "act" : ""} onClick={() => setBuildSize(4)}>4×4 · 18</button>
+              <button className={buildSize === 5 ? "act" : ""} onClick={() => setBuildSize(5)}>5×5 · 28</button>
+            </div>
             <div className="db-count" style={{ color: countColor }}>
               {picked.length} / {limits.max}
               <span className="db-hint"> · {limits.min}–{limits.max} (aim {limits.target})</span>

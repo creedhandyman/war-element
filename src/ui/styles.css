@@ -1056,6 +1056,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-side { width: 224px; flex: none; display: flex; flex-direction: column; gap: 8px; max-height: 66vh; overflow-y: auto; padding-right: 2px; }
 .db-name { font-size: 14px; font-weight: 700; padding: 9px 11px; border-radius: 10px; background: var(--void-2); color: var(--ink); border: 1px solid var(--panel-line); }
 .db-count { font-size: 20px; font-weight: 900; }
+.db-size { display: flex; gap: 4px; margin: 4px 0; }
+.db-size button { flex: 1; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--panel-line); background: var(--void-2); color: var(--ink-dim); font-size: 11px; font-weight: 800; cursor: pointer; }
+.db-size button.act { background: var(--accent); color: #241a06; border-color: var(--gold-hi); }
 .db-hint { font-size: 10px; font-weight: 600; color: var(--ink-faint); letter-spacing: 0.02em; }
 .db-actions { display: flex; gap: 8px; }
 .db-actions .lockin { flex: 1; padding: 9px 10px; font-size: 12px; margin: 0; }
