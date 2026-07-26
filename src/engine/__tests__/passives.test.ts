@@ -454,6 +454,24 @@ describe("medium-tier passives (audit batch)", () => {
     expect(effectiveDmg(s, s.cards[skel.instanceId]) - base).toBe(2);
   });
 
+  it("Canister's KaBoooom blasts every non-PYRO card on death", () => {
+    const s = prepState();
+    const canister = place(s, "pyro_canister", "P1", 3, 0);
+    const pyroAlly = place(s, "pyro_tiki", "P1", 3, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // PYRO — spared
+    const enemy = place(s, "dusk_gool", "P2", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 }); // non-PYRO — hit
+    defeatCard(s, s.cards[canister.instanceId], "test");
+    expect(s.cards[enemy.instanceId].curHp).toBe(14); // 20 - 6
+    expect(s.cards[pyroAlly.instanceId].curHp).toBe(20); // PYRO spared
+  });
+
+  it("Equestrian's Solar aura makes allies immune to WEAKEN", () => {
+    const s = prepState();
+    const ally = place(s, "dusk_gool", "P1", 3, 0);
+    place(s, "dawn_equestrian", "P1", 3, 1); // Solar Sovereign aura
+    applyStatus(s, s.cards[ally.instanceId], "WEAKEN", 2, 0, "DUSK");
+    expect(s.cards[ally.instanceId].statuses.some((st) => st.kind === "WEAKEN")).toBe(false);
+  });
+
   it("a card with only an inert basic takes no turn at all", () => {
     const s = prepState();
     const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump

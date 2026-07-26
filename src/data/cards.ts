@@ -8128,6 +8128,55 @@ export const CARDS: CardDef[] = [
       text: "Spawn 3 attacking Owllies.",
     },
   },
+  {
+    id: "pyro_canister",
+    name: "Canister",
+    rarity: "rare",
+    element: "PYRO",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 0,
+    hits: 1,
+    hp: 15,
+    sp: 0,
+    shields: 0,
+    keywords: {},
+    tribe: "Forged Tech",
+    // KaBoooom (On Death): 6 DMG to every non-PYRO card on the board.
+    passiveNames: { onDeath: "KaBoooom" },
+    onDeath: { dmg: 0, boardBlast: { dmg: 6, exceptElement: "PYRO" } },
+  },
+  {
+    id: "dawn_equestrian",
+    name: "Equestrian",
+    rarity: "mythic",
+    element: "DAWN",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 9,
+    dmg: 12,
+    hits: 1,
+    hp: 23,
+    sp: 12,
+    shields: 4,
+    keywords: {},
+    // 24K Stallion (On Summon): the mount arrives with +24 HP.
+    summonSelfBuff: { dmg: 0, hp: 24 },
+    // Solar Sovereign (Aura): allies are immune to stat reduction (WEAKEN).
+    passiveNames: { statDropImmuneAura: "Solar Sovereign" },
+    statDropImmuneAura: true,
+    // Solar Horse Power: charge the column ahead, 15 DMG to opponents hit and
+    // shove the lead one to the farthest slot.
+    special: {
+      name: "Solar Horse Power",
+      cost: 4,
+      handler: "battleCharge",
+      params: { charge: 4, dmg: 15, chainDmg: 15, push: 5 },
+      targetSide: "self",
+      text: "Charge straight ahead, dealing 15 DMG to opponents in the column and pushing the leader to the farthest slot.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

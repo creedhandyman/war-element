@@ -691,6 +691,9 @@ export interface CardDef {
    *  clip ONE extra adjacent target for full basic damage. (The mirror of
    *  Blinding Star; the two cancel out.) */
   splashAura?: boolean;
+  /** Equestrian's aura: while it lives, its allies can't be WEAKENed (immune to
+   *  stat reduction). */
+  statDropImmuneAura?: boolean;
   summonSelfShields?: number;
   /** Fog Settlement (Misty): on summon, its owner's battlefield gains N rounds
    *  of the fog (see PlayerState.foggedRounds). */
@@ -754,6 +757,9 @@ export interface CardDef {
     rowAhead?: boolean;
     /** Pop (Florence): as it dies, deal this to EVERY opponent immediately. */
     aoeDmg?: number;
+    /** KaBoooom (Canister): on death, deal `dmg` to EVERY card on the board
+     *  (both sides) except those of `exceptElement`. */
+    boardBlast?: { dmg: number; exceptElement?: string };
     /** Out with a Bang (Taper): on death, apply a status to every opponent in
      *  their far (home) row. */
     farRowStatus?: { kind: StatusKind; duration: number; power: number };

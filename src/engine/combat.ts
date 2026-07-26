@@ -163,6 +163,12 @@ export function applyStatus(
     draft.log.push(`${label(draft, target)} is immune to status (${kind} fizzles).`);
     return;
   }
+  // Equestrian's aura: allies are immune to stat reduction (WEAKEN) while a
+  // living holder stands.
+  if (kind === "WEAKEN" && boardCards(draft, target.owner).some((a) => a.curHp > 0 && getDef(a.defId).statDropImmuneAura)) {
+    draft.log.push(`${label(draft, target)} shrugs off WEAKEN — Solar aura protects it.`);
+    return;
+  }
   // Surge Protector: while Electro Surge is armed, Surge shrugs off negatives.
   if (target.electroSurgeActive && NEGATIVE_STATUSES.includes(kind)) {
     draft.log.push(`${label(draft, target)}'s Surge Protector absorbs ${kind}.`);
@@ -305,6 +311,14 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
       marker.guaranteedDodge = (marker.guaranteedDodge ?? 0) + 1;
       draft.log.push(`${label(draft, marker)}'s mark pays off — Blur banks a guaranteed dodge.`);
     }
+  }
+  // KaBoooom (Canister): as it dies, blast every card on the board (both sides)
+  // except its own element.
+  const bb = def.onDeath?.boardBlast;
+  if (bb) {
+    const victims = boardCards(draft).filter((c) => c.instanceId !== card.instanceId && c.curHp > 0 && getDef(c.defId).element !== bb.exceptElement);
+    for (const v of victims) directDamage(draft, card, v, bb.dmg, false);
+    if (victims.length) draft.log.push(`${label(draft, card)} goes KaBoooom — ${bb.dmg} to ${victims.length} non-${bb.exceptElement ?? ""} card(s).`);
   }
   // Unstable Core (Nitro): a final explosion across the whole enemy board, on
   // ANY death path (this is the one place every death funnels through).

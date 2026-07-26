@@ -486,6 +486,8 @@ export function describePassives(def: CardDef): string[] {
     named("blindingStar", `Blinding Star (Aura): while it lives, opponents' basic attacks hit one fewer target (their splash is suppressed).`);
   if (def.splashAura)
     named("splashAura", `Aura: while it lives, allied basic attacks also clip one extra adjacent target for full damage.`);
+  if (def.statDropImmuneAura)
+    named("statDropImmuneAura", `Aura: while it lives, allies are immune to stat reduction (WEAKEN).`);
   if (def.blocksRangedChance) {
     const nm = def.passiveNames?.blocksRangedChance ?? "Rocky Force Field";
     passives.push(def.blocksRangedChance >= 100
@@ -577,6 +579,7 @@ export function describePassives(def: CardDef): string[] {
         `raises ${od.spawnToken.count} ${getDef(od.spawnToken.token).name}${od.spawnToken.count > 1 ? "s" : ""}`,
       );
     if (od.aoeDmg) parts.push(`bursts for ${od.aoeDmg} DMG to every opponent`);
+    if (od.boardBlast) parts.push(`explodes for ${od.boardBlast.dmg} DMG to every card on the board${od.boardBlast.exceptElement ? ` except ${od.boardBlast.exceptElement}` : ""}`);
     if (od.farRowStatus) parts.push(`applies ${od.farRowStatus.kind} ${od.farRowStatus.power} to opponents in their far row for ${rounds(od.farRowStatus.duration)}`);
     if (od.roundEndAoe) parts.push(`calls down a meteor — ${od.roundEndAoe} DMG to every opponent at the end of next round`);
     if (od.passEnchant) parts.push("hands its armed Enchantment to the ally with the highest DMG");
