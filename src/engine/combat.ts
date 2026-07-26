@@ -2538,6 +2538,13 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       draft.log.push(`${label(draft, attacker)} hardens (+${broken} shields from the break).`);
     }
   },
+  /** Golden Guardian (Leo): a sustained heal-over-time — +N HP each round for a
+   *  stretch (reuses the shared regen tick). */
+  regenBuff(draft, attacker, _targets, params) {
+    attacker.regenRoundsLeft = num(params, "rounds", 7);
+    attacker.regenPower = num(params, "power", 5);
+    draft.log.push(`${label(draft, attacker)} basks in golden light (+${attacker.regenPower} HP/round for ${attacker.regenRoundsLeft}r).`);
+  },
   /** Polar Shift (Polar King): FREEZE the weak and plate the whole team. */
   polarShift(draft, attacker, _targets, params) {
     const underHp = num(params, "underHp", 4);

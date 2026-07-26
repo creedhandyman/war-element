@@ -6498,6 +6498,60 @@ export const CARDS: CardDef[] = [
       text: "Break stealth to deal 14 DMG (PEN) to an opponent.",
     },
   },
+  {
+    id: "dawn_leo",
+    name: "Leo",
+    rarity: "legendary",
+    element: "DAWN",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 6,
+    dmg: 7,
+    hits: 1,
+    hp: 25,
+    sp: 7,
+    shields: 1,
+    keywords: {},
+    // King of the Wild (On Opp Summon): gain +2 shields and +1 DMG.
+    passiveNames: { onOppSummonSelfBuff: "King of the Wild" },
+    onOppSummonSelfBuff: { shields: 2, dmg: 1 },
+    // Golden Guardian: +5 HP every round for 7 rounds.
+    special: {
+      name: "Golden Guardian",
+      cost: 3,
+      handler: "regenBuff",
+      params: { rounds: 7, power: 5 },
+      targetSide: "self",
+      cooldown: 5,
+      text: "Gain +5 HP every round for 7 rounds.",
+    },
+  },
+  {
+    id: "dawn_aurora",
+    name: "Aurora",
+    rarity: "legendary",
+    element: "DAWN",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 5,
+    hits: 2,
+    hp: 14,
+    sp: 10,
+    shields: 3,
+    keywords: {},
+    // Light Orb Creation: conjures protective light — Aurora gains 6 shields
+    // (the orbs each absorb a hit). (Doc's spawned Orb tokens + Life Cycle are
+    // simplified to a shield burst — no Orb token art yet.)
+    special: {
+      name: "Light Orb Creation",
+      cost: 3,
+      handler: "grantShield",
+      params: { amount: 6 },
+      targetSide: "self",
+      text: "Surround yourself with light orbs — gain 6 shields.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
