@@ -8014,9 +8014,9 @@ export const CARDS: CardDef[] = [
     cost: 9,
     dmg: 8,
     hits: 1,
-    hp: 25,
+    hp: 30,
     sp: 5,
-    shields: 7,
+    shields: 6,
     keywords: {},
     tribe: "Cavernous",
     // Crystal Growth (End of Round): +1 shield, stacking with no cap.
