@@ -7060,6 +7060,41 @@ export const CARDS: CardDef[] = [
       text: "Command allies in the row directly ahead to each use their basic attack.",
     },
   },
+
+  // ───────────────── COST-8 LEGENDARY ─────────────────
+  {
+    id: "pyro_infernus_rex",
+    name: "Infernus Rex",
+    rarity: "legendary",
+    element: "PYRO",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 8,
+    dmg: 9,
+    hits: 1,
+    hp: 32,
+    sp: 7,
+    shields: 3,
+    keywords: {},
+    tribe: "Volcanic",
+    // On Summon: BURN 2 (3r) to the adjacent row. Burning Roar (On Hit): +1 DMG
+    // on a landed basic (stacking). On Kill: +2 DMG permanently. (Doc's Burning
+    // Roar shield + 3-stack cap simplified to a permanent +1-DMG-on-hit.)
+    passiveNames: { onSummon: "Volcanic Arrival", onHitSelfBuff: "Burning Roar", onKill: "Volcanic Charge" },
+    onSummon: { handler: "barrage", params: { dmg: 0, rowAhead: 1, targets: 99, statusKind: "BURN", statusPower: 2, statusDuration: 3 }, targetSide: "enemy" },
+    onHitSelfBuff: { dmg: 1 },
+    onKill: { buffDmg: 2 },
+    // Volcanic Charge: charge up to 3 forward and deal 12 to the first opponent
+    // hit. (Doc's on-kill 6-splash simplified; the +2-DMG-on-kill is the onKill.)
+    special: {
+      name: "Volcanic Charge",
+      cost: 4,
+      handler: "strike",
+      params: { chargeFirst: 1, charge: 3, dmg: 12 },
+      targetSide: "enemy",
+      text: "Move up to 3 spaces forward and deal 12 DMG to the first opponent hit.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

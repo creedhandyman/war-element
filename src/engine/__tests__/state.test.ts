@@ -58,6 +58,11 @@ describe("setup", () => {
       // Ability-carried, downward: 40 vs a Cost-7 budget of 45. Siren's
       // transform-into-Krakler kit carries the missing value (cost 7, no bump).
       "aqua_siren",
+      // Doc stat line (9/32/3sh/7): the doc counts shields x1 (Total 51), the
+      // game x2 (54 vs a Cost-8 budget of 50, +4). Kept as the doc printed it —
+      // an ability-carried near-mythic (Volcanic Charge + Burning Roar stacks +
+      // on-summon BURN AoE).
+      "pyro_infernus_rex",
     ]);
     for (const def of CARDS) {
       if (exceptions.has(def.id)) continue;
