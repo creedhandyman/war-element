@@ -527,7 +527,7 @@ export function describePassives(def: CardDef): string[] {
       );
     if (od.aoeDmg) parts.push(`bursts for ${od.aoeDmg} DMG to every opponent`);
     if (od.farRowStatus) parts.push(`applies ${od.farRowStatus.kind} ${od.farRowStatus.power} to opponents in their far row for ${rounds(od.farRowStatus.duration)}`);
-    if (od.roundEndAoe) parts.push(`calls down a meteor — ${od.roundEndAoe} DMG to every opponent at the end of the round`);
+    if (od.roundEndAoe) parts.push(`calls down a meteor — ${od.roundEndAoe} DMG to every opponent at the end of next round`);
     if (od.passEnchant) parts.push("hands its armed Enchantment to the ally with the highest DMG");
     if (od.frightenInRange) parts.push(`FRIGHTENs nearby enemies for ${rounds(od.frightenInRange)}`);
     if (od.allyTribeBuffDmg)

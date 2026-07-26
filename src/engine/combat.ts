@@ -296,12 +296,12 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
       draft.log.push(`${label(draft, card)} passes its ${heir.enchant} enchantment to ${label(draft, heir)}.`);
     }
   }
-  // Meteor (Cosmic): a dying card can flag a strike that lands at round end —
-  // 3 DMG to every opponent, fired from Cleanup (see doCleanupPhase).
+  // Meteor (Cosmic): a dying card flags a strike that lands at the END of the
+  // NEXT round — 3 DMG to every opponent, fired from Cleanup (see doCleanupPhase).
   if (def.onDeath?.roundEndAoe) {
     const owner = draft.players[card.owner];
-    (owner.pendingMeteors ??= []).push({ round: draft.round, dmg: def.onDeath.roundEndAoe, source: card });
-    draft.log.push(`${label(draft, card)} calls down a meteor — it strikes at round's end.`);
+    (owner.pendingMeteors ??= []).push({ round: draft.round + 1, dmg: def.onDeath.roundEndAoe, source: card });
+    draft.log.push(`${label(draft, card)} calls down a meteor — it strikes at the end of next round.`);
   }
   // Carnage (Zhunk): every living card that feeds on this tribe grows a little.
   // At the death choke-point, so a Zombie lost to a DOT or a tick counts too.
@@ -1682,13 +1682,17 @@ export function drainMaxHp(
   // HERE, at the one choke-point every drain funnels through — the keyword on a
   // basic and the `drain` param on a Special both land here, so neither can be
   // missed and a future third caller inherits it automatically.
+  if (target.curHp <= 0) return 0;
   const boosted = amount + fieldBonus(draft, attacker, "drainBonus");
   const taken = Math.max(0, Math.min(boosted, target.maxHp - 1));
   if (taken <= 0) return 0;
   target.maxHp -= taken;
-  target.curHp = Math.min(target.curHp, target.maxHp);
+  target.curHp = Math.min(target.curHp, target.maxHp); // the ceiling drop shrinks its usable pool
+  // The stolen point now HEALS the drainer — usable HP, not just a taller empty
+  // bar. Raise the ceiling first so the heal has room; healCard respects SEAL.
   attacker.maxHp += taken;
-  draft.log.push(`${label(draft, attacker)} drains ${taken} max HP from ${label(draft, target)}.`);
+  healCard(draft, attacker, taken, attacker);
+  draft.log.push(`${label(draft, attacker)} drains ${taken} HP from ${label(draft, target)}.`);
   return taken;
 }
 
@@ -2372,8 +2376,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   flameStrike(draft, attacker, targets, params) {
     const dmg = num(params, "dmg", 1);
     const n = num(params, "targets", 8);
+    // Random targeting: shuffle the eligible opponents with the game RNG
+    // (Math.random is banned in the engine) and spray the first N.
+    const pool = targets.slice();
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = randInt(draft, i + 1);
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
     let hit = 0;
-    for (const t of targets.slice(0, n)) {
+    for (const t of pool.slice(0, n)) {
       if (draft.cards[t.instanceId] && t.curHp > 0 && attacker.curHp > 0) {
         resolveHit(draft, attacker, t, { kind: "special", dmg, hits: 1, pen: false, crit: false });
         hit++;
@@ -2402,14 +2413,14 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       const take = Math.min(per, c.maxHp - 1);
       if (take > 0) {
         c.maxHp -= take;
-        if (c.curHp > c.maxHp) c.curHp = c.maxHp;
+        c.curHp = Math.min(c.curHp, c.maxHp);
         total += take;
       }
     }
     if (total > 0) {
       attacker.maxHp += total;
-      attacker.curHp += total;
-      draft.log.push(`${label(draft, attacker)}'s Bloody Exchange drains ${total} max HP to itself.`);
+      healCard(draft, attacker, total, attacker); // heal for the total drained
+      draft.log.push(`${label(draft, attacker)}'s Bloody Exchange drains ${total} HP to itself.`);
     }
   },
   /** Orbital Shot (Raya): mark a target; a 14-DMG arrow falls on it next round. */
@@ -2677,12 +2688,17 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const stolen = Math.min(amount, target.maxHp - 1); // never below 1 max HP
     if (stolen > 0) {
       target.maxHp -= stolen;
+      // Transfer drains ACTIVE HP too and heals the caster; deleteOnly just carves
+      // the ceiling (Nightfang's Soul Slash keeps its destroy-only identity).
       target.curHp = Math.min(target.curHp, target.maxHp);
-      if (!deleteOnly) attacker.maxHp += stolen;
+      if (!deleteOnly) {
+        attacker.maxHp += stolen;
+        healCard(draft, attacker, stolen, attacker); // the theft heals the caster
+      }
       draft.log.push(
         deleteOnly
           ? `${label(draft, attacker)} carves ${stolen} max HP out of ${label(draft, target)} — gone for good.`
-          : `${label(draft, attacker)} drains ${stolen} max HP from ${label(draft, target)}.`,
+          : `${label(draft, attacker)} drains ${stolen} HP from ${label(draft, target)}.`,
       );
     }
     const selfShields = num(params, "selfShields", 0);

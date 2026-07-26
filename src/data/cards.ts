@@ -6146,7 +6146,7 @@ export const CARDS: CardDef[] = [
       params: { dmg: 1, targets: 8, move: 3 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 1 DMG to up to 8 opponents and move up to 3 spaces.",
+      text: "Deal 1 DMG to up to 8 RANDOM opponents and move up to 3 spaces.",
     },
   },
   {
