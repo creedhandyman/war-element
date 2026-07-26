@@ -7756,9 +7756,9 @@ export const CARDS: CardDef[] = [
     shields: 2,
     // Rime Barrier: BLOCK 2 against every hit.
     keywords: { BLOCK: 2 },
-    // Frostbite: basics have a 30% chance to FREEZE for the round.
+    // Frostbite: basics have a 30% chance to FREEZE for 2 rounds.
     passiveNames: { onHitStatus: "Frostbite" },
-    onHitStatus: { kind: "FREEZE", duration: 1, power: 0, chance: 30 },
+    onHitStatus: { kind: "FREEZE", duration: 2, power: 0, chance: 30 },
   },
   {
     id: "dawn_supernova",
