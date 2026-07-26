@@ -243,6 +243,20 @@ describe("medium-tier passives (audit batch)", () => {
     expect(40 - s.cards[other.instanceId].curHp).toBe(2);
   });
 
+  it("Supernova's Blinding Star suppresses an enemy basic's splash target", () => {
+    const splashDealt = (withStar: boolean) => {
+      const s = prepState();
+      const rain = place(s, "aqua_rain", "P1", 3, 0); // Rainstorm: basicSplash 2
+      const primary = place(s, "dusk_crow", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+      const adj = place(s, "dusk_crow", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+      if (withStar) place(s, "dawn_supernova", "P2", 0, 3); // Blinding Star on Rain's enemy side
+      basicAttack(s, rain.instanceId, primary.instanceId);
+      return 40 - s.cards[adj.instanceId].curHp;
+    };
+    expect(splashDealt(false)).toBe(2); // control — the splash lands
+    expect(splashDealt(true)).toBe(0); // Blinding Star eats the extra target
+  });
+
   it("a card with only an inert basic takes no turn at all", () => {
     const s = prepState();
     const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump

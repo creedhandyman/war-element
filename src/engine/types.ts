@@ -658,6 +658,9 @@ export interface CardDef {
    *  Only basics: it is read inside effectiveDmg, and Specials carry their own
    *  printed damage rather than routing through it. */
   intimidate?: { dmg: number; rows: number };
+  /** Blinding Star (Supernova): while this card lives, opponents' basic attacks
+   *  hit ONE fewer target — their extra/splash target is suppressed. */
+  blindingStar?: boolean;
   summonSelfShields?: number;
   /** Fog Settlement (Misty): on summon, its owner's battlefield gains N rounds
    *  of the fog (see PlayerState.foggedRounds). */

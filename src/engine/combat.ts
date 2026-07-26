@@ -1428,8 +1428,11 @@ export function basicAttack(
   // Sky Scout (Syt Bird): while the owner's scout buff is up, a single-target
   // basic also clips ONE enemy adjacent to the primary target. Not for the
   // follow-up shots themselves (no chains).
+  // Blinding Star (Supernova): a living enemy holder suppresses this attacker's
+  // ONE extra splash target — its basics hit one fewer.
+  const blinded = boardCards(draft, enemyOf(attacker.owner)).some((e) => e.curHp > 0 && getDef(e.defId).blindingStar);
   if (
-    !fromFollowup && agg.landedHits > 0 && attacker.curHp > 0 &&
+    !fromFollowup && agg.landedHits > 0 && attacker.curHp > 0 && !blinded &&
     (draft.players[attacker.owner].basicSplashRounds ?? 0) > 0
   ) {
     const primary = draft.cards[groups[0]?.targetId];
@@ -1476,7 +1479,7 @@ export function basicAttack(
   }
   // Rainstorm (Rain): a landed basic splashes onto one enemy adjacent to the
   // primary target.
-  if (aDef.basicSplash && agg.landedHits > 0 && attacker.curHp > 0) {
+  if (aDef.basicSplash && agg.landedHits > 0 && attacker.curHp > 0 && !blinded) {
     const primary = draft.cards[groups[0]?.targetId];
     if (primary?.pos) {
       const splash = boardCards(draft, enemyOf(attacker.owner)).find(

@@ -465,6 +465,8 @@ export function describePassives(def: CardDef): string[] {
       "intimidate",
       `Aura: opponents within ${def.intimidate.rows === 1 ? "one row" : `${def.intimidate.rows} rows`} whose DMG is lower than this card's CURRENT DMG lose ${def.intimidate.dmg} DMG from their basic attacks.`,
     );
+  if (def.blindingStar)
+    named("blindingStar", `Blinding Star (Aura): while it lives, opponents' basic attacks hit one fewer target (their splash is suppressed).`);
   if (def.blocksRangedChance) {
     const nm = def.passiveNames?.blocksRangedChance ?? "Rocky Force Field";
     passives.push(def.blocksRangedChance >= 100
