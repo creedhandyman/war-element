@@ -369,6 +369,19 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
       draft.log.push(`${label(draft, c)} feeds on the fallen — the team heals +${dh}.`);
     }
   }
+  // Diamond Kingdom (Diam): an allied BORE card's fall hardens the weakest
+  // survivor — the lowest-HP ally gains a one-round BLOCK.
+  for (const c of boardCards(draft)) {
+    const bd = getDef(c.defId).blockOnAllyDeath;
+    if (!bd || c.curHp <= 0 || c.owner !== card.owner || c.instanceId === card.instanceId) continue;
+    if (bd.element && getDef(card.defId).element !== bd.element) continue;
+    const allies = boardCards(draft, c.owner).filter((a) => a.curHp > 0);
+    if (allies.length === 0) continue;
+    const weakest = allies.reduce((lo, a) => (a.curHp < lo.curHp ? a : lo), allies[0]);
+    weakest.blockPower = Math.max(weakest.blockPower ?? 0, bd.block);
+    weakest.blockRoundsLeft = Math.max(weakest.blockRoundsLeft ?? 0, bd.rounds);
+    draft.log.push(`${label(draft, c)}'s Diamond Kingdom hardens ${label(draft, weakest)} (BLOCK ${bd.block} for ${bd.rounds}r).`);
+  }
   // Life Cycle (Aurora): an opponent's death recharges one Light Orb (cycling
   // blue -> green -> red).
   for (const c of boardCards(draft)) {
@@ -659,7 +672,8 @@ export function resolveHit(
     // Incinerate ramp: +1 per consecutive landed hit on this target (this volley
     // + hits already landed on it this round).
     if (opts.incinerate) remaining += (opts.incinerateBase ?? 0) + result.landedHits;
-    const block = Number(tDef.keywords.BLOCK ?? 0) + wallFlatReduction(draft, target) + fieldBonus(draft, target, "block");
+    const tempBlk = (target.blockRoundsLeft ?? 0) > 0 ? (target.blockPower ?? 0) : 0;
+    const block = Number(tDef.keywords.BLOCK ?? 0) + wallFlatReduction(draft, target) + fieldBonus(draft, target, "block") + tempBlk;
     if (block > 0) remaining = Math.max(0, remaining - block);
     // Iron Ore (Bolder): half damage (round down) from Ranger/Assassin attackers.
     if (tDef.blockVsClasses?.includes(getDef(attacker.defId).cardClass)) remaining = Math.floor(remaining / 2);
@@ -1730,7 +1744,8 @@ export function spellHit(
   if (!t || t.curHp <= 0) return false;
   const tDef = getDef(t.defId);
   let remaining = dmg;
-  const block = Number(tDef.keywords.BLOCK ?? 0) + wallFlatReduction(draft, t) + fieldBonus(draft, t, "block");
+  const tempBlk = (t.blockRoundsLeft ?? 0) > 0 ? (t.blockPower ?? 0) : 0;
+  const block = Number(tDef.keywords.BLOCK ?? 0) + wallFlatReduction(draft, t) + fieldBonus(draft, t, "block") + tempBlk;
   if (block > 0) remaining = Math.max(0, remaining - block); // BLOCK applies even to PEN
   let toHp: number;
   if (pen) {
@@ -2816,6 +2831,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   },
   /** War Cry (Golde): a rallying shout — the caster plates up and the whole team
    *  hits harder for the round. */
+  /** Diamallize (Diam): crystallize the team's armour — every living ally gains
+   *  a timed BLOCK, stacking with their own. */
+  diamallize(draft, attacker, _targets, params) {
+    const block = num(params, "block", 2);
+    const rounds = num(params, "rounds", 2);
+    const allies = boardCards(draft, attacker.owner).filter((a) => a.curHp > 0);
+    for (const a of allies) {
+      a.blockPower = Math.max(a.blockPower ?? 0, block);
+      a.blockRoundsLeft = Math.max(a.blockRoundsLeft ?? 0, rounds);
+    }
+    draft.log.push(`${label(draft, attacker)} crystallizes the team's armour (BLOCK ${block} to ${allies.length} ally(ies) for ${rounds}r).`);
+  },
   warCry(draft, attacker, _targets, params) {
     const sh = num(params, "selfShields");
     const buffDmg = num(params, "buffDmg");

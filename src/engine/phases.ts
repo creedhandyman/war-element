@@ -1867,6 +1867,8 @@ function doCleanupPhase(draft: GameState): void {
     }
     // Shell Tuck's shaky aim wears off.
     if ((card.attackMissRounds ?? 0) > 0) card.attackMissRounds = (card.attackMissRounds ?? 0) - 1;
+    // Diamallize / Diamond Kingdom's granted BLOCK fades.
+    if ((card.blockRoundsLeft ?? 0) > 0) card.blockRoundsLeft = (card.blockRoundsLeft ?? 0) - 1;
     // Anglerfish's Lure fades.
     if ((card.incomingMissRounds ?? 0) > 0) card.incomingMissRounds = (card.incomingMissRounds ?? 0) - 1;
     // A special-lockout (Diagnosis / Red Shift / Magic Ropes) wears off.

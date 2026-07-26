@@ -6780,18 +6780,20 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 6,
     keywords: {},
-    // Diamond Kingdom (Aura): BORE allies gain +1 shield each round. (Doc's
-    // on-BORE-death REFLECT hand-off simplified out.)
+    // Diamond Kingdom (Aura): BORE allies gain +1 shield; when a BORE ally
+    // falls, the lowest-HP survivor is hardened with a one-round BLOCK 2.
     aura: { scope: "element", shields: 1 },
-    // Diamallize: harden up — Diam gains 4 shields. (Doc's team BLOCK-3 armour
-    // simplified to a self shield-up.)
+    passiveNames: { blockOnAllyDeath: "Diamond Kingdom" },
+    blockOnAllyDeath: { block: 2, rounds: 1, element: "BORE" },
+    // Diamallize: harden the whole team's armour — every ally gains BLOCK 2 for
+    // two rounds (stacks with their own BLOCK).
     special: {
       name: "Diamallize",
       cost: 4,
-      handler: "grantShield",
-      params: { amount: 4 },
+      handler: "diamallize",
+      params: { block: 2, rounds: 2 },
       targetSide: "self",
-      text: "Crystallize your armor — gain 4 shields.",
+      text: "Harden allies' armor — each ally gains BLOCK 2 for 2 rounds.",
     },
   },
   {

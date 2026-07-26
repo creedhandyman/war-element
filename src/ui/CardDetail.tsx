@@ -386,6 +386,8 @@ export function describePassives(def: CardDef): string[] {
     named("salvageOnDeath", `Salvage: whenever any card dies, gain +${def.salvageOnDeath} max HP.`);
   if (def.deathHealAura)
     named("deathHealAura", `Blood Moon: when an opponent dies, heal it and all allies +${def.deathHealAura} HP.`);
+  if (def.blockOnAllyDeath)
+    named("blockOnAllyDeath", `when a${def.blockOnAllyDeath.element ? " " + def.blockOnAllyDeath.element : "n ally"} ally falls, the lowest-HP survivor gains BLOCK ${def.blockOnAllyDeath.block} for ${def.blockOnAllyDeath.rounds} round(s).`);
   if (def.spawnOnHitTaken)
     named("spawnOnHitTaken", `Acorn Drop: every hit it takes sprouts ${def.spawnOnHitTaken.count} ${getDef(def.spawnOnHitTaken.token).name}.`);
   if (def.basicSplash)

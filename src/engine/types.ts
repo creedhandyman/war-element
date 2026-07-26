@@ -453,6 +453,9 @@ export interface CardDef {
   /** Blood Moon (Scar): when an opponent dies while this card lives, heal it and
    *  all its allies `deathHealAura` HP. */
   deathHealAura?: number;
+  /** Diamond Kingdom (Diam): when an allied card of `element` dies while this
+   *  card lives, grant the lowest-HP surviving ally BLOCK `block` for `rounds`. */
+  blockOnAllyDeath?: { block: number; rounds: number; element?: string };
   /** Acorn Drop (OAK): every landed hit it TAKES sprouts `count` token(s). */
   spawnOnHitTaken?: { token: string; count: number };
   /** Rainstorm (Rain): a landed basic also splashes N DMG to one adjacent enemy. */
@@ -854,6 +857,11 @@ export interface CardInstance {
    *  Cleanup until `regenRoundsLeft` reaches 0. */
   regenRoundsLeft?: number;
   regenPower?: number;
+  /** A granted, timed BLOCK X (Diam's Diamallize / Diamond Kingdom): while
+   *  `blockRoundsLeft` > 0 this card reduces every incoming hit by `blockPower`,
+   *  stacking with its own BLOCK keyword. Counts down each Cleanup. */
+  blockRoundsLeft?: number;
+  blockPower?: number;
   /** Mind Bubble Channeling (Anos): each Cleanup while `channelBuffRounds` > 0,
    *  gain `channelBuffDmg` DMG, heal `channelBuffHeal`, and self-cleanse. */
   channelBuffRounds?: number;
