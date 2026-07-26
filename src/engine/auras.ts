@@ -19,7 +19,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   DUSK: { name: "Midnight Shade", desc: "On death, deals a third of its DMG back to the killer." },
   AQUA: { name: "Flow Change", desc: "On summon, choose a boost for 3 rounds: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for half its DMG." },
-  GALE: { name: "Zephyr", desc: "End of round, +1 SP (caps at SP 21)." },
+  GALE: { name: "Zephyr", desc: "End of round, +2 SP (caps at SP 21); once past SP 15, +1 DMG each round instead." },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +2 DMG to any opponent carrying a status." },
 };
 

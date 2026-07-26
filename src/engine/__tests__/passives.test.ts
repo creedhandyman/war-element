@@ -1236,13 +1236,14 @@ describe("element auras", () => {
     expect(goblin.curShields).toBe(4); // 2 base + 2 Exostone
   });
 
-  it("Zephyr (GALE): a GALE card gains +1 SP each Cleanup", () => {
+  it("Zephyr (GALE): a GALE card gains +2 SP each Cleanup", () => {
     const s = prepState();
-    const hawk = place(s, "gale_hawk", "P1", 2, 0);
+    const hawk = place(s, "gale_hawk", "P1", 2, 0); // SP 7 — well under the 15 DMG threshold
     place(s, "leaf_greegon", "P1", 3, 0); // keep P1 alive
     place(s, "dusk_gool", "P2", 0, 0);
     const next = advance(atCleanup(s));
-    expect(next.cards[hawk.instanceId].spBonus).toBe(1);
+    expect(next.cards[hawk.instanceId].spBonus).toBe(2);
+    expect(next.cards[hawk.instanceId].dmgBonus).toBe(0); // only past SP 15 does it gain DMG
   });
 
   it("Scorch (PYRO): basic attacks apply BURN", () => {

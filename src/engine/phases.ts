@@ -1917,8 +1917,13 @@ function doCleanupPhase(draft: GameState): void {
       if (perm.shieldPerRound) card.curShields += perm.shieldPerRound;
       if (perm.healPerRound) healCard(draft, card, perm.healPerRound, card);
     }
-    // Zephyr (GALE): +1 SP each round, total capped at 21.
-    if (def.element === "GALE" && def.sp + card.spBonus < GALE_SP_CAP) card.spBonus += 1;
+    // Zephyr (GALE): +2 SP each round (total capped at 21). Once its speed is
+    // past 15 — pushing top speed — the surplus converts into +1 DMG each round.
+    if (def.element === "GALE") {
+      const curSp = def.sp + card.spBonus;
+      if (curSp < GALE_SP_CAP) card.spBonus += Math.min(2, GALE_SP_CAP - curSp);
+      if (def.sp + card.spBonus > 15) card.dmgBonus += 1;
+    }
     // Field per-round buffs: REGEN (Lushfield/Blazing Sun), shields (Downpour).
     const fRegen = fieldBonus(draft, card, "regen");
     if (fRegen > 0 && healCard(draft, card, fRegen, card) > 0)
