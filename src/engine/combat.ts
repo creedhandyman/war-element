@@ -2538,6 +2538,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       draft.log.push(`${label(draft, attacker)} hardens (+${broken} shields from the break).`);
     }
   },
+  /** Toxic Contagion (Score): SLEEP a target and rot it with a DOT. */
+  toxicContagion(draft, attacker, targets, params) {
+    const t = targets[0];
+    if (!t || t.curHp <= 0) return;
+    const el = getDef(attacker.defId).element;
+    applyStatus(draft, t, "SLEEP", num(params, "sleep", 1), 0, el);
+    applyStatus(draft, t, "DOT", num(params, "dotDuration", 2), num(params, "dotPower", 3), el);
+    draft.log.push(`${label(draft, attacker)} infects ${label(draft, t)} — SLEEP + POISON.`);
+  },
   /** Smog (Aftermath): lay a smoke screen — attacks on the owner's cards start
    *  whiffing (reuses the fog mechanic). */
   smokeScreen(draft, attacker, _targets, params) {

@@ -6757,6 +6757,94 @@ export const CARDS: CardDef[] = [
       text: "Gain +1 DMG for 3 rounds.",
     },
   },
+  {
+    id: "bore_diam",
+    name: "Diam",
+    rarity: "legendary",
+    element: "BORE",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 8,
+    hits: 1,
+    hp: 9,
+    sp: 11,
+    shields: 6,
+    keywords: {},
+    // Diamond Kingdom (Aura): BORE allies gain +1 shield each round. (Doc's
+    // on-BORE-death REFLECT hand-off simplified out.)
+    aura: { scope: "element", shields: 1 },
+    // Diamallize: harden up — Diam gains 4 shields. (Doc's team BLOCK-3 armour
+    // simplified to a self shield-up.)
+    special: {
+      name: "Diamallize",
+      cost: 4,
+      handler: "grantShield",
+      params: { amount: 4 },
+      targetSide: "self",
+      text: "Crystallize your armor — gain 4 shields.",
+    },
+  },
+  {
+    id: "bore_score",
+    name: "Score",
+    rarity: "legendary",
+    element: "BORE",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 2,
+    hits: 3,
+    hp: 12,
+    sp: 12,
+    shields: 5,
+    keywords: {},
+    tribe: "Cavernous",
+    // Sand Trap (On Hit by melee): infect the attacker (SLEEP). On Death: leave
+    // the killer poisoned. (Doc's full Toxic-Contagion-on-hit is simplified.)
+    passiveNames: { onHitByMelee: "Sand Trap", onDeath: "Sand Trap" },
+    onHitByMelee: { status: { kind: "SLEEP", duration: 1, power: 0 } },
+    onDeath: { dmg: 0, killerStatus: { kind: "DOT", duration: 2, power: 3 } },
+    // Toxic Contagion: SLEEP a target and apply POISON 3 for 2 rounds.
+    special: {
+      name: "Toxic Contagion",
+      cost: 3,
+      handler: "toxicContagion",
+      params: { sleep: 1, dotDuration: 2, dotPower: 3 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "SLEEP a target and apply POISON 3 (DOT) for 2 rounds.",
+    },
+  },
+  {
+    id: "dusk_scar",
+    name: "Scar",
+    rarity: "legendary",
+    element: "DUSK",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 6,
+    hits: 1,
+    hp: 23,
+    sp: 11,
+    shields: 0,
+    keywords: { FLYING: true, DRAIN: true },
+    tribe: "Vamp",
+    // Blood Mending: basic attacks DRAIN (lifesteal). (Doc's on-enemy-death team
+    // heal aura simplified out.)
+    // Moon Frenzy: 5 DMG to all opponents (each a 50% coin — approximated as a
+    // full volley).
+    special: {
+      name: "Moon Frenzy",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 5, targets: 99 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Attack all opponents for 5 DMG.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
