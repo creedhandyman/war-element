@@ -8144,6 +8144,16 @@ export const CARDS: CardDef[] = [
     // KaBoooom (On Death): 6 DMG to every non-PYRO card on the board.
     passiveNames: { onDeath: "KaBoooom" },
     onDeath: { dmg: 0, boardBlast: { dmg: 6, exceptElement: "PYRO" } },
+    // Rares carry Talents, not repeatable Specials: free, but once per game.
+    // Rollout: the canister rolls off the back line, striking then phasing PAST
+    // bodies to the first open slot toward the enemy home — parking the bomb in
+    // their line so KaBoooom lands where it hurts.
+    talent: {
+      name: "Rollout",
+      handler: "strike",
+      params: { dmg: 4, rollThrough: 1 },
+      text: "Once per game: deal 4 DMG, then roll through to the first open slot toward the enemy home.",
+    },
   },
   {
     id: "dawn_equestrian",
