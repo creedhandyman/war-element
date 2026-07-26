@@ -6545,7 +6545,8 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 1,
     keywords: {},
-    // King of the Wild (On Opp Summon): gain +2 shields and +1 DMG.
+    // King of the Wild (On Opp Summon, once/round): gain +2 shields and +1 DMG
+    // for the round.
     passiveNames: { onOppSummonSelfBuff: "King of the Wild" },
     onOppSummonSelfBuff: { shields: 2, dmg: 1 },
     // Golden Guardian: +5 HP every round for 7 rounds.

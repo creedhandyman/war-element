@@ -794,6 +794,8 @@ export interface CardInstance {
   /** Sea Terror (Siren): while transformed into another card, the defId to
    *  revert to when this form dies. Set on transform, cleared on revert. */
   transformedFrom?: string;
+  /** King of the Wild (Leo): its once-per-round on-opp-summon buff has fired. */
+  kingWildFiredRound?: boolean;
   /** One-shot guard for a `oneUse` onAllyKilled (Shine's Brightling Ball). */
   allyKilledFired: boolean;
   /** Dead Clock (RIP): bodies raised so far, counted toward spawnTriggerAt. */

@@ -254,13 +254,15 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         if (st && inst.curHp > 0 && draft.cards[inst.instanceId])
           applyStatus(draft, inst, st.kind, st.duration, st.power, gd.element);
       }
-      // King of the Wild (Leo): existing cards steel themselves when a foe lands.
+      // King of the Wild (Leo): existing cards steel themselves when a foe lands
+      // — once per round, and the DMG is a one-round boost (no permanent stack).
       for (const guard of boardCards(draft, enemyOf(inst.owner))) {
         const b = getDef(guard.defId).onOppSummonSelfBuff;
-        if (b && guard.curHp > 0) {
+        if (b && guard.curHp > 0 && !guard.kingWildFiredRound) {
+          guard.kingWildFiredRound = true;
           guard.curShields += b.shields;
-          guard.dmgBonus += b.dmg;
-          draft.log.push(`${getDef(guard.defId).name} rises to the challenge (+${b.shields} shields, +${b.dmg} DMG).`);
+          guard.dmgBonusRound += b.dmg; // resets at Cleanup
+          draft.log.push(`${getDef(guard.defId).name} rises to the challenge (+${b.shields} shields, +${b.dmg} DMG this round).`);
         }
       }
       // A deferred Flow pick (AQUA) whose card just died to an onOppSummon zap
@@ -2002,6 +2004,7 @@ function doCleanupPhase(draft: GameState): void {
     card.critsThisRound = 0; // Jackpot (Striik) counts crits per round
     card.dmgTakenThisRound = 0; // Vengeance (Bolder) reflects only this round's damage
     card.weaponSwitchedRound = false; // Power Grab (General): one switch per round
+    card.kingWildFiredRound = false; // King of the Wild (Leo): one buff per round
     card.onKillAoeFiredRound = false; // Powertrip re-arms each round
     card.dmgBonusRound = 0;
     card.spBonusRound = 0;

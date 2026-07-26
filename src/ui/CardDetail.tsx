@@ -391,7 +391,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.onHitDeflect)
     named("onHitDeflect", `Vision Guard: ${def.onHitDeflect}% chance when hit to take half damage and deal that much back to the attacker.`);
   if (def.onOppSummonSelfBuff)
-    named("onOppSummonSelfBuff", `King of the Wild: when an opponent is summoned, gain +${def.onOppSummonSelfBuff.shields} shields and +${def.onOppSummonSelfBuff.dmg} DMG.`);
+    named("onOppSummonSelfBuff", `King of the Wild: once per round, when an opponent is summoned, gain +${def.onOppSummonSelfBuff.shields} shields and +${def.onOppSummonSelfBuff.dmg} DMG for the round.`);
   if (def.weaponModes)
     named("weaponModes", `Power Grab: on move (once/round), cycle its Basic Attack Weapon — ${def.weaponModes.map((w) => `${w.name} ${w.dmg}×${w.hits}`).join(", ")}.`);
   if (def.roundTick?.rowAheadDmg)
