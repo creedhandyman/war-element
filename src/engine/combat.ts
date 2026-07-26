@@ -2538,6 +2538,31 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       draft.log.push(`${label(draft, attacker)} hardens (+${broken} shields from the break).`);
     }
   },
+  /** Dragon's Dance (Rubyo): an escalating 1 → 2 → 4 flurry split across up to 3
+   *  targets, a burst of SP, and — while a Greegon still guards it — a heavy
+   *  finishing blow (Ancient Protection). */
+  dragonDance(draft, attacker, targets, params) {
+    const steps = [num(params, "d1", 1), num(params, "d2", 2), num(params, "d3", 4)];
+    for (let i = 0; i < steps.length; i++) {
+      if (attacker.curHp <= 0) break;
+      const pool = targets.filter((t) => draft.cards[t.instanceId] && t.curHp > 0);
+      const t = pool[i] ?? pool[0];
+      if (!t) break;
+      resolveHit(draft, attacker, t, { kind: "special", dmg: steps[i], hits: 1, pen: false, crit: false });
+    }
+    if (num(params, "sp") > 0) applyTimedBuff(attacker, 0, num(params, "sp"), 1);
+    const gtok = String(params.greegonToken ?? "");
+    if (
+      num(params, "greegonBonus") > 0 && gtok && attacker.curHp > 0 &&
+      boardCards(draft, attacker.owner).some((a) => a.curHp > 0 && a.defId === gtok)
+    ) {
+      const foe = boardCards(draft, enemyOf(attacker.owner)).find((e) => e.curHp > 0);
+      if (foe) {
+        draft.log.push(`${label(draft, attacker)}'s ancient protector strikes for ${num(params, "greegonBonus")}!`);
+        directDamage(draft, attacker, foe, num(params, "greegonBonus"), false);
+      }
+    }
+  },
   /** Toxic Contagion (Score): SLEEP a target and rot it with a DOT. */
   toxicContagion(draft, attacker, targets, params) {
     const t = targets[0];

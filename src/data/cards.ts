@@ -6411,6 +6411,36 @@ export const CARDS: CardDef[] = [
     },
   },
   {
+    id: "leaf_rubyo",
+    name: "Rubyo",
+    rarity: "legendary",
+    element: "LEAF",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 5,
+    dmg: 3,
+    hits: 1,
+    hp: 8,
+    sp: 7,
+    shields: 2,
+    keywords: {},
+    tribe: "Dragon",
+    // Ancient Protection (On Summon): spawn Greegon (the existing card) in an
+    // adjacent slot. Dragon's Dance then adds an 8-DMG blow while Greegon lives.
+    passiveNames: { summonSpawn: "Ancient Protection" },
+    summonSpawn: { token: "leaf_greegon", count: 1 },
+    // Dragon's Dance: 1 → 2 → 4 DMG split across up to 3 targets, gain +3 SP for
+    // the round, and +8 DMG to a foe while Greegon stands.
+    special: {
+      name: "Dragon's Dance",
+      cost: 3,
+      handler: "dragonDance",
+      params: { d1: 1, d2: 2, d3: 4, sp: 3, greegonBonus: 8, greegonToken: "leaf_greegon" },
+      targetSide: "enemy",
+      text: "Deal 1, then 2, then 4 DMG (split across up to 3 targets) and gain +3 SP. While Greegon lives, also deal 8 to an opponent.",
+    },
+  },
+  {
     id: "aqua_siren",
     name: "Siren",
     rarity: "legendary",
