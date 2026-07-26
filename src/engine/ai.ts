@@ -660,6 +660,13 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
       if (fat && (fat.maxHp >= 8 || (rich && fat.maxHp >= 5))) {
         return { action: "special", targetId: fat.instanceId };
       }
+    } else if (sp.handler === "markTarget") {
+      // Mark of Hoax: brand the meatiest survivor — the guaranteed-CRIT payoff
+      // is biggest on a high-HP target. Take it when there's no kill to secure.
+      if (specTargets.length > 0 && !basicCanKill) {
+        const fat = specTargets.reduce((b, t) => (t.curHp > b.curHp ? t : b), specTargets[0]);
+        if (fat && !fat.hoaxMarked) return { action: "special", targetId: fat.instanceId };
+      }
     } else if (sp.handler === "grantShield") {
       if (sp.targetSide === "self") {
         // Roosting Wing Shield (VVulture): a self shield-up + heal. Take it when

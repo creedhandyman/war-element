@@ -297,6 +297,15 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
     fireCardSpecial(draft, card);
   }
   draft.log.push(`${label(draft, card)} is defeated (${cause}).`);
+  // Mark of Hoax: a marked target's fall banks a guaranteed dodge for the Hoax
+  // that marked it (if it still lives).
+  if (card.hoaxMarked && card.hoaxMarkedBy) {
+    const marker = draft.cards[card.hoaxMarkedBy];
+    if (marker && marker.curHp > 0) {
+      marker.guaranteedDodge = (marker.guaranteedDodge ?? 0) + 1;
+      draft.log.push(`${label(draft, marker)}'s mark pays off — Blur banks a guaranteed dodge.`);
+    }
+  }
   // Unstable Core (Nitro): a final explosion across the whole enemy board, on
   // ANY death path (this is the one place every death funnels through).
   if (def.deathExplosion) {
@@ -604,6 +613,15 @@ export function resolveHit(
       continue;
     }
 
+    // 0. Blur (Hoax): a banked guaranteed dodge — the next incoming attack
+    //    misses outright, no coin, beating even alwaysHit. One charge per hit.
+    if (opts.kind !== "reflect" && (target.guaranteedDodge ?? 0) > 0) {
+      target.guaranteedDodge = (target.guaranteedDodge ?? 0) - 1;
+      result.dodgedHits++;
+      target.fxMiss = (target.fxMiss ?? 0) + 1;
+      draft.log.push(`${label(draft, target)} blurs away — ${aDef.name}'s attack finds nothing.`);
+      continue;
+    }
     // 1. EVASION — innate or granted by a friendly wall (Veil). Not re-checked
     //    for reflect damage (no dodge chains). Hot Shot (alwaysHit) ignores it.
     // Standing EVASION — innate, a friendly wall (Veil), or the granted status.
@@ -698,7 +716,10 @@ export function resolveHit(
     // the shield); a plain CRIT still needs an unshielded target. Gated on
     // !opts.pen so an ordinary piercing hit behaves exactly as before.
     let pierces = opts.pen;
-    if (opts.crit && !opts.pen && (target.curShields === 0 || aDef.critPen) && coin(draft)) {
+    // Mark of Hoax: a basic against a marked target CRITs guaranteed (skips the
+    // coin). Everything else still rolls the usual 50%.
+    const guaranteedCrit = opts.kind === "basic" && Boolean(target.hoaxMarked);
+    if (opts.crit && !opts.pen && (target.curShields === 0 || aDef.critPen) && (guaranteedCrit || coin(draft))) {
       remaining *= 2;
       result.critHits = (result.critHits ?? 0) + 1;
       target.fxCrit = (target.fxCrit ?? 0) + 1;
@@ -1211,6 +1232,9 @@ export function basicAttack(
     let crit = Boolean(aDef.keywords.CRIT);
     // Hastened Assault (WolfBane): CRIT only while faster than the target.
     if (aDef.critIfFaster && effectiveSp(draft, attacker) > effectiveSp(draft, t)) crit = true;
+    // Mark of Hoax: any basic against a marked target is crit-eligible (the
+    // guarantee — skipping the coin — is enforced in resolveHit).
+    if (t.hoaxMarked) crit = true;
     let lifesteal = false;
     let vsPen = false; // Stingray's Piercing Pulse — PEN vs an Electrified foe
     let healOnHit = 0;
@@ -2854,6 +2878,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   },
   /** War Cry (Golde): a rallying shout — the caster plates up and the whole team
    *  hits harder for the round. */
+  /** Mark of Hoax: brand one opponent — while marked, EVERY basic attack against
+   *  it is a guaranteed CRIT, and its death banks Hoax a guaranteed dodge. */
+  markTarget(draft, attacker, targets, _params) {
+    const t = targets[0];
+    if (!t) return;
+    t.hoaxMarked = true;
+    t.hoaxMarkedBy = attacker.instanceId;
+    draft.log.push(`${label(draft, attacker)} marks ${label(draft, t)} — every basic against it now CRITS.`);
+  },
   /** Diamallize (Diam): crystallize the team's armour — every living ally gains
    *  a timed BLOCK, stacking with their own. */
   diamallize(draft, attacker, _targets, params) {

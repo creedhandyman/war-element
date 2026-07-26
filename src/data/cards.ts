@@ -6994,15 +6994,17 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { CRIT: true, EVASION: true },
     tribe: "ScareKrow",
-    // Blur: EVASION (keyword). Mark of Hoax: a guaranteed-CRIT strike. (Doc's
-    // persistent mark + on-kill dodge simplified to the CRIT burst.)
+    // Blur: EVASION (keyword) + when a MARKED target dies, Hoax banks a one-time
+    // guaranteed dodge (next incoming attack auto-misses). Mark of Hoax brands a
+    // foe so every basic against it is a guaranteed CRIT.
     special: {
       name: "Mark of Hoax",
-      cost: 4,
-      handler: "barrage",
-      params: { dmg: 8, targets: 1, crit: 1 },
+      cost: 2,
+      handler: "markTarget",
+      params: {},
       targetSide: "enemy",
-      text: "Deal a marked, guaranteed-CRIT strike to an opponent.",
+      ranged: true,
+      text: "Mark an opponent — every basic attack against them is a guaranteed CRIT. When a marked target dies, Blur banks a one-time auto-dodge.",
     },
   },
   {

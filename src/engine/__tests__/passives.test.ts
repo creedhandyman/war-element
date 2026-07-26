@@ -188,6 +188,32 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[bystander.instanceId].curHp).toBe(25);       // not the higher-HP one
   });
 
+  it("Mark of Hoax makes every basic against the target a guaranteed CRIT", () => {
+    const s = prepState();
+    const atk = place(s, "dusk_gool", "P1", 3, 0); // 4 DMG, no CRIT keyword, home row
+    const marked = place(s, "dusk_crow", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0, hoaxMarked: true });
+    basicAttack(s, atk.instanceId, marked.instanceId);
+    // A non-CRIT attacker still crits — guaranteed (no coin): 4 → 8.
+    expect(40 - s.cards[marked.instanceId].curHp).toBe(8);
+  });
+
+  it("a marked target's death banks Hoax a guaranteed dodge that auto-misses once", () => {
+    const s = prepState();
+    const hoax = place(s, "dusk_hoax", "P1", 3, 0);
+    const marked = place(s, "dusk_crow", "P2", 2, 0, {
+      curHp: 1, maxHp: 30, curShields: 0, hoaxMarked: true, hoaxMarkedBy: hoax.instanceId,
+    });
+    defeatCard(s, s.cards[marked.instanceId], "test");
+    expect(s.cards[hoax.instanceId].guaranteedDodge).toBe(1);
+    // The banked dodge eats the next incoming attack outright (checked BEFORE
+    // EVASION, so it can't be the coin that saved it), then is spent.
+    const atkr = place(s, "dusk_gool", "P2", 2, 0);
+    const before = s.cards[hoax.instanceId].curHp;
+    basicAttack(s, atkr.instanceId, hoax.instanceId);
+    expect(s.cards[hoax.instanceId].curHp).toBe(before);
+    expect(s.cards[hoax.instanceId].guaranteedDodge).toBe(0);
+  });
+
   it("a card with only an inert basic takes no turn at all", () => {
     const s = prepState();
     const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump

@@ -895,6 +895,14 @@ export interface CardInstance {
    *  `incomingMissRounds` more rounds — a flat accuracy debuff on its attackers. */
   incomingMissPct?: number;
   incomingMissRounds?: number;
+  /** Mark of Hoax: while marked, EVERY basic attack against this card is a
+   *  guaranteed CRIT. `hoaxMarkedBy` is the marking Hoax's id — when this card
+   *  dies, that Hoax banks a guaranteed dodge. Persistent (no timer). */
+  hoaxMarked?: boolean;
+  hoaxMarkedBy?: string;
+  /** Blur (Hoax): banked one-shot auto-dodges — the next `guaranteedDodge`
+   *  incoming attacks miss outright (earned when a marked target falls). */
+  guaranteedDodge?: number;
   /** How many times a `decay` reviver (Zombie Husk) has come back — drives the
    *  −1-per-death stat decay. */
   reviveDecay?: number;
