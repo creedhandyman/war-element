@@ -6720,16 +6720,16 @@ export const CARDS: CardDef[] = [
     // +2 vs Warriors/Tanks simplified out.)
     passiveNames: { bonusVsShield: "Explosive Power" },
     bonusVsShield: 2,
-    // Grand Finally: 6 DMG to the adjacent row. (Doc's +4 far row + self -2 HP
-    // simplified out.)
+    // Grand Finally: 6 DMG to the adjacent row and 4 DMG to the rest; Dynomight
+    // loses 2 HP.
     special: {
       name: "Grand Finally",
-      cost: 3,
-      handler: "barrage",
-      params: { dmg: 6, rowAhead: 1, targets: 99 },
+      cost: 4,
+      handler: "grandFinally",
+      params: { nearDmg: 6, farDmg: 4, selfDamage: 2 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 6 DMG to opponents in the adjacent row.",
+      text: "Deal 6 DMG to opponents in the adjacent row and 4 DMG to the rest. Dynomight loses 2 HP.",
     },
   },
   {

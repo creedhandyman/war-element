@@ -2538,6 +2538,23 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       draft.log.push(`${label(draft, attacker)} hardens (+${broken} shields from the break).`);
     }
   },
+  /** Grand Finally (Dynomight): a two-tier blast — big to the adjacent row,
+   *  smaller to everyone else — paid for with a chunk of its own HP. */
+  grandFinally(draft, attacker, _targets, params) {
+    const near = num(params, "nearDmg", 6);
+    const far = num(params, "farDmg", 4);
+    const row = attacker.pos ? rowAhead(attacker.owner, attacker.pos.row) : -99;
+    for (const e of boardCards(draft, enemyOf(attacker.owner))) {
+      if (e.curHp <= 0) continue;
+      resolveHit(draft, attacker, e, { kind: "special", dmg: e.pos?.row === row ? near : far, hits: 1, pen: false, crit: false });
+    }
+    const cost = num(params, "selfDamage", 2);
+    if (cost > 0) {
+      attacker.curHp = Math.max(0, attacker.curHp - cost);
+      draft.log.push(`${label(draft, attacker)}'s grand finale costs it ${cost} HP.`);
+      if (attacker.curHp <= 0 && draft.cards[attacker.instanceId]) defeatCard(draft, attacker, "Grand Finally recoil");
+    }
+  },
   /** Dragon's Dance (Rubyo): an escalating 1 → 2 → 4 flurry split across up to 3
    *  targets, a burst of SP, and — while a Greegon still guards it — a heavy
    *  finishing blow (Ancient Protection). */
