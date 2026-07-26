@@ -74,8 +74,8 @@ describe("Drakonbane", () => {
     const hitSmall = applyIntent(battleWith(s, dk.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "basic", targetId: small.instanceId,
     });
-    expect(30 - hitBig.cards[big.instanceId].curHp).toBe(9); // 7 + 2, over 25 HP
-    expect(10 - hitSmall.cards[small.instanceId].curHp).toBe(7); // no bonus
+    expect(30 - hitBig.cards[big.instanceId].curHp).toBe(11); // 9 + 2, over 25 HP
+    expect(10 - hitSmall.cards[small.instanceId].curHp).toBe(9); // no bonus (base 9)
   });
 
   it("Sunlight Strike is 14 into a Dragon and 10 into anything else", () => {
@@ -98,14 +98,14 @@ describe("Drakonbane", () => {
     place(worthy, "leaf_greegon", "P2", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
     worthy.players.P1.hand = [{ handId: "h1", defId: "dawn_drakonbane" }];
     const w = applyIntent(worthy, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });
-    expect(boardCards(w, "P2")[0].curHp).toBe(30 - 7 - 3); // 7 ambush + 3 DAWN Awakening
+    expect(boardCards(w, "P2")[0].curHp).toBe(30 - 7 - 4); // 7 ambush + 4 DAWN Awakening (half of 9 DMG)
 
     const spared = prepState();
     spared.players.P1.gold = 20;
     place(spared, "leaf_greegon", "P2", 2, 0, { curHp: 10, maxHp: 30, curShields: 0 });
     spared.players.P1.hand = [{ handId: "h1", defId: "dawn_drakonbane" }];
     const sp = applyIntent(spared, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });
-    expect(boardCards(sp, "P2")[0].curHp).toBe(10 - 3); // Awakening only — no ambush
+    expect(boardCards(sp, "P2")[0].curHp).toBe(10 - 4); // Awakening only (half of 9) — no ambush
   });
 
   it("the ambush REACHES a bane target across the board, not just an adjacent one", () => {
