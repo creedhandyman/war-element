@@ -6410,6 +6410,94 @@ export const CARDS: CardDef[] = [
       text: "Apply POISON 3 (DOT) to all opponents for 3 rounds.",
     },
   },
+  {
+    id: "aqua_siren",
+    name: "Siren",
+    rarity: "legendary",
+    element: "AQUA",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 2,
+    hits: 4,
+    hp: 17,
+    sp: 13,
+    shields: 1,
+    keywords: {},
+    tribe: "SeaC",
+    // Siren Song (On Hit): FREEZE the attacker for 1 round.
+    passiveNames: { onHitByMelee: "Siren Song" },
+    onHitByMelee: { anyAttacker: true, status: { kind: "FREEZE", duration: 1, power: 0 } },
+    // Sea Terror: a monstrous burst — 9 DMG and FREEZE 3 to a foe. (Doc's full
+    // transform into Krakler + SCALD is simplified to the terror strike.)
+    special: {
+      name: "Sea Terror",
+      cost: 4,
+      handler: "barrage",
+      params: { dmg: 9, targets: 1, statusKind: "FREEZE", statusDuration: 3 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Deal 9 DMG and FREEZE an opponent for 3 rounds.",
+    },
+  },
+  {
+    id: "aqua_rain",
+    name: "Rain",
+    rarity: "legendary",
+    element: "AQUA",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 10,
+    hits: 1,
+    hp: 19,
+    sp: 11,
+    shields: 0,
+    keywords: {},
+    tribe: "Liquid",
+    // Rainstorm: basic attacks splash 2 DMG to one adjacent opponent. (Doc's
+    // team splash aura simplified to Rain's own splash.)
+    passiveNames: { basicSplash: "Rainstorm" },
+    basicSplash: 2,
+    // Scoped 50GAL: +4 DMG for the round (its next basic hits harder).
+    special: {
+      name: "Scoped 50GAL",
+      cost: 3,
+      handler: "empower",
+      params: { selfDmg: 4, buffRounds: 1 },
+      targetSide: "self",
+      text: "Gain +4 DMG for the round.",
+    },
+  },
+  {
+    id: "aqua_driftwraith",
+    name: "Driftwraith",
+    rarity: "legendary",
+    element: "AQUA",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 6,
+    dmg: 9,
+    hits: 1,
+    hp: 14,
+    sp: 11,
+    shields: 3,
+    keywords: { STEALTH: true },
+    tribe: "SeaC",
+    // Perpetual Fog (On Kill): cloak Driftwraith and same-row AQUA allies in
+    // STEALTH for 1 round.
+    passiveNames: { onKill: "Perpetual Fog" },
+    onKill: { grantStealth: 1 },
+    // Boneyard Ambush: 14 DMG PEN to an opponent in range.
+    special: {
+      name: "Boneyard Ambush",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 14, targets: 1, pen: 1 },
+      targetSide: "enemy",
+      text: "Break stealth to deal 14 DMG (PEN) to an opponent.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

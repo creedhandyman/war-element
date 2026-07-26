@@ -254,6 +254,15 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         if (st && inst.curHp > 0 && draft.cards[inst.instanceId])
           applyStatus(draft, inst, st.kind, st.duration, st.power, gd.element);
       }
+      // King of the Wild (Leo): existing cards steel themselves when a foe lands.
+      for (const guard of boardCards(draft, enemyOf(inst.owner))) {
+        const b = getDef(guard.defId).onOppSummonSelfBuff;
+        if (b && guard.curHp > 0) {
+          guard.curShields += b.shields;
+          guard.dmgBonus += b.dmg;
+          draft.log.push(`${getDef(guard.defId).name} rises to the challenge (+${b.shields} shields, +${b.dmg} DMG).`);
+        }
+      }
       // A deferred Flow pick (AQUA) whose card just died to an onOppSummon zap
       // would leave pendingFlow pointing at a corpse — the game would then stall
       // waiting on a choice for a card that no longer exists. Clear it.
@@ -1626,6 +1635,11 @@ function doRoundTicks(draft: GameState): void {
         const h = healCard(draft, card, rt.drainAdjacent, card);
         draft.log.push(`${label(draft, card)} constricts ${label(draft, prey)} (${rt.drainAdjacent} DMG, +${h} HP).`);
       }
+    }
+    if (rt.paralyzeLowHp) {
+      // Power Grid (Shock): the weak are locked down.
+      for (const e of enemies()) if (e.curHp <= rt.paralyzeLowHp.underHp)
+        applyStatus(draft, e, "PARALYZE", rt.paralyzeLowHp.rounds, 0, getDef(card.defId).element);
     }
     if (rt.rootFastest) {
       // Grounded (Season): pin the fastest opponent on the board.

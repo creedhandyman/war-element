@@ -593,6 +593,12 @@ export function resolveHit(
     if (block > 0) remaining = Math.max(0, remaining - block);
     // Iron Ore (Bolder): half damage (round down) from Ranger/Assassin attackers.
     if (tDef.blockVsClasses?.includes(getDef(attacker.defId).cardClass)) remaining = Math.floor(remaining / 2);
+    // Vision Guard (Eagon): a coin-flip deflect — take half, throw half back.
+    if (tDef.onHitDeflect && opts.kind !== "reflect" && remaining > 0 && pctChance(draft, tDef.onHitDeflect)) {
+      remaining = Math.floor(remaining / 2);
+      draft.log.push(`${label(draft, target)} deflects ${aDef.name}'s blow.`);
+      if (remaining > 0 && attacker.curHp > 0 && directDamage(draft, target, attacker, remaining, false)) result.attackerDied = true;
+    }
 
     // 3. Shield gate.
     let toHp: number;
@@ -1345,6 +1351,17 @@ export function basicAttack(
     draft.log.push(`${label(draft, attacker)} hits the Jackpot — Purple Strikes fires free!`);
     fireCardSpecial(draft, attacker);
   }
+  // Rainstorm (Rain): a landed basic splashes onto one enemy adjacent to the
+  // primary target.
+  if (aDef.basicSplash && agg.landedHits > 0 && attacker.curHp > 0) {
+    const primary = draft.cards[groups[0]?.targetId];
+    if (primary?.pos) {
+      const splash = boardCards(draft, enemyOf(attacker.owner)).find(
+        (e) => e.curHp > 0 && e.instanceId !== primary.instanceId && e.pos != null && chebyshev(e.pos, primary.pos!) <= 1,
+      );
+      if (splash) directDamage(draft, attacker, splash, aDef.basicSplash, false);
+    }
+  }
   // Mega Push (Megair): a desperation nova while it's nearly dead.
   if (aDef.lowHpNova && agg.landedHits > 0 && attacker.curHp > 0 && attacker.curHp < aDef.lowHpNova.belowHp) {
     const foes = boardCards(draft, enemyOf(attacker.owner)).filter((e) => e.curHp > 0);
@@ -1852,6 +1869,15 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef): vo
     if (h > 0) draft.log.push(`${name} heals ${h} on the kill.`);
   }
   if (def.gainShields) killer.curShields += def.gainShields;
+  // Perpetual Fog (Driftwraith): a kill cloaks it and same-row kin in STEALTH.
+  if (def.grantStealth) {
+    applyStatus(draft, killer, "STEALTH", def.grantStealth, 0, getDef(killer.defId).element);
+    if (killer.pos) for (const a of boardCards(draft, killer.owner)) {
+      if (a.instanceId !== killer.instanceId && a.curHp > 0 && a.pos?.row === killer.pos.row && getDef(a.defId).element === getDef(killer.defId).element)
+        applyStatus(draft, a, "STEALTH", def.grantStealth, 0, getDef(killer.defId).element);
+    }
+    draft.log.push(`${name}'s fog thickens — STEALTH covers the kill.`);
+  }
   // Star Blaster (Raya): a kill BLINDs nearby opponents for the round.
   if (def.blindInRange && killer.pos) {
     const near = boardCards(draft, enemyOf(killer.owner)).filter(
@@ -2511,6 +2537,17 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       attacker.curShields += broken;
       draft.log.push(`${label(draft, attacker)} hardens (+${broken} shields from the break).`);
     }
+  },
+  /** Polar Shift (Polar King): FREEZE the weak and plate the whole team. */
+  polarShift(draft, attacker, _targets, params) {
+    const underHp = num(params, "underHp", 4);
+    const freezeR = num(params, "freeze", 2);
+    const el = getDef(attacker.defId).element;
+    for (const e of boardCards(draft, enemyOf(attacker.owner)))
+      if (e.curHp > 0 && e.curHp <= underHp) applyStatus(draft, e, "FREEZE", freezeR, 0, el);
+    const shield = num(params, "allyShield", 1);
+    for (const a of boardCards(draft, attacker.owner)) if (a.curHp > 0) a.curShields += shield;
+    draft.log.push(`${label(draft, attacker)}'s Polar Shift freezes the frail and shields the team.`);
   },
   /** Feather Fan (Fano): lift every SLOWER teammate up to Fano's SP for a round. */
   featherFan(draft, attacker, _targets, _params) {

@@ -137,6 +137,9 @@ export interface OnKillDef {
   gainShields?: number;
   aoeDmg?: number; // deal N to every reachable enemy
   blindInRange?: number; // Star Blaster (Raya): BLIND nearby enemies N rounds
+  /** Perpetual Fog (Driftwraith): a kill cloaks it (and same-row same-element
+   *  allies) in STEALTH for N rounds. */
+  grantStealth?: number;
   /** Powertrip (Voltogon): deal N to every ELECTRIFIED enemy (= carrying any
    *  status, the BOLT proxy), at most once per round. */
   aoeDmgElectrified?: number;
@@ -216,6 +219,9 @@ export interface RoundTickDef {
   /** Poisonous Roots (Ivey): apply this status to every ROOTed opponent each
    *  round (POISON on the rooted). */
   rootedStatus?: { kind: StatusKind; duration: number; power: number };
+  /** Overload/Power Grid (Shock): PARALYZE every opponent under `underHp` HP for
+   *  `rounds` at end of round. */
+  paralyzeLowHp?: { underHp: number; rounds: number };
   /** Twisted Rush (Wailverine): deal N DMG to the enemy directly ahead; if it
    *  dies, Wailverine advances into its slot. Pair with firstRoundOnly. */
   pokeAheadAdvance?: number;
@@ -446,6 +452,14 @@ export interface CardDef {
   salvageOnDeath?: number;
   /** Acorn Drop (OAK): every landed hit it TAKES sprouts `count` token(s). */
   spawnOnHitTaken?: { token: string; count: number };
+  /** Rainstorm (Rain): a landed basic also splashes N DMG to one adjacent enemy. */
+  basicSplash?: number;
+  /** Vision Guard (Eagon): when hit, `onHitDeflect`% chance to take HALF damage
+   *  and deal half that back to the attacker. */
+  onHitDeflect?: number;
+  /** King of the Wild (Leo): when an opponent is summoned (once/round), gain
+   *  shields + DMG. */
+  onOppSummonSelfBuff?: { shields: number; dmg: number };
   /** Power Grab (General): switchable basic-attack weapons. On move (once/round)
    *  it cycles to the next, paying that weapon's `spCost`, changing its basic's
    *  dmg × hits. Index 0 is the starting weapon. */
