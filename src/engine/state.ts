@@ -179,6 +179,25 @@ export function auraBonus(state: GameState, card: CardInstance, stat: "dmg" | "s
   return best;
 }
 
+/** Every allied aura currently touching `card`, named by its source holder — for
+ *  the UI to show WHERE a buff comes from. */
+export function auraSources(state: GameState, card: CardInstance): { name: string; text: string }[] {
+  const tDef = getDef(card.defId);
+  const out: { name: string; text: string }[] = [];
+  for (const holder of boardCards(state, card.owner)) {
+    const hDef = getDef(holder.defId);
+    for (const a of [hDef.aura, ...(hDef.auras ?? [])]) {
+      if (!a || !auraMatches(a, hDef, tDef)) continue;
+      const bits = [
+        a.dmg && `+${a.dmg} DMG`, a.sp && `+${a.sp} SP`, a.maxHp && `+${a.maxHp} HP`,
+        a.shields && `+${a.shields} shield`, a.pen && "PEN",
+      ].filter(Boolean);
+      if (bits.length) out.push({ name: hDef.name, text: bits.join(", ") });
+    }
+  }
+  return out;
+}
+
 /** A card's effective max HP = its own maxHp plus the highest matching friendly
  *  maxHP aura (Kraken's SeaC +4). Equals maxHp for cards under no such aura, so
  *  it's a safe drop-in for every healing cap and the HP display. */

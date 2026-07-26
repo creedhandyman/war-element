@@ -11,6 +11,7 @@ export {
   effectiveSp,
   effectiveDmg,
   effectiveMaxHp,
+  auraSources,
   hasStatus,
   moveReach,
   moveReachFor,

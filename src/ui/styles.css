@@ -409,6 +409,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .kw-pip { min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #0d0c14; border: 1px solid; font-size: 9.5px; font-weight: 800; line-height: 14px; display: grid; place-items: center; }
 .status-icons { position: absolute; bottom: -9px; left: 4px; right: 4px; z-index: 5; display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; }
 .status-icon { min-width: 17px; height: 17px; padding: 0 4px; border-radius: 8px; background: #0d0c14; border: 1px solid; font-size: 9.5px; font-weight: 800; line-height: 15px; display: grid; place-items: center; }
+/* Aggregate buff (▲) / debuff (▼) chips — hover for the sourced breakdown. */
+.mod-chip { min-width: 17px; height: 17px; padding: 0 4px; border-radius: 8px; background: #0d0c14; border: 1px solid; font-size: 9.5px; font-weight: 900; line-height: 15px; display: grid; place-items: center; cursor: help; }
+.mod-chip.buff { color: var(--stat-hp); border-color: var(--stat-hp); }
+.mod-chip.debuff { color: var(--stat-dmg); border-color: var(--stat-dmg); }
+.status-icons .mod-chip { white-space: nowrap; }
+/* Expanded card view: the full sourced buff/debuff list. */
+.cd-mods { margin-top: 10px; display: flex; flex-direction: column; gap: 3px; }
+.cd-mods-lbl { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 2px; }
+.cd-mod { font-size: 12px; font-weight: 700; padding: 4px 8px; border-radius: 7px; background: var(--void-2); }
+.cd-mod.buff { color: var(--stat-hp); border-left: 3px solid var(--stat-hp); }
+.cd-mod.debuff { color: var(--stat-dmg); border-left: 3px solid var(--stat-dmg); }
 .freeze-overlay { position: absolute; inset: 0; z-index: 3; border-radius: 8px; pointer-events: none; background: linear-gradient(160deg, rgba(140, 200, 255, 0.28), rgba(60, 120, 200, 0.16)); box-shadow: inset 0 0 16px rgba(160, 215, 255, 0.55); }
 .token.selected { outline: 2px solid var(--your-home-glow); outline-offset: 1px; }
 .token.acting { outline: 2px solid var(--accent); outline-offset: 1px; animation: qnext 1.3s infinite; }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CardInstance, GameState, PlayerId } from "../engine";
-import { effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, getDef, legalMoves } from "../engine";
+import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, getDef, legalMoves } from "../engine";
 import { EL_COLOR, KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 import { SpIcon } from "./icons";
 
@@ -93,6 +93,34 @@ function useMotionFx(instanceId: string, lunge: number, recoil: number) {
   return fx;
 }
 
+/** Every non-status buff/debuff currently on the card, as readable lines WITH
+ *  their source — so a player can see where a +DMG or a −accuracy came from.
+ *  Statuses (BURN, ROOT…) are shown as their own icons and excluded here. */
+export function cardMods(game: GameState, card: CardInstance): { buffs: string[]; debuffs: string[] } {
+  const buffs: string[] = [];
+  const debuffs: string[] = [];
+  for (const a of auraSources(game, card)) buffs.push(`${a.text} — ${a.name} (aura)`);
+  for (const b of card.buffs ?? []) {
+    const parts = [b.dmg ? `+${b.dmg} DMG` : "", b.sp ? `+${b.sp} SP` : ""].filter(Boolean);
+    if (parts.length) buffs.push(`${parts.join(", ")} — timed (${b.rounds}r)`);
+  }
+  const permDmg = (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0);
+  const permSp = (card.spBonus ?? 0) + (card.spBonusRound ?? 0);
+  if (permDmg > 0) buffs.push(`+${permDmg} DMG — growth`);
+  if (permSp > 0) buffs.push(`+${permSp} SP — growth`);
+  if (permDmg < 0) debuffs.push(`${permDmg} DMG`);
+  if (permSp < 0) debuffs.push(`${permSp} SP`);
+  if ((card.blockRoundsLeft ?? 0) > 0) buffs.push(`BLOCK ${card.blockPower} — ${card.blockRoundsLeft}r`);
+  if ((card.reflectRoundsLeft ?? 0) > 0) buffs.push(`REFLECT ${card.reflectPower} — ${card.reflectRoundsLeft}r`);
+  if ((card.guaranteedDodge ?? 0) > 0) buffs.push(`Guaranteed dodge ×${card.guaranteedDodge}`);
+  if ((card.regenRoundsLeft ?? 0) > 0) buffs.push(`REGEN ${card.regenPower} — ${card.regenRoundsLeft}r`);
+  if ((card.flyingRoundsLeft ?? 0) > 0) buffs.push(`FLYING — ${card.flyingRoundsLeft}r`);
+  if ((card.attackMissRounds ?? 0) > 0) debuffs.push(`Aim shaken ${card.attackMissPct ?? 0}% — ${card.attackMissRounds}r`);
+  if (card.hoaxMarked) debuffs.push(`Marked — basics against it are guaranteed crits`);
+  if ((card.specialLockedRounds ?? 0) > 0) debuffs.push(`Special locked — ${card.specialLockedRounds}r`);
+  return { buffs, debuffs };
+}
+
 export function Token(props: {
   game: GameState;
   card: CardInstance;
@@ -131,6 +159,7 @@ export function Token(props: {
     .map(([k]) => ({ k, style: KEYWORD_STYLE[k] }))
     .filter((x) => x.style);
   const frozen = card.statuses.some((s) => s.kind === "FREEZE");
+  const mods = cardMods(game, card);
   const cls = [
     "token",
     mine ? "mine" : "enemy",
@@ -177,8 +206,11 @@ export function Token(props: {
           ))}
         </div>
       )}
-      {card.statuses.length > 0 && (
+      {(card.statuses.length > 0 || mods.buffs.length > 0 || mods.debuffs.length > 0) && (
         <div className="status-icons">
+          {mods.buffs.length > 0 && (
+            <span className="mod-chip buff" title={`BUFFS\n${mods.buffs.join("\n")}`}>▲{mods.buffs.length}</span>
+          )}
           {card.statuses.map((s) => {
             const st = STATUS_STYLE[s.kind];
             return (
@@ -186,12 +218,15 @@ export function Token(props: {
                 key={s.kind}
                 className="status-icon"
                 style={{ borderColor: st.color, color: st.color }}
-                title={`${s.kind} ${s.power || ""} — ${s.duration} round(s)`}
+                title={`${s.kind}${s.power ? ` ${s.power}` : ""}${s.source ? ` from ${s.source}` : ""} — ${s.duration} round(s)`}
               >
                 {st.glyph}{s.duration}
               </span>
             );
           })}
+          {mods.debuffs.length > 0 && (
+            <span className="mod-chip debuff" title={`DEBUFFS\n${mods.debuffs.join("\n")}`}>▼{mods.debuffs.length}</span>
+          )}
         </div>
       )}
       {/* Top: name (with cost + element dot). */}

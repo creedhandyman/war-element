@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { CardDef, CardInstance, GameState, PlayerId, StatusKind } from "../engine";
 import { effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, effectiveSpecialCost, ELEMENT_AURA, getDef, getSpell } from "../engine";
 import { EL_COLOR, EL_ICON, KEYWORD_STYLE, STATUS_STYLE } from "./shared";
+import { cardMods } from "./Token";
 import { SpIcon } from "./icons";
 
 // Colour lookup for keyword/status terms so they render as chips in card text.
@@ -792,6 +793,26 @@ export function CardDetail(props: {
                 ))}
               </div>
             )}
+            {(() => {
+              const mods = cardMods(game, card);
+              if (!mods.buffs.length && !mods.debuffs.length && !card.statuses.length) return null;
+              return (
+                <div className="cd-mods">
+                  <div className="cd-mods-lbl">Active modifiers</div>
+                  {mods.buffs.map((b, i) => <div key={`b${i}`} className="cd-mod buff">▲ {b}</div>)}
+                  {card.statuses.map((s) => {
+                    const negative = s.kind !== "STEALTH" && s.kind !== "EVASION";
+                    return (
+                      <div key={s.kind} className={`cd-mod ${negative ? "debuff" : "buff"}`}>
+                        {negative ? "▼" : "▲"} {STATUS_STYLE[s.kind]?.glyph} {s.kind}{s.power ? ` ${s.power}` : ""}
+                        {s.source ? ` from ${s.source}` : ""} — {s.duration}r
+                      </div>
+                    );
+                  })}
+                  {mods.debuffs.map((d, i) => <div key={`d${i}`} className="cd-mod debuff">▼ {d}</div>)}
+                </div>
+              );
+            })()}
           </div>
         </div>
 
