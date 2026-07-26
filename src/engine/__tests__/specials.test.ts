@@ -798,7 +798,7 @@ describe("on-summon passives (forward-area projection)", () => {
     const deep = place(s, "dusk_vamp", "P2", 1, 0, { curHp: 6 }); // two rows ahead — melee can't reach
     const handId = giveHand(s, "P1", "pyro_fenrir");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
-    expect(next.cards[near.instanceId].curHp).toBe(10); // hit (row ahead, within spread)
+    expect(next.cards[near.instanceId].curHp).toBe(9); // hit for 4 (row ahead, within spread)
     expect(next.cards[deep.instanceId].curHp).toBe(6); // melee depth 1 — not reached
   });
 });

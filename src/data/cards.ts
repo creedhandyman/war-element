@@ -343,26 +343,29 @@ export const CARDS: CardDef[] = [
     element: "PYRO",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 4,
+    cost: 5,
     dmg: 4,
     hits: 2,
-    hp: 14,
-    sp: 8,
+    hp: 17,
+    sp: 10,
     shields: 0,
     keywords: { FLYING: true },
     tribe: "Wolf",
-    // Fury Unleashed: on summon, 3 DMG to the 3-wide row directly ahead
+    // Scorch: basic attacks apply BURN, stacking up to the BURN 4 cap on a target.
+    passiveNames: { onHitStatus: "Scorch" },
+    onHitStatus: { kind: "BURN", duration: 2, power: 1 },
+    // Fury Unleashed: on summon, 4 DMG to the 3-wide row directly ahead
     // (melee → reaches one row forward, hitting left/mid/right).
-    onSummon: { handler: "barrage", params: { dmg: 3, spread: 1, targets: 99 } },
+    onSummon: { handler: "barrage", params: { dmg: 4, spread: 1, targets: 99 } },
     // On Kill: permanent +1 hit on the basic attack (stacks until Fenrir dies).
     onKill: { buffHits: 1 },
     special: {
       name: "Inferno Pounce",
       cost: 3,
       handler: "strike",
-      params: { dmg: 8, statusKind: "BURN", statusPower: 4, statusDuration: 2 },
+      params: { dmg: 8, statusKind: "BURN", statusPower: 3, statusDuration: 2, statusSplash: 1 },
       targetSide: "enemy",
-      text: "Deal 8 DMG and apply BURN 4 for 2 rounds.",
+      text: "Deal 8 DMG and splash BURN 3 (2 rounds) to the target and its neighbours.",
     },
   },
   {
@@ -3879,8 +3882,8 @@ export const CARDS: CardDef[] = [
     dmg: 4,
     hits: 1,
     hp: 8,
-    sp: 8,
-    shields: 0,
+    sp: 6,
+    shields: 2,
     keywords: {},
     // Hot Hot (On Hit by Melee): double the BURN stacked on the attacker.
     passiveNames: { onHitByMelee: "Hot Hot" },
