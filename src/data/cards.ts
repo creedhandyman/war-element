@@ -6287,9 +6287,9 @@ export const CARDS: CardDef[] = [
       name: "Roosting Wing Shield",
       cost: 1,
       handler: "grantShield",
-      params: { amount: 10, heal: 5 },
+      params: { amount: 5, heal: 5 },
       targetSide: "self",
-      text: "Gain 10 shields and heal +5 HP.",
+      text: "Gain 5 shields and heal +5 HP.",
     },
   },
   {
