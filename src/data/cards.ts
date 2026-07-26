@@ -7788,16 +7788,17 @@ export const CARDS: CardDef[] = [
     // Blinding Star (Aura): opponents' basics hit one fewer target.
     passiveNames: { blindingStar: "Blinding Star" },
     blindingStar: true,
-    // Gamma Ray Burst: 14 DMG to the whole board; Supernova pays 5 HP.
+    // Gamma Ray Burst: 14 DMG to a target AND to opponents adjacent to it (same
+    // damage — a blast zone around the mark); Supernova pays 5 HP.
     special: {
       name: "Gamma Ray Burst",
       cost: 4,
-      handler: "barrage",
-      params: { dmg: 14, targets: 99, selfDamage: 5 },
+      handler: "strike",
+      params: { dmg: 14, splash: 14, selfDamage: 5 },
       targetSide: "enemy",
       ranged: true,
       cooldown: 3,
-      text: "Deal 14 DMG to every opponent on the board. Supernova loses 5 HP.",
+      text: "Deal 14 DMG to a target and 14 DMG to every opponent adjacent to it. Supernova loses 5 HP.",
     },
   },
   {
