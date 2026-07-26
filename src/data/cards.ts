@@ -6755,8 +6755,9 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { FLYING: true },
     tribe: "Avian",
-    // Rampage: gain +1 DMG for 3 rounds. (Doc's Totem's Pole token spawn +
-    // team +1-target aura + row damage are simplified out — no Pole art yet.)
+    // Raise the Totem Pole (On Summon): plant a Pole that scorches the row ahead.
+    summonSpawn: { token: "gale_totem_pole", count: 1 },
+    // Rampage: gain +1 DMG for 3 rounds.
     special: {
       name: "Rampage",
       cost: 2,
@@ -8124,6 +8125,24 @@ export const TOKENS: CardDef[] = [
     shields: 3,
     // A sturdy bodyguard summoned by Solara — soaks damage behind BLOCK 1.
     keywords: { BLOCK: 1 },
+  },
+  {
+    id: "gale_totem_pole",
+    name: "Totem Pole",
+    rarity: "legendary",
+    element: "GALE",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 2,
+    hits: 1,
+    hp: 12,
+    sp: 0, // a planted pole — never moves
+    shields: 2,
+    keywords: {},
+    // Totem Wrath (End of Round): crackling energy scorches the row ahead.
+    passiveNames: { roundTick: "Totem Wrath" },
+    roundTick: { rowAheadDmg: 2 },
   },
 ];
 
