@@ -2538,6 +2538,12 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       draft.log.push(`${label(draft, attacker)} hardens (+${broken} shields from the break).`);
     }
   },
+  /** Smog (Aftermath): lay a smoke screen — attacks on the owner's cards start
+   *  whiffing (reuses the fog mechanic). */
+  smokeScreen(draft, attacker, _targets, params) {
+    draft.players[attacker.owner].foggedRounds = num(params, "rounds", 2);
+    draft.log.push(`${label(draft, attacker)} blankets the field in smoke (${num(params, "rounds", 2)}r).`);
+  },
   /** Golden Guardian (Leo): a sustained heal-over-time — +N HP each round for a
    *  stretch (reuses the shared regen tick). */
   regenBuff(draft, attacker, _targets, params) {

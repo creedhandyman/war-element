@@ -6643,6 +6643,65 @@ export const CARDS: CardDef[] = [
       text: "Hurl the bladerang for 7 DMG to a target.",
     },
   },
+  {
+    id: "pyro_aftermath",
+    name: "Aftermath",
+    rarity: "legendary",
+    element: "PYRO",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 3,
+    hits: 1,
+    hp: 29,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    // Explosion (On Summon): 5 DMG to the adjacent row. (Doc's +3 to the far row
+    // simplified out.)
+    passiveNames: { onSummon: "Explosion" },
+    onSummon: { handler: "barrage", params: { dmg: 5, rowAhead: 1, targets: 99 }, targetSide: "enemy" },
+    // Smog: lay a smoke screen — attacks on Aftermath's team start to whiff.
+    special: {
+      name: "Smog",
+      cost: 4,
+      handler: "smokeScreen",
+      params: { rounds: 2 },
+      targetSide: "self",
+      text: "Blanket your side in smoke for 2 rounds — attacks on your cards may miss.",
+    },
+  },
+  {
+    id: "pyro_dynomight",
+    name: "Dynomight",
+    rarity: "legendary",
+    element: "PYRO",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 9,
+    hits: 1,
+    hp: 20,
+    sp: 11,
+    shields: 0,
+    keywords: {},
+    tribe: "Forged Tech",
+    // Explosive Power: basic attacks deal 2× damage vs a shielded target. (Doc's
+    // +2 vs Warriors/Tanks simplified out.)
+    passiveNames: { bonusVsShield: "Explosive Power" },
+    bonusVsShield: 2,
+    // Grand Finally: 6 DMG to the adjacent row. (Doc's +4 far row + self -2 HP
+    // simplified out.)
+    special: {
+      name: "Grand Finally",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 6, rowAhead: 1, targets: 99 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Deal 6 DMG to opponents in the adjacent row.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
