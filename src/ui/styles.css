@@ -590,7 +590,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .hcard.summonable { border-color: var(--legal); animation: cardglow 1.8s ease-in-out infinite; cursor: grab; }
 .hcard.summonable:active { cursor: grabbing; }
 @keyframes cardglow { 0%, 100% { box-shadow: 0 14px 30px rgba(0,0,0,0.6), 0 0 0 rgba(78,203,143,0); } 50% { box-shadow: 0 14px 30px rgba(0,0,0,0.6), 0 0 18px rgba(78,203,143,0.5); } }
-.hcard.unaffordable { opacity: 0.6; filter: grayscale(0.25); }
+/* Can't-summon-yet cards read as locked behind a translucent black veil —
+   the art stays visible through it, and the cost gem/sigil (z-index 4) ride
+   ABOVE the veil so the reason it's locked stays bright. */
+.hcard.unaffordable { filter: grayscale(0.2); }
+.hcard.unaffordable::before {
+  content: ""; position: absolute; inset: 0; z-index: 3; border-radius: 9px;
+  background: rgba(3, 2, 8, 0.5); pointer-events: none;
+}
 .hcard.selected { outline: 2px solid var(--gold-lit); outline-offset: 1px; }
 /* cost gem (top-left) + element sigil (top-right) */
 .hcard .hc-cost {
@@ -607,6 +614,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .hc-type { text-align: center; font-size: 9px; color: var(--ink-dim); letter-spacing: 0.03em; margin-top: 1px; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hcard .hc-stats { display: flex; justify-content: space-between; gap: 2px; padding: 5px 3px 0; font-size: 12px; font-weight: 800; color: inherit; }
 .hcard .hc-stats .s-dmg { color: #ff7b7b; } .hcard .hc-stats .s-hp { color: #7fe09a; } .hcard .hc-stats .s-sh { color: #9fc8ea; } .hcard .hc-stats .s-sp { color: #ffd763; }
+/* Multi-attack readability: the per-hit DAMAGE value burns a deeper orange-red
+   so it's unmistakable from the "N×" hit-count beside it (e.g. ⚔2×[4]). */
+.atk-dmg { color: #ff4a1e; }
 .hc-class { font-size: 8px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
 
 /* deck as a stacked pile with its count */

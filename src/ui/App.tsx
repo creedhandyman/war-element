@@ -1524,7 +1524,7 @@ export function App() {
                     </div>
                     <div className="hc-name">{def.name}</div>
                     <div className="hc-stats">
-                      <span>⚔{def.hits > 1 ? `${def.hits}×` : ""}{def.dmg}</span>
+                      <span>⚔{def.hits > 1 ? `${def.hits}×` : ""}<span className="atk-dmg">{def.dmg}</span></span>
                       <span>♥{def.hp}</span>
                       <span><SpIcon />{def.sp}</span>
                     </div>
@@ -1938,7 +1938,7 @@ export function App() {
                             </div>
                             <div className="dt-name">{d.name}</div>
                             <div className="dt-stats">
-                              <span>⚔{d.hits > 1 ? `${d.hits}×` : ""}{d.dmg}</span>
+                              <span>⚔{d.hits > 1 ? `${d.hits}×` : ""}<span className="atk-dmg">{d.dmg}</span></span>
                               <span>♥{d.hp}</span>
                               <span><SpIcon />{d.sp}</span>
                             </div>

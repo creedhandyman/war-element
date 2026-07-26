@@ -60,7 +60,7 @@ export function SummonAnnounce({ defId, mine }: { defId: string; mine: boolean }
               {def.element} · {def.cardClass} · {def.attackType}
             </div>
             <div className="announce-stats">
-              <span>⚔ {def.hits > 1 ? `${def.hits}×${def.dmg}` : def.dmg}</span>
+              <span>⚔ {def.hits > 1 ? <>{def.hits}×</> : ""}<span className="atk-dmg">{def.dmg}</span></span>
               <span>♥ {def.hp}</span>
               {def.shields > 0 && <span>🛡 {def.shields}</span>}
               <span>⚡ {def.sp}</span>

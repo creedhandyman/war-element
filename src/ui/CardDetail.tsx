@@ -741,7 +741,7 @@ export function CardDetail(props: {
                 <span className="cd-lbl">DMG</span>
                 <span className="cd-val st-dmg">
                   ⚔{hits > 1 ? `${hits}× ` : ""}
-                  {dmg}
+                  <span className="atk-dmg">{dmg}</span>
                 </span>
               </div>
               <div className="cd-stat" title="Current / max HP">
