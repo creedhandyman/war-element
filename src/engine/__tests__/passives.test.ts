@@ -257,6 +257,36 @@ describe("medium-tier passives (audit batch)", () => {
     expect(splashDealt(true)).toBe(0); // Blinding Star eats the extra target
   });
 
+  it("Liquark's Lurk gives +4 DMG/+4 SP while STEALTHed, lost the moment it attacks", () => {
+    const s = prepState();
+    const liq = place(s, "aqua_liquark", "P1", 3, 0);
+    s.cards[liq.instanceId].statuses = []; // bare (no STEALTH)
+    const bareDmg = effectiveDmg(s, s.cards[liq.instanceId]);
+    const bareSp = effectiveSp(s, s.cards[liq.instanceId]);
+    s.cards[liq.instanceId].statuses = [{ kind: "STEALTH", duration: 99, power: 0, source: "AQUA" }];
+    expect(effectiveDmg(s, s.cards[liq.instanceId]) - bareDmg).toBe(4);
+    expect(effectiveSp(s, s.cards[liq.instanceId]) - bareSp).toBe(4);
+    // Swinging breaks cover — the Lurk buffs drop.
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, liq.instanceId, foe.instanceId);
+    expect(effectiveDmg(s, s.cards[liq.instanceId])).toBe(bareDmg);
+    expect(s.cards[liq.instanceId].statuses.some((st) => st.kind === "STEALTH")).toBe(false);
+  });
+
+  it("Bloody Waters kills the weakest foe, heals +5, and re-enters Lurk", () => {
+    const s = prepState();
+    const liq = place(s, "aqua_liquark", "P1", 3, 0, { curHp: 5, maxHp: 30 });
+    s.cards[liq.instanceId].statuses = [];
+    const prey = place(s, "dusk_gool", "P2", 2, 0, { curHp: 3, maxHp: 30, curShields: 0 });
+    place(s, "dusk_gool", "P2", 1, 3, { curHp: 30, maxHp: 30, curShields: 0 }); // higher-HP survivor
+    const hpBefore = s.cards[liq.instanceId].curHp;
+    SPECIAL_HANDLERS.bloodyWaters(s, s.cards[liq.instanceId], [], { dmg: 4, healOnKill: 5 });
+    expect(s.cards[prey.instanceId]).toBeUndefined(); // weakest killed
+    expect(s.cards[liq.instanceId].curHp).toBeGreaterThan(hpBefore); // healed on the kill
+    expect(s.cards[liq.instanceId].statuses.some((st) => st.kind === "STEALTH")).toBe(true); // re-Lurk
+    expect(s.cards[liq.instanceId].statuses.some((st) => st.kind === "STEALTH")).toBe(true);
+  });
+
   it("a card with only an inert basic takes no turn at all", () => {
     const s = prepState();
     const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump

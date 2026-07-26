@@ -1395,6 +1395,9 @@ export function basicAttack(
     if (lit.attacks <= 0) attacker.loadedOnHit = undefined;
   }
   attacker.loadedHits = 0; // loaded darts are spent on this attack (Bleed Out)
+  // Lurk (Liquark): breaking cover to swing ends the STEALTH (and its +DMG/+SP).
+  if (getDef(attacker.defId).lurk)
+    attacker.statuses = attacker.statuses.filter((s) => s.kind !== "STEALTH");
   // Dirt Driller: the ambush is spent, and breaking cover ends the STEALTH that
   // set it up — "until next attack" is literal.
   if (attacker.loadedStrike) {
@@ -2894,6 +2897,20 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   },
   /** War Cry (Golde): a rallying shout — the caster plates up and the whole team
    *  hits harder for the round. */
+  /** Bloody Waters (Liquark): strike the lowest-HP opponent; a kill heals and
+   *  slips Liquark back into Lurk (re-STEALTH). */
+  bloodyWaters(draft, attacker, _targets, params) {
+    const prey = boardCards(draft, enemyOf(attacker.owner))
+      .filter((e) => e.curHp > 0)
+      .sort((a, b) => a.curHp - b.curHp)[0];
+    if (!prey) return;
+    const r = resolveHit(draft, attacker, prey, { kind: "special", dmg: num(params, "dmg", 4), hits: 1, pen: false, crit: false });
+    if (r.targetDied && attacker.curHp > 0) {
+      healCard(draft, attacker, num(params, "healOnKill", 5), attacker);
+      applyStatus(draft, attacker, "STEALTH", num(params, "lurkDuration", 99), 0, getDef(attacker.defId).element);
+      draft.log.push(`${label(draft, attacker)} feeds and slips back into Lurk (+${num(params, "healOnKill", 5)} HP, STEALTH).`);
+    }
+  },
   /** Magnetic Shield (Gemaga): grant allies in the row directly ahead a timed
    *  REFLECT — they bounce a bite back at whoever hits them. */
   magneticShield(draft, attacker, _targets, params) {

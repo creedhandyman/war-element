@@ -7306,19 +7306,20 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "SeaC",
-    // Lurk (On Summon): arrives cloaked (STEALTH 2) and hungry (+4 DMG). (Doc's
-    // +4 SP + on-attack break simplified.)
-    passiveNames: { onSummon: "Lurk" },
-    summonSelfBuff: { dmg: 4, hp: 0 },
-    onSummon: { selfStatus: "STEALTH", selfStatusDuration: 2 },
-    // Bloody Waters: 4 DMG to the lowest-HP opponent.
+    // Lurk (On Summon): dive into STEALTH; while hidden, +4 DMG and +4 SP.
+    // Attacking breaks the STEALTH (Lurk ends) — Bloody Waters' kill re-enters it.
+    passiveNames: { lurk: "Lurk" },
+    lurk: { dmg: 4, sp: 4 },
+    onSummon: { selfStatus: "STEALTH", selfStatusDuration: 99 },
+    // Bloody Waters: 4 to the lowest-HP foe; a kill heals +5 and re-enters Lurk.
     special: {
       name: "Bloody Waters",
       cost: 2,
-      handler: "barrage",
-      params: { dmg: 4, targets: 1, lowestHp: 1 },
+      handler: "bloodyWaters",
+      params: { dmg: 4, healOnKill: 5 },
       targetSide: "enemy",
-      text: "Deal 4 DMG to the lowest-HP opponent (heal on the kill).",
+      ranged: true,
+      text: "Deal 4 DMG to the lowest-HP opponent. On a kill: heal +5 HP and re-enter Lurk (STEALTH).",
     },
   },
   {

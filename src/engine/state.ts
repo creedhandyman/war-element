@@ -296,9 +296,11 @@ export function effectiveSp(state: GameState, card: CardInstance): number {
   // Obsidian Claws (Obsidi): underground it REPLACES the printed SP rather than
   // adding to it — bonuses still stack on top of the new base.
   const base = def.spWhileStealthed != null && hasStatus(card, "STEALTH") ? def.spWhileStealthed : def.sp;
+  // Lurk (Liquark): +SP while hidden in STEALTH.
+  const lurkSp = def.lurk && hasStatus(card, "STEALTH") ? def.lurk.sp : 0;
   return Math.max(
     0,
-    base + (card.spBonus ?? 0) + (card.spBonusRound ?? 0) + buffSp + auraBonus(state, card, "sp") + fieldBonus(state, card, "sp"),
+    base + lurkSp + (card.spBonus ?? 0) + (card.spBonusRound ?? 0) + buffSp + auraBonus(state, card, "sp") + fieldBonus(state, card, "sp"),
   );
 }
 
@@ -351,6 +353,8 @@ function dmgBeforeIntimidation(state: GameState, card: CardInstance): number {
     dmg += Math.floor(Math.max(0, effectiveSp(state, card) - def.speedDmgTiered.above) / def.speedDmgTiered.per);
   // Volcanic Fury (Valcana): the on-hit ramp, until her Special resets it.
   dmg += card.rampDmg ?? 0;
+  // Lurk (Liquark): +DMG while hidden in STEALTH.
+  if (def.lurk && hasStatus(card, "STEALTH")) dmg += def.lurk.dmg;
   // Scorched Fury: hotter as it burns down. Before WEAKEN/FREEZE so those
   // still scale the whole number, like every other flat bonus above.
   const fury = def.furyBelowHp;

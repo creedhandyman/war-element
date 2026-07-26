@@ -663,6 +663,14 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
       if (fat && (fat.maxHp >= 8 || (rich && fat.maxHp >= 5))) {
         return { action: "special", targetId: fat.instanceId };
       }
+    } else if (sp.handler === "bloodyWaters") {
+      // Finisher on the weakest foe — take it when that foe is in kill range of
+      // the strike (heal + re-Lurk payoff), or when flush with magic.
+      if (specTargets.length > 0) {
+        const prey = specTargets.reduce((b, t) => (t.curHp < b.curHp ? t : b), specTargets[0]);
+        const dmg = Number(sp.params?.dmg ?? 4);
+        if (prey && (willKill(prey, dmg, state.boardSize) || rich)) return { action: "special", targetId: prey.instanceId };
+      }
     } else if (sp.handler === "markTarget") {
       // Mark of Hoax: brand the meatiest survivor — the guaranteed-CRIT payoff
       // is biggest on a high-HP target. Take it when there's no kill to secure.

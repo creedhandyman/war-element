@@ -579,6 +579,9 @@ export interface CardDef {
   highSpeedImpact?: boolean;
   /** Apex Predator (Stormfang): +1 DMG for every `per` SP above `above`. */
   speedDmgTiered?: { above: number; per: number };
+  /** Lurk (Liquark): while STEALTHed, gain +`dmg` DMG and +`sp` SP. Attacking
+   *  breaks the STEALTH (so the buffs drop); Bloody Waters' kill re-applies it. */
+  lurk?: { dmg: number; sp: number };
   /** Volcanic Fury (Valcana): each landed basic grows +`onHitRampUntilSpecial`
    *  DMG, accumulating in `rampDmg` — wiped the moment her Special fires. */
   onHitRampUntilSpecial?: number;

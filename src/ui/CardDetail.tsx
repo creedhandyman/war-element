@@ -443,6 +443,8 @@ export function describePassives(def: CardDef): string[] {
     named("highSpeedImpact", `High Speed Impact: +1 DMG for every point of SP above 10.`);
   if (def.speedDmgTiered)
     named("speedDmgTiered", `Apex Predator: +1 DMG for every ${def.speedDmgTiered.per} SP above ${def.speedDmgTiered.above}.`);
+  if (def.lurk)
+    named("lurk", `Lurk: while hidden in STEALTH, +${def.lurk.dmg} DMG and +${def.lurk.sp} SP. Attacking breaks STEALTH (Lurk ends); Bloody Waters' kill re-enters it.`);
   if (def.onHitRampUntilSpecial)
     named("onHitRampUntilSpecial", `Volcanic Fury: each landed basic grants +${def.onHitRampUntilSpecial} DMG, building until the Special is used (then it resets).`);
   if (def.stealthWhenIdle)
