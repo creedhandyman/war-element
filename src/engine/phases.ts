@@ -6,7 +6,7 @@ import { applyFlow, type FlowMode, GALE_SP_CAP, LEAF_SHIELD_CAP } from "./auras"
 import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, label, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
-import { coin } from "./rng";
+import { coin, randInt } from "./rng";
 import {
   applyMulligan,
   boardCards,
@@ -1771,6 +1771,15 @@ function doRoundTicks(draft: GameState): void {
         if (rt.pokeDmg) tickDamage(draft, card, t, rt.pokeDmg, false);
         if (rt.pokeStatus && draft.cards[t.instanceId] && t.curHp > 0)
           applyStatus(draft, t, rt.pokeStatus.kind, rt.pokeStatus.duration, rt.pokeStatus.power, el);
+      }
+    }
+    // Walking Tree's fruit: lob it at ONE random living opponent.
+    if (rt.randomEnemyDmg) {
+      const foes = enemies();
+      if (foes.length) {
+        const t = foes[randInt(draft, foes.length)];
+        tickDamage(draft, card, t, rt.randomEnemyDmg, false);
+        draft.log.push(`${label(draft, card)} drops fruit on ${label(draft, t)} (${rt.randomEnemyDmg} DMG).`);
       }
     }
     if (rt.healAllies) {

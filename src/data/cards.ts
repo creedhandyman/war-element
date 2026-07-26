@@ -7966,7 +7966,7 @@ export const CARDS: CardDef[] = [
     // overrides its SP 0), and drop fruit — 3 DMG to the nearest opponent and
     // +3 HP to the lowest-HP ally.
     passiveNames: { roundTick: "Moving Forest", healReceivedMult: "Root Growth" },
-    roundTick: { advance: 1, pokeDmg: 3, healLowestAlly: 3 },
+    roundTick: { advance: 1, randomEnemyDmg: 3, healLowestAlly: 3 },
     // Root Growth: drinks in 2× from every healing source.
     healReceivedMult: 2,
   },

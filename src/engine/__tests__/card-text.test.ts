@@ -31,7 +31,7 @@ const ABILITY_FIELDS = [
 
 /** Every effect a roundTick can carry. */
 const ROUND_TICK_KEYS = [
-  "aoeDmg", "aoeStatus", "lowestEnemyStatus", "pokeDmg", "pokeStatus",
+  "aoeDmg", "aoeStatus", "lowestEnemyStatus", "pokeDmg", "pokeStatus", "randomEnemyDmg",
   "healAllies", "healLowestAlly", "buffDmgEveryN", "scaldFrozen", "paralyzeOne",
   "pushEnemies", "rowAheadDmg", "inRangeDmg", "inRangeStatus", "selfShields",
   "pokeParalyzedDmg", "aoeParalyzedDmg", "rootedDmg", "roundHealElement",
