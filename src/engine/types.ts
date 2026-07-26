@@ -209,6 +209,13 @@ export interface RoundTickDef {
   /** Draining Siphon (Violet): at end of round, DRAIN N max HP from every
    *  opponent within 1 space. */
   drainMaxAdjacent?: number;
+  /** Grounded (Season): ROOT the fastest opponent on the board for N rounds. */
+  rootFastest?: number;
+  /** Nature's Protection (Efy): refresh shields back UP TO N at end of round. */
+  refreshShieldsTo?: number;
+  /** Poisonous Roots (Ivey): apply this status to every ROOTed opponent each
+   *  round (POISON on the rooted). */
+  rootedStatus?: { kind: StatusKind; duration: number; power: number };
   /** Twisted Rush (Wailverine): deal N DMG to the enemy directly ahead; if it
    *  dies, Wailverine advances into its slot. Pair with firstRoundOnly. */
   pokeAheadAdvance?: number;

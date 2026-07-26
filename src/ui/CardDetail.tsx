@@ -236,6 +236,9 @@ export function describePassives(def: CardDef): string[] {
       t.rootZeroSp && `ROOT an opponent with 0 SP for ${t.rootZeroSp} rounds`,
       t.lockEnemySpecials && `bind ${t.lockEnemySpecials} opponents — their Specials are disabled next round`,
       t.drainMaxAdjacent && `DRAIN ${t.drainMaxAdjacent} max HP from every adjacent opponent`,
+      t.rootFastest && `ROOT the fastest opponent for ${t.rootFastest} rounds`,
+      t.refreshShieldsTo != null && `refresh shields back up to ${t.refreshShieldsTo}`,
+      t.rootedStatus && `apply ${t.rootedStatus.kind} ${t.rootedStatus.power} to every ROOTed opponent`,
     ].filter(Boolean);
     // Not an every-round effect, so it gets its own line — "Each round: every 3
     // rounds…" reads as a contradiction.

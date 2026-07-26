@@ -6320,6 +6320,96 @@ export const CARDS: CardDef[] = [
       text: "Deal 5 DMG bouncing between opponents within 1 space of each other.",
     },
   },
+
+  // ───────────────── COST-6 LEGENDARIES (grid fill) ─────────────────
+  {
+    id: "leaf_efy",
+    name: "Efy",
+    rarity: "legendary",
+    element: "LEAF",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 6,
+    dmg: 5,
+    hits: 1,
+    hp: 20,
+    sp: 11,
+    shields: 2,
+    keywords: {},
+    // Nature's Protection (End of Round): refresh shields back up to 2.
+    passiveNames: { refreshShieldsTo: "Nature's Protection" },
+    roundTick: { refreshShieldsTo: 2 },
+    // Emergence: raise a Walking Tree token in an adjacent slot (it rolls forward
+    // and scorches the row ahead each round). (Doc's shared aura is simplified to
+    // Efy's own bark-refresh.)
+    special: {
+      name: "Emergence",
+      cost: 4,
+      handler: "spawn",
+      params: { token: "leaf_walking_tree", count: 1, radius: 1 },
+      targetSide: "self",
+      text: "Spawn a Walking Tree in an adjacent slot; it rolls forward and deals 6 DMG to the row ahead each round.",
+    },
+  },
+  {
+    id: "leaf_season",
+    name: "Season",
+    rarity: "legendary",
+    element: "LEAF",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 2,
+    hits: 3,
+    hp: 24,
+    sp: 10,
+    shields: 0,
+    keywords: {},
+    // Grounded (End of Round): ROOT the fastest opponent 2 rounds. Aura: heal all
+    // LEAF allies +4 each round.
+    passiveNames: { rootFastest: "Grounded", roundHealElement: "Season's Bloom" },
+    roundTick: { rootFastest: 2, roundHealElement: { element: "LEAF", amount: 4 } },
+    // Spiraling Root Coil: ROOT up to 4 opponents in the adjacent row for 2 rounds.
+    // (Doc's next-round far-row follow-up is simplified out.)
+    special: {
+      name: "Spiraling Root Coil",
+      cost: 4,
+      handler: "barrage",
+      params: { dmg: 0, rowAhead: 1, targets: 4, statusKind: "ROOT", statusDuration: 2 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "ROOT up to 4 opponents in the adjacent row for 2 rounds.",
+    },
+  },
+  {
+    id: "leaf_nightshade",
+    name: "Nightshade",
+    rarity: "legendary",
+    element: "LEAF",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 4,
+    hits: 3,
+    hp: 17,
+    sp: 9,
+    shields: 0,
+    keywords: { CRIT: true },
+    // Poisonous Roots (Aura): ROOTed opponents take POISON 3 (DOT) each round
+    // until unrooted.
+    passiveNames: { rootedStatus: "Poisonous Roots" },
+    roundTick: { rootedStatus: { kind: "DOT", duration: 3, power: 3 } },
+    // Night Bloom: POISON 3 (DOT) to all opponents for 3 rounds.
+    special: {
+      name: "Night Bloom",
+      cost: 3,
+      handler: "statusNova",
+      params: { statusKind: "DOT", statusDuration: 3, statusPower: 3, targets: 99 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Apply POISON 3 (DOT) to all opponents for 3 rounds.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
@@ -6328,6 +6418,24 @@ export const CARDS: CardDef[] = [
 // them. (Reptilian and Heir used to live here — they are draftable now, but are
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
+  {
+    id: "leaf_walking_tree",
+    name: "Walking Tree",
+    rarity: "epic",
+    element: "LEAF",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 2,
+    dmg: 0,
+    hits: 1,
+    hp: 10,
+    sp: 0,
+    shields: 0,
+    keywords: {},
+    // Moving Forest: rolls forward each round and scorches the row ahead for 6.
+    passiveNames: { roundTick: "Moving Forest" },
+    roundTick: { rowAheadDmg: 6, advance: 1 },
+  },
   {
     id: "dusk_redreven",
     name: "RedRaven",

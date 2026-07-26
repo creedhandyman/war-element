@@ -1627,6 +1627,25 @@ function doRoundTicks(draft: GameState): void {
         draft.log.push(`${label(draft, card)} constricts ${label(draft, prey)} (${rt.drainAdjacent} DMG, +${h} HP).`);
       }
     }
+    if (rt.rootFastest) {
+      // Grounded (Season): pin the fastest opponent on the board.
+      const foes = enemies();
+      const fastest = foes.reduce<CardInstance | null>((b, e) => (!b || effectiveSp(draft, e) > effectiveSp(draft, b) ? e : b), null);
+      if (fastest) {
+        applyStatus(draft, fastest, "ROOT", rt.rootFastest, 0, getDef(card.defId).element);
+        draft.log.push(`${label(draft, card)} grounds ${label(draft, fastest)} (ROOT ${rt.rootFastest}r).`);
+      }
+    }
+    if (rt.refreshShieldsTo != null && card.curShields < rt.refreshShieldsTo) {
+      // Nature's Protection (Efy): top the bark armour back up.
+      card.curShields = rt.refreshShieldsTo;
+      draft.log.push(`${label(draft, card)} regrows its bark (${rt.refreshShieldsTo} shields).`);
+    }
+    if (rt.rootedStatus) {
+      // Poisonous Roots (Ivey): the rooted rot where they stand.
+      const rs = rt.rootedStatus;
+      for (const e of enemies()) if (hasStatus(e, "ROOT")) applyStatus(draft, e, rs.kind, rs.duration, rs.power, getDef(card.defId).element);
+    }
     if (rt.rootZeroSp) {
       // Frosty Bites (Whintey): the winter cold seizes a spent, motionless foe.
       const stuck = enemies().find(
