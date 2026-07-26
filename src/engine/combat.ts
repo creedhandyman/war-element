@@ -607,6 +607,18 @@ export function resolveHit(
       target.fxCrit = (target.fxCrit ?? 0) + 1;
       draft.log.push(`${aDef.name} CRITS ${tDef.name}!`);
       if (aDef.critPen) pierces = true;
+      // Jackpot (Striik): EVERY crit counts toward the streak — basics AND the
+      // crits Purple Strikes rolls — so a lucky run loops into the bonus.
+      if (aDef.jackpot && opts.kind !== "reflect") {
+        const before = attacker.critsThisRound ?? 0;
+        attacker.critsThisRound = before + 1;
+        if (before < aDef.jackpot.critsForBonus && attacker.critsThisRound >= aDef.jackpot.critsForBonus) {
+          attacker.maxHp += aDef.jackpot.bonusHp;
+          attacker.curHp += aDef.jackpot.bonusHp;
+          attacker.dmgBonus += aDef.jackpot.bonusDmg;
+          draft.log.push(`${label(draft, attacker)} jackpots ${aDef.jackpot.critsForBonus} crits (+${aDef.jackpot.bonusHp} HP, +${aDef.jackpot.bonusDmg} DMG)!`);
+        }
+      }
     }
     if (pierces) {
       toHp = remaining; // no shield stripped
@@ -1325,19 +1337,13 @@ export function basicAttack(
     draft.log.push(`${label(draft, attacker)}'s High Voltage Sentry triggers Thunderbird!`);
     fireCardSpecial(draft, attacker);
   }
-  // Jackpot (Striik): a basic CRIT auto-fires the Special for free; N crits in a
-  // round grant a one-time HP/DMG bonus.
+  // Jackpot (Striik): a BASIC crit auto-fires Purple Strikes for free. The crit
+  // STREAK (incl. the crits Purple Strikes then rolls) is tallied in resolveHit,
+  // so it can loop into the bonus. Fires the Special only on basic crits, so a
+  // Purple Strikes crit can't recast itself.
   if (aDef.jackpot && (agg.critHits ?? 0) > 0 && attacker.curHp > 0) {
-    const before = attacker.critsThisRound ?? 0;
-    attacker.critsThisRound = before + (agg.critHits ?? 0);
     draft.log.push(`${label(draft, attacker)} hits the Jackpot — Purple Strikes fires free!`);
     fireCardSpecial(draft, attacker);
-    if (before < aDef.jackpot.critsForBonus && attacker.critsThisRound >= aDef.jackpot.critsForBonus) {
-      attacker.maxHp += aDef.jackpot.bonusHp;
-      attacker.curHp += aDef.jackpot.bonusHp;
-      attacker.dmgBonus += aDef.jackpot.bonusDmg;
-      draft.log.push(`${label(draft, attacker)} jackpots ${aDef.jackpot.critsForBonus} crits (+${aDef.jackpot.bonusHp} HP, +${aDef.jackpot.bonusDmg} DMG)!`);
-    }
   }
   // Mega Push (Megair): a desperation nova while it's nearly dead.
   if (aDef.lowHpNova && agg.landedHits > 0 && attacker.curHp > 0 && attacker.curHp < aDef.lowHpNova.belowHp) {
