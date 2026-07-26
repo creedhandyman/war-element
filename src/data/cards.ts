@@ -8017,11 +8017,9 @@ export const CARDS: CardDef[] = [
     hp: 30,
     sp: 5,
     shields: 6,
-    keywords: {},
+    // Crystal Carapace: BLOCK 1 (harder shields) and REFLECT 1 back at attackers.
+    keywords: { BLOCK: 1, REFLECT: 1 },
     tribe: "Cavernous",
-    // Crystal Growth (End of Round): +1 shield, stacking with no cap.
-    passiveNames: { roundTick: "Crystal Growth" },
-    roundTick: { selfShields: 1 },
     // Core Drill: burrow straight through its own column, 12 PEN to every
     // opponent standing in it.
     special: {
