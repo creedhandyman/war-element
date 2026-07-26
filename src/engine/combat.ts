@@ -1283,6 +1283,9 @@ export function basicAttack(
     }
     // Diamond's Edge (Sheish): basics hit harder against a shielded target.
     if (aDef.bonusVsShield && t.curShields > 0) dmg *= aDef.bonusVsShield;
+    // Explosive Power (Dynomight): extra multiplier vs a listed cardClass.
+    if (aDef.bonusVsClass && aDef.bonusVsClass.classes.includes(getDef(t.defId).cardClass))
+      dmg *= aDef.bonusVsClass.mult;
     const struckBefore = attacker.struckThisRound[t.instanceId] ?? 0;
     const r = resolveHit(draft, attacker, t, {
       kind: "basic",
@@ -2459,6 +2462,34 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       for (const a of boardCards(draft, attacker.owner))
         if (getDef(a.defId).element === healEl && healCard(draft, a, healAmt, attacker.owner) > 0) touched++;
       if (touched) draft.log.push(`${label(draft, attacker)} waters ${touched} ${healEl} ally(ies) (+${healAmt} HP).`);
+    }
+    // farRowDmg (Aftermath's Explosion): a lesser burst on the row BEYOND the
+    // adjacent one, so the blast reaches the enemy's back line too.
+    const farRowDmg = num(params, "farRowDmg");
+    if (farRowDmg > 0 && attacker.pos) {
+      const far = rowAhead(attacker.owner, rowAhead(attacker.owner, attacker.pos.row));
+      for (const e of boardCards(draft, enemyOf(attacker.owner)))
+        if (e.curHp > 0 && e.pos?.row === far) directDamage(draft, attacker, e, farRowDmg, false);
+    }
+    // stealShields (Steel's Magnetic Steel): pull a shield off each struck foe
+    // and bank it onto the caster's own armour.
+    const stealSh = num(params, "stealShields");
+    if (stealSh > 0) {
+      let stolen = 0;
+      for (const t of pool.slice(0, n)) {
+        if (draft.cards[t.instanceId] && t.curShields > 0) {
+          const got = Math.min(stealSh, t.curShields);
+          t.curShields -= got; attacker.curShields += got; stolen += got;
+        }
+      }
+      if (stolen) draft.log.push(`${label(draft, attacker)} magnetizes ${stolen} shield(s) away.`);
+    }
+    // cleanseAllies (Siphon's Cyclone): the winds scrub debuffs off the whole team.
+    if (num(params, "cleanseAllies") > 0) {
+      let cleaned = 0;
+      for (const a of boardCards(draft, attacker.owner))
+        if (a.curHp > 0 && a.statuses.length) { a.statuses = []; cleaned++; }
+      if (cleaned) draft.log.push(`${label(draft, attacker)}'s cyclone clears ${cleaned} ally(ies).`);
     }
     // Shimmering Featherrows: loose the volley, then vanish back into the light.
     if (num(params, "stealthRounds") > 0 && attacker.curHp > 0)

@@ -155,7 +155,7 @@ export function hasStatus(card: CardInstance, kind: StatusKind): boolean {
 function auraMatches(a: AuraBonusDef, holderDef: CardDef, targetDef: CardDef): boolean {
   switch (a.scope) {
     case "all": return true;
-    case "element": return targetDef.element === holderDef.element;
+    case "element": return targetDef.element === (a.match ?? holderDef.element);
     // A card can carry more than one tribe (Ravven is Dark AND Avian), so it
     // answers to either tribe's aura.
     case "tribe": return targetDef.tribe != null && a.match != null &&
@@ -170,9 +170,11 @@ export function auraBonus(state: GameState, card: CardInstance, stat: "dmg" | "s
   let best = 0;
   for (const holder of boardCards(state, card.owner)) {
     const hDef = getDef(holder.defId);
-    if (!hDef.aura || !auraMatches(hDef.aura, hDef, tDef)) continue;
-    const v = stat === "dmg" ? hDef.aura.dmg ?? 0 : hDef.aura.sp ?? 0;
-    if (v > best) best = v;
+    for (const a of [hDef.aura, ...(hDef.auras ?? [])]) {
+      if (!a || !auraMatches(a, hDef, tDef)) continue;
+      const v = stat === "dmg" ? a.dmg ?? 0 : a.sp ?? 0;
+      if (v > best) best = v;
+    }
   }
   return best;
 }
@@ -227,8 +229,10 @@ export function auraShieldBonus(state: GameState, card: CardInstance): number {
   let bonus = 0;
   for (const holder of boardCards(state, card.owner)) {
     const hDef = getDef(holder.defId);
-    if (!hDef.aura?.shields || !auraMatches(hDef.aura, hDef, tDef)) continue;
-    if (hDef.aura.shields > bonus) bonus = hDef.aura.shields;
+    for (const a of [hDef.aura, ...(hDef.auras ?? [])]) {
+      if (!a?.shields || !auraMatches(a, hDef, tDef)) continue;
+      if (a.shields > bonus) bonus = a.shields;
+    }
   }
   return bonus;
 }
@@ -344,7 +348,10 @@ function dmgBeforeIntimidation(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   const buffDmg = (card.buffs ?? []).reduce((n, b) => n + b.dmg, 0);
   // Power Grab (General): the equipped weapon replaces the printed base DMG.
-  const baseDmg = def.weaponModes ? def.weaponModes[card.weaponMode ?? 0].dmg : def.dmg;
+  // Icicle Weapon (Blackice): its armour is its weapon — base DMG = current shields.
+  const baseDmg = def.weaponFromShields
+    ? card.curShields
+    : def.weaponModes ? def.weaponModes[card.weaponMode ?? 0].dmg : def.dmg;
   let dmg = baseDmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0) + buffDmg + auraBonus(state, card, "dmg") + fieldBonus(state, card, "dmgBonus");
   // High Speed Impact (Hawk): +1 DMG for each point of SP above 10.
   if (def.highSpeedImpact) dmg += Math.max(0, effectiveSp(state, card) - 10);

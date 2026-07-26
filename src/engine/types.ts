@@ -433,6 +433,15 @@ export interface CardDef {
   /** Diamond's Edge (Sheish): basic attacks multiply their damage by this vs a
    *  SHIELDED target. */
   bonusVsShield?: number;
+  /** Explosive Power (Dynomight): basics deal `mult`× damage vs any listed
+   *  cardClass (e.g. Warrior/Tank). Stacks with bonusVsShield. */
+  bonusVsClass?: { classes: string[]; mult: number };
+  /** Icicle Weapon (Blackice): the card's basic DMG equals its CURRENT shields
+   *  (its armour IS its weapon), instead of the printed dmg. */
+  weaponFromShields?: boolean;
+  /** Extra element/class/tribe auras beyond the primary `aura` (SirCrest's dual
+   *  AQUA+PYRO mastery, Kloud's Mage+Ranged buff). */
+  auras?: AuraBonusDef[];
   /** Golden Resonance (Lithara): each successful Special use grants +shields and
    *  +DMG (stacking). */
   onSpecialUse?: { shields: number; dmg: number };

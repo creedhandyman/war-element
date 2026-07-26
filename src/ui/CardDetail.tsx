@@ -258,10 +258,10 @@ export function describePassives(def: CardDef): string[] {
           : `Each round: ${bits.join(" · ")}.`,
       );
   }
-  if (def.aura) {
-    const a = def.aura;
+  for (const a of [def.aura, ...(def.auras ?? [])]) {
+    if (!a) continue;
     const who =
-      a.scope === "element" ? `${def.element} allies` :
+      a.scope === "element" ? `${a.match ?? def.element} allies` :
       a.scope === "tribe" ? `${a.match} allies` :
       a.scope === "class" ? `${a.match} allies` : "all allies";
     const bits = [
@@ -273,6 +273,10 @@ export function describePassives(def: CardDef): string[] {
     ].filter(Boolean);
     passives.push(`Aura — ${who} gain ${bits.join(" / ")}.`);
   }
+  if (def.weaponFromShields)
+    passives.push(`Icicle Weapon: its basic attack damage equals its current shield count.`);
+  if (def.bonusVsClass)
+    named("bonusVsClass", `Explosive Power: basic attacks deal ${def.bonusVsClass.mult}× damage against ${def.bonusVsClass.classes.join(" / ")} targets.`);
   if (def.talent)
     passives.push(`Talent (free · once per game) — ${def.talent.name}: ${def.talent.text}`);
   if (def.onRevive)

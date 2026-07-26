@@ -324,6 +324,48 @@ describe("medium-tier passives (audit batch)", () => {
     expect(splashDealt(true)).toBe(4); // aura → the adjacent foe is clipped for full basic
   });
 
+  it("Blackice's basic damage tracks its current shield count", () => {
+    const s = prepState();
+    const bi = place(s, "aqua_blackice", "P1", 3, 0);
+    s.cards[bi.instanceId].curShields = 5;
+    const d5 = effectiveDmg(s, s.cards[bi.instanceId]);
+    s.cards[bi.instanceId].curShields = 2;
+    expect(d5 - effectiveDmg(s, s.cards[bi.instanceId])).toBe(3); // 5 shields vs 2 = 3 more DMG
+  });
+
+  it("Dynomight's Explosive Power doubles basics vs a Warrior", () => {
+    const s = prepState();
+    const dyno = place(s, "pyro_dynomight", "P1", 3, 0); // 9 DMG
+    const warrior = place(s, "dusk_brute", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 0 }); // Warrior
+    const other = place(s, "dusk_gool", "P2", 2, 1, { curHp: 60, maxHp: 60, curShields: 0 }); // Support
+    basicAttack(s, dyno.instanceId, warrior.instanceId);
+    basicAttack(s, dyno.instanceId, other.instanceId);
+    expect(60 - s.cards[warrior.instanceId].curHp).toBe(2 * (60 - s.cards[other.instanceId].curHp));
+  });
+
+  it("Steel's Magnetic Steel banks a stolen shield from each foe", () => {
+    const s = prepState();
+    const steel = place(s, "bore_steel", "P1", 3, 0);
+    s.cards[steel.instanceId].curShields = 5;
+    const a = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 2 });
+    const b = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 3 });
+    SPECIAL_HANDLERS.barrage(s, s.cards[steel.instanceId],
+      [s.cards[a.instanceId], s.cards[b.instanceId]], { dmg: 3, targets: 99, stealShields: 1 });
+    expect(s.cards[steel.instanceId].curShields).toBe(7); // +1 stolen from each of the two
+  });
+
+  it("SirCrest's dual mastery buffs both an AQUA and a PYRO ally", () => {
+    const delta = (defId: string) => {
+      const on = prepState(); place(on, "dawn_sircrest", "P1", 3, 3);
+      const ally1 = place(on, defId, "P1", 3, 0);
+      const off = prepState();
+      const ally2 = place(off, defId, "P1", 3, 0);
+      return effectiveDmg(on, on.cards[ally1.instanceId]) - effectiveDmg(off, off.cards[ally2.instanceId]);
+    };
+    expect(delta("aqua_rain")).toBe(1); // AQUA ally
+    expect(delta("pyro_scully")).toBe(1); // PYRO ally
+  });
+
   it("a card with only an inert basic takes no turn at all", () => {
     const s = prepState();
     const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump

@@ -6670,10 +6670,9 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // Explosion (On Summon): 5 DMG to the adjacent row. (Doc's +3 to the far row
-    // simplified out.)
+    // Explosion (On Summon): 5 DMG to the adjacent row and 3 to the row beyond.
     passiveNames: { onSummon: "Explosion" },
-    onSummon: { handler: "barrage", params: { dmg: 5, rowAhead: 1, targets: 99 }, targetSide: "enemy" },
+    onSummon: { handler: "barrage", params: { dmg: 5, rowAhead: 1, targets: 99, farRowDmg: 3 }, targetSide: "enemy" },
     // Smog: lay a smoke screen — attacks on Aftermath's team start to whiff.
     special: {
       name: "Smog",
@@ -6699,10 +6698,11 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Forged Tech",
-    // Explosive Power: basic attacks deal 2× damage vs a shielded target. (Doc's
-    // +2 vs Warriors/Tanks simplified out.)
+    // Explosive Power: basic attacks deal 2× damage vs a shielded target OR vs a
+    // Warrior/Tank.
     passiveNames: { bonusVsShield: "Explosive Power" },
     bonusVsShield: 2,
+    bonusVsClass: { classes: ["Warrior", "Tank"], mult: 2 },
     // Grand Finally: 6 DMG to the adjacent row and 4 DMG to the rest; Dynomight
     // loses 2 HP.
     special: {
@@ -6910,12 +6910,12 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 0,
     keywords: {},
-    // Storm Surge (End of Round): 2 DMG to the closest opponent. Aura: Mage
-    // allies gain +1 basic DMG. (Doc's CRIT on the surge + Ranged half of the
-    // aura simplified.)
+    // Storm Surge (End of Round): 2 DMG to the closest opponent. Aura: Mage AND
+    // Ranger allies gain +1 basic DMG.
     passiveNames: { roundTick: "Storm Surge" },
     roundTick: { pokeDmg: 2 },
     aura: { scope: "class", match: "Mage", dmg: 1 },
+    auras: [{ scope: "class", match: "Ranger", dmg: 1 }],
     // Twisted Rage: a 4 → 6 → 8 → 10 chain across adjacent opponents.
     special: {
       name: "Twisted Rage",
@@ -6978,14 +6978,14 @@ export const CARDS: CardDef[] = [
     // Hardened Stainless Steel: BLOCK 2 (each shield harder to break) and immune
     // to status/DOT.
     statusImmune: true,
-    // Magnetic Steel: 3 DMG to all opponents. (Doc's shield-steal simplified.)
+    // Magnetic Steel: 3 DMG to all opponents and pull a shield off each onto Steel.
     special: {
       name: "Magnetic Steel",
       cost: 5,
       handler: "barrage",
-      params: { dmg: 3, targets: 99 },
+      params: { dmg: 3, targets: 99, stealShields: 1 },
       targetSide: "enemy",
-      text: "Deal 3 DMG to all opponents (and magnetize their armour).",
+      text: "Deal 3 DMG to all opponents and steal 1 shield from each onto Steel.",
     },
   },
   {
@@ -7351,10 +7351,11 @@ export const CARDS: CardDef[] = [
     shields: 2,
     keywords: {},
     tribe: "Ice",
-    // Icicle Shields: arrives plated in +3 shields. (Doc's shields-as-weapon
-    // basic simplified to a static 2 DMG so it isn't inert.)
+    // Icicle Shields: arrives plated in +3 shields. Icicle Weapon: its basic
+    // attack damage equals its current shield count (its armour IS its weapon).
     passiveNames: { summonSelfShields: "Icicle Shields" },
     summonSelfShields: 3,
+    weaponFromShields: true,
     // Avalanche: 3 DMG to the enemy row ahead.
     special: {
       name: "Avalanche",
@@ -7380,13 +7381,13 @@ export const CARDS: CardDef[] = [
     shields: 2,
     keywords: {},
     tribe: "Liquid",
-    // Cyclone (Talent, free, once per game): rake the adjacent row. (Doc's
-    // CLEANSE-allies + on-move weapon switch simplified.)
+    // Cyclone (Talent, free, once per game): rake the adjacent row AND scrub
+    // every debuff off the whole team.
     talent: {
       name: "Cyclone",
-      text: "Once per game, free: hit all opponents in the adjacent row.",
+      text: "Once per game, free: hit all opponents in the adjacent row and CLEANSE all allies.",
       handler: "barrage",
-      params: { dmg: 4, rowAhead: 1, targets: 99 },
+      params: { dmg: 4, rowAhead: 1, targets: 99, cleanseAllies: 1 },
     },
   },
   {
@@ -7462,8 +7463,12 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // Aqua & Pyro Mastery: (Doc's dual AQUA+PYRO auras simplified — kept as the
-    // Burning Waterfall special.)
+    // Aqua & Pyro Mastery (Aura): AQUA and PYRO allies each gain +1 basic DMG.
+    passiveNames: { aura: "Aqua & Pyro Mastery" },
+    auras: [
+      { scope: "element", match: "AQUA", dmg: 1 },
+      { scope: "element", match: "PYRO", dmg: 1 },
+    ],
     // Burning Waterfall: BURN 2 + SCALD 2 to all opponents in range.
     special: {
       name: "Burning Waterfall",
