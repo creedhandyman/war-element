@@ -24,6 +24,11 @@
   --mid: #8b8fa3;
   --your-home: #3d7fd6;
   --your-home-glow: #86bdff;
+  /* Canonical stat colors — damage red, HP green, speed blue (icons + numbers
+     inherit these; the basic-attack hit-count is white via .atk-x). */
+  --stat-dmg: #ff4d4d;
+  --stat-hp: #55e08a;
+  --stat-sp: #4ea3ff;
   --legal: #4ecb8f;
   --legal-soft: rgba(78, 203, 143, 0.18);
   --threat: #e5533d;
@@ -480,9 +485,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .tk-class { font-size: 8.5px; font-weight: 700; letter-spacing: 0.05em; color: var(--ink-dim); text-shadow: 0 1px 2px #000; margin-bottom: 2px; }
 .tk-stats { display: flex; gap: 3px; font-size: 12.5px; font-weight: 800; flex-wrap: wrap; }
 .tk-stats span { display: flex; align-items: center; gap: 1px; padding: 0 3px; border-radius: 5px; background: rgba(0, 0, 0, 0.5); text-shadow: 0 1px 2px #000; line-height: 1.4; }
-.st-sp { color: var(--your-home-glow); }
+.st-sp { color: var(--stat-sp); }
 .st-sp.can-move { color: #06251a; background: var(--legal); text-shadow: none; box-shadow: 0 0 10px rgba(78, 203, 143, 0.7); animation: movepulse 1.5s ease-in-out infinite; }
-.st-dmg { color: #ffab5e; } .st-hp { color: #7fe08a; } .st-sh { color: #8fc3ff; }
+.st-dmg { color: var(--stat-dmg); } .st-hp { color: var(--stat-hp); } .st-sh { color: #8fc3ff; }
 /* HP flashes red on damage, green on healing so combat reads at a glance. */
 .st-hp.hp-hit { animation: hpHit 0.65s ease-out; }
 .st-hp.hp-heal { animation: hpHeal 0.65s ease-out; }
@@ -613,10 +618,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .hcard .hc-name { font-family: var(--head); font-size: 12.5px; font-weight: 700; text-align: center; color: #efe9d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px #000; min-height: 0; }
 .hc-type { text-align: center; font-size: 9px; color: var(--ink-dim); letter-spacing: 0.03em; margin-top: 1px; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hcard .hc-stats { display: flex; justify-content: space-between; gap: 2px; padding: 5px 3px 0; font-size: 12px; font-weight: 800; color: inherit; }
-.hcard .hc-stats .s-dmg { color: #ff7b7b; } .hcard .hc-stats .s-hp { color: #7fe09a; } .hcard .hc-stats .s-sh { color: #9fc8ea; } .hcard .hc-stats .s-sp { color: #ffd763; }
-/* Multi-attack readability: the per-hit DAMAGE value burns a deeper orange-red
-   so it's unmistakable from the "N×" hit-count beside it (e.g. ⚔2×[4]). */
-.atk-dmg { color: #ff4a1e; }
+.s-dmg { color: var(--stat-dmg); } .s-hp { color: var(--stat-hp); } .s-sh { color: #9fc8ea; } .s-sp { color: var(--stat-sp); }
+/* Multi-attack readability: the per-hit DAMAGE value is red like the sword,
+   while the "N×" hit-count is white so the two numbers never blur (⚔[2×][4]). */
+.atk-dmg { color: var(--stat-dmg); }
+.atk-x { color: #fff; }
 .hc-class { font-size: 8px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
 
 /* deck as a stacked pile with its count */

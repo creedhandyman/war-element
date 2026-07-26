@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { getDef } from "../engine";
 import { EL_COLOR, EL_SIGIL, RARITY_STYLE } from "./shared";
+import { SpIcon } from "./icons";
 
 /** Rarities that get an entrance. Anything below legendary lands quietly —
  *  announcing every summon would turn the fanfare into noise. */
@@ -60,10 +61,10 @@ export function SummonAnnounce({ defId, mine }: { defId: string; mine: boolean }
               {def.element} · {def.cardClass} · {def.attackType}
             </div>
             <div className="announce-stats">
-              <span>⚔ {def.hits > 1 ? <>{def.hits}×</> : ""}<span className="atk-dmg">{def.dmg}</span></span>
-              <span>♥ {def.hp}</span>
+              <span className="s-dmg">⚔ {def.hits > 1 ? <span className="atk-x">{def.hits}× </span> : ""}<span className="atk-dmg">{def.dmg}</span></span>
+              <span className="s-hp">♥ {def.hp}</span>
               {def.shields > 0 && <span>🛡 {def.shields}</span>}
-              <span>⚡ {def.sp}</span>
+              <span className="s-sp"><SpIcon /> {def.sp}</span>
             </div>
           </div>
         </div>
