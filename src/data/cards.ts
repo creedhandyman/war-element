@@ -7096,6 +7096,86 @@ export const CARDS: CardDef[] = [
       text: "Move up to 3 spaces forward and deal 12 DMG to the first opponent hit.",
     },
   },
+
+  // ───────────── PARITY FILL (bring each element to 36) ─────────────
+  {
+    id: "leaf_splint",
+    name: "Splint",
+    rarity: "epic",
+    element: "LEAF",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 5,
+    hits: 1,
+    hp: 9,
+    sp: 9,
+    shields: 1,
+    keywords: {},
+    // Bush Dagger (On Summon): 5 to a foe. Jungle Whisper: STEALTH on kill,
+    // basics BLEED 1.
+    passiveNames: { onSummon: "Bush Dagger", onKill: "Jungle Whisper", onHitStatus: "Jungle Whisper" },
+    onSummon: { handler: "strike", params: { dmg: 5, reachNearest: 1 }, targetSide: "enemy" },
+    onKill: { grantStealth: 1 },
+    onHitStatus: { kind: "BLEED", duration: 2, power: 1 },
+    // Leafy Cloak: STEALTH 3 + REGEN 3 for 3 rounds.
+    special: {
+      name: "Leafy Cloak",
+      cost: 2,
+      handler: "cloak",
+      params: { stealth: 3, regen: 3, regenRounds: 3 },
+      targetSide: "self",
+      text: "Gain STEALTH for 3 rounds and REGEN 3 for 3 rounds.",
+    },
+  },
+  {
+    id: "leaf_dande",
+    name: "Dande",
+    rarity: "epic",
+    element: "LEAF",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 3,
+    hits: 1,
+    hp: 22,
+    sp: 0,
+    shields: 0,
+    keywords: { REGEN: 3 },
+    // Super Weed: REGEN 3 each round; a melee attacker takes 1 back. (Doc's
+    // maxHP-stacking + Bramble mark simplified.)
+    passiveNames: { onHitByMelee: "Super Weed" },
+    onHitByMelee: { dmg: 1 },
+    // Razor Guard: 3 DMG to a target and up to 2 nearby.
+    special: {
+      name: "Razor Guard",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 3, targets: 3 },
+      targetSide: "enemy",
+      text: "Deal 3 DMG to a target and up to 2 opponents near them.",
+    },
+  },
+  {
+    id: "leaf_hunter",
+    name: "Hunter",
+    rarity: "rare",
+    element: "LEAF",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 4,
+    hits: 1,
+    hp: 13,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    // Trapper: a snare bite on summon and on death. (Doc's on-hit trap trigger
+    // simplified to summon + death.)
+    passiveNames: { onSummon: "Trapper", onDeath: "Trapper" },
+    onSummon: { handler: "strike", params: { dmg: 1, reachNearest: 1 }, targetSide: "enemy" },
+    onDeath: { dmg: 1 },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

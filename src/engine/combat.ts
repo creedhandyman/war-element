@@ -2711,6 +2711,13 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.regenPower = num(params, "power", 5);
     draft.log.push(`${label(draft, attacker)} basks in golden light (+${attacker.regenPower} HP/round for ${attacker.regenRoundsLeft}r).`);
   },
+  /** Leafy Cloak (Splint): vanish into STEALTH and regenerate for a few rounds. */
+  cloak(draft, attacker, _targets, params) {
+    applyStatus(draft, attacker, "STEALTH", num(params, "stealth", 3), 0, getDef(attacker.defId).element);
+    attacker.regenRoundsLeft = num(params, "regenRounds", 3);
+    attacker.regenPower = num(params, "regen", 3);
+    draft.log.push(`${label(draft, attacker)} slips into a leafy cloak (STEALTH + REGEN).`);
+  },
   /** Flash Squad (Commander): order the allies in the row ahead to each fire a
    *  basic attack. */
   flashSquad(draft, attacker, _targets, _params) {
