@@ -6552,6 +6552,97 @@ export const CARDS: CardDef[] = [
       text: "Surround yourself with light orbs — gain 6 shields.",
     },
   },
+  {
+    id: "bolt_shock",
+    name: "Shock",
+    rarity: "legendary",
+    element: "BOLT",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 2,
+    hits: 5,
+    hp: 19,
+    sp: 11,
+    shields: 0,
+    keywords: {},
+    // Amplifier (On Summon): 5 DMG CRIT to a foe. On Kill: +1 DMG for the round.
+    // Power Grid (aura): PARALYZE every opponent under 4 HP each round.
+    passiveNames: { onSummon: "Amplifier", onKill: "Overcharge", paralyzeLowHp: "Power Grid" },
+    onSummon: { handler: "strike", params: { dmg: 5, crit: 1, reachNearest: 1 }, targetSide: "enemy" },
+    onKill: { buffDmgRound: 1 },
+    roundTick: { paralyzeLowHp: { underHp: 4, rounds: 1 } },
+    // Fryer: 4 DMG to all opponents. (Doc's +1 vs PARALYZED simplified out.)
+    special: {
+      name: "Fryer",
+      cost: 4,
+      handler: "barrage",
+      params: { dmg: 4, targets: 99 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Deal 4 DMG to all opponents.",
+    },
+  },
+  {
+    id: "bolt_jack_arc",
+    name: "Jack Arc",
+    rarity: "legendary",
+    element: "BOLT",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 2,
+    hits: 3,
+    hp: 16,
+    sp: 12,
+    shields: 3,
+    keywords: {},
+    tribe: "ARC",
+    // Static Electricity (each round): PARALYZE an un-paralyzed opponent 2r.
+    // Overclock aura: ARC allies gain +2 SP.
+    passiveNames: { roundTick: "Static Electricity" },
+    roundTick: { paralyzeOne: 2 },
+    aura: { scope: "tribe", match: "ARC", sp: 2 },
+    // StunGun: 4 DMG + PARALYZE 3 rounds to 3 targets.
+    special: {
+      name: "StunGun",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 4, targets: 3, statusKind: "PARALYZE", statusDuration: 3 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Blast 3 targets for 4 DMG and PARALYZE them for 3 rounds.",
+    },
+  },
+  {
+    id: "bolt_zoez",
+    name: "Zoez",
+    rarity: "legendary",
+    element: "BOLT",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 6,
+    dmg: 7,
+    hits: 1,
+    hp: 19,
+    sp: 14,
+    shields: 0,
+    keywords: {},
+    // Striking Defense: immune to Ranged attacks; a melee attacker takes 3 back.
+    passiveNames: { onHitByMelee: "Striking Defense" },
+    blocksRangedChance: 100,
+    onHitByMelee: { dmg: 3 },
+    // Razr Lightning Bladerang: 7 DMG to a target. (Doc's 2-DMG splash to two
+    // adjacents simplified out.)
+    special: {
+      name: "Razr Lightning Bladerang",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 7, targets: 1 },
+      targetSide: "enemy",
+      text: "Hurl the bladerang for 7 DMG to a target.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
