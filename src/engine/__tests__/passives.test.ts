@@ -299,6 +299,16 @@ describe("medium-tier passives (audit batch)", () => {
     expect(crows()).toBe(5);
   });
 
+  it("Ariel's Dawning Assault shakes the target's aim (its attacks then miss)", () => {
+    const s = prepState();
+    const ariel = place(s, "dawn_ariel", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    SPECIAL_HANDLERS.strike(s, s.cards[ariel.instanceId], [s.cards[foe.instanceId]],
+      { dmg: 7, reachNearest: 1, targetAttackMissPct: 50, targetAttackMissRounds: 2 });
+    expect(s.cards[foe.instanceId].attackMissPct).toBe(50);
+    expect(s.cards[foe.instanceId].attackMissRounds).toBe(2);
+  });
+
   it("a card with only an inert basic takes no turn at all", () => {
     const s = prepState();
     const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump

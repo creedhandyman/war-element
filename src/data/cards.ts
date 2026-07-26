@@ -6812,10 +6812,11 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Cavernous",
     // Sand Trap (On Hit by melee): infect the attacker (SLEEP). On Death: leave
-    // the killer poisoned. (Doc's full Toxic-Contagion-on-hit is simplified.)
-    passiveNames: { onHitByMelee: "Sand Trap", onDeath: "Sand Trap" },
+    // the killer poisoned. Toxic Contagion: Score's own basics spread POISON.
+    passiveNames: { onHitByMelee: "Sand Trap", onDeath: "Sand Trap", onHitStatus: "Toxic Contagion" },
     onHitByMelee: { status: { kind: "SLEEP", duration: 1, power: 0 } },
     onDeath: { dmg: 0, killerStatus: { kind: "DOT", duration: 2, power: 3 } },
+    onHitStatus: { kind: "DOT", duration: 2, power: 2 },
     // Toxic Contagion: SLEEP a target and apply POISON 3 for 2 rounds.
     special: {
       name: "Toxic Contagion",
@@ -7174,11 +7175,12 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // Trapper: a snare bite on summon and on death. (Doc's on-hit trap trigger
-    // simplified to summon + death.)
-    passiveNames: { onSummon: "Trapper", onDeath: "Trapper" },
+    // Trapper: a snare bite on summon, on death, and on a landed basic — a hit
+    // has a 50% chance to ROOT the target for a round.
+    passiveNames: { onSummon: "Trapper", onDeath: "Trapper", onHitStatus: "Trapper" },
     onSummon: { handler: "strike", params: { dmg: 1, reachNearest: 1 }, targetSide: "enemy" },
     onDeath: { dmg: 1 },
+    onHitStatus: { kind: "ROOT", duration: 1, power: 0, chance: 50 },
   },
   {
     id: "pyro_woof",
@@ -7281,14 +7283,14 @@ export const CARDS: CardDef[] = [
     // simplified.)
     passiveNames: { onHitStatus: "Frozen Serpent" },
     onHitStatus: { kind: "FREEZE", duration: 1, power: 0, chance: 50 },
-    // Icy Storm: 3 DMG to 2 opponents. (Doc's STEALTH 2 simplified out.)
+    // Icy Storm: 3 DMG to 2 opponents, then vanish into STEALTH for 2 rounds.
     special: {
       name: "Icy Storm",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 3, targets: 2 },
+      params: { dmg: 3, targets: 2, stealthRounds: 2 },
       targetSide: "enemy",
-      text: "Deal 3 DMG to 2 opponents.",
+      text: "Deal 3 DMG to 2 opponents, then gain STEALTH for 2 rounds.",
     },
   },
   {
@@ -7418,10 +7420,11 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 2,
     keywords: {},
-    // Dawning Assault (On Summon): 7 DMG to a foe. (Doc's −50% accuracy debuff +
-    // on-death chip simplified.)
-    passiveNames: { onSummon: "Dawning Assault" },
-    onSummon: { handler: "strike", params: { dmg: 7, reachNearest: 1 }, targetSide: "enemy" },
+    // Dawning Assault (On Summon): 7 DMG to a foe and blind its aim (its attacks
+    // miss 50% for 2 rounds). Ariel's fall chips the killer for 3.
+    passiveNames: { onSummon: "Dawning Assault", onDeath: "Dawning Assault" },
+    onSummon: { handler: "strike", params: { dmg: 7, reachNearest: 1, targetAttackMissPct: 50, targetAttackMissRounds: 2 }, targetSide: "enemy" },
+    onDeath: { dmg: 3 },
     // 100,000°: +14 DMG on the next basic attack (with PEN, folded in).
     special: {
       name: "100,000°",

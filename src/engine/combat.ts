@@ -2244,6 +2244,13 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const nextDebuff = num(params, "nextAtkDebuff");
     if (nextDebuff > 0 && draft.cards[target.instanceId] && target.curHp > 0)
       target.nextAttackDmgDebuff = nextDebuff;
+    // Blinding light (Ariel's Dawning Assault): shake the target's aim — its own
+    // attacks miss `targetAttackMissPct`% for `targetAttackMissRounds` rounds.
+    const tMissPct = num(params, "targetAttackMissPct");
+    if (tMissPct > 0 && draft.cards[target.instanceId] && target.curHp > 0) {
+      target.attackMissPct = tMissPct;
+      target.attackMissRounds = num(params, "targetAttackMissRounds", 1);
+    }
     // Splash: reduced damage to enemies adjacent (chess-king) to the struck slot
     // (Dive Bomb 11, Shadow Charge 9).
     const splash = num(params, "splash");
