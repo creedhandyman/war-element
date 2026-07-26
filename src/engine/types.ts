@@ -798,6 +798,8 @@ export interface CardInstance {
   transformedFrom?: string;
   /** King of the Wild (Leo): its once-per-round on-opp-summon buff has fired. */
   kingWildFiredRound?: boolean;
+  /** Zephyr (GALE): the one-time +1 DMG for crossing SP 15 has been granted. */
+  zephyrBoosted?: boolean;
   /** Life Cycle (Aurora): the queue of Light Orbs. Each incoming hit is absorbed
    *  by the front orb, which then bursts its effect and disappears. */
   orbs?: string[];
