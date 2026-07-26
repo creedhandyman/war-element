@@ -6565,7 +6565,7 @@ export const CARDS: CardDef[] = [
     name: "Aurora",
     rarity: "legendary",
     element: "DAWN",
-    cardClass: "Ranger",
+    cardClass: "Mage",
     attackType: "Ranged",
     cost: 6,
     dmg: 5,
