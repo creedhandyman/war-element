@@ -136,14 +136,29 @@ describe("medium-tier passives (audit batch)", () => {
     // The full census — the predicate must not be quietly silencing anything
     // else. UFO prints 0 DMG with no on-hit rider; RIP prints 0 DMG on purpose
     // and never swings at all (its Special is free, so it always has a real
-    // action). Any OTHER name appearing here is a bug.
+    // action); Doom is a time bomb that never swings — it just ticks down and
+    // detonates. Any OTHER name appearing here is a bug.
     const inert = CARDS.filter((d) => {
       const c = place(s, d.id, "P2", 0, 3);
       const r = basicIsInert(s, c);
       delete s.cards[c.instanceId];
       return r;
     }).map((d) => d.id);
-    expect(inert.sort()).toEqual(["bore_ufo", "dusk_rip"]);
+    expect(inert.sort()).toEqual(["bore_ufo", "dusk_doom", "dusk_rip"]);
+  });
+
+  it("Doom's Boom ticks down over 4 rounds, then levels the enemy board and dies", () => {
+    let s = prepState();
+    const doom = place(s, "dusk_doom", "P1", 3, 0, { curHp: 20, maxHp: 20 });
+    const foe = place(s, "dusk_crow", "P2", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
+    // Three cleanups: the fuse winds but must NOT have blown yet.
+    for (let i = 0; i < 3; i++) s = advance(atCleanup(s));
+    expect(s.cards[doom.instanceId]).toBeDefined();
+    expect(s.cards[foe.instanceId].curHp).toBe(30);
+    // Fourth cleanup: detonation — 11 to the enemy, and Doom is consumed.
+    s = advance(atCleanup(s));
+    expect(s.cards[foe.instanceId].curHp).toBe(19);
+    expect(s.cards[doom.instanceId]).toBeUndefined();
   });
 
   it("a card with only an inert basic takes no turn at all", () => {

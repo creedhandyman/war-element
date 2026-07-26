@@ -7622,6 +7622,69 @@ export const CARDS: CardDef[] = [
     passiveNames: { onHitSelfBuff: "Cave Rage" },
     onHitSelfBuff: { dmg: 1 },
   },
+  {
+    id: "dusk_skrow",
+    name: "Skrow",
+    rarity: "rare",
+    element: "DUSK",
+    cardClass: "Warrior",
+    attackType: "Ranged",
+    cost: 4,
+    dmg: 3,
+    hits: 1,
+    hp: 19,
+    sp: 6,
+    shields: 1,
+    keywords: {},
+    // Scarecrow: every fresh enemy arrival is FRIGHTENed on sight.
+    passiveNames: { onOppSummon: "Scarecrow" },
+    onOppSummon: { status: { kind: "FRIGHTEN", duration: 1, power: 0 } },
+    // Bird Bomb (Talent, free, once per game): scatter the flock — 4 DMG +
+    // FRIGHTEN to up to three opponents.
+    talent: {
+      name: "Bird Bomb",
+      text: "Once per game, free: deal 4 DMG and FRIGHTEN up to three opponents.",
+      handler: "barrage",
+      params: { dmg: 4, targets: 3, statusKind: "FRIGHTEN", statusDuration: 1 },
+    },
+  },
+  {
+    id: "dusk_doom",
+    name: "Doom",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Support",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 0,
+    hits: 1,
+    hp: 20,
+    sp: 0,
+    shields: 0,
+    keywords: {},
+    // Boom: a live fuse. It cannot attack — after 4 rounds it detonates for 11
+    // DMG to every enemy, then dies. Kill it first or eat the blast.
+    boom: { afterRounds: 4, dmg: 11 },
+  },
+  {
+    id: "dusk_jackl",
+    name: "Jackl",
+    rarity: "rare",
+    element: "DUSK",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 5,
+    hits: 1,
+    hp: 12,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    // Pack Hunter: basics CRIT while Jackl outspeeds its mark, healing on each.
+    passiveNames: { critIfFaster: "Pack Hunter" },
+    critIfFaster: true,
+    healPerCrit: 2,
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

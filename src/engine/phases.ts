@@ -1442,6 +1442,18 @@ function eruptRowAhead(draft: GameState, card: CardInstance, dmg: number): numbe
 function doRoundTicks(draft: GameState): void {
   for (const card of boardCards(draft)) {
     if (card.curHp <= 0) continue;
+    // Boom (Doom): wind the fuse; on the final tick, level the enemy board.
+    const boomDef = getDef(card.defId).boom;
+    if (boomDef) {
+      card.boomTimer = (card.boomTimer ?? 0) + 1;
+      if (card.boomTimer >= boomDef.afterRounds) {
+        const foes = boardCards(draft, enemyOf(card.owner)).filter((c) => c.curHp > 0);
+        for (const e of foes) tickDamage(draft, card, e, boomDef.dmg, false);
+        draft.log.push(`${label(draft, card)} goes BOOM — ${boomDef.dmg} DMG to all enemies!`);
+        defeatCard(draft, card, "detonation");
+        continue;
+      }
+    }
     const rt = getDef(card.defId).roundTick;
     if (!rt) continue;
     // firstRoundOnly: fires on the card's first Cleanup after landing, then

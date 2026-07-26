@@ -456,6 +456,9 @@ export interface CardDef {
   /** Diamond Kingdom (Diam): when an allied card of `element` dies while this
    *  card lives, grant the lowest-HP surviving ally BLOCK `block` for `rounds`. */
   blockOnAllyDeath?: { block: number; rounds: number; element?: string };
+  /** Boom (Doom): a time bomb. After `afterRounds` Cleanups it detonates for
+   *  `dmg` to every enemy, then dies. Inert until then (0 DMG on purpose). */
+  boom?: { afterRounds: number; dmg: number };
   /** Acorn Drop (OAK): every landed hit it TAKES sprouts `count` token(s). */
   spawnOnHitTaken?: { token: string; count: number };
   /** Rainstorm (Rain): a landed basic also splashes N DMG to one adjacent enemy. */
@@ -862,6 +865,9 @@ export interface CardInstance {
    *  stacking with its own BLOCK keyword. Counts down each Cleanup. */
   blockRoundsLeft?: number;
   blockPower?: number;
+  /** Boom (Doom): Cleanups survived so far; detonates once it reaches the def's
+   *  `boom.afterRounds`. */
+  boomTimer?: number;
   /** Mind Bubble Channeling (Anos): each Cleanup while `channelBuffRounds` > 0,
    *  gain `channelBuffDmg` DMG, heal `channelBuffHeal`, and self-cleanse. */
   channelBuffRounds?: number;
