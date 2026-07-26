@@ -7520,27 +7520,40 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_velvolt_knight",
     name: "Velvolt Knight",
-    rarity: "rare",
+    rarity: "mythic",
     element: "BOLT",
-    cardClass: "Warrior",
-    attackType: "Melee",
-    cost: 5,
-    dmg: 6,
-    hits: 1,
-    hp: 24,
-    sp: 5,
-    shields: 0,
-    keywords: { BLOCK: 2 },
-    // Lance Charge: a basic thrown while faster than its mark lands for extra.
-    passiveNames: { highSpeedImpact: "Lance Charge" },
-    highSpeedImpact: true,
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 9,
+    dmg: 9,
+    hits: 2,
+    hp: 20,
+    sp: 13,
+    shields: 2,
+    keywords: {},
+    // Electro Knight: +1 shield each round, and a broken shield PARALYZEs the
+    // breaker for 2 rounds. Aura: opponents in range are ELECTRIFIED, so BOLT
+    // allies (which hit statused foes harder) get the bonus against them.
+    passiveNames: { onShieldBreak: "Electro Knight" },
+    roundTick: { selfShields: 1, inRangeStatus: { kind: "ELECTRIFIED", duration: 1, power: 0 } },
+    onShieldBreak: { status: { kind: "PARALYZE", duration: 2, power: 0 } },
+    // Ultra Power Gauntlets: +2 DMG, FLYING, and basics clip +1 adjacent target,
+    // all for 3 rounds.
+    special: {
+      name: "Ultra Power Gauntlets",
+      cost: 4,
+      handler: "powerGauntlets",
+      params: { dmg: 2, rounds: 3 },
+      targetSide: "self",
+      text: "Gain +2 DMG and FLYING for 3 rounds; basic attacks also hit +1 adjacent target.",
+    },
   },
   {
     id: "bore_gemaga",
     name: "Gemaga",
     rarity: "epic",
     element: "BORE",
-    cardClass: "Warrior",
+    cardClass: "Support",
     attackType: "Melee",
     cost: 5,
     dmg: 6,
@@ -7548,16 +7561,16 @@ export const CARDS: CardDef[] = [
     hp: 19,
     sp: 6,
     shields: 2,
-    // Dragon Born: gemstone scales REFLECT 2 damage back at melee attackers.
+    // Dragon Born: gemstone scales REFLECT 2 damage back at attackers.
     keywords: { REFLECT: 2 },
-    // Dragon's Reprisal: a scorching gem-lance to one foe.
+    // Magnetic Shield: grant the allies in the row directly ahead REFLECT 1.
     special: {
-      name: "Dragon's Reprisal",
-      cost: 3,
-      handler: "strike",
-      params: { dmg: 8, statusKind: "BURN", statusPower: 2, statusDuration: 2 },
-      targetSide: "enemy",
-      text: "Deal 8 DMG and BURN 2 for 2 rounds.",
+      name: "Magnetic Shield",
+      cost: 4,
+      handler: "magneticShield",
+      params: { reflect: 1, rounds: 2 },
+      targetSide: "self",
+      text: "Give allies in the row directly ahead REFLECT 1 for 2 rounds.",
     },
   },
   {
@@ -7565,26 +7578,28 @@ export const CARDS: CardDef[] = [
     name: "Valcana",
     rarity: "epic",
     element: "BORE",
-    cardClass: "Warrior",
-    attackType: "Melee",
-    cost: 5,
-    dmg: 2,
-    hits: 3,
-    hp: 19,
-    sp: 6,
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 3,
+    hits: 2,
+    hp: 8,
+    sp: 7,
     shields: 2,
     keywords: {},
-    // Volcanic Fury: each landed basic stokes the eruption (+1 DMG, permanent).
-    passiveNames: { onHitSelfBuff: "Volcanic Fury" },
-    onHitSelfBuff: { dmg: 1 },
-    // Magma Rock Burst: spray molten rock — 4 DMG + BURN 2 to up to three foes.
+    // Volcanic Fury (On Hit): each landed basic grows +1 DMG — until her Special
+    // is used, which vents the whole ramp.
+    passiveNames: { onHitRampUntilSpecial: "Volcanic Fury" },
+    onHitRampUntilSpecial: 1,
+    // Magma Rock Burst: 5 DMG + DOT 2 to a target, and 2 DMG to every other foe.
     special: {
       name: "Magma Rock Burst",
-      cost: 3,
-      handler: "barrage",
-      params: { dmg: 4, targets: 3, statusKind: "BURN", statusPower: 2, statusDuration: 2 },
+      cost: 2,
+      handler: "strike",
+      params: { dmg: 5, statusKind: "DOT", statusPower: 2, statusDuration: 2, splashAll: 2 },
       targetSide: "enemy",
-      text: "Deal 4 DMG and BURN 2 (2 rounds) to up to three opponents.",
+      ranged: true,
+      text: "Deal 5 DMG and DOT 2 (2 rounds) to a target, and 2 DMG to all other opponents.",
     },
   },
   {
@@ -7799,21 +7814,33 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_stormfang",
     name: "Stormfang",
-    rarity: "rare",
+    rarity: "mythic",
     element: "GALE",
-    cardClass: "Assassin",
+    cardClass: "Warrior",
     attackType: "Melee",
-    cost: 4,
-    dmg: 5,
+    cost: 9,
+    dmg: 11,
     hits: 1,
-    hp: 14,
-    sp: 11,
+    hp: 27,
+    sp: 17,
     shields: 0,
     keywords: {},
-    // Gale Fang: basics CRIT while Stormfang outspeeds its mark, healing on each.
-    passiveNames: { critIfFaster: "Gale Fang" },
-    critIfFaster: true,
-    healPerCrit: 2,
+    tribe: "Wolf",
+    // Apex Predator: +1 DMG for every 2 SP above 15.
+    passiveNames: { speedDmgTiered: "Apex Predator" },
+    speedDmgTiered: { above: 15, per: 2 },
+    // Pack Leader: Wolf allies gain +1 DMG and +1 SP.
+    aura: { scope: "tribe", match: "Wolf", dmg: 1, sp: 1 },
+    // Whirling Missile: dash into the target's row, then 14 to it + 7 splash to
+    // opponents adjacent to that target.
+    special: {
+      name: "Whirling Missile",
+      cost: 5,
+      handler: "strike",
+      params: { dmg: 14, splash: 7, charge: 4, chargeFirst: 1, chargeLateral: 1 },
+      targetSide: "enemy",
+      text: "Dash into the target's row, then deal 14 DMG to it and 7 DMG to opponents adjacent to it.",
+    },
   },
   {
     id: "gale_breeze",

@@ -441,6 +441,10 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.highSpeedImpact)
     named("highSpeedImpact", `High Speed Impact: +1 DMG for every point of SP above 10.`);
+  if (def.speedDmgTiered)
+    named("speedDmgTiered", `Apex Predator: +1 DMG for every ${def.speedDmgTiered.per} SP above ${def.speedDmgTiered.above}.`);
+  if (def.onHitRampUntilSpecial)
+    named("onHitRampUntilSpecial", `Volcanic Fury: each landed basic grants +${def.onHitRampUntilSpecial} DMG, building until the Special is used (then it resets).`);
   if (def.stealthWhenIdle)
     named("stealthWhenIdle", "Buried in the muck: hidden and untargetable each round it neither moves nor attacks — doing either gives it up until the next round it stays still.");
   if (def.hiveAbsorb)

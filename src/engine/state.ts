@@ -346,6 +346,11 @@ function dmgBeforeIntimidation(state: GameState, card: CardInstance): number {
   let dmg = baseDmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0) + buffDmg + auraBonus(state, card, "dmg") + fieldBonus(state, card, "dmgBonus");
   // High Speed Impact (Hawk): +1 DMG for each point of SP above 10.
   if (def.highSpeedImpact) dmg += Math.max(0, effectiveSp(state, card) - 10);
+  // Apex Predator (Stormfang): +1 DMG per `per` SP above `above`.
+  if (def.speedDmgTiered)
+    dmg += Math.floor(Math.max(0, effectiveSp(state, card) - def.speedDmgTiered.above) / def.speedDmgTiered.per);
+  // Volcanic Fury (Valcana): the on-hit ramp, until her Special resets it.
+  dmg += card.rampDmg ?? 0;
   // Scorched Fury: hotter as it burns down. Before WEAKEN/FREEZE so those
   // still scale the whole number, like every other flat bonus above.
   const fury = def.furyBelowHp;

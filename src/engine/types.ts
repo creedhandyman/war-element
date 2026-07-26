@@ -577,6 +577,11 @@ export interface CardDef {
   onHitAllyBuff?: { shields?: number; firstTimeOnly?: boolean };
   /** High Speed Impact (Hawk): +1 DMG per point of effective SP above 10. */
   highSpeedImpact?: boolean;
+  /** Apex Predator (Stormfang): +1 DMG for every `per` SP above `above`. */
+  speedDmgTiered?: { above: number; per: number };
+  /** Volcanic Fury (Valcana): each landed basic grows +`onHitRampUntilSpecial`
+   *  DMG, accumulating in `rampDmg` — wiped the moment her Special fires. */
+  onHitRampUntilSpecial?: number;
   /** Hot Shot (Clipsey): attacks never miss — ignores the caster's own BLIND
    *  and the target's EVASION (200% accuracy / ignore-evasion). */
   alwaysHit?: boolean;
@@ -873,6 +878,12 @@ export interface CardInstance {
    *  stacking with its own BLOCK keyword. Counts down each Cleanup. */
   blockRoundsLeft?: number;
   blockPower?: number;
+  /** Volcanic Fury (Valcana): DMG accumulated from on-hit ramp, reset on Special. */
+  rampDmg?: number;
+  /** Magnetic Shield (Gemaga): a granted, timed REFLECT — while `reflectRoundsLeft`
+   *  > 0 this card reflects `reflectPower` back at attackers. Counts down at Cleanup. */
+  reflectRoundsLeft?: number;
+  reflectPower?: number;
   /** Boom (Doom): Cleanups survived so far; detonates once it reaches the def's
    *  `boom.afterRounds`. */
   boomTimer?: number;

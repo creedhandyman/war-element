@@ -214,6 +214,35 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[hoax.instanceId].guaranteedDodge).toBe(0);
   });
 
+  it("Stormfang's Apex Predator adds +1 DMG per 2 SP above 15", () => {
+    const s = prepState();
+    const w = place(s, "gale_stormfang", "P1", 3, 0);
+    const d1 = effectiveDmg(s, s.cards[w.instanceId]);
+    s.cards[w.instanceId].spBonus = (s.cards[w.instanceId].spBonus ?? 0) + 2; // +2 SP = one more tier
+    expect(effectiveDmg(s, s.cards[w.instanceId]) - d1).toBe(1);
+  });
+
+  it("Valcana's Volcanic Fury ramps DMG on a landed basic", () => {
+    const s = prepState();
+    const v = place(s, "bore_valcana", "P1", 3, 0);
+    const dummy = place(s, "dusk_crow", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    const base = effectiveDmg(s, s.cards[v.instanceId]);
+    basicAttack(s, v.instanceId, dummy.instanceId); // one attack (2 hits) → +1 ramp
+    expect(s.cards[v.instanceId].rampDmg).toBe(1);
+    expect(effectiveDmg(s, s.cards[v.instanceId])).toBe(base + 1);
+  });
+
+  it("Magma Rock Burst hits the target and splashes 2 to every other opponent", () => {
+    const s = prepState();
+    const v = place(s, "bore_valcana", "P1", 3, 0);
+    const t = place(s, "dusk_crow", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const other = place(s, "dusk_crow", "P2", 1, 3, { curHp: 40, maxHp: 40, curShields: 0 });
+    SPECIAL_HANDLERS.strike(s, s.cards[v.instanceId], [s.cards[t.instanceId]],
+      { dmg: 5, statusKind: "DOT", statusPower: 2, statusDuration: 2, splashAll: 2 });
+    expect(40 - s.cards[t.instanceId].curHp).toBe(5);
+    expect(40 - s.cards[other.instanceId].curHp).toBe(2);
+  });
+
   it("a card with only an inert basic takes no turn at all", () => {
     const s = prepState();
     const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump

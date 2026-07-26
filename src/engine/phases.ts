@@ -1058,6 +1058,11 @@ function performBattleAction(
     const handler = SPECIAL_HANDLERS[special.handler];
     if (!handler) throw new Error(`Unknown special handler: ${special.handler}`);
     const enemiesBefore = boardCards(draft, enemyOf(card.owner)).length;
+    // Volcanic Fury (Valcana): firing the Special vents the accumulated ramp.
+    if (getDef(card.defId).onHitRampUntilSpecial && (card.rampDmg ?? 0) > 0) {
+      draft.log.push(`${label(draft, card)}'s Volcanic Fury vents (ramp reset).`);
+      card.rampDmg = 0;
+    }
     handler(draft, card, targets, special.params ?? {});
     // Golden Resonance (Lithara): each successful Special use hardens + sharpens.
     const osu = getDef(card.defId).onSpecialUse;
@@ -1881,6 +1886,8 @@ function doCleanupPhase(draft: GameState): void {
     if ((card.attackMissRounds ?? 0) > 0) card.attackMissRounds = (card.attackMissRounds ?? 0) - 1;
     // Diamallize / Diamond Kingdom's granted BLOCK fades.
     if ((card.blockRoundsLeft ?? 0) > 0) card.blockRoundsLeft = (card.blockRoundsLeft ?? 0) - 1;
+    // Magnetic Shield's granted REFLECT fades.
+    if ((card.reflectRoundsLeft ?? 0) > 0) card.reflectRoundsLeft = (card.reflectRoundsLeft ?? 0) - 1;
     // Anglerfish's Lure fades.
     if ((card.incomingMissRounds ?? 0) > 0) card.incomingMissRounds = (card.incomingMissRounds ?? 0) - 1;
     // A special-lockout (Diagnosis / Red Shift / Magic Ropes) wears off.

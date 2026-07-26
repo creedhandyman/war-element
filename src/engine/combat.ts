@@ -788,7 +788,8 @@ export function resolveHit(
     result.totalToHp += toHp;
 
     // 5 (per landed hit). REFLECT accumulates; resolved after the volley.
-    const reflect = Number(tDef.keywords.REFLECT ?? 0) + fieldBonus(draft, target, "reflect");
+    const grantedReflect = (target.reflectRoundsLeft ?? 0) > 0 ? (target.reflectPower ?? 0) : 0;
+    const reflect = Number(tDef.keywords.REFLECT ?? 0) + fieldBonus(draft, target, "reflect") + grantedReflect;
     if (reflect > 0 && opts.kind !== "reflect") reflectBack += reflect;
   }
 
@@ -1406,6 +1407,11 @@ export function basicAttack(
   if (osb && agg.landedHits > 0 && attacker.curHp > 0) {
     attacker.dmgBonus += osb.dmg;
     draft.log.push(`${label(draft, attacker)}'s temper flares (+${osb.dmg} DMG).`);
+  }
+  // Volcanic Fury (Valcana): a landed basic ramps DMG that her Special resets.
+  if (aDef.onHitRampUntilSpecial && agg.landedHits > 0 && attacker.curHp > 0) {
+    attacker.rampDmg = (attacker.rampDmg ?? 0) + aDef.onHitRampUntilSpecial;
+    draft.log.push(`${label(draft, attacker)}'s Volcanic Fury builds (+${aDef.onHitRampUntilSpecial} DMG until Special).`);
   }
   // Hillside (Hillbilly): a landed basic attack shields allies in the row ahead.
   const hab = aDef.onHitAllyBuff;
@@ -2242,6 +2248,13 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
           directDamage(draft, attacker, e, splash, num(params, "pen") > 0);
       }
     }
+    // splashAll (Valcana's Magma Rock Burst): a lesser burst to EVERY other
+    // opponent on the board, not just the ones adjacent to the primary.
+    const splashAll = num(params, "splashAll");
+    if (splashAll > 0) {
+      for (const e of boardCards(draft, enemyOf(attacker.owner)))
+        if (e.instanceId !== target.instanceId && e.curHp > 0) directDamage(draft, attacker, e, splashAll, false);
+    }
     const selfDamage = num(params, "selfDamage");
     if (selfDamage > 0 && attacker.curHp > 0) {
       attacker.curHp -= selfDamage;
@@ -2878,6 +2891,30 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   },
   /** War Cry (Golde): a rallying shout — the caster plates up and the whole team
    *  hits harder for the round. */
+  /** Magnetic Shield (Gemaga): grant allies in the row directly ahead a timed
+   *  REFLECT — they bounce a bite back at whoever hits them. */
+  magneticShield(draft, attacker, _targets, params) {
+    if (!attacker.pos) return;
+    const row = rowAhead(attacker.owner, attacker.pos.row);
+    const power = num(params, "reflect", 1);
+    const rounds = num(params, "rounds", 2);
+    const allies = boardCards(draft, attacker.owner).filter((a) => a.curHp > 0 && a.pos?.row === row);
+    for (const a of allies) {
+      a.reflectPower = Math.max(a.reflectPower ?? 0, power);
+      a.reflectRoundsLeft = Math.max(a.reflectRoundsLeft ?? 0, rounds);
+    }
+    draft.log.push(`${label(draft, attacker)} magnetizes ${allies.length} ally(ies) ahead (REFLECT ${power} for ${rounds}r).`);
+  },
+  /** Ultra Power Gauntlets (Velvolt Knight): a timed loadout — +DMG, FLIGHT, and
+   *  basics clip one extra adjacent target, all for `rounds`. */
+  powerGauntlets(draft, attacker, _targets, params) {
+    const dmg = num(params, "dmg", 2);
+    const rounds = num(params, "rounds", 3);
+    applyTimedBuff(attacker, dmg, 0, rounds);
+    attacker.flyingRoundsLeft = Math.max(attacker.flyingRoundsLeft ?? 0, rounds);
+    draft.players[attacker.owner].basicSplashRounds = Math.max(draft.players[attacker.owner].basicSplashRounds ?? 0, rounds);
+    draft.log.push(`${label(draft, attacker)} charges its gauntlets (+${dmg} DMG, FLYING, +1 splash target for ${rounds}r).`);
+  },
   /** Mark of Hoax: brand one opponent — while marked, EVERY basic attack against
    *  it is a guaranteed CRIT, and its death banks Hoax a guaranteed dodge. */
   markTarget(draft, attacker, targets, _params) {

@@ -640,10 +640,13 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
       if ((kill && !basicKillsIt) || wide || (rich && outDamagesBasic)) {
         return { action: "special", targetId: kill?.instanceId ?? specTargets[0]?.instanceId };
       }
-    } else if (sp.handler === "empower") {
-      // Self-buff (Heir's Crowned): permanent value — take it when there's no
-      // kill to secure this turn and the magic is there.
+    } else if (sp.handler === "empower" || sp.handler === "powerGauntlets") {
+      // Self-buff (Heir's Crowned / Velvolt's gauntlets): strong standing value —
+      // take it when there's no kill to secure this turn.
       if (!basicCanKill) return { action: "special" };
+    } else if (sp.handler === "magneticShield") {
+      // Team REFLECT utility — fire when flush and not busy securing a kill.
+      if (!basicCanKill && rich) return { action: "special" };
     } else if (sp.handler === "spawn") {
       // Spawn a body (Imperator): great value; skip only to secure a kill.
       if (!basicCanKill && rich) return { action: "special" };
