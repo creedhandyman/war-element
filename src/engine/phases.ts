@@ -1064,6 +1064,18 @@ function performBattleAction(
       card.rampDmg = 0;
     }
     handler(draft, card, targets, special.params ?? {});
+    // Bounty (Scully): an enemy card that reacts to the caster's Special answers
+    // with a status on the caster (reactive burn).
+    if (draft.cards[card.instanceId] && card.curHp > 0) {
+      for (const r of boardCards(draft, enemyOf(card.owner))) {
+        const oes = getDef(r.defId).onEnemySpecial;
+        if (r.curHp > 0 && oes) {
+          const st = oes.status;
+          applyStatus(draft, card, st.kind, st.duration, st.power, getDef(r.defId).element);
+          draft.log.push(`${label(draft, r)} answers the Special — ${st.kind} on ${label(draft, card)}.`);
+        }
+      }
+    }
     // Golden Resonance (Lithara): each successful Special use hardens + sharpens.
     const osu = getDef(card.defId).onSpecialUse;
     if (osu && draft.cards[card.instanceId] && card.curHp > 0) {

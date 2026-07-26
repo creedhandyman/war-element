@@ -366,6 +366,36 @@ describe("medium-tier passives (audit batch)", () => {
     expect(delta("pyro_scully")).toBe(1); // PYRO ally
   });
 
+  it("Destro's Graveyard adds +1 DMG per fallen ally", () => {
+    const s = prepState();
+    const destro = place(s, "dusk_destro", "P1", 3, 0);
+    const base = effectiveDmg(s, s.cards[destro.instanceId]);
+    const ally = place(s, "dusk_gool", "P1", 3, 1, { curHp: 1, maxHp: 10 });
+    defeatCard(s, s.cards[ally.instanceId], "test");
+    expect(effectiveDmg(s, s.cards[destro.instanceId])).toBe(base + 1);
+  });
+
+  it("Dyna's Demolition Charge deals 4 + half the target's current HP", () => {
+    const s = prepState();
+    const dyna = place(s, "pyro_dyna", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    SPECIAL_HANDLERS.barrage(s, s.cards[dyna.instanceId], [s.cards[foe.instanceId]],
+      { dmg: 4, targets: 1, pctHpDmg: 50 });
+    // 4 -> 36 left, then floor(36 * 50%) = 18 -> 18 left; 22 dealt total
+    expect(40 - s.cards[foe.instanceId].curHp).toBe(22);
+  });
+
+  it("ICYNIN's Shatter splashes to neighbours when it hits a FROZEN target", () => {
+    const s = prepState();
+    const icy = place(s, "aqua_icynin", "P1", 3, 0);
+    place(s, "dusk_gool", "P2", 2, 0, {
+      curHp: 40, maxHp: 40, curShields: 0, status: { kind: "FREEZE", duration: 3, power: 0, source: "AQUA" },
+    });
+    const adj = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, icy.instanceId, boardCards(s, "P2").find((c) => c.pos?.col === 0)!.instanceId);
+    expect(40 - s.cards[adj.instanceId].curHp).toBe(3); // shatter splash
+  });
+
   it("a card with only an inert basic takes no turn at all", () => {
     const s = prepState();
     const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump

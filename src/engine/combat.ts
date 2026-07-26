@@ -409,6 +409,8 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
       draft.log.push(`${label(draft, c)} draws a new ${ORB_KINDS[idx]} orb from the fallen.`);
     }
   }
+  // Graveyard tally (feeds Destro): count this card among its side's fallen.
+  draft.players[card.owner].deaths = (draft.players[card.owner].deaths ?? 0) + 1;
   removeCard(draft, card.instanceId);
   return true;
 }
@@ -1503,6 +1505,19 @@ export function basicAttack(
       if (splash) directDamage(draft, attacker, splash, aDef.basicSplash, false);
     }
   }
+  // Shatter (ICYNIN): a landed hit on a FROZEN target cracks the ice — splash
+  // to every enemy adjacent to it.
+  if (aDef.shatterFrozen && agg.landedHits > 0 && attacker.curHp > 0) {
+    const primary = draft.cards[groups[0]?.targetId];
+    if (primary?.pos && hasStatus(primary, "FREEZE")) {
+      let hit = 0;
+      for (const e of boardCards(draft, enemyOf(attacker.owner)))
+        if (e.curHp > 0 && e.instanceId !== primary.instanceId && e.pos && chebyshev(e.pos, primary.pos) <= 1) {
+          directDamage(draft, attacker, e, aDef.shatterFrozen, false); hit++;
+        }
+      if (hit) draft.log.push(`${label(draft, attacker)} shatters the ice — ${aDef.shatterFrozen} to ${hit} nearby.`);
+    }
+  }
   // Mega Push (Megair): a desperation nova while it's nearly dead.
   if (aDef.lowHpNova && agg.landedHits > 0 && attacker.curHp > 0 && attacker.curHp < aDef.lowHpNova.belowHp) {
     const foes = boardCards(draft, enemyOf(attacker.owner)).filter((e) => e.curHp > 0);
@@ -2429,6 +2444,11 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         incinerate: getDef(attacker.defId).incinerate,
         incinerateBase: attacker.struckThisRound[target.instanceId] ?? 0,
       });
+      // pctHpDmg (Dyna's Demolition Charge): a bomb sized to the target — extra
+      // damage equal to a % of its CURRENT HP.
+      const pctHp = num(params, "pctHpDmg");
+      if (pctHp > 0 && draft.cards[target.instanceId] && target.curHp > 0)
+        directDamage(draft, attacker, target, Math.floor((target.curHp * pctHp) / 100), false);
       if (!firstOnly || struck === 0) maybeStatus(draft, attacker, target, params);
       struck++;
       // Bat Swarm: the volley feeds. DRAIN the keyword only rides basics, so a
@@ -2466,10 +2486,16 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // farRowDmg (Aftermath's Explosion): a lesser burst on the row BEYOND the
     // adjacent one, so the blast reaches the enemy's back line too.
     const farRowDmg = num(params, "farRowDmg");
-    if (farRowDmg > 0 && attacker.pos) {
+    const farRowStatus = num(params, "farRowStatus"); // reuse the volley's statusKind on the far row (Season)
+    const farStatusKind = typeof params.statusKind === "string" ? (params.statusKind as StatusKind) : null;
+    if ((farRowDmg > 0 || (farRowStatus > 0 && farStatusKind)) && attacker.pos) {
       const far = rowAhead(attacker.owner, rowAhead(attacker.owner, attacker.pos.row));
-      for (const e of boardCards(draft, enemyOf(attacker.owner)))
-        if (e.curHp > 0 && e.pos?.row === far) directDamage(draft, attacker, e, farRowDmg, false);
+      for (const e of boardCards(draft, enemyOf(attacker.owner))) {
+        if (e.curHp <= 0 || e.pos?.row !== far) continue;
+        if (farRowDmg > 0) directDamage(draft, attacker, e, farRowDmg, false);
+        if (farRowStatus > 0 && farStatusKind && draft.cards[e.instanceId] && e.curHp > 0)
+          applyStatus(draft, e, farStatusKind, num(params, "statusDuration", 1), num(params, "statusPower"), getDef(attacker.defId).element);
+      }
     }
     // stealShields (Steel's Magnetic Steel): pull a shield off each struck foe
     // and bank it onto the caster's own armour.

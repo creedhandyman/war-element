@@ -275,6 +275,12 @@ export function describePassives(def: CardDef): string[] {
   }
   if (def.weaponFromShields)
     passives.push(`Icicle Weapon: its basic attack damage equals its current shield count.`);
+  if (def.shatterFrozen)
+    passives.push(`Shatter: a basic that lands on a FROZEN target splashes ${def.shatterFrozen} to every enemy adjacent to it.`);
+  if (def.onEnemySpecial)
+    passives.push(`Bounty: when an opponent fires a Special, they take ${def.onEnemySpecial.status.kind}${def.onEnemySpecial.status.power ? ` ${def.onEnemySpecial.status.power}` : ""} for ${def.onEnemySpecial.status.duration} round(s).`);
+  if (def.graveyardDmg)
+    passives.push(`Graveyard: +1 DMG for every allied card that has died this game.`);
   if (def.bonusVsClass)
     named("bonusVsClass", `Explosive Power: basic attacks deal ${def.bonusVsClass.mult}× damage against ${def.bonusVsClass.classes.join(" / ")} targets.`);
   if (def.talent)

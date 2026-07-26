@@ -362,6 +362,8 @@ function dmgBeforeIntimidation(state: GameState, card: CardInstance): number {
   dmg += card.rampDmg ?? 0;
   // Lurk (Liquark): +DMG while hidden in STEALTH.
   if (def.lurk && hasStatus(card, "STEALTH")) dmg += def.lurk.dmg;
+  // Graveyard (Destro): +1 DMG per fallen ally.
+  if (def.graveyardDmg) dmg += state.players[card.owner].deaths ?? 0;
   // Scorched Fury: hotter as it burns down. Before WEAKEN/FREEZE so those
   // still scale the whole number, like every other flat bonus above.
   const fury = def.furyBelowHp;

@@ -439,6 +439,14 @@ export interface CardDef {
   /** Icicle Weapon (Blackice): the card's basic DMG equals its CURRENT shields
    *  (its armour IS its weapon), instead of the printed dmg. */
   weaponFromShields?: boolean;
+  /** Shatter (ICYNIN): a landed basic on a FROZEN target shatters the ice —
+   *  `shatterFrozen` splash damage to enemies adjacent to it. */
+  shatterFrozen?: number;
+  /** Bounty (Scully): when an OPPONENT fires a Special, this card answers with a
+   *  status on the caster (reactive burn). */
+  onEnemySpecial?: { status: { kind: StatusKind; duration: number; power: number } };
+  /** Graveyard (Destro): +1 DMG for every allied card that has died this game. */
+  graveyardDmg?: boolean;
   /** Extra element/class/tribe auras beyond the primary `aura` (SirCrest's dual
    *  AQUA+PYRO mastery, Kloud's Mage+Ranged buff). */
   auras?: AuraBonusDef[];
@@ -1246,6 +1254,9 @@ export interface PlayerState {
    *  pool and vice-versa. */
   magicPool: number;
   mulliganDone: boolean;
+  /** Running tally of this player's cards that have died — feeds Destro's
+   *  graveyard-scaling (its DMG grows with the fallen). */
+  deaths?: number;
   /** Accelerator (Scorch): rounds remaining in which BURN this player inflicted
    *  on its ENEMIES deals double. Ticked down in Cleanup. */
   burnBoostRounds?: number;

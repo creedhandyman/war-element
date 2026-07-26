@@ -6344,16 +6344,16 @@ export const CARDS: CardDef[] = [
     // LEAF allies +4 each round.
     passiveNames: { rootFastest: "Grounded", roundHealElement: "Season's Bloom" },
     roundTick: { rootFastest: 2, roundHealElement: { element: "LEAF", amount: 4 } },
-    // Spiraling Root Coil: ROOT up to 4 opponents in the adjacent row for 2 rounds.
-    // (Doc's next-round far-row follow-up is simplified out.)
+    // Spiraling Root Coil: ROOT up to 4 opponents in the adjacent row AND the
+    // roots snake on to snare the row beyond it too.
     special: {
       name: "Spiraling Root Coil",
       cost: 4,
       handler: "barrage",
-      params: { dmg: 0, rowAhead: 1, targets: 4, statusKind: "ROOT", statusDuration: 2 },
+      params: { dmg: 0, rowAhead: 1, targets: 4, statusKind: "ROOT", statusDuration: 2, farRowStatus: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "ROOT up to 4 opponents in the adjacent row for 2 rounds.",
+      text: "ROOT up to 4 opponents in the adjacent row for 2 rounds, and ROOT the row beyond it too.",
     },
   },
   {
@@ -6948,16 +6948,16 @@ export const CARDS: CardDef[] = [
     roundTick: { buffDmgEveryN: { n: 1, amount: 1, sp: 1 } },
     onKill: { gainShields: 2 },
     aura: { scope: "element", dmg: 1 },
-    // Turret Mode: 1 DMG to all PARALYZED opponents. (Doc's 5-round sustain
-    // simplified to a single volley.)
+    // Turret Mode: open fire on the whole board — 3 DMG to every opponent, and
+    // PARALYZE them for a round (the turret pins them down).
     special: {
       name: "Turret Mode",
       cost: 5,
       handler: "barrage",
-      params: { dmg: 1, targets: 99, requireStatus: "PARALYZE" },
+      params: { dmg: 3, targets: 99, statusKind: "PARALYZE", statusDuration: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 1 DMG to all PARALYZED opponents.",
+      text: "Deal 3 DMG to all opponents and PARALYZE them for a round.",
     },
   },
   {
@@ -7031,10 +7031,11 @@ export const CARDS: CardDef[] = [
     shields: 3,
     keywords: {},
     tribe: "Ghost",
-    // White Shadow (On Summon): arrives plated in shields. On Death: revives once.
-    // (Doc's graveyard-scaling + resource-revive simplified.)
-    passiveNames: { summonSelfShields: "White Shadow", onRevive: "Ghost Return" },
+    // White Shadow (On Summon): arrives plated in shields. Graveyard: +1 DMG for
+    // every allied card that has died. On Death: revives once.
+    passiveNames: { summonSelfShields: "White Shadow", onRevive: "Ghost Return", graveyardDmg: "Graveyard" },
     summonSelfShields: 3,
+    graveyardDmg: true,
     onRevive: { heal: 8 },
     // Flaming Chains: DRAIN 2 max HP from all opponents and WEAKEN them 2 rounds.
     special: {
@@ -7236,10 +7237,11 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
-    // Bounty Hunter: basic attacks apply BURN 2. (Doc's on-opponent-Special
-    // reactive burn simplified to a basic rider.)
-    passiveNames: { onHitStatus: "Bounty Hunter" },
+    // Bounty Hunter: basics apply BURN 2, and any opponent who fires a Special
+    // is marked with BURN 2 for it (reactive bounty).
+    passiveNames: { onHitStatus: "Bounty Hunter", onEnemySpecial: "Bounty Hunter" },
     onHitStatus: { kind: "BURN", duration: 2, power: 2 },
+    onEnemySpecial: { status: { kind: "BURN", duration: 2, power: 2 } },
     // Scallywag: a fire bomb on the enemy row ahead — 2 DMG + BURN. (Doc's
     // home-slot trap trigger simplified.)
     special: {
@@ -7267,13 +7269,13 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Forged Tech",
-    // Demolition Charge (Talent, free, once per game): a heavy demolition strike.
-    // (Doc's delayed half-HP bomb + Bionic Movement simplified.)
+    // Demolition Charge (Talent, free, once per game): a bomb sized to the mark
+    // — 4 DMG plus half its current HP.
     talent: {
       name: "Demolition Charge",
-      text: "Once per game, free: deal 8 DMG to a target.",
+      text: "Once per game, free: deal 4 DMG plus half the target's current HP.",
       handler: "barrage",
-      params: { dmg: 8, targets: 1 },
+      params: { dmg: 4, targets: 1, pctHpDmg: 50 },
     },
   },
   {
@@ -7291,10 +7293,11 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { CRIT: true },
     tribe: ["Ice", "Dragon"],
-    // Frozen Serpent: basics FREEZE a foe. (Doc's on-CRIT gate + shatter-splash
-    // simplified.)
+    // Frozen Serpent: basics FREEZE a foe (50%), and a hit on an already-FROZEN
+    // target shatters the ice — 3 splash to everyone adjacent to it.
     passiveNames: { onHitStatus: "Frozen Serpent" },
     onHitStatus: { kind: "FREEZE", duration: 1, power: 0, chance: 50 },
+    shatterFrozen: 3,
     // Icy Storm: 3 DMG to 2 opponents, then vanish into STEALTH for 2 rounds.
     special: {
       name: "Icy Storm",
