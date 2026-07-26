@@ -289,8 +289,8 @@ describe("DRAIN — lifesteal that also grows the drainer", () => {
     expect(dealt).toBeGreaterThan(0);
     expect(s.cards[vamp.instanceId].maxHp).toBe(11); // +1 stolen ceiling
     expect(s.cards[prey.instanceId].maxHp).toBe(39); // ...off the victim
-    // Half-rate lifesteal from the hit PLUS the stolen point now healing too.
-    expect(s.cards[vamp.instanceId].curHp).toBe(4 + Math.floor(dealt / 2) + 1);
+    // Half-rate lifesteal from the hit. The stolen point heals HALF of 1 = 0.
+    expect(s.cards[vamp.instanceId].curHp).toBe(4 + Math.floor(dealt / 2));
   });
 
   it("a 1-damage drain returns nothing (the half rate floors)", () => {
@@ -303,8 +303,8 @@ describe("DRAIN — lifesteal that also grows the drainer", () => {
     s.cards[vamp.instanceId].hitsBonus = 1 - getDef("dusk_vamp").hits; // one bite (Vamp is 1×2 now)
     basicAttack(s, vamp.instanceId, prey.instanceId);
     expect(40 - s.cards[prey.instanceId].curHp).toBe(1); // basic damage only
-    expect(s.cards[vamp.instanceId].curHp).toBe(5); // floor(1/2)=0 lifesteal, but the stolen point heals +1
-    expect(s.cards[vamp.instanceId].maxHp).toBe(11); // and the theft lands
+    expect(s.cards[vamp.instanceId].curHp).toBe(4); // floor(1/2)=0 lifesteal, and half of 1 stolen = 0 heal
+    expect(s.cards[vamp.instanceId].maxHp).toBe(11); // but the theft still lands
   });
 
   it("the stolen ceiling is available to the SAME hit's heal", () => {

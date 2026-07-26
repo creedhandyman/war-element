@@ -1778,10 +1778,11 @@ export function drainMaxHp(
   if (taken <= 0) return 0;
   target.maxHp -= taken;
   target.curHp = Math.min(target.curHp, target.maxHp); // the ceiling drop shrinks its usable pool
-  // The stolen point now HEALS the drainer — usable HP, not just a taller empty
-  // bar. Raise the ceiling first so the heal has room; healCard respects SEAL.
+  // The stolen point heals the drainer for HALF (round down) — usable HP, but
+  // trimmed so DUSK's board-wide DRAIN doesn't out-sustain everything. Raise the
+  // ceiling first; healCard respects SEAL.
   attacker.maxHp += taken;
-  healCard(draft, attacker, taken, attacker);
+  healCard(draft, attacker, Math.floor(taken / 2), attacker);
   draft.log.push(`${label(draft, attacker)} drains ${taken} HP from ${label(draft, target)}.`);
   return taken;
 }
@@ -2518,7 +2519,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     if (total > 0) {
       attacker.maxHp += total;
-      healCard(draft, attacker, total, attacker); // heal for the total drained
+      healCard(draft, attacker, Math.floor(total / 2), attacker); // heal for HALF the drained total
       draft.log.push(`${label(draft, attacker)}'s Bloody Exchange drains ${total} HP to itself.`);
     }
   },
@@ -2699,6 +2700,21 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.regenRoundsLeft = num(params, "rounds", 7);
     attacker.regenPower = num(params, "power", 5);
     draft.log.push(`${label(draft, attacker)} basks in golden light (+${attacker.regenPower} HP/round for ${attacker.regenRoundsLeft}r).`);
+  },
+  /** Fryer (Shock): 2×2 to every opponent, recomputed per target so the caster's
+   *  DMG bonuses — including Overcharge's +1-for-the-round earned on a kill mid-
+   *  Fryer — carry onto the opponents struck after. */
+  fryer(draft, attacker, targets, params) {
+    const base = num(params, "dmg", 2);
+    const hits = num(params, "hits", 2);
+    let struck = 0;
+    for (const t of targets) {
+      if (!draft.cards[t.instanceId] || t.curHp <= 0 || attacker.curHp <= 0) continue;
+      const dmg = base + attacker.dmgBonus + attacker.dmgBonusRound;
+      resolveHit(draft, attacker, t, { kind: "special", dmg, hits, pen: false, crit: false });
+      struck++;
+    }
+    draft.log.push(`${label(draft, attacker)} fries ${struck} opponent(s) (${base}×${hits}).`);
   },
   /** Polar Shift (Polar King): FREEZE the weak and plate the whole team. */
   polarShift(draft, attacker, _targets, params) {
@@ -2903,7 +2919,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       target.curHp = Math.min(target.curHp, target.maxHp);
       if (!deleteOnly) {
         attacker.maxHp += stolen;
-        healCard(draft, attacker, stolen, attacker); // the theft heals the caster
+        healCard(draft, attacker, Math.floor(stolen / 2), attacker); // theft heals HALF
       }
       draft.log.push(
         deleteOnly
