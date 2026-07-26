@@ -7935,15 +7935,15 @@ export const CARDS: CardDef[] = [
     passiveNames: { roundTick: "Bark Shield" },
     roundTick: { selfShields: 1, selfShieldsMax: 5 },
     // Night Spear: a crushing, piercing spear (4 crit = 8, ignores shields) that
-    // ROOTs the target for 3 rounds.
+    // ROOTs the target for 3 rounds and MUTES it for one.
     special: {
       name: "Night Spear",
-      cost: 2,
+      cost: 1,
       handler: "strike",
-      params: { dmg: 8, pen: 1, statusKind: "ROOT", statusDuration: 3 },
+      params: { dmg: 8, pen: 1, statusKind: "ROOT", statusDuration: 3, debuffStatus: "MUTED", debuffStatusRounds: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 8 DMG (4 CRIT), piercing shields, and ROOT the target for 3 rounds.",
+      text: "Deal 8 DMG (4 CRIT), piercing shields, ROOT the target for 3 rounds, and MUTE it for 1 round.",
     },
   },
   {

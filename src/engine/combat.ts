@@ -2272,6 +2272,11 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         );
     }
     maybeStatus(draft, attacker, target, params);
+    // A SECOND status alongside the primary (Bark's Night Spear = ROOT + MUTED).
+    // barrage has long supported this rider; strike now matches it.
+    const strikeDebuff = params.debuffStatus;
+    if (typeof strikeDebuff === "string" && strikeDebuff && draft.cards[target.instanceId] && target.curHp > 0)
+      applyStatus(draft, target, strikeDebuff as StatusKind, num(params, "debuffStatusRounds", 1), 0, getDef(attacker.defId).element);
     // Shared per-target riders (push, timed −SP). barrage has always called
     // these; strike had not, so a single-target Special could not sap speed.
     applyDebuffRiders(draft, target, params, attacker);
