@@ -6574,16 +6574,19 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 3,
     keywords: {},
-    // Light Orb Creation: conjures protective light — Aurora gains 6 shields
-    // (the orbs each absorb a hit). (Doc's spawned Orb tokens + Life Cycle are
-    // simplified to a shield burst — no Orb token art yet.)
+    // Life Cycle: each incoming hit is absorbed by a Light Orb that then bursts
+    // at the attacker (blue: 3 DMG + BLIND 2 · green: 2 DMG + heal weakest ally 7
+    // · red: POISON 2). An opponent's death recharges one orb.
+    passiveNames: { lightOrbs: "Life Cycle" },
+    lightOrbs: true,
+    // Light Orb Creation: conjure the three orbs.
     special: {
       name: "Light Orb Creation",
       cost: 3,
-      handler: "grantShield",
-      params: { amount: 6 },
+      handler: "spawnOrbs",
+      params: {},
       targetSide: "self",
-      text: "Surround yourself with light orbs — gain 6 shields.",
+      text: "Conjure 3 Light Orbs — blue (3 DMG + BLIND 2), green (2 DMG + heal weakest ally 7), red (POISON 2). Each absorbs one incoming hit, then bursts at the attacker.",
     },
   },
   {

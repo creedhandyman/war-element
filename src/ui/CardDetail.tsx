@@ -388,6 +388,8 @@ export function describePassives(def: CardDef): string[] {
     named("spawnOnHitTaken", `Acorn Drop: every hit it takes sprouts ${def.spawnOnHitTaken.count} ${getDef(def.spawnOnHitTaken.token).name}.`);
   if (def.basicSplash)
     named("basicSplash", `Rainstorm: basic attacks splash ${def.basicSplash} DMG to one adjacent opponent.`);
+  if (def.lightOrbs)
+    named("lightOrbs", `Life Cycle: each incoming hit is absorbed by a Light Orb that bursts at the attacker, then disappears. Every opponent death recharges one orb.`);
   if (def.onHitDeflect)
     named("onHitDeflect", `Vision Guard: ${def.onHitDeflect}% chance when hit to take half damage and deal that much back to the attacker.`);
   if (def.onOppSummonSelfBuff)

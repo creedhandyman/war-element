@@ -454,6 +454,10 @@ export interface CardDef {
   spawnOnHitTaken?: { token: string; count: number };
   /** Rainstorm (Rain): a landed basic also splashes N DMG to one adjacent enemy. */
   basicSplash?: number;
+  /** Life Cycle (Aurora): this card fields Light Orbs — each incoming hit is
+   *  absorbed by an orb that bursts its effect at the attacker, and every enemy
+   *  death recharges one orb. */
+  lightOrbs?: boolean;
   /** Vision Guard (Eagon): when hit, `onHitDeflect`% chance to take HALF damage
    *  and deal half that back to the attacker. */
   onHitDeflect?: number;
@@ -796,6 +800,11 @@ export interface CardInstance {
   transformedFrom?: string;
   /** King of the Wild (Leo): its once-per-round on-opp-summon buff has fired. */
   kingWildFiredRound?: boolean;
+  /** Life Cycle (Aurora): the queue of Light Orbs. Each incoming hit is absorbed
+   *  by the front orb, which then bursts its effect and disappears. */
+  orbs?: string[];
+  /** Aurora's rotation index for the orb an enemy death recharges. */
+  orbCycle?: number;
   /** One-shot guard for a `oneUse` onAllyKilled (Shine's Brightling Ball). */
   allyKilledFired: boolean;
   /** Dead Clock (RIP): bodies raised so far, counted toward spawnTriggerAt. */

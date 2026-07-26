@@ -52,6 +52,28 @@ export function isFlying(card: CardInstance): boolean {
   return Boolean(getDef(card.defId).keywords.FLYING) || (card.flyingRoundsLeft ?? 0) > 0;
 }
 
+/** Aurora's ORB kinds, in the recharge rotation. */
+export const ORB_KINDS = ["blue", "green", "red"] as const;
+
+/** Fire a burst Light Orb at whatever just attacked Aurora (Life Cycle). */
+export function fireOrb(draft: GameState, aurora: CardInstance, attacker: CardInstance, orb: string): void {
+  const el = getDef(aurora.defId).element;
+  const live = () => attacker.curHp > 0 && draft.cards[attacker.instanceId];
+  if (orb === "blue") {
+    if (live()) { directDamage(draft, aurora, attacker, 3, false); if (live()) applyStatus(draft, attacker, "BLIND", 2, 0, el); }
+    draft.log.push(`${label(draft, aurora)}'s blue orb bursts — 3 DMG + BLIND.`);
+  } else if (orb === "green") {
+    if (live()) directDamage(draft, aurora, attacker, 2, false);
+    const allies = boardCards(draft, aurora.owner).filter((a) => a.curHp > 0);
+    const lowest = allies.reduce<CardInstance | null>((b, a) => (!b || a.curHp < b.curHp ? a : b), null);
+    if (lowest) healCard(draft, lowest, 7, aurora);
+    draft.log.push(`${label(draft, aurora)}'s green orb bursts — 2 DMG + heals the weakest ally.`);
+  } else {
+    if (live()) applyStatus(draft, attacker, "DOT", 2, 2, el);
+    draft.log.push(`${label(draft, aurora)}'s red orb bursts — POISON.`);
+  }
+}
+
 /** Flat pre-shield damage reduction a card gains from standing in a friendly
  *  wall's row (Stone Wall BLOCK, Radiant Barrier −1). Same-element, wall owner's
  *  allies only; stacks additively with the card's own BLOCK keyword. */
@@ -339,6 +361,17 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
       c.curHp += sal;
     }
   }
+  // Life Cycle (Aurora): an opponent's death recharges one Light Orb (cycling
+  // blue -> green -> red).
+  for (const c of boardCards(draft)) {
+    if (getDef(c.defId).lightOrbs && c.curHp > 0 && c.owner !== card.owner) {
+      c.orbs ??= [];
+      const idx = (c.orbCycle ?? 0) % ORB_KINDS.length;
+      c.orbs.push(ORB_KINDS[idx]);
+      c.orbCycle = idx + 1;
+      draft.log.push(`${label(draft, c)} draws a new ${ORB_KINDS[idx]} orb from the fallen.`);
+    }
+  }
   removeCard(draft, card.instanceId);
   return true;
 }
@@ -529,6 +562,17 @@ export function resolveHit(
       result.dodgedHits++;
       target.fxMiss = (target.fxMiss ?? 0) + 1;
       draft.log.push(`${label(draft, attacker)} swings wide, tucked in.`);
+      continue;
+    }
+
+    // Life Cycle (Aurora): a Light Orb intercepts the hit like a shield, then
+    // bursts its effect at the attacker and disappears. One orb per hit.
+    if (opts.kind !== "reflect" && (target.orbs?.length ?? 0) > 0) {
+      const orb = target.orbs!.shift()!;
+      result.dodgedHits++;
+      target.fxMiss = (target.fxMiss ?? 0) + 1;
+      draft.log.push(`${label(draft, target)}'s ${orb} orb absorbs ${aDef.name}'s attack.`);
+      fireOrb(draft, target, attacker, orb);
       continue;
     }
 
@@ -2568,6 +2612,11 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   scopeUp(draft, attacker, _targets, params) {
     attacker.loadedBasicDmg = { dmg: num(params, "dmg", 2), attacks: num(params, "attacks", 3) };
     draft.log.push(`${label(draft, attacker)} scopes in — its next ${attacker.loadedBasicDmg.attacks} shots hit for +${attacker.loadedBasicDmg.dmg}.`);
+  },
+  /** Light Orb Creation (Aurora): conjure the three orbs (blue/green/red). */
+  spawnOrbs(draft, attacker, _targets, _params) {
+    attacker.orbs = [...ORB_KINDS];
+    draft.log.push(`${label(draft, attacker)} conjures 3 Light Orbs (blue · green · red).`);
   },
   /** Sea Terror (Siren): transform into another card. It takes on the new form's
    *  stats and fires that form's On Summon; when the form dies it reverts (see
