@@ -238,6 +238,7 @@ export interface RoundTickDef {
   pokeStatus?: { kind: StatusKind; duration: number; power: number };
   healAllies?: number; // heal every ally N
   healLowestAlly?: number; // heal the lowest-HP ally N
+  healSelfToFull?: boolean; // Blub's Liquid Humidity — restore to full max HP
   /** +DMG (and optionally +SP) every Nth round, stacking (Dragon's Blade). */
   buffDmgEveryN?: { n: number; amount: number; sp?: number; hp?: number; maxTicks?: number };
   scaldFrozen?: number; // apply SCALD N to FROZEN enemies (Freezer Burn)

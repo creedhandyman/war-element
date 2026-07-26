@@ -1790,6 +1790,11 @@ function doRoundTicks(draft: GameState): void {
       const a = lowestHp(allies().filter((c) => c.curHp < effectiveMaxHp(draft, c)));
       if (a) healCard(draft, a, rt.healLowestAlly, card);
     }
+    // Liquid Humidity (Blub): drink itself back to full each round.
+    if (rt.healSelfToFull) {
+      const healed = healCard(draft, card, effectiveMaxHp(draft, card), card);
+      if (healed > 0) draft.log.push(`${label(draft, card)} rehydrates to full (+${healed} HP).`);
+    }
     if (rt.healWoundedAllies) {
       // Emergency Support (Able) / Rescue Pack (St.Bern): mend any ally that's
       // dropped under the threshold.

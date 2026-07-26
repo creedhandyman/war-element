@@ -229,6 +229,7 @@ export function describePassives(def: CardDef): string[] {
       t.pushEnemies && `push every opponent back ${t.pushEnemies} slot${t.pushEnemies > 1 ? "s" : ""}`,
       t.healAllies && `heal every ally ${t.healAllies} HP`,
       t.healLowestAlly && `heal the most wounded ally ${t.healLowestAlly} HP`,
+      t.healSelfToFull && `restore itself to full HP`,
       t.roundHealElement &&
         `heal every ${t.roundHealElement.element} ally ${t.roundHealElement.amount} HP`,
       t.spawn && `raise ${t.spawn.count} ${getDef(t.spawn.token).name}${t.spawn.count > 1 ? "s" : ""}`,
