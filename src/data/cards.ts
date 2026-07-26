@@ -4963,11 +4963,11 @@ export const CARDS: CardDef[] = [
     sp: 0,
     shields: 0,
     keywords: {},
-    // On Summon: drops an Acorn — a 2/3/3 seedling that Seed-Rolls one slot
-    // forward each round. Root Growth: OAK drinks in 2× from every healing
-    // source (REGEN, aura heals, ally lifesteal…).
-    passiveNames: { summonSpawn: "Acorn Drop", healReceivedMult: "Root Growth" },
-    summonSpawn: { token: "leaf_acorn_tok", count: 1 },
+    // Acorn Drop: every hit OAK takes sprouts an Acorn — a 2/3/3 seedling that
+    // Seed-Rolls one slot forward each round. Root Growth: OAK drinks in 2× from
+    // every healing source (REGEN, aura heals, ally lifesteal…).
+    passiveNames: { spawnOnHitTaken: "Acorn Drop", healReceivedMult: "Root Growth" },
+    spawnOnHitTaken: { token: "leaf_acorn_tok", count: 1 },
     healReceivedMult: 2,
   },
   {

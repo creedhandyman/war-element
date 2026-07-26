@@ -909,6 +909,11 @@ export function resolveHit(
     if (r) result.attackerDied = true;
   }
 
+  // Acorn Drop (OAK): every landed hit it takes sprouts a fresh Acorn.
+  if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && tDef.spawnOnHitTaken && target.pos) {
+    spawnTokens(draft, target, tDef.spawnOnHitTaken.token, tDef.spawnOnHitTaken.count * result.landedHits);
+  }
+
   // Electro Surge (Surge): being hit while armed discharges — PARALYZE the
   // attacker, deal damage back, and deactivate. Any attacker, once per charge.
   if (

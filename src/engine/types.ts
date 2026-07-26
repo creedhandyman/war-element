@@ -437,6 +437,8 @@ export interface CardDef {
   lowHpNova?: { belowHp: number; dmg: number; push: number };
   /** Salvage (VVulture): whenever ANY card dies, gain `salvageOnDeath` max HP. */
   salvageOnDeath?: number;
+  /** Acorn Drop (OAK): every landed hit it TAKES sprouts `count` token(s). */
+  spawnOnHitTaken?: { token: string; count: number };
   /** Power Grab (General): switchable basic-attack weapons. On move (once/round)
    *  it cycles to the next, paying that weapon's `spCost`, changing its basic's
    *  dmg × hits. Index 0 is the starting weapon. */
