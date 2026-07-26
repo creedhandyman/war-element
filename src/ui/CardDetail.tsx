@@ -199,6 +199,7 @@ export function describePassives(def: CardDef): string[] {
       k.aoeDmg && `${k.aoeDmg} to all enemies`,
       k.blindInRange && `BLIND nearby opponents for ${k.blindInRange} round${k.blindInRange > 1 ? "s" : ""}`,
       k.nearestVolley && `${k.nearestVolley.dmg}×${k.nearestVolley.hits} to the closest opponent`,
+      k.lowestHpDmg && `${k.lowestHpDmg} DMG to the lowest-HP opponent`,
       k.aoeDmgElectrified && `${k.aoeDmgElectrified} to all electrified (statused) enemies, once/round`,
       // Name the Special outright and say it stacks — "Special costs 1 less"
       // read as a flat, one-off, possibly team-wide discount.
@@ -390,6 +391,8 @@ export function describePassives(def: CardDef): string[] {
     named("blockOnAllyDeath", `when a${def.blockOnAllyDeath.element ? " " + def.blockOnAllyDeath.element : "n ally"} ally falls, the lowest-HP survivor gains BLOCK ${def.blockOnAllyDeath.block} for ${def.blockOnAllyDeath.rounds} round(s).`);
   if (def.boom)
     named("boom", `Boom: a time bomb — after ${def.boom.afterRounds} rounds it detonates for ${def.boom.dmg} DMG to every enemy, then dies.`);
+  if (def.deathExplosion)
+    named("deathExplosion", `On death: a final explosion — ${def.deathExplosion} DMG to every opponent on the board.`);
   if (def.spawnOnHitTaken)
     named("spawnOnHitTaken", `Acorn Drop: every hit it takes sprouts ${def.spawnOnHitTaken.count} ${getDef(def.spawnOnHitTaken.token).name}.`);
   if (def.basicSplash)

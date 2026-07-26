@@ -297,6 +297,13 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
     fireCardSpecial(draft, card);
   }
   draft.log.push(`${label(draft, card)} is defeated (${cause}).`);
+  // Unstable Core (Nitro): a final explosion across the whole enemy board, on
+  // ANY death path (this is the one place every death funnels through).
+  if (def.deathExplosion) {
+    const foes = boardCards(draft, enemyOf(card.owner)).filter((e) => e.curHp > 0);
+    for (const e of foes) directDamage(draft, card, e, def.deathExplosion, false);
+    draft.log.push(`${label(draft, card)}'s Unstable Core detonates — ${def.deathExplosion} DMG to all opponents!`);
+  }
   creditDeath(draft.stats, card);
   // A body left behind (WarPhant's rider outliving the mount, Zombie Husk's
   // Reanimation raising a Zombie). Spawned HERE, at the single removal
@@ -1938,6 +1945,16 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef): vo
       resolveHit(draft, killer, prey, { kind: "special", dmg: def.nearestVolley.dmg, hits: def.nearestVolley.hits, pen: false, crit: false });
     }
   }
+  // Infinite Serpent (Hydrogon): the kill snaps to the weakest survivor.
+  if (def.lowestHpDmg && killer.curHp > 0) {
+    const prey = boardCards(draft, enemyOf(killer.owner))
+      .filter((e) => e.curHp > 0)
+      .sort((a, b) => a.curHp - b.curHp)[0];
+    if (prey) {
+      draft.log.push(`${name} strikes the weakest — ${def.lowestHpDmg} DMG to ${getDef(prey.defId).name}.`);
+      directDamage(draft, killer, prey, def.lowestHpDmg, false);
+    }
+  }
   if (def.buffHits) {
     killer.hitsBonus += def.buffHits;
     draft.log.push(`${name} gains +${def.buffHits} hit on its basic attack.`);
@@ -2320,10 +2337,16 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const pool = req ? targets.filter((t) => hasStatus(t, req as StatusKind)) : targets;
     // scaleDmg: fold the caster's permanent DMG bonus into each hit (Fallona's
     // Fall's Emergence boosts Leaf Storm too).
+    // Volatile Formula (Nitro): a coin flip on the whole volley — on the proc,
+    // every hit lands for double.
+    const dblPct = num(params, "doubleChance");
+    const doubleProc = dblPct > 0 && pctChance(draft, dblPct);
     const dmg =
-      num(params, "dmg") +
-      (num(params, "scaleDmg") > 0 ? attacker.dmgBonus : 0) +
-      (getDef(attacker.defId).attackTrade?.bonusDmg ?? 0); // Ethereal Trade rides the Special too
+      (num(params, "dmg") +
+        (num(params, "scaleDmg") > 0 ? attacker.dmgBonus : 0) +
+        (getDef(attacker.defId).attackTrade?.bonusDmg ?? 0)) * // Ethereal Trade rides the Special too
+      (doubleProc ? 2 : 1);
+    if (doubleProc) draft.log.push(`${label(draft, attacker)}'s volatile formula goes critical — DOUBLE damage!`);
     // Timberer: ROOT only the FIRST target the volley lands on, not the row.
     const firstOnly = num(params, "firstOnlyStatus") > 0;
     let struck = 0;

@@ -3,7 +3,7 @@
 // abilities in cards.ts.
 
 import { describe, expect, it } from "vitest";
-import { applyStatus, basicAttack, drainMaxHp, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS } from "../combat";
+import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS } from "../combat";
 import { applyFlow, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
@@ -159,6 +159,33 @@ describe("medium-tier passives (audit batch)", () => {
     s = advance(atCleanup(s));
     expect(s.cards[foe.instanceId].curHp).toBe(19);
     expect(s.cards[doom.instanceId]).toBeUndefined();
+  });
+
+  it("Nitro's Unstable Core explodes for 10 to every opponent, on any death path", () => {
+    const s = prepState();
+    const nitro = place(s, "pyro_nitro", "P1", 3, 0, { curHp: 20, maxHp: 20 });
+    const a = place(s, "dusk_crow", "P2", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
+    const b = place(s, "dusk_crow", "P2", 1, 3, { curHp: 30, maxHp: 30, curShields: 0 });
+    // A direct defeatCard (the tick/detonation path, NOT a basic-attack kill) —
+    // this is exactly the death route onDeath.aoeDmg would have missed.
+    defeatCard(s, s.cards[nitro.instanceId], "test");
+    expect(s.cards[a.instanceId].curHp).toBe(20);
+    expect(s.cards[b.instanceId].curHp).toBe(20);
+    expect(s.cards[nitro.instanceId]).toBeUndefined();
+  });
+
+  it("Hydrogon's Infinite Serpent grows on a kill and snipes the lowest-HP foe", () => {
+    const s = prepState();
+    const hydro = place(s, "aqua_hydrogon", "P1", 3, 0);
+    const prey = place(s, "dusk_crow", "P2", 2, 0, { curHp: 1, maxHp: 30, curShields: 0 });
+    const weakest = place(s, "dusk_crow", "P2", 1, 1, { curHp: 8, maxHp: 30, curShields: 0 });
+    const bystander = place(s, "dusk_crow", "P2", 1, 3, { curHp: 25, maxHp: 30, curShields: 0 });
+    basicAttack(s, hydro.instanceId, prey.instanceId);
+    expect(s.cards[prey.instanceId]).toBeUndefined();           // the kill
+    expect(s.cards[hydro.instanceId].dmgBonus).toBe(1);         // +1 DMG
+    expect(s.cards[hydro.instanceId].spBonus).toBe(1);          // +1 SP
+    expect(s.cards[weakest.instanceId].curHp).toBe(5);          // 3 to the lowest-HP survivor
+    expect(s.cards[bystander.instanceId].curHp).toBe(25);       // not the higher-HP one
   });
 
   it("a card with only an inert basic takes no turn at all", () => {

@@ -7687,20 +7687,32 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_nitro",
     name: "Nitro",
-    rarity: "rare",
+    rarity: "mythic",
     element: "PYRO",
-    cardClass: "Warrior",
-    attackType: "Melee",
-    cost: 4,
-    dmg: 5,
-    hits: 1,
-    hp: 17,
-    sp: 8,
-    shields: 0,
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 9,
+    dmg: 8,
+    hits: 2,
+    hp: 20,
+    sp: 15,
+    shields: 2,
     keywords: {},
-    // Nitro Burn: consecutive landed hits on one target ramp hotter each time.
-    passiveNames: { incinerate: "Nitro Burn" },
-    incinerate: true,
+    tribe: "Forged Tech",
+    // Unstable Core (On Death): a final explosion — 10 DMG to every opponent on
+    // the board, however it dies.
+    passiveNames: { deathExplosion: "Unstable Core" },
+    deathExplosion: 10,
+    // Volatile Formula: 13 DMG to all opponents in range, 30% chance to double.
+    special: {
+      name: "Volatile Formula",
+      cost: 5,
+      handler: "barrage",
+      params: { dmg: 13, targets: 99, doubleChance: 30 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Deal 13 DMG to all opponents in range — 30% chance to deal double.",
+    },
   },
   {
     id: "aqua_coral_golem",
@@ -7818,6 +7830,37 @@ export const CARDS: CardDef[] = [
     // Dust Gust: basics have a 30% chance to BLIND for the round.
     passiveNames: { onHitStatus: "Dust Gust" },
     onHitStatus: { kind: "BLIND", duration: 1, power: 0, chance: 30 },
+  },
+  {
+    id: "aqua_hydrogon",
+    name: "Hydrogon",
+    rarity: "mythic",
+    element: "AQUA",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 9,
+    dmg: 13,
+    hits: 1,
+    hp: 31,
+    sp: 11,
+    shields: 0,
+    keywords: {},
+    tribe: ["Dragon", "Vapor"],
+    // Infinite Serpent (On Kill): grow permanently (+1 SP, +1 DMG) and snipe the
+    // lowest-HP survivor for 3.
+    passiveNames: { onKill: "Infinite Serpent" },
+    onKill: { buffSp: 1, buffDmg: 1, lowestHpDmg: 3 },
+    // Vapor Beam: 18 to a target; the scald splashes SCALD 6 (DOT, 2r) to every
+    // opponent adjacent to the struck slot.
+    special: {
+      name: "Vapor Beam",
+      cost: 4,
+      handler: "strike",
+      params: { dmg: 18, statusKind: "SCALD", statusPower: 6, statusDuration: 2, statusSplash: 1 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Deal 18 DMG to a target and splash SCALD 6 (DOT, 2 rounds) to adjacent opponents.",
+    },
   },
 ];
 

@@ -148,6 +148,9 @@ export interface OnKillDef {
   /** Quadruple Strike (Birch): on a kill, hit the CLOSEST surviving enemy for
    *  dmg×hits (a shield-shredding follow-up, distinct from aoeDmg's spray). */
   nearestVolley?: { dmg: number; hits: number };
+  /** Infinite Serpent (Hydrogon): on a kill, snipe the LOWEST-HP surviving
+   *  opponent for `lowestHpDmg` — the serpent finishes the weak. */
+  lowestHpDmg?: number;
   coinBonusDmg?: number; // coin flip: +this or +this−1 permanent DMG
   reduceSpecialCost?: number; // King Me (Heir): shave N off this card's Special cost per kill
   /** Static Charge (Static): on a kill, extend the named status on every enemy
@@ -459,6 +462,11 @@ export interface CardDef {
   /** Boom (Doom): a time bomb. After `afterRounds` Cleanups it detonates for
    *  `dmg` to every enemy, then dies. Inert until then (0 DMG on purpose). */
   boom?: { afterRounds: number; dmg: number };
+  /** Unstable Core (Nitro): a final explosion — however this card dies, it
+   *  deals `deathExplosion` to every opponent on the board. Handled in
+   *  defeatCard (the ONE chokepoint every death path funnels through), so unlike
+   *  onDeath.aoeDmg it also fires on tick / reflect / detonation deaths. */
+  deathExplosion?: number;
   /** Acorn Drop (OAK): every landed hit it TAKES sprouts `count` token(s). */
   spawnOnHitTaken?: { token: string; count: number };
   /** Rainstorm (Rain): a landed basic also splashes N DMG to one adjacent enemy. */
