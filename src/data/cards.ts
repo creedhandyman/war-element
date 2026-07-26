@@ -7176,6 +7176,88 @@ export const CARDS: CardDef[] = [
     onSummon: { handler: "strike", params: { dmg: 1, reachNearest: 1 }, targetSide: "enemy" },
     onDeath: { dmg: 1 },
   },
+  {
+    id: "pyro_woof",
+    name: "Woof",
+    rarity: "epic",
+    element: "PYRO",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 3,
+    dmg: 4,
+    hits: 1,
+    hp: 13,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    tribe: "Wolf",
+    // Flame Eater: heal 3 HP when it strikes a BURNing opponent.
+    passiveNames: { vsStatus: "Flame Eater" },
+    vsStatus: { status: "BURN", healOnHit: 3 },
+    // Heat Crunch: the next 3 basic attacks apply BURN 2 for 3 rounds.
+    special: {
+      name: "Heat Crunch",
+      cost: 1,
+      handler: "loadOnHit",
+      params: { statusKind: "BURN", statusPower: 2, statusDuration: 3, attacks: 3 },
+      targetSide: "self",
+      text: "Your next 3 basic attacks apply BURN 2 for 3 rounds.",
+    },
+  },
+  {
+    id: "pyro_scully",
+    name: "Scully",
+    rarity: "epic",
+    element: "PYRO",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 6,
+    hits: 1,
+    hp: 13,
+    sp: 6,
+    shields: 0,
+    keywords: {},
+    // Bounty Hunter: basic attacks apply BURN 2. (Doc's on-opponent-Special
+    // reactive burn simplified to a basic rider.)
+    passiveNames: { onHitStatus: "Bounty Hunter" },
+    onHitStatus: { kind: "BURN", duration: 2, power: 2 },
+    // Scallywag: a fire bomb on the enemy row ahead — 2 DMG + BURN. (Doc's
+    // home-slot trap trigger simplified.)
+    special: {
+      name: "Scallywag",
+      cost: 2,
+      handler: "barrage",
+      params: { dmg: 2, rowAhead: 1, targets: 99, statusKind: "BURN", statusPower: 2, statusDuration: 2 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Bomb the enemy row ahead for 2 DMG and BURN 2.",
+    },
+  },
+  {
+    id: "pyro_dyna",
+    name: "Dyna",
+    rarity: "rare",
+    element: "PYRO",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 3,
+    dmg: 5,
+    hits: 1,
+    hp: 11,
+    sp: 9,
+    shields: 0,
+    keywords: {},
+    tribe: "Forged Tech",
+    // Demolition Charge (Talent, free, once per game): a heavy demolition strike.
+    // (Doc's delayed half-HP bomb + Bionic Movement simplified.)
+    talent: {
+      name: "Demolition Charge",
+      text: "Once per game, free: deal 8 DMG to a target.",
+      handler: "barrage",
+      params: { dmg: 8, targets: 1 },
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
