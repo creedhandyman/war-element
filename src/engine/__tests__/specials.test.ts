@@ -30,12 +30,12 @@ describe("firing specials", () => {
       action: "special",
       targetId: t.instanceId,
     });
-    // 5 dmg PEN − BLOCK 2 = 3 straight to HP; shields untouched; BLEED 3 applied
+    // 10 dmg PEN − BLOCK 2 = 8 straight to HP; shields untouched; BLEED 3 applied
     const target = next.cards[t.instanceId];
-    expect(target.curHp).toBe(12);
+    expect(target.curHp).toBe(7); // 15 - 8
     expect(target.curShields).toBe(4);
     expect(target.statuses[0]?.kind).toBe("BLEED");
-    expect(next.cards[a.instanceId].curHp).toBe(11); // healed 3
+    expect(next.cards[a.instanceId].curHp).toBe(13); // lifesteal 8, capped at maxHp 13 (was 8)
     expect(next.players.P1.magicPool).toBe(2);
   });
 
