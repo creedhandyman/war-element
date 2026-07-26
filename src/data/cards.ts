@@ -5269,9 +5269,10 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
-    // Jolt Fist: a 25% chance to PARALYZE on a basic hit.
-    passiveNames: { onHitStatus: "Jolt Fist" },
-    onHitStatus: { kind: "PARALYZE", duration: 1, power: 0, chance: 25 },
+    // Jolt Fist: a 40% chance to PARALYZE on a basic hit. On Kill: +2 shields.
+    passiveNames: { onHitStatus: "Jolt Fist", onKill: "Salvage Plating" },
+    onHitStatus: { kind: "PARALYZE", duration: 1, power: 0, chance: 40 },
+    onKill: { gainShields: 2 },
   },
   {
     id: "bore_sling",
@@ -6051,7 +6052,7 @@ export const CARDS: CardDef[] = [
     hp: 13,
     sp: 12,
     shields: 2,
-    keywords: { FLYING: true, DRAIN: true },
+    keywords: { DRAIN: true },
     tribe: "Vamp",
     // Draining Siphon (End of Round): DRAIN 3 max HP from opponents within 1
     // space. Basics carry DRAIN (keyword).

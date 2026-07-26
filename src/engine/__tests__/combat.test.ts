@@ -12,16 +12,26 @@ function duel(seed = 42): GameState {
 }
 
 describe("shield gate (rules FAQ worked example)", () => {
-  it("10 DMG vs 12 HP / 5 shields -> 7 HP / 4 shields; next hit -> 1 HP / 3 shields", () => {
+  it("shield-break scales with the hit: 10 DMG (11-20 band) shatters 2 shields per hit", () => {
     const s = duel();
     const a = place(s, "leaf_alpha", "P1", 2, 0);
-    const t = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 12, maxHp: 12, curShields: 5 });
+    const t = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 5 });
+    // toHp = 10 - 5 = 5 (HP 20->15); 10 is in the 10-20 band -> break 2 (5->3).
     resolveHit(s, a, t, { kind: "special", dmg: 10, hits: 1, pen: false, crit: false });
-    expect(t.curHp).toBe(7);
-    expect(t.curShields).toBe(4);
-    resolveHit(s, a, t, { kind: "special", dmg: 10, hits: 1, pen: false, crit: false });
-    expect(t.curHp).toBe(1);
+    expect(t.curHp).toBe(15);
     expect(t.curShields).toBe(3);
+    // toHp = 10 - 3 = 7 (HP 15->8); break 2 again (3->1).
+    resolveHit(s, a, t, { kind: "special", dmg: 10, hits: 1, pen: false, crit: false });
+    expect(t.curHp).toBe(8);
+    expect(t.curShields).toBe(1);
+  });
+
+  it("a big hit (>20) shatters 3 shields at once", () => {
+    const s = duel();
+    const a = place(s, "leaf_alpha", "P1", 2, 0);
+    const t = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 5 });
+    resolveHit(s, a, t, { kind: "special", dmg: 25, hits: 1, pen: false, crit: false });
+    expect(t.curShields).toBe(2); // 25 > 20 -> break 3 (5->2)
   });
 
   it("a 0-damage landed hit still strips exactly 1 shield", () => {

@@ -526,6 +526,12 @@ export function checkLowHpTransform(draft: GameState, card: CardInstance): void 
   }
 }
 
+/** Shield-breaking power scales with the hit: a hit of 9 or less shatters one
+ *  shield, 10–20 shatters two, over 20 shatters three — per hit. */
+export function shieldsBrokenBy(dmg: number): number {
+  return dmg <= 9 ? 1 : dmg <= 20 ? 2 : 3;
+}
+
 /**
  * Resolve one attack (basic / special / reflect) from attacker onto target.
  * Handles the full pipeline including multi-hit, keywords, and deaths.
@@ -746,7 +752,7 @@ export function resolveHit(
       // below, since the strip changes curShields for the next hit.
       result.totalShielded += remaining - toHp;
       if (target.curShields > 0) {
-        target.curShields--;
+        target.curShields = Math.max(0, target.curShields - shieldsBrokenBy(remaining));
         // Gate Keeper (Veil): the first time the shield wall breaks, harden up.
         if (target.curShields === 0 && tDef.onShieldBreak && !target.shieldBroken) {
           target.shieldBroken = true;
@@ -1798,7 +1804,7 @@ export function spellHit(
     toHp = remaining;
   } else {
     toHp = Math.max(0, remaining - t.curShields);
-    if (t.curShields > 0) t.curShields--;
+    if (t.curShields > 0) t.curShields = Math.max(0, t.curShields - shieldsBrokenBy(remaining));
   }
   t.curHp -= toHp;
   if (by) creditDamage(draft.stats, null, by, toHp, target); // spell damage → caster's side total
