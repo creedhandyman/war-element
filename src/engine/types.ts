@@ -789,6 +789,8 @@ export interface CardInstance {
   /** A status riding the next `attacks` basic attacks (SSeerr's Flaming
    *  Slasher). Decremented once per attack that lands, not per hit. */
   loadedOnHit?: { kind: StatusKind; duration: number; power: number; attacks: number };
+  /** Scoped 50GAL (Rain): the next `attacks` basic attacks each deal +`dmg`. */
+  loadedBasicDmg?: { dmg: number; attacks: number };
   /** One-shot guard for a `oneUse` onAllyKilled (Shine's Brightling Ball). */
   allyKilledFired: boolean;
   /** Dead Clock (RIP): bodies raised so far, counted toward spawnTriggerAt. */
