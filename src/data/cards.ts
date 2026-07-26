@@ -4956,10 +4956,12 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 1,
+    // Bumped 1→2 (swapped with Weeds): a beefier 19-HP body that earns its
+    // Acorn-per-hit + Root Growth engine.
+    cost: 2,
     dmg: 1,
     hits: 1,
-    hp: 14,
+    hp: 19,
     sp: 0,
     shields: 0,
     keywords: {},
@@ -5173,17 +5175,19 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Support",
     attackType: "Ranged",
-    cost: 2,
+    // Dropped 2→1 (swapped with OAK): a cheap, disposable body that keeps coming
+    // back.
+    cost: 1,
     dmg: 2,
     hits: 1,
-    hp: 14,
+    hp: 9,
     sp: 4,
     shields: 0,
     keywords: {},
     // Offspring (On Death): sprouts back up at half HP, with a 50% coin flip to
     // revive a second time.
     passiveNames: { onRevive: "Offspring" },
-    onRevive: { heal: 7, secondChance: 50 },
+    onRevive: { heal: 5, secondChance: 50 },
   },
   {
     id: "pyro_heatsink_golem",
