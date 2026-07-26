@@ -6670,15 +6670,14 @@ export const CARDS: CardDef[] = [
     passiveNames: { onHitByMelee: "Striking Defense" },
     blocksRangedChance: 100,
     onHitByMelee: { dmg: 3 },
-    // Razr Lightning Bladerang: 7 DMG to a target. (Doc's 2-DMG splash to two
-    // adjacents simplified out.)
+    // Razr Lightning Bladerang: 7 DMG to a target + a 7-power DOT for 1 round.
     special: {
       name: "Razr Lightning Bladerang",
-      cost: 3,
+      cost: 2,
       handler: "barrage",
-      params: { dmg: 7, targets: 1 },
+      params: { dmg: 7, targets: 1, statusKind: "DOT", statusPower: 7, statusDuration: 1 },
       targetSide: "enemy",
-      text: "Hurl the bladerang for 7 DMG to a target.",
+      text: "Hurl the bladerang for 7 DMG to a target and apply a 7-DOT for 1 round.",
     },
   },
   {
