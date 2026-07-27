@@ -25,6 +25,10 @@ describe("setup", () => {
     const exceptions = new Set([
       "bore_bearocks",
       "dusk_skelider",
+      // Ability-carried, downward: 35 vs a Cost-6 budget of 40. Sandman was
+      // nerfed (HP 19→14) to rein in Frostkeep; its Nightmare Special (5×2 +
+      // SLEEP nova) carries the missing points. Deliberately under-statted.
+      "bore_sandman",
       // Ability-carried, downward: 52 vs a Cost-9 budget of 55. SkullKing raises
       // 2 Skeletons on summon + 2 every round + a SkullDrake on its Special, and
       // buffs the whole bone army — the free bodies carry the missing points.

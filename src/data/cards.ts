@@ -557,7 +557,7 @@ export const CARDS: CardDef[] = [
     cost: 6,
     dmg: 2, // "5×2 DMG"
     hits: 5,
-    hp: 19,
+    hp: 14,
     sp: 9,
     shields: 1,
     keywords: {},

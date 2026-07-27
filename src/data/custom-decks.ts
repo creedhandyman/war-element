@@ -114,8 +114,8 @@ const STANDARD_DECKS: PremadeDeck[] = [
     cards: [
       "bore_hillbilly", "aqua_misty", "aqua_subcool", "aqua_kinguin", "aqua_octoirate",
       "aqua_owlette", "bore_shift", "aqua_blackbeard", "bore_monger", "aqua_polarbear",
-      "bore_rhe", "bore_obsidi", "aqua_polarking", "bore_sandman", "aqua_glacius",
-      "aqua_kraken", "bore_rohojohn", "bore_krysteel",
+      "bore_rhe", "bore_obsidi", "aqua_polarking", "bore_sandman", "aqua_tide",
+      "aqua_sapphire", "bore_rohojohn", "bore_krysteel",
     ],
     spells: ["aqua_chill", "aqua_frost_patch", "bore_stone_wall", "bore_shatterpoint", "aqua_maelstrom"],
   },
@@ -160,7 +160,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "gale_sirocco", "gale_luna", "gale_tumbleweed", "gale_hawk", "dusk_reaper",
       "gale_vaga", "dusk_skulldrake", "gale_windsor", "dusk_ghastly", "dusk_haunt",
       "dusk_wedded_wraith", "gale_wolfbane", "dusk_ravven", "gale_klipso", "dusk_nightfang",
-      "dusk_shadowhorsemen", "gale_rayfen", "dusk_silkstalker",
+      "dusk_shadowhorsemen", "gale_masala", "dusk_gravekeeper",
     ],
     // Shadow Step out, Nightfall in — the deck finally runs its namesake. Wedded
     // Wraith floods the board with Specters, so cloaking the whole DUSK side
