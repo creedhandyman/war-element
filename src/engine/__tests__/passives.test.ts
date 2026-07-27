@@ -381,6 +381,13 @@ describe("medium-tier passives (audit batch)", () => {
     expect(isBloodfire(card)).toBe(false); // burning only
   });
 
+  it("OAK's Reroot talent marches it forward toward the enemy home", () => {
+    const s = prepState();
+    const oak = place(s, "leaf_oak", "P1", 3, 0); // SP 0, planted at its home row
+    SPECIAL_HANDLERS.reposition(s, s.cards[oak.instanceId], [], { charge: 3 });
+    expect(s.cards[oak.instanceId].pos?.row).toBe(0); // advanced 3 slots (3→0) up a clear column
+  });
+
   it("Sakuroot's Petalfall heals LEAF home-row allies (on top of Photosynthesis)", () => {
     const s = prepState();
     place(s, "leaf_sakuroot", "P1", 3, 0);

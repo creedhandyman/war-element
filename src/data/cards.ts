@@ -4954,6 +4954,14 @@ export const CARDS: CardDef[] = [
     passiveNames: { spawnOnHitTaken: "Acorn Drop", healReceivedMult: "Root Growth" },
     spawnOnHitTaken: { token: "leaf_acorn_tok", count: 1 },
     healReceivedMult: 2,
+    // Rares carry Talents, not repeatable Specials: free, but once per game.
+    // Reroot: a planted SP-0 tree uproots and marches up to 3 slots forward.
+    talent: {
+      name: "Reroot",
+      handler: "reposition",
+      params: { charge: 3 },
+      text: "Once per game: uproot and advance up to 3 slots toward the enemy home.",
+    },
   },
   {
     id: "pyro_sparky",

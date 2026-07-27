@@ -2217,6 +2217,11 @@ function adjacentCasterStatus(
 }
 
 export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
+  /** Reroot (OAK): a pure reposition — advance up to `charge` open slots toward
+   *  the enemy home, no attack. Lets a planted SP-0 body uproot and march. */
+  reposition(draft, attacker, _targets, params) {
+    chargeForward(draft, attacker, num(params, "charge", 1));
+  },
   /** Spawn N token cards near the caster (Imperator's Strike of Dawn → Heir). */
   spawn(draft, attacker, _targets, params) {
     // `radius` tethers the bodies to the summoner (RIP's Horde), so the burst
