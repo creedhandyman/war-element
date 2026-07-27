@@ -8026,9 +8026,9 @@ export const CARDS: CardDef[] = [
       name: "Petal Storm",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 3, targets: 99, rowAhead: 1, statusKind: "ROOT", statusDuration: 1 },
+      params: { dmg: 3, targets: 99, rowAhead: 1, statusKind: "ROOT", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 3 DMG to all opponents in the row directly ahead and ROOT them for 1 round.",
+      text: "Deal 3 DMG to all opponents in the row directly ahead and ROOT them for 2 rounds.",
     },
   },
   {
