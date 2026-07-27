@@ -2469,9 +2469,9 @@ export const CARDS: CardDef[] = [
       cost: 5,
       cooldown: 3, // spawns a 10/10 Heir — 3-round lockout between casts
       handler: "spawn",
-      params: { token: "dawn_heir_tok", count: 1 },
+      params: { token: "dawn_heir_tok", count: 1, commandAllies: 1 },
       targetSide: "self",
-      text: "Spawn Heir (10/10/2🛡/SP10) in an open slot. Crowned: cleanses allies each round. 3-round cooldown.",
+      text: "Spawn Heir (10/10/2🛡/SP10), then command the charge — every ally immediately fires a basic attack. Crowned: cleanses allies each round. 3-round cooldown.",
     },
   },
   {

@@ -2242,6 +2242,22 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         if (healCard(draft, a, healAmt, attacker.owner) > 0) touched++;
       if (touched) draft.log.push(`${label(draft, attacker)} heals ${touched} ally(ies) (+${healAmt} HP).`);
     }
+    // Commanding Strike (Imperator's Strike of Dawn): the same command that
+    // raises Heir orders the whole army to swing — every living ally (the caster
+    // included) auto-fires a basic at the nearest enemy it can reach. Snapshot
+    // the roster first: a kill mid-command can spawn/remove bodies.
+    if (num(params, "commandAllies") > 0) {
+      draft.log.push(`${label(draft, attacker)} commands the charge — every ally strikes!`);
+      const roster = boardCards(draft, attacker.owner).filter((a) => a.curHp > 0).map((a) => a.instanceId);
+      for (const id of roster) {
+        const ally = draft.cards[id];
+        if (!ally || ally.curHp <= 0 || !ally.pos) continue;
+        const foe = boardCards(draft, enemyOf(ally.owner))
+          .filter((e) => e.curHp > 0 && e.pos && canTarget(draft, ally, e, false, true))
+          .sort((a, b) => manhattan(ally.pos!, a.pos!) - manhattan(ally.pos!, b.pos!))[0];
+        if (foe) basicAttack(draft, ally.instanceId, foe.instanceId);
+      }
+    }
   },
   /** An escalating combo (Elecdroid's Light Slasher): a sequence of `hits` that
    *  stays on a target until it dies, then chains to the next enemy. Each KILL

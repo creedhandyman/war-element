@@ -381,6 +381,20 @@ describe("medium-tier passives (audit batch)", () => {
     expect(isBloodfire(card)).toBe(false); // burning only
   });
 
+  it("Imperator's Strike of Dawn commands every ally to fire a basic attack", () => {
+    const s = prepState();
+    const imp = place(s, "dawn_imperator", "P1", 3, 0);
+    place(s, "leaf_alpha", "P1", 3, 1); // an ally that will be commanded to swing
+    const foe1 = place(s, "dusk_gool", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    const foe2 = place(s, "dusk_gool", "P2", 2, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    SPECIAL_HANDLERS.spawn(s, s.cards[imp.instanceId], [], { token: "dawn_heir_tok", count: 1, commandAllies: 1 });
+    // Imperator swings at the foe ahead of it; the ally swings at the foe ahead of it.
+    expect(s.cards[foe1.instanceId].curHp).toBeLessThan(60);
+    expect(s.cards[foe2.instanceId].curHp).toBeLessThan(60);
+    // Heir is still raised by the same command.
+    expect(boardCards(s, "P1").some((c) => getDef(c.defId).id === "dawn_heir_tok")).toBe(true);
+  });
+
   it("OAK's Reroot talent marches it forward toward the enemy home", () => {
     const s = prepState();
     const oak = place(s, "leaf_oak", "P1", 3, 0); // SP 0, planted at its home row
