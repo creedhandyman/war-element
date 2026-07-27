@@ -7501,20 +7501,20 @@ export const CARDS: CardDef[] = [
     name: "Ning",
     rarity: "rare",
     element: "BOLT",
-    cardClass: "Assassin",
-    attackType: "Melee",
-    cost: 4,
-    dmg: 4,
-    hits: 2,
-    hp: 14,
-    sp: 8,
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 5,
+    sp: 7,
     shields: 0,
-    keywords: {},
-    // Twin Strike: two lightning-fast basics. Overclock: those hits CRIT while
-    // Ning is faster than the target, healing a sliver on each crit.
-    passiveNames: { critIfFaster: "Overclock" },
-    critIfFaster: true,
-    healPerCrit: 2,
+    // Every basic CRITs.
+    keywords: { CRIT: true },
+    // Twin Strike (On CRIT): chain a bonus 2×1 CRIT strike at the target, once
+    // per round.
+    passiveNames: { onCritBonus: "Twin Strike" },
+    onCritBonus: { dmg: 1, hits: 2 },
   },
   {
     id: "bolt_buzzard",

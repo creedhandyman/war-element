@@ -397,6 +397,8 @@ export function describePassives(def: CardDef): string[] {
     named("onSpecialUse", `Golden Resonance: each Special use grants +${def.onSpecialUse.shields} shields and +${def.onSpecialUse.dmg} DMG (stacking).`);
   if (def.onCritDebuff)
     named("onCritDebuff", `Brutal: a basic CRIT saps ${def.onCritDebuff} DMG off the target's own attacks for the round.`);
+  if (def.onCritBonus)
+    named("onCritBonus", `Twin Strike: on a CRIT, chain a bonus ${def.onCritBonus.hits}×${def.onCritBonus.dmg} CRIT strike at the same target — once per round.`);
   if (def.evadeVsSlower)
     named("evadeVsSlower", `Unpredictable: a slower attacker (lower SP) has only a 50% chance to hit it.`);
   if (def.summonSelfBuff)

@@ -2103,6 +2103,7 @@ function doCleanupPhase(draft: GameState): void {
     card.weaponSwitchedRound = false; // Power Grab (General): one switch per round
     card.kingWildFiredRound = false; // King of the Wild (Leo): one buff per round
     card.allyKilledFiredRound = false; // Overwatch (Warden): one answer per round
+    card.twinStrikeFiredRound = false; // Twin Strike (Ning): one bonus volley per round
     card.onKillAoeFiredRound = false; // Powertrip re-arms each round
     card.dmgBonusRound = 0;
     card.spBonusRound = 0;

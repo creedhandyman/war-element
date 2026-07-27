@@ -476,6 +476,9 @@ export interface CardDef {
   /** Brutal (Brute): a basic CRIT saps N DMG off the target's attacks for the
    *  round. */
   onCritDebuff?: number;
+  /** Twin Strike (Ning): landing a CRIT fires a bonus `hits`×`dmg` CRIT strike
+   *  at the same target, once per round. */
+  onCritBonus?: { dmg: number; hits: number };
   /** Unpredictable (Ender): a SLOWER attacker (lower effective SP) has only a
    *  50% chance to hit — a conditional EVASION. */
   evadeVsSlower?: boolean;
@@ -884,6 +887,8 @@ export interface CardInstance {
   orbCycle?: number;
   /** Per-round guard for a `oncePerRound` onAllyKilled (Warden's Overwatch). */
   allyKilledFiredRound?: boolean;
+  /** Per-round guard for Twin Strike (Ning's onCritBonus). */
+  twinStrikeFiredRound?: boolean;
   /** One-shot guard for a `oneUse` onAllyKilled (Shine's Brightling Ball). */
   allyKilledFired: boolean;
   /** Dead Clock (RIP): bodies raised so far, counted toward spawnTriggerAt. */

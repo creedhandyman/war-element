@@ -1395,6 +1395,16 @@ export function basicAttack(
         const h = healCard(draft, attacker, aDef.healPerCrit * r.critHits, attacker);
         if (h > 0) draft.log.push(`${label(draft, attacker)} feeds on the frenzy (+${h} HP).`);
       }
+      // Twin Strike (Ning): a CRIT chains a bonus CRIT strike at the same target,
+      // once per round. Set the guard BEFORE the follow-up so it can't recurse.
+      if (aDef.onCritBonus && r.critHits && !attacker.twinStrikeFiredRound &&
+          attacker.curHp > 0 && t.curHp > 0 && draft.cards[t.instanceId]) {
+        attacker.twinStrikeFiredRound = true;
+        draft.log.push(`${label(draft, attacker)}'s Twin Strike chains a bonus volley!`);
+        resolveHit(draft, attacker, t, {
+          kind: "special", dmg: aDef.onCritBonus.dmg, hits: aDef.onCritBonus.hits, pen: false, crit: true,
+        });
+      }
     }
     agg.landedHits += r.landedHits;
     agg.dodgedHits += r.dodgedHits;

@@ -16,7 +16,7 @@ const ABILITY_FIELDS = [
   "attackTrade", "summonSpawn", "summonScaleFromEnemy", "onHitSelfBuff",
   "shieldPerHitTaken", "healPerHit", "healPerCrit", "onDeath", "incinerate",
   "highSpeedImpact", "alwaysHit", "onlyAdjacentAttackers", "summonSelfShields",
-  "onShieldBreak", "blocksRangedChance", "critIfFaster", "weakBelowHp",
+  "onShieldBreak", "blocksRangedChance", "critIfFaster", "onCritBonus", "weakBelowHp",
   "healsFromBleed", "onHitAllyBuff", "onHitZap", "critStatus", "onAllyKilled",
   "spWhileStealthed", "onAllyHitShield", "basicHealsAllies",
   "evasionEnemySideOnly",

@@ -381,6 +381,17 @@ describe("medium-tier passives (audit batch)", () => {
     expect(isBloodfire(card)).toBe(false); // burning only
   });
 
+  it("Ning's Twin Strike chains a bonus CRIT strike on a crit, once per round", () => {
+    const s = prepState();
+    const ning = place(s, "bolt_ning", "P1", 3, 0); // 3 DMG, CRIT
+    // hoaxMarked forces the basic to CRIT (skips the coin), so Twin Strike fires.
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 0, hoaxMarked: true });
+    basicAttack(s, ning.instanceId, foe.instanceId);
+    // Basic CRIT alone is 3×2 = 6; Twin Strike adds a 2×1 CRIT strike on top.
+    expect(60 - s.cards[foe.instanceId].curHp).toBeGreaterThan(6);
+    expect(s.cards[ning.instanceId].twinStrikeFiredRound).toBe(true);
+  });
+
   it("bloodfire payoff: Firecrack doubles its hit only vs a BLEEDING+BURNING target", () => {
     // Control: a target that is only BLEEDING (not bloodfire) takes the base 5.
     const s1 = prepState();
