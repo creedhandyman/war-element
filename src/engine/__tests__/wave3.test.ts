@@ -206,10 +206,7 @@ describe("Magmadon", () => {
     expect(boardCards(ticked, "P2")[0].curHp).toBeLessThan(foeBefore);
     expect(ticked.cards[mag.instanceId].channelOn).toBe(true);
 
-    // FREEZE 3, not 2: Magmadon is PYRO, so Wildfire Resilience sheds crowd-
-    // control a round faster (2 per cleanup). It still needs to be frozen when
-    // the channel ticks for the smother to bite.
-    ticked.cards[mag.instanceId].statuses.push({ kind: "FREEZE", duration: 3, power: 0, source: "AQUA" });
+    ticked.cards[mag.instanceId].statuses.push({ kind: "FREEZE", duration: 2, power: 0, source: "AQUA" });
     const frozen = advance(atCleanup(ticked));
     expect(frozen.cards[mag.instanceId].channelOn).toBe(false);
   });
