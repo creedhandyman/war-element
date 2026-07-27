@@ -236,6 +236,7 @@ export function describePassives(def: CardDef): string[] {
       t.pushEnemies && `push every opponent back ${t.pushEnemies} slot${t.pushEnemies > 1 ? "s" : ""}`,
       t.healAllies && `heal every ally ${t.healAllies} HP`,
       t.healLowestAlly && `heal the most wounded ally ${t.healLowestAlly} HP`,
+      t.healHomeRow && `heal home-row allies ${t.healHomeRow} HP`,
       t.healSelfToFull && `restore itself to full HP`,
       t.roundHealElement &&
         `heal every ${t.roundHealElement.element} ally ${t.roundHealElement.amount} HP`,
@@ -497,6 +498,8 @@ export function describePassives(def: CardDef): string[] {
     named("splashAura", `Aura: while it lives, allied basic attacks also clip one extra adjacent target for full damage.`);
   if (def.statDropImmuneAura)
     named("statDropImmuneAura", `Aura: while it lives, allies are immune to stat reduction (WEAKEN).`);
+  if (def.purelightAura)
+    named("purelightAura", `Purelight (Aura): while it lives, DAWN allies are immune to BLIND and their attacks pierce enemy EVASION.`);
   if (def.blocksRangedChance) {
     const nm = def.passiveNames?.blocksRangedChance ?? "Rocky Force Field";
     passives.push(def.blocksRangedChance >= 100

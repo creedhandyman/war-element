@@ -381,6 +381,38 @@ describe("medium-tier passives (audit batch)", () => {
     expect(isBloodfire(card)).toBe(false); // burning only
   });
 
+  it("Halo's Purelight: DAWN allies shrug BLIND and pierce enemy EVASION", () => {
+    const s = prepState();
+    place(s, "dawn_halo", "P1", 3, 0);
+    const ally = place(s, "dawn_able", "P1", 3, 1); // a DAWN ally
+    applyStatus(s, s.cards[ally.instanceId], "BLIND", 2, 0, "AQUA");
+    expect(statusOf(s.cards[ally.instanceId], "BLIND")).toBeUndefined(); // Purelight blocks it
+    // A DAWN attacker's hit pierces EVASION while Halo stands.
+    const evader = place(s, "gale_tumbleweed", "P2", 2, 0, { curHp: 9, maxHp: 9, curShields: 0 }); // EVASION
+    const halo = boardCards(s, "P1").find((c) => getDef(c.defId).id === "dawn_halo")!;
+    basicAttack(s, halo.instanceId, evader.instanceId);
+    expect(9 - s.cards[evader.instanceId].curHp).toBe(3); // always lands (3 DMG), no dodge
+  });
+
+  it("Halo: Blessed Light heals home-row allies; Mending Horn heals +8 and strips only negatives", () => {
+    const s = prepState();
+    place(s, "dawn_halo", "P1", 3, 0);
+    const home = place(s, "dawn_able", "P1", 3, 2, { curHp: 5, maxHp: 20 });
+    const next = advance(atCleanup(s));
+    expect(next.cards[home.instanceId].curHp).toBe(7); // +2 Blessed Light (home row)
+
+    // Mending Horn: +8 HP, strip BLEED (negative), keep a positive timed buff.
+    const s2 = prepState();
+    const h2 = place(s2, "dawn_halo", "P1", 3, 0);
+    const ally = place(s2, "dawn_able", "P1", 3, 1, { curHp: 6, maxHp: 20 });
+    s2.cards[ally.instanceId].statuses = [{ kind: "BLEED", duration: 2, power: 2, source: "LEAF" }];
+    s2.cards[ally.instanceId].buffs = [{ dmg: 2, sp: 0, rounds: 2 }];
+    SPECIAL_HANDLERS.heal(s2, s2.cards[h2.instanceId], [s2.cards[ally.instanceId]], { targets: 1, amount: 8, cleanseNegatives: 1 });
+    expect(s2.cards[ally.instanceId].curHp).toBe(14); // 6 + 8
+    expect(statusOf(s2.cards[ally.instanceId], "BLEED")).toBeUndefined(); // negative stripped
+    expect(s2.cards[ally.instanceId].buffs).toHaveLength(1); // positive buff kept
+  });
+
   it("Ning's Twin Strike chains a bonus CRIT strike on a crit, once per round", () => {
     const s = prepState();
     const ning = place(s, "bolt_ning", "P1", 3, 0); // 3 DMG, CRIT

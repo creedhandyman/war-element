@@ -27,6 +27,7 @@ const ABILITY_FIELDS = [
   "intimidate", "vsTarget",
   // Wave 3b — Magalogoon, Keeper, Prism.
   "stealthWhenIdle", "hiveAbsorb", "startsWithFreeSpecial", "diesAfterAttacking", "contagionAura", "summonFog",
+  "purelightAura",
 ] as const;
 
 /** Every effect a roundTick can carry. */
@@ -36,7 +37,7 @@ const ROUND_TICK_KEYS = [
   "pushEnemies", "rowAheadDmg", "inRangeDmg", "inRangeStatus", "selfShields",
   "pokeParalyzedDmg", "aoeParalyzedDmg", "rootedDmg", "roundHealElement",
   "spawn", "aoeElectrifiedDmg", "selfHpCost", "spawnTriggerAt", "enemyHomeRowStatus",
-  "spawnMaxAlive",
+  "spawnMaxAlive", "healHomeRow",
 ] as const;
 
 describe("card text covers every mechanic", () => {

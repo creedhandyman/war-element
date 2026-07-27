@@ -1810,6 +1810,13 @@ function doRoundTicks(draft: GameState): void {
       const a = lowestHp(allies().filter((c) => c.curHp < effectiveMaxHp(draft, c)));
       if (a) healCard(draft, a, rt.healLowestAlly, card);
     }
+    // Blessed Light (Halo): heal allies standing on the caster's home row.
+    if (rt.healHomeRow) {
+      const home = homeRow(card.owner, draft.boardSize);
+      let touched = 0;
+      for (const a of allies()) if (a.pos?.row === home && healCard(draft, a, rt.healHomeRow, card) > 0) touched++;
+      if (touched) draft.log.push(`${label(draft, card)}'s Blessed Light warms ${touched} home-row ally(ies) (+${rt.healHomeRow} HP).`);
+    }
     // Liquid Humidity (Blub): drink itself back to full each round.
     if (rt.healSelfToFull) {
       const healed = healCard(draft, card, effectiveMaxHp(draft, card), card);

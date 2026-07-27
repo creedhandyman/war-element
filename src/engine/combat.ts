@@ -169,6 +169,12 @@ export function applyStatus(
     draft.log.push(`${label(draft, target)} shrugs off WEAKEN — Solar aura protects it.`);
     return;
   }
+  // Purelight (Halo): a DAWN ally can't be BLINDed while a holder stands.
+  if (kind === "BLIND" && getDef(target.defId).element === "DAWN" &&
+      boardCards(draft, target.owner).some((a) => a.curHp > 0 && getDef(a.defId).purelightAura)) {
+    draft.log.push(`${label(draft, target)} shrugs off BLIND — Purelight protects it.`);
+    return;
+  }
   // Surge Protector: while Electro Surge is armed, Surge shrugs off negatives.
   if (target.electroSurgeActive && NEGATIVE_STATUSES.includes(kind)) {
     draft.log.push(`${label(draft, target)}'s Surge Protector absorbs ${kind}.`);
@@ -656,7 +662,11 @@ export function resolveHit(
     // the attempt whether or not the coin comes good.
     const fieldEva =
       !standingEvasion && !target.fieldEvasionUsed && fieldEvasion(draft, target);
-    if (opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !fieldNeverMiss && (standingEvasion || fieldEva)) {
+    // Purelight (Halo): a DAWN attacker's hits pierce EVASION while a holder stands.
+    const purelightPierce =
+      aDef.element === "DAWN" &&
+      boardCards(draft, attacker.owner).some((a) => a.curHp > 0 && getDef(a.defId).purelightAura);
+    if (opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !fieldNeverMiss && !purelightPierce && (standingEvasion || fieldEva)) {
       if (fieldEva) target.fieldEvasionUsed = true;
       if (coin(draft)) {
         result.dodgedHits++;
@@ -3306,9 +3316,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const buffSp = num(params, "buffSp");
     const buffRounds = num(params, "buffRounds", 1);
     let healed = 0;
+    // cleanse wipes everything; cleanseNegatives (Halo's Mending Horn) strips
+    // only negative statuses + negative timed stat changes, keeping ally buffs.
+    const cleanseNeg = num(params, "cleanseNegatives", 0) > 0;
     for (const ally of targets.slice(0, n)) {
       if (amount > 0 && healCard(draft, ally, amount, attacker) > 0) healed++;
       if (doCleanse && ally.statuses.length) ally.statuses = [];
+      else if (cleanseNeg) {
+        ally.statuses = ally.statuses.filter((st) => !NEGATIVE_STATUSES.includes(st.kind));
+        ally.buffs = ally.buffs.filter((b) => b.dmg >= 0 && b.sp >= 0);
+        if (ally.dmgBonusRound < 0) ally.dmgBonusRound = 0;
+        if (ally.spBonusRound < 0) ally.spBonusRound = 0;
+      }
       if (buffDmg > 0 || buffSp > 0) applyTimedBuff(ally, buffDmg, buffSp, buffRounds);
     }
     if (buffDmg > 0 || buffSp > 0)

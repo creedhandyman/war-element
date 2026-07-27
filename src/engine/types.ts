@@ -246,6 +246,7 @@ export interface RoundTickDef {
   pokeStatus?: { kind: StatusKind; duration: number; power: number };
   healAllies?: number; // heal every ally N
   healLowestAlly?: number; // heal the lowest-HP ally N
+  healHomeRow?: number; // Blessed Light (Halo): heal allies on the caster's home row N
   healSelfToFull?: boolean; // Blub's Liquid Humidity — restore to full max HP
   /** +DMG (and optionally +SP) every Nth round, stacking (Dragon's Blade). */
   buffDmgEveryN?: { n: number; amount: number; sp?: number; hp?: number; maxTicks?: number };
@@ -711,6 +712,9 @@ export interface CardDef {
   /** Equestrian's aura: while it lives, its allies can't be WEAKENed (immune to
    *  stat reduction). */
   statDropImmuneAura?: boolean;
+  /** Purelight (Halo): while it lives, its DAWN allies can't be BLINDed, and
+   *  their attacks pierce enemy EVASION (light always finds its mark). */
+  purelightAura?: boolean;
   summonSelfShields?: number;
   /** Fog Settlement (Misty): on summon, its owner's battlefield gains N rounds
    *  of the fog (see PlayerState.foggedRounds). */
