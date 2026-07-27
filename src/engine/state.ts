@@ -148,6 +148,15 @@ export function hasStatus(card: CardInstance, kind: StatusKind): boolean {
   return card.statuses.some((s) => s.kind === kind);
 }
 
+/** Bloodfire — the leaf_pyro archetype's signature condition: a card carrying
+ *  BOTH BLEED and BURN at once (blood + fire). It's a DERIVED tag, not a stored
+ *  status: payoff cards key off it (bonus damage / lifesteal against a target
+ *  that's bleeding AND burning), so the LEAF blood engine and the PYRO fire
+ *  engine reinforce each other instead of acting in parallel. */
+export function isBloodfire(card: CardInstance): boolean {
+  return hasStatus(card, "BLEED") && hasStatus(card, "BURN");
+}
+
 /** Effective speed: ROOT and FREEZE pin SP to 0. */
 /** Best (non-stacking) aura bonus a card gets from living allies whose aura
  *  matches it — Trinezer's Brood Command (Reptile +1/+1), Griffith's GALE +SP.

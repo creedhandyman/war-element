@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CardInstance, GameState, PlayerId } from "../engine";
-import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, getDef, legalMoves } from "../engine";
+import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, getDef, isBloodfire, legalMoves } from "../engine";
 import { EL_COLOR, KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 import { SpIcon } from "./icons";
 
@@ -210,6 +210,14 @@ export function Token(props: {
         <div className="status-icons">
           {mods.buffs.length > 0 && (
             <span className="mod-chip buff" title={`BUFFS\n${mods.buffs.join("\n")}`}>▲{mods.buffs.length}</span>
+          )}
+          {isBloodfire(card) && (
+            <span
+              className="status-icon bloodfire"
+              title="BLOODFIRE — bleeding AND burning. Blood-fire payoff cards hit this target harder."
+            >
+              🩸🔥
+            </span>
           )}
           {card.statuses.map((s) => {
             const st = STATUS_STYLE[s.kind];

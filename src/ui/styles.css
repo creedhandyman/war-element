@@ -409,6 +409,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .kw-pip { min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #0d0c14; border: 1px solid; font-size: 9.5px; font-weight: 800; line-height: 14px; display: grid; place-items: center; }
 .status-icons { position: absolute; bottom: -9px; left: 4px; right: 4px; z-index: 5; display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; }
 .status-icon { min-width: 17px; height: 17px; padding: 0 4px; border-radius: 8px; background: #0d0c14; border: 1px solid; font-size: 9.5px; font-weight: 800; line-height: 15px; display: grid; place-items: center; }
+/* Bloodfire — bleeding AND burning. A single combined chip with a
+   blood-to-fire gradient rim so payoff targets read at a glance. */
+.status-icon.bloodfire { border-color: #ff5a3c; background: linear-gradient(135deg, #3a0a12, #2a1206); box-shadow: 0 0 6px rgba(255,90,60,.55); font-size: 8px; letter-spacing: -1px; }
 /* Aggregate buff (▲) / debuff (▼) chips — hover for the sourced breakdown. */
 .mod-chip { min-width: 17px; height: 17px; padding: 0 4px; border-radius: 8px; background: #0d0c14; border: 1px solid; font-size: 9.5px; font-weight: 900; line-height: 15px; display: grid; place-items: center; cursor: help; }
 .mod-chip.buff { color: var(--stat-hp); border-color: var(--stat-hp); }

@@ -7,7 +7,7 @@ import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, h
 import { applyFlow, hasElementAura, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
-import { boardCards, effectiveDmg, effectiveSp, healCard } from "../state";
+import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire } from "../state";
 import { CARDS, getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
 import type { GameState } from "../types";
@@ -366,6 +366,19 @@ describe("medium-tier passives (audit batch)", () => {
     const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     basicAttack(s, sir.instanceId, foe.instanceId);
     expect(s.cards[foe.instanceId].statuses.some((x) => x.kind === "BURN")).toBe(true);
+  });
+
+  it("bloodfire tag: a target is bloodfire only when it carries BOTH BLEED and BURN", () => {
+    const s = prepState();
+    const c = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const card = s.cards[c.instanceId];
+    expect(isBloodfire(card)).toBe(false); // clean
+    card.statuses = [{ kind: "BLEED", duration: 2, power: 2, source: "LEAF" }];
+    expect(isBloodfire(card)).toBe(false); // bleeding only
+    card.statuses.push({ kind: "BURN", duration: 2, power: 2, source: "PYRO" });
+    expect(isBloodfire(card)).toBe(true); // blood + fire
+    card.statuses = card.statuses.filter((x) => x.kind !== "BLEED");
+    expect(isBloodfire(card)).toBe(false); // burning only
   });
 
   it("Darth's Predator's Snare: a kill lays a trap that springs on the next enemy to step on it", () => {

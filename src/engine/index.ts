@@ -13,6 +13,7 @@ export {
   effectiveMaxHp,
   auraSources,
   hasStatus,
+  isBloodfire,
   moveReach,
   moveReachFor,
   isEliminated,
