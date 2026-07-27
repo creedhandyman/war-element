@@ -1078,7 +1078,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-actions .lockin { flex: 1; padding: 9px 10px; font-size: 12px; margin: 0; }
 .db-actions .ghost { flex: none; font-size: 11px; padding: 9px 10px; }
 .db-warn { font-size: 11px; color: var(--threat); font-weight: 700; }
+/* Tool pills — Composition / Spellbook / Saved condensed into one row; the
+   active one opens its panel below. Replaces three stacked full-width bars. */
+.db-tools { display: flex; gap: 6px; flex-wrap: wrap; }
+.db-tool { flex: 1 1 auto; min-width: 0; padding: 8px 10px; border-radius: 9px; background: var(--void-2); border: 1px solid var(--panel-line); color: var(--ink-dim); font-size: 11px; font-weight: 800; letter-spacing: 0.02em; cursor: pointer; transition: 0.12s; white-space: nowrap; }
+.db-tool:hover { border-color: var(--accent); color: var(--ink); }
+.db-tool.on { border-color: var(--accent); color: var(--ink); background: rgba(167, 139, 250, 0.16); }
+.db-panel { border: 1px solid var(--panel-line); border-radius: 10px; padding: 10px; background: var(--void-2); }
 .db-saved { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; min-height: 0; }
+.db-saved.db-panel { margin-top: 0; max-height: 42vh; }
 .db-saved-h { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); font-weight: 700; }
 .db-empty { font-size: 11px; color: var(--ink-faint); }
 .db-saved-row { display: flex; gap: 6px; align-items: stretch; }
@@ -1308,7 +1316,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     flex: 1 1 auto; min-height: 0; gap: 8px;
     border-left: none; border-top: 1px solid var(--panel-line); padding-left: 0; padding-top: 10px;
   }
-  .db-filters { flex: none; }
+  /* Filters get their own single scrollable line each instead of wrapping to
+     two rows — reclaims ~80px of vertical room for the card pool, and the
+     chip-scroll is a familiar mobile pattern. */
+  .db-filters, .db-sort {
+    flex: none; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px;
+  }
+  .db-filters::-webkit-scrollbar, .db-sort::-webkit-scrollbar { display: none; }
+  .db-filters .db-fl, .db-sort .db-fl { flex: none; }
+  .db-sort-lbl { flex: none; }
+  /* Tighten the meta stack so the pool sits higher. */
+  .db-name { padding: 9px 12px; }
+  .db-count { margin: 2px 0; }
   .db-grid { flex: 1 1 auto; min-height: 0; max-height: none; } /* fills the pool + scrolls */
 }
 

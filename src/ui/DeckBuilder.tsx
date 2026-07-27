@@ -50,17 +50,15 @@ export function DeckBuilder(props: {
   const [classFilter, setClassFilter] = useState<CardClass | "ALL">("ALL");
   const [sortBy, setSortBy] = useState<SortKey>("cost");
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [spellsOpen, setSpellsOpen] = useState<boolean | null>(null);
-  // Composition + Saved decks collapse to headers on phones so the card pool gets
-  // the room (open on desktop, where there's a side column for them). Default
-  // (null) follows the CURRENT viewport each render — evaluated live rather than
-  // at mount — until the user toggles.
+  // Composition / Spellbook / Saved live behind one compact tool-pill row and
+  // open one-at-a-time below it, so the card pool keeps the screen. Desktop has
+  // the room to start with Composition open; phone starts clean.
   const phone = typeof window !== "undefined" && (window.matchMedia?.("(max-width: 720px)").matches ?? false);
-  const [compOpen, setCompOpen] = useState<boolean | null>(null);
-  const [savedOpen, setSavedOpen] = useState<boolean | null>(null);
-  const compShown = compOpen ?? !phone;
-  const savedShown = savedOpen ?? !phone;
-  const spellsShown = spellsOpen ?? !phone;
+  const [panel, setPanel] = useState<"comp" | "spells" | "saved" | null>(phone ? null : "comp");
+  const togglePanel = (p: "comp" | "spells" | "saved") => setPanel((cur) => (cur === p ? null : p));
+  const compShown = panel === "comp";
+  const savedShown = panel === "saved";
+  const spellsShown = panel === "spells";
 
   const pool = useMemo(() => buildableCards(), []);
   // Filter by element and class (they stack — GALE + Ranger narrows to both),
@@ -193,14 +191,25 @@ export function DeckBuilder(props: {
             </div>
             {!check.ok && picked.length > 0 && <div className="db-warn">{check.reason}</div>}
 
-            {/* Deck composition — cards per element / class / cost. */}
-            {picked.length > 0 && (
-              <div className="db-stats">
-                <button className="db-stats-h db-collapse" onClick={() => setCompOpen(!compShown)}>
-                  <span>Composition · avg cost {stats.avg.toFixed(1)}</span>
-                  <span className="db-chev">{compShown ? "▾" : "▸"}</span>
+            {/* Compact tool row — one tap opens Composition / Spellbook / Saved
+                in a panel below, one at a time, so the card pool keeps the room. */}
+            <div className="db-tools">
+              {picked.length > 0 && (
+                <button className={`db-tool ${compShown ? "on" : ""}`} onClick={() => togglePanel("comp")}>
+                  Comp · {stats.avg.toFixed(1)}
                 </button>
-                {compShown && (<>
+              )}
+              <button className={`db-tool ${spellsShown ? "on" : ""}`} onClick={() => togglePanel("spells")}>
+                Spells {pickedSpells.length}/{MAX_SPELLS}
+              </button>
+              <button className={`db-tool ${savedShown ? "on" : ""}`} onClick={() => togglePanel("saved")}>
+                Saved{decks.length ? ` ${decks.length}` : ""}
+              </button>
+            </div>
+
+            {/* Deck composition — cards per element / class / cost. */}
+            {compShown && picked.length > 0 && (
+              <div className="db-stats db-panel">
                 <div className="dbs-block">
                   <div className="dbs-lbl">Elements</div>
                   <div className="dbs-tags">
@@ -240,19 +249,14 @@ export function DeckBuilder(props: {
                     })}
                   </div>
                 </div>
-                </>)}
               </div>
             )}
 
             {/* Spellbook — up to 5 spells this deck carries into a match (each
                 castable once). None picked = the engine auto-fills one from the
                 deck's elements, exactly as before. */}
-            <div className="db-spells">
-              <button className="db-spells-h db-collapse" onClick={() => setSpellsOpen(!spellsShown)}>
-                <span>Spellbook · {pickedSpells.length}/{MAX_SPELLS}</span>
-                <span className="db-chev">{spellsShown ? "▾" : "▸"}</span>
-              </button>
-              {spellsShown && (<>
+            {spellsShown && (
+              <div className="db-spells db-panel">
                 <div className="db-spell-hint">
                   {deckEls.size === 0
                     ? "Add cards to your deck to unlock its element spells."
@@ -286,15 +290,11 @@ export function DeckBuilder(props: {
                   })}
                 </div>
                 )}
-              </>)}
-            </div>
+              </div>
+            )}
 
-            <div className="db-saved">
-              <button className="db-saved-h db-collapse" onClick={() => setSavedOpen(!savedShown)}>
-                <span>Saved decks{decks.length ? ` (${decks.length})` : ""}</span>
-                <span className="db-chev">{savedShown ? "▾" : "▸"}</span>
-              </button>
-              {savedShown && (<>
+            {savedShown && (
+              <div className="db-saved db-panel">
               {decks.length === 0 && <div className="db-empty">None yet — build one →</div>}
               {decks.map((d) => (
                 <div key={d.id} className={`db-saved-row ${editingId === d.id ? "on" : ""}`}>
@@ -305,8 +305,8 @@ export function DeckBuilder(props: {
                   <button className="db-del" title="Delete" onClick={() => remove(d.id)}>🗑</button>
                 </div>
               ))}
-              </>)}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Right: the card pool. Tap a card for details; the corner button adds. */}
