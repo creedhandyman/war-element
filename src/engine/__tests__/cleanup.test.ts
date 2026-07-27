@@ -126,10 +126,13 @@ describe("cleanup phase", () => {
 
   it("status durations tick down and expire", () => {
     const s = prepState();
-    const oneRound = place(s, "leaf_alpha", "P1", 3, 0, {
+    // Non-LEAF/PYRO subjects: those elements shed crowd-control a round faster
+    // (Wildfire Resilience), which would double-tick these and mask the plain
+    // one-per-round decrement this test is about.
+    const oneRound = place(s, "bore_armadillo", "P1", 3, 0, {
       status: { kind: "FRIGHTEN", duration: 1, power: 0, source: "DUSK" },
     });
-    const twoRounds = place(s, "leaf_greegon", "P1", 3, 1, {
+    const twoRounds = place(s, "bore_armadillo", "P1", 3, 1, {
       status: { kind: "SLEEP", duration: 2, power: 0, source: "BORE" },
     });
     place(s, "dusk_gool", "P2", 0, 1);

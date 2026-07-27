@@ -685,6 +685,8 @@ describe("Dive Bomb's WEAKEN is real, not just a chip on the card", () => {
     const s = prepState();
     s.players.P1.magicPool = 9;
     const griff = place(s, "gale_griffith", "P1", 2, 0);
+    // leaf_thorn is fine here: this test never advances to Cleanup, so its
+    // Wildfire Resilience shrug (a Cleanup tick) never fires.
     const foe = place(s, "leaf_thorn", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
     const before = effectiveDmg(s, s.cards[foe.instanceId]);
     const n = applyIntent(battleWith(s, griff.instanceId), {
@@ -699,7 +701,7 @@ describe("Dive Bomb's WEAKEN is real, not just a chip on the card", () => {
     const s = prepState();
     s.players.P1.magicPool = 9;
     const griff = place(s, "gale_griffith", "P1", 2, 0);
-    const foe = place(s, "leaf_thorn", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
     let n = applyIntent(battleWith(s, griff.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
     });

@@ -68,6 +68,13 @@ export const NEGATIVE_STATUSES: StatusKind[] = [
   "PARALYZE", "MUTED", "SLEEP", "FRIGHTEN", "BLIND", "SEAL", "ELECTRIFIED",
 ];
 
+/** Crowd-control statuses — the lockdown/disable set, excluding the
+ *  damage-over-time effects (BURN/BLEED/SCALD/DOT) and the inert ELECTRIFIED
+ *  marker. leaf_pyro's Wildfire Resilience sheds exactly these a round faster. */
+export const CONTROL_STATUSES: StatusKind[] = [
+  "ROOT", "FREEZE", "STUN", "WEAKEN", "PARALYZE", "MUTED", "SLEEP", "FRIGHTEN", "BLIND", "SEAL",
+];
+
 export interface StatusEffect {
   kind: StatusKind;
   duration: number; // rounds remaining; ticks down in Cleanup

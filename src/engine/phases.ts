@@ -56,6 +56,7 @@ import type {
   Pos,
 } from "./types";
 import {
+  CONTROL_STATUSES,
   HAND_CAP,
   isMidRow,
   MAX_ROUNDS,
@@ -2053,9 +2054,16 @@ function doCleanupPhase(draft: GameState): void {
     // Heatwave (PYRO field) freezes BURN on its owner's ENEMIES — their BURN
     // never ticks while the field is up, so it keeps burning until it lifts.
     const burnFrozen = draft.fields.some((f) => f.burnPersists && f.owner === enemyOf(card.owner));
+    // Wildfire Resilience: LEAF and PYRO cards shed CROWD-CONTROL a round
+    // faster — nature regrows, fire burns the affliction off. It's leaf_pyro's
+    // answer to lockdown (gale_bolt's STUN/WEAKEN/PARALYZE/MUTED); those are the
+    // only elements that carry it, so no other deck is affected. DOTs are
+    // excluded (that would blunt PYRO's own BURN in the mirror).
+    const shrugs = getDef(card.defId).element === "LEAF" || getDef(card.defId).element === "PYRO";
     for (const s of card.statuses) {
       if (burnFrozen && s.kind === "BURN") continue;
       s.duration--;
+      if (shrugs && CONTROL_STATUSES.includes(s.kind)) s.duration--;
     }
     card.statuses = card.statuses.filter((s) => s.duration > 0);
   }
