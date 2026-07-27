@@ -416,7 +416,7 @@ describe("medium-tier passives (audit batch)", () => {
     place(s, "dawn_halo", "P1", 3, 0);
     const home = place(s, "dawn_able", "P1", 3, 2, { curHp: 5, maxHp: 20 });
     const next = advance(atCleanup(s));
-    expect(next.cards[home.instanceId].curHp).toBe(7); // +2 Blessed Light (home row)
+    expect(next.cards[home.instanceId].curHp).toBe(6); // +1 Blessed Light (home row)
 
     // Mending Horn: +8 HP, strip BLEED (negative), keep a positive timed buff.
     const s2 = prepState();

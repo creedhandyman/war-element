@@ -7834,9 +7834,9 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 2,
     keywords: {},
-    // Blessed Light (End of Round): heal allies on the home row +2 HP.
+    // Blessed Light (End of Round): heal allies on the home row +1 HP.
     passiveNames: { roundTick: "Blessed Light", purelightAura: "Purelight" },
-    roundTick: { healHomeRow: 2 },
+    roundTick: { healHomeRow: 1 },
     // Purelight (Aura): DAWN allies immune to BLIND; their attacks pierce EVASION.
     purelightAura: true,
     // Mending Horn: heal an ally +8 and strip its negatives + stat changes.
