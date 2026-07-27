@@ -7753,21 +7753,32 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_icewall",
     name: "Ice Wall",
-    rarity: "rare",
+    rarity: "epic",
     element: "AQUA",
-    cardClass: "Support",
+    cardClass: "Tank",
     attackType: "Ranged",
-    cost: 3,
-    dmg: 2,
+    cost: 5,
+    dmg: 3,
     hits: 1,
-    hp: 16,
-    sp: 3,
-    shields: 2,
-    // Rime Barrier: BLOCK 2 against every hit.
+    hp: 20,
+    sp: 4,
+    shields: 4,
+    // Rime Barrier: BLOCK 2 against every hit (before shields, even vs PEN).
     keywords: { BLOCK: 2 },
-    // Frostbite: basics have a 30% chance to FREEZE for 2 rounds.
+    // Frostbite: basics have a 50% chance to FREEZE for 2 rounds.
     passiveNames: { onHitStatus: "Frostbite" },
-    onHitStatus: { kind: "FREEZE", duration: 2, power: 0, chance: 30 },
+    onHitStatus: { kind: "FREEZE", duration: 2, power: 0, chance: 50 },
+    // Rapid Shot: fire 3 shots split among targets in range; each independently
+    // rolls Frostbite (50% → FREEZE 2).
+    special: {
+      name: "Rapid Shot",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 3, targets: 3, statusKind: "FREEZE", statusDuration: 2, statusChance: 50 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Fire 3 shots split among targets in range. Each hit has a 50% chance to FREEZE for 2 rounds.",
+    },
   },
   {
     id: "dawn_supernova",

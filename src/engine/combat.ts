@@ -1660,6 +1660,10 @@ function maybeStatus(
 ): void {
   const kind = params.statusKind as StatusKind | undefined;
   if (!kind || target.curHp <= 0 || !draft.cards[target.instanceId]) return;
+  // statusChance (Ice Wall's Rapid Shot / Frostbite): the status only lands on a
+  // roll — each hit gets its own independent chance. Absent = always applies.
+  const chance = num(params, "statusChance");
+  if (chance > 0 && !pctChance(draft, chance)) return;
   const el = getDef(attacker.defId).element;
   // statusStack (Thorn's Blood on the Petals): the Special's BLEED stacks too,
   // so a basic-stacked wound isn't reset when the sweep re-fires.
