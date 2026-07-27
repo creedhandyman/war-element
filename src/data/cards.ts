@@ -6409,7 +6409,7 @@ export const CARDS: CardDef[] = [
     cost: 5,
     dmg: 3,
     hits: 1,
-    hp: 8,
+    hp: 12,
     sp: 7,
     shields: 2,
     keywords: {},
