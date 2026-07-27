@@ -381,6 +381,29 @@ describe("medium-tier passives (audit batch)", () => {
     expect(isBloodfire(card)).toBe(false); // burning only
   });
 
+  it("bloodfire payoff: Firecrack doubles its hit only vs a BLEEDING+BURNING target", () => {
+    // Control: a target that is only BLEEDING (not bloodfire) takes the base 5.
+    const s1 = prepState();
+    const fc1 = place(s1, "pyro_firecrack", "P1", 3, 0);
+    const bleedOnly = place(s1, "dusk_gool", "P2", 2, 0, {
+      curHp: 40, maxHp: 40, curShields: 0,
+      status: { kind: "BLEED", duration: 3, power: 2, source: "LEAF" },
+    });
+    basicAttack(s1, fc1.instanceId, bleedOnly.instanceId);
+    expect(40 - s1.cards[bleedOnly.instanceId].curHp).toBe(5); // no mult
+
+    // Bloodfire: BLEED + BURN both present → the hit doubles (5 → 10).
+    const s2 = prepState();
+    const fc2 = place(s2, "pyro_firecrack", "P1", 3, 0);
+    const bf = place(s2, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    s2.cards[bf.instanceId].statuses = [
+      { kind: "BLEED", duration: 3, power: 2, source: "LEAF" },
+      { kind: "BURN", duration: 3, power: 2, source: "PYRO" },
+    ];
+    basicAttack(s2, fc2.instanceId, bf.instanceId);
+    expect(40 - s2.cards[bf.instanceId].curHp).toBe(10); // ×2 vs bloodfire
+  });
+
   it("Darth's Predator's Snare: a kill lays a trap that springs on the next enemy to step on it", () => {
     const s = prepState();
     const darth = place(s, "leaf_darth", "P1", 3, 1, { curHp: 17, maxHp: 17 });

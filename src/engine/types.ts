@@ -169,6 +169,10 @@ export interface VsStatusDef {
   /** Match ANY status instead of the named one — models "Electrified" (BOLT's
    *  "has a status") triggers, e.g. Zagphu's "vs Electrified OR PARALYZED". */
   anyStatus?: boolean;
+  /** Bloodfire (leaf_pyro payoff): match only a target carrying BOTH BLEED and
+   *  BURN (see isBloodfire). Amplify-style — the bonus applies while the DOTs
+   *  persist; nothing is consumed. Overrides `status`/`anyStatus` matching. */
+  bloodfire?: boolean;
   lifesteal?: boolean;
   crit?: boolean;
   bonusDmg?: number; // +DMG per hit

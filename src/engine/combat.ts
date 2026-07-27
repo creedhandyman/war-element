@@ -17,7 +17,7 @@ import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget } from "./rules";
 import { PYRO_BURN_STACK_CAP, hasElementAura } from "./auras";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
-import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, healCard, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -1270,7 +1270,11 @@ export function basicAttack(
     let vsPen = false; // Stingray's Piercing Pulse — PEN vs an Electrified foe
     let healOnHit = 0;
     const vs = aDef.vsStatus;
-    const vsMatch = vs != null && (vs.anyStatus ? t.statuses.length > 0 : hasStatus(t, vs.status));
+    const vsMatch = vs != null && (
+      vs.bloodfire ? isBloodfire(t) :
+      vs.anyStatus ? t.statuses.length > 0 :
+      hasStatus(t, vs.status)
+    );
     if (vs && vsMatch) {
       if (vs.dmgMult) dmg = Math.floor(dmg * vs.dmgMult);
       if (vs.bonusDmg) dmg += vs.bonusDmg;

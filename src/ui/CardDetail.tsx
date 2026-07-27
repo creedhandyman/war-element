@@ -172,9 +172,10 @@ export function describePassives(def: CardDef): string[] {
       v.pen && "PEN",
     ].filter(Boolean);
     // anyStatus means it triggers off ANY status, not the named one — saying
-    // "Vs PARALYZE targets" would understate it badly.
-    named("vsStatus", 
-      `Vs ${v.anyStatus ? "any target carrying a status" : `${v.status} targets`}, basics gain ${parts.join(" · ")}.`,
+    // "Vs PARALYZE targets" would understate it badly. bloodfire is the
+    // leaf_pyro payoff: only a target that's BLEEDING and BURNING at once.
+    named("vsStatus",
+      `Vs ${v.bloodfire ? "a BLOODFIRE target (bleeding AND burning)" : v.anyStatus ? "any target carrying a status" : `${v.status} targets`}, basics gain ${parts.join(" · ")}.`,
     );
   }
   if (def.onHitByMelee) {

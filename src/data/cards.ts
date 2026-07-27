@@ -234,6 +234,11 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     onHitStatus: { kind: "BLEED", duration: 1, power: 1 }, // Stinging Barbs
+    // Bloodletting: Nettle chips BLEED itself, and once a PYRO ally has set the
+    // target burning too, each of its three little hits leeches life and bites
+    // harder off the bloodfire. Cheap, sticky sustain for the aggro core.
+    passiveNames: { vsStatus: "Bloodletting" },
+    vsStatus: { status: "BLEED", bloodfire: true, lifesteal: true, bonusDmg: 1 },
   },
   {
     id: "leaf_thorn",
@@ -5182,10 +5187,12 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 0,
     keywords: {},
-    // Overheating (End of Round): 1 DMG to the closest opponent — doubled when
-    // it's the same target as last round, as the built-up heat discharges.
-    passiveNames: { roundTick: "Overheating" },
-    roundTick: { overheatDmg: 1 },
+    // Bloodember (basic): its molten barbs open a BLEED — and being PYRO, the
+    // Scorch aura layers BURN on the same swing. So a single basic sets the
+    // target BLEEDING and BURNING at once — bloodfire — with no help. A durable
+    // 15-HP engine that keeps re-lighting the condition the payoff cards want.
+    passiveNames: { onHitStatus: "Bloodember" },
+    onHitStatus: { kind: "BLEED", duration: 2, power: 2 },
   },
   {
     id: "pyro_firecrack",
@@ -5201,10 +5208,12 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: {},
-    // Boomer: base damage the first time it strikes a target, then a doubled
-    // detonation on every strike after that (delayed detonation).
-    passiveNames: { boomer: "Boomer" },
-    boomer: true,
+    // Bloodfire Detonator: a glass-cannon finisher that DOUBLES its hit against
+    // a target already BLEEDING and BURNING — the payoff for the blood engine
+    // and the fire engine landing on the same body. Amplify, not consume: the
+    // DOTs keep ticking, so a fast Firecrack can cash in every round.
+    passiveNames: { vsStatus: "Bloodfire Detonator" },
+    vsStatus: { status: "BURN", bloodfire: true, dmgMult: 2 },
   },
   {
     id: "pyro_taper",
