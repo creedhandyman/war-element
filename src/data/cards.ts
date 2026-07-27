@@ -5614,7 +5614,7 @@ export const CARDS: CardDef[] = [
     // Fountain (On Hit by Melee): saps 1 SP from the attacker; Oxin also can't be
     // moved by opponent abilities. Plus BLOCK 1 — a stolid 19-HP wall.
     keywords: { BLOCK: 1 },
-    passiveNames: { onHitByMelee: "Fountain" },
+    passiveNames: { onHitByMelee: "Fountain", pushImmune: "Braced Stance" },
     onHitByMelee: { spDrain: 1 },
     pushImmune: true,
   },
@@ -8000,6 +8000,37 @@ export const CARDS: CardDef[] = [
     roundTick: { advance: 1, randomEnemyDmg: 3, healLowestAlly: 3 },
     // Root Growth: drinks in 2× from every healing source.
     healReceivedMult: 2,
+  },
+  {
+    id: "leaf_sakuroot",
+    art: "leaf_walking_tree", // PLACEHOLDER art — swap for a real sakuroot.webp
+    name: "Sakuroot",
+    rarity: "epic",
+    element: "LEAF",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 3,
+    hits: 1,
+    hp: 20,
+    sp: 3,
+    shields: 2,
+    // LIFESTEAL: basics heal Sakuroot for the damage dealt.
+    keywords: { LIFESTEAL: true },
+    // Deep Roots: planted — immune to push / pull / knockback.
+    // Petalfall (End of Round): heal LEAF allies on the home row +2 HP.
+    passiveNames: { pushImmune: "Deep Roots", roundTick: "Petalfall" },
+    pushImmune: true,
+    roundTick: { healHomeRowElement: 2 },
+    // Petal Storm: 3 DMG to every opponent in the row directly ahead + ROOT 1.
+    special: {
+      name: "Petal Storm",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 3, targets: 99, rowAhead: 1, statusKind: "ROOT", statusDuration: 1 },
+      targetSide: "enemy",
+      text: "Deal 3 DMG to all opponents in the row directly ahead and ROOT them for 1 round.",
+    },
   },
   {
     id: "dusk_skullking",

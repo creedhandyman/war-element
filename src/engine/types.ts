@@ -247,6 +247,7 @@ export interface RoundTickDef {
   healAllies?: number; // heal every ally N
   healLowestAlly?: number; // heal the lowest-HP ally N
   healHomeRow?: number; // Blessed Light (Halo): heal allies on the caster's home row N
+  healHomeRowElement?: number; // Petalfall (Sakuroot): heal SAME-element allies on the home row N
   healSelfToFull?: boolean; // Blub's Liquid Humidity — restore to full max HP
   /** +DMG (and optionally +SP) every Nth round, stacking (Dragon's Blade). */
   buffDmgEveryN?: { n: number; amount: number; sp?: number; hp?: number; maxTicks?: number };

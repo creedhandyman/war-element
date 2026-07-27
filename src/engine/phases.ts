@@ -1817,6 +1817,14 @@ function doRoundTicks(draft: GameState): void {
       for (const a of allies()) if (a.pos?.row === home && healCard(draft, a, rt.healHomeRow, card) > 0) touched++;
       if (touched) draft.log.push(`${label(draft, card)}'s Blessed Light warms ${touched} home-row ally(ies) (+${rt.healHomeRow} HP).`);
     }
+    // Petalfall (Sakuroot): heal SAME-element allies standing on the home row.
+    if (rt.healHomeRowElement) {
+      const home = homeRow(card.owner, draft.boardSize);
+      let touched = 0;
+      for (const a of allies())
+        if (a.pos?.row === home && getDef(a.defId).element === el && healCard(draft, a, rt.healHomeRowElement, card) > 0) touched++;
+      if (touched) draft.log.push(`${label(draft, card)}'s Petalfall soothes ${touched} ${el} home-row ally(ies) (+${rt.healHomeRowElement} HP).`);
+    }
     // Liquid Humidity (Blub): drink itself back to full each round.
     if (rt.healSelfToFull) {
       const healed = healCard(draft, card, effectiveMaxHp(draft, card), card);

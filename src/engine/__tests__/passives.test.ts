@@ -381,6 +381,16 @@ describe("medium-tier passives (audit batch)", () => {
     expect(isBloodfire(card)).toBe(false); // burning only
   });
 
+  it("Sakuroot's Petalfall heals LEAF home-row allies (on top of Photosynthesis)", () => {
+    const s = prepState();
+    place(s, "leaf_sakuroot", "P1", 3, 0);
+    const homeLeaf = place(s, "leaf_alpha", "P1", 3, 1, { curHp: 5, maxHp: 30 });
+    const offLeaf = place(s, "leaf_alpha", "P1", 2, 1, { curHp: 5, maxHp: 30 });
+    const next = advance(atCleanup(s));
+    expect(next.cards[homeLeaf.instanceId].curHp).toBe(9); // +2 Photosynthesis +2 Petalfall
+    expect(next.cards[offLeaf.instanceId].curHp).toBe(7); // +2 Photosynthesis only (not home row)
+  });
+
   it("Halo's Purelight: DAWN allies shrug BLIND and pierce enemy EVASION", () => {
     const s = prepState();
     place(s, "dawn_halo", "P1", 3, 0);

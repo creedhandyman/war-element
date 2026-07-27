@@ -237,6 +237,7 @@ export function describePassives(def: CardDef): string[] {
       t.healAllies && `heal every ally ${t.healAllies} HP`,
       t.healLowestAlly && `heal the most wounded ally ${t.healLowestAlly} HP`,
       t.healHomeRow && `heal home-row allies ${t.healHomeRow} HP`,
+      t.healHomeRowElement && `heal same-element home-row allies ${t.healHomeRowElement} HP`,
       t.healSelfToFull && `restore itself to full HP`,
       t.roundHealElement &&
         `heal every ${t.roundHealElement.element} ally ${t.roundHealElement.amount} HP`,
@@ -372,7 +373,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.boomer)
     named("boomer", `Boomer: base damage the first strike on a target, then double on every strike after.`);
   if (def.pushImmune)
-    named("pushImmune", `Braced Stance: immune to knockback and pull effects.`);
+    named("pushImmune", `immune to knockback, push, and pull effects — planted where it stands.`);
   if (def.flyingArrow)
     named("flyingArrow", `Flying Arrow: also attacks whatever the ally directly in front of it strikes with a basic attack.`);
   if (def.skyScout)
