@@ -2163,13 +2163,13 @@ export const CARDS: CardDef[] = [
     tribe: "Volcanic",
     // Scorched Fury, in two halves: the tick below bleeds 1 HP each Cleanup for
     // +2 DMG the following round, and furyBelowHp adds a further flat +2 once
-    // it drops under 5. A 38 HP body that gets angrier the longer it burns.
+    // it drops under 10. A 38 HP body that gets angrier the longer it burns.
     passiveNames: { roundTick: "Scorched Fury", furyBelowHp: "Scorched Fury" },
-    furyBelowHp: { hp: 5, dmg: 2 },
+    furyBelowHp: { hp: 10, dmg: 2 },
     roundTick: {
       selfBurnForDmg: { hp: 1, dmg: 2 },
       // ...and the Meltdown channel, which only runs once the Special lights it.
-      channel: { hpCost: 2, rowAheadDmg: 3 },
+      channel: { hpCost: 2, rowAheadDmg: 5 },
     },
     // Trial by Fire: the whole PYRO line pays a point of blood for a round of
     // fire the moment Magmadon lands.
@@ -2188,7 +2188,7 @@ export const CARDS: CardDef[] = [
       handler: "spawn",
       params: { startsChannel: 1 },
       targetSide: "self",
-      text: "Deal 3 DMG to the row directly ahead, then keep erupting every round for 2 HP a round — until Magmadon dies, or is FROZEN or ROOTED.",
+      text: "Deal 5 DMG to the row directly ahead, then keep erupting every round for 2 HP a round — until Magmadon dies, or is FROZEN or ROOTED.",
     },
   },
   {
@@ -8003,7 +8003,6 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "leaf_sakuroot",
-    art: "leaf_walking_tree", // PLACEHOLDER art — swap for a real sakuroot.webp
     name: "Sakuroot",
     rarity: "epic",
     element: "LEAF",
@@ -8012,9 +8011,9 @@ export const CARDS: CardDef[] = [
     cost: 4,
     dmg: 3,
     hits: 1,
-    hp: 20,
+    hp: 16,
     sp: 3,
-    shields: 2,
+    shields: 4,
     // LIFESTEAL: basics heal Sakuroot for the damage dealt.
     keywords: { LIFESTEAL: true },
     // Deep Roots: planted — immune to push / pull / knockback.
