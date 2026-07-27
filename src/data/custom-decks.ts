@@ -175,6 +175,46 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // soft WEAKEN (Downdraft), and Phantom Spikes.
     spells: ["gale_gust", "dusk_chill_touch", "dusk_bone_snare", "gale_squall_line", "dusk_wake_of_the_dead"],
   },
+  {
+    id: "pre_tempest",
+    name: "Tempest",
+    premade: true,
+    boardSize: 4,
+    // AQUA + GALE + BOLT — a three-element LOCKDOWN deck. Freeze (AQUA), knock-
+    // back/stun (GALE) and paralyze/electrify (BOLT) stack disruption until the
+    // board can't act, then Stormcaller/Glacius (lege) and Kraken (myth) close.
+    // 6 of each element keeps every aura live on a third of the deck.
+    cards: [
+      "bolt_zap", "gale_tumbleweed", "aqua_subcool", "aqua_kinguin", "gale_luna",
+      "bolt_jolt", "gale_hawk", "aqua_octoirate", "bolt_jellyfish", "gale_vaga",
+      "bolt_thundercat", "aqua_glacius", "gale_windsor", "bolt_stormcaller", "aqua_polarking",
+      "gale_klipso", "bolt_drshock", "aqua_kraken",
+    ],
+    // Control package: Chill + Frost Patch set up FREEZE, Gust shoves invaders
+    // off the home slot, Overload Field is a PARALYZE wall, Lightning Storm is an
+    // 8-to-all reset. All three elements are represented.
+    spells: ["aqua_chill", "aqua_frost_patch", "gale_gust", "bolt_overload_field", "bolt_lightning_storm"],
+  },
+  {
+    id: "pre_blight",
+    name: "Blight",
+    premade: true,
+    boardSize: 4,
+    // LEAF + PYRO + DUSK — a three-element ATTRITION deck. BLEED (LEAF), BURN
+    // (PYRO) and DRAIN/death (DUSK) grind HP from every angle while lifesteal
+    // (Sumerose) and Transfusion keep the front line alive. Magmaw/Nightfang
+    // (lege) top it. 6 of each element.
+    cards: [
+      "leaf_stickviper", "pyro_staph", "dusk_vamp", "leaf_dartfrog", "pyro_ingit",
+      "dusk_reaper", "leaf_greegon", "pyro_spitfire", "dusk_ghastly", "leaf_citra",
+      "pyro_firebird", "dusk_haunt", "leaf_sumerose", "pyro_fenrir", "dusk_wedded_wraith",
+      "leaf_elderroot", "pyro_magmaw", "dusk_nightfang",
+    ],
+    // Rot package: Ember Trap punishes the move-in with BURN, Chill Touch + Bone
+    // Snare are cheap DUSK removal/traps, Wake of the Dead is a 3-to-all that
+    // raises the fallen under your control, Bramble Wall gates the row.
+    spells: ["pyro_ember_trap", "dusk_chill_touch", "dusk_bone_snare", "dusk_wake_of_the_dead", "leaf_bramble_wall"],
+  },
 ];
 
 /** The ten cards each standard deck gains on the large board, keyed by its id.
@@ -205,6 +245,19 @@ const LARGE_EXTRAS: Record<string, string[]> = {
   pre_nightfall: [
     "gale_skyforce", "gale_toxhawk", "gale_whirlwolf", "gale_hawko", "gale_guan",
     "dusk_vamp", "dusk_spider", "dusk_skeleton_knight", "dusk_gool", "dusk_scarlett",
+  ],
+  // +4 AQUA / +3 GALE / +3 BOLT — more cheap disruptors to keep the lock going
+  // across the bigger board.
+  pre_tempest: [
+    "aqua_misty", "aqua_icyninza", "aqua_bahari", "aqua_vaporem",
+    "gale_toxhawk", "gale_whirlwolf", "gale_hawko",
+    "bolt_twotales", "bolt_static", "bolt_kore",
+  ],
+  // +3 LEAF / +3 PYRO / +4 DUSK — extra early bodies + DOT appliers for the grind.
+  pre_blight: [
+    "leaf_cactus", "leaf_alpha", "leaf_nettle",
+    "pyro_bbq", "pyro_smog_card", "pyro_sparky",
+    "dusk_spider", "dusk_gool", "dusk_scarlett", "dusk_skeleton_knight",
   ],
 };
 

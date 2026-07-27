@@ -45,9 +45,10 @@ describe("premade decks", () => {
 });
 
 describe("board-sized premade builds", () => {
-  it("offers four decks per battlefield, and only those", () => {
-    expect(premadeDecksFor(4)).toHaveLength(4);
-    expect(premadeDecksFor(5)).toHaveLength(4);
+  it("offers six decks per battlefield, and only those", () => {
+    // Four dual-element decks + two three-element decks (Tempest, Blight).
+    expect(premadeDecksFor(4)).toHaveLength(6);
+    expect(premadeDecksFor(5)).toHaveLength(6);
     for (const d of premadeDecksFor(4)) expect(d.cards).toHaveLength(18);
     for (const d of premadeDecksFor(5)) expect(d.cards).toHaveLength(28);
   });
@@ -72,16 +73,19 @@ describe("board-sized premade builds", () => {
   });
 
   it("large builds keep an even element split", () => {
-    // 14/14 across the deck's two elements — the standard Frostkeep is 8/10 and
-    // its extras are weighted to correct that.
+    // As even as the element count allows across all 28 cards: a 2-element deck
+    // is 14/14, a 3-element deck is 9/9/10 — the extras are weighted to balance.
     for (const d of premadeDecksFor(5)) {
       const els: Record<string, number> = {};
       for (const id of d.cards) {
         const el = CARD_INDEX[id]!.element;
         els[el] = (els[el] ?? 0) + 1;
       }
-      const counts = Object.values(els).sort((a, b) => a - b);
-      expect(counts, `${d.name} split ${JSON.stringify(els)}`).toEqual([14, 14]);
+      const counts = Object.values(els);
+      const total = counts.reduce((a, b) => a + b, 0);
+      expect(total, `${d.name} total`).toBe(28);
+      // Even split: the largest and smallest element counts differ by at most 1.
+      expect(Math.max(...counts) - Math.min(...counts), `${d.name} split ${JSON.stringify(els)}`).toBeLessThanOrEqual(1);
     }
   });
 });
