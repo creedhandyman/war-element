@@ -1312,6 +1312,20 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .db-grid { flex: 1 1 auto; min-height: 0; max-height: none; } /* fills the pool + scrolls */
 }
 
+/* LANDSCAPE PHONE deck builder: a short viewport has width to spare and height
+   to burn, so stacking (the portrait rule above) wastes the room. Put the side
+   column and the card pool BACK side-by-side — a compact two-column build bench
+   that fills the wide, short screen. Ordered after the max-width:720px block so
+   it wins for a small landscape phone that matches both. */
+@media (max-height: 540px) {
+  .deck-builder { width: auto; height: calc(100dvh - 12px); max-height: none; padding: 10px 12px; }
+  .db-head { margin-bottom: 4px; }
+  .db-body { flex-direction: row; align-items: stretch; gap: 12px; }
+  .db-side { width: 200px; flex: none; max-height: none; }
+  .db-pool { border-left: 1px solid var(--panel-line); border-top: none; padding-left: 14px; padding-top: 0; }
+  .db-grid { max-height: none; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); }
+}
+
 /* ══════════════════ MOBILE / PORTRAIT BATTLEFIELD ══════════════════
    The desktop 3-column grid can't fit a phone, so below 760px the battle
    reflows to: slim phase rail (top) · square board hero (center) · always-on
