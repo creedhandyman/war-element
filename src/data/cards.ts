@@ -3137,18 +3137,17 @@ export const CARDS: CardDef[] = [
     element: "DUSK",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 3,
+    cost: 4,
     dmg: 7,
     hits: 1,
-    hp: 9,
-    sp: 9,
+    hp: 11,
+    sp: 11,
     shields: 0,
     keywords: {},
     tribe: "Skeleton",
-    // Soul Reaper (On Kill): +5 HP, +1 DMG permanently.
-    // (The doc's "CRIT for a turn" and Death's Approach reuse-on-kill are unmodeled.)
+    // Soul Reaper (On Kill): +1 DMG permanently, heal 7.
     passiveNames: { onKill: "Soul Reaper" },
-    onKill: { healSelf: 5, buffDmg: 1 },
+    onKill: { healSelf: 7, buffDmg: 1 },
     special: {
       name: "Death's Approach",
       cost: 2,
