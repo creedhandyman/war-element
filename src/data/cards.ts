@@ -7776,15 +7776,15 @@ export const CARDS: CardDef[] = [
     passiveNames: { onHitStatus: "Frostbite" },
     onHitStatus: { kind: "FREEZE", duration: 2, power: 0, chance: 50 },
     // Rapid Shot: fire 3 shots split among targets in range; each independently
-    // rolls Frostbite (50% → FREEZE 2).
+    // rolls Frostbite (40% → FREEZE 2).
     special: {
       name: "Rapid Shot",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 3, targets: 3, statusKind: "FREEZE", statusDuration: 2, statusChance: 50 },
+      params: { dmg: 3, targets: 3, statusKind: "FREEZE", statusDuration: 2, statusChance: 40 },
       targetSide: "enemy",
       ranged: true,
-      text: "Fire 3 shots split among targets in range. Each hit has a 50% chance to FREEZE for 2 rounds.",
+      text: "Fire 3 shots split among targets in range. Each hit has a 40% chance to FREEZE for 2 rounds.",
     },
   },
   {
