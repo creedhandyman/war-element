@@ -5455,9 +5455,11 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
-    // Punch Drunk: the second hit on a target within a round puts it to SLEEP.
+    // Punch Drunk: each basic has a 30% chance to knock the target out — SLEEP
+    // for 2 rounds. (Was gated on a "2nd hit this round", which a single-hit
+    // card can't reach, so it never fired.)
     passiveNames: { onHitStatus: "Punch Drunk" },
-    onHitStatus: { kind: "SLEEP", duration: 1, power: 0, onSecondHit: true },
+    onHitStatus: { kind: "SLEEP", duration: 2, power: 0, chance: 30 },
     // Roll Out Combo Killer (Talent, free, once per game): a 1→2→3→4 DMG combo.
     talent: {
       name: "Roll Out Combo Killer",
