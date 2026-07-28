@@ -88,7 +88,10 @@ export function RulesBook(props: { onClose: () => void }) {
             <ul className="rules-els">
               <li><b>Leaf</b> — Photosynthesis: heal + bank shields each round.</li>
               <li><b>Pyro</b> — Scorch: basics apply stacking BURN.</li>
-              <li><b>Aqua</b> — Flow Change: on summon, pick a 3-round boost.</li>
+              <li>
+                <b>Aqua</b> — Flow Change: on summon, pick a 3-round boost —
+                <b> Liquid</b> (+2 DMG), <b>Frozen</b> (+3 shields), or <b>Vapor</b> (+4 SP).
+              </li>
               <li><b>Dawn</b> — Awakening: on summon, strike the nearest enemy.</li>
               <li><b>Gale</b> — Zephyr: gains SP each round.</li>
               <li><b>Bolt</b> — Electrify: basics leave a status; +DMG vs statused foes.</li>
