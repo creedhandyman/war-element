@@ -2728,6 +2728,9 @@ export const CARDS: CardDef[] = [
     shields: 1,
     keywords: {},
     tribe: "Spider",
+    // Venom Bite: basic attacks apply DOT 2 for 1 round.
+    passiveNames: { onHitStatus: "Venom Bite" },
+    onHitStatus: { kind: "DOT", duration: 1, power: 2 },
     // Webbed (On Summon): FRIGHTEN one opponent for 1 round.
     onSummon: { handler: "statusNova", params: { statusKind: "FRIGHTEN", statusDuration: 1, targets: 1 } },
   },
