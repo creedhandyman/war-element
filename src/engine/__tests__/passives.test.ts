@@ -9,7 +9,7 @@ import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire } from "../state";
 import { CARDS, getDef } from "../../data/cards";
-import { atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
+import { atBattle, atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
 /** Park the battle so `active` is the card awaiting P1's input. */
@@ -904,13 +904,13 @@ describe("medium-tier passives (audit batch)", () => {
     expect(statusOf(s.cards[shooter.instanceId], "WEAKEN")?.duration).toBe(2);
   });
 
-  it("Jolt Electrifies everything in reach each round — and spares what's out of it", () => {
+  it("Jolt Electrifies everything in reach as battle begins — and spares what's out of it", () => {
     const s = prepState();
     place(s, "bolt_jolt", "P1", 2, 1);
     // Melee, SP 3 → reach 1, so the zone is the 8 tiles around it.
     const near = place(s, "dusk_gool", "P2", 1, 1, { curHp: 30, maxHp: 30, curShields: 0 });
     const far = place(s, "dusk_vamp", "P2", 0, 3, { curHp: 20, maxHp: 20 });
-    const next = advance(atCleanup(s));
+    const next = atBattle(s);
     expect(statusOf(next.cards[near.instanceId], "ELECTRIFIED")?.duration).toBe(2);
     expect(statusOf(next.cards[far.instanceId], "ELECTRIFIED")).toBeUndefined();
   });
@@ -921,7 +921,7 @@ describe("medium-tier passives (audit batch)", () => {
     // Two rows out: it can shoot Jolt, but it sits outside Jolt's reach-1 zone,
     // so ONLY the on-hit half can mark it.
     const sniper = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30 });
-    const next = advance(atCleanup(s));
+    const next = atBattle(s);
     expect(statusOf(next.cards[sniper.instanceId], "ELECTRIFIED")).toBeUndefined(); // zone missed it
     basicAttack(next, sniper.instanceId, jolt.instanceId);
     expect(statusOf(next.cards[sniper.instanceId], "ELECTRIFIED")?.duration).toBe(2);

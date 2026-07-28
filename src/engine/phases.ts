@@ -937,6 +937,18 @@ function doResourcePhase(draft: GameState): void {
 function startBattle(draft: GameState): void {
   draft.phase = "battle";
   draft.prep = null;
+  // Electrify auras (Jolt, Velvolt Knight): raise the field as battle BEGINS —
+  // so it's live for THIS battle, including cards just summoned in Prep, with no
+  // one-round warm-up. (Was an end-of-round tick, which lagged a round: the
+  // status was applied only after the battle it was meant to help.)
+  for (const card of boardCards(draft)) {
+    const st = getDef(card.defId).roundTick?.inRangeStatus;
+    if (card.curHp <= 0 || !st) continue;
+    const el = getDef(card.defId).element;
+    const marked = boardCards(draft, enemyOf(card.owner)).filter((e) => e.curHp > 0 && canTarget(draft, card, e));
+    for (const e of marked) applyStatus(draft, e, st.kind, st.duration, st.power, el);
+    if (marked.length) draft.log.push(`${label(draft, card)} arcs — ${marked.length} opponent(s) ${st.kind}.`);
+  }
   // Speed queue: all cards SP 15→0, ties broken by seeded coin flip.
   const units = boardCards(draft).map((c) => ({
     id: c.instanceId,
@@ -1536,14 +1548,9 @@ function doRoundTicks(draft: GameState): void {
     if (rt.aoeStatus) {
       for (const e of enemies()) applyStatus(draft, e, rt.aoeStatus.kind, rt.aoeStatus.duration, rt.aoeStatus.power, el);
     }
-    if (rt.inRangeStatus) {
-      // Electrifying: the current arcs to whatever is close enough to touch.
-      const marked = enemies().filter((e) => canTarget(draft, card, e));
-      for (const e of marked)
-        applyStatus(draft, e, rt.inRangeStatus.kind, rt.inRangeStatus.duration, rt.inRangeStatus.power, el);
-      if (marked.length)
-        draft.log.push(`${label(draft, card)} arcs — ${marked.length} opponent(s) ${rt.inRangeStatus.kind}.`);
-    }
+    // NOTE: inRangeStatus (electrify auras) is applied at the START of battle
+    // now (see startBattle), not here — so the field is live for the current
+    // battle instead of lagging a round.
     if (rt.scaldFrozen) {
       for (const e of enemies()) if (hasStatus(e, "FREEZE")) applyStatus(draft, e, "SCALD", 1, rt.scaldFrozen, el);
     }

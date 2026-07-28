@@ -2,6 +2,7 @@
 
 import { getDef } from "../../data/cards";
 import { coin } from "../rng";
+import { applyIntent } from "../phases";
 import { createInitialState, summonCard } from "../state";
 import type {
   CardInstance,
@@ -56,6 +57,14 @@ export function atCleanup(state: GameState): GameState {
   state.phase = "battle";
   state.battle = { queue: [], index: 0, awaitingInput: null };
   return state;
+}
+
+/** Drive the state into the Battle phase through the real prep→battle
+ *  transition, so startBattle() runs (electrify auras, speed queue, …). */
+export function atBattle(state: GameState): GameState {
+  state.phase = "prep";
+  state.prep = { priority: "P1", consecutivePasses: 1, movedThisTurn: false };
+  return applyIntent(state, { type: "PASS", player: "P1" }); // 2nd pass → startBattle
 }
 
 /** Find an RNG cursor whose NEXT coin flip(s) match `wants`. */

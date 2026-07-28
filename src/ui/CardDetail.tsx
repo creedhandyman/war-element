@@ -437,7 +437,7 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.roundTick?.inRangeStatus)
     passives.push(
-      `End of round: applies ${def.roundTick.inRangeStatus.kind} for ${def.roundTick.inRangeStatus.duration} rounds to every opponent in range.`,
+      `When battle begins: applies ${def.roundTick.inRangeStatus.kind} for ${def.roundTick.inRangeStatus.duration} round(s) to every opponent in range.`,
     );
   if (def.roundTick?.inRangeDmg)
     passives.push(
