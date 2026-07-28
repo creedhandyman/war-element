@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, type FlowMode, GALE_SP_CAP, LEAF_SHIELD_CAP } from "./auras";
-import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, label, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin, randInt } from "./rng";
@@ -1607,6 +1607,11 @@ function doRoundTicks(draft: GameState): void {
       for (const e of caught) applyStatus(draft, e, st.kind, st.duration, st.power, el);
       if (caught.length)
         draft.log.push(`${label(draft, card)}'s wildfire still burns — ${caught.length} caught in it.`);
+    }
+    // Turret Mode (GigaVolt): keep firing electrified volleys for the armed rounds.
+    if ((card.turretRoundsLeft ?? 0) > 0) {
+      fireElectrifiedVolley(draft, card, card.turretDmg ?? 3);
+      card.turretRoundsLeft = (card.turretRoundsLeft ?? 0) - 1;
     }
     if (rt.aoeElectrifiedDmg) {
       // Shoksa: the literal ELECTRIFIED status, which its own Special applies —

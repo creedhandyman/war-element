@@ -995,6 +995,10 @@ export interface CardInstance {
   /** Meltdown is running (Magmadon). Set when the Special is cast, cleared on
    *  FREEZE / ROOT / death. */
   channelOn?: boolean;
+  /** Turret Mode (GigaVolt): rounds of end-of-round electrified volleys left,
+   *  and the damage each fires. Set by the Special. */
+  turretRoundsLeft?: number;
+  turretDmg?: number;
   /** One-shot guard for a firstTimeOnly onHitAllyBuff (Hillbilly's Hillside). */
   onHitBuffFired: boolean;
   /** How many times a capped `buffDmgEveryN` ramp has fired (Storm's Supercell

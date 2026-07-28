@@ -461,6 +461,16 @@ export function applyTimedBuff(card: CardInstance, dmg: number, sp: number, roun
   card.buffs.push({ dmg, sp, rounds });
 }
 
+/** Turret Mode volley (GigaVolt): deal `dmg` to every ELECTRIFIED opponent on
+ *  the board. Shared by the Special (first shot) and the Cleanup tick. */
+export function fireElectrifiedVolley(draft: GameState, card: CardInstance, dmg: number): number {
+  if (card.curHp <= 0 || dmg <= 0) return 0;
+  const zapped = boardCards(draft, enemyOf(card.owner)).filter((e) => e.curHp > 0 && hasStatus(e, "ELECTRIFIED"));
+  for (const e of zapped) tickDamage(draft, card, e, dmg, false);
+  if (zapped.length) draft.log.push(`${label(draft, card)}'s turret fires — ${zapped.length} Electrified opponent(s) take ${dmg}.`);
+  return zapped.length;
+}
+
 /** Blow a card back toward its OWN home row up to `steps` open slots (Mighty
  *  Winds / Wind Guardian). Stops at its home row, a captured, or occupied slot. */
 /** Blow `card` back toward its own home. `pusher` is the side CAUSING the push
@@ -2221,6 +2231,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
    *  the enemy home, no attack. Lets a planted SP-0 body uproot and march. */
   reposition(draft, attacker, _targets, params) {
     chargeForward(draft, attacker, num(params, "charge", 1));
+  },
+  /** Turret Mode (GigaVolt): fire an electrified volley now and arm the turret
+   *  to keep firing at each Cleanup for `rounds` total rounds. */
+  turretMode(draft, attacker, _targets, params) {
+    const dmg = num(params, "dmg", 3);
+    const rounds = num(params, "rounds", 3);
+    attacker.turretDmg = dmg;
+    fireElectrifiedVolley(draft, attacker, dmg); // round 1 fires immediately
+    attacker.turretRoundsLeft = Math.max(0, rounds - 1); // the rest at Cleanup
   },
   /** Spawn N token cards near the caster (Imperator's Strike of Dawn → Heir). */
   spawn(draft, attacker, _targets, params) {

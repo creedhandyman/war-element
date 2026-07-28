@@ -3652,7 +3652,7 @@ export const CARDS: CardDef[] = [
     rarity: "legendary",
     element: "BORE",
     cardClass: "Tank",
-    attackType: "Melee",
+    attackType: "Ranged",
     cost: 8,
     dmg: 5,
     hits: 1,
@@ -6976,16 +6976,15 @@ export const CARDS: CardDef[] = [
     roundTick: { buffDmgEveryN: { n: 1, amount: 1, sp: 1 } },
     onKill: { gainShields: 2 },
     aura: { scope: "element", dmg: 1 },
-    // Turret Mode: open fire on the whole board — 3 DMG to every opponent, and
-    // PARALYZE them for a round (the turret pins them down).
+    // Turret Mode: lock down and open fire on the ELECTRIFIED — 3 DMG to every
+    // electrified opponent, now and at the end of each round for 3 rounds.
     special: {
       name: "Turret Mode",
       cost: 5,
-      handler: "barrage",
-      params: { dmg: 3, targets: 99, statusKind: "PARALYZE", statusDuration: 1 },
-      targetSide: "enemy",
-      ranged: true,
-      text: "Deal 3 DMG to all opponents and PARALYZE them for a round.",
+      handler: "turretMode",
+      params: { dmg: 3, rounds: 3 },
+      targetSide: "self",
+      text: "Deal 3 DMG to all Electrified opponents, and again at the end of each round for 3 rounds.",
     },
   },
   {
