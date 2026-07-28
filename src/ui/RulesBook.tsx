@@ -83,6 +83,37 @@ export function RulesBook(props: { onClose: () => void }) {
           </section>
 
           <section>
+            <h3>⚡ Speed queue & movement</h3>
+            <ul className="rules-defs">
+              <li>
+                <b>Who acts first</b> — in battle every card takes its turn in
+                <b> SP order, fastest first</b> (the queue counts down 15 → 0). Exact
+                SP ties are broken by a seeded coin flip.
+              </li>
+              <li>
+                <b>SP shifts mid-match</b> — Gale's Zephyr adds SP each round, Vapor
+                grants +4, while FREEZE and ROOT drop SP to 0, so those cards act
+                <i> last</i> and can't move at all.
+              </li>
+              <li>
+                <b>Move once per turn</b> — in Prep you may move a single board card
+                each priority turn onto a glowing slot.
+              </li>
+              <li>
+                <b>Speed sets your stride</b> — SP 1–5 move 1 slot, SP 6–10 move 2, and
+                SP 11+ (plus FLYING or mounted cards) move 2 <i>and cut corners like a
+                chess king</i> — a diagonal counts as one step. PARALYZE caps a card to
+                a single step; ROOT and FREEZE stop it dead.
+              </li>
+              <li>
+                <b>No teleporting home</b> — a card can't jump straight from your Home
+                row to the enemy's in one move. Push up the middle to threaten a
+                Home-slot capture.
+              </li>
+            </ul>
+          </section>
+
+          <section>
             <h3>🌈 Elements & auras</h3>
             <p>Every card carries its element's passive aura:</p>
             <ul className="rules-els">
