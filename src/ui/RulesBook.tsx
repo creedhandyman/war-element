@@ -98,14 +98,56 @@ export function RulesBook(props: { onClose: () => void }) {
           </section>
 
           <section>
-            <h3>🔥 Statuses</h3>
-            <p>
-              <b>DOTs</b> (BURN / BLEED / SCALD) tick damage each round.
-              <b> Control</b> — FREEZE, STUN, PARALYZE, ROOT, SLEEP, MUTED, BLIND,
-              WEAKEN — locks a card down, saps its stats, or makes it miss.
-              <b> Keywords</b> like CRIT, EVASION, FLYING, LIFESTEAL, BLOCK and REGEN
-              are printed on the card.
-            </p>
+            <h3>🔥 Statuses — damage over time</h3>
+            <p>DOTs tick at the end of every round until they wear off.</p>
+            <ul className="rules-defs">
+              <li><b>BURN</b> — burns HP each round <i>through shields</i>, and melts a shield every tick. Stacks up to 5 (Pyro's Scorch).</li>
+              <li><b>BLEED</b> — loses HP each round; stacks (Leaf).</li>
+              <li><b>SCALD</b> — scalding damage each round.</li>
+              <li><b>DOT / Poison</b> — generic damage each round.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>🥶 Statuses — control</h3>
+            <p>These stop a card acting, slow it, or pin it in place.</p>
+            <ul className="rules-defs">
+              <li><b>STUN</b> — skips its whole turn.</li>
+              <li><b>SLEEP</b> — skips its turn until any hit wakes it.</li>
+              <li><b>PARALYZE</b> — 50% chance to skip its turn, rolled each turn (Bolt).</li>
+              <li><b>FREEZE</b> — SP drops to 0 <i>and</i> its damage is halved.</li>
+              <li><b>ROOT</b> — SP drops to 0: it can't move and acts last.</li>
+              <li><b>MUTED</b> — can't fire its Special.</li>
+              <li><b>FRIGHTEN</b> — a fear effect that throws off its positioning.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>📉 Statuses — debuffs & marks</h3>
+            <ul className="rules-defs">
+              <li><b>WEAKEN</b> — deals 25% less damage.</li>
+              <li><b>BLIND</b> — its basic attacks have a ~50% chance to miss.</li>
+              <li><b>SEAL</b> — cannot be healed while sealed.</li>
+              <li><b>ELECTRIFIED</b> — harmless on its own, but Bolt cards deal +2 DMG to <i>any</i> statused foe.</li>
+              <li><b>STEALTH / EVASION</b> — also appear as timed <i>buffs</i>: temporary untargetability or dodge.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>🏷 Keywords</h3>
+            <p>Printed on the card; always on unless a status suppresses them.</p>
+            <ul className="rules-defs">
+              <li><b>CRIT</b> — a basic has a ~50% chance to <i>double</i> its damage (the target must be unshielded).</li>
+              <li><b>PEN</b> — attacks pierce shields and hit HP directly.</li>
+              <li><b>BLOCK N</b> — every incoming hit is reduced by N — before shields, and even against PEN.</li>
+              <li><b>REFLECT N</b> — returns N damage to whoever attacks it.</li>
+              <li><b>EVASION</b> — ~50% chance to dodge each incoming hit.</li>
+              <li><b>FLYING</b> — dodges melee entirely (unless the attacker also flies, or a status grounds it).</li>
+              <li><b>STEALTH</b> — untargetable until it makes its first attack of the round.</li>
+              <li><b>LIFESTEAL</b> — basic attacks heal it for the damage dealt.</li>
+              <li><b>DRAIN</b> — LIFESTEAL, and it also steals 1 max HP from the target as it feeds (Dusk).</li>
+              <li><b>REGEN N</b> — heals N HP at the end of each round.</li>
+            </ul>
           </section>
 
           <section>
