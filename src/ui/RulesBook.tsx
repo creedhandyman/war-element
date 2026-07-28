@@ -153,10 +153,47 @@ export function RulesBook(props: { onClose: () => void }) {
           <section>
             <h3>🏔 Board tips</h3>
             <ul>
-              <li><b>King of the Hill</b>: a card in a middle row gets +1 DMG.</li>
+              <li><b>King of the Hill</b>: a card standing in a middle row deals +1 DMG.</li>
+              <li>
+                <b>Full-lane bonus</b>: hold <i>all four slots</i> of a middle lane and
+                your <b>entire board</b> gains +1 DMG — and there are two middle lanes
+                to seize, so a locked-down centre can stack +2 across your army.
+              </li>
               <li>Spells are one-shot effects from your spellbook — cast in Prep.</li>
               <li>Tap any card to inspect its full stats, Special, and passives.</li>
             </ul>
+          </section>
+
+          <section>
+            <h3>▶️ A turn, step by step</h3>
+            <ol className="rules-steps">
+              <li>
+                <b>Round starts.</b> You gain Gold equal to the round number and draw
+                a card (with a +2 bonus draw on rounds 10 and 15).
+              </li>
+              <li>
+                <b>Prep — you have priority.</b> Spend Gold to summon a Ranger onto a
+                glowing Home slot, then move your Tank up into a middle lane (+1 DMG
+                for the hill). Cast a Spell if you like. <b>Pass Priority.</b>
+              </li>
+              <li>
+                <b>The AI preps</b>, then passes. Two passes in a row → the Battle begins.
+              </li>
+              <li>
+                <b>Battle — fastest first.</b> Cards act in SP order (15 → 0). Your
+                SP-11 Ranger acts early: choose <b>Basic</b>, click a glowing enemy, it
+                fires. Later your Tank (SP 5) comes up — choose <b>Special</b> to spend
+                Magic on a barrage, spreading picks across two foes, then <b>Fire</b>.
+              </li>
+              <li>
+                <b>Cleanup.</b> BURN/BLEED tick, statuses count down, end-of-round auras
+                heal, and Home-slot captures are checked. Then the next round begins.
+              </li>
+            </ol>
+            <p>
+              Win the long game by wiping the opponent out, or the short game by parking
+              an invader on their Home slots and holding for a full round.
+            </p>
           </section>
         </div>
 

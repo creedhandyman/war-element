@@ -1088,6 +1088,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .rules-defs { list-style: none; padding-left: 0; }
 .rules-defs li { padding-left: 12px; text-indent: -12px; margin-bottom: 5px; }
 .rules-body i { font-style: italic; color: var(--ink); }
+.rules-steps { padding-left: 20px; }
+.rules-steps li { font-size: 13px; line-height: 1.5; color: var(--ink-dim); margin-bottom: 6px; }
 .rules-done { margin: 12px 0 0; align-self: stretch; }
 .db-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .db-head h2 { margin: 0; font-size: 20px; }
