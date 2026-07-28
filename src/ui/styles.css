@@ -1073,6 +1073,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 /* ── Deck Builder modal ───────────────────────────────────────────────────── */
 .deck-builder { max-width: min(1000px, 95vw); width: 1000px; text-align: left; padding: 20px; }
+/* Rules book — the How-to-play reference opened from the main menu. */
+.rules-book { max-width: min(680px, 94vw); width: 680px; text-align: left; padding: 18px 20px; display: flex; flex-direction: column; max-height: 90vh; }
+.rules-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.rules-head h2 { margin: 0; }
+.rules-body { overflow-y: auto; padding-right: 6px; -webkit-overflow-scrolling: touch; }
+.rules-body section { margin: 0 0 14px; }
+.rules-body h3 { margin: 0 0 5px; font-size: 15px; color: var(--ink); }
+.rules-body p { margin: 0 0 6px; font-size: 13px; line-height: 1.5; color: var(--ink-dim); }
+.rules-body ul { margin: 0; padding-left: 18px; }
+.rules-body li { font-size: 13px; line-height: 1.5; color: var(--ink-dim); margin-bottom: 3px; }
+.rules-body b { color: var(--ink); font-weight: 700; }
+.rules-els li { margin-bottom: 2px; }
+.rules-done { margin: 12px 0 0; align-self: stretch; }
 .db-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .db-head h2 { margin: 0; font-size: 20px; }
 .db-body { display: flex; gap: 18px; align-items: stretch; }

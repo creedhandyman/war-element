@@ -40,6 +40,7 @@ import { Board } from "./Board";
 import { CardDetail } from "./CardDetail";
 import { DeckBuilder } from "./DeckBuilder";
 import { useGameMusic, type MusicMode } from "./useGameMusic";
+import { RulesBook } from "./RulesBook";
 import { loadCustomDecks, PREMADE_DECKS, premadeDecksFor, type CustomDeck } from "../data/custom-decks";
 import { SpIcon } from "./icons";
 import { Hand } from "./Hand";
@@ -134,6 +135,7 @@ export function App() {
   const [viewDeck, setViewDeck] = useState<"p1" | "p2">("p1"); // which deck's cards to preview
   const [customDecks, setCustomDecks] = useState<CustomDeck[]>(() => loadCustomDecks());
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
   // Deck selection = a premade or custom deck (the old two-core pairing is gone).
   // Each side defaults to a different premade so a match is one tap away.
   // Seeded from the STANDARD builds — boardSize starts at 4, and the remap
@@ -1829,6 +1831,9 @@ export function App() {
               <button className="ghost db-open" onClick={() => setBuilderOpen(true)}>
                 🛠 Build / edit custom decks
               </button>
+              <button className="ghost db-open" onClick={() => setRulesOpen(true)}>
+                📖 How to play
+              </button>
 
               {!onlineMode ? (
                 <button
@@ -1982,6 +1987,7 @@ export function App() {
           if (!stillValid.has(p2DeckId)) setP2DeckId(modePremades[0].id);
         }}
       />
+      {rulesOpen && <RulesBook onClose={() => setRulesOpen(false)} />}
     </div>
   );
 }
