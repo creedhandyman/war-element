@@ -7696,7 +7696,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_doom",
     name: "Doom",
-    rarity: "epic",
+    rarity: "rare",
     element: "DUSK",
     cardClass: "Support",
     attackType: "Melee",
