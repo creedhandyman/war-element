@@ -83,6 +83,39 @@ export function RulesBook(props: { onClose: () => void }) {
           </section>
 
           <section>
+            <h3>🛡 Shields</h3>
+            <ul className="rules-defs">
+              <li>
+                <b>Armour, not a second health bar</b> — a card's shield value is
+                subtracted from <i>every</i> incoming hit; only the overflow reaches HP.
+                4 shields fully soaks any single hit of 4 or less.
+              </li>
+              <li>
+                <b>They erode as they work</b> — each hit that lands also chips the
+                shield down: a small hit strips 1, a big one (10+) strips 2, a huge one
+                (21+) strips 3. So shields blunt attackers but wear away over a fight.
+              </li>
+              <li>
+                <b>Piercing & blocking</b> — <b>PEN</b> ignores shields entirely, hitting
+                HP direct (and never strips them). <b>BLOCK</b> is separate: a flat
+                reduction applied <i>before</i> shields, even against PEN.
+              </li>
+              <li>
+                <b>BURN melts them</b> — a burning card also loses shields every tick, on
+                top of the damage.
+              </li>
+              <li>
+                <b>CRIT needs bare skin</b> — a basic can only critically hit a target
+                whose shields are already at 0.
+              </li>
+              <li>
+                Gain shields from Bore's Exostone (+2 on summon), Leaf's Photosynthesis,
+                and many card abilities — they don't refill on their own.
+              </li>
+            </ul>
+          </section>
+
+          <section>
             <h3>⚡ Speed queue & movement</h3>
             <ul className="rules-defs">
               <li>
