@@ -39,6 +39,7 @@ import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online"
 import { Board } from "./Board";
 import { CardDetail } from "./CardDetail";
 import { DeckBuilder } from "./DeckBuilder";
+import { useGameMusic, type MusicMode } from "./useGameMusic";
 import { loadCustomDecks, PREMADE_DECKS, premadeDecksFor, type CustomDeck } from "../data/custom-decks";
 import { SpIcon } from "./icons";
 import { Hand } from "./Hand";
@@ -113,6 +114,10 @@ export function App() {
   // Pre-game deck selection — the match doesn't run until Start.
   const [started, setStarted] = useState(false);
   const [twoPlayer, setTwoPlayer] = useState(false);
+
+  // Background music: Growth on the home screen, Rival once a match is running.
+  const musicMode: MusicMode = started && game.phase !== "gameover" ? "battle" : "menu";
+  const { muted: musicMuted, toggle: toggleMusic } = useGameMusic(musicMode);
   /** Battlefield size for the NEXT match. 4 = standard, 5 = the large board.
    *  Online: only the host's choice counts — the guest receives the host's whole
    *  state, board size included, so there is nothing to agree on. */
@@ -1082,6 +1087,14 @@ export function App() {
 
   return (
     <div className={`wrap${logCollapsed ? " log-collapsed" : ""}`}>
+      <button
+        className="music-toggle"
+        onClick={toggleMusic}
+        title={musicMuted ? "Unmute music" : "Mute music"}
+        aria-label={musicMuted ? "Unmute music" : "Mute music"}
+      >
+        {musicMuted ? "🔇" : "🔊"}
+      </button>
       <PhaseRibbon game={game} />
 
       <div className={`rail log-rail${logCollapsed ? " collapsed" : ""}${mobilePanel === "log" ? " mobile-open" : ""}`}>

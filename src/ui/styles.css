@@ -94,6 +94,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Battle Log collapsed → its column shrinks to a thin toggle strip, handing the
    space to the battlefield. */
 .wrap.log-collapsed { --col-log: 34px; }
+/* Floating music mute toggle — small, out of the way, always reachable. */
+.music-toggle {
+  position: fixed; top: 6px; left: 6px; z-index: 60;
+  width: 30px; height: 30px; padding: 0; border-radius: 8px; cursor: pointer;
+  background: rgba(10, 12, 22, 0.7); border: 1px solid rgba(120, 150, 220, 0.35);
+  font-size: 15px; line-height: 1; display: grid; place-items: center;
+  backdrop-filter: blur(4px); opacity: 0.7; transition: opacity 0.12s;
+}
+.music-toggle:hover { opacity: 1; }
 
 /* Floating hand — sits over the bottom edge of the board, not inside the bar, so
    the bar stays thin. Pops up on your turn, tucks low (collapsed) otherwise. */
