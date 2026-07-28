@@ -5107,16 +5107,17 @@ export const CARDS: CardDef[] = [
     element: "DAWN",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 1,
-    dmg: 1,
+    cost: 2,
+    dmg: 2,
     hits: 1,
     hp: 12,
-    sp: 2,
-    shields: 0,
-    keywords: {},
-    // Light Screen (On Summon): raises a shield wall for the row ahead.
-    passiveNames: { onSummon: "Light Screen" },
-    onSummon: { handler: "grantShield", params: { amount: 4 }, targetSide: "ally" },
+    sp: 3,
+    shields: 2,
+    // REFLECT 1: returns 1 DMG to attackers.
+    keywords: { REFLECT: 1 },
+    // Light Screen (End of Round): plates up allies within range +3 shields.
+    passiveNames: { roundTick: "Light Screen" },
+    roundTick: { allyInRangeShields: 3 },
   },
   {
     id: "dawn_able",

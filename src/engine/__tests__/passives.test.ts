@@ -381,6 +381,16 @@ describe("medium-tier passives (audit batch)", () => {
     expect(isBloodfire(card)).toBe(false); // burning only
   });
 
+  it("Reflection's Light Screen shields allies within range each round, not far ones", () => {
+    const s = prepState();
+    place(s, "dawn_reflection", "P1", 3, 1); // Melee → reach 1
+    const near = place(s, "dawn_able", "P1", 3, 2, { curShields: 0 }); // adjacent
+    const far = place(s, "dawn_able", "P1", 0, 3, { curShields: 0 }); // across the board
+    const next = advance(atCleanup(s));
+    expect(next.cards[near.instanceId].curShields).toBe(3); // +3 in range
+    expect(next.cards[far.instanceId].curShields).toBe(0); // out of range
+  });
+
   it("Imperator's Strike of Dawn commands every ally to fire a basic attack", () => {
     const s = prepState();
     const imp = place(s, "dawn_imperator", "P1", 3, 0);

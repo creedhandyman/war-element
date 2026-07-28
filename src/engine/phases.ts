@@ -38,6 +38,7 @@ import {
   canTarget,
   forwardAreaTargets,
   isActionBlocked,
+  RANGED_REACH,
   specialTargets,
   talentTargets,
   validTargets,
@@ -1823,6 +1824,16 @@ function doRoundTicks(draft: GameState): void {
       let touched = 0;
       for (const a of allies()) if (a.pos?.row === home && healCard(draft, a, rt.healHomeRow, card) > 0) touched++;
       if (touched) draft.log.push(`${label(draft, card)}'s Blessed Light warms ${touched} home-row ally(ies) (+${rt.healHomeRow} HP).`);
+    }
+    // Reflection: plate up allies standing within its range each round.
+    if (rt.allyInRangeShields && card.pos) {
+      const reach = getDef(card.defId).attackType === "Ranged" ? RANGED_REACH : 1;
+      let touched = 0;
+      for (const a of allies()) {
+        if (a.instanceId === card.instanceId || !a.pos) continue;
+        if (chebyshev(card.pos, a.pos) <= reach) { a.curShields += rt.allyInRangeShields; touched++; }
+      }
+      if (touched) draft.log.push(`${label(draft, card)} shields ${touched} nearby ally(ies) (+${rt.allyInRangeShields}).`);
     }
     // Petalfall (Sakuroot): heal SAME-element allies standing on the home row.
     if (rt.healHomeRowElement) {
