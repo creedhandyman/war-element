@@ -5520,10 +5520,10 @@ export const CARDS: CardDef[] = [
     element: "DUSK",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 3,
+    cost: 4,
     dmg: 4,
     hits: 1,
-    hp: 11,
+    hp: 16,
     sp: 10,
     shields: 0,
     keywords: {},
@@ -5534,14 +5534,15 @@ export const CARDS: CardDef[] = [
     roundTick: { spawn: { token: "dusk_spider", count: 1 }, spawnMaxAlive: 4 },
     passiveNames: { roundTick: "Nesting" },
     // Silk Chase: every allied Spider takes a swing, each opponent hit is
-    // FRIGHTENed, and Sarachnid heals 2 HP per hit landed.
+    // FRIGHTENed, Sarachnid heals 2 HP per hit landed, and every KILL nests
+    // another Spider.
     special: {
       name: "Silk Chase",
       cost: 2,
       handler: "tribeSwarm",
-      params: { tribe: "Spider", frighten: 1, healPerHit: 2 },
+      params: { tribe: "Spider", frighten: 1, healPerHit: 2, spawnOnKill: "dusk_spider" },
       targetSide: "enemy",
-      text: "Every allied Spider attacks; each opponent hit is FRIGHTENed 1 round and Sarachnid heals 2 HP per hit.",
+      text: "Every allied Spider attacks; each opponent hit is FRIGHTENed 1 round and Sarachnid heals 2 HP per hit. Every opponent killed nests another Spider.",
     },
   },
   {

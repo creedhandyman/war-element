@@ -3216,7 +3216,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const swarm = boardCards(draft, attacker.owner).filter(
       (c) => c.curHp > 0 && tribeOf(c, tribe),
     );
+    // spawnOnKill (Sarachnid): every kill the hunt lands nests another body.
+    const nestToken = String(params.spawnOnKill ?? "");
     let hits = 0;
+    let kills = 0;
     for (const sp of swarm) {
       if (sp.curHp <= 0) continue;
       const prey = targets.find((t) => t.curHp > 0 && canTarget(draft, sp, t))
@@ -3225,11 +3228,16 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       const r = basicAttack(draft, sp.instanceId, prey.instanceId);
       if (r && r.landedHits > 0) {
         hits += r.landedHits;
+        if (r.targetDied) kills++;
         if (frightenR > 0 && prey.curHp > 0 && draft.cards[prey.instanceId])
           applyStatus(draft, prey, "FRIGHTEN", frightenR, 0, getDef(attacker.defId).element);
       }
     }
     if (healPer > 0 && hits > 0 && attacker.curHp > 0) healCard(draft, attacker, healPer * hits, attacker);
+    if (nestToken && kills > 0 && attacker.curHp > 0) {
+      const born = spawnTokens(draft, attacker, nestToken, kills);
+      if (born.length) draft.log.push(`The hunt feeds the nest — ${born.length} more ${tribe || "body"}(s) hatch.`);
+    }
     draft.log.push(`Silk Chase: ${swarm.length} ${tribe || "ally"}(s) strike (${hits} hit(s)).`);
   },
   /** Opaque Realm (Spectra): cloak the caster and whoever stands directly behind

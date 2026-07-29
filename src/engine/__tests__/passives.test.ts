@@ -424,6 +424,19 @@ describe("medium-tier passives (audit batch)", () => {
     expect(100 - n.cards[zap.instanceId].curHp).toBe(9); // turret spent — no 4th
   });
 
+  it("Sarachnid's Silk Chase nests a new Spider for every opponent it kills", () => {
+    const s = prepState();
+    const sara = place(s, "dusk_sarachnid", "P1", 3, 0);
+    const spiders = () => boardCards(s, "P1").filter((c) => getDef(c.defId).id === "dusk_spider").length;
+    const before = spiders();
+    // A 1-HP victim in reach: the swarm kills it, which should hatch one more.
+    place(s, "dusk_gool", "P2", 2, 0, { curHp: 1, maxHp: 40, curShields: 0 });
+    SPECIAL_HANDLERS.tribeSwarm(s, s.cards[sara.instanceId], boardCards(s, "P2"), {
+      tribe: "Spider", frighten: 1, healPerHit: 2, spawnOnKill: "dusk_spider",
+    });
+    expect(spiders()).toBe(before + 1); // the kill fed the nest
+  });
+
   it("Static Cloud strikes a random opponent for 4 and PARALYZEs it 2 rounds", () => {
     const s = prepState();
     place(s, "bolt_staticcloud", "P1", 3, 0);
