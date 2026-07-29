@@ -3968,22 +3968,26 @@ export const CARDS: CardDef[] = [
     element: "BOLT",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 2,
-    dmg: 2,
+    cost: 3,
+    dmg: 3,
     hits: 1,
-    hp: 11,
+    hp: 15,
     sp: 7,
     shields: 0,
     keywords: {},
-    // Electro Shield (On Summon): a 2-shield barrier; when it BREAKS, PARALYZE
-    // the attacker that shattered it for 2 rounds.
-    //
-    // Raised from 1. At a single shield the barrier popped to the first hit of
-    // any multi-hit attack, so the PARALYZE fired immediately and the "shield"
-    // half did no shielding at all. Two makes it survive a hit, which is what
-    // makes the break a real decision for the attacker.
-    summonSelfShields: 2,
-    onShieldBreak: { status: { kind: "PARALYZE", duration: 2, power: 0 } },
+    // Electro Surge: starts armed on summon; while armed it's status-immune, and
+    // the first hit it takes discharges — PARALYZE the attacker 3r, then goes
+    // inert until re-armed.
+    passiveNames: { electroSurge: "Electro Surge" },
+    electroSurge: { paralyze: 3, shield: 1, dmgBoost: 5, boostRounds: 2 },
+    // Rares carry Talents, not repeatable Specials — but Buzz's whole kit is the
+    // surge, so its once-per-game Talent re-arms it (same effect as Surge's).
+    talent: {
+      name: "Electro Surge",
+      handler: "electroSurge",
+      params: {},
+      text: "Once per game: re-arm Electro Surge — +1 shield and +5 DMG for 2 rounds. While armed: status-immune, and the next hit PARALYZEs the attacker 3 rounds.",
+    },
   },
 
   {

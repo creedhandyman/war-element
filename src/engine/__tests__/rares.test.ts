@@ -115,37 +115,22 @@ describe("rare passives", () => {
     expect(risen[0].curHp).toBe(3);
   });
 
-  it("BOLT Buzz — a 2-shield barrier that SURVIVES the first hit", () => {
-    // Raised from 1. At a single shield the barrier popped to the opening hit
-    // of any attack, so it never actually shielded anything — it was a PARALYZE
-    // trigger wearing a shield's name.
+  it("BOLT Buzz — starts armed with Electro Surge: status-immune while armed", () => {
     const s = prepState();
     const buzz = place(s, "bolt_buzz", "P1", 2, 0);
-    expect(s.cards[buzz.instanceId].curShields).toBe(2);
-    // A SINGLE-hit attacker on purpose: each hit strips one shield regardless of
-    // its damage, so a multi-hit card (Nettle is 1x3, Vamp is 1x2) chews through
-    // both at once and the test would be measuring hit count, not the barrier.
-    const chip = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20 });
-    basicAttack(s, chip.instanceId, buzz.instanceId);
-    expect(s.cards[buzz.instanceId].curShields).toBeGreaterThan(0); // still standing
-    expect(statusOf(s.cards[chip.instanceId], "PARALYZE")).toBeUndefined(); // not yet
+    expect(s.cards[buzz.instanceId].electroSurgeActive).toBe(true); // armed on summon
+    // While armed, negative statuses fizzle.
+    applyStatus(s, s.cards[buzz.instanceId], "STUN", 2, 0, "AQUA");
+    expect(statusOf(s.cards[buzz.instanceId], "STUN")).toBeUndefined();
   });
 
-  it("...and PARALYZEs whoever finally shatters it", () => {
+  it("...and the first hit discharges — PARALYZE the attacker 3 rounds, then goes inert", () => {
     const s = prepState();
     const buzz = place(s, "bolt_buzz", "P1", 2, 0);
-    // Two swings, because a hit strips ONE shield however hard it lands — which
-    // is the whole point of raising the barrier to 2.
-    // Low damage + single hit on purpose: Ember Scorpion's 9 would kill Buzz
-    // outright on the second swing, and a dead card has no barrier left to
-    // shatter. (Vamp is 1×2 now, so it's no longer the single-hit body here.)
     const breaker = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20 });
     basicAttack(s, breaker.instanceId, buzz.instanceId);
-    expect(statusOf(s.cards[breaker.instanceId], "PARALYZE")).toBeUndefined(); // held
-    s.cards[breaker.instanceId].attackedThisRound = false; // let it swing again
-    basicAttack(s, breaker.instanceId, buzz.instanceId);
-    expect(s.cards[buzz.instanceId].curShields).toBe(0);
-    expect(statusOf(s.cards[breaker.instanceId], "PARALYZE")?.duration).toBe(2);
+    expect(statusOf(s.cards[breaker.instanceId], "PARALYZE")?.duration).toBe(3); // discharged
+    expect(s.cards[buzz.instanceId].electroSurgeActive).toBe(false); // spent until re-armed
   });
 });
 

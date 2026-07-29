@@ -984,15 +984,15 @@ describe("medium-tier passives (audit batch)", () => {
     const s = prepState();
     const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30, curShields: 0 });
     const buzz = place(s, "bolt_buzz", "P1", 2, 1);
-    // Unmarked: 2 DMG + 1 King of the Hill (buzz stands in a mid row) = 3.
+    // Unmarked: 3 DMG + 1 King of the Hill (buzz stands in a mid row) = 4.
     // The hit ALSO leaves the target ELECTRIFIED now — Electrify sets up its own
     // payoff rather than waiting on another card to apply a status.
     basicAttack(s, buzz.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curHp).toBe(27);
+    expect(s.cards[foe.instanceId].curHp).toBe(26);
     expect(statusOf(s.cards[foe.instanceId], "ELECTRIFIED")).toBeTruthy();
-    // Marked: Electrify adds +2 vs a statused target = 5.
+    // Marked: Electrify adds +2 vs a statused target = 6.
     basicAttack(s, buzz.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curHp).toBe(22);
+    expect(s.cards[foe.instanceId].curHp).toBe(20);
   });
 
   it("Shimmering Featherrows volleys three targets, then cloaks the eagle", () => {
