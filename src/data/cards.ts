@@ -7241,12 +7241,12 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 3,
+    cost: 4,
     dmg: 3,
     hits: 1,
-    hp: 22,
+    hp: 20,
     sp: 0,
-    shields: 0,
+    shields: 3,
     keywords: { REGEN: 3 },
     // Super Weed: REGEN 3 each round and grows +2 max HP (it just keeps
     // spreading). Bramble: a melee attacker takes 1 back and is left with a
@@ -7254,14 +7254,18 @@ export const CARDS: CardDef[] = [
     passiveNames: { onHitByMelee: "Bramble", roundTick: "Super Weed" },
     roundTick: { buffDmgEveryN: { n: 1, amount: 0, hp: 2 } },
     onHitByMelee: { dmg: 1, status: { kind: "DOT", duration: 2, power: 1 } },
-    // Razor Guard: 3 DMG to a target and up to 2 nearby.
+    // Razor Guard: the weed lurches a space forward (it's SP 0, so this is the
+    // only way it advances), THEN rakes everything in range for 3 + BLEED 1.
     special: {
       name: "Razor Guard",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 3, targets: 3 },
+      params: {
+        dmg: 3, targets: 3, charge: 1, chargeFirst: 1,
+        statusKind: "BLEED", statusPower: 1, statusDuration: 2,
+      },
       targetSide: "enemy",
-      text: "Deal 3 DMG to a target and up to 2 opponents near them.",
+      text: "Move forward one space, then deal 3 DMG and apply BLEED 1 (2 rounds) to opponents in range.",
     },
   },
   {
