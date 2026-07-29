@@ -2,6 +2,15 @@ import type { GameState } from "../engine";
 import { boardCards, effectiveSp, getDef, plannedAction } from "../engine";
 import { EL_COLOR } from "./shared";
 
+/** What the queue tags SAY vs what they mean. "SKIP" read like a choice the
+ *  player was making; it actually means the card has no legal action at all. */
+const TAG_LABEL: Record<string, string> = { YOU: "YOU", AUTO: "AUTO", SKIP: "CAN'T ACT" };
+const TAG_HELP: Record<string, string> = {
+  YOU: "Your call — you'll pick Basic / Special / Skip when this card comes up.",
+  AUTO: "Set to auto — this card takes its turn by itself. Tap the badge on the card to change it.",
+  SKIP: "No legal action: nothing in range to attack and no Special it can afford or fire. It will pass its turn.",
+};
+
 export function SpeedQueue(props: { game: GameState }) {
   const { game } = props;
   const inBattle = game.phase === "battle" && game.battle !== null;
@@ -44,11 +53,19 @@ export function SpeedQueue(props: { game: GameState }) {
                 .filter(Boolean)
                 .join(" ")}
             >
-              <span className="qsp">{effectiveSp(game, card)}</span>
+              <span className="qsp" title={`Speed ${effectiveSp(game, card)} — the queue acts fastest first`}>
+                {effectiveSp(game, card)}
+              </span>
               <span className="el-dot" style={{ background: EL_COLOR[def.element] }} />
               <span className="qname">{def.name}</span>
-              {!done && !isAI && <span className={`qtag ${tag}`}>{tag}</span>}
-              {!done && isAI && <span className="qtag AUTO">AI</span>}
+              {!done && !isAI && (
+                <span className={`qtag ${tag}`} title={TAG_HELP[tag]}>
+                  {TAG_LABEL[tag]}
+                </span>
+              )}
+              {!done && isAI && (
+                <span className="qtag AUTO" title="Opponent's card — the AI takes this turn.">AI</span>
+              )}
             </div>
           );
         })}

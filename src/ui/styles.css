@@ -107,8 +107,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Floating hand — sits over the bottom edge of the board, not inside the bar, so
    the bar stays thin. Pops up on your turn, tucks low (collapsed) otherwise. */
 .hand-float {
-  position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%);
-  z-index: 40; width: min(820px, 62%); display: flex; justify-content: center;
+  /* bottom was 6px: the fan's outer cards rotate + dip BELOW this box, so they
+     fell off the bottom of the screen (measured 21px past a 1080p viewport).
+     Lifted clear of the edge; the dip itself is also clamped in Hand.tsx. */
+  position: absolute; left: 50%; bottom: 46px; transform: translateX(-50%);
+  z-index: 40; width: min(820px, 62%); max-width: 96vw; display: flex; justify-content: center;
   pointer-events: none; transition: bottom 0.28s ease;
 }
 .hand-float .hand { pointer-events: auto; }
@@ -122,7 +125,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    it has no vertical room to spare and keeps the full 104px lift; mobile
    portrait doesn't use this at all (the hand is in normal flow there). */
 @media (min-width: 761px) and (min-height: 541px) {
-  .wrap { --hand-up: 16px; }
+  .wrap { --hand-up: 56px; } /* was 16px — same +40px lift as the resting tray */
 }
 
 /* ===== phase ribbon ===== */
@@ -147,6 +150,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .loglist { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; font-size: 12.5px; color: var(--ink-dim); line-height: 1.4; min-height: 0; }
 .loglist .me { color: var(--gold-lit); }
 .loglist div { border-bottom: 1px solid rgba(201, 162, 75, 0.12); padding-bottom: 4px; }
+/* Turn-taking noise recedes; real events (summons, kills, statuses) stand out. */
+.loglist .log-chatter { opacity: 0.5; font-size: 11.5px; border-bottom-color: rgba(201, 162, 75, 0.06); }
+.loglist .log-event { color: var(--ink); font-weight: 600; }
+.loglist .log-event.me { color: var(--gold-lit); }
+/* ×N badge on a collapsed run of identical lines. */
+.log-x { margin-left: 6px; padding: 0 5px; border-radius: 999px; font-size: 10px; font-weight: 800; background: rgba(201, 162, 75, 0.18); color: var(--gold-lit); }
 /* Speed Queue rail leans blue (initiative/enemy accent). */
 .rail.queue-rail { border-color: rgba(140, 160, 220, 0.35); }
 .rail.queue-rail .rail-title { color: var(--steel-lit); }
@@ -316,10 +325,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   0%, 100% { box-shadow: 0 0 12px color-mix(in srgb, var(--tile) 35%, transparent), inset 0 0 18px rgba(0,0,0,0.5); }
   50% { box-shadow: 0 0 26px color-mix(in srgb, var(--tile) 75%, transparent), 0 0 46px color-mix(in srgb, var(--tile) 38%, transparent), inset 0 0 16px rgba(0,0,0,0.4); }
 }
-/* the arcane compass sigil, tinted to the row colour, faint under the card */
+/* The arcane compass sigil, tinted to the row colour. Dimmed to ~a third of its
+   old 0.15: empty slots were competing with the cards for attention, and an
+   OCCUPIED card should always be the brightest thing on the board. */
 .slot::before {
   content: ""; position: absolute; inset: 11%; z-index: 0; pointer-events: none;
-  background: var(--tile); opacity: 0.15;
+  background: var(--tile); opacity: 0.05;
   -webkit-mask: url("/tile-sigil.svg") center / contain no-repeat;
   mask: url("/tile-sigil.svg") center / contain no-repeat;
 }
@@ -416,8 +427,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* keyword pips (top edge) + status icons (bottom edge) */
 .kw-pips { position: absolute; top: -9px; left: 4px; right: 4px; z-index: 5; display: flex; gap: 3px; justify-content: center; }
 .kw-pip { min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #0d0c14; border: 1px solid; font-size: 9.5px; font-weight: 800; line-height: 14px; display: grid; place-items: center; }
-.status-icons { position: absolute; bottom: -9px; left: 4px; right: 4px; z-index: 5; display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; }
-.status-icon { min-width: 17px; height: 17px; padding: 0 4px; border-radius: 8px; background: #0d0c14; border: 1px solid; font-size: 9.5px; font-weight: 800; line-height: 15px; display: grid; place-items: center; }
+/* Status pips ride INSIDE the card, over the middle of the art. They used to
+   hang half-off the bottom edge (bottom:-9px), where they collided with the row
+   below and read as board clutter rather than as this card's state. */
+.status-icons { position: absolute; top: 46%; left: 3px; right: 3px; z-index: 5; display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; pointer-events: none; }
+.status-icon { min-width: 18px; height: 18px; padding: 0 4px; border-radius: 8px; background: rgba(8, 9, 16, 0.92); border: 1px solid; font-size: 10px; font-weight: 800; line-height: 16px; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.75); }
 /* Bloodfire — bleeding AND burning. A single combined chip with a
    blood-to-fire gradient rim so payoff targets read at a glance. */
 .status-icon.bloodfire { border-color: #ff5a3c; background: linear-gradient(135deg, #3a0a12, #2a1206); box-shadow: 0 0 6px rgba(255,90,60,.55); font-size: 8px; letter-spacing: -1px; }
@@ -490,11 +504,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   object-fit: cover; object-position: center top; border-radius: 7px;
   pointer-events: none; filter: saturate(1.08);
 }
-/* Scrim: transparent over the top art, darkening only the lower ~third where
-   the class line + stat row sit, so those stay legible. */
+/* Scrim: two plates, not one wash — a dark band behind the TOP name banner and
+   a stronger one behind the BOTTOM stat strip, with the art left clear in the
+   middle. Stats used to sit straight on busy art and were unreadable; these
+   plates make the numbers legible without hiding the illustration. */
 .token::after {
   content: ""; position: absolute; inset: 0; z-index: 0; border-radius: 7px;
-  background: linear-gradient(180deg, rgba(6,8,14,0) 40%, rgba(6,8,14,0.42) 66%, rgba(6,8,14,0.9) 100%);
+  background:
+    linear-gradient(180deg, rgba(6,8,14,0.82) 0%, rgba(6,8,14,0.5) 12%, rgba(6,8,14,0) 24%),
+    linear-gradient(180deg, rgba(6,8,14,0) 46%, rgba(6,8,14,0.62) 66%, rgba(6,8,14,0.96) 100%);
 }
 .token > .tk-top, .token > .tk-bottom { position: relative; z-index: 1; }
 .token .status-pip { z-index: 2; }
@@ -508,7 +526,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .tk-name { flex: 1; min-width: 0; font-size: 12px; font-weight: 800; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px #000, 0 0 3px #000; }
 .tk-class { font-size: 8.5px; font-weight: 700; letter-spacing: 0.05em; color: var(--ink-dim); text-shadow: 0 1px 2px #000; margin-bottom: 2px; }
 .tk-stats { display: flex; gap: 3px; font-size: 12.5px; font-weight: 800; flex-wrap: wrap; }
-.tk-stats span { display: flex; align-items: center; gap: 1px; padding: 0 3px; border-radius: 5px; background: rgba(0, 0, 0, 0.5); text-shadow: 0 1px 2px #000; line-height: 1.4; }
+.tk-stats span { display: flex; align-items: center; gap: 1px; padding: 0 4px; border-radius: 5px; background: rgba(0, 0, 0, 0.72); text-shadow: 0 1px 2px #000, 0 0 4px #000; line-height: 1.4; }
 .st-sp { color: var(--stat-sp); }
 .st-sp.can-move { color: #06251a; background: var(--legal); text-shadow: none; box-shadow: 0 0 10px rgba(78, 203, 143, 0.7); animation: movepulse 1.5s ease-in-out infinite; }
 .st-dmg { color: var(--stat-dmg); } .st-hp { color: var(--stat-hp); } .st-sh { color: var(--stat-sh); }
@@ -1127,6 +1145,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-filters { display: flex; flex-wrap: wrap; gap: 6px; }
 .db-fl { font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 999px; background: var(--void-2); color: var(--ink-dim); border: 1px solid var(--panel-line); cursor: pointer; transition: 0.12s; }
 .db-fl.on { border-color: var(--accent); color: var(--ink); background: rgba(167, 139, 250, 0.14); }
+/* Element filters carry their own colour (set inline) — a dot + tinted label. */
+.el-fl { display: inline-flex; align-items: center; gap: 5px; }
+.el-fl.on { font-weight: 800; }
+.el-fl-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
 .db-sort { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .db-sort-lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-faint); }
 .db-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; max-height: 60vh; overflow-y: auto; padding: 2px 4px 2px 2px; align-content: start; }

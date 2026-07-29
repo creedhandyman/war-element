@@ -181,7 +181,7 @@ export function Token(props: {
     <div
       className={cls}
       style={{ ["--el-rim" as string]: EL_COLOR[def.element] }}
-      title={def.special ? `${def.special.name}: ${def.special.text}` : def.name}
+      title={`${def.name} — click to inspect (full art, stats, Special & passives)${def.special ? `\n\n${def.special.name}: ${def.special.text}` : ""}`}
     >
       <img
         className="card-art"

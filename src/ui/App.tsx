@@ -57,6 +57,23 @@ function newSeed(): number {
   return (Math.random() * 0x7fffffff) | 0;
 }
 
+/** Turn-taking noise ("P1 passes.", "Battle! Queue: 4 card(s).") that floods the
+ *  rail and buries the events players actually care about. Matched lines are
+ *  dimmed; everything else (summons, kills, damage, statuses) reads as an event. */
+const LOG_CHATTER = /\bpasses\b|priority|^Battle! Queue|preps first|Opening hands|draws \d|mulligans/i;
+
+/** Collapse CONSECUTIVE identical log lines into one row with a ×N counter, so a
+ *  run of "P1 passes. P2 passes. P1 passes." reads as a single line. */
+function condenseLog(lines: string[]): { text: string; count: number; chatter: boolean }[] {
+  const out: { text: string; count: number; chatter: boolean }[] = [];
+  for (const text of lines) {
+    const last = out[out.length - 1];
+    if (last && last.text === text) last.count++;
+    else out.push({ text, count: 1, chatter: LOG_CHATTER.test(text) });
+  }
+  return out;
+}
+
 export function App() {
   const [game, setGame] = useState<GameState>(() => createInitialState(newSeed()));
   const [sel, setSel] = useState<Selection>(null);
@@ -1113,9 +1130,13 @@ export function App() {
           <button className="panel-close" onClick={() => setMobilePanel(null)} aria-label="Close">✕</button>
         </div>
         <div className="loglist">
-          {game.log.slice(-40).map((l, i) => (
-            <div key={i} className={l.includes("(P1)") ? "me" : ""}>
-              {l}
+          {condenseLog(game.log.slice(-60)).map((e, i) => (
+            <div
+              key={i}
+              className={[e.text.includes("(P1)") ? "me" : "", e.chatter ? "log-chatter" : "log-event"].filter(Boolean).join(" ")}
+            >
+              {e.text}
+              {e.count > 1 && <span className="log-x">×{e.count}</span>}
             </div>
           ))}
         </div>

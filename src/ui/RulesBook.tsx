@@ -25,10 +25,11 @@ export function RulesBook(props: { onClose: () => void }) {
           <section>
             <h3>💠 Resources</h3>
             <p>
-              <b>Gold</b> pays to <b>summon</b> cards — you gain the round number in
-              Gold each round (round 1 → +1, round 2 → +2…). <b>Magic</b> pays for
-              <b> Specials</b> and <b>Spells</b>. A card's cost is the number in its
-              top corner.
+              <b>GOLD</b> (your summon pool) pays to <b>summon</b> cards — you gain the
+              round number in Gold each round (round 1 → +1, round 2 → +2…).
+              <b> MAGIC</b> pays for <b>Specials</b> and <b>Spells</b>. A card's cost is
+              the number in its top corner. Both pools are shown at the bottom of the
+              screen under those names.
             </p>
           </section>
 
@@ -220,6 +221,13 @@ export function RulesBook(props: { onClose: () => void }) {
           <section>
             <h3>🏔 Board tips</h3>
             <ul>
+              <li>
+                <b>🔒 Locked slots</b>: a hatched, padlocked square is a <b>captured Home
+                slot</b>. Park an invader on an enemy Home slot and keep it alive for a
+                full round to capture that slot <i>permanently</i> — nothing can be
+                summoned onto or moved through it again, and it can never be won back.
+                Take all of an opponent's Home slots and you win outright.
+              </li>
               <li><b>King of the Hill</b>: a card standing in a middle row deals +1 DMG.</li>
               <li>
                 <b>Full-lane bonus</b>: hold <i>all four slots</i> of a middle lane and

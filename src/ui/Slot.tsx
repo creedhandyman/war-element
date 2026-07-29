@@ -77,7 +77,17 @@ export function Slot(props: {
       }}
     >
       {props.captured && (
-        <span className="lock" title={`Permanently captured by ${props.captured}`}>
+        <span
+          className="lock"
+          title={
+            `CAPTURED HOME SLOT — held by ${props.captured}.\n\n` +
+            `An invader that survives a full round standing on an enemy Home slot ` +
+            `captures it permanently. Captured slots are locked for the rest of the ` +
+            `match: nothing can be summoned onto or moved through them, and they ` +
+            `can never be taken back.\n\n` +
+            `Capture ALL of an opponent's Home slots and you win outright.`
+          }
+        >
           🔒
         </span>
       )}

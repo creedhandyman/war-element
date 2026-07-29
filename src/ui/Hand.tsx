@@ -38,8 +38,15 @@ export function Hand(props: {
   // Phones get a tighter fan + shallower dip so even a hoarded 9-card hand stays
   // within the viewport and clears the bottom control bar.
   const narrow = useNarrow();
-  const rotStep = narrow ? 3.2 : 4.4;
-  const tyStep = narrow ? 3.5 : 7;
+  // The fan has to stay inside the viewport as the hand GROWS. Both the spread
+  // and the dip used to scale with the card's distance from centre, unbounded —
+  // a 5-card hand dipped ~18px but a 9-card hand dipped ~49px and the outer
+  // cards fell off the bottom of the screen (stat lines unreadable by round 3-4).
+  // So: shrink the per-card step once the hand is big, and hard-CLAMP the dip.
+  const wide = n > 5 ? Math.max(0.55, 5 / n) : 1; // tighten as the hand grows
+  const rotStep = (narrow ? 3.2 : 4.4) * wide;
+  const tyStep = (narrow ? 3.5 : 7) * wide;
+  const tyMax = narrow ? 14 : 22; // the fan never dips further than this
 
   return (
     <div className={`hand${myPrep ? "" : " collapsed"}`}>
@@ -59,7 +66,7 @@ export function Hand(props: {
           const affordable = def.cost <= me.gold;
           const off = i - center;
           const rot = off * rotStep; // fan spread (deg)
-          const ty = Math.pow(Math.abs(off), 1.4) * tyStep; // outer cards dip lower
+          const ty = Math.min(tyMax, Math.pow(Math.abs(off), 1.4) * tyStep); // outer cards dip lower (clamped)
           const cls = [
             "hcard",
             myPrep && affordable ? "summonable" : "",

@@ -179,9 +179,15 @@ export function DeckBuilder(props: {
               <button className={buildSize === 4 ? "act" : ""} onClick={() => setBuildSize(4)}>4×4 · 18</button>
               <button className={buildSize === 5 ? "act" : ""} onClick={() => setBuildSize(5)}>5×5 · 28</button>
             </div>
+            {/* ONE number: cards picked out of the target for this battlefield.
+                The min/max band only appears when the deck isn't legal yet —
+                "0/20 · 12–20 (aim 18)" next to a "4×4 · 18" toggle was three
+                different numbers for the same thing. */}
             <div className="db-count" style={{ color: countColor }}>
-              {picked.length} / {limits.max}
-              <span className="db-hint"> · {limits.min}–{limits.max} (aim {limits.target})</span>
+              {picked.length} / {limits.target} cards
+              {!check.ok && (
+                <span className="db-hint"> · needs {limits.min}–{limits.max}</span>
+              )}
             </div>
             <div className="db-actions">
               <button className="lockin" disabled={!check.ok} onClick={save}>
@@ -313,13 +319,21 @@ export function DeckBuilder(props: {
           <div className="db-pool">
             <div className="db-filters">
               <button className={`db-fl ${filter === "ALL" ? "on" : ""}`} onClick={() => setFilter("ALL")}>All</button>
+              {/* Always in the element's own colour — a wall of identical grey
+                  pills made you read every label to find an element. Selected
+                  additionally gets the tinted fill. */}
               {ELEMENTS.map((el) => (
                 <button
                   key={el}
-                  className={`db-fl ${filter === el ? "on" : ""}`}
+                  className={`db-fl el-fl ${filter === el ? "on" : ""}`}
                   onClick={() => setFilter(el)}
-                  style={filter === el ? { borderColor: EL_COLOR[el], color: EL_COLOR[el] } : undefined}
+                  style={{
+                    borderColor: EL_COLOR[el],
+                    color: EL_COLOR[el],
+                    background: filter === el ? `color-mix(in srgb, ${EL_COLOR[el]} 26%, transparent)` : undefined,
+                  }}
                 >
+                  <span className="el-fl-dot" style={{ background: EL_COLOR[el] }} />
                   {el}
                 </button>
               ))}
