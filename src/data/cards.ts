@@ -6630,6 +6630,26 @@ export const CARDS: CardDef[] = [
     },
   },
   {
+    id: "bolt_rodd",
+    art: "bolt_elecdroid", // PLACEHOLDER art — swap for a real rodd.webp
+    name: "Rodd",
+    rarity: "rare",
+    element: "BOLT",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 2,
+    hits: 1,
+    hp: 7,
+    sp: 0,
+    shields: 3,
+    keywords: {},
+    // Conduction: adjacent allies (all 8 surrounding slots) gain +1 DMG. A fixed
+    // pylon — SP 0, so it never moves and always acts last.
+    passiveNames: { aura: "Conduction" },
+    aura: { scope: "adjacent", dmg: 1 },
+  },
+  {
     id: "bolt_jack_arc",
     name: "Jack Arc",
     rarity: "legendary",

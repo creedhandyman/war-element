@@ -424,6 +424,15 @@ describe("medium-tier passives (audit batch)", () => {
     expect(100 - n.cards[zap.instanceId].curHp).toBe(9); // turret spent — no 4th
   });
 
+  it("Rodd's Conduction gives +1 DMG to ADJACENT allies only", () => {
+    const s = prepState();
+    place(s, "bolt_rodd", "P1", 3, 0);
+    // Both in the home row (no King-of-the-Hill difference); one touches Rodd, one doesn't.
+    const near = place(s, "leaf_alpha", "P1", 3, 1); // chebyshev 1 — adjacent
+    const far = place(s, "leaf_alpha", "P1", 3, 3); // chebyshev 3 — not adjacent
+    expect(effectiveDmg(s, s.cards[near.instanceId]) - effectiveDmg(s, s.cards[far.instanceId])).toBe(1);
+  });
+
   it("Reflection's Light Screen shields allies within range each round, not far ones", () => {
     const s = prepState();
     place(s, "dawn_reflection", "P1", 3, 1); // Melee → reach 1

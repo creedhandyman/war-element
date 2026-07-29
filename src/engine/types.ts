@@ -301,7 +301,7 @@ export interface RoundTickDef {
  *  to living allies matching `scope`. `match` names the tribe/class for those
  *  scopes; the `element` scope uses the aura-holder's own element. */
 export interface AuraBonusDef {
-  scope: "element" | "tribe" | "class" | "all";
+  scope: "element" | "tribe" | "class" | "all" | "adjacent";
   match?: string;
   dmg?: number;
   sp?: number;

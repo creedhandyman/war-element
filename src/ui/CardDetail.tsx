@@ -275,7 +275,8 @@ export function describePassives(def: CardDef): string[] {
     const who =
       a.scope === "element" ? `${a.match ?? def.element} allies` :
       a.scope === "tribe" ? `${a.match} allies` :
-      a.scope === "class" ? `${a.match} allies` : "all allies";
+      a.scope === "class" ? `${a.match} allies` :
+      a.scope === "adjacent" ? "adjacent allies" : "all allies";
     const bits = [
       a.dmg && `+${a.dmg} DMG`,
       a.sp && `+${a.sp} SP`,

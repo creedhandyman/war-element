@@ -161,7 +161,9 @@ export function isBloodfire(card: CardInstance): boolean {
 /** Best (non-stacking) aura bonus a card gets from living allies whose aura
  *  matches it — Trinezer's Brood Command (Reptile +1/+1), Griffith's GALE +SP.
  *  The single highest matching bonus applies; auras never sum. */
-function auraMatches(a: AuraBonusDef, holderDef: CardDef, targetDef: CardDef): boolean {
+function auraMatches(a: AuraBonusDef, holder: CardInstance, target: CardInstance): boolean {
+  const holderDef = getDef(holder.defId);
+  const targetDef = getDef(target.defId);
   switch (a.scope) {
     case "all": return true;
     case "element": return targetDef.element === (a.match ?? holderDef.element);
@@ -170,17 +172,19 @@ function auraMatches(a: AuraBonusDef, holderDef: CardDef, targetDef: CardDef): b
     case "tribe": return targetDef.tribe != null && a.match != null &&
       (Array.isArray(targetDef.tribe) ? targetDef.tribe.includes(a.match) : targetDef.tribe === a.match);
     case "class": return targetDef.cardClass === a.match;
+    // Touching allies only — Lightning Rod's field reaches the 8 surrounding
+    // slots (self is distance 0, so it never buffs itself).
+    case "adjacent": return !!holder.pos && !!target.pos && chebyshev(holder.pos, target.pos) === 1;
     default: return false;
   }
 }
 
 export function auraBonus(state: GameState, card: CardInstance, stat: "dmg" | "sp"): number {
-  const tDef = getDef(card.defId);
   let best = 0;
   for (const holder of boardCards(state, card.owner)) {
     const hDef = getDef(holder.defId);
     for (const a of [hDef.aura, ...(hDef.auras ?? [])]) {
-      if (!a || !auraMatches(a, hDef, tDef)) continue;
+      if (!a || !auraMatches(a, holder, card)) continue;
       const v = stat === "dmg" ? a.dmg ?? 0 : a.sp ?? 0;
       if (v > best) best = v;
     }
@@ -191,12 +195,11 @@ export function auraBonus(state: GameState, card: CardInstance, stat: "dmg" | "s
 /** Every allied aura currently touching `card`, named by its source holder — for
  *  the UI to show WHERE a buff comes from. */
 export function auraSources(state: GameState, card: CardInstance): { name: string; text: string }[] {
-  const tDef = getDef(card.defId);
   const out: { name: string; text: string }[] = [];
   for (const holder of boardCards(state, card.owner)) {
     const hDef = getDef(holder.defId);
     for (const a of [hDef.aura, ...(hDef.auras ?? [])]) {
-      if (!a || !auraMatches(a, hDef, tDef)) continue;
+      if (!a || !auraMatches(a, holder, card)) continue;
       const bits = [
         a.dmg && `+${a.dmg} DMG`, a.sp && `+${a.sp} SP`, a.maxHp && `+${a.maxHp} HP`,
         a.shields && `+${a.shields} shield`, a.pen && "PEN",
@@ -211,11 +214,10 @@ export function auraSources(state: GameState, card: CardInstance): { name: strin
  *  maxHP aura (Kraken's SeaC +4). Equals maxHp for cards under no such aura, so
  *  it's a safe drop-in for every healing cap and the HP display. */
 export function effectiveMaxHp(state: GameState, card: CardInstance): number {
-  const tDef = getDef(card.defId);
   let bonus = 0;
   for (const holder of boardCards(state, card.owner)) {
     const hDef = getDef(holder.defId);
-    if (!hDef.aura?.maxHp || !auraMatches(hDef.aura, hDef, tDef)) continue;
+    if (!hDef.aura?.maxHp || !auraMatches(hDef.aura, holder, card)) continue;
     if (hDef.aura.maxHp > bonus) bonus = hDef.aura.maxHp;
   }
   return card.maxHp + bonus;
@@ -242,10 +244,9 @@ export function healCard(state: GameState, card: CardInstance, amount: number, b
 
 /** Does a friendly aura grant this card's basic attacks PEN (Blood Ruby)? */
 export function auraHasPen(state: GameState, card: CardInstance): boolean {
-  const tDef = getDef(card.defId);
   return boardCards(state, card.owner).some((holder) => {
     const hDef = getDef(holder.defId);
-    return !!hDef.aura?.pen && auraMatches(hDef.aura, hDef, tDef);
+    return !!hDef.aura?.pen && auraMatches(hDef.aura, holder, card);
   });
 }
 
@@ -253,12 +254,11 @@ export function auraHasPen(state: GameState, card: CardInstance): boolean {
  *  highest matching aura's shields, or 0 if none. Each round it's topped up to
  *  its printed shields + this bonus. */
 export function auraShieldBonus(state: GameState, card: CardInstance): number {
-  const tDef = getDef(card.defId);
   let bonus = 0;
   for (const holder of boardCards(state, card.owner)) {
     const hDef = getDef(holder.defId);
     for (const a of [hDef.aura, ...(hDef.auras ?? [])]) {
-      if (!a?.shields || !auraMatches(a, hDef, tDef)) continue;
+      if (!a?.shields || !auraMatches(a, holder, card)) continue;
       if (a.shields > bonus) bonus = a.shields;
     }
   }
