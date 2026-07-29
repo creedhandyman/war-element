@@ -33,10 +33,6 @@ describe("setup", () => {
       // 2 Skeletons on summon + 2 every round + a SkullDrake on its Special, and
       // buffs the whole bone army — the free bodies carry the missing points.
       "dusk_skullking",
-      // Bootlegger: 4+10+9 = 23 vs a cost-2 budget of 20, i.e. 3 over. Deliberate
-      // — a fast runner (SP 9) carrying a 3 DMG Stomp on the crossing and +2 HP
-      // per kill, so the body is meant to outrun and outgrow its cost.
-      "aqua_bootlegger",
       // (Sparkle and ToxHawk both used to sit here as "SP-heavy glass cannons"
       // running past the ±2 band. Sparkle traded SP 14 -> 9 to pay for cost 1,
       // and ToxHawk dropped 2 HP to land 2 over at cost 2. Both are inside the

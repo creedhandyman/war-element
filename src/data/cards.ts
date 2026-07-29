@@ -4601,7 +4601,7 @@ export const CARDS: CardDef[] = [
     hits: 1,
     hp: 10,
     // A fast runner that gets there first and hurts on the crossing.
-    sp: 9,
+    sp: 7,
     shields: 0,
     keywords: {},
     // Fires on the CROSSING onto enemy ground, not on every step taken once it
