@@ -6637,16 +6637,17 @@ export const CARDS: CardDef[] = [
     cardClass: "Support",
     attackType: "Ranged",
     cost: 1,
-    dmg: 2,
+    dmg: 0,
     hits: 1,
     hp: 7,
     sp: 0,
-    shields: 3,
+    shields: 4,
     keywords: {},
-    // Conduction: adjacent allies (all 8 surrounding slots) gain +1 DMG. A fixed
-    // pylon — SP 0, so it never moves and always acts last.
-    passiveNames: { aura: "Conduction" },
+    // Conduction: adjacent allies (all 8 surrounding slots) gain +1 DMG. Arc (End
+    // of Round): 2 DMG to the closest opponent. A fixed pylon — SP 0, never moves.
+    passiveNames: { aura: "Conduction", roundTick: "Arc" },
     aura: { scope: "adjacent", dmg: 1 },
+    roundTick: { pokeDmg: 2 },
   },
   {
     id: "bolt_jack_arc",
