@@ -85,7 +85,8 @@ describe("rare passives", () => {
   it("DAWN Glime — +2 barrier that surges (+1 DMG/+1 SP) when it breaks", () => {
     const s = prepState();
     const glime = place(s, "dawn_glime", "P1", 3, 0);
-    expect(s.cards[glime.instanceId].curShields).toBe(2); // summonSelfShields
+    // 1 printed shield + the +2 Shiny Shield barrier (summonSelfShields is +=).
+    expect(s.cards[glime.instanceId].curShields).toBe(3);
     const attacker = place(s, "leaf_alpha", "P2", 3, 1, { curHp: 20 });
     basicAttack(s, attacker.instanceId, glime.instanceId);
     expect(s.cards[glime.instanceId].curShields).toBe(0);
