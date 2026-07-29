@@ -4596,20 +4596,20 @@ export const CARDS: CardDef[] = [
     element: "AQUA",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 1,
-    dmg: 3,
+    cost: 2,
+    dmg: 4,
     hits: 1,
-    hp: 9,
-    // SP 3 -> 6: a runner that gets there first and hurts on the crossing. It
-    // briefly carried 2 shields as well; those are off again, which cuts it from
-    // 7 over the cost-1 budget to 3 over (18 vs 15). Still budget-test exempt.
-    sp: 6,
+    hp: 10,
+    // A fast runner that gets there first and hurts on the crossing.
+    sp: 9,
     shields: 0,
     keywords: {},
     // Fires on the CROSSING onto enemy ground, not on every step taken once it
     // is already there. 1 -> 3 DMG, so the invasion actually hurts.
-    passiveNames: { onEnterEnemySide: "Stomp" },
+    // Running Profits (On Kill): +2 HP, permanently (max and current).
+    passiveNames: { onEnterEnemySide: "Stomp", onKill: "Running Profits" },
     onEnterEnemySide: { dmg: 3 },
+    onKill: { buffMaxHp: 2 },
   },
   // ── Wave 2 ────────────────────────────────────────────────────────────────
   {
