@@ -6631,7 +6631,6 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bolt_rodd",
-    art: "bolt_elecdroid", // PLACEHOLDER art — swap for a real rodd.webp
     name: "Rodd",
     rarity: "rare",
     element: "BOLT",
