@@ -78,10 +78,12 @@ describe("firing specials", () => {
     expect(next.players.P1.magicPool).toBe(1);
   });
 
-  it("talent Special: Alpha's Takedown fires FREE once, then is spent for the game", () => {
+  it("Alpha's Takedown is a repeatable Special again — costs magic, reusable", () => {
+    // Alpha is back to Epic, so Takedown is a normal paid Special rather than
+    // the one-shot free Talent it carried while the card was demoted to Rare.
     const s = prepState();
     s.players.P1.magicPool = 3;
-    const a = place(s, "leaf_alpha", "P1", 2, 0); // Takedown is now a one-shot Talent
+    const a = place(s, "leaf_alpha", "P1", 2, 0);
     const t = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, curShields: 0 });
     const next = applyIntent(battleWith(s, a.instanceId), {
       type: "BATTLE_ACTION",
@@ -91,9 +93,8 @@ describe("firing specials", () => {
     });
     expect(next.cards[t.instanceId].curHp).toBe(14); // 20 − 6
     expect(next.cards[t.instanceId].statuses.find((x) => x.kind === "ROOT")?.duration).toBe(3);
-    expect(next.players.P1.magicPool).toBe(3); // FREE — magic pool untouched
-    expect(next.cards[a.instanceId].talentUsed).toBe(true);
-    expect(canFireSpecial(next, a.instanceId).ok).toBe(false); // once per game
+    expect(next.players.P1.magicPool).toBe(0); // 3 magic paid
+    expect(next.cards[a.instanceId].talentUsed).toBeFalsy(); // not a one-shot
   });
 
   it("barrage: hits every target (Leaf Storm = 3×1 to all)", () => {

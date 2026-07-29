@@ -341,10 +341,12 @@ describe("rarity floor: a Special is an epic-and-up privilege", () => {
     expect(offenders, `rare cards with a Special:\n  ${offenders.join("\n  ")}`).toEqual([]);
   });
 
-  it("the talent exemption is narrow — exactly one card uses it", () => {
+  it("the talent exemption stays narrow", () => {
     // If this count climbs, "talents are exempt" has quietly become a loophole
-    // for putting Specials on rares.
+    // for putting Specials on rares. (Alpha used to be the one user; it's back
+    // to Epic with a repeatable Takedown, so the exemption is currently unused —
+    // rares that want a one-shot use the dedicated `talent` field instead.)
     const talents = CARDS.filter((c) => c.rarity === "rare" && c.special?.talent);
-    expect(talents.map((c) => c.id)).toEqual(["leaf_alpha"]);
+    expect(talents.length, `rares using special.talent:\n  ${talents.map((c) => c.id).join("\n  ")}`).toBeLessThanOrEqual(1);
   });
 });
