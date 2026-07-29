@@ -3211,8 +3211,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const tribe = String(params.tribe ?? "");
     const frightenR = num(params, "frighten");
     const healPer = num(params, "healPerHit");
+    // tribeOf, not `tribe === tribe`: a card can carry SEVERAL tribes (Fenrir is
+    // Dragon/Wolf/Volcanic), and strict equality silently excluded all of them.
     const swarm = boardCards(draft, attacker.owner).filter(
-      (c) => c.curHp > 0 && getDef(c.defId).tribe === tribe,
+      (c) => c.curHp > 0 && tribeOf(c, tribe),
     );
     let hits = 0;
     for (const sp of swarm) {

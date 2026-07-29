@@ -465,7 +465,11 @@ export function DeckBuilder(props: {
                       {RARITY_STYLE[detail.rarity].label}
                     </span>
                   )}
-                  {detail.tribe && <span className="dbd-tribe">{detail.tribe}</span>}
+                  {/* A card can carry SEVERAL tribes — one chip each (rendering
+                      the raw array printed them run together). */}
+                  {(Array.isArray(detail.tribe) ? detail.tribe : detail.tribe ? [detail.tribe] : []).map((t) => (
+                    <span key={t} className="dbd-tribe">{t}</span>
+                  ))}
                 </div>
                 <div className="dbd-stats">
                   <span className="st-dmg">⚔ <span className="atk-dmg">{detail.dmg}</span>{detail.hits > 1 ? <span className="atk-x"> ×{detail.hits}</span> : ""}</span>

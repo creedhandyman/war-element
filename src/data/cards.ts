@@ -66,7 +66,6 @@ export const CARDS: CardDef[] = [
     sp: 9, // a fast snake — 5 HP survives a 1-cost spell AND one weak hit (2+5+9=16, +1 over cost-1)
     shields: 0,
     keywords: {},
-    tribe: "Reptile", // fed by Trinezer's Brood Command
     onHitStatus: { kind: "BLEED", duration: 2, power: 2 },
     // Venomous: basic attacks apply BLEED 2 (non-stacking → newest overwrites).
   },
@@ -356,7 +355,7 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 0,
     keywords: { FLYING: true },
-    tribe: "Wolf",
+    tribe: ["Dragon", "Wolf", "Volcanic"],
     // Scorch: basic attacks apply BURN, stacking up to the BURN 4 cap on a target.
     passiveNames: { onHitStatus: "Scorch" },
     onHitStatus: { kind: "BURN", duration: 2, power: 1 },
@@ -469,6 +468,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_spitfire",
     name: "Spitfire",
+    tribe: "Forged Tech",
     rarity: "rare",
     element: "PYRO",
     cardClass: "Ranger",
@@ -486,6 +486,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_volcanon",
     name: "Volcanon",
+    tribe: "Volcanic",
     rarity: "legendary",
     element: "PYRO",
     cardClass: "Assassin",
@@ -746,7 +747,7 @@ export const CARDS: CardDef[] = [
     // stalks evasive but is exposed defending its own ground — a defensive nerf,
     // since permanent everywhere-evasion made it far too hard to remove at home.
     evasionEnemySideOnly: true,
-    tribe: "Dark",
+    tribe: "Spider",
     special: {
       name: "Web Snare",
       cost: 1,
@@ -830,7 +831,7 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 0,
     keywords: {},
-    tribe: "Ghost",
+    tribe: ["Ghost", "Skeleton"],
     special: {
       name: "Phantom Gouge",
       cost: 2,
@@ -864,7 +865,7 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 0,
     keywords: {},
-    tribe: "Ghost",
+    tribe: ["Ghost", "ScareKrow"],
     // Frightening (On Hit, first time only): FRIGHTEN the target for 1 round.
     passiveNames: { onHitStatus: "Frightening" },
     onHitStatus: { kind: "FRIGHTEN", duration: 1, power: 0, firstHitOnly: true },
@@ -969,6 +970,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_skelider",
     name: "Skelider",
+    tribe: "Skeleton",
     rarity: "legendary",
     element: "DUSK",
     cardClass: "Warrior",
@@ -1023,7 +1025,6 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    tribe: "SeaC", // school of the sea — shares Kraken's +4 max HP aura
     // Venom Spines: basic attacks apply SCALD 2 for 2 rounds (non-stacking).
     passiveNames: { onHitStatus: "Venom Spines" },
     onHitStatus: { kind: "SCALD", duration: 2, power: 2 },
@@ -1042,7 +1043,6 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    tribe: "SeaC", // school of the sea — shares Kraken's +4 max HP aura
     onHitStatus: { kind: "FREEZE", duration: 1, power: 0 }, // Thumper
   },
   {
@@ -1086,7 +1086,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: { FLYING: true },
-    tribe: "Avian",
+    tribe: ["Avian", "Ice"],
     // Icy Swoop (End of Round): FREEZE the lowest-HP opponent for 1 round.
     roundTick: { lowestEnemyStatus: { kind: "FREEZE", duration: 1, power: 0 } },
     special: {
@@ -1101,6 +1101,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_phrost",
     name: "Phrost",
+    tribe: ["Dragon", "Ice"],
     rarity: "legendary",
     element: "AQUA",
     cardClass: "Support",
@@ -1127,6 +1128,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_polarking",
     name: "Polar King",
+    tribe: "Ice Kingdom",
     rarity: "legendary",
     element: "AQUA",
     cardClass: "Tank",
@@ -1165,7 +1167,7 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
-    tribe: "Pirate",
+    tribe: "SeaC",
     // King of the Seas (On Kill): coin flip — gain +2 or +1 DMG permanently.
     passiveNames: { onKill: "King of the Seas" },
     onKill: { coinBonusDmg: 2 },
@@ -1193,7 +1195,7 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 2,
     keywords: {},
-    tribe: "Dragon",
+    tribe: ["Dragon", "Vapor"],
     // Vaporizer (On Kill): +1 SP and +1 DMG permanently. (Doc also pokes the
     // lowest-HP enemy + repositions — those halves aren't modeled yet.)
     passiveNames: { onKill: "Vaporizer" },
@@ -1741,6 +1743,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_galeon",
     name: "Galeon",
+    tribe: "Avian",
     rarity: "legendary",
     element: "GALE",
     cardClass: "Tank",
@@ -2014,6 +2017,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_voltogon",
     name: "Voltogon",
+    tribe: "Dragon",
     rarity: "legendary",
     element: "BOLT",
     cardClass: "Warrior",
@@ -2206,7 +2210,6 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 0,
     keywords: {},
-    tribe: "Zombie", // the zombie lord itself — was mistakenly "Dark"
     // Contagion (Aura): while Zombination lives, every one of its Zombies that
     // dies sprays 2 DMG to opponents beside it. Strictly Zombination's effect —
     // it ends the instant Zombination is gone.
@@ -2374,6 +2377,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_pyrogon",
     name: "Pyrogon",
+    tribe: ["Dragon", "Volcanic"],
     rarity: "mythic",
     element: "PYRO",
     cardClass: "Warrior",
@@ -2678,6 +2682,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_baboom",
     name: "BaBoom",
+    tribe: "Forged Tech",
     rarity: "rare",
     element: "PYRO",
     cardClass: "Warrior",
@@ -2885,7 +2890,7 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
-    tribe: "SeaC", // fed by Kraken's SeaC aura (+4 max HP)
+    tribe: ["SeaC", "Liquid"],
     // On Kill: +3 max HP permanently. Sucker Sword: a landed basic drags the
     // struck enemy 1 slot toward Octoirate.
     onKill: { buffMaxHp: 3 },
@@ -2916,7 +2921,7 @@ export const CARDS: CardDef[] = [
     // SeaC, not a tribe of one: "Kraken" was Krakler's alone and nothing keyed
     // on it, so it bought nothing. Under SeaC it picks up Kraken's own aura
     // (+4 max HP to SeaC allies) like the rest of the school.
-    tribe: "SeaC",
+    tribe: "Kraken",
     // Abyssal Grasp (On Summon): SCALD 3 for 2 rounds AND FREEZE an opponent in
     // range for 2 rounds (primary SCALD DoT + secondary FREEZE via debuffStatus).
     onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, statusKind: "SCALD", statusPower: 3, statusDuration: 2, debuffStatus: "FREEZE", debuffStatusRounds: 2 } },
@@ -3074,7 +3079,6 @@ export const CARDS: CardDef[] = [
     sp: 14,
     shields: 0,
     keywords: { FLYING: true },
-    tribe: "Avian",
     // Aerial Dominance: 1 DMG to any opponent summoned within range.
     passiveNames: { onOppSummon: "Aerial Dominance" },
     onOppSummon: { dmg: 1 },
@@ -3175,7 +3179,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    tribe: "Skeleton",
+    tribe: ["Dragon", "Skeleton"],
     // Purple Flames (On Summon): apply DOT 2 for 3 rounds to the row directly ahead.
     onSummon: { handler: "barrage", params: { dmg: 0, spread: 1, forwardDepth: 1, targets: 99, statusKind: "DOT", statusDuration: 3, statusPower: 2 } },
   },
@@ -4320,6 +4324,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_obsidi",
     name: "Obsidi",
+    tribe: "Cavernous",
     rarity: "epic",
     element: "BORE",
     cardClass: "Assassin",
@@ -4359,7 +4364,6 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    tribe: "SeaC", // school of the sea — shares Kraken's +4 max HP aura
     // Chomp (On Summon): the shoal hits the water biting — two 1-DMG bites into
     // everything in reach, each leaving BLEED 2 for 2 rounds.
     onSummon: {
@@ -4888,7 +4892,6 @@ export const CARDS: CardDef[] = [
     sp: 13,
     shields: 0,
     keywords: {},
-    tribe: "Ghost",
     // Wandering Light: a soul-fire wisp mending the fallen — the sustain DUSK
     // wants most on the big board. Heals the DUSK side +2 at end of round and can
     // aim its basic at a hurt ally.
@@ -6273,6 +6276,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_vvulture",
     name: "VVulture",
+    tribe: "Avian",
     rarity: "epic",
     element: "GALE",
     cardClass: "Tank",
@@ -6524,7 +6528,7 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 3,
     keywords: { STEALTH: true },
-    tribe: "SeaC",
+    tribe: "Deep Creatures",
     // Perpetual Fog (On Kill): cloak Driftwraith and same-row AQUA allies in
     // STEALTH for 1 round.
     passiveNames: { onKill: "Perpetual Fog" },
@@ -6652,6 +6656,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_volta",
     name: "Volta",
+    tribe: "ARC",
     rarity: "epic",
     element: "BOLT",
     cardClass: "Support",
@@ -6663,7 +6668,6 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 3,
     keywords: {},
-    tribe: "ARC",
     // Relay Network (On Summon): deploy a Rodd immediately. Overcharge: basics
     // gain PEN while any allied Rodd stands.
     passiveNames: { onSummon: "Relay Network", penWhileAlly: "Overcharge" },
@@ -7604,6 +7608,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_staticcloud",
     name: "Static Cloud",
+    tribe: "ARC",
     rarity: "rare",
     element: "BOLT",
     cardClass: "Support",
@@ -7615,7 +7620,6 @@ export const CARDS: CardDef[] = [
     sp: 0,
     shields: 0,
     keywords: {},
-    tribe: "ARC",
     // Rolling Static (End of Round): the cloud drifts one slot forward, then
     // discharges — 4 DMG to a random opponent and PARALYZE it for 2 rounds. No
     // basic of its own (0 DMG / SP 0); it just rolls and strikes.
@@ -7656,6 +7660,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_gemaga",
     name: "Gemaga",
+    tribe: "Dragon Born",
     rarity: "epic",
     element: "BORE",
     cardClass: "Support",
@@ -7754,6 +7759,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_doom",
     name: "Doom",
+    tribe: "Dark",
     rarity: "rare",
     element: "DUSK",
     cardClass: "Support",
@@ -8114,7 +8120,6 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
-    tribe: "Skeleton",
     // King of Bones (Aura): Skeleton allies (skeletons, SkullDrakes, the King)
     // gain +2 DMG and are topped up +1 shield each round.
     passiveNames: { aura: "King of Bones", summonSpawn: "Dead Court", roundTick: "Dead Siege" },
@@ -8242,7 +8247,6 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: {},
-    tribe: "Avian",
     // Bird Hunt (On Summon): arrives with an Owlly at its wing.
     passiveNames: { summonSpawn: "Bird Hunt" },
     summonSpawn: { token: "gale_owlly", count: 1 },
@@ -8337,7 +8341,7 @@ export const TOKENS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
-    tribe: "Skeleton",
+    tribe: "Dark",
     // Red Shift (On Summon): opponents cannot use Specials this round.
     passiveNames: { onSummon: "Red Shift" },
     onSummon: { handler: "lockSpecials", params: { rounds: 1 }, targetSide: "enemy" },

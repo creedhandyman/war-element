@@ -227,8 +227,12 @@ describe("Magmadon", () => {
   });
 });
 
-describe("Krakler joins SeaC", () => {
-  it("picks up Kraken's SeaC aura (+4 max HP) it never got as a tribe of one", () => {
+describe("Krakler is its own 'Kraken' tribe", () => {
+  // The Tribe/ID brief assigns Krakler the solo tribe "Kraken" rather than SeaC.
+  // Kraken's aura matches SeaC, so Krakler no longer draws the +4 max HP it got
+  // while it was schooled. Recorded here so the trade-off stays visible: if
+  // Krakler should ride the school again, give it ["Kraken", "SeaC"].
+  it("does NOT draw Kraken's SeaC aura (+4 max HP) — it isn't SeaC", () => {
     const alone = prepState();
     const solo = place(alone, "aqua_krakler", "P1", 3, 0);
     const base = effectiveMaxHp(alone, solo);
@@ -236,7 +240,7 @@ describe("Krakler joins SeaC", () => {
     const schooled = prepState();
     const kra = place(schooled, "aqua_krakler", "P1", 3, 0);
     place(schooled, "aqua_kraken", "P1", 3, 1);
-    expect(effectiveMaxHp(schooled, schooled.cards[kra.instanceId])).toBe(base + 4);
+    expect(effectiveMaxHp(schooled, schooled.cards[kra.instanceId])).toBe(base);
   });
 });
 
