@@ -55,6 +55,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_stickviper",
     name: "StickViper",
+    tribe: "Reptile", // Trinezer's Brood Command
     rarity: "rare",
     element: "LEAF",
     cardClass: "Ranger",
@@ -1014,6 +1015,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_spinefin",
     name: "Spinefin",
+    tribe: "SeaC", // Kraken's school (+4 max HP)
     rarity: "rare",
     element: "AQUA",
     cardClass: "Ranger",
@@ -1032,6 +1034,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_bulletshrimp",
     name: "Bullet Shrimp",
+    tribe: "SeaC", // Kraken's school (+4 max HP)
     rarity: "rare",
     element: "AQUA",
     cardClass: "Assassin",
@@ -2199,6 +2202,7 @@ export const CARDS: CardDef[] = [
     // 6 + 31 + 3 = 40, exactly a cost-6 budget.
     id: "dusk_zombination",
     name: "Zombination",
+    tribe: "Zombie", // Zombie onTribeDeath payoff
     rarity: "legendary",
     element: "DUSK",
     cardClass: "Tank",
@@ -2921,7 +2925,7 @@ export const CARDS: CardDef[] = [
     // SeaC, not a tribe of one: "Kraken" was Krakler's alone and nothing keyed
     // on it, so it bought nothing. Under SeaC it picks up Kraken's own aura
     // (+4 max HP to SeaC allies) like the rest of the school.
-    tribe: "Kraken",
+    tribe: ["Kraken", "SeaC"], // brief's Kraken + the school it had
     // Abyssal Grasp (On Summon): SCALD 3 for 2 rounds AND FREEZE an opponent in
     // range for 2 rounds (primary SCALD DoT + secondary FREEZE via debuffStatus).
     onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, statusKind: "SCALD", statusPower: 3, statusDuration: 2, debuffStatus: "FREEZE", debuffStatusRounds: 2 } },
@@ -4353,6 +4357,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_piranha",
     name: "Piranha",
+    tribe: "SeaC", // Kraken's school (+4 max HP)
     rarity: "rare",
     element: "AQUA",
     cardClass: "Assassin",
@@ -4881,6 +4886,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_soul_wisp",
     name: "Soul Wisp",
+    tribe: "Ghost", // Wedded Wraith's Last Waltz
     rarity: "rare",
     element: "DUSK",
     cardClass: "Support",
@@ -6528,7 +6534,7 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 3,
     keywords: { STEALTH: true },
-    tribe: "Deep Creatures",
+    tribe: ["Deep Creatures", "SeaC"], // brief's Deep Creatures + the school it had
     // Perpetual Fog (On Kill): cloak Driftwraith and same-row AQUA allies in
     // STEALTH for 1 round.
     passiveNames: { onKill: "Perpetual Fog" },
@@ -8109,6 +8115,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_skullking",
     name: "SkullKing",
+    tribe: "Skeleton", // its own King of Bones aura
     rarity: "mythic",
     element: "DUSK",
     cardClass: "Tank",
