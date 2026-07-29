@@ -518,6 +518,11 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   // Extinguisher (Vaga): a finisher — only aimable at foes below the HP line.
   const belowHp = Number(p.requireBelowHp ?? 0);
   if (belowHp > 0) list = list.filter((t) => t.curHp < belowHp);
+  // closest N (Striik): the volley auto-picks the nearest few — preview just those.
+  if (Number(p.closest ?? 0) > 0 && card.pos) {
+    list = [...list].sort((a, b) => manhattan(card.pos!, a.pos!) - manhattan(card.pos!, b.pos!))
+      .slice(0, Number(p.targets ?? 1));
+  }
   return list;
 }
 

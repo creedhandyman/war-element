@@ -381,6 +381,22 @@ describe("medium-tier passives (audit batch)", () => {
     expect(isBloodfire(card)).toBe(false); // burning only
   });
 
+  it("Striik's Purple Strikes hits the 4 CLOSEST opponents, sparing farther ones", () => {
+    const s = prepState();
+    const striik = place(s, "bolt_striik", "P1", 3, 0);
+    const near = [
+      place(s, "dusk_gool", "P2", 2, 0, { curHp: 50, maxHp: 50, curShields: 0 }), // dist 1
+      place(s, "dusk_gool", "P2", 3, 1, { curHp: 50, maxHp: 50, curShields: 0 }), // dist 1
+      place(s, "dusk_gool", "P2", 2, 1, { curHp: 50, maxHp: 50, curShields: 0 }), // dist 2
+      place(s, "dusk_gool", "P2", 1, 0, { curHp: 50, maxHp: 50, curShields: 0 }), // dist 2
+    ];
+    const far = place(s, "dusk_gool", "P2", 0, 3, { curHp: 50, maxHp: 50, curShields: 0 }); // dist 6
+    const all = [...near.map((c) => s.cards[c.instanceId]), s.cards[far.instanceId]];
+    SPECIAL_HANDLERS.barrage(s, s.cards[striik.instanceId], all, { dmg: 4, targets: 4, closest: 1 });
+    for (const c of near) expect(s.cards[c.instanceId].curHp).toBeLessThan(50); // 4 closest hit
+    expect(s.cards[far.instanceId].curHp).toBe(50); // the 5th, farther, is spared
+  });
+
   it("GigaVolt's Turret Mode electrifies the board, then fires 3 volleys over 3 rounds", () => {
     const s = prepState();
     const giga = place(s, "bolt_gigavolt", "P1", 3, 0);

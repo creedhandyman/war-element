@@ -2555,8 +2555,14 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (doubleProc) draft.log.push(`${label(draft, attacker)}'s volatile formula goes critical — DOUBLE damage!`);
     // Timberer: ROOT only the FIRST target the volley lands on, not the row.
     const firstOnly = num(params, "firstOnlyStatus") > 0;
+    // closest (Striik's Purple Strikes): pick the N NEAREST foes rather than
+    // whatever order the pool arrived in.
+    const ordered =
+      num(params, "closest") > 0 && attacker.pos
+        ? [...pool].sort((a, b) => manhattan(attacker.pos!, a.pos!) - manhattan(attacker.pos!, b.pos!))
+        : pool;
     let struck = 0;
-    for (const target of pool.slice(0, n)) {
+    for (const target of ordered.slice(0, n)) {
       if (!draft.cards[target.instanceId]) continue;
       resolveHit(draft, attacker, target, {
         kind: "special",

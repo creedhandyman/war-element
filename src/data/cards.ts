@@ -5831,10 +5831,10 @@ export const CARDS: CardDef[] = [
       name: "Purple Strikes",
       cost: 2,
       handler: "barrage",
-      params: { dmg: 4, rowAhead: 1, crit: 1, targets: 99, statusKind: "ELECTRIFIED", statusDuration: 99 },
+      params: { dmg: 4, crit: 1, targets: 4, closest: 1, statusKind: "ELECTRIFIED", statusDuration: 99 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal CRIT damage to opponents in the row directly ahead and mark them Electrified permanently.",
+      text: "Deal 4 CRIT damage to the 4 closest opponents and mark them Electrified permanently.",
     },
   },
   {
