@@ -6613,16 +6613,16 @@ export const CARDS: CardDef[] = [
     onSummon: { handler: "strike", params: { dmg: 5, crit: 1, reachNearest: 1 }, targetSide: "enemy" },
     onKill: { buffDmgRound: 1 },
     roundTick: { paralyzeLowHp: { underHp: 4, rounds: 1 } },
-    // Fryer: 2×2 DMG to all opponents. Recomputed per target so Overcharge
-    // (earned on a kill mid-Fryer) boosts the opponents struck after.
+    // Fryer: 4×1 DMG to all opponents, +1 vs PARALYZED. Recomputed per target so
+    // Overcharge (earned on a kill mid-Fryer) boosts the opponents struck after.
     special: {
       name: "Fryer",
       cost: 4,
       handler: "fryer",
-      params: { dmg: 2, hits: 2 },
+      params: { dmg: 4, hits: 1, paralyzeBonus: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 2×2 DMG to all opponents. A kill mid-cast feeds Overcharge into the rest.",
+      text: "Deal 4 DMG to all opponents; PARALYZED opponents take +1 DMG.",
     },
   },
   {

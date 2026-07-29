@@ -381,6 +381,17 @@ describe("medium-tier passives (audit batch)", () => {
     expect(isBloodfire(card)).toBe(false); // burning only
   });
 
+  it("Shock's Fryer deals +1 to PARALYZED opponents", () => {
+    const s = prepState();
+    const shock = place(s, "bolt_shock", "P1", 3, 0);
+    const para = place(s, "dusk_gool", "P2", 2, 0, { curHp: 50, maxHp: 50, curShields: 0 });
+    const normal = place(s, "dusk_gool", "P2", 2, 1, { curHp: 50, maxHp: 50, curShields: 0 });
+    s.cards[para.instanceId].statuses = [{ kind: "PARALYZE", duration: 2, power: 0, source: "BOLT" }];
+    SPECIAL_HANDLERS.fryer(s, s.cards[shock.instanceId], [s.cards[para.instanceId], s.cards[normal.instanceId]], { dmg: 4, hits: 1, paralyzeBonus: 1 });
+    expect(50 - s.cards[para.instanceId].curHp).toBe(5); // 4 + 1 (paralyzed)
+    expect(50 - s.cards[normal.instanceId].curHp).toBe(4); // base 4
+  });
+
   it("Striik's Purple Strikes hits the 4 CLOSEST opponents, sparing farther ones", () => {
     const s = prepState();
     const striik = place(s, "bolt_striik", "P1", 3, 0);

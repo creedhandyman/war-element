@@ -3046,10 +3046,12 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   fryer(draft, attacker, targets, params) {
     const base = num(params, "dmg", 2);
     const hits = num(params, "hits", 2);
+    const paraBonus = num(params, "paralyzeBonus"); // Shock: +DMG vs PARALYZED foes
     let struck = 0;
     for (const t of targets) {
       if (!draft.cards[t.instanceId] || t.curHp <= 0 || attacker.curHp <= 0) continue;
-      const dmg = base + attacker.dmgBonus + attacker.dmgBonusRound;
+      const bonus = paraBonus > 0 && hasStatus(t, "PARALYZE") ? paraBonus : 0;
+      const dmg = base + attacker.dmgBonus + attacker.dmgBonusRound + bonus;
       resolveHit(draft, attacker, t, { kind: "special", dmg, hits, pen: false, crit: false });
       struck++;
     }
