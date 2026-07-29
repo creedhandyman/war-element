@@ -496,13 +496,27 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   // one "choice" and fires straight through instead of prompting.
   if (special.targetSide === "self") return [card];
   if (special.targetSide === "ally") return validAllyTargets(state, instanceId);
-  const fd = Number(special.params?.forwardDepth ?? 0);
+  const p = special.params ?? {};
+  const fd = Number(p.forwardDepth ?? 0);
   let list =
     fd > 0
-      ? forwardAreaTargets(state, card, Number(special.params?.spread ?? 0), fd)
+      ? forwardAreaTargets(state, card, Number(p.spread ?? 0), fd)
       : validSpecialTargets(state, instanceId);
+  // Mirror the barrage handler's own target filters, so the preview shows EXACTLY
+  // what the volley will hit — not everything the card can see. Without these the
+  // damage-area highlight over-reports (a row-ahead sweep lit up the whole board).
+  if (Number(p.enemyHomeRow ?? 0) > 0)
+    list = list.filter((t) => t.pos?.row === homeRow(enemyOf(card.owner), state.boardSize));
+  if (Number(p.sameColumn ?? 0) > 0 && card.pos)
+    list = list.filter((t) => t.pos?.col === card.pos!.col);
+  if (Number(p.rowAhead ?? 0) > 0 && card.pos) {
+    const ahead = card.pos.row + (card.owner === "P1" ? -1 : 1);
+    list = list.filter((t) => t.pos?.row === ahead);
+  }
+  if (typeof p.requireStatus === "string" && p.requireStatus)
+    list = list.filter((t) => hasStatus(t, p.requireStatus as StatusKind));
   // Extinguisher (Vaga): a finisher — only aimable at foes below the HP line.
-  const belowHp = Number(special.params?.requireBelowHp ?? 0);
+  const belowHp = Number(p.requireBelowHp ?? 0);
   if (belowHp > 0) list = list.filter((t) => t.curHp < belowHp);
   return list;
 }

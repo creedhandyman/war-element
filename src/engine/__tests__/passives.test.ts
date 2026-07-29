@@ -381,15 +381,14 @@ describe("medium-tier passives (audit batch)", () => {
     expect(isBloodfire(card)).toBe(false); // burning only
   });
 
-  it("GigaVolt's Turret Mode fires 3 electrified volleys over 3 rounds", () => {
+  it("GigaVolt's Turret Mode electrifies the board, then fires 3 volleys over 3 rounds", () => {
     const s = prepState();
     const giga = place(s, "bolt_gigavolt", "P1", 3, 0);
+    // Neither foe starts electrified — Turret Mode electrifies them itself.
     const zap = place(s, "dusk_gool", "P2", 2, 0, { curHp: 100, maxHp: 100, curShields: 0 });
-    const safe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 100, maxHp: 100, curShields: 0 });
-    s.cards[zap.instanceId].statuses = [{ kind: "ELECTRIFIED", duration: 9, power: 0, source: "BOLT" }];
     SPECIAL_HANDLERS.turretMode(s, s.cards[giga.instanceId], [], { dmg: 3, rounds: 3 });
-    expect(100 - s.cards[zap.instanceId].curHp).toBe(3); // volley 1 (on cast) — electrified only
-    expect(s.cards[safe.instanceId].curHp).toBe(100); // non-electrified spared
+    expect(statusOf(s.cards[zap.instanceId], "ELECTRIFIED")).toBeTruthy(); // pinned
+    expect(100 - s.cards[zap.instanceId].curHp).toBe(3); // volley 1 (on cast)
     let n = advance(atCleanup(s));
     expect(100 - n.cards[zap.instanceId].curHp).toBe(6); // volley 2
     n = advance(atCleanup(n));

@@ -2232,11 +2232,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   reposition(draft, attacker, _targets, params) {
     chargeForward(draft, attacker, num(params, "charge", 1));
   },
-  /** Turret Mode (GigaVolt): fire an electrified volley now and arm the turret
-   *  to keep firing at each Cleanup for `rounds` total rounds. */
+  /** Turret Mode (GigaVolt): pin the whole board with ELECTRIFIED for the
+   *  turret's duration (so it always has targets, and BOLT allies capitalize),
+   *  fire a volley now, and keep firing at each Cleanup for `rounds` rounds. */
   turretMode(draft, attacker, _targets, params) {
     const dmg = num(params, "dmg", 3);
     const rounds = num(params, "rounds", 3);
+    const el = getDef(attacker.defId).element;
+    for (const e of boardCards(draft, enemyOf(attacker.owner)))
+      if (e.curHp > 0) applyStatus(draft, e, "ELECTRIFIED", rounds, 0, el);
     attacker.turretDmg = dmg;
     fireElectrifiedVolley(draft, attacker, dmg); // round 1 fires immediately
     attacker.turretRoundsLeft = Math.max(0, rounds - 1); // the rest at Cleanup

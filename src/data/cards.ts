@@ -6984,7 +6984,7 @@ export const CARDS: CardDef[] = [
       handler: "turretMode",
       params: { dmg: 3, rounds: 3 },
       targetSide: "self",
-      text: "Deal 3 DMG to all Electrified opponents, and again at the end of each round for 3 rounds.",
+      text: "ELECTRIFY all opponents, then deal 3 DMG to every Electrified opponent now and at the end of each round for 3 rounds.",
     },
   },
   {
