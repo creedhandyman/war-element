@@ -1339,7 +1339,8 @@ export function basicAttack(
       kind: "basic",
       dmg,
       hits: g.hits,
-      pen: Boolean(aDef.keywords.PEN) || auraHasPen(draft, attacker) || vsPen, // Blood Ruby / Piercing Pulse
+      pen: Boolean(aDef.keywords.PEN) || auraHasPen(draft, attacker) || vsPen ||
+        Boolean(aDef.penWhileAlly && boardCards(draft, attacker.owner).some((a) => a.curHp > 0 && aDef.penWhileAlly!.includes(getDef(a.defId).id))), // Overcharge (Volta)
       crit,
       lifesteal,
       incinerate: aDef.incinerate, // Sol: consecutive same-target hits ramp +1

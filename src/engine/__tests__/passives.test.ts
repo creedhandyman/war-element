@@ -424,6 +424,23 @@ describe("medium-tier passives (audit batch)", () => {
     expect(100 - n.cards[zap.instanceId].curHp).toBe(9); // turret spent — no 4th
   });
 
+  it("Volta's Overcharge: basics gain PEN while an allied Rodd is on the board", () => {
+    // No Rodd — a 4-DMG basic is fully soaked by 5 shields.
+    const s = prepState();
+    const v1 = place(s, "bolt_volta", "P1", 3, 0);
+    const f1 = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 5 });
+    basicAttack(s, v1.instanceId, f1.instanceId);
+    expect(s.cards[f1.instanceId].curHp).toBe(40); // shields absorbed it, no PEN
+
+    // A Rodd on the board (placed away so its Conduction adds no DMG) → PEN pierces.
+    const s2 = prepState();
+    const v2 = place(s2, "bolt_volta", "P1", 3, 0);
+    place(s2, "bolt_rodd", "P1", 3, 3);
+    const f2 = place(s2, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 5 });
+    basicAttack(s2, v2.instanceId, f2.instanceId);
+    expect(40 - s2.cards[f2.instanceId].curHp).toBe(4); // 4 straight to HP
+  });
+
   it("Rodd's Conduction gives +1 DMG to ADJACENT allies only", () => {
     const s = prepState();
     place(s, "bolt_rodd", "P1", 3, 0);

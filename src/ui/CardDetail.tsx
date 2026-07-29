@@ -504,6 +504,8 @@ export function describePassives(def: CardDef): string[] {
     named("statDropImmuneAura", `Aura: while it lives, allies are immune to stat reduction (WEAKEN).`);
   if (def.purelightAura)
     named("purelightAura", `Purelight (Aura): while it lives, DAWN allies are immune to BLIND and their attacks pierce enemy EVASION.`);
+  if (def.penWhileAlly)
+    named("penWhileAlly", `Overcharge: its basic attacks gain PEN while an allied ${def.penWhileAlly.map((id) => getDef(id).name).join(" / ")} is on the board.`);
   if (def.blocksRangedChance) {
     const nm = def.passiveNames?.blocksRangedChance ?? "Rocky Force Field";
     passives.push(def.blocksRangedChance >= 100

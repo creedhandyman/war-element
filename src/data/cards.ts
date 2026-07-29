@@ -6650,6 +6650,37 @@ export const CARDS: CardDef[] = [
     roundTick: { pokeDmg: 2 },
   },
   {
+    id: "bolt_volta",
+    art: "bolt_gigavolt", // PLACEHOLDER art — swap for a real volta.webp
+    name: "Volta",
+    rarity: "epic",
+    element: "BOLT",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 5,
+    dmg: 4,
+    hits: 1,
+    hp: 19,
+    sp: 6,
+    shields: 3,
+    keywords: {},
+    tribe: "ARC",
+    // Relay Network (On Summon): deploy a Rodd immediately. Overcharge: basics
+    // gain PEN while any allied Rodd stands.
+    passiveNames: { onSummon: "Relay Network", penWhileAlly: "Overcharge" },
+    onSummon: { handler: "spawn", params: { token: "bolt_rodd", count: 1, radius: 1 } },
+    penWhileAlly: ["bolt_rodd"],
+    // Grid Deployment: deploy another Rodd into an adjacent open slot.
+    special: {
+      name: "Grid Deployment",
+      cost: 3,
+      handler: "spawn",
+      params: { token: "bolt_rodd", count: 1, radius: 1 },
+      targetSide: "self",
+      text: "Deploy a Rodd (0/7/4🛡 · Conduction, Arc) into an adjacent open slot.",
+    },
+  },
+  {
     id: "bolt_jack_arc",
     name: "Jack Arc",
     rarity: "legendary",

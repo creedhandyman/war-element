@@ -425,6 +425,9 @@ export interface CardDef {
   /** Crack Shot (Sling): when this card's CRIT coin lands, the hit also PIERCES —
    *  so the crit can fire against a shielded target and skip the shield. */
   critPen?: boolean;
+  /** Overcharge (Volta): basic attacks gain PEN while any allied card whose id is
+   *  in this list is alive on the board. */
+  penWhileAlly?: string[];
   /** Electro Surge (Surge): a reactive charge. Starts active on summon and is
    *  re-armed by the Special, which also grants +`shield` and +`dmgBoost` DMG
    *  for `boostRounds` rounds. While active the card is status-immune (Surge
