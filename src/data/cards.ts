@@ -6651,7 +6651,6 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bolt_volta",
-    art: "bolt_gigavolt", // PLACEHOLDER art — swap for a real volta.webp
     name: "Volta",
     rarity: "epic",
     element: "BOLT",
@@ -7610,16 +7609,18 @@ export const CARDS: CardDef[] = [
     cardClass: "Support",
     attackType: "Ranged",
     cost: 2,
-    dmg: 3,
+    dmg: 0,
     hits: 1,
-    hp: 9,
-    sp: 8,
+    hp: 20,
+    sp: 0,
     shields: 0,
     keywords: {},
     tribe: "ARC",
-    // Rolling Static: basics have a 40% chance to PARALYZE for the round.
-    passiveNames: { onHitStatus: "Rolling Static" },
-    onHitStatus: { kind: "PARALYZE", duration: 2, power: 0, chance: 40 },
+    // Rolling Static (End of Round): the cloud drifts one slot forward, then
+    // discharges — 4 DMG to a random opponent and PARALYZE it for 2 rounds. No
+    // basic of its own (0 DMG / SP 0); it just rolls and strikes.
+    passiveNames: { roundTick: "Rolling Static" },
+    roundTick: { advance: 1, randomEnemyDmg: 4, randomEnemyStatus: { kind: "PARALYZE", duration: 2, power: 0 } },
   },
   {
     id: "bolt_velvolt_knight",

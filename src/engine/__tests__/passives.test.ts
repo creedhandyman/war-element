@@ -424,6 +424,15 @@ describe("medium-tier passives (audit batch)", () => {
     expect(100 - n.cards[zap.instanceId].curHp).toBe(9); // turret spent — no 4th
   });
 
+  it("Static Cloud strikes a random opponent for 4 and PARALYZEs it 2 rounds", () => {
+    const s = prepState();
+    place(s, "bolt_staticcloud", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = advance(atCleanup(s));
+    expect(40 - next.cards[foe.instanceId].curHp).toBe(4);
+    expect(statusOf(next.cards[foe.instanceId], "PARALYZE")?.duration).toBe(2);
+  });
+
   it("Volta's Overcharge: basics gain PEN while an allied Rodd is on the board", () => {
     // No Rodd — a 4-DMG basic is fully soaked by 5 shields.
     const s = prepState();

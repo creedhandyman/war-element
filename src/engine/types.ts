@@ -243,6 +243,7 @@ export interface RoundTickDef {
   lowestEnemyStatus?: { kind: StatusKind; duration: number; power: number };
   pokeDmg?: number; // damage the closest single enemy
   randomEnemyDmg?: number; // Walking Tree's fruit — damage ONE random living enemy
+  randomEnemyStatus?: { kind: StatusKind; duration: number; power: number }; // Static Cloud — status the SAME random enemy
   pokeStatus?: { kind: StatusKind; duration: number; power: number };
   healAllies?: number; // heal every ally N
   healLowestAlly?: number; // heal the lowest-HP ally N

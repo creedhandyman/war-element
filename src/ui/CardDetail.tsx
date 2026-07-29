@@ -232,6 +232,7 @@ export function describePassives(def: CardDef): string[] {
       t.paralyzeOne && `PARALYZE one opponent for ${forR(t.paralyzeOne)}`,
       t.pokeDmg && `${t.pokeDmg} DMG to the closest opponent`,
       t.randomEnemyDmg && `${t.randomEnemyDmg} DMG to a random opponent`,
+      t.randomEnemyStatus && `${t.randomEnemyStatus.kind} a random opponent for ${t.randomEnemyStatus.duration} round${t.randomEnemyStatus.duration > 1 ? "s" : ""}`,
       t.pokeStatus && `${t.pokeStatus.kind} the closest opponent for ${forR(t.pokeStatus.duration)}`,
       t.pushEnemies && `push every opponent back ${t.pushEnemies} slot${t.pushEnemies > 1 ? "s" : ""}`,
       t.healAllies && `heal every ally ${t.healAllies} HP`,

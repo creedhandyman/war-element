@@ -1806,13 +1806,17 @@ function doRoundTicks(draft: GameState): void {
           applyStatus(draft, t, rt.pokeStatus.kind, rt.pokeStatus.duration, rt.pokeStatus.power, el);
       }
     }
-    // Walking Tree's fruit: lob it at ONE random living opponent.
-    if (rt.randomEnemyDmg) {
+    // Walking Tree's fruit / Static Cloud's bolt: hit ONE random living opponent
+    // — optional damage and an optional status, both landing on the same target.
+    if (rt.randomEnemyDmg || rt.randomEnemyStatus) {
       const foes = enemies();
       if (foes.length) {
         const t = foes[randInt(draft, foes.length)];
-        tickDamage(draft, card, t, rt.randomEnemyDmg, false);
-        draft.log.push(`${label(draft, card)} drops fruit on ${label(draft, t)} (${rt.randomEnemyDmg} DMG).`);
+        if (rt.randomEnemyDmg) tickDamage(draft, card, t, rt.randomEnemyDmg, false);
+        if (rt.randomEnemyStatus && draft.cards[t.instanceId] && t.curHp > 0)
+          applyStatus(draft, t, rt.randomEnemyStatus.kind, rt.randomEnemyStatus.duration, rt.randomEnemyStatus.power, el);
+        const bits = [rt.randomEnemyDmg && `${rt.randomEnemyDmg} DMG`, rt.randomEnemyStatus && rt.randomEnemyStatus.kind].filter(Boolean).join(" + ");
+        draft.log.push(`${label(draft, card)} strikes ${label(draft, t)} (${bits}).`);
       }
     }
     if (rt.healAllies) {
