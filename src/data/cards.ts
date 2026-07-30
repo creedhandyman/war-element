@@ -5846,10 +5846,10 @@ export const CARDS: CardDef[] = [
       name: "Purple Strikes",
       cost: 2,
       handler: "barrage",
-      params: { dmg: 4, crit: 1, targets: 4, closest: 1, statusKind: "ELECTRIFIED", statusDuration: 99 },
+      params: { dmg: 2, crit: 1, targets: 4, closest: 1, statusKind: "ELECTRIFIED", statusDuration: 99 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 4 CRIT damage to the 4 closest opponents and mark them Electrified permanently.",
+      text: "Deal 2 CRIT damage to the 4 closest opponents and mark them Electrified permanently.",
     },
   },
   {
@@ -6820,8 +6820,10 @@ export const CARDS: CardDef[] = [
     dmg: 7,
     hits: 1,
     hp: 22,
-    sp: 7,
-    shields: 2,
+    // Traded its 2 shields straight across for +4 SP — a GALE flier should be
+    // fast rather than armoured, and 4 shield-points = 4 SP keeps it on budget.
+    sp: 11,
+    shields: 0,
     keywords: {},
     tribe: ["Dragon", "Avian"],
     // Vision Guard (On Hit): 50% chance to deflect — take half, deal half back.
@@ -7586,10 +7588,10 @@ export const CARDS: CardDef[] = [
     cardClass: "Ranger",
     attackType: "Ranged",
     cost: 2,
-    dmg: 4,
+    dmg: 3,
     hits: 1,
     hp: 8,
-    sp: 8,
+    sp: 9,
     shields: 0,
     // Every basic CRITs.
     keywords: { CRIT: true },
