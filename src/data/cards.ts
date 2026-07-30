@@ -2213,18 +2213,21 @@ export const CARDS: CardDef[] = [
     element: "DUSK",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 6,
-    dmg: 6,
+    cost: 7,
+    dmg: 7,
     hits: 1,
-    hp: 31,
+    hp: 34,
     sp: 3,
     shields: 0,
     keywords: {},
     // Contagion (Aura): while Zombination lives, every one of its Zombies that
     // dies sprays 2 DMG to opponents beside it. Strictly Zombination's effect —
     // it ends the instant Zombination is gone.
-    passiveNames: { contagionAura: "Contagion" },
+    passiveNames: { contagionAura: "Contagion", onTribeDeath: "Mass Grave" },
     contagionAura: true,
+    // Mass Grave: every Zombie that falls swells the horde-lord — +1 max HP,
+    // permanently (its own death is excluded).
+    onTribeDeath: { tribe: "Zombie", hp: 1 },
     special: {
       name: "Toxic Eruption",
       cost: 3,

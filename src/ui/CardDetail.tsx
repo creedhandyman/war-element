@@ -496,7 +496,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.healReceivedMult && def.healReceivedMult !== 1)
     named("healReceivedMult", `Root Growth: all healing it receives is multiplied ${def.healReceivedMult}×.`);
   if (def.onTribeDeath)
-    named("onTribeDeath", `Carnage: whenever any ${def.onTribeDeath.tribe} dies, gains ${[def.onTribeDeath.dmg && `+${def.onTribeDeath.dmg} DMG`, def.onTribeDeath.hp && `+${def.onTribeDeath.hp} HP`, def.onTribeDeath.sp && `+${def.onTribeDeath.sp} SP`].filter(Boolean).join(" / ")} permanently.`);
+    named("onTribeDeath", `whenever any ${def.onTribeDeath.tribe} dies, gains ${[def.onTribeDeath.dmg && `+${def.onTribeDeath.dmg} DMG`, def.onTribeDeath.hp && `+${def.onTribeDeath.hp} HP`, def.onTribeDeath.sp && `+${def.onTribeDeath.sp} SP`].filter(Boolean).join(" / ")} permanently.`);
   if (def.roundTick?.pokeParalyzedDmg)
     passives.push(
       `End of round: deals ${def.roundTick.pokeParalyzedDmg} DMG to a PARALYZED opponent in range.`,
