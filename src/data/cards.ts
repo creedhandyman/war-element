@@ -3638,14 +3638,14 @@ export const CARDS: CardDef[] = [
     element: "DUSK",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 7,
-    // 9/25/0sh/9sp = 43 against a cost-7 budget of 45, inside the band. Armour
-    // traded for reach and speed: it was 7/24/4sh/6sp, which read as a bruiser
-    // rather than the assassin its class says it is.
-    dmg: 9,
+    cost: 8,
+    // 11/25/0sh/11sp = 47 against a cost-8 budget of 50, inside the band. No
+    // armour on purpose: it reads as the assassin its class says it is, not the
+    // bruiser it once was (7/24/4sh/6sp).
+    dmg: 11,
     hits: 1,
     hp: 25,
-    sp: 9,
+    sp: 11,
     shields: 0,
     keywords: { LIFESTEAL: true },
     special: {
@@ -3653,13 +3653,12 @@ export const CARDS: CardDef[] = [
       cost: 4,
       handler: "drainMax",
       // DELETE, not steal: `deleteOnly` destroys the max HP instead of moving
-      // it, so Nightfang gains nothing. 6-stolen was a 12-point swing (they lose
-      // 6, it gains 6); 12-deleted is the same 12-point swing with the caster's
-      // own HP bar left alone. Then it slips into STEALTH (selfStatus rider,
-      // untargetable until it next attacks).
-      params: { amount: 12, deleteOnly: 1, selfStatus: "STEALTH", selfStatusDuration: 1 },
+      // it, so Nightfang gains nothing — the swing lands entirely on the victim
+      // and the caster's own HP bar is left alone. Then it slips into STEALTH
+      // (selfStatus rider, untargetable until it next attacks).
+      params: { amount: 15, deleteOnly: 1, selfStatus: "STEALTH", selfStatusDuration: 1 },
       targetSide: "enemy",
-      text: "Delete 12 max HP from an opponent — destroying it outright if it has 12 or less — then slip into STEALTH until you next attack.",
+      text: "Delete 15 max HP from an opponent — destroying it outright if it has 15 or less — then slip into STEALTH until you next attack.",
     },
   },
   {
@@ -7754,7 +7753,7 @@ export const CARDS: CardDef[] = [
   {
     id: "dusk_skrow",
     name: "Skrow",
-    rarity: "rare",
+    rarity: "epic",
     element: "DUSK",
     cardClass: "Ranger",
     attackType: "Ranged",
@@ -7803,10 +7802,10 @@ export const CARDS: CardDef[] = [
     element: "DUSK",
     cardClass: "Ranger",
     attackType: "Ranged",
-    cost: 3,
+    cost: 2,
     dmg: 2,
     hits: 2,
-    hp: 12,
+    hp: 8,
     sp: 9,
     shields: 0,
     keywords: {},

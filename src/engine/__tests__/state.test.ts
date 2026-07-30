@@ -25,6 +25,10 @@ describe("setup", () => {
     const exceptions = new Set([
       "bore_bearocks",
       "dusk_skelider",
+      // Ability-carried, downward: 47 vs a Cost-8 budget of 50. Soul Slash
+      // DELETES 15 max HP (outright lethal at 15 or under) and cloaks in
+      // STEALTH — the missing 3 body points are what that buys.
+      "dusk_nightfang",
       // Ability-carried, downward: 35 vs a Cost-6 budget of 40. Sandman was
       // nerfed (HP 19→14) to rein in Frostkeep; its Nightmare Special (5×2 +
       // SLEEP nova) carries the missing points. Deliberately under-statted.

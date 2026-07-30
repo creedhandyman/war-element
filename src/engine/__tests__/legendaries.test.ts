@@ -120,28 +120,27 @@ describe("legendary specials", () => {
     expect(statusOf(next.cards[f2.instanceId], "PARALYZE")).toBeTruthy();
   });
 
-  it("DUSK Nightfang — Soul Slash DELETES 12 max HP and cloaks in STEALTH", () => {
-    // Delete, not steal. Nightfang gains nothing: 6-stolen was a 12-point swing
-    // (they lose 6, it gains 6); 12-deleted is the same swing with the caster's
-    // own HP bar left out of it.
+  it("DUSK Nightfang — Soul Slash DELETES 15 max HP and cloaks in STEALTH", () => {
+    // Delete, not steal: the whole swing lands on the victim and Nightfang's own
+    // HP bar is left out of it.
     const s = prepState();
     s.players.P1.magicPool = 4;
     const nf = place(s, "dusk_nightfang", "P1", 2, 0);
     const baseMax = s.cards[nf.instanceId].maxHp;
-    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 20 });
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 25, maxHp: 25 });
     const next = applyIntent(battleWith(s, nf.instanceId), {
       type: "BATTLE_ACTION",
       player: "P1",
       action: "special",
       targetId: foe.instanceId,
     });
-    expect(next.cards[foe.instanceId].maxHp).toBe(8); // −12 max HP
+    expect(next.cards[foe.instanceId].maxHp).toBe(10); // −15 max HP
     expect(next.cards[nf.instanceId].maxHp).toBe(baseMax); // ...and NOT onto Nightfang
     expect(statusOf(next.cards[nf.instanceId], "STEALTH")).toBeTruthy();
   });
 
   it("...and a target that fits inside the cut is carved away entirely", () => {
-    // Soul Slash kills outright at 12 max HP or less. drainMaxHp's 1-max-HP
+    // Soul Slash kills outright at 15 max HP or less. drainMaxHp's 1-max-HP
     // floor still guards the TRANSFER path — a card you drain has to survive to
     // be drained again — but deleting is a different act and may be lethal.
     const s = prepState();
@@ -156,11 +155,11 @@ describe("legendary specials", () => {
     expect(next.cards[frail.instanceId]).toBeUndefined(); // gone
   });
 
-  it("...but 13 max HP survives on 1 — the cut is 12, not a round-up", () => {
+  it("...but 16 max HP survives on 1 — the cut is 15, not a round-up", () => {
     const s = prepState();
     s.players.P1.magicPool = 4;
     const nf = place(s, "dusk_nightfang", "P1", 2, 0);
-    const survivor = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13, maxHp: 13 });
+    const survivor = place(s, "dusk_gool", "P2", 1, 0, { curHp: 16, maxHp: 16 });
     const next = applyIntent(battleWith(s, nf.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: survivor.instanceId,
     });
@@ -177,9 +176,11 @@ describe("legendary specials", () => {
     expect(s.cards[prey.instanceId].maxHp).toBe(1); // floored, not carved
   });
 
-  it("Nightfang's stat line is inside the cost-7 budget", () => {
+  it("Nightfang's stat line sits just under the cost-8 budget", () => {
     const d = getDef("dusk_nightfang");
-    expect(d.dmg * d.hits + d.hp + d.shields * 2 + d.sp).toBe(43); // vs 5*7+10 = 45
+    // 3 under (see the budget-exception list): Soul Slash deleting 15 max HP is
+    // what the missing body points buy.
+    expect(d.dmg * d.hits + d.hp + d.shields * 2 + d.sp).toBe(47); // vs 5*8+10 = 50
     expect(d.keywords.LIFESTEAL).toBe(true);
   });
 
