@@ -238,6 +238,39 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
             draft.log.push(`${gd.name} scurries in beside ${getDef(inst.defId).name}.`);
           }
         }
+        // Drone Sweep (Buzzard): rather than moving itself, it launches a drone
+        // into the closest empty slot beside the newcomer, and THAT drone makes
+        // the strike. Handled before the reach gate below on purpose — the drone
+        // is adjacent by construction, so Buzzard's own range is irrelevant.
+        const droneId = gd.onOppSummon.spawnToken;
+        if (droneId && inst.pos && draft.cards[inst.instanceId]) {
+          let best: { row: number; col: number } | null = null;
+          let bestD = Infinity;
+          for (let dr = -1; dr <= 1; dr++)
+            for (let dc = -1; dc <= 1; dc++) {
+              if (dr === 0 && dc === 0) continue;
+              const r = inst.pos.row + dr;
+              const c = inst.pos.col + dc;
+              if (r < 0 || r >= draft.boardSize || c < 0 || c >= draft.boardSize) continue;
+              if (draft.slots[r][c].capturedBy || cardAt(draft, r, c)) continue;
+              // Never drop a body onto the enemy's own summoning row.
+              if (r === homeRow(inst.owner, draft.boardSize)) continue;
+              const d = guard.pos ? Math.abs(r - guard.pos.row) + Math.abs(c - guard.pos.col) : 0;
+              if (d < bestD) { bestD = d; best = { row: r, col: c }; }
+            }
+          if (best) {
+            const drone = summonCard(draft, guard.owner, droneId, { row: best.row as Pos["row"], col: best.col });
+            const pName = gd.passiveNames?.onOppSummon ?? gd.name;
+            draft.log.push(`${pName}: ${gd.name} launches a ${getDef(droneId).name} beside ${getDef(inst.defId).name}.`);
+            if (gd.onOppSummon.dmg && inst.curHp > 0 && draft.cards[inst.instanceId]) {
+              const before = inst.curShields + inst.curHp;
+              directDamage(draft, drone, inst, gd.onOppSummon.dmg, false, Boolean(gd.onOppSummon.crit), true);
+              const dealt = before - (inst.curShields + inst.curHp);
+              draft.log.push(`The ${getDef(droneId).name} strafes ${getDef(inst.defId).name} for ${dealt}.`);
+            }
+          }
+          continue; // the drone made the reaction; the guard itself does nothing more
+        }
         // Only reacts to a newcomer it can actually reach (in targeting range).
         if (!canTarget(draft, guard, inst)) continue;
         if (gd.onOppSummon.dmg && inst.curHp > 0) {

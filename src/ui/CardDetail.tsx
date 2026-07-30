@@ -337,7 +337,12 @@ export function describePassives(def: CardDef): string[] {
   if (def.onOppSummon) {
     const o = def.onOppSummon;
     const bits = [o.dmg && `${o.dmg} DMG`, o.status && o.status.kind].filter(Boolean).join(" + ");
-    named("onOppSummon", `When an enemy is summoned${o.chase ? ", hops to the closest empty adjacent slot and" : " within range,"} hits it with ${bits}.`);
+    named(
+      "onOppSummon",
+      o.spawnToken
+        ? `When an enemy is summoned, spawns a ${getDef(o.spawnToken).name} in the closest empty adjacent slot and hits it with ${bits}.`
+        : `When an enemy is summoned${o.chase ? ", hops to the closest empty adjacent slot and" : " within range,"} hits it with ${bits}.`,
+    );
   }
   if (def.onAllyKilled) {
     const o = def.onAllyKilled;

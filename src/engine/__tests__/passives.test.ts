@@ -463,6 +463,25 @@ describe("medium-tier passives (audit batch)", () => {
     expect(40 - s2.cards[f2.instanceId].curHp).toBe(4); // 4 straight to HP
   });
 
+  it("Buzzard's Drone Sweep deploys a Drone beside a new enemy and strafes it", () => {
+    const s = prepState();
+    place(s, "bolt_buzzard", "P1", 3, 0);
+    // P2 summons into its own home row; the reaction fires off the real summon
+    // path, not a hand-called handler.
+    // giveHand returns the new entry's id — prepState already dealt an opening
+    // hand, so hand[0] would be some other card entirely.
+    const handId = giveHand(s, "P2", "dusk_gool");
+    s.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    s.players.P2.gold = 20;
+    const next = applyIntent(s, { type: "SUMMON", player: "P2", handId, col: 1 });
+    const drone = boardCards(next, "P1").find((c) => getDef(c.defId).id === "bolt_drone_tok");
+    expect(drone, "a Drone should have been launched").toBeTruthy();
+    const foe = boardCards(next, "P2").find((c) => getDef(c.defId).id === "dusk_gool")!;
+    // Landed adjacent to the newcomer, and strafed it for 1.
+    expect(Math.max(Math.abs(drone!.pos!.row - foe.pos!.row), Math.abs(drone!.pos!.col - foe.pos!.col))).toBe(1);
+    expect(foe.curShields + foe.curHp).toBeLessThan(getDef("dusk_gool").hp + getDef("dusk_gool").shields);
+  });
+
   it("Zipp's Swarm Deploy drops a 1/1 FLYING Drone beside it", () => {
     const s = prepState();
     const zipp = place(s, "bolt_zipp", "P1", 3, 0);

@@ -6677,9 +6677,9 @@ export const CARDS: CardDef[] = [
     cost: 1,
     dmg: 3,
     hits: 1,
-    hp: 4,
+    hp: 3,
     sp: 8,
-    shields: 0,
+    shields: 1,
     keywords: {},
     tribe: "Forged Tech",
     // Swarm Deploy (On Summon): pop a 1/1 FLYING Drone out beside it.
@@ -7639,10 +7639,11 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // Drone Sweep: when an opponent is summoned, hop to the nearest slot beside
-    // the newcomer and peck it for 2.
+    // Drone Sweep: when an opponent is summoned, launch a drone into the closest
+    // empty slot beside the newcomer; the drone strafes it for 1. Buzzard itself
+    // stays put now — it deploys rather than chases.
     passiveNames: { onOppSummon: "Drone Sweep" },
-    onOppSummon: { chase: true, dmg: 2 },
+    onOppSummon: { spawnToken: "bolt_drone_tok", dmg: 1 },
   },
   {
     id: "bolt_staticcloud",
@@ -8380,7 +8381,7 @@ export const TOKENS: CardDef[] = [
     hits: 1,
     hp: 1,
     sp: 8,
-    shields: 0,
+    shields: 1,
     // A disposable flying eye — it dodges melee outright, so it survives long
     // enough to chip in (and BOLT's Electrify means its 1 DMG still marks).
     keywords: { FLYING: true },

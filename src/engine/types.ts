@@ -574,6 +574,10 @@ export interface CardDef {
     /** Burning Bark (Sparky): first hop to the closest empty slot adjacent to
      *  the newcomer, then apply the reaction — chasing every fresh arrival. */
     chase?: boolean;
+    /** Drone Sweep (Buzzard): instead of moving itself, drop this token into the
+     *  closest empty slot beside the newcomer. The DRONE then deals `dmg` (it is
+     *  adjacent by construction, so the guard's own reach never gates it). */
+    spawnToken?: string;
   };
   /** This card's attacks do NOT wake SLEEPING targets (Sandman's Nightmare —
    *  his hits ignore SLEEP's break-on-hit rule). */
