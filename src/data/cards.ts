@@ -3031,9 +3031,9 @@ export const CARDS: CardDef[] = [
     sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space); the 3 SP went to HP, so the slowness is the whole cost
     shields: 2,
     keywords: {},
-    // Tusk Rush (On Summon): it rolls one slot forward (Seed Roll's mechanic),
-    // THEN gores — 5 DMG to opponents directly ahead of where it ends up. The
-    // charge finally moves it, not just the tusks.
+    // Tusk Rush (On Summon): it rolls up to TWO slots forward (Seed Roll's
+    // mechanic), THEN gores — 5 DMG to opponents directly ahead of where it ends
+    // up. The charge finally moves it, not just the tusks.
     // (The "keep charging on each kill" follow-up is unmodeled.)
     // targets 99 -> 2, the same uncapped-corridor problem Flamehound had: 15
     // damage on arrival off a cost-2 body, by some way the most of any rare.
@@ -3041,7 +3041,7 @@ export const CARDS: CardDef[] = [
     // corridor only reaches ONE row ahead — Warthog has to be in contact to
     // connect at all, where Flamehound's shot carries down the board.
     passiveNames: { summonAdvance: "Tusk Rush" },
-    summonAdvance: 1,
+    summonAdvance: 2,
     onSummon: { handler: "barrage", params: { dmg: 5, spread: 1, forwardDepth: 1, targets: 2 } },
   },
 
@@ -4982,8 +4982,8 @@ export const CARDS: CardDef[] = [
     talent: {
       name: "Reroot",
       handler: "reposition",
-      params: { charge: 3 },
-      text: "Once per game: uproot and advance up to 3 slots toward the enemy home.",
+      params: { charge: 2 },
+      text: "Once per game: uproot and advance up to 2 slots toward the enemy home.",
     },
   },
   {

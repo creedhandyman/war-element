@@ -512,8 +512,12 @@ describe("medium-tier passives (audit batch)", () => {
   it("OAK's Reroot talent marches it forward toward the enemy home", () => {
     const s = prepState();
     const oak = place(s, "leaf_oak", "P1", 3, 0); // SP 0, planted at its home row
-    SPECIAL_HANDLERS.reposition(s, s.cards[oak.instanceId], [], { charge: 3 });
-    expect(s.cards[oak.instanceId].pos?.row).toBe(0); // advanced 3 slots (3→0) up a clear column
+    // Read the talent's OWN params rather than hardcoding the distance, so
+    // retuning Reroot can't leave this test asserting a stale number.
+    const talent = getDef("leaf_oak").talent!;
+    const charge = Number(talent.params!.charge);
+    SPECIAL_HANDLERS.reposition(s, s.cards[oak.instanceId], [], talent.params!);
+    expect(s.cards[oak.instanceId].pos?.row).toBe(3 - charge); // straight up a clear column
   });
 
   it("Sakuroot's Petalfall heals LEAF home-row allies (on top of Photosynthesis)", () => {
