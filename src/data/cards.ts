@@ -5006,25 +5006,6 @@ export const CARDS: CardDef[] = [
     onOppSummon: { chase: true, status: { kind: "BURN", duration: 1, power: 1 } },
   },
   {
-    id: "gale_ollie",
-    name: "Ollie",
-    rarity: "rare",
-    element: "GALE",
-    cardClass: "Ranger",
-    attackType: "Ranged",
-    cost: 1,
-    dmg: 2,
-    hits: 1,
-    hp: 2,
-    sp: 11,
-    shields: 0,
-    keywords: { FLYING: true },
-    // Flying Arrow: also fires at whatever the ally directly in front of it just
-    // struck with a basic attack.
-    passiveNames: { flyingArrow: "Flying Arrow" },
-    flyingArrow: true,
-  },
-  {
     id: "gale_syt_bird",
     name: "Syt Bird",
     rarity: "rare",
@@ -8368,6 +8349,25 @@ export const CARDS: CardDef[] = [
 // them. (Reptilian and Heir used to live here — they are draftable now, but are
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
+  {
+    id: "gale_ollie",
+    name: "Ollie",
+    rarity: "rare",
+    element: "GALE",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 2,
+    hits: 1,
+    hp: 2,
+    sp: 11,
+    shields: 0,
+    keywords: { FLYING: true },
+    // Flying Arrow: also fires at whatever the ally directly in front of it just
+    // struck with a basic attack.
+    passiveNames: { flyingArrow: "Flying Arrow" },
+    flyingArrow: true,
+  },
   {
     id: "bolt_drone_tok",
     art: "bolt_drone",
