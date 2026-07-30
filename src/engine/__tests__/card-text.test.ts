@@ -127,11 +127,11 @@ describe("card text covers every mechanic", () => {
     const SUBS: Record<string, string[]> = {
       onKill: ["buffDmg", "buffDmgRound", "buffSp", "buffHits", "buffMaxHp", "healSelf",
                "gainShields", "aoeDmg", "aoeDmgElectrified", "spawnToken", "coinBonusDmg",
-               "reduceSpecialCost", "extendStatus"],
+               "reduceSpecialCost", "extendStatus", "grantStealth"],
       vsStatus: ["anyStatus", "lifesteal", "crit", "bonusDmg", "dmgMult", "healOnHit"],
       onRevive: ["heal", "sleep", "decay", "maxRevives"],
       aura: ["dmg", "sp", "maxHp", "shields", "pen"],
-      onLowHp: ["dmg", "loseSp", "loseSpecial"],
+      onLowHp: ["dmg", "loseSp", "loseSpecial", "buffDmg", "buffSp", "gainShields"],
       onDeath: ["dmg", "rowAhead", "spawnToken", "frightenInRange", "allyTribeBuffDmg",
                 "killerStatus", "inRangeOnly"],
     };
@@ -155,6 +155,19 @@ describe("card text covers every mechanic", () => {
       }
     }
     expect(silent, `sub-fields absent from the card text:\n  ${silent.join("\n  ")}`).toEqual([]);
+  });
+
+  it("no passive line is an empty label", () => {
+    // The failure this catches is a describer that builds "Label: <bits>" where
+    // every bit came back falsy — so the card face read literally "On a kill: ."
+    // Splint and Driftwraith (onKill.grantStealth) and Kraken (onLowHp's positive
+    // surge) all shipped that way: the sub-field checks above only test the keys
+    // they're told about, so a field nobody listed slipped through silently.
+    const empty: string[] = [];
+    for (const def of all)
+      for (const line of describePassives(def))
+        if (/:\s*\.?\s*$/.test(line)) empty.push(`${def.id} -> "${line}"`);
+    expect(empty, `passive lines with nothing after the colon:\n  ${empty.join("\n  ")}`).toEqual([]);
   });
 
   it("no card is left with nothing but its element aura", () => {

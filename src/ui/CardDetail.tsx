@@ -213,6 +213,9 @@ export function describePassives(def: CardDef): string[] {
         `permanently shaves ${k.reduceSpecialCost} off its own ${def.special?.name ?? "Special"} cost, stacking (King Me)`,
       k.setTrap &&
         `lays a trap where the victim fell — the next enemy to step on it takes ${k.setTrap.dmg} DMG${k.setTrap.rootDuration ? `, ROOT ${k.setTrap.rootDuration}` : ""}${k.setTrap.lifesteal ? " and is LIFESTEALED" : ""}`,
+      // Was missing, so Splint and Driftwraith both read "On a kill: ." — their
+      // only on-kill payoff is the cloak.
+      k.grantStealth && `STEALTH for ${k.grantStealth} round${k.grantStealth > 1 ? "s" : ""}`,
     ].filter(Boolean);
     named("onKill", `On a kill: ${bits.join(" · ")}.`);
   }
@@ -318,7 +321,17 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.onLowHp) {
     const l = def.onLowHp;
-    const bits = [l.dmg && `deal ${l.dmg}`, l.loseSp && `−${l.loseSp} SP`, l.loseSpecial && "loses its Special"].filter(Boolean);
+    // The one-time SURGE half (Kraken's From the Deep) was missing, so a card
+    // whose low-HP effect is purely positive rendered "Below 17 HP: ." — a label
+    // with nothing after it.
+    const bits = [
+      l.dmg && `deal ${l.dmg}`,
+      l.loseSp && `−${l.loseSp} SP`,
+      l.loseSpecial && "loses its Special",
+      l.buffDmg && `+${l.buffDmg} DMG`,
+      l.buffSp && `+${l.buffSp} SP`,
+      l.gainShields && `+${l.gainShields} shields`,
+    ].filter(Boolean);
     named("onLowHp", `Below ${l.threshold} HP: ${bits.join(" · ")}.`);
   }
   if (def.onOppSummon) {
