@@ -8269,17 +8269,17 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: {},
-    // Bird Hunt (On Summon): arrives with an Owlly at its wing.
+    // Bird Hunt (On Summon): arrives with an Ollie at its wing.
     passiveNames: { summonSpawn: "Bird Hunt" },
-    summonSpawn: { token: "gale_owlly", count: 1 },
-    // Birds of Prey: loose 3 attacking Owllies.
+    summonSpawn: { token: "gale_ollie", count: 1 },
+    // Birds of Prey: loose 3 attacking Ollies.
     special: {
       name: "Birds of Prey",
       cost: 3,
       handler: "spawn",
-      params: { token: "gale_owlly", count: 3, radius: 2 },
+      params: { token: "gale_ollie", count: 3, radius: 2 },
       targetSide: "self",
-      text: "Spawn 3 attacking Owllies.",
+      text: "Spawn 3 attacking Ollies — each also fires at whatever the ally in front of it strikes.",
     },
   },
   {
@@ -8653,23 +8653,6 @@ export const TOKENS: CardDef[] = [
     // Toxic Talons: basics leave DOT 1 for 2 rounds.
     passiveNames: { onHitStatus: "Toxic Talons" },
     onHitStatus: { kind: "DOT", duration: 2, power: 1 },
-  },
-  {
-    id: "gale_owlly",
-    art: "owlette",
-    name: "Owlly",
-    rarity: "rare",
-    element: "GALE",
-    cardClass: "Ranger",
-    attackType: "Ranged",
-    cost: 2,
-    dmg: 2,
-    hits: 1,
-    hp: 2,
-    sp: 11,
-    shields: 0,
-    keywords: { FLYING: true },
-    tribe: "Avian",
   },
 ];
 
