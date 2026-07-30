@@ -1837,9 +1837,9 @@ export const CARDS: CardDef[] = [
     cost: 1,
     dmg: 2,
     hits: 2,
-    hp: 6,
+    hp: 5,
     sp: 5,
-    shields: 0,
+    shields: 1,
     keywords: {},
     // Buzz Whip: basic attacks have a 50% chance to PARALYZE for the round.
     passiveNames: { onHitStatus: "Buzz Whip" },
@@ -1882,9 +1882,9 @@ export const CARDS: CardDef[] = [
     cost: 3,
     dmg: 4,
     hits: 1,
-    hp: 14,
+    hp: 10,
     sp: 7,
-    shields: 0,
+    shields: 2,
     keywords: {},
     tribe: "ARC",
     // Static Charge (On Kill): extend PARALYZE on every already-paralyzed foe by 1r.
@@ -3986,9 +3986,9 @@ export const CARDS: CardDef[] = [
     cost: 3,
     dmg: 3,
     hits: 1,
-    hp: 15,
+    hp: 13,
     sp: 7,
-    shields: 0,
+    shields: 1,
     keywords: {},
     // Electro Surge: starts armed on summon; while armed it's status-immune, and
     // the first hit it takes discharges — PARALYZE the attacker 3r, then goes
@@ -4286,11 +4286,11 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     attackType: "Melee",
     cost: 2,
-    dmg: 1,
+    dmg: 2,
     hits: 1,
-    hp: 16,
+    hp: 8,
     sp: 3,
-    shields: 0,
+    shields: 3,
     keywords: {},
     // Electrifying, both halves. The ZONE is the threat: at the end of every
     // round the current arcs into everything Jolt can reach. The ON-HIT mark is
@@ -5313,8 +5313,8 @@ export const CARDS: CardDef[] = [
     dmg: 5,
     hits: 1,
     hp: 9,
-    sp: 6,
-    shields: 0,
+    sp: 5,
+    shields: 1,
     keywords: {},
     // Jolt Fist: a 40% chance to PARALYZE on a basic hit. On Kill: +2 shields.
     passiveNames: { onHitStatus: "Jolt Fist", onKill: "Salvage Plating" },

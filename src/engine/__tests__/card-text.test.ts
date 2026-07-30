@@ -170,6 +170,16 @@ describe("card text covers every mechanic", () => {
     expect(empty, `passive lines with nothing after the colon:\n  ${empty.join("\n  ")}`).toEqual([]);
   });
 
+  it("no on-summon falls back to the vague catch-all", () => {
+    // "Fires an effect the moment it's summoned." tells the player nothing. It
+    // is the default branch of describeOnSummon, so any handler nobody wrote a
+    // case for silently lands here (spawn, empowerElement and rockslide all did).
+    const vague = all
+      .filter((d) => describePassives(d).some((l) => l.includes("Fires an effect the moment")))
+      .map((d) => `${d.id} (handler: ${(d.onSummon as { handler?: string } | undefined)?.handler})`);
+    expect(vague, `on-summon effects with no description:\n  ${vague.join("\n  ")}`).toEqual([]);
+  });
+
   it("no card is left with nothing but its element aura", () => {
     // A card whose only line is the free element aura tells the player nothing
     // about itself. Stat-only vanilla cards are legitimate, so this only flags

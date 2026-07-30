@@ -48,7 +48,7 @@ function describeOnSummon(os: {
   selfStatus?: string;
   selfStatusDuration?: number;
   extendSelfStatusOnKill?: number;
-}, vsTarget?: { tribe?: string; hpAbove?: number }): string {
+}, vsTarget?: { tribe?: string; hpAbove?: number }, element = "same-element"): string {
   const p = os.params ?? {};
   const n = (k: string) => Number(p[k] ?? 0);
   // A pure self-status on-summon (IcyNinza's Icy Mist — no target handler).
@@ -116,9 +116,27 @@ function describeOnSummon(os: {
       return `On summon: a wave deals ${n("dmg")} DMG to the enemy row ahead and heals all allies ${n("heal")} HP.`;
     case "lockSpecials":
       return `On summon: opponents cannot use their Specials this round.`;
-    default:
-      return "Fires an effect the moment it's summoned.";
+    case "spawn": {
+      // Zipp's Swarm Deploy, Volta's Relay Network.
+      const token = typeof p.token === "string" ? p.token : "";
+      const count = n("count") || 1;
+      if (!token) break;
+      const who = getDef(token).name;
+      return `On summon: deploy ${count > 1 ? `${count} ${who}s` : `a ${who}`}${n("radius") ? " in an adjacent slot" : ""}.`;
+    }
+    case "empowerElement": {
+      // Trial by Fire (Magmadon): a tithe, not a gift — same-element allies pay
+      // HP for the buff, so the cost has to be on the card face.
+      const cost = n("hpCost");
+      return `On summon: every ${element} ally ${cost ? `pays ${cost} HP for ` : "gains "}+${n("amount")} DMG for ${rounds(n("rounds") || 1)}.`;
+    }
+    case "rockslide": {
+      // Each shot is its own coin; scatter spreads them over random targets.
+      const shots = n("hits") || 1;
+      return `On summon: hurl ${shots} rock${shots > 1 ? "s" : ""} of ${n("dmg")} DMG at ${n("scatter") ? "random opponents in range" : "one opponent"} — each rock rolls to land${n("shieldPerMiss") ? `, and every miss hardens +${n("shieldPerMiss")} shield` : ""}.`;
+    }
   }
+  return "Fires an effect the moment it's summoned.";
 }
 
 /** "1 round" / "2 rounds". The card face used to print a literal "round(s)" in
@@ -599,7 +617,7 @@ export function describePassives(def: CardDef): string[] {
     passives.push(
       `On Kill, its Special recasts free next round (ignores cost & cooldown).`,
     );
-  if (def.onSummon) passives.push(describeOnSummon(def.onSummon, def.vsTarget));
+  if (def.onSummon) passives.push(describeOnSummon(def.onSummon, def.vsTarget, def.element));
   if (def.onDeath) {
     const od = def.onDeath;
     const parts: string[] = [];
