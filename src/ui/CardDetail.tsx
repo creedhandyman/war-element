@@ -200,7 +200,7 @@ export function describePassives(def: CardDef): string[] {
       k.extendStatus &&
         `extends ${k.extendStatus.kind} on every enemy by ${k.extendStatus.rounds} round${k.extendStatus.rounds > 1 ? "s" : ""}`,
       k.coinBonusDmg && `+${k.coinBonusDmg}/${k.coinBonusDmg - 1} DMG`,
-      k.healSelf && `heal ${k.healSelf}`,
+      k.healSelf && `heal ${k.healSelf} HP`,
       k.gainShields && `+${k.gainShields} shields`,
       k.aoeDmg && `${k.aoeDmg} to all enemies`,
       k.blindInRange && `BLIND nearby opponents for ${k.blindInRange} round${k.blindInRange > 1 ? "s" : ""}`,

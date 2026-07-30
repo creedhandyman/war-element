@@ -1553,11 +1553,11 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 1,
+    cost: 2,
     dmg: 4,
     hits: 1,
-    hp: 5,
-    sp: 6,
+    hp: 8,
+    sp: 8,
     shields: 0,
     keywords: {},
     // Dust Off (On Summon): +2 SP to self and the nearest ally.
@@ -1570,16 +1570,16 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 2,
-    dmg: 3,
+    cost: 3,
+    dmg: 4,
     hits: 1,
-    hp: 5,
-    sp: 12,
+    hp: 8,
+    sp: 13,
     shields: 0,
     keywords: {},
-    // Omega Restore (On Kill): heal +2 HP per opponent killed.
+    // Omega Restore (On Kill): heal +4 HP per opponent killed.
     passiveNames: { onKill: "Omega Restore" },
-    onKill: { healSelf: 2 },
+    onKill: { healSelf: 4 },
   },
   {
     id: "gale_hawk",
@@ -3388,7 +3388,8 @@ export const CARDS: CardDef[] = [
     hp: 16,
     sp: 10,
     shields: 0,
-    keywords: {},
+    // Both blades of the 2×2 roll for a crit.
+    keywords: { CRIT: true },
     // (Wind Warp — its basic attacks reach any row like a Ranged card — unmodeled.)
     special: {
       name: "Ambush",
