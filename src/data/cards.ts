@@ -3024,10 +3024,10 @@ export const CARDS: CardDef[] = [
     element: "BORE",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 2,
+    cost: 3,
     dmg: 5,
     hits: 1,
-    hp: 8,
+    hp: 13,
     sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space); the 3 SP went to HP, so the slowness is the whole cost
     shields: 2,
     keywords: {},
@@ -3301,13 +3301,16 @@ export const CARDS: CardDef[] = [
     element: "BORE",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 3,
+    cost: 4,
     dmg: 4,
     hits: 1,
     hp: 16,
-    sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space); the 3 SP went to HP, so the slowness is the whole cost
-    shields: 1,
+    sp: 4, // juggernaut — slowed from 6 (2-space -> 1-space); the 3 SP went to HP, so the slowness is the whole cost
+    shields: 3,
     keywords: {},
+    // Rolling Start: every basic carries the boulder a slot further downfield.
+    passiveNames: { advanceOnBasic: "Rolling Start" },
+    advanceOnBasic: 1,
     special: {
       name: "Rolling Bash",
       cost: 2,

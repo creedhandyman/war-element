@@ -489,6 +489,9 @@ export interface CardDef {
   /** Unpredictable (Ender): a SLOWER attacker (lower effective SP) has only a
    *  50% chance to hit — a conditional EVASION. */
   evadeVsSlower?: boolean;
+  /** Rolling Start (Rollo): after each basic attack it rolls this many slots
+   *  further toward the enemy home. */
+  advanceOnBasic?: number;
   /** False Head (Thorny Ripper): the FIRST melee attack it takes each round
    *  strikes a decoy and deals no damage. Blanks the whole attack, not just one
    *  hit of it. */

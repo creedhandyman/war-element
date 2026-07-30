@@ -1611,6 +1611,12 @@ export function basicAttack(
       if (t && t.curHp > 0 && t.owner !== attacker.owner) pullToward(draft, t, aDef.pullOnAttack, attacker.owner);
     }
   }
+  // Rolling Start (Rollo): the boulder keeps rolling — every basic carries it a
+  // slot further toward the enemy home. Skipped for a follow-up shot so a chained
+  // attack can't double-roll it, and chargeForward already stops at a body, a
+  // captured slot or the board edge.
+  if (aDef.advanceOnBasic && !fromFollowup && attacker.curHp > 0 && attacker.pos)
+    chargeForward(draft, attacker, aDef.advanceOnBasic);
   return agg;
 }
 

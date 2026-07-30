@@ -482,6 +482,18 @@ describe("medium-tier passives (audit batch)", () => {
     expect(foe.curShields + foe.curHp).toBeLessThan(getDef("dusk_gool").hp + getDef("dusk_gool").shields);
   });
 
+  it("Rollo's Rolling Start carries it a slot downfield after each basic", () => {
+    const s = prepState();
+    const rollo = place(s, "bore_rollo", "P1", 3, 0); // P1 advances toward row 0
+    // Off-column target so the slot Rollo rolls into stays clear.
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, rollo.instanceId, foe.instanceId);
+    expect(s.cards[rollo.instanceId].pos?.row).toBe(2); // rolled 3 -> 2
+    s.cards[rollo.instanceId].attackedThisRound = false;
+    basicAttack(s, rollo.instanceId, foe.instanceId);
+    expect(s.cards[rollo.instanceId].pos?.row).toBe(1); // and on to 1
+  });
+
   it("Thorny Ripper's False Head blanks the first MELEE attack each round", () => {
     const s = prepState();
     // Fat HP + no shields on purpose: we're measuring whether damage lands at

@@ -489,6 +489,8 @@ export function describePassives(def: CardDef): string[] {
     passives.push(`End of round: grants +${def.roundTick.allyInRangeShields} shields to every ally within range.`);
   if (def.roundTick?.advance)
     named("roundTick", `Seed Roll: rolls ${def.roundTick.advance} slot${def.roundTick.advance === 1 ? "" : "s"} forward toward the enemy home at the end of each round (until blocked).`);
+  if (def.advanceOnBasic)
+    named("advanceOnBasic", `after each basic attack it rolls ${def.advanceOnBasic} slot${def.advanceOnBasic === 1 ? "" : "s"} further toward the enemy home.`);
   if (def.summonAdvance)
     named("summonAdvance", `On summon: rolls ${def.summonAdvance} slot${def.summonAdvance === 1 ? "" : "s"} forward toward the enemy home (until blocked).`);
   if (def.healReceivedMult && def.healReceivedMult !== 1)

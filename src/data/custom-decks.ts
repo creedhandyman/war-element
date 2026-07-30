@@ -94,7 +94,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
     cards: [
       "bolt_zap", "bolt_jolt", "pyro_flamehound", "pyro_staph", "pyro_ash_boar",
       "bolt_jellyfish", "pyro_firebird", "bolt_lytning", "pyro_fenix", "pyro_sseerr",
-      "bolt_thundercat", "bolt_thunder", "pyro_volcanon", "pyro_magmaw", "bolt_stormcaller",
+      "bolt_thundercat", "bolt_thunder", "pyro_volcanon", "pyro_sarra", "bolt_shoksa",
       "pyro_pyrogon", "bolt_stingray", "bolt_drshock",
     ],
     // Spellbook reworked for the capture race: aggro was losing by round-7
@@ -124,7 +124,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "bore_hillbilly", "aqua_misty", "aqua_subcool", "aqua_kinguin", "aqua_octoirate",
       "aqua_owlette", "bore_shift", "aqua_blackbeard", "bore_monger", "aqua_polarbear",
       "bore_rhe", "bore_obsidi", "aqua_polarking", "bore_sandman", "aqua_tide",
-      "aqua_sapphire", "bore_rohojohn", "bore_krysteel",
+      "aqua_anglerfish", "bore_rohojohn", "bore_krysteel",
     ],
     spells: ["aqua_chill", "aqua_frost_patch", "bore_stone_wall", "bore_shatterpoint", "aqua_maelstrom"],
   },
@@ -142,10 +142,10 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // threat. (Birch not Stickviper here: Stickviper is already in this deck's
     // 5×5 extras, and adding it to the base would duplicate it there.)
     cards: [
-      "dawn_beam", "leaf_guardian", "leaf_leaf", "dawn_drakonbane", "dawn_amble",
-      "leaf_dartfrog", "dawn_goldeneagle", "leaf_sprinu", "leaf_citra", "dawn_solstice",
+      "dawn_beam", "leaf_splint", "leaf_leaf", "dawn_drakonbane", "dawn_amble",
+      "leaf_dartfrog", "dawn_solara", "leaf_sprinu", "leaf_citra", "dawn_solstice",
       "leaf_sumerose", "dawn_clipsey", "leaf_elderroot", "dawn_aurelion", "leaf_fallow",
-      "dawn_imperator", "leaf_birch", "dawn_star",
+      "dawn_imperator", "leaf_fallona", "dawn_star",
     ],
     // Radiant Barrier out, Bramble Wall in — same cost, same slot, but ROOT now
     // has two payoffs in this deck: Fallow's Trapper hits every ROOTed opponent
@@ -167,8 +167,8 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // gives the DUSK side a backline punch.
     cards: [
       "gale_sirocco", "gale_luna", "gale_tumbleweed", "gale_hawk", "dusk_reaper",
-      "gale_vaga", "dusk_skulldrake", "gale_windsor", "dusk_ghastly", "dusk_haunt",
-      "dusk_wedded_wraith", "gale_wolfbane", "dusk_ravven", "gale_klipso", "dusk_nightfang",
+      "gale_vaga", "dusk_skulldrake", "gale_klouy", "dusk_ghastly", "dusk_haunt",
+      "dusk_wedded_wraith", "gale_wolfbane", "dusk_ravven", "gale_omega", "dusk_nightfang",
       "dusk_shadowhorsemen", "gale_masala", "dusk_gravekeeper",
     ],
     // Shadow Step out, Nightfall in — the deck finally runs its namesake. Wedded
@@ -193,11 +193,15 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // back/stun (GALE) and paralyze/electrify (BOLT) stack disruption until the
     // board can't act, then Stormcaller/Glacius (lege) and Kraken (myth) close.
     // 6 of each element keeps every aura live on a third of the deck.
+    // Rebuilt: the first cut ran TEN vanilla rares and five cards at 6+, so it
+    // could neither trade early nor reliably deploy its finishers (35% measured).
+    // Now 6 AQUA / 6 GALE / 6 BOLT, almost all carrying a Special, on a curve
+    // that tops out at one 7 and the Kraken.
     cards: [
-      "bolt_zap", "gale_tumbleweed", "aqua_subcool", "aqua_kinguin", "gale_luna",
-      "bolt_jolt", "gale_hawk", "aqua_octoirate", "bolt_jellyfish", "gale_vaga",
-      "bolt_thundercat", "aqua_glacius", "gale_windsor", "bolt_stormcaller", "aqua_polarking",
-      "gale_klipso", "bolt_drshock", "aqua_kraken",
+      "aqua_subcool", "aqua_kinguin", "gale_tumbleweed", "aqua_octoirate", "gale_vaga",
+      "gale_angale", "bolt_zagphu", "bolt_lytning", "aqua_cryo", "gale_masala",
+      "bolt_thundercat", "bolt_sentry", "bolt_striik", "gale_wista", "bolt_general",
+      "aqua_polarking", "gale_klipso", "aqua_kraken",
     ],
     // Control package: Chill + Frost Patch set up FREEZE, Gust shoves invaders
     // off the home slot, Overload Field is a PARALYZE wall, Lightning Storm is an
@@ -214,7 +218,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // (Sumerose) and Transfusion keep the front line alive. Magmaw/Nightfang
     // (lege) top it. 6 of each element.
     cards: [
-      "leaf_stickviper", "pyro_staph", "dusk_vamp", "leaf_dartfrog", "pyro_ingit",
+      "leaf_stickviper", "pyro_staph", "dusk_silkstalker", "leaf_dartfrog", "pyro_scully",
       "dusk_reaper", "leaf_greegon", "pyro_spitfire", "dusk_ghastly", "leaf_citra",
       "pyro_firebird", "dusk_haunt", "leaf_sumerose", "pyro_fenrir", "dusk_wedded_wraith",
       "leaf_elderroot", "pyro_magmaw", "dusk_nightfang",
