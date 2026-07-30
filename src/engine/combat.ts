@@ -3357,15 +3357,29 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
   },
 
-  /** Grant shields to one ally. */
+  /** Grant shields to one ally — or, with `nearby`, to every ally touching the
+   *  caster (Smith's Reforged), optionally with a timed DMG buff on top. */
   grantShield(draft, attacker, targets, params) {
-    const target = targets[0] ?? attacker; // self-shield specials pass no enemy
     const amount = num(params, "amount", 1);
-    target.curShields += amount;
     const heal = num(params, "heal");
-    if (heal > 0) healCard(draft, target, heal, attacker); // Roosting Wing Shield
+    const buffDmg = num(params, "buffDmg");
+    const buffRounds = num(params, "buffRounds", 1);
+    // nearby: the 8 slots around the caster (itself included — it forged the
+    // plates, it wears some too). Otherwise the single chosen ally.
+    const crew =
+      num(params, "nearby") > 0 && attacker.pos
+        ? boardCards(draft, attacker.owner).filter(
+            (a) => a.curHp > 0 && a.pos && chebyshev(attacker.pos!, a.pos) <= 1,
+          )
+        : [targets[0] ?? attacker]; // self-shield specials pass no enemy
+    for (const target of crew) {
+      target.curShields += amount;
+      if (heal > 0) healCard(draft, target, heal, attacker); // Roosting Wing Shield
+      if (buffDmg > 0) applyTimedBuff(target, buffDmg, 0, buffRounds);
+    }
+    const who = crew.length === 1 ? label(draft, crew[0]) : `${crew.length} nearby ally(ies)`;
     draft.log.push(
-      `${label(draft, attacker)} grants +${amount} shields${heal > 0 ? ` and +${heal} HP` : ""} to ${label(draft, target)}.`,
+      `${label(draft, attacker)} grants +${amount} shields${heal > 0 ? ` and +${heal} HP` : ""}${buffDmg > 0 ? ` and +${buffDmg} DMG for ${buffRounds}r` : ""} to ${who}.`,
     );
   },
 

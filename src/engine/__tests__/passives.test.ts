@@ -463,6 +463,19 @@ describe("medium-tier passives (audit batch)", () => {
     expect(40 - s2.cards[f2.instanceId].curHp).toBe(4); // 4 straight to HP
   });
 
+  it("Smith's Reforged plates NEARBY allies +2 shields and +1 DMG for the round", () => {
+    const s = prepState();
+    const smith = place(s, "bore_smith", "P1", 3, 1);
+    const near = place(s, "leaf_alpha", "P1", 3, 2, { curShields: 0 }); // touching
+    const far = place(s, "leaf_alpha", "P1", 0, 3, { curShields: 0 }); // across the board
+    const farDmgBefore = effectiveDmg(s, s.cards[far.instanceId]);
+    SPECIAL_HANDLERS.grantShield(s, s.cards[smith.instanceId], [], { amount: 2, nearby: 1, buffDmg: 1, buffRounds: 1 });
+    expect(s.cards[near.instanceId].curShields).toBe(2); // plated
+    expect(effectiveDmg(s, s.cards[near.instanceId])).toBeGreaterThan(farDmgBefore); // +1 DMG
+    expect(s.cards[far.instanceId].curShields).toBe(0); // out of reach
+    expect(effectiveDmg(s, s.cards[far.instanceId])).toBe(farDmgBefore);
+  });
+
   it("Rodd's Conduction gives +1 DMG to ADJACENT allies only", () => {
     const s = prepState();
     place(s, "bolt_rodd", "P1", 3, 0);
