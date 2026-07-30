@@ -5446,10 +5446,10 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 3,
-    dmg: 2,
+    dmg: 3,
     hits: 1,
-    hp: 16,
-    sp: 7,
+    hp: 14,
+    sp: 9,
     shields: 0,
     keywords: {},
     // Supercell: +1 DMG, +2 HP, +1 SP every round for its first 3 rounds.
