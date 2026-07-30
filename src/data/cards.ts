@@ -7738,7 +7738,7 @@ export const CARDS: CardDef[] = [
     name: "Thorny Ripper",
     rarity: "rare",
     element: "BORE",
-    cardClass: "Tank",
+    cardClass: "Assassin",
     attackType: "Melee",
     cost: 2,
     dmg: 4,
