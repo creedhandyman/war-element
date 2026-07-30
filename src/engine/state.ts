@@ -3,7 +3,7 @@
 
 import { getDef, deckById } from "../data/cards";
 import { coin, shuffle } from "./rng";
-import { spellbookFor, spellbookFromIds } from "./spells";
+import { spellCapForBoard, spellbookFor, spellbookFromIds } from "./spells";
 import { creditHeal, emptyStats } from "./stats";
 import type {
   AuraBonusDef,
@@ -39,8 +39,10 @@ export function createInitialState(
     humans,
     firstPlayer: "P1",
     players: {
-      P1: emptyPlayer(resolveDeck(p1Deck), p1Spells),
-      P2: emptyPlayer(resolveDeck(p2Deck), p2Spells),
+      // Spellbook cap follows the battlefield: 5 on the standard board, 8 on the
+      // large one (the deeper deck gets a deeper book).
+      P1: emptyPlayer(resolveDeck(p1Deck), p1Spells, spellCapForBoard(boardSize)),
+      P2: emptyPlayer(resolveDeck(p2Deck), p2Spells, spellCapForBoard(boardSize)),
     },
     cards: {},
     boardSize,
@@ -69,7 +71,7 @@ export function createInitialState(
   return state;
 }
 
-function emptyPlayer(deck: string[], spellIds?: string[]): PlayerState {
+function emptyPlayer(deck: string[], spellIds?: string[], spellCap?: number): PlayerState {
   return {
     deck,
     hand: [],
@@ -77,7 +79,7 @@ function emptyPlayer(deck: string[], spellIds?: string[]): PlayerState {
     // "this deck never chose", so derive from its elements; `[]` means "chose
     // none", which used to fall through to the derive branch and hand a
     // spell-less deck the entire elemental set.
-    spellbook: spellIds ? spellbookFromIds(spellIds) : spellbookFor(deck),
+    spellbook: spellIds ? spellbookFromIds(spellIds, spellCap) : spellbookFor(deck),
     gold: 0,
     magicPool: 0,
     mulliganDone: false,

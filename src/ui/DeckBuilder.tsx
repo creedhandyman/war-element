@@ -6,7 +6,6 @@ import {
   deleteCustomDeck,
   loadCustomDecks,
   deckLimits,
-  MAX_SPELLS,
   saveCustomDeck,
   validateDeck,
   type CustomDeck,
@@ -116,9 +115,10 @@ export function DeckBuilder(props: {
   function toggle(id: string) {
     setPicked((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= limits.max ? cur : [...cur, id]));
   }
-  // A deck's spellbook: up to MAX_SPELLS spells, castable once each in a match.
+  // A deck's spellbook: up to limits.spells (5 standard / 8 large), each castable
+  // once in a match.
   function toggleSpell(id: string) {
-    setPickedSpells((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= MAX_SPELLS ? cur : [...cur, id]));
+    setPickedSpells((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= limits.spells ? cur : [...cur, id]));
   }
   function reset() {
     setEditingId(null);
@@ -176,7 +176,9 @@ export function DeckBuilder(props: {
               maxLength={28}
             />
             <div className="db-size">
-              <button className={buildSize === 4 ? "act" : ""} onClick={() => setBuildSize(4)}>4×4 · 18</button>
+              {/* Switching board also switches the spellbook cap (5 / 8), so trim
+                  any picks the smaller board can't legally hold. */}
+              <button className={buildSize === 4 ? "act" : ""} onClick={() => { setBuildSize(4); setPickedSpells((cur) => cur.slice(0, deckLimits(4).spells)); }}>4×4 · 18</button>
               <button className={buildSize === 5 ? "act" : ""} onClick={() => setBuildSize(5)}>5×5 · 28</button>
             </div>
             {/* ONE number: cards picked out of the target for this battlefield.
@@ -206,7 +208,7 @@ export function DeckBuilder(props: {
                 </button>
               )}
               <button className={`db-tool ${spellsShown ? "on" : ""}`} onClick={() => togglePanel("spells")}>
-                Spells {pickedSpells.length}/{MAX_SPELLS}
+                Spells {pickedSpells.length}/{limits.spells}
               </button>
               <button className={`db-tool ${savedShown ? "on" : ""}`} onClick={() => togglePanel("saved")}>
                 Saved{decks.length ? ` ${decks.length}` : ""}
@@ -274,7 +276,7 @@ export function DeckBuilder(props: {
                 <div className="db-spell-grid">
                   {deckSpells.map((s) => {
                     const on = pickedSpells.includes(s.id);
-                    const full = !on && pickedSpells.length >= MAX_SPELLS;
+                    const full = !on && pickedSpells.length >= limits.spells;
                     return (
                       <button
                         key={s.id}

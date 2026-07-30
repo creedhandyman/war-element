@@ -2,7 +2,7 @@
 // fresh game (explicit book wins; empty falls back to auto-from-elements).
 
 import { describe, expect, it } from "vitest";
-import { SPELLS, spellbookFromIds, spellbookFor, getSpell, spellPickKind, MAX_SPELLBOOK } from "../spells";
+import { SPELLS, spellbookFromIds, spellbookFor, getSpell, spellPickKind, MAX_SPELLBOOK, MAX_SPELLBOOK_LARGE, spellCapForBoard } from "../spells";
 import { CORES, deckById } from "../../data/cards";
 import { createInitialState } from "../state";
 import { canCastSpell } from "../rules";
@@ -24,6 +24,30 @@ describe("spellbookFromIds", () => {
 
   it("empty input yields an empty book", () => {
     expect(spellbookFromIds([])).toEqual([]);
+  });
+
+  it("the large board carries a DEEPER book — 8 spells, not 5", () => {
+    // Board-size rule: 5 on the standard 4×4, 8 on the large 5×5. A flat cap
+    // silently cut a legal large-board book back to 5 at match setup.
+    const ids = [
+      "pyro_spark", "aqua_chill", "gale_gust", "dawn_sunbeam", "bore_pebble_toss",
+      "dusk_chill_touch", "bolt_zap", "leaf_sprout", "pyro_ember_trap", // 9 valid
+    ];
+    expect(spellCapForBoard(4)).toBe(MAX_SPELLBOOK);
+    expect(spellCapForBoard(5)).toBe(MAX_SPELLBOOK_LARGE);
+    expect(spellbookFromIds(ids, spellCapForBoard(5)).length).toBe(8);
+    expect(spellbookFromIds(ids, spellCapForBoard(4)).length).toBe(5);
+  });
+
+  it("createInitialState gives a 5×5 match the 8-spell book", () => {
+    const ids = [
+      "pyro_spark", "aqua_chill", "gale_gust", "dawn_sunbeam", "bore_pebble_toss",
+      "dusk_chill_touch", "bolt_zap", "leaf_sprout",
+    ];
+    const large = createInitialState(1, ["leaf_alpha"], ["leaf_nettle"], ["P1"], ids, ids, 5);
+    expect(large.players.P1.spellbook.length).toBe(8);
+    const small = createInitialState(1, ["leaf_alpha"], ["leaf_nettle"], ["P1"], ids, ids, 4);
+    expect(small.players.P1.spellbook.length).toBe(5);
   });
 });
 

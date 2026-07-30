@@ -5,24 +5,30 @@
 // the deterministic engine reducer).
 
 import { CARDS, CARD_INDEX } from "./cards";
-import { isSpell, MAX_SPELLBOOK } from "../engine/spells";
+import { isSpell, MAX_SPELLBOOK, MAX_SPELLBOOK_LARGE } from "../engine/spells";
 import type { CardDef } from "../engine/types";
 
 /** Deck-size rules for one battlefield. The bigger board holds more cards, so
  *  it wants a deeper deck — 25 slots and a longer game against 16 and a short
- *  one. Spellbooks are unchanged (MAX_SPELLBOOK) at either size. */
+ *  one — AND a deeper spellbook (8 against the standard 5). */
 export interface DeckLimits {
   min: number;
   max: number;
   target: number;
+  /** Spellbook cap for this battlefield. */
+  spells: number;
 }
 const DECK_LIMITS: Record<number, DeckLimits> = {
-  4: { min: 12, max: 20, target: 18 },
-  5: { min: 20, max: 30, target: 28 },
+  4: { min: 12, max: 20, target: 18, spells: MAX_SPELLBOOK },
+  5: { min: 20, max: 30, target: 28, spells: MAX_SPELLBOOK_LARGE },
 };
 /** Limits for a board size; anything unrecognised falls back to the standard. */
 export function deckLimits(boardSize = 4): DeckLimits {
   return DECK_LIMITS[boardSize] ?? DECK_LIMITS[4];
+}
+/** Spellbook cap for a battlefield — 5 on the standard board, 8 on the large one. */
+export function maxSpellsFor(boardSize = 4): number {
+  return deckLimits(boardSize).spells;
 }
 
 // Standard-board shorthands. Prefer deckLimits(boardSize) anywhere the mode is
@@ -30,7 +36,7 @@ export function deckLimits(boardSize = 4): DeckLimits {
 export const MIN_DECK = DECK_LIMITS[4].min;
 export const MAX_DECK = DECK_LIMITS[4].max;
 export const TARGET_DECK = DECK_LIMITS[4].target;
-export const MAX_SPELLS = MAX_SPELLBOOK; // a deck's spellbook holds up to 5
+export const MAX_SPELLS = MAX_SPELLBOOK; // standard-board spellbook cap (5)
 
 const STORAGE_KEY = "we_custom_decks_v1";
 
@@ -41,16 +47,19 @@ export interface CustomDeck {
   spells?: string[]; // hand-picked spellbook (0–5 spell ids); absent = auto-from-elements
 }
 
-/** Sanitize a spellbook: keep only real, deduped spell ids, capped at MAX_SPELLS. */
-export function sanitizeSpells(ids: string[] | undefined): string[] {
+/** Sanitize a spellbook: keep only real, deduped spell ids, capped for the board.
+ *  The cap is board-size aware (5 standard / 8 large) — a flat 5 here silently
+ *  truncated a legal large-board book of 8 back down on every load. */
+export function sanitizeSpells(ids: string[] | undefined, boardSize = 5): string[] {
   if (!Array.isArray(ids)) return [];
+  const cap = maxSpellsFor(boardSize);
   const seen = new Set<string>();
   const out: string[] = [];
   for (const id of ids) {
     if (typeof id !== "string" || seen.has(id) || !isSpell(id)) continue;
     seen.add(id);
     out.push(id);
-    if (out.length >= MAX_SPELLS) break;
+    if (out.length >= cap) break;
   }
   return out;
 }

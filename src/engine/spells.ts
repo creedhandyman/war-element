@@ -10,8 +10,16 @@
 import { getDef } from "../data/cards";
 import type { Element, SpellDef, SpellSlot } from "./types";
 
-/** A custom spellbook holds at most this many spells (each castable once). */
+/** A custom spellbook holds at most this many spells (each castable once) on the
+ *  STANDARD 4×4 board. */
 export const MAX_SPELLBOOK = 5;
+/** The large 5×5 board runs a deeper deck, so it also runs a deeper spellbook. */
+export const MAX_SPELLBOOK_LARGE = 8;
+/** Spellbook cap for a battlefield — the single source of truth for both the
+ *  deck builder's picker and match setup. */
+export function spellCapForBoard(boardSize = 4): number {
+  return boardSize >= 5 ? MAX_SPELLBOOK_LARGE : MAX_SPELLBOOK;
+}
 
 export const SPELLS: SpellDef[] = [
   // ───────── Cost 1 — small damage / support ─────────
@@ -970,16 +978,18 @@ export function spellbookFor(deck: string[]): SpellSlot[] {
 
 /** Build a spellbook from an explicit, ordered list of spell ids (a deck's
  *  custom spellbook). Unknown ids are dropped, duplicates removed, and the
- *  result is capped at MAX_SPELLBOOK — so a bad/oversized saved book can never
- *  break match setup. */
-export function spellbookFromIds(ids: string[]): SpellSlot[] {
+ *  result is capped at `cap` — so a bad/oversized saved book can never break
+ *  match setup. The cap is board-size dependent (5 standard / 8 large), passed
+ *  in by the caller; a flat MAX_SPELLBOOK here would cut a legal large-board
+ *  book of 8 down to 5 at match setup. */
+export function spellbookFromIds(ids: string[], cap = MAX_SPELLBOOK): SpellSlot[] {
   const seen = new Set<string>();
   const book: SpellSlot[] = [];
   for (const id of ids) {
     if (seen.has(id) || !isSpell(id)) continue;
     seen.add(id);
     book.push({ defId: id, used: false });
-    if (book.length >= MAX_SPELLBOOK) break;
+    if (book.length >= cap) break;
   }
   return book;
 }

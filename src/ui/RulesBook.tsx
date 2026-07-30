@@ -1,6 +1,8 @@
 /** In-app rules book — the "How to play" reference reachable from the main menu.
- *  Content mirrors the game's own mechanics (README "How to play" + the engine
- *  rules): objective, resources, the round loop, combat, statuses and wins. */
+ *  Content tracks How_To_Play_ingame.docx, with every number checked against the
+ *  engine before it shipped (magic ramp, pool carryover, deck + spellbook caps,
+ *  capture lockout): objective, deck, resources, the round loop, combat,
+ *  shields, speed/movement, elements, statuses, keywords and wins. */
 export function RulesBook(props: { onClose: () => void }) {
   return (
     <div className="overlay" onClick={props.onClose}>
@@ -13,23 +15,54 @@ export function RulesBook(props: { onClose: () => void }) {
         <div className="rules-body">
           <section>
             <h3>🎯 The goal</h3>
-            <p>
-              Command an elemental army on a 4×4 (or 5×5) grid. Win by either
-              <b> elimination</b> — leave the opponent with no cards on the board,
-              in hand, or in their deck — or by <b>slot capture</b>: an invader that
-              survives a full round standing on one of the enemy's four Home slots
-              captures it forever. Hold all their Home slots and you win.
-            </p>
+            <p>Command an elemental army on a 4×4 (or 5×5) grid. Win two ways:</p>
+            <ul className="rules-defs">
+              <li>
+                <b>Elimination</b> — leave the opponent with no cards on the board,
+                in hand, or in their deck.
+              </li>
+              <li>
+                <b>Slot capture</b> — an invader that survives a full round standing
+                on an enemy Home slot captures it <i>permanently</i>. A captured slot
+                is locked out for its owner and shows a <b>🔒 padlock</b>: nothing can
+                be summoned onto it or moved through it, and it can never be taken
+                back. Capture all four and you win.
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>🃏 Your deck</h3>
+            <ul className="rules-defs">
+              <li><b>4×4 Standard</b> — 18 cards, up to <b>5</b> spells.</li>
+              <li><b>5×5 Large</b> — 28 cards, up to <b>8</b> spells.</li>
+              <li>
+                Every card is <b>unique</b> — no duplicates. Build in the Deck Builder,
+                then pick your deck before the match.
+              </li>
+            </ul>
           </section>
 
           <section>
             <h3>💠 Resources</h3>
             <p>
               <b>GOLD</b> (your summon pool) pays to <b>summon</b> cards — you gain the
-              round number in Gold each round (round 1 → +1, round 2 → +2…).
-              <b> MAGIC</b> pays for <b>Specials</b> and <b>Spells</b>. A card's cost is
-              the number in its top corner. Both pools are shown at the bottom of the
-              screen under those names.
+              round number in Gold each round (round 1 → +1, round 2 → +2…), up to +10.
+              A card's cost is the number in its top corner.
+            </p>
+            <p>
+              <b>MAGIC</b> pays for <b>Specials</b> and <b>Spells</b>. It speeds up as
+              the game goes on:
+            </p>
+            <ul className="rules-defs">
+              <li><b>Rounds 1–5</b> — +1 Magic per round</li>
+              <li><b>Rounds 6–10</b> — +2</li>
+              <li><b>Rounds 11–15</b> — +3</li>
+              <li><b>Rounds 16+</b> — +4</li>
+            </ul>
+            <p>
+              Unspent Gold and Magic carry over, but each pool only banks up to
+              <b> 10</b> between rounds — sitting on a huge reserve doesn't work.
             </p>
           </section>
 
@@ -118,6 +151,20 @@ export function RulesBook(props: { onClose: () => void }) {
 
           <section>
             <h3>⚡ Speed queue & movement</h3>
+            <p>
+              The right-hand rail lists every card in the order it will act this
+              round, fastest SP first. The tag on each row tells you what happens:
+            </p>
+            <ul className="rules-defs">
+              <li><b>YOU</b> — your card; you'll choose its action.</li>
+              <li><b>AI</b> — the opponent's card.</li>
+              <li>
+                <b>CAN'T ACT</b> — this card can do nothing this turn: either a status
+                is stopping it (STUN, SLEEP, a failed PARALYZE roll) or it has no legal
+                action — nothing in range and no Special it can afford. It stays in the
+                queue and passes.
+              </li>
+            </ul>
             <ul className="rules-defs">
               <li>
                 <b>Who acts first</b> — in battle every card takes its turn in
@@ -236,6 +283,7 @@ export function RulesBook(props: { onClose: () => void }) {
               </li>
               <li>Spells are one-shot effects from your spellbook — cast in Prep.</li>
               <li>Tap any card to inspect its full stats, Special, and passives.</li>
+              <li><b>Bonus draw</b> — +2 extra cards on rounds 10 and 15.</li>
             </ul>
           </section>
 
@@ -243,8 +291,9 @@ export function RulesBook(props: { onClose: () => void }) {
             <h3>▶️ A turn, step by step</h3>
             <ol className="rules-steps">
               <li>
-                <b>Round starts.</b> You gain Gold equal to the round number and draw
-                a card (with a +2 bonus draw on rounds 10 and 15).
+                <b>Round starts.</b> You gain Gold equal to the round number, gain
+                Magic (see the table above), and draw a card — with a +2 bonus draw
+                on rounds 10 and 15.
               </li>
               <li>
                 <b>Prep — you have priority.</b> Spend Gold to summon a Ranger onto a
