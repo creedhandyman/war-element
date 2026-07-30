@@ -6668,6 +6668,25 @@ export const CARDS: CardDef[] = [
     roundTick: { pokeDmg: 2 },
   },
   {
+    id: "bolt_zipp",
+    name: "Zipp",
+    rarity: "rare",
+    element: "BOLT",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 4,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    tribe: "Forged Tech",
+    // Swarm Deploy (On Summon): pop a 1/1 FLYING Drone out beside it.
+    passiveNames: { onSummon: "Swarm Deploy" },
+    onSummon: { handler: "spawn", params: { token: "bolt_drone_tok", count: 1, radius: 1 } },
+  },
+  {
     id: "bolt_volta",
     name: "Volta",
     tribe: "ARC",
@@ -8348,6 +8367,25 @@ export const CARDS: CardDef[] = [
 // them. (Reptilian and Heir used to live here — they are draftable now, but are
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
+  {
+    id: "bolt_drone_tok",
+    art: "bolt_drone",
+    name: "Drone",
+    rarity: "rare",
+    element: "BOLT",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 1,
+    hits: 1,
+    hp: 1,
+    sp: 8,
+    shields: 0,
+    // A disposable flying eye — it dodges melee outright, so it survives long
+    // enough to chip in (and BOLT's Electrify means its 1 DMG still marks).
+    keywords: { FLYING: true },
+    tribe: "Forged Tech",
+  },
   {
     id: "dusk_redreven",
     name: "RedRaven",

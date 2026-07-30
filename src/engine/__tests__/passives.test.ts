@@ -463,6 +463,17 @@ describe("medium-tier passives (audit batch)", () => {
     expect(40 - s2.cards[f2.instanceId].curHp).toBe(4); // 4 straight to HP
   });
 
+  it("Zipp's Swarm Deploy drops a 1/1 FLYING Drone beside it", () => {
+    const s = prepState();
+    const zipp = place(s, "bolt_zipp", "P1", 3, 0);
+    SPECIAL_HANDLERS.spawn(s, s.cards[zipp.instanceId], [], { token: "bolt_drone_tok", count: 1, radius: 1 });
+    const drone = boardCards(s, "P1").find((c) => getDef(c.defId).id === "bolt_drone_tok");
+    expect(drone).toBeTruthy();
+    const d = getDef("bolt_drone_tok");
+    expect([d.dmg, d.hp]).toEqual([1, 1]); // a 1/1
+    expect(d.keywords.FLYING).toBe(true); // dodges melee outright
+  });
+
   it("Smith's Reforged plates NEARBY allies +2 shields and +1 DMG for the round", () => {
     const s = prepState();
     const smith = place(s, "bore_smith", "P1", 3, 1);
