@@ -136,15 +136,16 @@ describe("medium-tier passives (audit batch)", () => {
     // The full census — the predicate must not be quietly silencing anything
     // else. UFO prints 0 DMG with no on-hit rider; RIP prints 0 DMG on purpose
     // and never swings at all (its Special is free, so it always has a real
-    // action); Doom is a time bomb that never swings — it just ticks down and
-    // detonates. Any OTHER name appearing here is a bug.
+    // action); Walking Tree is a 0-DMG mover. Doom used to sit here as a
+    // never-swinging time bomb — it prints 3 DMG now, so it has a real basic and
+    // correctly drops off. Any OTHER name appearing here is a bug.
     const inert = CARDS.filter((d) => {
       const c = place(s, d.id, "P2", 0, 3);
       const r = basicIsInert(s, c);
       delete s.cards[c.instanceId];
       return r;
     }).map((d) => d.id);
-    expect(inert.sort()).toEqual(["bore_ufo", "dusk_doom", "dusk_rip", "leaf_walking_tree"]);
+    expect(inert.sort()).toEqual(["bore_ufo", "dusk_rip", "leaf_walking_tree"]);
   });
 
   it("Doom's Boom ticks down over 4 rounds, then levels the enemy board and dies", () => {
@@ -155,9 +156,9 @@ describe("medium-tier passives (audit batch)", () => {
     for (let i = 0; i < 3; i++) s = advance(atCleanup(s));
     expect(s.cards[doom.instanceId]).toBeDefined();
     expect(s.cards[foe.instanceId].curHp).toBe(30);
-    // Fourth cleanup: detonation — 11 to the enemy, and Doom is consumed.
+    // Fourth cleanup: detonation — 8 to the enemy, and Doom is consumed.
     s = advance(atCleanup(s));
-    expect(s.cards[foe.instanceId].curHp).toBe(19);
+    expect(s.cards[foe.instanceId].curHp).toBe(22);
     expect(s.cards[doom.instanceId]).toBeUndefined();
   });
 

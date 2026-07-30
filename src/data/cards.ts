@@ -7816,15 +7816,16 @@ export const CARDS: CardDef[] = [
     cardClass: "Support",
     attackType: "Melee",
     cost: 2,
-    dmg: 0,
+    dmg: 3,
     hits: 1,
-    hp: 20,
+    hp: 13,
     sp: 0,
-    shields: 0,
+    shields: 2,
     keywords: {},
-    // Boom: a live fuse. It cannot attack — after 4 rounds it detonates for 11
-    // DMG to every enemy, then dies. Kill it first or eat the blast.
-    boom: { afterRounds: 4, dmg: 11 },
+    // Boom: a live fuse. SP 0 means it never moves, but it can now swing at
+    // whatever wanders adjacent — and after 4 rounds it detonates for 8 DMG to
+    // every enemy, then dies. Kill it first or eat the blast.
+    boom: { afterRounds: 4, dmg: 8 },
   },
   {
     id: "dusk_jackl",
