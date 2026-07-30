@@ -590,6 +590,23 @@ export function resolveHit(
   // Blazing Sun (DAWN field): "their attacks cannot miss". Read once — it can't
   // change mid-volley — and applied to every roll-to-hit below.
   const fieldNeverMiss = fieldFlag(draft, attacker, "neverMiss");
+  // False Head (Thorny Devil): the FIRST melee attack it takes each round hits
+  // the decoy and deals nothing. Decided once, before the hit loop, so a
+  // multi-hit volley is blanked whole rather than losing only its opening hit —
+  // it's one ATTACK that's wasted. Reflect damage isn't an attack, so it's
+  // excluded (otherwise the Devil's own REFLECT would spend its decoy).
+  if (
+    tDef.falseHead &&
+    !target.falseHeadUsedRound &&
+    opts.kind !== "reflect" &&
+    aDef.attackType === "Melee"
+  ) {
+    target.falseHeadUsedRound = true;
+    result.dodgedHits += opts.hits;
+    target.fxMiss = (target.fxMiss ?? 0) + 1;
+    draft.log.push(`${aDef.name} strikes ${label(draft, target)}'s false head — no damage.`);
+    return result;
+  }
   for (let i = 0; i < opts.hits; i++) {
     if (target.curHp <= 0) break;
 

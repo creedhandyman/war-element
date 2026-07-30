@@ -7734,22 +7734,46 @@ export const CARDS: CardDef[] = [
     },
   },
   {
-    id: "bore_granite_armadillo",
-    name: "Granite Armadillo",
+    id: "bore_thorny_ripper",
+    name: "Thorny Ripper",
     rarity: "rare",
     element: "BORE",
-    cardClass: "Warrior",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 2,
+    dmg: 4,
+    hits: 1,
+    hp: 4,
+    sp: 8,
+    shields: 2,
+    // Spined Hide: REFLECT 2 — anything that hits it takes 2 back.
+    keywords: { REFLECT: 2 },
+    tribe: "Sand Village",
+    // False Head: the first MELEE attack each round strikes the decoy and does
+    // nothing. Paper-thin at 4 HP, so the decoy is what keeps it alive.
+    passiveNames: { falseHead: "False Head" },
+    falseHead: true,
+  },
+  {
+    id: "bore_ankylosaur",
+    name: "Granite Ankylosaur",
+    rarity: "rare",
+    element: "BORE",
+    cardClass: "Tank",
     attackType: "Melee",
     cost: 3,
-    dmg: 2,
+    dmg: 4,
     hits: 1,
-    hp: 14,
-    sp: 3,
-    shields: 3,
-    keywords: {},
-    // Granite Plates: every hit it takes hardens another shield (caps at 6).
-    passiveNames: { shieldPerHitTaken: "Granite Plates" },
-    shieldPerHitTaken: { shields: 1, maxShields: 6 },
+    hp: 11,
+    sp: 2,
+    shields: 4,
+    // Rock Hide: BLOCK 1 — shaves a point off every hit, before shields and
+    // even through PEN.
+    keywords: { BLOCK: 1 },
+    tribe: "Mountain Beasts",
+    // Tail Club (On Hit): a clubbing blow to the head — 50% to SLEEP for 1 round.
+    passiveNames: { onHitStatus: "Tail Club" },
+    onHitStatus: { kind: "SLEEP", duration: 1, power: 0, chance: 50 },
   },
   {
     id: "dusk_skrow",

@@ -482,6 +482,36 @@ describe("medium-tier passives (audit batch)", () => {
     expect(foe.curShields + foe.curHp).toBeLessThan(getDef("dusk_gool").hp + getDef("dusk_gool").shields);
   });
 
+  it("Thorny Ripper's False Head blanks the first MELEE attack each round", () => {
+    const s = prepState();
+    // Fat HP + no shields on purpose: we're measuring whether damage lands at
+    // all, not how the 4-HP body survives it.
+    const devil = place(s, "bore_thorny_ripper", "P1", 3, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    // A genuine MELEE attacker — Gool is Ranged, which False Head ignores by design.
+    const melee = place(s, "dusk_widowbite", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, melee.instanceId, devil.instanceId);
+    expect(s.cards[devil.instanceId].curHp).toBe(40); // decoy soaked the whole attack
+
+    // ...and the decoy is spent: the next melee attack lands for real.
+    s.cards[melee.instanceId].attackedThisRound = false;
+    basicAttack(s, melee.instanceId, devil.instanceId);
+    expect(s.cards[devil.instanceId].curHp).toBeLessThan(40);
+  });
+
+  it("...but a RANGED attacker walks straight past the decoy", () => {
+    const s = prepState();
+    const devil = place(s, "bore_thorny_ripper", "P1", 3, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const ranged = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, ranged.instanceId, devil.instanceId);
+    expect(s.cards[devil.instanceId].curHp).toBeLessThan(40); // False Head is melee-only
+  });
+
+  it("Granite Ankylosaur's Tail Club can SLEEP what it hits", () => {
+    const d = getDef("bore_ankylosaur");
+    expect(d.onHitStatus).toMatchObject({ kind: "SLEEP", duration: 1, chance: 50 });
+    expect(d.keywords.BLOCK).toBe(1);
+  });
+
   it("Zipp's Swarm Deploy drops a 1/1 FLYING Drone beside it", () => {
     const s = prepState();
     const zipp = place(s, "bolt_zipp", "P1", 3, 0);

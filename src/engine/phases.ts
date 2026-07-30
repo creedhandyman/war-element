@@ -2179,6 +2179,7 @@ function doCleanupPhase(draft: GameState): void {
     card.kingWildFiredRound = false; // King of the Wild (Leo): one buff per round
     card.allyKilledFiredRound = false; // Overwatch (Warden): one answer per round
     card.twinStrikeFiredRound = false; // Twin Strike (Ning): one bonus volley per round
+    card.falseHeadUsedRound = false; // False Head (Thorny Ripper): the decoy resets each round
     card.onKillAoeFiredRound = false; // Powertrip re-arms each round
     card.dmgBonusRound = 0;
     card.spBonusRound = 0;

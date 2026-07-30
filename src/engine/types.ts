@@ -489,6 +489,10 @@ export interface CardDef {
   /** Unpredictable (Ender): a SLOWER attacker (lower effective SP) has only a
    *  50% chance to hit — a conditional EVASION. */
   evadeVsSlower?: boolean;
+  /** False Head (Thorny Ripper): the FIRST melee attack it takes each round
+   *  strikes a decoy and deals no damage. Blanks the whole attack, not just one
+   *  hit of it. */
+  falseHead?: boolean;
   /** Ride or Die (Omega): Luna grants a permanent +dmg / +hp the moment it
    *  lands. Applied at instance creation so it never misses. */
   summonSelfBuff?: { dmg: number; hp: number };
@@ -903,6 +907,9 @@ export interface CardInstance {
   allyKilledFiredRound?: boolean;
   /** Per-round guard for Twin Strike (Ning's onCritBonus). */
   twinStrikeFiredRound?: boolean;
+  /** Per-round guard for False Head (Thorny Ripper) — the decoy soaks one melee
+   *  attack per round. */
+  falseHeadUsedRound?: boolean;
   /** One-shot guard for a `oneUse` onAllyKilled (Shine's Brightling Ball). */
   allyKilledFired: boolean;
   /** Dead Clock (RIP): bodies raised so far, counted toward spawnTriggerAt. */
