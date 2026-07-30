@@ -3135,11 +3135,12 @@ export const CARDS: CardDef[] = [
     element: "BOLT",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 1,
-    dmg: 1,
-    hits: 4, // "4×1 DMG"
-    hp: 3,
-    sp: 8,
+    cost: 2,
+    // Was a 4×1 chip attacker; now one clean 5 — a fast single-strike assassin.
+    dmg: 5,
+    hits: 1,
+    hp: 5,
+    sp: 10,
     shields: 0,
     keywords: {},
     // Wrap (On Summon): PARALYZE an opponent in range for 2 rounds.
