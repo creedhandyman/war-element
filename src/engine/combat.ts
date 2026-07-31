@@ -56,6 +56,14 @@ export function isFlying(card: CardInstance): boolean {
 /** Aurora's ORB kinds, in the recharge rotation. */
 export const ORB_KINDS = ["blue", "green", "red"] as const;
 
+/** Most Light Orbs Aurora may hold at once. The on-kill recharge below was
+ *  UNBOUNDED: every opponent death, from any cause, pushed another orb, and each
+ *  orb fully negates an incoming hit — so a long game compounded into a card
+ *  that could not be attacked through. A ceiling, not a nerf to the payout: over
+ *  1,120 measured matches this changed Aurora's win rate not at all, which is
+ *  exactly why it is worth having as a guard rail rather than as a balance lever. */
+export const ORB_CAP = 3;
+
 /** Fire a burst Light Orb at whatever just attacked Aurora (Life Cycle). */
 export function fireOrb(draft: GameState, aurora: CardInstance, attacker: CardInstance, orb: string): void {
   const el = getDef(aurora.defId).element;
@@ -450,6 +458,7 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
   for (const c of boardCards(draft)) {
     if (getDef(c.defId).lightOrbs && c.curHp > 0 && c.owner !== card.owner) {
       c.orbs ??= [];
+      if (c.orbs.length >= ORB_CAP) continue; // refills toward a ceiling, not forever
       const idx = (c.orbCycle ?? 0) % ORB_KINDS.length;
       c.orbs.push(ORB_KINDS[idx]);
       c.orbCycle = idx + 1;
