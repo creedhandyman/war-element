@@ -2083,8 +2083,17 @@ function doCleanupPhase(draft: GameState): void {
       // armoured exactly as well as one grazed once — which read as the aura
       // being broken. Scales like Squanch's Regenerative below, which is the
       // same idea and always did count hits.
-      if (card.hitsTakenThisRound > 0 && card.curShields < LEAF_SHIELD_CAP) {
-        const grown = Math.min(LEAF_SHIELD_CAP - card.curShields, card.hitsTakenThisRound);
+      //
+      // The ceiling is the card's PRINTED shields plus the cap, not a flat
+      // total. Testing total shields meant any LEAF card printing 3+ — Thorn,
+      // Trinezer, Dande, Sakuroot, Warden, Elderroot, i.e. the whole top of the
+      // element — could never gain anything from half of its own element aura,
+      // because it started at or over the line. Anchoring to printed shields
+      // gives every LEAF card the same 3 points of bark to earn, and lets one
+      // stripped bare regrow rather than being locked out for the game.
+      const barkCeiling = def.shields + LEAF_SHIELD_CAP;
+      if (card.hitsTakenThisRound > 0 && card.curShields < barkCeiling) {
+        const grown = Math.min(barkCeiling - card.curShields, card.hitsTakenThisRound);
         card.curShields += grown;
         draft.log.push(`${label(draft, card)}'s bark thickens where it was struck (+${grown} shield${grown > 1 ? "s" : ""}).`);
       }

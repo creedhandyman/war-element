@@ -5,6 +5,7 @@ import { advance } from "../phases";
 import { atCleanup, place, prepState } from "./helpers";
 import { LEAF_SHIELD_CAP } from "../auras";
 import { basicAttack } from "../combat";
+import { getDef } from "../../data/cards";
 import { MAX_ROUNDS } from "../types";
 
 describe("cleanup phase", () => {
@@ -252,6 +253,37 @@ describe("Photosynthesis: heal 2, and bark up where it was struck", () => {
     for (let i = 0; i < 4; i++) basicAttack(s, foe.instanceId, leaf.instanceId);
     const n = advance(atCleanup(s));
     expect(n.cards[leaf.instanceId].curShields).toBe(LEAF_SHIELD_CAP); // 2 + 4 clamped to 3
+  });
+
+  it("a LEAF card that PRINTS shields can still earn bark", () => {
+    // The regression this guards: the cap used to test TOTAL shields, so every
+    // LEAF card printing 3+ (Thorn, Trinezer, Dande, Sakuroot, Warden,
+    // Elderroot — the whole top of the element) started at or over the line and
+    // could never gain anything from half its own element aura. The ceiling is
+    // printed shields + cap, so every LEAF card has the same 3 bark to earn.
+    const s = prepState();
+    const printed = getDef("leaf_sakuroot").shields; // 4
+    expect(printed).toBeGreaterThanOrEqual(LEAF_SHIELD_CAP); // else this proves nothing
+    const leaf = place(s, "leaf_sakuroot", "P1", 3, 0, { curShields: printed, curHp: 40, maxHp: 40 });
+    const foe = place(s, "dusk_gool", "P2", 3, 1);
+    for (let i = 0; i < 2; i++) basicAttack(s, foe.instanceId, leaf.instanceId);
+    const n = advance(atCleanup(s));
+    // Two hits strip 2 shields (one per landed hit), then Photosynthesis banks
+    // 2 back — so what matters is that it grew at all above where it landed.
+    expect(n.cards[leaf.instanceId].curShields).toBeGreaterThan(printed - 2);
+    expect(n.cards[leaf.instanceId].curShields).toBeLessThanOrEqual(printed + LEAF_SHIELD_CAP);
+  });
+
+  it("...and the ceiling rides on printed shields, not a flat total", () => {
+    const s = prepState();
+    const printed = getDef("leaf_sakuroot").shields;
+    // Parked at the ceiling already: no amount of punishment adds more.
+    const leaf = place(s, "leaf_sakuroot", "P1", 3, 0, {
+      curShields: printed + LEAF_SHIELD_CAP, curHp: 40, maxHp: 40, hitsTakenThisRound: 5,
+    });
+    place(s, "dusk_gool", "P2", 0, 3);
+    const n = advance(atCleanup(s));
+    expect(n.cards[leaf.instanceId].curShields).toBe(printed + LEAF_SHIELD_CAP);
   });
 
   it("an untouched LEAF card banks nothing — it only heals", () => {

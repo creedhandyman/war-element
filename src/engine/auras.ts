@@ -19,7 +19,7 @@ export interface AuraDef {
 }
 
 export const ELEMENT_AURA: Record<Element, AuraDef> = {
-  LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP, and gain +1 shield per hit they took that round (max 3)." },
+  LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP, and gain +1 shield per hit they took that round — up to 3 above their printed shields." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
   BORE: { name: "Exostone", desc: "Enters play with +2 shields." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals a third of its DMG back to the killer." },
@@ -31,9 +31,13 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
 
 export const GALE_SP_CAP = 21;
 
-/** Photosynthesis stores at most this much armour. Uncapped, a LEAF card under
- *  sustained fire would plate up faster than it could be chewed through and the
- *  aura would stop being a comeback mechanic and start being a stall engine. */
+/** How much armour Photosynthesis may add ON TOP OF a card's printed shields.
+ *  Uncapped, a LEAF card under sustained fire would plate up faster than it
+ *  could be chewed through and the aura would stop being a comeback mechanic
+ *  and start being a stall engine.
+ *
+ *  This is a BONUS cap, not a total. Read as a total it silently excluded every
+ *  LEAF card printing 3+ shields from its own element aura. */
 export const LEAF_SHIELD_CAP = 3;
 
 /** Scorch stacks its BURN to here and no further. Uncapped, a multi-hit PYRO
