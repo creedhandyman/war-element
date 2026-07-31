@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard, SPECIAL_HANDLERS } from "../combat";
-import { advance } from "../phases";
+import { advance, applyIntent } from "../phases";
 import { boardCards, effectiveDmg, healCard } from "../state";
 import { getDef } from "../../data/cards";
 import {
@@ -115,6 +115,38 @@ describe("element matchups — healing", () => {
     const tgt = place(s, "leaf_hunter", "P1", 1, 0, { curHp: 1, maxHp: 40, curShields: 0 });
     basicAttack(s, atk.instanceId, tgt.instanceId);
     expect(s.cards[tgt.instanceId]).toBeUndefined();
+  });
+});
+
+describe("Gemaga's Magnetic Shield", () => {
+  it("plates every ally in range, not just the row ahead", () => {
+    // Fired end-to-end so rules.ts supplies the targets — the point of the
+    // change is that reach now comes from the normal ally-AOE path instead of a
+    // hardcoded rowAhead sweep, which missed allies beside and behind Gemaga.
+    const s = prepState();
+    s.players.P1.magicPool = 4;
+    const gem = place(s, "bore_gemaga", "P1", 3, 1);
+    const beside = place(s, "bore_armadillo", "P1", 3, 0); // same row — was missed before
+    const ahead = place(s, "bore_valcana", "P1", 2, 1); // row directly ahead
+    place(s, "dusk_gool", "P2", 0, 0);
+    s.phase = "battle";
+    s.prep = null;
+    s.battle = { queue: [gem.instanceId], index: 0, awaitingInput: gem.instanceId };
+    const next = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "special" });
+    for (const id of [beside.instanceId, ahead.instanceId]) {
+      expect(next.cards[id].reflectPower).toBe(1);
+      expect(next.cards[id].reflectRoundsLeft).toBe(2);
+    }
+  });
+
+  it("the granted REFLECT actually bounces damage back", () => {
+    const s = prepState();
+    const ally = place(s, "bore_armadillo", "P1", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 });
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30, curShields: 0 });
+    ally.reflectPower = 1;
+    ally.reflectRoundsLeft = 2;
+    basicAttack(s, foe.instanceId, ally.instanceId);
+    expect(30 - s.cards[foe.instanceId].curHp).toBe(1); // bitten back
   });
 });
 

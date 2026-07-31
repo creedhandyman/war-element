@@ -7723,14 +7723,14 @@ export const CARDS: CardDef[] = [
     shields: 2,
     // Dragon Born: gemstone scales REFLECT 2 damage back at attackers.
     keywords: { REFLECT: 2 },
-    // Magnetic Shield: grant the allies in the row directly ahead REFLECT 1.
+    // Magnetic Shield: plate every ally in range with REFLECT 1.
     special: {
       name: "Magnetic Shield",
       cost: 4,
       handler: "magneticShield",
-      params: { reflect: 1, rounds: 2 },
-      targetSide: "self",
-      text: "Give allies in the row directly ahead REFLECT 1 for 2 rounds.",
+      params: { targets: 99, reflect: 1, rounds: 2 },
+      targetSide: "ally",
+      text: "Give all allies in range REFLECT 1 for 2 rounds.",
     },
   },
   {

@@ -3219,19 +3219,22 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       draft.log.push(`${label(draft, attacker)} feeds and slips back into Lurk (+${num(params, "healOnKill", 5)} HP, STEALTH).`);
     }
   },
-  /** Magnetic Shield (Gemaga): grant allies in the row directly ahead a timed
-   *  REFLECT — they bounce a bite back at whoever hits them. */
-  magneticShield(draft, attacker, _targets, params) {
-    if (!attacker.pos) return;
-    const row = rowAhead(attacker.owner, attacker.pos.row);
+  /** Magnetic Shield (Gemaga): grant every ally IN RANGE a timed REFLECT — they
+   *  bounce a bite back at whoever hits them. Reads the passed `targets`
+   *  (targetSide "ally", params.targets 99) rather than sweeping a fixed row, so
+   *  reach is validated by rules.ts like every other AOE. Was row-directly-ahead
+   *  only, which missed anyone standing beside or behind the caster. The
+   *  `targets` cap is kept general so the same handler can serve a capped
+   *  version later. */
+  magneticShield(draft, attacker, targets, params) {
     const power = num(params, "reflect", 1);
     const rounds = num(params, "rounds", 2);
-    const allies = boardCards(draft, attacker.owner).filter((a) => a.curHp > 0 && a.pos?.row === row);
+    const allies = targets.slice(0, num(params, "targets", 99)).filter((a) => a.curHp > 0);
     for (const a of allies) {
       a.reflectPower = Math.max(a.reflectPower ?? 0, power);
       a.reflectRoundsLeft = Math.max(a.reflectRoundsLeft ?? 0, rounds);
     }
-    draft.log.push(`${label(draft, attacker)} magnetizes ${allies.length} ally(ies) ahead (REFLECT ${power} for ${rounds}r).`);
+    draft.log.push(`${label(draft, attacker)} magnetizes ${allies.length} ally(ies) (REFLECT ${power} for ${rounds}r).`);
   },
   /** Ultra Power Gauntlets (Velvolt Knight): a timed loadout — +DMG, FLIGHT, and
    *  basics clip one extra adjacent target, all for `rounds`. */
