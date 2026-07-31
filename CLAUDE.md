@@ -1,0 +1,196 @@
+# War Element — Notes for Claude
+
+If you're a fresh Claude session opening this repo, read this first. It's the
+handoff doc, not user-facing copy — the README is the player-facing one.
+
+**This project is independent of `creed-app`.** Different repo, different
+remote, different owner-facing product. Nothing here touches creed-app's
+deploy path, and creed-app's conventions (its `.bb`/`.cd` CSS classes, its
+Supabase/db helpers, its CLAUDE.md) do **not** apply here. If you were sent
+here from a creed-app session, drop those assumptions.
+
+## What this is
+
+A TCG × chess card game. Draw → resource → turn-based prep → speed-queue
+battle → win by **elimination** or **slot capture**. One local human (P1,
+bottom) vs. a rule-based AI (P2, top).
+
+Vite 6 + React 19 + TypeScript. Repo at `C:\Users\IlIKingPin\war-element`,
+remote `github.com/creedhandyman/war-element`. Supabase is a dependency but
+the game itself is local-first; the engine has no network calls.
+
+**Deploy**: `.github/workflows/deploy.yml` auto-deploys `main` to Vercel
+production. **The workflow runs `npm test` as a gate** — a failing test blocks
+the deploy. Card art is in Git LFS (~837MB) and the workflow caches it, so
+don't casually re-add large binaries.
+
+## Layout
+
+```
+src/
+  engine/          Pure TypeScript. No React imports anywhere in here.
+    types.ts       CardDef / CardInstance / GameState / StatusKind. The contract.
+    cards.ts       → actually lives in src/data/, see below
+    state.ts       createInitialState, boardCards, healCard, effectiveDmg/Sp/MaxHp
+    phases.ts      The phase machine: mulligan → prep → battle → CLEANUP. Big.
+    combat.ts      resolveHit / basicAttack + the SPECIAL_HANDLERS registry. Biggest.
+    rules.ts       Legality: canTarget, canMove, legalMoves, validTargets
+    auras.ts       ELEMENT_AURA — the per-element passive every card of it carries
+    matchups.ts    ELEMENT_MATCHUP — the cross-element rules (see below)
+    spells.ts      Spellbook + spell defs + spellCapForBoard
+    ai.ts          aiMulligan / aiPrepIntent / chooseBattleAction
+    rng.ts         Seeded RNG — coin/chance/pctChance/randInt/shuffle
+    stats.ts       Post-match credit tracking
+    __tests__/     29 files, ~850 tests. `npm test` runs them headless.
+  data/
+    cards.ts       THE card database. ~9k lines, 312 cards + 16 tokens. Edit surgically.
+  ui/              React. App/Board/Slot/Hand/CardDetail/DeckBuilder/…
+public/cards/      <id>.webp per card (Git LFS)
+```
+
+`src/data/cards.ts` is the file you'll touch most. It is enormous — **never
+rewrite it, only make targeted edits.** For bulk stat changes across several
+cards, an id-anchored Python pass is safer than a dozen hand edits (find the
+card's `id: "..."`, slice to the next `\n  {\n`, regex within that block only).
+
+## Commands
+
+```
+npm run dev     # Vite on 5173 by default
+npm test        # vitest run — the whole suite, ~6s
+npm run build   # tsc --noEmit && vite build
+```
+
+Preview via the launch.json entry named `war-element`, which pins
+**port 5199** (`--port 5199 --strictPort`). A bare `npm run dev` does NOT pass
+that flag and lands on 5173 — the two disagree, so know which one you started.
+
+## The rules that keep the card set coherent
+
+**Stat budget.** `dmg*hits + hp + shields*2 + sp ≈ 5*cost + 10`, tolerance ±2.
+Enforced by `state.test.ts`. A card outside the band needs an entry in that
+file's `exceptions` Set **with a comment naming the ability that pays for the
+deviation**. Don't add exceptions to silence the test — if you can't name the
+payoff, the stats are wrong.
+
+Note the `+10` constant: cheaper cards are inherently more efficient per gold
+(a cost-3 gets 25 points for 3, a cost-5 gets 35 for 5). Rebasing a card down
+a cost tier and retrimming to the new budget is therefore a real buff to
+tempo/deployment even though the card gets numerically smaller. That's the
+lever used on LEAF's mid-range.
+
+**Rarity.** A *repeatable* Special requires epic-or-above. A Rare gets a
+**Talent** instead — `special: { talent: true, … }`, which is free but fires
+once per game (`card.talentUsed`).
+
+**Art.** Every card and token needs `public/cards/<id-or-art-field>.webp`, and
+`art.test.ts` fails the build if one is missing. Convert supplied PNGs with
+PIL (`Image.open(p).convert("RGB").save(q, "WEBP", quality=88)`) then delete
+the source PNG. Watch for filename/id mismatches (`bolt_static_cloud.png` vs
+id `bolt_staticcloud`).
+
+**Card text.** `card-text.test.ts` enforces that every ability field is
+described somewhere in `CardDetail.tsx`'s describers — add a new `CardDef`
+field and that test will tell you it's undescribed. It also guards against
+empty passive labels (`"On a kill: ."`), which is how several describer gaps
+were originally found.
+
+## Element systems
+
+Two separate layers, don't confuse them:
+
+- **`auras.ts` — ELEMENT_AURA**: the passive every card of that element
+  carries (LEAF Photosynthesis, PYRO Scorch, BOLT Electrify…). The table is
+  display copy; the effects live at hook sites, mostly the Cleanup loop in
+  `phases.ts`.
+- **`matchups.ts` — ELEMENT_MATCHUP**: how elements answer *each other*.
+  Hooks at four sites — `resolveHit` (the DAWN↔DUSK ±25% swing, GALE's 20%
+  dodge vs BORE, LEAF's water-fed heal), `applyStatus` (AQUA/BORE/GALE status
+  resistances), `healCard` (a BURNing card heals at 75%).
+
+Two design invariants there, both deliberate and both commented in the file:
+**resistances, never immunities** (an immunity deletes an entire aura in one
+matchup rather than answering it), and the damage bonus is **floored, not
+rounded** (`Math.round(2 * 1.25) === 3` is a 50% swing that a 3-hit volley
+then compounds).
+
+`ELEMENT_MATCHUP` is deliberately `Partial<Record<Element, …>>` — BOLT has no
+entry, because its aura already answers status-carriers and it measured top of
+the ladder.
+
+**Not yet done:** the matchup table isn't surfaced in the card inspector the
+way `ELEMENT_AURA` is. Players feel these rules without being told them.
+
+## Measuring balance
+
+There's no committed balance harness — build a disposable one, read it, delete
+it. Convention: name it `src/engine/__tests__/zzz-*.test.ts` so it sorts last
+and is obviously temporary, and **delete it before committing**.
+
+Drive matches through the public intent API exactly as `ai.test.ts` does:
+`createInitialState` → loop `needsP1Input(s) ? driveP1(s) : advance(s)` until
+`s.phase === "gameover"`. Copy `driveP1` from `ai.test.ts` — it handles the
+`FLOW_CHANGE` / `MULLIGAN` / `prep` / `battle` branches.
+
+Two traps that have both burned real time:
+
+1. **`deckById()` silently falls back to `DECKS[0]`** for any id it doesn't
+   recognize — including the solo-element core ids (`"leaf"`, `"pyro"`, …),
+   which live in `CORES`, not `DECKS`. A harness passing core ids therefore
+   runs leaf_pyro-vs-leaf_pyro every match and reports a meaningless flat 50%
+   across the board. **Pass `CORES[i].cards` (the string array) directly.**
+   The fallback itself is still in the code — a latent bug worth fixing if any
+   other caller ever passes an unrecognized id.
+2. **`state.win` is `{ winner, by }`, not a player string.** `end.win === "P1"`
+   is always false and every element reports 0%.
+
+A full 8-core round-robin, both seats, 14 seeds = 784 matches ≈ 40s.
+
+### Where balance stood at last measure
+
+```
+dusk 56.1 · bolt 55.1 · aqua 53.1 · pyro 51.0
+dawn 50.5 · gale 49.0 · bore 47.4 · leaf 37.8     spread 18.3
+```
+
+**LEAF is the standing problem.** Four passes (stat top-ups → roots →
+mid-range cost cuts → matchups) moved it 34.2 → 37.8, roughly a point each.
+What the diagnostics showed: it wasn't losing a positional race, it was being
+*wiped* — ending matches with 0.75 cards alive to AQUA's 5.50 while holding
+**more unspent gold than its opponent**. The cost rebase fixed most of the
+board-presence collapse (0.75 → 2.51 alive); the win rate barely followed. The
+remaining hypothesis, untested: LEAF's payoffs are overwhelmingly end-of-round
+ticks and heals, which resolve *after* the exchange that decided the slot.
+
+Premade-deck (not solo-core) numbers are stale — they predate the Warthog /
+Rollo / Zombination / Doom changes and everything since.
+
+## Working style
+
+- **Commits land directly on `main`.** No PRs. Push triggers the deploy.
+- **Verify before committing**: `npx tsc --noEmit`, then `npm test`, then
+  `npx vite build`. All three, in that order.
+- **Don't blind-update a failing test to match new output.** When a balance
+  change breaks assertions, check the actual card elements/stats involved and
+  confirm the new number is *right*. Doing this is how the DAWN↔DUSK rounding
+  bug and the heal-before-cleanse ordering bug were both caught — the tests
+  were correct and the implementation wasn't.
+- **Don't run destructive git** (force-push, `reset --hard`) without an
+  explicit ask.
+- Commit messages: explain *why* the numbers moved and quote the measurement
+  when there is one.
+
+## Open threads
+
+- LEAF still ~9 points below the field (see above).
+- `ELEMENT_MATCHUP` has no UI surface.
+- `deckById`'s silent fallback (see Measuring balance).
+- Spell curve expansion — the big queued feature. Today's `spells.ts` has the
+  cost-1 spell per element + the 8 cost-4 Walls + some Fields; the spec covers
+  a full 1–10 curve per element (80 spells) plus **Trap** (hidden, fires when
+  an opponent moves onto the slot) and **Field** sub-types. Spec lives in
+  `Spells_All_Elements.md` + `PYRO_Spells_Prototype.md` (Downloads).
+- Card ability source-of-truth is
+  `Desktop\Everything\war element\*_Cards.docx` + `War_Element_Rules.docx` —
+  the full printed abilities, which the alpha `cards.ts` simplified. Extract
+  with `unzip -p X.docx word/document.xml`.
