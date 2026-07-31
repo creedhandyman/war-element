@@ -2078,9 +2078,15 @@ function doCleanupPhase(draft: GameState): void {
       // every round, so it always took the heal branch and never reached full
       // health to bank anything. The armour paid out only when it was already
       // winning the exchange. Now it pays when it is losing one.
+      // ONE SHIELD PER HIT, not one per round. It used to bank a flat +1 no
+      // matter how hard the round went, so a LEAF card hit three times was
+      // armoured exactly as well as one grazed once — which read as the aura
+      // being broken. Scales like Squanch's Regenerative below, which is the
+      // same idea and always did count hits.
       if (card.hitsTakenThisRound > 0 && card.curShields < LEAF_SHIELD_CAP) {
-        card.curShields += 1;
-        draft.log.push(`${label(draft, card)}'s bark thickens where it was struck (+1 shield).`);
+        const grown = Math.min(LEAF_SHIELD_CAP - card.curShields, card.hitsTakenThisRound);
+        card.curShields += grown;
+        draft.log.push(`${label(draft, card)}'s bark thickens where it was struck (+${grown} shield${grown > 1 ? "s" : ""}).`);
       }
     }
     // The Cost-10 permanent engines (Mountain's Fall, Eternal Dawn, Tsunami,

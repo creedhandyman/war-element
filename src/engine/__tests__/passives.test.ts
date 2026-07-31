@@ -123,9 +123,9 @@ describe("medium-tier passives (audit batch)", () => {
 
   it("Squanch's Regenerative banks enemy hits and cashes them in at Cleanup", () => {
     const s = prepState();
-    // Squanch is LEAF as well as Regenerative, and Photosynthesis now also banks
-    // a shield on a round it was hit — so a struck Squanch draws from BOTH. The
-    // two are counted separately below rather than folded together.
+    // Squanch is LEAF as well as Regenerative, so a struck Squanch draws from
+    // BOTH — and since Photosynthesis now counts hits too, two hits pay twice
+    // from each. The two are counted separately below rather than folded.
     const sq = place(s, "leaf_squanch", "P1", 3, 0, { curShields: 0, curHp: 20, maxHp: 23 });
     const foe = place(s, "dusk_gool", "P2", 3, 1);
     basicAttack(s, foe.instanceId, sq.instanceId);
@@ -133,7 +133,9 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[sq.instanceId].hitsTakenThisRound).toBe(2);
     expect(s.cards[sq.instanceId].curShields).toBe(0); // nothing yet — it pays at end of round
     const next = advance(atCleanup(s));
-    expect(next.cards[sq.instanceId].curShields).toBe(3); // 2 Regenerative + 1 Photosynthesis
+    // Photosynthesis fires first (2 hits → +2, capped at 3), then Regenerative
+    // adds its own 1-per-hit (cap 5) → 4.
+    expect(next.cards[sq.instanceId].curShields).toBe(4);
     expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
   });
 

@@ -232,6 +232,28 @@ describe("Photosynthesis: heal 2, and bark up where it was struck", () => {
     expect(n.cards[leaf.instanceId].curShields).toBe(1);
   });
 
+  it("...one shield PER HIT, so a heavy round armours harder", () => {
+    // The whole point of the trigger. It used to bank a flat +1 however many
+    // times the card was struck, so three hits armoured exactly as well as one
+    // — which read from the outside as the aura not firing.
+    const s = prepState();
+    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0, curHp: 40, maxHp: 40 });
+    const foe = place(s, "dusk_gool", "P2", 3, 1);
+    for (let i = 0; i < 3; i++) basicAttack(s, foe.instanceId, leaf.instanceId);
+    expect(s.cards[leaf.instanceId].hitsTakenThisRound).toBe(3);
+    const n = advance(atCleanup(s));
+    expect(n.cards[leaf.instanceId].curShields).toBe(3);
+  });
+
+  it("...but never past the cap, however many hits land", () => {
+    const s = prepState();
+    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 2, curHp: 40, maxHp: 40 });
+    const foe = place(s, "dusk_gool", "P2", 3, 1);
+    for (let i = 0; i < 4; i++) basicAttack(s, foe.instanceId, leaf.instanceId);
+    const n = advance(atCleanup(s));
+    expect(n.cards[leaf.instanceId].curShields).toBe(LEAF_SHIELD_CAP); // 2 + 4 clamped to 3
+  });
+
   it("an untouched LEAF card banks nothing — it only heals", () => {
     const s = prepState();
     const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0, curHp: 5, maxHp: 14 });
