@@ -3,6 +3,7 @@
 
 import { getDef, deckById } from "../data/cards";
 import { coin, shuffle } from "./rng";
+import { BURN_HEAL_MULT } from "./matchups";
 import { spellCapForBoard, spellbookFor, spellbookFromIds } from "./spells";
 import { creditHeal, emptyStats } from "./stats";
 import type {
@@ -234,7 +235,13 @@ export function healCard(state: GameState, card: CardInstance, amount: number, b
   const before = card.curHp;
   // Root Growth (OAK): drinks in double (or more) from every healing source.
   const mult = getDef(card.defId).healReceivedMult ?? 1;
-  card.curHp = Math.min(effectiveMaxHp(state, card), card.curHp + amount * mult);
+  // Searing (PYRO matchup): a BURNing card heals at 75% — wounds don't close
+  // while they cook. Floored rather than rounded so the penalty can't vanish on
+  // small heals, but never below 1 on a heal that was going to land at all.
+  const burned = hasStatus(card, "BURN");
+  const gross = amount * mult;
+  const net = burned ? Math.max(1, Math.floor(gross * BURN_HEAL_MULT)) : gross;
+  card.curHp = Math.min(effectiveMaxHp(state, card), card.curHp + net);
   const healed = card.curHp - before;
   // Credit the HEALER (`by`) and the recipient separately. `by` used to default
   // to the recipient, which quietly filed every unattributed heal as the

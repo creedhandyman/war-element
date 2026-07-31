@@ -644,8 +644,9 @@ describe("WarPhant — Trample Through (Prep) and the reworked Battle Charge", (
     const n = applyIntent(battleFor2(s, wp.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: first.instanceId,
     });
-    expect(99 - n.cards[first.instanceId].curHp).toBe(10);
-    expect(99 - n.cards[behind.instanceId].curHp).toBe(7);
+    // 10 and 7, each +25% DAWN->DUSK.
+    expect(99 - n.cards[first.instanceId].curHp).toBe(12);
+    expect(99 - n.cards[behind.instanceId].curHp).toBe(8);
     expect(n.cards[wp.instanceId].pos).toEqual({ row: 2, col: 1 }); // rumbled forward
   });
 
@@ -657,7 +658,7 @@ describe("WarPhant — Trample Through (Prep) and the reworked Battle Charge", (
     const n = applyIntent(battleFor2(s, wp.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: first.instanceId,
     });
-    expect(99 - n.cards[first.instanceId].curHp).toBe(10);
+    expect(99 - n.cards[first.instanceId].curHp).toBe(12); // 10, +25% DAWN->DUSK
     expect(n.cards[first.instanceId].pos).toEqual({ row: 0, col: 1 }); // driven back
   });
 
@@ -670,7 +671,7 @@ describe("WarPhant — Trample Through (Prep) and the reworked Battle Charge", (
     const n = applyIntent(battleFor2(s, wp.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: first.instanceId,
     });
-    expect(99 - n.cards[first.instanceId].curHp).toBe(10);
+    expect(99 - n.cards[first.instanceId].curHp).toBe(12); // 10, +25% DAWN->DUSK
     expect(n.cards[gapped.instanceId].curHp).toBe(99); // a row 1 gap shields it
   });
 

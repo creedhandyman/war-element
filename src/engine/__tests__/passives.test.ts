@@ -1157,14 +1157,14 @@ describe("medium-tier passives (audit batch)", () => {
     const killer = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
     basicAttack(s, killer.instanceId, ally.instanceId);
     expect(s.cards[ally.instanceId]).toBeUndefined();
-    expect(s.cards[killer.instanceId].curHp).toBe(9); // 4 back from Shine
+    expect(s.cards[killer.instanceId].curHp).toBe(8); // 4 back from Shine, +25% DAWN→DUSK
     expect(statusOf(s.cards[killer.instanceId], "BLIND")?.duration).toBe(3);
     // A second ally falls — the one-shot is already spent.
     s.cards[killer.instanceId].statuses = []; // clear that BLIND so the kill is reliable
     const ally2 = place(s, "bore_armadillo", "P1", 2, 1, { curHp: 2, curShields: 0 });
     basicAttack(s, killer.instanceId, ally2.instanceId);
     expect(s.cards[ally2.instanceId]).toBeUndefined();
-    expect(s.cards[killer.instanceId].curHp).toBe(9); // no second answer
+    expect(s.cards[killer.instanceId].curHp).toBe(8); // unchanged — no second answer
   });
 
   it("Dirt Driller hides Obsidi, speeds it underground, and erupts once", () => {

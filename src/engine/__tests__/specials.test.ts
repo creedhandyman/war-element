@@ -190,8 +190,8 @@ describe("firing specials", () => {
       action: "special",
       targetIds: [t1.instanceId, t1.instanceId, t1.instanceId, t2.instanceId], // stack 3 on t1
     });
-    expect(next.cards[t1.instanceId].curHp).toBe(8); // 3 strikes × 4
-    expect(next.cards[t2.instanceId].curHp).toBe(16); // 1 strike
+    expect(next.cards[t1.instanceId].curHp).toBe(5); // 3 strikes × 5 (4, +25% DAWN→DUSK)
+    expect(next.cards[t2.instanceId].curHp).toBe(15); // 1 strike
     expect(next.cards[star.instanceId]).toBeTruthy();
     expect(next.log.filter((l) => l.includes("Smith")).length).toBe(0);
   });
@@ -584,9 +584,10 @@ describe("AQUA / DAWN handlers", () => {
       action: "special",
       targetIds: [t1.instanceId, t2.instanceId, t3.instanceId],
     });
-    expect(next.cards[t1.instanceId].curHp).toBe(9);
-    expect(next.cards[t2.instanceId].curHp).toBe(2);
-    expect(next.cards[t3.instanceId].curHp).toBe(15);
+    // 4 DMG, +25% DAWN→DUSK = 5 to each.
+    expect(next.cards[t1.instanceId].curHp).toBe(8);
+    expect(next.cards[t2.instanceId].curHp).toBe(1);
+    expect(next.cards[t3.instanceId].curHp).toBe(14);
     for (const t of [t1, t2, t3])
       expect(next.cards[t.instanceId].statuses[0]?.kind).toBe("BLIND");
     expect(next.players.P1.magicPool).toBe(3); // fired exactly once (cost 2)

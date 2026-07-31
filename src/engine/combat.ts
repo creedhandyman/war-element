@@ -16,6 +16,7 @@ import { getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget } from "./rules";
 import { PYRO_BURN_STACK_CAP, hasElementAura } from "./auras";
+import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
 import type {
@@ -198,7 +199,12 @@ export function applyStatus(
   // extra round on them. Added HERE so it covers every source at once — basics,
   // Specials, spells, walls and round-ticks all funnel through applyStatus.
   const extend = fieldStatusExtend(draft, target, kind);
-  const dur = duration + extend;
+  // Element matchup resistances (AQUA vs BURN, BORE vs ELECTRIFIED/PARALYZE,
+  // GALE vs ELECTRIFIED). Applied to the PRINTED duration, before the field
+  // extension, so Lushfield still adds its full round on top of a resisted
+  // status rather than being halved along with it.
+  const resisted = matchupStatusDuration(getDef(target.defId).element, kind, duration);
+  const dur = resisted + extend;
   const fresh = { kind, duration: dur, power, source };
   const existing = target.statuses.findIndex((s) => s.kind === kind);
   if (existing >= 0) target.statuses[existing] = fresh;
@@ -207,7 +213,7 @@ export function applyStatus(
   // reflects control that actually landed rather than control attempted.
   if (NEGATIVE_STATUSES.includes(kind)) creditDebuff(draft.stats, target);
   draft.log.push(
-    `${label(draft, target)} is afflicted: ${kind}${power ? ` ${power}` : ""} (${dur}r)${extend ? " +field" : ""}${existing >= 0 ? " (refreshed)" : ""}.`,
+    `${label(draft, target)} is afflicted: ${kind}${power ? ` ${power}` : ""} (${dur}r)${resisted < duration ? " — resisted" : ""}${extend ? " +field" : ""}${existing >= 0 ? " (refreshed)" : ""}.`,
   );
   // FRIGHTEN is a positioning effect: forced retreat 1 slot back toward the
   // target's own home row, if that slot is open (can also push an invader
@@ -723,6 +729,20 @@ export function resolveHit(
       continue;
     }
 
+    // 1a. Untouchable (GALE vs BORE): the wind slips the stone. A matchup dodge
+    // rather than a keyword, so it stacks with nothing and re-rolls per hit.
+    // Reflect isn't an attack, and the usual alwaysHit/neverMiss overrides beat
+    // it like every other dodge above.
+    if (
+      opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !fieldNeverMiss &&
+      pctChance(draft, dodgesByMatchup(aDef.element, tDef.element))
+    ) {
+      result.dodgedHits++;
+      target.fxMiss = (target.fxMiss ?? 0) + 1;
+      draft.log.push(`${label(draft, target)} rides the wind clear of ${aDef.name}'s attack.`);
+      continue;
+    }
+
     // 1b. Rocky Force Field (Rhe): coin-flip chance to shrug off a RANGED hit.
     if (
       opts.kind !== "reflect" &&
@@ -740,7 +760,10 @@ export function resolveHit(
 
     // 2. BLOCK — flat reduction, applies before shields and even to PEN. Adds
     //    the card's own BLOCK to any friendly wall reduction (Stone/Radiant).
-    let remaining = opts.dmg;
+    // Element matchup swing (DAWN↔DUSK, +25% each way). Applied to the base
+    // damage before every flat rider below, so the bonus scales the printed
+    // attack rather than the accumulated total.
+    let remaining = applyMatchupDamage(aDef.element, tDef.element, opts.dmg);
     // War Mount (RohoJohn): the mount mauls whatever the Ranger stands beside —
     // its BASIC hits an ADJACENT target for extra. Applied here rather than in
     // effectiveDmg because it depends on the TARGET's distance, which
@@ -845,6 +868,14 @@ export function resolveHit(
     target.curHp -= toHp;
     result.landedHits++;
     result.totalToHp += toHp;
+
+    // Well Watered (LEAF vs AQUA): the rain feeds it. Drunk per LANDED hit,
+    // after the damage, and only while it's still standing — a killing blow
+    // doesn't water a corpse back up.
+    if (tDef.element === "LEAF" && aDef.element === "AQUA" && target.curHp > 0) {
+      const drank = healCard(draft, target, LEAF_WATER_HEAL, target);
+      if (drank > 0) draft.log.push(`${label(draft, target)} drinks in ${aDef.name}'s water (+${drank} HP).`);
+    }
 
     // 5 (per landed hit). REFLECT accumulates; resolved after the volley.
     const grantedReflect = (target.reflectRoundsLeft ?? 0) > 0 ? (target.reflectPower ?? 0) : 0;
@@ -3420,7 +3451,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // only negative statuses + negative timed stat changes, keeping ally buffs.
     const cleanseNeg = num(params, "cleanseNegatives", 0) > 0;
     for (const ally of targets.slice(0, n)) {
-      if (amount > 0 && healCard(draft, ally, amount, attacker) > 0) healed++;
+      // Cleanse BEFORE healing. A BURNing card heals at 75% (the PYRO matchup),
+      // and an effect whose whole job is to strip that burn shouldn't be taxed
+      // by the burn it is in the middle of removing — put the fire out, then
+      // treat the wound.
       if (doCleanse && ally.statuses.length) ally.statuses = [];
       else if (cleanseNeg) {
         ally.statuses = ally.statuses.filter((st) => !NEGATIVE_STATUSES.includes(st.kind));
@@ -3428,6 +3462,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         if (ally.dmgBonusRound < 0) ally.dmgBonusRound = 0;
         if (ally.spBonusRound < 0) ally.spBonusRound = 0;
       }
+      if (amount > 0 && healCard(draft, ally, amount, attacker) > 0) healed++;
       if (buffDmg > 0 || buffSp > 0) applyTimedBuff(ally, buffDmg, buffSp, buffRounds);
     }
     if (buffDmg > 0 || buffSp > 0)

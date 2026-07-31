@@ -110,8 +110,11 @@ describe("cleanup phase", () => {
     });
     place(s, "dusk_gool", "P2", 0, 1);
     const next = advance(atCleanup(s));
-    // 2 -1 (BURN) +2 (REGEN) +2 (LEAF Photosynthesis aura) = 5
-    expect(next.cards[t.instanceId].curHp).toBe(5);
+    // 2 -1 (BURN) +1 (REGEN 2, taxed to 1) +1 (LEAF aura 2, taxed to 1) = 3.
+    // Searing (PYRO matchup): a BURNing card heals at 75%, and both heals here
+    // land while the burn is still on it — the tank still survives, but the
+    // burn now genuinely outpaces part of its regen.
+    expect(next.cards[t.instanceId].curHp).toBe(3);
   });
 
   it("the LEAF alpha aura gives +2 HP at end of round (LEAF cards only)", () => {

@@ -274,7 +274,7 @@ describe("Bird Bomb only catches a killer standing in the blast", () => {
     const crow = place(s, "dusk_crow", "P2", 2, 1, { curHp: 1, curShields: 0 });
     basicAttack(s, killer.instanceId, crow.instanceId);
     expect(s.cards[crow.instanceId]).toBeUndefined();
-    expect(30 - s.cards[killer.instanceId].curHp).toBe(5);
+    expect(30 - s.cards[killer.instanceId].curHp).toBe(6); // 5, +25% DUSK→DAWN
   });
 
   it("...and one shooting from further off does not", () => {

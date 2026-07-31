@@ -716,12 +716,15 @@ function resolveSpell(
     const rooted = boardCards(draft, enemyOf(player)).some((c) => hasStatus(c, "ROOT"));
     const healAmt = rooted && spell.allyHealIfRooted ? spell.allyHealIfRooted : spell.allyHeal ?? 0;
     for (const ally of targets) {
+      // Cleanse first, then heal — a BURNing card heals at 75% (the PYRO
+      // matchup), and a spell that strips the burn shouldn't be taxed by the
+      // burn it removes. Matches the `heal` Special handler's ordering.
+      if (spell.cleanse) cleanseCard(ally, spell.cleanse);
       if (healAmt > 0) healCard(draft, ally, healAmt, player);
       if (spell.allyShield) ally.curShields += spell.allyShield;
       if (spell.allySp) ally.spBonus += spell.allySp;
       if (spell.allyStatus)
         applyStatus(draft, ally, spell.allyStatus.kind, spell.allyStatus.duration, spell.allyStatus.power, spell.element);
-      if (spell.cleanse) cleanseCard(ally, spell.cleanse);
     }
     const who = targets.length === 1 ? label(draft, targets[0]) : `${targets.length} ${spell.element} allies`;
     draft.log.push(`${spell.name} bolsters ${who}.`);
