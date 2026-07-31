@@ -196,10 +196,10 @@ export const CARDS: CardDef[] = [
       name: "Bushwhacker",
       cost: 2,
       handler: "strike",
-      // "6 DMG to one opponent AND ROOT all opponents adjacent to Squanch 2r"
-      params: { dmg: 6, adjStatusKind: "ROOT", adjStatusDuration: 2 },
+      // "6 DMG to one opponent AND ROOT all opponents adjacent to Squanch 3r"
+      params: { dmg: 6, adjStatusKind: "ROOT", adjStatusDuration: 3 },
       targetSide: "enemy",
-      text: "Deal 6 DMG and ROOT every opponent adjacent to Squanch for 2 rounds.",
+      text: "Deal 6 DMG and ROOT every opponent adjacent to Squanch for 3 rounds.",
     },
   },
   {
@@ -3486,9 +3486,13 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 5,
     keywords: {},
-    // Basic attacks entangle: ROOT the target (SP→0, can't move) for a round.
+    // Basic attacks entangle: ROOT the target (SP→0, can't move) for 2 rounds.
+    // Duration 2, not 1: a ROOT applied in Battle with duration 1 is ticked away
+    // by the same Cleanup, so it expires before the victim's next Prep and never
+    // stops a single move. Every "roots for a round" on a battle-applied source
+    // was a no-op — see the same note on Fallow's critStatus.
     passiveNames: { onHitStatus: "Basic attacks entangle" },
-    onHitStatus: { kind: "ROOT", duration: 1, power: 0 },
+    onHitStatus: { kind: "ROOT", duration: 2, power: 0 },
     // Ancient grove: LEAF allies gain +3 max HP while it lives (non-stacking).
     aura: { scope: "element", maxHp: 3 },
     special: {
@@ -4980,9 +4984,12 @@ export const CARDS: CardDef[] = [
     // Acorn Drop: every hit OAK takes sprouts an Acorn — a 2/3/3 seedling that
     // Seed-Rolls one slot forward each round. Root Growth: OAK drinks in 2× from
     // every healing source (REGEN, aura heals, ally lifesteal…).
-    passiveNames: { spawnOnHitTaken: "Acorn Drop", healReceivedMult: "Root Growth" },
+    // Taproot: a landed basic ROOTs for 2 rounds — a planted SP-0 tree that
+    // can't chase needs the enemy to stop coming to it.
+    passiveNames: { spawnOnHitTaken: "Acorn Drop", healReceivedMult: "Root Growth", onHitStatus: "Taproot" },
     spawnOnHitTaken: { token: "leaf_acorn_tok", count: 1 },
     healReceivedMult: 2,
+    onHitStatus: { kind: "ROOT", duration: 2, power: 0 },
     // Rares carry Talents, not repeatable Specials: free, but once per game.
     // Reroot: a planted SP-0 tree uproots and marches up to 3 slots forward.
     talent: {
@@ -5167,8 +5174,12 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Constriction: while adjacent to an opponent, drains 2 HP from it at end of
     // round (deal 2, heal 2) — a squeeze that doesn't need to swing.
-    passiveNames: { roundTick: "Constriction" },
+    // Coil Hold: the squeeze also pins — a landed basic ROOTs for 2 rounds. A
+    // constrictor that its victim can simply stroll away from was the odd one
+    // out in a pool whose whole answer to a capture race is holding bodies still.
+    passiveNames: { roundTick: "Constriction", onHitStatus: "Coil Hold" },
     roundTick: { drainAdjacent: 2 },
+    onHitStatus: { kind: "ROOT", duration: 2, power: 0 },
   },
   {
     id: "leaf_weeds",
@@ -6381,16 +6392,19 @@ export const CARDS: CardDef[] = [
     // LEAF allies +4 each round.
     passiveNames: { rootFastest: "Grounded", roundHealElement: "Season's Bloom" },
     roundTick: { rootFastest: 2, roundHealElement: { element: "LEAF", amount: 4 } },
-    // Spiraling Root Coil: ROOT up to 4 in the adjacent row for 2 rounds NOW; the
-    // roots creep on to ROOT up to 4 in the far row for 1 round NEXT round.
+    // Spiraling Root Coil: ROOT up to 4 in the adjacent row for 3 rounds NOW; the
+    // roots creep on to ROOT up to 4 in the far row for 2 rounds NEXT round.
+    // The far-row duration was 1, which was a no-op: the delayed roots are
+    // applied early in Cleanup, BEFORE the status tick, so a 1-round root was
+    // stripped by the same Cleanup that laid it and never reached a Prep.
     special: {
       name: "Spiraling Root Coil",
       cost: 4,
       handler: "barrage",
-      params: { dmg: 0, rowAhead: 1, targets: 4, statusKind: "ROOT", statusDuration: 2, farRowRootNext: 1, farRowRootCount: 4, farRowRootDuration: 1 },
+      params: { dmg: 0, rowAhead: 1, targets: 4, statusKind: "ROOT", statusDuration: 3, farRowRootNext: 1, farRowRootCount: 4, farRowRootDuration: 2 },
       targetSide: "enemy",
       ranged: true,
-      text: "ROOT up to 4 opponents in the adjacent row for 2 rounds. Next round, ROOT up to 4 in the far row for 1 round.",
+      text: "ROOT up to 4 opponents in the adjacent row for 3 rounds. Next round, ROOT up to 4 in the far row for 2 rounds.",
     },
   },
   {
@@ -7298,11 +7312,12 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Trapper: a snare bite on summon, on death, and on a landed basic — a hit
-    // has a 50% chance to ROOT the target for a round.
+    // has a 50% chance to ROOT the target for 2 rounds. (Duration 2 for the same
+    // reason as Elderroot: a 1-round battle-applied ROOT never survives to Prep.)
     passiveNames: { onSummon: "Trapper", onDeath: "Trapper", onHitStatus: "Trapper" },
     onSummon: { handler: "strike", params: { dmg: 1, reachNearest: 1 }, targetSide: "enemy" },
     onDeath: { dmg: 1 },
-    onHitStatus: { kind: "ROOT", duration: 1, power: 0, chance: 50 },
+    onHitStatus: { kind: "ROOT", duration: 2, power: 0, chance: 50 },
   },
   {
     id: "pyro_woof",
@@ -8126,8 +8141,10 @@ export const CARDS: CardDef[] = [
     // Moving Forest (End of Round): march forward one space if it's open (this
     // overrides its SP 0), and drop fruit — 3 DMG to the nearest opponent and
     // +3 HP to the lowest-HP ally.
-    passiveNames: { roundTick: "Moving Forest", healReceivedMult: "Root Growth" },
+    // Undergrowth: a landed basic ROOTs for 2 rounds.
+    passiveNames: { roundTick: "Moving Forest", healReceivedMult: "Root Growth", onHitStatus: "Undergrowth" },
     roundTick: { advance: 1, randomEnemyDmg: 3, healLowestAlly: 3 },
+    onHitStatus: { kind: "ROOT", duration: 2, power: 0 },
     // Root Growth: drinks in 2× from every healing source.
     healReceivedMult: 2,
   },
@@ -8151,14 +8168,14 @@ export const CARDS: CardDef[] = [
     passiveNames: { pushImmune: "Deep Roots", roundTick: "Petalfall" },
     pushImmune: true,
     roundTick: { healHomeRowElement: 2 },
-    // Petal Storm: 3 DMG to every opponent in the row directly ahead + ROOT 1.
+    // Petal Storm: 3 DMG to every opponent in the row directly ahead + ROOT 3.
     special: {
       name: "Petal Storm",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 3, targets: 99, rowAhead: 1, statusKind: "ROOT", statusDuration: 2 },
+      params: { dmg: 3, targets: 99, rowAhead: 1, statusKind: "ROOT", statusDuration: 3 },
       targetSide: "enemy",
-      text: "Deal 3 DMG to all opponents in the row directly ahead and ROOT them for 2 rounds.",
+      text: "Deal 3 DMG to all opponents in the row directly ahead and ROOT them for 3 rounds.",
     },
   },
   {

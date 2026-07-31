@@ -57,7 +57,7 @@ describe("firing specials", () => {
     expect(next.players.P1.magicPool).toBe(2);
   });
 
-  it("Squanch's Bushwhacker ROOTs every adjacent opponent for 2 rounds", () => {
+  it("Squanch's Bushwhacker ROOTs every adjacent opponent for 3 rounds", () => {
     const s = prepState();
     s.players.P1.magicPool = 3;
     const sq = place(s, "leaf_squanch", "P1", 2, 1); // Bushwhacker cost 2
@@ -72,8 +72,8 @@ describe("firing specials", () => {
     });
     const root = (id: string) => next.cards[id].statuses.find((x) => x.kind === "ROOT");
     expect(next.cards[primary.instanceId].curHp).toBe(14); // 6 DMG
-    expect(root(primary.instanceId)?.duration).toBe(2);
-    expect(root(beside.instanceId)?.duration).toBe(2);
+    expect(root(primary.instanceId)?.duration).toBe(3);
+    expect(root(beside.instanceId)?.duration).toBe(3);
     expect(root(far.instanceId)).toBeUndefined();
     expect(next.players.P1.magicPool).toBe(1);
   });
