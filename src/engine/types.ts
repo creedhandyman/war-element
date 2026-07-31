@@ -423,8 +423,10 @@ export interface CardDef {
   /** Sky Scout (Syt Bird): entering a Mid row lets allied basics hit +1 adjacent
    *  target for the round. */
   skyScout?: boolean;
-  /** Crack Shot (Sling): when this card's CRIT coin lands, the hit also PIERCES —
-   *  so the crit can fire against a shielded target and skip the shield. */
+  /** Crack Shot (Sling): exempts this card's CRIT from the shield gate. A normal
+   *  CRIT only rolls against an UNSHIELDED target; with this the coin is live
+   *  regardless, and a landed crit PIERCES (doubles, skips the shield entirely).
+   *  The exemption is the point — the piercing is what follows from it. */
   critPen?: boolean;
   /** Overcharge (Volta): basic attacks gain PEN while any allied card whose id is
    *  in this list is alive on the board. */
@@ -630,9 +632,6 @@ export interface CardDef {
   /** Incinerate (Sol): consecutive hits on the same target within a round deal
    *  +1 DMG per hit (the ramp climbs with each landed hit). */
   incinerate?: boolean;
-  /** Hillside (Hillbilly): when a basic attack lands, grant shields to allies in
-   *  the row directly ahead. `firstTimeOnly` = only the first landed attack. */
-  onHitAllyBuff?: { shields?: number; firstTimeOnly?: boolean };
   /** High Speed Impact (Hawk): +1 DMG per point of effective SP above 10. */
   highSpeedImpact?: boolean;
   /** Apex Predator (Stormfang): +1 DMG for every `per` SP above `above`. */
@@ -1022,8 +1021,6 @@ export interface CardInstance {
    *  and the damage each fires. Set by the Special. */
   turretRoundsLeft?: number;
   turretDmg?: number;
-  /** One-shot guard for a firstTimeOnly onHitAllyBuff (Hillbilly's Hillside). */
-  onHitBuffFired: boolean;
   /** How many times a capped `buffDmgEveryN` ramp has fired (Storm's Supercell
    *  stops after `maxTicks` rounds). Absent = never ramped. */
   rampTicks?: number;

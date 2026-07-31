@@ -1553,18 +1553,6 @@ export function basicAttack(
     attacker.rampDmg = (attacker.rampDmg ?? 0) + aDef.onHitRampUntilSpecial;
     draft.log.push(`${label(draft, attacker)}'s Volcanic Fury builds (+${aDef.onHitRampUntilSpecial} DMG until Special).`);
   }
-  // Hillside (Hillbilly): a landed basic attack shields allies in the row ahead.
-  const hab = aDef.onHitAllyBuff;
-  if (hab?.shields && agg.landedHits > 0 && attacker.curHp > 0 && attacker.pos && !(hab.firstTimeOnly && attacker.onHitBuffFired)) {
-    const aheadRow = attacker.pos.row + (attacker.owner === "P1" ? -1 : 1);
-    const allies = boardCards(draft, attacker.owner).filter(
-      (c) => c.instanceId !== attacker.instanceId && c.pos?.row === aheadRow && c.curHp > 0,
-    );
-    for (const a of allies) a.curShields += hab.shields;
-    if (allies.length > 0)
-      draft.log.push(`${label(draft, attacker)} rallies ${allies.length} ally(ies) from the hill (+${hab.shields} shields).`);
-    attacker.onHitBuffFired = true;
-  }
   // Sky Scout (Syt Bird): while the owner's scout buff is up, a single-target
   // basic also clips ONE enemy adjacent to the primary target. Not for the
   // follow-up shots themselves (no chains).

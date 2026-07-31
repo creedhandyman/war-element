@@ -68,15 +68,32 @@ describe("clean-win passives (audit batch)", () => {
     expect(next.cards[healthy.instanceId].curHp).toBe(20); // spared
   });
 
-  it("Hillbilly's Hillside shields the row-ahead ally once, on its first landed hit", () => {
+  it("Hillbilly's Hillside braces an ally the first time IT is hit, once each", () => {
+    // Reworked: the trigger is an ALLY BEING HIT, not Hillbilly landing a basic.
+    // Hillbilly no longer has to attack — or even be adjacent — to protect
+    // anyone, and it reaches its whole side rather than the row directly ahead.
+    const s = prepState();
+    place(s, "bore_hillbilly", "P1", 3, 0);
+    const ally = place(s, "dawn_beam", "P1", 3, 1, { curHp: 30, maxHp: 30, curShields: 0 });
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, foe.instanceId, ally.instanceId);
+    expect(s.cards[ally.instanceId].curShields).toBe(1);
+    // One slab per body for the game — a second hit doesn't re-plate it.
+    s.cards[ally.instanceId].curShields = 0;
+    basicAttack(s, foe.instanceId, ally.instanceId);
+    expect(s.cards[ally.instanceId].curShields).toBe(0);
+  });
+
+  it("...and Hillside no longer needs Hillbilly to swing at anything", () => {
+    // The old version keyed off Hillbilly's own landed basic, so a cost-1 Tank
+    // had to pick a fight before it could shield a teammate.
     const s = prepState();
     const hill = place(s, "bore_hillbilly", "P1", 3, 0);
-    const ally = place(s, "dawn_beam", "P1", 2, 0, { curShields: 0 }); // row directly ahead
+    const ally = place(s, "dawn_beam", "P1", 3, 1, { curHp: 30, maxHp: 30, curShields: 0 });
     const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
-    basicAttack(s, hill.instanceId, foe.instanceId);
+    basicAttack(s, foe.instanceId, ally.instanceId);
     expect(s.cards[ally.instanceId].curShields).toBe(1);
-    basicAttack(s, hill.instanceId, foe.instanceId); // second hit — one-shot, no more
-    expect(s.cards[ally.instanceId].curShields).toBe(1);
+    expect(s.cards[hill.instanceId].curHp).toBe(getDef("bore_hillbilly").hp); // never fought
   });
 });
 

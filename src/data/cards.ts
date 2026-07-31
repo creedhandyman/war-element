@@ -700,9 +700,14 @@ export const CARDS: CardDef[] = [
     sp: 2,
     shields: 3,
     keywords: {},
-    // Hillside (On Hit, first time): +1 shield to allies in the row directly ahead.
-    passiveNames: { onHitAllyBuff: "Hillside" },
-    onHitAllyBuff: { shields: 1, firstTimeOnly: true },
+    // Hillside (On an ally being hit, first time): +1 shield to that ally. Was
+    // keyed off Hillbilly's OWN landed basic and only reached the row directly
+    // ahead — a cost-1 Tank had to attack to protect anyone, and could not brace
+    // the card standing next to it. Reuses Monger's Pride Guardian hook
+    // (onAllyHitShield), which is already exactly this trigger; the two differ
+    // only in slab size (Monger 2, Hillbilly 1).
+    passiveNames: { onAllyHitShield: "Hillside" },
+    onAllyHitShield: 1,
   },
   {
     id: "bore_bearocks",
@@ -5339,8 +5344,12 @@ export const CARDS: CardDef[] = [
     hp: 3,
     sp: 11,
     shields: 1,
-    // Crack Shot: a 50% coin (the CRIT keyword) to deal a crushing shot — and
-    // when it crits, the shot also PIERCES shields.
+    // Crack Shot: an EXEMPTION from the shield gate, not a rider on top of one.
+    // A plain CRIT can't fire at all while the target still has shields (see the
+    // rules header in combat.ts), so the headline here is that Sling's coin is
+    // still live against a shielded target — and a landed crit then pierces
+    // rather than being eaten. Describing it as "the crit also pierces" read as
+    // a bonus on a crit that, by the rules, would never have happened.
     keywords: { CRIT: true },
     passiveNames: { critPen: "Crack Shot" },
     critPen: true,

@@ -419,7 +419,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.skyScout)
     named("skyScout", `Sky Scout: when it enters a Mid row, allies' basic attacks hit +1 adjacent target for the round.`);
   if (def.critPen)
-    named("critPen", `Crack Shot: when its CRIT lands, the hit also pierces shields.`);
+    named("critPen", `its CRIT can fire even at a shielded target — and when it lands, the shot pierces the shield instead of being stopped by it.`);
   if (def.potionOnHit)
     named("potionOnHit", `Magic Potion: a landed basic hurls a random potion — poison (DOT 1), 3 damage, or FRIGHTEN 2.`);
   if (def.electroSurge)
@@ -500,10 +500,6 @@ export function describePassives(def: CardDef): string[] {
   if (def.roundTick?.pokeParalyzedDmg)
     passives.push(
       `End of round: deals ${def.roundTick.pokeParalyzedDmg} DMG to a PARALYZED opponent in range.`,
-    );
-  if (def.onHitAllyBuff?.shields)
-    named("onHitAllyBuff", 
-      `Hillside: ${def.onHitAllyBuff.firstTimeOnly ? "the first time it lands a hit, gives" : "landed hits give"} allies in the row ahead +${def.onHitAllyBuff.shields} shield.`,
     );
   if (def.shieldPerHitTaken)
     named("shieldPerHitTaken", 
@@ -712,7 +708,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.healPerHit)
     named("healPerHit", `Liquification: heals ${def.healPerHit} HP for every basic hit it lands.`);
   if (def.onAllyHitShield)
-    named("onAllyHitShield", `Pride Guardian: the first time each ally is hit, gives that ally +${def.onAllyHitShield} shield.`);
+    named("onAllyHitShield", `the first time each ally is hit, gives that ally +${def.onAllyHitShield} shield.`);
   if (def.summonScaleFromEnemy) {
     const sc = def.summonScaleFromEnemy;
     const gains = [sc.dmg && `+${sc.dmg} DMG`, sc.maxHp && `+${sc.maxHp} max HP`].filter(Boolean).join(" and ");

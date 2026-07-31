@@ -541,7 +541,9 @@ export function basicIsInert(state: GameState, card: CardInstance): boolean {
   if (effectiveDmg(state, card) > 0) return false;
   if (def.element === "PYRO" || def.element === "BOLT") return false; // element on-hit auras
   if (def.onHitStatus || def.vsStatus || def.onHitZap || def.onHitSelfBuff) return false;
-  if (def.onHitAllyBuff || def.healPerHit || def.healPerCrit || def.critStatus) return false;
+  // NB: Hillside (onAllyHitShield) is deliberately NOT listed — it reacts to
+  // allies being hit, so it gives a 0-DMG basic no reason to swing.
+  if (def.healPerHit || def.healPerCrit || def.critStatus) return false;
   if (def.basicHealsAllies || def.onKill || def.basicBonus || def.firstStrikeBonus) return false;
   if (def.keywords.LIFESTEAL || def.keywords.DRAIN || def.keywords.CRIT) return false;
   return true;

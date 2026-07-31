@@ -519,7 +519,6 @@ export function summonCard(
     transformed: false,
     talentUsed: false,
     freeSpecial: false,
-    onHitBuffFired: false,
     shieldBroken: false,
     onKillAoeFiredRound: false,
     onLowHpFired: false,

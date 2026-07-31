@@ -17,7 +17,7 @@ const ABILITY_FIELDS = [
   "shieldPerHitTaken", "healPerHit", "healPerCrit", "onDeath", "incinerate",
   "highSpeedImpact", "alwaysHit", "onlyAdjacentAttackers", "summonSelfShields",
   "onShieldBreak", "blocksRangedChance", "critIfFaster", "onCritBonus", "weakBelowHp",
-  "healsFromBleed", "onHitAllyBuff", "onHitZap", "critStatus", "onAllyKilled",
+  "healsFromBleed", "onHitZap", "critStatus", "onAllyKilled",
   "spWhileStealthed", "onAllyHitShield", "basicHealsAllies",
   "evasionEnemySideOnly",
   // Wave 1/2 additions — every one of these shipped with NO card text at all
