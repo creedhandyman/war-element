@@ -2054,10 +2054,17 @@ function doCleanupPhase(draft: GameState): void {
     }
     // Photosynthesis (LEAF): +2 HP each round — and when there is nothing to
     // heal, the growth hardens into armour instead (+1 shield, capped).
-    // It was +1 HP and NOTHING at full health, so the game's only defensive
-    // aura paid out exactly when you were already losing and was dead weight
-    // the rest of the time. LEAF measured worst on BOTH axes despite mid-pack
-    // printed stats, which is what pointed at the aura rather than the cards.
+    // Awakening (DAWN): the light burns one affliction off every DAWN card each
+    // round — ONE status, oldest first, so a stack of debuffs is peeled rather
+    // than wiped. Runs before the duration tick below, so the cleansed status is
+    // gone for good rather than merely shortened.
+    if (def.element === "DAWN") {
+      const i = card.statuses.findIndex((st) => NEGATIVE_STATUSES.includes(st.kind));
+      if (i >= 0) {
+        const [gone] = card.statuses.splice(i, 1);
+        draft.log.push(`${label(draft, card)} burns off ${gone.kind} in the dawn light.`);
+      }
+    }
     if (def.element === "LEAF") {
       healCard(draft, card, 2, card);
       // The bark thickens where it was struck: a LEAF card that TOOK a hit this
