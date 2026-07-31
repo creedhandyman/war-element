@@ -118,17 +118,25 @@ describe("element matchups — healing", () => {
 });
 
 describe("Kore's Meltdown", () => {
-  it("dies into a Static Cloud on its owner's side", () => {
-    // The spawn target is a full CARD (bolt_staticcloud, a cost-2 rare), not a
-    // token. CARD_INDEX merges both lists so getDef/spawnTokens resolve it —
-    // this pins that, because a token-only assumption anywhere in the spawn
-    // path would break the card silently.
+  it("dies into a Static Wisp on its owner's side", () => {
     const s = prepState();
     const kore = place(s, "bolt_kore", "P1", 2, 0, { curHp: 3, curShields: 0 });
     place(s, "dusk_gool", "P2", 0, 3); // someone for the board to be legal
     defeatCard(s, kore, "test");
-    const clouds = boardCards(s, "P1").filter((c) => c.defId === "bolt_staticcloud");
-    expect(clouds).toHaveLength(1);
-    expect(clouds[0].curHp).toBe(getDef("bolt_staticcloud").hp);
+    const wisps = boardCards(s, "P1").filter((c) => c.defId === "bolt_static_wisp_tok");
+    expect(wisps).toHaveLength(1);
+    expect(wisps[0].curHp).toBe(getDef("bolt_static_wisp_tok").hp);
+  });
+
+  it("leaves the WISP, not the full Static Cloud card", () => {
+    // Meltdown used to spawn bolt_staticcloud — a real cost-2 rare with double
+    // the body and double the discharge. Pinning the weakened token here so a
+    // future edit can't quietly hand a cost-5 epic a whole extra card again.
+    const wisp = getDef("bolt_static_wisp_tok");
+    const cloud = getDef("bolt_staticcloud");
+    expect(wisp.hp).toBeLessThan(cloud.hp);
+    expect(wisp.roundTick?.randomEnemyDmg).toBeLessThan(cloud.roundTick!.randomEnemyDmg!);
+    expect(wisp.roundTick?.randomEnemyStatus?.duration)
+      .toBeLessThan(cloud.roundTick!.randomEnemyStatus!.duration);
   });
 });

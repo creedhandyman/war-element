@@ -3430,13 +3430,12 @@ export const CARDS: CardDef[] = [
     // Living Reactor (Start of Round): +1 shield every round, no cap — the
     // reactor never stops drawing power.
     // Meltdown (On Death): the containment fails and the charge escapes as a
-    // Static Cloud. Note the cloud is a full CARD, not a token — CARD_INDEX
-    // merges both lists, so spawnToken resolves it fine, but it means Kore dies
-    // into a real cost-2 rare body (20 HP, and Rolling Static discharges 4 DMG
-    // + PARALYZE 2 every round).
+    // Static Wisp — the weakened token version of Static Cloud (10 HP, 2 DMG +
+    // PARALYZE 1 a round). Spawning the FULL cost-2 Static Cloud card here paid
+    // a cost-5 epic an entire second card for free.
     passiveNames: { selfShields: "Living Reactor", onDeath: "Meltdown" },
     roundTick: { selfShields: 1 },
-    onDeath: { dmg: 0, spawnToken: { token: "bolt_staticcloud", count: 1 } },
+    onDeath: { dmg: 0, spawnToken: { token: "bolt_static_wisp_tok", count: 1 } },
     // Core Overload: release the built-up charge — 8 DMG to all opponents in
     // range and PARALYZE each for 1 round.
     special: {
@@ -8426,6 +8425,33 @@ export const TOKENS: CardDef[] = [
     // struck with a basic attack.
     passiveNames: { flyingArrow: "Flying Arrow" },
     flyingArrow: true,
+  },
+  {
+    // The remnant of Kore's Meltdown. A deliberately weakened Static Cloud:
+    // half the body, half the discharge, and a PARALYZE that lasts one round
+    // instead of two. Kore dying into the FULL cost-2 Static Cloud card handed
+    // a cost-5 epic a second real card for free, on top of Living Reactor and
+    // Core Overload — this keeps the flavour of the containment failing without
+    // paying out a whole extra body. Borrows the cloud's art.
+    id: "bolt_static_wisp_tok",
+    art: "bolt_staticcloud",
+    name: "Static Wisp",
+    rarity: "rare",
+    element: "BOLT",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 1,
+    dmg: 0,
+    hits: 1,
+    hp: 10,
+    sp: 0,
+    shields: 0,
+    keywords: {},
+    tribe: "ARC",
+    // Fading Static: drifts a slot forward, then discharges 2 DMG + PARALYZE 1
+    // at a random opponent. Same shape as Rolling Static, dialled down.
+    passiveNames: { roundTick: "Fading Static" },
+    roundTick: { advance: 1, randomEnemyDmg: 2, randomEnemyStatus: { kind: "PARALYZE", duration: 1, power: 0 } },
   },
   {
     id: "bolt_drone_tok",
