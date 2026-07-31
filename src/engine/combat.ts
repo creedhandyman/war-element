@@ -1697,7 +1697,12 @@ function applyOnHitRider(
   if (rider.chance != null && !pctChance(draft, rider.chance)) return;
   const el = getDef(attacker.defId).element;
   if (rider.stack)
-    stackStatus(draft, target, rider.kind, rider.duration, rider.power, rider.stackCap ?? 99, el);
+    // A STACKING rider deepens once PER LANDED HIT, not once per attack. This
+    // hook fires a single time for the whole volley, so a 4-hit card like
+    // Stickers was building exactly as much wound as a 1-hit one — its four
+    // jabs left BLEED 1 between them. Only Thorn and Stickers stack, and Thorn
+    // is single-hit, so this is a no-op everywhere but the card it was for.
+    stackStatus(draft, target, rider.kind, rider.duration, rider.power * landedNow, rider.stackCap ?? 99, el);
   else applyStatus(draft, target, rider.kind, rider.duration, rider.power, el);
 }
 

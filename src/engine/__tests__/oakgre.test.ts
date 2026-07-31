@@ -3,7 +3,7 @@ import { applyIntent } from "../phases";
 import { canFireSpecial, canMove } from "../rules";
 import { effectiveDmg, effectiveSp, moveReach } from "../state";
 import { place, prepState } from "./helpers";
-import { CORES } from "../../data/cards";
+import { CORES, getDef } from "../../data/cards";
 import type { GameState, Pos } from "../types";
 
 // Local, as in mythics.test.ts: drop the state into battle with one card up.
@@ -42,7 +42,7 @@ describe("Oakgre", () => {
 
     const next = uproot(s, oak.instanceId);
     const after = next.cards[oak.instanceId];
-    expect(after.curHp).toBe(55 - 9); // the HP cost is real
+    expect(after.curHp).toBe(getDef("leaf_oakgre").hp - 9); // the HP cost is real
     expect(effectiveSp(next, after)).toBe(3); // unpinned
     expect(effectiveDmg(next, after)).toBe(6 + 2);
 

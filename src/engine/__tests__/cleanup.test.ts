@@ -221,6 +221,30 @@ describe("the round cap", () => {
   });
 });
 
+describe("Sticky (Stickers): four jabs build one wound", () => {
+  it("stacks BLEED across its own volley instead of overwriting it", () => {
+    // A same-kind status REPLACES rather than adds, so before `stack` all four
+    // of Stickers' jabs left a single BLEED 1 — 1 damage total from a card whose
+    // whole identity is feeding bleed.
+    const s = prepState();
+    const st = place(s, "leaf_stickers", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, st.instanceId, foe.instanceId);
+    const bleed = s.cards[foe.instanceId].statuses.find((x) => x.kind === "BLEED");
+    expect(bleed?.power).toBeGreaterThan(1); // built, not overwritten
+    expect(bleed?.duration).toBe(2);
+  });
+
+  it("...but never past its stack cap", () => {
+    const s = prepState();
+    const st = place(s, "leaf_stickers", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 99, maxHp: 99, curShields: 0 });
+    for (let i = 0; i < 4; i++) basicAttack(s, st.instanceId, foe.instanceId);
+    const cap = getDef("leaf_stickers").onHitStatus!.stackCap!;
+    expect(s.cards[foe.instanceId].statuses.find((x) => x.kind === "BLEED")!.power).toBe(cap);
+  });
+});
+
 describe("First Light (DAWN): +1 SP a round, to a low cap", () => {
   it("quickens a DAWN card each round", () => {
     const s = prepState();
