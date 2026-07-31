@@ -3429,8 +3429,14 @@ export const CARDS: CardDef[] = [
     tribe: "ARC",
     // Living Reactor (Start of Round): +1 shield every round, no cap — the
     // reactor never stops drawing power.
-    passiveNames: { selfShields: "Living Reactor" },
+    // Meltdown (On Death): the containment fails and the charge escapes as a
+    // Static Cloud. Note the cloud is a full CARD, not a token — CARD_INDEX
+    // merges both lists, so spawnToken resolves it fine, but it means Kore dies
+    // into a real cost-2 rare body (20 HP, and Rolling Static discharges 4 DMG
+    // + PARALYZE 2 every round).
+    passiveNames: { selfShields: "Living Reactor", onDeath: "Meltdown" },
     roundTick: { selfShields: 1 },
+    onDeath: { dmg: 0, spawnToken: { token: "bolt_staticcloud", count: 1 } },
     // Core Overload: release the built-up charge — 8 DMG to all opponents in
     // range and PARALYZE each for 1 round.
     special: {
@@ -6416,10 +6422,10 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 6,
-    dmg: 4,
+    cost: 7,
+    dmg: 5,
     hits: 3,
-    hp: 19,
+    hp: 21,
     sp: 9,
     shields: 0,
     keywords: { CRIT: true },

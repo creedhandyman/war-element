@@ -4,8 +4,8 @@
 // rules themselves plus the paths those don't reach.
 
 import { describe, expect, it } from "vitest";
-import { applyStatus, basicAttack } from "../combat";
-import { effectiveDmg, healCard } from "../state";
+import { applyStatus, basicAttack, defeatCard } from "../combat";
+import { boardCards, effectiveDmg, healCard } from "../state";
 import { getDef } from "../../data/cards";
 import {
   LEAF_WATER_HEAL,
@@ -114,5 +114,21 @@ describe("element matchups — healing", () => {
     const tgt = place(s, "leaf_hunter", "P1", 1, 0, { curHp: 1, maxHp: 40, curShields: 0 });
     basicAttack(s, atk.instanceId, tgt.instanceId);
     expect(s.cards[tgt.instanceId]).toBeUndefined();
+  });
+});
+
+describe("Kore's Meltdown", () => {
+  it("dies into a Static Cloud on its owner's side", () => {
+    // The spawn target is a full CARD (bolt_staticcloud, a cost-2 rare), not a
+    // token. CARD_INDEX merges both lists so getDef/spawnTokens resolve it —
+    // this pins that, because a token-only assumption anywhere in the spawn
+    // path would break the card silently.
+    const s = prepState();
+    const kore = place(s, "bolt_kore", "P1", 2, 0, { curHp: 3, curShields: 0 });
+    place(s, "dusk_gool", "P2", 0, 3); // someone for the board to be legal
+    defeatCard(s, kore, "test");
+    const clouds = boardCards(s, "P1").filter((c) => c.defId === "bolt_staticcloud");
+    expect(clouds).toHaveLength(1);
+    expect(clouds[0].curHp).toBe(getDef("bolt_staticcloud").hp);
   });
 });
