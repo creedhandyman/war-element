@@ -136,16 +136,16 @@ describe("medium-tier passives (audit batch)", () => {
     // The full census — the predicate must not be quietly silencing anything
     // else. UFO prints 0 DMG with no on-hit rider; RIP prints 0 DMG on purpose
     // and never swings at all (its Special is free, so it always has a real
-    // action); Walking Tree is a 0-DMG mover. Doom used to sit here as a
-    // never-swinging time bomb — it prints 3 DMG now, so it has a real basic and
-    // correctly drops off. Any OTHER name appearing here is a bug.
+    // action). Doom and Walking Tree used to sit here as never-swinging bodies —
+    // both print real DMG now, so they have a basic and correctly drop off.
+    // Any OTHER name appearing here is a bug.
     const inert = CARDS.filter((d) => {
       const c = place(s, d.id, "P2", 0, 3);
       const r = basicIsInert(s, c);
       delete s.cards[c.instanceId];
       return r;
     }).map((d) => d.id);
-    expect(inert.sort()).toEqual(["bore_ufo", "dusk_rip", "leaf_walking_tree"]);
+    expect(inert.sort()).toEqual(["bore_ufo", "dusk_rip"]);
   });
 
   it("Doom's Boom ticks down over 4 rounds, then levels the enemy board and dies", () => {
