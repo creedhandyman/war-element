@@ -3,7 +3,8 @@
 import { describe, expect, it } from "vitest";
 import { advance } from "../phases";
 import { atCleanup, place, prepState } from "./helpers";
-import { LEAF_SHIELD_CAP } from "../auras";
+import { DAWN_SP_CAP, GALE_SP_CAP, LEAF_SHIELD_CAP } from "../auras";
+import { effectiveSp } from "../state";
 import { basicAttack } from "../combat";
 import { getDef } from "../../data/cards";
 import { MAX_ROUNDS } from "../types";
@@ -217,6 +218,37 @@ describe("the round cap", () => {
     const next = advance(atCleanup(s));
     expect(next.phase).toBe("gameover");
     expect(next.win).toEqual({ winner: null, by: "timeout" });
+  });
+});
+
+describe("First Light (DAWN): +1 SP a round, to a low cap", () => {
+  it("quickens a DAWN card each round", () => {
+    const s = prepState();
+    const dawn = place(s, "dawn_beam", "P1", 3, 0);
+    place(s, "dusk_gool", "P2", 0, 3);
+    const before = effectiveSp(s, s.cards[dawn.instanceId]);
+    const n = advance(atCleanup(s));
+    expect(effectiveSp(n, n.cards[dawn.instanceId])).toBe(before + 1);
+  });
+
+  it("stops at the cap, which is well under GALE's", () => {
+    expect(DAWN_SP_CAP).toBeLessThan(GALE_SP_CAP); // speed stays GALE's identity
+    const s = prepState();
+    const dawn = place(s, "dawn_beam", "P1", 3, 0);
+    place(s, "dusk_gool", "P2", 0, 3);
+    let n = s;
+    for (let i = 0; i < 20; i++) n = advance(atCleanup(n));
+    const def = getDef("dawn_beam");
+    expect(def.sp + n.cards[dawn.instanceId].spBonus).toBeLessThanOrEqual(DAWN_SP_CAP);
+  });
+
+  it("non-DAWN cards are not quickened", () => {
+    const s = prepState();
+    const pyro = place(s, "pyro_firebird", "P1", 3, 1);
+    place(s, "dusk_gool", "P2", 0, 3);
+    const before = effectiveSp(s, s.cards[pyro.instanceId]);
+    const n = advance(atCleanup(s));
+    expect(effectiveSp(n, n.cards[pyro.instanceId])).toBe(before);
   });
 });
 

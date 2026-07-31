@@ -24,12 +24,18 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   BORE: { name: "Exostone", desc: "Enters play with +2 shields." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals a third of its DMG back to the killer." },
   AQUA: { name: "Flow Change", desc: "On summon, choose a boost for 3 rounds: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
-  DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for half its DMG. End of round, burns one negative status off itself." },
+  DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for half its DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 14)." },
   GALE: { name: "Zephyr", desc: "End of round, +2 SP (caps at SP 21); the first time it passes SP 15, a one-time +1 DMG." },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +2 DMG to any opponent carrying a status." },
 };
 
 export const GALE_SP_CAP = 21;
+
+/** Where First Light (DAWN) stops quickening. Well under GALE's 21: speed is
+ *  GALE's identity, and this exists to lift the game's most expensive, second
+ *  slowest element off the floor of the capture race — not to make a second
+ *  speed element. */
+export const DAWN_SP_CAP = 14;
 
 /** How much armour Photosynthesis may add ON TOP OF a card's printed shields.
  *  Uncapped, a LEAF card under sustained fire would plate up faster than it

@@ -2,7 +2,7 @@
 // All reducers clone the incoming state once and mutate only the clone.
 
 import { getDef } from "../data/cards";
-import { applyFlow, type FlowMode, GALE_SP_CAP, LEAF_SHIELD_CAP } from "./auras";
+import { applyFlow, DAWN_SP_CAP, type FlowMode, GALE_SP_CAP, LEAF_SHIELD_CAP } from "./auras";
 import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
@@ -2067,6 +2067,20 @@ function doCleanupPhase(draft: GameState): void {
         const [gone] = card.statuses.splice(i, 1);
         draft.log.push(`${label(draft, card)} burns off ${gone.kind} in the dawn light.`);
       }
+      // First Light: the day gets on with it — +1 SP each round, to a low cap.
+      //
+      // Measured: DAWN ends matches with MORE cards standing than its opponent
+      // (3.31 vs 3.05) on even gold, and still loses. It is not being beaten off
+      // the board, it is losing the race to it — 99.5% of games end by capture,
+      // and DAWN is the most EXPENSIVE element in the game (avg cost 4.1) and
+      // the second slowest (avg SP 6.9). It buys bodies that hold ground they
+      // cannot then advance from. This converts that surviving board into tempo.
+      //
+      // Deliberately weaker than GALE's Zephyr (+2 a round to SP 21, plus a
+      // one-time +1 DMG at 15): speed is GALE's identity, and this is a nudge
+      // off the floor rather than a second speed element.
+      const curSp = def.sp + card.spBonus;
+      if (curSp < DAWN_SP_CAP) card.spBonus += Math.min(1, DAWN_SP_CAP - curSp);
     }
     if (def.element === "LEAF") {
       healCard(draft, card, 2, card);
