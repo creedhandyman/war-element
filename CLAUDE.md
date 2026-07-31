@@ -146,6 +146,38 @@ Two traps that have both burned real time:
 
 A full 8-core round-robin, both seats, 14 seeds = 784 matches ≈ 40s.
 
+### Two metrics that look convincing and are not
+
+Both of these produced a confident, wrong "this card is overpowered" list, and
+both cost a full round of nerfs before being caught. Do not trust either one
+on its own.
+
+1. **Win-rate-when-played is CORRELATIONAL.** Aggregating `state.stats.byCard`
+   and asking "when this card reached the board, how often did its side win?"
+   ranks engine pieces and 6-drops at the top — because they only *land* in
+   games that were already going well. It flagged Sling at +28.9 over its
+   element; ablation later showed Sling contributes **+0.0**. The tell that
+   something was wrong: two real mechanical nerfs (Beebot's damage fell exactly
+   25%, Aurora's orbs were cut and then capped) moved the win rates by nothing,
+   and Aurora's came back byte-identical over 1,120 matches.
+
+2. **Ablation needs a CONTROL GROUP.** Cutting a card and re-measuring its
+   element is causal, but a smaller deck draws its best cards more often, so
+   *every* removal looks like an improvement. Measured on BOLT: Shock −2.1,
+   General −2.4, Velvolt Knight −2.4, Zagphu −5.4, Keeper −6.5. Read against
+   that ~−3 baseline, Keeper is unremarkable; read alone, it looks like the
+   worst card in the game. Always ablate 3–4 same-element peers alongside the
+   suspect and compare the SPREAD.
+
+Sampling error is the other trap: one 336-match ablation run carries roughly
+±5 points at 95%, so a 3-point gap is noise. Scale seeds up before believing a
+small difference, and quote n.
+
+The honest summary of that whole exercise: **no card was found to be measurably
+overpowered.** The real finds were design flaws that measurement never
+surfaced — Aurora's unbounded orb recharge and Keeper's Hive Mind absorbing to
+the death. Both were fixed on reasoning, not on a win-rate delta.
+
 ### Where balance stood at last measure
 
 ```

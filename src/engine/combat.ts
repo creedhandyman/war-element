@@ -886,13 +886,24 @@ export function resolveHit(
       );
       for (const bot of swarm) {
         if (quota <= 0) break;
-        const eaten = Math.min(quota, bot.curHp);
+        // The swarm SHARES the blow; it does not die on it. Each bot soaks down
+        // to 1 HP and no further.
+        //
+        // It used to absorb to the death, which made Hive Mind a liability
+        // rather than a defence: a Beebot has 3 HP, so any hit of 6+ on Keeper
+        // diverted 3 into a bee and killed it outright — spending a whole body
+        // (a sting is 2 DMG plus DOT 2 for 2 rounds, ~6 damage) to save Keeper
+        // 3 HP, on essentially every hit. Measured by ablation, BOLT won 6.8
+        // points MORE with Keeper cut from the deck entirely; feeding its own
+        // win condition into the shredder is the main reason why.
+        const canTake = bot.curHp - 1;
+        if (canTake <= 0) continue;
+        const eaten = Math.min(quota, canTake);
         bot.curHp -= eaten;
         quota -= eaten;
         toHp -= eaten;
         creditDamage(draft.stats, null, attacker.owner, eaten, bot);
         draft.log.push(`${getDef(bot.defId).name} takes ${eaten} for ${label(draft, target)}.`);
-        if (bot.curHp <= 0) defeatCard(draft, bot, "shielding the hive");
       }
     }
     target.curHp -= toHp;

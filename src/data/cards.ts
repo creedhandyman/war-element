@@ -2101,14 +2101,18 @@ export const CARDS: CardDef[] = [
     cardClass: "Ranger",
     attackType: "Ranged",
     cost: 6,
-    dmg: 11,
+    // Rebalanced WITHIN the same budget (40): DMG 11 -> 7, HP 17 -> 21. Keeper
+    // is a breeder, not a sniper — its damage comes from the swarm, and an
+    // 11-DMG basic on a 17 HP body meant the one thing it could not do was
+    // survive long enough to breed. The points are better spent on the body.
+    dmg: 7,
     hits: 1,
-    hp: 17,
+    hp: 21,
     sp: 10,
     shields: 1,
     keywords: {},
-    // Hive Command: the swarm is only a threat because of this. A 1 DMG Beebot
-    // stings for 4 while Keeper lives, and drops back to 1 the moment it dies.
+    // Hive Command: the swarm is only a threat because of this. A 2 DMG Beebot
+    // stings for 5 while Keeper lives, and drops back to 2 the moment it dies.
     aura: { scope: "tribe", match: "Bot", dmg: 3 },
     // Hive Mind: half of everything aimed at a 17 HP body goes into the swarm
     // instead — but only as far as the swarm's own HP will stretch.
@@ -2118,7 +2122,7 @@ export const CARDS: CardDef[] = [
     // Hive Command also breeds: one fresh Beebot at the end of every round,
     // replacing the ones that spent themselves stinging. Capped so the swarm
     // holds at a size the opponent can fight through rather than eating the board.
-    roundTick: { spawn: { token: "bolt_beebot", count: 1 }, spawnMaxAlive: 4 },
+    roundTick: { spawn: { token: "bolt_beebot", count: 1 }, spawnMaxAlive: 5 },
     special: {
       name: "Storm Swarm",
       cost: 3,

@@ -118,9 +118,12 @@ describe("Keeper", () => {
     const bot = place(s, "bolt_beebot", "P1", 3, 1, { curHp: 3, maxHp: 3 });
     const hitter = place(s, "dusk_gool", "P2", 3, 2, { curHp: 30, maxHp: 30 });
     directDamage(s, s.cards[hitter.instanceId], s.cards[keep.instanceId], 6, true);
-    // 50% of 6 = 3, and the Beebot has exactly 3 to give.
-    expect(s.cards[bot.instanceId]?.curHp ?? 0).toBeLessThanOrEqual(0);
-    expect(s.cards[keep.instanceId].curHp).toBe(17 - 3);
+    // 50% of 6 = 3, but a bot soaks only down to 1 HP — so it takes 2, SURVIVES,
+    // and Keeper eats the remaining 4. The swarm shares the blow; it no longer
+    // dies on it (see the note in resolveHit — absorbing to the death made Hive
+    // Mind spend a whole body to save Keeper 3 HP).
+    expect(s.cards[bot.instanceId].curHp).toBe(1);
+    expect(s.cards[keep.instanceId].curHp).toBe(17 - 4);
   });
 
   it("...and only as far as the swarm's own HP stretches", () => {
@@ -154,8 +157,9 @@ describe("Keeper", () => {
   it("...but the trickle caps out — it won't flood the board", () => {
     const s = prepState();
     place(s, "bolt_keeper", "P1", 2, 0);
-    // Seed the board at the cap (4 Beebots already standing).
-    for (let i = 0; i < 4; i++) place(s, "bolt_beebot", "P1", i < 2 ? 3 : 1, i % 2, { curHp: 3, maxHp: 3 });
+    // Seed the board at the cap (5 Beebots already standing).
+    const at = [[3, 0], [3, 1], [1, 0], [1, 1], [1, 2]] as const;
+    for (const [r, c] of at) place(s, "bolt_beebot", "P1", r, c, { curHp: 3, maxHp: 3 });
     const before = boardCards(s, "P1").filter((c) => c.defId === "bolt_beebot").length;
     const next = advance(atCleanup(s));
     const after = boardCards(next, "P1").filter((c) => c.defId === "bolt_beebot").length;
