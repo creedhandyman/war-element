@@ -137,32 +137,28 @@ describe("medium-tier passives (audit batch)", () => {
     expect(next.cards[sq.instanceId].hitsTakenThisRound).toBe(0); // banked hits spent
   });
 
-  it("UFO's inert basic is skipped, but Smog's still attacks (PYRO burns on hit)", () => {
+  it("RIP's inert basic is skipped, but Smog's still attacks (PYRO burns on hit)", () => {
     const s = prepState();
-    // Home row on purpose: King of the Hill grants +1 DMG in a MID row, so a
-    // mid-board UFO really does deal 1 and is correctly NOT inert there. The
-    // check reads effective damage, not the printed number, so the skip is
-    // positional — it only fires when the card genuinely cannot do anything.
-    const ufo = place(s, "bore_ufo", "P1", 3, 0);
+    // UFO used to be the example here; it prints 2 DMG since the card-sheet
+    // re-stat, so RIP is now the only genuinely inert basic in the set.
+    const rip = place(s, "dusk_rip", "P1", 3, 0);
     const smog = place(s, "pyro_smog_card", "P1", 3, 1);
     place(s, "dusk_gool", "P2", 2, 0); // a reachable target for both
-    expect(basicIsInert(s, s.cards[ufo.instanceId])).toBe(true);
-    expect(basicIsInert(s, place(s, "bore_ufo", "P1", 2, 2))).toBe(false); // mid row: 1 DMG
+    expect(basicIsInert(s, s.cards[rip.instanceId])).toBe(true);
     // Smog is PYRO, so Scorch burns whatever it touches — worth a turn.
     expect(basicIsInert(s, s.cards[smog.instanceId])).toBe(false);
     // The full census — the predicate must not be quietly silencing anything
-    // else. UFO prints 0 DMG with no on-hit rider; RIP prints 0 DMG on purpose
-    // and never swings at all (its Special is free, so it always has a real
-    // action). Doom and Walking Tree used to sit here as never-swinging bodies —
-    // both print real DMG now, so they have a basic and correctly drop off.
-    // Any OTHER name appearing here is a bug.
+    // else. RIP prints 0 DMG on purpose and never swings at all (its Special is
+    // free, so it always has a real action). UFO, Doom and Walking Tree used to
+    // sit here as never-swinging bodies — all three print real DMG now, so they
+    // have a basic and correctly drop off. Any OTHER name here is a bug.
     const inert = CARDS.filter((d) => {
       const c = place(s, d.id, "P2", 0, 3);
       const r = basicIsInert(s, c);
       delete s.cards[c.instanceId];
       return r;
     }).map((d) => d.id);
-    expect(inert.sort()).toEqual(["bore_ufo", "dusk_rip"]);
+    expect(inert.sort()).toEqual(["dusk_rip"]);
   });
 
   it("Doom's Boom ticks down over 4 rounds, then levels the enemy board and dies", () => {
@@ -836,8 +832,14 @@ describe("medium-tier passives (audit batch)", () => {
 
   it("a card with only an inert basic takes no turn at all", () => {
     const s = prepState();
-    const ufo = place(s, "bore_ufo", "P1", 3, 0); // home row — no King of the Hill bump
+    // No PRINTED card is actionless any more: UFO prints 2 DMG since the
+    // card-sheet re-stat, and RIP (the only inert basic left) always has its
+    // free Special to fall back on. So the state is constructed — UFO with its
+    // damage debuffed to 0 and no Special of its own — which is still exactly
+    // the condition the queue is meant to skip.
+    const ufo = place(s, "bore_ufo", "P1", 3, 0, { dmgBonus: -getDef("bore_ufo").dmg });
     place(s, "dusk_gool", "P2", 2, 0);
+    expect(effectiveDmg(s, s.cards[ufo.instanceId])).toBe(0);
     s.phase = "battle";
     s.battle = { queue: [ufo.instanceId], index: 0, awaitingInput: null };
     const next = advance(s);

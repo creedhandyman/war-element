@@ -3725,15 +3725,20 @@ export const CARDS: CardDef[] = [
     cardClass: "Support",
     attackType: "Ranged",
     cost: 3,
-    dmg: 0,
+    // Re-statted to the card sheet: 2/2/5sh/12sp = 2+2+10+12 = 26 vs a Cost-3
+    // budget of 25, so it sits +1 and inside the band. The shape changed more
+    // than the total: it trades a 6 HP body for a 2 HP one behind 5 shields
+    // (7 once Exostone lands), so it is now armour rather than flesh — cheap
+    // chip strips a shield a hit and takes seven of them to get through, but
+    // anything that PIERCES kills it outright.
+    dmg: 2,
     hits: 1,
-    hp: 6,
-    sp: 13,
-    shields: 3,
+    hp: 2,
+    sp: 12,
+    shields: 5,
     // FLYING: it hovers. Melee cannot touch it unless the attacker also flies,
-    // and it moves like a chess king in Prep. Stats are unchanged (0+6+6+13 = 25
-    // = 5*3+10, still exactly on budget) — this is pure evasiveness, which suits
-    // a 0-DMG turret whose whole job is to sit in range and irradiate.
+    // and it moves like a chess king in Prep — pure evasiveness, which suits a
+    // turret whose job is to sit in range and irradiate.
     keywords: { FLYING: true },
     // Radiation (End of Round): 1 DMG PEN (bypasses shields) to every opponent in
     // range. Halved from 2 — it is untargetable by melee since UFO gained FLYING,
