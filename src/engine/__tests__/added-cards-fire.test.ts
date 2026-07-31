@@ -231,9 +231,9 @@ describe("wave 1: RohoJohn, Shoksa, Lumberjack, Bootlegger", () => {
     expect(next.cards[jack.instanceId].curShields).toBe(3);
   });
 
-  it("...and the ROOT pins the NEAREST body in the lane, not an arbitrary one", () => {
-    // firstOnlyStatus means "the first thing the tree lands on". Board order is
-    // arbitrary, so the corridor has to be distance-sorted for that to hold.
+  it("...and the ROOT pins EVERY body in the lane, near and far alike", () => {
+    // The trunk lands across the whole corridor, so everything it falls on is
+    // pinned — this used to root only the nearest body (firstOnlyStatus).
     const s = prepState();
     s.players.P1.magicPool = 6;
     const jack = place(s, "leaf_lumberjack", "P1", 3, 1, { autoMode: "manual", curShields: 0 });
@@ -243,7 +243,7 @@ describe("wave 1: RohoJohn, Shoksa, Lumberjack, Bootlegger", () => {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: near.instanceId,
     });
     expect(statusOf(next.cards[near.instanceId], "ROOT")?.duration).toBe(2);
-    expect(statusOf(next.cards[far.instanceId], "ROOT")).toBeUndefined();
+    expect(statusOf(next.cards[far.instanceId], "ROOT")?.duration).toBe(2);
   });
 
   it("Bootlegger stomps on the crossing into enemy ground — once", () => {
