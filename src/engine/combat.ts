@@ -2706,12 +2706,20 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         duration: num(params, "farRowRootDuration", 1),
       });
     }
-    // stealShields (Steel's Magnetic Steel): pull a shield off each struck foe
-    // and bank it onto the caster's own armour.
+    // stealShields (Steel's Magnetic Steel): pull up to N shields off each
+    // struck foe and bank them onto the caster's own armour.
+    //
+    // `stealRowAheadOnly` narrows the THEFT to the row directly ahead while the
+    // damage still lands board-wide — the magnet only reaches the rank it is
+    // standing against, but the shockwave carries. Without it the steal follows
+    // the same pool as the damage, which is how every other rider here behaves.
     const stealSh = num(params, "stealShields");
     if (stealSh > 0) {
+      const aheadOnly = num(params, "stealRowAheadOnly") > 0 && attacker.pos != null;
+      const reach = aheadOnly ? rowAhead(attacker.owner, attacker.pos!.row) : null;
       let stolen = 0;
       for (const t of pool.slice(0, n)) {
+        if (reach !== null && t.pos?.row !== reach) continue;
         if (draft.cards[t.instanceId] && t.curShields > 0) {
           const got = Math.min(stealSh, t.curShields);
           t.curShields -= got; attacker.curShields += got; stolen += got;

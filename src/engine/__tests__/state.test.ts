@@ -29,6 +29,12 @@ describe("setup", () => {
       // DELETES 15 max HP (outright lethal at 15 or under) and cloaks in
       // STEALTH — the missing 3 body points are what that buys.
       "dusk_nightfang",
+      // Ability-carried, downward: 45 vs a Cost-8 budget of 50. Steel is immune
+      // to every status and DOT in the game, carries BLOCK 2 on top of 5 printed
+      // shields, and its Special strips up to 3 shields per foe off the rank
+      // ahead and wears them. Total immunity is the expensive part — the missing
+      // 5 body points are what it costs.
+      "bore_steel",
       // Ability-carried, downward: 35 vs a Cost-6 budget of 40. Sandman was
       // nerfed (HP 19→14) to rein in Frostkeep; its Nightmare Special (5×2 +
       // SLEEP nova) carries the missing points. Deliberately under-statted.

@@ -361,15 +361,35 @@ describe("medium-tier passives (audit batch)", () => {
     expect(60 - s.cards[warrior.instanceId].curHp).toBe(2 * (60 - s.cards[other.instanceId].curHp));
   });
 
-  it("Steel's Magnetic Steel banks a stolen shield from each foe", () => {
+  it("Steel's Magnetic Steel strips the rank ahead but damages the whole board", () => {
+    // Split scope: the theft reaches only the row directly ahead, the damage
+    // lands on everyone. Fired with the card's OWN params so the test breaks if
+    // the data and the handler ever disagree.
+    const s = prepState();
+    const steel = place(s, "bore_steel", "P1", 3, 0); // P1 home; row ahead = 2
+    s.cards[steel.instanceId].curShields = 5;
+    const near = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 5 });
+    const far = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 5 });
+    const params = getDef("bore_steel").special!.params!;
+    SPECIAL_HANDLERS.barrage(s, s.cards[steel.instanceId],
+      [s.cards[near.instanceId], s.cards[far.instanceId]], params);
+    // NOTE the damage lands FIRST and any landed hit strips exactly 1 shield,
+    // so each foe is down a shield before the magnet takes its cut.
+    expect(s.cards[near.instanceId].curShields).toBe(1); // 5 -1 hit -3 stolen
+    expect(s.cards[far.instanceId].curShields).toBe(4); // 5 -1 hit, out of reach
+    expect(s.cards[steel.instanceId].curShields).toBe(8); // 5 + only the 3 it took
+  });
+
+  it("...and takes only what a foe actually has, never more", () => {
     const s = prepState();
     const steel = place(s, "bore_steel", "P1", 3, 0);
-    s.cards[steel.instanceId].curShields = 5;
-    const a = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 2 });
-    const b = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 3 });
-    SPECIAL_HANDLERS.barrage(s, s.cards[steel.instanceId],
-      [s.cards[a.instanceId], s.cards[b.instanceId]], { dmg: 3, targets: 99, stealShields: 1 });
-    expect(s.cards[steel.instanceId].curShields).toBe(7); // +1 stolen from each of the two
+    s.cards[steel.instanceId].curShields = 0;
+    const thin = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 2 });
+    SPECIAL_HANDLERS.barrage(s, s.cards[steel.instanceId], [s.cards[thin.instanceId]],
+      getDef("bore_steel").special!.params!);
+    // 2 shields, 1 stripped by the hit, leaving 1 for a magnet that wanted 3.
+    expect(s.cards[thin.instanceId].curShields).toBe(0);
+    expect(s.cards[steel.instanceId].curShields).toBe(1); // "up to 3", not a flat 3
   });
 
   it("SirCrest wields the PYRO (Scorch) and AQUA (Flow Change) element auras", () => {

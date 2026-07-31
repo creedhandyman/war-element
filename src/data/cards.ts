@@ -7105,7 +7105,7 @@ export const CARDS: CardDef[] = [
     element: "BORE",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 7,
+    cost: 8,
     dmg: 8,
     hits: 1,
     hp: 18,
@@ -7116,14 +7116,17 @@ export const CARDS: CardDef[] = [
     // Hardened Stainless Steel: BLOCK 2 (each shield harder to break) and immune
     // to status/DOT.
     statusImmune: true,
-    // Magnetic Steel: 3 DMG to all opponents and pull a shield off each onto Steel.
+    // Magnetic Steel: 3 DMG to ALL opponents, and strip up to 3 shields each off
+    // the row directly ahead, equipping them. The theft is short-ranged (the
+    // magnet only reaches the rank it stands against) while the shockwave is
+    // board-wide — hence stealRowAheadOnly alongside targets 99.
     special: {
       name: "Magnetic Steel",
       cost: 5,
       handler: "barrage",
-      params: { dmg: 3, targets: 99, stealShields: 1 },
+      params: { dmg: 3, targets: 99, stealShields: 3, stealRowAheadOnly: 1 },
       targetSide: "enemy",
-      text: "Deal 3 DMG to all opponents and steal 1 shield from each onto Steel.",
+      text: "Deal 3 DMG to all opponents, and steal up to 3 shields each from opponents in the row directly ahead and equip them.",
     },
   },
   {
