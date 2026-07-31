@@ -4,7 +4,8 @@
 // rules themselves plus the paths those don't reach.
 
 import { describe, expect, it } from "vitest";
-import { applyStatus, basicAttack, defeatCard } from "../combat";
+import { applyStatus, basicAttack, defeatCard, SPECIAL_HANDLERS } from "../combat";
+import { advance } from "../phases";
 import { boardCards, effectiveDmg, healCard } from "../state";
 import { getDef } from "../../data/cards";
 import {
@@ -13,7 +14,7 @@ import {
   dodgesByMatchup,
   matchupStatusDuration,
 } from "../matchups";
-import { place, prepState, statusOf } from "./helpers";
+import { atCleanup, place, prepState, statusOf } from "./helpers";
 
 describe("element matchups — the damage swing", () => {
   it("DAWN and DUSK each hit the other 25% harder", () => {
@@ -114,6 +115,54 @@ describe("element matchups — healing", () => {
     const tgt = place(s, "leaf_hunter", "P1", 1, 0, { curHp: 1, maxHp: 40, curShields: 0 });
     basicAttack(s, atk.instanceId, tgt.instanceId);
     expect(s.cards[tgt.instanceId]).toBeUndefined();
+  });
+});
+
+describe("Score's Toxic Contagion — the death burst", () => {
+  /** Infect `victim` with Score's Special, straight through the handler. */
+  function infect(s: ReturnType<typeof prepState>, score: { instanceId: string }, victim: { instanceId: string }) {
+    SPECIAL_HANDLERS.toxicContagion(s, s.cards[score.instanceId], [s.cards[victim.instanceId]], {
+      sleep: 1, dotDuration: 2, dotPower: 3, deathSplash: 3,
+    });
+  }
+
+  it("bursts for 3 onto the victim's OWN neighbours when it dies poisoned", () => {
+    const s = prepState();
+    const score = place(s, "bore_score", "P1", 3, 0);
+    const victim = place(s, "dusk_gool", "P2", 1, 1, { curHp: 5, maxHp: 20, curShields: 0 });
+    const neighbour = place(s, "dusk_vamp", "P2", 1, 2, { curHp: 20, maxHp: 20, curShields: 0 });
+    const ally = place(s, "bore_armadillo", "P1", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    infect(s, score, victim);
+    defeatCard(s, s.cards[victim.instanceId], "test");
+    // The splash spreads through the victim's own ranks...
+    expect(20 - s.cards[neighbour.instanceId].curHp).toBe(3);
+    // ...and never back onto the caster's side, even standing adjacent.
+    expect(s.cards[ally.instanceId].curHp).toBe(20);
+  });
+
+  it("stays quiet when the poison has already worn off", () => {
+    const s = prepState();
+    const score = place(s, "bore_score", "P1", 3, 0);
+    const victim = place(s, "dusk_gool", "P2", 1, 1, { curHp: 5, maxHp: 20, curShields: 0 });
+    const neighbour = place(s, "dusk_vamp", "P2", 1, 2, { curHp: 20, maxHp: 20, curShields: 0 });
+    infect(s, score, victim);
+    // Outlived the DOT — "dies while affected" is the whole gate.
+    s.cards[victim.instanceId].statuses = [];
+    defeatCard(s, s.cards[victim.instanceId], "test");
+    expect(s.cards[neighbour.instanceId].curHp).toBe(20);
+  });
+
+  it("still bursts when the poison itself lands the kill", () => {
+    // Armed at the death choke-point rather than on the cast, so it pays out
+    // however the body finally drops — here, the DOT tick at Cleanup.
+    const s = prepState();
+    const score = place(s, "bore_score", "P1", 3, 0);
+    const victim = place(s, "dusk_gool", "P2", 1, 1, { curHp: 2, maxHp: 20, curShields: 0 });
+    const neighbour = place(s, "dusk_vamp", "P2", 1, 2, { curHp: 20, maxHp: 20, curShields: 0 });
+    infect(s, score, victim);
+    const next = advance(atCleanup(s));
+    expect(next.cards[victim.instanceId]).toBeUndefined(); // poisoned to death
+    expect(20 - next.cards[neighbour.instanceId].curHp).toBe(3);
   });
 });
 

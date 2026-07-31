@@ -365,6 +365,27 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
     if (near.length)
       draft.log.push(`${getDef(card.defId).name} bursts — Contagion hits ${near.length} for ${CONTAGION_SPLASH}.`);
   }
+  // Toxic Contagion (Score): a body that dies STILL CARRYING the poison bursts
+  // and splashes the cards around it. Gated on the DOT still being present —
+  // that is what "dies while affected" means, so a target that outlives the
+  // poison and dies later drops quietly.
+  //
+  // The splash hits the DYING card's OWN side: the victim is the caster's
+  // enemy, so its neighbours are the enemies worth infecting. (Contagion above
+  // reads the other way because there the dying body is the caster's own.)
+  // Credited to the caster when it's still alive, so the damage lands on the
+  // player who actually spent the Special rather than on the corpse.
+  if (card.toxicSplash && card.pos && hasStatus(card, "DOT")) {
+    const { dmg, by } = card.toxicSplash;
+    const dp = card.pos;
+    const source = draft.cards[by]?.curHp > 0 ? draft.cards[by] : card;
+    const near = boardCards(draft, card.owner).filter(
+      (a) => a.curHp > 0 && a.instanceId !== card.instanceId && a.pos && chebyshev(a.pos, dp) <= 1,
+    );
+    for (const a of near) directDamage(draft, source, a, dmg, false);
+    if (near.length)
+      draft.log.push(`${getDef(card.defId).name} bursts with poison — ${near.length} adjacent take ${dmg}.`);
+  }
   // Prism: the enchantment outlives the enchanter. Handed to the ally with the
   // most damage behind it — the charge is a single swing, so it is worth most
   // on whoever hits hardest. Passes on what Prism actually had armed, falling
@@ -3057,6 +3078,11 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const el = getDef(attacker.defId).element;
     applyStatus(draft, t, "SLEEP", num(params, "sleep", 1), 0, el);
     applyStatus(draft, t, "DOT", num(params, "dotDuration", 2), num(params, "dotPower", 3), el);
+    // Arm the burst. It fires from defeatCard (the single death choke-point) so
+    // it pays out however the body finally drops — the poison tick itself, a
+    // later attack, a round effect — rather than only on an immediate kill.
+    const splash = num(params, "deathSplash");
+    if (splash > 0) t.toxicSplash = { dmg: splash, by: attacker.instanceId };
     draft.log.push(`${label(draft, attacker)} infects ${label(draft, t)} — SLEEP + POISON.`);
   },
   /** Smog (Aftermath): lay a smoke screen — attacks on the owner's cards start

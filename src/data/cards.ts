@@ -6951,18 +6951,19 @@ export const CARDS: CardDef[] = [
     // Sand Trap (On Hit by melee): infect the attacker (SLEEP). On Death: leave
     // the killer poisoned. Toxic Contagion: Score's own basics spread POISON.
     passiveNames: { onHitByMelee: "Sand Trap", onDeath: "Sand Trap", onHitStatus: "Toxic Contagion" },
-    onHitByMelee: { status: { kind: "SLEEP", duration: 1, power: 0 } },
+    onHitByMelee: { status: { kind: "SLEEP", duration: 2, power: 0 } },
     onDeath: { dmg: 0, killerStatus: { kind: "DOT", duration: 2, power: 3 } },
     onHitStatus: { kind: "DOT", duration: 2, power: 2 },
-    // Toxic Contagion: SLEEP a target and apply POISON 3 for 2 rounds.
+    // Toxic Contagion: SLEEP a target and apply POISON 3 for 2 rounds. If it
+    // dies while still poisoned, the body bursts for 3 to everything adjacent.
     special: {
       name: "Toxic Contagion",
       cost: 3,
       handler: "toxicContagion",
-      params: { sleep: 1, dotDuration: 2, dotPower: 3 },
+      params: { sleep: 1, dotDuration: 2, dotPower: 3, deathSplash: 3 },
       targetSide: "enemy",
       ranged: true,
-      text: "SLEEP a target and apply POISON 3 (DOT) for 2 rounds.",
+      text: "SLEEP a target and apply POISON 3 (DOT) for 2 rounds. If it dies while poisoned, it bursts for 3 DMG to every adjacent card.",
     },
   },
   {
@@ -7799,9 +7800,9 @@ export const CARDS: CardDef[] = [
     // even through PEN.
     keywords: { BLOCK: 1 },
     tribe: "Mountain Beasts",
-    // Tail Club (On Hit): a clubbing blow to the head — 50% to SLEEP for 1 round.
+    // Tail Club (On Hit): a clubbing blow to the head — 50% to SLEEP for 2 rounds.
     passiveNames: { onHitStatus: "Tail Club" },
-    onHitStatus: { kind: "SLEEP", duration: 1, power: 0, chance: 50 },
+    onHitStatus: { kind: "SLEEP", duration: 2, power: 0, chance: 50 },
   },
   {
     id: "dusk_skrow",

@@ -913,6 +913,11 @@ export interface CardInstance {
   /** Per-round guard for False Head (Thorny Ripper) — the decoy soaks one melee
    *  attack per round. */
   falseHeadUsedRound?: boolean;
+  /** Toxic Contagion (Score): a body carrying the poison bursts when it dies,
+   *  splashing its neighbours. `by` is the caster's instanceId so the splash is
+   *  credited to whoever infected it, not to the corpse. Only pays out while
+   *  the DOT is still on the card — "dies while affected". */
+  toxicSplash?: { dmg: number; by: string };
   /** One-shot guard for a `oneUse` onAllyKilled (Shine's Brightling Ball). */
   allyKilledFired: boolean;
   /** Dead Clock (RIP): bodies raised so far, counted toward spawnTriggerAt. */

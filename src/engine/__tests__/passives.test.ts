@@ -521,7 +521,7 @@ describe("medium-tier passives (audit batch)", () => {
 
   it("Granite Ankylosaur's Tail Club can SLEEP what it hits", () => {
     const d = getDef("bore_ankylosaur");
-    expect(d.onHitStatus).toMatchObject({ kind: "SLEEP", duration: 1, chance: 50 });
+    expect(d.onHitStatus).toMatchObject({ kind: "SLEEP", duration: 2, chance: 50 });
     expect(d.keywords.BLOCK).toBe(1);
   });
 
