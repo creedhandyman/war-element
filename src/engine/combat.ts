@@ -3,8 +3,10 @@
 // Damage application order for a single hit (brief §5):
 //   1. EVASION coin — dodge negates the hit entirely (no shield strip).
 //   2. BLOCK X — flat reduction (min 0). Applies even to PEN.
-//   3. Shield gate — toHp = max(0, remaining − curShields); strip exactly 1
-//      shield on any landed hit (even a 0-damage one).
+//   3. Shield gate — toHp = max(0, remaining − curShields); a landed hit (even
+//      a 0-damage one) strips shields on a sliding scale with the size of the
+//      blow: shieldsBrokenBy takes 1, or 2 at 10+ damage, or 3 at 21+.
+//      · Exostone (BORE) caps that at 1 however heavy the hit.
 //      · PEN skips the gate: full remaining damage to HP, no shield stripped.
 //      · CRIT does nothing while shields > 0; on an unshielded target it
 //        doubles the hit BEFORE the gate math (basic attacks only).
@@ -858,7 +860,14 @@ export function resolveHit(
       // below, since the strip changes curShields for the next hit.
       result.totalShielded += remaining - toHp;
       if (target.curShields > 0) {
-        target.curShields = Math.max(0, target.curShields - shieldsBrokenBy(remaining));
+        // Exostone (BORE): dense stone chips ONE plate at a time. Everyone else
+        // loses shields on a sliding scale with the size of the blow —
+        // shieldsBrokenBy takes 2 at 10+ damage and 3 at 21+ — which fell
+        // hardest on the element built out of shields: BORE carries the most
+        // armour in the game (avg 2.64 a card) and a single heavy hit could
+        // strip most of it. Now a big swing takes one plate, same as a small one.
+        const broke = hasElementAura(tDef, "BORE") ? 1 : shieldsBrokenBy(remaining);
+        target.curShields = Math.max(0, target.curShields - broke);
         // Gate Keeper (Veil): the first time the shield wall breaks, harden up.
         if (target.curShields === 0 && tDef.onShieldBreak && !target.shieldBroken) {
           target.shieldBroken = true;

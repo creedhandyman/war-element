@@ -4,7 +4,7 @@
 // rules themselves plus the paths those don't reach.
 
 import { describe, expect, it } from "vitest";
-import { applyStatus, basicAttack, defeatCard, SPECIAL_HANDLERS } from "../combat";
+import { applyStatus, basicAttack, defeatCard, directDamage, shieldsBrokenBy, SPECIAL_HANDLERS } from "../combat";
 import { advance, applyIntent } from "../phases";
 import { boardCards, effectiveDmg, healCard } from "../state";
 import { getDef } from "../../data/cards";
@@ -115,6 +115,35 @@ describe("element matchups — healing", () => {
     const tgt = place(s, "leaf_hunter", "P1", 1, 0, { curHp: 1, maxHp: 40, curShields: 0 });
     basicAttack(s, atk.instanceId, tgt.instanceId);
     expect(s.cards[tgt.instanceId]).toBeUndefined();
+  });
+});
+
+describe("Exostone (BORE): stone chips one plate at a time", () => {
+  it("a heavy hit takes ONE shield off a BORE card, not two or three", () => {
+    const s = prepState();
+    // 25 damage would break 3 shields off anyone else (shieldsBrokenBy: 1 / 2 at
+    // 10+ / 3 at 21+) — which fell hardest on the element made of shields.
+    expect(shieldsBrokenBy(25)).toBe(3);
+    const bore = place(s, "bore_armadillo", "P1", 2, 0, { curHp: 60, maxHp: 60, curShields: 5 });
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40 });
+    directDamage(s, s.cards[foe.instanceId], s.cards[bore.instanceId], 25, false);
+    expect(s.cards[bore.instanceId].curShields).toBe(4);
+  });
+
+  it("...while a non-BORE card still loses the full sliding-scale amount", () => {
+    const s = prepState();
+    const other = place(s, "leaf_hunter", "P1", 2, 0, { curHp: 60, maxHp: 60, curShields: 5 });
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40 });
+    directDamage(s, s.cards[foe.instanceId], s.cards[other.instanceId], 25, false);
+    expect(s.cards[other.instanceId].curShields).toBe(5 - shieldsBrokenBy(25));
+  });
+
+  it("a small hit is unchanged — it only ever took one anyway", () => {
+    const s = prepState();
+    const bore = place(s, "bore_armadillo", "P1", 2, 0, { curHp: 60, maxHp: 60, curShields: 5 });
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40 });
+    directDamage(s, s.cards[foe.instanceId], s.cards[bore.instanceId], 3, false);
+    expect(s.cards[bore.instanceId].curShields).toBe(4);
   });
 });
 
