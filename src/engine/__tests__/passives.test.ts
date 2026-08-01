@@ -1213,7 +1213,10 @@ describe("medium-tier passives (audit batch)", () => {
     s.players.P1.magicPool = 3;
     const obsidi = place(s, "bore_obsidi", "P1", 2, 0);
     const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
-    expect(effectiveSp(s, s.cards[obsidi.instanceId])).toBe(8); // above ground
+    // Read the printed SP rather than hardcoding it — Obsidi's speed moved when
+    // BORE traded SP for cost, and the point of this test is the +3 underground.
+    const printedSp = getDef("bore_obsidi").sp;
+    expect(effectiveSp(s, s.cards[obsidi.instanceId])).toBe(printedSp); // above ground
     const next = applyIntent(battleFor(s, obsidi.instanceId), {
       type: "BATTLE_ACTION",
       player: "P1",
@@ -1221,7 +1224,9 @@ describe("medium-tier passives (audit batch)", () => {
       targetId: obsidi.instanceId, // self-targeted burrow
     });
     expect(statusOf(next.cards[obsidi.instanceId], "STEALTH")).toBeTruthy();
-    expect(effectiveSp(next, next.cards[obsidi.instanceId])).toBe(11); // Obsidian Claws
+    // Obsidian Claws REPLACES the printed SP with a flat 11 rather than adding
+    // to it, so this number is independent of the card's above-ground speed.
+    expect(effectiveSp(next, next.cards[obsidi.instanceId])).toBe(getDef("bore_obsidi").spWhileStealthed!);
     // The ambush overrides its printed 4×2 — 6×2 comes up out of the ground.
     basicAttack(next, obsidi.instanceId, foe.instanceId);
     expect(next.cards[foe.instanceId].curHp).toBe(28); // 40 − 12
