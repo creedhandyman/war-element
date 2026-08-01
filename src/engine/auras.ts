@@ -21,7 +21,7 @@ export interface AuraDef {
 export const ELEMENT_AURA: Record<Element, AuraDef> = {
   LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP, and gain +1 shield per hit they took that round — up to 3 above their printed shields." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
-  BORE: { name: "Exostone", desc: "Enters play with shields by rarity — Rare 1, Epic 2, Legendary 3, Mythic 4 — and never loses more than 1 shield to a single hit however heavy." },
+  BORE: { name: "Exostone", desc: "Enters play with shields by rarity — Rare 2, Epic 2, Legendary 3, Mythic 4 — and never loses more than 1 shield to a single hit however heavy." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals a third of its DMG back to the killer." },
   AQUA: { name: "Flow Change", desc: "On summon, choose a boost for 3 rounds: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for half its DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 14)." },
@@ -32,12 +32,19 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
 /** Exostone's arrival plating, by rarity. It was a flat +2 for every BORE card,
  *  which handed the same slab to a 1-cost Rare and a 10-cost Mythic — most
  *  valuable on the cheapest body, where 2 shields is a large share of what the
- *  card is. Tiering it makes the aura scale with the card it is plating. */
+ *  card is. Tiering it makes the aura scale with the card it is plating.
+ *
+ *  Rare and Epic both sit AT the old flat value; only the top two tiers climb.
+ *  BORE's pool is rare-heavy — 18 Rare, 12 Epic, 7 Legendary, 2 Mythic — so a
+ *  ladder centred on 2 (the first cut was 1/2/3/4) took a shield off 18 cards to
+ *  give to 9, and measured as a small net loss for the element. Holding the
+ *  bottom two flat means no card is worse off than before and the 9 rarest get
+ *  the scaling. */
 export const EXOSTONE_SHIELDS: Record<string, number> = {
-  rare: 1, epic: 2, legendary: 3, mythic: 4,
+  rare: 2, epic: 2, legendary: 3, mythic: 4,
 };
 /** Fallback for any rarity outside the table above. */
-export const EXOSTONE_DEFAULT = 1;
+export const EXOSTONE_DEFAULT = 2;
 
 export const GALE_SP_CAP = 21;
 
