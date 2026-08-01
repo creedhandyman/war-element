@@ -3,6 +3,15 @@
  *  engine before it shipped (magic ramp, pool carryover, deck + spellbook caps,
  *  capture lockout): objective, deck, resources, the round loop, combat,
  *  shields, speed/movement, elements, statuses, keywords and wins. */
+import { ELEMENT_AURA, ELEMENT_MATCHUP } from "../engine";
+import { EL_COLOR } from "./shared";
+import type { Element } from "../engine";
+
+/** Fixed display order for the element lists below. */
+const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
+/** "LEAF" → "Leaf" — the rules book reads as prose, not as engine constants. */
+const title = (el: string) => el.charAt(0) + el.slice(1).toLowerCase();
+
 export function RulesBook(props: { onClose: () => void }) {
   return (
     <div className="overlay" onClick={props.onClose}>
@@ -128,6 +137,8 @@ export function RulesBook(props: { onClose: () => void }) {
                 <b>They erode as they work</b> — each hit that lands also chips the
                 shield down: a small hit strips 1, a big one (10+) strips 2, a huge one
                 (21+) strips 3. So shields blunt attackers but wear away over a fight.
+                <i> Bore</i> is the exception — its Exostone never loses more than 1 to
+                a single hit, however heavy.
               </li>
               <li>
                 <b>Piercing & blocking</b> — <b>PEN</b> ignores shields entirely, hitting
@@ -140,11 +151,13 @@ export function RulesBook(props: { onClose: () => void }) {
               </li>
               <li>
                 <b>CRIT needs bare skin</b> — a basic can only critically hit a target
-                whose shields are already at 0.
+                whose shields are already at 0. A card printing <b>Crack Shot</b> is
+                the exception: its crit fires through armour and pierces it.
               </li>
               <li>
-                Gain shields from Bore's Exostone (+2 on summon), Leaf's Photosynthesis,
-                and many card abilities — they don't refill on their own.
+                Gain shields from Bore's Exostone (on summon, and again off every
+                plate it breaks), Leaf's Photosynthesis, and many card abilities —
+                they don't refill on their own.
               </li>
             </ul>
           </section>
@@ -197,19 +210,36 @@ export function RulesBook(props: { onClose: () => void }) {
           <section>
             <h3>🌈 Elements & auras</h3>
             <p>Every card carries its element's passive aura:</p>
+            {/* Rendered from ELEMENT_AURA rather than retyped. That table is the
+                source of truth the card inspector already reads, and the list
+                here had drifted from it — describing a flat "+2 shields" for
+                Exostone and no round-tick at all for Awakening. */}
             <ul className="rules-els">
-              <li><b>Leaf</b> — Photosynthesis: heal + bank shields each round.</li>
-              <li><b>Pyro</b> — Scorch: basics apply stacking BURN.</li>
-              <li>
-                <b>Aqua</b> — Flow Change: on summon, pick a 3-round boost —
-                <b> Liquid</b> (+2 DMG), <b>Frozen</b> (+3 shields), or <b>Vapor</b> (+4 SP).
-              </li>
-              <li><b>Dawn</b> — Awakening: on summon, strike the nearest enemy.</li>
-              <li><b>Gale</b> — Zephyr: gains SP each round.</li>
-              <li><b>Bolt</b> — Electrify: basics leave a status; +DMG vs statused foes.</li>
-              <li><b>Dusk</b> — Midnight Shade: on death, hits back at the killer.</li>
-              <li><b>Bore</b> — Exostone: enters play with +2 shields.</li>
+              {ELEMENTS.map((el) => (
+                <li key={el}>
+                  <b style={{ color: EL_COLOR[el] }}>{title(el)}</b> — {ELEMENT_AURA[el].name}: {ELEMENT_AURA[el].desc}
+                </li>
+              ))}
             </ul>
+          </section>
+
+          <section>
+            <h3>⚔️ Elemental matchups</h3>
+            <p>
+              On top of its own aura, an element answers particular others. These
+              apply automatically — there is nothing to activate.
+            </p>
+            <ul className="rules-els">
+              {ELEMENTS.filter((el) => ELEMENT_MATCHUP[el]).map((el) => (
+                <li key={el}>
+                  <b style={{ color: EL_COLOR[el] }}>{title(el)}</b> — {ELEMENT_MATCHUP[el]!.name}: {ELEMENT_MATCHUP[el]!.desc}
+                </li>
+              ))}
+            </ul>
+            <p>
+              <i>Bolt</i> has no matchup bonus — Electrify already answers anything
+              carrying a status, whoever put it there.
+            </p>
           </section>
 
           <section>

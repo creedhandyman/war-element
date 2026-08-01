@@ -52,3 +52,5 @@ export { CARDS, CARD_INDEX, getDef, DECK_P1, DECK_P2, DECKS, deckById, CORES, co
 export type { DeckDef, CoreDef } from "../data/cards";
 export { ELEMENT_AURA, GALE_SP_CAP, FLOW_MODES, liquidGivesHit } from "./auras";
 export type { AuraDef, FlowMode } from "./auras";
+export { ELEMENT_MATCHUP } from "./matchups";
+export type { MatchupDef } from "./matchups";
