@@ -21,13 +21,23 @@ export interface AuraDef {
 export const ELEMENT_AURA: Record<Element, AuraDef> = {
   LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP, and gain +1 shield per hit they took that round — up to 3 above their printed shields." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
-  BORE: { name: "Exostone", desc: "Enters play with +2 shields, and never loses more than 1 shield to a single hit however heavy." },
+  BORE: { name: "Exostone", desc: "Enters play with shields by rarity — Rare 1, Epic 2, Legendary 3, Mythic 4 — and never loses more than 1 shield to a single hit however heavy." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals a third of its DMG back to the killer." },
   AQUA: { name: "Flow Change", desc: "On summon, choose a boost for 3 rounds: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for half its DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 14)." },
   GALE: { name: "Zephyr", desc: "End of round, +2 SP (caps at SP 21); the first time it passes SP 15, a one-time +1 DMG." },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +2 DMG to any opponent carrying a status." },
 };
+
+/** Exostone's arrival plating, by rarity. It was a flat +2 for every BORE card,
+ *  which handed the same slab to a 1-cost Rare and a 10-cost Mythic — most
+ *  valuable on the cheapest body, where 2 shields is a large share of what the
+ *  card is. Tiering it makes the aura scale with the card it is plating. */
+export const EXOSTONE_SHIELDS: Record<string, number> = {
+  rare: 1, epic: 2, legendary: 3, mythic: 4,
+};
+/** Fallback for any rarity outside the table above. */
+export const EXOSTONE_DEFAULT = 1;
 
 export const GALE_SP_CAP = 21;
 

@@ -2,7 +2,7 @@
 // All reducers clone the incoming state once and mutate only the clone.
 
 import { getDef } from "../data/cards";
-import { applyFlow, DAWN_SP_CAP, type FlowMode, GALE_SP_CAP, LEAF_SHIELD_CAP } from "./auras";
+import { applyFlow, DAWN_SP_CAP, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, LEAF_SHIELD_CAP } from "./auras";
 import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
@@ -1480,10 +1480,12 @@ function applyElementSummonAura(draft: GameState, inst: CardInstance): void {
 
 function applyOneElementSummonAura(draft: GameState, inst: CardInstance, def: CardDef, el: Element): void {
   switch (el) {
-    case "BORE": // Exostone — enters play with +2 shields.
-      inst.curShields += 2;
-      draft.log.push(`${def.name} hardens (Exostone +2 shields).`);
+    case "BORE": { // Exostone — arrival plating, scaled by rarity.
+      const plate = EXOSTONE_SHIELDS[def.rarity ?? ""] ?? EXOSTONE_DEFAULT;
+      inst.curShields += plate;
+      draft.log.push(`${def.name} hardens (Exostone +${plate} shield${plate > 1 ? "s" : ""}).`);
       break;
+    }
     case "AQUA": { // Flow Change — a 1-turn choice.
       if (draft.humans.includes(inst.owner)) {
         // Human chooses via the UI; gate until they pick.

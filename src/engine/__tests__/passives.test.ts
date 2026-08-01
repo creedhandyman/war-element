@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS } from "../combat";
-import { applyFlow, hasElementAura, PYRO_BURN_STACK_CAP } from "../auras";
+import { applyFlow, EXOSTONE_SHIELDS, hasElementAura, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire } from "../state";
@@ -1926,13 +1926,26 @@ describe("Sandman's Nightmare", () => {
 });
 
 describe("element auras", () => {
-  it("Exostone (BORE): a summoned card enters with +2 shields", () => {
-    const s = prepState();
-    s.players.P1.gold = 5;
-    const handId = giveHand(s, "P1", "bore_rockgoblin"); // base 2 shields
-    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
-    const goblin = boardCards(next, "P1").find((c) => c.defId === "bore_rockgoblin")!;
-    expect(goblin.curShields).toBe(4); // 2 base + 2 Exostone
+  it("Exostone (BORE): arrival plating scales with rarity", () => {
+    // Rare 1 / Epic 2 / Legendary 3 / Mythic 4. It used to be a flat +2 for
+    // everyone, which was worth most on the cheapest body — 2 shields is a large
+    // share of what a 1-cost Rare even is, and a rounding error on a Mythic.
+    const cases: [string, string][] = [
+      ["bore_rockgoblin", "rare"],
+      ["bore_obsidi", "epic"],
+      ["bore_prism", "legendary"],
+      ["bore_deepest", "mythic"],
+    ];
+    for (const [id, rarity] of cases) {
+      const def = getDef(id);
+      expect(def.rarity, `${id} is the ${rarity} fixture`).toBe(rarity);
+      const s = prepState();
+      s.players.P1.gold = 30;
+      const handId = giveHand(s, "P1", id);
+      const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+      const card = boardCards(next, "P1").find((c) => c.defId === id)!;
+      expect(card.curShields, `${id} (${rarity})`).toBe(def.shields + EXOSTONE_SHIELDS[rarity]);
+    }
   });
 
   it("Zephyr (GALE): a GALE card gains +2 SP each Cleanup", () => {
