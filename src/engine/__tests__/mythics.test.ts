@@ -312,7 +312,7 @@ describe("Talents — Dart Frog's Bleed Out", () => {
       action: "basic",
       targetId: foe.instanceId,
     });
-    expect(t2.cards[foe.instanceId].curHp).toBe(40 - 15); // 3 × 5
+    expect(t2.cards[foe.instanceId].curHp).toBe(40 - 3 * getDef("leaf_dartfrog").dmg); // 3 darts
     expect(t2.cards[frog.instanceId].loadedHits).toBe(0); // spent
   });
 });
@@ -685,7 +685,10 @@ describe("Dive Bomb's WEAKEN is real, not just a chip on the card", () => {
     const s = prepState();
     s.players.P1.magicPool = 9;
     const griff = place(s, "gale_griffith", "P1", 2, 0);
-    const foe = place(s, "leaf_thorn", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    // Row 0, deliberately NOT a mid row: King of the Hill's +1 DMG is added
+    // AFTER WEAKEN scales, so a mid-row target makes `after` read as
+    // floor(printed x 0.75) + 1 and the clean -25% relationship no longer holds.
+    const foe = place(s, "leaf_thorn", "P2", 0, 1, { curHp: 99, maxHp: 99, curShields: 0 });
     const before = effectiveDmg(s, s.cards[foe.instanceId]);
     const n = applyIntent(battleWith(s, griff.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,

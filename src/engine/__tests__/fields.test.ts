@@ -1,10 +1,10 @@
 // Fields (Cost-6 board-wide terrain) — cast, element-scoped buffs, one-per-owner.
 
 import { describe, expect, it } from "vitest";
-import { applyStatus, basicAttack, resolveHit } from "../combat";
+import { applyStatus, basicAttack, effectiveBasicHits, resolveHit } from "../combat";
 import { advance, applyIntent } from "../phases";
 import { canCastSpell, canTarget, effectiveSpecialCost, validTargets } from "../rules";
-import { effectiveSp, fieldBonus, fieldEvasion } from "../state";
+import { effectiveDmg, effectiveSp, fieldBonus, fieldEvasion } from "../state";
 import { atCleanup, place, prepState, seedForCoins, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
@@ -433,17 +433,23 @@ describe("Nightfall — EVASION covers the FIRST hit each round only", () => {
   };
 
   it("it covers the first HIT, not the first attack — the rest of the volley lands", () => {
-    // Alpha is 1x4 and stands in a mid row, so King of the Hill makes it 2x4 = 8.
-    // One hit is dodged; the other three land for 6. A cover that stopped the
-    // whole VOLLEY would read 400 here, which is the mistake worth pinning.
+    // Alpha is multi-hit and stands in a mid row, so King of the Hill adds +1
+    // DMG per hit. One hit is dodged; the rest land. A cover that stopped the
+    // whole VOLLEY would leave the target on 400, which is the mistake worth
+    // pinning — derived from the def so a retune doesn't break the point.
     const { s, me, foe } = armed();
     s.rngState = seedForCoins(true, true, true, true); // every dodge roll would succeed
+    // Read the attacker's LIVE numbers rather than modelling King of the Hill:
+    // a mid row grants +1 DMG or +1 HIT depending on the card's shape, and
+    // raising a 1-DMG multi-hit card to 2 flips which branch it takes.
+    const perHit = effectiveDmg(s, s.cards[foe.instanceId]);
+    const hits = effectiveBasicHits(s.cards[foe.instanceId]);
     basicAttack(s, foe.instanceId, me.instanceId);
-    expect(s.cards[me.instanceId].curHp).toBe(394); // 8 − 2 for the one dodged hit
+    expect(s.cards[me.instanceId].curHp).toBe(400 - perHit * (hits - 1));
     expect(s.cards[me.instanceId].fieldEvasionUsed).toBe(true);
     basicAttack(s, foe.instanceId, me.instanceId);
-    // Same round, cover spent: the full volley lands despite the seed.
-    expect(s.cards[me.instanceId].curHp).toBe(386);
+    // Same round, cover spent: the FULL volley lands despite the seed.
+    expect(s.cards[me.instanceId].curHp).toBe(400 - perHit * (hits - 1) - perHit * hits);
   });
 
   it("a failed roll still spends it — it covers the hit, it isn't a re-roll", () => {

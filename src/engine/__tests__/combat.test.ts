@@ -134,11 +134,12 @@ describe("on-hit keywords", () => {
   it("LIFESTEAL heals damage dealt to HP, capped at max HP", () => {
     const s = duel();
     // attacker in its home row: printed damage, no King-of-the-Hill bonus
-    const a = place(s, "leaf_sumerose", "P1", 3, 0, { curHp: 10, maxHp: 13 }); // LIFESTEAL, dmg 7
+    const a = place(s, "leaf_sumerose", "P1", 3, 0, { curHp: 10, maxHp: 13 }); // LIFESTEAL
     const t = place(s, "dusk_gool", "P2", 2, 0, { curHp: 13, maxHp: 13, curShields: 0 });
+    const dmg = getDef("leaf_sumerose").dmg;
     basicAttack(s, a.instanceId, t.instanceId);
-    expect(t.curHp).toBe(6); // 13 - 7
-    expect(a.curHp).toBe(13); // healed 7 but capped at maxHp 13 (was 10, +3 used)
+    expect(t.curHp).toBe(13 - dmg);
+    expect(a.curHp).toBe(13); // healed `dmg` but capped at maxHp 13 (was 10, +3 used)
   });
 
   it("DRAIN permanently steals 1 max HP", () => {
@@ -360,7 +361,9 @@ describe("multi-hit auto-basic — spread, don't overkill", () => {
     const tough = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
     basicAttack(s, alpha.instanceId, distributeBasicHits(s, alpha, [weak, tough]));
     expect(s.cards[weak.instanceId]?.curHp ?? 0).toBeLessThanOrEqual(0); // dead on one hit
-    expect(40 - s.cards[tough.instanceId].curHp).toBe(3); // the surplus 3 hits landed here
+    // The surplus hits land on the tough one: (hits - 1) at its printed DMG.
+    const ad = getDef("leaf_alpha");
+    expect(40 - s.cards[tough.instanceId].curHp).toBe((ad.hits - 1) * ad.dmg);
   });
 
   it("a single-hit basic is unchanged — one pick, the lowest-HP killable", () => {

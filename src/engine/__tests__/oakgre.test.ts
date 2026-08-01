@@ -44,7 +44,7 @@ describe("Oakgre", () => {
     const after = next.cards[oak.instanceId];
     expect(after.curHp).toBe(getDef("leaf_oakgre").hp - 9); // the HP cost is real
     expect(effectiveSp(next, after)).toBe(3); // unpinned
-    expect(effectiveDmg(next, after)).toBe(6 + 2);
+    expect(effectiveDmg(next, after)).toBe(getDef("leaf_oakgre").dmg + 2);
 
     // Movement is a PREP-phase action; uproot() left us mid-battle.
     next.phase = "prep";
@@ -57,7 +57,7 @@ describe("Oakgre", () => {
     const oak = place(s, "leaf_oakgre", "P1", 3, 0, { curHp: 55, maxHp: 55 });
     const cur = uproot(s, oak.instanceId, 3);
     expect(cur.cards[oak.instanceId].curHp).toBe(55 - 27);
-    expect(effectiveDmg(cur, cur.cards[oak.instanceId])).toBe(6 + 6);
+    expect(effectiveDmg(cur, cur.cards[oak.instanceId])).toBe(getDef("leaf_oakgre").dmg + 6);
     expect(effectiveSp(cur, cur.cards[oak.instanceId])).toBe(9);
   });
 

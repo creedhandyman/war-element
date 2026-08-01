@@ -1003,7 +1003,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(offered).toContain(hurt.instanceId);
     expect(offered).not.toContain(full.instanceId);
     basicAttack(s, sprinu.instanceId, hurt.instanceId);
-    expect(s.cards[hurt.instanceId].curHp).toBe(9); // healed for its 4 DMG, not struck
+    expect(s.cards[hurt.instanceId].curHp).toBe(5 + getDef("leaf_sprinu").dmg); // healed for its DMG, not struck
   });
 
   it("Morning Dew waters LEAF allies only", () => {
