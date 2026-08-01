@@ -1231,11 +1231,13 @@ describe("medium-tier passives (audit batch)", () => {
     basicAttack(next, obsidi.instanceId, foe.instanceId);
     expect(next.cards[foe.instanceId].curHp).toBe(28); // 40 − 12
     expect(statusOf(next.cards[obsidi.instanceId], "STEALTH")).toBeUndefined(); // cover broken
-    // …and it's spent: the follow-up is its printed attack again. 4×2 plus
-    // King of the Hill's mid-row +1 DMG = 10 — note the loaded 6×2 was FLAT and
+    // …and it's spent: the follow-up is its printed attack again — (DMG + 1 for
+    // King of the Hill's mid row) × hits. Derived from the def so a stat change
+    // doesn't break a test about the AMBUSH; note the loaded 6×2 was FLAT and
     // took no such bonus, which is what "deal 6×2 DMG" should mean.
+    const od = getDef("bore_obsidi");
     basicAttack(next, obsidi.instanceId, foe.instanceId);
-    expect(next.cards[foe.instanceId].curHp).toBe(18); // 28 − 10
+    expect(next.cards[foe.instanceId].curHp).toBe(28 - (od.dmg + 1) * od.hits);
   });
 
   it("Ash Boar's Charging Tusks hits what's in reach on arrival, then charges in", () => {
