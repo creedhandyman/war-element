@@ -147,6 +147,62 @@ describe("Exostone (BORE): stone chips one plate at a time", () => {
   });
 });
 
+describe("Exostone (BORE): the stone takes what it breaks", () => {
+  it("gains a shield when its attack breaks one off an opponent", () => {
+    const s = prepState();
+    const bore = place(s, "bore_armadillo", "P1", 2, 0, { curShields: 2 });
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 3 });
+    basicAttack(s, bore.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].curShields).toBe(2); // the gate's usual strip
+    expect(s.cards[bore.instanceId].curShields).toBe(3); // ...worn by the attacker
+  });
+
+  it("takes nothing off an unarmoured target — it loots breaks, not bodies", () => {
+    const s = prepState();
+    const bore = place(s, "bore_armadillo", "P1", 2, 0, { curShields: 2 });
+    const bare = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, bore.instanceId, bare.instanceId);
+    expect(s.cards[bore.instanceId].curShields).toBe(2);
+  });
+
+  it("costs the target no MORE than it always did", () => {
+    // The gain rides the break the shield gate was already making; it does not
+    // pry off an extra plate. A non-BORE attacker is the control.
+    const s = prepState();
+    const bore = place(s, "bore_armadillo", "P1", 2, 0, { curShields: 0 });
+    const other = place(s, "leaf_hunter", "P1", 3, 0, { curShields: 0 });
+    const a = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 4 });
+    const b = place(s, "dusk_gool", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 4 });
+    basicAttack(s, bore.instanceId, a.instanceId);
+    basicAttack(s, other.instanceId, b.instanceId);
+    expect(s.cards[a.instanceId].curShields).toBe(s.cards[b.instanceId].curShields);
+  });
+});
+
+describe("Photosynthesis feeds on the roots", () => {
+  it("heals +1 per ROOTed opponent on top of its base +2", () => {
+    const s = prepState();
+    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 5, maxHp: 40, curShields: 0 });
+    const a = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30 });
+    const b = place(s, "dusk_gool", "P2", 1, 1, { curHp: 30, maxHp: 30 });
+    place(s, "dusk_gool", "P2", 1, 2, { curHp: 30, maxHp: 30 }); // left free
+    applyStatus(s, a, "ROOT", 3, 0, "LEAF");
+    applyStatus(s, b, "ROOT", 3, 0, "LEAF");
+    const n = advance(atCleanup(s));
+    expect(n.cards[leaf.instanceId].curHp).toBe(5 + 2 + 2); // base 2, +1 per rooted foe
+  });
+
+  it("...and only counts OPPONENTS, not rooted allies", () => {
+    const s = prepState();
+    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 5, maxHp: 40, curShields: 0 });
+    const ally = place(s, "leaf_hunter", "P1", 3, 1, { curHp: 20, maxHp: 20 });
+    place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30 });
+    applyStatus(s, ally, "ROOT", 3, 0, "DUSK");
+    const n = advance(atCleanup(s));
+    expect(n.cards[leaf.instanceId].curHp).toBe(5 + 2); // base only
+  });
+});
+
 describe("Gemaga's Magnetic Shield", () => {
   it("plates every ally in range, not just the row ahead", () => {
     // Fired end-to-end so rules.ts supplies the targets — the point of the

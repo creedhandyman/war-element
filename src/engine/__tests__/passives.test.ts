@@ -375,7 +375,10 @@ describe("medium-tier passives (audit batch)", () => {
     // so each foe is down a shield before the magnet takes its cut.
     expect(s.cards[near.instanceId].curShields).toBe(1); // 5 -1 hit -3 stolen
     expect(s.cards[far.instanceId].curShields).toBe(4); // 5 -1 hit, out of reach
-    expect(s.cards[steel.instanceId].curShields).toBe(8); // 5 + only the 3 it took
+    // 5 printed + 3 magnetised off the near rank + 2 from Exostone, which now
+    // pays a shield for every plate a BORE attack breaks — and this barrage
+    // broke one off each of the two foes via the normal shield gate.
+    expect(s.cards[steel.instanceId].curShields).toBe(10);
   });
 
   it("...and takes only what a foe actually has, never more", () => {
@@ -387,7 +390,9 @@ describe("medium-tier passives (audit batch)", () => {
       getDef("bore_steel").special!.params!);
     // 2 shields, 1 stripped by the hit, leaving 1 for a magnet that wanted 3.
     expect(s.cards[thin.instanceId].curShields).toBe(0);
-    expect(s.cards[steel.instanceId].curShields).toBe(1); // "up to 3", not a flat 3
+    // 1 from Exostone's break, then only the 1 plate left for the magnet to
+    // take — "up to 3", not a flat 3.
+    expect(s.cards[steel.instanceId].curShields).toBe(2);
   });
 
   it("SirCrest wields the PYRO (Scorch) and AQUA (Flow Change) element auras", () => {

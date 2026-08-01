@@ -19,9 +19,9 @@ export interface AuraDef {
 }
 
 export const ELEMENT_AURA: Record<Element, AuraDef> = {
-  LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP, and gain +1 shield per hit they took that round — up to 3 above their printed shields." },
+  LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP — plus 1 more for every ROOTed opponent — and gain +1 shield per hit they took that round, up to 3 above their printed shields." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
-  BORE: { name: "Exostone", desc: "Enters play with shields by rarity — Rare 2, Epic 2, Legendary 3, Mythic 4 — and never loses more than 1 shield to a single hit however heavy." },
+  BORE: { name: "Exostone", desc: "Enters play with shields by rarity — Rare 2, Epic 2, Legendary 3, Mythic 4. Never loses more than 1 shield to a single hit however heavy, and gains +1 shield whenever its attack breaks one off an opponent." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals a third of its DMG back to the killer." },
   AQUA: { name: "Flow Change", desc: "On summon, choose a boost for 3 rounds: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for half its DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 14)." },

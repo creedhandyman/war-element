@@ -2085,7 +2085,17 @@ function doCleanupPhase(draft: GameState): void {
       if (curSp < DAWN_SP_CAP) card.spBonus += Math.min(1, DAWN_SP_CAP - curSp);
     }
     if (def.element === "LEAF") {
-      healCard(draft, card, 2, card);
+      // Photosynthesis feeds on what the roots hold: +2 base, and +1 more for
+      // every ROOTed opponent. It ties LEAF's two halves together — the element
+      // that puts the most ROOT on the board now gets paid for doing it, so the
+      // control half and the sustain half stop being separate cards' problems.
+      // Naturally bounded by the board (there are only so many enemies to root),
+      // so no cap is needed beyond that.
+      const rooted = boardCards(draft, enemyOf(card.owner))
+        .filter((e) => e.curHp > 0 && hasStatus(e, "ROOT")).length;
+      healCard(draft, card, 2 + rooted, card);
+      if (rooted > 0)
+        draft.log.push(`${label(draft, card)} drinks deep — ${rooted} rooted (+${rooted} HP).`);
       // The bark thickens where it was struck: a LEAF card that TOOK a hit this
       // round banks +1 shield, capped. Read before step 4b clears the counter.
       //
