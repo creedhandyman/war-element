@@ -1883,49 +1883,63 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    preserveAspectRatio="none", so WITHOUT this a stroke-width of 2 is scaled by
    the viewBox ratio and renders as a ~20px slab. Keep it on every edge rule. */
 .story-edges .edge {
-  stroke: rgba(255, 255, 255, .3); stroke-width: 2; stroke-linecap: round;
+  stroke: rgba(255, 255, 255, .2); stroke-width: 1.5; stroke-linecap: round;
   vector-effect: non-scaling-stroke;
 }
-.story-edges .edge.live { stroke: var(--gold-lit); stroke-width: 2.5; opacity: .85; }
+.story-edges .edge.live { stroke: var(--gold-lit); stroke-width: 2; opacity: .65; }
 
 .story-node {
   position: absolute; transform: translate(-50%, -50%);
   /* Sized against the MAP (cqw), not the viewport: a fixed 54px node covers a
-     third of a phone-width map and a sliver of a desktop one. */
-  width: clamp(30px, 5.2cqw, 54px); height: clamp(30px, 5.2cqw, 54px);
-  border-radius: 12px; cursor: pointer;
-  background: var(--void-2); border: 2px solid var(--panel-line); color: var(--ink-faint);
+     third of a phone-width map and a sliver of a desktop one. Deliberately
+     small and translucent — the painting is the thing being read, and a node
+     is a pin on it, not a tile covering it. */
+  width: clamp(23px, 3.6cqw, 42px); height: clamp(23px, 3.6cqw, 42px);
+  border-radius: 10px; cursor: pointer;
+  background: rgba(9, 9, 14, .42); backdrop-filter: blur(2px);
+  border: 1.5px solid rgba(255, 255, 255, .22); color: var(--ink);
   display: grid; place-items: center; font-weight: 800;
-  font-size: clamp(9px, 1.35cqw, 13px);
-  transition: transform .12s ease, box-shadow .12s ease;
+  font-size: clamp(8px, 1.05cqw, 12px);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .95);
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
 }
-.story-node.landmark { border-radius: 6px; }
-.story-node.throne { width: clamp(34px, 6cqw, 62px); height: clamp(34px, 6cqw, 62px); border-radius: 50%; }
-.story-node.open { border-color: var(--el); color: var(--ink); box-shadow: 0 0 0 3px rgba(0,0,0,.35), 0 0 14px -2px var(--el); }
-.story-node.cleared { border-color: var(--gold-line); color: var(--gold); background: #14131c; }
+.story-node.landmark { border-radius: 5px; }
+.story-node.throne { width: clamp(27px, 4.3cqw, 50px); height: clamp(27px, 4.3cqw, 50px); border-radius: 50%; }
+.story-node.open {
+  border-color: var(--el); color: var(--ink);
+  background: color-mix(in srgb, var(--el) 14%, rgba(9, 9, 14, .5));
+  box-shadow: 0 0 10px -3px var(--el), 0 1px 6px rgba(0, 0, 0, .7);
+}
+.story-node.cleared { border-color: var(--gold-line); color: var(--gold); background: rgba(20, 19, 28, .5); }
 .story-node.locked {
-  /* On painted art .55 opacity made a locked node disappear into the canopy.
-     Keep it plainly visible but obviously inert. */
-  opacity: .9; background: rgba(8, 8, 12, .82); border-color: rgba(255, 255, 255, .18);
+  /* Legible but recessive. Three passes to land this: .55 opacity vanished into
+     the canopy, .82 was a solid plate over the painting, .34 vanished again.
+     Glass with enough edge to find. */
+  background: rgba(6, 6, 10, .5); border-color: rgba(255, 255, 255, .24);
+  color: var(--ink-dim);
 }
-.story-node:hover:not(.locked) { transform: translate(-50%, -50%) scale(1.08); }
+.story-node:hover:not(.locked) {
+  transform: translate(-50%, -50%) scale(1.14);
+  background: rgba(9, 9, 14, .78);
+}
 .story-node.sel { outline: 2px solid var(--gold-lit); outline-offset: 3px; }
 .story-node:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 3px; }
 .sn-id { pointer-events: none; }
 .sn-lock, .sn-tick, .sn-left, .sn-crown {
-  position: absolute; font-size: clamp(8px, 1.15cqw, 11px); pointer-events: none;
+  position: absolute; font-size: clamp(7px, .95cqw, 10px); pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .95);
 }
 .sn-lock { top: -6px; right: -6px; }
-.sn-tick { top: -7px; right: -5px; color: var(--gold-lit); font-size: clamp(10px, 1.5cqw, 14px); }
-.sn-crown { top: -9px; left: -4px; color: var(--gold-lit); font-size: clamp(10px, 1.6cqw, 15px); }
+.sn-tick { top: -6px; right: -4px; color: var(--gold-lit); font-size: clamp(9px, 1.25cqw, 13px); }
+.sn-crown { top: -8px; left: -3px; color: var(--gold-lit); font-size: clamp(9px, 1.3cqw, 14px); }
 .sn-left {
   bottom: -7px; right: -7px; background: var(--el); color: #0b0b0f;
-  min-width: clamp(13px, 1.9cqw, 17px); height: clamp(13px, 1.9cqw, 17px);
-  border-radius: 9px; display: grid; place-items: center; font-size: clamp(8px, 1.15cqw, 10.5px);
+  min-width: clamp(11px, 1.6cqw, 16px); height: clamp(11px, 1.6cqw, 16px);
+  border-radius: 9px; display: grid; place-items: center; font-size: clamp(7px, .95cqw, 10px);
 }
 /* Blight reads in DUSK's own violet, never in the region's colour -- it is the
    thing that does NOT belong to the region. */
-.sn-blight { position: absolute; bottom: -8px; left: -6px; font-size: clamp(9px, 1.3cqw, 12px); color: #b47dff; pointer-events: none; }
+.sn-blight { position: absolute; bottom: -7px; left: -5px; font-size: clamp(8px, 1.1cqw, 11px); color: #b47dff; pointer-events: none; }
 /* The painted region map. Nodes sit on it by percentage, so the art and the
    layout can never drift apart. */
 .story-canvas.arted {
