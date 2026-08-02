@@ -434,8 +434,13 @@ describe("story: where do I get this card", () => {
   });
 
   it("says nothing rather than guessing for an unplaced card", () => {
-    expect(sourcesOf("dusk_reaper")).toEqual([]);   // DUSK region isn't built yet
-    expect(bestSource(newSave(), "dusk_reaper")).toBeNull();
+    // Derived from whichever elements have no region yet, so this stops being
+    // true one region at a time instead of failing when that region lands.
+    const built = new Set(REGIONS.map((r) => r.element));
+    const orphan = CARDS.find((c) => !built.has(c.element));
+    if (!orphan) return;                     // every element built — nothing to assert
+    expect(sourcesOf(orphan.id), orphan.id).toEqual([]);
+    expect(bestSource(newSave(), orphan.id)).toBeNull();
   });
 });
 
@@ -679,7 +684,7 @@ describe("story: border gates (7)", () => {
   const full = (cleared: string[]): StorySave => ({ ...newSave(), cleared });
 
   it("exists on every built border", () => {
-    expect(gates.map((g) => g.id).sort()).toEqual(["GA", "GB", "GC", "GC2", "GE"]);
+    expect(gates.map((g) => g.id).sort()).toEqual(["GA", "GB", "GC", "GC2", "GE", "GS"]);
   });
 
   it("never places a card — a gate is a checkpoint, not a farm", () => {
@@ -816,5 +821,31 @@ describe("story: board size is welded to deck size", () => {
           .toContain(board);
       }
     }
+  });
+});
+
+describe("story: N-of-M gating", () => {
+  it("opens the Shadow Border on ANY two Gray Thrones", () => {
+    // §2 makes the Gray Continent order-free, so naming a specific third Throne
+    // would quietly put an order back on a set that is supposed to have none.
+    const gs = nodeById("GS")!;
+    expect(gs.requiresCount).toBe(2);
+    const base = ["L14", "GA", "GB", "P13", "A13", "GE"];
+    for (const pair of [["G14", "B14"], ["G14", "R14"], ["B14", "R14"]])
+      expect(isOpen({ ...newSave(), cleared: [...base, ...pair] }, gs), pair.join("+")).toBe(true);
+    expect(isOpen({ ...newSave(), cleared: [...base, "G14"] }, gs), "one is not enough").toBe(false);
+  });
+
+  it("raises the cap to 28 on any two, and not on one", () => {
+    const base = ["L14", "P13", "A13"];
+    expect(deckCapFor([...base, "G14"])).toBe(22);
+    expect(deckCapFor([...base, "G14", "B14"])).toBe(28);
+    expect(deckCapFor([...base, "B14", "R14"])).toBe(28);
+  });
+
+  it("leaves DUSK unblightable — it is the source", () => {
+    const dusk = REGIONS.find((r) => r.id === "dusk")!;
+    expect(canBlight(dusk)).toBe(false);
+    expect(dusk.blightAt, "DUSK should have no blight zone").toBeUndefined();
   });
 });

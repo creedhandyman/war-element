@@ -38,6 +38,11 @@ export interface StoryNode {
   overflow?: string[];
   /** Nodes that must be cleared before this one opens. Empty = open from the start. */
   requires: string[];
+  /** How many of `requires` are actually needed. Absent = all of them. Act V's
+   *  Shadow Border wants TWO of the three Gray Thrones, in any combination —
+   *  §2 makes the Gray Continent order-free, so demanding a specific one would
+   *  quietly re-impose an order. */
+  requiresCount?: number;
   /** A required Throne opens the region's borders; an optional one is a detour. */
   required?: boolean;
   /** Gate nodes only: the composition this border demands. */
@@ -537,6 +542,13 @@ const BORE: StoryRegion = {
       // Escorts: the quarry crew, farmable at R1.
       adds: ["bore_cavedweller", "bore_iron"],
       note: "Optional." },
+    // The door the BORE art paints as "To Dusk — Shadow Border (Locked)".
+    // Two of the three Gray Thrones open it, in any combination.
+    { id: "GS", name: "The Shadow Border", kind: "gate", at: { x: 8, y: 82 },
+      requires: ["G14", "B14", "R14"], requiresCount: 2, roster: [], opens: ["dusk"],
+      adds: ["bore_stone", "bore_iron", "dusk_crow", "dusk_pumpkin", "dusk_spider", "dusk_doom"],
+      demand: { kind: "class", value: "Tank", count: 4 },
+      note: "Where the stone gives out and the shadow starts. Everything past here is Act V." },
     { id: "R14", name: "The DEEPEST Dark", kind: "throne", at: { x: 49, y: 84 },
       requires: ["R11", "R12"], roster: ["bore_deepest"],
       // Escorts: the standing stones, farmable at R6.
@@ -545,7 +557,82 @@ const BORE: StoryRegion = {
   ],
 };
 
-export const REGIONS: StoryRegion[] = [LEAF, PYRO, AQUA, GALE, BOLT, BORE];
+
+// ── the DUSK slice ──────────────────────────────────────────────────────────
+// Act V. The attrition route, and the only region the campaign has been
+// fighting all along — its Blight has been landing in cleared territory since
+// Act I, so arriving here is a counter-invasion rather than a tour.
+//
+// DUSK is NEVER Blighted (`canBlight`) — it is the source, which is why this is
+// the one region with no `blightAt` and no corruption band on its art.
+//
+// It also has the richest token pool in the game: six. Every Warden and Throne
+// fields diegetic adds, which is what makes its squads read as hordes rather
+// than parties.
+
+const DUSK: StoryRegion = {
+  id: "dusk",
+  name: "Dusk — Realm of Shadows",
+  element: "DUSK",
+  terrain: "Nightfall",
+  board: 5,
+  art: "/maps/dusk.webp",
+  artRatio: 1440 / 1080,
+  requires: ["GS"],
+  nodes: [
+    { id: "D1", name: "The Blighted Verge", kind: "skirmish", at: { x: 20, y: 13 },
+      requires: [], roster: ["dusk_crow", "dusk_pumpkin", "dusk_doom"], adds: [],
+      note: "Under the Rot Line door. These are the bodies that have been turning up in your regions for four Acts." },
+    { id: "D2", name: "Potter's Field", kind: "skirmish", at: { x: 33, y: 22 },
+      requires: ["D1"], roster: ["dusk_zombie_husk", "dusk_skeleton_knight", "dusk_zhunk"],
+      adds: ["dusk_zombie_tok", "dusk_skeleton_tok"],
+      note: "Dead Forest West. The risen — they rot, they rise, they do not stop." },
+    { id: "D3", name: "Widow's Hollow", kind: "skirmish", at: { x: 34, y: 34 },
+      requires: ["D2"], roster: ["dusk_spider", "dusk_widowbite", "dusk_vamp", "dusk_scarlett"],
+      adds: [],
+      note: "Spiders weave and wait; vampires rule the night." },
+    { id: "D4", name: "The Weeping Chapel", kind: "skirmish", at: { x: 44, y: 22 },
+      requires: ["D2"], roster: ["dusk_harve", "dusk_gool", "dusk_soul_wisp"],
+      adds: ["dusk_specter_tok"] },
+    { id: "D5", name: "Scarecrow Rows", kind: "skirmish", at: { x: 49, y: 46 },
+      requires: ["D3"], roster: ["dusk_jackl", "dusk_hix", "dusk_gravekeeper", "dusk_skulldrake"],
+      adds: [],
+      note: "The Nightmare Fields — torn ground, and the hoofprints of the damned." },
+    { id: "D6", name: "Forsaken Heights", kind: "warden", at: { x: 22, y: 27 },
+      requires: ["D1"], roster: ["dusk_silkstalker", "dusk_skrow", "dusk_spectra"],
+      adds: ["dusk_specter_tok"],
+      note: "The Green Continent reach, fought at Act III scale by anyone who came through PYRO's Veil Gate early." },
+    { id: "D7", name: "The Haunting Ground", kind: "warden", at: { x: 84, y: 22 },
+      requires: ["D4"], roster: ["dusk_ghastly", "dusk_haunt", "dusk_plaguecrow"],
+      adds: ["dusk_specter_tok"],
+      note: "Dead Forest East — the souls that remain." },
+    { id: "D8", name: "Bonefield Muster", kind: "warden", at: { x: 67, y: 32 },
+      requires: ["D7"], roster: ["dusk_reaper", "dusk_sarachnid", "dusk_brute"],
+      adds: ["dusk_skeleton_tok"],
+      note: "The Boneyard. Born of bone, and they march eternal." },
+    { id: "D9", name: "The Veil Gate", kind: "warden", at: { x: 13, y: 46 },
+      requires: ["D6"], roster: ["dusk_ender", "dusk_rip", "dusk_violet", "dusk_wedded_wraith"],
+      adds: ["dusk_risen_tok", "dusk_specter_tok"],
+      note: "The portal to the forgotten souls, and the region's spike at cost 20." },
+    { id: "D10", name: "Death Island: The Landing", kind: "landmark", at: { x: 40, y: 62 },
+      requires: ["D5", "D9"],
+      roster: ["dusk_ravven", "dusk_scar", "dusk_hoax", "dusk_zombination"],
+      adds: ["dusk_zombie_tok", "dusk_redreven"] },
+    { id: "D11", name: "Death Island: The Barrows", kind: "landmark", at: { x: 62, y: 63 },
+      requires: ["D8"], roster: ["dusk_destro", "dusk_nightfang", "dusk_skelider"],
+      adds: ["dusk_skeleton_tok"] },
+    { id: "D12", name: "The Bone Throne", kind: "throne", at: { x: 86, y: 58 },
+      requires: ["D11"], roster: ["dusk_skullking"],
+      adds: ["dusk_skeleton_tok", "dusk_skulldrake_tok"],
+      note: "Nightward Keep — the watchers of Dusk. Optional." },
+    { id: "D13", name: "The Long Night", kind: "throne", at: { x: 50, y: 79 },
+      requires: ["D10", "D11"], roster: ["dusk_shadowhorsemen"],
+      adds: ["dusk_specter_tok", "dusk_risen_tok"], required: true,
+      note: "Death Island, land of the forgotten. Required." },
+  ],
+};
+
+export const REGIONS: StoryRegion[] = [LEAF, PYRO, AQUA, GALE, BOLT, BORE, DUSK];
 
 /** A region is reachable once every node gating it is cleared. */
 /** A region opens when ANY of its gates has been cleared — not all of them.
@@ -590,6 +677,10 @@ export const CAP_LADDER = [
   // AQUA mandatory so a player arrives on the 5x5 board with three elements
   // rather than two. An array means ALL of them.
   { cap: 22, board: 5, unlockedBy: ["P13", "A13"], label: "Both Green Thrones" },
+  // Act V: TWO of the three Gray Thrones, in any combination. `count` is what
+  // keeps the Gray Continent order-free — requiring a named third would put an
+  // order back on a set §2 says has none.
+  { cap: 28, board: 5, unlockedBy: ["G14", "B14", "R14"], count: 2, label: "Two of three Gray Thrones" },
 ] as const;
 
 export function deckCapFor(cleared: readonly string[]): number {
@@ -598,7 +689,9 @@ export function deckCapFor(cleared: readonly string[]): number {
     if (!step.unlockedBy) continue;
     const needed: readonly string[] =
       typeof step.unlockedBy === "string" ? [step.unlockedBy] : step.unlockedBy;
-    if (needed.every((id) => cleared.includes(id))) cap = Math.max(cap, step.cap);
+    const have = needed.filter((id) => cleared.includes(id)).length;
+    const want = "count" in step ? (step.count as number) : needed.length;
+    if (have >= want) cap = Math.max(cap, step.cap);
   }
   return cap;
 }
@@ -983,7 +1076,8 @@ export const isCleared = (save: StorySave, id: string): boolean => save.cleared.
 export const isOpen = (save: StorySave, n: StoryNode): boolean => {
   const home = regionOfNode(n.id);
   if (home && !isRegionOpen(save, home)) return false;
-  return n.requires.every((r) => save.cleared.includes(r));
+  const have = n.requires.filter((r) => save.cleared.includes(r)).length;
+  return have >= (n.requiresCount ?? n.requires.length);
 };
 
 // ── where do I get this card? ───────────────────────────────────────────────
