@@ -1959,6 +1959,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .story-node.blight .sn-blight { bottom: auto; top: -9px; left: -5px; font-size: 14px; }
 .story-blight { color: #b47dff; }
+/* Region switcher. Only rendered once a second region is reachable, so it never
+   sits there as a row of locks during Act I. */
+.story-regions { display: flex; gap: 4px; margin-right: 4px; }
+.story-regions .db-fl { padding: 5px 9px; letter-spacing: .05em; }
+.story-regions .db-fl:disabled { opacity: .45; cursor: not-allowed; }
 .story-blight b { color: #b47dff; letter-spacing: .12em; }
 
 .story-side {
@@ -2085,6 +2090,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      it needs to be. Nested `overflow: auto` here is what starved the grid. */
   .col-wrap .story-body { overflow-y: auto; }
   .col-pool { overflow: visible; flex: none; }
+  /* The deck builder turns these rows into horizontal chip-scrollers to save
+     vertical room in its fixed-height pool. The collection PAGE scrolls, so that
+     trade buys nothing here and just hides BOLT/DUSK/BORE off the right edge
+     with no scrollbar to hint at them. Wrap instead. */
+  .col-pool .db-filters, .col-pool .db-sort {
+    flex-wrap: wrap; overflow-x: visible; row-gap: 6px;
+  }
   /* The rail rides the bottom of the viewport so it stays reachable however far
      down the grid you have scrolled. */
   .col-side {

@@ -253,6 +253,17 @@ engine runtime and no React, so it stays testable headlessly
   ~20px slab. Node/badge sizes are `cqw`-based off `container-type: inline-size`
   on the canvas, so they track the map rather than the viewport — 54px at
   desktop's 1180px cap, ~41px on a phone.
+- **Regions**: LEAF (open) and PYRO (`requires: ["L14"]`). A region gate is
+  separate from node gates, and `isOpen` checks BOTH — every region's entry node
+  has no prerequisites of its own, so without the region check PYRO's P1 would
+  read as open on turn one. The map header grows an element switcher once a
+  second region is reachable. A battle takes its board size and Blight from the
+  NODE's own region (`regionOfNode`), never from whichever map is on screen.
+- **Overflow points forward, not back.** PYRO's northern border faces LEAF, but
+  every LEAF card cheap enough to qualify is already in the 12-card starter — so
+  bleeding one there would hand the player something they own on day one. Only
+  the AQUA sea gate at Sunfall Coast carries overflow. A test enforces that no
+  overflow card is in `STARTER_DECK`.
 - **The art is the authority on geography.** LEAF's node graph was re-gated to
   match it: the Rot Line is in the far *south* (so L8 hangs off L5, not L7),
   and Rustling Woods is at Autumn's Gold in the *north-east* (so L7 hangs off

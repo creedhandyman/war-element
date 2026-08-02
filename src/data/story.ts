@@ -53,6 +53,9 @@ export interface StoryRegion {
   blightAt?: { x: number; y: number };
   /** The painted region map this node layout is placed against. */
   art?: string;
+  /** Node ids that must be cleared before this region is reachable at all.
+   *  Empty/absent = open from the start (LEAF). */
+  requires?: string[];
   nodes: StoryNode[];
 }
 
@@ -121,7 +124,73 @@ const LEAF: StoryRegion = {
   ],
 };
 
-export const REGIONS: StoryRegion[] = [LEAF];
+
+// ── the PYRO slice ──────────────────────────────────────────────────────────
+// Act II, the land march. Reached through Gate A, the Southern Burn. Placed
+// against `public/maps/pyro.webp`; where the doc's flow chart and the painting
+// disagreed about adjacency, the painting won — same rule as LEAF.
+
+const PYRO: StoryRegion = {
+  id: "pyro",
+  name: "Pyro — The Burning South",
+  element: "PYRO",
+  terrain: "Heatwave",
+  board: 4,
+  art: "/maps/pyro.webp",
+  requires: ["L14"], // the Spirit Tree opens the borders
+  // The Veil Gate: the art paints DUSK's corruption already bleeding through it.
+  blightAt: { x: 80, y: 87 },
+  nodes: [
+    // Two arms out of Ashfall — the city road south-east and the forge road
+    // west — converging on the Inner Keep and then the Dragon's Lair.
+    { id: "P1", name: "Ashfall Approach", kind: "skirmish", at: { x: 52, y: 17 },
+      requires: [], roster: ["pyro_staph", "pyro_sparky", "pyro_florence"], adds: [],
+      note: "Where the forest dies. The road back to LEAF is right behind you." },
+    { id: "P3", name: "Cinder Road", kind: "skirmish", at: { x: 61, y: 27 },
+      requires: ["P1"], roster: ["pyro_ingit", "pyro_bbq", "pyro_baboom", "pyro_taper"], adds: [] },
+    { id: "P4", name: "Dessaer District: Forge of Fire", kind: "skirmish", at: { x: 30, y: 31 },
+      requires: ["P1"], roster: ["pyro_smog_card", "pyro_heatsink_golem", "pyro_spitfire", "pyro_dyna"], adds: [],
+      note: "Forged Tech works. Fight the tribe here before you meet its Mythic at the Forge Core." },
+    { id: "P5", name: "The Slagfields", kind: "skirmish", at: { x: 84, y: 31 },
+      requires: ["P3"], roster: ["pyro_ash_boar", "pyro_slag_tortoise", "pyro_ember_scorpion", "pyro_wick"], adds: [],
+      note: "Cooled lava badlands. Four Rares and no champion — the heaviest Skirmish in the region." },
+    { id: "P6", name: "Pyro City Gates", kind: "warden", at: { x: 46, y: 55 },
+      requires: ["P3"], roster: ["pyro_firebird", "pyro_liza", "pyro_scully"], adds: [] },
+    { id: "P9", name: "Firespine Foothills", kind: "warden", at: { x: 16, y: 34 },
+      requires: ["P4"], roster: ["pyro_fenrir", "pyro_firefly", "pyro_twins"], adds: [],
+      note: "The whole Cost-5 band on one node. The last gate before the Landmarks." },
+    { id: "P7", name: "Ember Fortress Drill Yard", kind: "warden", at: { x: 68, y: 41 },
+      requires: ["P6"], roster: ["pyro_woof", "pyro_scorch", "pyro_tiki"], adds: [] },
+    { id: "P8", name: "Forgotten Ruins", kind: "warden", at: { x: 88, y: 57 },
+      requires: ["P5"], roster: ["pyro_sarra", "pyro_sseerr", "pyro_fenix"], adds: [],
+      note: "Half-buried civilization. Where a LEAF-only deck stops working — three BURN Epics with real Specials." },
+    // Gated off the city, not off P1: the painted road to the harbour runs
+    // through Pyro City. Still only four nodes deep, which keeps the doc's
+    // point that a player finding PYRO too punishing can sail out early.
+    { id: "P2", name: "Sunfall Coast", kind: "skirmish", at: { x: 34, y: 88 },
+      requires: ["P6"], roster: ["pyro_flamehound", "pyro_firecrack", "pyro_canister"], adds: [],
+      overflow: ["aqua_buccaneers"], // pirate haven — the sea road to AQUA
+      note: "Pirate haven. Gate C opens the sea route to AQUA from here." },
+    { id: "P10", name: "Ember Fortress: Inner Keep", kind: "landmark", at: { x: 74, y: 49 },
+      requires: ["P7", "P8"], roster: ["pyro_infernus_rex", "pyro_magmadon", "pyro_magmaw"], adds: [],
+      note: "The three heavy bruisers. Magmaw exists only in the live build — no project doc has it." },
+    { id: "P11", name: "Sunfall Watch", kind: "landmark", at: { x: 62, y: 72 },
+      requires: ["P2", "P10"], roster: ["pyro_volcanon", "pyro_sol", "pyro_aftermath", "pyro_dynomight"], adds: [],
+      note: "The Cost-6 utility tier, all four on one node." },
+    { id: "P13", name: "Firespine Peaks: Dragon's Lair", kind: "throne", at: { x: 10, y: 53 },
+      requires: ["P9", "P10"], roster: ["pyro_pyrogon"], adds: [], required: true,
+      note: "Required. Clearing it opens Gate D — the Veil Gate, and the DUSK reach." },
+    { id: "P12", name: "The Forge Core", kind: "throne", at: { x: 23, y: 66 },
+      requires: ["P13"], roster: ["pyro_nitro"], adds: [],
+      note: "Optional. Where the first flame burns — Forged Tech's Mythic." },
+  ],
+};
+
+export const REGIONS: StoryRegion[] = [LEAF, PYRO];
+
+/** A region is reachable once every node gating it is cleared. */
+export const isRegionOpen = (save: StorySave, r: StoryRegion): boolean =>
+  (r.requires ?? []).every((id) => save.cleared.includes(id));
 
 export const ALL_NODES: StoryNode[] = REGIONS.flatMap((r) => r.nodes);
 export const nodeById = (id: string): StoryNode | undefined => ALL_NODES.find((n) => n.id === id);
@@ -150,6 +219,7 @@ export const STARTER_DECK: string[] = [
 export const CAP_LADDER = [
   { cap: 12, board: 4, unlockedBy: null, label: "Starting deck" },
   { cap: 15, board: 4, unlockedBy: "L14", label: "LEAF Throne" },
+  { cap: 18, board: 4, unlockedBy: "P13", label: "PYRO Throne" }, // 4x4 format max
 ] as const;
 
 export function deckCapFor(cleared: readonly string[]): number {
@@ -351,8 +421,16 @@ export function clearStory(): void {
 // ── node availability ───────────────────────────────────────────────────────
 
 export const isCleared = (save: StorySave, id: string): boolean => save.cleared.includes(id);
-export const isOpen = (save: StorySave, n: StoryNode): boolean =>
-  n.requires.every((r) => save.cleared.includes(r));
+
+/** A node is open when its own prerequisites AND its region's gate are cleared.
+ *  The region check matters because every region's entry node has no
+ *  prerequisites of its own — without it, PYRO's P1 would read as open from the
+ *  first turn of the campaign. */
+export const isOpen = (save: StorySave, n: StoryNode): boolean => {
+  const home = regionOfNode(n.id);
+  if (home && !isRegionOpen(save, home)) return false;
+  return n.requires.every((r) => save.cleared.includes(r));
+};
 
 // ── where do I get this card? ───────────────────────────────────────────────
 // Pillar 3 is "you fight what you want to own" — which is only true if the

@@ -9,9 +9,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { getDef } from "../data/cards";
 import {
-  BLIGHT_MAX, blightAddsFor, blightLevel, blightNodeFor, deckCapFor, isBlightNode,
-  isCleared, isOpen, isOverflow, isRegionCleared, recruitChance, recruitablePool,
-  regionOfNode, terrainContested,
+  BLIGHT_MAX, REGIONS, blightAddsFor, blightLevel, blightNodeFor, deckCapFor,
+  isBlightNode, isCleared, isOpen, isOverflow, isRegionCleared, isRegionOpen,
+  recruitChance, recruitablePool, regionOfNode, terrainContested,
   type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
 import { EL_COLOR } from "./shared";
@@ -31,6 +31,8 @@ export function StoryMap(props: {
   onFight: (node: StoryNode) => void;
   onClose: () => void;
   onOpenCollection: () => void;
+  /** Switch which region's map is showing. */
+  onRegion?: (id: string) => void;
   /** A node the collection asked us to show. Consumed once, then cleared by the
    *  parent — otherwise it would re-select on every later render and the player
    *  could never click away from it. */
@@ -99,6 +101,26 @@ export function StoryMap(props: {
           )}
         </div>
         <div className="story-actions">
+          {/* Only render the switcher once a second region is actually reachable
+              — a lone disabled tab is just noise during Act I. */}
+          {props.onRegion && REGIONS.some((r) => r.id !== region.id && isRegionOpen(save, r)) && (
+            <div className="story-regions">
+              {REGIONS.map((r) => {
+                const unlocked = isRegionOpen(save, r);
+                return (
+                  <button
+                    key={r.id}
+                    className={`db-fl ${r.id === region.id ? "on" : ""}`}
+                    disabled={!unlocked}
+                    title={unlocked ? r.name : `Locked — clear ${(r.requires ?? []).join(", ")}`}
+                    onClick={() => props.onRegion!(r.id)}
+                  >
+                    {unlocked ? r.element : "🔒"}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <button className="ghost" onClick={props.onOpenCollection}>Collection</button>
           <button className="ghost" onClick={props.onClose}>Leave</button>
         </div>

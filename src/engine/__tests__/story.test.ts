@@ -8,8 +8,8 @@ import { CARDS, TOKENS, getDef } from "../../data/cards";
 import {
   ALL_NODES, BLIGHT_ADDS, BLIGHT_MAX, CAP_LADDER, OVERFLOW_RATE, REGIONS, STARTER_DECK,
   applyClear, baseRateFor, blightAddsFor, blightLevel, canBlight, deckCapFor, isOpen, isOverflow,
-  PLACED_CARDS, bestSource, isRegionCleared, newSave, nodeById, recruitChance,
-  recruitablePool, rollRecruits, sourcesOf,
+  PLACED_CARDS, STARTER_DECK as STARTER, bestSource, isRegionCleared, isRegionOpen,
+  newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
 } from "../../data/story";
 
@@ -276,12 +276,19 @@ describe("story: Elemental Overflow", () => {
     expect(nodeById("L8")!.overflow).toContain("pyro_staph");   // Southern Burn
   });
 
-  it("keeps its home node — overflow never removes a card from its own region", () => {
+  it("keeps its home node — the border is a copy, never a relocation", () => {
     // The foreign card is a COPY at the border; §10.5 requires the home node stay
-    // the reliable full-odds farm, which only holds if placement is untouched.
-    const placed = REGIONS.flatMap((r) => r.nodes.flatMap((n) => n.roster));
+    // the reliable full-odds farm. So once a card's OWN region is built, it must
+    // still be placed there at full odds. (Before PYRO existed this test asserted
+    // the opposite — that an overflow card appeared in no roster at all — which
+    // was only ever true because the home region had not been built yet.)
+    const built = new Set(REGIONS.map((r) => r.element));
     for (const n of ALL_NODES)
-      for (const id of n.overflow ?? []) expect(placed).not.toContain(id);
+      for (const id of n.overflow ?? []) {
+        if (!built.has(getDef(id).element)) continue;   // home region not built yet
+        const homes = sourcesOf(id).filter((s) => !s.overflow);
+        expect(homes.length, `${id} bleeds at ${n.id} but has no full-odds home`).toBe(1);
+      }
   });
 });
 
@@ -391,5 +398,66 @@ describe("story: where do I get this card", () => {
   it("says nothing rather than guessing for an unplaced card", () => {
     expect(sourcesOf("dusk_reaper")).toEqual([]);   // DUSK region isn't built yet
     expect(bestSource(newSave(), "dusk_reaper")).toBeNull();
+  });
+});
+
+describe("story: PYRO", () => {
+  const pyro = REGIONS.find((r) => r.id === "pyro")!;
+
+  it("places every draftable PYRO card exactly once", () => {
+    const placed = pyro.nodes.flatMap((n) => n.roster);
+    expect(placed.filter((id, i) => placed.indexOf(id) !== i)).toEqual([]);
+    expect([...placed].sort()).toEqual([...draftable("PYRO")].sort());
+  });
+
+  it("has one entry node, one required Throne, and nothing unreachable", () => {
+    expect(pyro.nodes.filter((n) => n.requires.length === 0).map((n) => n.id)).toEqual(["P1"]);
+    expect(pyro.nodes.filter((n) => n.kind === "throne" && n.required).map((n) => n.id)).toEqual(["P13"]);
+    const seen = new Set<string>();
+    for (let pass = 0; pass < pyro.nodes.length; pass++)
+      for (const n of pyro.nodes)
+        if (!seen.has(n.id) && n.requires.every((r) => seen.has(r))) seen.add(n.id);
+    expect(pyro.nodes.filter((n) => !seen.has(n.id)).map((n) => n.id)).toEqual([]);
+  });
+
+  it("is sealed until the LEAF Throne falls", () => {
+    // Every region's entry node has no prerequisites of its own, so without the
+    // REGION gate P1 would read as open on turn one of the campaign.
+    const fresh = newSave();
+    expect(isRegionOpen(fresh, pyro)).toBe(false);
+    expect(isOpen(fresh, nodeById("P1")!)).toBe(false);
+    const after = { ...fresh, cleared: ["L14"] };
+    expect(isRegionOpen(after, pyro)).toBe(true);
+    expect(isOpen(after, nodeById("P1")!)).toBe(true);
+  });
+
+  it("raises the deck cap to the 4x4 format max on its Throne", () => {
+    expect(deckCapFor(["L14"])).toBe(15);
+    expect(deckCapFor(["L14", "P13"])).toBe(18);
+    expect(deckCapFor(["L14", "P12"])).toBe(15); // the optional Throne unlocks nothing
+  });
+
+  it("keeps the escape hatch to AQUA early", () => {
+    // The doc's reason for placing Sunfall Coast early: a player who finds PYRO
+    // too punishing can sail out rather than be walled. Four nodes deep still
+    // counts; twelve would not.
+    const depth = (id: string, seen = new Set<string>()): number => {
+      const n = nodeById(id)!;
+      if (n.requires.length === 0) return 1;
+      seen.add(id);
+      return 1 + Math.min(...n.requires.map((r) => depth(r, seen)));
+    };
+    expect(depth("P2")).toBeLessThanOrEqual(4);
+  });
+});
+
+describe("story: overflow points forward, not back", () => {
+  it("never bleeds a card the starter deck already contains", () => {
+    // Overflow is a taste of the NEXT element. Every LEAF card cheap enough to
+    // qualify is already in the 12-card starter, so a LEAF overflow on PYRO's
+    // northern border would hand the player something they own on day one.
+    for (const n of ALL_NODES)
+      for (const id of n.overflow ?? [])
+        expect(STARTER, `${n.id} bleeds ${id}, which every player starts with`).not.toContain(id);
   });
 });

@@ -57,7 +57,7 @@ import { StoryMap } from "./StoryMap";
 import { StoryResult } from "./StoryResult";
 import {
   REGIONS, applyClear, blightAddsFor, deckCapFor, loadStory, recruitablePool,
-  rollRecruits, saveStory, type StoryNode, type StorySave,
+  regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
 
 function newSeed(): number {
@@ -170,6 +170,8 @@ export function App() {
   // "Show" on a card can hand a node back to the map underneath.
   const [collectionOpen, setCollectionOpen] = useState(false);
   const [mapFocusNode, setMapFocusNode] = useState<string | null>(null);
+  const [regionId, setRegionId] = useState<string>(REGIONS[0].id);
+  const region = REGIONS.find((r) => r.id === regionId) ?? REGIONS[0];
   const [storyNode, setStoryNode] = useState<StoryNode | null>(null);
   const [storyResult, setStoryResult] = useState<{ node: StoryNode; won: string[]; captured: number } | null>(null);
   // Deck selection = a premade or custom deck (the old two-core pairing is gone).
@@ -1805,13 +1807,20 @@ export function App() {
           save={story}
           onSave={(next) => { setStory(next); saveStory(next); }}
           onClose={() => setCollectionOpen(false)}
-          onGoToNode={(id) => { setMapFocusNode(id); setCollectionOpen(false); }}
+          onGoToNode={(id) => {
+            // A card's source can live in a region the map isn't showing.
+            const home = regionOfNode(id);
+            if (home) setRegionId(home.id);
+            setMapFocusNode(id);
+            setCollectionOpen(false);
+          }}
         />
       )}
 
       {storyOpen && !started && !collectionOpen && (
         <StoryMap
-          region={REGIONS[0]}
+          region={region}
+          onRegion={setRegionId}
           save={story}
           onClose={() => setStoryOpen(false)}
           onOpenCollection={() => setCollectionOpen(true)}
@@ -1822,8 +1831,11 @@ export function App() {
             // roster's own cards, so they are never dealt into the enemy deck --
             // but BLIGHT bodies are real extra cards, so they are.
             const deck = story.deck.length ? story.deck : story.collection.slice(0, deckCapFor(story.cleared));
-            const squad = [...node.roster, ...blightAddsFor(story, REGIONS[0], node)];
-            setGame(createInitialState(newSeed(), deck, squad, ["P1"], [], [], REGIONS[0].board));
+            // The node's own region decides the board and the Blight, not
+            // whichever map happens to be on screen.
+            const home = regionOfNode(node.id) ?? region;
+            const squad = [...node.roster, ...blightAddsFor(story, home, node)];
+            setGame(createInitialState(newSeed(), deck, squad, ["P1"], [], [], home.board));
             setStoryNode(node);
             setStoryOpen(false);
             setViewSide("P1");
