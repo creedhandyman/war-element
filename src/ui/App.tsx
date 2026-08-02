@@ -52,6 +52,12 @@ import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { WinScreen } from "./WinScreen";
 import { EL_COLOR, EL_ICON, type PendingBattle, type Selection } from "./shared";
+import { StoryMap } from "./StoryMap";
+import { StoryResult } from "./StoryResult";
+import {
+  REGIONS, applyClear, deckCapFor, loadStory, rollRecruits, saveStory,
+  type StoryNode, type StorySave,
+} from "../data/story";
 
 function newSeed(): number {
   return (Math.random() * 0x7fffffff) | 0;
@@ -153,6 +159,14 @@ export function App() {
   const [customDecks, setCustomDecks] = useState<CustomDeck[]>(() => loadCustomDecks());
   const [builderOpen, setBuilderOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  // ── Story Mode ──────────────────────────────────────────────────────────
+  // `storyNode` is the node the CURRENT match was launched from; it's what turns
+  // a win into a recruitment roll. Null means this is an ordinary skirmish and
+  // nothing should be recruited from it.
+  const [story, setStory] = useState<StorySave>(() => loadStory());
+  const [storyOpen, setStoryOpen] = useState(false);
+  const [storyNode, setStoryNode] = useState<StoryNode | null>(null);
+  const [storyResult, setStoryResult] = useState<{ node: StoryNode; won: string[]; captured: number } | null>(null);
   // Deck selection = a premade or custom deck (the old two-core pairing is gone).
   // Each side defaults to a different premade so a match is one tap away.
   // Seeded from the STANDARD builds — boardSize starts at 4, and the remap
@@ -204,6 +218,27 @@ export function App() {
   const actor = started ? needsInput(game) : null;
   const me = online ? (actor === online.myId ? online.myId : null) : actor;
   const [viewSide, setViewSide] = useState<PlayerId>("P1");
+
+  // A story battle resolves into recruitment rather than the normal win screen.
+  // A LOSS costs nothing but time — Story Mode is where you experiment, and Void
+  // Tower owns run-loss stakes — so it drops back to the map with no roll.
+  useEffect(() => {
+    if (!started || !storyNode || game.phase !== "gameover" || storyResult) return;
+    if (game.win?.winner !== "P1") {
+      setStoryNode(null);
+      setStarted(false);
+      setStoryOpen(true);
+      return;
+    }
+    const captured = game.slots.flat().filter((sl) => sl.capturedBy === "P1").length;
+    const result = rollRecruits(story, storyNode, captured);
+    setStory((prev) => {
+      const next = applyClear(prev, storyNode, result);
+      saveStory(next);
+      return next;
+    });
+    setStoryResult({ node: storyNode, won: result.won, captured });
+  }, [started, storyNode, game, storyResult, story]);
   useEffect(() => {
     if (me) setViewSide(me);
   }, [me]);
@@ -1731,7 +1766,7 @@ export function App() {
 
       {/* Only during a match — New Match sets started=false, which hides this and
           reveals the deck picker (game.win stays set until Start Match resets it). */}
-      {started && (
+      {started && !storyNode && (
         <WinScreen
           game={game}
           onNewGame={() => {
@@ -1740,6 +1775,46 @@ export function App() {
             setSel(null);
             setPending(null);
             setMullToss([]);
+          }}
+        />
+      )}
+
+      {storyResult && (
+        <StoryResult
+          node={storyResult.node}
+          won={storyResult.won}
+          captured={storyResult.captured}
+          firstClear={!story.cleared.includes(storyResult.node.id)}
+          exhausted={storyResult.node.roster.every((id) => story.collection.includes(id))}
+          onDone={() => {
+            setStoryResult(null);
+            setStoryNode(null);
+            setStarted(false);
+            setStoryOpen(true);
+          }}
+        />
+      )}
+
+      {storyOpen && !started && (
+        <StoryMap
+          region={REGIONS[0]}
+          save={story}
+          onClose={() => setStoryOpen(false)}
+          onOpenCollection={() => setBuilderOpen(true)}
+          onFight={(node) => {
+            // The story deck fights the node's roster. Adds are spawned by the
+            // roster's own cards, so they are never dealt into the enemy deck.
+            const deck = story.deck.length ? story.deck : story.collection.slice(0, deckCapFor(story.cleared));
+            setGame(createInitialState(newSeed(), deck, node.roster, ["P1"], [], [], REGIONS[0].board));
+            setStoryNode(node);
+            setStoryOpen(false);
+            setViewSide("P1");
+            setSel(null);
+            setPending(null);
+            setPicks([]);
+            setMullToss([]);
+            setHint("Mulligan: click cards to send back, then confirm.");
+            setStarted(true);
           }}
         />
       )}
@@ -1854,6 +1929,9 @@ export function App() {
               </button>
               <button className="ghost db-open" onClick={() => setRulesOpen(true)}>
                 📖 How to play
+              </button>
+              <button className="ghost db-open" onClick={() => setStoryOpen(true)}>
+                🗺 Story Mode
               </button>
 
               {!onlineMode ? (

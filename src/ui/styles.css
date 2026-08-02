@@ -1846,3 +1846,97 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 @media (prefers-reduced-motion: reduce) {
   .trapmark { animation: none; opacity: 0.85; }
 }
+
+/* ── Story Mode ─────────────────────────────────────────────────────────────
+   The map screen. Node state is encoded in FORM as well as colour — a lock
+   glyph, a tick, a remaining-cards count — so "what can I do next" survives
+   both colourblindness and a glance. */
+.story-wrap { position: fixed; inset: 0; z-index: 70; background: var(--void); display: flex; flex-direction: column; }
+.story-head {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  padding: 14px 20px; border-bottom: 1px solid var(--panel-line); background: var(--panel);
+}
+.story-head h2 { margin: 2px 0 0; font-size: 20px; }
+.story-eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; }
+.story-stats { display: flex; gap: 16px; font-size: 12.5px; color: var(--ink-dim); }
+.story-stats b { color: var(--ink); }
+.story-actions { margin-left: auto; display: flex; gap: 8px; }
+
+.story-body { flex: 1; display: flex; min-height: 0; }
+.story-canvas { position: relative; margin: 24px; flex: none; }
+.story-edges { position: absolute; inset: 0; pointer-events: none; }
+.story-edges .edge { stroke: var(--panel-line); stroke-width: 2; }
+.story-edges .edge.live { stroke: var(--gold-line); stroke-width: 3; }
+
+.story-node {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 54px; height: 54px; border-radius: 12px; cursor: pointer;
+  background: var(--void-2); border: 2px solid var(--panel-line); color: var(--ink-faint);
+  display: grid; place-items: center; font-weight: 800; font-size: 13px;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.story-node.landmark { border-radius: 6px; }
+.story-node.throne { width: 62px; height: 62px; border-radius: 50%; }
+.story-node.open { border-color: var(--el); color: var(--ink); box-shadow: 0 0 0 3px rgba(0,0,0,.35), 0 0 14px -2px var(--el); }
+.story-node.cleared { border-color: var(--gold-line); color: var(--gold); background: #14131c; }
+.story-node.locked { opacity: .55; }
+.story-node:hover:not(.locked) { transform: translate(-50%, -50%) scale(1.08); }
+.story-node.sel { outline: 2px solid var(--gold-lit); outline-offset: 3px; }
+.story-node:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 3px; }
+.sn-id { pointer-events: none; }
+.sn-lock, .sn-tick, .sn-left, .sn-crown { position: absolute; font-size: 11px; pointer-events: none; }
+.sn-lock { top: -6px; right: -6px; }
+.sn-tick { top: -7px; right: -5px; color: var(--gold-lit); font-size: 14px; }
+.sn-crown { top: -9px; left: -4px; color: var(--gold-lit); font-size: 15px; }
+.sn-left {
+  bottom: -7px; right: -7px; background: var(--el); color: #0b0b0f;
+  min-width: 17px; height: 17px; border-radius: 9px; display: grid; place-items: center; font-size: 10.5px;
+}
+
+.story-side {
+  width: 330px; flex: none; border-left: 1px solid var(--panel-line);
+  background: var(--panel); padding: 18px; overflow-y: auto;
+}
+.story-hint { color: var(--ink-faint); font-size: 13px; }
+.node-panel h3 { font-size: 15px; margin: 8px 0 6px; }
+.np-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.np-kind {
+  font-size: 10px; letter-spacing: .1em; text-transform: uppercase; font-weight: 800;
+  padding: 2px 8px; border-radius: 999px; border: 1px solid var(--panel-line); color: var(--ink-dim);
+}
+.np-kind.landmark { color: var(--gold); border-color: var(--gold-line); }
+.np-kind.throne { color: var(--gold-hi); border-color: var(--gold); }
+.np-flag { font-size: 10.5px; color: var(--ink-faint); }
+.np-flag.done { color: var(--gold); }
+.np-note, .np-terrain, .np-adds, .np-drops, .np-blocked { font-size: 12px; color: var(--ink-dim); line-height: 1.5; margin: 6px 0; }
+.np-blocked { color: var(--opp-home-glow); }
+.np-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); margin: 14px 0 6px; font-weight: 700; }
+.np-roster { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 3px; }
+.np-roster li { display: flex; align-items: baseline; gap: 7px; font-size: 12.5px; padding: 4px 6px; border-radius: 5px; background: var(--void-2); }
+.np-roster li.have { opacity: .5; }
+.npr-name { font-weight: 650; color: var(--ink); }
+.npr-rar { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; }
+.npr-rar.r-rare { color: var(--ink-faint); } .npr-rar.r-epic { color: #a98bff; }
+.npr-rar.r-legendary { color: var(--gold); } .npr-rar.r-mythic { color: #ff7a91; }
+.npr-cost { color: var(--ink-faint); font-size: 11.5px; }
+.npr-drop { margin-left: auto; color: var(--ink-dim); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.np-fight { width: 100%; margin-top: 14px; }
+
+@media (max-width: 900px) {
+  .story-body { flex-direction: column; overflow-y: auto; }
+  .story-side { width: auto; border-left: 0; border-top: 1px solid var(--panel-line); }
+  .story-canvas { margin: 16px; }
+}
+
+/* Story Mode — post-battle recruitment card. */
+.story-result { max-width: 460px; text-align: left; }
+.story-result h1 { text-align: center; }
+.story-result > p { text-align: center; }
+.sr-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); font-weight: 700; margin: 14px 0 6px; }
+.sr-list { list-style: none; padding: 0; margin: 0 0 10px; display: flex; flex-direction: column; gap: 4px; }
+.sr-list li { display: flex; align-items: baseline; gap: 8px; padding: 7px 10px; border-radius: 6px; background: var(--void-2); border: 1px solid var(--gold-line); }
+.sr-name { font-weight: 700; color: var(--gold-hi); }
+.sr-stats { margin-left: auto; font-size: 11.5px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.sr-empty, .sr-note { font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; text-align: center; }
+.story-result .lockin { width: 100%; margin-top: 14px; }
+.np-drops.exhausted { color: var(--ink-faint); font-style: italic; }
