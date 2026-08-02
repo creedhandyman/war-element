@@ -39,7 +39,7 @@ import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online"
 import { Board } from "./Board";
 import { CardDetail } from "./CardDetail";
 import { DeckBuilder } from "./DeckBuilder";
-import { useGameMusic, type MusicMode } from "./useGameMusic";
+import { REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
 import { loadCustomDecks, PREMADE_DECKS, premadeDecksFor, type CustomDeck } from "../data/custom-decks";
 import { SpIcon } from "./icons";
@@ -140,9 +140,6 @@ export function App() {
   const [started, setStarted] = useState(false);
   const [twoPlayer, setTwoPlayer] = useState(false);
 
-  // Background music: Growth on the home screen, Rival once a match is running.
-  const musicMode: MusicMode = started && game.phase !== "gameover" ? "battle" : "menu";
-  const { muted: musicMuted, toggle: toggleMusic } = useGameMusic(musicMode);
   /** Battlefield size for the NEXT match. 4 = standard, 5 = the large board.
    *  Online: only the host's choice counts — the guest receives the host's whole
    *  state, board size included, so there is nothing to agree on. */
@@ -174,6 +171,16 @@ export function App() {
   const region = REGIONS.find((r) => r.id === regionId) ?? REGIONS[0];
   const [storyNode, setStoryNode] = useState<StoryNode | null>(null);
   const [storyResult, setStoryResult] = useState<{ node: StoryNode; won: string[]; captured: number } | null>(null);
+
+  // Background music. A story region owns the sound for BOTH its map and its
+  // battles, so the region reads as a place rather than a series of fights; a
+  // story battle therefore keeps its region theme instead of dropping to Rival.
+  // Everything outside Story Mode is the old menu/battle pair.
+  const storyRegionId = storyNode ? regionOfNode(storyNode.id)?.id : storyOpen ? region.id : undefined;
+  const musicTrack: MusicTrack =
+    (storyRegionId ? REGION_TRACK[storyRegionId] : undefined) ??
+    (started && game.phase !== "gameover" ? "battle" : "menu");
+  const { muted: musicMuted, toggle: toggleMusic } = useGameMusic(musicTrack);
   // Deck selection = a premade or custom deck (the old two-core pairing is gone).
   // Each side defaults to a different premade so a match is one tap away.
   // Seeded from the STANDARD builds — boardSize starts at 4, and the remap

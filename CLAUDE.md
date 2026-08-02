@@ -312,6 +312,13 @@ engine runtime and no React, so it stays testable headlessly
   is `overflow: hidden` for the desktop two-column scroll but MUST be `auto` on
   phones: nested scroll containers starved the grid to a 371px window holding
   9,945px of cards.
+- **Music**: `useGameMusic.ts` keys off a TRACK, not a menu/battle flag. A story
+  region owns the sound for both its map AND its battles (`REGION_TRACK`), so a
+  region reads as a place and entering a fight doesn't restart the audio — the
+  effect's deps don't change, so nothing re-plays. Regions without an entry fall
+  back to the menu/battle pair, so shipping a map before its music is fine. The
+  audio pool is built ON DEMAND: `public/music` is ~28MB across four tracks, and
+  a player who never opens Story Mode should never fetch its themes.
 - **Save** is one localStorage key, `we_story_v1`, sanitized on load (unknown
   card/node ids are dropped). To exercise a mid-campaign state in the browser,
   seed it directly rather than playing forward.
