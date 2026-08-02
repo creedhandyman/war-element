@@ -2350,13 +2350,16 @@ export const CARDS: CardDef[] = [
       name: "Uprooted",
       cost: 5,
       handler: "empower",
-      // No buffRounds, so both grants are PERMANENT and stack across casts.
+      // No buffRounds, so both grants are PERMANENT and stack across casts —
+      // but only three times (maxStacks). Left unchecked, an Oakgre parked out
+      // of reach simply grows every round for the rest of the game.
       // The +3 SP is what unpins it: 0 -> 3 clears moveReach's zero and puts it
-      // in the slow tier (1 space). selfHpCost is refused when lethal — it does
-      // not opt into selfHpLethal, so Oakgre can never tear itself apart.
-      params: { selfHpCost: 9, selfDmg: 2, selfSp: 3 },
+      // in the slow tier (1 space); fully grown it is +6 DMG / +9 SP.
+      // selfHpCost is refused when lethal — it does not opt into selfHpLethal,
+      // so Oakgre can never tear itself apart.
+      params: { selfHpCost: 9, selfDmg: 2, selfSp: 3, maxStacks: 3 },
       targetSide: "self",
-      text: "Lose 9 HP. Permanently gain +2 DMG and +3 SP (it can move for the rest of the game).",
+      text: "Lose 9 HP. Permanently gain +2 DMG and +3 SP — it can move for the rest of the game. Three casts maximum.",
     },
   },
   {

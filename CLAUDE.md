@@ -354,6 +354,11 @@ engine runtime and no React, so it stays testable headlessly
   Special when the turn would otherwise be wasted entirely AND the Special is
   `targetSide: "self"` (no targeting decision taken from the player). `manual`
   still prompts. Regression test: `self-buff-auto.test.ts`.
+  A permanent, stacking Special can opt into a lifetime cast limit with
+  `params.maxStacks` (Oakgre's Uprooted is 3). `card.specialCasts` counts every
+  cast however it was paid for, so a free or talent-granted one can't dodge the
+  limit, and `canFireSpecial` refuses past it. Without a cap, a card parked out
+  of reach just grows every round for the rest of the game.
   When testing an auto-mode policy, the side under test must be in `humans` —
   an AI-driven side runs `chooseBattleAction` instead and fires the Special
   anyway, so the test would pass without the fix.

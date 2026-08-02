@@ -530,6 +530,7 @@ export function summonCard(
     statuses: [],
     summonedThisRound: true,
     specialCooldown: 0,
+    specialCasts: 0,
     attackedThisRound: false,
     autoMode: "manual",
     pos,

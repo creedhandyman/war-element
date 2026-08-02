@@ -1062,6 +1062,10 @@ export interface CardInstance {
   /** Specials have a one-round cooldown: firing sets 2, Cleanup ticks it down,
    *  and the Special is blocked while > 0 (so: skip one full round between uses). */
   specialCooldown: number;
+  /** How many times this card has fired its Special this game. Only read by
+   *  Specials that opt into a `maxStacks` limit — a permanent, stacking buff
+   *  otherwise grows without bound on a card left alone in a corner. */
+  specialCasts: number;
   attackedThisRound: boolean; // STEALTH break tracking; reset each Cleanup
   /** Swamp Monster (Magalogoon): moving breaks its STEALTH as surely as
    *  attacking does. Per-CARD, unlike prep.movedThisTurn which is the

@@ -1132,6 +1132,9 @@ function performBattleAction(
     // cooldown, so it's usable the very next round; otherwise pay + recharge.
     const wasFree = card.freeSpecial;
     card.freeSpecial = false; // consume the grant (a fresh kill re-grants it below)
+    // Counted for every cast however it was paid for, so a `maxStacks` limit
+    // can't be dodged by a free or talent-granted one.
+    card.specialCasts += 1;
     if (special.talent) {
       card.talentUsed = true; // once per game — no cost, no cooldown
     } else if (!wasFree) {

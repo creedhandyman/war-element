@@ -655,6 +655,12 @@ export function canFireSpecial(
   // bodies standing is a real closing play for a 0-DMG card whose entire
   // contribution IS bodies. The DEEPEST's does not — a 10-cost mythic deleting
   // itself is a misclick, not a play. (The auto-fire never routes through here.)
+  // A permanent, stacking buff can opt into a lifetime cast limit. Without it
+  // Oakgre parked out of reach grows +2 DMG / +3 SP every round for the rest of
+  // the game, which is not a boss so much as a runaway.
+  const maxStacks = Number(def.special.params?.maxStacks ?? 0);
+  if (maxStacks > 0 && card.specialCasts >= maxStacks)
+    return { ok: false, reason: `${def.special.name} is fully grown` };
   const hpCost = Number(def.special.params?.selfHpCost ?? 0);
   const mayDie = Number(def.special.params?.selfHpLethal ?? 0) > 0;
   if (hpCost > 0 && !mayDie && card.curHp <= hpCost)

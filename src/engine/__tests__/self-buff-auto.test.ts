@@ -5,7 +5,7 @@
 // move — for the whole game.
 
 import { describe, expect, it } from "vitest";
-import { advance, applyIntent, createInitialState } from "../index";
+import { advance, applyIntent, canFireSpecial, createInitialState } from "../index";
 import { summonCard } from "../state";
 import type { GameState } from "../index";
 
@@ -66,5 +66,49 @@ describe("self-buff on basic auto", () => {
     const { end } = drive(s, id);
     expect(end.battle?.awaitingInput).toBe(id);
     expect(end.log.some((l) => /Uprooted/i.test(l))).toBe(false);
+  });
+});
+
+
+describe("Uprooted stacks three times and stops", () => {
+  it("never grows past three casts however long the game runs", () => {
+    // Left out of reach with magic to burn, Oakgre used to cast every round for
+    // the rest of the game. The cap is what makes it a boss rather than a
+    // runaway, and it is on the LIFETIME cast count, not per round. It may well
+    // die before reaching the ceiling — the bound is the assertion, not the
+    // arrival.
+    const { s, id } = withOakgre("basic");
+    const { end, peakSp } = drive(s, id);
+    expect(peakSp, "Uprooted never fired at all").toBeGreaterThan(0);
+    expect(peakSp % 3, "SP moved by something other than whole casts").toBe(0);
+    expect(peakSp, "SP grew past three casts").toBeLessThanOrEqual(9);
+    expect(end.cards[id]?.specialCasts ?? 0).toBeLessThanOrEqual(3);
+  });
+
+  it("stops exactly at the third cast when it does get there", () => {
+    // Deterministic version of the bound: two casts in, it may fire once more
+    // and then never again.
+    const { s, id } = withOakgre("basic");
+    s.cards[id].specialCasts = 2;
+    expect(canFireSpecial(s, id).ok).toBe(true);
+    s.cards[id].specialCasts = 3;
+    expect(canFireSpecial(s, id).ok).toBe(false);
+  });
+
+  it("refuses once fully grown, with a reason a player can read", () => {
+    const { s, id } = withOakgre("basic");
+    s.cards[id].specialCasts = 3;
+    const check = canFireSpecial(s, id);
+    expect(check.ok).toBe(false);
+    expect(check.reason).toMatch(/fully grown/i);
+  });
+
+  it("leaves Specials without a limit alone", () => {
+    // maxStacks is opt-in: a card that never declared one must not be capped.
+    const { s } = withOakgre("basic");
+    const other = summonCard(s, "P1", "leaf_oak", { row: 3, col: 2 });
+    other.summonedThisRound = false;
+    other.specialCasts = 99;
+    expect(canFireSpecial(s, other.instanceId).reason ?? "").not.toMatch(/fully grown/i);
   });
 });
