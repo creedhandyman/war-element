@@ -11,7 +11,7 @@ import { getDef } from "../data/cards";
 import {
   BLIGHT_MAX, REGIONS, blightAddsFor, blightLevel, blightNodeFor, deckCapFor,
   gateCheck, isBlightNode, isCleared, isGate, isOpen, isOverflow, isRegionCleared,
-  isRegionOpen, recruitChance, recruitablePool, regionOfNode, terrainContested,
+  isRegionOpen, nodeById, recruitChance, recruitablePool, regionOfNode, terrainContested,
   type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
 import { EL_COLOR } from "./shared";
@@ -109,15 +109,20 @@ export function StoryMap(props: {
             <div className="story-regions">
               {REGIONS.map((r) => {
                 const unlocked = isRegionOpen(save, r);
+                // Name it even when locked. With eight regions a row of bare
+                // padlocks is unreadable — you cannot tell PYRO from DAWN, and
+                // seeing the world laid out is half the point of the switcher.
+                const gates = (r.requires ?? []).map((g) => nodeById(g)?.name ?? g);
                 return (
                   <button
                     key={r.id}
-                    className={`db-fl ${r.id === region.id ? "on" : ""}`}
+                    className={`db-fl rg ${r.id === region.id ? "on" : ""} ${unlocked ? "" : "shut"}`}
                     disabled={!unlocked}
-                    title={unlocked ? r.name : `Locked — clear ${(r.requires ?? []).join(", ")}`}
+                    title={unlocked ? r.name : `Locked — cross ${gates.join(" or ")}`}
                     onClick={() => props.onRegion!(r.id)}
                   >
-                    {unlocked ? r.element : "🔒"}
+                    {!unlocked && <span className="rg-lock" aria-hidden="true">🔒</span>}
+                    {r.element}
                   </button>
                 );
               })}

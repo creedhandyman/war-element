@@ -1860,7 +1860,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .story-eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; }
 .story-stats { display: flex; gap: 16px; font-size: 12.5px; color: var(--ink-dim); }
 .story-stats b { color: var(--ink); }
-.story-actions { margin-left: auto; display: flex; gap: 8px; }
+/* Wraps because eight regions plus Collection and Leave do not fit one row on a
+   phone — without this the last control is simply cut off the right edge. */
+.story-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 .story-body { flex: 1; display: flex; min-height: 0; }
 /* `flex: none` is load-bearing: `.story-body` turns into a COLUMN on phones, and
@@ -1968,9 +1970,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .story-blight { color: #b47dff; }
 /* Region switcher. Only rendered once a second region is reachable, so it never
    sits there as a row of locks during Act I. */
-.story-regions { display: flex; gap: 4px; margin-right: 4px; }
+.story-regions { display: flex; flex-wrap: wrap; gap: 4px; margin-right: 4px; }
 .story-regions .db-fl { padding: 5px 9px; letter-spacing: .05em; }
-.story-regions .db-fl:disabled { opacity: .45; cursor: not-allowed; }
+.story-regions .rg.shut {
+  opacity: .5; cursor: not-allowed;
+  /* Named but plainly shut, rather than an anonymous padlock. */
+  color: var(--ink-faint); border-color: var(--panel-line);
+}
+.rg-lock { font-size: 9px; margin-right: 4px; opacity: .8; }
 .story-blight b { color: #b47dff; letter-spacing: .12em; }
 
 .story-side {
