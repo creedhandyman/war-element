@@ -566,16 +566,15 @@ const copyCap = (defId: string): number =>
  * Never trims: a roster card dropped to hit the target would be unrecruitable
  * that run, so a big Landmark is simply allowed to be big.
  */
-/** Opening deployment slots (§10.6). Symmetric at 4 for ordinary nodes — the
- *  player faces four live threats with no ramp to hide behind, which is the
- *  intended difficulty, not a handicap. Asymmetry is reserved as the BOSS lever:
- *  a Throne fielding six against your four reads as a boss fight, whereas the
- *  same thing on every Skirmish would just read as a broken game. */
-export const PLAYER_DEPLOY = 4;
+/** Opening deployment slots (§10.6), deliberately small: one free teammate each
+ *  and then a traditional game. A full opening board front-loaded the match and
+ *  skipped the ramp entirely; one card just removes the dead first turn.
+ *  Asymmetry stays as the BOSS lever — a Throne leading with two against your
+ *  one reads as a boss, where the same thing on every Skirmish would read as a
+ *  broken game. */
+export const PLAYER_DEPLOY = 1;
 export function enemyDeployFor(node: StoryNode): number {
-  if (node.kind === "throne") return 6;
-  if (node.kind === "landmark") return 5;
-  return PLAYER_DEPLOY;
+  return node.kind === "throne" ? 2 : PLAYER_DEPLOY;
 }
 
 export function buildFormation(save: StorySave, region: StoryRegion, node: StoryNode): string[] {

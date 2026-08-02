@@ -316,8 +316,8 @@ export function App() {
       // Deployment reuses the prep phase, so without this the player is told to
       // "move one board card" during the one turn where nothing may move.
       setHint(
-        `<b>Opening deployment.</b> Place up to <b>${game.opening[actor]}</b> more from ` +
-        `<b>${game.players[actor].gold}</b> gold — spend it or lose it. Nothing moves yet. Then Pass.`,
+        `<b>Lead with a teammate.</b> Place <b>${game.opening[actor]}</b> more — it's free. ` +
+        `Nothing moves yet. Then Pass and the round begins.`,
       );
     else if (game.phase === "prep" && actor && mine)
       setHint(

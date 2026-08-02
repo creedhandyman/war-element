@@ -1,10 +1,10 @@
-// Opening deployment (§10.6): both sides place a board before round one, out of
-// a fixed budget that is NOT part of the round economy. Story-only for now, so
-// the first thing these tests pin is that an ordinary battle is unaffected.
+// Opening deployment (§10.6): each side leads with one FREE teammate before
+// round one, then the ordinary game resumes. Story-only, so the first thing
+// these tests pin is that a normal battle is unaffected.
 
 import { describe, expect, it } from "vitest";
-import { advance, applyIntent, createInitialState, getDef } from "../index";
-import { OPENING_GOLD, openingGoldFor } from "../phases";
+import { advance, applyIntent, createInitialState } from "../index";
+import { OPENING_SLOTS } from "../phases";
 import type { GameState, PlayerId } from "../index";
 
 const DECK = [
@@ -38,65 +38,64 @@ describe("opening deployment", () => {
     expect(onBoard(s, "P2")).toBe(0);
   });
 
-  it("hands both sides the budget before round one", () => {
-    const s = pastMulligan({ P1: 4, P2: 4 });
+  it("opens before round one and costs nothing", () => {
+    const s = pastMulligan({ P1: OPENING_SLOTS, P2: OPENING_SLOTS });
     expect(s.round).toBe(0);              // still pre-round
     expect(s.phase).toBe("prep");
-    expect(s.players.P1.gold).toBe(OPENING_GOLD);
-    expect(s.players.P2.gold).toBe(OPENING_GOLD);
+    // No budget at all — the placement is the head start.
+    expect(s.players.P1.gold).toBe(0);
+    expect(s.players.P2.gold).toBe(0);
   });
 
-  it("fills a board before round one and never exceeds the slot cap", () => {
-    const s = runUntil(pastMulligan({ P1: 4, P2: 4 }), (g) => g.round >= 1);
+  it("places a card the player could not yet afford", () => {
+    // The point of "free": at 0 gold nothing is summonable under the normal
+    // rules, so if gold still gated this, deployment would place nothing.
+    const s = runUntil(pastMulligan({ P1: 1, P2: 1 }), (g) => g.round >= 1);
+    expect(onBoard(s, "P1")).toBe(1);
+    expect(onBoard(s, "P2")).toBe(1);
+  });
+
+  it("leads with exactly one teammate, not a formation", () => {
+    const s = runUntil(pastMulligan({ P1: 1, P2: 1 }), (g) => g.round >= 1);
     expect(s.round).toBe(1);
     for (const p of ["P1", "P2"] as PlayerId[]) {
-      expect(onBoard(s, p), `${p} deployed nothing`).toBeGreaterThan(0);
-      expect(onBoard(s, p), `${p} exceeded its slots`).toBeLessThanOrEqual(4);
+      expect(onBoard(s, p), `${p} deployed nothing`).toBe(1);
     }
   });
 
-  it("spends a boss lever as bigger cards when the board is too small for more", () => {
-    // A summon lands in the home row, which is exactly boardSize wide — so 6
-    // slots on a 4x4 is physically impossible and would silently do nothing.
-    // The budget still scales, so the Throne fields FOUR HEAVIER cards.
-    expect(openingGoldFor(6)).toBeGreaterThan(openingGoldFor(4));
-    const s = runUntil(pastMulligan({ P1: 4, P2: 6 }), (g) => g.round >= 1);
-    expect(onBoard(s, "P2")).toBeLessThanOrEqual(4);       // clamped to the board
-    const spent = (p: PlayerId) =>
-      Object.values(s.cards).filter((c) => c.owner === p && c.pos)
-        .reduce((t, c) => t + getDef(c.defId).cost, 0);
-    expect(spent("P2"), "boss lever bought nothing").toBeGreaterThan(spent("P1"));
+  it("lets a Throne lead with two against your one", () => {
+    const s = runUntil(pastMulligan({ P1: 1, P2: 2 }), (g) => g.round >= 1);
+    expect(onBoard(s, "P1")).toBe(1);
+    expect(onBoard(s, "P2")).toBe(2);
   });
 
-  it("does field extra bodies once the board is wide enough", () => {
-    let s = createInitialState(7, DECK, DECK, [], [], [], 5, { P1: 4, P2: 5 });
-    for (let i = 0; i < 40 && s.phase === "mulligan"; i++) s = advance(s);
-    s = runUntil(s, (g) => g.round >= 1);
-    expect(onBoard(s, "P2")).toBeGreaterThan(onBoard(s, "P1"));
-  });
-
-  it("spends it or loses it — leftover budget never reaches round one", () => {
-    // The trap: doResourcePhase CARRIES unspent gold (capped) and then adds the
-    // round income on top, so an unspent deployment budget would silently become
-    // an 11-gold round one.
-    const s = runUntil(pastMulligan({ P1: 4, P2: 4 }), (g) => g.round >= 1);
+  it("never places more than the home row can hold", () => {
+    // A summon lands in the home row, which is exactly boardSize wide.
+    const s = runUntil(pastMulligan({ P1: 9, P2: 9 }), (g) => g.round >= 1);
     for (const p of ["P1", "P2"] as PlayerId[])
-      expect(s.players[p].gold, `${p} carried deployment gold`).toBeLessThanOrEqual(1);
+      expect(onBoard(s, p), `${p} overflowed the home row`).toBeLessThanOrEqual(4);
+  });
+
+  it("leaves the round economy exactly where it would have been", () => {
+    // "Then a traditional game": round one pays its normal +1 and nothing else.
+    // doResourcePhase CARRIES gold (capped) before adding income, so any stray
+    // deployment gold would silently inflate the first turn.
+    const s = runUntil(pastMulligan({ P1: 1, P2: 1 }), (g) => g.round >= 1 && g.phase === "prep");
+    for (const p of ["P1", "P2"] as PlayerId[])
+      expect(s.players[p].gold, `${p} round-1 gold`).toBeLessThanOrEqual(1);
   });
 
   it("clears the flag once deployment is over", () => {
-    const s = runUntil(pastMulligan({ P1: 4, P2: 4 }), (g) => g.round >= 1);
+    const s = runUntil(pastMulligan({ P1: 1, P2: 1 }), (g) => g.round >= 1);
     expect(s.opening).toBeUndefined();
   });
 
-  it("refuses to place past the slot cap even with gold to spare", () => {
+  it("refuses to place past the slot cap", () => {
     const s = pastMulligan({ P1: 1, P2: 1 });
     const p = s.prep!.priority;                 // the coin flip decides who starts
     const first = s.players[p].hand[0];
     const after = applyIntent(s, { type: "SUMMON", player: p, handId: first.handId, col: 0 });
     expect(after.opening![p]).toBe(0);
-    // Gold remains, slots do not.
-    expect(after.players[p].gold).toBeGreaterThan(0);
     const second = after.players[p].hand[0];
     expect(() =>
       applyIntent(after, { type: "SUMMON", player: p, handId: second.handId, col: 1 }),
@@ -104,13 +103,13 @@ describe("opening deployment", () => {
   });
 
   it("locks movement until the first round", () => {
-    const s = pastMulligan({ P1: 4, P2: 4 });
+    const s = pastMulligan({ P1: 1, P2: 1 });
     expect(s.prep?.movedThisTurn).toBe(true);
   });
 
   it("reaches a real battle from a deployed board", () => {
     // End to end: the whole point is that round one starts from a full board.
-    const s = runUntil(pastMulligan({ P1: 4, P2: 4 }), (g) => g.phase === "battle");
+    const s = runUntil(pastMulligan({ P1: 1, P2: 1 }), (g) => g.phase === "battle");
     expect(s.phase).toBe("battle");
     expect(s.round).toBeGreaterThanOrEqual(1);
   });

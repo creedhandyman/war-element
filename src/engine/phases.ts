@@ -96,7 +96,8 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       const hand = p.hand.find((h) => h.handId === intent.handId)!;
       const def = getDef(hand.defId);
       p.hand = p.hand.filter((h) => h.handId !== intent.handId);
-      p.gold -= def.cost;
+      // The opening placement is free — that is the whole of the head start.
+      if (!draft.opening) p.gold -= def.cost;
       const inst = summonCard(draft, intent.player, hand.defId, {
         row: homeRow(intent.player, draft.boardSize),
         col: intent.col,
@@ -908,48 +909,34 @@ function decideOnTime(draft: GameState): void {
  *  rather than a new phase, so every existing summon rule, intent and piece of
  *  UI keeps working unchanged — the only differences are the budget, the slot
  *  cap, and that nothing may move yet. */
-export const OPENING_GOLD = 10;
-export const OPENING_SLOTS = 4;
-
-/** Budget for a side's opening board. Gold scales WITH the slot count, because
- *  slots alone do not make a bigger board: at a flat 10 gold a side spends out
- *  after about four cards, so a Throne granted six slots still fielded four.
- *  This is what §10.6 means by "6, or 4 with a higher budget" — the two levers
- *  only work together. 4 slots -> 10 gold, 5 -> 13, 6 -> 15. */
-export const openingGoldFor = (slots: number): number =>
-  Math.round((OPENING_GOLD / OPENING_SLOTS) * slots);
+/** Opening deployment is a FREE head start, not a budget: each side leads with
+ *  one teammate already on the board and the ordinary game resumes from there.
+ *  It was originally a 4-card / 10-gold opening board, which front-loaded far
+ *  too much — a whole formation landed before anyone had made a decision. One
+ *  card asks the only question worth asking ("who do you lead with?") and leaves
+ *  the rest of the match traditional. */
+export const OPENING_SLOTS = 1;
 
 function startDeployment(draft: GameState): void {
   for (const player of ["P1", "P2"] as PlayerId[]) {
-    // Gold is budgeted from the REQUESTED slot count, before clamping. A summon
-    // lands in the home row, which is exactly `boardSize` wide — so on the 4x4
-    // of Acts I-III a Throne cannot physically field six bodies no matter what
-    // it is granted. Clamping the slots but keeping the budget is §10.6's own
-    // fallback ("6, or 4 with a higher budget"): the boss lever shows up as four
-    // BIGGER cards on a small board and as extra bodies once the board expands.
-    draft.players[player].gold = openingGoldFor(draft.opening![player]);
+    // A summon lands in the home row, which is exactly `boardSize` wide, so a
+    // side can never place more than the board can hold.
     draft.opening![player] = Math.min(draft.opening![player], draft.boardSize);
-    // The opening hand is OPENING_HAND cards, so a side granted more slots than
-    // that could never use them — it simply had nothing left to place. Top up to
-    // the slot count; the boss lever needs cards, gold AND slots to mean
-    // anything. Never draws DOWN, so an ordinary 4-slot side is untouched.
-    const short = draft.opening![player] - draft.players[player].hand.length;
-    if (short > 0) drawCards(draft, player, short);
+    // The opening hand covers any slot count we grant, so no top-up is needed.
   }
   draft.phase = "prep";
   // movedThisTurn starts true and is never reset while `opening` is live, which
   // is what stops either side repositioning before the first round.
   draft.prep = { priority: draft.firstPlayer, consecutivePasses: 0, movedThisTurn: true };
   draft.log.push(
-    `— Opening deployment: P1 ${draft.opening!.P1} slots / ${draft.players.P1.gold} gold, ` +
-    `P2 ${draft.opening!.P2} / ${draft.players.P2.gold}. —`,
+    `— Opening deployment (free): P1 places ${draft.opening!.P1}, P2 places ${draft.opening!.P2}. —`,
   );
 }
 
 function endDeployment(draft: GameState): void {
-  // "Spend it or lose it." Unspent deployment gold must be cleared before the
-  // round-1 resource phase, which would otherwise carry it (capped) and hand out
-  // the round income on top of it.
+  // Deployment spends no gold, but this stays as a guard: anything that ever
+  // seeds gold here would be carried (capped) by the round-1 resource phase and
+  // then have the round income added on top of it.
   for (const player of ["P1", "P2"] as PlayerId[]) draft.players[player].gold = 0;
   draft.opening = undefined;
   draft.log.push("— Deployment complete. —");
