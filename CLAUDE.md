@@ -267,9 +267,13 @@ engine runtime and no React, so it stays testable headlessly
   deck length **exactly** at the cap, plus a composition demand. Gates take no
   Blight (a checkpoint is not territory) and `buildFormation` falls back to the
   patrol for its duplicate fill, since a gate has no roster to draw on.
-- **GALE and BOLT are Act IV** — the **5x5 board**, cap 22, both reached through
-  Gate E on AQUA's map (§2: GALE, BOLT and BORE in any order, so one gate opens
-  them all — `gate.opens` is a LIST for exactly this). Gate E waits on **both** Green Thrones (P13 AND
+- **GALE, BOLT and BORE are Act IV** — the **5x5 board**, cap 22, all three
+  reached through Gate E on AQUA's map (§2: any order, so one gate opens them all
+  — `gate.opens` is a LIST for exactly this). Six of eight regions are built;
+  DUSK and DAWN are Act V and still need maps.
+  **BORE has no tokens**, so its Warden filler is non-recruitable duplicate Rares
+  already placed elsewhere in the region — the case the adds rule was generalised
+  for ("farmable somewhere", not "must be a token"). Only PYRO and BORE need it. Gate E waits on **both** Green Thrones (P13 AND
   A13), which is §2's revision: arriving on 25 slots with only two elements can't
   field a functional 22-card list. That made `CAP_LADDER.unlockedBy` accept an
   ARRAY meaning ALL-of. Gate E is also the first gate to require a node in

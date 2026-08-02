@@ -311,7 +311,7 @@ const AQUA: StoryRegion = {
     // AQUA's alone — §2 makes PYRO and AQUA mandatory before Act IV so the
     // player reaches the 5x5 board with a three-element pool.
     { id: "GE", name: "Gate E: Gray Continent Ports", kind: "gate", at: { x: 88, y: 20 },
-      requires: ["A13", "P13"], roster: [], opens: ["gale", "bolt"],
+      requires: ["A13", "P13"], roster: [], opens: ["gale", "bolt", "bore"],
       adds: ["aqua_arctik", "aqua_harp", "gale_sirocco", "gale_megair", "gale_gastly", "gale_skyforce"],
       demand: { kind: "attack", value: "Ranged", count: 4 },
       note: "The airship lanes north. Everything past here is fought on the 5x5 board." },
@@ -467,7 +467,85 @@ const BOLT: StoryRegion = {
   ],
 };
 
-export const REGIONS: StoryRegion[] = [LEAF, PYRO, AQUA, GALE, BOLT];
+
+// ── the BORE slice ──────────────────────────────────────────────────────────
+// Act IV, the grind route, 5x5 — and the last of the Gray Continent. Shields,
+// BLOCK, and walls that do not fall to one good turn: Exostone plates every
+// enemy on arrival by rarity, caps their shield loss at one plate per hit
+// however hard you swing, and pays them a shield back for every plate they
+// break off you. No other region punishes a deck with no way through armour
+// this directly.
+//
+// BORE has NO tokens, so its filler is non-recruitable duplicate Rares drawn
+// from cards already placed elsewhere in the region — the same fallback PYRO
+// needs, and the reason the adds rule is "farmable somewhere" rather than
+// "must be a token".
+
+const BORE: StoryRegion = {
+  id: "bore",
+  name: "Bore — Bore Mountain & Reveen",
+  element: "BORE",
+  terrain: "Bedrock",
+  board: 5,
+  art: "/maps/bore.webp",
+  artRatio: 1440 / 1080,
+  requires: ["GE"],
+  // The corruption band the art paints across the bottom, beside the locked
+  // Shadow Border. It even ships a legend: light / moderate / severe.
+  blightAt: { x: 24, y: 88 },
+  nodes: [
+    { id: "R1", name: "Quarry Mouth", kind: "skirmish", at: { x: 22, y: 16 },
+      requires: [], roster: ["bore_cavedweller", "bore_iron", "bore_kcor"], adds: [],
+      note: "The Reveen Foothills, where the mountain pass down from BOLT lets out." },
+    { id: "R2", name: "Rubble Road", kind: "skirmish", at: { x: 36, y: 22 },
+      requires: ["R1"], roster: ["bore_cosmic", "bore_crock", "bore_hillbilly"], adds: [] },
+    { id: "R3", name: "The Smithy Camp", kind: "skirmish", at: { x: 23, y: 47 },
+      requires: ["R1"], roster: ["bore_clubber", "bore_rockgoblin", "bore_smith"], adds: [],
+      note: "Open forges — home of the legendary crafters." },
+    { id: "R4", name: "Sand Village", kind: "skirmish", at: { x: 23, y: 80 },
+      requires: ["R3"], roster: ["bore_old_timer", "bore_sling", "bore_thorny_ripper"], adds: [],
+      note: "Desert dwellers under cloth awnings. We trade, travel, survive." },
+    { id: "R5", name: "Mountain Beast Range", kind: "skirmish", at: { x: 52, y: 20 },
+      requires: ["R2"], roster: ["bore_ankylosaur", "bore_armadillo", "bore_warthog"], adds: [],
+      note: "The armour school — three Tanks, two of them Granite. A deck that cannot break shields stops here, early enough to be a lesson rather than a wall." },
+    { id: "R6", name: "The Standing Stones", kind: "skirmish", at: { x: 65, y: 34 },
+      requires: ["R5"], roster: ["bore_rock", "bore_stone", "bore_ufo"], adds: [],
+      note: "Out toward the sand worm's dunes. UFO is 2 HP behind 5 shields that irradiates the whole board — the damage is trivial, getting to it is the fight." },
+    { id: "R7", name: "Faultline", kind: "warden", at: { x: 30, y: 38 },
+      requires: ["R5"], roster: ["bore_shift", "bore_valcana", "bore_rhe"],
+      adds: ["bore_cosmic", "bore_crock"] },
+    { id: "R8", name: "Crystal Seam", kind: "warden", at: { x: 9, y: 38 },
+      requires: ["R3"], roster: ["bore_krysteel", "bore_lithara", "bore_monger"],
+      adds: ["bore_smith", "bore_clubber"],
+      note: "Giant mystical crystals, light spilling out of the rock." },
+    { id: "R9", name: "The Rolling Deep", kind: "warden", at: { x: 52, y: 45 },
+      requires: ["R7"], roster: ["bore_rollo", "bore_sheish", "bore_bolder"],
+      adds: ["bore_iron", "bore_kcor"] },
+    { id: "R10", name: "Cavernous Descent", kind: "warden", at: { x: 35, y: 65 },
+      requires: ["R4", "R9"], roster: ["bore_gemaga", "bore_obsidi", "bore_rohojohn"],
+      adds: ["bore_hillbilly", "bore_cavedweller"],
+      note: "Beneath the mountain, secrets breathe." },
+    { id: "R11", name: "The Gem Vault", kind: "landmark", at: { x: 44, y: 55 },
+      requires: ["R8", "R9"], roster: ["bore_diam", "bore_prism", "bore_sandman", "bore_score"],
+      adds: [],
+      note: "The lantern-lit descent of the Diamond Mine. The utility tier, all four on one node." },
+    { id: "R12", name: "The Unbroken Wall", kind: "landmark", at: { x: 79, y: 58 },
+      requires: ["R6", "R10"], roster: ["bore_bastion", "bore_bearocks", "bore_steel"], adds: [],
+      note: "Bore Fortress — stone guardians. The campaign's hardest Landmark to out-damage rather than out-think, and Steel is immune to every status and DOT in the game. Bring PEN or bring a plan." },
+    { id: "R13", name: "Corebore Shaft", kind: "throne", at: { x: 66, y: 76 },
+      requires: ["R12"], roster: ["bore_the_coreborer"],
+      // Escorts: the quarry crew, farmable at R1.
+      adds: ["bore_cavedweller", "bore_iron"],
+      note: "Optional." },
+    { id: "R14", name: "The DEEPEST Dark", kind: "throne", at: { x: 49, y: 84 },
+      requires: ["R11", "R12"], roster: ["bore_deepest"],
+      // Escorts: the standing stones, farmable at R6.
+      adds: ["bore_stone", "bore_rock"], required: true,
+      note: "Below all other levels — an endless black drop. Required. The Shadow Border west stays sealed until Act V." },
+  ],
+};
+
+export const REGIONS: StoryRegion[] = [LEAF, PYRO, AQUA, GALE, BOLT, BORE];
 
 /** A region is reachable once every node gating it is cleared. */
 /** A region opens when ANY of its gates has been cleared — not all of them.
