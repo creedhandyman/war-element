@@ -5,6 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 import { CARDS, TOKENS, getDef } from "../../data/cards";
+import { SPELLS } from "../../engine/spells";
 import {
   ALL_NODES, BLIGHT_ADDS, BLIGHT_MAX, CAP_LADDER, OVERFLOW_RATE, REGIONS, STARTER_DECK,
   applyClear, baseRateFor, blightAddsFor, blightLevel, canBlight, deckCapFor, isOpen, isOverflow,
@@ -683,8 +684,23 @@ describe("story: border gates (7)", () => {
   const gates = ALL_NODES.filter(isGate);
   const full = (cleared: string[]): StorySave => ({ ...newSave(), cleared });
 
-  it("exists on every built border", () => {
-    expect(gates.map((g) => g.id).sort()).toEqual(["GA", "GB", "GC", "GC2", "GE", "GS"]);
+  it("exists on every border that needs one", () => {
+    // Derived rather than listed: a hardcoded roll-call needed updating for every
+    // region that landed, which made it a chore rather than a check. What
+    // actually matters is that every region past LEAF is reachable and no gate
+    // id collides.
+    expect(gates.length).toBeGreaterThan(0);
+    expect(new Set(gates.map((g) => g.id)).size).toBe(gates.length);
+    for (const r of REGIONS) {
+      if (r.id === "leaf") { expect(r.requires ?? []).toEqual([]); continue; }
+      expect(r.requires?.length, `${r.id} has no way in`).toBeGreaterThan(0);
+    }
+    // Every gate lives on a map, and never on the map of a region it opens.
+    for (const g of gates) {
+      const home = regionOfNode(g.id)!;
+      expect(home, `${g.id} is on no map`).toBeTruthy();
+      expect(g.opens, `${g.id} opens its own region`).not.toContain(home.id);
+    }
   });
 
   it("never places a card — a gate is a checkpoint, not a farm", () => {
@@ -847,5 +863,70 @@ describe("story: N-of-M gating", () => {
     const dusk = REGIONS.find((r) => r.id === "dusk")!;
     expect(canBlight(dusk)).toBe(false);
     expect(dusk.blightAt, "DUSK should have no blight zone").toBeUndefined();
+  });
+});
+
+describe("story: DAWN is sealed", () => {
+  const dawn = REGIONS.find((r) => r.id === "dawn")!;
+
+  it("neither bleeds Overflow nor receives it", () => {
+    // §10.5: the Veil holds, in both directions. DAWN is the one region the
+    // player reaches having seen none of its cards.
+    for (const n of dawn.nodes) expect(n.overflow ?? [], `${n.id}`).toEqual([]);
+    const bled = ALL_NODES.flatMap((n) => n.overflow ?? []);
+    for (const id of bled) expect(getDef(id).element, id).not.toBe("DAWN");
+  });
+
+  it("cannot be Blighted — the shadow does not reach it", () => {
+    expect(canBlight(dawn)).toBe(false);
+    expect(dawn.blightAt).toBeUndefined();
+  });
+
+  it("seats all three of its Mythics, which no other region does", () => {
+    const mythics = dawn.nodes.flatMap((n) => n.roster).filter((id) => getDef(id).rarity === "mythic");
+    expect(mythics).toHaveLength(3);
+    const thrones = dawn.nodes.filter((n) => n.kind === "throne");
+    expect(thrones).toHaveLength(3);
+    expect(thrones.filter((t) => t.required)).toHaveLength(1);
+  });
+});
+
+describe("story: the campaign is complete", () => {
+  it("names a real Field spell as every region's terrain", () => {
+    // DAWN shipped as "Daybreak", which is not a spell in the game — its field
+    // is Blazing Sun. A terrain that names nothing means the region's standing
+    // rule (§4) does not exist.
+    for (const r of REGIONS) {
+      const field = SPELLS.find((sp) => sp.name === r.terrain);
+      expect(field, `${r.id} terrain "${r.terrain}" is not a spell`).toBeTruthy();
+      expect(field!.element, `${r.terrain} belongs to ${field!.element}`).toBe(r.element);
+    }
+  });
+
+  it("has all eight elements", () => {
+    expect(REGIONS).toHaveLength(8);
+    expect(new Set(REGIONS.map((r) => r.element)).size).toBe(8);
+  });
+
+  it("places every draftable card in the game exactly once", () => {
+    // The whole point of pillar 3, checked across the finished set rather than
+    // one element at a time: nothing in the game is unobtainable.
+    const placed = REGIONS.flatMap((r) => r.nodes.flatMap((n) => n.roster));
+    expect(placed.filter((id, i) => placed.indexOf(id) !== i)).toEqual([]);
+    expect([...placed].sort()).toEqual([...CARDS.map((c) => c.id)].sort());
+  });
+
+  it("can be walked from the starting deck to the last Throne", () => {
+    // Clear everything reachable, over and over, until nothing new opens. If the
+    // campaign has a dead end, the final Throne will not be in the set.
+    let save: StorySave = newSave();
+    for (let pass = 0; pass < ALL_NODES.length + 4; pass++) {
+      const next = ALL_NODES.filter((n) => !save.cleared.includes(n.id) && isOpen(save, n));
+      if (next.length === 0) break;
+      save = { ...save, cleared: [...save.cleared, ...next.map((n) => n.id)] };
+    }
+    const unreached = ALL_NODES.filter((n) => !save.cleared.includes(n.id)).map((n) => n.id);
+    expect(unreached, "unreachable nodes").toEqual([]);
+    expect(deckCapFor(save.cleared)).toBe(28);
   });
 });

@@ -312,6 +312,14 @@ const AQUA: StoryRegion = {
       // Escorts: the deep's own, farmable at A4.
       adds: ["aqua_krakler", "aqua_spinefin"],
       note: "Optional, and the hardest fight in Act II — deliberately harder than either required Throne." },
+    // Gate F: the Arctic Gate. The AQUA art paints it "To Dawn (Locked)" — it
+    // stays sealed until Act V, so it wants two of the three Gray Thrones just
+    // as the Shadow Border does. Neither Act V region is gated on the other.
+    { id: "GF", name: "Gate F: The Arctic Gate", kind: "gate", at: { x: 46, y: 7 },
+      requires: ["G14", "B14", "R14"], requiresCount: 2, roster: [], opens: ["dawn"],
+      adds: ["aqua_cryo", "aqua_anos", "dawn_beam", "dawn_flash", "dawn_able", "dawn_sparkle"],
+      demand: { kind: "class", value: "Mage", count: 3 },
+      note: "The road through the ice wall. Nothing has crossed it in either direction all campaign." },
     // Gate E: the Gray Continent ports. Gated on BOTH Green Thrones rather than
     // AQUA's alone — §2 makes PYRO and AQUA mandatory before Act IV so the
     // player reaches the 5x5 board with a three-element pool.
@@ -632,7 +640,80 @@ const DUSK: StoryRegion = {
   ],
 };
 
-export const REGIONS: StoryRegion[] = [LEAF, PYRO, AQUA, GALE, BOLT, BORE, DUSK];
+
+// ── the DAWN slice ──────────────────────────────────────────────────────────
+// Act V, and the last region. The endurance route: cleanse, armour and
+// sustained light. Awakening burns a status off itself every round and quickens
+// to SP 14, so DAWN squads are hard to lock down and hard to grind out — the
+// one region that answers a control deck directly.
+//
+// DAWN is SEALED IN BOTH DIRECTIONS (§10.5): it neither bleeds Overflow nor
+// receives it, and `canBlight` excludes it, so it has no `blightAt` either. It
+// is the only region the player arrives at having seen none of its cards.
+//
+// It is also the only element with THREE Mythics, and the painting gives each
+// of them a seat — which is why this is the one region with three Thrones.
+
+const DAWN: StoryRegion = {
+  id: "dawn",
+  name: "Dawn — The Golden Kingdom",
+  element: "DAWN",
+  terrain: "Blazing Sun",
+  board: 5,
+  art: "/maps/dawn.webp",
+  artRatio: 1440 / 1080,
+  requires: ["GF"],
+  nodes: [
+    // The whole region runs south to north: in through the Arctic Veil at the
+    // bottom, fanning west and east, converging on the castle at the top.
+    { id: "W1", name: "The Arctic Veil", kind: "skirmish", at: { x: 49, y: 78 },
+      requires: [], roster: ["dawn_able", "dawn_beam", "dawn_flash"], adds: [],
+      note: "The guarded way, and the only road in. Everything past the wall has been unseen all campaign." },
+    { id: "W2", name: "First Light Camp", kind: "skirmish", at: { x: 36, y: 72 },
+      requires: ["W1"], roster: ["dawn_roy", "dawn_sparkle", "dawn_glime"], adds: [] },
+    { id: "W3", name: "Mirrorfield", kind: "skirmish", at: { x: 27, y: 62 },
+      requires: ["W2"], roster: ["dawn_reflection", "dawn_shine", "dawn_sphere"], adds: [] },
+    { id: "W4", name: "Golden Farmlands", kind: "skirmish", at: { x: 16, y: 58 },
+      requires: ["W3"],
+      roster: ["dawn_stbern", "dawn_goldeneagle", "dawn_musk_ox", "dawn_oxin"], adds: [],
+      note: "Royal gardens, green in the snow — and the herd that works them." },
+    { id: "W5", name: "Sunrise Muster", kind: "warden", at: { x: 44, y: 64 },
+      requires: ["W2"], roster: ["dawn_amble", "dawn_golde", "dawn_lazor", "dawn_star"], adds: [] },
+    { id: "W6", name: "The Blazing Road", kind: "warden", at: { x: 58, y: 70 },
+      requires: ["W5"], roster: ["dawn_ariel", "dawn_radiance", "dawn_raya", "dawn_ty"], adds: [] },
+    { id: "W7", name: "The Solar Bastion", kind: "warden", at: { x: 26, y: 38 },
+      requires: ["W4"],
+      roster: ["dawn_solara", "dawn_solstice", "dawn_veil", "dawn_warphant"],
+      adds: ["dawn_radiant_guardian"],
+      note: "The wall that shines. We hold the wall; nothing passes." },
+    { id: "W8", name: "High Noon", kind: "warden", at: { x: 68, y: 47 },
+      requires: ["W6"],
+      roster: ["dawn_clipsey", "dawn_drakonbane", "dawn_halo", "dawn_sircrest"], adds: [] },
+    { id: "W9", name: "Castle Grounds", kind: "landmark", at: { x: 50, y: 57 },
+      requires: ["W5", "W7"],
+      roster: ["dawn_aurora", "dawn_heir_tok", "dawn_kosmos", "dawn_aurelion"],
+      adds: ["dawn_radiant_guardian"],
+      note: "Outer wards, tilt-yards and gatehouses. Heir is a Legendary despite the token-shaped id — it is fully draftable." },
+    { id: "W10", name: "The Golden Court", kind: "landmark", at: { x: 50, y: 41 },
+      requires: ["W8", "W9"], roster: ["dawn_commander", "dawn_leo", "dawn_dawn"],
+      adds: ["dawn_radiant_guardian"] },
+    // Two optional Thrones, both seats the painting names outright.
+    { id: "W11", name: "Sun's Army Fronts", kind: "throne", at: { x: 72, y: 70 },
+      requires: ["W6"], roster: ["dawn_equestrian"],
+      adds: ["dawn_warrider_tok", "dawn_stbern"],
+      note: "Guardians of Dawn, watching over the wilds. Optional — the Equestrian seat." },
+    { id: "W12", name: "Stars Army Flakes", kind: "throne", at: { x: 88, y: 43 },
+      requires: ["W8"], roster: ["dawn_supernova"],
+      adds: ["dawn_sparkle", "dawn_glime"],
+      note: "Silver pavilions where the lights touch down. Optional — the Supernova seat, and the star that fell is still burning in the Sundered Sky above it." },
+    { id: "W13", name: "Dawn Castle", kind: "throne", at: { x: 50, y: 22 },
+      requires: ["W10"], roster: ["dawn_imperator"],
+      adds: ["dawn_warrider_tok", "dawn_radiant_guardian"], required: true,
+      note: "The Golden Seat, throne of the kingdom. Required — the end of the road." },
+  ],
+};
+
+export const REGIONS: StoryRegion[] = [LEAF, PYRO, AQUA, GALE, BOLT, BORE, DUSK, DAWN];
 
 /** A region is reachable once every node gating it is cleared. */
 /** A region opens when ANY of its gates has been cleared — not all of them.
