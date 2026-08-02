@@ -27,7 +27,7 @@ import type {
   SpellDef,
   StatusKind,
 } from "./types";
-import { enemyOf, homeRow, isMidRow } from "./types";
+import { OPENING_COST_CAP, enemyOf, homeRow, isMidRow } from "./types";
 import { getSpell, spellPickKind } from "./spells";
 
 // ── prep phase ──────────────────────────────────────────────────────────────
@@ -45,8 +45,11 @@ export function canSummon(
   if (!hand) return { ok: false, reason: "Card not in hand" };
   const def = getDef(hand.defId);
   if (state.opening) {
-    // Free placement: slots are the only currency here, not gold.
+    // Free placement: slots are the currency, not gold — but the card still has
+    // to be something you could plausibly lead with.
     if (state.opening[player] <= 0) return { ok: false, reason: "No deployment slots left" };
+    if (def.cost > OPENING_COST_CAP)
+      return { ok: false, reason: `Opening placement is cost ${OPENING_COST_CAP} or less` };
   } else if (def.cost > state.players[player].gold) {
     return { ok: false, reason: "Not enough Gold" };
   }

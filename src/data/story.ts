@@ -532,11 +532,25 @@ export function gateCheck(save: StorySave, node: StoryNode): GateCheck {
 // the node's card pool never changes, only how many bodies it puts up, so you
 // always know exactly what you are farming for.
 
-/** Copies of one card allowed in a formation. Bosses stay unique: two Pyrogons
- *  is not a difficulty setting. */
+/** Copies of one card allowed in a formation, by rarity. Legendary and Mythic
+ *  are never doubled: two Pyrogons is not a difficulty setting. */
 export const DUPLICATE_CAP: Record<string, number> = {
   rare: 3, epic: 2, legendary: 1, mythic: 1,
 };
+
+/** Deck cap from which a formation may double its EPICS. Rares fill a board at
+ *  every tier, but a second copy of an Epic means a second copy of a real
+ *  Special every round — early Acts should not be padded with that. It unlocks
+ *  at the 4x4 format max, which is Act III: the point the campaign stops being
+ *  an introduction. */
+export const EPIC_DUPLICATE_FROM_CAP = 18;
+
+/** Copies of one card allowed, scaled by the player's tier. */
+export function copyCapFor(defId: string, deckCap: number): number {
+  const rarity = getDef(defId).rarity ?? "";
+  if (rarity === "epic") return deckCap >= EPIC_DUPLICATE_FROM_CAP ? DUPLICATE_CAP.epic : 1;
+  return DUPLICATE_CAP[rarity] ?? DUPLICATE_CAP_DEFAULT;
+}
 export const DUPLICATE_CAP_DEFAULT = 1;
 
 /** Bodies a formation aims for, by the player's current deck tier (deployed +
@@ -548,9 +562,6 @@ export function formationSize(cap: number): number {
   return 7;                 // Act I     — 4 + 2-3
 }
 
-const copyCap = (defId: string): number =>
-  DUPLICATE_CAP[getDef(defId).rarity ?? ""] ?? DUPLICATE_CAP_DEFAULT;
-
 /**
  * The enemy squad for a node, filled to the tier's target.
  *
@@ -561,7 +572,7 @@ const copyCap = (defId: string): number =>
  *   1. every unique card in the node's pool (roster + any overflow)
  *   2. filler — the node's tokens, plus any Blight bodies
  *   3. duplicate Rares, cheapest first
- *   4. duplicate Epics
+ *   4. duplicate Epics — ONLY from Act III (see EPIC_DUPLICATE_FROM_CAP)
  *
  * Never trims: a roster card dropped to hit the target would be unrecruitable
  * that run, so a big Landmark is simply allowed to be big.
@@ -586,22 +597,31 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
   const copies = new Map<string, number>();
   for (const id of out) copies.set(id, (copies.get(id) ?? 0) + 1);
 
-  const target = formationSize(deckCapFor(save.cleared));
-  // A Gate has no recruitable roster — its whole squad is non-recruitable border
-  // filler — so duplicates come from that squad instead, or it could never fill.
-  const pool = uniques.length > 0 ? uniques : node.adds;
+  const cap = deckCapFor(save.cleared);
+  const target = formationSize(cap);
+  // Drawn from everything already standing — including the tokens and border
+  // patrol in `adds`. A Throne's roster is a lone Mythic and a Gate has no
+  // roster at all, so a pool of just `uniques` would leave both unable to fill
+  // past a body or two.
   const byCost = (a: string, b: string) => getDef(a).cost - getDef(b).cost;
-  const rares = pool.filter((id) => getDef(id).rarity === "rare").sort(byCost);
-  const epics = pool.filter((id) => getDef(id).rarity === "epic").sort(byCost);
+  const present = [...new Set([...uniques, ...node.adds])];
+  // Rares carry the fill at every tier. Epics only join it once the campaign has
+  // scaled past its introduction — a second copy of an Epic is a second copy of
+  // a real Special every round.
+  const rares = present.filter((id) => getDef(id).rarity === "rare").sort(byCost);
+  const epics = cap >= EPIC_DUPLICATE_FROM_CAP
+    ? present.filter((id) => getDef(id).rarity === "epic").sort(byCost)
+    : [];
 
   // Round-robin inside each tier, so nothing reaches three copies while another
-  // card of the same tier is still on one.
+  // card of the same tier is still on one. Rares are exhausted before an Epic is
+  // ever doubled.
   for (const tier of [rares, epics]) {
     for (let guard = 0; guard < 8 && out.length < target; guard++) {
       let placed = false;
       for (const id of tier) {
         if (out.length >= target) break;
-        if ((copies.get(id) ?? 0) >= copyCap(id)) continue;
+        if ((copies.get(id) ?? 0) >= copyCapFor(id, cap)) continue;
         out.push(id);
         copies.set(id, (copies.get(id) ?? 0) + 1);
         placed = true;

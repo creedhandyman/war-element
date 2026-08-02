@@ -363,8 +363,13 @@ purging them would only reach ~120MB in exchange for rewriting every SHA.
   tier. `buildFormation` fills to `formationSize(deckCap)` in the doc's order:
   every unique first (four identical cards reads as a bug, not a boss), then
   tokens and Blight bodies, then duplicate Rares cheapest-first, then Epics.
-  Caps are Rare 3 / Epic 2 / Legendary 1 / Mythic 1, so a boss is never
-  duplicated. It never TRIMS — a roster card dropped to hit the target would be
+  Caps scale with the tier via `copyCapFor`: Rares duplicate up to 3 at every
+  Act, **Epics stay unique until cap 18** (`EPIC_DUPLICATE_FROM_CAP`, Act III) and
+  double from there, Legendary and Mythic never. A second Epic is a second copy
+  of a real Special every round, which is not what an Act I board should be
+  padded with. The duplicate pool is drawn from roster + overflow **+ adds**,
+  because a Throne's roster is a lone Mythic and a Gate has no roster at all —
+  without the tokens a boss fight was two bodies. It never TRIMS — a roster card dropped to hit the target would be
   unrecruitable that run. The load-bearing guardrail is that recruitment rolls
   once per UNIQUE card however many copies are on the board: duplicates are a
   difficulty knob, not a loot knob, and a test pins it.
@@ -380,6 +385,11 @@ purging them would only reach ~120MB in exchange for rewriting every SHA.
   Implemented as a prep turn at round 0 rather than a new phase, so every summon
   rule, intent and bit of UI works unchanged; `movedThisTurn` stays true so
   nothing repositions yet. Two traps, both test-pinned:
+  There is also a **cost ceiling** (`OPENING_COST_CAP`, in types.ts so rules.ts
+  can read it without importing the phase machine). "Free" otherwise means cost
+  stops being a brake for exactly one card and every side just leads with the
+  biggest thing it drew — a Throne would open with its Mythic on turn zero.
+  Two traps, both test-pinned:
   1. **Gold must not leak into round 1.** `doResourcePhase` carries gold (capped
      10) and *then* adds income, so anything seeded here would inflate the first
      turn. Round 1 must pay its normal +1 and no more.

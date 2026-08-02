@@ -8,7 +8,7 @@ import { CARDS, TOKENS, getDef } from "../../data/cards";
 import {
   ALL_NODES, BLIGHT_ADDS, BLIGHT_MAX, CAP_LADDER, OVERFLOW_RATE, REGIONS, STARTER_DECK,
   applyClear, baseRateFor, blightAddsFor, blightLevel, canBlight, deckCapFor, isOpen, isOverflow,
-  DUPLICATE_CAP, PLACED_CARDS, STARTER_DECK as STARTER, bestSource, buildFormation,
+  DUPLICATE_CAP, EPIC_DUPLICATE_FROM_CAP, PLACED_CARDS, copyCapFor, STARTER_DECK as STARTER, bestSource, buildFormation,
   demandMet, gateCheck, isGate, regionOfNode,
   formationSize, isRegionCleared, isRegionOpen,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
@@ -568,17 +568,52 @@ describe("story: formations (10.7)", () => {
     expect(firstDupeAt).toBeGreaterThanOrEqual(uniques.length);
   });
 
-  it("respects the per-rarity copy cap everywhere", () => {
-    for (const r of REGIONS)
-      for (const n of r.nodes)
-        for (const cap of [12, 15, 22, 28]) {
-          const save = { ...newSave(), cleared: cap >= 18 ? ["L14", "P13"] : cap >= 15 ? ["L14"] : [] };
+  it("respects the per-rarity copy cap at every tier", () => {
+    for (const cleared of [[], ["L14"], ["L14", "P13"]]) {
+      const save = { ...newSave(), cleared };
+      const cap = deckCapFor(cleared);
+      for (const r of REGIONS)
+        for (const n of r.nodes) {
           const f = buildFormation(save, r, n);
-          for (const id of new Set(f)) {
-            const limit = DUPLICATE_CAP[getDef(id).rarity ?? ""] ?? 1;
-            expect(count(f, id), `${n.id} fields ${count(f, id)}x ${id}`).toBeLessThanOrEqual(limit);
-          }
+          for (const id of new Set(f))
+            expect(count(f, id), `${n.id} fields ${count(f, id)}x ${id} at cap ${cap}`)
+              .toBeLessThanOrEqual(copyCapFor(id, cap));
         }
+    }
+  });
+
+  it("keeps Epics unique until the campaign has scaled", () => {
+    // A second copy of an Epic is a second copy of a real Special every round.
+    // Rares carry the early fill; Epics join once difficulty has somewhere to go.
+    const epic = CARDS.find((c) => c.rarity === "epic")!.id;
+    expect(copyCapFor(epic, 12)).toBe(1);
+    expect(copyCapFor(epic, 15)).toBe(1);
+    expect(copyCapFor(epic, EPIC_DUPLICATE_FROM_CAP)).toBe(DUPLICATE_CAP.epic);
+    expect(copyCapFor(epic, 28)).toBe(DUPLICATE_CAP.epic);
+    // Rares are never gated — they are what fills a board at Act I.
+    const rare = CARDS.find((c) => c.rarity === "rare")!.id;
+    expect(copyCapFor(rare, 12)).toBe(DUPLICATE_CAP.rare);
+  });
+
+  it("never doubles an Epic at Act I, even to hit the target", () => {
+    const early = { ...newSave(), cleared: [] };
+    for (const r of REGIONS)
+      for (const n of r.nodes) {
+        const f = buildFormation(early, r, n);
+        for (const id of new Set(f))
+          if (getDef(id).rarity === "epic")
+            expect(count(f, id), `${n.id} doubled ${id} at Act I`).toBe(1);
+      }
+  });
+
+  it("fills a Throne from its tokens rather than leaving the boss alone", () => {
+    // A Throne's roster is one Mythic, which can never duplicate — so without
+    // drawing the fill from `adds` too, a boss fight was two bodies.
+    const s = { ...newSave(), cleared: ["L12"] };
+    const throne = nodeById("L14")!;
+    const f = buildFormation(s, REGIONS[0], throne);
+    expect(f.length).toBeGreaterThan(throne.roster.length + throne.adds.length);
+    expect(count(f, "leaf_oakgre")).toBe(1);   // the boss stays singular
   });
 
   it("never duplicates a boss", () => {

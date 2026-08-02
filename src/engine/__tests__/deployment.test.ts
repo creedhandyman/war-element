@@ -3,8 +3,9 @@
 // these tests pin is that a normal battle is unaffected.
 
 import { describe, expect, it } from "vitest";
-import { advance, applyIntent, createInitialState } from "../index";
+import { advance, applyIntent, createInitialState, getDef } from "../index";
 import { OPENING_SLOTS } from "../phases";
+import { OPENING_COST_CAP } from "../types";
 import type { GameState, PlayerId } from "../index";
 
 const DECK = [
@@ -112,5 +113,29 @@ describe("opening deployment", () => {
     const s = runUntil(pastMulligan({ P1: 1, P2: 1 }), (g) => g.phase === "battle");
     expect(s.phase).toBe("battle");
     expect(s.round).toBeGreaterThanOrEqual(1);
+  });
+});
+
+
+describe("opening deployment: the cost ceiling", () => {
+  it("refuses a card above the ceiling even though the placement is free", () => {
+    // Without this, "free" means cost stops mattering for exactly one card and
+    // every side simply leads with the biggest thing it drew.
+    const heavy = ["leaf_oakgre", "leaf_trinezer", "leaf_nightshade", "leaf_fallow",
+      "leaf_warden", "leaf_efy", "leaf_season", "leaf_thorn", "leaf_elderroot",
+      "leaf_nettle", "leaf_weeds", "leaf_birch"];
+    let s = createInitialState(7, heavy, heavy, [], [], [], 4, { P1: 1, P2: 1 });
+    for (let i = 0; i < 40 && s.phase === "mulligan"; i++) s = advance(s);
+    const p = s.prep!.priority;
+    const dear = s.players[p].hand.find((h) => getDef(h.defId).cost > OPENING_COST_CAP);
+    if (!dear) return;                       // hand happened to be all cheap
+    expect(() => applyIntent(s, { type: "SUMMON", player: p, handId: dear.handId, col: 0 }))
+      .toThrow(new RegExp(`cost ${OPENING_COST_CAP}`, "i"));
+  });
+
+  it("only ever leads with something at or under the ceiling", () => {
+    const s = runUntil(pastMulligan({ P1: 1, P2: 1 }), (g) => g.round >= 1);
+    for (const c of Object.values(s.cards))
+      if (c.pos) expect(getDef(c.defId).cost, `${c.defId} led`).toBeLessThanOrEqual(OPENING_COST_CAP);
   });
 });

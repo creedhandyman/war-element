@@ -1538,6 +1538,12 @@ export type Intent =
     };
 
 export const OPENING_HAND = 4;
+/** Cost ceiling on the FREE opening placement (§10.6). Without it, "free" means
+ *  cost stops being a brake for exactly one card and every side opens with the
+ *  most expensive thing it drew — a Throne would lead with its Mythic on turn
+ *  zero. A teammate, not a champion. Lives here rather than in phases.ts so
+ *  rules.ts can read it without importing the phase machine. */
+export const OPENING_COST_CAP = 3;
 /** Max hand size — draws that would exceed this are skipped (the cards stay on
  *  top of the deck, not burned). Bonus-draw rounds (10/15) partially fizzle when
  *  you're near the cap; that's the intended cost of a hand limit. */
