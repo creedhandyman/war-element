@@ -325,6 +325,25 @@ engine runtime and no React, so it stays testable headlessly
   are 96 kb/s — they are looping ambience under SFX, and 320 kb/s masters cost
   3x the bytes for nothing. Transcode with the ffmpeg that ships inside the
   `imageio-ffmpeg` pip package; there is no system ffmpeg on this machine.
+  All five are also loudness-matched to **-16 LUFS** (EBU R128, two-pass, -1.5
+  dBTP ceiling). They arrived 5.9 dB apart and every one of them clipped, so
+  switching regions changed the volume. Normalize from the MASTER, not from the
+  committed 96k file, or you stack two generations of lossy encoding.
+
+## Repo size
+
+`.git` hit 1.08GB in Aug 2026. Almost none of it was history:
+
+- **863MB was a dead Git LFS cache** — art was migrated OUT of LFS in Jul 2026
+  (see `.gitattributes`) but the local objects were never pruned. `git lfs
+  prune` reported *403 local objects, 0 retained* and freed all of it.
+- **The repo had never been gc'd** — 6,878 loose objects, zero packfiles.
+  `git gc --prune=now` took 219MB of loose objects to a 159MB pack.
+
+Together: **1082MB -> 160MB, with no history rewriting.** Reach for `lfs prune`
+and `gc` before ever considering a rewrite; the big binaries in history (50MB of
+music, 82MB of superseded card WebP) are worth far less than they look, and
+purging them would only reach ~120MB in exchange for rewriting every SHA.
 - **Save** is one localStorage key, `we_story_v1`, sanitized on load (unknown
   card/node ids are dropped). To exercise a mid-campaign state in the browser,
   seed it directly rather than playing forward.
