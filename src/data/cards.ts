@@ -1582,6 +1582,7 @@ export const CARDS: CardDef[] = [
     sp: 13,
     shields: 0,
     keywords: {},
+    tribe: "Wolf",
     // Omega Restore (On Kill): heal +4 HP per opponent killed.
     passiveNames: { onKill: "Omega Restore" },
     onKill: { healSelf: 4 },
@@ -6161,6 +6162,7 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 1,
     keywords: {},
+    tribe: "Wolf",
     // Ride or Die: Luna grants +3 DMG and +8 HP on summon; each kill grants +2 HP.
     passiveNames: { summonSelfBuff: "Ride or Die", onKill: "Ride or Die" },
     summonSelfBuff: { dmg: 3, hp: 8 },
@@ -6910,7 +6912,7 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: { FLYING: true },
-    tribe: "Avian",
+    tribe: ["Avian", "Wolf"],
     // Totem Spirit (Aura): while Totem lives, the team's basics clip +1 target.
     passiveNames: { splashAura: "Totem Spirit" },
     splashAura: true,
