@@ -243,6 +243,16 @@ engine runtime and no React, so it stays testable headlessly
   and nodes share one coordinate space with no px maths.
   To eyeball placement, render markers onto the art with PIL rather than
   screenshotting — the node ids and edges plot straight from `story.ts`.
+  Two CSS rules are load-bearing and were both learned the hard way on a phone:
+  `.story-canvas` must be `flex: none` (`.story-body` becomes a COLUMN on
+  phones, and a growable canvas stretches to fill the height, overriding
+  `aspect-ratio` and scaling the art ~3x tall since it is drawn with
+  `background-size: 100% 100%`); and every `.edge` needs
+  `vector-effect: non-scaling-stroke`, or the `viewBox="0 0 100 100"` +
+  `preserveAspectRatio="none"` combination scales `stroke-width: 2` into a
+  ~20px slab. Node/badge sizes are `cqw`-based off `container-type: inline-size`
+  on the canvas, so they track the map rather than the viewport — 54px at
+  desktop's 1180px cap, ~41px on a phone.
 - **The art is the authority on geography.** LEAF's node graph was re-gated to
   match it: the Rot Line is in the far *south* (so L8 hangs off L5, not L7),
   and Rustling Woods is at Autumn's Gold in the *north-east* (so L7 hangs off
