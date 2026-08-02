@@ -40,13 +40,26 @@ describe("story: node placement", () => {
         expect(() => getDef(id), `${n.id} references ${id}`).not.toThrow();
   });
 
-  it("adds are always tokens — filler is never something you could have owned", () => {
-    // Gates are the exception by design: a border patrol is a mixed squad of BOTH
-    // elements, and those are real cards precisely so the fight looks like the
-    // frontier. They stay non-recruitable because they sit in `adds`.
-    const bad = ALL_NODES.filter((n) => !isGate(n))
-      .flatMap((n) => n.adds.filter((id) => !tokenIds.has(id)).map((id) => `${n.id}:${id}`));
+  it("filler never makes a card unobtainable", () => {
+    // The rule started as "adds are always tokens", which was really a proxy for
+    // this: filler must never be the ONLY place a card appears, or it would be
+    // permanently unrecruitable. Real cards as filler are fine and deliberate —
+    // a gate's border patrol, a Throne's escorts — so long as each one is
+    // farmable somewhere. Tokens satisfy it by being undeckable in the first
+    // place.
+    const bad = ALL_NODES.flatMap((n) =>
+      n.adds
+        .filter((id) => !tokenIds.has(id) && sourcesOf(id).length === 0)
+        .map((id) => `${n.id}:${id}`),
+    );
     expect(bad).toEqual([]);
+  });
+
+  it("gives every Throne an escort, so a boss is not alone on the board", () => {
+    // A Throne's roster is one Mythic that can never duplicate, so without
+    // escorts the fill had nothing to work with and a boss fight was two bodies.
+    for (const n of ALL_NODES.filter((x) => x.kind === "throne"))
+      expect(n.adds.length, `${n.id} has no escort`).toBeGreaterThanOrEqual(2);
   });
 });
 

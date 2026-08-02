@@ -344,6 +344,20 @@ engine runtime and no React, so it stays testable headlessly
   switching regions changed the volume. Normalize from the MASTER, not from the
   committed 96k file, or you stack two generations of lossy encoding.
 
+## Traps found the hard way
+
+- **Auto modes are `manual | basic | full`, and only `full` fires Specials.** A
+  card on `basic` with nothing in reach used to SKIP, forever. For Oakgre that
+  was fatal rather than annoying: it is printed at **SP 0**, and Uprooted (+3 SP)
+  is the only thing that ever unpins it — so it could not reach anyone, never
+  fired the buff, and never moved for the whole game. `basic` now fires a
+  Special when the turn would otherwise be wasted entirely AND the Special is
+  `targetSide: "self"` (no targeting decision taken from the player). `manual`
+  still prompts. Regression test: `self-buff-auto.test.ts`.
+  When testing an auto-mode policy, the side under test must be in `humans` —
+  an AI-driven side runs `chooseBattleAction` instead and fires the Special
+  anyway, so the test would pass without the fix.
+
 ## Repo size
 
 `.git` hit 1.08GB in Aug 2026. Almost none of it was history:
@@ -369,7 +383,13 @@ purging them would only reach ~120MB in exchange for rewriting every SHA.
   of a real Special every round, which is not what an Act I board should be
   padded with. The duplicate pool is drawn from roster + overflow **+ adds**,
   because a Throne's roster is a lone Mythic and a Gate has no roster at all —
-  without the tokens a boss fight was two bodies. It never TRIMS — a roster card dropped to hit the target would be
+  without them a boss fight was two bodies. Thrones also carry **2 Rare escorts**
+  in `adds`, drawn from a tribe or locale they already command and farmable
+  earlier in the region, which brings every Throne up to the tier target.
+  The `adds` rule is **not** "tokens only" — it is that filler must never be the
+  ONLY place a card appears, or it would be permanently unrecruitable. Gate
+  patrols and Throne escorts are real cards on purpose; the test checks
+  `sourcesOf(id)` rather than token-ness. It never TRIMS — a roster card dropped to hit the target would be
   unrecruitable that run. The load-bearing guardrail is that recruitment rolls
   once per UNIQUE card however many copies are on the board: duplicates are a
   difficulty knob, not a loot knob, and a test pins it.

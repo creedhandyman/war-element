@@ -1345,6 +1345,15 @@ function stepBattle(draft: GameState): boolean {
     // multi-hit volley spreads its surplus onto fresh targets instead of overkill.
     const targets = validTargets(draft, id);
     performBattleAction(draft, id, "basic", distributeBasicHits(draft, card, targets));
+  } else if (canSpec && getDef(card.defId).special?.targetSide === "self") {
+    // A card on basic-auto with nothing in reach would otherwise SKIP forever —
+    // and for Oakgre that is a trap, because Uprooted (+3 SP) is the only thing
+    // that ever unpins a melee card printed at SP 0. It can't reach anyone, so
+    // it can't attack; it never fires the buff, so it never moves.
+    // Narrow on purpose: only when the turn would be wasted entirely, and only
+    // for a SELF-targeted Special, which takes no targeting decision away from
+    // the player. Anything aimed at the board still waits for them.
+    performBattleAction(draft, id, "special");
   } else {
     performBattleAction(draft, id, "skip");
   }

@@ -135,10 +135,14 @@ const LEAF: StoryRegion = {
     { id: "L12", name: "Heart of Nature: The Spirit Tree", kind: "landmark", at: { x: 56, y: 56 },
       requires: ["L11"], roster: ["leaf_warden", "leaf_efy", "leaf_fallow"], adds: [] },
     { id: "L13", name: "Jungle Throne", kind: "throne", at: { x: 67, y: 81 },
-      requires: ["L6", "L12"], roster: ["leaf_trinezer"], adds: ["leaf_reptilian_tok"],
+      requires: ["L6", "L12"], roster: ["leaf_trinezer"],
+      // Escorts: the Reptile tribe it commands, already farmable at L6.
+      adds: ["leaf_reptilian_tok", "leaf_stickviper", "leaf_gecko"],
       note: "Deep Grove. Optional — an early skill check with a Mythic reward." },
     { id: "L14", name: "The Spirit Tree Rises", kind: "throne", at: { x: 48, y: 45 },
-      requires: ["L12"], roster: ["leaf_oakgre"], adds: ["leaf_acorn_tok"], required: true,
+      requires: ["L12"], roster: ["leaf_oakgre"],
+      // Escorts: the old growth around it, farmable at L4 and L2.
+      adds: ["leaf_acorn_tok", "leaf_oak", "leaf_birch"], required: true,
       note: "Required. Clearing it opens the borders to PYRO and AQUA." },
     // Gates. Rosters live in `adds` because a gate is a checkpoint, not a farm —
     // its squad is a mixed border patrol of BOTH elements, and putting real
@@ -211,10 +215,14 @@ const PYRO: StoryRegion = {
       requires: ["P2", "P10"], roster: ["pyro_volcanon", "pyro_sol", "pyro_aftermath", "pyro_dynomight"], adds: [],
       note: "The Cost-6 utility tier, all four on one node." },
     { id: "P13", name: "Firespine Peaks: Dragon's Lair", kind: "throne", at: { x: 10, y: 53 },
-      requires: ["P9", "P10"], roster: ["pyro_pyrogon"], adds: [], required: true,
+      requires: ["P9", "P10"], roster: ["pyro_pyrogon"],
+      // Escorts: the volcanic beasts of the slopes, farmable at P5.
+      adds: ["pyro_ash_boar", "pyro_wick"], required: true,
       note: "Required. Clearing it opens Gate D — the Veil Gate, and the DUSK reach." },
     { id: "P12", name: "The Forge Core", kind: "throne", at: { x: 23, y: 66 },
-      requires: ["P13"], roster: ["pyro_nitro"], adds: [],
+      requires: ["P13"], roster: ["pyro_nitro"],
+      // Escorts: Forged Tech, the tribe Nitro tops — farmable at P4.
+      adds: ["pyro_heatsink_golem", "pyro_dyna"],
       note: "Optional. Where the first flame burns — Forged Tech's Mythic." },
     // Gate C, PYRO side. Its twin sits on AQUA's map, so switching routes never
     // means walking back through LEAF.
@@ -283,10 +291,14 @@ const AQUA: StoryRegion = {
       requires: ["A6", "A9"], roster: ["aqua_siren", "aqua_rain", "aqua_driftwraith", "aqua_magalogoon"], adds: [],
       note: "Four Legendaries — the richest node in the first three acts. Both arms of the sea have to be yours first." },
     { id: "A13", name: "Atlantis: Heart of the Ocean", kind: "throne", at: { x: 50, y: 45 },
-      requires: ["A11"], roster: ["aqua_hydrogon"], adds: [], required: true,
+      requires: ["A11"], roster: ["aqua_hydrogon"],
+      // Escorts: the reef that guards the city, farmable at A5.
+      adds: ["aqua_coralgolem", "aqua_tide"], required: true,
       note: "Required. Clearing it opens the sea lanes, which is what makes the rest of the campaign non-linear." },
     { id: "A12", name: "The Deep", kind: "throne", at: { x: 54, y: 88 },
-      requires: ["A13"], roster: ["aqua_kraken"], adds: [],
+      requires: ["A13"], roster: ["aqua_kraken"],
+      // Escorts: the deep's own, farmable at A4.
+      adds: ["aqua_krakler", "aqua_spinefin"],
       note: "Optional, and the hardest fight in Act II — deliberately harder than either required Throne." },
     // Gate C, AQUA side — the same harbor from the other direction.
     { id: "GC2", name: "Gate C: Sunfall Harbor", kind: "gate", at: { x: 10, y: 72 },
