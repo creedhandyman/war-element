@@ -346,6 +346,15 @@ engine runtime and no React, so it stays testable headlessly
 
 ## Traps found the hard way
 
+- **Board size and deck size are welded together by format.** 4x4 is legal at
+  12-20 cards, 5x5 at 20-30 — they overlap at **exactly 20**, and the cap ladder
+  (12/15/18/22/28) never lands there. So every tier is legal on precisely ONE
+  board, and "small nodes 4x4, big nodes 5x5 within a region" cannot be done at
+  any current cap without playing off-format. `boardsLegalFor(cap)` encodes it
+  and a test pins that every node is fought on a board its cap allows.
+  `StoryNode.board` exists as the override; the only way to actually USE it is to
+  set an Act's cap to 20, which is the sole dual-legal size.
+
 - **Auto modes are `manual | basic | full`, and only `full` fires Specials.** A
   card on `basic` with nothing in reach used to SKIP, forever. For Oakgre that
   was fatal rather than annoying: it is printed at **SP 0**, and Uprooted (+3 SP)

@@ -44,6 +44,11 @@ export interface StoryNode {
   demand?: GateDemand;
   /** Gate nodes only: the region id this gate opens, for the map's copy. */
   opens?: string;
+  /** Board size for THIS node, overriding the region's. Lets a region run its
+   *  Skirmishes small and its Landmarks/Thrones large — but see
+   *  `boardsLegalFor`: deck size and board size are locked together by format,
+   *  so a region can only mix boards while its deck cap is exactly 20. */
+  board?: number;
   note?: string;
   /** Position on the region's painted map, as a PERCENTAGE of its width and
    *  height. Percentages rather than pixels so the map scales to any viewport
@@ -490,6 +495,31 @@ export const isOverflow = (node: StoryNode, defId: string): boolean =>
 
 /** Everything a node can actually give you: its own roster plus any bleed. */
 export const recruitablePool = (node: StoryNode): string[] => [...node.roster, ...(node.overflow ?? [])];
+
+// ── board size ──────────────────────────────────────────────────────────────
+
+/** Legal deck sizes per board, mirroring `custom-decks.ts` DECK_LIMITS. Kept
+ *  here so the campaign layer can reason about format without importing the
+ *  deck-builder. */
+const BOARD_DECK_RANGE: Record<number, [number, number]> = { 4: [12, 20], 5: [20, 30] };
+
+/** Which boards a deck of this size may legally be played on.
+ *
+ *  This is the constraint that governs whether a region can vary its board by
+ *  node. The ranges overlap at EXACTLY 20 cards, and the cap ladder
+ *  (12/15/18/22/28) never lands there — so at every current tier a deck is legal
+ *  on precisely one board, and "small nodes 4x4, big nodes 5x5" would mean
+ *  playing off-format in one direction or the other. Setting an Act's cap to 20
+ *  is the only way to unlock a mixed-board Act. */
+export function boardsLegalFor(deckCap: number): number[] {
+  return Object.entries(BOARD_DECK_RANGE)
+    .filter(([, [lo, hi]]) => deckCap >= lo && deckCap <= hi)
+    .map(([b]) => Number(b));
+}
+
+/** The board a node is fought on. */
+export const boardForNode = (region: StoryRegion, node: StoryNode): number =>
+  node.board ?? region.board;
 
 // ── border gates (§7) ───────────────────────────────────────────────────────
 

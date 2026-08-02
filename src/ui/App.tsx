@@ -56,7 +56,7 @@ import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
 import { StoryResult } from "./StoryResult";
 import {
-  PLAYER_DEPLOY, REGIONS, applyClear, buildFormation, deckCapFor, enemyDeployFor,
+  PLAYER_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, deckCapFor, enemyDeployFor,
   loadStory, recruitablePool,
   regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
@@ -1852,9 +1852,10 @@ export function App() {
             // A formation, not a deck: duplicates fill it out to the tier's
             // target so a 3-card roster still fields a full board (§10.7).
             const squad = buildFormation(story, home, node);
+            const board = boardForNode(home, node);
             // Opening deployment is STORY-ONLY for now: skirmish, online and
             // Void Tower keep the ordinary summon ramp untouched.
-            setGame(createInitialState(newSeed(), deck, squad, ["P1"], [], [], home.board,
+            setGame(createInitialState(newSeed(), deck, squad, ["P1"], [], [], board,
               { P1: PLAYER_DEPLOY, P2: enemyDeployFor(node) }));
             setStoryNode(node);
             setStoryOpen(false);

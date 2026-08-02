@@ -9,7 +9,7 @@ import {
   ALL_NODES, BLIGHT_ADDS, BLIGHT_MAX, CAP_LADDER, OVERFLOW_RATE, REGIONS, STARTER_DECK,
   applyClear, baseRateFor, blightAddsFor, blightLevel, canBlight, deckCapFor, isOpen, isOverflow,
   DUPLICATE_CAP, EPIC_DUPLICATE_FROM_CAP, PLACED_CARDS, copyCapFor, STARTER_DECK as STARTER, bestSource, buildFormation,
-  demandMet, gateCheck, isGate, regionOfNode,
+  demandMet, gateCheck, isGate, regionOfNode, boardForNode, boardsLegalFor,
   formationSize, isRegionCleared, isRegionOpen,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
@@ -750,5 +750,36 @@ describe("story: border gates (7)", () => {
       expect(f.length, `${g.id} fielded ${f.length}`).toBeGreaterThanOrEqual(g.adds.length);
       for (const id of g.adds) expect(f).toContain(id);
     }
+  });
+});
+
+describe("story: board size is welded to deck size", () => {
+  it("gives every cap in the ladder exactly one legal board", () => {
+    // The reason a region cannot run small nodes on 4x4 and big ones on 5x5:
+    // the format ranges (4x4 = 12-20, 5x5 = 20-30) overlap at exactly 20 cards,
+    // and no rung of the ladder lands there. Mixing boards inside an Act would
+    // mean playing off-format in one direction or the other.
+    for (const step of CAP_LADDER)
+      expect(boardsLegalFor(step.cap), `cap ${step.cap}`).toHaveLength(1);
+  });
+
+  it("names 20 as the only deck size that could ever mix boards", () => {
+    expect(boardsLegalFor(20).sort()).toEqual([4, 5]);
+    expect(boardsLegalFor(19)).toEqual([4]);
+    expect(boardsLegalFor(21)).toEqual([5]);
+  });
+
+  it("fights every node on a board its deck cap is legal for", () => {
+    // The guard that matters when Act IV content lands: a node authored with a
+    // `board` override its tier's deck cannot legally field would be caught here
+    // rather than in play.
+    for (const r of REGIONS)
+      for (const n of r.nodes) {
+        const board = boardForNode(r, n);
+        expect([4, 5], `${n.id} board ${board}`).toContain(board);
+        expect(boardsLegalFor(deckCapFor([...r.requires ?? [], n.id])),
+          `${n.id} is fought on ${board} but its deck cap is not legal there`)
+          .toContain(board);
+      }
   });
 });
