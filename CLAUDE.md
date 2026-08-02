@@ -270,6 +270,20 @@ engine runtime and no React, so it stays testable headlessly
   field DUSK early — and clearing it drops the level by one, flooring at the
   region's own `baseBlight`. A Blight Node is never banked into `save.cleared`
   (it can come back). **DUSK and DAWN are immune** (`canBlight`).
+- **The collection** (`StoryCollection.tsx`) is the browser AND the story deck
+  editor — the same question asked twice ("what do I own" / "what do I fight
+  with"), so splitting them would just mean bouncing between screens. Its
+  load-bearing half is **Missing**: every unowned card names the node that
+  drops it and the live odds there, which is what makes pillar 3 ("you fight
+  what you want to own") actually true. `sourcesOf` / `bestSource` in story.ts
+  invert the placement data rather than duplicating it, so a node move can
+  never desync the answer — tests enforce that every placed card resolves to a
+  node that really lists it, and that a full-odds home always sorts before a
+  half-odds border. The denominator is `PLACED_CARDS`, not the 300-card set, so
+  the counter doesn't read as broken while regions are unbuilt; a card in an
+  unbuilt region says "Not in the world yet" rather than appearing as a to-do.
+  It opens OVER the map, so "Show" on a card hands a node id back via
+  `focusNodeId` (consumed once, then cleared, or it would re-select forever).
 - **Save** is one localStorage key, `we_story_v1`, sanitized on load (unknown
   card/node ids are dropped). To exercise a mid-campaign state in the browser,
   seed it directly rather than playing forward.

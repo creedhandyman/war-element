@@ -354,6 +354,49 @@ export const isCleared = (save: StorySave, id: string): boolean => save.cleared.
 export const isOpen = (save: StorySave, n: StoryNode): boolean =>
   n.requires.every((r) => save.cleared.includes(r));
 
+// ── where do I get this card? ───────────────────────────────────────────────
+// Pillar 3 is "you fight what you want to own" — which is only true if the
+// collection can actually answer "so where is it?". These invert the placement
+// data rather than duplicating it, so a node move can never desync the answer.
+
+export interface CardSource {
+  node: StoryNode;
+  region: StoryRegion;
+  /** True when this node only bleeds the card across a border at half odds. */
+  overflow: boolean;
+}
+
+/** Every node that can recruit a card. Empty = it lives in a region that has
+ *  not been built yet, which is a content gap, not a locked door. */
+export function sourcesOf(defId: string): CardSource[] {
+  const out: CardSource[] = [];
+  for (const region of REGIONS)
+    for (const node of region.nodes) {
+      if (node.roster.includes(defId)) out.push({ node, region, overflow: false });
+      else if (node.overflow?.includes(defId)) out.push({ node, region, overflow: true });
+    }
+  // Full-odds homes first: the answer to "where do I farm this" is never the
+  // border node when a home node exists.
+  return out.sort((a, b) => Number(a.overflow) - Number(b.overflow));
+}
+
+/** The best odds available for a card right now, and where. Null when the card
+ *  is unplaced or every source is still locked. */
+export function bestSource(save: StorySave, defId: string): CardSource | null {
+  const open = sourcesOf(defId).filter((s) => isOpen(save, s.node));
+  if (open.length === 0) return null;
+  return open.reduce((best, s) =>
+    recruitChance(defId, save.pity[`${s.node.id}:${defId}`] ?? 0, s.overflow) >
+    recruitChance(defId, save.pity[`${best.node.id}:${defId}`] ?? 0, best.overflow) ? s : best,
+  );
+}
+
+/** Everything placed anywhere — the denominator for "N of M collected". Counts
+ *  cards, not placements, so an overflow copy never inflates the total. */
+export const PLACED_CARDS: string[] = [...new Set(
+  REGIONS.flatMap((r) => r.nodes.flatMap((n) => [...n.roster, ...(n.overflow ?? [])])),
+)];
+
 // ── the recruitment roll ────────────────────────────────────────────────────
 
 export interface RecruitResult {

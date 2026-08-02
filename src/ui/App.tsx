@@ -52,6 +52,7 @@ import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { WinScreen } from "./WinScreen";
 import { EL_COLOR, EL_ICON, type PendingBattle, type Selection } from "./shared";
+import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
 import { StoryResult } from "./StoryResult";
 import {
@@ -165,6 +166,10 @@ export function App() {
   // nothing should be recruited from it.
   const [story, setStory] = useState<StorySave>(() => loadStory());
   const [storyOpen, setStoryOpen] = useState(false);
+  // The collection sits ON TOP of the map rather than replacing it, so
+  // "Show" on a card can hand a node back to the map underneath.
+  const [collectionOpen, setCollectionOpen] = useState(false);
+  const [mapFocusNode, setMapFocusNode] = useState<string | null>(null);
   const [storyNode, setStoryNode] = useState<StoryNode | null>(null);
   const [storyResult, setStoryResult] = useState<{ node: StoryNode; won: string[]; captured: number } | null>(null);
   // Deck selection = a premade or custom deck (the old two-core pairing is gone).
@@ -1795,12 +1800,23 @@ export function App() {
         />
       )}
 
-      {storyOpen && !started && (
+      {storyOpen && !started && collectionOpen && (
+        <StoryCollection
+          save={story}
+          onSave={(next) => { setStory(next); saveStory(next); }}
+          onClose={() => setCollectionOpen(false)}
+          onGoToNode={(id) => { setMapFocusNode(id); setCollectionOpen(false); }}
+        />
+      )}
+
+      {storyOpen && !started && !collectionOpen && (
         <StoryMap
           region={REGIONS[0]}
           save={story}
           onClose={() => setStoryOpen(false)}
-          onOpenCollection={() => setBuilderOpen(true)}
+          onOpenCollection={() => setCollectionOpen(true)}
+          focusNodeId={mapFocusNode}
+          onFocusHandled={() => setMapFocusNode(null)}
           onFight={(node) => {
             // The story deck fights the node's roster. Adds are spawned by the
             // roster's own cards, so they are never dealt into the enemy deck --

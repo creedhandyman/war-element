@@ -6,7 +6,7 @@
  *  `requires` list rather than a separate edge table — one source of truth, and
  *  a node can never render an edge it doesn't actually gate on.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getDef } from "../data/cards";
 import {
   BLIGHT_MAX, blightAddsFor, blightLevel, blightNodeFor, deckCapFor, isBlightNode,
@@ -31,9 +31,21 @@ export function StoryMap(props: {
   onFight: (node: StoryNode) => void;
   onClose: () => void;
   onOpenCollection: () => void;
+  /** A node the collection asked us to show. Consumed once, then cleared by the
+   *  parent — otherwise it would re-select on every later render and the player
+   *  could never click away from it. */
+  focusNodeId?: string | null;
+  onFocusHandled?: () => void;
 }) {
   const { region, save } = props;
   const [selId, setSelId] = useState<string | null>(null);
+
+  const { focusNodeId, onFocusHandled } = props;
+  useEffect(() => {
+    if (!focusNodeId) return;
+    setSelId(focusNodeId);
+    onFocusHandled?.();
+  }, [focusNodeId, onFocusHandled]);
 
   // The Blight Node is generated, not authored — it exists only while the region
   // sits at the cap, so it is folded in here rather than living in the data.

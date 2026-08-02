@@ -8,7 +8,8 @@ import { CARDS, TOKENS, getDef } from "../../data/cards";
 import {
   ALL_NODES, BLIGHT_ADDS, BLIGHT_MAX, CAP_LADDER, OVERFLOW_RATE, REGIONS, STARTER_DECK,
   applyClear, baseRateFor, blightAddsFor, blightLevel, canBlight, deckCapFor, isOpen, isOverflow,
-  isRegionCleared, newSave, nodeById, recruitChance, recruitablePool, rollRecruits,
+  PLACED_CARDS, bestSource, isRegionCleared, newSave, nodeById, recruitChance,
+  recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
 } from "../../data/story";
 
@@ -337,5 +338,58 @@ describe("story: the Blight", () => {
     const s = cleared({ blight: { leaf: 2 } });
     const adds = blightAddsFor(s, leafRegion, nodeById("L8")!);
     for (const id of adds) expect(recruitablePool(nodeById("L8")!)).not.toContain(id);
+  });
+});
+
+describe("story: where do I get this card", () => {
+  it("points every placed card at a node that really lists it", () => {
+    // The collection's whole promise is that "found at L7" is actionable. This
+    // inverts the placement data, so a node move must never leave it stale.
+    for (const id of PLACED_CARDS) {
+      const src = sourcesOf(id);
+      expect(src.length, `${id} is placed but has no source`).toBeGreaterThan(0);
+      for (const s of src)
+        expect([...s.node.roster, ...(s.node.overflow ?? [])]).toContain(id);
+    }
+  });
+
+  it("lists a card's home node before any border that merely bleeds it", () => {
+    // "Where do I farm this" is never the half-odds border node when a full-odds
+    // home exists, so the home has to sort first.
+    for (const id of PLACED_CARDS) {
+      const src = sourcesOf(id);
+      const firstOverflow = src.findIndex((s) => s.overflow);
+      if (firstOverflow === -1) continue;
+      expect(src.slice(firstOverflow).every((s) => s.overflow), id).toBe(true);
+    }
+  });
+
+  it("counts cards, not placements — an overflow copy can't inflate the total", () => {
+    expect(new Set(PLACED_CARDS).size).toBe(PLACED_CARDS.length);
+    const overflowed = ALL_NODES.flatMap((n) => n.overflow ?? []);
+    expect(overflowed.length).toBeGreaterThan(0); // guard: the check means nothing at zero
+    for (const id of overflowed) expect(PLACED_CARDS.filter((x) => x === id)).toHaveLength(1);
+  });
+
+  it("offers no source until a node is actually reachable", () => {
+    const fresh = newSave();
+    // L8's Nightshade is real and placed, but deep in the region.
+    expect(sourcesOf("leaf_nightshade").length).toBeGreaterThan(0);
+    expect(bestSource(fresh, "leaf_nightshade")).toBeNull();
+    // L1 is open from the start.
+    expect(bestSource(fresh, "leaf_greegon")?.node.id).toBe("L1");
+  });
+
+  it("recommends the best odds when a card is reachable two ways", () => {
+    // Misty's LEAF border node is half-odds; pity there still must not beat a
+    // hypothetical better source. With only the border open, it is the answer.
+    const s: StorySave = { ...newSave(), cleared: ["L1", "L2", "L9", "L10"] };
+    expect(bestSource(s, "aqua_misty")?.node.id).toBe("L7");
+    expect(bestSource(s, "aqua_misty")?.overflow).toBe(true);
+  });
+
+  it("says nothing rather than guessing for an unplaced card", () => {
+    expect(sourcesOf("dusk_reaper")).toEqual([]);   // DUSK region isn't built yet
+    expect(bestSource(newSave(), "dusk_reaper")).toBeNull();
   });
 });
