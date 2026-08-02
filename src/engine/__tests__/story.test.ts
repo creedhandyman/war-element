@@ -88,6 +88,18 @@ describe("story: the deck cap ladder", () => {
     expect(new Set(STARTER_DECK.map((id) => getDef(id).cardClass)).size).toBe(6);
   });
 
+  it("no node is dead on arrival — every one can recruit something at the start", () => {
+    // The starter deck is 12 of LEAF's 16 Rares, so an early Rare node built
+    // from cheap cards can trivially end up 100% already-owned. L1 and L2 both
+    // shipped that way: the campaign's first two fights could not pay out, while
+    // the design promised a guaranteed recruit on the very first padlock.
+    const owned = new Set(STARTER_DECK);
+    const dead = leaf.nodes
+      .filter((n) => n.roster.every((id) => owned.has(id)))
+      .map((n) => `${n.id} ${n.name}`);
+    expect(dead).toEqual([]);
+  });
+
   it("every starter card is findable again on a LEAF node", () => {
     const placed = new Set(leaf.nodes.flatMap((n) => n.roster));
     for (const id of STARTER_DECK) expect(placed.has(id), id).toBe(true);
