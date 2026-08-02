@@ -25,8 +25,8 @@ export function StoryResult(props: {
         <h1>{isGate(node) ? "Border crossed" : `${node.name} cleared`}</h1>
         {isGate(node) ? (
           <p>
-            The patrol is broken. <b>{(node.opens ?? "").toUpperCase()}</b> is open,
-            and this gate stays open behind you.
+            The patrol is broken. <b>{(node.opens ?? []).join(" and ").toUpperCase()}</b> is
+            open, and this gate stays open behind you.
           </p>
         ) : (
         <p>

@@ -697,11 +697,25 @@ describe("story: border gates (7)", () => {
     }
   });
 
-  it("opens a region that actually names it", () => {
+  it("opens regions that actually name it", () => {
+    // `opens` is a list because one gate can open several — Gate E is the Gray
+    // Continent ports, and GALE and BOLT both hang off it.
     for (const g of gates) {
-      const target = REGIONS.find((r) => r.id === g.opens)!;
-      expect(target, `${g.id} opens nothing`).toBeTruthy();
-      expect(target.requires, `${target.id} does not accept ${g.id}`).toContain(g.id);
+      expect(g.opens?.length, `${g.id} opens nothing`).toBeGreaterThan(0);
+      for (const id of g.opens!) {
+        const target = REGIONS.find((r) => r.id === id)!;
+        expect(target, `${g.id} opens unknown region ${id}`).toBeTruthy();
+        expect(target.requires, `${id} does not accept ${g.id}`).toContain(g.id);
+      }
+    }
+  });
+
+  it("leaves no region unreachable", () => {
+    // The mirror of the above: a region whose gates nobody opens is dead content.
+    for (const r of REGIONS) {
+      if (!r.requires?.length) continue;              // LEAF is open from the start
+      for (const gid of r.requires)
+        expect(nodeById(gid)?.opens, `${gid} does not claim to open ${r.id}`).toContain(r.id);
     }
   });
 

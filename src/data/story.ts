@@ -42,8 +42,10 @@ export interface StoryNode {
   required?: boolean;
   /** Gate nodes only: the composition this border demands. */
   demand?: GateDemand;
-  /** Gate nodes only: the region id this gate opens, for the map's copy. */
-  opens?: string;
+  /** Gate nodes only: the region ids this gate opens, for the map's copy. A
+   *  list because one gate can open several — Gate E is the Gray Continent
+   *  ports, and everything past it is Act IV. */
+  opens?: string[];
   /** Board size for THIS node, overriding the region's. Lets a region run its
    *  Skirmishes small and its Landmarks/Thrones large — but see
    *  `boardsLegalFor`: deck size and board size are locked together by format,
@@ -153,12 +155,12 @@ const LEAF: StoryRegion = {
     // its squad is a mixed border patrol of BOTH elements, and putting real
     // cards in a recruitable roster would place them a second time.
     { id: "GA", name: "Gate A: Summer's Southern Burn", kind: "gate", at: { x: 63, y: 94 },
-      requires: ["L14"], roster: [], opens: "pyro",
+      requires: ["L14"], roster: [], opens: ["pyro"],
       adds: ["leaf_gecko", "leaf_dartfrog", "pyro_staph", "pyro_sparky", "pyro_florence", "pyro_ingit"],
       demand: { kind: "attack", value: "Ranged", count: 3 },
       note: "The open road south. The burn punishes anything that has to close distance." },
     { id: "GB", name: "Gate B: Eastleaf Port", kind: "gate", at: { x: 93, y: 30 },
-      requires: ["L14"], roster: [], opens: "aqua",
+      requires: ["L14"], roster: [], opens: ["aqua"],
       adds: ["leaf_hunter", "leaf_walking_tree", "aqua_misty", "aqua_buccaneers", "aqua_piranha", "aqua_blub"],
       demand: { kind: "class", value: "Support", count: 2 },
       note: "The sea road east. A long crossing — bring something that can keep a crew alive." },
@@ -232,7 +234,7 @@ const PYRO: StoryRegion = {
     // Gate C, PYRO side. Its twin sits on AQUA's map, so switching routes never
     // means walking back through LEAF.
     { id: "GC", name: "Gate C: Sunfall Harbor", kind: "gate", at: { x: 53, y: 94 },
-      requires: ["P2"], roster: [], opens: "aqua",
+      requires: ["P2"], roster: [], opens: ["aqua"],
       adds: ["pyro_flamehound", "pyro_canister", "aqua_buccaneers", "aqua_bootlegger", "aqua_piranha", "aqua_blub"],
       demand: { kind: "class", value: "Tank", count: 3 },
       note: "Boarding actions in the pirate lanes. Bring bodies that can hold a deck." },
@@ -309,13 +311,13 @@ const AQUA: StoryRegion = {
     // AQUA's alone — §2 makes PYRO and AQUA mandatory before Act IV so the
     // player reaches the 5x5 board with a three-element pool.
     { id: "GE", name: "Gate E: Gray Continent Ports", kind: "gate", at: { x: 88, y: 20 },
-      requires: ["A13", "P13"], roster: [], opens: "gale",
+      requires: ["A13", "P13"], roster: [], opens: ["gale", "bolt"],
       adds: ["aqua_arctik", "aqua_harp", "gale_sirocco", "gale_megair", "gale_gastly", "gale_skyforce"],
       demand: { kind: "attack", value: "Ranged", count: 4 },
       note: "The airship lanes north. Everything past here is fought on the 5x5 board." },
     // Gate C, AQUA side — the same harbor from the other direction.
     { id: "GC2", name: "Gate C: Sunfall Harbor", kind: "gate", at: { x: 10, y: 72 },
-      requires: ["A5"], roster: [], opens: "pyro",
+      requires: ["A5"], roster: [], opens: ["pyro"],
       adds: ["aqua_buccaneers", "aqua_bootlegger", "pyro_flamehound", "pyro_canister", "pyro_firecrack", "pyro_taper"],
       demand: { kind: "class", value: "Tank", count: 3 },
       note: "The same harbor from the water. Sail east and PYRO's coast is yours without going back through LEAF." },
@@ -396,7 +398,76 @@ const GALE: StoryRegion = {
   ],
 };
 
-export const REGIONS: StoryRegion[] = [LEAF, PYRO, AQUA, GALE];
+
+// ── the BOLT slice ──────────────────────────────────────────────────────────
+// Act IV, the combo route, 5x5. ELECTRIFIED marks anything it touches and BOLT
+// cards hit status-carriers for +2, so the region teaches punishment chains:
+// apply, then capitalise. The most mechanically demanding of the three Gray
+// Continent regions and the one most likely to punish an unfocused deck.
+
+const BOLT: StoryRegion = {
+  id: "bolt",
+  name: "Bolt City — Tech Heart of the Continent",
+  element: "BOLT",
+  terrain: "Power Grid",
+  board: 5,
+  art: "/maps/bolt.webp",
+  artRatio: 1440 / 1080,
+  requires: ["GE"],
+  // The Blighted Margin: the art names it the southern industrial blight zone
+  // and even prints a contamination key for it.
+  blightAt: { x: 36, y: 90 },
+  nodes: [
+    { id: "B1", name: "Scrapyard Verge", kind: "skirmish", at: { x: 16, y: 30 },
+      requires: [], roster: ["bolt_junker", "bolt_zap", "bolt_twotales"], adds: [],
+      note: "Where the sea road from AQUA meets the sprawl." },
+    { id: "B2", name: "Drone Field", kind: "skirmish", at: { x: 27, y: 46 },
+      requires: ["B1"], roster: ["bolt_rodd", "bolt_stingray", "bolt_zipp"], adds: ["bolt_drone_tok"],
+      note: "Neon sprawl and strung cables. Zipp's Swarm Deploy makes the Drones." },
+    { id: "B3", name: "Substation Row", kind: "skirmish", at: { x: 34, y: 33 },
+      requires: ["B1"], roster: ["bolt_drshock", "bolt_electricel", "bolt_jolt"], adds: [] },
+    { id: "B4", name: "The Static Flats", kind: "skirmish", at: { x: 28, y: 12 },
+      requires: ["B3"], roster: ["bolt_ning", "bolt_scrapper", "bolt_staticcloud"],
+      adds: ["bolt_static_wisp_tok"],
+      note: "Fused glass and a lightning-scarred gateway. The north road to GALE runs through here." },
+    { id: "B5", name: "Conduit Marsh", kind: "skirmish", at: { x: 26, y: 63 },
+      requires: ["B2"], roster: ["bolt_buzz", "bolt_buzzard", "bolt_jellyfish"], adds: ["bolt_drone_tok"],
+      note: "The same Drone from a second source — Buzzard's Drone Sweep." },
+    { id: "B6", name: "Breaker Yard", kind: "warden", at: { x: 41, y: 41 },
+      requires: ["B3"], roster: ["bolt_lytning", "bolt_storm", "bolt_zagphu"], adds: [] },
+    { id: "B8", name: "Overload Junction", kind: "warden", at: { x: 63, y: 45 },
+      requires: ["B6"], roster: ["bolt_shoksa", "bolt_striik", "bolt_thundercat"], adds: [] },
+    { id: "B7", name: "Arc Industries Yards", kind: "warden", at: { x: 89, y: 55 },
+      requires: ["B8"], roster: ["bolt_static", "bolt_webster", "bolt_sentry"], adds: [],
+      note: "Cooling towers and conduit pylons. The ARC spine starts here — every one of them Epic or above." },
+    { id: "B9", name: "The Forge Grid", kind: "warden", at: { x: 79, y: 41 },
+      requires: ["B7"], roster: ["bolt_surge", "bolt_voltcher", "bolt_kore"],
+      adds: ["bolt_static_wisp_tok"] },
+    { id: "B10", name: "Forsaken Heights", kind: "warden", at: { x: 88, y: 21 },
+      requires: ["B9"], roster: ["bolt_general", "bolt_thunder", "bolt_volta"], adds: [],
+      note: "Iron lightning-rods drawing the storm. Volta's Grid Deployment spawns Rodd — a card you already own from the Drone Field." },
+    { id: "B11", name: "The Hive Array", kind: "landmark", at: { x: 72, y: 67 },
+      requires: ["B5", "B9"], roster: ["bolt_jack_arc", "bolt_keeper", "bolt_shock", "bolt_zoez"],
+      adds: ["bolt_beebot"],
+      note: "GearHollow's swarm. Keeper breeds a Beebot every round to a cap of 5 — solve the engine, not the board." },
+    { id: "B12", name: "Stormcaller's Spire", kind: "landmark", at: { x: 66, y: 18 },
+      requires: ["B4", "B10"], roster: ["bolt_gigavolt", "bolt_stormcaller", "bolt_voltogon"],
+      adds: ["bolt_static_wisp_tok"],
+      note: "By the airship docks. GigaVolt's Turret Mode pins the board with ELECTRIFIED, which turns every other BOLT card into a +2 threat." },
+    { id: "B13", name: "The Grid Vault", kind: "throne", at: { x: 43, y: 83 },
+      requires: ["B11"], roster: ["bolt_velvolt_knight"],
+      // Escorts: the Drone Field's own, farmable at B2.
+      adds: ["bolt_drone_tok", "bolt_zipp", "bolt_rodd"],
+      note: "Sealed below the core behind blast doors. Optional." },
+    { id: "B14", name: "City Power Core", kind: "throne", at: { x: 50, y: 31 },
+      requires: ["B11", "B12"], roster: ["bolt_elecdroid"],
+      // Escorts: the scrapyard where the region started, farmable at B1.
+      adds: ["bolt_beebot", "bolt_zap", "bolt_junker"], required: true,
+      note: "The Arc Lightning Conduit itself. Required — clearing it opens the mountain pass to BORE." },
+  ],
+};
+
+export const REGIONS: StoryRegion[] = [LEAF, PYRO, AQUA, GALE, BOLT];
 
 /** A region is reachable once every node gating it is cleared. */
 /** A region opens when ANY of its gates has been cleared — not all of them.

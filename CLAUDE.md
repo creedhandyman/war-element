@@ -267,8 +267,9 @@ engine runtime and no React, so it stays testable headlessly
   deck length **exactly** at the cap, plus a composition demand. Gates take no
   Blight (a checkpoint is not territory) and `buildFormation` falls back to the
   patrol for its duplicate fill, since a gate has no roster to draw on.
-- **GALE is Act IV** — the first region on the **5x5 board**, cap 22, reached
-  through Gate E on AQUA's map. Gate E waits on **both** Green Thrones (P13 AND
+- **GALE and BOLT are Act IV** — the **5x5 board**, cap 22, both reached through
+  Gate E on AQUA's map (§2: GALE, BOLT and BORE in any order, so one gate opens
+  them all — `gate.opens` is a LIST for exactly this). Gate E waits on **both** Green Thrones (P13 AND
   A13), which is §2's revision: arriving on 25 slots with only two elements can't
   field a functional 22-card list. That made `CAP_LADDER.unlockedBy` accept an
   ARRAY meaning ALL-of. Gate E is also the first gate to require a node in

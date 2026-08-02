@@ -299,7 +299,7 @@ function NodePanel(props: {
       {open && isGate(node) && (
         <p className="np-drops">
           A border patrol of both sides — nothing here joins you. Crossing opens{" "}
-          <b>{(node.opens ?? "").toUpperCase()}</b>, and the gate stays open behind you.
+          <b>{(node.opens ?? []).join(" and ").toUpperCase()}</b>, and the gate stays open behind you.
         </p>
       )}
       {open && !isGate(node) && (
