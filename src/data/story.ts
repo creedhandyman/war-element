@@ -472,6 +472,18 @@ const copyCap = (defId: string): number =>
  * Never trims: a roster card dropped to hit the target would be unrecruitable
  * that run, so a big Landmark is simply allowed to be big.
  */
+/** Opening deployment slots (§10.6). Symmetric at 4 for ordinary nodes — the
+ *  player faces four live threats with no ramp to hide behind, which is the
+ *  intended difficulty, not a handicap. Asymmetry is reserved as the BOSS lever:
+ *  a Throne fielding six against your four reads as a boss fight, whereas the
+ *  same thing on every Skirmish would just read as a broken game. */
+export const PLAYER_DEPLOY = 4;
+export function enemyDeployFor(node: StoryNode): number {
+  if (node.kind === "throne") return 6;
+  if (node.kind === "landmark") return 5;
+  return PLAYER_DEPLOY;
+}
+
 export function buildFormation(save: StorySave, region: StoryRegion, node: StoryNode): string[] {
   const uniques = recruitablePool(node);
   // Filler is non-recruitable by construction — tokens can't be decked and

@@ -62,6 +62,10 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
     }
   }
 
+  // Opening deployment is placement only — no spells, no captures, nothing to
+  // move yet. Out of slots or out of gold means done.
+  if (state.opening) return { type: "PASS", player };
+
   // 2. Cast a high-value spell (once per game each): a Cost-1 damage spell to
   //    secure a kill, or a Cost-4 wall over a row packed with opponents.
   const spell = findSpellCast(state, player);

@@ -1465,6 +1465,10 @@ export interface GameState {
   rngState: number; // seeded RNG cursor — all randomness flows through this
   round: number;
   phase: Phase;
+  /** Opening deployment (§10.6). Present only while it is RUNNING; the numbers
+   *  are how many more cards each side may place. Absent = ordinary round flow,
+   *  which is what every non-story battle uses. */
+  opening?: { P1: number; P2: number };
   /** Which players are human-controlled. ["P1"] = vs-AI (default); ["P1","P2"]
    *  = local hot-seat 2-player. The driver only auto-runs AI for players NOT
    *  in this list. */

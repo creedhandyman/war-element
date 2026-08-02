@@ -44,6 +44,8 @@ export function canSummon(
   const hand = state.players[player].hand.find((h) => h.handId === handId);
   if (!hand) return { ok: false, reason: "Card not in hand" };
   const def = getDef(hand.defId);
+  if (state.opening && state.opening[player] <= 0)
+    return { ok: false, reason: "No deployment slots left" };
   if (def.cost > state.players[player].gold)
     return { ok: false, reason: "Not enough Gold" };
   const row = homeRow(player, state.boardSize);

@@ -56,7 +56,8 @@ import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
 import { StoryResult } from "./StoryResult";
 import {
-  REGIONS, applyClear, buildFormation, deckCapFor, loadStory, recruitablePool,
+  PLAYER_DEPLOY, REGIONS, applyClear, buildFormation, deckCapFor, enemyDeployFor,
+  loadStory, recruitablePool,
   regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
 
@@ -311,7 +312,14 @@ export function App() {
     const actor = needsInput(game);
     // Online: it's "my turn" only when the actor is my own side.
     const mine = online ? actor === online.myId : true;
-    if (game.phase === "prep" && actor && mine)
+    if (game.opening && actor && mine)
+      // Deployment reuses the prep phase, so without this the player is told to
+      // "move one board card" during the one turn where nothing may move.
+      setHint(
+        `<b>Opening deployment.</b> Place up to <b>${game.opening[actor]}</b> more from ` +
+        `<b>${game.players[actor].gold}</b> gold — spend it or lose it. Nothing moves yet. Then Pass.`,
+      );
+    else if (game.phase === "prep" && actor && mine)
       setHint(
         `<b>${!online && twoPlayer ? `${actor} prep turn` : "Your prep turn"}.</b> Click a glowing hand card to summon (any number), move one board card, then Pass.`,
       );
@@ -1844,7 +1852,10 @@ export function App() {
             // A formation, not a deck: duplicates fill it out to the tier's
             // target so a 3-card roster still fields a full board (§10.7).
             const squad = buildFormation(story, home, node);
-            setGame(createInitialState(newSeed(), deck, squad, ["P1"], [], [], home.board));
+            // Opening deployment is STORY-ONLY for now: skirmish, online and
+            // Void Tower keep the ordinary summon ramp untouched.
+            setGame(createInitialState(newSeed(), deck, squad, ["P1"], [], [], home.board,
+              { P1: PLAYER_DEPLOY, P2: enemyDeployFor(node) }));
             setStoryNode(node);
             setStoryOpen(false);
             setViewSide("P1");

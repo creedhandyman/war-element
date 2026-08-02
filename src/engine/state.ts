@@ -32,6 +32,8 @@ export function createInitialState(
   p1Spells?: string[],
   p2Spells?: string[],
   boardSize: number = BOARD_SIZE,
+  /** Opening deployment slots per side (§10.6). Omit for the ordinary ramp. */
+  opening?: { P1: number; P2: number },
 ): GameState {
   const state: GameState = {
     rngState: seed | 0,
@@ -47,6 +49,7 @@ export function createInitialState(
     },
     cards: {},
     boardSize,
+    opening,
     slots: Array.from({ length: boardSize }, () =>
       Array.from({ length: boardSize }, () => ({ capturedBy: null })),
     ),

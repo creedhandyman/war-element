@@ -354,6 +354,24 @@ purging them would only reach ~120MB in exchange for rewriting every SHA.
   unrecruitable that run. The load-bearing guardrail is that recruitment rolls
   once per UNIQUE card however many copies are on the board: duplicates are a
   difficulty knob, not a loot knob, and a test pins it.
+- **Opening deployment (§10.6)** — **STORY-ONLY.** Skirmish, online and Void
+  Tower keep the ordinary summon ramp; `createInitialState`'s `opening` param is
+  what turns it on, and its absence is the old behaviour. Implemented as a prep
+  turn at round 0 rather than a new phase, so every summon rule, intent and bit
+  of UI works unchanged — the differences are the budget, a slot cap, and that
+  `movedThisTurn` stays true so nothing repositions yet. Three traps, all
+  test-pinned:
+  1. **Unspent budget must be zeroed** before round 1. `doResourcePhase` carries
+     gold (capped 10) and *then* adds income, so leftovers would silently make
+     round one an 11-gold turn.
+  2. **A summon lands in the home row, which is exactly `boardSize` wide.** The
+     §10.6 boss lever (Landmark 5 / Throne 6) is therefore impossible on the 4x4
+     of Acts I-III. Slots are clamped to the board but the BUDGET is not, which
+     is the doc's own fallback: a Throne fields four *heavier* cards on 4x4 and
+     extra bodies once the board expands.
+  3. **Gold scales with slots** (`openingGoldFor`, 4->10, 5->13, 6->15) and hands
+     are topped up to the slot count. At a flat 10 gold and a 4-card hand a side
+     spends out at four cards, so extra slots alone bought nothing.
 - **Save** is one localStorage key, `we_story_v1`, sanitized on load (unknown
   card/node ids are dropped). To exercise a mid-campaign state in the browser,
   seed it directly rather than playing forward.
