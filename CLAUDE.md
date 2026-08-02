@@ -294,6 +294,13 @@ engine runtime and no React, so it stays testable headlessly
   unbuilt region says "Not in the world yet" rather than appearing as a to-do.
   It opens OVER the map, so "Show" on a card hands a node id back via
   `focusNodeId` (consumed once, then cleared, or it would re-select forever).
+  On phones the deck rail stacks BELOW the grid, where an always-open rail took
+  more height than the cards it supports — it collapses to a sticky bottom bar
+  there and stays open on desktop. Selecting a card force-opens it, since the
+  card detail lives inside that collapsible body. Note `.col-wrap .story-body`
+  is `overflow: hidden` for the desktop two-column scroll but MUST be `auto` on
+  phones: nested scroll containers starved the grid to a 371px window holding
+  9,945px of cards.
 - **Save** is one localStorage key, `we_story_v1`, sanitized on load (unknown
   card/node ids are dropped). To exercise a mid-campaign state in the browser,
   seed it directly rather than playing forward.

@@ -38,6 +38,12 @@ export function StoryCollection(props: {
   const [el, setEl] = useState<Element | "ALL">("ALL");
   const [cls, setCls] = useState<CardClass | "ALL">("ALL");
   const [detailId, setDetailId] = useState<string | null>(null);
+  // On a phone the deck rail stacks BELOW the grid and, left open, eats more
+  // height than the cards it is meant to support. It collapses to a sticky bar
+  // there and stays open on desktop, where the rail is a side column and costs
+  // the grid nothing.
+  const phone = typeof window !== "undefined" && (window.matchMedia?.("(max-width: 720px)").matches ?? false);
+  const [deckOpen, setDeckOpen] = useState(!phone);
 
   const owned = useMemo(() => new Set(save.collection), [save.collection]);
   const inDeck = useMemo(() => new Set(save.deck), [save.deck]);
@@ -73,6 +79,10 @@ export function StoryCollection(props: {
       : save.deck.length >= cap ? save.deck : [...save.deck, id];
     props.onSave({ ...save, deck: next });
   };
+
+  // Picking a card has to reveal its detail, and on a phone that detail lives
+  // inside the collapsed rail — so selection opens it.
+  const pick = (id: string) => { setDetailId(id); setDeckOpen(true); };
 
   const detail = detailId ? CARDS.find((d) => d.id === detailId) ?? null : null;
   const deckFull = save.deck.length >= cap;
@@ -149,8 +159,8 @@ export function StoryCollection(props: {
                     role="button"
                     tabIndex={0}
                     title={have ? d.name : `${d.name} — not yet recruited`}
-                    onClick={() => setDetailId(d.id)}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetailId(d.id); } }}
+                    onClick={() => pick(d.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(d.id); } }}
                   >
                     <img className="card-art" src={`/cards/${d.art ?? d.id}.webp`} alt=""
                       onError={(e) => { e.currentTarget.style.display = "none"; }} />
@@ -196,8 +206,16 @@ export function StoryCollection(props: {
           )}
         </div>
 
-        <aside className="story-side col-side">
-          <div className="np-label">Your deck — {save.deck.length}/{cap}</div>
+        <aside className={`story-side col-side ${deckOpen ? "open" : "shut"}`}>
+          <button
+            className="col-decktoggle"
+            aria-expanded={deckOpen}
+            onClick={() => setDeckOpen((o) => !o)}
+          >
+            <span className="np-label">Your deck — {save.deck.length}/{cap}</span>
+            <span className="cdt-chev" aria-hidden="true">{deckOpen ? "▾" : "▴"}</span>
+          </button>
+          <div className="col-deckbody">
           {save.deck.length === 0 ? (
             <p className="story-hint">
               Empty. Add cards from the left; you can carry {cap} for now — clearing
@@ -237,6 +255,7 @@ export function StoryCollection(props: {
                 onGoToNode={props.onGoToNode} />
             </div>
           )}
+          </div>
         </aside>
       </div>
     </div>
