@@ -344,6 +344,16 @@ Together: **1082MB -> 160MB, with no history rewriting.** Reach for `lfs prune`
 and `gc` before ever considering a rewrite; the big binaries in history (50MB of
 music, 82MB of superseded card WebP) are worth far less than they look, and
 purging them would only reach ~120MB in exchange for rewriting every SHA.
+- **Formations (§10.7)**: an enemy squad is a FORMATION, not a deck — it may
+  field several copies of a card, so a 3-card roster still fills a board at any
+  tier. `buildFormation` fills to `formationSize(deckCap)` in the doc's order:
+  every unique first (four identical cards reads as a bug, not a boss), then
+  tokens and Blight bodies, then duplicate Rares cheapest-first, then Epics.
+  Caps are Rare 3 / Epic 2 / Legendary 1 / Mythic 1, so a boss is never
+  duplicated. It never TRIMS — a roster card dropped to hit the target would be
+  unrecruitable that run. The load-bearing guardrail is that recruitment rolls
+  once per UNIQUE card however many copies are on the board: duplicates are a
+  difficulty knob, not a loot knob, and a test pins it.
 - **Save** is one localStorage key, `we_story_v1`, sanitized on load (unknown
   card/node ids are dropped). To exercise a mid-campaign state in the browser,
   seed it directly rather than playing forward.

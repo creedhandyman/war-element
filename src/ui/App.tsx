@@ -56,7 +56,7 @@ import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
 import { StoryResult } from "./StoryResult";
 import {
-  REGIONS, applyClear, blightAddsFor, deckCapFor, loadStory, recruitablePool,
+  REGIONS, applyClear, buildFormation, deckCapFor, loadStory, recruitablePool,
   regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
 
@@ -1841,7 +1841,9 @@ export function App() {
             // The node's own region decides the board and the Blight, not
             // whichever map happens to be on screen.
             const home = regionOfNode(node.id) ?? region;
-            const squad = [...node.roster, ...blightAddsFor(story, home, node)];
+            // A formation, not a deck: duplicates fill it out to the tier's
+            // target so a 3-card roster still fields a full board (§10.7).
+            const squad = buildFormation(story, home, node);
             setGame(createInitialState(newSeed(), deck, squad, ["P1"], [], [], home.board));
             setStoryNode(node);
             setStoryOpen(false);

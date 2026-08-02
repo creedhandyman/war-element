@@ -8,7 +8,8 @@ import { CARDS, TOKENS, getDef } from "../../data/cards";
 import {
   ALL_NODES, BLIGHT_ADDS, BLIGHT_MAX, CAP_LADDER, OVERFLOW_RATE, REGIONS, STARTER_DECK,
   applyClear, baseRateFor, blightAddsFor, blightLevel, canBlight, deckCapFor, isOpen, isOverflow,
-  PLACED_CARDS, STARTER_DECK as STARTER, bestSource, isRegionCleared, isRegionOpen,
+  DUPLICATE_CAP, PLACED_CARDS, STARTER_DECK as STARTER, bestSource, buildFormation,
+  formationSize, isRegionCleared, isRegionOpen,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
 } from "../../data/story";
@@ -516,5 +517,77 @@ describe("story: every region holds together", () => {
     const aqua = REGIONS.find((x) => x.id === "aqua")!;
     expect(pyro.requires).toEqual(aqua.requires);
     expect(deckCapFor(["L14", "P13"])).toBe(deckCapFor(["L14", "A13"]));
+  });
+});
+
+describe("story: formations (10.7)", () => {
+  const leafRegion = REGIONS.find((r) => r.id === "leaf")!;
+  const count = (a: string[], id: string) => a.filter((x) => x === id).length;
+
+  it("fills a 3-card roster up to the tier target", () => {
+    // The whole point: a node's pool never changes, only how many bodies it
+    // puts up, so a Skirmish still fields a board at every deck tier.
+    const s = newSave();
+    const f = buildFormation(s, leafRegion, nodeById("L1")!);
+    expect(f.length).toBe(formationSize(12));
+    expect(f.length).toBeGreaterThan(nodeById("L1")!.roster.length);
+  });
+
+  it("grows with the deck tier rather than changing the card pool", () => {
+    const early = buildFormation(newSave(), leafRegion, nodeById("L1")!);
+    const late = buildFormation({ ...newSave(), cleared: ["L14", "P13"] }, leafRegion, nodeById("L1")!);
+    expect(late.length).toBeGreaterThan(early.length);
+    expect(new Set(late)).toEqual(new Set(early)); // same cards, more bodies
+  });
+
+  it("puts every unique card in before any duplicate", () => {
+    // Four identical cards reads as a bug, not a boss.
+    const f = buildFormation(newSave(), leafRegion, nodeById("L1")!);
+    const uniques = nodeById("L1")!.roster;
+    const firstDupeAt = f.findIndex((id, i) => f.indexOf(id) !== i);
+    expect(f.slice(0, uniques.length).sort()).toEqual([...uniques].sort());
+    expect(firstDupeAt).toBeGreaterThanOrEqual(uniques.length);
+  });
+
+  it("respects the per-rarity copy cap everywhere", () => {
+    for (const r of REGIONS)
+      for (const n of r.nodes)
+        for (const cap of [12, 15, 22, 28]) {
+          const save = { ...newSave(), cleared: cap >= 18 ? ["L14", "P13"] : cap >= 15 ? ["L14"] : [] };
+          const f = buildFormation(save, r, n);
+          for (const id of new Set(f)) {
+            const limit = DUPLICATE_CAP[getDef(id).rarity ?? ""] ?? 1;
+            expect(count(f, id), `${n.id} fields ${count(f, id)}x ${id}`).toBeLessThanOrEqual(limit);
+          }
+        }
+  });
+
+  it("never duplicates a boss", () => {
+    for (const r of REGIONS)
+      for (const n of r.nodes.filter((x) => x.kind === "throne")) {
+        const f = buildFormation({ ...newSave(), cleared: ["L14", "P13"] }, r, n);
+        for (const id of n.roster) expect(count(f, id), `${n.id}:${id}`).toBe(1);
+      }
+  });
+
+  it("never drops a roster card to hit the target", () => {
+    // A trimmed roster card would be unrecruitable that run.
+    for (const r of REGIONS)
+      for (const n of r.nodes) {
+        const f = buildFormation(newSave(), r, n);
+        for (const id of recruitablePool(n)) expect(f, `${n.id} dropped ${id}`).toContain(id);
+      }
+  });
+
+  it("rolls ONCE per unique card however many copies are on the board", () => {
+    // The load-bearing guardrail: duplicates are a difficulty knob, not a loot
+    // knob. If they ever reached the roll, drop rates and pity would both lie.
+    const s: StorySave = { ...newSave(), collection: [], deck: [] };
+    const node = nodeById("L1")!;
+    const f = buildFormation(s, leafRegion, node);
+    expect(f.length).toBeGreaterThan(node.roster.length); // duplicates present
+    const r = rollRecruits(s, node, 99, () => 0);         // every roll succeeds
+    expect(r.won.sort()).toEqual([...node.roster].sort());
+    expect(new Set(r.won).size).toBe(r.won.length);
   });
 });

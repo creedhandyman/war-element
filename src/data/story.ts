@@ -431,6 +431,79 @@ export const isOverflow = (node: StoryNode, defId: string): boolean =>
 /** Everything a node can actually give you: its own roster plus any bleed. */
 export const recruitablePool = (node: StoryNode): string[] => [...node.roster, ...(node.overflow ?? [])];
 
+// ── formations (§10.7) ──────────────────────────────────────────────────────
+// An enemy squad is a FORMATION, not a deck: it may field several copies of the
+// same card. The player's collection stays one-card-one-copy; the AI's board
+// does not. This is what lets a 3-card roster still fill a board at any tier —
+// the node's card pool never changes, only how many bodies it puts up, so you
+// always know exactly what you are farming for.
+
+/** Copies of one card allowed in a formation. Bosses stay unique: two Pyrogons
+ *  is not a difficulty setting. */
+export const DUPLICATE_CAP: Record<string, number> = {
+  rare: 3, epic: 2, legendary: 1, mythic: 1,
+};
+export const DUPLICATE_CAP_DEFAULT = 1;
+
+/** Bodies a formation aims for, by the player's current deck tier (deployed +
+ *  reserve from §10.7's table). */
+export function formationSize(cap: number): number {
+  if (cap >= 28) return 15; // Act V     — 6 deployed + 8-9 reserve
+  if (cap >= 22) return 12; // Act IV    — 5 + 6-7
+  if (cap >= 15) return 9;  // Act II-III — 4 + 4-5
+  return 7;                 // Act I     — 4 + 2-3
+}
+
+const copyCap = (defId: string): number =>
+  DUPLICATE_CAP[getDef(defId).rarity ?? ""] ?? DUPLICATE_CAP_DEFAULT;
+
+/**
+ * The enemy squad for a node, filled to the tier's target.
+ *
+ * Fill order is §10.7's, and the first step is load-bearing: every unique card
+ * goes in before any duplicate, so the node still looks like itself. Four
+ * identical cards reads as a bug, not a boss.
+ *
+ *   1. every unique card in the node's pool (roster + any overflow)
+ *   2. filler — the node's tokens, plus any Blight bodies
+ *   3. duplicate Rares, cheapest first
+ *   4. duplicate Epics
+ *
+ * Never trims: a roster card dropped to hit the target would be unrecruitable
+ * that run, so a big Landmark is simply allowed to be big.
+ */
+export function buildFormation(save: StorySave, region: StoryRegion, node: StoryNode): string[] {
+  const uniques = recruitablePool(node);
+  // Filler is non-recruitable by construction — tokens can't be decked and
+  // Blight adds only drop from a Blight Node.
+  const out = [...uniques, ...node.adds, ...blightAddsFor(save, region, node)];
+
+  const copies = new Map<string, number>();
+  for (const id of out) copies.set(id, (copies.get(id) ?? 0) + 1);
+
+  const target = formationSize(deckCapFor(save.cleared));
+  const byCost = (a: string, b: string) => getDef(a).cost - getDef(b).cost;
+  const rares = uniques.filter((id) => getDef(id).rarity === "rare").sort(byCost);
+  const epics = uniques.filter((id) => getDef(id).rarity === "epic").sort(byCost);
+
+  // Round-robin inside each tier, so nothing reaches three copies while another
+  // card of the same tier is still on one.
+  for (const tier of [rares, epics]) {
+    for (let guard = 0; guard < 8 && out.length < target; guard++) {
+      let placed = false;
+      for (const id of tier) {
+        if (out.length >= target) break;
+        if ((copies.get(id) ?? 0) >= copyCap(id)) continue;
+        out.push(id);
+        copies.set(id, (copies.get(id) ?? 0) + 1);
+        placed = true;
+      }
+      if (!placed) break; // every card in this tier is capped
+    }
+  }
+  return out;
+}
+
 // ── save state ──────────────────────────────────────────────────────────────
 
 export interface StorySave {
