@@ -305,6 +305,14 @@ const AQUA: StoryRegion = {
       // Escorts: the deep's own, farmable at A4.
       adds: ["aqua_krakler", "aqua_spinefin"],
       note: "Optional, and the hardest fight in Act II — deliberately harder than either required Throne." },
+    // Gate E: the Gray Continent ports. Gated on BOTH Green Thrones rather than
+    // AQUA's alone — §2 makes PYRO and AQUA mandatory before Act IV so the
+    // player reaches the 5x5 board with a three-element pool.
+    { id: "GE", name: "Gate E: Gray Continent Ports", kind: "gate", at: { x: 88, y: 20 },
+      requires: ["A13", "P13"], roster: [], opens: "gale",
+      adds: ["aqua_arctik", "aqua_harp", "gale_sirocco", "gale_megair", "gale_gastly", "gale_skyforce"],
+      demand: { kind: "attack", value: "Ranged", count: 4 },
+      note: "The airship lanes north. Everything past here is fought on the 5x5 board." },
     // Gate C, AQUA side — the same harbor from the other direction.
     { id: "GC2", name: "Gate C: Sunfall Harbor", kind: "gate", at: { x: 10, y: 72 },
       requires: ["A5"], roster: [], opens: "pyro",
@@ -314,7 +322,81 @@ const AQUA: StoryRegion = {
   ],
 };
 
-export const REGIONS: StoryRegion[] = [LEAF, PYRO, AQUA];
+
+// ── the GALE slice ──────────────────────────────────────────────────────────
+// Act IV, the sky route, and the first region on the **5x5 board** — the
+// campaign's biggest structural break. Highest average SP in the game, and
+// Jetstream compounds it, so this is where initiative decides exchanges before
+// damage is ever compared.
+//
+// Long edges are honest here for the same reason they are in AQUA: the art is
+// open plains and circling raptors, and the region travels by wind. The
+// Roosts really are that far south-east of the Amberleaf.
+
+const GALE: StoryRegion = {
+  id: "gale",
+  name: "Gale — The Gray Continent North",
+  element: "GALE",
+  terrain: "Jetstream",
+  board: 5,
+  art: "/maps/gale.webp",
+  artRatio: 1536 / 1024,
+  requires: ["GE"],
+  // The Blighted Plains: the art paints DUSK's violet across the whole southern
+  // margin, and names it "Spawn of the Storm".
+  blightAt: { x: 46, y: 85 },
+  nodes: [
+    { id: "G1", name: "Windward Steps", kind: "skirmish", at: { x: 14, y: 33 },
+      requires: [], roster: ["gale_gastly", "gale_megair", "gale_sirocco"], adds: [],
+      note: "Where the airships put down. The sea road back to AQUA is west." },
+    { id: "G2", name: "Amberleaf Groves", kind: "skirmish", at: { x: 26, y: 46 },
+      requires: ["G1"], roster: ["gale_skyforce", "gale_swillow", "gale_syt_bird"], adds: [],
+      note: "Orangewood bent flat by the wind." },
+    { id: "G3", name: "The Rolling Flats", kind: "skirmish", at: { x: 40, y: 56 },
+      requires: ["G2"], roster: ["gale_breeze", "gale_duster", "gale_tumbleweed"], adds: [] },
+    { id: "G5", name: "Dark Wind Township", kind: "skirmish", at: { x: 17, y: 79 },
+      requires: ["G2"], roster: ["gale_luna", "gale_wailverine", "gale_windsor"], adds: [],
+      note: "Under perpetual cloud. The Wolves start here — Luna is the first of the pack." },
+    { id: "G4", name: "The Raptor Roosts", kind: "skirmish", at: { x: 89, y: 79 },
+      requires: ["G3"], roster: ["gale_toxhawk", "gale_hawk", "gale_hawko"], adds: ["gale_toxhawk_tok"],
+      note: "Cliffside aeries. Fight the birds here before you meet what raises them." },
+    { id: "G6", name: "Northern Wind Villages", kind: "warden", at: { x: 38, y: 22 },
+      requires: ["G3"], roster: ["gale_vvulture", "gale_stormhide_bison", "gale_whirlwolf"], adds: [] },
+    { id: "G8", name: "Gale Village", kind: "warden", at: { x: 58, y: 35 },
+      requires: ["G3"], roster: ["gale_klouy", "gale_vaga", "gale_fano"], adds: [],
+      note: "The hardy people of the Orange Plains, and the wandering twisters they live with." },
+    { id: "G7", name: "Skyforge Aerie", kind: "warden", at: { x: 91, y: 62 },
+      requires: ["G4"], roster: ["gale_angale", "gale_buf", "gale_sway"], adds: ["gale_ollie"],
+      note: "Sway's Birds of Prey spawns Ollie, so the filler here is diegetic rather than padding." },
+    { id: "G9", name: "The Shrike Line", kind: "warden", at: { x: 72, y: 58 },
+      requires: ["G7", "G8"], roster: ["gale_guan", "gale_masala", "gale_rayfen"],
+      adds: ["gale_toxhawk_tok"],
+      note: "Mesala's Raptor Assault raises the same bird you fought at the Roosts." },
+    { id: "G10", name: "Stormwall Approach", kind: "warden", at: { x: 73, y: 27 },
+      requires: ["G6"], roster: ["gale_omega", "gale_wista", "gale_wolfbane"], adds: [],
+      note: "Omega and Luna were written as a pair — this is where the pack closes." },
+    { id: "G11", name: "Stormwatch Cliffs: The Totem", kind: "landmark", at: { x: 84, y: 52 },
+      requires: ["G9", "G10"], roster: ["gale_eagon", "gale_tempest", "gale_totem"],
+      adds: ["gale_totem_pole"],
+      note: "The wind elemental shrine. The only node in the game whose filler is a Legendary-rarity token." },
+    { id: "G12", name: "The Eye of the Storm", kind: "landmark", at: { x: 60, y: 80 },
+      requires: ["G5", "G9"],
+      roster: ["gale_bluejay", "gale_galeon", "gale_klipso", "gale_kloud"], adds: [],
+      note: "The whole Cost-7 Legendary band on one node — the richest recruit in Act IV." },
+    { id: "G13", name: "Wolfrun Hollow", kind: "throne", at: { x: 62, y: 10 },
+      requires: ["G10"], roster: ["gale_stormfang"],
+      // Escorts: the pack itself, farmable at G6 and G5.
+      adds: ["gale_whirlwolf", "gale_luna"],
+      note: "StormFang's Throne. Optional — the Wolf payoff, and its Pack aura reaches four cards you already met." },
+    { id: "G14", name: "Tempest Peaks", kind: "throne", at: { x: 93, y: 26 },
+      requires: ["G11", "G12"], roster: ["gale_griffith"],
+      // Escorts: the birds of the Roosts, farmable at G4 and G2.
+      adds: ["gale_ollie", "gale_hawk", "gale_skyforce"], required: true,
+      note: "Thunder Reach. Required — clearing it opens the airship routes on to BOLT and BORE." },
+  ],
+};
+
+export const REGIONS: StoryRegion[] = [LEAF, PYRO, AQUA, GALE];
 
 /** A region is reachable once every node gating it is cleared. */
 /** A region opens when ANY of its gates has been cleared — not all of them.
@@ -355,12 +437,20 @@ export const CAP_LADDER = [
   { cap: 15, board: 4, unlockedBy: "L14", label: "LEAF Throne" },
   { cap: 18, board: 4, unlockedBy: "P13", label: "PYRO Throne" }, // 4x4 format max
   { cap: 18, board: 4, unlockedBy: "A13", label: "AQUA Throne" }, // either Act II Throne
+  // Act IV wants BOTH Green Thrones, not either: §2's revision makes PYRO and
+  // AQUA mandatory so a player arrives on the 5x5 board with three elements
+  // rather than two. An array means ALL of them.
+  { cap: 22, board: 5, unlockedBy: ["P13", "A13"], label: "Both Green Thrones" },
 ] as const;
 
 export function deckCapFor(cleared: readonly string[]): number {
   let cap: number = CAP_LADDER[0].cap;
-  for (const step of CAP_LADDER)
-    if (step.unlockedBy && cleared.includes(step.unlockedBy)) cap = Math.max(cap, step.cap);
+  for (const step of CAP_LADDER) {
+    if (!step.unlockedBy) continue;
+    const needed: readonly string[] =
+      typeof step.unlockedBy === "string" ? [step.unlockedBy] : step.unlockedBy;
+    if (needed.every((id) => cleared.includes(id))) cap = Math.max(cap, step.cap);
+  }
   return cap;
 }
 

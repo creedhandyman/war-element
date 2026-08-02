@@ -97,9 +97,21 @@ describe("story: the deck cap ladder", () => {
     expect(deckCapFor(["L14"])).toBe(15);
   });
 
-  it("every ladder step names a node that exists", () => {
-    for (const step of CAP_LADDER)
-      if (step.unlockedBy) expect(nodeById(step.unlockedBy), step.unlockedBy).toBeTruthy();
+  it("every ladder step names nodes that exist", () => {
+    for (const step of CAP_LADDER) {
+      if (!step.unlockedBy) continue;
+      const ids = typeof step.unlockedBy === "string" ? [step.unlockedBy] : step.unlockedBy;
+      for (const id of ids) expect(nodeById(id), id).toBeTruthy();
+    }
+  });
+
+  it("makes Act IV wait for BOTH Green Thrones, not either", () => {
+    // §2's revision: a player arriving on the 5x5 board with only LEAF plus one
+    // other element cannot field a functional 22-card list, and the aura maths
+    // gets ugly. The choice is route order, not content.
+    expect(deckCapFor(["L14", "P13"])).toBe(18);
+    expect(deckCapFor(["L14", "A13"])).toBe(18);
+    expect(deckCapFor(["L14", "P13", "A13"])).toBe(22);
   });
 
   it("the starter deck is legal at the starting cap and all LEAF", () => {
@@ -502,20 +514,23 @@ describe("story: every region holds together", () => {
       });
 
       it("has one entry node, one required Throne, and nothing unreachable", () => {
-        expect(r.nodes.filter((n) => n.requires.length === 0)).toHaveLength(1);
-        expect(r.nodes.filter((n) => n.kind === "throne" && n.required)).toHaveLength(1);
+        const own = r.nodes.filter((n) => !isGate(n)); // gates may wait on another region
+        expect(own.filter((n) => n.requires.length === 0)).toHaveLength(1);
+        expect(own.filter((n) => n.kind === "throne" && n.required)).toHaveLength(1);
         const seen = new Set<string>();
-        for (let pass = 0; pass < r.nodes.length; pass++)
-          for (const n of r.nodes)
+        for (let pass = 0; pass < own.length; pass++)
+          for (const n of own)
             if (!seen.has(n.id) && n.requires.every((q) => seen.has(q))) seen.add(n.id);
-        expect(r.nodes.filter((n) => !seen.has(n.id)).map((n) => n.id)).toEqual([]);
+        expect(own.filter((n) => !seen.has(n.id)).map((n) => n.id)).toEqual([]);
       });
 
-      it("never gates a node on another region's node", () => {
-        // Region gating is `region.requires`; a NODE reaching across regions
-        // would make the map draw an edge to something that isn't on it.
+      it("never gates an ordinary node on another region's node", () => {
+        // A NODE reaching across regions would make the map draw an edge to
+        // something that isn't on it. GATES are the deliberate exception — Gate E
+        // waits on both Green Thrones, one of which is in PYRO — and the map's
+        // edge derivation already drops any prerequisite it cannot find locally.
         const mine = new Set(r.nodes.map((n) => n.id));
-        for (const n of r.nodes)
+        for (const n of r.nodes.filter((x) => !isGate(x)))
           for (const q of n.requires) expect(mine.has(q), `${n.id} requires ${q}`).toBe(true);
       });
 
@@ -664,7 +679,7 @@ describe("story: border gates (7)", () => {
   const full = (cleared: string[]): StorySave => ({ ...newSave(), cleared });
 
   it("exists on every built border", () => {
-    expect(gates.map((g) => g.id).sort()).toEqual(["GA", "GB", "GC", "GC2"]);
+    expect(gates.map((g) => g.id).sort()).toEqual(["GA", "GB", "GC", "GC2", "GE"]);
   });
 
   it("never places a card — a gate is a checkpoint, not a farm", () => {
@@ -770,16 +785,22 @@ describe("story: board size is welded to deck size", () => {
   });
 
   it("fights every node on a board its deck cap is legal for", () => {
-    // The guard that matters when Act IV content lands: a node authored with a
-    // `board` override its tier's deck cannot legally field would be caught here
-    // rather than in play.
-    for (const r of REGIONS)
+    // The guard that matters now Act IV content exists: a node whose tier's deck
+    // cannot legally field its board is caught here rather than in play. The cap
+    // on entry is whatever clearing the region's gates ALSO required — GALE is
+    // reached through Gate E, which itself needs both Green Thrones, so a player
+    // standing in GALE is necessarily at cap 22 and legal on 5x5.
+    for (const r of REGIONS) {
+      const gates = r.requires ?? [];
+      const onEntry = [...gates, ...gates.flatMap((g) => nodeById(g)?.requires ?? [])];
+      const cap = deckCapFor(onEntry);
       for (const n of r.nodes) {
         const board = boardForNode(r, n);
         expect([4, 5], `${n.id} board ${board}`).toContain(board);
-        expect(boardsLegalFor(deckCapFor([...r.requires ?? [], n.id])),
-          `${n.id} is fought on ${board} but its deck cap is not legal there`)
+        expect(boardsLegalFor(cap),
+          `${n.id} is fought on ${board} at cap ${cap}, where that board is illegal`)
           .toContain(board);
       }
+    }
   });
 });

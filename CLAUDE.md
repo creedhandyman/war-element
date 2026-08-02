@@ -267,6 +267,15 @@ engine runtime and no React, so it stays testable headlessly
   deck length **exactly** at the cap, plus a composition demand. Gates take no
   Blight (a checkpoint is not territory) and `buildFormation` falls back to the
   patrol for its duplicate fill, since a gate has no roster to draw on.
+- **GALE is Act IV** — the first region on the **5x5 board**, cap 22, reached
+  through Gate E on AQUA's map. Gate E waits on **both** Green Thrones (P13 AND
+  A13), which is §2's revision: arriving on 25 slots with only two elements can't
+  field a functional 22-card list. That made `CAP_LADDER.unlockedBy` accept an
+  ARRAY meaning ALL-of. Gate E is also the first gate to require a node in
+  another region, so the two per-region graph tests exempt gates — the map's edge
+  derivation already drops any prerequisite it can't find locally.
+  GALE has no theme yet; `REGION_TRACK` has no `gale` entry so it falls back to
+  the menu/battle pair, which is exactly the designed behaviour.
 - **Regions**: LEAF (open), plus PYRO and AQUA (formerly `requires: ["L14"]` — the
   doc's Act II branch, neither privileged). Each carries its own `artRatio`:
   AQUA's painting is 4:3 where LEAF's and PYRO's are 3:2, and forcing one shape
