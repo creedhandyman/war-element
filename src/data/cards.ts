@@ -8227,7 +8227,7 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
-    // King of Bones (Aura): Skeleton allies (skeletons, SkullDrakes, the King)
+    // King of Bones (Aura): Skeleton allies (skeletons, Risen Drakes, the King)
     // gain +2 DMG and are topped up +1 shield each round.
     passiveNames: { aura: "King of Bones", summonSpawn: "Dead Court", roundTick: "Dead Siege" },
     aura: { scope: "tribe", match: "Skeleton", dmg: 2, shields: 1 },
@@ -8235,7 +8235,7 @@ export const CARDS: CardDef[] = [
     summonSpawn: { token: "dusk_skeleton_tok", count: 2 },
     // Dead Siege (End of Round): raise 2 more Skeletons (capped at 6 standing).
     roundTick: { spawn: { token: "dusk_skeleton_tok", count: 2 }, spawnMaxAlive: 6 },
-    // King's SkullDrake: DOT the row ahead and raise an attacking SkullDrake.
+    // King's SkullDrake: DOT the row ahead and raise an attacking Risen Drake.
     special: {
       name: "King's SkullDrake",
       cost: 4,
@@ -8243,7 +8243,7 @@ export const CARDS: CardDef[] = [
       params: { dmg: 0, rowAhead: 1, targets: 99, statusKind: "DOT", statusPower: 3, statusDuration: 3, spawnToken: "dusk_skulldrake_tok", spawnCount: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "Apply DOT 3 (3 rounds) to opponents in the row directly ahead and raise an attacking SkullDrake.",
+      text: "Apply DOT 3 (3 rounds) to opponents in the row directly ahead and raise an attacking Risen Drake.",
     },
   },
   {
@@ -8326,7 +8326,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { FLYING: true },
     tribe: "Avian",
-    // Raptor Assault (End of Round): if no ToxHawk stands, raise one (capped at 1).
+    // Raptor Assault (End of Round): if no Raptor stands, raise one (capped at 1).
     passiveNames: { roundTick: "Raptor Assault" },
     roundTick: { spawn: { token: "gale_toxhawk_tok", count: 1 }, spawnMaxAlive: 1 },
     // Razor Wind Talon: rake the enemy's far (home) row — 3 DMG + DOT 1.
@@ -8732,7 +8732,12 @@ export const TOKENS: CardDef[] = [
   {
     id: "dusk_skulldrake_tok",
     art: "dusk_skulldrake",
-    name: "SkullDrake",
+    // Renamed off "SkullDrake": it shared that name EXACTLY with the draftable
+    // Rare dusk_skulldrake, which breaks any lookup, deck list or node roster
+    // keyed on name rather than id. The two are different cards — the Rare is a
+    // c3 Ranged Ranger with Purple Flames, this is the melee attacker SkullKing
+    // raises. Borrows the Rare's art, which is why they read as one thing.
+    name: "Risen Drake",
     rarity: "epic",
     element: "DUSK",
     cardClass: "Warrior",
@@ -8749,7 +8754,11 @@ export const TOKENS: CardDef[] = [
   {
     id: "gale_toxhawk_tok",
     art: "gale_toxhawk",
-    name: "ToxHawk",
+    // Renamed off "ToxHawk": it differed from the draftable Rare "Toxhawk" only
+    // in the capital H, which is a collision in every case-insensitive lookup
+    // and unreadable in a deck list. Named for the passive that raises it
+    // (Masala's Raptor Assault). Borrows Toxhawk's art.
+    name: "Raptor",
     rarity: "rare",
     element: "GALE",
     cardClass: "Ranger",

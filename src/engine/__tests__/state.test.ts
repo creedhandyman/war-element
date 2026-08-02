@@ -5,8 +5,34 @@ import { createInitialState } from "../state";
 import { canSummon } from "../rules";
 import { homeRow } from "../types";
 import { applyIntent, advance, advanceUntilInput } from "../phases";
-import { CARDS, DECK_P1, DECK_P2 } from "../../data/cards";
+import { CARDS, DECK_P1, DECK_P2, TOKENS } from "../../data/cards";
 import { freshGame, giveHand } from "./helpers";
+
+describe("card identity", () => {
+  // Two genuine collisions shipped before this guard existed: the DUSK token
+  // was named "SkullDrake" EXACTLY like the draftable Rare, and the GALE token
+  // "ToxHawk" differed from the Rare "Toxhawk" only by a capital H. Both break
+  // anything that looks a card up by name — deck lists, node rosters, the
+  // collection screen — because ids are what the engine uses and names are what
+  // everything human-facing does.
+  const all = [...CARDS, ...TOKENS];
+
+  it("every card id is unique", () => {
+    const seen = new Map<string, number>();
+    for (const c of all) seen.set(c.id, (seen.get(c.id) ?? 0) + 1);
+    expect([...seen].filter(([, n]) => n > 1).map(([id]) => id)).toEqual([]);
+  });
+
+  it("every card NAME is unique, case-insensitively", () => {
+    const seen = new Map<string, string[]>();
+    for (const c of all) {
+      const k = c.name.toLowerCase();
+      seen.set(k, [...(seen.get(k) ?? []), c.id]);
+    }
+    const dupes = [...seen].filter(([, ids]) => ids.length > 1).map(([k, ids]) => `${k}: ${ids.join(" + ")}`);
+    expect(dupes).toEqual([]);
+  });
+});
 
 describe("setup", () => {
   it("deals 4-card opening hands, leaving the rest in each deck", () => {
