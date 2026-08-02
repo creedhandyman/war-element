@@ -226,3 +226,50 @@ Rollo / Zombination / Doom changes and everything since.
   `Desktop\Everything\war element\*_Cards.docx` + `War_Element_Rules.docx` —
   the full printed abilities, which the alpha `cards.ts` simplified. Extract
   with `unzip -p X.docx word/document.xml`.
+
+## Story Mode
+
+`src/data/story.ts` is the whole campaign layer: pure data + pure functions, no
+engine runtime and no React, so it stays testable headlessly
+(`src/engine/__tests__/story.test.ts`, ~40 tests). UI is `StoryMap.tsx`
+(region map + node panel) and `StoryResult.tsx` (post-battle recruitment).
+
+- **Nodes are placed on painted art.** `node.at` is a **percentage** of the
+  region map's width/height, not a grid unit — resolution-independent, and the
+  art can be re-exported at any size without moving a node. Maps live at
+  `public/maps/<region>.webp` and are referenced by `region.art`. The maps are
+  **3:2** (1536×1024); `MAP_RATIO` in StoryMap holds the canvas to it, and the
+  edge SVG uses `viewBox="0 0 100 100"` + `preserveAspectRatio="none"` so edges
+  and nodes share one coordinate space with no px maths.
+  To eyeball placement, render markers onto the art with PIL rather than
+  screenshotting — the node ids and edges plot straight from `story.ts`.
+- **The art is the authority on geography.** LEAF's node graph was re-gated to
+  match it: the Rot Line is in the far *south* (so L8 hangs off L5, not L7),
+  and Rustling Woods is at Autumn's Gold in the *north-east* (so L7 hangs off
+  L10, making the north arc run west→north→east). Overflow follows the painted
+  gates — AQUA at Eastleaf Port (L7), PYRO at the Southern Burn (L8).
+- **Edges are derived from `requires`**, never a separate table, so the drawn
+  map can't drift from the gating actually enforced.
+- **One card, one node** — `story.test.ts` enforces that every draftable LEAF
+  card is placed exactly once, that no roster contains a token, and that **no
+  node is dead on arrival** (a node whose whole roster is already in the
+  starter deck can never pay out; L1 and L2 both shipped that way once).
+- **Recruiting**: one roll per captured slot (min 1); base odds by rarity
+  (`DROP_RATE`), `PITY_STEP` per dry clear, guaranteed Mythic on a Throne's
+  first clear. Owned cards drop out of the pool, so repeat clears self-target.
+- **§10.5 Overflow**: `node.overflow` bleeds cheap Rares from the *neighbouring*
+  region at **half base rate** (pity still accrues at full step, so a border
+  card is slower but never unreachable). The card keeps its home node.
+- **§10.4 The Blight**: DUSK spreads into **cleared** regions only — difficulty
+  rises behind you, never in front — which is what makes it safe to be
+  aggressive. `blightLevel` = `max(baseBlight, earned)` capped at 3; rises on
+  **Throne clears anywhere**, never on idle time (farming is never punished).
+  L1–2 add non-recruitable DUSK bodies to Warden-tier and up (Skirmishes and
+  Thrones are spared); L2 contests the region's terrain; L3 spawns a generated
+  **Blight Node** at `region.blightAt` that *does* drop DUSK — the only way to
+  field DUSK early — and clearing it drops the level by one, flooring at the
+  region's own `baseBlight`. A Blight Node is never banked into `save.cleared`
+  (it can come back). **DUSK and DAWN are immune** (`canBlight`).
+- **Save** is one localStorage key, `we_story_v1`, sanitized on load (unknown
+  card/node ids are dropped). To exercise a mid-campaign state in the browser,
+  seed it directly rather than playing forward.

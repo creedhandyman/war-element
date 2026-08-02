@@ -1863,7 +1863,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .story-actions { margin-left: auto; display: flex; gap: 8px; }
 
 .story-body { flex: 1; display: flex; min-height: 0; }
-.story-canvas { position: relative; margin: 24px; flex: none; }
+.story-canvas { position: relative; margin: 24px; flex: 1 1 auto; min-width: 0; width: 100%; max-width: 1180px; }
 .story-edges { position: absolute; inset: 0; pointer-events: none; }
 .story-edges .edge { stroke: var(--panel-line); stroke-width: 2; }
 .story-edges .edge.live { stroke: var(--gold-line); stroke-width: 3; }
@@ -1892,6 +1892,29 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   bottom: -7px; right: -7px; background: var(--el); color: #0b0b0f;
   min-width: 17px; height: 17px; border-radius: 9px; display: grid; place-items: center; font-size: 10.5px;
 }
+/* Blight reads in DUSK's own violet, never in the region's colour -- it is the
+   thing that does NOT belong to the region. */
+.sn-blight { position: absolute; bottom: -8px; left: -6px; font-size: 12px; color: #b47dff; pointer-events: none; }
+/* The painted region map. Nodes sit on it by percentage, so the art and the
+   layout can never drift apart. */
+.story-canvas.arted {
+  background-size: 100% 100%; background-repeat: no-repeat;
+  border-radius: 10px; border: 1px solid var(--panel-line);
+  box-shadow: inset 0 0 90px rgba(0, 0, 0, .55);
+}
+/* Every node is anchored by its CENTRE, so `at` names the landmark itself. */
+.story-canvas.arted .story-node { transform: translate(-50%, -50%); }
+.story-canvas.arted .story-node.sel { transform: translate(-50%, -50%) scale(1.12); }
+.story-canvas.arted .story-edges { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* A Blight Node is not the region's colour -- it is the thing occupying it. */
+.story-node.blight {
+  --el: #b47dff;
+  border-color: #8a5cd0; color: #e6d8ff;
+  box-shadow: 0 0 14px rgba(180, 125, 255, .45);
+}
+.story-node.blight .sn-blight { bottom: auto; top: -9px; left: -5px; font-size: 14px; }
+.story-blight { color: #b47dff; }
+.story-blight b { color: #b47dff; letter-spacing: .12em; }
 
 .story-side {
   width: 330px; flex: none; border-left: 1px solid var(--panel-line);
@@ -1906,6 +1929,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .np-kind.landmark { color: var(--gold); border-color: var(--gold-line); }
 .np-kind.throne { color: var(--gold-hi); border-color: var(--gold); }
+.np-kind.blight { color: #b47dff; border-color: #6a3fa0; }
 .np-flag { font-size: 10.5px; color: var(--ink-faint); }
 .np-flag.done { color: var(--gold); }
 .np-note, .np-terrain, .np-adds, .np-drops, .np-blocked { font-size: 12px; color: var(--ink-dim); line-height: 1.5; margin: 6px 0; }
@@ -1914,6 +1938,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .np-roster { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 3px; }
 .np-roster li { display: flex; align-items: baseline; gap: 7px; font-size: 12.5px; padding: 4px 6px; border-radius: 5px; background: var(--void-2); }
 .np-roster li.have { opacity: .5; }
+/* An overflow card is a visitor: dashed edge + its home element on the name, so
+   the halved odds next to it read as intentional rather than as a bug. */
+.np-roster li.overflow { background: transparent; border: 1px dashed var(--panel-line); }
+.npr-over {
+  margin-left: 6px; font-size: 9px; letter-spacing: .08em; font-weight: 800;
+  color: var(--ink-faint); border: 1px solid var(--panel-line); border-radius: 999px; padding: 1px 5px;
+}
+.np-adds.blight { color: #b47dff; }
 .npr-name { font-weight: 650; color: var(--ink); }
 .npr-rar { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; }
 .npr-rar.r-rare { color: var(--ink-faint); } .npr-rar.r-epic { color: #a98bff; }

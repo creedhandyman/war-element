@@ -55,8 +55,8 @@ import { EL_COLOR, EL_ICON, type PendingBattle, type Selection } from "./shared"
 import { StoryMap } from "./StoryMap";
 import { StoryResult } from "./StoryResult";
 import {
-  REGIONS, applyClear, deckCapFor, loadStory, rollRecruits, saveStory,
-  type StoryNode, type StorySave,
+  REGIONS, applyClear, blightAddsFor, deckCapFor, loadStory, recruitablePool,
+  rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
 
 function newSeed(): number {
@@ -1785,7 +1785,7 @@ export function App() {
           won={storyResult.won}
           captured={storyResult.captured}
           firstClear={!story.cleared.includes(storyResult.node.id)}
-          exhausted={storyResult.node.roster.every((id) => story.collection.includes(id))}
+          exhausted={recruitablePool(storyResult.node).every((id) => story.collection.includes(id))}
           onDone={() => {
             setStoryResult(null);
             setStoryNode(null);
@@ -1803,9 +1803,11 @@ export function App() {
           onOpenCollection={() => setBuilderOpen(true)}
           onFight={(node) => {
             // The story deck fights the node's roster. Adds are spawned by the
-            // roster's own cards, so they are never dealt into the enemy deck.
+            // roster's own cards, so they are never dealt into the enemy deck --
+            // but BLIGHT bodies are real extra cards, so they are.
             const deck = story.deck.length ? story.deck : story.collection.slice(0, deckCapFor(story.cleared));
-            setGame(createInitialState(newSeed(), deck, node.roster, ["P1"], [], [], REGIONS[0].board));
+            const squad = [...node.roster, ...blightAddsFor(story, REGIONS[0], node)];
+            setGame(createInitialState(newSeed(), deck, squad, ["P1"], [], [], REGIONS[0].board));
             setStoryNode(node);
             setStoryOpen(false);
             setViewSide("P1");

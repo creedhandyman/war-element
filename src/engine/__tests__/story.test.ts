@@ -6,8 +6,10 @@
 import { describe, expect, it } from "vitest";
 import { CARDS, TOKENS, getDef } from "../../data/cards";
 import {
-  ALL_NODES, CAP_LADDER, REGIONS, STARTER_DECK, applyClear, baseRateFor, deckCapFor,
-  isOpen, newSave, nodeById, recruitChance, rollRecruits, type StoryNode, type StorySave,
+  ALL_NODES, BLIGHT_ADDS, BLIGHT_MAX, CAP_LADDER, OVERFLOW_RATE, REGIONS, STARTER_DECK,
+  applyClear, baseRateFor, blightAddsFor, blightLevel, canBlight, deckCapFor, isOpen, isOverflow,
+  isRegionCleared, newSave, nodeById, recruitChance, recruitablePool, rollRecruits,
+  terrainContested, type StoryNode, type StorySave,
 } from "../../data/story";
 
 const leaf = REGIONS.find((r) => r.id === "leaf")!;
@@ -195,5 +197,145 @@ describe("story: pity", () => {
     s = applyClear(s, n, { won: ["leaf_nettle"], missed: [], rolls: 1 });
     expect(s.cleared.filter((c) => c === "L1")).toHaveLength(1);
     expect(s.collection.filter((c) => c === "leaf_nettle")).toHaveLength(1);
+  });
+});
+
+
+describe("story: map placement", () => {
+  it("keeps every node on the art — coordinates are percentages, not grid units", () => {
+    // Cheap guard against a stale grid coordinate surviving the switch to
+    // percentage placement: a leftover `{x: 3, y: 1}` would silently pile every
+    // node into the top-left corner rather than fail.
+    for (const r of REGIONS)
+      for (const n of r.nodes) {
+        expect(n.at.x, `${n.id}.x`).toBeGreaterThan(0);
+        expect(n.at.x, `${n.id}.x`).toBeLessThan(100);
+        expect(n.at.y, `${n.id}.y`).toBeGreaterThan(0);
+        expect(n.at.y, `${n.id}.y`).toBeLessThan(100);
+      }
+  });
+
+  it("gives no two nodes the same spot", () => {
+    for (const r of REGIONS) {
+      const at = r.nodes.map((n) => `${n.at.x},${n.at.y}`);
+      expect(new Set(at).size, `${r.id} has overlapping nodes`).toBe(at.length);
+    }
+  });
+
+  it("puts a Blight Node somewhere real in every blight-capable region", () => {
+    for (const r of REGIONS) {
+      if (!canBlight(r)) continue;
+      expect(r.blightAt, `${r.id} needs a border zone`).toBeTruthy();
+      const at = r.nodes.map((n) => `${n.at.x},${n.at.y}`);
+      expect(at).not.toContain(`${r.blightAt!.x},${r.blightAt!.y}`);
+    }
+  });
+});
+
+describe("story: Elemental Overflow", () => {
+  it("only bleeds cheap Rares, and only from a neighbouring element", () => {
+    for (const n of ALL_NODES)
+      for (const id of n.overflow ?? []) {
+        const d = getDef(id);
+        expect(d.element, `${n.id}:${id} should be foreign`).not.toBe("LEAF");
+        expect(d.rarity, `${n.id}:${id}`).toBe("rare");
+        expect(d.cost, `${n.id}:${id}`).toBeLessThanOrEqual(2);
+      }
+  });
+
+  it("never leaks DUSK or DAWN — one Blights, the other is sealed", () => {
+    const leaked = ALL_NODES.flatMap((n) => (n.overflow ?? []).map((id) => getDef(id).element));
+    expect(leaked).not.toContain("DUSK");
+    expect(leaked).not.toContain("DAWN");
+  });
+
+  it("halves the base rate but still accrues pity at full step", () => {
+    const id = "aqua_misty";
+    expect(recruitChance(id, 0, true)).toBe(baseRateFor(id) * OVERFLOW_RATE);
+    // Pity is NOT halved — a border card is slower to get, never unreachable.
+    expect(recruitChance(id, 2, true)).toBe(baseRateFor(id) * OVERFLOW_RATE + 10);
+  });
+
+  it("is recruitable — the pool includes it, and the roll can win it", () => {
+    // Derived, not hardcoded: overflow sits on whichever node fronts the border,
+    // and re-placing a node against the map art must not quietly rot this test.
+    const host = ALL_NODES.find((n) => (n.overflow ?? []).length > 0)!;
+    const foreign = host.overflow![0];
+    expect(isOverflow(host, foreign)).toBe(true);
+    expect(recruitablePool(host)).toContain(foreign);
+    const s: StorySave = { ...newSave(), collection: [], deck: [] };
+    const r = rollRecruits(s, host, 9, () => 0); // every roll succeeds
+    expect(r.won).toContain(foreign);
+  });
+
+  it("sits on the node that actually fronts that element's gate", () => {
+    // The map art is the authority: AQUA is reached through Eastleaf Port in the
+    // east, PYRO through the Southern Burn. Overflow must front the right border.
+    expect(nodeById("L7")!.overflow).toContain("aqua_misty");   // Eastleaf Port
+    expect(nodeById("L8")!.overflow).toContain("pyro_staph");   // Southern Burn
+  });
+
+  it("keeps its home node — overflow never removes a card from its own region", () => {
+    // The foreign card is a COPY at the border; §10.5 requires the home node stay
+    // the reliable full-odds farm, which only holds if placement is untouched.
+    const placed = REGIONS.flatMap((r) => r.nodes.flatMap((n) => n.roster));
+    for (const n of ALL_NODES)
+      for (const id of n.overflow ?? []) expect(placed).not.toContain(id);
+  });
+});
+
+describe("story: the Blight", () => {
+  const leafRegion = REGIONS.find((r) => r.id === "leaf")!;
+  const cleared = (over: Partial<StorySave> = {}): StorySave =>
+    ({ ...newSave(), cleared: ["L14"], ...over });
+
+  it("never touches a region you have not finished", () => {
+    // The whole safety property: difficulty rises BEHIND you, never in front.
+    const fresh = newSave();
+    expect(isRegionCleared(fresh, leafRegion)).toBe(false);
+    expect(blightAddsFor(fresh, leafRegion, nodeById("L8")!)).toEqual([]);
+    expect(terrainContested(fresh, leafRegion)).toBe(false);
+  });
+
+  it("applies LEAF's shipped baseline once the region is done", () => {
+    // LEAF is the region DUSK has worked on longest — the Rot Line is painted in
+    // at generation, not crept in later.
+    expect(leafRegion.baseBlight).toBe(1);
+    expect(blightLevel(cleared(), leafRegion)).toBe(1);
+    expect(blightAddsFor(cleared(), leafRegion, nodeById("L8")!)).toEqual([BLIGHT_ADDS[0]]);
+  });
+
+  it("spares Skirmishes and Thrones — pressure lands on Warden tier and up", () => {
+    const s = cleared({ blight: { leaf: 2 } });
+    expect(blightAddsFor(s, leafRegion, nodeById("L1")!)).toEqual([]);  // skirmish
+    expect(blightAddsFor(s, leafRegion, nodeById("L14")!)).toEqual([]); // throne
+    expect(blightAddsFor(s, leafRegion, nodeById("L8")!)).toHaveLength(2);   // warden
+    expect(blightAddsFor(s, leafRegion, nodeById("L11")!)).toHaveLength(2);  // landmark
+  });
+
+  it("contests the region's terrain from level 2", () => {
+    expect(terrainContested(cleared({ blight: { leaf: 1 } }), leafRegion)).toBe(false);
+    expect(terrainContested(cleared({ blight: { leaf: 2 } }), leafRegion)).toBe(true);
+  });
+
+  it("rises on Throne clears and caps at 3", () => {
+    let s = cleared({ blight: { leaf: 0 } });
+    for (let i = 0; i < 8; i++) s = applyClear(s, nodeById("L13")!, { won: [], missed: [], rolls: 1 });
+    expect(blightLevel(s, leafRegion)).toBe(BLIGHT_MAX);
+  });
+
+  it("does not rise on ordinary clears — farming is never punished", () => {
+    let s = cleared({ blight: { leaf: 1 } });
+    const before = blightLevel(s, leafRegion);
+    for (let i = 0; i < 5; i++) s = applyClear(s, nodeById("L8")!, { won: [], missed: [], rolls: 1 });
+    expect(blightLevel(s, leafRegion)).toBe(before);
+  });
+
+  it("adds are never recruitable — only a Blight Node drops DUSK", () => {
+    // Keeps one-card-one-node intact: a DUSK card seen as Blight filler is not
+    // obtainable there, so it still has exactly one home.
+    const s = cleared({ blight: { leaf: 2 } });
+    const adds = blightAddsFor(s, leafRegion, nodeById("L8")!);
+    for (const id of adds) expect(recruitablePool(nodeById("L8")!)).not.toContain(id);
   });
 });
