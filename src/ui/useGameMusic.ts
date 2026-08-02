@@ -13,6 +13,7 @@ export const TRACKS = {
   battle: "/music/rival.mp3",
   leaf: "/music/jungle.mp3",
   pyro: "/music/scorched-horizon.mp3",
+  aqua: "/music/atlantic.mp3",
 } as const;
 
 export type MusicTrack = keyof typeof TRACKS;
@@ -24,6 +25,7 @@ export type MusicMode = "menu" | "battle";
 export const REGION_TRACK: Partial<Record<string, MusicTrack>> = {
   leaf: "leaf",
   pyro: "pyro",
+  aqua: "aqua",
 };
 
 const VOLUME = 0.45;

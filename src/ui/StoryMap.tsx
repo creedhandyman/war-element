@@ -21,7 +21,9 @@ const KIND_LABEL: Record<StoryNode["kind"], string> = {
   blight: "Blight",
 };
 
-/** The painted maps are 3:2. The canvas holds that ratio so a node's percentage
+/** Fallback shape for a region with no art. Real regions carry their own
+ *  `artRatio`, because the paintings are not all the same shape and forcing one
+ *  ratio would crop somebody's map. The canvas holds it so a node's percentage
  *  coordinates land on the same landmark at every viewport size. */
 const MAP_RATIO = 1536 / 1024;
 
@@ -130,7 +132,7 @@ export function StoryMap(props: {
         <div
           className={`story-canvas ${region.art ? "arted" : ""}`}
           style={{
-            aspectRatio: String(MAP_RATIO),
+            aspectRatio: String(region.artRatio ?? MAP_RATIO),
             backgroundImage: region.art ? `url(${region.art})` : undefined,
           }}
         >

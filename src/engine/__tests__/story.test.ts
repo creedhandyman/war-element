@@ -461,3 +461,60 @@ describe("story: overflow points forward, not back", () => {
         expect(STARTER, `${n.id} bleeds ${id}, which every player starts with`).not.toContain(id);
   });
 });
+
+describe("story: every region holds together", () => {
+  // Generalised so a new region is covered the moment it lands, instead of
+  // needing its own copy of these five checks.
+  for (const r of REGIONS) {
+    describe(r.id, () => {
+      it("places every draftable card of its element exactly once", () => {
+        const placed = r.nodes.flatMap((n) => n.roster);
+        expect(placed.filter((id, i) => placed.indexOf(id) !== i)).toEqual([]);
+        expect([...placed].sort()).toEqual([...draftable(r.element)].sort());
+      });
+
+      it("has one entry node, one required Throne, and nothing unreachable", () => {
+        expect(r.nodes.filter((n) => n.requires.length === 0)).toHaveLength(1);
+        expect(r.nodes.filter((n) => n.kind === "throne" && n.required)).toHaveLength(1);
+        const seen = new Set<string>();
+        for (let pass = 0; pass < r.nodes.length; pass++)
+          for (const n of r.nodes)
+            if (!seen.has(n.id) && n.requires.every((q) => seen.has(q))) seen.add(n.id);
+        expect(r.nodes.filter((n) => !seen.has(n.id)).map((n) => n.id)).toEqual([]);
+      });
+
+      it("never gates a node on another region's node", () => {
+        // Region gating is `region.requires`; a NODE reaching across regions
+        // would make the map draw an edge to something that isn't on it.
+        const mine = new Set(r.nodes.map((n) => n.id));
+        for (const n of r.nodes)
+          for (const q of n.requires) expect(mine.has(q), `${n.id} requires ${q}`).toBe(true);
+      });
+
+      it("declares the shape of its own art", () => {
+        if (!r.art) return;
+        expect(r.artRatio, `${r.id} has art but no ratio`).toBeGreaterThan(0.5);
+        expect(r.artRatio).toBeLessThan(3);
+      });
+
+      it("keeps its nodes on the map and off each other", () => {
+        for (const n of r.nodes) {
+          expect(n.at.x, `${n.id}.x`).toBeGreaterThan(0);
+          expect(n.at.x, `${n.id}.x`).toBeLessThan(100);
+          expect(n.at.y, `${n.id}.y`).toBeGreaterThan(0);
+          expect(n.at.y, `${n.id}.y`).toBeLessThan(100);
+        }
+        const at = r.nodes.map((n) => `${n.at.x},${n.at.y}`);
+        expect(new Set(at).size).toBe(at.length);
+      });
+    });
+  }
+
+  it("gives both Act II regions the same entry gate and the same cap step", () => {
+    // The doc's branch: PYRO or AQUA, player's choice, neither privileged.
+    const pyro = REGIONS.find((x) => x.id === "pyro")!;
+    const aqua = REGIONS.find((x) => x.id === "aqua")!;
+    expect(pyro.requires).toEqual(aqua.requires);
+    expect(deckCapFor(["L14", "P13"])).toBe(deckCapFor(["L14", "A13"]));
+  });
+});

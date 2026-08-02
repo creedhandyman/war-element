@@ -53,6 +53,10 @@ export interface StoryRegion {
   blightAt?: { x: number; y: number };
   /** The painted region map this node layout is placed against. */
   art?: string;
+  /** The art's aspect ratio (w/h). Per-region because the paintings are not all
+   *  the same shape — AQUA is 4:3 where LEAF and PYRO are 3:2 — and forcing one
+   *  ratio would crop somebody's map. Defaults to 3:2. */
+  artRatio?: number;
   /** Node ids that must be cleared before this region is reachable at all.
    *  Empty/absent = open from the start (LEAF). */
   requires?: string[];
@@ -70,6 +74,7 @@ const LEAF: StoryRegion = {
   terrain: "Lushfield",
   board: 4,
   art: "/maps/leaf.webp",
+  artRatio: 1536 / 1024,
   baseBlight: 1, // the Rot Line — see L8
   // The violet band the art paints across the southern treeline, between the Rot
   // Line and the Southern Burn. This is where the shadow already pools.
@@ -137,6 +142,7 @@ const PYRO: StoryRegion = {
   terrain: "Heatwave",
   board: 4,
   art: "/maps/pyro.webp",
+  artRatio: 1536 / 1024,
   requires: ["L14"], // the Spirit Tree opens the borders
   // The Veil Gate: the art paints DUSK's corruption already bleeding through it.
   blightAt: { x: 80, y: 87 },
@@ -186,7 +192,72 @@ const PYRO: StoryRegion = {
   ],
 };
 
-export const REGIONS: StoryRegion[] = [LEAF, PYRO];
+
+// ── the AQUA slice ──────────────────────────────────────────────────────────
+// Act II, the naval route — the other half of the branch. Reached through Gate
+// B. Placed against `public/maps/aqua.webp`, which is 4:3 rather than the 3:2
+// of the other two. AQUA is the one region where long edges are honest: the art
+// draws dashed sea lanes radiating from Atlantis to every corner, so ships DO
+// cross open water rather than following a road.
+
+const AQUA: StoryRegion = {
+  id: "aqua",
+  name: "Aqua — The Life Source",
+  element: "AQUA",
+  terrain: "Downpour",
+  board: 4,
+  art: "/maps/aqua.webp",
+  artRatio: 1440 / 1080,
+  requires: ["L14"], // Gate B opens on the same Throne as Gate A
+  // The Drowned Blight: the art already paints DUSK's violet across the
+  // south-east water.
+  blightAt: { x: 86, y: 91 },
+  nodes: [
+    { id: "A1", name: "Leafward Crossing", kind: "skirmish", at: { x: 24, y: 30 },
+      requires: [], roster: ["aqua_misty", "aqua_buccaneers", "aqua_piranha"], adds: [],
+      note: "Where ships arrive. Misty and Buccaneers bleed out to LEAF and PYRO — this is their home." },
+    { id: "A2", name: "Coral Isles Shallows", kind: "skirmish", at: { x: 8, y: 44 },
+      requires: ["A1"], roster: ["aqua_blub", "aqua_anglerfish", "aqua_subcool"], adds: [] },
+    { id: "A3", name: "Aqua Village Docks", kind: "skirmish", at: { x: 17, y: 54 },
+      requires: ["A1"], roster: ["aqua_arctik", "aqua_bootlegger", "aqua_harp", "aqua_kinguin"],
+      adds: ["aqua_guin_tok"] },
+    { id: "A4", name: "Corsair Lanes", kind: "warden", at: { x: 26, y: 64 },
+      requires: ["A3"], roster: ["aqua_bulletshrimp", "aqua_icyninza", "aqua_krakler", "aqua_spinefin"], adds: [],
+      note: "The SeaC crews. Krakler is what Siren turns into — you meet the shape before the source." },
+    { id: "A5", name: "The Reef Wall", kind: "skirmish", at: { x: 9, y: 63 },
+      requires: ["A2"], roster: ["aqua_coralgolem", "aqua_siphon", "aqua_tide"], adds: [],
+      overflow: ["pyro_canister"], // fronts the open sea route to PYRO
+      note: "The Talent node — Siphon and Tide both carry once-per-game Talents. The clearest teaching fight for them." },
+    { id: "A6", name: "Mists of Despair", kind: "warden", at: { x: 28, y: 85 },
+      requires: ["A5"], roster: ["aqua_octoirate", "aqua_bahari", "aqua_blackice"], adds: [],
+      note: "Shipwreck boneyard, perpetual fog." },
+    // Gated off A1, not A3: the floes are the next water NORTH of where ships
+    // arrive, while the village is well south of them.
+    { id: "A7", name: "Northern Ice Floes", kind: "skirmish", at: { x: 38, y: 18 },
+      requires: ["A1"], roster: ["aqua_icynin", "aqua_owlette", "aqua_polarbear"], adds: [] },
+    { id: "A8", name: "Ice Castle Outer Ward", kind: "warden", at: { x: 46, y: 26 },
+      requires: ["A7"], roster: ["aqua_cryo", "aqua_anos", "aqua_liquark"], adds: [] },
+    // Gated off A8, not A6: the Trench is painted on the EAST edge and the mists
+    // are in the far south-west. The lane from the Ice Castle is the short one.
+    { id: "A9", name: "The Steamvent Trench", kind: "warden", at: { x: 78, y: 40 },
+      requires: ["A8"], roster: ["aqua_sapphire", "aqua_vaporem", "aqua_blackbeard", "aqua_icewall"], adds: [],
+      note: "The spike — the whole Cost-5 band at cost 20. Ice Wall is a real wall, not a damage race." },
+    { id: "A10", name: "Ice Castle: Guardians of Ice", kind: "landmark", at: { x: 60, y: 14 },
+      requires: ["A8"], roster: ["aqua_polarking", "aqua_phrost", "aqua_glacius"], adds: [],
+      note: "A pure FREEZE wall, and the only node touching the Arctic Gate — DAWN's border, sealed until Act V." },
+    { id: "A11", name: "Atlantis Outer Ring", kind: "landmark", at: { x: 65, y: 55 },
+      requires: ["A6", "A9"], roster: ["aqua_siren", "aqua_rain", "aqua_driftwraith", "aqua_magalogoon"], adds: [],
+      note: "Four Legendaries — the richest node in the first three acts. Both arms of the sea have to be yours first." },
+    { id: "A13", name: "Atlantis: Heart of the Ocean", kind: "throne", at: { x: 50, y: 45 },
+      requires: ["A11"], roster: ["aqua_hydrogon"], adds: [], required: true,
+      note: "Required. Clearing it opens the sea lanes, which is what makes the rest of the campaign non-linear." },
+    { id: "A12", name: "The Deep", kind: "throne", at: { x: 54, y: 88 },
+      requires: ["A13"], roster: ["aqua_kraken"], adds: [],
+      note: "Optional, and the hardest fight in Act II — deliberately harder than either required Throne." },
+  ],
+};
+
+export const REGIONS: StoryRegion[] = [LEAF, PYRO, AQUA];
 
 /** A region is reachable once every node gating it is cleared. */
 export const isRegionOpen = (save: StorySave, r: StoryRegion): boolean =>
@@ -220,6 +291,7 @@ export const CAP_LADDER = [
   { cap: 12, board: 4, unlockedBy: null, label: "Starting deck" },
   { cap: 15, board: 4, unlockedBy: "L14", label: "LEAF Throne" },
   { cap: 18, board: 4, unlockedBy: "P13", label: "PYRO Throne" }, // 4x4 format max
+  { cap: 18, board: 4, unlockedBy: "A13", label: "AQUA Throne" }, // either Act II Throne
 ] as const;
 
 export function deckCapFor(cleared: readonly string[]): number {

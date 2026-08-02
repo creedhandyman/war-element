@@ -253,7 +253,10 @@ engine runtime and no React, so it stays testable headlessly
   ~20px slab. Node/badge sizes are `cqw`-based off `container-type: inline-size`
   on the canvas, so they track the map rather than the viewport — 54px at
   desktop's 1180px cap, ~41px on a phone.
-- **Regions**: LEAF (open) and PYRO (`requires: ["L14"]`). A region gate is
+- **Regions**: LEAF (open), plus PYRO and AQUA (both `requires: ["L14"]` — the
+  doc's Act II branch, neither privileged). Each carries its own `artRatio`:
+  AQUA's painting is 4:3 where LEAF's and PYRO's are 3:2, and forcing one shape
+  would crop somebody's map. A region gate is
   separate from node gates, and `isOpen` checks BOTH — every region's entry node
   has no prerequisites of its own, so without the region check PYRO's P1 would
   read as open on turn one. The map header grows an element switcher once a
@@ -318,7 +321,10 @@ engine runtime and no React, so it stays testable headlessly
   effect's deps don't change, so nothing re-plays. Regions without an entry fall
   back to the menu/battle pair, so shipping a map before its music is fine. The
   audio pool is built ON DEMAND: `public/music` is ~28MB across four tracks, and
-  a player who never opens Story Mode should never fetch its themes.
+  a player who never opens Story Mode should never fetch its themes. All tracks
+  are 96 kb/s — they are looping ambience under SFX, and 320 kb/s masters cost
+  3x the bytes for nothing. Transcode with the ffmpeg that ships inside the
+  `imageio-ffmpeg` pip package; there is no system ffmpeg on this machine.
 - **Save** is one localStorage key, `we_story_v1`, sanitized on load (unknown
   card/node ids are dropped). To exercise a mid-campaign state in the browser,
   seed it directly rather than playing forward.
