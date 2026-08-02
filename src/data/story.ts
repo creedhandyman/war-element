@@ -11,7 +11,17 @@ import { CARD_INDEX, getDef } from "./cards";
 
 // ── shape ───────────────────────────────────────────────────────────────────
 
-export type NodeKind = "skirmish" | "warden" | "landmark" | "throne" | "blight";
+export type NodeKind = "skirmish" | "warden" | "landmark" | "throne" | "blight" | "gate";
+
+/** A Gate's composition requirement (§7). Recruitment is broad enough that the
+ *  player always HAS the cards — the gate just forces them to actually slot
+ *  them, so a deck can't be a pile of whatever dropped last. */
+export interface GateDemand {
+  kind: "class" | "attack";
+  /** A CardClass ("Ranger") or an AttackType ("Ranged"). */
+  value: string;
+  count: number;
+}
 
 export interface StoryNode {
   id: string;
@@ -30,6 +40,10 @@ export interface StoryNode {
   requires: string[];
   /** A required Throne opens the region's borders; an optional one is a detour. */
   required?: boolean;
+  /** Gate nodes only: the composition this border demands. */
+  demand?: GateDemand;
+  /** Gate nodes only: the region id this gate opens, for the map's copy. */
+  opens?: string;
   note?: string;
   /** Position on the region's painted map, as a PERCENTAGE of its width and
    *  height. Percentages rather than pixels so the map scales to any viewport
@@ -126,6 +140,19 @@ const LEAF: StoryRegion = {
     { id: "L14", name: "The Spirit Tree Rises", kind: "throne", at: { x: 48, y: 45 },
       requires: ["L12"], roster: ["leaf_oakgre"], adds: ["leaf_acorn_tok"], required: true,
       note: "Required. Clearing it opens the borders to PYRO and AQUA." },
+    // Gates. Rosters live in `adds` because a gate is a checkpoint, not a farm —
+    // its squad is a mixed border patrol of BOTH elements, and putting real
+    // cards in a recruitable roster would place them a second time.
+    { id: "GA", name: "Gate A: Summer's Southern Burn", kind: "gate", at: { x: 63, y: 94 },
+      requires: ["L14"], roster: [], opens: "pyro",
+      adds: ["leaf_gecko", "leaf_dartfrog", "pyro_staph", "pyro_sparky", "pyro_florence", "pyro_ingit"],
+      demand: { kind: "attack", value: "Ranged", count: 3 },
+      note: "The open road south. The burn punishes anything that has to close distance." },
+    { id: "GB", name: "Gate B: Eastleaf Port", kind: "gate", at: { x: 93, y: 30 },
+      requires: ["L14"], roster: [], opens: "aqua",
+      adds: ["leaf_hunter", "leaf_walking_tree", "aqua_misty", "aqua_buccaneers", "aqua_piranha", "aqua_blub"],
+      demand: { kind: "class", value: "Support", count: 2 },
+      note: "The sea road east. A long crossing — bring something that can keep a crew alive." },
   ],
 };
 
@@ -143,7 +170,7 @@ const PYRO: StoryRegion = {
   board: 4,
   art: "/maps/pyro.webp",
   artRatio: 1536 / 1024,
-  requires: ["L14"], // the Spirit Tree opens the borders
+  requires: ["GA", "GC2"], // Gate A from LEAF, or Gate C from AQUA
   // The Veil Gate: the art paints DUSK's corruption already bleeding through it.
   blightAt: { x: 80, y: 87 },
   nodes: [
@@ -189,6 +216,13 @@ const PYRO: StoryRegion = {
     { id: "P12", name: "The Forge Core", kind: "throne", at: { x: 23, y: 66 },
       requires: ["P13"], roster: ["pyro_nitro"], adds: [],
       note: "Optional. Where the first flame burns — Forged Tech's Mythic." },
+    // Gate C, PYRO side. Its twin sits on AQUA's map, so switching routes never
+    // means walking back through LEAF.
+    { id: "GC", name: "Gate C: Sunfall Harbor", kind: "gate", at: { x: 53, y: 94 },
+      requires: ["P2"], roster: [], opens: "aqua",
+      adds: ["pyro_flamehound", "pyro_canister", "aqua_buccaneers", "aqua_bootlegger", "aqua_piranha", "aqua_blub"],
+      demand: { kind: "class", value: "Tank", count: 3 },
+      note: "Boarding actions in the pirate lanes. Bring bodies that can hold a deck." },
   ],
 };
 
@@ -208,7 +242,7 @@ const AQUA: StoryRegion = {
   board: 4,
   art: "/maps/aqua.webp",
   artRatio: 1440 / 1080,
-  requires: ["L14"], // Gate B opens on the same Throne as Gate A
+  requires: ["GB", "GC"], // Gate B from LEAF, or Gate C from PYRO
   // The Drowned Blight: the art already paints DUSK's violet across the
   // south-east water.
   blightAt: { x: 86, y: 91 },
@@ -254,14 +288,26 @@ const AQUA: StoryRegion = {
     { id: "A12", name: "The Deep", kind: "throne", at: { x: 54, y: 88 },
       requires: ["A13"], roster: ["aqua_kraken"], adds: [],
       note: "Optional, and the hardest fight in Act II — deliberately harder than either required Throne." },
+    // Gate C, AQUA side — the same harbor from the other direction.
+    { id: "GC2", name: "Gate C: Sunfall Harbor", kind: "gate", at: { x: 10, y: 72 },
+      requires: ["A5"], roster: [], opens: "pyro",
+      adds: ["aqua_buccaneers", "aqua_bootlegger", "pyro_flamehound", "pyro_canister", "pyro_firecrack", "pyro_taper"],
+      demand: { kind: "class", value: "Tank", count: 3 },
+      note: "The same harbor from the water. Sail east and PYRO's coast is yours without going back through LEAF." },
   ],
 };
 
 export const REGIONS: StoryRegion[] = [LEAF, PYRO, AQUA];
 
 /** A region is reachable once every node gating it is cleared. */
-export const isRegionOpen = (save: StorySave, r: StoryRegion): boolean =>
-  (r.requires ?? []).every((id) => save.cleared.includes(id));
+/** A region opens when ANY of its gates has been cleared — not all of them.
+ *  AQUA is reachable through LEAF's Eastleaf Port or PYRO's Sunfall Harbor, and
+ *  demanding both would mean an AQUA-first player could never take the second
+ *  road without walking back through LEAF. Empty/absent = open from the start. */
+export const isRegionOpen = (save: StorySave, r: StoryRegion): boolean => {
+  const gates = r.requires ?? [];
+  return gates.length === 0 || gates.some((id) => save.cleared.includes(id));
+};
 
 export const ALL_NODES: StoryNode[] = REGIONS.flatMap((r) => r.nodes);
 export const nodeById = (id: string): StoryNode | undefined => ALL_NODES.find((n) => n.id === id);
@@ -359,8 +405,10 @@ export function isRegionCleared(save: StorySave, region: StoryRegion): boolean {
 export function blightAddsFor(save: StorySave, region: StoryRegion, node: StoryNode): string[] {
   if (!isRegionCleared(save, region)) return [];
   // A Blight Node is already a pure DUSK squad — adding shadow to shadow is
-  // double-counting, not pressure.
-  if (node.kind === "skirmish" || node.kind === "throne" || node.kind === "blight") return [];
+  // double-counting, not pressure. A Gate is a border checkpoint rather than
+  // territory, and §10.4 puts Blight on Warden-tier squads and up.
+  if (node.kind === "skirmish" || node.kind === "throne"
+      || node.kind === "blight" || node.kind === "gate") return [];
   const lvl = blightLevel(save, region);
   return lvl <= 0 ? [] : BLIGHT_ADDS.slice(0, Math.min(lvl, 2));
 }
@@ -431,6 +479,52 @@ export const isOverflow = (node: StoryNode, defId: string): boolean =>
 /** Everything a node can actually give you: its own roster plus any bleed. */
 export const recruitablePool = (node: StoryNode): string[] => [...node.roster, ...(node.overflow ?? [])];
 
+// ── border gates (§7) ───────────────────────────────────────────────────────
+
+export const isGate = (n: StoryNode): boolean => n.kind === "gate";
+
+export interface GateCheck {
+  ok: boolean;
+  /** Plain-language reasons the gate is refusing, in the order to show them. */
+  reasons: string[];
+}
+
+/** How many cards in a deck satisfy a demand. */
+export function demandMet(deck: readonly string[], demand: GateDemand): number {
+  return deck.filter((id) => {
+    const d = getDef(id);
+    return demand.kind === "class" ? d.cardClass === demand.value : d.attackType === demand.value;
+  }).length;
+}
+
+/**
+ * §7's twofold gate requirement, checked against the CURRENT story deck.
+ *
+ * The deck-size half is exact, not a minimum: a gate is the campaign's one
+ * moment of "prove you actually built something", and letting a 9-card deck
+ * through a cap-15 gate would defeat the point of the cap ladder existing.
+ */
+export function gateCheck(save: StorySave, node: StoryNode): GateCheck {
+  if (!isGate(node)) return { ok: true, reasons: [] };
+  const reasons: string[] = [];
+  const cap = deckCapFor(save.cleared);
+  if (save.deck.length !== cap)
+    reasons.push(
+      save.deck.length < cap
+        ? `Your deck is ${save.deck.length}/${cap}. A gate takes a full deck — add ${cap - save.deck.length} more.`
+        : `Your deck is ${save.deck.length}/${cap}. Drop ${save.deck.length - cap}.`,
+    );
+  if (node.demand) {
+    const have = demandMet(save.deck, node.demand);
+    if (have < node.demand.count)
+      reasons.push(
+        `This border wants ${node.demand.count} ${node.demand.value} card` +
+        `${node.demand.count === 1 ? "" : "s"} — you have ${have}.`,
+      );
+  }
+  return { ok: reasons.length === 0, reasons };
+}
+
 // ── formations (§10.7) ──────────────────────────────────────────────────────
 // An enemy squad is a FORMATION, not a deck: it may field several copies of the
 // same card. The player's collection stays one-card-one-copy; the AI's board
@@ -494,9 +588,12 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
   for (const id of out) copies.set(id, (copies.get(id) ?? 0) + 1);
 
   const target = formationSize(deckCapFor(save.cleared));
+  // A Gate has no recruitable roster — its whole squad is non-recruitable border
+  // filler — so duplicates come from that squad instead, or it could never fill.
+  const pool = uniques.length > 0 ? uniques : node.adds;
   const byCost = (a: string, b: string) => getDef(a).cost - getDef(b).cost;
-  const rares = uniques.filter((id) => getDef(id).rarity === "rare").sort(byCost);
-  const epics = uniques.filter((id) => getDef(id).rarity === "epic").sort(byCost);
+  const rares = pool.filter((id) => getDef(id).rarity === "rare").sort(byCost);
+  const epics = pool.filter((id) => getDef(id).rarity === "epic").sort(byCost);
 
   // Round-robin inside each tier, so nothing reaches three copies while another
   // card of the same tier is still on one.

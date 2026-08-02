@@ -5,7 +5,7 @@
  *  outright, since capture is what earns the rolls.
  */
 import { getDef } from "../data/cards";
-import type { StoryNode } from "../data/story";
+import { isGate, type StoryNode } from "../data/story";
 
 export function StoryResult(props: {
   node: StoryNode;
@@ -22,14 +22,21 @@ export function StoryResult(props: {
   return (
     <div className="overlay on-top">
       <div className="modal story-result">
-        <h1>{node.name} cleared</h1>
+        <h1>{isGate(node) ? "Border crossed" : `${node.name} cleared`}</h1>
+        {isGate(node) ? (
+          <p>
+            The patrol is broken. <b>{(node.opens ?? "").toUpperCase()}</b> is open,
+            and this gate stays open behind you.
+          </p>
+        ) : (
         <p>
           {captured > 0
             ? <>You padlocked <b>{captured}</b> {captured === 1 ? "slot" : "slots"} — {rolls} recruit {rolls === 1 ? "roll" : "rolls"}.</>
             : <>Won by elimination — no slots padlocked, so one roll.</>}
         </p>
+        )}
 
-        {won.length > 0 ? (
+        {isGate(node) ? null : won.length > 0 ? (
           <>
             <div className="sr-label">Recruited</div>
             <ul className="sr-list">

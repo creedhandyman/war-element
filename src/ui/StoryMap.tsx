@@ -10,15 +10,15 @@ import { useEffect, useMemo, useState } from "react";
 import { getDef } from "../data/cards";
 import {
   BLIGHT_MAX, REGIONS, blightAddsFor, blightLevel, blightNodeFor, deckCapFor,
-  isBlightNode, isCleared, isOpen, isOverflow, isRegionCleared, isRegionOpen,
-  recruitChance, recruitablePool, regionOfNode, terrainContested,
+  gateCheck, isBlightNode, isCleared, isGate, isOpen, isOverflow, isRegionCleared,
+  isRegionOpen, recruitChance, recruitablePool, regionOfNode, terrainContested,
   type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
 import { EL_COLOR } from "./shared";
 
 const KIND_LABEL: Record<StoryNode["kind"], string> = {
   skirmish: "Skirmish", warden: "Warden", landmark: "Landmark", throne: "Throne",
-  blight: "Blight",
+  blight: "Blight", gate: "Border Gate",
 };
 
 /** Fallback shape for a region with no art. Real regions carry their own
@@ -165,6 +165,7 @@ export function StoryMap(props: {
               >
                 <span className="sn-id">{n.id}</span>
                 {n.kind === "throne" && <span className="sn-crown">{n.required ? "★" : "☆"}</span>}
+                {isGate(n) && <span className="sn-gate" aria-hidden="true">⇥</span>}
                 {!open && <span className="sn-lock">🔒</span>}
                 {open && !cleared && left > 0 && <span className="sn-left">{left}</span>}
                 {cleared && !isBlightNode(n) && <span className="sn-tick">✓</span>}
@@ -202,6 +203,9 @@ function NodePanel(props: {
   const exhausted = pool.every((id) => owned.has(id));
   const blightAdds = blightAddsFor(save, props.region, node);
   const contested = terrainContested(save, props.region);
+  // A gate refuses on deck SHAPE, not on progress — so it needs its own reason
+  // line, separate from the locked-by-prerequisites one.
+  const gate = gateCheck(save, node);
 
   return (
     <div className="node-panel">
@@ -221,9 +225,17 @@ function NodePanel(props: {
         </p>
       )}
 
-      <div className="np-label">Enemy squad</div>
+      {isGate(node) && node.demand && (
+        <p className={`np-demand ${gate.ok ? "met" : ""}`}>
+          Demands <b>{node.demand.count} {node.demand.value}</b>
+          {" "}and a full <b>{deckCapFor(save.cleared)}</b>-card deck
+          {gate.ok && <span className="np-tick"> ✓ ready</span>}
+        </p>
+      )}
+
+      <div className="np-label">{isGate(node) ? "Border patrol" : "Enemy squad"}</div>
       <ul className="np-roster">
-        {pool.map((id) => {
+        {(isGate(node) ? node.adds : pool).map((id) => {
           const d = getDef(id);
           const have = owned.has(id);
           const over = isOverflow(node, id);
@@ -244,13 +256,15 @@ function NodePanel(props: {
               <span className={`npr-rar r-${d.rarity ?? "rare"}`}>{d.rarity ?? "rare"}</span>
               <span className="npr-cost">{d.cost}◆</span>
               <span className="npr-drop">
-                {have ? "owned" : `${recruitChance(id, pity, over)}%${pity ? ` (+${pity} dry)` : ""}`}
+                {isGate(node)
+                  ? getDef(id).element
+                  : have ? "owned" : `${recruitChance(id, pity, over)}%${pity ? ` (+${pity} dry)` : ""}`}
               </span>
             </li>
           );
         })}
       </ul>
-      {node.adds.length > 0 && (
+      {node.adds.length > 0 && !isGate(node) && (
         <p className="np-adds">
           Plus {node.adds.map((id) => getDef(id).name).join(", ")} — spawned filler, not recruitable.
         </p>
@@ -266,11 +280,29 @@ function NodePanel(props: {
       {!open ? (
         <p className="np-blocked">Locked. Clear {blockedBy.join(" and ")} first.</p>
       ) : (
-        <button className="lockin np-fight" onClick={() => props.onFight(node)}>
-          {cleared ? "Fight again" : "Fight"}
-        </button>
+        <>
+          {isGate(node) && !gate.ok && (
+            <div className="np-gate">
+              {gate.reasons.map((r) => <p key={r} className="np-blocked">{r}</p>)}
+            </div>
+          )}
+          <button
+            className="lockin np-fight"
+            disabled={!gate.ok}
+            title={gate.ok ? undefined : "This gate wants a finished deck"}
+            onClick={() => props.onFight(node)}
+          >
+            {cleared ? "Fight again" : isGate(node) ? "Cross" : "Fight"}
+          </button>
+        </>
       )}
-      {open && (
+      {open && isGate(node) && (
+        <p className="np-drops">
+          A border patrol of both sides — nothing here joins you. Crossing opens{" "}
+          <b>{(node.opens ?? "").toUpperCase()}</b>, and the gate stays open behind you.
+        </p>
+      )}
+      {open && !isGate(node) && (
         exhausted ? (
           <p className="np-drops exhausted">
             You already own everything here. Clearing it still pays Gold and essence,

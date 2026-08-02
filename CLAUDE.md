@@ -253,7 +253,21 @@ engine runtime and no React, so it stays testable headlessly
   ~20px slab. Node/badge sizes are `cqw`-based off `container-type: inline-size`
   on the canvas, so they track the map rather than the viewport — 54px at
   desktop's 1180px cap, ~41px on a phone.
-- **Regions**: LEAF (open), plus PYRO and AQUA (both `requires: ["L14"]` — the
+- **Border gates (§7)**: a region is entered by CLEARING A GATE, not by clearing
+  the previous Throne — the Throne only unlocks the gate. Gates are nodes of
+  `kind: "gate"` on the SOURCE region's map, and `region.requires` lists the
+  gates that open it, satisfied by **ANY** of them (not all): AQUA is reachable
+  through LEAF's Eastleaf Port *or* PYRO's Sunfall Harbor, so an AQUA-first
+  player never has to walk back through LEAF for the second road. Gate C exists
+  twice, once on each side (`GC` / `GC2`), because it is bidirectional.
+  A gate's squad lives in **`adds`**, not `roster` — it is a mixed border patrol
+  of both elements and a checkpoint rather than a farm, so putting real cards in
+  a recruitable roster would place them a second time. That makes gates the one
+  exception to the adds-are-tokens rule. `gateCheck` enforces §7's two halves:
+  deck length **exactly** at the cap, plus a composition demand. Gates take no
+  Blight (a checkpoint is not territory) and `buildFormation` falls back to the
+  patrol for its duplicate fill, since a gate has no roster to draw on.
+- **Regions**: LEAF (open), plus PYRO and AQUA (formerly `requires: ["L14"]` — the
   doc's Act II branch, neither privileged). Each carries its own `artRatio`:
   AQUA's painting is 4:3 where LEAF's and PYRO's are 3:2, and forcing one shape
   would crop somebody's map. A region gate is

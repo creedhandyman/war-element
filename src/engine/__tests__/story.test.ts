@@ -9,6 +9,7 @@ import {
   ALL_NODES, BLIGHT_ADDS, BLIGHT_MAX, CAP_LADDER, OVERFLOW_RATE, REGIONS, STARTER_DECK,
   applyClear, baseRateFor, blightAddsFor, blightLevel, canBlight, deckCapFor, isOpen, isOverflow,
   DUPLICATE_CAP, PLACED_CARDS, STARTER_DECK as STARTER, bestSource, buildFormation,
+  demandMet, gateCheck, isGate, regionOfNode,
   formationSize, isRegionCleared, isRegionOpen,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
@@ -40,7 +41,11 @@ describe("story: node placement", () => {
   });
 
   it("adds are always tokens — filler is never something you could have owned", () => {
-    const bad = ALL_NODES.flatMap((n) => n.adds.filter((id) => !tokenIds.has(id)).map((id) => `${n.id}:${id}`));
+    // Gates are the exception by design: a border patrol is a mixed squad of BOTH
+    // elements, and those are real cards precisely so the fight looks like the
+    // frontier. They stay non-recruitable because they sit in `adds`.
+    const bad = ALL_NODES.filter((n) => !isGate(n))
+      .flatMap((n) => n.adds.filter((id) => !tokenIds.has(id)).map((id) => `${n.id}:${id}`));
     expect(bad).toEqual([]);
   });
 });
@@ -99,6 +104,7 @@ describe("story: the deck cap ladder", () => {
     // the design promised a guaranteed recruit on the very first padlock.
     const owned = new Set(STARTER_DECK);
     const dead = leaf.nodes
+      .filter((n) => !isGate(n))          // a gate never pays recruits by design
       .filter((n) => n.roster.every((id) => owned.has(id)))
       .map((n) => `${n.id} ${n.name}`);
     expect(dead).toEqual([]);
@@ -314,6 +320,12 @@ describe("story: the Blight", () => {
     expect(blightAddsFor(cleared(), leafRegion, nodeById("L8")!)).toEqual([BLIGHT_ADDS[0]]);
   });
 
+  it("spares border gates — a checkpoint is not territory", () => {
+    const s = { ...newSave(), cleared: ["L14"], blight: { leaf: 2 } };
+    for (const g of ALL_NODES.filter(isGate))
+      expect(blightAddsFor(s, regionOfNode(g.id)!, g), g.id).toEqual([]);
+  });
+
   it("spares Skirmishes and Thrones — pressure lands on Warden tier and up", () => {
     const s = cleared({ blight: { leaf: 2 } });
     expect(blightAddsFor(s, leafRegion, nodeById("L1")!)).toEqual([]);  // skirmish
@@ -421,13 +433,15 @@ describe("story: PYRO", () => {
     expect(pyro.nodes.filter((n) => !seen.has(n.id)).map((n) => n.id)).toEqual([]);
   });
 
-  it("is sealed until the LEAF Throne falls", () => {
+  it("is sealed until a border gate is crossed", () => {
     // Every region's entry node has no prerequisites of its own, so without the
-    // REGION gate P1 would read as open on turn one of the campaign.
+    // REGION gate P1 would read as open on turn one of the campaign. Clearing
+    // the LEAF Throne is no longer enough on its own — it only OPENS the gate.
     const fresh = newSave();
     expect(isRegionOpen(fresh, pyro)).toBe(false);
     expect(isOpen(fresh, nodeById("P1")!)).toBe(false);
-    const after = { ...fresh, cleared: ["L14"] };
+    expect(isRegionOpen({ ...fresh, cleared: ["L14"] }, pyro)).toBe(false);
+    const after = { ...fresh, cleared: ["L14", "GA"] };
     expect(isRegionOpen(after, pyro)).toBe(true);
     expect(isOpen(after, nodeById("P1")!)).toBe(true);
   });
@@ -511,12 +525,17 @@ describe("story: every region holds together", () => {
     });
   }
 
-  it("gives both Act II regions the same entry gate and the same cap step", () => {
-    // The doc's branch: PYRO or AQUA, player's choice, neither privileged.
+  it("gives both Act II regions two ways in and the same cap step", () => {
+    // The doc's branch: PYRO or AQUA, player's choice, neither privileged. Each
+    // is reachable from LEAF or from its sibling, so route order is free.
     const pyro = REGIONS.find((x) => x.id === "pyro")!;
     const aqua = REGIONS.find((x) => x.id === "aqua")!;
-    expect(pyro.requires).toEqual(aqua.requires);
+    expect(pyro.requires).toHaveLength(2);
+    expect(aqua.requires).toHaveLength(2);
     expect(deckCapFor(["L14", "P13"])).toBe(deckCapFor(["L14", "A13"]));
+    // Neither sibling's gate is reachable before LEAF is finished.
+    expect(nodeById("GA")!.requires).toEqual(["L14"]);
+    expect(nodeById("GB")!.requires).toEqual(["L14"]);
   });
 });
 
@@ -589,5 +608,99 @@ describe("story: formations (10.7)", () => {
     const r = rollRecruits(s, node, 99, () => 0);         // every roll succeeds
     expect(r.won.sort()).toEqual([...node.roster].sort());
     expect(new Set(r.won).size).toBe(r.won.length);
+  });
+});
+
+describe("story: border gates (7)", () => {
+  const gates = ALL_NODES.filter(isGate);
+  const full = (cleared: string[]): StorySave => ({ ...newSave(), cleared });
+
+  it("exists on every built border", () => {
+    expect(gates.map((g) => g.id).sort()).toEqual(["GA", "GB", "GC", "GC2"]);
+  });
+
+  it("never places a card — a gate is a checkpoint, not a farm", () => {
+    for (const g of gates) {
+      expect(g.roster, `${g.id} has a recruitable roster`).toEqual([]);
+      expect(g.adds.length, `${g.id} has no patrol`).toBeGreaterThan(0);
+    }
+  });
+
+  it("patrols both sides of the border it sits on", () => {
+    for (const g of gates) {
+      const els = new Set(g.adds.map((id) => getDef(id).element));
+      expect(els.size, `${g.id} patrol is single-element`).toBe(2);
+      expect([...els], `${g.id}`).toContain(regionOfNode(g.id)!.element);
+    }
+  });
+
+  it("opens a region that actually names it", () => {
+    for (const g of gates) {
+      const target = REGIONS.find((r) => r.id === g.opens)!;
+      expect(target, `${g.id} opens nothing`).toBeTruthy();
+      expect(target.requires, `${target.id} does not accept ${g.id}`).toContain(g.id);
+    }
+  });
+
+  it("accepts EITHER route into a region, not both", () => {
+    // An AQUA-first player must be able to reach PYRO through Sunfall Harbor
+    // without walking back to LEAF for Gate A.
+    const pyro = REGIONS.find((r) => r.id === "pyro")!;
+    expect(isRegionOpen(full(["GA"]), pyro)).toBe(true);
+    expect(isRegionOpen(full(["GC2"]), pyro)).toBe(true);
+    expect(isRegionOpen(full([]), pyro)).toBe(false);
+  });
+
+  it("refuses a deck that is not exactly at the cap", () => {
+    const g = nodeById("GA")!;
+    const short = { ...full(["L14"]), deck: STARTER.slice(0, 8) };
+    expect(gateCheck(short, g).ok).toBe(false);
+    expect(gateCheck(short, g).reasons.join(" ")).toMatch(/8\/15/);
+  });
+
+  it("refuses a full deck that ignores the composition demand", () => {
+    const g = nodeById("GA")!;                    // wants 3 Ranged
+    const melee = CARDS.filter((c) => c.attackType === "Melee").slice(0, 15).map((c) => c.id);
+    const s = { ...full(["L14"]), deck: melee };
+    expect(s.deck).toHaveLength(15);
+    expect(gateCheck(s, g).ok).toBe(false);
+    expect(gateCheck(s, g).reasons.join(" ")).toMatch(/Ranged/);
+  });
+
+  it("passes a deck that meets both halves", () => {
+    const g = nodeById("GA")!;
+    const ranged = CARDS.filter((c) => c.attackType === "Ranged").slice(0, 5).map((c) => c.id);
+    const rest = CARDS.filter((c) => !ranged.includes(c.id)).slice(0, 10).map((c) => c.id);
+    const s = { ...full(["L14"]), deck: [...ranged, ...rest] };
+    expect(s.deck).toHaveLength(15);
+    expect(gateCheck(s, g)).toEqual({ ok: true, reasons: [] });
+  });
+
+  it("demands nothing a player could not already field", () => {
+    // §7's promise: recruitment is broad enough that the cards always exist, so
+    // a gate only forces the player to SLOT them. If a demand outran what the
+    // region before it can even drop, the campaign would dead-end.
+    for (const g of gates) {
+      const region = regionOfNode(g.id)!;
+      const reachable = region.nodes.flatMap((n) => n.roster);
+      expect(demandMet(reachable, g.demand!), `${g.id}: ${g.demand!.value}`)
+        .toBeGreaterThanOrEqual(g.demand!.count);
+    }
+  });
+
+  it("is never the thing that gates itself", () => {
+    // A gate whose own prerequisites are unreachable would seal the campaign.
+    for (const g of gates)
+      for (const req of g.requires) expect(nodeById(req), `${g.id} requires ${req}`).toBeTruthy();
+  });
+
+  it("fills a formation from its patrol", () => {
+    // Gates have no roster, so the duplicate fill has nothing to draw on unless
+    // it falls back to the patrol.
+    for (const g of gates) {
+      const f = buildFormation(full(["L14"]), regionOfNode(g.id)!, g);
+      expect(f.length, `${g.id} fielded ${f.length}`).toBeGreaterThanOrEqual(g.adds.length);
+      for (const id of g.adds) expect(f).toContain(id);
+    }
   });
 });

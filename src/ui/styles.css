@@ -1952,6 +1952,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .story-canvas.arted .story-node.sel { transform: translate(-50%, -50%) scale(1.12); }
 .story-canvas.arted .story-edges { position: absolute; inset: 0; width: 100%; height: 100%; }
 /* A Blight Node is not the region's colour -- it is the thing occupying it. */
+/* A gate is a doorway, not a fight — squared off and gold rather than element-tinted. */
+.story-node.gate {
+  --el: var(--gold-lit);
+  border-radius: 4px; border-style: dashed;
+  border-color: var(--gold); color: var(--gold-hi);
+}
+.sn-gate { position: absolute; top: -8px; right: -6px; font-size: 12px; color: var(--gold-hi); pointer-events: none; }
 .story-node.blight {
   --el: #b47dff;
   border-color: #8a5cd0; color: #e6d8ff;
@@ -1980,6 +1987,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .np-kind.landmark { color: var(--gold); border-color: var(--gold-line); }
 .np-kind.throne { color: var(--gold-hi); border-color: var(--gold); }
 .np-kind.blight { color: #b47dff; border-color: #6a3fa0; }
+.np-kind.gate { color: var(--gold-hi); border-color: var(--gold); }
+.np-gate { margin: 8px 0 4px; }
+.np-fight:disabled { opacity: .45; cursor: not-allowed; }
 .np-flag { font-size: 10.5px; color: var(--ink-faint); }
 .np-flag.done { color: var(--gold); }
 .np-note, .np-terrain, .np-adds, .np-drops, .np-blocked { font-size: 12px; color: var(--ink-dim); line-height: 1.5; margin: 6px 0; }
@@ -2109,3 +2119,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      more height than the cards it supports. */
   .col-side.open .col-deckbody { max-height: 46vh; overflow-y: auto; }
 }
+.np-demand { font-size: 12px; color: var(--gold); line-height: 1.5; margin: 8px 0 2px; }
+.np-demand.met { color: var(--ink-dim); }
+.np-tick { color: var(--money, #00e676); font-weight: 700; }
