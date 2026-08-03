@@ -18,6 +18,7 @@ import {
 } from "../data/story";
 import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { SpIcon } from "./icons";
+import { CardExpand } from "./CardExpand";
 
 const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
 const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
@@ -80,9 +81,9 @@ export function StoryCollection(props: {
     props.onSave({ ...save, deck: next });
   };
 
-  // Picking a card has to reveal its detail, and on a phone that detail lives
-  // inside the collapsed rail — so selection opens it.
-  const pick = (id: string) => { setDetailId(id); setDeckOpen(true); };
+  // The detail is a full-screen expand now, so selecting a card no longer has to
+  // prise the deck rail open just to be seen.
+  const pick = (id: string) => setDetailId(id);
 
   const detail = detailId ? CARDS.find((d) => d.id === detailId) ?? null : null;
   const deckFull = save.deck.length >= cap;
@@ -243,21 +244,34 @@ export function StoryCollection(props: {
               you fight with what you bring.
             </p>
           )}
-          {detail && (
-            <div className="col-detail">
-              <div className="np-label">{detail.name}</div>
-              <p className="np-note">
-                {detail.cost}◆ · {detail.cardClass} · {detail.attackType} ·
-                {" "}⚔{detail.dmg}{detail.hits > 1 ? `×${detail.hits}` : ""} ♥{detail.hp} SP {detail.sp}
-              </p>
-              {detail.special && <p className="np-note">Special — {detail.special.name}</p>}
-              <SourceList save={save} defId={detail.id} owned={owned.has(detail.id)}
-                onGoToNode={props.onGoToNode} />
-            </div>
-          )}
           </div>
         </aside>
       </div>
+
+      {/* The same expanded card the deck builder shows, plus the one thing only
+          the Collection knows: where this card actually drops. */}
+      {detail && (
+        <CardExpand
+          def={detail}
+          onClose={() => setDetailId(null)}
+          action={
+            owned.has(detail.id)
+              ? {
+                  label: inDeck.has(detail.id) ? "− Remove from deck" : "+ Add to deck",
+                  primary: !inDeck.has(detail.id),
+                  disabled: !inDeck.has(detail.id) && deckFull,
+                  onClick: () => { toggleDeck(detail.id); setDetailId(null); },
+                }
+              : undefined
+          }
+          extra={
+            <div className="dbd-sect">
+              <SourceList save={save} defId={detail.id} owned={owned.has(detail.id)}
+                onGoToNode={props.onGoToNode} />
+            </div>
+          }
+        />
+      )}
     </div>
   );
 }

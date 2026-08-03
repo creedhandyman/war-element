@@ -11,7 +11,7 @@ import {
   type CustomDeck,
 } from "../data/custom-decks";
 import { EL_COLOR, EL_ICON, RARITY_STYLE, spellArtSrc } from "./shared";
-import { chipify, describePassives } from "./CardDetail";
+import { CardExpand } from "./CardExpand";
 import { SpIcon } from "./icons";
 
 const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
@@ -436,84 +436,19 @@ export function DeckBuilder(props: {
         </div>
       </div>
 
-      {/* Expanded card details — a sub-overlay above the builder. */}
+      {/* Expanded card details — a sub-overlay above the builder. Shared with
+          the story Collection so the two can't drift apart. */}
       {detail && (
-        <div className="overlay dbd-overlay" onClick={(e) => { e.stopPropagation(); setDetailId(null); }}>
-          <div className="modal dbd-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="cd-x" title="Close" onClick={() => setDetailId(null)}>✕</button>
-            {/* Full, uncropped card art at the top of the expanded card. Collapses
-                cleanly if the card has no art yet (info still shows below). */}
-            <div className="dbd-art-full" style={{ borderColor: EL_COLOR[detail.element] }}>
-              <img
-                src={`/cards/${detail.art ?? detail.id}.webp`}
-                alt={detail.name}
-                onError={(e) => { const h = e.currentTarget.closest(".dbd-art-full"); if (h) (h as HTMLElement).style.display = "none"; }}
-              />
-              <span className="dbd-cost">{detail.cost}</span>
-              <span className="dbd-el-badge" title={detail.element} style={{ borderColor: EL_COLOR[detail.element] }}>
-                <img src={EL_ICON[detail.element]} alt={detail.element} draggable={false}
-                  onError={(e) => { e.currentTarget.style.display = "none"; }} />
-              </span>
-            </div>
-            <div className="dbd-head">
-              <div className="dbd-meta">
-                <div className="dbd-name">{detail.name}</div>
-                <div className="dbd-sub">
-                  <span className="dbd-el" style={{ background: EL_COLOR[detail.element] }}>{detail.element}</span>
-                  <span>{detail.cardClass}</span>
-                  <span>{detail.attackType === "Melee" ? "🗡 Melee" : "🏹 Ranged"}</span>
-                  {detail.rarity && RARITY_STYLE[detail.rarity] && (
-                    <span className="dbd-rar" style={{ color: RARITY_STYLE[detail.rarity].color, borderColor: RARITY_STYLE[detail.rarity].color }}>
-                      {RARITY_STYLE[detail.rarity].label}
-                    </span>
-                  )}
-                  {/* A card can carry SEVERAL tribes — one chip each (rendering
-                      the raw array printed them run together). */}
-                  {(Array.isArray(detail.tribe) ? detail.tribe : detail.tribe ? [detail.tribe] : []).map((t) => (
-                    <span key={t} className="dbd-tribe">{t}</span>
-                  ))}
-                </div>
-                <div className="dbd-stats">
-                  <span className="st-dmg">⚔ <span className="atk-dmg">{detail.dmg}</span>{detail.hits > 1 ? <span className="atk-x"> ×{detail.hits}</span> : ""}</span>
-                  <span className="st-hp">♥ {detail.hp}</span>
-                  <span className="st-sh">🛡 {detail.shields}</span>
-                  <span className="st-sp"><SpIcon /> {detail.sp}</span>
-                </div>
-                {Object.keys(detail.keywords).length > 0 && (
-                  <div className="dbd-kws">
-                    {Object.entries(detail.keywords).map(([k, v]) => (
-                      <span key={k} className="dbd-kw">{v === true ? k : `${k} ${v}`}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {detail.special && (
-              <div className="dbd-sect">
-                <div className="dbd-h">{detail.special.talent ? "Talent" : "Special"} · {detail.special.name} <span className="dbd-scost">{detail.special.talent ? "1×" : `${detail.special.cost}◆`}</span></div>
-                <p className="dbd-txt">{chipify(detail.special.text)}</p>
-              </div>
-            )}
-
-            <div className="dbd-sect">
-              <div className="dbd-h">Passives</div>
-              <ul className="dbd-passives">
-                {describePassives(detail).map((line, i) => (
-                  <li key={i}>{chipify(line)}</li>
-                ))}
-              </ul>
-            </div>
-
-            <button
-              className={pickedSet.has(detail.id) ? "ghost dbd-toggle" : "lockin dbd-toggle"}
-              disabled={!pickedSet.has(detail.id) && picked.length >= limits.max}
-              onClick={() => { toggle(detail.id); setDetailId(null); }}
-            >
-              {pickedSet.has(detail.id) ? "− Remove from deck" : "+ Add to deck"}
-            </button>
-          </div>
-        </div>
+        <CardExpand
+          def={detail}
+          onClose={() => setDetailId(null)}
+          action={{
+            label: pickedSet.has(detail.id) ? "− Remove from deck" : "+ Add to deck",
+            primary: !pickedSet.has(detail.id),
+            disabled: !pickedSet.has(detail.id) && picked.length >= limits.max,
+            onClick: () => { toggle(detail.id); setDetailId(null); },
+          }}
+        />
       )}
     </div>
   );
