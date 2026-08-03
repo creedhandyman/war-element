@@ -5,6 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent, canCastSpell, createInitialState, getSpell, SPELLS } from "../index";
+import { terrainBuff } from "../state";
 import { REGIONS } from "../../data/story";
 import type { GameState } from "../index";
 
@@ -32,10 +33,10 @@ describe("standing terrain", () => {
     for (const f of s.fields) expect(f.element).toBe("LEAF");
   });
 
-  it("carries the spell's actual buff", () => {
+  it("carries the WEAKENED buff, not the spell's printed one", () => {
     const s = createInitialState(3, DECK, DECK, [], [], [], 4, undefined, lushfield);
     const printed = getSpell(lushfield)!.field!;
-    for (const f of s.fields) expect(f.regen).toBe(printed.regen);
+    for (const f of s.fields) expect(f.regen).toBe(terrainBuff(printed).regen);
   });
 
   it("never expires, however long the battle runs", () => {
@@ -111,5 +112,66 @@ describe("terrain and cast Field spells coexist", () => {
     expect(terrain).toHaveLength(2);
     expect(new Set(terrain.map((f) => f.owner)).size).toBe(2);
     expect(new Set(terrain.map((f) => f.spellId)).size).toBe(1); // one battlefield
+  });
+});
+
+describe("terrain is a weakened Field, not the spell itself", () => {
+  const fields = SPELLS.filter((s) => s.kind === "field");
+
+  it("halves numeric bonuses", () => {
+    // Lushfield REGEN 2 -> 1, Jetstream SP 3 -> 1, Downpour shield 2 -> 1.
+    expect(terrainBuff({ regen: 2 }).regen).toBe(1);
+    expect(terrainBuff({ sp: 3 }).sp).toBe(1);
+    expect(terrainBuff({ shield: 2, push: 4 })).toEqual({ shield: 1, push: 2 });
+  });
+
+  it("floors at 1 so no region stands on bare ground", () => {
+    // Heatwave's dmgBonus is already 1 — halving to zero would have left PYRO
+    // with terrain that does literally nothing, since its other half is a flag.
+    expect(terrainBuff({ dmgBonus: 1 }).dmgBonus).toBe(1);
+    // Scoped to the eight REGION terrains: Dense Fog is a cast-only spell whose
+    // whole effect is a flag, so it reduces to nothing — which is fine, because
+    // it is nobody's terrain.
+    for (const r of REGIONS) {
+      const sp = SPELLS.find((x) => x.kind === "field" && x.name === r.terrain)!;
+      const live = Object.values(terrainBuff(sp.field!)).filter((v) => typeof v === "number" && v > 0);
+      expect(live.length, `${r.id} stands on ${sp.name}, which reduces to nothing`).toBeGreaterThan(0);
+    }
+  });
+
+  it("drops every flag — those are what the six magic buys", () => {
+    // Permanent neverMiss across every DAWN card in every DAWN node is not a
+    // battlefield, it is a rule change.
+    for (const sp of fields) {
+      const t = terrainBuff(sp.field!) as Record<string, unknown>;
+      for (const flag of ["evasion", "neverMiss", "seeStealth", "flowRepick",
+        "enemyMissChance", "burnPersists", "extendStatus"])
+        expect(t[flag], `${sp.name} kept ${flag}`).toBeUndefined();
+    }
+  });
+
+  it("never strengthens anything", () => {
+    for (const sp of fields) {
+      const full = sp.field! as unknown as Record<string, number>;
+      const t = terrainBuff(sp.field!) as unknown as Record<string, number>;
+      for (const [k, v] of Object.entries(t))
+        expect(v, `${sp.name}.${k}`).toBeLessThanOrEqual(full[k]);
+    }
+  });
+
+  it("seeds the weakened values into a real battle", () => {
+    const s = createInitialState(3, DECK, DECK, [], [], [], 4, undefined, lushfield);
+    const printed = getSpell(lushfield)!.field!;
+    expect(printed.regen).toBe(2);
+    for (const f of s.fields) {
+      expect(f.regen).toBe(1);
+      expect(f.extendStatus, "the status rider is a flag-tier effect").toBeUndefined();
+    }
+  });
+
+  it("leaves a CAST field at full strength", () => {
+    // The whole point of the split: paying for it still gets you the real thing.
+    for (const sp of fields) expect(sp.field!.rounds).toBeGreaterThan(0);
+    expect(getSpell(lushfield)!.field!.regen).toBe(2);
   });
 });

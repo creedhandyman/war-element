@@ -1,7 +1,29 @@
-import type { GameState, PlayerId, Pos } from "../engine";
+import type { FieldBuff, FieldState, GameState, PlayerId, Pos } from "../engine";
 import { cardAt, enemyOf, getSpell, homeRow, isContested } from "../engine";
 import { Slot } from "./Slot";
 import { EL_COLOR } from "./shared";
+
+/** Plain-language summary of a live Field's numeric bonuses. Used for terrain,
+ *  whose printed spell text describes a stronger thing than it is running. */
+const BUFF_LABEL: [keyof FieldBuff, (n: number) => string][] = [
+  ["regen", (n) => `REGEN ${n} each round`],
+  ["shield", (n) => `+${n} shield`],
+  ["sp", (n) => `+${n} SP`],
+  ["dmgBonus", (n) => `+${n} DMG`],
+  ["block", (n) => `BLOCK ${n}`],
+  ["reflect", (n) => `REFLECT ${n}`],
+  ["specialDiscount", (n) => `Specials cost ${n} less`],
+  ["electrify", (n) => `+${n} Electrify DMG`],
+  ["drainBonus", (n) => `+${n} DRAIN`],
+  ["push", (n) => `+${n} knockback`],
+];
+
+function describeFieldBuff(f: FieldState): string {
+  const parts = BUFF_LABEL
+    .filter(([k]) => typeof f[k] === "number" && (f[k] as number) > 0)
+    .map(([k, label]) => label(f[k] as number));
+  return parts.length ? `${parts.join(", ")} for its own element.` : "No standing bonus.";
+}
 
 export function Board(props: {
   game: GameState;
@@ -77,8 +99,12 @@ export function Board(props: {
           const color = EL_COLOR[f.element];
           // Standing terrain has no timer — showing roundsLeft would read as
           // "one round left" on something that runs the whole battle.
+          // Terrain is a WEAKENED form of the spell, so quoting the spell's own
+          // text would promise effects it does not have. Describe what is
+          // actually running instead.
           const tip = f.permanent
-            ? `${spell.name} — ${spell.text} · the region's terrain, running all battle for both sides`
+            ? `${spell.name} — the region's terrain, all battle, both sides. ${describeFieldBuff(f)}` +
+              ` (a weakened form — cast the spell for the full effect)`
             : `${spell.name} (${f.owner === "P1" ? "yours" : "enemy"}) — ${spell.text} · ${f.roundsLeft} round(s) left`;
           return (
             <div

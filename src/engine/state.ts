@@ -15,6 +15,7 @@ import type {
   PlayerState,
   Pos,
   StatusKind,
+  FieldBuff,
 } from "./types";
 import { BOARD_SIZE, HAND_CAP, OPENING_HAND, enemyOf, hillGivesHit, homeRow, isMidRow } from "./types";
 import { getSpell } from "./spells";
@@ -23,6 +24,39 @@ import { getSpell } from "./spells";
  *  (a pairing built at the picker). */
 function resolveDeck(deck: string | string[]): string[] {
   return Array.isArray(deck) ? deck.slice() : deckById(deck).cards.slice();
+}
+
+/** The numeric halves of a Field buff. Everything NOT in here is a flag — the
+ *  signature effect a Field spell is really bought for. */
+const TERRAIN_NUMERIC = [
+  "regen", "shield", "sp", "dmgBonus", "block",
+  "reflect", "specialDiscount", "electrify", "drainBonus", "push",
+] as const;
+
+/**
+ * A Field spell reduced to standing terrain (§4).
+ *
+ * A cast Field costs 6 magic and lasts 3 rounds. Terrain is free and runs the
+ * whole battle in every node of a region, so it cannot be the same thing at the
+ * same strength. Two rules:
+ *
+ *   - **Numeric bonuses halve**, floored at 1 so no region ends up with terrain
+ *     that does nothing (Heatwave's dmgBonus is already 1 — halving it to zero
+ *     would leave PYRO standing on bare ground).
+ *   - **Flags are dropped entirely.** burnPersists, evasion, neverMiss,
+ *     seeStealth, flowRepick, enemyMissChance and the extendStatus rider are
+ *     the payoff you spend six magic on. Permanent `neverMiss` across every
+ *     DAWN card, in every DAWN node, is not a battlefield — it is a rule change.
+ *
+ * Casting the real spell still gives the full version, and takes precedence.
+ */
+export function terrainBuff(field: FieldBuff): FieldBuff {
+  const out: FieldBuff = {};
+  for (const key of TERRAIN_NUMERIC) {
+    const v = field[key];
+    if (typeof v === "number" && v > 0) out[key] = Math.max(1, Math.floor(v / 2));
+  }
+  return out;
 }
 
 export function createInitialState(
@@ -74,17 +108,17 @@ export function createInitialState(
   // §4: the region's Field spell is permanently active for BOTH sides — no
   // cost, no duration. `fieldBonus` keys on the card's own owner, so this needs
   // one entry per player rather than one shared entry, or only half the board
-  // would ever feel it.
+  // would ever feel it. The buff is WEAKENED — see `terrainBuff`.
   if (terrainSpellId) {
     const terrain = getSpell(terrainSpellId);
     if (terrain?.kind === "field" && terrain.field) {
-      const { rounds: _rounds, ...buff } = terrain.field;
+      const buff = terrainBuff(terrain.field);
       for (const player of ["P1", "P2"] as PlayerId[])
         state.fields.push({
           owner: player, spellId: terrain.id, element: terrain.element,
           roundsLeft: 1, permanent: true, ...buff,
         });
-      state.log.push(`— ${terrain.name} runs over the whole battlefield. —`);
+      state.log.push(`— ${terrain.name} runs over the whole battlefield, at terrain strength. —`);
     }
   }
 
