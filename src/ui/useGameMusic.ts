@@ -14,6 +14,9 @@ export const TRACKS = {
   leaf: "/music/jungle.mp3",
   pyro: "/music/scorched-horizon.mp3",
   aqua: "/music/atlantic.mp3",
+  gale: "/music/nightowl.mp3",
+  bore: "/music/quake.mp3",
+  dusk: "/music/ghosts.mp3",
 } as const;
 
 export type MusicTrack = keyof typeof TRACKS;
@@ -26,6 +29,9 @@ export const REGION_TRACK: Partial<Record<string, MusicTrack>> = {
   leaf: "leaf",
   pyro: "pyro",
   aqua: "aqua",
+  gale: "gale",
+  bore: "bore",
+  dusk: "dusk",
 };
 
 const VOLUME = 0.45;

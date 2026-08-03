@@ -279,8 +279,8 @@ engine runtime and no React, so it stays testable headlessly
   ARRAY meaning ALL-of. Gate E is also the first gate to require a node in
   another region, so the two per-region graph tests exempt gates — the map's edge
   derivation already drops any prerequisite it can't find locally.
-  GALE has no theme yet; `REGION_TRACK` has no `gale` entry so it falls back to
-  the menu/battle pair, which is exactly the designed behaviour.
+  Only **BOLT** still has no theme; `REGION_TRACK` has no entry for it so it
+  falls back to the menu/battle pair, which is exactly the designed behaviour.
 - **Regions**: LEAF (open), plus PYRO and AQUA (formerly `requires: ["L14"]` — the
   doc's Act II branch, neither privileged). Each carries its own `artRatio`:
   AQUA's painting is 4:3 where LEAF's and PYRO's are 3:2, and forcing one shape
