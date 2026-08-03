@@ -2132,6 +2132,24 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 /* Standing terrain is neither "yours" nor "the enemy's" — it is the ground both
    sides are standing on, so it gets its own neutral haze rather than borrowing
-   a side's colour. */
-.fieldhaze.terrain { --side: var(--el); }
-.fieldhaze.terrain .fieldmark { bottom: auto; top: 50%; transform: translate(-50%, -50%); opacity: .9; }
+   a side's colour.
+
+   It also sits back ~24% further than a cast Field. A cast Field is on screen
+   for three rounds and can afford to shout; terrain is up for every round of
+   every node in a region, and at full strength it competes with the board it is
+   supposed to be underneath. The reduction is applied to the ring, the glow and
+   the haze SEPARATELY rather than as `opacity` on the parent — that would take
+   the label down with it, and the label is the part you actually read. */
+.fieldhaze.terrain {
+  --side: var(--el);
+  border-color: color-mix(in srgb, var(--el) 76%, transparent);
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--el) 53%, transparent),
+    inset 0 0 22px color-mix(in srgb, var(--el) 34%, transparent);
+}
+.fieldhaze.terrain::before { animation-name: fieldpulse-terrain; }
+@keyframes fieldpulse-terrain { 0%, 100% { opacity: 0.42; } 50% { opacity: 0.68; } }
+@media (prefers-reduced-motion: reduce) {
+  .fieldhaze.terrain::before { animation: none; opacity: 0.57; }
+}
+.fieldhaze.terrain .fieldmark { bottom: auto; top: 50%; transform: translate(-50%, -50%); }
