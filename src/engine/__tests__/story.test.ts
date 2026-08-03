@@ -10,7 +10,7 @@ import {
   ALL_NODES, BLIGHT_ADDS, BLIGHT_MAX, CAP_LADDER, OVERFLOW_RATE, REGIONS, STARTER_DECK,
   applyClear, baseRateFor, blightAddsFor, blightLevel, canBlight, deckCapFor, isOpen, isOverflow,
   DUPLICATE_CAP, EPIC_DUPLICATE_FROM_CAP, PLACED_CARDS, copyCapFor, STARTER_DECK as STARTER, bestSource, buildFormation,
-  demandMet, gateCheck, isGate, regionOfNode, boardForNode, boardsLegalFor,
+  demandMet, doublesEpics, gateCheck, isGate, regionOfNode, boardForNode, boardsLegalFor,
   formationSize, isRegionCleared, isRegionOpen,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
@@ -610,13 +610,44 @@ describe("story: formations (10.7)", () => {
     }
   });
 
-  it("fills that deck mostly with Rares", () => {
+  it("fills the rank-and-file nodes mostly with Rares", () => {
+    // Skirmishes and Wardens are the bulk of the campaign and stay Rare-heavy.
+    // Gates, Landmarks and Thrones deliberately do NOT — see FILL_PROFILE. A
+    // Throne that was mostly Rares is the thing this quota exists to fix.
     const save = { ...newSave(), cleared: ["L14", "P13", "A13"] };
-    for (const n of leafRegion.nodes) {
+    for (const n of leafRegion.nodes.filter((x) => x.kind === "skirmish" || x.kind === "warden")) {
       const f = buildFormation(save, leafRegion, n);
       const rares = f.filter((id) => getDef(id).rarity === "rare").length;
       expect(rares / f.length, `${n.id} is only ${rares}/${f.length} Rare`).toBeGreaterThan(0.5);
     }
+  });
+
+  it("makes a Throne a real fight, not a Mythic behind rank and file", () => {
+    // The Mythic is a guaranteed recruit on a first clear, so the fight has to
+    // be worth it: the boss arrives with its region's Legendaries and Epics.
+    for (const cleared of [[], ["L14", "P13", "A13", "G14", "B14"]]) {
+      const save = { ...newSave(), cleared };
+      for (const r of REGIONS)
+        for (const n of r.nodes.filter((x) => x.kind === "throne")) {
+          const f = buildFormation(save, r, n);
+          const c = (rr: string) => f.filter((id) => getDef(id).rarity === rr).length;
+          expect(c("mythic"), `${n.id} lost its boss`).toBe(1);
+          expect(c("legendary"), `${n.id} has no Legendaries`).toBeGreaterThanOrEqual(1);
+          expect(c("epic"), `${n.id} has no Epics`).toBeGreaterThanOrEqual(2);
+          expect(c("rare"), `${n.id} has no rank and file`).toBeGreaterThanOrEqual(1);
+        }
+    }
+  });
+
+  it("keeps a Skirmish rank-and-file at every tier", () => {
+    // The contrast is the point — if every node fielded Legendaries, a Throne
+    // would stop reading as a boss.
+    for (const r of REGIONS)
+      for (const n of r.nodes.filter((x) => x.kind === "skirmish")) {
+        const f = buildFormation({ ...newSave(), cleared: ["L14", "P13", "A13"] }, r, n);
+        const heavy = f.filter((id) => ["legendary", "mythic"].includes(getDef(id).rarity ?? ""));
+        expect(heavy.map((id) => `${n.id}:${id}`)).toEqual([]);
+      }
   });
 
   it("puts every unique card in before any duplicate", () => {
@@ -637,7 +668,7 @@ describe("story: formations (10.7)", () => {
           const f = buildFormation(save, r, n);
           for (const id of new Set(f))
             expect(count(f, id), `${n.id} fields ${count(f, id)}x ${id} at cap ${cap}`)
-              .toBeLessThanOrEqual(copyCapFor(id, cap));
+              .toBeLessThanOrEqual(copyCapFor(id, cap, doublesEpics(n)));
         }
     }
   });
@@ -655,10 +686,12 @@ describe("story: formations (10.7)", () => {
     expect(copyCapFor(rare, 12)).toBe(DUPLICATE_CAP.rare);
   });
 
-  it("never doubles an Epic at Act I, even to hit the target", () => {
+  it("never doubles an Epic at Act I on an ordinary node", () => {
+    // Gates, Landmarks and Thrones may — that is `doublesEpics`, and it is why
+    // a checkpoint feels different from the road up to it.
     const early = { ...newSave(), cleared: [] };
     for (const r of REGIONS)
-      for (const n of r.nodes) {
+      for (const n of r.nodes.filter((x) => !doublesEpics(x))) {
         const f = buildFormation(early, r, n);
         for (const id of new Set(f))
           if (getDef(id).rarity === "epic")

@@ -1000,6 +1000,25 @@ export const DUPLICATE_CAP: Record<string, number> = {
  *  an introduction. */
 export const EPIC_DUPLICATE_FROM_CAP = 18;
 
+/**
+ * How much of a formation may be Legendary and Epic, as a share of the whole
+ * deck. Everything not taken by these is Rare.
+ *
+ * This is what makes a node tier feel different. A Skirmish is rank and file;
+ * a Throne hands you its Mythic for free on a first clear, so the fight has to
+ * earn it — the boss shows up with its region's Legendaries and Epics behind
+ * it. The roster always goes in regardless, so a node whose own cards already
+ * exceed its quota simply gets nothing more of that rarity.
+ */
+export const FILL_PROFILE: Record<NodeKind, { legendary: number; epic: number }> = {
+  skirmish: { legendary: 0,    epic: 0    },
+  warden:   { legendary: 0,    epic: 0.15 },
+  blight:   { legendary: 0,    epic: 0.15 },
+  gate:     { legendary: 0.10, epic: 0.25 },
+  landmark: { legendary: 0.15, epic: 0.30 },
+  throne:   { legendary: 0.20, epic: 0.35 },
+};
+
 /** Node kinds where a second Epic is the point rather than padding: a border
  *  checkpoint and a boss are supposed to be a wall. */
 export const doublesEpics = (node: StoryNode): boolean =>
@@ -1068,51 +1087,49 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
   const target = formationSize(cap);
   const byCost = (a: string, b: string) => getDef(a).cost - getDef(b).cost;
   const rarity = (id: string) => getDef(id).rarity ?? "";
+  const countOf = (r: string) => out.filter((id) => rarity(id) === r).length;
+  const epicsMayDouble = doublesEpics(node);
 
   // Everything already standing: the node's own pool plus its tokens, patrol and
   // escorts. A Throne's roster is a lone Mythic and a Gate has no roster at all,
   // so a pool of just `uniques` leaves both unable to fill past a body or two.
   const present = [...new Set([...uniques, ...node.adds])];
-  // And the rest of the REGION's Rares, as non-recruitable rank and file. A
-  // whole deck cannot come from three unique cards without stacking nine copies
-  // of one of them; drawing on the region keeps it varied AND mostly Rare.
-  // These are all placed on their own nodes, so nothing here is made
-  // unobtainable by appearing as filler.
-  const regionRares = region.nodes
-    .flatMap((n) => n.roster)
-    .filter((id) => rarity(id) === "rare" && !present.includes(id));
+  /** The region's own cards of a rarity, minus anything already standing. All
+   *  placed on their own nodes, so nothing is made unobtainable by being used
+   *  here as non-recruitable rank and file. */
+  const regionPool = (r: string) =>
+    [...new Set(region.nodes.flatMap((n) => n.roster))]
+      .filter((id) => rarity(id) === r && !present.includes(id))
+      .sort(byCost);
 
-  // Fill order, cheapest first within each band. Rares carry it at every tier —
-  // "mostly Rares" is the point — and Epics only join once the campaign has
-  // scaled past its introduction, because a second Epic is a second real
-  // Special every round.
-  const bands: string[][] = [
-    present.filter((id) => rarity(id) === "rare").sort(byCost),
-    [...new Set(regionRares)].sort(byCost),
-  ];
-  const epicsMayDouble = doublesEpics(node);
-  if (cap >= EPIC_DUPLICATE_FROM_CAP || epicsMayDouble) {
-    bands.push(present.filter((id) => rarity(id) === "epic").sort(byCost));
-    bands.push(
-      [...new Set(region.nodes.flatMap((n) => n.roster))]
-        .filter((id) => rarity(id) === "epic" && !present.includes(id))
-        .sort(byCost),
-    );
-  }
-
-  for (const tier of bands) {
+  /** Add from `pool` until the formation hits `limit` of that rarity, or fills. */
+  const fill = (pool: string[], limit: number) => {
     for (let guard = 0; guard < 40 && out.length < target; guard++) {
       let placed = false;
-      for (const id of tier) {
+      for (const id of pool) {
         if (out.length >= target) break;
+        if (limit >= 0 && countOf(rarity(id)) >= limit) return;
         if ((copies.get(id) ?? 0) >= copyCapFor(id, cap, epicsMayDouble)) continue;
         out.push(id);
         copies.set(id, (copies.get(id) ?? 0) + 1);
         placed = true;
       }
-      if (!placed) break; // every card in this band is capped
+      if (!placed) return; // everything in this pool is capped
     }
-  }
+  };
+
+  // Power bands FIRST, up to the node's quota, then Rares mop up the rest. A
+  // Throne hands you its Mythic for free on a first clear, so the fight has to
+  // be worth it — the boss arrives with its region's Legendaries and Epics
+  // behind it, not ten Rares. A Skirmish is all rank and file, which is what
+  // makes a Throne read as different.
+  const p = FILL_PROFILE[node.kind];
+  fill(regionPool("legendary"), Math.floor(target * p.legendary));
+  fill(present.filter((id) => rarity(id) === "epic").sort(byCost), Math.floor(target * p.epic));
+  fill(regionPool("epic"), Math.floor(target * p.epic));
+  // Rares are the remainder — no quota, they fill whatever is left.
+  fill(present.filter((id) => rarity(id) === "rare").sort(byCost), -1);
+  fill(regionPool("rare"), -1);
   return out;
 }
 

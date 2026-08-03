@@ -409,6 +409,13 @@ purging them would only reach ~120MB in exchange for rewriting every SHA.
   stacking nine copies of one. Region filler is non-recruitable and every card in
   it is placed on its own node, so nothing is made unobtainable; §6's promise is
   about the RECRUIT pool, which never widens.
+  `FILL_PROFILE` gives each node KIND a Legendary/Epic quota as a share of the
+  deck, and the power bands fill BEFORE the Rares. A Skirmish is 100% rank and
+  file; a Throne is roughly 1 Mythic / 2 Legendary / 4 Epic / 5 Rare at cap 12
+  and 1 / 5 / 9 / 13 at cap 28. The Mythic is a guaranteed recruit on a first
+  clear, so the fight has to earn it — a boss behind ten Rares did not. The
+  roster always goes in regardless, so a node whose own cards already exceed its
+  quota simply gets nothing more of that rarity.
   Epics double where it serves a purpose — `EPIC_DUPLICATE_FROM_CAP` (Act III)
   **or** `doublesEpics(node)`: gates, landmarks and thrones, the nodes meant to
   stop you. Gates carry a cheap Epic from each side of their border and Thrones
