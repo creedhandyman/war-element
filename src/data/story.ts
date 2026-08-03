@@ -149,24 +149,24 @@ const LEAF: StoryRegion = {
     { id: "L13", name: "Jungle Throne", kind: "throne", at: { x: 67, y: 81 },
       requires: ["L6", "L12"], roster: ["leaf_trinezer"],
       // Escorts: the Reptile tribe it commands, already farmable at L6.
-      adds: ["leaf_reptilian_tok", "leaf_stickviper", "leaf_gecko"],
+      adds: ["leaf_reptilian_tok", "leaf_stickviper", "leaf_gecko", "leaf_alpha"],
       note: "Deep Grove. Optional — an early skill check with a Mythic reward." },
     { id: "L14", name: "The Spirit Tree Rises", kind: "throne", at: { x: 48, y: 45 },
       requires: ["L12"], roster: ["leaf_oakgre"],
       // Escorts: the old growth around it, farmable at L4 and L2.
-      adds: ["leaf_acorn_tok", "leaf_oak", "leaf_birch"], required: true,
+      adds: ["leaf_acorn_tok", "leaf_oak", "leaf_birch", "leaf_bark_bushmen"], required: true,
       note: "Required. Clearing it opens the borders to PYRO and AQUA." },
     // Gates. Rosters live in `adds` because a gate is a checkpoint, not a farm —
     // its squad is a mixed border patrol of BOTH elements, and putting real
     // cards in a recruitable roster would place them a second time.
     { id: "GA", name: "Gate A: Summer's Southern Burn", kind: "gate", at: { x: 63, y: 94 },
       requires: ["L14"], roster: [], opens: ["pyro"],
-      adds: ["leaf_gecko", "leaf_dartfrog", "pyro_staph", "pyro_sparky", "pyro_florence", "pyro_ingit"],
+      adds: ["leaf_gecko", "leaf_dartfrog", "pyro_staph", "pyro_sparky", "pyro_florence", "pyro_ingit", "leaf_alpha", "pyro_firebird"],
       demand: { kind: "attack", value: "Ranged", count: 3 },
       note: "The open road south. The burn punishes anything that has to close distance." },
     { id: "GB", name: "Gate B: Eastleaf Port", kind: "gate", at: { x: 93, y: 30 },
       requires: ["L14"], roster: [], opens: ["aqua"],
-      adds: ["leaf_hunter", "leaf_walking_tree", "aqua_misty", "aqua_buccaneers", "aqua_piranha", "aqua_blub"],
+      adds: ["leaf_hunter", "leaf_walking_tree", "aqua_misty", "aqua_buccaneers", "aqua_piranha", "aqua_blub", "leaf_bark_bushmen", "aqua_bahari"],
       demand: { kind: "class", value: "Support", count: 2 },
       note: "The sea road east. A long crossing — bring something that can keep a crew alive." },
   ],
@@ -229,18 +229,18 @@ const PYRO: StoryRegion = {
     { id: "P13", name: "Firespine Peaks: Dragon's Lair", kind: "throne", at: { x: 10, y: 53 },
       requires: ["P9", "P10"], roster: ["pyro_pyrogon"],
       // Escorts: the volcanic beasts of the slopes, farmable at P5.
-      adds: ["pyro_ash_boar", "pyro_wick"], required: true,
+      adds: ["pyro_ash_boar", "pyro_wick", "pyro_firebird"], required: true,
       note: "Required. Clearing it opens Gate D — the Veil Gate, and the DUSK reach." },
     { id: "P12", name: "The Forge Core", kind: "throne", at: { x: 23, y: 66 },
       requires: ["P13"], roster: ["pyro_nitro"],
       // Escorts: Forged Tech, the tribe Nitro tops — farmable at P4.
-      adds: ["pyro_heatsink_golem", "pyro_dyna"],
+      adds: ["pyro_heatsink_golem", "pyro_dyna", "pyro_liza"],
       note: "Optional. Where the first flame burns — Forged Tech's Mythic." },
     // Gate C, PYRO side. Its twin sits on AQUA's map, so switching routes never
     // means walking back through LEAF.
     { id: "GC", name: "Gate C: Sunfall Harbor", kind: "gate", at: { x: 53, y: 94 },
       requires: ["P2"], roster: [], opens: ["aqua"],
-      adds: ["pyro_flamehound", "pyro_canister", "aqua_buccaneers", "aqua_bootlegger", "aqua_piranha", "aqua_blub"],
+      adds: ["pyro_flamehound", "pyro_canister", "aqua_buccaneers", "aqua_bootlegger", "aqua_piranha", "aqua_blub", "pyro_liza", "aqua_blackice"],
       demand: { kind: "class", value: "Tank", count: 3 },
       note: "Boarding actions in the pirate lanes. Bring bodies that can hold a deck." },
   ],
@@ -305,19 +305,19 @@ const AQUA: StoryRegion = {
     { id: "A13", name: "Atlantis: Heart of the Ocean", kind: "throne", at: { x: 50, y: 45 },
       requires: ["A11"], roster: ["aqua_hydrogon"],
       // Escorts: the reef that guards the city, farmable at A5.
-      adds: ["aqua_coralgolem", "aqua_tide"], required: true,
+      adds: ["aqua_coralgolem", "aqua_tide", "aqua_blackice"], required: true,
       note: "Required. Clearing it opens the sea lanes, which is what makes the rest of the campaign non-linear." },
     { id: "A12", name: "The Deep", kind: "throne", at: { x: 54, y: 88 },
       requires: ["A13"], roster: ["aqua_kraken"],
       // Escorts: the deep's own, farmable at A4.
-      adds: ["aqua_krakler", "aqua_spinefin"],
+      adds: ["aqua_krakler", "aqua_spinefin", "aqua_bahari"],
       note: "Optional, and the hardest fight in Act II — deliberately harder than either required Throne." },
     // Gate F: the Arctic Gate. The AQUA art paints it "To Dawn (Locked)" — it
     // stays sealed until Act V, so it wants two of the three Gray Thrones just
     // as the Shadow Border does. Neither Act V region is gated on the other.
     { id: "GF", name: "Gate F: The Arctic Gate", kind: "gate", at: { x: 46, y: 7 },
       requires: ["G14", "B14", "R14"], requiresCount: 2, roster: [], opens: ["dawn"],
-      adds: ["aqua_cryo", "aqua_anos", "dawn_beam", "dawn_flash", "dawn_able", "dawn_sparkle"],
+      adds: ["aqua_cryo", "aqua_anos", "dawn_beam", "dawn_flash", "dawn_able", "dawn_sparkle", "aqua_icynin", "dawn_amble"],
       demand: { kind: "class", value: "Mage", count: 3 },
       note: "The road through the ice wall. Nothing has crossed it in either direction all campaign." },
     // Gate E: the Gray Continent ports. Gated on BOTH Green Thrones rather than
@@ -325,13 +325,13 @@ const AQUA: StoryRegion = {
     // player reaches the 5x5 board with a three-element pool.
     { id: "GE", name: "Gate E: Gray Continent Ports", kind: "gate", at: { x: 88, y: 20 },
       requires: ["A13", "P13"], roster: [], opens: ["gale", "bolt", "bore"],
-      adds: ["aqua_arctik", "aqua_harp", "gale_sirocco", "gale_megair", "gale_gastly", "gale_skyforce"],
+      adds: ["aqua_arctik", "aqua_harp", "gale_sirocco", "gale_megair", "gale_gastly", "gale_skyforce", "aqua_bahari", "gale_angale"],
       demand: { kind: "attack", value: "Ranged", count: 4 },
       note: "The airship lanes north. Everything past here is fought on the 5x5 board." },
     // Gate C, AQUA side — the same harbor from the other direction.
     { id: "GC2", name: "Gate C: Sunfall Harbor", kind: "gate", at: { x: 10, y: 72 },
       requires: ["A5"], roster: [], opens: ["pyro"],
-      adds: ["aqua_buccaneers", "aqua_bootlegger", "pyro_flamehound", "pyro_canister", "pyro_firecrack", "pyro_taper"],
+      adds: ["aqua_buccaneers", "aqua_bootlegger", "pyro_flamehound", "pyro_canister", "pyro_firecrack", "pyro_taper", "aqua_icynin", "pyro_scorch"],
       demand: { kind: "class", value: "Tank", count: 3 },
       note: "The same harbor from the water. Sail east and PYRO's coast is yours without going back through LEAF." },
   ],
@@ -401,12 +401,12 @@ const GALE: StoryRegion = {
     { id: "G13", name: "Wolfrun Hollow", kind: "throne", at: { x: 62, y: 10 },
       requires: ["G10"], roster: ["gale_stormfang"],
       // Escorts: the pack itself, farmable at G6 and G5.
-      adds: ["gale_whirlwolf", "gale_luna"],
+      adds: ["gale_whirlwolf", "gale_luna", "gale_buf"],
       note: "StormFang's Throne. Optional — the Wolf payoff, and its Pack aura reaches four cards you already met." },
     { id: "G14", name: "Tempest Peaks", kind: "throne", at: { x: 93, y: 26 },
       requires: ["G11", "G12"], roster: ["gale_griffith"],
       // Escorts: the birds of the Roosts, farmable at G4 and G2.
-      adds: ["gale_ollie", "gale_hawk", "gale_skyforce"], required: true,
+      adds: ["gale_ollie", "gale_hawk", "gale_skyforce", "gale_angale"], required: true,
       note: "Thunder Reach. Required — clearing it opens the airship routes on to BOLT and BORE." },
   ],
 };
@@ -470,12 +470,12 @@ const BOLT: StoryRegion = {
     { id: "B13", name: "The Grid Vault", kind: "throne", at: { x: 43, y: 83 },
       requires: ["B11"], roster: ["bolt_velvolt_knight"],
       // Escorts: the Drone Field's own, farmable at B2.
-      adds: ["bolt_drone_tok", "bolt_zipp", "bolt_rodd"],
+      adds: ["bolt_drone_tok", "bolt_zipp", "bolt_rodd", "bolt_static"],
       note: "Sealed below the core behind blast doors. Optional." },
     { id: "B14", name: "City Power Core", kind: "throne", at: { x: 50, y: 31 },
       requires: ["B11", "B12"], roster: ["bolt_elecdroid"],
       // Escorts: the scrapyard where the region started, farmable at B1.
-      adds: ["bolt_beebot", "bolt_zap", "bolt_junker"], required: true,
+      adds: ["bolt_beebot", "bolt_zap", "bolt_junker", "bolt_lytning"], required: true,
       note: "The Arc Lightning Conduit itself. Required — clearing it opens the mountain pass to BORE." },
   ],
 };
@@ -548,19 +548,19 @@ const BORE: StoryRegion = {
     { id: "R13", name: "Corebore Shaft", kind: "throne", at: { x: 66, y: 76 },
       requires: ["R12"], roster: ["bore_the_coreborer"],
       // Escorts: the quarry crew, farmable at R1.
-      adds: ["bore_cavedweller", "bore_iron"],
+      adds: ["bore_cavedweller", "bore_iron", "bore_valcana"],
       note: "Optional." },
     // The door the BORE art paints as "To Dusk — Shadow Border (Locked)".
     // Two of the three Gray Thrones open it, in any combination.
     { id: "GS", name: "The Shadow Border", kind: "gate", at: { x: 8, y: 82 },
       requires: ["G14", "B14", "R14"], requiresCount: 2, roster: [], opens: ["dusk"],
-      adds: ["bore_stone", "bore_iron", "dusk_crow", "dusk_pumpkin", "dusk_spider", "dusk_doom"],
+      adds: ["bore_stone", "bore_iron", "dusk_crow", "dusk_pumpkin", "dusk_spider", "dusk_doom", "bore_shift", "dusk_silkstalker"],
       demand: { kind: "class", value: "Tank", count: 4 },
       note: "Where the stone gives out and the shadow starts. Everything past here is Act V." },
     { id: "R14", name: "The DEEPEST Dark", kind: "throne", at: { x: 49, y: 84 },
       requires: ["R11", "R12"], roster: ["bore_deepest"],
       // Escorts: the standing stones, farmable at R6.
-      adds: ["bore_stone", "bore_rock"], required: true,
+      adds: ["bore_stone", "bore_rock", "bore_shift"], required: true,
       note: "Below all other levels — an endless black drop. Required. The Shadow Border west stays sealed until Act V." },
   ],
 };
@@ -631,11 +631,11 @@ const DUSK: StoryRegion = {
       adds: ["dusk_skeleton_tok"] },
     { id: "D12", name: "The Bone Throne", kind: "throne", at: { x: 86, y: 58 },
       requires: ["D11"], roster: ["dusk_skullking"],
-      adds: ["dusk_skeleton_tok", "dusk_skulldrake_tok"],
+      adds: ["dusk_skeleton_tok", "dusk_skulldrake_tok", "dusk_skrow"],
       note: "Nightward Keep — the watchers of Dusk. Optional." },
     { id: "D13", name: "The Long Night", kind: "throne", at: { x: 50, y: 79 },
       requires: ["D10", "D11"], roster: ["dusk_shadowhorsemen"],
-      adds: ["dusk_specter_tok", "dusk_risen_tok"], required: true,
+      adds: ["dusk_specter_tok", "dusk_risen_tok", "dusk_silkstalker"], required: true,
       note: "Death Island, land of the forgotten. Required." },
   ],
 };
@@ -700,15 +700,15 @@ const DAWN: StoryRegion = {
     // Two optional Thrones, both seats the painting names outright.
     { id: "W11", name: "Sun's Army Fronts", kind: "throne", at: { x: 72, y: 70 },
       requires: ["W6"], roster: ["dawn_equestrian"],
-      adds: ["dawn_warrider_tok", "dawn_stbern"],
+      adds: ["dawn_warrider_tok", "dawn_stbern", "dawn_golde"],
       note: "Guardians of Dawn, watching over the wilds. Optional — the Equestrian seat." },
     { id: "W12", name: "Stars Army Flakes", kind: "throne", at: { x: 88, y: 43 },
       requires: ["W8"], roster: ["dawn_supernova"],
-      adds: ["dawn_sparkle", "dawn_glime"],
+      adds: ["dawn_sparkle", "dawn_glime", "dawn_lazor"],
       note: "Silver pavilions where the lights touch down. Optional — the Supernova seat, and the star that fell is still burning in the Sundered Sky above it." },
     { id: "W13", name: "Dawn Castle", kind: "throne", at: { x: 50, y: 22 },
       requires: ["W10"], roster: ["dawn_imperator"],
-      adds: ["dawn_warrider_tok", "dawn_radiant_guardian"], required: true,
+      adds: ["dawn_warrider_tok", "dawn_radiant_guardian", "dawn_amble"], required: true,
       note: "The Golden Seat, throne of the kingdom. Required — the end of the road." },
   ],
 };
@@ -1000,22 +1000,34 @@ export const DUPLICATE_CAP: Record<string, number> = {
  *  an introduction. */
 export const EPIC_DUPLICATE_FROM_CAP = 18;
 
-/** Copies of one card allowed, scaled by the player's tier. */
-export function copyCapFor(defId: string, deckCap: number): number {
+/** Node kinds where a second Epic is the point rather than padding: a border
+ *  checkpoint and a boss are supposed to be a wall. */
+export const doublesEpics = (node: StoryNode): boolean =>
+  node.kind === "gate" || node.kind === "landmark" || node.kind === "throne";
+
+/**
+ * Copies of one card allowed.
+ *
+ * Epics double when it SERVES A PURPOSE — either the campaign has scaled past
+ * its introduction (`EPIC_DUPLICATE_FROM_CAP`), or the node is one of the ones
+ * meant to stop you. An ordinary Act I Skirmish still meets each Epic once, so
+ * a second real Special is a thing that happens at checkpoints rather than
+ * everywhere. Legendary and Mythic never double at all.
+ */
+export function copyCapFor(defId: string, deckCap: number, epicsMayDouble = false): number {
   const rarity = getDef(defId).rarity ?? "";
-  if (rarity === "epic") return deckCap >= EPIC_DUPLICATE_FROM_CAP ? DUPLICATE_CAP.epic : 1;
+  if (rarity === "epic")
+    return deckCap >= EPIC_DUPLICATE_FROM_CAP || epicsMayDouble ? DUPLICATE_CAP.epic : 1;
   return DUPLICATE_CAP[rarity] ?? DUPLICATE_CAP_DEFAULT;
 }
 export const DUPLICATE_CAP_DEFAULT = 1;
 
-/** Bodies a formation aims for, by the player's current deck tier (deployed +
- *  reserve from §10.7's table). */
-export function formationSize(cap: number): number {
-  if (cap >= 28) return 15; // Act V     — 6 deployed + 8-9 reserve
-  if (cap >= 22) return 12; // Act IV    — 5 + 6-7
-  if (cap >= 15) return 9;  // Act II-III — 4 + 4-5
-  return 7;                 // Act I     — 4 + 2-3
-}
+/** Bodies a formation aims for: a WHOLE DECK, matched to the player's own card
+ *  count. The enemy brings as many cards as you do — the fight is decided by
+ *  what the cards are, not by who ran out of board first. §10.7's smaller
+ *  table left a node fielding roughly half a deck, which read as the AI simply
+ *  having less to work with. */
+export const formationSize = (cap: number): number => cap;
 
 /**
  * The enemy squad for a node, filled to the tier's target.
@@ -1054,34 +1066,51 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
 
   const cap = deckCapFor(save.cleared);
   const target = formationSize(cap);
-  // Drawn from everything already standing — including the tokens and border
-  // patrol in `adds`. A Throne's roster is a lone Mythic and a Gate has no
-  // roster at all, so a pool of just `uniques` would leave both unable to fill
-  // past a body or two.
   const byCost = (a: string, b: string) => getDef(a).cost - getDef(b).cost;
-  const present = [...new Set([...uniques, ...node.adds])];
-  // Rares carry the fill at every tier. Epics only join it once the campaign has
-  // scaled past its introduction — a second copy of an Epic is a second copy of
-  // a real Special every round.
-  const rares = present.filter((id) => getDef(id).rarity === "rare").sort(byCost);
-  const epics = cap >= EPIC_DUPLICATE_FROM_CAP
-    ? present.filter((id) => getDef(id).rarity === "epic").sort(byCost)
-    : [];
+  const rarity = (id: string) => getDef(id).rarity ?? "";
 
-  // Round-robin inside each tier, so nothing reaches three copies while another
-  // card of the same tier is still on one. Rares are exhausted before an Epic is
-  // ever doubled.
-  for (const tier of [rares, epics]) {
-    for (let guard = 0; guard < 8 && out.length < target; guard++) {
+  // Everything already standing: the node's own pool plus its tokens, patrol and
+  // escorts. A Throne's roster is a lone Mythic and a Gate has no roster at all,
+  // so a pool of just `uniques` leaves both unable to fill past a body or two.
+  const present = [...new Set([...uniques, ...node.adds])];
+  // And the rest of the REGION's Rares, as non-recruitable rank and file. A
+  // whole deck cannot come from three unique cards without stacking nine copies
+  // of one of them; drawing on the region keeps it varied AND mostly Rare.
+  // These are all placed on their own nodes, so nothing here is made
+  // unobtainable by appearing as filler.
+  const regionRares = region.nodes
+    .flatMap((n) => n.roster)
+    .filter((id) => rarity(id) === "rare" && !present.includes(id));
+
+  // Fill order, cheapest first within each band. Rares carry it at every tier —
+  // "mostly Rares" is the point — and Epics only join once the campaign has
+  // scaled past its introduction, because a second Epic is a second real
+  // Special every round.
+  const bands: string[][] = [
+    present.filter((id) => rarity(id) === "rare").sort(byCost),
+    [...new Set(regionRares)].sort(byCost),
+  ];
+  const epicsMayDouble = doublesEpics(node);
+  if (cap >= EPIC_DUPLICATE_FROM_CAP || epicsMayDouble) {
+    bands.push(present.filter((id) => rarity(id) === "epic").sort(byCost));
+    bands.push(
+      [...new Set(region.nodes.flatMap((n) => n.roster))]
+        .filter((id) => rarity(id) === "epic" && !present.includes(id))
+        .sort(byCost),
+    );
+  }
+
+  for (const tier of bands) {
+    for (let guard = 0; guard < 40 && out.length < target; guard++) {
       let placed = false;
       for (const id of tier) {
         if (out.length >= target) break;
-        if ((copies.get(id) ?? 0) >= copyCapFor(id, cap)) continue;
+        if ((copies.get(id) ?? 0) >= copyCapFor(id, cap, epicsMayDouble)) continue;
         out.push(id);
         copies.set(id, (copies.get(id) ?? 0) + 1);
         placed = true;
       }
-      if (!placed) break; // every card in this tier is capped
+      if (!placed) break; // every card in this band is capped
     }
   }
   return out;

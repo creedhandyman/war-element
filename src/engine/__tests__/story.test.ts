@@ -586,11 +586,37 @@ describe("story: formations (10.7)", () => {
     expect(f.length).toBeGreaterThan(nodeById("L1")!.roster.length);
   });
 
-  it("grows with the deck tier rather than changing the card pool", () => {
-    const early = buildFormation(newSave(), leafRegion, nodeById("L1")!);
-    const late = buildFormation({ ...newSave(), cleared: ["L14", "P13"] }, leafRegion, nodeById("L1")!);
+  it("grows with the deck tier without changing what you can FARM", () => {
+    // §6's promise is "you always know exactly what you're farming for", which is
+    // about the recruitable roster — not the rank and file behind it. A bigger
+    // target pulls in more of the region's Rares as non-recruitable filler, and
+    // that must never move the recruit pool.
+    const node = nodeById("L1")!;
+    const early = buildFormation(newSave(), leafRegion, node);
+    const late = buildFormation({ ...newSave(), cleared: ["L14", "P13"] }, leafRegion, node);
     expect(late.length).toBeGreaterThan(early.length);
-    expect(new Set(late)).toEqual(new Set(early)); // same cards, more bodies
+    expect(recruitablePool(node)).toEqual(node.roster);
+    for (const id of node.roster) {
+      expect(early).toContain(id);
+      expect(late).toContain(id);
+    }
+  });
+
+  it("fields a whole deck, matched to the player's own card count", () => {
+    for (const cleared of [[], ["L14"], ["L14", "P13", "A13"]]) {
+      const save = { ...newSave(), cleared };
+      const f = buildFormation(save, leafRegion, nodeById("L1")!);
+      expect(f.length, `cap ${deckCapFor(cleared)}`).toBe(deckCapFor(cleared));
+    }
+  });
+
+  it("fills that deck mostly with Rares", () => {
+    const save = { ...newSave(), cleared: ["L14", "P13", "A13"] };
+    for (const n of leafRegion.nodes) {
+      const f = buildFormation(save, leafRegion, n);
+      const rares = f.filter((id) => getDef(id).rarity === "rare").length;
+      expect(rares / f.length, `${n.id} is only ${rares}/${f.length} Rare`).toBeGreaterThan(0.5);
+    }
   });
 
   it("puts every unique card in before any duplicate", () => {

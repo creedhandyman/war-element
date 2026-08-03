@@ -401,8 +401,19 @@ and `gc` before ever considering a rewrite; the big binaries in history (50MB of
 music, 82MB of superseded card WebP) are worth far less than they look, and
 purging them would only reach ~120MB in exchange for rewriting every SHA.
 - **Formations (§10.7)**: an enemy squad is a FORMATION, not a deck — it may
-  field several copies of a card, so a 3-card roster still fills a board at any
-  tier. `buildFormation` fills to `formationSize(deckCap)` in the doc's order:
+  field several copies of a card. `formationSize` is now simply the player's
+  **deck cap**: the enemy brings a WHOLE DECK matched to your card count, so a
+  fight is decided by what the cards are rather than by who ran out of board.
+  It is filled **mostly with Rares** — the node's own first, then the rest of the
+  REGION's, because a 28-card deck cannot come from three unique cards without
+  stacking nine copies of one. Region filler is non-recruitable and every card in
+  it is placed on its own node, so nothing is made unobtainable; §6's promise is
+  about the RECRUIT pool, which never widens.
+  Epics double where it serves a purpose — `EPIC_DUPLICATE_FROM_CAP` (Act III)
+  **or** `doublesEpics(node)`: gates, landmarks and thrones, the nodes meant to
+  stop you. Gates carry a cheap Epic from each side of their border and Thrones
+  one from their own region, on top of the Rare escorts.
+  The old fill order, for reference:
   every unique first (four identical cards reads as a bug, not a boss), then
   tokens and Blight bodies, then duplicate Rares cheapest-first, then Epics.
   Caps scale with the tier via `copyCapFor`: Rares duplicate up to 3 at every
