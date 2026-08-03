@@ -66,18 +66,24 @@ export function Board(props: {
       <div className="board">
         {/* Fields (Cost-6 terrain) — a board-wide haze in the element colour,
             framed like a wall. pointer-events:none so slots stay clickable. */}
-        {game.fields.map((f) => {
+        {/* Standing terrain is ONE battlefield even though it is stored as an
+            entry per player — `fieldBonus` keys on the card's own owner, so both
+            have to exist. Drawing it twice made the board read as two stacked
+            fields, which it never was. Cast fields still show per side. */}
+        {game.fields
+          .filter((f, i) => !f.permanent || game.fields.findIndex((x) => x.permanent && x.spellId === f.spellId) === i)
+          .map((f) => {
           const spell = getSpell(f.spellId);
           const color = EL_COLOR[f.element];
           // Standing terrain has no timer — showing roundsLeft would read as
           // "one round left" on something that runs the whole battle.
-          const tip = `${spell.name} (${f.owner === "P1" ? "yours" : "enemy"}) — ${spell.text} · ${
-            f.permanent ? "the region's terrain, all battle" : `${f.roundsLeft} round(s) left`
-          }`;
+          const tip = f.permanent
+            ? `${spell.name} — ${spell.text} · the region's terrain, running all battle for both sides`
+            : `${spell.name} (${f.owner === "P1" ? "yours" : "enemy"}) — ${spell.text} · ${f.roundsLeft} round(s) left`;
           return (
             <div
               key={f.owner + f.spellId}
-              className={`fieldhaze ${f.owner === "P1" ? "mine" : "enemy"}`}
+              className={`fieldhaze ${f.permanent ? "terrain" : f.owner === "P1" ? "mine" : "enemy"}`}
               style={{ ["--el" as string]: color }}
               title={tip}
             >

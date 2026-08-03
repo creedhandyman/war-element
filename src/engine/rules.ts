@@ -865,9 +865,13 @@ export function canCastSpell(
     return { ok: true };
   }
   if (spell.kind === "field") {
-    // Board-wide, no target. One Field per owner at a time.
-    if (state.fields.some((f) => f.owner === player))
+    // Board-wide, no target. One CAST Field per owner at a time — standing
+    // terrain does not count, or seeding it would have silently made every
+    // Field spell in the game uncastable for the whole of Story Mode.
+    if (state.fields.some((f) => f.owner === player && !f.permanent))
       return { ok: false, reason: "You already have a Field active" };
+    if (state.fields.some((f) => f.permanent && f.spellId === spell.id))
+      return { ok: false, reason: "That Field is already the terrain here" };
     return { ok: true };
   }
   if (spell.kind === "convert") {

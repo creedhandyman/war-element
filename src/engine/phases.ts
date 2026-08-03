@@ -556,7 +556,11 @@ function resolveSpell(
   if (spell.kind === "field" && spell.field) {
     // Board-wide terrain: buffs the caster's element allies for a few rounds.
     const { rounds, ...buff } = spell.field;
-    draft.fields.push({ owner: player, spellId: spell.id, element: spell.element, roundsLeft: rounds, ...buff });
+    // UNSHIFT, not push: every lookup (fieldBonus, fieldStatusExtend,
+    // fieldPushBonus) takes the FIRST match, so a cast field has to sit ahead of
+    // the standing terrain or paying six magic would do nothing in a region
+    // whose terrain already matched your element.
+    draft.fields.unshift({ owner: player, spellId: spell.id, element: spell.element, roundsLeft: rounds, ...buff });
     draft.log.push(`${spell.name} blankets the battlefield for ${rounds} rounds.`);
     return;
   }
