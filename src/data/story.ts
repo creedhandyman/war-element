@@ -1010,6 +1010,14 @@ export const EPIC_DUPLICATE_FROM_CAP = 18;
  * it. The roster always goes in regardless, so a node whose own cards already
  * exceed its quota simply gets nothing more of that rarity.
  */
+/** Act I runs its quotas at three quarters. The starting deck is 12 fixed Rares
+ *  with no rebuilding done yet, and a Throne at the full share landed on it as
+ *  1 Mythic + 2 Legendary + 4 Epic — a wall rather than a skill check. Later
+ *  Acts keep the full profile, because by then the deck is yours. */
+export const ACT_I_QUOTA_SCALE = 0.75;
+export const quotaScale = (deckCap: number): number =>
+  deckCap <= 12 ? ACT_I_QUOTA_SCALE : 1;
+
 export const FILL_PROFILE: Record<NodeKind, { legendary: number; epic: number }> = {
   skirmish: { legendary: 0,    epic: 0    },
   warden:   { legendary: 0,    epic: 0.15 },
@@ -1124,9 +1132,12 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
   // behind it, not ten Rares. A Skirmish is all rank and file, which is what
   // makes a Throne read as different.
   const p = FILL_PROFILE[node.kind];
-  fill(regionPool("legendary"), Math.floor(target * p.legendary));
-  fill(present.filter((id) => rarity(id) === "epic").sort(byCost), Math.floor(target * p.epic));
-  fill(regionPool("epic"), Math.floor(target * p.epic));
+  const scale = quotaScale(cap);
+  const maxLeg = Math.floor(target * p.legendary * scale);
+  const maxEpic = Math.floor(target * p.epic * scale);
+  fill(regionPool("legendary"), maxLeg);
+  fill(present.filter((id) => rarity(id) === "epic").sort(byCost), maxEpic);
+  fill(regionPool("epic"), maxEpic);
   // Rares are the remainder — no quota, they fill whatever is left.
   fill(present.filter((id) => rarity(id) === "rare").sort(byCost), -1);
   fill(regionPool("rare"), -1);

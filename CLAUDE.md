@@ -412,7 +412,9 @@ purging them would only reach ~120MB in exchange for rewriting every SHA.
   `FILL_PROFILE` gives each node KIND a Legendary/Epic quota as a share of the
   deck, and the power bands fill BEFORE the Rares. A Skirmish is 100% rank and
   file; a Throne is roughly 1 Mythic / 2 Legendary / 4 Epic / 5 Rare at cap 12
-  and 1 / 5 / 9 / 13 at cap 28. The Mythic is a guaranteed recruit on a first
+  and 1 / 5 / 9 / 13 at cap 28. **Act I runs its quotas at 0.75**
+  (`quotaScale`): the starting deck is 12 fixed Rares with no rebuilding done,
+  and the full share landed on it as a wall, so L14 is fought at 1 / 1 / 3 / 7. The Mythic is a guaranteed recruit on a first
   clear, so the fight has to earn it — a boss behind ten Rares did not. The
   roster always goes in regardless, so a node whose own cards already exceed its
   quota simply gets nothing more of that rarity.

@@ -622,6 +622,20 @@ describe("story: formations (10.7)", () => {
     }
   });
 
+  it("eases the Act I Throne without flattening it", () => {
+    // The starting deck is 12 fixed Rares with no rebuilding done, so the full
+    // quota landed as a wall. It runs at three quarters until Act II — still a
+    // Mythic with real support behind it, just not the late-game share.
+    const l14 = nodeById("L14")!;
+    const early = buildFormation(newSave(), leafRegion, l14);
+    const later = buildFormation({ ...newSave(), cleared: ["L14"] }, leafRegion, l14);
+    const c = (f: string[], r: string) => f.filter((id) => getDef(id).rarity === r).length;
+    expect(c(early, "legendary")).toBeLessThan(c(later, "legendary"));
+    expect(c(early, "epic")).toBeLessThan(c(later, "epic"));
+    expect(c(early, "mythic"), "the boss is still the boss").toBe(1);
+    expect(c(early, "legendary"), "still not a Skirmish").toBeGreaterThanOrEqual(1);
+  });
+
   it("makes a Throne a real fight, not a Mythic behind rank and file", () => {
     // The Mythic is a guaranteed recruit on a first clear, so the fight has to
     // be worth it: the boss arrives with its region's Legendaries and Epics.
