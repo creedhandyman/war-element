@@ -172,7 +172,9 @@ export function App() {
   const [regionId, setRegionId] = useState<string>(REGIONS[0].id);
   const region = REGIONS.find((r) => r.id === regionId) ?? REGIONS[0];
   const [storyNode, setStoryNode] = useState<StoryNode | null>(null);
-  const [storyResult, setStoryResult] = useState<{ node: StoryNode; won: string[]; captured: number } | null>(null);
+  const [storyResult, setStoryResult] = useState<
+    { node: StoryNode; won: string[]; captured: number; lost?: boolean } | null
+  >(null);
 
   // Background music. A story region owns the sound for BOTH its map and its
   // battles, so the region reads as a place rather than a series of fights; a
@@ -241,9 +243,10 @@ export function App() {
   useEffect(() => {
     if (!started || !storyNode || game.phase !== "gameover" || storyResult) return;
     if (game.win?.winner !== "P1") {
-      setStoryNode(null);
-      setStarted(false);
-      setStoryOpen(true);
+      // A loss still stops on the result card. It used to bounce straight to the
+      // map, which told you neither what beat you nor how close it was — and the
+      // match report is the whole reason to re-fight a node differently.
+      setStoryResult({ node: storyNode, won: [], captured: 0, lost: true });
       return;
     }
     const captured = game.slots.flat().filter((sl) => sl.capturedBy === "P1").length;
@@ -1805,6 +1808,8 @@ export function App() {
       {storyResult && (
         <StoryResult
           node={storyResult.node}
+          game={game}
+          lost={storyResult.lost}
           won={storyResult.won}
           captured={storyResult.captured}
           firstClear={!story.cleared.includes(storyResult.node.id)}

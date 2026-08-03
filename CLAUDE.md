@@ -400,6 +400,14 @@ Together: **1082MB -> 160MB, with no history rewriting.** Reach for `lfs prune`
 and `gc` before ever considering a rewrite; the big binaries in history (50MB of
 music, 82MB of superseded card WebP) are worth far less than they look, and
 purging them would only reach ~120MB in exchange for rewriting every SHA.
+- **Match report in Story Mode** — `MatchReport.tsx` is the end-of-match stat
+  summary (MVP, per-side totals, per-card roster table), split out of
+  `WinScreen.tsx` so both endings share it. `StoryResult` now renders it behind
+  a collapsed "Match report" toggle, and a story **LOSS** stops on the result
+  card instead of bouncing silently to the map — it used to tell you neither
+  what beat you nor how close it was. `hasMatchReport(game)` gates the toggle,
+  since `<MatchReport>` itself renders null when nothing measurable happened.
+
 - **Formations (§10.7)**: an enemy squad is a FORMATION, not a deck — it may
   field several copies of a card. `formationSize` is now simply the player's
   **deck cap**: the enemy brings a WHOLE DECK matched to your card count, so a
