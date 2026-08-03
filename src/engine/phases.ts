@@ -2256,7 +2256,8 @@ function doCleanupPhase(draft: GameState): void {
     const splash = draft.players[p].basicSplashRounds ?? 0;
     if (splash > 0) draft.players[p].basicSplashRounds = splash - 1;
   }
-  for (const f of draft.fields) f.roundsLeft--;
+  // Standing terrain never ticks down — it is the battlefield, not a spell.
+  for (const f of draft.fields) if (!f.permanent) f.roundsLeft--;
   for (const f of draft.fields.filter((f) => f.roundsLeft <= 0))
     draft.log.push(`${getSpell(f.spellId).name} fades from the battlefield.`);
   draft.fields = draft.fields.filter((f) => f.roundsLeft > 0);

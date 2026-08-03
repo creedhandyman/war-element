@@ -17,6 +17,7 @@ import type {
   StatusKind,
 } from "./types";
 import { BOARD_SIZE, HAND_CAP, OPENING_HAND, enemyOf, hillGivesHit, homeRow, isMidRow } from "./types";
+import { getSpell } from "./spells";
 
 /** A deck is either a registered deck/core id, or an explicit list of card ids
  *  (a pairing built at the picker). */
@@ -34,6 +35,9 @@ export function createInitialState(
   boardSize: number = BOARD_SIZE,
   /** Opening deployment slots per side (§10.6). Omit for the ordinary ramp. */
   opening?: { P1: number; P2: number },
+  /** A Field spell id to run as standing terrain for the whole battle (§4).
+   *  Story nodes pass their region's; ordinary matches pass nothing. */
+  terrainSpellId?: string,
 ): GameState {
   const state: GameState = {
     rngState: seed | 0,
@@ -67,6 +71,23 @@ export function createInitialState(
   shuffle(state, state.players.P1.deck);
   shuffle(state, state.players.P2.deck);
   state.firstPlayer = coin(state) ? "P1" : "P2";
+  // §4: the region's Field spell is permanently active for BOTH sides — no
+  // cost, no duration. `fieldBonus` keys on the card's own owner, so this needs
+  // one entry per player rather than one shared entry, or only half the board
+  // would ever feel it.
+  if (terrainSpellId) {
+    const terrain = getSpell(terrainSpellId);
+    if (terrain?.kind === "field" && terrain.field) {
+      const { rounds: _rounds, ...buff } = terrain.field;
+      for (const player of ["P1", "P2"] as PlayerId[])
+        state.fields.push({
+          owner: player, spellId: terrain.id, element: terrain.element,
+          roundsLeft: 1, permanent: true, ...buff,
+        });
+      state.log.push(`— ${terrain.name} runs over the whole battlefield. —`);
+    }
+  }
+
   drawCards(state, "P1", OPENING_HAND);
   drawCards(state, "P2", OPENING_HAND);
   state.log.push(

@@ -69,7 +69,11 @@ export function Board(props: {
         {game.fields.map((f) => {
           const spell = getSpell(f.spellId);
           const color = EL_COLOR[f.element];
-          const tip = `${spell.name} (${f.owner === "P1" ? "yours" : "enemy"}) — ${spell.text} · ${f.roundsLeft} round(s) left`;
+          // Standing terrain has no timer — showing roundsLeft would read as
+          // "one round left" on something that runs the whole battle.
+          const tip = `${spell.name} (${f.owner === "P1" ? "yours" : "enemy"}) — ${spell.text} · ${
+            f.permanent ? "the region's terrain, all battle" : `${f.roundsLeft} round(s) left`
+          }`;
           return (
             <div
               key={f.owner + f.spellId}
@@ -78,7 +82,7 @@ export function Board(props: {
               title={tip}
             >
               <span className="fieldmark" style={{ borderColor: color, color }} title={tip}>
-                {spell.name} · {f.roundsLeft}
+                {spell.name} · {f.permanent ? "∞" : f.roundsLeft}
               </span>
             </div>
           );

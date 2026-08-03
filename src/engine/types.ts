@@ -1200,6 +1200,10 @@ export interface FieldState extends FieldBuff {
   spellId: string;
   element: Element;
   roundsLeft: number;
+  /** Standing terrain (§4): a region's Field spell runs for the WHOLE battle
+   *  rather than a few rounds, so Cleanup neither ticks nor removes it. Cast
+   *  fields leave this unset and expire normally. */
+  permanent?: boolean;
   /** Downpour: the round its Flow re-pick was last offered. Without this the
    *  re-entrant check that catches a SECOND player in hot-seat immediately
    *  re-opens the prompt for the player who just answered — forever. */

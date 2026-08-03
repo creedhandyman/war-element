@@ -34,6 +34,7 @@ import {
   distributeBasicHits,
   boardCards,
   isCaptured,
+  SPELLS,
 } from "../engine";
 import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online";
 import { Board } from "./Board";
@@ -1853,10 +1854,16 @@ export function App() {
             // target so a 3-card roster still fields a full board (§10.7).
             const squad = buildFormation(story, home, node);
             const board = boardForNode(home, node);
+            // §4: the region's Field spell runs the whole battle, both sides.
+            // Matched by NAME rather than element — an element can have more
+            // than one field spell, and `region.terrain` names the exact one.
+            const terrain = SPELLS.find(
+              (sp) => sp.kind === "field" && sp.name === home.terrain,
+            )?.id;
             // Opening deployment is STORY-ONLY for now: skirmish, online and
             // Void Tower keep the ordinary summon ramp untouched.
             setGame(createInitialState(newSeed(), deck, squad, ["P1"], [], [], board,
-              { P1: PLAYER_DEPLOY, P2: enemyDeployFor(node) }));
+              { P1: PLAYER_DEPLOY, P2: enemyDeployFor(node) }, terrain));
             setStoryNode(node);
             setStoryOpen(false);
             setViewSide("P1");
