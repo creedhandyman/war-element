@@ -279,7 +279,7 @@ engine runtime and no React, so it stays testable headlessly
   ARRAY meaning ALL-of. Gate E is also the first gate to require a node in
   another region, so the two per-region graph tests exempt gates — the map's edge
   derivation already drops any prerequisite it can't find locally.
-  Only **BOLT** still has no theme; `REGION_TRACK` has no entry for it so it
+  Only **DAWN** still has no theme; `REGION_TRACK` has no entry for it so it
   falls back to the menu/battle pair, which is exactly the designed behaviour.
 - **Regions**: LEAF (open), plus PYRO and AQUA (formerly `requires: ["L14"]` — the
   doc's Act II branch, neither privileged). Each carries its own `artRatio`:
@@ -348,12 +348,17 @@ engine runtime and no React, so it stays testable headlessly
   region reads as a place and entering a fight doesn't restart the audio — the
   effect's deps don't change, so nothing re-plays. Regions without an entry fall
   back to the menu/battle pair, so shipping a map before its music is fine. The
-  audio pool is built ON DEMAND: `public/music` is ~28MB across four tracks, and
-  a player who never opens Story Mode should never fetch its themes. All tracks
+  audio pool is built ON DEMAND: a player who never opens Story Mode should
+  never fetch its themes. All tracks
   are 96 kb/s — they are looping ambience under SFX, and 320 kb/s masters cost
   3x the bytes for nothing. Transcode with the ffmpeg that ships inside the
   `imageio-ffmpeg` pip package; there is no system ffmpeg on this machine.
-  All five are also loudness-matched to **-16 LUFS** (EBU R128, two-pass, -1.5
+  `music.test.ts` guards the two SILENT failure modes — a `TRACKS` url with no
+  file behind it, and a `REGION_TRACK` key matching no region id (which just
+  plays menu music forever). It lists files with `import.meta.glob`, not
+  `existsSync`, for art.test.ts's reason: existsSync on Windows is case-
+  INSENSITIVE and would green-light a `City.mp3` that 404s on Vercel.
+  All nine are also loudness-matched to **-16 LUFS** (EBU R128, two-pass, -1.5
   dBTP ceiling). They arrived 5.9 dB apart and every one of them clipped, so
   switching regions changed the volume. Normalize from the MASTER, not from the
   committed 96k file, or you stack two generations of lossy encoding.

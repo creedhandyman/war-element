@@ -14,6 +14,7 @@ export const TRACKS = {
   leaf: "/music/jungle.mp3",
   pyro: "/music/scorched-horizon.mp3",
   aqua: "/music/atlantic.mp3",
+  bolt: "/music/city.mp3",
   gale: "/music/nightowl.mp3",
   bore: "/music/quake.mp3",
   dusk: "/music/ghosts.mp3",
@@ -24,11 +25,13 @@ export type MusicTrack = keyof typeof TRACKS;
 export type MusicMode = "menu" | "battle";
 
 /** Region id -> its theme. A region with no entry falls back to the normal
- *  menu/battle pair, so shipping AQUA's map before its music is not a break. */
+ *  menu/battle pair, so shipping a region's map before its music is not a break
+ *  — which is how BOLT shipped, and it is now the last one filled in. */
 export const REGION_TRACK: Partial<Record<string, MusicTrack>> = {
   leaf: "leaf",
   pyro: "pyro",
   aqua: "aqua",
+  bolt: "bolt",
   gale: "gale",
   bore: "bore",
   dusk: "dusk",
