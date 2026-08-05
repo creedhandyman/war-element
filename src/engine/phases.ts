@@ -1802,12 +1802,12 @@ function doRoundTicks(draft: GameState): void {
       }
     }
     if (rt.paralyzeLowHp) {
-      // Power Grid (Shock): the weak are locked down.
+      // Power Grid (Blackout): the weak are locked down.
       for (const e of enemies()) if (e.curHp <= rt.paralyzeLowHp.underHp)
         applyStatus(draft, e, "PARALYZE", rt.paralyzeLowHp.rounds, 0, getDef(card.defId).element);
     }
     if (rt.rootFastest) {
-      // Grounded (Season): pin the fastest opponent on the board.
+      // Grounded (Evera): pin the fastest opponent on the board.
       const foes = enemies();
       const fastest = foes.reduce<CardInstance | null>((b, e) => (!b || effectiveSp(draft, e) > effectiveSp(draft, b) ? e : b), null);
       if (fastest) {
@@ -2058,7 +2058,7 @@ function doCleanupPhase(draft: GameState): void {
     }
   }
 
-  // Spiraling Root Coil follow-up (Season): scheduled far-row ROOTs count down
+  // Spiraling Root Coil follow-up (Evera): scheduled far-row ROOTs count down
   // and fire on their due Cleanup. Its own loop so a card with roots but no
   // meteors isn't skipped by the meteor guard above.
   for (const pl of ["P1", "P2"] as PlayerId[]) {
@@ -2091,7 +2091,7 @@ function doCleanupPhase(draft: GameState): void {
     }
     // Shell Tuck's shaky aim wears off.
     if ((card.attackMissRounds ?? 0) > 0) card.attackMissRounds = (card.attackMissRounds ?? 0) - 1;
-    // Diamallize / Diamond Kingdom's granted BLOCK fades.
+    // Adamantize / Diamond Kingdom's granted BLOCK fades.
     if ((card.blockRoundsLeft ?? 0) > 0) card.blockRoundsLeft = (card.blockRoundsLeft ?? 0) - 1;
     // Magnetic Shield's granted REFLECT fades.
     if ((card.reflectRoundsLeft ?? 0) > 0) card.reflectRoundsLeft = (card.reflectRoundsLeft ?? 0) - 1;
@@ -2171,7 +2171,7 @@ function doCleanupPhase(draft: GameState): void {
       //
       // The ceiling is the card's PRINTED shields plus the cap, not a flat
       // total. Testing total shields meant any LEAF card printing 3+ — Thorn,
-      // Trinezer, Dande, Sakuroot, Warden, Elderroot, i.e. the whole top of the
+      // Trinezer, Dande, Sakuroot, Hartwood, Elderroot, i.e. the whole top of the
       // element — could never gain anything from half of its own element aura,
       // because it started at or over the line. Anchoring to printed shields
       // gives every LEAF card the same 3 points of bark to earn, and lets one
@@ -2288,7 +2288,7 @@ function doCleanupPhase(draft: GameState): void {
     card.dmgTakenThisRound = 0; // Vengeance (Bolder) reflects only this round's damage
     card.weaponSwitchedRound = false; // Power Grab (General): one switch per round
     card.kingWildFiredRound = false; // King of the Wild (Leo): one buff per round
-    card.allyKilledFiredRound = false; // Overwatch (Warden): one answer per round
+    card.allyKilledFiredRound = false; // Overwatch (Hartwood): one answer per round
     card.twinStrikeFiredRound = false; // Twin Strike (Ning): one bonus volley per round
     card.falseHeadUsedRound = false; // False Head (Thorny Ripper): the decoy resets each round
     card.onKillAoeFiredRound = false; // Powertrip re-arms each round

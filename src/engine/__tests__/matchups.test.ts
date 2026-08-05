@@ -235,8 +235,8 @@ describe("Gemaga's Magnetic Shield", () => {
   });
 });
 
-describe("Score's Toxic Contagion — the death burst", () => {
-  /** Infect `victim` with Score's Special, straight through the handler. */
+describe("Venomarch's Toxic Contagion — the death burst", () => {
+  /** Infect `victim` with Venomarch's Special, straight through the handler. */
   function infect(s: ReturnType<typeof prepState>, score: { instanceId: string }, victim: { instanceId: string }) {
     SPECIAL_HANDLERS.toxicContagion(s, s.cards[score.instanceId], [s.cards[victim.instanceId]], {
       sleep: 1, dotDuration: 2, dotPower: 3, deathSplash: 3,

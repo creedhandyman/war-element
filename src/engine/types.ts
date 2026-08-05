@@ -223,14 +223,14 @@ export interface RoundTickDef {
   /** Draining Siphon (Violet): at end of round, DRAIN N max HP from every
    *  opponent within 1 space. */
   drainMaxAdjacent?: number;
-  /** Grounded (Season): ROOT the fastest opponent on the board for N rounds. */
+  /** Grounded (Evera): ROOT the fastest opponent on the board for N rounds. */
   rootFastest?: number;
   /** Nature's Protection (Efy): refresh shields back UP TO N at end of round. */
   refreshShieldsTo?: number;
   /** Poisonous Roots (Ivey): apply this status to every ROOTed opponent each
    *  round (POISON on the rooted). */
   rootedStatus?: { kind: StatusKind; duration: number; power: number };
-  /** Overload/Power Grid (Shock): PARALYZE every opponent under `underHp` HP for
+  /** Overload/Power Grid (Blackout): PARALYZE every opponent under `underHp` HP for
    *  `rounds` at end of round. */
   paralyzeLowHp?: { underHp: number; rounds: number };
   /** Twisted Rush (Wailverine): deal N DMG to the enemy directly ahead; if it
@@ -509,10 +509,10 @@ export interface CardDef {
   lowHpNova?: { belowHp: number; dmg: number; push: number };
   /** Salvage (VVulture): whenever ANY card dies, gain `salvageOnDeath` max HP. */
   salvageOnDeath?: number;
-  /** Blood Moon (Scar): when an opponent dies while this card lives, heal it and
+  /** Blood Moon (Vesper): when an opponent dies while this card lives, heal it and
    *  all its allies `deathHealAura` HP. */
   deathHealAura?: number;
-  /** Diamond Kingdom (Diam): when an allied card of `element` dies while this
+  /** Diamond Kingdom (Adamant): when an allied card of `element` dies while this
    *  card lives, grant the lowest-HP surviving ally BLOCK `block` for `rounds`. */
   blockOnAllyDeath?: { block: number; rounds: number; element?: string };
   /** Boom (Doom): a time bomb. After `afterRounds` Cleanups it detonates for
@@ -525,7 +525,7 @@ export interface CardDef {
   deathExplosion?: number;
   /** Acorn Drop (OAK): every landed hit it TAKES sprouts `count` token(s). */
   spawnOnHitTaken?: { token: string; count: number };
-  /** Rainstorm (Rain): a landed basic also splashes N DMG to one adjacent enemy. */
+  /** Rainstorm (Cloudburst): a landed basic also splashes N DMG to one adjacent enemy. */
   basicSplash?: number;
   /** Life Cycle (Aurora): this card fields Light Orbs — each incoming hit is
    *  absorbed by an orb that bursts its effect at the attacker, and every enemy
@@ -689,7 +689,7 @@ export interface CardDef {
     dmg?: number;
     status?: { kind: StatusKind; duration: number; power: number };
     oneUse?: boolean;
-    /** Warden's Overwatch: answer at most once per ROUND (not once per game). */
+    /** Hartwood's Overwatch: answer at most once per ROUND (not once per game). */
     oncePerRound?: boolean;
   };
   /** Obsidian Claws (Obsidi): SP is replaced by this while the card is
@@ -905,14 +905,14 @@ export interface CardInstance {
   orbs?: string[];
   /** Aurora's rotation index for the orb an enemy death recharges. */
   orbCycle?: number;
-  /** Per-round guard for a `oncePerRound` onAllyKilled (Warden's Overwatch). */
+  /** Per-round guard for a `oncePerRound` onAllyKilled (Hartwood's Overwatch). */
   allyKilledFiredRound?: boolean;
   /** Per-round guard for Twin Strike (Ning's onCritBonus). */
   twinStrikeFiredRound?: boolean;
   /** Per-round guard for False Head (Thorny Ripper) — the decoy soaks one melee
    *  attack per round. */
   falseHeadUsedRound?: boolean;
-  /** Toxic Contagion (Score): a body carrying the poison bursts when it dies,
+  /** Toxic Contagion (Venomarch): a body carrying the poison bursts when it dies,
    *  splashing its neighbours. `by` is the caster's instanceId so the splash is
    *  credited to whoever infected it, not to the corpse. Only pays out while
    *  the DOT is still on the card — "dies while affected". */
@@ -959,7 +959,7 @@ export interface CardInstance {
    *  Cleanup until `regenRoundsLeft` reaches 0. */
   regenRoundsLeft?: number;
   regenPower?: number;
-  /** A granted, timed BLOCK X (Diam's Diamallize / Diamond Kingdom): while
+  /** A granted, timed BLOCK X (Adamant's Adamantize / Diamond Kingdom): while
    *  `blockRoundsLeft` > 0 this card reduces every incoming hit by `blockPower`,
    *  stacking with its own BLOCK keyword. Counts down each Cleanup. */
   blockRoundsLeft?: number;
@@ -1372,7 +1372,7 @@ export interface PlayerState {
    *  Each fires at the Cleanup of its `round`, hitting the owner's opponents.
    *  `source` is the (now-removed) caster, kept only for damage crediting. */
   pendingMeteors?: { round: number; dmg: number; source: CardInstance }[];
-  /** Spiraling Root Coil (Season): a next-round ROOT scheduled on the far row.
+  /** Spiraling Root Coil (Evera): a next-round ROOT scheduled on the far row.
    *  `roundsLeft` counts down each Cleanup; at 0 it roots up to `count` opponents
    *  in the source's far row for `duration`. */
   pendingFarRoots?: { roundsLeft: number; source: CardInstance; count: number; duration: number }[];

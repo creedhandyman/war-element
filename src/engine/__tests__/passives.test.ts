@@ -359,7 +359,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(60 - s.cards[warrior.instanceId].curHp).toBe(2 * (60 - s.cards[other.instanceId].curHp));
   });
 
-  it("Steel's Magnetic Steel strips the rank ahead but damages the whole board", () => {
+  it("Ironclad's Magnetic Steel strips the rank ahead but damages the whole board", () => {
     // Split scope: the theft reaches only the row directly ahead, the damage
     // lands on everyone. Fired with the card's OWN params so the test breaks if
     // the data and the handler ever disagree.
@@ -422,7 +422,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(isBloodfire(card)).toBe(false); // burning only
   });
 
-  it("Shock's Fryer deals +1 to PARALYZED opponents", () => {
+  it("Blackout's Fryer deals +1 to PARALYZED opponents", () => {
     const s = prepState();
     const shock = place(s, "bolt_shock", "P1", 3, 0);
     const para = place(s, "dusk_gool", "P2", 2, 0, { curHp: 50, maxHp: 50, curShields: 0 });
@@ -775,7 +775,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(effectiveDmg(s, s.cards[ally.instanceId])).toBe(base + 1); // Gaslighting +1 DMG
   });
 
-  it("Season's Spiraling Root Coil roots the far row a round LATER", () => {
+  it("Evera's Spiraling Root Coil roots the far row a round LATER", () => {
     let s = prepState();
     const season = place(s, "leaf_season", "P1", 3, 0);
     const adj = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40 });

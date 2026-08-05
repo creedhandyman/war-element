@@ -628,7 +628,7 @@ describe("AQUA / DAWN handlers", () => {
     expect(next.cards[hurt2.instanceId].curHp).toBe(8); // +5
   });
 
-  it("Dawn's Golden Courage heals AND cleanses the team", () => {
+  it("Empyrean's Golden Courage heals AND cleanses the team", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;
     const dawn = place(s, "dawn_dawn", "P1", 2, 0);

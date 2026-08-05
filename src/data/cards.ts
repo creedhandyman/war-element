@@ -1442,7 +1442,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dawn_dawn",
-    name: "Dawn",
+    name: "Empyrean",
     rarity: "legendary",
     element: "DAWN",
     cardClass: "Support",
@@ -6411,7 +6411,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "leaf_season",
-    name: "Season",
+    name: "Evera",
     rarity: "legendary",
     element: "LEAF",
     cardClass: "Support",
@@ -6425,7 +6425,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Grounded (End of Round): ROOT the fastest opponent 2 rounds. Aura: heal all
     // LEAF allies +4 each round.
-    passiveNames: { rootFastest: "Grounded", roundHealElement: "Season's Bloom" },
+    passiveNames: { rootFastest: "Grounded", roundHealElement: "Evera's Bloom" },
     roundTick: { rootFastest: 2, roundHealElement: { element: "LEAF", amount: 4 } },
     // Spiraling Root Coil: ROOT up to 4 in the adjacent row for 3 rounds NOW; the
     // roots creep on to ROOT up to 4 in the far row for 2 rounds NEXT round.
@@ -6535,7 +6535,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "aqua_rain",
-    name: "Rain",
+    name: "Cloudburst",
     rarity: "legendary",
     element: "AQUA",
     cardClass: "Ranger",
@@ -6549,7 +6549,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Liquid",
     // Rainstorm: basic attacks splash 2 DMG to one adjacent opponent, and while
-    // Rain lives the whole team's basics clip +1 adjacent target (team aura).
+    // Cloudburst lives the whole team's basics clip +1 adjacent target (team aura).
     passiveNames: { basicSplash: "Rainstorm", splashAura: "Downpour" },
     basicSplash: 2,
     splashAura: true,
@@ -6653,7 +6653,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bolt_shock",
-    name: "Shock",
+    name: "Blackout",
     rarity: "legendary",
     element: "BOLT",
     cardClass: "Mage",
@@ -6935,7 +6935,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bore_diam",
-    name: "Diam",
+    name: "Adamant",
     rarity: "legendary",
     element: "BORE",
     cardClass: "Support",
@@ -6952,10 +6952,10 @@ export const CARDS: CardDef[] = [
     aura: { scope: "element", shields: 1 },
     passiveNames: { blockOnAllyDeath: "Diamond Kingdom" },
     blockOnAllyDeath: { block: 2, rounds: 1, element: "BORE" },
-    // Diamallize: harden the whole team's armour — every ally gains BLOCK 2 for
+    // Adamantize: harden the whole team's armour — every ally gains BLOCK 2 for
     // two rounds (stacks with their own BLOCK).
     special: {
-      name: "Diamallize",
+      name: "Adamantize",
       cost: 4,
       handler: "diamallize",
       params: { block: 2, rounds: 2 },
@@ -6965,7 +6965,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bore_score",
-    name: "Score",
+    name: "Venomarch",
     rarity: "legendary",
     element: "BORE",
     cardClass: "Ranger",
@@ -6979,7 +6979,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Cavernous",
     // Sand Trap (On Hit by melee): infect the attacker (SLEEP). On Death: leave
-    // the killer poisoned. Toxic Contagion: Score's own basics spread POISON.
+    // the killer poisoned. Toxic Contagion: Venomarch's own basics spread POISON.
     passiveNames: { onHitByMelee: "Sand Trap", onDeath: "Sand Trap", onHitStatus: "Toxic Contagion" },
     onHitByMelee: { status: { kind: "SLEEP", duration: 2, power: 0 } },
     onDeath: { dmg: 0, killerStatus: { kind: "DOT", duration: 2, power: 3 } },
@@ -6998,7 +6998,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dusk_scar",
-    name: "Scar",
+    name: "Vesper",
     rarity: "legendary",
     element: "DUSK",
     cardClass: "Support",
@@ -7012,7 +7012,7 @@ export const CARDS: CardDef[] = [
     keywords: { FLYING: true, DRAIN: true },
     tribe: "Vamp",
     // Blood Mending: basic attacks DRAIN (lifesteal). Blood Moon (Aura): when an
-    // opponent dies, heal Scar and its allies +1.
+    // opponent dies, heal Vesper and its allies +1.
     passiveNames: { deathHealAura: "Blood Moon" },
     deathHealAura: 1,
     // Moon Frenzy: 3 DMG to all opponents, draining from each (DUSK lifesteal).
@@ -7030,7 +7030,7 @@ export const CARDS: CardDef[] = [
   // ───────────────── COST-7 LEGENDARIES (grid fill) ─────────────────
   {
     id: "leaf_warden",
-    name: "Warden",
+    name: "Hartwood",
     rarity: "legendary",
     element: "LEAF",
     cardClass: "Tank",
@@ -7121,7 +7121,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bore_steel",
-    name: "Steel",
+    name: "Ironclad",
     rarity: "legendary",
     element: "BORE",
     cardClass: "Warrior",
@@ -7210,7 +7210,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dawn_commander",
-    name: "Commander",
+    name: "Sunbanner",
     rarity: "legendary",
     element: "DAWN",
     cardClass: "Tank",

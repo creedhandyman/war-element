@@ -375,7 +375,7 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
     if (near.length)
       draft.log.push(`${getDef(card.defId).name} bursts — Contagion hits ${near.length} for ${CONTAGION_SPLASH}.`);
   }
-  // Toxic Contagion (Score): a body that dies STILL CARRYING the poison bursts
+  // Toxic Contagion (Venomarch): a body that dies STILL CARRYING the poison bursts
   // and splashes the cards around it. Gated on the DOT still being present —
   // that is what "dies while affected" means, so a target that outlives the
   // poison and dies later drops quietly.
@@ -434,7 +434,7 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
       c.curHp += sal;
     }
   }
-  // Blood Moon (Scar): an opponent's death heals it and its allies.
+  // Blood Moon (Vesper): an opponent's death heals it and its allies.
   for (const c of boardCards(draft)) {
     const dh = getDef(c.defId).deathHealAura;
     if (dh && c.curHp > 0 && c.owner !== card.owner) {
@@ -442,7 +442,7 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
       draft.log.push(`${label(draft, c)} feeds on the fallen — the team heals +${dh}.`);
     }
   }
-  // Diamond Kingdom (Diam): an allied BORE card's fall hardens the weakest
+  // Diamond Kingdom (Adamant): an allied BORE card's fall hardens the weakest
   // survivor — the lowest-HP ally gains a one-round BLOCK.
   for (const c of boardCards(draft)) {
     const bd = getDef(c.defId).blockOnAllyDeath;
@@ -1654,7 +1654,7 @@ export function basicAttack(
     draft.log.push(`${label(draft, attacker)} hits the Jackpot — Purple Strikes fires free!`);
     fireCardSpecial(draft, attacker);
   }
-  // Rainstorm (Rain): a landed basic splashes onto one enemy adjacent to the
+  // Rainstorm (Cloudburst): a landed basic splashes onto one enemy adjacent to the
   // primary target.
   if (aDef.basicSplash && agg.landedHits > 0 && attacker.curHp > 0 && !blinded) {
     const primary = draft.cards[groups[0]?.targetId];
@@ -2736,7 +2736,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // farRowDmg (Aftermath's Explosion): a lesser burst on the row BEYOND the
     // adjacent one, so the blast reaches the enemy's back line too.
     const farRowDmg = num(params, "farRowDmg");
-    const farRowStatus = num(params, "farRowStatus"); // reuse the volley's statusKind on the far row (Season)
+    const farRowStatus = num(params, "farRowStatus"); // reuse the volley's statusKind on the far row (Evera)
     const farStatusKind = typeof params.statusKind === "string" ? (params.statusKind as StatusKind) : null;
     if ((farRowDmg > 0 || (farRowStatus > 0 && farStatusKind)) && attacker.pos) {
       const far = rowAhead(attacker.owner, rowAhead(attacker.owner, attacker.pos.row));
@@ -2747,7 +2747,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
           applyStatus(draft, e, farStatusKind, num(params, "statusDuration", 1), num(params, "statusPower"), getDef(attacker.defId).element);
       }
     }
-    // farRowRootNext (Season): the roots snake on — a DELAYED ROOT lands on the
+    // farRowRootNext (Evera): the roots snake on — a DELAYED ROOT lands on the
     // far row at the START of next round (fired from Cleanup).
     if (num(params, "farRowRootNext") > 0) {
       (draft.players[attacker.owner].pendingFarRoots ??= []).push({
@@ -2757,7 +2757,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         duration: num(params, "farRowRootDuration", 1),
       });
     }
-    // stealShields (Steel's Magnetic Steel): pull up to N shields off each
+    // stealShields (Ironclad's Magnetic Steel): pull up to N shields off each
     // struck foe and bank them onto the caster's own armour.
     //
     // `stealRowAheadOnly` narrows the THEFT to the row directly ahead while the
@@ -3040,7 +3040,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       draft.log.push(`${label(draft, attacker)} hardens (+${broken} shields from the break).`);
     }
   },
-  /** Scoped 50GAL (Rain): load extra shots onto the NEXT basic so it can spread
+  /** Scoped 50GAL (Cloudburst): load extra shots onto the NEXT basic so it can spread
    *  across up to N targets (Bleed Out's loaded-darts mechanic). */
   scopeUp(draft, attacker, _targets, params) {
     attacker.loadedHits += num(params, "hits", 2);
@@ -3118,7 +3118,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       }
     }
   },
-  /** Toxic Contagion (Score): SLEEP a target and rot it with a DOT. */
+  /** Toxic Contagion (Venomarch): SLEEP a target and rot it with a DOT. */
   toxicContagion(draft, attacker, targets, params) {
     const t = targets[0];
     if (!t || t.curHp <= 0) return;
@@ -3152,7 +3152,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.regenPower = num(params, "regen", 3);
     draft.log.push(`${label(draft, attacker)} slips into a leafy cloak (STEALTH + REGEN).`);
   },
-  /** Flash Squad (Commander): order the allies in the row ahead to each fire a
+  /** Flash Squad (Sunbanner): order the allies in the row ahead to each fire a
    *  basic attack. */
   flashSquad(draft, attacker, _targets, _params) {
     if (!attacker.pos) return;
@@ -3168,7 +3168,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     draft.log.push(`${label(draft, attacker)} calls the Flash Squad — ${acted} ally(ies) open fire.`);
   },
-  /** Fryer (Shock): 2×2 to every opponent, recomputed per target so the caster's
+  /** Fryer (Blackout): 2×2 to every opponent, recomputed per target so the caster's
    *  DMG bonuses — including Overcharge's +1-for-the-round earned on a kill mid-
    *  Fryer — carry onto the opponents struck after. */
   fryer(draft, attacker, targets, params) {
@@ -3314,7 +3314,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     t.hoaxMarkedBy = attacker.instanceId;
     draft.log.push(`${label(draft, attacker)} marks ${label(draft, t)} — every basic against it now CRITS.`);
   },
-  /** Diamallize (Diam): crystallize the team's armour — every living ally gains
+  /** Adamantize (Adamant): crystallize the team's armour — every living ally gains
    *  a timed BLOCK, stacking with their own. */
   diamallize(draft, attacker, _targets, params) {
     const block = num(params, "block", 2);

@@ -544,7 +544,7 @@ const BORE: StoryRegion = {
       note: "The lantern-lit descent of the Diamond Mine. The utility tier, all four on one node." },
     { id: "R12", name: "The Unbroken Wall", kind: "landmark", at: { x: 79, y: 58 },
       requires: ["R6", "R10"], roster: ["bore_bastion", "bore_bearocks", "bore_steel"], adds: [],
-      note: "Bore Fortress — stone guardians. The campaign's hardest Landmark to out-damage rather than out-think, and Steel is immune to every status and DOT in the game. Bring PEN or bring a plan." },
+      note: "Bore Fortress — stone guardians. The campaign's hardest Landmark to out-damage rather than out-think, and Ironclad is immune to every status and DOT in the game. Bring PEN or bring a plan." },
     { id: "R13", name: "Corebore Shaft", kind: "throne", at: { x: 66, y: 76 },
       requires: ["R12"], roster: ["bore_the_coreborer"],
       // Escorts: the quarry crew, farmable at R1.
