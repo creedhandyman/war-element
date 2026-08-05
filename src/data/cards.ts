@@ -204,7 +204,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "leaf_leaf",
-    name: "Leaf",
+    name: "Frond",
     rarity: "rare",
     element: "LEAF",
     cardClass: "Mage",
@@ -1589,7 +1589,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "gale_hawk",
-    name: "Hawk",
+    name: "Stormquill",
     rarity: "rare", // a Talent is not a Special — talents are tier-free
     element: "GALE",
     cardClass: "Ranger",
@@ -1606,7 +1606,7 @@ export const CARDS: CardDef[] = [
     highSpeedImpact: true,
     // Glide Rush (Talent, free · once per game): +3 SP and EVASION, both for 2
     // rounds. The SP is TEMPORARY (buffRounds) — it feeds High Speed Impact
-    // above, so for those two rounds a 7 SP Hawk is at 10 and every further
+    // above, so for those two rounds a 7 SP Stormquill is at 10 and every further
     // point of SP it can find turns straight into damage.
     talent: {
       name: "Glide Rush",
@@ -3903,7 +3903,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "aqua_icyninza",
-    name: "IcyNinza",
+    name: "Frostveil",
     rarity: "rare",
     element: "AQUA",
     cardClass: "Ranger",
@@ -7445,7 +7445,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "aqua_icynin",
-    name: "ICYNIN",
+    name: "Coilblade",
     rarity: "epic",
     element: "AQUA",
     cardClass: "Assassin",

@@ -51,7 +51,7 @@ function describeOnSummon(os: {
 }, vsTarget?: { tribe?: string; hpAbove?: number }, element = "same-element"): string {
   const p = os.params ?? {};
   const n = (k: string) => Number(p[k] ?? 0);
-  // A pure self-status on-summon (IcyNinza's Icy Mist — no target handler).
+  // A pure self-status on-summon (Frostveil's Icy Mist — no target handler).
   if (!os.handler && os.selfStatus) {
     const dur = os.selfStatusDuration ? ` for ${rounds(os.selfStatusDuration)}` : "";
     const ext = os.extendSelfStatusOnKill ? ` (+${os.extendSelfStatusOnKill} round per kill while cloaked)` : "";

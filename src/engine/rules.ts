@@ -246,7 +246,7 @@ export function rangedReachFor(state: GameState, card: CardInstance): number {
  *  Three ways to be hidden, and Magalogoon's is deliberately NOT the keyword:
  *   - a granted STEALTH status (always hides);
  *   - the STEALTH keyword — hides until the card attacks this round
- *     (IcyNinza, Obsidi);
+ *     (Frostveil, Obsidi);
  *   - Swamp Monster (Magalogoon) — a CONDITIONAL passive, hidden only while it
  *     has neither moved nor attacked this round. No standing keyword, so it is
  *     never "always" stealthed. */

@@ -98,7 +98,7 @@ describe("clean-win passives (audit batch)", () => {
 });
 
 describe("medium-tier passives (audit batch)", () => {
-  it("Hawk's High Speed Impact adds +1 DMG per SP above 10", () => {
+  it("Stormquill's High Speed Impact adds +1 DMG per SP above 10", () => {
     const s = prepState();
     const slow = place(s, "gale_hawk", "P1", 3, 0); // SP 7 → no bonus
     expect(effectiveDmg(s, slow)).toBe(8);
@@ -741,7 +741,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(40 - s.cards[foe.instanceId].curHp).toBe(22);
   });
 
-  it("ICYNIN's Shatter splashes to neighbours when it hits a FROZEN target", () => {
+  it("Coilblade's Shatter splashes to neighbours when it hits a FROZEN target", () => {
     const s = prepState();
     const icy = place(s, "aqua_icynin", "P1", 3, 0);
     place(s, "dusk_gool", "P2", 2, 0, {

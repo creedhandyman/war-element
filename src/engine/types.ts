@@ -459,7 +459,7 @@ export interface CardDef {
   /** Icicle Weapon (Blackice): the card's basic DMG equals its CURRENT shields
    *  (its armour IS its weapon), instead of the printed dmg. */
   weaponFromShields?: boolean;
-  /** Shatter (ICYNIN): a landed basic on a FROZEN target shatters the ice —
+  /** Shatter (Coilblade): a landed basic on a FROZEN target shatters the ice —
    *  `shatterFrozen` splash damage to enemies adjacent to it. */
   shatterFrozen?: number;
   /** Bounty (Scallywag): when an OPPONENT fires a Special, this card answers with a
@@ -632,7 +632,7 @@ export interface CardDef {
   /** Incinerate (Sol): consecutive hits on the same target within a round deal
    *  +1 DMG per hit (the ramp climbs with each landed hit). */
   incinerate?: boolean;
-  /** High Speed Impact (Hawk): +1 DMG per point of effective SP above 10. */
+  /** High Speed Impact (Stormquill): +1 DMG per point of effective SP above 10. */
   highSpeedImpact?: boolean;
   /** Apex Predator (Stormfang): +1 DMG for every `per` SP above `above`. */
   speedDmgTiered?: { above: number; per: number };
@@ -830,7 +830,7 @@ export interface CardDef {
    *  obey normal targeting rules; params.rowAhead=1 limits them to the row
    *  directly ahead of where it was summoned. */
   onSummon?: {
-    /** Optional — omit for a pure self-status on-summon (IcyNinza's Icy Mist). */
+    /** Optional — omit for a pure self-status on-summon (Frostveil's Icy Mist). */
     handler?: string;
     params?: Record<string, number | string>;
     /** Who the on-summon effect hits. Default "enemy". "ally" fires an ally
@@ -840,7 +840,7 @@ export interface CardDef {
     /** A buff status the summoned card grants ITSELF (e.g. STEALTH for N rounds). */
     selfStatus?: StatusKind;
     selfStatusDuration?: number;
-    /** IcyNinza's Icy Mist: while the self-status (STEALTH) is up, each kill
+    /** Frostveil's Icy Mist: while the self-status (STEALTH) is up, each kill
      *  extends its duration by this many rounds. */
     extendSelfStatusOnKill?: number;
   };

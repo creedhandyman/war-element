@@ -1060,7 +1060,7 @@ export function resolveHit(
         if (aDef.firePassiveSpecial.grantFlyingRounds && draft.cards[attacker.instanceId] && attacker.curHp > 0)
           attacker.flyingRoundsLeft = aDef.firePassiveSpecial.grantFlyingRounds;
       }
-      // IcyNinza's Icy Mist: a kill while cloaked extends the STEALTH window.
+      // Frostveil's Icy Mist: a kill while cloaked extends the STEALTH window.
       const ext = aDef.onSummon?.extendSelfStatusOnKill;
       const selfSt = aDef.onSummon?.selfStatus;
       if (ext && selfSt) {
@@ -1665,7 +1665,7 @@ export function basicAttack(
       if (splash) directDamage(draft, attacker, splash, aDef.basicSplash, false);
     }
   }
-  // Shatter (ICYNIN): a landed hit on a FROZEN target cracks the ice — splash
+  // Shatter (Coilblade): a landed hit on a FROZEN target cracks the ice — splash
   // to every enemy adjacent to it.
   if (aDef.shatterFrozen && agg.landedHits > 0 && attacker.curHp > 0) {
     const primary = draft.cards[groups[0]?.targetId];
@@ -3649,7 +3649,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (rounds > 0) {
       applyTimedBuff(attacker, dmg, sp, rounds);
       // Was hardcoded to Ravven's "+N DMG" flavour, which read as "+0 DMG" for
-      // any timed buff that grants SP instead (Hawk's Glide Rush).
+      // any timed buff that grants SP instead (Stormquill's Glide Rush).
       const parts = [dmg ? `+${dmg} DMG` : "", sp ? `+${sp} SP` : ""].filter(Boolean);
       draft.log.push(`${label(draft, attacker)} surges (${parts.join(", ")} for ${rounds} rounds).`);
       return;

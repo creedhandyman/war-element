@@ -317,7 +317,7 @@ describe("Talents — Dart Frog's Bleed Out", () => {
   });
 });
 
-describe("Talents — Hawk's Glide Rush", () => {
+describe("Talents — Stormquill's Glide Rush", () => {
   it("grants +3 SP and EVASION, once per game", () => {
     const s = prepState();
     const hawk = place(s, "gale_hawk", "P1", 2, 0);
@@ -338,7 +338,7 @@ describe("Talents — Hawk's Glide Rush", () => {
     // The talent branch used to re-do empower's maths inline and ignored
     // buffRounds entirely, so a temporary buff was silently granted forever.
     //
-    // Measured against a CONTROL Hawk rather than absolute numbers: GALE's
+    // Measured against a CONTROL Stormquill rather than absolute numbers: GALE's
     // Zephyr aura hands every GALE card +1 SP at the end of every round, so a
     // raw reading climbs on its own and says nothing about the talent.
     const s = prepState();
@@ -359,7 +359,7 @@ describe("Talents — Hawk's Glide Rush", () => {
   });
 
   it("the speed actually feeds High Speed Impact", () => {
-    // Hawk deals +1 DMG per SP above 10 and sits at 7, so the talent is what
+    // Stormquill deals +1 DMG per SP above 10 and sits at 7, so the talent is what
     // switches its own passive on. If the SP buff were cosmetic this is where
     // it would show.
     const s = prepState();

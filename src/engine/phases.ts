@@ -184,7 +184,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
             handler(draft, inst, targets, params);
           }
         }
-        // A self-buff status on summon (IcyNinza's Icy Mist — STEALTH for N rounds).
+        // A self-buff status on summon (Frostveil's Icy Mist — STEALTH for N rounds).
         if (os.selfStatus) {
           applyStatus(draft, inst, os.selfStatus, os.selfStatusDuration ?? 1, 0, def.element);
         }
@@ -1078,7 +1078,7 @@ function performBattleAction(
       card.loadedHits += Number(t.params?.hits ?? 0);
       draft.log.push(`${label(draft, card)} loads its darts — next basic fires as ${getDef(card.defId).hits + card.loadedHits}.`);
     } else if (t.handler === "empower") {
-      // Self-buff Talent (Hawk's Glide Rush). Routed through the SHARED handler
+      // Self-buff Talent (Stormquill's Glide Rush). Routed through the SHARED handler
       // rather than re-doing the maths here — the old inline copy silently
       // ignored `buffRounds`, so a talent asking for a TEMPORARY buff quietly
       // granted a permanent one. Passes no targets: empower only reads the

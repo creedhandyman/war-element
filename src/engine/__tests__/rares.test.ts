@@ -32,7 +32,7 @@ describe("rare passives", () => {
     expect(next.cards[foe.instanceId].nextAttackDmgDebuff).toBe(2); // −2 on its next basic
   });
 
-  it("AQUA IcyNinza — Icy Mist cloaks it in STEALTH for 1 round on summon", () => {
+  it("AQUA Frostveil — Icy Mist cloaks it in STEALTH for 1 round on summon", () => {
     const s = prepState();
     s.players.P1.gold = 5;
     const handId = giveHand(s, "P1", "aqua_icyninza");
@@ -44,7 +44,7 @@ describe("rare passives", () => {
   });
 
   it("...and it opens with a 3 DMG attack that can CRIT, before vanishing", () => {
-    // The opener asks for `crit` explicitly: IcyNinza's CRIT keyword only rides
+    // The opener asks for `crit` explicitly: Frostveil's CRIT keyword only rides
     // BASIC attacks, so an on-summon handler lands uncritted without it. CRIT is
     // a coin flip on an unshielded target, so the roll is seeded — asserting a
     // flat 6 would pass or fail on the RNG.
