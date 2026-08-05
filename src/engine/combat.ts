@@ -426,7 +426,7 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
     if (ot.hp) { c.maxHp += ot.hp; c.curHp += ot.hp; }
     draft.log.push(`${label(draft, c)} feeds on the fallen ${ot.tribe}.`);
   }
-  // Salvage (VVulture): any card's death feeds the scavenger's max HP.
+  // Salvage (Vulture): any card's death feeds the scavenger's max HP.
   for (const c of boardCards(draft)) {
     const sal = getDef(c.defId).salvageOnDeath;
     if (sal && c.curHp > 0 && c.instanceId !== card.instanceId) {
@@ -1207,7 +1207,7 @@ export function resolveHit(
     if (r) result.attackerDied = true;
   }
 
-  // Acorn Drop (OAK): every landed hit it takes sprouts a fresh Acorn.
+  // Acorn Drop (Oak): every landed hit it takes sprouts a fresh Acorn.
   if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && tDef.spawnOnHitTaken && target.pos) {
     spawnTokens(draft, target, tDef.spawnOnHitTaken.token, tDef.spawnOnHitTaken.count * result.landedHits);
   }
@@ -2342,7 +2342,7 @@ function adjacentCasterStatus(
 }
 
 export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
-  /** Reroot (OAK): a pure reposition — advance up to `charge` open slots toward
+  /** Reroot (Oak): a pure reposition — advance up to `charge` open slots toward
    *  the enemy home, no attack. Lets a planted SP-0 body uproot and march. */
   reposition(draft, attacker, _targets, params) {
     chargeForward(draft, attacker, num(params, "charge", 1));

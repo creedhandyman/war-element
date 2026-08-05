@@ -551,7 +551,7 @@ describe("RIP — Horde is free from the clock, paid for by hand", () => {
     expect(husks(n)).toBe(before + 2); // ...and its last two bodies are standing
   });
 
-  it("The DEEPEST refuses the same trade — it does not opt in", () => {
+  it("The Deepest refuses the same trade — it does not opt in", () => {
     // selfHpLethal is per-Special on purpose: Drilling Quake costs 5 HP but a
     // 10-cost mythic deleting itself is a misclick, not a closing play.
     const s = prepState();
@@ -568,7 +568,7 @@ describe("RIP — Horde is free from the clock, paid for by hand", () => {
     expect(n.cards[deep.instanceId].curHp).toBe(1);
   });
 
-  it("The DEEPEST's quake still lands its full sinkhole after paying", () => {
+  it("The Deepest's quake still lands its full sinkhole after paying", () => {
     const s = prepState();
     s.players.P1.magicPool = 9;
     const deep = place(s, "bore_deepest", "P1", 3, 1, { curHp: 37, maxHp: 37, autoMode: "manual" });

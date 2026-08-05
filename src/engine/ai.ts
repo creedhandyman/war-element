@@ -690,7 +690,7 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
       }
     } else if (sp.handler === "grantShield") {
       if (sp.targetSide === "self") {
-        // Roosting Wing Shield (VVulture): a self shield-up + heal. Take it when
+        // Roosting Wing Shield (Vulture): a self shield-up + heal. Take it when
         // not securing a kill and there's magic to spare.
         if (!basicCanKill && (rich || card.curHp < card.maxHp)) return { action: "special" };
       } else {

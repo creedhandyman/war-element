@@ -101,7 +101,7 @@ describe("per-card auras", () => {
     expect(next.cards[foe.instanceId].curHp).toBeLessThan(20); // damage went straight to HP
   });
 
-  it("Pressure: The DEEPEST tops BORE allies up to +1 shield each round", () => {
+  it("Pressure: The Deepest tops BORE allies up to +1 shield each round", () => {
     const s = prepState();
     place(s, "bore_deepest", "P1", 2, 1); // Pressure holder (BORE)
     const boreAlly = place(s, "bore_clubber", "P1", 2, 0, { curShields: 0 });
@@ -372,7 +372,7 @@ describe("Talents — Stormquill's Glide Rush", () => {
   });
 });
 
-describe("The DEEPEST — Drilling Quake sinkhole", () => {
+describe("The Deepest — Drilling Quake sinkhole", () => {
   it("applies DOT + BLIND + a −5 SP debuff to opponents", () => {
     const s = prepState();
     s.players.P1.magicPool = 6;
@@ -505,7 +505,7 @@ describe("Pyrogon — Flame Engulf reach", () => {
   });
 });
 
-describe("The DEEPEST — Echolocation (blind, aims by sound)", () => {
+describe("The Deepest — Echolocation (blind, aims by sound)", () => {
   it("can't hit a stationary far enemy — but CAN once it has moved this round", () => {
     const s = prepState();
     const deepest = place(s, "bore_deepest", "P1", 2, 0);
@@ -546,7 +546,7 @@ describe("The DEEPEST — Echolocation (blind, aims by sound)", () => {
   });
 });
 
-describe("The DEEPEST — STEALTH lifecycle", () => {
+describe("The Deepest — STEALTH lifecycle", () => {
   it("re-STEALTHs after Drilling Quake (untargetable), but a basic attack leaves it exposed", () => {
     // Special → regains STEALTH.
     const s = prepState();
@@ -638,7 +638,7 @@ describe("Trinezer — Jungle Culling (PEN + Culling the Weak)", () => {
   });
 });
 
-describe("The DEEPEST — Abyssal Emergence is earned, not innate", () => {
+describe("The Deepest — Abyssal Emergence is earned, not innate", () => {
   it("it is targetable the moment it lands", () => {
     // It used to carry the STEALTH keyword, which hid a cost-10 body from the
     // instant it was summoned — untargetable before doing anything for it.

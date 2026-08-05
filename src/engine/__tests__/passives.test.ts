@@ -622,7 +622,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(boardCards(s, "P1").some((c) => getDef(c.defId).id === "dawn_heir_tok")).toBe(true);
   });
 
-  it("OAK's Reroot talent marches it forward toward the enemy home", () => {
+  it("Oak's Reroot talent marches it forward toward the enemy home", () => {
     const s = prepState();
     const oak = place(s, "leaf_oak", "P1", 3, 0); // SP 0, planted at its home row
     // Read the talent's OWN params rather than hardcoding the distance, so

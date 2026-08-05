@@ -2635,7 +2635,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_deepest",
     art: "bore_the_deepest",
-    name: "The DEEPEST",
+    name: "The Deepest",
     rarity: "mythic",
     element: "BORE",
     cardClass: "Support",
@@ -4997,7 +4997,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "leaf_oak",
-    name: "OAK",
+    name: "Oak",
     rarity: "rare",
     element: "LEAF",
     cardClass: "Tank",
@@ -5011,8 +5011,8 @@ export const CARDS: CardDef[] = [
     sp: 0,
     shields: 0,
     keywords: {},
-    // Acorn Drop: every hit OAK takes sprouts an Acorn — a 2/3/3 seedling that
-    // Seed-Rolls one slot forward each round. Root Growth: OAK drinks in 2× from
+    // Acorn Drop: every hit Oak takes sprouts an Acorn — a 2/3/3 seedling that
+    // Seed-Rolls one slot forward each round. Root Growth: Oak drinks in 2× from
     // every healing source (REGEN, aura heals, ally lifesteal…).
     // Taproot: a landed basic ROOTs for 2 rounds — a planted SP-0 tree that
     // can't chase needs the enemy to stop coming to it.
@@ -5218,7 +5218,7 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Support",
     attackType: "Ranged",
-    // Dropped 2→1 (swapped with OAK): a cheap, disposable body that keeps coming
+    // Dropped 2→1 (swapped with Oak): a cheap, disposable body that keeps coming
     // back.
     cost: 1,
     dmg: 3,
@@ -5393,7 +5393,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dawn_stbern",
-    name: "St.Bern",
+    name: "St. Bernard",
     rarity: "rare",
     element: "DAWN",
     cardClass: "Support",
@@ -6322,7 +6322,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "gale_vvulture",
-    name: "VVulture",
+    name: "Vulture",
     tribe: "Avian",
     rarity: "epic",
     element: "GALE",
@@ -7152,7 +7152,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dusk_hoax",
-    name: "HOAX",
+    name: "Hoax",
     rarity: "legendary",
     element: "DUSK",
     cardClass: "Assassin",
@@ -8844,7 +8844,7 @@ export const CORES: CoreDef[] = [
   { id: "gale", name: "Skyrend", element: "GALE", cards: deckFor("GALE") },
   { id: "bolt", name: "Elecdroid", element: "BOLT", cards: deckFor("BOLT") },
   { id: "dusk", name: "Shadow Horsemen", element: "DUSK", cards: deckFor("DUSK") },
-  { id: "bore", name: "The DEEPEST", element: "BORE", cards: deckFor("BORE") },
+  { id: "bore", name: "The Deepest", element: "BORE", cards: deckFor("BORE") },
 ];
 
 export function coreById(id: string): CoreDef {

@@ -291,7 +291,7 @@ export function healCard(state: GameState, card: CardInstance, amount: number, b
   if (amount <= 0 || card.curHp <= 0) return 0;
   if (hasStatus(card, "SEAL")) return 0; // Bluflame — no healing while sealed
   const before = card.curHp;
-  // Root Growth (OAK): drinks in double (or more) from every healing source.
+  // Root Growth (Oak): drinks in double (or more) from every healing source.
   const mult = getDef(card.defId).healReceivedMult ?? 1;
   // Searing (PYRO matchup): a BURNing card heals at 75% — wounds don't close
   // while they cook. Floored rather than rounded so the penalty can't vanish on

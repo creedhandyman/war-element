@@ -108,7 +108,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       draft.log.push(
         `${intent.player} summons ${def.name} (cost ${def.cost}) into column ${intent.col}.`,
       );
-      // Seed Roll (OAK): the acorn rolls forward on landing — advance toward the
+      // Seed Roll (Oak): the acorn rolls forward on landing — advance toward the
       // enemy home, one slot at a time, until something blocks it or the edge.
       if (def.summonAdvance && inst.pos) {
         const dir = intent.player === "P1" ? -1 : 1;
@@ -1615,7 +1615,7 @@ function doRoundTicks(draft: GameState): void {
     const allies = () => boardCards(draft, card.owner).filter((c) => c.curHp > 0);
 
     // Seed Roll (Acorn): trundle forward toward the enemy home each round, one
-    // open slot at a time — the same walk as OAK's on-summon roll, per round.
+    // open slot at a time — the same walk as Oak's on-summon roll, per round.
     if (rt.advance && card.pos) {
       const dir = card.owner === "P1" ? -1 : 1;
       let rolled = 0;
@@ -1955,7 +1955,7 @@ function doRoundTicks(draft: GameState): void {
       if (healed > 0) draft.log.push(`${label(draft, card)} rehydrates to full (+${healed} HP).`);
     }
     if (rt.healWoundedAllies) {
-      // Emergency Support (Vigil) / Rescue Pack (St.Bern): mend any ally that's
+      // Emergency Support (Vigil) / Rescue Pack (St. Bernard): mend any ally that's
       // dropped under the threshold.
       const { underHp, amount } = rt.healWoundedAllies;
       const hurt = allies().filter((c) => c.curHp > 0 && c.curHp < underHp);
@@ -2218,7 +2218,7 @@ function doCleanupPhase(draft: GameState): void {
         draft.log.push(`${label(draft, card)} regrows bark (+${grown} shield${grown > 1 ? "s" : ""}).`);
       }
     }
-    // Shield auras (The DEEPEST's Pressure): regenerate the aura's shields each
+    // Shield auras (The Deepest's Pressure): regenerate the aura's shields each
     // round, +bonus per turn up to printed + aura shields. Was an instant refill
     // to that ceiling (Math.max), so a card that lost several shields regained
     // them all in one round — reads as "gains 2+ per turn". Now it trickles the

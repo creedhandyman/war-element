@@ -319,7 +319,7 @@ export function canTarget(
         return false;
     }
   } else if (forBasic && aDef.targetsOnSound) {
-    // Echolocation (The DEEPEST): blind, aims by sound. A basic can only find a
+    // Echolocation (The Deepest): blind, aims by sound. A basic can only find a
     // target that is right beside it (king reach) or that MOVED this round —
     // footsteps it hears anywhere on the board. A stationary far enemy is silent.
     const dRow = Math.abs(attacker.pos.row - target.pos.row);
@@ -653,7 +653,7 @@ export function canFireSpecial(
   // A Special charged in HP is refused when the cost would be lethal — UNLESS it
   // opts into `selfHpLethal`. RIP's Horde does: going out to leave two more
   // bodies standing is a real closing play for a 0-DMG card whose entire
-  // contribution IS bodies. The DEEPEST's does not — a 10-cost mythic deleting
+  // contribution IS bodies. The Deepest's does not — a 10-cost mythic deleting
   // itself is a misclick, not a play. (The auto-fire never routes through here.)
   // A permanent, stacking buff can opt into a lifetime cast limit. Without it
   // Oakgre parked out of reach grows +2 DMG / +3 SP every round for the rest of

@@ -557,7 +557,7 @@ const BORE: StoryRegion = {
       adds: ["bore_stone", "bore_iron", "dusk_crow", "dusk_pumpkin", "dusk_spider", "dusk_doom", "bore_shift", "dusk_silkstalker"],
       demand: { kind: "class", value: "Tank", count: 4 },
       note: "Where the stone gives out and the shadow starts. Everything past here is Act V." },
-    { id: "R14", name: "The DEEPEST Dark", kind: "throne", at: { x: 49, y: 84 },
+    { id: "R14", name: "The Deepest Dark", kind: "throne", at: { x: 49, y: 84 },
       requires: ["R11", "R12"], roster: ["bore_deepest"],
       // Escorts: the standing stones, farmable at R6.
       adds: ["bore_stone", "bore_rock", "bore_shift"], required: true,

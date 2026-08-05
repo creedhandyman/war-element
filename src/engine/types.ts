@@ -211,7 +211,7 @@ export interface RoundTickDef {
   /** Overheating (Heatsink Golem): end of round, N DMG to the closest opponent;
    *  DOUBLED when it's the same target as last round (heat builds up). */
   overheatDmg?: number;
-  /** Emergency Support (Vigil) / Rescue Pack (St.Bern): heal every ally whose
+  /** Emergency Support (Vigil) / Rescue Pack (St. Bernard): heal every ally whose
    *  curHp is under `underHp` by `amount` at end of round. */
   healWoundedAllies?: { underHp: number; amount: number };
   /** Frosty Bites (Hibernal): at end of round, ROOT one opponent whose effective
@@ -507,7 +507,7 @@ export interface CardDef {
   /** Mega Push (Megair): while below `belowHp` HP, a landed basic also deals
    *  `dmg` to every opponent and pushes them all back `push` spaces. */
   lowHpNova?: { belowHp: number; dmg: number; push: number };
-  /** Salvage (VVulture): whenever ANY card dies, gain `salvageOnDeath` max HP. */
+  /** Salvage (Vulture): whenever ANY card dies, gain `salvageOnDeath` max HP. */
   salvageOnDeath?: number;
   /** Blood Moon (Vesper): when an opponent dies while this card lives, heal it and
    *  all its allies `deathHealAura` HP. */
@@ -523,7 +523,7 @@ export interface CardDef {
    *  defeatCard (the ONE chokepoint every death path funnels through), so unlike
    *  onDeath.aoeDmg it also fires on tick / reflect / detonation deaths. */
   deathExplosion?: number;
-  /** Acorn Drop (OAK): every landed hit it TAKES sprouts `count` token(s). */
+  /** Acorn Drop (Oak): every landed hit it TAKES sprouts `count` token(s). */
   spawnOnHitTaken?: { token: string; count: number };
   /** Rainstorm (Cloudburst): a landed basic also splashes N DMG to one adjacent enemy. */
   basicSplash?: number;
@@ -565,7 +565,7 @@ export interface CardDef {
   roundTick?: RoundTickDef;
   /** On-death revival (Bearocks). */
   onRevive?: OnReviveDef;
-  /** Root Growth (OAK): all healing this card receives is multiplied by N. */
+  /** Root Growth (Oak): all healing this card receives is multiplied by N. */
   healReceivedMult?: number;
   /** Carnage (Zhunk): when any card of `tribe` dies anywhere, this card gains
    *  the listed permanent stat bumps. */
@@ -666,7 +666,7 @@ export interface CardDef {
    *  a rider reaches PAST its own allies but not through an enemy front line.
    *  Basics only: melee Specials keep their own reach. */
   basicLineReach?: number;
-  /** Echolocation (The DEEPEST): the card is BLIND and aims by sound. Its BASIC
+  /** Echolocation (The Deepest): the card is BLIND and aims by sound. Its BASIC
    *  attack can only find a target that is either right beside it (king reach,
    *  chebyshev ≤ 1) or that MOVED this round — footsteps it can hear anywhere on
    *  the board. A stationary enemy out of arm's reach is silent and untargetable.
@@ -747,7 +747,7 @@ export interface CardDef {
    *  both sides of the step like Stomp, so shuffling between two mid rows does
    *  not farm it. */
   onEnterMidRow?: { shields: number };
-  /** Seed Roll (OAK): on summon, roll forward this many rows toward the enemy
+  /** Seed Roll (Oak): on summon, roll forward this many rows toward the enemy
    *  home, stopping at the first occupied/captured slot or the board edge. */
   summonAdvance?: number;
   /** Wind Wake (Zephyra): every landed hit shoves the victim back a slot. */
