@@ -29,7 +29,7 @@ export const CARDS: CardDef[] = [
   // ───────────────────────── LEAF ─────────────────────────
   {
     id: "leaf_sumerose",
-    name: "Sumerose",
+    name: "Estival",
     rarity: "epic",
     element: "LEAF",
     cardClass: "Assassin",
@@ -148,7 +148,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "leaf_fallona",
-    name: "Fallona",
+    name: "Autumnal",
     rarity: "epic",
     element: "LEAF",
     cardClass: "Mage",
@@ -642,7 +642,7 @@ export const CARDS: CardDef[] = [
 
   {
     id: "bore_rhe",
-    name: "Rhe",
+    name: "Rhyolite",
     rarity: "epic",
     element: "BORE",
     cardClass: "Mage",
@@ -1521,7 +1521,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dawn_clipsey",
-    name: "Clipsey",
+    name: "Eclipse",
     rarity: "epic",
     element: "DAWN",
     cardClass: "Ranger",
@@ -1617,7 +1617,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "gale_vaga",
-    name: "Vaga",
+    name: "Squall",
     rarity: "epic",
     element: "GALE",
     cardClass: "Assassin",
@@ -1645,7 +1645,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "gale_buf",
-    name: "Buf",
+    name: "Hornrush",
     rarity: "epic",
     element: "GALE",
     cardClass: "Warrior",
@@ -1698,7 +1698,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "gale_guan",
-    name: "Guan",
+    name: "Dreadgaze",
     rarity: "epic",
     element: "GALE",
     cardClass: "Tank",
@@ -1835,7 +1835,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bolt_twotales",
-    name: "TwoTales",
+    name: "Twintail",
     rarity: "rare",
     element: "BOLT",
     cardClass: "Warrior",
@@ -1853,7 +1853,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bolt_zagphu",
-    name: "Zagphu",
+    name: "Ricochet",
     rarity: "epic",
     element: "BOLT",
     cardClass: "Warrior",
@@ -1961,7 +1961,7 @@ export const CARDS: CardDef[] = [
       // printed "2×3 DMG and PARALYZE all opponents" — 2 hits of 3 per target
       // hits 2 -> 1. Measured at 12.0 damage per magic — tied for the highest
       // in the game, on a cost-3 epic that ALSO paralyzes the whole board. Same
-      // cut as Sprinu: the board-wide PARALYZE is the identity, so the reach and
+      // cut as Vernal: the board-wide PARALYZE is the identity, so the reach and
       // the control stay and only the damage halves.
       //
       // statusDuration 2, not 1, and it's what makes Static Discharge real: the
@@ -3312,7 +3312,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bore_rollo",
-    name: "Rollo",
+    name: "Rumbler",
     rarity: "epic",
     element: "BORE",
     cardClass: "Warrior",
@@ -3332,7 +3332,7 @@ export const CARDS: CardDef[] = [
       cost: 2,
       handler: "strike",
       // Rover, modeled at last: ranged targeting picks an opponent anywhere in
-      // range, then Rollo ROLLS UP TO 2 SLOTS INTO THEM and bashes — chargeFirst
+      // range, then Rumbler ROLLS UP TO 2 SLOTS INTO THEM and bashes — chargeFirst
       // puts the movement before the hit. Without the ranged flag this would do
       // nothing: a Melee card is already adjacent when it attacks, so there is
       // no gap left to roll across.
@@ -3384,7 +3384,7 @@ export const CARDS: CardDef[] = [
       name: "Tsunami",
       // cost 3 -> 4 and a printed 3-round cooldown. It measured 24 burst for 3
       // magic off a COST-3 body — 12 damage/round, the top of its bracket by
-      // some way (Lytning 10, Fallona 6) — and like most epics it was running on
+      // some way (Lytning 10, Autumnal 6) — and like most epics it was running on
       // the 1-round default lockout. Board-wide damage now costs more and comes
       // round less often; the 6 itself is untouched.
       cost: 4,
@@ -3623,7 +3623,7 @@ export const CARDS: CardDef[] = [
       name: "Cyclone Strike",
       cost: 3,
       handler: "strike",
-      // ranged + chargeFirst together, exactly as on Rollo: Tempest is MELEE, so
+      // ranged + chargeFirst together, exactly as on Rumbler: Tempest is MELEE, so
       // without reach its "charge up to 3 slots" had nothing to cross — the
       // target was already adjacent and the charge moved zero. The reach is what
       // makes the promised charge exist.
@@ -3865,7 +3865,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bore_kcor",
-    name: "Kcor",
+    name: "Pebble",
     rarity: "rare",
     element: "BORE",
     cardClass: "Ranger",
@@ -3884,7 +3884,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dusk_harve",
-    name: "Harve",
+    name: "Harrow",
     rarity: "rare",
     element: "DUSK",
     cardClass: "Mage",
@@ -3950,7 +3950,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dawn_glime",
-    name: "Glime",
+    name: "Glimmer",
     rarity: "rare",
     element: "DAWN",
     cardClass: "Warrior",
@@ -4114,7 +4114,7 @@ export const CARDS: CardDef[] = [
 
   {
     id: "leaf_sprinu",
-    name: "Sprinu",
+    name: "Vernal",
     rarity: "epic",
     element: "LEAF",
     cardClass: "Support",
@@ -4188,7 +4188,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "pyro_sseerr",
-    name: "SSeerr",
+    name: "Emberclaw",
     rarity: "epic",
     element: "PYRO",
     cardClass: "Assassin",
@@ -4367,7 +4367,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bore_obsidi",
-    name: "Obsidi",
+    name: "Obsidian",
     tribe: "Cavernous",
     rarity: "epic",
     element: "BORE",
@@ -4532,7 +4532,7 @@ export const CARDS: CardDef[] = [
   // ── Wave 1 of the eight new element cards ──────────────────────────────────
   {
     id: "bore_rohojohn",
-    name: "RohoJohn",
+    name: "Cragrider",
     rarity: "epic",
     element: "BORE",
     cardClass: "Ranger",
@@ -4565,7 +4565,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bolt_shoksa",
-    name: "Shoksa",
+    name: "Dynamo",
     rarity: "epic",
     element: "BOLT",
     cardClass: "Support",
@@ -4657,7 +4657,7 @@ export const CARDS: CardDef[] = [
   // ── Wave 2 ────────────────────────────────────────────────────────────────
   {
     id: "gale_wista",
-    name: "Wista",
+    name: "Zephyra",
     rarity: "epic",
     element: "GALE",
     cardClass: "Support",
@@ -4719,7 +4719,7 @@ export const CARDS: CardDef[] = [
       // contiguously behind it takes 7. The chain stops at the first gap, so
       // the charge shunts a stack rather than raking the whole column.
       params: { dmg: 10, chainDmg: 7, push: 1, charge: 4 },
-      // ranged: the same defect Rollo and Tempest had. WarPhant is MELEE, so
+      // ranged: the same defect Rumbler and Tempest had. WarPhant is MELEE, so
       // without this the "charge up to 4 spaces forward" could only be cast at
       // something already touching it — there was never a lane to charge down.
       // The handler picks its own victims from the column, so the target choice
@@ -4949,7 +4949,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dawn_roy",
-    name: "Roy",
+    name: "Outrider",
     rarity: "rare",
     element: "DAWN",
     cardClass: "Warrior",
@@ -5050,7 +5050,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "gale_syt_bird",
-    name: "Syt Bird",
+    name: "Sightwing",
     rarity: "rare",
     element: "GALE",
     cardClass: "Support",
@@ -5062,7 +5062,7 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: { FLYING: true },
-    // Sky Scout: when Syt Bird enters a Mid row, allies' basic attacks hit +1
+    // Sky Scout: when Sightwing enters a Mid row, allies' basic attacks hit +1
     // adjacent target for the round.
     passiveNames: { skyScout: "Sky Scout" },
     skyScout: true,
@@ -5168,7 +5168,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dawn_able",
-    name: "Able",
+    name: "Vigil",
     rarity: "rare",
     element: "DAWN",
     cardClass: "Support",
@@ -5499,7 +5499,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bore_rock",
-    name: "R.O.C.K",
+    name: "Slugger",
     rarity: "rare",
     element: "BORE",
     cardClass: "Assassin",
@@ -5617,7 +5617,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dusk_hix",
-    name: "Hix",
+    name: "Hexvial",
     rarity: "rare",
     element: "DUSK",
     cardClass: "Mage",
@@ -5639,7 +5639,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dawn_golde",
-    name: "Golde",
+    name: "Gilden",
     rarity: "epic",
     element: "DAWN",
     cardClass: "Warrior",
@@ -5654,7 +5654,7 @@ export const CARDS: CardDef[] = [
     // Relentless (On Hit by Melee): strikes 2 back at the attacker.
     passiveNames: { onHitByMelee: "Relentless" },
     onHitByMelee: { dmg: 2 },
-    // War Cry: Golde plates up (+2 shields) and rallies the team (+1 DMG) for
+    // War Cry: Gilden plates up (+2 shields) and rallies the team (+1 DMG) for
     // 2 rounds.
     special: {
       name: "War Cry",
@@ -5689,7 +5689,7 @@ export const CARDS: CardDef[] = [
   // ───────────────────── COST-4 EPICS (grid fill) ─────────────────────
   {
     id: "leaf_whintey",
-    name: "Whintey",
+    name: "Hibernal",
     rarity: "epic",
     element: "LEAF",
     cardClass: "Support",
@@ -5704,9 +5704,9 @@ export const CARDS: CardDef[] = [
     // Frosty Bites (End of Round): ROOT an opponent with 0 SP for 2 rounds.
     passiveNames: { rootZeroSp: "Frosty Bites" },
     roundTick: { rootZeroSp: 2 },
-    // Whinter's Bundle: extend the ROOT on every already-ROOTed opponent by 2.
+    // Winter's Bundle: extend the ROOT on every already-ROOTed opponent by 2.
     special: {
-      name: "Whinter's Bundle",
+      name: "Winter's Bundle",
       cost: 2,
       handler: "extendStatusAll",
       params: { status: "ROOT", addRounds: 2 },
@@ -5717,7 +5717,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "aqua_anos",
-    name: "Anos",
+    name: "Serenos",
     rarity: "epic",
     element: "AQUA",
     cardClass: "Mage",
@@ -5730,7 +5730,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Liquid",
-    // Liquid Serenity (End of Round): if Anos didn't attack this round, heal +8
+    // Liquid Serenity (End of Round): if Serenos didn't attack this round, heal +8
     // and gain +1 DMG next round.
     passiveNames: { idleBuff: "Liquid Serenity" },
     idleBuff: { heal: 8, dmg: 1 },
@@ -5777,7 +5777,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "gale_fano",
-    name: "Fano",
+    name: "Fanwing",
     rarity: "epic",
     element: "GALE",
     cardClass: "Support",
@@ -5792,14 +5792,14 @@ export const CARDS: CardDef[] = [
     // Blade Breaker (On Attack): 50% chance to WEAKEN the target.
     passiveNames: { onHitStatus: "Blade Breaker" },
     onHitStatus: { kind: "WEAKEN", duration: 1, power: 0, chance: 50 },
-    // Feather Fan: give every slower teammate Fano's SP value for 1 round.
+    // Feather Fan: give every slower teammate Fanwing's SP value for 1 round.
     special: {
       name: "Feather Fan",
       cost: 1,
       handler: "featherFan",
       params: {},
       targetSide: "self",
-      text: "Give every slower teammate Fano's SP value for 1 round.",
+      text: "Give every slower teammate Fanwing's SP value for 1 round.",
     },
   },
   {
@@ -5864,7 +5864,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bolt_striik",
-    name: "Striik",
+    name: "Highroller",
     rarity: "epic",
     element: "BOLT",
     cardClass: "Mage",
@@ -5920,7 +5920,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bore_sheish",
-    name: "Sheish",
+    name: "Kimberlite",
     rarity: "epic",
     element: "BORE",
     cardClass: "Assassin",
@@ -6035,7 +6035,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dawn_ty",
-    name: "Ty",
+    name: "Tether",
     rarity: "epic",
     element: "DAWN",
     cardClass: "Mage",
@@ -6064,7 +6064,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dawn_raya",
-    name: "Raya",
+    name: "Zenith",
     rarity: "epic",
     element: "DAWN",
     cardClass: "Ranger",
@@ -6351,7 +6351,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "gale_klouy",
-    name: "Klouy",
+    name: "Spindrift",
     rarity: "epic",
     element: "GALE",
     cardClass: "Mage",
@@ -6381,7 +6381,7 @@ export const CARDS: CardDef[] = [
   // ───────────────── COST-6 LEGENDARIES (grid fill) ─────────────────
   {
     id: "leaf_efy",
-    name: "Efy",
+    name: "Sylvane",
     rarity: "legendary",
     element: "LEAF",
     cardClass: "Warrior",
@@ -6393,7 +6393,7 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 2,
     keywords: {},
-    // Nature's Protection (End of Round): refresh Efy's shields back up to 2.
+    // Nature's Protection (End of Round): refresh Sylvane's shields back up to 2.
     // Shared Grove (Aura): LEAF allies are topped up +1 shield each round too.
     passiveNames: { refreshShieldsTo: "Nature's Protection", aura: "Shared Grove" },
     roundTick: { refreshShieldsTo: 2 },
@@ -6473,7 +6473,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "leaf_rubyo",
-    name: "Rubyo",
+    name: "Rubyscale",
     rarity: "epic",
     element: "LEAF",
     cardClass: "Warrior",
@@ -6787,7 +6787,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bolt_zoez",
-    name: "Zoez",
+    name: "Voltedge",
     rarity: "legendary",
     element: "BOLT",
     cardClass: "Assassin",
@@ -7306,7 +7306,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "leaf_dande",
-    name: "Dande",
+    name: "Dandelion",
     rarity: "epic",
     element: "LEAF",
     cardClass: "Warrior",
@@ -7650,7 +7650,7 @@ export const CARDS: CardDef[] = [
   // ── Parity fill: bring every element up to 38 playable cards ────────────────
   {
     id: "bolt_ning",
-    name: "Ning",
+    name: "Twinbolt",
     rarity: "rare",
     element: "BOLT",
     cardClass: "Ranger",
@@ -7742,7 +7742,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bore_gemaga",
-    name: "Gemaga",
+    name: "Magnetite",
     tribe: "Dragon Born",
     rarity: "epic",
     element: "BORE",
@@ -7839,7 +7839,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dusk_skrow",
-    name: "Skrow",
+    name: "Strawman",
     rarity: "epic",
     element: "DUSK",
     cardClass: "Ranger",
@@ -8283,7 +8283,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "aqua_blub",
-    name: "Blub",
+    name: "Dewling",
     rarity: "rare",
     element: "AQUA",
     cardClass: "Warrior",

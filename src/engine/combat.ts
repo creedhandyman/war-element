@@ -35,7 +35,7 @@ import type {
 import { NEGATIVE_STATUSES, enemyOf, hillGivesHit, homeRow, isMidRow } from "./types";
 
 /** Whether a card is standing on the ENEMY half of the board — two rows or more
- *  from its own home. Gates Vaga's first-strike and Ravven's Shadow Haunter. */
+ *  from its own home. Gates Squall's first-strike and Ravven's Shadow Haunter. */
 export function onEnemySide(card: CardInstance, boardSize: number): boolean {
   return card.pos != null && Math.abs(card.pos.row - homeRow(card.owner, boardSize)) >= 2;
 }
@@ -775,7 +775,7 @@ export function resolveHit(
       continue;
     }
 
-    // 1b. Rocky Force Field (Rhe): coin-flip chance to shrug off a RANGED hit.
+    // 1b. Rocky Force Field (Rhyolite): coin-flip chance to shrug off a RANGED hit.
     if (
       opts.kind !== "reflect" &&
       !fieldNeverMiss && // Blazing Sun beats it; card-level alwaysHit does NOT —
@@ -796,7 +796,7 @@ export function resolveHit(
     // damage before every flat rider below, so the bonus scales the printed
     // attack rather than the accumulated total.
     let remaining = applyMatchupDamage(aDef.element, tDef.element, opts.dmg);
-    // War Mount (RohoJohn): the mount mauls whatever the Ranger stands beside —
+    // War Mount (Cragrider): the mount mauls whatever the Ranger stands beside —
     // its BASIC hits an ADJACENT target for extra. Applied here rather than in
     // effectiveDmg because it depends on the TARGET's distance, which
     // effectiveDmg has no way to see.
@@ -839,7 +839,7 @@ export function resolveHit(
       target.fxCrit = (target.fxCrit ?? 0) + 1;
       draft.log.push(`${aDef.name} CRITS ${tDef.name}!`);
       if (aDef.critPen) pierces = true;
-      // Jackpot (Striik): EVERY crit counts toward the streak — basics AND the
+      // Jackpot (Highroller): EVERY crit counts toward the streak — basics AND the
       // crits Purple Strikes rolls — so a lucky run loops into the bonus.
       if (aDef.jackpot && opts.kind !== "reflect") {
         const before = attacker.critsThisRound ?? 0;
@@ -1243,7 +1243,7 @@ export function resolveHit(
   // Jelly Shock: a struck survivor discharges into the attacker AND everything
   // enemy standing next to it. Skipped for `reflect` hits — that's the kind
   // directDamage uses, so the discharge can't set off another discharge.
-  // Wind Wake (Wista): every landed hit shoves the victim back a slot. Gated on
+  // Wind Wake (Zephyra): every landed hit shoves the victim back a slot. Gated on
   // a real landed hit so a fully-dodged volley moves nobody.
   if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && aDef.onHitPush)
     pushBack(draft, target, aDef.onHitPush, attacker.owner);
@@ -1291,7 +1291,7 @@ export function payAttackTrade(draft: GameState, card: CardInstance): void {
 const autoFiring = new Set<string>();
 
 /** Fire a card's OWN Special for free (no magic cost, no targeting UI) — used by
- *  passives that auto-cast (Voltcher's High Voltage Sentry, Striik's Jackpot,
+ *  passives that auto-cast (Voltcher's High Voltage Sentry, Highroller's Jackpot,
  *  FireFly's BlastOff). */
 function fireCardSpecial(draft: GameState, card: CardInstance): void {
   const sp = getDef(card.defId).special;
@@ -1334,7 +1334,7 @@ export function basicAttack(
   const aDef = getDef(attacker.defId);
   attacker.attackedThisRound = true; // STEALTH breaks even on a miss
 
-  // Morning Dew (Sprinu): aimed at an ALLY, the basic is a heal for its DMG —
+  // Morning Dew (Vernal): aimed at an ALLY, the basic is a heal for its DMG —
   // no hit roll, no statuses, no riders. Checked before anything else so none of
   // the combat machinery below ever sees a friendly target.
   if (aDef.basicHealsAllies) {
@@ -1427,7 +1427,7 @@ export function basicAttack(
     // i.e. not at all. On BOLT's ~5-damage cards +1 is a rounding error.
     if (aDef.element === "BOLT" && t.statuses.length > 0) dmg += 2 + fieldBonus(draft, attacker, "electrify");
     // Harsh Winds / Shadow: bonus DMG the first time this card strikes a given
-    // opponent. Vaga's version only counts while it stands on the enemy side.
+    // opponent. Squall's version only counts while it stands on the enemy side.
     const fsEligible = Boolean(aDef.firstStrikeBonus) && (!aDef.firstStrikeEnemySideOnly || onEnemySide(attacker, draft.boardSize));
     const firstStrike = fsEligible && !attacker.struckEver.includes(t.instanceId);
     if (firstStrike) dmg += aDef.firstStrikeBonus!;
@@ -1444,7 +1444,7 @@ export function basicAttack(
       if (attacker.boomerStruck.includes(t.instanceId)) dmg *= 2;
       else attacker.boomerStruck.push(t.instanceId);
     }
-    // Diamond's Edge (Sheish): basics hit harder against a shielded target.
+    // Diamond's Edge (Kimberlite): basics hit harder against a shielded target.
     if (aDef.bonusVsShield && t.curShields > 0) dmg *= aDef.bonusVsShield;
     // Explosive Power (Dynomight): extra multiplier vs a listed cardClass.
     if (aDef.bonusVsClass && aDef.bonusVsClass.classes.includes(getDef(t.defId).cardClass))
@@ -1503,7 +1503,7 @@ export function basicAttack(
       if (aDef.element === "BOLT" && t.curHp > 0 && t.statuses.length === 0) {
         applyStatus(draft, t, "ELECTRIFIED", 1, 0, "BOLT");
       }
-      // Magic Potion (Hix): a landed basic hurls a random flask at the target.
+      // Magic Potion (Hexvial): a landed basic hurls a random flask at the target.
       if (aDef.potionOnHit && t.curHp > 0 && draft.cards[t.instanceId]) {
         const roll = randInt(draft, 3);
         if (roll === 0) {
@@ -1531,7 +1531,7 @@ export function basicAttack(
         const h = healCard(draft, attacker, aDef.healPerCrit * r.critHits, attacker);
         if (h > 0) draft.log.push(`${label(draft, attacker)} feeds on the frenzy (+${h} HP).`);
       }
-      // Twin Strike (Ning): a CRIT chains a bonus CRIT strike at the same target,
+      // Twin Strike (Twinbolt): a CRIT chains a bonus CRIT strike at the same target,
       // once per round. Set the guard BEFORE the follow-up so it can't recurse.
       if (aDef.onCritBonus && r.critHits && !attacker.twinStrikeFiredRound &&
           attacker.curHp > 0 && t.curHp > 0 && draft.cards[t.instanceId]) {
@@ -1599,7 +1599,7 @@ export function basicAttack(
     attacker.rampDmg = (attacker.rampDmg ?? 0) + aDef.onHitRampUntilSpecial;
     draft.log.push(`${label(draft, attacker)}'s Volcanic Fury builds (+${aDef.onHitRampUntilSpecial} DMG until Special).`);
   }
-  // Sky Scout (Syt Bird): while the owner's scout buff is up, a single-target
+  // Sky Scout (Sightwing): while the owner's scout buff is up, a single-target
   // basic also clips ONE enemy adjacent to the primary target. Not for the
   // follow-up shots themselves (no chains).
   // Blinding Star (Supernova): a living enemy holder suppresses this attacker's
@@ -1646,7 +1646,7 @@ export function basicAttack(
     draft.log.push(`${label(draft, attacker)}'s High Voltage Sentry triggers Thunderbird!`);
     fireCardSpecial(draft, attacker);
   }
-  // Jackpot (Striik): a BASIC crit auto-fires Purple Strikes for free. The crit
+  // Jackpot (Highroller): a BASIC crit auto-fires Purple Strikes for free. The crit
   // STREAK (incl. the crits Purple Strikes then rolls) is tallied in resolveHit,
   // so it can loop into the bonus. Fires the Special only on basic crits, so a
   // Purple Strikes crit can't recast itself.
@@ -1697,7 +1697,7 @@ export function basicAttack(
       if (t && t.curHp > 0 && t.owner !== attacker.owner) pullToward(draft, t, aDef.pullOnAttack, attacker.owner);
     }
   }
-  // Rolling Start (Rollo): the boulder keeps rolling — every basic carries it a
+  // Rolling Start (Rumbler): the boulder keeps rolling — every basic carries it a
   // slot further toward the enemy home. Skipped for a follow-up shot so a chained
   // attack can't double-roll it, and chargeForward already stops at a body, a
   // captured slot or the board edge.
@@ -2242,7 +2242,7 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
     }
     draft.log.push(`${name}'s fog thickens — STEALTH covers the kill.`);
   }
-  // Star Blaster (Raya): a kill BLINDs nearby opponents for the round.
+  // Star Blaster (Zenith): a kill BLINDs nearby opponents for the round.
   if (def.blindInRange && killer.pos) {
     const near = boardCards(draft, enemyOf(killer.owner)).filter(
       (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, killer.pos!) <= 1,
@@ -2372,7 +2372,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (!token) return;
     spawnTokens(draft, attacker, token, num(params, "count", 1), radius);
     // Grove's Blessing: the same burst that raises the tree tops up every ally
-    // on the caster's side (Efy's Emergence). Element-agnostic — heals all.
+    // on the caster's side (Sylvane's Emergence). Element-agnostic — heals all.
     const healAmt = num(params, "healAllies");
     if (healAmt > 0 && attacker.curHp > 0) {
       let touched = 0;
@@ -2406,7 +2406,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const base = num(params, "dmg");
     const finisher = num(params, "finisherDmg", base);
     const killBoost = num(params, "killBoost");
-    // `ramp` grows each successive strike (R.O.C.K's Roll Out: 1→2→3→4).
+    // `ramp` grows each successive strike (Slugger's Roll Out: 1→2→3→4).
     const ramp = num(params, "ramp", 0);
     const pen = num(params, "pen") > 0;
     const queue = targets.slice(); // picked target first, then the rest
@@ -2431,7 +2431,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const target = targets[0];
     if (!target) return;
     const center = target.pos ? { ...target.pos } : null; // splash centre (target may die)
-    // Rover (Rollo): the roll comes BEFORE the bash — it closes the distance and
+    // Rover (Rumbler): the roll comes BEFORE the bash — it closes the distance and
     // THEN hits, rather than striking from where it stood and repositioning
     // after. `chargeFirst` chooses which side of the strike the movement lands
     // on; without it `charge` keeps its original after-the-hit behaviour, which
@@ -2656,7 +2656,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // status are eligible — a paralyze-payoff nuke, not an unconditional AoE.
     const req = typeof params.requireStatus === "string" ? params.requireStatus : "";
     const pool = req ? targets.filter((t) => hasStatus(t, req as StatusKind)) : targets;
-    // scaleDmg: fold the caster's permanent DMG bonus into each hit (Fallona's
+    // scaleDmg: fold the caster's permanent DMG bonus into each hit (Autumnal's
     // Fall's Emergence boosts Leaf Storm too).
     // Volatile Formula (Nitro): a coin flip on the whole volley — on the proc,
     // every hit lands for double.
@@ -2670,7 +2670,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (doubleProc) draft.log.push(`${label(draft, attacker)}'s volatile formula goes critical — DOUBLE damage!`);
     // Timberer: ROOT only the FIRST target the volley lands on, not the row.
     const firstOnly = num(params, "firstOnlyStatus") > 0;
-    // closest (Striik's Purple Strikes): pick the N NEAREST foes rather than
+    // closest (Highroller's Purple Strikes): pick the N NEAREST foes rather than
     // whatever order the pool arrived in.
     const ordered =
       num(params, "closest") > 0 && attacker.pos
@@ -2825,7 +2825,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const spawnTok = typeof params.spawnToken === "string" ? params.spawnToken : "";
     if (spawnTok && attacker.curHp > 0)
       spawnTokens(draft, attacker, spawnTok, num(params, "spawnCount", 1), num(params, "spawnRadius", 1));
-    applySelfRiders(draft, attacker, params); // e.g. Guan's +5 max HP
+    applySelfRiders(draft, attacker, params); // e.g. Dreadgaze's +5 max HP
   },
   /** Thunder Strike (Storm): pure damage to every opponent carrying a required
    *  status (ELECTRIFIED) — ignores range, so it reaches whatever BOLT has
@@ -2962,7 +2962,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       draft.log.push(`${label(draft, attacker)}'s Bloody Exchange drains ${total} HP to itself.`);
     }
   },
-  /** Orbital Shot (Raya): mark a target; a 14-DMG arrow falls on it next round. */
+  /** Orbital Shot (Zenith): mark a target; a 14-DMG arrow falls on it next round. */
   orbitalShot(draft, attacker, targets, params) {
     const target = targets[0];
     if (!target) return;
@@ -2970,7 +2970,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     arrows.push({ round: draft.round + 1, dmg: num(params, "dmg", 14), targetId: target.instanceId, source: attacker });
     draft.log.push(`${label(draft, attacker)} paints ${label(draft, target)} — an arrow falls next round.`);
   },
-  /** Lacing Knots (Ty): reap every opponent still bound by Magic Ropes (i.e. with
+  /** Lacing Knots (Tether): reap every opponent still bound by Magic Ropes (i.e. with
    *  locked Specials). */
   lacingKnots(draft, attacker, _targets, params) {
     const dmg = num(params, "dmg", 8);
@@ -3023,7 +3023,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const sleepTarget = targets.find((t) => t.curHp > 0 && draft.cards[t.instanceId]);
     if (sleepTarget) applyStatus(draft, sleepTarget, "SLEEP", num(params, "sleep", 2), 0, getDef(attacker.defId).element);
   },
-  /** Diamond Assault (Sheish): 5 DMG to two opponents, then bank shields equal to
+  /** Diamond Assault (Kimberlite): 5 DMG to two opponents, then bank shields equal to
    *  the amount broken. */
   diamondAssault(draft, attacker, targets, params) {
     const dmg = num(params, "dmg", 5);
@@ -3093,7 +3093,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (attacker.curHp <= 0 && draft.cards[attacker.instanceId]) defeatCard(draft, attacker, "Grand Finally recoil");
     }
   },
-  /** Dragon's Dance (Rubyo): an escalating 1 → 2 → 4 flurry split across up to 3
+  /** Dragon's Dance (Rubyscale): an escalating 1 → 2 → 4 flurry split across up to 3
    *  targets, a burst of SP, and — while a Greegon still guards it — a heavy
    *  finishing blow (Ancient Protection). */
   dragonDance(draft, attacker, targets, params) {
@@ -3196,7 +3196,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     for (const a of boardCards(draft, attacker.owner)) if (a.curHp > 0) a.curShields += shield;
     draft.log.push(`${label(draft, attacker)}'s Polar Shift freezes the frail and shields the team.`);
   },
-  /** Feather Fan (Fano): lift every SLOWER teammate up to Fano's SP for a round. */
+  /** Feather Fan (Fanwing): lift every SLOWER teammate up to Fanwing's SP for a round. */
   featherFan(draft, attacker, _targets, _params) {
     const mySp = effectiveSp(draft, attacker);
     let n = 0;
@@ -3207,7 +3207,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     draft.log.push(`${label(draft, attacker)} fans ${n} slower teammate(s) up to SP ${mySp}.`);
   },
-  /** Mind Bubble Channeling (Anos): arm a sustained self-buff that pays out each
+  /** Mind Bubble Channeling (Serenos): arm a sustained self-buff that pays out each
    *  Cleanup for `rounds` — +DMG, a heal, and a self-cleanse. */
   channelBuff(draft, attacker, _targets, params) {
     attacker.channelBuffDmg = num(params, "dmg");
@@ -3238,7 +3238,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     draft.log.push(`${label(draft, attacker)} shatters a 2×2 zone (${hit.size} hit).`);
   },
-  /** Whinter's Bundle (Whintey): deepen the frost — extend a named status on
+  /** Whinter's Bundle (Hibernal): deepen the frost — extend a named status on
    *  every opponent already carrying it. */
   extendStatusAll(draft, attacker, _targets, params) {
     const kind = String(params.status ?? "ROOT") as StatusKind;
@@ -3250,7 +3250,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     draft.log.push(`${label(draft, attacker)} deepens the ${kind} on ${n} opponent(s) (+${add}r).`);
   },
-  /** War Cry (Golde): a rallying shout — the caster plates up and the whole team
+  /** War Cry (Gilden): a rallying shout — the caster plates up and the whole team
    *  hits harder for the round. */
   /** Bloody Waters (Liquark): strike the lowest-HP opponent; a kill heals and
    *  slips Liquark back into Lurk (re-STEALTH). */
@@ -3266,7 +3266,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       draft.log.push(`${label(draft, attacker)} feeds and slips back into Lurk (+${num(params, "healOnKill", 5)} HP, STEALTH).`);
     }
   },
-  /** Magnetic Shield (Gemaga): grant every ally IN RANGE a timed REFLECT — they
+  /** Magnetic Shield (Magnetite): grant every ally IN RANGE a timed REFLECT — they
    *  bounce a bite back at whoever hits them. Reads the passed `targets`
    *  (targetSide "ally", params.targets 99) rather than sweeping a fixed row, so
    *  reach is validated by rules.ts like every other AOE. Was row-directly-ahead
@@ -3382,7 +3382,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     draft.log.push(`${label(draft, attacker)} draws the Opaque Realm over ${crew.length} all(y/ies) (EVASION ${rounds}r).`);
   },
   /**
-   * Blue Wind Spiral (Wista): a shot that ricochets. It lands on the target,
+   * Blue Wind Spiral (Zephyra): a shot that ricochets. It lands on the target,
    * then leaps to any not-yet-hit opponent within one slot of the LAST one it
    * struck, up to `bounces` times.
    *
@@ -3413,7 +3413,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   },
 
   /**
-   * Static Pressure Overload (Shoksa): a conditional two-way nova — already
+   * Static Pressure Overload (Dynamo): a conditional two-way nova — already
    * PARALYZED opponents have it EXTENDED, everyone else is merely marked
    * ELECTRIFIED. statusNova can't express this because it applies one status to
    * everything; the whole point here is that the two groups get different
@@ -3551,7 +3551,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   },
 
   /** Permanent self-buff (Heir's Crowned): +DMG / +max HP / +SP to the caster. */
-  /** Flaming Slasher (SSeerr): light the blade. The next `attacks` basic attacks
+  /** Flaming Slasher (Emberclaw): light the blade. The next `attacks` basic attacks
    *  leave the named status on whatever they hit. */
   loadOnHit(draft, attacker, targets, params) {
     attacker.loadedOnHit = {
@@ -3576,7 +3576,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const shots = num(params, "hits", 1);
     const dmg = num(params, "dmg");
     const perMiss = num(params, "shieldPerMiss", 2);
-    // scatter (Kcor): each rock lands on a RANDOM in-range opponent instead of
+    // scatter (Pebble): each rock lands on a RANDOM in-range opponent instead of
     // pounding one target (Monger). Every rock is still a coin to land. NOT
     // named `spread` — the onSummon sourcing reads that as forward-area columns.
     const spread = num(params, "scatter") > 0;
@@ -3603,7 +3603,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (hit > 0) draft.log.push(`${label(draft, attacker)} lands ${hit} of ${shots} boulders.`);
   },
 
-  /** Dirt Driller (Obsidi): drop underground — STEALTH for up to `stealthRounds`
+  /** Dirt Driller (Obsidian): drop underground — STEALTH for up to `stealthRounds`
    *  — and load the ambush that comes up out of it. The damage lands on the NEXT
    *  basic attack, which is also what ends the STEALTH. */
   burrow(draft, attacker, _targets, params) {

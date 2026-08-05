@@ -136,7 +136,7 @@ export interface OnKillDef {
   healSelf?: number; // heal self N
   gainShields?: number;
   aoeDmg?: number; // deal N to every reachable enemy
-  blindInRange?: number; // Star Blaster (Raya): BLIND nearby enemies N rounds
+  blindInRange?: number; // Star Blaster (Zenith): BLIND nearby enemies N rounds
   /** Perpetual Fog (Driftwraith): a kill cloaks it (and same-row same-element
    *  allies) in STEALTH for N rounds. */
   grantStealth?: number;
@@ -167,7 +167,7 @@ export interface OnKillDef {
 export interface VsStatusDef {
   status: StatusKind;
   /** Match ANY status instead of the named one — models "Electrified" (BOLT's
-   *  "has a status") triggers, e.g. Zagphu's "vs Electrified OR PARALYZED". */
+   *  "has a status") triggers, e.g. Ricochet's "vs Electrified OR PARALYZED". */
   anyStatus?: boolean;
   /** Bloodfire (leaf_pyro payoff): match only a target carrying BOTH BLEED and
    *  BURN (see isBloodfire). Amplify-style — the bonus applies while the DOTs
@@ -211,13 +211,13 @@ export interface RoundTickDef {
   /** Overheating (Heatsink Golem): end of round, N DMG to the closest opponent;
    *  DOUBLED when it's the same target as last round (heat builds up). */
   overheatDmg?: number;
-  /** Emergency Support (Able) / Rescue Pack (St.Bern): heal every ally whose
+  /** Emergency Support (Vigil) / Rescue Pack (St.Bern): heal every ally whose
    *  curHp is under `underHp` by `amount` at end of round. */
   healWoundedAllies?: { underHp: number; amount: number };
-  /** Frosty Bites (Whintey): at end of round, ROOT one opponent whose effective
+  /** Frosty Bites (Hibernal): at end of round, ROOT one opponent whose effective
    *  SP is 0 for this many rounds. */
   rootZeroSp?: number;
-  /** Magic Ropes (Ty): each round, lock this many in-range opponents out of
+  /** Magic Ropes (Tether): each round, lock this many in-range opponents out of
    *  their Specials for the coming round. */
   lockEnemySpecials?: number;
   /** Draining Siphon (Violet): at end of round, DRAIN N max HP from every
@@ -225,7 +225,7 @@ export interface RoundTickDef {
   drainMaxAdjacent?: number;
   /** Grounded (Evera): ROOT the fastest opponent on the board for N rounds. */
   rootFastest?: number;
-  /** Nature's Protection (Efy): refresh shields back UP TO N at end of round. */
+  /** Nature's Protection (Sylvane): refresh shields back UP TO N at end of round. */
   refreshShieldsTo?: number;
   /** Poisonous Roots (Ivey): apply this status to every ROOTed opponent each
    *  round (POISON on the rooted). */
@@ -236,7 +236,7 @@ export interface RoundTickDef {
   /** Twisted Rush (Wailverine): deal N DMG to the enemy directly ahead; if it
    *  dies, Wailverine advances into its slot. Pair with firstRoundOnly. */
   pokeAheadAdvance?: number;
-  /** Morning Dew (Sprinu): heal every ally of this element at end of round. */
+  /** Morning Dew (Vernal): heal every ally of this element at end of round. */
   roundHealElement?: { element: Element; amount: number };
   aoeDmg?: number; // damage every enemy in range
   aoeStatus?: { kind: StatusKind; duration: number; power: number };
@@ -250,7 +250,7 @@ export interface RoundTickDef {
   healHomeRow?: number; // Blessed Light (Halo): heal allies on the caster's home row N
   healHomeRowElement?: number; // Petalfall (Sakuroot): heal SAME-element allies on the home row N
   allyInRangeShields?: number; // Reflection: grant N shields to allies within range each round
-  healSelfToFull?: boolean; // Blub's Liquid Humidity — restore to full max HP
+  healSelfToFull?: boolean; // Dewling's Liquid Humidity — restore to full max HP
   /** +DMG (and optionally +SP) every Nth round, stacking (Dragon's Blade). */
   buffDmgEveryN?: { n: number; amount: number; sp?: number; hp?: number; maxTicks?: number };
   scaldFrozen?: number; // apply SCALD N to FROZEN enemies (Freezer Burn)
@@ -279,7 +279,7 @@ export interface RoundTickDef {
    *  be there at that instant — and enemies summon INTO that row, so without
    *  this the ground never stays lit and the card reads as doing nothing. */
   enemyHomeRowStatus?: { kind: StatusKind; duration: number; power: number };
-  /** Shoksa: damage every ELECTRIFIED opponent in range at end of round. Reads
+  /** Dynamo: damage every ELECTRIFIED opponent in range at end of round. Reads
    *  the literal ELECTRIFIED status (what its own Special applies), NOT the
    *  "carries any status" proxy that onKill.aoeDmgElectrified uses. */
   aoeElectrifiedDmg?: number;
@@ -420,7 +420,7 @@ export interface CardDef {
   /** Flying Arrow (Ollie): also fires at whatever the ally directly in front of
    *  it just struck with a basic attack. */
   flyingArrow?: boolean;
-  /** Sky Scout (Syt Bird): entering a Mid row lets allied basics hit +1 adjacent
+  /** Sky Scout (Sightwing): entering a Mid row lets allied basics hit +1 adjacent
    *  target for the round. */
   skyScout?: boolean;
   /** Crack Shot (Sling): exempts this card's CRIT from the shield gate. A normal
@@ -437,20 +437,20 @@ export interface CardDef {
    *  Protector); the first time it's hit while active it PARALYZEs the attacker
    *  `paralyze` rounds and deactivates. */
   electroSurge?: { paralyze: number; shield: number; dmgBoost: number; boostRounds: number };
-  /** Magic Potion (Hix): a landed basic hurls a random potion at the target —
+  /** Magic Potion (Hexvial): a landed basic hurls a random potion at the target —
    *  Poison (DOT 1), Damage (3), or Sleep (FRIGHTEN 2). */
   potionOnHit?: boolean;
   /** High Voltage Sentry (Voltcher) / BlastOff (FireFly): auto-fires this card's
    *  own Special for free on a first hit, on death, and/or on a kill.
    *  `grantFlyingRounds` grants temporary FLYING after an on-kill fire. */
   firePassiveSpecial?: { onFirstHit?: boolean; onDeath?: boolean; onKill?: boolean; grantFlyingRounds?: number };
-  /** Jackpot (Striik): a basic CRIT auto-fires the Special free; `critsForBonus`
+  /** Jackpot (Highroller): a basic CRIT auto-fires the Special free; `critsForBonus`
    *  crits in one round grants +bonusHp / +bonusDmg (once per round). */
   jackpot?: { critsForBonus: number; bonusHp: number; bonusDmg: number };
   /** Iron Ore (Bolder): take half damage (round down) from attackers of these
    *  classes. */
   blockVsClasses?: string[];
-  /** Diamond's Edge (Sheish): basic attacks multiply their damage by this vs a
+  /** Diamond's Edge (Kimberlite): basic attacks multiply their damage by this vs a
    *  SHIELDED target. */
   bonusVsShield?: number;
   /** Explosive Power (Dynomight): basics deal `mult`× damage vs any listed
@@ -485,13 +485,13 @@ export interface CardDef {
   /** Brutal (Brute): a basic CRIT saps N DMG off the target's attacks for the
    *  round. */
   onCritDebuff?: number;
-  /** Twin Strike (Ning): landing a CRIT fires a bonus `hits`×`dmg` CRIT strike
+  /** Twin Strike (Twinbolt): landing a CRIT fires a bonus `hits`×`dmg` CRIT strike
    *  at the same target, once per round. */
   onCritBonus?: { dmg: number; hits: number };
   /** Unpredictable (Ender): a SLOWER attacker (lower effective SP) has only a
    *  50% chance to hit — a conditional EVASION. */
   evadeVsSlower?: boolean;
-  /** Rolling Start (Rollo): after each basic attack it rolls this many slots
+  /** Rolling Start (Rumbler): after each basic attack it rolls this many slots
    *  further toward the enemy home. */
   advanceOnBasic?: number;
   /** False Head (Thorny Ripper): the FIRST melee attack it takes each round
@@ -543,7 +543,7 @@ export interface CardDef {
   weaponModes?: { name: string; dmg: number; hits: number; spCost: number }[];
   /** Raising Star (Star): a landed basic also heals every ally +N HP. */
   basicHealsTeam?: number;
-  /** Liquid Serenity (Anos): at end of a round in which it did NOT attack, heal
+  /** Liquid Serenity (Serenos): at end of a round in which it did NOT attack, heal
    *  `heal` and gain `dmg` DMG for the next round. */
   idleBuff?: { heal: number; dmg: number };
   /** Elemental Fury (Prism): lands with its Special already paid for, so the
@@ -642,10 +642,10 @@ export interface CardDef {
   /** Volcanic Fury (Valcana): each landed basic grows +`onHitRampUntilSpecial`
    *  DMG, accumulating in `rampDmg` — wiped the moment her Special fires. */
   onHitRampUntilSpecial?: number;
-  /** Hot Shot (Clipsey): attacks never miss — ignores the caster's own BLIND
+  /** Hot Shot (Eclipse): attacks never miss — ignores the caster's own BLIND
    *  and the target's EVASION (200% accuracy / ignore-evasion). */
   alwaysHit?: boolean;
-  /** Shadow (Vaga): can only be attacked by ADJACENT opponents — attackers a row
+  /** Shadow (Squall): can only be attacked by ADJACENT opponents — attackers a row
    *  or more away (incl. ranged) can't reach it. */
   onlyAdjacentAttackers?: boolean;
   /** Trample Through (WarPhant): in PREP it may step INTO an adjacent enemy with
@@ -674,7 +674,7 @@ export interface CardDef {
    *  ground and ignores this. */
   targetsOnSound?: boolean;
   /** Gate the firstStrikeBonus so it only applies while this card stands on the
-   *  enemy battlefield (Vaga's Shadow first-strike). */
+   *  enemy battlefield (Squall's Shadow first-strike). */
   firstStrikeEnemySideOnly?: boolean;
   /** Shadow Haunter (Ravven): its EVASION is CONDITIONAL — live only while the
    *  card stands on the enemy battlefield. On its own ground it dodges nothing,
@@ -692,13 +692,13 @@ export interface CardDef {
     /** Hartwood's Overwatch: answer at most once per ROUND (not once per game). */
     oncePerRound?: boolean;
   };
-  /** Obsidian Claws (Obsidi): SP is replaced by this while the card is
+  /** Obsidian Claws (Obsidian): SP is replaced by this while the card is
    *  STEALTHed — underground it moves far faster than it does in the open. */
   spWhileStealthed?: number;
   /** Pride Guardian (Monger): the first time each ALLY takes a hit, this card
    *  throws it `shields`. Once per ally, tracked on the ally itself. */
   onAllyHitShield?: number;
-  /** Morning Dew (Sprinu): its basic attack may be aimed at an ALLY, healing
+  /** Morning Dew (Vernal): its basic attack may be aimed at an ALLY, healing
    *  them for its DMG instead of striking. Allies become legal basic targets. */
   basicHealsAllies?: boolean;
   /** Gate Keeper (Veil): grant this many shields to SELF on summon (a passive
@@ -707,7 +707,7 @@ export interface CardDef {
    *  comes from. The card face prints "Wind Wake — every landed hit shoves…"
    *  instead of an unnamed sentence. Per-CARD, not per-field, because the same
    *  mechanic is named differently on different cards: summonSelfShields is
-   *  "War Ready" on WarPhant and "War Mount" on RohoJohn. */
+   *  "War Ready" on WarPhant and "War Mount" on Cragrider. */
   passiveNames?: Record<string, string>;
   /** Intimidation (Oakgre): while this card lives, every ENEMY within `rows`
    *  rows of it whose own DMG is LOWER than this card's loses `dmg` from its
@@ -735,7 +735,7 @@ export interface CardDef {
   /** Fog Settlement (Misty): on summon, its owner's battlefield gains N rounds
    *  of the fog (see PlayerState.foggedRounds). */
   summonFog?: number;
-  /** War Mount (RohoJohn): a mounted Ranger also mauls what it stands beside —
+  /** War Mount (Cragrider): a mounted Ranger also mauls what it stands beside —
    *  its BASIC gains +N damage against a target inside melee reach. Modelled as
    *  a proximity bonus rather than a literal second attack, which keeps it on
    *  one damage path instead of inventing a dual-attack system. */
@@ -750,12 +750,12 @@ export interface CardDef {
   /** Seed Roll (OAK): on summon, roll forward this many rows toward the enemy
    *  home, stopping at the first occupied/captured slot or the board edge. */
   summonAdvance?: number;
-  /** Wind Wake (Wista): every landed hit shoves the victim back a slot. */
+  /** Wind Wake (Zephyra): every landed hit shoves the victim back a slot. */
   onHitPush?: number;
   /** Gate Keeper (Veil): the first time this card's shields break to 0, gain
    *  these permanent buffs. */
   onShieldBreak?: { dmg?: number; sp?: number; status?: { kind: StatusKind; duration: number; power: number } };
-  /** Rocky Force Field (Rhe): a coin-flip chance (0–100) to dodge a RANGED
+  /** Rocky Force Field (Rhyolite): a coin-flip chance (0–100) to dodge a RANGED
    *  attacker's hit entirely. */
   blocksRangedChance?: number;
   /** Hastened Assault (WolfBane): basic attacks CRIT only when this card is
@@ -884,13 +884,13 @@ export interface CardInstance {
    *  round, so the cover is spent on the first attempt — landed or dodged — and
    *  cleared again in Cleanup. */
   fieldEvasionUsed?: boolean;
-  /** An ambush loaded into the NEXT basic attack (Obsidi's Dirt Driller): it
+  /** An ambush loaded into the NEXT basic attack (Obsidian's Dirt Driller): it
    *  overrides both DMG and hit count for that one attack, then clears. */
   loadedStrike?: { dmg: number; hits: number };
   /** An armed Enchantment (Prism). Spent by the next BASIC attack this card
    *  makes, whoever is holding it — Prism can hand one on as it dies. */
   enchant?: EnchantMode;
-  /** A status riding the next `attacks` basic attacks (SSeerr's Flaming
+  /** A status riding the next `attacks` basic attacks (Emberclaw's Flaming
    *  Slasher). Decremented once per attack that lands, not per hit. */
   loadedOnHit?: { kind: StatusKind; duration: number; power: number; attacks: number };
   /** Sea Terror (Siren): while transformed into another card, the defId to
@@ -907,7 +907,7 @@ export interface CardInstance {
   orbCycle?: number;
   /** Per-round guard for a `oncePerRound` onAllyKilled (Hartwood's Overwatch). */
   allyKilledFiredRound?: boolean;
-  /** Per-round guard for Twin Strike (Ning's onCritBonus). */
+  /** Per-round guard for Twin Strike (Twinbolt's onCritBonus). */
   twinStrikeFiredRound?: boolean;
   /** Per-round guard for False Head (Thorny Ripper) — the decoy soaks one melee
    *  attack per round. */
@@ -948,7 +948,7 @@ export interface CardInstance {
   weaponSwitchedRound?: boolean;
   /** High Voltage Sentry (Voltcher): its free first-hit Special has fired. */
   autoSpecialFired?: boolean;
-  /** Jackpot (Striik): basic crits landed so far this round. */
+  /** Jackpot (Highroller): basic crits landed so far this round. */
   critsThisRound?: number;
   /** HP lost this round (Bolder's Vengeance reflects it). Reset at Cleanup. */
   dmgTakenThisRound?: number;
@@ -966,14 +966,14 @@ export interface CardInstance {
   blockPower?: number;
   /** Volcanic Fury (Valcana): DMG accumulated from on-hit ramp, reset on Special. */
   rampDmg?: number;
-  /** Magnetic Shield (Gemaga): a granted, timed REFLECT — while `reflectRoundsLeft`
+  /** Magnetic Shield (Magnetite): a granted, timed REFLECT — while `reflectRoundsLeft`
    *  > 0 this card reflects `reflectPower` back at attackers. Counts down at Cleanup. */
   reflectRoundsLeft?: number;
   reflectPower?: number;
   /** Boom (Doom): Cleanups survived so far; detonates once it reaches the def's
    *  `boom.afterRounds`. */
   boomTimer?: number;
-  /** Mind Bubble Channeling (Anos): each Cleanup while `channelBuffRounds` > 0,
+  /** Mind Bubble Channeling (Serenos): each Cleanup while `channelBuffRounds` > 0,
    *  gain `channelBuffDmg` DMG, heal `channelBuffHeal`, and self-cleanse. */
   channelBuffRounds?: number;
   channelBuffDmg?: number;
@@ -1341,10 +1341,10 @@ export interface PlayerState {
    *  attacks aimed at THIS player's cards. Flat coin, not a status — uncleansed.
    *  Decrements each Cleanup. */
   foggedRounds?: number;
-  /** Sky Scout (Syt Bird): rounds left in which this player's single-target
+  /** Sky Scout (Sightwing): rounds left in which this player's single-target
    *  basics also clip one enemy adjacent to their target. Ticked in Cleanup. */
   basicSplashRounds?: number;
-  /** Orbital Shot (Raya): delayed single-target strikes that land on a later
+  /** Orbital Shot (Zenith): delayed single-target strikes that land on a later
    *  round's Cleanup. */
   pendingArrows?: { round: number; dmg: number; targetId: string; source: CardInstance }[];
   /** Radiant Ward (Solstice): a single team-wide barrier that absorbs the first
@@ -1569,7 +1569,7 @@ export const MULTI_HIT_BONUS_MIN = 4;
 /** Which half of the King-of-the-Hill mid-row bonus a card takes: `true` = +1
  *  HIT (worth its DMG), `false` = +1 DMG (worth its hit count).
  *
- *  The +1 HIT branch exists so a heavy shredder doesn't balloon — Clipsey at
+ *  The +1 HIT branch exists so a heavy shredder doesn't balloon — Eclipse at
  *  1×7 would become 2×7 = 14 on a flat +1 DMG. But for a 1-damage card that
  *  branch is worth only +1, which made a 4th printed hit an actual DOWNGRADE:
  *  1×4 delivered 5 in a mid row while 1×3 delivered 6, so the card printing

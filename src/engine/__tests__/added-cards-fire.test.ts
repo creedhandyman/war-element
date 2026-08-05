@@ -58,13 +58,13 @@ describe("added cards: every ability fires", () => {
     const sSp = effectiveSp(s, s.cards[sseerr.instanceId]);
     let g = s;
     for (let i = 0; i < 6; i++) g = advance(atCleanup(g)); // six rounds of ticks
-    // 6 rounds → eagle gains on rounds divisible by 3, SSeerr on even rounds.
+    // 6 rounds → eagle gains on rounds divisible by 3, Emberclaw on even rounds.
     expect(effectiveDmg(g, g.cards[eagle.instanceId])).toBeGreaterThan(eDmg);
     expect(effectiveDmg(g, g.cards[sseerr.instanceId])).toBeGreaterThan(sDmg);
     expect(effectiveSp(g, g.cards[sseerr.instanceId])).toBeGreaterThan(sSp);
   });
 
-  it("Sprinu's Root Spring damages, ROOTs, and waters LEAF allies in one cast", () => {
+  it("Vernal's Root Spring damages, ROOTs, and waters LEAF allies in one cast", () => {
     const s = prepState();
     s.players.P1.magicPool = 2;
     const sprinu = place(s, "leaf_sprinu", "P1", 2, 0);
@@ -149,8 +149,8 @@ describe("added cards: every ability fires", () => {
   });
 });
 
-describe("wave 1: RohoJohn, Shoksa, Lumberjack, Bootlegger", () => {
-  it("RohoJohn's War Mount arrives armoured and mauls at melee range", () => {
+describe("wave 1: Cragrider, Dynamo, Lumberjack, Bootlegger", () => {
+  it("Cragrider's War Mount arrives armoured and mauls at melee range", () => {
     const s = prepState();
     s.players.P1.gold = 9;
     const near = place(s, "dusk_gool", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 0 });
@@ -183,7 +183,7 @@ describe("wave 1: RohoJohn, Shoksa, Lumberjack, Bootlegger", () => {
     expect(statusOf(next.cards[prey.instanceId], "SLEEP")?.duration).toBe(2);
   });
 
-  it("Shoksa fires its Special on summon: marks the clean, deepens the held", () => {
+  it("Dynamo fires its Special on summon: marks the clean, deepens the held", () => {
     const s = prepState();
     s.players.P1.gold = 9;
     const held = place(s, "dusk_gool", "P2", 2, 0, { curHp: 60, maxHp: 60 });
@@ -196,7 +196,7 @@ describe("wave 1: RohoJohn, Shoksa, Lumberjack, Bootlegger", () => {
     expect(statusOf(next.cards[clean.instanceId], "PARALYZE")).toBeUndefined();
   });
 
-  it("Shoksa discharges into what it marked at end of round", () => {
+  it("Dynamo discharges into what it marked at end of round", () => {
     const s = prepState();
     const shoksa = place(s, "bolt_shoksa", "P1", 2, 1, { autoMode: "manual" });
     const marked = place(s, "dusk_gool", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 0 });
@@ -260,8 +260,8 @@ describe("wave 1: RohoJohn, Shoksa, Lumberjack, Bootlegger", () => {
   });
 });
 
-describe("wave 2: Wista, WarPhant, RIP, Scorch", () => {
-  it("Wista's spiral ricochets through a cluster and shoves each one", () => {
+describe("wave 2: Zephyra, WarPhant, RIP, Scorch", () => {
+  it("Zephyra's spiral ricochets through a cluster and shoves each one", () => {
     const s = prepState();
     s.players.P1.magicPool = 6;
     const wista = place(s, "gale_wista", "P1", 3, 1, { autoMode: "manual" });

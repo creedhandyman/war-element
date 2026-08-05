@@ -82,7 +82,7 @@ describe("rare passives", () => {
     expect(statusOf(s.cards[attacker.instanceId], "BURN")?.power).toBe(4);
   });
 
-  it("DAWN Glime — +2 barrier that surges (+1 DMG/+1 SP) when it breaks", () => {
+  it("DAWN Glimmer — +2 barrier that surges (+1 DMG/+1 SP) when it breaks", () => {
     const s = prepState();
     const glime = place(s, "dawn_glime", "P1", 3, 0);
     // 1 printed shield + the +2 Shiny Shield barrier (summonSelfShields is +=).

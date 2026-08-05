@@ -91,7 +91,7 @@ describe("setup", () => {
       // basic landed from melee range — still more than the 4 points the printed
       // line gives up (trimmed from +5 / +6 after it measured OP).
       "bore_rohojohn",
-      // Ability-carried, downward: 22 vs a Cost-5 budget of 35. Rubyo spawns
+      // Ability-carried, downward: 22 vs a Cost-5 budget of 35. Rubyscale spawns
       // Greegon (4/17/SP4) on summon, so the free body carries the missing 13
       // points — a deliberate stat exception.
       "leaf_rubyo",

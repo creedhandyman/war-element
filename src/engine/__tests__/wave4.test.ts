@@ -73,7 +73,7 @@ describe("wave 4 — cost-1, one per element", () => {
     expect(penToHp).toBeGreaterThan(plainToHp); // PEN bypassed the shields
   });
 
-  it("Kcor: Rock Slide drops up to 5 rocks on the nearest foe", () => {
+  it("Pebble: Rock Slide drops up to 5 rocks on the nearest foe", () => {
     // Each rock is a coin, so over many summons the total must be > 0 (they land)
     // and no single slide exceeds 5 (five rocks, 1 each).
     let total = 0;
@@ -108,7 +108,7 @@ describe("wave 4 — cost-1, one per element", () => {
     expect(hitB).toBeGreaterThan(0);
   });
 
-  it("Harve: Dancing Shadow raises a Specter on summon", () => {
+  it("Harrow: Dancing Shadow raises a Specter on summon", () => {
     const s = prepState();
     s.players.P1.gold = 5;
     const h = giveHand(s, "P1", "dusk_harve");

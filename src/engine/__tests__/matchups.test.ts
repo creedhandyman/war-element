@@ -203,11 +203,11 @@ describe("Photosynthesis feeds on the roots", () => {
   });
 });
 
-describe("Gemaga's Magnetic Shield", () => {
+describe("Magnetite's Magnetic Shield", () => {
   it("plates every ally in range, not just the row ahead", () => {
     // Fired end-to-end so rules.ts supplies the targets — the point of the
     // change is that reach now comes from the normal ally-AOE path instead of a
-    // hardcoded rowAhead sweep, which missed allies beside and behind Gemaga.
+    // hardcoded rowAhead sweep, which missed allies beside and behind Magnetite.
     const s = prepState();
     s.players.P1.magicPool = 4;
     const gem = place(s, "bore_gemaga", "P1", 3, 1);

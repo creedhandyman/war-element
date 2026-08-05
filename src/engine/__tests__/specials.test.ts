@@ -134,7 +134,7 @@ describe("firing specials", () => {
     expect(next.cards[free.instanceId].curHp).toBe(6); // not paralyzed → untouched
   });
 
-  it("Vaga's Extinguisher only fires at foes under 9 HP (execute)", () => {
+  it("Squall's Extinguisher only fires at foes under 9 HP (execute)", () => {
     // A healthy foe directly ahead is NOT a legal Extinguisher target.
     const s1 = prepState();
     s1.players.P1.magicPool = 5;
@@ -513,11 +513,11 @@ describe("GALE / BOLT lockdown & disruption", () => {
     expect(isActionBlocked(next.cards[foe.instanceId])).toBe(true); // STUN = can't act
   });
 
-  it("Guan's Vision of Fear WEAKENs every reachable opponent", () => {
+  it("Dreadgaze's Vision of Fear WEAKENs every reachable opponent", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;
     const guan = place(s, "gale_guan", "P1", 2, 0);
-    const f1 = place(s, "dusk_gool", "P2", 1, 0); // adjacent to Guan (melee reach)
+    const f1 = place(s, "dusk_gool", "P2", 1, 0); // adjacent to Dreadgaze (melee reach)
     const f2 = place(s, "dusk_vamp", "P2", 1, 1); // adjacent (diagonal)
     const next = applyIntent(battleWith(s, guan.instanceId), {
       type: "BATTLE_ACTION",
@@ -529,7 +529,7 @@ describe("GALE / BOLT lockdown & disruption", () => {
     // (WEAKEN's −25% damage math is covered in statuses.test.ts)
   });
 
-  it("Zagphu's Static Toss PARALYZEs; a paralyzed card coin-flips to act", () => {
+  it("Ricochet's Static Toss PARALYZEs; a paralyzed card coin-flips to act", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;
     const zagphu = place(s, "bolt_zagphu", "P1", 2, 0);
@@ -593,7 +593,7 @@ describe("AQUA / DAWN handlers", () => {
     expect(next.players.P1.magicPool).toBe(3); // fired exactly once (cost 2)
   });
 
-  it("Clipsey's High Noon Revolver is a 7×1 volley on every target (shreds shields)", () => {
+  it("Eclipse's High Noon Revolver is a 7×1 volley on every target (shreds shields)", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;
     const clipsey = place(s, "dawn_clipsey", "P1", 2, 0); // 1 dmg × 7, targets 99
@@ -1027,7 +1027,7 @@ describe("accuracy per hit", () => {
   });
 });
 
-describe("Sprinu — Root Spring stays control, not a board wipe", () => {
+describe("Vernal — Root Spring stays control, not a board wipe", () => {
   it("roots the whole board and heals, but the damage is no longer the point", () => {
     // Measured at 12 damage per magic before the cut — double the next LEAF
     // special and 4x the cost-9 mythic, on a cost-3 Support. Only the damage
@@ -1170,7 +1170,7 @@ describe("King of the Hill — which half of the bonus a mid row pays", () => {
   });
 
   it("heavy shredders keep the +1 HIT branch — no ballooning", () => {
-    // Clipsey on a flat +1 DMG would be 2x7 = 14, which is the whole reason the
+    // Eclipse on a flat +1 DMG would be 2x7 = 14, which is the whole reason the
     // HIT branch exists. 6+ hits stay on it.
     expect(mid("dawn_clipsey")).toBe(8); // 1x7 -> 1x8
   });
@@ -1254,7 +1254,7 @@ describe("lateral charge — riders track their victim across columns", () => {
     expect(gap(pos!, { row: 1, col: 2 })).toBe(1);
   });
 
-  it("RohoJohn's Battle Charge still ploughs STRAIGHT ahead and stalls when blocked", () => {
+  it("Cragrider's Battle Charge still ploughs STRAIGHT ahead and stalls when blocked", () => {
     // Its text promises "every opponent straight ahead" — the lateral charge is
     // opt-in precisely so this one keeps its lane and its stopping behaviour.
     const s = prepState();
@@ -1293,7 +1293,7 @@ describe("a charge obeys the same geometry as a normal move", () => {
   });
 });
 
-describe("Rollo — Rover rolls in FIRST, then bashes", () => {
+describe("Rumbler — Rover rolls in FIRST, then bashes", () => {
   it("closes a 2-slot gap and lands the full 3x3", () => {
     // Before this, Rolling Bash was melee-reach with an unmodeled Rover: it
     // could only hit a card already adjacent, so it reached exactly as far as
@@ -1316,7 +1316,7 @@ describe("Rollo — Rover rolls in FIRST, then bashes", () => {
   it("the roll lands BEFORE the hit — proven by a kill", () => {
     // Position alone cannot separate the two orderings: a charge either side of
     // the strike ends up beside a LIVING target. The tell is a target that DIES.
-    // Rolling first, Rollo pulls up beside a body that is still standing and so
+    // Rolling first, Rumbler pulls up beside a body that is still standing and so
     // stops short of its slot. Rolling after, the slot is already vacated and
     // chargeToward would walk straight onto it.
     const s = prepState();

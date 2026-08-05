@@ -202,7 +202,7 @@ describe("on-hit keywords", () => {
     // The killer must neither lifesteal nor regenerate, or the net-HP reading
     // stops being a measurement of the venom. Vamp has DRAIN (which now heals
     // AND raises max HP); a LEAF card heals +1 a round from Photosynthesis.
-    // Guan is keyword-free and GALE, whose aura only grants SP.
+    // Dreadgaze is keyword-free and GALE, whose aura only grants SP.
     const killer = place(s, "gale_guan", "P1", 2, 0, { curHp: 99, maxHp: 99, curShields: 0 });
     const widow = place(s, "dusk_widowbite", "P2", 2, 1, { curHp: 3 });
     basicAttack(s, killer.instanceId, widow.instanceId);

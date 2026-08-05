@@ -356,7 +356,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         card.curShields += ready.shields;
         draft.log.push(`${getDef(card.defId).name} braces for the middle (+${ready.shields} shield).`);
       }
-      // Sky Scout (Syt Bird): reaching the middle lets the team's basics clip an
+      // Sky Scout (Sightwing): reaching the middle lets the team's basics clip an
       // extra adjacent target for the round.
       if (getDef(card.defId).skyScout && card.curHp > 0 && !isMidRow(fromRow) && isMidRow(card.pos!.row)) {
         draft.players[card.owner].basicSplashRounds = 1;
@@ -1711,7 +1711,7 @@ function doRoundTicks(draft: GameState): void {
       card.turretRoundsLeft = (card.turretRoundsLeft ?? 0) - 1;
     }
     if (rt.aoeElectrifiedDmg) {
-      // Shoksa: the literal ELECTRIFIED status, which its own Special applies —
+      // Dynamo: the literal ELECTRIFIED status, which its own Special applies —
       // deliberately NOT the "carries any status" proxy Voltogon uses, so the
       // card combos with itself rather than with every DOT on the board.
       const zapped = enemies().filter((e) => hasStatus(e, "ELECTRIFIED") && canTarget(draft, card, e));
@@ -1816,7 +1816,7 @@ function doRoundTicks(draft: GameState): void {
       }
     }
     if (rt.refreshShieldsTo != null && card.curShields < rt.refreshShieldsTo) {
-      // Nature's Protection (Efy): top the bark armour back up.
+      // Nature's Protection (Sylvane): top the bark armour back up.
       card.curShields = rt.refreshShieldsTo;
       draft.log.push(`${label(draft, card)} regrows its bark (${rt.refreshShieldsTo} shields).`);
     }
@@ -1826,7 +1826,7 @@ function doRoundTicks(draft: GameState): void {
       for (const e of enemies()) if (hasStatus(e, "ROOT")) applyStatus(draft, e, rs.kind, rs.duration, rs.power, getDef(card.defId).element);
     }
     if (rt.rootZeroSp) {
-      // Frosty Bites (Whintey): the winter cold seizes a spent, motionless foe.
+      // Frosty Bites (Hibernal): the winter cold seizes a spent, motionless foe.
       const stuck = enemies().find(
         (e) => e.curHp > 0 && effectiveSp(draft, e) <= 0 && !hasStatus(e, "ROOT"),
       );
@@ -1843,7 +1843,7 @@ function doRoundTicks(draft: GameState): void {
       if (total > 0) draft.log.push(`${label(draft, card)}'s siphon drains ${total} max HP from ${near.length} foe(s).`);
     }
     if (rt.lockEnemySpecials) {
-      // Magic Ropes (Ty): wrap up N reachable opponents — their Specials are
+      // Magic Ropes (Tether): wrap up N reachable opponents — their Specials are
       // disabled for the coming round. (doRoundTicks runs after the lock tick-
       // down, so a value of 1 survives to next round.)
       const roped = enemies().filter((e) => e.curHp > 0 && canTarget(draft, card, e)).slice(0, rt.lockEnemySpecials);
@@ -1949,13 +1949,13 @@ function doRoundTicks(draft: GameState): void {
         if (a.pos?.row === home && getDef(a.defId).element === el && healCard(draft, a, rt.healHomeRowElement, card) > 0) touched++;
       if (touched) draft.log.push(`${label(draft, card)}'s Petalfall soothes ${touched} ${el} home-row ally(ies) (+${rt.healHomeRowElement} HP).`);
     }
-    // Liquid Humidity (Blub): drink itself back to full each round.
+    // Liquid Humidity (Dewling): drink itself back to full each round.
     if (rt.healSelfToFull) {
       const healed = healCard(draft, card, effectiveMaxHp(draft, card), card);
       if (healed > 0) draft.log.push(`${label(draft, card)} rehydrates to full (+${healed} HP).`);
     }
     if (rt.healWoundedAllies) {
-      // Emergency Support (Able) / Rescue Pack (St.Bern): mend any ally that's
+      // Emergency Support (Vigil) / Rescue Pack (St.Bern): mend any ally that's
       // dropped under the threshold.
       const { underHp, amount } = rt.healWoundedAllies;
       const hurt = allies().filter((c) => c.curHp > 0 && c.curHp < underHp);
@@ -2043,7 +2043,7 @@ function doCleanupPhase(draft: GameState): void {
       for (const e of foes) tickDamage(draft, m.source, e, m.dmg, false);
       if (foes.length) draft.log.push(`A meteor crashes down — ${m.dmg} DMG to ${foes.length} opponent(s).`);
     }
-    // Orbital Shot (Raya): delayed single-target arrows land on their due round.
+    // Orbital Shot (Zenith): delayed single-target arrows land on their due round.
     const arrows = draft.players[pl].pendingArrows;
     if (arrows?.length) {
       const dueArrows = arrows.filter((a) => a.round <= draft.round);
@@ -2101,7 +2101,7 @@ function doCleanupPhase(draft: GameState): void {
     if ((card.specialLockedRounds ?? 0) > 0) card.specialLockedRounds = (card.specialLockedRounds ?? 0) - 1;
     // BlastOff's temporary flight fades.
     if ((card.flyingRoundsLeft ?? 0) > 0) card.flyingRoundsLeft = (card.flyingRoundsLeft ?? 0) - 1;
-    // Mind Bubble Channeling (Anos): pay out this round's tick.
+    // Mind Bubble Channeling (Serenos): pay out this round's tick.
     if ((card.channelBuffRounds ?? 0) > 0) {
       if (card.channelBuffDmg) card.dmgBonus += card.channelBuffDmg;
       if (card.channelBuffHeal) healCard(draft, card, card.channelBuffHeal, card);
@@ -2109,7 +2109,7 @@ function doCleanupPhase(draft: GameState): void {
       card.channelBuffRounds = (card.channelBuffRounds ?? 0) - 1;
       draft.log.push(`${label(draft, card)}'s bubble mends it (+${card.channelBuffDmg ?? 0} DMG, +${card.channelBuffHeal ?? 0} HP).`);
     }
-    // Liquid Serenity (Anos): reward a round spent NOT attacking.
+    // Liquid Serenity (Serenos): reward a round spent NOT attacking.
     const idle = getDef(card.defId).idleBuff;
     if (idle && !card.attackedThisRound && card.curHp > 0) {
       healCard(draft, card, idle.heal, card);
@@ -2171,7 +2171,7 @@ function doCleanupPhase(draft: GameState): void {
       //
       // The ceiling is the card's PRINTED shields plus the cap, not a flat
       // total. Testing total shields meant any LEAF card printing 3+ — Thorn,
-      // Trinezer, Dande, Sakuroot, Hartwood, Elderroot, i.e. the whole top of the
+      // Trinezer, Dandelion, Sakuroot, Hartwood, Elderroot, i.e. the whole top of the
       // element — could never gain anything from half of its own element aura,
       // because it started at or over the line. Anchoring to printed shields
       // gives every LEAF card the same 3 points of bark to earn, and lets one
@@ -2284,12 +2284,12 @@ function doCleanupPhase(draft: GameState): void {
     card.summonedThisRound = false;
     card.attackedThisRound = false;
     card.movedThisRound = false;
-    card.critsThisRound = 0; // Jackpot (Striik) counts crits per round
+    card.critsThisRound = 0; // Jackpot (Highroller) counts crits per round
     card.dmgTakenThisRound = 0; // Vengeance (Bolder) reflects only this round's damage
     card.weaponSwitchedRound = false; // Power Grab (General): one switch per round
     card.kingWildFiredRound = false; // King of the Wild (Leo): one buff per round
     card.allyKilledFiredRound = false; // Overwatch (Hartwood): one answer per round
-    card.twinStrikeFiredRound = false; // Twin Strike (Ning): one bonus volley per round
+    card.twinStrikeFiredRound = false; // Twin Strike (Twinbolt): one bonus volley per round
     card.falseHeadUsedRound = false; // False Head (Thorny Ripper): the decoy resets each round
     card.onKillAoeFiredRound = false; // Powertrip re-arms each round
     card.dmgBonusRound = 0;

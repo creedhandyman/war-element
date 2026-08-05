@@ -929,7 +929,7 @@ describe("Shadow Charge rides diagonally, and tramples along the diagonal", () =
   });
 
   it("other ground chargers still step orthogonally, and fall short because of it", () => {
-    // chargeDiagonal is opt-in per Special. Rollo has the same lateral charge
+    // chargeDiagonal is opt-in per Special. Rumbler has the same lateral charge
     // but no flag, so it spends a step per axis: over a 2-slot budget it cannot
     // close a diagonal gap that a corner-cutter would reach. Final position is
     // usually a poor tell (both walkers stop on becoming adjacent), so this

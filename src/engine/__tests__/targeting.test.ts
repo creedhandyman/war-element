@@ -164,7 +164,7 @@ describe("ranged reach — 2 king-steps, blocked on straight lines", () => {
   });
 
   it("the reported gap: a Ranger on r1c3 can shoot r2c1", () => {
-    // Straight from a real game — Dart Frog on r1c3, Rhe on r2c1 and Hillbilly
+    // Straight from a real game — Dart Frog on r1c3, Rhyolite on r2c1 and Hillbilly
     // on r0c1 both two king-steps away, and Basic Attack greyed out entirely
     // because neither enemy happened to sit on a ray.
     const s = prepState();

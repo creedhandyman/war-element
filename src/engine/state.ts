@@ -392,7 +392,7 @@ export function effectiveSp(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   if (hasStatus(card, "ROOT") || hasStatus(card, "FREEZE")) return 0;
   const buffSp = (card.buffs ?? []).reduce((n, b) => n + b.sp, 0);
-  // Obsidian Claws (Obsidi): underground it REPLACES the printed SP rather than
+  // Obsidian Claws (Obsidian): underground it REPLACES the printed SP rather than
   // adding to it — bonuses still stack on top of the new base.
   const base = def.spWhileStealthed != null && hasStatus(card, "STEALTH") ? def.spWhileStealthed : def.sp;
   // Lurk (Liquark): +SP while hidden in STEALTH.

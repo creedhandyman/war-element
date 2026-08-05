@@ -304,7 +304,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[liq.instanceId].statuses.some((st) => st.kind === "STEALTH")).toBe(true);
   });
 
-  it("Skrow spawns Crows — 2 on death (Goodnight), 3 from Bird Bomb", () => {
+  it("Strawman spawns Crows — 2 on death (Goodnight), 3 from Bird Bomb", () => {
     const s = prepState();
     const skrow = place(s, "dusk_skrow", "P1", 2, 1);
     const crows = () => boardCards(s, "P1").filter((c) => c.defId === "dusk_crow").length;
@@ -433,7 +433,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(50 - s.cards[normal.instanceId].curHp).toBe(4); // base 4
   });
 
-  it("Striik's Purple Strikes hits the 4 CLOSEST opponents, sparing farther ones", () => {
+  it("Highroller's Purple Strikes hits the 4 CLOSEST opponents, sparing farther ones", () => {
     const s = prepState();
     const striik = place(s, "bolt_striik", "P1", 3, 0);
     const near = [
@@ -523,10 +523,10 @@ describe("medium-tier passives (audit batch)", () => {
     expect(foe.curShields + foe.curHp).toBeLessThan(getDef("dusk_gool").hp + getDef("dusk_gool").shields);
   });
 
-  it("Rollo's Rolling Start carries it a slot downfield after each basic", () => {
+  it("Rumbler's Rolling Start carries it a slot downfield after each basic", () => {
     const s = prepState();
     const rollo = place(s, "bore_rollo", "P1", 3, 0); // P1 advances toward row 0
-    // Off-column target so the slot Rollo rolls into stays clear.
+    // Off-column target so the slot Rumbler rolls into stays clear.
     const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
     basicAttack(s, rollo.instanceId, foe.instanceId);
     expect(s.cards[rollo.instanceId].pos?.row).toBe(2); // rolled 3 -> 2
@@ -675,7 +675,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s2.cards[ally.instanceId].buffs).toHaveLength(1); // positive buff kept
   });
 
-  it("Ning's Twin Strike chains a bonus CRIT strike on a crit, once per round", () => {
+  it("Twinbolt's Twin Strike chains a bonus CRIT strike on a crit, once per round", () => {
     const s = prepState();
     const ning = place(s, "bolt_ning", "P1", 3, 0); // 3 DMG, CRIT
     // hoaxMarked forces the basic to CRIT (skips the coin), so Twin Strike fires.
@@ -1010,7 +1010,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(canFireTalent(next, weed.instanceId).ok).toBe(false); // gone for the game
   });
 
-  it("Sprinu's basic can be aimed at a hurt ally to heal it instead", () => {
+  it("Vernal's basic can be aimed at a hurt ally to heal it instead", () => {
     const s = prepState();
     const sprinu = place(s, "leaf_sprinu", "P1", 3, 0);
     const hurt = place(s, "leaf_greegon", "P1", 3, 1, { curHp: 5, maxHp: 20 });
@@ -1079,7 +1079,7 @@ describe("medium-tier passives (audit batch)", () => {
     }
   });
 
-  it("SSeerr's arrival burns the WHOLE row ahead, edge column included", () => {
+  it("Emberclaw's arrival burns the WHOLE row ahead, edge column included", () => {
     const s = prepState();
     s.players.P1.gold = 8;
     // Summons into P1's home row at col 0; the row ahead is row 2. The far
@@ -1094,7 +1094,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(next.cards[offRow.instanceId].curHp).toBe(30); // depth 1 — one row only
   });
 
-  it("SSeerr's Flaming Slasher strikes on cast and burns that hit and one more", () => {
+  it("Emberclaw's Flaming Slasher strikes on cast and burns that hit and one more", () => {
     const s = prepState();
     s.players.P1.magicPool = 2;
     const sseerr = place(s, "pyro_sseerr", "P1", 2, 0);
@@ -1231,12 +1231,12 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[killer.instanceId].curHp).toBe(8); // unchanged — no second answer
   });
 
-  it("Dirt Driller hides Obsidi, speeds it underground, and erupts once", () => {
+  it("Dirt Driller hides Obsidian, speeds it underground, and erupts once", () => {
     const s = prepState();
     s.players.P1.magicPool = 3;
     const obsidi = place(s, "bore_obsidi", "P1", 2, 0);
     const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
-    // Read the printed SP rather than hardcoding it — Obsidi's speed moved when
+    // Read the printed SP rather than hardcoding it — Obsidian's speed moved when
     // BORE traded SP for cost, and the point of this test is the +3 underground.
     const printedSp = getDef("bore_obsidi").sp;
     expect(effectiveSp(s, s.cards[obsidi.instanceId])).toBe(printedSp); // above ground
@@ -1479,7 +1479,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(next.cards[sq.instanceId].curShields).toBe(0);
   });
 
-  it("Rhe's Rocky Force Field can deflect a ranged hit (but not melee)", () => {
+  it("Rhyolite's Rocky Force Field can deflect a ranged hit (but not melee)", () => {
     const s = prepState();
     const rhe = place(s, "bore_rhe", "P1", 2, 0, { curHp: 9, curShields: 0 });
     const ranged = place(s, "pyro_flamehound", "P2", 1, 0); // Ranged, 5 DMG
@@ -1537,7 +1537,7 @@ describe("complex-tier passives (audit batch)", () => {
     expect(s.cards[foe.instanceId].curHp).toBe(9);
   });
 
-  it("Vaga's Shadow lets only adjacent attackers reach it", () => {
+  it("Squall's Shadow lets only adjacent attackers reach it", () => {
     const s = prepState();
     const vaga = place(s, "gale_vaga", "P1", 2, 0);
     const farRanged = place(s, "pyro_flamehound", "P2", 0, 0); // ranged, 2 rows away
@@ -1816,7 +1816,7 @@ describe("revive & transform", () => {
   });
 });
 
-describe("Fallona's Fall's Emergence scales Leaf Storm", () => {
+describe("Autumnal's Fall's Emergence scales Leaf Storm", () => {
   it("Leaf Storm's per-hit damage grows with the accumulated DMG bonus", () => {
     const s = prepState();
     const fallona = place(s, "leaf_fallona", "P1", 3, 0, { dmgBonus: 2 }); // +2 from Fall's Emergence
@@ -2105,7 +2105,7 @@ describe("partial-effect fixes (Epic sweep)", () => {
     expect(s.cards[foe.instanceId].curHp).toBe(18); // 2×2 halved → 1×2 = 2 dmg
   });
 
-  it("Zagphu's Precision Strike fires vs ANY statused (Electrified) foe, not just PARALYZED", () => {
+  it("Ricochet's Precision Strike fires vs ANY statused (Electrified) foe, not just PARALYZED", () => {
     const s = prepState();
     const z = place(s, "bolt_zagphu", "P1", 3, 0, { curHp: 5, maxHp: 12 });
     const foe = place(s, "dusk_gool", "P2", 2, 0, {
@@ -2141,7 +2141,7 @@ describe("partial-effect fixes (Epic sweep)", () => {
     expect(s.cards[paralyzed.instanceId].statuses.find((x) => x.kind === "PARALYZE")?.duration).toBe(3); // 2 → 3
   });
 
-  it("Clipsey's Hot Shot never misses — ignores the target's EVASION", () => {
+  it("Eclipse's Hot Shot never misses — ignores the target's EVASION", () => {
     const s = prepState();
     const c = place(s, "dawn_clipsey", "P1", 3, 0); // 1×7 Ranged, alwaysHit
     const eva = place(s, "dusk_silkstalker", "P2", 1, 0, { curHp: 20, curShields: 0 }); // EVASION keyword

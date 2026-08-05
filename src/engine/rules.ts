@@ -180,7 +180,7 @@ export const RANGED_REACH = 2;
  * Range is Chebyshev distance, NOT a queen's ray. Ray-only left holes at the
  * knight-shaped squares (one row over, two columns across): a card two steps
  * away, plainly beside you, was untargetable at any odds. The gap showed up in
- * play — a Dart Frog on r1c3 could not shoot Rhe on r2c1 and had its whole
+ * play — a Dart Frog on r1c3 could not shoot Rhyolite on r2c1 and had its whole
  * attack greyed out with two enemies standing next to it.
  *
  * Blocking still applies, but only where a straight line exists (same row,
@@ -246,7 +246,7 @@ export function rangedReachFor(state: GameState, card: CardInstance): number {
  *  Three ways to be hidden, and Magalogoon's is deliberately NOT the keyword:
  *   - a granted STEALTH status (always hides);
  *   - the STEALTH keyword — hides until the card attacks this round
- *     (Frostveil, Obsidi);
+ *     (Frostveil, Obsidian);
  *   - Swamp Monster (Magalogoon) — a CONDITIONAL passive, hidden only while it
  *     has neither moved nor attacked this round. No standing keyword, so it is
  *     never "always" stealthed. */
@@ -290,7 +290,7 @@ export function canTarget(
   const targetFlying = tDef.keywords.FLYING || (target.flyingRoundsLeft ?? 0) > 0;
   const attackerFlying = aDef.keywords.FLYING || (attacker.flyingRoundsLeft ?? 0) > 0;
   if (targetFlying && melee && !attackerFlying && !isGrounded(target)) return false;
-  // Shadow (Vaga): only adjacent attackers reach it — ranged shots from a row
+  // Shadow (Squall): only adjacent attackers reach it — ranged shots from a row
   // or more away find nothing to hit.
   if (
     tDef.onlyAdjacentAttackers &&
@@ -373,7 +373,7 @@ export function validTargets(
   const enemies = boardCards(state, enemyOf(attacker.owner)).filter((t) =>
     canTarget(state, attacker, t, false, forBasic),
   );
-  // Morning Dew (Sprinu): a healer aims its basic at hurt friends too. Only
+  // Morning Dew (Vernal): a healer aims its basic at hurt friends too. Only
   // wounded allies are offered — healing something at full HP is a wasted turn,
   // and it keeps the AI from picking one.
   if (!getDef(attacker.defId).basicHealsAllies) return enemies;
@@ -522,10 +522,10 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   }
   if (typeof p.requireStatus === "string" && p.requireStatus)
     list = list.filter((t) => hasStatus(t, p.requireStatus as StatusKind));
-  // Extinguisher (Vaga): a finisher — only aimable at foes below the HP line.
+  // Extinguisher (Squall): a finisher — only aimable at foes below the HP line.
   const belowHp = Number(p.requireBelowHp ?? 0);
   if (belowHp > 0) list = list.filter((t) => t.curHp < belowHp);
-  // closest N (Striik): the volley auto-picks the nearest few — preview just those.
+  // closest N (Highroller): the volley auto-picks the nearest few — preview just those.
   if (Number(p.closest ?? 0) > 0 && card.pos) {
     list = [...list].sort((a, b) => manhattan(card.pos!, a.pos!) - manhattan(card.pos!, b.pos!))
       .slice(0, Number(p.targets ?? 1));

@@ -68,7 +68,7 @@ describe("match stats", () => {
     // Of that, exactly 2 is Nettle's OWN work (Photosynthesis). Before the fix
     // it read 3, because the dew was filed under whoever it landed on.
     expect(nettle.heal).toBe(2);
-    // ...and the dew is credited to Sprinu, which used to show 0 healing done
+    // ...and the dew is credited to Vernal, which used to show 0 healing done
     // despite being the only dedicated healer on the board.
     expect(sprinu.heal).toBe(1);
   });

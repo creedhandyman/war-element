@@ -85,7 +85,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // PYRO + BOLT — fast burn & shock aggression. Aggressive curve topping out
     // in Volcanon/Magmaw/Stormcaller (lege) into Pyrogon (myth).
     // Cut for the new arrivals: Electricel (1x4 into 3 HP — Zap already holds the
-    // fragile 1-drop), Ember Scorpion (no ability at all), Zagphu and Sarra (the
+    // fragile 1-drop), Ember Scorpion (no ability at all), Ricochet and Sarra (the
     // 3 and 4 slots were six and four deep).
     // Refresh: dropped bolt_electricel (a 1×4 on 3 HP that measured ~0 impact)
     // and pyro_baboom (rarely reached the board) for two on-theme cheap cards —
@@ -114,12 +114,12 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // Polarking/Glacius/Bastion (lege) into Kraken (myth). Frost Patch → Maelstrom
     // (2× vs FROZEN) is the payoff.
     // Cut: Bullet Shrimp (12 DMG on 1 HP — dies to anything, and Piranha now
-    // covers that slot), Rollo and Sapphire (plain bodies in crowded slots), and
+    // covers that slot), Rumbler and Sapphire (plain bodies in crowded slots), and
     // Bastion — with Polar King, Dunewraith, Glacius and Kraken the 6+ end was five
     // deep in a sixteen-card deck.
     // Refresh: dropped aqua_piranha (appeared constantly, measured ~0 impact) and
     // bore_armadillo (rarely reached the board) for Misty (Fog utility) and
-    // RohoJohn — a ranged 7 that gives the grind deck a backline poke it lacked.
+    // Cragrider — a ranged 7 that gives the grind deck a backline poke it lacked.
     cards: [
       "bore_hillbilly", "aqua_misty", "aqua_subcool", "aqua_kinguin", "aqua_octoirate",
       "aqua_owlette", "bore_shift", "aqua_blackbeard", "bore_monger", "aqua_polarbear",
@@ -135,7 +135,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
     boardSize: 4,
     // DAWN + LEAF — heals & buffs behind a wall of bodies. Value engine through
     // Kosmos/Elderroot/Reveille (lege) into Imperator (myth).
-    // Cut: Nettle, Star and Fallona (the 3 slot ran six deep), and Kosmos to
+    // Cut: Nettle, Star and Autumnal (the 3 slot ran six deep), and Kosmos to
     // thin a top end that was five cards at 6+. Lands 8 DAWN / 8 LEAF.
     // Refresh: dropped leaf_nettle and dawn_shine (both low-impact) for Birch
     // (a KILL flows into a 4×1 volley — recent) and Drakonbane, a real assassin
@@ -215,7 +215,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
     boardSize: 4,
     // LEAF + PYRO + DUSK — a three-element ATTRITION deck. BLEED (LEAF), BURN
     // (PYRO) and DRAIN/death (DUSK) grind HP from every angle while lifesteal
-    // (Sumerose) and Transfusion keep the front line alive. Magmaw/Nightfang
+    // (Estival) and Transfusion keep the front line alive. Magmaw/Nightfang
     // (lege) top it. 6 of each element.
     cards: [
       "leaf_stickviper", "pyro_staph", "dusk_silkstalker", "leaf_dartfrog", "pyro_scully",

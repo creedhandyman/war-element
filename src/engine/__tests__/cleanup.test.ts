@@ -313,7 +313,7 @@ describe("Photosynthesis: heal 2, and bark up where it was struck", () => {
 
   it("a LEAF card that PRINTS shields can still earn bark", () => {
     // The regression this guards: the cap used to test TOTAL shields, so every
-    // LEAF card printing 3+ (Thorn, Trinezer, Dande, Sakuroot, Warden,
+    // LEAF card printing 3+ (Thorn, Trinezer, Dandelion, Sakuroot, Warden,
     // Elderroot — the whole top of the element) started at or over the line and
     // could never gain anything from half its own element aura. The ceiling is
     // printed shields + cap, so every LEAF card has the same 3 bark to earn.
