@@ -709,17 +709,17 @@ describe("medium-tier passives (audit batch)", () => {
     expect(40 - s2.cards[bf.instanceId].curHp).toBe(10); // ×2 vs bloodfire
   });
 
-  it("Darth's Predator's Snare: a kill lays a trap that springs on the next enemy to step on it", () => {
+  it("Nightbriar's Predator's Snare: a kill lays a trap that springs on the next enemy to step on it", () => {
     const s = prepState();
     const darth = place(s, "leaf_darth", "P1", 3, 1, { curHp: 17, maxHp: 17 });
-    // A fragile foe Darth one-shots (6 DMG, CRIT → 12).
+    // A fragile foe Nightbriar one-shots (6 DMG, CRIT → 12).
     const prey = place(s, "dusk_gool", "P2", 2, 1, { curHp: 2, maxHp: 2, curShields: 0 });
     basicAttack(s, darth.instanceId, prey.instanceId);
     // The prey fell; a trap owned by P1 now sits on its old slot.
     const trap = s.traps.find((t) => t.pos.row === 2 && t.pos.col === 1);
     expect(trap).toBeTruthy();
     expect(trap!.owner).toBe("P1");
-    // Wound Darth so the LIFESTEAL is observable.
+    // Wound Nightbriar so the LIFESTEAL is observable.
     s.cards[darth.instanceId].curHp = 5;
     // An enemy walks onto the trapped slot.
     const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
@@ -1643,7 +1643,7 @@ describe("gated on-hit riders", () => {
 });
 
 describe("roundTick self effects", () => {
-  it("Sandman's Sandstorm dings every enemy in Cleanup", () => {
+  it("Dunewraith's Sandstorm dings every enemy in Cleanup", () => {
     const s = prepState();
     place(s, "bore_sandman", "P1", 2, 0);
     place(s, "leaf_greegon", "P1", 3, 0); // keep P1 on the board
@@ -1921,7 +1921,7 @@ describe("Star's Raising Star", () => {
   });
 });
 
-describe("Sandman's Nightmare", () => {
+describe("Dunewraith's Nightmare", () => {
   it("his hits don't wake a sleeper, and deal 2× DMG to a SLEEPING target", () => {
     const s = prepState();
     const sandman = place(s, "bore_sandman", "P1", 3, 0); // home row: no mid bonus

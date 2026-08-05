@@ -77,7 +77,7 @@ describe("per-card auras", () => {
     expect(effectiveDmg(s, rep)).toBe(4); // buffed while Trinezer is alive
   });
 
-  it("Griffith's element aura gives GALE allies +1 SP", () => {
+  it("Skyrend's element aura gives GALE allies +1 SP", () => {
     const s = prepState();
     place(s, "gale_griffith", "P1", 2, 0);
     const galeAlly = place(s, "gale_galeon", "P1", 3, 0);
@@ -187,7 +187,7 @@ describe("Kraken — From the Deep", () => {
 });
 
 describe("temporary self-buffs (STEALTH / EVASION)", () => {
-  it("Griffith's Dive Bomb grants STEALTH — he becomes untargetable", () => {
+  it("Skyrend's Dive Bomb grants STEALTH — he becomes untargetable", () => {
     const s = prepState();
     s.players.P1.magicPool = 6;
     const griff = place(s, "gale_griffith", "P1", 2, 0);
@@ -241,7 +241,7 @@ describe("splash damage", () => {
     expect(statusOf(next.cards[adj.instanceId], "WEAKEN")).toBeUndefined();
   });
 
-  it("Griffith takes 25% recoil from Dive Bomb (24 dealt → 6 back)", () => {
+  it("Skyrend takes 25% recoil from Dive Bomb (24 dealt → 6 back)", () => {
     const s = prepState();
     s.players.P1.magicPool = 6;
     const griff = place(s, "gale_griffith", "P1", 2, 0);

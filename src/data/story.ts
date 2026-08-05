@@ -269,7 +269,7 @@ const AQUA: StoryRegion = {
   nodes: [
     { id: "A1", name: "Leafward Crossing", kind: "skirmish", at: { x: 24, y: 30 },
       requires: [], roster: ["aqua_misty", "aqua_buccaneers", "aqua_piranha"], adds: [],
-      note: "Where ships arrive. Misty and Buccaneers bleed out to LEAF and PYRO — this is their home." },
+      note: "Where ships arrive. Misty and Saltjacks bleed out to LEAF and PYRO — this is their home." },
     { id: "A2", name: "Coral Isles Shallows", kind: "skirmish", at: { x: 8, y: 44 },
       requires: ["A1"], roster: ["aqua_blub", "aqua_anglerfish", "aqua_subcool"], adds: [] },
     { id: "A3", name: "Aqua Village Docks", kind: "skirmish", at: { x: 17, y: 54 },

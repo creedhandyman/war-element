@@ -61,7 +61,7 @@ describe("setup", () => {
       // ahead and wears them. Total immunity is the expensive part — the missing
       // 5 body points are what it costs.
       "bore_steel",
-      // Ability-carried, downward: 35 vs a Cost-6 budget of 40. Sandman was
+      // Ability-carried, downward: 35 vs a Cost-6 budget of 40. Dunewraith was
       // nerfed (HP 19→14) to rein in Frostkeep; its Nightmare Special (5×2 +
       // SLEEP nova) carries the missing points. Deliberately under-statted.
       "bore_sandman",

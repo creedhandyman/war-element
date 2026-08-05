@@ -220,7 +220,7 @@ export function isBloodfire(card: CardInstance): boolean {
 
 /** Effective speed: ROOT and FREEZE pin SP to 0. */
 /** Best (non-stacking) aura bonus a card gets from living allies whose aura
- *  matches it — Trinezer's Brood Command (Reptile +1/+1), Griffith's GALE +SP.
+ *  matches it — Trinezer's Brood Command (Reptile +1/+1), Skyrend's GALE +SP.
  *  The single highest matching bonus applies; auras never sum. */
 function auraMatches(a: AuraBonusDef, holder: CardInstance, target: CardInstance): boolean {
   const holderDef = getDef(holder.defId);

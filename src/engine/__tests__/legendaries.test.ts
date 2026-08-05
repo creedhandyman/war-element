@@ -69,7 +69,7 @@ describe("legendary specials", () => {
     expect(statusOf(next.cards[f2.instanceId], "FREEZE")).toBeTruthy();
   });
 
-  it("DAWN Aurelion — Dawn's Rally heals 3 and grants +2 DMG / +2 SP", () => {
+  it("DAWN Reveille — Dawn's Rally heals 3 and grants +2 DMG / +2 SP", () => {
     const s = prepState();
     s.players.P1.magicPool = 4;
     const au = place(s, "dawn_aurelion", "P1", 2, 0);

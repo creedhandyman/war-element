@@ -110,12 +110,12 @@ const STANDARD_DECKS: PremadeDeck[] = [
     name: "Frostkeep",
     premade: true,
     boardSize: 4,
-    // AQUA + BORE — tanky control that grinds you out. Ramps through Sandman/
+    // AQUA + BORE — tanky control that grinds you out. Ramps through Dunewraith/
     // Polarking/Glacius/Bastion (lege) into Kraken (myth). Frost Patch → Maelstrom
     // (2× vs FROZEN) is the payoff.
     // Cut: Bullet Shrimp (12 DMG on 1 HP — dies to anything, and Piranha now
     // covers that slot), Rollo and Sapphire (plain bodies in crowded slots), and
-    // Bastion — with Polar King, Sandman, Glacius and Kraken the 6+ end was five
+    // Bastion — with Polar King, Dunewraith, Glacius and Kraken the 6+ end was five
     // deep in a sixteen-card deck.
     // Refresh: dropped aqua_piranha (appeared constantly, measured ~0 impact) and
     // bore_armadillo (rarely reached the board) for Misty (Fog utility) and
@@ -134,7 +134,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
     premade: true,
     boardSize: 4,
     // DAWN + LEAF — heals & buffs behind a wall of bodies. Value engine through
-    // Kosmos/Elderroot/Aurelion (lege) into Imperator (myth).
+    // Kosmos/Elderroot/Reveille (lege) into Imperator (myth).
     // Cut: Nettle, Star and Fallona (the 3 slot ran six deep), and Kosmos to
     // thin a top end that was five cards at 6+. Lands 8 DAWN / 8 LEAF.
     // Refresh: dropped leaf_nettle and dawn_shine (both low-impact) for Birch

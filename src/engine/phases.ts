@@ -1172,7 +1172,7 @@ function performBattleAction(
       card.rampDmg = 0;
     }
     handler(draft, card, targets, special.params ?? {});
-    // Bounty (Scully): an enemy card that reacts to the caster's Special answers
+    // Bounty (Scallywag): an enemy card that reacts to the caster's Special answers
     // with a status on the caster (reactive burn).
     if (draft.cards[card.instanceId] && card.curHp > 0) {
       for (const r of boardCards(draft, enemyOf(card.owner))) {

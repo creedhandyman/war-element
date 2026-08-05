@@ -627,7 +627,7 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
     // Magic is its own pool now — unspent surplus is wasted value, so be
     // liberal when flush: fire anything decent, not only guaranteed kills.
     const rich = state.players[card.owner].magicPool >= sp.cost + 2;
-    // Don't fire a self-damaging Special (Kraken's Black Wave Crash, or Griffith's
+    // Don't fire a self-damaging Special (Kraken's Black Wave Crash, or Skyrend's
     // 10% Dive Bomb recoil) if it would kill the caster.
     const recoilCost = Math.round((Number(params.dmg ?? 0) * Number(params.recoilPct ?? 0)) / 100);
     const selfKills = Number(params.selfDamage ?? 0) + recoilCost >= card.curHp;

@@ -39,7 +39,7 @@ describe("firing specials", () => {
     expect(next.players.P1.magicPool).toBe(2);
   });
 
-  it("strike lifesteal: Darth's Dark Hunting heals for the damage dealt + ROOT 2r", () => {
+  it("strike lifesteal: Nightbriar's Dark Hunting heals for the damage dealt + ROOT 2r", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;
     const a = place(s, "leaf_darth", "P1", 2, 0, { curHp: 5, maxHp: 16 }); // Dark Hunting cost 3
@@ -1243,7 +1243,7 @@ describe("lateral charge — riders track their victim across columns", () => {
     expect(gap(pos!, { row: 0, col: 0 })).toBe(1);
   });
 
-  it("Griffith's Dive Bomb now actually dives", () => {
+  it("Skyrend's Dive Bomb now actually dives", () => {
     const s = prepState();
     s.players.P1.magicPool = 9;
     const grif = place(s, "gale_griffith", "P1", 2, 0, { autoMode: "manual" });

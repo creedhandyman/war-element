@@ -156,7 +156,7 @@ export interface OnKillDef {
   /** Static Charge (Static): on a kill, extend the named status on every enemy
    *  that already carries it by `rounds` (deepen the crowd-control). */
   extendStatus?: { kind: StatusKind; rounds: number };
-  /** Dark Hunting (Darth): a kill lays a trap on the slot where the victim fell.
+  /** Dark Hunting (Nightbriar): a kill lays a trap on the slot where the victim fell.
    *  The next enemy to MOVE onto it takes `dmg`, is ROOTed `rootDuration` rounds,
    *  and the killer LIFESTEALs the HP dealt — the same payload as his Special. */
   setTrap?: { dmg: number; rootDuration: number; lifesteal?: number };
@@ -462,7 +462,7 @@ export interface CardDef {
   /** Shatter (ICYNIN): a landed basic on a FROZEN target shatters the ice —
    *  `shatterFrozen` splash damage to enemies adjacent to it. */
   shatterFrozen?: number;
-  /** Bounty (Scully): when an OPPONENT fires a Special, this card answers with a
+  /** Bounty (Scallywag): when an OPPONENT fires a Special, this card answers with a
    *  status on the caster (reactive burn). */
   onEnemySpecial?: { status: { kind: StatusKind; duration: number; power: number } };
   /** Graveyard (Destro): +1 DMG for every allied card that has died this game. */
@@ -588,14 +588,14 @@ export interface CardDef {
      *  adjacent by construction, so the guard's own reach never gates it). */
     spawnToken?: string;
   };
-  /** This card's attacks do NOT wake SLEEPING targets (Sandman's Nightmare —
+  /** This card's attacks do NOT wake SLEEPING targets (Dunewraith's Nightmare —
    *  his hits ignore SLEEP's break-on-hit rule). */
   ignoresSleepWake?: boolean;
   /** Bonus DMG on the FIRST basic attack this card lands against each distinct
    *  opponent (Klipso's Harsh Winds), once per opponent for the game. */
   firstStrikeBonus?: number;
   /** A flat bonus added ONCE to the total after a basic attack resolves (not
-   *  per hit), gated on board conditions (Sandman). Lands on the primary target. */
+   *  per hit), gated on board conditions (Dunewraith). Lands on the primary target. */
   basicBonus?: {
     midLane?: number; // +N while this card sits in a Mid row
     midLaneFull?: number; // +N when 4+ cards occupy the Mid rows
@@ -1109,9 +1109,9 @@ export type SpellKind =
 export interface TrapState {
   owner: PlayerId;
   /** Set for trap SPELLS (names/logs via getSpell). On-kill traps laid by a
-   *  card (Darth) leave this empty and carry `label` instead. */
+   *  card (Nightbriar) leave this empty and carry `label` instead. */
   spellId?: string;
-  /** Display name when there's no spell behind the trap (Darth's Dark Hunting). */
+  /** Display name when there's no spell behind the trap (Nightbriar's Dark Hunting). */
   label?: string;
   element: Element;
   pos: Pos;
@@ -1121,7 +1121,7 @@ export interface TrapState {
   /** Inferno Pit: the payload also hits opponents adjacent to the victim. */
   splash?: boolean;
   /** Dark Hunting: heal `sourceId` by the HP the primary victim loses when the
-   *  trap springs (LIFESTEAL), mirroring Darth's Special. */
+   *  trap springs (LIFESTEAL), mirroring Nightbriar's Special. */
   lifesteal?: number;
   sourceId?: string;
 }

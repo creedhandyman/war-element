@@ -550,7 +550,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bore_sandman",
-    name: "Sandman",
+    name: "Dunewraith",
     rarity: "legendary",
     element: "BORE",
     cardClass: "Mage",
@@ -927,7 +927,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "leaf_darth",
-    name: "Darth",
+    name: "Nightbriar",
     rarity: "epic",
     element: "LEAF",
     cardClass: "Ranger",
@@ -943,7 +943,7 @@ export const CARDS: CardDef[] = [
     keywords: { CRIT: true, STEALTH: true },
     // Predator's Snare (On Kill): lay a trap on the slot the prey fell on. The
     // next opponent to walk onto it eats the SAME payload as Dark Hunting —
-    // 7 DMG, ROOT 2, and LIFESTEAL to Darth.
+    // 7 DMG, ROOT 2, and LIFESTEAL to Nightbriar.
     passiveNames: { onKill: "Predator's Snare" },
     onKill: { setTrap: { dmg: 7, rootDuration: 2, lifesteal: 1 } },
     // Dark Hunting: strike a target, ROOT it, and LIFESTEAL the damage.
@@ -2506,7 +2506,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "gale_griffith",
-    name: "Griffith",
+    name: "Skyrend",
     rarity: "mythic",
     element: "GALE",
     cardClass: "Ranger",
@@ -2530,7 +2530,7 @@ export const CARDS: CardDef[] = [
       handler: "strike",
       // recoilPct is a share of the HP damage DEALT to the main target, so the
       // cost scales with how well the dive lands: ~6 back on a clean 24, less
-      // into shields. At 25% it can finish a wounded Griffith outright.
+      // into shields. At 25% it can finish a wounded Skyrend outright.
       // The dive DIVES: it closes up to 3 slots onto whatever it hit, in any
       // direction (it flies, so sideways and diagonals are free). That plants a
       // 29-HP mythic deep in enemy ground — STEALTH covers the landing for
@@ -3136,8 +3136,8 @@ export const CARDS: CardDef[] = [
       handler: "strike",
       // Splash 7 -> 3. It arced the FULL hit to every neighbour, so a target in a
       // cluster took 28 for 2 magic — 14.0 damage per magic, the most efficient
-      // card in the game, ahead of every legendary and mythic (Griffith is 7.8).
-      // Griffith's own splash is 5 on a 24 hit; an arc should be a graze, not a
+      // card in the game, ahead of every legendary and mythic (Skyrend is 7.8).
+      // Skyrend's own splash is 5 on a 24 hit; an arc should be a graze, not a
       // second full strike on each body. The 7 up front is untouched.
       params: { dmg: 7, splash: 3 },
       targetSide: "enemy",
@@ -3577,7 +3577,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "dawn_aurelion",
-    name: "Aurelion",
+    name: "Reveille",
     rarity: "legendary",
     element: "DAWN",
     cardClass: "Support",
@@ -5091,7 +5091,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "aqua_buccaneers",
-    name: "Buccaneers",
+    name: "Saltjacks",
     rarity: "rare",
     element: "AQUA",
     cardClass: "Ranger",
@@ -5106,7 +5106,7 @@ export const CARDS: CardDef[] = [
     // Back-ups (On Summon): a shot straight down its column, hitting every
     // opponent in that line for 2. (Doc's on-death self-copy is deferred — a
     // full copy would recurse its own On-Death, and there's no non-recursive
-    // Buccaneers token/art to spawn instead.)
+    // Saltjacks token/art to spawn instead.)
     passiveNames: { onSummon: "Back-ups" },
     onSummon: { handler: "barrage", params: { dmg: 2, sameColumn: 1, targets: 99 }, targetSide: "enemy" },
   },
@@ -7390,7 +7390,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "pyro_scully",
-    name: "Scully",
+    name: "Scallywag",
     rarity: "epic",
     element: "PYRO",
     cardClass: "Mage",
@@ -7407,10 +7407,10 @@ export const CARDS: CardDef[] = [
     passiveNames: { onHitStatus: "Bounty Hunter", onEnemySpecial: "Bounty Hunter" },
     onHitStatus: { kind: "BURN", duration: 2, power: 2 },
     onEnemySpecial: { status: { kind: "BURN", duration: 2, power: 2 } },
-    // Scallywag: a fire bomb on the enemy row ahead — 2 DMG + BURN. (Doc's
+    // Powder Keg: a fire bomb on the enemy row ahead — 2 DMG + BURN. (Doc's
     // home-slot trap trigger simplified.)
     special: {
-      name: "Scallywag",
+      name: "Powder Keg",
       cost: 2,
       handler: "barrage",
       params: { dmg: 2, rowAhead: 1, targets: 99, statusKind: "BURN", statusPower: 2, statusDuration: 2 },
@@ -8841,7 +8841,7 @@ export const CORES: CoreDef[] = [
   { id: "pyro", name: "Pyrogon", element: "PYRO", cards: deckFor("PYRO") },
   { id: "aqua", name: "Kraken", element: "AQUA", cards: deckFor("AQUA") },
   { id: "dawn", name: "Imperator", element: "DAWN", cards: deckFor("DAWN") },
-  { id: "gale", name: "Griffith", element: "GALE", cards: deckFor("GALE") },
+  { id: "gale", name: "Skyrend", element: "GALE", cards: deckFor("GALE") },
   { id: "bolt", name: "Elecdroid", element: "BOLT", cards: deckFor("BOLT") },
   { id: "dusk", name: "Shadow Horsemen", element: "DUSK", cards: deckFor("DUSK") },
   { id: "bore", name: "The DEEPEST", element: "BORE", cards: deckFor("BORE") },

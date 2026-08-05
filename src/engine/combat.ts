@@ -956,7 +956,7 @@ export function resolveHit(
         `${label(draft, attacker)} hits ${label(draft, target)} for ${result.totalToHp} (${result.landedHits} hit${result.landedHits > 1 ? "s" : ""}).`,
       );
     // Any hit wakes a sleeper (SLEEP removed the moment it's struck) — unless
-    // the attacker ignores that rule (Sandman's Nightmare).
+    // the attacker ignores that rule (Dunewraith's Nightmare).
     if (hasStatus(target, "SLEEP") && target.curHp > 0 && !aDef.ignoresSleepWake) {
       target.statuses = target.statuses.filter((s) => s.kind !== "SLEEP");
       draft.log.push(`${label(draft, target)} is jolted awake!`);
@@ -1550,7 +1550,7 @@ export function basicAttack(
     agg.attackerDied = agg.attackerDied || r.attackerDied;
   }
 
-  // Sandman's Nightmare: a flat bonus added ONCE after the volley resolves (not
+  // Dunewraith's Nightmare: a flat bonus added ONCE after the volley resolves (not
   // per hit), landing on the primary target.
   const bonus = aDef.basicBonus;
   if (bonus && agg.landedHits > 0 && attacker.curHp > 0) {
@@ -2162,7 +2162,7 @@ function applyOnHitZap(
 /** On-kill: buff the killer / heal / blast. */
 function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, deathPos?: Pos | null): void {
   const name = getDef(killer.defId).name;
-  // Dark Hunting (Darth): lay a trap on the slot the victim just vacated. The
+  // Dark Hunting (Nightbriar): lay a trap on the slot the victim just vacated. The
   // next opponent to walk onto it springs the same payload as his Special —
   // reuses the trap-spell infrastructure (triggerTrapOnMove), so every movement
   // path that already sets off spell traps sets this off too.
@@ -2435,7 +2435,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // THEN hits, rather than striking from where it stood and repositioning
     // after. `chargeFirst` chooses which side of the strike the movement lands
     // on; without it `charge` keeps its original after-the-hit behaviour, which
-    // is what every existing charger (Skelider, Shadow Horsemen, Griffith) wants.
+    // is what every existing charger (Skelider, Shadow Horsemen, Skyrend) wants.
     const chargeFirst = num(params, "chargeFirst") > 0;
     if (chargeFirst && num(params, "charge") > 0 && center) {
       if (num(params, "chargeLateral") > 0)
@@ -2547,7 +2547,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       else checkLowHpTransform(draft, attacker);
     }
     // Recoil: the caster takes back a % of the HP damage this strike dealt to the
-    // main target (Griffith's Dive Bomb). Self-inflicted and lethal — a dive that
+    // main target (Skyrend's Dive Bomb). Self-inflicted and lethal — a dive that
     // lands hard enough can finish an already-wounded caster.
     const recoilPct = num(params, "recoilPct");
     if (recoilPct > 0 && r.totalToHp > 0 && attacker.curHp > 0) {
@@ -2561,7 +2561,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     const healSelf = num(params, "healSelf");
     if (healSelf > 0 && attacker.curHp > 0) healCard(draft, attacker, healSelf, attacker);
-    // Lifesteal: heal the caster for the HP damage this strike dealt (Darth's
+    // Lifesteal: heal the caster for the HP damage this strike dealt (Nightbriar's
     // Dark Hunting) — specials don't auto-lifesteal like basics do.
     if (num(params, "lifesteal") > 0 && r.totalToHp > 0 && attacker.curHp > 0)
       healCard(draft, attacker, r.totalToHp, attacker);
