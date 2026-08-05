@@ -6717,7 +6717,9 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 1,
     keywords: {},
-    tribe: "Forged Tech",
+    // ARC, not Forged Tech: every other Forged Tech card is PYRO, and Zipp
+    // builds ARC's own drones. Picks up Jack Arc's Overclock (+2 SP).
+    tribe: "ARC",
     // Swarm Deploy (On Summon): pop a 1/1 FLYING Drone out beside it.
     passiveNames: { onSummon: "Swarm Deploy" },
     onSummon: { handler: "spawn", params: { token: "bolt_drone_tok", count: 1, radius: 1 } },
@@ -8502,7 +8504,8 @@ export const TOKENS: CardDef[] = [
     // A disposable flying eye — it dodges melee outright, so it survives long
     // enough to chip in (and BOLT's Electrify means its 1 DMG still marks).
     keywords: { FLYING: true },
-    tribe: "Forged Tech",
+    // ARC with the rest of BOLT's machines, and with Zipp that builds it.
+    tribe: "ARC",
   },
   {
     id: "dusk_redreven",

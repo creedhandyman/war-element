@@ -819,6 +819,24 @@ describe("medium-tier passives (audit batch)", () => {
     expect(effectiveDmg(s, s.cards[skel.instanceId]) - base).toBe(2);
   });
 
+  it("Jack Arc's Overclock reaches Zipp and its Drone, now that both are ARC", () => {
+    // They used to be Forged Tech, which is otherwise an all-PYRO tribe — so
+    // BOLT's own drone-builder and its drone were the only two cards in it that
+    // no BOLT card could see. Nothing keys off Forged Tech at all; ARC has
+    // exactly one hook, this aura, so the tribe move IS the +2 SP.
+    const s = prepState();
+    const zipp = place(s, "bolt_zipp", "P1", 3, 0);
+    const drone = place(s, "bolt_drone_tok", "P1", 3, 1);
+    const outsider = place(s, "pyro_nitro", "P1", 3, 2); // still Forged Tech
+    const zBase = effectiveSp(s, s.cards[zipp.instanceId]);
+    const dBase = effectiveSp(s, s.cards[drone.instanceId]);
+    const oBase = effectiveSp(s, s.cards[outsider.instanceId]);
+    place(s, "bolt_jack_arc", "P1", 3, 3); // Overclock: ARC allies +2 SP
+    expect(effectiveSp(s, s.cards[zipp.instanceId]) - zBase).toBe(2);
+    expect(effectiveSp(s, s.cards[drone.instanceId]) - dBase).toBe(2);
+    expect(effectiveSp(s, s.cards[outsider.instanceId]) - oBase, "Forged Tech is untouched").toBe(0);
+  });
+
   it("Canister's KaBoooom blasts every non-PYRO card on death", () => {
     const s = prepState();
     const canister = place(s, "pyro_canister", "P1", 3, 0);
