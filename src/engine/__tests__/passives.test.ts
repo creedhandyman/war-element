@@ -782,10 +782,10 @@ describe("medium-tier passives (audit batch)", () => {
       const took = (c: { instanceId: string }) => 60 - s.cards[c.instanceId].curHp;
       return { primary: took(primary), n1: took(n1), n2: took(n2), far: took(far) };
     };
-    // Cloudburst itself: every neighbour eats Downpour 1 + Rainstorm 2.
+    // Cloudburst itself: every neighbour eats Downpour 1 + Rainstorm 1.
     const own = surround("aqua_rain", "aqua_rain");
     expect(own.primary).toBe(10);
-    expect([own.n1, own.n2], "both neighbours, not just the first").toEqual([3, 3]);
+    expect([own.n1, own.n2], "both neighbours, not just the first").toEqual([2, 2]);
     expect(own.far, "adjacency is to the TARGET, not the board").toBe(0);
     // An ally under Downpour: every neighbour, but only the chip.
     const ally = surround("aqua_rain", "aqua_piranha");
@@ -818,7 +818,7 @@ describe("medium-tier passives (audit batch)", () => {
     // Cloudburst on itself: 1 from Downpour + 2 from Rainstorm, not 10 + 2.
     const own = splashOnNeighbour("aqua_rain", "aqua_rain");
     expect(own.primary).toBe(10);
-    expect(own.adj, "Downpour 1 + Rainstorm 2").toBe(3);
+    expect(own.adj, "Downpour 1 + Rainstorm 1").toBe(2);
     // An ally only gets Downpour's chip.
     expect(splashOnNeighbour("aqua_rain", "aqua_piranha").adj).toBe(1);
     // Totem is untouched — `true` still means a second FULL basic hit, which is
