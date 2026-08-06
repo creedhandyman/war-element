@@ -16,6 +16,7 @@ import {
   boardForNode, capForNode, deckCapFor, isGate, loadoutLegal, loadoutsFor,
   recruitablePool, type Loadout, type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
+import { CardExpand } from "./CardExpand";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3 };
 
@@ -65,6 +66,9 @@ export function StoryPrep(props: {
     if (save.deck.length) { setDeck(save.deck); setPickedTeam(null); }
   }, [save.deck]);
   const [naming, setNaming] = useState(false);
+  // Same idea as the node panel: the squad is what you are building against, so
+  // it is worth seeing rather than reading.
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
 
   const legal = loadoutLegal(deck, cap);
@@ -144,10 +148,22 @@ export function StoryPrep(props: {
         <div className="sr-label">They field</div>
         <div className="sp-enemy">
           {enemy.map((d) => (
-            <span key={d.id} className={`sp-foe r-${d.rarity ?? "rare"}`}>
+            <button
+              key={d.id}
+              className={`sp-foe sp-foe-btn r-${d.rarity ?? "rare"}`}
+              title={`${d.name} — see the card`}
+              onClick={() => setPreviewId(d.id)}
+            >
+              <img
+                className="sp-foe-art"
+                src={`/cards/${d.art ?? d.id}.webp`}
+                alt=""
+                loading="lazy"
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+              />
               {d.name}
               <em>{d.cost}◆</em>
-            </span>
+            </button>
           ))}
         </div>
 
@@ -192,6 +208,10 @@ export function StoryPrep(props: {
           )}
           <button className="ghost sm" onClick={props.onCancel}>Back</button>
         </div>
+
+        {previewId && (
+          <CardExpand def={getDef(previewId)} onClose={() => setPreviewId(null)} />
+        )}
 
         <button
           className="lockin"

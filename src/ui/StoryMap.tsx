@@ -15,6 +15,7 @@ import {
   type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
 import { EL_COLOR } from "./shared";
+import { CardExpand } from "./CardExpand";
 
 const KIND_LABEL: Record<StoryNode["kind"], string> = {
   skirmish: "Skirmish", warden: "Warden", landmark: "Landmark", throne: "Throne",
@@ -197,6 +198,8 @@ function NodePanel(props: {
   onFight: (n: StoryNode) => void;
 }) {
   const { node, save, owned } = props;
+  // Which roster card is expanded, if any.
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const open = isOpen(save, node), cleared = isCleared(save, node.id);
   // A Blight Node is generated, so it is in no region's node list — fall back to
   // the region being viewed, which is the one it is occupying.
@@ -248,6 +251,20 @@ function NodePanel(props: {
           const pity = save.pity[`${node.id}:${id}`] ?? 0;
           return (
             <li key={id} className={`${have ? "have" : ""} ${over ? "overflow" : ""}`}>
+              {/* The squad is the reason to pick a node, and a name told you
+                  nothing about what you are walking into. Tap for the full card. */}
+              <button
+                className="npr-art"
+                title={`${d.name} — see the card`}
+                onClick={() => setPreviewId(id)}
+              >
+                <img
+                  src={`/cards/${d.art ?? d.id}.webp`}
+                  alt=""
+                  loading="lazy"
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                />
+              </button>
               <span className="npr-name">
                 {d.name}
                 {over && (
@@ -320,6 +337,10 @@ function NodePanel(props: {
             {cleared && " Repeat clears pay full recruit odds."}
           </p>
         )
+      )}
+
+      {previewId && (
+        <CardExpand def={getDef(previewId)} onClose={() => setPreviewId(null)} />
       )}
     </div>
   );
