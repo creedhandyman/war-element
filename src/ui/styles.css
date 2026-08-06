@@ -1920,7 +1920,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: rgba(6, 6, 10, .5); border-color: rgba(255, 255, 255, .24);
   color: var(--ink-dim);
 }
-/* Nodes 12-13: the deep run of an Act, marked by shape rather than by kind.
+/* Landmarks and Thrones — an Act's set pieces — are hexagons. Same set that
+   gets the 5x5 board (`BIG_BATTLE_KINDS`), so the shape on the map and the size
+   of the battlefield say the same thing.
    Placed after the state rules on purpose — .open and .cleared set border-color,
    and a clipped border renders as disconnected fragments along the box edges
    rather than following the hexagon, so it has to be turned off for all three
