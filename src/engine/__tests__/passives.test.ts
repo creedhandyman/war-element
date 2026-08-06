@@ -870,6 +870,27 @@ describe("medium-tier passives (audit batch)", () => {
     expect(after.battle!.queue[0], "the acted card keeps its slot").toBe(first);
   });
 
+  it("SkullKing raises its SkullDrake even when its own skeletons crowd it", () => {
+    // The systemic one: `spawnRadius` DEFAULTED to 1, so every Special that
+    // never thought to mention a radius was tethered to the 8 adjacent slots.
+    // SkullKing is the sharpest case — it raises two skeletons a round to a
+    // standing cap of six, so its own tokens crowd it and King's SkullDrake had
+    // nowhere to land. A card should not be able to lock itself out of its own
+    // Special by working correctly.
+    const s = prepState();
+    const sk = place(s, "dusk_skullking", "P1", 3, 1);
+    for (const [r, c] of [[3, 0], [3, 2], [2, 0], [2, 1], [2, 2]] as const)
+      place(s, "dusk_skeleton_tok", "P1", r as 3, c as 0);
+    place(s, "aqua_piranha", "P2", 2, 3);
+    SPECIAL_HANDLERS.barrage(s, s.cards[sk.instanceId], [], {
+      dmg: 0, rowAhead: 1, targets: 99, spawnToken: "dusk_skulldrake_tok", spawnCount: 1,
+    });
+    expect(
+      boardCards(s, "P1").filter((c) => c.defId === "dusk_skulldrake_tok").length,
+      "found a slot beyond its own horde",
+    ).toBe(1);
+  });
+
   it("Volta deploys its Rodd even when boxed in — both spawns", () => {
     // Volta is a Support standing behind its own line, so its neighbours are its
     // own team and being surrounded is its normal state. Worse than a missing

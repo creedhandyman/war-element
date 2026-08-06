@@ -2053,6 +2053,18 @@ export function spellHit(
   return false;
 }
 
+/** How far a param-driven spawn may reach. ABSENT means "prefer adjacent, then
+ *  anywhere open" — the `spawnTokens` default — not "adjacent only".
+ *
+ *  This used to default to 1, which tethered every Special that never thought to
+ *  mention a radius. SkullKing was the clearest casualty: it raises two skeletons
+ *  a round to a standing cap of six, so its OWN tokens crowd it, and then King's
+ *  SkullDrake had nowhere to land. A card should not be able to lock itself out
+ *  of its own Special by working correctly. */
+function spawnRadiusOf(params: Record<string, string | number>): number | undefined {
+  return params.spawnRadius == null ? undefined : num(params, "spawnRadius", 1);
+}
+
 export function directDamage(
   draft: GameState,
   source: CardInstance,
@@ -2818,7 +2830,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     // spawnToken (SkullKing's King's SkullDrake): raise a token alongside the volley.
     if (typeof params.spawnToken === "string" && params.spawnToken)
-      spawnTokens(draft, attacker, params.spawnToken, num(params, "spawnCount", 1), num(params, "spawnRadius", 1));
+      spawnTokens(draft, attacker, params.spawnToken, num(params, "spawnCount", 1), spawnRadiusOf(params));
     // cleanseAllies (Siphon's Cyclone): the winds scrub debuffs off the whole team.
     if (num(params, "cleanseAllies") > 0) {
       let cleaned = 0;
@@ -2862,7 +2874,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // Solara's Blinding Sunrise also calls another Radiant Guardian to her side.
     const spawnTok = typeof params.spawnToken === "string" ? params.spawnToken : "";
     if (spawnTok && attacker.curHp > 0)
-      spawnTokens(draft, attacker, spawnTok, num(params, "spawnCount", 1), num(params, "spawnRadius", 1));
+      spawnTokens(draft, attacker, spawnTok, num(params, "spawnCount", 1), spawnRadiusOf(params));
     applySelfRiders(draft, attacker, params); // e.g. Dreadgaze's +5 max HP
   },
   /** Thunder Strike (Storm): pure damage to every opponent carrying a required

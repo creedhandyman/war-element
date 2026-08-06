@@ -6277,9 +6277,13 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 0,
     keywords: {},
-    // Fade (On Summon): gain STEALTH for 2 rounds.
+    // Fade (On Summon): gain STEALTH for 1 round.
+    //
+    // 2 -> 1. Two rounds of untargetable on a cheap body meant it arrived, was
+    // ignored for the whole ramp, and was still hidden when the board filled.
+    // One round is the head start the card is for.
     passiveNames: { onSummon: "Fade" },
-    onSummon: { selfStatus: "STEALTH", selfStatusDuration: 2 },
+    onSummon: { selfStatus: "STEALTH", selfStatusDuration: 1 },
   },
   {
     id: "gale_swillow",
@@ -7649,7 +7653,7 @@ export const CARDS: CardDef[] = [
       name: "Blinding Sunrise",
       cost: 3,
       handler: "statusNova",
-      params: { statusKind: "BLIND", statusDuration: 1, targets: 99, spawnToken: "dawn_radiant_guardian", spawnCount: 1, spawnRadius: 1 },
+      params: { statusKind: "BLIND", statusDuration: 1, targets: 99, spawnToken: "dawn_radiant_guardian", spawnCount: 1 },
       targetSide: "enemy",
       ranged: true,
       text: "BLIND all opponents for the round and summon a Radiant Guardian.",
