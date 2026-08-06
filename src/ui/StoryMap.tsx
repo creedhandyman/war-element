@@ -17,6 +17,22 @@ import {
 import { EL_COLOR } from "./shared";
 import { CardExpand } from "./CardExpand";
 
+/** Nodes 12 and 13 of a region render as hexagons.
+ *
+ *  A deliberate exception to "shape means kind": across the eight maps those two
+ *  numbers are the deep-run nodes an Act builds toward, and they are a MIX of
+ *  Landmark and Throne, so no existing class could pick them out. The number is
+ *  the only thing they share, so the number is what selects them.
+ *
+ *  Note the consequence: a region's FINAL Throne is usually 14 (L14, G14, B14,
+ *  R14) and stays a circle, so the hexagons mark the run-up rather than the end.
+ */
+const HEX_TIER = [12, 13];
+function hexTier(nodeId: string): boolean {
+  const n = Number(nodeId.replace(/^[A-Z]+/, ""));
+  return Number.isFinite(n) && HEX_TIER.includes(n);
+}
+
 const KIND_LABEL: Record<StoryNode["kind"], string> = {
   skirmish: "Skirmish", warden: "Warden", landmark: "Landmark", throne: "Throne",
   blight: "Blight", gate: "Border Gate",
@@ -164,7 +180,7 @@ export function StoryMap(props: {
             return (
               <button
                 key={n.id}
-                className={`story-node ${state} ${n.kind} ${selId === n.id ? "sel" : ""}`}
+                className={`story-node ${state} ${n.kind} ${hexTier(n.id) ? "hex" : ""} ${selId === n.id ? "sel" : ""}`}
                 style={{ ...pos(n), ["--el" as string]: EL_COLOR[region.element as keyof typeof EL_COLOR] }}
                 onClick={() => setSelId(n.id)}
                 aria-label={`${n.id} ${n.name}, ${KIND_LABEL[n.kind]}, ${state}`}

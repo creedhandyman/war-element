@@ -1920,6 +1920,24 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: rgba(6, 6, 10, .5); border-color: rgba(255, 255, 255, .24);
   color: var(--ink-dim);
 }
+/* Nodes 12-13: the deep run of an Act, marked by shape rather than by kind.
+   Placed after the state rules on purpose — .open and .cleared set border-color,
+   and a clipped border renders as disconnected fragments along the box edges
+   rather than following the hexagon, so it has to be turned off for all three
+   states. The silhouette carries the shape and the fill carries the state. */
+.story-node.hex {
+  border-radius: 0;
+  border-style: none;
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+  background: rgba(9, 9, 14, .62);
+}
+.story-node.hex.open { background: color-mix(in srgb, var(--el) 46%, rgba(9, 9, 14, .8)); }
+.story-node.hex.cleared { background: color-mix(in srgb, var(--gold-line) 40%, rgba(20, 19, 28, .85)); }
+.story-node.hex.locked { background: rgba(9, 9, 14, .62); }
+/* The selection ring is drawn by `outline`, which a clip-path also cuts — swap
+   it for a shadow that follows the silhouette. */
+.story-node.hex.sel { outline: none; filter: drop-shadow(0 0 5px var(--gold-lit)); }
+
 .story-node:hover:not(.locked) {
   transform: translate(-50%, -50%) scale(1.14);
   background: rgba(9, 9, 14, .78);
