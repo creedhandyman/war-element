@@ -409,19 +409,20 @@ purging them would only reach ~120MB in exchange for rewriting every SHA.
   campaign is a 4x4 game that opens to 5x5 only for its set pieces:
   `boardForNode` reads the NODE's kind (`BIG_BATTLE_KINDS` = landmark + throne),
   not `region.board` and not deck size. 82 of 115 nodes are 4x4, 33 are 5x5. The
-  cap ladder tops out at **18** in Act II (12 -> 15 -> 18); the 22 and 28 rungs
-  are gone, so late game changes WHICH eighteen you field, not how many. This
-  deliberately breaks the old deck-size/board coupling (constructed 5x5 wants
-  20-30 cards) — nothing enforces that at runtime, and `boardsLegalFor` was
-  deleted rather than left as a rule nothing obeys. Opening deployment
+  cap ladder runs 12/15/18/22/28 and `capForNode` CLAMPS it by board —
+  `STANDARD_CAP` 18 on 4x4, `BIG_BOARD_CAP` 28 on 5x5. So the ordinary campaign
+  is an 18-card game that opens to 28 for its set pieces, and both boards sit
+  inside their constructed format again. The clamp can only LOWER the ladder, so
+  an Act I Throne is still 12 rather than 28 against a starter deck. Both sides
+  read it (`buildFormation` sizes the enemy from `capForNode`), so a set piece is
+  a bigger fight on both sides of the board. `boardsLegalFor` was deleted — board
+  no longer follows deck size. Opening deployment
   (§10.6) is now the PLAYER's alone: `ENEMY_DEPLOY = 0` replaced
   `enemyDeployFor`. `StoryPrep.tsx` sits between tapping a node and the battle —
   board/element/terrain/cap, the enemy roster, node lore, and **saved teams**
   (`StorySave.loadouts`, tagged by element, floated to the top by
   `loadoutsFor`). `StoryNode.lore` carries Story Bible flavour ALONGSIDE `note`
-  (56 nodes); note is orientation, lore is place. **Known**: with the cap flat
-  from Act II an Act V Throne fields the same 1/3/6/8 as an Act II one —
-  `FILL_PROFILE` per Act is the dial if that reads flat. **Also**: the Story
+  (56 nodes); note is orientation, lore is place. **Also**: the Story
   Bible PDF names 15 champions by their PRE-rename names (Efy, Shock, Zoez,
   Warden, Season, Scar, Score, Diam, Steel, Rain, Commander, Sandman, Griffith,
   The DEEPEST, HOAX) — undecided whether the bible or the code moves.

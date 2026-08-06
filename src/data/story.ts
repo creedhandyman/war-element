@@ -864,18 +864,10 @@ export const STARTER_DECK: string[] = [
 ];
 
 // ── deck cap ladder ─────────────────────────────────────────────────────────
-// The campaign tops out at EIGHTEEN cards — the 4x4 format maximum — and gets
-// there by the end of Act II. Past that the deck stops growing and only gets
-// better: the reward for the back half of the campaign is which eighteen you
-// can field, not how many. The old ladder ran 12/15/18/22/28 and pushed the
-// whole Gray Continent onto 28-card lists, which made late-game decks a
-// bookkeeping exercise and quietly doubled every Throne formation with it
-// (`formationSize(cap) === cap`, so the enemy grew in lockstep).
-//
-// A rung above 18 would also now be unplayable as written: the board is chosen
-// by node kind rather than deck size (see `boardForNode`), so nothing consumes
-// a `board: 5` rung any more. The field is kept on each rung because the map
-// header and the collection screen both still read it.
+// The ladder runs 12/15/18/22/28 and says how far the campaign has come. What a
+// given FIGHT will take is `capForNode`, which clamps it by board: 18 on 4x4,
+// 28 on 5x5. So the ordinary campaign is an 18-card game that opens to 28 for
+// its set pieces, and both boards sit inside their constructed format.
 
 /** One rung of the ladder. `unlockedBy` is a single node id, or an array
  *  meaning ALL of them unless `count` says how many of the set suffice. The
@@ -895,7 +887,38 @@ export const CAP_LADDER: readonly CapRung[] = [
   { cap: 15, board: 4, unlockedBy: "L14", label: "LEAF Throne" },
   { cap: 18, board: 4, unlockedBy: "P13", label: "PYRO Throne" }, // 4x4 format max
   { cap: 18, board: 4, unlockedBy: "A13", label: "AQUA Throne" }, // either Act II Throne
+  // Act IV wants BOTH Green Thrones, not either — an array means ALL of them.
+  { cap: 22, board: 5, unlockedBy: ["P13", "A13"], label: "Both Green Thrones" },
+  // Act V: TWO of the three Gray Thrones, in any combination. `count` is what
+  // keeps the Gray Continent order-free.
+  { cap: 28, board: 5, unlockedBy: ["G14", "B14", "R14"], count: 2, label: "Two of three Gray Thrones" },
 ];
+
+/** The ceiling a fight imposes, by board. These are the two constructed formats:
+ *  4x4 is a 12-20 card game and 5x5 is a 20-30 card game, so a campaign fight on
+ *  either board is now back INSIDE its format at the top of the ladder. */
+export const STANDARD_CAP = 18;
+export const BIG_BOARD_CAP = 28;
+
+/** The deck cap for THIS fight: the ladder, clamped by the board.
+ *
+ *  The ladder says how far the campaign has come; the board says how much of
+ *  that a given fight will take. An ordinary 4x4 node tops out at 18 however
+ *  far along you are, and a 5x5 set piece opens up to 28 once the ladder has
+ *  actually earned it — an Act I Throne is still 12, because the clamp can only
+ *  ever lower the ladder, never raise it. Without that, the first Throne on the
+ *  map would field 28 against a starter deck.
+ *
+ *  Both sides use this: `buildFormation` sizes the enemy from the same number,
+ *  so a set piece is a bigger fight on both sides of the board, not just one. */
+export function capForNode(
+  cleared: readonly string[],
+  region: StoryRegion,
+  node: StoryNode,
+): number {
+  const ceiling = boardForNode(region, node) === 5 ? BIG_BOARD_CAP : STANDARD_CAP;
+  return Math.min(deckCapFor(cleared), ceiling);
+}
 
 export function deckCapFor(cleared: readonly string[]): number {
   let cap: number = CAP_LADDER[0].cap;
@@ -1097,7 +1120,10 @@ export function demandMet(deck: readonly string[], demand: GateDemand): number {
 export function gateCheck(save: StorySave, node: StoryNode): GateCheck {
   if (!isGate(node)) return { ok: true, reasons: [] };
   const reasons: string[] = [];
-  const cap = deckCapFor(save.cleared);
+  // A gate is fought on 4x4, so it asks for a full 4x4 deck — not the 28 the
+  // ladder may already allow for set pieces.
+  const region = regionOfNode(node.id);
+  const cap = region ? capForNode(save.cleared, region, node) : deckCapFor(save.cleared);
   if (save.deck.length !== cap)
     reasons.push(
       save.deck.length < cap
@@ -1231,7 +1257,7 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
   const copies = new Map<string, number>();
   for (const id of out) copies.set(id, (copies.get(id) ?? 0) + 1);
 
-  const cap = deckCapFor(save.cleared);
+  const cap = capForNode(save.cleared, region, node);
   const target = formationSize(cap);
   const byCost = (a: string, b: string) => getDef(a).cost - getDef(b).cost;
   const rarity = (id: string) => getDef(id).rarity ?? "";

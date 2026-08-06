@@ -11,6 +11,7 @@ import {
   applyClear, baseRateFor, blightAddsFor, blightLevel, canBlight, deckCapFor, isOpen, isOverflow,
   DUPLICATE_CAP, EPIC_DUPLICATE_FROM_CAP, PLACED_CARDS, copyCapFor, STARTER_DECK as STARTER, bestSource, buildFormation,
   demandMet, doublesEpics, gateCheck, isGate, regionOfNode, boardForNode, BIG_BATTLE_KINDS,
+  capForNode, STANDARD_CAP, BIG_BOARD_CAP,
   formationSize, isRegionCleared, isRegionOpen,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
@@ -114,7 +115,7 @@ describe("story: the deck cap ladder", () => {
     // a deckbuilding one.
     expect(deckCapFor(["L14", "P13"])).toBe(18);
     expect(deckCapFor(["L14", "A13"])).toBe(18);
-    expect(deckCapFor(["L14", "P13", "A13"])).toBe(18);
+    expect(deckCapFor(["L14", "P13", "A13"])).toBe(22);
     expect(nodeById("GE")!.requires).toEqual(expect.arrayContaining(["P13", "A13"]));
   });
 
@@ -605,11 +606,17 @@ describe("story: formations (10.7)", () => {
     }
   });
 
-  it("fields a whole deck, matched to the player's own card count", () => {
-    for (const cleared of [[], ["L14"], ["L14", "P13", "A13"]]) {
+  it("fields a whole deck, matched to what the PLAYER may bring to that node", () => {
+    // Both sides read `capForNode`, so a set piece is a bigger fight on both
+    // sides of the board rather than a bigger enemy across from the same deck.
+    const skirmish = nodeById("L1")!;   // 4x4, clamped to 18
+    const throne = nodeById("L14")!;    // 5x5, opens to 28
+    for (const cleared of [[], ["L14"], ["L14", "P13", "A13"], ["L14", "P13", "A13", "G14", "B14"]]) {
       const save = { ...newSave(), cleared };
-      const f = buildFormation(save, leafRegion, nodeById("L1")!);
-      expect(f.length, `cap ${deckCapFor(cleared)}`).toBe(deckCapFor(cleared));
+      for (const n of [skirmish, throne]) {
+        const want = capForNode(cleared, leafRegion, n);
+        expect(buildFormation(save, leafRegion, n).length, `${n.id} at ladder ${deckCapFor(cleared)}`).toBe(want);
+      }
     }
   });
 
@@ -880,14 +887,25 @@ describe("story: border gates (7)", () => {
 });
 
 describe("story: board size is welded to deck size", () => {
-  it("keeps the whole ladder on the 4x4 format", () => {
-    // Every rung is a legal 4x4 list (12-20 cards). The large board is no longer
-    // something a deck size earns — it is granted by the node.
-    for (const step of CAP_LADDER) {
-      expect(step.cap, `cap ${step.cap}`).toBeGreaterThanOrEqual(12);
-      expect(step.cap, `cap ${step.cap}`).toBeLessThanOrEqual(18);
-      expect(step.board, `cap ${step.cap}`).toBe(4);
-    }
+  it("clamps the ladder to the board the fight is actually on", () => {
+    // The ladder says how far the campaign has come; the board says how much of
+    // it this fight takes. 18 on 4x4, 28 on 5x5 — and the clamp can only ever
+    // LOWER the ladder, never raise it, or the first Throne on the map would
+    // field 28 against a starter deck.
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    const small = nodeById("L1")!;
+    const big = nodeById("L14")!;
+    expect(boardForNode(leaf, small)).toBe(4);
+    expect(boardForNode(leaf, big)).toBe(5);
+    for (const step of CAP_LADDER) expect(step.cap).toBeLessThanOrEqual(BIG_BOARD_CAP);
+    // Act I: the clamp does nothing, because the ladder is below both ceilings.
+    expect(capForNode([], leaf, small)).toBe(12);
+    expect(capForNode([], leaf, big)).toBe(12);
+    // Act V: the small board holds at 18 while the set piece opens to 28.
+    const late = ["L14", "P13", "A13", "G14", "B14"];
+    expect(deckCapFor(late)).toBe(28);
+    expect(capForNode(late, leaf, small)).toBe(STANDARD_CAP);
+    expect(capForNode(late, leaf, big)).toBe(BIG_BOARD_CAP);
   });
 
   it("sends set pieces to 5x5 and everything else to 4x4", () => {
@@ -943,14 +961,14 @@ describe("story: N-of-M gating", () => {
     expect(isOpen({ ...newSave(), cleared: [...base, "G14"] }, gs), "one is not enough").toBe(false);
   });
 
-  it("stops growing the deck after Act II — the Gray Continent pays in cards, not slots", () => {
-    // The ladder used to run to 28 here. It tops out at 18 now, so clearing Gray
-    // Thrones changes WHICH eighteen you can field, not how many. The N-of-M
-    // logic it used to exercise is still live on the Shadow Border above.
+  it("raises the cap to 28 on any two Gray Thrones, and not on one", () => {
     const base = ["L14", "P13", "A13"];
-    expect(deckCapFor([...base, "G14"])).toBe(18);
-    expect(deckCapFor([...base, "G14", "B14"])).toBe(18);
-    expect(Math.max(...CAP_LADDER.map((r) => r.cap))).toBe(18);
+    expect(deckCapFor([...base, "G14"])).toBe(22);
+    expect(deckCapFor([...base, "G14", "B14"])).toBe(28);
+    expect(deckCapFor([...base, "B14", "R14"])).toBe(28);
+    // ...but an ordinary 4x4 node never sees a card of it.
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    expect(capForNode([...base, "G14", "B14"], leaf, nodeById("L1")!)).toBe(STANDARD_CAP);
   });
 
   it("leaves DUSK unblightable — it is the source", () => {
@@ -1025,7 +1043,7 @@ describe("story: the campaign is complete", () => {
     // where the ladder now stops. Everything after is a better eighteen, not a
     // bigger one, so this asserts the ceiling rather than a late-game number.
     const ceiling = Math.max(...CAP_LADDER.map((r) => r.cap));
+    expect(ceiling).toBe(BIG_BOARD_CAP);
     expect(deckCapFor(save.cleared)).toBe(ceiling);
-    expect(deckCapFor(["L14", "P13"])).toBe(ceiling);
   });
 });

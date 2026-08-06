@@ -13,7 +13,7 @@
 import { useState } from "react";
 import { getDef } from "../data/cards";
 import {
-  boardForNode, deckCapFor, isGate, loadoutLegal, loadoutsFor,
+  boardForNode, capForNode, deckCapFor, isGate, loadoutLegal, loadoutsFor,
   recruitablePool, type Loadout, type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
 
@@ -30,8 +30,11 @@ export function StoryPrep(props: {
   onFight: (deck: string[]) => void;
 }) {
   const { region, node, save } = props;
-  const cap = deckCapFor(save.cleared);
+  // The fight's cap, not the campaign's: a set piece opens up to 28 once the
+  // ladder allows it, an ordinary node stays at 18 however far along you are.
+  const cap = capForNode(save.cleared, region, node);
   const board = boardForNode(region, node);
+  const ladder = deckCapFor(save.cleared);
   const [deck, setDeck] = useState<string[]>(
     save.deck.length ? save.deck : save.collection.slice(0, cap),
   );
@@ -81,7 +84,11 @@ export function StoryPrep(props: {
 
         <div className="sp-facts">
           <span><b>{region.element}</b> · {region.terrain} runs all battle</span>
-          <span>Deck cap <b>{cap}</b></span>
+          <span>
+            Deck cap <b>{cap}</b>
+            {cap > 18 && " · the big board opens it up"}
+            {cap < ladder && ` · ${ladder} allowed on a set piece`}
+          </span>
         </div>
 
         {node.lore && <p className="sp-lore">{node.lore}</p>}
