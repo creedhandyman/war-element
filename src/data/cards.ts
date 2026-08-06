@@ -2027,11 +2027,19 @@ export const CARDS: CardDef[] = [
       cost: 2,
       handler: "strike",
       // printed "Move up to 2 and deal 8 to an opponent in range" — ranged reach
-      // (the move) + charge advance afterward
-      params: { dmg: 8, charge: 2, chargeFirst: 1 },
+      // (the move) + charge advance afterward.
+      //
+      // Pounces like Shadow Horsemen rides: `chargeLateral` lets it track its
+      // victim across columns instead of only straight ahead, and
+      // `chargeDiagonal` lets it cut corners. Ground chargers are otherwise
+      // orthogonal-only, so without BOTH a 2-slot charge around a body costs an
+      // L and simply fails to arrive — which is not how a cat closes a gap.
+      // Note the engine only reads `chargeDiagonal` inside the `chargeLateral`
+      // branch, so the pair has to travel together.
+      params: { dmg: 8, charge: 2, chargeFirst: 1, chargeLateral: 1, chargeDiagonal: 1 },
       ranged: true,
       targetSide: "enemy",
-      text: "Charge up to 2 slots and deal 8 DMG to one opponent.",
+      text: "Pounce up to 2 spaces in any direction onto your target and deal 8 DMG.",
     },
   },
   {
@@ -8424,8 +8432,11 @@ export const CARDS: CardDef[] = [
     talent: {
       name: "Rollout",
       handler: "strike",
-      params: { dmg: 4, rollThrough: 1 },
-      text: "Once per game: deal 4 DMG, then roll through to the first open slot toward the enemy home.",
+      // 4 -> 2. The damage was never the point: Rollout exists to PARK the bomb
+      // in the enemy line so KaBoooom's 6-to-everything lands where it hurts,
+      // and a cost-1 body should not also be paying a real hit for the trip.
+      params: { dmg: 2, rollThrough: 1 },
+      text: "Once per game: deal 2 DMG, then roll through to the first open slot toward the enemy home.",
     },
   },
   {

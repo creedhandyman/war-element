@@ -441,7 +441,11 @@ describe("ranged specials on melee cards", () => {
     expect(next.cards[far.instanceId].curHp).toBe(1); // 6 − 5, reached despite distance
   });
 
-  it("ThunderCat's Claw Surge reaches at range, then charges the caster forward", () => {
+  it("ThunderCat's Claw Surge pounces TOWARD its target, cutting corners", () => {
+    // It rides like Shadow Horsemen now: chargeLateral tracks the victim across
+    // columns and chargeDiagonal cuts the corner. It used to charge straight
+    // forward to (1,0) — two rows closer and still three columns away, which is
+    // not how a cat closes a gap.
     const s = prepState();
     s.players.P1.magicPool = 5;
     const tc = place(s, "bolt_thundercat", "P1", 3, 0); // melee, ranged charge-2 special
@@ -454,7 +458,13 @@ describe("ranged specials on melee cards", () => {
       targetIds: [far.instanceId],
     });
     expect(next.cards[far.instanceId].curHp).toBe(5); // 13 − 8 (reached via ranged)
-    expect(next.cards[tc.instanceId].pos).toEqual({ row: 1, col: 0 }); // charged 2 forward
+    // Two diagonal steps: (3,0) → (2,1) → (1,2), i.e. adjacent to the target
+    // rather than parked in its old column.
+    expect(next.cards[tc.instanceId].pos).toEqual({ row: 1, col: 2 });
+    const d = (p: { row: number; col: number }) =>
+      Math.max(Math.abs(p.row - 1), Math.abs(p.col - 3));
+    expect(d(next.cards[tc.instanceId].pos!), "ends up next to its prey").toBe(1);
+    expect(d({ row: 3, col: 0 }), "started three away").toBe(3);
   });
 
   // BlackBeard is a RANGED Warrior now, so he no longer demonstrates the
