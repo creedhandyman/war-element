@@ -6721,16 +6721,18 @@ export const CARDS: CardDef[] = [
     onSummon: { handler: "strike", params: { dmg: 5, crit: 1, reachNearest: 1 }, targetSide: "enemy" },
     onKill: { buffDmgRound: 1 },
     roundTick: { paralyzeLowHp: { underHp: 4, rounds: 1 } },
-    // Fryer: 4×1 DMG to all opponents, +1 vs PARALYZED. Recomputed per target so
-    // Overcharge (earned on a kill mid-Fryer) boosts the opponents struck after.
+    // Fryer: 4×1 DMG to all opponents, +1 vs PARALYZED, and MUTED 1 round — the
+    // surge takes their lights out, so nothing struck can fire a Special next
+    // round. Recomputed per target so Overcharge (earned on a kill mid-Fryer)
+    // boosts the opponents struck after.
     special: {
       name: "Fryer",
       cost: 4,
       handler: "fryer",
-      params: { dmg: 4, hits: 1, paralyzeBonus: 1 },
+      params: { dmg: 4, hits: 1, paralyzeBonus: 1, mute: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 4 DMG to all opponents; PARALYZED opponents take +1 DMG.",
+      text: "Deal 4 DMG to all opponents and MUTE them for 1 round; PARALYZED opponents take +1 DMG.",
     },
   },
   {

@@ -3233,15 +3233,24 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const base = num(params, "dmg", 2);
     const hits = num(params, "hits", 2);
     const paraBonus = num(params, "paralyzeBonus"); // Shock: +DMG vs PARALYZED foes
+    // Blackout: the surge takes the lights out — everything struck is MUTED,
+    // i.e. cannot fire a Special, for `mute` rounds. Applied AFTER the hit so a
+    // target that died to the volley is not handed a status on the way out.
+    const mute = num(params, "mute");
+    const el = getDef(attacker.defId).element;
     let struck = 0;
     for (const t of targets) {
       if (!draft.cards[t.instanceId] || t.curHp <= 0 || attacker.curHp <= 0) continue;
       const bonus = paraBonus > 0 && hasStatus(t, "PARALYZE") ? paraBonus : 0;
       const dmg = base + attacker.dmgBonus + attacker.dmgBonusRound + bonus;
       resolveHit(draft, attacker, t, { kind: "special", dmg, hits, pen: false, crit: false });
+      if (mute > 0 && draft.cards[t.instanceId] && t.curHp > 0)
+        applyStatus(draft, t, "MUTED", mute, 0, el);
       struck++;
     }
-    draft.log.push(`${label(draft, attacker)} fries ${struck} opponent(s) (${base}×${hits}).`);
+    draft.log.push(
+      `${label(draft, attacker)} fries ${struck} opponent(s) (${base}×${hits})${mute > 0 ? " — the lights go out" : ""}.`,
+    );
   },
   /** Polar Shift (Polar King): FREEZE the weak and plate the whole team. */
   polarShift(draft, attacker, _targets, params) {

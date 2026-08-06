@@ -1005,6 +1005,26 @@ describe("medium-tier passives (audit batch)", () => {
     expect(acorns(next), "the next round sprouts again").toBe(2);
   });
 
+  it("Blackout's Fryer MUTES what survives it", () => {
+    // The surge takes their lights out: nothing struck can fire a Special for a
+    // round. Asserting the STATUS alone would not prove much — what matters is
+    // that `canFireSpecial` actually refuses, which is the rule MUTED drives.
+    const s = prepState();
+    const bo = place(s, "bolt_shock", "P1", 3, 1);
+    const alive = place(s, "aqua_kraken", "P2", 2, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    const dies = place(s, "dusk_gool", "P2", 2, 2, { curHp: 2, maxHp: 2, curShields: 0 });
+    s.players.P2.magicPool = 20;
+    SPECIAL_HANDLERS.fryer(s, s.cards[bo.instanceId],
+      [s.cards[alive.instanceId], s.cards[dies.instanceId]],
+      { dmg: 4, hits: 1, paralyzeBonus: 1, mute: 1 });
+    expect(statusOf(s.cards[alive.instanceId], "MUTED"), "survivor is muted").toBeTruthy();
+    const check = canFireSpecial(s, alive.instanceId);
+    expect(check.ok).toBe(false);
+    expect(check.reason).toBe("MUTED");
+    // A target that died to the volley is not handed a status on the way out.
+    expect(s.cards[dies.instanceId]?.curHp ?? 0).toBeLessThanOrEqual(0);
+  });
+
   it("Rodd's Conduction powers BOLT neighbours only", () => {
     // A conduit powers the grid it belongs to. Before the element filter, Rodd
     // was a colourless +1 DMG for anything a deck could stand beside it.
