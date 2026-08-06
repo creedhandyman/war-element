@@ -294,11 +294,14 @@ export function describePassives(def: CardDef): string[] {
   }
   for (const a of [def.aura, ...(def.auras ?? [])]) {
     if (!a) continue;
+    // An `element` filter narrows the scope, so it has to reach the wording too
+    // — "adjacent allies" would be a lie on a BOLT-only conduit.
+    const el = a.element ? `${a.element} ` : "";
     const who =
       a.scope === "element" ? `${a.match ?? def.element} allies` :
-      a.scope === "tribe" ? `${a.match} allies` :
-      a.scope === "class" ? `${a.match} allies` :
-      a.scope === "adjacent" ? "adjacent allies" : "all allies";
+      a.scope === "tribe" ? `${el}${a.match} allies` :
+      a.scope === "class" ? `${el}${a.match} allies` :
+      a.scope === "adjacent" ? `adjacent ${el}allies` : `all ${el}allies`;
     const bits = [
       a.dmg && `+${a.dmg} DMG`,
       a.sp && `+${a.sp} SP`,

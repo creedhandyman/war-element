@@ -225,6 +225,8 @@ export function isBloodfire(card: CardInstance): boolean {
 function auraMatches(a: AuraBonusDef, holder: CardInstance, target: CardInstance): boolean {
   const holderDef = getDef(holder.defId);
   const targetDef = getDef(target.defId);
+  // An optional element filter narrows whatever the scope selected.
+  if (a.element != null && targetDef.element !== a.element) return false;
   switch (a.scope) {
     case "all": return true;
     case "element": return targetDef.element === (a.match ?? holderDef.element);

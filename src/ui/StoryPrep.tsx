@@ -10,7 +10,7 @@
  *  saved teams tagged by the element they answer, so arriving in PYRO offers
  *  you the deck you built for PYRO.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getDef } from "../data/cards";
 import {
   boardForNode, capForNode, deckCapFor, isGate, loadoutLegal, loadoutsFor,
@@ -35,9 +35,35 @@ export function StoryPrep(props: {
   const cap = capForNode(save.cleared, region, node);
   const board = boardForNode(region, node);
   const ladder = deckCapFor(save.cleared);
-  const [deck, setDeck] = useState<string[]>(
-    save.deck.length ? save.deck : save.collection.slice(0, cap),
+  // Quick select: arriving at a node ALREADY holding the team built for this
+  // element is the point of tagging them. Falls back to the last deck used.
+  const owned = (ids: string[]) => ids.filter((id) => save.collection.includes(id));
+  const preferred = (save.loadouts ?? []).find(
+    (l) => l.element === region.element && owned(l.cards).length > 0 && owned(l.cards).length <= cap,
   );
+  const [deck, setDeck] = useState<string[]>(
+    preferred ? owned(preferred.cards) : save.deck.length ? save.deck : save.collection.slice(0, cap),
+  );
+  const [pickedTeam, setPickedTeam] = useState<string | null>(preferred?.id ?? null);
+  // The builder writes straight into the save, so follow it back in rather than
+  // showing a stale team behind the overlay it was edited from.
+  //
+  // It must NOT run on mount: the initial state above has already chosen the
+  // team tagged for this region, and letting the effect fire immediately
+  // overwrote that with whatever was last saved — leaving the chip highlighted
+  // for one team while a different one was actually loaded.
+  //
+  // Gated on the VALUE changing, not on a mount flag. StrictMode invokes an
+  // effect twice on mount, which flips a "have I mounted" boolean on the first
+  // pass and then lets the second pass through — the exact bug this is guarding
+  // against. `save.deck` is a fresh array only when the save really changed, so
+  // seeding the ref with the current one makes a repeat run a genuine no-op.
+  const lastSavedDeck = useRef(save.deck);
+  useEffect(() => {
+    if (save.deck === lastSavedDeck.current) return;
+    lastSavedDeck.current = save.deck;
+    if (save.deck.length) { setDeck(save.deck); setPickedTeam(null); }
+  }, [save.deck]);
   const [naming, setNaming] = useState(false);
   const [draftName, setDraftName] = useState("");
 
@@ -47,7 +73,7 @@ export function StoryPrep(props: {
     .map(getDef)
     .sort((a, b) => (RARITY_ORDER[a.rarity ?? ""] ?? 9) - (RARITY_ORDER[b.rarity ?? ""] ?? 9));
 
-  const applyTeam = (t: Loadout) => setDeck(t.cards.filter((id) => save.collection.includes(id)));
+  const applyTeam = (t: Loadout) => { setDeck(owned(t.cards)); setPickedTeam(t.id); };
 
   const saveTeam = () => {
     const name = draftName.trim() || `${region.element} team`;
@@ -94,6 +120,27 @@ export function StoryPrep(props: {
         {node.lore && <p className="sp-lore">{node.lore}</p>}
         {node.note && <p className="sp-note">{node.note}</p>}
 
+        {teams.length > 0 && (
+          <>
+            <div className="sr-label">Quick select</div>
+            <div className="sp-quick">
+              {teams.map((t) => {
+                const n = owned(t.cards).length;
+                return (
+                  <button
+                    key={t.id}
+                    className={`sp-chip ${pickedTeam === t.id ? "on" : ""} ${t.element === region.element ? "match" : ""}`}
+                    onClick={() => applyTeam(t)}
+                    title={t.element ? `Built for ${t.element}` : undefined}
+                  >
+                    {t.name}<em>{n > cap ? `${n}!` : n}</em>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
         <div className="sr-label">They field</div>
         <div className="sp-enemy">
           {enemy.map((d) => (
@@ -103,28 +150,6 @@ export function StoryPrep(props: {
             </span>
           ))}
         </div>
-
-        {teams.length > 0 && (
-          <>
-            <div className="sr-label">Your teams</div>
-            <div className="sp-teams">
-              {teams.map((t) => (
-                <div key={t.id} className={`sp-team ${t.element === region.element ? "match" : ""}`}>
-                  <button className="sp-team-pick" onClick={() => applyTeam(t)}>
-                    <b>{t.name}</b>
-                    <span>
-                      {t.cards.length} cards
-                      {t.element === region.element && ` · built for ${t.element}`}
-                    </span>
-                  </button>
-                  <button className="sp-team-x" onClick={() => deleteTeam(t.id)} title="Delete team">
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
 
         <div className="sr-label">
           Taking in · {deck.length}/{cap}
@@ -143,7 +168,12 @@ export function StoryPrep(props: {
         </div>
 
         <div className="sp-actions">
-          <button className="ghost sm" onClick={props.onEditDeck}>Edit deck</button>
+          <button className="ghost sm" onClick={props.onEditDeck}>Deck builder</button>
+          {pickedTeam && (
+            <button className="ghost sm" onClick={() => { deleteTeam(pickedTeam); setPickedTeam(null); }}>
+              Delete team
+            </button>
+          )}
           {naming ? (
             <span className="sp-naming">
               <input

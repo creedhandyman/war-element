@@ -33,6 +33,8 @@ export function StoryCollection(props: {
   onClose: () => void;
   /** Jump to a node on the map. Absent = the map isn't showing this region. */
   onGoToNode?: (nodeId: string) => void;
+  /** Open the full deck builder on the campaign collection. */
+  onOpenBuilder?: () => void;
 }) {
   const { save } = props;
   const [scope, setScope] = useState<Scope>("all");
@@ -102,6 +104,9 @@ export function StoryCollection(props: {
           <span><b>{PLACED_CARDS.length - collected}</b> still out there</span>
         </div>
         <div className="story-actions">
+          {props.onOpenBuilder && (
+            <button className="bb" onClick={props.onOpenBuilder}>Deck builder</button>
+          )}
           <button className="ghost" onClick={props.onClose}>Back to the map</button>
         </div>
       </header>

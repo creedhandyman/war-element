@@ -6706,10 +6706,15 @@ export const CARDS: CardDef[] = [
     sp: 0,
     shields: 4,
     keywords: {},
-    // Conduction: adjacent allies (all 8 surrounding slots) gain +1 DMG. Arc (End
-    // of Round): 2 DMG to the closest opponent. A fixed pylon — SP 0, never moves.
+    // Conduction: adjacent BOLT allies (of the 8 surrounding slots) gain +1 DMG.
+    // Arc (End of Round): 2 DMG to the closest opponent. A fixed pylon — SP 0,
+    // never moves.
+    //
+    // BOLT only. A conduit powers the grid it belongs to; buffing whatever
+    // happened to stand next to it made Rodd a colourless +1 for any deck that
+    // could afford a 1-cost body, which is not what a pylon is for.
     passiveNames: { aura: "Conduction", roundTick: "Arc" },
-    aura: { scope: "adjacent", dmg: 1 },
+    aura: { scope: "adjacent", dmg: 1, element: "BOLT" },
     roundTick: { pokeDmg: 2 },
   },
   {

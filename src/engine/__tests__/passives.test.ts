@@ -592,9 +592,11 @@ describe("medium-tier passives (audit batch)", () => {
   it("Rodd's Conduction gives +1 DMG to ADJACENT allies only", () => {
     const s = prepState();
     place(s, "bolt_rodd", "P1", 3, 0);
+    // Both BOLT now — Conduction is element-filtered, so a LEAF pair would have
+    // measured 0 against 0 and passed for entirely the wrong reason.
     // Both in the home row (no King-of-the-Hill difference); one touches Rodd, one doesn't.
-    const near = place(s, "leaf_alpha", "P1", 3, 1); // chebyshev 1 — adjacent
-    const far = place(s, "leaf_alpha", "P1", 3, 3); // chebyshev 3 — not adjacent
+    const near = place(s, "bolt_zap", "P1", 3, 1); // chebyshev 1 — adjacent
+    const far = place(s, "bolt_zap", "P1", 3, 3); // chebyshev 3 — not adjacent
     expect(effectiveDmg(s, s.cards[near.instanceId]) - effectiveDmg(s, s.cards[far.instanceId])).toBe(1);
   });
 
@@ -759,6 +761,19 @@ describe("medium-tier passives (audit batch)", () => {
     expect(landed, "the summon resolved").toBeTruthy();
     expect(getDef(landed!.defId).hp - landed!.curHp, "took the trap on arrival").toBe(3);
     expect(n.traps, "spent on arrival").toHaveLength(0);
+  });
+
+  it("Rodd's Conduction powers BOLT neighbours only", () => {
+    // A conduit powers the grid it belongs to. Before the element filter, Rodd
+    // was a colourless +1 DMG for anything a deck could stand beside it.
+    const s = prepState();
+    const bolt = place(s, "bolt_zap", "P1", 3, 1);
+    const offEl = place(s, "leaf_nettle", "P1", 3, 3);
+    const boltBase = effectiveDmg(s, s.cards[bolt.instanceId]);
+    const offBase = effectiveDmg(s, s.cards[offEl.instanceId]);
+    place(s, "bolt_rodd", "P1", 3, 2); // adjacent to BOTH (cols 1 and 3)
+    expect(effectiveDmg(s, s.cards[bolt.instanceId]) - boltBase, "BOLT neighbour").toBe(1);
+    expect(effectiveDmg(s, s.cards[offEl.instanceId]) - offBase, "non-BOLT neighbour").toBe(0);
   });
 
   it("Buzzard's Drone Sweep answers ONE summon per round, not one per body", () => {

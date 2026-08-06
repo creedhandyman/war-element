@@ -304,6 +304,11 @@ export interface RoundTickDef {
 export interface AuraBonusDef {
   scope: "element" | "tribe" | "class" | "all" | "adjacent";
   match?: string;
+  /** Narrow ANY scope to one element as well. Rodd's Conduction is a BOLT
+   *  conduit: it powers the grid, not whatever happens to be standing beside
+   *  it. Composes with `scope` rather than replacing it, so "adjacent BOLT
+   *  allies" is expressible without a scope per combination. */
+  element?: string;
   dmg?: number;
   sp?: number;
   maxHp?: number; // matching allies gain +N max HP while the holder lives (SeaC)
