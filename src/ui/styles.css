@@ -1932,6 +1932,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   border-style: none;
   clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
   background: rgba(9, 9, 14, .62);
+  /* A clipped element can show neither a border nor a box-shadow — both are cut
+     to the same silhouette, so the edge and the glow the round nodes get simply
+     vanished. `filter: drop-shadow` is the one thing that DOES follow a
+     clip-path, so the outline is four 1px offset copies and the glow a fifth
+     blurred one. Both colours are variables, which is what lets each state
+     re-tint the edge without restating the whole stack. */
+  --edge: rgba(255, 255, 255, .24);
+  --glow: rgba(0, 0, 0, .7);
+  filter:
+    drop-shadow(1px 0 0 var(--edge)) drop-shadow(-1px 0 0 var(--edge))
+    drop-shadow(0 1px 0 var(--edge)) drop-shadow(0 -1px 0 var(--edge))
+    drop-shadow(0 0 7px var(--glow));
 }
 /* Thrones — the Mythic fights — are DIAMONDS, so the boss of an Act reads apart
    from its Landmarks at a glance. Same override rules as the hexagon: the clip
@@ -1941,12 +1953,24 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .story-node.throne.hex {
   clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
 }
-.story-node.hex.open { background: color-mix(in srgb, var(--el) 46%, rgba(9, 9, 14, .8)); }
-.story-node.hex.cleared { background: color-mix(in srgb, var(--gold-line) 40%, rgba(20, 19, 28, .85)); }
-.story-node.hex.locked { background: rgba(9, 9, 14, .62); }
-/* The selection ring is drawn by `outline`, which a clip-path also cuts — swap
-   it for a shadow that follows the silhouette. */
-.story-node.hex.sel { outline: none; filter: drop-shadow(0 0 5px var(--gold-lit)); }
+/* Each state re-tints the edge and the glow; the filter stack above is unchanged,
+   which is why the outline survives every state instead of being replaced. */
+.story-node.hex.open {
+  background: color-mix(in srgb, var(--el) 46%, rgba(9, 9, 14, .8));
+  --edge: var(--el);
+  --glow: color-mix(in srgb, var(--el) 75%, transparent);
+}
+.story-node.hex.cleared {
+  background: color-mix(in srgb, var(--gold-line) 40%, rgba(20, 19, 28, .85));
+  --edge: var(--gold-line);
+}
+.story-node.hex.locked { background: rgba(9, 9, 14, .62); --edge: rgba(255, 255, 255, .24); }
+.story-node.hex:hover:not(.locked) { --glow: var(--gold-hi); }
+/* The selection ring is an `outline`, which a clip-path also cuts. Re-tinting
+   the glow keeps the edge outline intact — replacing `filter` outright would
+   have dropped it. */
+.story-node.hex.sel { outline: none; --edge: var(--gold-lit); --glow: var(--gold-lit); }
+.story-node.hex:focus-visible { outline: none; --edge: var(--gold-hi); --glow: var(--gold-hi); }
 
 .story-node:hover:not(.locked) {
   transform: translate(-50%, -50%) scale(1.14);
