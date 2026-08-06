@@ -1,8 +1,11 @@
-/** Story Mode — the collection, and the deck you take into it.
+/** Story Mode — the collection: what you own, and where the rest of it is.
  *
- *  Two jobs in one screen, because they are the same question asked twice:
- *  "what do I own" and "what do I fight with". Keeping them apart would mean
- *  bouncing between screens to answer either one.
+ *  Deliberately NOT a deck editor. Building happens in the real Deck Builder
+ *  (`DeckBuilder` with its `story` mode), which is a far better tool than the
+ *  grid-with-plus-buttons that used to live here — filters that stack, sorting,
+ *  a live cost curve, card detail. Two ways to add a card is worse than one good
+ *  one, so this screen kept the job the builder cannot do and gave up the job it
+ *  does better.
  *
  *  The load-bearing feature is the MISSING half. Pillar 3 says you fight what
  *  you want to own — which is only true if the collection can answer "so where
@@ -14,12 +17,11 @@ import type { CardClass, Element } from "../engine";
 import { CARDS } from "../data/cards";
 import {
   PLACED_CARDS, bestSource, deckCapFor, recruitChance, sourcesOf,
-  type Loadout, type StorySave,
+  type StorySave,
 } from "../data/story";
 import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { SpIcon } from "./icons";
 import { CardExpand } from "./CardExpand";
-import { DeckStats, useComposition } from "./DeckStats";
 
 const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
 const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
@@ -34,27 +36,17 @@ export function StoryCollection(props: {
   onClose: () => void;
   /** Jump to a node on the map. Absent = the map isn't showing this region. */
   onGoToNode?: (nodeId: string) => void;
-  /** The region on screen — a team saved here is tagged with it, so the prep
-   *  screen can float it to the top when you walk back into that element. */
+  /** The region on screen — passed through to the builder so a team saved there
+   *  is tagged with it. */
   element?: string;
+  /** Open the real deck builder. Building does not happen on this screen. */
+  onOpenBuilder?: () => void;
 }) {
   const { save } = props;
-  const [teamName, setTeamName] = useState("");
   const [scope, setScope] = useState<Scope>("all");
   const [el, setEl] = useState<Element | "ALL">("ALL");
   const [cls, setCls] = useState<CardClass | "ALL">("ALL");
   const [detailId, setDetailId] = useState<string | null>(null);
-  // On a phone the deck rail stacks BELOW the grid and, left open, eats more
-  // height than the cards it is meant to support. It collapses to a sticky bar
-  // there and stays open on desktop, where the rail is a side column and costs
-  // the grid nothing.
-  const phone = typeof window !== "undefined" && (window.matchMedia?.("(max-width: 720px)").matches ?? false);
-  const [deckOpen, setDeckOpen] = useState(!phone);
-
-  // The same readout the deck builder shows, on the screen where the cards
-  // actually get picked — the campaign builds against one known formation, so
-  // the curve and the element split are worth seeing as you go.
-  const stats = useComposition(save.deck);
   const owned = useMemo(() => new Set(save.collection), [save.collection]);
   const inDeck = useMemo(() => new Set(save.deck), [save.deck]);
   const cap = deckCapFor(save.cleared);
@@ -82,42 +74,11 @@ export function StoryCollection(props: {
       a.cost - b.cost || a.name.localeCompare(b.name));
   }, [scope, el, cls, owned, placed]);
 
-  const toggleDeck = (id: string) => {
-    if (!owned.has(id)) return;                       // can't deck what you don't own
-    const next = inDeck.has(id)
-      ? save.deck.filter((x) => x !== id)
-      : save.deck.length >= cap ? save.deck : [...save.deck, id];
-    props.onSave({ ...save, deck: next });
-  };
-
   // The detail is a full-screen expand now, so selecting a card no longer has to
   // prise the deck rail open just to be seen.
   const pick = (id: string) => setDetailId(id);
 
-  const teams = save.loadouts ?? [];
-  const saveTeam = () => {
-    if (save.deck.length === 0) return;
-    const name = teamName.trim() || `${props.element ?? "New"} team`;
-    // Same name = overwrite, so re-tuning after a loss does not leave four decks
-    // all called "PYRO team".
-    const rest = teams.filter((l) => l.name.toLowerCase() !== name.toLowerCase());
-    props.onSave({
-      ...save,
-      loadouts: [
-        ...rest,
-        { id: `${name.toLowerCase().replace(/\s+/g, "-")}-${rest.length}`, name, element: props.element, cards: [...save.deck] },
-      ],
-    });
-    setTeamName("");
-  };
-  const loadTeam = (t: Loadout) =>
-    // Re-checked against the collection: a team can outlive a card leaving it.
-    props.onSave({ ...save, deck: t.cards.filter((id) => owned.has(id)).slice(0, cap) });
-  const deleteTeam = (id: string) =>
-    props.onSave({ ...save, loadouts: teams.filter((l) => l.id !== id) });
-
   const detail = detailId ? CARDS.find((d) => d.id === detailId) ?? null : null;
-  const deckFull = save.deck.length >= cap;
 
   return (
     <div className="story-wrap col-wrap">
@@ -133,6 +94,9 @@ export function StoryCollection(props: {
           <span><b>{PLACED_CARDS.length - collected}</b> still out there</span>
         </div>
         <div className="story-actions">
+          {props.onOpenBuilder && (
+            <button className="bb" onClick={props.onOpenBuilder}>Build a team</button>
+          )}
           <button className="ghost" onClick={props.onClose}>Back to the map</button>
         </div>
       </header>
@@ -203,14 +167,7 @@ export function StoryCollection(props: {
                           onError={(e) => { e.currentTarget.style.display = "none"; }} />
                       </span>
                       {have ? (
-                        <button
-                          className={`dt-add ${on ? "on" : ""}`}
-                          title={on ? "Remove from deck" : deckFull ? `Deck is full (${cap})` : "Add to deck"}
-                          disabled={!on && deckFull}
-                          onClick={(e) => { e.stopPropagation(); toggleDeck(d.id); }}
-                        >
-                          {on ? "✓" : "+"}
-                        </button>
+                        on ? <span className="dt-add on" title="In your current deck">✓</span> : null
                       ) : (
                         <span className="dt-locked" aria-label="Not recruited">🔒</span>
                       )}
@@ -237,83 +194,6 @@ export function StoryCollection(props: {
             </div>
           )}
         </div>
-
-        <aside className={`story-side col-side ${deckOpen ? "open" : "shut"}`}>
-          <button
-            className="col-decktoggle"
-            aria-expanded={deckOpen}
-            onClick={() => setDeckOpen((o) => !o)}
-          >
-            <span className="np-label">Your deck — {save.deck.length}/{cap}</span>
-            <span className="cdt-chev" aria-hidden="true">{deckOpen ? "▾" : "▴"}</span>
-          </button>
-          <div className="col-deckbody">
-          {save.deck.length === 0 ? (
-            <p className="story-hint">
-              Empty. Add cards from the left; you can carry {cap} for now — clearing
-              Thrones raises that.
-            </p>
-          ) : (
-            <ul className="col-decklist">
-              {save.deck.map((id) => {
-                const d = CARDS.find((c) => c.id === id);
-                if (!d) return null;
-                return (
-                  <li key={id}>
-                    <span className="cdl-cost">{d.cost}</span>
-                    <span className="cdl-dot" style={{ background: EL_COLOR[d.element] }} />
-                    <span className="cdl-name">{d.name}</span>
-                    <button className="cdl-x" title="Remove" onClick={() => toggleDeck(id)}>✕</button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          {save.deck.length > 0 && save.deck.length < cap && (
-            <p className="col-underfull">
-              {cap - save.deck.length} slot{cap - save.deck.length === 1 ? "" : "s"} spare —
-              you fight with what you bring.
-            </p>
-          )}
-          {save.deck.length > 0 && <DeckStats stats={stats} compact />}
-
-          {/* Teams: the campaign asks one deck to answer eight elements, so the
-              rebuild has to be something you can keep. Saved here, offered back
-              at the node — see StoryPrep's quick-select. */}
-          <div className="col-teams">
-            <div className="np-label">Teams</div>
-            <div className="col-teamsave">
-              <input
-                value={teamName}
-                placeholder={props.element ? `${props.element} team` : "Team name"}
-                maxLength={28}
-                onChange={(e) => setTeamName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && saveTeam()}
-              />
-              <button className="bb sm" disabled={save.deck.length === 0} onClick={saveTeam}>
-                Save
-              </button>
-            </div>
-            {teams.length === 0 ? (
-              <p className="story-hint">
-                No teams yet. Build a deck and save it — it comes back on the node.
-              </p>
-            ) : (
-              <ul className="col-teamlist">
-                {teams.map((t) => (
-                  <li key={t.id} className={t.element === props.element ? "match" : undefined}>
-                    <button className="col-teamload" onClick={() => loadTeam(t)}>
-                      <b>{t.name}</b>
-                      <span>{t.cards.length} cards{t.element ? ` · ${t.element}` : ""}</span>
-                    </button>
-                    <button className="cdl-x" title="Delete team" onClick={() => deleteTeam(t.id)}>✕</button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          </div>
-        </aside>
       </div>
 
       {/* The same expanded card the deck builder shows, plus the one thing only
@@ -322,16 +202,6 @@ export function StoryCollection(props: {
         <CardExpand
           def={detail}
           onClose={() => setDetailId(null)}
-          action={
-            owned.has(detail.id)
-              ? {
-                  label: inDeck.has(detail.id) ? "− Remove from deck" : "+ Add to deck",
-                  primary: !inDeck.has(detail.id),
-                  disabled: !inDeck.has(detail.id) && deckFull,
-                  onClick: () => { toggleDeck(detail.id); setDetailId(null); },
-                }
-              : undefined
-          }
           extra={
             <div className="dbd-sect">
               <SourceList save={save} defId={detail.id} owned={owned.has(detail.id)}

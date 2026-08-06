@@ -29,6 +29,24 @@ const rarityRank = (r?: string) => (r && r in RARITY_RANK ? RARITY_RANK[r] : 99)
  * cards without touching the Core system. Persists to localStorage; calls
  * `onChange` so the picker can refresh its list.
  */
+/** Story Mode reuses this whole screen rather than growing a second, worse deck
+ *  editor beside it. What changes is only the edges: the pool is what you have
+ *  actually recruited, the ceiling is the campaign's, and a save writes a named
+ *  TEAM into the story save instead of a custom deck. Everything in between —
+ *  filters, sorting, the cost curve, card detail — is the same tool. */
+export interface StoryBuildMode {
+  /** Card ids the player owns. The pool is filtered to these. */
+  owned: string[];
+  /** Named teams already saved in the campaign. */
+  teams: { id: string; name: string; element?: string; cards: string[] }[];
+  /** The campaign's ceiling for the fight being prepared for. */
+  cap: number;
+  /** Tag applied to a team saved from here, so prep can float it to the top. */
+  element?: string;
+  onSaveTeam: (name: string, cards: string[]) => void;
+  onDeleteTeam: (id: string) => void;
+}
+
 export function DeckBuilder(props: {
   open: boolean;
   onClose: () => void;
@@ -36,11 +54,19 @@ export function DeckBuilder(props: {
   /** Battlefield the player is building for — decides the legal deck size
    *  (18 on the standard board, 28 on the large one). */
   boardSize?: number;
+  /** Present = building a campaign team, not a custom deck. */
+  story?: StoryBuildMode;
 }) {
+  const story = props.story;
   // Which battlefield this deck is being built for — you can build an 18-card
   // (4×4) or a 28-card (5×5) deck regardless of the current game mode.
   const [buildSize, setBuildSize] = useState<number>(props.boardSize ?? 4);
-  const limits = deckLimits(buildSize);
+  // Story Mode's ceiling is the campaign's, not the format's. `min` stays 1 —
+  // `loadoutLegal` deliberately treats the cap as a ceiling, not a quota, so a
+  // twelve-card team is a legal choice and the builder must not call it broken.
+  const limits = story
+    ? { ...deckLimits(buildSize), min: 1, max: story.cap, target: story.cap }
+    : deckLimits(buildSize);
   const [decks, setDecks] = useState<CustomDeck[]>(() => loadCustomDecks());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -60,7 +86,11 @@ export function DeckBuilder(props: {
   const savedShown = panel === "saved";
   const spellsShown = panel === "spells";
 
-  const pool = useMemo(() => buildableCards(), []);
+  const ownedSet = useMemo(() => new Set(story?.owned ?? []), [story?.owned]);
+  const pool = useMemo(
+    () => (story ? buildableCards().filter((c) => ownedSet.has(c.id)) : buildableCards()),
+    [story, ownedSet],
+  );
   // Filter by element and class (they stack — GALE + Ranger narrows to both),
   // then sort. Default "cost" reads the Gold curve low→high, breaking ties by
   // rarity (mythic first) then name.
@@ -78,7 +108,13 @@ export function DeckBuilder(props: {
     });
   }, [pool, filter, classFilter, sortBy]);
   const pickedSet = new Set(picked);
-  const check = validateDeck(picked, buildSize);
+  const check = story
+    ? picked.length === 0
+      ? { ok: false as const, reason: "Empty team" }
+      : picked.length > story.cap
+        ? { ok: false as const, reason: `${picked.length} cards — the cap is ${story.cap}` }
+        : { ok: true as const, reason: undefined }
+    : validateDeck(picked, buildSize);
 
   // Live composition of the deck being built — shared with the campaign
   // collection, which shows the same readout in its deck rail.
@@ -116,12 +152,18 @@ export function DeckBuilder(props: {
   }
   function save() {
     if (!check.ok) return;
+    if (story) {
+      story.onSaveTeam(name.trim() || `${story.element ?? "New"} team`, picked);
+      reset();
+      return;
+    }
     const next = saveCustomDeck({ id: editingId ?? undefined, name, cards: picked, spells: pickedSpells });
     setDecks(next);
     props.onChange(next);
     reset();
   }
   function remove(id: string) {
+    if (story) { story.onDeleteTeam(id); if (editingId === id) reset(); return; }
     const next = deleteCustomDeck(id);
     setDecks(next);
     props.onChange(next);
@@ -143,7 +185,7 @@ export function DeckBuilder(props: {
     <div className="overlay" onClick={props.onClose}>
       <div className="modal deck-builder" onClick={(e) => e.stopPropagation()}>
         <div className="db-head">
-          <h2>Deck Builder</h2>
+          <h2>{story ? "Build a team" : "Deck Builder"}</h2>
           <button className="cd-x" title="Close" onClick={props.onClose}>✕</button>
         </div>
 
@@ -152,17 +194,27 @@ export function DeckBuilder(props: {
           <div className="db-side">
             <input
               className="db-name"
-              placeholder="Deck name"
+              placeholder={story ? `${story.element ?? "New"} team` : "Deck name"}
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={28}
             />
-            <div className="db-size">
-              {/* Switching board also switches the spellbook cap (5 / 8), so trim
-                  any picks the smaller board can't legally hold. */}
-              <button className={buildSize === 4 ? "act" : ""} onClick={() => { setBuildSize(4); setPickedSpells((cur) => cur.slice(0, deckLimits(4).spells)); }}>4×4 · 18</button>
-              <button className={buildSize === 5 ? "act" : ""} onClick={() => setBuildSize(5)}>5×5 · 28</button>
-            </div>
+            {/* The board toggle is a FORMAT control. In the campaign the board
+                belongs to the node you are about to fight, so there is nothing
+                here to choose — the cap is simply stated. */}
+            {story ? (
+              <div className="db-storycap">
+                carry up to <b>{story.cap}</b>
+                {story.cap > 18 && <span> · set-piece size</span>}
+              </div>
+            ) : (
+              <div className="db-size">
+                {/* Switching board also switches the spellbook cap (5 / 8), so trim
+                    any picks the smaller board can't legally hold. */}
+                <button className={buildSize === 4 ? "act" : ""} onClick={() => { setBuildSize(4); setPickedSpells((cur) => cur.slice(0, deckLimits(4).spells)); }}>4×4 · 18</button>
+                <button className={buildSize === 5 ? "act" : ""} onClick={() => setBuildSize(5)}>5×5 · 28</button>
+              </div>
+            )}
             {/* ONE number: cards picked out of the target for this battlefield.
                 The min/max band only appears when the deck isn't legal yet —
                 "0/20 · 12–20 (aim 18)" next to a "4×4 · 18" toggle was three
@@ -175,7 +227,7 @@ export function DeckBuilder(props: {
             </div>
             <div className="db-actions">
               <button className="lockin" disabled={!check.ok} onClick={save}>
-                {editingId ? "Update" : "Save"} deck
+                {story ? "Save team" : `${editingId ? "Update" : "Save"} deck`}
               </button>
               <button className="ghost" onClick={reset}>New / clear</button>
             </div>
@@ -189,11 +241,18 @@ export function DeckBuilder(props: {
                   Comp · {stats.avg.toFixed(1)}
                 </button>
               )}
-              <button className={`db-tool ${spellsShown ? "on" : ""}`} onClick={() => togglePanel("spells")}>
-                Spells {pickedSpells.length}/{limits.spells}
-              </button>
+              {/* A story battle is dealt NO spellbook (App passes [] for both
+                  sides), so offering one here would be a promise the campaign
+                  does not keep. */}
+              {!story && (
+                <button className={`db-tool ${spellsShown ? "on" : ""}`} onClick={() => togglePanel("spells")}>
+                  Spells {pickedSpells.length}/{limits.spells}
+                </button>
+              )}
               <button className={`db-tool ${savedShown ? "on" : ""}`} onClick={() => togglePanel("saved")}>
-                Saved{decks.length ? ` ${decks.length}` : ""}
+                {story
+                  ? `Teams${story.teams.length ? ` ${story.teams.length}` : ""}`
+                  : `Saved${decks.length ? ` ${decks.length}` : ""}`}
               </button>
             </div>
 
@@ -243,18 +302,24 @@ export function DeckBuilder(props: {
 
             {savedShown && (
               <div className="db-saved db-panel">
-              {decks.length === 0 && <div className="db-empty">None yet — build one →</div>}
-              {decks.map((d) => (
+              {(story ? story.teams : decks).length === 0 && (
+                <div className="db-empty">None yet — build one →</div>
+              )}
+              {(story
+                ? story.teams.map((t) => ({ id: t.id, name: t.name, cards: t.cards, spells: undefined, tag: t.element }))
+                : decks.map((d) => ({ id: d.id, name: d.name, cards: d.cards, spells: d.spells, tag: undefined }))
+              ).map((d) => (
                 <div key={d.id} className={`db-saved-row ${editingId === d.id ? "on" : ""}`}>
                   <button
                     className="db-load"
-                    onClick={() => { setEditingId(d.id); setName(d.name); setPicked(d.cards.slice()); setPickedSpells((d.spells ?? []).slice()); }}
-                    title="Edit this deck"
+                    onClick={() => { setEditingId(d.id); setName(d.name); setPicked(d.cards.slice()); if (!story) setPickedSpells((d.spells ?? []).slice()); }}
+                    title={story ? "Load this team" : "Edit this deck"}
                   >
                     <b>{d.name}</b>
                     <span>
                       {d.cards.length} cards
                       {d.spells && d.spells.length ? ` · ${d.spells.length} spells` : ""}
+                      {d.tag ? ` · for ${d.tag}` : ""}
                     </span>
                   </button>
                   <button className="db-del" title="Delete" onClick={() => remove(d.id)}>🗑</button>
