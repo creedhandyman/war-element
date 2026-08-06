@@ -222,6 +222,7 @@ function NodePanel(props: {
         {cleared && <span className="np-flag done">Cleared</span>}
       </div>
       <h3>{node.id} · {node.name}</h3>
+      {node.lore && <p className="np-lore">{node.lore}</p>}
       {node.note && <p className="np-note">{node.note}</p>}
       {region && (
         <p className="np-terrain">

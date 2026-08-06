@@ -84,6 +84,7 @@ export function StoryPrep(props: {
           <span>Deck cap <b>{cap}</b></span>
         </div>
 
+        {node.lore && <p className="sp-lore">{node.lore}</p>}
         {node.note && <p className="sp-note">{node.note}</p>}
 
         <div className="sr-label">They field</div>

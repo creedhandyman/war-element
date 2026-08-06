@@ -902,6 +902,25 @@ describe("story: board size is welded to deck size", () => {
     }
   });
 
+  it("keeps every lore line short enough to read before a fight", () => {
+    // Lore is Story Bible flavour shown on the node panel and the prep screen.
+    // It has to survive a phone, so it is a line or two — not a page.
+    const lored = REGIONS.flatMap((r) => r.nodes).filter((n) => n.lore);
+    expect(lored.length, "lore was written for a good share of the map").toBeGreaterThan(40);
+    for (const n of lored) {
+      expect(n.lore!.length, `${n.id} lore is ${n.lore!.length} chars`).toBeLessThanOrEqual(260);
+      expect(n.lore!.trim(), `${n.id}`).toBe(n.lore);
+    }
+  });
+
+  it("keeps lore and note as separate jobs", () => {
+    // The two are allowed to coexist on a node — one says where you are, the
+    // other what to expect — but neither should be a copy of the other.
+    for (const n of REGIONS.flatMap((r) => r.nodes)) {
+      if (n.lore && n.note) expect(n.lore, `${n.id}`).not.toBe(n.note);
+    }
+  });
+
   it("keeps the large board rare enough to stay an event", () => {
     const all = REGIONS.flatMap((r) => r.nodes.map((n) => boardForNode(r, n)));
     const big = all.filter((b) => b === 5).length;
