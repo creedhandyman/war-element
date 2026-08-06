@@ -499,9 +499,12 @@ export interface CardDef {
   /** Rolling Start (Rumbler): after each basic attack it rolls this many slots
    *  further toward the enemy home. */
   advanceOnBasic?: number;
-  /** False Head (Thorny Ripper): the FIRST melee attack it takes each round
-   *  strikes a decoy and deals no damage. Blanks the whole attack, not just one
-   *  hit of it. */
+  /** False Head (Thorny Ripper): ONE free dodge for the whole game. The first
+   *  attack it takes — melee or ranged, basic or Special — strikes the decoy and
+   *  deals nothing, and the decoy is then gone.
+   *
+   *  Blanks the whole attack rather than one hit of it: a multi-hit volley is
+   *  wasted entire, because it is one ATTACK that missed. */
   falseHead?: boolean;
   /** Ride or Die (Omega): Luna grants a permanent +dmg / +hp the moment it
    *  lands. Applied at instance creation so it never misses. */
@@ -944,9 +947,9 @@ export interface CardInstance {
   oppSummonFiredRound?: boolean;
   /** Per-round guard for a `oncePerRound` spawnOnHitTaken (Oak's Acorn Drop). */
   hitSpawnFiredRound?: boolean;
-  /** Per-round guard for False Head (Thorny Ripper) — the decoy soaks one melee
-   *  attack per round. */
-  falseHeadUsedRound?: boolean;
+  /** False Head (Thorny Ripper) has been spent. Once per GAME, so this is never
+   *  reset — that is the whole difference between a decoy and a dodge. */
+  falseHeadUsed?: boolean;
   /** Toxic Contagion (Venomarch): a body carrying the poison bursts when it dies,
    *  splashing its neighbours. `by` is the caster's instanceId so the splash is
    *  credited to whoever infected it, not to the corpse. Only pays out while

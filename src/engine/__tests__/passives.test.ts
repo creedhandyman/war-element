@@ -535,28 +535,54 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[rollo.instanceId].pos?.row).toBe(1); // and on to 1
   });
 
-  it("Thorny Ripper's False Head blanks the first MELEE attack each round", () => {
+  it("Thorny Ripper's False Head is ONE dodge for the whole game", () => {
     const s = prepState();
     // Fat HP + no shields on purpose: we're measuring whether damage lands at
     // all, not how the 4-HP body survives it.
     const devil = place(s, "bore_thorny_ripper", "P1", 3, 0, { curHp: 40, maxHp: 40, curShields: 0 });
-    // A genuine MELEE attacker — Gool is Ranged, which False Head ignores by design.
     const melee = place(s, "dusk_widowbite", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
     basicAttack(s, melee.instanceId, devil.instanceId);
-    expect(s.cards[devil.instanceId].curHp).toBe(40); // decoy soaked the whole attack
+    expect(s.cards[devil.instanceId].curHp, "decoy soaked the whole attack").toBe(40);
 
-    // ...and the decoy is spent: the next melee attack lands for real.
+    // Spent for good — not "until next round". Clearing the per-round attack
+    // guard is what the old per-round decoy relied on, so if the reset ever
+    // came back this is the assertion that catches it.
     s.cards[melee.instanceId].attackedThisRound = false;
     basicAttack(s, melee.instanceId, devil.instanceId);
-    expect(s.cards[devil.instanceId].curHp).toBeLessThan(40);
+    const afterSecond = s.cards[devil.instanceId].curHp;
+    expect(afterSecond, "the next attack lands for real").toBeLessThan(40);
+
+    // ...and it stays spent across a round boundary.
+    const next = advance(atCleanup(s));
+    const d2 = boardCards(next, "P1").find((c) => c.defId === "bore_thorny_ripper")!;
+    const m2 = boardCards(next, "P2").find((c) => c.defId === "dusk_widowbite")!;
+    basicAttack(next, m2.instanceId, d2.instanceId);
+    expect(next.cards[d2.instanceId].curHp, "no fresh decoy next round").toBeLessThan(afterSecond);
   });
 
-  it("...but a RANGED attacker walks straight past the decoy", () => {
+  it("...and it answers a RANGED attacker too", () => {
+    // It used to be melee-only, which on a 4 HP body meant a melee attacker
+    // could never finish it while a ranged one ignored the passive entirely.
     const s = prepState();
     const devil = place(s, "bore_thorny_ripper", "P1", 3, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     const ranged = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     basicAttack(s, ranged.instanceId, devil.instanceId);
-    expect(s.cards[devil.instanceId].curHp).toBeLessThan(40); // False Head is melee-only
+    expect(s.cards[devil.instanceId].curHp, "the decoy took it").toBe(40);
+  });
+
+  it("...and its own REFLECT does not spend the dodge", () => {
+    // Spined Hide (REFLECT 2) is unchanged, and reflect damage is not an attack
+    // — without that exclusion the Ripper would burn its one dodge on the first
+    // thing that touched it.
+    const s = prepState();
+    const devil = place(s, "bore_thorny_ripper", "P1", 3, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const melee = place(s, "dusk_widowbite", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    expect(getDef("bore_thorny_ripper").keywords.REFLECT).toBe(2);
+    basicAttack(s, melee.instanceId, devil.instanceId);
+    // The attack was dodged, so nothing was reflected and the dodge is spent
+    // exactly once — the attacker is untouched.
+    expect(s.cards[devil.instanceId].curHp).toBe(40);
+    expect(s.cards[devil.instanceId].falseHeadUsed).toBe(true);
   });
 
   it("Granite Ankylosaur's Tail Club can SLEEP what it hits", () => {

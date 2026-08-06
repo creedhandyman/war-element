@@ -416,7 +416,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.pushImmune)
     named("pushImmune", `immune to knockback, push, and pull effects — planted where it stands.`);
   if (def.falseHead)
-    named("falseHead", `the first MELEE attack against it each round hits a decoy head and deals no damage.`);
+    named("falseHead", `once per game, the first attack against it hits a decoy head and deals no damage.`);
   if (def.flyingArrow)
     named("flyingArrow", `Flying Arrow: also attacks whatever the ally directly in front of it strikes with a basic attack.`);
   if (def.skyScout)
