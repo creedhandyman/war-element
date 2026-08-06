@@ -6419,7 +6419,11 @@ export const CARDS: CardDef[] = [
     // drops fruit, and heals allies each round).
     special: {
       name: "Emergence",
-      cost: 4,
+      // 4 -> 3. Emergence is Sylvane's whole reason to be a Warrior standing in
+      // the line: it buys a body AND a team heal, but at 4 it competed with
+      // simply holding magic for a round, and a card that wants to cast every
+      // few rounds should be able to.
+      cost: 3,
       handler: "spawn",
       params: { token: "leaf_walking_tree", count: 1, radius: 1, healAllies: 4 },
       targetSide: "self",
