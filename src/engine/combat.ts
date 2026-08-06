@@ -1207,9 +1207,18 @@ export function resolveHit(
     if (r) result.attackerDied = true;
   }
 
-  // Acorn Drop (Oak): every landed hit it takes sprouts a fresh Acorn.
+  // Acorn Drop (Oak): a landed hit it takes sprouts a fresh Acorn — once per
+  // round when `oncePerRound` is set, otherwise once per landed HIT (so a
+  // multi-hit attacker used to sprout one per swing of the volley).
   if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && tDef.spawnOnHitTaken && target.pos) {
-    spawnTokens(draft, target, tDef.spawnOnHitTaken.token, tDef.spawnOnHitTaken.count * result.landedHits);
+    const once = tDef.spawnOnHitTaken.oncePerRound;
+    if (!once || !target.hitSpawnFiredRound) {
+      if (once) target.hitSpawnFiredRound = true;
+      spawnTokens(
+        draft, target, tDef.spawnOnHitTaken.token,
+        once ? tDef.spawnOnHitTaken.count : tDef.spawnOnHitTaken.count * result.landedHits,
+      );
+    }
   }
 
   // Electro Surge (Surge): being hit while armed discharges — PARALYZE the

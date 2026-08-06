@@ -5030,7 +5030,11 @@ export const CARDS: CardDef[] = [
     // Taproot: a landed basic ROOTs for 2 rounds — a planted SP-0 tree that
     // can't chase needs the enemy to stop coming to it.
     passiveNames: { spawnOnHitTaken: "Acorn Drop", healReceivedMult: "Root Growth", onHitStatus: "Taproot" },
-    spawnOnHitTaken: { token: "leaf_acorn_tok", count: 1 },
+    // One sprout per ROUND, not per landed hit. It used to multiply by
+    // `landedHits`, so a single four-hit attacker handed Oak four Acorns — the
+    // card was rewarded most by exactly the thing that should have been beating
+    // it, and a wide attacker fed it a whole board.
+    spawnOnHitTaken: { token: "leaf_acorn_tok", count: 1, oncePerRound: true },
     healReceivedMult: 2,
     onHitStatus: { kind: "ROOT", duration: 2, power: 0 },
     // Rares carry Talents, not repeatable Specials: free, but once per game.

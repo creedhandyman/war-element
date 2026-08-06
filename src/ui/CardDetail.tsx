@@ -463,7 +463,10 @@ export function describePassives(def: CardDef): string[] {
   if (def.deathExplosion)
     named("deathExplosion", `On death: a final explosion — ${def.deathExplosion} DMG to every opponent on the board.`);
   if (def.spawnOnHitTaken)
-    named("spawnOnHitTaken", `Acorn Drop: every hit it takes sprouts ${def.spawnOnHitTaken.count} ${getDef(def.spawnOnHitTaken.token).name}.`);
+    named(
+      "spawnOnHitTaken",
+      `Acorn Drop: ${def.spawnOnHitTaken.oncePerRound ? "the first hit it takes each round" : "every hit it takes"} sprouts ${def.spawnOnHitTaken.count} ${getDef(def.spawnOnHitTaken.token).name}.`,
+    );
   if (def.basicSplash)
     named(
       "basicSplash",

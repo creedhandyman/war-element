@@ -827,6 +827,28 @@ describe("medium-tier passives (audit batch)", () => {
     expect(totem.adj, "full basic damage").toBe(totem.primary / 2);
   });
 
+  it("Oak's Acorn Drop sprouts once a round, not once a hit", () => {
+    // It used to multiply by `landedHits`, so one four-hit attacker handed Oak
+    // four Acorns — the card was rewarded most by exactly the thing that should
+    // have been beating it, and two attackers in a round compounded that.
+    const s = prepState();
+    const oak = place(s, "leaf_oak", "P1", 3, 1, { curHp: 190, maxHp: 190, curShields: 0 });
+    const a1 = place(s, "gale_hawko", "P2", 2, 1);
+    const a2 = place(s, "gale_hawko", "P2", 2, 2);
+    const acorns = (g: typeof s) =>
+      boardCards(g, "P1").filter((c) => c.defId === "leaf_acorn_tok").length;
+    basicAttack(s, a1.instanceId, oak.instanceId);
+    expect(acorns(s), "first hit sprouts").toBe(1);
+    basicAttack(s, a2.instanceId, oak.instanceId);
+    expect(acorns(s), "a second attacker in the SAME round adds nothing").toBe(1);
+    // Cleanup clears the guard beside the other per-round flags.
+    const next = advance(atCleanup(s));
+    const oakNext = boardCards(next, "P1").find((c) => c.defId === "leaf_oak")!;
+    const attacker = boardCards(next, "P2")[0];
+    basicAttack(next, attacker.instanceId, oakNext.instanceId);
+    expect(acorns(next), "the next round sprouts again").toBe(2);
+  });
+
   it("Rodd's Conduction powers BOLT neighbours only", () => {
     // A conduit powers the grid it belongs to. Before the element filter, Rodd
     // was a colourless +1 DMG for anything a deck could stand beside it.

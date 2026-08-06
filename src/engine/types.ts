@@ -529,7 +529,14 @@ export interface CardDef {
    *  onDeath.aoeDmg it also fires on tick / reflect / detonation deaths. */
   deathExplosion?: number;
   /** Acorn Drop (Oak): every landed hit it TAKES sprouts `count` token(s). */
-  spawnOnHitTaken?: { token: string; count: number };
+  spawnOnHitTaken?: {
+    token: string;
+    count: number;
+    /** Sprout at most ONE volley per round, however many hits land. Without it
+     *  the spawn scales with `landedHits`, so a single four-hit attacker sprouts
+     *  four — the card punishes being swung at, not being ground down. */
+    oncePerRound?: boolean;
+  };
   /** Rainstorm (Cloudburst): a landed basic also splashes N DMG to an enemy
    *  adjacent to the primary target — one of them, or ALL of them with
    *  `splashAll`. */
@@ -935,6 +942,8 @@ export interface CardInstance {
   /** Drone Sweep (Buzzard): one reaction per round, however many bodies the
    *  opponent summons. Reset in Cleanup with the others. */
   oppSummonFiredRound?: boolean;
+  /** Per-round guard for a `oncePerRound` spawnOnHitTaken (Oak's Acorn Drop). */
+  hitSpawnFiredRound?: boolean;
   /** Per-round guard for False Head (Thorny Ripper) — the decoy soaks one melee
    *  attack per round. */
   falseHeadUsedRound?: boolean;

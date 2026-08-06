@@ -2311,6 +2311,7 @@ function doCleanupPhase(draft: GameState): void {
     card.allyKilledFiredRound = false; // Overwatch (Hartwood): one answer per round
     card.twinStrikeFiredRound = false; // Twin Strike (Twinbolt): one bonus volley per round
     card.oppSummonFiredRound = false;  // Drone Sweep (Buzzard): one answer per round
+    card.hitSpawnFiredRound = false;   // Acorn Drop (Oak): one sprout per round
     card.falseHeadUsedRound = false; // False Head (Thorny Ripper): the decoy resets each round
     card.onKillAoeFiredRound = false; // Powertrip re-arms each round
     card.dmgBonusRound = 0;
