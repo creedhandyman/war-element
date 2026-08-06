@@ -151,7 +151,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(basicIsInert(s, s.cards[smog.instanceId])).toBe(false);
     // The full census — the predicate must not be quietly silencing anything
     // else. RIP prints 0 DMG on purpose and never swings at all (its Special is
-    // free, so it always has a real action). UFO, Doom and Walking Tree used to
+    // free, so it always has a real action). UFO, Doom and Elephlora used to
     // sit here as never-swinging bodies — all three print real DMG now, so they
     // have a basic and correctly drop off. Any OTHER name here is a bug.
     const inert = CARDS.filter((d) => {

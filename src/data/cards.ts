@@ -6411,7 +6411,7 @@ export const CARDS: CardDef[] = [
     passiveNames: { refreshShieldsTo: "Nature's Protection", aura: "Shared Grove" },
     roundTick: { refreshShieldsTo: 2 },
     aura: { scope: "element", shields: 1 },
-    // Emergence: raise a Walking Tree in an adjacent slot (it marches forward,
+    // Emergence: raise an Elephlora in an adjacent slot (it marches forward,
     // drops fruit, and heals allies each round).
     special: {
       name: "Emergence",
@@ -6419,7 +6419,7 @@ export const CARDS: CardDef[] = [
       handler: "spawn",
       params: { token: "leaf_walking_tree", count: 1, radius: 1, healAllies: 4 },
       targetSide: "self",
-      text: "Spawn a Walking Tree in an adjacent slot and heal all allies 4; each round the tree marches forward, hits an opponent for 3, and heals an ally 3.",
+      text: "Spawn an Elephlora in an adjacent slot and heal all allies 4; each round the tree marches forward, hits an opponent for 3, and heals an ally 3.",
     },
   },
   {
@@ -8204,7 +8204,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "leaf_walking_tree",
-    name: "Walking Tree",
+    name: "Elephlora",
     rarity: "rare",
     element: "LEAF",
     cardClass: "Support",
