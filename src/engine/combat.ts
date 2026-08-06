@@ -1605,12 +1605,25 @@ export function basicAttack(
   // Blinding Star (Supernova): a living enemy holder suppresses this attacker's
   // ONE extra splash target — its basics hit one fewer.
   const blinded = boardCards(draft, enemyOf(attacker.owner)).some((e) => e.curHp > 0 && getDef(e.defId).blindingStar);
-  // Totem's team aura: a living ally holder grants the whole side the extra
+  // A team splash aura: a living ally holder grants the whole side the extra
   // adjacent target, standing (no timer). Blinding Star still cancels it.
-  const splashAura = boardCards(draft, attacker.owner).some((a) => a.curHp > 0 && getDef(a.defId).splashAura);
+  //
+  // Two strengths. `true` is a second FULL basic hit (Totem Spirit); a number is
+  // a flat chip (Cloudburst's Downpour). The strongest source on the board wins,
+  // and the timed team buff from a spell counts as full — it is bought for a
+  // round, so it should not be quietly downgraded by a 1-damage aura standing
+  // next to it.
+  const auraHolders = boardCards(draft, attacker.owner)
+    .filter((a) => a.curHp > 0 && getDef(a.defId).splashAura);
+  const timedSplash = (draft.players[attacker.owner].basicSplashRounds ?? 0) > 0;
+  const auraFull = timedSplash || auraHolders.some((a) => getDef(a.defId).splashAura === true);
+  const auraFlat = auraHolders.reduce((best, a) => {
+    const v = getDef(a.defId).splashAura;
+    return typeof v === "number" && v > best ? v : best;
+  }, 0);
   if (
     !fromFollowup && agg.landedHits > 0 && attacker.curHp > 0 && !blinded &&
-    ((draft.players[attacker.owner].basicSplashRounds ?? 0) > 0 || splashAura)
+    (auraFull || auraFlat > 0)
   ) {
     const primary = draft.cards[groups[0]?.targetId];
     if (primary?.pos) {
@@ -1618,8 +1631,18 @@ export function basicAttack(
         (e) => e.curHp > 0 && e.instanceId !== primary.instanceId && e.pos != null && chebyshev(e.pos, primary.pos!) <= 1,
       );
       if (splash) {
-        resolveHit(draft, attacker, splash, { kind: "basic", dmg: effectiveDmg(draft, attacker), hits: 1, pen: false, crit: false });
-        draft.log.push(`${label(draft, attacker)}'s shot clips ${label(draft, splash)} (Sky Scout).`);
+        resolveHit(draft, attacker, splash, {
+          kind: "basic",
+          dmg: auraFull ? effectiveDmg(draft, attacker) : auraFlat,
+          hits: 1, pen: false, crit: false,
+        });
+        // Name the aura that actually granted it. This used to read "(Sky
+        // Scout)" for every source — Sightwing's passive, which has nothing to
+        // do with any of them.
+        const src = auraHolders.find((a) =>
+          auraFull ? getDef(a.defId).splashAura === true : typeof getDef(a.defId).splashAura === "number");
+        const srcName = src ? getDef(src.defId).passiveNames?.splashAura ?? getDef(src.defId).name : "a team aura";
+        draft.log.push(`${label(draft, attacker)}'s shot clips ${label(draft, splash)} (${srcName}).`);
       }
     }
   }

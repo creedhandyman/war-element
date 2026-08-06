@@ -6565,11 +6565,18 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Liquid",
-    // Rainstorm: basic attacks splash 2 DMG to one adjacent opponent, and while
-    // Cloudburst lives the whole team's basics clip +1 adjacent target (team aura).
+    // Rainstorm: Cloudburst's own basics splash 2 DMG to one adjacent opponent.
+    // Downpour: while it lives, EVERY ally's basic clips one adjacent target too
+    // — for 1, not for full.
+    //
+    // It was `true`, i.e. a second FULL basic hit for the whole team. On
+    // Cloudburst itself that stacked with Rainstorm onto the same neighbour: a
+    // 10-damage basic put 10 + 2 = 12 on the card next to the target, more than
+    // it dealt to the thing it aimed at. The team keeps the reach; the damage is
+    // a chip.
     passiveNames: { basicSplash: "Rainstorm", splashAura: "Downpour" },
     basicSplash: 2,
-    splashAura: true,
+    splashAura: 1,
     // Scoped 50GAL: scope in — the next basic shot spreads across up to 3
     // targets (range = extra shots, replacing the deleted +2 RANGE).
     special: {

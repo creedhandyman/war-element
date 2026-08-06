@@ -763,6 +763,34 @@ describe("medium-tier passives (audit batch)", () => {
     expect(n.traps, "spent on arrival").toHaveLength(0);
   });
 
+  it("Downpour chips for 1 while Totem Spirit still clips for full", () => {
+    // Cloudburst's aura used to be a second FULL basic hit for the whole team.
+    // On Cloudburst itself it stacked with its own Rainstorm onto the same
+    // neighbour, so a 10-damage basic put 12 on the card BESIDE the target —
+    // more than it dealt to the thing it aimed at.
+    const splashOnNeighbour = (auraId: string, attackerId: string) => {
+      const s = prepState();
+      place(s, auraId, "P1", 3, 0);
+      const attacker = auraId === attackerId
+        ? boardCards(s, "P1")[0]
+        : place(s, attackerId, "P1", 3, 1);
+      const primary = place(s, "dusk_gool", "P2", 2, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+      const adj = place(s, "dusk_gool", "P2", 2, 2, { curHp: 60, maxHp: 60, curShields: 0 });
+      basicAttack(s, attacker.instanceId, primary.instanceId);
+      return { adj: 60 - s.cards[adj.instanceId].curHp, primary: 60 - s.cards[primary.instanceId].curHp };
+    };
+    // Cloudburst on itself: 1 from Downpour + 2 from Rainstorm, not 10 + 2.
+    const own = splashOnNeighbour("aqua_rain", "aqua_rain");
+    expect(own.primary).toBe(10);
+    expect(own.adj, "Downpour 1 + Rainstorm 2").toBe(3);
+    // An ally only gets Downpour's chip.
+    expect(splashOnNeighbour("aqua_rain", "aqua_piranha").adj).toBe(1);
+    // Totem is untouched — `true` still means a second FULL basic hit, which is
+    // why the flag became `boolean | number` rather than simply a number.
+    const totem = splashOnNeighbour("gale_totem", "aqua_piranha");
+    expect(totem.adj, "full basic damage").toBe(totem.primary / 2);
+  });
+
   it("Rodd's Conduction powers BOLT neighbours only", () => {
     // A conduit powers the grid it belongs to. Before the element filter, Rodd
     // was a colourless +1 DMG for anything a deck could stand beside it.

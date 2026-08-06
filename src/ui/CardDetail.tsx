@@ -539,7 +539,12 @@ export function describePassives(def: CardDef): string[] {
   if (def.blindingStar)
     named("blindingStar", `Blinding Star (Aura): while it lives, opponents' basic attacks hit one fewer target (their splash is suppressed).`);
   if (def.splashAura)
-    named("splashAura", `Aura: while it lives, allied basic attacks also clip one extra adjacent target for full damage.`);
+    named(
+      "splashAura",
+      `Aura: while it lives, allied basic attacks also clip one extra adjacent target for ${
+        typeof def.splashAura === "number" ? `${def.splashAura} DMG` : "full damage"
+      }.`,
+    );
   if (def.statDropImmuneAura)
     named("statDropImmuneAura", `Aura: while it lives, allies are immune to stat reduction (WEAKEN).`);
   if (def.purelightAura)

@@ -730,10 +730,14 @@ export interface CardDef {
   /** Blinding Star (Supernova): while this card lives, opponents' basic attacks
    *  hit ONE fewer target — their extra/splash target is suppressed. */
   blindingStar?: boolean;
-  /** Totem's team aura: while this card lives, its side's basic attacks also
-   *  clip ONE extra adjacent target for full basic damage. (The mirror of
-   *  Blinding Star; the two cancel out.) */
-  splashAura?: boolean;
+  /** A team aura: while this card lives, its side's basic attacks also clip ONE
+   *  extra adjacent target. (The mirror of Blinding Star; the two cancel out.)
+   *
+   *  `true` = the extra target takes FULL basic damage (Totem Spirit).
+   *  A number = it takes that flat amount instead (Cloudburst's Downpour, which
+   *  hands the whole team a chip rather than a second full hit).
+   *  With both on the board the stronger one wins. */
+  splashAura?: boolean | number;
   /** Equestrian's aura: while it lives, its allies can't be WEAKENed (immune to
    *  stat reduction). */
   statDropImmuneAura?: boolean;
