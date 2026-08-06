@@ -1627,21 +1627,24 @@ export function basicAttack(
   ) {
     const primary = draft.cards[groups[0]?.targetId];
     if (primary?.pos) {
-      const splash = boardCards(draft, enemyOf(attacker.owner)).find(
+      const neighbours = boardCards(draft, enemyOf(attacker.owner)).filter(
         (e) => e.curHp > 0 && e.instanceId !== primary.instanceId && e.pos != null && chebyshev(e.pos, primary.pos!) <= 1,
       );
-      if (splash) {
+      // Which holder is actually granting this decides both the log name and
+      // whether the storm covers the whole neighbourhood. This used to read
+      // "(Sky Scout)" for every source — Sightwing's passive, unrelated to any
+      // of them.
+      const src = auraHolders.find((a) =>
+        auraFull ? getDef(a.defId).splashAura === true : typeof getDef(a.defId).splashAura === "number");
+      const srcName = src ? getDef(src.defId).passiveNames?.splashAura ?? getDef(src.defId).name : "a team aura";
+      const hit = src && getDef(src.defId).splashAll ? neighbours : neighbours.slice(0, 1);
+      for (const splash of hit) {
+        if (!draft.cards[splash.instanceId] || splash.curHp <= 0) continue;
         resolveHit(draft, attacker, splash, {
           kind: "basic",
           dmg: auraFull ? effectiveDmg(draft, attacker) : auraFlat,
           hits: 1, pen: false, crit: false,
         });
-        // Name the aura that actually granted it. This used to read "(Sky
-        // Scout)" for every source — Sightwing's passive, which has nothing to
-        // do with any of them.
-        const src = auraHolders.find((a) =>
-          auraFull ? getDef(a.defId).splashAura === true : typeof getDef(a.defId).splashAura === "number");
-        const srcName = src ? getDef(src.defId).passiveNames?.splashAura ?? getDef(src.defId).name : "a team aura";
         draft.log.push(`${label(draft, attacker)}'s shot clips ${label(draft, splash)} (${srcName}).`);
       }
     }
@@ -1682,10 +1685,13 @@ export function basicAttack(
   if (aDef.basicSplash && agg.landedHits > 0 && attacker.curHp > 0 && !blinded) {
     const primary = draft.cards[groups[0]?.targetId];
     if (primary?.pos) {
-      const splash = boardCards(draft, enemyOf(attacker.owner)).find(
+      const neighbours = boardCards(draft, enemyOf(attacker.owner)).filter(
         (e) => e.curHp > 0 && e.instanceId !== primary.instanceId && e.pos != null && chebyshev(e.pos, primary.pos!) <= 1,
       );
-      if (splash) directDamage(draft, attacker, splash, aDef.basicSplash, false);
+      for (const splash of aDef.splashAll ? neighbours : neighbours.slice(0, 1)) {
+        if (!draft.cards[splash.instanceId] || splash.curHp <= 0) continue;
+        directDamage(draft, attacker, splash, aDef.basicSplash, false);
+      }
     }
   }
   // Shatter (Coilblade): a landed hit on a FROZEN target cracks the ice — splash

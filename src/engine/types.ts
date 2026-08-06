@@ -530,8 +530,18 @@ export interface CardDef {
   deathExplosion?: number;
   /** Acorn Drop (Oak): every landed hit it TAKES sprouts `count` token(s). */
   spawnOnHitTaken?: { token: string; count: number };
-  /** Rainstorm (Cloudburst): a landed basic also splashes N DMG to one adjacent enemy. */
+  /** Rainstorm (Cloudburst): a landed basic also splashes N DMG to an enemy
+   *  adjacent to the primary target — one of them, or ALL of them with
+   *  `splashAll`. */
   basicSplash?: number;
+  /** Cloudburst's storm hits the whole neighbourhood: every splash this card is
+   *  responsible for — its own `basicSplash` AND the `splashAura` it grants its
+   *  team — lands on EVERY opponent adjacent to the primary target instead of
+   *  the first one found.
+   *
+   *  A property of the card, not of the mechanic, so Totem Spirit keeps clipping
+   *  a single extra target. */
+  splashAll?: boolean;
   /** Life Cycle (Aurora): this card fields Light Orbs — each incoming hit is
    *  absorbed by an orb that bursts its effect at the attacker, and every enemy
    *  death recharges one orb. */

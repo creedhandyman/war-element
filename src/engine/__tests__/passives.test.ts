@@ -763,6 +763,42 @@ describe("medium-tier passives (audit batch)", () => {
     expect(n.traps, "spent on arrival").toHaveLength(0);
   });
 
+  it("Cloudburst's storm covers every neighbour; Totem Spirit still picks one", () => {
+    // `splashAll` widens BOTH of Cloudburst's splashes — its own Rainstorm and
+    // the Downpour it grants the team. It is a property of the card, not of the
+    // mechanic, which is what keeps Totem Spirit clipping a single extra target.
+    const H = { curHp: 60, maxHp: 60, curShields: 0 };
+    const surround = (auraId: string, attackerId: string) => {
+      const s = prepState();
+      place(s, auraId, "P1", 3, 3);
+      const attacker = auraId === attackerId
+        ? place(s, attackerId, "P1", 3, 1)
+        : place(s, attackerId, "P1", 3, 1);
+      const primary = place(s, "dusk_gool", "P2", 2, 1, H);
+      const n1 = place(s, "dusk_gool", "P2", 2, 0, H);
+      const n2 = place(s, "dusk_gool", "P2", 2, 2, H);
+      const far = place(s, "dusk_gool", "P2", 0, 3, H);
+      basicAttack(s, attacker.instanceId, primary.instanceId);
+      const took = (c: { instanceId: string }) => 60 - s.cards[c.instanceId].curHp;
+      return { primary: took(primary), n1: took(n1), n2: took(n2), far: took(far) };
+    };
+    // Cloudburst itself: every neighbour eats Downpour 1 + Rainstorm 2.
+    const own = surround("aqua_rain", "aqua_rain");
+    expect(own.primary).toBe(10);
+    expect([own.n1, own.n2], "both neighbours, not just the first").toEqual([3, 3]);
+    expect(own.far, "adjacency is to the TARGET, not the board").toBe(0);
+    // An ally under Downpour: every neighbour, but only the chip.
+    const ally = surround("aqua_rain", "aqua_piranha");
+    expect([ally.n1, ally.n2]).toEqual([1, 1]);
+    expect(ally.far).toBe(0);
+    // Totem grants reach to ONE extra target, at full damage. Unchanged.
+    const totem = surround("gale_totem", "aqua_piranha");
+    expect(
+      [totem.n1, totem.n2].filter((d) => d > 0).length,
+      "exactly one neighbour",
+    ).toBe(1);
+  });
+
   it("Downpour chips for 1 while Totem Spirit still clips for full", () => {
     // Cloudburst's aura used to be a second FULL basic hit for the whole team.
     // On Cloudburst itself it stacked with its own Rainstorm onto the same

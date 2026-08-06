@@ -465,7 +465,12 @@ export function describePassives(def: CardDef): string[] {
   if (def.spawnOnHitTaken)
     named("spawnOnHitTaken", `Acorn Drop: every hit it takes sprouts ${def.spawnOnHitTaken.count} ${getDef(def.spawnOnHitTaken.token).name}.`);
   if (def.basicSplash)
-    named("basicSplash", `Rainstorm: basic attacks splash ${def.basicSplash} DMG to one adjacent opponent.`);
+    named(
+      "basicSplash",
+      `Rainstorm: basic attacks splash ${def.basicSplash} DMG to ${
+        def.splashAll ? "every opponent adjacent to the target" : "one adjacent opponent"
+      }.`,
+    );
   if (def.lightOrbs)
     named("lightOrbs", `Life Cycle: each incoming hit is absorbed by a Light Orb that bursts at the attacker, then disappears. Every opponent death recharges one orb.`);
   if (def.onHitDeflect)
@@ -546,7 +551,9 @@ export function describePassives(def: CardDef): string[] {
     named(
       "splashAura",
       typeof def.splashAura === "number"
-        ? `Aura: while it lives, allied basic attacks splash ${def.splashAura} DMG to one adjacent opponent.`
+        ? `Aura: while it lives, allied basic attacks splash ${def.splashAura} DMG to ${
+            def.splashAll ? "every opponent adjacent to their target" : "one adjacent opponent"
+          }.`
         : `Aura: while it lives, allied basic attacks also clip one extra adjacent target for full damage.`,
     );
   if (def.statDropImmuneAura)
