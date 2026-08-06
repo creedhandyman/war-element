@@ -19,6 +19,7 @@ import {
 import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { SpIcon } from "./icons";
 import { CardExpand } from "./CardExpand";
+import { DeckStats, useComposition } from "./DeckStats";
 
 const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
 const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
@@ -48,6 +49,10 @@ export function StoryCollection(props: {
   const phone = typeof window !== "undefined" && (window.matchMedia?.("(max-width: 720px)").matches ?? false);
   const [deckOpen, setDeckOpen] = useState(!phone);
 
+  // The same readout the deck builder shows, on the screen where the cards
+  // actually get picked — the campaign builds against one known formation, so
+  // the curve and the element split are worth seeing as you go.
+  const stats = useComposition(save.deck);
   const owned = useMemo(() => new Set(save.collection), [save.collection]);
   const inDeck = useMemo(() => new Set(save.deck), [save.deck]);
   const cap = deckCapFor(save.cleared);
@@ -249,6 +254,7 @@ export function StoryCollection(props: {
               you fight with what you bring.
             </p>
           )}
+          {save.deck.length > 0 && <DeckStats stats={stats} compact />}
           </div>
         </aside>
       </div>

@@ -12,6 +12,7 @@ import {
 } from "../data/custom-decks";
 import { EL_COLOR, EL_ICON, RARITY_STYLE, spellArtSrc } from "./shared";
 import { CardExpand } from "./CardExpand";
+import { DeckStats, useComposition } from "./DeckStats";
 import { SpIcon } from "./icons";
 
 const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
@@ -115,22 +116,9 @@ export function DeckBuilder(props: {
         : { ok: true as const, reason: undefined }
     : validateDeck(picked, buildSize);
 
-  // Live composition of the deck being built — by element, class, and cost curve.
-  const stats = useMemo(() => {
-    const byElement: Record<string, number> = {};
-    const byClass: Record<string, number> = {};
-    const byCost: Record<number, number> = {};
-    let costSum = 0;
-    for (const id of picked) {
-      const d = getDef(id);
-      byElement[d.element] = (byElement[d.element] ?? 0) + 1;
-      byClass[d.cardClass] = (byClass[d.cardClass] ?? 0) + 1;
-      byCost[d.cost] = (byCost[d.cost] ?? 0) + 1;
-      costSum += d.cost;
-    }
-    const maxCostCount = Math.max(1, ...Object.values(byCost));
-    return { byElement, byClass, byCost, maxCostCount, avg: picked.length ? costSum / picked.length : 0 };
-  }, [picked]);
+  // Live composition of the deck being built — shared with the campaign
+  // collection, which shows the same readout in its deck rail.
+  const stats = useComposition(picked);
 
   // Keep the spellbook tied to the deck's elements: drop any picked spell whose
   // element the deck no longer plays (e.g. after pulling the last card of that
@@ -233,7 +221,7 @@ export function DeckBuilder(props: {
                 different numbers for the same thing. */}
             <div className="db-count" style={{ color: countColor }}>
               {picked.length} / {limits.target} cards
-              {!check.ok && (
+              {!check.ok && limits.min > 1 && (
                 <span className="db-hint"> · needs {limits.min}–{limits.max}</span>
               )}
             </div>
@@ -253,58 +241,23 @@ export function DeckBuilder(props: {
                   Comp · {stats.avg.toFixed(1)}
                 </button>
               )}
-              <button className={`db-tool ${spellsShown ? "on" : ""}`} onClick={() => togglePanel("spells")}>
-                Spells {pickedSpells.length}/{limits.spells}
-              </button>
+              {/* A story battle is dealt NO spellbook (App passes [] for both
+                  sides), so offering one here would be a promise the campaign
+                  does not keep. */}
+              {!story && (
+                <button className={`db-tool ${spellsShown ? "on" : ""}`} onClick={() => togglePanel("spells")}>
+                  Spells {pickedSpells.length}/{limits.spells}
+                </button>
+              )}
               <button className={`db-tool ${savedShown ? "on" : ""}`} onClick={() => togglePanel("saved")}>
-                Saved{decks.length ? ` ${decks.length}` : ""}
+                {story
+                  ? `Teams${story.teams.length ? ` ${story.teams.length}` : ""}`
+                  : `Saved${decks.length ? ` ${decks.length}` : ""}`}
               </button>
             </div>
 
             {/* Deck composition — cards per element / class / cost. */}
-            {compShown && picked.length > 0 && (
-              <div className="db-stats db-panel">
-                <div className="dbs-block">
-                  <div className="dbs-lbl">Elements</div>
-                  <div className="dbs-tags">
-                    {ELEMENTS.filter((el) => stats.byElement[el]).map((el) => (
-                      <span key={el} className="dbs-tag" style={{ borderColor: EL_COLOR[el] }}>
-                        <span className="dbs-dot" style={{ background: EL_COLOR[el] }} />
-                        {el} {stats.byElement[el]}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="dbs-block">
-                  <div className="dbs-lbl">Classes</div>
-                  <div className="dbs-tags">
-                    {CLASSES.filter((c) => stats.byClass[c]).map((c) => (
-                      <span key={c} className="dbs-tag">{c} {stats.byClass[c]}</span>
-                    ))}
-                  </div>
-                </div>
-                <div className="dbs-block">
-                  <div className="dbs-lbl">Cost curve</div>
-                  <div className="dbs-curve">
-                    {Array.from({ length: 10 }, (_, i) => i + 1).map((cost) => {
-                      const n = stats.byCost[cost] ?? 0;
-                      return (
-                        <div key={cost} className="dbs-col" title={`Cost ${cost}: ${n}`}>
-                          <div className="dbs-bar-wrap">
-                            {n > 0 && (
-                              <div className="dbs-bar" style={{ height: `${(n / stats.maxCostCount) * 100}%` }}>
-                                <span className="dbs-barnum">{n}</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="dbs-cost">{cost}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
+            {compShown && picked.length > 0 && <DeckStats stats={stats} />}
 
             {/* Spellbook — up to 5 spells this deck carries into a match (each
                 castable once). None picked = the engine auto-fills one from the
