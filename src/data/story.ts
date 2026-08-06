@@ -333,14 +333,16 @@ const AQUA: StoryRegion = {
     { id: "A7", name: "Northern Ice Floes", kind: "skirmish", at: { x: 38, y: 18 },
       requires: ["A1"], roster: ["aqua_icynin", "aqua_owlette", "aqua_polarbear"], adds: [] },
     { id: "A8", name: "Ice Castle Outer Ward", kind: "warden", at: { x: 46, y: 26 },
-      requires: ["A7"], roster: ["aqua_cryo", "aqua_anos", "aqua_liquark"], adds: [] ,
+      requires: ["A7"], roster: ["aqua_cryo", "aqua_anos", "aqua_icewall"], adds: [],
+      note: "Ice Wall belongs to the castle it walls. A real wall, not a damage race — bring something that gets through 20 HP behind BLOCK.",
       lore: "The Ice Kingdom does not simply neighbour the Arctic. \"Descendants of the frozen deep\" is not a poetic title to them. It is a genealogy."
     },
     // Gated off A8, not A6: the Trench is painted on the EAST edge and the mists
     // are in the far south-west. The lane from the Ice Castle is the short one.
     { id: "A9", name: "The Steamvent Trench", kind: "warden", at: { x: 78, y: 40 },
-      requires: ["A8"], roster: ["aqua_sapphire", "aqua_vaporem", "aqua_blackbeard", "aqua_icewall"], adds: [],
-      note: "The spike — the whole Cost-5 band at cost 20. Ice Wall is a real wall, not a damage race." },
+      requires: ["A8"], roster: ["aqua_sapphire", "aqua_vaporem", "aqua_blackbeard", "aqua_liquark"], adds: [],
+      note: "The spike — three Cost-5s and a lurker, 19 gold of board. Liquark hunts from the vents rather than holding a line.",
+      lore: "Scalding water and freezing water meet along the trench and neither wins. In the deep, cold and heat have never needed permission to coexist." },
     { id: "A10", name: "Ice Castle: Guardians of Ice", kind: "landmark", at: { x: 60, y: 14 },
       requires: ["A8"], roster: ["aqua_polarking", "aqua_phrost", "aqua_glacius"], adds: [],
       note: "A pure FREEZE wall, and the only node touching the Arctic Gate — DAWN's border, sealed until Act V.",

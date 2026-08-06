@@ -656,6 +656,11 @@ export function spawnTokens(
   }
   if (out.length > 0)
     draft.log.push(`${getDef(tokenDefId).name} ×${out.length} spawns.`);
+  // A spawn that finds no room used to return silently, which is how "sometimes
+  // Zipp doesn't spawn the Drone" stayed a mystery: the card promised a body and
+  // the log said nothing at all. If it ever happens again, it says so.
+  else
+    draft.log.push(`${getDef(tokenDefId).name} has nowhere to deploy — the board is full.`);
   return out;
 }
 
