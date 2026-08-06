@@ -827,6 +827,49 @@ describe("medium-tier passives (audit batch)", () => {
     expect(totem.adj, "full basic damage").toBe(totem.primary / 2);
   });
 
+  it("a ROOT landing mid-battle demotes its victim in the speed queue", () => {
+    // The queue was built once at the top of the phase and never re-read, so a
+    // card pinned DURING the phase kept the slot it was given before it was
+    // pinned. Evera's Grounded exists to change the order of the round it is
+    // cast in, and did nothing to it.
+    //
+    // All three are P1's, so nobody has a target, nobody attacks and nobody
+    // dies — this measures ORDER and only order.
+    const s = prepState();
+    const fast = place(s, "leaf_trinezer", "P1", 3, 0);  // SP 15
+    const mid = place(s, "leaf_sticks", "P1", 3, 1);     // SP 10
+    const slow = place(s, "leaf_oak", "P1", 3, 2);       // SP 0
+    const b = atBattle(s);
+    const order = (g: typeof b) => g.battle!.queue.map((id) => g.cards[id]?.defId);
+    expect(order(b)).toEqual(["leaf_trinezer", "leaf_sticks", "leaf_oak"]);
+    // Pin the front-runner before anything has acted. effectiveSp -> 0.
+    applyStatus(b, b.cards[fast.instanceId], "ROOT", 2, 0, "LEAF");
+    expect(effectiveSp(b, b.cards[fast.instanceId])).toBe(0);
+    const n = advance(b); // one step re-sorts the not-yet-acted tail
+    // Trinezer is now behind Sticks. It ties with Oak at 0 and the sort is
+    // stable, so it keeps its relative position ahead of Oak rather than
+    // churning past it.
+    expect(order(n)).toEqual(["leaf_sticks", "leaf_trinezer", "leaf_oak"]);
+    expect(mid && slow).toBeTruthy();
+  });
+
+  it("does not reorder cards that have already acted", () => {
+    // The guard that matters: only the tail from `index` on may move, or a card
+    // could be pulled back in and act twice.
+    const s = prepState();
+    place(s, "leaf_trinezer", "P1", 3, 0);
+    place(s, "leaf_sticks", "P1", 3, 1);
+    place(s, "leaf_oak", "P1", 3, 2);
+    let g = atBattle(s);
+    const first = g.battle!.queue[0];
+    g = advance(g); // Trinezer acts (nothing to do) and the index moves past it
+    expect(g.battle!.index).toBe(1);
+    // Now slow the card that ALREADY acted right down; it must not move.
+    applyStatus(g, g.cards[first], "ROOT", 2, 0, "LEAF");
+    const after = advance(g);
+    expect(after.battle!.queue[0], "the acted card keeps its slot").toBe(first);
+  });
+
   it("Sylvane's Emergence still raises an Elephlora when boxed in", () => {
     // `radius: 1` searched only the 8 slots around the caster and gave up if
     // none were free — and Sylvane is a melee Warrior standing in the line, so

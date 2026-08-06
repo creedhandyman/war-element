@@ -1305,6 +1305,30 @@ function stepBattle(draft: GameState): boolean {
     doCleanupPhase(draft);
     return true;
   }
+  // Re-read speed for everyone who has NOT acted yet. A status applied during
+  // this same battle phase changes it — ROOT and FREEZE both drive
+  // `effectiveSp` to 0 — and a card that has just been pinned should act last
+  // rather than keep the slot it was handed before it was pinned. Evera's
+  // Grounded exists to do exactly that and previously did nothing to the order
+  // of the round it was cast in.
+  //
+  // Three properties make this safe to do every step:
+  //  - only the tail from `index` on is touched, so nothing that has already
+  //    acted can be pulled back in, and nobody is dropped;
+  //  - the sort is STABLE, so equal speeds keep the coin-flip order the queue
+  //    was built with rather than churning every step;
+  //  - it is skipped while `awaitingInput` is set, so the card the player is
+  //    currently choosing an action for can never be swapped out from under
+  //    them mid-decision.
+  if (!battle.awaitingInput && battle.index < battle.queue.length - 1) {
+    const spOf = (cid: string) => {
+      const c = draft.cards[cid];
+      return c && c.curHp > 0 && c.pos ? effectiveSp(draft, c) : -1;
+    };
+    const tail = battle.queue.slice(battle.index);
+    tail.sort((x, y) => spOf(y) - spOf(x));
+    battle.queue = [...battle.queue.slice(0, battle.index), ...tail];
+  }
   const id = battle.queue[battle.index];
   const card = draft.cards[id];
   if (!card || !card.pos) {
