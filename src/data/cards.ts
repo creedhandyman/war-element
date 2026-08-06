@@ -6425,7 +6425,13 @@ export const CARDS: CardDef[] = [
       // few rounds should be able to.
       cost: 3,
       handler: "spawn",
-      params: { token: "leaf_walking_tree", count: 1, radius: 1, healAllies: 4 },
+      // No `radius`. It was 1, which is a HARD tether: `spawnTokens` searches
+      // only the 8 slots around the caster and gives up if none are free.
+      // Sylvane is a melee Warrior standing in the line, so crowded neighbours
+      // are its normal state — the exact shape that was eating Zipp's Drone.
+      // Omitting radius keeps adjacency as the PREFERENCE and then opens the
+      // search to the rest of the board, so a cast always raises something.
+      params: { token: "leaf_walking_tree", count: 1, healAllies: 4 },
       targetSide: "self",
       text: "Spawn an Elephlora in an adjacent slot and heal all allies 4; each round the tree marches forward, hits an opponent for 3, and heals an ally 3.",
     },

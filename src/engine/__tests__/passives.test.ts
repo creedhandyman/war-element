@@ -827,6 +827,25 @@ describe("medium-tier passives (audit batch)", () => {
     expect(totem.adj, "full basic damage").toBe(totem.primary / 2);
   });
 
+  it("Sylvane's Emergence still raises an Elephlora when boxed in", () => {
+    // `radius: 1` searched only the 8 slots around the caster and gave up if
+    // none were free — and Sylvane is a melee Warrior standing in the line, so
+    // crowded neighbours are its normal state. Same tether that was eating
+    // Zipp's Drone. The team heal always resolved, which is what made the
+    // missing body easy to miss.
+    const s = prepState();
+    const syl = place(s, "leaf_efy", "P1", 3, 1);
+    // Fill every slot touching Sylvane.
+    for (const [r, c] of [[3, 0], [3, 2], [2, 0], [2, 1], [2, 2]] as const)
+      place(s, "leaf_nettle", "P1", r, c);
+    const before = boardCards(s, "P1").filter((c) => c.defId === "leaf_walking_tree").length;
+    SPECIAL_HANDLERS.spawn(s, s.cards[syl.instanceId], [], {
+      token: "leaf_walking_tree", count: 1, healAllies: 4,
+    });
+    const after = boardCards(s, "P1").filter((c) => c.defId === "leaf_walking_tree").length;
+    expect(after - before, "found a slot beyond the ring").toBe(1);
+  });
+
   it("Oak's Acorn Drop sprouts once a round, not once a hit", () => {
     // It used to multiply by `landedHits`, so one four-hit attacker handed Oak
     // four Acorns — the card was rewarded most by exactly the thing that should
