@@ -405,6 +405,27 @@ Together: **1082MB -> 160MB, with no history rewriting.** Reach for `lfs prune`
 and `gc` before ever considering a rewrite; the big binaries in history (50MB of
 music, 82MB of superseded card WebP) are worth far less than they look, and
 purging them would only reach ~120MB in exchange for rewriting every SHA.
+- **Campaign overhaul (4x4 default / prep screen / one-sided opening)** — the
+  campaign is a 4x4 game that opens to 5x5 only for its set pieces:
+  `boardForNode` reads the NODE's kind (`BIG_BATTLE_KINDS` = landmark + throne),
+  not `region.board` and not deck size. 82 of 115 nodes are 4x4, 33 are 5x5. The
+  cap ladder tops out at **18** in Act II (12 -> 15 -> 18); the 22 and 28 rungs
+  are gone, so late game changes WHICH eighteen you field, not how many. This
+  deliberately breaks the old deck-size/board coupling (constructed 5x5 wants
+  20-30 cards) — nothing enforces that at runtime, and `boardsLegalFor` was
+  deleted rather than left as a rule nothing obeys. Opening deployment
+  (§10.6) is now the PLAYER's alone: `ENEMY_DEPLOY = 0` replaced
+  `enemyDeployFor`. `StoryPrep.tsx` sits between tapping a node and the battle —
+  board/element/terrain/cap, the enemy roster, node lore, and **saved teams**
+  (`StorySave.loadouts`, tagged by element, floated to the top by
+  `loadoutsFor`). `StoryNode.lore` carries Story Bible flavour ALONGSIDE `note`
+  (56 nodes); note is orientation, lore is place. **Known**: with the cap flat
+  from Act II an Act V Throne fields the same 1/3/6/8 as an Act II one —
+  `FILL_PROFILE` per Act is the dial if that reads flat. **Also**: the Story
+  Bible PDF names 15 champions by their PRE-rename names (Efy, Shock, Zoez,
+  Warden, Season, Scar, Score, Diam, Steel, Rain, Commander, Sandman, Griffith,
+  The DEEPEST, HOAX) — undecided whether the bible or the code moves.
+
 - **Match report in Story Mode** — `MatchReport.tsx` is the end-of-match stat
   summary (MVP, per-side totals, per-card roster table), split out of
   `WinScreen.tsx` so both endings share it. `StoryResult` now renders it behind
