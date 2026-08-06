@@ -6566,8 +6566,8 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Liquid",
     // Rainstorm: Cloudburst's own basics splash 2 DMG to one adjacent opponent.
-    // Downpour: while it lives, EVERY ally's basic clips one adjacent target too
-    // — for 1, not for full.
+    // Downpour: while it lives, EVERY ally's basic splashes 1 DMG to one
+    // adjacent opponent — the same splash, handed to the team, at chip value.
     //
     // It was `true`, i.e. a second FULL basic hit for the whole team. On
     // Cloudburst itself that stacked with Rainstorm onto the same neighbour: a
