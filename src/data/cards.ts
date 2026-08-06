@@ -7885,12 +7885,12 @@ export const CARDS: CardDef[] = [
     // Spined Hide: REFLECT 2 — anything that hits it takes 2 back.
     keywords: { REFLECT: 2 },
     tribe: "Sand Village",
-    // False Head: ONE free dodge for the whole game — the first attack it takes,
-    // of any kind, hits the decoy and does nothing. It was the first MELEE
-    // attack EACH round, which on a 4 HP body meant a melee attacker could
-    // never finish it while a ranged one ignored the passive entirely. One
-    // dodge that answers anything is a cleaner promise than a recurring one
-    // that only answers half the game. Spined Hide (REFLECT 2) is unchanged.
+    // False Head: ONE free dodge for the whole game — the first BASIC attack it
+    // takes, melee or ranged, hits the decoy and does nothing. It was the first
+    // MELEE attack EACH round, which on a 4 HP body meant a melee attacker could
+    // never finish it while a ranged one ignored the passive entirely. Specials
+    // punch through: a cost-2 blocker should turn away a swing, not someone's
+    // once-a-game payoff. Spined Hide (REFLECT 2) is unchanged.
     passiveNames: { falseHead: "False Head" },
     falseHead: true,
   },

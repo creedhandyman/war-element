@@ -628,19 +628,24 @@ export function resolveHit(
   // Blazing Sun (DAWN field): "their attacks cannot miss". Read once — it can't
   // change mid-volley — and applied to every roll-to-hit below.
   const fieldNeverMiss = fieldFlag(draft, attacker, "neverMiss");
-  // False Head (Thorny Ripper): ONE free dodge for the whole game. The first
-  // attack it takes strikes the decoy and deals nothing, and the decoy is then
-  // gone for good.
+  // False Head (Thorny Ripper): ONE free dodge for the whole game, against a
+  // BASIC attack. The first basic it takes strikes the decoy and deals nothing,
+  // and the decoy is then gone for good.
+  //
+  // Basics only. A guaranteed dodge that could also blank a Mythic's Special was
+  // too much on a cost-2 body — the Ripper is a blocker, and what a blocker
+  // should turn away is a swing, not someone's once-a-game payoff.
+  //
+  // `kind === "basic"` also excludes reflect damage by construction, which
+  // matters: reflect is not an attack, and without that the Ripper's own
+  // REFLECT would spend the dodge on the first thing that merely touched it.
   //
   // Decided once, before the hit loop, so a multi-hit volley is blanked whole
   // rather than losing only its opening hit — it is one ATTACK that missed.
-  // Reflect damage is still excluded because it is not an attack, and without
-  // that exclusion the Ripper's own REFLECT would spend the dodge on the first
-  // thing that touched it.
   if (
     tDef.falseHead &&
     !target.falseHeadUsed &&
-    opts.kind !== "reflect"
+    opts.kind === "basic"
   ) {
     target.falseHeadUsed = true;
     result.dodgedHits += opts.hits;

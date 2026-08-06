@@ -499,9 +499,9 @@ export interface CardDef {
   /** Rolling Start (Rumbler): after each basic attack it rolls this many slots
    *  further toward the enemy home. */
   advanceOnBasic?: number;
-  /** False Head (Thorny Ripper): ONE free dodge for the whole game. The first
-   *  attack it takes — melee or ranged, basic or Special — strikes the decoy and
-   *  deals nothing, and the decoy is then gone.
+  /** False Head (Thorny Ripper): ONE free dodge for the whole game, against a
+   *  BASIC attack — melee or ranged. Specials go straight through: a cost-2
+   *  blocker should turn away a swing, not someone's once-a-game payoff.
    *
    *  Blanks the whole attack rather than one hit of it: a multi-hit volley is
    *  wasted entire, because it is one ATTACK that missed. */

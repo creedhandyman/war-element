@@ -570,6 +570,22 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[devil.instanceId].curHp, "the decoy took it").toBe(40);
   });
 
+  it("...but a SPECIAL punches straight through it", () => {
+    // Basics only. A guaranteed dodge that could also blank a Mythic's Special
+    // was too much on a cost-2 body — a blocker should turn away a swing, not
+    // someone's once-a-game payoff.
+    const s = prepState();
+    const devil = place(s, "bore_thorny_ripper", "P1", 3, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const caster = place(s, "dusk_gool", "P2", 2, 0);
+    SPECIAL_HANDLERS.strike(s, s.cards[caster.instanceId], [s.cards[devil.instanceId]], { dmg: 9 });
+    expect(s.cards[devil.instanceId].curHp, "the Special landed").toBe(31);
+    expect(s.cards[devil.instanceId].falseHeadUsed, "and the dodge is still held").toBeFalsy();
+    // ...and it is still there for the next basic.
+    const melee = place(s, "dusk_widowbite", "P2", 3, 1);
+    basicAttack(s, melee.instanceId, devil.instanceId);
+    expect(s.cards[devil.instanceId].curHp, "the basic was dodged").toBe(31);
+  });
+
   it("...and its own REFLECT does not spend the dodge", () => {
     // Spined Hide (REFLECT 2) is unchanged, and reflect damage is not an attack
     // — without that exclusion the Ripper would burn its one dodge on the first
