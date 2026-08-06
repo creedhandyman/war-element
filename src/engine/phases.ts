@@ -11,6 +11,8 @@ import {
   applyMulligan,
   boardCards,
   cardAt,
+  isCaptured,
+  isContested,
   chebyshev,
   drawCards,
   effectiveDmg,
@@ -61,6 +63,7 @@ import {
   isMidRow,
   MAX_ROUNDS,
   NEGATIVE_STATUSES,
+  OPENING_COST_CAP,
   POOL_CARRYOVER_CAP,
   enemyOf,
   homeRow,
@@ -941,12 +944,47 @@ function decideOnTime(draft: GameState): void {
  *  the rest of the match traditional. */
 export const OPENING_SLOTS = 1;
 
+/** Can anyone actually place something? A side with no slots, or holding nothing
+ *  inside the opening cost ceiling, cannot — and if that is true of BOTH sides
+ *  the deployment turn is one where neither player may do anything except pass
+ *  it away twice.
+ *
+ *  Deliberately NOT `canSummon`: that also requires the phase to be "prep" and
+ *  the asking player to hold priority, neither of which is true yet when this
+ *  runs and only one of which could ever be true of both sides at once. This is
+ *  the placement half of the same rules — slots, the cost ceiling, and a home
+ *  slot that is free, uncaptured and uncontested. */
+function anyoneCanDeploy(draft: GameState): boolean {
+  for (const player of ["P1", "P2"] as PlayerId[]) {
+    if ((draft.opening?.[player] ?? 0) <= 0) continue;
+    const affordable = draft.players[player].hand
+      .some((h) => getDef(h.defId).cost <= OPENING_COST_CAP);
+    if (!affordable) continue;
+    const row = homeRow(player, draft.boardSize);
+    for (let col = 0; col < draft.boardSize; col++)
+      if (!isCaptured(draft, row, col) && !isContested(draft, player, col) && !cardAt(draft, row, col))
+        return true;
+  }
+  return false;
+}
+
 function startDeployment(draft: GameState): void {
   for (const player of ["P1", "P2"] as PlayerId[]) {
     // A summon lands in the home row, which is exactly `boardSize` wide, so a
     // side can never place more than the board can hold.
     draft.opening![player] = Math.min(draft.opening![player], draft.boardSize);
     // The opening hand covers any slot count we grant, so no top-up is needed.
+  }
+  // Skip the whole phase when there is nothing anyone could do with it. Since
+  // the opponent's free placement was removed, that happens whenever the
+  // player's opening hand holds nothing at or under the cost ceiling — and a
+  // turn whose only legal action is "pass", twice, is a turn worth deleting
+  // rather than presenting.
+  if (!anyoneCanDeploy(draft)) {
+    draft.opening = undefined;
+    draft.log.push("— No opening placement available. —");
+    startRound(draft);
+    return;
   }
   draft.phase = "prep";
   // movedThisTurn starts true and is never reset while `opening` is live, which

@@ -30,6 +30,37 @@ function runUntil(s: GameState, stop: (g: GameState) => boolean, max = 400): Gam
 const onBoard = (s: GameState, p: PlayerId) =>
   Object.values(s.cards).filter((c) => c.owner === p && c.pos).length;
 
+describe("opening deployment: a turn with nothing to do is not presented", () => {
+  // Every card here costs more than OPENING_COST_CAP, so no opening placement
+  // is legal. Since the opponent's free placement was removed, that makes the
+  // whole phase a turn whose only legal action is "pass", twice.
+  const PRICEY = [
+    "leaf_oakgre", "leaf_trinezer", "leaf_efy", "leaf_season", "leaf_thorn",
+    "leaf_elderroot", "leaf_fallow", "leaf_nightshade", "leaf_warden", "leaf_oakgre",
+    "leaf_trinezer", "leaf_efy",
+  ];
+  const past = (deck: string[]) => {
+    let s = createInitialState(7, deck, DECK, [], [], [], 4, { P1: 1, P2: 0 });
+    for (let i = 0; i < 40 && s.phase === "mulligan"; i++) s = advance(s);
+    return s;
+  };
+
+  it("skips deployment when nothing can be placed", () => {
+    const s = past(PRICEY);
+    expect(s.opening, "the phase never opened").toBeUndefined();
+    expect(s.round, "straight into round one").toBe(1);
+    expect(s.log.some((l) => /No opening placement available/.test(l))).toBe(true);
+  });
+
+  it("...but still runs it when something CAN be placed", () => {
+    // The guard on the guard: a skip that fired for everyone would be worse
+    // than the dead turn it replaced.
+    const s = past(DECK);
+    expect(s.opening, "the phase opened").toBeTruthy();
+    expect(s.log.some((l) => /Opening deployment \(free\)/.test(l))).toBe(true);
+  });
+});
+
 describe("opening deployment: the head start is the PLAYER'S alone", () => {
   it("places for P1 and nothing for P2, then hands over cleanly", () => {
     // The campaign passes { P1: 1, P2: 0 }. The enemy already fields a whole
