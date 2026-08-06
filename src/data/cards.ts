@@ -942,10 +942,15 @@ export const CARDS: CardDef[] = [
     // alpha STEALTH keyword.
     keywords: { CRIT: true, STEALTH: true },
     // Predator's Snare (On Kill): lay a trap on the slot the prey fell on. The
-    // next opponent to walk onto it eats the SAME payload as Dark Hunting —
-    // 7 DMG, ROOT 2, and LIFESTEAL to Nightbriar.
+    // next opponent to walk onto it — OR be summoned onto it — eats 3 DMG,
+    // ROOT 2, and LIFESTEAL to Nightbriar.
+    //
+    // Halved from 7 to 3. The trap was a full copy of Dark Hunting for free, on
+    // a card that also carries CRIT and STEALTH, and it now triggers on summons
+    // as well — the same payload on twice the triggers would have been a
+    // straight buff to a card that did not need one.
     passiveNames: { onKill: "Predator's Snare" },
-    onKill: { setTrap: { dmg: 7, rootDuration: 2, lifesteal: 1 } },
+    onKill: { setTrap: { dmg: 3, rootDuration: 2, lifesteal: 1 } },
     // Dark Hunting: strike a target, ROOT it, and LIFESTEAL the damage.
     special: {
       name: "Dark Hunting",
@@ -6420,7 +6425,11 @@ export const CARDS: CardDef[] = [
     dmg: 4,
     hits: 2,
     hp: 23,
-    sp: 10,
+    // 10 -> 7. Grounded roots the FASTEST opponent, so Evera at 10 SP was
+    // usually acting before the card she was about to pin and taking the first
+    // shot as well. At 7 the root still lands, but she is no longer quicker
+    // than most of what she is answering.
+    sp: 7,
     shields: 0,
     keywords: {},
     // Grounded (End of Round): ROOT the fastest opponent 2 rounds. Aura: heal all
@@ -6721,8 +6730,15 @@ export const CARDS: CardDef[] = [
     // builds ARC's own drones. Picks up Jack Arc's Overclock (+2 SP).
     tribe: "ARC",
     // Swarm Deploy (On Summon): pop a 1/1 FLYING Drone out beside it.
+    //
+    // No `radius`. It used to be 1, which is a HARD tether: `spawnTokens` only
+    // searches the 8 slots around the spawner and gives up if none are free.
+    // Zipp lands in the home row, which is exactly where a board gets crowded,
+    // so the Drone silently failed to appear whenever its neighbours were full.
+    // Omitting radius keeps the adjacent ring as the PREFERENCE and then opens
+    // the search to the rest of the board, so the promise on the card is kept.
     passiveNames: { onSummon: "Swarm Deploy" },
-    onSummon: { handler: "spawn", params: { token: "bolt_drone_tok", count: 1, radius: 1 } },
+    onSummon: { handler: "spawn", params: { token: "bolt_drone_tok", count: 1 } },
   },
   {
     id: "bolt_volta",
@@ -7685,8 +7701,12 @@ export const CARDS: CardDef[] = [
     // Drone Sweep: when an opponent is summoned, launch a drone into the closest
     // empty slot beside the newcomer; the drone strafes it for 1. Buzzard itself
     // stays put now — it deploys rather than chases.
+    //
+    // ONE per round. A turn where the opponent summons three bodies used to pay
+    // three drones, so a single 3-cost card punished the whole turn and left a
+    // wall of chip damage behind it.
     passiveNames: { onOppSummon: "Drone Sweep" },
-    onOppSummon: { spawnToken: "bolt_drone_tok", dmg: 1 },
+    onOppSummon: { spawnToken: "bolt_drone_tok", dmg: 1, oncePerRound: true },
   },
   {
     id: "bolt_staticcloud",

@@ -587,6 +587,10 @@ export interface CardDef {
      *  closest empty slot beside the newcomer. The DRONE then deals `dmg` (it is
      *  adjacent by construction, so the guard's own reach never gates it). */
     spawnToken?: string;
+    /** Answer at most ONE summon per round. Without it a wide summoning turn
+     *  pays out a drone per body, which is the whole opponent's turn punished
+     *  several times over by a single 3-cost card. */
+    oncePerRound?: boolean;
   };
   /** This card's attacks do NOT wake SLEEPING targets (Dunewraith's Nightmare —
    *  his hits ignore SLEEP's break-on-hit rule). */
@@ -909,6 +913,9 @@ export interface CardInstance {
   allyKilledFiredRound?: boolean;
   /** Per-round guard for Twin Strike (Twinbolt's onCritBonus). */
   twinStrikeFiredRound?: boolean;
+  /** Drone Sweep (Buzzard): one reaction per round, however many bodies the
+   *  opponent summons. Reset in Cleanup with the others. */
+  oppSummonFiredRound?: boolean;
   /** Per-round guard for False Head (Thorny Ripper) — the decoy soaks one melee
    *  attack per round. */
   falseHeadUsedRound?: boolean;

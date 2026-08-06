@@ -725,10 +725,87 @@ describe("medium-tier passives (audit batch)", () => {
     const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
     s.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
     const n = applyIntent(s, { type: "MOVE", player: "P2", instanceId: foe.instanceId, to: { row: 2, col: 1 } });
-    expect(40 - n.cards[foe.instanceId].curHp).toBe(7); // Dark Hunting's 7 DMG
+    // 3, not Dark Hunting's 7: the trap is half the Special now that it also
+    // answers summons. ROOT and LIFESTEAL are untouched.
+    expect(40 - n.cards[foe.instanceId].curHp).toBe(3);
     expect(statusOf(n.cards[foe.instanceId], "ROOT")).toBeTruthy(); // ROOT 2
-    expect(n.cards[darth.instanceId].curHp).toBe(12); // LIFESTEAL 7 (5 → 12)
+    expect(n.cards[darth.instanceId].curHp).toBe(8); // LIFESTEAL 3 (5 → 8)
     expect(n.traps).toHaveLength(0); // one square, one time — spent
+  });
+
+  it("Nightbriar's trap answers a SUMMON onto the square, not just a walk", () => {
+    // The slot a card died on is exactly the slot its owner wants back, so a
+    // trap that only watched movement could be stepped around by placing a body
+    // on it instead. Arrival is arrival.
+    const s = prepState();
+    const darth = place(s, "leaf_darth", "P1", 3, 1, { curHp: 17, maxHp: 17 });
+    const prey = place(s, "dusk_gool", "P2", 2, 1, { curHp: 2, maxHp: 2, curShields: 0 });
+    basicAttack(s, darth.instanceId, prey.instanceId);
+    expect(s.traps.find((t) => t.pos.row === 2 && t.pos.col === 1)).toBeTruthy();
+    // P2 summons straight onto the trapped square. Summons land in the home
+    // row, so put the trap there for a faithful test of the summon path.
+    const s2 = prepState();
+    const d2 = place(s2, "leaf_darth", "P1", 3, 1, { curHp: 17, maxHp: 17 });
+    s2.traps.push({
+      owner: "P1", pos: { row: 0, col: 0 }, label: "Nightbriar's trap",
+      sourceId: d2.instanceId, dmg: 3,
+      status: { kind: "ROOT", duration: 2, power: 0 }, lifesteal: 1,
+    } as (typeof s2.traps)[number]);
+    const hand = giveHand(s2, "P2", "dusk_gool");
+    s2.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    s2.players.P2.gold = 20;
+    const n = applyIntent(s2, { type: "SUMMON", player: "P2", handId: hand, col: 0 });
+    const landed = boardCards(n, "P2").find((c) => c.pos && c.pos.row === 0 && c.pos.col === 0);
+    expect(landed, "the summon resolved").toBeTruthy();
+    expect(getDef(landed!.defId).hp - landed!.curHp, "took the trap on arrival").toBe(3);
+    expect(n.traps, "spent on arrival").toHaveLength(0);
+  });
+
+  it("Buzzard's Drone Sweep answers ONE summon per round, not one per body", () => {
+    // A wide summoning turn used to pay a drone per body, so a single 3-cost
+    // card punished the opponent's whole turn and left a wall of chip behind.
+    const s = prepState();
+    place(s, "bolt_buzzard", "P1", 3, 3, { curHp: 14, maxHp: 14 });
+    s.players.P2.gold = 40;
+    s.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    let g = s;
+    for (const col of [0, 1, 2]) {
+      const h = giveHand(g, "P2", "dusk_gool");
+      g = applyIntent(g, { type: "SUMMON", player: "P2", handId: h, col });
+      g.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    }
+    const drones = boardCards(g, "P1").filter((c) => c.defId === "bolt_drone_tok");
+    expect(drones.length, "three summons, one drone").toBe(1);
+  });
+
+  const summonZipp = (s: GameState, col = 0) => {
+    const h = giveHand(s, "P1", "bolt_zipp");
+    s.players.P1.gold = 20;
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    return applyIntent(s, { type: "SUMMON", player: "P1", handId: h, col });
+  };
+  const droneCount = (s: GameState) =>
+    boardCards(s, "P1").filter((c) => c.defId === "bolt_drone_tok").length;
+
+  it("Zipp's Swarm Deploy fires with NO enemy on the board", () => {
+    // This is the reported bug, and it was not the spawn radius: on-summon
+    // handlers only ran when `picked.length > 0`, i.e. when something was in
+    // range to hit. `spawn` aims at nothing, so summoning Zipp onto an empty
+    // board — or with the enemy line out of reach — ran no passive at all.
+    const s = prepState();
+    expect(boardCards(s, "P2")).toHaveLength(0);
+    expect(droneCount(summonZipp(s)), "a Drone with nothing to shoot at").toBe(1);
+  });
+
+  it("Zipp's Drone still lands when every slot beside Zipp is taken", () => {
+    // The secondary hole: `radius: 1` searched only the 8 adjacent slots and
+    // gave up if none were free — and Zipp lands in the home row, which is
+    // exactly where a board gets crowded. Dropping the radius keeps adjacency
+    // as the preference and then opens the search to the rest of the board.
+    const s = prepState();
+    for (const [r, c] of [[3, 1], [2, 0], [2, 1]] as const)
+      place(s, "dusk_gool", "P1", r, c, { curHp: 9, maxHp: 9 });
+    expect(droneCount(summonZipp(s)), "the Drone found a slot anyway").toBe(1);
   });
 
   it("Dyna's Demolition Charge deals 4 + half the target's current HP", () => {

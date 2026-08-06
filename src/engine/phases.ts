@@ -122,6 +122,15 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         }
         if (rolled > 0) draft.log.push(`${def.name} rolls forward ${rolled} slot(s) on summon.`);
       }
+      // A trap springs on ARRIVAL, however the card arrived. Nightbriar's
+      // Predator's Snare marks the slot its prey fell on, and a slot the enemy
+      // wants back is exactly the slot they will summon into — so a trap that
+      // only answered movement could be walked around by simply placing a body
+      // on it instead. Runs AFTER summonAdvance (the card may have rolled off
+      // the trapped square) and BEFORE the onSummon passive and the
+      // onOppSummon reactions, both of which already guard on the newcomer
+      // still existing, so a lethal trap resolves cleanly.
+      triggerTrapOnMove(draft, inst, "is summoned onto");
       // Elemental Fury (Prism): lands with its Special already charged. OUTSIDE
       // the onSummon block below — Prism has no onSummon, so nesting it there
       // meant the passive never fired at all.
@@ -176,7 +185,15 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
                 .filter((t) => t.curHp > 0 && t.pos != null)
                 .sort((a, b) => manhattan(inst.pos!, a.pos!) - manhattan(inst.pos!, b.pos!))
             : targets;
-          if (picked.length > 0) {
+          // Most on-summon handlers are attacks, so no target means nothing to
+          // do. But a few do not aim at anything — `spawn` drops a token beside
+          // the summoner — and gating those on `picked.length` meant they
+          // silently did NOTHING whenever no enemy was in range. That is the
+          // whole of "sometimes Zipp doesn't spawn the drone": summon it on an
+          // empty board, or with the enemy line out of reach, and Swarm Deploy
+          // never ran. Volta's Rodd had the same hole.
+          const TARGETLESS = new Set(["spawn"]);
+          if (picked.length > 0 || TARGETLESS.has(os.handler)) {
             const targets = picked;
             const handler = SPECIAL_HANDLERS[os.handler];
             if (!handler) throw new Error(`Unknown onSummon handler: ${os.handler}`);
@@ -220,6 +237,9 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       for (const guard of boardCards(draft, enemyOf(inst.owner))) {
         const gd = getDef(guard.defId);
         if (!gd.onOppSummon || guard.curHp <= 0 || !draft.cards[inst.instanceId]) continue;
+        // Drone Sweep (Buzzard): one answer per round, not one per body.
+        if (gd.onOppSummon.oncePerRound && guard.oppSummonFiredRound) continue;
+        if (gd.onOppSummon.oncePerRound) guard.oppSummonFiredRound = true;
         // Burning Bark (Sparky): hop to the closest empty slot adjacent to the
         // newcomer before reacting, chasing fresh arrivals into BURN range.
         if (gd.onOppSummon.chase && inst.pos && guard.pos) {
@@ -809,7 +829,7 @@ function resolveSpell(
  *
  *  Runs BEFORE the wall check so a card that walks into a trapped square inside
  *  a walled row takes both, in the order they were laid down. */
-function triggerTrapOnMove(draft: GameState, card: CardInstance): void {
+function triggerTrapOnMove(draft: GameState, card: CardInstance, arrival = "steps on"): void {
   if (!card.pos) return;
   const i = draft.traps.findIndex(
     (t) => t.owner !== card.owner && t.pos.row === card.pos!.row && t.pos.col === card.pos!.col,
@@ -818,7 +838,7 @@ function triggerTrapOnMove(draft: GameState, card: CardInstance): void {
   const trap = draft.traps[i];
   draft.traps.splice(i, 1); // spent on trigger, survivor or not
   const name = trap.spellId ? getSpell(trap.spellId).name : (trap.label ?? "a hidden trap");
-  draft.log.push(`${label(draft, card)} steps on ${name}!`);
+  draft.log.push(`${label(draft, card)} ${arrival} ${name}!`);
   const victims = [card];
   if (trap.splash) {
     // Inferno Pit: everything of the victim's side packed around the square.
@@ -2290,6 +2310,7 @@ function doCleanupPhase(draft: GameState): void {
     card.kingWildFiredRound = false; // King of the Wild (Leo): one buff per round
     card.allyKilledFiredRound = false; // Overwatch (Hartwood): one answer per round
     card.twinStrikeFiredRound = false; // Twin Strike (Twinbolt): one bonus volley per round
+    card.oppSummonFiredRound = false;  // Drone Sweep (Buzzard): one answer per round
     card.falseHeadUsedRound = false; // False Head (Thorny Ripper): the decoy resets each round
     card.onKillAoeFiredRound = false; // Powertrip re-arms each round
     card.dmgBonusRound = 0;
