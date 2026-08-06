@@ -30,6 +30,30 @@ function runUntil(s: GameState, stop: (g: GameState) => boolean, max = 400): Gam
 const onBoard = (s: GameState, p: PlayerId) =>
   Object.values(s.cards).filter((c) => c.owner === p && c.pos).length;
 
+describe("opening deployment: the head start is the PLAYER'S alone", () => {
+  it("places for P1 and nothing for P2, then hands over cleanly", () => {
+    // The campaign passes { P1: 1, P2: 0 }. The enemy already fields a whole
+    // deck matched to the player's card count with a rarity profile on top, so
+    // a free placement was paying difficulty into the side that needed it least.
+    const s = runUntil(pastMulligan({ P1: 1, P2: 0 }), (g) => !g.opening);
+    expect(onBoard(s, "P1"), "the player leads with one").toBe(1);
+    expect(onBoard(s, "P2"), "the opponent leads with none").toBe(0);
+    // And the phase actually RESOLVED rather than stalling on a side with no
+    // legal opening summon — canSummon fails on zero slots, aiPrepIntent falls
+    // through to PASS, and two consecutive passes end deployment as usual.
+    expect(s.opening).toBeUndefined();
+    expect(s.round).toBe(1);
+  });
+
+  it("still ends deployment when NEITHER side can place", () => {
+    // Belt and braces: the two-pass exit must not depend on anyone summoning.
+    const s = runUntil(pastMulligan({ P1: 0, P2: 0 }), (g) => !g.opening);
+    expect(s.opening).toBeUndefined();
+    expect(onBoard(s, "P1")).toBe(0);
+    expect(onBoard(s, "P2")).toBe(0);
+  });
+});
+
 describe("opening deployment", () => {
   it("does not touch a battle that never asked for it", () => {
     const s = pastMulligan();

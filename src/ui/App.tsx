@@ -57,7 +57,7 @@ import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
 import { StoryResult } from "./StoryResult";
 import {
-  PLAYER_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, deckCapFor, enemyDeployFor,
+  PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, deckCapFor,
   loadStory, recruitablePool,
   regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
@@ -1868,7 +1868,7 @@ export function App() {
             // Opening deployment is STORY-ONLY for now: skirmish, online and
             // Void Tower keep the ordinary summon ramp untouched.
             setGame(createInitialState(newSeed(), deck, squad, ["P1"], [], [], board,
-              { P1: PLAYER_DEPLOY, P2: enemyDeployFor(node) }, terrain));
+              { P1: PLAYER_DEPLOY, P2: ENEMY_DEPLOY }, terrain));
             setStoryNode(node);
             setStoryOpen(false);
             setViewSide("P1");

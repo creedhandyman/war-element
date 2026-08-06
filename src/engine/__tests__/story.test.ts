@@ -10,7 +10,7 @@ import {
   ALL_NODES, BLIGHT_ADDS, BLIGHT_MAX, CAP_LADDER, OVERFLOW_RATE, REGIONS, STARTER_DECK,
   applyClear, baseRateFor, blightAddsFor, blightLevel, canBlight, deckCapFor, isOpen, isOverflow,
   DUPLICATE_CAP, EPIC_DUPLICATE_FROM_CAP, PLACED_CARDS, copyCapFor, STARTER_DECK as STARTER, bestSource, buildFormation,
-  demandMet, doublesEpics, gateCheck, isGate, regionOfNode, boardForNode, boardsLegalFor,
+  demandMet, doublesEpics, gateCheck, isGate, regionOfNode, boardForNode, BIG_BATTLE_KINDS,
   formationSize, isRegionCleared, isRegionOpen,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
@@ -107,12 +107,15 @@ describe("story: the deck cap ladder", () => {
   });
 
   it("makes Act IV wait for BOTH Green Thrones, not either", () => {
-    // §2's revision: a player arriving on the 5x5 board with only LEAF plus one
-    // other element cannot field a functional 22-card list, and the aura maths
-    // gets ugly. The choice is route order, not content.
+    // §2's revision still holds, but the CAP no longer carries it: the ladder
+    // tops out at 18 in Act II, so both routes leave you at the same size and
+    // the requirement lives entirely in Gate E, which is where it reads better
+    // anyway — "the border is shut until both Thrones fall" is a map fact, not
+    // a deckbuilding one.
     expect(deckCapFor(["L14", "P13"])).toBe(18);
     expect(deckCapFor(["L14", "A13"])).toBe(18);
-    expect(deckCapFor(["L14", "P13", "A13"])).toBe(22);
+    expect(deckCapFor(["L14", "P13", "A13"])).toBe(18);
+    expect(nodeById("GE")!.requires).toEqual(expect.arrayContaining(["P13", "A13"]));
   });
 
   it("the starter deck is legal at the starting cap and all LEAF", () => {
@@ -694,7 +697,7 @@ describe("story: formations (10.7)", () => {
     expect(copyCapFor(epic, 12)).toBe(1);
     expect(copyCapFor(epic, 15)).toBe(1);
     expect(copyCapFor(epic, EPIC_DUPLICATE_FROM_CAP)).toBe(DUPLICATE_CAP.epic);
-    expect(copyCapFor(epic, 28)).toBe(DUPLICATE_CAP.epic);
+    expect(copyCapFor(epic, 18)).toBe(DUPLICATE_CAP.epic); // 18 is the ceiling now
     // Rares are never gated — they are what fills a board at Act I.
     const rare = CARDS.find((c) => c.rarity === "rare")!.id;
     expect(copyCapFor(rare, 12)).toBe(DUPLICATE_CAP.rare);
@@ -877,39 +880,35 @@ describe("story: border gates (7)", () => {
 });
 
 describe("story: board size is welded to deck size", () => {
-  it("gives every cap in the ladder exactly one legal board", () => {
-    // The reason a region cannot run small nodes on 4x4 and big ones on 5x5:
-    // the format ranges (4x4 = 12-20, 5x5 = 20-30) overlap at exactly 20 cards,
-    // and no rung of the ladder lands there. Mixing boards inside an Act would
-    // mean playing off-format in one direction or the other.
-    for (const step of CAP_LADDER)
-      expect(boardsLegalFor(step.cap), `cap ${step.cap}`).toHaveLength(1);
+  it("keeps the whole ladder on the 4x4 format", () => {
+    // Every rung is a legal 4x4 list (12-20 cards). The large board is no longer
+    // something a deck size earns — it is granted by the node.
+    for (const step of CAP_LADDER) {
+      expect(step.cap, `cap ${step.cap}`).toBeGreaterThanOrEqual(12);
+      expect(step.cap, `cap ${step.cap}`).toBeLessThanOrEqual(18);
+      expect(step.board, `cap ${step.cap}`).toBe(4);
+    }
   });
 
-  it("names 20 as the only deck size that could ever mix boards", () => {
-    expect(boardsLegalFor(20).sort()).toEqual([4, 5]);
-    expect(boardsLegalFor(19)).toEqual([4]);
-    expect(boardsLegalFor(21)).toEqual([5]);
-  });
-
-  it("fights every node on a board its deck cap is legal for", () => {
-    // The guard that matters now Act IV content exists: a node whose tier's deck
-    // cannot legally field its board is caught here rather than in play. The cap
-    // on entry is whatever clearing the region's gates ALSO required — GALE is
-    // reached through Gate E, which itself needs both Green Thrones, so a player
-    // standing in GALE is necessarily at cap 22 and legal on 5x5.
+  it("sends set pieces to 5x5 and everything else to 4x4", () => {
+    // The campaign is a 4x4 game that opens up for the fight an Act builds to.
     for (const r of REGIONS) {
-      const gates = r.requires ?? [];
-      const onEntry = [...gates, ...gates.flatMap((g) => nodeById(g)?.requires ?? [])];
-      const cap = deckCapFor(onEntry);
       for (const n of r.nodes) {
         const board = boardForNode(r, n);
+        const big = BIG_BATTLE_KINDS.includes(n.kind);
+        expect(board, `${n.id} (${n.kind})`).toBe(n.board ?? (big ? 5 : 4));
         expect([4, 5], `${n.id} board ${board}`).toContain(board);
-        expect(boardsLegalFor(cap),
-          `${n.id} is fought on ${board} at cap ${cap}, where that board is illegal`)
-          .toContain(board);
       }
     }
+  });
+
+  it("keeps the large board rare enough to stay an event", () => {
+    const all = REGIONS.flatMap((r) => r.nodes.map((n) => boardForNode(r, n)));
+    const big = all.filter((b) => b === 5).length;
+    // Landmarks and Thrones only — a third of the map at most, or "important
+    // battle" stops meaning anything.
+    expect(big).toBeGreaterThan(0);
+    expect(big / all.length).toBeLessThan(0.35);
   });
 });
 
@@ -925,11 +924,14 @@ describe("story: N-of-M gating", () => {
     expect(isOpen({ ...newSave(), cleared: [...base, "G14"] }, gs), "one is not enough").toBe(false);
   });
 
-  it("raises the cap to 28 on any two, and not on one", () => {
+  it("stops growing the deck after Act II — the Gray Continent pays in cards, not slots", () => {
+    // The ladder used to run to 28 here. It tops out at 18 now, so clearing Gray
+    // Thrones changes WHICH eighteen you can field, not how many. The N-of-M
+    // logic it used to exercise is still live on the Shadow Border above.
     const base = ["L14", "P13", "A13"];
-    expect(deckCapFor([...base, "G14"])).toBe(22);
-    expect(deckCapFor([...base, "G14", "B14"])).toBe(28);
-    expect(deckCapFor([...base, "B14", "R14"])).toBe(28);
+    expect(deckCapFor([...base, "G14"])).toBe(18);
+    expect(deckCapFor([...base, "G14", "B14"])).toBe(18);
+    expect(Math.max(...CAP_LADDER.map((r) => r.cap))).toBe(18);
   });
 
   it("leaves DUSK unblightable — it is the source", () => {
@@ -1000,6 +1002,11 @@ describe("story: the campaign is complete", () => {
     }
     const unreached = ALL_NODES.filter((n) => !save.cleared.includes(n.id)).map((n) => n.id);
     expect(unreached, "unreachable nodes").toEqual([]);
-    expect(deckCapFor(save.cleared)).toBe(28);
+    // The walk ends at the ceiling — and reaches it in Act II, because that is
+    // where the ladder now stops. Everything after is a better eighteen, not a
+    // bigger one, so this asserts the ceiling rather than a late-game number.
+    const ceiling = Math.max(...CAP_LADDER.map((r) => r.cap));
+    expect(deckCapFor(save.cleared)).toBe(ceiling);
+    expect(deckCapFor(["L14", "P13"])).toBe(ceiling);
   });
 });

@@ -85,7 +85,7 @@ export function StoryMap(props: {
       <header className="story-head">
         <div>
           <div className="story-eyebrow" style={{ color: EL_COLOR[region.element as keyof typeof EL_COLOR] }}>
-            {region.element} · {region.terrain} · {region.board}×{region.board}
+            {region.element} · {region.terrain} · {region.board}×{region.board} · 5×5 set pieces
           </div>
           <h2>{region.name}</h2>
         </div>

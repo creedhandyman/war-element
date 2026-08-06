@@ -69,6 +69,8 @@ export interface StoryRegion {
   element: string;
   /** The Field spell that runs permanently on every node in the region. */
   terrain: string;
+  /** Board for this region's ORDINARY nodes. Its Landmarks and Thrones go to
+   *  5x5 regardless — see `boardForNode` / `BIG_BATTLE_KINDS`. */
   board: number;
   /** Blight the region ships with, painted into the map at generation rather
    *  than creeping in later. LEAF's Rot Line is the template: it is simply the
@@ -353,7 +355,7 @@ const GALE: StoryRegion = {
   name: "Gale — The Gray Continent North",
   element: "GALE",
   terrain: "Jetstream",
-  board: 5,
+  board: 4,
   art: "/maps/gale.webp",
   artRatio: 1536 / 1024,
   requires: ["GE"],
@@ -423,7 +425,7 @@ const BOLT: StoryRegion = {
   name: "Bolt City — Tech Heart of the Continent",
   element: "BOLT",
   terrain: "Power Grid",
-  board: 5,
+  board: 4,
   art: "/maps/bolt.webp",
   artRatio: 1440 / 1080,
   requires: ["GE"],
@@ -499,7 +501,7 @@ const BORE: StoryRegion = {
   name: "Bore — Bore Mountain & Reveen",
   element: "BORE",
   terrain: "Bedrock",
-  board: 5,
+  board: 4,
   art: "/maps/bore.webp",
   artRatio: 1440 / 1080,
   requires: ["GE"],
@@ -583,7 +585,7 @@ const DUSK: StoryRegion = {
   name: "Dusk — Realm of Shadows",
   element: "DUSK",
   terrain: "Nightfall",
-  board: 5,
+  board: 4,
   art: "/maps/dusk.webp",
   artRatio: 1440 / 1080,
   requires: ["GS"],
@@ -659,7 +661,7 @@ const DAWN: StoryRegion = {
   name: "Dawn — The Golden Kingdom",
   element: "DAWN",
   terrain: "Blazing Sun",
-  board: 5,
+  board: 4,
   art: "/maps/dawn.webp",
   artRatio: 1440 / 1080,
   requires: ["GF"],
@@ -745,24 +747,38 @@ export const STARTER_DECK: string[] = [
 ];
 
 // ── deck cap ladder ─────────────────────────────────────────────────────────
-// Every cap below a format's maximum is a CAMPAIGN restriction, not a rule
-// change: 18 on 4x4 and 28 on 5x5 are legal everywhere else in the game. Story
-// Mode is gating access to full-size list building, nothing more.
+// The campaign tops out at EIGHTEEN cards — the 4x4 format maximum — and gets
+// there by the end of Act II. Past that the deck stops growing and only gets
+// better: the reward for the back half of the campaign is which eighteen you
+// can field, not how many. The old ladder ran 12/15/18/22/28 and pushed the
+// whole Gray Continent onto 28-card lists, which made late-game decks a
+// bookkeeping exercise and quietly doubled every Throne formation with it
+// (`formationSize(cap) === cap`, so the enemy grew in lockstep).
+//
+// A rung above 18 would also now be unplayable as written: the board is chosen
+// by node kind rather than deck size (see `boardForNode`), so nothing consumes
+// a `board: 5` rung any more. The field is kept on each rung because the map
+// header and the collection screen both still read it.
 
-export const CAP_LADDER = [
+/** One rung of the ladder. `unlockedBy` is a single node id, or an array
+ *  meaning ALL of them unless `count` says how many of the set suffice. The
+ *  shipped ladder currently uses only the single-id form, but the shape is kept
+ *  general — the Gray Continent rungs used both, and re-adding one should be a
+ *  data edit, not a rewrite of `deckCapFor`. */
+export type CapRung = {
+  cap: number;
+  board: number;
+  unlockedBy: string | readonly string[] | null;
+  count?: number;
+  label: string;
+};
+
+export const CAP_LADDER: readonly CapRung[] = [
   { cap: 12, board: 4, unlockedBy: null, label: "Starting deck" },
   { cap: 15, board: 4, unlockedBy: "L14", label: "LEAF Throne" },
   { cap: 18, board: 4, unlockedBy: "P13", label: "PYRO Throne" }, // 4x4 format max
   { cap: 18, board: 4, unlockedBy: "A13", label: "AQUA Throne" }, // either Act II Throne
-  // Act IV wants BOTH Green Thrones, not either: §2's revision makes PYRO and
-  // AQUA mandatory so a player arrives on the 5x5 board with three elements
-  // rather than two. An array means ALL of them.
-  { cap: 22, board: 5, unlockedBy: ["P13", "A13"], label: "Both Green Thrones" },
-  // Act V: TWO of the three Gray Thrones, in any combination. `count` is what
-  // keeps the Gray Continent order-free — requiring a named third would put an
-  // order back on a set §2 says has none.
-  { cap: 28, board: 5, unlockedBy: ["G14", "B14", "R14"], count: 2, label: "Two of three Gray Thrones" },
-] as const;
+];
 
 export function deckCapFor(cleared: readonly string[]): number {
   let cap: number = CAP_LADDER[0].cap;
@@ -771,7 +787,7 @@ export function deckCapFor(cleared: readonly string[]): number {
     const needed: readonly string[] =
       typeof step.unlockedBy === "string" ? [step.unlockedBy] : step.unlockedBy;
     const have = needed.filter((id) => cleared.includes(id)).length;
-    const want = "count" in step ? (step.count as number) : needed.length;
+    const want = step.count ?? needed.length;
     if (have >= want) cap = Math.max(cap, step.cap);
   }
   return cap;
@@ -911,28 +927,30 @@ export const recruitablePool = (node: StoryNode): string[] => [...node.roster, .
 
 // ── board size ──────────────────────────────────────────────────────────────
 
-/** Legal deck sizes per board, mirroring `custom-decks.ts` DECK_LIMITS. Kept
- *  here so the campaign layer can reason about format without importing the
- *  deck-builder. */
-const BOARD_DECK_RANGE: Record<number, [number, number]> = { 4: [12, 20], 5: [20, 30] };
-
-/** Which boards a deck of this size may legally be played on.
+/** Node kinds fought on the LARGE board. Everything else is 4x4.
  *
- *  This is the constraint that governs whether a region can vary its board by
- *  node. The ranges overlap at EXACTLY 20 cards, and the cap ladder
- *  (12/15/18/22/28) never lands there — so at every current tier a deck is legal
- *  on precisely one board, and "small nodes 4x4, big nodes 5x5" would mean
- *  playing off-format in one direction or the other. Setting an Act's cap to 20
- *  is the only way to unlock a mixed-board Act. */
-export function boardsLegalFor(deckCap: number): number[] {
-  return Object.entries(BOARD_DECK_RANGE)
-    .filter(([, [lo, hi]]) => deckCap >= lo && deckCap <= hi)
-    .map(([b]) => Number(b));
-}
+ *  The campaign is a 4x4 game that opens up for its set pieces: a Landmark or a
+ *  Throne is the fight the Act has been building to, and the extra rank and file
+ *  of a 5x5 is what makes it feel like one. 33 of the campaign's ~124 nodes are
+ *  big, so the large board stays an event rather than the default. */
+export const BIG_BATTLE_KINDS: readonly NodeKind[] = ["landmark", "throne"];
 
-/** The board a node is fought on. */
+/** The board a node is fought on — decided by the NODE, not by deck size.
+ *
+ *  This deliberately breaks the old coupling. Constructed play ties the two
+ *  together (`custom-decks.ts` DECK_LIMITS: 4x4 wants 12-20 cards, 5x5 wants
+ *  20-30), and while the campaign cap ladder ran to 28 the campaign could honour
+ *  it — every tier was legal on exactly one board. With the ladder now topping
+ *  out at 18 that is no longer possible: an 18-card deck is under the
+ *  constructed 5x5 minimum, so a Landmark or Throne is fought DELIBERATELY off
+ *  the constructed format.
+ *
+ *  That is a campaign rule, not a rules change — nothing else in the game reads
+ *  it, and both sides bring the same count (`formationSize(cap) === cap`), so
+ *  the fight stays symmetric. It just means a set piece is a smaller army on a
+ *  wider field, which is the manoeuvring the big board exists for. */
 export const boardForNode = (region: StoryRegion, node: StoryNode): number =>
-  node.board ?? region.board;
+  node.board ?? (BIG_BATTLE_KINDS.includes(node.kind) ? 5 : region.board);
 
 // ── border gates (§7) ───────────────────────────────────────────────────────
 
@@ -1071,16 +1089,21 @@ export const formationSize = (cap: number): number => cap;
  * Never trims: a roster card dropped to hit the target would be unrecruitable
  * that run, so a big Landmark is simply allowed to be big.
  */
-/** Opening deployment slots (§10.6), deliberately small: one free teammate each
- *  and then a traditional game. A full opening board front-loaded the match and
- *  skipped the ramp entirely; one card just removes the dead first turn.
- *  Asymmetry stays as the BOSS lever — a Throne leading with two against your
- *  one reads as a boss, where the same thing on every Skirmish would read as a
- *  broken game. */
+/** Opening deployment (§10.6) is now the PLAYER'S alone: one free teammate on
+ *  the board before round one, and the opponent gets nothing.
+ *
+ *  It used to be symmetric — one each, two for a Throne. But the enemy already
+ *  fields a whole deck built to the player's own card count (`formationSize`),
+ *  with a rarity profile on top (`FILL_PROFILE`), so the free placement was
+ *  paying difficulty into the side that needed it least. Handing it to the
+ *  player only turns it into what it should have been: your head start, and the
+ *  answer to "who do you lead with?".
+ *
+ *  Mechanically the AI simply finds no legal opening summon (`canSummon` fails
+ *  on zero slots), so `aiPrepIntent` falls through to PASS and deployment ends
+ *  on the usual two consecutive passes. No phase logic changes. */
 export const PLAYER_DEPLOY = 1;
-export function enemyDeployFor(node: StoryNode): number {
-  return node.kind === "throne" ? 2 : PLAYER_DEPLOY;
-}
+export const ENEMY_DEPLOY = 0;
 
 export function buildFormation(save: StorySave, region: StoryRegion, node: StoryNode): string[] {
   const uniques = recruitablePool(node);
