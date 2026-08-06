@@ -58,8 +58,7 @@ import { StoryMap } from "./StoryMap";
 import { StoryResult } from "./StoryResult";
 import { StoryPrep } from "./StoryPrep";
 import {
-  PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, deckCapFor,
-  STANDARD_CAP, BIG_BOARD_CAP,
+  PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation,
   loadStory, recruitablePool,
   regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
@@ -177,15 +176,6 @@ export function App() {
   // A node awaiting the prep screen. Tapping a node no longer launches the
   // battle — it opens prep, and prep launches.
   const [prepNode, setPrepNode] = useState<StoryNode | null>(null);
-  // The full deck builder, opened on the CAMPAIGN collection rather than the
-  // custom-deck sandbox. Story Mode had its own thin editor; this is the good one.
-  const [storyBuilder, setStoryBuilder] = useState(false);
-  // Build to the largest ceiling the campaign currently allows, so one trip to
-  // the builder can produce both the 18-card road team and the set-piece team.
-  const storyBuilderCap = Math.max(
-    STANDARD_CAP,
-    Math.min(deckCapFor(story.cleared), BIG_BOARD_CAP),
-  );
   const [storyResult, setStoryResult] = useState<
     { node: StoryNode; won: string[]; captured: number; lost?: boolean } | null
   >(null);
@@ -1842,7 +1832,7 @@ export function App() {
           save={story}
           onSave={(next) => { setStory(next); saveStory(next); }}
           onClose={() => setCollectionOpen(false)}
-          onOpenBuilder={() => setStoryBuilder(true)}
+          element={region.element}
           onGoToNode={(id) => {
             // A card's source can live in a region the map isn't showing.
             const home = regionOfNode(id);
@@ -1872,7 +1862,7 @@ export function App() {
           node={prepNode}
           save={story}
           onSave={(next) => { setStory(next); saveStory(next); }}
-          onEditDeck={() => setStoryBuilder(true)}
+          onEditDeck={() => { setPrepNode(null); setCollectionOpen(true); }}
           onCancel={() => setPrepNode(null)}
           onFight={(deck) => {
             const node = prepNode;
@@ -2158,35 +2148,6 @@ export function App() {
           </div>
         </div>
       )}
-
-      {/* Campaign team builder — the same screen as the sandbox, with the pool
-          cut to what you own and the ceiling set by the campaign. */}
-      <DeckBuilder
-        open={storyBuilder}
-        onClose={() => setStoryBuilder(false)}
-        onChange={() => {}}
-        story={{
-          owned: story.collection,
-          teams: story.loadouts ?? [],
-          cap: storyBuilderCap,
-          element: region.element,
-          onSaveTeam: (name, cards) => {
-            const rest = (story.loadouts ?? []).filter((l) => l.name.toLowerCase() !== name.toLowerCase());
-            const next = {
-              ...story,
-              loadouts: [...rest, { id: `${name.toLowerCase().replace(/\s+/g, "-")}-${rest.length}`, name, element: region.element, cards }],
-              deck: cards,
-            };
-            setStory(next);
-            saveStory(next);
-          },
-          onDeleteTeam: (id) => {
-            const next = { ...story, loadouts: (story.loadouts ?? []).filter((l) => l.id !== id) };
-            setStory(next);
-            saveStory(next);
-          },
-        }}
-      />
 
       <DeckBuilder
         boardSize={boardSize}

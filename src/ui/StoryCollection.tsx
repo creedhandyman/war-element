@@ -14,7 +14,7 @@ import type { CardClass, Element } from "../engine";
 import { CARDS } from "../data/cards";
 import {
   PLACED_CARDS, bestSource, deckCapFor, recruitChance, sourcesOf,
-  type StorySave,
+  type Loadout, type StorySave,
 } from "../data/story";
 import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { SpIcon } from "./icons";
@@ -34,10 +34,12 @@ export function StoryCollection(props: {
   onClose: () => void;
   /** Jump to a node on the map. Absent = the map isn't showing this region. */
   onGoToNode?: (nodeId: string) => void;
-  /** Open the full deck builder on the campaign collection. */
-  onOpenBuilder?: () => void;
+  /** The region on screen — a team saved here is tagged with it, so the prep
+   *  screen can float it to the top when you walk back into that element. */
+  element?: string;
 }) {
   const { save } = props;
+  const [teamName, setTeamName] = useState("");
   const [scope, setScope] = useState<Scope>("all");
   const [el, setEl] = useState<Element | "ALL">("ALL");
   const [cls, setCls] = useState<CardClass | "ALL">("ALL");
@@ -92,6 +94,28 @@ export function StoryCollection(props: {
   // prise the deck rail open just to be seen.
   const pick = (id: string) => setDetailId(id);
 
+  const teams = save.loadouts ?? [];
+  const saveTeam = () => {
+    if (save.deck.length === 0) return;
+    const name = teamName.trim() || `${props.element ?? "New"} team`;
+    // Same name = overwrite, so re-tuning after a loss does not leave four decks
+    // all called "PYRO team".
+    const rest = teams.filter((l) => l.name.toLowerCase() !== name.toLowerCase());
+    props.onSave({
+      ...save,
+      loadouts: [
+        ...rest,
+        { id: `${name.toLowerCase().replace(/\s+/g, "-")}-${rest.length}`, name, element: props.element, cards: [...save.deck] },
+      ],
+    });
+    setTeamName("");
+  };
+  const loadTeam = (t: Loadout) =>
+    // Re-checked against the collection: a team can outlive a card leaving it.
+    props.onSave({ ...save, deck: t.cards.filter((id) => owned.has(id)).slice(0, cap) });
+  const deleteTeam = (id: string) =>
+    props.onSave({ ...save, loadouts: teams.filter((l) => l.id !== id) });
+
   const detail = detailId ? CARDS.find((d) => d.id === detailId) ?? null : null;
   const deckFull = save.deck.length >= cap;
 
@@ -109,9 +133,6 @@ export function StoryCollection(props: {
           <span><b>{PLACED_CARDS.length - collected}</b> still out there</span>
         </div>
         <div className="story-actions">
-          {props.onOpenBuilder && (
-            <button className="bb" onClick={props.onOpenBuilder}>Deck builder</button>
-          )}
           <button className="ghost" onClick={props.onClose}>Back to the map</button>
         </div>
       </header>
@@ -255,6 +276,42 @@ export function StoryCollection(props: {
             </p>
           )}
           {save.deck.length > 0 && <DeckStats stats={stats} compact />}
+
+          {/* Teams: the campaign asks one deck to answer eight elements, so the
+              rebuild has to be something you can keep. Saved here, offered back
+              at the node — see StoryPrep's quick-select. */}
+          <div className="col-teams">
+            <div className="np-label">Teams</div>
+            <div className="col-teamsave">
+              <input
+                value={teamName}
+                placeholder={props.element ? `${props.element} team` : "Team name"}
+                maxLength={28}
+                onChange={(e) => setTeamName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && saveTeam()}
+              />
+              <button className="bb sm" disabled={save.deck.length === 0} onClick={saveTeam}>
+                Save
+              </button>
+            </div>
+            {teams.length === 0 ? (
+              <p className="story-hint">
+                No teams yet. Build a deck and save it — it comes back on the node.
+              </p>
+            ) : (
+              <ul className="col-teamlist">
+                {teams.map((t) => (
+                  <li key={t.id} className={t.element === props.element ? "match" : undefined}>
+                    <button className="col-teamload" onClick={() => loadTeam(t)}>
+                      <b>{t.name}</b>
+                      <span>{t.cards.length} cards{t.element ? ` · ${t.element}` : ""}</span>
+                    </button>
+                    <button className="cdl-x" title="Delete team" onClick={() => deleteTeam(t.id)}>✕</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           </div>
         </aside>
       </div>

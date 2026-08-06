@@ -2075,9 +2075,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: rgba(0,0,0,0.24); border: 1px solid var(--panel-line); }
 .col-side .dbs-curve { gap: 2px; }
 .col-side .dbs-tag { font-size: 10px; }
-.db-storycap { font-size: 12.5px; color: var(--ink-dim); padding: 4px 0 2px; }
-.db-storycap b { color: var(--gold-hi); font-size: 14px; }
-.db-storycap span { color: var(--ink-faint); }
+/* Teams live in the collection's deck rail, beside the deck they act on. */
+.col-teams { margin-top: 12px; border-top: 1px dashed var(--panel-line); padding-top: 10px; }
+.col-teamsave { display: flex; gap: 5px; margin: 6px 0 8px; }
+.col-teamsave input { flex: 1; min-width: 0; padding: 5px 8px; border-radius: 6px; font-size: 12px;
+  background: var(--void-2); border: 1px solid var(--gold-line); color: var(--ink); }
+.col-teamlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.col-teamlist li { display: flex; align-items: stretch; gap: 4px; }
+.col-teamlist li.match .col-teamload { border-color: var(--legal); }
+.col-teamload { flex: 1; text-align: left; padding: 6px 9px; border-radius: 6px; cursor: pointer;
+  background: var(--void-2); border: 1px solid var(--panel-line); color: var(--ink); }
+.col-teamload:hover { border-color: var(--gold-line); }
+.col-teamload b { display: block; font-size: 12.5px; }
+.col-teamload span { font-size: 10.5px; color: var(--ink-dim); }
 .sp-teams { display: flex; flex-direction: column; gap: 5px; }
 .sp-team { display: flex; align-items: stretch; gap: 4px; }
 .sp-team-pick { flex: 1; text-align: left; padding: 7px 10px; border-radius: 7px; cursor: pointer;
