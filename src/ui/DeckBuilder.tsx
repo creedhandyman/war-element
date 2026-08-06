@@ -182,7 +182,12 @@ export function DeckBuilder(props: {
     .sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name));
 
   return (
-    <div className="overlay" onClick={props.onClose}>
+    // `on-top` in story mode: the campaign screens (.story-wrap, z-70) sit ABOVE
+    // the plain overlay layer (z-65), so without it "Build a team" opened the
+    // builder UNDERNEATH the collection — invisible there, and then suddenly
+    // visible over the home screen once story mode was closed, because the
+    // builder was still open the whole time.
+    <div className={`overlay ${story ? "on-top" : ""}`} onClick={props.onClose}>
       <div className="modal deck-builder" onClick={(e) => e.stopPropagation()}>
         <div className="db-head">
           <h2>{story ? "Build a team" : "Deck Builder"}</h2>

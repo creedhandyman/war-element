@@ -1933,14 +1933,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
   background: rgba(9, 9, 14, .62);
 }
-/* Thrones — the Mythic fights — are STARS, so the boss of an Act reads apart
+/* Thrones — the Mythic fights — are DIAMONDS, so the boss of an Act reads apart
    from its Landmarks at a glance. Same override rules as the hexagon: the clip
    replaces the shape, the border is off because a clipped border fragments, and
    the fill carries the state. Listed after `.hex` so it wins on the Thrones,
    which carry both classes. */
 .story-node.throne.hex {
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%,
-                     50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
 }
 .story-node.hex.open { background: color-mix(in srgb, var(--el) 46%, rgba(9, 9, 14, .8)); }
 .story-node.hex.cleared { background: color-mix(in srgb, var(--gold-line) 40%, rgba(20, 19, 28, .85)); }
