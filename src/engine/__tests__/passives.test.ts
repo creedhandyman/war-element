@@ -870,6 +870,37 @@ describe("medium-tier passives (audit batch)", () => {
     expect(after.battle!.queue[0], "the acted card keeps its slot").toBe(first);
   });
 
+  it("Volta deploys its Rodd even when boxed in — both spawns", () => {
+    // Volta is a Support standing behind its own line, so its neighbours are its
+    // own team and being surrounded is its normal state. Worse than a missing
+    // body: Overcharge keys off a Rodd STANDING, so a failed deploy silently
+    // cost the passive too.
+    const boxIn = (g: ReturnType<typeof prepState>, at: readonly [number, number]) => {
+      const v = place(g, "bolt_volta", "P1", at[0] as 3, at[1] as 1);
+      for (const [r, c] of [[3, 0], [3, 2], [2, 0], [2, 1], [2, 2]] as const)
+        place(g, "bolt_zap", "P1", r as 3, c as 0);
+      return v;
+    };
+    const rodds = (g: ReturnType<typeof prepState>) =>
+      boardCards(g, "P1").filter((c) => c.defId === "bolt_rodd").length;
+
+    // Grid Deployment (the Special).
+    const s1 = prepState();
+    const v1 = boxIn(s1, [3, 1]);
+    SPECIAL_HANDLERS.spawn(s1, s1.cards[v1.instanceId], [], { token: "bolt_rodd", count: 1 });
+    expect(rodds(s1), "the Special found a slot beyond the ring").toBe(1);
+
+    // Relay Network (the on-summon) goes through the real summon path.
+    const s2 = prepState();
+    for (const [r, c] of [[3, 0], [3, 2], [2, 0], [2, 1], [2, 2]] as const)
+      place(s2, "bolt_zap", "P1", r as 3, c as 0);
+    const h = giveHand(s2, "P1", "bolt_volta");
+    s2.players.P1.gold = 20;
+    s2.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const n = applyIntent(s2, { type: "SUMMON", player: "P1", handId: h, col: 1 });
+    expect(rodds(n), "Relay Network deployed on summon").toBe(1);
+  });
+
   it("Sylvane's Emergence still raises an Elephlora when boxed in", () => {
     // `radius: 1` searched only the 8 slots around the caster and gave up if
     // none were free — and Sylvane is a melee Warrior standing in the line, so

@@ -6799,17 +6799,25 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Relay Network (On Summon): deploy a Rodd immediately. Overcharge: basics
     // gain PEN while any allied Rodd stands.
+    //
+    // No `radius` on either spawn. It was 1, a HARD tether: `spawnTokens`
+    // searches only the 8 slots around the caster and gives up if none are
+    // free. Volta is a Support that sits behind its own line, so its neighbours
+    // are its own team and being boxed in is its normal state — and Overcharge
+    // keys off a Rodd STANDING, so a failed deploy quietly costs the passive
+    // too. Omitting radius keeps adjacency as the preference and then opens the
+    // search to the rest of the board.
     passiveNames: { onSummon: "Relay Network", penWhileAlly: "Overcharge" },
-    onSummon: { handler: "spawn", params: { token: "bolt_rodd", count: 1, radius: 1 } },
+    onSummon: { handler: "spawn", params: { token: "bolt_rodd", count: 1 } },
     penWhileAlly: ["bolt_rodd"],
     // Grid Deployment: deploy another Rodd into an adjacent open slot.
     special: {
       name: "Grid Deployment",
       cost: 3,
       handler: "spawn",
-      params: { token: "bolt_rodd", count: 1, radius: 1 },
+      params: { token: "bolt_rodd", count: 1 },
       targetSide: "self",
-      text: "Deploy a Rodd (0/7/4🛡 · Conduction, Arc) into an adjacent open slot.",
+      text: "Deploy a Rodd (0/7/4🛡 · Conduction, Arc) into an open slot beside it, or the nearest free one if it is boxed in.",
     },
   },
   {
