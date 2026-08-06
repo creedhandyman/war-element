@@ -2038,6 +2038,48 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .sr-stats { margin-left: auto; font-size: 11.5px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
 .sr-empty, .sr-note { font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; text-align: center; }
 .story-result .lockin { width: 100%; margin-top: 14px; }
+
+/* ── Story prep: the last screen before a fight ─────────────────────────── */
+.story-prep { max-width: 560px; text-align: left; }
+.sp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.sp-head h1 { text-align: left; margin: 2px 0 0; font-size: 22px; }
+.sp-kind { font-family: var(--head); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 800; }
+.sp-board { flex: none; text-align: center; padding: 6px 12px; border-radius: 10px;
+  background: rgba(0,0,0,0.3); border: 1px solid var(--gold-line); }
+.sp-board b { display: block; font-family: var(--head); font-size: 17px; color: var(--gold-hi); }
+.sp-board span { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+.sp-facts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 10px 0 4px; font-size: 12.5px; color: var(--ink-dim); }
+.sp-facts b { color: var(--ink); }
+.sp-note { font-size: 12.5px; line-height: 1.55; color: var(--ink-dim); font-style: italic;
+  border-left: 2px solid var(--gold-line); padding-left: 10px; margin: 10px 0 2px; }
+.sp-enemy, .sp-deck { display: flex; flex-wrap: wrap; gap: 4px; max-height: 168px; overflow-y: auto; }
+.sp-foe { display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 7px; border-radius: 6px;
+  font-size: 11.5px; font-weight: 700; background: var(--void-2); border: 1px solid var(--panel-line); color: var(--ink); }
+.sp-foe em { font-style: normal; font-size: 10.5px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.sp-foe.r-mythic { border-color: #d08bff; color: #e9c9ff; }
+.sp-foe.r-legendary { border-color: var(--gold-line); color: var(--gold-hi); }
+.sp-foe.r-epic { border-color: #6aa6ff; color: #c2dbff; }
+.sp-teams { display: flex; flex-direction: column; gap: 5px; }
+.sp-team { display: flex; align-items: stretch; gap: 4px; }
+.sp-team-pick { flex: 1; text-align: left; padding: 7px 10px; border-radius: 7px; cursor: pointer;
+  background: var(--void-2); border: 1px solid var(--panel-line); color: var(--ink); }
+.sp-team-pick:hover { border-color: var(--gold-line); }
+.sp-team.match .sp-team-pick { border-color: var(--legal); }
+.sp-team-pick b { display: block; font-size: 13px; }
+.sp-team-pick span { font-size: 11px; color: var(--ink-dim); }
+.sp-team-x { flex: none; width: 30px; border-radius: 7px; cursor: pointer; color: var(--ink-faint);
+  background: transparent; border: 1px solid var(--panel-line); }
+.sp-team-x:hover { color: var(--illegal); border-color: var(--illegal); }
+.sp-bad { color: var(--illegal); font-weight: 700; text-transform: none; letter-spacing: 0; }
+.sp-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.sp-naming { display: inline-flex; gap: 4px; }
+.sp-naming input { width: 150px; padding: 5px 8px; border-radius: 6px; font-size: 12px;
+  background: var(--void-2); border: 1px solid var(--gold-line); color: var(--ink); }
+.story-prep .lockin { width: 100%; margin-top: 12px; }
+@media (max-width: 620px) {
+  .story-prep { max-width: 100%; }
+  .sp-enemy, .sp-deck { max-height: 132px; }
+}
 .story-result h1.sr-lost { color: var(--illegal); }
 /* Widens only once the report is open, so the two side columns and the 9-column
    roster table are not fighting over 460px on a phone. */

@@ -1176,14 +1176,49 @@ export interface StorySave {
   collection: string[];
   /** `${nodeId}:${defId}` -> dry clears since the last recruit of that card. */
   pity: Record<string, number>;
-  /** The player's current story deck. */
+  /** The player's current story deck — whatever they last took into a fight. */
   deck: string[];
+  /** Saved teams, built from the collection and kept between fights.
+   *
+   *  The campaign asks you to fight eight different elements with one deck,
+   *  which in practice means rebuilding it on the map every time the terrain
+   *  changes. A loadout is that rebuild, remembered: tag it with the element it
+   *  answers and the prep screen surfaces it when you walk into that region. */
+  loadouts?: Loadout[];
   /** Region id -> Blight earned from world progress. The region's own baseline
    *  is applied on read, so it can never be saved away. */
   blight: Record<string, number>;
 }
 
 const STORAGE_KEY = "we_story_v1";
+
+/** A saved team. `element` is the element this team is FOR — the one it expects
+ *  to fight, not the one it is built from — and is only ever a hint for
+ *  ordering the prep screen, never a restriction. */
+export interface Loadout {
+  id: string;
+  name: string;
+  element?: string;
+  cards: string[];
+}
+
+/** Loadouts most likely to be wanted against `element`, best first. A team
+ *  tagged for this element leads; everything else keeps its own order. */
+export function loadoutsFor(save: StorySave, element?: string): Loadout[] {
+  const all = save.loadouts ?? [];
+  if (!element) return all;
+  return [...all].sort((a, b) => Number(b.element === element) - Number(a.element === element));
+}
+
+/** Whether a team can legally be taken into this fight. Undersized is the only
+ *  hard failure — the cap is a ceiling, not a quota, and a player who wants to
+ *  fight a Skirmish with twelve good cards instead of eighteen mediocre ones
+ *  should be allowed to. */
+export function loadoutLegal(cards: string[], cap: number): { ok: boolean; reason?: string } {
+  if (cards.length === 0) return { ok: false, reason: "Empty team" };
+  if (cards.length > cap) return { ok: false, reason: `${cards.length} cards — the cap here is ${cap}` };
+  return { ok: true };
+}
 
 export function newSave(): StorySave {
   return { cleared: [], collection: [...STARTER_DECK], pity: {}, deck: [...STARTER_DECK], blight: {} };
@@ -1206,6 +1241,20 @@ export function loadStory(): StorySave {
       // A deck can only hold cards you own — a stale entry silently drops out.
       deck: known(p.deck).filter((id) => collection.includes(id)),
       blight: p.blight && typeof p.blight === "object" ? (p.blight as Record<string, number>) : {},
+      // Saved teams are additive: a pre-loadouts save simply has none, and every
+      // card is re-checked against the collection so a team cannot smuggle in
+      // something that was never recruited.
+      loadouts: Array.isArray(p.loadouts)
+        ? (p.loadouts as Loadout[])
+            .filter((l) => l && typeof l.id === "string" && typeof l.name === "string")
+            .map((l) => ({
+              id: l.id,
+              name: l.name,
+              element: typeof l.element === "string" ? l.element : undefined,
+              cards: known(l.cards).filter((id) => collection.includes(id)),
+            }))
+            .filter((l) => l.cards.length > 0)
+        : [],
     };
     if (!save.deck.length) save.deck = save.collection.slice(0, deckCapFor(save.cleared));
     return save;

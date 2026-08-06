@@ -56,8 +56,9 @@ import { EL_COLOR, EL_ICON, type PendingBattle, type Selection } from "./shared"
 import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
 import { StoryResult } from "./StoryResult";
+import { StoryPrep } from "./StoryPrep";
 import {
-  PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, deckCapFor,
+  PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation,
   loadStory, recruitablePool,
   regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
@@ -172,6 +173,9 @@ export function App() {
   const [regionId, setRegionId] = useState<string>(REGIONS[0].id);
   const region = REGIONS.find((r) => r.id === regionId) ?? REGIONS[0];
   const [storyNode, setStoryNode] = useState<StoryNode | null>(null);
+  // A node awaiting the prep screen. Tapping a node no longer launches the
+  // battle — it opens prep, and prep launches.
+  const [prepNode, setPrepNode] = useState<StoryNode | null>(null);
   const [storyResult, setStoryResult] = useState<
     { node: StoryNode; won: string[]; captured: number; lost?: boolean } | null
   >(null);
@@ -1847,11 +1851,20 @@ export function App() {
           onOpenCollection={() => setCollectionOpen(true)}
           focusNodeId={mapFocusNode}
           onFocusHandled={() => setMapFocusNode(null)}
-          onFight={(node) => {
-            // The story deck fights the node's roster. Adds are spawned by the
-            // roster's own cards, so they are never dealt into the enemy deck --
-            // but BLIGHT bodies are real extra cards, so they are.
-            const deck = story.deck.length ? story.deck : story.collection.slice(0, deckCapFor(story.cleared));
+          onFight={(node) => setPrepNode(node)}
+        />
+      )}
+
+      {storyOpen && !started && !collectionOpen && prepNode && (
+        <StoryPrep
+          region={regionOfNode(prepNode.id) ?? region}
+          node={prepNode}
+          save={story}
+          onSave={(next) => { setStory(next); saveStory(next); }}
+          onEditDeck={() => { setPrepNode(null); setCollectionOpen(true); }}
+          onCancel={() => setPrepNode(null)}
+          onFight={(deck) => {
+            const node = prepNode;
             // The node's own region decides the board and the Blight, not
             // whichever map happens to be on screen.
             const home = regionOfNode(node.id) ?? region;
@@ -1869,6 +1882,7 @@ export function App() {
             // Void Tower keep the ordinary summon ramp untouched.
             setGame(createInitialState(newSeed(), deck, squad, ["P1"], [], [], board,
               { P1: PLAYER_DEPLOY, P2: ENEMY_DEPLOY }, terrain));
+            setPrepNode(null);
             setStoryNode(node);
             setStoryOpen(false);
             setViewSide("P1");
