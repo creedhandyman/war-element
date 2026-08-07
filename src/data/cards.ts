@@ -516,13 +516,17 @@ export const CARDS: CardDef[] = [
       cost: 3,
       handler: "strike",
       // printed "5×2 DMG" = 5 hits of 2 — a shield shredder (strips up to 5).
-      // selfDamage 1 = "loses 1 HP per use"; selfDmg 1 = Bad Temper's "+1 DMG
-      // permanently after each Eruption"; freeRecastOnKill = "On Kill, use
-      // Eruption again next round at no cost."
-      params: { dmg: 2, hits: 5, selfDamage: 1, selfDmg: 1, freeRecastOnKill: 1 },
+      // selfDamage 2 = "loses 2 HP per use" (was 1); selfDmg 1 = Bad Temper's
+      // "+1 DMG permanently after each Eruption", now capped at +5 total;
+      // freeRecastOnKill = "On Kill, use Eruption again next round at no cost."
+      //
+      // The HP toll is the brake that free recasts were outrunning: a kill chain
+      // let Eruption fire round after round for nothing, and 1 HP a cast on a
+      // 19 HP body was not a cost worth counting.
+      params: { dmg: 2, hits: 5, selfDamage: 2, selfDmg: 1, freeRecastOnKill: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 2 DMG × 5 hits to one opponent at range (shreds shields). Costs 1 HP; +1 DMG per use (Bad Temper, max +5); On Kill, recast free next round.",
+      text: "Deal 2 DMG × 5 hits to one opponent at range (shreds shields). Costs 2 HP; +1 DMG per use (Bad Temper, max +5); On Kill, recast free next round.",
     },
   },
 

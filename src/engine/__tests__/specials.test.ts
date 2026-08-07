@@ -985,7 +985,7 @@ describe("Volcanon — Bad Temper + Eruption riders", () => {
     expect(vc.dmgBonus).toBe(1); // temper flared on hit (permanent +1 DMG)
   });
 
-  it("Eruption: costs 1 HP and grants +1 permanent DMG per use", () => {
+  it("Eruption: costs 2 HP and grants +1 permanent DMG per use", () => {
     const s = prepState();
     s.players.P1.magicPool = 3;
     const v = place(s, "pyro_volcanon", "P1", 2, 0, { curHp: 21, maxHp: 21 });
@@ -997,7 +997,7 @@ describe("Volcanon — Bad Temper + Eruption riders", () => {
       targetId: t.instanceId,
     });
     const vc = next.cards[v.instanceId];
-    expect(vc.curHp).toBe(20); // paid 1 HP
+    expect(vc.curHp).toBe(19); // paid 2 HP (was 1 — the brake on free recasts)
     expect(vc.dmgBonus).toBe(1); // Bad Temper's per-use growth
     expect(next.cards[t.instanceId].curHp).toBe(30); // 2×5 = 10 dealt
   });
