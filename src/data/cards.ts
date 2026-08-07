@@ -490,7 +490,9 @@ export const CARDS: CardDef[] = [
     rarity: "legendary",
     element: "PYRO",
     cardClass: "Assassin",
-    attackType: "Melee",
+    // RANGED, basic and Special both. It shells from a distance rather than
+    // closing — a volcano does not walk to you.
+    attackType: "Ranged",
     cost: 6, // LEGENDARY
     dmg: 13,
     hits: 1,
@@ -511,7 +513,8 @@ export const CARDS: CardDef[] = [
       // Eruption again next round at no cost."
       params: { dmg: 2, hits: 5, selfDamage: 1, selfDmg: 1, freeRecastOnKill: 1 },
       targetSide: "enemy",
-      text: "Deal 2 DMG × 5 hits to one opponent (shreds shields). Costs 1 HP; +1 DMG per use; On Kill, recast free next round.",
+      ranged: true,
+      text: "Deal 2 DMG × 5 hits to one opponent at range (shreds shields). Costs 1 HP; +1 DMG per use; On Kill, recast free next round.",
     },
   },
 
