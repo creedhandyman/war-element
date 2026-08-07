@@ -1598,6 +1598,14 @@ export const OPENING_HAND = 4;
  *  zero. A teammate, not a champion. Lives here rather than in phases.ts so
  *  rules.ts can read it without importing the phase machine. */
 export const OPENING_COST_CAP = 3;
+
+/** Rounds a Special sits out when its card does not print its own cooldown.
+ *
+ *  2, not 1. At 1 the 160 Specials that declare nothing fired every other round
+ *  — for the cheap ones, effectively every turn the magic allowed — which made
+ *  a Special the default action rather than a decision. The twelve cards that
+ *  DO print a cooldown (3, and Leo's 5) override this and are unaffected. */
+export const DEFAULT_SPECIAL_COOLDOWN = 2;
 /** Max hand size — draws that would exceed this are skipped (the cards stay on
  *  top of the deck, not burned). Bonus-draw rounds (10/15) partially fizzle when
  *  you're near the cap; that's the intended cost of a hand limit. */

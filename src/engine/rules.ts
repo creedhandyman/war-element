@@ -645,7 +645,7 @@ export function canFireSpecial(
     return { ok: false, reason: "Talent already used this game" };
   // A free Special (Volcanon's On-Kill recast) ignores cooldown + magic cost.
   if (!card.freeSpecial && !def.special.talent && card.specialCooldown > 0)
-    return { ok: false, reason: "Special is recharging (1-round cooldown)" };
+    return { ok: false, reason: `Special is recharging (${card.specialCooldown} more round${card.specialCooldown === 1 ? "" : "s"})` };
   if (hasStatus(card, "MUTED")) return { ok: false, reason: "MUTED" };
   if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
   if (!card.freeSpecial && !def.special.talent && state.players[card.owner].magicPool < effectiveSpecialCost(state, card, def.special.cost))

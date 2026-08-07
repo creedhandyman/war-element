@@ -841,12 +841,13 @@ describe("special legality", () => {
     });
     expect(g.players.P1.magicPool).toBe(0);
     expect(g.cards[t.instanceId].curHp).toBe(1); // 11 − 7 (Web Snare) − 3 (Leaf Storm 3×1)
-    // and both cards are now individually recharging
-    expect(g.cards[silk.instanceId].specialCooldown).toBe(2);
-    expect(g.cards[fallona.instanceId].specialCooldown).toBe(2);
+    // and both cards are now individually recharging. 3 = the default 2-round
+    // cooldown plus the +1 that this same round's Cleanup will tick off.
+    expect(g.cards[silk.instanceId].specialCooldown).toBe(3);
+    expect(g.cards[fallona.instanceId].specialCooldown).toBe(3);
   });
 
-  it("one-round cooldown: fire -> blocked next round -> available the round after", () => {
+  it("default cooldown: fire -> blocked for TWO rounds -> available again", () => {
     const s = prepState();
     s.players.P1.magicPool = 9;
     const a = place(s, "leaf_fallona", "P1", 2, 0); // Leaf Storm cost 2
@@ -857,13 +858,20 @@ describe("special legality", () => {
       player: "P1",
       action: "special",
     });
+    // DEFAULT_SPECIAL_COOLDOWN (2) + 1, because this same round's Cleanup ticks
+    // it once. A Special the card does not print a cooldown for now sits out two
+    // full rounds rather than one.
+    expect(g.cards[a.instanceId].specialCooldown).toBe(3);
+    // Cleanup of the round it fired.
+    g = advance(atCleanup(g));
     expect(g.cards[a.instanceId].specialCooldown).toBe(2);
-    // Cleanup of the round it fired: cooldown ticks to 1 -> still blocked next round.
+    expect(canFireSpecial(g, a.instanceId).ok).toBe(false);
+    // Round one of the wait.
     g = advance(atCleanup(g));
     expect(g.cards[a.instanceId].specialCooldown).toBe(1);
     expect(canFireSpecial(g, a.instanceId).ok).toBe(false);
     expect(canFireSpecial(g, a.instanceId).reason).toMatch(/recharging/i);
-    // Next Cleanup: cooldown expires -> available again.
+    // Round two of the wait: expires, available again.
     g = advance(atCleanup(g));
     expect(g.cards[a.instanceId].specialCooldown).toBe(0);
     expect(canFireSpecial(g, a.instanceId).ok).toBe(true);

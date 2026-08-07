@@ -61,6 +61,7 @@ import type {
 import {
   HAND_CAP,
   isMidRow,
+  DEFAULT_SPECIAL_COOLDOWN,
   MAX_ROUNDS,
   NEGATIVE_STATUSES,
   OPENING_COST_CAP,
@@ -1203,7 +1204,16 @@ function performBattleAction(
       draft.players[card.owner].magicPool -= effectiveSpecialCost(draft, card, special.cost);
       // 1-round floor; a printed longer cooldown overrides (+1 because the
       // current round's Cleanup ticks it once).
-      card.specialCooldown = (special.cooldown ?? 1) + 1;
+      // Rounds a Special must sit out. The +1 is because this same round's
+      // Cleanup ticks it down once, so a value of N leaves it unavailable for
+      // exactly N rounds after the cast.
+      //
+      // The DEFAULT is 2. It was 1, which let 160 of the game's 172 Specials
+      // fire every other round — cheap ones effectively every turn the magic
+      // allowed, which is what made Specials the default action rather than a
+      // decision. The twelve cards that declare their own cooldown (3, and
+      // Leo's 5) are unaffected.
+      card.specialCooldown = (special.cooldown ?? DEFAULT_SPECIAL_COOLDOWN) + 1;
     }
     card.attackedThisRound = true; // STEALTH breaks on any attack
     // Horde (RIP): a MANUALLY fired Special can cost HP as well as magic. This
