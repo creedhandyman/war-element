@@ -7455,9 +7455,14 @@ export const CARDS: CardDef[] = [
     // Trapper: a snare bite on summon, on death, and on a landed basic — a hit
     // has a 50% chance to ROOT the target for 2 rounds. (Duration 2 for the same
     // reason as Elderroot: a 1-round battle-applied ROOT never survives to Prep.)
+    //
+    // The bite is 4, up from 1. It is ONE passive with three triggers, so both
+    // damage instances move together — a snare that bit for 1 on arrival and 1
+    // on death was a rounding error next to the ROOT, which was the only part
+    // anyone played it for.
     passiveNames: { onSummon: "Trapper", onDeath: "Trapper", onHitStatus: "Trapper" },
-    onSummon: { handler: "strike", params: { dmg: 1, reachNearest: 1 }, targetSide: "enemy" },
-    onDeath: { dmg: 1 },
+    onSummon: { handler: "strike", params: { dmg: 4, reachNearest: 1 }, targetSide: "enemy" },
+    onDeath: { dmg: 4 },
     onHitStatus: { kind: "ROOT", duration: 2, power: 0, chance: 50 },
   },
   {

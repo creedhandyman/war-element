@@ -1005,6 +1005,30 @@ describe("medium-tier passives (audit batch)", () => {
     expect(acorns(next), "the next round sprouts again").toBe(2);
   });
 
+  it("Hunter's Trapper bites for 4 on arrival AND from the grave", () => {
+    // One passive, three triggers: a bite on summon, a bite at whoever kills it,
+    // and a 50% ROOT on a landed basic. The two DAMAGE triggers move together —
+    // 1 was a rounding error beside the ROOT, which was the only part anyone
+    // played Hunter for.
+    const arrival = prepState();
+    const foe = place(arrival, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const h = giveHand(arrival, "P1", "leaf_hunter");
+    arrival.players.P1.gold = 20;
+    arrival.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const summoned = applyIntent(arrival, { type: "SUMMON", player: "P1", handId: h, col: 0 });
+    expect(40 - summoned.cards[foe.instanceId].curHp, "on summon").toBe(4);
+
+    // The grave bite hits the KILLER, and only through an attack — it is
+    // retaliation, not an area burst, so a Hunter that dies to a DOT takes
+    // nobody with it.
+    const grave = prepState();
+    const hunter = place(grave, "leaf_hunter", "P1", 2, 0, { curHp: 3, maxHp: 13, curShields: 0 });
+    const killer = place(grave, "dusk_widowbite", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(grave, killer.instanceId, hunter.instanceId);
+    expect(grave.cards[hunter.instanceId]?.curHp ?? 0).toBeLessThanOrEqual(0);
+    expect(40 - grave.cards[killer.instanceId].curHp, "from the grave").toBe(4);
+  });
+
   it("Bad Temper stops at +5, counting BOTH of its triggers", () => {
     // Volcanon grows permanently on a landed basic AND on every Eruption. They
     // are one ability with two triggers, so they share one ceiling — capping
