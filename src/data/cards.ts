@@ -6348,22 +6348,35 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "GALE",
     cardClass: "Tank",
-    attackType: "Ranged",
-    cost: 3,
-    dmg: 2,
+    // MELEE now, not Ranged. A scavenger should have to come down to the body —
+    // and it keeps FLYING, so it dives in while melee swings pass under it.
+    attackType: "Melee",
+    // Cost 3 -> 4, with the body raised to match. The budget rule is
+    // total = 5*cost + 10 (shields count 2), so cost 4 wants ~30 and the old
+    // 2/15/6/1 was built for 3. Raising the cost alone would have left it a
+    // Cost-3 card charging Cost-4 — the stat-formula test catches exactly that.
+    cost: 4,
+    dmg: 3,
     hits: 1,
-    hp: 15,
-    sp: 6,
-    shields: 1,
+    hp: 17,
+    sp: 7,
+    shields: 2,
     keywords: { FLYING: true },
-    // Salvage: any card's death grants +2 max HP. On Kill: +1 DMG.
-    passiveNames: { salvageOnDeath: "Salvage", onKill: "Salvage" },
+    // Salvage: any card's death grants +2 max HP. Carrion Feast (On Kill): +1 DMG.
+    //
+    // The two used to SHARE the name "Salvage", so the card printed two passives
+    // called the same thing with different effects — one about anything dying,
+    // one about this card killing. They are different triggers and now read as
+    // different abilities.
+    passiveNames: { salvageOnDeath: "Salvage", onKill: "Carrion Feast" },
     salvageOnDeath: 2,
     onKill: { buffDmg: 1 },
-    // Roosting Wing Shield: gain 10 shields and heal +5.
+    // Roosting Wing Shield: gain 5 shields and heal +5.
     special: {
       name: "Roosting Wing Shield",
-      cost: 1,
+      // 1 -> 2 magic: 5 shields plus a 5 heal on a Tank is a real turn now that
+      // the body behind it is a Cost-4 body.
+      cost: 2,
       handler: "grantShield",
       params: { amount: 5, heal: 5 },
       targetSide: "self",
