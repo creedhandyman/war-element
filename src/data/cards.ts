@@ -493,7 +493,12 @@ export const CARDS: CardDef[] = [
     // RANGED, basic and Special both. It shells from a distance rather than
     // closing — a volcano does not walk to you.
     attackType: "Ranged",
-    cost: 6, // LEGENDARY
+    // Cost 6 -> 7. The body does NOT rise with it: 40 against a Cost-7 budget of
+    // 45, deliberately under-statted, because what it pays for is not printed on
+    // the line — a 13-damage RANGED basic, FLYING, Bad Temper to +5, and
+    // Eruption shredding up to 5 shields with a free recast on kill. Registered
+    // as an ability-carried exception in state.test.ts, same shape as Siren.
+    cost: 7, // LEGENDARY
     dmg: 13,
     hits: 1,
     hp: 19,

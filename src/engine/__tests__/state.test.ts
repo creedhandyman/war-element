@@ -98,6 +98,12 @@ describe("setup", () => {
       // Ability-carried, downward: 40 vs a Cost-7 budget of 45. Siren's
       // transform-into-Krakler kit carries the missing value (cost 7, no bump).
       "aqua_siren",
+      // Ability-carried, downward: 40 vs a Cost-7 budget of 45 — the same
+      // numbers as Siren above. Volcanon went cost 6 -> 7 with no stat bump on
+      // purpose: it fires a 13-damage basic at RANGE, flies, grows permanently
+      // to +5 (Bad Temper), and Eruption strips up to 5 shields and recasts free
+      // on a kill. The extra gold is the price of that kit, not of a bigger body.
+      "pyro_volcanon",
       // Doc stat line (9/32/3sh/7): the doc counts shields x1 (Total 51), the
       // game x2 (54 vs a Cost-8 budget of 50, +4). Kept as the doc printed it —
       // an ability-carried near-mythic (Volcanic Charge + Burning Roar stacks +
