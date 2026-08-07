@@ -1608,8 +1608,13 @@ export function basicAttack(
   // the attacker's DMG.
   const osb = aDef.onHitSelfBuff;
   if (osb && agg.landedHits > 0 && attacker.curHp > 0) {
-    attacker.dmgBonus += osb.dmg;
-    draft.log.push(`${label(draft, attacker)}'s temper flares (+${osb.dmg} DMG).`);
+    const gain = cappedSelfGrowth(attacker, osb.dmg);
+    if (gain > 0) {
+      attacker.dmgBonus += gain;
+      draft.log.push(`${label(draft, attacker)}'s temper flares (+${gain} DMG).`);
+    } else if (osb.max != null) {
+      draft.log.push(`${label(draft, attacker)}'s temper is already at its peak (+${osb.max}).`);
+    }
   }
   // Volcanic Fury (Valcana): a landed basic ramps DMG that her Special resets.
   if (aDef.onHitRampUntilSpecial && agg.landedHits > 0 && attacker.curHp > 0) {
@@ -2073,6 +2078,18 @@ function spawnRadiusOf(params: Record<string, string | number>): number | undefi
   return params.spawnRadius == null ? undefined : num(params, "spawnRadius", 1);
 }
 
+/** How much permanent self-DMG growth a card may still take. Uncapped (no
+ *  `onHitSelfBuff.max`) returns the full amount, which is every card but the one
+ *  that asks for a ceiling. */
+function cappedSelfGrowth(card: CardInstance, want: number): number {
+  const max = getDef(card.defId).onHitSelfBuff?.max;
+  if (max == null) return want;
+  const gained = card.selfBuffGained ?? 0;
+  const gain = Math.max(0, Math.min(want, max - gained));
+  if (gain > 0) card.selfBuffGained = gained + gain;
+  return gain;
+}
+
 export function directDamage(
   draft: GameState,
   source: CardInstance,
@@ -2356,10 +2373,17 @@ function applySelfRiders(
     caster.curShields += shields;
     draft.log.push(`${label(draft, caster)} braces (+${shields} shield).`);
   }
-  const dmg = num(params, "selfDmg"); // permanent +DMG per use (Volcanon's Bad Temper)
+  // Permanent +DMG per use (Volcanon's Bad Temper). Routed through the SAME cap
+  // as the on-hit passive, because on Volcanon they are one ability with two
+  // triggers — capping only the passive would move the whole ramp onto Eruption.
+  // Cards whose def declares no cap are unaffected and gain the full amount.
+  const dmg = num(params, "selfDmg");
   if (dmg !== 0) {
-    caster.dmgBonus += dmg;
-    draft.log.push(`${label(draft, caster)} grows hotter (+${dmg} DMG).`);
+    const gain = dmg > 0 ? cappedSelfGrowth(caster, dmg) : dmg;
+    if (gain !== 0) {
+      caster.dmgBonus += gain;
+      draft.log.push(`${label(draft, caster)} grows hotter (+${gain} DMG).`);
+    }
   }
   // (selfStatus is applied once per Special in performBattleAction, so it works
   // for every handler — barrage included — not just strike.)

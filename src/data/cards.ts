@@ -500,9 +500,12 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: { FLYING: true },
-    // Bad Temper (passive): a landed basic attack grows Volcanon permanently.
+    // Bad Temper (passive): a landed basic attack grows Volcanon permanently,
+    // to a ceiling of +5. The cap covers BOTH triggers — the on-hit passive and
+    // Eruption's per-use +1 — because they are one ability, and capping only the
+    // passive would have moved the entire ramp onto the Special.
     passiveNames: { onHitSelfBuff: "Bad Temper" },
-    onHitSelfBuff: { dmg: 1 },
+    onHitSelfBuff: { dmg: 1, max: 5 },
     special: {
       name: "Eruption",
       cost: 3,
@@ -514,7 +517,7 @@ export const CARDS: CardDef[] = [
       params: { dmg: 2, hits: 5, selfDamage: 1, selfDmg: 1, freeRecastOnKill: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 2 DMG × 5 hits to one opponent at range (shreds shields). Costs 1 HP; +1 DMG per use; On Kill, recast free next round.",
+      text: "Deal 2 DMG × 5 hits to one opponent at range (shreds shields). Costs 1 HP; +1 DMG per use (Bad Temper, max +5); On Kill, recast free next round.",
     },
   },
 

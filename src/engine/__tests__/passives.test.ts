@@ -1005,6 +1005,46 @@ describe("medium-tier passives (audit batch)", () => {
     expect(acorns(next), "the next round sprouts again").toBe(2);
   });
 
+  it("Bad Temper stops at +5, counting BOTH of its triggers", () => {
+    // Volcanon grows permanently on a landed basic AND on every Eruption. They
+    // are one ability with two triggers, so they share one ceiling — capping
+    // only the passive would have moved the whole ramp onto the Special.
+    const s = prepState();
+    const v = place(s, "pyro_volcanon", "P1", 3, 0);
+    const t = place(s, "dusk_gool", "P2", 2, 1, { curHp: 900, maxHp: 900, curShields: 0 });
+    const swing = () => { s.cards[v.instanceId].attackedThisRound = false;
+      basicAttack(s, v.instanceId, t.instanceId); return s.cards[v.instanceId].dmgBonus; };
+    expect([swing(), swing(), swing(), swing(), swing(), swing(), swing()])
+      .toEqual([1, 2, 3, 4, 5, 5, 5]);
+  });
+
+  it("...and Eruption draws from the same pool, not a second one", () => {
+    const s = prepState();
+    const v = place(s, "pyro_volcanon", "P1", 3, 0);
+    const t = place(s, "dusk_gool", "P2", 2, 1, { curHp: 900, maxHp: 900, curShields: 0 });
+    for (let i = 0; i < 3; i++) {
+      s.cards[v.instanceId].attackedThisRound = false;
+      basicAttack(s, v.instanceId, t.instanceId);
+    }
+    expect(s.cards[v.instanceId].dmgBonus, "three basics").toBe(3);
+    for (let i = 0; i < 5; i++)
+      SPECIAL_HANDLERS.strike(s, s.cards[v.instanceId], [s.cards[t.instanceId]],
+        { dmg: 2, hits: 5, selfDmg: 1, freeRecastOnKill: 1 });
+    expect(s.cards[v.instanceId].dmgBonus, "five Eruptions add only the last 2").toBe(5);
+  });
+
+  it("...and a card WITHOUT a cap keeps its full permanent growth", () => {
+    // The guard on the guard: `selfDmg` is shared by several cards, so the clamp
+    // must engage only where a ceiling is declared. Oakgre would otherwise have
+    // been silently nerfed by a change aimed at Volcanon.
+    const s = prepState();
+    const o = place(s, "leaf_oakgre", "P1", 3, 0);
+    const t = place(s, "dusk_gool", "P2", 2, 1, { curHp: 900, maxHp: 900, curShields: 0 });
+    for (let i = 0; i < 4; i++)
+      SPECIAL_HANDLERS.strike(s, s.cards[o.instanceId], [s.cards[t.instanceId]], { dmg: 1, selfDmg: 2 });
+    expect(s.cards[o.instanceId].dmgBonus, "4 x +2, uncapped").toBe(8);
+  });
+
   it("Blackout's Fryer MUTES what survives it", () => {
     // The surge takes their lights out: nothing struck can fire a Special for a
     // round. Asserting the STATUS alone would not prove much — what matters is

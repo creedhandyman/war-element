@@ -643,8 +643,13 @@ export interface CardDef {
    *  opponent on the board has. */
   summonScaleFromEnemy?: { per: number; dmg?: number; maxHp?: number };
   /** A permanent self-buff applied when a basic attack LANDS (once per attack):
-   *  Volcanon's Bad Temper and the Rager Twins (+1 DMG on hit). */
-  onHitSelfBuff?: { dmg: number };
+   *  Volcanon's Bad Temper and the Rager Twins (+1 DMG on hit).
+   *
+   *  `max` caps the TOTAL permanent DMG this card may gain from its own growth —
+   *  counting both this passive and any permanent `selfDmg` its Special grants,
+   *  since on Volcanon both are Bad Temper and capping one would just move the
+   *  ramp to the other. Cards that omit `max` are uncapped exactly as before. */
+  onHitSelfBuff?: { dmg: number; max?: number };
   /** Regenerative (Squanch): a DEFENSIVE passive. At the end of each round it
    *  gains `shields` armor for every enemy hit it TOOK that round — one hit, one
    *  shield — until it is sitting on `maxShields` total. */
@@ -947,6 +952,9 @@ export interface CardInstance {
   oppSummonFiredRound?: boolean;
   /** Per-round guard for a `oncePerRound` spawnOnHitTaken (Oak's Acorn Drop). */
   hitSpawnFiredRound?: boolean;
+  /** Permanent DMG already taken from a capped `onHitSelfBuff` (Bad Temper).
+   *  Never reset — the growth is permanent, so its ceiling has to be too. */
+  selfBuffGained?: number;
   /** False Head (Thorny Ripper) has been spent. Once per GAME, so this is never
    *  reset — that is the whole difference between a decoy and a dodge. */
   falseHeadUsed?: boolean;
