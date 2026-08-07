@@ -2172,16 +2172,23 @@ export function App() {
           element: region.element,
           onSaveTeam: (name, cards) => {
             const rest = (story.loadouts ?? []).filter((l) => l.name.toLowerCase() !== name.toLowerCase());
+            const id = `${name.toLowerCase().replace(/\s+/g, "-")}-${rest.length}`;
             const next = {
               ...story,
-              loadouts: [...rest, { id: `${name.toLowerCase().replace(/\s+/g, "-")}-${rest.length}`, name, element: region.element, cards }],
+              loadouts: [...rest, { id, name, element: region.element, cards }],
               deck: cards,
+              // The team you just built is the one you meant to take.
+              lastTeamId: id,
             };
             setStory(next);
             saveStory(next);
           },
           onDeleteTeam: (id) => {
-            const next = { ...story, loadouts: (story.loadouts ?? []).filter((l) => l.id !== id) };
+            const next = {
+              ...story,
+              loadouts: (story.loadouts ?? []).filter((l) => l.id !== id),
+              lastTeamId: story.lastTeamId === id ? undefined : story.lastTeamId,
+            };
             setStory(next);
             saveStory(next);
           },

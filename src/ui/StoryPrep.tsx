@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getDef } from "../data/cards";
 import {
-  boardForNode, capForNode, deckCapFor, isGate, loadoutLegal, loadoutsFor,
+  boardForNode, capForNode, deckCapFor, isGate, loadoutLegal, loadoutsFor, preferredLoadout,
   recruitablePool, type Loadout, type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
 import { CardExpand } from "./CardExpand";
@@ -39,9 +39,10 @@ export function StoryPrep(props: {
   // Quick select: arriving at a node ALREADY holding the team built for this
   // element is the point of tagging them. Falls back to the last deck used.
   const owned = (ids: string[]) => ids.filter((id) => save.collection.includes(id));
-  const preferred = (save.loadouts ?? []).find(
-    (l) => l.element === region.element && owned(l.cards).length > 0 && owned(l.cards).length <= cap,
-  );
+  const preferred = preferredLoadout(save, region.element, (l) => {
+    const n = owned(l.cards).length;
+    return n > 0 && n <= cap;
+  });
   const [deck, setDeck] = useState<string[]>(
     preferred ? owned(preferred.cards) : save.deck.length ? save.deck : save.collection.slice(0, cap),
   );
@@ -77,7 +78,14 @@ export function StoryPrep(props: {
     .map(getDef)
     .sort((a, b) => (RARITY_ORDER[a.rarity ?? ""] ?? 9) - (RARITY_ORDER[b.rarity ?? ""] ?? 9));
 
-  const applyTeam = (t: Loadout) => { setDeck(owned(t.cards)); setPickedTeam(t.id); };
+  const applyTeam = (t: Loadout) => {
+    setDeck(owned(t.cards));
+    setPickedTeam(t.id);
+    // Remember it, so coming back to this node offers the team you actually
+    // chose rather than the oldest one that happens to match the element.
+    // `save.deck` keeps its identity here, so the sync effect above stays quiet.
+    props.onSave({ ...save, lastTeamId: t.id });
+  };
 
   const saveTeam = () => {
     const name = draftName.trim() || `${region.element} team`;
@@ -90,13 +98,17 @@ export function StoryPrep(props: {
       element: region.element,
       cards: [...deck],
     };
-    props.onSave({ ...save, loadouts: [...rest, next], deck });
+    props.onSave({ ...save, loadouts: [...rest, next], deck, lastTeamId: next.id });
     setNaming(false);
     setDraftName("");
   };
 
   const deleteTeam = (id: string) =>
-    props.onSave({ ...save, loadouts: (save.loadouts ?? []).filter((l) => l.id !== id) });
+    props.onSave({
+      ...save,
+      loadouts: (save.loadouts ?? []).filter((l) => l.id !== id),
+      lastTeamId: save.lastTeamId === id ? undefined : save.lastTeamId,
+    });
 
   return (
     <div className="overlay on-top">

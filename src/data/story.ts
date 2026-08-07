@@ -1330,6 +1330,11 @@ export interface StorySave {
    *  changes. A loadout is that rebuild, remembered: tag it with the element it
    *  answers and the prep screen surfaces it when you walk into that region. */
   loadouts?: Loadout[];
+  /** The team most recently saved or taken into a fight. Prep offers this one
+   *  back first — without it, "which team do I get?" answered with whichever
+   *  matching team was saved EARLIEST, so saving a new one and returning
+   *  silently fought with an older deck. */
+  lastTeamId?: string;
   /** Region id -> Blight earned from world progress. The region's own baseline
    *  is applied on read, so it can never be saved away. */
   blight: Record<string, number>;
@@ -1353,6 +1358,26 @@ export function loadoutsFor(save: StorySave, element?: string): Loadout[] {
   const all = save.loadouts ?? [];
   if (!element) return all;
   return [...all].sort((a, b) => Number(b.element === element) - Number(a.element === element));
+}
+
+/** The team to offer on arrival at a node, or undefined for "keep the last deck".
+ *
+ *  Order: the team last saved or fought with, then the MOST RECENT team tagged
+ *  for this element. Newest-first is the whole point — teams are appended, so
+ *  searching forwards returned the oldest match and a freshly saved team was
+ *  never the one you got back. `legal` is applied to both so a team that has
+ *  outgrown the node's cap is skipped rather than silently offered and refused. */
+export function preferredLoadout(
+  save: StorySave,
+  element: string | undefined,
+  legal: (l: Loadout) => boolean,
+): Loadout | undefined {
+  const all = save.loadouts ?? [];
+  const last = all.find((l) => l.id === save.lastTeamId);
+  if (last && legal(last)) return last;
+  for (let i = all.length - 1; i >= 0; i--)
+    if (all[i].element === element && legal(all[i])) return all[i];
+  return undefined;
 }
 
 /** Whether a team can legally be taken into this fight. Undersized is the only
@@ -1389,6 +1414,9 @@ export function loadStory(): StorySave {
       // Saved teams are additive: a pre-loadouts save simply has none, and every
       // card is re-checked against the collection so a team cannot smuggle in
       // something that was never recruited.
+      // Dropped if it names a team that no longer exists, so a deleted team
+      // cannot leave the save pointing at nothing.
+      lastTeamId: typeof p.lastTeamId === "string" ? p.lastTeamId : undefined,
       loadouts: Array.isArray(p.loadouts)
         ? (p.loadouts as Loadout[])
             .filter((l) => l && typeof l.id === "string" && typeof l.name === "string")
