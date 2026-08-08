@@ -390,6 +390,17 @@ export function fieldEvasion(state: GameState, card: CardInstance): boolean {
   return fieldFlag(state, card, "evasion");
 }
 
+/** Totem Spirit (Totem): is a living holder standing on this card's side?
+ *
+ *  Lives beside fieldFlag because it answers the same question from a different
+ *  source — a body on the board rather than a field over it — and because both
+ *  combat.ts (never-miss) and rules.ts (STEALTH, Home-Slot) have to ask it, and
+ *  both already import from here. Element-agnostic on purpose: unlike Purelight
+ *  it covers the whole team, not just its own element. */
+export function hasTotemSpirit(state: GameState, card: CardInstance): boolean {
+  return boardCards(state, card.owner).some((c) => c.curHp > 0 && getDef(c.defId).totemSpiritAura);
+}
+
 export function effectiveSp(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   if (hasStatus(card, "ROOT") || hasStatus(card, "FREEZE")) return 0;
