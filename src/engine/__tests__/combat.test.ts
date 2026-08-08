@@ -1,7 +1,7 @@
 // Milestone 4: the combat pipeline — worked examples from the rules FAQ.
 
 import { describe, expect, it } from "vitest";
-import { applyStatus, basicAttack, resolveHit } from "../combat";
+import { applyStatus, basicAttack, FX_DMG_KEEP, resolveHit } from "../combat";
 import { getDef } from "../../data/cards";
 import { advance, distributeBasicHits } from "../phases";
 import { atCleanup, place, prepState, seedForCoins, statusOf } from "./helpers";
@@ -373,5 +373,48 @@ describe("multi-hit auto-basic — spread, don't overkill", () => {
     const tough = place(s, "leaf_greegon", "P1", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
     const picks = distributeBasicHits(s, mono, [weak, tough]);
     expect(picks).toEqual([weak.instanceId]);
+  });
+});
+
+describe("damage readout (the floating numbers over a token)", () => {
+  it("records one entry per landed hit, not one per attack", () => {
+    const s = duel();
+    const a = place(s, "leaf_alpha", "P1", 2, 0);
+    const t = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    resolveHit(s, a, t, { kind: "special", dmg: 3, hits: 4, pen: true, crit: false });
+    // Four hits resolve inside ONE engine step, so the renderer can only show
+    // them separately if the engine kept them separately.
+    expect(s.cards[t.instanceId].fxDmgHits).toEqual([3, 3, 3, 3]);
+    expect(s.cards[t.instanceId].fxDmgSeq).toBe(4);
+  });
+
+  it("logs what reached HP, not what was swung — shields are not damage", () => {
+    const s = duel();
+    const a = place(s, "leaf_alpha", "P1", 2, 0);
+    const t = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 5 });
+    resolveHit(s, a, t, { kind: "special", dmg: 8, hits: 1, pen: false, crit: false });
+    expect(s.cards[t.instanceId].fxDmgHits).toEqual([3]); // 8 − 5 shields
+  });
+
+  it("a hit the shields eat whole floats no number", () => {
+    const s = duel();
+    const a = place(s, "leaf_alpha", "P1", 2, 0);
+    const t = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 9 });
+    resolveHit(s, a, t, { kind: "special", dmg: 4, hits: 1, pen: false, crit: false });
+    expect(s.cards[t.instanceId].curHp).toBe(20); // nothing got through
+    expect(s.cards[t.instanceId].fxDmgHits ?? []).toEqual([]);
+  });
+
+  it("keeps only the recent tail — it is a readout, not a ledger", () => {
+    const s = duel();
+    const a = place(s, "leaf_alpha", "P1", 2, 0);
+    const t = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 400, maxHp: 400, curShields: 0 });
+    for (let i = 0; i < 20; i++)
+      resolveHit(s, a, t, { kind: "special", dmg: 1, hits: 1, pen: true, crit: false });
+    const card = s.cards[t.instanceId];
+    expect(card.fxDmgHits!.length).toBe(FX_DMG_KEEP);
+    // The counter keeps counting past the cap: it is what tells the renderer how
+    // much of the tail is new, so it must not be reset by the trim.
+    expect(card.fxDmgSeq).toBe(20);
   });
 });

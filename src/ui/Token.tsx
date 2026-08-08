@@ -6,6 +6,10 @@ import { SpIcon } from "./icons";
 
 const AUTO_LABEL = { manual: "MANUAL", basic: "AUTO", full: "FULL" } as const;
 
+/** Stable empty array for the damage-float hook's dependency: `?? []` would mint
+ *  a new one every render and re-run the effect on every frame of the match. */
+const EMPTY_HITS: readonly number[] = [];
+
 /** Flash the HP number red when it drops (damage) and green when it rises
  *  (healing), so combat reads at a glance. Ignores same-slot card swaps. */
 function useHpFlash(instanceId: string, hp: number): "down" | "up" | null {
@@ -62,6 +66,44 @@ function useCombatFx(instanceId: string, miss: number, crit: number) {
     return () => clearTimeout(t);
   }, [fx]);
   return fx;
+}
+
+/** Float one number per point of HP this card just lost — the readout that
+ *  turns "the HP went down" into "it took 6, then 6, then 4".
+ *
+ *  A whole volley resolves inside ONE engine step, so React never sees the
+ *  intermediate states. That is why the engine hands over a LIST of hits and a
+ *  counter: the counter says how many entries are new since the last draw, and
+ *  the tail of the list is what to float. Without it a three-hit attack could
+ *  only ever show its last number.
+ *
+ *  The batch is drawn all at once and staggered in CSS (--i), so there is one
+ *  timer per volley rather than one per number.
+ */
+function useDamageFloats(instanceId: string, seq: number, hits: readonly number[]) {
+  const prevSeq = useRef(seq);
+  const prevId = useRef(instanceId);
+  const keyRef = useRef(0);
+  const [batch, setBatch] = useState<{ key: number; nums: number[] } | null>(null);
+  useEffect(() => {
+    // A different card standing in this slot is not a card that took damage.
+    if (prevId.current !== instanceId) {
+      prevId.current = instanceId;
+      prevSeq.current = seq;
+      setBatch(null);
+      return;
+    }
+    const fresh = seq - prevSeq.current;
+    prevSeq.current = seq;
+    if (fresh > 0) setBatch({ key: ++keyRef.current, nums: hits.slice(-fresh) });
+  }, [seq, instanceId, hits]);
+  useEffect(() => {
+    if (!batch) return;
+    // Must outlast the last number's delay plus its own animation.
+    const t = setTimeout(() => setBatch(null), 820 + batch.nums.length * 130);
+    return () => clearTimeout(t);
+  }, [batch]);
+  return batch;
 }
 
 /** A one-shot motion class for auras that deal damage with no battle turn
@@ -138,6 +180,7 @@ export function Token(props: {
   const hpFlash = useHpFlash(card.instanceId, card.curHp);
   const combatFx = useCombatFx(card.instanceId, card.fxMiss ?? 0, card.fxCrit ?? 0);
   const motionFx = useMotionFx(card.instanceId, card.fxLunge ?? 0, card.fxRecoil ?? 0);
+  const dmgFx = useDamageFloats(card.instanceId, card.fxDmgSeq ?? 0, card.fxDmgHits ?? EMPTY_HITS);
   // Attack spotlight: during Battle, the card at the front of the speed queue is
   // the one taking its turn — grow it slightly so you can see who's acting.
   const battle = game.battle;
@@ -194,6 +237,24 @@ export function Token(props: {
       {combatFx && (
         <div key={combatFx.key} className={`fx-float fx-${combatFx.kind.toLowerCase()}`}>
           {combatFx.kind}
+        </div>
+      )}
+      {/* Damage readout: one number per hit, dropping off the bottom of the card.
+          CRIT/MISS rise; damage falls — the direction is the tell. A volley of
+          two or more is followed by its total, so a three-hit special reads as
+          one blow with a number on it. */}
+      {dmgFx && (
+        <div key={dmgFx.key} className="fx-dmg-stack">
+          {dmgFx.nums.map((n, i) => (
+            <span key={i} className="fx-dmg" style={{ ["--i" as string]: i }}>
+              −{n}
+            </span>
+          ))}
+          {dmgFx.nums.length > 1 && (
+            <span className="fx-dmg fx-dmg-total" style={{ ["--i" as string]: dmgFx.nums.length }}>
+              −{dmgFx.nums.reduce((a, b) => a + b, 0)}
+            </span>
+          )}
         </div>
       )}
       {frozen && <div className="freeze-overlay" />}
@@ -262,7 +323,15 @@ export function Token(props: {
             className={`st-hp ${hpFlash === "down" ? "hp-hit" : hpFlash === "up" ? "hp-heal" : ""}`}
             title={`HP ${card.curHp} of ${effectiveMaxHp(game, card)}`}
           >
-            ♥{card.curHp === effectiveMaxHp(game, card) ? card.curHp : `${card.curHp}/${effectiveMaxHp(game, card)}`}
+            {/* The "/max" is a separate span so the 5x5 board can hide it (see
+                .board.tight in styles.css) — on a fifth-width tile it is the
+                widest thing in the row and the least useful, and a stat row
+                whose width changes the moment a card is wounded is what broke
+                the layout in the first place. The tooltip still carries it. */}
+            ♥{card.curHp}
+            {card.curHp !== effectiveMaxHp(game, card) && (
+              <span className="hp-max">/{effectiveMaxHp(game, card)}</span>
+            )}
           </span>
           <span
             className={`st-sp ${canMoveNow ? "can-move" : ""}`}

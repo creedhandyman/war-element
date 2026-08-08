@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, DAWN_SP_CAP, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, LEAF_SHIELD_CAP } from "./auras";
-import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin, randInt } from "./rng";
@@ -2099,6 +2099,7 @@ function doCleanupPhase(draft: GameState): void {
           s.kind === "BURN" && (draft.players[enemyOf(card.owner)].burnBoostRounds ?? 0) > 0;
         const dot = boosted ? s.power * 2 : s.power;
         card.curHp -= dot;
+        noteDamageFx(card, dot);
         if (s.kind === "BLEED") bleedDealtBy[enemyOf(card.owner)] += s.power;
         draft.log.push(`${label(draft, card)} takes ${dot} ${s.kind} damage${boosted ? " (accelerated)" : ""}.`);
         if (s.kind === "BURN" && card.curShields > 0) {

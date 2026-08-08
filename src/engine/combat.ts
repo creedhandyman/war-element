@@ -602,6 +602,24 @@ export function shieldsBrokenBy(dmg: number): number {
   return dmg <= 9 ? 1 : dmg <= 20 ? 2 : 3;
 }
 
+/** How many recent hits the floating-damage readout keeps per card. Deep enough
+ *  for the longest volley in the game plus a tick or two of DOT landing in the
+ *  same step; anything older has already floated away. */
+export const FX_DMG_KEEP = 8;
+
+/** Record HP lost for the floating damage numbers over a token.
+ *
+ *  Purely cosmetic — call it wherever `curHp` actually goes DOWN, and nowhere
+ *  else. Shields absorbing a hit is not damage to show here (the shield pip
+ *  already fell), and neither is a max-HP drain.
+ */
+export function noteDamageFx(card: CardInstance, amount: number): void {
+  if (!(amount > 0)) return;
+  const hits = [...(card.fxDmgHits ?? []), Math.round(amount)];
+  card.fxDmgHits = hits.length > FX_DMG_KEEP ? hits.slice(-FX_DMG_KEEP) : hits;
+  card.fxDmgSeq = (card.fxDmgSeq ?? 0) + 1;
+}
+
 /**
  * Resolve one attack (basic / special / reflect) from attacker onto target.
  * Handles the full pipeline including multi-hit, keywords, and deaths.
@@ -934,6 +952,7 @@ export function resolveHit(
         if (canTake <= 0) continue;
         const eaten = Math.min(quota, canTake);
         bot.curHp -= eaten;
+        noteDamageFx(bot, eaten); // the bee that soaked it shows the number, not Keeper
         quota -= eaten;
         toHp -= eaten;
         creditDamage(draft.stats, null, attacker.owner, eaten, bot);
@@ -941,6 +960,7 @@ export function resolveHit(
       }
     }
     target.curHp -= toHp;
+    noteDamageFx(target, toHp);
     result.landedHits++;
     result.totalToHp += toHp;
 
@@ -2051,6 +2071,7 @@ export function spellHit(
     if (t.curShields > 0) t.curShields = Math.max(0, t.curShields - shieldsBrokenBy(remaining));
   }
   t.curHp -= toHp;
+  noteDamageFx(t, toHp);
   if (by) creditDamage(draft.stats, null, by, toHp, target); // spell damage → caster's side total
   draft.log.push(`${label(draft, t)} takes ${toHp} spell damage.`);
   if (hasStatus(t, "SLEEP") && t.curHp > 0) {
@@ -2636,6 +2657,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       const recoil = Math.round((r.totalToHp * recoilPct) / 100);
       if (recoil > 0) {
         attacker.curHp -= recoil;
+        noteDamageFx(attacker, recoil);
         draft.log.push(`${label(draft, attacker)} takes ${recoil} recoil.`);
         if (attacker.curHp <= 0) defeatCard(draft, attacker, "recoil");
         else checkLowHpTransform(draft, attacker);

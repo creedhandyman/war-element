@@ -1097,6 +1097,18 @@ export interface CardInstance {
    *  Midnight Shade). The source is already off the board by then and cannot be
    *  animated, so the telegraph has to live on the card taking the hit. */
   fxRecoil?: number;
+  /** UI-only damage readout: every point of HP this card has lost, one entry
+   *  per hit, most recent last — and a counter that ticks once per entry.
+   *
+   *  A whole volley resolves inside ONE engine step, so the renderer never sees
+   *  the intermediate states; without a list it could only ever float the last
+   *  number of a three-hit attack. The renderer diffs `fxDmgSeq` against what it
+   *  last drew and floats the tail it hasn't shown yet.
+   *
+   *  Display state, not a ledger: the tail is capped (see FX_DMG_KEEP) so a long
+   *  match can't grow it without bound. Damage credit lives in `stats`. */
+  fxDmgHits?: number[];
+  fxDmgSeq?: number;
   /** Extra basic hits queued for the NEXT basic attack (Dart Frog's loaded
    *  darts). Consumed the next time this card basic-attacks. */
   loadedHits: number;

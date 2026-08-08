@@ -85,7 +85,10 @@ export function Board(props: {
         <span className="crest-shield">✦</span>
         <span className="crest-bar" />
       </div>
-      <div className="board">
+      {/* `tight` = a board with more than four columns, where every tile is
+          smaller and the tokens have to shed furniture to keep the stat row on
+          one line. Keyed on the size, not on a literal 5, so a 6x6 inherits it. */}
+      <div className={`board${game.boardSize > 4 ? " tight" : ""}`}>
         {/* Fields (Cost-6 terrain) — a board-wide haze in the element colour,
             framed like a wall. pointer-events:none so slots stay clickable. */}
         {/* Standing terrain is ONE battlefield even though it is stored as an
