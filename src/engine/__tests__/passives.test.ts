@@ -2903,3 +2903,46 @@ describe("Reforged plates the ring around Smith, itself included", () => {
     expect(effectiveDmg(next, c)).toBe(getDef("bore_clubber").dmg + 1);
   });
 });
+
+describe("growth has a ceiling", () => {
+  it("Salvage stops feeding after its cap", () => {
+    const s = prepState();
+    const vult = place(s, "gale_vvulture", "P1", 3, 0);
+    const base = s.cards[vult.instanceId].maxHp;
+    // Eight deaths, a cap of five.
+    for (let i = 0; i < 8; i++) {
+      const fodder = place(s, "dusk_gool", "P2", 1, (i % 4) as 0 | 1 | 2 | 3, { curHp: 1, maxHp: 1 });
+      defeatCard(s, s.cards[fodder.instanceId], "test");
+    }
+    expect(s.cards[vult.instanceId].maxHp).toBe(base + 5 * 2);
+  });
+
+  it("Carnage stops feeding after its cap", () => {
+    const s = prepState();
+    const zhunk = place(s, "dusk_zhunk", "P1", 3, 0);
+    // dmgBonus, not effectiveDmg: the husks left standing at the end carry an
+    // element aura that would be counted as growth it did not gain.
+    const baseBonus = s.cards[zhunk.instanceId].dmgBonus;
+    for (let i = 0; i < 8; i++) {
+      const husk = place(s, "dusk_zombie_husk", "P1", 2, (i % 4) as 0 | 1 | 2 | 3, { curHp: 1, maxHp: 1 });
+      defeatCard(s, s.cards[husk.instanceId], "test");
+    }
+    expect(s.cards[zhunk.instanceId].dmgBonus).toBe(baseBonus + 5);
+  });
+
+  it("no card grows a stat forever — every growth field declares its ceiling", () => {
+    // The audit that found these had to read the engine to know which growth was
+    // bounded. This is the check that answers it from the data instead.
+    const uncapped: string[] = [];
+    for (const d of CARDS) {
+      if (d.onHitSelfBuff && d.onHitSelfBuff.max == null) uncapped.push(`${d.id}.onHitSelfBuff`);
+      if (d.roundTick?.selfShields != null && d.roundTick.selfShieldsMax == null)
+        uncapped.push(`${d.id}.roundTick.selfShields`);
+      if (d.roundTick?.buffDmgEveryN && d.roundTick.buffDmgEveryN.maxTicks == null)
+        uncapped.push(`${d.id}.roundTick.buffDmgEveryN`);
+      if (d.salvageOnDeath != null && d.salvageMax == null) uncapped.push(`${d.id}.salvageOnDeath`);
+      if (d.onTribeDeath && d.onTribeDeath.max == null) uncapped.push(`${d.id}.onTribeDeath`);
+    }
+    expect(uncapped, `unbounded growth: ${uncapped.join(", ")}`).toEqual([]);
+  });
+});

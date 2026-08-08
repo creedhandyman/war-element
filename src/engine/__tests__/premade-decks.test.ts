@@ -3,7 +3,8 @@
 // removal silently breaking a premade build.
 
 import { describe, expect, it } from "vitest";
-import { CARD_INDEX } from "../../data/cards";
+import { CARD_INDEX, getDef } from "../../data/cards";
+import { getSpell, spellCapForBoard } from "../spells";
 import { PREMADE_DECKS, deckLimits, isBuildable, premadeDecksFor, validateDeck } from "../../data/custom-decks";
 
 describe("premade decks", () => {
@@ -62,7 +63,11 @@ describe("board-sized premade builds", () => {
       expect(large.cards.slice(0, std.cards.length)).toEqual(std.cards);
       expect(large.cards.length - std.cards.length).toBe(10);
       expect(large.name).toBe(std.name);
-      expect(large.spells).toEqual(std.spells);
+      // The spellbook EXTENDS rather than matching: the big board's cap is 8,
+      // not 5, and the large build used to inherit the standard five and stop —
+      // three slots short of what the deck builder offers for the same board.
+      expect(large.spells?.slice(0, std.spells?.length ?? 0)).toEqual(std.spells);
+      expect((large.spells?.length ?? 0) - (std.spells?.length ?? 0)).toBe(3);
     }
   });
 
@@ -86,6 +91,28 @@ describe("board-sized premade builds", () => {
       expect(total, `${d.name} total`).toBe(28);
       // Even split: the largest and smallest element counts differ by at most 1.
       expect(Math.max(...counts) - Math.min(...counts), `${d.name} split ${JSON.stringify(els)}`).toBeLessThanOrEqual(1);
+    }
+  });
+});
+
+describe("the 5x5 premades bring a full spellbook", () => {
+  it("every large build fills its 8 slots, and the 4x4 builds still hold 5", () => {
+    for (const d of PREMADE_DECKS) {
+      const cap = spellCapForBoard(d.boardSize ?? 4);
+      expect(d.spells?.length ?? 0, `${d.id} spellbook`).toBe(cap);
+    }
+  });
+
+  it("no large book repeats a spell or reaches outside the deck's elements", () => {
+    const large = PREMADE_DECKS.filter((d) => (d.boardSize ?? 4) >= 5);
+    expect(large.length).toBeGreaterThan(0);
+    for (const d of large) {
+      const ids = d.spells ?? [];
+      expect(new Set(ids).size, `${d.id} repeats a spell`).toBe(ids.length);
+      // The elements the deck's own CARDS are built from.
+      const deckEls = new Set(d.cards.map((c) => getDef(c).element));
+      for (const sid of ids)
+        expect(deckEls.has(getSpell(sid).element), `${d.id}: ${sid} is off-element`).toBe(true);
     }
   });
 });

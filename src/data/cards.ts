@@ -162,7 +162,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Fall's Emergence: +1 DMG at the end of every 3rd round (stacking). The
     // bonus applies to her basic attack AND to Leaf Storm (scaleDmg).
-    roundTick: { buffDmgEveryN: { n: 3, amount: 1 } },
+    roundTick: { buffDmgEveryN: { n: 3, amount: 1, maxTicks: 5 } },
     special: {
       name: "Leaf Storm",
       cost: 2,
@@ -898,7 +898,7 @@ export const CARDS: CardDef[] = [
       name: "Jacked",
       cost: 2,
       handler: "drainMax",
-      params: { amount: 5, selfShields: 3 },
+      params: { amount: 5, selfShields: 3, selfShieldsMax: 9 },
       targetSide: "enemy",
       text: "Permanently drain 5 max HP from the target. Gain +3 shields.",
     },
@@ -1272,7 +1272,7 @@ export const CARDS: CardDef[] = [
     shields: 4,
     keywords: {},
     // Calcify: regrows +1 shield at the end of each round.
-    roundTick: { selfShields: 1 },
+    roundTick: { selfShields: 1, selfShieldsMax: 7 },
     // Coral Spurs: 2 DMG back to melee attackers.
     passiveNames: { onHitByMelee: "Coral Spurs" },
     onHitByMelee: { dmg: 2 },
@@ -2279,7 +2279,7 @@ export const CARDS: CardDef[] = [
     contagionAura: true,
     // Mass Grave: every Zombie that falls swells the horde-lord — +1 max HP,
     // permanently (its own death is excluded).
-    onTribeDeath: { tribe: "Zombie", hp: 1 },
+    onTribeDeath: { tribe: "Zombie", hp: 1, max: 5 },
     special: {
       name: "Toxic Eruption",
       cost: 3,
@@ -3013,7 +3013,7 @@ export const CARDS: CardDef[] = [
     // Rager Twins: +1 DMG permanently on every landed basic attack — but its
     // basics deal half DMG while below 12 HP (the rage downside).
     passiveNames: { onHitSelfBuff: "Rager Twins" },
-    onHitSelfBuff: { dmg: 1 },
+    onHitSelfBuff: { dmg: 1, max: 3 }, // 2 hits, so +3 is +6 on the swing — Volcanon's +5 ceiling, adjusted for the extra hit
     weakBelowHp: { hp: 12, dmgMult: 0.5 },
     special: {
       name: "Double Trouble",
@@ -3349,8 +3349,10 @@ export const CARDS: CardDef[] = [
     sp: 1,
     shields: 0,
     keywords: {},
-    // Smokin' Dogs (End of Round): +1 DMG every round (doc caps at +5 — uncapped here).
-    roundTick: { buffDmgEveryN: { n: 1, amount: 1 } },
+    // Smokin' Dogs (End of Round): +1 DMG every round, to +5. The doc always
+    // capped it there; the ceiling was dropped on the way in and never replaced,
+    // which left a cost-1 body climbing past 12 DMG by round 10 without acting.
+    roundTick: { buffDmgEveryN: { n: 1, amount: 1, maxTicks: 5 } },
   },
   {
     id: "bore_rollo",
@@ -3442,8 +3444,12 @@ export const CARDS: CardDef[] = [
     name: "Rayfen",
     rarity: "epic",
     element: "GALE",
-    cardClass: "Assassin",
-    attackType: "Melee",
+    // Ranged Mage, same kit otherwise. Wind Warp — its basics reaching any row
+    // like a Ranged card — used to sit here as an unmodeled note on a Melee
+    // Assassin; being Ranged simply IS that passive, so the note is gone and the
+    // card does what it always said it did.
+    cardClass: "Mage",
+    attackType: "Ranged",
     cost: 4,
     dmg: 2,
     hits: 2,
@@ -3452,7 +3458,6 @@ export const CARDS: CardDef[] = [
     shields: 0,
     // Both blades of the 2×2 roll for a crit.
     keywords: { CRIT: true },
-    // (Wind Warp — its basic attacks reach any row like a Ranged card — unmodeled.)
     special: {
       name: "Ambush",
       cost: 2,
@@ -3489,7 +3494,7 @@ export const CARDS: CardDef[] = [
     // PARALYZE 1 a round). Spawning the FULL cost-2 Static Cloud card here paid
     // a cost-5 epic an entire second card for free.
     passiveNames: { selfShields: "Living Reactor", onDeath: "Meltdown" },
-    roundTick: { selfShields: 1 },
+    roundTick: { selfShields: 1, selfShieldsMax: 6 },
     onDeath: { dmg: 0, spawnToken: { token: "bolt_static_wisp_tok", count: 1 } },
     // Core Overload: release the built-up charge — 8 DMG to all opponents in
     // range and PARALYZE each for 1 round.
@@ -3747,7 +3752,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Rebuilds its barrier +2 shields each round (on top of BORE's Exostone +2
     // on summon); when the barrier first breaks it enrages (+3 DMG / +2 SP).
-    roundTick: { selfShields: 2 },
+    roundTick: { selfShields: 2, selfShieldsMax: 12 },
     onShieldBreak: { dmg: 3, sp: 2 },
     special: {
       name: "Boulder Barrage",
@@ -4245,7 +4250,7 @@ export const CARDS: CardDef[] = [
     tribe: "Dragon",
     // Dragon's Blade: it grows into the fight — +1 DMG and +1 SP every 2nd round,
     // stacking with no ceiling.
-    roundTick: { buffDmgEveryN: { n: 2, amount: 1, sp: 1 } },
+    roundTick: { buffDmgEveryN: { n: 2, amount: 1, sp: 1, maxTicks: 5 } },
     // Arrives breathing fire across the whole row directly ahead. spread is the
     // column reach to EACH side, so on a 4-wide board 3 is what actually covers
     // the full row from any column — spread 1 would leave the far edge standing.
@@ -4325,7 +4330,7 @@ export const CARDS: CardDef[] = [
     shields: 1,
     keywords: { FLYING: true },
     // Soaring Sun: it climbs. +1 DMG every third round, stacking, forever.
-    roundTick: { buffDmgEveryN: { n: 3, amount: 1 } },
+    roundTick: { buffDmgEveryN: { n: 3, amount: 1, maxTicks: 5 } },
     talent: {
       name: "Shimmering Featherrows",
       handler: "barrage",
@@ -4553,7 +4558,7 @@ export const CARDS: CardDef[] = [
     shields: 2,
     keywords: {},
     // Royal Guard: gain +1 shield each round.
-    roundTick: { selfShields: 1 },
+    roundTick: { selfShields: 1, selfShieldsMax: 5 },
     // King Me (On Kill): each kill shaves 1 off Crowned's cost.
     passiveNames: { onKill: "King Me" },
     onKill: { reduceSpecialCost: 1 },
@@ -4566,9 +4571,15 @@ export const CARDS: CardDef[] = [
       // game-warping Special.
       cooldown: 3,
       handler: "empower",
-      params: { selfDmg: 5, selfMaxHp: 5, selfSp: 5 },
+      // …and a lifetime limit, which the cooldown alone never gave it. A long
+      // game reaches a third cast, a fourth, a fifth; the grant is permanent and
+      // nothing took it back. maxStacks is the brake rules.ts already enforces
+      // (Oakgre uses it for the same reason), and it works here where a `max`
+      // on the card would not: `empower` writes dmgBonus raw and never passes
+      // through cappedSelfGrowth.
+      params: { selfDmg: 5, selfMaxHp: 5, selfSp: 5, maxStacks: 3 },
       targetSide: "self",
-      text: "Gain +5 DMG, +5 HP, +5 SP permanently. 3-round cooldown.",
+      text: "Gain +5 DMG, +5 HP, +5 SP permanently. 3-round cooldown, three times in all.",
     },
   },
   // ── Wave 1 of the eight new element cards ──────────────────────────────────
@@ -4668,7 +4679,7 @@ export const CARDS: CardDef[] = [
       params: {
         dmg: 6, pen: 1, targets: 99, forwardDepth: 3, spread: 0, // dmg 4 -> 6
         statusKind: "ROOT", statusDuration: 2,
-        selfShields: 3,
+        selfShields: 3, selfShieldsMax: 9,
       },
       targetSide: "enemy",
       text: "Fell a tree straight down your own column: 6 DMG (PEN) to every opponent in the 3 slots ahead, reaching into their summoning row. ROOT them all for 2 rounds and gain 3 shield.",
@@ -5438,7 +5449,7 @@ export const CARDS: CardDef[] = [
     tribe: "Zombie",
     // Carnage: grows +1 DMG / +1 HP every time any Zombie falls.
     passiveNames: { onTribeDeath: "Carnage" },
-    onTribeDeath: { tribe: "Zombie", dmg: 1, hp: 1 },
+    onTribeDeath: { tribe: "Zombie", dmg: 1, hp: 1, max: 5 },
   },
   {
     id: "dawn_stbern",
@@ -5709,7 +5720,7 @@ export const CARDS: CardDef[] = [
       name: "War Cry",
       cost: 1,
       handler: "warCry",
-      params: { selfShields: 2, buffDmg: 1, buffRounds: 2 },
+      params: { selfShields: 2, selfShieldsMax: 8, buffDmg: 1, buffRounds: 2 },
       targetSide: "self",
       text: "Gain 2 shields, then give the team +1 DMG for 2 rounds.",
     },
@@ -5872,7 +5883,7 @@ export const CARDS: CardDef[] = [
     passiveNames: { electroSurge: "Electro Surge" },
     electroSurge: { paralyze: 3, shield: 1, dmgBoost: 5, boostRounds: 2 },
     // Live current: +2 SP every round (stacking).
-    roundTick: { buffDmgEveryN: { n: 1, amount: 0, sp: 2 } },
+    roundTick: { buffDmgEveryN: { n: 1, amount: 0, sp: 2, maxTicks: 5 } },
     special: {
       name: "Electro Surge",
       cost: 1,
@@ -6017,7 +6028,12 @@ export const CARDS: CardDef[] = [
       name: "Earth Shatter",
       cost: 2,
       handler: "barrage",
-      params: { dmg: 5, targets: 1, statusKind: "SLEEP", statusDuration: 1 },
+      // maxStacks caps Golden Resonance, not the damage: every cast adds +2
+      // PERMANENT shields and +1 permanent DMG (onSpecialUse below), on a 2-magic
+      // Special with no other limit. Shields are the worst stat to leave running
+      // — they come off every incoming hit — and three casts is Oakgre's
+      // precedent for exactly this shape.
+      params: { dmg: 5, targets: 1, statusKind: "SLEEP", statusDuration: 1, maxStacks: 3 },
       targetSide: "enemy",
       ranged: true,
       text: "Deal 5 DMG to a single target and SLEEP it until end of round.",
@@ -6350,11 +6366,13 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 1,
+    // Cost 2 with SP 8: the extra gold buys 5 points of budget and 4 go straight
+    // into speed. 3×2 + 5 HP + 8 SP = 19 against a cost-2 budget of 20.
+    cost: 2,
     dmg: 3,
     hits: 2,
     hp: 5,
-    sp: 4,
+    sp: 8,
     shields: 0,
     keywords: {},
     // Mega Push: while below 3 HP, a landed basic also deals 3 to every opponent
@@ -6410,6 +6428,7 @@ export const CARDS: CardDef[] = [
     // different abilities.
     passiveNames: { salvageOnDeath: "Salvage", onKill: "Carrion Feast" },
     salvageOnDeath: 2,
+    salvageMax: 5, // +10 HP at most, not +2 for every body that falls all game
     onKill: { buffDmg: 1 },
     // Roosting Wing Shield: gain 5 shields and heal +5.
     special: {
@@ -6426,7 +6445,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_klouy",
     name: "Spindrift",
-    rarity: "epic",
+    rarity: "rare",
     element: "GALE",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -6440,15 +6459,14 @@ export const CARDS: CardDef[] = [
     // Twister: a second basic hit on a target within a round STUNs it 2 rounds.
     passiveNames: { onHitStatus: "Twister" },
     onHitStatus: { kind: "STUN", duration: 2, power: 0, onSecondHit: true },
-    // Spiraling Windrow: a 5-DMG shot that ricochets between nearby opponents.
-    special: {
+    // Spiraling Windrow, now a Talent: free, once per game — the Rare pattern.
+    // Same shot, same bounces; what changes is that it fires once instead of
+    // every few rounds for magic.
+    talent: {
       name: "Spiraling Windrow",
-      cost: 2,
       handler: "spiral",
       params: { dmg: 5, bounces: 3 },
-      targetSide: "enemy",
-      ranged: true,
-      text: "Deal 5 DMG bouncing between opponents within 1 space of each other.",
+      text: "Once per game, free: deal 5 DMG bouncing between opponents within 1 space of each other.",
     },
   },
 
@@ -6565,8 +6583,14 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "LEAF",
     cardClass: "Warrior",
+    // Cost 4, not 3. Every other card that spawns a REAL card on summon pays
+    // multiples of what it gives away — Trinezer 9 for 3, Keeper 6 for 2, Sway 3
+    // for 1. Rubyscale handed over a full, on-curve, cost-3 body for a cost-3
+    // card: the only 1:1 in the game, and the free body then switches on its own
+    // Special's +8 rider. Priced to Solara, the closest thing to it in the set —
+    // also cost 4, also spawning a real cost-3 card on summon.
     attackType: "Melee",
-    cost: 3,
+    cost: 4,
     dmg: 4,
     hits: 1,
     hp: 11,
@@ -7234,7 +7258,7 @@ export const CARDS: CardDef[] = [
     // Power Up (End of Round): +1 DMG, +1 SP. On Kill: +2 shields. Aura: BOLT
     // allies +1 basic DMG. (Doc's "after 3 Power Ups" gate simplified.)
     passiveNames: { roundTick: "Power Up", onKill: "Power Up" },
-    roundTick: { buffDmgEveryN: { n: 1, amount: 1, sp: 1 } },
+    roundTick: { buffDmgEveryN: { n: 1, amount: 1, sp: 1, maxTicks: 5 } },
     onKill: { gainShields: 2 },
     aura: { scope: "element", dmg: 1 },
     // Turret Mode: lock down and open fire on the ELECTRIFIED — 3 DMG to every
@@ -7386,7 +7410,7 @@ export const CARDS: CardDef[] = [
     // Roar shield + 3-stack cap simplified to a permanent +1-DMG-on-hit.)
     passiveNames: { onSummon: "Volcanic Arrival", onHitSelfBuff: "Burning Roar", onKill: "Volcanic Charge" },
     onSummon: { handler: "barrage", params: { dmg: 0, rowAhead: 1, targets: 99, statusKind: "BURN", statusPower: 2, statusDuration: 3 }, targetSide: "enemy" },
-    onHitSelfBuff: { dmg: 1 },
+    onHitSelfBuff: { dmg: 1, max: 5 }, // single hit, so the same ceiling Volcanon carries
     // Volcanic Charge (On Kill): +2 DMG permanently AND a 3-DMG eruption across
     // the whole enemy board.
     onKill: { buffDmg: 2, aoeDmg: 3 },
@@ -7451,7 +7475,7 @@ export const CARDS: CardDef[] = [
     // spreading). Bramble: a melee attacker takes 1 back and is left with a
     // clinging thorn (DOT 1 for 2 rounds).
     passiveNames: { onHitByMelee: "Bramble", roundTick: "Super Weed" },
-    roundTick: { buffDmgEveryN: { n: 1, amount: 0, hp: 2 } },
+    roundTick: { buffDmgEveryN: { n: 1, amount: 0, hp: 2, maxTicks: 5 } },
     onHitByMelee: { dmg: 1, status: { kind: "DOT", duration: 2, power: 1 } },
     // Razor Guard: the weed lurches a space forward (it's SP 0, so this is the
     // only way it advances), THEN rakes everything in range for 3 + BLEED 1.
@@ -7865,7 +7889,7 @@ export const CARDS: CardDef[] = [
     // breaker for 2 rounds. Aura: opponents in range are ELECTRIFIED, so BOLT
     // allies (which hit statused foes harder) get the bonus against them.
     passiveNames: { onShieldBreak: "Electro Knight" },
-    roundTick: { selfShields: 1, inRangeStatus: { kind: "ELECTRIFIED", duration: 1, power: 0 } },
+    roundTick: { selfShields: 1, selfShieldsMax: 5, inRangeStatus: { kind: "ELECTRIFIED", duration: 1, power: 0 } },
     onShieldBreak: { status: { kind: "PARALYZE", duration: 2, power: 0 } },
     // Ultra Power Gauntlets: +2 DMG, FLYING, and basics clip +1 adjacent target,
     // all for 3 rounds.
@@ -8470,6 +8494,7 @@ export const CARDS: CardDef[] = [
     // Grave Harvest: gains +2 max HP whenever any card dies.
     passiveNames: { salvageOnDeath: "Grave Harvest" },
     salvageOnDeath: 2,
+    salvageMax: 5, // +10 HP at most, not +2 for every body that falls all game
   },
   {
     id: "gale_masala",

@@ -256,7 +256,14 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         if (!gd.onOppSummon || guard.curHp <= 0 || !draft.cards[inst.instanceId]) continue;
         // Drone Sweep (Buzzard): one answer per round, not one per body.
         if (gd.onOppSummon.oncePerRound && guard.oppSummonFiredRound) continue;
-        if (gd.onOppSummon.oncePerRound) guard.oppSummonFiredRound = true;
+        // The flag is spent where the reaction RESOLVES, not here. Set up front,
+        // Drone Sweep burned its one answer per round on a summon it could not
+        // answer at all — every slot beside the newcomer occupied, so the drone
+        // had nowhere to land and the branch fell straight through. The next
+        // summon that round, with room beside it, met a Buzzard already spent.
+        const spend = () => {
+          if (gd.onOppSummon?.oncePerRound) guard.oppSummonFiredRound = true;
+        };
         // Burning Bark (Sparky): hop to the closest empty slot adjacent to the
         // newcomer before reacting, chasing fresh arrivals into BURN range.
         if (gd.onOppSummon.chase && inst.pos && guard.pos) {
@@ -298,6 +305,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
               if (d < bestD) { bestD = d; best = { row: r, col: c }; }
             }
           if (best) {
+            spend();
             const drone = summonCard(draft, guard.owner, droneId, { row: best.row as Pos["row"], col: best.col });
             const pName = gd.passiveNames?.onOppSummon ?? gd.name;
             draft.log.push(`${pName}: ${gd.name} launches a ${getDef(droneId).name} beside ${getDef(inst.defId).name}.`);
@@ -312,6 +320,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         }
         // Only reacts to a newcomer it can actually reach (in targeting range).
         if (!canTarget(draft, guard, inst)) continue;
+        spend();
         if (gd.onOppSummon.dmg && inst.curHp > 0) {
           // Log it under the passive's name — the generic "hits for N" line reads
           // like an ordinary attack and gives no hint the summon itself triggered

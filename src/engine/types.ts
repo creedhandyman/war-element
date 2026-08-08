@@ -519,8 +519,13 @@ export interface CardDef {
   /** Mega Push (Megair): while below `belowHp` HP, a landed basic also deals
    *  `dmg` to every opponent and pushes them all back `push` spaces. */
   lowHpNova?: { belowHp: number; dmg: number; push: number };
-  /** Salvage (Vulture): whenever ANY card dies, gain `salvageOnDeath` max HP. */
+  /** Salvage (Vulture): whenever ANY card dies, gain `salvageOnDeath` max HP,
+   *  at most `salvageMax` times. The cap is not optional in practice: a board
+   *  sees a dozen deaths in a long game and this grows off EVERY one of them,
+   *  either side, so uncapped it is the only stat line in the game with no
+   *  ceiling at all. */
   salvageOnDeath?: number;
+  salvageMax?: number;
   /** Blood Moon (Vesper): when an opponent dies while this card lives, heal it and
    *  all its allies `deathHealAura` HP. */
   deathHealAura?: number;
@@ -598,7 +603,10 @@ export interface CardDef {
   healReceivedMult?: number;
   /** Carnage (Zhunk): when any card of `tribe` dies anywhere, this card gains
    *  the listed permanent stat bumps. */
-  onTribeDeath?: { tribe: string; dmg?: number; hp?: number; sp?: number };
+  /** `max` is how many deaths it may feed on, for the same reason Salvage
+   *  needs one — and it matters more here, because DUSK fields the token
+   *  factories that produce the deaths, so the deck feeds its own scaler. */
+  onTribeDeath?: { tribe: string; dmg?: number; hp?: number; sp?: number; max?: number };
   /** HP-threshold transformation (Skelider Dismount). */
   onLowHp?: OnLowHpDef;
   /** Reaction when an ENEMY card is summoned (Rock Goblin's Cave Guard,
@@ -1121,6 +1129,11 @@ export interface CardInstance {
    *
    *  Display state, not a ledger: the tail is capped (see FX_DMG_KEEP) so a long
    *  match can't grow it without bound. Damage credit lives in `stats`. */
+  /** How many deaths each death-scaler has already fed on. Separate counters:
+   *  no card carries both today, and one shared counter would silently make
+   *  them compete if one ever did. */
+  salvageStacks?: number;
+  tribeFeedStacks?: number;
   fxDmgHits?: number[];
   fxDmgSeq?: number;
   /** Extra basic hits queued for the NEXT basic attack (Dart Frog's loaded

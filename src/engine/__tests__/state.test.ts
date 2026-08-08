@@ -91,9 +91,16 @@ describe("setup", () => {
       // basic landed from melee range — still more than the 4 points the printed
       // line gives up (trimmed from +5 / +6 after it measured OP).
       "bore_rohojohn",
-      // Ability-carried, downward: 22 vs a Cost-5 budget of 35. Rubyscale spawns
-      // Greegon (4/17/SP4) on summon, so the free body carries the missing 13
-      // points — a deliberate stat exception.
+      // Ability-carried, downward: 26 vs a Cost-4 budget of 30. Rubyscale spawns
+      // Greegon — a real card, 26 points of its own — on summon, and its Special
+      // carries a +8 rider that only works while Greegon stands, so it enables
+      // its own payoff. Four points off the printed line is nowhere near paying
+      // for that; the price does the rest.
+      //
+      // Every figure in this exception used to be wrong (it read "22 vs a Cost-5
+      // budget of 35" for a cost-3 card totalling 26), which meant it suppressed
+      // nothing at all — the card was INSIDE the band and the exception was
+      // silently inert.
       "leaf_rubyo",
       // Ability-carried, downward: 40 vs a Cost-7 budget of 45. Siren's
       // transform-into-Krakler kit carries the missing value (cost 7, no bump).

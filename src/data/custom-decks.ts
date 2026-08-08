@@ -274,6 +274,34 @@ const LARGE_EXTRAS: Record<string, string[]> = {
   ],
 };
 
+/** The three extra spells each premade picks up on the big board.
+ *
+ *  The 5×5 spellbook cap is 8 (MAX_SPELLBOOK_LARGE) and every standard deck
+ *  declares exactly 5, but largeVariant only ever extended `cards` — so every
+ *  5×5 match, player and AI alike, was played three spell slots short of what
+ *  the deck builder hands you for the same board. Nothing said so; the book
+ *  just ended early.
+ *
+ *  Each set stays inside the deck's own elements and fills the gaps in its cost
+ *  curve, leaning to the middle and upper rungs: a 5×5 game runs longer and
+ *  generates more magic, so the slots that were missing are the ones a longer
+ *  game would actually reach.
+ */
+const LARGE_SPELL_EXTRAS: Record<string, string[]> = {
+  // BOLT/PYRO aggro: a board sweep at 5, the BOLT field at 6, a finisher at 9.
+  pre_inferno_blitz: ["pyro_ashfall", "bolt_power_grid", "pyro_cataclysm"],
+  // BORE/AQUA control: the shield rider it lacked, fog, and its own terrain.
+  pre_frostkeep: ["bore_bulwark", "aqua_dense_fog", "bore_bedrock"],
+  // DAWN/LEAF sustain: the +DMG heal, Blazing Sun, and a single-target answer.
+  pre_radiant_host: ["dawn_grace", "dawn_blazing_sun", "dawn_judgment"],
+  // GALE/DUSK tempo: repositioning at 3, the DUSK field, a mid-cost strike.
+  pre_nightfall: ["dusk_shadow_step", "dusk_nightfall", "gale_vortex_strike"],
+  // AQUA/GALE/BOLT lock: more disruption across all three of its elements.
+  pre_tempest: ["gale_downdraft", "aqua_dense_fog", "gale_jetstream"],
+  // LEAF/PYRO/DUSK grind: DOT and area, matching the shell's plan.
+  pre_blight: ["leaf_thorn_patch", "pyro_ashfall", "dusk_grave_pit"],
+};
+
 /** The large-board build of a standard deck: the same shell plus its extras.
  *  Derived rather than written out again, so editing a standard list can't
  *  leave its 5×5 twin behind. */
@@ -283,6 +311,7 @@ function largeVariant(base: PremadeDeck): PremadeDeck {
     id: `${base.id}_5`,
     boardSize: 5,
     cards: [...base.cards, ...(LARGE_EXTRAS[base.id] ?? [])],
+    spells: [...(base.spells ?? []), ...(LARGE_SPELL_EXTRAS[base.id] ?? [])],
   };
 }
 

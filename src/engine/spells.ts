@@ -168,8 +168,12 @@ export const SPELLS: SpellDef[] = [
     element: "DUSK",
     cost: 4,
     kind: "wall",
-    text: "Cloak a row in darkness for 2 rounds. A card that MOVES in takes 2 DMG and is FRIGHTENed 1 round. DUSK allies in the row gain EVASION. Ranged attacks and FLYING cards pass over.",
-    wall: { dmg: 2, status: { kind: "FRIGHTEN", duration: 1, power: 0 }, allyBuff: { evasion: true }, rounds: 2 },
+    // 3 rounds, like every other Cost-4 wall. It was the only one of the eight at
+    // 2 — a third of the duration gone at the same price, with nothing raised to
+    // pay for it (its 2 damage and one ally rider match Radiant Barrier's, which
+    // gets the full three).
+    text: "Cloak a row in darkness for 3 rounds. A card that MOVES in takes 2 DMG and is FRIGHTENed 1 round. DUSK allies in the row gain EVASION. Ranged attacks and FLYING cards pass over.",
+    wall: { dmg: 2, status: { kind: "FRIGHTEN", duration: 1, power: 0 }, allyBuff: { evasion: true }, rounds: 3 },
   },
   {
     id: "dawn_radiant_barrier",

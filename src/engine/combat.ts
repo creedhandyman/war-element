@@ -426,6 +426,8 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
   for (const c of boardCards(draft)) {
     const ot = getDef(c.defId).onTribeDeath;
     if (!ot || c.curHp <= 0 || c.instanceId === card.instanceId || !tribeOf(card, ot.tribe)) continue;
+    if (ot.max != null && (c.tribeFeedStacks ?? 0) >= ot.max) continue;
+    c.tribeFeedStacks = (c.tribeFeedStacks ?? 0) + 1;
     if (ot.dmg) c.dmgBonus += ot.dmg;
     if (ot.sp) c.spBonus += ot.sp;
     if (ot.hp) { c.maxHp += ot.hp; c.curHp += ot.hp; }
@@ -433,8 +435,11 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
   }
   // Salvage (Vulture): any card's death feeds the scavenger's max HP.
   for (const c of boardCards(draft)) {
-    const sal = getDef(c.defId).salvageOnDeath;
-    if (sal && c.curHp > 0 && c.instanceId !== card.instanceId) {
+    const salDef = getDef(c.defId);
+    const sal = salDef.salvageOnDeath;
+    const salCapped = salDef.salvageMax != null && (c.salvageStacks ?? 0) >= salDef.salvageMax;
+    if (sal && !salCapped && c.curHp > 0 && c.instanceId !== card.instanceId) {
+      c.salvageStacks = (c.salvageStacks ?? 0) + 1;
       c.maxHp += sal;
       c.curHp += sal;
     }
