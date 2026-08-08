@@ -274,6 +274,10 @@ export function describePassives(def: CardDef): string[] {
       t.rootFastest && `ROOT the fastest opponent for ${t.rootFastest} rounds`,
       t.refreshShieldsTo != null && `refresh shields back up to ${t.refreshShieldsTo}`,
       t.rootedStatus && `apply ${t.rootedStatus.kind} ${t.rootedStatus.power} to every ROOTed opponent`,
+      t.paralyzeLowHp &&
+        `PARALYZE every opponent at or under ${t.paralyzeLowHp.underHp} HP for ${forR(t.paralyzeLowHp.rounds)}`,
+      t.selfBurnForDmg &&
+        `burn ${t.selfBurnForDmg.hp} of its own HP to hit +${t.selfBurnForDmg.dmg} harder next round`,
     ].filter(Boolean);
     // Not an every-round effect, so it gets its own line — "Each round: every 3
     // rounds…" reads as a contradiction.
@@ -604,19 +608,27 @@ export function describePassives(def: CardDef): string[] {
     passives.push(`Shadow: can only be attacked by adjacent opponents — ranged shots from afar miss.`);
   if (def.firstStrikeBonus && def.firstStrikeEnemySideOnly)
     named("firstStrikeBonus", `On the enemy battlefield: +${def.firstStrikeBonus} DMG on the first strike against each opponent.`);
-  if (def.summonSelfShields) {
-    const sb = def.onShieldBreak;
-    let breakClause = "";
-    if (sb) {
-      const gains: string[] = [];
-      if (sb.dmg) gains.push(`+${sb.dmg} DMG`);
-      if (sb.sp) gains.push(`+${sb.sp} SP`);
-      if (sb.status)
-        breakClause = `; when it breaks, ${sb.status.kind}s the attacker${sb.status.duration ? ` for ${rounds(sb.status.duration)}` : ""}`;
-      else if (gains.length) breakClause = `; when it breaks, gains ${gains.join(" / ")}`;
-    }
-    named("summonSelfShields", `On summon, raises a ${def.summonSelfShields}-shield barrier${breakClause}.`);
+  // What a broken shield does, in one place. It used to live INSIDE the
+  // summonSelfShields branch, so a card that breaks a shield it did not raise on
+  // summon — Velvolt Knight, Bastion — printed nothing at all about the payoff
+  // its whole design is built on.
+  const sb = def.onShieldBreak;
+  let breakClause = "";
+  if (sb) {
+    const gains: string[] = [];
+    if (sb.dmg) gains.push(`+${sb.dmg} DMG`);
+    if (sb.sp) gains.push(`+${sb.sp} SP`);
+    if (sb.status)
+      breakClause = `${sb.status.kind}s the attacker${sb.status.duration ? ` for ${rounds(sb.status.duration)}` : ""}`;
+    else if (gains.length) breakClause = `gains ${gains.join(" / ")} permanently`;
   }
+  if (def.summonSelfShields)
+    named(
+      "summonSelfShields",
+      `On summon, raises a ${def.summonSelfShields}-shield barrier${breakClause ? `; when it breaks, ${breakClause}` : ""}.`,
+    );
+  else if (breakClause)
+    named("onShieldBreak", `The first time its shields are broken, it ${breakClause}.`);
   if (def.summonFog)
     named("summonFog", `On summon, fog rolls over your battlefield for ${rounds(def.summonFog)} — every enemy basic aimed at your cards has a 50% chance to whiff (flat, no status).`);
   if (def.roundTick?.selfHpCost)
@@ -736,10 +748,15 @@ export function describePassives(def: CardDef): string[] {
     const gains = [sc.dmg && `+${sc.dmg} DMG`, sc.maxHp && `+${sc.maxHp} max HP`].filter(Boolean).join(" and ");
     passives.push(`Brightest Warrior: on summon, gains ${gains} for every ${sc.per} max HP the toughest opponent has.`);
   }
+  if (def.furyBelowHp)
+    named("furyBelowHp", `Below ${def.furyBelowHp.hp} HP it attacks for +${def.furyBelowHp.dmg} DMG.`);
   if (def.weakBelowHp)
     named("weakBelowHp", 
       `Below ${def.weakBelowHp.hp} HP its basic attacks are weakened${def.weakBelowHp.dmgMult === 0.5 ? " to half damage" : ` (×${def.weakBelowHp.dmgMult} DMG)`}.`,
     );
+
+  if (def.diesAfterAttacking)
+    named("diesAfterAttacking", "A one-shot: it dies at the end of any round it attacks.");
 
   return passives;
 }

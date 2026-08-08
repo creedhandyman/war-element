@@ -38,25 +38,37 @@ const ROUND_TICK_KEYS = [
   "pokeParalyzedDmg", "aoeParalyzedDmg", "rootedDmg", "roundHealElement",
   "spawn", "aoeElectrifiedDmg", "selfHpCost", "spawnTriggerAt", "enemyHomeRowStatus",
   "spawnMaxAlive", "healHomeRow", "healHomeRowElement", "allyInRangeShields", "randomEnemyStatus",
+  // Absent from this list is how Blackout's Power Grid and Magmadon's Scorched
+  // Fury stayed invisible: the roundTick check only walks the keys named here,
+  // so an effect nobody added was an effect nobody checked.
+  "paralyzeLowHp", "selfBurnForDmg", "drainAdjacent", "overheatDmg", "healWoundedAllies",
+  "rootZeroSp", "lockEnemySpecials", "drainMaxAdjacent", "rootFastest", "refreshShieldsTo",
+  "rootedStatus", "pokeAheadAdvance",
 ] as const;
 
 describe("card text covers every mechanic", () => {
   const all = [...CARDS, ...TOKENS];
 
-  it("every ability field on every card produces at least one passive line", () => {
+  it("every ability field on every card produces its own card text", () => {
+    // ABLATION, not a line count. The old version asked whether the card had ANY
+    // passive text beyond its element aura, which one described passive was
+    // enough to satisfy — so a card with two abilities could leave the second
+    // completely invisible and still pass. That is how Beebot shipped without
+    // saying it dies after it attacks, and how Bastion and Velvolt Knight
+    // shipped with no mention of what breaking their shield does.
+    //
+    // Removing a described field must CHANGE the text. If it does not, nothing
+    // on the card face is reading it.
     const silent: string[] = [];
     for (const def of all) {
-      const lines = describePassives(def).join(" ");
+      const withField = describePassives(def).join(" | ");
       for (const f of ABILITY_FIELDS) {
         if ((def as unknown as Record<string, unknown>)[f] == null) continue;
-        // A described field always lengthens the passive list; the cheapest
-        // reliable signal is that the card has ANY passive text at all beyond
-        // the element aura every card gets for free.
-        if (describePassives(def).length <= 1) silent.push(`${def.id}.${f}`);
-        void lines;
+        const stripped = describePassives({ ...def, [f]: undefined } as typeof def).join(" | ");
+        if (stripped === withField) silent.push(`${def.id}.${f}`);
       }
     }
-    expect(silent, `these fields render no card text:\n  ${silent.join("\n  ")}`).toEqual([]);
+    expect(silent, `these fields render no card text: ${silent.join(", ")}`).toEqual([]);
   });
 
   it("every roundTick effect produces a passive line", () => {
