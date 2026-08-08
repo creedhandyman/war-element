@@ -6031,6 +6031,14 @@ export const CARDS: CardDef[] = [
       handler: "sweep",
       params: { shieldPerKill: 2 },
       targetSide: "enemy",
+      // `ranged` here is about the FIRE GATE, not the reach: canFireSpecial
+      // refuses when nothing is in normal targeting range, which for a Melee
+      // card is the eight adjacent tiles. Sweep aims at nothing — it takes the
+      // whole row ahead, every column — so without this Brute was locked out of
+      // its own printed effect whenever the row-ahead enemy stood two or more
+      // columns away. Every other targetless enemy Special on a Melee card
+      // (WarPhant, Storm, Liquark) already carries it; Brute was the one missed.
+      ranged: true,
       text: "Attack every opponent in the row directly ahead; gain +2 shields per kill.",
     },
   },

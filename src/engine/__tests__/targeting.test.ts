@@ -1,8 +1,9 @@
 // Milestone 3: targeting — melee rows, ranged, Home Slot Rule, FLYING, STEALTH.
 
 import { describe, expect, it } from "vitest";
-import { canTarget, previewOnSummonArea, rangedCanSee, rangedReachFor, validSpecialTargets, validTargets } from "../rules";
+import { canFireSpecial, canTarget, previewOnSummonArea, rangedCanSee, rangedReachFor, specialTargets, validSpecialTargets, validTargets } from "../rules";
 import { applyStatus } from "../combat";
+import { applyIntent } from "../phases";
 import { getDef } from "../../data/cards";
 import { place, prepState } from "./helpers";
 import type { Pos } from "../types";
@@ -291,5 +292,58 @@ describe("King of the Hill — reach", () => {
     const ids = validTargets(s, melee.instanceId).map((t) => t.instanceId);
     expect(ids).toContain(adjacent.instanceId);
     expect(ids).not.toContain(twoAway.instanceId); // still 1 space, bonus or not
+  });
+});
+
+describe("a Special that charges can aim as far as it charges", () => {
+  /** Put the caster in its home row and the only enemy `gap` columns away on the
+   *  row ahead — the shape every one of these cards is printed for. */
+  function apart(defId: string, gap: number) {
+    const s = prepState();
+    s.players.P1.magicPool = 20;
+    const a = place(s, defId, "P1", 3, 0);
+    const t = place(s, "bore_armadillo", "P2", 2, gap, { curHp: 40, maxHp: 40 });
+    return { s, a, t };
+  }
+
+  it("Stormfang can pick a target across the board — its dash is 4", () => {
+    const { s, a } = apart("gale_stormfang", 3);
+    expect(specialTargets(s, a.instanceId).length).toBe(1);
+    expect(canFireSpecial(s, a.instanceId).ok).toBe(true);
+  });
+
+  it("and actually moves when it does", () => {
+    const { s, a, t } = apart("gale_stormfang", 3);
+    const next = applyIntent(
+      { ...s, phase: "battle", prep: null, battle: { queue: [a.instanceId], index: 0, awaitingInput: a.instanceId } },
+      { type: "BATTLE_ACTION", player: "P1", action: "special", targetId: t.instanceId },
+    );
+    const moved = next.cards[a.instanceId].pos!;
+    expect(moved, "the dash covered ground").not.toEqual({ row: 3, col: 0 });
+    expect(next.cards[t.instanceId].curHp).toBeLessThan(40);
+  });
+
+  it("Razor Guard's reach grows by ONE, not to the whole board — its charge is 1", () => {
+    // The blunt fix for this class is `ranged: true`, and it would have been
+    // wrong here: strike does not re-check reach after the charge, so Dande
+    // would deal its damage from anywhere. Two columns is inside the dash; three
+    // is not.
+    expect(specialTargets(apart("leaf_dande", 2).s, apart("leaf_dande", 2).a.instanceId).length).toBe(1);
+    const far = apart("leaf_dande", 3);
+    expect(specialTargets(far.s, far.a.instanceId).length).toBe(0);
+  });
+
+  it("a ground charger still cannot pull a flier down", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 20;
+    const a = place(s, "gale_stormfang", "P1", 3, 0);
+    place(s, "gale_gastly", "P2", 2, 3, { curHp: 20, maxHp: 20 }); // FLYING
+    const picks = specialTargets(s, a.instanceId);
+    expect(picks.filter((p) => getDef(p.defId).keywords.FLYING)).toHaveLength(0);
+  });
+
+  it("Brute's Sweep fires at a row-ahead enemy three columns away", () => {
+    const { s, a } = apart("dusk_brute", 3);
+    expect(canFireSpecial(s, a.instanceId).ok).toBe(true);
   });
 });

@@ -272,6 +272,11 @@ export function canTarget(
   target: CardInstance,
   asRanged = false, // a ranged special ignores the melee reach/FLYING limits
   forBasic = false, // BASIC attacks only: applies the ranged queen-line limit
+  /** Extra melee reach, in king-steps. A Special that CHARGES may aim as far as
+   *  it can travel — see validSpecialTargets. Widens the melee square ONLY: a
+   *  ground charger still cannot pull a flier out of the air, which is why this
+   *  exists instead of just flagging those Specials `ranged`. */
+  extraReach = 0,
 ): boolean {
   if (!attacker.pos || !target.pos) return false;
   if (target.owner === attacker.owner) return false;
@@ -301,7 +306,8 @@ export function canTarget(
   if (melee) {
     const dRow = Math.abs(attacker.pos.row - target.pos.row);
     const dCol = Math.abs(attacker.pos.col - target.pos.col);
-    if (dRow > 1 || dCol > 1) {
+    const reach = 1 + extraReach;
+    if (dRow > reach || dCol > reach) {
       // Long Reach (Shadow Horsemen): a BASIC may also strike along the four
       // straight lines out to `basicLineReach`. Everything off those lines stays
       // at melee's usual one step, so this widens the threat into a cross rather
@@ -395,9 +401,24 @@ export function validAllyTargets(state: GameState, attackerId: string): CardInst
 export function validSpecialTargets(state: GameState, attackerId: string): CardInstance[] {
   const attacker = state.cards[attackerId];
   if (!attacker || !attacker.pos) return [];
-  const asRanged = Boolean(getDef(attacker.defId).special?.ranged);
+  const special = getDef(attacker.defId).special;
+  const asRanged = Boolean(special?.ranged);
+  // A Special that charges BEFORE it strikes may aim as far as it can travel.
+  // Without this, a Melee charger could only ever pick a target already standing
+  // beside it — and chargeToward stops the moment it is adjacent to a living
+  // target, so the charge moved exactly zero every time. Stormfang's "Dash into
+  // the target's row", Omega's "Move up to 3 spaces", Volcanic Charge and Razor
+  // Guard all printed a move that could not happen.
+  //
+  // Measured in king-steps, the same metric the melee square uses. A ground
+  // card walks orthogonally, so a diagonal target at the edge of this range can
+  // cost more steps than the charge has and the strike still lands from a step
+  // short — generous by at most that step, and far closer to the printed text
+  // than refusing the Special outright.
+  const chargeReach =
+    Number(special?.params?.chargeFirst ?? 0) > 0 ? Number(special?.params?.charge ?? 0) : 0;
   return boardCards(state, enemyOf(attacker.owner)).filter((t) =>
-    canTarget(state, attacker, t, asRanged),
+    canTarget(state, attacker, t, asRanged, false, chargeReach),
   );
 }
 
