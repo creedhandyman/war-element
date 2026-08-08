@@ -327,7 +327,13 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         const b = getDef(guard.defId).onOppSummonSelfBuff;
         if (b && guard.curHp > 0 && !guard.kingWildFiredRound) {
           guard.kingWildFiredRound = true;
+          // tempShields is what marks a plate as "for the round" — Cleanup
+          // subtracts it. Without it the shields were PERMANENT while the DMG
+          // beside them expired, and since kingWildFiredRound re-arms every
+          // round, Leo simply accumulated +2 a round for the whole match off a
+          // passive that prints "for the round".
           guard.curShields += b.shields;
+          guard.tempShields += b.shields;
           guard.dmgBonusRound += b.dmg; // resets at Cleanup
           draft.log.push(`${getDef(guard.defId).name} rises to the challenge (+${b.shields} shields, +${b.dmg} DMG this round).`);
         }

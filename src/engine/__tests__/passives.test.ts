@@ -2815,3 +2815,22 @@ describe("on-summon passives that aim at nothing still fire", () => {
     }
   });
 });
+
+describe("King of the Wild is a round buff, both halves of it", () => {
+  it("Leo's shields expire at Cleanup like the DMG beside them", () => {
+    const s = prepState();
+    s.players.P2.gold = 20;
+    s.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    const leo = place(s, "dawn_leo", "P1", 3, 0);
+    const base = s.cards[leo.instanceId].curShields;
+    const handId = giveHand(s, "P2", "dusk_gool");
+    const afterSummon = applyIntent(s, { type: "SUMMON", player: "P2", handId, col: 1 });
+    expect(afterSummon.cards[leo.instanceId].curShields).toBe(base + 2);
+    // "for the round" — so by the next round both halves are gone. The DMG half
+    // always expired; the shields used to stay, and re-armed every round, so Leo
+    // simply accrued +2 a round for the whole match.
+    const next = advance(atCleanup(afterSummon));
+    expect(next.cards[leo.instanceId].curShields).toBe(base);
+    expect(next.cards[leo.instanceId].dmgBonusRound).toBe(0);
+  });
+});
