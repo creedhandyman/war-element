@@ -534,13 +534,44 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    lines, grew .tk-bottom past the height of the token, and the whole strip hung
    off the bottom edge onto the tile below (the token is overflow:visible so the
    floating CRIT/damage numbers can leave it). One line can't push anything down. */
-.tk-stats { display: flex; gap: 3px; font-size: 12.5px; font-weight: 800; flex-wrap: nowrap; min-width: 0; }
+/* ONE shared plate, not four. Four pills spend three gaps and six side-paddings
+   on separators the colour coding already provides, and that overhead is what
+   made a crowded row overflow: a common multi-hit card mid-fight prints
+   "⚔6 ×3 🛡4 ♥18/24 ⚡9", which ran ~18px past the card with per-pill plates.
+   Since the row can no longer wrap, overflow means a CLIPPED stat — so the
+   width has to be bought back rather than left to chance. */
+/* Sized off the TILE (container-type on .slot), not the viewport, and not the
+   board size. --board-size tracks viewport HEIGHT, so a short desktop window
+   shrinks a 4x4 tile to the size of a 5x5 tile on a tall one — and .tight keys
+   on column count, so it would not have helped there. The clamp CEILING is the
+   old fixed 12.5px, so a roomy tile is pixel-identical to before; only a cramped
+   one gives ground, shrinking rather than clipping a stat. */
+.tk-stats {
+  display: flex; gap: 0.16em; font-size: clamp(7px, 8.5cqw, 12.5px); font-weight: 800;
+  flex-wrap: nowrap; min-width: 0; align-self: flex-start; max-width: 100%;
+  /* gap and padding in em, not px: fixed spacing stops the font shrink from
+     buying anything once the tile is small — three gaps and two paddings is ~9px
+     of a row that only has ~80px to live in. At 12.5px these are the old 2px/3px. */
+  padding: 0 0.24em; border-radius: 5px; background: rgba(0, 0, 0, 0.72);
+}
 /* DIRECT children only — the "/max" inside the HP pill is a span too, and it
-   must not get its own plate and padding. */
-.tk-stats > span { display: flex; align-items: center; gap: 1px; padding: 0 4px; border-radius: 5px; background: rgba(0, 0, 0, 0.72); text-shadow: 0 1px 2px #000, 0 0 4px #000; line-height: 1.4; flex: 0 0 auto; }
+   must not get its own padding. */
+.tk-stats > span { display: flex; align-items: center; gap: 1px; padding: 0; border-radius: 0; background: none; text-shadow: 0 1px 2px #000, 0 0 4px #000; line-height: 1.4; flex: 0 0 auto; }
 .hp-max { opacity: 0.72; font-weight: 700; }
+/* The "/max" is the first thing dropped when the tile gets cramped, because it is
+   the only part of the row that is pure context — the current HP is the number
+   you act on, and the maximum is still in the stat's tooltip and on the card.
+   Keyed on the TILE, not the board: a 4x4 on a short window has tiles as small
+   as a 5x5 on a tall one, and shrinking the font alone cannot close a row of four
+   emoji plus nine digits at this width. Measured — 150px is where the widest row
+   the game can print runs out of slack. */
+@container (max-width: 150px) {
+  .hp-max { display: none; }
+}
 .st-sp { color: var(--stat-sp); }
-.st-sp.can-move { color: #06251a; background: var(--legal); text-shadow: none; box-shadow: 0 0 10px rgba(78, 203, 143, 0.7); animation: movepulse 1.5s ease-in-out infinite; }
+/* The one stat that still wants to be its own pill: it is a call to action, not a
+   readout, so it gets back the padding and corners the shared plate dropped. */
+.st-sp.can-move { color: #06251a; background: var(--legal); padding: 0 3px; border-radius: 4px; text-shadow: none; box-shadow: 0 0 10px rgba(78, 203, 143, 0.7); animation: movepulse 1.5s ease-in-out infinite; }
 .st-dmg { color: var(--stat-dmg); } .st-hp { color: var(--stat-hp); } .st-sh { color: var(--stat-sh); }
 /* HP flashes red on damage, green on healing so combat reads at a glance. */
 .st-hp.hp-hit { animation: hpHit 0.65s ease-out; }
@@ -617,11 +648,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .board.tight .tk-name { font-size: clamp(7.5px, 10.5cqw, 13px); }
 .board.tight .tk-cost { width: 15px; height: 15px; font-size: 9px; }
 .board.tight .tk-class { display: none; }
-/* gap + padding in em, not px: fixed padding is ~17px of the row and stops the
-   font shrink from buying anything once the tile gets small. */
-.board.tight .tk-stats { font-size: clamp(6.5px, 8cqw, 11.5px); gap: 0.18em; }
-.board.tight .tk-stats > span { padding: 0 0.2em; border-radius: 4px; }
-.board.tight .hp-max { display: none; }
+/* A slightly harder clamp than the base row, since a 5x5 tile is the smallest
+   the game asks a full stat line to live in.
+   The per-pill padding that used to sit here is GONE, not moved: the plate is
+   shared now, so it was six paddings of pure overhead at the one size that can
+   least afford them. Dropping "/max" is likewise no longer a 5x5 rule — it hangs
+   off the tile-width container query, which catches a cramped 4x4 as well. */
+.board.tight .tk-stats { font-size: clamp(6.5px, 8cqw, 11.5px); }
 .board.tight .tk-bottom { padding-bottom: 14px; }
 .board.tight .auto-btn { font-size: 7.5px; padding: 1px 4px; bottom: 3px; left: 3px; }
 .board.tight .fx-dmg { font-size: 14px; }
@@ -732,7 +765,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    is red like it (⚔4 reads as one all-red unit), while the "×N" hit-count
    trails off to the side in white so the two numbers never blur (⚔[4][ ×2]). */
 .atk-dmg { color: var(--stat-dmg); }
-.atk-x { color: #fff; }
+/* The hit count is a modifier on the damage, not a stat of its own — a notch
+   smaller reads correctly and gives the row back a pixel or two. */
+.atk-x { color: #fff; font-size: 0.9em; }
 .hc-class { font-size: 8px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
 
 /* deck as a stacked pile with its count */
@@ -1823,8 +1858,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .tk-name { font-size: 8.5px; }
   .tk-cost { width: 14px; height: 14px; font-size: 8px; }
   .tk-class { font-size: 6px; margin-bottom: 0; letter-spacing: 0.02em; }
-  .tk-stats { font-size: 8px; gap: 2px; }
-  .tk-stats > span { padding: 0 2px; line-height: 1.2; }
+  .tk-stats { font-size: 8px; gap: 1px; padding: 0 2px; }
+  /* No per-pill padding — the plate is shared now, and on a phone that overhead
+     is the difference between the row fitting and a stat being clipped. */
+  .tk-stats > span { padding: 0; line-height: 1.2; }
   .tk-bottom { gap: 1px; padding-bottom: 12px; }
   .auto-btn { font-size: 6px; padding: 1px 3px; bottom: 3px; left: 3px; border-radius: 4px; }
   .status-icons { gap: 2px; }
