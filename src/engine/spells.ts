@@ -91,10 +91,16 @@ export const SPELLS: SpellDef[] = [
     kind: "choice",
     // Modal: STRIKE a foe (3 DMG + FREEZE 1) OR SHIELD an AQUA ally (+4). The
     // caster picks the mode at cast; the ice-shard vs water-shield of the art.
-    text: "Choose — strike a foe for 3 DMG + FREEZE 1, or shield an AQUA ally +4.",
+    // +2, not +4. The shield half was worth more than Bulwark, the DEDICATED
+    // shield spell two rungs up at cost 3 (+3), and more than Fortify at cost 5
+    // (+2 to the whole team) — a cost-1 modal beating both on their own axis
+    // while also carrying a strike mode. +2 keeps it the strongest rider on the
+    // cost-1 rung (Pebble Toss gives +1) without outdoing the spells that exist
+    // to do this.
+    text: "Choose — strike a foe for 3 DMG + FREEZE 1, or shield an AQUA ally +2.",
     dmg: 3,
     status: { kind: "FREEZE", duration: 1, power: 0 },
-    allyShield: 4,
+    allyShield: 2,
   },
   {
     id: "bolt_zap",
@@ -321,9 +327,14 @@ export const SPELLS: SpellDef[] = [
     element: "DAWN",
     cost: 2,
     kind: "heal",
-    text: "CLEANSE all DAWN allies — remove every negative status.",
+    // 2 statuses each, not "every one". At cleanse 99 this stripped a control
+    // deck's entire round off the whole team for 2 magic — and made the cost-5
+    // team spells, which cleanse ONE apiece, strictly worse on the axis they
+    // share. It is still the dedicated cleanse and still the cheapest; what the
+    // cost-5s buy over it is the healing beside it.
+    text: "CLEANSE all DAWN allies — remove up to 2 negative statuses each.",
     allAllies: true,
-    cleanse: 99,
+    cleanse: 2,
   },
   {
     id: "leaf_groves_blessing",
@@ -492,8 +503,13 @@ export const SPELLS: SpellDef[] = [
     element: "BOLT",
     cost: 2,
     kind: "convert", // no target, no board effect — the convert branch's shape
-    text: "Reveal the opponent's hand for the rest of this round.",
+    // The reveal is information only — the UI reads it and nothing else does —
+    // so against the AI, which is every single-player mode, this was a dead card
+    // at the price of a row-wide trap. The discount gives it a board consequence
+    // in its own element's idiom without touching what makes it interesting.
+    text: "Reveal the opponent's hand for the rest of this round, and your Specials cost 1 less this round (minimum 1).",
     revealHand: true,
+    specialDiscountRound: 1,
   },
   {
     id: "bolt_system_override",
@@ -501,8 +517,15 @@ export const SPELLS: SpellDef[] = [
     element: "BOLT",
     cost: 9,
     kind: "convert", // no target; it changes what the caster can afford
-    text: "All of your Specials cost 3 less this round (minimum 1).",
+    // The discount alone did not fill a cost-9 slot: every other cost-9 in the
+    // game is a board wipe, and BOLT's own cost-6 Power Grid already gives a
+    // smaller discount for THREE rounds plus an Electrify rider. The rung is
+    // fixed — one spell per cost per element — so the effect grows instead of
+    // the price dropping. Cheap Specials AND every one of them ready at once is
+    // a round you build a whole turn around, which is what the slot is for.
+    text: "All of your Specials cost 3 less this round (minimum 1), and every ally's Special comes off cooldown.",
     specialDiscountRound: 3,
+    clearCooldowns: true,
   },
   {
     id: "bore_bedrock",
@@ -519,8 +542,13 @@ export const SPELLS: SpellDef[] = [
     element: "DUSK",
     cost: 6,
     kind: "field",
-    text: "Field (3 rounds): your DUSK allies dodge the FIRST hit they take each round, and every DRAIN steals 1 extra max HP.",
-    field: { rounds: 3, evasion: true, drainBonus: 1 },
+    // dmgBonus carries the TERRAIN form. As DUSK's region terrain the flags are
+    // stripped and the numbers halved, which left Nightfall as `drainBonus: 1`
+    // alone — and drainBonus does nothing at all for a card without the DRAIN
+    // keyword, so a DUSK team drafted without drainers stood on terrain that did
+    // literally nothing. The narrowest of the eight regions by a distance.
+    text: "Field (3 rounds): your DUSK allies dodge the FIRST hit they take each round, deal +1 DMG, and every DRAIN steals 1 extra max HP.",
+    field: { rounds: 3, evasion: true, drainBonus: 1, dmgBonus: 1 },
   },
   {
     id: "dawn_blazing_sun",

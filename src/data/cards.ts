@@ -838,9 +838,19 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Ghost",
-    // Spook (On Hit, first time only): FRIGHTEN the opponent.
+    // Spook (On Hit, first time only): FRIGHTEN the opponent for 2 rounds.
+    //
+    // Duration 2 for the reason Hunter's Trapper and Elderroot already give in
+    // their own comments: a status applied during BATTLE at duration 1 is ticked
+    // away at Cleanup before Prep ever comes round, so the half of FRIGHTEN that
+    // stops a card MOVING never landed once. Only the immediate retreat did.
+    //
+    // It matters more here than anywhere. Gool was the one card in the set
+    // dominated outright on both axes — Hunter is the same rarity, cost, attack
+    // type, HP and SP with +1 DMG and three passives to Gool's one — and that one
+    // passive was half inert.
     passiveNames: { onHitStatus: "Spook" },
-    onHitStatus: { kind: "FRIGHTEN", duration: 1, power: 0, firstHitOnly: true },
+    onHitStatus: { kind: "FRIGHTEN", duration: 2, power: 0, firstHitOnly: true },
   },
   {
     id: "dusk_ghastly",

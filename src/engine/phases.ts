@@ -653,17 +653,24 @@ function resolveSpell(
     };
     draft.log.push(`${player} calls on the dead — anything that falls this round answers.`);
   }
+  // ABOVE the discount and with no `return`: Recon Ping now carries both, and
+  // the discount branch below returns, so a reveal placed after it would never
+  // run. Falls through on purpose.
+  if (spell.revealHand) {
+    draft.players[enemyOf(player)].handRevealedUntilRound = draft.round;
+    draft.log.push(`${player} pings the network — the opposing hand is exposed this round.`);
+    if (!spell.specialDiscountRound) return;
+  }
   if (spell.specialDiscountRound) {
     const pl = draft.players[player];
     pl.specialDiscountRound = (pl.specialDiscountRound ?? 0) + spell.specialDiscountRound;
     draft.log.push(`${player}'s Specials cost ${spell.specialDiscountRound} less this round.`);
-    return;
-  }
-  if (spell.revealHand) {
-    // Pure information: the opposing hand is legible for the rest of this round.
-    // Nothing on the board changes, which is the point of the card.
-    draft.players[enemyOf(player)].handRevealedUntilRound = draft.round;
-    draft.log.push(`${player} pings the network — the opposing hand is exposed this round.`);
+    if (spell.clearCooldowns) {
+      let readied = 0;
+      for (const c of boardCards(draft, player))
+        if (c.curHp > 0 && c.specialCooldown > 0) { c.specialCooldown = 0; readied++; }
+      if (readied > 0) draft.log.push(`${player} overrides ${readied} recharging Special(s) — all ready.`);
+    }
     return;
   }
   if (spell.kind === "convert" && spell.gainGold) {

@@ -73,7 +73,7 @@ describe("Cost-1 damage spells", () => {
     expect(next.players.P1.magicPool).toBe(2); // cost 1, from 3
   });
 
-  it("Chill (shield) grants +4 shield to the AQUA ally the caster names", () => {
+  it("Chill (shield) grants +2 shield to the AQUA ally the caster names", () => {
     const s = prepState();
     armSpell(s, "aqua_chill", 3);
     const ally = place(s, "aqua_spinefin", "P1", 2, 0, { curHp: 8, maxHp: 12, curShields: 1 });
@@ -84,7 +84,7 @@ describe("Cost-1 damage spells", () => {
       mode: "shield",
       targetId: ally.instanceId,
     });
-    expect(next.cards[ally.instanceId].curShields).toBe(5); // 1 + 4
+    expect(next.cards[ally.instanceId].curShields).toBe(3); // 1 + 2
     expect(next.players.P1.magicPool).toBe(2); // cost 1, from 3
   });
 
@@ -186,7 +186,7 @@ describe("single-target support spells are AIMED, not auto-cast", () => {
       type: "CAST_SPELL", player: "P1", spellId: "aqua_chill",
       mode: "shield", targetId: healthy.instanceId,
     });
-    expect(next.cards[healthy.instanceId].curShields).toBe(4);
+    expect(next.cards[healthy.instanceId].curShields).toBe(2);
     expect(next.cards[dying.instanceId].curShields).toBe(0);
   });
 
@@ -981,5 +981,37 @@ describe("trap spells deliver both halves of their payload", () => {
     const victim = boardCards(next, "P2").find((c) => c.pos?.row === 0 && c.pos?.col === 0)!;
     expect(statusOf(victim, "ROOT")).toBeTruthy();
     expect(statusOf(victim, "BLEED")?.power).toBe(1);
+  });
+});
+
+describe("the two weak utility spells earned their rung", () => {
+  it("System Override readies every ally's Special, not just discounts them", () => {
+    const s = prepState();
+    armSpell(s, "bolt_system_override", 9);
+    const a = place(s, "bolt_storm", "P1", 3, 0);
+    const b = place(s, "bolt_kore", "P1", 3, 1);
+    s.cards[a.instanceId].specialCooldown = 3;
+    s.cards[b.instanceId].specialCooldown = 2;
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bolt_system_override" });
+    expect(next.cards[a.instanceId].specialCooldown).toBe(0);
+    expect(next.cards[b.instanceId].specialCooldown).toBe(0);
+    expect(next.players.P1.specialDiscountRound).toBe(3);
+  });
+
+  it("and it does not reach across the table", () => {
+    const s = prepState();
+    armSpell(s, "bolt_system_override", 9);
+    const foe = place(s, "bolt_storm", "P2", 0, 0);
+    s.cards[foe.instanceId].specialCooldown = 3;
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bolt_system_override" });
+    expect(next.cards[foe.instanceId].specialCooldown).toBe(3);
+  });
+
+  it("Recon Ping now has a board consequence, not just information", () => {
+    const s = prepState();
+    armSpell(s, "bolt_recon_ping", 2);
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bolt_recon_ping" });
+    expect(next.players.P2.handRevealedUntilRound).toBe(next.round);
+    expect(next.players.P1.specialDiscountRound).toBe(1); // dead against the AI without this
   });
 });

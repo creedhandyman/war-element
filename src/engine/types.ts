@@ -1375,6 +1375,11 @@ export interface SpellDef {
   allyDmgRound?: number;
   /** System Override: every Special the caster fires costs N less this round. */
   specialDiscountRound?: number;
+  /** System Override: every ally's Special comes off cooldown at once. The
+   *  discount alone did not fill a cost-9 slot — every other cost-9 in the
+   *  game is a board wipe — and the rung is fixed, one spell per cost per
+   *  element, so the effect had to grow rather than the price shrink. */
+  clearCooldowns?: boolean;
   /** Rewire: swap the board positions of two of the caster's own cards. */
   swapAllies?: boolean;
   /** Full Reroute: freely relocate up to N of the caster's cards to open slots,
