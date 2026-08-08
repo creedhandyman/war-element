@@ -7980,12 +7980,23 @@ export const CARDS: CardDef[] = [
     // Goodnight (On Death): two Crows burst from the straw as it falls.
     passiveNames: { onDeath: "Goodnight" },
     onDeath: { dmg: 0, spawnToken: { token: "dusk_crow", count: 2 } },
-    // Bird Bomb (Talent, free, once per game): conjure 3 Crows.
-    talent: {
-      name: "Bird Bomb",
-      text: "Once per game, free: create 3 Crows.",
+    // Murder (Special): conjure 3 Crows, and again once it comes off cooldown.
+    //
+    // This was a Talent — free, once per game — which is the RARE pattern, and
+    // Strawman is an Epic. It was the only non-rare card in the game still
+    // carrying one; the other 107 Epics all have repeatable Specials.
+    //
+    // Costed off Sway, its closest peer: also Epic, also a cost-3 body, also
+    // three tokens for three magic. Renamed too, because "Bird Bomb" is already
+    // the name of the Crow's OWN on-death blast — the card and the thing it
+    // summons cannot share an ability name. A murder is what a group of crows is.
+    special: {
+      name: "Murder",
+      cost: 3,
       handler: "spawn",
-      params: { token: "dusk_crow", count: 3 },
+      params: { token: "dusk_crow", count: 3, radius: 2 },
+      targetSide: "self",
+      text: "Create 3 Crows near it.",
     },
   },
   {

@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS, TARGETLESS_HANDLERS } from "../combat";
-import { applyFlow, EXOSTONE_SHIELDS, hasElementAura, PYRO_BURN_STACK_CAP } from "../auras";
+import { applyFlow, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, hasElementAura, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire } from "../state";
@@ -304,16 +304,32 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[liq.instanceId].statuses.some((st) => st.kind === "STEALTH")).toBe(true);
   });
 
-  it("Strawman spawns Crows — 2 on death (Goodnight), 3 from Bird Bomb", () => {
+  it("Strawman spawns Crows — 2 on death (Goodnight), 3 from Murder", () => {
     const s = prepState();
     const skrow = place(s, "dusk_skrow", "P1", 2, 1);
     const crows = () => boardCards(s, "P1").filter((c) => c.defId === "dusk_crow").length;
-    // Bird Bomb talent → 3 Crows.
-    SPECIAL_HANDLERS.spawn(s, s.cards[skrow.instanceId], [], { token: "dusk_crow", count: 3 });
+    // Murder → 3 Crows. This was the Bird Bomb Talent until Strawman became an
+    // Epic; the ability is the same, it just repeats now and costs magic.
+    SPECIAL_HANDLERS.spawn(s, s.cards[skrow.instanceId], [], { token: "dusk_crow", count: 3, radius: 2 });
     expect(crows()).toBe(3);
     // Goodnight (on death) → 2 more.
     defeatCard(s, s.cards[skrow.instanceId], "test");
     expect(crows()).toBe(5);
+  });
+
+  it("Strawman carries a Special, not a Talent — it is an Epic", () => {
+    const def = getDef("dusk_skrow");
+    expect(def.rarity).toBe("epic");
+    expect(def.special?.name).toBe("Murder");
+    expect(def.talent, "Talents are the RARE pattern: free, once per game").toBeUndefined();
+  });
+
+  it("no non-rare card is still carrying a Talent", () => {
+    // Strawman was the only one. This is the guard that keeps it that way, since
+    // the mismatch is invisible in play until someone notices the ability can
+    // only be used once.
+    const stragglers = CARDS.filter((d) => d.talent && d.rarity !== "rare").map((d) => d.id);
+    expect(stragglers).toEqual([]);
   });
 
   it("Ariel's Dawning Assault shakes the target's aim (its attacks then miss)", () => {
@@ -2854,5 +2870,36 @@ describe("a card killed on arrival does not then take its turn", () => {
     // Special, all from a card already off the board.
     const tokens = boardCards(n, "P2").filter((c) => getDef(c.defId).id === "leaf_reptilian_tok");
     expect(tokens, "a corpse spawned its escort").toHaveLength(0);
+  });
+});
+
+describe("Reforged plates the ring around Smith, itself included", () => {
+  function summonSmith() {
+    const s = prepState();
+    s.players.P1.gold = 20;
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const beside = place(s, "bore_clubber", "P1", 3, 1, { curShields: 0 });
+    const ahead = place(s, "bore_armadillo", "P1", 2, 3, { curShields: 0 }); // row ahead, far away
+    const handId = giveHand(s, "P1", "bore_smith");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const smith = boardCards(next, "P1").find((c) => getDef(c.defId).id === "bore_smith")!;
+    return { next, beside, ahead, smith };
+  }
+
+  it("shields the neighbours and Smith, not the row ahead", () => {
+    const { next, beside, ahead, smith } = summonSmith();
+    expect(next.cards[beside.instanceId].curShields).toBe(2);
+    // Its printed shields, plus the BORE summon aura it also gets, plus its own
+    // plates — Reforged includes the smith that forged them.
+    expect(next.cards[smith.instanceId].curShields).toBe(
+      getDef("bore_smith").shields + (EXOSTONE_SHIELDS[getDef("bore_smith").rarity ?? ""] ?? EXOSTONE_DEFAULT) + 2,
+    );
+    expect(next.cards[ahead.instanceId].curShields, "three columns over is not nearby").toBe(0);
+  });
+
+  it("and stokes them for the +1 DMG it prints", () => {
+    const { next, beside } = summonSmith();
+    const c = next.cards[beside.instanceId];
+    expect(effectiveDmg(next, c)).toBe(getDef("bore_clubber").dmg + 1);
   });
 });

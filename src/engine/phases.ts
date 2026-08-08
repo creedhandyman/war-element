@@ -1634,11 +1634,33 @@ function applyAllyOnSummon(
     return;
   }
   if (handler === "grantShield") {
-    // Allies in the row directly ahead of the caster.
-    const targets = allies.filter((c) => c.pos?.row === aheadRow);
-    for (const t of targets) t.curShields += amount;
+    // `nearby` and the +DMG rider are read HERE as well as in the real
+    // grantShield handler, because an ally-side on-summon never reaches that
+    // handler — this path is a second, thinner implementation of the same
+    // ability. It knew only `amount`, so Smith's Reforged ("plate every NEARBY
+    // ally, itself included, and stoke them for +1 DMG") shielded the row ahead
+    // instead of the ring around it, never shielded Smith, and never granted the
+    // DMG at all. Delegating to the real handler instead would have been tidier
+    // and wrong: it takes a target list this path has none of, so PolarBear —
+    // the only other card here, and one with no `nearby` — would have ended up
+    // shielding only itself.
+    const nearby = Number(params.nearby ?? 0) > 0;
+    const targets = nearby && caster.pos
+      ? boardCards(draft, caster.owner).filter(
+          (c) => c.curHp > 0 && c.pos && chebyshev(caster.pos!, c.pos) <= 1,
+        )
+      : allies.filter((c) => c.pos?.row === aheadRow);
+    const buffDmg = Number(params.buffDmg ?? 0);
+    const buffRounds = Number(params.buffRounds ?? 1);
+    for (const t of targets) {
+      t.curShields += amount;
+      if (buffDmg > 0) applyTimedBuff(t, buffDmg, 0, buffRounds);
+    }
     if (targets.length > 0)
-      draft.log.push(`${getDef(caster.defId).name} reinforces ${targets.length} ally(ies) (+${amount} shields).`);
+      draft.log.push(
+        `${getDef(caster.defId).name} reinforces ${targets.length} ally(ies) (+${amount} shields` +
+          `${buffDmg > 0 ? `, +${buffDmg} DMG for ${buffRounds}r` : ""}).`,
+      );
   } else if (handler === "buffSp") {
     // `rounds` turns the grant TEMPORARY (Whirlwolf's Hastening Breeze is "for
     // the round"); otherwise it's a permanent spBonus as before.
