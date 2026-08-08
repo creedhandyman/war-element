@@ -3458,6 +3458,9 @@ export const CARDS: CardDef[] = [
     shields: 0,
     // Both blades of the 2×2 roll for a crit.
     keywords: { CRIT: true },
+    // Wind Warp: it moves to anywhere open on the board, at any distance.
+    passiveNames: { windWarp: "Wind Warp" },
+    windWarp: true,
     special: {
       name: "Ambush",
       cost: 2,

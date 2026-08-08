@@ -125,7 +125,9 @@ export function canMove(
     ? chebyshev(card.pos, to)
     : manhattan(card.pos, to);
   if (dist === 0) return { ok: false, reason: "Already there" };
-  if (dist > reach)
+  // Wind Warp (Rayfen): the ONLY rule it skips is the distance one. Everything
+  // below still applies to it, the home-to-home ban included.
+  if (dist > reach && !getDef(card.defId).windWarp)
     return { ok: false, reason: `Too far (reach ${reach})` };
   // No home-to-home dash: a card standing on its OWN home row may not land on
   // the enemy's in a single move. With the fast tier reaching 3 slots, a 4x4

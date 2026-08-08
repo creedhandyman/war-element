@@ -755,6 +755,11 @@ export function describePassives(def: CardDef): string[] {
       `Below ${def.weakBelowHp.hp} HP its basic attacks are weakened${def.weakBelowHp.dmgMult === 0.5 ? " to half damage" : ` (×${def.weakBelowHp.dmgMult} DMG)`}.`,
     );
 
+  if (def.windWarp)
+    named(
+      "windWarp",
+      "Moves to any open slot on the board, at any distance — but still cannot cross from its own Home row to the enemy's in one move.",
+    );
   if (def.diesAfterAttacking)
     named("diesAfterAttacking", "A one-shot: it dies at the end of any round it attacks.");
 

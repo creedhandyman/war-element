@@ -833,6 +833,17 @@ export interface CardDef {
   /** A Talent: a FREE, once-per-game Battle-Phase ability (fired instead of a
    *  basic attack). After it fires the card reverts to passive-only. */
   talent?: { name: string; text: string; handler: string; params?: Record<string, number | string> };
+  /** Wind Warp (Rayfen): distance is no object when it MOVES — it may step out
+   *  of the wind onto any open slot on the board, however far.
+   *
+   *  Movement only. Every other rule still binds: it needs SP above zero, it
+   *  cannot land on an occupied or captured slot, a pinning status still stops
+   *  it, and — the one that matters — the home-to-home ban still holds, so it
+   *  cannot leave its own home row and take an enemy home slot in a single move.
+   *  That rule exists to stop a fast card stealing a capture before the opponent
+   *  has a turn to answer, and a card that can cross the whole board is exactly
+   *  what it was written for. */
+  windWarp?: boolean;
   /** Catapult-style passives: this card may target the enemy Home row from
    *  anywhere (skips the Home Slot Targeting Rule). */
   ignoresHomeRule?: boolean;

@@ -1,7 +1,7 @@
 // Milestone 3: targeting — melee rows, ranged, Home Slot Rule, FLYING, STEALTH.
 
 import { describe, expect, it } from "vitest";
-import { canFireSpecial, canTarget, previewOnSummonArea, rangedCanSee, rangedReachFor, specialTargets, validSpecialTargets, validTargets } from "../rules";
+import { canFireSpecial, canMove, canTarget, previewOnSummonArea, rangedCanSee, rangedReachFor, specialTargets, validSpecialTargets, validTargets } from "../rules";
 import { applyStatus } from "../combat";
 import { applyIntent } from "../phases";
 import { getDef } from "../../data/cards";
@@ -345,5 +345,48 @@ describe("a Special that charges can aim as far as it charges", () => {
   it("Brute's Sweep fires at a row-ahead enemy three columns away", () => {
     const { s, a } = apart("dusk_brute", 3);
     expect(canFireSpecial(s, a.instanceId).ok).toBe(true);
+  });
+});
+
+describe("Wind Warp: distance is no object, the Home rule still is", () => {
+  function warper(row: 0 | 1 | 2 | 3, col: 0 | 1 | 2 | 3) {
+    const s = prepState();
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const a = place(s, "gale_rayfen", "P1", row, col);
+    return { s, a };
+  }
+
+  it("moves clear across the board, well past its own reach", () => {
+    const { s, a } = warper(2, 0);
+    expect(canMove(s, "P1", a.instanceId, { row: 0, col: 3 }).ok).toBe(true);
+  });
+
+  it("an ordinary card of the same speed cannot", () => {
+    // The control: without the passive, that same distance is refused.
+    const s = prepState();
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const plain = place(s, "gale_megair", "P1", 2, 0);
+    expect(canMove(s, "P1", plain.instanceId, { row: 0, col: 3 }).ok).toBe(false);
+  });
+
+  it("still cannot cross from its own Home row to the enemy's in one move", () => {
+    const { s, a } = warper(3, 0); // P1's home row
+    const r = canMove(s, "P1", a.instanceId, { row: 0, col: 2 }); // P2's home row
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/Home row/);
+  });
+
+  it("and obeys every other rule — occupied, captured, pinned", () => {
+    const { s, a } = warper(2, 0);
+    place(s, "dusk_gool", "P2", 0, 3, { curHp: 20, maxHp: 20 });
+    expect(canMove(s, "P1", a.instanceId, { row: 0, col: 3 }).ok, "occupied").toBe(false);
+
+    const cap = warper(2, 0);
+    cap.s.slots[0][2].capturedBy = "P2";
+    expect(canMove(cap.s, "P1", cap.a.instanceId, { row: 0, col: 2 }).ok, "captured").toBe(false);
+
+    const pinned = warper(2, 0);
+    applyStatus(pinned.s, pinned.s.cards[pinned.a.instanceId], "ROOT", 2, 0, "LEAF");
+    expect(canMove(pinned.s, "P1", pinned.a.instanceId, { row: 0, col: 3 }).ok, "rooted").toBe(false);
   });
 });
