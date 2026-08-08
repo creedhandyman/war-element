@@ -7,7 +7,7 @@ import { applyIntent, advance } from "../phases";
 import { canCastSpell } from "../rules";
 import { SPELLS, spellPickKind, getSpell } from "../spells";
 import { getDef } from "../../data/cards";
-import { boardCards, effectiveDmg } from "../state";
+import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
@@ -848,5 +848,107 @@ describe("the last three: Rewire, Full Reroute, Wake of the Dead", () => {
     let n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dusk_wake_of_the_dead" });
     n = advance(atCleanup(n));
     expect(boardCards(n, "P1").filter((c) => c.defId === "dusk_risen_tok")).toHaveLength(0);
+  });
+});
+
+/** The area branch of resolveSpell used to `return` before the single-target
+ *  damage tail and before the heal branch, so every ally rider and every
+ *  push / SP-sap / max-HP-drain an AREA spell printed simply never ran. These
+ *  pin each restored half to the sentence printed on the card. */
+describe("area spells do the whole of what they say", () => {
+  it("Cyclone drops each opponent to 0 SP for the round, not just 8 damage", () => {
+    const s = prepState();
+    armSpell(s, "gale_cyclone", 9);
+    const foe = place(s, "bore_armadillo", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const before = effectiveSp(s, s.cards[foe.instanceId]);
+    expect(before).toBeGreaterThan(0);
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "gale_cyclone" });
+    expect(next.cards[foe.instanceId].curHp).toBe(34); // 8 − Armadillo's BLOCK 2
+    expect(effectiveSp(next, next.cards[foe.instanceId])).toBe(0);
+  });
+
+  it("Storm Front saps 3 SP, and never below zero", () => {
+    const s = prepState();
+    armSpell(s, "gale_storm_front", 5);
+    const foe = place(s, "bore_armadillo", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const before = effectiveSp(s, s.cards[foe.instanceId]);
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "gale_storm_front" });
+    expect(effectiveSp(next, next.cards[foe.instanceId])).toBe(Math.max(0, before - 3));
+  });
+
+  it("Gale Force pushes each opponent back a space", () => {
+    const s = prepState();
+    armSpell(s, "gale_gale_force", 8);
+    // P2's home is row 0, so "back" for them is toward row 0.
+    const foe = place(s, "leaf_alpha", "P2", 2, 1, { curHp: 20, maxHp: 20 });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "gale_gale_force", row: 1 });
+    expect(next.cards[foe.instanceId].pos).toEqual({ row: 1, col: 1 });
+    expect(statusOf(next.cards[foe.instanceId], "WEAKEN")).toBeTruthy();
+  });
+
+  it("Harvest strips 2 max HP off every opponent, and never to zero", () => {
+    const s = prepState();
+    armSpell(s, "dusk_harvest", 9);
+    const foe = place(s, "bore_armadillo", "P2", 1, 0, { curHp: 30, maxHp: 30, curShields: 0 });
+    const runt = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 1, maxHp: 1, curShields: 0 });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dusk_harvest" });
+    expect(next.cards[foe.instanceId].maxHp).toBe(28);
+    // 8 damage − Armadillo's BLOCK 2 = 6 to HP. The drain lowers the CEILING;
+    // it is not extra damage, so current HP only moves if the ceiling catches it.
+    expect(next.cards[foe.instanceId].curHp).toBe(24);
+    // A 1-max-HP card is already at the floor: the drain takes nothing rather
+    // than carving it out of existence.
+    expect(next.cards[runt.instanceId]?.maxHp ?? 1).toBe(1);
+  });
+
+  it("Glacial Wave shields the AQUA allies standing in the frozen rows", () => {
+    const s = prepState();
+    armSpell(s, "aqua_glacial_wave", 8);
+    const inside = place(s, "aqua_spinefin", "P1", 2, 0, { curShields: 0 });
+    const outside = place(s, "aqua_spinefin", "P1", 3, 0, { curShields: 0 });
+    const notKin = place(s, "leaf_alpha", "P1", 2, 1, { curShields: 0 });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "aqua_glacial_wave", row: 1 });
+    expect(next.cards[inside.instanceId].curShields).toBe(2); // rows 1-2
+    expect(next.cards[outside.instanceId].curShields).toBe(0); // row 3, outside it
+    expect(next.cards[notKin.instanceId].curShields).toBe(0); // in the rows, wrong element
+  });
+
+  it("Mountain's Fall gives every BORE ally +5 shield, wherever it stands", () => {
+    const s = prepState();
+    armSpell(s, "bore_mountains_fall", 10);
+    const kin = place(s, "bore_armadillo", "P1", 3, 0, { curShields: 0 });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bore_mountains_fall" });
+    expect(next.cards[kin.instanceId].curShields).toBe(5);
+  });
+
+  it("Heart of the Forest heals the LEAF team to full", () => {
+    const s = prepState();
+    armSpell(s, "leaf_heart_of_the_forest", 10);
+    const hurt = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 1, maxHp: 20 });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_heart_of_the_forest" });
+    expect(next.cards[hurt.instanceId].curHp).toBe(20);
+  });
+
+  it("Bloodroot Surge heals LEAF for the BLEED it deals", () => {
+    const s = prepState();
+    armSpell(s, "leaf_bloodroot_surge", 9);
+    const hurt = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 4, maxHp: 20 });
+    place(s, "bore_armadillo", "P2", 1, 0, { curHp: 30, maxHp: 30 });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_bloodroot_surge" });
+    expect(next.cards[hurt.instanceId].curHp).toBe(13); // BLEED 3 × 3 rounds × 1 target
+  });
+});
+
+describe("support spells do the whole of what they say", () => {
+  it("Grace heals 5 AND hands over the +1 DMG it promises", () => {
+    const s = prepState();
+    armSpell(s, "dawn_grace", 3);
+    const ally = place(s, "dawn_beam", "P1", 3, 0, { curHp: 3, maxHp: 20 });
+    const before = effectiveDmg(s, s.cards[ally.instanceId]);
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "dawn_grace", targetId: ally.instanceId,
+    });
+    expect(next.cards[ally.instanceId].curHp).toBe(8);
+    expect(effectiveDmg(next, next.cards[ally.instanceId])).toBe(before + 1);
   });
 });

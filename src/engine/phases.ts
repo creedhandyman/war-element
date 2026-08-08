@@ -659,6 +659,7 @@ function resolveSpell(
       return e.pos.row === row;
     };
     const targets = boardCards(draft, enemyOf(player)).filter((e) => e.curHp > 0 && inArea(e));
+    let drained = 0;
     for (const t of targets) {
       if (spell.dmg) {
         // doubleIf: a target meeting the condition takes 2× (Maelstrom / Tremor / Dawn's Judgment).
@@ -668,10 +669,68 @@ function resolveSpell(
           : false;
         spellHit(draft, t, boosted ? spell.dmg * 2 : spell.dmg, Boolean(spell.pen), player);
       }
-      if (draft.cards[t.instanceId] && t.curHp > 0 && spell.status)
+      const alive = !!draft.cards[t.instanceId] && t.curHp > 0;
+      if (alive && spell.status)
         applyStatus(draft, t, spell.status.kind, spell.status.duration, spell.status.power, spell.element);
+      // ── Riders the single-target damage tail has always applied and an AREA
+      //    spell never could: this branch RETURNS long before that tail, so
+      //    every one of these was printed on the card and then did nothing.
+      //    Cyclone promised "drop each to 0 SP" and delivered damage only;
+      //    Gale Force promised a push and delivered a status only. ──
+      if (alive && spell.spDebuff)
+        applyTimedBuff(t, 0, -Math.min(spell.spDebuff, effectiveSp(draft, t)), 1);
+      if (alive && spell.push) pushBack(draft, t, spell.push, player);
+      if (alive && spell.drainMaxHpAll) {
+        // NOT the drainMaxHp() helper: that MOVES the max HP onto an attacking
+        // card, and an area spell is cast by a player, with no card to move it
+        // to. Harvest's text promises only the loss. The 1-max-HP floor is the
+        // same one that helper keeps — draining a card out of existence is a
+        // different act, and no spell here claims to do it.
+        const taken = Math.max(0, Math.min(spell.drainMaxHpAll, t.maxHp - 1));
+        if (taken > 0) {
+          t.maxHp -= taken;
+          t.curHp = Math.min(t.curHp, t.maxHp); // the ceiling drop shrinks its usable pool
+          drained += taken;
+        }
+      }
     }
     draft.log.push(`${spell.name} sweeps ${targets.length} opponent(s)${targets.length ? "" : " — no one in range"}.`);
+    if (drained > 0) draft.log.push(`${spell.name} strips ${drained} max HP off the board, permanently.`);
+    // ── Ally riders, same story: printed, never run. A cost-10 ultimate that
+    //    said it healed the team to full healed nobody. Living element allies
+    //    only — a spell does not bolster a corpse. ──
+    const kin = () =>
+      boardCards(draft, player).filter((c) => c.curHp > 0 && getDef(c.defId).element === spell.element);
+    if (spell.allyShieldInArea) {
+      // "in those rows" — the SAME area the sweep hit, read off the caster's side.
+      const inside = kin().filter(inArea);
+      for (const a of inside) a.curShields += spell.allyShieldInArea;
+      if (inside.length)
+        draft.log.push(
+          `${spell.name}: ${inside.length} ${spell.element} ally(s) in the area gain ${spell.allyShieldInArea} shield.`,
+        );
+    }
+    if (spell.allyShield && spell.allAllies) {
+      const all = kin();
+      for (const a of all) a.curShields += spell.allyShield;
+      if (all.length)
+        draft.log.push(`${spell.name}: ${all.length} ${spell.element} ally(s) gain ${spell.allyShield} shield.`);
+    }
+    if (spell.healAlliesFull) {
+      let healed = 0;
+      for (const a of kin()) healed += healCard(draft, a, effectiveMaxHp(draft, a), player);
+      if (healed > 0) draft.log.push(`${spell.name} heals ${spell.element} back to full (+${healed} HP).`);
+    }
+    if (spell.healAlliesForStatus && spell.status) {
+      // "the total BLEED that will be dealt" — power per tick × its duration ×
+      // everyone it landed on. healCard clamps at max HP, so a wide board tends
+      // to mean "to full" rather than an unbounded number.
+      const total = (spell.status.power ?? 0) * spell.status.duration * targets.length;
+      let healed = 0;
+      if (total > 0) for (const a of kin()) healed += healCard(draft, a, total, player);
+      if (healed > 0)
+        draft.log.push(`${spell.name} feeds ${spell.element} on ${total} ${spell.status.kind} (+${healed} HP).`);
+    }
     // Total Network Control: a permanent discount on the caster's BOLT Specials.
     if (spell.grantElementDmg) {
       // Lands on the CARDS, and is recorded on the player so allies summoned
@@ -754,6 +813,9 @@ function resolveSpell(
       if (spell.cleanse) cleanseCard(ally, spell.cleanse);
       if (healAmt > 0) healCard(draft, ally, healAmt, player);
       if (spell.allyShield) ally.curShields += spell.allyShield;
+      // Grace's "+1 DMG for the round" — declared on the spell since it was
+      // written and read by nothing, so Grace was a plain 5 HP heal.
+      if (spell.allyDmgRound) applyTimedBuff(ally, spell.allyDmgRound, 0, 1);
       if (spell.allySp) ally.spBonus += spell.allySp;
       if (spell.allyStatus)
         applyStatus(draft, ally, spell.allyStatus.kind, spell.allyStatus.duration, spell.allyStatus.power, spell.element);
