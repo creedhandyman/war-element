@@ -3,7 +3,7 @@
 // abilities in cards.ts.
 
 import { describe, expect, it } from "vitest";
-import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS } from "../combat";
+import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS, TARGETLESS_HANDLERS } from "../combat";
 import { applyFlow, EXOSTONE_SHIELDS, hasElementAura, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
@@ -2761,5 +2761,57 @@ describe("the reworked PYRO and AQUA auras", () => {
     const n = advance(atCleanup(s));
     expect(n.cards[fin.instanceId].dmgBonus).toBe(2); // kept
     expect(n.cards[fin.instanceId].dmgBonusRound).toBe(0); // wiped, as before
+  });
+});
+
+describe("on-summon passives that aim at nothing still fire", () => {
+  /** Summon into your own home row with the enemy line in the far corner — the
+   *  ordinary shape of the turn you play a card, and the case that used to make
+   *  these passives silently do nothing. */
+  function summonFarFromTrouble(defId: string) {
+    const s = prepState();
+    s.players.P1.gold = 20;
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const foe = place(s, "bore_armadillo", "P2", 0, 3, { curHp: 20, maxHp: 20 });
+    const handId = giveHand(s, "P1", defId);
+    return { next: applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 }), foe, s };
+  }
+
+  it("Tide's Surf's Up buoys the crew even with no enemy in reach", () => {
+    const s = prepState();
+    s.players.P1.gold = 20;
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const hurt = place(s, "aqua_spinefin", "P1", 3, 2, { curHp: 4, maxHp: 20 });
+    place(s, "bore_armadillo", "P2", 0, 3, { curHp: 20, maxHp: 20 });
+    const handId = giveHand(s, "P1", "aqua_tide");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(next.cards[hurt.instanceId].curHp).toBeGreaterThan(4); // heals ALL allies
+  });
+
+  it("Plaguecrow locks the enemy's Specials from across the board", () => {
+    const { next, foe } = summonFarFromTrouble("dusk_plaguecrow");
+    expect(next.cards[foe.instanceId].specialLockedRounds ?? 0).toBeGreaterThan(0);
+  });
+
+  /** The guard that stops this being rediscovered a fourth time. A handler whose
+   *  third parameter is `_targets` has told the compiler it ignores the target
+   *  list; if the on-summon path still gates it on having found one, it can
+   *  never run.
+   *
+   *  Scoped to ON-SUMMON handlers, because that is the only path that refuses to
+   *  run a handler when it found no target. A Special is fired deliberately and
+   *  meets its own gate in rules.ts, so `reposition` ignoring its targets is
+   *  perfectly fine there. */
+  it("every on-summon handler that ignores its targets is declared targetless", () => {
+    const onSummon = new Set(
+      CARDS.map((c) => c.onSummon?.handler).filter((h): h is string => !!h),
+    );
+    for (const name of onSummon) {
+      const fn = SPECIAL_HANDLERS[name];
+      if (!fn) continue; // ally-side handlers resolve on applyAllyOnSummon instead
+      const ignoresTargets = /^[^)]*,[^,)]*,\s*_targets\b/.test(fn.toString());
+      if (ignoresTargets)
+        expect(TARGETLESS_HANDLERS.has(name), `${name} ignores its targets but is not in TARGETLESS_HANDLERS`).toBe(true);
+    }
   });
 });

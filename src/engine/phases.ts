@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, DAWN_SP_CAP, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, LEAF_SHIELD_CAP } from "./auras";
-import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, tickDamage, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin, randInt } from "./rng";
@@ -195,9 +195,14 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           // silently did NOTHING whenever no enemy was in range. That is the
           // whole of "sometimes Zipp doesn't spawn the drone": summon it on an
           // empty board, or with the enemy line out of reach, and Swarm Deploy
-          // never ran. Volta's Rodd had the same hole.
-          const TARGETLESS = new Set(["spawn"]);
-          if (picked.length > 0 || TARGETLESS.has(os.handler)) {
+          // never ran. Volta's Rodd had the same hole, and so did Tide's Surf's
+          // Up and Plaguecrow/RedRaven's Special lock — both of which print an
+          // unconditional effect ("heals all allies", "opponents cannot use
+          // their Specials") while being gated on a melee-reach enemy.
+          //
+          // The list now lives next to the handlers, because that is where the
+          // fact belongs and keeping it here is how it went stale twice.
+          if (picked.length > 0 || TARGETLESS_HANDLERS.has(os.handler)) {
             const targets = picked;
             const handler = SPECIAL_HANDLERS[os.handler];
             if (!handler) throw new Error(`Unknown onSummon handler: ${os.handler}`);

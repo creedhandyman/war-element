@@ -2444,6 +2444,21 @@ function adjacentCasterStatus(
   }
 }
 
+/** Handlers that aim at NOTHING — they work off the caster's own position, or
+ *  the whole enemy board, and never read the target list.
+ *
+ *  This lives beside the handlers rather than at the call site because it is a
+ *  fact ABOUT the handlers, and keeping it anywhere else is how it went stale
+ *  twice: the on-summon path gates on "did we find a target", which silently
+ *  did nothing for every one of these whenever no enemy was in the summoner's
+ *  reach — the normal case for a card dropped into its own home row.
+ *
+ *  A handler belongs here if its body ignores `targets` (spawn, surfsUp) or
+ *  treats them as a mere preference with a whole-board fallback (lockSpecials).
+ *  A test asserts the first kind can't be forgotten.
+ */
+export const TARGETLESS_HANDLERS = new Set(["spawn", "surfsUp", "lockSpecials"]);
+
 export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   /** Reroot (Oak): a pure reposition — advance up to `charge` open slots toward
    *  the enemy home, no attack. Lets a planted SP-0 body uproot and march. */
