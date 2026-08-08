@@ -11,7 +11,6 @@ import {
   fieldBonus,
   fieldFlag,
   hasStatus,
-  hasTotemSpirit,
   isCaptured,
   isContested,
   manhattan,
@@ -280,14 +279,9 @@ export function canTarget(
   const tDef = getDef(target.defId);
   const melee = aDef.attackType === "Melee" && !asRanged;
 
-  // STEALTH: untargetable — unless the attacker stands in its own Blazing Sun, or
-  // a Totem stands on its side. Those are the two effects in the game that reveal
-  // cloaked cards.
-  if (
-    isStealthed(tDef, target) &&
-    !fieldFlag(state, attacker, "seeStealth") &&
-    !hasTotemSpirit(state, attacker)
-  )
+  // STEALTH: untargetable — unless the attacker is standing in its own Blazing
+  // Sun, the one effect in the game that reveals cloaked cards.
+  if (isStealthed(tDef, target) && !fieldFlag(state, attacker, "seeStealth"))
     return false;
   // FLYING dodges melee — but a flying attacker can still strike other fliers,
   // and a flier pinned by a grounding status (rooted/frozen/stunned/asleep/
@@ -354,11 +348,7 @@ export function canTarget(
   if (
     target.pos.row === defenderHome &&
     defenderHome === homeRow(enemyOf(attacker.owner), state.boardSize) &&
-    !aDef.ignoresHomeRule && // Catapult-style passives skip this rule
-    // Totem Spirit sees the invasion row from anywhere — the "hit through
-    // invasion blind" half of the aura. Without it a card sitting in its own home
-    // row cannot touch the enemy home row at all, however good its aim.
-    !hasTotemSpirit(state, attacker)
+    !aDef.ignoresHomeRule // Catapult-style passives skip this rule
   ) {
     const ar = attacker.pos.row;
     const inMid = ar === 1 || ar === 2;

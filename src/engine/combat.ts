@@ -20,7 +20,7 @@ import { RANGED_REACH, canTarget } from "./rules";
 import { PYRO_BURN_STACK_CAP, hasElementAura } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
-import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -664,7 +664,7 @@ export function resolveHit(
   //
   // Stronger than card-level `alwaysHit`, deliberately — see Rocky Force Field
   // below, which alwaysHit does NOT beat.
-  const neverMiss = fieldFlag(draft, attacker, "neverMiss") || hasTotemSpirit(draft, attacker);
+  const neverMiss = fieldFlag(draft, attacker, "neverMiss");
   // False Head (Thorny Ripper): ONE free dodge for the whole game, against a
   // BASIC attack. The first basic it takes strikes the decoy and deals nothing,
   // and the decoy is then gone for good.
