@@ -418,3 +418,35 @@ describe("damage readout (the floating numbers over a token)", () => {
     expect(card.fxDmgSeq).toBe(20);
   });
 });
+
+describe("a dead attacker stops swinging", () => {
+  it("a volley ends on the deflect that kills the attacker, not when the hits run out", () => {
+    // Eagon's Vision Guard is a coin, so rather than staging one lucky flip this
+    // finds seeds where the deflect fires on the FIRST hit — probed with a
+    // one-hit volley, which consumes the same RNG up to that point — and then
+    // replays the same seed as a four-hit volley. If the attacker died on hit
+    // one, hits two through four must never have landed.
+    const PER_HIT = 6, HITS = 4;
+    const setup = (seed: number) => {
+      const s = prepState(seed);
+      const a = place(s, "leaf_alpha", "P1", 2, 0, { curHp: 1, maxHp: 20 });
+      const t = place(s, "gale_eagon", "P2", 2, 1, { curHp: 200, maxHp: 200, curShields: 0 });
+      return { s, a, t };
+    };
+    let checked = 0;
+    for (let seed = 0; seed < 400 && checked < 5; seed++) {
+      const probe = setup(seed);
+      if (!resolveHit(probe.s, probe.a, probe.t, { kind: "special", dmg: PER_HIT, hits: 1, pen: true, crit: false }).attackerDied)
+        continue;
+      checked++;
+      const run = setup(seed);
+      resolveHit(run.s, run.a, run.t, { kind: "special", dmg: PER_HIT, hits: HITS, pen: true, crit: false });
+      const taken = 200 - run.s.cards[run.t.instanceId].curHp;
+      // The killing hit was deflected, so it landed for half. Anything above one
+      // hit's worth means the corpse kept swinging.
+      expect(taken, `seed ${seed}: a dead attacker landed more than its killing hit`)
+        .toBeLessThanOrEqual(PER_HIT);
+    }
+    expect(checked, "no seed killed the attacker on hit one — the case was never exercised").toBeGreaterThan(0);
+  });
+});

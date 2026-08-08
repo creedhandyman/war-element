@@ -20,7 +20,7 @@ import { RANGED_REACH, canTarget } from "./rules";
 import { PYRO_BURN_STACK_CAP, hasElementAura } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
-import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -118,7 +118,12 @@ export function effectiveBasicHits(card: CardInstance): number {
   if (card.loadedStrike) return card.loadedStrike.hits;
   // Power Grab (General): the equipped weapon sets the base hit count.
   const baseHits = def.weaponModes ? def.weaponModes[card.weaponMode ?? 0].hits : def.hits;
-  let hits = baseHits + (card.hitsBonus ?? 0) + (card.hitsBonusRound ?? 0) + (card.loadedHits ?? 0);
+  // Timed hits (Totem's Rampage) sum in alongside the permanent and one-round
+  // bonuses; the Cleanup tick that expires `buffs` takes them away for free.
+  // NB not to be confused with CardDef.buffHits, Fenrir's permanent on-kill hit.
+  const timedHits = (card.buffs ?? []).reduce((n, b) => n + (b.hits ?? 0), 0);
+  let hits =
+    baseHits + (card.hitsBonus ?? 0) + (card.hitsBonusRound ?? 0) + (card.loadedHits ?? 0) + timedHits;
   // King of the Hill, the +1 HIT half. hillGivesHit() is the single source of
   // truth — effectiveDmg takes the exact complement.
   if (hillGivesHit(def.dmg, def.hits) && card.pos && isMidRow(card.pos.row)) hits += 1;
@@ -493,10 +498,16 @@ export function dragInto(draft: GameState, victim: CardInstance, row: number): b
   return true;
 }
 
-/** Add a timed DMG/SP modifier (team buff or −SP debuff). */
-export function applyTimedBuff(card: CardInstance, dmg: number, sp: number, rounds: number): void {
-  if (rounds <= 0 || (dmg === 0 && sp === 0)) return;
-  card.buffs.push({ dmg, sp, rounds });
+/** Add a timed DMG/SP/hits modifier (team buff or −SP debuff).
+ *
+ *  `hits` is trailing and optional so the existing call sites are untouched — and
+ *  it counts toward "is this buff worth pushing", or a pure +1-hit buff would be
+ *  thrown away as empty. */
+export function applyTimedBuff(
+  card: CardInstance, dmg: number, sp: number, rounds: number, hits = 0,
+): void {
+  if (rounds <= 0 || (dmg === 0 && sp === 0 && hits === 0)) return;
+  card.buffs.push({ dmg, sp, rounds, ...(hits !== 0 ? { hits } : {}) });
 }
 
 /** Turret Mode volley (GigaVolt): deal `dmg` to every ELECTRIFIED opponent on
@@ -643,9 +654,17 @@ export function resolveHit(
   };
   let reflectBack = 0;
 
-  // Blazing Sun (DAWN field): "their attacks cannot miss". Read once — it can't
-  // change mid-volley — and applied to every roll-to-hit below.
-  const fieldNeverMiss = fieldFlag(draft, attacker, "neverMiss");
+  // "This attack cannot miss." Read once — neither source can change mid-volley
+  // — and consulted by every roll-to-hit below.
+  //
+  // TWO sources: Blazing Sun (the DAWN field) and Totem Spirit (a living Totem on
+  // this side). Folded into ONE flag because the cascade below already keys on
+  // this single variable; a second parallel flag would have to be threaded
+  // through ten branches with a real chance of missing one.
+  //
+  // Stronger than card-level `alwaysHit`, deliberately — see Rocky Force Field
+  // below, which alwaysHit does NOT beat.
+  const neverMiss = fieldFlag(draft, attacker, "neverMiss") || hasTotemSpirit(draft, attacker);
   // False Head (Thorny Ripper): ONE free dodge for the whole game, against a
   // BASIC attack. The first basic it takes strikes the decoy and deals nothing,
   // and the decoy is then gone for good.
@@ -673,6 +692,15 @@ export function resolveHit(
   }
   for (let i = 0; i < opts.hits; i++) {
     if (target.curHp <= 0) break;
+    // A dead attacker does not finish its swing. Eagon's Vision Guard deflects
+    // half the blow back and can kill mid-volley (see onHitDeflect below); the
+    // loop only ever checked the TARGET, so the corpse kept landing the rest of
+    // its hits and could still be credited the kill.
+    //
+    // Keyed on "died during THIS volley", not on `attacker.curHp <= 0`: a dying
+    // card's parting shot (Crock's Deathroll, Bird Bomb) is a legitimate attack
+    // made from 0 HP, and the broader test cancelled those outright.
+    if (result.attackerDied) break;
 
     // 0. BLIND — −50% accuracy, rolled PER HIT on a basic attack (so a blinded
     //    multi-hit lands some and whiffs others). Specials auto-hit.
@@ -682,7 +710,7 @@ export function resolveHit(
     const fogged =
       opts.kind === "basic" &&
       !aDef.alwaysHit &&
-      !fieldNeverMiss &&
+      !neverMiss &&
       draft.fields.some((f) => f.owner !== attacker.owner && f.enemyMissChance);
     if (fogged && !coin(draft)) {
       result.dodgedHits = (result.dodgedHits ?? 0) + 1;
@@ -694,7 +722,7 @@ export function resolveHit(
     if (
       opts.kind === "basic" &&
       !aDef.alwaysHit &&
-      !fieldNeverMiss &&
+      !neverMiss &&
       (draft.players[target.owner].foggedRounds ?? 0) > 0 &&
       !coin(draft)
     ) {
@@ -703,7 +731,7 @@ export function resolveHit(
       draft.log.push(`${label(draft, attacker)} loses the shot in Misty's fog.`);
       continue;
     }
-    if (opts.kind === "basic" && !aDef.alwaysHit && !fieldNeverMiss && hasStatus(attacker, "BLIND") && !coin(draft)) {
+    if (opts.kind === "basic" && !aDef.alwaysHit && !neverMiss && hasStatus(attacker, "BLIND") && !coin(draft)) {
       result.dodgedHits++;
       target.fxMiss = (target.fxMiss ?? 0) + 1;
       draft.log.push(`${label(draft, attacker)} misses (BLIND).`);
@@ -712,7 +740,7 @@ export function resolveHit(
     // Shell Tuck (Tide): a flat self-inflicted accuracy penalty on its own basics
     // — the trade for tucking up behind 6 shields.
     if (
-      opts.kind === "basic" && !aDef.alwaysHit && !fieldNeverMiss &&
+      opts.kind === "basic" && !aDef.alwaysHit && !neverMiss &&
       (attacker.attackMissRounds ?? 0) > 0 && pctChance(draft, attacker.attackMissPct ?? 0)
     ) {
       result.dodgedHits++;
@@ -757,7 +785,7 @@ export function resolveHit(
     const purelightPierce =
       aDef.element === "DAWN" &&
       boardCards(draft, attacker.owner).some((a) => a.curHp > 0 && getDef(a.defId).purelightAura);
-    if (opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !fieldNeverMiss && !purelightPierce && (standingEvasion || fieldEva)) {
+    if (opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !neverMiss && !purelightPierce && (standingEvasion || fieldEva)) {
       if (fieldEva) target.fieldEvasionUsed = true;
       if (coin(draft)) {
         result.dodgedHits++;
@@ -768,7 +796,7 @@ export function resolveHit(
     }
     // Unpredictable (Ender): a SLOWER attacker has only a 50% chance to connect.
     if (
-      opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !fieldNeverMiss &&
+      opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !neverMiss &&
       tDef.evadeVsSlower && effectiveSp(draft, attacker) < effectiveSp(draft, target) && coin(draft)
     ) {
       result.dodgedHits++;
@@ -778,7 +806,7 @@ export function resolveHit(
     }
     // Lure (Anglerfish): its glow disorients attackers — a flat accuracy debuff.
     if (
-      opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !fieldNeverMiss &&
+      opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !neverMiss &&
       (target.incomingMissRounds ?? 0) > 0 && pctChance(draft, target.incomingMissPct ?? 0)
     ) {
       result.dodgedHits++;
@@ -792,7 +820,7 @@ export function resolveHit(
     // Reflect isn't an attack, and the usual alwaysHit/neverMiss overrides beat
     // it like every other dodge above.
     if (
-      opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !fieldNeverMiss &&
+      opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !neverMiss &&
       pctChance(draft, dodgesByMatchup(aDef.element, tDef.element))
     ) {
       result.dodgedHits++;
@@ -804,9 +832,9 @@ export function resolveHit(
     // 1b. Rocky Force Field (Rhyolite): coin-flip chance to shrug off a RANGED hit.
     if (
       opts.kind !== "reflect" &&
-      !fieldNeverMiss && // Blazing Sun beats it; card-level alwaysHit does NOT —
-      // those cards print "ignores BLIND and EVASION", and widening that here
-      // would silently rebalance Hot Shot and Hunting Season.
+      !neverMiss && // Blazing Sun and Totem Spirit beat it; card-level alwaysHit
+      // does NOT — those cards print "ignores BLIND and EVASION", and widening
+      // that here would silently rebalance Hot Shot and Hunting Season.
       tDef.blocksRangedChance &&
       aDef.attackType === "Ranged" &&
       pctChance(draft, tDef.blocksRangedChance)
@@ -3771,20 +3799,24 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const dmg = num(params, "selfDmg");
     const hp = num(params, "selfMaxHp");
     const sp = num(params, "selfSp");
+    // selfHits buys extra BASIC hits rather than damage (Totem's Rampage).
+    const hits = num(params, "selfHits");
     // buffRounds turns the grant TEMPORARY (Ravven's Night Stalk). Without it
     // the buff is permanent, as Heir's Crowned has always been.
     const rounds = num(params, "buffRounds");
     if (rounds > 0) {
-      applyTimedBuff(attacker, dmg, sp, rounds);
+      applyTimedBuff(attacker, dmg, sp, rounds, hits);
       // Was hardcoded to Ravven's "+N DMG" flavour, which read as "+0 DMG" for
       // any timed buff that grants SP instead (Stormquill's Glide Rush).
-      const parts = [dmg ? `+${dmg} DMG` : "", sp ? `+${sp} SP` : ""].filter(Boolean);
+      const parts = [dmg ? `+${dmg} DMG` : "", sp ? `+${sp} SP` : "",
+        hits ? `+${hits} hit${hits === 1 ? "" : "s"}` : ""].filter(Boolean);
       draft.log.push(`${label(draft, attacker)} surges (${parts.join(", ")} for ${rounds} rounds).`);
       return;
     }
     if (dmg) attacker.dmgBonus += dmg;
     if (hp > 0) { attacker.maxHp += hp; attacker.curHp += hp; }
     if (sp) attacker.spBonus += sp;
+    if (hits) attacker.hitsBonus = (attacker.hitsBonus ?? 0) + hits;
     draft.log.push(`${label(draft, attacker)} is Crowned (+${dmg} DMG, +${hp} HP, +${sp} SP)!`);
   },
 

@@ -133,19 +133,27 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // on it instead. Runs AFTER summonAdvance (the card may have rolled off
       // the trapped square) and BEFORE the onSummon passive and the
       // onOppSummon reactions, both of which already guard on the newcomer
-      // still existing, so a lethal trap resolves cleanly.
+      // still existing.
       triggerTrapOnMove(draft, inst, "is summoned onto");
+      // …except they did not. Only the onOppSummon loop below ever checked.
+      // Everything between here and there is the newcomer's ARRIVAL pipeline —
+      // its on-summon Special, its stat scaling, its token spawns, its element
+      // aura — and a card the trap just killed is already off the board. It was
+      // still attacking, still scaling, still spawning. One flag, read at each
+      // step, rather than a wrapping block: the indentation churn would have
+      // buried the change.
+      const arrived = !!draft.cards[inst.instanceId] && inst.curHp > 0;
       // Elemental Fury (Prism): lands with its Special already charged. OUTSIDE
       // the onSummon block below — Prism has no onSummon, so nesting it there
       // meant the passive never fired at all.
-      if (def.startsWithFreeSpecial) inst.freeSpecial = true;
+      if (arrived && def.startsWithFreeSpecial) inst.freeSpecial = true;
       // Fog Settlement (Misty): the owner's battlefield fogs over on summon.
-      if (def.summonFog) draft.players[inst.owner].foggedRounds = def.summonFog;
+      if (arrived && def.summonFog) draft.players[inst.owner].foggedRounds = def.summonFog;
       // On-summon passive: fires immediately, free, via the handler registry.
       // `spread` (columns each side) uses the forward-area projection — the
       // blast reaches toward the enemy battlefield as far as the card's range
       // allows and hits the side columns; without it, targets are unscoped.
-      if (def.onSummon) {
+      if (arrived && def.onSummon) {
         const os = def.onSummon;
         const params = os.params ?? {};
         if (os.handler && os.targetSide === "ally") {
@@ -216,7 +224,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         }
       }
       // Brightest Warrior (Radiance): scale off the strongest opponent on summon.
-      if (def.summonScaleFromEnemy) {
+      if (arrived && def.summonScaleFromEnemy) {
         const cfg = def.summonScaleFromEnemy;
         const topHp = boardCards(draft, enemyOf(inst.owner)).reduce(
           (m, e) => Math.max(m, effectiveMaxHp(draft, e)),
@@ -230,7 +238,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         }
       }
       // Token spawns (Trinezer's Reptilian Screech).
-      if (def.summonSpawn)
+      if (arrived && def.summonSpawn)
         spawnTokens(draft, inst, def.summonSpawn.token, def.summonSpawn.count, def.summonSpawn.adjacentOnly ? 1 : def.summonSpawn.spawnRadius);
       // A permanent element grant already in force covers cards summoned after
       // it resolved — otherwise "for the rest of the game" would quietly mean
@@ -240,7 +248,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         inst.spBonus += permOnSummon.sp;
       const dmgPerm = draft.players[inst.owner].elementDmgBuff;
       if (dmgPerm && def.element === dmgPerm.element) inst.dmgBonus += dmgPerm.amount;
-      applyElementSummonAura(draft, inst);
+      if (arrived) applyElementSummonAura(draft, inst);
       // On-opponent-summon reactions: existing enemies zap the newcomer as it
       // enters the battlefield (Cave Guard, Shocker).
       for (const guard of boardCards(draft, enemyOf(inst.owner))) {

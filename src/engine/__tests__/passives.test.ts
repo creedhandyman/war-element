@@ -2834,3 +2834,25 @@ describe("King of the Wild is a round buff, both halves of it", () => {
     expect(next.cards[leo.instanceId].dmgBonusRound).toBe(0);
   });
 });
+
+describe("a card killed on arrival does not then take its turn", () => {
+  it("a lethal summon trap stops the on-summon pipeline, tokens and all", () => {
+    const s = prepState();
+    const briar = place(s, "leaf_darth", "P1", 3, 1, { curHp: 17, maxHp: 17 });
+    s.traps.push({
+      owner: "P1", pos: { row: 0, col: 0 }, label: "a lethal trap",
+      sourceId: briar.instanceId, dmg: 999,
+    } as (typeof s.traps)[number]);
+    const hand = giveHand(s, "P2", "leaf_trinezer"); // spawns 3 tokens on summon
+    s.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    s.players.P2.gold = 20;
+    const n = applyIntent(s, { type: "SUMMON", player: "P2", handId: hand, col: 0 });
+    const arrival = boardCards(n, "P2").find((c) => getDef(c.defId).id === "leaf_trinezer");
+    expect(arrival, "the trap killed it on arrival").toBeFalsy();
+    // The whole arrival pipeline used to run from the corpse: it spawned its
+    // three tokens, scaled its stats, fired its element aura and its on-summon
+    // Special, all from a card already off the board.
+    const tokens = boardCards(n, "P2").filter((c) => getDef(c.defId).id === "leaf_reptilian_tok");
+    expect(tokens, "a corpse spawned its escort").toHaveLength(0);
+  });
+});
