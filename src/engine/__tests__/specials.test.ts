@@ -1429,3 +1429,31 @@ describe("epic audit — Thunder's Arcing Strike", () => {
     expect(n.cards[far.instanceId].curHp).toBe(99); // splash is adjacency-only
   });
 });
+
+describe("Dark Wind Wave drags the far row toward the near one", () => {
+  it("Eagon pulls its targets off the enemy home row", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 20;
+    const a = place(s, "gale_eagon", "P1", 2, 0);
+    // P2's home is row 0. A push would shove them TOWARD row 0 — into the edge
+    // they are already standing on — which is why nothing ever moved.
+    const foe = place(s, "bore_armadillo", "P2", 0, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(battleWith(s, a.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    expect(next.cards[foe.instanceId].pos).toEqual({ row: 1, col: 1 });
+    expect(next.cards[foe.instanceId].curHp).toBe(37); // 5 DMG - Armadillo BLOCK 2
+  });
+
+  it("and cannot drag one through a body standing behind it", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 20;
+    const a = place(s, "gale_eagon", "P1", 2, 0);
+    const foe = place(s, "bore_armadillo", "P2", 0, 1, { curHp: 40, maxHp: 40 });
+    place(s, "dusk_gool", "P2", 1, 1, { curHp: 20, maxHp: 20 }); // the slot it would be dragged into
+    const next = applyIntent(battleWith(s, a.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    expect(next.cards[foe.instanceId].pos).toEqual({ row: 0, col: 1 });
+  });
+});

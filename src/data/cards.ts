@@ -7005,7 +7005,11 @@ export const CARDS: CardDef[] = [
       name: "Dark Wind Wave",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 5, enemyHomeRow: 1, targets: 99, push: 1 },
+      // `pull`, not `push`: every target of this Special is standing on its own
+      // home row, and pushBack only ever moves a card TOWARD its own home — so
+      // the push displaced nothing, on every cast, and pointed the wrong way
+      // besides. See applyDebuffRiders.
+      params: { dmg: 5, enemyHomeRow: 1, targets: 99, pull: 1 },
       targetSide: "enemy",
       ranged: true,
       text: "Deal 5 DMG to opponents in the far row, pushing them toward the near row.",

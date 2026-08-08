@@ -2449,6 +2449,14 @@ function applyDebuffRiders(
   if (!draft.cards[target.instanceId] || target.curHp <= 0) return;
   const push = num(params, "push");
   if (push > 0) pushBack(draft, target, push, attacker?.owner);
+  // The opposite direction, and the only one that can move a card standing on
+  // its OWN home row: pushBack shoves a card toward its own home, so a Special
+  // aimed at the enemy home row (Eagon's Dark Wind Wave) was shoving cards into
+  // a wall and moving nothing at all. A pull drags them out toward the caster —
+  // which is what "toward the near row" says, and what a wind that reaches
+  // across the board should do.
+  const pull = num(params, "pull");
+  if (pull > 0 && attacker) pullToward(draft, target, pull, attacker.owner);
   const spDebuff = num(params, "spDebuff");
   if (spDebuff > 0) applyTimedBuff(target, 0, -spDebuff, num(params, "spDebuffRounds", 1));
 }
