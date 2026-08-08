@@ -1915,6 +1915,36 @@ function maybeStatus(
     stackStatus(draft, target, kind, num(params, "statusDuration", 1), num(params, "statusPower", 0), num(params, "statusStackCap", 99), el);
     return;
   }
+  // statusRoundsStack (PolarBear's Ice Crash Claw): the ROUNDS add up when one
+  // target eats more than one strike of the same volley — two claws on one body
+  // is four rounds frozen, not two rounds applied twice.
+  //
+  // Deliberately NOT stackStatus, which deepens a DOT's POWER (Thorn's BLEED)
+  // and keeps the LONGER of the two durations rather than summing them. FREEZE
+  // carries no power at all, so that helper would have done nothing here.
+  //
+  // Capped, so a second cast on a still-frozen target tops the lock back up
+  // instead of extending it without limit. The cap is what the card can reach
+  // in one volley, and it is stated on the card.
+  //
+  // The first application still goes through applyStatus and takes its element
+  // resistances and field extensions; the rounds added on top of an existing
+  // status do not. That only matters when a resisted target is struck twice,
+  // and the cap bounds the difference to one volley's worth.
+  if (num(params, "statusRoundsStack") > 0) {
+    const add = num(params, "statusDuration", 1);
+    const existing = target.statuses.find((st) => st.kind === kind);
+    if (existing) {
+      const cap = num(params, "statusRoundsCap", add * 2);
+      const before = existing.duration;
+      existing.duration = Math.min(cap, existing.duration + add);
+      if (existing.duration > before)
+        draft.log.push(`${label(draft, target)}'s ${kind} deepens — ${existing.duration}r.`);
+      return;
+    }
+    applyStatus(draft, target, kind, add, num(params, "statusPower", 0), el);
+    return;
+  }
   applyStatus(draft, target, kind, num(params, "statusDuration", 1), num(params, "statusPower", 0), el);
 }
 

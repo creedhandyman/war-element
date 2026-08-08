@@ -1457,3 +1457,64 @@ describe("Dark Wind Wave drags the far row toward the near one", () => {
     expect(next.cards[foe.instanceId].pos).toEqual({ row: 0, col: 1 });
   });
 });
+
+describe("Ice Crash Claw is two claws, aimed separately", () => {
+  function bear() {
+    const s = prepState();
+    s.players.P1.magicPool = 20;
+    const a = place(s, "aqua_polarbear", "P1", 2, 1);
+    const x = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const y = place(s, "dusk_gool", "P2", 1, 2, { curHp: 40, maxHp: 40, curShields: 0 });
+    return { s, a, x, y };
+  }
+
+  it("one claw each freezes both opponents for 2", () => {
+    const { s, a, x, y } = bear();
+    const next = applyIntent(battleWith(s, a.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special",
+      targetIds: [x.instanceId, y.instanceId],
+    });
+    expect(statusOf(next.cards[x.instanceId], "FREEZE")?.duration).toBe(2);
+    expect(statusOf(next.cards[y.instanceId], "FREEZE")?.duration).toBe(2);
+    expect(next.cards[x.instanceId].curHp).toBe(37);
+    expect(next.cards[y.instanceId].curHp).toBe(37);
+  });
+
+  it("both claws on one opponent freeze it for 4 and hit it twice", () => {
+    const { s, a, x, y } = bear();
+    const next = applyIntent(battleWith(s, a.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special",
+      targetIds: [x.instanceId, x.instanceId],
+    });
+    expect(statusOf(next.cards[x.instanceId], "FREEZE")?.duration).toBe(4);
+    expect(next.cards[x.instanceId].curHp).toBe(34); // 3 DMG twice
+    expect(statusOf(next.cards[y.instanceId], "FREEZE"), "the other one is untouched").toBeUndefined();
+  });
+
+  it("and cannot be stacked past 4 by casting it again", () => {
+    const { s, a, x } = bear();
+    const once = applyIntent(battleWith(s, a.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special",
+      targetIds: [x.instanceId, x.instanceId],
+    });
+    // Clear the cooldown rather than playing two more rounds — the point here is
+    // the cap, not the recharge.
+    once.cards[a.instanceId].specialCooldown = 0;
+    once.players.P1.magicPool = 20;
+    const twice = applyIntent(battleWith(once, a.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special",
+      targetIds: [x.instanceId, x.instanceId],
+    });
+    expect(statusOf(twice.cards[x.instanceId], "FREEZE")?.duration).toBe(4);
+  });
+
+  it("refuses a third pick — it only has two claws", () => {
+    const { s, a, x, y } = bear();
+    expect(() =>
+      applyIntent(battleWith(s, a.instanceId), {
+        type: "BATTLE_ACTION", player: "P1", action: "special",
+        targetIds: [x.instanceId, y.instanceId, x.instanceId],
+      }),
+    ).toThrow(/Too many targets/);
+  });
+});

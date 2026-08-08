@@ -1098,10 +1098,24 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Ice Crash Claw",
       cost: 2,
-      handler: "strike",
-      params: { dmg: 3, hits: 2, statusKind: "FREEZE", statusDuration: 2 },
+      // TWO claws, aimed separately — `barrage` with targets: 2, one hit each.
+      // It was `strike`, which only ever reads targets[0], so both hits landed
+      // on one body and the FREEZE was applied twice to the same card, which
+      // refreshes rather than accumulating: 2 rounds, never 4, and never a
+      // second target.
+      //
+      // The battle UI already lets you spend the picks on the same card twice
+      // ("repeat to stack"), so concentrating both claws is a real choice — and
+      // statusRoundsStack is what makes it worth making: 2 rounds per claw,
+      // 4 if you spend them both on one, capped there.
+      handler: "barrage",
+      params: {
+        dmg: 3, hits: 1, targets: 2,
+        statusKind: "FREEZE", statusDuration: 2,
+        statusRoundsStack: 1, statusRoundsCap: 4,
+      },
       targetSide: "enemy",
-      text: "Deal 3 DMG × 2 and FREEZE the target for 2 rounds.",
+      text: "Two claws: 3 DMG each, FREEZE 2 rounds each. Spend both on one opponent to freeze it for 4.",
     },
   },
   {
