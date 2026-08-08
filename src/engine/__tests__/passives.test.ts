@@ -260,12 +260,12 @@ describe("medium-tier passives (audit batch)", () => {
   });
 
   it("Supernova's Blinding Star cancels a granted splash target", () => {
-    // The granter is Cloudburst's Downpour, not Totem: Totem Spirit is an
-    // ACCURACY aura now and grants no splash at all. Downpour is a flat chip
-    // (splashAura: 1) rather than a full basic, so the number here is 1 — what is
-    // under test is whether Blinding Star cancels the grant, not its size.
     const splashDealt = (withStar: boolean) => {
       const s = prepState();
+      // The granter is Cloudburst's Downpour, not Totem: Totem Spirit is an
+      // ACCURACY aura now and grants no splash at all. Downpour is a flat chip
+      // (splashAura: 1) not a full basic, so the number is 1 — what is under test
+      // is whether Blinding Star cancels the grant, not how big the grant is.
       const gool = place(s, "dusk_gool", "P1", 3, 0); // 4 DMG, no splash of its own
       place(s, "aqua_rain", "P1", 3, 1); // Downpour grants P1 the extra target
       const primary = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
@@ -332,7 +332,7 @@ describe("medium-tier passives (audit batch)", () => {
 
   it("Totem Spirit makes an ally's basic unmissable while the Totem lives", () => {
     // A flat 100% self-miss (Tide's Shell Tuck penalty) rather than BLIND or
-    // EVASION: those roll a coin, and the point here is the aura, not the RNG.
+    // EVASION: those roll a coin, and the subject here is the aura, not the RNG.
     const landed = (withTotem: boolean, totemAlive = true) => {
       const s = prepState();
       const gool = place(s, "dusk_gool", "P1", 3, 0, { attackMissRounds: 2, attackMissPct: 100 });
@@ -364,14 +364,20 @@ describe("medium-tier passives (audit batch)", () => {
 
   it("Totem Spirit sees past the Home-Slot rule — the 'invasion blind' half", () => {
     // The Home-Slot rule: a card standing in its OWN home row cannot target the
-    // enemy home row at all. A ranged attacker is used so reach is not what is
-    // being measured, and both sit in column 0 so the shot is a straight line.
+    // enemy home row at all, from any distance.
+    //
+    // Probed with a targeted SPECIAL (asRanged, not forBasic) because that is the
+    // only way to isolate the rule on a 4x4. A ranged BASIC is capped at 2
+    // king-steps from its own home row and the enemy home row is 3 away, so the
+    // reach cap refuses the shot first and the Home-Slot rule is never consulted —
+    // measuring it with a basic measures the wrong rule. Specials keep full-board
+    // reach, so here the Home-Slot rule is the only thing saying no.
     const canReachHome = (withTotem: boolean) => {
       const s = prepState();
-      const shooter = place(s, "gale_gastly", "P1", 3, 0); // Ranged, in its own home row
+      const caster = place(s, "gale_gastly", "P1", 3, 0); // in its OWN home row
       if (withTotem) place(s, "gale_totem", "P1", 3, 1);
       const deep = place(s, "dusk_gool", "P2", 0, 0); // enemy home row
-      return canTarget(s, s.cards[shooter.instanceId], s.cards[deep.instanceId], false, true);
+      return canTarget(s, s.cards[caster.instanceId], s.cards[deep.instanceId], true, false);
     };
     expect(canReachHome(false), "blind to the invasion row from home").toBe(false);
     expect(canReachHome(true), "the Totem sees it").toBe(true);
@@ -895,10 +901,10 @@ describe("medium-tier passives (audit batch)", () => {
     expect([ally.n1, ally.n2]).toEqual([1, 1]);
     expect(ally.far).toBe(0);
     // There used to be a contrast case here — Totem's aura clipping exactly ONE
-    // neighbour, proving splashAll belongs to Cloudburst rather than to the
-    // splash mechanic. Totem Spirit grants accuracy now, and no card grants a
-    // single-target splash, so the contrast has nowhere to stand. What is left
-    // still pins Cloudburst's own behaviour, which is what the test is named for.
+    // neighbour, proving splashAll belongs to Cloudburst rather than to the splash
+    // mechanic. Totem Spirit grants accuracy now and no card grants a
+    // single-target splash, so the contrast has nowhere left to stand. What
+    // remains still pins Cloudburst's own behaviour, which the test is named for.
   });
 
   it("Downpour chips for 1 while Totem Spirit still clips for full", () => {
@@ -923,10 +929,10 @@ describe("medium-tier passives (audit batch)", () => {
     expect(own.adj, "Downpour 1 + Rainstorm 1").toBe(2);
     // An ally only gets Downpour's chip.
     expect(splashOnNeighbour("aqua_rain", "aqua_piranha").adj).toBe(1);
-    // Totem is untouched — `true` still means a second FULL basic hit, which is
-    // why the flag became `boolean | number` rather than simply a number.
-    const totem = splashOnNeighbour("gale_totem", "aqua_piranha");
-    expect(totem.adj, "full basic damage").toBe(totem.primary / 2);
+    // `splashAura` stays `boolean | number`, but NOTHING sets the boolean any
+    // more: Totem was the only card that did and its aura is accuracy now. The
+    // full-hit branch is live engine code with no card behind it — either a future
+    // card claims it, or it should be simplified down to a number.
   });
 
   it("a ROOT landing mid-battle demotes its victim in the speed queue", () => {
