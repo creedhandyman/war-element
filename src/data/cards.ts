@@ -7089,19 +7089,23 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { FLYING: true },
     tribe: ["Avian", "Wolf"],
-    // Totem Spirit (Aura): while Totem lives, the team's basics clip +1 target.
-    passiveNames: { splashAura: "Totem Spirit" },
-    splashAura: true,
+    // Totem Spirit (Aura): while Totem lives, allied basic attacks cannot miss,
+    // and they see through STEALTH and through the Home-Slot rule ("invasion
+    // blind"). It used to hand the team an extra splash target; the aura is now
+    // about ACCURACY, which is what a totem watching over a war band should do.
+    passiveNames: { totemSpiritAura: "Totem Spirit" },
+    totemSpiritAura: true,
     // Raise the Totem Pole (On Summon): plant a Pole that scorches the row ahead.
     summonSpawn: { token: "gale_totem_pole", count: 1 },
-    // Rampage: gain +1 DMG for 3 rounds.
+    // Rampage: one extra BASIC hit for 3 rounds. On a 6-DMG single-hit body that
+    // is a doubled basic while it runs, rather than the +1 DMG it granted before.
     special: {
       name: "Rampage",
       cost: 2,
       handler: "empower",
-      params: { selfDmg: 1, buffRounds: 3 },
+      params: { selfHits: 1, buffRounds: 3 },
       targetSide: "self",
-      text: "Gain +1 DMG for 3 rounds.",
+      text: "Gain 1 basic attack hit for 3 rounds.",
     },
   },
   {
