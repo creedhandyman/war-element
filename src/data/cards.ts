@@ -4920,12 +4920,15 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 3,
+    // Cost 3 -> 2 with the armour stripped: a cheap wall of hide and stubbornness
+    // rather than plate. Budget 19 against a target of 20, one under, so the
+    // cheaper slot is paid for by the 6 points the shields were worth.
+    cost: 2,
     dmg: 2,
     hits: 1,
     hp: 16,
     sp: 1,
-    shields: 3,
+    shields: 0,
     // Braced Stance: −1 DMG from every incoming attack (BLOCK) and immune to
     // knockback/pull — it plants and lets GALE's storms wash over it.
     keywords: { BLOCK: 1 },
