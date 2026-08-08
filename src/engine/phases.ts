@@ -2152,6 +2152,13 @@ function doCleanupPhase(draft: GameState): void {
   //    from the total BLEED its enemies took (its own BLEED + any teammate's).
   const bleedDealtBy: Record<PlayerId, number> = { P1: 0, P2: 0 };
   for (const card of boardCards(draft)) {
+    // The board list is a snapshot taken once, and a card in it can die BEFORE
+    // its turn in the loop comes round — killed by an earlier card's on-death
+    // payload (Canister's KaBoooom, Nitro's Unstable Core, contagion). Ticking a
+    // corpse's DOT would call defeatCard on it a second time, and defeatCard has
+    // no re-entry guard: the whole on-death payload fires again and the death is
+    // counted twice. doRoundTicks already guards exactly this way.
+    if (!draft.cards[card.instanceId] || card.pos === null || card.curHp <= 0) continue;
     for (const s of card.statuses) {
       if (s.kind === "BLEED" || s.kind === "BURN" || s.kind === "SCALD" || s.kind === "DOT") {
         // Accelerator (Scorch): BURN on an enemy hits double while the side that

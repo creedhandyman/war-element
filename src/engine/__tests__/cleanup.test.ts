@@ -372,3 +372,28 @@ describe("Photosynthesis: heal 2, and bark up where it was struck", () => {
     expect(n.cards[pyro.instanceId].curShields).toBe(0);
   });
 });
+
+describe("cleanup does not kill a card twice", () => {
+  it("a card blown up by another card's death does not then tick its own DOT into a second defeat", () => {
+    const s = prepState();
+    // Canister ticks first (insertion order drives the Cleanup sweep) and its
+    // own BURN finishes it. KaBoooom then kills the victim standing beside it.
+    // The victim is still in the snapshot the loop is walking, and still holds a
+    // DOT — which is exactly the shape that used to defeat it a second time.
+    const bomb = place(s, "pyro_canister", "P1", 3, 0, {
+      curHp: 2, maxHp: 15,
+      status: { kind: "BURN", duration: 3, power: 5, source: "PYRO" },
+    });
+    const victim = place(s, "bore_armadillo", "P2", 0, 0, {
+      curHp: 3, maxHp: 15, curShields: 0,
+      status: { kind: "BLEED", duration: 3, power: 1, source: "DUSK" },
+    });
+    const next = advance(atCleanup(s));
+    expect(next.cards[bomb.instanceId]?.pos ?? null).toBe(null); // the bomb went off
+    const defeats = next.log.filter((l) => l.includes("Armadillo") && l.includes("is defeated")).length;
+    expect(defeats).toBe(1);
+    // Deaths are what the match report counts; a double defeat inflated it.
+    expect(next.players.P2.deaths).toBe(1);
+    expect(next.cards[victim.instanceId]?.pos ?? null).toBe(null);
+  });
+});
