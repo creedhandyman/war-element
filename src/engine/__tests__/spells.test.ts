@@ -952,3 +952,34 @@ describe("support spells do the whole of what they say", () => {
     expect(effectiveDmg(next, next.cards[ally.instanceId])).toBe(before + 1);
   });
 });
+
+describe("trap spells deliver both halves of their payload", () => {
+  it("Snare ROOTs and BLEEDs, as printed", () => {
+    const s = prepState();
+    armSpell(s, "leaf_snare", 3);
+    // Set it on P2's home row, then summon into it — the same arrival path a
+    // move takes.
+    const cast = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_snare", row: 0, col: 0 });
+    expect(cast.traps).toHaveLength(1);
+    cast.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    cast.players.P2.gold = 20;
+    const handId = giveHand(cast, "P2", "dusk_gool");
+    const next = applyIntent(cast, { type: "SUMMON", player: "P2", handId, col: 0 });
+    const victim = boardCards(next, "P2").find((c) => c.pos?.row === 0 && c.pos?.col === 0)!;
+    expect(statusOf(victim, "ROOT")?.duration).toBe(3);
+    expect(statusOf(victim, "BLEED")?.power).toBe(2); // the half that never fired
+  });
+
+  it("Overgrowth's BLEED rides along too", () => {
+    const s = prepState();
+    armSpell(s, "leaf_overgrowth", 8);
+    const cast = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_overgrowth", row: 0, col: 0 });
+    cast.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    cast.players.P2.gold = 20;
+    const handId = giveHand(cast, "P2", "dusk_gool");
+    const next = applyIntent(cast, { type: "SUMMON", player: "P2", handId, col: 0 });
+    const victim = boardCards(next, "P2").find((c) => c.pos?.row === 0 && c.pos?.col === 0)!;
+    expect(statusOf(victim, "ROOT")).toBeTruthy();
+    expect(statusOf(victim, "BLEED")?.power).toBe(1);
+  });
+});

@@ -321,6 +321,10 @@ export interface AuraBonusDef {
 export interface TimedBuff {
   dmg: number;
   sp: number;
+  /** Extra BASIC hits for the duration (Totem's Rampage). Optional so every
+   *  existing buff stays a two-stat buff; `effectiveBasicHits` sums it. Distinct
+   *  from `loadedHits`, which is spent by the next basic rather than timed. */
+  hits?: number;
   rounds: number;
 }
 
@@ -769,6 +773,16 @@ export interface CardDef {
   /** Purelight (Halo): while it lives, its DAWN allies can't be BLINDed, and
    *  their attacks pierce enemy EVASION (light always finds its mark). */
   purelightAura?: boolean;
+  /** Totem Spirit (Totem): while it stands, THIS SIDE's basic attacks cannot
+   *  miss, and they find what they should not be able to see — through STEALTH,
+   *  and through the Home-Slot rule that otherwise blinds a card in its own home
+   *  row to the enemy home row.
+   *
+   *  Team-wide and element-agnostic, unlike Purelight (DAWN allies only). Two
+   *  dodges deliberately survive it, the same two that survive Blazing Sun: a
+   *  banked guaranteed dodge (Hoax's Blur) and an intercepting Light Orb. Those
+   *  are not the attack missing — they are a charge being spent to stop it. */
+  totemSpiritAura?: boolean;
   summonSelfShields?: number;
   /** Fog Settlement (Misty): on summon, its owner's battlefield gains N rounds
    *  of the fog (see PlayerState.foggedRounds). */
@@ -1176,6 +1190,11 @@ export interface TrapState {
   dmg: number;
   pen?: boolean;
   status?: { kind: StatusKind; duration: number; power: number };
+  /** A SECOND status riding along with `status`. Snare and Overgrowth print a
+   *  ROOT and a BLEED, and declare them in two places — the ROOT inside `trap`,
+   *  the BLEED as the spell's own top-level `status`. The trap branch only ever
+   *  copied the first, so the BLEED half of both cards never happened. */
+  extraStatus?: { kind: StatusKind; duration: number; power: number };
   /** Inferno Pit: the payload also hits opponents adjacent to the victim. */
   splash?: boolean;
   /** Dark Hunting: heal `sourceId` by the HP the primary victim loses when the

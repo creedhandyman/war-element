@@ -804,6 +804,9 @@ function resolveSpell(
         dmg: t.dmg,
         pen: t.pen,
         status: t.status,
+        // The spell's own top-level status is a SECOND payload, not a spare copy
+        // of the first — see TrapState.extraStatus.
+        extraStatus: spell.status,
         splash: t.splash,
       });
       // Deliberately vague in the shared log: both players read this, and a trap
@@ -935,8 +938,10 @@ function triggerTrapOnMove(draft: GameState, card: CardInstance, arrival = "step
     if (!draft.cards[v.instanceId] || v.curHp <= 0) continue;
     const hpBefore = v.curHp;
     if (trap.dmg > 0) spellHit(draft, v, trap.dmg, Boolean(trap.pen), trap.owner);
-    if (trap.status && draft.cards[v.instanceId] && v.curHp > 0)
-      applyStatus(draft, v, trap.status.kind, trap.status.duration, trap.status.power, trap.element);
+    for (const st of [trap.status, trap.extraStatus]) {
+      if (st && draft.cards[v.instanceId] && v.curHp > 0)
+        applyStatus(draft, v, st.kind, st.duration, st.power, trap.element);
+    }
     // Dark Hunting LIFESTEAL: the trapper drains the HP the primary victim lost.
     if (trap.lifesteal && trap.sourceId && v.instanceId === card.instanceId) {
       const dealt = Math.max(0, hpBefore - v.curHp);

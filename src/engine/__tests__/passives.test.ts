@@ -260,17 +260,21 @@ describe("medium-tier passives (audit batch)", () => {
   });
 
   it("Supernova's Blinding Star cancels a granted splash target", () => {
+    // The granter is Cloudburst's Downpour, not Totem: Totem Spirit is an
+    // ACCURACY aura now and grants no splash at all. Downpour is a flat chip
+    // (splashAura: 1) rather than a full basic, so the number here is 1 — what is
+    // under test is whether Blinding Star cancels the grant, not its size.
     const splashDealt = (withStar: boolean) => {
       const s = prepState();
       const gool = place(s, "dusk_gool", "P1", 3, 0); // 4 DMG, no splash of its own
-      place(s, "gale_totem", "P1", 3, 1); // splashAura grants P1 the extra target
+      place(s, "aqua_rain", "P1", 3, 1); // Downpour grants P1 the extra target
       const primary = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
       const adj = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
       if (withStar) place(s, "dawn_supernova", "P2", 0, 3); // Blinding Star on the enemy side
       basicAttack(s, gool.instanceId, primary.instanceId);
       return 40 - s.cards[adj.instanceId].curHp;
     };
-    expect(splashDealt(false)).toBe(4); // Totem grants the extra target (full basic)
+    expect(splashDealt(false)).toBe(1); // Downpour grants the extra target
     expect(splashDealt(true)).toBe(0); // Blinding Star cancels it
   });
 
@@ -326,18 +330,75 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[foe.instanceId].attackMissRounds).toBe(2);
   });
 
-  it("Totem's team aura gives an ally's basic an extra adjacent target", () => {
-    const splashDealt = (withTotem: boolean) => {
+  it("Totem Spirit makes an ally's basic unmissable while the Totem lives", () => {
+    // A flat 100% self-miss (Tide's Shell Tuck penalty) rather than BLIND or
+    // EVASION: those roll a coin, and the point here is the aura, not the RNG.
+    const landed = (withTotem: boolean, totemAlive = true) => {
       const s = prepState();
-      const gool = place(s, "dusk_gool", "P1", 3, 0); // 4 DMG, no splash of its own
-      if (withTotem) place(s, "gale_totem", "P1", 3, 1); // aura holder, same side
-      const primary = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
-      const adj = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
-      basicAttack(s, gool.instanceId, primary.instanceId);
-      return 40 - s.cards[adj.instanceId].curHp;
+      const gool = place(s, "dusk_gool", "P1", 3, 0, { attackMissRounds: 2, attackMissPct: 100 });
+      if (withTotem) {
+        const t = place(s, "gale_totem", "P1", 3, 1);
+        if (!totemAlive) s.cards[t.instanceId].curHp = 0; // "while it lives"
+      }
+      const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+      basicAttack(s, gool.instanceId, foe.instanceId);
+      return 40 - s.cards[foe.instanceId].curHp;
     };
-    expect(splashDealt(false)).toBe(0); // no aura → single target
-    expect(splashDealt(true)).toBe(4); // aura → the adjacent foe is clipped for full basic
+    expect(landed(false), "no Totem — swings wide every time").toBe(0);
+    expect(landed(true), "Totem standing — it cannot miss").toBe(4);
+    expect(landed(true, false), "a dead Totem grants nothing").toBe(0);
+  });
+
+  it("Totem Spirit lets allies target through STEALTH", () => {
+    const canSee = (withTotem: boolean) => {
+      const s = prepState();
+      const gool = place(s, "dusk_gool", "P1", 3, 0);
+      if (withTotem) place(s, "gale_totem", "P1", 3, 1);
+      const hidden = place(s, "dusk_gool", "P2", 2, 0);
+      applyStatus(s, s.cards[hidden.instanceId], "STEALTH", 2, 0, "DUSK");
+      return canTarget(s, s.cards[gool.instanceId], s.cards[hidden.instanceId]);
+    };
+    expect(canSee(false), "cloaked and untargetable").toBe(false);
+    expect(canSee(true), "the Totem reveals it").toBe(true);
+  });
+
+  it("Totem Spirit sees past the Home-Slot rule — the 'invasion blind' half", () => {
+    // The Home-Slot rule: a card standing in its OWN home row cannot target the
+    // enemy home row at all. A ranged attacker is used so reach is not what is
+    // being measured, and both sit in column 0 so the shot is a straight line.
+    const canReachHome = (withTotem: boolean) => {
+      const s = prepState();
+      const shooter = place(s, "gale_gastly", "P1", 3, 0); // Ranged, in its own home row
+      if (withTotem) place(s, "gale_totem", "P1", 3, 1);
+      const deep = place(s, "dusk_gool", "P2", 0, 0); // enemy home row
+      return canTarget(s, s.cards[shooter.instanceId], s.cards[deep.instanceId], false, true);
+    };
+    expect(canReachHome(false), "blind to the invasion row from home").toBe(false);
+    expect(canReachHome(true), "the Totem sees it").toBe(true);
+  });
+
+  it("Totem Spirit covers the whole team, not just GALE", () => {
+    // Unlike Purelight, which only sharpens its own element's attacks.
+    const s = prepState();
+    place(s, "gale_totem", "P1", 3, 1);
+    const dusk = place(s, "dusk_gool", "P1", 3, 0, { attackMissRounds: 2, attackMissPct: 100 });
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, dusk.instanceId, foe.instanceId);
+    expect(40 - s.cards[foe.instanceId].curHp, "a DUSK ally still cannot miss").toBe(4);
+  });
+
+  it("Rampage buys Totem a second basic hit for 3 rounds, then gives it back", () => {
+    const s = prepState();
+    const totem = place(s, "gale_totem", "P1", 3, 0);
+    expect(effectiveBasicHits(s.cards[totem.instanceId]), "printed hits").toBe(1);
+    SPECIAL_HANDLERS.empower(s, s.cards[totem.instanceId], [], { selfHits: 1, buffRounds: 3 });
+    expect(effectiveBasicHits(s.cards[totem.instanceId]), "doubled while it runs").toBe(2);
+    // Timed, not permanent: the Cleanup tick that expires `buffs` takes it away.
+    for (let r = 0; r < 3; r++) {
+      for (const b of s.cards[totem.instanceId].buffs) b.rounds--;
+      s.cards[totem.instanceId].buffs = s.cards[totem.instanceId].buffs.filter((b) => b.rounds > 0);
+    }
+    expect(effectiveBasicHits(s.cards[totem.instanceId]), "back to one after 3 rounds").toBe(1);
   });
 
   it("Blackice's basic damage tracks its current shield count", () => {
@@ -833,12 +894,11 @@ describe("medium-tier passives (audit batch)", () => {
     const ally = surround("aqua_rain", "aqua_piranha");
     expect([ally.n1, ally.n2]).toEqual([1, 1]);
     expect(ally.far).toBe(0);
-    // Totem grants reach to ONE extra target, at full damage. Unchanged.
-    const totem = surround("gale_totem", "aqua_piranha");
-    expect(
-      [totem.n1, totem.n2].filter((d) => d > 0).length,
-      "exactly one neighbour",
-    ).toBe(1);
+    // There used to be a contrast case here — Totem's aura clipping exactly ONE
+    // neighbour, proving splashAll belongs to Cloudburst rather than to the
+    // splash mechanic. Totem Spirit grants accuracy now, and no card grants a
+    // single-target splash, so the contrast has nowhere to stand. What is left
+    // still pins Cloudburst's own behaviour, which is what the test is named for.
   });
 
   it("Downpour chips for 1 while Totem Spirit still clips for full", () => {
