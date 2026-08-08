@@ -12,10 +12,11 @@
  *  module importing from src/ui would invert the layering. Somewhere neutral
  *  would be a tidier home for it.)
  *
- *  Purpose: a working document for writing lore. Each entry ends with a Lore
- *  line, which reads "—" until `CardDef.lore` exists and is filled in; the
- *  generator already prints it when present, so wiring that field up later needs
- *  no change here.
+ *  Purpose: the working document for the lore pass. Every entry ends with its Lore
+ *  line, taken from `def.lore` — prose authored in data/lore/<element>.ts and
+ *  attached to the defs at load. Entries not yet written read "(none yet)", and the
+ *  header and contents carry the running coverage counts, so this doubles as the
+ *  tracker for how far the pass has got.
  */
 import { CARDS, TOKENS } from "../data/cards";
 import { sourcesOf } from "../data/story";
@@ -131,9 +132,8 @@ function cardEntry(def: CardDef, opts: { token?: boolean } = {}): string[] {
   } else {
     out.push(`- **Found at** — ${foundAt(def) ?? "not placed in the campaign"}`);
   }
-  // Reads "—" until CardDef carries lore. Printed either way so the slot to fill
-  // is visible while writing.
-  out.push(`- **Lore** — ${(def as CardDef & { lore?: string }).lore ?? "_(none yet)_"}`);
+  // Printed whether or not it is written, so the slots still to fill stay visible.
+  out.push(`- **Lore** — ${def.lore ?? "_(none yet)_"}`);
   out.push("");
   return out;
 }
@@ -154,7 +154,7 @@ function spellEntry(sp: SpellDef): string[] {
     bits.join(" · "),
     "",
     `- **Text** — ${sp.text}`,
-    `- **Lore** — ${(sp as SpellDef & { lore?: string }).lore ?? "_(none yet)_"}`,
+    `- **Lore** — ${sp.lore ?? "_(none yet)_"}`,
     "",
   ];
 }
@@ -178,9 +178,12 @@ export function buildRoster(): string {
       "inspector uses, so this document and the game cannot disagree about what a card does.",
   );
   L.push("");
+  const loreDone = [...CARDS, ...TOKENS].filter((c) => c.lore).length + SPELLS.filter((s) => s.lore).length;
+  const loreTotal = CARDS.length + TOKENS.length + SPELLS.length;
   L.push(
-    "**Lore** lines read `—` because no card carries lore yet. Once `CardDef.lore` exists " +
-      "this generator prints it automatically.",
+    `**Lore** — ${loreDone} of ${loreTotal} written. Prose lives in \`src/data/lore/<element>.ts\`, ` +
+      "keyed by id; anything still to write reads _(none yet)_ below, so this document doubles " +
+      "as the progress tracker for the lore pass.",
   );
   L.push("");
   L.push(
@@ -191,9 +194,12 @@ export function buildRoster(): string {
   L.push("## Contents");
   L.push("");
   for (const el of ELEMENTS) {
+    const entries = [...cardsByEl(el), ...tokensByEl(el), ...spellsByEl(el)];
+    const done = entries.filter((e) => e.lore).length;
     L.push(
       `- [${el}](#${el.toLowerCase()}) — ${plural(cardsByEl(el).length, "card")}, ` +
-        `${plural(tokensByEl(el).length, "token")}, ${plural(spellsByEl(el).length, "spell")}`,
+        `${plural(tokensByEl(el).length, "token")}, ${plural(spellsByEl(el).length, "spell")}` +
+        ` · lore ${done}/${entries.length}${done === entries.length ? " ✓" : ""}`,
     );
   }
   L.push("");

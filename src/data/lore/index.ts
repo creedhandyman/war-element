@@ -1,0 +1,27 @@
+/** Flavour text for cards, tokens and spells, keyed by id.
+ *
+ *  One file per element, added here as each element's pass lands. The merged map
+ *  is attached onto CardDef.lore / SpellDef.lore at load — see the attach step at
+ *  the foot of data/cards.ts and engine/spells.ts — so every reader (the card
+ *  inspector, the generated roster) just asks `def.lore` and needs no second
+ *  lookup.
+ *
+ *  Lore is deliberately NOT inline in cards.ts. It is prose rather than
+ *  mechanics, it is written an element at a time, and cards.ts is already nine
+ *  thousand lines; keeping them apart means a lore pass produces a diff a person
+ *  can actually read.
+ */
+import { LEAF_LORE } from "./leaf";
+
+/** Every element's map, kept as a list so `lore.test.ts` can spot the same id
+ *  being claimed by two elements — a plain spread would silently let the last one
+ *  win, and the losing line would vanish with nothing to show it ever existed. */
+export const LORE_SOURCES: Record<string, string>[] = [LEAF_LORE];
+
+export const LORE: Record<string, string> = Object.assign({}, ...LORE_SOURCES);
+
+/** Lore for one id, or undefined. Prefer `def.lore`; this is for the rare caller
+ *  holding an id but no def. */
+export function loreFor(id: string): string | undefined {
+  return LORE[id];
+}

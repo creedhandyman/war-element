@@ -366,6 +366,10 @@ export interface CardDef {
   /** Art filename stem under /cards (defaults to `id`). Set when the PNG is
    *  named differently from the id (e.g. token/underscore variants). */
   art?: string;
+  /** Flavour text. Never authored here — it lives in data/lore/<element>.ts and is
+   *  attached onto the def at load, so a lore pass is a diff in one prose file
+   *  instead of nine thousand lines of mechanics. No engine effect. */
+  lore?: string;
   name: string;
   /** Collector rarity. Cosmetic today (drives a deck-builder badge); no engine
    *  effect. Older alpha cards leave it undefined. */
@@ -1318,6 +1322,8 @@ export interface SpellDef {
   cost: number;
   kind: SpellKind;
   text: string;
+  /** Flavour text, attached at load from data/lore/. See CardDef.lore. */
+  lore?: string;
   /** Field spells (kind "field"): the board-wide buff + how long it lasts. */
   field?: FieldBuff & { rounds: number };
   /** Conversion spells (kind "convert"): the magic paid as `cost` comes back as

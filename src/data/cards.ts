@@ -23,6 +23,7 @@
 // Stat guideline: total ≈ 5*cost + 10, shields = 2 pts (stat rebalances vs the
 // docs are intentional alpha scope, not bugs).
 
+import { LORE } from "./lore";
 import type { CardDef, Element } from "../engine/types";
 
 export const CARDS: CardDef[] = [
@@ -9006,6 +9007,17 @@ export function getDef(defId: string): CardDef {
   const def = CARD_INDEX[defId];
   if (!def) throw new Error(`Unknown card def: ${defId}`);
   return def;
+}
+
+// Attach flavour text. Done here rather than inline on each def so the prose can
+// live in data/lore/<element>.ts; CARD_INDEX holds the same object references as
+// CARDS and TOKENS, so one pass covers every reader of `def.lore`.
+//
+// Missing lore is left as undefined rather than defaulted to a placeholder: the
+// roster renders "(none yet)" for it, which is how coverage stays visible.
+for (const def of [...CARDS, ...TOKENS]) {
+  const line = LORE[def.id];
+  if (line) def.lore = line;
 }
 
 // Element-pair decks. Each card appears once (once-per-game rule). LEAF is

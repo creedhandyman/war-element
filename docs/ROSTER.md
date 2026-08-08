@@ -4,20 +4,20 @@ Every card, every ability, every spell. **Generated — do not hand-edit:** run 
 
 Ability text comes from `describePassives`, the same function the in-game card inspector uses, so this document and the game cannot disagree about what a card does.
 
-**Lore** lines read `—` because no card carries lore yet. Once `CardDef.lore` exists this generator prints it automatically.
+**Lore** — 51 of 409 written. Prose lives in `src/data/lore/<element>.ts`, keyed by id; anything still to write reads _(none yet)_ below, so this document doubles as the progress tracker for the lore pass.
 
 **Totals** — 312 draftable cards · 17 tokens · 80 spells · 8 elements.
 
 ## Contents
 
-- [LEAF](#leaf) — 39 cards, 2 tokens, 10 spells
-- [PYRO](#pyro) — 39 cards, 0 tokens, 10 spells
-- [AQUA](#aqua) — 39 cards, 1 token, 10 spells
-- [DAWN](#dawn) — 39 cards, 2 tokens, 10 spells
-- [GALE](#gale) — 39 cards, 3 tokens, 10 spells
-- [BOLT](#bolt) — 39 cards, 3 tokens, 10 spells
-- [DUSK](#dusk) — 39 cards, 6 tokens, 10 spells
-- [BORE](#bore) — 39 cards, 0 tokens, 10 spells
+- [LEAF](#leaf) — 39 cards, 2 tokens, 10 spells · lore 51/51 ✓
+- [PYRO](#pyro) — 39 cards, 0 tokens, 10 spells · lore 0/49
+- [AQUA](#aqua) — 39 cards, 1 token, 10 spells · lore 0/50
+- [DAWN](#dawn) — 39 cards, 2 tokens, 10 spells · lore 0/51
+- [GALE](#gale) — 39 cards, 3 tokens, 10 spells · lore 0/52
+- [BOLT](#bolt) — 39 cards, 3 tokens, 10 spells · lore 0/52
+- [DUSK](#dusk) — 39 cards, 6 tokens, 10 spells · lore 0/55
+- [BORE](#bore) — 39 cards, 0 tokens, 10 spells · lore 0/49
 
 ---
 
@@ -43,7 +43,7 @@ Mythic · Warrior · Melee · Cost 9
   - Its Special reaches any slot on the board.
   - On summon: brings 3 Reptilians onto the board.
 - **Found at** — Four Seasons Mega Forest · Jungle Throne
-- **Lore** — _(none yet)_
+- **Lore** — The Cycle asked him to keep the balance. It never asked him to enjoy it less. He arrives with the brood already fed.
 
 #### Oakgre · `leaf_oakgre`
 
@@ -54,7 +54,7 @@ Mythic · Tank · Melee · Cost 10
 - **Passives**
   - Intimidation — Aura: opponents within one row whose DMG is lower than this card's CURRENT DMG lose 1 DMG from their basic attacks.
 - **Found at** — Four Seasons Mega Forest · The Spirit Tree Rises
-- **Lore** — _(none yet)_
+- **Lore** — Older than the tribes sheltering beneath him. He has torn free of the soil three times in a thousand years, and never once put a root back.
 
 <!-- legendary -->
 
@@ -68,7 +68,7 @@ Legendary · Support · Melee · Cost 6
   - Basic attacks entangle — Basic hits apply ROOT for 2 rounds.
   - Aura — LEAF allies gain +3 max HP.
 - **Found at** — Four Seasons Mega Forest · Heart of Nature: Outer Roots
-- **Lore** — _(none yet)_
+- **Lore** — The outer roots reach every grave beneath the Spirit Tree. What they draw up, he gives back to the living.
 
 #### Evera · `leaf_season`
 
@@ -80,7 +80,7 @@ Legendary · Support · Ranged · Cost 6
   - Each round: heal every LEAF ally 4 HP · ROOT the fastest opponent for 2 rounds.
   - Its Special reaches any slot on the board.
 - **Found at** — Four Seasons Mega Forest · Heart of Nature: Outer Roots
-- **Lore** — _(none yet)_
+- **Lore** — Spring's mercy, Summer's patience, Autumn's ending, Winter's stillness. She does not choose between them — she is the sentence they finish.
 
 #### Sylvane · `leaf_efy`
 
@@ -92,7 +92,7 @@ Legendary · Warrior · Melee · Cost 6
   - Each round: refresh shields back up to 2.
   - Aura — LEAF allies gain +1 shields.
 - **Found at** — Four Seasons Mega Forest · Heart of Nature: The Spirit Tree
-- **Lore** — _(none yet)_
+- **Lore** — Bark closes over the wound before the blade has finished leaving it. She teaches this to anyone standing in her shade.
 
 #### Thorn · `leaf_thorn`
 
@@ -105,7 +105,7 @@ Legendary · Assassin · Melee · Cost 6
   - Transfusion — When hit by melee: retaliate — BLEED.
   - Each round, heals HP equal to the total BLEED damage its enemies take.
 - **Found at** — Four Seasons Mega Forest · Heart of Nature: Outer Roots
-- **Lore** — _(none yet)_
+- **Lore** — Autumn's honest lesson: the ending feeds the beginning. She simply insists on being the one to open it.
 
 #### Fallow · `leaf_fallow`
 
@@ -118,7 +118,7 @@ Legendary · Ranger · Ranged · Cost 7
   - Aura — while it's on the board, every CRIT YOUR SIDE lands applies ROOT for 2 rounds.
   - Trapper — end of round: deals 1 DMG to every ROOTed opponent, anywhere on the board.
 - **Found at** — Four Seasons Mega Forest · Heart of Nature: The Spirit Tree
-- **Lore** — _(none yet)_
+- **Lore** — Blindfold him. Salt the trail. Wait in the dark. The Winter Tribe has a word for people who try this: found.
 
 #### Hartwood · `leaf_warden`
 
@@ -129,7 +129,7 @@ Legendary · Tank · Melee · Cost 7
 - **Passives**
   - Overwatch: when an ally is killed, answers the killer with 7 DMG (once per round).
 - **Found at** — Four Seasons Mega Forest · Heart of Nature: The Spirit Tree
-- **Lore** — _(none yet)_
+- **Lore** — Nothing falls in the Mega Forest without being counted. He keeps the count, and he collects from the one who opened it.
 
 #### Nightshade · `leaf_nightshade`
 
@@ -142,7 +142,7 @@ Legendary · Mage · Ranged · Cost 7
   - Each round: apply DOT 3 to every ROOTed opponent.
   - Its Special reaches any slot on the board.
 - **Found at** — Four Seasons Mega Forest · The Rot Line
-- **Lore** — _(none yet)_
+- **Lore** — The Rot Line grows what the other three seasons agreed not to name. She tends it anyway, and the Autumn Tribe looks elsewhere.
 
 <!-- epic -->
 
@@ -155,7 +155,7 @@ Epic · Warrior · Melee · Cost 3
 - **Passives**
   - Gnashing Bite — Vs ROOT targets, basics gain LIFESTEAL.
 - **Found at** — Four Seasons Mega Forest · Summer's Embrace Grove
-- **Lore** — _(none yet)_
+- **Lore** — Once per hunt the pack picks a throat and puts it on the ground. Everything after that is bookkeeping.
 
 #### Autumnal · `leaf_fallona`
 
@@ -166,7 +166,7 @@ Epic · Mage · Ranged · Cost 3
 - **Passives**
   - Every 3 rounds: permanently gains +1 DMG (stacking).
 - **Found at** — Four Seasons Mega Forest · Bloomwardens' Ring
-- **Lore** — _(none yet)_
+- **Lore** — She does not need this round. She has been counting since the first one.
 
 #### Bark · `leaf_bark_bushmen`
 
@@ -178,7 +178,7 @@ Epic · Ranger · Ranged · Cost 3
   - Gains +1 shield at the end of each round.
   - Its Special reaches any slot on the board.
 - **Found at** — Four Seasons Mega Forest · The Rot Line
-- **Lore** — _(none yet)_
+- **Lore** — Every round he stands still, the forest adds another layer. Wait long enough and you are shooting at a tree.
 
 #### Citra · `leaf_citra`
 
@@ -190,7 +190,7 @@ Epic · Mage · Ranged · Cost 3
 - **Passives**
   - Acidic Leaf Blaze — Basic hits apply BLEED (2) for 2 rounds.
 - **Found at** — Four Seasons Mega Forest · Winter Village Sentinels
-- **Lore** — _(none yet)_
+- **Lore** — The rot is not an accident of the bloom. The bloom was always the delivery.
 
 #### Dandelion · `leaf_dande`
 
@@ -204,7 +204,7 @@ Epic · Warrior · Melee · Cost 3
   - Bramble — When hit by melee: retaliate — 1 DMG + DOT.
   - Every 1 rounds: permanently gains +2 HP (stacking).
 - **Found at** — Four Seasons Mega Forest · Summer's Embrace Grove
-- **Lore** — _(none yet)_
+- **Lore** — Cut it down and it comes back taller. Spring Tribe children are taught to weed carefully; this is why.
 
 #### Hibernal · `leaf_whintey`
 
@@ -216,7 +216,7 @@ Epic · Support · Ranged · Cost 3
   - Each round: ROOT an opponent with 0 SP for 2 rounds.
   - Its Special reaches any slot on the board.
 - **Found at** — Four Seasons Mega Forest · Winter's Reach Treeline
-- **Lore** — _(none yet)_
+- **Lore** — Winter does not kill what it holds. It simply keeps holding, and lets the season do the rest.
 
 #### Lumberjack · `leaf_lumberjack`
 
@@ -226,7 +226,7 @@ Epic · Tank · Melee · Cost 3
 - **Special · Timberer** (2◆) — Fell a tree straight down your own column: 6 DMG (PEN) to every opponent in the 3 slots ahead, reaching into their summoning row. ROOT them all for 2 rounds and gain 3 shield.
 - **Passives** — none beyond the LEAF aura
 - **Found at** — Four Seasons Mega Forest · Winter's Reach Treeline
-- **Lore** — _(none yet)_
+- **Lore** — He does not fell trees toward himself. The gap opens away from him, all the way to whatever was standing behind them.
 
 #### Sakuroot · `leaf_sakuroot`
 
@@ -240,7 +240,7 @@ Epic · Tank · Melee · Cost 3
   - Petalfall — Each round: heal same-element home-row allies 2 HP.
   - Deep Roots — immune to knockback, push, and pull effects — planted where it stands.
 - **Found at** — Four Seasons Mega Forest · Winter's Reach Treeline
-- **Lore** — _(none yet)_
+- **Lore** — The cherry grove does not retreat and cannot be pushed. Petals fall on the wounded whether or not anyone asked.
 
 #### Splint · `leaf_splint`
 
@@ -253,7 +253,7 @@ Epic · Assassin · Melee · Cost 3
   - Jungle Whisper — On a kill: STEALTH for 1 round.
   - On summon: deal 5 DMG to one enemy.
 - **Found at** — Four Seasons Mega Forest · Bloomwardens' Ring
-- **Lore** — _(none yet)_
+- **Lore** — The underbrush closes behind him a little more slowly each time. He has decided that is a fair price.
 
 #### Vernal · `leaf_sprinu`
 
@@ -265,7 +265,7 @@ Epic · Support · Ranged · Cost 3
   - Each round: heal every LEAF ally 1 HP.
   - Its basic attack can be aimed at a wounded ally to heal them for its DMG instead of striking.
 - **Found at** — Four Seasons Mega Forest · Evergreen Plains
-- **Lore** — _(none yet)_
+- **Lore** — The same water that drowns a root can raise one. Spring Tribe doctrine, delivered at range.
 
 #### Estival · `leaf_sumerose`
 
@@ -278,7 +278,7 @@ Epic · Assassin · Melee · Cost 4
   - LIFESTEAL: basic attacks heal it for the damage dealt.
   - Basic hits apply BLEED (1) for 2 rounds.
 - **Found at** — Four Seasons Mega Forest · Winter Village Sentinels
-- **Lore** — _(none yet)_
+- **Lore** — The Autumn Tribe calls it pruning. The pruned have rarely agreed.
 
 #### Nightbriar · `leaf_darth`
 
@@ -290,7 +290,7 @@ Epic · Ranger · Ranged · Cost 4
 - **Passives**
   - Predator's Snare — On a kill: lays a trap where the victim fell — the next enemy to step on it takes 3 DMG, ROOT 2 and is LIFESTEALED.
 - **Found at** — Four Seasons Mega Forest · The Rot Line
-- **Lore** — _(none yet)_
+- **Lore** — He does not aim at where you are. He aims at the ground you will be standing on after he is finished.
 
 #### Rubyscale · `leaf_rubyo`
 
@@ -302,7 +302,7 @@ Epic · Warrior · Melee · Cost 4
 - **Passives**
   - On summon: brings 1 Greegon onto the board.
 - **Found at** — Four Seasons Mega Forest · Winter Village Sentinels
-- **Lore** — _(none yet)_
+- **Lore** — Small, red, and never arriving alone. The old lizard behind him is the part you should have been watching.
 
 #### Squanch · `leaf_squanch`
 
@@ -313,7 +313,7 @@ Epic · Tank · Melee · Cost 4
 - **Passives**
   - Regenerative: at the end of each round, grows +1 shield for every enemy hit it took that round (max 5).
 - **Found at** — Four Seasons Mega Forest · Summer's Embrace Grove
-- **Lore** — _(none yet)_
+- **Lore** — Hit it and it thickens. Hit it twice and you have spent two rounds making it harder to hit.
 
 <!-- rare -->
 
@@ -326,7 +326,7 @@ Rare · Warrior · Melee · Cost 1
 - **Passives**
   - Quadruple Strike — On a kill: 1×4 to the closest opponent.
 - **Found at** — Four Seasons Mega Forest · Cherry Grove Path
-- **Lore** — _(none yet)_
+- **Lore** — One clean fall opens the canopy. Four more strikes come through the gap.
 
 #### Nettle · `leaf_nettle`
 
@@ -338,7 +338,7 @@ Rare · Mage · Ranged · Cost 1
   - Basic hits apply BLEED (1) for 2 rounds.
   - Bloodletting — Vs a BLOODFIRE target (bleeding AND burning), basics gain LIFESTEAL · +1 DMG.
 - **Found at** — Four Seasons Mega Forest · Spring Village Outskirts
-- **Lore** — _(none yet)_
+- **Lore** — A child's injury, repeated at range. It finds the ones already bleeding and burning, and finishes the errand.
 
 #### Stickers · `leaf_stickers`
 
@@ -349,7 +349,7 @@ Rare · Assassin · Melee · Cost 1
 - **Passives**
   - Sticky — Basic hits apply BLEED (1) for 2 rounds.
 - **Found at** — Four Seasons Mega Forest · Bloomwardens' Ring
-- **Lore** — _(none yet)_
+- **Lore** — It picks one target and simply refuses to be anywhere else.
 
 #### StickViper · `leaf_stickviper`
 
@@ -361,7 +361,7 @@ Rare · Ranger · Ranged · Cost 1
 - **Passives**
   - Basic hits apply BLEED (2) for 2 rounds.
 - **Found at** — Four Seasons Mega Forest · Jungle Wilds
-- **Lore** — _(none yet)_
+- **Lore** — You will not notice the branch that bit you until the branch has stopped mattering.
 
 #### Weeds · `leaf_weeds`
 
@@ -372,7 +372,7 @@ Rare · Support · Ranged · Cost 1
 - **Passives**
   - Offspring — Revives when defeated at 5 HP, with a 50% chance to revive a second time.
 - **Found at** — Four Seasons Mega Forest · Spring Village Outskirts
-- **Lore** — _(none yet)_
+- **Lore** — Pull it, burn it, salt the ground it grew in. Next season, ask the ground how that went.
 
 #### Cactus · `leaf_cactus`
 
@@ -383,7 +383,7 @@ Rare · Warrior · Melee · Cost 2
 - **Passives**
   - Needles — When hit by melee: retaliate — 2 DMG + BLEED.
 - **Found at** — Four Seasons Mega Forest · Jungle Wilds
-- **Lore** — _(none yet)_
+- **Lore** — It asks nothing of you — only that you not touch it. It asks with needles.
 
 #### Frond · `leaf_leaf`
 
@@ -394,7 +394,7 @@ Rare · Mage · Ranged · Cost 2
 - **Passives**
   - Basic hits apply BLEED (1) for 2 rounds.
 - **Found at** — Four Seasons Mega Forest · Cherry Grove Path
-- **Lore** — _(none yet)_
+- **Lore** — A single leaf, edge-on, at speed. The Mega Forest has more of these than it has anything else.
 
 #### Oak · `leaf_oak`
 
@@ -408,7 +408,7 @@ Rare · Tank · Melee · Cost 2
   - Acorn Drop: the first hit it takes each round sprouts 1 Acorn.
   - Root Growth: all healing it receives is multiplied 2×.
 - **Found at** — Four Seasons Mega Forest · Evergreen Plains
-- **Lore** — _(none yet)_
+- **Lore** — It cannot hurt you and it will not move — except once, when it decides the forest needs it further forward.
 
 #### Python · `leaf_python`
 
@@ -420,7 +420,7 @@ Rare · Tank · Melee · Cost 2
   - Coil Hold — Basic hits apply ROOT for 2 rounds.
   - Constriction — Each round: drain 2 HP from an adjacent opponent.
 - **Found at** — Four Seasons Mega Forest · Evergreen Plains
-- **Lore** — _(none yet)_
+- **Lore** — It does not strike. It arrives beside you, and then there is simply less of you each round.
 
 #### Sticks · `leaf_sticks`
 
@@ -431,7 +431,7 @@ Rare · Assassin · Melee · Cost 2
 - **Passives**
   - On summon: deal 7 DMG to one enemy and sap their next attack by 2.
 - **Found at** — Four Seasons Mega Forest · Evergreen Plains
-- **Lore** — _(none yet)_
+- **Lore** — Three grams of dry wood, moving very fast, at exactly the wrong moment.
 
 #### Dart Frog · `leaf_dartfrog`
 
@@ -443,7 +443,7 @@ Rare · Ranger · Ranged · Cost 3
   - Darts — Basic hits apply BLEED (1) for 2 rounds.
   - Talent (free · once per game) — Bleed Out: Skip this attack to load your darts — your next basic attack fires as 3 darts.
 - **Found at** — Four Seasons Mega Forest · Rustling Woods
-- **Lore** — _(none yet)_
+- **Lore** — Bright colors are not decoration in the Mega Forest. They are a courtesy.
 
 #### Elephlora · `leaf_walking_tree`
 
@@ -457,7 +457,7 @@ Rare · Support · Ranged · Cost 3
   - Moving Forest — Seed Roll: rolls 1 slot forward toward the enemy home at the end of each round (until blocked).
   - Root Growth: all healing it receives is multiplied 2×.
 - **Found at** — Four Seasons Mega Forest · Rustling Woods
-- **Lore** — _(none yet)_
+- **Lore** — It was not there yesterday. It will be closer tomorrow, and the wounded behind it will be standing.
 
 #### Gecko · `leaf_gecko`
 
@@ -470,7 +470,7 @@ Rare · Assassin · Melee · Cost 3
   - Venomous Bite — Basic hits apply BLEED (1) for 2 rounds.
   - Tail Drop: the first lethal hit leaves it at 1 HP with STEALTH 1 round and REGEN 2 for 2 rounds. Once per game.
 - **Found at** — Four Seasons Mega Forest · Jungle Wilds
-- **Lore** — _(none yet)_
+- **Lore** — It leaves the tail. It has never once needed the tail.
 
 #### Greegon · `leaf_greegon`
 
@@ -483,7 +483,7 @@ Rare · Tank · Melee · Cost 3
   - REGEN 2: heals 2 HP at the end of each round.
   - Bramble — Basic hits apply BLEED (1) for 2 rounds.
 - **Found at** — Four Seasons Mega Forest · Spring Village Outskirts
-- **Lore** — _(none yet)_
+- **Lore** — The canopy closes over its wounds every evening, whether anyone asked it to or not.
 
 #### Guardian · `leaf_guardian`
 
@@ -495,7 +495,7 @@ Rare · Warrior · Melee · Cost 3
   - On a kill: +2 DMG.
   - On summon: deal 3 DMG to enemies in the area ahead.
 - **Found at** — Four Seasons Mega Forest · Cherry Grove Path
-- **Lore** — _(none yet)_
+- **Lore** — It arrives already swinging, and every kill teaches it to swing harder.
 
 #### Hunter · `leaf_hunter`
 
@@ -508,7 +508,7 @@ Rare · Ranger · Ranged · Cost 3
   - On summon: deal 4 DMG to one enemy.
   - Trapper — On death, deals 4 damage back to its killer.
 - **Found at** — Four Seasons Mega Forest · Rustling Woods
-- **Lore** — _(none yet)_
+- **Lore** — He sets a trap on arrival, another when he lands a hit, and one last one on his way down. Autumn Tribe thoroughness.
 
 ### LEAF — tokens
 
@@ -523,7 +523,7 @@ Rare · Warrior · Melee · Cost 1
 - **Passives**
   - Seed Roll: rolls 1 slot forward toward the enemy home at the end of each round (until blocked).
 - **Summoned by** — nothing (orphan token)
-- **Lore** — _(none yet)_
+- **Lore** — Dropped, not planted. It rolls toward the enemy because nothing in the grove told it to stop.
 
 #### Reptilian · `leaf_reptilian_tok`
 
@@ -535,7 +535,7 @@ Rare · Assassin · Melee · Cost 1
 - **Passives**
   - Conspiracy — On a kill: +2 DMG · +2 SP · +2 max HP.
 - **Summoned by** — Trinezer
-- **Lore** — _(none yet)_
+- **Lore** — One is a nuisance. A dozen is a plan. Trinezer never sends just one.
 
 ### LEAF — spells
 
@@ -544,70 +544,70 @@ Rare · Assassin · Melee · Cost 1
 Heal · Cost 1✦
 
 - **Text** — Heal a LEAF ally 3 HP (5 if any opponent is ROOTed).
-- **Lore** — _(none yet)_
+- **Lore** — The smallest possible amount of growth, applied exactly where the wound is. It is usually enough.
 
 #### Thorn Patch · `leaf_thorn_patch`
 
 Area · Cost 2✦ · area: row
 
 - **Text** — Apply BLEED 1 for 2 rounds to every opponent in a chosen row.
-- **Lore** — _(none yet)_
+- **Lore** — Nothing here will kill you. It only makes certain the round after this one costs you something.
 
 #### Snare · `leaf_snare`
 
 Trap · Cost 3✦
 
 - **Text** — Hide a trap on an empty slot. The first opponent to MOVE onto it is ROOTed for 3 rounds and takes BLEED 2 for 2 rounds.
-- **Lore** — _(none yet)_
+- **Lore** — The forest does not chase. It waits on the ground you were always going to walk across.
 
 #### Bramble Wall · `leaf_bramble_wall`
 
 Wall · Cost 4✦
 
 - **Text** — Thorned vines across a row for 3 rounds. A card that MOVES in takes 2 DMG and is ROOTed 1 round. Ranged attacks and FLYING cards pass over.
-- **Lore** — _(none yet)_
+- **Lore** — Three rounds of thorn. Fly over it, shoot across it — but do not try to walk it.
 
 #### Grove's Blessing · `leaf_groves_blessing`
 
 Heal · Cost 5✦
 
 - **Text** — Heal all LEAF allies 5 HP and cleanse one negative status from each.
-- **Lore** — _(none yet)_
+- **Lore** — Whatever the enemy spent this round undoing, the grove quietly puts back.
 
 #### Lushfield · `leaf_lushfield`
 
 Field · Cost 6✦ · 3 rounds
 
 - **Text** — Field (3 rounds): your LEAF allies REGEN 2 HP each round, and every BLEED and ROOT you apply lasts 1 round longer.
-- **Lore** — _(none yet)_
+- **Lore** — Everything grows longer here — the healing, the bleeding, and the roots holding you still for both.
 
 #### Withering Grasp · `leaf_withering_grasp`
 
 Damage · Cost 7✦
 
 - **Text** — Deal 8 DMG (PEN) to a target and apply BLEED 3 for 3 rounds. Heal a LEAF ally for the damage dealt.
-- **Lore** — _(none yet)_
+- **Lore** — Nothing the forest takes is wasted. It is simply moved to whoever needed it more.
 
 #### Overgrowth · `leaf_overgrowth`
 
 Trap · Cost 8✦
 
 - **Text** — Hide a trap on an empty slot. The first opponent to MOVE onto it — and every opponent beside it — is ROOTed for 2 rounds and takes BLEED 1 for 2 rounds.
-- **Lore** — _(none yet)_
+- **Lore** — One wrong step, and the whole patch closes — on you and on whoever was standing beside you.
 
 #### Bloodroot Surge · `leaf_bloodroot_surge`
 
 Area · Cost 9✦ · area: board
 
 - **Text** — Apply BLEED 3 for 3 rounds to every opponent, and heal all LEAF allies for the total BLEED that will be dealt.
-- **Lore** — _(none yet)_
+- **Lore** — Every drop the field is about to spill has already been promised to something with roots.
 
 #### Heart of the Forest · `leaf_heart_of_the_forest`
 
 Area · Cost 10✦ · area: board
 
 - **Text** — Heal all LEAF allies to full HP and ROOT every opponent for 2 rounds. For the rest of the game, LEAF allies heal 1 extra HP each round.
-- **Lore** — _(none yet)_
+- **Lore** — The Spirit Tree does not intervene often. When it does, the Cycle simply resumes from the beginning — for one side only.
 
 ---
 
