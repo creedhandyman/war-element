@@ -794,10 +794,29 @@ describe("story: border gates (7)", () => {
   });
 
   it("patrols both sides of the border it sits on", () => {
+    // What makes a gate a BORDER rather than a garrison: the map it stands on and
+    // somewhere it opens both have to be represented in the patrol.
+    //
+    // This used to demand EXACTLY two elements. It no longer does — Sunfall
+    // Harbor fields SirCrest on both faces, a DAWN mage carrying the PYRO and
+    // AQUA auras, which is the border itself expressed as a card. A third
+    // element is an act of casting; the rule worth holding is the two-sidedness,
+    // not the count.
+    //
+    // The far-side half is NEW and stricter than what it replaced: the old
+    // version only ever checked the HOME element, so a patrol drawn entirely
+    // from the region the gate sits in would have sailed through.
     for (const g of gates) {
-      const els = new Set(g.adds.map((id) => getDef(id).element));
-      expect(els.size, `${g.id} patrol is single-element`).toBe(2);
-      expect([...els], `${g.id}`).toContain(regionOfNode(g.id)!.element);
+      // Set<string>, not Set<Element>: a REGION's element is declared as a plain
+      // string, so a narrower set could not be asked whether it holds one.
+      const els = new Set<string>(g.adds.map((id) => getDef(id).element));
+      expect(els.size, `${g.id} patrol is single-element`).toBeGreaterThanOrEqual(2);
+      expect([...els], `${g.id} patrol has nobody from its own map`)
+        .toContain(regionOfNode(g.id)!.element);
+      // `opens` can name several regions — Gate E is the whole Gray Continent —
+      // and no patrol fields all of them, so: at least one.
+      const farSide = g.opens!.some((id) => els.has(REGIONS.find((r) => r.id === id)!.element));
+      expect(farSide, `${g.id} patrol has nobody from the far side`).toBe(true);
     }
   });
 

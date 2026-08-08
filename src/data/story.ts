@@ -273,9 +273,15 @@ const PYRO: StoryRegion = {
     },
     // Gate C, PYRO side. Its twin sits on AQUA's map, so switching routes never
     // means walking back through LEAF.
+    //
+    // SirCrest is the one patroller on either face of this harbor native to
+    // NEITHER element — a DAWN mage who carries both the PYRO Scorch aura and
+    // the AQUA Flow Change aura, which is precisely the border he is standing
+    // on. He is farmed in DAWN (Act V), and a gate's patrol is never
+    // recruitable, so meeting him here places nothing.
     { id: "GC", name: "Gate C: Sunfall Harbor", kind: "gate", at: { x: 53, y: 94 },
       requires: ["P2"], roster: [], opens: ["aqua"],
-      adds: ["pyro_flamehound", "pyro_canister", "aqua_buccaneers", "aqua_bootlegger", "aqua_piranha", "aqua_blub", "pyro_liza", "aqua_blackice"],
+      adds: ["pyro_flamehound", "pyro_canister", "aqua_buccaneers", "aqua_bootlegger", "aqua_piranha", "aqua_blub", "pyro_liza", "aqua_blackice", "dawn_sircrest"],
       demand: { kind: "class", value: "Tank", count: 3 },
       note: "Boarding actions in the pirate lanes. Bring bodies that can hold a deck." },
   ],
@@ -382,9 +388,11 @@ const AQUA: StoryRegion = {
       demand: { kind: "attack", value: "Ranged", count: 4 },
       note: "The airship lanes north. Everything past here is fought on the 5x5 board." },
     // Gate C, AQUA side — the same harbor from the other direction.
+    // Same harbor from the other direction, so it draws the same odd third
+    // patroller — see GC on PYRO's map for why SirCrest belongs on this border.
     { id: "GC2", name: "Gate C: Sunfall Harbor", kind: "gate", at: { x: 10, y: 72 },
       requires: ["A5"], roster: [], opens: ["pyro"],
-      adds: ["aqua_buccaneers", "aqua_bootlegger", "pyro_flamehound", "pyro_canister", "pyro_firecrack", "pyro_taper", "aqua_icynin", "pyro_scorch"],
+      adds: ["aqua_buccaneers", "aqua_bootlegger", "pyro_flamehound", "pyro_canister", "pyro_firecrack", "pyro_taper", "aqua_icynin", "pyro_scorch", "dawn_sircrest"],
       demand: { kind: "class", value: "Tank", count: 3 },
       note: "The same harbor from the water. Sail east and PYRO's coast is yours without going back through LEAF." },
   ],
