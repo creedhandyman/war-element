@@ -3152,14 +3152,14 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Ranger",
     attackType: "Ranged",
-    cost: 3,
-    dmg: 3,
-    hits: 2, // "2x3 DMG" = 2 hits of 3
-    // Rebuilt as a glass-cannon harasser: HP 11 -> 5, SP 8 -> 14. Same 25-point
-    // budget for cost 3, just poured into speed. FLYING already keeps melee off
-    // it, so 5 HP only matters to ranged answers.
-    hp: 5,
-    sp: 14,
+    // Cost 1: 2×1 + 3 HP + 10 SP = 15, exactly the cost-1 budget. The fastest
+    // thing in the game on the cheapest body there is — it exists to be
+    // somewhere on turn one and to answer a summon, not to trade.
+    cost: 1,
+    dmg: 2,
+    hits: 1,
+    hp: 3,
+    sp: 10,
     shields: 0,
     keywords: { FLYING: true },
     // Aerial Dominance: 1 DMG to any opponent summoned within range.
