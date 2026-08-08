@@ -887,6 +887,10 @@ function resolveSpell(
   // damage spell
   const target = targetId ? draft.cards[targetId] : undefined;
   if (target) {
+    // Read before the hit: Withering Grasp heals "for the damage dealt", and
+    // dealt is not the same as swung — BLOCK trims it, and a target on 2 HP
+    // absorbs 2 of an 8-damage cut, not 8.
+    const hpBefore = target.curHp;
     const died = spellHit(draft, target, spell.dmg ?? 0, Boolean(spell.pen), player);
     const alive = !died && !!draft.cards[target.instanceId] && target.curHp > 0;
     if (alive && spell.status)
@@ -899,10 +903,17 @@ function resolveSpell(
     // to reward having set the freeze up, so it does nothing to a warm target.
     if (alive && spell.statusIfFrozen && hasStatus(target, "FREEZE"))
       applyStatus(draft, target, spell.statusIfFrozen.kind, spell.statusIfFrozen.duration, spell.statusIfFrozen.power, spell.element);
-    // Withering Grasp: the damage dealt is fed straight back to an ally.
-    if (spell.healAllyForDamage && spell.dmg) {
-      const ally = pickSpellAlly(draft, player, spell.element);
-      if (ally) healCard(draft, ally, spell.dmg, player);
+    // Withering Grasp: the damage DEALT is fed straight back to an ally — not
+    // the spell's printed number, which is what this used to hand over. It paid
+    // the full 8 into an ally when the cut landed for 3, and paid it even when
+    // the target was already dying and absorbed almost none of it.
+    if (spell.healAllyForDamage) {
+      // Clamped at BOTH ends, so overkill is not damage: curHp goes negative on a
+      // killing blow, and hpBefore - curHp would have counted the overshoot —
+      // an 8-damage cut into a 2 HP body healed the full 8.
+      const dealt = Math.max(0, hpBefore) - Math.max(0, target.curHp);
+      const ally = dealt > 0 ? pickSpellAlly(draft, player, spell.element) : undefined;
+      if (ally) healCard(draft, ally, dealt, player);
     }
     if (alive && spell.drainMaxHp && target.maxHp > 1) {
       const steal = Math.min(spell.drainMaxHp, target.maxHp - 1);

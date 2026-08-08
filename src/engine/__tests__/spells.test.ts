@@ -1015,3 +1015,28 @@ describe("the two weak utility spells earned their rung", () => {
     expect(next.players.P1.specialDiscountRound).toBe(1); // dead against the AI without this
   });
 });
+
+describe("Withering Grasp heals for what it actually dealt", () => {
+  it("a target that soaks only part of the cut returns only that much", () => {
+    const s = prepState();
+    armSpell(s, "leaf_withering_grasp", 7);
+    const hurt = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 1, maxHp: 30 });
+    // 2 HP left: the 8-damage cut deals 2, not 8.
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 2, maxHp: 20, curShields: 0 });
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "leaf_withering_grasp", targetId: foe.instanceId,
+    });
+    expect(next.cards[hurt.instanceId].curHp).toBe(3); // 1 + the 2 it actually dealt
+  });
+
+  it("a full-health target returns the full cut, less BLOCK", () => {
+    const s = prepState();
+    armSpell(s, "leaf_withering_grasp", 7);
+    const hurt = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 1, maxHp: 30 });
+    const foe = place(s, "bore_armadillo", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "leaf_withering_grasp", targetId: foe.instanceId,
+    });
+    expect(next.cards[hurt.instanceId].curHp).toBe(7); // 1 + (8 − Armadillo's BLOCK 2)
+  });
+});

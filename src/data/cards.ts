@@ -2182,7 +2182,9 @@ export const CARDS: CardDef[] = [
       handler: "stormSwarm",
       params: { token: "bolt_beebot" },
       targetSide: "enemy",
-      text: "Raise one Beebot per ELECTRIFIED opponent, then every Beebot on the board stings.",
+      // "per opponent carrying a status" — the handler counts any status, not
+      // ELECTRIFIED alone, and BOLT's whole kit is built on that broader read.
+      text: "Raise one Beebot per opponent carrying a status, then every Beebot on the board stings.",
     },
   },
   {
@@ -2730,7 +2732,7 @@ export const CARDS: CardDef[] = [
         selfHpCost: 5,
       },
       targetSide: "enemy",
-      text: "Tear off 5 HP to sinkhole all opponents in range — DOT 3, −5 SP, −50% accuracy for 3 rounds — then slip into STEALTH. 3-round cooldown.",
+      text: "Tear off 5 HP to sinkhole all opponents in range for 3 DMG — DOT 3, −5 SP, −50% accuracy for 3 rounds — then slip into STEALTH. 3-round cooldown.",
     },
   },
 
@@ -2979,7 +2981,10 @@ export const CARDS: CardDef[] = [
       handler: "barrage",
       params: { dmg: 4, spread: 1, forwardDepth: 1, targets: 99 },
       targetSide: "enemy",
-      text: "Deal 4 DMG to all opponents in the row directly ahead.",
+      // A 3-wide corridor, not the row: `spread: 1` reaches one column each
+      // side, which on a 4-wide board can never cover all of it. Worded like
+      // Pyrogon's, which uses the same shape.
+      text: "Deal 4 DMG to the 3 opponents directly ahead.",
     },
   },
   {
@@ -7421,7 +7426,9 @@ export const CARDS: CardDef[] = [
     // On Summon: BURN 2 (3r) to the adjacent row. Burning Roar (On Hit): +1 DMG
     // on a landed basic (stacking). On Kill: +2 DMG permanently. (Doc's Burning
     // Roar shield + 3-stack cap simplified to a permanent +1-DMG-on-hit.)
-    passiveNames: { onSummon: "Volcanic Arrival", onHitSelfBuff: "Burning Roar", onKill: "Volcanic Charge" },
+    // The on-kill was called "Volcanic Charge" too — the same name as the
+    // Special, on a different ability. Named for what it does instead.
+    passiveNames: { onSummon: "Volcanic Arrival", onHitSelfBuff: "Burning Roar", onKill: "Eruption" },
     onSummon: { handler: "barrage", params: { dmg: 0, rowAhead: 1, targets: 99, statusKind: "BURN", statusPower: 2, statusDuration: 3 }, targetSide: "enemy" },
     onHitSelfBuff: { dmg: 1, max: 5 }, // single hit, so the same ceiling Volcanon carries
     // Volcanic Charge (On Kill): +2 DMG permanently AND a 3-DMG eruption across
@@ -7776,17 +7783,23 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Dawning Assault (On Summon): 7 DMG to a foe and blind its aim (its attacks
     // miss 50% for 2 rounds). Ariel's fall chips the killer for 3.
-    passiveNames: { onSummon: "Dawning Assault", onDeath: "Dawning Assault" },
+    passiveNames: { onSummon: "Dawning Assault", onDeath: "Last Light" },
     onSummon: { handler: "strike", params: { dmg: 7, reachNearest: 1, targetAttackMissPct: 50, targetAttackMissRounds: 2 }, targetSide: "enemy" },
     onDeath: { dmg: 3 },
-    // 100,000°: +14 DMG on the next basic attack (with PEN, folded in).
+    // 100,000°: +14 DMG on the next basic attack. NOT with PEN — this comment
+    // used to say so and the code never did it, which is where the printed
+    // "(PEN)" came from.
     special: {
       name: "100,000°",
       cost: 2,
       handler: "empower",
       params: { selfDmg: 14, buffRounds: 1 },
       targetSide: "self",
-      text: "Your next basic attack deals +14 DMG (PEN).",
+      // No "(PEN)". Nothing in empower grants it, Ariel's keywords carry none,
+      // and the inline note claiming it was "folded in" described an intention
+      // that was never implemented — so the +14 was fully absorbed by shields on
+      // a card the text promised would pierce them.
+      text: "Your next basic attack deals +14 DMG.",
     },
   },
   {
@@ -8349,7 +8362,9 @@ export const CARDS: CardDef[] = [
       params: { dmg: 8, pen: 1, statusKind: "ROOT", statusDuration: 3, debuffStatus: "MUTED", debuffStatusRounds: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 8 DMG (4 CRIT), piercing shields, ROOT the target for 3 rounds, and MUTE it for 1 round.",
+      // "(4 CRIT)" is gone: 8 is already the doubled figure, and nothing here
+      // rolls a crit — the text described a coin flip that cannot happen.
+      text: "Deal 8 DMG, piercing shields, ROOT the target for 3 rounds, and MUTE it for 1 round.",
     },
   },
   {
