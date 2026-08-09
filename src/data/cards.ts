@@ -8020,6 +8020,14 @@ export const CARDS: CardDef[] = [
     shields: 2,
     // Dragon Born: gemstone scales REFLECT 2 damage back at attackers.
     keywords: { REFLECT: 2 },
+    // Magnetic Field (Aura): the plates it wears extend to whatever is touching
+    // it — adjacent allies carry its own REFLECT 2 while it lives.
+    //
+    // It was the only cost-5 card in the game with no passive at all, on a body
+    // sitting exactly on budget. REFLECT is already its whole identity, so the
+    // aura gives the Support something to do besides stand there.
+    passiveNames: { aura: "Magnetic Field" },
+    aura: { scope: "adjacent", reflect: 2 },
     // Magnetic Shield: plate every ally in range with REFLECT 1.
     special: {
       name: "Magnetic Shield",

@@ -3147,3 +3147,38 @@ describe("balance pass: reach, payloads and lockouts", () => {
     expect(offenders, `board-wide mythic nuke on the default lockout: ${offenders.join(", ")}`).toEqual([]);
   });
 });
+
+describe("Magnetic Field: Magnetite lends its plates to whoever stands beside it", () => {
+  /** An ally takes one basic from `attacker`; returns the damage reflected back. */
+  function reflectedOnto(withMagnetite: boolean, allyPos: [number, number]) {
+    const s = prepState();
+    const ally = place(s, "bore_clubber", "P1", allyPos[0] as 0 | 1 | 2 | 3, allyPos[1] as 0 | 1 | 2 | 3,
+      { curHp: 40, maxHp: 40, curShields: 0 });
+    if (withMagnetite) place(s, "bore_gemaga", "P1", 2, 1);
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, foe.instanceId, ally.instanceId);
+    return 40 - s.cards[foe.instanceId].curHp;
+  }
+
+  it("an adjacent ally reflects Magnetite's 2 on top of its own", () => {
+    // Clubber carries REFLECT 1 of its own, so the aura shows up as the delta.
+    const alone = reflectedOnto(false, [2, 2]);
+    const beside = reflectedOnto(true, [2, 2]);
+    expect(beside - alone).toBe(2);
+  });
+
+  it("but only while touching — two slots away gets nothing", () => {
+    const alone = reflectedOnto(false, [2, 3]);
+    const away = reflectedOnto(true, [2, 3]);
+    expect(away).toBe(alone);
+  });
+
+  it("and it does not buff itself", () => {
+    const s = prepState();
+    const mag = place(s, "bore_gemaga", "P1", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, foe.instanceId, mag.instanceId);
+    // Its printed REFLECT 2 only — the aura is `adjacent`, and self is distance 0.
+    expect(40 - s.cards[foe.instanceId].curHp).toBe(2);
+  });
+});

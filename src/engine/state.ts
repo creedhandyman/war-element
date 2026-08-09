@@ -265,7 +265,7 @@ export function auraSources(state: GameState, card: CardInstance): { name: strin
       if (!a || !auraMatches(a, holder, card)) continue;
       const bits = [
         a.dmg && `+${a.dmg} DMG`, a.sp && `+${a.sp} SP`, a.maxHp && `+${a.maxHp} HP`,
-        a.shields && `+${a.shields} shield`, a.pen && "PEN",
+        a.shields && `+${a.shields} shield`, a.reflect && `REFLECT ${a.reflect}`, a.pen && "PEN",
       ].filter(Boolean);
       if (bits.length) out.push({ name: hDef.name, text: bits.join(", ") });
     }
@@ -317,6 +317,21 @@ export function auraHasPen(state: GameState, card: CardInstance): boolean {
     const hDef = getDef(holder.defId);
     return !!hDef.aura?.pen && auraMatches(hDef.aura, holder, card);
   });
+}
+
+/** The extra shields a card gets from friendly shield auras (Pressure) — the
+ *  highest matching aura's shields, or 0 if none. Each round it's topped up to
+ *  its printed shields + this bonus. */
+export function auraReflectBonus(state: GameState, card: CardInstance): number {
+  let bonus = 0;
+  for (const holder of boardCards(state, card.owner)) {
+    const hDef = getDef(holder.defId);
+    for (const a of [hDef.aura, ...(hDef.auras ?? [])]) {
+      if (!a?.reflect || !auraMatches(a, holder, card)) continue;
+      if (a.reflect > bonus) bonus = a.reflect;
+    }
+  }
+  return bonus;
 }
 
 /** The extra shields a card gets from friendly shield auras (Pressure) — the

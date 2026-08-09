@@ -318,6 +318,10 @@ export interface AuraBonusDef {
   maxHp?: number; // matching allies gain +N max HP while the holder lives (SeaC)
   pen?: boolean; // matching allies' basic attacks gain PEN (Blood Ruby)
   shields?: number; // matching allies are topped up to base+N shields each round (Pressure)
+  /** Matching allies gain REFLECT N while the holder lives (Magnetite's
+   *  Magnetic Field). Stacks the same way the keyword does — it is added to
+   *  the target's own REFLECT rather than replacing it. */
+  reflect?: number;
 }
 
 /** A temporary flat DMG/SP modifier with a Cleanup countdown. Positive = a buff

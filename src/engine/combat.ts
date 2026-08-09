@@ -20,7 +20,7 @@ import { RANGED_REACH, canTarget } from "./rules";
 import { PYRO_BURN_STACK_CAP, hasElementAura } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
-import { auraHasPen, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -1007,7 +1007,8 @@ export function resolveHit(
 
     // 5 (per landed hit). REFLECT accumulates; resolved after the volley.
     const grantedReflect = (target.reflectRoundsLeft ?? 0) > 0 ? (target.reflectPower ?? 0) : 0;
-    const reflect = Number(tDef.keywords.REFLECT ?? 0) + fieldBonus(draft, target, "reflect") + grantedReflect;
+    const reflect = Number(tDef.keywords.REFLECT ?? 0) + fieldBonus(draft, target, "reflect")
+      + auraReflectBonus(draft, target) + grantedReflect;
     if (reflect > 0 && opts.kind !== "reflect") reflectBack += reflect;
   }
 
