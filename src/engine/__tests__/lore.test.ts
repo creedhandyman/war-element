@@ -44,14 +44,16 @@ describe("lore", () => {
     expect(loreFor("no_such_card")).toBeUndefined();
   });
 
-  it("covers all of LEAF — cards, tokens and spells", () => {
-    // LEAF's pass is complete, so it can be asserted. Other elements are not
-    // listed here on purpose: this should go red when a LEAF card is ADDED
-    // without a line, not merely because PYRO has not been written yet.
-    const leaf = [
-      ...[...CARDS, ...TOKENS].filter((c) => c.element === "LEAF").map((c) => c.id),
-      ...SPELLS.filter((s) => s.element === "LEAF").map((s) => s.id),
-    ];
-    expect(leaf.filter((id) => !LORE[id]), "LEAF entries with no lore").toEqual([]);
-  });
+  // Elements are listed here as their pass lands, so this goes red when a card is
+  // ADDED to a finished element without a line — not merely because the elements
+  // still to write have not been written.
+  const DONE = ["LEAF", "PYRO"] as const;
+  for (const el of DONE)
+    it(`covers all of ${el} — cards, tokens and spells`, () => {
+      const entries = [
+        ...[...CARDS, ...TOKENS].filter((c) => c.element === el).map((c) => c.id),
+        ...SPELLS.filter((s) => s.element === el).map((s) => s.id),
+      ];
+      expect(entries.filter((id) => !LORE[id]), `${el} entries with no lore`).toEqual([]);
+    });
 });
