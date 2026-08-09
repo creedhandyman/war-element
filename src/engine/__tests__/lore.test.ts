@@ -94,7 +94,7 @@ describe("lore", () => {
   // Elements are listed here as their pass lands, so this goes red when a card is
   // ADDED to a finished element without a line — not merely because the elements
   // still to write have not been written.
-  const DONE = ["LEAF", "PYRO", "GALE", "DUSK", "BOLT"] as const;
+  const DONE = ["LEAF", "PYRO", "GALE", "DUSK", "BOLT", "AQUA"] as const;
   for (const el of DONE)
     it(`covers all of ${el} — cards, tokens and spells`, () => {
       const missing = [
