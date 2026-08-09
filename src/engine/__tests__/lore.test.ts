@@ -73,20 +73,28 @@ describe("lore", () => {
     expect(loreFor("no_such_card")).toBeUndefined();
   });
 
-  it("gives Tempest-the-card and Tempest-the-spell different lines", () => {
-    // The concrete case the prefix exists for. Both are named Tempest and share an
-    // id; if this ever collapses to one line, the spell is wearing the card's prose.
-    const card = getDef("gale_tempest");
-    const spell = SPELLS.find((s) => s.id === "gale_tempest")!;
-    expect(card.lore).toBeTruthy();
-    expect(spell.lore).toBeTruthy();
-    expect(spell.lore, "the spell is showing the card's flavour").not.toBe(card.lore);
+  it("gives a colliding card and spell different lines", () => {
+    // The concrete case the prefix exists for. `bolt_zap` and `gale_tempest` are
+    // each a card AND a spell of the same name; if either collapses to one line,
+    // the spell is wearing the card's prose and nothing would say so.
+    //
+    // Derived from the data rather than hardcoded, so a third collision is covered
+    // the moment it appears — and only asserted once both sides are written, so an
+    // unwritten element does not fail here.
+    const cardIds = new Set([...CARDS, ...TOKENS].map((c) => c.id));
+    for (const spell of SPELLS.filter((s) => cardIds.has(s.id))) {
+      const card = getDef(spell.id);
+      if (!card.lore && !spell.lore) continue; // neither written yet
+      expect(card.lore, `${spell.id}: the card has no line`).toBeTruthy();
+      expect(spell.lore, `${spell.id}: the spell has no line`).toBeTruthy();
+      expect(spell.lore, `${spell.id}: the spell is showing the card's flavour`).not.toBe(card.lore);
+    }
   });
 
   // Elements are listed here as their pass lands, so this goes red when a card is
   // ADDED to a finished element without a line — not merely because the elements
   // still to write have not been written.
-  const DONE = ["LEAF", "PYRO", "GALE", "DUSK"] as const;
+  const DONE = ["LEAF", "PYRO", "GALE", "DUSK", "BOLT"] as const;
   for (const el of DONE)
     it(`covers all of ${el} — cards, tokens and spells`, () => {
       const missing = [
