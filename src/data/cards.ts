@@ -2247,7 +2247,10 @@ export const CARDS: CardDef[] = [
     roundTick: {
       selfBurnForDmg: { hp: 1, dmg: 2 },
       // ...and the Meltdown channel, which only runs once the Special lights it.
-      channel: { hpCost: 2, rowAheadDmg: 5 },
+      // In RANGE, not the row ahead: Magmadon is a melee tank that wades into
+      // the middle of things, and an eruption that only ever went forward left
+      // whatever was packed around it untouched.
+      channel: { hpCost: 2, inRangeDmg: 5 },
     },
     // Trial by Fire: the whole PYRO line pays a point of blood for a round of
     // fire the moment Magmadon lands.
@@ -2266,7 +2269,7 @@ export const CARDS: CardDef[] = [
       handler: "spawn",
       params: { startsChannel: 1 },
       targetSide: "self",
-      text: "Deal 5 DMG to the row directly ahead, then keep erupting every round for 2 HP a round — until Magmadon dies, or is FROZEN or ROOTED.",
+      text: "Deal 5 DMG to every opponent in range, then keep erupting every round for 2 HP a round — until Magmadon dies, or is FROZEN or ROOTED.",
     },
   },
   {

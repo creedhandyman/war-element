@@ -731,7 +731,7 @@ Legendary · Tank · Melee · Cost 8
 
 - **Stats** — DMG 7 · HP 38 · Shields 0 · SP 5 · Budget 50 vs 50 (on)
 - **Tribe** — Volcanic
-- **Special · Meltdown** (4◆) — Deal 5 DMG to the row directly ahead, then keep erupting every round for 2 HP a round — until Magmadon dies, or is FROZEN or ROOTED.
+- **Special · Meltdown** (4◆) — Deal 5 DMG to every opponent in range, then keep erupting every round for 2 HP a round — until Magmadon dies, or is FROZEN or ROOTED.
 - **Passives**
   - Scorched Fury — Each round: burn 1 of its own HP to hit +2 harder next round.
   - On summon: every PYRO ally pays 1 HP for +2 DMG for 1 round.

@@ -3012,3 +3012,49 @@ describe("growth has a ceiling", () => {
     expect(uncapped, `unbounded growth: ${uncapped.join(", ")}`).toEqual([]);
   });
 });
+
+/** Park the battle so `activeId` is the next card to act, awaiting P1 input. */
+function battleWith(s: GameState, activeId: string): GameState {
+  s.phase = "battle";
+  s.prep = null;
+  s.battle = { queue: [activeId], index: 0, awaitingInput: activeId };
+  return s;
+}
+
+describe("Meltdown erupts in every direction, not just forward", () => {
+  /** Magmadon in the middle with an enemy beside it, one diagonally back, and
+   *  one straight ahead but three columns over — the shape that shows the
+   *  difference. The far one is in the row ahead and out of a melee card's
+   *  reach; the other two are the ones the old row-only eruption never touched. */
+  function surrounded() {
+    const s = prepState();
+    s.players.P1.magicPool = 20;
+    const mag = place(s, "pyro_magmadon", "P1", 2, 1);
+    return {
+      s, mag,
+      beside: place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 }),
+      diagBack: place(s, "dusk_gool", "P2", 3, 2, { curHp: 40, maxHp: 40, curShields: 0 }),
+      farAhead: place(s, "dusk_gool", "P2", 1, 3, { curHp: 40, maxHp: 40, curShields: 0 }),
+    };
+  }
+
+  it("the opening blast catches everything it can reach", () => {
+    const { s, mag, beside, diagBack, farAhead } = surrounded();
+    const next = applyIntent(battleWith(s, mag.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: mag.instanceId,
+    });
+    expect(next.cards[beside.instanceId].curHp, "beside it").toBe(35);
+    expect(next.cards[diagBack.instanceId].curHp, "diagonally behind").toBe(35);
+    expect(next.cards[farAhead.instanceId].curHp, "row ahead but out of reach").toBe(40);
+  });
+
+  it("and so does every round it keeps burning", () => {
+    const { s, mag, beside } = surrounded();
+    const lit = applyIntent(battleWith(s, mag.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: mag.instanceId,
+    });
+    expect(lit.cards[mag.instanceId].channelOn).toBe(true);
+    const after = advance(atCleanup(lit));
+    expect(after.cards[beside.instanceId].curHp).toBeLessThan(35);
+  });
+});

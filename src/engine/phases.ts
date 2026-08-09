@@ -1410,8 +1410,8 @@ function performBattleAction(
       // paid magic for it), then the channel takes over from next Cleanup.
       const ch = def.roundTick?.channel;
       if (ch) {
-        const hit = eruptRowAhead(draft, card, ch.rowAheadDmg);
-        draft.log.push(`${label(draft, card)} erupts — ${hit} caught in the row ahead.`);
+        const hit = eruptInRange(draft, card, ch.inRangeDmg);
+        draft.log.push(`${label(draft, card)} erupts — ${hit} caught in range.`);
       }
       card.channelOn = true;
       draft.log.push(`${label(draft, card)} goes critical — the meltdown continues each round.`);
@@ -1811,6 +1811,18 @@ function eruptRowAhead(draft: GameState, card: CardInstance, dmg: number): numbe
   return caught.length;
 }
 
+/** Everything `card` can actually reach, hit for `dmg`. The reach is canTarget's
+ *  — the same one roundTick.inRangeDmg uses — so a Melee eruption catches what
+ *  is packed around it and a Ranged one carries. Returns how many were caught. */
+function eruptInRange(draft: GameState, card: CardInstance, dmg: number): number {
+  if (!card.pos || dmg <= 0) return 0;
+  const caught = boardCards(draft, enemyOf(card.owner)).filter(
+    (e) => e.curHp > 0 && canTarget(draft, card, e),
+  );
+  for (const e of caught) tickDamage(draft, card, e, dmg, false);
+  return caught.length;
+}
+
 /** Resolve every card's periodic (end-of-round) self-driven passive. Runs in
  *  Cleanup after DOT/REGEN and status-duration ticks. */
 function doRoundTicks(draft: GameState): void {
@@ -1972,14 +1984,15 @@ function doRoundTicks(draft: GameState): void {
         draft.log.push(`${label(draft, card)} burns out — the meltdown ends.`);
       } else {
         card.curHp -= rt.channel.hpCost;
-        eruptRowAhead(draft, card, rt.channel.rowAheadDmg);
+        eruptInRange(draft, card, rt.channel.inRangeDmg);
         draft.log.push(`${label(draft, card)} erupts again (−${rt.channel.hpCost} HP).`);
       }
     }
-    if (rt.rowAheadDmg && card.pos) {
-      // Sweeping Flames: burn whatever stands in the row directly ahead.
-      const ahead = card.owner === "P1" ? card.pos.row - 1 : card.pos.row + 1;
-      for (const e of enemies()) if (e.pos && e.pos.row === ahead) tickDamage(draft, card, e, rt.rowAheadDmg, false);
+    if (rt.rowAheadDmg) {
+      // Sweeping Flames: burn whatever stands in the row directly ahead. Through
+      // the shared helper — this used to re-implement it inline, and now that the
+      // Meltdown channel has moved to in-range reach it is the only caller left.
+      eruptRowAhead(draft, card, rt.rowAheadDmg);
     }
     if (rt.inRangeDmg) {
       // Black Smoke / Radiation: hit every opponent this card can reach (UFO's

@@ -203,7 +203,11 @@ export interface RoundTickDef {
    *  Scorched Fury lives in that same tick and must keep running whether or not
    *  the Special is lit. Gating the tick wholesale silently switched the passive
    *  off, which is exactly what the first version did. */
-  channel?: { hpCost: number; rowAheadDmg: number };
+  /** Meltdown (Magmadon): once lit, it erupts every Cleanup for `hpCost` of
+   *  its own HP until it dies, is broken, or cannot pay. `inRangeDmg` is the
+   *  same reach `roundTick.inRangeDmg` uses — everything this card can
+   *  actually target — rather than the row directly ahead. */
+  channel?: { hpCost: number; inRangeDmg: number };
   rootedDmg?: number; // Trapper (Fallow): damage every ROOTed enemy, range-free
   /** Constriction (Python): while adjacent to an opponent, drain N HP from it at
    *  end of round — deal N to the nearest adjacent enemy and heal that much. */
