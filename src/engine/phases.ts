@@ -176,7 +176,16 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
               // card that's king's-move reach (the 8 adjacent tiles). `false` =
               // not a basic attack, so a Ranged card's on-summon burst keeps its
               // full-board reach instead of being cut to the queen line.
-              : validTargets(draft, inst.instanceId, false);
+              // A charging on-summon aims as far as it can travel, for the same
+              // reason a charging Special does: the list is measured from the
+              // home row it just landed in, and a Melee card standing there can
+              // see nothing, so the ability never ran and the charge never
+              // happened. ThunderCat's arrival pounce did nothing for exactly
+              // this reason.
+              : validTargets(
+                  draft, inst.instanceId, false,
+                  Number(params.chargeFirst ?? 0) > 0 ? Number(params.charge ?? 0) : 0,
+                );
           // Dragon's Bane ambush (Drakonbane): a hunter pounces its prey wherever
           // it stands, so this scans the WHOLE board for a bane-worthy enemy and
           // strikes the NEAREST — the same reach DAWN's own Awakening aura uses,
@@ -1160,6 +1169,36 @@ function doDrawPhase(draft: GameState): void {
   draft.phase = "resource";
 }
 
+/** A round in which literally nothing can happen: an empty board, so nobody has
+ *  a card to move or attack with, and nobody can afford to put one down.
+ *
+ *  This is round 1 of most matches. The grant is `round` gold, so round 1 hands
+ *  over exactly 1 — and a deck without a cost-1 card cannot spend it. Both sides
+ *  pass, the Battle phase resolves an empty queue, and the round is gone. In
+ *  Story Mode, where the deck is whatever the player has collected rather than a
+ *  tuned premade, it happens most fights.
+ *
+ *  Deliberately conservative. A spell that needs no target — a wall, a field, a
+ *  trap — IS something to do with an empty board, so an affordable unused one
+ *  keeps the round. Skipping a round somebody could have used is much worse than
+ *  playing an empty one.
+ */
+function nothingCanHappen(draft: GameState): boolean {
+  if (boardCards(draft).length > 0) return false; // anyone on the board can act
+  for (const player of ["P1", "P2"] as PlayerId[]) {
+    const p = draft.players[player];
+    if (p.hand.some((h) => getDef(h.defId).cost <= p.gold)) return false;
+    const targetless = new Set(["wall", "field", "trap", "convert"]);
+    if (p.spellbook.some((e) => {
+      if (e.used) return false;
+      const sp = getSpell(e.defId);
+      return sp.cost <= p.magicPool && targetless.has(sp.kind);
+    }))
+      return false;
+  }
+  return true;
+}
+
 function doResourcePhase(draft: GameState): void {
   // Two independent pools: summon = round # each round; magic starts at 0 and
   // drips every round (including round 1) in 5-round brackets (+1 through rounds
@@ -1173,6 +1212,16 @@ function doResourcePhase(draft: GameState): void {
     p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGain;
   }
   draft.log.push(`— Round ${draft.round}: summon +${gain}, magic +${magicGain}. —`);
+  // Roll straight into the next round rather than playing an empty one. The
+  // resources are NOT a gift — the round is spent, the clock moves, and the next
+  // grant is the one that round would have made anyway. What is skipped is a
+  // prep both sides pass and a battle with nothing in the queue.
+  if (draft.round < MAX_ROUNDS && nothingCanHappen(draft)) {
+    draft.log.push(`Nobody can act — round ${draft.round} passes.`);
+    draft.round++;
+    doResourcePhase(draft);
+    return;
+  }
   // Prep initiative alternates each round: the coin-flip winner preps first on
   // odd rounds, the opponent on even ones — so neither side keeps the first-mover
   // edge all game.

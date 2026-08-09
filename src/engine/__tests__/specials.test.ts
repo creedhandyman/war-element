@@ -737,26 +737,23 @@ describe("legendaries", () => {
 });
 
 describe("on-summon passives (forward-area projection)", () => {
-  it("Flamehound's 3-wide corridor reaches forward, but only catches the 2 NEAREST", () => {
+  it("Flamehound's blast catches everything in range, and lights each of them", () => {
     const s = prepState();
     s.players.P1.gold = 5;
     s.players.P1.magicPool = 4;
-    // Summoned to P1 home col 1. Corridor = cols 0/1/2, reaching forward.
-    const leftMid = place(s, "dusk_gool", "P2", 2, 0, { curHp: 13 }); // col 0, near mid
-    const rightMid = place(s, "dusk_ghastly", "P2", 2, 2, { curHp: 19 }); // col 2, near mid
-    const deep = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 6 }); // col 1, far mid — reached
-    const wide = place(s, "dusk_silkstalker", "P2", 2, 3, { curHp: 7 }); // col 3 — outside spread
+    // No corridor any more: it is "every enemy in normal range", which for a
+    // Ranged card is the 5x5 box it can see. Column no longer matters; distance
+    // does.
+    const leftMid = place(s, "dusk_gool", "P2", 2, 0, { curHp: 13 });
+    const rightMid = place(s, "dusk_ghastly", "P2", 2, 2, { curHp: 19 });
+    const deep = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 6 });
+    const wide = place(s, "dusk_silkstalker", "P2", 2, 3, { curHp: 7 }); // 2 cols over — in range now
     const handId = giveHand(s, "P1", "pyro_flamehound");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
-    // Capped at 2 targets in the audit — uncapped, this cost-2 card put 12 on the
-    // board on arrival, beating cost-3 Spitfire's 9. Corridors are sorted
-    // nearest-first, so the cap costs it DEPTH: the two adjacent cards are hit
-    // and the one further down the lane is now spared. The SHAPE is unchanged —
-    // three columns wide, still reaching past melee range.
-    expect(next.cards[leftMid.instanceId].curHp).toBe(10); // 3 dmg (side hit)
-    expect(next.cards[rightMid.instanceId].curHp).toBe(16); // 3 dmg (side hit)
-    expect(next.cards[deep.instanceId].curHp).toBe(6); // spared by the 2-target cap
-    expect(next.cards[wide.instanceId].curHp).toBe(7); // untouched (too wide)
+    for (const [c, before] of [[leftMid, 13], [rightMid, 19], [deep, 6], [wide, 7]] as const) {
+      expect(next.cards[c.instanceId].curHp, `${c.instanceId} took the blast`).toBe(before - 2);
+      expect(statusOf(next.cards[c.instanceId], "BURN")?.power, "and caught").toBe(1);
+    }
     expect(next.players.P1.magicPool).toBe(4); // free — a passive, not a Special
   });
 

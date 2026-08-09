@@ -1,10 +1,10 @@
 // Milestone 2: prep priority loop — summon / move / pass, two-pass exit.
 
 import { describe, expect, it } from "vitest";
-import { applyIntent } from "../phases";
+import { advance, applyIntent } from "../phases";
 import { canMove, canSummon } from "../rules";
 import { cardAt, moveReach, SP_MID_MAX, SP_SLOW_MAX } from "../state";
-import { giveHand, place, prepState } from "./helpers";
+import { freshGame, giveHand, place, prepState } from "./helpers";
 import { getDef } from "../../data/cards";
 import type { GameState } from "../types";
 
@@ -252,5 +252,75 @@ describe("mounted cards move like a king in Prep", () => {
     const roho = place(s, "bore_rohojohn", "P1", 2, 2);
     s.cards[roho.instanceId].spBonus = 1 - getDef("bore_rohojohn").sp;
     expect(canMove(s, "P1", roho.instanceId, { row: 1, col: 2 }).ok).toBe(true);
+  });
+});
+
+describe("a round nobody can act in is not played", () => {
+  it("an empty board with nothing affordable rolls straight into the next round", () => {
+    const s = freshGame(9);
+    s.players.P1.mulliganDone = true;
+    s.players.P2.mulliganDone = true;
+    s.phase = "resource";
+    s.round = 1;
+    // Round 1 grants exactly 1 gold. Neither hand can spend it, and there is no
+    // card on the board to move or attack with — the round used to run anyway:
+    // both sides pass, the Battle phase resolves an empty queue, nothing changes.
+    // Cost 3 each: unaffordable on round 1's single gold, affordable on round
+    // 2's three. Exactly one round rolls past — the ordinary Story Mode case.
+    s.players.P1.hand = [{ handId: "h1", defId: "dusk_gool" }];
+    s.players.P2.hand = [{ handId: "h2", defId: "dusk_gool" }];
+    s.players.P1.spellbook = [];
+    s.players.P2.spellbook = [];
+    const next = advance(s);
+    expect(next.round, "rolled past the empty round").toBe(2);
+    expect(next.phase).toBe("prep");
+    expect(next.log.some((l) => l.includes("Nobody can act"))).toBe(true);
+    // The resources are not a gift: round 1's grant plus round 2's, which is
+    // what the player would have been holding either way.
+    expect(next.players.P1.gold).toBe(3);
+  });
+
+  it("and keeps rolling while nothing is affordable, without running off the end", () => {
+    const s = freshGame(9);
+    s.players.P1.mulliganDone = true;
+    s.players.P2.mulliganDone = true;
+    s.phase = "resource";
+    s.round = 1;
+    s.players.P1.hand = [{ handId: "h1", defId: "pyro_magmadon" }]; // cost 8
+    s.players.P2.hand = [{ handId: "h2", defId: "aqua_kraken" }]; // cost 10
+    s.players.P1.spellbook = [];
+    s.players.P2.spellbook = [];
+    const next = advance(s);
+    // 1, 3, 6, 10 — the first round anyone can spend anything is the fourth.
+    expect(next.round).toBe(4);
+    expect(next.players.P2.gold).toBe(10);
+  });
+
+  it("but a round someone CAN act in is played", () => {
+    const s = freshGame(9);
+    s.players.P1.mulliganDone = true;
+    s.players.P2.mulliganDone = true;
+    s.phase = "resource";
+    s.round = 1;
+    s.players.P1.hand = [{ handId: "h1", defId: "pyro_bbq" }]; // cost 1 — affordable
+    s.players.P2.hand = [];
+    s.players.P1.spellbook = [];
+    s.players.P2.spellbook = [];
+    expect(advance(s).round).toBe(1);
+  });
+
+  it("a targetless spell is something to do, so the round stands", () => {
+    const s = freshGame(9);
+    s.players.P1.mulliganDone = true;
+    s.players.P2.mulliganDone = true;
+    s.phase = "resource";
+    s.round = 1;
+    s.players.P1.hand = [{ handId: "h1", defId: "pyro_magmadon" }];
+    s.players.P2.hand = [];
+    // A cost-1 trap needs no target and no body on the board — it is a real turn.
+    s.players.P1.spellbook = [{ defId: "pyro_ember_trap", used: false }];
+    s.players.P2.spellbook = [];
+    s.players.P1.magicPool = 4;
+    expect(advance(s).round).toBe(1);
   });
 });

@@ -10,6 +10,7 @@ import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effect
 import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire } from "../state";
 import { CARDS, getDef } from "../../data/cards";
 import { atBattle, atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
+import { createInitialState } from "../state";
 import type { GameState } from "../types";
 
 /** Park the battle so `active` is the card awaiting P1's input. */
@@ -3056,5 +3057,45 @@ describe("Meltdown erupts in every direction, not just forward", () => {
     expect(lit.cards[mag.instanceId].channelOn).toBe(true);
     const after = advance(atCleanup(lit));
     expect(after.cards[beside.instanceId].curHp).toBeLessThan(35);
+  });
+});
+
+describe("arrival abilities that have to travel to work", () => {
+  it("ThunderCat rushes its column and strikes on summon", () => {
+    const s = prepState();
+    s.players.P1.gold = 20;
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    // Two rows up its own column — nowhere near a melee card's reach from home.
+    const prey = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const handId = giveHand(s, "P1", "bolt_thundercat");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    const cat = boardCards(next, "P1").find((c) => getDef(c.defId).id === "bolt_thundercat")!;
+    expect(cat.pos!.row, "it rushed forward").toBeLessThan(3);
+    expect(next.cards[prey.instanceId].curHp, "and struck what it found").toBeLessThan(40);
+  });
+
+  it("Kraken's Black Wave Crash reaches two slots in every direction", () => {
+    // A 5x5 board on purpose. Reach 2 from the middle of a 4x4 covers every
+    // square there is, so the "too far" half of this could not fail — the first
+    // draft put the far card on column 4 of a 4-wide board, which is not a slot
+    // at all.
+    const s = createInitialState(42, undefined, undefined, ["P1"], undefined, undefined, 5);
+    s.players.P1.mulliganDone = true;
+    s.players.P2.mulliganDone = true;
+    s.round = 1;
+    s.phase = "prep";
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    s.players.P1.magicPool = 20;
+    const k = place(s, "aqua_kraken", "P1", 2, 1, { curHp: 42, maxHp: 42 });
+    const near = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const two = place(s, "dusk_gool", "P2", 0, 3, { curHp: 40, maxHp: 40, curShields: 0 }); // 2 away
+    const three = place(s, "dusk_gool", "P2", 2, 4, { curHp: 40, maxHp: 40, curShields: 0 }); // 3 columns away
+    const next = applyIntent(
+      { ...s, phase: "battle", prep: null, battle: { queue: [k.instanceId], index: 0, awaitingInput: k.instanceId } },
+      { type: "BATTLE_ACTION", player: "P1", action: "special", targetId: near.instanceId },
+    );
+    expect(next.cards[near.instanceId].curHp, "touching it").toBe(32);
+    expect(next.cards[two.instanceId].curHp, "two slots away").toBe(32);
+    expect(next.cards[three.instanceId].curHp, "three is still too far").toBe(40);
   });
 });

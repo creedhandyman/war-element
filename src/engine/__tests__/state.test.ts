@@ -281,6 +281,10 @@ describe("resource math (two pools)", () => {
     expect(s.players.P1.magicPool).toBe(0);
     s.phase = "resource";
     s.round = 1;
+    // A cost-1 card in hand so the round is worth playing: an empty board with
+    // nothing affordable now rolls straight into the next round, and this test
+    // is about the GRANT, not about that skip.
+    giveHand(s, "P1", "pyro_bbq");
     const next = advance(s);
     expect(next.players.P1.magicPool).toBe(1); // 0 + round-1 bracket (+1)
     expect(next.players.P1.gold).toBe(1);
@@ -303,6 +307,7 @@ describe("resource math (two pools)", () => {
       s.firstPlayer = "P1";
       s.phase = "resource";
       s.round = round;
+      giveHand(s, "P1", "pyro_bbq"); // see above — keeps round 1 from being skipped
       return advance(s).prep?.priority;
     };
     expect(first(1)).toBe("P1"); // odd → coin-flip winner

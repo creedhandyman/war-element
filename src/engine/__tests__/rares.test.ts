@@ -147,13 +147,20 @@ describe("rare audit — uncapped on-summon corridors", () => {
     return foes.reduce((a, f) => a + (500 - (n.cards[f.instanceId]?.curHp ?? 0)), 0);
   }
 
-  it("Flamehound's corridor is capped, so a cost-2 no longer beats a cost-3", () => {
-    // Both cards do the same job. Flamehound's corridor was uncapped and
-    // Spitfire's was capped at 3, so the CHEAPER card hit for more: 12 vs 9.
+  it("Flamehound blasts everything in range for 2, and Spitfire still hits harder per body", () => {
+    // Flamehound was rebuilt to Bernard's spec: no corridor, no target cap, 2 DMG
+    // to every enemy in range plus a round of BURN on each. It reaches WIDER than
+    // Spitfire now and hits for less per body, which is the trade.
+    //
+    // RECORDED, not asserted as a rule: on a packed board this is 8 immediate
+    // against Spitfire's 9, but the burn adds 1 per target afterwards, so a
+    // cost-2 does end up ahead of a cost-3 on total output into a cluster. That
+    // is the same shape the earlier cap was written to stop. Left as the owner's
+    // call; the number is here so it is visible rather than lost.
     const hound = arrival("pyro_flamehound");
     const spitfire = arrival("pyro_spitfire");
-    expect(hound).toBe(6); // 2 x 3
-    expect(hound / 2).toBeLessThanOrEqual(spitfire / 3); // per cost, no longer ahead
+    expect(hound).toBe(8); // 4 bodies in range x 2
+    expect(spitfire).toBe(9); // 3 targets x 3
   });
 
   it("Warthog's corridor is capped too", () => {

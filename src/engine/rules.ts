@@ -381,6 +381,11 @@ export function validTargets(
   state: GameState,
   attackerId: string,
   forBasic = true,
+  /** Extra melee reach, in king-steps — see canTarget. The on-summon path uses
+   *  it for an ability that CHARGES before it strikes: without it the target
+   *  list is measured from where the card landed, which for a Melee card is its
+   *  own home row, so the charge had nothing to run at. */
+  extraReach = 0,
 ): CardInstance[] {
   const attacker = state.cards[attackerId];
   if (!attacker || !attacker.pos) return [];
@@ -389,7 +394,7 @@ export function validTargets(
   // range" and pass false — they are not basics and keep the old full reach,
   // same exemption the Specials get.
   const enemies = boardCards(state, enemyOf(attacker.owner)).filter((t) =>
-    canTarget(state, attacker, t, false, forBasic),
+    canTarget(state, attacker, t, false, forBasic, extraReach),
   );
   // Morning Dew (Vernal): a healer aims its basic at hurt friends too. Only
   // wounded allies are offered — healing something at full HP is a wasted turn,
@@ -429,8 +434,14 @@ export function validSpecialTargets(state: GameState, attackerId: string): CardI
   // than refusing the Special outright.
   const chargeReach =
     Number(special?.params?.chargeFirst ?? 0) > 0 ? Number(special?.params?.charge ?? 0) : 0;
+  // `reach` is a Special declaring its own melee square, in king-steps. Kraken's
+  // Black Wave Crash says "all opponents" and means it — a wave 2 slots deep all
+  // round — where a Melee card's default one step let it hit only what was
+  // literally touching it. 1 is the ordinary melee square, so reach−1 is the
+  // widening. Takes the larger of the two: a Special could both charge and sweep.
+  const ownReach = Math.max(0, Number(special?.params?.reach ?? 1) - 1);
   return boardCards(state, enemyOf(attacker.owner)).filter((t) =>
-    canTarget(state, attacker, t, asRanged, false, chargeReach),
+    canTarget(state, attacker, t, asRanged, false, Math.max(chargeReach, ownReach)),
   );
 }
 

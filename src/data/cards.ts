@@ -457,14 +457,18 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // Fire Blast: on summon, blast the 3-wide corridor ahead (left/mid/right
-    // columns), reaching forward across the battlefield (ranged).
-    // targets 99 -> 2. The corridor was UNCAPPED, so this cost-2 card put 12 damage
-    // on the board on arrival while cost-3 Spitfire — capped at 3 targets —
-    // managed 9: the cheaper card was strictly better at the one thing they both
-    // do. Two targets is 6, the same 3-per-cost as Spitfire. The 3-wide corridor
-    // SHAPE is untouched.
-    onSummon: { handler: "barrage", params: { dmg: 3, spread: 1, targets: 2 } },
+    // Fire Blast (On Summon): 2 DMG to every opponent in range, and each one
+    // catches BURN 1 for a round.
+    //
+    // No corridor and no target cap — dropping `spread` falls through to "every
+    // enemy in normal range", which for a Ranged card is the 5×5 it can see.
+    // Wider than the old 3-wide corridor but for two damage instead of three,
+    // and the burn is where the card's identity moved: it is a hound that sets
+    // things alight, not a cannon.
+    onSummon: {
+      handler: "barrage",
+      params: { dmg: 2, targets: 99, statusKind: "BURN", statusPower: 1, statusDuration: 1 },
+    },
   },
   {
     id: "pyro_spitfire",
@@ -2060,8 +2064,19 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     onHitStatus: { kind: "DOT", duration: 2, power: 1 }, // Lightning Scars
-    // On Summon: strike the closest opponent for 4 CRIT.
-    onSummon: { handler: "barrage", params: { dmg: 4, spread: 0, crit: 1, targets: 1 } },
+    // Arrival Pounce (On Summon): rush straight up its own column and strike
+    // what it finds, for 4 CRIT.
+    //
+    // It did nothing at all before. `spread: 0` scoped the target list to a
+    // zero-wide forward corridor measured from where it LANDED — its own home
+    // row — and a Melee card standing there reaches one row. On the summon turn
+    // that row is almost always empty, so the pounce never fired. It now charges
+    // first (sameColumn keeps it honest to "the column ahead") and the target
+    // list is widened by the charge, so there is something to land on.
+    onSummon: {
+      handler: "barrage",
+      params: { dmg: 4, crit: 1, targets: 1, sameColumn: 1, chargeFirst: 1, charge: 3 },
+    },
     special: {
       name: "Claw Surge",
       cost: 2,
@@ -2529,9 +2544,13 @@ export const CARDS: CardDef[] = [
       handler: "barrage",
       // Lose 5 HP (can dip Kraken into From the Deep), 8 DMG to all, −accuracy
       // via BLIND for 2 rounds.
-      params: { dmg: 8, targets: 99, statusKind: "BLIND", statusDuration: 2, selfDamage: 5 },
+      // `reach: 2` — two slots in every direction. Kraken is Melee and the
+      // Special carried no reach of its own, so "all opponents" was silently
+      // "whatever is touching me": a cost-10 mythic's signature wave hit the one
+      // or two bodies pressed against it. The wave now covers the 5×5 around it.
+      params: { dmg: 8, targets: 99, reach: 2, statusKind: "BLIND", statusDuration: 2, selfDamage: 5 },
       targetSide: "enemy",
-      text: "Lose 5 HP. Deal 8 DMG to all opponents and BLIND them 2 rounds (water in their eyes). 3-round cooldown.",
+      text: "Lose 5 HP. Deal 8 DMG to every opponent within 2 spaces and BLIND them 2 rounds (water in their eyes). 3-round cooldown.",
     },
   },
   {
