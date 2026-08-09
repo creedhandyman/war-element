@@ -3795,6 +3795,16 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: { LIFESTEAL: true },
+    // The Butler (On Summon): it does not arrive as itself. It takes the
+    // Butler's face and stat line, and the disguise is only dropped when
+    // somebody kills it — at which point Nightfang stands back up at full HP
+    // and puts Soul Slash through whoever swung.
+    //
+    // It rides the transform-revert path Siren's Sea Terror already uses: a card
+    // holding `transformedFrom` does not die, it reverts. What the flag adds is
+    // the answer to the killer.
+    passiveNames: { disguise: "The Butler" },
+    disguise: { as: "dusk_butler", strikeKillerOnReveal: true },
     special: {
       name: "Soul Slash",
       cost: 4,
@@ -7857,25 +7867,26 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 2,
     keywords: {},
-    // Dawning Assault (On Summon): 7 DMG to a foe and blind its aim (its attacks
-    // miss 50% for 2 rounds). Ariel's fall chips the killer for 3.
-    passiveNames: { onSummon: "Dawning Assault", onDeath: "Last Light" },
-    onSummon: { handler: "strike", params: { dmg: 7, reachNearest: 1, targetAttackMissPct: 50, targetAttackMissRounds: 2 }, targetSide: "enemy" },
-    onDeath: { dmg: 3 },
-    // 100,000°: +14 DMG on the next basic attack. NOT with PEN — this comment
-    // used to say so and the code never did it, which is where the printed
-    // "(PEN)" came from.
+    // Dawning Assault (On Summon): 7 DMG to a foe and blind its aim for THE
+    // ROUND — 1, not 2, matching what the card says.
+    //
+    // Last Light is now an on-OPPONENT-death trigger rather than an on-its-own-
+    // death one: every time a foe falls, anywhere, Ariel strikes the nearest
+    // survivor for 2.
+    passiveNames: { onSummon: "Dawning Assault", onOpponentDeath: "Last Light" },
+    onSummon: { handler: "strike", params: { dmg: 7, reachNearest: 1, targetAttackMissPct: 50, targetAttackMissRounds: 1 }, targetSide: "enemy" },
+    onOpponentDeath: { dmg: 2 },
+    // 100,000°: +14 DMG on the next basic attack, WITH PEN — the boost pierces
+    // shields. The card always printed that; `selfPen` is what finally makes it
+    // true, riding on the timed buff rather than on Ariel, because it is the
+    // boost that pierces and not the card.
     special: {
       name: "100,000°",
       cost: 2,
       handler: "empower",
-      params: { selfDmg: 14, buffRounds: 1 },
+      params: { selfDmg: 14, selfPen: 1, buffRounds: 1 },
       targetSide: "self",
-      // No "(PEN)". Nothing in empower grants it, Ariel's keywords carry none,
-      // and the inline note claiming it was "folded in" described an intention
-      // that was never implemented — so the +14 was fully absorbed by shields on
-      // a card the text promised would pierce them.
-      text: "Your next basic attack deals +14 DMG.",
+      text: "Your next basic attack deals +14 DMG (PEN).",
     },
   },
   {
@@ -8748,6 +8759,28 @@ export const CARDS: CardDef[] = [
 // them. (Reptilian and Heir used to live here — they are draftable now, but are
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
+  {
+    // Nightfang's disguise. A TOKEN, not a draftable card: you never put the
+    // Butler in a deck — Nightfang wears it, and killing it is what takes it
+    // off. The stat line is deliberately unremarkable, because the whole trick
+    // is that it reads as a cost-2 body sitting in the back until it isn't.
+    //
+    // Costed at 8 for display only: that is what you actually paid for it.
+    id: "dusk_butler",
+    name: "The Butler",
+    rarity: "legendary",
+    element: "DUSK",
+    cardClass: "Support",
+    attackType: "Melee",
+    cost: 8,
+    dmg: 2,
+    hits: 1,
+    hp: 12,
+    sp: 5,
+    shields: 0,
+    keywords: {},
+    tribe: "Dark",
+  },
   {
     id: "gale_ollie",
     name: "Ollie",

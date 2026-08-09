@@ -86,6 +86,24 @@ export function giveHand(state: GameState, player: PlayerId, defId: string): str
   return handId;
 }
 
+/** Drop a card's disguise, restoring its true form and stat line.
+ *
+ *  Nightfang enters play wearing the Butler, so a test that wants to exercise
+ *  Nightfang ITSELF — its Special, its keywords — has to take the mask off
+ *  first. The reveal path in defeatCard does this for real; this is the same
+ *  thing without needing to kill it. */
+export function unmask(state: GameState, card: CardInstance): CardInstance {
+  const inst = state.cards[card.instanceId];
+  if (!inst.transformedFrom) return inst;
+  const real = getDef(inst.transformedFrom);
+  inst.defId = inst.transformedFrom;
+  inst.transformedFrom = undefined;
+  inst.maxHp = real.hp;
+  inst.curHp = real.hp;
+  inst.curShields = real.shields;
+  return inst;
+}
+
 export function def(defId: string) {
   return getDef(defId);
 }

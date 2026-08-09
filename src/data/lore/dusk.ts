@@ -53,6 +53,9 @@ export const DUSK_LORE: Record<string, string> = {
   dusk_nightfang:
     "It does not kill so much as subtract. What it takes does not come back, and it is not there to be asked about it.",
 
+  dusk_butler:
+    "He takes the coats, pours the wine, and stands where the light does not reach. Nobody in the household can say which year he was hired, and nobody has ever thought to ask.",
+
   // ------------------------------------------------------------------ EPIC
 
   dusk_silkstalker:

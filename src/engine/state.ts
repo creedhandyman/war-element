@@ -630,6 +630,21 @@ export function summonCard(
     inst.maxHp += def.summonSelfBuff.hp;
     inst.curHp += def.summonSelfBuff.hp;
   }
+  // The Butler (Nightfang): a disguised card enters play wearing another def
+  // entirely — its face, its name, its stat line. `transformedFrom` is what
+  // makes killing it a REVEAL rather than a death: defeatCard sees the field and
+  // reverts to the true form at full HP instead of removing the card. Applied
+  // here, at the single place a card comes into being, so a Nightfang summoned
+  // by any route wears it.
+  const dis = def.disguise;
+  if (dis) {
+    const mask = getDef(dis.as);
+    inst.transformedFrom = defId;
+    inst.defId = dis.as;
+    inst.curHp = mask.hp;
+    inst.maxHp = mask.hp;
+    inst.curShields = mask.shields;
+  }
   draft.cards[inst.instanceId] = inst;
   return inst;
 }

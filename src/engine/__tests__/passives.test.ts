@@ -8,7 +8,7 @@ import { applyFlow, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, hasElementAura, PYRO_BUR
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire } from "../state";
-import { CARDS, getDef } from "../../data/cards";
+import { CARDS, TOKENS, getDef } from "../../data/cards";
 import { atBattle, atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
 import { createInitialState } from "../state";
 import type { GameState } from "../types";
@@ -3180,5 +3180,78 @@ describe("Magnetic Field: Magnetite lends its plates to whoever stands beside it
     basicAttack(s, foe.instanceId, mag.instanceId);
     // Its printed REFLECT 2 only — the aura is `adjacent`, and self is distance 0.
     expect(40 - s.cards[foe.instanceId].curHp).toBe(2);
+  });
+});
+
+describe("Ariel: the boost pierces, and a falling foe is a cue", () => {
+  it("100,000° makes the next basic ignore shields", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 20;
+    const ariel = place(s, "dawn_ariel", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 60, maxHp: 60, curShields: 9 });
+    const lit = applyIntent(battleWith(s, ariel.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: ariel.instanceId,
+    });
+    basicAttack(lit, ariel.instanceId, foe.instanceId);
+    // The claim under test is PEN, so assert PEN rather than the damage formula:
+    // a shielded hit strips shields and is reduced by them, a piercing one does
+    // neither. (An earlier draft compared against effectiveDmg and failed for an
+    // unrelated reason — it does not model the positional bonus.)
+    expect(lit.cards[foe.instanceId].curShields, "a PEN hit strips no shields").toBe(9);
+    expect(60 - lit.cards[foe.instanceId].curHp,
+      "and the nine shields absorbed none of it").toBeGreaterThan(9);
+  });
+
+  it("Last Light answers any opponent's death, wherever it happens", () => {
+    const s = prepState();
+    place(s, "dawn_ariel", "P1", 3, 0);
+    const doomed = place(s, "dusk_gool", "P2", 0, 3, { curHp: 1, maxHp: 20 });
+    const other = place(s, "dusk_gool", "P2", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
+    defeatCard(s, s.cards[doomed.instanceId], "test");
+    expect(s.cards[other.instanceId].curHp, "the nearest survivor takes 2").toBe(28);
+  });
+
+  it("but an ALLY falling is not", () => {
+    const s = prepState();
+    place(s, "dawn_ariel", "P1", 3, 0);
+    const ally = place(s, "dawn_beam", "P1", 3, 1, { curHp: 1, maxHp: 20 });
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
+    defeatCard(s, s.cards[ally.instanceId], "test");
+    expect(s.cards[foe.instanceId].curHp).toBe(30);
+  });
+});
+
+describe("Nightfang wears the Butler", () => {
+  it("arrives as the Butler, not as itself", () => {
+    const s = prepState();
+    s.players.P1.gold = 20;
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const handId = giveHand(s, "P1", "dusk_nightfang");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const inst = boardCards(next, "P1")[0];
+    expect(getDef(inst.defId).name).toBe("The Butler");
+    expect(inst.maxHp).toBe(getDef("dusk_butler").hp);
+    expect(inst.transformedFrom).toBe("dusk_nightfang");
+  });
+
+  it("killing the Butler reveals Nightfang at full HP and turns Soul Slash on the killer", () => {
+    const s = prepState();
+    const mask = place(s, "dusk_nightfang", "P1", 2, 0); // place() runs the disguise
+    expect(getDef(s.cards[mask.instanceId].defId).name).toBe("The Butler");
+    const killer = place(s, "leaf_alpha", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    // Beat the disguise down and land the killing blow.
+    s.cards[mask.instanceId].curHp = 1;
+    basicAttack(s, killer.instanceId, mask.instanceId);
+    const revealed = s.cards[mask.instanceId];
+    expect(revealed, "it did not die").toBeTruthy();
+    expect(getDef(revealed.defId).name).toBe("Nightfang");
+    expect(revealed.curHp).toBe(getDef("dusk_nightfang").hp); // back at full
+    // Soul Slash deletes 15 max HP from whoever pulled the mask off.
+    expect(s.cards[killer.instanceId].maxHp).toBe(40 - 15);
+  });
+
+  it("and the Butler is not draftable", () => {
+    expect(CARDS.some((d) => d.id === "dusk_butler"), "must be a token, not a deck card").toBe(false);
+    expect(TOKENS.some((d) => d.id === "dusk_butler")).toBe(true);
   });
 });

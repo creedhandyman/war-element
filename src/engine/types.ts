@@ -329,6 +329,11 @@ export interface AuraBonusDef {
 export interface TimedBuff {
   dmg: number;
   sp: number;
+  /** The buffed basic PIERCES shields for the duration (Ariel's 100,000°).
+   *  On the buff rather than the card because it is the BOOST that pierces, not
+   *  Ariel — the +14 was being eaten whole by armour on a card whose text
+   *  promised otherwise. */
+  pen?: boolean;
   /** Extra BASIC hits for the duration (Totem's Rampage). Optional so every
    *  existing buff stays a two-stat buff; `effectiveBasicHits` sums it. Distinct
    *  from `loadedHits`, which is spent by the next basic rather than timed. */
@@ -531,6 +536,16 @@ export interface CardDef {
   /** Mega Push (Megair): while below `belowHp` HP, a landed basic also deals
    *  `dmg` to every opponent and pushes them all back `push` spaces. */
   lowHpNova?: { belowHp: number; dmg: number; push: number };
+  /** Ariel's Last Light: whenever an OPPONENT dies — to anything, anywhere —
+   *  this card strikes the nearest surviving opponent for `dmg`. Distinct from
+   *  `onDeath`, which fires when THIS card dies. */
+  onOpponentDeath?: { dmg: number };
+  /** Nightfang's Butler: the card enters play wearing another def's face. When
+   *  the disguise is killed it does not die — it reverts to its true form at
+   *  full HP (the same path Siren's Sea Terror uses), and with
+   *  `strikeKillerOnReveal` it answers whoever pulled the mask off by casting
+   *  its own Special at them, free. */
+  disguise?: { as: string; strikeKillerOnReveal?: boolean };
   /** Salvage (Vulture): whenever ANY card dies, gain `salvageOnDeath` max HP,
    *  at most `salvageMax` times. The cap is not optional in practice: a board
    *  sees a dozen deaths in a long game and this grows off EVERY one of them,

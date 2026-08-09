@@ -6,7 +6,7 @@ import { applyIntent, advance } from "../phases";
 import { effectiveDmg, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
 import { drainMaxHp } from "../combat";
-import { atCleanup, place, prepState, statusOf } from "./helpers";
+import { atCleanup, place, prepState, statusOf, unmask } from "./helpers";
 import type { GameState } from "../types";
 
 /** Park the battle so `activeId` is the card awaiting P1's action. */
@@ -125,7 +125,9 @@ describe("legendary specials", () => {
     // HP bar is left out of it.
     const s = prepState();
     s.players.P1.magicPool = 4;
-    const nf = place(s, "dusk_nightfang", "P1", 2, 0);
+    // Unmasked first: Nightfang arrives wearing the Butler, and Soul Slash
+    // belongs to the true form.
+    const nf = unmask(s, place(s, "dusk_nightfang", "P1", 2, 0));
     const baseMax = s.cards[nf.instanceId].maxHp;
     const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 25, maxHp: 25 });
     const next = applyIntent(battleWith(s, nf.instanceId), {
@@ -145,7 +147,9 @@ describe("legendary specials", () => {
     // be drained again — but deleting is a different act and may be lethal.
     const s = prepState();
     s.players.P1.magicPool = 4;
-    const nf = place(s, "dusk_nightfang", "P1", 2, 0);
+    // Unmasked first: Nightfang arrives wearing the Butler, and Soul Slash
+    // belongs to the true form.
+    const nf = unmask(s, place(s, "dusk_nightfang", "P1", 2, 0));
     // NOT a flier: Nightfang is Melee, and FLYING dodges melee entirely, so a
     // Crow here would be untargetable rather than a frail test subject.
     const frail = place(s, "dusk_gool", "P2", 1, 0, { curHp: 5, maxHp: 5 });
@@ -158,7 +162,9 @@ describe("legendary specials", () => {
   it("...but 16 max HP survives on 1 — the cut is 15, not a round-up", () => {
     const s = prepState();
     s.players.P1.magicPool = 4;
-    const nf = place(s, "dusk_nightfang", "P1", 2, 0);
+    // Unmasked first: Nightfang arrives wearing the Butler, and Soul Slash
+    // belongs to the true form.
+    const nf = unmask(s, place(s, "dusk_nightfang", "P1", 2, 0));
     const survivor = place(s, "dusk_gool", "P2", 1, 0, { curHp: 16, maxHp: 16 });
     const next = applyIntent(battleWith(s, nf.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: survivor.instanceId,

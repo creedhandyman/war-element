@@ -254,7 +254,14 @@ export function label(_draft: GameState, card: CardInstance): string {
 
 /** Defeat a card, honoring on-revive (Bearocks). Returns true if it was
  *  actually removed, false if it revived and survives. */
-export function defeatCard(draft: GameState, card: CardInstance, cause: string): boolean {
+export function defeatCard(
+  draft: GameState,
+  card: CardInstance,
+  cause: string,
+  /** Who landed the blow, where the caller knows it. Only the disguise reveal
+   *  needs it, so every other call site can go on ignoring it. */
+  killer?: CardInstance,
+): boolean {
   // Sea Terror (Siren): a transformed form doesn't die — it reverts to the
   // original card at full HP.
   if (card.transformedFrom && card.pos) {
@@ -270,6 +277,18 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
     card.buffs = [];
     card.statuses = [];
     card.transformed = false;
+    // Nightfang: the Butler was never the card. Whoever pulled the mask off
+    // takes the true form's Special to the face — free, and off cooldown. That
+    // is the whole point of wearing one.
+    const revealed = getDef(card.defId);
+    if (revealed.disguise?.strikeKillerOnReveal && revealed.special && killer &&
+        draft.cards[killer.instanceId] && killer.curHp > 0) {
+      const h = SPECIAL_HANDLERS[revealed.special.handler];
+      if (h) {
+        draft.log.push(`${revealed.name} was never the butler — it turns on ${label(draft, killer)}.`);
+        h(draft, card, [killer], revealed.special.params ?? {});
+      }
+    }
     draft.log.push(`The ${cause} shatters the form — ${label(draft, card)} returns at full HP!`);
     return false;
   }
@@ -433,6 +452,20 @@ export function defeatCard(draft: GameState, card: CardInstance, cause: string):
     if (ot.hp) { c.maxHp += ot.hp; c.curHp += ot.hp; }
     draft.log.push(`${label(draft, c)} feeds on the fallen ${ot.tribe}.`);
   }
+  // Last Light (Ariel): an opponent falling anywhere is a cue. Hooked at the
+  // death choke-point so a kill made by a DOT or a round tick counts too, and
+  // aimed at the nearest surviving opponent.
+  for (const c of boardCards(draft)) {
+    const od = getDef(c.defId).onOpponentDeath;
+    if (!od?.dmg || c.curHp <= 0 || c.owner === card.owner || !c.pos) continue;
+    const prey = boardCards(draft, card.owner)
+      .filter((e) => e.curHp > 0 && e.pos && e.instanceId !== card.instanceId)
+      .sort((x, y) => manhattan(c.pos!, x.pos!) - manhattan(c.pos!, y.pos!))[0];
+    if (prey) {
+      draft.log.push(`${label(draft, c)} answers the fall (${od.dmg} DMG).`);
+      directDamage(draft, c, prey, od.dmg, false);
+    }
+  }
   // Salvage (Vulture): any card's death feeds the scavenger's max HP.
   for (const c of boardCards(draft)) {
     const salDef = getDef(c.defId);
@@ -509,10 +542,10 @@ export function dragInto(draft: GameState, victim: CardInstance, row: number): b
  *  it counts toward "is this buff worth pushing", or a pure +1-hit buff would be
  *  thrown away as empty. */
 export function applyTimedBuff(
-  card: CardInstance, dmg: number, sp: number, rounds: number, hits = 0,
+  card: CardInstance, dmg: number, sp: number, rounds: number, hits = 0, pen = false,
 ): void {
   if (rounds <= 0 || (dmg === 0 && sp === 0 && hits === 0)) return;
-  card.buffs.push({ dmg, sp, rounds, ...(hits !== 0 ? { hits } : {}) });
+  card.buffs.push({ dmg, sp, rounds, ...(hits !== 0 ? { hits } : {}), ...(pen ? { pen: true } : {}) });
 }
 
 /** Turret Mode volley (GigaVolt): deal `dmg` to every ELECTRIFIED opponent on
@@ -1099,7 +1132,7 @@ export function resolveHit(
   if (target.curHp <= 0) {
     const deathPos = target.pos ? { ...target.pos } : null;
     const deadOwner = target.owner;
-    const removed = defeatCard(draft, target, `${aDef.name}'s ${opts.kind}`);
+    const removed = defeatCard(draft, target, `${aDef.name}'s ${opts.kind}`, attacker);
     if (!removed) return result; // revived — no kill/on-death triggers
     result.targetDied = true;
     if (target.owner !== attacker.owner) creditKill(draft.stats, attacker, attacker.owner);
@@ -1526,6 +1559,8 @@ export function basicAttack(
       dmg,
       hits: g.hits,
       pen: Boolean(aDef.keywords.PEN) || auraHasPen(draft, attacker) || vsPen ||
+        // A timed buff can carry PEN for its duration (Ariel's 100,000°).
+        (attacker.buffs ?? []).some((b) => b.pen) ||
         Boolean(aDef.penWhileAlly && boardCards(draft, attacker.owner).some((a) => a.curHp > 0 && aDef.penWhileAlly!.includes(getDef(a.defId).id))), // Overcharge (Volta)
       crit,
       lifesteal,
@@ -3849,7 +3884,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // the buff is permanent, as Heir's Crowned has always been.
     const rounds = num(params, "buffRounds");
     if (rounds > 0) {
-      applyTimedBuff(attacker, dmg, sp, rounds, hits);
+      applyTimedBuff(attacker, dmg, sp, rounds, hits, num(params, "selfPen") > 0);
       // Was hardcoded to Ravven's "+N DMG" flavour, which read as "+0 DMG" for
       // any timed buff that grants SP instead (Stormquill's Glide Rush).
       const parts = [dmg ? `+${dmg} DMG` : "", sp ? `+${sp} SP` : "",
