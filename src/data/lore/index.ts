@@ -18,12 +18,14 @@ import { DUSK_LORE } from "./dusk";
 import { BOLT_LORE } from "./bolt";
 import { AQUA_LORE } from "./aqua";
 import { DAWN_LORE } from "./dawn";
+import { BORE_LORE } from "./bore";
 
 /** Every element's map, kept as a list so `lore.test.ts` can spot the same id
  *  being claimed by two elements — a plain spread would silently let the last one
  *  win, and the losing line would vanish with nothing to show it ever existed. */
 export const LORE_SOURCES: Record<string, string>[] = [
   LEAF_LORE, PYRO_LORE, GALE_LORE, DUSK_LORE, BOLT_LORE, AQUA_LORE, DAWN_LORE,
+  BORE_LORE,
 ];
 
 export const LORE: Record<string, string> = Object.assign({}, ...LORE_SOURCES);

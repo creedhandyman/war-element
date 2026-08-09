@@ -94,7 +94,26 @@ describe("lore", () => {
   // Elements are listed here as their pass lands, so this goes red when a card is
   // ADDED to a finished element without a line — not merely because the elements
   // still to write have not been written.
-  const DONE = ["LEAF", "PYRO", "GALE", "DUSK", "BOLT", "AQUA", "DAWN"] as const;
+  it("leaves nothing in the game without a line", () => {
+    // The capstone, now that all eight passes have landed. Stronger than the eight
+    // per-element checks below in one specific way: those iterate the element list,
+    // so a card whose `element` is misspelled belongs to no element and would be
+    // quietly skipped by every one of them. This counts the pool itself.
+    const missing = [
+      ...[...CARDS, ...TOKENS].filter((c) => !c.lore).map((c) => `${c.element}:${c.id}`),
+      ...SPELLS.filter((s) => !s.lore).map((s) => `${s.element}:${s.id}`),
+    ];
+    expect(missing, "entries with no lore").toEqual([]);
+    // And a floor on the total, so a broken import that empties a whole element
+    // cannot pass by making the check above vacuous.
+    expect(Object.keys(LORE).length).toBeGreaterThanOrEqual(
+      CARDS.length + TOKENS.length + SPELLS.length,
+    );
+  });
+
+  // All eight are written, so this is now the whole pool: any card added to the
+  // game without a line goes red here.
+  const DONE = ["LEAF", "PYRO", "GALE", "DUSK", "BOLT", "AQUA", "DAWN", "BORE"] as const;
   for (const el of DONE)
     it(`covers all of ${el} — cards, tokens and spells`, () => {
       const missing = [
