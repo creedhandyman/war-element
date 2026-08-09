@@ -27,7 +27,7 @@ const ABILITY_FIELDS = [
   "intimidate", "vsTarget",
   // Wave 3b — Magalogoon, Keeper, Prism.
   "stealthWhenIdle", "hiveAbsorb", "startsWithFreeSpecial", "diesAfterAttacking", "contagionAura", "summonFog",
-  "purelightAura", "totemSpiritAura", "penWhileAlly", "falseHead", "advanceOnBasic", "windWarp",
+  "purelightAura", "penWhileAlly", "falseHead", "advanceOnBasic", "windWarp",
 ] as const;
 
 /** Every effect a roundTick can carry. */

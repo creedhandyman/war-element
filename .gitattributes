@@ -1,9 +1,3 @@
 # Card/spell art was migrated OUT of Git LFS (Jul 2026): the 2.9MB PNGs blew
 # GitHub's 1GB/month LFS bandwidth on every Vercel redeploy, blanking all art.
 # Now compressed WebP stored as normal git blobs — no LFS, no bandwidth limit.
-
-# The generated roster is compared against a freshly rendered copy by
-# roster.test.ts. Rendering always emits LF, so the file has to stay LF on
-# disk too - under core.autocrlf=true a checkout would otherwise hand the
-# test a CRLF copy and fail it for a reason unrelated to the cards.
-docs/ROSTER.md text eol=lf
