@@ -8,7 +8,7 @@
 // deck — contained, and easy to migrate to same-deck later.
 
 import { getDef } from "../data/cards";
-import { LORE } from "../data/lore";
+import { loreForSpell } from "../data/lore";
 import type { Element, SpellDef, SpellSlot } from "./types";
 
 /** A custom spellbook holds at most this many spells (each castable once) on the
@@ -1028,7 +1028,9 @@ export function spellbookFromIds(ids: string[], cap = MAX_SPELLBOOK): SpellSlot[
 }
 
 // Flavour text, attached the same way cards get theirs — see data/lore/index.ts.
+// Goes through loreForSpell rather than a bare LORE lookup because two ids are
+// both a card and a spell; the prefixed key is how the spell claims its own line.
 for (const spell of SPELLS) {
-  const line = LORE[spell.id];
+  const line = loreForSpell(spell.id);
   if (line) spell.lore = line;
 }
