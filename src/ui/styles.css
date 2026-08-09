@@ -1737,8 +1737,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .wrap {
     height: 100dvh; gap: 6px;
     --col-log: 150px; --col-right: 158px; --hreserve: 336px;
+    /* 190, not 124. The old reserve counted the ribbon, crests and bottom bar
+       but NOT the hand, so the board grew until the fan sat on top of it —
+       measured at 1000x466 the fan covered the bottom 66px of a 342px board,
+       which is its whole bottom row. The extra 66 is the fan's own height.
+       Landscape is the one place this bites: there is width to spare and no
+       height at all, so the board is height-bound and takes everything it can. */
     --board-size: min(
-      calc(100dvh - 124px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)),
+      calc(100dvh - 186px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)),
       calc(100vw - var(--hreserve))
     );
     padding: calc(5px + env(safe-area-inset-top)) calc(6px + env(safe-area-inset-right))
@@ -1821,13 +1827,33 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   /* Centered over the BOARD column (not the viewport — the collapsed log shifts
      board-center left), and raised enough that the fanned outer cards fully clear
      the bottom bar so Pass/controls under it stay tappable. */
+  /* Board sits UP against the ribbon rather than centring in its column. The
+     reserve above frees vertical room for the fan, and a centred board just
+     splits that room in half and hands the bottom half straight back to the
+     overlap. Portrait top-aligns for the same reason. */
+  .board-area { justify-content: flex-start; }
+  /* Crests slimmed to buy the board back some of what the hand reserve costs —
+     they are orientation labels, and portrait already trims them for the same
+     reason. */
+  .crest { gap: 4px; }
+  .crest-text { font-size: 9px; letter-spacing: 0.1em; }
+  .crest-bar { max-width: 90px; }
+  .crest-shield { width: 11px; height: 12px; }
   .hand-float {
     width: min(52vw, 360px);
     left: calc((var(--col-log, 34px) + 100vw - var(--col-right, 158px)) / 2);
     bottom: calc(var(--bar-h, 46px) + env(safe-area-inset-bottom, 0px) + 10px);
+    /* Lifted by TRANSFORM, not by `bottom`. This box does not respond to bottom
+       at all here — measured: an inline `bottom: 200px` moves it zero pixels —
+       and `--bar-h` under-reports the bar besides (38 against a bar that renders
+       56 tall at 844x390), so the fan kept landing 25px inside the controls.
+       A transform always applies. The translateX is the base rule's centring and
+       has to be repeated, since transform is one property. */
+    transform: translateX(-50%) translateY(-30px);
   }
   .hand-float.up {
     bottom: calc(var(--bar-h, 46px) + env(safe-area-inset-bottom, 0px) + 22px);
+    transform: translateX(-50%) translateY(-30px);
   }
   .hand-float .hcard {
     width: 56px; height: 78px; margin: 0 -17px; transform-origin: 50% 100%;
