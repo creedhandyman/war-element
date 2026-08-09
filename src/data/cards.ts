@@ -460,14 +460,24 @@ export const CARDS: CardDef[] = [
     // Fire Blast (On Summon): 2 DMG to every opponent in range, and each one
     // catches BURN 1 for a round.
     //
-    // No corridor and no target cap — dropping `spread` falls through to "every
-    // enemy in normal range", which for a Ranged card is the 5×5 it can see.
-    // Wider than the old 3-wide corridor but for two damage instead of three,
-    // and the burn is where the card's identity moved: it is a hound that sets
-    // things alight, not a cannon.
+    // No corridor: dropping `spread` falls through to "every enemy in normal
+    // range", which for a Ranged card is the 5×5 it can see. Wider than the old
+    // 3-wide corridor but for two damage instead of three, and the burn is where
+    // the card's identity moved — a hound that sets things alight, not a cannon.
+    //
+    // Capped at 3. Uncapped it put 8 on a packed board plus a burn on each,
+    // clearing cost-3 Spitfire's 9 off a cost-2 body; 3 targets is 6 plus 3 from
+    // the burn, which lands level with Spitfire rather than past it.
+    //
+    // `closest` so the cap is the NEAREST three rather than whichever three the
+    // board list happened to yield — the old corridor was sorted that way, and a
+    // cap that picks arbitrarily reads as a bug from the other side of the board.
     onSummon: {
       handler: "barrage",
-      params: { dmg: 2, targets: 99, statusKind: "BURN", statusPower: 1, statusDuration: 1 },
+      params: {
+        dmg: 2, targets: 3, closest: 1,
+        statusKind: "BURN", statusPower: 1, statusDuration: 1,
+      },
     },
   },
   {

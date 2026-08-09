@@ -747,13 +747,18 @@ describe("on-summon passives (forward-area projection)", () => {
     const leftMid = place(s, "dusk_gool", "P2", 2, 0, { curHp: 13 });
     const rightMid = place(s, "dusk_ghastly", "P2", 2, 2, { curHp: 19 });
     const deep = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 6 });
-    const wide = place(s, "dusk_silkstalker", "P2", 2, 3, { curHp: 7 }); // 2 cols over — in range now
+    const wide = place(s, "dusk_silkstalker", "P2", 2, 3, { curHp: 7 }); // furthest of the four
     const handId = giveHand(s, "P1", "pyro_flamehound");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
-    for (const [c, before] of [[leftMid, 13], [rightMid, 19], [deep, 6], [wide, 7]] as const) {
+    // Capped at the NEAREST three. The first three sit two steps from the summon
+    // slot and the wide one sits three, so the cap costs it reach rather than
+    // picking arbitrarily.
+    for (const [c, before] of [[leftMid, 13], [rightMid, 19], [deep, 6]] as const) {
       expect(next.cards[c.instanceId].curHp, `${c.instanceId} took the blast`).toBe(before - 2);
       expect(statusOf(next.cards[c.instanceId], "BURN")?.power, "and caught").toBe(1);
     }
+    expect(next.cards[wide.instanceId].curHp, "the furthest is spared by the cap").toBe(7);
+    expect(statusOf(next.cards[wide.instanceId], "BURN")).toBeUndefined();
     expect(next.players.P1.magicPool).toBe(4); // free — a passive, not a Special
   });
 
