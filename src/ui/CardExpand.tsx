@@ -95,6 +95,18 @@ export function CardExpand(props: {
           </ul>
         </div>
 
+        {/* Flavour text lives HERE and not in CardDetail: this is the browsing
+            view (collection, deck builder, squad previews), where reading about a
+            card is the point. CardDetail is the in-match inspector, opened to
+            answer "what will this do to me" mid-turn, and prose in that spot is
+            in the way. Rendered only when written — most of the pool has no lore
+            yet, and an empty bordered block would read as a bug. */}
+        {d.lore && (
+          <p className="cd-lore" style={{ ["--el-rim" as string]: EL_COLOR[d.element] }}>
+            {d.lore}
+          </p>
+        )}
+
         {props.extra}
 
         {props.action && (

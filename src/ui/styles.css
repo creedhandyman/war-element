@@ -1090,6 +1090,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .cd-list { list-style: none; margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
 .cd-list li { font-size: 12px; color: var(--ink-dim); line-height: 1.45; padding-left: 12px; position: relative; }
 .cd-list li::before { content: "•"; position: absolute; left: 0; color: var(--ink-faint); }
+/* Flavour text. Deliberately unlike every other block in the panel: italic, no
+   header, no bullet, and an element-tinted rule down the left instead of the
+   border-top the mechanical sections share. Nothing here is a rule, so it should
+   not be possible to mistake it for one at a glance. */
+.cd-lore {
+  margin-top: 14px; padding: 2px 0 2px 11px;
+  border-left: 2px solid color-mix(in srgb, var(--el-rim, var(--gold-line)) 55%, transparent);
+  font-size: 12px; font-style: italic; line-height: 1.55;
+  color: var(--ink-faint); text-wrap: pretty;
+}
 /* inline keyword chips + trigger tags inside card text */
 .txt-chip { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: 0.02em; line-height: 1.35; padding: 0 5px; margin: 0 1px; border-radius: 4px; border: 1px solid; background: color-mix(in srgb, currentColor 12%, transparent); vertical-align: baseline; }
 .txt-tag { display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.4; padding: 1px 5px; margin: 0 3px 0 1px; border-radius: 4px; color: var(--gold-lit); background: rgba(232, 200, 119, 0.12); border: 1px solid var(--gold-line); vertical-align: baseline; }
