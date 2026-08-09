@@ -3099,3 +3099,51 @@ describe("arrival abilities that have to travel to work", () => {
     expect(next.cards[three.instanceId].curHp, "three is still too far").toBe(40);
   });
 });
+
+describe("balance pass: reach, payloads and lockouts", () => {
+  it("Chain Paralysis deals damage now, not just the status", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 20;
+    const caster = place(s, "bolt_stormcaller", "P1", 2, 1);
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(battleWith(s, caster.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    // Its twin Glacius pays the same 4 magic for 3 targets x 2 rounds AND 4 damage
+    // a head; this dealt nothing at all, which made it strictly the worse card.
+    expect(next.cards[foe.instanceId].curHp).toBe(37);
+    expect(statusOf(next.cards[foe.instanceId], "PARALYZE")?.duration).toBe(2);
+  });
+
+  it("a melee on-summon strike reaches the nearest enemy from the home row", () => {
+    // The shape that broke ThunderCat: summoned into your own home row, with the
+    // enemy nowhere near king-step reach.
+    for (const [id, col] of [["bolt_zap", 0], ["bolt_electricel", 0], ["aqua_krakler", 0]] as const) {
+      const s = prepState();
+      s.players.P1.gold = 20;
+      s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+      const foe = place(s, "dusk_gool", "P2", 1, 3, { curHp: 40, maxHp: 40, curShields: 0 });
+      const handId = giveHand(s, "P1", id);
+      const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col });
+      const hurt = next.cards[foe.instanceId].curHp < 40;
+      const marked = next.cards[foe.instanceId].statuses.length > 0;
+      expect(hurt || marked, `${id}'s arrival did nothing`).toBe(true);
+    }
+  });
+
+  it("every mythic Special that hits the whole board prints a cooldown", () => {
+    // Kraken was given a printed 3 because a board-wide nuke on the DEFAULT
+    // 2-round lockout is every-other-round. Two are exempt on purpose and are
+    // named here so the exemption is a decision rather than an oversight.
+    const EXEMPT = new Set([
+      "dusk_skullking", // its board-wide Special deals no damage at all
+      "bore_the_coreborer", // hits one column, not the board
+    ]);
+    const offenders = CARDS.filter((d) => {
+      if (d.rarity !== "mythic" || !d.special || EXEMPT.has(d.id)) return false;
+      const p = d.special.params ?? {};
+      return Number(p.targets ?? 0) >= 99 && Number(p.dmg ?? 0) > 0 && d.special.cooldown == null;
+    }).map((d) => d.id);
+    expect(offenders, `board-wide mythic nuke on the default lockout: ${offenders.join(", ")}`).toEqual([]);
+  });
+});

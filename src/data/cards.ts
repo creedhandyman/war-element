@@ -1890,7 +1890,11 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Stuck (On Summon): 5 DMG to one opponent in range.
-    onSummon: { handler: "barrage", params: { dmg: 5, targets: 1 } },
+    // `reachNearest` because it could not otherwise reach anything: a Melee card
+    // lands in its own home row, where its on-summon target list is king-step
+    // reach, and on the turn you play it that square is almost always empty. The
+    // same hole ThunderCat had. Splint, Ariel and Sticks already carry this.
+    onSummon: { handler: "barrage", params: { dmg: 5, targets: 1, reachNearest: 1 } },
   },
   {
     id: "bolt_twotales",
@@ -3040,7 +3044,10 @@ export const CARDS: CardDef[] = [
     tribe: ["Kraken", "SeaC"], // brief's Kraken + the school it had
     // Abyssal Grasp (On Summon): SCALD 3 for 2 rounds AND FREEZE an opponent in
     // range for 2 rounds (primary SCALD DoT + secondary FREEZE via debuffStatus).
-    onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, statusKind: "SCALD", statusPower: 3, statusDuration: 2, debuffStatus: "FREEZE", debuffStatusRounds: 2 } },
+    // `reachNearest` for the same reason as Zap and Electricel: a Melee card
+    // lands in its own home row and its on-summon list is king-step reach, so on
+    // the turn you play it there is usually nothing to put the SCALD on.
+    onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, reachNearest: 1, statusKind: "SCALD", statusPower: 3, statusDuration: 2, debuffStatus: "FREEZE", debuffStatusRounds: 2 } },
   },
 
   // ───────────────────────── PYRO ─────────────────────────
@@ -3250,7 +3257,11 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Wrap (On Summon): PARALYZE an opponent in range for 2 rounds.
-    onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, statusKind: "PARALYZE", statusDuration: 2 } },
+    // `reachNearest` because it could not otherwise reach anything: a Melee card
+    // lands in its own home row, where its on-summon target list is king-step
+    // reach, and on the turn you play it that square is almost always empty. The
+    // same hole ThunderCat had. Splint, Ariel and Sticks already carry this.
+    onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, reachNearest: 1, statusKind: "PARALYZE", statusDuration: 2 } },
   },
 
   // ───────────────────────── DUSK ─────────────────────────
@@ -3750,11 +3761,21 @@ export const CARDS: CardDef[] = [
     roundTick: { aoeParalyzedDmg: 2 },
     special: {
       name: "Chain Paralysis",
+      // Glacius is the same cost, rarity, class, attack type and stat total, pays
+      // the same 4 magic, hits the same 3 targets for the same 2 rounds — and
+      // deals 4 damage a head on top. This dealt none at all, which made
+      // Stormcaller's signature Special strictly worse than its own twin.
+      //
+      // The fix is the payload, not the price: 4 magic for a 3-target nova is an
+      // established template here (Polar Shift, Nightmare), so dropping the cost
+      // would have put a cost-7 legendary below every nova in its own rung.
+      // 3 damage rather than Glacius's 4, because FREEZE is the stronger status —
+      // it zeroes SP outright and halves damage, where PARALYZE only caps a move.
       cost: 4,
-      handler: "statusNova",
-      params: { statusKind: "PARALYZE", statusDuration: 2, targets: 3 },
+      handler: "barrage",
+      params: { dmg: 3, targets: 3, statusKind: "PARALYZE", statusDuration: 2 },
       targetSide: "enemy",
-      text: "PARALYZE up to 3 opponents for 2 rounds.",
+      text: "Deal 3 DMG to up to 3 opponents and PARALYZE them for 2 rounds.",
     },
   },
   {
@@ -6149,7 +6170,11 @@ export const CARDS: CardDef[] = [
     // Miasma Burst: 4 DMG CRIT + PEN to all opponents in range.
     special: {
       name: "Miasma Burst",
-      cost: 2,
+      // 3, not 2. Krysteel is the same cost, class, rarity and attack type, and
+      // its Krystal Rain is this Special with one LESS damage and no PEN — for
+      // one MORE magic. The source comment on that card records that this exact
+      // shape at 2 magic is what forced Krysteel to 3 in the first place.
+      cost: 3,
       handler: "barrage",
       params: { dmg: 4, targets: 99, crit: 1, pen: 1 },
       targetSide: "enemy",
@@ -7001,7 +7026,11 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Striking Defense: immune to Ranged attacks; a melee attacker takes 3 back.
     passiveNames: { onHitByMelee: "Striking Defense", blocksRangedChance: "Striking Defense" },
-    blocksRangedChance: 100,
+    // 50, not 100. At 100 this was TOTAL permanent immunity to every attack from
+    // every Ranged card in the game, on a card sitting exactly on budget. The
+    // only other holder of this passive, Rhyolite, runs it at 50 AND pays 2 stat
+    // points for it.
+    blocksRangedChance: 50,
     onHitByMelee: { dmg: 3 },
     // Razr Lightning Bladerang: 7 DMG to a target + a 7-power DOT for 1 round.
     special: {
@@ -7257,7 +7286,17 @@ export const CARDS: CardDef[] = [
     // Justice: 2×4 DMG (PEN) to all opponents in range, draining from them.
     special: {
       name: "Justice",
-      cost: 2,
+      // 4 magic, not 2. `hits` is PER TARGET, so this is 8 shield-piercing damage
+      // to every body in reach plus permanent max-HP theft — 12 damage per magic
+      // against three targets, which is the exact figure this file's own comment
+      // on Ghastly calls the highest in the game and nerfs. The cost-7 rung's
+      // other area Specials pay 4 magic for a third to two-thirds as much, and
+      // none of them pierce.
+      //
+      // Price rather than target cap: Justice is melee-gated to the king square
+      // already, so capping targets would over-correct AND contradict its own
+      // printed "all opponents in range".
+      cost: 4,
       handler: "barrage",
       params: { dmg: 2, hits: 4, targets: 99, pen: 1, drain: 1 },
       targetSide: "enemy",
@@ -7984,7 +8023,10 @@ export const CARDS: CardDef[] = [
     // Magnetic Shield: plate every ally in range with REFLECT 1.
     special: {
       name: "Magnetic Shield",
-      cost: 4,
+      // 3, not 4. Seventeen of the cost-5 rung's Specials are priced at 3, and
+      // this one buys the least of any of them — no damage, no status, just
+      // REFLECT 1 for two rounds — on the only cost-5 card with no passive at all.
+      cost: 3,
       handler: "magneticShield",
       params: { targets: 99, reflect: 1, rounds: 2 },
       targetSide: "ally",
@@ -8164,6 +8206,14 @@ export const CARDS: CardDef[] = [
     // Volatile Formula: 13 DMG to all opponents in range, 30% chance to double.
     special: {
       name: "Volatile Formula",
+      // 3-round cooldown, like every other mythic that hits the whole board.
+      // 13 damage to every opponent — 26 on the 30% double — was running on the
+      // DEFAULT 2-round lockout. Kraken was given a printed 3 for exactly this
+      // reason at 8 damage; this is the same access pattern for half again as
+      // much. (SkullKing and Coreborer also lack one and are deliberately left:
+      // SkullKing's board-wide Special deals no damage, and Coreborer's hits a
+      // single column rather than the board.)
+      cooldown: 3,
       cost: 5,
       handler: "barrage",
       params: { dmg: 13, targets: 99, doubleChance: 30 },
@@ -8394,7 +8444,10 @@ export const CARDS: CardDef[] = [
     // ROOTs the target for 3 rounds and MUTES it for one.
     special: {
       name: "Night Spear",
-      cost: 1,
+      // 2, not 1. 8 damage that PIERCES shields, plus ROOT 3 and MUTE 1, is a
+      // payload the rest of the game charges 2-3 magic for; Static Toss is the
+      // mp2 comparison and it has neither PEN nor the second status.
+      cost: 2,
       handler: "strike",
       params: { dmg: 8, pen: 1, statusKind: "ROOT", statusDuration: 3, debuffStatus: "MUTED", debuffStatusRounds: 1 },
       targetSide: "enemy",
