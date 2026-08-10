@@ -6681,24 +6681,28 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "LEAF",
     cardClass: "Warrior",
-    // Cost 4, not 3. Every other card that spawns a REAL card on summon pays
-    // multiples of what it gives away — Trinezer 9 for 3, Keeper 6 for 2, Sway 3
-    // for 1. Rubyscale handed over a full, on-curve, cost-3 body for a cost-3
-    // card: the only 1:1 in the game, and the free body then switches on its own
-    // Special's +8 rider. Priced to Solara, the closest thing to it in the set —
-    // also cost 4, also spawning a real cost-3 card on summon.
+    // Cost 5. Every other card that spawns a REAL card on summon pays multiples
+    // of what it gives away — Trinezer 9 for 3, Keeper 6 for 2, Sway 3 for 1 —
+    // and Rubyscale hands over a whole Greegon, which is 27 points of its own
+    // and switches on this card's +8 Special rider besides. The gold is where
+    // that is paid for; the printed line is deliberately short of the budget.
     attackType: "Melee",
-    cost: 4,
-    dmg: 4,
+    cost: 5,
+    dmg: 6,
     hits: 1,
-    hp: 11,
-    sp: 7,
+    hp: 12,
+    sp: 8,
     shields: 2,
     keywords: {},
     tribe: "Dragon",
+    // Bloodscale: its basic opens a wound. BLEED 2 for 2 rounds, the same cut
+    // Stickviper makes — Greegon's Bramble is the weaker version of the same
+    // idea, which is the right way round for the dragon and the sapling it
+    // plants.
+    passiveNames: { summonSpawn: "Ancient Protection", onHitStatus: "Bloodscale" },
+    onHitStatus: { kind: "BLEED", duration: 2, power: 2 },
     // Ancient Protection (On Summon): spawn Greegon (the existing card) in an
     // adjacent slot. Dragon's Dance then adds an 8-DMG blow while Greegon lives.
-    passiveNames: { summonSpawn: "Ancient Protection" },
     summonSpawn: { token: "leaf_greegon", count: 1 },
     // Dragon's Dance: 1 → 2 → 4 DMG split across up to 3 targets, gain +3 SP for
     // the round, and +8 DMG to a foe while Greegon stands.

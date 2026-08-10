@@ -3295,3 +3295,24 @@ describe("the disguise holds in the shared battle log too", () => {
     expect(log).toContain("cost 8");
   });
 });
+
+describe("Rubyscale opens a wound", () => {
+  it("its basic applies BLEED 2 for 2 rounds", () => {
+    const s = prepState();
+    const ruby = place(s, "leaf_rubyo", "P1", 2, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, ruby.instanceId, foe.instanceId);
+    const bleed = statusOf(s.cards[foe.instanceId], "BLEED");
+    expect(bleed?.power).toBe(2);
+    expect(bleed?.duration).toBe(2);
+  });
+
+  it("and still plants a Greegon on arrival", () => {
+    const s = prepState();
+    s.players.P1.gold = 20;
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const handId = giveHand(s, "P1", "leaf_rubyo");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(boardCards(next, "P1").some((c) => c.defId === "leaf_greegon")).toBe(true);
+  });
+});
