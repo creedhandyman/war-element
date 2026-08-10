@@ -1406,6 +1406,28 @@ describe("medium-tier passives (audit batch)", () => {
     expect(effectiveSp(next, next.cards[smog.instanceId])).toBe(2);
   });
 
+  it("Black Smoke chokes the enemy and mends the ally in the same breath", () => {
+    const s = prepState();
+    // Smog itself starts hurt, so its own line proves inclusion rather than
+    // passing for free on a card that was already full.
+    const smog = place(s, "pyro_smog_card", "P1", 3, 0, { curHp: 12, maxHp: 20 });
+    const ally = place(s, "pyro_tiki", "P1", 3, 1, { curHp: 10, maxHp: 20, curShields: 0 });
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 0 });
+    const next = advance(atCleanup(s));
+    expect(next.cards[foe.instanceId].curHp).toBe(19); // choked for 1
+    expect(next.cards[ally.instanceId].curHp).toBe(11); // mended for 1
+    expect(next.cards[smog.instanceId].curHp).toBe(13); // the cloud sustains itself too
+  });
+
+  it("...and the mend never overfills a healthy ally", () => {
+    const s = prepState();
+    place(s, "pyro_smog_card", "P1", 3, 0);
+    const full = place(s, "pyro_tiki", "P1", 3, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 0 }); // keep P2 alive
+    const next = advance(atCleanup(s));
+    expect(next.cards[full.instanceId].curHp).toBe(20);
+  });
+
   it("Crowned locks out for 3 rounds — the permanent buff can't compound every turn", () => {
     const s = prepState();
     s.players.P1.magicPool = 20;
