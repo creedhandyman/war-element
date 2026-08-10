@@ -5457,13 +5457,12 @@ export const CARDS: CardDef[] = [
     // Shell Cracker: basics hit DOUBLE against a shielded target. A firecracker
     // packed into a seam does more than one lit in the open.
     //
-    // NOTE this COMPOUNDS with Bloodfire Detonator above — the two multipliers
-    // are applied in sequence in the basic-damage cascade, so a target that is
-    // bleeding, burning AND shielded eats 5 -> 10 -> 20 before the shield gate
-    // subtracts. That is the intended ceiling for a 4 HP body that has to line
-    // up three conditions to reach it, but it IS the largest single basic in the
-    // game, so the combined case is pinned in the tests rather than left to be
-    // discovered in a match.
+    // Does NOT compound with Bloodfire Detonator above. Against a target that is
+    // bleeding, burning AND shielded both amplifiers match, and the engine takes
+    // the LARGEST rather than the product — so that is 2x, the same as either
+    // one alone, not the 5 -> 10 -> 20 the two would multiply to. Firecrack
+    // picks whichever opening the board gives it; it does not get paid twice for
+    // finding both. See the amplifier block in combat.ts.
     bonusVsShield: 2,
   },
   {

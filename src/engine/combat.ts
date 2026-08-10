@@ -1561,14 +1561,46 @@ export function basicAttack(
       vs.anyStatus ? t.statuses.length > 0 :
       hasStatus(t, vs.status)
     );
+    // Damage AMPLIFIERS do not compound — the largest applicable one applies and
+    // the rest are ignored.
+    //
+    // They used to multiply in sequence, which is only invisible while no card
+    // carries two. Two do. Dynomight's Explosive Power is printed as "2x vs a
+    // shielded target OR vs a Warrior/Tank" and was quietly dealing 4x to a
+    // shielded Tank; Firecrack pairs Bloodfire Detonator with Shell Cracker and
+    // reached 4x — 20 off a 2-cost body — against a bleeding, burning, shielded
+    // target. Taking the best rather than the product is one rule for both, and
+    // it is the rule the cards were written to.
+    //
+    // Computed here, at the point vsStatus used to multiply, so the two cards
+    // with only ONE amplifier (Dunewraith, Kimberlite) and the one card pairing
+    // a multiplier with the Rager PENALTY (Twins) keep their exact arithmetic —
+    // penalties are not amplifiers and stay where they are, below.
+    let amp = 1;
+    // Boomer: base damage the first time it strikes a given target, then a
+    // doubled detonation on every strike after. The bookkeeping runs whether or
+    // not this ends up being the winning multiplier. (No card ships with this
+    // today; kept wired so it behaves if one does.)
+    if (aDef.boomer) {
+      attacker.boomerStruck ??= [];
+      if (attacker.boomerStruck.includes(t.instanceId)) amp = Math.max(amp, 2);
+      else attacker.boomerStruck.push(t.instanceId);
+    }
+    // Diamond's Edge (Kimberlite) / Shell Cracker (Firecrack): harder into armour.
+    if (aDef.bonusVsShield && t.curShields > 0) amp = Math.max(amp, aDef.bonusVsShield);
+    // Explosive Power (Dynomight): harder into a listed cardClass.
+    if (aDef.bonusVsClass && aDef.bonusVsClass.classes.includes(getDef(t.defId).cardClass))
+      amp = Math.max(amp, aDef.bonusVsClass.mult);
     if (vs && vsMatch) {
-      if (vs.dmgMult) dmg = Math.floor(dmg * vs.dmgMult);
-      if (vs.bonusDmg) dmg += vs.bonusDmg;
+      if (vs.dmgMult) amp = Math.max(amp, vs.dmgMult);
       if (vs.crit) crit = true;
       if (vs.lifesteal) lifesteal = true;
       if (vs.pen) vsPen = true;
       healOnHit = vs.healOnHit ?? 0;
     }
+    if (amp !== 1) dmg = Math.floor(dmg * amp);
+    // vsStatus's flat bonus is added AFTER its multiplier, exactly as before.
+    if (vs && vsMatch && vs.bonusDmg) dmg += vs.bonusDmg;
     // Dragon's Bane: the same shape as vsStatus above, but matched on the
     // target's tribe / size rather than a status it happens to be carrying.
     if (aDef.vsTarget?.bonusDmg && matchesVsTarget(aDef, t)) dmg += aDef.vsTarget.bonusDmg;
@@ -1588,18 +1620,9 @@ export function basicAttack(
     if (aDef.weakBelowHp && attacker.curHp < aDef.weakBelowHp.hp)
       dmg = Math.floor(dmg * aDef.weakBelowHp.dmgMult);
 
-    // Boomer (Firecrack): base damage the first time it strikes a given target,
-    // then a doubled detonation on every strike after that.
-    if (aDef.boomer) {
-      attacker.boomerStruck ??= [];
-      if (attacker.boomerStruck.includes(t.instanceId)) dmg *= 2;
-      else attacker.boomerStruck.push(t.instanceId);
-    }
-    // Diamond's Edge (Kimberlite): basics hit harder against a shielded target.
-    if (aDef.bonusVsShield && t.curShields > 0) dmg *= aDef.bonusVsShield;
-    // Explosive Power (Dynomight): extra multiplier vs a listed cardClass.
-    if (aDef.bonusVsClass && aDef.bonusVsClass.classes.includes(getDef(t.defId).cardClass))
-      dmg *= aDef.bonusVsClass.mult;
+    // Boomer / Diamond's Edge / Explosive Power used to each multiply here, in
+    // sequence. They are folded into the single `amp` above so two of them on
+    // one card can no longer compound.
     const struckBefore = attacker.struckThisRound[t.instanceId] ?? 0;
     const r = resolveHit(draft, attacker, t, {
       kind: "basic",

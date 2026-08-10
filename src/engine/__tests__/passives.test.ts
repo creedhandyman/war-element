@@ -1420,18 +1420,39 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[t.instanceId].curHp).toBe(32); // 40 − (5×2 − 2)
   });
 
-  it("...and it COMPOUNDS with Bloodfire Detonator, which is the ceiling", () => {
-    // Pinned deliberately: the two multipliers run in sequence in the damage
-    // cascade, so bleeding + burning + shielded is 5 -> 10 -> 20 — the largest
-    // single basic in the game, off a 2-cost 4 HP body. If that ever needs
-    // capping, this test is where the decision gets made, not a match.
+  it("...and it does NOT compound with Bloodfire Detonator — the best one wins", () => {
+    // Both amplifiers apply here (bleeding + burning + shielded). Multiplying
+    // them gave 5 -> 10 -> 20, the largest single basic in the game off a 2-cost
+    // 4 HP body. Amplifiers now take the largest instead of the product, so this
+    // is 2x, the same as either one alone.
     const s = prepState();
     const fc = place(s, "pyro_firecrack", "P1", 3, 0);
     const t = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 2 });
     applyStatus(s, s.cards[t.instanceId], "BLEED", 3, 1, "DUSK");
     applyStatus(s, s.cards[t.instanceId], "BURN", 3, 1, "PYRO");
     basicAttack(s, fc.instanceId, t.instanceId);
-    expect(s.cards[t.instanceId].curHp).toBe(22); // 40 − (5×2×2 − 2)
+    expect(s.cards[t.instanceId].curHp).toBe(32); // 40 − (5×2 − 2), not 5×2×2
+  });
+
+  it("Explosive Power is 2x vs a shielded target OR a Tank, never 4x for both", () => {
+    // Dynomight's own text reads "OR" and the engine was quietly doing both.
+    // Same rule, same fix as Firecrack above — this is the card that proves the
+    // rule is general rather than a patch aimed at one card.
+    // Armadillo is a Tank AND shielded, so both amplifiers match at once.
+    const s = prepState();
+    const dyno = place(s, "pyro_dynomight", "P1", 3, 0);
+    const t = place(s, "bore_armadillo", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 3 });
+    basicAttack(s, dyno.instanceId, t.instanceId);
+    expect(60 - s.cards[t.instanceId].curHp).toBe(13); // 9×2 = 18, −2 BLOCK, −3 shields
+    // Stacked it was 9×2×2 = 36 → 31 through the same armour. Nearly triple.
+
+    // And a shielded NON-Tank takes the same 2x, so the fix didn't turn "OR"
+    // into "only when both" — either condition alone still pays in full.
+    const b = prepState();
+    const d2 = place(b, "pyro_dynomight", "P1", 3, 0);
+    const g = place(b, "dusk_gool", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 3 });
+    basicAttack(b, d2.instanceId, g.instanceId);
+    expect(60 - b.cards[g.instanceId].curHp).toBe(15); // 9×2 = 18, −3 shields, no BLOCK
   });
 
   it("Slag Field burns what stands beside the Tortoise — and only that", () => {
