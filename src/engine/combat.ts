@@ -17,7 +17,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget } from "./rules";
-import { PYRO_BURN_STACK_CAP, hasElementAura } from "./auras";
+import { DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, PYRO_BURN_STACK_CAP, hasElementAura } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
@@ -48,6 +48,17 @@ export function hasEvasion(card: CardInstance, boardSize: number): boolean {
   const def = getDef(card.defId);
   if (!def.keywords.EVASION) return false;
   return def.evasionEnemySideOnly ? onEnemySide(card, boardSize) : true;
+}
+
+/** Midnight Shade's dodge chance for one card, as a percentage: 5 per fallen
+ *  DUSK ally inside the live window, and 0 for anything that isn't DUSK or is
+ *  standing after the shadows have lifted. Single source of truth so the roll
+ *  and the card inspector can't disagree about what a card's odds are. */
+export function shadeDodgePct(draft: GameState, card: CardInstance): number {
+  if (!hasElementAura(getDef(card.defId), "DUSK")) return 0;
+  const pl = draft.players[card.owner];
+  if (draft.round > (pl.shadeUntilRound ?? -1)) return 0;
+  return Math.min(DUSK_SHADE_MAX_STACKS, pl.shadeStacks ?? 0) * DUSK_SHADE_PCT;
 }
 
 /** FLYING — the innate keyword OR a granted temporary flight (FireFly's BlastOff). */
@@ -349,6 +360,17 @@ export function defeatCard(
     fireCardSpecial(draft, card);
   }
   draft.log.push(`${label(draft, card)} is defeated (${cause}).`);
+  // Midnight Shade, second half: the fallen DUSK card's shadow covers its
+  // surviving DUSK allies. Granted here — past every cheat-death branch above —
+  // so a Tail Drop, a revive or a Butler unmasking is not a "death" that pays.
+  if (hasElementAura(def, "DUSK")) {
+    const pl = draft.players[card.owner];
+    pl.shadeStacks = Math.min(DUSK_SHADE_MAX_STACKS, (pl.shadeStacks ?? 0) + 1);
+    pl.shadeUntilRound = draft.round + 1;
+    draft.log.push(
+      `The shadows thicken — ${card.owner}'s DUSK cards dodge +${pl.shadeStacks * DUSK_SHADE_PCT}% for a round.`,
+    );
+  }
   // Mark of Hoax: a marked target's fall banks a guaranteed dodge for the Hoax
   // that marked it (if it still lives).
   if (card.hoaxMarked && card.hoaxMarkedBy) {
@@ -829,6 +851,18 @@ export function resolveHit(
         result.dodgedHits++;
         target.fxMiss = (target.fxMiss ?? 0) + 1;
         draft.log.push(`${label(draft, target)} evades a hit from ${aDef.name}.`);
+        continue;
+      }
+    }
+    // Midnight Shade (DUSK aura): the shadows left by fallen DUSK allies. Rolled
+    // after EVASION so a card that already dodges doesn't waste the check, and
+    // respecting alwaysHit/neverMiss like every other dodge in this list.
+    if (opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !neverMiss) {
+      const shade = shadeDodgePct(draft, target);
+      if (shade > 0 && pctChance(draft, shade)) {
+        result.dodgedHits++;
+        target.fxMiss = (target.fxMiss ?? 0) + 1;
+        draft.log.push(`${label(draft, target)} melts into the shadows — ${aDef.name} finds nothing.`);
         continue;
       }
     }

@@ -2567,6 +2567,14 @@ function doCleanupPhase(draft: GameState): void {
     if (fog > 0) draft.players[p].foggedRounds = fog - 1;
     const splash = draft.players[p].basicSplashRounds ?? 0;
     if (splash > 0) draft.players[p].basicSplashRounds = splash - 1;
+    // Midnight Shade: the shadows lift once their round is past. An absolute
+    // round, not a countdown, because every fresh DUSK death refreshes the whole
+    // stack's window rather than each corpse carrying its own timer.
+    const shadeUntil = draft.players[p].shadeUntilRound;
+    if (shadeUntil !== undefined && draft.round >= shadeUntil) {
+      draft.players[p].shadeStacks = 0;
+      draft.players[p].shadeUntilRound = undefined;
+    }
   }
   // Standing terrain never ticks down — it is the battlefield, not a spell.
   for (const f of draft.fields) if (!f.permanent) f.roundsLeft--;

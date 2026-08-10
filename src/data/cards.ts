@@ -6554,9 +6554,13 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 1,
     keywords: {},
-    // Twister: a second basic hit on a target within a round STUNs it 2 rounds.
+    // Twister: a second basic hit on a target within a round STUNs it 1 round.
+    // Cut from 2. At 2 the stun always cost the victim a whole action and often
+    // two — a 3-cost Rare locking a Mythic out of the game for a third of a
+    // battle. At 1 it costs them the action they had left in the round Spindrift
+    // hit them in, which is the round Spindrift paid for.
     passiveNames: { onHitStatus: "Twister" },
-    onHitStatus: { kind: "STUN", duration: 2, power: 0, onSecondHit: true },
+    onHitStatus: { kind: "STUN", duration: 1, power: 0, onSecondHit: true },
     // Spiraling Windrow, now a Talent: free, once per game — the Rare pattern.
     // Same shot, same bounces; what changes is that it fires once instead of
     // every few rounds for magic.

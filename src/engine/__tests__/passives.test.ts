@@ -3,8 +3,8 @@
 // abilities in cards.ts.
 
 import { describe, expect, it } from "vitest";
-import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, SPECIAL_HANDLERS, TARGETLESS_HANDLERS } from "../combat";
-import { applyFlow, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, hasElementAura, PYRO_BURN_STACK_CAP } from "../auras";
+import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, shadeDodgePct, SPECIAL_HANDLERS, TARGETLESS_HANDLERS } from "../combat";
+import { applyFlow, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, hasElementAura, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire } from "../state";
@@ -2512,6 +2512,110 @@ describe("element auras", () => {
     basicAttack(s, killer.instanceId, vamp.instanceId);
     expect(s.cards[vamp.instanceId]).toBeUndefined();
     expect(s.cards[killer.instanceId].curHp).toBe(4); // 5 − 1 Midnight Shade floor
+  });
+
+  it("Twister (Spindrift): the second hit STUNs for 1 round, not 2", () => {
+    // Both of Spindrift's hits land on the one target here, so the rider fires
+    // on its own volley. At duration 2 the victim lost this round's action AND
+    // next round's; at 1 it loses only the action it still had this round.
+    const s = prepState();
+    const spin = place(s, "gale_klouy", "P1", 2, 0);
+    const victim = place(s, "dusk_reaper", "P2", 2, 1, { curHp: 40, curShields: 0 });
+    basicAttack(s, spin.instanceId, victim.instanceId);
+    const stun = s.cards[victim.instanceId].statuses.find((x) => x.kind === "STUN");
+    expect(stun).toBeDefined();
+    expect(stun!.duration).toBe(1);
+    // Cleanup ends it, so it never reaches the following round's battle.
+    const next = advance(atCleanup(s));
+    expect(next.cards[victim.instanceId].statuses.some((x) => x.kind === "STUN")).toBe(false);
+  });
+
+  it("Midnight Shade: a fallen DUSK card thickens the shadows over its DUSK allies", () => {
+    const s = prepState();
+    const killer = place(s, "gale_duster", "P1", 2, 0, { curHp: 20 });
+    const ally = place(s, "dusk_reaper", "P2", 1, 1);
+    const vamp = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 });
+    expect(shadeDodgePct(s, ally)).toBe(0); // nothing has fallen yet
+    basicAttack(s, killer.instanceId, vamp.instanceId);
+    expect(s.players.P2.shadeStacks).toBe(1);
+    expect(shadeDodgePct(s, s.cards[ally.instanceId])).toBe(DUSK_SHADE_PCT);
+  });
+
+  it("...stacking per death, and no further than the cap", () => {
+    const s = prepState();
+    const ally = place(s, "dusk_reaper", "P2", 1, 1);
+    // More corpses than the cap allows — DUSK can genuinely field this many.
+    for (let i = 0; i < DUSK_SHADE_MAX_STACKS + 3; i++) {
+      const body = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 });
+      defeatCard(s, body, "test");
+    }
+    expect(s.players.P2.shadeStacks).toBe(DUSK_SHADE_MAX_STACKS);
+    expect(shadeDodgePct(s, s.cards[ally.instanceId])).toBe(DUSK_SHADE_MAX_STACKS * DUSK_SHADE_PCT);
+  });
+
+  it("...only covers DUSK, and only the side that lost the card", () => {
+    const s = prepState();
+    const duskAlly = place(s, "dusk_reaper", "P2", 1, 1);
+    const galeAlly = place(s, "gale_klouy", "P2", 1, 2); // same owner, wrong element
+    const enemyDusk = place(s, "dusk_reaper", "P1", 3, 1); // right element, wrong side
+    defeatCard(s, place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 }), "test");
+    expect(shadeDodgePct(s, duskAlly)).toBe(DUSK_SHADE_PCT);
+    expect(shadeDodgePct(s, galeAlly)).toBe(0);
+    expect(shadeDodgePct(s, enemyDusk)).toBe(0);
+  });
+
+  it("...lifts after its one round", () => {
+    const s = prepState();
+    const ally = place(s, "dusk_reaper", "P2", 1, 1);
+    defeatCard(s, place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 }), "test");
+    const fell = s.round;
+    // Cover holds for the rest of the round the card fell in...
+    expect(shadeDodgePct(s, ally)).toBe(DUSK_SHADE_PCT);
+    const next = advance(atCleanup(s));
+    expect(next.round).toBe(fell + 1);
+    // ...and through the whole round after it — that is the round a player gets.
+    expect(shadeDodgePct(next, next.cards[ally.instanceId])).toBe(DUSK_SHADE_PCT);
+    const after = advance(atCleanup(next));
+    expect(shadeDodgePct(after, after.cards[ally.instanceId])).toBe(0);
+  });
+
+  it("...and a death rounds later counts alone, not on top of the lapsed ones", () => {
+    // The read guard hides a lapsed stack, but the COUNT has to be cleared too:
+    // otherwise a card lost in round 2 is still on the tally in round 9, and one
+    // fresh corpse would draw the cover that two are supposed to.
+    const s = prepState();
+    const ally = place(s, "dusk_reaper", "P2", 1, 1);
+    defeatCard(s, place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 }), "test");
+    expect(s.players.P2.shadeStacks).toBe(1);
+    const lapsed = advance(atCleanup(advance(atCleanup(s))));
+    expect(lapsed.players.P2.shadeStacks ?? 0).toBe(0);
+    defeatCard(lapsed, place(lapsed, "dusk_vamp", "P2", 2, 1, { curHp: 1 }), "test");
+    expect(lapsed.players.P2.shadeStacks).toBe(1);
+    expect(shadeDodgePct(lapsed, lapsed.cards[ally.instanceId])).toBe(DUSK_SHADE_PCT);
+  });
+
+  it("...and the shadows actually eat hits, but only for shaded cards", () => {
+    // pctChance is a 25% roll at full stacks, so no single seed proves it. Sweep
+    // a fixed seed range instead: with no stacks the count must be exactly zero,
+    // and with stacks it must be neither zero nor everything.
+    const runs = (stacks: number) => {
+      let dodges = 0;
+      for (let seed = 0; seed < 200; seed++) {
+        const s = prepState();
+        s.rngState = seed;
+        s.players.P2.shadeStacks = stacks;
+        s.players.P2.shadeUntilRound = s.round + 1;
+        const attacker = place(s, "gale_duster", "P1", 2, 0);
+        const target = place(s, "dusk_reaper", "P2", 2, 1, { curHp: 40, curShields: 0 });
+        basicAttack(s, attacker.instanceId, target.instanceId);
+        if (s.log.some((l) => l.includes("melts into the shadows"))) dodges++;
+      }
+      return dodges;
+    };
+    expect(runs(0)).toBe(0);
+    const shaded = runs(DUSK_SHADE_MAX_STACKS);
+    expect(shaded).toBeGreaterThan(0);
+    expect(shaded).toBeLessThan(200);
   });
 
   it("Awakening (DAWN): summoning strikes the nearest enemy for half its DMG", () => {

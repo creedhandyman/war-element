@@ -1479,6 +1479,17 @@ export interface PlayerState {
   /** Sky Scout (Sightwing): rounds left in which this player's single-target
    *  basics also clip one enemy adjacent to their target. Ticked in Cleanup. */
   basicSplashRounds?: number;
+  /** Midnight Shade (DUSK aura): how many of this player's DUSK cards have
+   *  fallen inside the live window. Each is +5% dodge for this player's DUSK
+   *  cards, capped at DUSK_SHADE_MAX_STACKS. Not a status — flat and uncleansed,
+   *  like Misty's fog above. */
+  shadeStacks?: number;
+  /** The last round `shadeStacks` still applies on. Every fresh DUSK death sets
+   *  this to `round + 1`, so the shadows cover the rest of the round the card
+   *  fell in plus one whole round after — that is the "1 round" a player reads,
+   *  since a death landing late in a battle queue would otherwise expire before
+   *  anything could swing at the survivors. Cleared in Cleanup once passed. */
+  shadeUntilRound?: number;
   /** Orbital Shot (Zenith): delayed single-target strikes that land on a later
    *  round's Cleanup. */
   pendingArrows?: { round: number; dmg: number; targetId: string; source: CardInstance }[];

@@ -22,7 +22,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP — plus 1 more for every ROOTed opponent — and gain +1 shield per hit they took that round, up to 3 above their printed shields." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
   BORE: { name: "Exostone", desc: "Enters play with shields by rarity — Rare 2, Epic 2, Legendary 3, Mythic 4. Never loses more than 1 shield to a single hit however heavy, and gains +1 shield whenever its attack breaks one off an opponent." },
-  DUSK: { name: "Midnight Shade", desc: "On death, deals a third of its DMG back to the killer." },
+  DUSK: { name: "Midnight Shade", desc: "On death, deals a third of its DMG back to the killer, and the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%)." },
   AQUA: { name: "Flow Change", desc: "On summon, choose a boost for 3 rounds: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for half its DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 14)." },
   GALE: { name: "Zephyr", desc: "End of round, +2 SP (caps at SP 21); the first time it passes SP 15, a one-time +1 DMG." },
@@ -67,6 +67,19 @@ export const LEAF_SHIELD_CAP = 3;
  *  card would stack a lethal DOT off one attack and the aura would stop being
  *  chip damage. */
 export const PYRO_BURN_STACK_CAP = 5;
+
+/** Midnight Shade's second half: each DUSK card that falls thickens the shadows
+ *  over its surviving DUSK allies by this much dodge chance. */
+export const DUSK_SHADE_PCT = 5;
+
+/** And no further. DUSK is the disposable-body element — 7 of its cards cost 2
+ *  or less and two of them are spawnable tokens — so it can put more corpses on
+ *  the board in a round than anything else. Uncapped, a bad round for DUSK would
+ *  hand it a dodge chance that made the NEXT round unwinnable, which is the same
+ *  losing-trade problem that got the death recoil cut from a half to a third
+ *  (see the Midnight Shade block in combat.ts). Five stacks — a quarter of all
+ *  incoming hits — is the ceiling. */
+export const DUSK_SHADE_MAX_STACKS = 5;
 
 // AQUA Flow Change — the three-way summon choice (the summon pick lasts 3 rounds).
 export type FlowMode = "water" | "ice" | "steam";
