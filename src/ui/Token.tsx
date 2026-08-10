@@ -4,7 +4,10 @@ import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiv
 import { EL_COLOR, KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 import { SpIcon } from "./icons";
 
-const AUTO_LABEL = { manual: "MANUAL", basic: "AUTO", full: "FULL" } as const;
+/** One letter, because the tile has no room for a word and the marker only has
+ *  to distinguish two states you already chose deliberately. The names are the
+ *  card panel's job; this is the reminder. Manual never renders. */
+const AUTO_LABEL = { manual: "M", basic: "A", full: "F" } as const;
 
 /** Stable empty array for the damage-float hook's dependency: `?? []` would mint
  *  a new one every render and re-run the effect on every frame of the match. */

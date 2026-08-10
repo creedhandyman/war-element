@@ -637,7 +637,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    min-height:0 + overflow:hidden is the backstop for the same bug the nowrap
    above fixes: whatever ends up in here gets clipped at the card's edge rather
    than spilling out over the tile below. */
-.tk-bottom { display: flex; flex-direction: column; gap: 3px; padding-bottom: 18px; min-height: 0; overflow: hidden; }
+/* padding-bottom was 18px, reserved for the auto BUTTON that used to sit in
+   this band. That control is gone and its replacement is a letter in the far
+   corner, so the stats drop into the space and sit where the card's numbers
+   belong — along the bottom edge. The right padding is the only reserve left:
+   just the corner, so a long stat row can never run under the marker.
+
+   12px is measured, not guessed. The marker is 13px wide sitting 4px off the
+   token's right edge, and .tk-bottom is already inset by the token's own 6px
+   padding, so 11 is the exact clearance and 12 leaves a pixel. At 15 the widest
+   row the game can print (⚔12 ×3 🛡12 ♥18 ⚡12) overran by half a pixel. */
+.tk-bottom { display: flex; flex-direction: column; gap: 3px; padding-bottom: 2px; padding-right: 12px; min-height: 0; overflow: hidden; }
 /* ── 5x5 board: the tile is ~20% smaller in each direction than on a 4x4, and
    the token's furniture has to give the numbers room. The class line is what
    goes — it is the only thing in the strip you can also read off the art. ── */
@@ -655,8 +665,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    least afford them. Dropping "/max" is likewise no longer a 5x5 rule — it hangs
    off the tile-width container query, which catches a cramped 4x4 as well. */
 .board.tight .tk-stats { font-size: clamp(6.5px, 8cqw, 11.5px); }
-.board.tight .tk-bottom { padding-bottom: 14px; }
-.board.tight .auto-tag { font-size: 7.5px; padding: 1px 4px; bottom: 3px; left: 3px; }
+.board.tight .tk-bottom { padding-bottom: 1px; padding-right: 13px; }
+.board.tight .auto-tag { font-size: 7.5px; padding: 1px 2px; min-width: 11px; bottom: 2px; right: 3px; }
 .board.tight .fx-dmg { font-size: 14px; }
 .board.tight .fx-dmg-total { font-size: 16px; }
 .board.tight .fx-float { font-size: 13px; }
@@ -668,10 +678,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    is answering "which of mine are on auto?" at a glance. Shown only when the
    card IS on auto: a MANUAL tag on every manual card is noise on a 60px tile. */
 .auto-tag {
-  position: absolute; bottom: 5px; left: 5px; z-index: 3; pointer-events: none;
-  font-size: 9px; font-weight: 800; letter-spacing: 0.03em; padding: 2px 6px;
-  border-radius: 6px; border: 1px solid var(--panel-line);
-  background: rgba(0, 0, 0, 0.45); color: var(--ink-faint);
+  /* Bottom RIGHT and a single glyph. It sat bottom-left as a full word, which is
+     where the stat row wants to be — the row was paying an 18px bottom padding
+     to stay clear of it. A letter in the opposite corner costs the stats one
+     corner instead of a whole band. */
+  position: absolute; bottom: 3px; right: 4px; z-index: 3; pointer-events: none;
+  min-width: 13px; text-align: center;
+  font-size: 9px; font-weight: 800; padding: 1px 3px;
+  border-radius: 4px; border: 1px solid var(--panel-line);
+  background: rgba(0, 0, 0, 0.55); color: var(--ink-faint);
 }
 .auto-tag.basic { color: #06251a; background: var(--legal); border-color: var(--legal); }
 .auto-tag.full { color: #160b28; background: var(--accent); border-color: var(--accent); }
@@ -1923,8 +1938,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   /* No per-pill padding — the plate is shared now, and on a phone that overhead
      is the difference between the row fitting and a stat being clipped. */
   .tk-stats > span { padding: 0; line-height: 1.2; }
-  .tk-bottom { gap: 1px; padding-bottom: 12px; }
-  .auto-tag { font-size: 6px; padding: 1px 3px; bottom: 3px; left: 3px; border-radius: 4px; }
+  .tk-bottom { gap: 1px; padding-bottom: 1px; padding-right: 12px; }
+  .auto-tag { font-size: 6px; padding: 0 2px; min-width: 9px; bottom: 2px; right: 2px; border-radius: 3px; }
   .status-icons { gap: 2px; }
   .status-icon, .kw-pip { font-size: 7px; }
 }
