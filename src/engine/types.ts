@@ -894,7 +894,10 @@ export interface CardDef {
     aoeDmg?: number;
     /** KaBoooom (Canister): on death, deal `dmg` to EVERY card on the board
      *  (both sides) except those of `exceptElement`. */
-    boardBlast?: { dmg: number; exceptElement?: string };
+    /** A detonation on death. `radius` is a king-move distance from the body:
+     *  1 = the eight squares around it. Omitted = the whole board, which is
+     *  what this was before Canister's blast was given a blast radius. */
+    boardBlast?: { dmg: number; exceptElement?: string; radius?: number };
     /** Out with a Bang (Taper): on death, apply a status to every opponent in
      *  their far (home) row. */
     farRowStatus?: { kind: StatusKind; duration: number; power: number };

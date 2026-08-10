@@ -8724,9 +8724,14 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Forged Tech",
-    // KaBoooom (On Death): 6 DMG to every non-PYRO card on the board.
+    // KaBoooom (On Death): 5 DMG to every non-PYRO card within one square.
+    // Was 6 to the ENTIRE board, which is why a 1-cost body was one of the
+    // scariest cards in the game: it cost nothing, it wanted to die, and the
+    // payout was the same whether you placed it thoughtfully or parked it in a
+    // corner and forgot about it. A radius makes the placement the play — which
+    // is what Rollout below was always for.
     passiveNames: { onDeath: "KaBoooom" },
-    onDeath: { dmg: 0, boardBlast: { dmg: 6, exceptElement: "PYRO" } },
+    onDeath: { dmg: 0, boardBlast: { dmg: 5, exceptElement: "PYRO", radius: 1 } },
     // Rares carry Talents, not repeatable Specials: free, but once per game.
     // Rollout: the canister rolls off the back line, striking then phasing PAST
     // bodies to the first open slot toward the enemy home — parking the bomb in
@@ -8735,8 +8740,8 @@ export const CARDS: CardDef[] = [
       name: "Rollout",
       handler: "strike",
       // 4 -> 2. The damage was never the point: Rollout exists to PARK the bomb
-      // in the enemy line so KaBoooom's 6-to-everything lands where it hurts,
-      // and a cost-1 body should not also be paying a real hit for the trip.
+      // in the enemy line so KaBoooom lands where it hurts — and now that the
+      // blast only reaches one square, the trip is the whole card.
       params: { dmg: 2, rollThrough: 1 },
       text: "Once per game: deal 2 DMG, then roll through to the first open slot toward the enemy home.",
     },

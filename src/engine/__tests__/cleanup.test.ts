@@ -384,7 +384,10 @@ describe("cleanup does not kill a card twice", () => {
       curHp: 2, maxHp: 15,
       status: { kind: "BURN", duration: 3, power: 5, source: "PYRO" },
     });
-    const victim = place(s, "bore_armadillo", "P2", 0, 0, {
+    // Genuinely beside the bomb. It used to sit in P2's home row three squares
+    // away and still get caught, because KaBoooom hit the whole board; now the
+    // blast has a radius, so the position has to match what this test says it is.
+    const victim = place(s, "bore_armadillo", "P2", 2, 0, {
       curHp: 3, maxHp: 15, curShields: 0,
       status: { kind: "BLEED", duration: 3, power: 1, source: "DUSK" },
     });

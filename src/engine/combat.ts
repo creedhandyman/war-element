@@ -384,7 +384,20 @@ export function defeatCard(
   // except its own element.
   const bb = def.onDeath?.boardBlast;
   if (bb) {
-    const victims = boardCards(draft).filter((c) => c.instanceId !== card.instanceId && c.curHp > 0 && getDef(c.defId).element !== bb.exceptElement);
+    // A radius measures from where the body is standing, so a blast can only
+    // catch what the bomb was actually next to. Without a position to measure
+    // from there is no blast at all — a radius bomb that died off-board (never
+    // summoned, already removed) must not fall back to hitting the whole board.
+    const dp = card.pos;
+    const inBlast = (c: CardInstance) =>
+      bb.radius === undefined || (!!dp && !!c.pos && chebyshev(c.pos, dp) <= bb.radius);
+    const victims = (bb.radius !== undefined && !dp ? [] : boardCards(draft)).filter(
+      (c) =>
+        c.instanceId !== card.instanceId &&
+        c.curHp > 0 &&
+        getDef(c.defId).element !== bb.exceptElement &&
+        inBlast(c),
+    );
     for (const v of victims) directDamage(draft, card, v, bb.dmg, false);
     if (victims.length) draft.log.push(`${label(draft, card)} goes KaBoooom — ${bb.dmg} to ${victims.length} non-${bb.exceptElement ?? ""} card(s).`);
   }

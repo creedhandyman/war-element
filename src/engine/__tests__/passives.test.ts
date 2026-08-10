@@ -1339,14 +1339,27 @@ describe("medium-tier passives (audit batch)", () => {
     expect(effectiveSp(s, s.cards[outsider.instanceId]) - oBase, "Forged Tech is untouched").toBe(0);
   });
 
-  it("Canister's KaBoooom blasts every non-PYRO card on death", () => {
+  it("Canister's KaBoooom blasts every non-PYRO card beside it", () => {
     const s = prepState();
     const canister = place(s, "pyro_canister", "P1", 3, 0);
     const pyroAlly = place(s, "pyro_tiki", "P1", 3, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // PYRO — spared
-    const enemy = place(s, "dusk_gool", "P2", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 }); // non-PYRO — hit
+    const enemy = place(s, "dusk_gool", "P2", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 }); // adjacent — hit
     defeatCard(s, s.cards[canister.instanceId], "test");
-    expect(s.cards[enemy.instanceId].curHp).toBe(14); // 20 - 6
+    expect(s.cards[enemy.instanceId].curHp).toBe(15); // 20 - 5
     expect(s.cards[pyroAlly.instanceId].curHp).toBe(20); // PYRO spared
+  });
+
+  it("...and nothing outside the blast radius, however far the board reaches", () => {
+    // The whole point of the 6-to-everything cut: a 1-cost body that wants to
+    // die should not be paid for parking in a corner. Diagonal neighbours still
+    // count (king-move), so this checks a true out-of-range card as well.
+    const s = prepState();
+    const canister = place(s, "pyro_canister", "P1", 3, 0);
+    const beside = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // diagonal
+    const across = place(s, "dusk_gool", "P2", 0, 3, { curHp: 20, maxHp: 20, curShields: 0 }); // far corner
+    defeatCard(s, s.cards[canister.instanceId], "test");
+    expect(s.cards[beside.instanceId].curHp).toBe(15); // diagonals are adjacent
+    expect(s.cards[across.instanceId].curHp).toBe(20); // untouched
   });
 
   it("Equestrian's Solar aura makes allies immune to WEAKEN", () => {
