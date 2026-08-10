@@ -3276,3 +3276,22 @@ describe("a disguise arrives quietly", () => {
     expect(announces("dusk_gool"), "and a rare still does not").toBe(false);
   });
 });
+
+describe("the disguise holds in the shared battle log too", () => {
+  it("the summon line never names the true form", () => {
+    // The log is read by BOTH players, so naming Nightfang here undoes the
+    // disguise entirely — which is exactly what it did until an in-game test
+    // caught it: the board showed a Butler while the log said
+    // "P1 summons Nightfang (cost 8) into column 2."
+    const s = prepState();
+    s.players.P1.gold = 20;
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const handId = giveHand(s, "P1", "dusk_nightfang");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const log = next.log.join("\n");
+    expect(log.includes("Nightfang"), "the log gave the disguise away").toBe(false);
+    expect(log).toContain("summons The Butler");
+    // The cost is honest: you paid 8 and the log says so.
+    expect(log).toContain("cost 8");
+  });
+});

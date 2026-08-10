@@ -109,8 +109,15 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       if (!draft.humans.includes(intent.player)) inst.autoMode = "full";
       if (draft.opening) draft.opening[intent.player] -= 1;
       draft.prep!.consecutivePasses = 0;
+      // Named from what LANDED, not from what was played. Both players read this
+      // log, so a disguised card that announces its true name here is not
+      // disguised at all — the board showed a Butler while the log said
+      // "P1 summons Nightfang", which is the only place the trick leaked. Same
+      // reasoning the trap line already uses: a hidden thing the opponent can
+      // read out of the log is not hidden.
+      const shown = getDef(inst.defId);
       draft.log.push(
-        `${intent.player} summons ${def.name} (cost ${def.cost}) into column ${intent.col}.`,
+        `${intent.player} summons ${shown.name} (cost ${def.cost}) into column ${intent.col}.`,
       );
       // Seed Roll (Oak): the acorn rolls forward on landing — advance toward the
       // enemy home, one slot at a time, until something blocks it or the edge.
