@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { getDef } from "../engine";
+import { CARDS, TOKENS } from "../data/cards";
 import { EL_COLOR, EL_SIGIL, RARITY_STYLE } from "./shared";
 import { SpIcon } from "./icons";
 
@@ -7,9 +8,24 @@ import { SpIcon } from "./icons";
  *  announcing every summon would turn the fanfare into noise. */
 export const ANNOUNCE_RARITIES = new Set(["legendary", "mythic"]);
 
-/** Should summoning this card be announced? */
+/** Every id that some card wears as a face. Built once from the data rather
+ *  than listed, so a second disguised card inherits this for free. */
+const DISGUISE_FACES = new Set(
+  [...CARDS, ...TOKENS]
+    .map((d) => d.disguise?.as)
+    .filter((id): id is string => !!id),
+);
+
+/** Should summoning this card be announced?
+ *
+ *  A disguise is silent in BOTH directions, which is the whole point of it:
+ *  announcing the true form names a card that is not what lands, and announcing
+ *  the face gives a full-screen legendary entrance to something that is meant to
+ *  look like furniture. Nightfang arrives as the Butler; nobody should be able
+ *  to tell from the fanfare. */
 export function announces(defId: string): boolean {
   const def = getDef(defId);
+  if (def.disguise || DISGUISE_FACES.has(defId)) return false;
   return def.rarity != null && ANNOUNCE_RARITIES.has(def.rarity);
 }
 

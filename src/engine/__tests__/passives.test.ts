@@ -9,6 +9,7 @@ import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire } from "../state";
 import { CARDS, TOKENS, getDef } from "../../data/cards";
+import { announces } from "../../ui/SummonAnnounce";
 import { atBattle, atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
 import { createInitialState } from "../state";
 import type { GameState } from "../types";
@@ -3253,5 +3254,20 @@ describe("Nightfang wears the Butler", () => {
   it("and the Butler is not draftable", () => {
     expect(CARDS.some((d) => d.id === "dusk_butler"), "must be a token, not a deck card").toBe(false);
     expect(TOKENS.some((d) => d.id === "dusk_butler")).toBe(true);
+  });
+});
+
+describe("a disguise arrives quietly", () => {
+  it("neither Nightfang nor the Butler triggers a legendary entrance", () => {
+    // Both directions matter. Announcing the true form names a card that is not
+    // what lands; announcing the face gives a full-screen legendary reveal to
+    // the thing that is supposed to look ordinary.
+    expect(announces("dusk_nightfang"), "the true form must not announce").toBe(false);
+    expect(announces("dusk_butler"), "and neither must the face").toBe(false);
+  });
+
+  it("but an ordinary legendary still gets its moment", () => {
+    expect(announces("dusk_skullking")).toBe(true);
+    expect(announces("dusk_gool"), "and a rare still does not").toBe(false);
   });
 });
