@@ -892,6 +892,14 @@ export function App() {
         if (clicked) setDetailId(clicked.instanceId);
         return;
       }
+      // An armed Talent takes no target, so nothing on the board is glowing and
+      // "pick a glowing card" would be a lie. A click inspects; the board is not
+      // where the decision is.
+      if (pending === "talent") {
+        if (clicked) setDetailId(clicked.instanceId);
+        else setHint("This Talent takes no target — press <b>Confirm</b> to use it, or <b>Clear</b>.");
+        return;
+      }
       if (clicked && legalTargetIds.includes(clicked.instanceId)) {
         const next = [...picks, clicked.instanceId];
         if (next.length >= maxPicks) {
@@ -1457,12 +1465,36 @@ export function App() {
               </button>
               {activeDef.talent && (
                 <button
-                  className="bbtn tal"
+                  className={`bbtn tal ${pending === "talent" ? "armed" : ""}`}
                   disabled={!talentCheck.ok}
                   title={`${activeDef.talent.name} (Talent, free · once per game): ${activeDef.talent.text}`}
-                  onClick={() => dispatch({ type: "BATTLE_ACTION", player: activeCard.owner, action: "talent" })}
+                  onClick={() => {
+                    // Two presses, exactly like the Special beside it. This used
+                    // to fire on the first — on a button whose effect is free,
+                    // once per game, and gone the moment it resolves. A Special
+                    // you misfire costs magic you get back next round; a Talent
+                    // you misfire is spent for the rest of the match.
+                    if (pending === "talent") {
+                      dispatch({ type: "BATTLE_ACTION", player: activeCard.owner, action: "talent" });
+                      setPending(null);
+                      return;
+                    }
+                    // Don't let arming the Talent silently discard targets the
+                    // player already picked for something else — same guard the
+                    // Special uses.
+                    if (pending !== null && picks.length > 0) {
+                      setHint("⚠ Targets are still armed — press <b>Clear</b> first to switch to the Talent.");
+                      return;
+                    }
+                    setPending("talent");
+                    setPicks([]);
+                    setHint(
+                      `<b>${activeDef.talent!.name}</b> (Talent · free, once per game) — ` +
+                      `press <b>Confirm</b> to use it. There is no second one.`,
+                    );
+                  }}
                 >
-                  ★ {activeDef.talent.name}
+                  {pending === "talent" ? "★ Confirm" : `★ ${activeDef.talent.name}`}
                 </button>
               )}
               <button

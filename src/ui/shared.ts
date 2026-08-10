@@ -108,4 +108,8 @@ export type Selection =
   | { kind: "spell"; spellId: string; mode?: "attack" | "shield" }
   | null;
 
-export type PendingBattle = "basic" | "special" | null;
+/** What the action bar is currently ARMED for, waiting on a confirming second
+ *  press. "talent" is here for the same reason as the other two, and with more
+ *  cause than either: a Talent is free and once per game, so a stray tap spends
+ *  the card's whole one-shot with nothing to undo it. */
+export type PendingBattle = "basic" | "special" | "talent" | null;
