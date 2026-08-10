@@ -11,8 +11,6 @@ import {
   applyMulligan,
   boardCards,
   cardAt,
-  isCaptured,
-  isContested,
   chebyshev,
   drawCards,
   effectiveDmg,
@@ -40,6 +38,7 @@ import {
   canTarget,
   forwardAreaTargets,
   isActionBlocked,
+  openHomeSlots,
   RANGED_REACH,
   specialTargets,
   talentTargets,
@@ -1087,17 +1086,15 @@ export const OPENING_SLOTS = 1;
  *  the asking player to hold priority, neither of which is true yet when this
  *  runs and only one of which could ever be true of both sides at once. This is
  *  the placement half of the same rules — slots, the cost ceiling, and a home
- *  slot that is free, uncaptured and uncontested. */
+ *  slot that is free, uncaptured and uncontested (`openHomeSlots`, which is the
+ *  same board check canSummon itself runs). */
 function anyoneCanDeploy(draft: GameState): boolean {
   for (const player of ["P1", "P2"] as PlayerId[]) {
     if ((draft.opening?.[player] ?? 0) <= 0) continue;
     const affordable = draft.players[player].hand
       .some((h) => getDef(h.defId).cost <= OPENING_COST_CAP);
     if (!affordable) continue;
-    const row = homeRow(player, draft.boardSize);
-    for (let col = 0; col < draft.boardSize; col++)
-      if (!isCaptured(draft, row, col) && !isContested(draft, player, col) && !cardAt(draft, row, col))
-        return true;
+    if (openHomeSlots(draft, player).length > 0) return true;
   }
   return false;
 }

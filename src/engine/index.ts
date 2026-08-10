@@ -21,6 +21,7 @@ export {
 } from "./state";
 export {
   canSummon,
+  openHomeSlots,
   canMove,
   legalMoves,
   canTarget,

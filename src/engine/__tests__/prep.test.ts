@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
-import { canMove, canSummon } from "../rules";
+import { canMove, canSummon, openHomeSlots } from "../rules";
 import { boardCards, cardAt, moveReach, SP_MID_MAX, SP_SLOW_MAX } from "../state";
 import { freshGame, giveHand, place, prepState } from "./helpers";
 import { getDef } from "../../data/cards";
@@ -39,6 +39,41 @@ describe("summoning", () => {
     expect(canSummon(s, "P1", handId, 1).ok).toBe(false);
     expect(canSummon(s, "P1", handId, 2).ok).toBe(false);
     expect(canSummon(s, "P1", handId, 3).ok).toBe(true);
+  });
+
+  it("openHomeSlots names exactly the columns canSummon would take", () => {
+    const s = prepState();
+    s.players.P1.gold = 10;
+    const handId = giveHand(s, "P1", "leaf_greegon");
+    place(s, "leaf_alpha", "P1", 3, 0); // occupied by own card
+    place(s, "dusk_vamp", "P2", 3, 1); // enemy on our home = contested
+    s.slots[3][2].capturedBy = "P2"; // captured
+    expect(openHomeSlots(s, "P1")).toEqual([3]);
+    expect(openHomeSlots(s, "P1").every((col) => canSummon(s, "P1", handId, col).ok)).toBe(true);
+  });
+
+  it("a full home row makes every card unsummonable, however rich you are", () => {
+    // The hand used to decide which cards glow from `cost <= gold` alone, so a
+    // packed home row still lit up every affordable card — tap one and no slot
+    // would take it. openHomeSlots is what tells the hand the BOARD is the
+    // problem, so it has to agree with canSummon's own refusal.
+    const s = prepState();
+    s.players.P1.gold = 99;
+    const handId = giveHand(s, "P1", "leaf_greegon");
+    for (let col = 0; col < s.boardSize; col++) place(s, "leaf_alpha", "P1", 3, col);
+    expect(openHomeSlots(s, "P1")).toEqual([]);
+    for (let col = 0; col < s.boardSize; col++)
+      expect(canSummon(s, "P1", handId, col).ok).toBe(false);
+  });
+
+  it("openHomeSlots asks about the board only, never the price", () => {
+    // The free opening placement spends slots, not Gold. A board-side check
+    // that quietly folded affordability in would claim "nowhere to put it"
+    // during deployment, when in fact every square is open.
+    const s = prepState();
+    s.players.P1.gold = 0;
+    giveHand(s, "P1", "leaf_greegon");
+    expect(openHomeSlots(s, "P1")).toEqual([0, 1, 2, 3]);
   });
 
   it("rejects summoning without priority", () => {

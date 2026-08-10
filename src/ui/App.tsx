@@ -25,6 +25,7 @@ import {
   legalWallRows,
   needsInput,
   needsP1Input,
+  openHomeSlots,
   previewOnSummonArea,
   spellEnemyTargets,
   spellAllyTargets,
@@ -587,9 +588,9 @@ export function App() {
   // drop to stage it for confirm.
   function onDragStartCard(handId: string) {
     if (me === null || game.phase !== "prep" || game.prep?.priority !== me) return;
-    const p = game.players[me];
-    const card = p.hand.find((h) => h.handId === handId);
-    if (!card || getDef(card.defId).cost > p.gold) return;
+    // Same gate as the tap: some column has to be willing to take the card,
+    // otherwise the drag arms a summon with nowhere to drop it.
+    if (!openHomeSlots(game, me).some((col) => canSummon(game, me, handId, col).ok)) return;
     setSel({ kind: "hand", handId }); // arm so the legal home slots light up
     setStaged(null);
     setDrag(handId);
@@ -618,6 +619,31 @@ export function App() {
   }
 
   // ── legality highlights ───────────────────────────────────────────────────
+  /** Home-row columns that could take a summon at all. Empty = the row is full
+   *  (or captured/contested) end to end, so nothing in hand is placeable no
+   *  matter what it costs — a board problem, not a Gold problem. */
+  const openSlots = useMemo(() => openHomeSlots(game, view), [game, view]);
+
+  /** Which hand cards can actually be summoned right now, asked of the engine
+   *  card-by-card over every column — the SAME canSummon that decides which
+   *  slots glow. The hand used to answer this itself with `cost <= gold`, which
+   *  drifted from the real rule in both directions: with a full home row every
+   *  affordable card still lit up and armed a summon no slot would accept (tap
+   *  it and the board just sits there), and during the FREE opening deployment
+   *  — where Gold is 0 and slots are the currency — every card read as broke. */
+  const summonableHandIds = useMemo(() => {
+    const out = new Set<string>();
+    for (const h of game.players[view].hand) {
+      for (let col = 0; col < game.boardSize; col++) {
+        if (canSummon(game, view, h.handId, col).ok) {
+          out.add(h.handId);
+          break;
+        }
+      }
+    }
+    return out;
+  }, [game, view]);
+
   const legalSlots: Pos[] = useMemo(() => {
     if (game.phase !== "prep") return [];
     const hr = homeRow(view, game.boardSize);
@@ -767,8 +793,22 @@ export function App() {
     }
     const p = game.players[me];
     const def = getDef(p.hand.find((h) => h.handId === handId)!.defId);
-    if (def.cost > p.gold) {
-      setHint(`⚠ Not enough Gold for ${def.name} (costs ${def.cost}).`);
+    // Never arm a summon that no slot would take: the hint would send the
+    // player hunting for a glowing Home slot that doesn't exist. Ask the engine
+    // about a column that IS open, so its refusal is about the card (Gold, the
+    // opening ceiling) rather than about whichever square happens to be first.
+    const open = openHomeSlots(game, me);
+    if (open.length === 0) {
+      setHint("⚠ Your Home row is full — move a card forward, or wait for a slot to clear.");
+      return;
+    }
+    const chk = canSummon(game, me, handId, open[0]);
+    if (!chk.ok) {
+      setHint(
+        chk.reason === "Not enough Gold"
+          ? `⚠ Not enough Gold for ${def.name} (costs ${def.cost}).`
+          : `⚠ ${chk.reason ?? `Can't summon ${def.name} right now.`}`,
+      );
       return;
     }
     setSel({ kind: "hand", handId });
@@ -1628,6 +1668,8 @@ export function App() {
           <Hand
             game={game}
             player={view}
+            summonableHandIds={summonableHandIds}
+            homeRowOpen={openSlots.length > 0}
             selectedHandId={sel?.kind === "hand" ? sel.handId : null}
             onPick={onPickHand}
             onDragStartCard={onDragStartCard}

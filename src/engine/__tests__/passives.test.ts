@@ -1406,6 +1406,34 @@ describe("medium-tier passives (audit batch)", () => {
     expect(effectiveSp(next, next.cards[smog.instanceId])).toBe(2);
   });
 
+  // Both of these keep Firecrack on its HOME row (3) on purpose. King of the
+  // Hill hands any card standing in a Mid row +1 DMG, which quietly turns its
+  // printed 5 into a 6 and every figure below into an off-by-one.
+  it("Shell Cracker: Firecrack's basic doubles into a shielded target", () => {
+    const s = prepState();
+    const fc = place(s, "pyro_firecrack", "P1", 3, 0);
+    // 2 shields subtract flat from the hit, so the doubling shows in HP: 5 DMG
+    // would put 3 through, 10 puts 8. No statuses, so Bloodfire Detonator is not
+    // also firing; shielded, so the CRIT coin can't fire either.
+    const t = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 2 });
+    basicAttack(s, fc.instanceId, t.instanceId);
+    expect(s.cards[t.instanceId].curHp).toBe(32); // 40 − (5×2 − 2)
+  });
+
+  it("...and it COMPOUNDS with Bloodfire Detonator, which is the ceiling", () => {
+    // Pinned deliberately: the two multipliers run in sequence in the damage
+    // cascade, so bleeding + burning + shielded is 5 -> 10 -> 20 — the largest
+    // single basic in the game, off a 2-cost 4 HP body. If that ever needs
+    // capping, this test is where the decision gets made, not a match.
+    const s = prepState();
+    const fc = place(s, "pyro_firecrack", "P1", 3, 0);
+    const t = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 2 });
+    applyStatus(s, s.cards[t.instanceId], "BLEED", 3, 1, "DUSK");
+    applyStatus(s, s.cards[t.instanceId], "BURN", 3, 1, "PYRO");
+    basicAttack(s, fc.instanceId, t.instanceId);
+    expect(s.cards[t.instanceId].curHp).toBe(22); // 40 − (5×2×2 − 2)
+  });
+
   it("Slag Field burns what stands beside the Tortoise — and only that", () => {
     // The same inRangeDmg field that gives Smog the whole enemy board gives the
     // Tortoise eight squares, because it reads canTarget and the Tortoise is

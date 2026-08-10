@@ -750,9 +750,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .gem-opp { font-size: 11px; color: var(--ink-faint); font-weight: 700; margin-top: 2px; }
 
 /* hand — a fanned floating arc; the deck sits as a stacked pile beside it. */
-.hand { flex: 1; display: flex; align-items: flex-end; justify-content: center; gap: 14px; min-width: 0; overflow: visible; }
+.hand { position: relative; flex: 1; display: flex; align-items: flex-end; justify-content: center; gap: 14px; min-width: 0; overflow: visible; }
 .hand-fan { flex: 1; display: flex; align-items: flex-end; justify-content: center; min-width: 0; overflow: visible; padding-top: 30px; }
 .hand-empty { color: var(--ink-faint); font-size: 12px; align-self: center; }
+/* "Home row full" notice, centred over the top of the fan. Absolute so it never
+   steals width from the cards, click-through so it can never eat a tap. */
+.hand-note {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 55;
+  padding: 3px 10px; border-radius: 999px; white-space: nowrap; pointer-events: none;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+  color: var(--gold-hi); background: rgba(12, 9, 4, 0.9); border: 1px solid var(--gold-line);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+}
 
 /* Each hand card: full-bleed art, cost gem, element sigil, name/type/stats plate.
    Fanned via per-card --rot/--ty; hover lifts it clear for reading. */
@@ -773,14 +782,22 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .hcard.summonable { border-color: var(--legal); animation: cardglow 1.8s ease-in-out infinite; cursor: grab; }
 .hcard.summonable:active { cursor: grabbing; }
 @keyframes cardglow { 0%, 100% { box-shadow: 0 14px 30px rgba(0,0,0,0.6), 0 0 0 rgba(78,203,143,0); } 50% { box-shadow: 0 14px 30px rgba(0,0,0,0.6), 0 0 18px rgba(78,203,143,0.5); } }
-/* Can't-summon-yet cards read as locked behind a translucent black veil —
-   the art stays visible through it, and the cost gem/sigil (z-index 4) ride
-   ABOVE the veil so the reason it's locked stays bright. */
-.hcard.unaffordable { filter: grayscale(0.2); }
-.hcard.unaffordable::before {
+/* Can't-summon-yet cards read as locked behind a translucent veil — the art
+   stays visible through it, and the cost gem/sigil (z-index 4) ride ABOVE the
+   veil so the reason it's locked stays bright.
+
+   Two locked states, deliberately different, because the player fixes them
+   differently: `unaffordable` (black veil, red cost gem) is about the CARD —
+   bank Gold and it unlocks itself. `noroom` (gold-tinted veil, no red gem, the
+   whole hand at once) is about the BOARD — the Home row is full, and no amount
+   of Gold changes that; move a card forward instead. */
+.hcard.unaffordable, .hcard.noroom { filter: grayscale(0.2); }
+.hcard.unaffordable::before, .hcard.noroom::before {
   content: ""; position: absolute; inset: 0; z-index: 3; border-radius: 9px;
   background: rgba(3, 2, 8, 0.5); pointer-events: none;
 }
+.hcard.noroom { border-color: color-mix(in srgb, var(--gold) 45%, #0d0c14); cursor: not-allowed; }
+.hcard.noroom::before { background: rgba(28, 20, 4, 0.52); }
 .hcard.selected { outline: 2px solid var(--gold-lit); outline-offset: 1px; }
 /* cost gem (top-left) + element sigil (top-right) */
 .hcard .hc-cost {

@@ -25,6 +25,15 @@ function useNarrow(): boolean {
 export function Hand(props: {
   game: GameState;
   player: PlayerId;
+  /** Hand ids the ENGINE says are summonable right now (App asks canSummon over
+   *  every column — the same rule that lights up the Home slots). The hand does
+   *  not re-derive this: `cost <= gold` is only half of it, and a card that
+   *  passes that half with a full Home row is a card the board will refuse. */
+  summonableHandIds: ReadonlySet<string>;
+  /** False = no Home slot is free at all, so every card is stuck for the same
+   *  board-side reason. Styled apart from "can't afford it" because the player
+   *  fixes the two differently: make space vs. wait for Gold. */
+  homeRowOpen: boolean;
   selectedHandId: string | null;
   onPick: (handId: string) => void;
   onDragStartCard?: (handId: string) => void;
@@ -63,14 +72,21 @@ export function Hand(props: {
       <div className="hand-fan">
         {me.hand.map((h, i) => {
           const def = getDef(h.defId);
-          const affordable = def.cost <= me.gold;
+          const summonable = props.summonableHandIds.has(h.handId);
+          // Two locked states, two fixes. `noroom` = the board is full, so make
+          // space; `unaffordable` = the card is out of reach, so bank Gold. The
+          // Gold veil is suppressed for anything the engine says IS summonable,
+          // because the free opening placement spends slots, not Gold.
+          const noRoom = myPrep && !summonable && !props.homeRowOpen;
+          const unaffordable = def.cost > me.gold && !summonable && !noRoom;
           const off = i - center;
           const rot = off * rotStep; // fan spread (deg)
           const ty = Math.min(tyMax, Math.pow(Math.abs(off), 1.4) * tyStep); // outer cards dip lower (clamped)
           const cls = [
             "hcard",
-            myPrep && affordable ? "summonable" : "",
-            !affordable ? "unaffordable" : "",
+            summonable ? "summonable" : "",
+            unaffordable ? "unaffordable" : "",
+            noRoom ? "noroom" : "",
             props.selectedHandId === h.handId ? "selected" : "",
           ]
             .filter(Boolean)
@@ -85,8 +101,14 @@ export function Hand(props: {
                 ["--el" as string]: EL_COLOR[def.element],
                 zIndex: 30 - Math.round(Math.abs(off) * 2),
               }}
-              title={def.special ? `${def.special.name}: ${def.special.text}` : def.name}
-              draggable={myPrep && affordable}
+              title={
+                noRoom
+                  ? `${def.name} — no free Home slot`
+                  : def.special
+                    ? `${def.special.name}: ${def.special.text}`
+                    : def.name
+              }
+              draggable={summonable}
               onDragStart={(e) => {
                 e.dataTransfer.setData("text/plain", h.handId);
                 e.dataTransfer.effectAllowed = "move";
@@ -120,6 +142,12 @@ export function Hand(props: {
         })}
         {n === 0 && <span className="hand-empty">Hand empty.</span>}
       </div>
+
+      {/* Say it once, up front. A full Home row makes the whole hand unplayable,
+          and the player shouldn't have to tap a card to find that out. */}
+      {myPrep && n > 0 && !props.homeRowOpen && (
+        <span className="hand-note">Home row full — move a card forward to free a slot.</span>
+      )}
     </div>
   );
 }

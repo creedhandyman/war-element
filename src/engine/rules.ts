@@ -54,14 +54,36 @@ export function canSummon(
   } else if (def.cost > state.players[player].gold) {
     return { ok: false, reason: "Not enough Gold" };
   }
+  const blocked = homeSlotBlocker(state, player, col);
+  return blocked ? { ok: false, reason: blocked } : { ok: true };
+}
+
+/** Why this Home-row column can't take a summon, or null if it can — the
+ *  SLOT-side half of canSummon. Deliberately card-agnostic: Gold, the opening
+ *  cost ceiling and the deployment allowance are the other half. */
+function homeSlotBlocker(
+  state: GameState,
+  player: PlayerId,
+  col: number,
+): string | null {
   const row = homeRow(player, state.boardSize);
-  if (col < 0 || col >= state.boardSize) return { ok: false, reason: "Bad column" };
-  if (isCaptured(state, row, col))
-    return { ok: false, reason: "Slot is permanently captured" };
-  if (isContested(state, player, col))
-    return { ok: false, reason: "Slot is contested by an enemy card" };
-  if (cardAt(state, row, col)) return { ok: false, reason: "Slot is occupied" };
-  return { ok: true };
+  if (col < 0 || col >= state.boardSize) return "Bad column";
+  if (isCaptured(state, row, col)) return "Slot is permanently captured";
+  if (isContested(state, player, col)) return "Slot is contested by an enemy card";
+  if (cardAt(state, row, col)) return "Slot is occupied";
+  return null;
+}
+
+/** Every Home-row column that could take a summon right now — the board's half
+ *  of the answer, for the three callers that need it without naming a card. An
+ *  empty result means NOTHING in hand is placeable, however much Gold is on the
+ *  table, and the UI leans on that distinction: "can't afford it" and "nowhere
+ *  to put it" are fixed by different actions. */
+export function openHomeSlots(state: GameState, player: PlayerId): number[] {
+  const out: number[] = [];
+  for (let col = 0; col < state.boardSize; col++)
+    if (homeSlotBlocker(state, player, col) === null) out.push(col);
+  return out;
 }
 
 /** Trample Through (WarPhant): the shove a MOVE would perform, or null if this

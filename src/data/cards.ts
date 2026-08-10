@@ -5452,8 +5452,19 @@ export const CARDS: CardDef[] = [
     // a target already BLEEDING and BURNING — the payoff for the blood engine
     // and the fire engine landing on the same body. Amplify, not consume: the
     // DOTs keep ticking, so a fast Firecrack can cash in every round.
-    passiveNames: { vsStatus: "Bloodfire Detonator" },
+    passiveNames: { vsStatus: "Bloodfire Detonator", bonusVsShield: "Shell Cracker" },
     vsStatus: { status: "BURN", bloodfire: true, dmgMult: 2 },
+    // Shell Cracker: basics hit DOUBLE against a shielded target. A firecracker
+    // packed into a seam does more than one lit in the open.
+    //
+    // NOTE this COMPOUNDS with Bloodfire Detonator above — the two multipliers
+    // are applied in sequence in the basic-damage cascade, so a target that is
+    // bleeding, burning AND shielded eats 5 -> 10 -> 20 before the shield gate
+    // subtracts. That is the intended ceiling for a 4 HP body that has to line
+    // up three conditions to reach it, but it IS the largest single basic in the
+    // game, so the combined case is pinned in the tests rather than left to be
+    // discovered in a match.
+    bonusVsShield: 2,
   },
   {
     id: "pyro_taper",
