@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
 import { canMove, canSummon } from "../rules";
-import { cardAt, moveReach, SP_MID_MAX, SP_SLOW_MAX } from "../state";
+import { boardCards, cardAt, moveReach, SP_MID_MAX, SP_SLOW_MAX } from "../state";
 import { freshGame, giveHand, place, prepState } from "./helpers";
 import { getDef } from "../../data/cards";
 import type { GameState } from "../types";
@@ -322,5 +322,36 @@ describe("a round nobody can act in is not played", () => {
     s.players.P2.spellbook = [];
     s.players.P1.magicPool = 4;
     expect(advance(s).round).toBe(1);
+  });
+});
+
+describe("a summon can arrive on a chosen auto mode", () => {
+  it("honours the mode the intent carries", () => {
+    const s = prepState();
+    s.players.P1.gold = 20;
+    const handId = giveHand(s, "P1", "pyro_bbq");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0, autoMode: "full" });
+    const landed = boardCards(next, "P1")[0];
+    expect(landed.autoMode).toBe("full");
+  });
+
+  it("and defaults to manual when it carries none", () => {
+    const s = prepState();
+    s.players.P1.gold = 20;
+    const handId = giveHand(s, "P1", "pyro_bbq");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(boardCards(next, "P1")[0].autoMode).toBe("manual");
+  });
+
+  it("but an AI seat stays full-auto whatever the intent says", () => {
+    // The stored preference belongs to a human's UI. A seat the machine is
+    // playing must not be talked out of full auto by one.
+    const s = prepState(42, "P2");
+    s.humans = ["P1"]; // P2 is the AI
+    s.players.P2.gold = 20;
+    s.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    const handId = giveHand(s, "P2", "pyro_bbq");
+    const next = applyIntent(s, { type: "SUMMON", player: "P2", handId, col: 0, autoMode: "manual" });
+    expect(boardCards(next, "P2")[0].autoMode).toBe("full");
   });
 });

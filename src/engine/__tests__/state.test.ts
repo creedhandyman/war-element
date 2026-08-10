@@ -92,7 +92,7 @@ describe("setup", () => {
       // line gives up (trimmed from +5 / +6 after it measured OP).
       "bore_rohojohn",
       // Ability-carried, downward: 26 vs a Cost-4 budget of 30. Rubyscale spawns
-      // Greegon — a real card, 26 points of its own — on summon, and its Special
+      // Greegon — a real card, 27 points of its own — on summon, and its Special
       // carries a +8 rider that only works while Greegon stands, so it enables
       // its own payoff. Four points off the printed line is nowhere near paying
       // for that; the price does the rest.

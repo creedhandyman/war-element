@@ -1,9 +1,11 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
-import type { CardDef, CardInstance, GameState, PlayerId, StatusKind } from "../engine";
+import type { AutoMode, CardDef, CardInstance, GameState, PlayerId, StatusKind } from "../engine";
 import { effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, effectiveSpecialCost, ELEMENT_AURA, getDef, getSpell } from "../engine";
 import { EL_COLOR, EL_ICON, KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 import { cardMods } from "./Token";
 import { SpIcon } from "./icons";
+import { autoPrefFor, setAutoPref } from "./auto-prefs";
 
 // Colour lookup for keyword/status terms so they render as chips in card text.
 const CHIP_COLOR: Record<string, string> = (() => {
@@ -799,6 +801,8 @@ export function CardDetail(props: {
   viewer: PlayerId;
   canMove: boolean;
   onMove: () => void;
+  /** Set this card's auto mode. Absent for a card the viewer doesn't own. */
+  onSetAuto?: (mode: AutoMode) => void;
   onClose: () => void;
 }) {
   const { game, card } = props;
@@ -984,6 +988,8 @@ export function CardDetail(props: {
           </div>
         )}
 
+        {mine && props.onSetAuto && <AutoControl card={card} onSet={props.onSetAuto} />}
+
         <div className="cd-actions">
           {props.canMove && (
             <button className="lockin" onClick={props.onMove}>
@@ -995,6 +1001,68 @@ export function CardDetail(props: {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+const AUTO_MODES: { mode: AutoMode; label: string; blurb: string }[] = [
+  { mode: "manual", label: "Manual", blurb: "You choose its action every round." },
+  { mode: "basic", label: "Auto", blurb: "It attacks on its own, but never spends magic." },
+  { mode: "full", label: "Full", blurb: "It attacks and fires its Special when it can." },
+];
+
+/** Auto-attack settings for one card, in the card's own panel.
+ *
+ *  This used to be a badge on the board token that cycled manual → auto → full
+ *  when tapped — a live setting on a 60px tile, in the same place you tap to
+ *  select and to move. Here there is room to name the three modes and say what
+ *  each one does.
+ *
+ *  "Always" is the part the badge could never offer: it writes the choice
+ *  against the CARD rather than this one body, so every copy you summon from
+ *  now on — this match and every match after — arrives already set.
+ */
+function AutoControl({ card, onSet }: { card: CardInstance; onSet: (m: AutoMode) => void }) {
+  const defId = card.defId;
+  const [remembered, setRemembered] = useState<AutoMode | undefined>(() => autoPrefFor(defId));
+  const always = remembered === card.autoMode && remembered !== undefined;
+
+  return (
+    <div className="cd-auto">
+      <div className="cd-seclabel">Auto attack</div>
+      <div className="cd-automodes">
+        {AUTO_MODES.map((m) => (
+          <button
+            key={m.mode}
+            className={`cd-automode ${card.autoMode === m.mode ? "on" : ""}`}
+            title={m.blurb}
+            onClick={() => {
+              onSet(m.mode);
+              // Keep a standing "always" pointed at what you just picked, rather
+              // than silently leaving it on the old mode.
+              if (remembered !== undefined) { setAutoPref(defId, m.mode); setRemembered(m.mode); }
+            }}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+      <p className="cd-autoblurb">{AUTO_MODES.find((m) => m.mode === card.autoMode)?.blurb}</p>
+      <label className="cd-always">
+        <input
+          type="checkbox"
+          checked={always}
+          onChange={(e) => {
+            const next = e.target.checked ? card.autoMode : undefined;
+            setAutoPref(defId, next);
+            setRemembered(next);
+          }}
+        />
+        <span>
+          Always for <b>{getDef(defId).name}</b>
+          <em>every copy you summon from now on starts on this mode</em>
+        </span>
+      </label>
     </div>
   );
 }

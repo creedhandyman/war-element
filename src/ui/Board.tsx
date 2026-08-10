@@ -42,7 +42,6 @@ export function Board(props: {
   onSlotClick: (row: number, col: number) => void;
   onSlotDragOver: (row: number, col: number) => void; // drag-to-summon: hover
   onSlotDrop: (row: number, col: number) => void; // drag-to-summon: drop
-  onCycleAuto: (instanceId: string) => void;
 }) {
   const { game } = props;
   // Render so the VIEWER's home is always at the bottom. P1 home is row 3
@@ -190,7 +189,6 @@ export function Board(props: {
                   onClick={props.onSlotClick}
                   onDragOver={props.onSlotDragOver}
                   onDrop={props.onSlotDrop}
-                  onCycleAuto={props.onCycleAuto}
                 />
               );
             })}

@@ -1648,7 +1648,12 @@ export interface GameState {
 
 export type Intent =
   | { type: "MULLIGAN"; player: PlayerId; returnHandIds: string[] }
-  | { type: "SUMMON"; player: PlayerId; handId: string; col: number }
+  /** `autoMode` is the summoning player's remembered default for this card
+   *  (see ui/auto-prefs). Carried ON THE INTENT rather than read from storage
+   *  inside the engine: the engine is pure and replayable, and a value pulled
+   *  out of one browser's localStorage mid-resolution would desync an online
+   *  match and make a replay non-deterministic. */
+  | { type: "SUMMON"; player: PlayerId; handId: string; col: number; autoMode?: AutoMode }
   | { type: "MOVE"; player: PlayerId; instanceId: string; to: Pos }
   | {
       type: "CAST_SPELL";

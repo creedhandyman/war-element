@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getDef } from "../../data/cards";
 import { advance, applyIntent } from "../phases";
 import { boardCards, effectiveDmg, effectiveMaxHp, effectiveSp } from "../state";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
@@ -21,7 +22,10 @@ describe("Bluejay", () => {
     s.players.P2.hand = [{ handId: "h99", defId: "leaf_greegon" }];
     const next = applyIntent(s, { type: "SUMMON", player: "P2", handId: "h99", col: 0 });
     const newcomer = boardCards(next, "P2").find((c) => c.defId === "leaf_greegon")!;
-    expect(newcomer.curHp).toBeLessThan(15); // 2, or 4 if the CRIT coin landed
+    // Compared against the DEF's HP, not a literal. This used to say 15, which was
+    // Greegon's max HP written out by hand — so re-cutting an unrelated LEAF card
+    // failed a Bluejay test. What is under test is only that arriving cost it HP.
+    expect(newcomer.curHp).toBeLessThan(getDef("leaf_greegon").hp);
   });
 
   it("Twin Wind Strikes DOUBLE-tapped: 14 DMG, WEAKEN, and a STACKED −10 SP", () => {
@@ -37,7 +41,7 @@ describe("Bluejay", () => {
     const hit = next.cards[foe.instanceId];
     expect(hit.curHp).toBe(40 - 14); // 7 + 7
     expect(statusOf(hit, "WEAKEN")).toBeTruthy();
-    // Two −5 SP buffs are stacked. effectiveSp FLOORS at 0 (Greegon's 6 − 10
+    // Two −5 SP buffs are stacked. effectiveSp FLOORS at 0 (Greegon's 4 − 10
     // clamps), so the stack is read off the buffs directly, not the total.
     expect(hit.buffs.filter((b) => b.sp === -5)).toHaveLength(2);
     expect(effectiveSp(next, hit)).toBe(Math.max(0, before - 10));
@@ -55,8 +59,10 @@ describe("Bluejay", () => {
     });
     expect(next.cards[a.instanceId].curHp).toBe(40 - 7);
     expect(next.cards[b.instanceId].curHp).toBe(40 - 7);
-    expect(effectiveSp(next, next.cards[a.instanceId])).toBe(spA - 5);
-    expect(effectiveSp(next, next.cards[b.instanceId])).toBe(spB - 5);
+    // Floored, like the double-tap above: effectiveSp never reports below 0, and
+    // a 5-point sap on a 4-SP body would otherwise be asserted as -1.
+    expect(effectiveSp(next, next.cards[a.instanceId])).toBe(Math.max(0, spA - 5));
+    expect(effectiveSp(next, next.cards[b.instanceId])).toBe(Math.max(0, spB - 5));
   });
 });
 

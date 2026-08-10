@@ -107,6 +107,10 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         col: intent.col,
       });
       if (!draft.humans.includes(intent.player)) inst.autoMode = "full";
+      // A human's remembered default for this card, if they set one. After the
+      // AI line on purpose: an AI-controlled seat is always full-auto and no
+      // stored preference should be able to talk it out of that.
+      else if (intent.autoMode) inst.autoMode = intent.autoMode;
       if (draft.opening) draft.opening[intent.player] -= 1;
       draft.prep!.consecutivePasses = 0;
       // Named from what LANDED, not from what was played. Both players read this

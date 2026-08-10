@@ -169,7 +169,6 @@ export function Token(props: {
   viewer: PlayerId; // the local player's side — "mine" is relative to this, not always P1
   selected: boolean;
   acting: boolean;
-  onCycleAuto: (instanceId: string) => void;
 }) {
   const { game, card } = props;
   const def = getDef(card.defId);
@@ -346,15 +345,14 @@ export function Token(props: {
           </span>
         </div>
       </div>
-      {mine && human && (
-        <div
-          className={`auto-btn ${card.autoMode}`}
-          title={`Auto mode: ${card.autoMode} — click to cycle`}
-          onClick={(e) => {
-            e.stopPropagation();
-            props.onCycleAuto(card.instanceId);
-          }}
-        >
+      {/* READ-ONLY. This used to be the control itself — tap to cycle
+          manual/auto/full — which put a live setting on a 60px board tile where
+          it was as easy to hit by accident as on purpose, right where you are
+          also tapping to select and move. The setting lives in the card's own
+          panel now; what stays here is the answer to "which of mine are on
+          auto?", readable at a glance across the whole board. */}
+      {mine && human && card.autoMode !== "manual" && (
+        <div className={`auto-tag ${card.autoMode}`} title={`On ${card.autoMode} auto — change it in the card panel`}>
           {AUTO_LABEL[card.autoMode]}
         </div>
       )}

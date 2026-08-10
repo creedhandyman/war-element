@@ -29,7 +29,6 @@ export function Slot(props: {
   onClick: (row: number, col: number) => void;
   onDragOver: (row: number, col: number) => void;
   onDrop: (row: number, col: number) => void;
-  onCycleAuto: (instanceId: string) => void;
 }) {
   // Derived from the board size, not a fixed 4-entry table. That table tinted
   // row 3 as "yours" and had no entry at all for row 4, so on a 5×5 the home
@@ -121,7 +120,6 @@ export function Slot(props: {
           viewer={props.viewer}
           selected={props.selectedId === props.card.instanceId}
           acting={props.actingId === props.card.instanceId}
-          onCycleAuto={props.onCycleAuto}
         />
       )}
     </div>

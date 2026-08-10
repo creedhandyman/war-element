@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { EnchantMode, GameState, Intent, PlayerId, Pos } from "../engine";
+import type { AutoMode, EnchantMode, GameState, Intent, PlayerId, Pos } from "../engine";
 import {
   advance,
   applyIntent,
@@ -39,6 +39,7 @@ import {
 import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online";
 import { Board } from "./Board";
 import { CardDetail } from "./CardDetail";
+import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
 import { REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
@@ -548,7 +549,14 @@ export function App() {
   // Confirm / cancel a staged summon placement.
   function confirmSummon() {
     if (!staged || me === null) return;
-    const intent: Intent = { type: "SUMMON", player: me, handId: staged.handId, col: staged.col };
+    const staging = game.players[me].hand.find((h) => h.handId === staged.handId);
+    const intent: Intent = {
+      type: "SUMMON", player: me, handId: staged.handId, col: staged.col,
+      // The player's remembered default for this card, if they set one. Read
+      // here and sent WITH the intent, so the engine stays pure and an online
+      // peer replaying it lands on the same mode.
+      autoMode: staging ? autoPrefFor(staging.defId) : undefined,
+    };
     const card = game.players[me].hand.find((h) => h.handId === staged.handId);
     // A legendary+ gets its art up BEFORE it lands, the same hold-then-dispatch
     // the spell flash uses. Guarded on the timer so a second summon can't land
@@ -1089,13 +1097,13 @@ export function App() {
     );
   }
 
-  function onCycleAuto(instanceId: string) {
+  /** Set one card's auto mode outright. Was a cycler driven by a badge on the
+   *  board token; the card panel offers the three modes as named buttons, so
+   *  there is nothing left to cycle through blindly. */
+  function setCardAuto(instanceId: string, mode: AutoMode) {
     const owner = game.cards[instanceId]?.owner ?? view;
-    // Only ever toggle your OWN cards' auto mode — never the opponent's.
+    // Only ever change your OWN cards' auto mode — never the opponent's.
     if (owner !== view) return;
-    const order = ["manual", "basic", "full"] as const;
-    const cur = game.cards[instanceId]?.autoMode ?? "manual";
-    const mode = order[(order.indexOf(cur) + 1) % 3];
     dispatch({ type: "SET_AUTO", player: owner, instanceId, mode });
   }
 
@@ -1260,7 +1268,6 @@ export function App() {
         onSlotClick={onSlotClick}
         onSlotDragOver={onSlotDragOver}
         onSlotDrop={onSlotDrop}
-        onCycleAuto={onCycleAuto}
       />
 
       {staged && me !== null && (() => {
@@ -1732,6 +1739,7 @@ export function App() {
             legalMoves(game, me, detailId).length > 0
           }
           onMove={() => armMoveFromDetail(detailId)}
+          onSetAuto={(mode) => setCardAuto(detailId, mode)}
           onClose={() => setDetailId(null)}
         />
       )}
