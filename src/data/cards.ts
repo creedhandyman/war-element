@@ -5765,10 +5765,14 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 3,
-    dmg: 5,
+    // Re-cut as a glass cannon: 5/13/7 -> 8/6/11. Budget-neutral at 25 either way
+    // (8 + 6 + 11 = 25 = 5*3 + 10), so this trades durability for damage and speed
+    // rather than adding power. At 6 HP it now dies to most single Specials, which
+    // is the price of throwing 8 a shot from the 11-SP band.
+    dmg: 8,
     hits: 1,
-    hp: 13,
-    sp: 7,
+    hp: 6,
+    sp: 11,
     shields: 0,
     keywords: {},
     tribe: "Dark",
