@@ -1406,6 +1406,34 @@ describe("medium-tier passives (audit batch)", () => {
     expect(effectiveSp(next, next.cards[smog.instanceId])).toBe(2);
   });
 
+  it("Slag Field burns what stands beside the Tortoise — and only that", () => {
+    // The same inRangeDmg field that gives Smog the whole enemy board gives the
+    // Tortoise eight squares, because it reads canTarget and the Tortoise is
+    // Melee. That difference is the entire point of the passive, so it is what
+    // this pins: a Ranged reading here would catch the far card too.
+    const s = prepState();
+    place(s, "pyro_slag_tortoise", "P1", 2, 1);
+    const beside = place(s, "dusk_gool", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    const diagonal = place(s, "dusk_vamp", "P2", 1, 2, { curHp: 20, maxHp: 20, curShields: 0 });
+    const across = place(s, "dusk_crow", "P2", 0, 3, { curHp: 20, maxHp: 20, curShields: 0 });
+    const next = advance(atCleanup(s));
+    expect(next.cards[beside.instanceId].curHp).toBe(19);
+    expect(next.cards[diagonal.instanceId].curHp).toBe(19);
+    expect(next.cards[across.instanceId].curHp).toBe(20); // out of a Melee card's reach
+  });
+
+  it("...and the Tortoise can finally take a step", () => {
+    // The other half of the fix: at SP 0 it was welded to the slot it was
+    // summoned into, so a wall you could not position was a wall in your own
+    // home row. One point is one king-step a round.
+    const s = prepState();
+    const tort = place(s, "pyro_slag_tortoise", "P1", 3, 1);
+    expect(effectiveSp(s, s.cards[tort.instanceId])).toBe(1);
+    expect(canMove(s, "P1", tort.instanceId, { row: 2, col: 1 }).ok).toBe(true);
+    // Still a tortoise — one step, not a charge across the board.
+    expect(canMove(s, "P1", tort.instanceId, { row: 1, col: 1 }).ok).toBe(false);
+  });
+
   it("Black Smoke chokes the enemy and mends the ally in the same breath", () => {
     const s = prepState();
     // Smog itself starts hurt, so its own line proves inclusion rather than

@@ -4998,11 +4998,33 @@ export const CARDS: CardDef[] = [
     dmg: 2,
     hits: 1,
     hp: 15,
-    sp: 0,
+    // 0 -> 1. One step a round: enough to be walked into a lane over a couple of
+    // turns, not enough to chase anything. Puts it at 26 against a 25 budget —
+    // inside the +/-2 tolerance — and level with Granite Armadillo and Coral
+    // Golem, its exact peers at cost 3 behind 4 shields.
+    sp: 1,
     shields: 4,
     // Molten Shell: −1 DMG from every incoming hit (flat, pre-shield, even PEN)
     // — that's exactly BLOCK. PYRO's first proper wall to hold a lane.
     keywords: { BLOCK: 1 },
+    // Slag Field: the heat comes off it whether it acts or not — 1 DMG at the
+    // end of every round to each opponent it can reach.
+    //
+    // The card's problem was that it did nothing. It was the only Melee card in
+    // the game printing SP 0 with no kit at all: it could never move, so its
+    // 2 DMG only ever landed on something that volunteered to stand beside it,
+    // and 25 of its stat points did nothing. Every other rooted card has a
+    // reason to be rooted (Oakgre's aura, RIP's spawner, Oak's Talent,
+    // Dandelion's charge, Doom's timer); this is the Tortoise's. Paired with
+    // the single point of SP above, it can now be walked into a lane AND make
+    // that lane cost something to stand in — it never has to reach you.
+    //
+    // `inRangeDmg` is reach-relative, so the same field that gives Smog the
+    // whole enemy board (Ranged) gives the Tortoise the eight squares around it.
+    // A passive rather than a stat bump because the card already sits exactly on
+    // its cost-3 budget (2 + 15 + 4x2 = 25), and kit is the part that's free.
+    passiveNames: { roundTick: "Slag Field" },
+    roundTick: { inRangeDmg: 1 },
   },
   {
     id: "aqua_anglerfish",
