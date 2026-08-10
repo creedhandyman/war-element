@@ -8768,7 +8768,12 @@ export const TOKENS: CardDef[] = [
     // Costed at 8 for display only: that is what you actually paid for it.
     id: "dusk_butler",
     name: "The Butler",
-    rarity: "legendary",
+    // RARE, not legendary — the rarity is part of the disguise. The card face
+    // prints its tier, so a Butler stamped LEGEND is a Butler everybody reads
+    // correctly and nobody touches. Nothing mechanical keys on this for a DUSK
+    // token: the one rarity-driven effect in the game is BORE's Exostone shield
+    // table, and Nightfang's true form carries its own rarity regardless.
+    rarity: "rare",
     element: "DUSK",
     cardClass: "Support",
     attackType: "Melee",

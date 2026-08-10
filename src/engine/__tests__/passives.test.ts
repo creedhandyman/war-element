@@ -3264,6 +3264,11 @@ describe("a disguise arrives quietly", () => {
     // the thing that is supposed to look ordinary.
     expect(announces("dusk_nightfang"), "the true form must not announce").toBe(false);
     expect(announces("dusk_butler"), "and neither must the face").toBe(false);
+    // The face is a RARE as well — the card prints its tier, so a Butler stamped
+    // LEGEND reads correctly to anyone looking and the disguise is only skin
+    // deep. Belt and braces: it would not announce at either rarity.
+    expect(getDef("dusk_butler").rarity).toBe("rare");
+    expect(getDef("dusk_nightfang").rarity, "the true form keeps its own").toBe("legendary");
   });
 
   it("but an ordinary legendary still gets its moment", () => {
