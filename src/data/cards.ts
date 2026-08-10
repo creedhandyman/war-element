@@ -107,10 +107,18 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     attackType: "Melee",
     cost: 3,
-    dmg: 5,
+    // Pushed back toward the wall it started as: DMG 5 -> 4, HP 15 -> 19, SP 6 -> 4.
+    // Budget 27 vs a Cost-3 target of 25 — +2, at the edge of the band but inside it.
+    //
+    // The SP is the real change, not the DMG. SP_SLOW_MAX is 5, so dropping 6 -> 4
+    // crosses the movement tier and its stride halves, 2 slots to 1. That works
+    // against the Bramble note below: the thorns were added BECAUSE it never closed
+    // anything, and at reach 1 it closes less still. With REGEN 2 on top of
+    // Photosynthesis it mends 4 a round, which is where its value has gone.
+    dmg: 4,
     hits: 1,
-    hp: 15,
-    sp: 6,
+    hp: 19,
+    sp: 4,
     shields: 0,
     keywords: { REGEN: 2 }, // Canopy: REGEN 2 at end of round
     // Bramble: its basic leaves BLEED 1 for 2 rounds. Greegon was a pure wall —
