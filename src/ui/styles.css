@@ -2326,10 +2326,20 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    room than .sp-enemy, real card art, and a clear carried/left-behind split: a
    chosen card lights up, and once the squad is full everything still on the
    shelf dims rather than silently refusing the tap. */
-.sp-pack { max-height: min(46vh, 340px); gap: 6px; }
+/* A grid rather than the wrapped flex .sp-enemy uses: with ninety-odd cards to
+   scan, even rows and columns that fill the available width read far faster
+   than a ragged wrap, and the tiles stay fluid instead of pinned at 74px. */
+/* grid-auto-rows must be max-content, not auto. With a definite container
+   height, `auto` rows get fitted INTO that height — eight rows compressed to
+   55px each in a 487px box — which squashed every tile below its own artwork
+   and hid the name and cost behind overflow:hidden. max-content sizes each row
+   to the card and lets the list scroll, which is the whole point of the box. */
+.sp-pack { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+  grid-auto-rows: max-content; gap: 6px; align-content: start;
+  max-height: min(46vh, 340px); }
 /* Half art: the card's top half only, cropped at the shoulders, so a tile reads
    as the card at a glance without costing a full portrait of height. */
-.sp-card { position: relative; display: flex; flex-direction: column; width: 74px;
+.sp-card { position: relative; display: flex; flex-direction: column;
   padding: 0 0 3px; border-radius: 7px; overflow: hidden; cursor: pointer;
   background: var(--void-2); border: 1px solid var(--panel-line); color: var(--ink);
   font-size: 10.5px; font-weight: 700; text-align: center; }
@@ -2406,6 +2416,40 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 @media (max-width: 620px) {
   .story-prep { max-width: 100%; }
   .sp-enemy, .sp-deck { max-height: 132px; }
+}
+
+/* Packing on a phone. The generic .modal is a single scrolling box, which put a
+   46vh list inside a 92dvh box under a two-line title and a paragraph — about
+   one and a half rows visible out of ninety-two cards, with dead space below
+   the panel. Here the panel becomes a full-height column instead: the header,
+   the buttons and the CTA hold their size, and the card list is the only thing
+   that scrolls, taking every pixel the other three do not want.
+   Also applies in landscape, where vertical room is scarcer still. */
+@media (max-width: 620px), (max-height: 620px) {
+  .sp-packview { width: 100%; height: 92dvh; padding: 16px 14px 14px;
+    display: flex; flex-direction: column; overflow: hidden; }
+  /* Long region names wrapped to two lines and cost a whole row of cards. */
+  .sp-packview .sp-head h1 { font-size: 17px; line-height: 1.15; }
+  .sp-packview .sp-note { font-size: 12px; margin: 8px 0 10px; }
+  .sp-packview .sr-label { flex: none; }
+  .sp-packview .sp-pack { flex: 1 1 auto; min-height: 0; max-height: none;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+  .sp-packview .sp-card-art { height: 58px; }
+  .sp-packview .sp-actions,
+  .sp-packview .lockin { flex: none; }
+}
+
+/* Landscape phone. At 375px of height the header, the explanation and the two
+   button rows leave about one row of cards, so everything that is not a card
+   gives up whatever it can spare. */
+@media (max-height: 480px) {
+  .sp-packview { height: 96dvh; padding: 10px 12px 10px; }
+  .sp-packview .sp-head { margin-bottom: 2px; }
+  .sp-packview .sp-head h1 { font-size: 15px; }
+  .sp-packview .sp-note { font-size: 11px; margin: 5px 0 6px; }
+  .sp-packview .sr-label { margin: 4px 0 3px; }
+  .sp-packview .sp-card-art { height: 44px; }
+  .sp-packview .lockin { margin-top: 8px; padding: 8px; }
 }
 .story-result h1.sr-lost { color: var(--illegal); }
 /* Widens only once the report is open, so the two side columns and the 9-column
