@@ -14,6 +14,7 @@ import {
   capForNode, STANDARD_CAP, BIG_BOARD_CAP, preferredLoadout, type Loadout,
   formationSize, isRegionCleared, isRegionOpen,
   SQUAD_BASE, SQUAD_PER_THRONE, guaranteedDrops, isRegionConquered, squadCapFor, squadCapInRegion,
+  needsSquad, packSquad, poolForRegion, loadStory, saveStory,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
 } from "../../data/story";
@@ -133,6 +134,29 @@ describe("story: the deck cap ladder", () => {
     expect(sak.shields).toBeGreaterThan(0);
   });
 
+  it("every node tells you where you are standing", () => {
+    // Lore was on 57 of 108 nodes, so half the campaign was a place with no
+    // sense of place. Now that all of them carry one, this is what stops the
+    // next batch of nodes shipping bare.
+    const bare = ALL_NODES.filter((n) => !n.lore?.trim()).map((n) => n.id);
+    expect(bare, `${bare.length} node(s) have no lore`).toEqual([]);
+  });
+
+  it("lore stays lore — it never leaks the tactical read that belongs to `note`", () => {
+    // The two fields have different jobs: `note` tells you what to expect from
+    // the fight, `lore` tells you where you are standing. Game vocabulary in a
+    // lore line means the split has started to collapse.
+    // Only vocabulary that is unambiguously the GAME's. Ordinary English words
+    // that double as game terms are excluded on purpose: an early draft banned
+    // "turn" and flagged L7's "where the leaves turn fire-coloured", which is
+    // exactly the kind of false positive that gets a guard deleted.
+    const banned = /\b(deck|squad|rarity|cooldown|REGEN|DMG|\bSP\b|Mythic|Legendary|hit points)\b/;
+    const leaks = ALL_NODES
+      .filter((n) => n.lore && banned.test(n.lore))
+      .map((n) => `${n.id}: ${n.lore!.match(banned)![0]}`);
+    expect(leaks).toEqual([]);
+  });
+
   it("every region has an opening battle, and it is that region's first node", () => {
     for (const r of REGIONS) {
       const node = nodeById(r.opening.node);
@@ -160,6 +184,25 @@ describe("story: the deck cap ladder", () => {
     expect(buildFormation(late, leaf, l1)).toEqual(l1.roster);
     // The node after it is an ordinary fight again.
     expect(buildFormation(newSave(), leaf, nodeById("L2")!).length).toBe(12);
+  });
+
+  it("...but an opener reached with a real squad is a real fight, not a walkover", () => {
+    // The other half of "match the player". Arriving in PYRO having packed 14,
+    // its opener must not still put up three cards. Fielding exactly the roster
+    // was the first version of this rule and it made every region past LEAF
+    // open with a free win.
+    const pyro = REGIONS.find((r) => r.id === "pyro")!;
+    const p1 = nodeById(pyro.opening.node)!;
+    const big = Array.from({ length: 30 }, (_, i) => `c${i}`);
+    const packed = packSquad(
+      { ...newSave(), cleared: ["L14"], collection: big },
+      pyro,
+      big.slice(0, 14),
+    );
+    expect(buildFormation(packed, pyro, p1)).toHaveLength(14);
+    // And a player who really is in rags still gets the small fight.
+    const rags = { ...newSave(), cleared: ["L14"], collection: ["leaf_sakuroot"] };
+    expect(buildFormation(rags, pyro, p1)).toHaveLength(p1.roster.length);
   });
 
   it("winning an opener hands over its roster and Epic, no roll", () => {
@@ -198,6 +241,88 @@ describe("story: the deck cap ladder", () => {
     const save: StorySave = { ...newSave(), collection: [...p1.roster] }; // Rares already owned
     const got = rollRecruits(save, p1, 1, () => 0.99);
     expect(got.won).toEqual([pyro.opening.epic]);
+  });
+
+  it("the squad is a commitment — away, you may only field what you packed", () => {
+    // Capping the SIZE alone would let a player re-pick from the whole
+    // collection at every node, which makes "choose twelve and live with it"
+    // mean nothing. The pool itself has to narrow.
+    const pyro = REGIONS.find((r) => r.id === "pyro")!;
+    const big = Array.from({ length: 40 }, (_, i) => `card_${i}`);
+    const save: StorySave = { ...newSave(), cleared: ["L14"], collection: big };
+    expect(needsSquad(save, pyro)).toBe(true);
+    expect(poolForRegion(save, pyro)).toEqual([]); // nothing packed yet
+    const packed = packSquad(save, pyro, big.slice(0, 20));
+    expect(packed.squad!.cards).toHaveLength(14); // clamped to the limit
+    expect(poolForRegion(packed, pyro)).toEqual(packed.squad!.cards);
+    expect(needsSquad(packed, pyro)).toBe(false);
+  });
+
+  it("...a squad packed for one region does not travel to another", () => {
+    const pyro = REGIONS.find((r) => r.id === "pyro")!;
+    const aqua = REGIONS.find((r) => r.id === "aqua")!;
+    const big = Array.from({ length: 40 }, (_, i) => `card_${i}`);
+    const save = packSquad({ ...newSave(), cleared: ["L14"], collection: big }, pyro, big.slice(0, 14));
+    expect(poolForRegion(save, pyro)).toHaveLength(14);
+    expect(poolForRegion(save, aqua)).toEqual([]); // packed for PYRO, not here
+    expect(needsSquad(save, aqua)).toBe(true);
+  });
+
+  it("...but home is the whole collection, and packing there is a no-op", () => {
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    const big = Array.from({ length: 40 }, (_, i) => `card_${i}`);
+    const save: StorySave = { ...newSave(), cleared: ["L14"], collection: big }; // LEAF conquered
+    expect(needsSquad(save, leaf)).toBe(false);
+    expect(poolForRegion(save, leaf)).toHaveLength(40);
+    expect(packSquad(save, leaf, big.slice(0, 5)).squad).toBeUndefined();
+  });
+
+  it("...and it never asks you to pack when you own no more than you can carry", () => {
+    // The campaign's FIRST fight: LEAF is unconquered and the collection is one
+    // card. Demanding a squad there would be a question with one answer.
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    const start = newSave();
+    expect(needsSquad(start, leaf)).toBe(false);
+    expect(poolForRegion(start, leaf)).toEqual(["leaf_sakuroot"]);
+  });
+
+  it("...and never lets an unowned card into a packed squad", () => {
+    const pyro = REGIONS.find((r) => r.id === "pyro")!;
+    const save: StorySave = { ...newSave(), cleared: ["L14"], collection: ["a", "b", "c"] };
+    const packed = packSquad(save, pyro, ["a", "ghost", "b", "a"]);
+    expect(packed.squad!.cards).toEqual(["a", "b"]); // de-duped, unowned dropped
+  });
+
+  it("...and a packed squad survives a round-trip through storage", () => {
+    // Caught in the live app, not by the unit tests above: packSquad wrote the
+    // squad and loadStory never read it back, so reloading the map asked the
+    // player to pack again every single time. Every field of StorySave is
+    // reconstructed by hand on load, so a new one is invisible until listed.
+    const pyro = REGIONS.find((r) => r.id === "pyro")!;
+    const coll = ["leaf_oak", "leaf_python", "leaf_birch"];
+    const packed = packSquad(
+      { ...newSave(), cleared: ["L14"], collection: coll },
+      pyro,
+      ["leaf_oak", "leaf_python"],
+    );
+    const store = new Map<string, string>();
+    const g = globalThis as { localStorage?: unknown };
+    const prior = g.localStorage;
+    g.localStorage = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    };
+    try {
+      saveStory(packed);
+      const back = loadStory();
+      expect(back.squad).toBeDefined();
+      expect(back.squad!.region).toBe("pyro");
+      expect(back.squad!.cards).toEqual(["leaf_oak", "leaf_python"]);
+      expect(needsSquad(back, pyro)).toBe(false);
+    } finally {
+      g.localStorage = prior;
+    }
   });
 
   it("the squad clamps the fight away from home, and both sides with it", () => {
