@@ -13,6 +13,7 @@ import {
   demandMet, doublesEpics, gateCheck, isGate, regionOfNode, boardForNode, BIG_BATTLE_KINDS,
   capForNode, STANDARD_CAP, BIG_BOARD_CAP, preferredLoadout, type Loadout,
   formationSize, isRegionCleared, isRegionOpen,
+  SQUAD_BASE, SQUAD_PER_THRONE, guaranteedDrops, isRegionConquered, squadCapFor, squadCapInRegion,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
 } from "../../data/story";
@@ -119,12 +120,135 @@ describe("story: the deck cap ladder", () => {
     expect(nodeById("GE")!.requires).toEqual(expect.arrayContaining(["P13", "A13"]));
   });
 
-  it("the starter deck is legal at the starting cap and all LEAF", () => {
-    expect(STARTER_DECK).toHaveLength(deckCapFor([]));
-    expect(new Set(STARTER_DECK).size).toBe(STARTER_DECK.length); // no duplicates
-    for (const id of STARTER_DECK) expect(getDef(id).element).toBe("LEAF");
-    // Every class represented, so the tutorial deck can actually function.
-    expect(new Set(STARTER_DECK.map((id) => getDef(id).cardClass)).size).toBe(6);
+  it("the campaign starts at rags — one LEAF Epic and nothing else", () => {
+    // Was twelve curated Rares handed over before the first fight. The deck is
+    // now something you assemble by winning, starting from this one card.
+    expect(STARTER_DECK).toEqual(["leaf_sakuroot"]);
+    const sak = getDef("leaf_sakuroot");
+    expect(sak.element).toBe("LEAF");
+    expect(sak.rarity).toBe("epic");
+    // It has to be able to hold a board alone, which means surviving: a Tank
+    // with shields, not a glass cannon. This is the whole premise of the opener.
+    expect(sak.cardClass).toBe("Tank");
+    expect(sak.shields).toBeGreaterThan(0);
+  });
+
+  it("every region has an opening battle, and it is that region's first node", () => {
+    for (const r of REGIONS) {
+      const node = nodeById(r.opening.node);
+      expect(node, `${r.id} opening points at nothing`).toBeDefined();
+      expect(regionOfNode(r.opening.node)!.id).toBe(r.id);
+      expect(node!.requires, `${r.id}'s opener is not reachable first`).toEqual([]);
+      // The reward has to be a real Epic of that region, or "one Epic per
+      // region" quietly becomes "whatever id was typed here".
+      const epic = getDef(r.opening.epic);
+      expect(epic.element, `${r.id} opening Epic is the wrong element`).toBe(r.element);
+      expect(epic.rarity, `${r.id} opening Epic is not an Epic`).toBe("epic");
+    }
+  });
+
+  it("the opener fields only its roster — every other node fills to the cap", () => {
+    // One card against three. This is the only deliberately uneven fight in the
+    // campaign, and it exists because the player has one card.
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    const l1 = nodeById("L1")!;
+    expect(buildFormation(newSave(), leaf, l1)).toEqual(l1.roster);
+    expect(l1.roster).toHaveLength(3);
+    // And it STAYS three however far the ladder has climbed — coming back later
+    // must not turn the tutorial into a 28-card fight.
+    const late = { ...newSave(), cleared: ["L14", "P13", "A13", "G14", "B14"] };
+    expect(buildFormation(late, leaf, l1)).toEqual(l1.roster);
+    // The node after it is an ordinary fight again.
+    expect(buildFormation(newSave(), leaf, nodeById("L2")!).length).toBe(12);
+  });
+
+  it("winning an opener hands over its roster and Epic, no roll", () => {
+    for (const r of REGIONS) {
+      const node = nodeById(r.opening.node)!;
+      const got = guaranteedDrops(r, node);
+      for (const id of node.roster) expect(got, `${r.id} withheld ${id}`).toContain(id);
+      expect(got, `${r.id} withheld its Epic`).toContain(r.opening.epic);
+      expect(new Set(got).size, `${r.id} duplicates a drop`).toBe(got.length);
+    }
+    // Nowhere else grants anything for free.
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    expect(guaranteedDrops(leaf, nodeById("L2")!)).toEqual([]);
+    expect(guaranteedDrops(leaf, nodeById("L14")!)).toEqual([]);
+  });
+
+  it("clearing the opener actually banks the roster and the Epic", () => {
+    // The end-to-end shape of "rags to riches": start owning one card, win L1,
+    // come out owning four. Goes through the real roll + apply path, so a
+    // guarantee that never reaches the save would fail here.
+    const l1 = nodeById("L1")!;
+    const start = newSave();
+    expect(start.collection).toEqual(["leaf_sakuroot"]);
+    // rand() = 0.99 would miss every ordinary roll; the opener must not care.
+    const after = applyClear(start, l1, rollRecruits(start, l1, 1, () => 0.99));
+    for (const id of l1.roster) expect(after.collection, `L1 withheld ${id}`).toContain(id);
+    expect(after.collection).toHaveLength(4); // Sakuroot + the three Rares
+    expect(after.cleared).toContain("L1");
+  });
+
+  it("a PYRO opener hands over its Epic, which is not on that node's roster", () => {
+    // The Epic lives deeper in the region, so it can never come from the
+    // recruitable pool — this is the case the empty-pool early return used to eat.
+    const pyro = REGIONS.find((r) => r.id === "pyro")!;
+    const p1 = nodeById(pyro.opening.node)!;
+    const save: StorySave = { ...newSave(), collection: [...p1.roster] }; // Rares already owned
+    const got = rollRecruits(save, p1, 1, () => 0.99);
+    expect(got.won).toEqual([pyro.opening.epic]);
+  });
+
+  it("the squad clamps the fight away from home, and both sides with it", () => {
+    // The load-bearing interaction. After LEAF's Throne the ladder says 15, but
+    // the travelling squad is 14 — so a PYRO fight is 14 a side and a LEAF one
+    // (home now) is the full 15. Sizing BOTH sides matters: capForNode is what
+    // buildFormation reads, so without this the player brings 14 against 18.
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    const pyro = REGIONS.find((r) => r.id === "pyro")!;
+    const cleared = ["L14"];
+    expect(deckCapFor(cleared)).toBe(15);
+    expect(capForNode(cleared, pyro, nodeById("P2")!)).toBe(14); // away — squad binds
+    expect(capForNode(cleared, leaf, nodeById("L2")!)).toBe(15); // home — ladder binds
+    const save = { ...newSave(), cleared };
+    expect(buildFormation(save, pyro, nodeById("P2")!)).toHaveLength(14);
+  });
+
+  it("a gate can never demand a fuller deck than the squad allows", () => {
+    // Without the clamp inside capForNode this seals the map: a border asking
+    // for the ladder's 15 while the squad permits 14 is a gate nobody can pass.
+    for (const r of REGIONS)
+      for (const g of r.nodes.filter(isGate))
+        for (const cleared of [[], ["L14"], ["L14", "P13"], ["L14", "P13", "A13"]]) {
+          const cap = capForNode(cleared, r, g);
+          const squad = squadCapInRegion(cleared, r);
+          if (squad !== null)
+            expect(cap, `${g.id} demands ${cap} with a squad of ${squad}`).toBeLessThanOrEqual(squad);
+        }
+  });
+
+  it("the squad starts at 12, widens per conquered region, and lifts at DUSK", () => {
+    expect(squadCapFor([])).toBe(SQUAD_BASE);
+    expect(squadCapFor(["L14"])).toBe(SQUAD_BASE + SQUAD_PER_THRONE);
+    expect(squadCapFor(["L14", "P13"])).toBe(SQUAD_BASE + 2 * SQUAD_PER_THRONE);
+    // Optional Thrones are not conquests — L13 unlocks nothing.
+    expect(squadCapFor(["L13"])).toBe(SQUAD_BASE);
+    // DUSK's Throne is the answer to "when do I get my collection back".
+    expect(squadCapFor(["L14", "P13", "A13", "D13"])).toBeNull();
+  });
+
+  it("a conquered region is home — no squad limit there, limit still applies away", () => {
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    const pyro = REGIONS.find((r) => r.id === "pyro")!;
+    // Nothing taken yet: both are away, both capped.
+    expect(squadCapInRegion([], leaf)).toBe(SQUAD_BASE);
+    expect(squadCapInRegion([], pyro)).toBe(SQUAD_BASE);
+    // Take LEAF: it becomes home (full collection), PYRO is still a trip.
+    expect(squadCapInRegion(["L14"], leaf)).toBeNull();
+    expect(squadCapInRegion(["L14"], pyro)).toBe(SQUAD_BASE + SQUAD_PER_THRONE);
+    expect(isRegionConquered(["L14"], leaf)).toBe(true);
+    expect(isRegionConquered(["L14"], pyro)).toBe(false);
   });
 
   it("no node is dead on arrival — every one can recruit something at the start", () => {
@@ -585,9 +709,11 @@ describe("story: formations (10.7)", () => {
     // The whole point: a node's pool never changes, only how many bodies it
     // puts up, so a Skirmish still fields a board at every deck tier.
     const s = newSave();
-    const f = buildFormation(s, leafRegion, nodeById("L1")!);
+    // L2, not L1: the region OPENER fields exactly its roster by design now,
+    // so the generic fill rule has to be read off an ordinary skirmish.
+    const f = buildFormation(s, leafRegion, nodeById("L2")!);
     expect(f.length).toBe(formationSize(12));
-    expect(f.length).toBeGreaterThan(nodeById("L1")!.roster.length);
+    expect(f.length).toBeGreaterThan(nodeById("L2")!.roster.length);
   });
 
   it("grows with the deck tier without changing what you can FARM", () => {
@@ -595,7 +721,7 @@ describe("story: formations (10.7)", () => {
     // about the recruitable roster — not the rank and file behind it. A bigger
     // target pulls in more of the region's Rares as non-recruitable filler, and
     // that must never move the recruit pool.
-    const node = nodeById("L1")!;
+    const node = nodeById("L2")!; // an ordinary skirmish — L1 is the fixed-size opener
     const early = buildFormation(newSave(), leafRegion, node);
     const late = buildFormation({ ...newSave(), cleared: ["L14", "P13"] }, leafRegion, node);
     expect(late.length).toBeGreaterThan(early.length);
@@ -609,7 +735,7 @@ describe("story: formations (10.7)", () => {
   it("fields a whole deck, matched to what the PLAYER may bring to that node", () => {
     // Both sides read `capForNode`, so a set piece is a bigger fight on both
     // sides of the board rather than a bigger enemy across from the same deck.
-    const skirmish = nodeById("L1")!;   // 4x4, clamped to 18
+    const skirmish = nodeById("L2")!;   // 4x4, clamped to 18 (L1 is the opener)
     const throne = nodeById("L14")!;    // 5x5, opens to 28
     for (const cleared of [[], ["L14"], ["L14", "P13", "A13"], ["L14", "P13", "A13", "G14", "B14"]]) {
       const save = { ...newSave(), cleared };
@@ -676,8 +802,8 @@ describe("story: formations (10.7)", () => {
 
   it("puts every unique card in before any duplicate", () => {
     // Four identical cards reads as a bug, not a boss.
-    const f = buildFormation(newSave(), leafRegion, nodeById("L1")!);
-    const uniques = nodeById("L1")!.roster;
+    const f = buildFormation(newSave(), leafRegion, nodeById("L2")!);
+    const uniques = nodeById("L2")!.roster;
     const firstDupeAt = f.findIndex((id, i) => f.indexOf(id) !== i);
     expect(f.slice(0, uniques.length).sort()).toEqual([...uniques].sort());
     expect(firstDupeAt).toBeGreaterThanOrEqual(uniques.length);
@@ -754,7 +880,7 @@ describe("story: formations (10.7)", () => {
     // The load-bearing guardrail: duplicates are a difficulty knob, not a loot
     // knob. If they ever reached the roll, drop rates and pity would both lie.
     const s: StorySave = { ...newSave(), collection: [], deck: [] };
-    const node = nodeById("L1")!;
+    const node = nodeById("L2")!; // needs duplicates, so not the opener
     const f = buildFormation(s, leafRegion, node);
     expect(f.length).toBeGreaterThan(node.roster.length); // duplicates present
     const r = rollRecruits(s, node, 99, () => 0);         // every roll succeeds
@@ -766,6 +892,9 @@ describe("story: formations (10.7)", () => {
 describe("story: border gates (7)", () => {
   const gates = ALL_NODES.filter(isGate);
   const full = (cleared: string[]): StorySave => ({ ...newSave(), cleared });
+  /** A pile of real LEAF Rares to build test decks from. The starter is one
+   *  card now, so it can no longer stand in for "a deck of some size". */
+  const LEAF_RARES = CARDS.filter((c) => c.element === "LEAF" && c.rarity === "rare").map((c) => c.id);
 
   it("exists on every border that needs one", () => {
     // Derived rather than listed: a hardcoded roll-call needed updating for every
@@ -834,7 +963,8 @@ describe("story: border gates (7)", () => {
 
   it("refuses a deck that is not exactly at the cap", () => {
     const g = nodeById("GA")!;
-    const short = { ...full(["L14"]), deck: STARTER.slice(0, 8) };
+    // STARTER is a single card now, so the "8 of 15" case needs a real 8.
+    const short = { ...full(["L14"]), deck: LEAF_RARES.slice(0, 8) };
     expect(gateCheck(short, g).ok).toBe(false);
     expect(gateCheck(short, g).reasons.join(" ")).toMatch(/8\/15/);
   });

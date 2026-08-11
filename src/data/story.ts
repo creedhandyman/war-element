@@ -93,7 +93,40 @@ export interface StoryRegion {
   /** Node ids that must be cleared before this region is reachable at all.
    *  Empty/absent = open from the start (LEAF). */
   requires?: string[];
+  /** The region's rags-to-riches opener. See `RegionOpening`. */
+  opening: RegionOpening;
+  /** The Throne that counts as CONQUERING this region — the one flagged
+   *  `required: true` among its nodes. Clearing it opens the region's borders,
+   *  widens the squad by SQUAD_PER_THRONE, and makes this region "home": your
+   *  whole collection is available here, with no squad limit. */
+  throne: string;
   nodes: StoryNode[];
+}
+
+/** A region's OPENING BATTLE — the fight you walk into with almost nothing.
+ *
+ *  LEAF sets the pattern the others copy: Sakuroot, alone, against the three
+ *  Rares standing at Spring Village Outskirts. She is a 3-cost Tank behind 4
+ *  shields who heals her own home row, which is the only reason one card can
+ *  hold a board at all — that "sticking power" is the whole reason the campaign
+ *  can start this poor.
+ *
+ *  Two rules make it survivable, and both are exceptions carved out here rather
+ *  than anywhere else in the campaign:
+ *
+ *  1. The node fields EXACTLY its own roster — three cards — instead of filling
+ *     to the deck cap like every other fight. See `buildFormation`.
+ *  2. Winning hands that roster over GUARANTEED, no recruit roll and no pity.
+ *     See `guaranteedDrops`. Rags to riches: one card in, four out.
+ */
+export interface RegionOpening {
+  /** The node that IS the opening battle — always the region's first. */
+  node: string;
+  /** The Epic this region's opening awards. LEAF's is Sakuroot, which you are
+   *  handed at the start instead of earning (she is the deck). Every other
+   *  region's is earned by winning its opener, so you always arrive somewhere
+   *  new with one card that can hold a line while the Rares accumulate. */
+  epic: string;
 }
 
 // ── the LEAF slice ──────────────────────────────────────────────────────────
@@ -106,6 +139,8 @@ const LEAF: StoryRegion = {
   element: "LEAF",
   terrain: "Lushfield",
   board: 4,
+  opening: { node: "L1", epic: "leaf_sakuroot" },
+  throne: "L14",
   art: "/maps/leaf.webp",
   artRatio: 1536 / 1024,
   baseBlight: 1, // the Rot Line — see L8
@@ -205,6 +240,8 @@ const PYRO: StoryRegion = {
   element: "PYRO",
   terrain: "Heatwave",
   board: 4,
+  opening: { node: "P1", epic: "pyro_tiki" },
+  throne: "P13",
   art: "/maps/pyro.webp",
   artRatio: 1536 / 1024,
   requires: ["GA", "GC2"], // Gate A from LEAF, or Gate C from AQUA
@@ -295,6 +332,8 @@ const AQUA: StoryRegion = {
   element: "AQUA",
   terrain: "Downpour",
   board: 4,
+  opening: { node: "A1", epic: "aqua_blackice" },
+  throne: "A13",
   art: "/maps/aqua.webp",
   artRatio: 1440 / 1080,
   requires: ["GB", "GC"], // Gate B from LEAF, or Gate C from PYRO
@@ -407,6 +446,8 @@ const GALE: StoryRegion = {
   element: "GALE",
   terrain: "Jetstream",
   board: 4,
+  opening: { node: "G1", epic: "gale_vvulture" },
+  throne: "G14",
   art: "/maps/gale.webp",
   artRatio: 1536 / 1024,
   requires: ["GE"],
@@ -491,6 +532,8 @@ const BOLT: StoryRegion = {
   element: "BOLT",
   terrain: "Power Grid",
   board: 4,
+  opening: { node: "B1", epic: "bolt_surge" },
+  throne: "B14",
   art: "/maps/bolt.webp",
   artRatio: 1440 / 1080,
   requires: ["GE"],
@@ -579,6 +622,8 @@ const BORE: StoryRegion = {
   element: "BORE",
   terrain: "Bedrock",
   board: 4,
+  opening: { node: "R1", epic: "bore_monger" },
+  throne: "R14",
   art: "/maps/bore.webp",
   artRatio: 1440 / 1080,
   requires: ["GE"],
@@ -679,6 +724,8 @@ const DUSK: StoryRegion = {
   element: "DUSK",
   terrain: "Nightfall",
   board: 4,
+  opening: { node: "D1", epic: "dusk_spectra" },
+  throne: "D13",
   art: "/maps/dusk.webp",
   artRatio: 1440 / 1080,
   requires: ["GS"],
@@ -767,6 +814,8 @@ const DAWN: StoryRegion = {
   element: "DAWN",
   terrain: "Blazing Sun",
   board: 4,
+  opening: { node: "W1", epic: "dawn_veil" },
+  throne: "W13",
   art: "/maps/dawn.webp",
   artRatio: 1440 / 1080,
   requires: ["GF"],
@@ -852,18 +901,88 @@ export const regionOfNode = (id: string): StoryRegion | undefined =>
   REGIONS.find((r) => r.nodes.some((n) => n.id === id));
 
 // ── the starter deck ────────────────────────────────────────────────────────
-// Fixed and non-optional, handed over at Spring Village. All six classes, a
-// bottom-heavy curve, and every card is a draftable Rare the player will meet
-// again on a LEAF node — nothing in it is a dead end.
+// One card. Sakuroot, and nothing else.
+//
+// This was twelve curated LEAF Rares handed over at Spring Village — all six
+// classes and a bottom-heavy curve, a functioning deck before the first fight.
+// The campaign now starts at rags instead: you own a single Epic, and the
+// opening battle at L1 is Sakuroot alone against the three Rares standing
+// there. Winning hands all three over guaranteed, so the twelve-card deck is
+// something the player assembles rather than something they are given.
+//
+// Sakuroot specifically because one card can only hold a board if it refuses to
+// die: a 3-cost Tank behind 4 shields that heals its own home row. Every other
+// region's opener awards the same shape of card — see `RegionOpening`.
+export const STARTER_DECK: string[] = ["leaf_sakuroot"];
 
-export const STARTER_DECK: string[] = [
-  "leaf_oak", "leaf_python",           // Tank
-  "leaf_birch", "leaf_cactus",         // Warrior
-  "leaf_stickers", "leaf_sticks",      // Assassin
-  "leaf_nettle", "leaf_leaf",          // Mage
-  "leaf_stickviper", "leaf_hunter",    // Ranger
-  "leaf_weeds", "leaf_walking_tree",   // Support
-];
+// ── the battle squad ────────────────────────────────────────────────────────
+// What you may CARRY into a region you have not taken yet, as opposed to what
+// you own. The campaign's restriction moved here: the collection grows freely,
+// but crossing a border means choosing twelve of it and living with the choice
+// until you walk back.
+//
+// A region you have conquered is HOME — no limit there, your whole collection
+// is available, and that is what makes going back to re-pack the core loop
+// rather than a chore. Each Throne widens the squad for everywhere you have not
+// been yet, and unlocking DUSK removes the limit entirely.
+
+/** Squad size on arriving somewhere new, before any Throne has widened it. */
+export const SQUAD_BASE = 12;
+
+/** Each conquered region adds this much to the travelling squad. */
+export const SQUAD_PER_THRONE = 2;
+
+/** The Throne per region that counts as conquering it — every node flagged
+ *  `required: true`. Derived from REGIONS rather than restated, so a region
+ *  whose required Throne moves cannot silently fall out of the squad maths. */
+export const REQUIRED_THRONES: readonly string[] = REGIONS.map((r) => r.throne);
+
+/** Has this region's required Throne been cleared? A conquered region is home
+ *  turf: full roster, no squad limit. */
+export const isRegionConquered = (cleared: readonly string[], region: StoryRegion): boolean =>
+  cleared.includes(region.throne);
+
+/** Is the whole squad limit lifted? DUSK's Throne is the campaign's answer to
+ *  "when do I get my collection back" — taking the Realm of Shadows means every
+ *  region's War Element is open to you, everywhere, for the rest of the run. */
+export const squadUnlocked = (cleared: readonly string[]): boolean =>
+  cleared.includes(DUSK.throne);
+
+/** How many cards may travel into an UNCONQUERED region right now.
+ *  `null` means no limit — DUSK is taken and the collection travels whole. */
+export function squadCapFor(cleared: readonly string[]): number | null {
+  if (squadUnlocked(cleared)) return null;
+  const conquered = REQUIRED_THRONES.filter((id) => cleared.includes(id)).length;
+  return SQUAD_BASE + SQUAD_PER_THRONE * conquered;
+}
+
+/** The squad limit for a SPECIFIC region: none at home, the travelling cap
+ *  away. This is the number the prep screen enforces. */
+export function squadCapInRegion(
+  cleared: readonly string[],
+  region: StoryRegion,
+): number | null {
+  if (isRegionConquered(cleared, region)) return null;
+  return squadCapFor(cleared);
+}
+
+// ── opening battles ─────────────────────────────────────────────────────────
+
+/** Is this the region's rags-to-riches opener? */
+export const isOpeningNode = (region: StoryRegion, node: StoryNode): boolean =>
+  region.opening.node === node.id;
+
+/** What clearing `node` hands over with no roll and no pity.
+ *
+ *  Only opening battles grant anything guaranteed: the node's whole roster plus
+ *  the region's Epic. Everywhere else this is empty and recruitment runs its
+ *  ordinary odds. LEAF's Epic is already in the starting collection, so adding
+ *  it again is a no-op the caller de-dupes — listing it anyway keeps the rule
+ *  "an opener gives you its Epic" true of every region without a special case. */
+export function guaranteedDrops(region: StoryRegion, node: StoryNode): string[] {
+  if (!isOpeningNode(region, node)) return [];
+  return [...new Set([region.opening.epic, ...node.roster])];
+}
 
 // ── deck cap ladder ─────────────────────────────────────────────────────────
 // The ladder runs 12/15/18/22/28 and says how far the campaign has come. What a
@@ -919,7 +1038,16 @@ export function capForNode(
   node: StoryNode,
 ): number {
   const ceiling = boardForNode(region, node) === 5 ? BIG_BOARD_CAP : STANDARD_CAP;
-  return Math.min(deckCapFor(cleared), ceiling);
+  // The squad is a third clamp, alongside the ladder and the board: away from
+  // home you fight with what you packed. Folded in HERE rather than at the prep
+  // screen so it reaches everything that already reads this number —
+  // `buildFormation` sizes the enemy from it (so a 12-card squad is not thrown
+  // at an 18-card army) and `gateCheck` asks for it (so a border cannot demand
+  // a fuller deck than the squad limit permits you to carry, which would seal
+  // the map shut).
+  const squad = squadCapInRegion(cleared, region);
+  const capped = squad === null ? deckCapFor(cleared) : Math.min(deckCapFor(cleared), squad);
+  return Math.min(capped, ceiling);
 }
 
 export function deckCapFor(cleared: readonly string[]): number {
@@ -1251,6 +1379,12 @@ export const PLAYER_DEPLOY = 1;
 export const ENEMY_DEPLOY = 0;
 
 export function buildFormation(save: StorySave, region: StoryRegion, node: StoryNode): string[] {
+  // The opening battle fields EXACTLY its roster and stops. Every other node
+  // fills to the deck cap, which would put twelve cards against the one card
+  // the campaign starts with — the fight has to be small because the player is.
+  // Three Rares is what one Sakuroot can actually out-last, and it is the only
+  // place in the campaign where the two sides are deliberately uneven.
+  if (isOpeningNode(region, node)) return [...node.roster];
   const uniques = recruitablePool(node);
   // Filler is non-recruitable by construction — tokens can't be decked and
   // Blight adds only drop from a Blight Node.
@@ -1543,6 +1677,19 @@ export function rollRecruits(
   const rolls = Math.max(1, capturedSlots);
   const won: string[] = [];
   const missed: string[] = [];
+
+  // The opening battle pays out in full, no dice. Checked BEFORE the empty-pool
+  // return below, because the region's Epic is not in the recruitable pool — it
+  // lives on a node deeper in — and an opener whose Rares are already owned
+  // would otherwise hand over nothing at all.
+  const openingRegion = regionOfNode(node.id);
+  if (openingRegion && isOpeningNode(openingRegion, node)) {
+    return {
+      won: guaranteedDrops(openingRegion, node).filter((id) => !save.collection.includes(id)),
+      missed: [],
+      rolls,
+    };
+  }
   if (!eligible.length) return { won, missed, rolls };
 
   // A Throne's Mythic is a guaranteed recruit on first clear: no RNG on a
