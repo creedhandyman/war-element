@@ -2316,6 +2316,49 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .sp-foe.r-mythic { border-color: #d08bff; color: #e9c9ff; }
 .sp-foe.r-legendary { border-color: var(--gold-line); color: var(--gold-hi); }
 .sp-foe.r-epic { border-color: #6aa6ff; color: #c2dbff; }
+/* Packing the squad. The panel sits half-transparent over the region map — you
+   are choosing who crosses a border, and the place you are crossing into should
+   stay visible behind the choice. */
+.sp-packview { background: color-mix(in srgb, var(--panel) 50%, transparent);
+  backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); }
+
+/* The list is the whole collection rather than a node's roster, so it gets more
+   room than .sp-enemy, real card art, and a clear carried/left-behind split: a
+   chosen card lights up, and once the squad is full everything still on the
+   shelf dims rather than silently refusing the tap. */
+.sp-pack { max-height: min(46vh, 340px); gap: 6px; }
+/* Half art: the card's top half only, cropped at the shoulders, so a tile reads
+   as the card at a glance without costing a full portrait of height. */
+.sp-card { position: relative; display: flex; flex-direction: column; width: 74px;
+  padding: 0 0 3px; border-radius: 7px; overflow: hidden; cursor: pointer;
+  background: var(--void-2); border: 1px solid var(--panel-line); color: var(--ink);
+  font-size: 10.5px; font-weight: 700; text-align: center; }
+.sp-card-art { width: 100%; height: 46px; object-fit: cover; object-position: 50% 22%;
+  display: block; border-bottom: 1px solid var(--panel-line); }
+.sp-card-name { display: block; padding: 3px 4px 0; line-height: 1.15;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-card em { font-style: normal; font-size: 9.5px; color: var(--ink-faint);
+  font-variant-numeric: tabular-nums; }
+
+/* Summon cost, in the currency it is actually paid in. The bare ◆ read as a
+   generic pip; gold digits and a struck coin say "this costs Gold" without a
+   legend. The coin is drawn in CSS rather than set as a glyph so it keeps its
+   shading at 9px, where an emoji goes to mud. */
+.cost { display: inline-flex; align-items: center; gap: 3px;
+  color: var(--gold-lit) !important; font-weight: 800; }
+.coin { width: 8px; height: 8px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle at 34% 30%, var(--gold-hi), var(--gold) 62%, #8a6a24);
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .55), inset 0 0 0 .5px rgba(255, 233, 176, .5); }
+.sp-card.r-mythic { border-color: #d08bff; color: #e9c9ff; }
+.sp-card.r-legendary { border-color: var(--gold-line); color: var(--gold-hi); }
+.sp-card.r-epic { border-color: #6aa6ff; color: #c2dbff; }
+.sp-pack .sp-foe-btn:hover { border-color: var(--gold-line); }
+.sp-pack .sp-foe-btn.on { border-color: var(--legal); color: var(--legal);
+  box-shadow: 0 0 0 2px var(--legal) inset; }
+.sp-pack .sp-foe-btn:disabled { opacity: .32; cursor: not-allowed; }
+.sp-pack .sp-foe-btn:disabled:hover { border-color: var(--panel-line); }
+.sp-home { color: var(--legal); }
+
 .sp-quick { display: flex; flex-wrap: wrap; gap: 5px; }
 .sp-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 5px 10px; border-radius: 7px;
   cursor: pointer; font-size: 12px; font-weight: 700; color: var(--ink);

@@ -62,7 +62,7 @@ import { StoryPrep } from "./StoryPrep";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, deckCapFor,
   STANDARD_CAP, BIG_BOARD_CAP,
-  loadStory, recruitablePool,
+  loadStory, poolForRegion, recruitablePool, squadCapInRegion,
   regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
 
@@ -183,9 +183,16 @@ export function App() {
   // the browser — what you own and where the rest of it is — and deliberately
   // has no editing of its own, so there is exactly one way to add a card.
   const [storyBuilder, setStoryBuilder] = useState(false);
-  const storyBuilderCap = Math.max(
-    STANDARD_CAP,
-    Math.min(deckCapFor(story.cleared), BIG_BOARD_CAP),
+  // Away from a region you hold, the builder may only offer the squad you
+  // packed — otherwise a team could be built here out of cards that are a
+  // border away, and the squad would only bind at the prep screen. Falls back
+  // to the collection when nothing is packed for here, so the builder is never
+  // an empty shelf.
+  const storyPool = poolForRegion(story, region);
+  const storyBuilderOwned = storyPool.length ? storyPool : story.collection;
+  const storyBuilderCap = Math.min(
+    Math.max(STANDARD_CAP, Math.min(deckCapFor(story.cleared), BIG_BOARD_CAP)),
+    squadCapInRegion(story.cleared, region) ?? Number.POSITIVE_INFINITY,
   );
   const [storyResult, setStoryResult] = useState<
     { node: StoryNode; won: string[]; captured: number; lost?: boolean } | null
@@ -2248,7 +2255,7 @@ export function App() {
         onClose={() => setStoryBuilder(false)}
         onChange={() => {}}
         story={{
-          owned: story.collection,
+          owned: storyBuilderOwned,
           teams: story.loadouts ?? [],
           cap: storyBuilderCap,
           element: region.element,

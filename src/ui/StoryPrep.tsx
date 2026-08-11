@@ -13,8 +13,9 @@
 import { useEffect, useRef, useState } from "react";
 import { getDef } from "../data/cards";
 import {
-  boardForNode, capForNode, deckCapFor, isGate, loadoutLegal, loadoutsFor, preferredLoadout,
-  recruitablePool, type Loadout, type StoryNode, type StoryRegion, type StorySave,
+  boardForNode, capForNode, deckCapFor, isGate, loadoutLegal, loadoutsFor, needsSquad, packSquad,
+  poolForRegion, preferredLoadout, recruitablePool, squadCapInRegion,
+  type Loadout, type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
 import { CardExpand } from "./CardExpand";
 
@@ -36,16 +37,42 @@ export function StoryPrep(props: {
   const cap = capForNode(save.cleared, region, node);
   const board = boardForNode(region, node);
   const ladder = deckCapFor(save.cleared);
+  // The squad: away from home you field what you packed and nothing else, so
+  // every "which cards do I have" question below reads the POOL, not the whole
+  // collection. At home the pool IS the collection and none of this shows.
+  const squadLimit = squadCapInRegion(save.cleared, region);
+  const pool = poolForRegion(save, region);
+  const mustPack = needsSquad(save, region);
+  const packedHere = save.squad?.region === region.id;
   // Quick select: arriving at a node ALREADY holding the team built for this
   // element is the point of tagging them. Falls back to the last deck used.
-  const owned = (ids: string[]) => ids.filter((id) => save.collection.includes(id));
+  const owned = (ids: string[]) => ids.filter((id) => pool.includes(id));
   const preferred = preferredLoadout(save, region.element, (l) => {
     const n = owned(l.cards).length;
     return n > 0 && n <= cap;
   });
+  /** Top a seed deck up from the pool, in pool order, to the cap.
+   *
+   *  Filtering a remembered deck through the squad leaves holes: a team built in
+   *  LEAF, carried to PYRO, keeps only the cards that were packed — which landed
+   *  the player on the prep screen holding 6 of 14 and no hint that the rest was
+   *  theirs to add. Padding makes the default a full deck again, and it is only
+   *  a default: everything below still edits it. */
+  const fill = (seed: string[]) => {
+    const out = [...new Set(seed)].slice(0, cap);
+    for (const id of pool) {
+      if (out.length >= cap) break;
+      if (!out.includes(id)) out.push(id);
+    }
+    return out;
+  };
   const [deck, setDeck] = useState<string[]>(
-    preferred ? owned(preferred.cards) : save.deck.length ? save.deck : save.collection.slice(0, cap),
+    // Every seed is filtered through the pool first: a remembered deck from a
+    // previous region must not smuggle cards you did not pack into this one.
+    fill(preferred ? owned(preferred.cards) : owned(save.deck)),
   );
+  /** Cards ticked in the packing step, before it is committed. */
+  const [packing, setPacking] = useState<string[]>([]);
   const [pickedTeam, setPickedTeam] = useState<string | null>(preferred?.id ?? null);
   // The builder writes straight into the save, so follow it back in rather than
   // showing a stale team behind the overlay it was edited from.
@@ -64,8 +91,8 @@ export function StoryPrep(props: {
   useEffect(() => {
     if (save.deck === lastSavedDeck.current) return;
     lastSavedDeck.current = save.deck;
-    if (save.deck.length) { setDeck(save.deck); setPickedTeam(null); }
-  }, [save.deck]);
+    if (save.deck.length) { setDeck(save.deck.filter((id) => pool.includes(id))); setPickedTeam(null); }
+  }, [save.deck]); // eslint-disable-line react-hooks/exhaustive-deps -- `pool` is derived; only a real save change should resync
   const [naming, setNaming] = useState(false);
   // Same idea as the node panel: the squad is what you are building against, so
   // it is worth seeing rather than reading.
@@ -110,6 +137,92 @@ export function StoryPrep(props: {
       lastTeamId: save.lastTeamId === id ? undefined : save.lastTeamId,
     });
 
+  // ── packing step ──────────────────────────────────────────────────────────
+  // You are standing at a border you have not taken with more cards than you can
+  // carry. Nothing else on this screen matters until the expedition is chosen,
+  // so it replaces the screen rather than sitting on it as one more panel.
+  if (mustPack) {
+    const limit = squadLimit ?? 0;
+    const full = packing.length >= limit;
+    const byRarity = [...save.collection].sort(
+      (a, b) =>
+        (RARITY_ORDER[getDef(a).rarity ?? ""] ?? 9) - (RARITY_ORDER[getDef(b).rarity ?? ""] ?? 9) ||
+        getDef(a).cost - getDef(b).cost,
+    );
+    const toggle = (id: string) =>
+      setPacking((p) => (p.includes(id) ? p.filter((x) => x !== id) : full ? p : [...p, id]));
+    return (
+      <div className="overlay on-top">
+        <div className="modal story-prep sp-packview">
+          <div className="sp-head">
+            <div>
+              <div className="sp-kind">Pack your squad</div>
+              <h1>{region.name}</h1>
+            </div>
+            <div className="sp-board">
+              <b>{packing.length}/{limit}</b>
+              <span>carried</span>
+            </div>
+          </div>
+
+          <p className="sp-note">
+            You have not taken {region.element} yet, so only what you carry crosses the
+            border. Choose {limit} — the rest stay behind until you walk back to a
+            region you hold.
+          </p>
+
+          <div className="sr-label">Your collection · {save.collection.length}</div>
+          <div className="sp-enemy sp-pack">
+            {byRarity.map((id) => {
+              const d = getDef(id);
+              const on = packing.includes(id);
+              return (
+                <button
+                  key={id}
+                  className={`sp-card sp-foe-btn r-${d.rarity ?? "rare"} ${on ? "on" : ""}`}
+                  disabled={!on && full}
+                  title={on ? `${d.name} — carried` : full ? "Squad is full" : `${d.name} — leave or carry`}
+                  onClick={() => toggle(id)}
+                >
+                  <img
+                    className="sp-card-art"
+                    src={`/cards/${d.art ?? d.id}.webp`}
+                    alt=""
+                    loading="lazy"
+                    onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
+                  />
+                  <span className="sp-card-name">{d.name}</span>
+                  <em className="cost">{d.cost}<i className="coin" /></em>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="sp-actions">
+            <button
+              className="ghost sm"
+              onClick={() => setPacking(byRarity.slice(0, limit))}
+            >
+              Fill with best
+            </button>
+            <button className="ghost sm" onClick={() => setPacking([])} disabled={!packing.length}>
+              Clear
+            </button>
+            <button className="ghost sm" onClick={props.onCancel}>Back to the map</button>
+          </div>
+
+          <button
+            className="lockin"
+            disabled={packing.length === 0}
+            onClick={() => props.onSave(packSquad(save, region, packing))}
+          >
+            {packing.length ? `Cross with ${packing.length}` : "Choose who comes with you"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="overlay on-top">
       <div className="modal story-prep">
@@ -129,8 +242,20 @@ export function StoryPrep(props: {
           <span>
             Deck cap <b>{cap}</b>
             {cap > 18 && " · the big board opens it up"}
-            {cap < ladder && ` · ${ladder} allowed on a set piece`}
+            {cap < ladder && squadLimit === null && ` · ${ladder} allowed on a set piece`}
           </span>
+          {/* Away from home the squad is usually the binding constraint, and it
+              is the one the player can do nothing about from here — so say which
+              it is, and say where it can be changed. */}
+          {squadLimit === null ? (
+            <span className="sp-home">Home ground · your whole collection is here</span>
+          ) : (
+            <span>
+              Squad <b>{pool.length}</b>/{squadLimit}
+              {packedHere ? " carried in" : " on hand"}
+              {" · repack in a region you hold"}
+            </span>
+          )}
         </div>
 
         {node.lore && <p className="sp-lore">{node.lore}</p>}
@@ -174,7 +299,7 @@ export function StoryPrep(props: {
                 onError={(e) => { e.currentTarget.style.display = "none"; }}
               />
               {d.name}
-              <em>{d.cost}◆</em>
+              <em className="cost">{d.cost}<i className="coin" /></em>
             </button>
           ))}
         </div>
@@ -189,7 +314,7 @@ export function StoryPrep(props: {
             return (
               <span key={`${id}-${i}`} className={`sp-foe r-${d.rarity ?? "rare"}`}>
                 {d.name}
-                <em>{d.cost}◆</em>
+                <em className="cost">{d.cost}<i className="coin" /></em>
               </span>
             );
           })}
