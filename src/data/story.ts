@@ -1092,36 +1092,72 @@ export function squadCapInRegion(
  *
  *  Filtered against the collection on the way out so a card that somehow left
  *  the collection (a save edited by an older build) cannot be fielded. */
+/** Owned cards of the region's OWN element.
+ *
+ *  These never need carrying. You are fighting in their homeland, among their
+ *  own people, and every one of them you have unlocked answers the call — so
+ *  the squad is only ever a question about what you bring from ELSEWHERE. It
+ *  also means a region you are deep into gets easier to field for as you
+ *  recruit there, which is the reward for having been there. */
+export const localCards = (save: StorySave, region: StoryRegion): string[] =>
+  save.collection.filter((id) => getDef(id).element === region.element);
+
+/** The foreign cards packed for this region, filtered to what is still owned. */
+export const squadFor = (save: StorySave, region: StoryRegion): string[] =>
+  (save.squads?.[region.id] ?? []).filter((id) => save.collection.includes(id));
+
+/** Everything available to build a deck from in `region`.
+ *
+ *  At HOME — a region whose Throne you hold, or anywhere once DUSK has fallen —
+ *  the whole collection. AWAY it is the region's own element plus whatever you
+ *  packed, and nothing else: foreign cards left behind stay behind until you
+ *  walk back. */
 export function poolForRegion(save: StorySave, region: StoryRegion): string[] {
-  const limit = squadCapInRegion(save.cleared, region);
-  if (limit === null) return [...save.collection];
-  // Owning no more than you could carry means there is nothing to leave behind.
-  // Without this the campaign's FIRST fight would demand you pack a squad out of
-  // a one-card collection, and every early node would ask a question with one
-  // possible answer.
-  if (save.collection.length <= limit) return [...save.collection];
-  if (save.squad?.region !== region.id) return [];
-  return save.squad.cards.filter((id) => save.collection.includes(id));
+  if (squadCapInRegion(save.cleared, region) === null) return [...save.collection];
+  return [...new Set([...localCards(save, region), ...squadFor(save, region)])];
 }
 
-/** Does the player still have to pack before they can fight here? True only
- *  away from home, holding more cards than they can carry, with no squad
- *  packed for THIS region. */
+/** The cards a squad may be chosen FROM: everything owned that is not already
+ *  travelling free with the region's own element. */
+export const packableFor = (save: StorySave, region: StoryRegion): string[] =>
+  save.collection.filter((id) => getDef(id).element !== region.element);
+
+/** Does the player still have to pack before they can fight here?
+ *
+ *  Only away from home, only when they have never packed for this region, and
+ *  only when there is a real choice to make — owning no more foreign cards than
+ *  you could carry means the picker would be a question with one answer. */
 export const needsSquad = (save: StorySave, region: StoryRegion): boolean => {
   const limit = squadCapInRegion(save.cleared, region);
-  if (limit === null || save.collection.length <= limit) return false;
-  return save.squad?.region !== region.id;
+  if (limit === null) return false;
+  if (save.squads?.[region.id]) return false; // already answered, even if empty
+  return packableFor(save, region).length > limit;
 };
 
-/** Commit a squad for `region`, clamped to the current limit and to cards
- *  actually owned. Packing for a new region REPLACES the old squad — you carry
- *  one expedition, not one per border. */
+/** Commit (or re-commit) the squad for `region`. Clamped to the limit and to
+ *  cards actually owned, and stored under this region so returning here finds
+ *  it again instead of re-opening the picker. */
 export function packSquad(save: StorySave, region: StoryRegion, cards: string[]): StorySave {
   const limit = squadCapInRegion(save.cleared, region);
-  const owned = [...new Set(cards)].filter((id) => save.collection.includes(id));
   // At home there is nothing to pack — the whole collection is already yours.
-  if (limit === null) return { ...save, squad: undefined };
-  return { ...save, squad: { region: region.id, cards: owned.slice(0, limit) } };
+  if (limit === null) return save;
+  const owned = [...new Set(cards)].filter((id) => save.collection.includes(id));
+  return { ...save, squads: { ...(save.squads ?? {}), [region.id]: owned.slice(0, limit) } };
+}
+
+/** The size of the fight, for BOTH sides.
+ *
+ *  The ladder and the board say how big a fight COULD be; this also asks how
+ *  big a fight the player can actually bring. Away from home with a thin pool,
+ *  `capForNode` alone would field a full enemy deck across from half of one.
+ *
+ *  Used by `gateCheck` alone. A gate demands a FULL deck, and
+ *  a gate asking for the ladder's 15 while the player can field 14 is a gate
+ *  nobody can pass. Reading the pool means the demand is always satisfiable. */
+export function fightCap(save: StorySave, region: StoryRegion, node: StoryNode): number {
+  const ceiling = capForNode(save.cleared, region, node);
+  const pool = poolForRegion(save, region).length;
+  return pool > 0 ? Math.min(ceiling, pool) : ceiling;
 }
 
 // ── opening battles ─────────────────────────────────────────────────────────
@@ -1196,16 +1232,12 @@ export function capForNode(
   node: StoryNode,
 ): number {
   const ceiling = boardForNode(region, node) === 5 ? BIG_BOARD_CAP : STANDARD_CAP;
-  // The squad is a third clamp, alongside the ladder and the board: away from
-  // home you fight with what you packed. Folded in HERE rather than at the prep
-  // screen so it reaches everything that already reads this number —
-  // `buildFormation` sizes the enemy from it (so a 12-card squad is not thrown
-  // at an 18-card army) and `gateCheck` asks for it (so a border cannot demand
-  // a fuller deck than the squad limit permits you to carry, which would seal
-  // the map shut).
-  const squad = squadCapInRegion(cleared, region);
-  const capped = squad === null ? deckCapFor(cleared) : Math.min(deckCapFor(cleared), squad);
-  return Math.min(capped, ceiling);
+  // Ladder and board only. What the PLAYER can actually field is a separate
+  // question and belongs to `fightCap`, which is what the enemy, the gates and
+  // the prep screen all read — clamping by the squad limit here was wrong once
+  // the region's own element started travelling free, because the fieldable
+  // pool is then legitimately larger than the squad.
+  return Math.min(deckCapFor(cleared), ceiling);
 }
 
 export function deckCapFor(cleared: readonly string[]): number {
@@ -1411,7 +1443,7 @@ export function gateCheck(save: StorySave, node: StoryNode): GateCheck {
   // A gate is fought on 4x4, so it asks for a full 4x4 deck — not the 28 the
   // ladder may already allow for set pieces.
   const region = regionOfNode(node.id);
-  const cap = region ? capForNode(save.cleared, region, node) : deckCapFor(save.cleared);
+  const cap = region ? fightCap(save, region, node) : deckCapFor(save.cleared);
   if (save.deck.length !== cap)
     reasons.push(
       save.deck.length < cap
@@ -1536,6 +1568,19 @@ export const formationSize = (cap: number): number => cap;
 export const PLAYER_DEPLOY = 1;
 export const ENEMY_DEPLOY = 0;
 
+/** The campaign's very first fight, and nothing else.
+ *
+ *  LEAF's opener is the one battle where the free placement is doing real work:
+ *  a lone Sakuroot against three cards needs to choose her ground. Everywhere
+ *  else it is an unearned head start on top of a deck the player built, so it
+ *  is switched off — including at the other regions' openers, which are reached
+ *  with a full squad.
+ *
+ *  Identified by structure rather than by hardcoding "L1": the first battle is
+ *  the opening node of the one region no gate stands in front of. */
+export const isFirstBattle = (region: StoryRegion, node: StoryNode): boolean =>
+  !region.requires?.length && region.opening.node === node.id;
+
 export function buildFormation(save: StorySave, region: StoryRegion, node: StoryNode): string[] {
   const uniques = recruitablePool(node);
   // Filler is non-recruitable by construction — tokens can't be decked and
@@ -1545,6 +1590,10 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
   const copies = new Map<string, number>();
   for (const id of out) copies.set(id, (copies.get(id) ?? 0) + 1);
 
+  // The ladder and board, as always: the enemy is sized by how far the
+  // campaign has come, NOT by how thin the player is travelling. Clamping
+  // every fight to the pool rewrote the whole difficulty curve — an early
+  // node fielded four cards because the player owned four.
   const cap = capForNode(save.cleared, region, node);
   // An opening battle MATCHES THE PLAYER rather than filling to the cap.
   //
@@ -1635,22 +1684,17 @@ export interface StorySave {
   /** Region id -> Blight earned from world progress. The region's own baseline
    *  is applied on read, so it can never be saved away. */
   blight: Record<string, number>;
-  /** The expedition currently packed, and where it was packed FOR.
+  /** Region id -> the foreign cards packed for that region, REMEMBERED.
    *
-   *  Absent until the first border is crossed. A squad belongs to one region:
-   *  walking into a different unconquered region means packing again, which is
-   *  the whole point — you cannot carry one answer to every element. */
-  squad?: PackedSquad;
-}
-
-/** Cards carried into an unconquered region, and which region they were chosen
- *  for. Deliberately a COMMITMENT rather than a per-fight filter: capping the
- *  deck size alone would let a player re-pick from the whole collection at every
- *  node, which makes "choose twelve and live with it" mean nothing and makes
- *  walking home to re-pack pointless. */
-export interface PackedSquad {
-  region: string;
-  cards: string[];
+   *  One entry per region rather than a single travelling squad: you are asked
+   *  to pack the first time you cross a border and never again, because coming
+   *  back finds the expedition exactly as you left it. A single squad meant
+   *  re-entering anywhere re-opened the picker, which is the same question
+   *  answered over and over. */
+  squads?: Record<string, string[]>;
+  /** Pre-`squads` saves carried one travelling squad. Read once on load and
+   *  folded into `squads`, never written again. */
+  squad?: { region: string; cards: string[] };
 }
 
 const STORAGE_KEY = "we_story_v1";
@@ -1741,20 +1785,24 @@ export function loadStory(): StorySave {
             }))
             .filter((l) => l.cards.length > 0)
         : [],
-      // The packed expedition, restored like everything else: named region, and
-      // only cards still owned. Without this the squad was written on packing
-      // and silently forgotten on reload, so every trip back to the map asked
-      // the player to pack again.
-      squad:
-        p.squad && typeof p.squad === "object" && typeof p.squad.region === "string" &&
-        REGIONS.some((r) => r.id === p.squad!.region)
-          ? { region: p.squad.region, cards: known(p.squad.cards).filter((id) => collection.includes(id)) }
-          : undefined,
+      // The packed expeditions, restored like everything else: real region ids,
+      // and only cards still owned. Without this they were written on packing
+      // and silently forgotten on reload, so every trip back to a region asked
+      // the player to pack again — every field of StorySave is rebuilt by hand
+      // here, so a new one is invisible until it is listed.
+      squads: Object.fromEntries(
+        Object.entries((p.squads ?? {}) as Record<string, unknown>)
+          .filter(([id]) => REGIONS.some((r) => r.id === id))
+          .map(([id, cards]) => [id, known(cards).filter((c) => collection.includes(c))]),
+      ),
     };
-    // A squad that lost every card to the filter above is no squad at all —
-    // leaving an empty one behind would strand the player with nothing to field
-    // and no prompt to re-pack.
-    if (save.squad && save.squad.cards.length === 0) save.squad = undefined;
+    // Saves written before squads were per-region carried a single travelling
+    // one. Fold it into its region and drop it, so an in-flight campaign is not
+    // asked to re-pack where it already had.
+    const legacy = p.squad;
+    if (legacy && typeof legacy === "object" && typeof legacy.region === "string" &&
+        !save.squads![legacy.region] && REGIONS.some((r) => r.id === legacy.region))
+      save.squads![legacy.region] = known(legacy.cards).filter((c) => collection.includes(c));
     if (!save.deck.length) save.deck = save.collection.slice(0, deckCapFor(save.cleared));
     return save;
   } catch {

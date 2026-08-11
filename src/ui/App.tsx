@@ -62,7 +62,7 @@ import { StoryPrep } from "./StoryPrep";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, deckCapFor,
   STANDARD_CAP, BIG_BOARD_CAP,
-  loadStory, poolForRegion, recruitablePool, squadCapInRegion,
+  loadStory, isFirstBattle, poolForRegion, recruitablePool, squadCapInRegion,
   regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
 
@@ -1978,10 +1978,15 @@ export function App() {
             const terrain = SPELLS.find(
               (sp) => sp.kind === "field" && sp.name === home.terrain,
             )?.id;
-            // Opening deployment is STORY-ONLY for now: skirmish, online and
-            // Void Tower keep the ordinary summon ramp untouched.
+            // The free opening placement is the campaign's FIRST fight only —
+            // Sakuroot alone needing to choose her ground. Every later node,
+            // and every other mode (skirmish, online, Void Tower), uses the
+            // ordinary summon ramp.
+            const deploy = isFirstBattle(home, node)
+              ? { P1: PLAYER_DEPLOY, P2: ENEMY_DEPLOY }
+              : undefined;
             setGame(createInitialState(newSeed(), deck, squad, ["P1"], [], [], board,
-              { P1: PLAYER_DEPLOY, P2: ENEMY_DEPLOY }, terrain));
+              deploy, terrain));
             setPrepNode(null);
             setStoryNode(node);
             setStoryOpen(false);

@@ -13,8 +13,8 @@
 import { useEffect, useRef, useState } from "react";
 import { getDef } from "../data/cards";
 import {
-  boardForNode, capForNode, deckCapFor, isGate, loadoutLegal, loadoutsFor, needsSquad, packSquad,
-  poolForRegion, preferredLoadout, recruitablePool, squadCapInRegion,
+  boardForNode, deckCapFor, fightCap, isGate, loadoutLegal, loadoutsFor, localCards, needsSquad, squadFor,
+  packSquad, packableFor, poolForRegion, preferredLoadout, recruitablePool, squadCapInRegion,
   type Loadout, type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
 import { CardExpand } from "./CardExpand";
@@ -34,7 +34,7 @@ export function StoryPrep(props: {
   const { region, node, save } = props;
   // The fight's cap, not the campaign's: a set piece opens up to 28 once the
   // ladder allows it, an ordinary node stays at 18 however far along you are.
-  const cap = capForNode(save.cleared, region, node);
+  const cap = fightCap(save, region, node);
   const board = boardForNode(region, node);
   const ladder = deckCapFor(save.cleared);
   // The squad: away from home you field what you packed and nothing else, so
@@ -43,7 +43,8 @@ export function StoryPrep(props: {
   const squadLimit = squadCapInRegion(save.cleared, region);
   const pool = poolForRegion(save, region);
   const mustPack = needsSquad(save, region);
-  const packedHere = save.squad?.region === region.id;
+  const carried = squadFor(save, region).length;
+  const local = localCards(save, region).length;
   // Quick select: arriving at a node ALREADY holding the team built for this
   // element is the point of tagging them. Falls back to the last deck used.
   const owned = (ids: string[]) => ids.filter((id) => pool.includes(id));
@@ -144,7 +145,7 @@ export function StoryPrep(props: {
   if (mustPack) {
     const limit = squadLimit ?? 0;
     const full = packing.length >= limit;
-    const byRarity = [...save.collection].sort(
+    const byRarity = [...packableFor(save, region)].sort(
       (a, b) =>
         (RARITY_ORDER[getDef(a).rarity ?? ""] ?? 9) - (RARITY_ORDER[getDef(b).rarity ?? ""] ?? 9) ||
         getDef(a).cost - getDef(b).cost,
@@ -166,12 +167,12 @@ export function StoryPrep(props: {
           </div>
 
           <p className="sp-note">
-            You have not taken {region.element} yet, so only what you carry crosses the
-            border. Choose {limit} — the rest stay behind until you walk back to a
-            region you hold.
+            Every {region.element} card you have unlocked already fights here — {local} of
+            them. Choose up to {limit} more to bring from elsewhere; the rest wait until
+            you come back through. You are only asked once.
           </p>
 
-          <div className="sr-label">Your collection · {save.collection.length}</div>
+          <div className="sr-label">Cards to carry · {packableFor(save, region).length}</div>
           <div className="sp-enemy sp-pack">
             {byRarity.map((id) => {
               const d = getDef(id);
@@ -251,9 +252,9 @@ export function StoryPrep(props: {
             <span className="sp-home">Home ground · your whole collection is here</span>
           ) : (
             <span>
-              Squad <b>{pool.length}</b>/{squadLimit}
-              {packedHere ? " carried in" : " on hand"}
-              {" · repack in a region you hold"}
+              <b>{local}</b> {region.element} here
+              {carried > 0 && <> · <b>{carried}</b>/{squadLimit} carried in</>}
+              {" · repack from the map"}
             </span>
           )}
         </div>
