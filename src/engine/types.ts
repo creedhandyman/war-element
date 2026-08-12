@@ -1718,6 +1718,10 @@ export const DEFAULT_SPECIAL_COOLDOWN = 2;
  *  top of the deck, not burned). Bonus-draw rounds (10/15) partially fizzle when
  *  you're near the cap; that's the intended cost of a hand limit. */
 export const HAND_CAP = 7;
+/** Summon gold granted every round regardless of the board. The rest of the
+ *  grant is one per home slot held — see `doResourcePhase`. Income used to be
+ *  the round number, which paid both sides identically for simply surviving. */
+export const GOLD_PER_ROUND = 1;
 export const POOL_CARRYOVER_CAP = 10;
 /** DEFAULT board size for a new match. The live value is `state.boardSize` —
  *  read that, not this, anywhere a GameState is in scope. This constant only

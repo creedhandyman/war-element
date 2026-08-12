@@ -9,7 +9,7 @@ export function ResourcePool(props: { game: GameState; player: PlayerId }) {
   const oppLbl = twoP ? enemyOf(player) : "Opp";
   return (
     <div className="resource">
-      <div className="res-gem gold" title="Gold — pays to summon cards (you gain the round number each round)">
+      <div className="res-gem gold" title="Gold — pays to summon cards (each round: +1, plus 1 per Home slot you hold)">
         <div className="gem-face"><span className="gem-val">{me.gold}</span></div>
         <div className="gem-info">
           <div className="gem-lbl">GOLD</div>

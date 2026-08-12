@@ -5,7 +5,8 @@
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent, createInitialState, getDef } from "../index";
 import { OPENING_SLOTS } from "../phases";
-import { OPENING_COST_CAP } from "../types";
+import { homeSlotsHeld } from "../state";
+import { GOLD_PER_ROUND, OPENING_COST_CAP } from "../types";
 import type { GameState, PlayerId } from "../index";
 
 const DECK = [
@@ -133,12 +134,18 @@ describe("opening deployment", () => {
   });
 
   it("leaves the round economy exactly where it would have been", () => {
-    // "Then a traditional game": round one pays its normal +1 and nothing else.
-    // doResourcePhase CARRIES gold (capped) before adding income, so any stray
-    // deployment gold would silently inflate the first turn.
+    // "Then a traditional game": round one pays the ordinary grant and nothing
+    // else. doResourcePhase CARRIES gold (capped) before adding income, so any
+    // stray deployment gold would silently inflate the first turn.
+    //
+    // The grant is GOLD_PER_ROUND plus one per home slot HELD, and a deployed
+    // card is standing in a home slot — so a side that placed one earns 2, not
+    // 1. That is the income rule working, not deployment leaking gold: the
+    // ceiling below is what a deployment refund would blow past.
     const s = runUntil(pastMulligan({ P1: 1, P2: 1 }), (g) => g.round >= 1 && g.phase === "prep");
     for (const p of ["P1", "P2"] as PlayerId[])
-      expect(s.players[p].gold, `${p} round-1 gold`).toBeLessThanOrEqual(1);
+      expect(s.players[p].gold, `${p} round-1 gold`)
+        .toBeLessThanOrEqual(GOLD_PER_ROUND + homeSlotsHeld(s, p));
   });
 
   it("clears the flag once deployment is over", () => {

@@ -297,21 +297,21 @@ describe("a round nobody can act in is not played", () => {
     s.players.P2.mulliganDone = true;
     s.phase = "resource";
     s.round = 1;
-    // Round 1 grants exactly 1 gold. Neither hand can spend it, and there is no
-    // card on the board to move or attack with — the round used to run anyway:
-    // both sides pass, the Battle phase resolves an empty queue, nothing changes.
-    // Cost 3 each: unaffordable on round 1's single gold, affordable on round
-    // 2's three. Exactly one round rolls past — the ordinary Story Mode case.
+    // An empty board earns the flat GOLD_PER_ROUND and nothing else — no slots
+    // held — so gold now climbs 1, 2, 3 rather than 1, 3, 6. Cost 3 each, so
+    // the first spendable round is the THIRD, and two roll past. The round used
+    // to run anyway: both sides pass, an empty battle queue resolves, nothing
+    // changes. This is the ordinary Story Mode case.
     s.players.P1.hand = [{ handId: "h1", defId: "dusk_gool" }];
     s.players.P2.hand = [{ handId: "h2", defId: "dusk_gool" }];
     s.players.P1.spellbook = [];
     s.players.P2.spellbook = [];
     const next = advance(s);
-    expect(next.round, "rolled past the empty round").toBe(2);
+    expect(next.round, "rolled past the empty rounds").toBe(3);
     expect(next.phase).toBe("prep");
     expect(next.log.some((l) => l.includes("Nobody can act"))).toBe(true);
-    // The resources are not a gift: round 1's grant plus round 2's, which is
-    // what the player would have been holding either way.
+    // The resources are not a gift: one grant per round skipped, which is what
+    // the player would have been holding either way.
     expect(next.players.P1.gold).toBe(3);
   });
 
@@ -326,9 +326,11 @@ describe("a round nobody can act in is not played", () => {
     s.players.P1.spellbook = [];
     s.players.P2.spellbook = [];
     const next = advance(s);
-    // 1, 3, 6, 10 — the first round anyone can spend anything is the fourth.
-    expect(next.round).toBe(4);
-    expect(next.players.P2.gold).toBe(10);
+    // A flat 1 a round off an empty board, so the pool is just the round number.
+    // Rolling stops the moment EITHER side can act — P1's cost-8 Magmadon comes
+    // online on round 8, four rounds later than the old climbing grant allowed.
+    expect(next.round).toBe(8);
+    expect(next.players.P1.gold).toBe(8);
   });
 
   it("but a round someone CAN act in is played", () => {

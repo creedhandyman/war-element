@@ -204,6 +204,23 @@ export function isCaptured(state: GameState, row: number, col: number): boolean 
   return state.slots[row][col].capturedBy !== null;
 }
 
+/** How many of `player`'s OWN home slots they are standing in.
+ *
+ *  The summon economy is built on this (see `doResourcePhase`): income is one
+ *  gold a round plus one per slot held, so the back line pays for the front. An
+ *  enemy standing in your home row does not count — that slot is contested, not
+ *  held — and neither does one of your cards standing anywhere else, which is
+ *  the tension: a card that advances stops paying for itself. */
+export function homeSlotsHeld(state: GameState, player: PlayerId): number {
+  const row = homeRow(player, state.boardSize);
+  let held = 0;
+  for (let col = 0; col < state.boardSize; col++) {
+    const occ = cardAt(state, row, col);
+    if (occ && occ.owner === player) held++;
+  }
+  return held;
+}
+
 /** Does the card currently carry a status of this kind? */
 export function hasStatus(card: CardInstance, kind: StatusKind): boolean {
   return card.statuses.some((s) => s.kind === kind);

@@ -21,6 +21,7 @@ import {
   auraShieldBonus,
   effectiveMaxHp,
   healCard,
+  homeSlotsHeld,
   isEliminated,
   manhattan,
   spawnTokens,
@@ -64,6 +65,7 @@ import {
   MAX_ROUNDS,
   NEGATIVE_STATUSES,
   OPENING_COST_CAP,
+  GOLD_PER_ROUND,
   POOL_CARRYOVER_CAP,
   enemyOf,
   homeRow,
@@ -1180,11 +1182,13 @@ function doDrawPhase(draft: GameState): void {
 /** A round in which literally nothing can happen: an empty board, so nobody has
  *  a card to move or attack with, and nobody can afford to put one down.
  *
- *  This is round 1 of most matches. The grant is `round` gold, so round 1 hands
- *  over exactly 1 — and a deck without a cost-1 card cannot spend it. Both sides
- *  pass, the Battle phase resolves an empty queue, and the round is gone. In
- *  Story Mode, where the deck is whatever the player has collected rather than a
- *  tuned premade, it happens most fights.
+ *  This is round 1 of most matches, and it matters more now than it used to.
+ *  Income is GOLD_PER_ROUND plus one per home slot held, and an empty board
+ *  holds nothing — so a boardless player earns exactly 1 a round rather than the
+ *  round number, and a deck whose cheapest card costs 4 sits out four rounds
+ *  instead of two. The roll-forward below is what keeps that from being four
+ *  rounds of watching nothing happen. In Story Mode, where the deck is whatever
+ *  the player has collected rather than a tuned premade, it happens most fights.
  *
  *  Deliberately conservative. A spell that needs no target — a wall, a field, a
  *  trap — IS something to do with an empty board, so an affordable unused one
@@ -1208,18 +1212,34 @@ function nothingCanHappen(draft: GameState): boolean {
 }
 
 function doResourcePhase(draft: GameState): void {
-  // Two independent pools: summon = round # each round; magic starts at 0 and
-  // drips every round (including round 1) in 5-round brackets (+1 through rounds
-  // 1–5, +2 through 6–10, +3 through 11–15, +4 from 16 on) so the endgame has
-  // fuel for Specials/spells. Both cap unspent carryover at 10.
-  const gain = Math.min(draft.round, 10);
+  // Two independent pools.
+  //
+  // SUMMON gold is earned off the board, not off the clock: GOLD_PER_ROUND plus
+  // one for every home slot you are standing in. It used to be the round number,
+  // which meant income was identical for both sides no matter what was happening
+  // — you were paid for surviving rather than for holding anything, and the
+  // player being pushed off their own home row got exactly as much as the player
+  // pushing them off it. Now the back line funds the front, losing your home row
+  // costs you the money to rebuild it, and a card that advances stops paying for
+  // itself. Note the tension is real in both directions: parking everything at
+  // home is rich and passive, and wins nothing.
+  //
+  // MAGIC still drips off the clock — it starts at 0 and rises in 5-round
+  // brackets (+1 through 1-5, +2 through 6-10, +3 through 11-15, +4 from 16) so
+  // the endgame has fuel for Specials and spells. Both pools cap carryover at 10.
   const magicGain = magicGainForRound(draft.round);
+  const gains = {} as Record<PlayerId, number>;
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const p = draft.players[player];
+    const gain = GOLD_PER_ROUND + homeSlotsHeld(draft, player);
+    gains[player] = gain;
     p.gold = Math.min(p.gold, POOL_CARRYOVER_CAP) + gain;
     p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGain;
   }
-  draft.log.push(`— Round ${draft.round}: summon +${gain}, magic +${magicGain}. —`);
+  // The two sides can now earn different amounts, so the log has to say whose.
+  draft.log.push(
+    `— Round ${draft.round}: summon P1 +${gains.P1} / P2 +${gains.P2}, magic +${magicGain}. —`,
+  );
   // Roll straight into the next round rather than playing an empty one. The
   // resources are NOT a gift — the round is spent, the clock moves, and the next
   // grant is the one that round would have made anyway. What is skipped is a

@@ -55,9 +55,11 @@ export function RulesBook(props: { onClose: () => void }) {
           <section>
             <h3>💠 Resources</h3>
             <p>
-              <b>GOLD</b> (your summon pool) pays to <b>summon</b> cards — you gain the
-              round number in Gold each round (round 1 → +1, round 2 → +2…), up to +10.
-              A card's cost is the number in its top corner.
+              <b>GOLD</b> (your summon pool) pays to <b>summon</b> cards. Each round you
+              gain <b>1 Gold, plus 1 for every Home slot you are standing in</b> — so your
+              back line funds your front, and being pushed off your own Home row costs you
+              the money to rebuild it. A card that advances out of Home stops paying, which
+              is the trade. A card's cost is the number in its top corner.
             </p>
             <p>
               <b>MAGIC</b> pays for <b>Specials</b> and <b>Spells</b>. It speeds up as
@@ -321,9 +323,9 @@ export function RulesBook(props: { onClose: () => void }) {
             <h3>▶️ A turn, step by step</h3>
             <ol className="rules-steps">
               <li>
-                <b>Round starts.</b> You gain Gold equal to the round number, gain
-                Magic (see the table above), and draw a card — with a +2 bonus draw
-                on rounds 10 and 15.
+                <b>Round starts.</b> You gain 1 Gold plus 1 per Home slot you hold,
+                gain Magic (see the table above), and draw a card — with a +2 bonus
+                draw on rounds 10 and 15.
               </li>
               <li>
                 <b>Prep — you have priority.</b> Spend Gold to summon a Ranger onto a
