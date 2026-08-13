@@ -2626,6 +2626,61 @@ describe("element auras", () => {
     expect(s.cards[killer.instanceId].curHp).toBe(4); // 5 − 1 Midnight Shade floor
   });
 
+  /** One Weeds swing on a given seed. Returns the state afterwards. 15% is not
+   *  reachable through the coin helper, so these sweep seeds instead. */
+  const weedsSwing = (seed: number, foeHp = 60) => {
+    const s = prepState();
+    s.rngState = seed;
+    const w = place(s, "leaf_weeds", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: foeHp, maxHp: foeHp, curShields: 0 });
+    basicAttack(s, w.instanceId, foe.instanceId);
+    return { s, w };
+  };
+
+  it("Spread (Weeds): a landed basic can put another Weeds on the board", () => {
+    // ~15% of seeds should spread. Sweeping proves it fires without pinning the
+    // test to one lucky seed, and the bounds prove it is a CHANCE, not always.
+    let spread = 0;
+    for (let seed = 0; seed < 200; seed++) {
+      const { s } = weedsSwing(seed);
+      if (s.log.some((l) => l.includes("spreads"))) spread++;
+    }
+    expect(spread, "never spread in 200 swings").toBeGreaterThan(0);
+    expect(spread, "spread on every swing — not a 15% roll").toBeLessThan(200);
+  });
+
+  it("...and the copy is sterile, so it cannot compound", () => {
+    // The whole reason this is safe. A copy that could spread would turn a 15%
+    // roll into a board full of Weeds — the runaway this set has fixed twice.
+    const max = getDef("leaf_weeds").onHitSpawn!.max;
+    let checked = 0;
+    for (let seed = 0; seed < 200 && checked === 0; seed++) {
+      const { s, w } = weedsSwing(seed);
+      const copies = boardCards(s, "P1").filter((c) => c.instanceId !== w.instanceId);
+      if (!copies.length) continue;
+      checked++;
+      for (const c of copies) expect(c.spawnedOnHit, "a copy was born fertile").toBe(max);
+    }
+    expect(checked, "no seed in 200 produced a copy to inspect").toBe(1);
+  });
+
+  it("...and one Weeds can never put up more than its cap, however long it swings", () => {
+    const max = getDef("leaf_weeds").onHitSpawn!.max;
+    for (const seed of [0, 7, 42, 123]) {
+      const s = prepState();
+      s.rngState = seed;
+      const w = place(s, "leaf_weeds", "P1", 3, 0);
+      const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 9999, maxHp: 9999, curShields: 0 });
+      for (let i = 0; i < 60; i++) {
+        s.cards[w.instanceId].struckThisRound = {};
+        basicAttack(s, w.instanceId, foe.instanceId);
+      }
+      expect(s.cards[w.instanceId].spawnedOnHit ?? 0, `seed ${seed}`).toBeLessThanOrEqual(max);
+      // The original plus at most `max` copies, and nothing the copies added.
+      expect(boardCards(s, "P1").length, `seed ${seed} board`).toBeLessThanOrEqual(1 + max);
+    }
+  });
+
   it("Twister (Spindrift): the second hit STUNs for 1 round, not 2", () => {
     // Both of Spindrift's hits land on the one target here, so the rider fires
     // on its own volley. At duration 2 the victim lost this round's action AND

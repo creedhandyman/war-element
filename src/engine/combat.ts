@@ -1650,6 +1650,24 @@ export function basicAttack(
       attacker.struckThisRound[t.instanceId] = struckBefore + r.landedHits;
       if (firstStrike) attacker.struckEver.push(t.instanceId);
       applyOnHitRider(draft, attacker, t, struckBefore, r.landedHits);
+      // Spread (Weeds): a landed basic may put another body up beside this one.
+      // Rolled ONCE per attack rather than per hit — a multi-hit carrier would
+      // otherwise get several rolls off one action — and only on a hit that
+      // actually landed, so a whiffed or fully-dodged swing spreads nothing.
+      const spread = aDef.onHitSpawn;
+      if (spread && r.landedHits > 0) {
+        const already = attacker.spawnedOnHit ?? 0;
+        if (already < spread.max && pctChance(draft, spread.chance)) {
+          const born = spawnTokens(draft, attacker, spread.token, 1);
+          if (born.length) {
+            attacker.spawnedOnHit = already + 1;
+            // Sterile: the copy's counter starts spent, so a 15% roll cannot
+            // compound generation on generation into a board full of them.
+            for (const b of born) b.spawnedOnHit = spread.max;
+            draft.log.push(`${label(draft, attacker)} spreads — another ${getDef(spread.token).name} takes root.`);
+          }
+        }
+      }
       // Scorch (PYRO aura): every basic feeds the fire. A fresh target catches
       // BURN 1; one already burning has its BURN STACK by 1, up to the cap.
       //

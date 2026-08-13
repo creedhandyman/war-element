@@ -5408,10 +5408,16 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 0,
     keywords: {},
-    // Offspring (On Death): sprouts back up at half HP, with a 50% coin flip to
-    // revive a second time.
-    passiveNames: { onRevive: "Offspring" },
-    onRevive: { heal: 5, secondChance: 50 },
+    // Spread: a landed basic has a 15% chance to put another Weeds on the board.
+    //
+    // Replaces Offspring (revive at half HP with a 50% second chance). Same
+    // fantasy — weeds you cannot get rid of — moved from dying to living, so the
+    // card does something while it is on the board instead of only when it
+    // leaves it. Capped at 2 and every copy is born sterile: a card that copies
+    // itself compounds, and an uncapped generator is the failure this set has
+    // already had to fix twice (Aurora's orb recharge, Reflection's shields).
+    passiveNames: { onHitSpawn: "Spread" },
+    onHitSpawn: { token: "leaf_weeds", chance: 15, max: 2 },
   },
   {
     id: "pyro_heatsink_golem",

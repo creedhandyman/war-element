@@ -399,6 +399,15 @@ export interface CardDef {
   keywords: Partial<Record<Keyword, number | true>>;
   /** Status applied by basic attacks that land at least one hit. */
   onHitStatus?: OnHitStatusDef;
+  /** Spread (Weeds): a landed basic has `chance`% to put another body on the
+   *  board beside the attacker.
+   *
+   *  Bounded twice over, because a card that copies itself is the classic
+   *  runaway: `max` caps how many one body may ever put up, and every copy is
+   *  born STERILE (its counter starts spent) so the second generation cannot
+   *  spawn a third. Without the sterility a 15% roll compounds — each new body
+   *  rolls too, and the board is the only limit. */
+  onHitSpawn?: { token: string; chance: number; max: number };
   /** Thorns: retaliate when hit by a melee attacker. */
   onHitByMelee?: OnHitByMeleeDef;
   /** Jelly Shock (Jellyfish): discharge when HIT and still standing — `dmg` to
@@ -977,6 +986,9 @@ export interface CardInstance {
   /** Basic hits this card has LANDED on each target this round (keyed by target
    *  instanceId). Powers first-hit-only / on-second-hit riders; reset in Cleanup. */
   struckThisRound: Record<string, number>;
+  /** Spread: how many bodies this one has already put up. Seeded at the card's
+   *  `max` on a spawned copy, which is what makes clones sterile. */
+  spawnedOnHit?: number;
   /** Enemy hits this card has TAKEN this round — every attack that connected,
    *  including one fully soaked by shields. Powers Squanch's Regenerative, which
    *  cashes it in at Cleanup; reset there too. */

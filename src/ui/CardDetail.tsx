@@ -181,6 +181,14 @@ export function describePassives(def: CardDef): string[] {
       `Basic hits ${gate}apply ${h.kind}${h.power ? ` (${h.power})` : ""} for ${rounds(h.duration)}.`,
     );
   }
+  if (def.onHitSpawn) {
+    const sp = def.onHitSpawn;
+    named(
+      "onHitSpawn",
+      `A landed basic has a ${sp.chance}% chance to put another ${getDef(sp.token).name} on the board ` +
+        `beside it — up to ${sp.max}. Copies cannot spread further.`,
+    );
+  }
   if (def.vsStatus) {
     const v = def.vsStatus;
     const parts = [
