@@ -1113,8 +1113,28 @@ export const squadFor = (save: StorySave, region: StoryRegion): string[] =>
  *  packed, and nothing else: foreign cards left behind stay behind until you
  *  walk back. */
 export function poolForRegion(save: StorySave, region: StoryRegion): string[] {
-  if (squadCapInRegion(save.cleared, region) === null) return [...save.collection];
-  return [...new Set([...localCards(save, region), ...squadFor(save, region)])];
+  const limit = squadCapInRegion(save.cleared, region);
+  if (limit === null) return [...save.collection];
+  // A squad you have actually chosen wins. Otherwise one is picked FOR you —
+  // the campaign must never stop and demand a modal before a fight it could
+  // have started. Packing is a choice you may make, not a toll you must pay.
+  const packed = save.squads?.[region.id] ? squadFor(save, region) : autoSquad(save, region);
+  return [...new Set([...localCards(save, region), ...packed])];
+}
+
+/** The squad chosen for you when you have not chosen one: the strongest foreign
+ *  cards you own, by cost. Deterministic, so walking into a region twice without
+ *  touching the picker gives the same team both times.
+ *
+ *  Cost is a blunt proxy for power, but it is the one the stat budget makes
+ *  honest — every card is priced at 5*cost + 10 — so the most expensive things
+ *  you own really are the biggest. */
+export function autoSquad(save: StorySave, region: StoryRegion): string[] {
+  const limit = squadCapInRegion(save.cleared, region);
+  if (limit === null) return [];
+  return [...packableFor(save, region)]
+    .sort((a, b) => getDef(b).cost - getDef(a).cost || a.localeCompare(b))
+    .slice(0, limit);
 }
 
 /** The cards a squad may be chosen FROM: everything owned that is not already
@@ -1122,17 +1142,38 @@ export function poolForRegion(save: StorySave, region: StoryRegion): string[] {
 export const packableFor = (save: StorySave, region: StoryRegion): string[] =>
   save.collection.filter((id) => getDef(id).element !== region.element);
 
-/** Does the player still have to pack before they can fight here?
+/** Is a squad worth OFFERING here — i.e. away from home with more foreign cards
+ *  than can be carried, so there is a real choice to make?
  *
- *  Only away from home, only when they have never packed for this region, and
- *  only when there is a real choice to make — owning no more foreign cards than
- *  you could carry means the picker would be a question with one answer. */
-export const needsSquad = (save: StorySave, region: StoryRegion): boolean => {
+ *  This no longer blocks anything. It used to gate the fight behind a modal, and
+ *  that modal was the single worst thing about the campaign: standing in LEAF
+ *  holding eighteen LEAF cards, you were stopped and made to choose twelve
+ *  FOREIGN ones before you could play. The pool auto-packs now (see
+ *  `autoSquad`); this only decides whether to show the "Squad" button. */
+export const squadIsOfferable = (save: StorySave, region: StoryRegion): boolean => {
   const limit = squadCapInRegion(save.cleared, region);
   if (limit === null) return false;
-  if (save.squads?.[region.id]) return false; // already answered, even if empty
   return packableFor(save, region).length > limit;
 };
+
+/** The team last taken into a fight in this region, filtered to what is still
+ *  fieldable here. Empty when you have never fought here. */
+export const deckForRegion = (save: StorySave, region: StoryRegion): string[] => {
+  const pool = new Set(poolForRegion(save, region));
+  return (save.decks?.[region.id] ?? []).filter((id) => pool.has(id));
+};
+
+/** Remember the team taken into a fight here, so returning restores it. */
+export const rememberDeck = (save: StorySave, region: StoryRegion, deck: string[]): StorySave => ({
+  ...save,
+  deck,
+  decks: { ...(save.decks ?? {}), [region.id]: [...deck] },
+});
+
+/** Has the player explicitly chosen the squad here, as opposed to being handed
+ *  `autoSquad`? Drives the wording on the prep screen. */
+export const squadIsExplicit = (save: StorySave, region: StoryRegion): boolean =>
+  Boolean(save.squads?.[region.id]);
 
 /** Commit (or re-commit) the squad for `region`. Clamped to the limit and to
  *  cards actually owned, and stored under this region so returning here finds
@@ -1727,6 +1768,12 @@ export interface StorySave {
    *  re-entering anywhere re-opened the picker, which is the same question
    *  answered over and over. */
   squads?: Record<string, string[]>;
+  /** Region id -> the deck last taken into a fight THERE.
+   *
+   *  `deck` alone is one global team, so walking LEAF -> PYRO -> LEAF handed the
+   *  PYRO team back on arrival and the LEAF one had to be rebuilt from memory.
+   *  Remembering per region means coming back finds the board you left. */
+  decks?: Record<string, string[]>;
   /** Pre-`squads` saves carried one travelling squad. Read once on load and
    *  folded into `squads`, never written again. */
   squad?: { region: string; cards: string[] };
@@ -1825,6 +1872,11 @@ export function loadStory(): StorySave {
       // and silently forgotten on reload, so every trip back to a region asked
       // the player to pack again — every field of StorySave is rebuilt by hand
       // here, so a new one is invisible until it is listed.
+      decks: Object.fromEntries(
+        Object.entries((p.decks ?? {}) as Record<string, unknown>)
+          .filter(([id]) => REGIONS.some((r) => r.id === id))
+          .map(([id, cards]) => [id, known(cards).filter((c) => collection.includes(c))]),
+      ),
       squads: Object.fromEntries(
         Object.entries((p.squads ?? {}) as Record<string, unknown>)
           .filter(([id]) => REGIONS.some((r) => r.id === id))

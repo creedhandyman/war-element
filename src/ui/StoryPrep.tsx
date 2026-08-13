@@ -13,8 +13,9 @@
 import { useEffect, useRef, useState } from "react";
 import { getDef } from "../data/cards";
 import {
-  boardForNode, deckCapFor, fightCap, isGate, loadoutLegal, loadoutsFor, localCards, needsSquad, squadFor,
-  packSquad, packableFor, poolForRegion, preferredLoadout, recruitablePool, squadCapInRegion,
+  boardForNode, deckCapFor, deckForRegion, fightCap, isGate, loadoutLegal, loadoutsFor, localCards,
+  packSquad, packableFor, poolForRegion, preferredLoadout, recruitablePool, rememberDeck,
+  squadCapInRegion, squadFor, squadIsExplicit, squadIsOfferable,
   type Loadout, type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
 import { CardExpand } from "./CardExpand";
@@ -42,8 +43,12 @@ export function StoryPrep(props: {
   // collection. At home the pool IS the collection and none of this shows.
   const squadLimit = squadCapInRegion(save.cleared, region);
   const pool = poolForRegion(save, region);
-  const mustPack = needsSquad(save, region);
-  const carried = squadFor(save, region).length;
+  // Packing is OFFERED, never forced. This used to be `needsSquad(...)`, which
+  // meant the campaign stopped and demanded a modal the first time you walked
+  // into a region — standing in LEAF holding eighteen LEAF cards, made to choose
+  // twelve FOREIGN ones before you could play. The pool auto-packs now, and this
+  // panel only opens when the player taps for it.
+  const canPack = squadIsOfferable(save, region);
   const local = localCards(save, region).length;
   // Quick select: arriving at a node ALREADY holding the team built for this
   // element is the point of tagging them. Falls back to the last deck used.
@@ -68,12 +73,21 @@ export function StoryPrep(props: {
     return out;
   };
   const [deck, setDeck] = useState<string[]>(
-    // Every seed is filtered through the pool first: a remembered deck from a
-    // previous region must not smuggle cards you did not pack into this one.
-    fill(preferred ? owned(preferred.cards) : owned(save.deck)),
+    // This region's own remembered team comes first — walking away and back
+    // should find the board you left, not whatever you last used elsewhere.
+    // Every seed is still filtered through the pool, so a team from another
+    // region cannot smuggle in cards you did not bring here.
+    fill(
+      deckForRegion(save, region).length ? deckForRegion(save, region)
+        : preferred ? owned(preferred.cards)
+        : owned(save.deck),
+    ),
   );
   /** Cards ticked in the packing step, before it is committed. */
-  const [packing, setPacking] = useState<string[]>([]);
+  const [packing, setPacking] = useState<string[]>(() => squadFor(save, region));
+  /** Has the player asked to change the squad? Nothing opens this but a tap. */
+  const [openPack, setOpenPack] = useState(false);
+  const mustPack = openPack;
   const [pickedTeam, setPickedTeam] = useState<string | null>(preferred?.id ?? null);
   // The builder writes straight into the save, so follow it back in rather than
   // showing a stale team behind the overlay it was edited from.
@@ -209,13 +223,13 @@ export function StoryPrep(props: {
             <button className="ghost sm" onClick={() => setPacking([])} disabled={!packing.length}>
               Clear
             </button>
-            <button className="ghost sm" onClick={props.onCancel}>Back to the map</button>
+            <button className="ghost sm" onClick={() => setOpenPack(false)}>Cancel</button>
           </div>
 
           <button
             className="lockin"
             disabled={packing.length === 0}
-            onClick={() => props.onSave(packSquad(save, region, packing))}
+            onClick={() => { props.onSave(packSquad(save, region, packing)); setOpenPack(false); }}
           >
             {packing.length ? `Cross with ${packing.length}` : "Choose who comes with you"}
           </button>
@@ -253,8 +267,13 @@ export function StoryPrep(props: {
           ) : (
             <span>
               <b>{local}</b> {region.element} here
-              {carried > 0 && <> · <b>{carried}</b>/{squadLimit} carried in</>}
-              {" · repack from the map"}
+              {canPack && (
+                <>
+                  {" · "}
+                  <b>{pool.length - local}</b>/{squadLimit} carried
+                  {squadIsExplicit(save, region) ? "" : " (auto)"}
+                </>
+              )}
             </span>
           )}
         </div>
@@ -323,6 +342,15 @@ export function StoryPrep(props: {
 
         <div className="sp-actions">
           <button className="ghost sm" onClick={props.onEditDeck}>Deck builder</button>
+          {canPack && (
+            <button
+              className="ghost sm"
+              onClick={() => { setPacking(squadFor(save, region).length ? squadFor(save, region) : pool.filter((id) => getDef(id).element !== region.element)); setOpenPack(true); }}
+              title={`Choose which cards travel with you into ${region.element}`}
+            >
+              Squad
+            </button>
+          )}
           {pickedTeam && (
             <button className="ghost sm" onClick={() => { deleteTeam(pickedTeam); setPickedTeam(null); }}>
               Delete team
@@ -355,7 +383,7 @@ export function StoryPrep(props: {
           className="lockin"
           disabled={!legal.ok}
           onClick={() => {
-            props.onSave({ ...save, deck });
+            props.onSave(rememberDeck(save, region, deck));
             props.onFight(deck);
           }}
         >
