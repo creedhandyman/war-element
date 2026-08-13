@@ -9,6 +9,7 @@ import {
   cardAt,
   effectiveDmg,
   effectiveMaxHp,
+  homeSlotsHeld,
   isCaptured,
   moveReachFor,
 } from "./state";
@@ -45,6 +46,19 @@ export function aiMulligan(state: GameState, player: PlayerId = "P2"): string[] 
     .filter((h) => getDef(h.defId).cost > 4)
     .map((h) => h.handId);
 }
+
+/** How many home slots the AI keeps occupied while it still has cards to buy.
+ *
+ *  One. Income is 1/round + 1 per slot held, so a single held slot doubles the
+ *  base grant, and every slot above the first is worth advancing instead — the
+ *  win conditions are all forward. Higher values measured worse: the AI camped,
+ *  and camping is a guaranteed non-win. */
+const HOME_RESERVE = 1;
+
+/** How much gold the AI will wait for before calling a card in hand "buyable".
+ *  Without this the reserve drops the moment the pool dips below the cheapest
+ *  card, which is exactly the round it most needs the income. */
+const HOME_RESERVE_LOOKAHEAD = 2;
 
 // ── prep ────────────────────────────────────────────────────────────────────
 
@@ -527,7 +541,30 @@ function findAdvance(
         : (b.pos!.row - a.pos!.row) * forward,
     );
 
+  // Income is 1 a round plus 1 per HOME SLOT held, so a card that walks off the
+  // back line stops paying for itself. Measured before this guard, the AI held
+  // 0.7 home slots on average and spent 31% of its turns with cards on the board
+  // and NOTHING at home — advancing its whole army into midfield and then unable
+  // to afford the rest of its hand.
+  //
+  // The reserve is only worth holding while there is something left to buy: gold
+  // you cannot spend is not income, it is a hoard. So once the hand is empty (or
+  // nothing in it is within reach of the pool) every card is free to advance,
+  // which keeps the capture win — and the stall-breaker below — intact.
+  const me = state.players[player];
+  const cheapestInHand = me.hand.reduce((m, h) => Math.min(m, getDef(h.defId).cost), Infinity);
+  const stillBuying = cheapestInHand !== Infinity && cheapestInHand <= me.gold + HOME_RESERVE_LOOKAHEAD;
+  const homeRowMine = homeRow(player, state.boardSize);
+  const held = homeSlotsHeld(state, player);
+
   for (const mover of movers) {
+    // Hold the last slot back while there is still something to buy with it.
+    // Anything above the reserve advances as before, and `desperate` ignores it
+    // outright — a total standoff is a guaranteed loss and outranks income.
+    if (
+      !desperate && stillBuying &&
+      mover.pos!.row === homeRowMine && held <= HOME_RESERVE
+    ) continue;
     const reach = moveReachFor(state, mover);
     const candidates: Pos[] = [];
     for (let d = reach; d >= 1; d--) {

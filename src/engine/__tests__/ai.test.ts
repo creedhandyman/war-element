@@ -6,7 +6,7 @@ import { advance, applyIntent, needsP1Input } from "../phases";
 import { canFireSpecial, validTargets } from "../rules";
 import { boardCards, createInitialState } from "../state";
 import type { GameState } from "../types";
-import { MAX_ROUNDS } from "../types";
+import { MAX_ROUNDS, homeRow } from "../types";
 import { getDef } from "../../data/cards";
 import { place, prepState } from "./helpers";
 
@@ -270,6 +270,41 @@ describe("AI vision (fog of war)", () => {
     a.players.P2.gold = 3;
     b.players.P2.gold = 3;
     expect(aiPrepIntent(a, "P2")).toEqual(aiPrepIntent(b, "P2"));
+  });
+
+  it("keeps a home slot back while it still has something to buy", () => {
+    // Income is 1/round + 1 per home slot held, so a card that walks off the
+    // back line stops paying for itself. Measured before this guard, the AI held
+    // 0.7 home slots on average and spent 31% of its turns with cards on the
+    // board and nothing at home — it advanced its army into midfield and then
+    // could not afford the rest of its hand.
+    const s = prepState();
+    s.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    const home = homeRow("P2", s.boardSize);
+    // The earner is the ONLY card it could move, so without the reserve it walks
+    // — that is what makes this discriminating. An adjacent enemy keeps it out
+    // of the standoff branch, which deliberately ignores the reserve.
+    const earner = place(s, "dusk_gool", "P2", home, 0);
+    place(s, "leaf_oak", "P1", home + 1, 0);
+    s.players.P2.hand = [{ handId: "h1", defId: "dusk_vamp" }]; // still something to buy
+    s.players.P2.gold = 0;
+    const intent = aiPrepIntent(s, "P2");
+    expect(intent.type === "MOVE" && intent.instanceId === earner.instanceId,
+      "advanced its last earner off the home row").toBe(false);
+  });
+
+  it("...but advances freely once the hand is spent", () => {
+    // Gold you cannot spend is not income, it is a hoard — and camping is a
+    // guaranteed non-win, so an empty hand releases the reserve.
+    const s = prepState();
+    s.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    const home = homeRow("P2", s.boardSize);
+    place(s, "dusk_gool", "P2", home, 0);
+    place(s, "leaf_oak", "P1", 0, 3);
+    s.players.P2.hand = [];      // nothing left to buy
+    s.players.P2.gold = 99;
+    const intent = aiPrepIntent(s, "P2");
+    expect(intent.type, "camped with an empty hand").not.toBe("PASS");
   });
 
   it("battle choices never target something rules.ts forbids", () => {
