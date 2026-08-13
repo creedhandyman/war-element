@@ -109,6 +109,33 @@ function useDamageFloats(instanceId: string, seq: number, hits: readonly number[
   return batch;
 }
 
+/** Floats a "+1" coin off a card the moment it earns its home-slot income, or
+ *  the moment it steps onto the home row and becomes able to. Same counter-rise
+ *  trick as the others: the engine bumps `fxCoin`, a rise plays it once.
+ *
+ *  Keyed on a counter rather than on position so it cannot re-fire on an
+ *  unrelated re-render, and reset when a different card occupies the slot. */
+function useCoinFloat(instanceId: string, coin: number) {
+  const prev = useRef({ coin, id: instanceId });
+  const keyRef = useRef(0);
+  const [key, setKey] = useState(0);
+  useEffect(() => {
+    if (prev.current.id !== instanceId) {
+      prev.current = { coin, id: instanceId };
+      setKey(0);
+      return;
+    }
+    if (coin > prev.current.coin) setKey(++keyRef.current);
+    prev.current = { coin, id: instanceId };
+  }, [coin, instanceId]);
+  useEffect(() => {
+    if (!key) return;
+    const t = setTimeout(() => setKey(0), 1000);
+    return () => clearTimeout(t);
+  }, [key]);
+  return key;
+}
+
 /** A one-shot motion class for auras that deal damage with no battle turn
  *  behind them, so the HP change isn't unexplained. Same counter trick as
  *  useCombatFx: the engine bumps a number, a rise plays the animation once.
@@ -183,6 +210,7 @@ export function Token(props: {
   const combatFx = useCombatFx(card.instanceId, card.fxMiss ?? 0, card.fxCrit ?? 0);
   const motionFx = useMotionFx(card.instanceId, card.fxLunge ?? 0, card.fxRecoil ?? 0);
   const dmgFx = useDamageFloats(card.instanceId, card.fxDmgSeq ?? 0, card.fxDmgHits ?? EMPTY_HITS);
+  const coinFx = useCoinFloat(card.instanceId, card.fxCoin ?? 0);
   // Attack spotlight: during Battle, the card at the front of the speed queue is
   // the one taking its turn — grow it slightly so you can see who's acting.
   const battle = game.battle;
@@ -245,6 +273,11 @@ export function Token(props: {
           CRIT/MISS rise; damage falls — the direction is the tell. A volley of
           two or more is followed by its total, so a three-hit special reads as
           one blow with a number on it. */}
+      {coinFx > 0 && (
+        <span key={`coin${coinFx}`} className="fx-coin">
+          +1<i className="coin" />
+        </span>
+      )}
       {dmgFx && (
         <div key={dmgFx.key} className="fx-dmg-stack">
           {dmgFx.nums.map((n, i) => (

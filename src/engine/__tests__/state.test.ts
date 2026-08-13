@@ -6,7 +6,7 @@ import { canSummon } from "../rules";
 import { GOLD_PER_ROUND, homeRow } from "../types";
 import { applyIntent, advance, advanceUntilInput } from "../phases";
 import { CARDS, DECK_P1, DECK_P2, TOKENS } from "../../data/cards";
-import { freshGame, giveHand, place } from "./helpers";
+import { freshGame, giveHand, place, prepState } from "./helpers";
 
 describe("card identity", () => {
   // Two genuine collisions shipped before this guard existed: the DUSK token
@@ -266,6 +266,52 @@ describe("resource math (two pools)", () => {
     const next = advance(s);
     expect(next.players.P1.gold).toBe(GOLD_PER_ROUND + 3);
     expect(next.players.P2.gold).toBe(GOLD_PER_ROUND + 1);
+  });
+
+  it("...and every earning card is flagged for the +1 coin animation", () => {
+    // The income rule is invisible otherwise — the gold counter just ticks and
+    // the player has to infer which cards did it. The renderer floats a coin off
+    // each earner; this is the signal it reads.
+    const s = freshGame(9);
+    s.phase = "resource";
+    s.round = 2;
+    const row = homeRow("P1", s.boardSize);
+    const a = place(s, "leaf_oak", "P1", row, 0);
+    const b = place(s, "leaf_oak", "P1", row, 1);
+    const forward = place(s, "leaf_oak", "P1", row - 1, 2);   // off the home row
+    const enemy = place(s, "leaf_oak", "P2", row, 3);          // squatting on MY row
+    const before = (c: { instanceId: string }) => s.cards[c.instanceId].fxCoin ?? 0;
+    expect([before(a), before(b), before(forward), before(enemy)]).toEqual([0, 0, 0, 0]);
+    const next = advance(s);
+    expect(next.cards[a.instanceId].fxCoin).toBe(1);
+    expect(next.cards[b.instanceId].fxCoin).toBe(1);
+    expect(next.cards[forward.instanceId].fxCoin ?? 0, "a card off the home row earns nothing").toBe(0);
+    expect(next.cards[enemy.instanceId].fxCoin ?? 0, "an enemy squatter earns nothing").toBe(0);
+  });
+
+  it("...and stepping onto the home row flags the coin immediately", () => {
+    // Waiting until the next Resource phase to say "this now earns" is too late
+    // to connect the move to the money.
+    const s = prepState();
+    const row = homeRow("P1", s.boardSize);
+    const c = place(s, "dusk_vamp", "P1", row - 1, 0); // SP 7 — leaf_oak prints SP 0
+    expect(s.cards[c.instanceId].fxCoin ?? 0).toBe(0);
+    const next = applyIntent(s, {
+      type: "MOVE", player: "P1", instanceId: c.instanceId, to: { row, col: 0 },
+    });
+    expect(next.cards[c.instanceId].fxCoin).toBe(1);
+  });
+
+  it("...but shuffling along the home row does not re-flag it", () => {
+    // Only the CROSSING earns the announcement; a card already home is already
+    // earning and would otherwise pop a coin every time it sidestepped.
+    const s = prepState();
+    const row = homeRow("P1", s.boardSize);
+    const c = place(s, "dusk_vamp", "P1", row, 0);
+    const next = applyIntent(s, {
+      type: "MOVE", player: "P1", instanceId: c.instanceId, to: { row, col: 1 },
+    });
+    expect(next.cards[c.instanceId].fxCoin ?? 0).toBe(0);
   });
 
   it("...and an enemy standing in your home row pays you nothing", () => {

@@ -401,6 +401,10 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           `${getDef(card.defId).name} bulls ${getDef(shove.victim.defId).name} back to r${shove.dest.row}c${shove.dest.col}.`,
         );
       }
+      // Stepping onto your own home row starts it earning — say so immediately
+      // rather than leaving the player to notice next Resource phase.
+      if (intent.to.row === homeRow(intent.player, draft.boardSize) && fromRow !== intent.to.row)
+        card.fxCoin = (card.fxCoin ?? 0) + 1;
       card.pos = { ...intent.to };
       draft.prep!.movedThisTurn = true;
       card.movedThisRound = true; // Swamp Monster: moving gives up the muck
@@ -1233,6 +1237,12 @@ function doResourcePhase(draft: GameState): void {
     const p = draft.players[player];
     const gain = GOLD_PER_ROUND + homeSlotsHeld(draft, player);
     gains[player] = gain;
+    // Show the money being earned, on the card earning it.
+    const row = homeRow(player, draft.boardSize);
+    for (let col = 0; col < draft.boardSize; col++) {
+      const occ = cardAt(draft, row, col);
+      if (occ && occ.owner === player) occ.fxCoin = (occ.fxCoin ?? 0) + 1;
+    }
     p.gold = Math.min(p.gold, POOL_CARRYOVER_CAP) + gain;
     p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGain;
   }

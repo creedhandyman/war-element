@@ -1172,6 +1172,12 @@ export interface CardInstance {
    *  Midnight Shade). The source is already off the board by then and cannot be
    *  animated, so the telegraph has to live on the card taking the hit. */
   fxRecoil?: number;
+  /** Bumped whenever this card earns — or becomes able to earn — its home-slot
+   *  coin: once per Resource phase while it stands on its own home row, and once
+   *  the moment it steps onto that row. The renderer floats a +1 coin off it, so
+   *  the income rule is something you watch happen rather than infer from the
+   *  gold counter ticking. */
+  fxCoin?: number;
   /** UI-only damage readout: every point of HP this card has lost, one entry
    *  per hit, most recent last — and a counter that ticks once per entry.
    *

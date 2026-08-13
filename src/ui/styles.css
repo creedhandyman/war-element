@@ -630,6 +630,29 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .fx-dmg { animation: fxHold 900ms linear forwards; }
   @keyframes fxHold { 0%, 80% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%); } }
 }
+
+/* The home-slot coin. Damage falls; income RISES — the direction is the tell,
+   so a glance says "gained" without reading the number. Gold rather than red,
+   and it floats off the top of the card so it never sits over the stat row. */
+.fx-coin {
+  position: absolute; left: 50%; top: 26%;
+  display: inline-flex; align-items: center; gap: 3px;
+  font-weight: 900; font-size: 16px; white-space: nowrap; pointer-events: none; z-index: 11;
+  color: var(--gold-lit); text-shadow: 0 1px 3px #000, 0 0 10px rgba(232, 200, 119, 0.9);
+  opacity: 0;
+  animation: fxCoinRise 950ms cubic-bezier(0.22, 0.7, 0.3, 1) forwards;
+}
+.fx-coin .coin { width: 10px; height: 10px; }
+@keyframes fxCoinRise {
+  0% { opacity: 0; transform: translate(-50%, 6px) scale(0.6); }
+  18% { opacity: 1; transform: translate(-50%, 0) scale(1.2); }
+  38% { opacity: 1; transform: translate(-50%, -4px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -34px) scale(0.92); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fx-coin { animation: fxCoinHold 950ms linear forwards; }
+  @keyframes fxCoinHold { 0%, 80% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%); } }
+}
 .status-pip { position: absolute; top: 28px; left: 7px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--accent); color: #12081f; font-size: 9px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 8px rgba(167, 139, 250, 0.6); }
 .tk-stats svg { filter: drop-shadow(0 1px 1px #000); }
 @keyframes movepulse { 0%, 100% { box-shadow: 0 0 6px rgba(78, 203, 143, 0.4); } 50% { box-shadow: 0 0 14px rgba(78, 203, 143, 0.9); } }
