@@ -14,7 +14,7 @@ import {
   capForNode, STANDARD_CAP, BIG_BOARD_CAP, preferredLoadout, type Loadout,
   formationSize, isRegionCleared, isRegionOpen,
   SQUAD_BASE, SQUAD_PER_THRONE, guaranteedDrops, isRegionConquered, squadCapFor, squadCapInRegion,
-  needsSquad, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
+  isOpeningNode, needsSquad, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
 } from "../../data/story";
@@ -174,17 +174,19 @@ describe("story: the deck cap ladder", () => {
     }
   });
 
-  it("the opener fields only its roster — every other node fills to the cap", () => {
-    // One card against three. This is the only deliberately uneven fight in the
-    // campaign, and it exists because the player has one card.
+  it("the opener fields one more than the player brings, cheapest first", () => {
+    // Measured: a lone Sakuroot against all three of Spring Village's cards was
+    // 57% across 34.6 rounds with 26 of 60 timing out, because the third is
+    // Greegon — the REGEN tank the node's note says you cannot out-race. Two of
+    // the cheapest is 100% across 13.5 rounds: unloseable, but you play it.
     const leaf = REGIONS.find((r) => r.id === "leaf")!;
     const l1 = nodeById("L1")!;
-    expect(buildFormation(newSave(), leaf, l1)).toEqual(l1.roster);
-    expect(l1.roster).toHaveLength(3);
-    // And it STAYS three however far the ladder has climbed — coming back later
-    // must not turn the tutorial into a 28-card fight.
+    expect(buildFormation(newSave(), leaf, l1)).toEqual(["leaf_nettle", "leaf_weeds"]);
+    expect(l1.roster).toHaveLength(3); // Greegon is on the roster, just not fielded
+    // And it stays small however far the ladder has climbed — coming back later
+    // with the same one card must not turn the tutorial into a 28-card fight.
     const late = { ...newSave(), cleared: ["L14", "P13", "A13", "G14", "B14"] };
-    expect(buildFormation(late, leaf, l1)).toEqual(l1.roster);
+    expect(buildFormation(late, leaf, l1)).toHaveLength(2);
     // The node after it is an ordinary fight again.
     expect(buildFormation(newSave(), leaf, nodeById("L2")!).length).toBe(12);
   });
@@ -202,10 +204,10 @@ describe("story: the deck cap ladder", () => {
       pyro,
       leafAll.slice(0, 14),
     );
-    expect(buildFormation(packed, pyro, p1)).toHaveLength(14);
+    expect(buildFormation(packed, pyro, p1)).toHaveLength(15); // squad + 1
     // And a player who really is in rags still gets the small fight.
     const rags = { ...newSave(), cleared: ["L14"], collection: ["leaf_sakuroot"] };
-    expect(buildFormation(rags, pyro, p1)).toHaveLength(p1.roster.length);
+    expect(buildFormation(rags, pyro, p1)).toHaveLength(1); // nothing PYRO owned, nothing packed
   });
 
   it("winning an opener hands over its roster and Epic, no roll", () => {
@@ -1056,13 +1058,28 @@ describe("story: formations (10.7)", () => {
       }
   });
 
-  it("never drops a roster card to hit the target", () => {
-    // A trimmed roster card would be unrecruitable that run.
+  it("never drops a roster card to hit the target, except on an opener", () => {
+    // A trimmed roster card would be unrecruitable that run — everywhere except
+    // an opening battle, where `guaranteedDrops` hands over the whole roster and
+    // the region's Epic however few of them actually stood on the board. That is
+    // what lets the opener field two of three without costing the player Greegon.
     for (const r of REGIONS)
       for (const n of r.nodes) {
+        if (isOpeningNode(r, n)) continue;
         const f = buildFormation(newSave(), r, n);
         for (const id of recruitablePool(n)) expect(f, `${n.id} dropped ${id}`).toContain(id);
       }
+  });
+
+  it("...and an opener still pays out every roster card it did not field", () => {
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    const l1 = nodeById("L1")!;
+    const fielded = buildFormation(newSave(), leaf, l1);
+    expect(fielded).not.toContain("leaf_greegon"); // not on the board
+    const start = newSave();
+    const after = applyClear(start, l1, rollRecruits(start, l1, 1, () => 0.99));
+    expect(after.collection).toContain("leaf_greegon"); // paid out anyway
+    for (const id of l1.roster) expect(after.collection).toContain(id);
   });
 
   it("rolls ONCE per unique card however many copies are on the board", () => {

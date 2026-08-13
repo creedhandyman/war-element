@@ -1162,6 +1162,24 @@ export function fightCap(save: StorySave, region: StoryRegion, node: StoryNode):
 
 // ── opening battles ─────────────────────────────────────────────────────────
 
+/** How many cards an opening battle fields: ONE MORE than the player can bring.
+ *
+ *  Measured on LEAF's opener with a lone Sakuroot, where the whole curve is
+ *  visible. One enemy is a 100% win in a single round — Sakuroot simply deletes
+ *  a 1-cost body and the tutorial teaches nothing. Three (the full roster, which
+ *  is what flooring at the roster produced) is 57% across 34.6 rounds with 26 of
+ *  60 running out the clock, because the third card is Greegon and the node's
+ *  own note calls it a REGEN tank "you cannot out-race". Two is 100% across 13.5
+ *  rounds: you cannot lose it, but you have to play it.
+ *
+ *  The +1 is what stops a single strong card one-shotting its own tutorial, and
+ *  it keeps the rule honest later — arriving in a new region with a packed squad
+ *  still meets a fight the size of the squad, not a walkover. Combined with the
+ *  cheapest-first ordering in `buildFormation`, the expensive cards on an
+ *  opener's roster only turn up once the player has a force to meet them. */
+export const openingTarget = (save: StorySave, region: StoryRegion): number =>
+  poolForRegion(save, region).length + 1;
+
 /** Is this the region's rags-to-riches opener? */
 export const isOpeningNode = (region: StoryRegion, node: StoryNode): boolean =>
   region.opening.node === node.id;
@@ -1583,9 +1601,28 @@ export const isFirstBattle = (region: StoryRegion, node: StoryNode): boolean =>
 
 export function buildFormation(save: StorySave, region: StoryRegion, node: StoryNode): string[] {
   const uniques = recruitablePool(node);
+  const opening = isOpeningNode(region, node);
+  // An opening battle is sized ONE-FOR-ONE against what the player can field,
+  // and takes the CHEAPEST of its roster first.
+  //
+  // Measured, LEAF's opener was a lone Sakuroot against all three of Spring
+  // Village's cards, one of them Greegon — a REGEN tank the node's own note
+  // calls one "you cannot out-race". The player won 57% of the time but took
+  // 34.6 rounds to do it and 26 of 60 runs ran out the clock. That is not a
+  // hard tutorial, it is a war of attrition as the first thing the game shows
+  // you. One card should face one card, and the cheapest one.
+  //
+  // Rewards are untouched: `guaranteedDrops` hands over the whole roster plus
+  // the region's Epic however few of them actually stood on the board, so a
+  // smaller opener costs the player nothing.
+  const openingRoster = opening
+    ? [...uniques].sort((a, b) => getDef(a).cost - getDef(b).cost)
+    : uniques;
   // Filler is non-recruitable by construction — tokens can't be decked and
-  // Blight adds only drop from a Blight Node.
-  const out = [...uniques, ...node.adds, ...blightAddsFor(save, region, node)];
+  // Blight adds only drop from a Blight Node. An opener takes no filler at all.
+  const out = opening
+    ? openingRoster.slice(0, openingTarget(save, region))
+    : [...uniques, ...node.adds, ...blightAddsFor(save, region, node)];
 
   const copies = new Map<string, number>();
   for (const id of out) copies.set(id, (copies.get(id) ?? 0) + 1);
@@ -1595,18 +1632,16 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
   // every fight to the pool rewrote the whole difficulty curve — an early
   // node fielded four cards because the player owned four.
   const cap = capForNode(save.cleared, region, node);
-  // An opening battle MATCHES THE PLAYER rather than filling to the cap.
+  // An opening battle MATCHES THE PLAYER rather than filling to the cap, and is
+  // floored at ONE rather than at the roster.
   //
-  // LEAF's opener is the reason: one Sakuroot against a twelve-card army is not
-  // a tutorial, it is a wall. But "always field exactly the roster" was the
-  // wrong fix — arriving in PYRO with a packed squad of fourteen, its opener
-  // would put three cards up and the welcome mat would be a walkover. So the
-  // target is the size of the force the player can actually bring, floored at
-  // the roster so the node always fields its own cards, and still clamped by
-  // the cap. One card in gets three; fourteen in gets fourteen.
-  const target = isOpeningNode(region, node)
-    ? Math.min(cap, Math.max(node.roster.length, poolForRegion(save, region).length))
-    : formationSize(cap);
+  // Flooring at the roster was the previous attempt and it is what made LEAF's
+  // opener a slog: three cards is the smallest that node could ever field, so a
+  // one-card player was always outnumbered three to one. Arriving somewhere new
+  // with a packed squad of fourteen still gets fourteen, so the welcome mat does
+  // not become a walkover later in the campaign — the fight simply tracks the
+  // force you actually brought.
+  const target = opening ? Math.min(cap, openingTarget(save, region)) : formationSize(cap);
   const byCost = (a: string, b: string) => getDef(a).cost - getDef(b).cost;
   const rarity = (id: string) => getDef(id).rarity ?? "";
   const countOf = (r: string) => out.filter((id) => rarity(id) === r).length;
