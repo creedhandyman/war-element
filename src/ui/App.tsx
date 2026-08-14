@@ -317,6 +317,21 @@ export function App() {
     arenaMode === "ai" && gauntletRun && !runOver(gauntletRun)
       ? nextSeat(gauntletRun, boardSize)
       : null;
+  /** THE RUN OWNS THE OPPONENT DECK while it is live.
+   *
+   *  `gauntletSeat` used to drive only the seat's label and its lock, and
+   *  nothing re-pointed `p2DeckId` — so a run advanced its counter, the flag
+   *  read "SEAT 2", and you fought the seat-1 deck again. Four times, with the
+   *  label contradicting the deck name printed directly under it.
+   *
+   *  Keyed on the ID rather than the object: `nextSeat` looks the deck up
+   *  fresh each render, so depending on the object would re-run every time.
+   *  Also the single place the run sets the seat — starting a run no longer
+   *  sets it by hand, because two writers is how they drift apart. */
+  const gauntletSeatId = gauntletSeat?.id ?? null;
+  useEffect(() => {
+    if (gauntletSeatId && gauntletSeatId !== p2DeckId) setP2DeckId(gauntletSeatId);
+  }, [gauntletSeatId, p2DeckId]);
   /** Which seat the deck sheet is filling, or null when it is shut. */
   const [pickSeat, setPickSeat] = useState<"p1" | "p2" | null>(null);
   // Premade builds sized for the CHOSEN battlefield — a 30-card large build must
@@ -2343,8 +2358,7 @@ export function App() {
                       const run = startRun(runTier, boardSize);
                       const next = { ...story, gauntlet: { ...(story.gauntlet ?? {}), run } };
                       setStory(next); saveStory(next);
-                      const first = nextSeat(run, boardSize);
-                      if (first) setP2DeckId(first.id);
+                      // The seat-sync effect points p2DeckId at seat 1.
                     }}
                   >
                     <span className="gt-start-main">
