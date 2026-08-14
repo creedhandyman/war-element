@@ -139,6 +139,13 @@ export function App() {
   );
   const [mullToss, setMullToss] = useState<string[]>([]);
   const [surrenderArmed, setSurrenderArmed] = useState(false);
+  /** The action bar's overflow menu. Shut by default — the bar is one row. */
+  const [barMenu, setBarMenu] = useState(false);
+  // Shut it when the phase moves on. Mid-battle CSS hides the whole block, the
+  // scrim included, so an open menu would come back the next prep turn over a
+  // board the player has already changed their mind about.
+  const phaseNow = game.phase;
+  useEffect(() => { setBarMenu(false); }, [phaseNow]);
   // Battle Log collapses to a thin strip to give the battlefield more room.
   // Defaults collapsed on short (landscape-phone) viewports, open on desktop.
   const [logCollapsed, setLogCollapsed] = useState(
@@ -1798,7 +1805,22 @@ export function App() {
               "Waiting…"
             )}
           </button>
-          <div className="ctl-sub">
+          {/* Everything that is not the committing action, behind one button.
+              Auto / Clear / Surrender are things you do once or twice a match,
+              and as a second full-width row they cost 34px of every screen for
+              the whole game — on a phone that is board. */}
+          <button
+            className={`ctl-more ${barMenu ? "on" : ""}`}
+            aria-label="More actions"
+            aria-expanded={barMenu}
+            onClick={() => setBarMenu((v) => !v)}
+          >
+            ⋯
+          </button>
+          {barMenu && <button className="ctl-scrim" aria-label="Close" onClick={() => setBarMenu(false)} />}
+          <div className={`ctl-sub ${barMenu ? "open" : ""}`}>
+            {/* Whether the turn's one move is spent is a readout, not an action,
+                but it belongs with the actions it constrains. */}
             {myPrep && (
               <span className={`mv ${game.prep?.movedThisTurn ? "used" : "ready"}`}>
                 {game.prep?.movedThisTurn ? "Move: used" : "Move: available"}
@@ -1811,6 +1833,7 @@ export function App() {
               onChange={(e) => {
                 if (e.target.value) setGlobalAuto(e.target.value as never);
                 e.target.value = "";
+                setBarMenu(false);
               }}
             >
               <option value="" disabled>
@@ -1827,6 +1850,7 @@ export function App() {
                 setPending(null);
                 setPicks([]);
                 setSurrenderArmed(false);
+                setBarMenu(false);
               }}
             >
               Clear
@@ -1839,6 +1863,7 @@ export function App() {
                   if (surrenderArmed) {
                     dispatch({ type: "SURRENDER", player: me });
                     setSurrenderArmed(false);
+                    setBarMenu(false);
                   } else {
                     setSurrenderArmed(true);
                     setHint("⚠ Surrender? Click again to confirm, or Clear to cancel.");

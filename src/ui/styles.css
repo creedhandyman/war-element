@@ -1216,6 +1216,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .pass-btn .pass-dots { margin: 0; }
 /* Secondary controls sit in one compact row under Pass Priority. */
 .ctl-sub { display: flex; flex-wrap: nowrap; gap: 5px; align-items: center; justify-content: flex-end; }
+/* The overflow button and its menu are the COMPACT tier's answer to a second
+   button row. Desktop has the height to spare, so there `.ctl-sub` stays the
+   visible row it always was and these two never render. */
+.ctl-more { display: none; }
+.ctl-scrim { display: none; }
 .ghost.sm { padding: 5px 8px; font-size: 10.5px; border-radius: 8px; white-space: nowrap; }
 .ctl-sub select.ghost.sm { max-width: 100%; }
 .lockin { padding: 10px 22px; border-radius: 10px; border: 1px solid var(--gold-hi); background: linear-gradient(180deg, var(--gold-lit), #b8903a); color: #241a06; font-family: var(--head); font-weight: 800; letter-spacing: 0.06em; font-size: 13px; cursor: pointer; box-shadow: 0 0 24px rgba(232, 200, 119, 0.4), 0 4px 14px rgba(0, 0, 0, 0.5); transition: 0.15s; }
@@ -2281,20 +2286,58 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .controls .hint:empty { display: none; }
   .panel-spells { grid-row: 1; grid-column: 1; width: auto; margin: 0; }
   .pass-btn { grid-row: 1; grid-column: 2; }
-  .ctl-sub { grid-row: 2; grid-column: 1 / -1; gap: 6px; }
-  /* 48px each was three thumb-sized buttons for actions you take once a match.
-     They keep a 30px target, which is still tappable, and give the height back
-     to the board. */
-  .ctl-sub > * { height: 30px; min-height: 0; padding: 0 8px; font-size: var(--fs-2); }
+  /* ONE ROW: book chip · the committing action · everything else.
+     The second row held Auto, Clear and Surrender — three things you do once
+     or twice in a match — and charged 34px of every screen for the whole game.
+     On a phone that 34px is board. They live behind the ⋯ now, which is the
+     design's own answer and the same shape the top strip already uses. */
+  .controls { grid-template-columns: auto 1fr auto; }
+  .ctl-more {
+    grid-row: 1; grid-column: 3; display: grid; place-items: center;
+    width: 44px; height: 44px; flex: none; cursor: pointer;
+    border-radius: 10px; border: 1px solid rgba(233, 226, 210, .2);
+    background: rgba(6, 7, 12, .6); color: var(--ink-dim);
+    font-size: 15px; line-height: 1; padding: 0;
+  }
+  .ctl-more.on { border-color: var(--gold-line); color: var(--gold-lit); background: rgba(201, 162, 75, .12); }
+  /* Full-screen and transparent: a tap anywhere shuts the menu, and it sits
+     UNDER the menu but over everything else so the board cannot be played
+     through an open sheet. */
+  .ctl-scrim {
+    display: block; position: fixed; inset: 0; z-index: var(--z-sheet);
+    background: transparent; border: 0; padding: 0; cursor: default;
+  }
+  /* The menu is anchored to `.controls`, not to the ⋯ — the same reason the
+     spellbook popover is: a 44px button is not a sensible width for a panel,
+     and measuring against the bar cannot drift. */
+  .ctl-sub {
+    position: absolute; bottom: calc(100% + 8px); left: 0; right: 0;
+    z-index: calc(var(--z-sheet) + 1);
+    display: none; flex-direction: column; align-items: stretch; gap: 7px;
+    padding: 9px; border-radius: 12px;
+    background: var(--panel); border: 1px solid var(--gold-line);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .7);
+  }
+  .ctl-sub.open { display: flex; }
+  .ctl-sub .mv { display: block; font-size: 11px; text-align: center; padding-bottom: 1px; }
+  .ctl-sub > .ghost.sm, .ctl-sub > select.ghost.sm {
+    flex: none; width: 100%; height: 42px; min-height: 0;
+    font-size: 14px; font-weight: 700; padding: 0 10px; border-radius: 10px;
+    text-align: center; text-align-last: center; max-width: none;
+  }
   .hint { display: none; }
-  /* Big primary action (kept prominent, just less vertical padding). */
-  .pass-btn { width: 100%; padding: 8px 12px; font-size: 16px; letter-spacing: 0.05em; }
+  /* Big primary action, held to ONE LINE and one row-height. Sharing its row
+     with the ⋯ took 50px off its width and "Pass Priority" wrapped, growing a
+     44px bar to 62 — the opposite of the point. */
+  .pass-btn {
+    width: 100%; height: 44px; padding: 0 10px; font-size: 15px; letter-spacing: 0.04em;
+    white-space: nowrap; overflow: hidden;
+  }
+  /* Chip, not sentence: the book glyph and a count. "SPELLS" spelled out cost
+     70px of the row for a word the icon already says. */
+  .panel-spells .sb-label { display: none; }
+  .panel-spells .spellbook-toggle { height: 44px; padding: 0 11px; gap: 5px; }
   .pass-btn:disabled { opacity: 0.85; } /* "Waiting…" still reads as a full-size button */
-  /* Auto / Clear / Surrender → full-width equal buttons, real presence. */
-  .ctl-sub { width: 100%; display: flex; gap: 10px; flex-wrap: nowrap; justify-content: stretch; }
-  .ctl-sub .mv { display: none; }
-  .ctl-sub .ghost.sm { flex: 1 1 0; min-width: 0; font-size: 14px; font-weight: 700; padding: 14px 8px; border-radius: 11px; text-align: center; text-align-last: center; }
-  .ctl-sub select.ghost.sm { flex: 1 1 0; max-width: none; }
 
   /* ── BATTLE ACTIONS ── When one of your cards is up (`.acting`), the panel shows
      its big action buttons (Basic / Special / Talent / Skip) instead of the prep
