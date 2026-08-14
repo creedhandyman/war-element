@@ -13,6 +13,8 @@
 
 import { CARDS, CARD_INDEX, getDef } from "./cards";
 import { SPELLS, getSpell, spellCapForBoard } from "../engine/spells";
+import { DECK_TIERS } from "./custom-decks";
+import type { GauntletState } from "./gauntlet";
 
 // ── shape ───────────────────────────────────────────────────────────────────
 
@@ -2041,6 +2043,10 @@ export interface StorySave {
    *  matching team was saved EARLIEST, so saving a new one and returning
    *  silently fought with an older deck. */
   lastTeamId?: string;
+  /** The Gauntlet run in progress, and which rungs have been cleared. Lives in
+   *  the save rather than in React state precisely so it CANNOT be re-rolled:
+   *  leaving the Arena and coming back has to resume the same four opponents. */
+  gauntlet?: GauntletState;
   /** Region id -> Blight earned from world progress. The region's own baseline
    *  is applied on read, so it can never be saved away. */
   blight: Record<string, number>;
@@ -2217,6 +2223,21 @@ export function loadStory(): StorySave {
       // Dropped if it names a team that no longer exists, so a deleted team
       // cannot leave the save pointing at nothing.
       lastTeamId: typeof p.lastTeamId === "string" ? p.lastTeamId : undefined,
+      // Restored as written. A malformed run is dropped rather than repaired:
+      // half a run is not a thing the rest of the code should have to reason
+      // about, and starting a fresh one costs the player nothing.
+      gauntlet: (() => {
+        const g = p.gauntlet as GauntletState | undefined;
+        if (!g || typeof g !== "object") return undefined;
+        const run = g.run;
+        const ok = run && Array.isArray(run.seats) && run.seats.every((x) => typeof x === "string")
+          && typeof run.won === "number" && run.won >= 0 && run.won <= run.seats.length
+          && DECK_TIERS.includes(run.tier);
+        return {
+          run: ok ? run : undefined,
+          cleared: Array.isArray(g.cleared) ? g.cleared.filter((t) => DECK_TIERS.includes(t)) : [],
+        };
+      })(),
       loadouts: Array.isArray(p.loadouts)
         ? (p.loadouts as Loadout[])
             .filter((l) => l && typeof l.id === "string" && typeof l.name === "string")
@@ -2438,6 +2459,15 @@ export function applyClear(save: StorySave, node: StoryNode, result: RecruitResu
     pity[key] = (pity[key] ?? 0) + 1;
   }
   const next: StorySave = {
+    // SPREAD, and this is not a style choice. This object used to be written
+    // out field by field — cleared, collection, pity, deck, blight — which
+    // silently DELETED everything else on the save every time a node was
+    // beaten: the hero (name, shards, essence, foils, chosen spells), every
+    // saved team, `lastTeamId`, the per-region decks and squads. Shards not
+    // surviving a campaign was the reported symptom; it was wiping the wallet,
+    // the collection's foils and the teams along with them. Anything added to
+    // StorySave from here on is kept by default rather than lost by omission.
+    ...save,
     // A Blight Node is never banked as "cleared" — it can come back, and a stale
     // tick would make the returning node render as already beaten.
     cleared: isBlightNode(node) || save.cleared.includes(node.id)

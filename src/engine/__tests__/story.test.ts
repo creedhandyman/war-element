@@ -1824,3 +1824,50 @@ describe("story: a team's spellbook", () => {
     expect(small).toHaveLength(spellCapForBoard(4));
   });
 });
+
+describe("story: clearing a node must not eat the save", () => {
+  const loaded = (): StorySave => {
+    let s = awardShards(newSave(), "arena");                       // 2 shards
+    return {
+      ...s,
+      hero: { ...s.hero!, name: "Bernard", essence: { LEAF: 9 }, shiny: ["leaf_oak"], spells: ["leaf_sprout"] },
+      loadouts: [{ id: "t", name: "My team", cards: ["leaf_oak"], spells: ["leaf_sprout"] }],
+      lastTeamId: "t",
+      squads: { pyro: ["leaf_oak"] },
+      decks: { leaf: ["leaf_oak"] },
+    };
+  };
+
+  it("keeps every field it was given", () => {
+    // `applyClear` used to write a NEW object out of five fields — cleared,
+    // collection, pity, deck, blight — so beating any node deleted the hero
+    // (shards, essence, foils, name, spells), every saved team, lastTeamId and
+    // the per-region decks and squads. It spreads now, and this asserts on the
+    // KEY SET rather than a list of fields so a future field is covered without
+    // anyone remembering to come back here.
+    const before = loaded();
+    const after = applyClear(before, REGIONS[0].nodes[0], { won: [], missed: [], shiny: [] } as never);
+    for (const k of Object.keys(before)) expect(after, `dropped ${k}`).toHaveProperty(k);
+  });
+
+  it("keeps the wallet, the foils and the teams specifically", () => {
+    const before = loaded();
+    const after = applyClear(before, REGIONS[0].nodes[0], { won: [], missed: [], shiny: [] } as never);
+    expect(after.hero!.shards).toBe(2);
+    expect(after.hero!.name).toBe("Bernard");
+    expect(after.hero!.shiny).toEqual(["leaf_oak"]);
+    expect(after.hero!.spells).toEqual(["leaf_sprout"]);
+    // The clear pays essence of its own on top; it must ADD, not replace.
+    expect(after.hero!.essence.LEAF).toBeGreaterThanOrEqual(9);
+    expect(after.loadouts).toHaveLength(1);
+    expect(after.lastTeamId).toBe("t");
+    expect(after.squads).toEqual({ pyro: ["leaf_oak"] });
+  });
+
+  it("still does the job it was written for", () => {
+    const node = REGIONS[0].nodes[0];
+    const after = applyClear(loaded(), node, { won: ["leaf_nettle"], missed: [], shiny: [] } as never);
+    expect(after.cleared).toContain(node.id);
+    expect(after.collection).toContain("leaf_nettle");
+  });
+});
