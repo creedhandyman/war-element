@@ -242,7 +242,7 @@ export function StoryCollection(props: {
                           onError={(e) => { e.currentTarget.style.display = "none"; }} />
                       </span>
                       {have ? (
-                        on ? <span className="dt-add on" title="In your current deck">✓</span> : null
+                        on ? <span className="dt-mark" title="In your current deck">✓</span> : null
                       ) : (
                         <span className="dt-locked" aria-label="Not recruited">🔒</span>
                       )}

@@ -75,6 +75,7 @@ export function DeckBuilder(props: {
   const [filter, setFilter] = useState<Element | "ALL">("ALL");
   const [classFilter, setClassFilter] = useState<CardClass | "ALL">("ALL");
   const [sortBy, setSortBy] = useState<SortKey>("cost");
+  const [query, setQuery] = useState("");
   const [detailId, setDetailId] = useState<string | null>(null);
   // Composition / Spellbook / Saved live behind one compact tool-pill row and
   // open one-at-a-time below it, so the card pool keeps the screen. Desktop has
@@ -95,10 +96,12 @@ export function DeckBuilder(props: {
   // then sort. Default "cost" reads the Gold curve low→high, breaking ties by
   // rarity (mythic first) then name.
   const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
     const base = pool.filter(
       (c) =>
         (filter === "ALL" || c.element === filter) &&
-        (classFilter === "ALL" || c.cardClass === classFilter),
+        (classFilter === "ALL" || c.cardClass === classFilter) &&
+        (q === "" || c.name.toLowerCase().includes(q)),
     );
     return [...base].sort((a, b) => {
       if (sortBy === "name") return a.name.localeCompare(b.name);
@@ -106,7 +109,7 @@ export function DeckBuilder(props: {
         return rarityRank(a.rarity) - rarityRank(b.rarity) || a.cost - b.cost || a.name.localeCompare(b.name);
       return a.cost - b.cost || rarityRank(a.rarity) - rarityRank(b.rarity) || a.name.localeCompare(b.name);
     });
-  }, [pool, filter, classFilter, sortBy]);
+  }, [pool, filter, classFilter, sortBy, query]);
   const pickedSet = new Set(picked);
   const check = story
     ? picked.length === 0
@@ -357,8 +360,28 @@ export function DeckBuilder(props: {
             )}
           </div>
 
-          {/* Right: the card pool. Tap a card for details; the corner button adds. */}
+          {/* Right: the card pool. Tap a card to add it; the ⓘ corner reads it. */}
           <div className="db-pool">
+            {/* Three hundred cards behind element and class pills only, on a
+                phone, means scrolling to find a card you can already name. The
+                filters answer "show me a KIND of card"; this answers "show me
+                THAT card", and they are different questions. Matches the name
+                only — matching rules text would turn a search for "Bolt" into
+                every card that mentions it. */}
+            <div className="db-search">
+              <span className="db-search-ico" aria-hidden="true">⌕</span>
+              <input
+                className="db-search-in"
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={`Search ${pool.length} cards`}
+                aria-label="Search cards by name"
+              />
+              {query && (
+                <button className="db-search-x" onClick={() => setQuery("")} aria-label="Clear search">✕</button>
+              )}
+            </div>
             <div className="db-filters">
               <button className={`db-fl ${filter === "ALL" ? "on" : ""}`} onClick={() => setFilter("ALL")}>All</button>
               {/* Always in the element's own colour — a wall of identical grey
@@ -425,14 +448,21 @@ export function DeckBuilder(props: {
                 const on = pickedSet.has(d.id);
                 const rar = d.rarity ? RARITY_STYLE[d.rarity] : null;
                 return (
+                  /* TAP-TO-ADD is inverted from the desktop build on purpose:
+                     the card BODY toggles the pick and a small ⓘ opens the card
+                     view. Adding is what you do two dozen times while building a
+                     deck; reading the card is what you do when something
+                     surprises you. On a phone the frequent action gets the big
+                     target, and the rare one gets a corner. */
                   <div
                     key={d.id}
                     className={`deck-thumb carded db-card ${on ? "selected" : ""}`}
                     role="button"
                     tabIndex={0}
-                    title={`${d.name} — tap for details`}
-                    onClick={() => setDetailId(d.id)}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetailId(d.id); } }}
+                    aria-pressed={on}
+                    title={on ? `${d.name} — tap to remove` : `${d.name} — tap to add`}
+                    onClick={() => toggle(d.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(d.id); } }}
                   >
                     <img
                       className="card-art"
@@ -446,12 +476,16 @@ export function DeckBuilder(props: {
                         <img src={EL_ICON[d.element]} alt={d.element} draggable={false}
                           onError={(e) => { e.currentTarget.style.display = "none"; }} />
                       </span>
+                      {/* The corner that used to add now READS. Its hit area is
+                          padded out past its 22px face so a thumb can reach it
+                          without catching the body underneath. */}
                       <button
-                        className={`dt-add ${on ? "on" : ""}`}
-                        title={on ? "Remove from deck" : "Add to deck"}
-                        onClick={(e) => { e.stopPropagation(); toggle(d.id); }}
+                        className="dt-info"
+                        title={`${d.name} — see the card`}
+                        aria-label={`${d.name} — see the card`}
+                        onClick={(e) => { e.stopPropagation(); setDetailId(d.id); }}
                       >
-                        {on ? "✓" : "+"}
+                        ⓘ
                       </button>
                     </div>
                     {/* Rarity is absolutely positioned (see styles.css) as a vertical
@@ -467,6 +501,10 @@ export function DeckBuilder(props: {
                       <span className="s-dmg">⚔<span className="atk-dmg">{d.dmg}</span>{d.hits > 1 ? <span className="atk-x"> ×{d.hits}</span> : ""}</span>
                       <span className="s-hp">♥{d.hp}</span>
                       <span className="s-sp"><SpIcon />{d.sp}</span>
+                      {/* In the stat row rather than a corner badge: the gold rim
+                          says "picked" from across the grid, and this says it
+                          again at the one place you are already reading. */}
+                      {on && <span className="dt-in" aria-hidden="true">✓</span>}
                     </div>
                   </div>
                 );
