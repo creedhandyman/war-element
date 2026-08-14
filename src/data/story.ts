@@ -5,9 +5,14 @@
 // and (c) which cards you own. Deck size is unlocked by clearing Thrones.
 //
 // This module is pure data + pure functions. It never imports from the engine's
-// runtime or from React, so the whole campaign layer stays testable headlessly.
+// RUNTIME or from React, so the whole campaign layer stays testable headlessly.
+// `engine/spells` is the one engine-side import and it is deliberate: that file
+// is itself pure data plus pure helpers (no state, no phases, no React), and the
+// hero's spell unlocks have to read the real spell table or they would need a
+// duplicate of it here that could drift.
 
 import { CARD_INDEX, getDef } from "./cards";
+import { SPELLS, getSpell, spellCapForBoard } from "../engine/spells";
 
 // ── shape ───────────────────────────────────────────────────────────────────
 
@@ -1201,6 +1206,81 @@ export function fightCap(save: StorySave, region: StoryRegion, node: StoryNode):
   return pool > 0 ? Math.min(ceiling, pool) : ceiling;
 }
 
+// ── the hero ────────────────────────────────────────────────────────────────
+
+/** The hero a new campaign starts with. Named by the player later; the default
+ *  is deliberately plain rather than cute, so it reads as a placeholder. */
+export const newHero = (): Hero => ({
+  name: "Keeper",
+  affinity: REGIONS[0].element, // LEAF — wherever the campaign opens
+  spells: [],
+  essence: {},
+});
+
+/** Essence paid for clearing a node, by what kind of node it was.
+ *
+ *  A Throne is worth a week of skirmishes because it is one. The numbers are
+ *  small on purpose: essence is the SLOW route to a card you never rolled, the
+ *  one that guarantees you finish a collection eventually rather than the one
+ *  that skips the game. */
+export const ESSENCE_PER_CLEAR: Record<NodeKind, number> = {
+  skirmish: 1, warden: 2, gate: 2, landmark: 3, blight: 3, throne: 5,
+};
+
+/** Spells unlock by walking the region that owns them.
+ *
+ *  The set is already shaped for this and it is worth saying why it fits so
+ *  cleanly: there are exactly 80 spells, ten per element, one per cost rung 1
+ *  through 10. So "how deep into this region have you been" maps straight onto
+ *  "how expensive a spell of theirs will answer to you" with no new data and no
+ *  unlock table to maintain — clear n nodes in a region and its spells up to
+ *  cost n are yours. Ten nodes gets the element's whole book, and every region
+ *  has more nodes than that, so finishing a region always finishes its spells.
+ */
+export function spellsUnlockedIn(save: StorySave, region: StoryRegion): string[] {
+  const depth = region.nodes.filter((n) => save.cleared.includes(n.id)).length;
+  return SPELLS
+    .filter((sp) => sp.element === region.element && sp.cost <= depth)
+    .map((sp) => sp.id);
+}
+
+/** Every spell the hero has earned, across every region walked so far, CHEAPEST
+ *  FIRST.
+ *
+ *  The order is load-bearing rather than tidy: `heroBookFor` fills the book off
+ *  the front of this list, and magic starts at 0 and drips in, so the spells
+ *  worth defaulting to are the ones that can actually be cast. Left in
+ *  declaration order the automatic book came out as cost 1, 4, 2, 5, 6 — a
+ *  spread nobody chose, with two spells in it the player could not afford for
+ *  most of a short match. */
+export const heroSpellShelf = (save: StorySave): string[] =>
+  [...new Set(REGIONS.flatMap((r) => spellsUnlockedIn(save, r)))]
+    .sort((a, b) => getSpell(a).cost - getSpell(b).cost || a.localeCompare(b));
+
+/** The book the hero actually carries into a fight: their chosen spells if they
+ *  have picked any, else the shelf, trimmed to the board's cap.
+ *
+ *  Trimmed rather than refused — a hero holding thirty spells and a five-slot
+ *  book should walk in with five, not with none. */
+export function heroBookFor(save: StorySave, boardSize: number): string[] {
+  const shelf = heroSpellShelf(save);
+  const chosen = (save.hero?.spells ?? []).filter((id) => shelf.includes(id));
+  return (chosen.length ? chosen : shelf).slice(0, spellCapForBoard(boardSize));
+}
+
+/** Bank the essence a clear is worth, in the element of the region it was in. */
+export function awardEssence(save: StorySave, region: StoryRegion, node: StoryNode): StorySave {
+  const hero = save.hero ?? newHero();
+  const gain = ESSENCE_PER_CLEAR[node.kind] ?? 1;
+  return {
+    ...save,
+    hero: {
+      ...hero,
+      essence: { ...hero.essence, [region.element]: (hero.essence[region.element] ?? 0) + gain },
+    },
+  };
+}
+
 // ── opening battles ─────────────────────────────────────────────────────────
 
 /** How many cards an opening battle fields: ONE MORE than the player can bring.
@@ -1768,6 +1848,9 @@ export interface StorySave {
    *  re-entering anywhere re-opened the picker, which is the same question
    *  answered over and over. */
   squads?: Record<string, string[]>;
+  /** The player. See `Hero`. Absent on a save written before heroes existed;
+   *  `loadStory` mints a default one rather than leaving it undefined. */
+  hero?: Hero;
   /** Region id -> the deck last taken into a fight THERE.
    *
    *  `deck` alone is one global team, so walking LEAF -> PYRO -> LEAF handed the
@@ -1780,6 +1863,36 @@ export interface StorySave {
 }
 
 const STORAGE_KEY = "we_story_v1";
+
+/** The player themselves: the one who casts the spells and keeps the cards.
+ *
+ *  Deliberately a SAVE FIELD and nothing more. The hero never stands on the
+ *  board, is never targeted and cannot die — it is a face, a spellbook and a
+ *  wallet. That is not a limitation dodged, it is the whole reason this costs
+ *  nothing: spells in this game have always been cast by the PLAYER rather than
+ *  by a card, so "the hero casts them" was already true mechanically and only
+ *  needed a name attached. A hero unit on the board would be a new actor type
+ *  touching targeting, AoE, capture, defeat, the AI threat model and every
+ *  spell that reads "all enemies" — a different project.
+ *
+ *  What it owns is the three things that were already lying around unattached:
+ *  the collection (which `StorySave` already held), the spellbook (which the
+ *  campaign was not using at all — story matches passed an empty one), and
+ *  essence (which the map has been PROMISING the player since before it
+ *  existed — see the exhausted-node copy in StoryMap). */
+export interface Hero {
+  name: string;
+  /** The element the hero began with. LEAF for every campaign that starts at
+   *  Spring Village, which is all of them today; kept as a field because the
+   *  starting region is data, not a constant. */
+  affinity: string;
+  /** Spell ids unlocked so far. NOT the book taken into a fight — that is
+   *  capped at 5 (8 on a large board), so this is the shelf you choose from. */
+  spells: string[];
+  /** Element id -> essence banked. The crafting currency: the third route to a
+   *  complete collection, beside clearing the story and opening boosters. */
+  essence: Record<string, number>;
+}
 
 /** A saved team. `element` is the element this team is FOR — the one it expects
  *  to fight, not the one it is built from — and is only ever a hint for
@@ -1830,7 +1943,10 @@ export function loadoutLegal(cards: string[], cap: number): { ok: boolean; reaso
 }
 
 export function newSave(): StorySave {
-  return { cleared: [], collection: [...STARTER_DECK], pity: {}, deck: [...STARTER_DECK], blight: {} };
+  return {
+    cleared: [], collection: [...STARTER_DECK], pity: {},
+    deck: [...STARTER_DECK], blight: {}, hero: newHero(),
+  };
 }
 
 /** Read the save, dropping anything that no longer exists — so removing a card
@@ -1872,6 +1988,24 @@ export function loadStory(): StorySave {
       // and silently forgotten on reload, so every trip back to a region asked
       // the player to pack again — every field of StorySave is rebuilt by hand
       // here, so a new one is invisible until it is listed.
+      // Restored like every other field, and MINTED when absent: a campaign
+      // saved before heroes existed still has a player, it just never had a
+      // name for them. Essence values are coerced to finite numbers so a
+      // hand-edited or older save cannot poison the wallet with NaN.
+      hero: (() => {
+        const h = p.hero;
+        const base = newHero();
+        if (!h || typeof h !== "object") return base;
+        const essence: Record<string, number> = {};
+        for (const [el, n] of Object.entries(h.essence ?? {}))
+          if (typeof n === "number" && Number.isFinite(n) && n > 0) essence[el] = Math.floor(n);
+        return {
+          name: typeof h.name === "string" && h.name.trim() ? h.name : base.name,
+          affinity: typeof h.affinity === "string" ? h.affinity : base.affinity,
+          spells: Array.isArray(h.spells) ? h.spells.filter((x): x is string => typeof x === "string") : [],
+          essence,
+        };
+      })(),
       decks: Object.fromEntries(
         Object.entries((p.decks ?? {}) as Record<string, unknown>)
           .filter(([id]) => REGIONS.some((r) => r.id === id))
@@ -2060,5 +2194,7 @@ export function applyClear(save: StorySave, node: StoryNode, result: RecruitResu
   };
   // Blight is read AFTER the clear is banked, so finishing a region's Throne can
   // immediately push shadow into it.
-  return advanceBlight(pushBackBlight(next, node), node);
+  const region = regionOfNode(node.id);
+  const paid = region ? awardEssence(next, region, node) : next;
+  return advanceBlight(pushBackBlight(paid, node), node);
 }

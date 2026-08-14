@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 import { CARDS, TOKENS, getDef } from "../../data/cards";
-import { SPELLS } from "../../engine/spells";
+import { SPELLS, getSpell } from "../../engine/spells";
 import {
   ALL_NODES, BLIGHT_ADDS, BLIGHT_MAX, CAP_LADDER, OVERFLOW_RATE, REGIONS, STARTER_DECK,
   applyClear, baseRateFor, blightAddsFor, blightLevel, canBlight, deckCapFor, isOpen, isOverflow,
@@ -14,7 +14,7 @@ import {
   capForNode, STANDARD_CAP, BIG_BOARD_CAP, preferredLoadout, type Loadout,
   formationSize, isRegionCleared, isRegionOpen,
   SQUAD_BASE, SQUAD_PER_THRONE, guaranteedDrops, isRegionConquered, squadCapFor, squadCapInRegion,
-  isOpeningNode, autoSquad, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
+  isOpeningNode, autoSquad, newHero, spellsUnlockedIn, heroSpellShelf, heroBookFor, ESSENCE_PER_CLEAR, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
 } from "../../data/story";
@@ -249,6 +249,106 @@ describe("story: the deck cap ladder", () => {
     const save: StorySave = { ...newSave(), collection: [...p1.roster] }; // Rares already owned
     const got = rollRecruits(save, p1, 1, () => 0.99);
     expect(got.won).toEqual([pyro.opening.epic]);
+  });
+
+  it("a new campaign has a hero, and the hero starts with nothing", () => {
+    const h = newSave().hero!;
+    expect(h).toBeDefined();
+    expect(h.affinity).toBe(REGIONS[0].element); // wherever the campaign opens
+    expect(h.spells).toEqual([]);
+    expect(h.essence).toEqual({});
+  });
+
+  it("spells unlock by walking the region that owns them", () => {
+    // 80 spells, ten per element, one per cost rung 1-10 — so depth in a region
+    // maps straight onto how expensive a spell of theirs answers to you.
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    expect(spellsUnlockedIn(newSave(), leaf)).toEqual([]); // nothing cleared
+    const three = { ...newSave(), cleared: leaf.nodes.slice(0, 3).map((n) => n.id) };
+    const got = spellsUnlockedIn(three, leaf);
+    expect(got.length).toBe(3);
+    for (const id of got) {
+      expect(getSpell(id).element).toBe("LEAF");
+      expect(getSpell(id).cost).toBeLessThanOrEqual(3);
+    }
+    // Ten nodes is the whole element's book, and every region has more than ten.
+    const ten = { ...newSave(), cleared: leaf.nodes.slice(0, 10).map((n) => n.id) };
+    expect(spellsUnlockedIn(ten, leaf)).toHaveLength(10);
+    for (const r of REGIONS) expect(r.nodes.length, `${r.id} is too small`).toBeGreaterThanOrEqual(10);
+  });
+
+  it("...and only that region's element, however deep you go", () => {
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    const pyro = REGIONS.find((r) => r.id === "pyro")!;
+    const deep = { ...newSave(), cleared: leaf.nodes.map((n) => n.id) };
+    expect(spellsUnlockedIn(deep, pyro)).toEqual([]); // never set foot in PYRO
+    expect(heroSpellShelf(deep).every((id) => getSpell(id).element === "LEAF")).toBe(true);
+  });
+
+  it("the book taken into a fight is trimmed to the board's cap, never refused", () => {
+    // A hero holding thirty spells and a five-slot book walks in with five.
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    const deep = { ...newSave(), cleared: leaf.nodes.map((n) => n.id) };
+    expect(heroSpellShelf(deep).length).toBeGreaterThan(5);
+    expect(heroBookFor(deep, 4)).toHaveLength(5);
+    expect(heroBookFor(deep, 5)).toHaveLength(8);
+    // Every id handed to the engine is a real spell.
+    for (const id of heroBookFor(deep, 5)) expect(() => getSpell(id)).not.toThrow();
+  });
+
+  it("...and a hand-picked book wins over the shelf, but cannot invent spells", () => {
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    const shelf = heroSpellShelf({ ...newSave(), cleared: leaf.nodes.map((n) => n.id) });
+    const save: StorySave = {
+      ...newSave(), cleared: leaf.nodes.map((n) => n.id),
+      hero: { ...newHero(), spells: [shelf[0], shelf[1], "not_a_spell", "pyro_something"] },
+    };
+    expect(heroBookFor(save, 4)).toEqual([shelf[0], shelf[1]]); // unearned ids dropped
+  });
+
+  it("clearing a node pays essence in that region's element", () => {
+    // The map has been promising this since before it existed — the
+    // exhausted-node copy in StoryMap says a clear "still pays Gold and essence".
+    const l1 = nodeById("L1")!;
+    const start = newSave();
+    expect(start.hero!.essence.LEAF ?? 0).toBe(0);
+    const after = applyClear(start, l1, rollRecruits(start, l1, 1, () => 0.99));
+    expect(after.hero!.essence.LEAF).toBe(ESSENCE_PER_CLEAR[l1.kind]);
+    // A Throne is worth more than a skirmish.
+    expect(ESSENCE_PER_CLEAR.throne).toBeGreaterThan(ESSENCE_PER_CLEAR.skirmish);
+  });
+
+  it("...and a hero survives a round-trip through storage", () => {
+    const save: StorySave = {
+      ...newSave(),
+      hero: { name: "Bernard", affinity: "LEAF", spells: ["leaf_1"], essence: { LEAF: 7 } },
+    };
+    const store = new Map<string, string>();
+    const g = globalThis as { localStorage?: unknown };
+    const prior = g.localStorage;
+    g.localStorage = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    };
+    try {
+      saveStory(save);
+      const back = loadStory();
+      expect(back.hero!.name).toBe("Bernard");
+      expect(back.hero!.essence.LEAF).toBe(7);
+      // A save written before heroes existed still gets one.
+      store.set("we_story_v1", JSON.stringify({ cleared: [], collection: ["leaf_oak"], pity: {}, deck: [], blight: {} }));
+      expect(loadStory().hero, "a pre-hero save was left without a player").toBeDefined();
+      // A poisoned wallet cannot survive the load.
+      store.set("we_story_v1", JSON.stringify({
+        cleared: [], collection: ["leaf_oak"], pity: {}, deck: [], blight: {},
+        hero: { name: "", affinity: 3, spells: [1, "leaf_1"], essence: { LEAF: "lots", PYRO: -5 } },
+      }));
+      const fixed = loadStory().hero!;
+      expect(fixed.name).toBe(newHero().name);      // blank name replaced
+      expect(fixed.spells).toEqual(["leaf_1"]);     // non-strings dropped
+      expect(fixed.essence).toEqual({});            // NaN and negatives dropped
+    } finally { g.localStorage = prior; }
   });
 
   it("never blocks a fight — an unpacked region auto-packs instead", () => {

@@ -36,6 +36,7 @@ import {
   boardCards,
   isCaptured,
   SPELLS,
+  spellbookFor,
 } from "../engine";
 import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online";
 import { Board } from "./Board";
@@ -62,7 +63,7 @@ import { StoryPrep } from "./StoryPrep";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, deckCapFor,
   STANDARD_CAP, BIG_BOARD_CAP,
-  loadStory, isFirstBattle, poolForRegion, recruitablePool, squadCapInRegion,
+  loadStory, isFirstBattle, heroBookFor, poolForRegion, recruitablePool, squadCapInRegion,
   regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
 
@@ -1985,7 +1986,15 @@ export function App() {
             const deploy = isFirstBattle(home, node)
               ? { P1: PLAYER_DEPLOY, P2: ENEMY_DEPLOY }
               : undefined;
-            setGame(createInitialState(newSeed(), deck, squad, ["P1"], [], [], board,
+            // Spells reach the campaign. Story matches passed EMPTY spellbooks
+            // for both sides, so 80 spells — a whole resource, its UI, its AI
+            // and the magic pool that pays for them — existed only in skirmish.
+            // The hero carries what they have unlocked, trimmed to the board's
+            // cap; the enemy gets its region's own book so the fight is not
+            // one-sided.
+            const heroBook = heroBookFor(story, board);
+            const foeBook = spellbookFor(squad).map((sl) => sl.defId);
+            setGame(createInitialState(newSeed(), deck, squad, ["P1"], heroBook, foeBook, board,
               deploy, terrain));
             setPrepNode(null);
             setStoryNode(node);
