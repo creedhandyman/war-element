@@ -2709,3 +2709,64 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .bnav-btn { min-width: 54px; padding: 6px 7px 5px; }
   .shop-grid { max-height: 46vh; }
 }
+
+/* ── boosters ──────────────────────────────────────────────────────────────
+   A shard reads as a chip of crystal rather than a coin — different currency,
+   different shape, so a glance tells them apart without reading the number. */
+.shard {
+  width: 9px; height: 9px; flex: none; display: inline-block;
+  background: linear-gradient(150deg, #bfe6ff, #4aa3e8 55%, #1f5f96);
+  clip-path: polygon(50% 0, 100% 38%, 78% 100%, 22% 100%, 0 38%);
+  filter: drop-shadow(0 0 4px rgba(90, 180, 255, 0.6));
+}
+.shop-pack {
+  display: flex; align-items: center; gap: 10px; justify-content: space-between;
+  padding: 10px 12px; margin-bottom: 12px; border-radius: 10px;
+  background: linear-gradient(180deg, rgba(74, 163, 232, 0.10), rgba(0, 0, 0, 0.18));
+  border: 1px solid rgba(90, 180, 255, 0.32);
+}
+.shop-pack-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.shop-pack-copy b { font-family: var(--head); font-size: 13px; color: #bfe6ff; letter-spacing: 0.03em; }
+.shop-pack-copy span { font-size: 11px; color: var(--ink-dim); line-height: 1.35; }
+.shop-pack-buy {
+  display: flex; flex-direction: column; align-items: center; gap: 1px; flex: none;
+  padding: 7px 13px; border-radius: 9px; cursor: pointer;
+  background: var(--void); border: 1px solid var(--panel-line); color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+.shop-pack-buy b { display: inline-flex; align-items: center; gap: 4px; font-size: 15px; }
+.shop-pack-buy em { font-style: normal; font-size: 9.5px; opacity: 0.8; }
+.shop-pack-buy.can { color: #bfe6ff; border-color: rgba(90, 180, 255, 0.55); }
+.shop-pack-buy.can:hover { background: rgba(74, 163, 232, 0.18); }
+.shop-pack-buy:disabled { cursor: not-allowed; }
+
+/* The reveal. Five cards, and the only thing that matters at a glance is which
+   of them are NEW — so that is the only thing given colour. */
+.pack-reveal { max-width: 560px; }
+.pack-reveal h2 { font-family: var(--head); font-size: 19px; margin: 0 0 12px; }
+.pack-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.pack-card {
+  position: relative; display: flex; flex-direction: column; align-items: center;
+  border-radius: 8px; overflow: hidden; background: var(--void-2);
+  border: 1px solid var(--panel-line); padding-bottom: 4px;
+}
+.pack-card img { width: 100%; height: 84px; object-fit: cover; object-position: 50% 18%; display: block; }
+.pack-name { font-size: 10.5px; font-weight: 800; padding: 3px 3px 0; text-align: center; line-height: 1.15; }
+.pack-tag {
+  font-family: var(--head); font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.pack-card.new { border-color: var(--legal); box-shadow: 0 0 12px rgba(0, 230, 118, 0.22); }
+.pack-card.new .pack-tag { color: var(--legal); }
+.pack-card.dupe { opacity: 0.62; }
+.pack-card.r-mythic.new { border-color: #d08bff; box-shadow: 0 0 14px rgba(208, 139, 255, 0.3); }
+.pack-card.r-legendary.new { border-color: var(--gold-line); box-shadow: 0 0 14px rgba(232, 200, 119, 0.28); }
+.pack-sum { font-size: 12.5px; color: var(--ink-dim); margin: 12px 0 0; }
+.pack-sum b { color: var(--legal); }
+
+@media (max-width: 620px) {
+  .pack-cards { grid-template-columns: repeat(3, 1fr); }
+  .pack-card img { height: 74px; }
+  .shop-pack { flex-direction: column; align-items: stretch; }
+  .shop-pack-buy { flex-direction: row; justify-content: center; gap: 8px; }
+}

@@ -11,7 +11,7 @@
 // hero's spell unlocks have to read the real spell table or they would need a
 // duplicate of it here that could drift.
 
-import { CARD_INDEX, getDef } from "./cards";
+import { CARDS, CARD_INDEX, getDef } from "./cards";
 import { SPELLS, getSpell, spellCapForBoard } from "../engine/spells";
 
 // ── shape ───────────────────────────────────────────────────────────────────
@@ -1215,6 +1215,7 @@ export const newHero = (): Hero => ({
   affinity: REGIONS[0].element, // LEAF — wherever the campaign opens
   spells: [],
   essence: {},
+  shards: 0,
 });
 
 /** Essence paid for clearing a node, by what kind of node it was.
@@ -1321,6 +1322,115 @@ export function craftCard(save: StorySave, defId: string): StorySave {
     collection: [...save.collection, defId],
     hero: { ...hero, essence: { ...hero.essence, [el]: (hero.essence[el] ?? 0) - craftCostOf(defId) } },
   };
+}
+
+// ── boosters ────────────────────────────────────────────────────────────────
+
+/** Shards paid for winning a match. Story nodes pay more than the Arena for the
+ *  same reason a Throne pays more essence than a skirmish: the campaign is the
+ *  game, and the Arena is the place you go to practise. Arena still pays, so a
+ *  player who only wants to fight is still collecting. */
+export const SHARDS_PER_WIN = { story: 3, arena: 2 } as const;
+
+/** What a pack costs, and what it holds. Five cards, one of them Epic or better
+ *  — the guarantee is what stops a pack ever feeling like nothing happened. */
+export const PACK_COST = 40;
+export const PACK_SIZE = 5;
+
+/** Pull weights. Deliberately close to the recruitment table (`DROP_RATE`, which
+ *  runs 50/30/15/5) so a pack does not quietly become the best odds in the game;
+ *  it trades the story's TARGETED roll for volume, not for better luck. */
+export const PACK_WEIGHT: Record<string, number> = {
+  rare: 58, epic: 29, legendary: 11, mythic: 2,
+};
+
+/** A duplicate is refunded as essence rather than wasted.
+ *
+ *  This is what ties the two paid routes together instead of leaving them as
+ *  rivals: packs you open for volume feed the essence you spend on the one card
+ *  you actually want. Worth less than crafting the card costs — a pack must not
+ *  be a cheaper way to buy the exact thing crafting is for. */
+export const dupeEssenceFor = (defId: string): number =>
+  Math.max(1, Math.floor(craftCostOf(defId) / 2));
+
+/** One card pulled at `weights`, from `pool`. Pure: the caller supplies rand. */
+function pullOne(pool: readonly string[], rand: () => number, weights: Record<string, number>): string | null {
+  if (!pool.length) return null;
+  const total = pool.reduce((n, id) => n + (weights[getDef(id).rarity ?? "rare"] ?? 0), 0);
+  if (total <= 0) return pool[Math.floor(rand() * pool.length) % pool.length];
+  let roll = rand() * total;
+  for (const id of pool) {
+    roll -= weights[getDef(id).rarity ?? "rare"] ?? 0;
+    if (roll <= 0) return id;
+  }
+  return pool[pool.length - 1];
+}
+
+export interface PackResult {
+  /** Every card pulled, in order, including duplicates. */
+  pulled: string[];
+  /** The ones that were new. */
+  fresh: string[];
+  /** Element -> essence refunded for the duplicates. */
+  refund: Record<string, number>;
+}
+
+/** Open a pack. Pure — `rand` is injected so a test can pin every pull.
+ *
+ *  Pulls from the WHOLE card set rather than only what is missing: a pack that
+ *  could only ever contain new cards would be strictly better the more complete
+ *  your collection got, which is backwards. Duplicates are the cost of buying
+ *  volume, and they come back as essence. */
+export function openPack(save: StorySave, rand: () => number = Math.random): PackResult {
+  const pool = CARDS.map((c) => c.id);
+  const owned = new Set(save.collection);
+  const pulled: string[] = [];
+  const fresh: string[] = [];
+  const refund: Record<string, number> = {};
+
+  for (let i = 0; i < PACK_SIZE; i++) {
+    // The last slot is the guarantee: if nothing Epic-or-better has shown up
+    // yet, pull from that tier instead of the whole set.
+    const guarantee =
+      i === PACK_SIZE - 1 &&
+      !pulled.some((id) => ["epic", "legendary", "mythic"].includes(getDef(id).rarity ?? ""));
+    const from = guarantee
+      ? pool.filter((id) => ["epic", "legendary", "mythic"].includes(getDef(id).rarity ?? ""))
+      : pool;
+    const id = pullOne(from, rand, PACK_WEIGHT);
+    if (!id) break;
+    pulled.push(id);
+    // `owned` is updated as we go, so two copies in ONE pack refund the second.
+    if (owned.has(id)) {
+      const el = getDef(id).element;
+      refund[el] = (refund[el] ?? 0) + dupeEssenceFor(id);
+    } else {
+      owned.add(id);
+      fresh.push(id);
+    }
+  }
+  return { pulled, fresh, refund };
+}
+
+/** Can a pack be bought right now? */
+export const canOpenPack = (save: StorySave): boolean => (save.hero?.shards ?? 0) >= PACK_COST;
+
+/** Charge for a pack and bank everything it produced. */
+export function applyPack(save: StorySave, result: PackResult): StorySave {
+  const hero = save.hero ?? newHero();
+  const essence = { ...hero.essence };
+  for (const [el, n] of Object.entries(result.refund)) essence[el] = (essence[el] ?? 0) + n;
+  return {
+    ...save,
+    collection: [...save.collection, ...result.fresh],
+    hero: { ...hero, shards: Math.max(0, hero.shards - PACK_COST), essence },
+  };
+}
+
+/** Pay out shards for a win. */
+export function awardShards(save: StorySave, kind: keyof typeof SHARDS_PER_WIN): StorySave {
+  const hero = save.hero ?? newHero();
+  return { ...save, hero: { ...hero, shards: hero.shards + SHARDS_PER_WIN[kind] } };
 }
 
 // ── opening battles ─────────────────────────────────────────────────────────
@@ -1931,9 +2041,20 @@ export interface Hero {
   /** Spell ids unlocked so far. NOT the book taken into a fight — that is
    *  capped at 5 (8 on a large board), so this is the shelf you choose from. */
   spells: string[];
-  /** Element id -> essence banked. The crafting currency: the third route to a
-   *  complete collection, beside clearing the story and opening boosters. */
+  /** Element id -> essence banked. The crafting currency: buys one EXACT card,
+   *  slowly, in the element that paid for it. */
   essence: Record<string, number>;
+  /** Shards. The booster currency, and deliberately NOT essence.
+   *
+   *  The three routes to a complete collection have to be genuinely different
+   *  or they are one route wearing three hats: the story pays in dice, essence
+   *  buys the exact card the dice withheld, and shards buy VOLUME at random.
+   *  Shards come from winning matches — anywhere, Arena included — which is
+   *  also the only thing that gives the Arena a reason to exist beside practice.
+   *
+   *  A separate currency is what makes a real-money top-up a price change later
+   *  rather than a redesign: nothing but `shards` would need to move. */
+  shards: number;
 }
 
 /** A saved team. `element` is the element this team is FOR — the one it expects
@@ -2046,6 +2167,10 @@ export function loadStory(): StorySave {
           affinity: typeof h.affinity === "string" ? h.affinity : base.affinity,
           spells: Array.isArray(h.spells) ? h.spells.filter((x): x is string => typeof x === "string") : [],
           essence,
+          shards:
+            typeof h.shards === "number" && Number.isFinite(h.shards) && h.shards > 0
+              ? Math.floor(h.shards)
+              : 0,
         };
       })(),
       decks: Object.fromEntries(

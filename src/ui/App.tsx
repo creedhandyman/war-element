@@ -66,7 +66,7 @@ import { Shop } from "./Shop";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, deckCapFor,
   STANDARD_CAP, BIG_BOARD_CAP,
-  loadStory, isFirstBattle, heroBookFor, heroSpellShelf, poolForRegion, recruitablePool, squadCapInRegion,
+  loadStory, isFirstBattle, awardShards, heroBookFor, heroSpellShelf, poolForRegion, recruitablePool, squadCapInRegion,
   regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
 
@@ -282,12 +282,30 @@ export function App() {
     const captured = game.slots.flat().filter((sl) => sl.capturedBy === "P1").length;
     const result = rollRecruits(story, storyNode, captured);
     setStory((prev) => {
-      const next = applyClear(prev, storyNode, result);
+      // Shards for the win, then the clear. The Arena pays too (below) — shards
+      // are the one currency you can earn without walking the campaign.
+      const next = applyClear(awardShards(prev, "story"), storyNode, result);
       saveStory(next);
       return next;
     });
     setStoryResult({ node: storyNode, won: result.won, captured });
   }, [started, storyNode, game, storyResult, story]);
+  // An Arena win pays shards too, once per match. Without this the Arena is a
+  // sandbox with no thread to progression, and "buy enough booster packs" has
+  // only one place to earn from.
+  const paidForMatch = useRef<GameState | null>(null);
+  useEffect(() => {
+    if (!started || storyNode) return;                 // story pays on its own path
+    if (game.phase !== "gameover" || game.win?.winner !== "P1") return;
+    if (paidForMatch.current === game) return;         // one payout per match
+    paidForMatch.current = game;
+    setStory((prev) => {
+      const next = awardShards(prev, "arena");
+      saveStory(next);
+      return next;
+    });
+  }, [started, storyNode, game]);
+
   useEffect(() => {
     if (me) setViewSide(me);
   }, [me]);

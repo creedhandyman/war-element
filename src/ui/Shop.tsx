@@ -15,7 +15,8 @@
 import { useMemo, useState } from "react";
 import { CARDS, getDef } from "../data/cards";
 import {
-  REGIONS, canCraft, craftCard, craftCostOf, type StorySave,
+  PACK_COST, PACK_SIZE, REGIONS, applyPack, canCraft, canOpenPack, craftCard, craftCostOf,
+  openPack, type PackResult, type StorySave,
 } from "../data/story";
 import { EL_COLOR } from "./shared";
 import type { Element } from "../engine/types";
@@ -27,6 +28,8 @@ export function Shop(props: { save: StorySave; onSave: (next: StorySave) => void
   const { save } = props;
   const [el, setEl] = useState<string>("ALL");
   const [previewId, setPreviewId] = useState<string | null>(null);
+  /** The pack just torn open, held so the player can actually read it. */
+  const [opened, setOpened] = useState<PackResult | null>(null);
 
   const essence = save.hero?.essence ?? {};
   const owned = useMemo(() => new Set(save.collection), [save.collection]);
@@ -47,6 +50,7 @@ export function Shop(props: { save: StorySave; onSave: (next: StorySave) => void
   );
 
   const total = Object.values(essence).reduce((a, b) => a + b, 0);
+  const shards = save.hero?.shards ?? 0;
 
   return (
     <div className="shop">
@@ -56,6 +60,33 @@ export function Shop(props: { save: StorySave; onSave: (next: StorySave) => void
           Essence is earned by clearing story nodes and spent here on a card the
           dice never gave you. Boosters are not built yet.
         </p>
+      </div>
+
+      {/* Boosters: volume at random, paid in shards. The other half of the shop
+          — essence buys the exact card, this buys a handful of unknown ones. */}
+      <div className="sr-label">Boosters</div>
+      <div className="shop-pack">
+        <div className="shop-pack-copy">
+          <b>Booster pack</b>
+          <span>
+            {PACK_SIZE} cards, at least one Epic or better. Duplicates come back as essence.
+          </span>
+        </div>
+        <button
+          className={`shop-pack-buy ${canOpenPack(save) ? "can" : ""}`}
+          disabled={!canOpenPack(save)}
+          title={canOpenPack(save)
+            ? `Open a pack for ${PACK_COST} shards`
+            : `Needs ${PACK_COST} shards — you have ${shards}`}
+          onClick={() => {
+            const result = openPack(save);
+            setOpened(result);
+            props.onSave(applyPack(save, result));
+          }}
+        >
+          <b>{PACK_COST}</b><i className="shard" />
+          <em>{shards} held</em>
+        </button>
       </div>
 
       <div className="sr-label">Essence · {total}</div>
@@ -126,6 +157,44 @@ export function Shop(props: { save: StorySave; onSave: (next: StorySave) => void
               </div>
             );
           })}
+        </div>
+      )}
+
+      {opened && (
+        <div className="overlay on-top" onClick={() => setOpened(null)}>
+          <div className="modal pack-reveal" onClick={(e) => e.stopPropagation()}>
+            <h2>Pack opened</h2>
+            <div className="pack-cards">
+              {opened.pulled.map((id, i) => {
+                const d = getDef(id);
+                const isNew = opened.fresh.includes(id) && opened.pulled.indexOf(id) === i;
+                return (
+                  <div key={i} className={`pack-card r-${d.rarity ?? "rare"} ${isNew ? "new" : "dupe"}`}>
+                    <img
+                      src={`/cards/${d.art ?? d.id}.webp`}
+                      alt=""
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
+                    />
+                    <span className="pack-name">{d.name}</span>
+                    <span className="pack-tag">{isNew ? "NEW" : "dupe"}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="pack-sum">
+              <b>{opened.fresh.length}</b> new
+              {Object.keys(opened.refund).length > 0 && (
+                <>
+                  {" · refunded "}
+                  {Object.entries(opened.refund)
+                    .map(([e, n]) => `${n} ${e}`)
+                    .join(", ")}
+                </>
+              )}
+            </p>
+            <button className="lockin" onClick={() => setOpened(null)}>Done</button>
+          </div>
         </div>
       )}
 

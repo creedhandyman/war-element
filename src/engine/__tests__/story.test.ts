@@ -14,7 +14,8 @@ import {
   capForNode, STANDARD_CAP, BIG_BOARD_CAP, preferredLoadout, type Loadout,
   formationSize, isRegionCleared, isRegionOpen,
   SQUAD_BASE, SQUAD_PER_THRONE, guaranteedDrops, isRegionConquered, squadCapFor, squadCapInRegion,
-  isOpeningNode, autoSquad, newHero, canCraft, craftCard, craftCostOf, CRAFT_COST, spellsUnlockedIn, heroSpellShelf, heroBookFor, ESSENCE_PER_CLEAR, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
+  isOpeningNode, autoSquad, newHero, canCraft, craftCard, craftCostOf, CRAFT_COST,
+  openPack, applyPack, canOpenPack, awardShards, dupeEssenceFor, PACK_COST, PACK_SIZE, SHARDS_PER_WIN, spellsUnlockedIn, heroSpellShelf, heroBookFor, ESSENCE_PER_CLEAR, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
 } from "../../data/story";
@@ -251,6 +252,68 @@ describe("story: the deck cap ladder", () => {
     expect(got.won).toEqual([pyro.opening.epic]);
   });
 
+  it("a pack is five cards with at least one Epic or better", () => {
+    // The guarantee is what stops a pack ever feeling like nothing happened.
+    // Swept rather than single-seeded, because it is a probabilistic claim.
+    for (let seed = 0; seed < 60; seed++) {
+      let n = seed;
+      const rand = () => ((n = (n * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+      const r = openPack(newSave(), rand);
+      expect(r.pulled, `seed ${seed}`).toHaveLength(PACK_SIZE);
+      const best = r.pulled.some((id) => ["epic", "legendary", "mythic"].includes(getDef(id).rarity ?? ""));
+      expect(best, `seed ${seed} was all Rares`).toBe(true);
+      for (const id of r.pulled) expect(() => getDef(id)).not.toThrow();
+    }
+  });
+
+  it("...duplicates come back as essence, including two in the same pack", () => {
+    // A pack pulls from the WHOLE set, not just what is missing — otherwise it
+    // would get better the more complete your collection is, which is backwards.
+    // So duplicates are the cost of buying volume, and they refund.
+    const everything: StorySave = { ...newSave(), collection: CARDS.map((c) => c.id) };
+    let n = 7;
+    const rand = () => ((n = (n * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+    const r = openPack(everything, rand);
+    expect(r.fresh).toEqual([]);                              // owns everything
+    expect(Object.keys(r.refund).length).toBeGreaterThan(0);  // so all five refund
+    const refunded = Object.values(r.refund).reduce((a, b) => a + b, 0);
+    expect(refunded).toBeGreaterThan(0);
+    // A refund is worth LESS than crafting the same card, or a pack would be a
+    // cheaper route to the exact card that crafting exists for.
+    for (const id of r.pulled) expect(dupeEssenceFor(id)).toBeLessThan(craftCostOf(id));
+  });
+
+  it("...and opening one charges shards, banks the new cards and the refunds", () => {
+    const rich: StorySave = {
+      ...newSave(), collection: ["leaf_sakuroot"], hero: { ...newHero(), shards: PACK_COST + 5 },
+    };
+    expect(canOpenPack(rich)).toBe(true);
+    let n = 3;
+    const rand = () => ((n = (n * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+    const r = openPack(rich, rand);
+    const after = applyPack(rich, r);
+    expect(after.hero!.shards).toBe(5);                                   // charged exactly once
+    expect(after.collection.length).toBe(1 + r.fresh.length);
+    for (const id of r.fresh) expect(after.collection).toContain(id);
+    const owedLEAF = r.refund.LEAF ?? 0;
+    expect(after.hero!.essence.LEAF ?? 0).toBe(owedLEAF);
+  });
+
+  it("...and cannot be opened without the shards", () => {
+    const poor: StorySave = { ...newSave(), hero: { ...newHero(), shards: PACK_COST - 1 } };
+    expect(canOpenPack(poor)).toBe(false);
+  });
+
+  it("winning pays shards, and the story pays more than the arena", () => {
+    const s0 = newSave();
+    expect(s0.hero!.shards).toBe(0);
+    expect(awardShards(s0, "arena").hero!.shards).toBe(SHARDS_PER_WIN.arena);
+    expect(awardShards(s0, "story").hero!.shards).toBe(SHARDS_PER_WIN.story);
+    expect(SHARDS_PER_WIN.story).toBeGreaterThan(SHARDS_PER_WIN.arena);
+    // A pack has to be worth working for: not one or two wins.
+    expect(PACK_COST / SHARDS_PER_WIN.story).toBeGreaterThan(5);
+  });
+
   it("crafting spends the right essence and hands over the card", () => {
     const save: StorySave = {
       ...newSave(), collection: ["leaf_sakuroot"],
@@ -359,7 +422,7 @@ describe("story: the deck cap ladder", () => {
   it("...and a hero survives a round-trip through storage", () => {
     const save: StorySave = {
       ...newSave(),
-      hero: { name: "Bernard", affinity: "LEAF", spells: ["leaf_1"], essence: { LEAF: 7 } },
+      hero: { name: "Bernard", affinity: "LEAF", spells: ["leaf_1"], essence: { LEAF: 7 }, shards: 0 },
     };
     const store = new Map<string, string>();
     const g = globalThis as { localStorage?: unknown };
