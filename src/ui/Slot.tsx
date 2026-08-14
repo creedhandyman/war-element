@@ -8,6 +8,8 @@ export function Slot(props: {
   row: number;
   col: number;
   viewer: PlayerId; // the local player's side (threaded to Token for "mine")
+  /** Card ids the local player holds in foil. UI-only — see Token. */
+  foils?: ReadonlySet<string>;
   card: CardInstance | null;
   legal: boolean;
   isTarget: boolean; // enemy attack/special target → red
@@ -120,6 +122,9 @@ export function Slot(props: {
           viewer={props.viewer}
           selected={props.selectedId === props.card.instanceId}
           acting={props.actingId === props.card.instanceId}
+          // Only YOUR copies shine. A foil is something in your collection, and
+          // the opponent's cards are not in it — online, theirs are unknowable.
+          foil={props.card.owner === props.viewer && !!props.foils?.has(props.card.defId)}
         />
       )}
     </div>

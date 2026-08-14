@@ -2812,3 +2812,47 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   /* Keep the sheen, drop the travel — the badge carries the meaning anyway. */
   .foil::after { animation: none; background-position: 50% 0; opacity: 0.55; }
 }
+
+/* A foil on the battle board.
+   Its own element at z-index 0 rather than the shared .foil::after: the token
+   spends ::after on the bottom scrim, and .tk-top/.tk-bottom sit at z-index 1,
+   so a full-bleed sheen at z-2 would wash over the name and the stat row — the
+   two things that have to stay readable in a fight. This sits over the ART and
+   under the text, which is exactly where a foil belongs. */
+.tk-foil {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  border-radius: inherit; overflow: hidden;
+  background: linear-gradient(
+    115deg,
+    transparent 24%, rgba(255, 255, 255, 0.16) 36%,
+    rgba(120, 230, 255, 0.26) 44%, rgba(255, 200, 255, 0.24) 52%,
+    rgba(255, 240, 160, 0.24) 60%, rgba(255, 255, 255, 0.14) 68%, transparent 80%
+  );
+  background-size: 260% 100%;
+  mix-blend-mode: screen;
+  animation: foilSweep 3.6s linear infinite;
+}
+/* Identifiable while still — the sheen alone says nothing in a screenshot, and
+   a battle token has no room for the FOIL badge the collection uses. The rim
+   is the badge here. */
+.token.foil-tok {
+  border-color: rgba(220, 240, 255, 0.85);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.65),
+    0 0 16px rgba(150, 220, 255, 0.5),
+    inset 0 0 12px rgba(190, 230, 255, 0.16);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tk-foil { animation: none; background-position: 50% 0; opacity: 0.5; }
+}
+
+/* Out of a match, the battlefield is not the backdrop.
+   Everything here is battle-only chrome. The overlays (menus, Shop, modals),
+   the story map (.story-wrap) and the bottom nav are all left alone — they are
+   what you are actually looking at before a match starts. */
+.wrap.pre-match > .phase-ribbon,
+.wrap.pre-match > .log-rail,
+.wrap.pre-match > .edge-tab,
+.wrap.pre-match > .board-area,
+.wrap.pre-match > .rightcol,
+.wrap.pre-match > .bottom { display: none; }

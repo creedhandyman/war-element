@@ -39,6 +39,8 @@ export function Board(props: {
   actingId: string | null;
   grayTeam: PlayerId | null; // whose cards to gray out (the idle team on your turn)
   viewPlayer: PlayerId; // whose side you're looking from (the opponent is fogged)
+  /** Card ids the local player holds in foil. Cosmetic, UI-only. */
+  foils?: ReadonlySet<string>;
   onSlotClick: (row: number, col: number) => void;
   onSlotDragOver: (row: number, col: number) => void; // drag-to-summon: hover
   onSlotDrop: (row: number, col: number) => void; // drag-to-summon: drop
@@ -171,6 +173,7 @@ export function Board(props: {
                   row={row}
                   col={col}
                   viewer={props.viewPlayer}
+                  foils={props.foils}
                   card={card}
                   legal={greenLegal}
                   isTarget={redTarget}

@@ -196,6 +196,10 @@ export function App() {
   // border away, and the squad would only bind at the prep screen. Falls back
   // to the collection when nothing is packed for here, so the builder is never
   // an empty shelf.
+  /** The local player's foils, as a set for the board to test against. Derived
+   *  from the campaign save even in the Arena: a shiny is yours wherever you
+   *  play it, and the Arena deck is drawn from the same cards. */
+  const foilIds = useMemo(() => new Set(story.hero?.shiny ?? []), [story.hero?.shiny]);
   const storyPool = poolForRegion(story, region);
   const storyBuilderOwned = storyPool.length ? storyPool : story.collection;
   const storyBuilderCap = Math.min(
@@ -1268,7 +1272,14 @@ export function App() {
       (activeCard !== null && activeCard.owner === oppId));
 
   return (
-    <div className={`wrap${logCollapsed ? " log-collapsed" : ""}`}>
+    // `pre-match`: the battle chrome renders unconditionally — it always has —
+    // so before a match there was an empty board, an empty log and an idle
+    // phase ribbon sitting behind the menus. Harmless when the only menu was a
+    // deck picker you passed through in seconds; wrong now that Home, Shop and
+    // Story are places you STAY, and leaving Story dropped you onto a deserted
+    // battlefield. Hidden by class rather than unmounted so nothing that
+    // measures the board on mount has to learn a new lifecycle.
+    <div className={`wrap${logCollapsed ? " log-collapsed" : ""}${started ? "" : " pre-match"}`}>
       <button
         className="music-toggle"
         onClick={toggleMusic}
@@ -1321,6 +1332,7 @@ export function App() {
 
       <Board
         game={game}
+        foils={foilIds}
         legalSlots={legalSlots}
         legalTargetIds={legalTargetIds}
         targetsAreEnemies={targetsAreEnemies}

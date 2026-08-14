@@ -199,6 +199,11 @@ export function Token(props: {
   viewer: PlayerId; // the local player's side — "mine" is relative to this, not always P1
   selected: boolean;
   acting: boolean;
+  /** This card is held in foil by the local player. Purely cosmetic and purely
+   *  a UI concern — the engine has no idea shinies exist, and it must not: a
+   *  GameState is replayed and sent to the online peer, and what is in someone's
+   *  collection is neither reproducible nor theirs to know. */
+  foil?: boolean;
 }) {
   const { game, card } = props;
   const def = getDef(card.defId);
@@ -243,6 +248,7 @@ export function Token(props: {
     // cards and DOWN for the opponent's — the board is drawn viewer-home-at-
     // bottom, so the direction has to follow `mine`, not the owner id.
     motionFx ? `${motionFx.cls} ${mine ? "fx-up" : "fx-down"}` : "",
+    props.foil ? "foil-tok" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -264,6 +270,9 @@ export function Token(props: {
           e.currentTarget.style.display = "none";
         }}
       />
+      {/* A real element rather than ::after — the token already spends its
+          ::after on the bottom scrim that keeps the stat row readable. */}
+      {props.foil && <span className="tk-foil" aria-hidden="true" />}
       {combatFx && (
         <div key={combatFx.key} className={`fx-float fx-${combatFx.kind.toLowerCase()}`}>
           {combatFx.kind}
