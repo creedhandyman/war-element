@@ -260,6 +260,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   pointer-events: none; transition: bottom 0.28s ease;
 }
 .hand-float .hand { pointer-events: auto; }
+/* Mid-battle the hand cannot be played, and on a floating layout it would hang
+   over the board while the verbs resolve — so it goes. `.bottom` precedes
+   `.hand-float` in the DOM, which is what makes the sibling selector work. The
+   portrait tier overrides this: there the element is a row in the flow and
+   removing it is the jitter, not the fix. */
+.bottom.acting ~ .hand-float { display: none; }
 /* Raised on your turn. --hand-up is THE number to tune if the fan sits wrong:
    104px was chosen to clear the ~90px bottom bar entirely, which is what put the
    cards up over the board's bottom row. */
@@ -2281,7 +2287,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   /* The ribbon keeps its nowrap — it is flex-wrap:wrap, and a narrower line
      pushed the priority chip onto a second row, growing the strip from 45px to
      70px. It no longer has to reserve room on the right for the crystals. */
-  .phase-ribbon { flex-wrap: nowrap; }
+  /* A FIXED height, because this strip is the top row of the flow column and
+     its content changes between phases: the priority chip is a prep-phase
+     thing, so the moment the battle phase starts the ribbon loses its tallest
+     child and shrinks 35px -> 25px. Everything below — board, speed strip, log
+     — rose 10px and dropped back every single round. That is the screen going
+     up and down during battle; the hand was never the cause. Reserved at the
+     taller state so no phase can move the column. */
+  .phase-ribbon { flex-wrap: nowrap; height: 35px; }
   /* nowrap without a shrinkable child is an overflow. The three children want
      402px in a 382px box and every one of them defaults to `min-width: auto`,
      so flex-shrink cannot take a pixel and the row spills 10px off BOTH edges
@@ -2582,6 +2595,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     padding: 2px 4px 0; pointer-events: auto;
   }
   .hand-float.up { bottom: auto; } /* flow: same position on/off your turn */
+  /* HEIGHT, not max-height, and never removed. This row is in the flow column,
+     so anything that changes its size moves the board, the speed strip and the
+     log above it. Two things used to: it unmounted between every activation in
+     the battle phase, and the fan's own content could come up short of the cap.
+     A fixed row cannot do either — the hand is the same 90px from the first
+     summon to the last. */
+  .bottom.acting ~ .hand-float { display: flex; }
+  .hand-float { height: var(--hand-peek, 90px); max-height: none; }
+  /* Visible but plainly not yours to use while the verbs are up. */
+  .bottom.acting ~ .hand-float { opacity: .45; pointer-events: none; }
   /* The fan's own base rule pads 30px of headroom above the cards for the hover
      pop. In a 90px peek that padding IS the peek, so it goes here — the peek is
      the height of a card, and a card that grows on hover can grow over the log

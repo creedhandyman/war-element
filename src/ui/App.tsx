@@ -1820,8 +1820,16 @@ export function App() {
     >
 
       {/* The hand floats over the bottom edge of the board — popped up when it's
-          your turn to act, tucked low otherwise — so the bar stays thin. */}
-      {started && activeCard === null && game.phase !== "mulligan" && (
+          your turn to act, tucked low otherwise — so the bar stays thin.
+
+          Rendered for the WHOLE match, not only while no card is acting. On a
+          phone this element is `position: static` — it is a row in the flow
+          column — so mounting and unmounting it between every activation moved
+          everything above it, which is the board going up and down all through
+          the battle phase. Whether it is SEEN during battle is now a CSS
+          question (`.bottom.acting ~ .hand-float`), which is where it belongs:
+          desktop hides it, portrait keeps the row and dims it. */}
+      {started && game.phase !== "mulligan" && (
         // `placing` = a hand card is armed (choosing a Home slot). In the short
         // landscape layout the fan overlaps the board, so CSS makes it pass taps
         // through to the slots underneath while placing.
