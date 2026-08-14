@@ -1531,6 +1531,192 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .picker-menu .lockin { margin-top: 4px; }
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   THE ARENA — a versus card, not a form
+   ══════════════════════════════════════════════════════════════════════════
+   The lobby used to be two <select>s in a menu column beside a grid of every
+   card in the chosen deck. On iOS an optgrouped select renders as a spinning
+   wheel reading "Frostkeep (18)" — no elements, no size, no sense of what you
+   are about to play against — and the card grid answered a question nobody
+   asks before a match ("what is card 11 of 18").
+
+   The screen has one subject now: who is playing whom. Two deck cards, yours
+   blue and theirs red, the same viewer-relative pairing the board uses, each
+   carrying the element split and the count the select could not. */
+.arena-wrap { align-items: stretch; }
+.arena {
+  width: min(430px, 100vw); margin: 0 auto; height: 100%;
+  display: flex; flex-direction: column; gap: 10px;
+  /* 74px, not 12: the bottom nav is fixed over this screen and the two ghost
+     buttons sat squarely under it — present, painted, and unclickable. The
+     same reservation `.picker` and the story map already make. */
+  padding: 0 0 74px; overflow-y: auto;
+  background: radial-gradient(ellipse 130% 62% at 50% 4%, #1c1830 0%, #0d0c18 44%, var(--void) 100%);
+}
+.ar-hero { position: relative; flex: none; height: 138px; overflow: hidden; }
+.ar-hero img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 48%; display: block; }
+/* The art fades INTO the page rather than ending on a hard edge. */
+.ar-fade {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 30px;
+  background: linear-gradient(to top, #0d0c18, rgba(13, 12, 24, 0));
+}
+.ar-ribbon {
+  position: absolute; left: 14px; top: 10px; display: inline-flex; align-items: center; gap: 7px;
+  padding: 4px 11px 4px 8px; border-radius: 999px;
+  background: rgba(6, 7, 12, .78); border: 1px solid var(--gold-line);
+  font-family: var(--head); font-size: 10px; font-weight: 700; letter-spacing: .16em;
+  color: var(--gold-lit); text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+}
+.ar-ribbon i { width: 14px; height: 1px; background: linear-gradient(90deg, var(--gold), rgba(201, 162, 75, .2)); }
+
+/* One segmented control, reused by mode / board / host-join. */
+.seg { display: flex; border: 1px solid var(--panel-line); border-radius: 10px; overflow: hidden; }
+.seg button {
+  flex: 1; min-width: 0; padding: 9px 4px; cursor: pointer;
+  background: transparent; border: 0; border-left: 1px solid var(--panel-line);
+  font-family: var(--font-ui); font-size: 12px; font-weight: 500; color: var(--ink-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.seg button:first-child { border-left: 0; }
+.seg button.on { background: rgba(201, 162, 75, .15); color: var(--gold-lit); font-weight: 700; }
+.seg button.on.blue { background: rgba(91, 116, 216, .2); color: #a8c0f5; }
+.seg button:disabled { opacity: .45; cursor: not-allowed; }
+
+.ar-modes { flex: none; padding: 0 16px; }
+.ar-mode-note { margin: 7px 0 0; font-size: 11.5px; line-height: 1.4; color: var(--ink-faint); }
+.ar-field { flex: none; padding: 0 16px; display: flex; align-items: center; gap: 10px; }
+.ar-field .seg { flex: 1; min-width: 0; }
+.ar-flabel { flex: none; font-family: var(--head); font-size: 10px; font-weight: 700; letter-spacing: .1em; color: var(--ink-faint); }
+
+/* ── the versus card ─────────────────────────────────────────────────────── */
+.ar-vs { flex: 1 1 auto; min-height: 0; padding: 2px 16px; display: flex; flex-direction: column; justify-content: center; }
+.ar-seat {
+  position: relative; overflow: hidden; width: 100%; text-align: left; cursor: pointer;
+  min-height: 118px; padding: 11px 13px; border-radius: 12px;
+  display: flex; flex-direction: column; gap: 6px;
+  color: inherit; font: inherit;
+}
+.ar-seat.mine { border: 1.5px solid rgba(61, 127, 214, .55); background: linear-gradient(150deg, rgba(61, 127, 214, .14), rgba(10, 10, 17, .7)); }
+.ar-seat.foe  { border: 1.5px solid rgba(184, 67, 60, .5);  background: linear-gradient(150deg, rgba(184, 67, 60, .12), rgba(10, 10, 17, .7)); }
+.ar-seat:hover { filter: brightness(1.08); }
+/* The deck's finisher, bleeding in from the right under a mask so the art has
+   presence without fighting the text for the left half of the card. */
+.ar-seat-art {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 132px;
+  background-size: cover; background-position: 50% 12%;
+  mask-image: linear-gradient(to left, #000 30%, transparent);
+  -webkit-mask-image: linear-gradient(to left, #000 30%, transparent);
+}
+.ar-seat > :not(.ar-seat-art) { position: relative; }
+.ar-flag {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--head); font-size: 10px; font-weight: 700; letter-spacing: .11em;
+}
+.ar-seat.mine .ar-flag { color: #86bdff; }
+.ar-seat.foe .ar-flag { color: #e08b84; }
+.ar-flag.dim { color: #7d8aa8; justify-content: center; }
+.ar-flag i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
+.ar-deckname { font-family: var(--head); font-size: 21px; line-height: 1.05; color: var(--ink); }
+.ar-seat-foot { margin-top: auto; display: flex; align-items: center; gap: 4px; }
+.ar-change {
+  margin-left: auto; flex: none; padding: 3px 9px; border-radius: 999px;
+  background: rgba(6, 7, 12, .8); border: 1px solid rgba(233, 226, 210, .28);
+  font-size: 10px; font-weight: 700; color: #e0d9c9;
+}
+.el-chips { display: flex; gap: 4px; min-width: 0; overflow: hidden; }
+.el-chip {
+  flex: none; padding: 3px 6px; border-radius: 6px; border: 1px solid currentColor;
+  font-size: 10px; font-weight: 700; white-space: nowrap;
+}
+.el-chips.sm .el-chip { padding: 2px 6px; }
+
+.ar-vsline { display: flex; align-items: center; gap: 10px; padding: 9px 0; }
+.ar-vsline span { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(201, 162, 75, .4)); }
+.ar-vsline span:last-child { background: linear-gradient(90deg, rgba(201, 162, 75, .4), transparent); }
+.ar-vsline em { font-family: var(--head); font-style: normal; font-size: 15px; letter-spacing: .1em; color: var(--gold); }
+
+/* The empty online seat. The room code lives INSIDE it, because the code is
+   the thing that fills the seat — apart, they were two competing focuses. */
+.ar-seat.empty {
+  align-items: center; justify-content: center; gap: 8px; cursor: default;
+  border: 1px dashed rgba(91, 116, 216, .5);
+  background: linear-gradient(180deg, rgba(91, 116, 216, .1), rgba(10, 10, 17, .45));
+}
+.ar-code {
+  width: 100%; max-width: 230px; text-align: center; background: transparent; border: 0;
+  font-family: ui-monospace, Menlo, monospace; font-size: 30px; font-weight: 700;
+  letter-spacing: .2em; color: var(--ink); line-height: 1; padding: 2px 0;
+}
+.ar-code::placeholder { color: #3c4459; }
+.ar-code:focus { outline: 0; border-bottom: 1px solid var(--gold-line); }
+.ar-code.live { display: block; }
+.ar-codehint { font-size: 11px; color: #7d8aa8; text-align: center; }
+.lockin.sm, .ghost.sm { padding: 7px 16px; font-size: 12px; border-radius: 9px; }
+
+.ar-foot { flex: none; padding: 4px 16px 0; }
+.ar-start { width: 100%; height: 52px; font-size: 17px; }
+.ar-ghosts { margin-top: 9px; display: flex; gap: 8px; }
+.ar-ghosts .ghost { flex: 1; height: 40px; }
+.ar-foot .net-status { margin-top: 9px; }
+
+/* ── the deck sheet ──────────────────────────────────────────────────────── */
+.dp-scrim {
+  position: fixed; inset: 0; z-index: var(--z-modal);
+  background: rgba(6, 8, 14, .72); display: flex; align-items: flex-end; justify-content: center;
+}
+.dp-sheet {
+  width: min(430px, 100vw); max-height: 86dvh; overflow-y: auto;
+  border-radius: 16px 16px 0 0; border: 1px solid var(--gold-line); border-bottom: 0;
+  background: linear-gradient(180deg, #191622, #0c0b13);
+}
+.dp-grab { display: flex; justify-content: center; padding: 7px 0 3px; }
+.dp-grab i { width: 36px; height: 4px; border-radius: 2px; background: rgba(233, 226, 210, .28); }
+.dp-title { padding: 6px 14px 12px; }
+.dp-title h3 { margin: 0; font-family: var(--head); font-size: 19px; font-weight: 400; color: var(--ink); }
+.dp-title p { margin: 3px 0 0; font-size: 11px; line-height: 1.4; color: var(--ink-faint); }
+.dp-group { padding: 0 14px; font-family: var(--head); font-size: 10px; font-weight: 700; letter-spacing: .1em; color: var(--ink-faint); }
+.dp-list { padding: 8px 14px 14px; display: flex; flex-direction: column; gap: 7px; }
+.dp-row {
+  display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; cursor: pointer;
+  padding: 8px 10px; border-radius: 11px;
+  background: rgba(233, 226, 210, .03); border: 1px solid var(--panel-line); color: inherit;
+}
+.dp-row:hover { border-color: var(--gold-line); }
+.dp-row.on { border-color: var(--gold); background: rgba(201, 162, 75, .1); }
+.dp-art { flex: 0 0 40px; height: 52px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(233, 226, 210, .14); background: var(--void-2); line-height: 0; }
+.dp-art img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 10%; display: block; }
+.dp-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.dp-head { display: flex; align-items: baseline; gap: 7px; }
+.dp-head b { font-size: 14px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dp-count { flex: none; font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.dp-mark { margin-left: auto; flex: none; font-style: normal; font-size: 12px; font-weight: 700; color: var(--gold-lit); }
+.dp-mark.custom { font-family: var(--head); font-size: 10px; letter-spacing: .08em; }
+/* The one-line intent that has always been a comment above the card list. */
+.dp-note { font-size: 11px; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dp-build {
+  display: flex; align-items: center; justify-content: center; height: 44px; cursor: pointer;
+  border-radius: 11px; border: 1px dashed var(--gold-line); background: transparent;
+  font-family: var(--font-ui); font-size: 12px; font-weight: 500; color: var(--ink-dim);
+}
+.dp-build:hover { background: rgba(201, 162, 75, .08); color: var(--gold-lit); }
+
+/* Desktop: a lone phone column would strand the lobby in the middle of a
+   1440px screen, so the versus card widens and the two seats sit side by
+   side — the same pairing, read left-to-right instead of top-to-bottom. */
+@media (min-width: 900px) {
+  .arena { width: min(880px, 96vw); }
+  .ar-hero { height: 190px; }
+  .ar-vs { flex-direction: row; align-items: stretch; gap: 0; }
+  /* Capped: `flex: 1` on the row let a seat grow to 394px on a 900px screen,
+     which is a lot of empty gradient under two lines of text. The art widens
+     with the card so the extra room goes to the painting, not the void. */
+  .ar-vs > .ar-seat { flex: 1; min-width: 0; max-height: 232px; }
+  .ar-seat-art { width: 46%; }
+  .ar-vsline { flex: none; flex-direction: column; padding: 0 14px; }
+  .ar-vsline span { width: 1px; height: auto; flex: 1; background: linear-gradient(180deg, transparent, rgba(201, 162, 75, .4)); }
+  .ar-vsline span:last-child { background: linear-gradient(180deg, rgba(201, 162, 75, .4), transparent); }
+}
+
 /* ── Deck source select + Build button in the picker ──────────────────────── */
 .deck-src { margin-bottom: 2px; }
 .db-open { margin-top: 6px; font-size: 11px; padding: 7px 12px; }
@@ -3541,6 +3727,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   padding: 6px 4px; border-radius: 8px; cursor: pointer;
   background: var(--void-2); border: 1px solid var(--el, var(--panel-line)); color: var(--ink);
 }
+/* The element's own painted sigil, the same mark its cards wear. Eight
+   purses told apart by a colour and four capitals is a reading task; the
+   sigil is recognition. */
+.sp-el { width: 20px; height: 20px; object-fit: contain; display: block; }
+.shop-purse.empty .sp-el { filter: grayscale(.7); }
 .shop-purse b { font-size: 15px; font-variant-numeric: tabular-nums; color: var(--el, var(--ink)); }
 /* 10px, not 8.5: an element's NAME is text and text has a floor. It fits at
    10 because the letter-spacing came down to pay for it. */

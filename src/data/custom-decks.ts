@@ -81,6 +81,12 @@ export function sanitizeSpells(ids: string[] | undefined, boardSize = 5): string
  *  can label them and the delete-cleanup never drops their selection. */
 export interface PremadeDeck extends CustomDeck {
   premade: true;
+  /** One line on what this deck is trying to do, in the game's own voice.
+   *
+   *  Lifted out of the comment that already sat above every list — the best
+   *  copy in this file, and it was never shown to a player. The deck picker
+   *  reads it, so a row explains itself instead of being a name and a count. */
+  note: string;
   /** Which battlefield this build is sized for. The picker only offers decks
    *  matching the selected mode, so a 30-card list never shows up for a 4×4. */
   boardSize: 4 | 5;
@@ -89,6 +95,7 @@ export interface PremadeDeck extends CustomDeck {
 const STANDARD_DECKS: PremadeDeck[] = [
   {
     id: "pre_inferno_blitz",
+    note: "PYRO + BOLT — fast burn and shock aggression.",
     name: "Inferno Blitz",
     premade: true,
     boardSize: 4,
@@ -117,6 +124,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
   },
   {
     id: "pre_frostkeep",
+    note: "AQUA + BORE — tanky control that grinds you out.",
     name: "Frostkeep",
     premade: true,
     boardSize: 4,
@@ -140,6 +148,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
   },
   {
     id: "pre_radiant_host",
+    note: "DAWN + LEAF — heals and buffs behind a wall of bodies.",
     name: "Radiant Host",
     premade: true,
     boardSize: 4,
@@ -165,6 +174,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
   },
   {
     id: "pre_nightfall",
+    note: "DUSK + GALE — evasive assassins that hit and vanish.",
     name: "Nightfall",
     premade: true,
     boardSize: 4,
@@ -196,6 +206,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
   },
   {
     id: "pre_tempest",
+    note: "AQUA + GALE + BOLT — three-element lockdown.",
     name: "Tempest",
     premade: true,
     boardSize: 4,
@@ -220,6 +231,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
   },
   {
     id: "pre_blight",
+    note: "LEAF + PYRO + DUSK — three-element attrition.",
     name: "Blight",
     premade: true,
     boardSize: 4,

@@ -28,7 +28,7 @@ import {
   applyPack, canCraft, canOpenPack, craftCard, craftCostOf, dupeEssenceFor,
   openPack, type PackResult, type StorySave,
 } from "../data/story";
-import { EL_COLOR, RARITY_STYLE } from "./shared";
+import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { CardView } from "./CardView";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3 };
@@ -176,6 +176,13 @@ export function Shop(props: { save: StorySave; onSave: (next: StorySave) => void
                   onClick={() => setEl(el === r.element ? "ALL" : r.element)}
                   title={`${r.element} essence — tap to filter`}
                 >
+                  {/* The element's painted mark, from the same set the cards
+                      wear. A purse is one of eight and they were told apart by
+                      a colour and four capitals; the sigil is what the player
+                      already recognises from every card of that element. */}
+                  <img className="sp-el" src={EL_ICON[r.element as keyof typeof EL_ICON]} alt=""
+                    draggable={false}
+                    onError={(e) => { e.currentTarget.style.display = "none"; }} />
                   <b>{n}</b>
                   <span>{r.element}</span>
                 </button>

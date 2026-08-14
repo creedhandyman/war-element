@@ -55,10 +55,11 @@ import { SpellTray } from "./SpellTray";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { WinScreen } from "./WinScreen";
-import { EL_COLOR, EL_ICON, type PendingBattle, type Selection } from "./shared";
+import { EL_COLOR, type PendingBattle, type Selection } from "./shared";
 import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
 import { StoryRegions } from "./StoryRegions";
+import { DeckPickerSheet, DeckSeat } from "./DeckPickerSheet";
 import { StoryResult } from "./StoryResult";
 import { StoryPrep } from "./StoryPrep";
 import { BottomNav, type Tab } from "./BottomNav";
@@ -195,7 +196,6 @@ export function App() {
   const roomRef = useRef<Room | null>(null);
   const onlineStartedRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
-  const [viewDeck, setViewDeck] = useState<"p1" | "p2">("p1"); // which deck's cards to preview
   const [customDecks, setCustomDecks] = useState<CustomDeck[]>(() => loadCustomDecks());
   const [builderOpen, setBuilderOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -276,6 +276,8 @@ export function App() {
   // effect below re-points these if the player switches battlefield.
   const [p1DeckId, setP1DeckId] = useState(premadeDecksFor(4)[0].id);
   const [p2DeckId, setP2DeckId] = useState(premadeDecksFor(4)[1].id);
+  /** Which seat the deck sheet is filling, or null when it is shut. */
+  const [pickSeat, setPickSeat] = useState<"p1" | "p2" | null>(null);
   // Premade builds sized for the CHOSEN battlefield — a 30-card large build must
   // never show up in a 4x4 picker, and vice versa.
   const modePremades = premadeDecksFor(boardSize);
@@ -293,6 +295,10 @@ export function App() {
   // gave a spell-less deck the whole elemental set in battle.
   const resolveDeckSpells = (deckId: string): string[] | undefined =>
     (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).spells;
+  /** The deck the LOCAL player holds. Online, a guest sits in the P2 seat, so
+   *  "your deck" is not always P1's — the versus card must not show the host's
+   *  deck as yours. */
+  const mySeatDeckId = onlineMode && onlineRole === "guest" ? p2DeckId : p1DeckId;
   const deckLabel = (deckId: string): string =>
     (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).name;
 
@@ -2209,123 +2215,146 @@ export function App() {
       )}
 
       {!started && !storyOpen && tab === "arena" && (
-        <div className="overlay">
-          <div className="modal picker">
-            {/* Left: the menu options, stacked vertically. */}
-            <div className="picker-menu">
+        <div className="overlay arena-wrap">
+          <div className="arena">
+            {/* The title art carries the screen instead of a logo floating over
+                a form. The ribbon names the mode so the art can be art. */}
+            <div className="ar-hero">
               <picture>
                 <source srcSet="/title.webp" type="image/webp" />
-                <img className="title-logo" src="/title.jpg" alt="War Element" />
+                <img src="/title.jpg" alt="War Element" />
               </picture>
-              <p>
+              <span className="ar-fade" aria-hidden="true" />
+              <span className="ar-ribbon">
+                <i aria-hidden="true" />
+                {onlineMode ? "ARENA · ONLINE" : "ARENA"}
+              </span>
+            </div>
+
+            <div className="ar-modes">
+              <div className="seg">
+                <button
+                  className={!twoPlayer && !onlineMode ? "on" : ""}
+                  onClick={() => { setOnlineMode(false); setTwoPlayer(false); }}
+                >vs AI</button>
+                <button
+                  className={twoPlayer && !onlineMode ? "on" : ""}
+                  onClick={() => { setOnlineMode(false); setTwoPlayer(true); }}
+                >2 Players</button>
+                <button
+                  className={onlineMode ? "on blue" : ""}
+                  onClick={() => setOnlineMode(true)}
+                >Online</button>
+              </div>
+              {/* One sentence, not a paragraph. */}
+              <p className="ar-mode-note">
                 {onlineMode
                   ? onlineRole === "host"
-                    ? "Host a room, share the code with your buddy, and pick your deck (P1)."
-                    : "Enter your buddy's room code, then pick your deck (P2)."
+                    ? "You host and play P1. Share the code to fill the other seat."
+                    : "Enter your buddy's code, then pick your deck. You play P2."
                   : twoPlayer
-                    ? "Two players share this device — hand it back and forth each turn."
-                    : "Choose the decks, then start. You play P1."}
+                    ? "Two players share this device — hand it back each turn."
+                    : "You play P1. The AI draws its own hand from its deck."}
               </p>
-              <div className="mode-toggle">
-                <button
-                  className={`mode-btn ${!twoPlayer && !onlineMode ? "on" : ""}`}
-                  onClick={() => { setOnlineMode(false); setTwoPlayer(false); }}
-                >
-                  🤖 vs AI
-                </button>
-                <button
-                  className={`mode-btn ${twoPlayer && !onlineMode ? "on" : ""}`}
-                  onClick={() => { setOnlineMode(false); setTwoPlayer(true); }}
-                >
-                  👥 2 Players
-                </button>
-                <button
-                  className={`mode-btn ${onlineMode ? "on" : ""}`}
-                  onClick={() => setOnlineMode(true)}
-                >
-                  🌐 Online
-                </button>
-              </div>
-              {/* Battlefield size. Hidden for an online GUEST: the host deals the
-                  whole state, board size included, so the guest has no say. */}
-              {(!onlineMode || onlineRole === "host") && (
-                <div className="pick-field">
-                  <span>Battlefield</span>
-                  <div className="mode-toggle">
-                    <button
-                      className={`mode-btn sm ${boardSize === 4 ? "on" : ""}`}
-                      onClick={() => setBoardSize(4)}
-                    >
-                      4×4 · Standard
-                    </button>
-                    <button
-                      className={`mode-btn sm ${boardSize === 5 ? "on" : ""}`}
-                      onClick={() => setBoardSize(5)}
-                    >
-                      5×5 · Large
-                    </button>
-                  </div>
-                </div>
-              )}
-              {(!onlineMode || onlineRole === "host") && (
-              <div className="pick-field">
-                <span>{onlineMode ? "Your deck (P1)" : twoPlayer ? "Player 1 deck" : "Your deck (P1)"}</span>
-                <select
-                  className="deck-src"
-                  value={p1DeckId}
-                  onChange={(e) => { setP1DeckId(e.target.value); setViewDeck("p1"); }}
-                >
-                  <optgroup label="Premade decks">
-                    {modePremades.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name} ({d.cards.length})</option>
-                    ))}
-                  </optgroup>
-                  {customDecks.length > 0 && (
-                    <optgroup label="Custom decks">
-                      {customDecks.map((d) => (
-                        <option key={d.id} value={d.id}>★ {d.name} ({d.cards.length})</option>
-                      ))}
-                    </optgroup>
-                  )}
-                </select>
-              </div>
-              )}
-              {(!onlineMode || onlineRole === "guest") && (
-              <div className="pick-field">
-                <span>{onlineMode ? "Your deck (P2)" : twoPlayer ? "Player 2 deck" : "Opponent deck (P2 · AI)"}</span>
-                <select
-                  className="deck-src"
-                  value={p2DeckId}
-                  onChange={(e) => { setP2DeckId(e.target.value); setViewDeck("p2"); }}
-                >
-                  <optgroup label="Premade decks">
-                    {modePremades.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name} ({d.cards.length})</option>
-                    ))}
-                  </optgroup>
-                  {customDecks.length > 0 && (
-                    <optgroup label="Custom decks">
-                      {customDecks.map((d) => (
-                        <option key={d.id} value={d.id}>★ {d.name} ({d.cards.length})</option>
-                      ))}
-                    </optgroup>
-                  )}
-                </select>
-              </div>
-              )}
-              <button className="ghost db-open" onClick={() => setBuilderOpen(true)}>
-                🛠 Build / edit custom decks
-              </button>
-              <button className="ghost db-open" onClick={() => setRulesOpen(true)}>
-                📖 How to play
-              </button>
-              <button className="ghost db-open" onClick={() => setStoryOpen(true)}>
-                🗺 Story Mode
-              </button>
+            </div>
 
+            {/* Hidden for an online GUEST: the host deals the whole state,
+                board size included, so the guest has no say. */}
+            {(!onlineMode || onlineRole === "host") && (
+              <div className="ar-field">
+                <span className="ar-flabel">BATTLEFIELD</span>
+                <div className="seg">
+                  <button className={boardSize === 4 ? "on" : ""} onClick={() => setBoardSize(4)}>
+                    4×4 · Standard
+                  </button>
+                  <button className={boardSize === 5 ? "on" : ""} onClick={() => setBoardSize(5)}>
+                    5×5 · Large
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {onlineMode && (
+              <div className="ar-field roles">
+                <div className="seg">
+                  <button
+                    className={onlineRole === "host" ? "on blue" : ""}
+                    disabled={!!online}
+                    onClick={() => setOnlineRole("host")}
+                  >Host game</button>
+                  <button
+                    className={onlineRole === "guest" ? "on blue" : ""}
+                    disabled={!!online}
+                    onClick={() => setOnlineRole("guest")}
+                  >Join game</button>
+                </div>
+              </div>
+            )}
+
+            {/* THE VERSUS CARD. Two decks, viewer-relative — yours blue and the
+                opponent's red, the same pairing the board uses, so the seats
+                read the same way in the lobby as they do in the match. */}
+            <div className="ar-vs">
+              <DeckSeat
+                side="mine"
+                flag={onlineMode ? (onlineRole === "host" ? "YOU · HOST · P1" : "YOU · GUEST · P2") : "YOU · P1"}
+                label={deckLabel(mySeatDeckId)}
+                cards={resolveDeckCards(mySeatDeckId)}
+                onChange={() => setPickSeat(onlineMode && onlineRole === "guest" ? "p2" : "p1")}
+              />
+
+              <div className="ar-vsline"><span /><em>VS</em><span /></div>
+
+              {onlineMode && !online ? (
+                /* The room code belongs INSIDE the empty seat: the code is the
+                   thing that fills it, and putting them together leaves the
+                   screen one focus instead of two competing ones. */
+                <div className="ar-seat empty">
+                  <span className="ar-flag dim">
+                    {onlineRole === "host" ? "GUEST · P2 · EMPTY SEAT" : "HOST · P1 · JOIN A ROOM"}
+                  </span>
+                  <input
+                    className="ar-code"
+                    placeholder={onlineRole === "host" ? "AUTO" : "CODE"}
+                    value={roomCode}
+                    onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                    maxLength={12}
+                  />
+                  <span className="ar-codehint">
+                    {onlineRole === "host"
+                      ? "Share this code to fill the seat"
+                      : "Enter your buddy's room code"}
+                  </span>
+                  <button
+                    className="lockin sm"
+                    disabled={!onlineConfigured}
+                    onClick={onlineRole === "host" ? hostCreateRoom : guestJoinRoom}
+                  >
+                    {onlineRole === "host" ? "Create room" : "Join room"}
+                  </button>
+                </div>
+              ) : onlineMode ? (
+                <div className="ar-seat empty live">
+                  <span className="ar-flag dim">{onlineRole === "host" ? "GUEST · P2" : "HOST · P1"}</span>
+                  <span className="ar-code live">{roomCode || "—"}</span>
+                  <span className="ar-codehint">{netStatus || "Waiting for your buddy to join…"}</span>
+                  <button className="ghost sm" onClick={leaveOnline}>Leave room</button>
+                </div>
+              ) : (
+                <DeckSeat
+                  side="foe"
+                  flag={twoPlayer ? "P2 · SECOND PLAYER" : "AI · P2"}
+                  label={deckLabel(p2DeckId)}
+                  cards={resolveDeckCards(p2DeckId)}
+                  onChange={() => setPickSeat("p2")}
+                />
+              )}
+            </div>
+
+            <div className="ar-foot">
               {!onlineMode ? (
                 <button
-                  className="lockin"
+                  className="lockin ar-start"
                   onClick={() => {
                     const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
                     const p1Cards = resolveDeckCards(p1DeckId);
@@ -2347,117 +2376,48 @@ export function App() {
                   Start Match
                 </button>
               ) : (
-                <div className="online-panel">
-                  <div className="role-toggle">
-                    <button
-                      className={`mode-btn sm ${onlineRole === "host" ? "on" : ""}`}
-                      onClick={() => setOnlineRole("host")}
-                      disabled={!!online}
-                    >
-                      Host game
-                    </button>
-                    <button
-                      className={`mode-btn sm ${onlineRole === "guest" ? "on" : ""}`}
-                      onClick={() => setOnlineRole("guest")}
-                      disabled={!!online}
-                    >
-                      Join game
-                    </button>
-                  </div>
-                  <input
-                    className="db-name room-code"
-                    placeholder={onlineRole === "host" ? "Room code (blank = auto)" : "Enter buddy's code"}
-                    value={roomCode}
-                    onChange={(e) => setRoomCode(e.target.value)}
-                    maxLength={12}
-                    disabled={!!online}
-                  />
-                  {onlineRole === "host" ? (
-                    <button className="lockin" onClick={hostCreateRoom} disabled={!!online || !onlineConfigured}>
-                      Create room
-                    </button>
-                  ) : (
-                    <button className="lockin" onClick={guestJoinRoom} disabled={!!online || !onlineConfigured}>
-                      Join room
-                    </button>
-                  )}
-                  {netStatus && <div className="net-status">{netStatus}</div>}
-                  {online && (
-                    <button className="ghost" onClick={leaveOnline}>Cancel / leave room</button>
-                  )}
-                  {!onlineConfigured && (
-                    <div className="net-status warn">
-                      Online needs VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY — see README.
-                    </div>
-                  )}
+                <button className="lockin ar-start" disabled>
+                  {online ? "Waiting for your buddy…" : "Fill the seat to start"}
+                </button>
+              )}
+              {/* Two ghosts, not four — Story and Shop live in the nav. */}
+              <div className="ar-ghosts">
+                <button className="ghost" onClick={() => setBuilderOpen(true)}>Build decks</button>
+                <button className="ghost" onClick={() => setRulesOpen(true)}>How to play</button>
+              </div>
+              {onlineMode && !onlineConfigured && (
+                <div className="net-status warn">
+                  Online needs VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY — see README.
                 </div>
               )}
             </div>
-
-            {/* Right: the deck view — cards of the selected deck. */}
-            <div className="picker-view">
-              <div className="pv-tabs">
-                <button
-                  className={`pv-tab ${viewDeck === "p1" ? "on" : ""}`}
-                  onClick={() => setViewDeck("p1")}
-                >
-                  P1 · {deckLabel(p1DeckId)}
-                </button>
-                <button
-                  className={`pv-tab ${viewDeck === "p2" ? "on" : ""}`}
-                  onClick={() => setViewDeck("p2")}
-                >
-                  P2 · {deckLabel(p2DeckId)}
-                </button>
-              </div>
-              {(() => {
-                const cards =
-                  viewDeck === "p1"
-                    ? resolveDeckCards(p1DeckId)
-                    : resolveDeckCards(p2DeckId);
-                return (
-                  <>
-                    <div className="pv-count">{cards.length} cards</div>
-                    <div className="pv-grid">
-                      {cards.map((id) => {
-                        const d = getDef(id);
-                        return (
-                          <div
-                            key={id}
-                            className="deck-thumb carded"
-                            title={d.special ? `${d.special.name}: ${d.special.text}` : d.name}
-                          >
-                            <img
-                              className="card-art"
-                              src={`/cards/${d.art ?? d.id}.webp`}
-                              alt=""
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                              }}
-                            />
-                            <div className="dt-top">
-                              <span className="dt-cost">{d.cost}</span>
-                              <span className="dt-el" title={d.element} style={{ borderColor: EL_COLOR[d.element] }}>
-                                <img src={EL_ICON[d.element]} alt={d.element} draggable={false}
-                                  onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                              </span>
-                            </div>
-                            <div className="dt-name">{d.name}</div>
-                            <div className="dt-stats">
-                              <span className="s-dmg">⚔<span className="atk-dmg">{d.dmg}</span>{d.hits > 1 ? <span className="atk-x"> ×{d.hits}</span> : ""}</span>
-                              <span className="s-hp">♥{d.hp}</span>
-                              <span className="s-sp"><SpIcon />{d.sp}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
           </div>
         </div>
+      )}
+
+      {/* OUTSIDE `.overlay`, deliberately. `.overlay` is a stacking context at
+          --z-overlay (300), so the sheet's own --z-modal (500) is scoped inside
+          it and loses to the bottom nav at 350 — "Build a new deck" was painted
+          under the nav and unclickable. A fragment creates no stacking context,
+          so out here the 500 competes at the top level and wins. */}
+      {!started && !storyOpen && tab === "arena" && pickSeat && (
+            <DeckPickerSheet
+              title={
+                pickSeat === "p1"
+                  ? (onlineMode || !twoPlayer ? "Your deck" : "Player 1 deck")
+                  : (onlineMode ? "Your deck" : twoPlayer ? "Player 2 deck" : "Opponent deck")
+              }
+              boardSize={boardSize}
+              premades={modePremades}
+              customs={customDecks}
+              value={pickSeat === "p1" ? p1DeckId : p2DeckId}
+              onPick={(id) => {
+                if (pickSeat === "p1") setP1DeckId(id);
+                else setP2DeckId(id);
+              }}
+              onClose={() => setPickSeat(null)}
+              onBuild={() => setBuilderOpen(true)}
+            />
       )}
 
       {/* Campaign team builder: the same screen as the sandbox, with the pool

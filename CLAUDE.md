@@ -465,6 +465,15 @@ Pure def-to-text lives in `card-text.tsx` and is covered by a whole-pool test.
   is not the `<button>`: a plain `<div>` probe collapses identically. Any grid
   that is a flex item and meant to scroll needs `grid-auto-rows: max-content`.
 
+- **A child's z-index cannot escape its parent's stacking context.** The deck
+  sheet sits at `--z-modal` (500) and the bottom nav at `--z-nav` (350), and
+  the nav still painted over the sheet — because the sheet was rendered inside
+  `.overlay`, which is itself a stacking context at `--z-overlay` (300), so its
+  500 only ranked among the overlay's own children. "Build a new deck" was
+  visible and unclickable. Anything that must clear the nav has to be a sibling
+  of the overlay, not a descendant; a React fragment creates no stacking
+  context, so moving the JSX out of the `.overlay` div is enough.
+
 - **The squad limit is not a deck limit, and clamping one by the other is a
   silent cap.** `squadCapFor` counts only what you carry from ELSEWHERE — a
   region's own element travels free and is already in the pool. `App.tsx`'s
