@@ -3064,7 +3064,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: var(--rar, var(--gold-lit));
   box-shadow: 0 0 22px color-mix(in srgb, var(--rar, #ffb02e) 80%, transparent);
 }
-.announce-art { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
+/* Top-biased, like every other card-art surface in the sheet (10-22%). This
+   one was left at the default 50%, and centring a portrait painting in a square
+   frame takes the crop off BOTH ends — which on a card whose subject is its
+   head meant the entrance shot arrived decapitated. Anchoring near the top
+   spends the whole crop on the bottom instead. */
+.announce-art {
+  display: block; width: 100%; aspect-ratio: 1 / 1;
+  object-fit: cover; object-position: 50% 12%;
+}
 .announce-noart {
   display: grid; place-items: center; font-size: 120px; color: var(--el, #7d92e8);
   background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 40%, #0b0d16), #0b0d18);
