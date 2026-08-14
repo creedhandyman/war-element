@@ -1783,10 +1783,27 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      percentage spent 20px of a phone board on rim and 32px on gaps — a whole
      tile's worth. */
   :root {
-    --hud-budget: 468px;
+    /* 468 -> 246. This is the MatchLayout landing paying for itself: the same
+       children, re-laid as four edge-locked strips instead of four rails, and
+       every pixel saved goes to the board.
+
+         status strip   36   (was a 45px ribbon)
+         speed strip    26   (was a 42px COLUMN, costing width not height)
+         log strip      24   (was an off-canvas drawer costing nothing until
+                              you opened it over the board)
+         hand peek      90   (was 138)
+         action bar     60   (was 196)
+         gaps + padding 10
+                       ---
+                       246
+
+       The design budgets 293 including 81px of iPhone safe areas, which this
+       matches once env() is non-zero on a real device. */
+    --hud-budget: 246px;
     --board-frame: 4px;
     --grid-gap: 3px;
-    --board-size: calc(100vw - 46px);
+    /* 46 -> 12: the 44px right gutter went with the Speed Queue column. */
+    --board-size: calc(100vw - 12px);
     --board-h: min(calc(var(--board-size) * 87 / 70), calc(100dvh - var(--hud-budget)));
   }
 
@@ -1805,7 +1822,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
   /* Board → hero at the TOP (natural height); the hand takes the space below it
      in normal flow. Right gutter reserved for the SP strip. */
-  .board-area { order: 1; flex: 0 0 auto; min-height: 0; padding: 2px 44px 0 2px; justify-content: flex-start; gap: 3px; }
+  /* The 44px of right padding was the gutter the Speed Queue column stood in.
+     The queue is a horizontal strip now, so the board gets that width back —
+     which is the whole point: at 390px width is the binding constraint, and
+     44px of it was being spent on a rail that reads better lying down. */
+  .board-area { order: 1; flex: 0 0 auto; min-height: 0; padding: 2px 0 0 0; justify-content: flex-start; gap: 3px; }
   .board-area::before { display: none; } /* drop the corner wisps on tiny screens */
   /* Slim the home-crest ribbons so the board keeps its size while the action
      panel stays fully on-screen (the crest is just an orientation label). */
@@ -1817,26 +1838,72 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   /* Bottom → a big ACTION PANEL (flex:1) that fills the space under the hand:
      crystals row on top, a large Pass Priority, then full-width Auto/Clear/
      Surrender buttons (no more tiny plain-text controls). */
+  /* order 3 -> 5: the speed strip (2) and the log strip (3) now sit between the
+     board and the hand, so the action bar moves to the end of the chain.
+
+     It also stops being `flex: 1 1 auto`. A growing panel is what made this the
+     most expensive thing on the screen — 196px measured, a quarter of the
+     viewport, most of it empty box. It is a bar now: one committing action, at
+     a fixed height, and the space it was absorbing goes to the board. */
   .bottom {
-    order: 3; grid-column: auto; flex: 1 1 auto; min-height: 84px;
+    order: 5; grid-column: auto; flex: 0 0 auto; min-height: 0; height: auto; max-height: 92px;
     flex-direction: column; justify-content: center; align-items: stretch;
-    gap: 6px; padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
+    gap: 4px; padding: 4px 10px calc(4px + env(safe-area-inset-bottom));
   }
-  /* Not your turn: Pass + sub-buttons hide, so collapse the panel back to a thin
-     crystals bar pinned to the bottom instead of a tall empty box. */
-  .bottom.compact { flex: 0 0 auto; min-height: 60px; gap: 6px; margin-top: auto; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+  /* Not your turn: Pass + sub-buttons hide, so collapse to a thin crystals bar
+     pinned to the bottom instead of a tall empty box. */
+  .bottom.compact { flex: 0 0 auto; min-height: 0; max-height: 56px; gap: 4px; margin-top: auto; padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
+  /* Mid-battle the bar IS the interface — the four action buttons need room,
+     so the cap comes off for exactly that state. */
+  .bottom.acting { max-height: none; flex: 1 1 auto; }
   .handcol { display: none; }              /* the hand lives in its own flow row */
   /* Crystals move DOWN into the action panel (just above Pass Priority) so the
      fanned hand can't cover them — the top .resource is hidden; the panel copy
      shows. */
   .bottom > .resource { display: none; }
-  .panel-crystals { display: block; }
+  /* Crystals move OUT of the action bar and into the top strip — which is
+     where the design puts them (◆1 ✦4, top right) and where they cost nothing:
+     the phase ribbon has empty space on its right, and the bar was paying 44px
+     of full-width row for two numbers. Absolute against .wrap, which is already
+     the positioning context for the hand and the summon bar. */
+  .panel-crystals {
+    display: block; position: absolute; top: 6px; right: 8px; z-index: var(--z-hud);
+    width: auto; margin: 0;
+  }
+  .panel-crystals .resource { gap: 8px; }
+  .panel-crystals .res-gem { transform: scale(0.78); transform-origin: right center; }
+  /* ...so the ribbon must not run under them. Reserving the space with padding
+     made the ribbon WRAP — it is flex-wrap:wrap, so a narrower line pushed the
+     priority chip onto a second row and the strip grew from 45px to 70px,
+     costing more height than the crystals had just saved. nowrap is the fix:
+     the pills are 8px and have room, they were only wrapping because they were
+     allowed to. */
+  .phase-ribbon { padding-right: 84px; flex-wrap: nowrap; }
   .resource { gap: 22px; flex: none; justify-content: center; }
   .res-gem { padding: 0; gap: 8px; }
   .gem-info { display: none; }
   .gem-face { width: 32px; height: 32px; }
   .gem-val { font-size: 17px; }
-  .controls { width: 100%; flex: none; flex-direction: column; align-items: stretch; gap: 6px; }
+  /* The action bar, laid out as the design draws it: one committing action with
+     a book chip beside it, and everything else on a thinner second row.
+
+     It was a four-row COLUMN — spellbook, crystals, Pass, sub-buttons — each
+     full width and 40-48px tall, which is how .bottom reached 196px and a
+     quarter of the phone screen. Stacking full-width rows is what makes a panel
+     grow; a grid with a fixed shape cannot. */
+  .controls {
+    width: 100%; flex: none; display: grid;
+    grid-template-columns: auto 1fr; align-items: center; gap: 4px 6px;
+  }
+  .controls .hint { grid-column: 1 / -1; }
+  .controls .hint:empty { display: none; }
+  .panel-spells { grid-row: 1; grid-column: 1; width: auto; margin: 0; }
+  .pass-btn { grid-row: 1; grid-column: 2; }
+  .ctl-sub { grid-row: 2; grid-column: 1 / -1; gap: 6px; }
+  /* 48px each was three thumb-sized buttons for actions you take once a match.
+     They keep a 30px target, which is still tappable, and give the height back
+     to the board. */
+  .ctl-sub > * { height: 30px; min-height: 0; padding: 0 8px; font-size: var(--fs-2); }
   .hint { display: none; }
   /* Big primary action (kept prominent, just less vertical padding). */
   .pass-btn { width: 100%; padding: 8px 12px; font-size: 16px; letter-spacing: 0.05em; }
@@ -1892,39 +1959,96 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .panel-spells .spellchip-art { width: 20px; height: 20px; flex: none; }
   .panel-spells .spellchip-name { font-size: 10.5px; text-align: left; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  /* Battle Log → off-canvas left drawer (LOG edge tab). Absolute to .wrap so it
-     tracks the layout viewport, not the (pane-quirky) visual one. */
+  /* ── Battle Log → ONE LINE, in flow, under the speed strip ──────────────
+     It was an off-canvas drawer behind an edge tab, which meant the log was
+     either absent or covering the board — never glanceable. One line of the
+     most recent event is what you actually want mid-turn ("Fenrir hit Prism
+     −6, −6"), and the full rail is one tap away. Same element, two shapes:
+     in flow by default, the old drawer when .mobile-open. */
   .rail:not(.queue-rail) {
-    position: absolute; top: 0; left: 0; bottom: 0; z-index: var(--z-drawer); width: min(82vw, 320px);
-    border-radius: 0 14px 14px 0; transform: translateX(-103%);
-    transition: transform 0.26s ease; box-shadow: 8px 0 40px rgba(0,0,0,0.7);
+    order: 3; flex: 0 0 auto; height: 24px; width: auto;
+    flex-direction: row; align-items: center; gap: 6px;
+    padding: 0 8px; border-radius: var(--r-chip); cursor: pointer;
+    background: rgba(10, 12, 22, 0.5); border: 1px solid rgba(201, 162, 75, 0.18);
   }
-  .rail:not(.queue-rail).mobile-open { transform: translateX(0); }
+  /* Only the newest line, and it must not wrap the strip open. */
+  .rail:not(.queue-rail) .loglist {
+    flex: 1; min-width: 0; overflow: hidden; padding: 0; gap: 0;
+    display: flex; flex-direction: column-reverse; justify-content: flex-start; max-height: 16px;
+  }
+  .rail:not(.queue-rail) .loglist > * {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-size: var(--fs-3); line-height: 16px; margin: 0;
+  }
+  .rail:not(.queue-rail) .rail-title {
+    flex: 0 0 auto; font-size: var(--fs-1); letter-spacing: 0.08em;
+    color: var(--ink-faint); padding: 0; border: none;
+  }
+  .rail:not(.queue-rail) .rail-title .panel-close { display: none; }
+  /* The affordance the design draws as ⌃ — the collapse button, repurposed. */
+  .rail:not(.queue-rail) .rail-collapse {
+    display: block; flex: 0 0 auto; position: static; width: auto; height: auto;
+    padding: 0 2px; font-size: var(--fs-3); background: none; border: none; color: var(--ink-faint);
+  }
 
-  /* Speed Queue → thin always-on strip on the right edge.
-     The bottom offset tracks the ACTION PANEL's real height via --bar-h (set by
-     App.tsx's ResizeObserver, the same var the summon-confirm and hand already
-     use). It was a flat 78px, but the portrait panel is `flex: 1 1 auto` and
-     grows to fit Pass Priority, the crystals and the sub-buttons — several times
-     78px on your turn — so the rail ran straight down over the panel. The
-     fallback only applies before the first measurement. */
+  /* Tapped: the same element becomes the full-height drawer it used to be. */
+  .rail:not(.queue-rail).mobile-open {
+    position: absolute; top: 0; left: 0; bottom: 0; height: auto;
+    z-index: var(--z-drawer); width: min(82vw, 320px);
+    flex-direction: column; align-items: stretch; gap: 0; padding: 0; cursor: default;
+    border-radius: 0 14px 14px 0; box-shadow: 8px 0 40px rgba(0, 0, 0, 0.7);
+  }
+  .rail:not(.queue-rail).mobile-open .loglist {
+    max-height: none; flex-direction: column; overflow-y: auto; padding: 8px 10px; gap: 4px;
+  }
+  .rail:not(.queue-rail).mobile-open .loglist > * { white-space: normal; }
+  .rail:not(.queue-rail).mobile-open .rail-title {
+    font-size: var(--fs-3); padding: 10px 12px; color: var(--ink-dim);
+    border-bottom: 1px solid var(--panel-line);
+  }
+  .rail:not(.queue-rail).mobile-open .rail-title .panel-close { display: block; }
+  .rail:not(.queue-rail).mobile-open .rail-collapse { display: none; }
+
+  /* ── Speed Queue → a HORIZONTAL strip under the board ───────────────────
+     It was a 42px column pinned to the right edge, which cost the board 44px
+     of width — on a 390px screen that is most of a tile, taken from the one
+     dimension the measurement says is binding. Laid flat it costs 26px of
+     height instead, which is the dimension there is slack in.
+
+     It also reads better here. Act order runs left-to-right, the same
+     direction as reading, and the strip sits directly against the row whose
+     cards act first, so a pip is next to the tile it refers to instead of
+     across the screen from it.
+
+     Being in flow is what removes the --bar-h dependency: the old rule had to
+     track the action panel's measured height because it was absolutely
+     positioned above it, and got that wrong every time the panel grew. */
   .rightcol {
-    position: absolute; top: 42px; right: 2px; width: 42px;
-    /* No safe-area term here: --bar-h is a getBoundingClientRect height, and the
-       bar's own padding-bottom already carries env(safe-area-inset-bottom), so
-       adding it again would lift the rail by the inset twice. */
-    bottom: calc(var(--bar-h, 78px) + 8px);
-    z-index: var(--z-queue); grid-column: auto; grid-row: auto; gap: 0;
+    position: static; order: 2; flex: 0 0 auto;
+    width: auto; height: 26px; min-height: 0;
+    flex-direction: row; gap: 4px;
+    grid-column: auto; grid-row: auto;
   }
   .rightcol .spelltray { display: none; }  /* spells move to the Spells sheet */
-  .rightcol .rail.queue-rail { flex: 1; padding: 5px 2px; }
+  .rightcol .rail.queue-rail { flex: 1; min-width: 0; padding: 0; background: none; border: none; }
   .queue-rail .rail-title, .queue-rail .queue-help { display: none; }
-  .queue-rail .queue-scale { gap: 4px; }
-  .queue-rail .qrow { padding: 3px 1px; gap: 1px; flex-direction: column; align-items: center; }
+  /* Each entry takes an equal share of the width, so the strip is a fixed
+     shape that does not reflow as cards die and the queue shortens. */
+  .queue-rail .queue-scale { flex-direction: row; gap: 3px; height: 26px; align-items: stretch; }
+  .queue-rail .qrow {
+    flex: 1 1 0; min-width: 0; padding: 0 2px; gap: 3px;
+    flex-direction: row; align-items: center; justify-content: center; border-radius: var(--r-pip);
+  }
   .queue-rail .qname, .queue-rail .qtag { display: none; }
-  .queue-rail .qsp { font-size: 11px; }
-  .queue-rail .el-dot { width: 8px; height: 8px; }
+  .queue-rail .qsp { font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
+  .queue-rail .el-dot { width: 6px; height: 6px; flex: none; }
 
+  /* The LOG edge tab is retired — the log is a strip in the flow now, and that
+     strip is its own tap target. Two ways in would be two things to keep in
+     step, and the tab was the one that answered by covering the board.
+     (.edge-tab.right, SPELLS, is already display:none here — portrait reaches
+     spells through the book chip in the action bar, not a tab.) */
+  .edge-tab.left { display: none; }
   /* Edge tabs */
   .edge-tab {
     display: flex; align-items: center; justify-content: center; position: absolute; top: 40%;
@@ -1955,22 +2079,38 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      portrait screen has the room, so the board slots stay fully visible/tappable
      and the fan gets real space. Fills the slack under the board; right gutter
      clears the SP strip. Bigger cards = "more room for cards". */
+  /* order 2 -> 4 (the speed and log strips took 2 and 3), and the 44px right
+     padding goes with the Speed Queue column that used to stand there.
+
+     Capped at a 90px PEEK. The design calls this the slack to spend, and it is
+     the right place to spend it: cost, name and three numerals is enough to
+     choose from without opening anything, and every pixel past that was buying
+     a taller picture of a card you are about to play anyway. */
   .hand-float {
-    order: 2; position: static; left: auto; bottom: auto; transform: none;
-    width: 100%; flex: 0 0 auto; min-height: 0;
-    display: flex; align-items: center; justify-content: center;
-    padding: 2px 44px 0 4px; pointer-events: auto;
+    order: 4; position: static; left: auto; bottom: auto; transform: none;
+    width: 100%; flex: 0 0 auto; min-height: 0; max-height: var(--hand-peek, 90px); overflow: hidden;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 2px 4px 0; pointer-events: auto;
   }
   .hand-float.up { bottom: auto; } /* flow: same position on/off your turn */
-  .hand-float .hcard { width: 88px; height: 106px; margin: 0 -22px; transform-origin: 50% 96%; }
+  /* The fan's own base rule pads 30px of headroom above the cards for the hover
+     pop. In a 90px peek that padding IS the peek, so it goes here — the peek is
+     the height of a card, and a card that grows on hover can grow over the log
+     strip above it, which is what overflow:visible on the fan is for. */
+  .hand-float .hand-fan { padding-top: 2px; align-items: flex-start; }
+  .hand-float .hcard { width: 74px; height: 82px; margin: 0 -14px; transform-origin: 50% 96%; }
   .hand-float .hcard:hover { transform: translateY(-26px) scale(1.14); z-index: 50 !important; }
   .hand-float .hc-name { font-size: 12px; }
   .hand-float .hc-type { font-size: 8.5px; }
   .hand-float .hc-stats { font-size: 10px; }
   /* Keep the hand full-size even on the opponent's turn (no tiny collapsed peek —
      there's room in flow). */
-  .hand-float .hand.collapsed .hcard { height: 106px; margin: 0 -22px; }
-  .hand-float .hand.collapsed .hand-fan { padding-top: 30px; }
+  .hand-float .hand.collapsed .hcard { height: 82px; margin: 0 -14px; }
+  /* 30px -> 2px. That padding was headroom for the hover pop, which made the
+     fan 136px tall inside a 90px peek: the cards were clipped and their lower
+     halves — the part you tap — fell under the action bar. A peek has to be
+     the height of a card, not a card plus room to grow. */
+  .hand-float .hand.collapsed .hand-fan { padding-top: 2px; }
   .hand-float .hand.collapsed .hc-sigil { display: grid; }
 
   /* Placement-confirm bar sits just above the bottom bar, full width */

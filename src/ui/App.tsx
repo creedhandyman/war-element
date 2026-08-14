@@ -73,6 +73,33 @@ function newSeed(): number {
   return (Math.random() * 0x7fffffff) | 0;
 }
 
+/** The portrait-phone tier, mirroring the CSS query EXACTLY.
+ *
+ *  Needed because the Battle Log is two different things on the two tiers: a
+ *  full scrollable rail on desktop, and a one-line strip that opens that rail
+ *  on tap on a phone. Only the strip should be a button — announcing a
+ *  scrollable panel as a button to a screen reader on desktop is a lie, and
+ *  putting a click handler on it there would swallow text selection.
+ *
+ *  Subscribed, not read once: the app is one page and a rotation has to move
+ *  the affordance with the layout. (App's own `logCollapsed` initializer reads
+ *  matchMedia without a listener, which is why THAT one goes stale on rotate.) */
+const PORTRAIT_QUERY = "(max-width: 760px) and (min-height: 541px)";
+function usePortraitPhone(): boolean {
+  const [on, setOn] = useState(
+    () => typeof window !== "undefined" && (window.matchMedia?.(PORTRAIT_QUERY).matches ?? false),
+  );
+  useEffect(() => {
+    const mq = window.matchMedia?.(PORTRAIT_QUERY);
+    if (!mq) return;
+    const sync = () => setOn(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return on;
+}
+
 /** Turn-taking noise ("P1 passes.", "Battle! Queue: 4 card(s).") that floods the
  *  rail and buries the events players actually care about. Matched lines are
  *  dimmed; everything else (summons, kills, damage, statuses) reads as an event. */
@@ -115,6 +142,11 @@ export function App() {
   const [logCollapsed, setLogCollapsed] = useState(
     () => typeof window !== "undefined" && (window.matchMedia?.("(max-height: 540px)").matches ?? false),
   );
+
+  // The log is a tap-to-open STRIP only on the portrait tier; everywhere else it
+  // is already the full rail and must stay a plain scrollable panel.
+  const portrait = usePortraitPhone();
+  const logIsStrip = portrait && mobilePanel !== "log";
   // Card inspector: clicking a played card opens a read-only detail panel.
   const [detailId, setDetailId] = useState<string | null>(null);
   // Spell cast animation: when I cast, we hold the intent, flash the spell art
@@ -1289,7 +1321,25 @@ export function App() {
       </button>
       <PhaseRibbon game={game} />
 
-      <div className={`rail log-rail${logCollapsed ? " collapsed" : ""}${mobilePanel === "log" ? " mobile-open" : ""}`}>
+      {/* On a phone this is a ONE-LINE strip under the board, and tapping it
+          raises the full rail — which is why the whole thing is a tap target
+          rather than the edge tab it replaces. Guarded on the drawer being
+          shut so a tap inside the open rail (selecting text, hitting ✕)
+          cannot re-open it. On desktop the rail is always full height and the
+          handler is inert: .mobile-open only means anything inside the
+          portrait query. */}
+      <div
+        className={`rail log-rail${logCollapsed ? " collapsed" : ""}${mobilePanel === "log" ? " mobile-open" : ""}`}
+        role={logIsStrip ? "button" : undefined}
+        tabIndex={logIsStrip ? 0 : undefined}
+        aria-label={logIsStrip ? "Battle log — open the full rail" : undefined}
+        onClick={logIsStrip ? () => setMobilePanel("log") : undefined}
+        onKeyDown={
+          logIsStrip
+            ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMobilePanel("log"); } }
+            : undefined
+        }
+      >
         <button
           className="rail-collapse"
           onClick={() => setLogCollapsed((v) => !v)}
