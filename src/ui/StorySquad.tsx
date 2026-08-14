@@ -15,15 +15,20 @@
  *  whole collection fights and there is nothing to choose; the strip says so
  *  rather than showing an editor that cannot change anything.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { CardClass, Element } from "../engine";
 import { getDef } from "../data/cards";
 import {
   autoSquad, localCards, packSquad, packableFor, squadCapInRegion, squadFor,
   type StoryRegion, type StorySave,
 } from "../data/story";
-import { EL_COLOR } from "./shared";
+import { EL_COLOR, EL_ICON } from "./shared";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3, common: 4 };
+/** Filter order, fixed rather than derived, so the chips do not reshuffle
+ *  between regions as the packable pool changes. */
+const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
+const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
 
 export function StorySquad(props: {
   save: StorySave;
@@ -41,6 +46,23 @@ export function StorySquad(props: {
   const chosen = save.squads?.[region.id] ? squadFor(save, region) : null;
   const carried = chosen ?? autoSquad(save, region);
   const [draft, setDraft] = useState<string[]>(carried);
+  /** Picker filters. The pool here is EVERYTHING you own that is not local, so
+   *  in a late-game region it is most of the collection in one flat grid — and
+   *  the question it has to answer is a narrow one. This file's own opening
+   *  paragraph names it: you are trying not to leave your only healer behind.
+   *  That is a CLASS question, so class is a filter, and element is the other
+   *  axis because a squad is what you carry from somewhere specific.
+   *  `carriedOnly` is the companion to both: filter to Tanks, pick one, filter
+   *  to Support, and your Tank is now off screen with no way back to it short
+   *  of clearing the filter. */
+  const [fEl, setFEl] = useState<string>("ALL");
+  const [fCls, setFCls] = useState<CardClass | "ALL">("ALL");
+  const [carriedOnly, setCarriedOnly] = useState(false);
+  const clearFilters = () => { setFEl("ALL"); setFCls("ALL"); setCarriedOnly(false); };
+  /** Carrying is a SCOPE, not a third axis. ANDed with the others its own label
+   *  stops being true — "Carrying 14" showing two cards because Support was
+   *  still on — so picking it clears them and picking one of them clears it. */
+  const showCarried = () => { setFEl("ALL"); setFCls("ALL"); setCarriedOnly(true); };
 
   // HOME: everything fights, nothing to pack.
   if (limit === null) {
@@ -72,6 +94,26 @@ export function StorySquad(props: {
       getDef(b).cost - getDef(a).cost,
   );
 
+  /** Only the chips this pool can actually fill. The collection screen shows all
+   *  eight elements because its job is to show you what you are MISSING; this
+   *  one is picking from what you hold, so a chip that filters to nothing is a
+   *  dead tap. The region's own element is never here at all — local cards ride
+   *  free and are not packable. */
+  const have = useMemo(() => {
+    const els = new Set(packable.map((id) => getDef(id).element));
+    const cls = new Set(packable.map((id) => getDef(id).cardClass));
+    return {
+      els: ELEMENTS.filter((e) => els.has(e)),
+      cls: CLASSES.filter((c) => cls.has(c)),
+    };
+  }, [packable]);
+  const filtering = fEl !== "ALL" || fCls !== "ALL" || carriedOnly;
+  const shown = byRarity.filter((id) => {
+    if (carriedOnly && !draft.includes(id)) return false;
+    const d = getDef(id);
+    return (fEl === "ALL" || d.element === fEl) && (fCls === "ALL" || d.cardClass === fCls);
+  });
+
   return (
     <section className="squad-strip">
       <div className="sq-head">
@@ -83,7 +125,7 @@ export function StorySquad(props: {
         {packable.length > 0 && (
           <button
             className="sq-edit"
-            onClick={() => { setDraft(carried); setEditing((v) => !v); }}
+            onClick={() => { setDraft(carried); clearFilters(); setEditing((v) => !v); }}
             aria-expanded={editing}
           >
             {editing ? "Close" : chosen ? "Change" : "Choose"}
@@ -114,12 +156,68 @@ export function StorySquad(props: {
           <div className="sq-pick-head">
             Carrying <b>{draft.length}</b>/{limit}
             <span className="sq-pick-acts">
-              <button className="ghost sm" onClick={() => setDraft(byRarity.slice(0, limit))}>Best</button>
+              {/* Fills from what is ON SCREEN. With no filter that is the whole
+                  pool and this behaves exactly as it always did; with Support
+                  selected it means "my best Supports", which is what somebody
+                  who just filtered to Support is asking for. Filling from
+                  behind the filter would be the surprising reading. */}
+              <button className="ghost sm" onClick={() => setDraft(shown.slice(0, limit))}>
+                {filtering ? "Best shown" : "Best"}
+              </button>
               <button className="ghost sm" disabled={!draft.length} onClick={() => setDraft([])}>Clear</button>
             </span>
           </div>
+
+          {/* Reuses the deck builder's filter chips, which already scroll
+              sideways with a faded right edge on a phone — this strip lives
+              under the map and cannot afford two wrapped rows of chips. */}
+          <div className="db-filters sq-filters">
+            <button className={`db-fl ${fEl === "ALL" && !carriedOnly ? "on" : ""}`}
+              onClick={() => { setFEl("ALL"); setCarriedOnly(false); }}>All</button>
+            {have.els.map((e) => (
+              <button
+                key={e}
+                className={`db-fl el-fl ${fEl === e ? "on" : ""}`}
+                onClick={() => { setFEl(fEl === e ? "ALL" : e); setCarriedOnly(false); }}
+                style={{
+                  borderColor: EL_COLOR[e as keyof typeof EL_COLOR],
+                  color: EL_COLOR[e as keyof typeof EL_COLOR],
+                  background: fEl === e
+                    ? `color-mix(in srgb, ${EL_COLOR[e as keyof typeof EL_COLOR]} 26%, transparent)`
+                    : undefined,
+                }}
+              >
+                <img className="el-fl-sig" src={EL_ICON[e as keyof typeof EL_ICON]} alt="" draggable={false}
+                  onError={(ev) => { ev.currentTarget.style.display = "none"; }} />
+                {e}
+              </button>
+            ))}
+            <button
+              className={`db-fl sq-fl-carried ${carriedOnly ? "on" : ""}`}
+              disabled={!draft.length}
+              onClick={() => (carriedOnly ? setCarriedOnly(false) : showCarried())}
+            >
+              Carrying {draft.length}
+            </button>
+          </div>
+          <div className="db-sort sq-filters">
+            <span className="db-sort-lbl">Class</span>
+            <button className={`db-fl ${fCls === "ALL" && !carriedOnly ? "on" : ""}`}
+              onClick={() => { setFCls("ALL"); setCarriedOnly(false); }}>All</button>
+            {have.cls.map((c) => (
+              <button key={c} className={`db-fl ${fCls === c ? "on" : ""}`}
+                onClick={() => { setFCls(fCls === c ? "ALL" : c); setCarriedOnly(false); }}>{c}</button>
+            ))}
+          </div>
+
+          {shown.length === 0 ? (
+            <p className="story-hint sq-empty">
+              {carriedOnly ? "Nothing carried yet." : "Nothing here matches that."}
+              {" "}<button className="sq-empty-reset" onClick={clearFilters}>Show everything</button>
+            </p>
+          ) : (
           <div className="sq-grid">
-            {byRarity.map((id) => {
+            {shown.map((id) => {
               const d = getDef(id);
               const on = draft.includes(id);
               return (
@@ -139,6 +237,7 @@ export function StorySquad(props: {
               );
             })}
           </div>
+          )}
           <button
             className="lockin sq-save"
             onClick={() => { props.onSave(packSquad(save, region, draft)); setEditing(false); }}

@@ -3502,6 +3502,30 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .sq-pick-head { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 12px; color: var(--ink-dim); }
 .sq-pick-head b { color: var(--ink); }
 .sq-pick-acts { margin-left: auto; display: flex; gap: 6px; }
+/* The picker's filter rows. They borrow `.db-filters` / `.db-sort` wholesale,
+   including the phone treatment that scrolls them sideways under a faded right
+   edge — this strip sits under the map and has no room for chips that wrap. */
+.sq-filters { margin-top: 8px; }
+/* A scoped fade, because the deck builder's only applies inside its own tier
+   query and this strip needs it at every width: eight element chips plus a
+   Carrying chip overflow 390px on any screen. */
+.sq-filters {
+  flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px;
+  mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+}
+.sq-filters::-webkit-scrollbar { display: none; }
+.sq-filters .db-fl { flex: none; }
+/* Reads as the draft, not as another element — gold, like every other "yours"
+   in the app, and disabled until there is a draft to look at. */
+.sq-fl-carried.on { border-color: var(--gold-line); color: var(--gold-hi); background: rgba(201, 162, 75, 0.16); }
+.sq-fl-carried:disabled { opacity: 0.4; cursor: not-allowed; }
+.sq-empty { margin: 12px 2px; }
+.sq-empty-reset {
+  padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; color: var(--gold-lit); text-decoration: underline;
+}
 .sq-grid {
   display: grid; gap: 7px; margin-top: 9px; max-height: 232px; overflow-y: auto;
   grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
