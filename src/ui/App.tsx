@@ -38,6 +38,9 @@ import {
   SPELLS,
   spellbookFor} from "../engine";
 import { spellCapForBoard } from "../engine/spells";
+import {
+  RUN_REWARD, ladderProgress, nextSeat, runComplete, runOver, settleArena, startRun,
+} from "../data/gauntlet";
 import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online";
 import { Board } from "./Board";
 import { CardView } from "./CardView";
@@ -279,6 +282,10 @@ export function App() {
   // effect below re-points these if the player switches battlefield.
   const [p1DeckId, setP1DeckId] = useState(premadeDecksFor(4)[0].id);
   const [p2DeckId, setP2DeckId] = useState(premadeDecksFor(4)[1].id);
+  const gauntletRun = story.gauntlet?.run;
+  /** The Gauntlet's current seat, when a run is live. While it is, the AI's
+   *  deck is not the player's to set — that is the whole point of a run. */
+  const gauntletSeat = gauntletRun && !runOver(gauntletRun) ? nextSeat(gauntletRun, boardSize) : null;
   /** Which seat the deck sheet is filling, or null when it is shut. */
   const [pickSeat, setPickSeat] = useState<"p1" | "p2" | null>(null);
   // Premade builds sized for the CHOSEN battlefield — a 30-card large build must
@@ -354,21 +361,30 @@ export function App() {
     });
     navDo({ t: "result", result: { node: storyNode, won: result.won, captured } });
   }, [started, storyNode, game, storyResult, story]);
-  // An Arena win pays shards too, once per match. Without this the Arena is a
-  // sandbox with no thread to progression, and "buy enough booster packs" has
-  // only one place to earn from.
-  const paidForMatch = useRef<GameState | null>(null);
+  // An Arena match settles up here: shards for the win, and the Gauntlet run
+  // advances or ends.
+  //
+  // The win no longer pays against a deck you BUILT. Eighteen of your worst
+  // cards in the opponent's seat was two shards a match for as long as you
+  // cared to click, which made the honest path the slow one. A premade is an
+  // opponent somebody else chose; your own deck is a mirror you can rig.
+  //
+  // A LOSS is recorded, not just a win — and before anything else — because a
+  // run you can close the tab on is a run you cannot lose.
+  const settledMatch = useRef<GameState | null>(null);
   useEffect(() => {
     if (!started || storyNode) return;                 // story pays on its own path
-    if (game.phase !== "gameover" || game.win?.winner !== "P1") return;
-    if (paidForMatch.current === game) return;         // one payout per match
-    paidForMatch.current = game;
+    if (game.phase !== "gameover") return;
+    if (settledMatch.current === game) return;         // one settlement per match
+    settledMatch.current = game;
+    const won = game.win?.winner === "P1";
+    const againstPremade = PREMADE_DECKS.some((d) => d.id === p2DeckId);
     setStory((prev) => {
-      const next = awardShards(prev, "arena");
-      saveStory(next);
+      const next = settleArena(prev, { won, againstPremade }, (sv) => awardShards(sv, "arena"));
+      if (next !== prev) saveStory(next);
       return next;
     });
-  }, [started, storyNode, game]);
+  }, [started, storyNode, game, p2DeckId]);
 
   useEffect(() => {
     if (me) setViewSide(me);
@@ -2253,7 +2269,7 @@ export function App() {
                 The rung shows as active only while the seat is actually on a
                 deck from it, so choosing a deck by hand leaves the control
                 honest instead of claiming a difficulty it did not set. */}
-            {!onlineMode && (
+            {!onlineMode && !gauntletRun && (
               <div className="ar-field">
                 <span className="ar-flabel">OPPONENT</span>
                 <div className="seg">
@@ -2270,6 +2286,80 @@ export function App() {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* THE GAUNTLET. Four opponents from one rung, dealt rather than
+                chosen, and a single loss ends it. This is the earn path: a win
+                against a deck you built yourself pays nothing, because
+                eighteen of your worst cards in the other seat was two shards a
+                match for as long as you cared to click. */}
+            {!onlineMode && !twoPlayer && (
+              <div className="ar-gauntlet">
+                {!gauntletRun ? (
+                  <>
+                    <div className="gt-head">
+                      <span className="ar-flabel">GAUNTLET</span>
+                      <span className="gt-sub">Four dealt opponents. One loss ends the run.</span>
+                    </div>
+                    <div className="seg">
+                      {ladderProgress(story.gauntlet).map(({ tier, cleared }) => (
+                        <button
+                          key={tier}
+                          onClick={() => {
+                            const run = startRun(tier, boardSize);
+                            const next = { ...story, gauntlet: { ...(story.gauntlet ?? {}), run } };
+                            setStory(next); saveStory(next);
+                            const first = nextSeat(run, boardSize);
+                            if (first) setP2DeckId(first.id);
+                          }}
+                        >
+                          {tier === "easy" ? "Easy" : tier === "mid" ? "Even" : "Hard"}
+                          <em className="gt-pay">+{RUN_REWARD[tier]}</em>
+                          {cleared && <i className="gt-done" title="Cleared before">✓</i>}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="gt-head">
+                      <span className="ar-flabel">
+                        GAUNTLET · {gauntletRun.tier === "mid" ? "EVEN" : gauntletRun.tier.toUpperCase()}
+                      </span>
+                      <span className="gt-sub">
+                        {runComplete(gauntletRun)
+                          ? `Run cleared — +${RUN_REWARD[gauntletRun.tier]} shards banked.`
+                          : gauntletRun.lost
+                            ? `Beaten on seat ${gauntletRun.won + 1}. The run is over.`
+                            : `Seat ${gauntletRun.won + 1} of ${gauntletRun.seats.length} · ${deckLabel(p2DeckId)}`}
+                      </span>
+                    </div>
+                    {/* One pip per seat: what you have banked and what is left,
+                        without a sentence. */}
+                    <div className="gt-pips">
+                      {gauntletRun.seats.map((id, i) => (
+                        <i
+                          key={id}
+                          className={
+                            i < gauntletRun.won ? "won"
+                              : gauntletRun.lost && i === gauntletRun.won ? "lost"
+                                : i === gauntletRun.won ? "now" : ""
+                          }
+                        />
+                      ))}
+                    </div>
+                    <button
+                      className="ghost sm gt-quit"
+                      onClick={() => {
+                        const next = { ...story, gauntlet: { ...(story.gauntlet ?? {}), run: undefined } };
+                        setStory(next); saveStory(next);
+                      }}
+                    >
+                      {runOver(gauntletRun) ? "Done" : "Give up the run"}
+                    </button>
+                  </>
+                )}
               </div>
             )}
 
@@ -2342,10 +2432,12 @@ export function App() {
               ) : (
                 <DeckSeat
                   side="foe"
-                  flag={twoPlayer ? "P2 · SECOND PLAYER" : "AI · P2"}
+                  flag={gauntletSeat ? `GAUNTLET · SEAT ${(gauntletRun?.won ?? 0) + 1}` : twoPlayer ? "P2 · SECOND PLAYER" : "AI · P2"}
                   label={deckLabel(p2DeckId)}
                   cards={resolveDeckCards(p2DeckId)}
-                  onChange={() => setPickSeat("p2")}
+                  /* Dealt, not chosen: opening the sheet here would be the
+                     re-roll the run exists to prevent. */
+                  onChange={gauntletSeat ? undefined : () => setPickSeat("p2")}
                 />
               )}
             </div>

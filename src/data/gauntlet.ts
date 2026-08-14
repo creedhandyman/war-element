@@ -1,0 +1,133 @@
+/** The Gauntlet — earning against the AI without the AI being free money.
+ *
+ *  The Arena already paid shards for a win, and that was farmable in about ten
+ *  seconds: put a deck of the eighteen worst cards you own in the opponent's
+ *  seat, beat it, repeat. The fix is not a bigger number — it is making the
+ *  opponent something you do not choose.
+ *
+ *  A RUN is four opponents from one rung of the matchmaker ladder, dealt in an
+ *  order fixed when the run starts. Beat all four and it pays. Lose one and the
+ *  run is over, recorded the moment it happens.
+ *
+ *  What that buys, and what it does not:
+ *
+ *    You cannot cherry-pick. The run deals the seats, so the softest deck on
+ *    the rung is one of four rather than all four.
+ *    You cannot re-roll. The sequence is stored, so quitting and coming back
+ *    resumes the same run rather than dealing a kinder one.
+ *    You cannot un-lose. The loss is written before the result screen, so
+ *    closing the tab on a bad game does not rewind it.
+ *    Surrender is a loss, because otherwise it is a re-roll button.
+ *
+ *  What it is NOT is tamper-proof. This is a local save in a browser; anyone
+ *  who wants to edit `we_story_v1` can give themselves shards and no amount of
+ *  client code changes that. The goal is narrower and worth stating plainly:
+ *  the honest path should not be the slow one. Farming a hand-built punching
+ *  bag now pays nothing, and the fastest legitimate way to earn is to beat
+ *  four decks you did not pick.
+ */
+import { DECK_TIERS, decksForTier, type DeckTier, type PremadeDeck } from "./custom-decks";
+import type { StorySave } from "./story";
+
+/** Opponents in a run. Four is the whole rung — you face every deck on it. */
+export const RUN_LENGTH = 4;
+
+/** Paid once, on completing a run. On top of the per-win shards the Arena
+ *  already gives, so a finished hard run is roughly a booster pack (30 + 4x2
+ *  against a 40-shard pack) and a finished easy run is about half of one.
+ *  Deliberately steep between rungs: the point of a ladder is that the top of
+ *  it is worth climbing to. */
+export const RUN_REWARD: Record<DeckTier, number> = { easy: 10, mid: 18, hard: 30 };
+
+export interface GauntletRun {
+  tier: DeckTier;
+  /** The dealt order, by deck id. Fixed at the start so the run cannot be
+   *  re-rolled by leaving and coming back. */
+  seats: string[];
+  /** How many of `seats` have been beaten. */
+  won: number;
+  /** Set when a seat is lost. A finished run stays in the save so the screen
+   *  can say what happened rather than silently resetting. */
+  lost?: boolean;
+}
+
+export interface GauntletState {
+  /** The run in progress, or the one that just ended. */
+  run?: GauntletRun;
+  /** Rungs cleared at least once, for the badge on the ladder. */
+  cleared?: DeckTier[];
+}
+
+/** Deal a run. `rand` is injectable so tests are not at the mercy of a shuffle. */
+export function startRun(tier: DeckTier, boardSize: number, rand: () => number = Math.random): GauntletRun {
+  const pool = decksForTier(tier, boardSize);
+  const seats = [...pool];
+  for (let i = seats.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [seats[i], seats[j]] = [seats[j], seats[i]];
+  }
+  return { tier, seats: seats.slice(0, RUN_LENGTH).map((d) => d.id), won: 0 };
+}
+
+export const runOver = (run?: GauntletRun): boolean =>
+  !!run && (!!run.lost || run.won >= run.seats.length);
+
+export const runComplete = (run?: GauntletRun): boolean =>
+  !!run && !run.lost && run.won >= run.seats.length;
+
+/** The deck in the next seat, or null when the run is over. */
+export function nextSeat(run: GauntletRun | undefined, boardSize: number): PremadeDeck | null {
+  if (!run || runOver(run)) return null;
+  const id = run.seats[run.won];
+  return decksForTier(run.tier, boardSize).find((d) => d.id === id) ?? null;
+}
+
+/** Record a result. Returns the run unchanged once it is over, so a stray
+ *  second call — a re-render, a replayed effect — cannot advance it twice. */
+export function recordResult(run: GauntletRun, won: boolean): GauntletRun {
+  if (runOver(run)) return run;
+  return won ? { ...run, won: run.won + 1 } : { ...run, lost: true };
+}
+
+/** Shards owed for a run, and zero unless it was actually completed. */
+export const rewardFor = (run?: GauntletRun): number =>
+  runComplete(run) ? RUN_REWARD[run!.tier] : 0;
+
+/** Rungs in ladder order with whether each has ever been cleared. */
+export const ladderProgress = (g: GauntletState | undefined) =>
+  DECK_TIERS.map((tier) => ({ tier, cleared: (g?.cleared ?? []).includes(tier) }));
+
+/** Settle an Arena match against the save: shards for the win, and the run
+ *  advanced or ended.
+ *
+ *  Pure, and separate from the effect that calls it, because this is the money
+ *  path — "did a win actually pay, and did it pay once" is not a question to
+ *  answer by playing four matches in a browser.
+ *
+ *  `againstPremade` is the anti-farm rule. A win over a deck you BUILT pays
+ *  nothing: eighteen of your worst cards in the opponent's seat was two shards
+ *  a match for as long as you cared to click, and that made the honest path the
+ *  slow one. A premade is an opponent somebody else chose. */
+export function settleArena(
+  save: StorySave,
+  opts: { won: boolean; againstPremade: boolean },
+  award: (s: StorySave) => StorySave,
+): StorySave {
+  let next = opts.won && opts.againstPremade ? award(save) : save;
+  const run = save.gauntlet?.run;
+  if (run && !runOver(run)) {
+    const after = recordResult(run, opts.won);
+    const reward = rewardFor(after);
+    const cleared = runComplete(after)
+      ? [...new Set([...(save.gauntlet?.cleared ?? []), after.tier])]
+      : (save.gauntlet?.cleared ?? []);
+    next = {
+      ...next,
+      gauntlet: { run: after, cleared },
+      hero: reward && next.hero
+        ? { ...next.hero, shards: next.hero.shards + reward }
+        : next.hero,
+    };
+  }
+  return next;
+}

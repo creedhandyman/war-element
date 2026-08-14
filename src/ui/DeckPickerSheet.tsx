@@ -68,11 +68,17 @@ export function DeckSeat(props: {
   flag: string;
   label: string;
   cards: readonly string[];
-  onChange: () => void;
+  /** Absent = this seat is not the player's to change (a Gauntlet run deals
+   *  it). The card renders as a plain panel rather than a dead button. */
+  onChange?: () => void;
 }) {
   const art = deckArtUrl(props.cards);
   return (
-    <button className={`ar-seat ${props.side}`} onClick={props.onChange}>
+    <button
+      className={`ar-seat ${props.side} ${props.onChange ? "" : "locked"}`}
+      onClick={props.onChange}
+      disabled={!props.onChange}
+    >
       {art && (
         <span className="ar-seat-art" style={{ backgroundImage: `url(${art})` }} aria-hidden="true" />
       )}
@@ -83,7 +89,7 @@ export function DeckSeat(props: {
       <span className="ar-deckname">{props.label}</span>
       <span className="ar-seat-foot">
         <ElChips cards={props.cards} max={4} />
-        <span className="ar-change">change</span>
+        {props.onChange && <span className="ar-change">change</span>}
       </span>
     </button>
   );
