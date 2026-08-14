@@ -39,6 +39,21 @@ const ODDS_ROWS = (["rare", "epic", "legendary", "mythic"] as const).map((r) => 
   refund: Math.max(1, Math.floor((CRAFT_COST[r] ?? 4) / 2)),
 }));
 
+/** The essence mark on a price: the element's own painted sigil, the same one
+ *  the purses and every card of that element wear. Falls back to the generic
+ *  gold coin only if the art fails to load, so a price never loses its unit. */
+function ElCoin({ el }: { el: string }) {
+  const [ok, setOk] = useState(true);
+  if (!ok) return <i className="coin" />;
+  return (
+    <img
+      className="craft-coin" src={EL_ICON[el as keyof typeof EL_ICON]}
+      alt={`${el} essence`} title={`${el} essence`} draggable={false}
+      onError={() => setOk(false)}
+    />
+  );
+}
+
 export function Shop(props: {
   save: StorySave;
   onSave: (next: StorySave) => void;
@@ -248,14 +263,21 @@ export function Shop(props: {
                     {/* Only affordable rows get the gold button, so the screen
                         has as many primary actions as you have cards you can
                         actually buy. */}
+                    {/* The price wears its OWN element's mark, not the gold
+                        coin. Essence is eight currencies, not one — LEAF buys
+                        nothing PYRO, which is the whole reason the purses above
+                        are separate — and a single gold coin on every row said
+                        the opposite of that on the one screen where it matters.
+                        Same sigil the purse above wears, so "12 LEAF" up there
+                        and this price are visibly the same money. */}
                     {check.ok ? (
                       <button className="craft-buy" onClick={() => props.onSave(craftCard(save, c.id))}
                         title={`Conjure for ${cost} ${c.element} essence`}>
-                        Conjure<span>{cost}<i className="coin" /></span>
+                        Conjure<span>{cost}<ElCoin el={c.element} /></span>
                       </button>
                     ) : (
                       <span className="craft-cost" title={check.reason}>
-                        {have}/{cost}<i className="coin" />
+                        {have}/{cost}<ElCoin el={c.element} />
                       </span>
                     )}
                   </div>

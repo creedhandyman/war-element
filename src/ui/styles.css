@@ -4184,6 +4184,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   flex: none; display: inline-flex; align-items: center; gap: 3px;
   font-size: var(--fs-2); font-weight: 700; color: var(--ink-faint); font-variant-numeric: tabular-nums;
 }
+/* The element sigil as the price's unit mark. `contain`, because these are
+   painted marks of different silhouettes and `cover` would crop each one
+   differently. A touch bigger than the 8px coin it replaced — a sigil has to be
+   told apart from seven others, where a coin only had to be seen. */
+.craft-coin { width: 13px; height: 13px; flex: none; object-fit: contain; display: block; }
+/* On the gold Conjure button the mark sits on a bright field, so it gets a
+   shadow rather than the glow it wears everywhere else. */
+.craft-buy .craft-coin { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)); }
+.craft-cost .craft-coin { opacity: 0.75; }
 
 /* ── the reveal sheet ─────────────────────────────────────────────────────── */
 .pack-reveal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
