@@ -1720,6 +1720,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .dp-title p { margin: 3px 0 0; font-size: 11px; line-height: 1.4; color: var(--ink-faint); }
 .dp-group { padding: 0 14px; font-family: var(--head); font-size: 10px; font-weight: 700; letter-spacing: .1em; color: var(--ink-faint); }
 .dp-list { padding: 8px 14px 14px; display: flex; flex-direction: column; gap: 7px; }
+/* The premade section header is a disclosure, so it has to look pressable
+   while staying the same quiet label as YOURS above it. */
+.dp-fold {
+  display: flex; align-items: center; gap: 7px; width: 100%; cursor: pointer;
+  background: none; border: 0; text-align: left; padding: 10px 14px 2px;
+  font-family: var(--head); font-size: 10px; font-weight: 700; letter-spacing: .1em;
+  color: var(--ink-faint);
+}
+.dp-fold em { font-style: normal; opacity: .7; }
+.dp-fold i { margin-left: auto; font-style: normal; font-size: 12px; }
+.dp-fold:hover, .dp-fold.on { color: var(--gold-lit); }
 .dp-row {
   display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; cursor: pointer;
   padding: 8px 10px; border-radius: 11px;

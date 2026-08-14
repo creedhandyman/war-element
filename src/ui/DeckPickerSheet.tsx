@@ -10,6 +10,7 @@
  *  subhead states the format, so a deck that is missing from the list explains
  *  itself rather than just not being there.
  */
+import { useState } from "react";
 import { getDef } from "../data/cards";
 import { deckLimits, type CustomDeck, type PremadeDeck } from "../data/custom-decks";
 import { EL_COLOR } from "./shared";
@@ -108,6 +109,15 @@ export function DeckPickerSheet(props: {
   onBuild: () => void;
 }) {
   const size = deckLimits(props.boardSize).target;
+  /** The premades are folded away, always. There are eighteen of them now — six
+   *  originals plus the twelve-deck ladder — and the Arena fills seats FOR you
+   *  through the matchmaker and the Gauntlet, so the long list is mostly scroll
+   *  between you and the deck you actually built.
+   *
+   *  Collapsed even with no custom decks, which is safe because it strands
+   *  nobody: both seats are already pre-filled with premades, so a player who
+   *  never opens this sheet still has a match to start. */
+  const [showPremades, setShowPremades] = useState(false);
   const rows = (d: CustomDeck | PremadeDeck, custom: boolean) => {
     const art = deckArtUrl(d.cards);
     const on = d.id === props.value;
@@ -161,9 +171,7 @@ export function DeckPickerSheet(props: {
           </p>
         </div>
 
-        <div className="dp-group">PREMADE</div>
-        <div className="dp-list">{props.premades.map((d) => rows(d, false))}</div>
-
+        {/* Yours first: it is the shorter list and the one you meant. */}
         <div className="dp-group">YOURS</div>
         <div className="dp-list">
           {props.customs.map((d) => rows(d, true))}
@@ -171,6 +179,16 @@ export function DeckPickerSheet(props: {
             Build a new deck
           </button>
         </div>
+
+        <button
+          className={`dp-group dp-fold ${showPremades ? "on" : ""}`}
+          onClick={() => setShowPremades((v) => !v)}
+          aria-expanded={showPremades}
+        >
+          PREMADE <em>{props.premades.length}</em>
+          <i aria-hidden="true">{showPremades ? "⌃" : "⌄"}</i>
+        </button>
+        {showPremades && <div className="dp-list">{props.premades.map((d) => rows(d, false))}</div>}
       </div>
     </div>
   );
