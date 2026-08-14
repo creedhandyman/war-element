@@ -1675,6 +1675,34 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .ar-ghosts .ghost { flex: 1; height: 40px; }
 .ar-foot .net-status { margin-top: 9px; }
 
+/* ── the gauntlet ────────────────────────────────────────────────────────── */
+.ar-gauntlet {
+  flex: none; margin: 0 16px; padding: 10px 12px;
+  border-radius: 12px; border: 1px solid var(--gold-line);
+  background: linear-gradient(180deg, rgba(201, 162, 75, .08), rgba(10, 10, 17, .5));
+  display: flex; flex-direction: column; gap: 8px;
+}
+.gt-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.gt-sub { font-size: 11px; color: var(--ink-faint); line-height: 1.35; }
+.ar-gauntlet .seg button { flex-direction: column; gap: 1px; padding: 7px 4px; line-height: 1.2; }
+.gt-pay { font-style: normal; font-size: 10px; font-weight: 700; color: #bfe6ff; }
+.gt-done { font-style: normal; font-size: 9px; color: var(--legal); }
+/* One pip per seat. Banked, current and lost are three different states and a
+   count cannot show all three. */
+.gt-pips { display: flex; gap: 6px; }
+.gt-pips i {
+  flex: 1; height: 5px; border-radius: 999px; background: var(--void-2);
+  border: 1px solid var(--panel-line);
+}
+.gt-pips i.won { background: var(--legal); border-color: var(--legal); }
+.gt-pips i.now { border-color: var(--gold); box-shadow: 0 0 8px rgba(201, 162, 75, .5); }
+.gt-pips i.lost { background: var(--threat); border-color: var(--threat); }
+.gt-quit { align-self: flex-start; }
+/* A dealt seat is not a control. It keeps the card's look and loses the
+   affordance, rather than being a button that does nothing. */
+.ar-seat.locked { cursor: default; }
+.ar-seat.locked:hover { filter: none; }
+
 /* ── the deck sheet ──────────────────────────────────────────────────────── */
 .dp-scrim {
   position: fixed; inset: 0; z-index: var(--z-modal);
@@ -2536,7 +2564,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .queue-rail .rail-title, .queue-rail .queue-help { display: none; }
   /* Each entry takes an equal share of the width, so the strip is a fixed
      shape that does not reflow as cards die and the queue shortens. */
-  .queue-rail .queue-scale { flex-direction: row; gap: 3px; height: 26px; align-items: stretch; }
+  /* `display: flex` is the whole fix, and its absence is why the strip read as
+     missing. The base `.queue-scale` is a BLOCK with `overflow-y: auto`, and
+     this rule only ever set `flex-direction: row` — which does nothing to a
+     block. So the rows stayed a vertical stack, 15px each, inside a box
+     clamped to 26px: a 192px list showing through a one-row window. The
+     numbers were there, which is why it looked broken rather than absent.
+     `overflow-y` has to be turned off with it, or the flattened row keeps the
+     scrollbar the vertical list needed. */
+  .queue-rail .queue-scale {
+    display: flex; flex-direction: row; gap: 3px; height: 26px; align-items: stretch;
+    overflow-x: auto; overflow-y: hidden;
+  }
   .queue-rail .qrow {
     flex: 1 1 0; min-width: 0; padding: 0 2px; gap: 3px;
     flex-direction: row; align-items: center; justify-content: center; border-radius: var(--r-pip);
