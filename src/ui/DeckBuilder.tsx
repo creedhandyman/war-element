@@ -39,12 +39,17 @@ export interface StoryBuildMode {
   /** Card ids the player owns. The pool is filtered to these. */
   owned: string[];
   /** Named teams already saved in the campaign. */
-  teams: { id: string; name: string; element?: string; cards: string[] }[];
+  teams: { id: string; name: string; element?: string; cards: string[]; spells?: string[] }[];
+  /** Spell ids the hero has actually UNLOCKED. The Arena offers every spell of
+   *  a deck's elements; the campaign hands them out for walking a region, so
+   *  offering the rest here would be showing the player a book they cannot
+   *  carry. Empty = nothing unlocked yet, and the panel says so. */
+  spellPool: string[];
   /** The campaign's ceiling for the fight being prepared for. */
   cap: number;
   /** Tag applied to a team saved from here, so prep can float it to the top. */
   element?: string;
-  onSaveTeam: (name: string, cards: string[]) => void;
+  onSaveTeam: (name: string, cards: string[], spells: string[]) => void;
   onDeleteTeam: (id: string) => void;
 }
 
@@ -162,7 +167,7 @@ export function DeckBuilder(props: {
   function save() {
     if (!check.ok) return;
     if (story) {
-      story.onSaveTeam(name.trim() || `${story.element ?? "New"} team`, picked);
+      story.onSaveTeam(name.trim() || `${story.element ?? "New"} team`, picked, pickedSpells);
       reset();
       return;
     }
@@ -186,8 +191,13 @@ export function DeckBuilder(props: {
   // element the deck actually plays are offered (others would just fizzle in
   // play). Sorted by cost then name.
   const deckEls = new Set(picked.map((id) => getDef(id).element));
+  // In the campaign the offer is additionally gated on what the hero has
+  // unlocked — spells are earned by walking a region, and a book you cannot
+  // carry is not a choice.
+  const unlocked = story ? new Set(story.spellPool) : null;
   const deckSpells = SPELLS
     .filter((s) => deckEls.has(s.element))
+    .filter((s) => !unlocked || unlocked.has(s.id))
     .sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name));
 
   return (
@@ -317,14 +327,16 @@ export function DeckBuilder(props: {
                   Comp · {stats.avg.toFixed(1)}
                 </button>
               )}
-              {/* A story battle is dealt NO spellbook (App passes [] for both
-                  sides), so offering one here would be a promise the campaign
-                  does not keep. */}
-              {!story && (
-                <button className={`db-tool ${spellsShown ? "on" : ""}`} onClick={() => togglePanel("spells")}>
-                  Spells {pickedSpells.length}/{limits.spells}
-                </button>
-              )}
+              {/* Offered in the campaign too. It used to be Arena-only, with a
+                  comment saying a story battle is dealt no spellbook — true
+                  when it was written, and false since story fights started
+                  going in with `heroBookFor`. So the campaign HAS been casting
+                  spells; the player just had no say in which ones. The offer is
+                  gated on what the hero has unlocked (see `deckSpells`), and a
+                  team carries its book into the fight. */}
+              <button className={`db-tool ${spellsShown ? "on" : ""}`} onClick={() => togglePanel("spells")}>
+                Spells {pickedSpells.length}/{limits.spells}
+              </button>
               <button className={`db-tool ${savedShown ? "on" : ""}`} onClick={() => togglePanel("saved")}>
                 {story
                   ? `Teams${story.teams.length ? ` ${story.teams.length}` : ""}`
@@ -375,6 +387,8 @@ export function DeckBuilder(props: {
                 <div className="db-spell-hint">
                   {deckEls.size === 0
                     ? "Add cards to your deck to unlock its element spells."
+                    : story && deckSpells.length === 0
+                    ? "No spells unlocked for these elements yet — clear nodes in their regions to earn them."
                     : pickedSpells.length === 0
                     ? "None picked — auto-filled from your deck's elements at match start."
                     : "Tap a spell to add or remove it."}
@@ -414,13 +428,17 @@ export function DeckBuilder(props: {
                 <div className="db-empty">None yet — build one →</div>
               )}
               {(story
-                ? story.teams.map((t) => ({ id: t.id, name: t.name, cards: t.cards, spells: undefined, tag: t.element }))
+                ? story.teams.map((t) => ({ id: t.id, name: t.name, cards: t.cards, spells: t.spells, tag: t.element }))
                 : decks.map((d) => ({ id: d.id, name: d.name, cards: d.cards, spells: d.spells, tag: undefined }))
               ).map((d) => (
                 <div key={d.id} className={`db-saved-row ${editingId === d.id ? "on" : ""}`}>
                   <button
                     className="db-load"
-                    onClick={() => { setEditingId(d.id); setName(d.name); setPicked(d.cards.slice()); if (!story) setPickedSpells((d.spells ?? []).slice()); }}
+                    // Load the book with the team. It used to be skipped in
+                    // story mode because a team had no book to load; now it has
+                    // one, and loading a team to re-tune it must not silently
+                    // drop the spells it was saved with.
+                    onClick={() => { setEditingId(d.id); setName(d.name); setPicked(d.cards.slice()); setPickedSpells((d.spells ?? []).slice()); }}
                     title={story ? "Load this team" : "Edit this deck"}
                   >
                     <b>{d.name}</b>

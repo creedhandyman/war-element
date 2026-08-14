@@ -36,8 +36,8 @@ import {
   boardCards,
   isCaptured,
   SPELLS,
-  spellbookFor,
-} from "../engine";
+  spellbookFor} from "../engine";
+import { spellCapForBoard } from "../engine/spells";
 import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online";
 import { Board } from "./Board";
 import { CardView } from "./CardView";
@@ -73,7 +73,7 @@ import { Shop } from "./Shop";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
   loadStory, isFirstBattle, awardShards, heroBookFor, poolForRegion, recruitablePool,
-  regionOfNode, rollRecruits, saveStory, type StorySave,
+  regionOfNode, rollRecruits, saveStory, type StorySave, heroSpellShelf,
 } from "../data/story";
 
 function newSeed(): number {
@@ -2138,7 +2138,7 @@ export function App() {
           onSave={(next) => { setStory(next); saveStory(next); }}
           onEditDeck={() => navDo({ t: "builder", open: true })}
           onCancel={() => navDo({ t: "prep", node: null })}
-          onFight={(deck) => {
+          onFight={(deck, book) => {
             const node = prepNode;
             // The node's own region decides the board and the Blight, not
             // whichever map happens to be on screen.
@@ -2166,7 +2166,9 @@ export function App() {
             // The hero carries what they have unlocked, trimmed to the board's
             // cap; the enemy gets its region's own book so the fight is not
             // one-sided.
-            const heroBook = heroBookFor(story, board);
+            // The team's own book if it saved one, else the hero's shelf —
+            // `bookForLoadout` owns that fallback and the board-cap trim.
+            const heroBook = book.length ? book.slice(0, spellCapForBoard(board)) : heroBookFor(story, board);
             const foeBook = spellbookFor(squad).map((sl) => sl.defId);
             setGame(createInitialState(newSeed(), deck, squad, ["P1"], heroBook, foeBook, board,
               deploy, terrain));
@@ -2452,12 +2454,13 @@ export function App() {
           teams: story.loadouts ?? [],
           cap: storyBuilderCap,
           element: region.element,
-          onSaveTeam: (name, cards) => {
+          spellPool: heroSpellShelf(story),
+          onSaveTeam: (name, cards, spells) => {
             const rest = (story.loadouts ?? []).filter((l) => l.name.toLowerCase() !== name.toLowerCase());
             const id = `${name.toLowerCase().replace(/\s+/g, "-")}-${rest.length}`;
             const next = {
               ...story,
-              loadouts: [...rest, { id, name, element: region.element, cards }],
+              loadouts: [...rest, { id, name, element: region.element, cards, spells: spells.length ? spells : undefined }],
               deck: cards,
               // The team you just built is the one you meant to take.
               lastTeamId: id,

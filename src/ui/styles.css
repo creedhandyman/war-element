@@ -3139,6 +3139,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .npr-rar.r-legendary { color: var(--gold); } .npr-rar.r-mythic { color: #ff7a91; }
 .npr-cost { color: var(--ink-faint); font-size: 11.5px; }
 .npr-drop { margin-left: auto; color: var(--ink-dim); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+/* Prep's spellbook readout: says when the book was picked FOR you, and when
+   the campaign has not handed one over yet. */
+.sp-auto { color: var(--ink-faint); font-weight: 400; text-transform: none; letter-spacing: 0; }
+.sp-none { font-size: 11.5px; color: var(--ink-faint); }
+.sp-foe .gem {
+  display: inline-block; width: 8px; height: 8px; margin-left: 3px; border-radius: 2px;
+  transform: rotate(45deg); background: var(--accent);
+}
 .np-fight { width: 100%; margin-top: 14px; }
 
 @media (max-width: 900px) {

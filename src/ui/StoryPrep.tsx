@@ -12,11 +12,12 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { getDef } from "../data/cards";
+import { getSpell, spellCapForBoard } from "../engine/spells";
 import {
   boardForNode, deckCapFor, deckForRegion, fightCap, isGate, loadoutLegal, loadoutsFor, localCards,
   packSquad, packableFor, poolForRegion, preferredLoadout, recruitablePool, rememberDeck,
   squadCapInRegion, squadFor, squadIsExplicit, squadIsOfferable,
-  type Loadout, type StoryNode, type StoryRegion, type StorySave, STANDARD_CAP,
+  type Loadout, type StoryNode, type StoryRegion, type StorySave, STANDARD_CAP, bookForLoadout,
 } from "../data/story";
 import { CardView } from "./CardView";
 
@@ -30,7 +31,7 @@ export function StoryPrep(props: {
   onSave: (next: StorySave) => void;
   onEditDeck: () => void;
   onCancel: () => void;
-  onFight: (deck: string[]) => void;
+  onFight: (deck: string[], book: string[]) => void;
 }) {
   const { region, node, save } = props;
   // The fight's cap, not the campaign's: a set piece opens up to 28 once the
@@ -84,6 +85,11 @@ export function StoryPrep(props: {
         : owned(save.deck),
     ),
   );
+  /** The spellbook this fight goes in with. Seeded from the team the prep
+   *  screen opened on, empty when that team has none — and empty means "use
+   *  the hero's shelf", the behaviour every campaign fight had before teams
+   *  could carry a book at all. */
+  const [book, setBook] = useState<string[]>(preferred?.spells ?? []);
   /** Cards ticked in the packing step, before it is committed. */
   const [packing, setPacking] = useState<string[]>(() => squadFor(save, region));
   /** Has the player asked to change the squad? Nothing opens this but a tap. */
@@ -116,6 +122,10 @@ export function StoryPrep(props: {
   const [draftName, setDraftName] = useState("");
 
   const legal = loadoutLegal(deck, cap);
+  /** What this fight will actually cast — the team's book or the shelf, trimmed
+   *  to the board. The same call the fight makes, so the readout cannot drift
+   *  from the thing it describes. */
+  const fightBook = bookForLoadout(save, { id: "", name: "", cards: deck, spells: book }, boardForNode(region, node));
   const teams = loadoutsFor(save, region.element);
   const enemy = [...new Set([...recruitablePool(node), ...node.adds])]
     .map(getDef)
@@ -123,6 +133,9 @@ export function StoryPrep(props: {
 
   const applyTeam = (t: Loadout) => {
     setDeck(owned(t.cards));
+    // A team's book travels with it. Absent = fall back to the shelf, which is
+    // what every pre-spellbook team in an existing save has.
+    setBook(t.spells ?? []);
     setPickedTeam(t.id);
     // Remember it, so coming back to this node offers the team you actually
     // chose rather than the oldest one that happens to match the element.
@@ -140,6 +153,7 @@ export function StoryPrep(props: {
       name,
       element: region.element,
       cards: [...deck],
+      spells: book.length ? [...book] : undefined,
     };
     props.onSave({ ...save, loadouts: [...rest, next], deck, lastTeamId: next.id });
     setNaming(false);
@@ -341,6 +355,27 @@ export function StoryPrep(props: {
           })}
         </div>
 
+        {/* The book you are walking in with, stated. Spells are chosen in the
+            builder and travel with the team, so without this line the choice
+            vanishes between saving it and casting it — and "the shelf" and "a
+            book I picked" look identical from here. */}
+        <div className="sr-label">
+          Spellbook · {fightBook.length}/{spellCapForBoard(boardForNode(region, node))}
+          {book.length === 0 && <span className="sp-auto"> — auto, your cheapest unlocked</span>}
+        </div>
+        <div className="sp-deck">
+          {fightBook.map((id) => {
+            const sp = getSpell(id);
+            return (
+              <span key={id} className="sp-foe">
+                {sp.name}
+                <em className="cost">{sp.cost}<i className="gem" /></em>
+              </span>
+            );
+          })}
+          {fightBook.length === 0 && <span className="sp-none">No spells unlocked yet.</span>}
+        </div>
+
         <div className="sp-actions">
           <button className="ghost sm" onClick={props.onEditDeck}>Deck builder</button>
           {canPack && (
@@ -385,7 +420,7 @@ export function StoryPrep(props: {
           disabled={!legal.ok}
           onClick={() => {
             props.onSave(rememberDeck(save, region, deck));
-            props.onFight(deck);
+            props.onFight(deck, book);
           }}
         >
           {legal.ok ? "Fight" : (legal.reason ?? "Fix your team")}

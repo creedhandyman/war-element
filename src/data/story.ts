@@ -2122,6 +2122,31 @@ export interface Loadout {
   name: string;
   element?: string;
   cards: string[];
+  /** The spellbook this team carries.
+   *
+   *  A team used to be cards only, so every campaign fight went in with
+   *  `heroBookFor` — the cheapest spells you have unlocked, in cost order,
+   *  trimmed to the board. That is a sensible default and a poor deck: the
+   *  answer a LEAF team wants against PYRO is not the same as the one it wants
+   *  against AQUA, and the Arena has let you choose since it shipped.
+   *
+   *  Absent or empty = the old behaviour, deliberately: an existing save has no
+   *  books, and "none chosen" must keep meaning "give me the shelf" rather than
+   *  "walk in with nothing". */
+  spells?: string[];
+}
+
+/** The book a team actually carries: its own if it has one, else the hero's
+ *  shelf. Trimmed to the board's cap either way — a team saved for a 5x5 set
+ *  piece must not smuggle eight spells onto a 4x4 skirmish. */
+export function bookForLoadout(
+  save: StorySave,
+  loadout: Loadout | undefined,
+  boardSize: number,
+): string[] {
+  const shelf = heroSpellShelf(save);
+  const own = (loadout?.spells ?? []).filter((id) => shelf.includes(id));
+  return (own.length ? own : heroBookFor(save, boardSize)).slice(0, spellCapForBoard(boardSize));
 }
 
 /** Loadouts most likely to be wanted against `element`, best first. A team
@@ -2200,6 +2225,11 @@ export function loadStory(): StorySave {
               name: l.name,
               element: typeof l.element === "string" ? l.element : undefined,
               cards: known(l.cards).filter((id) => collection.includes(id)),
+              // A book naming a spell that no longer exists must not reach the
+              // engine; an absent one keeps meaning "use the shelf".
+              spells: Array.isArray(l.spells)
+                ? [...new Set(l.spells)].filter((id) => SPELLS.some((sp) => sp.id === id))
+                : undefined,
             }))
             .filter((l) => l.cards.length > 0)
         : [],

@@ -18,8 +18,9 @@ import {
   openPack, applyPack, canOpenPack, awardShards, dupeEssenceFor, PACK_COST, PACK_SIZE, SHARDS_PER_WIN,
   SHINY_CHANCE, rollShiny, isShiny, addShiny, spellsUnlockedIn, heroSpellShelf, heroBookFor, ESSENCE_PER_CLEAR, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
-  terrainContested, type StoryNode, type StorySave,
+  terrainContested, type StoryNode, type StorySave, bookForLoadout,
 } from "../../data/story";
+import { spellCapForBoard } from "../spells";
 
 const leaf = REGIONS.find((r) => r.id === "leaf")!;
 /** Real cards, by element. The squad pool reads each card's element, so a
@@ -1775,5 +1776,51 @@ describe("story: the campaign is complete", () => {
     const ceiling = Math.max(...CAP_LADDER.map((r) => r.cap));
     expect(ceiling).toBe(BIG_BOARD_CAP);
     expect(deckCapFor(save.cleared)).toBe(ceiling);
+  });
+});
+describe("story: a team's spellbook", () => {
+  const withShelf = (): StorySave => {
+    // Clearing LEAF nodes unlocks LEAF spells up to the depth walked.
+    const s = { ...newSave(), cleared: REGIONS[0].nodes.slice(0, 6).map((n) => n.id) };
+    return s;
+  };
+
+  it("carries the team's own book when it has one", () => {
+    const save = withShelf();
+    const shelf = heroSpellShelf(save);
+    expect(shelf.length).toBeGreaterThan(1);
+    const mine = [shelf[1]];
+    expect(bookForLoadout(save, { id: "t", name: "t", cards: [], spells: mine }, 4)).toEqual(mine);
+  });
+
+  it("falls back to the shelf when the team has none", () => {
+    // Every pre-spellbook team in an existing save is this case, so "no book"
+    // has to keep meaning "the shelf" rather than "walk in with nothing".
+    const save = withShelf();
+    const fallback = bookForLoadout(save, { id: "t", name: "t", cards: [] }, 4);
+    expect(fallback).toEqual(heroBookFor(save, 4));
+    expect(fallback.length).toBeGreaterThan(0);
+    expect(bookForLoadout(save, undefined, 4)).toEqual(fallback);
+    expect(bookForLoadout(save, { id: "t", name: "t", cards: [], spells: [] }, 4)).toEqual(fallback);
+  });
+
+  it("refuses a spell the hero has not unlocked", () => {
+    // A book is data in a save file; it must not be a way to field a spell the
+    // campaign has not handed over.
+    const save = withShelf();
+    const locked = SPELLS.find((sp) => !heroSpellShelf(save).includes(sp.id))!;
+    const book = bookForLoadout(save, { id: "t", name: "t", cards: [], spells: [locked.id] }, 4);
+    expect(book).not.toContain(locked.id);
+    expect(book).toEqual(heroBookFor(save, 4)); // nothing legal left => the shelf
+  });
+
+  it("trims to the board, so a 5x5 team cannot smuggle spells onto a 4x4", () => {
+    const save = { ...newSave(), cleared: REGIONS[0].nodes.map((n) => n.id) };
+    const shelf = heroSpellShelf(save);
+    expect(shelf.length).toBeGreaterThan(spellCapForBoard(4));
+    const big = bookForLoadout(save, { id: "t", name: "t", cards: [], spells: shelf }, 5);
+    const small = bookForLoadout(save, { id: "t", name: "t", cards: [], spells: shelf }, 4);
+    expect(big).toHaveLength(spellCapForBoard(5));
+    expect(small).toHaveLength(spellCapForBoard(4));
   });
 });
