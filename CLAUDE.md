@@ -428,6 +428,40 @@ board and are unsafe in browse, where there is no GameState at all. Keep the
 union; optional fields would let `props.game!` compile and crash five screens.
 Pure def-to-text lives in `card-text.tsx` and is covered by a whole-pool test.
 
+## Earning against the AI
+
+Three pieces, all in `src/data/`:
+
+- **The ladder** (`custom-decks.ts`). Twelve premades in three rungs of four —
+  `PremadeDeck.tier` is `easy | mid | hard`. Difficulty is the DECK, because
+  `chooseBattleAction` is one rule set with no skill dial: easy is rares only
+  under a cost-5 cap (avg cost 2.06), mid is rare/epic/legendary under 8
+  (3.29), hard is epic-and-up uncapped (5.05). Rarity is the lever that matters
+  — a repeatable Special needs epic+, a Rare gets one Talent — so an all-rare
+  deck genuinely has less to do to you. The six originals stay UNTIERED: they
+  are hand-tuned archetypes, not rungs. Tests pin the gradient, not the labels.
+  DAWN is absent from `easy` because it has only 13 buildable rares under that
+  cap and a deck needs 15 per element.
+
+- **The matchmaker** — the OPPONENT row in the Arena. Pick a rung, it rolls a
+  deck from it, and re-rolling the same rung avoids the deck already seated.
+
+- **The Gauntlet** (`gauntlet.ts`). Four dealt opponents from one rung, order
+  fixed at the start, 10/18/30 shards on completion, one loss ends it. The four
+  anti-farm properties are in that file's header; the important one for future
+  work is that the run lives in the SAVE, not React state, so it cannot be
+  re-rolled by leaving. `settleArena` is a pure function on purpose — the money
+  path should be testable without playing four matches. **A win against a deck
+  the player BUILT pays nothing**, which is what closed the original farm.
+  It is not tamper-proof and the header says so; the claim is only that the
+  honest path is no longer the slow one.
+
+Story teams carry their own spellbook (`Loadout.spells`, resolved by
+`bookForLoadout`). Absent or empty keeps meaning "use the hero's shelf" —
+every pre-existing team is that case — and the offer in the builder is gated
+on what the hero has actually unlocked, because spells are earned by walking a
+region.
+
 ## Traps found the hard way
 
 - **CSS fails SILENTLY, and nothing else in the toolchain reads it.** An
@@ -473,6 +507,40 @@ Pure def-to-text lives in `card-text.tsx` and is covered by a whole-pool test.
   visible and unclickable. Anything that must clear the nav has to be a sibling
   of the overlay, not a descendant; a React fragment creates no stacking
   context, so moving the JSX out of the `.overlay` div is enough.
+
+- **Build a new save by SPREADING the old one, never by listing fields.** This
+  is the worst bug the project has had. `applyClear` wrote its result as
+  `{ cleared, collection, pity, deck, blight }` — five fields, no spread — so
+  beating any story node silently deleted everything else on the save: the hero
+  (name, shards, essence, foils, chosen spells), every saved team, `lastTeamId`,
+  and the per-region decks and squads. It compounded, because `awardEssence`
+  ran next and `save.hero ?? newHero()` minted a fresh hero into the hole. The
+  reported symptom was "my shards are not saving".
+  Diagnose this class by round-tripping the DATA layer first: save/load
+  preserved shards perfectly in every case, which ruled out persistence and
+  pointed at a mutation. The regression test asserts on the KEY SET of the
+  input, not a list of names, so a field added later is covered without anyone
+  remembering. A sweep found no other instance — `saveCustomDeck` sets all four
+  of `CustomDeck`'s fields and `phases.clone` uses `structuredClone`.
+
+- **A row in the phone's flow column must reserve its height, or the board
+  moves.** Below 760px the match screen is one flex column — ribbon, board,
+  speed strip, log, hand, bar — so anything that changes height moves
+  everything under it. Two did, and both read to the player as "the screen goes
+  up and down": the PHASE RIBBON loses the priority chip when the battle phase
+  starts and shrank 35px -> 25px every round, and the HAND was rendered only
+  while `activeCard === null`, so it unmounted and remounted between every
+  activation. Both are pinned now — the ribbon to a fixed height, the hand to a
+  fixed height and always rendered, with visibility left to CSS. Measure this
+  by sampling the column every 50ms across a round and counting DISTINCT tops;
+  a stable layout gives one value per element.
+
+- **`flex-direction` does nothing to a `display: block` element.** The phone
+  speed queue was supposed to be a horizontal strip and its rule said
+  `flex-direction: row` — but the base `.queue-scale` is a block, so the rows
+  stayed a 192px vertical stack inside a 26px clamp and the queue read as
+  missing. If a tier rule reorients a container, check the base actually made
+  it a flex container.
 
 - **`MatchLayout.tsx` is the match screen's shell** — `.wrap` and its modifier
   classes, the music toggle, the battle-log rail, the two edge tabs and the
