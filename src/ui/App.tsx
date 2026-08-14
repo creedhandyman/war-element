@@ -196,7 +196,22 @@ export function App() {
   const [spellPicks, setSpellPicks] = useState<{ ids: string[]; slots: Pos[] }>({ ids: [], slots: [] });
   // Pre-game deck selection — the match doesn't run until Start.
   const [started, setStarted] = useState(false);
-  const [twoPlayer, setTwoPlayer] = useState(false);
+  /** WHO IS PLAYING — one value, not two booleans.
+   *
+   *  This was `twoPlayer` and `onlineMode`, which is a three-way choice encoded
+   *  as four states: `twoPlayer && onlineMode` was representable and meant
+   *  nothing, and every read had to spell out the precedence —
+   *  `!twoPlayer && !onlineMode` for vs-AI, `twoPlayer && !onlineMode` for
+   *  hot-seat, `onlineMode` for the rest. Same shape of bug as the story
+   *  screens, same fix.
+   *
+   *  The two booleans stay as DERIVED values because roughly twenty reads want
+   *  the question they answer ("is this a hot-seat match?") rather than the
+   *  mode, and several of them are mid-match rather than in the lobby. What is
+   *  gone is the ability to set them into disagreement. */
+  const [arenaMode, setArenaMode] = useState<"ai" | "local" | "online">("ai");
+  const twoPlayer = arenaMode === "local";
+  const onlineMode = arenaMode === "online";
 
   /** Battlefield size for the NEXT match. 4 = standard, 5 = the large board.
    *  Online: only the host's choice counts — the guest receives the host's whole
@@ -204,7 +219,6 @@ export function App() {
   const [boardSize, setBoardSize] = useState(4);
   // Online PvP over Supabase Realtime. `online` is set once a room is live.
   const [online, setOnline] = useState<{ role: Role; code: string; myId: PlayerId } | null>(null);
-  const [onlineMode, setOnlineMode] = useState(false); // setup screen: online vs local
   const [onlineRole, setOnlineRole] = useState<Role>("host");
   const [roomCode, setRoomCode] = useState("");
   const [netStatus, setNetStatus] = useState("");
@@ -285,7 +299,14 @@ export function App() {
   const gauntletRun = story.gauntlet?.run;
   /** The Gauntlet's current seat, when a run is live. While it is, the AI's
    *  deck is not the player's to set — that is the whole point of a run. */
-  const gauntletSeat = gauntletRun && !runOver(gauntletRun) ? nextSeat(gauntletRun, boardSize) : null;
+  const gauntletSeat =
+    // vs-AI only. A run left open and then a switch to hot-seat or online used
+    // to leave the other seat locked to "GAUNTLET · SEAT 1" with no panel on
+    // screen to explain it or to give the run up — a dead control and a lie
+    // about what you were about to play.
+    arenaMode === "ai" && gauntletRun && !runOver(gauntletRun)
+      ? nextSeat(gauntletRun, boardSize)
+      : null;
   /** Which seat the deck sheet is filling, or null when it is shut. */
   const [pickSeat, setPickSeat] = useState<"p1" | "p2" | null>(null);
   // Premade builds sized for the CHOSEN battlefield — a 30-card large build must
@@ -2221,15 +2242,15 @@ export function App() {
               <div className="seg">
                 <button
                   className={!twoPlayer && !onlineMode ? "on" : ""}
-                  onClick={() => { setOnlineMode(false); setTwoPlayer(false); }}
+                  onClick={() => setArenaMode("ai")}
                 >vs AI</button>
                 <button
                   className={twoPlayer && !onlineMode ? "on" : ""}
-                  onClick={() => { setOnlineMode(false); setTwoPlayer(true); }}
+                  onClick={() => setArenaMode("local")}
                 >2 Players</button>
                 <button
                   className={onlineMode ? "on blue" : ""}
-                  onClick={() => setOnlineMode(true)}
+                  onClick={() => setArenaMode("online")}
                 >Online</button>
               </div>
               {/* One sentence, not a paragraph. */}
