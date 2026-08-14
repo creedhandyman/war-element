@@ -21,7 +21,7 @@ import {
 } from "../data/story";
 import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { SpIcon } from "./icons";
-import { CardExpand } from "./CardExpand";
+import { CardView } from "./CardView";
 
 const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
 const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
@@ -209,7 +209,7 @@ export function StoryCollection(props: {
       {/* The same expanded card the deck builder shows, plus the one thing only
           the Collection knows: where this card actually drops. */}
       {detail && (
-        <CardExpand
+        <CardView mode="browse"
           def={detail}
           onClose={() => setDetailId(null)}
           extra={

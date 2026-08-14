@@ -1,11 +1,20 @@
-import { useState } from "react";
+/** Card rules, in English.
+ *
+ *  Everything here turns a card DEFINITION into readable text, and nothing here
+ *  knows a match exists — no GameState, no CardInstance, no live values. That
+ *  is the whole reason it is its own module: it is the half of the old
+ *  CardDetail that both the in-match inspector and the collection browser need,
+ *  and keeping it def-only is what lets one component serve both.
+ *
+ *  describePassives is the bulk of it and is covered by a whole-pool test
+ *  (engine/__tests__/card-text.test.ts) that asserts every ability field the
+ *  data can carry produces a line. Adding a passive without adding its sentence
+ *  here fails that test rather than shipping a blank card panel.
+ */
 import type { ReactNode } from "react";
-import type { AutoMode, CardDef, CardInstance, GameState, PlayerId, StatusKind } from "../engine";
-import { effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, effectiveSpecialCost, ELEMENT_AURA, getDef, getSpell } from "../engine";
-import { EL_COLOR, EL_ICON, KEYWORD_STYLE, STATUS_STYLE } from "./shared";
-import { cardMods } from "./Token";
-import { SpIcon } from "./icons";
-import { autoPrefFor, setAutoPref } from "./auto-prefs";
+import type { CardDef, StatusKind } from "../engine";
+import { ELEMENT_AURA, getDef } from "../engine";
+import { KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 
 // Colour lookup for keyword/status terms so they render as chips in card text.
 const CHIP_COLOR: Record<string, string> = (() => {
@@ -143,7 +152,7 @@ function describeOnSummon(os: {
 
 /** "1 round" / "2 rounds". The card face used to print a literal "round(s)" in
  *  eight places, which read like unfinished copy. */
-const rounds = (n: number) => `${n} round${n === 1 ? "" : "s"}`;
+export const rounds = (n: number) => `${n} round${n === 1 ? "" : "s"}`;
 
 /** Passive one-liners derived purely from a card definition (no live state).
  *  The element aura (shared by every card of this element) leads the list.
@@ -792,7 +801,7 @@ export function describePassives(def: CardDef): string[] {
 }
 
 // Plain-language blurb for each status kind, shown under a card's active effects.
-const STATUS_TEXT: Record<StatusKind, string> = {
+export const STATUS_TEXT: Record<StatusKind, string> = {
   ROOT: "Rooted — can't move.",
   BLEED: "Bleeding — takes damage each round.",
   BURN: "Burning — loses a shield (then HP) each round.",
@@ -811,275 +820,3 @@ const STATUS_TEXT: Record<StatusKind, string> = {
   STEALTH: "Stealthed — can't be targeted.",
   EVASION: "Evasive — 50% chance to dodge each hit.",
 };
-
-export function CardDetail(props: {
-  game: GameState;
-  card: CardInstance;
-  viewer: PlayerId;
-  canMove: boolean;
-  onMove: () => void;
-  /** Set this card's auto mode. Absent for a card the viewer doesn't own. */
-  onSetAuto?: (mode: AutoMode) => void;
-  onClose: () => void;
-}) {
-  const { game, card } = props;
-  const def = getDef(card.defId);
-  const mine = card.owner === props.viewer;
-  const dmg = effectiveDmg(game, card);
-  const hits = effectiveBasicHits(card);
-  const sp = effectiveSp(game, card);
-  const kws = Object.entries(def.keywords).map(([k, v]) =>
-    v === true ? k : `${k} ${v}`,
-  );
-
-  // Passive one-liners derived from the card definition (shared with the
-  // Deck Builder preview).
-  const passives = describePassives(def);
-
-  // Buffs this card is currently getting from standing in a friendly wall's row.
-  const wallBuffs: string[] = [];
-  for (const w of game.walls) {
-    if (!w.allyBuff || w.owner !== card.owner || w.element !== def.element) continue;
-    if (!card.pos || card.pos.row !== w.row) continue;
-    const parts = [
-      w.allyBuff.block && `+${w.allyBuff.block} BLOCK`,
-      w.allyBuff.evasion && "EVASION",
-      w.allyBuff.dmgReduction && `−${w.allyBuff.dmgReduction} incoming DMG`,
-    ].filter(Boolean);
-    wallBuffs.push(`${getSpell(w.spellId).name}: ${parts.join(", ")}`);
-  }
-
-  const specCd = card.specialCooldown > 0;
-  const summonLock = card.summonedThisRound;
-
-  return (
-    <div className="overlay on-top" onClick={props.onClose}>
-      <div className="modal cd-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="cd-x" title="Close" onClick={props.onClose}>
-          ✕
-        </button>
-
-        <div className="cd-body">
-          <div className="cd-art" style={{ borderColor: EL_COLOR[def.element] }}>
-            <img
-              src={`/cards/${def.art ?? def.id}.webp`}
-              alt=""
-              onError={(e) => {
-                (e.currentTarget.parentElement as HTMLElement).classList.add(
-                  "no-art",
-                );
-                e.currentTarget.style.display = "none";
-              }}
-            />
-            <span className="cd-cost">{def.cost}</span>
-            <span className="cd-el-badge" style={{ borderColor: EL_COLOR[def.element] }}>
-              <img src={EL_ICON[def.element]} alt={def.element} />
-            </span>
-          </div>
-
-          <div className="cd-info">
-            <div className="cd-name">{def.name}</div>
-            <div className="cd-sub">
-              <span
-                className="cd-el"
-                style={{ background: EL_COLOR[def.element] }}
-              >
-                {def.element}
-              </span>
-              <span>{def.cardClass}</span>
-              <span>{def.attackType === "Melee" ? "🗡 Melee" : "🏹 Ranged"}</span>
-              <span className={mine ? "cd-you" : "cd-opp"}>
-                {mine ? "Yours" : "Opponent"}
-              </span>
-            </div>
-
-            <div className="cd-stats">
-              <div className="cd-stat" title="Live damage (printed value adjusted for Mid-row control & statuses)">
-                <span className="cd-lbl">DMG</span>
-                <span className="cd-val st-dmg">
-                  ⚔<span className="atk-dmg">{dmg}</span>
-                  {hits > 1 ? <span className="atk-x"> ×{hits}</span> : ""}
-                </span>
-              </div>
-              <div className="cd-stat" title="Current / max HP">
-                <span className="cd-lbl">HP</span>
-                <span className="cd-val st-hp">
-                  ♥{card.curHp === effectiveMaxHp(game, card) ? card.curHp : `${card.curHp}/${effectiveMaxHp(game, card)}`}
-                </span>
-              </div>
-              <div className="cd-stat" title="Shields">
-                <span className="cd-lbl">SHIELD</span>
-                <span className="cd-val st-sh">🛡{card.curShields}</span>
-              </div>
-              <div className="cd-stat" title="Speed — queue order & move reach">
-                <span className="cd-lbl">SP</span>
-                <span className="cd-val st-sp"><SpIcon />{sp}</span>
-              </div>
-            </div>
-
-            {kws.length > 0 && (
-              <div className="cd-kws">
-                {kws.map((k) => (
-                  <span key={k} className="cd-kw">
-                    {k}
-                  </span>
-                ))}
-              </div>
-            )}
-            {(() => {
-              const mods = cardMods(game, card);
-              if (!mods.buffs.length && !mods.debuffs.length && !card.statuses.length) return null;
-              return (
-                <div className="cd-mods">
-                  <div className="cd-mods-lbl">Active modifiers</div>
-                  {mods.buffs.map((b, i) => <div key={`b${i}`} className="cd-mod buff">▲ {b}</div>)}
-                  {card.statuses.map((s) => {
-                    const negative = s.kind !== "STEALTH" && s.kind !== "EVASION";
-                    return (
-                      <div key={s.kind} className={`cd-mod ${negative ? "debuff" : "buff"}`}>
-                        {negative ? "▼" : "▲"} {STATUS_STYLE[s.kind]?.glyph} {s.kind}{s.power ? ` ${s.power}` : ""}
-                        {s.source ? ` from ${s.source}` : ""} — {s.duration}r
-                      </div>
-                    );
-                  })}
-                  {mods.debuffs.map((d, i) => <div key={`d${i}`} className="cd-mod debuff">▼ {d}</div>)}
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-
-        {def.special && (
-          <div className="cd-section">
-            <div className="cd-h">
-              {def.special.talent ? "★" : "✦"} {def.special.name}
-              <span className="cd-cost-pill">{def.special.talent ? "Talent" : `Magic ${effectiveSpecialCost(props.game, card, def.special.cost)}`}</span>
-            </div>
-            <p className="cd-text">{chipify(def.special.text)}</p>
-            {def.special.talent && card.talentUsed && (
-              <div className="cd-flag">Talent spent — once per game.</div>
-            )}
-            {!def.special.talent && (specCd || summonLock) && (
-              <div className="cd-flag">
-                {summonLock
-                  ? "Can't fire the round it's summoned."
-                  : `Recharging — ready in ${rounds(card.specialCooldown)}.`}
-              </div>
-            )}
-          </div>
-        )}
-
-        {passives.length > 0 && (
-          <div className="cd-section">
-            <div className="cd-h">Passives</div>
-            <ul className="cd-list">
-              {passives.map((p, i) => (
-                <li key={i}>{chipify(p)}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {wallBuffs.length > 0 && (
-          <div className="cd-section">
-            <div className="cd-h">Wall cover</div>
-            <ul className="cd-list">
-              {wallBuffs.map((w, i) => (
-                <li key={i}>{w}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {card.statuses.length > 0 && (
-          <div className="cd-section">
-            <div className="cd-h">Active effects</div>
-            <ul className="cd-list">
-              {card.statuses.map((s) => (
-                <li key={s.kind}>
-                  <b>{s.kind}</b> ({s.duration} round{s.duration === 1 ? "" : "s"}) —{" "}
-                  {STATUS_TEXT[s.kind]}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {mine && props.onSetAuto && <AutoControl card={card} onSet={props.onSetAuto} />}
-
-        <div className="cd-actions">
-          {props.canMove && (
-            <button className="lockin" onClick={props.onMove}>
-              Move this card
-            </button>
-          )}
-          <button className="ghost" onClick={props.onClose}>
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const AUTO_MODES: { mode: AutoMode; label: string; blurb: string }[] = [
-  { mode: "manual", label: "Manual", blurb: "You choose its action every round." },
-  { mode: "basic", label: "Auto", blurb: "It attacks on its own, but never spends magic." },
-  { mode: "full", label: "Full", blurb: "It attacks and fires its Special when it can." },
-];
-
-/** Auto-attack settings for one card, in the card's own panel.
- *
- *  This used to be a badge on the board token that cycled manual → auto → full
- *  when tapped — a live setting on a 60px tile, in the same place you tap to
- *  select and to move. Here there is room to name the three modes and say what
- *  each one does.
- *
- *  "Always" is the part the badge could never offer: it writes the choice
- *  against the CARD rather than this one body, so every copy you summon from
- *  now on — this match and every match after — arrives already set.
- */
-function AutoControl({ card, onSet }: { card: CardInstance; onSet: (m: AutoMode) => void }) {
-  const defId = card.defId;
-  const [remembered, setRemembered] = useState<AutoMode | undefined>(() => autoPrefFor(defId));
-  const always = remembered === card.autoMode && remembered !== undefined;
-
-  return (
-    <div className="cd-auto">
-      <div className="cd-seclabel">Auto attack</div>
-      <div className="cd-automodes">
-        {AUTO_MODES.map((m) => (
-          <button
-            key={m.mode}
-            className={`cd-automode ${card.autoMode === m.mode ? "on" : ""}`}
-            title={m.blurb}
-            onClick={() => {
-              onSet(m.mode);
-              // Keep a standing "always" pointed at what you just picked, rather
-              // than silently leaving it on the old mode.
-              if (remembered !== undefined) { setAutoPref(defId, m.mode); setRemembered(m.mode); }
-            }}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
-      <p className="cd-autoblurb">{AUTO_MODES.find((m) => m.mode === card.autoMode)?.blurb}</p>
-      <label className="cd-always">
-        <input
-          type="checkbox"
-          checked={always}
-          onChange={(e) => {
-            const next = e.target.checked ? card.autoMode : undefined;
-            setAutoPref(defId, next);
-            setRemembered(next);
-          }}
-        />
-        <span>
-          Always for <b>{getDef(defId).name}</b>
-          <em>every copy you summon from now on starts on this mode</em>
-        </span>
-      </label>
-    </div>
-  );
-}

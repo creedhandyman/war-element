@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { CARDS, TOKENS } from "../../data/cards";
 import { SPELLS } from "../spells";
-import { describePassives } from "../../ui/CardDetail";
+import { describePassives } from "../../ui/card-text";
 
 /** Card-def fields that carry a real ability the player should be told about.
  *  Purely structural fields (art, rarity, stats, tribe) are not listed. */

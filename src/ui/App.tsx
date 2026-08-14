@@ -40,7 +40,7 @@ import {
 } from "../engine";
 import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online";
 import { Board } from "./Board";
-import { CardDetail } from "./CardDetail";
+import { CardView } from "./CardView";
 import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
 import { REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
@@ -1844,7 +1844,8 @@ export function App() {
       })()}
 
       {detailId && game.cards[detailId] && (
-        <CardDetail
+        <CardView
+          mode="inspect"
           game={game}
           card={game.cards[detailId]}
           viewer={view}

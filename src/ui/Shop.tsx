@@ -19,7 +19,7 @@ import {
   openPack, type PackResult, type StorySave,
 } from "../data/story";
 import { EL_COLOR } from "./shared";
-import { CardExpand } from "./CardExpand";
+import { CardView } from "./CardView";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3 };
 
@@ -207,7 +207,7 @@ export function Shop(props: { save: StorySave; onSave: (next: StorySave) => void
         </div>
       )}
 
-      {previewId && <CardExpand def={getDef(previewId)} onClose={() => setPreviewId(null)} />}
+      {previewId && <CardView mode="browse" def={getDef(previewId)} onClose={() => setPreviewId(null)} />}
     </div>
   );
 }

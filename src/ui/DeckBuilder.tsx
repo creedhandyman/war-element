@@ -11,7 +11,7 @@ import {
   type CustomDeck,
 } from "../data/custom-decks";
 import { EL_COLOR, EL_ICON, RARITY_STYLE, spellArtSrc } from "./shared";
-import { CardExpand } from "./CardExpand";
+import { CardView } from "./CardView";
 import { DeckStats, useComposition } from "./DeckStats";
 import { SpIcon } from "./icons";
 
@@ -456,7 +456,7 @@ export function DeckBuilder(props: {
       {/* Expanded card details — a sub-overlay above the builder. Shared with
           the story Collection so the two can't drift apart. */}
       {detail && (
-        <CardExpand
+        <CardView mode="browse"
           def={detail}
           onClose={() => setDetailId(null)}
           action={{

@@ -1311,7 +1311,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .mr-cr-v.nil { color: var(--ink-faint); opacity: 0.45; }
 
 /* card inspector (click a played card) */
-.cd-modal { position: relative; text-align: left; max-width: 440px; width: min(440px, 92vw); padding: 20px; }
+/* max-height + scroll came from the deck builder's copy of this panel and had
+   to come along in the merge. The in-match inspector never had a cap because it
+   showed less; the merged panel shows the union — rarity, tribes and the full
+   stat grid now reach in-match, live modifiers and wall cover reach browse —
+   so on a phone a card with a long passive list would otherwise run off the
+   bottom with no way to reach the buttons. */
+.cd-modal {
+  position: relative; text-align: left; max-width: 440px; width: min(440px, 92vw);
+  padding: 20px; max-height: 88vh; overflow-y: auto;
+}
 .cd-x { position: absolute; top: 12px; right: 14px; z-index: 5; background: none; border: none; color: var(--ink-dim); font-size: 16px; cursor: pointer; line-height: 1; padding: 4px; }
 .cd-x:hover { color: var(--ink); }
 .cd-body { display: flex; gap: 14px; }
@@ -1667,11 +1676,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    named layer would be the mistake: it would leave the parent's context in
    spirit only, and read as if it outranked things it cannot reach. Left raw
    because it is local, and commented because it looks wrong and is not. */
-.dbd-overlay { z-index: 50; }
-.dbd-modal { max-width: min(460px, 92vw); width: 460px; text-align: left; padding: 22px; position: relative; max-height: 88vh; overflow-y: auto; }
-.dbd-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 12px; }
-.dbd-art { width: 92px; height: 122px; flex: none; border-radius: 10px; border: 2px solid; overflow: hidden; position: relative; background: linear-gradient(160deg, #243250, #1a2136); }
-.dbd-art img { width: 100%; height: 100%; object-fit: cover; }
 /* Full, uncropped card-art hero at the top of the expanded card. */
 /* ONE standard art preview. The pool has 18 art sizes (aspect 0.67-0.80), so a
    fixed HEIGHT made the frame a different shape on PC vs phone, and `contain`
@@ -1679,30 +1683,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    means every card is framed identically at every screen size — same shape,
    art always filling it, anchored top like the grid thumbnails. 4/5 matches the
    most common art (1122x1402), so those fit with no crop at all. */
-.dbd-art-full { position: relative; width: 100%; aspect-ratio: 4 / 5; margin-bottom: 12px; border-radius: 12px; border: 2px solid; overflow: hidden; background: linear-gradient(160deg, #243250, #1a2136); }
 /* Absolutely filling the frame guarantees the img box == frame box. cover +
    center-top matches the grid thumbnails, so a card looks the same expanded as
    it does in the pool; taller arts crop from the bottom, keeping the subject. */
-.dbd-art-full > img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: center top; }
-.dbd-cost { position: absolute; top: 5px; left: 5px; width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,0.6); display: grid; place-items: center; font-size: 12px; font-weight: 900; }
-.dbd-el-badge { position: absolute; top: 5px; right: 5px; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; border: 2px solid; background: #0d0c14; }
-.dbd-el-badge img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.dbd-meta { flex: 1; min-width: 0; }
-.dbd-name { font-size: 20px; font-weight: 900; line-height: 1.1; }
-.dbd-sub { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; font-size: 11px; color: var(--ink-dim); font-weight: 700; }
-.dbd-el { color: #06121f; padding: 1px 7px; border-radius: 999px; font-weight: 800; }
 .dbd-rar { padding: 1px 6px; border-radius: 5px; border: 1px solid; font-size: 9px; font-weight: 900; letter-spacing: 0.4px; }
 .dbd-tribe { padding: 1px 7px; border-radius: 999px; border: 1px solid var(--panel-line); }
-.dbd-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 9px; font-size: 14px; font-weight: 800; }
-.dbd-kws { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-.dbd-kw { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); }
 .dbd-sect { margin-top: 12px; border-top: 1px solid var(--panel-line); padding-top: 10px; }
-.dbd-h { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); font-weight: 800; margin-bottom: 5px; }
-.dbd-scost { color: var(--accent); }
-.dbd-txt { font-size: 13px; line-height: 1.5; }
-.dbd-passives { list-style: none; display: flex; flex-direction: column; gap: 5px; margin: 0; padding: 0; }
-.dbd-passives li { font-size: 12px; line-height: 1.45; padding-left: 12px; position: relative; }
-.dbd-passives li::before { content: "•"; position: absolute; left: 2px; color: var(--accent); }
 .dbd-toggle { width: 100%; margin: 16px 0 0; padding: 11px; font-size: 13px; }
 
 @media (max-width: 720px) {
@@ -1990,8 +1976,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   /* Placement-confirm bar sits just above the bottom bar, full width */
   .summon-confirm { bottom: calc(var(--bar-h, 84px) + 6px); width: 92vw; flex-wrap: wrap; justify-content: center; }
 
-  /* Modals fit the viewport */
-  .modal, .cd-modal, .dbd-modal { max-width: 94vw; }
+  /* Modals fit the viewport. (.dbd-modal used to be listed here too; the card
+     panel is one component now, so .cd-modal is the only card-shaped modal.) */
+  .modal, .cd-modal { max-width: 94vw; }
 }
 
 /* ═══════════ LANDSCAPE PHONE — the phone play surface (3-column "PC view") ═════

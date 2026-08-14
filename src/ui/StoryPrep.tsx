@@ -18,7 +18,7 @@ import {
   squadCapInRegion, squadFor, squadIsExplicit, squadIsOfferable,
   type Loadout, type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
-import { CardExpand } from "./CardExpand";
+import { CardView } from "./CardView";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3 };
 
@@ -376,7 +376,7 @@ export function StoryPrep(props: {
         </div>
 
         {previewId && (
-          <CardExpand def={getDef(previewId)} onClose={() => setPreviewId(null)} />
+          <CardView mode="browse" def={getDef(previewId)} onClose={() => setPreviewId(null)} />
         )}
 
         <button

@@ -15,7 +15,7 @@ import {
   type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
 import { EL_COLOR } from "./shared";
-import { CardExpand } from "./CardExpand";
+import { CardView } from "./CardView";
 
 const KIND_LABEL: Record<StoryNode["kind"], string> = {
   skirmish: "Skirmish", warden: "Warden", landmark: "Landmark", throne: "Throne",
@@ -341,7 +341,7 @@ function NodePanel(props: {
       )}
 
       {previewId && (
-        <CardExpand def={getDef(previewId)} onClose={() => setPreviewId(null)} />
+        <CardView mode="browse" def={getDef(previewId)} onClose={() => setPreviewId(null)} />
       )}
     </div>
   );
