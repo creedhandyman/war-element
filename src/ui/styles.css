@@ -2665,13 +2665,29 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     border-radius: 0 14px 14px 0; box-shadow: 8px 0 40px rgba(0, 0, 0, 0.7);
   }
   .rail:not(.queue-rail).mobile-open .loglist {
+    /* `display: flex` is the half this was missing. The closed strip sets
+       `display: none` on the list — it stopped previewing a line it could not
+       fit — and this block only ever set direction and overflow, which do
+       nothing to a hidden box. So the drawer opened to full height with a
+       title, a close button and NO LOG: reported as the battle log not
+       rendering when opened. Same shape as the speed queue reorienting a
+       block: if a state changes what a box IS, it has to say so. */
+    display: flex;
     max-height: none; flex-direction: column; overflow-y: auto; padding: 8px 10px; gap: 4px;
   }
   .rail:not(.queue-rail).mobile-open .loglist > * { white-space: normal; }
   .rail:not(.queue-rail).mobile-open .rail-title {
+    /* `flex: none`, undoing the strip's `flex: 1`. In a one-line row that made
+       the label fill the width so the "tap to read" hint could sit at its end;
+       in a full-height column it made the label fill the HEIGHT and shoved the
+       log to the bottom 216px of an 1848px drawer. Same declaration, opposite
+       axis — a shared class across two orientations has to reset what it set. */
+    flex: none;
     font-size: var(--fs-3); padding: 10px 12px; color: var(--ink-dim);
     border-bottom: 1px solid var(--panel-line);
   }
+  /* ...and the list takes the room the title gave back. */
+  .rail:not(.queue-rail).mobile-open .loglist { flex: 1 1 auto; min-height: 0; }
   .rail:not(.queue-rail).mobile-open .rail-title .panel-close { display: block; }
   /* The strip's hint, gone once the drawer it invites you to open IS open. */
   .rail:not(.queue-rail).mobile-open .rail-title::after { content: none; }

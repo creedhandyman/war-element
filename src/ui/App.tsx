@@ -83,18 +83,24 @@ function newSeed(): number {
   return (Math.random() * 0x7fffffff) | 0;
 }
 
-/** The portrait-phone tier, mirroring the CSS query EXACTLY.
+/** The STACKED tier, mirroring the CSS query EXACTLY.
  *
  *  Needed because the Battle Log is two different things on the two tiers: a
  *  full scrollable rail on desktop, and a one-line strip that opens that rail
- *  on tap on a phone. Only the strip should be a button — announcing a
+ *  on tap when stacked. Only the strip should be a button — announcing a
  *  scrollable panel as a button to a screen reader on desktop is a lie, and
  *  putting a click handler on it there would swallow text selection.
+ *
+ *  "EXACTLY" is load-bearing and this drifted the moment the CSS tier widened
+ *  from 760px to the grid's real minimum: an 853px-wide phone rendered the log
+ *  as a strip (CSS said stacked) with no click handler (this said desktop), so
+ *  tapping it did nothing at all. `styles.test.ts` compares the two literals
+ *  now, because a comment saying "keep these in step" demonstrably did not.
  *
  *  Subscribed, not read once: the app is one page and a rotation has to move
  *  the affordance with the layout. (App's own `logCollapsed` initializer reads
  *  matchMedia without a listener, which is why THAT one goes stale on rotate.) */
-const PORTRAIT_QUERY = "(max-width: 760px) and (min-height: 541px)";
+export const PORTRAIT_QUERY = "(max-width: 1179px) and (min-height: 541px)";
 function usePortraitPhone(): boolean {
   const [on, setOn] = useState(
     () => typeof window !== "undefined" && (window.matchMedia?.(PORTRAIT_QUERY).matches ?? false),

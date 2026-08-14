@@ -140,3 +140,25 @@ describe("styles.css structure", () => {
       .toEqual({ ordered: true, values: values.map((v) => `${v.name}=${v.value}`) });
   });
 });
+
+describe("the CSS tier and the JS that mirrors it", () => {
+  it("agree on where the stacked layout starts", () => {
+    // These are two literals in two files that MUST match. When they drifted —
+    // the CSS widened to the grid's real minimum, the JS stayed at 760px — an
+    // 853px phone got the strip from CSS and no click handler from JS, so the
+    // battle log rendered as a tap target that did nothing. A comment saying
+    // "mirror this exactly" did not prevent it; this does.
+    const css = readFileSync(join(__dirname, "../../ui/styles.css"), "utf8");
+    const app = readFileSync(join(__dirname, "../../ui/App.tsx"), "utf8");
+
+    const fromJs = app.match(/const PORTRAIT_QUERY = "([^"]+)"/)?.[1];
+    expect(fromJs, "PORTRAIT_QUERY not found in App.tsx").toBeTruthy();
+
+    // The stacked tier is the one media block that sets --hud-budget.
+    const queries = [...css.matchAll(/@media ([^{]+)\{/g)].map((m) => m[1].trim());
+    const stacked = queries.filter((q) => /max-width:\s*\d+px\)?\s+and\s+\(min-height:\s*541px/.test(q));
+    expect(stacked, "no stacked-tier @media found").toHaveLength(1);
+
+    expect(stacked[0], `CSS tier "${stacked[0]}" vs JS "${fromJs}"`).toBe(fromJs);
+  });
+});
