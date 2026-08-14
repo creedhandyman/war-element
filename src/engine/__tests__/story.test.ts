@@ -253,19 +253,21 @@ describe("story: the deck cap ladder", () => {
     expect(got.won).toEqual([pyro.opening.epic]);
   });
 
-  it("a shiny is a quarter of one percent, not a quarter", () => {
-    // The single most mis-readable constant in the file: 0.25 on this codebase's
-    // scale is a PERCENTAGE, like DROP_RATE's 50/30/15/5 and pctChance's /100.
-    // A factor-of-100 slip here turns a chase item into every fourth card.
-    expect(SHINY_CHANCE).toBe(0.25);
+  it("a shiny is one percent — one card in a hundred, not one in one", () => {
+    // The most mis-readable constant in the file: this is a PERCENTAGE, on the
+    // same scale as DROP_RATE's 50/30/15/5 and pctChance's /100. Reading it as a
+    // probability instead would make EVERY card shiny.
+    expect(SHINY_CHANCE).toBe(1);
     let hits = 0;
     const N = 40000;
     let n = 12345;
     const rand = () => ((n = (n * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
     for (let i = 0; i < N; i++) if (rollShiny(rand)) hits++;
     const rate = (hits / N) * 100;
-    expect(rate, `measured ${rate}% over ${N} rolls`).toBeGreaterThan(0.05);
-    expect(rate, `measured ${rate}% over ${N} rolls`).toBeLessThan(0.8);
+    // Wide enough not to flake, tight enough to catch a 100x slip in either
+    // direction — 0.01% and 100% both fail this.
+    expect(rate, `measured ${rate}% over ${N} rolls`).toBeGreaterThan(0.6);
+    expect(rate, `measured ${rate}% over ${N} rolls`).toBeLessThan(1.6);
   });
 
   it("...and a shiny changes nothing about the card", () => {

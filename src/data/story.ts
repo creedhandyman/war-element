@@ -1327,15 +1327,20 @@ export function craftCard(save: StorySave, defId: string): StorySave {
 
 // ── shinies ─────────────────────────────────────────────────────────────────
 
-/** Chance, as a PERCENTAGE, that a card arrives shiny. Same scale as DROP_RATE
- *  (50/30/15/5) and `pctChance`, so this is a quarter of one percent — one card
- *  in four hundred.
+/** Chance, as a PERCENTAGE, that a card arrives shiny — one card in a hundred.
+ *
+ *  Same scale as DROP_RATE (50/30/15/5) and `pctChance`, which divides by 100.
+ *  Started at 0.25 and was raised: at one in four hundred a five-card pack had
+ *  about a 1% chance of holding a foil, so most players would finish a campaign
+ *  never having seen one, and a chase item nobody catches is just an unused
+ *  code path. At 1% a pack carries roughly a one-in-twenty chance — rare enough
+ *  to be worth shouting about, common enough to exist.
  *
  *  Rolled per CARD ACQUIRED rather than per pack or per clear, and duplicates
  *  roll too: a card you already own coming back shiny is the one thing that
  *  makes a duplicate worth seeing, and it costs nothing to allow because a
  *  shiny is cosmetic. Nothing about a shiny changes a stat, a cost or a rule. */
-export const SHINY_CHANCE = 0.25;
+export const SHINY_CHANCE = 1;
 
 /** Roll one acquisition. `rand` is injected so a test can pin it. */
 export const rollShiny = (rand: () => number = Math.random): boolean =>
