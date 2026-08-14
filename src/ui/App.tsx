@@ -2289,6 +2289,44 @@ export function App() {
 
       {/* Campaign team builder: the same screen as the sandbox, with the pool
           cut to what you own and the ceiling set by the campaign. */}
+      {/* ── the four destinations ─────────────────────────────────────────── */}
+      {!started && !storyOpen && tab === "home" && (
+        <div className="overlay">
+          <div className="modal picker home">
+            <picture>
+              <source srcSet="/title.webp" type="image/webp" />
+              <img className="title-logo" src="/title.jpg" alt="War Element" />
+            </picture>
+            <div className="home-hero">
+              <b>{story.hero?.name ?? "Keeper"}</b>
+              <span>
+                {story.collection.length}/{CARDS.length} cards ·{" "}
+                {story.cleared.length} nodes cleared ·{" "}
+                {heroSpellShelf(story).length} spells
+              </span>
+            </div>
+            <p>
+              Pick a fight in the <b>Arena</b>, walk the campaign in <b>Story</b>,
+              or spend what you have earned in the <b>Shop</b>.
+            </p>
+            <button className="ghost db-open" onClick={() => setRulesOpen(true)}>
+              How to play
+            </button>
+            <button className="ghost db-open" onClick={() => setBuilderOpen(true)}>
+              Build / edit custom decks
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!started && !storyOpen && tab === "shop" && (
+        <div className="overlay">
+          <div className="modal picker shop-modal">
+            <Shop save={story} onSave={(next) => { setStory(next); saveStory(next); }} />
+          </div>
+        </div>
+      )}
+
       <DeckBuilder
         open={storyBuilder}
         onClose={() => setStoryBuilder(false)}
@@ -2340,47 +2378,9 @@ export function App() {
       />
       {rulesOpen && <RulesBook onClose={() => setRulesOpen(false)} />}
 
-      {/* ── the four destinations ─────────────────────────────────────────── */}
-      {!started && !storyOpen && tab === "home" && (
-        <div className="overlay">
-          <div className="modal picker home">
-            <picture>
-              <source srcSet="/title.webp" type="image/webp" />
-              <img className="title-logo" src="/title.jpg" alt="War Element" />
-            </picture>
-            <div className="home-hero">
-              <b>{story.hero?.name ?? "Keeper"}</b>
-              <span>
-                {story.collection.length}/{CARDS.length} cards ·{" "}
-                {story.cleared.length} nodes cleared ·{" "}
-                {heroSpellShelf(story).length} spells
-              </span>
-            </div>
-            <p>
-              Pick a fight in the <b>Arena</b>, walk the campaign in <b>Story</b>,
-              or spend what you have earned in the <b>Shop</b>.
-            </p>
-            <button className="ghost db-open" onClick={() => setRulesOpen(true)}>
-              How to play
-            </button>
-            <button className="ghost db-open" onClick={() => setBuilderOpen(true)}>
-              Build / edit custom decks
-            </button>
-          </div>
-        </div>
-      )}
-
-      {!started && !storyOpen && tab === "shop" && (
-        <div className="overlay">
-          <div className="modal picker shop-modal">
-            <Shop save={story} onSave={(next) => { setStory(next); saveStory(next); }} />
-          </div>
-        </div>
-      )}
-
       {/* Hidden during a match: a bottom bar over a 5x5 board eats the row the
           player needs most, and there is nowhere to navigate to mid-fight. */}
-      {!started && (
+      {!started && !builderOpen && !rulesOpen && (
         <BottomNav
           tab={storyOpen ? "story" : tab}
           spendable={Object.values(story.hero?.essence ?? {}).reduce((a, b) => a + b, 0)}

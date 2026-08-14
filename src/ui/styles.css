@@ -2615,7 +2615,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   position: fixed; left: 50%; bottom: max(10px, env(safe-area-inset-bottom));
   transform: translateX(-50%);
   display: flex; gap: 2px; padding: 5px;
-  border-radius: 999px; z-index: 60;
+  /* Above the base overlay layer (z-65) or it is not tappable: the menu, Home
+     and Shop are all .overlay, and a nav you cannot reach is not a nav. Kept
+     BELOW .overlay.on-top (z-100) and hidden outright while the deck builder or
+     rulebook is open, so it never floats over a real modal. */
+  border-radius: 999px; z-index: 66;
   background: color-mix(in srgb, var(--panel) 82%, transparent);
   border: 1px solid var(--gold-line);
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
