@@ -65,7 +65,7 @@ import {
   MAX_ROUNDS,
   NEGATIVE_STATUSES,
   OPENING_COST_CAP,
-  GOLD_PER_ROUND,
+  poolGainForRound,
   POOL_CARRYOVER_CAP,
   enemyOf,
   homeRow,
@@ -79,9 +79,6 @@ function clone(state: GameState): GameState {
 /** Per-turn magic gain scales in 5-round brackets: rounds 1–5 give +1/turn,
  *  6–10 give +2, 11–15 give +3, and 16+ give +4 — so the endgame ramps fuel for
  *  Specials/spells. (Round 1 grants nothing; each side opens with a pool of 3.) */
-function magicGainForRound(round: number): number {
-  return Math.min(4, Math.ceil(round / 5));
-}
 
 // ── intent reducer ──────────────────────────────────────────────────────────
 
@@ -1218,24 +1215,28 @@ function nothingCanHappen(draft: GameState): boolean {
 function doResourcePhase(draft: GameState): void {
   // Two independent pools.
   //
-  // SUMMON gold is earned off the board, not off the clock: GOLD_PER_ROUND plus
-  // one for every home slot you are standing in. It used to be the round number,
-  // which meant income was identical for both sides no matter what was happening
-  // — you were paid for surviving rather than for holding anything, and the
-  // player being pushed off their own home row got exactly as much as the player
-  // pushing them off it. Now the back line funds the front, losing your home row
-  // costs you the money to rebuild it, and a card that advances stops paying for
-  // itself. Note the tension is real in both directions: parking everything at
-  // home is rich and passive, and wins nothing.
+  // Two pools, ONE curve, two different reasons to earn.
   //
-  // MAGIC still drips off the clock — it starts at 0 and rises in 5-round
-  // brackets (+1 through 1-5, +2 through 6-10, +3 through 11-15, +4 from 16) so
-  // the endgame has fuel for Specials and spells. Both pools cap carryover at 10.
-  const magicGain = magicGainForRound(draft.round);
+  // Both now take the same five-round bracket (+1 through +5) so the endgame
+  // has fuel. Gold adds one for every home slot you are standing in on top of
+  // it, and that bonus is what makes the money positional: the back line funds
+  // the front, losing your home row costs you the money to rebuild it, and a
+  // card that advances stops paying for itself. The tension runs both ways —
+  // parking everything at home is rich, passive, and wins nothing.
+  //
+  // Gold used to be a FLAT 1 forever while magic climbed, and the two economies
+  // pulled apart: by round 12 you could fire Specials freely and barely afford a
+  // cheap card every other round, so the board thinned out as the game went long
+  // and whoever was ahead on bodies could not be answered. Summoning is what
+  // puts pieces back, and it was the one income that never grew.
+  //
+  // Both pools cap carryover at 10.
+  const magicGain = poolGainForRound(draft.round);
+  const goldBase = poolGainForRound(draft.round);
   const gains = {} as Record<PlayerId, number>;
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const p = draft.players[player];
-    const gain = GOLD_PER_ROUND + homeSlotsHeld(draft, player);
+    const gain = goldBase + homeSlotsHeld(draft, player);
     gains[player] = gain;
     // Show the money being earned, on the card earning it.
     const row = homeRow(player, draft.boardSize);

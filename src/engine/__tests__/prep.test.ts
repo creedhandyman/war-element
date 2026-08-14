@@ -297,7 +297,7 @@ describe("a round nobody can act in is not played", () => {
     s.players.P2.mulliganDone = true;
     s.phase = "resource";
     s.round = 1;
-    // An empty board earns the flat GOLD_PER_ROUND and nothing else — no slots
+    // An empty board earns the round's bracket and nothing else — no slots
     // held — so gold now climbs 1, 2, 3 rather than 1, 3, 6. Cost 3 each, so
     // the first spendable round is the THIRD, and two roll past. The round used
     // to run anyway: both sides pass, an empty battle queue resolves, nothing
@@ -326,11 +326,13 @@ describe("a round nobody can act in is not played", () => {
     s.players.P1.spellbook = [];
     s.players.P2.spellbook = [];
     const next = advance(s);
-    // A flat 1 a round off an empty board, so the pool is just the round number.
-    // Rolling stops the moment EITHER side can act — P1's cost-8 Magmadon comes
-    // online on round 8, four rounds later than the old climbing grant allowed.
-    expect(next.round).toBe(8);
-    expect(next.players.P1.gold).toBe(8);
+    // Off an empty board the pool is the bracket curve summed: 1+1+1+1+1 through
+    // round 5, then +2s. Rolling stops the moment EITHER side can act — P1's
+    // cost-8 Magmadon comes online on round 7 (5 + 2 + 2 = 9 banked by then),
+    // one round sooner than under the old flat grant and still four later than
+    // the round-number grant this replaced.
+    expect(next.round).toBe(7);
+    expect(next.players.P1.gold).toBe(9);
   });
 
   it("but a round someone CAN act in is played", () => {

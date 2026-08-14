@@ -1736,10 +1736,22 @@ export const DEFAULT_SPECIAL_COOLDOWN = 2;
  *  top of the deck, not burned). Bonus-draw rounds (10/15) partially fizzle when
  *  you're near the cap; that's the intended cost of a hand limit. */
 export const HAND_CAP = 7;
-/** Summon gold granted every round regardless of the board. The rest of the
- *  grant is one per home slot held — see `doResourcePhase`. Income used to be
- *  the round number, which paid both sides identically for simply surviving. */
-export const GOLD_PER_ROUND = 1;
+/** The per-round grant for BOTH pools, in five-round brackets: +1 through round
+ *  5, +2 through 10, +3 through 15, +4 through 20, +5 from 21 on.
+ *
+ *  Gold adds one per home slot held on top of this (see `doResourcePhase`);
+ *  magic takes it alone. They share the curve because they used not to, and the
+ *  split pulled the game apart: magic climbed while gold sat at a flat 1, so a
+ *  long game had Specials to spare and no way to replace a lost body. Summoning
+ *  is what puts pieces back on the board, and it was the one income that never
+ *  grew.
+ *
+ *  There is deliberately no GOLD_PER_ROUND constant any more — a single number
+ *  cannot describe this, and leaving one named that would invite reading it as
+ *  the whole story. */
+export function poolGainForRound(round: number): number {
+  return Math.min(5, Math.ceil(round / 5));
+}
 export const POOL_CARRYOVER_CAP = 10;
 /** DEFAULT board size for a new match. The live value is `state.boardSize` —
  *  read that, not this, anywhere a GameState is in scope. This constant only

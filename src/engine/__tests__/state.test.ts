@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { createInitialState, homeSlotsHeld } from "../state";
 import { canSummon } from "../rules";
-import { GOLD_PER_ROUND, homeRow } from "../types";
+import { homeRow, poolGainForRound } from "../types";
 import { applyIntent, advance, advanceUntilInput } from "../phases";
 import { CARDS, DECK_P1, DECK_P2, TOKENS } from "../../data/cards";
 import { freshGame, giveHand, place, prepState } from "./helpers";
@@ -246,7 +246,7 @@ describe("resource math (two pools)", () => {
     s.players.P1.gold = 0;
     s.players.P1.magicPool = 3;
     const next = advance(s);
-    expect(next.players.P1.gold).toBe(GOLD_PER_ROUND); // nothing held
+    expect(next.players.P1.gold).toBe(poolGainForRound(next.round)); // nothing held
     expect(next.players.P1.magicPool).toBe(4); // magic still drips: +1 (rounds 1–5)
   });
 
@@ -264,8 +264,8 @@ describe("resource math (two pools)", () => {
     expect(homeSlotsHeld(s, "P1")).toBe(3);
     expect(homeSlotsHeld(s, "P2")).toBe(1);
     const next = advance(s);
-    expect(next.players.P1.gold).toBe(GOLD_PER_ROUND + 3);
-    expect(next.players.P2.gold).toBe(GOLD_PER_ROUND + 1);
+    expect(next.players.P1.gold).toBe(poolGainForRound(next.round) + 3);
+    expect(next.players.P2.gold).toBe(poolGainForRound(next.round) + 1);
   });
 
   it("...and every earning card is flagged for the +1 coin animation", () => {
@@ -324,7 +324,7 @@ describe("resource math (two pools)", () => {
     const p1row = homeRow("P1", s.boardSize);
     place(s, "leaf_oak", "P2", p1row, 0); // enemy squatting on P1's home slot
     expect(homeSlotsHeld(s, "P1")).toBe(0);
-    expect(advance(s).players.P1.gold).toBe(GOLD_PER_ROUND);
+    expect(advance(s).players.P1.gold).toBe(poolGainForRound(s.round));
   });
 
   it("...and a card that advances off the home row stops paying for itself", () => {
@@ -337,10 +337,10 @@ describe("resource math (two pools)", () => {
     expect(homeSlotsHeld(s, "P1")).toBe(1);
     c.pos = { row: p1row - 1, col: 1 }; // steps forward
     expect(homeSlotsHeld(s, "P1")).toBe(0);
-    expect(advance(s).players.P1.gold).toBe(GOLD_PER_ROUND);
+    expect(advance(s).players.P1.gold).toBe(poolGainForRound(s.round));
   });
 
-  it("magic gain scales in 5-round brackets (1/2/3/4)", () => {
+  it("magic gain scales in 5-round brackets (1/2/3/4/5)", () => {
     const gain = (round: number) => {
       const s = freshGame(9);
       s.phase = "resource";
@@ -353,20 +353,46 @@ describe("resource math (two pools)", () => {
     expect(gain(10)).toBe(2);
     expect(gain(11)).toBe(3); // first of 11–15
     expect(gain(15)).toBe(3);
-    expect(gain(16)).toBe(4); // 16+ caps at +4
-    expect(gain(30)).toBe(4);
+    expect(gain(16)).toBe(4); // first of 16–20
+    expect(gain(20)).toBe(4);
+    expect(gain(21)).toBe(5); // 21+ caps at +5
+    expect(gain(30)).toBe(5);
   });
 
-  it("summon gold no longer climbs with the round number", () => {
-    // It used to be min(round, 10), so round 12 handed over 10 for nothing.
+  it("summon gold climbs on the SAME bracket curve as magic, not with the round", () => {
+    // It was min(round, 10) once — round 12 handed over 10 for nothing. Then it
+    // was a flat 1 forever, which left a long game unable to replace a body.
+    // Now both pools take the five-round bracket, and the home-slot bonus is
+    // what still makes gold positional.
     const s = freshGame(9);
     s.phase = "resource";
     s.round = 12;
     s.players.P1.gold = 0;
     s.players.P1.magicPool = 3;
     const next = advance(s);
-    expect(next.players.P1.gold).toBe(GOLD_PER_ROUND); // empty board, deep round
-    expect(next.players.P1.magicPool).toBe(6); // magic DOES still climb: 3 + 3 (11–15)
+    // Empty board: the bracket alone, no slots held. Not the round number (12).
+    expect(next.players.P1.gold).toBe(poolGainForRound(12)); // 3, not 1 and not 12
+    expect(next.players.P1.magicPool).toBe(6); // 3 + the same 3
+    expect(poolGainForRound(12)).toBe(3);
+  });
+
+  it("gold and magic grant the same base, bracket for bracket", () => {
+    // A cost-1 card in hand so the round is worth playing: an empty board with
+    // nothing affordable rolls straight into the NEXT round, which would move
+    // the grant out from under the assertion.
+    for (const [round, expected] of
+         [[1, 1], [5, 1], [6, 2], [10, 2], [11, 3], [15, 3], [16, 4], [20, 4], [21, 5], [40, 5]] as const) {
+      const s = freshGame(9);
+      s.phase = "resource";
+      s.round = round;
+      s.players.P1.gold = 0;
+      s.players.P1.magicPool = 0;
+      giveHand(s, "P1", "pyro_bbq");
+      const next = advance(s);
+      // Empty board, so gold is the base with no home-slot bonus on top.
+      expect({ round, gold: next.players.P1.gold, magic: next.players.P1.magicPool })
+        .toEqual({ round, gold: expected, magic: expected });
+    }
   });
 
   it("magic starts at 0 and drips +1 on round 1", () => {
@@ -390,7 +416,7 @@ describe("resource math (two pools)", () => {
     s.players.P1.gold = 14; // carryover clamps to 10
     s.players.P1.magicPool = 14;
     const next = advance(s);
-    expect(next.players.P1.gold).toBe(10 + GOLD_PER_ROUND); // clamped, then the flat grant
+    expect(next.players.P1.gold).toBe(10 + poolGainForRound(3)); // clamped, then the bracket grant
     expect(next.players.P1.magicPool).toBe(11);
   });
 
