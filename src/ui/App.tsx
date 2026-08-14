@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { AutoMode, EnchantMode, GameState, Intent, PlayerId, Pos } from "../engine";
 import {
   advance,
@@ -61,6 +61,7 @@ import { StoryMap } from "./StoryMap";
 import { StoryRegions } from "./StoryRegions";
 import { DeckPickerSheet, DeckSeat } from "./DeckPickerSheet";
 import { MatchLayout } from "./MatchLayout";
+import { initialStoryNav, storyNav } from "./story-nav";
 import { StoryResult } from "./StoryResult";
 import { StoryPrep } from "./StoryPrep";
 import { BottomNav, type Tab } from "./BottomNav";
@@ -69,7 +70,7 @@ import { Shop } from "./Shop";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
   loadStory, isFirstBattle, awardShards, heroBookFor, poolForRegion, recruitablePool,
-  regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
+  regionOfNode, rollRecruits, saveStory, type StorySave,
 } from "../data/story";
 
 function newSeed(): number {
@@ -212,29 +213,23 @@ export function App() {
   // a win into a recruitment roll. Null means this is an ordinary skirmish and
   // nothing should be recruited from it.
   const [story, setStory] = useState<StorySave>(() => loadStory());
-  const [storyOpen, setStoryOpen] = useState(false);
-  /** Which of the four out-of-match destinations is showing. Story keeps its own
-   *  `storyOpen` flag because the map owns the whole screen when it is up; the
-   *  tab just drives it. */
+  /** Which of the four out-of-match destinations is showing. Story keeps its
+   *  own `open` flag inside `nav` because the map owns the whole screen when it
+   *  is up; the tab just drives it. */
   const [tab, setTab] = useState<Tab>("home");
-  // The collection sits ON TOP of the map rather than replacing it, so
-  // "Show" on a card can hand a node back to the map underneath.
-  const [collectionOpen, setCollectionOpen] = useState(false);
-  const [mapFocusNode, setMapFocusNode] = useState<string | null>(null);
-  const [regionId, setRegionId] = useState<string>(REGIONS[0].id);
-  // The map-selection screen. Story lands on the MAP, not the picker: continuing
-  // where you left off is the common case, and a chooser between you and it
-  // every single time is a toll on the thing you do most.
-  const [regionsOpen, setRegionsOpen] = useState(false);
-  const region = REGIONS.find((r) => r.id === regionId) ?? REGIONS[0];
-  const [storyNode, setStoryNode] = useState<StoryNode | null>(null);
-  // A node awaiting the prep screen. Tapping a node no longer launches the
-  // battle — it opens prep, and prep launches.
-  const [prepNode, setPrepNode] = useState<StoryNode | null>(null);
-  // Campaign team building happens in the REAL deck builder. The collection is
-  // the browser — what you own and where the rest of it is — and deliberately
-  // has no editing of its own, so there is exactly one way to add a card.
-  const [storyBuilder, setStoryBuilder] = useState(false);
+  /** WHERE YOU ARE IN STORY MODE, as one value — see `story-nav.ts`. This was
+   *  nine hooks that were never nine independent facts: the three screens were
+   *  two booleans (so `collectionOpen && regionsOpen` was representable and
+   *  every render site had to spell out which wins), and a jump from the
+   *  collection to a card's source node meant setting four of them in the right
+   *  order at the call site. The save itself stays a plain `useState` below —
+   *  that is the campaign, not a screen. */
+  const [nav, navDo] = useReducer(storyNav, REGIONS[0].id, initialStoryNav);
+  const storyOpen = nav.open;
+  const region = REGIONS.find((r) => r.id === nav.regionId) ?? REGIONS[0];
+  const storyNode = nav.fightNode;
+  const prepNode = nav.prepNode;
+  const storyResult = nav.result;
   // Away from a region you hold, the builder may only offer the squad you
   // packed — otherwise a team could be built here out of cards that are a
   // border away, and the squad would only bind at the prep screen. Falls back
@@ -265,9 +260,6 @@ export function App() {
     Math.max(...region.nodes.map((n) => capForNode(story.cleared, region, n))),
     storyBuilderOwned.length || Number.POSITIVE_INFINITY,
   );
-  const [storyResult, setStoryResult] = useState<
-    { node: StoryNode; won: string[]; captured: number; lost?: boolean } | null
-  >(null);
 
   // Background music. A story region owns the sound for BOTH its map and its
   // battles, so the region reads as a place rather than a series of fights; a
@@ -345,7 +337,7 @@ export function App() {
       // A loss still stops on the result card. It used to bounce straight to the
       // map, which told you neither what beat you nor how close it was — and the
       // match report is the whole reason to re-fight a node differently.
-      setStoryResult({ node: storyNode, won: [], captured: 0, lost: true });
+      navDo({ t: "result", result: { node: storyNode, won: [], captured: 0, lost: true } });
       return;
     }
     const captured = game.slots.flat().filter((sl) => sl.capturedBy === "P1").length;
@@ -357,7 +349,7 @@ export function App() {
       saveStory(next);
       return next;
     });
-    setStoryResult({ node: storyNode, won: result.won, captured });
+    navDo({ t: "result", result: { node: storyNode, won: result.won, captured } });
   }, [started, storyNode, game, storyResult, story]);
   // An Arena win pays shards too, once per match. Without this the Arena is a
   // sandbox with no thread to progression, and "buy enough booster packs" has
@@ -2084,62 +2076,57 @@ export function App() {
           firstClear={!story.cleared.includes(storyResult.node.id)}
           exhausted={recruitablePool(storyResult.node).every((id) => story.collection.includes(id))}
           onDone={() => {
-            setStoryResult(null);
-            setStoryNode(null);
             setStarted(false);
-            setStoryOpen(true);
+            navDo({ t: "closeResult" });
           }}
         />
       )}
 
-      {storyOpen && !started && collectionOpen && (
+      {storyOpen && !started && nav.view === "collection" && (
         <StoryCollection
           save={story}
           onSave={(next) => { setStory(next); saveStory(next); }}
-          onClose={() => setCollectionOpen(false)}
+          onClose={() => navDo({ t: "view", view: "map" })}
           element={region.element}
-          onOpenBuilder={() => setStoryBuilder(true)}
-          onGoToNode={(id) => {
-            // A card's source can live in a region the map isn't showing.
-            const home = regionOfNode(id);
-            if (home) setRegionId(home.id);
-            setMapFocusNode(id);
-            setCollectionOpen(false);
-            setRegionsOpen(false);
-          }}
+          onOpenBuilder={() => navDo({ t: "builder", open: true })}
+          onGoToNode={(id) =>
+            // A card's source can live in a region the map isn't showing; the
+            // reducer owns what a jump involves.
+            navDo({ t: "goToNode", nodeId: id, regionId: regionOfNode(id)?.id })
+          }
         />
       )}
 
-      {storyOpen && !started && !collectionOpen && regionsOpen && (
+      {storyOpen && !started && nav.view === "regions" && (
         <StoryRegions
           save={story}
-          currentId={region.id}
-          onPick={(id) => { setRegionId(id); setRegionsOpen(false); }}
-          onClose={() => setRegionsOpen(false)}
+          currentId={nav.regionId}
+          onPick={(id) => navDo({ t: "pickRegion", regionId: id })}
+          onClose={() => navDo({ t: "view", view: "map" })}
         />
       )}
 
-      {storyOpen && !started && !collectionOpen && !regionsOpen && (
+      {storyOpen && !started && nav.view === "map" && (
         <StoryMap
           region={region}
           save={story}
           onSave={(next) => { setStory(next); saveStory(next); }}
-          onOpenRegions={() => setRegionsOpen(true)}
-          onOpenCollection={() => setCollectionOpen(true)}
-          focusNodeId={mapFocusNode}
-          onFocusHandled={() => setMapFocusNode(null)}
-          onFight={(node) => setPrepNode(node)}
+          onOpenRegions={() => navDo({ t: "view", view: "regions" })}
+          onOpenCollection={() => navDo({ t: "view", view: "collection" })}
+          focusNodeId={nav.focusNodeId}
+          onFocusHandled={() => navDo({ t: "focusHandled" })}
+          onFight={(node) => navDo({ t: "prep", node })}
         />
       )}
 
-      {storyOpen && !started && !collectionOpen && prepNode && (
+      {storyOpen && !started && nav.view !== "collection" && prepNode && (
         <StoryPrep
           region={regionOfNode(prepNode.id) ?? region}
           node={prepNode}
           save={story}
           onSave={(next) => { setStory(next); saveStory(next); }}
-          onEditDeck={() => setStoryBuilder(true)}
-          onCancel={() => setPrepNode(null)}
+          onEditDeck={() => navDo({ t: "builder", open: true })}
+          onCancel={() => navDo({ t: "prep", node: null })}
           onFight={(deck) => {
             const node = prepNode;
             // The node's own region decides the board and the Blight, not
@@ -2172,9 +2159,7 @@ export function App() {
             const foeBook = spellbookFor(squad).map((sl) => sl.defId);
             setGame(createInitialState(newSeed(), deck, squad, ["P1"], heroBook, foeBook, board,
               deploy, terrain));
-            setPrepNode(null);
-            setStoryNode(node);
-            setStoryOpen(false);
+            navDo({ t: "fight", node });
             setViewSide("P1");
             setSel(null);
             setPending(null);
@@ -2406,7 +2391,7 @@ export function App() {
           onSave={(next) => { setStory(next); saveStory(next); }}
           onClose={() => setTab("arena")}
           closeLabel="To the Arena"
-          onOpenBuilder={() => setStoryBuilder(true)}
+          onOpenBuilder={() => navDo({ t: "builder", open: true })}
         />
       )}
 
@@ -2419,8 +2404,8 @@ export function App() {
       )}
 
       <DeckBuilder
-        open={storyBuilder}
-        onClose={() => setStoryBuilder(false)}
+        open={nav.builder}
+        onClose={() => navDo({ t: "builder", open: false })}
         onChange={() => {}}
         story={{
           owned: storyBuilderOwned,
@@ -2479,10 +2464,7 @@ export function App() {
             setTab(t);
             // Story owns the whole screen when it is up, so entering and leaving
             // it is a real transition rather than just a tab swap.
-            if (t === "story") { setStoryOpen(true); return; }
-            setStoryOpen(false);
-            setCollectionOpen(false);
-            setPrepNode(null);
+            navDo({ t: t === "story" ? "open" : "close" });
           }}
         />
       )}
