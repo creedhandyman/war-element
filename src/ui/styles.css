@@ -1359,10 +1359,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .cd-x:hover { color: var(--ink); }
 .cd-body { display: flex; gap: 14px; }
 .cd-art { position: relative; width: 122px; height: 150px; flex: none; border-radius: 12px; border: 2px solid var(--panel-line); overflow: hidden; background: var(--void-2); }
-.cd-art img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+/* 14% down, not flush to the top. The art is painted with headroom, so a
+   `top` crop frames the empty sky above a character and cuts their chin; the
+   design's offset lands the face in the box. */
+.cd-art img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 14%; }
 .cd-art.no-art::after { content: "No art"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-faint); font-size: 11px; }
 .cd-cost { position: absolute; top: 6px; left: 6px; width: 24px; height: 24px; border-radius: 50%; background: rgba(0,0,0,0.6); display: grid; place-items: center; font-size: 13px; font-weight: 800; }
-.cd-el-badge { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; border: 2px solid var(--panel-line); background: #0d0c14; }
+/* Bottom-right, opposite the cost pip. Both marks along the top edge crowded
+   the one strip of art a portrait can least afford to lose. */
+.cd-el-badge { position: absolute; bottom: 6px; right: 6px; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; border: 2px solid var(--panel-line); background: #0d0c14; }
 .cd-el-badge img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .cd-info { flex: 1; min-width: 0; }
 .cd-name { font-size: 19px; font-weight: 800; line-height: 1.1; }
