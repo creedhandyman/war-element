@@ -2418,25 +2418,38 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     padding: 0 8px; border-radius: var(--r-chip); cursor: pointer;
     background: rgba(10, 12, 22, 0.5); border: 1px solid rgba(201, 162, 75, 0.18);
   }
-  /* Only the newest line, and it must not wrap the strip open. */
-  .rail:not(.queue-rail) .loglist {
-    flex: 1; min-width: 0; overflow: hidden; padding: 0; gap: 0;
-    display: flex; flex-direction: column-reverse; justify-content: flex-start; max-height: 16px;
-  }
-  .rail:not(.queue-rail) .loglist > * {
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    font-size: var(--fs-3); line-height: 16px; margin: 0;
-  }
+  /* CLOSED, not previewing. The strip used to show the newest line, which
+     sounded glanceable and was not: after the label there are ~250px left, log
+     lines run far longer than that, and every one arrived ellipsised mid-word
+     ("— Lushfield runs over the whole battlefi…"). A fragment you cannot
+     finish reading is worse than no line, because it asks to be read.
+
+     So the strip is a labelled tap target and nothing else. It keeps its 24px
+     — the board does not gain anything useful from 24px and losing the log
+     entirely off a phone is worse — and one tap still opens the full drawer,
+     which is where the log is actually readable. */
+  .rail:not(.queue-rail) .loglist { display: none; }
   .rail:not(.queue-rail) .rail-title {
-    flex: 0 0 auto; font-size: var(--fs-1); letter-spacing: 0.08em;
-    color: var(--ink-faint); padding: 0; border: none;
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px;
+    font-size: var(--fs-1); letter-spacing: 0.08em;
+    color: var(--ink-faint); padding: 0; border: none; margin: 0;
+  }
+  /* The affordance the design draws as ⌃, on the label rather than on a
+     separate button — see the collapse toggle below. */
+  .rail:not(.queue-rail) .rail-title::after {
+    content: "tap to read ⌃"; margin-left: auto;
+    font-size: var(--fs-1); letter-spacing: 0.06em; color: var(--ink-faint); opacity: .75;
   }
   .rail:not(.queue-rail) .rail-title .panel-close { display: none; }
-  /* The affordance the design draws as ⌃ — the collapse button, repurposed. */
-  .rail:not(.queue-rail) .rail-collapse {
-    display: block; flex: 0 0 auto; position: static; width: auto; height: auto;
-    padding: 0 2px; font-size: var(--fs-3); background: none; border: none; color: var(--ink-faint);
-  }
+  /* No collapse toggle on a phone. It sits INSIDE the strip, so a tap on it
+     both collapsed the rail and bubbled to the strip's own open handler — two
+     meanings on one target — and with the preview gone the collapsed state is
+     an empty bar. One tap target, one meaning. */
+  .rail:not(.queue-rail) .rail-collapse { display: none; }
+  /* A collapsed flag set on a wider layout (or before a rotate) must not leave
+     this strip blank — the phone shape has no collapsed state. */
+  .rail:not(.queue-rail).collapsed { padding: 0 8px; }
+  .rail:not(.queue-rail).collapsed .rail-title { display: flex; }
 
   /* Tapped: the same element becomes the full-height drawer it used to be. */
   .rail:not(.queue-rail).mobile-open {
@@ -2454,6 +2467,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     border-bottom: 1px solid var(--panel-line);
   }
   .rail:not(.queue-rail).mobile-open .rail-title .panel-close { display: block; }
+  /* The strip's hint, gone once the drawer it invites you to open IS open. */
+  .rail:not(.queue-rail).mobile-open .rail-title::after { content: none; }
   .rail:not(.queue-rail).mobile-open .rail-collapse { display: none; }
 
   /* ── Speed Queue → a HORIZONTAL strip under the board ───────────────────
