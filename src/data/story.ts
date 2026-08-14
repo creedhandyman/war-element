@@ -1536,20 +1536,27 @@ export type CapRung = {
 export const CAP_LADDER: readonly CapRung[] = [
   { cap: 12, board: 4, unlockedBy: null, label: "Starting deck" },
   { cap: 15, board: 4, unlockedBy: "L14", label: "LEAF Throne" },
-  { cap: 18, board: 4, unlockedBy: "P13", label: "PYRO Throne" }, // 4x4 format max
+  { cap: 18, board: 4, unlockedBy: "P13", label: "PYRO Throne" }, // = the 4x4 format
   { cap: 18, board: 4, unlockedBy: "A13", label: "AQUA Throne" }, // either Act II Throne
   // Act IV wants BOTH Green Thrones, not either — an array means ALL of them.
-  { cap: 22, board: 5, unlockedBy: ["P13", "A13"], label: "Both Green Thrones" },
+  { cap: 24, board: 5, unlockedBy: ["P13", "A13"], label: "Both Green Thrones" },
   // Act V: TWO of the three Gray Thrones, in any combination. `count` is what
   // keeps the Gray Continent order-free.
-  { cap: 28, board: 5, unlockedBy: ["G14", "B14", "R14"], count: 2, label: "Two of three Gray Thrones" },
+  { cap: 30, board: 5, unlockedBy: ["G14", "B14", "R14"], count: 2, label: "Two of three Gray Thrones" },
 ];
 
-/** The ceiling a fight imposes, by board. These are the two constructed formats:
- *  4x4 is a 12-20 card game and 5x5 is a 20-30 card game, so a campaign fight on
- *  either board is now back INSIDE its format at the top of the ladder. */
+/** The ceiling a fight imposes, by board — and these ARE the constructed
+ *  formats: 4x4 is eighteen cards and 5x5 is thirty, exactly, in the Arena.
+ *  The campaign ramps up to them rather than living inside a band, so the deck
+ *  a finished campaign builds is a legal Arena deck for the same board.
+ *
+ *  BIG_BOARD_CAP was 28 — the old 5x5 *target* when the format was a 20-30
+ *  range. A campaign that went all the way still topped out two cards short of
+ *  a legal big-board deck, with nothing saying why. Changing either of these
+ *  is a FORMAT change: `DECK_LIMITS` in `custom-decks.ts` is the other half,
+ *  the Arena shares it, and the premade decks are built to it exactly. */
 export const STANDARD_CAP = 18;
-export const BIG_BOARD_CAP = 28;
+export const BIG_BOARD_CAP = 30;
 
 /** The deck cap for THIS fight: the ladder, clamped by the board.
  *
@@ -1734,8 +1741,8 @@ export const BIG_BATTLE_KINDS: readonly NodeKind[] = ["landmark", "throne"];
 /** The board a node is fought on — decided by the NODE, not by deck size.
  *
  *  This deliberately breaks the old coupling. Constructed play ties the two
- *  together (`custom-decks.ts` DECK_LIMITS: 4x4 wants 12-20 cards, 5x5 wants
- *  20-30), and while the campaign cap ladder ran to 28 the campaign could honour
+ *  together (`custom-decks.ts` DECK_LIMITS: 4x4 is exactly 18 cards, 5x5 is
+ *  exactly 30), and while the campaign cap ladder ran to 28 the campaign could honour
  *  it — every tier was legal on exactly one board. With the ladder now topping
  *  out at 18 that is no longer possible: an 18-card deck is under the
  *  constructed 5x5 minimum, so a Landmark or Throne is fought DELIBERATELY off

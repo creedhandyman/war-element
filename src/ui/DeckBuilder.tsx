@@ -10,6 +10,7 @@ import {
   validateDeck,
   type CustomDeck,
 } from "../data/custom-decks";
+import { STANDARD_CAP } from "../data/story";
 import { EL_COLOR, EL_ICON, RARITY_STYLE, spellArtSrc } from "./shared";
 import { CardView } from "./CardView";
 import { DeckStats, useComposition } from "./DeckStats";
@@ -25,7 +26,7 @@ const RARITY_RANK: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, 
 const rarityRank = (r?: string) => (r && r in RARITY_RANK ? RARITY_RANK[r] : 99);
 
 /**
- * Build / edit / delete custom decks (12–20 cards). A sandbox for trying new
+ * Build / edit / delete custom decks (exactly 18 on 4×4, 30 on 5×5). A sandbox for trying new
  * cards without touching the Core system. Persists to localStorage; calls
  * `onChange` so the picker can refresh its list.
  */
@@ -51,15 +52,15 @@ export function DeckBuilder(props: {
   open: boolean;
   onClose: () => void;
   onChange: (decks: CustomDeck[]) => void;
-  /** Battlefield the player is building for — decides the legal deck size
-   *  (18 on the standard board, 28 on the large one). */
+  /** Battlefield the player is building for — decides the legal deck size,
+   *  which is EXACT: 18 on the standard board, 30 on the large one. */
   boardSize?: number;
   /** Present = building a campaign team, not a custom deck. */
   story?: StoryBuildMode;
 }) {
   const story = props.story;
   // Which battlefield this deck is being built for — you can build an 18-card
-  // (4×4) or a 28-card (5×5) deck regardless of the current game mode.
+  // (4×4) or a 30-card (5×5) deck regardless of the current game mode.
   const [buildSize, setBuildSize] = useState<number>(props.boardSize ?? 4);
   // Story Mode's ceiling is the campaign's, not the format's. `min` stays 1 —
   // `loadoutLegal` deliberately treats the cap as a ceiling, not a quota, so a
@@ -239,14 +240,14 @@ export function DeckBuilder(props: {
             {story ? (
               <div className="db-storycap">
                 carry up to <b>{story.cap}</b>
-                {story.cap > 18 && <span> · set-piece size</span>}
+                {story.cap > STANDARD_CAP && <span> · set-piece size</span>}
               </div>
             ) : (
               <div className="db-size">
                 {/* Switching board also switches the spellbook cap (5 / 8), so trim
                     any picks the smaller board can't legally hold. */}
-                <button className={buildSize === 4 ? "act" : ""} onClick={() => { setBuildSize(4); setPickedSpells((cur) => cur.slice(0, deckLimits(4).spells)); }}>4×4 · 18</button>
-                <button className={buildSize === 5 ? "act" : ""} onClick={() => setBuildSize(5)}>5×5 · 28</button>
+                <button className={buildSize === 4 ? "act" : ""} onClick={() => { setBuildSize(4); setPickedSpells((cur) => cur.slice(0, deckLimits(4).spells)); }}>4×4 · {deckLimits(4).target}</button>
+                <button className={buildSize === 5 ? "act" : ""} onClick={() => setBuildSize(5)}>5×5 · {deckLimits(5).target}</button>
               </div>
             )}
             {/* THE CAPACITY RULER.
@@ -260,13 +261,23 @@ export function DeckBuilder(props: {
             <div className="db-count" style={{ color: countColor }}>
               {picked.length} / {limits.target} cards
               {!check.ok && limits.min > 1 && (
-                <span className="db-hint"> · needs {limits.min}–{limits.max}</span>
+                <span className="db-hint">
+                  {/* The Arena formats are one number, so say the number.
+                      "needs 12–20" described a band that no longer exists. */}
+                  {limits.min === limits.max
+                    ? ` · needs exactly ${limits.max}`
+                    : ` · needs ${limits.min}–${limits.max}`}
+                </span>
               )}
             </div>
             <div
               className="db-ruler"
               role="img"
-              aria-label={`${picked.length} of ${limits.target} cards; legal from ${limits.min} to ${limits.max}`}
+              aria-label={
+                limits.min === limits.max
+                  ? `${picked.length} of ${limits.max} cards; a legal deck is exactly ${limits.max}`
+                  : `${picked.length} of ${limits.target} cards; legal from ${limits.min} to ${limits.max}`
+              }
             >
               {Array.from({ length: limits.max }, (_, i) => {
                 const n = i + 1;
@@ -274,9 +285,12 @@ export function DeckBuilder(props: {
                   n <= picked.length ? "on" : "",
                   // Only mark the band when there IS one — story teams have
                   // min 1, where a "minimum" tick is noise.
-                  limits.min > 1 && n === limits.min ? "min" : "",
+                  // With an exact format min, target and max are the SAME cell;
+                  // stacking three marks on it just muddies the end of the
+                  // track, so the target mark alone carries it.
+                  limits.min > 1 && limits.min !== limits.max && n === limits.min ? "min" : "",
                   n === limits.target ? "target" : "",
-                  n === limits.max ? "max" : "",
+                  limits.min !== limits.max && n === limits.max ? "max" : "",
                   n <= picked.length && picked.length > limits.max ? "over" : "",
                 ].filter(Boolean).join(" ");
                 return <i key={n} className={`db-cell ${marks}`} />;

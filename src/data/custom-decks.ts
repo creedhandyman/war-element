@@ -10,7 +10,14 @@ import type { CardDef } from "../engine/types";
 
 /** Deck-size rules for one battlefield. The bigger board holds more cards, so
  *  it wants a deeper deck — 25 slots and a longer game against 16 and a short
- *  one — AND a deeper spellbook (8 against the standard 5). */
+ *  one — AND a deeper spellbook (8 against the standard 5).
+ *
+ *  These are EXACT sizes, not a band: 4x4 is eighteen cards and 5x5 is thirty,
+ *  no more and no less. `min`, `max` and `target` are all the same number and
+ *  the three fields are kept only because every caller reads them by name.
+ *  They used to be ranges (12-20 and 20-30) with a target inside, which meant
+ *  two decks in the same format could differ by eight cards and the shorter one
+ *  simply drew its best card more often — consistency IS the format. */
 export interface DeckLimits {
   min: number;
   max: number;
@@ -19,9 +26,12 @@ export interface DeckLimits {
   spells: number;
 }
 const DECK_LIMITS: Record<number, DeckLimits> = {
-  4: { min: 12, max: 20, target: 18, spells: MAX_SPELLBOOK },
-  5: { min: 20, max: 30, target: 28, spells: MAX_SPELLBOOK_LARGE },
+  4: { min: 18, max: 18, target: 18, spells: MAX_SPELLBOOK },
+  5: { min: 30, max: 30, target: 30, spells: MAX_SPELLBOOK_LARGE },
 };
+/** The one number a board's deck must be. Prefer this where the old code said
+ *  `target` or `max` and meant "the size". */
+export const deckSizeFor = (boardSize = 4): number => deckLimits(boardSize).target;
 /** Limits for a board size; anything unrecognised falls back to the standard. */
 export function deckLimits(boardSize = 4): DeckLimits {
   return DECK_LIMITS[boardSize] ?? DECK_LIMITS[4];
@@ -72,7 +82,7 @@ export function sanitizeSpells(ids: string[] | undefined, boardSize = 5): string
 export interface PremadeDeck extends CustomDeck {
   premade: true;
   /** Which battlefield this build is sized for. The picker only offers decks
-   *  matching the selected mode, so a 28-card list never shows up for a 4×4. */
+   *  matching the selected mode, so a 30-card list never shows up for a 4×4. */
   boardSize: 4 | 5;
 }
 
@@ -230,34 +240,43 @@ const STANDARD_DECKS: PremadeDeck[] = [
   },
 ];
 
-/** The ten cards each standard deck gains on the large board, keyed by its id.
- *  Five per element so every build stays an even 14/14, and deliberately
- *  bottom-heavy: a 28-card deck draws the same one-per-round, so padding the
- *  top would just mean more dead openers. Each list is drawn from that deck's
- *  own two elements. */
+/** The twelve cards each standard deck gains on the large board, keyed by its
+ *  id. Six per element so every two-element build stays an even 15/15 (the
+ *  three-element ones land on 10/10/10), and deliberately bottom-heavy: a
+ *  30-card deck draws the same one-per-round, so padding the top would just
+ *  mean more dead openers. Each list is drawn from that deck's own elements.
+ *
+ *  Twelve rather than ten because the 5x5 format is exactly thirty cards; at
+ *  ten these decks were 28 and simply illegal once the format stopped being a
+ *  range. The two added to each are the cheapest unused card of the elements
+ *  that were short, which is also where a longer game wants them. */
 const LARGE_EXTRAS: Record<string, string[]> = {
   // +5 BOLT / +5 PYRO, all 1–4 cost — the deck is an aggro shell and wants
   // early bodies, not a second wave of finishers.
   pre_inferno_blitz: [
     "bolt_twotales", "bolt_kore", "bolt_buzz", "bolt_static", "bolt_webster",
     "pyro_smog_card", "pyro_bbq", "pyro_ingit", "pyro_spitfire", "pyro_fenrir",
+    "bolt_junker", "pyro_sparky",
   ],
   // +6 BORE / +4 AQUA — evens the 8/10 split the standard build carries.
   // Nothing above 5: it already tops out at 6,6,7,10.
   pre_frostkeep: [
     "bore_cavedweller", "bore_crock", "bore_clubber", "bore_smith", "bore_rockgoblin",
     "bore_rollo", "aqua_icyninza", "aqua_krakler", "aqua_bahari", "aqua_vaporem",
+    "bore_kcor", "aqua_piranha",
   ],
   // +5 DAWN / +5 LEAF — more bodies to hide the healers behind, which is the
   // deck's whole plan.
   pre_radiant_host: [
     "dawn_sphere", "dawn_glime", "dawn_musk_ox", "dawn_lazor", "dawn_veil",
     "leaf_stickviper", "leaf_cactus", "leaf_greegon", "leaf_alpha", "leaf_squanch",
+    "dawn_flash", "leaf_nettle",
   ],
   // +5 GALE / +5 DUSK — cheap evasive tempo, in keeping with the shell.
   pre_nightfall: [
     "gale_skyforce", "gale_toxhawk", "gale_whirlwolf", "gale_hawko", "gale_guan",
     "dusk_vamp", "dusk_spider", "dusk_skeleton_knight", "dusk_gool", "dusk_scarlett",
+    "gale_syt_bird", "dusk_pumpkin",
   ],
   // +4 AQUA / +3 GALE / +3 BOLT — more cheap disruptors to keep the lock going
   // across the bigger board.
@@ -265,12 +284,14 @@ const LARGE_EXTRAS: Record<string, string[]> = {
     "aqua_misty", "aqua_icyninza", "aqua_bahari", "aqua_vaporem",
     "gale_toxhawk", "gale_whirlwolf", "gale_hawko",
     "bolt_twotales", "bolt_static", "bolt_kore",
+    "gale_skyforce", "bolt_zap",
   ],
   // +3 LEAF / +3 PYRO / +4 DUSK — extra early bodies + DOT appliers for the grind.
   pre_blight: [
     "leaf_cactus", "leaf_alpha", "leaf_nettle",
     "pyro_bbq", "pyro_smog_card", "pyro_sparky",
     "dusk_spider", "dusk_gool", "dusk_scarlett", "dusk_skeleton_knight",
+    "leaf_birch", "pyro_ingit",
   ],
 };
 
@@ -341,12 +362,18 @@ export interface DeckValidation {
   reason?: string;
 }
 
-/** A deck is valid when it's 12–20 unique, buildable cards. */
+/** A deck is valid when it is exactly the board's size in unique, buildable
+ *  cards — 18 on 4×4, 30 on 5×5. */
 export function validateDeck(cards: string[], boardSize = 4): DeckValidation {
   const { min, max } = deckLimits(boardSize);
   const unique = new Set(cards);
   if (unique.size !== cards.length) return { ok: false, reason: "Duplicate cards" };
   if (cards.some((id) => !isBuildable(id))) return { ok: false, reason: "Unknown card" };
+  // One message when the format is an exact size, because "need at least 30"
+  // followed later by "at most 30" describes a range nobody can build in.
+  if (min === max && cards.length !== min) {
+    return { ok: false, reason: `A ${boardSize}×${boardSize} deck is exactly ${min} cards` };
+  }
   if (cards.length < min) return { ok: false, reason: `Need at least ${min} cards` };
   if (cards.length > max) return { ok: false, reason: `At most ${max} cards` };
   return { ok: true };

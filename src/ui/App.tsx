@@ -65,9 +65,8 @@ import { BottomNav, type Tab } from "./BottomNav";
 import { ActionWheel, type WheelVerb } from "./ActionWheel";
 import { Shop } from "./Shop";
 import {
-  PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, deckCapFor,
-  STANDARD_CAP, BIG_BOARD_CAP,
-  loadStory, isFirstBattle, awardShards, heroBookFor, poolForRegion, recruitablePool, squadCapInRegion,
+  PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
+  loadStory, isFirstBattle, awardShards, heroBookFor, poolForRegion, recruitablePool,
   regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
 
@@ -239,9 +238,24 @@ export function App() {
   const foilIds = useMemo(() => new Set(story.hero?.shiny ?? []), [story.hero?.shiny]);
   const storyPool = poolForRegion(story, region);
   const storyBuilderOwned = storyPool.length ? storyPool : story.collection;
+  // Clamped by the POOL, not by the squad limit. The squad counts only what
+  // you carry from ELSEWHERE — the region's own element travels free and is
+  // already in the pool — so clamping deck size by it capped a deck at the
+  // number of foreigners in it and ignored every local. Standing in PYRO with
+  // four Thrones taken, that read "carry up to 20" against a ladder of 22 and
+  // a pool far larger, and no amount of progress moved it.
+  //
+  // `capForNode` dropped this same clamp for the same reason and left a
+  // comment saying so; this call site was missed. It now matches `fightCap`,
+  // which is the number prep actually fights at.
+  // The biggest fight this REGION can ask for, which is what a deck built here
+  // should be allowed to fill: the ladder, clamped per node by that node's
+  // board, maxed across the region — so a region with a 5x5 set piece in it
+  // builds to the set piece. A flat `max(STANDARD_CAP, …)` floor said 20 in
+  // Act I while every Act I fight fields 12.
   const storyBuilderCap = Math.min(
-    Math.max(STANDARD_CAP, Math.min(deckCapFor(story.cleared), BIG_BOARD_CAP)),
-    squadCapInRegion(story.cleared, region) ?? Number.POSITIVE_INFINITY,
+    Math.max(...region.nodes.map((n) => capForNode(story.cleared, region, n))),
+    storyBuilderOwned.length || Number.POSITIVE_INFINITY,
   );
   const [storyResult, setStoryResult] = useState<
     { node: StoryNode; won: string[]; captured: number; lost?: boolean } | null
@@ -262,7 +276,7 @@ export function App() {
   // effect below re-points these if the player switches battlefield.
   const [p1DeckId, setP1DeckId] = useState(premadeDecksFor(4)[0].id);
   const [p2DeckId, setP2DeckId] = useState(premadeDecksFor(4)[1].id);
-  // Premade builds sized for the CHOSEN battlefield — a 28-card large build must
+  // Premade builds sized for the CHOSEN battlefield — a 30-card large build must
   // never show up in a 4x4 picker, and vice versa.
   const modePremades = premadeDecksFor(boardSize);
   // Selectable decks = those + the player's own custom decks. Custom decks have

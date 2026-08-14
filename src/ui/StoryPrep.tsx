@@ -16,7 +16,7 @@ import {
   boardForNode, deckCapFor, deckForRegion, fightCap, isGate, loadoutLegal, loadoutsFor, localCards,
   packSquad, packableFor, poolForRegion, preferredLoadout, recruitablePool, rememberDeck,
   squadCapInRegion, squadFor, squadIsExplicit, squadIsOfferable,
-  type Loadout, type StoryNode, type StoryRegion, type StorySave,
+  type Loadout, type StoryNode, type StoryRegion, type StorySave, STANDARD_CAP,
 } from "../data/story";
 import { CardView } from "./CardView";
 
@@ -34,7 +34,8 @@ export function StoryPrep(props: {
 }) {
   const { region, node, save } = props;
   // The fight's cap, not the campaign's: a set piece opens up to 28 once the
-  // ladder allows it, an ordinary node stays at 18 however far along you are.
+  // ladder allows it, an ordinary node stays at STANDARD_CAP however far along
+  // you are.
   const cap = fightCap(save, region, node);
   const board = boardForNode(region, node);
   const ladder = deckCapFor(save.cleared);
@@ -256,7 +257,7 @@ export function StoryPrep(props: {
           <span><b>{region.element}</b> · {region.terrain} runs all battle</span>
           <span>
             Deck cap <b>{cap}</b>
-            {cap > 18 && " · the big board opens it up"}
+            {cap > STANDARD_CAP && " · the big board opens it up"}
             {cap < ladder && squadLimit === null && ` · ${ladder} allowed on a set piece`}
           </span>
           {/* Away from home the squad is usually the binding constraint, and it

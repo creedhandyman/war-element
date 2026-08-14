@@ -21,7 +21,7 @@ describe("premade decks", () => {
       });
 
       it(`is a legal deck (${limits.min}-${limits.max} unique buildable cards)`, () => {
-        // Validated against ITS OWN board size — a 28-card large build is legal
+        // Validated against ITS OWN board size — a 30-card large build is legal
         // there and illegal on the standard board, which is the point.
         expect(validateDeck(deck.cards, deck.boardSize)).toEqual({ ok: true });
       });
@@ -50,18 +50,19 @@ describe("board-sized premade builds", () => {
     // Four dual-element decks + two three-element decks (Tempest, Blight).
     expect(premadeDecksFor(4)).toHaveLength(6);
     expect(premadeDecksFor(5)).toHaveLength(6);
-    for (const d of premadeDecksFor(4)) expect(d.cards).toHaveLength(18);
-    for (const d of premadeDecksFor(5)) expect(d.cards).toHaveLength(28);
+    // The formats are EXACT sizes, not bands — eighteen and thirty.
+    for (const d of premadeDecksFor(4)) expect(d.cards).toHaveLength(deckLimits(4).target);
+    for (const d of premadeDecksFor(5)) expect(d.cards).toHaveLength(deckLimits(5).target);
   });
 
-  it("each large build is its standard shell plus ten cards", () => {
+  it("each large build is its standard shell plus twelve cards", () => {
     // Derived, not duplicated: editing a standard list must carry into its 5x5
     // twin rather than leaving the two to drift.
     for (const std of premadeDecksFor(4)) {
       const large = premadeDecksFor(5).find((d) => d.id === `${std.id}_5`)!;
       expect(large, `no large twin for ${std.id}`).toBeTruthy();
       expect(large.cards.slice(0, std.cards.length)).toEqual(std.cards);
-      expect(large.cards.length - std.cards.length).toBe(10);
+      expect(large.cards.length - std.cards.length).toBe(12);
       expect(large.name).toBe(std.name);
       // The spellbook EXTENDS rather than matching: the big board's cap is 8,
       // not 5, and the large build used to inherit the standard five and stop —
@@ -71,15 +72,15 @@ describe("board-sized premade builds", () => {
     }
   });
 
-  it("a 28-card deck is rejected on the standard board", () => {
+  it("a large-board deck is rejected on the standard board", () => {
     const large = premadeDecksFor(5)[0];
     expect(validateDeck(large.cards, 4).ok).toBe(false);
     expect(validateDeck(large.cards, 5).ok).toBe(true);
   });
 
   it("large builds keep an even element split", () => {
-    // As even as the element count allows across all 28 cards: a 2-element deck
-    // is 14/14, a 3-element deck is 9/9/10 — the extras are weighted to balance.
+    // As even as the element count allows across all 30 cards: a 2-element deck
+    // is 15/15, a 3-element deck is 10/10/10 — the extras balance the shell.
     for (const d of premadeDecksFor(5)) {
       const els: Record<string, number> = {};
       for (const id of d.cards) {
@@ -88,7 +89,7 @@ describe("board-sized premade builds", () => {
       }
       const counts = Object.values(els);
       const total = counts.reduce((a, b) => a + b, 0);
-      expect(total, `${d.name} total`).toBe(28);
+      expect(total, `${d.name} total`).toBe(deckLimits(5).target);
       // Even split: the largest and smallest element counts differ by at most 1.
       expect(Math.max(...counts) - Math.min(...counts), `${d.name} split ${JSON.stringify(els)}`).toBeLessThanOrEqual(1);
     }

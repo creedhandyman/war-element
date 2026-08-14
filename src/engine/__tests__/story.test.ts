@@ -116,13 +116,13 @@ describe("story: the deck cap ladder", () => {
 
   it("makes Act IV wait for BOTH Green Thrones, not either", () => {
     // §2's revision still holds, but the CAP no longer carries it: the ladder
-    // tops out at 18 in Act II, so both routes leave you at the same size and
-    // the requirement lives entirely in Gate E, which is where it reads better
-    // anyway — "the border is shut until both Thrones fall" is a map fact, not
-    // a deckbuilding one.
-    expect(deckCapFor(["L14", "P13"])).toBe(18);
-    expect(deckCapFor(["L14", "A13"])).toBe(18);
-    expect(deckCapFor(["L14", "P13", "A13"])).toBe(22);
+    // tops out at the 4x4 format max in Act II, so both routes leave you at the
+    // same size and the requirement lives entirely in Gate E, which is where it
+    // reads better anyway — "the border is shut until both Thrones fall" is a
+    // map fact, not a deckbuilding one.
+    expect(deckCapFor(["L14", "P13"])).toBe(STANDARD_CAP);
+    expect(deckCapFor(["L14", "A13"])).toBe(STANDARD_CAP);
+    expect(deckCapFor(["L14", "P13", "A13"])).toBe(24);
     expect(nodeById("GE")!.requires).toEqual(expect.arrayContaining(["P13", "A13"]));
   });
 
@@ -186,7 +186,7 @@ describe("story: the deck cap ladder", () => {
     expect(buildFormation(newSave(), leaf, l1)).toEqual(["leaf_nettle", "leaf_weeds"]);
     expect(l1.roster).toHaveLength(3); // Greegon is on the roster, just not fielded
     // And it stays small however far the ladder has climbed — coming back later
-    // with the same one card must not turn the tutorial into a 28-card fight.
+    // with the same one card must not turn the tutorial into a 30-card fight.
     const late = { ...newSave(), cleared: ["L14", "P13", "A13", "G14", "B14"] };
     expect(buildFormation(late, leaf, l1)).toHaveLength(2);
     // The node after it is an ordinary fight again.
@@ -1163,7 +1163,7 @@ describe("story: PYRO", () => {
 
   it("raises the deck cap to the 4x4 format max on its Throne", () => {
     expect(deckCapFor(["L14"])).toBe(15);
-    expect(deckCapFor(["L14", "P13"])).toBe(18);
+    expect(deckCapFor(["L14", "P13"])).toBe(STANDARD_CAP); // 18 — the 4x4 format exactly
     expect(deckCapFor(["L14", "P12"])).toBe(15); // the optional Throne unlocks nothing
   });
 
@@ -1606,9 +1606,10 @@ describe("story: board size is welded to deck size", () => {
     // Act I: the clamp does nothing, because the ladder is below both ceilings.
     expect(capForNode([], leaf, small)).toBe(12);
     expect(capForNode([], leaf, big)).toBe(12);
-    // Act V: the small board holds at 18 while the set piece opens to 28.
+    // Act V: the small board holds at its format max while the set piece opens
+    // to the big board's.
     const late = ["L14", "P13", "A13", "G14", "B14"];
-    expect(deckCapFor(late)).toBe(28);
+    expect(deckCapFor(late)).toBe(BIG_BOARD_CAP);
     expect(capForNode(late, leaf, small)).toBe(STANDARD_CAP);
     expect(capForNode(late, leaf, big)).toBe(BIG_BOARD_CAP);
   });
@@ -1690,11 +1691,11 @@ describe("story: N-of-M gating", () => {
     expect(isOpen({ ...newSave(), cleared: [...base, "G14"] }, gs), "one is not enough").toBe(false);
   });
 
-  it("raises the cap to 28 on any two Gray Thrones, and not on one", () => {
+  it("raises the cap to the top rung on any two Gray Thrones, and not on one", () => {
     const base = ["L14", "P13", "A13"];
-    expect(deckCapFor([...base, "G14"])).toBe(22);
-    expect(deckCapFor([...base, "G14", "B14"])).toBe(28);
-    expect(deckCapFor([...base, "B14", "R14"])).toBe(28);
+    expect(deckCapFor([...base, "G14"])).toBe(24);
+    expect(deckCapFor([...base, "G14", "B14"])).toBe(BIG_BOARD_CAP);
+    expect(deckCapFor([...base, "B14", "R14"])).toBe(BIG_BOARD_CAP);
     // ...but an ordinary 4x4 node never sees a card of it.
     const leaf = REGIONS.find((r) => r.id === "leaf")!;
     expect(capForNode([...base, "G14", "B14"], leaf, nodeById("L1")!)).toBe(STANDARD_CAP);

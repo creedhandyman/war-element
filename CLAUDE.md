@@ -465,6 +465,16 @@ Pure def-to-text lives in `card-text.tsx` and is covered by a whole-pool test.
   is not the `<button>`: a plain `<div>` probe collapses identically. Any grid
   that is a flex item and meant to scroll needs `grid-auto-rows: max-content`.
 
+- **The squad limit is not a deck limit, and clamping one by the other is a
+  silent cap.** `squadCapFor` counts only what you carry from ELSEWHERE — a
+  region's own element travels free and is already in the pool. `App.tsx`'s
+  `storyBuilderCap` used to clamp deck size by it, so the builder tracked the
+  SQUAD ladder (12/14/16/18/20/22/24) while the player watched the DECK ladder
+  and saw it stop moving. `capForNode` had already dropped the same clamp and
+  left a comment saying why; the builder call site was missed. It derives from
+  `capForNode` across the region's nodes now, so the number is the biggest
+  fight the region can actually ask for.
+
 - **Flex line-breaking uses HYPOTHETICAL sizes and happens before shrinking.**
   An item that could shrink to fit still gets pushed to its own line, because
   the browser decides the line from the item's unshrunk size. `flex: 0 1 auto`
@@ -473,14 +483,18 @@ Pure def-to-text lives in `card-text.tsx` and is covered by a whole-pool test.
   when its two lower boxes fit one, 1px apart.
 
 
-- **Board size and deck size are welded together by format.** 4x4 is legal at
-  12-20 cards, 5x5 at 20-30 — they overlap at **exactly 20**, and the cap ladder
-  (12/15/18/22/28) never lands there. So every tier is legal on precisely ONE
-  board, and "small nodes 4x4, big nodes 5x5 within a region" cannot be done at
-  any current cap without playing off-format. `boardsLegalFor(cap)` encodes it
-  and a test pins that every node is fought on a board its cap allows.
-  `StoryNode.board` exists as the override; the only way to actually USE it is to
-  set an Act's cap to 20, which is the sole dual-legal size.
+- **Board size and deck size are welded together by format, and the format is
+  an EXACT size.** In the Arena a 4x4 deck is eighteen cards and a 5x5 deck is
+  thirty — no more, no less. `DECK_LIMITS` still has `min`/`max`/`target` but
+  all three hold the same number; prefer `deckSizeFor(board)`. They used to be
+  ranges (12-20, 20-30), which let two decks in one format differ by eight
+  cards, and the shorter one just drew its best card more often. `STANDARD_CAP`
+  / `BIG_BOARD_CAP` in `story.ts` are the same two numbers, so a finished
+  campaign deck is a legal Arena deck. Changing either is a FORMAT change and
+  the six premades are built to it exactly (18 base + 12 `LARGE_EXTRAS` = 30).
+  `capForNode` clamps the ladder PER NODE by that node's board, so a region
+  mixing 4x4 skirmishes with 5x5 set pieces is fine — each fight lands in its
+  own format. Campaign ladder: 12 / 15 / 18 / 24 / 30.
 
 - **Auto modes are `manual | basic | full`, and only `full` fires Specials.** A
   card on `basic` with nothing in reach used to SKIP, forever. For Oakgre that
@@ -517,9 +531,9 @@ purging them would only reach ~120MB in exchange for rewriting every SHA.
   campaign is a 4x4 game that opens to 5x5 only for its set pieces:
   `boardForNode` reads the NODE's kind (`BIG_BATTLE_KINDS` = landmark + throne),
   not `region.board` and not deck size. 82 of 115 nodes are 4x4, 33 are 5x5. The
-  cap ladder runs 12/15/18/22/28 and `capForNode` CLAMPS it by board —
-  `STANDARD_CAP` 18 on 4x4, `BIG_BOARD_CAP` 28 on 5x5. So the ordinary campaign
-  is an 18-card game that opens to 28 for its set pieces, and both boards sit
+  cap ladder runs 12/15/20/24/30 and `capForNode` CLAMPS it by board —
+  `STANDARD_CAP` 20 on 4x4, `BIG_BOARD_CAP` 30 on 5x5. So the ordinary campaign
+  is a 20-card game that opens to 30 for its set pieces, and both boards sit
   inside their constructed format again. The clamp can only LOWER the ladder, so
   an Act I Throne is still 12 rather than 28 against a starter deck. Both sides
   read it (`buildFormation` sizes the enemy from `capForNode`), so a set piece is
