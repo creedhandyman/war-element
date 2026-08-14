@@ -44,10 +44,8 @@ export function SummonAnnounce({ defId, mine }: { defId: string; mine: boolean }
   return (
     <div
       className="announce"
-      style={{
-        ["--el" as string]: EL_COLOR[def.element],
-        ["--rar" as string]: rar?.color ?? EL_COLOR[def.element],
-      }}
+      data-el={def.element}
+      style={{ ["--rar" as string]: rar?.color ?? EL_COLOR[def.element] }}
     >
       <div className="announce-burst" />
       {/* Badge sits ABOVE the card rather than on the art. It has to live

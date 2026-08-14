@@ -19,7 +19,6 @@ import {
   openPack, type PackResult, type StorySave,
 } from "../data/story";
 import { EL_COLOR } from "./shared";
-import type { Element } from "../engine/types";
 import { CardExpand } from "./CardExpand";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3 };
@@ -97,7 +96,7 @@ export function Shop(props: { save: StorySave; onSave: (next: StorySave) => void
             <button
               key={r.element}
               className={`shop-purse ${el === r.element ? "on" : ""} ${n > 0 ? "" : "empty"}`}
-              style={{ ["--el" as string]: EL_COLOR[r.element as Element] }}
+              data-el={r.element}
               onClick={() => setEl(el === r.element ? "ALL" : r.element)}
               title={`${r.element} essence — tap to filter`}
             >

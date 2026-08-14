@@ -285,7 +285,7 @@ export function DeckBuilder(props: {
                       <button
                         key={s.id}
                         className={`db-spell ${on ? "on" : ""}`}
-                        style={{ ["--el" as string]: EL_COLOR[s.element] }}
+                        data-el={s.element}
                         disabled={full}
                         title={`${s.name} (cost ${s.cost} · ${s.element}) — ${s.text}`}
                         onClick={() => toggleSpell(s.id)}

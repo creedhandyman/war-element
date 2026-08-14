@@ -10,7 +10,11 @@ export const EL_COLOR: Record<Element, string> = {
   BORE: "#a1887f",
   GALE: "#ffa040",
   BOLT: "#9575ff",
-  DUSK: "#2c1547",
+  // Was #2c1547. That reads as "the dark element" when it fills something, and
+  // as nothing at all when it is a 1.5px rim on a near-black board — DUSK was
+  // the one element you could not identify by its border. Mirrored in the
+  // [data-el="DUSK"] rule in styles.css; change both or neither.
+  DUSK: "#7b4fb0",
   DAWN: "#ffd54f",
 };
 

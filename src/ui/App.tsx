@@ -1868,7 +1868,7 @@ export function App() {
         const cancel = () => { setSpellChoice(null); setHint("Cast cancelled."); };
         return (
           <div className="overlay spellchoice-overlay" onClick={cancel}>
-            <div className="spellchoice" onClick={(e) => e.stopPropagation()} style={{ ["--el" as string]: EL_COLOR[spell.element] }}>
+            <div className="spellchoice" onClick={(e) => e.stopPropagation()} data-el={spell.element}>
               <div className="spellchoice-name">{spell.name}</div>
               <div className="spellchoice-sub">Choose how to cast</div>
               <div className="spellchoice-opts">
@@ -1907,7 +1907,7 @@ export function App() {
         ];
         return (
           <div className="overlay spellchoice-overlay" onClick={cancel}>
-            <div className="spellchoice" onClick={(e) => e.stopPropagation()} style={{ ["--el" as string]: EL_COLOR[getDef(card.defId).element] }}>
+            <div className="spellchoice" onClick={(e) => e.stopPropagation()} data-el={getDef(card.defId).element}>
               <div className="spellchoice-name">Enchantment</div>
               <div className="spellchoice-sub">Choose one — it rides the next basic attack</div>
               <div className="spellchoice-opts ench">

@@ -143,11 +143,57 @@
   --z-modal: 500;   /* traps input: card view, win screen, spell choice        */
 
   /* ── element identity ─── declared here so anything carrying an element can
-     consume it, not only .token. Gold is the fallback. Both current call sites
-     set it inline, so this changes nothing today; landing 3 adds the [data-el]
-     block that lets a hand card or a deck row opt in with one attribute. */
+     consume it, not only .token. Gold is the fallback for anything that has no
+     element at all; the [data-el] block below is what gives it a real one. */
   --el-rim: var(--gold);
+  --el: var(--el-rim);
 }
+
+/* ── element identity, one attribute ──────────────────────────────────────
+   Eight rules replace fourteen inline style objects. Every one of those call
+   sites was doing the identical thing — reading EL_COLOR[element] in TSX and
+   writing it into a custom property — so the colour of an element lived in a
+   TypeScript map and was injected per-render at fourteen places, while the CSS
+   that consumed it could only hope somebody upstream had set it.
+
+   TWO NAMES, ONE COLOUR. The codebase grew --el (12 call sites, ~40 reads) and
+   --el-rim (2 call sites, 2 reads) independently, and every one of the fourteen
+   assigned the SAME EL_COLOR value. Rather than pick a winner and rewrite forty
+   reads, --el is aliased to --el-rim here: one colour per element, both spellings
+   still resolve, and the aliasing is visible in one place instead of implied
+   across fourteen.
+
+   Anything that carries an element identity now opts in with data-el and gets
+   the rim, the tint and the stripe pair. Inline styles had to be REMOVED at the
+   same time, not merely supplemented: inline beats [data-el] beats :root, so a
+   surviving inline write would leave this block inert and the next person
+   chasing a palette change that appears to do nothing.
+
+   The stripes match EL_STRIPE in shared.ts exactly. That export had no importers
+   — the pairs were only ever a plan — so this is where they finally take effect.
+
+   DUSK is the one colour that is not simply relocated: #2c1547 to #7b4fb0. As a
+   fill it read as "the dark element"; as a 1.5px rim on a near-black board it
+   read as nothing at all, which made DUSK the one element you could not identify
+   by its border.
+
+   Each rule sets BOTH names, and --el is aliased HERE rather than once in
+   :root. That is not a style preference — the first attempt aliased it in
+   :root and every element went gold. A custom property is substituted at
+   computed-value time on the element that DECLARES it, so `--el: var(--el-rim)`
+   in :root freezes to the :root rim and inherits as that literal; redefining
+   --el-rim further down never reaches it. Inside these rules the same
+   substitution resolves against the rim this very rule just set, so one literal
+   per element still serves both names. */
+[data-el="LEAF"] { --el-rim: #4caf6d; --el: var(--el-rim); --el-stripe-a: #16321c; --el-stripe-b: #0e2413; }
+[data-el="AQUA"] { --el-rim: #4d94e8; --el: var(--el-rim); --el-stripe-a: #12294a; --el-stripe-b: #0b1c34; }
+[data-el="PYRO"] { --el-rim: #e06060; --el: var(--el-rim); --el-stripe-a: #3a1414; --el-stripe-b: #2a0e0e; }
+[data-el="BORE"] { --el-rim: #a1887f; --el: var(--el-rim); --el-stripe-a: #33261f; --el-stripe-b: #241a15; }
+[data-el="GALE"] { --el-rim: #ffa040; --el: var(--el-rim); --el-stripe-a: #3d2a10; --el-stripe-b: #2b1d0a; }
+[data-el="BOLT"] { --el-rim: #9575ff; --el: var(--el-rim); --el-stripe-a: #241a44; --el-stripe-b: #181030; }
+[data-el="DUSK"] { --el-rim: #7b4fb0; --el: var(--el-rim); --el-stripe-a: #2a1440; --el-stripe-b: #1c0d2e; }
+[data-el="DAWN"] { --el-rim: #ffd54f; --el: var(--el-rim); --el-stripe-a: #3d3210; --el-stripe-b: #2b230a; }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; }
 body {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CardInstance, GameState, PlayerId } from "../engine";
 import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, getDef, isBloodfire, legalMoves } from "../engine";
-import { EL_COLOR, KEYWORD_STYLE, STATUS_STYLE } from "./shared";
+import { KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 import { SpIcon } from "./icons";
 
 /** One letter, because the tile has no room for a word and the marker only has
@@ -259,7 +259,7 @@ export function Token(props: {
   return (
     <div
       className={cls}
-      style={{ ["--el-rim" as string]: EL_COLOR[def.element] }}
+      data-el={def.element}
       title={`${def.name} — click to inspect (full art, stats, Special & passives)${def.special ? `\n\n${def.special.name}: ${def.special.text}` : ""}`}
     >
       <img

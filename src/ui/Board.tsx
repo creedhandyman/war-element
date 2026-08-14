@@ -114,7 +114,7 @@ export function Board(props: {
             <div
               key={f.owner + f.spellId}
               className={`fieldhaze ${f.permanent ? "terrain" : f.owner === "P1" ? "mine" : "enemy"}`}
-              style={{ ["--el" as string]: color }}
+              data-el={f.element}
               title={tip}
             >
               <span className="fieldmark" style={{ borderColor: color, color }} title={tip}>

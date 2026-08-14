@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { getSpell } from "../engine";
-import { EL_COLOR, EL_SIGIL, spellArtSrc } from "./shared";
+import { EL_SIGIL, spellArtSrc } from "./shared";
 
 /** Full-screen cast animation. When the human casts a spell, App holds the
  *  intent, mounts this for ~2s (the art flashes up big + glows in the element
@@ -10,7 +10,7 @@ export function SpellCastFlash({ spellId }: { spellId: string }) {
   const spell = getSpell(spellId);
   const [artOk, setArtOk] = useState(true);
   return (
-    <div className="castflash" style={{ ["--el" as string]: EL_COLOR[spell.element] }}>
+    <div className="castflash" data-el={spell.element}>
       <div className="castflash-burst" />
       <div className="castflash-card">
         {artOk ? (

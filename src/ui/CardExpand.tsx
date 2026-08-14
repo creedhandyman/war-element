@@ -102,7 +102,7 @@ export function CardExpand(props: {
             in the way. Rendered only when written — most of the pool has no lore
             yet, and an empty bordered block would read as a bug. */}
         {d.lore && (
-          <p className="cd-lore" style={{ ["--el-rim" as string]: EL_COLOR[d.element] }}>
+          <p className="cd-lore" data-el={d.element}>
             {d.lore}
           </p>
         )}

@@ -95,10 +95,10 @@ export function Hand(props: {
             <div
               key={h.handId}
               className={`${cls} carded`}
+              data-el={def.element}
               style={{
                 ["--rot" as string]: `${rot}deg`,
                 ["--ty" as string]: `${ty}px`,
-                ["--el" as string]: EL_COLOR[def.element],
                 zIndex: 30 - Math.round(Math.abs(off) * 2),
               }}
               title={

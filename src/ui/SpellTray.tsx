@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { GameState, PlayerId } from "../engine";
 import { getSpell } from "../engine";
-import { EL_COLOR, spellArtSrc } from "./shared";
+import { spellArtSrc } from "./shared";
 
 /** The human's spellbook. Each spell is castable once per game (Prep Phase, paid
  *  from Magic). Greyed when spent, too pricey, or it isn't your prep
@@ -38,7 +38,7 @@ export function SpellTray(props: {
           <button
             key={slot.defId}
             className={`spellchip ${armed ? "armed" : ""} ${slot.used ? "used" : ""} ${ready ? "ready" : ""}`}
-            style={{ ["--el" as string]: EL_COLOR[spell.element] }}
+            data-el={spell.element}
             disabled={disabled}
             title={`${spell.name} (cost ${spell.cost}) — ${spell.text}${slot.used ? " · already cast" : afford ? "" : " · not enough Magic"}`}
             onClick={() => {

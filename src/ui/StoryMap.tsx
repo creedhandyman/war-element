@@ -165,7 +165,8 @@ export function StoryMap(props: {
               <button
                 key={n.id}
                 className={`story-node ${state} ${n.kind} ${BIG_BATTLE_KINDS.includes(n.kind) ? "hex" : ""} ${selId === n.id ? "sel" : ""}`}
-                style={{ ...pos(n), ["--el" as string]: EL_COLOR[region.element as keyof typeof EL_COLOR] }}
+                data-el={region.element}
+                style={pos(n)}
                 onClick={() => setSelId(n.id)}
                 aria-label={`${n.id} ${n.name}, ${KIND_LABEL[n.kind]}, ${state}`}
               >
