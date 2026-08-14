@@ -220,15 +220,38 @@ export function DeckBuilder(props: {
                 <button className={buildSize === 5 ? "act" : ""} onClick={() => setBuildSize(5)}>5×5 · 28</button>
               </div>
             )}
-            {/* ONE number: cards picked out of the target for this battlefield.
-                The min/max band only appears when the deck isn't legal yet —
-                "0/20 · 12–20 (aim 18)" next to a "4×4 · 18" toggle was three
-                different numbers for the same thing. */}
+            {/* THE CAPACITY RULER.
+                One cell per card the deck can hold, with min, target and max
+                marked on the track. It replaces a line of prose that was three
+                different numbers for the same fact — "0/20 · 12–20 (aim 18)"
+                sitting next to a "4×4 · 18" toggle — and it answers the question
+                that prose could not: not "how many do I have" but "how many more,
+                and when does this become legal". Legality is a shape here, not a
+                sentence you have to parse. */}
             <div className="db-count" style={{ color: countColor }}>
               {picked.length} / {limits.target} cards
               {!check.ok && limits.min > 1 && (
                 <span className="db-hint"> · needs {limits.min}–{limits.max}</span>
               )}
+            </div>
+            <div
+              className="db-ruler"
+              role="img"
+              aria-label={`${picked.length} of ${limits.target} cards; legal from ${limits.min} to ${limits.max}`}
+            >
+              {Array.from({ length: limits.max }, (_, i) => {
+                const n = i + 1;
+                const marks = [
+                  n <= picked.length ? "on" : "",
+                  // Only mark the band when there IS one — story teams have
+                  // min 1, where a "minimum" tick is noise.
+                  limits.min > 1 && n === limits.min ? "min" : "",
+                  n === limits.target ? "target" : "",
+                  n === limits.max ? "max" : "",
+                  n <= picked.length && picked.length > limits.max ? "over" : "",
+                ].filter(Boolean).join(" ");
+                return <i key={n} className={`db-cell ${marks}`} />;
+              })}
             </div>
             <div className="db-actions">
               <button className="lockin" disabled={!check.ok} onClick={save}>

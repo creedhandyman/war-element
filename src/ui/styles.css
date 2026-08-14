@@ -1484,6 +1484,36 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-side { width: 224px; flex: none; display: flex; flex-direction: column; gap: 8px; max-height: 66vh; overflow-y: auto; padding-right: 2px; }
 .db-name { font-size: 14px; font-weight: 700; padding: 9px 11px; border-radius: 10px; background: var(--void-2); color: var(--ink); border: 1px solid var(--panel-line); }
 .db-count { font-size: 20px; font-weight: 900; }
+/* ── the capacity ruler ───────────────────────────────────────────────────
+   One cell per card the deck can hold. Filled cells are what you have picked;
+   the three marks are the minimum, the target and the ceiling. It reads as a
+   shape — you can see "two short of legal" without reading a number — which is
+   what a line of prose carrying three different figures for the same fact
+   could not do.
+
+   grid rather than flex, so twenty cells share the width exactly and the
+   ruler is the same length whether the board holds 18 or 28. */
+.db-ruler {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  gap: 2px; height: 12px; margin: 6px 0 2px; align-items: end;
+}
+.db-cell {
+  height: 7px; border-radius: 1px; background: rgba(233, 226, 210, 0.12);
+  transition: background 0.15s ease, height 0.15s ease;
+}
+.db-cell.on { background: var(--gold); }
+/* The marks are TALLER, not differently coloured: height survives the cell
+   being filled or empty, so a target tick still reads at 18 of 18. */
+.db-cell.min, .db-cell.target, .db-cell.max { height: 12px; }
+.db-cell.min { background: rgba(233, 226, 210, 0.3); }
+.db-cell.min.on { background: var(--gold); }
+.db-cell.target { background: rgba(255, 233, 176, 0.35); }
+.db-cell.target.on { background: var(--gold-hi); box-shadow: 0 0 6px rgba(255, 233, 176, 0.55); }
+.db-cell.max { background: rgba(233, 226, 210, 0.22); }
+.db-cell.max.on { background: var(--gold-lit); }
+/* Past the ceiling the whole filled run turns red — the deck is not merely
+   incomplete, it is illegal, and that is a different state. */
+.db-cell.over { background: var(--threat); }
 .db-size { display: flex; gap: 4px; margin: 4px 0; }
 .db-size button { flex: 1; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--panel-line); background: var(--void-2); color: var(--ink-dim); font-size: 11px; font-weight: 800; cursor: pointer; }
 .db-size button.act { background: var(--accent); color: #241a06; border-color: var(--gold-hi); }
@@ -3315,6 +3345,36 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Foil count in the collection header — gold-blue so it reads as the same
    currency of rarity the sheen does. */
 .col-foils b { color: #bfe6ff; }
+
+/* ── per-element completion strip ─────────────────────────────────────────
+   Eight small gauges under the header. The grid below can tell you a card is
+   missing; this is the only thing on the screen that tells you which REGION to
+   go back to, which is the version of that question a player can act on. */
+.col-elrow {
+  display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px;
+  padding: 0 14px 2px; flex: none;
+}
+.col-el {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 5px 2px 4px; border-radius: var(--r-chip);
+  background: rgba(233, 226, 210, 0.035); border: 1px solid rgba(233, 226, 210, 0.08);
+  font-size: var(--fs-1); line-height: 1;
+}
+.col-el > i { width: 7px; height: 7px; border-radius: 50%; }
+.col-el b { font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
+.col-el em { font-style: normal; color: var(--ink-faint); }
+.col-el-track { width: 100%; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.col-el-track > span { display: block; height: 100%; }
+/* A finished element stops asking for attention. */
+.col-el.done { border-color: rgba(78, 203, 143, 0.4); }
+.col-el.done em { color: var(--legal); }
+.col-elnote { padding: 0 14px 8px; margin: 0; font-size: var(--fs-2); color: var(--ink-dim); flex: none; }
+.col-elnote b { font-weight: 800; }
+@media (max-width: 620px) {
+  /* Two rows of four rather than eight columns 40px wide, where the fraction
+     stops being readable. */
+  .col-elrow { grid-template-columns: repeat(4, 1fr); }
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
    REDUCED MOTION — one guard, all of it

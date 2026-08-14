@@ -46,7 +46,14 @@ export function StoryCollection(props: {
   closeLabel?: string;
 }) {
   const { save } = props;
-  const [scope, setScope] = useState<Scope>("all");
+  // MISSING is the default on a phone. The load-bearing half of a collection
+  // screen is what you have not got — "All" is the browsing view, and on a
+  // 390px grid browsing costs a lot of scrolling to reach the answer. Desktop
+  // has the room to start wide.
+  const [scope, setScope] = useState<Scope>(
+    () => (typeof window !== "undefined" && (window.matchMedia?.("(max-width: 720px)").matches ?? false))
+      ? "missing" : "all",
+  );
   const [el, setEl] = useState<Element | "ALL">("ALL");
   const [cls, setCls] = useState<CardClass | "ALL">("ALL");
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -72,11 +79,47 @@ export function StoryCollection(props: {
       if (scope === "missing") return !owned.has(d.id) && placed.has(d.id);
       return true;
     });
+    // In the Missing scope the question is not "what is rarest" but "what
+    // should I go and fight", so it sorts by BEST ODDS FIRST. Rarity ordering
+    // answers a collector's question; odds ordering answers a player's, and
+    // Missing is the scope you open when you want to do something about it.
+    if (scope === "missing") {
+      const oddsOf = (id: string) => {
+        const src = bestSource(save, id);
+        if (!src) return -1;                    // locked or unplaced — the tail
+        return recruitChance(id, save.pity[`${src.node.id}:${id}`] ?? 0, src.overflow);
+      };
+      return list.sort((a, b) =>
+        oddsOf(b.id) - oddsOf(a.id) ||
+        rarityRank(a.rarity) - rarityRank(b.rarity) ||
+        a.cost - b.cost || a.name.localeCompare(b.name));
+    }
     return list.sort((a, b) =>
       Number(owned.has(b.id)) - Number(owned.has(a.id)) ||
       rarityRank(a.rarity) - rarityRank(b.rarity) ||
       a.cost - b.cost || a.name.localeCompare(b.name));
-  }, [scope, el, cls, owned, placed]);
+  }, [scope, el, cls, owned, placed, save]);
+
+  /** Per-element completion. The grid can tell you a card is missing; only this
+   *  can tell you WHICH REGION to go back to, which is the version of the
+   *  question the player actually acts on. Counted over placed cards, for the
+   *  same reason the headline is: an unbuilt region is a content gap, not a
+   *  shortfall the player can close. */
+  const byElement = useMemo(() => {
+    const rows = ELEMENTS.map((e) => {
+      const pool = PLACED_CARDS.filter((id) => CARDS.find((c) => c.id === id)?.element === e);
+      return { el: e, have: pool.filter((id) => owned.has(id)).length, total: pool.length };
+    }).filter((r) => r.total > 0);
+    // Only name a thinnest element when there IS one. Early in a campaign
+    // seven elements sit at 0/39 and picking the first of them would be
+    // arbitrary dressed up as advice — the strip already shows the tie, and a
+    // sentence claiming PYRO in particular is where to go would be made up.
+    const sorted = [...rows].sort((a, b) => a.have / a.total - b.have / b.total);
+    const lowest = sorted[0];
+    const unique = !!lowest && (sorted.length < 2 || lowest.have / lowest.total < sorted[1].have / sorted[1].total);
+    const thinnest = unique && lowest.have < lowest.total ? { el: lowest.el, pct: lowest.have / lowest.total } : null;
+    return { rows, thinnest };
+  }, [owned]);
 
   // The detail is a full-screen expand now, so selecting a card no longer has to
   // prise the deck rail open just to be seen.
@@ -109,6 +152,28 @@ export function StoryCollection(props: {
           </button>
         </div>
       </header>
+
+      {/* Per element, of its own placed pool. The grid can say a card is
+          missing; only this says which REGION is thinnest — and that is the
+          version of the question you can act on. */}
+      <div className="col-elrow">
+        {byElement.rows.map((r) => (
+          <span key={r.el} className={`col-el ${r.have === r.total ? "done" : ""}`} data-el={r.el}
+            title={`${r.have} of ${r.total} ${r.el} cards`}>
+            <i style={{ background: EL_COLOR[r.el] }} />
+            <b>{r.have}</b><em>/{r.total}</em>
+            <span className="col-el-track">
+              <span style={{ width: `${(r.have / r.total) * 100}%`, background: EL_COLOR[r.el] }} />
+            </span>
+          </span>
+        ))}
+      </div>
+      {byElement.thinnest && (
+        <p className="col-elnote">
+          <b style={{ color: EL_COLOR[byElement.thinnest.el] }}>{byElement.thinnest.el}</b> is where the
+          collection is thinnest — and where a clear pays the most.
+        </p>
+      )}
 
       <div className="story-body">
         <div className="col-pool">
