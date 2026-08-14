@@ -434,14 +434,37 @@ Three pieces, all in `src/data/`:
 
 - **The ladder** (`custom-decks.ts`). Twelve premades in three rungs of four —
   `PremadeDeck.tier` is `easy | mid | hard`. Difficulty is the DECK, because
-  `chooseBattleAction` is one rule set with no skill dial: easy is rares only
-  under a cost-5 cap (avg cost 2.06), mid is rare/epic/legendary under 8
-  (3.29), hard is epic-and-up uncapped (5.05). Rarity is the lever that matters
-  — a repeatable Special needs epic+, a Rare gets one Talent — so an all-rare
-  deck genuinely has less to do to you. The six originals stay UNTIERED: they
-  are hand-tuned archetypes, not rungs. Tests pin the gradient, not the labels.
-  DAWN is absent from `easy` because it has only 13 buildable rares under that
-  cap and a deck needs 15 per element.
+  `chooseBattleAction` is one rule set with no skill dial. easy is a melee pile
+  with a top-heavy curve and no front line or healer; mid has a curve, a wall
+  and a healer; hard floods cheap bodies, heals them, and shoots over the top.
+  Against the six originals they win 32/54/59% on 4x4 and 21/35/56% on 5x5.
+  The six stay UNTIERED — hand-tuned archetypes, not rungs.
+
+  Two earlier cuts of this got it wrong and both are worth remembering.
+  **Tiering on `rarity` inverted the ladder**: types.ts documents rarity as
+  cosmetic, no epic in the set costs under 3, so "hard = epic and up" meant the
+  top rung had nothing to cast on round one and lost to a rush in four. Then
+  **tiering on a theory of good play** (front line, reach, sustain, lots of
+  triggers) produced a ladder that measured FLAT at 4x4 and INVERTED at 5x5,
+  where the "easy" swarm beat the "mid" comp 65% of the time.
+
+  So it was tuned against a measurement instead: build a rung, play all four
+  decks against the six originals, both seats, three seeds, read the win rate.
+  What that found, and what future tuning should start from —
+  **cheap-and-wide is the strongest thing a deck can do here.** The budget is
+  `dmg*hits + hp + shields*2 + sp ≈ 5*cost + 10` and the +10 is FLAT, so a
+  1-cost returns 15 stat points per gold and a 9-cost returns 6.1; capture ends
+  ~95% of games and rewards having more bodies out. **Reach is second**, and
+  the only lever that separates the 4x4 board, where sixteen slots cap what a
+  flood is worth. **A front line and a healer help.** **Trigger density does
+  NOT** — weighting it made decks measurably worse, because a trigger is paid
+  for out of that same budget and the AI banks little of it.
+
+  One structural gotcha: the 18-card build is a slice of the 30, and slicing
+  the cost-sorted list wholesale preserved the curve while throwing away the
+  comp (one hard deck came out with a single Support at 4x4 and seven at 5x5),
+  which is what inverted the small board. Take three of every five out of each
+  ROLE, so the 18 is the 30 in miniature on both axes.
 
 - **The matchmaker** — the OPPONENT row in the Arena. Pick a rung, it rolls a
   deck from it, and re-rolling the same rung avoids the deck already seated.

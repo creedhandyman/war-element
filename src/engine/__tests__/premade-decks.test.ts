@@ -134,33 +134,63 @@ describe("the matchmaker ladder", () => {
     }
   });
 
-  it("gets harder up the ladder, measurably", () => {
-    // Difficulty here is not a label — it is the deck. Two things carry it and
-    // both are checked, because a tier that only SAYS it is hard is a lie the
-    // matchmaker would repeat to the player every time it rolled.
-    const avgCost = (tier: (typeof DECK_TIERS)[number]) => {
-      const cards = decksForTier(tier, 4).flatMap((d) => d.cards);
-      return cards.reduce((n, id) => n + CARD_INDEX[id]!.cost, 0) / cards.length;
-    };
-    const [easy, mid, hard] = DECK_TIERS.map(avgCost);
-    expect(easy, `easy ${easy} < mid ${mid}`).toBeLessThan(mid);
-    expect(mid, `mid ${mid} < hard ${hard}`).toBeLessThan(hard);
-    // A full point of cost between rungs, or the rungs are not far enough apart
-    // to feel like different opponents.
-    expect(hard - easy).toBeGreaterThan(2);
+  it("can play from round one on every rung", () => {
+    // THE regression. The first cut of this ladder tiered on `rarity`, which
+    // types.ts documents as cosmetic — and no epic in the set costs less than
+    // 3, so "hard = epic and up" meant those decks held nothing castable on
+    // round one and lost to a rush in four.
+    //
+    // `poolGainForRound` gives 1 gold a round for the first five, so round one
+    // buys a 1-drop and nothing else, and a deck whose cheapest card costs 3
+    // stands there until round three. That is the whole bug: difficulty is
+    // what a deck plays, not when it can first play. Every rung gets a 1-cost
+    // card, and enough cheap ones that the opening is not a single card.
+    for (const tier of DECK_TIERS) for (const board of [4, 5] as const) {
+      for (const d of decksForTier(tier, board)) {
+        const costs = d.cards.map((id) => CARD_INDEX[id]!.cost);
+        expect(Math.min(...costs), `${d.name} ${board}x${board} has no 1-drop`).toBe(1);
+        expect(costs.filter((c) => c <= 2).length,
+          `${d.name} ${board}x${board} cheap bodies`).toBeGreaterThanOrEqual(4);
+      }
+    }
   });
 
-  it("puts ability density where the difficulty is", () => {
-    // Rarity gates abilities: a repeatable Special needs epic+, a Rare gets one
-    // Talent for the whole game. So "easy" means all-rare, literally.
-    for (const d of decksForTier("easy", 4)) {
-      const rarities = new Set(d.cards.map((id) => CARD_INDEX[id]!.rarity ?? "rare"));
-      expect([...rarities], d.name).toEqual(["rare"]);
-    }
-    for (const d of decksForTier("hard", 4)) {
-      const epicPlus = d.cards.filter((id) =>
-        ["epic", "legendary", "mythic"].includes(CARD_INDEX[id]!.rarity ?? "rare"));
-      expect(epicPlus.length, `${d.name} is epic-and-up`).toBe(d.cards.length);
+  it("tiers on the plan, and the plans are actually different", () => {
+    // Rarity is cosmetic and the stat budget is enforced (dmg*hits + hp +
+    // shields*2 + sp tracks 5*cost + 10 across the whole set), so neither a
+    // label nor raw numbers can carry difficulty. What is left is the list's
+    // plan, and these are the three axes the tuning measured as levers.
+    const of = (tier: (typeof DECK_TIERS)[number], board: 4 | 5) =>
+      decksForTier(tier, board).map((d) => {
+        const cs = d.cards.map((id) => CARD_INDEX[id]!);
+        return {
+          name: d.name,
+          cheap: cs.filter((c) => c.cost <= 2).length / cs.length,
+          comp: cs.filter((c) => c.cardClass === "Tank" || c.cardClass === "Support").length,
+          reach: cs.filter((c) => c.attackType === "Ranged").length / cs.length,
+        };
+      });
+
+    for (const board of [4, 5] as const) {
+      // Easy has NO front line and NO healer. Capture is a win condition, so
+      // holding nothing is a real hole rather than a smaller number.
+      for (const d of of("easy", board)) expect(d.comp, `${d.name} runs no comp`).toBe(0);
+      for (const tier of ["mid", "hard"] as const)
+        for (const d of of(tier, board)) expect(d.comp, `${d.name} fields one`).toBeGreaterThanOrEqual(4);
+
+      // Cheap and wide is the strongest thing a deck can do here: the budget's
+      // +10 is flat, so a 1-cost body returns 15 stat points per gold and a
+      // 9-cost returns 6.1. The rungs are ordered by how much of that they take.
+      const cheap = DECK_TIERS.map((t) => Math.min(...of(t, board).map((d) => d.cheap)));
+      expect(cheap[1], `mid ${cheap[1]} > easy ${cheap[0]} (${board}x${board})`).toBeGreaterThan(cheap[0]);
+      expect(cheap[2], `hard ${cheap[2]} > easy ${cheap[0]} (${board}x${board})`).toBeGreaterThan(cheap[0]);
+
+      // Reach is the lever that separates the small board, where there is no
+      // room for a flood to matter. Melee cannot answer what stands behind a
+      // wall, and easy is the rung that mostly cannot.
+      const reach = DECK_TIERS.map((t) =>
+        of(t, board).reduce((n, d) => n + d.reach, 0) / 4);
+      expect(reach[2], `hard reach ${reach[2]} > easy ${reach[0]}`).toBeGreaterThan(reach[0] + 0.1);
     }
   });
 
