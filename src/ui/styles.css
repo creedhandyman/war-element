@@ -2133,7 +2133,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .bottom.acting .bprompt { width: 100%; flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; }
   .bottom.acting .bp-title { flex: none; font-size: 15px; font-weight: 800; text-align: center; }
   .bottom.acting .bp-title small { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-dim); }
-  .bottom.acting .bp-actions { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 10px; }
+  /* (The action row is hidden by .wrap.wheel-up, NOT by this media query — see
+     the rule outside this block. Keying it on the tier would let the buttons
+     disappear on a screen where the wheel had not mounted, which is the stuck
+     state this whole feature exists to fix.) */
   .bottom.acting .bbtn { padding: 10px; font-size: 15.5px; font-weight: 800; border-radius: 13px; }
   .bottom.acting .bp-text { flex: none; max-height: none; font-size: 11.5px; text-align: center; }
   /* Type tints so the three attack kinds read at a glance. */
@@ -3616,3 +3619,79 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .foil::after { animation: none; background-position: 50% 0; opacity: 0.55; }
   .tk-foil { animation: none; background-position: 50% 0; opacity: 0.5; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE ACTION WHEEL — the battle verbs, orbiting the card they belong to
+   ══════════════════════════════════════════════════════════════════════════
+   Four buttons in the bottom bar cost ~98px of a phone screen and, on a 5x5
+   board, put the fourth one (Skip) below the bottom of the viewport — a stuck
+   state, because Skip is how you pass a turn you cannot act on. On the board
+   the verbs need no bar at all, and they read better: the choice is about one
+   specific card, so it happens AT that card rather than 500px away.
+
+   Fixed positioning, centred by transform on the acting slot's measured centre.
+   Fixed rather than absolute so it cannot be clipped by the board frame or
+   trapped in a slot's stacking context — both of which are real: .board is a
+   stacking context at z-1, and the highlighted slot is another at z-3. */
+.wheel {
+  position: fixed; z-index: var(--z-board-overlay, 30);
+  width: 132px; height: 132px; transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+/* The ring is a scrim, not a plate: it darkens the four neighbouring slots the
+   verbs sit over just enough to read against, and fades out before its edge so
+   the board still shows through. */
+.wheel-ring {
+  position: absolute; inset: 3px; border-radius: 50%;
+  border: 1px solid rgba(255, 233, 176, 0.22);
+  background: radial-gradient(circle,
+    rgba(6, 7, 12, 0.82) 40%, rgba(6, 7, 12, 0.35) 70%, transparent 72%);
+}
+.wheel-verb {
+  position: absolute; pointer-events: auto; cursor: pointer;
+  min-width: 52px; height: 26px; padding: 0 7px;
+  display: grid; place-items: center; border-radius: 7px;
+  font-family: var(--font-ui); font-size: var(--fs-2); font-weight: 700;
+  letter-spacing: 0.02em; white-space: nowrap;
+  color: var(--tone); border: 1px solid var(--tone);
+  background: color-mix(in srgb, var(--tone) 16%, rgba(6, 7, 12, 0.9));
+}
+/* Armed for its confirming second press — the same state the bar shows by
+   swapping the label to "Confirm"/"Fire", said here in the chip itself. */
+.wheel-verb.armed {
+  color: #0b0c12; background: var(--tone);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--tone) 60%, transparent);
+}
+.wheel-verb:disabled { opacity: 0.32; cursor: not-allowed; }
+
+/* Seats. Top and bottom overhang the ring slightly so four 52px chips fit a
+   132px circle without touching at the corners. */
+.wheel-verb.seat-top { top: -4px; left: 50%; transform: translateX(-50%); }
+.wheel-verb.seat-bottom { bottom: -4px; left: 50%; transform: translateX(-50%); }
+.wheel-verb.seat-right { right: -10px; top: 50%; transform: translateY(-50%); }
+.wheel-verb.seat-left { left: -10px; top: 50%; transform: translateY(-50%); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .wheel-verb { animation: wheelIn 140ms ease-out backwards; }
+  .wheel-verb.seat-right { animation-delay: 25ms; }
+  .wheel-verb.seat-bottom { animation-delay: 50ms; }
+  .wheel-verb.seat-left { animation-delay: 75ms; }
+  @keyframes wheelIn { from { opacity: 0; transform: scale(0.8) translate(0, 0); } }
+}
+
+/* The action row is redundant while the ring is up, and hidden by the RING'S
+   OWN presence rather than by a media query.
+
+   That distinction is the whole safety property. The buttons are CSS and the
+   wheel is JS: hiding them at <=760px would mean any disagreement between the
+   two — a stale matchMedia after a rotation, a first render before the hook
+   settles, an unmeasurable acting slot — leaves a battle turn with no verbs at
+   all and no way to pass it. Gated on the class the wheel itself sets, the
+   worst case is both showing, which is untidy and playable. */
+.wrap.wheel-up .bottom.acting .bp-actions { display: none; }
+/* ...and with the buttons gone the bar has no reason to fill the space it was
+   filling. It hugs the prompt line and pins to the bottom; the room it gives up
+   sits where the hand normally is, which is empty during a battle turn anyway.
+   (It does NOT go to the board: the board is width-bound at this size, already
+   as tall as five 71px columns allow.) */
+.wrap.wheel-up .bottom.acting { flex: 0 0 auto; margin-top: auto; }

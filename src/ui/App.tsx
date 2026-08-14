@@ -61,6 +61,7 @@ import { StoryMap } from "./StoryMap";
 import { StoryResult } from "./StoryResult";
 import { StoryPrep } from "./StoryPrep";
 import { BottomNav, type Tab } from "./BottomNav";
+import { ActionWheel, type WheelVerb } from "./ActionWheel";
 import { Shop } from "./Shop";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, deckCapFor,
@@ -1261,6 +1262,107 @@ export function App() {
   const specialAoE =
     !!activeDef?.special && Number(activeDef.special.params?.targets ?? 1) >= specialValid.length;
 
+  /* ── the four battle verbs, in one place ──────────────────────────────────
+     Hoisted out of the buttons because they are now rendered TWICE: as the
+     action row on desktop and as the ring around the acting card on a phone.
+     Two copies of "is the Special affordable and what does the second press
+     do" is how the two renderings start disagreeing, and the arming rules here
+     are exactly the sort of thing nobody re-checks in the second copy. The
+     buttons and the wheel are presentation; this is the behaviour. */
+  function actBasic() {
+    if (!activeCard) return;
+    // Don't let a stray tap on Attack wipe targets already picked for a Special
+    // (choosing allies to assist / enemies to hit). Keep the selection and say
+    // how to switch on purpose.
+    if (pending === "special" && picks.length > 0) {
+      setHint("⚠ Special targets are still armed — press <b>Clear</b> first to switch to a basic attack.");
+      return;
+    }
+    if (pending === "basic") {
+      // Second tap. Targets picked → fire them. None picked → AUTO-FIRE: lowest-
+      // HP enemy for a single hit, or a smart spread for a multi-hit volley (no
+      // overkill — the same engine helper the AI uses).
+      if (picks.length > 0) { firePicks(picks); return; }
+      const enemies = validTargets(game, awaitingId!).filter((t) => t.owner !== activeCard.owner);
+      firePicks(enemies.length ? distributeBasicHits(game, activeCard, enemies) : []);
+      return;
+    }
+    setPending("basic");
+    setPicks([]);
+    setHint(
+      effectiveBasicHits(activeCard) > 1
+        ? `Basic attack: <b>${effectiveBasicHits(activeCard)} hits × ${effectiveDmg(game, activeCard)} DMG</b> — tap up to ${effectiveBasicHits(activeCard)} glowing targets (repeat to stack), or tap <b>Attack</b> again to auto-fire.`
+        : "Tap a glowing target, or tap <b>Basic Attack</b> again to auto-fire the nearest.",
+    );
+  }
+
+  function actSpecial() {
+    if (!activeCard || !activeDef?.special) return;
+    const spec = activeDef.special;
+    // Symmetric to Attack: don't let a stray tap wipe basic-attack targets.
+    if (pending === "basic" && picks.length > 0) {
+      setHint("⚠ Basic-attack targets are still armed — press <b>Clear</b> first to switch to the Special.");
+      return;
+    }
+    if (pending === "special") {
+      // Second press = fire. Area Specials hit the whole previewed zone;
+      // targeted ones fire the picks assigned so far.
+      if (specialAoE) {
+        dispatch({
+          type: "BATTLE_ACTION", player: activeCard.owner, action: "special",
+          targetIds: specialValid.map((t) => t.instanceId),
+        });
+      } else if (picks.length > 0) {
+        firePicks(picks);
+      }
+      return;
+    }
+    // Prism: the Special asks WHICH enchantment before anything else, and takes
+    // no target at all.
+    if (activeDef.enchanter) {
+      setEnchantFor(activeCard.instanceId);
+      setHint(`<b>${spec.name}</b> — choose an enchantment.`);
+      return;
+    }
+    const cap = Number(spec.params?.targets ?? 1);
+    setPending("special");
+    setPicks([]);
+    setHint(
+      specialAoE
+        ? `<b>${spec.name}</b> hits the glowing area — press <b>Confirm</b> to fire.`
+        : `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — pick up to ${cap} glowing target${cap > 1 ? "s (repeat to stack), or Fire early" : ""}.`,
+    );
+  }
+
+  function actTalent() {
+    if (!activeCard || !activeDef?.talent) return;
+    // Two presses, exactly like the Special beside it. This used to fire on the
+    // first — on a button whose effect is free, once per game, and gone the
+    // moment it resolves. A Special you misfire costs magic you get back next
+    // round; a Talent you misfire is spent for the rest of the match.
+    if (pending === "talent") {
+      dispatch({ type: "BATTLE_ACTION", player: activeCard.owner, action: "talent" });
+      setPending(null);
+      return;
+    }
+    if (pending !== null && picks.length > 0) {
+      setHint("⚠ Targets are still armed — press <b>Clear</b> first to switch to the Talent.");
+      return;
+    }
+    setPending("talent");
+    setPicks([]);
+    setHint(
+      `<b>${activeDef.talent.name}</b> (Talent · free, once per game) — ` +
+      `press <b>Confirm</b> to use it. There is no second one.`,
+    );
+  }
+
+  function actSkip() {
+    if (!activeCard) return;
+    dispatch({ type: "BATTLE_ACTION", player: activeCard.owner, action: "skip" });
+  }
+
+
   const myPrep = me !== null && game.phase === "prep" && game.prep?.priority === me;
   // Gentle nudge: on your prep turn, before you've spent your one move and while
   // nothing else is armed, softly ring the cards that can actually move so a new
@@ -1294,6 +1396,70 @@ export function App() {
   // never the opponent's (online) or the AI's. This is the single gate that
   // stops "attacking as the opponent's card".
   const iActBattle = activeCard !== null && me !== null && activeCard.owner === me;
+
+  /** Where the acting card is, so the ring can orbit it.
+   *
+   *  Measured from the DOM rather than derived from the grid, because the board
+   *  is sized by a chain of variables (--board-size, the frame, the seams) and
+   *  recomputing that here would be a second source of truth for the same
+   *  pixels — one that goes wrong the next time a tier is retuned. The slot
+   *  knows where it is; ask it.
+   *
+   *  Re-measured whenever the acting card changes or the viewport does. The
+   *  rAF is because the class lands in the same commit that mounts the ring, so
+   *  querying immediately can find the PREVIOUS acting slot. */
+  const [wheelAt, setWheelAt] = useState<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    if (!portrait || !iActBattle || !awaitingId) { setWheelAt(null); return; }
+    let live = true;
+    const measure = () => {
+      if (!live) return;
+      const el = document.querySelector(".slot.acting") ?? document.querySelector(".token.acting");
+      if (!el) { setWheelAt(null); return; }
+      const r = el.getBoundingClientRect();
+      setWheelAt({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+    };
+    // Measure NOW, not in a rAF. useEffect already runs after the DOM is
+    // committed, so the acting slot is there — and rAF does not fire at all
+    // while the page is not painting (a backgrounded tab, or a devtools pane
+    // that is not compositing), which would leave the ring unpositioned and
+    // therefore unmounted for the whole turn. The rAF is kept only as a second
+    // pass for the case where layout settles a frame late.
+    measure();
+    const raf = requestAnimationFrame(measure);
+    window.addEventListener("resize", measure);
+    return () => { live = false; cancelAnimationFrame(raf); window.removeEventListener("resize", measure); };
+  }, [portrait, iActBattle, awaitingId, game]);
+
+  /** The same four verbs the action row renders, shortened for a 52px chip.
+   *  Seats are top / right / bottom / left in this order — Skip sits at the top
+   *  because it is the one you reach for when nothing else is possible, and it
+   *  must never be the hardest to find again. */
+  /** The ring is actually on screen. The action row keys its own hiding on
+   *  this, so if the ring fails to mount for any reason the buttons stay. */
+  const wheelUp = portrait && iActBattle && wheelAt !== null;
+
+  const wheelVerbs: WheelVerb[] = activeCard && activeDef
+    ? [
+        { key: "skip", short: "SKIP", tone: "#8b8fa3", onClick: actSkip,
+          title: "Skip this card's turn" },
+        { key: "basic", short: pending === "basic" ? (picks.length > 0 ? `FIRE ${picks.length}` : "AUTO") : "ATTACK",
+          tone: "#e5533d", disabled: !basicOk, armed: pending === "basic", onClick: actBasic,
+          title: basicOk ? "Basic attack" : "Nothing in reach" },
+        { key: "special", short: pending === "special" ? (specialAoE ? "CONFIRM" : picks.length > 0 ? `FIRE ${picks.length}` : "SPECIAL") : "SPECIAL",
+          tone: "#c9a24b", disabled: !specialCheck.ok, armed: pending === "special", onClick: actSpecial,
+          title: activeDef.special
+            ? `${activeDef.special.name}: ${activeDef.special.text}`
+            : "No special" },
+        activeDef.talent
+          ? { key: "talent", short: pending === "talent" ? "CONFIRM" : "TALENT", tone: "#9575ff",
+              disabled: !talentCheck.ok, armed: pending === "talent", onClick: actTalent,
+              title: `${activeDef.talent.name} (free, once per game): ${activeDef.talent.text}` }
+          : { key: "card", short: "CARD", tone: "#5b74d8",
+              onClick: () => setDetailId(activeCard.instanceId),
+              title: "Open this card" },
+      ]
+    : [];
   // Online only: the opponent is mid-decision — either they hold prep priority,
   // or their card is the one awaiting a battle action. Drives the waiting panel.
   const oppId = online ? enemyOf(online.myId) : null;
@@ -1310,7 +1476,7 @@ export function App() {
     // Story are places you STAY, and leaving Story dropped you onto a deserted
     // battlefield. Hidden by class rather than unmounted so nothing that
     // measures the board on mount has to learn a new lifecycle.
-    <div className={`wrap${logCollapsed ? " log-collapsed" : ""}${started ? "" : " pre-match"}`}>
+    <div className={`wrap${logCollapsed ? " log-collapsed" : ""}${started ? "" : " pre-match"}${wheelUp ? " wheel-up" : ""}`}>
       <button
         className="music-toggle"
         onClick={toggleMusic}
@@ -1501,35 +1667,7 @@ export function App() {
               <button
                 className={`bbtn atk ${pending === "basic" ? "armed" : ""}`}
                 disabled={!basicOk}
-                onClick={() => {
-                  // Don't let a stray tap on Attack wipe targets already picked for
-                  // a Special (choosing allies to assist / enemies to hit). Keep the
-                  // selection and say how to switch on purpose.
-                  if (pending === "special" && picks.length > 0) {
-                    setHint("⚠ Special targets are still armed — press <b>Clear</b> first to switch to a basic attack.");
-                    return;
-                  }
-                  if (pending === "basic") {
-                    // Second tap. Targets picked → fire them. None picked → AUTO-FIRE:
-                    // lowest-HP enemy for a single hit, or a smart spread for a
-                    // multi-hit volley (no overkill — same engine helper the AI uses).
-                    if (picks.length > 0) {
-                      firePicks(picks);
-                      return;
-                    }
-                    const enemies = validTargets(game, awaitingId!).filter((t) => t.owner !== activeCard.owner);
-                    firePicks(enemies.length ? distributeBasicHits(game, activeCard, enemies) : []);
-                    return;
-                  }
-                  // First tap (idle, or an un-targeted Special) — arm the basic.
-                  setPending("basic");
-                  setPicks([]);
-                  setHint(
-                    effectiveBasicHits(activeCard) > 1
-                      ? `Basic attack: <b>${effectiveBasicHits(activeCard)} hits × ${effectiveDmg(game, activeCard)} DMG</b> — tap up to ${effectiveBasicHits(activeCard)} glowing targets (repeat to stack), or tap <b>Attack</b> again to auto-fire.`
-                      : "Tap a glowing target, or tap <b>Basic Attack</b> again to auto-fire the nearest.",
-                  );
-                }}
+                onClick={actBasic}
               >
                 {pending === "basic"
                   ? picks.length > 0
@@ -1547,46 +1685,7 @@ export function App() {
                       : `${activeDef.special.name} (cost ${specCost}): ${activeDef.special.text}`
                     : "No special"
                 }
-                onClick={() => {
-                  const spec = activeDef.special!;
-                  // Symmetric to Attack: don't let a stray tap wipe basic-attack
-                  // targets already picked.
-                  if (pending === "basic" && picks.length > 0) {
-                    setHint("⚠ Basic-attack targets are still armed — press <b>Clear</b> first to switch to the Special.");
-                    return;
-                  }
-                  if (pending === "special") {
-                    // Second click = fire. Area Specials hit the whole previewed
-                    // zone; targeted ones fire the picks assigned so far.
-                    if (specialAoE) {
-                      dispatch({
-                        type: "BATTLE_ACTION",
-                        player: activeCard.owner,
-                        action: "special",
-                        targetIds: specialValid.map((t) => t.instanceId),
-                      });
-                    } else if (picks.length > 0) {
-                      firePicks(picks);
-                    }
-                    return;
-                  }
-                  // Prism: the Special asks WHICH enchantment before anything
-                  // else, and takes no target at all.
-                  if (activeDef.enchanter) {
-                    setEnchantFor(activeCard.instanceId);
-                    setHint(`<b>${spec.name}</b> — choose an enchantment.`);
-                    return;
-                  }
-                  // First click = arm and preview the affected area.
-                  const cap = Number(spec.params?.targets ?? 1);
-                  setPending("special");
-                  setPicks([]);
-                  setHint(
-                    specialAoE
-                      ? `<b>${spec.name}</b> hits the glowing area — press <b>Confirm</b> to fire.`
-                      : `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — pick up to ${cap} glowing target${cap > 1 ? "s (repeat to stack), or Fire early" : ""}.`,
-                  );
-                }}
+                onClick={actSpecial}
               >
                 {(() => {
                   const rest = activeDef.special?.talent
@@ -1602,38 +1701,14 @@ export function App() {
                   className={`bbtn tal ${pending === "talent" ? "armed" : ""}`}
                   disabled={!talentCheck.ok}
                   title={`${activeDef.talent.name} (Talent, free · once per game): ${activeDef.talent.text}`}
-                  onClick={() => {
-                    // Two presses, exactly like the Special beside it. This used
-                    // to fire on the first — on a button whose effect is free,
-                    // once per game, and gone the moment it resolves. A Special
-                    // you misfire costs magic you get back next round; a Talent
-                    // you misfire is spent for the rest of the match.
-                    if (pending === "talent") {
-                      dispatch({ type: "BATTLE_ACTION", player: activeCard.owner, action: "talent" });
-                      setPending(null);
-                      return;
-                    }
-                    // Don't let arming the Talent silently discard targets the
-                    // player already picked for something else — same guard the
-                    // Special uses.
-                    if (pending !== null && picks.length > 0) {
-                      setHint("⚠ Targets are still armed — press <b>Clear</b> first to switch to the Talent.");
-                      return;
-                    }
-                    setPending("talent");
-                    setPicks([]);
-                    setHint(
-                      `<b>${activeDef.talent!.name}</b> (Talent · free, once per game) — ` +
-                      `press <b>Confirm</b> to use it. There is no second one.`,
-                    );
-                  }}
+                  onClick={actTalent}
                 >
                   {pending === "talent" ? "★ Confirm" : `★ ${activeDef.talent.name}`}
                 </button>
               )}
               <button
                 className="bbtn skip"
-                onClick={() => dispatch({ type: "BATTLE_ACTION", player: activeCard.owner, action: "skip" })}
+                onClick={actSkip}
               >
                 Skip
               </button>
@@ -1977,6 +2052,13 @@ export function App() {
       })()}
 
       {/* 2-second spell-cast flash — art blows up big before the effect resolves. */}
+      {/* The verbs, orbiting the card they belong to. Phone only: on desktop the
+          action row has room and a ring over a 120px tile would be smaller than
+          the buttons it replaced. Mounted here, outside .board, so it is not
+          clipped by the board frame and cannot be caught by the slot's own
+          stacking context. */}
+      {wheelUp && <ActionWheel verbs={wheelVerbs} at={wheelAt} />}
+
       {castFlash && <SpellCastFlash spellId={castFlash.spellId} />}
       {announce && <SummonAnnounce defId={announce.defId} mine={announce.mine} />}
 
