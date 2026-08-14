@@ -121,6 +121,11 @@ export function DeckPickerSheet(props: {
           <span className="dp-head">
             <b>{d.name}</b>
             <span className="dp-count">{d.cards.length}</span>
+            {"tier" in d && d.tier && (
+              /* The rung, so a deck the matchmaker handed you and the same deck
+                 found by name read as the same thing. */
+              <em className={`dp-tier ${d.tier}`}>{d.tier === "mid" ? "even" : d.tier}</em>
+            )}
             {custom ? <em className="dp-mark custom">★ CUSTOM</em> : on && <em className="dp-mark">✓</em>}
           </span>
           <span className="dp-note">

@@ -79,8 +79,32 @@ export function sanitizeSpells(ids: string[] | undefined, boardSize = 5): string
  *  picker alongside the Cores and any custom decks, and can't be edited/deleted
  *  (they live in code, not localStorage). `premade: true` marks them so the UI
  *  can label them and the delete-cleanup never drops their selection. */
+/** Matchmaker rungs. See `PremadeDeck.tier`. */
+export type DeckTier = "easy" | "mid" | "hard";
+export const DECK_TIERS: readonly DeckTier[] = ["easy", "mid", "hard"];
+
 export interface PremadeDeck extends CustomDeck {
   premade: true;
+  /** How hard this deck is to beat, for the Arena's matchmaker.
+   *
+   *  Difficulty is a property of the DECK, not of the opponent, because the
+   *  opponent does not have a skill dial: `chooseBattleAction` is one rule set
+   *  and it plays the same way behind every list. So the tiers are built out
+   *  of the two things that actually change how hard a game is —
+   *
+   *    RARITY, which gates ability density. A repeatable Special requires
+   *    epic-or-above and a Rare gets a one-shot Talent instead, so an
+   *    all-rare deck has materially fewer things it can do to you.
+   *    COST, and through it the stat budget (`5*cost + 10`). Cheap bodies are
+   *    efficient per gold and small in absolute terms, so a board of 2-drops
+   *    loses trades to a 7-drop however well it is played.
+   *
+   *  easy is rares only under a cost-5 cap (avg cost ~2.0); mid is
+   *  rare/epic/legendary under 8 (~3.3); hard is epic-and-up with no cap
+   *  (~5.0). Absent = untiered, which is how the six originals ship: they are
+   *  hand-tuned archetypes rather than rungs on a ladder, and the matchmaker
+   *  leaves them out rather than guessing where they sit. */
+  tier?: DeckTier;
   /** One line on what this deck is trying to do, in the game's own voice.
    *
    *  Lifted out of the comment that already sat above every list — the best
@@ -250,7 +274,194 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // raises the fallen under your control, Bramble Wall gates the row.
     spells: ["pyro_ember_trap", "dusk_chill_touch", "dusk_bone_snare", "dusk_wake_of_the_dead", "leaf_bramble_wall"],
   },
-];
+
+  // ── THE MATCHMAKER LADDER ────────────────────────────────────────────────
+  // Twelve decks in three rungs of four, built to be picked FOR you by
+  // difficulty rather than chosen by name. Element pairings are all ones the
+  // six originals do not use, so the ladder reads as new opponents rather
+  // than reskins. DAWN is absent from `easy` on purpose: it has only 13
+  // buildable rares under that tier's cost cap and an easy deck needs 15 per
+  // element — the one place the pool could not supply the design.
+  {
+    id: "pre_sapling_creek",
+    name: "Sapling Creek",
+    note: "LEAF + AQUA — cheap bodies and small heals. A gentle first opponent.",
+    premade: true,
+    boardSize: 4,
+    tier: "easy",
+    cards: [
+      "leaf_birch", "leaf_nettle", "leaf_stickers", "leaf_cactus", "leaf_leaf",
+      "leaf_oak", "leaf_gecko", "leaf_greegon", "leaf_guardian", "aqua_blub",
+      "aqua_buccaneers", "aqua_misty", "aqua_arctik", "aqua_bulletshrimp", "aqua_harp",
+      "aqua_coralgolem", "aqua_krakler", "aqua_siphon",
+    ],
+    spells: ["leaf_sprout", "leaf_thorn_patch", "leaf_snare", "leaf_bramble_wall", "leaf_groves_blessing"],
+  },
+  {
+    id: "pre_dust_patrol",
+    name: "Dust Patrol",
+    note: "BORE + GALE — slow shields and light skirmishers. Nothing that surprises you.",
+    premade: true,
+    boardSize: 4,
+    tier: "easy",
+    cards: [
+      "bore_cavedweller", "bore_crock", "bore_hillbilly", "bore_clubber", "bore_old_timer",
+      "bore_smith", "bore_armadillo", "bore_rock", "bore_stone", "gale_gastly",
+      "gale_hawko", "gale_skyforce", "gale_megair", "gale_stormhide_bison", "gale_toxhawk",
+      "gale_klouy", "gale_luna", "gale_wailverine",
+    ],
+    spells: ["gale_gust", "gale_downdraft", "bore_bulwark", "gale_squall_line", "bore_fortify"],
+  },
+  {
+    id: "pre_ember_wake",
+    name: "Ember Wake",
+    note: "PYRO + DUSK — chip damage that trades and dies. Short reach.",
+    premade: true,
+    boardSize: 4,
+    tier: "easy",
+    cards: [
+      "pyro_bbq", "pyro_canister", "pyro_ingit", "pyro_flamehound", "pyro_heatsink_golem",
+      "pyro_smog_card", "pyro_dyna", "pyro_ember_scorpion", "pyro_slag_tortoise", "dusk_crow",
+      "dusk_vamp", "dusk_zombie_husk", "dusk_harve", "dusk_jackl", "dusk_skeleton_knight",
+      "dusk_scarlett", "dusk_skulldrake", "dusk_soul_wisp",
+    ],
+    spells: ["pyro_spark", "pyro_ember_trap", "dusk_shadow_step", "pyro_firewall", "pyro_ashfall"],
+  },
+  {
+    id: "pre_static_shallows",
+    name: "Static Shallows",
+    note: "BOLT + AQUA — sparks and shallow water. Slow to close a game.",
+    premade: true,
+    boardSize: 4,
+    tier: "easy",
+    cards: [
+      "bolt_junker", "bolt_rodd", "bolt_stingray", "bolt_zipp", "bolt_drshock",
+      "bolt_electricel", "bolt_scrapper", "bolt_staticcloud", "bolt_buzz", "aqua_blub",
+      "aqua_buccaneers", "aqua_misty", "aqua_arctik", "aqua_bootlegger", "aqua_bulletshrimp",
+      "aqua_coralgolem", "aqua_krakler", "aqua_siphon",
+    ],
+    spells: ["aqua_chill", "aqua_frost_patch", "aqua_steam_vent", "aqua_ice_wall", "bolt_power_rebate"],
+  },
+  {
+    id: "pre_tidal_gate",
+    name: "Tidal Gate",
+    note: "AQUA + DAWN — freeze it, then heal through whatever is left.",
+    premade: true,
+    boardSize: 4,
+    tier: "mid",
+    cards: [
+      "aqua_blub", "aqua_piranha", "aqua_arctik", "aqua_icyninza", "aqua_blackice",
+      "aqua_octoirate", "aqua_cryo", "aqua_polarbear", "aqua_blackbeard", "dawn_able",
+      "dawn_beam", "dawn_roy", "dawn_golde", "dawn_goldeneagle", "dawn_musk_ox",
+      "dawn_veil", "dawn_aurora", "dawn_heir_tok",
+    ],
+    spells: ["dawn_sunbeam", "aqua_frost_patch", "aqua_ice_wall", "dawn_dawns_grace", "dawn_judgment"],
+  },
+  {
+    id: "pre_emberforge",
+    name: "Emberforge",
+    note: "PYRO + BORE — burn from behind a wall that does not move.",
+    premade: true,
+    boardSize: 4,
+    tier: "mid",
+    cards: [
+      "pyro_bbq", "pyro_ingit", "pyro_staph", "pyro_smog_card", "pyro_ember_scorpion",
+      "pyro_liza", "pyro_woof", "pyro_tiki", "pyro_fenrir", "bore_crock",
+      "bore_iron", "bore_old_timer", "bore_ankylosaur", "bore_ufo", "bore_warthog",
+      "bore_sheish", "bore_diam", "bore_prism",
+    ],
+    spells: ["pyro_spark", "bore_sand_trap", "pyro_firewall", "bore_fortify", "bore_shatterpoint"],
+  },
+  {
+    id: "pre_thornwind",
+    name: "Thornwind",
+    note: "LEAF + GALE — bleed and evasion, winning the long turn.",
+    premade: true,
+    boardSize: 4,
+    tier: "mid",
+    cards: [
+      "leaf_birch", "leaf_nettle", "leaf_stickers", "leaf_sticks", "leaf_bark_bushmen",
+      "leaf_dartfrog", "leaf_walking_tree", "leaf_darth", "leaf_rubyo", "gale_gastly",
+      "gale_hawko", "gale_skyforce", "gale_klouy", "gale_sway", "gale_vaga",
+      "gale_vvulture", "gale_omega", "gale_eagon",
+    ],
+    spells: ["leaf_sprout", "leaf_thorn_patch", "leaf_bramble_wall", "leaf_groves_blessing", "gale_vortex_strike"],
+  },
+  {
+    id: "pre_nightcircuit",
+    name: "Nightcircuit",
+    note: "DUSK + BOLT — status on everything, then take the empty slots.",
+    premade: true,
+    boardSize: 4,
+    tier: "mid",
+    cards: [
+      "dusk_crow", "dusk_pumpkin", "dusk_spider", "dusk_skeleton_knight", "dusk_hix",
+      "dusk_silkstalker", "dusk_ghastly", "dusk_sarachnid", "dusk_brute", "bolt_rodd",
+      "bolt_twotales", "bolt_zap", "bolt_buzzard", "bolt_jellyfish", "bolt_static",
+      "bolt_thundercat", "bolt_volta", "bolt_jack_arc",
+    ],
+    spells: ["dusk_chill_touch", "bolt_recon_ping", "bolt_overload_field", "bolt_power_rebate", "dusk_phantom_spikes"],
+  },
+  {
+    id: "pre_solar_crown",
+    name: "Solar Crown",
+    note: "DAWN + PYRO — top-heavy and unforgiving. It builds to one big swing.",
+    premade: true,
+    boardSize: 4,
+    tier: "hard",
+    cards: [
+      "dawn_golde", "dawn_lazor", "dawn_star", "dawn_ty", "dawn_veil",
+      "dawn_clipsey", "dawn_warphant", "dawn_aurora", "dawn_kosmos", "pyro_firebird",
+      "pyro_liza", "pyro_scorch", "pyro_sarra", "pyro_sseerr", "pyro_tiki",
+      "pyro_aftermath", "pyro_sol", "pyro_volcanon",
+    ],
+    spells: ["pyro_spark", "pyro_flare_push", "dawn_dawns_grace", "dawn_judgment", "dawn_dawns_judgment"],
+  },
+  {
+    id: "pre_titanfall",
+    name: "Titanfall",
+    note: "BORE + BOLT — armour that punishes every attack into it.",
+    premade: true,
+    boardSize: 4,
+    tier: "hard",
+    cards: [
+      "bore_shift", "bore_valcana", "bore_krysteel", "bore_rhe", "bore_rollo",
+      "bore_sheish", "bore_rohojohn", "bore_sandman", "bore_score", "bolt_lytning",
+      "bolt_static", "bolt_storm", "bolt_sentry", "bolt_striik", "bolt_surge",
+      "bolt_volta", "bolt_zoez", "bolt_voltogon",
+    ],
+    spells: ["bore_pebble_toss", "bore_bulwark", "bore_fortify", "bore_shatterpoint", "bore_tremor"],
+  },
+  {
+    id: "pre_black_tide",
+    name: "Black Tide",
+    note: "DUSK + LEAF — attrition with a mythic finisher waiting behind it.",
+    premade: true,
+    boardSize: 4,
+    tier: "hard",
+    cards: [
+      "dusk_silkstalker", "dusk_skrow", "dusk_spectra", "dusk_sarachnid", "dusk_brute",
+      "dusk_ender", "dusk_ravven", "dusk_scar", "dusk_zombination", "leaf_bark_bushmen",
+      "leaf_citra", "leaf_dande", "leaf_splint", "leaf_whintey", "leaf_squanch",
+      "leaf_efy", "leaf_thorn", "leaf_nightshade",
+    ],
+    spells: ["leaf_sprout", "dusk_shadow_step", "leaf_groves_blessing", "dusk_phantom_spikes", "leaf_bloodroot_surge"],
+  },
+  {
+    id: "pre_maelstrom",
+    name: "Maelstrom",
+    note: "GALE + AQUA — freeze, shove, and hit what cannot answer back.",
+    premade: true,
+    boardSize: 4,
+    tier: "hard",
+    cards: [
+      "gale_angale", "gale_buf", "gale_vaga", "gale_vvulture", "gale_omega",
+      "gale_wista", "gale_tempest", "gale_totem", "gale_klipso", "aqua_bahari",
+      "aqua_blackice", "aqua_icynin", "aqua_blackbeard", "aqua_icewall", "aqua_vaporem",
+      "aqua_glacius", "aqua_magalogoon", "aqua_siren",
+    ],
+    spells: ["gale_gust", "gale_tailwind", "aqua_dense_fog", "gale_vortex_strike", "aqua_maelstrom"],
+  },];
 
 /** The twelve cards each standard deck gains on the large board, keyed by its
  *  id. Six per element so every two-element build stays an even 15/15 (the
@@ -305,7 +516,67 @@ const LARGE_EXTRAS: Record<string, string[]> = {
     "dusk_spider", "dusk_gool", "dusk_scarlett", "dusk_skeleton_knight",
     "leaf_birch", "pyro_ingit",
   ],
-};
+  // ── matchmaker ladder ──
+  pre_sapling_creek: [
+      "leaf_stickviper", "leaf_weeds", "leaf_python", "leaf_dartfrog", "leaf_hunter",
+      "leaf_walking_tree", "aqua_piranha", "aqua_subcool", "aqua_icyninza", "aqua_kinguin",
+      "aqua_spinefin", "aqua_tide",
+  ],
+  pre_dust_patrol: [
+      "bore_iron", "bore_kcor", "bore_thorny_ripper", "bore_ankylosaur", "bore_ufo",
+      "bore_warthog", "gale_swillow", "gale_breeze", "gale_tumbleweed", "gale_hawk",
+      "gale_whirlwolf", "gale_windsor",
+  ],
+  pre_ember_wake: [
+      "pyro_sparky", "pyro_baboom", "pyro_taper", "pyro_ash_boar", "pyro_spitfire",
+      "pyro_wick", "dusk_doom", "dusk_gravekeeper", "dusk_gool", "dusk_hix",
+      "dusk_widowbite", "dusk_zhunk",
+  ],
+  pre_static_shallows: [
+      "bolt_twotales", "bolt_zap", "bolt_jolt", "bolt_ning", "bolt_buzzard",
+      "bolt_jellyfish", "aqua_piranha", "aqua_subcool", "aqua_icyninza", "aqua_kinguin",
+      "aqua_spinefin", "aqua_tide",
+  ],
+  pre_tidal_gate: [
+      "aqua_bootlegger", "aqua_bulletshrimp", "aqua_siphon", "aqua_anos", "aqua_vaporem",
+      "aqua_phrost", "dawn_sparkle", "dawn_glime", "dawn_star", "dawn_solara",
+      "dawn_aurelion", "dawn_dawn",
+  ],
+  pre_emberforge: [
+      "pyro_baboom", "pyro_flamehound", "pyro_scorch", "pyro_spitfire", "pyro_twins",
+      "pyro_aftermath", "bore_sling", "bore_thorny_ripper", "bore_krysteel", "bore_rollo",
+      "bore_bastion", "bore_steel",
+  ],
+  pre_thornwind: [
+      "leaf_leaf", "leaf_oak", "leaf_greegon", "leaf_hunter", "leaf_season",
+      "leaf_thorn", "gale_megair", "gale_tumbleweed", "gale_fano", "gale_masala",
+      "gale_bluejay", "gale_kloud",
+  ],
+  pre_nightcircuit: [
+      "dusk_harve", "dusk_jackl", "dusk_spectra", "dusk_widowbite", "dusk_ender",
+      "dusk_ravven", "bolt_zipp", "bolt_staticcloud", "bolt_zagphu", "bolt_sentry",
+      "bolt_gigavolt", "bolt_stormcaller",
+  ],
+  pre_solar_crown: [
+      "dawn_ariel", "dawn_radiance", "dawn_drakonbane", "dawn_halo", "dawn_commander",
+      "dawn_supernova", "pyro_woof", "pyro_fenix", "pyro_fenrir", "pyro_twins",
+      "pyro_magmadon", "pyro_pyrogon",
+  ],
+  pre_titanfall: [
+      "bore_lithara", "bore_monger", "bore_gemaga", "bore_obsidi", "bore_steel",
+      "bore_deepest", "bolt_webster", "bolt_zagphu", "bolt_thundercat", "bolt_thunder",
+      "bolt_velvolt_knight", "bolt_elecdroid",
+  ],
+  pre_black_tide: [
+      "dusk_ghastly", "dusk_plaguecrow", "dusk_rip", "dusk_wedded_wraith", "dusk_nightfang",
+      "dusk_skelider", "leaf_fallona", "leaf_sakuroot", "leaf_sumerose", "leaf_rubyo",
+      "leaf_warden", "leaf_oakgre",
+  ],
+  pre_maelstrom: [
+      "gale_fano", "gale_rayfen", "gale_wolfbane", "gale_eagon", "gale_stormfang",
+      "gale_griffith", "aqua_owlette", "aqua_liquark", "aqua_polarking", "aqua_rain",
+      "aqua_hydrogon", "aqua_kraken",
+  ],};
 
 /** The three extra spells each premade picks up on the big board.
  *
@@ -333,6 +604,19 @@ const LARGE_SPELL_EXTRAS: Record<string, string[]> = {
   pre_tempest: ["gale_downdraft", "aqua_dense_fog", "gale_jetstream"],
   // LEAF/PYRO/DUSK grind: DOT and area, matching the shell's plan.
   pre_blight: ["leaf_thorn_patch", "pyro_ashfall", "dusk_grave_pit"],
+  // ── matchmaker ladder ──
+  pre_sapling_creek: ["aqua_steam_vent", "aqua_ice_wall", "leaf_lushfield"],
+  pre_dust_patrol: ["gale_tailwind", "bore_stone_wall", "gale_jetstream"],
+  pre_ember_wake: ["pyro_flare_push", "dusk_veil_of_shadows", "pyro_heatwave"],
+  pre_static_shallows: ["bolt_rewire", "bolt_overload_field", "aqua_downpour"],
+  pre_tidal_gate: ["aqua_steam_vent", "aqua_dense_fog", "aqua_pressure_crush"],
+  pre_emberforge: ["bore_bulwark", "pyro_ashfall", "pyro_meltdown"],
+  pre_thornwind: ["gale_tailwind", "gale_storm_front", "leaf_withering_grasp"],
+  pre_nightcircuit: ["dusk_shadow_step", "dusk_wake_of_the_dead", "bolt_lightning_storm"],
+  pre_solar_crown: ["pyro_firewall", "pyro_heatwave", "dawn_solar_flare"],
+  pre_titanfall: ["bolt_overload_field", "bolt_power_grid", "bore_landslide"],
+  pre_black_tide: ["leaf_bramble_wall", "leaf_lushfield", "leaf_overgrowth"],
+  pre_maelstrom: ["aqua_ice_wall", "aqua_downpour", "aqua_glacial_wave"],
 };
 
 /** The large-board build of a standard deck: the same shell plus its extras.
@@ -357,6 +641,33 @@ export const PREMADE_DECKS: PremadeDeck[] = [
 export function premadeDecksFor(boardSize: number): PremadeDeck[] {
   return PREMADE_DECKS.filter((d) => d.boardSize === (boardSize === 5 ? 5 : 4));
 }
+
+/** The ladder's decks for one rung, sized for a battlefield. */
+export const decksForTier = (tier: DeckTier, boardSize: number): PremadeDeck[] =>
+  premadeDecksFor(boardSize).filter((d) => d.tier === tier);
+
+/** Pick an opponent from a rung.
+ *
+ *  `avoid` is the deck currently in the seat: with four decks per rung, asking
+ *  for the same difficulty twice and being handed the same list both times
+ *  reads as a broken button rather than a roll. It only applies while there is
+ *  something else to hand back. */
+export function rollOpponent(
+  tier: DeckTier,
+  boardSize: number,
+  avoid?: string,
+  rand: () => number = Math.random,
+): PremadeDeck | null {
+  const pool = decksForTier(tier, boardSize);
+  if (!pool.length) return null;
+  const fresh = pool.filter((d) => d.id !== avoid);
+  const from = fresh.length ? fresh : pool;
+  return from[Math.min(from.length - 1, Math.floor(rand() * from.length))];
+}
+
+/** The rung a deck sits on, for showing which one the seat is currently at. */
+export const tierOf = (deckId: string): DeckTier | null =>
+  PREMADE_DECKS.find((d) => d.id === deckId)?.tier ?? null;
 
 /** Every card a player may put in a deck — the real CARDS list (tokens are
  *  excluded from CARDS by construction, so they can never be built with). */

@@ -45,7 +45,10 @@ import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
 import { REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
-import { loadCustomDecks, PREMADE_DECKS, premadeDecksFor, type CustomDeck } from "../data/custom-decks";
+import {
+  DECK_TIERS, loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, tierOf,
+  type CustomDeck,
+} from "../data/custom-decks";
 import { SpIcon } from "./icons";
 import { Hand } from "./Hand";
 import { PhaseRibbon } from "./PhaseRibbon";
@@ -2227,6 +2230,35 @@ export function App() {
                   <button className={boardSize === 5 ? "on" : ""} onClick={() => setBoardSize(5)}>
                     5×5 · Large
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* THE MATCHMAKER. Pick how hard you want it and the seat opposite
+                fills itself — which is the question most players are actually
+                asking of the deck list ("give me a fair fight"), not "which of
+                eighteen names do I want". The seat still has `change` for
+                picking a specific one.
+
+                The rung shows as active only while the seat is actually on a
+                deck from it, so choosing a deck by hand leaves the control
+                honest instead of claiming a difficulty it did not set. */}
+            {!onlineMode && (
+              <div className="ar-field">
+                <span className="ar-flabel">OPPONENT</span>
+                <div className="seg">
+                  {DECK_TIERS.map((t) => (
+                    <button
+                      key={t}
+                      className={tierOf(p2DeckId) === t ? "on" : ""}
+                      onClick={() => {
+                        const pick = rollOpponent(t, boardSize, p2DeckId);
+                        if (pick) setP2DeckId(pick.id);
+                      }}
+                    >
+                      {t === "easy" ? "Easy" : t === "mid" ? "Even" : "Hard"}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

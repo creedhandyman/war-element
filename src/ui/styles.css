@@ -1699,6 +1699,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .dp-head { display: flex; align-items: baseline; gap: 7px; }
 .dp-head b { font-size: 14px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dp-count { flex: none; font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+/* The matchmaker rung. Colour carries it at a glance, the word carries it for
+   anyone the colour does not reach. */
+.dp-tier {
+  flex: none; font-style: normal; font-size: 10px; font-weight: 800;
+  letter-spacing: .08em; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 999px; border: 1px solid currentColor;
+}
+.dp-tier.easy { color: var(--legal); }
+.dp-tier.mid { color: var(--gold-lit); }
+.dp-tier.hard { color: var(--threat); }
 .dp-mark { margin-left: auto; flex: none; font-style: normal; font-size: 12px; font-weight: 700; color: var(--gold-lit); }
 .dp-mark.custom { font-family: var(--head); font-size: 10px; letter-spacing: .08em; }
 /* The one-line intent that has always been a comment above the card list. */
