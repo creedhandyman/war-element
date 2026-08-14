@@ -232,7 +232,8 @@ Rollo / Zombination / Doom changes and everything since.
 `src/data/story.ts` is the whole campaign layer: pure data + pure functions, no
 engine runtime and no React, so it stays testable headlessly
 (`src/engine/__tests__/story.test.ts`, ~40 tests). UI is `StoryMap.tsx`
-(region map + node panel) and `StoryResult.tsx` (post-battle recruitment).
+(region map + node panel + the region's squad strip), `StoryRegions.tsx`
+(the choose-a-map screen) and `StoryResult.tsx` (post-battle recruitment).
 
 - **Nodes are placed on painted art.** `node.at` is a **percentage** of the
   region map's width/height, not a grid unit — resolution-independent, and the
@@ -287,9 +288,23 @@ engine runtime and no React, so it stays testable headlessly
   would crop somebody's map. A region gate is
   separate from node gates, and `isOpen` checks BOTH — every region's entry node
   has no prerequisites of its own, so without the region check PYRO's P1 would
-  read as open on turn one. The map header grows an element switcher once a
-  second region is reachable. A battle takes its board size and Blight from the
-  NODE's own region (`regionOfNode`), never from whichever map is on screen.
+  read as open on turn one. Switching regions is `StoryRegions.tsx`, reached by
+  **Maps** in the map header — one card per region with its art, nodes cleared,
+  cards found and, when shut, the gate that opens it by NAME. It replaced eight
+  element pills wedged into that header, which were the same size whether a
+  region was two nodes from done or had never been opened. Story lands on the
+  MAP, not the picker: continuing is the common case. A battle takes its board
+  size and Blight from the NODE's own region (`regionOfNode`), never from
+  whichever map is on screen.
+- **The squad lives under the map** (`StorySquad.tsx`), not only inside prep.
+  It used to surface one tap from a battle, which is the worst moment to learn
+  your only healer is in another region. Locals fight free, so the editor only
+  chooses what you CARRY; at home (`squadCapInRegion` returns null) everything
+  fights and the strip says so instead of showing an editor that can't change
+  anything. It writes through `packSquad`, the same call prep uses.
+- **There is no Leave button on the map.** The bottom nav is on that screen and
+  all three of its other tabs already leave; a fifth exit was one more thing in
+  a header that had run out of room.
 - **Overflow points forward, not back.** PYRO's northern border faces LEAF, but
   every LEAF card cheap enough to qualify is already in the 12-card starter — so
   bleeding one there would hand the player something they own on day one. Only
@@ -441,6 +456,21 @@ Pure def-to-text lives in `card-text.tsx` and is covered by a whole-pool test.
   `currentTime: 0` and reports its START value forever, so an animated box
   measures wrong. Disable transitions before measuring:
   `*{transition:none!important;animation:none!important}`.
+
+- **A `flex: 1` grid CRUSHES its auto rows, and `align-content: start` does not
+  stop it.** `flex: 1` hands the grid a definite height; Chrome then divides
+  that height across the `auto` rows as if they were `1fr`. Eight 174px cards
+  in a 612px scroller came out 62.5px each with their art clipped to nothing —
+  and `scrollHeight === clientHeight`, so the scroller looked correct too. It
+  is not the `<button>`: a plain `<div>` probe collapses identically. Any grid
+  that is a flex item and meant to scroll needs `grid-auto-rows: max-content`.
+
+- **Flex line-breaking uses HYPOTHETICAL sizes and happens before shrinking.**
+  An item that could shrink to fit still gets pushed to its own line, because
+  the browser decides the line from the item's unshrunk size. `flex: 0 1 auto`
+  plus `min-width: 0` is not enough — the fix is a `max-width` that caps the
+  hypothetical size. This is why the story header stacked three rows on a phone
+  when its two lower boxes fit one, 1px apart.
 
 
 - **Board size and deck size are welded together by format.** 4x4 is legal at

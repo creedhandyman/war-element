@@ -58,6 +58,7 @@ import { WinScreen } from "./WinScreen";
 import { EL_COLOR, EL_ICON, type PendingBattle, type Selection } from "./shared";
 import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
+import { StoryRegions } from "./StoryRegions";
 import { StoryResult } from "./StoryResult";
 import { StoryPrep } from "./StoryPrep";
 import { BottomNav, type Tab } from "./BottomNav";
@@ -214,6 +215,10 @@ export function App() {
   const [collectionOpen, setCollectionOpen] = useState(false);
   const [mapFocusNode, setMapFocusNode] = useState<string | null>(null);
   const [regionId, setRegionId] = useState<string>(REGIONS[0].id);
+  // The map-selection screen. Story lands on the MAP, not the picker: continuing
+  // where you left off is the common case, and a chooser between you and it
+  // every single time is a toll on the thing you do most.
+  const [regionsOpen, setRegionsOpen] = useState(false);
   const region = REGIONS.find((r) => r.id === regionId) ?? REGIONS[0];
   const [storyNode, setStoryNode] = useState<StoryNode | null>(null);
   // A node awaiting the prep screen. Tapping a node no longer launches the
@@ -2108,16 +2113,26 @@ export function App() {
             if (home) setRegionId(home.id);
             setMapFocusNode(id);
             setCollectionOpen(false);
+            setRegionsOpen(false);
           }}
         />
       )}
 
-      {storyOpen && !started && !collectionOpen && (
+      {storyOpen && !started && !collectionOpen && regionsOpen && (
+        <StoryRegions
+          save={story}
+          currentId={region.id}
+          onPick={(id) => { setRegionId(id); setRegionsOpen(false); }}
+          onClose={() => setRegionsOpen(false)}
+        />
+      )}
+
+      {storyOpen && !started && !collectionOpen && !regionsOpen && (
         <StoryMap
           region={region}
-          onRegion={setRegionId}
           save={story}
-          onClose={() => setStoryOpen(false)}
+          onSave={(next) => { setStory(next); saveStory(next); }}
+          onOpenRegions={() => setRegionsOpen(true)}
           onOpenCollection={() => setCollectionOpen(true)}
           focusNodeId={mapFocusNode}
           onFocusHandled={() => setMapFocusNode(null)}

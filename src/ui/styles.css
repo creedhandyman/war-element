@@ -2619,6 +2619,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .story-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 .story-body { flex: 1; display: flex; min-height: 0; }
+/* The map column: the painting and the region's squad, stacked. Exists so the
+   squad strip is not a sibling of `.story-side` — as a direct child of the
+   row it became a third column and pushed the node panel past the right edge
+   at 1440px. `min-width: 0` so the canvas can shrink instead of overflowing. */
+.story-main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }
 /* `flex: none` is load-bearing: `.story-body` turns into a COLUMN on phones, and
    a growable item would stretch to fill the height — overriding aspect-ratio and
    scaling the painted map to ~3x tall, since the art is drawn with
@@ -2774,17 +2779,20 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .story-node.blight .sn-blight { bottom: auto; top: -9px; left: -5px; font-size: 14px; }
 .story-blight { color: #b47dff; }
-/* Region switcher. Only rendered once a second region is reachable, so it never
-   sits there as a row of locks during Act I. */
-.story-regions { display: flex; flex-wrap: wrap; gap: 4px; margin-right: 4px; }
-.story-regions .db-fl { padding: 5px 9px; letter-spacing: .05em; }
-.story-regions .rg.shut {
-  opacity: .5; cursor: not-allowed;
-  /* Named but plainly shut, rather than an anonymous padlock. */
-  color: var(--ink-faint); border-color: var(--panel-line);
-}
-.rg-lock { font-size: 9px; margin-right: 4px; opacity: .8; }
 .story-blight b { color: #b47dff; letter-spacing: .12em; }
+/* The way to the map picker. Reads as a destination rather than another ghost
+   button, because it is the one control on this header that changes WHERE you
+   are — Collection only changes what you are looking at. */
+.maps-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 15px; border-radius: 10px; cursor: pointer;
+  font-family: var(--head); font-weight: 800; font-size: 12px; letter-spacing: .05em;
+  color: var(--gold-lit); border: 1px solid var(--gold-line);
+  background: linear-gradient(180deg, rgba(201, 162, 75, .16), rgba(201, 162, 75, .05));
+  transition: .14s;
+}
+.maps-btn:hover { border-color: var(--gold); background: linear-gradient(180deg, rgba(201, 162, 75, .26), rgba(201, 162, 75, .1)); }
+.maps-btn i { font-style: normal; font-size: 13px; line-height: 1; }
 
 .story-side {
   width: 330px; flex: none; border-left: 1px solid var(--panel-line);
@@ -2836,8 +2844,190 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 @media (max-width: 900px) {
   .story-body { flex-direction: column; overflow-y: auto; }
+  /* One scroller on a phone. `.story-body` already scrolls the whole column
+     here, and a nested scroller inside it means a drag either moves the map
+     column or the page depending on where your thumb landed. */
+  .story-main { overflow: visible; }
   .story-side { width: auto; border-left: 0; border-top: 1px solid var(--panel-line); }
   .story-canvas { margin: 16px; }
+}
+
+/* ── Story Mode — choose a map ───────────────────────────────────────────────
+   Replaces a row of eight identical element pills in the map header. Each card
+   is the region's own painting plus the two numbers that are actually reasons
+   to go somewhere: nodes cleared (progress) and cards found (what it still
+   owes you). A locked region still shows its art and names its gate — a grey
+   box is not somewhere you want to go, and "Locked" on its own is the least
+   useful thing a locked door can say. */
+.regions-wrap .regions-grid {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: grid; gap: 14px; padding: 18px 20px 24px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  /* `max-content` is load-bearing, and `align-content: start` does NOT cover it.
+     `flex: 1` hands this grid a DEFINITE height, and Chrome then divides that
+     height across the auto rows like they were 1fr — eight cards in a 612px
+     box came out 62.5px each, art clipped to nothing, instead of overflowing
+     and scrolling. Size the rows to their content and the scroller works. */
+  grid-auto-rows: max-content;
+  align-content: start;
+}
+.rg-card {
+  position: relative; overflow: hidden; text-align: left; cursor: pointer;
+  display: flex; flex-direction: column; padding: 0;
+  border-radius: 14px; border: 1px solid var(--panel-line); background: var(--panel);
+  transition: .16s; color: inherit;
+}
+.rg-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--el-rim); box-shadow: 0 10px 26px rgba(0, 0, 0, .5);
+}
+/* Where you are, marked on the card rather than by absence of contrast — the
+   old pills said "current" with a fill that a locked pill also nearly had. */
+.rg-card.here { border-color: var(--el-rim); box-shadow: 0 0 0 1px var(--el-rim) inset; }
+.rg-card.shut { cursor: not-allowed; }
+.rg-card.shut .rg-art { filter: grayscale(.85) brightness(.4); }
+.rg-card.shut .rg-name { color: var(--ink-dim); }
+.rg-art {
+  display: block; height: 96px; flex: none;
+  background: var(--void-2) center / cover no-repeat;
+  border-bottom: 1px solid var(--panel-line);
+}
+/* The element's colour bled up out of the art, so a card is identifiable by
+   hue at a glance without the hue being the only thing carrying it. */
+.rg-card::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 62px; height: 34px;
+  background: linear-gradient(180deg, transparent, var(--panel)); pointer-events: none;
+}
+.rg-body { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 5px; padding: 10px 13px 13px; }
+.rg-top { display: flex; align-items: center; gap: 7px; }
+.rg-el { width: 9px; height: 9px; border-radius: 2px; flex: none; transform: rotate(45deg); }
+.rg-name { font-family: var(--head); font-size: 15px; letter-spacing: .02em; color: var(--ink); }
+.rg-flag {
+  margin-left: auto; font-style: normal; font-size: 10px; font-weight: 800;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--el-rim);
+  border: 1px solid var(--el-rim); border-radius: 999px; padding: 2px 7px;
+}
+.rg-flag.done { color: var(--gold); border-color: var(--gold-line); }
+.rg-terrain { font-size: 11px; color: var(--ink-faint); letter-spacing: .04em; }
+.rg-meter { display: block; height: 4px; border-radius: 999px; background: var(--void-2); overflow: hidden; margin-top: 3px; }
+.rg-meter i { display: block; height: 100%; border-radius: 999px; }
+.rg-nums { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11.5px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.rg-nums b { color: var(--ink); }
+.rg-blight { color: #b47dff; letter-spacing: .1em; }
+.rg-locked { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-faint); line-height: 1.4; }
+.rg-locked i { font-style: normal; font-size: 11px; }
+.rg-locked b { color: var(--ink-dim); }
+.regions-foot { padding: 12px 20px; border-top: 1px solid var(--panel-line); background: var(--panel); }
+
+/* ── Story Mode — the region's squad, under its map ──────────────────────────
+   A squad is a property of the REGION, so it lives with the region. It used to
+   surface only inside prep for one specific fight, which is the worst moment
+   to learn what you are carrying. Locals ride free, so the only real decision
+   is what comes from elsewhere — that is all the editor edits. */
+.squad-strip {
+  flex: none; margin: 0 24px 20px; padding: 12px 14px;
+  border: 1px solid var(--panel-line); border-radius: 12px; background: var(--panel);
+}
+/* On a desktop the painting is 730px tall, so "under the map" is under the
+   fold — the strip would only exist for whoever thought to scroll a screen
+   that looks finished. Sticky pins it to the bottom of the map column and the
+   map scrolls behind it. Phones don't need this: the strip is already on
+   screen there, and this column isn't the scroller. */
+@media (min-width: 901px) {
+  .squad-strip {
+    position: sticky; bottom: 0; z-index: 1; margin-top: auto;
+    box-shadow: 0 -14px 26px -12px rgba(0, 0, 0, .85);
+  }
+}
+.sq-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sq-title { font-family: var(--head); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); }
+.sq-note { font-size: 11.5px; color: var(--ink-dim); }
+.sq-note b { color: var(--ink); }
+.sq-edit {
+  margin-left: auto; padding: 5px 12px; border-radius: 8px; cursor: pointer;
+  font-size: 11px; font-weight: 800; letter-spacing: .06em;
+  color: var(--gold-lit); background: transparent; border: 1px solid var(--gold-line);
+}
+.sq-edit:hover { background: rgba(201, 162, 75, .12); }
+.sq-auto { margin: 7px 0 0; font-size: 11px; color: var(--ink-faint); }
+/* Horizontal, because a squad is a line-up and the count matters more than any
+   one face. Scrolls rather than wraps so the strip never pushes the map up. */
+.sq-row { display: flex; gap: 7px; align-items: flex-end; margin-top: 9px; overflow-x: auto; padding-bottom: 3px; }
+.sq-card {
+  flex: none; width: 46px; padding: 0; cursor: pointer; line-height: 0;
+  background: var(--void-2); border: 1px solid var(--panel-line); border-radius: 6px; overflow: hidden;
+}
+.sq-card img { width: 100%; height: 58px; object-fit: cover; display: block; }
+/* Locals are rimmed in their element; carried cards are not. That is the whole
+   distinction the strip has to make, and it makes it without a legend. */
+.sq-card.local { border-color: var(--el-rim); }
+.sq-card:hover { border-color: var(--gold-line); }
+.sq-card-name {
+  display: block; font-size: 10px; line-height: 1.25; padding: 3px 4px 4px;
+  color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sq-more { flex: none; align-self: center; font-size: 11.5px; color: var(--ink-faint); padding: 0 4px; }
+.sq-div { flex: none; width: 1px; align-self: stretch; background: var(--panel-line); margin: 0 4px; }
+
+.sq-pick-head { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 12px; color: var(--ink-dim); }
+.sq-pick-head b { color: var(--ink); }
+.sq-pick-acts { margin-left: auto; display: flex; gap: 6px; }
+.sq-grid {
+  display: grid; gap: 7px; margin-top: 9px; max-height: 232px; overflow-y: auto;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+}
+.sq-pick {
+  position: relative; padding: 0; cursor: pointer; line-height: 0; overflow: hidden;
+  background: var(--void-2); border: 1px solid var(--panel-line); border-radius: 7px; transition: .12s;
+}
+.sq-pick img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; display: block; }
+/* Rarity BEFORE selection, deliberately: both are one class on `.sq-pick`, so
+   whichever is written last wins, and a mythic that is carried must not look
+   the same as a mythic that is not. Selection is the state you act on. */
+.sq-pick.r-legendary { border-color: var(--gold-line); }
+.sq-pick.r-mythic { border-color: rgba(255, 122, 145, .45); }
+.sq-pick.on { border-color: var(--el-rim); box-shadow: 0 0 0 1px var(--el-rim) inset; }
+.sq-pick:disabled { opacity: .38; cursor: not-allowed; }
+.sq-pick-name {
+  display: block; font-size: 10px; line-height: 1.25; padding: 3px 4px 4px; color: var(--ink-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sq-pick.on .sq-pick-name { color: var(--ink); }
+/* Glyph-only, so 9px is allowed here where 9px text would not be. */
+.sq-tick {
+  position: absolute; top: 4px; right: 4px; width: 16px; height: 16px; border-radius: 50%;
+  display: grid; place-items: center; font-style: normal; font-size: 9px; line-height: 1;
+  background: var(--el-rim); color: #100f18; font-weight: 900;
+}
+.sq-save { width: 100%; margin-top: 10px; }
+
+@media (max-width: 900px) {
+  .squad-strip { margin: 0 16px 16px; }
+  .regions-wrap .regions-grid { padding: 14px; gap: 12px; grid-template-columns: 1fr; }
+  .rg-art { height: 80px; }
+  .rg-card::after { top: 46px; }
+}
+
+/* The story header on a phone. Left alone it stacked three full rows — title,
+   stats, buttons — and took 159px of an 844px screen before the map got a
+   pixel. The stats are allowed to shrink and wrap INSIDE their own box so the
+   buttons can share their row; that alone is ~50px back to the map. */
+@media (max-width: 760px) {
+  .story-head { padding: 10px 14px; gap: 8px 12px; }
+  .story-head h2 { font-size: 17px; }
+  .story-eyebrow { font-size: 10px; letter-spacing: .1em; }
+  /* `0 1 auto`, NOT `1 1 auto`: allowed to shrink, never to grow. Growing is
+     what put the buttons on a third row — the stats stretched to the full
+     332px they did not need and left nothing to share it with.
+     The max-width is the other half. Flex line-breaking uses an item's
+     HYPOTHETICAL size and happens BEFORE shrinking, so a stats box whose text
+     wants 171px pushes the 150px button group onto its own row and never gets
+     the chance to shrink and share. Capping the hypothetical size makes the
+     two fit as a pair, and the stats wrap inside their own column instead. */
+  .story-stats { flex: 0 1 auto; min-width: 0; max-width: 158px; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; }
+  .story-actions { flex-wrap: nowrap; gap: 6px; }
+  .maps-btn, .story-actions .ghost { padding: 7px 10px; font-size: 11px; }
+  .wrap.pre-match .story-head { padding-left: 40px; }
 }
 
 /* Story Mode — post-battle recruitment card. */

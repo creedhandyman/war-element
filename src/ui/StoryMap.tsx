@@ -9,13 +9,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { getDef } from "../data/cards";
 import {
-  BIG_BATTLE_KINDS, BLIGHT_MAX, REGIONS, blightAddsFor, blightLevel, blightNodeFor, deckCapFor,
+  BIG_BATTLE_KINDS, BLIGHT_MAX, blightAddsFor, blightLevel, blightNodeFor, deckCapFor,
   gateCheck, isBlightNode, isCleared, isGate, isOpen, isOverflow, isRegionCleared,
-  isRegionOpen, nodeById, recruitChance, recruitablePool, regionOfNode, terrainContested,
+  recruitChance, recruitablePool, regionOfNode, terrainContested,
   type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
 import { EL_COLOR } from "./shared";
 import { CardView } from "./CardView";
+import { StorySquad } from "./StorySquad";
 
 const KIND_LABEL: Record<StoryNode["kind"], string> = {
   skirmish: "Skirmish", warden: "Warden", landmark: "Landmark", throne: "Throne",
@@ -32,10 +33,11 @@ export function StoryMap(props: {
   region: StoryRegion;
   save: StorySave;
   onFight: (node: StoryNode) => void;
-  onClose: () => void;
+  /** The squad strip writes the region's roster back through here. */
+  onSave: (next: StorySave) => void;
   onOpenCollection: () => void;
-  /** Switch which region's map is showing. */
-  onRegion?: (id: string) => void;
+  /** Open the map-selection screen. Switching regions is its job now. */
+  onOpenRegions?: () => void;
   /** A node the collection asked us to show. Consumed once, then cleared by the
    *  parent — otherwise it would re-select on every later render and the player
    *  could never click away from it. */
@@ -44,6 +46,9 @@ export function StoryMap(props: {
 }) {
   const { region, save } = props;
   const [selId, setSelId] = useState<string | null>(null);
+  // A squad card opened for a proper read. Lives here rather than in the strip
+  // so the card lands over the whole screen, not inside a horizontal scroller.
+  const [squadPreview, setSquadPreview] = useState<string | null>(null);
 
   const { focusNodeId, onFocusHandled } = props;
   useEffect(() => {
@@ -104,82 +109,86 @@ export function StoryMap(props: {
           )}
         </div>
         <div className="story-actions">
-          {/* Only render the switcher once a second region is actually reachable
-              — a lone disabled tab is just noise during Act I. */}
-          {props.onRegion && REGIONS.some((r) => r.id !== region.id && isRegionOpen(save, r)) && (
-            <div className="story-regions">
-              {REGIONS.map((r) => {
-                const unlocked = isRegionOpen(save, r);
-                // Name it even when locked. With eight regions a row of bare
-                // padlocks is unreadable — you cannot tell PYRO from DAWN, and
-                // seeing the world laid out is half the point of the switcher.
-                const gates = (r.requires ?? []).map((g) => nodeById(g)?.name ?? g);
-                return (
-                  <button
-                    key={r.id}
-                    className={`db-fl rg ${r.id === region.id ? "on" : ""} ${unlocked ? "" : "shut"}`}
-                    disabled={!unlocked}
-                    title={unlocked ? r.name : `Locked — cross ${gates.join(" or ")}`}
-                    onClick={() => props.onRegion!(r.id)}
-                  >
-                    {!unlocked && <span className="rg-lock" aria-hidden="true">🔒</span>}
-                    {r.element}
-                  </button>
-                );
-              })}
-            </div>
+          {/* One button where eight element pills used to be. The pills were the
+              same size whether a region was nearly cleared or had never been
+              opened, and carried nothing but its element — so "where should I go
+              next" could only be answered by visiting each map and reading its
+              header. That question has a screen of its own now. */}
+          {props.onOpenRegions && (
+            <button className="maps-btn" onClick={props.onOpenRegions}>
+              <i aria-hidden="true">🗺</i> Maps
+            </button>
           )}
           <button className="ghost" onClick={props.onOpenCollection}>Collection</button>
-          <button className="ghost" onClick={props.onClose}>Leave</button>
+          {/* No Leave button. The bottom nav sits on this screen and each of its
+              other three tabs already leaves — a fifth way out was one more
+              thing in a header that had run out of room. */}
         </div>
       </header>
 
       <div className="story-body">
-        <div
-          className={`story-canvas ${region.art ? "arted" : ""}`}
-          style={{
-            aspectRatio: String(region.artRatio ?? MAP_RATIO),
-            backgroundImage: region.art ? `url(${region.art})` : undefined,
-          }}
-        >
-          {/* viewBox 0 0 100 100 + non-uniform scaling lets the edges use the same
-              percentage coordinates as the nodes, with no px maths anywhere. */}
-          <svg
-            className="story-edges"
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-            aria-hidden="true"
+        {/* The map and its squad are one column. `.story-body` is a ROW on
+            desktop (map | node panel), so without this wrapper the squad strip
+            becomes a THIRD column and shoves the node panel off the right edge
+            of a 1440px screen. */}
+        <div className="story-main">
+          <div
+            className={`story-canvas ${region.art ? "arted" : ""}`}
+            style={{
+              aspectRatio: String(region.artRatio ?? MAP_RATIO),
+              backgroundImage: region.art ? `url(${region.art})` : undefined,
+            }}
           >
-            {edges.map((e, i) => (
-              <line key={i}
-                x1={e.from.at.x} y1={e.from.at.y} x2={e.to.at.x} y2={e.to.at.y}
-                className={e.live ? "edge live" : "edge"} />
-            ))}
-          </svg>
-          {nodes.map((n) => {
-            const open = isOpen(save, n), cleared = isCleared(save, n.id);
-            const state = cleared ? "cleared" : open ? "open" : "locked";
-            const left = recruitablePool(n).filter((id) => !owned.has(id)).length;
-            const blighted = blightAddsFor(save, region, n).length > 0;
-            return (
-              <button
-                key={n.id}
-                className={`story-node ${state} ${n.kind} ${BIG_BATTLE_KINDS.includes(n.kind) ? "hex" : ""} ${selId === n.id ? "sel" : ""}`}
-                data-el={region.element}
-                style={pos(n)}
-                onClick={() => setSelId(n.id)}
-                aria-label={`${n.id} ${n.name}, ${KIND_LABEL[n.kind]}, ${state}`}
-              >
-                <span className="sn-id">{n.id}</span>
-                {n.kind === "throne" && <span className="sn-crown">{n.required ? "★" : "☆"}</span>}
-                {isGate(n) && <span className="sn-gate" aria-hidden="true">⇥</span>}
-                {!open && <span className="sn-lock">🔒</span>}
-                {open && !cleared && left > 0 && <span className="sn-left">{left}</span>}
-                {cleared && !isBlightNode(n) && <span className="sn-tick">✓</span>}
-                {(blighted || isBlightNode(n)) && <span className="sn-blight" aria-hidden="true">☠</span>}
-              </button>
-            );
-          })}
+            {/* viewBox 0 0 100 100 + non-uniform scaling lets the edges use the same
+                percentage coordinates as the nodes, with no px maths anywhere. */}
+            <svg
+              className="story-edges"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              {edges.map((e, i) => (
+                <line key={i}
+                  x1={e.from.at.x} y1={e.from.at.y} x2={e.to.at.x} y2={e.to.at.y}
+                  className={e.live ? "edge live" : "edge"} />
+              ))}
+            </svg>
+            {nodes.map((n) => {
+              const open = isOpen(save, n), cleared = isCleared(save, n.id);
+              const state = cleared ? "cleared" : open ? "open" : "locked";
+              const left = recruitablePool(n).filter((id) => !owned.has(id)).length;
+              const blighted = blightAddsFor(save, region, n).length > 0;
+              return (
+                <button
+                  key={n.id}
+                  className={`story-node ${state} ${n.kind} ${BIG_BATTLE_KINDS.includes(n.kind) ? "hex" : ""} ${selId === n.id ? "sel" : ""}`}
+                  data-el={region.element}
+                  style={pos(n)}
+                  onClick={() => setSelId(n.id)}
+                  aria-label={`${n.id} ${n.name}, ${KIND_LABEL[n.kind]}, ${state}`}
+                >
+                  <span className="sn-id">{n.id}</span>
+                  {n.kind === "throne" && <span className="sn-crown">{n.required ? "★" : "☆"}</span>}
+                  {isGate(n) && <span className="sn-gate" aria-hidden="true">⇥</span>}
+                  {!open && <span className="sn-lock">🔒</span>}
+                  {open && !cleared && left > 0 && <span className="sn-left">{left}</span>}
+                  {cleared && !isBlightNode(n) && <span className="sn-tick">✓</span>}
+                  {(blighted || isBlightNode(n)) && <span className="sn-blight" aria-hidden="true">☠</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Under the map, because a squad is a property of the REGION and the
+              map IS the region. It used to be visible only inside prep for one
+              specific fight — the worst moment to learn you left your only healer
+              in another region, one tap from a battle. */}
+          <StorySquad
+            save={save}
+            region={region}
+            onSave={props.onSave}
+            onPreview={setSquadPreview}
+          />
         </div>
 
         <aside className="story-side">
@@ -190,6 +199,10 @@ export function StoryMap(props: {
           )}
         </aside>
       </div>
+
+      {squadPreview && (
+        <CardView mode="browse" def={getDef(squadPreview)} onClose={() => setSquadPreview(null)} />
+      )}
     </div>
   );
 }
