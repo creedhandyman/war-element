@@ -3080,8 +3080,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .story-body { flex-direction: column; overflow-y: auto; }
   /* One scroller on a phone. `.story-body` already scrolls the whole column
      here, and a nested scroller inside it means a drag either moves the map
-     column or the page depending on where your thumb landed. */
-  .story-main { overflow: visible; }
+     column or the page depending on where your thumb landed.
+
+     `flex: none` is the load-bearing half, and it is the same rule
+     `.story-canvas` carries for the same reason — it was a direct child of
+     this flex column before this wrapper existed. As a `flex: 1` item the
+     wrapper SHRINKS: select a node and the panel below grows to 504px, the
+     wrapper is squeezed to the 174px left over, and with `overflow: visible`
+     its 449px of map and squad strip spill straight over the panel. That is
+     the map covering the node popup. Sized to content, the body scrolls and
+     nothing overlaps. */
+  .story-main { flex: none; overflow: visible; }
   .story-side { width: auto; border-left: 0; border-top: 1px solid var(--panel-line); }
   .story-canvas { margin: 16px; }
 }
