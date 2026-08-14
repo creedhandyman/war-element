@@ -2663,6 +2663,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     z-index: var(--z-drawer); width: min(82vw, 320px);
     flex-direction: column; align-items: stretch; gap: 0; padding: 0; cursor: default;
     border-radius: 0 14px 14px 0; box-shadow: 8px 0 40px rgba(0, 0, 0, 0.7);
+    /* OPAQUE. The strip is a thin bar sitting on the page, so it is 50%
+       transparent by design — and that carried straight into the drawer, which
+       is a panel over the BOARD. The log was being read against the
+       battlefield showing through it. Fourth thing this shared class handed
+       from one state to the other without the other resetting it; the others
+       were display, flex-direction and flex. */
+    background: linear-gradient(180deg, #191622, #0c0b13);
   }
   .rail:not(.queue-rail).mobile-open .loglist {
     /* `display: flex` is the half this was missing. The closed strip sets

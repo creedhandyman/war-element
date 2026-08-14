@@ -578,12 +578,39 @@ region.
   by sampling the column every 50ms across a round and counting DISTINCT tops;
   a stable layout gives one value per element.
 
-- **`flex-direction` does nothing to a `display: block` element.** The phone
-  speed queue was supposed to be a horizontal strip and its rule said
-  `flex-direction: row` — but the base `.queue-scale` is a block, so the rows
-  stayed a 192px vertical stack inside a 26px clamp and the queue read as
-  missing. If a tier rule reorients a container, check the base actually made
-  it a flex container.
+- **A class shared across two states must RESET what the other state set.**
+  This shipped four times in one area — the battle log and the speed queue —
+  before it got written down, and every instance looked like a different bug:
+
+    `flex-direction: row` on a `display: block` did nothing, so the phone
+    speed queue stayed a 192px vertical stack inside a 26px clamp and read as
+    missing.
+    `flex-direction` + `overflow` on a `display: none` did nothing, so the
+    log drawer opened to a title, a close button and no log.
+    `flex: 1` on the strip's title made the label fill the WIDTH; the same
+    declaration in the drawer's column filled the HEIGHT and shoved the log
+    into the bottom 216px of an 1848px panel.
+    `background: rgba(…, .5)` is right for a thin strip on the page and wrong
+    for a drawer over the board — the log was being read through the
+    battlefield.
+
+  The shape is always the same: state A sets a property, state B changes the
+  box's orientation or role but only overrides the properties someone
+  remembered. Diff the two states rather than reading the rules:
+
+  ```js
+  const props = ["display","position","flex","flexDirection","alignItems","gap",
+    "padding","height","width","overflow","backgroundColor","backgroundImage","borderRadius"];
+  const snap = (e) => Object.fromEntries(props.map((p) => [p, getComputedStyle(e)[p]]));
+  const before = snap(el);            // …toggle the state…
+  const after = snap(el);
+  console.table(Object.fromEntries(
+    props.filter((p) => before[p] === after[p]).map((p) => [p, before[p]])));  // CARRIED OVER
+  ```
+
+  What carried over is the answer — read that list and ask of each line
+  "is this still right in the new state?" `background` was on it three fixes
+  running before anyone looked.
 
 - **`MatchLayout.tsx` is the match screen's shell** — `.wrap` and its modifier
   classes, the music toggle, the battle-log rail, the two edge tabs and the
