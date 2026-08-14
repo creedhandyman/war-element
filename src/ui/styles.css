@@ -2799,11 +2799,26 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   );
   background-size: 260% 100%;
   mix-blend-mode: screen;
-  animation: foilSweep 3.6s linear infinite;
+  animation: foilSweep 2.25s linear infinite;
 }
+/* Travels EXACTLY one tile, which is the whole reason the numbers look odd.
+ *
+ * The gradient tile is 260% of the card and the background repeats, so the
+ * sheen loops cleanly only if one cycle shifts it by a whole tile — land
+ * anywhere else and the pattern teleports back on the last frame. Percentage
+ * background-position is not a plain offset: X% resolves to
+ * (cardW - tileW) * X = -1.6 * cardW * X. One tile is 2.6 * cardW, so the
+ * shift needed is 2.6 / 1.6 = 162.5% — hence 130% to -32.5%.
+ *
+ * It used to run 130% to -130%: 260% of travel, or 1.6 tiles, so six tenths of
+ * a tile snapped back on every repeat. That is the flicker. The old 3.6s over
+ * 1.6 tiles put a flash on the card every 2.25s, so one tile in 2.25s keeps the
+ * sheen moving at exactly the same speed and arriving just as often — this
+ * changes only the loop point, not the look.
+ */
 @keyframes foilSweep {
-  0% { background-position: 130% 0; }
-  100% { background-position: -130% 0; }
+  from { background-position: 130% 0; }
+  to { background-position: -32.5% 0; }
 }
 /* The mark, so a shiny is identifiable when it is not moving — a sheen alone is
    invisible in a screenshot and to anyone with motion reduced.
@@ -2837,9 +2852,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     rgba(120, 230, 255, 0.26) 44%, rgba(255, 200, 255, 0.24) 52%,
     rgba(255, 240, 160, 0.24) 60%, rgba(255, 255, 255, 0.14) 68%, transparent 80%
   );
-  background-size: 260% 100%;
+  background-size: 260% 100%;   /* must match .foil::after — foilSweep's one-tile
+                                   shift is derived from this exact number */
   mix-blend-mode: screen;
-  animation: foilSweep 3.6s linear infinite;
+  animation: foilSweep 2.25s linear infinite;
 }
 /* Identifiable while still — the sheen alone says nothing in a screenshot, and
    a battle token has no room for the FOIL badge the collection uses. The rim
