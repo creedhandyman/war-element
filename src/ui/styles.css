@@ -2230,7 +2230,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   }
   /* Not your turn: Pass + sub-buttons hide, so collapse to a thin crystals bar
      pinned to the bottom instead of a tall empty box. */
-  .bottom.compact { flex: 0 0 auto; min-height: 0; max-height: 56px; gap: 4px; margin-top: auto; padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
+  /* 84, not 56: the bar carries the crystal strip above its row now. Left at
+     56 the strip was clipped and the Pass row overlapped it. */
+  .bottom.compact { flex: 0 0 auto; min-height: 0; max-height: 84px; gap: 4px; margin-top: auto; padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
   /* Mid-battle the bar IS the interface — the four action buttons need room,
      so the cap comes off for exactly that state. */
   .bottom.acting { max-height: none; flex: 1 1 auto; }
@@ -2239,32 +2241,46 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      fanned hand can't cover them — the top .resource is hidden; the panel copy
      shows. */
   .bottom > .resource { display: none; }
-  /* Crystals move OUT of the action bar and into the top strip — which is
-     where the design puts them (◆1 ✦4, top right) and where they cost nothing:
-     the phase ribbon has empty space on its right, and the bar was paying 44px
-     of full-width row for two numbers. Absolute against .wrap, which is already
-     the positioning context for the hand and the summon bar. */
-  /* FIXED, not absolute. Absolute made this depend on which ancestor happened
-     to be positioned, and the moment .controls needed position:relative (to be
-     the spellbook popover's containing block) the crystals stopped anchoring to
-     .wrap and slid to the bottom of the screen — 43px below it, in fact. Fixed
-     answers to the viewport and to nothing else, which is the right contract
-     for something pinned to a screen corner. No ancestor carries a transform,
-     so fixed really is viewport-relative here. */
+  /* Crystals sit at the head of the action bar, under the hand — what you
+     spend is next to what you spend it on, and next to the button that ends
+     the turn you are spending in.
+
+     They were pinned to the top-right corner for a while, over the phase
+     ribbon. That was cheap in height and wrong in place: gold and magic are
+     read while deciding a summon, and a summon happens with your thumb on the
+     hand, 700px away from the top of the screen. The reason they went up there
+     was that the bar could not afford a 44px full-width row — but the bar is a
+     single 52px row now (Auto/Clear/Surrender moved behind the ⋯), so a 26px
+     strip fits without pushing anything off a phone.
+
+     Position STATIC, deliberately. The previous version was `fixed` after
+     `absolute` broke: absolute made it depend on whichever ancestor happened
+     to be positioned, and the moment `.controls` needed position:relative for
+     the spellbook popover the crystals slid to the bottom of the screen. In
+     flow, in the grid, there is nothing to anchor to and nothing to break. */
   .panel-crystals {
-    display: block; position: fixed;
-    top: calc(6px + env(safe-area-inset-top, 0px)); right: 8px;
-    z-index: var(--z-hud); width: auto; margin: 0;
+    display: block; grid-row: 1; grid-column: 1 / -1;
+    width: 100%; margin: 0;
   }
-  .panel-crystals .resource { gap: 8px; }
-  .panel-crystals .res-gem { transform: scale(0.78); transform-origin: right center; }
-  /* ...so the ribbon must not run under them. Reserving the space with padding
-     made the ribbon WRAP — it is flex-wrap:wrap, so a narrower line pushed the
-     priority chip onto a second row and the strip grew from 45px to 70px,
-     costing more height than the crystals had just saved. nowrap is the fix:
-     the pills are 8px and have room, they were only wrapping because they were
-     allowed to. */
-  .phase-ribbon { padding-right: 84px; flex-wrap: nowrap; }
+  .panel-crystals .resource {
+    gap: 18px; padding: 0; justify-content: center; align-items: center;
+  }
+  .panel-crystals .res-gem { transform: none; }
+  .panel-crystals .gem-face { width: 22px; height: 22px; }
+  .panel-crystals .gem-val { font-size: 15px; }
+  /* The ribbon keeps its nowrap — it is flex-wrap:wrap, and a narrower line
+     pushed the priority chip onto a second row, growing the strip from 45px to
+     70px. It no longer has to reserve room on the right for the crystals. */
+  .phase-ribbon { flex-wrap: nowrap; }
+  /* nowrap without a shrinkable child is an overflow. The three children want
+     402px in a 382px box and every one of them defaults to `min-width: auto`,
+     so flex-shrink cannot take a pixel and the row spills 10px off BOTH edges
+     (justify-content is center). The phase pills are the one part that can
+     lose a few px without losing meaning — the round number and whose priority
+     it is cannot. This was already true with the old `padding-right: 84px`,
+     and worse: that left a 298px box for the same 402px of content. */
+  .phase-ribbon > * { min-width: 0; }
+  .phase-pills { overflow: hidden; }
   .resource { gap: 22px; flex: none; justify-content: center; }
   .res-gem { padding: 0; gap: 8px; }
   .gem-info { display: none; }
@@ -2289,8 +2305,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   }
   .controls .hint { grid-column: 1 / -1; }
   .controls .hint:empty { display: none; }
-  .panel-spells { grid-row: 1; grid-column: 1; width: auto; margin: 0; }
-  .pass-btn { grid-row: 1; grid-column: 2; }
+  /* Row 2: row 1 is the crystal strip (see `.panel-crystals` above). */
+  .panel-spells { grid-row: 2; grid-column: 1; width: auto; margin: 0; }
+  .pass-btn { grid-row: 2; grid-column: 2; }
   /* ONE ROW: book chip · the committing action · everything else.
      The second row held Auto, Clear and Surrender — three things you do once
      or twice in a match — and charged 34px of every screen for the whole game.
@@ -2298,7 +2315,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      design's own answer and the same shape the top strip already uses. */
   .controls { grid-template-columns: auto 1fr auto; }
   .ctl-more {
-    grid-row: 1; grid-column: 3; display: grid; place-items: center;
+    grid-row: 2; grid-column: 3; display: grid; place-items: center;
     width: 44px; height: 44px; flex: none; cursor: pointer;
     border-radius: 10px; border: 1px solid rgba(233, 226, 210, .2);
     background: rgba(6, 7, 12, .6); color: var(--ink-dim);
