@@ -733,7 +733,7 @@ describe("medium-tier passives (audit batch)", () => {
     const near = place(s, "dawn_able", "P1", 3, 2, { curShields: 0 }); // adjacent
     const far = place(s, "dawn_able", "P1", 0, 3, { curShields: 0 }); // across the board
     const next = advance(atCleanup(s));
-    expect(next.cards[near.instanceId].curShields).toBe(3); // +3 in range
+    expect(next.cards[near.instanceId].curShields).toBe(1); // +1 in range
     expect(next.cards[far.instanceId].curShields).toBe(0); // out of range
   });
 

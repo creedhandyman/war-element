@@ -5343,9 +5343,15 @@ export const CARDS: CardDef[] = [
     shields: 2,
     // REFLECT 1: returns 1 DMG to attackers.
     keywords: { REFLECT: 1 },
-    // Light Screen (End of Round): plates up allies within range +3 shields.
+    // Light Screen (End of Round): plates up allies within range +1 shield.
+    //
+    // One, not three. Shields never expire, so this is a GENERATOR: three
+    // allies in range at +3 was nine shields a round, compounding for the rest
+    // of the game off a cost-2 body that also reflects. A drip is the fantasy
+    // — armour handed out steadily — and it still adds up over a long game
+    // without deciding one by round four.
     passiveNames: { roundTick: "Light Screen" },
-    roundTick: { allyInRangeShields: 3 },
+    roundTick: { allyInRangeShields: 1 },
   },
   {
     id: "dawn_able",
