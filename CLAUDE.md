@@ -479,6 +479,49 @@ region.
   height" as a quote and miscounts every brace after it. Two separate scripts
   made this mistake.
 
+- **Audit the COLUMN, not the component you just added.** The Gauntlet panel
+  measured perfectly on its own and pushed the versus card into the Start
+  button, because a `flex: 1 1 auto` box whose children carry `min-height`
+  gets squeezed under its own content and overflows onto its neighbours
+  instead of scrolling. Checking the thing you added is not checking the thing
+  you changed. Paste this into the console after any layout work — it walks a
+  container, reports overlapping siblings and unreachable controls, and takes
+  about a second per screen:
+
+  ```js
+  window.__audit = (rootSel, childSel) => {
+    const root = document.querySelector(rootSel);
+    if (!root) return { screen: rootSel, err: "absent" };
+    const R = (e) => { const b = e.getBoundingClientRect();
+      return { y: Math.round(b.y), bottom: Math.round(b.bottom) }; };
+    const boxes = [...root.querySelectorAll(childSel)]
+      .filter((e) => e.getBoundingClientRect().height > 0)
+      .map((e) => ({ c: (e.className || "").toString().split(" ")[0], ...R(e) }))
+      .sort((a, b) => a.y - b.y);
+    const overlap = [];
+    for (let i = 1; i < boxes.length; i++)
+      if (boxes[i].y < boxes[i - 1].bottom - 1) overlap.push([boxes[i - 1].c, boxes[i].c]);
+    const unreachable = [];
+    root.querySelectorAll("button:not(:disabled), input, select").forEach((e) => {
+      const b = e.getBoundingClientRect();
+      if (b.height < 4 || b.width < 4) return;
+      const cx = Math.round(b.x + b.width / 2), cy = Math.round(b.y + b.height / 2);
+      if (cy < 0 || cy > innerHeight || cx < 0 || cx > innerWidth) return; // scrolled out, not broken
+      const t = document.elementFromPoint(cx, cy);
+      if (!t || !(e.contains(t) || t.contains(e)))
+        unreachable.push({ t: (e.innerText || e.tagName).slice(0, 22),
+                           hitBy: t && (t.className || t.tagName).toString().slice(0, 24) });
+    });
+    return { screen: rootSel, overlap, unreachable,
+      overflowX: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+  };
+  ```
+
+  Two expected non-findings, so they are not chased twice: a control behind a
+  modal (the ⋯ under the mulligan overlay) reports `hitBy: "overlay"` and is
+  correct, and anything scrolled out of view is skipped rather than flagged —
+  the builder's element filters are a horizontal scroller by design.
+
 - **Presence is not reachability.** A synthetic `.click()` fires the handler
   whatever is painted on top, so it cannot see a covered control. Use
   `document.elementFromPoint` at the element's centre. Every layout bug in the

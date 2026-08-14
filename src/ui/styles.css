@@ -2228,6 +2228,20 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px;
   }
   .db-filters::-webkit-scrollbar, .db-sort::-webkit-scrollbar { display: none; }
+  /* The scrollbar is hidden to save the height, which left four of the eight
+     elements off the right edge with nothing at all to say they were there.
+     A faded right edge says it and costs no height.
+
+     It needs no "is it scrollable" check: a row that fits is left-aligned, so
+     the fade lands on empty space and cannot be seen. The chips only start
+     dissolving once there is actually something under the gradient. */
+  .db-filters, .db-sort {
+    mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+  }
+  /* The collection wraps instead (see `.col-pool .db-filters`), so it must not
+     inherit a fade that would clip the end of its last row. */
+  .col-pool .db-filters, .col-pool .db-sort { mask-image: none; -webkit-mask-image: none; }
   .db-filters .db-fl, .db-sort .db-fl { flex: none; }
   .db-sort-lbl { flex: none; }
   /* Tighten the meta stack so the pool sits higher. */
