@@ -376,7 +376,24 @@ export function canTarget(
     // whole battlefield, so it skips both this reach cap and the sight screen,
     // the same as a ranged Special. Without this the reach cap (added after
     // Catapult shipped) quietly grounded it, worst on the bigger board.
-    const reach = rangedReachFor(state, attacker);
+    //
+    // HOME DEFENCE. A ranged card standing in its OWN home row sees the whole
+    // of that row. Reach 2 meant a shooter holding the back line could not
+    // answer an invader more than two columns away — on a 5x5 board a defender
+    // at column 0 simply could not shoot something standing on its own home row
+    // at column 4, which is the one place a defender most needs to reach. The
+    // card was in position, facing the right way, and the rule said no.
+    //
+    // Scoped as narrowly as the problem: the attacker must be home, the target
+    // must be in that same row, and it only widens the REACH. The sight screen
+    // still applies, so a nearer invader in the lane still blocks the shot at a
+    // farther one — you deal with what is in front of you first. King of the
+    // Hill is untouched everywhere else: holding the back line still costs you
+    // the +1 reach in every other direction, so this buys defence, not board
+    // control.
+    const ownHome = homeRow(attacker.owner, state.boardSize);
+    const defendingOwnHome = attacker.pos.row === ownHome && target.pos.row === ownHome;
+    const reach = defendingOwnHome ? state.boardSize : rangedReachFor(state, attacker);
     if (!rangedCanSee(state, attacker.pos, target.pos, attacker.owner, reach)) return false;
   }
 

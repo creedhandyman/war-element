@@ -78,6 +78,40 @@ describe("Home Slot Targeting Rule", () => {
     const invader = place(s, "dusk_vamp", "P2", 3, 1); // standing on P1 home, beside us
     expect(canTarget(s, defender, invader)).toBe(true);
   });
+
+  it("a ranged defender sees the WHOLE of its own home row, past the reach cap", () => {
+    // The basic-attack reach is 2 king-steps from your own summoning row, so a
+    // shooter holding the back line could not answer an invader three columns
+    // away — in position, facing the right way, and the rule said no. Home
+    // defence now widens the reach along that row only.
+    const s = prepState();
+    const defender = place(s, "leaf_fallona", "P1", 3, 0); // ranged, own home
+    const farInvader = place(s, "dusk_vamp", "P2", 3, 3);  // same row, 3 cols away
+    expect(canTarget(s, defender, farInvader, false, true)).toBe(true);
+  });
+
+  it("...but only along that row — the reach cap still holds everywhere else", () => {
+    // The widening is scoped to the row being defended. A target the same
+    // distance away in a MID row is still out of a home shooter's reach, so
+    // this buys defence and not board control: King of the Hill's "advance to
+    // see further" is untouched.
+    const s = prepState();
+    const defender = place(s, "leaf_fallona", "P1", 3, 0);
+    const offRow = place(s, "dusk_vamp", "P2", 2, 3); // 3 cols away, one row up
+    expect(canTarget(s, defender, offRow, false, true)).toBe(false);
+  });
+
+  it("...and a nearer invader in the lane still screens the far one", () => {
+    // Reach is not sight. The straight-line body screen still applies down the
+    // home row, so you deal with what is in front of you first rather than
+    // shooting past it.
+    const s = prepState();
+    const defender = place(s, "leaf_fallona", "P1", 3, 0);
+    const nearInvader = place(s, "dusk_gool", "P2", 3, 2);
+    const farInvader = place(s, "dusk_vamp", "P2", 3, 3);
+    expect(canTarget(s, defender, nearInvader, false, true)).toBe(true);
+    expect(canTarget(s, defender, farInvader, false, true)).toBe(false); // screened
+  });
 });
 
 describe("ignoresHomeRule (Pumpkin's Catapult)", () => {
