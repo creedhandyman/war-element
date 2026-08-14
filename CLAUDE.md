@@ -474,6 +474,16 @@ Pure def-to-text lives in `card-text.tsx` and is covered by a whole-pool test.
   of the overlay, not a descendant; a React fragment creates no stacking
   context, so moving the JSX out of the `.overlay` div is enough.
 
+- **`MatchLayout.tsx` is the match screen's shell** — `.wrap` and its modifier
+  classes, the music toggle, the battle-log rail, the two edge tabs and the
+  Spells sheet. Everything with a rule in it arrives as a SLOT (`ribbon`,
+  `logEntries`, `board`, `rightCol`, `spellSheet`, `bottom`, `children`),
+  already rendered by App. It holds no state: the drawer, the rail and the
+  track are App's, passed in with their setters. Slots are React fragments, so
+  the DOM under `.wrap` is unchanged — `.wrap.pre-match > .phase-ribbon` and
+  friends are direct-child selectors and still match. Migration step 7 of the
+  redesign; the reducer refactor it unblocks has not been started.
+
 - **The squad limit is not a deck limit, and clamping one by the other is a
   silent cap.** `squadCapFor` counts only what you carry from ELSEWHERE — a
   region's own element travels free and is already in the pool. `App.tsx`'s

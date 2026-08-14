@@ -60,6 +60,7 @@ import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
 import { StoryRegions } from "./StoryRegions";
 import { DeckPickerSheet, DeckSeat } from "./DeckPickerSheet";
+import { MatchLayout } from "./MatchLayout";
 import { StoryResult } from "./StoryResult";
 import { StoryPrep } from "./StoryPrep";
 import { BottomNav, type Tab } from "./BottomNav";
@@ -1508,374 +1509,320 @@ export function App() {
     // Story are places you STAY, and leaving Story dropped you onto a deserted
     // battlefield. Hidden by class rather than unmounted so nothing that
     // measures the board on mount has to learn a new lifecycle.
-    <div className={`wrap${logCollapsed ? " log-collapsed" : ""}${started ? "" : " pre-match"}${wheelUp ? " wheel-up" : ""}`}>
-      <button
-        className="music-toggle"
-        onClick={toggleMusic}
-        title={musicMuted ? "Unmute music" : "Mute music"}
-        aria-label={musicMuted ? "Unmute music" : "Mute music"}
-      >
-        {musicMuted ? "🔇" : "🔊"}
-      </button>
-      <PhaseRibbon game={game} />
-
-      {/* On a phone this is a ONE-LINE strip under the board, and tapping it
-          raises the full rail — which is why the whole thing is a tap target
-          rather than the edge tab it replaces. Guarded on the drawer being
-          shut so a tap inside the open rail (selecting text, hitting ✕)
-          cannot re-open it. On desktop the rail is always full height and the
-          handler is inert: .mobile-open only means anything inside the
-          portrait query. */}
-      <div
-        className={`rail log-rail${logCollapsed ? " collapsed" : ""}${mobilePanel === "log" ? " mobile-open" : ""}`}
-        role={logIsStrip ? "button" : undefined}
-        tabIndex={logIsStrip ? 0 : undefined}
-        aria-label={logIsStrip ? "Battle log — open the full rail" : undefined}
-        onClick={logIsStrip ? () => setMobilePanel("log") : undefined}
-        onKeyDown={
-          logIsStrip
-            ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMobilePanel("log"); } }
-            : undefined
-        }
-      >
-        <button
-          className="rail-collapse"
-          onClick={() => setLogCollapsed((v) => !v)}
-          title={logCollapsed ? "Show battle log" : "Collapse battle log"}
-          aria-label={logCollapsed ? "Show battle log" : "Collapse battle log"}
-        >
-          {logCollapsed ? "☰" : "«"}
-        </button>
-        <div className="rail-title">
-          Battle Log
-          <button className="panel-close" onClick={() => setMobilePanel(null)} aria-label="Close">✕</button>
-        </div>
-        <div className="loglist">
-          {condenseLog(game.log.slice(-60)).map((e, i) => (
-            <div
-              key={i}
-              className={[e.text.includes("(P1)") ? "me" : "", e.chatter ? "log-chatter" : "log-event"].filter(Boolean).join(" ")}
-            >
-              {e.text}
-              {e.count > 1 && <span className="log-x">×{e.count}</span>}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Mobile-only edge tabs — open the Log (left) / Spells (right) overlays. */}
-      <button
-        className="edge-tab left"
-        onClick={() => setMobilePanel(mobilePanel === "log" ? null : "log")}
-      >
-        <span>LOG</span>
-      </button>
-      <button
-        className="edge-tab right"
-        onClick={() => setMobilePanel(mobilePanel === "spells" ? null : "spells")}
-      >
-        <span>SPELLS</span>
-      </button>
-
-      <Board
-        game={game}
-        foils={foilIds}
-        legalSlots={legalSlots}
-        legalTargetIds={legalTargetIds}
-        targetsAreEnemies={targetsAreEnemies}
-        previewArea={previewArea}
-        stagedSlot={stagedSlot}
-        pickCounts={picks.reduce<Record<string, number>>((acc, id) => {
-          acc[id] = (acc[id] ?? 0) + 1;
-          return acc;
-        }, {})}
-        hasSelection={sel !== null}
-        movableIds={movableIds}
-        selectedId={sel?.kind === "card" ? sel.instanceId : null}
-        actingId={awaitingId}
-        grayTeam={
-          // Throughout your prep turn, fade the idle opponent's team to ~50% so
-          // it's clear those pieces aren't yours to act on. The one exception is
-          // a damage spell you're aiming — then the enemy must stay lit to target.
-          game.phase === "prep" &&
-          me !== null &&
-          game.prep?.priority === me &&
-          armedPickSide !== "enemy"
-            ? enemyOf(me)
-            : null
-        }
-        viewPlayer={view}
-        onSlotClick={onSlotClick}
-        onSlotDragOver={onSlotDragOver}
-        onSlotDrop={onSlotDrop}
-      />
-
-      {staged && me !== null && (() => {
-        const h = game.players[me].hand.find((c) => c.handId === staged.handId);
-        const name = h ? getDef(h.defId).name : "card";
-        return (
-          <div className="summon-confirm">
-            <span className="sc-text">
-              Place <b>{name}</b> at column {staged.col + 1}
-              {previewArea.length > 0 && <> · <span className="sc-red">red = on-summon strike area</span></>}?
-            </span>
-            <button className="lockin sc-yes" onClick={confirmSummon}>Confirm</button>
-            <button className="ghost sc-no" onClick={cancelSummon}>Cancel</button>
+    <MatchLayout
+      logCollapsed={logCollapsed}
+      preMatch={!started}
+      wheelUp={wheelUp}
+      mobilePanel={mobilePanel}
+      setMobilePanel={setMobilePanel}
+      logIsStrip={logIsStrip}
+      onToggleLogRail={() => setLogCollapsed((v) => !v)}
+      musicMuted={musicMuted}
+      onToggleMusic={toggleMusic}
+      ribbon={<PhaseRibbon game={game} />}
+      logEntries={
+        condenseLog(game.log.slice(-60)).map((e, i) => (
+          <div
+            key={i}
+            className={[e.text.includes("(P1)") ? "me" : "", e.chatter ? "log-chatter" : "log-event"].filter(Boolean).join(" ")}
+          >
+            {e.text}
+            {e.count > 1 && <span className="log-x">×{e.count}</span>}
           </div>
-        );
-      })()}
+        ))
+      }
+      board={
+        <>
+          <Board
+            game={game}
+            foils={foilIds}
+            legalSlots={legalSlots}
+            legalTargetIds={legalTargetIds}
+            targetsAreEnemies={targetsAreEnemies}
+            previewArea={previewArea}
+            stagedSlot={stagedSlot}
+            pickCounts={picks.reduce<Record<string, number>>((acc, id) => {
+              acc[id] = (acc[id] ?? 0) + 1;
+              return acc;
+            }, {})}
+            hasSelection={sel !== null}
+            movableIds={movableIds}
+            selectedId={sel?.kind === "card" ? sel.instanceId : null}
+            actingId={awaitingId}
+            grayTeam={
+              // Throughout your prep turn, fade the idle opponent's team to ~50% so
+              // it's clear those pieces aren't yours to act on. The one exception is
+              // a damage spell you're aiming — then the enemy must stay lit to target.
+              game.phase === "prep" &&
+              me !== null &&
+              game.prep?.priority === me &&
+              armedPickSide !== "enemy"
+                ? enemyOf(me)
+                : null
+            }
+            viewPlayer={view}
+            onSlotClick={onSlotClick}
+            onSlotDragOver={onSlotDragOver}
+            onSlotDrop={onSlotDrop}
+          />
 
-      {/* Right of the field: the initiative (Speed Queue) rail and the spell
-          tray. Source order is tray-first because the mobile path needs it that
-          way; on desktop CSS `order` flips them so the queue reads first and the
-          spells sit beneath it (see .rightcol in styles.css). */}
-      <div className="rightcol">
-        {game.phase === "prep" && (
+          {staged && me !== null && (() => {
+            const h = game.players[me].hand.find((c) => c.handId === staged.handId);
+            const name = h ? getDef(h.defId).name : "card";
+            return (
+              <div className="summon-confirm">
+                <span className="sc-text">
+                  Place <b>{name}</b> at column {staged.col + 1}
+                  {previewArea.length > 0 && <> · <span className="sc-red">red = on-summon strike area</span></>}?
+                </span>
+                <button className="lockin sc-yes" onClick={confirmSummon}>Confirm</button>
+                <button className="ghost sc-no" onClick={cancelSummon}>Cancel</button>
+              </div>
+            );
+          })()}
+        </>
+      }
+      rightCol={
+        <div className="rightcol">
+          {game.phase === "prep" && (
+            <SpellTray
+              game={game}
+              player={view}
+              armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
+              myTurn={myPrep}
+              onPick={onPickSpell}
+              vertical
+            />
+          )}
+          <SpeedQueue game={game} />
+        </div>
+      }
+      spellSheet={
+        game.phase === "prep" ? (
           <SpellTray
             game={game}
             player={view}
             armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
             myTurn={myPrep}
-            onPick={onPickSpell}
+            onPick={(id) => { onPickSpell(id); setMobilePanel(null); }}
             vertical
           />
-        )}
-        <SpeedQueue game={game} />
-      </div>
+        ) : (
+          <div className="sheet-empty">Spells can only be cast during your Prep turn.</div>
+        )
+      }
+      bottom={
+        <div ref={bottomRef} className={`bottom${!myPrep && !iActBattle && !oppDeciding && activeCard === null ? " compact" : ""}${iActBattle || oppDeciding ? " acting" : ""}${oppDeciding ? " waiting" : ""}`}>
+          <ResourcePool game={game} player={view} />
 
-      {/* Mobile: the Spells tab opens the tray as a bottom sheet (spells are prep-only). */}
-      {mobilePanel === "spells" && (
-        <div className="mobile-sheet" onClick={() => setMobilePanel(null)}>
-          <div className="mobile-sheet-card" onClick={(e) => e.stopPropagation()}>
-            <div className="rail-title">
-              Spells
-              <button className="panel-close" onClick={() => setMobilePanel(null)} aria-label="Close">✕</button>
-            </div>
-            {game.phase === "prep" ? (
-              <SpellTray
-                game={game}
-                player={view}
-                armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
-                myTurn={myPrep}
-                onPick={(id) => { onPickSpell(id); setMobilePanel(null); }}
-                vertical
-              />
-            ) : (
-              <div className="sheet-empty">Spells can only be cast during your Prep turn.</div>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div ref={bottomRef} className={`bottom${!myPrep && !iActBattle && !oppDeciding && activeCard === null ? " compact" : ""}${iActBattle || oppDeciding ? " acting" : ""}${oppDeciding ? " waiting" : ""}`}>
-        <ResourcePool game={game} player={view} />
-
-        <div className="handcol">
-        {oppDeciding ? (
-          <div className="bprompt oppwait">
-            <div className="bp-title">⏳ Waiting for your opponent…</div>
-            <div className="bp-text">
-              {activeCard && activeDef
-                ? `${activeDef.name} is choosing its action.`
-                : "They're taking their prep turn."}
-            </div>
-          </div>
-        ) : iActBattle && activeCard && activeDef ? (
-          <div className="bprompt">
-            <div className="bp-title">
-              {activeDef.name} is up{" "}
-              <small>
-                ⚔{effectiveBasicHits(activeCard) > 1 ? `${effectiveBasicHits(activeCard)}×` : ""}
-                {effectiveDmg(game, activeCard) + (activeCard.enchant === "sharpen" ? 5 : 0)} · {activeDef.attackType}
-              </small>
-              {activeCard.enchant && (
-                <span className="ench-chip" title="Enchantment armed — rides the next basic attack">
-                  🗡 {activeCard.enchant}
-                  {activeCard.enchant === "sharpen" ? " +5 DMG" : activeCard.enchant === "burning" ? " · 2 DOT" : activeCard.enchant === "freezing" ? " · −5 SP" : " · SLEEP 1"}
-                </span>
-              )}
-            </div>
-            <div className="bp-actions">
-              <button
-                className={`bbtn atk ${pending === "basic" ? "armed" : ""}`}
-                disabled={!basicOk}
-                onClick={actBasic}
-              >
-                {pending === "basic"
-                  ? picks.length > 0
-                    ? `🔥 Fire (${picks.length}/${maxPicks})`
-                    : "⚔ Auto-fire"
-                  : "⚔ Basic Attack"}
-              </button>
-              <button
-                className={`bbtn ${activeDef.special?.talent ? "tal" : "spec"} ${pending === "special" ? "armed" : ""} ${specialCheck.ok && pending === null ? "ready" : ""}`}
-                disabled={!specialCheck.ok}
-                title={
-                  activeDef.special
-                    ? activeDef.special.talent
-                      ? `${activeDef.special.name} (Talent, free · once per game): ${activeDef.special.text}`
-                      : `${activeDef.special.name} (cost ${specCost}): ${activeDef.special.text}`
-                    : "No special"
-                }
-                onClick={actSpecial}
-              >
-                {(() => {
-                  const rest = activeDef.special?.talent
-                    ? `★ ${activeDef.special.name}`
-                    : `✦ Special${activeDef.special ? ` (${specCost})` : ""}`;
-                  if (pending === "special")
-                    return specialAoE ? "✦ Confirm" : picks.length > 0 ? `🔥 Fire (${picks.length}/${maxPicks})` : rest;
-                  return rest;
-                })()}
-              </button>
-              {activeDef.talent && (
-                <button
-                  className={`bbtn tal ${pending === "talent" ? "armed" : ""}`}
-                  disabled={!talentCheck.ok}
-                  title={`${activeDef.talent.name} (Talent, free · once per game): ${activeDef.talent.text}`}
-                  onClick={actTalent}
-                >
-                  {pending === "talent" ? "★ Confirm" : `★ ${activeDef.talent.name}`}
-                </button>
-              )}
-              <button
-                className="bbtn skip"
-                onClick={actSkip}
-              >
-                Skip
-              </button>
-            </div>
-            {/* Armed special → show what it does (the hover title is invisible on
-                touch, and the hint row is hidden mid-battle on mobile). */}
-            {pending === "special" && activeDef.special && (
-              <div className="bp-text spec-desc">
-                <b>{activeDef.special.name}</b>
-                <span className="spec-cost"> · {activeDef.special.talent ? "Talent · once per game" : `${specCost} SP`}</span> — {activeDef.special.text}
-              </div>
-            )}
-            {pending !== "special" && !specialCheck.ok && activeDef.special && (
+          <div className="handcol">
+          {oppDeciding ? (
+            <div className="bprompt oppwait">
+              <div className="bp-title">⏳ Waiting for your opponent…</div>
               <div className="bp-text">
-                Special unavailable: {"reason" in specialCheck ? specialCheck.reason : ""}
+                {activeCard && activeDef
+                  ? `${activeDef.name} is choosing its action.`
+                  : "They're taking their prep turn."}
+              </div>
+            </div>
+          ) : iActBattle && activeCard && activeDef ? (
+            <div className="bprompt">
+              <div className="bp-title">
+                {activeDef.name} is up{" "}
+                <small>
+                  ⚔{effectiveBasicHits(activeCard) > 1 ? `${effectiveBasicHits(activeCard)}×` : ""}
+                  {effectiveDmg(game, activeCard) + (activeCard.enchant === "sharpen" ? 5 : 0)} · {activeDef.attackType}
+                </small>
+                {activeCard.enchant && (
+                  <span className="ench-chip" title="Enchantment armed — rides the next basic attack">
+                    🗡 {activeCard.enchant}
+                    {activeCard.enchant === "sharpen" ? " +5 DMG" : activeCard.enchant === "burning" ? " · 2 DOT" : activeCard.enchant === "freezing" ? " · −5 SP" : " · SLEEP 1"}
+                  </span>
+                )}
+              </div>
+              <div className="bp-actions">
+                <button
+                  className={`bbtn atk ${pending === "basic" ? "armed" : ""}`}
+                  disabled={!basicOk}
+                  onClick={actBasic}
+                >
+                  {pending === "basic"
+                    ? picks.length > 0
+                      ? `🔥 Fire (${picks.length}/${maxPicks})`
+                      : "⚔ Auto-fire"
+                    : "⚔ Basic Attack"}
+                </button>
+                <button
+                  className={`bbtn ${activeDef.special?.talent ? "tal" : "spec"} ${pending === "special" ? "armed" : ""} ${specialCheck.ok && pending === null ? "ready" : ""}`}
+                  disabled={!specialCheck.ok}
+                  title={
+                    activeDef.special
+                      ? activeDef.special.talent
+                        ? `${activeDef.special.name} (Talent, free · once per game): ${activeDef.special.text}`
+                        : `${activeDef.special.name} (cost ${specCost}): ${activeDef.special.text}`
+                      : "No special"
+                  }
+                  onClick={actSpecial}
+                >
+                  {(() => {
+                    const rest = activeDef.special?.talent
+                      ? `★ ${activeDef.special.name}`
+                      : `✦ Special${activeDef.special ? ` (${specCost})` : ""}`;
+                    if (pending === "special")
+                      return specialAoE ? "✦ Confirm" : picks.length > 0 ? `🔥 Fire (${picks.length}/${maxPicks})` : rest;
+                    return rest;
+                  })()}
+                </button>
+                {activeDef.talent && (
+                  <button
+                    className={`bbtn tal ${pending === "talent" ? "armed" : ""}`}
+                    disabled={!talentCheck.ok}
+                    title={`${activeDef.talent.name} (Talent, free · once per game): ${activeDef.talent.text}`}
+                    onClick={actTalent}
+                  >
+                    {pending === "talent" ? "★ Confirm" : `★ ${activeDef.talent.name}`}
+                  </button>
+                )}
+                <button
+                  className="bbtn skip"
+                  onClick={actSkip}
+                >
+                  Skip
+                </button>
+              </div>
+              {/* Armed special → show what it does (the hover title is invisible on
+                  touch, and the hint row is hidden mid-battle on mobile). */}
+              {pending === "special" && activeDef.special && (
+                <div className="bp-text spec-desc">
+                  <b>{activeDef.special.name}</b>
+                  <span className="spec-cost"> · {activeDef.special.talent ? "Talent · once per game" : `${specCost} SP`}</span> — {activeDef.special.text}
+                </div>
+              )}
+              {pending !== "special" && !specialCheck.ok && activeDef.special && (
+                <div className="bp-text">
+                  Special unavailable: {"reason" in specialCheck ? specialCheck.reason : ""}
+                </div>
+              )}
+            </div>
+          ) : null}
+          </div>
+
+          <div className="controls">
+            <div className="hint" dangerouslySetInnerHTML={{ __html: hint }} />
+            {/* Portrait: surface the spellbook right in the action panel (desktop
+                keeps its own tray in the right rail; this one is CSS-hidden there).
+                Prep-only — otherwise the book shows behind the pre-game menu and
+                during battle, where spells can't be cast. */}
+            {game.phase === "prep" && (
+              <div className="panel-spells">
+                <SpellTray
+                  game={game}
+                  player={view}
+                  armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
+                  myTurn={myPrep}
+                  onPick={onPickSpell}
+                  collapsible
+                />
               </div>
             )}
-          </div>
-        ) : null}
-        </div>
-
-        <div className="controls">
-          <div className="hint" dangerouslySetInnerHTML={{ __html: hint }} />
-          {/* Portrait: surface the spellbook right in the action panel (desktop
-              keeps its own tray in the right rail; this one is CSS-hidden there).
-              Prep-only — otherwise the book shows behind the pre-game menu and
-              during battle, where spells can't be cast. */}
-          {game.phase === "prep" && (
-            <div className="panel-spells">
-              <SpellTray
-                game={game}
-                player={view}
-                armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
-                myTurn={myPrep}
-                onPick={onPickSpell}
-                collapsible
-              />
+            {/* Portrait: a copy of the crystals down here in the action panel, clear
+                of the hand (the top .resource is CSS-hidden in portrait). Desktop
+                hides THIS one and keeps the top one. */}
+            <div className="panel-crystals">
+              <ResourcePool game={game} player={view} />
             </div>
-          )}
-          {/* Portrait: a copy of the crystals down here in the action panel, clear
-              of the hand (the top .resource is CSS-hidden in portrait). Desktop
-              hides THIS one and keeps the top one. */}
-          <div className="panel-crystals">
-            <ResourcePool game={game} player={view} />
-          </div>
-          {/* Pass Priority is the primary action; secondary controls stack
-              underneath it so the hand keeps its width. */}
-          <button
-            className={`lockin pass-btn ${myPrep && sel === null && !hasAnyPlay ? "nudge" : ""}`}
-            disabled={!myPrep}
-            onClick={() => me && dispatch({ type: "PASS", player: me })}
-          >
-            {myPrep ? (
-              <>
-                Pass Priority
-                <span className="pass-dots" title="Two consecutive passes → Battle">
-                  <span className={`pd ${(game.prep?.consecutivePasses ?? 0) >= 1 ? "on" : ""}`} />
-                  <span className={`pd ${(game.prep?.consecutivePasses ?? 0) >= 2 ? "on" : ""}`} />
-                </span>
-              </>
-            ) : (
-              "Waiting…"
-            )}
-          </button>
-          {/* Everything that is not the committing action, behind one button.
-              Auto / Clear / Surrender are things you do once or twice a match,
-              and as a second full-width row they cost 34px of every screen for
-              the whole game — on a phone that is board. */}
-          <button
-            className={`ctl-more ${barMenu ? "on" : ""}`}
-            aria-label="More actions"
-            aria-expanded={barMenu}
-            onClick={() => setBarMenu((v) => !v)}
-          >
-            ⋯
-          </button>
-          {barMenu && <button className="ctl-scrim" aria-label="Close" onClick={() => setBarMenu(false)} />}
-          <div className={`ctl-sub ${barMenu ? "open" : ""}`}>
-            {/* Whether the turn's one move is spent is a readout, not an action,
-                but it belongs with the actions it constrains. */}
-            {myPrep && (
-              <span className={`mv ${game.prep?.movedThisTurn ? "used" : "ready"}`}>
-                {game.prep?.movedThisTurn ? "Move: used" : "Move: available"}
-              </span>
-            )}
-            <select
-              className="ghost sm"
-              title="Set every one of your board cards' auto mode"
-              defaultValue=""
-              onChange={(e) => {
-                if (e.target.value) setGlobalAuto(e.target.value as never);
-                e.target.value = "";
-                setBarMenu(false);
-              }}
-            >
-              <option value="" disabled>
-                Auto…
-              </option>
-              <option value="manual">All Manual</option>
-              <option value="basic">All Auto-Basic</option>
-              <option value="full">All Full-Auto</option>
-            </select>
+            {/* Pass Priority is the primary action; secondary controls stack
+                underneath it so the hand keeps its width. */}
             <button
-              className="ghost sm"
-              onClick={() => {
-                setSel(null);
-                setPending(null);
-                setPicks([]);
-                setSurrenderArmed(false);
-                setBarMenu(false);
-              }}
+              className={`lockin pass-btn ${myPrep && sel === null && !hasAnyPlay ? "nudge" : ""}`}
+              disabled={!myPrep}
+              onClick={() => me && dispatch({ type: "PASS", player: me })}
             >
-              Clear
+              {myPrep ? (
+                <>
+                  Pass Priority
+                  <span className="pass-dots" title="Two consecutive passes → Battle">
+                    <span className={`pd ${(game.prep?.consecutivePasses ?? 0) >= 1 ? "on" : ""}`} />
+                    <span className={`pd ${(game.prep?.consecutivePasses ?? 0) >= 2 ? "on" : ""}`} />
+                  </span>
+                </>
+              ) : (
+                "Waiting…"
+              )}
             </button>
-            {game.win === null && me !== null && (
-              <button
-                className={`ghost sm ${surrenderArmed ? "warn" : ""}`}
-                title="Concede the match"
-                onClick={() => {
-                  if (surrenderArmed) {
-                    dispatch({ type: "SURRENDER", player: me });
-                    setSurrenderArmed(false);
-                    setBarMenu(false);
-                  } else {
-                    setSurrenderArmed(true);
-                    setHint("⚠ Surrender? Click again to confirm, or Clear to cancel.");
-                  }
+            {/* Everything that is not the committing action, behind one button.
+                Auto / Clear / Surrender are things you do once or twice a match,
+                and as a second full-width row they cost 34px of every screen for
+                the whole game — on a phone that is board. */}
+            <button
+              className={`ctl-more ${barMenu ? "on" : ""}`}
+              aria-label="More actions"
+              aria-expanded={barMenu}
+              onClick={() => setBarMenu((v) => !v)}
+            >
+              ⋯
+            </button>
+            {barMenu && <button className="ctl-scrim" aria-label="Close" onClick={() => setBarMenu(false)} />}
+            <div className={`ctl-sub ${barMenu ? "open" : ""}`}>
+              {/* Whether the turn's one move is spent is a readout, not an action,
+                  but it belongs with the actions it constrains. */}
+              {myPrep && (
+                <span className={`mv ${game.prep?.movedThisTurn ? "used" : "ready"}`}>
+                  {game.prep?.movedThisTurn ? "Move: used" : "Move: available"}
+                </span>
+              )}
+              <select
+                className="ghost sm"
+                title="Set every one of your board cards' auto mode"
+                defaultValue=""
+                onChange={(e) => {
+                  if (e.target.value) setGlobalAuto(e.target.value as never);
+                  e.target.value = "";
+                  setBarMenu(false);
                 }}
               >
-                {surrenderArmed ? "Confirm?" : twoPlayer ? `${me} surrender` : "Surrender"}
+                <option value="" disabled>
+                  Auto…
+                </option>
+                <option value="manual">All Manual</option>
+                <option value="basic">All Auto-Basic</option>
+                <option value="full">All Full-Auto</option>
+              </select>
+              <button
+                className="ghost sm"
+                onClick={() => {
+                  setSel(null);
+                  setPending(null);
+                  setPicks([]);
+                  setSurrenderArmed(false);
+                  setBarMenu(false);
+                }}
+              >
+                Clear
               </button>
-            )}
+              {game.win === null && me !== null && (
+                <button
+                  className={`ghost sm ${surrenderArmed ? "warn" : ""}`}
+                  title="Concede the match"
+                  onClick={() => {
+                    if (surrenderArmed) {
+                      dispatch({ type: "SURRENDER", player: me });
+                      setSurrenderArmed(false);
+                      setBarMenu(false);
+                    } else {
+                      setSurrenderArmed(true);
+                      setHint("⚠ Surrender? Click again to confirm, or Clear to cancel.");
+                    }
+                  }}
+                >
+                  {surrenderArmed ? "Confirm?" : twoPlayer ? `${me} surrender` : "Surrender"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      }
+    >
 
       {/* The hand floats over the bottom edge of the board — popped up when it's
           your turn to act, tucked low otherwise — so the bar stays thin. */}
@@ -2539,6 +2486,6 @@ export function App() {
           }}
         />
       )}
-    </div>
+    </MatchLayout>
   );
 }
