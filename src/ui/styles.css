@@ -1244,7 +1244,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .dt-top { display: flex; align-items: center; gap: 4px; }
 .dt-cost { width: 18px; height: 18px; flex: none; border-radius: 50%; background: rgba(0,0,0,0.6); display: grid; place-items: center; font-size: 10px; font-weight: 800; }
 .dt-tr { margin-left: auto; display: flex; align-items: center; gap: 4px; min-width: 0; }
-.dt-name { margin-top: auto; font-size: 10px; font-weight: 800; line-height: 1.05; text-shadow: 0 1px 3px #000; }
+.dt-name { position: relative; margin-top: auto; font-size: 10px; font-weight: 800; line-height: 1.05; text-shadow: 0 1px 3px #000; }
 .dt-stats { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 2px; font-size: 9px; font-weight: 700; }
 .dt-stats span { text-shadow: 0 1px 2px #000; }
 /* Rarity runs VERTICALLY down the right edge into the bottom-right corner, so it
@@ -2615,11 +2615,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   position: fixed; left: 50%; bottom: max(10px, env(safe-area-inset-bottom));
   transform: translateX(-50%);
   display: flex; gap: 2px; padding: 5px;
-  /* Above the base overlay layer (z-65) or it is not tappable: the menu, Home
-     and Shop are all .overlay, and a nav you cannot reach is not a nav. Kept
-     BELOW .overlay.on-top (z-100) and hidden outright while the deck builder or
-     rulebook is open, so it never floats over a real modal. */
-  border-radius: 999px; z-index: 66;
+  /* z-71, and every digit is load-bearing. The stack it has to thread:
+       65  .overlay          — the menus, Home, Shop (nav must be ABOVE)
+       70  .story-wrap       — the story map AND the collection (also above)
+       72  .spellchoice      — in-match, nav is hidden by then
+       80  .castflash        — in-match
+      100  .overlay.on-top   — card preview, game over
+     A nav you cannot reach is not a nav, and this got it wrong twice: first at
+     60 (under every overlay), then at 66 (under the story map and collection).
+     Both times presence was verified and REACHABILITY was not — the check that
+     catches it is elementFromPoint at each tab centre, not a synthetic click. */
+  border-radius: 999px; z-index: 71;
   background: color-mix(in srgb, var(--panel) 82%, transparent);
   border: 1px solid var(--gold-line);
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -2755,7 +2761,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   border: 1px solid var(--panel-line); padding-bottom: 4px;
 }
 .pack-card img { width: 100%; height: 84px; object-fit: cover; object-position: 50% 18%; display: block; }
-.pack-name { font-size: 10.5px; font-weight: 800; padding: 3px 3px 0; text-align: center; line-height: 1.15; }
+.pack-name { position: relative; font-size: 10.5px; font-weight: 800; padding: 3px 3px 0; text-align: center; line-height: 1.15; }
 .pack-tag {
   font-family: var(--head); font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--ink-faint);
@@ -2799,14 +2805,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   0% { background-position: 130% 0; }
   100% { background-position: -130% 0; }
 }
-/* The badge, so a shiny is identifiable when it is not moving — a sheen alone
-   is invisible in a screenshot, and to anyone with motion reduced. */
+/* The mark, so a shiny is identifiable when it is not moving — a sheen alone is
+   invisible in a screenshot and to anyone with motion reduced.
+   A small glyph sitting just above the name rather than a word stamped across
+   the corner: the card art is the thing you are looking at, and a FOIL label
+   big enough to read from across the grid covered the part worth seeing. */
 .foil-tag {
-  position: absolute; top: 3px; right: 3px; z-index: 3; pointer-events: none;
-  padding: 0 4px; border-radius: 4px;
-  font-family: var(--head); font-size: 7.5px; letter-spacing: 0.1em; font-weight: 900;
-  color: #10202c; background: linear-gradient(120deg, #bfe6ff, #fff0a0 55%, #ffb3f0);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: calc(100% - 2px); z-index: 3; pointer-events: none;
+  font-size: 9px; line-height: 1; letter-spacing: 0;
+  color: #eaf6ff;
+  text-shadow: 0 0 5px #7fd7ff, 0 0 9px rgba(255, 190, 255, 0.75), 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 @media (prefers-reduced-motion: reduce) {
   /* Keep the sheen, drop the travel — the badge carries the meaning anyway. */
@@ -2856,3 +2865,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .wrap.pre-match > .board-area,
 .wrap.pre-match > .rightcol,
 .wrap.pre-match > .bottom { display: none; }
+/* The collection and the story map are full-screen panels; both need room for
+   the floating nav or their last row sits under it. */
+.wrap.pre-match .story-wrap { padding-bottom: 68px; }
+
+/* Foil count in the collection header — gold-blue so it reads as the same
+   currency of rarity the sheen does. */
+.col-foils b { color: #bfe6ff; }

@@ -16,7 +16,6 @@ import {
   effectiveSpecialCost,
   enemyOf,
   FLOW_MODES,
-  CARDS,
   getDef,
   getSpell,
   spellPickKind,
@@ -66,7 +65,7 @@ import { Shop } from "./Shop";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, deckCapFor,
   STANDARD_CAP, BIG_BOARD_CAP,
-  loadStory, isFirstBattle, awardShards, heroBookFor, heroSpellShelf, poolForRegion, recruitablePool, squadCapInRegion,
+  loadStory, isFirstBattle, awardShards, heroBookFor, poolForRegion, recruitablePool, squadCapInRegion,
   regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
 
@@ -2302,33 +2301,19 @@ export function App() {
       {/* Campaign team builder: the same screen as the sandbox, with the pool
           cut to what you own and the ceiling set by the campaign. */}
       {/* ── the four destinations ─────────────────────────────────────────── */}
+      {/* Home IS the collection. It was a landing card with a title and two
+          shortcuts, which is a menu pretending to be a destination — the thing
+          a player actually wants to look at between fights is what they own.
+          The hero line stays, above the grid, because it is the same
+          information the landing card carried. */}
       {!started && !storyOpen && tab === "home" && (
-        <div className="overlay">
-          <div className="modal picker home">
-            <picture>
-              <source srcSet="/title.webp" type="image/webp" />
-              <img className="title-logo" src="/title.jpg" alt="War Element" />
-            </picture>
-            <div className="home-hero">
-              <b>{story.hero?.name ?? "Keeper"}</b>
-              <span>
-                {story.collection.length}/{CARDS.length} cards ·{" "}
-                {story.cleared.length} nodes cleared ·{" "}
-                {heroSpellShelf(story).length} spells
-              </span>
-            </div>
-            <p>
-              Pick a fight in the <b>Arena</b>, walk the campaign in <b>Story</b>,
-              or spend what you have earned in the <b>Shop</b>.
-            </p>
-            <button className="ghost db-open" onClick={() => setRulesOpen(true)}>
-              How to play
-            </button>
-            <button className="ghost db-open" onClick={() => setBuilderOpen(true)}>
-              Build / edit custom decks
-            </button>
-          </div>
-        </div>
+        <StoryCollection
+          save={story}
+          onSave={(next) => { setStory(next); saveStory(next); }}
+          onClose={() => setTab("arena")}
+          closeLabel="To the Arena"
+          onOpenBuilder={() => setStoryBuilder(true)}
+        />
       )}
 
       {!started && !storyOpen && tab === "shop" && (

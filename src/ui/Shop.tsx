@@ -174,14 +174,16 @@ export function Shop(props: { save: StorySave; onSave: (next: StorySave) => void
                     key={i}
                     className={`pack-card r-${d.rarity ?? "rare"} ${isNew ? "new" : "dupe"} ${foil ? "foil" : ""}`}
                   >
-                    {foil && <span className="foil-tag">FOIL</span>}
                     <img
                       src={`/cards/${d.art ?? d.id}.webp`}
                       alt=""
                       loading="lazy"
                       onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
                     />
-                    <span className="pack-name">{d.name}</span>
+                    <span className="pack-name">
+                      {foil && <i className="foil-tag" title="Foil">✦</i>}
+                      {d.name}
+                    </span>
                     <span className="pack-tag">{isNew ? "NEW" : "dupe"}</span>
                   </div>
                 );

@@ -41,6 +41,9 @@ export function StoryCollection(props: {
   element?: string;
   /** Open the real deck builder. Building does not happen on this screen. */
   onOpenBuilder?: () => void;
+  /** What the close button says. This screen is reached from the map AND from
+   *  the Home tab now, and "Back to the map" is a lie in the second case. */
+  closeLabel?: string;
 }) {
   const { save } = props;
   const [scope, setScope] = useState<Scope>("all");
@@ -56,6 +59,7 @@ export function StoryCollection(props: {
   // remaining regions are unbuilt.
   const placed = useMemo(() => new Set(PLACED_CARDS), []);
   const collected = PLACED_CARDS.filter((id) => owned.has(id)).length;
+  const foils = (save.hero?.shiny ?? []).length;
 
   const shown = useMemo(() => {
     const list = CARDS.filter((d) => {
@@ -84,7 +88,9 @@ export function StoryCollection(props: {
     <div className="story-wrap col-wrap">
       <header className="story-head">
         <div>
-          <div className="story-eyebrow">COLLECTION</div>
+          <div className="story-eyebrow">
+            COLLECTION{save.hero?.name ? ` · ${save.hero.name}` : ""}
+          </div>
           <h2>{collected} of {PLACED_CARDS.length} recruited</h2>
         </div>
         <div className="story-stats">
@@ -92,12 +98,15 @@ export function StoryCollection(props: {
             deck <b>{save.deck.length}</b>/{cap}
           </span>
           <span><b>{PLACED_CARDS.length - collected}</b> still out there</span>
+          {foils > 0 && <span className="col-foils"><b>{foils}</b> foil</span>}
         </div>
         <div className="story-actions">
           {props.onOpenBuilder && (
             <button className="bb" onClick={props.onOpenBuilder}>Build a team</button>
           )}
-          <button className="ghost" onClick={props.onClose}>Back to the map</button>
+          <button className="ghost" onClick={props.onClose}>
+            {props.closeLabel ?? "Back to the map"}
+          </button>
         </div>
       </header>
 
@@ -159,7 +168,6 @@ export function StoryCollection(props: {
                     onClick={() => pick(d.id)}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(d.id); } }}
                   >
-                    {foil && <span className="foil-tag">FOIL</span>}
                     <img className="card-art" src={`/cards/${d.art ?? d.id}.webp`} alt=""
                       onError={(e) => { e.currentTarget.style.display = "none"; }} />
                     <div className="dt-top">
@@ -179,7 +187,7 @@ export function StoryCollection(props: {
                         {rar.label}
                       </span>
                     )}
-                    <div className="dt-name">{d.name}</div>
+                    <div className="dt-name">{foil && <i className="foil-tag" title="Foil">✦</i>}{d.name}</div>
                     {have ? (
                       <div className="dt-stats">
                         <span className="s-dmg">⚔<span className="atk-dmg">{d.dmg}</span>{d.hits > 1 ? <span className="atk-x"> ×{d.hits}</span> : ""}</span>
