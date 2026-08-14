@@ -353,9 +353,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Procedural battlefield — no photo. A carved-stone platform floating in space;
    the 4x4 grid fills it and each SLOT *is* a tile, so cards always sit dead-
    centre and it stays crisp at any size. The whole plane tilts back in 3D. */
+/* WIDTH and HEIGHT are now separate. --board-size is the width; --board-h
+   defaults to it, which is the square board every tier had before, and the
+   compact tier overrides it to make the tile portrait. Splitting them is the
+   "one cause per symptom" the redesign asks for: switching 4x4 to 5x5 changes
+   tile size only, and a short window changes board height only. */
 .board {
   position: relative; z-index: 1; box-sizing: border-box;
-  width: var(--board-size); height: var(--board-size);
+  width: var(--board-size); height: var(--board-h, var(--board-size));
   padding: var(--board-frame);
   display: flex; flex-direction: column; gap: var(--grid-gap);
   border-radius: 16px;
@@ -371,8 +376,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     0 0 40px rgba(201, 162, 75, 0.12);
   /* Flat top-down board (3D tilt removed). */
 }
+/* ONE .brow rule. There were two, and the second silently won: the row gap was
+   the fluid var(--grid-gap) and the column gap a fixed 8px, so a tile's aspect
+   ratio drifted with board size and a "square" tile was never actually square
+   (1.013 at desktop, 0.919 in landscape). Both axes now use the same variable,
+   which is also what lets the compact tier set a real 3px seam. */
 .brow { flex: 1; display: flex; gap: var(--grid-gap); position: relative; min-height: 0; }
-.brow { display: flex; gap: 8px; position: relative; }
 /* Wall overlay: element-tinted brackets framing the walled row for its
    duration, plus a small label pill naming it and counting rounds left. */
 .wallframe { position: absolute; inset: 0; z-index: 4; pointer-events: none; color: inherit; }
@@ -427,9 +436,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    rings visible instead of the second sitting exactly on top of the first. */
 .fieldhaze.enemy { inset: 5px; }
 @keyframes fieldpulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.9; } }
-@media (prefers-reduced-motion: reduce) {
-  .fieldhaze::before { animation: none; opacity: 0.75; }
-}
 .fieldmark {
   position: absolute; left: 50%; transform: translateX(-50%);
   pointer-events: auto; z-index: 6;
@@ -828,11 +834,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   34% { opacity: 1; transform: translate(-50%, 5px) scale(1); }
   100% { opacity: 0; transform: translate(-50%, 40px) scale(0.9); }
 }
-@media (prefers-reduced-motion: reduce) {
-  /* Keep the NUMBER — it is information, not decoration — and drop the travel. */
-  .fx-dmg { animation: fxHold 900ms linear forwards; }
-  @keyframes fxHold { 0%, 80% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%); } }
-}
 
 /* The home-slot coin. Damage falls; income RISES — the direction is the tell,
    so a glance says "gained" without reading the number. Gold rather than red,
@@ -851,10 +852,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   18% { opacity: 1; transform: translate(-50%, 0) scale(1.2); }
   38% { opacity: 1; transform: translate(-50%, -4px) scale(1); }
   100% { opacity: 0; transform: translate(-50%, -34px) scale(0.92); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .fx-coin { animation: fxCoinHold 950ms linear forwards; }
-  @keyframes fxCoinHold { 0%, 80% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%); } }
 }
 @keyframes movepulse { 0%, 100% { box-shadow: 0 0 6px rgba(78, 203, 143, 0.4); } 50% { box-shadow: 0 0 14px rgba(78, 203, 143, 0.9); } }
 /* What remains of `.board.tight`: three FX font sizes, and nothing structural.
@@ -1630,11 +1627,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   text-shadow: 0 0 14px color-mix(in srgb, var(--el, #7d92e8) 60%, transparent);
 }
 .castflash-text { margin-top: 4px; font-size: 11.5px; line-height: 1.35; color: var(--ink-dim, #a9a99c); }
-@media (prefers-reduced-motion: reduce) {
-  .castflash, .castflash-burst, .castflash-card { animation-duration: 0.01s; }
-  /* The telegraphs are motion-only; drop them rather than jolt the board. */
-  .token.lunging, .token.recoiling { animation: none; }
-}
 
 /* ── Modal "choice" spell picker (Chill: strike a foe vs shield an ally) ── */
 .spellchoice-overlay { z-index: var(--z-modal); }
@@ -1780,8 +1772,37 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   /* Max the battlefield: it fills the full width between the side rails (log /
      speed queue) and grows down to the top of the hand. The height term is the
      binding one on a normal phone — it's tuned to the compacted panel below so
-     the board is as large as possible while the action controls stay on-screen. */
-  :root { --board-size: min(calc(100vw - 46px), calc(100dvh - 468px)); }
+     the board is as large as possible while the action controls stay on-screen.
+
+     THE COMPACT TIER'S GEOMETRY, in one place and three variables.
+
+     --hud-budget is everything the match screen spends outside the board, and
+     it is the only number to change when the chrome changes. 468px is measured,
+     not chosen: it is what the current phase ribbon, hand, action bar and gaps
+     actually occupy at 390x844. The redesign's target is 293, which is what the
+     MatchLayout landing buys by turning four rails into four strips; lowering
+     this one number is how the board grows when that lands.
+
+     Width and height are separate now, and that is what makes the tile
+     PORTRAIT. The board used to be a square, so five columns of a square board
+     gave a 58x60 tile — essentially square, in a game whose cards are 70x87
+     portraits. Width now takes what the row allows and height takes what the
+     tiles want (70:87), clamped by the budget. On a 390x844 phone that turns a
+     58x60 tile into roughly 65x71: the same width, a quarter more height, and
+     it grows the rest of the way when --hud-budget drops.
+
+     The frame and seam also stop being percentages here. At 3% and 1.6% of the
+     board they scaled with it, which sounds right and is not: a seam is there
+     to separate two tiles and needs the same few pixels at every size, while a
+     percentage spent 20px of a phone board on rim and 32px on gaps — a whole
+     tile's worth. */
+  :root {
+    --hud-budget: 468px;
+    --board-frame: 4px;
+    --grid-gap: 3px;
+    --board-size: calc(100vw - 46px);
+    --board-h: min(calc(var(--board-size) * 87 / 70), calc(100dvh - var(--hud-budget)));
+  }
 
   .wrap {
     display: flex; flex-direction: column; height: 100dvh; gap: 2px;
@@ -2238,9 +2259,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .slot.trapped::after {
   content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
   background: radial-gradient(circle at 100% 100%, rgba(255,160,60,0.16), transparent 58%);
-}
-@media (prefers-reduced-motion: reduce) {
-  .trapmark { animation: none; opacity: 0.85; }
 }
 
 /* ── Story Mode ─────────────────────────────────────────────────────────────
@@ -2781,9 +2799,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .fieldhaze.terrain::before { animation-name: fieldpulse-terrain; }
 @keyframes fieldpulse-terrain { 0%, 100% { opacity: 0.42; } 50% { opacity: 0.68; } }
-@media (prefers-reduced-motion: reduce) {
-  .fieldhaze.terrain::before { animation: none; opacity: 0.57; }
-}
 .fieldhaze.terrain .fieldmark { bottom: auto; top: 50%; transform: translate(-50%, -50%); }
 
 /* ── bottom navigation ─────────────────────────────────────────────────────
@@ -3012,10 +3027,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   color: #eaf6ff;
   text-shadow: 0 0 5px #7fd7ff, 0 0 9px rgba(255, 190, 255, 0.75), 0 1px 2px rgba(0, 0, 0, 0.8);
 }
-@media (prefers-reduced-motion: reduce) {
-  /* Keep the sheen, drop the travel — the badge carries the meaning anyway. */
-  .foil::after { animation: none; background-position: 50% 0; opacity: 0.55; }
-}
 
 /* A foil on the battle board.
    Its own element at z-index 0 rather than the shared .foil::after: the token
@@ -3047,9 +3058,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     0 0 16px rgba(150, 220, 255, 0.5),
     inset 0 0 12px rgba(190, 230, 255, 0.16);
 }
-@media (prefers-reduced-motion: reduce) {
-  .tk-foil { animation: none; background-position: 50% 0; opacity: 0.5; }
-}
 
 /* Out of a match, the battlefield is not the backdrop.
    Everything here is battle-only chrome. The overlays (menus, Shop, modals),
@@ -3068,3 +3076,51 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Foil count in the collection header — gold-blue so it reads as the same
    currency of rarity the sheen does. */
 .col-foils b { color: #bfe6ff; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   REDUCED MOTION — one guard, all of it
+   ══════════════════════════════════════════════════════════════════════════
+   These were eight separate @media blocks scattered across the file, each next
+   to the component it muted. Locality reads well until someone asks "what does
+   this app do when motion is reduced?" — which was eight greps and no single
+   answer. One block answers it in one read, and it sits LAST so every rule here
+   wins against the animation it is overriding.
+
+   The policy, which was consistent already and is now visible: motion that is
+   DECORATION is removed, and motion that carries INFORMATION is held still
+   rather than deleted. A damage number stops travelling but stays on screen
+   long enough to read; a foil keeps its sheen and loses its sweep; the attack
+   telegraphs go entirely, because a lunge with no travel is not a lunge.
+
+   The two @keyframes below are defined inside this query on purpose: they exist
+   only to replace a travelling animation with a hold, and nothing outside this
+   block references them. Keyframe names are globally scoped, so they must not
+   collide with the animations they stand in for — fxHold/fxCoinHold against
+   fxFall/fxCoinRise. */
+@media (prefers-reduced-motion: reduce) {
+  /* Board and terrain — decoration, held at a visible opacity so the field is
+     still legible while static. The two field values differ on purpose: cast
+     Field sits at 0.75, standing terrain at 0.57, because terrain runs all
+     battle and a permanent wash at cast-strength reads as a bug. */
+  .fieldhaze::before { animation: none; opacity: 0.75; }
+  .fieldhaze.terrain::before { animation: none; opacity: 0.57; }
+  .trapmark { animation: none; opacity: 0.85; }
+
+  /* Combat readouts — INFORMATION. Held, not dropped. */
+  .fx-dmg { animation: fxHold 900ms linear forwards; }
+  @keyframes fxHold { 0%, 80% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%); } }
+  .fx-coin { animation: fxCoinHold 950ms linear forwards; }
+  @keyframes fxCoinHold { 0%, 80% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%); } }
+
+  /* Spell cast — cut to nothing rather than removed, so the state change the
+     flash announces still gets its beat. */
+  .castflash, .castflash-burst, .castflash-card { animation-duration: 0.01s; }
+  /* The attack telegraphs are motion and nothing else; drop them rather than
+     jolt the board. */
+  .token.lunging, .token.recoiling { animation: none; }
+
+  /* Foils — the sheen is the identity, the sweep is the flourish. Keep the
+     first, drop the second; the ✦ mark carries it when both are gone. */
+  .foil::after { animation: none; background-position: 50% 0; opacity: 0.55; }
+  .tk-foil { animation: none; background-position: 50% 0; opacity: 0.5; }
+}
