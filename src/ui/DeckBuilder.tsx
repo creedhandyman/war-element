@@ -505,6 +505,13 @@ export function DeckBuilder(props: {
                   {label}
                 </button>
               ))}
+              {/* How many the filters left. Cheap, and it is the difference
+                  between an empty grid reading as "no matches" and reading as
+                  broken — which matters more now that a typo in the search box
+                  can empty it. */}
+              <span className="db-shown">
+                {shown.length === pool.length ? `${shown.length} cards` : `${shown.length} shown`}
+              </span>
             </div>
             <div className="db-grid">
               {shown.map((d) => {

@@ -363,7 +363,85 @@ engine runtime and no React, so it stays testable headlessly
   switching regions changed the volume. Normalize from the MASTER, not from the
   committed 96k file, or you stack two generations of lossy encoding.
 
+## The UI after the mobile redesign
+
+Eight landings took the phone match screen from a square board with 58x60 tiles
+to a portrait board with 71x90 ones. If you are about to change layout, these
+are the contracts that make it work — breaking one is easy and silent.
+
+**Design tokens live in the ONE `:root` at the top of `styles.css`.** Type scale
+`--fs-1..8` (10-34px), spacing `--sp-1..9`, radii, elevations. Do not paste a
+second `:root` above it: for any duplicated name the LATER declaration wins, so
+the new block loses and looks like it did nothing.
+
+**The 10px floor.** No TEXT below 10px, anywhere. Glyph-only marks (status pips,
+the auto letter) may sit at 9px because they are read as shapes. If something
+will not fit at 10px it is DROPPED and rehoused, never shrunk — that rule is
+what let four separate shrink mechanisms be deleted from the tile.
+
+**The z-ladder is two bands, and the split is the point.** Band one (`--z-queue`
+25 ... `--z-sheet` 62) is in-match chrome at its historical values — named, not
+renumbered. Band two is full-screen surfaces: **overlay 300 < nav 350 < toast
+400 < modal 500**. That ordering has been shipped wrong three times (nav at 60,
+then 66, then 71 squeezed between 70 and 72). Raw `z-index` is legal ONLY as a
+sort order inside a component that is already a stacking context — `.board` is
+z-1 and owns the whole 0-11 ladder of slots, walls, tokens and damage floats,
+whose ORDER carries meaning. `styles.test.ts` fails on any raw z-index >= 100.
+
+**Every surface shown while the nav is up must pay for it in layout.** The nav
+is deliberately above them, so clearance is `padding-bottom`/`margin-bottom`,
+never a z-index argument. Missing it makes a button's centre untappable while
+its corner still works — which reads as your thumb, not a bug.
+
+**The board is no longer square.** `--board-size` is the WIDTH; `--board-h`
+defaults to it and the compact tier overrides it to make the tile portrait.
+`--hud-budget` is the single number for everything outside the board — lower it
+and the board grows. Frame and seam are px, not %: a seam needs the same few
+pixels at every size.
+
+**`data-el` drives element colour.** Eight `[data-el="..."]` rules set
+`--el-rim`, `--el` and the stripe pair. Do NOT re-add inline `style={{"--el":...}}`
+— inline beats `[data-el]`, so a surviving one makes the whole block inert.
+Alias `--el` INSIDE each rule, not once in `:root`: a custom property is
+substituted at computed-value time on the element that DECLARES it, so a
+`:root` alias freezes to the root value and every element goes gold.
+
+**`CardView` is one component with a discriminated-union `mode` prop.** Both
+modes reduce to a view-model BEFORE rendering, so no zone touches `game` — half
+the engine calls it makes (effectiveDmg, cardMods, effectiveMaxHp) walk the
+board and are unsafe in browse, where there is no GameState at all. Keep the
+union; optional fields would let `props.game!` compile and crash five screens.
+Pure def-to-text lives in `card-text.tsx` and is covered by a whole-pool test.
+
 ## Traps found the hard way
+
+- **CSS fails SILENTLY, and nothing else in the toolchain reads it.** An
+  unbalanced comment or brace makes the browser skip to the next recoverable
+  point, so a rule stops existing while `tsc`, `vite build` and every engine
+  test stay green. This bit twice in one session — once killing the whole sheet
+  (every custom property resolved empty), once disabling two rules and leaving
+  a popover clipped off screen. `src/engine/__tests__/styles.test.ts` now parses
+  the file and fails on it. That guard must read from DISK: `import "…css?raw"`
+  returns an EMPTY STRING under Vitest, and every check that asserts absence
+  then passes against nothing.
+
+- **When scanning CSS, skip COMMENTS BEFORE STRINGS.** The comments here are
+  English prose full of apostrophes; a strings-first scanner reads "the bar's
+  height" as a quote and miscounts every brace after it. Two separate scripts
+  made this mistake.
+
+- **Presence is not reachability.** A synthetic `.click()` fires the handler
+  whatever is painted on top, so it cannot see a covered control. Use
+  `document.elementFromPoint` at the element's centre. Every layout bug in the
+  redesign — the nav under overlays, the deck button under the nav, Skip below
+  the fold, the mute button — was invisible to inspection and obvious to a hit
+  test.
+
+- **The Browser pane does not composite frames.** A CSS transition parks at
+  `currentTime: 0` and reports its START value forever, so an animated box
+  measures wrong. Disable transitions before measuring:
+  `*{transition:none!important;animation:none!important}`.
+
 
 - **Board size and deck size are welded together by format.** 4x4 is legal at
   12-20 cards, 5x5 at 20-30 — they overlap at **exactly 20**, and the cap ladder
