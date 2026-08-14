@@ -1155,8 +1155,32 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   box-shadow: 0 10px 34px rgba(0,0,0,0.6), inset 0 0 40px rgba(201,162,75,0.05);
 }
 /* Portrait: the chips carry full rules text, so give the floating panel a real
-   width instead of letting it shrink-wrap to the longest word. */
-.panel-spells .spellbook-pop { width: min(92vw, 360px); }
+   width instead of letting it shrink-wrap to the longest word.
+
+   And anchor it to the SCREEN, not to the book chip. The base rule centres the
+   popover on .spellbook, which was right while .panel-spells was a full-width
+   row in the action panel — the chip sat mid-screen and a 360px panel centred
+   on it landed inside the viewport. The strip layout made that chip a small
+   button at the left end of the bar, so centring on it pushed roughly 145px of
+   the panel off the left edge and clipped every spell name to "…ernal Dawn".
+
+   It is anchored to the ACTION BAR's own box, not computed from --bar-h. That
+   variable is the bar's HEIGHT, and the bar does not sit flush with the bottom
+   of the screen — the flex column leaves slack under it — so
+   `bottom: var(--bar-h) + 8` put the panel 10px INTO the bar. `bottom: 100%`
+   against .controls needs no measurement and cannot drift.
+
+   Both .spellbook and .panel-spells go position:static for that to work. Either
+   one, while positioned, is the popover's containing block, and both are chip-
+   sized: a 360px panel resolved against a 150px chip comes out 150px wide with
+   every name clipped. The z-lift they carried moved up to .controls.
+   (.panel-spells is display:none outside portrait, so this only applies on a
+   phone.) */
+.panel-spells .spellbook { position: static; }
+.panel-spells .spellbook-pop {
+  position: absolute; left: 0; right: 0; width: auto;
+  bottom: calc(100% + 8px); transform: none; max-height: 58vh;
+}
 .spellbook-pop .spelltray-row { flex-direction: column; gap: 8px; }
 .spellbook-pop .spellchip { width: 100%; flex: none; flex-direction: row; align-items: center; gap: 9px; padding: 7px 10px 7px 30px; min-width: 148px; }
 .spellbook-pop .spellchip-cost { top: 50%; left: 6px; transform: translateY(-50%); }
@@ -1876,6 +1900,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      viewport, most of it empty box. It is a bar now: one committing action, at
      a fixed height, and the space it was absorbing goes to the board. */
   .bottom {
+    /* position:relative so the spellbook popover can anchor to this bar's top
+       edge instead of to the 70px chip that opens it. */
+    position: relative;
     order: 5; grid-column: auto; flex: 0 0 auto; min-height: 0; height: auto; max-height: 92px;
     flex-direction: column; justify-content: center; align-items: stretch;
     gap: 4px; padding: 4px 10px calc(4px + env(safe-area-inset-bottom));
@@ -1896,9 +1923,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      the phase ribbon has empty space on its right, and the bar was paying 44px
      of full-width row for two numbers. Absolute against .wrap, which is already
      the positioning context for the hand and the summon bar. */
+  /* FIXED, not absolute. Absolute made this depend on which ancestor happened
+     to be positioned, and the moment .controls needed position:relative (to be
+     the spellbook popover's containing block) the crystals stopped anchoring to
+     .wrap and slid to the bottom of the screen — 43px below it, in fact. Fixed
+     answers to the viewport and to nothing else, which is the right contract
+     for something pinned to a screen corner. No ancestor carries a transform,
+     so fixed really is viewport-relative here. */
   .panel-crystals {
-    display: block; position: absolute; top: 6px; right: 8px; z-index: var(--z-hud);
-    width: auto; margin: 0;
+    display: block; position: fixed;
+    top: calc(6px + env(safe-area-inset-top, 0px)); right: 8px;
+    z-index: var(--z-hud); width: auto; margin: 0;
   }
   .panel-crystals .resource { gap: 8px; }
   .panel-crystals .res-gem { transform: scale(0.78); transform-origin: right center; }
@@ -1924,6 +1959,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .controls {
     width: 100%; flex: none; display: grid;
     grid-template-columns: auto 1fr; align-items: center; gap: 4px 6px;
+    /* Positioned for two reasons: it carries the lift that keeps the action row
+       above the hand's escaped fan cards (the job .panel-spells used to do), and
+       it is the containing block the spellbook popover measures itself against,
+       so the panel is the width of the BAR rather than the width of the chip
+       that opens it. */
+    position: relative; z-index: var(--z-drawer);
   }
   .controls .hint { grid-column: 1 / -1; }
   .controls .hint:empty { display: none; }
@@ -1949,10 +1990,20 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      Pass row. Previously the whole `.handcol` was display:none in portrait, so
      these never rendered on a phone. */
   .bottom.acting .handcol { display: flex; flex: 1 1 auto; min-width: 0; width: 100%; }
-  .bottom.acting .controls { display: none; } /* Pass/"Waiting…" not relevant mid-battle */
+  /* Mid-battle the four verbs ARE the interface, so Pass / Auto / Clear /
+     Surrender step aside — but NOT the crystals, which now live in the top
+     strip and happen to be children of .controls. Hiding the whole block took
+     them off screen and forced the bar to grow its own duplicate copy back,
+     which is what pushed Skip past the bottom of the phone. Hide the children
+     instead and keep the one that is not really part of this block. */
+  .bottom.acting .controls { display: block; }
+  .bottom.acting .controls > *:not(.panel-crystals) { display: none; }
   /* Mid-battle the hand isn't rendered, so the top crystals are safe to show
      again (the panel copy is hidden with .controls above). */
-  .bottom.acting > .resource { display: flex; }
+  /* No second copy of the crystals. They are in the top strip in every phase
+     now, and 30px at the head of the action bar was the difference between the
+     Skip button being on the screen and being 15px below it. */
+  .bottom.acting > .resource { display: none; }
   /* Prompt fills the panel: title on top, big action buttons stretch to fill. */
   .bottom.acting .bprompt { width: 100%; flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; }
   .bottom.acting .bp-title { flex: none; font-size: 15px; font-weight: 800; text-align: center; }
@@ -1975,8 +2026,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      cards"). position+z-index puts the tappable chips on top of the card corners,
      and a solid backing bar keeps the row readable instead of card art peeking
      through the gaps. */
+  /* The lift above the hand moved UP to .controls (see there). This element
+     stays unpositioned so it cannot become the spellbook popover's containing
+     block — it is a 150px chip, and a 360px panel resolved against it comes out
+     150px wide with every spell name clipped. */
   .panel-spells {
-    display: block; width: 100%; position: relative; z-index: var(--z-drawer);
+    display: block; width: 100%;
     background: linear-gradient(180deg, rgba(20, 17, 13, 0.94), rgba(14, 12, 9, 0.96));
     border: 1px solid var(--gold-line); border-radius: 10px; padding: 3px 8px;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.55);
