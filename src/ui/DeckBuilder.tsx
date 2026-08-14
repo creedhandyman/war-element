@@ -76,6 +76,10 @@ export function DeckBuilder(props: {
   const [classFilter, setClassFilter] = useState<CardClass | "ALL">("ALL");
   const [sortBy, setSortBy] = useState<SortKey>("cost");
   const [query, setQuery] = useState("");
+  /** Phone only: the deck rail is a BAR by default and rises over the pool when
+   *  you tap it. Desktop ignores this — the rail is a column there and has the
+   *  room to stay open. */
+  const [deckOpen, setDeckOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   // Composition / Spellbook / Saved live behind one compact tool-pill row and
   // open one-at-a-time below it, so the card pool keeps the screen. Desktop has
@@ -198,8 +202,29 @@ export function DeckBuilder(props: {
         </div>
 
         <div className="db-body">
-          {/* Left: saved decks, the editor's meta, and live deck composition. */}
-          <div className="db-side">
+          {/* Left on desktop: saved decks, the editor's meta, live composition.
+              On a phone this is a BAR pinned to the bottom that rises into a
+              drawer — the pool owns the screen, because the pool is what you
+              came to read. Collapsed it still shows the two things you need
+              while scrolling it: how many cards you have, and whether that is
+              legal yet. */}
+          <div className={`db-side${deckOpen ? " open" : ""}`}>
+            {/* The handle is the whole bar on a phone, and display:none on
+                desktop where the rail never collapses. */}
+            <button
+              className="db-handle"
+              onClick={() => setDeckOpen((v) => !v)}
+              aria-expanded={deckOpen}
+            >
+              <span className="db-handle-lbl">
+                {name.trim() || (story ? `${story.element ?? "New"} team` : "Untitled deck")}
+                {!story && <> · {buildSize}×{buildSize}</>}
+              </span>
+              <span className={`db-handle-state ${check.ok ? "ok" : ""}`}>
+                {picked.length} / {limits.target}{check.ok ? " · legal" : ""}
+              </span>
+              <span className="db-handle-chev" aria-hidden="true">{deckOpen ? "⌄" : "⌃"}</span>
+            </button>
             <input
               className="db-name"
               placeholder={story ? `${story.element ?? "New"} team` : "Deck name"}

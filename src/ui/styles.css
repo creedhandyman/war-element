@@ -1559,6 +1559,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-head h2 { margin: 0; font-size: 20px; }
 .db-body { display: flex; gap: 18px; align-items: stretch; }
 .db-side { width: 224px; flex: none; display: flex; flex-direction: column; gap: 8px; max-height: 66vh; overflow-y: auto; padding-right: 2px; }
+/* The drawer handle is a PHONE affordance. On desktop the rail is a column with
+   room to stay open, so there is nothing to expand and a button saying so would
+   be a control that does nothing. */
+.db-handle { display: none; }
 .db-name { font-size: 14px; font-weight: 700; padding: 9px 11px; border-radius: 10px; background: var(--void-2); color: var(--ink); border: 1px solid var(--panel-line); }
 .db-count { font-size: 20px; font-weight: 900; }
 /* ── the capacity ruler ───────────────────────────────────────────────────
@@ -1808,17 +1812,50 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   }
   .db-head { flex: none; margin-bottom: 6px; }
   .db-body { flex: 1 1 auto; min-height: 0; flex-direction: column; gap: 10px; }
-  /* The side column scrolls on its own: with the spellbook expanded (a grid of
-     art cards) it's far taller than the panel, and the modal is overflow:hidden
-     — without this you simply can't reach the spells below the fold. Capped so
-     the card pool still gets room underneath. */
+  /* ── the deck rail becomes a BAR ────────────────────────────────────────
+     It was a 221px block sitting on top of the pool: deck name, board toggle,
+     count, ruler, Save, the tool pills, and whichever panel was open. That left
+     the card grid 379px of a 844px phone — under half the screen for the one
+     thing you opened this screen to look at.
+
+     Now it is pinned to the bottom showing only what you need WHILE scrolling
+     the pool — the deck's name, how many cards it holds, and whether that is
+     legal — and everything else rises over the pool when you tap it. Adding and
+     reviewing stay the same gesture, because the pool is still behind the
+     drawer rather than replaced by it. */
   .db-side {
-    width: auto; flex: none; gap: 7px;
-    max-height: 55vh; overflow-y: auto; overscroll-behavior: contain;
+    order: 2; width: auto; flex: none; gap: 7px;
+    max-height: 84px; overflow: hidden;
+    border-top: 1px solid var(--gold-line); padding-top: 8px; margin-top: 2px;
+    transition: max-height 0.24s ease;
   }
+  .db-side.open {
+    max-height: 62vh; overflow-y: auto; overscroll-behavior: contain;
+  }
+  /* Collapsed, the bar is the handle plus the ruler and nothing else. Hidden
+     rather than unmounted so opening the drawer does not re-mount the deck
+     list and lose its scroll position. */
+  .db-side:not(.open) > *:not(.db-handle):not(.db-ruler) { display: none; }
+
+  .db-handle {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    padding: 4px 2px; background: none; border: none; cursor: pointer;
+    color: var(--ink); text-align: left; font-family: var(--font-ui);
+  }
+  .db-handle-lbl {
+    flex: 1; min-width: 0; font-size: var(--fs-3); font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .db-handle-state {
+    flex: none; font-size: var(--fs-2); font-weight: 700; color: var(--ink-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .db-handle-state.ok { color: var(--legal); }
+  .db-handle-chev { flex: none; color: var(--ink-faint); font-size: var(--fs-3); }
+
   .db-pool {
-    flex: 1 1 auto; min-height: 0; gap: 8px;
-    border-left: none; border-top: 1px solid var(--panel-line); padding-left: 0; padding-top: 10px;
+    order: 1; flex: 1 1 auto; min-height: 0; gap: 8px;
+    border-left: none; padding-left: 0; padding-top: 0;
   }
   /* Filters get their own single scrollable line each instead of wrapping to
      two rows — reclaims ~80px of vertical room for the card pool, and the
