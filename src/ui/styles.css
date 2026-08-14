@@ -3908,14 +3908,143 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Overlays must not hide behind the bar. */
 .picker { padding-bottom: 74px; }
 
-/* ── home ─────────────────────────────────────────────────────────────────── */
-.home-hero {
-  display: flex; flex-direction: column; gap: 3px; align-items: center;
-  margin: 4px 0 10px; padding: 10px 14px; border-radius: 10px;
-  background: var(--void-2); border: 1px solid var(--gold-line);
+/* ── home ─────────────────────────────────────────────────────────────────
+   Ordered by what decays: where you left off, what expires, then the two
+   things that will still be there tomorrow. Shares `.arena-wrap` and the
+   Arena's ground so the two sibling screens read as one place — and the same
+   74px reservation, because the nav is fixed over both. */
+.home {
+  width: min(430px, 100vw); margin: 0 auto; height: 100%;
+  display: flex; flex-direction: column;
+  padding: 0 0 74px; overflow-y: auto;
+  background: radial-gradient(ellipse 130% 62% at 50% 4%, #1c1830 0%, #0d0c18 44%, var(--void) 100%);
 }
-.home-hero b { font-family: var(--head); font-size: 17px; color: var(--gold-hi); letter-spacing: 0.04em; }
-.home-hero span { font-size: 11.5px; color: var(--ink-dim); }
+/* Taller than the Arena's 138px band, and it fades out instead of ending on a
+   line: this is the one screen where the game gets a moment to be itself.
+   The redesign asked for the title UNCROPPED, which the art cannot give — the
+   file is a 3:2 painting, not a wide lockup, so `contain` at any sane height
+   shrinks it to a 177px stamp in a 390px column. A soft crop keeps the
+   presence the mock was after; `contain` only kept the letter of it. */
+.home-logo { flex: none; position: relative; height: 170px; overflow: hidden; }
+.home-logo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 44%; display: block; }
+.home-logo::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 46px;
+  background: linear-gradient(to top, #0d0c18, rgba(13, 12, 24, 0));
+}
+
+.home-you { flex: none; display: flex; align-items: center; gap: 9px; padding: 0 16px 12px; }
+.home-av {
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  background: linear-gradient(150deg, #3a3358, #1b1830); border: 1px solid var(--gold-line);
+  font-size: 12px; font-weight: 600; color: var(--gold-lit);
+}
+.home-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+/* `p-shard` / `p-ess`, NOT `shard` / `ess`: those are the global currency GLYPHS
+   (9px, clip-pathed to a diamond) and putting one on the pill turned the whole
+   pill into a 9px diamond with the number clipped out of it. A modifier that
+   collides with a utility class is not a modifier. */
+.home-purse {
+  margin-left: 0; display: inline-flex; flex: none; align-items: center; gap: 4px;
+  padding: 4px 9px; border-radius: 999px;
+  background: rgba(6, 7, 12, 0.7); border: 1px solid var(--panel-line);
+  font-size: 12px; font-weight: 700;
+}
+/* On the purses, not the avatar: `:first-of-type` counts SPANS, and the avatar
+   and name are spans too, so it matched nothing at all. */
+.home-purse.p-shard { margin-left: auto; border-color: rgba(90, 180, 255, 0.45); color: #bfe6ff; }
+.home-purse.p-ess { border-color: rgba(190, 150, 255, 0.45); color: #d9c8ff; }
+
+/* Continue — the reflex reach, and the only card on the screen with a road
+   behind it. */
+.home-cont {
+  flex: none; position: relative; display: block; width: auto;
+  margin: 0 16px 14px; height: 110px; padding: 0; overflow: hidden;
+  border-radius: 12px; border: 1px solid var(--gold-line);
+  background: var(--void-2); cursor: pointer; text-align: left; font: inherit; color: inherit;
+}
+.home-cont-art { position: absolute; inset: 0; background-size: cover; background-position: 50% 30%; opacity: 0.55; }
+.home-cont-veil { position: absolute; inset: 0; background: linear-gradient(100deg, rgba(9, 8, 16, 0.96) 34%, rgba(9, 8, 16, 0.4)); }
+.home-cont-body {
+  position: relative; height: 100%; box-sizing: border-box; padding: 11px 13px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.home-eyebrow {
+  font-family: var(--head); font-size: 9px; font-weight: 700; letter-spacing: 0.14em;
+  color: var(--gold); text-transform: uppercase;
+}
+.home-cont-node { font-family: var(--head); font-size: 19px; line-height: 1.15; color: var(--ink); margin-top: 4px; }
+.home-cont-foot { display: flex; align-items: center; gap: 9px; }
+.home-cont-foot b { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: var(--ink-dim); }
+.home-bar { flex: 1; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.home-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-hi)); }
+
+.home-lbl {
+  flex: none; display: flex; align-items: baseline; justify-content: space-between;
+  padding: 0 16px 8px;
+}
+.home-lbl span { font-size: 9px; font-weight: 700; letter-spacing: 0.13em; color: #5c5849; }
+.home-lbl em { font-style: normal; font-size: 11px; font-weight: 500; color: var(--ink-dim); }
+.home-live { flex: none; display: flex; flex-direction: column; gap: 7px; padding: 0 16px 14px; }
+
+/* Only one thing can be the most urgent, so exactly one of these is a card and
+   the rest are rows. */
+.home-feat {
+  position: relative; display: block; width: 100%; min-height: 104px; padding: 0;
+  border-radius: 12px; overflow: hidden; border: 1px solid var(--panel-line);
+  background: var(--void-2); cursor: pointer; text-align: left; font: inherit; color: inherit;
+}
+.home-feat-art {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 118px;
+  background-size: cover; background-position: 50% 10%;
+  mask-image: linear-gradient(to left, #000 22%, transparent);
+  -webkit-mask-image: linear-gradient(to left, #000 22%, transparent);
+}
+.home-feat-veil { position: absolute; inset: 0; background: linear-gradient(150deg, rgba(201, 162, 75, 0.12), rgba(10, 10, 17, 0.72)); }
+.home-feat-body { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; }
+.home-feat-top { display: flex; align-items: center; gap: 7px; }
+.home-feat-top b { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #7fe3ad; }
+.home-feat-top em { font-style: normal; font-size: 10px; font-weight: 500; letter-spacing: 0.05em; color: var(--ink-dim); }
+.home-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--legal); animation: homePulse 1.8s ease-in-out infinite; }
+@keyframes homePulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+.home-feat-name { font-family: var(--head); font-size: 17px; line-height: 1; color: var(--ink); }
+.home-feat-sub { font-size: 11px; line-height: 1.45; color: var(--ink-dim); max-width: 240px; }
+
+.home-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 12px; border-radius: 12px;
+  border: 1px solid rgba(233, 226, 210, 0.1); background: rgba(233, 226, 210, 0.03);
+  cursor: pointer; text-align: left; font: inherit; color: inherit;
+}
+.home-row-sig {
+  flex: 0 0 26px; height: 26px; border-radius: 6px; border: 1px solid var(--panel-line);
+  background-color: rgba(6, 7, 12, 0.5); background-size: 15px;
+  background-repeat: no-repeat; background-position: center;
+}
+.home-row-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.home-row-meta b { font-size: 12px; font-weight: 600; color: var(--ink); }
+.home-row-meta em { font-style: normal; font-size: 10px; color: var(--ink-faint); }
+.home-row-cta { flex: none; font-size: 11px; font-weight: 500; color: var(--ink-dim); }
+
+/* Pushes the preparation tiles to the bottom on a tall phone, and collapses to
+   nothing when the band is full enough to fill the screen. */
+.home-gap { flex: 1 1 auto; min-height: 0; }
+
+.home-prep { flex: none; display: flex; gap: 9px; padding: 0 16px 12px; }
+.home-tile {
+  flex: 1; min-width: 0; position: relative; height: 94px; padding: 9px 11px;
+  display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 12px; border: 1px solid rgba(233, 226, 210, 0.14);
+  cursor: pointer; text-align: left; font: inherit; color: inherit;
+}
+.home-tile.deck { background: linear-gradient(160deg, rgba(61, 127, 214, 0.13), rgba(10, 10, 17, 0.6)); }
+.home-tile.col { background: linear-gradient(160deg, rgba(149, 117, 255, 0.12), rgba(10, 10, 17, 0.6)); }
+.home-tile-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+.home-tile-sub { font-size: 10px; color: var(--ink-faint); margin-top: 2px; }
+/* The one number that decides whether you need to go. */
+.home-tile-num { margin-top: auto; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; color: var(--ink-dim); }
+.home-tile-num.ok { color: var(--legal); }
+.home-tile-num.warn { color: var(--threat); }
+.home-tile-num.gold { color: var(--gold-lit); }
 
 /* ── shop ─────────────────────────────────────────────────────────────────── */
 .shop-modal { max-width: 640px; text-align: left; }

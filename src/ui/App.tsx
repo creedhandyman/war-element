@@ -71,6 +71,7 @@ import { initialStoryNav, storyNav } from "./story-nav";
 import { StoryResult } from "./StoryResult";
 import { StoryPrep } from "./StoryPrep";
 import { BottomNav, type Tab } from "./BottomNav";
+import { HomeScreen } from "./HomeScreen";
 import { ActionWheel, type WheelVerb } from "./ActionWheel";
 import { Shop } from "./Shop";
 import {
@@ -243,6 +244,13 @@ export function App() {
    *  own `open` flag inside `nav` because the map owns the whole screen when it
    *  is up; the tab just drives it. */
   const [tab, setTab] = useState<Tab>("home");
+  /** Home's one sub-screen: the collection, opened from its tile. A boolean
+   *  rather than a nav view because it belongs to the Home TAB — leaving for
+   *  the Arena and coming back should land on Home, not on whatever was open
+   *  over it, so the tab switch below clears it. */
+  const [homeCollection, setHomeCollection] = useState(false);
+  /** Which Shop economy to open on, when Home sent you there for a reason. */
+  const [shopTab, setShopTab] = useState<"packs" | "crafter">("packs");
   /** WHERE YOU ARE IN STORY MODE, as one value — see `story-nav.ts`. This was
    *  nine hooks that were never nine independent facts: the three screens were
    *  two booleans (so `collectionOpen && regionsOpen` was representable and
@@ -2563,17 +2571,32 @@ export function App() {
       {/* Campaign team builder: the same screen as the sandbox, with the pool
           cut to what you own and the ceiling set by the campaign. */}
       {/* ── the four destinations ─────────────────────────────────────────── */}
-      {/* Home IS the collection. It was a landing card with a title and two
-          shortcuts, which is a menu pretending to be a destination — the thing
-          a player actually wants to look at between fights is what they own.
-          The hero line stays, above the grid, because it is the same
-          information the landing card carried. */}
-      {!started && !storyOpen && tab === "home" && (
+      {/* Home WAS the collection, and that call was right about the thing it
+          was reacting to: the landing card it replaced was a title and two
+          shortcuts, a menu pretending to be a destination. `HomeScreen` is not
+          that card back again — every line on it is live state and every tile
+          carries a number that changed since you last looked. The collection
+          keeps its place, one tap down, which is where the redesign puts it:
+          building and browsing are things you do BETWEEN fights and neither
+          earns a permanent tab against four. */}
+      {!started && !storyOpen && tab === "home" && !homeCollection && (
+        <HomeScreen
+          save={story}
+          regionId={nav.regionId}
+          onStory={() => { setTab("story"); navDo({ t: "open" }); }}
+          onArena={() => setTab("arena")}
+          onShop={(t) => { setShopTab(t); setTab("shop"); }}
+          onBuilder={() => navDo({ t: "builder", open: true })}
+          onCollection={() => setHomeCollection(true)}
+        />
+      )}
+
+      {!started && !storyOpen && tab === "home" && homeCollection && (
         <StoryCollection
           save={story}
           onSave={(next) => { setStory(next); saveStory(next); }}
-          onClose={() => setTab("arena")}
-          closeLabel="To the Arena"
+          onClose={() => setHomeCollection(false)}
+          closeLabel="Back to Home"
           onOpenBuilder={() => navDo({ t: "builder", open: true })}
         />
       )}
@@ -2581,7 +2604,7 @@ export function App() {
       {!started && !storyOpen && tab === "shop" && (
         <div className="overlay">
           <div className="modal picker shop-modal">
-            <Shop save={story} onSave={(next) => { setStory(next); saveStory(next); }} />
+            <Shop save={story} openTab={shopTab} onSave={(next) => { setStory(next); saveStory(next); }} />
           </div>
         </div>
       )}
@@ -2646,6 +2669,12 @@ export function App() {
           spendable={Object.values(story.hero?.essence ?? {}).reduce((a, b) => a + b, 0)}
           onTab={(t) => {
             setTab(t);
+            // Home's collection is a sub-screen of the tab, not a destination
+            // of its own: tapping Home from anywhere has to land on Home.
+            setHomeCollection(false);
+            // Likewise the Shop opens on Packs unless Home had a reason to
+            // send you to the Crafter. Reaching it from the nav is not one.
+            setShopTab("packs");
             // Story owns the whole screen when it is up, so entering and leaving
             // it is a real transition rather than just a tab swap.
             navDo({ t: t === "story" ? "open" : "close" });

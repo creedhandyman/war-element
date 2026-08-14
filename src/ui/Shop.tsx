@@ -39,9 +39,17 @@ const ODDS_ROWS = (["rare", "epic", "legendary", "mythic"] as const).map((r) => 
   refund: Math.max(1, Math.floor((CRAFT_COST[r] ?? 4) / 2)),
 }));
 
-export function Shop(props: { save: StorySave; onSave: (next: StorySave) => void }) {
+export function Shop(props: {
+  save: StorySave;
+  onSave: (next: StorySave) => void;
+  /** Which economy to open on. Home sends you here for one of two reasons and
+   *  they land on different tabs: "2 packs are waiting" is Packs, "44 cards are
+   *  conjurable" is the Crafter. A row that names an action has to open the
+   *  thing that performs it. */
+  openTab?: "packs" | "crafter";
+}) {
   const { save } = props;
-  const [tab, setTab] = useState<"packs" | "crafter">("packs");
+  const [tab, setTab] = useState<"packs" | "crafter">(props.openTab ?? "packs");
   const [el, setEl] = useState<string>("ALL");
   const [previewId, setPreviewId] = useState<string | null>(null);
   /** The pack just torn open, held so the player can actually read it. */

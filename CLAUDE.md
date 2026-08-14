@@ -428,6 +428,34 @@ board and are unsafe in browse, where there is no GameState at all. Keep the
 union; optional fields would let `props.game!` compile and crash five screens.
 Pure def-to-text lives in `card-text.tsx` and is covered by a whole-pool test.
 
+**`HomeScreen.tsx` answers three questions in order** — where was I, what is on
+right now, where do I prepare — ordered by what DECAYS. Home used to *be* the
+collection, which was the right reaction to the landing card before it: a title
+and two shortcuts, a menu pretending to be a destination. The rule that keeps
+this from becoming that card again is that **every line is live state and every
+tile carries a number that changed since you last looked**. The collection is
+one tap down, from a tile, which is where the redesign puts it — building and
+browsing happen BETWEEN fights and neither earns a permanent tab against four.
+
+Two things to know before editing it. **The middle band has no event system
+behind it.** The redesign proposes one (timed modifiers, "Double BORE essence
+for 2d 04h") and says itself that it is a proposal; hardcoding that copy would
+have put a pulsing LIVE dot next to content that never changes and never
+expires. `buildLive()` reads real state instead — a Gauntlet run mid-flight, a
+region at full Blight, shards that will buy a pack, essence that will buy a
+card — ordered most-urgent-first, and the head of the list becomes the feature
+card so the promotion cannot disagree with the ordering. Nothing true ⇒ the
+band and its spacer both disappear, because a hole *between* content reads as a
+failed load where a screen that simply ends reads as done.
+
+**A number on a tile has to be about the place the tile opens.** The Collection
+tile counts what is MISSING, not what is conjurable, because you conjure in the
+Shop; the two rows that do send you to the Shop pass `openTab` so "Open" lands
+on Packs and "Conjure" lands on the Crafter. Same reason the collected count is
+`PLACED_CARDS ∩ collection` rather than `collection.length` — the collection
+screen is one tap away and two screens disagreeing about how much you own reads
+as a bug in both.
+
 ## Earning against the AI
 
 Three pieces, all in `src/data/`:
@@ -486,6 +514,26 @@ on what the hero has actually unlocked, because spells are earned by walking a
 region.
 
 ## Traps found the hard way
+
+- **A BEM-style modifier that collides with a global utility class is not a
+  modifier — it is that utility, applied to the wrong element.** The stylesheet
+  has single-purpose glyph classes (`.shard`, `.ess`: 9px, `clip-path`-ed to a
+  diamond), and Home's currency pills were written as `.home-purse.ess`. There
+  is no `.home-purse` in `.ess`'s selector, so the rule matched on the class
+  ALONE and turned the whole 38px pill into a 9px diamond with the number
+  clipped out of it. `tsc` and the tests cannot see this and the pill still
+  *renders* — it just renders as something else. Two tells worth knowing: the
+  element measured far smaller than its own padding could allow (20px against
+  an 18px+9px+4px floor), and `innerHTML` showed the number present while the
+  screenshot showed nothing. Prefix the modifiers (`.p-shard`, `.p-ess`) rather
+  than raising specificity, which only hides the collision.
+
+- **`:first-of-type` counts TAG type, not class.** `.home-purse:first-of-type`
+  was meant to put `margin-left: auto` on the first pill; the avatar and the
+  name are also `<span>`s, so the first `<span>` is the avatar, no `.home-purse`
+  was ever the first of its type, and the rule matched nothing at all. It fails
+  open — no error, no visual clue except that the thing did not move. Put the
+  margin on a class you actually control.
 
 - **CSS fails SILENTLY, and nothing else in the toolchain reads it.** An
   unbalanced comment or brace makes the browser skip to the next recoverable
