@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import type { CardInstance, GameState, PlayerId } from "../engine";
 import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, getDef, isBloodfire, legalMoves } from "../engine";
 import { KEYWORD_STYLE, STATUS_STYLE } from "./shared";
-import { SpIcon } from "./icons";
 
 /** One letter, because the tile has no room for a word and the marker only has
  *  to distinguish two states you already chose deliberately. The names are the
@@ -231,13 +230,48 @@ export function Token(props: {
     game.prep?.priority === card.owner &&
     !game.prep.movedThisTurn &&
     legalMoves(game, card.owner, card.instanceId).length > 0;
-  // Keyword pips (top edge) — visual glyphs, not words.
+  const frozen = card.statuses.some((s) => s.kind === "FREEZE");
+  const mods = cardMods(game, card);
+  // Keywords stay on the board card. They ride the RIGHT edge, opposite the
+  // statuses, so the two never compete for the same space: what the card IS on
+  // one side, what is currently HAPPENING to it on the other. No overflow rule
+  // is needed here — no card in the set carries more than two keywords (only
+  // seven carry two at all), so the column is bounded by the data.
   const kwPips = Object.entries(def.keywords)
     .filter(([, v]) => v)
     .map(([k]) => ({ k, style: KEYWORD_STYLE[k] }))
     .filter((x) => x.style);
-  const frozen = card.statuses.some((s) => s.kind === "FREEZE");
-  const mods = cardMods(game, card);
+  // Every CHANGING mark, in one ordered list, so the tile can show the first
+  // two and count the rest instead of wrapping an unbounded strip across the
+  // art — a wounded card could print five chips over the thing you are reading.
+  const pips: { key: string; glyph: string; color: string; title: string }[] = [];
+  if (mods.buffs.length > 0)
+    pips.push({ key: "buffs", glyph: `▲${mods.buffs.length}`, color: "#7fd89a",
+                title: `BUFFS\n${mods.buffs.join("\n")}` });
+  if (isBloodfire(card))
+    pips.push({ key: "bloodfire", glyph: "🩸", color: "#ff5a3c",
+                title: "BLOODFIRE — bleeding AND burning. Blood-fire payoff cards hit this target harder." });
+  for (const s of card.statuses) {
+    const st = STATUS_STYLE[s.kind];
+    pips.push({ key: s.kind, glyph: st.glyph, color: st.color,
+                title: `${s.kind}${s.power ? ` ${s.power}` : ""}${s.source ? ` from ${s.source}` : ""} — ${s.duration} round(s)` });
+  }
+  if (mods.debuffs.length > 0)
+    pips.push({ key: "debuffs", glyph: `▼${mods.debuffs.length}`, color: "#ff4d4d",
+                title: `DEBUFFS\n${mods.debuffs.join("\n")}` });
+  const showAuto = mine && human && card.autoMode !== "manual";
+  const shownPips = pips.slice(0, 2);
+  const morePips = pips.length - shownPips.length;
+
+  // The HP bar's full width is max HP PLUS shields, so the grey head is
+  // proportional to the damage it will actually absorb — shields are spent
+  // first, which is why they are the head and not a separate meter.
+  const maxHp = effectiveMaxHp(game, card);
+  const shields = card.curShields;
+  const barTotal = Math.max(1, maxHp + shields);
+  const shPct = (shields / barTotal) * 100;
+  const hpPct = (Math.max(0, card.curHp) / barTotal) * 100;
+  const hits = effectiveBasicHits(card);
   const cls = [
     "token",
     mine ? "mine" : "enemy",
@@ -302,105 +336,87 @@ export function Token(props: {
         </div>
       )}
       {frozen && <div className="freeze-overlay" />}
-      {kwPips.length > 0 && (
-        <div className="kw-pips">
+      {/* Name owns the entire top edge — no cost gem beside it. The cost is
+          already paid by the time a card stands here; on the board it was only
+          buying the name's first 17px, which is what forced "Rep…". */}
+      <div className="tk-name">{def.name}</div>
+      {/* Statuses as a left column, two deep, then a count. A wrapping strip
+          across the middle of the art could grow to five chips and hide the
+          thing you are looking at. */}
+      {shownPips.length > 0 && (
+        <div className="tk-pips">
+          {shownPips.map((p) => (
+            <span key={p.key} className="tk-pip" style={{ borderColor: p.color, color: p.color }} title={p.title}>
+              {p.glyph}
+            </span>
+          ))}
+          {morePips > 0 && (
+            <span className="tk-pip tk-pip-more" title={pips.slice(2).map((p) => p.title).join("\n\n")}>
+              +{morePips}
+            </span>
+          )}
+        </div>
+      )}
+      {/* Keywords — what the card always is — mirrored down the right edge,
+          with the auto marker as the column's last item. It is placed IN the
+          column rather than pinned to a corner because a corner is a promise
+          about height: at 87px an absolutely-placed letter clears the keywords
+          above it and the stat row below, and at 55px (a 5x5 phone tile today,
+          a landscape tile always) it lands on top of both. In the column it
+          cannot collide with anything by construction. */}
+      {(kwPips.length > 0 || showAuto) && (
+        <div className="tk-pips tk-pips-kw">
           {kwPips.map(({ k, style }) => (
-            <span key={k} className="kw-pip" style={{ borderColor: style.color, color: style.color }} title={k}>
+            <span key={k} className="tk-pip" style={{ borderColor: style.color, color: style.color }} title={k}>
               {style.glyph}
             </span>
           ))}
-        </div>
-      )}
-      {(card.statuses.length > 0 || mods.buffs.length > 0 || mods.debuffs.length > 0) && (
-        <div className="status-icons">
-          {mods.buffs.length > 0 && (
-            <span className="mod-chip buff" title={`BUFFS\n${mods.buffs.join("\n")}`}>▲{mods.buffs.length}</span>
-          )}
-          {isBloodfire(card) && (
+          {showAuto && (
             <span
-              className="status-icon bloodfire"
-              title="BLOODFIRE — bleeding AND burning. Blood-fire payoff cards hit this target harder."
+              className={`tk-pip auto-tag ${card.autoMode}`}
+              title={`On ${card.autoMode} auto — change it in the card panel`}
             >
-              🩸🔥
+              {AUTO_LABEL[card.autoMode]}
             </span>
           )}
-          {card.statuses.map((s) => {
-            const st = STATUS_STYLE[s.kind];
-            return (
-              <span
-                key={s.kind}
-                className="status-icon"
-                style={{ borderColor: st.color, color: st.color }}
-                title={`${s.kind}${s.power ? ` ${s.power}` : ""}${s.source ? ` from ${s.source}` : ""} — ${s.duration} round(s)`}
-              >
-                {st.glyph}{s.duration}
-              </span>
-            );
-          })}
-          {mods.debuffs.length > 0 && (
-            <span className="mod-chip debuff" title={`DEBUFFS\n${mods.debuffs.join("\n")}`}>▼{mods.debuffs.length}</span>
-          )}
         </div>
       )}
-      {/* Top: name (with cost + element dot). */}
-      {/* Element is shown by the card's border rim (--el-rim), so no separate
-          colour chip here — it only crowded the name on small board tiles. */}
-      <div className="tk-top">
-        <span className="tk-cost">{def.cost}</span>
-        <span className="tk-name">{def.name}</span>
+      {/* Three numerals, no icons. Colour IS the encoding — red damage, green
+          HP, blue speed — which is what the canonical stat colours were for,
+          and each icon cost about 8px of a row that has roughly 40 to spend.
+          Shields left the row entirely: they are the bar's grey head now. */}
+      <div className="tk-stats">
+        <span
+          className="st-dmg"
+          title={`Damage${hits > 1 ? ` ×${hits} hits` : ""} (printed ${def.dmg}/hit; live value includes Mid-row control and statuses)`}
+        >
+          {effectiveDmg(game, card)}{hits > 1 && <span className="atk-x">×{hits}</span>}
+        </span>
+        <span
+          className={`st-hp ${hpFlash === "down" ? "hp-hit" : hpFlash === "up" ? "hp-heal" : ""}`}
+          title={`HP ${card.curHp} of ${maxHp}${shields > 0 ? ` · ${shields} shield${shields > 1 ? "s" : ""}` : ""}`}
+        >
+          {card.curHp}
+        </span>
+        <span
+          className={`st-sp ${canMoveNow ? "can-move" : ""}`}
+          title={canMoveNow ? "Can move this turn — click the card, then a green slot" : "Speed (queue order + move reach)"}
+        >
+          {effectiveSp(game, card)}
+        </span>
       </div>
-      {/* Bottom: class line + the full stat row (DMG · shield · HP · SP). */}
-      <div className="tk-bottom">
-        <div className="tk-class" title={`${def.cardClass} · ${def.attackType}`}>
-          {def.attackType === "Melee" ? "🗡" : "🏹"} {def.cardClass.toUpperCase()}
-        </div>
-        <div className="tk-stats">
-          <span
-            className="st-dmg"
-            title={`Hits × damage per hit (printed ${def.dmg}/hit; live value includes Mid-row control and statuses)`}
-          >
-            ⚔<span className="atk-dmg">{effectiveDmg(game, card)}</span>
-            {effectiveBasicHits(card) > 1 ? <span className="atk-x"> ×{effectiveBasicHits(card)}</span> : ""}
-          </span>
-          {card.curShields > 0 && <span className="st-sh">🛡{card.curShields}</span>}
-          <span
-            className={`st-hp ${hpFlash === "down" ? "hp-hit" : hpFlash === "up" ? "hp-heal" : ""}`}
-            title={`HP ${card.curHp} of ${effectiveMaxHp(game, card)}`}
-          >
-            {/* The "/max" is a separate span so the 5x5 board can hide it (see
-                .board.tight in styles.css) — on a fifth-width tile it is the
-                widest thing in the row and the least useful, and a stat row
-                whose width changes the moment a card is wounded is what broke
-                the layout in the first place. The tooltip still carries it. */}
-            ♥{card.curHp}
-            {card.curHp !== effectiveMaxHp(game, card) && (
-              <span className="hp-max">/{effectiveMaxHp(game, card)}</span>
-            )}
-          </span>
-          <span
-            className={`st-sp ${canMoveNow ? "can-move" : ""}`}
-            title={
-              canMoveNow
-                ? "Can move this turn — click the card, then a green slot"
-                : "Speed (queue order + move reach)"
-            }
-          >
-            <SpIcon />
-            {effectiveSp(game, card)}
-          </span>
-        </div>
+      {/* The bar carries the ratio the "/max" text used to, and carries it
+          better: the row's width no longer changes the moment a card is
+          wounded, which is what broke the stat row's layout. Its full width is
+          max HP PLUS shields, so the grey head is proportional to the damage it
+          will really absorb — shields are spent first, so they are the head. */}
+      <div
+        className="tk-bar"
+        title={`${card.curHp}/${maxHp} HP${shields > 0 ? ` + ${shields} shield${shields > 1 ? "s" : ""}` : ""}`}
+      >
+        {shields > 0 && <span className="tk-bar-sh" style={{ width: `${shPct}%` }} />}
+        <span className="tk-bar-hp" style={{ width: `${hpPct}%` }} />
       </div>
-      {/* READ-ONLY. This used to be the control itself — tap to cycle
-          manual/auto/full — which put a live setting on a 60px board tile where
-          it was as easy to hit by accident as on purpose, right where you are
-          also tapping to select and move. The setting lives in the card's own
-          panel now; what stays here is the answer to "which of mine are on
-          auto?", readable at a glance across the whole board. */}
-      {mine && human && card.autoMode !== "manual" && (
-        <div className={`auto-tag ${card.autoMode}`} title={`On ${card.autoMode} auto — change it in the card panel`}>
-          {AUTO_LABEL[card.autoMode]}
-        </div>
-      )}
     </div>
   );
 }

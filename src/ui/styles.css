@@ -565,25 +565,59 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    token grew to its content height and overflowed the tile on small (mobile)
    boards. Anchored to the slot (position:relative); overflow stays visible for
    the CRIT/MISS float + keyword pips, and the content is shrunk to fit on mobile. */
-.token { position: absolute; inset: 3%; border-radius: 9px; display: flex; flex-direction: column; justify-content: space-between; padding: 6px; overflow: visible; transition: transform 0.15s ease, box-shadow 0.15s ease; border: 1.5px solid var(--el-rim, var(--panel-line)); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65), 0 0 15px color-mix(in srgb, var(--el-rim, #000) 30%, transparent); }
+/* The token is a FRAME, not a flexbox. Every mark on it is absolutely placed
+   against an edge, because at 70px a flow layout spends its height on gaps
+   between things and then clips the last one. Name on the top edge, numerals on
+   the bottom, bar under them, statuses down the left. Nothing can push anything
+   else off. */
+.token {
+  position: absolute; inset: 3%; border-radius: 9px; overflow: visible;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: 1.5px solid var(--el-rim, var(--panel-line));
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65), 0 0 15px color-mix(in srgb, var(--el-rim, #000) 30%, transparent);
+}
 .token.mine { background: linear-gradient(180deg, #1c1a26, #12111a); }
 .token.enemy { background: linear-gradient(180deg, #1c1a26, #12111a); }
-/* keyword pips (top edge) + status icons (bottom edge) */
-.kw-pips { position: absolute; top: -9px; left: 4px; right: 4px; z-index: 5; display: flex; gap: 3px; justify-content: center; }
-.kw-pip { min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #0d0c14; border: 1px solid; font-size: 9.5px; font-weight: 800; line-height: 14px; display: grid; place-items: center; }
+/* Two pip columns, one down each edge: what the card IS on the right
+   (keywords), what is currently HAPPENING to it on the left (statuses, buffs,
+   debuffs). Opposite edges because they never then compete for the same space.
+
+   Statuses show two and then a count. They used to be a centred strip that
+   WRAPPED across the middle of the art: five chips on a wounded card covered
+   the thing you were looking at, and the wrap grew the token past its own tile.
+   A fixed column cannot grow. Keywords need no such rule — no card in the set
+   carries more than two, so that column is bounded by the data.
+
+   9px is legal here because a pip is read as a SHAPE, not as text — the one
+   exemption in the 10px floor. The digit that used to ride inside each status
+   chip (its duration) is what pushed these over the line; it lives in the
+   tooltip and the card view now. */
+/* BOUNDED, and the bound is what makes this safe. The column starts under the
+   name and is not allowed past the stat row: 17px of name above, 18px of
+   numerals and bar below. Without the max-height a third pip on a short tile
+   (a 5x5 phone today, a landscape tile always) runs straight through the
+   numerals and off the bottom of the card — measured, not guessed: three pips
+   are 43px and a landscape tile gives the column about 20. Clipping the tail
+   of the column is the right failure: the pips are ordered most-important
+   first, and the full list is a tap away. */
+.tk-pips {
+  position: absolute; top: 17px; left: 2px; z-index: 5;
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: calc(100% - 34px); overflow: hidden; pointer-events: none;
+}
+.tk-pips-kw { left: auto; right: 2px; }
+.tk-pip {
+  width: 13px; height: 13px; border-radius: var(--r-pip); display: grid; place-items: center;
+  background: rgba(6, 7, 12, 0.88); border: 1px solid; font-size: 9px; line-height: 1;
+  font-weight: 700; pointer-events: auto;
+}
+.tk-pip-more { border-color: var(--ink-faint); color: var(--ink-dim); }
 /* Status pips ride INSIDE the card, over the middle of the art. They used to
    hang half-off the bottom edge (bottom:-9px), where they collided with the row
    below and read as board clutter rather than as this card's state. */
-.status-icons { position: absolute; top: 46%; left: 3px; right: 3px; z-index: 5; display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; pointer-events: none; }
-.status-icon { min-width: 18px; height: 18px; padding: 0 4px; border-radius: 8px; background: rgba(8, 9, 16, 0.92); border: 1px solid; font-size: 10px; font-weight: 800; line-height: 16px; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.75); }
 /* Bloodfire — bleeding AND burning. A single combined chip with a
    blood-to-fire gradient rim so payoff targets read at a glance. */
-.status-icon.bloodfire { border-color: #ff5a3c; background: linear-gradient(135deg, #3a0a12, #2a1206); box-shadow: 0 0 6px rgba(255,90,60,.55); font-size: 8px; letter-spacing: -1px; }
 /* Aggregate buff (▲) / debuff (▼) chips — hover for the sourced breakdown. */
-.mod-chip { min-width: 17px; height: 17px; padding: 0 4px; border-radius: 8px; background: #0d0c14; border: 1px solid; font-size: 9.5px; font-weight: 900; line-height: 15px; display: grid; place-items: center; cursor: help; }
-.mod-chip.buff { color: var(--stat-hp); border-color: var(--stat-hp); }
-.mod-chip.debuff { color: var(--stat-dmg); border-color: var(--stat-dmg); }
-.status-icons .mod-chip { white-space: nowrap; }
 /* Expanded card view: the full sourced buff/debuff list. */
 .cd-mods { margin-top: 10px; display: flex; flex-direction: column; gap: 3px; }
 .cd-mods-lbl { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 2px; }
@@ -645,7 +679,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    filter doesn't force a low-res rasterization. */
 .card-art {
   position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0;
-  object-fit: cover; object-position: center top; border-radius: 7px;
+  object-fit: cover; object-position: 50% 16%; border-radius: 7px;
   pointer-events: none; filter: saturate(1.08);
 }
 /* Scrim: two plates, not one wash — a dark band behind the TOP name banner and
@@ -655,49 +689,66 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .token::after {
   content: ""; position: absolute; inset: 0; z-index: 0; border-radius: 7px;
   background:
-    linear-gradient(180deg, rgba(6,8,14,0.82) 0%, rgba(6,8,14,0.5) 12%, rgba(6,8,14,0) 24%),
-    linear-gradient(180deg, rgba(6,8,14,0) 46%, rgba(6,8,14,0.62) 66%, rgba(6,8,14,0.96) 100%);
+    linear-gradient(180deg, rgba(6,7,12,0.78) 0%, rgba(6,7,12,0) 34%),
+    linear-gradient(180deg, rgba(6,7,12,0) 48%, rgba(6,7,12,0.72) 74%, rgba(6,7,12,0.94) 100%);
 }
-.token > .tk-top, .token > .tk-bottom { position: relative; z-index: 1; }
-.token .status-pip { z-index: 2; }
+.token > .tk-name, .token > .tk-stats, .token > .tk-bar { z-index: 1; }
 /* Top row: name is the hero, flanked by the cost badge and element dot. */
-.tk-top { display: flex; align-items: center; gap: 4px; }
-.tk-cost { width: 19px; height: 19px; flex: none; border-radius: 50%; background: rgba(0, 0, 0, 0.5); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
 .el-dot { width: 9px; height: 9px; border-radius: 2px; flex: none; }
 /* Element logo badge on deck-builder card thumbnails (mirrors the hand sigil). */
 .dt-el { width: 18px; height: 18px; flex: none; border-radius: 50%; overflow: hidden; border: 1.5px solid; background: #0d0c14; display: grid; place-items: center; }
 .dt-el img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.tk-name { flex: 1; min-width: 0; font-size: 12px; font-weight: 800; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px #000, 0 0 3px #000; }
-.tk-class { font-size: 8.5px; font-weight: 700; letter-spacing: 0.05em; color: var(--ink-dim); text-shadow: 0 1px 2px #000; margin-bottom: 2px; }
-/* NOWRAP is load-bearing. The stat pills used to wrap, and on a 5x5 board — where
-   a tile is a fifth of the platform instead of a quarter — the row wrapped to two
-   lines, grew .tk-bottom past the height of the token, and the whole strip hung
-   off the bottom edge onto the tile below (the token is overflow:visible so the
-   floating CRIT/damage numbers can leave it). One line can't push anything down. */
-/* ONE shared plate, not four. Four pills spend three gaps and six side-paddings
-   on separators the colour coding already provides, and that overhead is what
-   made a crowded row overflow: a common multi-hit card mid-fight prints
-   "⚔6 ×3 🛡4 ♥18/24 ⚡9", which ran ~18px past the card with per-pill plates.
-   Since the row can no longer wrap, overflow means a CLIPPED stat — so the
-   width has to be bought back rather than left to chance. */
-/* Sized off the TILE (container-type on .slot), not the viewport, and not the
-   board size. --board-size tracks viewport HEIGHT, so a short desktop window
-   shrinks a 4x4 tile to the size of a 5x5 tile on a tall one — and .tight keys
-   on column count, so it would not have helped there. The clamp CEILING is the
-   old fixed 12.5px, so a roomy tile is pixel-identical to before; only a cramped
-   one gives ground, shrinking rather than clipping a stat. */
-.tk-stats {
-  display: flex; gap: 0.16em; font-size: clamp(7px, 8.5cqw, 12.5px); font-weight: 800;
-  flex-wrap: nowrap; min-width: 0; align-self: flex-start; max-width: 100%;
-  /* gap and padding in em, not px: fixed spacing stops the font shrink from
-     buying anything once the tile is small — three gaps and two paddings is ~9px
-     of a row that only has ~80px to live in. At 12.5px these are the old 2px/3px. */
-  padding: 0 0.24em; border-radius: 5px; background: rgba(0, 0, 0, 0.72);
+/* The whole top edge, one line, 11px. Inter Tight rather than the display
+   serif: this is the size at which Cinzel's small lowercase forced names to
+   truncate to "Rep…". At 11px Inter Tight, "Hydrogon" and "Kinguin" fit whole
+   on a 70px tile. */
+.tk-name {
+  position: absolute; top: 2px; left: 3px; right: 3px; z-index: 1;
+  font-family: var(--font-ui); font-size: var(--fs-2); font-weight: 600;
+  letter-spacing: -0.1px; line-height: 13px; color: #f5efe4;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
 }
+/* The row that this replaces printed "⚔6 ×3 🛡4 ♥18/24 ⚡9" — four emoji, nine
+   digits and a slash — into about 40px, and every mechanism around it existed
+   to stop that overflowing: nowrap so it could not wrap onto the tile below, a
+   single shared plate because four pills spent three gaps and six paddings on
+   separators the colour already provided, a clamp() down to 7px, and a
+   container query to drop the "/max".
+
+   Removing three of the five things is what made the row fit, rather than
+   shrinking all five. It now prints "6×3  11  7": absolute positions, tabular
+   figures, no plate, no clamp. Shields moved into the bar, "/max" became the
+   bar itself, and the icons went because at this size colour already says
+   which number is which. */
+/* Three numerals, spread across the bottom edge, sitting on the scrim rather
+   than on a plate of their own. The plate and the icons are both gone for the
+   same reason: at 70px the row has about 40px of usable width, and four emoji
+   plus a background cost more of it than the information they carried. Colour
+   is the encoding now — red damage, green HP, blue speed.
+   font-variant-numeric: tabular-nums so a 9 becoming a 10 does not shuffle the
+   row sideways mid-fight. */
+.tk-stats {
+  position: absolute; left: 0; right: 0; bottom: 4px; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 3px; height: 13px;
+  font-family: var(--font-ui); font-size: var(--fs-2); font-weight: 700;
+  line-height: 1; font-variant-numeric: tabular-nums;
+}
+/* HP + shields, 3px, the full width of the card. The bar is what replaced the
+   "/max" text: it carries the ratio, and it does not change the row's width
+   when a card is wounded — which is the bug that broke the stat row. Shields
+   are the GREY HEAD because that is the order damage spends them in. */
+.tk-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; height: 3px;
+  display: flex; overflow: hidden; border-radius: 0 0 7px 7px;
+  background: rgba(255, 255, 255, 0.07);
+}
+.tk-bar-sh { background: var(--stat-sh); }
+.tk-bar-hp { background: linear-gradient(90deg, #3ec778, var(--stat-hp)); transition: width 0.25s ease; }
 /* DIRECT children only — the "/max" inside the HP pill is a span too, and it
    must not get its own padding. */
-.tk-stats > span { display: flex; align-items: center; gap: 1px; padding: 0; border-radius: 0; background: none; text-shadow: 0 1px 2px #000, 0 0 4px #000; line-height: 1.4; flex: 0 0 auto; }
-.hp-max { opacity: 0.72; font-weight: 700; }
+.tk-stats > span { display: flex; align-items: center; gap: 1px; text-shadow: 0 1px 2px #000, 0 0 4px #000; flex: 0 0 auto; }
 /* The "/max" is the first thing dropped when the tile gets cramped, because it is
    the only part of the row that is pure context — the current HP is the number
    you act on, and the maximum is still in the stat's tooltip and on the card.
@@ -705,8 +756,20 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    as a 5x5 on a tall one, and shrinking the font alone cannot close a row of four
    emoji plus nine digits at this width. Measured — 150px is where the widest row
    the game can print runs out of slack. */
-@container (max-width: 150px) {
-  .hp-max { display: none; }
+/* The container query that used to live here hid "/max" on a cramped tile.
+   There is no "/max" any more — the bar carries the ratio — so it has nothing
+   to drop, and it is replaced by the one case the floor rule cannot solve by
+   choosing better content: the landscape-phone tile, which is about 30x34.
+
+   At that size the budget is 13px of name + 13px of numerals + 3px of bar in
+   34px of height, and the name loses by two pixels. Rather than shrink it to
+   9px — the exact move this landing exists to delete — the name is DROPPED. In
+   30px of width an 11px name shows about three characters, so it was not
+   carrying its space anyway; art, numerals and the bar are what remain, and
+   the name is one tap away. Keyed on the tile (container), not the viewport,
+   because a short desktop window can produce the same tile as a phone. */
+@container (max-width: 46px) {
+  .tk-name { display: none; }
 }
 .st-sp { color: var(--stat-sp); }
 /* The one stat that still wants to be its own pill: it is a call to action, not a
@@ -793,64 +856,26 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .fx-coin { animation: fxCoinHold 950ms linear forwards; }
   @keyframes fxCoinHold { 0%, 80% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%); } }
 }
-.status-pip { position: absolute; top: 28px; left: 7px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--accent); color: #12081f; font-size: 9px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 8px rgba(167, 139, 250, 0.6); }
-.tk-stats svg { filter: drop-shadow(0 1px 1px #000); }
 @keyframes movepulse { 0%, 100% { box-shadow: 0 0 6px rgba(78, 203, 143, 0.4); } 50% { box-shadow: 0 0 14px rgba(78, 203, 143, 0.9); } }
-/* bottom strip: stats sit above; keywords + auto badge share the strip.
-   min-height:0 + overflow:hidden is the backstop for the same bug the nowrap
-   above fixes: whatever ends up in here gets clipped at the card's edge rather
-   than spilling out over the tile below. */
-/* padding-bottom was 18px, reserved for the auto BUTTON that used to sit in
-   this band. That control is gone and its replacement is a letter in the far
-   corner, so the stats drop into the space and sit where the card's numbers
-   belong — along the bottom edge. The right padding is the only reserve left:
-   just the corner, so a long stat row can never run under the marker.
-
-   12px is measured, not guessed. The marker is 13px wide sitting 4px off the
-   token's right edge, and .tk-bottom is already inset by the token's own 6px
-   padding, so 11 is the exact clearance and 12 leaves a pixel. At 15 the widest
-   row the game can print (⚔12 ×3 🛡12 ♥18 ⚡12) overran by half a pixel. */
-.tk-bottom { display: flex; flex-direction: column; gap: 3px; padding-bottom: 2px; padding-right: 12px; min-height: 0; overflow: hidden; }
-/* ── 5x5 board: the tile is ~20% smaller in each direction than on a 4x4, and
-   the token's furniture has to give the numbers room. The class line is what
-   goes — it is the only thing in the strip you can also read off the art. ── */
-/* Sized in cqw off the TILE (see container-type on .slot), not in fixed px: a
-   5x5 board on a short window makes tiles small enough that a fixed size would
-   push the SP stat off the edge, and silently clipping a stat is worse than a
-   smaller one. Clamped at both ends so it never gets illegible or oversized. */
-.board.tight .tk-name { font-size: clamp(7.5px, 10.5cqw, 13px); }
-.board.tight .tk-cost { width: 15px; height: 15px; font-size: 9px; }
-.board.tight .tk-class { display: none; }
-/* A slightly harder clamp than the base row, since a 5x5 tile is the smallest
-   the game asks a full stat line to live in.
-   The per-pill padding that used to sit here is GONE, not moved: the plate is
-   shared now, so it was six paddings of pure overhead at the one size that can
-   least afford them. Dropping "/max" is likewise no longer a 5x5 rule — it hangs
-   off the tile-width container query, which catches a cramped 4x4 as well. */
-.board.tight .tk-stats { font-size: clamp(6.5px, 8cqw, 11.5px); }
-.board.tight .tk-bottom { padding-bottom: 1px; padding-right: 13px; }
-.board.tight .auto-tag { font-size: 7.5px; padding: 1px 2px; min-width: 11px; bottom: 2px; right: 3px; }
+/* What remains of `.board.tight`: three FX font sizes, and nothing structural.
+   The block used to re-tune the whole token for a 5x5 board — name, cost, class,
+   stat row, auto letter — because a 5x5 tile is about 20% smaller in each axis
+   than a 4x4 one. The tile now shows the same things at the same sizes whatever
+   the board, so there is nothing left to re-tune; only the floating combat
+   numbers, which are drawn OVER the tile rather than inside it and so are still
+   sized against how much board they cover. */
 .board.tight .fx-dmg { font-size: 14px; }
 .board.tight .fx-dmg-total { font-size: 16px; }
 .board.tight .fx-float { font-size: 13px; }
-.kw-line { position: absolute; bottom: 6px; left: 56px; right: 6px; font-size: 8px; font-weight: 700; letter-spacing: 0.02em; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
-.token.enemy .kw-line { left: 6px; text-align: left; }
 .pick-count { position: absolute; top: -8px; right: -6px; z-index: 4; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px; background: var(--legal); color: #06251a; font-size: 12px; font-weight: 900; display: grid; place-items: center; box-shadow: 0 0 12px rgba(78, 203, 143, 0.7); pointer-events: none; }
 /* READ-ONLY auto marker. Was `.auto-btn`, a tappable cycler sat on the token —
    no cursor, no hover grow and no pointer-events now, because the only job left
    is answering "which of mine are on auto?" at a glance. Shown only when the
    card IS on auto: a MANUAL tag on every manual card is noise on a 60px tile. */
-.auto-tag {
-  /* Bottom RIGHT and a single glyph. It sat bottom-left as a full word, which is
-     where the stat row wants to be — the row was paying an 18px bottom padding
-     to stay clear of it. A letter in the opposite corner costs the stats one
-     corner instead of a whole band. */
-  position: absolute; bottom: 3px; right: 4px; z-index: 3; pointer-events: none;
-  min-width: 13px; text-align: center;
-  font-size: 9px; font-weight: 800; padding: 1px 3px;
-  border-radius: 4px; border: 1px solid var(--panel-line);
-  background: rgba(0, 0, 0, 0.55); color: var(--ink-faint);
-}
+/* The auto marker is now the last PIP in the keyword column, not a free-floating
+   corner badge, so it inherits the column's size, spacing and clipping and can
+   never land on the stat row. It keeps only its colours. */
+.auto-tag { border-color: var(--panel-line); color: var(--ink-faint); }
 .auto-tag.basic { color: #06251a; background: var(--legal); border-color: var(--legal); }
 .auto-tag.full { color: #160b28; background: var(--accent); border-color: var(--accent); }
 
@@ -2122,24 +2147,22 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 
 /* ══════════ BOARD CARDS FIT SMALL (MOBILE) TILES ══════════
-   Phone boards have ~80px tiles; the desktop token content (name + class + full
-   stat row + auto button) is too tall for that and spilled past the tile. Shrink
-   every piece so a full card sits cleanly inside its space, in BOTH orientations
-   (portrait ≤760w OR landscape ≤540h). */
-@media (max-width: 760px), (max-height: 540px) {
-  .token { padding: 4px; }
-  .tk-name { font-size: 8.5px; }
-  .tk-cost { width: 14px; height: 14px; font-size: 8px; }
-  .tk-class { font-size: 6px; margin-bottom: 0; letter-spacing: 0.02em; }
-  .tk-stats { font-size: 8px; gap: 1px; padding: 0 2px; }
-  /* No per-pill padding — the plate is shared now, and on a phone that overhead
-     is the difference between the row fitting and a stat being clipped. */
-  .tk-stats > span { padding: 0; line-height: 1.2; }
-  .tk-bottom { gap: 1px; padding-bottom: 1px; padding-right: 12px; }
-  .auto-tag { font-size: 6px; padding: 0 2px; min-width: 9px; bottom: 2px; right: 2px; border-radius: 3px; }
-  .status-icons { gap: 2px; }
-  .status-icon, .kw-pip { font-size: 7px; }
-}
+   DELETED, and its deletion is the point of the tile landing.
+
+   This block shrank every piece of the token — name to 8.5px, class to 6px,
+   stats to 8px, the auto letter to 6px, pips to 7px — so that a desktop tile's
+   worth of content could be squeezed into a phone tile. It sat alongside a
+   .board.tight block doing the same job at 5x5, a clamp() on the stat row, and
+   a container query hiding "/max": four separate mechanisms all shrinking the
+   same content, and they interacted badly. Media queries add no specificity, so
+   `.board.tight .tk-name` (0,2,0) beat this block's `.tk-name` (0,1,0) — on a
+   5x5 phone, the block that says "mobile" was not the one in effect.
+
+   The floor rule replaces all four: decide ONCE what a 70px tile shows, and
+   give what it cannot show a home elsewhere. Nothing below 10px survives except
+   glyph-only pips at 9px, so there is nothing left to shrink and no cascade to
+   get wrong. The auto letter is the last shrinking rule still standing, and it
+   goes when the HUD strip absorbs it. */
 
 /* ── Powerful-creature entrance (legendary+) ──────────────────────────────
    Mirrors .castflash's timing exactly (2s, same scrim/burst/card curves) so a
