@@ -54,6 +54,7 @@ export function Shop(props: { save: StorySave; onSave: (next: StorySave) => void
   const owned = useMemo(() => new Set(save.collection), [save.collection]);
   const shards = save.hero?.shards ?? 0;
   const totalEssence = Object.values(essence).reduce((a, b) => a + b, 0);
+  const purseCount = Object.values(essence).filter((n) => n > 0).length;
   const affordablePacks = Math.floor(shards / PACK_COST);
 
   /** Everything missing, dearest first — the card you most want is the one you
@@ -82,11 +83,28 @@ export function Shop(props: { save: StorySave; onSave: (next: StorySave) => void
     <div className="shop">
       <div className="shop-top">
         <h2>Shop</h2>
-        <span className="shop-bal">
-          {tab === "packs"
-            ? <><b>{shards}</b><i className="shard" /></>
-            : <><b>{totalEssence}</b> essence held</>}
-        </span>
+        {/* The balance is the currency's own colour, never gold. Gold is the
+            in-battle summoning resource and nothing here spends it, so a gold
+            number on this line taught the wrong thing twice over.
+
+            Essence also is not ONE number: it does not cross elements, and
+            LEAF essence buys nothing PYRO. A single total implied a pooled
+            wallet the crafter will refuse to spend from — so with a purse
+            selected the line reads that purse, and with none it says plainly
+            that the total is spread across elements. */}
+        {tab === "packs" ? (
+          <span className="shop-bal shards"><b>{shards}</b><i className="shard" /></span>
+        ) : el === "ALL" ? (
+          <span className="shop-bal">
+            <b className="ess-total">{totalEssence}</b>
+            <i className="ess" aria-hidden="true" /> across {purseCount} element{purseCount === 1 ? "" : "s"}
+          </span>
+        ) : (
+          <span className="shop-bal">
+            <b style={{ color: EL_COLOR[el as keyof typeof EL_COLOR] }}>{essence[el] ?? 0}</b>
+            <i className="ess" data-el={el} aria-hidden="true" /> {el} essence
+          </span>
+        )}
       </div>
 
       <div className="shop-tabs">

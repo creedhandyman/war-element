@@ -3374,9 +3374,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .bnav-lbl { line-height: 1; }
 /* Unspent essence — the Shop is the only place to spend it and the Story is the
    only place to earn it, so nothing else in the UI joins those two up. */
+/* This dot means "you have unspent ESSENCE", so it is essence-coloured. In
+   gold it announced a currency the shop does not take. */
 .bnav-dot {
   position: absolute; top: -2px; right: -4px; width: 7px; height: 7px; border-radius: 50%;
-  background: var(--gold-hi); box-shadow: 0 0 0 1.5px var(--panel), 0 0 7px var(--gold-lit);
+  background: conic-gradient(from 210deg,
+    #4caf6d, #4d94e8, #9575ff, #e06060, #ffd54f, #4caf6d);
+  box-shadow: 0 0 0 1.5px var(--panel), 0 0 7px rgba(190, 150, 255, .75);
 }
 .bnav-btn.on .bnav-dot { box-shadow: 0 0 0 1.5px #b8903a; }
 /* Overlays must not hide behind the bar. */
@@ -3404,7 +3408,31 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .shop-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .shop-top h2 { font-family: var(--head); font-size: var(--fs-6); margin: 0; }
 .shop-bal { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-3); color: var(--ink-dim); }
-.shop-bal b { font-size: var(--fs-5); color: var(--gold-hi); font-variant-numeric: tabular-nums; }
+/* NOT gold. Gold is the in-battle summoning resource and nothing in the shop
+   spends it; a gold balance here read as "your gold" on both tabs. Each
+   currency wears its own colour, and its own SHAPE — a glance separates them
+   before the number is read. */
+.shop-bal b { font-size: var(--fs-5); color: var(--ink); font-variant-numeric: tabular-nums; }
+.shop-bal.shards b { color: #bfe6ff; }
+/* Essence is prismatic because it is literally per-element: eight purses, not
+   one wallet. The gradient says "elemental" where any single hue would either
+   claim an element it isn't or read as gold again. */
+.ess {
+  width: 9px; height: 9px; flex: none; display: inline-block;
+  background: conic-gradient(from 210deg,
+    #4caf6d, #4d94e8, #9575ff, #7b4fb0, #e06060, #ffa040, #ffd54f, #4caf6d);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  filter: drop-shadow(0 0 4px rgba(190, 150, 255, 0.5));
+}
+/* Filtered to one purse, the mark drops the rainbow and takes that element. */
+.ess[data-el] { background: var(--el-rim); filter: drop-shadow(0 0 4px var(--el-rim)); }
+/* `.shop-bal b` for the specificity, not tidiness: a bare `.ess-total` is one
+   class against a class-plus-element and loses, so `color: transparent` never
+   applied and the gradient sat invisible behind solid ink. */
+.shop-bal b.ess-total {
+  background: linear-gradient(92deg, #7fd8a0, #8fc4ff, #c3a8ff, #ffd54f);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
 .shop-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
 .shop-tab {
   flex: 1; padding: 8px 10px; border-radius: var(--r-chip); cursor: pointer;
@@ -3514,7 +3542,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: var(--void-2); border: 1px solid var(--el, var(--panel-line)); color: var(--ink);
 }
 .shop-purse b { font-size: 15px; font-variant-numeric: tabular-nums; color: var(--el, var(--ink)); }
-.shop-purse span { font-family: var(--head); font-size: 8.5px; letter-spacing: 0.08em; color: var(--ink-faint); }
+/* 10px, not 8.5: an element's NAME is text and text has a floor. It fits at
+   10 because the letter-spacing came down to pay for it. */
+.shop-purse span { font-family: var(--head); font-size: 10px; letter-spacing: 0.02em; color: var(--ink-faint); }
 .shop-purse.empty { opacity: 0.42; }
 .shop-purse.on { box-shadow: 0 0 0 1px var(--el) inset; opacity: 1; }
 .shop-clear {
