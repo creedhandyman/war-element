@@ -53,6 +53,100 @@
   --tile-opp: #ff8578;
   --tile-mid: #c9d2e8;
   --tile-your: #6fb0ff;
+
+  /* ══ mobile redesign · design tokens ═══════════════════════════════════════
+     Landing 1 of 7. Nothing consumes these yet — they are declared first, on
+     purpose, so the landings that follow are each a small diff against a scale
+     that already exists rather than a scale invented mid-refactor.
+
+     They live INSIDE this :root rather than in a second block pasted above it.
+     A second :root would work for new names and silently lose for old ones —
+     the later declaration wins, so --board-tilt and friends would keep their
+     current values while appearing to have been retuned. One name, one
+     declaration site, in the block that already owns the concept.
+
+     Board geometry (--board-frame, --grid-gap, --board-tilt) is deliberately
+     NOT here. Those three already exist above with different UNITS (3%, 1.6%,
+     14deg vs the design's 4px, 3px, 0deg); converting them is a layout change,
+     which is landing 5, not a token declaration. */
+
+  /* ── type scale ─── eight sizes replacing twelve-plus. The floor is 10px for
+     anything read as TEXT; glyph-only marks (status pips, the lock) may sit at
+     9px because they are read as shapes. Anything that will not fit at 10px is
+     dropped and rehoused, never shrunk to 8.5. */
+  --fs-1: 10px;  --fs-2: 11px;  --fs-3: 12px;  --fs-4: 14px;
+  --fs-5: 16px;  --fs-6: 20px;  --fs-7: 26px;  --fs-8: 34px;
+  /* Display type stays Cinzel and stops at fs-6. Below that it is the reason
+     board names had to truncate to "Rep…": Cinzel's caps are wide and its
+     lowercase is small, so an 11px tile numeral loses to Inter Tight at the
+     same size. Alegreya Sans stays in the stack as the fallback the app
+     shipped with, so a failed webfont degrades to the old look, not to Arial. */
+  --font-display: "Cinzel", serif;
+  --font-ui: "Inter Tight", "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+
+  /* ── spacing ────── nine steps replacing per-component pixels (density 0.70x) */
+  --sp-1: 2px;  --sp-2: 4px;  --sp-3: 6px;  --sp-4: 8px;  --sp-5: 12px;
+  --sp-6: 16px; --sp-7: 24px; --sp-8: 32px; --sp-9: 48px;
+
+  /* ── radius ─────── */
+  --r-pip: 3px; --r-chip: 6px; --r-panel: 8px; --r-sheet: 14px; --r-pill: 999px;
+
+  /* ── elevation ──── edge + ambient, never stacked */
+  --elev-1: 0 1px 0 rgba(255, 233, 176, 0.06), 0 2px 6px rgba(0, 0, 0, 0.45);
+  --elev-2: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 10px 30px rgba(0, 0, 0, 0.5);
+  --elev-3: 0 20px 50px rgba(0, 0, 0, 0.55);
+
+  /* ── z-layers ─────────────────────────────────────────────────────────────
+     Every z-index that stacks against ANOTHER COMPONENT comes from this list.
+     Two bands, because this app genuinely has two.
+
+     The design this came from proposed one eight-rung scale for everything.
+     Auditing the 74 existing declarations first is what stopped that landing
+     from shipping a regression: 50 of the 74 stack only against their own
+     siblings inside a parent that is already a stacking context — `.board`
+     (z-1) contains the whole 0–11 ladder of slots, walls, fields, tokens and
+     damage floats, and that ladder's ORDER is load-bearing (field 3 under wall
+     4 under attacking token 6 under lunge 7 under damage numbers 9–11). Giving
+     those "board 10 / token-fx 20 / board-overlay 30" would have flattened and
+     inverted them — an attacking card and its damage numbers currently draw
+     over the wall brackets, and would have stopped. They keep raw numbers, and
+     they are safe as raw numbers precisely because they can never escape
+     `.board`. A raw z-index inside a stacking context is a local sort order,
+     not a global claim.
+
+     BAND 1 — in-match chrome. A tuned ladder, kept at its existing values so
+     this landing changes nothing on screen. Named, not renumbered: naming is
+     what the rule "never a raw z-index" is actually for. Everything here is
+     below --z-hud by construction, so no member of this band can ever reach a
+     full-screen surface. */
+  --z-queue: 25;    /* portrait Speed Queue strip — under the hand, by design */
+  --z-hand: 40;     /* the hand fan, and the edge tabs that open the drawers */
+  --z-frame: 50;    /* the gold filigree screen border */
+  --z-drawer: 60;   /* log rail, spell row, spellbook popover, music toggle   */
+  --z-sheet: 62;    /* the portrait spells bottom sheet, over its own drawer  */
+
+  /* BAND 2 — full-screen surfaces, where the bugs actually happen. Wide gaps,
+     and the order below is the whole point:
+
+         overlay  <  nav  <  toast  <  modal
+
+     A navigable screen can never cover the bar you navigate with, and a modal
+     can never open beneath its own launcher. That inversion has now been
+     shipped three times in this file — the nav at 60 (under every overlay),
+     then 66 (under the story map), then 71 hand-picked to squeeze between 70
+     and 72. Each time the numbers were adjacent enough that picking a new one
+     looked reasonable. With 200 between rungs there is nothing to squeeze. */
+  --z-hud: 100;     /* in-match controls that must beat the board: summon bar */
+  --z-overlay: 300; /* navigable full-screen surfaces: menus, Shop, story map */
+  --z-nav: 350;     /* the bottom nav. ABOVE every navigable surface.         */
+  --z-toast: 400;   /* transient, non-interactive: cast flash, summon announce */
+  --z-modal: 500;   /* traps input: card view, win screen, spell choice        */
+
+  /* ── element identity ─── declared here so anything carrying an element can
+     consume it, not only .token. Gold is the fallback. Both current call sites
+     set it inline, so this changes nothing today; landing 3 adds the [data-el]
+     block that lets a hand card or a deck row opt in with one attribute. */
+  --el-rim: var(--gold);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; }
@@ -76,7 +170,7 @@ body {
 /* Gold filigree frame around the whole screen. */
 body::before {
   content: ""; position: fixed; inset: 8px; border: 1px solid var(--gold-line);
-  border-radius: 10px; pointer-events: none; z-index: 50;
+  border-radius: 10px; pointer-events: none; z-index: var(--z-frame);
   box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.6);
 }
 button { font-family: inherit; }
@@ -96,7 +190,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .wrap.log-collapsed { --col-log: 34px; }
 /* Floating music mute toggle — small, out of the way, always reachable. */
 .music-toggle {
-  position: fixed; top: 6px; left: 6px; z-index: 60;
+  position: fixed; top: 6px; left: 6px; z-index: var(--z-drawer);
   width: 30px; height: 30px; padding: 0; border-radius: 8px; cursor: pointer;
   background: rgba(10, 12, 22, 0.7); border: 1px solid rgba(120, 150, 220, 0.35);
   font-size: 15px; line-height: 1; display: grid; place-items: center;
@@ -111,7 +205,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      fell off the bottom of the screen (measured 21px past a 1080p viewport).
      Lifted clear of the edge; the dip itself is also clamped in Hand.tsx. */
   position: absolute; left: 50%; bottom: 46px; transform: translateX(-50%);
-  z-index: 40; width: min(820px, 62%); max-width: 96vw; display: flex; justify-content: center;
+  z-index: var(--z-hand); width: min(820px, 62%); max-width: 96vw; display: flex; justify-content: center;
   pointer-events: none; transition: bottom 0.28s ease;
 }
 .hand-float .hand { pointer-events: auto; }
@@ -403,7 +497,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* The home slot a summon is staged into — a bright green "place here" ring. */
 .slot.staged { border-color: var(--legal); box-shadow: 0 0 0 2px var(--legal), 0 0 22px rgba(78, 203, 143, 0.5), inset 0 0 18px var(--legal-soft); z-index: 3; }
 /* Staged-summon confirm bar — floats over the board's lower edge until Confirm/Cancel. */
-.summon-confirm { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); z-index: 70; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 12px; background: linear-gradient(180deg, rgba(24, 20, 15, 0.98), rgba(15, 13, 10, 0.98)); border: 1px solid var(--threat); box-shadow: 0 10px 32px rgba(0, 0, 0, 0.65), 0 0 22px var(--threat-soft); }
+.summon-confirm { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); z-index: var(--z-hud); display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 12px; background: linear-gradient(180deg, rgba(24, 20, 15, 0.98), rgba(15, 13, 10, 0.98)); border: 1px solid var(--threat); box-shadow: 0 10px 32px rgba(0, 0, 0, 0.65), 0 0 22px var(--threat-soft); }
 .sc-text { font-size: 13px; color: var(--ink); }
 .sc-red { color: var(--threat); font-weight: 800; }
 .summon-confirm .lockin { padding: 8px 16px; font-size: 12px; margin: 0; }
@@ -801,6 +895,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .hcard.carded { overflow: visible; }
 .hcard.carded::after { border-radius: 9px; }
 .hcard .card-art { border-radius: 9px; }
+/* The hand's own z-values (this 50, .hand-note's 55, and Hand.tsx's inline
+   `zIndex: 30 - i` fan order) stay RAW on purpose. On desktop they are local:
+   .hand-float is positioned with --z-hand, so they only sort cards against each
+   other. In PORTRAIT .hand-float goes `position: static` (see the mobile block)
+   which destroys that stacking context and lets all three leak into the root
+   context at 30/50/55 — which is exactly why .panel-spells sits at --z-drawer
+   (60) and the spells sheet at --z-sheet (62): they have to out-rank a hovered
+   card. Naming these would imply they are global claims; they are a fan order
+   that leaks. If the leak is ever closed (give the portrait .hand-float
+   `position: relative`), --z-drawer/--z-sheet can come back down. */
 .hcard:hover { transform: translateY(-32px) scale(1.14); z-index: 50 !important; box-shadow: 0 24px 46px rgba(0, 0, 0, 0.7), 0 0 26px color-mix(in srgb, var(--el, #000) 55%, transparent); }
 .hcard.summonable { border-color: var(--legal); animation: cardglow 1.8s ease-in-out infinite; cursor: grab; }
 .hcard.summonable:active { cursor: grabbing; }
@@ -977,7 +1081,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    past the top of the screen. */
 .spellbook-pop {
   position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-  z-index: 60; max-height: 58vh; overflow-y: auto; overscroll-behavior: contain;
+  z-index: var(--z-drawer); max-height: 58vh; overflow-y: auto; overscroll-behavior: contain;
   background: linear-gradient(180deg, rgba(30,26,20,0.97), rgba(20,17,13,0.97));
   border: 1px solid var(--gold-line); border-radius: 12px; padding: 10px;
   box-shadow: 0 10px 34px rgba(0,0,0,0.6), inset 0 0 40px rgba(201,162,75,0.05);
@@ -1089,11 +1193,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* z-index 65 keeps modals above the in-match chrome — the collapsed log rail is
    z:60 and, on a phone, spans most of the screen width, so at z:40 it sat ON TOP
    of the deck builder / card inspector and ate their clicks. */
-.overlay { position: fixed; inset: 0; background: rgba(6, 8, 14, 0.82); display: grid; place-items: center; z-index: 65; }
+.overlay { position: fixed; inset: 0; background: rgba(6, 8, 14, 0.82); display: grid; place-items: center; z-index: var(--z-overlay); }
 /* In-game modals (card preview, game-over) must sit above ALL in-game UI — the
    hand/deck reach z-index ~62 and were covering them. Higher than the base
    .overlay (which the menu shares and must stay under the deck-builder). */
-.overlay.on-top { z-index: 100; }
+.overlay.on-top { z-index: var(--z-modal); }
 .modal { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 16px; padding: 26px; max-width: 640px; max-height: 92dvh; overflow-y: auto; text-align: center; }
 .modal h1 { font-size: 22px; margin-bottom: 6px; }
 .modal p { color: var(--ink-dim); font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
@@ -1407,7 +1511,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 /* ── Spell cast flash — full-screen art for ~2s, then the effect resolves ── */
 .castflash {
-  position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; pointer-events: auto;
+  position: fixed; inset: 0; z-index: var(--z-toast); display: grid; place-items: center; pointer-events: auto;
   background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--el, #26307a) 28%, rgba(4,4,8,0.82)), rgba(4,4,8,0.93));
   animation: castflash-scrim 2s ease-out both;
 }
@@ -1462,7 +1566,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 
 /* ── Modal "choice" spell picker (Chill: strike a foe vs shield an ally) ── */
-.spellchoice-overlay { z-index: 72; }
+.spellchoice-overlay { z-index: var(--z-modal); }
 .spellchoice {
   width: min(88vw, 340px); padding: 18px 16px 12px; border-radius: 16px; text-align: center;
   border: 1.5px solid var(--el, var(--gold-line));
@@ -1493,6 +1597,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .spellchoice-cancel:hover { color: var(--ink); background: rgba(255,255,255,0.05); }
 
 /* ── Expanded card detail (sub-overlay) ──────────────────────────────── */
+/* Deliberately a raw 50, and deliberately LOWER than the .overlay (--z-overlay,
+   300) it appears on top of. It is not a sibling of that overlay — CardExpand
+   renders INSIDE DeckBuilder's, which is a stacking context, so 50 is a sort
+   order among its children and never competes with the 300. Promoting it to a
+   named layer would be the mistake: it would leave the parent's context in
+   spirit only, and read as if it outranked things it cannot reach. Left raw
+   because it is local, and commented because it looks wrong and is not. */
 .dbd-overlay { z-index: 50; }
 .dbd-modal { max-width: min(460px, 92vw); width: 460px; text-align: left; padding: 22px; position: relative; max-height: 88vh; overflow-y: auto; }
 .dbd-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 12px; }
@@ -1690,7 +1801,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      and a solid backing bar keeps the row readable instead of card art peeking
      through the gaps. */
   .panel-spells {
-    display: block; width: 100%; position: relative; z-index: 60;
+    display: block; width: 100%; position: relative; z-index: var(--z-drawer);
     background: linear-gradient(180deg, rgba(20, 17, 13, 0.94), rgba(14, 12, 9, 0.96));
     border: 1px solid var(--gold-line); border-radius: 10px; padding: 3px 8px;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.55);
@@ -1706,7 +1817,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   /* Battle Log → off-canvas left drawer (LOG edge tab). Absolute to .wrap so it
      tracks the layout viewport, not the (pane-quirky) visual one. */
   .rail:not(.queue-rail) {
-    position: absolute; top: 0; left: 0; bottom: 0; z-index: 60; width: min(82vw, 320px);
+    position: absolute; top: 0; left: 0; bottom: 0; z-index: var(--z-drawer); width: min(82vw, 320px);
     border-radius: 0 14px 14px 0; transform: translateX(-103%);
     transition: transform 0.26s ease; box-shadow: 8px 0 40px rgba(0,0,0,0.7);
   }
@@ -1725,7 +1836,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
        bar's own padding-bottom already carries env(safe-area-inset-bottom), so
        adding it again would lift the rail by the inset twice. */
     bottom: calc(var(--bar-h, 78px) + 8px);
-    z-index: 25; grid-column: auto; grid-row: auto; gap: 0;
+    z-index: var(--z-queue); grid-column: auto; grid-row: auto; gap: 0;
   }
   .rightcol .spelltray { display: none; }  /* spells move to the Spells sheet */
   .rightcol .rail.queue-rail { flex: 1; padding: 5px 2px; }
@@ -1739,7 +1850,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   /* Edge tabs */
   .edge-tab {
     display: flex; align-items: center; justify-content: center; position: absolute; top: 40%;
-    z-index: 40; width: 22px; height: 88px; padding: 0; cursor: pointer;
+    z-index: var(--z-hand); width: 22px; height: 88px; padding: 0; cursor: pointer;
     background: linear-gradient(180deg, rgba(30,26,20,0.96), rgba(20,17,13,0.96));
     border: 1px solid var(--gold-line); color: var(--gold-lit);
     font-family: var(--head); font-weight: 800; font-size: 9px; letter-spacing: 0.12em;
@@ -1749,7 +1860,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .edge-tab.right { right: 0; border-radius: 10px 0 0 10px; border-right: none; top: 62%; }
 
   /* Spells bottom sheet */
-  .mobile-sheet { display: flex; position: absolute; inset: 0; z-index: 62; background: rgba(6,8,14,0.55); align-items: flex-end; }
+  .mobile-sheet { display: flex; position: absolute; inset: 0; z-index: var(--z-sheet); background: rgba(6,8,14,0.55); align-items: flex-end; }
   .mobile-sheet-card {
     width: 100%; max-height: 62vh; overflow-y: auto; border-radius: 16px 16px 0 0;
     background: linear-gradient(180deg, rgba(28,24,18,0.99), rgba(16,13,10,0.99));
@@ -1990,7 +2101,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    is --rar, the rarity colour, which rings the card and tints the label — a
    MYTHIC should not read the same as a LEGEND. */
 .announce {
-  position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; pointer-events: auto;
+  position: fixed; inset: 0; z-index: var(--z-toast); display: grid; place-items: center; pointer-events: auto;
   background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--el, #26307a) 30%, rgba(4,4,8,0.84)), rgba(4,4,8,0.94));
   animation: castflash-scrim 2s ease-out both;
 }
@@ -2067,7 +2178,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    The map screen. Node state is encoded in FORM as well as colour — a lock
    glyph, a tick, a remaining-cards count — so "what can I do next" survives
    both colourblindness and a glance. */
-.story-wrap { position: fixed; inset: 0; z-index: 70; background: var(--void); display: flex; flex-direction: column; }
+.story-wrap { position: fixed; inset: 0; z-index: var(--z-overlay); background: var(--void); display: flex; flex-direction: column; }
 .story-head {
   display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
   padding: 14px 20px; border-bottom: 1px solid var(--panel-line); background: var(--panel);
@@ -2625,7 +2736,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      60 (under every overlay), then at 66 (under the story map and collection).
      Both times presence was verified and REACHABILITY was not — the check that
      catches it is elementFromPoint at each tab centre, not a synthetic click. */
-  border-radius: 999px; z-index: 71;
+  border-radius: 999px; z-index: var(--z-nav);
   background: color-mix(in srgb, var(--panel) 82%, transparent);
   border: 1px solid var(--gold-line);
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
