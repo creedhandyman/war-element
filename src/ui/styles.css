@@ -2275,7 +2275,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .panel-spells { display: none; } /* portrait-only: spells live in the right rail on desktop */
 .panel-crystals { display: none; } /* portrait-only: desktop keeps the top .resource */
 
-@media (max-width: 760px) and (min-height: 541px) {
+/* THE STACKED TIER — every tall screen the desktop grid does not fit on.
+ *
+ * The bound was `max-width: 760px`, which assumed "not a phone" meant "wide
+ * enough for the three-column grid". It does not: that grid measures
+ * 194 + 720 + 224 + gaps = 1178px, so a portrait screen 853px wide got a
+ * 1168px layout inside it — the round chip clipped off the left, PRIORITY
+ * running off the right, and the action bar cut off the bottom. Anything from
+ * 761px to 1179px was in that dead band, phones and small windows alike.
+ *
+ * The bound is the grid's own requirement now. Below it, stack; the stacked
+ * layout is a column and works at any width. `min-height: 541px` still hands
+ * short landscape screens to their own tier below. */
+@media (max-width: 1179px) and (min-height: 541px) {
   /* Max the battlefield: it fills the full width between the side rails (log /
      speed queue) and grows down to the top of the hand. The height term is the
      binding one on a normal phone — it's tuned to the compacted panel below so
@@ -2320,12 +2332,36 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
        The design budgets 293 including 81px of iPhone safe areas, which this
        matches once env() is non-zero on a real device. */
-    --hud-budget: 246px;
+    /* 356, not 246. The old figure was measured when the height term never
+       bound — on a 390x844 phone the board is limited by WIDTH, so the budget
+       could be wrong by 100px and nothing would show it. This tier now covers
+       screens tall enough for height to win, and there it clipped the action
+       bar 108px off the bottom of a 1024x1366 iPad.
+       Measured from the built layout, not from the design: ribbon 35 + log
+       strip 24 + speed strip 26 + bar 88 + hand 90 = 263, plus 10px of column
+       gaps and 4px of padding = 277, plus the 79px `.board-area` spends on its
+       own frame and the two HOME labels = 356.
+       RE-MEASURE IT whenever a row is added to or removed from the column —
+       that drift is exactly what made 246 wrong. Sum the in-flow children of
+       `.wrap` (skip position:absolute/fixed) minus `.board-area`, add the gaps
+       and padding, then add `.board-area`'s height minus `.board`'s.
+       On a real device `env(safe-area-inset-bottom)` makes the bar taller than
+       this, which only shrinks the board — the safe direction to be wrong. */
+    --hud-budget: 356px;
     --board-frame: 4px;
     --grid-gap: 3px;
-    /* 46 -> 12: the 44px right gutter went with the Speed Queue column. */
-    --board-size: calc(100vw - 12px);
-    --board-h: min(calc(var(--board-size) * 87 / 70), calc(100dvh - var(--hud-budget)));
+    /* 46 -> 12: the 44px right gutter went with the Speed Queue column.
+     *
+     * BOTH dimensions pick the same winner. This used to be a full-width
+     * `--board-size` with the height taking `min(width-derived, height-
+     * derived)` — so the moment the height term bound, the board kept its
+     * full width and lost height, and the square grid came out squashed. It
+     * never showed at 390x844 because the width always won there; it would
+     * have on every screen this tier now covers. Take the smaller of the two
+     * as the WIDTH and derive the height from it, and the board is always the
+     * right shape and as big as it can be. */
+    --board-size: min(calc(100vw - 12px), calc((100dvh - var(--hud-budget)) * 70 / 87));
+    --board-h: calc(var(--board-size) * 87 / 70);
   }
 
   .wrap {
@@ -2736,6 +2772,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     padding: 2px 4px 0; pointer-events: auto;
   }
   .hand-float.up { bottom: auto; } /* flow: same position on/off your turn */
+  /* Sink the hand and the bar to the bottom of a tall screen. On a 390x844
+     phone the column fills exactly and this does nothing, but this tier now
+     covers screens up to 1179 wide and 1848 tall, where the board tops out on
+     WIDTH and leaves 450px of slack. Left top-packed, the action bar floated
+     in the middle with dead space under it — the two things you reach for
+     belong under the thumb. The margin is on the hand rather than the bar so
+     the pair travels together instead of separating. */
+  .hand-float { margin-top: auto; }
   /* HEIGHT, not max-height, and never removed. This row is in the flow column,
      so anything that changes its size moves the board, the speed strip and the
      log above it. Two things used to: it unmounted between every activation in
