@@ -16,6 +16,7 @@ import {
   effectiveSpecialCost,
   enemyOf,
   FLOW_MODES,
+  CARDS,
   getDef,
   getSpell,
   spellPickKind,
@@ -60,10 +61,12 @@ import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
 import { StoryResult } from "./StoryResult";
 import { StoryPrep } from "./StoryPrep";
+import { BottomNav, type Tab } from "./BottomNav";
+import { Shop } from "./Shop";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, deckCapFor,
   STANDARD_CAP, BIG_BOARD_CAP,
-  loadStory, isFirstBattle, heroBookFor, poolForRegion, recruitablePool, squadCapInRegion,
+  loadStory, isFirstBattle, heroBookFor, heroSpellShelf, poolForRegion, recruitablePool, squadCapInRegion,
   regionOfNode, rollRecruits, saveStory, type StoryNode, type StorySave,
 } from "../data/story";
 
@@ -170,6 +173,10 @@ export function App() {
   // nothing should be recruited from it.
   const [story, setStory] = useState<StorySave>(() => loadStory());
   const [storyOpen, setStoryOpen] = useState(false);
+  /** Which of the four out-of-match destinations is showing. Story keeps its own
+   *  `storyOpen` flag because the map owns the whole screen when it is up; the
+   *  tab just drives it. */
+  const [tab, setTab] = useState<Tab>("home");
   // The collection sits ON TOP of the map rather than replacing it, so
   // "Show" on a card can hand a node back to the map underneath.
   const [collectionOpen, setCollectionOpen] = useState(false);
@@ -2010,7 +2017,7 @@ export function App() {
         />
       )}
 
-      {!started && (
+      {!started && !storyOpen && tab === "arena" && (
         <div className="overlay">
           <div className="modal picker">
             {/* Left: the menu options, stacked vertically. */}
@@ -2314,6 +2321,62 @@ export function App() {
         }}
       />
       {rulesOpen && <RulesBook onClose={() => setRulesOpen(false)} />}
+
+      {/* ── the four destinations ─────────────────────────────────────────── */}
+      {!started && !storyOpen && tab === "home" && (
+        <div className="overlay">
+          <div className="modal picker home">
+            <picture>
+              <source srcSet="/title.webp" type="image/webp" />
+              <img className="title-logo" src="/title.jpg" alt="War Element" />
+            </picture>
+            <div className="home-hero">
+              <b>{story.hero?.name ?? "Keeper"}</b>
+              <span>
+                {story.collection.length}/{CARDS.length} cards ·{" "}
+                {story.cleared.length} nodes cleared ·{" "}
+                {heroSpellShelf(story).length} spells
+              </span>
+            </div>
+            <p>
+              Pick a fight in the <b>Arena</b>, walk the campaign in <b>Story</b>,
+              or spend what you have earned in the <b>Shop</b>.
+            </p>
+            <button className="ghost db-open" onClick={() => setRulesOpen(true)}>
+              How to play
+            </button>
+            <button className="ghost db-open" onClick={() => setBuilderOpen(true)}>
+              Build / edit custom decks
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!started && !storyOpen && tab === "shop" && (
+        <div className="overlay">
+          <div className="modal picker shop-modal">
+            <Shop save={story} onSave={(next) => { setStory(next); saveStory(next); }} />
+          </div>
+        </div>
+      )}
+
+      {/* Hidden during a match: a bottom bar over a 5x5 board eats the row the
+          player needs most, and there is nowhere to navigate to mid-fight. */}
+      {!started && (
+        <BottomNav
+          tab={storyOpen ? "story" : tab}
+          spendable={Object.values(story.hero?.essence ?? {}).reduce((a, b) => a + b, 0)}
+          onTab={(t) => {
+            setTab(t);
+            // Story owns the whole screen when it is up, so entering and leaving
+            // it is a real transition rather than just a tab swap.
+            if (t === "story") { setStoryOpen(true); return; }
+            setStoryOpen(false);
+            setCollectionOpen(false);
+            setPrepNode(null);
+          }}
+        />
+      )}
     </div>
   );
 }

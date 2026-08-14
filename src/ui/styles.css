@@ -2605,3 +2605,107 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .fieldhaze.terrain::before { animation: none; opacity: 0.57; }
 }
 .fieldhaze.terrain .fieldmark { bottom: auto; top: 50%; transform: translate(-50%, -50%); }
+
+/* ── bottom navigation ─────────────────────────────────────────────────────
+   Four destinations, floating clear of the bottom edge rather than welded to
+   it: phones put a home indicator there, and a bar flush to the edge puts the
+   Shop tab under it. Sits above the overlays (z 60) because it has to stay
+   reachable while a picker is open — that is the whole point of a nav. */
+.bnav {
+  position: fixed; left: 50%; bottom: max(10px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex; gap: 2px; padding: 5px;
+  border-radius: 999px; z-index: 60;
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  border: 1px solid var(--gold-line);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.bnav-btn {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 62px; padding: 7px 10px 6px; border-radius: 999px; cursor: pointer;
+  background: transparent; border: 0; color: var(--ink-faint);
+  font-family: var(--head); font-size: 9.5px; letter-spacing: 0.09em;
+  text-transform: uppercase; font-weight: 800;
+  transition: color 140ms ease, background 140ms ease;
+}
+.bnav-btn:hover { color: var(--ink); }
+.bnav-btn.on {
+  color: #241a06;
+  background: linear-gradient(180deg, var(--gold-lit), #b8903a);
+  box-shadow: 0 0 16px rgba(232, 200, 119, 0.4);
+}
+.bnav-ico { position: relative; display: flex; }
+.bnav-lbl { line-height: 1; }
+/* Unspent essence — the Shop is the only place to spend it and the Story is the
+   only place to earn it, so nothing else in the UI joins those two up. */
+.bnav-dot {
+  position: absolute; top: -2px; right: -4px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--gold-hi); box-shadow: 0 0 0 1.5px var(--panel), 0 0 7px var(--gold-lit);
+}
+.bnav-btn.on .bnav-dot { box-shadow: 0 0 0 1.5px #b8903a; }
+/* Overlays must not hide behind the bar. */
+.picker { padding-bottom: 74px; }
+
+/* ── home ─────────────────────────────────────────────────────────────────── */
+.home-hero {
+  display: flex; flex-direction: column; gap: 3px; align-items: center;
+  margin: 4px 0 10px; padding: 10px 14px; border-radius: 10px;
+  background: var(--void-2); border: 1px solid var(--gold-line);
+}
+.home-hero b { font-family: var(--head); font-size: 17px; color: var(--gold-hi); letter-spacing: 0.04em; }
+.home-hero span { font-size: 11.5px; color: var(--ink-dim); }
+
+/* ── shop ─────────────────────────────────────────────────────────────────── */
+.shop-modal { max-width: 640px; text-align: left; }
+.shop-head h2 { font-family: var(--head); font-size: 19px; margin: 0 0 2px; }
+.shop-head p { font-size: 12px; color: var(--ink-dim); margin: 0 0 12px; line-height: 1.45; }
+.shop-wallet { display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: 5px; }
+.shop-purse {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 6px 4px; border-radius: 8px; cursor: pointer;
+  background: var(--void-2); border: 1px solid var(--el, var(--panel-line)); color: var(--ink);
+}
+.shop-purse b { font-size: 15px; font-variant-numeric: tabular-nums; color: var(--el, var(--ink)); }
+.shop-purse span { font-family: var(--head); font-size: 8.5px; letter-spacing: 0.08em; color: var(--ink-faint); }
+.shop-purse.empty { opacity: 0.42; }
+.shop-purse.on { box-shadow: 0 0 0 1px var(--el) inset; opacity: 1; }
+.shop-clear {
+  margin-left: 8px; padding: 0 6px; border-radius: 5px; cursor: pointer;
+  background: transparent; border: 1px solid var(--panel-line); color: var(--ink-faint);
+  font-size: 10px; text-transform: none; letter-spacing: 0;
+}
+.shop-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 7px; max-height: min(48vh, 400px); overflow-y: auto; align-content: start;
+  grid-auto-rows: max-content;
+}
+.shop-card {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 0 0 5px; border-radius: 8px; overflow: hidden;
+  background: var(--void-2); border: 1px solid var(--panel-line);
+}
+.shop-card.r-mythic { border-color: #d08bff; }
+.shop-card.r-legendary { border-color: var(--gold-line); }
+.shop-card.r-epic { border-color: #6aa6ff; }
+.shop-art { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
+.shop-art img { width: 100%; height: 62px; object-fit: cover; object-position: 50% 20%; display: block; }
+.shop-name { font-size: 11px; font-weight: 800; padding: 2px 4px 0; text-align: center; }
+.shop-meta { font-size: 9px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+.shop-meta i { font-style: normal; font-weight: 800; }
+.shop-buy {
+  display: inline-flex; align-items: center; gap: 3px; margin-top: 3px;
+  padding: 3px 9px; border-radius: 999px; cursor: pointer;
+  background: var(--void); border: 1px solid var(--panel-line); color: var(--ink-faint);
+  font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.shop-buy.can { color: var(--gold-lit); border-color: var(--gold-line); }
+.shop-buy.can:hover { background: var(--gold-line); color: var(--gold-hi); }
+.shop-buy:disabled { cursor: not-allowed; }
+.shop-buy em { font-style: normal; font-size: 9px; opacity: 0.75; }
+.shop-done { font-size: 12.5px; color: var(--ink-dim); padding: 14px 2px; }
+
+@media (max-width: 620px) {
+  .bnav-btn { min-width: 54px; padding: 6px 7px 5px; }
+  .shop-grid { max-height: 46vh; }
+}

@@ -1281,6 +1281,48 @@ export function awardEssence(save: StorySave, region: StoryRegion, node: StoryNo
   };
 }
 
+/** Essence to conjure a card you never rolled, by rarity.
+ *
+ *  Priced against what the campaign actually pays. A full clear of a region
+ *  banks roughly 29-38 essence of its element (LEAF's 18 nodes are worth 37,
+ *  DUSK's 13 are worth 29), and every element has 39 cards. So one complete
+ *  walk buys about eight Rares, or four Epics, or two Legendaries, or a single
+ *  Mythic — nowhere near a set.
+ *
+ *  That ratio is the whole design. Essence is not a second way to collect; it is
+ *  the guarantee that the ONE card the dice never gave you is still reachable,
+ *  and repeat clears keep paying it, so "eventually" is always true. A cheaper
+ *  table would let a player skip the recruitment game entirely. */
+export const CRAFT_COST: Record<string, number> = {
+  rare: 4, epic: 8, legendary: 16, mythic: 30,
+};
+
+export const craftCostOf = (defId: string): number =>
+  CRAFT_COST[getDef(defId).rarity ?? "rare"] ?? 4;
+
+/** Can this card be conjured right now? Owning it already is the usual no. */
+export function canCraft(save: StorySave, defId: string): { ok: boolean; reason?: string } {
+  if (!CARD_INDEX[defId]) return { ok: false, reason: "No such card" };
+  if (save.collection.includes(defId)) return { ok: false, reason: "Already collected" };
+  const el = getDef(defId).element;
+  const have = save.hero?.essence[el] ?? 0;
+  const cost = craftCostOf(defId);
+  if (have < cost) return { ok: false, reason: `Needs ${cost} ${el} essence — you have ${have}` };
+  return { ok: true };
+}
+
+/** Spend the essence and add the card. Refuses rather than going negative. */
+export function craftCard(save: StorySave, defId: string): StorySave {
+  if (!canCraft(save, defId).ok) return save;
+  const hero = save.hero ?? newHero();
+  const el = getDef(defId).element;
+  return {
+    ...save,
+    collection: [...save.collection, defId],
+    hero: { ...hero, essence: { ...hero.essence, [el]: (hero.essence[el] ?? 0) - craftCostOf(defId) } },
+  };
+}
+
 // ── opening battles ─────────────────────────────────────────────────────────
 
 /** How many cards an opening battle fields: ONE MORE than the player can bring.

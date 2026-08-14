@@ -14,7 +14,7 @@ import {
   capForNode, STANDARD_CAP, BIG_BOARD_CAP, preferredLoadout, type Loadout,
   formationSize, isRegionCleared, isRegionOpen,
   SQUAD_BASE, SQUAD_PER_THRONE, guaranteedDrops, isRegionConquered, squadCapFor, squadCapInRegion,
-  isOpeningNode, autoSquad, newHero, spellsUnlockedIn, heroSpellShelf, heroBookFor, ESSENCE_PER_CLEAR, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
+  isOpeningNode, autoSquad, newHero, canCraft, craftCard, craftCostOf, CRAFT_COST, spellsUnlockedIn, heroSpellShelf, heroBookFor, ESSENCE_PER_CLEAR, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
 } from "../../data/story";
@@ -249,6 +249,44 @@ describe("story: the deck cap ladder", () => {
     const save: StorySave = { ...newSave(), collection: [...p1.roster] }; // Rares already owned
     const got = rollRecruits(save, p1, 1, () => 0.99);
     expect(got.won).toEqual([pyro.opening.epic]);
+  });
+
+  it("crafting spends the right essence and hands over the card", () => {
+    const save: StorySave = {
+      ...newSave(), collection: ["leaf_sakuroot"],
+      hero: { ...newHero(), essence: { LEAF: 20 } },
+    };
+    const target = "leaf_oak"; // a LEAF rare
+    expect(canCraft(save, target).ok).toBe(true);
+    const after = craftCard(save, target);
+    expect(after.collection).toContain(target);
+    expect(after.hero!.essence.LEAF).toBe(20 - craftCostOf(target));
+  });
+
+  it("...and refuses what you cannot afford, already own, or is not a card", () => {
+    const poor: StorySave = {
+      ...newSave(), collection: ["leaf_sakuroot"], hero: { ...newHero(), essence: { LEAF: 1 } },
+    };
+    expect(canCraft(poor, "leaf_oak").ok).toBe(false);
+    expect(craftCard(poor, "leaf_oak")).toBe(poor);            // untouched, not negative
+    expect(canCraft(poor, "leaf_sakuroot").ok).toBe(false);    // already owned
+    expect(canCraft(poor, "not_a_card").ok).toBe(false);
+    expect(poor.hero!.essence.LEAF).toBe(1);
+  });
+
+  it("...and essence buys a targeted card, never a collection", () => {
+    // The ratio IS the design: one full region walk must not be a shortcut past
+    // the recruitment game. A complete clear banks ~29-38 essence and every
+    // element has 39 cards, so a walk buys a handful, not a set.
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    const fullWalk = leaf.nodes.reduce((n, node) => n + (ESSENCE_PER_CLEAR[node.kind] ?? 1), 0);
+    const leafCards = CARDS.filter((c) => c.element === "LEAF").length;
+    const cheapest = CRAFT_COST.rare;
+    expect(Math.floor(fullWalk / cheapest), "a single walk buys too much of the set")
+      .toBeLessThan(leafCards / 3);
+    expect(CRAFT_COST.mythic).toBeGreaterThan(CRAFT_COST.legendary);
+    expect(CRAFT_COST.legendary).toBeGreaterThan(CRAFT_COST.epic);
+    expect(CRAFT_COST.epic).toBeGreaterThan(CRAFT_COST.rare);
   });
 
   it("a new campaign has a hero, and the hero starts with nothing", () => {
