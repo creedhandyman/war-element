@@ -236,7 +236,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .wrap.log-collapsed { --col-log: 34px; }
 /* Floating music mute toggle — small, out of the way, always reachable. */
 .music-toggle {
-  position: fixed; top: 6px; left: 6px; z-index: var(--z-drawer);
+  /* --z-nav, with the bottom nav, because it is the same kind of thing: chrome
+     that stays reachable whatever surface is open. At --z-drawer it was covered
+     by every full-screen panel — the deck picker, the Shop, the story map, the
+     collection — and there IS a menu track playing on all of them, so muting
+     was possible only once a match had started. */
+  position: fixed; top: 6px; left: 6px; z-index: var(--z-nav);
   width: 30px; height: 30px; padding: 0; border-radius: 8px; cursor: pointer;
   background: rgba(10, 12, 22, 0.7); border: 1px solid rgba(120, 150, 220, 0.35);
   font-size: 15px; line-height: 1; display: grid; place-items: center;
@@ -3393,9 +3398,22 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .wrap.pre-match > .board-area,
 .wrap.pre-match > .rightcol,
 .wrap.pre-match > .bottom { display: none; }
-/* The collection and the story map are full-screen panels; both need room for
-   the floating nav or their last row sits under it. */
+/* EVERY surface that shows while the nav is up needs room for it, or its last
+   row sits underneath. The nav is z-350 and deliberately above these — that is
+   the whole point of the ladder — so "above" has to be paid for in layout, not
+   argued about in z-index.
+
+   The story map and collection got this when the nav shipped; the Arena deck
+   picker and the Shop did not, and the miss only showed up under a hit test:
+   "P1 · Inferno Blitz" rendered at y 791 with the nav starting at 776, so its
+   centre was untappable while its top-left corner still worked. That is the
+   worst shape a bug like this can take — it looks fine, and it works often
+   enough that you blame your thumb. */
 .wrap.pre-match .story-wrap { padding-bottom: 68px; }
+.wrap.pre-match .overlay > .modal { margin-bottom: 68px; }
+/* ...and the story header starts hard against the top-left corner, which is
+   where the mute button floats. 44px is the button plus its inset. */
+.wrap.pre-match .story-head { padding-left: 44px; }
 
 /* Foil count in the collection header — gold-blue so it reads as the same
    currency of rarity the sheen does. */
