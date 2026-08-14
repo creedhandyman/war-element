@@ -20,6 +20,12 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+// Read from DISK, not through Vite.  looks
+// tidier and is a trap: Vitest stubs CSS imports, so it hands back an EMPTY
+// STRING and every check below passes against nothing. Three of these guards
+// did exactly that, silently, until the fourth — which asserts specific values
+// exist rather than that nothing is wrong — failed and gave it away.
+// (Types for these two come from src/node-shims.d.ts.)
 const CSS = readFileSync(join(__dirname, "..", "..", "ui", "styles.css"), "utf8");
 const BACKSLASH = String.fromCharCode(92);
 
@@ -86,6 +92,17 @@ function scan(src: string): Scan {
 }
 
 const S = scan(CSS);
+
+describe("the guard is actually reading the stylesheet", () => {
+  // Every check below is an assertion that something is ABSENT, and absence is
+  // exactly what an empty string gives you. This one asserts presence, so the
+  // suite can never again pass because it read nothing.
+  it("loaded a stylesheet with real content in it", () => {
+    expect(CSS.length).toBeGreaterThan(50_000);
+    expect(CSS).toContain("--z-modal");
+    expect(S.zIndexValues.length).toBeGreaterThan(30);
+  });
+});
 
 describe("styles.css structure", () => {
   it("has no comment that closes nothing, and none left open", () => {
