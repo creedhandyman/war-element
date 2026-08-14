@@ -1216,6 +1216,7 @@ export const newHero = (): Hero => ({
   spells: [],
   essence: {},
   shards: 0,
+  shiny: [],
 });
 
 /** Essence paid for clearing a node, by what kind of node it was.
@@ -1324,6 +1325,35 @@ export function craftCard(save: StorySave, defId: string): StorySave {
   };
 }
 
+// ── shinies ─────────────────────────────────────────────────────────────────
+
+/** Chance, as a PERCENTAGE, that a card arrives shiny. Same scale as DROP_RATE
+ *  (50/30/15/5) and `pctChance`, so this is a quarter of one percent — one card
+ *  in four hundred.
+ *
+ *  Rolled per CARD ACQUIRED rather than per pack or per clear, and duplicates
+ *  roll too: a card you already own coming back shiny is the one thing that
+ *  makes a duplicate worth seeing, and it costs nothing to allow because a
+ *  shiny is cosmetic. Nothing about a shiny changes a stat, a cost or a rule. */
+export const SHINY_CHANCE = 0.25;
+
+/** Roll one acquisition. `rand` is injected so a test can pin it. */
+export const rollShiny = (rand: () => number = Math.random): boolean =>
+  rand() * 100 < SHINY_CHANCE;
+
+/** Does the player hold this card in foil? */
+export const isShiny = (save: StorySave, defId: string): boolean =>
+  (save.hero?.shiny ?? []).includes(defId);
+
+/** Bank shiny copies, ignoring ones already held. */
+export function addShiny(save: StorySave, ids: readonly string[]): StorySave {
+  if (!ids.length) return save;
+  const hero = save.hero ?? newHero();
+  const next = [...new Set([...hero.shiny, ...ids])];
+  if (next.length === hero.shiny.length) return save;
+  return { ...save, hero: { ...hero, shiny: next } };
+}
+
 // ── boosters ────────────────────────────────────────────────────────────────
 
 /** Shards paid for winning a match. Story nodes pay more than the Arena for the
@@ -1373,6 +1403,9 @@ export interface PackResult {
   fresh: string[];
   /** Element -> essence refunded for the duplicates. */
   refund: Record<string, number>;
+  /** Cards that came out of this pack in foil. Duplicates can be shiny too — it
+   *  is the only thing that makes pulling one twice worth seeing. */
+  shiny: string[];
 }
 
 /** Open a pack. Pure — `rand` is injected so a test can pin every pull.
@@ -1387,6 +1420,7 @@ export function openPack(save: StorySave, rand: () => number = Math.random): Pac
   const pulled: string[] = [];
   const fresh: string[] = [];
   const refund: Record<string, number> = {};
+  const shiny: string[] = [];
 
   for (let i = 0; i < PACK_SIZE; i++) {
     // The last slot is the guarantee: if nothing Epic-or-better has shown up
@@ -1400,6 +1434,9 @@ export function openPack(save: StorySave, rand: () => number = Math.random): Pac
     const id = pullOne(from, rand, PACK_WEIGHT);
     if (!id) break;
     pulled.push(id);
+    // Every card acquired rolls, duplicates included, and only if it is not
+    // already held in foil — a second shiny of the same card is nothing.
+    if (!(save.hero?.shiny ?? []).includes(id) && !shiny.includes(id) && rollShiny(rand)) shiny.push(id);
     // `owned` is updated as we go, so two copies in ONE pack refund the second.
     if (owned.has(id)) {
       const el = getDef(id).element;
@@ -1409,7 +1446,7 @@ export function openPack(save: StorySave, rand: () => number = Math.random): Pac
       fresh.push(id);
     }
   }
-  return { pulled, fresh, refund };
+  return { pulled, fresh, refund, shiny };
 }
 
 /** Can a pack be bought right now? */
@@ -1420,11 +1457,14 @@ export function applyPack(save: StorySave, result: PackResult): StorySave {
   const hero = save.hero ?? newHero();
   const essence = { ...hero.essence };
   for (const [el, n] of Object.entries(result.refund)) essence[el] = (essence[el] ?? 0) + n;
-  return {
-    ...save,
-    collection: [...save.collection, ...result.fresh],
-    hero: { ...hero, shards: Math.max(0, hero.shards - PACK_COST), essence },
-  };
+  return addShiny(
+    {
+      ...save,
+      collection: [...save.collection, ...result.fresh],
+      hero: { ...hero, shards: Math.max(0, hero.shards - PACK_COST), essence },
+    },
+    result.shiny,
+  );
 }
 
 /** Pay out shards for a win. */
@@ -2055,6 +2095,11 @@ export interface Hero {
    *  A separate currency is what makes a real-money top-up a price change later
    *  rather than a redesign: nothing but `shards` would need to move. */
   shards: number;
+  /** Card ids you hold a SHINY copy of. Cosmetic only — a shiny is the same
+   *  card with the same stats, and the deck builder neither knows nor cares.
+   *  Kept on the hero rather than as a parallel collection because that is what
+   *  it is: a thing that happened to you, not a different card. */
+  shiny: string[];
 }
 
 /** A saved team. `element` is the element this team is FOR — the one it expects
@@ -2171,6 +2216,9 @@ export function loadStory(): StorySave {
             typeof h.shards === "number" && Number.isFinite(h.shards) && h.shards > 0
               ? Math.floor(h.shards)
               : 0,
+          shiny: Array.isArray(h.shiny)
+            ? [...new Set(h.shiny.filter((x): x is string => typeof x === "string" && !!CARD_INDEX[x]))]
+            : [],
         };
       })(),
       decks: Object.fromEntries(
@@ -2276,6 +2324,8 @@ export interface RecruitResult {
   /** Cards that rolled and missed, with their pity now one step higher. */
   missed: string[];
   rolls: number;
+  /** Of the cards won, the ones that came in foil. */
+  shiny: string[];
 }
 
 /**
@@ -2312,18 +2362,15 @@ export function rollRecruits(
   // would otherwise hand over nothing at all.
   const openingRegion = regionOfNode(node.id);
   if (openingRegion && isOpeningNode(openingRegion, node)) {
-    return {
-      won: guaranteedDrops(openingRegion, node).filter((id) => !save.collection.includes(id)),
-      missed: [],
-      rolls,
-    };
+    const opened = guaranteedDrops(openingRegion, node).filter((id) => !save.collection.includes(id));
+    return { won: opened, missed: [], rolls, shiny: opened.filter(() => rollShiny(rand)) };
   }
-  if (!eligible.length) return { won, missed, rolls };
+  if (!eligible.length) return { won, missed, rolls, shiny: [] };
 
   // A Throne's Mythic is a guaranteed recruit on first clear: no RNG on a
   // story-critical unlock.
   if (node.kind === "throne" && !isCleared(save, node.id)) {
-    return { won: [...eligible], missed, rolls };
+    return { won: [...eligible], missed, rolls, shiny: eligible.filter(() => rollShiny(rand)) };
   }
 
   const pool = [...eligible];
@@ -2337,7 +2384,7 @@ export function rollRecruits(
       missed.push(pick);
     }
   }
-  return { won, missed, rolls };
+  return { won, missed, rolls, shiny: won.filter(() => rollShiny(rand)) };
 }
 
 /** Fold a clear + its recruits into the save. Pure — returns a new save. */
@@ -2363,5 +2410,5 @@ export function applyClear(save: StorySave, node: StoryNode, result: RecruitResu
   // immediately push shadow into it.
   const region = regionOfNode(node.id);
   const paid = region ? awardEssence(next, region, node) : next;
-  return advanceBlight(pushBackBlight(paid, node), node);
+  return advanceBlight(pushBackBlight(addShiny(paid, result.shiny), node), node);
 }

@@ -2774,3 +2774,41 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .shop-pack { flex-direction: column; align-items: stretch; }
   .shop-pack-buy { flex-direction: row; justify-content: center; gap: 8px; }
 }
+
+/* ── shinies ───────────────────────────────────────────────────────────────
+   A foil is a sheen that travels across the art, not a recolour of it: the
+   card has to stay readable, because a shiny is the SAME card and hiding its
+   artwork behind a rainbow would make the rarest thing you own the hardest to
+   identify. Applied as an ::after over the image so nothing about the layout
+   moves — a shiny and a plain copy occupy identical space. */
+.foil { position: relative; isolation: isolate; }
+.foil::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    transparent 22%, rgba(255, 255, 255, 0.20) 34%,
+    rgba(120, 230, 255, 0.34) 42%, rgba(255, 200, 255, 0.30) 50%,
+    rgba(255, 240, 160, 0.30) 58%, rgba(255, 255, 255, 0.18) 66%, transparent 78%
+  );
+  background-size: 260% 100%;
+  mix-blend-mode: screen;
+  animation: foilSweep 3.6s linear infinite;
+}
+@keyframes foilSweep {
+  0% { background-position: 130% 0; }
+  100% { background-position: -130% 0; }
+}
+/* The badge, so a shiny is identifiable when it is not moving — a sheen alone
+   is invisible in a screenshot, and to anyone with motion reduced. */
+.foil-tag {
+  position: absolute; top: 3px; right: 3px; z-index: 3; pointer-events: none;
+  padding: 0 4px; border-radius: 4px;
+  font-family: var(--head); font-size: 7.5px; letter-spacing: 0.1em; font-weight: 900;
+  color: #10202c; background: linear-gradient(120deg, #bfe6ff, #fff0a0 55%, #ffb3f0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Keep the sheen, drop the travel — the badge carries the meaning anyway. */
+  .foil::after { animation: none; background-position: 50% 0; opacity: 0.55; }
+}

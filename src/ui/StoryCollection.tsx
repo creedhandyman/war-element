@@ -16,7 +16,7 @@ import { useMemo, useState } from "react";
 import type { CardClass, Element } from "../engine";
 import { CARDS } from "../data/cards";
 import {
-  PLACED_CARDS, bestSource, deckCapFor, recruitChance, sourcesOf,
+  PLACED_CARDS, bestSource, deckCapFor, isShiny, recruitChance, sourcesOf,
   type StorySave,
 } from "../data/story";
 import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
@@ -148,16 +148,18 @@ export function StoryCollection(props: {
                 const on = inDeck.has(d.id);
                 const rar = d.rarity ? RARITY_STYLE[d.rarity] : null;
                 const src = have ? null : bestSource(save, d.id);
+                const foil = have && isShiny(save, d.id);
                 return (
                   <div
                     key={d.id}
-                    className={`deck-thumb carded db-card col-card ${have ? "" : "locked"} ${on ? "selected" : ""}`}
+                    className={`deck-thumb carded db-card col-card ${have ? "" : "locked"} ${on ? "selected" : ""} ${foil ? "foil" : ""}`}
                     role="button"
                     tabIndex={0}
-                    title={have ? d.name : `${d.name} — not yet recruited`}
+                    title={foil ? `${d.name} — foil` : have ? d.name : `${d.name} — not yet recruited`}
                     onClick={() => pick(d.id)}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(d.id); } }}
                   >
+                    {foil && <span className="foil-tag">FOIL</span>}
                     <img className="card-art" src={`/cards/${d.art ?? d.id}.webp`} alt=""
                       onError={(e) => { e.currentTarget.style.display = "none"; }} />
                     <div className="dt-top">

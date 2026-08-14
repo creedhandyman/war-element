@@ -15,7 +15,8 @@ import {
   formationSize, isRegionCleared, isRegionOpen,
   SQUAD_BASE, SQUAD_PER_THRONE, guaranteedDrops, isRegionConquered, squadCapFor, squadCapInRegion,
   isOpeningNode, autoSquad, newHero, canCraft, craftCard, craftCostOf, CRAFT_COST,
-  openPack, applyPack, canOpenPack, awardShards, dupeEssenceFor, PACK_COST, PACK_SIZE, SHARDS_PER_WIN, spellsUnlockedIn, heroSpellShelf, heroBookFor, ESSENCE_PER_CLEAR, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
+  openPack, applyPack, canOpenPack, awardShards, dupeEssenceFor, PACK_COST, PACK_SIZE, SHARDS_PER_WIN,
+  SHINY_CHANCE, rollShiny, isShiny, addShiny, spellsUnlockedIn, heroSpellShelf, heroBookFor, ESSENCE_PER_CLEAR, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   terrainContested, type StoryNode, type StorySave,
 } from "../../data/story";
@@ -252,6 +253,82 @@ describe("story: the deck cap ladder", () => {
     expect(got.won).toEqual([pyro.opening.epic]);
   });
 
+  it("a shiny is a quarter of one percent, not a quarter", () => {
+    // The single most mis-readable constant in the file: 0.25 on this codebase's
+    // scale is a PERCENTAGE, like DROP_RATE's 50/30/15/5 and pctChance's /100.
+    // A factor-of-100 slip here turns a chase item into every fourth card.
+    expect(SHINY_CHANCE).toBe(0.25);
+    let hits = 0;
+    const N = 40000;
+    let n = 12345;
+    const rand = () => ((n = (n * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+    for (let i = 0; i < N; i++) if (rollShiny(rand)) hits++;
+    const rate = (hits / N) * 100;
+    expect(rate, `measured ${rate}% over ${N} rolls`).toBeGreaterThan(0.05);
+    expect(rate, `measured ${rate}% over ${N} rolls`).toBeLessThan(0.8);
+  });
+
+  it("...and a shiny changes nothing about the card", () => {
+    // Cosmetic by construction. If this ever stops being true the deck builder,
+    // the stat budget and every balance test in the suite are all wrong.
+    const save = addShiny(newSave(), ["leaf_oak"]);
+    expect(isShiny(save, "leaf_oak")).toBe(true);
+    expect(getDef("leaf_oak")).toEqual(getDef("leaf_oak")); // no variant def
+    // Holding it in foil does not put it in your collection.
+    expect(save.collection).not.toContain("leaf_oak");
+  });
+
+  it("...and the same card is never banked shiny twice", () => {
+    let save = addShiny(newSave(), ["leaf_oak", "leaf_oak"]);
+    expect(save.hero!.shiny).toEqual(["leaf_oak"]);
+    const again = addShiny(save, ["leaf_oak"]);
+    expect(again).toBe(save); // unchanged object — no pointless re-render
+    save = addShiny(save, ["leaf_python"]);
+    expect(save.hero!.shiny.sort()).toEqual(["leaf_oak", "leaf_python"]);
+  });
+
+  it("...a pack can pull a foil, and a DUPLICATE can be the foil", () => {
+    // The one thing that makes pulling a card you already own worth seeing.
+    // Forced rather than swept: at 0.25% a sweep would need a huge run.
+    const owned: StorySave = { ...newSave(), collection: CARDS.map((c) => c.id) };
+    const alwaysShiny = () => 0;  // every roll passes
+    const r = openPack(owned, alwaysShiny);
+    expect(r.fresh).toEqual([]);                        // owns everything
+    expect(r.shiny.length).toBeGreaterThan(0);          // yet foils appeared
+    const after = applyPack(owned, r);
+    for (const id of r.shiny) expect(isShiny(after, id)).toBe(true);
+  });
+
+  it("...and a story recruit can come in foil", () => {
+    const l1 = nodeById("L1")!;
+    const start = newSave();
+    const res = rollRecruits(start, l1, 1, () => 0); // rand 0: everything passes
+    expect(res.won.length).toBeGreaterThan(0);
+    expect(res.shiny.length).toBeGreaterThan(0);
+    const after = applyClear(start, l1, res);
+    for (const id of res.shiny) expect(isShiny(after, id)).toBe(true);
+  });
+
+  it("...and foils survive a round-trip, rejecting ids that are not cards", () => {
+    const store = new Map<string, string>();
+    const g = globalThis as { localStorage?: unknown };
+    const prior = g.localStorage;
+    g.localStorage = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    };
+    try {
+      saveStory(addShiny(newSave(), ["leaf_oak"]));
+      expect(loadStory().hero!.shiny).toEqual(["leaf_oak"]);
+      store.set("we_story_v1", JSON.stringify({
+        cleared: [], collection: ["leaf_oak"], pity: {}, deck: [], blight: {},
+        hero: { ...newHero(), shiny: ["leaf_oak", "ghost_card", 7, "leaf_oak"] },
+      }));
+      expect(loadStory().hero!.shiny).toEqual(["leaf_oak"]); // deduped, junk dropped
+    } finally { g.localStorage = prior; }
+  });
+
   it("a pack is five cards with at least one Epic or better", () => {
     // The guarantee is what stops a pack ever feeling like nothing happened.
     // Swept rather than single-seeded, because it is a probabilistic claim.
@@ -422,7 +499,7 @@ describe("story: the deck cap ladder", () => {
   it("...and a hero survives a round-trip through storage", () => {
     const save: StorySave = {
       ...newSave(),
-      hero: { name: "Bernard", affinity: "LEAF", spells: ["leaf_1"], essence: { LEAF: 7 }, shards: 0 },
+      hero: { name: "Bernard", affinity: "LEAF", spells: ["leaf_1"], essence: { LEAF: 7 }, shards: 0, shiny: [] },
     };
     const store = new Map<string, string>();
     const g = globalThis as { localStorage?: unknown };
@@ -820,11 +897,11 @@ describe("story: pity", () => {
   it("applyClear banks a miss and clears it on a win", () => {
     const n = { id: "T1", name: "T", kind: "skirmish" as const, requires: [], adds: [], at: { x: 0, y: 0 }, roster: ["leaf_thorn"] };
     let s = newSave();
-    s = applyClear(s, n, { won: [], missed: ["leaf_thorn"], rolls: 1 });
+    s = applyClear(s, n, { won: [], missed: ["leaf_thorn"], rolls: 1, shiny: [] });
     expect(s.pity["T1:leaf_thorn"]).toBe(1);
-    s = applyClear(s, n, { won: [], missed: ["leaf_thorn"], rolls: 1 });
+    s = applyClear(s, n, { won: [], missed: ["leaf_thorn"], rolls: 1, shiny: [] });
     expect(s.pity["T1:leaf_thorn"]).toBe(2);
-    s = applyClear(s, n, { won: ["leaf_thorn"], missed: [], rolls: 1 });
+    s = applyClear(s, n, { won: ["leaf_thorn"], missed: [], rolls: 1, shiny: [] });
     expect(s.pity["T1:leaf_thorn"]).toBeUndefined();
     expect(s.collection).toContain("leaf_thorn");
   });
@@ -832,8 +909,8 @@ describe("story: pity", () => {
   it("applyClear records the clear once and never duplicates a card", () => {
     const n = nodeById("L1")!;
     let s = newSave();
-    s = applyClear(s, n, { won: ["leaf_nettle"], missed: [], rolls: 1 });
-    s = applyClear(s, n, { won: ["leaf_nettle"], missed: [], rolls: 1 });
+    s = applyClear(s, n, { won: ["leaf_nettle"], missed: [], rolls: 1, shiny: [] });
+    s = applyClear(s, n, { won: ["leaf_nettle"], missed: [], rolls: 1, shiny: [] });
     expect(s.cleared.filter((c) => c === "L1")).toHaveLength(1);
     expect(s.collection.filter((c) => c === "leaf_nettle")).toHaveLength(1);
   });
@@ -972,14 +1049,14 @@ describe("story: the Blight", () => {
 
   it("rises on Throne clears and caps at 3", () => {
     let s = cleared({ blight: { leaf: 0 } });
-    for (let i = 0; i < 8; i++) s = applyClear(s, nodeById("L13")!, { won: [], missed: [], rolls: 1 });
+    for (let i = 0; i < 8; i++) s = applyClear(s, nodeById("L13")!, { won: [], missed: [], rolls: 1, shiny: [] });
     expect(blightLevel(s, leafRegion)).toBe(BLIGHT_MAX);
   });
 
   it("does not rise on ordinary clears — farming is never punished", () => {
     let s = cleared({ blight: { leaf: 1 } });
     const before = blightLevel(s, leafRegion);
-    for (let i = 0; i < 5; i++) s = applyClear(s, nodeById("L8")!, { won: [], missed: [], rolls: 1 });
+    for (let i = 0; i < 5; i++) s = applyClear(s, nodeById("L8")!, { won: [], missed: [], rolls: 1, shiny: [] });
     expect(blightLevel(s, leafRegion)).toBe(before);
   });
 

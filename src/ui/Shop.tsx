@@ -168,8 +168,13 @@ export function Shop(props: { save: StorySave; onSave: (next: StorySave) => void
               {opened.pulled.map((id, i) => {
                 const d = getDef(id);
                 const isNew = opened.fresh.includes(id) && opened.pulled.indexOf(id) === i;
+                const foil = opened.shiny.includes(id);
                 return (
-                  <div key={i} className={`pack-card r-${d.rarity ?? "rare"} ${isNew ? "new" : "dupe"}`}>
+                  <div
+                    key={i}
+                    className={`pack-card r-${d.rarity ?? "rare"} ${isNew ? "new" : "dupe"} ${foil ? "foil" : ""}`}
+                  >
+                    {foil && <span className="foil-tag">FOIL</span>}
                     <img
                       src={`/cards/${d.art ?? d.id}.webp`}
                       alt=""
@@ -184,6 +189,9 @@ export function Shop(props: { save: StorySave; onSave: (next: StorySave) => void
             </div>
             <p className="pack-sum">
               <b>{opened.fresh.length}</b> new
+              {opened.shiny.length > 0 && (
+                <>{" · "}<b className="pack-foil">{opened.shiny.length} FOIL</b></>
+              )}
               {Object.keys(opened.refund).length > 0 && (
                 <>
                   {" · refunded "}
