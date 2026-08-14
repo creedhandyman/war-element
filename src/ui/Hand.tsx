@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { GameState, PlayerId } from "../engine";
 import { getDef } from "../engine";
-import { EL_COLOR, EL_ICON } from "./shared";
+import { EL_ICON } from "./shared";
 import { SpIcon } from "./icons";
 
 /** True on phone-width viewports (≤760px wide) OR short viewports (≤540px tall,
@@ -123,9 +123,11 @@ export function Hand(props: {
                 alt=""
                 onError={(e) => { e.currentTarget.style.display = "none"; }}
               />
-              <div className="hc-cost">{def.cost}</div>
-              <div className="hc-sigil" style={{ color: EL_COLOR[def.element] }}>
-                <img src={EL_ICON[def.element]} alt={def.element} draggable={false} />
+              {/* Cost and element are one mark now. The RING still carries
+                   affordability (gold vs red) — that is a gameplay signal and
+                   it does not move onto the art. */}
+              <div className="hc-cost" style={{ backgroundImage: `url(${EL_ICON[def.element]})` }}>
+                <b>{def.cost}</b>
               </div>
               <div className="hc-plate">
                 <div className="hc-name">{def.name}</div>

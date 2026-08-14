@@ -713,8 +713,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Top row: name is the hero, flanked by the cost badge and element dot. */
 .el-dot { width: 9px; height: 9px; border-radius: 2px; flex: none; }
 /* Element logo badge on deck-builder card thumbnails (mirrors the hand sigil). */
-.dt-el { width: 18px; height: 18px; flex: none; border-radius: 50%; overflow: hidden; border: 1.5px solid; background: #0d0c14; display: grid; place-items: center; }
-.dt-el img { width: 100%; height: 100%; object-fit: cover; display: block; }
 /* The whole top edge, one line, 11px. Inter Tight rather than the display
    serif: this is the size at which Cinzel's small lowercase forced names to
    truncate to "Rep…". At 11px Inter Tight, "Hydrogon" and "Kinguin" fit whole
@@ -1006,15 +1004,28 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .hcard.noroom::before { background: rgba(28, 20, 4, 0.52); }
 .hcard.selected { outline: 2px solid var(--gold-lit); outline-offset: 1px; }
 /* cost gem (top-left) + element sigil (top-right) */
+/* One mark instead of two: the gold gem and the top-right sigil were both
+   corner furniture over the art. The sigil is the fill now and the cost rides
+   on it — but the RING keeps the money signal, because affordable-vs-not is a
+   gameplay fact and it must not depend on reading a number against artwork. */
 .hcard .hc-cost {
   position: absolute; top: -9px; left: -9px; z-index: 4; width: 32px; height: 32px;
-  border-radius: 50%; display: grid; place-items: center; font-size: 15px; font-weight: 800; color: #241a06;
-  background: radial-gradient(circle at 35% 30%, #f4d98c, #a8792a); border: 2px solid var(--gold-hi);
-  box-shadow: 0 0 12px rgba(232, 200, 119, 0.7); text-shadow: none;
+  border-radius: 50%; display: grid; place-items: center; overflow: hidden;
+  background-color: #0d0c14; background-size: cover; background-position: center;
+  border: 2px solid var(--gold-hi); box-shadow: 0 0 12px rgba(232, 200, 119, 0.7);
 }
-.hcard.unaffordable .hc-cost { background: radial-gradient(circle at 35% 30%, #b98c8c, #6a3a3a); color: #f0d0d0; border-color: #c98a8a; box-shadow: none; }
-.hc-sigil { position: absolute; top: -7px; right: -7px; z-index: 4; width: 23px; height: 23px; border-radius: 50%; background: #0d0c14; border: 2px solid currentColor; display: grid; place-items: center; overflow: hidden; }
-.hc-sigil img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hcard .hc-cost::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(circle, rgba(6, 7, 12, .58) 24%, rgba(6, 7, 12, .1) 64%, transparent 80%);
+}
+.hcard .hc-cost b {
+  position: relative; z-index: 1; font-size: 15px; font-weight: 800; color: var(--gold-hi);
+  line-height: 1; display: block;
+  text-shadow: 0 1px 3px #000, 0 0 4px #000, 0 0 8px rgba(0, 0, 0, .95);
+}
+.hcard.unaffordable .hc-cost { border-color: #c98a8a; box-shadow: none; }
+.hcard.unaffordable .hc-cost b { color: #f0b8b8; }
+.hcard.unaffordable .hc-cost::after { background: radial-gradient(circle, rgba(40, 10, 10, .62) 24%, rgba(20, 6, 6, .16) 64%, transparent 80%); }
 .hc-plate { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 18px 7px 7px; background: linear-gradient(180deg, transparent, rgba(8,7,12,0.78) 32%, rgba(8,7,12,0.95)); border-radius: 0 0 9px 9px; }
 .hcard .hc-name { font-family: var(--head); font-size: 12.5px; font-weight: 700; text-align: center; color: #efe9d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px #000; min-height: 0; }
 .hc-type { text-align: center; font-size: 9px; color: var(--ink-dim); letter-spacing: 0.03em; margin-top: 1px; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1048,7 +1059,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .hand.collapsed .hand-fan { padding-top: 4px; }
 .hand.collapsed .hcard { height: 44px; margin: 0 -33px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); }
 .hand.collapsed .hc-plate { display: none; }
-.hand.collapsed .hc-sigil { display: none; }
 .hand.collapsed .hc-cost { width: 21px; height: 21px; font-size: 12px; top: -6px; left: -6px; }
 .hand.collapsed .deck-stack { width: 42px; height: 52px; }
 .hand.collapsed .ds-count { font-size: 15px; }
@@ -1313,6 +1323,22 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .mull-card { width: 96px; border-radius: 10px; background: var(--void-2); border: 2px solid var(--panel-line); padding: 8px; cursor: pointer; transition: 0.15s; }
 .mull-card.toss { border-color: var(--threat); opacity: 0.65; transform: translateY(4px); }
 .mull-card .hc-name { min-height: 26px; }
+/* The mulligan card's badge — same shape as the thumbs', just bigger. */
+.mull-cost {
+  position: relative; width: 26px; height: 26px; border-radius: 50%; overflow: hidden;
+  display: grid; place-items: center;
+  background-color: #0d0c14; background-size: cover; background-position: center;
+  border: 2px solid currentColor;
+}
+.mull-cost::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(circle, rgba(6, 7, 12, .6) 22%, rgba(6, 7, 12, .12) 62%, transparent 78%);
+}
+.mull-cost b {
+  position: relative; z-index: 1; font-size: 13px; font-weight: 800; color: #fff;
+  line-height: 1; display: block;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000, 0 0 6px rgba(0, 0, 0, .9);
+}
 .win-title { font-size: 30px; font-weight: 900; margin-bottom: 4px; }
 .win-title.lose { color: var(--threat); }
 .win-title.win { color: var(--legal); }
@@ -1468,7 +1494,37 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Top row: cost + element dot on the left; rarity + add button hug the right.
    Everything is inline (no absolute overlap of the cost badge). */
 .dt-top { display: flex; align-items: center; gap: 4px; }
-.dt-cost { width: 18px; height: 18px; flex: none; border-radius: 50%; background: rgba(0,0,0,0.6); display: grid; place-items: center; font-size: 10px; font-weight: 800; }
+/* COST ON THE SIGIL. This and `.dt-el` used to be two 18px circles side by
+   side in the corner — 42px of a 78px-wide thumb spent on two marks, over the
+   art. One badge carries both: the sigil is the fill, the element's colour is
+   the ring, and the number rides on top.
+
+   The scrim is what makes that safe. A digit straight onto artwork is legible
+   against some sigils and invisible against others, so the badge darkens its
+   own middle and the numeral keeps a shadow — the number never depends on
+   which element it is sitting on. */
+.dt-cost {
+  position: relative; width: 20px; height: 20px; flex: none; border-radius: 50%;
+  display: grid; place-items: center; overflow: hidden;
+  background-color: #0d0c14; background-size: cover; background-position: center;
+  border: 1.5px solid currentColor;
+}
+/* A TIGHT centre spot, not a wash. The scrim was 78% black across the middle
+   40% and drowned the sigil it is supposed to be showing; it only has to sit
+   under the digit itself, so it is smaller and lighter and fades out fast. The
+   legibility that costs is bought back by the text shadow, which darkens only
+   the pixels touching the numeral instead of a quarter of the badge. */
+.dt-cost::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(circle, rgba(6, 7, 12, .62) 22%, rgba(6, 7, 12, .12) 62%, transparent 78%);
+}
+.dt-cost b {
+  position: relative; z-index: 1; font-size: 11px; font-weight: 800; color: #fff;
+  /* line-height 1 and a matching block box, or the glyph sits on its own
+     descender space and the number reads as sagging below centre. */
+  line-height: 1; display: block;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000, 0 0 6px rgba(0, 0, 0, .9);
+}
 .dt-tr { margin-left: auto; display: flex; align-items: center; gap: 4px; min-width: 0; }
 .dt-name { position: relative; margin-top: auto; font-size: 10px; font-weight: 800; line-height: 1.05; text-shadow: 0 1px 3px #000; }
 .dt-stats { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 2px; font-size: 9px; font-weight: 700; }
@@ -1605,7 +1661,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .ar-flabel { flex: none; font-family: var(--head); font-size: 10px; font-weight: 700; letter-spacing: .1em; color: var(--ink-faint); }
 
 /* ── the versus card ─────────────────────────────────────────────────────── */
-.ar-vs { flex: 1 1 auto; min-height: 0; padding: 2px 16px; display: flex; flex-direction: column; justify-content: center; }
+/* `flex: none`, NOT `1 1 auto`. The seats carry `min-height: 118px`, so a
+   growable-and-SHRINKABLE box gets squeezed under its own content the moment
+   the lobby has more rows than fit — and the seats then paint straight over
+   the Gauntlet row above and the Start button below instead of scrolling.
+   Sized to content, `.arena`'s own `overflow-y: auto` does its job. */
+.ar-vs { flex: none; padding: 2px 16px; display: flex; flex-direction: column; justify-content: center; }
 .ar-seat {
   position: relative; overflow: hidden; width: 100%; text-align: left; cursor: pointer;
   min-height: 118px; padding: 11px 13px; border-radius: 12px;
@@ -1685,6 +1746,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .gt-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .gt-sub { font-size: 11px; color: var(--ink-faint); line-height: 1.35; }
 .ar-gauntlet .seg button { flex-direction: column; gap: 1px; padding: 7px 4px; line-height: 1.2; }
+/* One button where a second rung-picker used to be. */
+.gt-start {
+  display: flex; flex-direction: column; gap: 2px; width: 100%; cursor: pointer;
+  padding: 8px 12px; border-radius: 10px; text-align: left;
+  background: rgba(201, 162, 75, .1); border: 1px solid var(--gold-line); color: var(--gold-lit);
+}
+.gt-start:hover { background: rgba(201, 162, 75, .2); }
+.gt-start-main {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--head); font-size: 13px; font-weight: 700; letter-spacing: .03em;
+}
+.gt-start .gt-sub { font-family: var(--font-ui); font-weight: 400; }
 .gt-pay { font-style: normal; font-size: 10px; font-weight: 700; color: #bfe6ff; }
 .gt-done { font-style: normal; font-size: 9px; color: var(--legal); }
 /* One pip per seat. Banked, current and lost are three different states and a
@@ -1911,7 +1984,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Element filters carry their own colour (set inline) — a dot + tinted label. */
 .el-fl { display: inline-flex; align-items: center; gap: 5px; }
 .el-fl.on { font-weight: 800; }
-.el-fl-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+/* The element's own painted sigil, not a coloured dot. Eight dots differ only
+   by hue, which is the one channel a colourblind player does not have; the
+   sigil is the mark those players already know from every card. */
+.el-fl-sig { width: 14px; height: 14px; flex: none; object-fit: contain; display: block; }
+.db-fl:not(.on) .el-fl-sig { opacity: .75; }
 .db-sort { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .db-sort-lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-faint); }
 /* Sits at the end of the sort row, pushed right — state, not a control, so it
@@ -2673,7 +2750,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      halves — the part you tap — fell under the action bar. A peek has to be
      the height of a card, not a card plus room to grow. */
   .hand-float .hand.collapsed .hand-fan { padding-top: 2px; }
-  .hand-float .hand.collapsed .hc-sigil { display: grid; }
 
   /* Placement-confirm bar sits just above the bottom bar, full width */
   .summon-confirm { bottom: calc(var(--bar-h, 84px) + 6px); width: 92vw; flex-wrap: wrap; justify-content: center; }
@@ -2835,7 +2911,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .hand-float .hc-type { font-size: 7.5px; }
   .hand-float .hc-stats { font-size: 8.5px; }
   .hand-float .hc-cost { width: 22px; height: 22px; font-size: 11px; top: -6px; left: -6px; }
-  .hand-float .hc-sigil { width: 16px; height: 16px; font-size: 9px; }
   /* Retame the collapsed-peek hover: the base rule `.hand.collapsed .hcard:hover`
      blows a peek card to scale(2.7)+translateY(-72px), which on a ~375px-tall
      screen shoots off-canvas. Beat it with a more specific selector. */

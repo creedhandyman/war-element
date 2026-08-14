@@ -493,7 +493,8 @@ export function DeckBuilder(props: {
                     background: filter === el ? `color-mix(in srgb, ${EL_COLOR[el]} 26%, transparent)` : undefined,
                   }}
                 >
-                  <span className="el-fl-dot" style={{ background: EL_COLOR[el] }} />
+                  <img className="el-fl-sig" src={EL_ICON[el]} alt="" draggable={false}
+                    onError={(e) => { e.currentTarget.style.display = "none"; }} />
                   {el}
                 </button>
               ))}
@@ -573,10 +574,15 @@ export function DeckBuilder(props: {
                       onError={(e) => { e.currentTarget.style.display = "none"; }}
                     />
                     <div className="dt-top">
-                      <span className="dt-cost">{d.cost}</span>
-                      <span className="dt-el" title={d.element} style={{ borderColor: EL_COLOR[d.element] }}>
-                        <img src={EL_ICON[d.element]} alt={d.element} draggable={false}
-                          onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                      {/* One badge, not two. The cost sits ON the element's
+                          sigil, so the corner spends 20px instead of 42 and
+                          the art keeps the difference. */}
+                      <span
+                        className="dt-cost"
+                        title={`${d.element} · cost ${d.cost}`}
+                        style={{ borderColor: EL_COLOR[d.element], backgroundImage: `url(${EL_ICON[d.element]})` }}
+                      >
+                        <b>{d.cost}</b>
                       </span>
                       {/* The corner that used to add now READS. Its hit area is
                           padded out past its 22px face so a thumb can reach it

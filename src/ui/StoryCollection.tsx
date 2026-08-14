@@ -196,7 +196,8 @@ export function StoryCollection(props: {
                   background: el === e ? `color-mix(in srgb, ${EL_COLOR[e]} 26%, transparent)` : undefined,
                 }}
               >
-                <span className="el-fl-dot" style={{ background: EL_COLOR[e] }} />
+                <img className="el-fl-sig" src={EL_ICON[e]} alt="" draggable={false}
+                  onError={(ev) => { ev.currentTarget.style.display = "none"; }} />
                 {e}
               </button>
             ))}
@@ -236,10 +237,12 @@ export function StoryCollection(props: {
                     <img className="card-art" src={`/cards/${d.art ?? d.id}.webp`} alt=""
                       onError={(e) => { e.currentTarget.style.display = "none"; }} />
                     <div className="dt-top">
-                      <span className="dt-cost">{d.cost}</span>
-                      <span className="dt-el" title={d.element} style={{ borderColor: EL_COLOR[d.element] }}>
-                        <img src={EL_ICON[d.element]} alt={d.element} draggable={false}
-                          onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                      <span
+                        className="dt-cost"
+                        title={`${d.element} · cost ${d.cost}`}
+                        style={{ borderColor: EL_COLOR[d.element], backgroundImage: `url(${EL_ICON[d.element]})` }}
+                      >
+                        <b>{d.cost}</b>
                       </span>
                       {have ? (
                         on ? <span className="dt-mark" title="In your current deck">✓</span> : null

@@ -39,7 +39,7 @@ import {
   spellbookFor} from "../engine";
 import { spellCapForBoard } from "../engine/spells";
 import {
-  RUN_REWARD, ladderProgress, nextSeat, runComplete, runOver, settleArena, startRun,
+  RUN_REWARD, nextSeat, runComplete, runOver, settleArena, startRun,
 } from "../data/gauntlet";
 import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online";
 import { Board } from "./Board";
@@ -61,7 +61,7 @@ import { SpellTray } from "./SpellTray";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { WinScreen } from "./WinScreen";
-import { EL_COLOR, type PendingBattle, type Selection } from "./shared";
+import { EL_COLOR, EL_ICON, type PendingBattle, type Selection } from "./shared";
 import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
 import { StoryRegions } from "./StoryRegions";
@@ -297,6 +297,10 @@ export function App() {
   const [p1DeckId, setP1DeckId] = useState(premadeDecksFor(4)[0].id);
   const [p2DeckId, setP2DeckId] = useState(premadeDecksFor(4)[1].id);
   const gauntletRun = story.gauntlet?.run;
+  /** The rung a new run would use — whatever the opponent seat is currently on.
+   *  An untiered deck (an original, or one you built) has no rung, so the
+   *  middle one is the sensible default and the button names it either way. */
+  const runTier = tierOf(p2DeckId) ?? "mid";
   /** The Gauntlet's current seat, when a run is live. While it is, the AI's
    *  deck is not the player's to set — that is the whole point of a run. */
   const gauntletSeat =
@@ -1915,9 +1919,13 @@ export function App() {
                         e.currentTarget.style.display = "none";
                       }}
                     />
+                    {/* Same merge as the hand and the thumbs: the sigil is the
+                        badge and the cost rides on it. */}
                     <div className="hc-top">
-                      <div className="hc-cost">{def.cost}</div>
-                      <span className="el-dot" style={{ background: EL_COLOR[def.element] }} />
+                      <div className="mull-cost" title={`${def.element} · cost ${def.cost}`}
+                        style={{ borderColor: EL_COLOR[def.element], backgroundImage: `url(${EL_ICON[def.element]})` }}>
+                        <b>{def.cost}</b>
+                      </div>
                     </div>
                     <div className="hc-name">{def.name}</div>
                     <div className="hc-stats">
@@ -2318,30 +2326,30 @@ export function App() {
             {!onlineMode && !twoPlayer && (
               <div className="ar-gauntlet">
                 {!gauntletRun ? (
-                  <>
-                    <div className="gt-head">
-                      <span className="ar-flabel">GAUNTLET</span>
-                      <span className="gt-sub">Four dealt opponents. One loss ends the run.</span>
-                    </div>
-                    <div className="seg">
-                      {ladderProgress(story.gauntlet).map(({ tier, cleared }) => (
-                        <button
-                          key={tier}
-                          onClick={() => {
-                            const run = startRun(tier, boardSize);
-                            const next = { ...story, gauntlet: { ...(story.gauntlet ?? {}), run } };
-                            setStory(next); saveStory(next);
-                            const first = nextSeat(run, boardSize);
-                            if (first) setP2DeckId(first.id);
-                          }}
-                        >
-                          {tier === "easy" ? "Easy" : tier === "mid" ? "Even" : "Hard"}
-                          <em className="gt-pay">+{RUN_REWARD[tier]}</em>
-                          {cleared && <i className="gt-done" title="Cleared before">✓</i>}
-                        </button>
-                      ))}
-                    </div>
-                  </>
+                  /* ONE difficulty picker on this screen, not two. The row above
+                     already asks which rung you want; repeating the same three
+                     words here was a second way to answer the same question and
+                     cost a row the lobby did not have. The button runs whichever
+                     rung the opponent seat is already on. */
+                  <button
+                    className="gt-start"
+                    onClick={() => {
+                      const run = startRun(runTier, boardSize);
+                      const next = { ...story, gauntlet: { ...(story.gauntlet ?? {}), run } };
+                      setStory(next); saveStory(next);
+                      const first = nextSeat(run, boardSize);
+                      if (first) setP2DeckId(first.id);
+                    }}
+                  >
+                    <span className="gt-start-main">
+                      Run the {runTier === "easy" ? "Easy" : runTier === "mid" ? "Even" : "Hard"} gauntlet
+                      <em className="gt-pay">+{RUN_REWARD[runTier]}</em>
+                      {(story.gauntlet?.cleared ?? []).includes(runTier) && (
+                        <i className="gt-done" title="Cleared before">✓</i>
+                      )}
+                    </span>
+                    <span className="gt-sub">Four dealt opponents. One loss ends the run.</span>
+                  </button>
                 ) : (
                   <>
                     <div className="gt-head">
