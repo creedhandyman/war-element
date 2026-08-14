@@ -85,8 +85,9 @@ export function DeckBuilder(props: {
   // open one-at-a-time below it, so the card pool keeps the screen. Desktop has
   // the room to start with Composition open; phone starts clean.
   const phone = typeof window !== "undefined" && (window.matchMedia?.("(max-width: 720px)").matches ?? false);
-  const [panel, setPanel] = useState<"comp" | "spells" | "saved" | null>(phone ? null : "comp");
-  const togglePanel = (p: "comp" | "spells" | "saved") => setPanel((cur) => (cur === p ? null : p));
+  const [panel, setPanel] = useState<"deck" | "comp" | "spells" | "saved" | null>(phone ? null : "comp");
+  const togglePanel = (p: "deck" | "comp" | "spells" | "saved") => setPanel((cur) => (cur === p ? null : p));
+  const deckShown = panel === "deck";
   const compShown = panel === "comp";
   const savedShown = panel === "saved";
   const spellsShown = panel === "spells";
@@ -292,6 +293,11 @@ export function DeckBuilder(props: {
             {/* Compact tool row — one tap opens Composition / Spellbook / Saved
                 in a panel below, one at a time, so the card pool keeps the room. */}
             <div className="db-tools">
+              {/* Deck first: it is the list you reach for most, and the count on
+                  the label means the panel can stay shut while you scroll. */}
+              <button className={`db-tool ${deckShown ? "on" : ""}`} onClick={() => togglePanel("deck")}>
+                Deck {picked.length}
+              </button>
               {picked.length > 0 && (
                 <button className={`db-tool ${compShown ? "on" : ""}`} onClick={() => togglePanel("comp")}>
                   Comp · {stats.avg.toFixed(1)}
@@ -311,6 +317,38 @@ export function DeckBuilder(props: {
                   : `Saved${decks.length ? ` ${decks.length}` : ""}`}
               </button>
             </div>
+
+            {/* THE DECK ITSELF, which this screen did not have a way to show.
+                Until now the only way to remove a card was to find it again
+                among three hundred in the pool and tap it a second time — and
+                the filters are no help, because you are looking for one
+                specific card you already own rather than a kind of card. That
+                is a list, and this is it. */}
+            {deckShown && (
+              <div className="db-picked db-panel">
+                {picked.length === 0 ? (
+                  <div className="db-spell-hint">Nothing picked yet — tap cards in the pool to add them.</div>
+                ) : (
+                  picked.map((id) => {
+                    const d = getDef(id);
+                    return (
+                      <div key={id} className="dp-row" data-el={d.element}>
+                        <span className="dp-cost">{d.cost}</span>
+                        <span className="dp-name">{d.name}</span>
+                        <span className="dp-meta">{d.element} · {d.cardClass}</span>
+                        <span className="dp-stats">
+                          <i className="s-dmg">{d.dmg}{d.hits > 1 ? `×${d.hits}` : ""}</i>
+                          <i className="s-hp">{d.hp}</i>
+                          <i className="s-sp">{d.sp}</i>
+                        </span>
+                        <button className="dp-x" title={`Remove ${d.name}`} aria-label={`Remove ${d.name}`}
+                          onClick={() => toggle(id)}>✕</button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
 
             {/* Deck composition — cards per element / class / cost. */}
             {compShown && picked.length > 0 && <DeckStats stats={stats} />}
