@@ -168,10 +168,16 @@ export function StoryCollection(props: {
       </header>
 
       {/* Per element, of its own placed pool — and the element FILTER, because
-          they were the same eight things twice. The strip said "BOLT 3/39" and
-          a chip row underneath said "BOLT", and the obvious tap on the number
-          did nothing. The count answers "where am I thin", the filter answers
-          "show me those", and those are one question asked twice.
+          they were the same eight things twice. The count answers "where am I
+          thin", the filter answers "show me those", and those are one question
+          asked twice.
+
+          THE BAR IS THE RING. This was nine bordered boxes, each with a sigil, a
+          fraction and a straight track under it, laid out three-across on a
+          phone — three rows of chrome above the grid, most of it padding, for
+          nine numbers. The progress is drawn AROUND the logo now: same nine
+          filters, same nine numbers, one row, and the sigil is the whole
+          control instead of a thing sitting inside one.
 
           The sigil replaces the colour dot for the reason it did on the chips:
           eight dots differ only by hue, which is the one channel a colourblind
@@ -179,27 +185,31 @@ export function StoryCollection(props: {
       <div className="col-elrow">
         <button
           className={`col-el col-el-all ${el === "ALL" ? "on" : ""}`}
+          style={{ ["--pct" as string]: (collected / PLACED_CARDS.length) * 100 }}
           onClick={() => setEl("ALL")}
-          title="Every element"
+          aria-pressed={el === "ALL"}
+          title={`${collected} of ${PLACED_CARDS.length} recruited — every element`}
         >
-          <b>All</b>
-          <em>{collected}/{PLACED_CARDS.length}</em>
+          <span className="col-el-ring" aria-hidden="true">
+            <b>All</b>
+          </span>
+          <em>{collected}</em>
         </button>
         {byElement.rows.map((r) => (
           <button
             key={r.el}
             className={`col-el ${r.have === r.total ? "done" : ""} ${el === r.el ? "on" : ""}`}
             data-el={r.el}
+            style={{ ["--pct" as string]: (r.have / r.total) * 100 }}
             aria-pressed={el === r.el}
             title={`${r.have} of ${r.total} ${r.el} cards — tap to filter`}
             onClick={() => setEl(el === r.el ? "ALL" : r.el)}
           >
-            <img className="col-el-sig" src={EL_ICON[r.el]} alt="" draggable={false}
-              onError={(ev) => { ev.currentTarget.style.display = "none"; }} />
-            <b>{r.have}</b><em>/{r.total}</em>
-            <span className="col-el-track">
-              <span style={{ width: `${(r.have / r.total) * 100}%`, background: EL_COLOR[r.el] }} />
+            <span className="col-el-ring" aria-hidden="true">
+              <img className="col-el-sig" src={EL_ICON[r.el]} alt="" draggable={false}
+                onError={(ev) => { ev.currentTarget.style.display = "none"; }} />
             </span>
+            <em>{r.have}<i>/{r.total}</i></em>
           </button>
         ))}
       </div>

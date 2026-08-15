@@ -4728,49 +4728,69 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    Eight small gauges under the header. The grid below can tell you a card is
    missing; this is the only thing on the screen that tells you which REGION to
    go back to, which is the version of that question a player can act on. */
-/* Nine cells now — All, then the eight elements — because the strip is the
-   element filter as well as the tally. */
+/* Nine RINGS — All, then the eight elements. One row, because the progress is
+   drawn around each logo instead of on a track beneath a bordered box: that
+   layout wanted three rows on a phone and spent most of them on padding.
+   `--pct` comes in inline from the component. */
 .col-elrow {
-  display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px;
-  padding: 0 14px 2px; flex: none;
+  display: flex; justify-content: space-between; gap: 4px;
+  padding: 2px 14px 4px; flex: none;
 }
 .col-el {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 5px 2px 4px; border-radius: var(--r-chip);
-  background: rgba(233, 226, 210, 0.035); border: 1px solid rgba(233, 226, 210, 0.08);
-  font-size: var(--fs-1); line-height: 1;
-  cursor: pointer; font-family: inherit; color: inherit; text-align: center;
-  transition: border-color 0.12s, background 0.12s;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  font-family: inherit; color: inherit; line-height: 1;
+  flex: 1 1 0; min-width: 0;
 }
-.col-el:hover { border-color: rgba(233, 226, 210, 0.24); }
-/* The selected element, in its OWN colour — the strip is eight things and a
-   single accent for "on" would not say which of them. */
-.col-el.on {
-  border-color: var(--el-rim); background: color-mix(in srgb, var(--el-rim) 20%, transparent);
+/* The ring itself: a conic sweep to `--pct`, with the middle punched out by an
+   inset circle painted in the page ground. `--el-rim` is already set by
+   `data-el`, so each element's arc is its own colour without a second table. */
+.col-el-ring {
+  position: relative; display: grid; place-items: center;
+  width: 100%; max-width: 38px; aspect-ratio: 1; border-radius: 50%;
+  background: conic-gradient(
+    var(--el-rim) calc(var(--pct, 0) * 1%),
+    rgba(233, 226, 210, 0.09) 0
+  );
 }
-.col-el.on b { color: var(--el-rim); }
-.col-el-all.on { border-color: var(--gold-line); background: rgba(201, 162, 75, 0.16); }
-.col-el-all.on b { color: var(--gold-lit); }
-/* The All cell has no track, so it pads to the same height as the eight that
-   do — otherwise the first cell in the row is short and the strip steps. */
-.col-el-all { justify-content: center; padding-bottom: 11px; }
-.col-el-sig { width: 22px; height: 22px; object-fit: contain; display: block; }
-.col-el:not(.on) .col-el-sig { opacity: 0.8; }
-.col-el b { font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
-.col-el em { font-style: normal; color: var(--ink-faint); }
-.col-el-track { width: 100%; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
-.col-el-track > span { display: block; height: 100%; }
-/* A finished element stops asking for attention. */
-.col-el.done { border-color: rgba(78, 203, 143, 0.4); }
+.col-el-ring::after {
+  content: ""; position: absolute; inset: 3px; border-radius: 50%;
+  background: var(--void);
+}
+.col-el-sig, .col-el-ring b {
+  position: relative; z-index: 1;   /* over the punched hole */
+}
+.col-el-sig { width: 60%; height: 60%; object-fit: contain; display: block; }
+.col-el-ring b {
+  font-family: var(--head); font-size: 10px; font-weight: 700;
+  color: var(--ink-dim); letter-spacing: 0.02em;
+}
+.col-el em {
+  font-style: normal; font-size: 10px; font-variant-numeric: tabular-nums;
+  color: var(--ink-dim);
+}
+/* The denominator is context, not the number you are reading. */
+.col-el em i { font-style: normal; color: var(--ink-faint); }
+.col-el:hover .col-el-ring::after { background: var(--void-2); }
+/* Selected: the hole lights in the element's own colour, so "which of nine"
+   reads without a border to carry it. */
+.col-el.on .col-el-ring::after { background: color-mix(in srgb, var(--el-rim) 26%, var(--void)); }
+.col-el.on em { color: var(--el-rim); }
+.col-el.on .col-el-ring b { color: var(--el-rim); }
+.col-el-all.on .col-el-ring::after { background: rgba(201, 162, 75, 0.22); }
+.col-el-all.on em, .col-el-all.on .col-el-ring b { color: var(--gold-lit); }
+/* A finished element stops asking for attention — the ring is already full, so
+   this only marks the number. */
 .col-el.done em { color: var(--legal); }
 .col-elnote { padding: 0 14px 8px; margin: 0; font-size: var(--fs-2); color: var(--ink-dim); flex: none; }
 .col-elnote b { font-weight: 800; }
 @media (max-width: 620px) {
-  /* Two rows of four rather than eight columns 40px wide, where the fraction
-     stops being readable. */
-  /* Three rows of three at 390px: nine cells across is 38px each, where the
-     fraction stops being readable. */
-  .col-elrow { grid-template-columns: repeat(3, 1fr); }
+  /* Nine across fits now — the ring is the readout, so a cell no longer has to
+     be wide enough for "12/39" plus a border plus its own padding. The two
+     earlier rules here wrapped it to four and then to three columns, which is
+     the dead space this replaced. */
+  .col-el-ring { max-width: 34px; }
+  .col-el em { font-size: 9.5px; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
