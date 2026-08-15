@@ -2,13 +2,18 @@
  *
  *  Format: `WE1-<base64url>`. The payload is
  *
- *      [0]      version (1)
- *      [1]      name length in bytes
- *      [2..]    name, UTF-8
+ *      [0]      version (2)
+ *      [1]      board size (4 or 5; 0 = the deck does not say)   <- v2 only
+ *      [2]      name length in bytes
+ *      [3..]    name, UTF-8
  *      [n]      card count
  *      [n+1]    spell count
  *      [n+2..]  (cards + spells) x 10 bits, packed, card indices first
  *      [last]   checksum (FNV-1a, 8-bit) over everything before it
+ *
+ *  V1 CODES STILL DECODE. They are identical but for the missing board byte, and
+ *  people copied them the day the feature shipped — a format change that silently
+ *  broke codes already in circulation would defeat the point of having them.
  *
  *  A 30-card, 8-spell deck lands around 70 characters.
  *
@@ -141,6 +146,10 @@ export interface DeckCodePayload {
   name: string;
   cards: string[];
   spells: string[];
+  /** Battlefield the deck was built for (4 or 5), so an import can set the right
+   *  limits instead of reading as over-size. Absent on v1 codes, which predate
+   *  the field — treat undefined as "the deck does not say". */
+  boardSize?: number;
 }
 
 /** Thrown for every rejection, so callers can show the reason verbatim. */
@@ -215,8 +224,10 @@ export function encodeDeck(deck: DeckCodePayload): string {
     return i;
   };
 
+  const board = deck.boardSize === 4 || deck.boardSize === 5 ? deck.boardSize : 0;
   const body = [
-    1,
+    2,
+    board,
     nameBytes.length,
     ...nameBytes,
     deck.cards.length,
@@ -251,9 +262,13 @@ export function decodeDeck(raw: string): DeckCodePayload {
   if (fnv1a8(payload) !== bytes[bytes.length - 1])
     throw new DeckCodeError("That code is damaged — a character is wrong or missing.");
 
-  if (payload[0] !== 1) throw new DeckCodeError(`This build cannot read version ${payload[0]} codes.`);
-  const nameLen = payload[1];
-  let p = 2;
+  const version = payload[0];
+  if (version !== 1 && version !== 2)
+    throw new DeckCodeError(`This build cannot read version ${version} codes — update the game.`);
+  // v1 has no board byte; everything after it is laid out identically.
+  const boardByte = version >= 2 ? payload[1] : 0;
+  let p = version >= 2 ? 2 : 1;
+  const nameLen = payload[p++];
   const name = new TextDecoder().decode(Uint8Array.from(payload.slice(p, p + nameLen)));
   p += nameLen;
   if (p + 2 > payload.length) throw new DeckCodeError("That code is cut short.");
@@ -273,6 +288,9 @@ export function decodeDeck(raw: string): DeckCodePayload {
     name,
     cards: values.slice(0, cardCount).map((i) => resolve(i, false)),
     spells: values.slice(cardCount).map((i) => resolve(i, true)),
+    // Only 4 and 5 are real battlefields; anything else (including v1's absent
+    // byte) means the deck does not say, and the caller keeps its current size.
+    ...(boardByte === 4 || boardByte === 5 ? { boardSize: boardByte } : {}),
   };
 }
 

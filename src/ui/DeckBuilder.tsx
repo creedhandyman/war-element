@@ -167,7 +167,15 @@ export function DeckBuilder(props: {
    *  is refused (it needs a secure context and can simply say no). */
   const share = async (kind: "code" | "link") => {
     try {
-      const code = encodeDeck({ name: name.trim() || "Shared deck", cards: picked, spells: pickedSpells });
+      const code = encodeDeck({
+        name: name.trim() || "Shared deck",
+        cards: picked,
+        spells: pickedSpells,
+        // Story teams are built to a node's cap rather than a battlefield, so
+        // they carry no board size — sending one would impose a limit the
+        // recipient's own campaign does not have.
+        boardSize: story ? undefined : buildSize,
+      });
       const text = kind === "link"
         ? deckLinkFor(code, window.location.origin + window.location.pathname)
         : code;
@@ -200,18 +208,25 @@ export function DeckBuilder(props: {
       const allowed = story?.owned ? new Set(story.owned) : null;
       const usable = allowed ? deck.cards.filter((c: string) => allowed.has(c)) : deck.cards;
       const dropped = deck.cards.length - usable.length;
+      // Adopt the deck's battlefield first: the legal deck size and the spell cap
+      // both hang off it, so a 5x5 deck landing in a 4x4 builder would read as
+      // over-size and have its spellbook trimmed for the wrong format. Story is
+      // exempt — there the node decides the board, not the deck.
+      const board = !story && (deck.boardSize === 4 || deck.boardSize === 5) ? deck.boardSize : buildSize;
+      if (board !== buildSize) setBuildSize(board);
       setPicked(usable);
-      setPickedSpells(sanitizeSpells(deck.spells, buildSize));
+      setPickedSpells(sanitizeSpells(deck.spells, board));
       if (deck.name) setName(deck.name);
       setEditingId(null); // an imported deck is a NEW deck, not an edit of yours
       setImporting(false);
       setCodeInput("");
       const via = from === "link" ? "Shared deck loaded" : "Loaded";
+      const switched = board !== buildSize ? ` Switched to ${board}×${board}.` : "";
       setCodeMsg({
         ok: true,
         text: dropped > 0
-          ? `${via}: "${deck.name || "deck"}" — ${dropped} card(s) you do not own were left out.`
-          : `${via}: "${deck.name || "deck"}" — ${usable.length} cards.`,
+          ? `${via}: "${deck.name || "deck"}" — ${dropped} card(s) you do not own were left out.${switched}`
+          : `${via}: "${deck.name || "deck"}" — ${usable.length} cards.${switched}`,
       });
     } catch (e) {
       setCodeMsg({ ok: false, text: e instanceof Error ? e.message : "That code could not be read." });
