@@ -313,9 +313,23 @@ const STANDARD_DECKS: PremadeDeck[] = [
   // So: easy is a clumsy melee pile with a top-heavy curve and no comp; mid
   // has a curve, a wall and a healer; hard floods cheap bodies, heals them,
   // and shoots over the top. Played against the six originals — every deck,
-  // both seats, three seeds, 144 games a rung — they win 32/54/59% on 4x4 and
-  // 19/35/56% on 5x5. Monotone on both boards, though mid and hard sit close
-  // on the small one, where sixteen slots cap what a flood can be worth.
+  // both seats, 192 games a rung — they win 32/48/57% on 4x4 and 19/37/63% on
+  // 5x5. Monotone on both boards.
+  //
+  // HARD KEEPS THE CHEAP CORE AND ITS TOP END. `costCap: 6` used to build it,
+  // and rarity tracks cost in this pool — mythics are all 9-10, legendaries
+  // 6-8 — so capping cost capped RARITY, and the top rung shipped as the only
+  // one with no mythic in it while easy, being top-heavy, had the most. Hard
+  // now spends its last curve band on legendaries and mythics instead of
+  // leaving it empty, which measured level-to-better and reads like a top rung
+  // instead of a pile of commons.
+  //
+  // Card choice is close to spent as a difficulty lever: curve, comp, reach,
+  // cost cap and rarity were all swept and hard lands between 55 and 63%
+  // whatever they say. A rung harder than this wants a knob that is not the
+  // deck — §10.6's opening allowance is the obvious one, and it is strong
+  // (cutting the player from 2 opening slots to 1 took hard to 82% on 4x4 and
+  // 90% on 5x5, measured over 240 games each).
   //
   // EVERY RUNG USES EACH OF THE EIGHT ELEMENTS EXACTLY ONCE. `rollOpponent`
   // only avoids the deck already seated, so two decks on one rung sharing an
@@ -458,12 +472,12 @@ const STANDARD_DECKS: PremadeDeck[] = [
     boardSize: 4,
     tier: "hard",
     cards: [
-      "dawn_reflection", "dawn_warphant", "dawn_able", "dawn_amble", "dawn_solstice",
-      "dawn_beam", "dawn_shine", "dawn_sircrest", "dawn_roy", "pyro_bbq",
-      "pyro_slag_tortoise", "pyro_twins", "pyro_canister", "pyro_florence", "pyro_taper",
-      "pyro_ingit", "pyro_ember_scorpion", "pyro_firebird",
+      "dawn_reflection", "dawn_veil", "dawn_imperator", "dawn_able", "dawn_amble",
+      "dawn_solstice", "dawn_beam", "dawn_shine", "dawn_sircrest", "pyro_bbq",
+      "pyro_twins", "pyro_canister", "pyro_flamehound", "pyro_firecrack", "pyro_ember_scorpion",
+      "pyro_fenrir", "pyro_infernus_rex", "pyro_heatsink_golem",
     ],
-    spells: ["pyro_spark", "dawn_sunbeam", "dawn_cleansing_light", "pyro_flare_push", "pyro_firewall"],
+    spells: ["pyro_spark", "dawn_sunbeam", "dawn_cleansing_light", "pyro_flare_push", "dawn_dawns_grace"],
   },
   {
     id: "pre_titanfall",
@@ -473,12 +487,12 @@ const STANDARD_DECKS: PremadeDeck[] = [
     boardSize: 4,
     tier: "hard",
     cards: [
-      "bore_hillbilly", "bore_ankylosaur", "bore_monger", "bore_cavedweller", "bore_ufo",
-      "bore_diam", "bore_cosmic", "bore_old_timer", "bore_score", "bolt_junker",
-      "bolt_kore", "bolt_rodd", "bolt_stingray", "bolt_ning", "bolt_twotales",
-      "bolt_storm", "bolt_thundercat", "bolt_zoez",
+      "bore_hillbilly", "bore_ankylosaur", "bore_armadillo", "bore_bastion", "bore_cavedweller",
+      "bore_ufo", "bore_diam", "bore_cosmic", "bore_score", "bolt_jolt",
+      "bolt_kore", "bolt_rodd", "bolt_stingray", "bolt_ning", "bolt_zap",
+      "bolt_storm", "bolt_zoez", "bolt_elecdroid",
     ],
-    spells: ["bore_pebble_toss", "bolt_zap", "bore_sand_trap", "bore_bulwark", "bolt_overload_field"],
+    spells: ["bore_pebble_toss", "bolt_zap", "bore_sand_trap", "bore_bulwark", "bore_fortify"],
   },
   {
     id: "pre_black_tide",
@@ -488,12 +502,12 @@ const STANDARD_DECKS: PremadeDeck[] = [
     boardSize: 4,
     tier: "hard",
     cards: [
-      "dusk_zombie_husk", "dusk_rip", "dusk_doom", "dusk_scarlett", "dusk_haunt",
-      "dusk_pumpkin", "dusk_ender", "dusk_crow", "dusk_gravekeeper", "leaf_oak",
-      "leaf_sakuroot", "leaf_weeds", "leaf_nettle", "leaf_darth", "leaf_stickers",
-      "leaf_alpha", "leaf_thorn", "leaf_python",
+      "dusk_zombie_husk", "dusk_zhunk", "dusk_skullking", "dusk_doom", "dusk_scarlett",
+      "dusk_haunt", "dusk_pumpkin", "dusk_ravven", "dusk_skeleton_knight", "leaf_oak",
+      "leaf_greegon", "leaf_oakgre", "leaf_weeds", "leaf_nettle", "leaf_leaf",
+      "leaf_hunter", "leaf_cactus", "leaf_efy",
     ],
-    spells: ["leaf_sprout", "dusk_chill_touch", "leaf_thorn_patch", "dusk_shadow_step", "leaf_bramble_wall"],
+    spells: ["leaf_sprout", "dusk_chill_touch", "leaf_thorn_patch", "dusk_shadow_step", "leaf_groves_blessing"],
   },
   {
     id: "pre_maelstrom",
@@ -503,12 +517,12 @@ const STANDARD_DECKS: PremadeDeck[] = [
     boardSize: 4,
     tier: "hard",
     cards: [
-      "gale_sirocco", "gale_windsor", "gale_vvulture", "gale_syt_bird", "gale_whirlwolf",
-      "gale_fano", "gale_totem", "gale_skyforce", "gale_toxhawk", "aqua_kinguin",
-      "aqua_polarking", "aqua_anglerfish", "aqua_arctik", "aqua_piranha", "aqua_bulletshrimp",
-      "aqua_tide", "aqua_driftwraith", "aqua_coralgolem",
+      "gale_sirocco", "gale_windsor", "gale_guan", "gale_galeon", "gale_syt_bird",
+      "gale_whirlwolf", "gale_fano", "gale_totem", "gale_skyforce", "aqua_blackice",
+      "aqua_polarking", "aqua_misty", "aqua_anglerfish", "aqua_subcool", "aqua_bootlegger",
+      "aqua_tide", "aqua_driftwraith", "aqua_kraken",
     ],
-    spells: ["gale_gust", "aqua_chill", "aqua_frost_patch", "gale_tailwind", "aqua_ice_wall"],
+    spells: ["gale_gust", "aqua_chill", "aqua_frost_patch", "gale_tailwind", "aqua_dense_fog"],
   },
 ];
 
@@ -607,24 +621,24 @@ const LARGE_EXTRAS: Record<string, string[]> = {
     "bolt_thundercat", "bolt_zoez",
   ],
   pre_solar_crown: [
-    "dawn_oxin", "dawn_veil", "dawn_stbern", "dawn_solara", "dawn_sparkle",
-    "dawn_sphere", "pyro_heatsink_golem", "pyro_tiki", "pyro_staph", "pyro_sparky",
-    "pyro_woof", "pyro_fenrir",
+    "dawn_oxin", "dawn_warphant", "dawn_stbern", "dawn_solara", "dawn_sparkle",
+    "dawn_sphere", "pyro_tiki", "pyro_smog_card", "pyro_taper", "pyro_ash_boar",
+    "pyro_firebird", "pyro_magmaw",
   ],
   pre_titanfall: [
-    "bore_rockgoblin", "bore_armadillo", "bore_smith", "bore_lithara", "bore_kcor",
-    "bore_sling", "bolt_jolt", "bolt_buzz", "bolt_drshock", "bolt_zap",
-    "bolt_zagphu", "bolt_voltcher",
+    "bore_rockgoblin", "bore_monger", "bore_smith", "bore_lithara", "bore_old_timer",
+    "bore_sling", "bolt_buzz", "bolt_surge", "bolt_zipp", "bolt_electricel",
+    "bolt_thundercat", "bolt_voltogon",
   ],
   pre_black_tide: [
-    "dusk_zhunk", "dusk_gool", "dusk_soul_wisp", "dusk_harve", "dusk_jackl",
-    "dusk_skeleton_knight", "leaf_lumberjack", "leaf_walking_tree", "leaf_stickviper", "leaf_leaf",
-    "leaf_cactus", "leaf_rubyo",
+    "dusk_gravekeeper", "dusk_rip", "dusk_gool", "dusk_soul_wisp", "dusk_harve",
+    "dusk_jackl", "leaf_python", "leaf_warden", "leaf_stickviper", "leaf_bark_bushmen",
+    "leaf_guardian", "leaf_rubyo",
   ],
   pre_maelstrom: [
-    "gale_stormhide_bison", "gale_guan", "gale_breeze", "gale_wista", "gale_swillow",
-    "gale_megair", "aqua_polarbear", "aqua_buccaneers", "aqua_subcool", "aqua_bootlegger",
-    "aqua_krakler", "aqua_liquark",
+    "gale_stormhide_bison", "gale_vvulture", "gale_breeze", "gale_wista", "gale_swillow",
+    "gale_toxhawk", "aqua_polarbear", "aqua_harp", "aqua_buccaneers", "aqua_bulletshrimp",
+    "aqua_liquark", "aqua_hydrogon",
   ],
 };
 
@@ -663,10 +677,10 @@ const LARGE_SPELL_EXTRAS: Record<string, string[]> = {
   pre_emberforge: ["pyro_flare_push", "bore_fortify", "bore_shatterpoint"],
   pre_thornwind: ["leaf_snare", "leaf_groves_blessing", "gale_vortex_strike"],
   pre_nightcircuit: ["bolt_rewire", "bolt_power_rebate", "dusk_phantom_spikes"],
-  pre_solar_crown: ["pyro_ember_trap", "dawn_grace", "dawn_radiant_barrier"],
-  pre_titanfall: ["bolt_recon_ping", "bolt_rewire", "bore_stone_wall"],
-  pre_black_tide: ["dusk_bone_snare", "leaf_snare", "dusk_veil_of_shadows"],
-  pre_maelstrom: ["gale_downdraft", "aqua_steam_vent", "gale_squall_line"],
+  pre_solar_crown: ["pyro_ember_trap", "dawn_grace", "pyro_firewall"],
+  pre_titanfall: ["bolt_recon_ping", "bolt_rewire", "bolt_overload_field"],
+  pre_black_tide: ["dusk_bone_snare", "leaf_snare", "leaf_bramble_wall"],
+  pre_maelstrom: ["gale_downdraft", "aqua_steam_vent", "aqua_ice_wall"],
 };
 
 /** The large-board build of a standard deck: the same shell plus its extras.

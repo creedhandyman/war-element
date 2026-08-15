@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  RUN_LENGTH, RUN_REWARD, ladderProgress, nextSeat, recordResult, rewardFor,
+  RUN_LENGTH, RUN_REWARD, boardOfRun, ladderProgress, nextSeat, recordResult, rewardFor, runReward,
   runComplete, runOver, startRun,
 } from "../../data/gauntlet";
 import { DECK_TIERS, decksForTier } from "../../data/custom-decks";
@@ -147,5 +147,42 @@ describe("settling an arena match", () => {
     const after = settleArena(before, { won: true, againstPremade: true }, pay);
     expect(after.gauntlet).toBeUndefined();
     expect(shards(after)).toBe(2);
+  });
+});
+
+describe("the large board pays more", () => {
+  it("scales the run reward by the battlefield, not just the rung", () => {
+    // A 5x5 run is thirty cards, an eight-spell book and a match about a third
+    // longer. Paying both boards the same made 4x4 strictly the better earner
+    // per minute — the wrong incentive to hang on the harder format.
+    for (const tier of DECK_TIERS) {
+      expect(runReward(tier, 5), tier).toBeGreaterThan(runReward(tier, 4));
+      expect(runReward(tier, 4), `${tier} 4x4 is the printed base`).toBe(RUN_REWARD[tier]);
+    }
+    // Still ordered up the ladder on the big board, not just the small one.
+    expect(runReward("easy", 5)).toBeLessThan(runReward("mid", 5));
+    expect(runReward("mid", 5)).toBeLessThan(runReward("hard", 5));
+  });
+
+  it("pays the board the run was DEALT for, whatever the Arena shows later", () => {
+    // The run outlives the picker: start one on 5x5, flip the battlefield, and
+    // the payout must not follow the toggle.
+    const run = startRun("hard", 5, () => 0);
+    expect(run.board).toBe(5);
+    expect(boardOfRun(run)).toBe(5);
+    const done = { ...run, won: run.seats.length };
+    expect(rewardFor(done)).toBe(runReward("hard", 5));
+  });
+
+  it("reads the board off the seat ids when a run predates the field", () => {
+    // Runs saved before `board` existed carry no value; the large builds' ids
+    // end in `_5`, so the rate is still recoverable rather than defaulting to
+    // the cheaper board and quietly underpaying.
+    const big = startRun("mid", 5, () => 0);
+    const legacy = { tier: big.tier, seats: big.seats, won: big.seats.length };
+    expect(boardOfRun(legacy)).toBe(5);
+    expect(rewardFor(legacy)).toBe(runReward("mid", 5));
+    const small = startRun("mid", 4, () => 0);
+    expect(boardOfRun({ tier: small.tier, seats: small.seats, won: 0 })).toBe(4);
   });
 });

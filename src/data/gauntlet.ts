@@ -39,8 +39,26 @@ export const RUN_LENGTH = 4;
  *  it is worth climbing to. */
 export const RUN_REWARD: Record<DeckTier, number> = { easy: 10, mid: 18, hard: 30 };
 
+/** What the LARGE board multiplies that by.
+ *
+ *  A 5x5 run is a bigger ask on every axis: thirty-card decks, an eight-spell
+ *  book, and matches that run about a third longer than the standard board's.
+ *  Paying both boards the same made the 4x4 rung strictly the better earner per
+ *  minute, which is the wrong incentive to put on the harder format. */
+export const BIG_BOARD_PAY = 1.5;
+
+/** Shards for CLEARING a rung on a board. The table above is the 4x4 figure. */
+export const runReward = (tier: DeckTier, board: number): number =>
+  Math.round(RUN_REWARD[tier] * (board === 5 ? BIG_BOARD_PAY : 1));
+
 export interface GauntletRun {
   tier: DeckTier;
+  /** The battlefield this run was dealt for. Stored rather than derived because
+   *  the PAYOUT depends on it: a run started on 5x5 has to pay the 5x5 rate
+   *  when it finishes, whatever board the Arena happens to be showing by then.
+   *  Absent on a run written before this existed — those read as 4x4, which is
+   *  what they were dealt at if their seat ids carry no `_5`. */
+  board?: number;
   /** The dealt order, by deck id. Fixed at the start so the run cannot be
    *  re-rolled by leaving and coming back. */
   seats: string[];
@@ -66,7 +84,7 @@ export function startRun(tier: DeckTier, boardSize: number, rand: () => number =
     const j = Math.floor(rand() * (i + 1));
     [seats[i], seats[j]] = [seats[j], seats[i]];
   }
-  return { tier, seats: seats.slice(0, RUN_LENGTH).map((d) => d.id), won: 0 };
+  return { tier, board: boardSize, seats: seats.slice(0, RUN_LENGTH).map((d) => d.id), won: 0 };
 }
 
 export const runOver = (run?: GauntletRun): boolean =>
@@ -89,9 +107,15 @@ export function recordResult(run: GauntletRun, won: boolean): GauntletRun {
   return won ? { ...run, won: run.won + 1 } : { ...run, lost: true };
 }
 
+/** The board a run was dealt for. Falls back to reading the seat ids, which
+ *  carry a `_5` suffix on the large builds, so a run saved before `board`
+ *  existed still pays the right rate. */
+export const boardOfRun = (run: GauntletRun): number =>
+  run.board ?? (run.seats.some((id) => id.endsWith("_5")) ? 5 : 4);
+
 /** Shards owed for a run, and zero unless it was actually completed. */
 export const rewardFor = (run?: GauntletRun): number =>
-  runComplete(run) ? RUN_REWARD[run!.tier] : 0;
+  runComplete(run) ? runReward(run!.tier, boardOfRun(run!)) : 0;
 
 /** Rungs in ladder order with whether each has ever been cleared. */
 export const ladderProgress = (g: GauntletState | undefined) =>

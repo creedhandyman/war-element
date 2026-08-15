@@ -2264,7 +2264,12 @@ export function loadStory(): StorySave {
           && typeof run.won === "number" && run.won >= 0 && run.won <= run.seats.length
           && DECK_TIERS.includes(run.tier);
         return {
-          run: ok ? run : undefined,
+          // `board` decides the PAYOUT, so a junk value would pay the wrong
+          // rate; anything that is not 4 or 5 is dropped and `boardOfRun`
+          // falls back to reading the seat ids.
+          run: ok
+            ? { ...run, board: run.board === 4 || run.board === 5 ? run.board : undefined }
+            : undefined,
           cleared: Array.isArray(g.cleared) ? g.cleared.filter((t) => DECK_TIERS.includes(t)) : [],
         };
       })(),

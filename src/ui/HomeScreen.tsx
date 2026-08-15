@@ -30,7 +30,7 @@ import {
   deckCapFor, isCleared, isOpen, preferredLoadout, type StoryRegion, type StorySave,
 } from "../data/story";
 import { CARDS } from "../data/cards";
-import { RUN_REWARD, runOver } from "../data/gauntlet";
+import { boardOfRun, runOver, runReward } from "../data/gauntlet";
 import { decksForTier } from "../data/custom-decks";
 import { deckArtUrl } from "./DeckPickerSheet";
 import { EL_COLOR, EL_ICON } from "./shared";
@@ -277,7 +277,7 @@ function buildLive(
       // "Even", not "mid": that is what the Arena segment and the deck sheet
       // both call this rung, and Home is the third surface naming it.
       body: `${run.seats.length - run.won} to go on the ${run.tier === "mid" ? "even" : run.tier} rung.`
-        + ` One loss ends the run — ${RUN_REWARD[run.tier]} shards if it does not.`,
+        + ` One loss ends the run — ${runReward(run.tier, boardOfRun(run))} shards if it does not.`,
       cta: "Fight", onGo: go.onArena,
       // The face of the deck in the next seat, not a generic backdrop. The
       // first cut pointed at `/battlefield.png` — 3.5 MB, the only PNG art

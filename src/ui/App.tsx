@@ -39,7 +39,7 @@ import {
   spellbookFor} from "../engine";
 import { spellCapForBoard } from "../engine/spells";
 import {
-  RUN_REWARD, nextSeat, runComplete, runOver, settleArena, startRun,
+  boardOfRun, nextSeat, runComplete, runOver, runReward, settleArena, startRun,
 } from "../data/gauntlet";
 import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online";
 import { Board } from "./Board";
@@ -2390,7 +2390,7 @@ export function App() {
                   >
                     <span className="gt-start-main">
                       Run the {runTier === "easy" ? "Easy" : runTier === "mid" ? "Even" : "Hard"} gauntlet
-                      <em className="gt-pay">+{RUN_REWARD[runTier]}</em>
+                      <em className="gt-pay">+{runReward(runTier, boardSize)}</em>
                       {(story.gauntlet?.cleared ?? []).includes(runTier) && (
                         <i className="gt-done" title="Cleared before">✓</i>
                       )}
@@ -2405,7 +2405,7 @@ export function App() {
                       </span>
                       <span className="gt-sub">
                         {runComplete(gauntletRun)
-                          ? `Run cleared — +${RUN_REWARD[gauntletRun.tier]} shards banked.`
+                          ? `Run cleared — +${runReward(gauntletRun.tier, boardOfRun(gauntletRun))} shards banked.`
                           : gauntletRun.lost
                             ? `Beaten on seat ${gauntletRun.won + 1}. The run is over.`
                             : `Seat ${gauntletRun.won + 1} of ${gauntletRun.seats.length} · ${deckLabel(p2DeckId)}`}
