@@ -1488,10 +1488,18 @@ export function applyPack(save: StorySave, result: PackResult): StorySave {
   );
 }
 
+/** Bank shards. The one place they are added, so a grant that is not a match
+ *  win — an event reward, a top-up later — mints a hero the same way a win does
+ *  rather than quietly dropping the payment on a save that has none yet. */
+export function addShards(save: StorySave, n: number): StorySave {
+  if (!n) return save;
+  const hero = save.hero ?? newHero();
+  return { ...save, hero: { ...hero, shards: Math.max(0, hero.shards + n) } };
+}
+
 /** Pay out shards for a win. */
 export function awardShards(save: StorySave, kind: keyof typeof SHARDS_PER_WIN): StorySave {
-  const hero = save.hero ?? newHero();
-  return { ...save, hero: { ...hero, shards: hero.shards + SHARDS_PER_WIN[kind] } };
+  return addShards(save, SHARDS_PER_WIN[kind]);
 }
 
 // ── opening battles ─────────────────────────────────────────────────────────
@@ -2105,6 +2113,14 @@ export interface StorySave {
    *  ALL SEEN, not all new — retro-flagging a finished collection as three
    *  hundred unread cards is a worse lie than flagging none of them. */
   unseen?: string[];
+  /** Event ids already beaten. See `data/events.ts`.
+   *
+   *  The whole of the event feature's state. An event is available until its id
+   *  is in here and gone afterwards, and its reward is paid by the same write
+   *  that adds it — so this is also the thing that makes paying twice
+   *  impossible. Absent on every save written before events existed, which
+   *  correctly reads as "none beaten yet". */
+  eventsDone?: string[];
   /** Region id -> Blight earned from world progress. The region's own baseline
    *  is applied on read, so it can never be saved away. */
   blight: Record<string, number>;
@@ -2276,6 +2292,14 @@ export function loadStory(): StorySave {
       // rename, must not sit in the collection wearing a flag for a row that
       // is not there. Absent => [], i.e. an old save reads as all seen.
       unseen: known(p.unseen).filter((id) => collection.includes(id)),
+      // Plain strings, deduped. NOT checked against the event list: an id for an
+      // event that has been retired must SURVIVE the load, because dropping it
+      // would re-open the event and pay its reward again the moment it came
+      // back. Unknown ids are inert everywhere else — `completeEvent` looks the
+      // event up before it pays — so keeping them costs nothing.
+      eventsDone: Array.isArray(p.eventsDone)
+        ? [...new Set(p.eventsDone.filter((x): x is string => typeof x === "string"))]
+        : [],
       // A deck can only hold cards you own — a stale entry silently drops out.
       deck: known(p.deck).filter((id) => collection.includes(id)),
       blight: p.blight && typeof p.blight === "object" ? (p.blight as Record<string, number>) : {},

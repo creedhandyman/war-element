@@ -30,6 +30,7 @@ import {
   deckCapFor, isCleared, isOpen, preferredLoadout, type StoryRegion, type StorySave,
 } from "../data/story";
 import { CARDS } from "../data/cards";
+import { openEvents, type GameEvent } from "../data/events";
 import { boardOfRun, runOver, runReward } from "../data/gauntlet";
 import { decksForTier } from "../data/custom-decks";
 import { deckArtUrl } from "./DeckPickerSheet";
@@ -64,6 +65,9 @@ export function HomeScreen(props: {
    *  wrong map twice. */
   onStory: (regionId?: string) => void;
   onArena: () => void;
+  /** Start an event match. Home is the ONLY way in — an event deck is not in
+   *  any picker — so this is the whole entrance. */
+  onEvent: (event: GameEvent) => void;
   onShop: (tab: "packs" | "crafter") => void;
   onBuilder: () => void;
   onCollection: () => void;
@@ -122,10 +126,10 @@ export function HomeScreen(props: {
 
   // Destructured: `props` is a fresh object every render, so a dep on it made
   // this memo a no-op and re-ran a ~312-card `canCraft` scan on every paint.
-  const { onArena, onShop, onStory } = props;
+  const { onArena, onEvent, onShop, onStory } = props;
   const live = useMemo(
-    () => buildLive(save, { onArena, onShop, onStory }),
-    [save, onArena, onShop, onStory],
+    () => buildLive(save, { onArena, onEvent, onShop, onStory }),
+    [save, onArena, onEvent, onShop, onStory],
   );
   const feature = live.find((l) => l.feature);
   const rows = live.filter((l) => !l.feature);
@@ -262,7 +266,12 @@ function seatArt(run: NonNullable<StorySave["gauntlet"]>["run"]): string | null 
 
 function buildLive(
   save: StorySave,
-  go: { onArena: () => void; onShop: (tab: "packs" | "crafter") => void; onStory: (regionId?: string) => void },
+  go: {
+    onArena: () => void;
+    onEvent: (event: GameEvent) => void;
+    onShop: (tab: "packs" | "crafter") => void;
+    onStory: (regionId?: string) => void;
+  },
 ): Live[] {
   const out: Live[] = [];
   const run = save.gauntlet?.run;
@@ -285,6 +294,23 @@ function buildLive(
       // (`.battlefield-bg { display: none }`) — fetched on the LANDING screen
       // for a 118px strip masked to transparency at its left edge.
       art: seatArt(run) ?? undefined, rim: "rgba(201,162,75,.55)",
+    });
+  }
+
+  // Events sit under a live run and above everything else. A run can be LOST by
+  // walking away and an event cannot, so it does not outrank one — but nothing
+  // below this decays at all, and an event is the only row here that can be
+  // used up. No `live` dot for exactly that reason: this file reserves the dot
+  // for things that are running and can end without you, and an event waits.
+  for (const e of openEvents(save)) {
+    out.push({
+      id: e.id,
+      tag: e.tag,
+      title: e.name,
+      body: e.blurb,
+      cta: "Challenge",
+      onGo: () => go.onEvent(e),
+      el: "DUSK", art: "/maps/dusk.webp", rim: "rgba(149,117,255,.5)",
     });
   }
 

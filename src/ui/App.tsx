@@ -47,6 +47,7 @@ import { CardView } from "./CardView";
 import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
 import { deckCodeFromUrl } from "../data/deck-code";
+import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
 import { REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
 import {
@@ -357,6 +358,14 @@ export function App() {
   const [p1DeckId, setP1DeckId] = useState(premadeDecksFor(4)[0].id);
   const [p2DeckId, setP2DeckId] = useState(premadeDecksFor(4)[1].id);
   const gauntletRun = story.gauntlet?.run;
+  /** The event being fought, DERIVED from the opponent seat rather than stored.
+   *
+   *  Storing it would mean owning a lifecycle — set it on the Home tap, clear it
+   *  on leaving, on picking another deck, on settling — and every one of those
+   *  is a chance for the flag and the seat to disagree about which fight this
+   *  is. The deck in the chair already answers the question, and it answers it
+   *  correctly for free: pick any other deck and this goes null on its own. */
+  const eventRun: GameEvent | null = eventForDeck(p2DeckId) ?? null;
   /** The rung a new run would use — whatever the opponent seat is currently on.
    *  An untiered deck (an original, or one you built) has no rung, so the
    *  middle one is the sensible default and the button names it either way. */
@@ -368,7 +377,11 @@ export function App() {
     // to leave the other seat locked to "GAUNTLET · SEAT 1" with no panel on
     // screen to explain it or to give the run up — a dead control and a lie
     // about what you were about to play.
-    arenaMode === "ai" && gauntletRun && !runOver(gauntletRun)
+    // An event is not a seat. A run left open used to seize the opponent chair
+    // unconditionally, so tapping the Home event card while one was live handed
+    // you the gauntlet deck instead — and then settled the result against the
+    // run. An event does not touch the run, in either direction.
+    arenaMode === "ai" && !eventRun && gauntletRun && !runOver(gauntletRun)
       ? nextSeat(gauntletRun, boardSize)
       : null;
   /** THE RUN OWNS THE OPPONENT DECK while it is live.
@@ -394,7 +407,11 @@ export function App() {
   // Selectable decks = those + the player's own custom decks. Custom decks have
   // no board size of their own and are offered in both modes; the engine never
   // enforces deck length at match start, so a short deck simply runs out sooner.
-  const deckPool: CustomDeck[] = [...modePremades, ...customDecks];
+  // Event decks are in the RESOLVER but never in a picker — `modePremades` and
+  // `customDecks` are what the deck sheet is handed, and this list is not one of
+  // them. Without them here the event seat resolved through the `?? modePremades[0]`
+  // fallback and you fought Inferno Blitz under the event's name.
+  const deckPool: CustomDeck[] = [...modePremades, ...customDecks, ...EVENT_DECKS];
   // Resolve a side's card list / label; fall back to the first premade if a
   // selection ever goes missing (e.g. a custom deck deleted mid-session).
   const resolveDeckCards = (deckId: string): string[] =>
@@ -419,6 +436,12 @@ export function App() {
     const remap = (id: string): string => {
       if (modePremades.some((d) => d.id === id)) return id;
       if (customDecks.some((d) => d.id === id)) return id;
+      // An event deck is sized for ONE board and has no sibling build to swap
+      // to. It also arrives together with a `setBoardSize`, so this effect fires
+      // immediately after Home seats it — and without this line the lookup for
+      // a non-existent `…_5` variant fell through to `modePremades[0]` and threw
+      // the event opponent away between the tap and the match.
+      if (EVENT_DECKS.some((d) => d.id === id)) return id;
       const base = id.endsWith("_5") ? id.slice(0, -2) : id;
       const want = boardSize === 5 ? `${base}_5` : base;
       return modePremades.some((d) => d.id === want) ? want : modePremades[0].id;
@@ -479,8 +502,20 @@ export function App() {
     settledMatch.current = game;
     const won = game.win?.winner === "P1";
     const againstPremade = PREMADE_DECKS.some((d) => d.id === p2DeckId);
+    const event = eventForDeck(p2DeckId);
     setStory((prev) => {
-      const next = settleArena(prev, { won, againstPremade }, (sv) => awardShards(sv, "arena"));
+      // An event settles on its OWN path and never through `settleArena`, which
+      // advances or ends a live Gauntlet run unconditionally — so routing an
+      // event through it would burn a seat you never fought, or end the run
+      // outright on a loss. It pays no arena shards either way: an event deck is
+      // not in PREMADE_DECKS, so there was nothing for `settleArena` to award.
+      //
+      // The reward is paid inside the same set-membership check that records the
+      // clear, so a replayed settle returns the save untouched and cannot pay
+      // twice — and a loss records nothing, leaving the event open.
+      const next = event
+        ? (won ? completeEvent(prev, event.id) : prev)
+        : settleArena(prev, { won, againstPremade }, (sv) => awardShards(sv, "arena"));
       if (next !== prev) saveStory(next);
       return next;
     });
@@ -2540,7 +2575,13 @@ export function App() {
               ) : (
                 <DeckSeat
                   side="foe"
-                  flag={gauntletSeat ? `GAUNTLET · SEAT ${(gauntletRun?.won ?? 0) + 1}` : twoPlayer ? "P2 · SECOND PLAYER" : "AI · P2"}
+                  /* The seat says which fight this is. Without the event case
+                     the flag read a flat "AI · P2" over a deck called "Darkest
+                     night" — nothing on the screen said a pack was riding on
+                     it. The seat stays CHANGEABLE (unlike a run's): picking
+                     another deck is how you back out, and `eventRun` derives
+                     from this seat, so doing so ends the event cleanly. */
+                  flag={eventRun ? "EVENT · ONE TIME ONLY" : gauntletSeat ? `GAUNTLET · SEAT ${(gauntletRun?.won ?? 0) + 1}` : twoPlayer ? "P2 · SECOND PLAYER" : "AI · P2"}
                   label={deckLabel(p2DeckId)}
                   cards={resolveDeckCards(p2DeckId)}
                   /* Dealt, not chosen: opening the sheet here would be the
@@ -2646,6 +2687,16 @@ export function App() {
           // the settle effect is NOT — so arriving here in hot-seat showed no
           // run at all and then let a 2-player match end it.
           onArena={() => { setArenaMode("ai"); setTab("arena"); }}
+          // Seats the event and drops you in the Arena on its board, ready to
+          // start. Not auto-started: the event is fought with YOUR deck and the
+          // Arena is where you pick it, so walking in without that step would be
+          // fighting a 30-card DUSK build with whatever was last selected.
+          onEvent={(e) => {
+            setArenaMode("ai");
+            setBoardSize(e.boardSize);
+            setP2DeckId(e.deck.id);
+            setTab("arena");
+          }}
           onShop={(t) => { setShopTab(t); setTab("shop"); }}
           onBuilder={() => navDo({ t: "builder", open: true })}
           onCollection={() => setHomeCollection(true)}
