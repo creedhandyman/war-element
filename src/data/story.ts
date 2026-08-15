@@ -1315,16 +1315,30 @@ export function canCraft(save: StorySave, defId: string): { ok: boolean; reason?
   return { ok: true };
 }
 
+/** Mark cards as acquired-but-unread. Every path that adds to the collection
+ *  goes through here — pack, craft and story recruit — because a fourth path
+ *  added later that forgets is a card that is silently never new. */
+export function markUnseen(save: StorySave, ids: readonly string[]): StorySave {
+  const add = ids.filter((id) => !(save.unseen ?? []).includes(id));
+  return add.length ? { ...save, unseen: [...(save.unseen ?? []), ...add] } : save;
+}
+
+/** The player opened this card and has now seen it. */
+export const markSeen = (save: StorySave, id: string): StorySave =>
+  (save.unseen ?? []).includes(id)
+    ? { ...save, unseen: (save.unseen ?? []).filter((x) => x !== id) }
+    : save;
+
 /** Spend the essence and add the card. Refuses rather than going negative. */
 export function craftCard(save: StorySave, defId: string): StorySave {
   if (!canCraft(save, defId).ok) return save;
   const hero = save.hero ?? newHero();
   const el = getDef(defId).element;
-  return {
+  return markUnseen({
     ...save,
     collection: [...save.collection, defId],
     hero: { ...hero, essence: { ...hero.essence, [el]: (hero.essence[el] ?? 0) - craftCostOf(defId) } },
-  };
+  }, [defId]);
 }
 
 // ── shinies ─────────────────────────────────────────────────────────────────
@@ -1465,11 +1479,11 @@ export function applyPack(save: StorySave, result: PackResult): StorySave {
   const essence = { ...hero.essence };
   for (const [el, n] of Object.entries(result.refund)) essence[el] = (essence[el] ?? 0) + n;
   return addShiny(
-    {
+    markUnseen({
       ...save,
       collection: [...save.collection, ...result.fresh],
       hero: { ...hero, shards: Math.max(0, hero.shards - PACK_COST), essence },
-    },
+    }, result.fresh),
     result.shiny,
   );
 }
@@ -2047,6 +2061,18 @@ export interface StorySave {
    *  the save rather than in React state precisely so it CANNOT be re-rolled:
    *  leaving the Arena and coming back has to resume the same four opponents. */
   gauntlet?: GauntletState;
+  /** Cards you own but have not LOOKED at yet — the ones that still wear a
+   *  NEW flag in the collection.
+   *
+   *  Stored as the unseen set rather than the seen one because it shrinks to
+   *  nothing: a completed collection carries an empty array here, where a
+   *  `seen` list would carry all 312 ids forever. Cleared per card the moment
+   *  its detail is opened, so "checked out" means exactly what it looks like.
+   *
+   *  Absent on every save written before this existed. Those are treated as
+   *  ALL SEEN, not all new — retro-flagging a finished collection as three
+   *  hundred unread cards is a worse lie than flagging none of them. */
+  unseen?: string[];
   /** Region id -> Blight earned from world progress. The region's own baseline
    *  is applied on read, so it can never be saved away. */
   blight: Record<string, number>;
@@ -2214,6 +2240,10 @@ export function loadStory(): StorySave {
       cleared: Array.isArray(p.cleared) ? p.cleared.filter((c) => typeof c === "string" && !!nodeById(c)) : [],
       collection: collection.length ? collection : [...STARTER_DECK],
       pity: p.pity && typeof p.pity === "object" ? (p.pity as Record<string, number>) : {},
+      // Scoped to what is actually owned: a card refunded, or dropped by a
+      // rename, must not sit in the collection wearing a flag for a row that
+      // is not there. Absent => [], i.e. an old save reads as all seen.
+      unseen: known(p.unseen).filter((id) => collection.includes(id)),
       // A deck can only hold cards you own — a stale entry silently drops out.
       deck: known(p.deck).filter((id) => collection.includes(id)),
       blight: p.blight && typeof p.blight === "object" ? (p.blight as Record<string, number>) : {},
@@ -2482,5 +2512,7 @@ export function applyClear(save: StorySave, node: StoryNode, result: RecruitResu
   // immediately push shadow into it.
   const region = regionOfNode(node.id);
   const paid = region ? awardEssence(next, region, node) : next;
-  return advanceBlight(pushBackBlight(addShiny(paid, result.shiny), node), node);
+  // Recruits are new until looked at, same as a pack pull or a conjure.
+  const flagged = markUnseen(paid, result.won.filter((id) => !save.collection.includes(id)));
+  return advanceBlight(pushBackBlight(addShiny(flagged, result.shiny), node), node);
 }

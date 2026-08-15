@@ -99,6 +99,13 @@ export function HomeScreen(props: {
    *  forward search returns the OLDEST match — `preferredLoadout` exists
    *  precisely to stop that, and Story prep goes through it. Two screens one
    *  tap apart naming different teams is the bug it was written for. */
+  /** Cards you own and have not opened yet. Scoped to the collection so a flag
+   *  left behind by a card you no longer hold cannot inflate it. */
+  const newCards = useMemo(() => {
+    const owned = new Set(save.collection);
+    return (save.unseen ?? []).filter((id) => owned.has(id)).length;
+  }, [save.unseen, save.collection]);
+
   const teamName = useMemo(
     () => preferredLoadout(save, undefined, () => true)?.name ?? null,
     [save],
@@ -225,11 +232,13 @@ export function HomeScreen(props: {
           <button className="home-tile col" onClick={props.onCollection}>
             <span className="home-tile-name">Collection</span>
             <span className="home-tile-sub">{collected} of {PLACED_CARDS.length}</span>
-            {/* Missing, not "conjurable": a tile's number has to be about the
-                place it opens, and you conjure in the Shop. The collection
-                screen's own job is the missing half — every unowned card there
-                names the node that drops it — so this is its to-do count. */}
-            <span className="home-tile-num">{PLACED_CARDS.length - collected} MISSING</span>
+            {/* NEW when there is any, MISSING otherwise. Both are about the
+                place this tile opens — you conjure in the Shop, which is why
+                it is not that — and NEW is the one that CHANGED since you last
+                looked, which is what a tile number is for. */}
+            {newCards > 0
+              ? <span className="home-tile-num gold">{newCards} NEW</span>
+              : <span className="home-tile-num">{PLACED_CARDS.length - collected} MISSING</span>}
           </button>
         </div>
       </div>

@@ -3785,6 +3785,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .col-empty { padding: 28px 4px; }
 .col-side { display: flex; flex-direction: column; gap: 4px; }
 .col-deck-full b { color: var(--gold-lit); }
+/* NEW — a card you own and have not opened. Green, the same "this is yours and
+   it is good news" green the pack reveal uses for a fresh pull, so the two
+   screens are telling one story about the same card. */
+.dt-new {
+  padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 800;
+  letter-spacing: 0.08em; line-height: 1.3;
+  color: var(--legal); border: 1px solid var(--legal);
+  background: color-mix(in srgb, var(--legal) 18%, transparent);
+}
+.col-card.unseen { border-color: color-mix(in srgb, var(--legal) 55%, var(--panel-line)); }
 
 /* The rail header doubles as its collapse control. Full-width hit target, since
    on a phone this is the thing standing between you and the card grid. */
@@ -4086,6 +4096,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .home-tile-num { margin-top: auto; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; color: var(--ink-dim); }
 .home-tile-num.ok { color: var(--legal); }
 .home-tile-num.warn { color: var(--threat); }
+.home-tile-num.gold { color: var(--gold-lit); }
 
 /* ── shop ─────────────────────────────────────────────────────────────────── */
 .shop-modal { max-width: 640px; text-align: left; }
@@ -4417,6 +4428,65 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .pack-card.dupe { opacity: 0.62; }
 .pack-card.r-mythic.new { border-color: #d08bff; box-shadow: 0 0 14px rgba(208, 139, 255, 0.3); }
 .pack-card.r-legendary.new { border-color: var(--gold-line); box-shadow: 0 0 14px rgba(232, 200, 119, 0.28); }
+/* ── the one-at-a-time reveal ───────────────────────────────────────────────
+   A stack, not a grid. The cards behind the top one ARE the progress bar —
+   which is why there is no second one — and the order is worst-to-best, so the
+   Epic the pack guarantees is the last thing turned rather than one tile of
+   five. See `reveal` in Shop.tsx for the sort. */
+/* The width is EXPLICIT because every child is absolutely positioned: with
+   nothing in flow the stack measures zero, the sheet shrinks to the width of
+   the words "swipe down", and a 208px card hangs out of a 54px box with its
+   own name clipped. An absolute-only container reserves nothing. */
+.pack-stack {
+  position: relative; display: grid; place-items: center;
+  width: min(64vw, 208px); min-height: 340px;
+  margin: 4px auto 10px; touch-action: none;
+}
+/* While cards are still being turned the sheet gets out of the way: the panel
+   behind the card drops to a hint of itself so the card is the only lit thing
+   on screen. It comes back at full strength for the tally, which is reading
+   rather than looking. */
+.pack-reveal.revealing {
+  background: rgba(18, 17, 26, 0.24); border-color: rgba(90, 140, 220, 0.12);
+  box-shadow: none; transition: background 220ms ease, border-color 220ms ease;
+}
+.pack-card.big {
+  position: absolute; top: 0; width: 100%;
+  border-radius: 12px; will-change: transform;
+  transition: transform 200ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 200ms ease;
+}
+.pack-card.big img { height: auto; aspect-ratio: 3 / 4; }
+.pack-card.big.top { cursor: grab; }
+.pack-card.big.top:active { cursor: grabbing; }
+/* The ones still to come read as paper, not as cards you can act on. */
+.pack-card.big.behind { filter: brightness(0.5) saturate(0.7); pointer-events: none; }
+.pack-card.big .pack-name { font-size: 13px; padding: 5px 4px 0; }
+.pack-card.big .pack-tag { font-size: 9.5px; }
+.pack-swipe {
+  position: absolute; bottom: -4px; display: flex; flex-direction: column;
+  align-items: center; gap: 1px; font-size: var(--fs-1);
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint);
+  pointer-events: none;
+}
+.pack-swipe i { font-style: normal; font-size: 15px; animation: swipeNudge 1.6s ease-in-out infinite; }
+@keyframes swipeNudge { 0%, 100% { transform: translateY(0); opacity: .55; } 50% { transform: translateY(4px); opacity: 1; } }
+
+/* Everything already turned, so the pack accumulates in front of you rather
+   than each card replacing the last. */
+.pack-done-strip { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-bottom: 4px; }
+.pack-chip {
+  width: 34px; height: 44px; border-radius: 5px; overflow: hidden;
+  border: 1px solid var(--panel-line); background: var(--void-2); opacity: 0.72;
+}
+.pack-chip img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; display: block; }
+.pack-chip.new { border-color: var(--legal); opacity: 1; }
+.pack-chip.foil { border-color: var(--gold-lit); opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pack-card.big { transition: none; }
+  .pack-swipe i { animation: none; opacity: 0.8; }
+}
+
 .pack-sum { font-size: 12.5px; color: var(--ink-dim); margin: 12px 0 0; }
 .pack-sum b { color: var(--legal); }
 

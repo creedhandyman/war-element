@@ -16,7 +16,7 @@ import { useMemo, useState } from "react";
 import type { CardClass, Element } from "../engine";
 import { CARDS } from "../data/cards";
 import {
-  PLACED_CARDS, bestSource, deckCapFor, isShiny, recruitChance, sourcesOf,
+  PLACED_CARDS, bestSource, deckCapFor, isShiny, markSeen, recruitChance, sourcesOf,
   type StorySave,
 } from "../data/story";
 import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
@@ -123,7 +123,14 @@ export function StoryCollection(props: {
 
   // The detail is a full-screen expand now, so selecting a card no longer has to
   // prise the deck rail open just to be seen.
-  const pick = (id: string) => setDetailId(id);
+  /** Opening a card is what "checked out" means, so the flag clears here and
+   *  nowhere else. Writing on open rather than on close: a player who backs out
+   *  with the system key has still seen it. */
+  const pick = (id: string) => {
+    setDetailId(id);
+    if ((save.unseen ?? []).includes(id)) props.onSave(markSeen(save, id));
+  };
+  const unseen = useMemo(() => new Set(save.unseen ?? []), [save.unseen]);
 
   const detail = detailId ? CARDS.find((d) => d.id === detailId) ?? null : null;
 
@@ -227,7 +234,7 @@ export function StoryCollection(props: {
                 return (
                   <div
                     key={d.id}
-                    className={`deck-thumb carded db-card col-card ${have ? "" : "locked"} ${on ? "selected" : ""} ${foil ? "foil" : ""}`}
+                    className={`deck-thumb carded db-card col-card ${have ? "" : "locked"} ${on ? "selected" : ""} ${foil ? "foil" : ""} ${unseen.has(d.id) ? "unseen" : ""}`}
                     role="button"
                     tabIndex={0}
                     title={foil ? `${d.name} — foil` : have ? d.name : `${d.name} — not yet recruited`}
@@ -244,6 +251,12 @@ export function StoryCollection(props: {
                       >
                         <b>{d.cost}</b>
                       </span>
+                      {/* NEW until you have actually opened it. It sits where
+                          the in-deck tick would, and the tick wins when both
+                          apply — a card already in your deck is not news. */}
+                      {have && unseen.has(d.id) && !on && (
+                        <span className="dt-new" title="Recruited — you have not looked at this one yet">NEW</span>
+                      )}
                       {have ? (
                         on ? <span className="dt-mark" title="In your current deck">✓</span> : null
                       ) : (

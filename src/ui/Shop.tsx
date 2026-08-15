@@ -39,6 +39,30 @@ const ODDS_ROWS = (["rare", "epic", "legendary", "mythic"] as const).map((r) => 
   refund: Math.max(1, Math.floor((CRAFT_COST[r] ?? 4) / 2)),
 }));
 
+/** The pull, ordered so the BEST card is the LAST one turned over.
+ *
+ *  Ascending rarity. The pack guarantees an Epic or better, so the guarantee
+ *  always lands at the bottom of the stack rather than showing up first and
+ *  leaving four commons to sit through. Ties break on foil, then on cost, so
+ *  the final card is the best thing in the pack on every axis a player reads,
+ *  not just on its label.
+ *
+ *  Returns INDICES into `pulled` rather than a re-ordered list: the summary
+ *  counts, the refund table and the new/dupe test all key off the original
+ *  positions, and re-ordering the source to drive a presentation choice is how
+ *  those quietly start disagreeing.
+ */
+export function revealOrder(pulled: readonly string[], shiny: readonly string[] = []): number[] {
+  const rank = (id: string) => -(RARITY_ORDER[getDef(id).rarity ?? ""] ?? 9);
+  return pulled
+    .map((id, i) => ({ id, i }))
+    .sort((a, b) =>
+      rank(a.id) - rank(b.id)
+      || Number(shiny.includes(a.id)) - Number(shiny.includes(b.id))
+      || getDef(a.id).cost - getDef(b.id).cost)
+    .map((x) => x.i);
+}
+
 /** The essence mark on a price: the element's own painted sigil, the same one
  *  the purses and every card of that element wear. Falls back to the generic
  *  gold coin only if the art fails to load, so a price never loses its unit. */
@@ -72,6 +96,19 @@ export function Shop(props: {
    *  true — this only delays SHOWING it, so skipping cannot change a pull. */
   const [tearing, setTearing] = useState(false);
   const tearTimer = useRef<number | null>(null);
+  /** How many of the pack's cards have been turned over. The reveal is one at
+   *  a time, so this is the whole state of it. */
+  const [shown, setShown] = useState(0);
+  /** Live drag offset in px while a swipe is in progress, so the card follows
+   *  the finger instead of snapping when it is let go. */
+  const [drag, setDrag] = useState(0);
+  const dragFrom = useRef<number | null>(null);
+  /** The same distance, in a ref. The STATE drives the visual and the REF
+   *  decides whether the swipe took: `pointerup` reads it, and a state read
+   *  there is whatever the last render saw — which on a fast flick, where move
+   *  and up land in one frame before React re-renders, is still zero. The
+   *  gesture would silently do nothing exactly when it was most decisive. */
+  const dragPx = useRef(0);
   const [el, setEl] = useState<string>("ALL");
   const [previewId, setPreviewId] = useState<string | null>(null);
   /** The pack just torn open, held so the player can actually read it. */
@@ -107,12 +144,21 @@ export function Shop(props: {
    *  toll. Tapping skips it, and reduced-motion never plays it at all. */
   const TEAR_MS = 1100;
 
+  /** Worst to best — see `revealOrder`. */
+  const reveal = useMemo(
+    () => (opened ? revealOrder(opened.pulled, opened.shiny).map((i) => ({ id: opened.pulled[i], i })) : []),
+    [opened],
+  );
+  const allShown = !!opened && shown >= reveal.length;
+
   function tearOpen() {
     const result = openPack(save);
     // Committed BEFORE the animation, not after: the pull is decided and saved
     // the moment you pay, so a closed tab or a skipped beat cannot lose a pack
     // the shards already bought.
     setOpened(result);
+    setShown(0);
+    setDrag(0);
     setLastRefund(Object.values(result.refund).reduce((a, b) => a + b, 0));
     props.onSave(applyPack(save, result));
 
@@ -126,6 +172,31 @@ export function Shop(props: {
       setTearing(false);
     }, TEAR_MS);
   }
+
+  /** Swipe DOWN to turn the next card. A tap counts too — this is the same
+   *  sheet on a desktop, where there is no swipe to make. */
+  const SWIPE_PX = 56;
+  const nextCard = () => {
+    dragPx.current = 0;
+    setDrag(0);
+    setShown((n) => Math.min(n + 1, reveal.length));
+  };
+  const onDragStart = (y: number) => { dragFrom.current = y; dragPx.current = 0; };
+  const onDragMove = (y: number) => {
+    if (dragFrom.current === null) return;
+    // Down only. An upward pull is not a gesture here and rubber-banding one
+    // would suggest there is something above to reach.
+    const d = Math.max(0, y - dragFrom.current);
+    dragPx.current = d;
+    setDrag(d);
+  };
+  const onDragEnd = () => {
+    if (dragFrom.current === null) return;
+    const far = dragPx.current >= SWIPE_PX;
+    dragFrom.current = null;
+    dragPx.current = 0;
+    if (far) nextCard(); else setDrag(0);
+  };
 
   const skipTear = () => {
     if (tearTimer.current) { window.clearTimeout(tearTimer.current); tearTimer.current = null; }
@@ -353,21 +424,62 @@ export function Shop(props: {
 
       {opened && !tearing && (
         <div className="overlay on-top" onClick={() => setOpened(null)}>
-          <div className="modal pack-reveal" onClick={(e) => e.stopPropagation()}>
-            <div className="pack-reveal-head">
-              <h2>Pack opened</h2>
-              <span className="pack-spend">−{PACK_COST}<i className="shard" /></span>
-            </div>
-            {/* Five cards, one row, no carousel — a pack is small enough to read
-                at once, and the row is what makes the Epic guarantee visible. */}
-            <div className="pack-cards">
-              {opened.pulled.map((id, i) => {
+          <div className={`modal pack-reveal ${allShown ? "" : "revealing"}`} onClick={(e) => e.stopPropagation()}>
+            {/* Header, tally and buttons all wait. While you are turning cards
+                the screen is the card — chrome around it is just competition
+                for the one thing you opened the pack to see. */}
+            {allShown && (
+              <div className="pack-reveal-head">
+                <h2>Pack opened</h2>
+                <span className="pack-spend">−{PACK_COST}<i className="shard" /></span>
+              </div>
+            )}
+            {/* ONE AT A TIME, worst to best. A grid of five hands you the
+                whole pack in a glance and the Epic in it is just one of the
+                tiles; turned over one by one with the best last, the pack has
+                a shape. The stack behind the top card is how many are left —
+                it is the progress bar, so there is not a second one. */}
+            {/* Gone once the last card is turned — it reserves 340px for a
+                card that is no longer in it, and the tally would open on a
+                hole where the stack used to be. */}
+            {!allShown && (
+            <div className="pack-stack" data-left={reveal.length - shown}>
+              {reveal.map(({ id, i }, n) => {
                 const d = getDef(id);
                 const isNew = opened.fresh.includes(id) && opened.pulled.indexOf(id) === i;
                 const foil = opened.shiny.includes(id);
                 const rar = d.rarity ? RARITY_STYLE[d.rarity] : null;
+                const turned = n < shown;
+                const isTop = n === shown;
+                // Only the top card and the two behind it are rendered as
+                // stack; everything already turned goes to the ribbon below.
+                if (turned) return null;
+                const depth = n - shown;
+                if (depth > 2) return null;
                 return (
-                  <div key={i} className={`pack-card r-${d.rarity ?? "rare"} ${isNew ? "new" : "dupe"} ${foil ? "foil" : ""}`}>
+                  <div
+                    key={i}
+                    className={`pack-card big r-${d.rarity ?? "rare"} ${isNew ? "new" : "dupe"} ${foil ? "foil" : ""} ${isTop ? "top" : "behind"}`}
+                    style={{
+                      zIndex: 10 - depth,
+                      transform: isTop
+                        ? `translateY(${drag}px) rotate(${drag * 0.02}deg)`
+                        : `translateY(${depth * 7}px) scale(${1 - depth * 0.05})`,
+                      opacity: isTop ? Math.max(0.25, 1 - drag / 260) : 1,
+                      transition: isTop && dragFrom.current !== null ? "none" : undefined,
+                    }}
+                    onPointerDown={isTop ? (e) => {
+                      // Capture is a nicety — it keeps the drag alive if the
+                      // finger leaves the card — and it throws for a pointer
+                      // id the element never saw. The gesture works without it.
+                      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not fatal */ }
+                      onDragStart(e.clientY);
+                    } : undefined}
+                    onPointerMove={isTop ? (e) => onDragMove(e.clientY) : undefined}
+                    onPointerUp={isTop ? onDragEnd : undefined}
+                    onPointerCancel={isTop ? onDragEnd : undefined}
+                    onClick={isTop ? () => { if (dragFrom.current === null && dragPx.current === 0) nextCard(); } : undefined}
+                  >
                     <img src={`/cards/${d.art ?? d.id}.webp`} alt="" loading="lazy"
                       onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
                     {rar && <span className="pack-rar" style={{ color: rar.color, borderColor: rar.color }}>{rar.label}</span>}
@@ -375,15 +487,39 @@ export function Shop(props: {
                       {foil && <i className="foil-tag" title="Foil">✦</i>}
                       {d.name}
                     </span>
-                    {/* The one thing you cannot see from the art: new, foil, or
-                        what the duplicate paid back. */}
                     <span className={`pack-tag ${isNew ? "is-new" : foil ? "is-foil" : "is-dupe"}`}>
                       {isNew ? "NEW" : foil ? "FOIL" : `+${dupeEssenceFor(id)} ${d.element}`}
                     </span>
                   </div>
                 );
               })}
+              <span className="pack-swipe">
+                <i aria-hidden="true">⌄</i>
+                swipe down
+              </span>
             </div>
+            )}
+
+            {/* What has already been turned, small, so the pack accumulates
+                in front of you instead of each card replacing the last. */}
+            {shown > 0 && allShown && (
+              <div className="pack-done-strip">
+                {reveal.slice(0, shown).map(({ id, i }) => {
+                  const d = getDef(id);
+                  const foil = opened.shiny.includes(id);
+                  const isNew = opened.fresh.includes(id) && opened.pulled.indexOf(id) === i;
+                  return (
+                    <span key={i} className={`pack-chip r-${d.rarity ?? "rare"} ${isNew ? "new" : ""} ${foil ? "foil" : ""}`}
+                      title={`${d.name}${isNew ? " — new" : ""}${foil ? " — foil" : ""}`}>
+                      <img src={`/cards/${d.art ?? d.id}.webp`} alt=""
+                        onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {allShown && <>
             <div className="pack-sums">
               <div>New cards <b>{opened.fresh.length}</b> of {opened.pulled.length}</div>
               {opened.shiny.length > 0 && (
@@ -411,6 +547,11 @@ export function Shop(props: {
                 Open another {PACK_COST}<i className="shard" />
               </button>
             </div>
+            </>}
+            {/* Reachable mid-reveal, because the pull is already banked and a
+                sheet you cannot leave is a trap. Turning the rest is the
+                flourish, not the transaction. */}
+
           </div>
         </div>
       )}
