@@ -63,20 +63,32 @@ describe("board-sized premade builds", () => {
     for (const d of premadeDecksFor(5)) expect(d.cards).toHaveLength(deckLimits(5).target);
   });
 
-  it("each large build is its standard shell plus twelve cards", () => {
-    // Derived, not duplicated: editing a standard list must carry into its 5x5
-    // twin rather than leaving the two to drift.
+  it("every standard build has a large twin that is the same DECK", () => {
+    // The large builds used to be `standard.cards ++ extras`, so this test
+    // could check the prefix and get everything else for free. They are written
+    // out separately now — 4x4 rewards combo density and 5x5 rewards breadth,
+    // and the coupling meant neither board could be tuned without the other.
+    //
+    // What decoupling gives up is automatic: a card changed in a 4x4 list no
+    // longer carries into its 5x5 twin. So this asserts what still has to hold
+    // — the two are the same DECK, one per format, agreeing on everything a
+    // player reads — and the size/book/element tests below cover the rest.
     for (const std of premadeDecksFor(4)) {
-      const large = premadeDecksFor(5).find((d) => d.id === `${std.id}_5`)!;
+      const large = premadeDecksFor(5).find((d) => d.id === `${std.id}_5`);
       expect(large, `no large twin for ${std.id}`).toBeTruthy();
-      expect(large.cards.slice(0, std.cards.length)).toEqual(std.cards);
-      expect(large.cards.length - std.cards.length).toBe(12);
-      expect(large.name).toBe(std.name);
-      // The spellbook EXTENDS rather than matching: the big board's cap is 8,
-      // not 5, and the large build used to inherit the standard five and stop —
-      // three slots short of what the deck builder offers for the same board.
-      expect(large.spells?.slice(0, std.spells?.length ?? 0)).toEqual(std.spells);
-      expect((large.spells?.length ?? 0) - (std.spells?.length ?? 0)).toBe(3);
+      expect(large!.name, `${std.id} name`).toBe(std.name);
+      expect(large!.note, `${std.id} note`).toBe(std.note);
+      expect(large!.tier, `${std.id} rung`).toBe(std.tier);
+      // Same elements, whatever the individual cards are: a deck that reads
+      // "GALE + AQUA" in the picker must be that on both battlefields.
+      const els = (d: typeof std) => [...new Set(d.cards.map((id) => CARD_INDEX[id]!.element))].sort();
+      expect(els(large!), `${std.id} elements`).toEqual(els(std));
+    }
+    // And no orphan on the other side — a large build with no standard twin
+    // would show up in one picker and not the other.
+    for (const large of premadeDecksFor(5)) {
+      expect(large.id.endsWith("_5"), `${large.id} naming`).toBe(true);
+      expect(premadeDecksFor(4).some((d) => `${d.id}_5` === large.id), `${large.id} orphan`).toBe(true);
     }
   });
 

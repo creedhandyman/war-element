@@ -465,8 +465,29 @@ Three pieces, all in `src/data/`:
   `chooseBattleAction` is one rule set with no skill dial. easy is a melee pile
   with a top-heavy curve and no front line or healer; mid has a curve, a wall
   and a healer; hard floods cheap bodies, heals them, and shoots over the top.
-  Against the six originals they win 32/54/59% on 4x4 and 21/35/56% on 5x5.
+  Against the six originals they win 33/50/62% on 4x4 and 21/34/59% on 5x5.
   The six stay UNTIERED — hand-tuned archetypes, not rungs.
+
+  **The two battlefields are DECOUPLED.** A 5x5 build used to be
+  `standard.cards ++ LARGE_EXTRAS[id]`, so the formats could never be tuned
+  apart. They want different things: synergy weighting — picking cards that set
+  up and pay off each other's statuses — measured **+5.5 on 4x4 and -5.9 on
+  5x5** over 528 games a cell, both real. A tight ten-round board rewards a
+  combo; a wide fourteen-round one rewards having an answer to more things. The
+  4x4 hard decks are synergy-built now and the 5x5 ones are not. The cost is
+  that a card changed in a 4x4 list no longer carries into its 5x5 twin —
+  `premade-decks.test.ts` covers what the derivation used to give for free.
+
+  **Card choice is otherwise spent as a difficulty lever.** Curve, comp, reach,
+  cost cap, rarity, melee bias and mono-element have all been swept and hard
+  lands 55-62% whatever they say. Two findings worth not repeating: MONO-ELEMENT
+  is clearly WORSE (51-54%) because taking 30 of an element's ~39 buildable
+  cards forces its weak ones in and gives up the other element's answers; and
+  the cohesion metric is ANTI-CORRELATED with quality — the six hand-tuned
+  originals score lowest on it (Inferno Blitz and Frostkeep both 0.00) while the
+  weakest generated rung scores highest. A rung harder than this needs a knob
+  that is not the deck; §10.6's opening allowance is strong (player 2 slots ->
+  1 took hard to 82%/90%) but changes how a match starts.
 
   Two earlier cuts of this got it wrong and both are worth remembering.
   **Tiering on `rarity` inverted the ladder**: types.ts documents rarity as
