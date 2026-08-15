@@ -180,19 +180,48 @@ the death. Both were fixed on reasoning, not on a win-rate delta.
 
 ### Where balance stood at last measure
 
+Solo cores, 4x4, round-robin with **both seat orders**, n=560 per element
+(±4.1 at 95%), 2,240 matches:
+
 ```
-dusk 56.1 · bolt 55.1 · aqua 53.1 · pyro 51.0
-dawn 50.5 · gale 49.0 · bore 47.4 · leaf 37.8     spread 18.3
+bolt 62.5 · bore 59.6 · leaf 54.8 · pyro 53.4
+aqua 50.4 · dusk 47.0 · dawn 37.3 · gale 35.0     spread 27.5
 ```
 
-**LEAF is the standing problem.** Four passes (stat top-ups → roots →
-mid-range cost cuts → matchups) moved it 34.2 → 37.8, roughly a point each.
-What the diagnostics showed: it wasn't losing a positional race, it was being
-*wiped* — ending matches with 0.75 cards alive to AQUA's 5.50 while holding
-**more unspent gold than its opponent**. The cost rebase fixed most of the
-board-presence collapse (0.75 → 2.51 alive); the win rate barely followed. The
-remaining hypothesis, untested: LEAF's payoffs are overwhelmingly end-of-round
-ticks and heals, which resolve *after* the exchange that decided the slot.
+Play both seats. A mirror match measured from the P2 seat reads ~41%, so a
+one-sided round-robin bakes a first-player edge into whichever element sat in
+P1. (Sanity check on this run: P1-only came out bolt 62.7 · bore 60.6 · pyro
+54.4 · leaf 51.4 · aqua 51.0 · dusk 47.1 · dawn 37.4 · gale 30.6 — same
+ordering, so the result is not a seat artifact.)
+
+The previous measure was `dusk 56.1 · bolt 55.1 · aqua 53.1 · pyro 51.0 · dawn
+50.5 · gale 49.0 · bore 47.4 · leaf 37.8`, spread 18.3.
+
+**LEAF is fixed.** It was the standing problem for four passes (stat top-ups →
+roots → mid-range cost cuts → matchups) that moved it 34.2 → 37.8, about a
+point each. It now sits mid-field at 54.8. The likely cause is the
+Photosynthesis rework rather than any of those passes: the bark trigger moved
+from "when at full health" to **+1 shield per hit taken**, ceilinged at
+PRINTED shields + 3 rather than at a flat total. The old version paid out only
+when LEAF was already winning the exchange, and locked every LEAF card
+printing 3+ shields out of half its own aura. Worth remembering as the general
+lesson — the element's problem was an aura that never fired, and four rounds
+of stat tuning never found it.
+
+**GALE (35.0) and DAWN (37.3) are the new floor**, ~25 points under BOLT, and
+the spread is worse than it was. DAWN is the stranger case: First Light (+1 SP
+a round to a cap of 14) was added specifically to lift it off the capture-race
+floor and it is still second-bottom. AQUA beats both badly (DAWN 23%, GALE 20%
+into it). Untested hypotheses, in order of promise: DAWN is the most expensive
+element in the game and +1 SP may simply be too small a nudge; GALE's whole
+identity is speed in a game that is decided by capture, so it should be
+winning the race it is losing.
+
+**Stormquill's cap is not the cause of GALE's number.** Ablated directly:
+as-shipped (cap 5, talent +2 SP) 35.0%, pre-nerf (uncapped, +3 SP) 35.2%,
+cap 10 + 3 SP 35.2% — 0.2 points across 560 matches each. The cap removed an
+unbounded scaling loop at zero measurable cost, which is the ideal shape for a
+nerf, but do not expect reverting it to buy GALE anything.
 
 Premade-deck (not solo-core) numbers are stale — they predate the Warthog /
 Rollo / Zombination / Doom changes and everything since.
@@ -214,7 +243,8 @@ Rollo / Zombination / Doom changes and everything since.
 
 ## Open threads
 
-- LEAF still ~9 points below the field (see above).
+- GALE (35.0) and DAWN (37.3) are ~25 points below BOLT; spread is 27.5 and
+  widening (see "Where balance stood"). LEAF is no longer the problem.
 - `ELEMENT_MATCHUP` has no UI surface.
 - `deckById`'s silent fallback (see Measuring balance).
 - Spell curve expansion — the big queued feature. Today's `spells.ts` has the
