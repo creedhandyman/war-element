@@ -98,11 +98,18 @@ export function joinRoom(
 
   channel.on("broadcast", { event: "state" }, ({ payload }) => {
     const theirs = typeof payload.clock === "number" ? payload.clock : clock + 1;
-    // Strictly newer only. Equal clocks mean both sides produced a state from
-    // the same parent, which a turn-based game should never do — the host wins
-    // so the two can't diverge into a swap loop.
-    if (theirs < clock || (theirs === clock && role === "host")) return;
-    clock = Math.max(clock, theirs);
+    // STRICTLY newer, for both roles. The first cut let an EQUAL clock through
+    // on the guest (it only skipped ties on the host, meaning to give the host
+    // the win in a genuine race) — but every heartbeat is a resend carrying its
+    // ORIGINAL clock, so on the guest each one re-delivered a state it had
+    // already applied, every 2.5s. Same state, so mostly invisible, except that
+    // one-shot side effects keyed off arrival — the rematch's `fresh` flag —
+    // fired again on every beat.
+    //
+    // A real tie cannot arise here: one side deals and the game is turn-based,
+    // so two states never share a parent.
+    if (theirs <= clock) return;
+    clock = theirs;
     handlers.onState(payload.state as GameState, payload.meta as StateMeta | undefined);
   });
   if (role === "host") {
@@ -125,7 +132,11 @@ export function joinRoom(
   return {
     sendState: (state, meta) => {
       clock += 1;
-      last = { state, clock, meta };
+      // `fresh` is an EVENT, not a property of the state — it means "a new match
+      // was just dealt". A heartbeat re-announcing it would be a lie the tenth
+      // time, so it is sent once and dropped from what gets resent.
+      const { fresh: _fresh, ...durable } = meta ?? {};
+      last = { state, clock, meta: durable };
       push(state, clock, meta);
     },
     resend: () => {
