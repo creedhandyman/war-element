@@ -256,6 +256,17 @@ export function App() {
    *  Held in a ref as well because `broadcast` reads it outside React's flow. */
   const [seatNames, setSeatNames] = useState<{ P1: string; P2: string } | null>(null);
   const seatNamesRef = useRef<{ P1: string; P2: string } | null>(null);
+  /** What this match was dealt FROM, kept so a rematch can run the same two
+   *  decks back. Not derivable from the finished state — by the end the decks
+   *  are drawn down and the cards are dead or scattered. */
+  const setupRef = useRef<{
+    p1: string[]; p1s?: string[]; p2: string[]; p2s?: string[];
+    board: number; humans: PlayerId[];
+  } | null>(null);
+  /** Rematch handshake. BOTH sides must ask before the host re-deals, so a
+   *  rematch can't yank someone off a result screen they are still reading. */
+  const [rematchMine, setRematchMine] = useState(false);
+  const [rematchTheirs, setRematchTheirs] = useState(false);
   const roomRef = useRef<Room | null>(null);
   const onlineStartedRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -627,6 +638,49 @@ export function App() {
     roomRef.current?.sendState(state, seatNamesRef.current ? { names: seatNamesRef.current } : undefined);
   }
 
+  /** Deal a fresh match from the remembered setup and drop straight into it.
+   *
+   *  Shared by every mode. Online it is the HOST that deals — the guest asks and
+   *  waits — because one side has to own the seed or the two would deal
+   *  different games. `fresh` tells the guest this is a new match rather than a
+   *  step inside the old one, so it can clear its own handshake and replay the
+   *  versus screen without having to infer either. */
+  function dealRematch() {
+    const s = setupRef.current;
+    if (!s) return;
+    const g = createInitialState(newSeed(), s.p1, s.p2, s.humans, s.p1s, s.p2s, s.board);
+    setGame(g);
+    setViewSide(online?.myId ?? "P1");
+    setSel(null); setPending(null); setPicks([]); setMullToss([]); setStaged(null);
+    setRematchMine(false); setRematchTheirs(false);
+    setHint("Mulligan: click cards to send back, then confirm.");
+    setStarted(true);
+    if (online) {
+      setPvpIntro(true);
+      roomRef.current?.sendState(g, {
+        names: seatNamesRef.current ?? undefined,
+        fresh: true,
+      });
+    }
+  }
+
+  /** The Rematch button. Offline it just re-deals; online it is a handshake. */
+  function askRematch() {
+    if (!online) { dealRematch(); return; }
+    setRematchMine(true);
+    roomRef.current?.sendRematch();
+  }
+
+  // Both sides have asked — the host deals. Runs on the host only, so there is
+  // exactly one dealer and one seed.
+  useEffect(() => {
+    if (!online || online.role !== "host") return;
+    if (rematchMine && rematchTheirs) dealRematch();
+    // dealRematch reads refs and setters that are stable enough for this; the
+    // guard above is what actually gates it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rematchMine, rematchTheirs, online]);
+
   function dispatch(intent: Intent) {
     try {
       const next = applyIntent(game, intent);
@@ -741,6 +795,7 @@ export function App() {
     onlineStartedRef.current = false;
     roomRef.current = joinRoom(code, "host", {
       onState: (state) => setGame(state),
+      onRematch: () => setRematchTheirs(true),
       onJoin: (guestCards, guestSpells, guestName) => {
         if (onlineStartedRef.current) return; // already playing — ignore re-joins
         onlineStartedRef.current = true;
@@ -750,6 +805,11 @@ export function App() {
         const names = { P1: hostName, P2: guestName?.trim() || "Their deck" };
         seatNamesRef.current = names;
         setSeatNames(names);
+        setupRef.current = {
+          p1: hostCards, p1s: hostSpells, p2: guestCards, p2s: guestSpells,
+          board: hostBoardSize, humans: ["P1", "P2"],
+        };
+        setRematchMine(false); setRematchTheirs(false);
         setGame(g);
         setViewSide("P1");
         setSel(null); setPending(null); setPicks([]); setMullToss([]);
@@ -781,6 +841,14 @@ export function App() {
         // Every state carries them, so a missed opening message is not a
         // permanently nameless versus screen.
         if (meta?.names) { seatNamesRef.current = meta.names; setSeatNames(meta.names); }
+        // A rematch the host has dealt: clear the handshake and replay the
+        // versus screen, rather than leaving the guest on a stale result.
+        if (meta?.fresh && onlineStartedRef.current) {
+          setRematchMine(false); setRematchTheirs(false);
+          setSel(null); setPending(null); setPicks([]); setMullToss([]); setStaged(null);
+          setHint("Mulligan: click cards to send back, then confirm.");
+          setPvpIntro(true);
+        }
         if (!onlineStartedRef.current) {
           onlineStartedRef.current = true;
           setViewSide("P2");
@@ -791,6 +859,7 @@ export function App() {
           setPvpIntro(true);
         }
       },
+      onRematch: () => setRematchTheirs(true),
       onSubscribed: () => roomRef.current?.sendJoin(guestCards, guestSpells, guestName),
     });
     setOnline({ role: "guest", code, myId: "P2" });
@@ -805,6 +874,8 @@ export function App() {
     setPvpIntro(false); // else it reappears over the next room's deal
     seatNamesRef.current = null;
     setSeatNames(null);
+    setRematchMine(false);
+    setRematchTheirs(false);
   }
   // Tear the channel down if the tab closes / component unmounts.
   useEffect(() => () => roomRef.current?.close(), []);
@@ -2269,6 +2340,11 @@ export function App() {
       {started && !storyNode && (
         <WinScreen
           game={game}
+          // Viewer-relative: online the guest sits in P2 and was being shown
+          // VICTORY for a match it had just lost.
+          me={online?.myId ?? "P1"}
+          onRematch={setupRef.current ? askRematch : undefined}
+          rematch={{ mine: rematchMine, theirs: rematchTheirs, online: !!online }}
           onNewGame={() => {
             if (online) leaveOnline(); // tear down the room before returning
             setStarted(false); // back to the deck picker
@@ -2647,6 +2723,12 @@ export function App() {
                     const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
                     const p1Cards = resolveDeckCards(p1DeckId);
                     const p2Cards = resolveDeckCards(p2DeckId);
+                    // Remembered so Rematch can run the same two decks back.
+                    setupRef.current = {
+                      p1: p1Cards, p1s: resolveDeckSpells(p1DeckId),
+                      p2: p2Cards, p2s: resolveDeckSpells(p2DeckId),
+                      board: boardSize, humans,
+                    };
                     setGame(createInitialState(
                       newSeed(), p1Cards, p2Cards, humans,
                       resolveDeckSpells(p1DeckId), resolveDeckSpells(p2DeckId),

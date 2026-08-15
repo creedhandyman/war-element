@@ -4304,6 +4304,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* ── the reveal sheet ─────────────────────────────────────────────────────── */
 .pack-reveal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .pack-reveal-head h2 { margin: 0; font-family: var(--head); font-size: var(--fs-6); }
+/* Rematch + leave, side by side. Rematch leads because it is the likelier tap
+   after a match you just finished; leaving is the outlined one. */
+.win-acts { display: flex; gap: 8px; margin-top: 12px; }
+.win-acts .lockin { flex: 1; }
+.win-acts .ghost { flex: 0 0 auto; }
+.win-acts .lockin:disabled { opacity: 0.6; cursor: default; }
+/* The opponent has asked and is waiting on you — the one button on this screen
+   that should pull the eye. */
+.win-acts .lockin.glow { box-shadow: 0 0 0 1px var(--gold-lit), 0 0 18px rgba(255, 214, 122, 0.4); }
+
 /* ── PvP versus intro ─────────────────────────────────────────────────────── */
 .pvi-wrap { display: grid; place-items: center; }
 .pvi {

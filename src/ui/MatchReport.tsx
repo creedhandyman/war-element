@@ -14,7 +14,10 @@ import type { CardStat, GameState, PlayerId } from "../engine";
 export const mvpScore = (c: CardStat) =>
   c.dmg + c.heal + (c.taken + c.shielded) * 0.5 + c.kills * 4 + c.captures * 12;
 
-const sideName = (p: PlayerId) => (p === "P1" ? "You" : "Opponent");
+/** Viewer-relative. `me` defaults to P1, which is right for vs-AI and a fair
+ *  convention in hot-seat — but online the guest sits in P2, and this used to
+ *  label their own cards "Opponent" and vice versa. */
+const sideName = (p: PlayerId, me: PlayerId) => (p === me ? "You" : "Opponent");
 
 /** The columns of the per-card table, in display order. */
 const COLS = [
@@ -51,7 +54,7 @@ export const hasMatchReport = (game: GameState): boolean =>
   Object.values(game.stats.byCard).some((c) => mvpScore(c) > 0);
 
 /** Returns null when nothing measurable happened. */
-export function MatchReport({ game, heading }: { game: GameState; heading?: string }) {
+export function MatchReport({ game, heading, me = "P1" }: { game: GameState; heading?: string; me?: PlayerId }) {
   const s = game.stats;
   const cards = Object.values(s.byCard);
   const ranked = cards.slice().sort((a, b) => mvpScore(b) - mvpScore(a));
@@ -64,7 +67,7 @@ export function MatchReport({ game, heading }: { game: GameState; heading?: stri
     const bestId = roster.length && mvpScore(roster[0]) > 0 ? roster[0] : null;
     return (
       <div className={`mr-side ${game.win?.winner === p ? "won" : ""}`}>
-        <div className="mr-side-h">{sideName(p)}{game.win?.winner === p ? " · won" : ""}</div>
+        <div className="mr-side-h">{sideName(p, me)}{game.win?.winner === p ? " · won" : ""}</div>
         <div className="mr-row"><span>Damage dealt</span><b>{t.dmg}</b></div>
         <div className="mr-row"><span>Damage taken</span><b>{t.taken}</b></div>
         <div className="mr-row"><span>Shields absorbed</span><b>{t.shielded}</b></div>
@@ -98,7 +101,7 @@ export function MatchReport({ game, heading }: { game: GameState; heading?: stri
         <span className="mr-mvp-badge">MVP</span>
         <div className="mr-mvp-body">
           <div className="mr-mvp-name">
-            {mvp.name} <span className="mr-mvp-side">· {sideName(mvp.owner)}</span>
+            {mvp.name} <span className="mr-mvp-side">· {sideName(mvp.owner, me)}</span>
           </div>
           <div className="mr-mvp-line">
             {mvp.dmg > 0 && <span title="Damage dealt">⚔ {mvp.dmg}</span>}

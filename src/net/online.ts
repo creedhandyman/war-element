@@ -30,6 +30,11 @@ export type Role = "host" | "guest";
  *  its picker, the guest's from the join), so the host relays them. */
 export interface StateMeta {
   names?: { P1: string; P2: string };
+  /** This state is a freshly dealt match, not a step within one. Set on a
+   *  rematch so the guest knows to clear its rematch flags and replay the
+   *  versus screen, rather than having to infer a new match from the shape of
+   *  a state it did not ask for. */
+  fresh?: boolean;
 }
 
 export interface Room {
@@ -43,6 +48,10 @@ export interface Room {
    *  hand-picked spellbook (spell ids; empty = auto-from-elements) and the
    *  deck's display name. */
   sendJoin: (cards: string[], spells?: string[], name?: string) => void;
+  /** "I want to run it back." Both sides must ask before the host re-deals —
+   *  a one-tap rematch would yank the other player off a result screen they
+   *  are still reading. */
+  sendRematch: () => void;
   /** Leave + tear down the channel. */
   close: () => void;
 }
@@ -58,6 +67,7 @@ export function joinRoom(
   handlers: {
     onState: (state: GameState, meta?: StateMeta) => void;
     onJoin?: (cards: string[], spells?: string[], name?: string) => void; // host only
+    onRematch?: () => void;
     onSubscribed?: () => void;
   },
 ): Room {
@@ -104,6 +114,7 @@ export function joinRoom(
       ),
     );
   }
+  channel.on("broadcast", { event: "rematch" }, () => handlers.onRematch?.());
   channel.subscribe((status) => {
     if (status === "SUBSCRIBED") handlers.onSubscribed?.();
   });
@@ -122,6 +133,7 @@ export function joinRoom(
     },
     sendJoin: (cards, spells, name) =>
       void channel.send({ type: "broadcast", event: "join", payload: { cards, spells, name } }),
+    sendRematch: () => void channel.send({ type: "broadcast", event: "rematch", payload: {} }),
     close: () => void supabase.removeChannel(channel),
   };
 }
