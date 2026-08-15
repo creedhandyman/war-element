@@ -46,14 +46,21 @@ export function StoryCollection(props: {
   closeLabel?: string;
 }) {
   const { save } = props;
-  // MISSING is the default on a phone. The load-bearing half of a collection
-  // screen is what you have not got — "All" is the browsing view, and on a
-  // 390px grid browsing costs a lot of scrolling to reach the answer. Desktop
-  // has the room to start wide.
-  const [scope, setScope] = useState<Scope>(
-    () => (typeof window !== "undefined" && (window.matchMedia?.("(max-width: 720px)").matches ?? false))
-      ? "missing" : "all",
-  );
+  // EVERY FILTER OPENS ON "ALL", on every screen size.
+  //
+  // Scope used to open on MISSING below 720px, on the reasoning that the
+  // load-bearing half of a collection screen is what you have NOT got and a
+  // phone grid costs a lot of scrolling to reach it. That is a fair argument
+  // about the second visit and the wrong one for the first: opening on a filter
+  // means the screen greets you with a grid of cards you do not own, the count
+  // in the header does not match what is under it, and the one control that
+  // would explain it is a chip you have to notice is already pressed. A screen
+  // that starts filtered has to be un-filtered before it can be read.
+  //
+  // The chips are one tap away and they persist for as long as the screen is
+  // open, so the browsing cost the old default was avoiding is paid once by
+  // the players who want it rather than by everyone.
+  const [scope, setScope] = useState<Scope>("all");
   const [el, setEl] = useState<Element | "ALL">("ALL");
   const [cls, setCls] = useState<CardClass | "ALL">("ALL");
   const [detailId, setDetailId] = useState<string | null>(null);
