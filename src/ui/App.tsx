@@ -250,6 +250,12 @@ export function App() {
    *  only — it exists because it is the one mode where the opposing deck is a
    *  stranger's, and the Arena already shows you both decks you picked. */
   const [pvpIntro, setPvpIntro] = useState(false);
+  /** Both seats' deck names. Not derivable from the state — see `StateMeta` —
+   *  so the host relays them and every broadcast carries them, which also means
+   *  a client that missed the opening message still gets them on the next one.
+   *  Held in a ref as well because `broadcast` reads it outside React's flow. */
+  const [seatNames, setSeatNames] = useState<{ P1: string; P2: string } | null>(null);
+  const seatNamesRef = useRef<{ P1: string; P2: string } | null>(null);
   const roomRef = useRef<Room | null>(null);
   const onlineStartedRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -618,7 +624,7 @@ export function App() {
   }, [phaseKey, game, twoPlayer, online]);
 
   function broadcast(state: GameState) {
-    roomRef.current?.sendState(state);
+    roomRef.current?.sendState(state, seatNamesRef.current ? { names: seatNamesRef.current } : undefined);
   }
 
   function dispatch(intent: Intent) {
@@ -730,14 +736,20 @@ export function App() {
     // `boardSize` from the closure then would take whatever the picker showed
     // at join time rather than what the host actually opened the room with.
     const hostBoardSize = boardSize;
+    const hostName = deckLabel(p1DeckId); // snapshotted with the deck, same reason
     setNetStatus(`Room ${code} open — share this code. Waiting for your buddy…`);
     onlineStartedRef.current = false;
     roomRef.current = joinRoom(code, "host", {
       onState: (state) => setGame(state),
-      onJoin: (guestCards, guestSpells) => {
+      onJoin: (guestCards, guestSpells, guestName) => {
         if (onlineStartedRef.current) return; // already playing — ignore re-joins
         onlineStartedRef.current = true;
         const g = createInitialState(newSeed(), hostCards, guestCards, ["P1", "P2"], hostSpells, guestSpells, hostBoardSize);
+        // The host is the only side that knows BOTH names, so it names the seats
+        // and relays them; the guest reads them off the state message.
+        const names = { P1: hostName, P2: guestName?.trim() || "Their deck" };
+        seatNamesRef.current = names;
+        setSeatNames(names);
         setGame(g);
         setViewSide("P1");
         setSel(null); setPending(null); setPicks([]); setMullToss([]);
@@ -745,7 +757,7 @@ export function App() {
         setOnline({ role: "host", code, myId: "P1" });
         setStarted(true);
         setPvpIntro(true);
-        roomRef.current?.sendState(g); // deal the opening state to the guest
+        roomRef.current?.sendState(g, { names }); // deal the opening state to the guest
       },
     });
     setOnline({ role: "host", code, myId: "P1" });
@@ -760,11 +772,15 @@ export function App() {
     if (!code) { setNetStatus("Enter the room code your buddy shared."); return; }
     const guestCards = resolveDeckCards(p2DeckId);
     const guestSpells = resolveDeckSpells(p2DeckId);
+    const guestName = deckLabel(p2DeckId);
     setNetStatus(`Joining ${code}…`);
     onlineStartedRef.current = false;
     roomRef.current = joinRoom(code, "guest", {
-      onState: (state) => {
+      onState: (state, meta) => {
         setGame(state);
+        // Every state carries them, so a missed opening message is not a
+        // permanently nameless versus screen.
+        if (meta?.names) { seatNamesRef.current = meta.names; setSeatNames(meta.names); }
         if (!onlineStartedRef.current) {
           onlineStartedRef.current = true;
           setViewSide("P2");
@@ -775,7 +791,7 @@ export function App() {
           setPvpIntro(true);
         }
       },
-      onSubscribed: () => roomRef.current?.sendJoin(guestCards, guestSpells),
+      onSubscribed: () => roomRef.current?.sendJoin(guestCards, guestSpells, guestName),
     });
     setOnline({ role: "guest", code, myId: "P2" });
   }
@@ -787,6 +803,8 @@ export function App() {
     setOnline(null);
     setNetStatus("");
     setPvpIntro(false); // else it reappears over the next room's deal
+    seatNamesRef.current = null;
+    setSeatNames(null);
   }
   // Tear the channel down if the tab closes / component unmounts.
   useEffect(() => () => roomRef.current?.close(), []);
@@ -2088,7 +2106,7 @@ export function App() {
           than a gate. Rendered out here with the other overlays so it paints
           above the board and the mulligan sheet both. */}
       {started && online && pvpIntro && (
-        <VersusIntro game={game} me={online.myId} onDone={() => setPvpIntro(false)} />
+        <VersusIntro game={game} me={online.myId} names={seatNames} onDone={() => setPvpIntro(false)} />
       )}
 
       {game.pendingFlow && game.cards[game.pendingFlow] && (() => {

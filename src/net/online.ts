@@ -21,16 +21,28 @@ const supabase = onlineConfigured ? createClient(URL!, ANON!) : null;
 
 export type Role = "host" | "guest";
 
+/** Table dressing that rides along with the state.
+ *
+ *  The deck NAMES, which the engine does not carry and cannot be derived: a
+ *  GameState holds card ids, and two players running the same eighteen cards
+ *  under different names are indistinguishable inside it. The versus screen
+ *  needs them on BOTH clients, and only the host ever learns both (its own from
+ *  its picker, the guest's from the join), so the host relays them. */
+export interface StateMeta {
+  names?: { P1: string; P2: string };
+}
+
 export interface Room {
   /** Broadcast a freshly-produced game state to the other client. Stamps it
    *  with the next clock tick — see `resend`. */
-  sendState: (state: GameState) => void;
+  sendState: (state: GameState, meta?: StateMeta) => void;
   /** Re-broadcast the LAST state this client sent, unchanged and with its
    *  original clock. The reliability heartbeat; a no-op before the first send. */
   resend: () => void;
-  /** Guest → host: announce arrival with the guest's resolved deck (card ids)
-   *  and hand-picked spellbook (spell ids; empty = auto-from-elements). */
-  sendJoin: (cards: string[], spells?: string[]) => void;
+  /** Guest → host: announce arrival with the guest's resolved deck (card ids),
+   *  hand-picked spellbook (spell ids; empty = auto-from-elements) and the
+   *  deck's display name. */
+  sendJoin: (cards: string[], spells?: string[], name?: string) => void;
   /** Leave + tear down the channel. */
   close: () => void;
 }
@@ -44,8 +56,8 @@ export function joinRoom(
   code: string,
   role: Role,
   handlers: {
-    onState: (state: GameState) => void;
-    onJoin?: (cards: string[], spells?: string[]) => void; // host only
+    onState: (state: GameState, meta?: StateMeta) => void;
+    onJoin?: (cards: string[], spells?: string[], name?: string) => void; // host only
     onSubscribed?: () => void;
   },
 ): Room {
@@ -72,7 +84,7 @@ export function joinRoom(
    *  Ticks are per-send, not per-resend: a heartbeat carries the same clock it
    *  was first sent with, so it can never look newer than it is. */
   let clock = 0;
-  let last: { state: GameState; clock: number } | null = null;
+  let last: { state: GameState; clock: number; meta?: StateMeta } | null = null;
 
   channel.on("broadcast", { event: "state" }, ({ payload }) => {
     const theirs = typeof payload.clock === "number" ? payload.clock : clock + 1;
@@ -81,31 +93,35 @@ export function joinRoom(
     // so the two can't diverge into a swap loop.
     if (theirs < clock || (theirs === clock && role === "host")) return;
     clock = Math.max(clock, theirs);
-    handlers.onState(payload.state as GameState);
+    handlers.onState(payload.state as GameState, payload.meta as StateMeta | undefined);
   });
   if (role === "host") {
     channel.on("broadcast", { event: "join" }, ({ payload }) =>
-      handlers.onJoin?.(payload.cards as string[], payload.spells as string[] | undefined),
+      handlers.onJoin?.(
+        payload.cards as string[],
+        payload.spells as string[] | undefined,
+        payload.name as string | undefined,
+      ),
     );
   }
   channel.subscribe((status) => {
     if (status === "SUBSCRIBED") handlers.onSubscribed?.();
   });
 
-  const push = (state: GameState, at: number) =>
-    void channel.send({ type: "broadcast", event: "state", payload: { state, clock: at } });
+  const push = (state: GameState, at: number, meta?: StateMeta) =>
+    void channel.send({ type: "broadcast", event: "state", payload: { state, clock: at, meta } });
 
   return {
-    sendState: (state) => {
+    sendState: (state, meta) => {
       clock += 1;
-      last = { state, clock };
-      push(state, clock);
+      last = { state, clock, meta };
+      push(state, clock, meta);
     },
     resend: () => {
-      if (last) push(last.state, last.clock);
+      if (last) push(last.state, last.clock, last.meta);
     },
-    sendJoin: (cards, spells) =>
-      void channel.send({ type: "broadcast", event: "join", payload: { cards, spells } }),
+    sendJoin: (cards, spells, name) =>
+      void channel.send({ type: "broadcast", event: "join", payload: { cards, spells, name } }),
     close: () => void supabase.removeChannel(channel),
   };
 }
