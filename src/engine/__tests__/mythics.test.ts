@@ -373,6 +373,23 @@ describe("Talents — Stormquill's Glide Rush", () => {
     expect(dmg(at40)).toBe(dmg(at15));
   });
 
+  it("Tempest stops at +10 — twice Stormquill's, and it is a real ceiling", () => {
+    // Both carriers are capped, at different numbers, and the pair is asserted
+    // together: the point is the RATIO as much as either value, and a change
+    // to one that quietly matched the other would pass two separate tests.
+    // 21 SP is the highest Tempest was measured reaching in play, so the cap
+    // has to bite at or below that or it is a ceiling in name only.
+    const s = prepState();
+    const at21 = place(s, "gale_tempest", "P1", 2, 0, { spBonus: 7 });   // 21 SP -> +11 uncapped
+    const at60 = place(s, "gale_tempest", "P1", 2, 1, { spBonus: 46 });  // 60 SP -> +50 uncapped
+    const base = place(s, "gale_tempest", "P1", 2, 2, { spBonus: -4 });  // 10 SP -> +0
+    const dmg = (c: typeof base) => effectiveDmg(s, s.cards[c.instanceId]);
+    expect(dmg(at21)).toBe(dmg(base) + 10);   // clamped from +11
+    expect(dmg(at60)).toBe(dmg(at21));        // and it never goes past
+    expect(getDef("gale_tempest").highSpeedImpact?.cap)
+      .toBe((getDef("gale_hawk").highSpeedImpact?.cap ?? 0) * 2);
+  });
+
   it("the speed actually feeds High Speed Impact", () => {
     // Stormquill deals +1 DMG per SP above 10 and sits at 7, so the talent is what
     // switches its own passive on. If the SP buff were cosmetic this is where

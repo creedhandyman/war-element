@@ -717,11 +717,12 @@ export interface CardDef {
   /** High Speed Impact (Stormquill): +1 DMG per point of effective SP above 10. */
   /** High Speed Impact: +1 DMG per point of SP above 10, up to `cap`.
    *
-   *  `cap` is OPTIONAL and omitting it means unbounded, which is what this was
-   *  for both its carriers until Stormquill got a ceiling. Tempest still has
-   *  none — it starts at 14 SP and GALE's aura adds a point a round, so its
-   *  damage climbs for as long as the match runs. That is the same shape of
-   *  problem and it has not been measured; see the note on the card. */
+   *  Both carriers are capped now — Stormquill +5, Tempest +10 — and each cap
+   *  was picked from what that card's SP actually reaches in play rather than
+   *  from its cost or rarity. `cap` stays OPTIONAL because unbounded is what
+   *  this field used to mean, and a required cap would let a card added later
+   *  inherit a ceiling nobody chose for it. Anything new carrying this passive
+   *  should say a number; see either card for how to arrive at one. */
   highSpeedImpact?: { cap?: number };
   /** Apex Predator (Stormfang): +1 DMG for every `per` SP above `above`. */
   speedDmgTiered?: { above: number; per: number };

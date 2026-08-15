@@ -3746,15 +3746,21 @@ export const CARDS: CardDef[] = [
     sp: 14,
     shields: 2,
     keywords: { EVASION: true },
-    // High Speed Impact: +1 DMG per point of SP above 10 (GALE's +1 SP/round
-    // climbs this over time).
+    // High Speed Impact: +1 DMG per point of SP above 10, to a maximum of +10
+    // — double Stormquill's ceiling, on double its cost, for a legendary.
     //
-    // DELIBERATELY UNCAPPED, unlike Stormquill, and left that way because the
-    // brief was Stormquill. It is the same unbounded loop on a bigger base —
-    // 14 SP printed, +1 a round from the aura — so if Stormquill needed a
-    // ceiling this probably does too. Unmeasured.
+    // The number came off the distribution rather than off the rarity. Played
+    // across GALE's whole matchup spread, Tempest's peak SP ran min 16 /
+    // median 20 / max 21, so uncapped the passive was already handing it +10
+    // to +11: a cap at 10 trims the top half and hard-stops the tail, where 12
+    // would never have fired and been a ceiling in name only. Games run longer
+    // on 5x5 than the 4x4 sample, and the aura adds a point a round, so this
+    // bites harder there — which is the case it exists for.
+    //
+    // Small sample, stated plainly: a 6-drop reached the board in 10 of 112
+    // games. The shape is clear; the exact percentile is not.
     passiveNames: { highSpeedImpact: "High Speed Impact" },
-    highSpeedImpact: {},
+    highSpeedImpact: { cap: 10 },
     special: {
       name: "Cyclone Strike",
       cost: 3,
