@@ -4793,3 +4793,23 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    (It does NOT go to the board: the board is width-bound at this size, already
    as tall as five 71px columns allow.) */
 .wrap.wheel-up .bottom.acting { flex: 0 0 auto; margin-top: auto; }
+
+/* ── Deck codes ────────────────────────────────────────────────────────────
+   A saved deck as a paste-able string. The row sits under the save actions and
+   stays quiet: these are share tools, not the primary action. */
+.db-code-row { margin-top: 6px; }
+.db-code-import { display: flex; gap: 6px; margin-top: 6px; }
+.db-code-import input {
+  flex: 1; min-width: 0; padding: 6px 8px; border-radius: 7px;
+  border: 1px solid var(--panel-line); background: rgba(0, 0, 0, 0.35);
+  color: var(--ink); font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 12px; letter-spacing: 0.02em;
+}
+.db-code-import input:focus { outline: none; border-color: var(--gold-line); }
+/* The confirmation doubles as the place the code itself is shown when the
+   clipboard is unavailable, so it has to be selectable and able to wrap. */
+.db-warn.ok {
+  color: var(--ink-dim); border-color: var(--gold-line);
+  user-select: all; word-break: break-all; font-family: ui-monospace, Consolas, monospace;
+  font-size: 11px;
+}

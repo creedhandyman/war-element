@@ -6,11 +6,13 @@ import {
   deleteCustomDeck,
   loadCustomDecks,
   deckLimits,
+  sanitizeSpells,
   saveCustomDeck,
   validateDeck,
   type CustomDeck,
 } from "../data/custom-decks";
 import { STANDARD_CAP } from "../data/story";
+import { decodeDeck, encodeDeck } from "../data/deck-code";
 import { EL_COLOR, EL_ICON, RARITY_STYLE, spellArtSrc } from "./shared";
 import { CardView } from "./CardView";
 import { DeckStats, useComposition } from "./DeckStats";
@@ -147,6 +149,57 @@ export function DeckBuilder(props: {
       return next.length === cur.length ? cur : next;
     });
   }, [picked]);
+
+  // ── deck codes ────────────────────────────────────────────────────────────
+  const [importing, setImporting] = useState(false);
+  const [codeInput, setCodeInput] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [codeMsg, setCodeMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const shareCode = async () => {
+    try {
+      const code = encodeDeck({ name: name.trim() || "Shared deck", cards: picked, spells: pickedSpells });
+      // navigator.clipboard needs a secure context and can be refused outright,
+      // so the code is shown either way — a player who cannot copy can still
+      // select it by hand rather than being told nothing happened.
+      try {
+        await navigator.clipboard.writeText(code);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1600);
+        setCodeMsg({ ok: true, text: code });
+      } catch {
+        setCodeMsg({ ok: true, text: `Copy this: ${code}` });
+      }
+    } catch (e) {
+      setCodeMsg({ ok: false, text: e instanceof Error ? e.message : "Could not make a code." });
+    }
+  };
+
+  const importCode = () => {
+    try {
+      const deck = decodeDeck(codeInput);
+      // Cards this collection does not own are dropped rather than refused: in
+      // Story you can legitimately be sent a deck holding cards you have not
+      // earned, and silently loading them would let you field them.
+      const allowed = story?.owned ? new Set(story.owned) : null;
+      const usable = allowed ? deck.cards.filter((c: string) => allowed.has(c)) : deck.cards;
+      const dropped = deck.cards.length - usable.length;
+      setPicked(usable);
+      setPickedSpells(sanitizeSpells(deck.spells, buildSize));
+      if (deck.name) setName(deck.name);
+      setEditingId(null); // an imported deck is a NEW deck, not an edit of yours
+      setImporting(false);
+      setCodeInput("");
+      setCodeMsg({
+        ok: true,
+        text: dropped > 0
+          ? `Loaded "${deck.name || "deck"}" — ${dropped} card(s) you do not own were left out.`
+          : `Loaded "${deck.name || "deck"}" — ${usable.length} cards.`,
+      });
+    } catch (e) {
+      setCodeMsg({ ok: false, text: e instanceof Error ? e.message : "That code could not be read." });
+    }
+  };
 
   if (!props.open) return null;
 
@@ -312,6 +365,32 @@ export function DeckBuilder(props: {
               </button>
               <button className="ghost" onClick={reset}>New / clear</button>
             </div>
+
+            {/* Deck codes. Share is enabled whenever there is anything to share —
+                deliberately NOT gated on `check.ok`, because a half-built deck is
+                worth sending to somebody for an opinion. Import is always open. */}
+            <div className="db-actions db-code-row">
+              <button className="ghost" disabled={picked.length === 0} onClick={shareCode}>
+                {copied ? "Copied ✓" : "Copy code"}
+              </button>
+              <button className="ghost" onClick={() => { setImporting((v) => !v); setCodeMsg(null); }}>
+                {importing ? "Cancel" : "Paste code"}
+              </button>
+            </div>
+            {importing && (
+              <div className="db-code-import">
+                <input
+                  autoFocus
+                  value={codeInput}
+                  placeholder="WE1-…"
+                  spellCheck={false}
+                  onChange={(e) => { setCodeInput(e.target.value); setCodeMsg(null); }}
+                  onKeyDown={(e) => e.key === "Enter" && importCode()}
+                />
+                <button className="lockin" onClick={importCode}>Load</button>
+              </div>
+            )}
+            {codeMsg && <div className={`db-warn ${codeMsg.ok ? "ok" : ""}`}>{codeMsg.text}</div>}
             {!check.ok && picked.length > 0 && <div className="db-warn">{check.reason}</div>}
 
             {/* Compact tool row — one tap opens Composition / Spellbook / Saved
