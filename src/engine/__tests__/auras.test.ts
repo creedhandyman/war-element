@@ -6,13 +6,13 @@
 // fire at every hook, because the card inspector prints that it will.
 
 import { describe, expect, it } from "vitest";
-import { CARDS } from "../../data/cards";
+import { CARDS, getDef } from "../../data/cards";
 import {
   DAWN_SP_CAP, ELEMENT_AURA, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, GALE_SP_CAP,
   LEAF_SHIELD_CAP, PYRO_BURN_STACK_CAP, hasElementAura,
 } from "../auras";
 import { applyStatus, basicAttack, defeatCard, shadeDodgePct } from "../combat";
-import { advance, applyIntent } from "../phases";
+import { advance, applyIntent, openFlowRepick } from "../phases";
 import { basicIsInert } from "../rules";
 import { boardCards } from "../state";
 import type { Element } from "../types";
@@ -142,6 +142,72 @@ describe("AQUA — Flow Change", () => {
     s.players.P1.gold = 30;
     const handId = giveHand(s, "P1", cheapest("AQUA").id);
     expect(applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 }).pendingFlow).toBeTruthy();
+  });
+});
+
+describe("AQUA — Downpour's per-round Flow re-pick", () => {
+  /** A Downpour field standing over `owner`'s side. */
+  const downpour = (s: ReturnType<typeof prepState>, owner: "P1" | "P2") =>
+    s.fields.push({ owner, spellId: "aqua_downpour", element: "AQUA", roundsLeft: 3, flowRepick: true });
+
+  it("re-shapes every AQUA ally on an AI side, and nothing else", () => {
+    const s = prepState();
+    s.humans = ["P1"]; // P2 resolves instantly
+    downpour(s, "P2");
+    const aqua = place(s, cheapest("AQUA").id, "P2", 0, 0);
+    const other = place(s, cheapest("BORE").id, "P2", 0, 1);
+    const otherShields = s.cards[other.instanceId].curShields;
+    openFlowRepick(s);
+    const a = s.cards[aqua.instanceId];
+    expect(
+      a.dmgBonusRound > 0 || a.spBonusRound > 0 || a.hitsBonusRound > 0 || a.curShields > getDef(aqua.defId).shields,
+      "the AQUA ally was re-shaped",
+    ).toBe(true);
+    expect(s.cards[other.instanceId].curShields, "a non-AQUA ally is untouched").toBe(otherShields);
+  });
+
+  it("offers a human ONE prompt for the whole element", () => {
+    const s = prepState();
+    downpour(s, "P1");
+    place(s, cheapest("AQUA").id, "P1", 3, 0);
+    place(s, cheapest("AQUA").id, "P1", 3, 1);
+    openFlowRepick(s);
+    expect(s.pendingFlow, "a prompt is open").toBeTruthy();
+    expect(s.pendingFlowAll, "flagged as the whole-element pick").toBe(true);
+  });
+
+  it("applies the human's one pick to every AQUA ally", () => {
+    const s = prepState();
+    downpour(s, "P1");
+    const one = place(s, cheapest("AQUA").id, "P1", 3, 0);
+    const two = place(s, cheapest("AQUA").id, "P1", 3, 1);
+    openFlowRepick(s);
+    const next = applyIntent(s, {
+      type: "FLOW_CHANGE", player: "P1", instanceId: s.pendingFlow!, mode: "ice",
+    });
+    for (const c of [one, two])
+      expect(next.cards[c.instanceId].curShields, "both got Frozen").toBeGreaterThan(getDef(c.defId).shields);
+    expect(next.pendingFlow, "and the prompt closed").toBeNull();
+  });
+
+  it("targets the FIELD's element, not the prompted card's", () => {
+    // The re-pick reads `field.element` when it gathers the kin, then the
+    // FLOW_CHANGE handler re-derives the element from the prompted card. Those
+    // agree only because the kin filter guarantees it. Pinned because the
+    // obvious extension of Downpour to borrowed auras (SirCrest carries AQUA's
+    // Flow Change but is DAWN) would put a DAWN card at the head of the kin
+    // list and silently re-flow the DAWN side instead.
+    const s = prepState();
+    downpour(s, "P1");
+    const aqua = place(s, cheapest("AQUA").id, "P1", 3, 0);
+    const dawn = place(s, cheapest("DAWN").id, "P1", 3, 1);
+    const dawnShields = s.cards[dawn.instanceId].curShields;
+    openFlowRepick(s);
+    expect(s.pendingFlow, "the prompt opens on an AQUA card").toBe(aqua.instanceId);
+    const next = applyIntent(s, {
+      type: "FLOW_CHANGE", player: "P1", instanceId: s.pendingFlow!, mode: "ice",
+    });
+    expect(next.cards[dawn.instanceId].curShields, "the DAWN ally is not swept up").toBe(dawnShields);
   });
 });
 
