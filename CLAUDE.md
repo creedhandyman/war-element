@@ -180,13 +180,40 @@ the death. Both were fixed on reasoning, not on a win-rate delta.
 
 ### Where balance stood at last measure
 
-Solo cores, 4x4, round-robin with **both seat orders**, n=560 per element
-(±4.1 at 95%), 2,240 matches:
+Solo cores, **both boards**, round-robin with **both seat orders**, 50 seeds per
+ordered matchup — 5,600 matches, n=1,400 per element (±2.6 at 95%):
 
 ```
-bolt 62.5 · bore 59.6 · leaf 54.8 · pyro 53.4
-aqua 50.4 · dusk 47.0 · dawn 37.3 · gale 35.0     spread 27.5
+bolt 62.9 · bore 59.1 · aqua 54.6 · pyro 53.4
+leaf 52.8 · dusk 46.1 · dawn 38.6 · gale 32.5     spread 30.4
 ```
+
+Per board, and near-identical — this is not a board-size artifact:
+
+```
+4x4   bore 61.4 · bolt 58.7 · aqua 55.7 · pyro 55.6 · leaf 52.6 · dusk 46.0 · dawn 38.1 · gale 31.9
+5x5   bolt 67.0 · bore 56.9 · aqua 53.6 · leaf 53.0 · pyro 51.1 · dusk 46.1 · dawn 39.1 · gale 33.1
+```
+
+BOLT is the one element that cares which board it is on (58.7 -> 67.0).
+
+**Diagnostics, per match, combined.** Measure these, not just the rate — a win
+rate says an element is losing, not why:
+
+```
+el     win%  rounds  alive  gold  caps  deaths   dmg  shielded
+BOLT   62.9    12.2   4.39   6.7  3.56    6.30    91        14
+BORE   59.1    13.4   3.92   6.2  3.49    4.17    94        57
+AQUA   54.6    13.1   3.43   6.4  3.35    5.69    93        29
+PYRO   53.4    13.3   3.02   5.6  3.26    6.08    87         6
+LEAF   52.8    14.5   4.03   7.5  3.17    5.56    85        38
+DUSK   46.1    15.6   3.70   7.0  2.91   13.11    95         7
+DAWN   38.6    10.8   2.45   4.5  2.90    3.95    56        13
+GALE   32.5    11.6   1.77   4.7  2.56    5.65    53         3
+```
+
+**99% of matches end by CAPTURE. Elimination is 0%.** The game is a race for
+Home slots and nothing else; any change should be read against that first.
 
 Play both seats. A mirror match measured from the P2 seat reads ~41%, so a
 one-sided round-robin bakes a first-player edge into whichever element sat in
@@ -208,14 +235,47 @@ printing 3+ shields out of half its own aura. Worth remembering as the general
 lesson — the element's problem was an aura that never fired, and four rounds
 of stat tuning never found it.
 
-**GALE (35.0) and DAWN (37.3) are the new floor**, ~25 points under BOLT, and
-the spread is worse than it was. DAWN is the stranger case: First Light (+1 SP
-a round to a cap of 14) was added specifically to lift it off the capture-race
-floor and it is still second-bottom. AQUA beats both badly (DAWN 23%, GALE 20%
-into it). Untested hypotheses, in order of promise: DAWN is the most expensive
-element in the game and +1 SP may simply be too small a nudge; GALE's whole
-identity is speed in a game that is decided by capture, so it should be
-winning the race it is losing.
+**GALE (32.5) and DAWN (38.6) are the floor**, ~30 points under BOLT.
+
+**Their problem is OUTPUT, not speed and not survivability.** Both deal ~55
+damage a match where the whole field deals 85-95 — and per ROUND, where match
+length cancels out, GALE 4.6 and DAWN 5.2 against BOLT 7.5, AQUA 7.1, BORE 7.0.
+They are not losing a race they are nearly winning; they are not producing.
+
+That retires the standing hypothesis. DAWN was read as "buys bodies that hold
+ground they cannot advance from", and First Light (+1 SP a round) was added to
+convert that surviving board into tempo. The board is not there to convert:
+DAWN ends matches with 2.45 cards alive, second LOWEST, on the least gold
+(4.5) and the shortest matches (10.8 rounds). It is losing quickly, not
+slowly. GALE is the same shape and worse — 1.77 alive, the lowest in the game
+by a wide margin, and the fewest captures (2.56).
+
+So the next attempt should go at damage and staying power, and should NOT be
+another speed nudge — that axis has now been tried and measured.
+
+Two other things the diagnostics turned up, neither yet acted on:
+
+- **DUSK dies 13.11 times a match**, two to three times anyone else (next is
+  BOLT at 6.30), and still deals the most damage in the game (95). It trades
+  bodies extremely well and loses the race anyway at 46.1. That is the
+  disposable-body identity working as designed and not quite paying.
+- **BORE absorbs 57 damage a match on shields**, four times the field, with
+  the fewest deaths (4.17). Exostone's rarity-tiered plating is carrying it.
+
+Matchup grid (row in P1, both boards). GALE beats nobody; DAWN's best is a
+coin flip against GALE:
+
+```
+        LEAF  PYRO  AQUA  DAWN  GALE  BOLT  DUSK  BORE
+LEAF       —    56    60    62    51    43    67    52
+PYRO      56     —    54    62    80    36    62    60
+AQUA      53    56     —    70    77    44    63    43
+DAWN      42    43    35     —    50    32    50    32
+GALE      45    27    21    50     —    22    29    32
+BOLT      72    73    56    71    72     —    69    46
+DUSK      37    59    52    52    69    39     —    47
+BORE      47    49    63    76    72    63    70     —
+```
 
 **Stormquill's cap is not the cause of GALE's number.** Ablated directly:
 as-shipped (cap 5, talent +2 SP) 35.0%, pre-nerf (uncapped, +3 SP) 35.2%,
@@ -243,8 +303,9 @@ Rollo / Zombination / Doom changes and everything since.
 
 ## Open threads
 
-- GALE (35.0) and DAWN (37.3) are ~25 points below BOLT; spread is 27.5 and
-  widening (see "Where balance stood"). LEAF is no longer the problem.
+- GALE (32.5) and DAWN (38.6) are ~30 points below BOLT; spread 30.4. Their
+  measured problem is DAMAGE OUTPUT, not speed — see "Where balance stood".
+  LEAF is no longer the problem.
 - `ELEMENT_MATCHUP` has no UI surface.
 - `deckById`'s silent fallback (see Measuring balance).
 - Spell curve expansion — the big queued feature. Today's `spells.ts` has the
