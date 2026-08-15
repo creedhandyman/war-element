@@ -26,7 +26,7 @@
  *  pack. It is a `CustomDeck` that lives in code, reachable only through the
  *  Home card that starts it.
  */
-import { PACK_COST, type StorySave, addShards } from "./story";
+import { type StorySave, addFreePacks } from "./story";
 import type { CustomDeck } from "./custom-decks";
 
 export interface GameEvent {
@@ -39,11 +39,15 @@ export interface GameEvent {
   blurb: string;
   /** The battlefield this is fought on. The deck is sized for it. */
   boardSize: 4 | 5;
-  /** Shards paid on the FIRST clear. One booster pack's worth, exactly — the
-   *  reward is a free pack, and a pack is priced in shards, so paying its price
-   *  is the same thing without inventing a pack-inventory the Shop would then
-   *  have to learn to spend. */
-  reward: number;
+  /** Packs owed on the FIRST clear.
+   *
+   *  Packs, not their price in shards. The first cut paid `PACK_COST` shards on
+   *  the grounds that a pack is priced in shards so paying its price is the same
+   *  thing — it is not. Shards are fungible: they read as currency rather than a
+   *  prize, they can be spent in the crafter instead, they make the NEXT pack
+   *  cheaper rather than free, and a later price change would silently re-value
+   *  a gift that was supposed to be one pack. */
+  rewardPacks: number;
   deck: CustomDeck;
 }
 
@@ -68,7 +72,7 @@ export const DARKEST_NIGHT: GameEvent = {
   blurb: "Thirty shades of DUSK on the large board, with all eight spells. "
     + "Beat it once and a free booster pack is yours.",
   boardSize: 5,
-  reward: PACK_COST,
+  rewardPacks: 1,
   deck: {
     id: "ev_darkest_night_deck",
     name: "Darkest night",
@@ -122,5 +126,5 @@ export const openEvents = (save: StorySave): GameEvent[] =>
 export function completeEvent(save: StorySave, id: string): StorySave {
   const event = EVENTS.find((e) => e.id === id);
   if (!event || eventDone(save, id)) return save;
-  return addShards({ ...save, eventsDone: [...(save.eventsDone ?? []), id] }, event.reward);
+  return addFreePacks({ ...save, eventsDone: [...(save.eventsDone ?? []), id] }, event.rewardPacks);
 }

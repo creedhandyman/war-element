@@ -27,7 +27,7 @@
 import { useMemo } from "react";
 import {
   BLIGHT_MAX, PACK_COST, PLACED_CARDS, REGIONS, blightLevel, canCraft, craftCostOf,
-  deckCapFor, isCleared, isOpen, preferredLoadout, type StoryRegion, type StorySave,
+  deckCapFor, freePacks, isCleared, isOpen, preferredLoadout, type StoryRegion, type StorySave,
 } from "../data/story";
 import { CARDS } from "../data/cards";
 import { openEvents, type GameEvent } from "../data/events";
@@ -330,12 +330,18 @@ function buildLive(
   }
 
   const shards = save.hero?.shards ?? 0;
-  if (shards >= PACK_COST) {
-    const n = Math.floor(shards / PACK_COST);
+  const owed = freePacks(save);
+  if (owed > 0 || shards >= PACK_COST) {
+    // Owed packs count toward the headline and lead the body — beating the
+    // event has to visibly change this screen, and "75 shards banked" is the
+    // same sentence it showed before the reward landed.
+    const n = owed + Math.floor(shards / PACK_COST);
     out.push({
       id: "packs", tag: "Shop",
       title: n === 1 ? "A pack is waiting" : `${n} packs are waiting`,
-      body: `${shards} shards banked · ${PACK_COST} a pack, one Epic or better in each`,
+      body: owed > 0
+        ? `${owed} free — yours to open · one Epic or better in each`
+        : `${shards} shards banked · ${PACK_COST} a pack, one Epic or better in each`,
       cta: "Open", onGo: () => go.onShop("packs"),
       // No element sigil: a pack costs SHARDS. It was stamped DAWN, which put
       // a currency mark on the one row that does not use that currency.

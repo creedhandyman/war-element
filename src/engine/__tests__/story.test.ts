@@ -513,7 +513,7 @@ describe("story: the deck cap ladder", () => {
   it("...and a hero survives a round-trip through storage", () => {
     const save: StorySave = {
       ...newSave(),
-      hero: { name: "Bernard", affinity: "LEAF", spells: ["leaf_1"], essence: { LEAF: 7 }, shards: 0, shiny: [] },
+      hero: { name: "Bernard", affinity: "LEAF", spells: ["leaf_1"], essence: { LEAF: 7 }, shards: 0, freePacks: 2, shiny: [] },
     };
     const store = new Map<string, string>();
     const g = globalThis as { localStorage?: unknown };
@@ -528,6 +528,9 @@ describe("story: the deck cap ladder", () => {
       const back = loadStory();
       expect(back.hero!.name).toBe("Bernard");
       expect(back.hero!.essence.LEAF).toBe(7);
+      // Packs you are OWED have to survive too — they are a reward already
+      // earned, and losing them on a reload is losing the thing you won.
+      expect(back.hero!.freePacks).toBe(2);
       // A save written before heroes existed still gets one.
       store.set("we_story_v1", JSON.stringify({ cleared: [], collection: ["leaf_oak"], pity: {}, deck: [], blight: {} }));
       expect(loadStory().hero, "a pre-hero save was left without a player").toBeDefined();

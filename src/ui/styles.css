@@ -4247,7 +4247,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   box-shadow: 0 2px 0 #8f6f2c, 0 6px 18px rgba(201, 162, 75, 0.28);
 }
 .pack-open:disabled { cursor: not-allowed; }
+/* A gifted pack does not wear the same button as a bought one — it is brighter
+   and it names no price. Deliberately AFTER `.pack-open.can`: both are (0,2,0),
+   so source order is the only thing deciding which background lands, and a free
+   pack is always also affordable. */
+.pack-open.free {
+  color: #1a1206; border-color: transparent;
+  background: linear-gradient(180deg, #ffeab0, var(--gold-lit));
+  box-shadow: 0 2px 0 #8f6f2c, 0 0 26px rgba(255, 214, 122, 0.45);
+}
 .pack-afford { font-size: var(--fs-2); color: var(--ink-faint); }
+.pack-owed { color: var(--gold-lit); letter-spacing: 0.02em; }
 
 /* ── the crafter ──────────────────────────────────────────────────────────── */
 .craft-wallet { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
@@ -4295,6 +4305,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .pack-reveal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .pack-reveal-head h2 { margin: 0; font-family: var(--head); font-size: var(--fs-6); }
 .pack-spend { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-2); letter-spacing: 0.08em; color: var(--ink-faint); }
+/* (0,2,0) beats the base rule's (0,1,0), so this wins wherever it sits. */
+.pack-spend.free { color: var(--gold-lit); font-weight: 700; }
 .pack-rar { display: block; font-size: 8px; letter-spacing: 0.06em; text-align: center; border: none; }
 .pack-sums { display: flex; flex-direction: column; gap: 3px; margin: 12px 0 0; font-size: var(--fs-3); color: var(--ink-dim); }
 .pack-sums b { color: var(--ink); }

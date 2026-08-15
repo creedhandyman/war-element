@@ -8,9 +8,13 @@ import { CARD_INDEX } from "../../data/cards";
 import { getSpell } from "../spells";
 import { deckLimits, isBuildable, maxSpellsFor, validateDeck, PREMADE_DECKS } from "../../data/custom-decks";
 import { EVENTS, EVENT_DECKS, completeEvent, eventDone, eventForDeck, openEvents } from "../../data/events";
-import { newSave, PACK_COST, type StorySave } from "../../data/story";
+import {
+  applyPack, canOpenPack, freePacks, newSave, openPack, packIsFree, PACK_COST, type StorySave,
+} from "../../data/story";
 
 const shards = (s: StorySave): number => s.hero?.shards ?? 0;
+const withShards = (s: StorySave, n: number): StorySave =>
+  ({ ...s, hero: { ...(s.hero ?? { name: "", affinity: "LEAF", spells: [], essence: {}, shards: 0, freePacks: 0, shiny: [] }), shards: n } });
 
 describe("event decks", () => {
   for (const event of EVENTS) {
@@ -40,8 +44,9 @@ describe("event decks", () => {
         expect(new Set(book).size, "no repeats").toBe(book.length);
       });
 
-      it("pays exactly one pack", () => {
-        expect(event.reward).toBe(PACK_COST);
+      it("pays a whole pack, not its price in shards", () => {
+        expect(event.rewardPacks).toBeGreaterThanOrEqual(1);
+        expect(Number.isInteger(event.rewardPacks)).toBe(true);
       });
     });
   }
@@ -78,9 +83,38 @@ describe("completing an event", () => {
     expect(openEvents(done).map((e) => e.id)).not.toContain(event.id);
   });
 
-  it("pays the reward on the first clear", () => {
+  it("pays a free pack on the first clear, and not shards", () => {
     const save = newSave();
-    expect(shards(completeEvent(save, event.id))).toBe(shards(save) + event.reward);
+    const done = completeEvent(save, event.id);
+    expect(freePacks(done)).toBe(freePacks(save) + event.rewardPacks);
+    // The point of the change: the reward must not arrive as spendable
+    // currency, which could go to the crafter or just discount the next pack.
+    expect(shards(done)).toBe(shards(save));
+  });
+
+  it("makes a pack openable on a save that could not afford one", () => {
+    const broke = withShards(newSave(), 0);
+    expect(canOpenPack(broke)).toBe(false);
+    const done = completeEvent(broke, event.id);
+    expect(canOpenPack(done)).toBe(true);
+    expect(packIsFree(done)).toBe(true);
+  });
+
+  it("spends the free pack, not the shards, and only once", () => {
+    // The ordering rule in `applyPack`: holding both, the free one goes first,
+    // or the gift waits until you are broke and your balance drains instead.
+    const rich = withShards(completeEvent(newSave(), event.id), 100);
+    expect(packIsFree(rich)).toBe(true);
+
+    const after = applyPack(rich, openPack(rich, () => 0.5));
+    expect(shards(after), "shards untouched").toBe(100);
+    expect(freePacks(after), "the free pack is consumed").toBe(freePacks(rich) - 1);
+
+    // The next one is paid for normally.
+    expect(packIsFree(after)).toBe(false);
+    const paid = applyPack(after, openPack(after, () => 0.5));
+    expect(shards(paid)).toBe(100 - PACK_COST);
+    expect(freePacks(paid)).toBe(freePacks(after));
   });
 
   it("cannot pay twice — a replayed settle is a no-op", () => {
@@ -91,12 +125,12 @@ describe("completing an event", () => {
     const first = completeEvent(newSave(), event.id);
     const second = completeEvent(first, event.id);
     expect(second).toBe(first);
-    expect(shards(second)).toBe(shards(first));
+    expect(freePacks(second)).toBe(freePacks(first));
 
     // And it stays a no-op however many times it is replayed.
     let s = first;
     for (let i = 0; i < 5; i++) s = completeEvent(s, event.id);
-    expect(shards(s)).toBe(shards(first));
+    expect(freePacks(s)).toBe(freePacks(first));
     expect(s.eventsDone).toEqual([event.id]);
   });
 
@@ -111,6 +145,6 @@ describe("completing an event", () => {
     const save: StorySave = { ...newSave(), hero: undefined };
     const next = completeEvent(save, event.id);
     expect(next.hero).toBeTruthy();
-    expect(shards(next)).toBe(event.reward);
+    expect(freePacks(next)).toBe(event.rewardPacks);
   });
 });

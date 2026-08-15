@@ -26,7 +26,7 @@ import { CARDS, getDef } from "../data/cards";
 import {
   CRAFT_COST, PACK_COST, PACK_SIZE, PACK_WEIGHT, REGIONS, SHINY_CHANCE,
   applyPack, canCraft, canOpenPack, craftCard, craftCostOf, dupeEssenceFor,
-  openPack, type PackResult, type StorySave,
+  freePacks, openPack, packIsFree, type PackResult, type StorySave,
 } from "../data/story";
 import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { CardView } from "./CardView";
@@ -116,6 +116,11 @@ export function Shop(props: {
   /** What the last pack refunded, kept after the sheet closes — it is the
    *  evidence for the claim the Packs tab makes about duplicates. */
   const [lastRefund, setLastRefund] = useState<number | null>(null);
+  /** Whether the pack currently on screen cost nothing. Captured at the tear,
+   *  because `applyPack` spends the free one — reading `packIsFree` while the
+   *  sheet is open would report on the NEXT pack and print "−40" over the very
+   *  pack the event just gave you. */
+  const [openedFree, setOpenedFree] = useState(false);
 
   const essence = save.hero?.essence ?? {};
   const owned = useMemo(() => new Set(save.collection), [save.collection]);
@@ -123,6 +128,8 @@ export function Shop(props: {
   const totalEssence = Object.values(essence).reduce((a, b) => a + b, 0);
   const purseCount = Object.values(essence).filter((n) => n > 0).length;
   const affordablePacks = Math.floor(shards / PACK_COST);
+  /** Packs owed for free — from an event, and whatever grants them later. */
+  const owedPacks = freePacks(save);
 
   /** Everything missing, dearest first — the card you most want is the one you
    *  are least likely to have rolled. */
@@ -153,6 +160,8 @@ export function Shop(props: {
 
   function tearOpen() {
     const result = openPack(save);
+    // Read BEFORE applyPack, which is what spends it.
+    setOpenedFree(packIsFree(save));
     // Committed BEFORE the animation, not after: the pull is decided and saved
     // the moment you pay, so a closed tab or a skipped beat cannot lose a pack
     // the shards already bought.
@@ -290,15 +299,29 @@ export function Shop(props: {
             {lastRefund !== null && <> Last pack paid back <b>{lastRefund}</b>.</>}
           </div>
 
-          <button className={`pack-open ${canOpenPack(save) ? "can" : ""}`} disabled={!canOpenPack(save)} onClick={tearOpen}>
-            Open for {PACK_COST}<i className="shard" />
+          {/* A free pack does not print a price. The button is the one place the
+              gift has to be unmistakable — "Open for 40" over a pack you were
+              given reads as being charged for it. */}
+          <button className={`pack-open ${canOpenPack(save) ? "can" : ""} ${owedPacks > 0 ? "free" : ""}`}
+            disabled={!canOpenPack(save)} onClick={tearOpen}>
+            {owedPacks > 0 ? "Open your free pack" : <>Open for {PACK_COST}<i className="shard" /></>}
           </button>
           {/* The useful reading of a balance is how many pulls it is, not the
-              number itself. */}
+              number itself. Packs you are OWED are counted separately rather
+              than folded in: they are not a balance, and a total that mixed them
+              would go down when you opened one and stay put when you did not. */}
           <div className="pack-afford">
+            {owedPacks > 0 && (
+              <b className="pack-owed">
+                {owedPacks} free pack{owedPacks === 1 ? "" : "s"} waiting
+                {affordablePacks > 0 ? " · " : ""}
+              </b>
+            )}
             {affordablePacks > 0
               ? `${affordablePacks} pack${affordablePacks === 1 ? "" : "s"} affordable`
-              : `${PACK_COST - shards} more shards for a pack`}
+              : owedPacks > 0
+                ? ""
+                : `${PACK_COST - shards} more shards for a pack`}
           </div>
         </div>
       ) : (
@@ -431,7 +454,12 @@ export function Shop(props: {
             {allShown && (
               <div className="pack-reveal-head">
                 <h2>Pack opened</h2>
-                <span className="pack-spend">−{PACK_COST}<i className="shard" /></span>
+                {/* What it actually cost you, which for a gifted pack is
+                    nothing. `openedFree` is THIS pack's price, captured at the
+                    tear — see the state. */}
+                {openedFree
+                  ? <span className="pack-spend free">FREE</span>
+                  : <span className="pack-spend">−{PACK_COST}<i className="shard" /></span>}
               </div>
             )}
             {/* ONE AT A TIME, worst to best. A grid of five hands you the
@@ -556,7 +584,9 @@ export function Shop(props: {
             <div className="pack-reveal-acts">
               <button className="lockin" onClick={() => setOpened(null)}>Done</button>
               <button className="ghost" disabled={!canOpenPack(save)} onClick={tearOpen}>
-                Open another {PACK_COST}<i className="shard" />
+                {packIsFree(save)
+                  ? "Open another · free"
+                  : <>Open another {PACK_COST}<i className="shard" /></>}
               </button>
             </div>
             </>}

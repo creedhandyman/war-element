@@ -1218,6 +1218,7 @@ export const newHero = (): Hero => ({
   spells: [],
   essence: {},
   shards: 0,
+  freePacks: 0,
   shiny: [],
 });
 
@@ -1470,22 +1471,50 @@ export function openPack(save: StorySave, rand: () => number = Math.random): Pac
   return { pulled, fresh, refund, shiny };
 }
 
-/** Can a pack be bought right now? */
-export const canOpenPack = (save: StorySave): boolean => (save.hero?.shards ?? 0) >= PACK_COST;
+/** How many packs are owed for free. */
+export const freePacks = (save: StorySave): number => save.hero?.freePacks ?? 0;
 
-/** Charge for a pack and bank everything it produced. */
+/** Would the next pack cost nothing? The single source of truth for BOTH the
+ *  charge in `applyPack` and the price the Shop prints, so the button can never
+ *  say one thing and the wallet do another. */
+export const packIsFree = (save: StorySave): boolean => freePacks(save) > 0;
+
+/** Can a pack be opened right now — bought, or owed? */
+export const canOpenPack = (save: StorySave): boolean =>
+  packIsFree(save) || (save.hero?.shards ?? 0) >= PACK_COST;
+
+/** Charge for a pack and bank everything it produced.
+ *
+ *  A free pack is spent FIRST, always. The alternative — shards first, free
+ *  packs as a fallback — means a player holding both pays for every pack until
+ *  their shards run dry, so the gift only arrives once they are broke and the
+ *  balance they were saving quietly evaporates instead. */
 export function applyPack(save: StorySave, result: PackResult): StorySave {
   const hero = save.hero ?? newHero();
   const essence = { ...hero.essence };
   for (const [el, n] of Object.entries(result.refund)) essence[el] = (essence[el] ?? 0) + n;
+  const free = hero.freePacks > 0;
   return addShiny(
     markUnseen({
       ...save,
       collection: [...save.collection, ...result.fresh],
-      hero: { ...hero, shards: Math.max(0, hero.shards - PACK_COST), essence },
+      hero: {
+        ...hero,
+        shards: free ? hero.shards : Math.max(0, hero.shards - PACK_COST),
+        freePacks: free ? hero.freePacks - 1 : hero.freePacks,
+        essence,
+      },
     }, result.fresh),
     result.shiny,
   );
+}
+
+/** Bank free packs. Mints a hero when the save has none, for the same reason
+ *  `addShards` does — a reward must never land on the floor. */
+export function addFreePacks(save: StorySave, n: number): StorySave {
+  if (!n) return save;
+  const hero = save.hero ?? newHero();
+  return { ...save, hero: { ...hero, freePacks: Math.max(0, hero.freePacks + n) } };
 }
 
 /** Bank shards. The one place they are added, so a grant that is not a match
@@ -2187,6 +2216,15 @@ export interface Hero {
    *  A separate currency is what makes a real-money top-up a price change later
    *  rather than a redesign: nothing but `shards` would need to move. */
   shards: number;
+  /** Packs owed to you, openable without paying.
+   *
+   *  A COUNT rather than shards-worth-of-a-pack, because those are different
+   *  promises. Handing over `PACK_COST` shards is spending money, and spent
+   *  money is fungible: it drifts into the crafter, it makes the next pack
+   *  cheaper rather than free, and if the price ever changes the old gift
+   *  silently becomes worth more or less than the pack it was supposed to be.
+   *  A free pack is a free pack at any price. */
+  freePacks: number;
   /** Card ids you hold a SHINY copy of. Cosmetic only — a shiny is the same
    *  card with the same stats, and the deck builder neither knows nor cares.
    *  Kept on the hero rather than as a parallel collection because that is what
@@ -2369,6 +2407,12 @@ export function loadStory(): StorySave {
           shards:
             typeof h.shards === "number" && Number.isFinite(h.shards) && h.shards > 0
               ? Math.floor(h.shards)
+              : 0,
+          // Same coercion as shards, and absent reads as none — a save written
+          // before free packs existed is owed nothing, which is correct.
+          freePacks:
+            typeof h.freePacks === "number" && Number.isFinite(h.freePacks) && h.freePacks > 0
+              ? Math.floor(h.freePacks)
               : 0,
           shiny: Array.isArray(h.shiny)
             ? [...new Set(h.shiny.filter((x): x is string => typeof x === "string" && !!CARD_INDEX[x]))]
