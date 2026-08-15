@@ -22,7 +22,7 @@
  *  NAMES are the one thing the state cannot carry, so they ride along with it as
  *  `StateMeta` and the host relays both.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getDef } from "../data/cards";
 import type { GameState, PlayerId } from "../engine";
 import { DeckSeat } from "./DeckPickerSheet";
@@ -78,10 +78,20 @@ export function VersusIntro(props: {
   const [mine] = useState(() => readSide(game, me));
   const [theirs] = useState(() => readSide(game, foe));
 
+  // The dismiss timer is armed ONCE, on mount.
+  //
+  // Depending on `onDone` looked harmless and was not: the parent passes a fresh
+  // arrow every render, so the effect tore down and re-armed the timer on each
+  // one — and this sits over a live PvP match that re-renders on every incoming
+  // state AND on a 2.5s heartbeat. The 4.2s timeout never survived long enough
+  // to fire, so the screen stayed up until the player tapped it. Caught on the
+  // deployed build; nothing in tsc or the suite can see it.
+  const doneRef = useRef(onDone);
+  doneRef.current = onDone;
   useEffect(() => {
-    const t = setTimeout(onDone, HOLD_MS);
+    const t = setTimeout(() => doneRef.current(), HOLD_MS);
     return () => clearTimeout(t);
-  }, [onDone]);
+  }, []);
 
   return (
     <div className="overlay on-top pvi-wrap" onClick={onDone}>
