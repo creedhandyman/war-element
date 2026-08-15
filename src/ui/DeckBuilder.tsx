@@ -267,7 +267,19 @@ export function DeckBuilder(props: {
     if (editingId === id) reset();
   }
 
-  const countColor = check.ok ? "var(--legal)" : picked.length > limits.max ? "var(--threat)" : "var(--muted)";
+  /** UNDER-BUILT, not illegal. The campaign cap is a CEILING, not a quota —
+   *  story.ts says so and `loadoutLegal` enforces only the top — so a short
+   *  team stays legal and saveable. But "legal" was painted green from one card
+   *  upward, so a three-card team walking into a twenty-two-card fight was told
+   *  it was fine. It is legal AND it is thin, and the screen owes you the
+   *  second half of that.
+   *
+   *  Two thirds because it is a judgement, not a rule: below that the fight is
+   *  bringing meaningfully more than you are. */
+  const thin = !!story && check.ok && picked.length < Math.ceil(limits.max * (2 / 3));
+  const countColor = !check.ok
+    ? (picked.length > limits.max ? "var(--threat)" : "var(--muted)")
+    : thin ? "var(--gold-lit)" : "var(--legal)";
   const detail = detailId ? getDef(detailId) : null;
 
   // The spellbook is restricted to the deck's own elements — only spells whose
@@ -315,8 +327,9 @@ export function DeckBuilder(props: {
                 {name.trim() || (story ? `${story.element ?? "New"} team` : "Untitled deck")}
                 {!story && <> · {buildSize}×{buildSize}</>}
               </span>
-              <span className={`db-handle-state ${check.ok ? "ok" : ""}`}>
-                {picked.length} / {limits.target}{check.ok ? " · legal" : ""}
+              <span className={`db-handle-state ${check.ok && !thin ? "ok" : ""} ${thin ? "thin" : ""}`}>
+                {picked.length} / {limits.target}
+                {check.ok ? (thin ? " · thin" : " · legal") : ""}
               </span>
               <span className="db-handle-chev" aria-hidden="true">{deckOpen ? "⌄" : "⌃"}</span>
             </button>
@@ -331,8 +344,14 @@ export function DeckBuilder(props: {
                 belongs to the node you are about to fight, so there is nothing
                 here to choose — the cap is simply stated. */}
             {story ? (
+              /* The board is not a choice in the campaign — the node owns it —
+                 but it was not STATED either, and it decides both how big a
+                 team is worth building and how many spells the book holds. A
+                 line reading "carry up to 22" told you neither which fight
+                 that was for nor that the same fight allows eight spells. */
               <div className="db-storycap">
-                carry up to <b>{story.cap}</b>
+                <b>{buildSize}×{buildSize}</b> · carry up to <b>{story.cap}</b>
+                {" "}· <b>{limits.spells}</b> spells
                 {story.cap > STANDARD_CAP && <span> · set-piece size</span>}
               </div>
             ) : (
@@ -353,6 +372,11 @@ export function DeckBuilder(props: {
                 sentence you have to parse. */}
             <div className="db-count" style={{ color: countColor }}>
               {picked.length} / {limits.target} cards
+              {thin && (
+                <span className="db-hint">
+                  {" "}· room for {limits.max - picked.length} more
+                </span>
+              )}
               {!check.ok && limits.min > 1 && (
                 <span className="db-hint">
                   {/* The Arena formats are one number, so say the number.

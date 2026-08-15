@@ -2228,6 +2228,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     font-variant-numeric: tabular-nums;
   }
   .db-handle-state.ok { color: var(--legal); }
+  /* Legal but short — gold, not green and not red. The team saves and fights;
+     it is simply bringing less than the node allows. */
+  .db-handle-state.thin { color: var(--gold-lit); }
   .db-handle-chev { flex: none; color: var(--ink-faint); font-size: var(--fs-3); }
 
   .db-pool {

@@ -332,6 +332,14 @@ export function App() {
     Math.max(...region.nodes.map((n) => capForNode(story.cleared, region, n))),
     storyBuilderOwned.length || Number.POSITIVE_INFINITY,
   );
+  /** The biggest BOARD this region can ask for, by the same reasoning as the
+   *  cap above: a region with a 5x5 set piece in it builds to the set piece.
+   *
+   *  This was never passed, so the campaign builder defaulted to 4x4 and with
+   *  it to a FIVE-spell book — you could not pick the eight a large board
+   *  allows, on any node, ever. The Arena builder passed its board and had the
+   *  right cap the whole time, which is why it never showed up there. */
+  const storyBuilderBoard = Math.max(...region.nodes.map((n) => boardForNode(region, n)));
 
   // Background music. A story region owns the sound for BOTH its map and its
   // battles, so the region reads as a place rather than a series of fights; a
@@ -2678,6 +2686,7 @@ export function App() {
         open={nav.builder}
         onClose={() => navDo({ t: "builder", open: false })}
         onChange={() => {}}
+        boardSize={storyBuilderBoard}
         story={{
           owned: storyBuilderOwned,
           teams: story.loadouts ?? [],
