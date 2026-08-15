@@ -76,12 +76,26 @@ import { ActionWheel, type WheelVerb } from "./ActionWheel";
 import { Shop } from "./Shop";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
-  loadStory, isFirstBattle, awardShards, heroBookFor, poolForRegion, recruitablePool,
+  loadStory, isFirstBattle, awardShards, heroBookFor, isRegionOpen, poolForRegion, recruitablePool,
   regionOfNode, rollRecruits, saveStory, type StorySave, heroSpellShelf,
 } from "../data/story";
 
 function newSeed(): number {
   return (Math.random() * 0x7fffffff) | 0;
+}
+
+/** The map to open on, from the save alone.
+ *
+ *  The furthest OPEN region that still has something to clear, falling back to
+ *  the last open one (everything done) and then to the first (nothing done).
+ *  Regions are declared in campaign order, so "furthest" is just the last match.
+ *  Deliberately derived rather than stored: a `lastRegionId` field would be a
+ *  fifth thing to keep in step with `cleared`, and this cannot drift from it. */
+function lastRegionId(save: StorySave): string {
+  const open = REGIONS.filter((r) => isRegionOpen(save, r));
+  if (!open.length) return REGIONS[0].id;
+  const unfinished = open.filter((r) => r.nodes.some((n) => !save.cleared.includes(n.id)));
+  return (unfinished[unfinished.length - 1] ?? open[open.length - 1]).id;
 }
 
 /** The STACKED tier, mirroring the CSS query EXACTLY.
@@ -258,7 +272,12 @@ export function App() {
    *  collection to a card's source node meant setting four of them in the right
    *  order at the call site. The save itself stays a plain `useState` below —
    *  that is the campaign, not a screen. */
-  const [nav, navDo] = useReducer(storyNav, REGIONS[0].id, initialStoryNav);
+  // Seeded from the SAVE, not from REGIONS[0]. `regionId` is written only by
+  // picking a map or jumping to a node, so a cold start always said LEAF — and
+  // Home's CONTINUE card reads this. Four regions in, a reload offered
+  // "CONTINUE · FOUR SEASONS MEGA FOREST", a full progress bar and "Every node
+  // cleared", confidently walking you back into a region you finished hours ago.
+  const [nav, navDo] = useReducer(storyNav, lastRegionId(story), initialStoryNav);
   const storyOpen = nav.open;
   const region = REGIONS.find((r) => r.id === nav.regionId) ?? REGIONS[0];
   const storyNode = nav.fightNode;
@@ -2583,8 +2602,18 @@ export function App() {
         <HomeScreen
           save={story}
           regionId={nav.regionId}
-          onStory={() => { setTab("story"); navDo({ t: "open" }); }}
-          onArena={() => setTab("arena")}
+          onStory={(rid) => {
+            setTab("story");
+            // A row that names a region has to open THAT map — `open` alone
+            // leaves `regionId` untouched, so a Blight card about PYRO landed
+            // you on whatever map you last read.
+            if (rid && rid !== nav.regionId) navDo({ t: "pickRegion", regionId: rid });
+            navDo({ t: "open" });
+          }}
+          // The Gauntlet panel and the seat lock are both gated on vs-AI, and
+          // the settle effect is NOT — so arriving here in hot-seat showed no
+          // run at all and then let a 2-player match end it.
+          onArena={() => { setArenaMode("ai"); setTab("arena"); }}
           onShop={(t) => { setShopTab(t); setTab("shop"); }}
           onBuilder={() => navDo({ t: "builder", open: true })}
           onCollection={() => setHomeCollection(true)}
@@ -2597,6 +2626,15 @@ export function App() {
           onSave={(next) => { setStory(next); saveStory(next); }}
           onClose={() => setHomeCollection(false)}
           closeLabel="Back to Home"
+          // Without this the per-card "where does it drop?" jump silently
+          // vanishes (the prop is optional), which is the one thing the
+          // Collection tile's MISSING count promises.
+          onGoToNode={(nodeId) => {
+            setHomeCollection(false);
+            setTab("story");
+            navDo({ t: "goToNode", nodeId, regionId: regionOfNode(nodeId)?.id });
+            navDo({ t: "open" });
+          }}
           onOpenBuilder={() => navDo({ t: "builder", open: true })}
         />
       )}
@@ -2604,7 +2642,11 @@ export function App() {
       {!started && !storyOpen && tab === "shop" && (
         <div className="overlay">
           <div className="modal picker shop-modal">
-            <Shop save={story} openTab={shopTab} onSave={(next) => { setStory(next); saveStory(next); }} />
+            {/* Keyed, because `openTab` seeds `useState` and only runs on
+                MOUNT. Tapping the already-active Shop icon changes the prop
+                without unmounting Shop, so the reset below never happened. */}
+            <Shop key={shopTab} save={story} openTab={shopTab}
+              onSave={(next) => { setStory(next); saveStory(next); }} />
           </div>
         </div>
       )}

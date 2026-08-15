@@ -64,6 +64,26 @@ export function StorySquad(props: {
    *  still on — so picking it clears them and picking one of them clears it. */
   const showCarried = () => { setFEl("ALL"); setFCls("ALL"); setCarriedOnly(true); };
 
+  const packable = packableFor(save, region);
+  /** Only the chips this pool can actually fill. The collection screen shows
+   *  all eight elements because its job is to show you what you are MISSING;
+   *  this one is picking from what you hold, so a chip that filters to nothing
+   *  is a dead tap. The region's own element is never here at all — local cards
+   *  ride free and are not packable.
+   *
+   *  ABOVE the home-ground early return, and it has to stay there: a hook after
+   *  a conditional return makes the component render five hooks on one branch
+   *  and six on the other, and `limit` flips the moment you take this region's
+   *  Throne. There is no ESLint in this repo to catch that. */
+  const have = useMemo(() => {
+    const els = new Set(packable.map((id) => getDef(id).element));
+    const cls = new Set(packable.map((id) => getDef(id).cardClass));
+    return {
+      els: ELEMENTS.filter((e) => els.has(e)),
+      cls: CLASSES.filter((c) => cls.has(c)),
+    };
+  }, [packable]);
+
   // HOME: everything fights, nothing to pack.
   if (limit === null) {
     return (
@@ -84,7 +104,6 @@ export function StorySquad(props: {
     );
   }
 
-  const packable = packableFor(save, region);
   const full = draft.length >= limit;
   const toggle = (id: string) =>
     setDraft((d) => (d.includes(id) ? d.filter((x) => x !== id) : full ? d : [...d, id]));
@@ -94,19 +113,6 @@ export function StorySquad(props: {
       getDef(b).cost - getDef(a).cost,
   );
 
-  /** Only the chips this pool can actually fill. The collection screen shows all
-   *  eight elements because its job is to show you what you are MISSING; this
-   *  one is picking from what you hold, so a chip that filters to nothing is a
-   *  dead tap. The region's own element is never here at all — local cards ride
-   *  free and are not packable. */
-  const have = useMemo(() => {
-    const els = new Set(packable.map((id) => getDef(id).element));
-    const cls = new Set(packable.map((id) => getDef(id).cardClass));
-    return {
-      els: ELEMENTS.filter((e) => els.has(e)),
-      cls: CLASSES.filter((c) => cls.has(c)),
-    };
-  }, [packable]);
   const filtering = fEl !== "ALL" || fCls !== "ALL" || carriedOnly;
   const shown = byRarity.filter((id) => {
     if (carriedOnly && !draft.includes(id)) return false;
@@ -161,8 +167,17 @@ export function StorySquad(props: {
                   selected it means "my best Supports", which is what somebody
                   who just filtered to Support is asking for. Filling from
                   behind the filter would be the surprising reading. */}
-              <button className="ghost sm" onClick={() => setDraft(shown.slice(0, limit))}>
-                {filtering ? "Best shown" : "Best"}
+              {/* MERGES rather than replaces. `setDraft(shown.slice(0, limit))`
+                  threw away every carried card the filter was hiding — narrow
+                  to Mage, tap it, and your only Support was gone with the
+                  counter unchanged and nothing on screen different, one tap
+                  from Carry. Keeping what is hidden is the only reading that
+                  cannot lose a card you cannot see. */}
+              <button className="ghost sm" onClick={() => setDraft((d) => {
+                const keep = filtering ? d.filter((id) => !shown.includes(id)) : [];
+                return [...keep, ...shown.filter((id) => !keep.includes(id))].slice(0, limit);
+              })}>
+                {filtering ? "Fill shown" : "Best"}
               </button>
               <button className="ghost sm" disabled={!draft.length} onClick={() => setDraft([])}>Clear</button>
             </span>
@@ -194,7 +209,10 @@ export function StorySquad(props: {
             ))}
             <button
               className={`db-fl sq-fl-carried ${carriedOnly ? "on" : ""}`}
-              disabled={!draft.length}
+              // `!draft.length` alone let it be `on` AND `disabled` at once —
+              // clear the draft while scoped to it and the chip locked itself
+              // on with an empty grid behind it and no way back.
+              disabled={!draft.length && !carriedOnly}
               onClick={() => (carriedOnly ? setCarriedOnly(false) : showCarried())}
             >
               Carrying {draft.length}

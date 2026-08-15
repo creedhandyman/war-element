@@ -3505,12 +3505,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* The picker's filter rows. They borrow `.db-filters` / `.db-sort` wholesale,
    including the phone treatment that scrolls them sideways under a faded right
    edge — this strip sits under the map and has no room for chips that wrap. */
-.sq-filters { margin-top: 8px; }
 /* A scoped fade, because the deck builder's only applies inside its own tier
    query and this strip needs it at every width: eight element chips plus a
    Carrying chip overflow 390px on any screen. */
 .sq-filters {
-  flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain;
+  margin-top: 8px; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px;
   mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
@@ -3945,7 +3944,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    things that will still be there tomorrow. Shares `.arena-wrap` and the
    Arena's ground so the two sibling screens read as one place — and the same
    74px reservation, because the nav is fixed over both. */
-.home {
+/* `.home-screen`, NOT `.home`. StorySquad renders `<section className=
+   "squad-strip home">` for a conquered region, and a bare `.home` at the same
+   specificity — declared later — hijacked it: the compact "every card you own
+   fights" panel became a 430px full-height gradient column with 74px of dead
+   space under it. This is the SECOND instance of the utility-class collision
+   this session's CLAUDE.md entry describes; the first was `.home-purse.ess`. */
+.home-screen {
   width: min(430px, 100vw); margin: 0 auto; height: 100%;
   display: flex; flex-direction: column;
   padding: 0 0 74px; overflow-y: auto;
@@ -4001,7 +4006,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   display: flex; flex-direction: column; justify-content: space-between;
 }
 .home-eyebrow {
-  font-family: var(--head); font-size: 9px; font-weight: 700; letter-spacing: 0.14em;
+  font-family: var(--head); font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
   color: var(--gold); text-transform: uppercase;
 }
 .home-cont-node { font-family: var(--head); font-size: 19px; line-height: 1.15; color: var(--ink); margin-top: 4px; }
@@ -4014,7 +4019,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   flex: none; display: flex; align-items: baseline; justify-content: space-between;
   padding: 0 16px 8px;
 }
-.home-lbl span { font-size: 9px; font-weight: 700; letter-spacing: 0.13em; color: #5c5849; }
+.home-lbl span { font-size: 10px; font-weight: 700; letter-spacing: 0.11em; color: #5c5849; }
 .home-lbl em { font-style: normal; font-size: 11px; font-weight: 500; color: var(--ink-dim); }
 .home-live { flex: none; display: flex; flex-direction: column; gap: 7px; padding: 0 16px 14px; }
 
@@ -4034,12 +4039,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .home-feat-veil { position: absolute; inset: 0; background: linear-gradient(150deg, rgba(201, 162, 75, 0.12), rgba(10, 10, 17, 0.72)); }
 .home-feat-body { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; }
 .home-feat-top { display: flex; align-items: center; gap: 7px; }
-.home-feat-top b { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #7fe3ad; }
+.home-feat-top b { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #7fe3ad; }
 .home-feat-top em { font-style: normal; font-size: 10px; font-weight: 500; letter-spacing: 0.05em; color: var(--ink-dim); }
 .home-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--legal); animation: homePulse 1.8s ease-in-out infinite; }
 @keyframes homePulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 .home-feat-name { font-family: var(--head); font-size: 17px; line-height: 1; color: var(--ink); }
 .home-feat-sub { font-size: 11px; line-height: 1.45; color: var(--ink-dim); max-width: 240px; }
+.home-feat-cta {
+  align-self: flex-start; margin-top: 3px; padding: 4px 11px; border-radius: var(--r-chip, 8px);
+  border: 1px solid var(--gold-line); background: rgba(201, 162, 75, 0.1);
+  font-size: 11px; font-weight: 600; color: var(--gold-lit);
+}
 
 .home-row {
   display: flex; align-items: center; gap: 10px; width: 100%;
@@ -4076,7 +4086,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .home-tile-num { margin-top: auto; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; color: var(--ink-dim); }
 .home-tile-num.ok { color: var(--legal); }
 .home-tile-num.warn { color: var(--threat); }
-.home-tile-num.gold { color: var(--gold-lit); }
 
 /* ── shop ─────────────────────────────────────────────────────────────────── */
 .shop-modal { max-width: 640px; text-align: left; }

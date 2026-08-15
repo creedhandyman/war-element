@@ -181,16 +181,42 @@ describe("the matchmaker ladder", () => {
       // Cheap and wide is the strongest thing a deck can do here: the budget's
       // +10 is flat, so a 1-cost body returns 15 stat points per gold and a
       // 9-cost returns 6.1. The rungs are ordered by how much of that they take.
+      //
+      // EVERY ADJACENT PAIR, not just each against easy. The first cut of this
+      // test compared mid and hard to easy and never to each other, on any
+      // axis — so the top two rungs could invert and stay green. That is the
+      // exact silent inversion the ladder's banner records happening twice
+      // already, and swapping four same-element cards in one hard deck was
+      // enough to reproduce it under the old assertions.
       const cheap = DECK_TIERS.map((t) => Math.min(...of(t, board).map((d) => d.cheap)));
       expect(cheap[1], `mid ${cheap[1]} > easy ${cheap[0]} (${board}x${board})`).toBeGreaterThan(cheap[0]);
-      expect(cheap[2], `hard ${cheap[2]} > easy ${cheap[0]} (${board}x${board})`).toBeGreaterThan(cheap[0]);
+      expect(cheap[2], `hard ${cheap[2]} > mid ${cheap[1]} (${board}x${board})`).toBeGreaterThan(cheap[1]);
 
-      // Reach is the lever that separates the small board, where there is no
-      // room for a flood to matter. Melee cannot answer what stands behind a
-      // wall, and easy is the rung that mostly cannot.
-      const reach = DECK_TIERS.map((t) =>
-        of(t, board).reduce((n, d) => n + d.reach, 0) / 4);
+      // Reach separates HARD, and only hard. mid's Ranged density is level with
+      // easy's — 20/72 each on 4x4 — so this asserts what the data does rather
+      // than what the first draft of the docs claimed; see the note on the
+      // ladder banner. Both comparisons, so hard cannot slide under either.
+      const reach = DECK_TIERS.map((t) => {
+        const ds = of(t, board);
+        return ds.reduce((n, d) => n + d.reach, 0) / ds.length;
+      });
       expect(reach[2], `hard reach ${reach[2]} > easy ${reach[0]}`).toBeGreaterThan(reach[0] + 0.1);
+      expect(reach[2], `hard reach ${reach[2]} > mid ${reach[1]}`).toBeGreaterThan(reach[1] + 0.1);
+    }
+  });
+
+  it("never rolls a near-clone off the same rung", () => {
+    // `rollOpponent` only avoids the deck already seated, so two decks on one
+    // rung sharing half their list means a re-roll hands back the same fight —
+    // and a Gauntlet run deals the WHOLE rung, so it plays both back to back.
+    // The banner promises "new opponents rather than reskins"; this is what
+    // that promise costs.
+    for (const tier of DECK_TIERS) for (const board of [4, 5] as const) {
+      const ds = decksForTier(tier, board);
+      for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++) {
+        const shared = ds[i].cards.filter((id) => ds[j].cards.includes(id));
+        expect(shared.length, `${ds[i].name} vs ${ds[j].name} share ${shared.join(", ")}`).toBe(0);
+      }
     }
   });
 

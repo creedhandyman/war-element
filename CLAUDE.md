@@ -515,6 +515,35 @@ region.
 
 ## Traps found the hard way
 
+- **A NEW top-level class name must be grepped against the JSX before it is
+  written.** This session shipped the same collision twice in two commits, in
+  both directions. `.home-purse.ess` picked up the global 9px `.ess` GLYPH and
+  turned the pill into a diamond; then a bare `.home {}` for the new Home screen
+  silently captured `<section className="squad-strip home">` — the Story map's
+  home-ground panel — and reflowed it into a 430px full-height gradient column
+  with 74px of dead space under it, on every conquered region. Neither `tsc`,
+  `vite build` nor 1391 tests can see either one, and the second was written
+  the same day as the first entry warning about it. `grep -rn 'className=.*home'`
+  costs two seconds; a screen-name class (`.home`, `.card`, `.row`, `.panel`)
+  is a name somebody else already used. Prefix screen roots: `.home-screen`.
+
+- **A `useMemo` added below an early return is a rules-of-hooks bug, and
+  nothing in this repo will tell you.** There is no ESLint here. StorySquad
+  returns early for home-ground regions, and a memo appended at the natural
+  place — next to the code that uses it — rendered 5 hooks on one branch and 6
+  on the other. It only stayed latent because StoryMap unmounts the component
+  on a region switch; the day `save.cleared` gains the Throne while it is
+  mounted, React throws and the map white-screens. Hooks go above every
+  conditional return, including the ones you did not write.
+
+- **When a test replaces a stricter one, diff the ASSERTIONS, not the intent.**
+  The rarity-model ladder test asserted `easy < mid`, `mid < hard`, and a
+  minimum spread. Its strategy-based replacement asserted mid-vs-easy and
+  hard-vs-easy — and never hard-vs-mid, on any axis. The top two rungs could
+  invert with the suite green, which is the exact failure the ladder banner
+  records happening twice already; swapping four same-element cards in one hard
+  deck reproduced it. Every ADJACENT pair, or the chain is not pinned.
+
 - **A BEM-style modifier that collides with a global utility class is not a
   modifier — it is that utility, applied to the wrong element.** The stylesheet
   has single-purpose glyph classes (`.shard`, `.ess`: 9px, `clip-path`-ed to a

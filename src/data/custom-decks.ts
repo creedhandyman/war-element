@@ -298,9 +298,13 @@ const STANDARD_DECKS: PremadeDeck[] = [
   //     of stats per gold and a 9-cost returns 6.1. Nine gold is nine 1-drops
   //     or one 9-drop, and capture — which ends ~95% of games here — pays for
   //     having bodies on squares, so nine is not a close call.
-  //   REACH IS THE SECOND LEVER, and the only one that separates the small
-  //     board, where there is no room for a flood to matter. Melee cannot
-  //     answer anything standing behind a wall.
+  //   REACH IS THE SECOND LEVER, and what makes HARD hard on the small board,
+  //     where there is no room for a flood to matter. Melee cannot answer
+  //     anything standing behind a wall. It does NOT separate easy from mid:
+  //     those two are level at 20 Ranged in 72 on 4x4, one card apart on 5x5.
+  //     An early draft of this banner claimed it did, which was a claim about
+  //     the plan rather than about the decks the plan produced. mid is harder
+  //     than easy on curve and comp; hard is harder than both on all three.
   //   A FRONT LINE AND A HEALER HELP, so easy runs neither.
   //   TRIGGER DENSITY DOES NOT. Weighting it made decks measurably WORSE —
   //     a trigger is paid for out of that same budget, and the AI banks
@@ -310,8 +314,16 @@ const STANDARD_DECKS: PremadeDeck[] = [
   // has a curve, a wall and a healer; hard floods cheap bodies, heals them,
   // and shoots over the top. Played against the six originals — every deck,
   // both seats, three seeds, 144 games a rung — they win 32/54/59% on 4x4 and
-  // 21/35/56% on 5x5. Monotone on both boards, though mid and hard sit close
+  // 19/35/56% on 5x5. Monotone on both boards, though mid and hard sit close
   // on the small one, where sixteen slots cap what a flood can be worth.
+  //
+  // EVERY RUNG USES EACH OF THE EIGHT ELEMENTS EXACTLY ONCE. `rollOpponent`
+  // only avoids the deck already seated, so two decks on one rung sharing an
+  // element share cards and a re-roll hands back the same fight. easy shipped
+  // with AQUA twice, and BOLT+AQUA overlapped LEAF+AQUA by seven cards — 43% of
+  // the list, the only overlapping pair in all eighteen. A Gauntlet run deals
+  // the WHOLE rung, so it played both clones back to back. There is a test on
+  // the partition now.
   //
   // EVERY rung still opens on round one. `poolGainForRound` pays 1 gold a
   // round for the first five, so round one buys a 1-drop and nothing else and
@@ -321,7 +333,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
   {
     id: "pre_sapling_creek",
     name: "Sapling Creek",
-    note: "LEAF + AQUA — melee that walks into everything. No front line, no healer, nothing with reach.",
+    note: "LEAF + AQUA — a wall of bodies with no wall. Nothing holds a square and nothing heals.",
     premade: true,
     boardSize: 4,
     tier: "easy",
@@ -351,7 +363,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
   {
     id: "pre_ember_wake",
     name: "Ember Wake",
-    note: "PYRO + DUSK — hits hard up close and cannot touch what stands behind a wall.",
+    note: "PYRO + DUSK — hits hard and dies fast. No front line to hit through and no one to patch it.",
     premade: true,
     boardSize: 4,
     tier: "easy",
@@ -366,17 +378,17 @@ const STANDARD_DECKS: PremadeDeck[] = [
   {
     id: "pre_static_shallows",
     name: "Static Shallows",
-    note: "BOLT + AQUA — a pile of bodies with no plan behind them.",
+    note: "BOLT + DAWN — a pile of bodies with no plan behind them.",
     premade: true,
     boardSize: 4,
     tier: "easy",
     cards: [
       "bolt_stingray", "bolt_drshock", "bolt_thunder", "bolt_shock", "bolt_scrapper",
-      "bolt_zagphu", "bolt_voltcher", "bolt_zoez", "bolt_elecdroid", "aqua_octoirate",
-      "aqua_rain", "aqua_blub", "aqua_bootlegger", "aqua_icynin", "aqua_tide",
-      "aqua_liquark", "aqua_driftwraith", "aqua_kraken",
+      "bolt_zagphu", "bolt_voltcher", "bolt_zoez", "bolt_elecdroid", "dawn_beam",
+      "dawn_kosmos", "dawn_flash", "dawn_glime", "dawn_lazor", "dawn_ariel",
+      "dawn_radiance", "dawn_heir_tok", "dawn_equestrian",
     ],
-    spells: ["aqua_frost_patch", "aqua_ice_wall", "aqua_downpour", "bolt_lightning_storm", "aqua_maelstrom"],
+    spells: ["dawn_cleansing_light", "bolt_overload_field", "bolt_power_grid", "dawn_judgment", "dawn_dawns_judgment"],
   },
   {
     id: "pre_tidal_gate",
@@ -411,7 +423,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
   {
     id: "pre_thornwind",
     name: "Thornwind",
-    note: "LEAF + GALE — trades on contact, then out-reaches whatever is left standing.",
+    note: "LEAF + GALE — trades on contact and keeps a healer behind the trade.",
     premade: true,
     boardSize: 4,
     tier: "mid",
@@ -571,8 +583,8 @@ const LARGE_EXTRAS: Record<string, string[]> = {
   ],
   pre_static_shallows: [
     "bolt_zipp", "bolt_lytning", "bolt_keeper", "bolt_storm", "bolt_thundercat",
-    "bolt_voltogon", "aqua_blackbeard", "aqua_piranha", "aqua_bulletshrimp", "aqua_krakler",
-    "aqua_sapphire", "aqua_hydrogon",
+    "bolt_voltogon", "dawn_clipsey", "dawn_roy", "dawn_golde", "dawn_musk_ox",
+    "dawn_drakonbane", "dawn_leo",
   ],
   pre_tidal_gate: [
     "aqua_coralgolem", "aqua_polarbear", "aqua_harp", "aqua_subcool", "aqua_cryo",
@@ -646,7 +658,7 @@ const LARGE_SPELL_EXTRAS: Record<string, string[]> = {
   pre_sapling_creek: ["aqua_ice_wall", "aqua_downpour", "leaf_overgrowth"],
   pre_dust_patrol: ["bore_stone_wall", "bore_bedrock", "gale_gale_force"],
   pre_ember_wake: ["dusk_veil_of_shadows", "dusk_nightfall", "pyro_inferno_pit"],
-  pre_static_shallows: ["bolt_overload_field", "bolt_power_grid", "aqua_glacial_wave"],
+  pre_static_shallows: ["dawn_radiant_barrier", "dawn_blazing_sun", "dawn_solar_flare"],
   pre_tidal_gate: ["dawn_grace", "dawn_dawns_grace", "dawn_judgment"],
   pre_emberforge: ["pyro_flare_push", "bore_fortify", "bore_shatterpoint"],
   pre_thornwind: ["leaf_snare", "leaf_groves_blessing", "gale_vortex_strike"],

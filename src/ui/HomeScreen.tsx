@@ -27,10 +27,12 @@
 import { useMemo } from "react";
 import {
   BLIGHT_MAX, PACK_COST, PLACED_CARDS, REGIONS, blightLevel, canCraft, craftCostOf,
-  deckCapFor, isCleared, isOpen, type StoryRegion, type StorySave,
+  deckCapFor, isCleared, isOpen, preferredLoadout, type StoryRegion, type StorySave,
 } from "../data/story";
 import { CARDS } from "../data/cards";
 import { RUN_REWARD, runOver } from "../data/gauntlet";
+import { decksForTier } from "../data/custom-decks";
+import { deckArtUrl } from "./DeckPickerSheet";
 import { EL_COLOR, EL_ICON } from "./shared";
 
 /** One row in the middle band. `feature` promotes it to the big card at the
@@ -56,7 +58,11 @@ export function HomeScreen(props: {
   save: StorySave;
   /** The region the player was last reading. Continue points at this one. */
   regionId: string;
-  onStory: () => void;
+  /** Open the story map. Takes a region because rows on this screen name one:
+   *  the Blight card is about a specific region and `open` alone lands you on
+   *  whatever map you last read, which for two blighted regions was the same
+   *  wrong map twice. */
+  onStory: (regionId?: string) => void;
   onArena: () => void;
   onShop: (tab: "packs" | "crafter") => void;
   onBuilder: () => void;
@@ -89,20 +95,37 @@ export function HomeScreen(props: {
     return PLACED_CARDS.filter((id) => owned.has(id)).length;
   }, [save.collection]);
 
-  const teamName = useMemo(() => {
-    const l = (save.loadouts ?? []).find((x) => x.id === save.lastTeamId);
-    return l?.name ?? (save.loadouts ?? [])[0]?.name ?? null;
-  }, [save.loadouts, save.lastTeamId]);
+  /** Through the shared helper, NOT `loadouts[0]`. Teams are appended, so a
+   *  forward search returns the OLDEST match — `preferredLoadout` exists
+   *  precisely to stop that, and Story prep goes through it. Two screens one
+   *  tap apart naming different teams is the bug it was written for. */
+  const teamName = useMemo(
+    () => preferredLoadout(save, undefined, () => true)?.name ?? null,
+    [save],
+  );
+  /** The cap is a CEILING, not a quota — story.ts says so outright and the
+   *  builder repeats it: twelve good cards instead of eighteen mediocre ones is
+   *  a legal team. So this tile reports the size and only warns when the deck
+   *  cannot field a fight at all. It used to print a red SHORT the moment the
+   *  deck was under the ladder value, which on a fresh save meant the first
+   *  screen a new player sees flagged "1/12 SHORT" for a deck the builder would
+   *  then hard-cap at 1 — a warning with nowhere to go. */
   const deckCap = deckCapFor(save.cleared);
-  const deckLegal = save.deck.length >= deckCap;
+  const deckEmpty = save.deck.length === 0;
 
-  const live = useMemo(() => buildLive(save, props), [save, props]);
+  // Destructured: `props` is a fresh object every render, so a dep on it made
+  // this memo a no-op and re-ran a ~312-card `canCraft` scan on every paint.
+  const { onArena, onShop, onStory } = props;
+  const live = useMemo(
+    () => buildLive(save, { onArena, onShop, onStory }),
+    [save, onArena, onShop, onStory],
+  );
   const feature = live.find((l) => l.feature);
   const rows = live.filter((l) => !l.feature);
 
   return (
     <div className="overlay arena-wrap">
-      <div className="home">
+      <div className="home-screen">
         {/* Taller and softer than the Arena's band — this is the one screen
             where the game gets a moment to just be itself. See `.home-logo`
             for why it is a crop and not the uncropped title the mock drew. */}
@@ -124,7 +147,7 @@ export function HomeScreen(props: {
           </span>
         </div>
 
-        <button className="home-cont" onClick={props.onStory}>
+        <button className="home-cont" onClick={() => props.onStory(region.id)}>
           {region.art && <span className="home-cont-art" style={{ backgroundImage: `url(${region.art})` }} aria-hidden="true" />}
           <span className="home-cont-veil" aria-hidden="true" />
           <span className="home-cont-body">
@@ -162,6 +185,11 @@ export function HomeScreen(props: {
                     </span>
                     <span className="home-feat-name">{feature.title}</span>
                     <span className="home-feat-sub">{feature.body}</span>
+                    {/* The card's own action. It was built and then never
+                        rendered, so the Gauntlet's "Fight" existed only in the
+                        data — the whole card was tappable but said nothing
+                        about where it went. */}
+                    <span className="home-feat-cta">{feature.cta}</span>
                   </span>
                 </button>
               )}
@@ -190,8 +218,8 @@ export function HomeScreen(props: {
           <button className="home-tile deck" onClick={props.onBuilder}>
             <span className="home-tile-name">Deck builder</span>
             <span className="home-tile-sub">{teamName ?? "No team saved"}</span>
-            <span className={`home-tile-num ${deckLegal ? "ok" : "warn"}`}>
-              {save.deck.length}/{deckCap} {deckLegal ? "LEGAL" : "SHORT"}
+            <span className={`home-tile-num ${deckEmpty ? "warn" : "ok"}`}>
+              {deckEmpty ? "NO DECK" : `${save.deck.length} CARD${save.deck.length === 1 ? "" : "S"} · CAP ${deckCap}`}
             </span>
           </button>
           <button className="home-tile col" onClick={props.onCollection}>
@@ -213,9 +241,19 @@ export function HomeScreen(props: {
  *  Ordered most-urgent first and the head of the list becomes the feature card,
  *  so the promotion is a consequence of the ordering rather than a second
  *  decision that could disagree with it. */
+/** The art for the deck the run is about to seat. The seat id carries its own
+ *  board (`…_5` for the large builds), so both are searched rather than
+ *  threading a board size onto a screen that has no other use for one. */
+function seatArt(run: NonNullable<StorySave["gauntlet"]>["run"]): string | null {
+  if (!run) return null;
+  const id = run.seats[run.won];
+  const deck = [...decksForTier(run.tier, 4), ...decksForTier(run.tier, 5)].find((d) => d.id === id);
+  return deck ? deckArtUrl(deck.cards) : null;
+}
+
 function buildLive(
   save: StorySave,
-  go: { onArena: () => void; onShop: (tab: "packs" | "crafter") => void; onStory: () => void },
+  go: { onArena: () => void; onShop: (tab: "packs" | "crafter") => void; onStory: (regionId?: string) => void },
 ): Live[] {
   const out: Live[] = [];
   const run = save.gauntlet?.run;
@@ -227,9 +265,17 @@ function buildLive(
       id: "gauntlet", live: true,
       tag: `Seat ${run.won + 1} of ${run.seats.length}`,
       title: "The Gauntlet",
-      body: `${run.seats.length - run.won} to go on the ${run.tier} rung. One loss ends the run — ${RUN_REWARD[run.tier]} shards if it does not.`,
+      // "Even", not "mid": that is what the Arena segment and the deck sheet
+      // both call this rung, and Home is the third surface naming it.
+      body: `${run.seats.length - run.won} to go on the ${run.tier === "mid" ? "even" : run.tier} rung.`
+        + ` One loss ends the run — ${RUN_REWARD[run.tier]} shards if it does not.`,
       cta: "Fight", onGo: go.onArena,
-      art: "/battlefield.png", rim: "rgba(201,162,75,.55)",
+      // The face of the deck in the next seat, not a generic backdrop. The
+      // first cut pointed at `/battlefield.png` — 3.5 MB, the only PNG art
+      // reference left in src/, and an asset the match screen itself retired
+      // (`.battlefield-bg { display: none }`) — fetched on the LANDING screen
+      // for a 118px strip masked to transparency at its left edge.
+      art: seatArt(run) ?? undefined, rim: "rgba(201,162,75,.55)",
     });
   }
 
@@ -243,7 +289,7 @@ function buildLive(
       tag: r.name,
       title: "The Blight",
       body: `${r.name} is at full shadow. A DUSK squad holds ground you already took — clear it and the shadow drops a level.`,
-      cta: "Map", onGo: go.onStory,
+      cta: "Map", onGo: () => go.onStory(r.id),
       el: "DUSK", art: "/maps/dusk.webp", rim: "rgba(149,117,255,.5)",
     });
   }
@@ -256,7 +302,8 @@ function buildLive(
       title: n === 1 ? "A pack is waiting" : `${n} packs are waiting`,
       body: `${shards} shards banked · ${PACK_COST} a pack, one Epic or better in each`,
       cta: "Open", onGo: () => go.onShop("packs"),
-      el: "DAWN",
+      // No element sigil: a pack costs SHARDS. It was stamped DAWN, which put
+      // a currency mark on the one row that does not use that currency.
     });
   }
 
