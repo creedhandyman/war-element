@@ -235,16 +235,21 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 1,
-    dmg: 2,
-    hits: 2,
+    dmg: 1,
+    hits: 3,
     hp: 5,
     sp: 7,
     shields: 0,
     keywords: {},
     onHitStatus: { kind: "BLEED", duration: 2, power: 1 }, // Stinging Barbs
     // Bloodletting: Nettle chips BLEED itself, and once a PYRO ally has set the
-    // target burning too, each of its two little hits leeches life and bites
+    // target burning too, each of its three little hits leeches life and bites
     // harder off the bloodfire. Cheap, sticky sustain for the aggro core.
+    //
+    // Three ONE-damage hits, not two twos, and the hit count is the point: both
+    // Bloodletting's +1 and its lifesteal are paid PER HIT, and BLEED lands per
+    // hit too. At 1 base the bonus is half of every swing rather than a third,
+    // so the card leans harder on its own combo and does less without it.
     passiveNames: { vsStatus: "Bloodletting" },
     vsStatus: { status: "BLEED", bloodfire: true, lifesteal: true, bonusDmg: 1 },
   },
