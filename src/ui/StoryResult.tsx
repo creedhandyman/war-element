@@ -25,6 +25,10 @@ export function StoryResult(props: {
   exhausted: boolean;
   /** The node beat you. Nothing is recruited and nothing is cleared. */
   lost?: boolean;
+  /** Card ids held in foil. A recruit can arrive shiny — `applyClear` rolls it
+   *  the same way a pack does — and this screen was the one place that could
+   *  hand you your first foil without ever saying so. */
+  foils?: ReadonlySet<string>;
   onDone: () => void;
 }) {
   const { node, game, won, captured, firstClear, lost } = props;
@@ -66,8 +70,11 @@ export function StoryResult(props: {
               {won.map((id) => {
                 const d = getDef(id);
                 return (
-                  <li key={id}>
-                    <span className="sr-name">{d.name}</span>
+                  <li key={id} className={props.foils?.has(id) ? "sr-foil" : undefined}>
+                    <span className="sr-name">
+                      {props.foils?.has(id) && <i className="foil-tag inline" title="Foil">✦</i>}
+                      {d.name}
+                    </span>
                     <span className={`npr-rar r-${d.rarity ?? "rare"}`}>{d.rarity ?? "rare"}</span>
                     <span className="sr-stats">{d.cost}◆ · {d.dmg}{(d.hits ?? 1) > 1 ? `×${d.hits}` : ""} · {d.hp} hp</span>
                   </li>

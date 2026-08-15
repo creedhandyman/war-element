@@ -35,6 +35,11 @@ export function Hand(props: {
    *  fixes the two differently: make space vs. wait for Gold. */
   homeRowOpen: boolean;
   selectedHandId: string | null;
+  /** Card ids the local player holds in foil. The BOARD already shines these;
+   *  without the same set here a foil went dull the moment it was in your hand
+   *  and lit up again when you played it, in the same match, on the same
+   *  screen. Cosmetic and UI-only, exactly as on the board. */
+  foils?: ReadonlySet<string>;
   onPick: (handId: string) => void;
   onDragStartCard?: (handId: string) => void;
   onDragEndCard?: () => void;
@@ -88,6 +93,7 @@ export function Hand(props: {
             unaffordable ? "unaffordable" : "",
             noRoom ? "noroom" : "",
             props.selectedHandId === h.handId ? "selected" : "",
+            props.foils?.has(def.id) ? "foil" : "",
           ]
             .filter(Boolean)
             .join(" ");
@@ -130,7 +136,10 @@ export function Hand(props: {
                 <b>{def.cost}</b>
               </div>
               <div className="hc-plate">
-                <div className="hc-name">{def.name}</div>
+                <div className="hc-name">
+                  {props.foils?.has(def.id) && <i className="foil-tag" title="Foil">✦</i>}
+                  {def.name}
+                </div>
                 <div className="hc-type">{def.cardClass} · {def.attackType}</div>
                 <div className="hc-stats">
                   <span className="s-dmg">⚔<span className="atk-dmg">{def.dmg}</span>{def.hits > 1 ? <span className="atk-x"> ×{def.hits}</span> : ""}</span>

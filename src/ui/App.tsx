@@ -1948,6 +1948,9 @@ export function App() {
             summonableHandIds={summonableHandIds}
             homeRowOpen={openSlots.length > 0}
             selectedHandId={sel?.kind === "hand" ? sel.handId : null}
+            // Same set the board gets. A foil that shines on the field and not
+            // in the hand is the same card looking like two.
+            foils={foilIds}
             onPick={onPickHand}
             onDragStartCard={onDragStartCard}
             onDragEndCard={onDragEndCard}
@@ -2198,6 +2201,7 @@ export function App() {
           captured={storyResult.captured}
           firstClear={!story.cleared.includes(storyResult.node.id)}
           exhausted={recruitablePool(storyResult.node).every((id) => story.collection.includes(id))}
+          foils={foilIds}
           onDone={() => {
             setStarted(false);
             navDo({ t: "closeResult" });
@@ -2680,6 +2684,7 @@ export function App() {
           cap: storyBuilderCap,
           element: region.element,
           spellPool: heroSpellShelf(story),
+          foils: foilIds,
           onSaveTeam: (name, cards, spells) => {
             const rest = (story.loadouts ?? []).filter((l) => l.name.toLowerCase() !== name.toLowerCase());
             const id = `${name.toLowerCase().replace(/\s+/g, "-")}-${rest.length}`;

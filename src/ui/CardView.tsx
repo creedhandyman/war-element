@@ -61,6 +61,9 @@ export type CardViewProps =
       action?: { label: string; disabled?: boolean; primary?: boolean; onClick: () => void };
       /** Extra body content, rendered below the passives. */
       extra?: ReactNode;
+      /** This card is held in foil. Browse only — in a match the board and the
+       *  hand already carry it, and `inspect` is about the live instance. */
+      foil?: boolean;
     };
 
 /** What the zones actually read. Both modes collapse to this before render. */
@@ -161,7 +164,8 @@ export function CardView(props: CardViewProps) {
 
         {/* ── zone 1 · header ─────────────────────────────────────────────── */}
         <div className="cd-body">
-          <div className="cd-art" style={{ borderColor: EL_COLOR[d.element] }}>
+          <div className={`cd-art ${props.mode === "browse" && props.foil ? "foil" : ""}`}
+            style={{ borderColor: EL_COLOR[d.element] }}>
             <img
               src={`/cards/${d.art ?? d.id}.webp`}
               alt=""

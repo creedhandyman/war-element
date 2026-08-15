@@ -293,7 +293,7 @@ export function StoryCollection(props: {
       {/* The same expanded card the deck builder shows, plus the one thing only
           the Collection knows: where this card actually drops. */}
       {detail && (
-        <CardView mode="browse"
+        <CardView mode="browse" foil={isShiny(save, detail.id)}
           def={detail}
           onClose={() => setDetailId(null)}
           extra={

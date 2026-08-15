@@ -49,6 +49,9 @@ export interface StoryBuildMode {
   spellPool: string[];
   /** The campaign's ceiling for the fight being prepared for. */
   cap: number;
+  /** Card ids held in foil. The collection grid one tap away shines these, so
+   *  a copy that went plain in the builder read as a different card. */
+  foils?: ReadonlySet<string>;
   /** Tag applied to a team saved from here, so prep can float it to the top. */
   element?: string;
   onSaveTeam: (name: string, cards: string[], spells: string[]) => void;
@@ -668,7 +671,7 @@ export function DeckBuilder(props: {
                      target, and the rare one gets a corner. */
                   <div
                     key={d.id}
-                    className={`deck-thumb carded db-card ${on ? "selected" : ""}`}
+                    className={`deck-thumb carded db-card ${on ? "selected" : ""} ${story?.foils?.has(d.id) ? "foil" : ""}`}
                     role="button"
                     tabIndex={0}
                     aria-pressed={on}
@@ -682,6 +685,7 @@ export function DeckBuilder(props: {
                       alt=""
                       onError={(e) => { e.currentTarget.style.display = "none"; }}
                     />
+                    {story?.foils?.has(d.id) && <i className="foil-tag" title="Foil">✦</i>}
                     <div className="dt-top">
                       {/* One badge, not two. The cost sits ON the element's
                           sigil, so the corner spends 20px instead of 42 and
@@ -734,7 +738,7 @@ export function DeckBuilder(props: {
       {/* Expanded card details — a sub-overlay above the builder. Shared with
           the story Collection so the two can't drift apart. */}
       {detail && (
-        <CardView mode="browse"
+        <CardView mode="browse" foil={!!story?.foils?.has(detail.id)}
           def={detail}
           onClose={() => setDetailId(null)}
           action={{

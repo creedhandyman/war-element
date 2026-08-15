@@ -4499,7 +4499,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 /* Mythic only: a slow sheen across the art, so the rarest pull is the one that
    moves. `::after` on the card itself, clipped by its own `overflow: hidden`. */
-.pack-card.big.r-mythic::after {
+/* Not on a foil: `.foil::after` is the same pseudo-element and it is the mark
+   every other screen uses, so it wins the one card that is both. */
+.pack-card.big.r-mythic:not(.foil)::after {
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(72deg, transparent 38%, rgba(255, 255, 255, 0.3) 50%, transparent 62%);
   transform: translateX(-120%);
@@ -4527,14 +4529,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .pack-card.big.foil.r-epic { box-shadow: 0 0 0 2px rgba(255, 233, 176, 0.6) inset, 0 0 24px rgba(176, 107, 255, 0.5), 0 0 64px rgba(176, 107, 255, 0.2); }
 .pack-card.big.foil.r-legendary { box-shadow: 0 0 0 2px rgba(255, 233, 176, 0.65) inset, 0 0 28px rgba(255, 176, 46, 0.55), 0 0 74px rgba(255, 176, 46, 0.22); }
 .pack-card.big.foil.r-mythic { box-shadow: 0 0 0 2px rgba(255, 233, 176, 0.65) inset, 0 0 32px rgba(255, 93, 177, 0.6), 0 0 88px rgba(255, 93, 177, 0.28); }
-/* A foil always shimmers, whatever its rarity — the mythic sheen rule only
-   covers mythics, and a foil Rare is the case that has nothing else. */
-.pack-card.big.foil::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(72deg, transparent 38%, rgba(255, 240, 200, 0.4) 50%, transparent 62%);
-  transform: translateX(-120%);
-  animation: rarSheen 2.6s ease-in-out infinite;
-}
+/* NO ::after here. `.foil::after` further down is THE foil — the iridescent
+   sheen that sweeps every foil card in the game — and an override at this
+   specificity replaced it with a plain gold wipe, making the pack reveal the
+   one place a foil did not look like a foil. The ring above is framing, the
+   same way the rarity halos frame; the foil MARK is the shared one. */
 
 .pack-card.big.top { cursor: grab; }
 .pack-card.big.top:active { cursor: grabbing; }
@@ -4568,7 +4567,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   /* The glow is information — which rarity you pulled — so it stays. Only the
      movement goes: no breathing, no sheen. */
   .pack-card.big.r-legendary, .pack-card.big.r-mythic { animation: none; }
-  .pack-card.big.r-mythic::after, .pack-card.big.foil::after { display: none; }
+  .pack-card.big.r-mythic::after { display: none; }
 }
 
 .pack-sum { font-size: 12.5px; color: var(--ink-dim); margin: 12px 0 0; }
@@ -4587,7 +4586,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    artwork behind a rainbow would make the rarest thing you own the hardest to
    identify. Applied as an ::after over the image so nothing about the layout
    moves — a shiny and a plain copy occupy identical space. */
-.foil { position: relative; isolation: isolate; }
+.foil { position: relative; isolation: isolate; overflow: hidden; }
+/* `.cd-art` already clips its image; the sheen has to be clipped with it or it
+   runs past a rounded corner onto the sheet behind. */
+.cd-art.foil::after { border-radius: inherit; }
 .foil::after {
   content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
   border-radius: inherit;
@@ -4625,6 +4627,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    A small glyph sitting just above the name rather than a word stamped across
    the corner: the card art is the thing you are looking at, and a FOIL label
    big enough to read from across the grid covered the part worth seeing. */
+/* Inline variant, for a foil named in a LIST rather than sitting on a card —
+   the recruit screen has rows, not thumbnails, and the absolute placement above
+   is measured against a card's top edge. */
+.foil-tag.inline {
+  position: static; transform: none; margin-right: 4px; font-size: 11px;
+}
+.sr-foil .sr-name { color: #eaf6ff; }
 .foil-tag {
   position: absolute; left: 50%; transform: translateX(-50%);
   bottom: calc(100% - 2px); z-index: 3; pointer-events: none;
