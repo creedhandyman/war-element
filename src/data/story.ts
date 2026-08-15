@@ -1823,6 +1823,33 @@ export const recruitablePool = (node: StoryNode): string[] => [...node.roster, .
  *  big, so the large board stays an event rather than the default. */
 export const BIG_BATTLE_KINDS: readonly NodeKind[] = ["landmark", "throne"];
 
+/** A Throne's opening is PRE-ORCHESTRATED: this many of its cheapest cards are
+ *  dealt first, and the rest of its deck stays shuffled.
+ *
+ *  A Throne is a region's climax and it was losing seven fights in ten. Part of
+ *  that is the draw: gold is tight for the first several rounds, and a boss that
+ *  opens with nothing it can afford hands the player the board before the fight
+ *  starts. Guaranteeing it can act is not a difficulty knob so much as removing
+ *  a coin flip that was never meant to be there.
+ *
+ *  Deliberately shallow, and the depth is measured rather than guessed. All
+ *  seventeen Thrones against Frostkeep, 680 matches per depth:
+ *
+ *      depth  0 (shuffled)   29.0%
+ *      depth  3              52.8%
+ *      depth  5              54.1%   <- this
+ *      depth 30 (full sort)  48.4%
+ *
+ *  Sorting the WHOLE deck is worse than stacking five, because it front-loads
+ *  every cheap body before anything with weight: BOLT's City Power Core holds
+ *  thirteen 1-drops in thirty and a full sort sent it DOWN to 25% from 43%,
+ *  while LEAF's Spirit Tree fell to 20% from 45%. At five, every one of the
+ *  seventeen improves and none regress. See `restackByCost`.
+ *
+ *  Landmarks are the other set piece and are left alone for now: they are not
+ *  the climax, and there are far more of them. */
+export const THRONE_OPENING_STACK = 5;
+
 /** The board a node is fought on — decided by the NODE, not by deck size.
  *
  *  This deliberately breaks the old coupling. Constructed play ties the two

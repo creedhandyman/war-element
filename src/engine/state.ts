@@ -72,9 +72,9 @@ export function createInitialState(
   /** A Field spell id to run as standing terrain for the whole battle (§4).
    *  Story nodes pass their region's; ordinary matches pass nothing. */
   terrainSpellId?: string,
-  /** Sides whose deck draws on curve — see `PlayerState.stackByCost`. Omit for
-   *  an ordinary match; the events pass their scripted seat. */
-  stacked?: { P1?: boolean; P2?: boolean },
+  /** How many of each side's cheapest cards are hoisted to the top of the deck
+   *  — see `PlayerState.stackCheapest`. Omit for an ordinary match. */
+  stacked?: { P1?: number; P2?: number },
 ): GameState {
   const state: GameState = {
     rngState: seed | 0,
@@ -135,26 +135,44 @@ export function createInitialState(
   return state;
 }
 
-/** Re-sort a scripted deck to draw cheapest-first. No-op for ordinary players.
+/** Hoist a scripted deck's N cheapest cards to the top, leaving the rest in the
+ *  order the shuffle left them. No-op for ordinary players.
+ *
+ *  A DEPTH rather than a whole-deck sort, and the difference is measured, not a
+ *  matter of taste. Sorting the entire deck helps a top-heavy list and HURTS an
+ *  already-cheap one, because it front-loads every cheap body before anything
+ *  with weight: across the campaign's seventeen Thrones a full sort swung the
+ *  average up 19 points but sent BOLT's City Power Core (thirteen 1-drops in
+ *  thirty) DOWN from 43% to 25%, and LEAF's Spirit Tree from 45% to 20%.
+ *  Guaranteeing an opening it can afford is the part that was actually wanted.
  *
  *  Called immediately after every `shuffle` of a deck, which is what makes the
- *  property hold rather than merely start out true. Stable (`cost` only, and
- *  Array.prototype.sort is stable), so the order within a cost is the order the
- *  list was written in — a scripted fight is the same fight every time.
+ *  property hold rather than merely start out true — `applyMulligan` reshuffles.
  *
  *  The shuffle still RUNS first: the deck's own seed is consumed either way, so
  *  turning this on cannot shift the rest of the match's RNG. */
 export function restackByCost(p: PlayerState): void {
-  if (!p.stackByCost) return;
-  p.deck.sort((a, b) => getDef(a).cost - getDef(b).cost);
+  const n = p.stackCheapest ?? 0;
+  if (n <= 0 || !p.deck.length) return;
+  // Indices sorted by cost, ties broken by current (shuffled) position so the
+  // result is deterministic for a given seed.
+  const order = p.deck
+    .map((_, i) => i)
+    .sort((a, b) => getDef(p.deck[a]).cost - getDef(p.deck[b]).cost || a - b);
+  const head = order.slice(0, n);
+  const taken = new Set(head);
+  p.deck = [
+    ...head.map((i) => p.deck[i]),                 // cheapest, ascending
+    ...p.deck.filter((_, i) => !taken.has(i)),     // the rest, still shuffled
+  ];
 }
 
 function emptyPlayer(
-  deck: string[], spellIds?: string[], spellCap?: number, stackByCost?: boolean,
+  deck: string[], spellIds?: string[], spellCap?: number, stackCheapest?: number,
 ): PlayerState {
   return {
     deck,
-    ...(stackByCost ? { stackByCost: true } : {}),
+    ...(stackCheapest ? { stackCheapest } : {}),
     hand: [],
     // A hand-picked spellbook wins — INCLUDING an empty one. `undefined` means
     // "this deck never chose", so derive from its elements; `[]` means "chose

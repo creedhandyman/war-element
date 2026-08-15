@@ -39,17 +39,17 @@ export interface GameEvent {
   blurb: string;
   /** The battlefield this is fought on. The deck is sized for it. */
   boardSize: 4 | 5;
-  /** Draw this deck ON CURVE — cheapest first — instead of shuffled.
+  /** How many of the deck's cheapest cards are dealt first — a pre-orchestrated
+   *  opening. The rest of the deck stays shuffled.
    *
    *  An event is a designed fight, and a designed fight should not hinge on
    *  whether the opponent happened to draw something it could afford. Gold is
-   *  tight early, and a top-heavy list drawn at random simply stands there for
-   *  the first few rounds and hands the player a free board. Scripted, it ramps:
-   *  1-drops on round one, then up the curve as the gold arrives.
+   *  tight early, so a top-heavy list drawn at random simply stands there for
+   *  the first few rounds and hands the player a free board.
    *
-   *  It also makes the fight REPEATABLE in the sense a boss should be — the
-   *  same opponent every attempt, so losing teaches you something. */
-  scriptedOpening?: boolean;
+   *  A DEPTH rather than a flag, because sorting the WHOLE deck is not
+   *  universally better and the measurement says so — see `restackByCost`. */
+  scriptedOpening?: number;
   /** Packs owed on the FIRST clear.
    *
    *  Packs, not their price in shards. The first cut paid `PACK_COST` shards on
@@ -83,7 +83,12 @@ export const DARKEST_NIGHT: GameEvent = {
   blurb: "Thirty shades of DUSK on the large board, with all eight spells. "
     + "Beat it once and a free booster pack is yours.",
   boardSize: 5,
-  scriptedOpening: true,
+  // One opening hand's worth. Measured across all eighteen 5x5 builds, 720
+  // matches per depth: shuffled 42.8%, then 74.7 / 75.0 / 75.0 / 74.7% at
+  // depths 3 / 5 / 8 / 30. The whole effect arrives by the third card and the
+  // curve is flat after it, so this takes the plateau at its cheapest — the
+  // opening hand is scripted and the other twenty-five cards are not.
+  scriptedOpening: 5,
   rewardPacks: 1,
   deck: {
     id: "ev_darkest_night_deck",

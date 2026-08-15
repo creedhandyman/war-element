@@ -1495,7 +1495,8 @@ export interface PlayerState {
    *  pool and vice-versa. */
   magicPool: number;
   mulliganDone: boolean;
-  /** This deck draws ON CURVE: cheapest first, every time it is shuffled.
+  /** How many of this deck's CHEAPEST cards are dealt first — a pre-orchestrated
+   *  opening. The rest of the deck stays shuffled.
    *
    *  A scripted opponent, used by the one-off events. Gold is tight for the
    *  first several rounds, so a top-heavy list drawn at random simply stands
@@ -1505,10 +1506,13 @@ export interface PlayerState {
    *  designed fight should not be decided by whether the AI happened to draw a
    *  1-drop.
    *
+   *  A DEPTH, not a flag: sorting the whole deck is measurably worse for lists
+   *  that are already cheap. See `restackByCost`.
+   *
    *  Enforced next to EVERY shuffle rather than once at the deal, because the
    *  mulligan reshuffles: stacking only at deal time was undone the moment the
-   *  AI tossed a card. See `restackByCost`. */
-  stackByCost?: boolean;
+   *  AI tossed a card. */
+  stackCheapest?: number;
   /** Running tally of this player's cards that have died — feeds Destro's
    *  graveyard-scaling (its DMG grows with the fallen). */
   deaths?: number;

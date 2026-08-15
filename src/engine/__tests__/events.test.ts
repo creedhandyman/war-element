@@ -74,33 +74,43 @@ describe("event decks", () => {
 describe("a scripted opening", () => {
   const event = EVENTS.find((e) => e.scriptedOpening)!;
   const costs = (ids: string[]) => ids.map((id) => getDef(id).cost);
+  const depth = event.scriptedOpening!;
   const start = () => createInitialState(
     12345, PREMADE_DECKS.find((d) => d.boardSize === event.boardSize)!.cards,
     event.deck.cards, ["P1"], undefined, event.deck.spells, event.boardSize,
-    undefined, undefined, { P2: true },
+    undefined, undefined, { P2: depth },
   );
 
   it("deals the scripted side its cheapest cards", () => {
-    const s = start();
-    const hand = costs(s.players.P2.hand.map((h) => h.defId));
-    // Four 1-drops and four 2-drops in this list, so an on-curve opening five
-    // is 1,1,1,1,2 — and the point is that it can act on round one, when the
-    // pool affords exactly a 1-cost.
+    const hand = costs(start().players.P2.hand.map((h) => h.defId));
+    // The point is that it can ACT on round one, when the pool affords exactly
+    // a 1-cost. This deck holds four of them.
     expect(Math.min(...hand)).toBe(1);
-    expect(hand.filter((c) => c === 1).length).toBeGreaterThanOrEqual(4);
-    expect(Math.max(...hand)).toBeLessThanOrEqual(2);
+    expect(hand.filter((c) => c === 1).length).toBeGreaterThanOrEqual(1);
   });
 
-  it("leaves the deck in ascending cost order", () => {
-    const rest = costs(start().players.P2.deck);
-    expect(rest).toEqual([...rest].sort((a, b) => a - b));
+  it("hoists exactly the N cheapest, and no more", () => {
+    const s = start();
+    // The opening hand is drawn off the top, so the stacked head is split
+    // between hand and deck — check them together, in draw order.
+    const drawn = [...s.players.P2.hand.map((h) => h.defId), ...s.players.P2.deck];
+    const head = costs(drawn.slice(0, depth));
+    expect(head, "the head is ascending").toEqual([...head].sort((a, b) => a - b));
+    const all = costs(event.deck.cards).sort((a, b) => a - b);
+    expect(head, "and it is the cheapest N in the list").toEqual(all.slice(0, depth));
+  });
+
+  it("leaves the REST of the deck shuffled, not sorted", () => {
+    // A whole-deck sort is a different thing and a measurably worse one for
+    // already-cheap lists — this is an opening, not a scripted game.
+    const tail = costs(start().players.P2.deck.slice(Math.max(0, depth - 5)));
+    expect(tail).not.toEqual([...tail].sort((a, b) => a - b));
   });
 
   it("does NOT reorder the unscripted side", () => {
     // The ramp belongs to the boss. A player whose own deck was sorted would be
     // playing a different game, not a harder fight.
-    const s = start();
-    const p1 = costs(s.players.P1.deck);
+    const p1 = costs(start().players.P1.deck);
     expect(p1).not.toEqual([...p1].sort((a, b) => a - b));
   });
 
@@ -108,11 +118,9 @@ describe("a scripted opening", () => {
     // The bug this guards: stacking only at the deal was undone the moment the
     // AI tossed a card, because applyMulligan reshuffles the deck.
     const s = start();
-    const toss = s.players.P2.hand.slice(0, 2).map((h) => h.handId);
-    applyMulligan(s, "P2", toss);
-    const rest = costs(s.players.P2.deck);
-    expect(rest).toEqual([...rest].sort((a, b) => a - b));
-    expect(Math.max(...costs(s.players.P2.hand.map((h) => h.defId)))).toBeLessThanOrEqual(2);
+    applyMulligan(s, "P2", s.players.P2.hand.slice(0, 2).map((h) => h.handId));
+    const hand = costs(s.players.P2.hand.map((h) => h.defId));
+    expect(Math.min(...hand), "still opens on something castable").toBe(1);
   });
 
   it("is off by default, so ordinary matches still shuffle", () => {
@@ -120,7 +128,7 @@ describe("a scripted opening", () => {
       12345, event.deck.cards, event.deck.cards, ["P1"],
       undefined, undefined, event.boardSize,
     );
-    expect(s.players.P2.stackByCost).toBeFalsy();
+    expect(s.players.P2.stackCheapest).toBeFalsy();
     const d = costs(s.players.P2.deck);
     expect(d).not.toEqual([...d].sort((a, b) => a - b));
   });

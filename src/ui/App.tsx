@@ -79,7 +79,7 @@ import { Shop } from "./Shop";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
   loadStory, isFirstBattle, awardShards, heroBookFor, isRegionOpen, poolForRegion, recruitablePool,
-  regionOfNode, rollRecruits, saveStory, type StorySave, heroSpellShelf,
+  regionOfNode, rollRecruits, saveStory, THRONE_OPENING_STACK, type StorySave, heroSpellShelf,
 } from "../data/story";
 
 function newSeed(): number {
@@ -2330,8 +2330,12 @@ export function App() {
             // `bookForLoadout` owns that fallback and the board-cap trim.
             const heroBook = book.length ? book.slice(0, spellCapForBoard(board)) : heroBookFor(story, board);
             const foeBook = spellbookFor(squad).map((sl) => sl.defId);
+            // A Throne opens on its cheapest cards so the region's climax can
+            // actually act while gold is tight — see `THRONE_OPENING_STACK`.
+            // Only the ENEMY seat; the player's own draw is never touched.
             setGame(createInitialState(newSeed(), deck, squad, ["P1"], heroBook, foeBook, board,
-              deploy, terrain));
+              deploy, terrain,
+              node.kind === "throne" ? { P2: THRONE_OPENING_STACK } : undefined));
             navDo({ t: "fight", node });
             setViewSide("P1");
             setSel(null);
@@ -2609,7 +2613,7 @@ export function App() {
                       undefined, undefined,
                       // Only the EVENT seat is scripted. Your own deck is never
                       // reordered — the ramp is the boss's, not a rule change.
-                      eventRun?.scriptedOpening ? { P2: true } : undefined,
+                      eventRun?.scriptedOpening ? { P2: eventRun.scriptedOpening } : undefined,
                     ));
                     setViewSide("P1");
                     setSel(null);
