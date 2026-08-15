@@ -4,8 +4,9 @@
 // actually rests on: the reward is paid ONCE.
 
 import { describe, expect, it } from "vitest";
-import { CARD_INDEX } from "../../data/cards";
+import { CARD_INDEX, getDef } from "../../data/cards";
 import { getSpell } from "../spells";
+import { applyMulligan, createInitialState } from "../state";
 import { deckLimits, isBuildable, maxSpellsFor, validateDeck, PREMADE_DECKS } from "../../data/custom-decks";
 import { EVENTS, EVENT_DECKS, completeEvent, eventDone, eventForDeck, openEvents } from "../../data/events";
 import {
@@ -67,6 +68,61 @@ describe("event decks", () => {
   it("has no duplicate ids", () => {
     expect(new Set(EVENTS.map((e) => e.id)).size).toBe(EVENTS.length);
     expect(new Set(EVENT_DECKS.map((d) => d.id)).size).toBe(EVENT_DECKS.length);
+  });
+});
+
+describe("a scripted opening", () => {
+  const event = EVENTS.find((e) => e.scriptedOpening)!;
+  const costs = (ids: string[]) => ids.map((id) => getDef(id).cost);
+  const start = () => createInitialState(
+    12345, PREMADE_DECKS.find((d) => d.boardSize === event.boardSize)!.cards,
+    event.deck.cards, ["P1"], undefined, event.deck.spells, event.boardSize,
+    undefined, undefined, { P2: true },
+  );
+
+  it("deals the scripted side its cheapest cards", () => {
+    const s = start();
+    const hand = costs(s.players.P2.hand.map((h) => h.defId));
+    // Four 1-drops and four 2-drops in this list, so an on-curve opening five
+    // is 1,1,1,1,2 — and the point is that it can act on round one, when the
+    // pool affords exactly a 1-cost.
+    expect(Math.min(...hand)).toBe(1);
+    expect(hand.filter((c) => c === 1).length).toBeGreaterThanOrEqual(4);
+    expect(Math.max(...hand)).toBeLessThanOrEqual(2);
+  });
+
+  it("leaves the deck in ascending cost order", () => {
+    const rest = costs(start().players.P2.deck);
+    expect(rest).toEqual([...rest].sort((a, b) => a - b));
+  });
+
+  it("does NOT reorder the unscripted side", () => {
+    // The ramp belongs to the boss. A player whose own deck was sorted would be
+    // playing a different game, not a harder fight.
+    const s = start();
+    const p1 = costs(s.players.P1.deck);
+    expect(p1).not.toEqual([...p1].sort((a, b) => a - b));
+  });
+
+  it("survives a mulligan, which reshuffles", () => {
+    // The bug this guards: stacking only at the deal was undone the moment the
+    // AI tossed a card, because applyMulligan reshuffles the deck.
+    const s = start();
+    const toss = s.players.P2.hand.slice(0, 2).map((h) => h.handId);
+    applyMulligan(s, "P2", toss);
+    const rest = costs(s.players.P2.deck);
+    expect(rest).toEqual([...rest].sort((a, b) => a - b));
+    expect(Math.max(...costs(s.players.P2.hand.map((h) => h.defId)))).toBeLessThanOrEqual(2);
+  });
+
+  it("is off by default, so ordinary matches still shuffle", () => {
+    const s = createInitialState(
+      12345, event.deck.cards, event.deck.cards, ["P1"],
+      undefined, undefined, event.boardSize,
+    );
+    expect(s.players.P2.stackByCost).toBeFalsy();
+    const d = costs(s.players.P2.deck);
+    expect(d).not.toEqual([...d].sort((a, b) => a - b));
   });
 });
 

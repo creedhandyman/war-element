@@ -1495,6 +1495,20 @@ export interface PlayerState {
    *  pool and vice-versa. */
   magicPool: number;
   mulliganDone: boolean;
+  /** This deck draws ON CURVE: cheapest first, every time it is shuffled.
+   *
+   *  A scripted opponent, used by the one-off events. Gold is tight for the
+   *  first several rounds, so a top-heavy list drawn at random simply stands
+   *  there — Darkest Night holds four 1-cost cards in thirty at an average cost
+   *  of 4.27, against the six-to-eight the tuned 5x5 builds carry at ~3.1, and
+   *  it opened unable to summon anything on round one almost half the time. A
+   *  designed fight should not be decided by whether the AI happened to draw a
+   *  1-drop.
+   *
+   *  Enforced next to EVERY shuffle rather than once at the deal, because the
+   *  mulligan reshuffles: stacking only at deal time was undone the moment the
+   *  AI tossed a card. See `restackByCost`. */
+  stackByCost?: boolean;
   /** Running tally of this player's cards that have died — feeds Destro's
    *  graveyard-scaling (its DMG grows with the fallen). */
   deaths?: number;

@@ -72,6 +72,9 @@ export function createInitialState(
   /** A Field spell id to run as standing terrain for the whole battle (§4).
    *  Story nodes pass their region's; ordinary matches pass nothing. */
   terrainSpellId?: string,
+  /** Sides whose deck draws on curve — see `PlayerState.stackByCost`. Omit for
+   *  an ordinary match; the events pass their scripted seat. */
+  stacked?: { P1?: boolean; P2?: boolean },
 ): GameState {
   const state: GameState = {
     rngState: seed | 0,
@@ -82,8 +85,8 @@ export function createInitialState(
     players: {
       // Spellbook cap follows the battlefield: 5 on the standard board, 8 on the
       // large one (the deeper deck gets a deeper book).
-      P1: emptyPlayer(resolveDeck(p1Deck), p1Spells, spellCapForBoard(boardSize)),
-      P2: emptyPlayer(resolveDeck(p2Deck), p2Spells, spellCapForBoard(boardSize)),
+      P1: emptyPlayer(resolveDeck(p1Deck), p1Spells, spellCapForBoard(boardSize), stacked?.P1),
+      P2: emptyPlayer(resolveDeck(p2Deck), p2Spells, spellCapForBoard(boardSize), stacked?.P2),
     },
     cards: {},
     boardSize,
@@ -104,6 +107,8 @@ export function createInitialState(
   };
   shuffle(state, state.players.P1.deck);
   shuffle(state, state.players.P2.deck);
+  restackByCost(state.players.P1);
+  restackByCost(state.players.P2);
   state.firstPlayer = coin(state) ? "P1" : "P2";
   // §4: the region's Field spell is permanently active for BOTH sides — no
   // cost, no duration. `fieldBonus` keys on the card's own owner, so this needs
@@ -130,9 +135,26 @@ export function createInitialState(
   return state;
 }
 
-function emptyPlayer(deck: string[], spellIds?: string[], spellCap?: number): PlayerState {
+/** Re-sort a scripted deck to draw cheapest-first. No-op for ordinary players.
+ *
+ *  Called immediately after every `shuffle` of a deck, which is what makes the
+ *  property hold rather than merely start out true. Stable (`cost` only, and
+ *  Array.prototype.sort is stable), so the order within a cost is the order the
+ *  list was written in — a scripted fight is the same fight every time.
+ *
+ *  The shuffle still RUNS first: the deck's own seed is consumed either way, so
+ *  turning this on cannot shift the rest of the match's RNG. */
+export function restackByCost(p: PlayerState): void {
+  if (!p.stackByCost) return;
+  p.deck.sort((a, b) => getDef(a).cost - getDef(b).cost);
+}
+
+function emptyPlayer(
+  deck: string[], spellIds?: string[], spellCap?: number, stackByCost?: boolean,
+): PlayerState {
   return {
     deck,
+    ...(stackByCost ? { stackByCost: true } : {}),
     hand: [],
     // A hand-picked spellbook wins — INCLUDING an empty one. `undefined` means
     // "this deck never chose", so derive from its elements; `[]` means "chose
@@ -172,6 +194,9 @@ export function applyMulligan(
   p.hand = p.hand.filter((h) => !returnHandIds.includes(h.handId));
   for (const h of returning) p.deck.push(h.defId);
   shuffle(draft, p.deck);
+  // The reshuffle is exactly what used to undo a stacked deck — a scripted
+  // opponent that mulligans must still redraw on curve.
+  restackByCost(p);
   drawCards(draft, player, OPENING_HAND - p.hand.length);
   p.mulliganDone = true;
   if (returning.length > 0)

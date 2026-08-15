@@ -2603,6 +2603,13 @@ export function App() {
                       newSeed(), p1Cards, p2Cards, humans,
                       resolveDeckSpells(p1DeckId), resolveDeckSpells(p2DeckId),
                       boardSize,
+                      // No opening allowance and no terrain in the Arena; the
+                      // positions are held so the scripted flag lands on the
+                      // right parameter.
+                      undefined, undefined,
+                      // Only the EVENT seat is scripted. Your own deck is never
+                      // reordered — the ramp is the boss's, not a rule change.
+                      eventRun?.scriptedOpening ? { P2: true } : undefined,
                     ));
                     setViewSide("P1");
                     setSel(null);
