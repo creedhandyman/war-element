@@ -46,6 +46,7 @@ import { Board } from "./Board";
 import { CardView } from "./CardView";
 import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
+import { deckCodeFromUrl } from "../data/deck-code";
 import { REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
 import {
@@ -249,6 +250,24 @@ export function App() {
   const [customDecks, setCustomDecks] = useState<CustomDeck[]>(() => loadCustomDecks());
   const [builderOpen, setBuilderOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  // A deck arriving by shared link (?deck=WE1-...). Read ONCE, on the first
+  // render, and stripped from the address bar immediately: leaving it there
+  // would re-import the same deck on every refresh and would follow the player
+  // around as they navigate.
+  const [linkedDeck, setLinkedDeck] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const code = deckCodeFromUrl(window.location.search);
+    if (code) {
+      const clean = window.location.pathname + window.location.hash;
+      window.history.replaceState(null, "", clean || "/");
+    }
+    return code;
+  });
+  // Open the builder for it, once. The deck is NOT auto-saved: the player sees
+  // what they were sent and decides whether to keep it.
+  useEffect(() => {
+    if (linkedDeck) setBuilderOpen(true);
+  }, [linkedDeck]);
   // ── Story Mode ──────────────────────────────────────────────────────────
   // `storyNode` is the node the CURRENT match was launched from; it's what turns
   // a win into a recruitment roll. Null means this is an ordinary skirmish and
@@ -2689,7 +2708,9 @@ export function App() {
       <DeckBuilder
         boardSize={boardSize}
         open={builderOpen}
-        onClose={() => setBuilderOpen(false)}
+        incomingCode={linkedDeck}
+        onIncomingConsumed={() => setLinkedDeck(null)}
+        onClose={() => { setBuilderOpen(false); setLinkedDeck(null); }}
         onChange={(decks) => {
           setCustomDecks(decks);
           // If a side's custom deck was deleted, fall back to the first premade

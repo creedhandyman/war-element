@@ -275,3 +275,29 @@ export function decodeDeck(raw: string): DeckCodePayload {
     spells: values.slice(cardCount).map((i) => resolve(i, true)),
   };
 }
+
+// ── sharing by link ────────────────────────────────────────────────────────
+// Deliberately pure: these take and return strings and never touch `location`,
+// so they are testable in node and the browser globals stay at the call site.
+
+/** The query key a shared link carries the code in. */
+export const DECK_LINK_PARAM = "deck";
+
+/** Build a shareable link. `base` is normally `location.origin + location.pathname`.
+ *  Codes are base64url, so every character is already URL-safe and needs no
+ *  escaping — but it is encoded anyway, because a future format that is not
+ *  would otherwise break links silently. */
+export function deckLinkFor(code: string, base: string): string {
+  const clean = base.replace(/[?#].*$/, "").replace(/\/$/, "");
+  return `${clean}/?${DECK_LINK_PARAM}=${encodeURIComponent(code)}`;
+}
+
+/** Pull a deck code out of a query string (`location.search`), or null.
+ *  Does not decode it — the caller decides what to do with a bad one, so the
+ *  error can be shown next to the deck it failed to load. */
+export function deckCodeFromUrl(search: string): string | null {
+  if (!search) return null;
+  const q = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  const raw = q.get(DECK_LINK_PARAM);
+  return raw && raw.trim() ? raw.trim() : null;
+}

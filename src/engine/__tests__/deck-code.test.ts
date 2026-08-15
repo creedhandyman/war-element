@@ -6,7 +6,8 @@
 import { describe, expect, it } from "vitest";
 import { CARDS } from "../../data/cards";
 import {
-  CODE_IDS, CODE_INDEX_CEILING, DeckCodeError, SPELL_KEY_PREFIX, decodeDeck, encodeDeck,
+  CODE_IDS, CODE_INDEX_CEILING, DECK_LINK_PARAM, DeckCodeError, SPELL_KEY_PREFIX,
+  deckCodeFromUrl, deckLinkFor, decodeDeck, encodeDeck,
 } from "../../data/deck-code";
 import { SPELLS } from "../spells";
 
@@ -147,3 +148,48 @@ describe("deck codes — refusing bad input", () => {
 });
 
 const CODE_PREFIX_LEN = "WE1-".length;
+
+describe("deck codes — sharing by link", () => {
+  it("survives the whole trip: deck -> link -> query string -> deck", () => {
+    const link = deckLinkFor(encodeDeck(sample), "https://war.example.com/play");
+    const back = decodeDeck(deckCodeFromUrl(new URL(link).search)!);
+    expect(back).toEqual(sample);
+  });
+
+  it("builds a link that is actually a URL", () => {
+    const link = deckLinkFor(encodeDeck(sample), "https://war.example.com/play");
+    expect(() => new URL(link)).not.toThrow();
+    expect(new URL(link).searchParams.get(DECK_LINK_PARAM)).toBeTruthy();
+  });
+
+  it("does not double up on an origin that already has a query or hash", () => {
+    // location.origin + pathname is the normal input, but a caller passing the
+    // whole href would otherwise produce ...?deck=x?deck=y.
+    const link = deckLinkFor("WE1-abc", "https://war.example.com/play/?deck=old#frag");
+    expect(link).toBe("https://war.example.com/play/?deck=WE1-abc");
+    expect(link.match(/deck=/g)).toHaveLength(1);
+  });
+
+  it("does not care about a trailing slash", () => {
+    expect(deckLinkFor("WE1-abc", "https://x.dev/")).toBe(deckLinkFor("WE1-abc", "https://x.dev"));
+  });
+
+  it("finds no code when there is none, and ignores empty ones", () => {
+    expect(deckCodeFromUrl("")).toBeNull();
+    expect(deckCodeFromUrl("?other=1")).toBeNull();
+    expect(deckCodeFromUrl(`?${DECK_LINK_PARAM}=`)).toBeNull();
+    expect(deckCodeFromUrl(`?${DECK_LINK_PARAM}=%20%20`)).toBeNull();
+  });
+
+  it("reads the code with or without a leading question mark", () => {
+    expect(deckCodeFromUrl(`?${DECK_LINK_PARAM}=WE1-abc`)).toBe("WE1-abc");
+    expect(deckCodeFromUrl(`${DECK_LINK_PARAM}=WE1-abc`)).toBe("WE1-abc");
+  });
+
+  it("hands a bad code back intact rather than swallowing it", () => {
+    // The caller decodes, so the failure can be shown next to the deck it failed
+    // to load rather than vanishing into a null here.
+    expect(deckCodeFromUrl(`?${DECK_LINK_PARAM}=nonsense`)).toBe("nonsense");
+    expect(() => decodeDeck("nonsense")).toThrow(DeckCodeError);
+  });
+});

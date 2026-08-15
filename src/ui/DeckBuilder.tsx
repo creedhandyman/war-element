@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CardClass, Element } from "../engine";
 import { getDef, SPELLS } from "../engine";
 import {
@@ -12,7 +12,7 @@ import {
   type CustomDeck,
 } from "../data/custom-decks";
 import { STANDARD_CAP } from "../data/story";
-import { decodeDeck, encodeDeck } from "../data/deck-code";
+import { deckLinkFor, decodeDeck, encodeDeck } from "../data/deck-code";
 import { EL_COLOR, EL_ICON, RARITY_STYLE, spellArtSrc } from "./shared";
 import { CardView } from "./CardView";
 import { DeckStats, useComposition } from "./DeckStats";
@@ -58,6 +58,10 @@ export interface StoryBuildMode {
 export function DeckBuilder(props: {
   open: boolean;
   onClose: () => void;
+  /** A code that arrived by shared link, to load as soon as the builder opens.
+   *  Loaded, not saved — see the import handler. */
+  incomingCode?: string | null;
+  onIncomingConsumed?: () => void;
   onChange: (decks: CustomDeck[]) => void;
   /** Battlefield the player is building for — decides the legal deck size,
    *  which is EXACT: 18 on the standard board, 30 on the large one. */
@@ -153,31 +157,41 @@ export function DeckBuilder(props: {
   // ── deck codes ────────────────────────────────────────────────────────────
   const [importing, setImporting] = useState(false);
   const [codeInput, setCodeInput] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const [codeMsg, setCodeMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const shareCode = async () => {
+  /** Both share buttons run through here: the only difference is what gets put
+   *  on the clipboard, and both fall back to showing the text when the clipboard
+   *  is refused (it needs a secure context and can simply say no). */
+  const share = async (kind: "code" | "link") => {
     try {
       const code = encodeDeck({ name: name.trim() || "Shared deck", cards: picked, spells: pickedSpells });
+      const text = kind === "link"
+        ? deckLinkFor(code, window.location.origin + window.location.pathname)
+        : code;
       // navigator.clipboard needs a secure context and can be refused outright,
       // so the code is shown either way — a player who cannot copy can still
       // select it by hand rather than being told nothing happened.
       try {
-        await navigator.clipboard.writeText(code);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1600);
-        setCodeMsg({ ok: true, text: code });
+        await navigator.clipboard.writeText(text);
+        setCopied(kind);
+        setTimeout(() => setCopied(null), 1600);
+        setCodeMsg({ ok: true, text });
       } catch {
-        setCodeMsg({ ok: true, text: `Copy this: ${code}` });
+        setCodeMsg({ ok: true, text: `Copy this: ${text}` });
       }
     } catch (e) {
       setCodeMsg({ ok: false, text: e instanceof Error ? e.message : "Could not make a code." });
     }
   };
+  const shareCode = () => share("code");
+  const shareLink = () => share("link");
 
-  const importCode = () => {
+  const importCode = () => loadCode(codeInput, "paste");
+
+  const loadCode = (code: string, from: "paste" | "link") => {
     try {
-      const deck = decodeDeck(codeInput);
+      const deck = decodeDeck(code);
       // Cards this collection does not own are dropped rather than refused: in
       // Story you can legitimately be sent a deck holding cards you have not
       // earned, and silently loading them would let you field them.
@@ -190,16 +204,29 @@ export function DeckBuilder(props: {
       setEditingId(null); // an imported deck is a NEW deck, not an edit of yours
       setImporting(false);
       setCodeInput("");
+      const via = from === "link" ? "Shared deck loaded" : "Loaded";
       setCodeMsg({
         ok: true,
         text: dropped > 0
-          ? `Loaded "${deck.name || "deck"}" — ${dropped} card(s) you do not own were left out.`
-          : `Loaded "${deck.name || "deck"}" — ${usable.length} cards.`,
+          ? `${via}: "${deck.name || "deck"}" — ${dropped} card(s) you do not own were left out.`
+          : `${via}: "${deck.name || "deck"}" — ${usable.length} cards.`,
       });
     } catch (e) {
       setCodeMsg({ ok: false, text: e instanceof Error ? e.message : "That code could not be read." });
     }
   };
+
+  // A link-borne deck loads itself once the builder is open. Keyed on the code
+  // value rather than a mount flag, so StrictMode's double-invoke cannot consume
+  // it twice and so a second link in the same session still works.
+  const consumedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const code = props.incomingCode;
+    if (!props.open || !code || consumedRef.current === code) return;
+    consumedRef.current = code;
+    loadCode(code, "link");
+    props.onIncomingConsumed?.();
+  }, [props.open, props.incomingCode]);
 
   if (!props.open) return null;
 
@@ -371,7 +398,10 @@ export function DeckBuilder(props: {
                 worth sending to somebody for an opinion. Import is always open. */}
             <div className="db-actions db-code-row">
               <button className="ghost" disabled={picked.length === 0} onClick={shareCode}>
-                {copied ? "Copied ✓" : "Copy code"}
+                {copied === "code" ? "Copied ✓" : "Copy code"}
+              </button>
+              <button className="ghost" disabled={picked.length === 0} onClick={shareLink}>
+                {copied === "link" ? "Copied ✓" : "Copy link"}
               </button>
               <button className="ghost" onClick={() => { setImporting((v) => !v); setCodeMsg(null); }}>
                 {importing ? "Cancel" : "Paste code"}
