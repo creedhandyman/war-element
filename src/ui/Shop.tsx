@@ -65,6 +65,9 @@ export function Shop(props: {
 }) {
   const { save } = props;
   const [tab, setTab] = useState<"packs" | "crafter">(props.openTab ?? "packs");
+  /** Falls back to the drawn seal if the pack shot fails to load — the Packs
+   *  tab should never be a hole where its one object was. */
+  const [packArt, setPackArt] = useState(true);
   const [el, setEl] = useState<string>("ALL");
   const [previewId, setPreviewId] = useState<string | null>(null);
   /** The pack just torn open, held so the player can actually read it. */
@@ -140,11 +143,22 @@ export function Shop(props: {
            you tap it: the odds, the guarantee, the foil rate, and what the
            duplicates pay back. */
         <div className="pack-object">
-          <div className="pack-seal">
-            <span className="pack-seal-tag">SEALED</span>
-            <span className="pack-seal-mark">✦</span>
+          {/* The real pack, not a drawn stand-in. The art carries the name and
+              the count, so the "Booster pack" heading under it went — a title
+              repeating what the picture already says is a line the odds table
+              could have had instead. The guarantee stays: it is the one thing
+              the pack shot cannot tell you. */}
+          <div className={`pack-seal ${packArt ? "art" : ""}`}>
+            {packArt ? (
+              <img src="/pack.webp" alt={`War Element ${PACK_SIZE}-card booster pack`}
+                draggable={false} onError={() => setPackArt(false)} />
+            ) : (
+              <>
+                <span className="pack-seal-tag">SEALED</span>
+                <span className="pack-seal-mark">✦</span>
+              </>
+            )}
           </div>
-          <div className="pack-title">Booster pack</div>
           <div className="pack-sub">{PACK_SIZE} cards · at least one Epic or better</div>
 
           <div className="odds-head">PULL ODDS <em>the same table the story rolls on</em></div>

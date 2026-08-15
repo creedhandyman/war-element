@@ -4149,12 +4149,30 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   border: 1px solid rgba(140, 180, 255, 0.35);
   box-shadow: inset 0 1px 0 rgba(190, 220, 255, 0.18), 0 8px 22px rgba(0, 0, 0, 0.55);
 }
+/* With the real pack shot in it: 2:3, the art's own ratio, and none of the
+   drawn seal's chrome. The image already has a foil edge and a black margin,
+   so a blue border around it reads as a frame around a photo rather than as
+   part of the pack. The gradient and border survive on `.pack-seal` alone as
+   the fallback when the file will not load. */
+.pack-seal.art {
+  /* 0.592, the CROPPED art's ratio, not the source file's 2:3 — the render is
+     trimmed to the foil edge (the source carries ~90px of black surround on
+     each side, which read as a photo sitting in a frame rather than as a pack
+     on the shelf). A wrong ratio here would letterbox it back in. */
+  width: 172px; height: auto; aspect-ratio: 640 / 1080;
+  /* `box-shadow: none` is load-bearing: the base rule's inset highlight and
+     drop shadow are drawn on the BOX, which is invisible here, so they painted
+     a rectangle around a pack that is not rectangular. The shadow follows the
+     silhouette instead. */
+  background: none; border: 0; box-shadow: none;
+  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.65));
+}
+.pack-seal.art img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .pack-seal-mark { font-size: 34px; color: rgba(190, 220, 255, 0.5); }
 .pack-seal-tag {
   position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
   font-size: var(--fs-1); letter-spacing: 0.18em; color: rgba(190, 220, 255, 0.7);
 }
-.pack-title { font-family: var(--head); font-size: var(--fs-5); color: #cfe3ff; }
 .pack-sub { font-size: var(--fs-3); color: var(--ink-dim); }
 
 .odds-head {
