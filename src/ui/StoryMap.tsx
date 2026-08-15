@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getDef } from "../data/cards";
 import {
-  BIG_BATTLE_KINDS, BLIGHT_MAX, blightAddsFor, blightLevel, blightNodeFor, deckCapFor,
+  BIG_BATTLE_KINDS, BLIGHT_MAX, blightAddsFor, blightLevel, blightNodeFor, deckCapFor, fightCap,
   gateCheck, isBlightNode, isCleared, isGate, isOpen, isOverflow, isRegionCleared,
   recruitChance, recruitablePool, regionOfNode, terrainContested,
   type StoryNode, type StoryRegion, type StorySave,
@@ -250,8 +250,14 @@ function NodePanel(props: {
 
       {isGate(node) && node.demand && (
         <p className={`np-demand ${gate.ok ? "met" : ""}`}>
+          {/* The number `gateCheck` ENFORCES, not the ladder's. A gate is
+              fought on 4x4, so it asks for a full 4x4 deck and not the 30 the
+              ladder may already allow for this region's set pieces — which is
+              what this line used to print. The panel demanded a 30-card deck,
+              the player brought one, and the same panel answered "your deck is
+              30/18, drop 12". */}
           Demands <b>{node.demand.count} {node.demand.value}</b>
-          {" "}and a full <b>{deckCapFor(save.cleared)}</b>-card deck
+          {" "}and a full <b>{fightCap(save, region, node)}</b>-card deck
           {gate.ok && <span className="np-tick"> ✓ ready</span>}
         </p>
       )}

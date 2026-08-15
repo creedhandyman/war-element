@@ -1871,3 +1871,43 @@ describe("story: clearing a node must not eat the save", () => {
     expect(after.collection).toContain("leaf_nettle");
   });
 });
+
+describe("a gate asks for the size it actually enforces", () => {
+  it("fightCap is the ONE number — the ladder cap is a different quantity", () => {
+    // The node panel printed `deckCapFor(cleared)` — the ladder ceiling for the
+    // whole region — while `gateCheck` enforced `fightCap`, the cap for THIS
+    // node. Late in BORE those are 30 and 18, so the panel demanded "a full
+    // 30-card deck", the player brought exactly 30, and the same panel answered
+    // "your deck is 30/18. Drop 12."
+    //
+    // This asserts the two are not interchangeable, so a future call site that
+    // reaches for the ladder number is testing against a real difference rather
+    // than a coincidence.
+    const cleared = ALL_NODES.map((n) => n.id);          // everything: ladder at its max
+    const ladder = deckCapFor(cleared);
+    let differed = 0;
+    for (const region of REGIONS) {
+      for (const node of region.nodes) {
+        if (!isGate(node)) continue;
+        const save: StorySave = {
+          cleared, collection: [], pity: {}, deck: [], blight: {},
+        };
+        const cap = fightCap(save, region, node);
+        // A 4x4 gate in a region whose ladder has run past the standard size.
+        if (cap !== ladder) differed++;
+        // Whatever it is, a deck of exactly that size passes the size half and
+        // one card either side does not.
+        // Real ids: gateCheck runs `demandMet`, which looks every card up.
+        const pool = CARDS.map((c) => c.id);
+        const exact = { ...save, deck: pool.slice(0, cap) };
+        const over = { ...save, deck: pool.slice(0, cap + 1) };
+        const sizeFail = (s: StorySave) =>
+          gateCheck(s, node).reasons.some((r) => r.includes("Your deck is"));
+        expect(sizeFail(exact), `${node.id} rejects its own fightCap ${cap}`).toBe(false);
+        expect(sizeFail(over), `${node.id} accepts ${cap + 1}`).toBe(true);
+      }
+    }
+    // If these never diverged the test would pass on a coincidence.
+    expect(differed, "no gate where the two caps differ — the bug is untestable").toBeGreaterThan(0);
+  });
+});
