@@ -2343,7 +2343,11 @@ export function App() {
           // Viewer-relative: online the guest sits in P2 and was being shown
           // VICTORY for a match it had just lost.
           me={online?.myId ?? "P1"}
-          onRematch={setupRef.current ? askRematch : undefined}
+          // Online, the GUEST has no setup of its own — the host deals, and the
+          // guest only has to ask. Gating this on `setupRef` left the guest
+          // with nothing but Leave, so a rematch could only ever be started by
+          // one of the two players.
+          onRematch={online || setupRef.current ? askRematch : undefined}
           rematch={{ mine: rematchMine, theirs: rematchTheirs, online: !!online }}
           onNewGame={() => {
             if (online) leaveOnline(); // tear down the room before returning
