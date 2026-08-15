@@ -2,7 +2,7 @@
 // All reducers clone the incoming state once and mutate only the clone.
 
 import { getDef } from "../data/cards";
-import { applyFlow, DAWN_SP_CAP, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, LEAF_SHIELD_CAP } from "./auras";
+import { applyFlow, DAWN_SP_CAP, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasElementAura, LEAF_SHIELD_CAP } from "./auras";
 import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
@@ -2458,7 +2458,13 @@ function doCleanupPhase(draft: GameState): void {
     // round — ONE status, oldest first, so a stack of debuffs is peeled rather
     // than wiped. Runs before the duration tick below, so the cleansed status is
     // gone for good rather than merely shortened.
-    if (def.element === "DAWN") {
+    // `hasElementAura`, not `def.element ===`, at every aura gate — a card that
+    // BORROWS an element (SirCrest) carries its aura, the inspector prints that
+    // it does, and the summon and on-hit hooks already honoured it. These
+    // end-of-round ones did not, so a borrower would have been advertising an
+    // aura that never fired. No card borrows DAWN/LEAF/GALE today, so this
+    // changes nothing now and stops being a trap the moment one does.
+    if (hasElementAura(def, "DAWN")) {
       const i = card.statuses.findIndex((st) => NEGATIVE_STATUSES.includes(st.kind));
       if (i >= 0) {
         const [gone] = card.statuses.splice(i, 1);
@@ -2479,7 +2485,7 @@ function doCleanupPhase(draft: GameState): void {
       const curSp = def.sp + card.spBonus;
       if (curSp < DAWN_SP_CAP) card.spBonus += Math.min(1, DAWN_SP_CAP - curSp);
     }
-    if (def.element === "LEAF") {
+    if (hasElementAura(def, "LEAF")) {
       // Photosynthesis feeds on what the roots hold: +2 base, and +1 more for
       // every ROOTed opponent. It ties LEAF's two halves together — the element
       // that puts the most ROOT on the board now gets paid for doing it, so the
@@ -2529,7 +2535,7 @@ function doCleanupPhase(draft: GameState): void {
     }
     // Zephyr (GALE): +2 SP each round (total capped at 21). The first time its
     // speed pushes past 15, a one-time +1 DMG (not a per-round ramp).
-    if (def.element === "GALE") {
+    if (hasElementAura(def, "GALE")) {
       const curSp = def.sp + card.spBonus;
       if (curSp < GALE_SP_CAP) card.spBonus += Math.min(2, GALE_SP_CAP - curSp);
       if (!card.zephyrBoosted && def.sp + card.spBonus > 15) {

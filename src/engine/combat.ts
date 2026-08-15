@@ -1306,7 +1306,7 @@ export function resolveHit(
           }
         }
       }
-    } else if (tDef.element === "DUSK" && opts.kind !== "reflect" && attacker.curHp > 0) {
+    } else if (hasElementAura(tDef, "DUSK") && opts.kind !== "reflect" && attacker.curHp > 0) {
       // Midnight Shade (DUSK aura): a dying card deals a THIRD of its DMG to the
       // killer. Only when the card has no stronger card-specific onDeath.
       //
@@ -1608,7 +1608,7 @@ export function basicAttack(
     // Grid. Raised from +1: even once the aura was made self-enabling (see the
     // ELECTRIFIED rider below) a single point moved BOLT's win rate 38% -> 39%,
     // i.e. not at all. On BOLT's ~5-damage cards +1 is a rounding error.
-    if (aDef.element === "BOLT" && t.statuses.length > 0) dmg += 2 + fieldBonus(draft, attacker, "electrify");
+    if (hasElementAura(aDef, "BOLT") && t.statuses.length > 0) dmg += 2 + fieldBonus(draft, attacker, "electrify");
     // Harsh Winds / Shadow: bonus DMG the first time this card strikes a given
     // opponent. Squall's version only counts while it stands on the enemy side.
     const fsEligible = Boolean(aDef.firstStrikeBonus) && (!aDef.firstStrikeEnemySideOnly || onEnemySide(attacker, draft.boardSize));
@@ -1694,7 +1694,7 @@ export function basicAttack(
       // hit of any exchange, and PYRO's equivalent has always done its own
       // setup. Applied only when the target carries NO status yet, so it never
       // overwrites a real debuff with an inert marker.
-      if (aDef.element === "BOLT" && t.curHp > 0 && t.statuses.length === 0) {
+      if (hasElementAura(aDef, "BOLT") && t.curHp > 0 && t.statuses.length === 0) {
         applyStatus(draft, t, "ELECTRIFIED", 1, 0, "BOLT");
       }
       // Magic Potion (Hexvial): a landed basic hurls a random flask at the target.

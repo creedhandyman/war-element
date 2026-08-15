@@ -30,6 +30,7 @@ import type {
 } from "./types";
 import { OPENING_COST_CAP, enemyOf, homeRow, isMidRow } from "./types";
 import { getSpell, spellPickKind } from "./spells";
+import { hasElementAura } from "./auras";
 
 // ── prep phase ──────────────────────────────────────────────────────────────
 
@@ -629,7 +630,9 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
 export function basicIsInert(state: GameState, card: CardInstance): boolean {
   const def = getDef(card.defId);
   if (effectiveDmg(state, card) > 0) return false;
-  if (def.element === "PYRO" || def.element === "BOLT") return false; // element on-hit auras
+  // The on-hit element auras, INCLUDING a borrowed one — a SirCrest debuffed to
+  // 0 DMG still sets what it touches alight, so its basic is not inert.
+  if (hasElementAura(def, "PYRO") || hasElementAura(def, "BOLT")) return false;
   if (def.onHitStatus || def.vsStatus || def.onHitZap || def.onHitSelfBuff) return false;
   // NB: Hillside (onAllyHitShield) is deliberately NOT listed — it reacts to
   // allies being hit, so it gives a 0-DMG basic no reason to swing.

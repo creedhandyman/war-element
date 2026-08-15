@@ -1,0 +1,257 @@
+// The eight element auras, exercised through the real phase machinery rather
+// than by calling the hooks directly. There was no dedicated aura test: the
+// pieces were scattered across passives.test.ts and several auras (LEAF's heal,
+// DAWN's cleanse, BOLT's damage rider, DUSK's shade) had no end-to-end coverage
+// at all. The last block is the one that matters most — a BORROWED aura has to
+// fire at every hook, because the card inspector prints that it will.
+
+import { describe, expect, it } from "vitest";
+import { CARDS } from "../../data/cards";
+import {
+  DAWN_SP_CAP, ELEMENT_AURA, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, GALE_SP_CAP,
+  LEAF_SHIELD_CAP, PYRO_BURN_STACK_CAP, hasElementAura,
+} from "../auras";
+import { applyStatus, basicAttack, defeatCard, shadeDodgePct } from "../combat";
+import { advance, applyIntent } from "../phases";
+import { basicIsInert } from "../rules";
+import { boardCards } from "../state";
+import type { Element } from "../types";
+import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
+
+/** Cheapest real card of an element — a valid id by construction, so this file
+ *  cannot rot against a rename the way a hardcoded list would. */
+const cheapest = (el: Element) =>
+  CARDS.filter((c) => c.element === el).sort((a, b) => a.cost - b.cost)[0];
+
+describe("every element has an aura and a card to carry it", () => {
+  it("all 8 elements are in the table and represented in the pool", () => {
+    for (const el of Object.keys(ELEMENT_AURA) as Element[]) {
+      expect(ELEMENT_AURA[el].name, el).toBeTruthy();
+      expect(CARDS.some((c) => c.element === el), `${el} has cards`).toBe(true);
+    }
+  });
+});
+
+describe("LEAF — Photosynthesis", () => {
+  it("heals +2 at end of round, +1 per ROOTed opponent", () => {
+    const s = prepState();
+    const leaf = place(s, cheapest("LEAF").id, "P1", 3, 0, { curHp: 3, maxHp: 30 });
+    place(s, cheapest("DUSK").id, "P2", 0, 0);
+    expect(advance(atCleanup(s)).cards[leaf.instanceId].curHp).toBe(5);
+
+    const s2 = prepState();
+    const leaf2 = place(s2, cheapest("LEAF").id, "P1", 3, 0, { curHp: 3, maxHp: 30 });
+    const foe = place(s2, cheapest("DUSK").id, "P2", 0, 0);
+    applyStatus(s2, s2.cards[foe.instanceId], "ROOT", 3, 1, "LEAF");
+    expect(advance(atCleanup(s2)).cards[leaf2.instanceId].curHp, "+2 base, +1 per root").toBe(6);
+  });
+
+  it("banks +1 shield PER HIT taken, capped above PRINTED shields", () => {
+    const def = cheapest("LEAF");
+    const s = prepState();
+    const leaf = place(s, def.id, "P1", 3, 0, { curHp: 30, maxHp: 30, hitsTakenThisRound: 2 });
+    expect(advance(atCleanup(s)).cards[leaf.instanceId].curShields).toBe(def.shields + 2);
+
+    // The ceiling is printed + cap, not a flat total — read as a total it would
+    // lock every LEAF card printing 3+ shields out of half its own aura.
+    const s2 = prepState();
+    const l2 = place(s2, def.id, "P1", 3, 0, { curHp: 30, maxHp: 30, hitsTakenThisRound: 99 });
+    expect(advance(atCleanup(s2)).cards[l2.instanceId].curShields).toBe(def.shields + LEAF_SHIELD_CAP);
+  });
+});
+
+describe("PYRO — Scorch", () => {
+  it("a basic attack sets the target alight, and stacks to the cap", () => {
+    const s = prepState();
+    const pyro = place(s, cheapest("PYRO").id, "P1", 3, 0);
+    const foe = place(s, cheapest("DUSK").id, "P2", 2, 0, { curHp: 500, maxHp: 500, curShields: 0 });
+    basicAttack(s, pyro.instanceId, foe.instanceId);
+    expect(statusOf(s.cards[foe.instanceId], "BURN")).toBeTruthy();
+
+    for (let i = 0; i < 20; i++) {
+      s.cards[pyro.instanceId].attackedThisRound = false;
+      basicAttack(s, pyro.instanceId, foe.instanceId);
+    }
+    expect(statusOf(s.cards[foe.instanceId], "BURN")!.power).toBe(PYRO_BURN_STACK_CAP);
+  });
+});
+
+describe("BORE — Exostone", () => {
+  it("every BORE card arrives plated by its rarity", () => {
+    for (const def of CARDS.filter((c) => c.element === "BORE")) {
+      const s = prepState();
+      s.players.P1.gold = 30;
+      const handId = giveHand(s, "P1", def.id);
+      const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+      const card = boardCards(next, "P1").find((c) => c.defId === def.id);
+      if (!card) continue; // a body that transforms on arrival — covered elsewhere
+      const plate = EXOSTONE_SHIELDS[def.rarity ?? ""] ?? EXOSTONE_DEFAULT;
+      expect(card.curShields, `${def.id} (${def.rarity})`).toBeGreaterThanOrEqual(def.shields + plate);
+    }
+  });
+
+  it("never loses more than one shield to a single hit, however heavy", () => {
+    const s = prepState();
+    const heavy = CARDS.filter((c) => c.element === "PYRO").sort((a, b) => b.dmg - a.dmg)[0];
+    const hitter = place(s, heavy.id, "P1", 3, 0);
+    const bore = place(s, cheapest("BORE").id, "P2", 2, 0, { curShields: 5, curHp: 500, maxHp: 500 });
+    basicAttack(s, hitter.instanceId, bore.instanceId);
+    expect(s.cards[bore.instanceId].curShields).toBeGreaterThanOrEqual(4);
+  });
+
+  it("wears the plate it breaks off an opponent", () => {
+    const s = prepState();
+    const bore = place(s, cheapest("BORE").id, "P1", 3, 0, { curShields: 0 });
+    const foe = place(s, cheapest("DUSK").id, "P2", 2, 0, { curShields: 3, curHp: 500, maxHp: 500 });
+    basicAttack(s, bore.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].curShields).toBeLessThan(3);
+    expect(s.cards[bore.instanceId].curShields, "takes what it breaks").toBeGreaterThan(0);
+  });
+});
+
+describe("DUSK — Midnight Shade", () => {
+  it("a fallen DUSK card thickens the shadows over its surviving allies", () => {
+    const s = prepState();
+    const fallen = place(s, cheapest("DUSK").id, "P1", 3, 0);
+    const survivor = place(s, cheapest("DUSK").id, "P1", 3, 1);
+    s.round = 1;
+    defeatCard(s, s.cards[fallen.instanceId], "test");
+    expect(s.players.P1.shadeStacks).toBe(1);
+    expect(shadeDodgePct(s, s.cards[survivor.instanceId])).toBeGreaterThan(0);
+  });
+});
+
+describe("AQUA — Flow Change", () => {
+  it("an AI-side AQUA card takes a boost on summon", () => {
+    const s = prepState(42, "P2"); // P2 must hold priority to summon
+    s.players.P2.gold = 30;
+    s.humans = ["P1"]; // P2 is the AI, so it picks for itself immediately
+    const def = cheapest("AQUA");
+    const handId = giveHand(s, "P2", def.id);
+    const next = applyIntent(s, { type: "SUMMON", player: "P2", handId, col: 0 });
+    const card = boardCards(next, "P2").find((c) => c.defId === def.id)!;
+    const boosted =
+      card.buffs.length > 0 || card.curShields > def.shields ||
+      card.dmgBonus > 0 || card.dmgBonusRound > 0 || card.spBonus > 0 || card.spBonusRound > 0 ||
+      card.hitsBonus > 0 || card.hitsBonusRound > 0;
+    expect(boosted, "Flow Change granted something").toBe(true);
+  });
+
+  it("a human-side AQUA card gates on the choice instead of picking for them", () => {
+    const s = prepState();
+    s.players.P1.gold = 30;
+    const handId = giveHand(s, "P1", cheapest("AQUA").id);
+    expect(applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 }).pendingFlow).toBeTruthy();
+  });
+});
+
+describe("DAWN — Awakening", () => {
+  it("strikes the nearest enemy on summon", () => {
+    const s = prepState();
+    s.players.P1.gold = 30;
+    const def = CARDS.filter((c) => c.element === "DAWN" && c.dmg >= 2).sort((a, b) => a.cost - b.cost)[0];
+    const foe = place(s, cheapest("DUSK").id, "P2", 2, 0, { curHp: 500, maxHp: 500, curShields: 0 });
+    const handId = giveHand(s, "P1", def.id);
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(next.cards[foe.instanceId].curHp, "took half its DMG").toBeLessThan(500);
+  });
+
+  it("burns ONE negative status off each round, and quickens to a cap", () => {
+    const s = prepState();
+    const def = cheapest("DAWN");
+    const dawn = place(s, def.id, "P1", 3, 0);
+    applyStatus(s, s.cards[dawn.instanceId], "BURN", 3, 2, "PYRO");
+    applyStatus(s, s.cards[dawn.instanceId], "ROOT", 3, 1, "LEAF");
+    const before = s.cards[dawn.instanceId].statuses.length;
+    const after = advance(atCleanup(s));
+    expect(after.cards[dawn.instanceId].statuses.length, "peeled, not wiped").toBe(before - 1);
+    expect(after.cards[dawn.instanceId].spBonus).toBeGreaterThan(0);
+    expect(def.sp + after.cards[dawn.instanceId].spBonus).toBeLessThanOrEqual(DAWN_SP_CAP);
+  });
+});
+
+describe("GALE — Zephyr", () => {
+  it("+2 SP a round, capped, with a one-time +1 DMG past 15", () => {
+    const def = cheapest("GALE");
+    let s = prepState();
+    const gale = place(s, def.id, "P1", 3, 0);
+    s = advance(atCleanup(s));
+    expect(s.cards[gale.instanceId].spBonus).toBe(2);
+
+    for (let i = 0; i < 20; i++) s = advance(atCleanup(s));
+    const card = s.cards[gale.instanceId];
+    expect(def.sp + card.spBonus, "capped").toBeLessThanOrEqual(GALE_SP_CAP);
+    expect(card.zephyrBoosted, "crossed 15 and banked the one-time DMG").toBe(true);
+    expect(card.dmgBonus, "ONE time, not a per-round ramp").toBe(1);
+  });
+});
+
+describe("BOLT — Electrify", () => {
+  it("a basic hit leaves the target carrying a status", () => {
+    const s = prepState();
+    const bolt = place(s, cheapest("BOLT").id, "P1", 3, 0);
+    const foe = place(s, cheapest("DUSK").id, "P2", 2, 0, { curHp: 500, maxHp: 500, curShields: 0 });
+    basicAttack(s, bolt.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].statuses.length).toBeGreaterThan(0);
+  });
+
+  it("hits harder into a target that already carries one", () => {
+    const def = cheapest("BOLT");
+    const plain = prepState();
+    const b1 = place(plain, def.id, "P1", 3, 0);
+    const f1 = place(plain, cheapest("DUSK").id, "P2", 2, 0, { curHp: 500, maxHp: 500, curShields: 0 });
+    basicAttack(plain, b1.instanceId, f1.instanceId);
+    const clean = 500 - plain.cards[f1.instanceId].curHp;
+
+    const s = prepState();
+    const b2 = place(s, def.id, "P1", 3, 0);
+    const f2 = place(s, cheapest("DUSK").id, "P2", 2, 0, { curHp: 500, maxHp: 500, curShields: 0 });
+    applyStatus(s, s.cards[f2.instanceId], "ROOT", 3, 1, "LEAF");
+    basicAttack(s, b2.instanceId, f2.instanceId);
+    expect(500 - s.cards[f2.instanceId].curHp, "+2 into a statused target").toBeGreaterThan(clean);
+  });
+});
+
+describe("borrowed auras (elementAuras) reach every hook", () => {
+  const borrowers = CARDS.filter((c) => c.elementAuras?.length);
+
+  it("there is at least one borrower to check", () => {
+    expect(borrowers.length).toBeGreaterThan(0);
+  });
+
+  it("hasElementAura agrees with what the card claims", () => {
+    // The card inspector PRINTS every borrowed aura (card-text.tsx), so a
+    // borrowed aura no hook honours is a card lying about what it does.
+    const gaps: string[] = [];
+    for (const def of borrowers)
+      for (const el of def.elementAuras!)
+        if (!hasElementAura(def, el)) gaps.push(`${def.id} claims ${el}, hasElementAura says no`);
+    expect(gaps).toEqual([]);
+  });
+
+  it("a borrower gets the borrowed SUMMON aura end-to-end", () => {
+    // SirCrest is DAWN and borrows AQUA. The suite already checked that
+    // `hasElementAura` says so and that Scorch (PYRO, an on-hit hook) works,
+    // but nothing pinned that Flow Change — a different hook entirely, on the
+    // summon path — actually reaches him.
+    for (const def of borrowers.filter((c) => c.elementAuras!.includes("AQUA"))) {
+      const s = prepState();
+      s.players.P1.gold = 30;
+      const handId = giveHand(s, "P1", def.id);
+      const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+      expect(next.pendingFlow, `${def.id} is offered Flow Change`).toBeTruthy();
+    }
+  });
+
+  it("a borrower's basic is never inert while it carries an on-hit aura", () => {
+    // basicIsInert gates whether the AI bothers swinging a 0-DMG attack. It
+    // listed PYRO and BOLT by raw element, so a borrower debuffed to 0 DMG read
+    // as inert even though its basic would still set the target alight.
+    for (const def of borrowers) {
+      if (!def.elementAuras!.some((el) => el === "PYRO" || el === "BOLT")) continue;
+      const s = prepState();
+      const card = place(s, def.id, "P1", 3, 0, { dmgBonus: -999 });
+      expect(basicIsInert(s, s.cards[card.instanceId]), `${def.id} still burns`).toBe(false);
+    }
+  });
+});
