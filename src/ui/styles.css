@@ -4343,6 +4343,61 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 /* The reveal. Five cards, and the only thing that matters at a glance is which
    of them are NEW — so that is the only thing given colour. */
+/* ── tearing a pack open ────────────────────────────────────────────────────
+   One beat, 1100ms, between paying and seeing. The pack lands, shakes, a seam
+   of light runs across the crimp, and it blows out into the reveal. The result
+   is already committed when this starts — see `tearOpen` — so this is purely
+   presentational and skipping it cannot change a pull. */
+.pack-tear { display: grid; place-items: center; cursor: pointer; animation: tearScrim 1.1s ease-out both; }
+@keyframes tearScrim { 0% { opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { opacity: 0; } }
+/* The stage carries the motion so the pack and its seam move as one object. */
+.tear-stage {
+  position: relative; display: block; width: min(58vw, 240px);
+  filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.7));
+  animation: tearPack 1.1s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.tear-pack { width: 100%; height: auto; display: block; }
+@keyframes tearPack {
+  0% { opacity: 0; transform: scale(0.72) rotate(-4deg); }
+  18% { opacity: 1; transform: scale(1.04) rotate(1deg); }
+  30% { transform: scale(1) rotate(-1.5deg); }
+  42% { transform: scale(1.01) rotate(1.5deg); }
+  54% { transform: scale(1) rotate(-1deg); }
+  72% { opacity: 1; transform: scale(1.06) rotate(0deg); }
+  100% { opacity: 0; transform: scale(1.5) rotate(0deg); }
+}
+/* The seam. A hard bright band swept across the crimped top, which is where a
+   real pack gives. */
+/* On the crimp — 7% down the art, which is where the serrated edge is and
+   where a real pack gives. Wider than the pack so the light runs off both
+   sides rather than stopping at them. */
+.tear-rip {
+  position: absolute; top: 7%; left: -8%; width: 116%; height: 3px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #fff, var(--gold-hi), transparent);
+  filter: blur(1px); opacity: 0; animation: tearRip 1.1s ease-out both;
+}
+@keyframes tearRip {
+  0%, 52% { opacity: 0; transform: scaleX(0.1); }
+  62% { opacity: 1; transform: scaleX(1); }
+  78% { opacity: 0.9; transform: scaleX(1.05); }
+  100% { opacity: 0; transform: scaleX(1.1); }
+}
+.tear-bloom {
+  position: absolute; width: min(80vw, 420px); aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.92), rgba(232, 200, 119, 0.5) 42%, transparent 70%);
+  filter: blur(10px); opacity: 0; animation: tearBloom 1.1s ease-out both;
+}
+@keyframes tearBloom {
+  0%, 55% { opacity: 0; transform: scale(0.3); }
+  74% { opacity: 0.85; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+.tear-fallback { display: grid; place-items: center; aspect-ratio: 640 / 1080; font-size: 96px; color: var(--gold-hi); }
+.tear-skip {
+  position: absolute; bottom: 12%; font-size: var(--fs-1); letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+
 .pack-reveal { max-width: 560px; }
 .pack-reveal h2 { font-family: var(--head); font-size: 19px; margin: 0 0 12px; }
 .pack-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }

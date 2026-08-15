@@ -21,7 +21,7 @@
  *  quotes odds has to quote the real ones, and quoting them from a literal is
  *  how they drift the first time someone retunes the table.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CARDS, getDef } from "../data/cards";
 import {
   CRAFT_COST, PACK_COST, PACK_SIZE, PACK_WEIGHT, REGIONS, SHINY_CHANCE,
@@ -68,6 +68,10 @@ export function Shop(props: {
   /** Falls back to the drawn seal if the pack shot fails to load — the Packs
    *  tab should never be a hole where its one object was. */
   const [packArt, setPackArt] = useState(true);
+  /** The tear-open beat. The result is already computed and saved when this is
+   *  true — this only delays SHOWING it, so skipping cannot change a pull. */
+  const [tearing, setTearing] = useState(false);
+  const tearTimer = useRef<number | null>(null);
   const [el, setEl] = useState<string>("ALL");
   const [previewId, setPreviewId] = useState<string | null>(null);
   /** The pack just torn open, held so the player can actually read it. */
@@ -98,12 +102,38 @@ export function Shop(props: {
     [owned, el],
   );
 
+  /** How long the pack is on screen before the cards are. Short on purpose:
+   *  this is a shop you use in a loop, and a flourish you cannot get past is a
+   *  toll. Tapping skips it, and reduced-motion never plays it at all. */
+  const TEAR_MS = 1100;
+
   function tearOpen() {
     const result = openPack(save);
+    // Committed BEFORE the animation, not after: the pull is decided and saved
+    // the moment you pay, so a closed tab or a skipped beat cannot lose a pack
+    // the shards already bought.
     setOpened(result);
     setLastRefund(Object.values(result.refund).reduce((a, b) => a + b, 0));
     props.onSave(applyPack(save, result));
+
+    const still = typeof window !== "undefined"
+      && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (still) return;
+    setTearing(true);
+    if (tearTimer.current) window.clearTimeout(tearTimer.current);
+    tearTimer.current = window.setTimeout(() => {
+      tearTimer.current = null;
+      setTearing(false);
+    }, TEAR_MS);
   }
+
+  const skipTear = () => {
+    if (tearTimer.current) { window.clearTimeout(tearTimer.current); tearTimer.current = null; }
+    setTearing(false);
+  };
+  // A pending timer that fires into an unmounted Shop is a setState-after-
+  // unmount; leaving the tab mid-tear is one tap away.
+  useEffect(() => () => { if (tearTimer.current) window.clearTimeout(tearTimer.current); }, []);
 
   return (
     <div className="shop">
@@ -302,7 +332,26 @@ export function Shop(props: {
         </>
       )}
 
-      {opened && (
+      {/* The pack itself, for as long as it takes to tear it. The reveal is
+          mounted behind this and simply not seen yet, so the two cannot
+          disagree about what was pulled. */}
+      {opened && tearing && (
+        <div className="overlay on-top pack-tear" onClick={skipTear}>
+          <span className="tear-bloom" aria-hidden="true" />
+          {/* The seam is a CHILD of the pack's stage, not a sibling centred in
+              the overlay: it has to sit on the crimp, and the crimp moves with
+              the pack. As a sibling it landed across the middle of the art. */}
+          <span className="tear-stage" aria-hidden="true">
+            {packArt
+              ? <img className="tear-pack" src="/pack.webp" alt="" draggable={false} />
+              : <span className="tear-pack tear-fallback">✦</span>}
+            <span className="tear-rip" />
+          </span>
+          <span className="tear-skip">tap to skip</span>
+        </div>
+      )}
+
+      {opened && !tearing && (
         <div className="overlay on-top" onClick={() => setOpened(null)}>
           <div className="modal pack-reveal" onClick={(e) => e.stopPropagation()}>
             <div className="pack-reveal-head">
