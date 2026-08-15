@@ -35,8 +35,8 @@ import {
   effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, effectiveSpecialCost,
   getDef, getSpell,
 } from "../engine";
-import { EL_COLOR, EL_ICON, RARITY_STYLE, STATUS_STYLE } from "./shared";
-import { cardMods } from "./Token";
+import { EL_COLOR, EL_ICON, RARITY_STYLE, STATUS_STYLE, KEYWORD_STYLE} from "./shared";
+import { cardMods, grantedKeywords } from "./Token";
 import { SpIcon } from "./icons";
 import { autoPrefFor, setAutoPref } from "./auto-prefs";
 import { chipify, describePassives, rounds, STATUS_TEXT } from "./card-text";
@@ -228,10 +228,18 @@ export function CardView(props: CardViewProps) {
             {props.mode === "inspect" && (() => {
               const mods = cardMods(props.game, props.card);
               const sts = props.card.statuses;
-              if (!mods.buffs.length && !mods.debuffs.length && !sts.length) return null;
+              // Granted keywords come from their own helper now, not from
+              // mods.buffs — the panel would otherwise stop listing them.
+              const granted = grantedKeywords(props.card);
+              if (!mods.buffs.length && !mods.debuffs.length && !sts.length && !granted.length) return null;
               return (
                 <div className="cd-mods">
                   <div className="cd-mods-lbl">Active modifiers</div>
+                  {granted.map((g) => (
+                    <div key={`g${g.kw}`} className="cd-mod buff">
+                      ▲ {KEYWORD_STYLE[g.kw]?.glyph} {g.label}
+                    </div>
+                  ))}
                   {mods.buffs.map((b, i) => <div key={`b${i}`} className="cd-mod buff">▲ {b}</div>)}
                   {sts.map((s) => {
                     const negative = s.kind !== "STEALTH" && s.kind !== "EVASION";

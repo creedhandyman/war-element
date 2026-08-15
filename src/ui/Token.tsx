@@ -164,9 +164,57 @@ function useMotionFx(instanceId: string, lunge: number, recoil: number) {
   return fx;
 }
 
+/** A keyword the card was GIVEN rather than printed with, and how long it holds.
+ *
+ *  These used to be folded into the generic ▲N buff count, which meant the board
+ *  showed "this card has three good things" when what an attacker actually needed
+ *  to know was REFLECT 2, for two more rounds. They are pulled out so the tile can
+ *  name them and show the timer — and removed from `cardMods` below, or they would
+ *  be counted twice.
+ *
+ *  Only per-card timers live here. BLOCK/REFLECT handed out by a standing FIELD
+ *  (Bedrock) or a wall are not per-card and have no counter of their own; they
+ *  expire with the field, and the field already draws its own marker on the board.
+ */
+export interface GrantedKeyword {
+  kw: string;
+  /** Rounds remaining, or null when it is a charge count rather than a timer. */
+  rounds: number | null;
+  /** Charges left, for the one grant that is counted rather than timed. */
+  charges?: number;
+  power?: number;
+  label: string;
+}
+
+export function grantedKeywords(card: CardInstance): GrantedKeyword[] {
+  const out: GrantedKeyword[] = [];
+  const timed = (kw: string, rounds: number | undefined, power: number | undefined) => {
+    if (!rounds || rounds <= 0) return;
+    const p = power ?? 0;
+    out.push({
+      kw, rounds, power: p,
+      label: `${kw}${p ? ` ${p}` : ""} — ${rounds} round(s) left`,
+    });
+  };
+  timed("BLOCK", card.blockRoundsLeft, card.blockPower);
+  timed("REFLECT", card.reflectRoundsLeft, card.reflectPower);
+  timed("REGEN", card.regenRoundsLeft, card.regenPower);
+  timed("FLYING", card.flyingRoundsLeft, undefined);
+  // Blur is charges, not rounds: it lasts until it is spent, however many rounds
+  // that takes. Showing it as "2r" would be a lie, so it carries a x instead.
+  const dodge = card.guaranteedDodge ?? 0;
+  if (dodge > 0)
+    out.push({
+      kw: "EVASION", rounds: null, charges: dodge,
+      label: `Guaranteed dodge — ${dodge} charge(s), until spent`,
+    });
+  return out;
+}
+
 /** Every non-status buff/debuff currently on the card, as readable lines WITH
  *  their source — so a player can see where a +DMG or a −accuracy came from.
- *  Statuses (BURN, ROOT…) are shown as their own icons and excluded here. */
+ *  Statuses (BURN, ROOT…) and granted keywords are shown as their own marks and
+ *  are excluded here. */
 export function cardMods(game: GameState, card: CardInstance): { buffs: string[]; debuffs: string[] } {
   const buffs: string[] = [];
   const debuffs: string[] = [];
@@ -181,11 +229,8 @@ export function cardMods(game: GameState, card: CardInstance): { buffs: string[]
   if (permSp > 0) buffs.push(`+${permSp} SP — growth`);
   if (permDmg < 0) debuffs.push(`${permDmg} DMG`);
   if (permSp < 0) debuffs.push(`${permSp} SP`);
-  if ((card.blockRoundsLeft ?? 0) > 0) buffs.push(`BLOCK ${card.blockPower} — ${card.blockRoundsLeft}r`);
-  if ((card.reflectRoundsLeft ?? 0) > 0) buffs.push(`REFLECT ${card.reflectPower} — ${card.reflectRoundsLeft}r`);
-  if ((card.guaranteedDodge ?? 0) > 0) buffs.push(`Guaranteed dodge ×${card.guaranteedDodge}`);
-  if ((card.regenRoundsLeft ?? 0) > 0) buffs.push(`REGEN ${card.regenPower} — ${card.regenRoundsLeft}r`);
-  if ((card.flyingRoundsLeft ?? 0) > 0) buffs.push(`FLYING — ${card.flyingRoundsLeft}r`);
+  // Granted keywords are NOT listed here — see grantedKeywords() above. They are
+  // named and timed on the tile itself instead of hiding inside a ▲N count.
   if ((card.attackMissRounds ?? 0) > 0) debuffs.push(`Aim shaken ${card.attackMissPct ?? 0}% — ${card.attackMissRounds}r`);
   if (card.hoaxMarked) debuffs.push(`Marked — basics against it are guaranteed crits`);
   if ((card.specialLockedRounds ?? 0) > 0) debuffs.push(`Special locked — ${card.specialLockedRounds}r`);
@@ -244,13 +289,29 @@ export function Token(props: {
   // Every CHANGING mark, in one ordered list, so the tile can show the first
   // two and count the rest instead of wrapping an unbounded strip across the
   // art — a wounded card could print five chips over the thing you are reading.
-  const pips: { key: string; glyph: string; color: string; title: string }[] = [];
+  const granted = grantedKeywords(card);
+  const pips: { key: string; glyph: string; color: string; title: string; cls?: string }[] = [];
   if (mods.buffs.length > 0)
     pips.push({ key: "buffs", glyph: `▲${mods.buffs.length}`, color: "#7fd89a",
                 title: `BUFFS\n${mods.buffs.join("\n")}` });
   if (isBloodfire(card))
     pips.push({ key: "bloodfire", glyph: "🩸", color: "#ff5a3c",
                 title: "BLOODFIRE — bleeding AND burning. Blood-fire payoff cards hit this target harder." });
+  // Ahead of the statuses: BLOCK and REFLECT change how you should attack this
+  // card, which is the decision being made while looking at the board.
+  for (const g of granted) {
+    const style = KEYWORD_STYLE[g.kw];
+    if (!style) continue;
+    pips.push({
+      key: `granted-${g.kw}`,
+      glyph: `${style.glyph}${g.rounds ?? `×${g.charges}`}`,
+      color: style.color,
+      title: `${g.label} (granted, not printed)`,
+      // The only pips carrying a trailing number, so they cannot use the fixed
+      // 13px square the others share — it clips the digit.
+      cls: "timed",
+    });
+  }
   for (const s of card.statuses) {
     const st = STATUS_STYLE[s.kind];
     pips.push({ key: s.kind, glyph: st.glyph, color: st.color,
@@ -346,7 +407,7 @@ export function Token(props: {
       {shownPips.length > 0 && (
         <div className="tk-pips">
           {shownPips.map((p) => (
-            <span key={p.key} className="tk-pip" style={{ borderColor: p.color, color: p.color }} title={p.title}>
+            <span key={p.key} className={`tk-pip ${p.cls ?? ""}`} style={{ borderColor: p.color, color: p.color }} title={p.title}>
               {p.glyph}
             </span>
           ))}

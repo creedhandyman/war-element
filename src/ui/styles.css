@@ -4944,3 +4944,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   user-select: all; word-break: break-all; font-family: ui-monospace, Consolas, monospace;
   font-size: 11px;
 }
+
+/* A granted keyword carries its remaining rounds, so it is the one pip that is
+   not a fixed square — the digit does not fit in 13px beside a glyph. Width
+   grows to the label; the column is vertical, so nothing else reflows. */
+.tk-pip.timed {
+  width: auto; min-width: 13px; padding: 0 3px;
+  gap: 1px; font-variant-numeric: tabular-nums;
+}
