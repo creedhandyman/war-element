@@ -459,7 +459,13 @@ export function Shop(props: {
                 return (
                   <div
                     key={i}
-                    className={`pack-card big r-${d.rarity ?? "rare"} ${isNew ? "new" : "dupe"} ${foil ? "foil" : ""} ${isTop ? "top" : "behind"}`}
+                    // A FOIL IS NEVER A DUPE. Pulling a shiny of a card you
+                    // already own is a 1-in-100 outcome and a thing you did not
+                    // have a moment ago — it was rendering at 62% opacity, faded
+                    // like a dud, because `dupe` was decided on the card id
+                    // alone. You keep the essence refund too; the engine was
+                    // always right, only this line was not.
+                    className={`pack-card big r-${d.rarity ?? "rare"} ${isNew || foil ? "new" : "dupe"} ${foil ? "foil" : ""} ${isTop ? "top" : "behind"}`}
                     style={{
                       zIndex: 10 - depth,
                       transform: isTop
@@ -487,8 +493,14 @@ export function Shop(props: {
                       {foil && <i className="foil-tag" title="Foil">✦</i>}
                       {d.name}
                     </span>
-                    <span className={`pack-tag ${isNew ? "is-new" : foil ? "is-foil" : "is-dupe"}`}>
-                      {isNew ? "NEW" : foil ? "FOIL" : `+${dupeEssenceFor(id)} ${d.element}`}
+                    {/* Both facts, because a foil duplicate has two: it is a
+                        foil AND it paid essence. The tag used to print one and
+                        drop the other whichever way it went. */}
+                    <span className={`pack-tag ${foil ? "is-foil" : isNew ? "is-new" : "is-dupe"}`}>
+                      {foil && isNew ? "NEW · FOIL"
+                        : foil ? `FOIL · +${dupeEssenceFor(id)} ${d.element}`
+                        : isNew ? "NEW"
+                        : `+${dupeEssenceFor(id)} ${d.element}`}
                     </span>
                   </div>
                 );

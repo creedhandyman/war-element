@@ -4436,6 +4436,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .pack-card.new { border-color: var(--legal); box-shadow: 0 0 12px rgba(0, 230, 118, 0.22); }
 .pack-card.new .pack-tag { color: var(--legal); }
 .pack-card.dupe { opacity: 0.62; }
+/* ...but never a foil. `.dupe` is decided on the card id, and a shiny of a card
+   you own is still something you did not have — the rarest single outcome in
+   the pack table, at 1 in 100. It was rendering faded. */
+.pack-card.foil { opacity: 1; }
 .pack-card.r-mythic.new { border-color: #d08bff; box-shadow: 0 0 14px rgba(208, 139, 255, 0.3); }
 .pack-card.r-legendary.new { border-color: var(--gold-line); box-shadow: 0 0 14px rgba(232, 200, 119, 0.28); }
 /* ── the one-at-a-time reveal ───────────────────────────────────────────────
@@ -4510,6 +4514,28 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .pack-card.big.behind { animation: none; box-shadow: none; }
 .pack-card.big.behind::after { display: none; }
 
+/* Foil on the big reveal: a gold ring INSIDE the rarity halo, so the two stack
+   instead of competing. A foil Rare has no rarity glow to lean on, so this has
+   to read on its own. */
+.pack-card.big.foil {
+  border-color: var(--gold-hi);
+  box-shadow: 0 0 0 2px rgba(255, 233, 176, 0.55) inset, 0 0 26px rgba(255, 233, 176, 0.45),
+    0 0 70px rgba(255, 233, 176, 0.18);
+}
+/* Layered on a rarity that already glows: keep the rarity's outer colour and
+   put the gold on the inside, so "epic AND foil" is legible as both. */
+.pack-card.big.foil.r-epic { box-shadow: 0 0 0 2px rgba(255, 233, 176, 0.6) inset, 0 0 24px rgba(176, 107, 255, 0.5), 0 0 64px rgba(176, 107, 255, 0.2); }
+.pack-card.big.foil.r-legendary { box-shadow: 0 0 0 2px rgba(255, 233, 176, 0.65) inset, 0 0 28px rgba(255, 176, 46, 0.55), 0 0 74px rgba(255, 176, 46, 0.22); }
+.pack-card.big.foil.r-mythic { box-shadow: 0 0 0 2px rgba(255, 233, 176, 0.65) inset, 0 0 32px rgba(255, 93, 177, 0.6), 0 0 88px rgba(255, 93, 177, 0.28); }
+/* A foil always shimmers, whatever its rarity — the mythic sheen rule only
+   covers mythics, and a foil Rare is the case that has nothing else. */
+.pack-card.big.foil::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(72deg, transparent 38%, rgba(255, 240, 200, 0.4) 50%, transparent 62%);
+  transform: translateX(-120%);
+  animation: rarSheen 2.6s ease-in-out infinite;
+}
+
 .pack-card.big.top { cursor: grab; }
 .pack-card.big.top:active { cursor: grabbing; }
 /* The ones still to come read as paper, not as cards you can act on. */
@@ -4542,7 +4568,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   /* The glow is information — which rarity you pulled — so it stays. Only the
      movement goes: no breathing, no sheen. */
   .pack-card.big.r-legendary, .pack-card.big.r-mythic { animation: none; }
-  .pack-card.big.r-mythic::after { display: none; }
+  .pack-card.big.r-mythic::after, .pack-card.big.foil::after { display: none; }
 }
 
 .pack-sum { font-size: 12.5px; color: var(--ink-dim); margin: 12px 0 0; }
