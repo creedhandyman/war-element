@@ -217,6 +217,28 @@ describe("the matchmaker ladder", () => {
     }
   });
 
+  it("keeps Mythics off the bottom rung", () => {
+    // Easy shipped with SEVEN Mythics — more than any other rung — because its
+    // plan is top-heavy and rarity tracks cost in this pool, so the expensive
+    // band it fills is exactly where the Mythics live. The bottom of the ladder
+    // should not be the rung showing off the rarest cards in the game.
+    //
+    // Asserted on RARITY, not on a cost ceiling. Cost >= 9 happens to be exactly
+    // the Mythics today; one cheap Mythic added later would undo that silently.
+    for (const board of [4, 5] as const) {
+      for (const d of decksForTier("easy", board)) {
+        const mythics = d.cards.filter((id) => CARD_INDEX[id]!.rarity === "mythic");
+        expect(mythics, `${d.name} ${board}x${board}`).toEqual([]);
+      }
+    }
+    // And they are still SOMEWHERE, or the rule is just deleting content: the
+    // rungs above it are where the top end belongs.
+    const above = ["mid", "hard"].flatMap((t) =>
+      decksForTier(t as "mid" | "hard", 5).flatMap((d) => d.cards))
+      .filter((id) => CARD_INDEX[id]!.rarity === "mythic");
+    expect(above.length, "no Mythic anywhere on the ladder").toBeGreaterThan(0);
+  });
+
   it("never rolls a near-clone off the same rung", () => {
     // `rollOpponent` only avoids the deck already seated, so two decks on one
     // rung sharing half their list means a re-roll hands back the same fight —

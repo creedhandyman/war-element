@@ -313,8 +313,22 @@ const STANDARD_DECKS: PremadeDeck[] = [
   // So: easy is a clumsy melee pile with a top-heavy curve and no comp; mid
   // has a curve, a wall and a healer; hard floods cheap bodies, heals them,
   // and shoots over the top. Played against the six originals — every deck,
-  // both seats, 384 games a rung — they win 33/50/62% on 4x4 and 21/34/59% on
+  // both seats, 288 games a rung — they win 31/47/60% on 4x4 and 27/36/60% on
   // 5x5. Monotone on both boards.
+  //
+  // NO MYTHICS ON `easy`. It shipped with seven — more than any other rung —
+  // for the same reason `hard` shipped with none: rarity tracks cost here, and
+  // easy's plan is the top-heavy one, so the expensive band it fills is exactly
+  // where the Mythics live. The bottom of the ladder should not be the rung
+  // showing off the rarest cards in the game. Excluded by RARITY rather than by
+  // a cost ceiling, because cost >= 9 being exactly the Mythics is a property of
+  // today's set and one cheap Mythic would undo it silently.
+  //
+  // Its curve leans further back to pay for that: dropping the Mythics made
+  // easy CHEAPER, not weaker — the top band went from cost 9-10 to 7-8 — and
+  // cheap-and-wide is the strongest thing a deck can do here, so it came level
+  // with mid on the very axis the ladder is ordered by. [5,10,10,5] against the
+  // old [8,10,8,4] puts it back.
   //
   // HARD KEEPS THE CHEAP CORE AND ITS TOP END. `costCap: 6` used to build it,
   // and rarity tracks cost in this pool — mythics are all 9-10, legendaries
@@ -367,10 +381,10 @@ const STANDARD_DECKS: PremadeDeck[] = [
     boardSize: 4,
     tier: "easy",
     cards: [
-      "leaf_nettle", "leaf_fallow", "leaf_stickers", "leaf_alpha", "leaf_dande",
-      "leaf_guardian", "leaf_rubyo", "leaf_efy", "leaf_trinezer", "aqua_spinefin",
-      "aqua_rain", "aqua_blub", "aqua_bootlegger", "aqua_icynin", "aqua_tide",
-      "aqua_liquark", "aqua_driftwraith", "aqua_hydrogon",
+      "leaf_nettle", "leaf_leaf", "leaf_nightshade", "leaf_birch", "leaf_dande",
+      "leaf_guardian", "leaf_splint", "leaf_rubyo", "leaf_thorn", "aqua_bahari",
+      "aqua_rain", "aqua_siren", "aqua_blub", "aqua_bulletshrimp", "aqua_krakler",
+      "aqua_tide", "aqua_sapphire", "aqua_magalogoon",
     ],
     spells: ["leaf_thorn_patch", "leaf_bramble_wall", "leaf_lushfield", "leaf_withering_grasp", "aqua_maelstrom"],
   },
@@ -382,10 +396,10 @@ const STANDARD_DECKS: PremadeDeck[] = [
     boardSize: 4,
     tier: "easy",
     cards: [
-      "bore_cosmic", "bore_sling", "bore_sandman", "bore_iron", "bore_rock",
-      "bore_rollo", "bore_sheish", "bore_obsidi", "bore_steel", "gale_swillow",
-      "gale_gastly", "gale_tumbleweed", "gale_buf", "gale_vaga", "gale_omega",
-      "gale_eagon", "gale_tempest", "gale_stormfang",
+      "bore_cosmic", "bore_sling", "bore_valcana", "bore_score", "bore_crock",
+      "bore_warthog", "bore_sheish", "bore_obsidi", "bore_steel", "gale_hawk",
+      "gale_kloud", "gale_gastly", "gale_tumbleweed", "gale_luna", "gale_wailverine",
+      "gale_omega", "gale_eagon", "gale_klipso",
     ],
     spells: ["gale_downdraft", "gale_squall_line", "gale_jetstream", "gale_vortex_strike", "bore_tremor"],
   },
@@ -397,10 +411,10 @@ const STANDARD_DECKS: PremadeDeck[] = [
     boardSize: 4,
     tier: "easy",
     cards: [
-      "pyro_florence", "pyro_taper", "pyro_firefly", "pyro_sol", "pyro_baboom",
-      "pyro_ember_scorpion", "pyro_woof", "pyro_fenrir", "pyro_pyrogon", "dusk_hix",
-      "dusk_ravven", "dusk_crow", "dusk_vamp", "dusk_skeleton_knight", "dusk_widowbite",
-      "dusk_sarachnid", "dusk_brute", "dusk_shadowhorsemen",
+      "pyro_florence", "pyro_taper", "pyro_dynomight", "pyro_volcanon", "pyro_ash_boar",
+      "pyro_firebird", "pyro_sseerr", "pyro_fenrir", "pyro_infernus_rex", "dusk_skrow",
+      "dusk_ravven", "dusk_crow", "dusk_vamp", "dusk_silkstalker", "dusk_reaper",
+      "dusk_brute", "dusk_hoax", "dusk_skelider",
     ],
     spells: ["pyro_ember_trap", "pyro_firewall", "pyro_heatwave", "dusk_phantom_spikes", "pyro_cataclysm"],
   },
@@ -412,10 +426,10 @@ const STANDARD_DECKS: PremadeDeck[] = [
     boardSize: 4,
     tier: "easy",
     cards: [
-      "bolt_stingray", "bolt_drshock", "bolt_thunder", "bolt_shock", "bolt_scrapper",
-      "bolt_zagphu", "bolt_voltcher", "bolt_zoez", "bolt_elecdroid", "dawn_beam",
-      "dawn_kosmos", "dawn_flash", "dawn_glime", "dawn_lazor", "dawn_ariel",
-      "dawn_radiance", "dawn_heir_tok", "dawn_equestrian",
+      "bolt_stingray", "bolt_drshock", "bolt_general", "bolt_keeper", "bolt_stormcaller",
+      "bolt_storm", "bolt_thundercat", "bolt_voltcher", "bolt_voltogon", "dawn_clipsey",
+      "dawn_kosmos", "dawn_flash", "dawn_glime", "dawn_golde", "dawn_musk_ox",
+      "dawn_radiance", "dawn_drakonbane", "dawn_leo",
     ],
     spells: ["dawn_cleansing_light", "bolt_overload_field", "bolt_power_grid", "dawn_judgment", "dawn_dawns_judgment"],
   },
@@ -666,12 +680,12 @@ const LARGE_DECKS: PremadeDeck[] = [
     boardSize: 5,
     tier: "easy",
     cards: [
-      "leaf_nettle", "leaf_fallow", "leaf_stickers", "leaf_alpha", "leaf_dande",
-      "leaf_guardian", "leaf_rubyo", "leaf_efy", "leaf_trinezer", "aqua_spinefin",
-      "aqua_rain", "aqua_blub", "aqua_bootlegger", "aqua_icynin", "aqua_tide",
-      "aqua_liquark", "aqua_driftwraith", "aqua_hydrogon", "leaf_stickviper", "leaf_leaf",
-      "leaf_cactus", "leaf_gecko", "leaf_splint", "leaf_thorn", "aqua_blackbeard",
-      "aqua_piranha", "aqua_bulletshrimp", "aqua_krakler", "aqua_sapphire", "aqua_magalogoon",
+      "leaf_nettle", "leaf_leaf", "leaf_nightshade", "leaf_birch", "leaf_dande",
+      "leaf_guardian", "leaf_splint", "leaf_rubyo", "leaf_thorn", "aqua_bahari",
+      "aqua_rain", "aqua_siren", "aqua_blub", "aqua_bulletshrimp", "aqua_krakler",
+      "aqua_tide", "aqua_sapphire", "aqua_magalogoon", "leaf_stickviper", "leaf_fallow",
+      "leaf_alpha", "leaf_gecko", "leaf_sumerose", "leaf_efy", "aqua_blackbeard",
+      "aqua_glacius", "aqua_bootlegger", "aqua_icynin", "aqua_liquark", "aqua_driftwraith",
     ],
     spells: ["leaf_thorn_patch", "leaf_bramble_wall", "leaf_lushfield", "leaf_withering_grasp", "aqua_maelstrom", "aqua_ice_wall", "aqua_downpour", "leaf_overgrowth"],
   },
@@ -683,12 +697,12 @@ const LARGE_DECKS: PremadeDeck[] = [
     boardSize: 5,
     tier: "easy",
     cards: [
-      "bore_cosmic", "bore_sling", "bore_sandman", "bore_iron", "bore_rock",
-      "bore_rollo", "bore_sheish", "bore_obsidi", "bore_steel", "gale_swillow",
-      "gale_gastly", "gale_tumbleweed", "gale_buf", "gale_vaga", "gale_omega",
-      "gale_eagon", "gale_tempest", "gale_stormfang", "bore_kcor", "bore_rhe",
-      "bore_clubber", "bore_warthog", "bore_bolder", "bore_prism", "gale_sway",
-      "gale_duster", "gale_luna", "gale_wailverine", "gale_wolfbane", "gale_klipso",
+      "bore_cosmic", "bore_sling", "bore_valcana", "bore_score", "bore_crock",
+      "bore_warthog", "bore_sheish", "bore_obsidi", "bore_steel", "gale_hawk",
+      "gale_kloud", "gale_gastly", "gale_tumbleweed", "gale_luna", "gale_wailverine",
+      "gale_omega", "gale_eagon", "gale_klipso", "bore_kcor", "bore_rohojohn",
+      "bore_rock", "bore_rollo", "bore_bolder", "bore_prism", "gale_bluejay",
+      "gale_duster", "gale_buf", "gale_vaga", "gale_wolfbane", "gale_tempest",
     ],
     spells: ["gale_downdraft", "gale_squall_line", "gale_jetstream", "gale_vortex_strike", "bore_tremor", "bore_stone_wall", "bore_bedrock", "gale_gale_force"],
   },
@@ -700,12 +714,12 @@ const LARGE_DECKS: PremadeDeck[] = [
     boardSize: 5,
     tier: "easy",
     cards: [
-      "pyro_florence", "pyro_taper", "pyro_firefly", "pyro_sol", "pyro_baboom",
-      "pyro_ember_scorpion", "pyro_woof", "pyro_fenrir", "pyro_pyrogon", "dusk_hix",
-      "dusk_ravven", "dusk_crow", "dusk_vamp", "dusk_skeleton_knight", "dusk_widowbite",
-      "dusk_sarachnid", "dusk_brute", "dusk_shadowhorsemen", "pyro_flamehound", "pyro_dynomight",
-      "pyro_ash_boar", "pyro_firebird", "pyro_sseerr", "pyro_magmaw", "dusk_ender",
-      "dusk_wedded_wraith", "dusk_spider", "dusk_silkstalker", "dusk_reaper", "dusk_skelider",
+      "pyro_florence", "pyro_taper", "pyro_dynomight", "pyro_volcanon", "pyro_ash_boar",
+      "pyro_firebird", "pyro_sseerr", "pyro_fenrir", "pyro_infernus_rex", "dusk_skrow",
+      "dusk_ravven", "dusk_crow", "dusk_vamp", "dusk_silkstalker", "dusk_reaper",
+      "dusk_brute", "dusk_hoax", "dusk_skelider", "pyro_flamehound", "pyro_firefly",
+      "pyro_sol", "pyro_ember_scorpion", "pyro_woof", "pyro_magmaw", "dusk_ender",
+      "dusk_wedded_wraith", "dusk_spider", "dusk_widowbite", "dusk_sarachnid", "dusk_nightfang",
     ],
     spells: ["pyro_ember_trap", "pyro_firewall", "pyro_heatwave", "dusk_phantom_spikes", "pyro_cataclysm", "dusk_veil_of_shadows", "dusk_nightfall", "pyro_inferno_pit"],
   },
@@ -717,12 +731,12 @@ const LARGE_DECKS: PremadeDeck[] = [
     boardSize: 5,
     tier: "easy",
     cards: [
-      "bolt_stingray", "bolt_drshock", "bolt_thunder", "bolt_shock", "bolt_scrapper",
-      "bolt_zagphu", "bolt_voltcher", "bolt_zoez", "bolt_elecdroid", "dawn_beam",
-      "dawn_kosmos", "dawn_flash", "dawn_glime", "dawn_lazor", "dawn_ariel",
-      "dawn_radiance", "dawn_heir_tok", "dawn_equestrian", "bolt_zipp", "bolt_lytning",
-      "bolt_keeper", "bolt_storm", "bolt_thundercat", "bolt_voltogon", "dawn_clipsey",
-      "dawn_roy", "dawn_golde", "dawn_musk_ox", "dawn_drakonbane", "dawn_leo",
+      "bolt_stingray", "bolt_drshock", "bolt_general", "bolt_keeper", "bolt_stormcaller",
+      "bolt_storm", "bolt_thundercat", "bolt_voltcher", "bolt_voltogon", "dawn_clipsey",
+      "dawn_kosmos", "dawn_flash", "dawn_glime", "dawn_golde", "dawn_musk_ox",
+      "dawn_radiance", "dawn_drakonbane", "dawn_leo", "bolt_zipp", "bolt_striik",
+      "bolt_thunder", "bolt_shock", "bolt_zagphu", "bolt_zoez", "dawn_sircrest",
+      "dawn_aurora", "dawn_roy", "dawn_lazor", "dawn_ariel", "dawn_heir_tok",
     ],
     spells: ["dawn_cleansing_light", "bolt_overload_field", "bolt_power_grid", "dawn_judgment", "dawn_dawns_judgment", "dawn_radiant_barrier", "dawn_blazing_sun", "dawn_solar_flare"],
   },
