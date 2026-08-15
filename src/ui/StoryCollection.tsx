@@ -160,19 +160,40 @@ export function StoryCollection(props: {
         </div>
       </header>
 
-      {/* Per element, of its own placed pool. The grid can say a card is
-          missing; only this says which REGION is thinnest — and that is the
-          version of the question you can act on. */}
+      {/* Per element, of its own placed pool — and the element FILTER, because
+          they were the same eight things twice. The strip said "BOLT 3/39" and
+          a chip row underneath said "BOLT", and the obvious tap on the number
+          did nothing. The count answers "where am I thin", the filter answers
+          "show me those", and those are one question asked twice.
+
+          The sigil replaces the colour dot for the reason it did on the chips:
+          eight dots differ only by hue, which is the one channel a colourblind
+          player does not have. */}
       <div className="col-elrow">
+        <button
+          className={`col-el col-el-all ${el === "ALL" ? "on" : ""}`}
+          onClick={() => setEl("ALL")}
+          title="Every element"
+        >
+          <b>All</b>
+          <em>{collected}/{PLACED_CARDS.length}</em>
+        </button>
         {byElement.rows.map((r) => (
-          <span key={r.el} className={`col-el ${r.have === r.total ? "done" : ""}`} data-el={r.el}
-            title={`${r.have} of ${r.total} ${r.el} cards`}>
-            <i style={{ background: EL_COLOR[r.el] }} />
+          <button
+            key={r.el}
+            className={`col-el ${r.have === r.total ? "done" : ""} ${el === r.el ? "on" : ""}`}
+            data-el={r.el}
+            aria-pressed={el === r.el}
+            title={`${r.have} of ${r.total} ${r.el} cards — tap to filter`}
+            onClick={() => setEl(el === r.el ? "ALL" : r.el)}
+          >
+            <img className="col-el-sig" src={EL_ICON[r.el]} alt="" draggable={false}
+              onError={(ev) => { ev.currentTarget.style.display = "none"; }} />
             <b>{r.have}</b><em>/{r.total}</em>
             <span className="col-el-track">
               <span style={{ width: `${(r.have / r.total) * 100}%`, background: EL_COLOR[r.el] }} />
             </span>
-          </span>
+          </button>
         ))}
       </div>
       {byElement.thinnest && (
@@ -188,24 +209,6 @@ export function StoryCollection(props: {
             {([["all", "All"], ["owned", "Owned"], ["missing", "Missing"]] as const).map(([k, label]) => (
               <button key={k} className={`db-fl ${scope === k ? "on" : ""}`} onClick={() => setScope(k)}>
                 {label}
-              </button>
-            ))}
-          </div>
-          <div className="db-filters">
-            <button className={`db-fl ${el === "ALL" ? "on" : ""}`} onClick={() => setEl("ALL")}>All</button>
-            {ELEMENTS.map((e) => (
-              <button
-                key={e}
-                className={`db-fl el-fl ${el === e ? "on" : ""}`}
-                onClick={() => setEl(e)}
-                style={{
-                  borderColor: EL_COLOR[e], color: EL_COLOR[e],
-                  background: el === e ? `color-mix(in srgb, ${EL_COLOR[e]} 26%, transparent)` : undefined,
-                }}
-              >
-                <img className="el-fl-sig" src={EL_ICON[e]} alt="" draggable={false}
-                  onError={(ev) => { ev.currentTarget.style.display = "none"; }} />
-                {e}
               </button>
             ))}
           </div>
