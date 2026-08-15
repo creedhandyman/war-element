@@ -101,10 +101,19 @@ describe("story: the node graph", () => {
 });
 
 describe("story: the deck cap ladder", () => {
-  it("starts at 12 and rises only when its Throne is cleared", () => {
-    expect(deckCapFor([])).toBe(12);
-    expect(deckCapFor(["L1", "L13"])).toBe(12); // the optional Throne unlocks nothing
+  it("ramps over the first four fights, then rises only on a Throne", () => {
+    // The ladder used to open at 12, which is the size an ordinary fight keeps
+    // for most of Act I — so the campaign's SECOND node hit its full stride
+    // straight after an opener sized one-for-one against a one-card player.
+    // Two rungs below it now, unlocked by L2 and L4.
+    expect(deckCapFor([])).toBe(6);
+    expect(deckCapFor(["L2"])).toBe(8);
+    expect(deckCapFor(["L2", "L4"])).toBe(12);
+    expect(deckCapFor(["L1", "L13"])).toBe(6);  // the optional Throne unlocks nothing
     expect(deckCapFor(["L14"])).toBe(15);
+    // Monotone and order-free: the rungs are max'd, not walked in sequence, so
+    // reaching a later one without an earlier does not cap you at the earlier.
+    expect(deckCapFor(["L4"])).toBe(12);
   });
 
   it("every ladder step names nodes that exist", () => {
@@ -190,8 +199,10 @@ describe("story: the deck cap ladder", () => {
     // with the same one card must not turn the tutorial into a 30-card fight.
     const late = { ...newSave(), cleared: ["L14", "P13", "A13", "G14", "B14"] };
     expect(buildFormation(late, leaf, l1)).toHaveLength(2);
-    // The node after it is an ordinary fight again.
-    expect(buildFormation(newSave(), leaf, nodeById("L2")!).length).toBe(12);
+    // The node after it is an ordinary fight again — but on the ladder's first
+    // rung, not its third. This line asserting 12 was the bug: the second fight
+    // of the campaign was the region's full size, straight after a 1-v-2.
+    expect(buildFormation(newSave(), leaf, nodeById("L2")!).length).toBe(6);
   });
 
   it("...but an opener reached with a real squad is a real fight, not a walkover", () => {
@@ -1269,7 +1280,8 @@ describe("story: formations (10.7)", () => {
     // L2, not L1: the region OPENER fields exactly its roster by design now,
     // so the generic fill rule has to be read off an ordinary skirmish.
     const f = buildFormation(s, leafRegion, nodeById("L2")!);
-    expect(f.length).toBe(formationSize(12));
+    // A no-progress save sits on the ladder's first rung, which is the ramp.
+    expect(f.length).toBe(formationSize(deckCapFor([])));
     expect(f.length).toBeGreaterThan(nodeById("L2")!.roster.length);
   });
 
@@ -1605,7 +1617,7 @@ describe("story: board size is welded to deck size", () => {
     expect(boardForNode(leaf, big)).toBe(5);
     for (const step of CAP_LADDER) expect(step.cap).toBeLessThanOrEqual(BIG_BOARD_CAP);
     // Act I: the clamp does nothing, because the ladder is below both ceilings.
-    expect(capForNode([], leaf, small)).toBe(12);
+    expect(capForNode([], leaf, small)).toBe(deckCapFor([]));
     expect(capForNode([], leaf, big)).toBe(12);
     // Act V: the small board holds at its format max while the set piece opens
     // to the big board's.
@@ -1909,5 +1921,64 @@ describe("a gate asks for the size it actually enforces", () => {
     }
     // If these never diverged the test would pass on a coincidence.
     expect(differed, "no gate where the two caps differ — the bug is untestable").toBeGreaterThan(0);
+  });
+});
+
+describe("the early fights ramp onto the ladder", () => {
+  const leaf = REGIONS[0];
+  /** The player walking LEAF: clear a node, bank what it gives, move on. */
+  function walk(upTo: number) {
+    let save: StorySave = newSave();
+    const rows: { node: StoryNode; pool: number; enemy: number }[] = [];
+    for (const node of leaf.nodes.slice(0, upTo)) {
+      rows.push({
+        node,
+        pool: poolForRegion(save, leaf).length,
+        enemy: buildFormation(save, leaf, node).length,
+      });
+      const won = [...new Set([...guaranteedDrops(leaf, node), ...recruitablePool(node).slice(0, 1)])];
+      save = { ...save, cleared: [...save.cleared, node.id],
+        collection: [...new Set([...save.collection, ...won])] };
+    }
+    return rows;
+  }
+
+  it("never fields more than twice what the player can put on the board", () => {
+    // The second node used to be the WORST fight in the region: the opener was
+    // 1-v-2 and L2 was 4-v-12, a 3x wall arriving straight after the gentlest
+    // fight in the game, easing only as the player caught up. The curve spiked
+    // where it should have ramped.
+    for (const { node, pool, enemy } of walk(6)) {
+      expect(enemy / pool, `${node.id}: ${pool} vs ${enemy}`).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it("still outnumbers the player — parity would delete the shape of the fight", () => {
+    // Being outnumbered IS these fights; the ramp softens it, it does not
+    // remove it. Checked past the opener, which is deliberately near-parity.
+    for (const { node, pool, enemy } of walk(6).slice(1)) {
+      expect(enemy, `${node.id} is not outnumbering ${pool}`).toBeGreaterThan(pool);
+    }
+  });
+
+  it("converges on the ladder rather than tracking the player forever", () => {
+    const late = walk(8).slice(5);
+    for (const { node, enemy } of late) {
+      const cap = capForNode(ALL_NODES.map((n) => n.id), leaf, node);
+      expect(enemy, `${node.id} still clamped`).toBe(Math.min(cap, 12));
+    }
+  });
+
+  it("cannot be farmed by travelling light", () => {
+    // Away from home `poolForRegion` is the squad you PACKED, so a pool-only
+    // rule would let you walk into a half-cleared region with two cards and be
+    // met by three. The floor is progress in the region, not what you carried.
+    const half = leaf.nodes.slice(0, 6).map((n) => n.id);
+    const node = leaf.nodes[7];
+    const sizeWith = (n: number) => buildFormation(
+      { ...newSave(), cleared: half, collection: leaf.nodes.flatMap((x) => x.roster).slice(0, n) },
+      leaf, node,
+    ).length;
+    expect(sizeWith(2), "a thin squad shrank the fight").toBe(sizeWith(12));
   });
 });

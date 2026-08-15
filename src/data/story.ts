@@ -1549,8 +1549,33 @@ export type CapRung = {
   label: string;
 };
 
+/** What a set piece never drops below — the ladder's old first rung, kept as a
+ *  floor for Landmarks and Thrones. See `capForNode`. */
+export const OPENING_LADDER_FLOOR = 12;
+
 export const CAP_LADDER: readonly CapRung[] = [
-  { cap: 12, board: 4, unlockedBy: null, label: "Starting deck" },
+  // TWO RUNGS BEFORE THE OLD FIRST ONE, because the ladder IS the difficulty
+  // curve and it used to open at its second gear.
+  //
+  // The opener is sized one-for-one against what you can field, so LEAF's first
+  // fight was 1-v-2. The very next node took the ladder's 12 against a pool of
+  // four: a 3x wall, the worst ratio anywhere in the region, arriving directly
+  // after the gentlest fight in the game and easing only as the player caught
+  // up. The curve spiked where it should have ramped.
+  //
+  // Fixing this in `buildFormation` — clamping the fight to the player's pool —
+  // is the obvious move and it is WRONG; it was tried, reverted, and pinned by
+  // "the fight is sized by the ladder, not by how thin the player travels",
+  // because a rule keyed on the pool lets a thin traveller shrink every fight
+  // in a region. The ladder is the right place: it already decides how big the
+  // campaign's fights are, it is keyed on PROGRESS rather than on what you are
+  // carrying, and nothing can farm it.
+  //
+  // L2 and L4 are LEAF's second and fourth nodes, so the first four fights now
+  // run 2 / 6 / 8 / 12 instead of 2 / 12 / 12 / 12.
+  { cap: 6, board: 4, unlockedBy: null, label: "First steps" },
+  { cap: 8, board: 4, unlockedBy: "L2", label: "Spring Village" },
+  { cap: 12, board: 4, unlockedBy: "L4", label: "Starting deck" },
   { cap: 15, board: 4, unlockedBy: "L14", label: "LEAF Throne" },
   { cap: 18, board: 4, unlockedBy: "P13", label: "PYRO Throne" }, // = the 4x4 format
   { cap: 18, board: 4, unlockedBy: "A13", label: "AQUA Throne" }, // either Act II Throne
@@ -1591,12 +1616,19 @@ export function capForNode(
   node: StoryNode,
 ): number {
   const ceiling = boardForNode(region, node) === 5 ? BIG_BOARD_CAP : STANDARD_CAP;
+  // A SET PIECE IS ALWAYS A FULL FIGHT. The ladder's two opening rungs exist to
+  // ramp the first few skirmishes of the campaign (see CAP_LADDER) and a
+  // Landmark or a Throne is the opposite of that — the boss has to arrive with
+  // its Legendaries and Epics behind it or the guaranteed Mythic is not worth
+  // the walk. In practice a Throne is unreachable that early anyway; this makes
+  // it true by construction rather than by map layout.
+  const floor = BIG_BATTLE_KINDS.includes(node.kind) ? OPENING_LADDER_FLOOR : 0;
   // Ladder and board only. What the PLAYER can actually field is a separate
   // question and belongs to `fightCap`, which is what the enemy, the gates and
   // the prep screen all read — clamping by the squad limit here was wrong once
   // the region's own element started travelling free, because the fieldable
   // pool is then legitimately larger than the squad.
-  return Math.min(deckCapFor(cleared), ceiling);
+  return Math.min(Math.max(deckCapFor(cleared), floor), ceiling);
 }
 
 export function deckCapFor(cleared: readonly string[]): number {
