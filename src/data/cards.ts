@@ -6574,7 +6574,9 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Tank",
     // MELEE now, not Ranged. A scavenger should have to come down to the body —
-    // and it keeps FLYING, so it dives in while melee swings pass under it.
+    // and FLYING is gone too, so it stays down once it lands. A Tank that melee
+    // could not touch was the wrong shape: soaking hits is the whole job, and
+    // FLYING made it the one body on the board that could not be swung at.
     attackType: "Melee",
     // Cost 3 -> 4, with the body raised to match. The budget rule is
     // total = 5*cost + 10 (shields count 2), so cost 4 wants ~30 and the old
@@ -6586,7 +6588,7 @@ export const CARDS: CardDef[] = [
     hp: 17,
     sp: 7,
     shields: 2,
-    keywords: { FLYING: true },
+    keywords: {},
     // Salvage: any card's death grants +2 max HP. Carrion Feast (On Kill): +1 DMG.
     //
     // The two used to SHARE the name "Salvage", so the card printed two passives
