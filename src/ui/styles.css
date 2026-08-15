@@ -30,6 +30,20 @@
   --stat-hp: #55e08a;
   --stat-sp: #4ea3ff;
   --stat-sh: #aab2c0;
+  /* ── rarity ─── THE colours, and the only ones. They mirror `RARITY_STYLE`
+     in ui/shared.ts exactly, which is what the TSX reads when it sets a colour
+     inline, and `styles.test.ts` fails if the two drift.
+
+     They were five different palettes before this: the spell rows, the shop
+     grid and the pack chips all had mythic as #d08bff and epic as #6aa6ff —
+     violet and blue — when canonical epic is the violet, so a Mythic read as
+     an Epic in four places at once. The node panel had its own set on top of
+     that, with rare as a grey-brown. Rarity is a five-step ladder and the
+     player learns it by colour; five ladders is none. */
+  --rar-rare: #4db6ff;
+  --rar-epic: #b06bff;
+  --rar-legendary: #ffb02e;
+  --rar-mythic: #ff2e46;
   --legal: #4ecb8f;
   --legal-soft: rgba(78, 203, 143, 0.18);
   --threat: #e5533d;
@@ -3349,8 +3363,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .np-roster li.have .npr-art { filter: grayscale(.35); }
 .npr-name { font-weight: 650; color: var(--ink); }
 .npr-rar { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; }
-.npr-rar.r-rare { color: var(--ink-faint); } .npr-rar.r-epic { color: #a98bff; }
-.npr-rar.r-legendary { color: var(--gold); } .npr-rar.r-mythic { color: #ff7a91; }
+.npr-rar.r-rare { color: var(--rar-rare); } .npr-rar.r-epic { color: var(--rar-epic); }
+.npr-rar.r-legendary { color: var(--rar-legendary); } .npr-rar.r-mythic { color: var(--rar-mythic); }
 .npr-cost { color: var(--ink-faint); font-size: 11.5px; }
 .npr-drop { margin-left: auto; color: var(--ink-dim); font-size: 11.5px; font-variant-numeric: tabular-nums; }
 /* Prep's spellbook readout: says when the book was picked FOR you, and when
@@ -3537,8 +3551,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Rarity BEFORE selection, deliberately: both are one class on `.sq-pick`, so
    whichever is written last wins, and a mythic that is carried must not look
    the same as a mythic that is not. Selection is the state you act on. */
-.sq-pick.r-legendary { border-color: var(--gold-line); }
-.sq-pick.r-mythic { border-color: rgba(255, 122, 145, .45); }
+.sq-pick.r-legendary { border-color: color-mix(in srgb, var(--rar-legendary) 45%, transparent); }
+.sq-pick.r-mythic { border-color: color-mix(in srgb, var(--rar-mythic) 45%, transparent); }
 .sq-pick.on { border-color: var(--el-rim); box-shadow: 0 0 0 1px var(--el-rim) inset; }
 .sq-pick:disabled { opacity: .38; cursor: not-allowed; }
 .sq-pick-name {
@@ -3617,9 +3631,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .sp-foe-btn:hover { border-color: var(--gold-line); }
 .sp-foe-art { width: 18px; height: 24px; object-fit: cover; border-radius: 3px; display: block; }
 .sp-foe em { font-style: normal; font-size: 10.5px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
-.sp-foe.r-mythic { border-color: #d08bff; color: #e9c9ff; }
-.sp-foe.r-legendary { border-color: var(--gold-line); color: var(--gold-hi); }
-.sp-foe.r-epic { border-color: #6aa6ff; color: #c2dbff; }
+.sp-foe.r-mythic { border-color: var(--rar-mythic); color: color-mix(in srgb, var(--rar-mythic) 55%, #fff); }
+.sp-foe.r-legendary { border-color: var(--rar-legendary); color: color-mix(in srgb, var(--rar-legendary) 55%, #fff); }
+.sp-foe.r-epic { border-color: var(--rar-epic); color: color-mix(in srgb, var(--rar-epic) 55%, #fff); }
 /* Packing the squad. The panel sits half-transparent over the region map — you
    are choosing who crosses a border, and the place you are crossing into should
    stay visible behind the choice. */
@@ -3663,9 +3677,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .coin { width: 8px; height: 8px; border-radius: 50%; flex: none;
   background: radial-gradient(circle at 34% 30%, var(--gold-hi), var(--gold) 62%, #8a6a24);
   box-shadow: 0 0 0 .5px rgba(0, 0, 0, .55), inset 0 0 0 .5px rgba(255, 233, 176, .5); }
-.sp-card.r-mythic { border-color: #d08bff; color: #e9c9ff; }
-.sp-card.r-legendary { border-color: var(--gold-line); color: var(--gold-hi); }
-.sp-card.r-epic { border-color: #6aa6ff; color: #c2dbff; }
+.sp-card.r-mythic { border-color: var(--rar-mythic); color: color-mix(in srgb, var(--rar-mythic) 55%, #fff); }
+.sp-card.r-legendary { border-color: var(--rar-legendary); color: color-mix(in srgb, var(--rar-legendary) 55%, #fff); }
+.sp-card.r-epic { border-color: var(--rar-epic); color: color-mix(in srgb, var(--rar-epic) 55%, #fff); }
 .sp-pack .sp-foe-btn:hover { border-color: var(--gold-line); }
 .sp-pack .sp-foe-btn.on { border-color: var(--legal); color: var(--legal);
   box-shadow: 0 0 0 2px var(--legal) inset; }
@@ -4307,9 +4321,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   padding: 0 0 5px; border-radius: 8px; overflow: hidden;
   background: var(--void-2); border: 1px solid var(--panel-line);
 }
-.shop-card.r-mythic { border-color: #d08bff; }
-.shop-card.r-legendary { border-color: var(--gold-line); }
-.shop-card.r-epic { border-color: #6aa6ff; }
+.shop-card.r-mythic { border-color: var(--rar-mythic); }
+.shop-card.r-legendary { border-color: var(--rar-legendary); }
+.shop-card.r-epic { border-color: var(--rar-epic); }
 .shop-art { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
 .shop-art img { width: 100%; height: 62px; object-fit: cover; object-position: 50% 20%; display: block; }
 .shop-name { font-size: 11px; font-weight: 800; padding: 2px 4px 0; text-align: center; }
@@ -4440,8 +4454,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    you own is still something you did not have — the rarest single outcome in
    the pack table, at 1 in 100. It was rendering faded. */
 .pack-card.foil { opacity: 1; }
-.pack-card.r-mythic.new { border-color: #d08bff; box-shadow: 0 0 14px rgba(208, 139, 255, 0.3); }
-.pack-card.r-legendary.new { border-color: var(--gold-line); box-shadow: 0 0 14px rgba(232, 200, 119, 0.28); }
+.pack-card.r-mythic.new { border-color: var(--rar-mythic); box-shadow: 0 0 14px color-mix(in srgb, var(--rar-mythic) 30%, transparent); }
+.pack-card.r-legendary.new { border-color: var(--rar-legendary); box-shadow: 0 0 14px color-mix(in srgb, var(--rar-legendary) 30%, transparent); }
 /* ── the one-at-a-time reveal ───────────────────────────────────────────────
    A stack, not a grid. The cards behind the top one ARE the progress bar —
    which is why there is no second one — and the order is worst-to-best, so the
@@ -4480,17 +4494,20 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    Applied by RARITY, not by `.new`: pulling a second Mythic is still pulling a
    Mythic, and the small grid chips already carry the new/dupe distinction. */
 .pack-card.big.r-epic {
-  border-color: #b06bff;
-  box-shadow: 0 0 22px rgba(176, 107, 255, 0.45), 0 0 60px rgba(176, 107, 255, 0.16);
+  border-color: var(--rar-epic);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--rar-epic) 45%, transparent),
+    0 0 60px color-mix(in srgb, var(--rar-epic) 16%, transparent);
 }
 .pack-card.big.r-legendary {
-  border-color: #ffb02e;
-  box-shadow: 0 0 26px rgba(255, 176, 46, 0.5), 0 0 70px rgba(255, 176, 46, 0.2);
+  border-color: var(--rar-legendary);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--rar-legendary) 50%, transparent),
+    0 0 70px color-mix(in srgb, var(--rar-legendary) 20%, transparent);
   animation: rarBreathe 2.4s ease-in-out infinite;
 }
 .pack-card.big.r-mythic {
-  border-color: #ff5db1;
-  box-shadow: 0 0 30px rgba(255, 93, 177, 0.55), 0 0 84px rgba(255, 93, 177, 0.26);
+  border-color: var(--rar-mythic);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--rar-mythic) 55%, transparent),
+    0 0 84px color-mix(in srgb, var(--rar-mythic) 26%, transparent);
   animation: rarBreathe 1.9s ease-in-out infinite;
 }
 @keyframes rarBreathe {
@@ -4526,9 +4543,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 /* Layered on a rarity that already glows: keep the rarity's outer colour and
    put the gold on the inside, so "epic AND foil" is legible as both. */
-.pack-card.big.foil.r-epic { box-shadow: 0 0 0 2px rgba(255, 233, 176, 0.6) inset, 0 0 24px rgba(176, 107, 255, 0.5), 0 0 64px rgba(176, 107, 255, 0.2); }
-.pack-card.big.foil.r-legendary { box-shadow: 0 0 0 2px rgba(255, 233, 176, 0.65) inset, 0 0 28px rgba(255, 176, 46, 0.55), 0 0 74px rgba(255, 176, 46, 0.22); }
-.pack-card.big.foil.r-mythic { box-shadow: 0 0 0 2px rgba(255, 233, 176, 0.65) inset, 0 0 32px rgba(255, 93, 177, 0.6), 0 0 88px rgba(255, 93, 177, 0.28); }
+.pack-card.big.foil.r-epic { box-shadow: 0 0 0 2px rgba(255, 233, 176, 0.6) inset, 0 0 24px color-mix(in srgb, var(--rar-epic) 50%, transparent), 0 0 64px color-mix(in srgb, var(--rar-epic) 20%, transparent); }
+.pack-card.big.foil.r-legendary { box-shadow: 0 0 0 2px rgba(255, 233, 176, 0.65) inset, 0 0 28px color-mix(in srgb, var(--rar-legendary) 55%, transparent), 0 0 74px color-mix(in srgb, var(--rar-legendary) 22%, transparent); }
+.pack-card.big.foil.r-mythic { box-shadow: 0 0 0 2px rgba(255, 233, 176, 0.65) inset, 0 0 32px color-mix(in srgb, var(--rar-mythic) 60%, transparent), 0 0 88px color-mix(in srgb, var(--rar-mythic) 28%, transparent); }
 /* NO ::after here. `.foil::after` further down is THE foil — the iridescent
    sheen that sweeps every foil card in the game — and an override at this
    specificity replaced it with a plain gold wipe, making the pack reveal the

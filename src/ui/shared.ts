@@ -20,7 +20,13 @@ export const EL_COLOR: Record<Element, string> = {
 
 // Collector rarity → badge color + short label. Undefined rarity shows nothing.
 export const RARITY_STYLE: Record<string, { color: string; label: string }> = {
-  mythic: { color: "#ff5db1", label: "MYTHIC" },
+  // Red, and deliberately not the pink it was: pink sat next to the violet
+  // epic on the wheel, so the top of the ladder read as a brighter epic. Red
+  // is its own end of the scale.
+  //
+  // MIRRORED IN styles.css as the `--rar-*` tokens, and `styles.test.ts` fails
+  // if the two drift. Change both or neither.
+  mythic: { color: "#ff2e46", label: "MYTHIC" },
   legendary: { color: "#ffb02e", label: "LEGEND" },
   epic: { color: "#b06bff", label: "EPIC" },
   rare: { color: "#4db6ff", label: "RARE" },

@@ -26,6 +26,8 @@ import { join } from "node:path";
 // did exactly that, silently, until the fourth — which asserts specific values
 // exist rather than that nothing is wrong — failed and gave it away.
 // (Types for these two come from src/node-shims.d.ts.)
+import { RARITY_STYLE } from "../../ui/shared";
+
 const CSS = readFileSync(join(__dirname, "..", "..", "ui", "styles.css"), "utf8");
 const BACKSLASH = String.fromCharCode(92);
 
@@ -160,5 +162,35 @@ describe("the CSS tier and the JS that mirrors it", () => {
     expect(stacked, "no stacked-tier @media found").toHaveLength(1);
 
     expect(stacked[0], `CSS tier "${stacked[0]}" vs JS "${fromJs}"`).toBe(fromJs);
+  });
+});
+
+describe("the rarity palette has ONE source", () => {
+  it("styles.css `--rar-*` matches RARITY_STYLE exactly", () => {
+    // The TSX sets rarity colours inline from RARITY_STYLE; the CSS sets them
+    // from `--rar-*`. Nothing makes those agree except this test, and before it
+    // existed the sheet carried FIVE different rarity palettes — with mythic as
+    // #d08bff (violet) and epic as #6aa6ff (blue) in four of them, when the
+    // canonical epic IS the violet. A Mythic read as an Epic in the spell rows,
+    // the shop grid and the pack chips simultaneously.
+    for (const [rarity, { color }] of Object.entries(RARITY_STYLE)) {
+      if (rarity === "common") continue; // not a pack/deck rarity; no token
+      const m = CSS.match(new RegExp(`--rar-${rarity}:\s*([^;]+);`));
+      expect(m, `styles.css has no --rar-${rarity}`).toBeTruthy();
+      expect(m![1].trim().toLowerCase(), `--rar-${rarity} vs RARITY_STYLE`)
+        .toBe(color.toLowerCase());
+    }
+  });
+
+  it("no rule hardcodes a rarity colour instead of using the token", () => {
+    // Every one of the five palettes got there by someone writing a hex next to
+    // `.r-mythic` rather than reaching for the shared value. The rules may only
+    // name the token.
+    const offenders: string[] = [];
+    for (const line of CSS.split("\n")) {
+      if (!/\.r-(rare|epic|legendary|mythic)\b/.test(line)) continue;
+      if (/#[0-9a-f]{3,8}\b/i.test(line) && !/--rar-/.test(line)) offenders.push(line.trim());
+    }
+    expect(offenders).toEqual([]);
   });
 });
