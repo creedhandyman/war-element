@@ -8,8 +8,8 @@
 import { describe, expect, it } from "vitest";
 import { CARDS, getDef } from "../../data/cards";
 import {
-  DAWN_SP_CAP, ELEMENT_AURA, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, GALE_SP_CAP,
-  LEAF_SHIELD_CAP, PYRO_BURN_STACK_CAP, hasElementAura,
+  DAWN_SP_CAP, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
+  EXOSTONE_SHIELDS, GALE_SP_CAP, LEAF_SHIELD_CAP, PYRO_BURN_STACK_CAP, hasElementAura,
 } from "../auras";
 import { applyStatus, basicAttack, defeatCard, shadeDodgePct } from "../combat";
 import { advance, applyIntent, openFlowRepick } from "../phases";
@@ -22,6 +22,9 @@ import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
  *  cannot rot against a rename the way a hardcoded list would. */
 const cheapest = (el: Element) =>
   CARDS.filter((c) => c.element === el).sort((a, b) => a.cost - b.cost)[0];
+
+/** Distinct DUSK bodies, for the stacking tests — one per death. */
+const DUSK_POOL = CARDS.filter((c) => c.element === "DUSK").map((c) => c.id);
 
 describe("every element has an aura and a card to carry it", () => {
   it("all 8 elements are in the table and represented in the pool", () => {
@@ -110,14 +113,64 @@ describe("BORE — Exostone", () => {
 });
 
 describe("DUSK — Midnight Shade", () => {
+  /** Kill a fresh DUSK body on `P1`. */
+  const kill = (s: ReturnType<typeof prepState>, i: number) => {
+    const f = place(s, DUSK_POOL[i], "P1", 3, i % 4);
+    defeatCard(s, s.cards[f.instanceId], "test");
+  };
+
   it("a fallen DUSK card thickens the shadows over its surviving allies", () => {
     const s = prepState();
-    const fallen = place(s, cheapest("DUSK").id, "P1", 3, 0);
-    const survivor = place(s, cheapest("DUSK").id, "P1", 3, 1);
+    const survivor = place(s, DUSK_POOL[0], "P1", 3, 0);
     s.round = 1;
-    defeatCard(s, s.cards[fallen.instanceId], "test");
+    kill(s, 1);
     expect(s.players.P1.shadeStacks).toBe(1);
-    expect(shadeDodgePct(s, s.cards[survivor.instanceId])).toBeGreaterThan(0);
+    expect(shadeDodgePct(s, s.cards[survivor.instanceId])).toBe(DUSK_SHADE_PCT);
+  });
+
+  it("stacks +5% per death, to a ceiling", () => {
+    const s = prepState();
+    const survivor = place(s, DUSK_POOL[0], "P1", 3, 0);
+    s.round = 1;
+    const seen: number[] = [];
+    for (let i = 1; i <= 7; i++) { kill(s, i); seen.push(shadeDodgePct(s, s.cards[survivor.instanceId])); }
+    expect(seen).toEqual([5, 10, 15, 20, 25, 25, 25].map((n) => (n / 5) * DUSK_SHADE_PCT));
+    expect(s.players.P1.shadeStacks).toBe(DUSK_SHADE_MAX_STACKS);
+  });
+
+  it("starts over at +5% once the shadow has lifted", () => {
+    // The bug this pins: `shadeStacks` only ever climbed, so it was a LIFETIME
+    // tally. Once five DUSK cards had died, a single death many rounds later
+    // handed back the whole ceiling instead of one stack — "+5% per death"
+    // silently became "+25% on any death for the rest of the match". The dodge
+    // did drop to 0 in between, which is exactly what hid it.
+    const s = prepState();
+    const survivor = place(s, DUSK_POOL[0], "P1", 3, 0);
+    s.round = 1;
+    for (let i = 1; i <= 5; i++) kill(s, i);
+    expect(shadeDodgePct(s, s.cards[survivor.instanceId])).toBe(DUSK_SHADE_MAX_STACKS * DUSK_SHADE_PCT);
+
+    // Rounds pass with nothing dying — the shadow lifts.
+    s.round = 5;
+    expect(shadeDodgePct(s, s.cards[survivor.instanceId]), "lifted").toBe(0);
+
+    // One death now is ONE stack, not the old ceiling.
+    kill(s, 6);
+    expect(s.players.P1.shadeStacks).toBe(1);
+    expect(shadeDodgePct(s, s.cards[survivor.instanceId])).toBe(DUSK_SHADE_PCT);
+  });
+
+  it("keeps stacking while the shadow is still up", () => {
+    // The reset is on the shadow LAPSING, not on the round turning — deaths in
+    // consecutive rounds still compound, which is the aura working as written.
+    const s = prepState();
+    const survivor = place(s, DUSK_POOL[0], "P1", 3, 0);
+    s.round = 1;
+    kill(s, 1);
+    s.round = 2; // still inside the window (shadeUntilRound === 2)
+    kill(s, 2);
+    expect(s.players.P1.shadeStacks).toBe(2);
+    expect(shadeDodgePct(s, s.cards[survivor.instanceId])).toBe(2 * DUSK_SHADE_PCT);
   });
 });
 

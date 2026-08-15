@@ -365,7 +365,14 @@ export function defeatCard(
   // so a Tail Drop, a revive or a Butler unmasking is not a "death" that pays.
   if (hasElementAura(def, "DUSK")) {
     const pl = draft.players[card.owner];
-    pl.shadeStacks = Math.min(DUSK_SHADE_MAX_STACKS, (pl.shadeStacks ?? 0) + 1);
+    // The count RESETS once the shadow has lifted. It used to only ever climb,
+    // so `shadeStacks` was a lifetime tally of every DUSK card that had ever
+    // died: after the fifth, the aura stopped being "+5% per death" and became
+    // "+25%, on any death, for the rest of the match" — a single loss ten
+    // rounds later restored the full ceiling. The dodge correctly fell to 0
+    // between deaths, which is what hid it; the STACKS behind it never moved.
+    const lapsed = draft.round > (pl.shadeUntilRound ?? -1);
+    pl.shadeStacks = lapsed ? 1 : Math.min(DUSK_SHADE_MAX_STACKS, (pl.shadeStacks ?? 0) + 1);
     pl.shadeUntilRound = draft.round + 1;
     draft.log.push(
       `The shadows thicken — ${card.owner}'s DUSK cards dodge +${pl.shadeStacks * DUSK_SHADE_PCT}% for a round.`,
