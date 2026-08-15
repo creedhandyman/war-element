@@ -74,6 +74,7 @@ import { StoryResult } from "./StoryResult";
 import { StoryPrep } from "./StoryPrep";
 import { BottomNav, type Tab } from "./BottomNav";
 import { HomeScreen } from "./HomeScreen";
+import { VersusIntro } from "./VersusIntro";
 import { ActionWheel, type WheelVerb } from "./ActionWheel";
 import { Shop } from "./Shop";
 import {
@@ -245,6 +246,10 @@ export function App() {
   const [onlineRole, setOnlineRole] = useState<Role>("host");
   const [roomCode, setRoomCode] = useState("");
   const [netStatus, setNetStatus] = useState("");
+  /** The PvP versus screen, up between the deal and the first mulligan. Online
+   *  only — it exists because it is the one mode where the opposing deck is a
+   *  stranger's, and the Arena already shows you both decks you picked. */
+  const [pvpIntro, setPvpIntro] = useState(false);
   const roomRef = useRef<Room | null>(null);
   const onlineStartedRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -552,17 +557,27 @@ export function App() {
     return () => clearTimeout(t);
   }, [game, started, online, announce, castFlash]);
 
-  // Reliability heartbeat: whichever side currently "owns" the state (the player
-  // who must act, or the host during a no-input step) re-broadcasts it every few
-  // seconds, so a dropped/slow Realtime message self-heals instead of stalling.
-  // Only the owning side heartbeats, so the two never fight over the state.
+  // Reliability heartbeat: BOTH sides re-broadcast their last-sent state every
+  // few seconds, so a dropped or slow Realtime message self-heals.
+  //
+  // This used to fire only for whichever side "owned" the state — the player who
+  // must act, or the host during a no-input step — to stop the two fighting over
+  // it. That rule had a hole at every hand-off: the player who has just acted no
+  // longer owns the turn, so it went quiet at the exact moment its copy was the
+  // only one that existed. Watched it deadlock live at the mulligan, where the
+  // guest is always last to act (`needsInput` returns P1 first): the guest held
+  // the only both-mulliganed state, the host was still waiting on P2, and by
+  // that rule NEITHER side re-sent. Nothing recovered it.
+  //
+  // Both can heartbeat safely now because `resend` carries a Lamport clock and
+  // the receiver takes only strictly-newer states — a stale copy can no longer
+  // overwrite a fresh one, which is what the ownership rule was really guarding
+  // against. See `net/online.ts`.
   useEffect(() => {
     if (!online || !started || game.phase === "gameover") return;
-    const owns = actor === online.myId || (online.role === "host" && actor === null);
-    if (!owns) return;
-    const t = setInterval(() => roomRef.current?.sendState(game), 2500);
+    const t = setInterval(() => roomRef.current?.resend(), 2500);
     return () => clearInterval(t);
-  }, [online, started, game, actor]);
+  }, [online, started, game.phase]);
 
   // Keep the hint fresh on phase/priority flips.
   const phaseKey = `${game.phase}:${game.prep?.priority ?? ""}:${game.battle?.awaitingInput ?? ""}`;
@@ -729,6 +744,7 @@ export function App() {
         setHint("Buddy joined! Mulligan: click cards to send back, then confirm.");
         setOnline({ role: "host", code, myId: "P1" });
         setStarted(true);
+        setPvpIntro(true);
         roomRef.current?.sendState(g); // deal the opening state to the guest
       },
     });
@@ -756,6 +772,7 @@ export function App() {
           setHint("Connected! Mulligan: click cards to send back, then confirm.");
           setOnline({ role: "guest", code, myId: "P2" });
           setStarted(true);
+          setPvpIntro(true);
         }
       },
       onSubscribed: () => roomRef.current?.sendJoin(guestCards, guestSpells),
@@ -769,6 +786,7 @@ export function App() {
     onlineStartedRef.current = false;
     setOnline(null);
     setNetStatus("");
+    setPvpIntro(false); // else it reappears over the next room's deal
   }
   // Tear the channel down if the tab closes / component unmounts.
   useEffect(() => () => roomRef.current?.close(), []);
@@ -2063,6 +2081,14 @@ export function App() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Over the mulligan, not instead of it — the deal has already happened
+          and the host may already be advancing, so this is a curtain rather
+          than a gate. Rendered out here with the other overlays so it paints
+          above the board and the mulligan sheet both. */}
+      {started && online && pvpIntro && (
+        <VersusIntro game={game} me={online.myId} onDone={() => setPvpIntro(false)} />
       )}
 
       {game.pendingFlow && game.cards[game.pendingFlow] && (() => {
