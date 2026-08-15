@@ -544,7 +544,8 @@ export function describePassives(def: CardDef): string[] {
       `Regenerative: at the end of each round, grows +${def.shieldPerHitTaken.shields} shield for every enemy hit it took that round${def.shieldPerHitTaken.maxShields ? ` (max ${def.shieldPerHitTaken.maxShields})` : ""}.`,
     );
   if (def.highSpeedImpact)
-    named("highSpeedImpact", `High Speed Impact: +1 DMG for every point of SP above 10.`);
+    named("highSpeedImpact", `High Speed Impact: +1 DMG for every point of SP above 10`
+      + (def.highSpeedImpact.cap === undefined ? "." : `, up to +${def.highSpeedImpact.cap}.`));
   if (def.speedDmgTiered)
     named("speedDmgTiered", `Apex Predator: +1 DMG for every ${def.speedDmgTiered.per} SP above ${def.speedDmgTiered.above}.`);
   if (def.lurk)

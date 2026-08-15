@@ -318,7 +318,7 @@ describe("Talents — Dart Frog's Bleed Out", () => {
 });
 
 describe("Talents — Stormquill's Glide Rush", () => {
-  it("grants +3 SP and EVASION, once per game", () => {
+  it("grants +2 SP and EVASION, once per game", () => {
     const s = prepState();
     const hawk = place(s, "gale_hawk", "P1", 2, 0);
     const before = effectiveSp(s, hawk);
@@ -329,7 +329,7 @@ describe("Talents — Stormquill's Glide Rush", () => {
     });
     const h = next.cards[hawk.instanceId];
     expect(h.talentUsed).toBe(true);
-    expect(effectiveSp(next, h)).toBe(before + 3);
+    expect(effectiveSp(next, h)).toBe(before + 2);
     expect(statusOf(h, "EVASION")?.duration).toBe(2);
     expect(canFireTalent(next, hawk.instanceId).ok).toBe(false); // once per game
   });
@@ -350,12 +350,27 @@ describe("Talents — Stormquill's Glide Rush", () => {
     let n = applyIntent(battleWith(s, hawk.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "talent",
     });
-    expect(lead(n)).toBe(3);
+    expect(lead(n)).toBe(2);
     n = advance(atCleanup(n));
-    expect(lead(n)).toBe(3); // round 2 of 2
+    expect(lead(n)).toBe(2); // round 2 of 2
     n = advance(atCleanup(n));
     expect(lead(n)).toBe(0); // expired — no permanent gain
     expect(statusOf(n.cards[hawk.instanceId], "EVASION")).toBeUndefined();
+  });
+
+  it("High Speed Impact stops at +5 however much SP it is given", () => {
+    // The ceiling is the whole nerf. Uncapped, this card's own Talent fed a
+    // loop with no end in it: SP became damage 1:1 and GALE hands out SP for
+    // free, every round, to everything. Asserted as a DELTA against a control
+    // at the cap rather than an absolute, so the aura's drip cannot pass for
+    // the passive still climbing.
+    const s = prepState();
+    const at15 = place(s, "gale_hawk", "P1", 2, 0, { spBonus: 8 });   // 15 SP -> +5, at the cap
+    const at40 = place(s, "gale_hawk", "P1", 2, 1, { spBonus: 33 });  // 40 SP -> would be +30
+    const base = place(s, "gale_hawk", "P1", 2, 2);                   //  7 SP -> +0, under the floor
+    const dmg = (c: typeof base) => effectiveDmg(s, s.cards[c.instanceId]);
+    expect(dmg(at15)).toBe(dmg(base) + 5);
+    expect(dmg(at40)).toBe(dmg(at15));
   });
 
   it("the speed actually feeds High Speed Impact", () => {

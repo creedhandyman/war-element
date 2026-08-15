@@ -1668,18 +1668,23 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // High Speed Impact: +1 DMG per SP point above 10.
+    // High Speed Impact: +1 DMG per SP point above 10, to a maximum of +5.
+    //
+    // The cap is the whole point. Uncapped, this card had no ceiling at all:
+    // its own Talent hands it SP, SP converts 1:1 into damage, and every haste
+    // effect in GALE — aura, field, ally buff — fed the same loop. A 3-cost
+    // was the best scaling body in the game because nothing said stop.
     passiveNames: { highSpeedImpact: "High Speed Impact" },
-    highSpeedImpact: true,
-    // Glide Rush (Talent, free · once per game): +3 SP and EVASION, both for 2
-    // rounds. The SP is TEMPORARY (buffRounds) — it feeds High Speed Impact
-    // above, so for those two rounds a 7 SP Stormquill is at 10 and every further
-    // point of SP it can find turns straight into damage.
+    highSpeedImpact: { cap: 5 },
+    // Glide Rush (Talent, free · once per game): +2 SP and EVASION, both for 2
+    // rounds. The SP is TEMPORARY (buffRounds) and it feeds High Speed Impact
+    // above, so the Talent is half of what it takes to reach the cap rather
+    // than a third of the way past it.
     talent: {
       name: "Glide Rush",
-      text: "Gain +3 SP and EVASION for 2 rounds.",
+      text: "Gain +2 SP and EVASION for 2 rounds.",
       handler: "empower",
-      params: { selfSp: 3, buffRounds: 2, selfStatus: "EVASION", selfStatusDuration: 2 },
+      params: { selfSp: 2, buffRounds: 2, selfStatus: "EVASION", selfStatusDuration: 2 },
     },
   },
   {
@@ -3743,8 +3748,13 @@ export const CARDS: CardDef[] = [
     keywords: { EVASION: true },
     // High Speed Impact: +1 DMG per point of SP above 10 (GALE's +1 SP/round
     // climbs this over time).
+    //
+    // DELIBERATELY UNCAPPED, unlike Stormquill, and left that way because the
+    // brief was Stormquill. It is the same unbounded loop on a bigger base —
+    // 14 SP printed, +1 a round from the aura — so if Stormquill needed a
+    // ceiling this probably does too. Unmeasured.
     passiveNames: { highSpeedImpact: "High Speed Impact" },
-    highSpeedImpact: true,
+    highSpeedImpact: {},
     special: {
       name: "Cyclone Strike",
       cost: 3,

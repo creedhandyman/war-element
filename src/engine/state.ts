@@ -493,8 +493,12 @@ function dmgBeforeIntimidation(state: GameState, card: CardInstance): number {
     ? card.curShields
     : def.weaponModes ? def.weaponModes[card.weaponMode ?? 0].dmg : def.dmg;
   let dmg = baseDmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0) + buffDmg + auraBonus(state, card, "dmg") + fieldBonus(state, card, "dmgBonus");
-  // High Speed Impact (Stormquill): +1 DMG for each point of SP above 10.
-  if (def.highSpeedImpact) dmg += Math.max(0, effectiveSp(state, card) - 10);
+  // High Speed Impact: +1 DMG per point of SP above 10, capped where the card
+  // says so (Stormquill +5) and unbounded where it does not (Tempest).
+  if (def.highSpeedImpact) {
+    const over = Math.max(0, effectiveSp(state, card) - 10);
+    dmg += def.highSpeedImpact.cap === undefined ? over : Math.min(def.highSpeedImpact.cap, over);
+  }
   // Apex Predator (Stormfang): +1 DMG per `per` SP above `above`.
   if (def.speedDmgTiered)
     dmg += Math.floor(Math.max(0, effectiveSp(state, card) - def.speedDmgTiered.above) / def.speedDmgTiered.per);

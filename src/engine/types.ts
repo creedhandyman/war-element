@@ -715,7 +715,14 @@ export interface CardDef {
    *  +1 DMG per hit (the ramp climbs with each landed hit). */
   incinerate?: boolean;
   /** High Speed Impact (Stormquill): +1 DMG per point of effective SP above 10. */
-  highSpeedImpact?: boolean;
+  /** High Speed Impact: +1 DMG per point of SP above 10, up to `cap`.
+   *
+   *  `cap` is OPTIONAL and omitting it means unbounded, which is what this was
+   *  for both its carriers until Stormquill got a ceiling. Tempest still has
+   *  none — it starts at 14 SP and GALE's aura adds a point a round, so its
+   *  damage climbs for as long as the match runs. That is the same shape of
+   *  problem and it has not been measured; see the note on the card. */
+  highSpeedImpact?: { cap?: number };
   /** Apex Predator (Stormfang): +1 DMG for every `per` SP above `above`. */
   speedDmgTiered?: { above: number; per: number };
   /** Lurk (Liquark): while STEALTHed, gain +`dmg` DMG and +`sp` SP. Attacking
