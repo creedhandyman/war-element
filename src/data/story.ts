@@ -2486,6 +2486,32 @@ export function rollRecruits(
   const won: string[] = [];
   const missed: string[] = [];
 
+  /** Foils roll on cards you ALREADY OWN, at the same 1 in 100 a pack uses.
+   *
+   *  They used to roll only on `won`, so a foil was available exactly once per
+   *  card — the clear that first handed it over — and a node whose roster you
+   *  had finished could never produce one again. That is the opposite of how
+   *  the Shop works: `openPack` rolls every card it pulls, duplicates included,
+   *  and skips only what you already hold in foil. Story had no way to chase a
+   *  shiny at all, which made the rarest thing in the game unfarmable.
+   *
+   *  Skips anything already held in foil for the same reason `openPack` does —
+   *  a second shiny of the same card is nothing — and cannot pick the same card
+   *  twice in one clear. */
+  const heldFoil = new Set(save.hero?.shiny ?? []);
+  const foilable = recruitablePool(node)
+    .filter((id) => save.collection.includes(id) && !heldFoil.has(id));
+  function dupeFoils(exclude: readonly string[]): string[] {
+    const pool = foilable.filter((id) => !exclude.includes(id));
+    const out: string[] = [];
+    for (let i = 0; i < rolls && pool.length; i++) {
+      const pick = pool[Math.floor(rand() * pool.length) % pool.length];
+      pool.splice(pool.indexOf(pick), 1);
+      if (rollShiny(rand)) out.push(pick);
+    }
+    return out;
+  }
+
   // The opening battle pays out in full, no dice. Checked BEFORE the empty-pool
   // return below, because the region's Epic is not in the recruitable pool — it
   // lives on a node deeper in — and an opener whose Rares are already owned
@@ -2493,14 +2519,21 @@ export function rollRecruits(
   const openingRegion = regionOfNode(node.id);
   if (openingRegion && isOpeningNode(openingRegion, node)) {
     const opened = guaranteedDrops(openingRegion, node).filter((id) => !save.collection.includes(id));
-    return { won: opened, missed: [], rolls, shiny: opened.filter(() => rollShiny(rand)) };
+    return {
+      won: opened, missed: [], rolls,
+      shiny: [...opened.filter(() => rollShiny(rand)), ...dupeFoils(opened)],
+    };
   }
-  if (!eligible.length) return { won, missed, rolls, shiny: [] };
+  // A finished node still rolls — that is the whole point of the change above.
+  if (!eligible.length) return { won, missed, rolls, shiny: dupeFoils([]) };
 
   // A Throne's Mythic is a guaranteed recruit on first clear: no RNG on a
   // story-critical unlock.
   if (node.kind === "throne" && !isCleared(save, node.id)) {
-    return { won: [...eligible], missed, rolls, shiny: eligible.filter(() => rollShiny(rand)) };
+    return {
+      won: [...eligible], missed, rolls,
+      shiny: [...eligible.filter(() => rollShiny(rand)), ...dupeFoils(eligible)],
+    };
   }
 
   const pool = [...eligible];
@@ -2514,7 +2547,10 @@ export function rollRecruits(
       missed.push(pick);
     }
   }
-  return { won, missed, rolls, shiny: won.filter(() => rollShiny(rand)) };
+  return {
+    won, missed, rolls,
+    shiny: [...won.filter(() => rollShiny(rand)), ...dupeFoils(won)],
+  };
 }
 
 /** Fold a clear + its recruits into the save. Pure — returns a new save. */

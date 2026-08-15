@@ -40,6 +40,9 @@ export interface StoryResultPayload {
   won: string[];
   captured: number;
   lost?: boolean;
+  /** Cards that came out SHINY, including ones already owned — those are not in
+   *  `won`, and a finished node now pays in nothing else. */
+  shiny?: string[];
 }
 
 export interface StoryNav {

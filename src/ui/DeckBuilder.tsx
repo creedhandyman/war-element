@@ -13,12 +13,11 @@ import {
 } from "../data/custom-decks";
 import { STANDARD_CAP } from "../data/story";
 import { deckLinkFor, decodeDeck, encodeDeck } from "../data/deck-code";
-import { EL_COLOR, EL_ICON, RARITY_STYLE, spellArtSrc } from "./shared";
+import { EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE, spellArtSrc } from "./shared";
 import { CardView } from "./CardView";
 import { DeckStats, useComposition } from "./DeckStats";
 import { SpIcon } from "./icons";
 
-const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
 const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
 
 // Card-pool sort options + rarity order (mythic first → common; unknown last).

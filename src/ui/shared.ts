@@ -3,6 +3,19 @@
 import type { Element, StatusKind } from "../engine";
 
 // Element colors — the redesign palette (brighter, reads on the cosmic board).
+/** THE element order, wherever a UI lists all eight.
+ *
+ *  DAWN and DUSK sit at the end, in that order. They are the light-and-shadow
+ *  pair — the two the campaign treats as a set and the matchup table gives
+ *  their own rule to — so they read as a closing pair rather than as items 4
+ *  and 7 of a list that is otherwise the six ordinary elements.
+ *
+ *  One list, because there were FIVE copies of it: the deck builder, the deck
+ *  stats, the rules book, the collection and the squad picker each had their
+ *  own, so a reorder meant finding all five or shipping screens that disagreed
+ *  about where DAWN goes. */
+export const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "GALE", "BOLT", "BORE", "DAWN", "DUSK"];
+
 export const EL_COLOR: Record<Element, string> = {
   LEAF: "#4caf6d",
   AQUA: "#4d94e8",

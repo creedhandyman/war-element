@@ -459,7 +459,7 @@ export function App() {
       saveStory(next);
       return next;
     });
-    navDo({ t: "result", result: { node: storyNode, won: result.won, captured } });
+    navDo({ t: "result", result: { node: storyNode, won: result.won, shiny: result.shiny, captured } });
   }, [started, storyNode, game, storyResult, story]);
   // An Arena match settles up here: shards for the win, and the Gauntlet run
   // advances or ends.
@@ -2206,6 +2206,7 @@ export function App() {
           game={game}
           lost={storyResult.lost}
           won={storyResult.won}
+          shiny={storyResult.shiny}
           captured={storyResult.captured}
           firstClear={!story.cleared.includes(storyResult.node.id)}
           exhausted={recruitablePool(storyResult.node).every((id) => story.collection.includes(id))}

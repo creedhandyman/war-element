@@ -4,11 +4,9 @@
  *  capture lockout): objective, deck, resources, the round loop, combat,
  *  shields, speed/movement, elements, statuses, keywords and wins. */
 import { ELEMENT_AURA, ELEMENT_MATCHUP } from "../engine";
-import { EL_COLOR } from "./shared";
-import type { Element } from "../engine";
+import { EL_COLOR, ELEMENTS } from "./shared";
 
 /** Fixed display order for the element lists below. */
-const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
 /** "LEAF" → "Leaf" — the rules book reads as prose, not as engine constants. */
 const title = (el: string) => el.charAt(0) + el.slice(1).toLowerCase();
 

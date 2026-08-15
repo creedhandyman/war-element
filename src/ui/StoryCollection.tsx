@@ -19,11 +19,10 @@ import {
   PLACED_CARDS, bestSource, deckCapFor, isShiny, markSeen, recruitChance, sourcesOf,
   type StorySave,
 } from "../data/story";
-import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
+import { EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
 import { SpIcon } from "./icons";
 import { CardView } from "./CardView";
 
-const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
 const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
 const RARITY_RANK: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3, common: 4 };
 const rarityRank = (r?: string) => (r && r in RARITY_RANK ? RARITY_RANK[r] : 99);

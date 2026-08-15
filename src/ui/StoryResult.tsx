@@ -25,6 +25,11 @@ export function StoryResult(props: {
   exhausted: boolean;
   /** The node beat you. Nothing is recruited and nothing is cleared. */
   lost?: boolean;
+  /** Cards that came out SHINY this clear — including ones you already owned,
+   *  which is the only way a finished node pays anything now. Those are not in
+   *  `won`, so without this the rarest outcome in the game would land in the
+   *  save with the screen saying "nothing joined this time". */
+  shiny?: string[];
   /** Card ids held in foil. A recruit can arrive shiny — `applyClear` rolls it
    *  the same way a pack does — and this screen was the one place that could
    *  hand you your first foil without ever saying so. */
@@ -60,6 +65,17 @@ export function StoryResult(props: {
             {captured > 0
               ? <>You padlocked <b>{captured}</b> {captured === 1 ? "slot" : "slots"} — {rolls} recruit {rolls === 1 ? "roll" : "rolls"}.</>
               : <>Won by elimination — no slots padlocked, so one roll.</>}
+          </p>
+        )}
+
+        {/* Shown above the recruit list and independently of it: a foil of a
+            card you already owned is not a recruit, and it is the reason a
+            finished node is still worth running. */}
+        {!lost && (props.shiny?.length ?? 0) > 0 && (
+          <p className="sr-shiny">
+            <i className="foil-tag inline" aria-hidden="true">✦</i>
+            {props.shiny!.length === 1 ? "Foil " : "Foils "}
+            <b>{props.shiny!.map((id) => getDef(id).name).join(", ")}</b>
           </p>
         )}
 

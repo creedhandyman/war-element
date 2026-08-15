@@ -1982,3 +1982,60 @@ describe("the early fights ramp onto the ladder", () => {
     expect(sizeWith(2), "a thin squad shrank the fight").toBe(sizeWith(12));
   });
 });
+
+describe("foils are farmable in the campaign", () => {
+  const seeded = (seed: number) => {
+    let x = seed + 0x6d2b79f5;
+    return () => {
+      x = (x + 0x6d2b79f5) | 0;
+      let t = Math.imul(x ^ (x >>> 15), 1 | x);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+  const leaf = REGIONS[0];
+  const node = leaf.nodes[2];
+  const pool = recruitablePool(node);
+
+  it("a node whose roster you already own still rolls, at the pack's rate", () => {
+    // Foils used to roll only on cards you WON, so a shiny was available exactly
+    // once per card — the clear that first handed it over — and a finished node
+    // could never produce one again. `openPack` has always rolled duplicates;
+    // the campaign was the half with no way to chase one at all.
+    const save: StorySave = { ...newSave(), collection: [...pool], cleared: [leaf.nodes[0].id] };
+    let foils = 0;
+    const runs = 20000;
+    for (let s = 0; s < runs; s++) {
+      const r = rollRecruits(save, node, 1, seeded(s));
+      expect(r.won, "a finished node handed over a card").toEqual([]);
+      foils += r.shiny.length;
+    }
+    // 1 in 100, read loosely — 200-odd events carries real sampling error.
+    expect(runs / foils).toBeGreaterThan(100 / SHINY_CHANCE * 0.75);
+    expect(runs / foils).toBeLessThan(100 / SHINY_CHANCE * 1.35);
+  });
+
+  it("never re-rolls a card already held in foil", () => {
+    // Same rule as the Shop: a second shiny of the same card is nothing.
+    const save: StorySave = {
+      ...newSave(), collection: [...pool], cleared: [leaf.nodes[0].id],
+      hero: { ...newHero(), shiny: [...pool] },
+    };
+    for (let s = 0; s < 4000; s++) {
+      expect(rollRecruits(save, node, 3, seeded(s)).shiny).toEqual([]);
+    }
+  });
+
+  it("only ever names cards from THAT node, and never one you do not own", () => {
+    const owned = pool.slice(0, Math.max(1, pool.length - 1));
+    const save: StorySave = { ...newSave(), collection: owned, cleared: [leaf.nodes[0].id] };
+    for (let s = 0; s < 3000; s++) {
+      for (const id of rollRecruits(save, node, 2, seeded(s)).shiny) {
+        // A win can be shiny too, so the card is either newly won or already held.
+        const r = rollRecruits(save, node, 2, seeded(s));
+        expect(owned.includes(id) || r.won.includes(id), `${id} is from nowhere`).toBe(true);
+        expect(pool, `${id} is not on this node`).toContain(id);
+      }
+    }
+  });
+});

@@ -3609,7 +3609,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .sr-list li { display: flex; align-items: baseline; gap: 8px; padding: 7px 10px; border-radius: 6px; background: var(--void-2); border: 1px solid var(--gold-line); }
 .sr-name { font-weight: 700; color: var(--gold-hi); }
 .sr-stats { margin-left: auto; font-size: 11.5px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
-.sr-empty, .sr-note { font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; text-align: center; }
+.sr-empty, /* The foil line on a clear. Above the recruit list and independent of it — a
+   shiny of a card you already owned is not a recruit, and it is the only thing
+   a finished node can pay. */
+.sr-shiny {
+  margin: 6px 0 2px; font-size: var(--fs-3); color: #eaf6ff;
+  display: flex; align-items: center; gap: 2px;
+}
+.sr-shiny b { color: #fff; font-weight: 700; }
+.sr-note { font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; text-align: center; }
 .story-result .lockin { width: 100%; margin-top: 14px; }
 
 /* ── Story prep: the last screen before a fight ─────────────────────────── */

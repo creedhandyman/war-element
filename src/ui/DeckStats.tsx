@@ -7,11 +7,10 @@
  *  matter most — you are building against one known enemy formation.
  */
 import { useMemo } from "react";
-import type { CardClass, Element } from "../engine";
+import type { CardClass } from "../engine";
 import { getDef } from "../engine";
-import { EL_COLOR } from "./shared";
+import { EL_COLOR, ELEMENTS } from "./shared";
 
-const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
 const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
 
 export interface DeckComposition {

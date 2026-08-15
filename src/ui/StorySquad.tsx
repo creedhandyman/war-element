@@ -16,18 +16,17 @@
  *  rather than showing an editor that cannot change anything.
  */
 import { useMemo, useState } from "react";
-import type { CardClass, Element } from "../engine";
+import type { CardClass } from "../engine";
 import { getDef } from "../data/cards";
 import {
   autoSquad, localCards, packSquad, packableFor, squadCapInRegion, squadFor,
   type StoryRegion, type StorySave,
 } from "../data/story";
-import { EL_COLOR, EL_ICON } from "./shared";
+import { EL_COLOR, EL_ICON, ELEMENTS } from "./shared";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3, common: 4 };
 /** Filter order, fixed rather than derived, so the chips do not reshuffle
  *  between regions as the packable pool changes. */
-const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
 const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
 
 export function StorySquad(props: {
