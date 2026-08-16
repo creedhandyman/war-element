@@ -1206,11 +1206,22 @@ describe("King of the Hill — which half of the bonus a mid row pays", () => {
   it("the two halves are exact complements — never both, never neither", () => {
     // effectiveDmg and effectiveBasicHits read hillGivesHit() from opposite
     // sides. If they ever drift, a card gets a double bonus or none at all.
+    //
+    // Baselined on the same card standing on its HOME row rather than on its
+    // printed stats, so this measures the hill and only the hill. A card whose
+    // own aura matches itself — Aurora is tribe Stars and buffs Stars — reads
+    // as "+DMG" against its printed line no matter where it stands, which made
+    // this fail for a reason that has nothing to do with King of the Hill.
     for (const d of CARDS) {
+      const home = prepState();
+      const h = place(home, d.id, "P1", 3, 0, { autoMode: "manual" });
+      const baseHits = effectiveBasicHits(home.cards[h.instanceId]);
+      const baseDmg = effectiveDmg(home, home.cards[h.instanceId]);
+
       const s = prepState();
       const c = place(s, d.id, "P1", 2, 1, { autoMode: "manual" });
-      const gotHit = effectiveBasicHits(s.cards[c.instanceId]) > d.hits;
-      const gotDmg = effectiveDmg(s, s.cards[c.instanceId]) > d.dmg;
+      const gotHit = effectiveBasicHits(s.cards[c.instanceId]) > baseHits;
+      const gotDmg = effectiveDmg(s, s.cards[c.instanceId]) > baseDmg;
       expect(gotHit && gotDmg, `${d.id} got BOTH halves`).toBe(false);
     }
   });

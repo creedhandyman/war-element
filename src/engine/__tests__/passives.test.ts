@@ -1708,30 +1708,26 @@ describe("medium-tier passives (audit batch)", () => {
     expect(next.cards[offRow.instanceId].curHp).toBe(30); // depth 1 — one row only
   });
 
-  it("Emberclaw's Flaming Slasher strikes on cast and burns that hit and one more", () => {
+  it("Emberclaw's Flaming Slasher sweeps every opponent in range and burns them", () => {
+    // A sweep now, not a loaded blade: one swing across everything in reach
+    // rather than two charges spent one target at a time.
     const s = prepState();
     s.players.P1.magicPool = 2;
     const sseerr = place(s, "pyro_sseerr", "P1", 2, 0);
-    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    const a = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    const b = place(s, "dusk_gool", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 0 });
     const next = applyIntent(battleFor(s, sseerr.instanceId), {
       type: "BATTLE_ACTION",
       player: "P1",
       action: "special",
-      targetId: foe.instanceId,
+      targetId: a.instanceId,
     });
-    // The cast swung: damage landed AND the burn is already on, from charge one.
-    expect(next.cards[foe.instanceId].curHp).toBeLessThan(60);
-    expect(statusOf(next.cards[foe.instanceId], "BURN")?.power).toBe(4);
-    expect(next.cards[sseerr.instanceId].loadedOnHit?.attacks).toBe(1); // one left
-    next.cards[foe.instanceId].statuses = [];
-    basicAttack(next, sseerr.instanceId, foe.instanceId);
-    expect(statusOf(next.cards[foe.instanceId], "BURN")?.power).toBe(4);
-    expect(next.cards[sseerr.instanceId].loadedOnHit).toBeUndefined(); // both spent
-    // The third attack still burns — but that's PYRO's Scorch aura (BURN 1),
-    // not the Slasher's BURN 4. Power is what distinguishes them.
-    next.cards[foe.instanceId].statuses = [];
-    basicAttack(next, sseerr.instanceId, foe.instanceId);
-    expect(statusOf(next.cards[foe.instanceId], "BURN")?.power).toBe(1);
+    for (const t of [a, b]) {
+      expect(next.cards[t.instanceId].curHp, "both were caught").toBeLessThan(60);
+      expect(statusOf(next.cards[t.instanceId], "BURN")?.power).toBe(4);
+    }
+    // Nothing is loaded onto the next basic — the whole special resolved now.
+    expect(next.cards[sseerr.instanceId].loadedOnHit).toBeUndefined();
   });
 
   it("Monger's missed boulders come back as shields", () => {

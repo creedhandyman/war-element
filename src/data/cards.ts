@@ -134,13 +134,15 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 5,
-    dmg: 3, // "4×1 DMG" = 4 hits × 1 dmg
+    cost: 4,
+    dmg: 2, // "4×1 DMG" = 4 hits × 1 dmg
     hits: 4,
-    hp: 16,
+    hp: 15,
     sp: 7,
     shields: 0,
     keywords: {},
+    // The pack's leader — Stormfang's Wolf aura reads this tribe.
+    tribe: "Wolf",
     // Gnashing Bite: LIFESTEAL only on attacks against ROOTed opponents.
     passiveNames: { vsStatus: "Gnashing Bite" },
     vsStatus: { status: "ROOT", lifesteal: true },
@@ -191,10 +193,10 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 4,
+    cost: 5,
     dmg: 6,
     hits: 1,
-    hp: 21,
+    hp: 25,
     sp: 4,
     shields: 0,
     keywords: {},
@@ -336,10 +338,10 @@ export const CARDS: CardDef[] = [
     element: "PYRO",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 5,
-    dmg: 10,
+    cost: 4,
+    dmg: 8,
     hits: 1,
-    hp: 14,
+    hp: 12,
     sp: 11,
     shields: 0,
     keywords: {},
@@ -350,9 +352,16 @@ export const CARDS: CardDef[] = [
       name: "Flame Charge",
       cost: 1,
       handler: "strike",
-      params: { dmg: 8, selfDamage: 3, statusKind: "BURN", statusPower: 2, statusDuration: 2 },
+      // BLOODFIRE: BLEED and BURN together — `isBloodfire` reads both being
+      // present, so the second status is what makes the charge live up to its
+      // name rather than being another plain burn.
+      params: {
+        dmg: 10, selfDamage: 3,
+        statusKind: "BURN", statusPower: 2, statusDuration: 2,
+        debuffStatus: "BLEED", debuffStatusRounds: 2,
+      },
       targetSide: "enemy",
-      text: "Deal 8 DMG and apply BURN 2 for 2 rounds. FireBird loses 3 HP.",
+      text: "Deal 10 DMG and set the target BLOODFIRE — BURN 2 and BLEED, both for 2 rounds. FireBird loses 3 HP.",
     },
   },
   {
@@ -789,10 +798,10 @@ export const CARDS: CardDef[] = [
     element: "DUSK",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 5,
-    dmg: 5,
+    cost: 4,
+    dmg: 4,
     hits: 2,
-    hp: 13,
+    hp: 10,
     sp: 12,
     shields: 0,
     keywords: { EVASION: true }, // Silent Weaver
@@ -1994,10 +2003,10 @@ export const CARDS: CardDef[] = [
     element: "BOLT",
     cardClass: "Ranger",
     attackType: "Ranged",
-    cost: 4,
-    dmg: 3,
+    cost: 3,
+    dmg: 2,
     hits: 2,
-    hp: 12,
+    hp: 9,
     sp: 8,
     shields: 2,
     keywords: {},
@@ -2527,6 +2536,9 @@ export const CARDS: CardDef[] = [
     },
     // On Kill: permanent +7 HP and +1 DMG.
     onKill: { buffMaxHp: 7, buffDmg: 1 },
+    // Volcanic (Aura): the mountain lends its PYRO allies its own heat and bulk.
+    passiveNames: { aura: "Volcanic" },
+    aura: { scope: "element", dmg: 1, maxHp: 3 },
     special: {
       name: "Flame Engulf",
       cost: 4,
@@ -2630,8 +2642,11 @@ export const CARDS: CardDef[] = [
     tribe: "Avian",
     // On Kill: permanent +2 SP.
     onKill: { buffSp: 2 },
-    // Aura: GALE allies gain +1 SP.
-    aura: { scope: "element", sp: 1 },
+    // Skyborn (Aura): AVIAN allies only — the flock it actually leads — gain
+    // +1 DMG and +3 SP. Narrowed from "every GALE ally +1 SP": a mythic's aura
+    // should reward building around it, not pay out to the whole element.
+    passiveNames: { aura: "Skyborn" },
+    aura: { scope: "tribe", match: "Avian", dmg: 1, sp: 3 },
     special: {
       name: "Dive Bomb",
       cost: 5,
@@ -2661,7 +2676,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bolt_elecdroid",
-    name: "Elecdroid",
+    name: "Arc",
     rarity: "mythic",
     element: "BOLT",
     cardClass: "Assassin",
@@ -2673,10 +2688,13 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 7,
     keywords: {},
+    tribe: "ARC",
     // Hyper Power Surge (On Kill): +5 DMG this round, +5 SP (round-long, applies
     // to future basics — separate from the combo's in-special escalation).
-    passiveNames: { onKill: "Hyper Power Surge" },
+    // Arc (Aura): the grid it anchors — ARC allies gain +2 DMG and +2 SP.
+    passiveNames: { onKill: "Hyper Power Surge", aura: "Arc" },
     onKill: { buffDmgRound: 5, buffSp: 5 },
+    aura: { scope: "tribe", match: "ARC", dmg: 2, sp: 2 },
     special: {
       name: "Light Slasher",
       cost: 5,
@@ -2757,7 +2775,6 @@ export const CARDS: CardDef[] = [
     shields: 8,
     // Echolocation: BLIND — it can only aim a basic at an enemy in king reach or
     // one that MOVED this round (footsteps). See `targetsOnSound` in canTarget.
-    passiveNames: { targetsOnSound: "Echolocation" },
     targetsOnSound: true,
     // NO innate STEALTH. Abyssal Emergence is something it DOES, not something
     // it arrives with: the keyword cloaked it from the moment it was summoned,
@@ -2766,8 +2783,10 @@ export const CARDS: CardDef[] = [
     // quakes, and slips back under.
     keywords: {},
     tribe: "Cavernous",
-    // Pressure: BORE allies are topped up to +1 shield each round.
-    aura: { scope: "element", shields: 1 },
+    // Cavernous (Aura): its own kin, not the whole element — topped up to +1
+    // shield each round and carrying +2 max HP while it stands.
+    passiveNames: { targetsOnSound: "Echolocation", aura: "Cavernous" },
+    aura: { scope: "tribe", match: "Cavernous", shields: 1, maxHp: 2 },
     special: {
       name: "Drilling Quake",
       cost: 5,
@@ -4360,12 +4379,12 @@ export const CARDS: CardDef[] = [
     element: "PYRO",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 4,
+    cost: 5,
     dmg: 4,
     hits: 2,
-    hp: 9,
+    hp: 12,
     sp: 11,
-    shields: 1,
+    shields: 2,
     keywords: { EVASION: true },
     tribe: "Dragon",
     // Dragon's Blade: it grows into the fight — +1 DMG and +1 SP every 2nd round,
@@ -4381,12 +4400,12 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Flaming Slasher",
       cost: 2,
-      handler: "loadOnHit",
-      // Lights the blade AND swings with it — the cast strike spends the first
-      // of the two charges, so the burn starts landing immediately.
-      params: { statusKind: "BURN", statusPower: 4, statusDuration: 2, attacks: 2, strikeOnCast: 1 },
+      // A sweep now, not a loaded blade: one swing across everything in reach
+      // rather than two charges spent one target at a time.
+      handler: "barrage",
+      params: { dmg: 4, targets: 99, statusKind: "BURN", statusPower: 4, statusDuration: 2 },
       targetSide: "enemy",
-      text: "Strike an opponent. That hit and your next basic attack apply BURN 4 for 2 rounds.",
+      text: "Slash every opponent in range for 4 DMG and BURN 4 for 2 rounds.",
     },
   },
   {
@@ -4955,10 +4974,10 @@ export const CARDS: CardDef[] = [
     element: "PYRO",
     cardClass: "Support",
     attackType: "Ranged",
-    cost: 3,
-    dmg: 3,
+    cost: 4,
+    dmg: 4,
     hits: 1,
-    hp: 8,
+    hp: 12,
     sp: 8,
     shields: 3,
     keywords: {},
@@ -4978,9 +4997,11 @@ export const CARDS: CardDef[] = [
       name: "Accelerator",
       cost: 3,
       handler: "accelerate",
-      params: { rounds: 2, allySp: 1 },
+      // The speed is PERMANENT now and three points of it; the double-BURN
+      // window stays the 2-round burst it always was.
+      params: { rounds: 2, allySp: 3, permanentSp: 1 },
       targetSide: "self",
-      text: "For 2 rounds: every BURN on an opponent deals double, and PYRO allies gain +1 SP.",
+      text: "PYRO allies gain +3 SP permanently. For 2 rounds, every BURN on an opponent also deals double.",
     },
   },
 
@@ -6350,7 +6371,7 @@ export const CARDS: CardDef[] = [
     hp: 16,
     sp: 11,
     shields: 0,
-    keywords: {},
+    keywords: { CRIT: true },
     tribe: ["Skeleton", "ScareKrow"],
     // Unpredictable: a slower opponent has only a 50% chance to hit Ender.
     passiveNames: { evadeVsSlower: "Unpredictable" },
@@ -6938,17 +6959,21 @@ export const CARDS: CardDef[] = [
     element: "DAWN",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 6,
-    dmg: 5,
-    hits: 2,
-    hp: 14,
-    sp: 10,
+    // 15 + 17 + 6 + 12 = 50, exactly the cost-8 budget.
+    cost: 8,
+    dmg: 3,
+    hits: 5,
+    hp: 17,
+    sp: 12,
     shields: 3,
     keywords: {},
+    tribe: "Stars",
+    // Stars (Aura): the constellation it leads fights faster and harder.
     // Life Cycle: each incoming hit is absorbed by a Light Orb that then bursts
     // at the attacker (blue: 3 DMG + BLIND 2 · green: 2 DMG + heal weakest ally 7
     // · red: POISON 2). An opponent's death recharges one orb.
-    passiveNames: { lightOrbs: "Life Cycle" },
+    passiveNames: { lightOrbs: "Life Cycle", aura: "Stars" },
+    aura: { scope: "tribe", match: "Stars", dmg: 1, sp: 2 },
     lightOrbs: true,
     // Light Orb Creation: conjure the three orbs.
     special: {
@@ -8447,8 +8472,8 @@ export const CARDS: CardDef[] = [
     // Apex Predator: +1 DMG for every 2 SP above 15.
     passiveNames: { speedDmgTiered: "Apex Predator" },
     speedDmgTiered: { above: 15, per: 2 },
-    // Pack Leader: Wolf allies gain +1 DMG and +1 SP.
-    aura: { scope: "tribe", match: "Wolf", dmg: 1, sp: 1 },
+    // Pack Leader: Wolf allies gain +1 DMG, +2 max HP and +1 SP.
+    aura: { scope: "tribe", match: "Wolf", dmg: 1, maxHp: 2, sp: 1 },
     // Whirling Missile: dash into the target's row, then 14 to it + 7 splash to
     // opponents adjacent to that target.
     special: {
@@ -8495,8 +8520,10 @@ export const CARDS: CardDef[] = [
     tribe: ["Dragon", "Vapor"],
     // Infinite Serpent (On Kill): grow permanently (+1 SP, +1 DMG) and snipe the
     // lowest-HP survivor for 3.
-    passiveNames: { onKill: "Infinite Serpent" },
+    // Vapor (Aura): the steam it trails carries its Vapor kin along — +4 SP.
+    passiveNames: { onKill: "Infinite Serpent", aura: "Vapor" },
     onKill: { buffSp: 1, buffDmg: 1, lowestHpDmg: 3 },
+    aura: { scope: "tribe", match: "Vapor", sp: 4 },
     // Vapor Beam: 18 to a target; the scald splashes SCALD 6 (DOT, 2r) to every
     // opponent adjacent to the struck slot.
     special: {
@@ -8540,15 +8567,15 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "leaf_bark_bushmen",
-    name: "Bark",
+    name: "Bark Bushmen",
     rarity: "epic",
     element: "LEAF",
     cardClass: "Ranger",
     attackType: "Ranged",
-    cost: 4,
-    dmg: 4,
+    cost: 3,
+    dmg: 3,
     hits: 2,
-    hp: 9,
+    hp: 7,
     sp: 9,
     shields: 2,
     keywords: {},
@@ -8559,17 +8586,17 @@ export const CARDS: CardDef[] = [
     // ROOTs the target for 3 rounds and MUTES it for one.
     special: {
       name: "Night Spear",
-      // 2, not 1. 8 damage that PIERCES shields, plus ROOT 3 and MUTE 1, is a
+      // 2, not 1. Damage that PIERCES shields, plus ROOT 3 and MUTE 1, is a
       // payload the rest of the game charges 2-3 magic for; Static Toss is the
       // mp2 comparison and it has neither PEN nor the second status.
       cost: 2,
       handler: "strike",
-      params: { dmg: 8, pen: 1, statusKind: "ROOT", statusDuration: 3, debuffStatus: "MUTED", debuffStatusRounds: 1 },
+      // 5, down from 8, with the card back at cost 3 — the spear keeps its PEN
+      // and both statuses, which is what made it worth casting.
+      params: { dmg: 5, pen: 1, statusKind: "ROOT", statusDuration: 3, debuffStatus: "MUTED", debuffStatusRounds: 1 },
       targetSide: "enemy",
       ranged: true,
-      // "(4 CRIT)" is gone: 8 is already the doubled figure, and nothing here
-      // rolls a crit — the text described a coin flip that cannot happen.
-      text: "Deal 8 DMG, piercing shields, ROOT the target for 3 rounds, and MUTE it for 1 round.",
+      text: "Deal 5 DMG, piercing shields, ROOT the target for 3 rounds, and MUTE it for 1 round.",
     },
   },
   {
@@ -8836,11 +8863,16 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 4,
     keywords: {},
-    // 24K Stallion (On Summon): the mount arrives with +24 HP.
-    summonSelfBuff: { dmg: 0, hp: 24 },
+    tribe: "Suns",
+    // 24K Stallion (On Summon): the mount arrives with +20 HP. Down from 24 —
+    // the Suns aura below is new power on a card that was already on budget,
+    // and the on-summon buff is the half that is not priced by 5*cost + 10.
+    summonSelfBuff: { dmg: 0, hp: 20 },
     // Solar Sovereign (Aura): allies are immune to stat reduction (WEAKEN).
-    passiveNames: { statDropImmuneAura: "Solar Sovereign" },
+    // Suns (Aura): the host it rides at the head of hits harder and holds longer.
+    passiveNames: { statDropImmuneAura: "Solar Sovereign", aura: "Suns" },
     statDropImmuneAura: true,
+    aura: { scope: "tribe", match: "Suns", dmg: 1, shields: 1, maxHp: 1 },
     // Solar Horse Power: charge the column ahead, 15 DMG to opponents hit and
     // shove the lead one to the farthest slot.
     special: {

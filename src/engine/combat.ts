@@ -4031,9 +4031,19 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const kin = boardCards(draft, attacker.owner).filter(
       (a) => a.curHp > 0 && getDef(a.defId).element === el,
     );
-    if (sp > 0) for (const a of kin) applyTimedBuff(a, 0, sp, rounds);
+    // `permanentSp` banks the speed on `spBonus` instead of a countdown, so the
+    // acceleration outlives the burn window it came with. The double-BURN half
+    // still expires — that is the part that is meant to be a burst.
+    const permanent = num(params, "permanentSp") > 0;
+    if (sp > 0) {
+      for (const a of kin) {
+        if (permanent) a.spBonus += sp;
+        else applyTimedBuff(a, 0, sp, rounds);
+      }
+    }
     draft.log.push(
-      `${label(draft, attacker)} accelerates the burn (2x BURN for ${rounds}r, +${sp} SP to ${kin.length} ${el} all(y/ies)).`,
+      `${label(draft, attacker)} accelerates the burn (2x BURN for ${rounds}r, +${sp} SP` +
+      `${permanent ? " permanently" : ""} to ${kin.length} ${el} all(y/ies)).`,
     );
   },
 

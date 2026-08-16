@@ -5,7 +5,7 @@ import { basicAttack, checkLowHpTransform, directDamage, effectiveBasicHits } fr
 import { advance, applyIntent } from "../phases";
 import { canFireSpecial, canFireTalent, canTarget, effectiveSpecialCost } from "../rules";
 import { boardCards, effectiveDmg, effectiveMaxHp, effectiveSp } from "../state";
-import { getDef } from "../../data/cards";
+import { CARDS, getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
@@ -77,13 +77,19 @@ describe("per-card auras", () => {
     expect(effectiveDmg(s, rep)).toBe(4); // buffed while Trinezer is alive
   });
 
-  it("Skyrend's element aura gives GALE allies +1 SP", () => {
+  it("Skyrend's Skyborn aura gives AVIAN allies +1 DMG and +3 SP", () => {
+    // Narrowed from "every GALE ally +1 SP" — the flock it leads, not the
+    // element. Picks a real Avian rather than naming one, so a re-tag cannot
+    // quietly turn this into a test of nothing.
     const s = prepState();
     place(s, "gale_griffith", "P1", 2, 0);
-    const galeAlly = place(s, "gale_galeon", "P1", 3, 0);
-    const nonGale = place(s, "leaf_alpha", "P1", 3, 1);
-    expect(effectiveSp(s, galeAlly)).toBe(getDef("gale_galeon").sp + 1);
-    expect(effectiveSp(s, nonGale)).toBe(getDef("leaf_alpha").sp);
+    const avianDef = CARDS.find(
+      (c) => c.id !== "gale_griffith" && [c.tribe ?? []].flat().includes("Avian"),
+    )!;
+    const avian = place(s, avianDef.id, "P1", 3, 0);
+    const nonAvian = place(s, "leaf_squanch", "P1", 3, 1); // LEAF Tank, no tribe
+    expect(effectiveSp(s, avian)).toBe(avianDef.sp + 3);
+    expect(effectiveSp(s, nonAvian)).toBe(getDef("leaf_squanch").sp);
   });
 
   it("Blood Ruby: DUSK allies' basics gain PEN (ignore shields)", () => {
@@ -101,10 +107,15 @@ describe("per-card auras", () => {
     expect(next.cards[foe.instanceId].curHp).toBeLessThan(20); // damage went straight to HP
   });
 
-  it("Pressure: The Deepest tops BORE allies up to +1 shield each round", () => {
+  it("Cavernous: The Deepest tops CAVERNOUS allies up to +1 shield each round", () => {
+    // Scoped to its own tribe now rather than the whole element, so the ally
+    // has to be a real Cavernous card — found rather than named.
     const s = prepState();
-    place(s, "bore_deepest", "P1", 2, 1); // Pressure holder (BORE)
-    const boreAlly = place(s, "bore_clubber", "P1", 2, 0, { curShields: 0 });
+    place(s, "bore_deepest", "P1", 2, 1); // Cavernous holder
+    const kinDef = CARDS.find(
+      (c) => c.id !== "bore_deepest" && [c.tribe ?? []].flat().includes("Cavernous"),
+    )!;
+    const boreAlly = place(s, kinDef.id, "P1", 2, 0, { curShields: 0 });
     // Deliberately NOT a LEAF card: Photosynthesis now hardens a full-health
     // LEAF ally into +1 shield, which would look exactly like Pressure leaking
     // onto a non-BORE target. GALE has no shield aura.
