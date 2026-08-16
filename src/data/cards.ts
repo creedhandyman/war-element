@@ -1361,6 +1361,7 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "DAWN",
     cardClass: "Ranger",
+    tribe: "Stars",
     attackType: "Ranged",
     cost: 1,
     dmg: 1,
@@ -1378,6 +1379,7 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "DAWN",
     cardClass: "Assassin",
+    tribe: "Stars",
     attackType: "Melee",
     cost: 1,
     dmg: 3,
@@ -1394,6 +1396,7 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "DAWN",
     cardClass: "Warrior",
+    tribe: "Suns",
     attackType: "Melee",
     cost: 3,
     dmg: 5,
@@ -1414,6 +1417,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Mage",
+    tribe: "Stars",
     attackType: "Ranged",
     cost: 3,
     dmg: 2,
@@ -1443,6 +1447,7 @@ export const CARDS: CardDef[] = [
     rarity: "legendary",
     element: "DAWN",
     cardClass: "Ranger",
+    tribe: "Stars",
     attackType: "Ranged",
     cost: 6, // LEGENDARY
     dmg: 2,
@@ -1474,6 +1479,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Support",
+    tribe: "Suns",
     attackType: "Ranged",
     cost: 4,
     dmg: 5,
@@ -1501,6 +1507,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Support",
+    tribe: "Suns",
     attackType: "Ranged",
     cost: 3,
     dmg: 4,
@@ -1527,6 +1534,7 @@ export const CARDS: CardDef[] = [
     rarity: "legendary",
     element: "DAWN",
     cardClass: "Support",
+    tribe: "Suns",
     attackType: "Ranged",
     cost: 8, // LEGENDARY
     dmg: 3,
@@ -1553,6 +1561,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Tank",
+    tribe: "Suns",
     attackType: "Melee",
     cost: 4,
     dmg: 3,
@@ -1580,6 +1589,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Assassin",
+    tribe: "Stars",
     attackType: "Melee",
     cost: 4,
     dmg: 7,
@@ -1606,6 +1616,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Ranger",
+    tribe: "Stars",
     attackType: "Ranged",
     cost: 5,
     dmg: 1,
@@ -2381,6 +2392,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Assassin",
+    tribe: "Stars",
     attackType: "Melee",
     cost: 5,
     dmg: 9,
@@ -2608,6 +2620,7 @@ export const CARDS: CardDef[] = [
     rarity: "mythic",
     element: "DAWN",
     cardClass: "Tank",
+    tribe: "Suns",
     attackType: "Melee",
     cost: 10,
     dmg: 10,
@@ -2925,6 +2938,7 @@ export const CARDS: CardDef[] = [
     // Assassins and Mages a +100 bias, so a 2 HP Sparkle is now the first thing
     // an AI opponent reaches for.
     cardClass: "Mage",
+    tribe: "Stars",
     attackType: "Ranged",
     // Cost 1 at 4+2+9 = 15, exactly 5*1+10. It used to run SP 14, which put it 5
     // over the cost-1 budget and earned it a budget-test exemption; trimming the
@@ -3370,6 +3384,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Warrior",
+    tribe: "Suns",
     attackType: "Melee",
     cost: 4, // doc prints cost 5; re-costed to fit the curve
     dmg: 5,
@@ -3397,6 +3412,7 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "DAWN",
     cardClass: "Mage",
+    tribe: "Stars",
     attackType: "Ranged",
     // Cost 2 at 4+7+9 = 20, exactly 5*2+10. The printed 0 shields is what the
     // formula reads; the +2 barrier below is an off-curve on-summon grant.
@@ -3741,6 +3757,7 @@ export const CARDS: CardDef[] = [
     rarity: "legendary",
     element: "DAWN",
     cardClass: "Support",
+    tribe: "Suns",
     attackType: "Ranged",
     cost: 7,
     dmg: 5,
@@ -4145,6 +4162,7 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "DAWN",
     cardClass: "Warrior",
+    tribe: "Suns",
     attackType: "Melee",
     cost: 2,
     dmg: 3,
@@ -4465,6 +4483,7 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "DAWN",
     cardClass: "Ranger",
+    tribe: "Stars",
     attackType: "Ranged",
     cost: 3,
     dmg: 1,
@@ -4665,6 +4684,7 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "DAWN",
     cardClass: "Mage",
+    tribe: "Stars",
     attackType: "Ranged",
     cost: 2,
     dmg: 1,
@@ -4693,6 +4713,7 @@ export const CARDS: CardDef[] = [
     rarity: "legendary",
     element: "DAWN",
     cardClass: "Assassin",
+    tribe: "Stars",
     attackType: "Melee",
     cost: 6,
     dmg: 10,
@@ -4885,6 +4906,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Tank",
+    tribe: "Suns",
     attackType: "Melee",
     cost: 5,
     dmg: 5,
@@ -5177,6 +5199,7 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "DAWN",
     cardClass: "Warrior",
+    tribe: "Suns",
     attackType: "Melee",
     cost: 1,
     dmg: 2,
@@ -5381,6 +5404,7 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "DAWN",
     cardClass: "Tank",
+    tribe: "Suns",
     attackType: "Melee",
     cost: 2,
     dmg: 2,
@@ -5406,6 +5430,7 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "DAWN",
     cardClass: "Support",
+    tribe: "Suns",
     attackType: "Ranged",
     cost: 1,
     dmg: 1,
@@ -5647,6 +5672,7 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "DAWN",
     cardClass: "Support",
+    tribe: "Suns",
     attackType: "Ranged",
     cost: 2,
     dmg: 3,
@@ -5897,6 +5923,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Warrior",
+    tribe: "Suns",
     attackType: "Melee",
     cost: 3,
     dmg: 4,
@@ -5925,6 +5952,7 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "DAWN",
     cardClass: "Tank",
+    tribe: "Suns",
     attackType: "Melee",
     cost: 3,
     dmg: 2,
@@ -6310,6 +6338,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Mage",
+    tribe: "Stars",
     attackType: "Ranged",
     cost: 4,
     dmg: 6,
@@ -6339,6 +6368,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Ranger",
+    tribe: "Stars",
     attackType: "Ranged",
     cost: 4,
     dmg: 7,
@@ -6938,6 +6968,7 @@ export const CARDS: CardDef[] = [
     rarity: "legendary",
     element: "DAWN",
     cardClass: "Warrior",
+    tribe: "Suns",
     attackType: "Melee",
     cost: 7,
     dmg: 7,
@@ -6977,7 +7008,10 @@ export const CARDS: CardDef[] = [
     shields: 3,
     keywords: {},
     tribe: "Stars",
-    // Stars (Aura): the constellation it leads fights faster and harder.
+    // Stars (Aura): the constellation it leads fights faster and harder — DAWN's
+    // back half, the Assassins, Mages and Rangers. Equestrian leads the front
+    // half (Tanks, Warriors, Supports) as Suns; the comment there explains why
+    // the element is split down class lines.
     // Life Cycle: each incoming hit is absorbed by a Light Orb that then bursts
     // at the attacker (blue: 3 DMG + BLIND 2 · green: 2 DMG + heal weakest ally 7
     // · red: POISON 2). An opponent's death recharges one orb.
@@ -7601,6 +7635,7 @@ export const CARDS: CardDef[] = [
     rarity: "legendary",
     element: "DAWN",
     cardClass: "Tank",
+    tribe: "Suns",
     attackType: "Melee",
     cost: 7,
     dmg: 6,
@@ -7960,6 +7995,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Support",
+    tribe: "Suns",
     attackType: "Ranged",
     cost: 4,
     dmg: 8,
@@ -7991,6 +8027,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Assassin",
+    tribe: "Stars",
     attackType: "Melee",
     cost: 4,
     dmg: 7,
@@ -8027,6 +8064,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Mage",
+    tribe: "Stars",
     attackType: "Ranged",
     cost: 5,
     dmg: 3,
@@ -8440,7 +8478,9 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: { FLYING: true },
-    tribe: "Dragon",
+    // Both, and it answers to either aura: a Dragon by shape, a Star by what it
+    // is. Tribes are free-text and may be arrays, so nothing had to give.
+    tribe: ["Dragon", "Stars"],
     // Immediate Impact (On Summon): 2 DMG to all opponents on arrival.
     onSummon: { handler: "barrage", params: { dmg: 2, targets: 99 } },
     // Blinding Star (Aura): every enemy basic attack rolls a 10% miss.
@@ -8465,6 +8505,7 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Support",
+    tribe: "Suns",
     attackType: "Ranged",
     cost: 5,
     dmg: 3,
@@ -8908,6 +8949,15 @@ export const CARDS: CardDef[] = [
     summonSelfBuff: { dmg: 0, hp: 20 },
     // Solar Sovereign (Aura): allies are immune to stat reduction (WEAKEN).
     // Suns (Aura): the host it rides at the head of hits harder and holds longer.
+    //
+    // DAWN'S TWO TRIBES SPLIT THE ELEMENT BY CLASS, and this is the front half:
+    // Suns are the Tanks, Warriors and Supports — the line that holds — while
+    // Stars are the Assassins, Mages and Rangers behind it (see Aurora). Every
+    // DAWN card belongs to exactly one, so both auras have a side to lead
+    // instead of the single member each had when the tribes were first written.
+    // A split down class lines rather than a hand-picked roster: it needs no
+    // upkeep as cards are added, and a player can read which tribe a card is in
+    // off the card itself.
     passiveNames: { statDropImmuneAura: "Solar Sovereign", aura: "Suns" },
     statDropImmuneAura: true,
     aura: { scope: "tribe", match: "Suns", dmg: 1, shields: 1, maxHp: 1 },

@@ -426,3 +426,57 @@ describe("borrowed auras (elementAuras) reach every hook", () => {
     }
   });
 });
+
+describe("DAWN's two tribes cover the whole element", () => {
+  // Suns and Stars split DAWN by CLASS — Tanks/Warriors/Supports hold the line,
+  // Assassins/Mages/Rangers shoot over it. Written as a rule rather than a
+  // roster so it needs no upkeep, and asserted because the failure mode is
+  // silent: a new DAWN card with no tribe simply never receives either aura,
+  // and nothing in the game says so.
+  const SUNS_CLASSES = ["Tank", "Warrior", "Support"];
+  const STARS_CLASSES = ["Assassin", "Mage", "Ranger"];
+  const dawn = CARDS.filter((c) => c.element === "DAWN");
+  const tribesOf = (c: { tribe?: string | string[] }) =>
+    c.tribe == null ? [] : Array.isArray(c.tribe) ? c.tribe : [c.tribe];
+
+  it("every DAWN card is a Sun or a Star, and which one follows from its class", () => {
+    expect(dawn.length).toBeGreaterThan(30);
+    for (const c of dawn) {
+      const tribes = tribesOf(c);
+      const want = SUNS_CLASSES.includes(c.cardClass) ? "Suns"
+        : STARS_CLASSES.includes(c.cardClass) ? "Stars"
+        : null;
+      expect(want, `${c.id} has class ${c.cardClass}, which belongs to neither half`).toBeTruthy();
+      expect(tribes, `${c.id} (${c.cardClass})`).toContain(want);
+      // Exactly one of the two — a card cannot be both halves of the element.
+      expect(tribes.filter((t) => t === "Suns" || t === "Stars")).toHaveLength(1);
+    }
+  });
+
+  it("both aura holders actually have a side to lead", () => {
+    // The reason this exists: when the tribes were introduced each had exactly
+    // ONE member — its own aura holder — so both auras buffed nobody but
+    // themselves and read on the card as an ability the card did not have.
+    const count = (t: string) => CARDS.filter((c) => tribesOf(c).includes(t)).length;
+    expect(count("Suns")).toBeGreaterThan(10);
+    expect(count("Stars")).toBeGreaterThan(10);
+    const equestrian = getDef("dawn_equestrian");
+    const aurora = getDef("dawn_aurora");
+    expect(equestrian.aura?.match).toBe("Suns");
+    expect(aurora.aura?.match).toBe("Stars");
+    // And each holder is a member of the tribe it leads (auras include the
+    // holder when it matches), so neither buffs a side it does not stand in.
+    expect(tribesOf(equestrian)).toContain("Suns");
+    expect(tribesOf(aurora)).toContain("Stars");
+  });
+
+  it("Supernova keeps Dragon, so Drakonbane still hunts it", () => {
+    // Tribes may be arrays, so the class split cost nothing here: Supernova is
+    // a Dragon by shape and a Star by what it is. Drakonbane's Dragon's Bane
+    // reads the tribe list, and this is the only DAWN Dragon.
+    const nova = getDef("dawn_supernova");
+    expect(tribesOf(nova)).toContain("Dragon");
+    expect(tribesOf(nova)).toContain("Stars");
+    expect(getDef("dawn_drakonbane").vsTarget?.tribe).toBe("Dragon");
+  });
+});
