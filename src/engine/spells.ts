@@ -991,9 +991,16 @@ export function spellPickKind(
 }
 
 
-export function spellbookFor(deck: string[]): SpellSlot[] {
+export function spellbookFor(deck: string[], cap: number = MAX_SPELLBOOK): SpellSlot[] {
   const elements = new Set<Element>(deck.map((id) => getDef(id).element));
-  // Capped at MAX_SPELLBOOK like a hand-picked book. Uncapped, a two-element
+  // Capped like a hand-picked book — and by the SAME cap, which is the bug this
+  // parameter fixes. The caller computes spellCapForBoard() and passed it to the
+  // hand-picked branch only, so a DERIVED book was pinned to 5 even on the large
+  // board where 8 are legal: every story, arena and AI match that did not carry
+  // a custom book fought three spells short of its allowance, and the two
+  // branches of one ternary disagreed about the rules.
+  //
+  // Uncapped, a two-element
   // deck derived up to THIRTEEN spells and the battle tray was unusable —
   // "at most this many spells" has to hold however the book was built.
   //
@@ -1005,7 +1012,7 @@ export function spellbookFor(deck: string[]): SpellSlot[] {
   const pool = SPELLS.filter((s) => elements.has(s.element));
   const seen = new Set<string>();
   const spread = pool.filter((s) => (seen.has(s.kind) ? false : (seen.add(s.kind), true)));
-  const book = [...spread, ...pool.filter((s) => !spread.includes(s))].slice(0, MAX_SPELLBOOK);
+  const book = [...spread, ...pool.filter((s) => !spread.includes(s))].slice(0, cap);
   return book.map((s) => ({ defId: s.id, used: false }));
 }
 

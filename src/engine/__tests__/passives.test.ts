@@ -4130,3 +4130,30 @@ describe("Skelider rides in heavier than it walks away", () => {
     expect(printed + def.summonSelfBuff!.hp, "what it actually fields").toBeGreaterThan(printed);
   });
 });
+
+describe("Bird Bomb detonates rather than holding a grudge", () => {
+  const blast = () => getDef("dusk_crow").onDeath!.inRangeDmg!;
+
+  it("catches every opponent in reach, not just the killer", () => {
+    const s = prepState();
+    const bomb = place(s, "dusk_crow", "P1", 2, 1, { curHp: 1, curShields: 0 });
+    // The killer, plus a BYSTANDER that never touched it.
+    const killer = place(s, "gale_hawk", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const bystander = place(s, "gale_hawk", "P2", 1, 2, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, killer.instanceId, bomb.instanceId);
+    expect(s.cards[bomb.instanceId], "it died").toBeUndefined();
+    expect(40 - s.cards[killer.instanceId].curHp, "killer eats the blast").toBeGreaterThanOrEqual(blast());
+    expect(40 - s.cards[bystander.instanceId].curHp, "and so does the bystander").toBe(blast());
+  });
+
+  it("spares anything standing outside its reach", () => {
+    // The reach rule is unchanged — king-move for a Melee body, measured from
+    // the slot it fell on. What changed is WHO inside that reach is hit.
+    const s = prepState();
+    const bomb = place(s, "dusk_crow", "P1", 3, 0, { curHp: 1, curShields: 0 });
+    const killer = place(s, "gale_hawk", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const far = place(s, "gale_hawk", "P2", 0, 3, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, killer.instanceId, bomb.instanceId);
+    expect(s.cards[far.instanceId].curHp, "across the board, untouched").toBe(40);
+  });
+});

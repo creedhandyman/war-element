@@ -1335,6 +1335,24 @@ export function resolveHit(
         for (const e of back) applyStatus(draft, e, fr.kind, fr.duration, fr.power, tDef.element);
         if (back.length) draft.log.push(`${tDef.name} goes out with a bang — ${fr.kind} on ${back.length} far-row foe(s).`);
       }
+      // Bird Bomb: a detonation, not a grudge. Everything the corpse could still
+      // have reached takes the blast, whoever pulled the trigger — so a sniper
+      // is safe only by standing outside the reach, not by being the killer.
+      // Same reach rule as inRangeOnly below (king-move for Melee, RANGED_REACH
+      // otherwise), measured from the slot it fell on.
+      if (tDef.onDeath.inRangeDmg && deathPos) {
+        const reach = tDef.attackType === "Melee" ? 1 : RANGED_REACH;
+        const caught = boardCards(draft, enemyOf(deadOwner)).filter(
+          (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, deathPos) <= reach,
+        );
+        for (const e of caught)
+          directDamage(draft, target, e, tDef.onDeath.inRangeDmg, Boolean(tDef.onDeath.pen));
+        draft.log.push(
+          caught.length
+            ? `${tDef.name} goes off — ${tDef.onDeath.inRangeDmg} DMG to ${caught.length} in reach.`
+            : `${tDef.name} goes off with nothing in reach.`,
+        );
+      }
       if (tDef.onDeath.rowAhead && deathPos) {
         // Burnout: blast the enemy row directly ahead of where it fell.
         onDeathRowAhead(draft, target, deadOwner, deathPos, tDef.onDeath.dmg, Boolean(tDef.onDeath.pen));

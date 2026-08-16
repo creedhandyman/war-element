@@ -961,6 +961,14 @@ export interface CardDef {
     /** WarPhant: the rider survives the mount and keeps fighting. */
     spawnToken?: { token: string; count: number };
     frightenInRange?: number; // rounds of FRIGHTEN on reachable enemies
+    /** Bird Bomb: the body detonates — this much to EVERY opponent inside the
+     *  dying card's own attack reach, measured from the slot it fell on.
+     *
+     *  Distinct from `dmg` + `inRangeOnly`, which is a grudge against whoever
+     *  landed the kill and hits exactly one card; and from `boardBlast`, whose
+     *  radius is a fixed king-distance rather than the card's reach. A bomb does
+     *  not care who set it off. */
+    inRangeDmg?: number;
     /** Contagion (Zombination's zombies): damage to enemies ADJACENT TO THE
      *  SLOT IT FELL ON. Distinct from `dmg`, which retaliates against whoever
      *  landed the kill — a zombie bursting is not a grudge, so it hits whatever

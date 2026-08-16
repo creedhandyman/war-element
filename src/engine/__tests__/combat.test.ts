@@ -268,7 +268,11 @@ describe("on-death retaliation only reaches killers the corpse could have hit", 
   });
 });
 
-describe("Bird Bomb only catches a killer standing in the blast", () => {
+describe("Bird Bomb catches whatever is standing in the blast", () => {
+  // The REACH rule below is unchanged — Crow is Melee, so the blast is its
+  // king-move, measured from the slot it fell on. What changed is who inside
+  // that reach is hit: it used to be the killer alone, and is now everything.
+  // Both cases here still read correctly because both use the killer.
   it("an adjacent killer eats it", () => {
     const s = prepState();
     const killer = place(s, "dawn_sparkle", "P1", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });

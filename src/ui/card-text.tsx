@@ -748,6 +748,8 @@ export function describePassives(def: CardDef): string[] {
   if (def.onDeath) {
     const od = def.onDeath;
     const parts: string[] = [];
+    if (od.inRangeDmg)
+      parts.push(`deals ${od.inRangeDmg} damage to every opponent within its reach`);
     // Only claim damage when there IS damage — WarPhant carries dmg 0 purely to
     // hang a spawn off, and read as "deals 0 damage back to its killer".
     if (od.dmg > 0)

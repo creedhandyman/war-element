@@ -1051,8 +1051,16 @@ export const CARDS: CardDef[] = [
     // Bird Bomb: explodes on whoever kills it — but only a killer close enough
     // to be caught in it. Crow is FLYING, so in practice its killers are ranged;
     // the gate is what makes standing off and shooting it the safe play.
+    // Bird Bomb: it detonates. 5 DMG to EVERYTHING inside its own reach when it
+    // falls, not 5 to whoever killed it — a bomb does not care who set it off.
+    //
+    // The old shape was `dmg: 5, inRangeOnly: true`: a grudge against the killer
+    // alone, gated on that killer being close enough. So the card punished
+    // exactly one attacker and only when the attacker was melee, which made it
+    // a deterrent against the shape of card least able to avoid it and nothing
+    // at all against a crowd standing beside it.
     passiveNames: { onDeath: "Bird Bomb" },
-    onDeath: { dmg: 5, inRangeOnly: true },
+    onDeath: { dmg: 0, inRangeDmg: 5 },
   },
   {
     id: "dusk_skelider",

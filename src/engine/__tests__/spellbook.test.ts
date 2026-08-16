@@ -182,3 +182,17 @@ describe("every spell is castable by hand", () => {
       expect(spellPickKind(s), `${s.id}`).toBe("slot");
   });
 });
+
+describe("a derived spellbook obeys the same cap as a hand-picked one", () => {
+  it("fills to the LARGE cap on a 5x5 board", () => {
+    // The bug: emptyPlayer computed spellCapForBoard() and handed it to the
+    // hand-picked branch only, while the derived branch hard-capped at 5. Every
+    // story, arena and AI match without a custom book therefore fought three
+    // spells short of its allowance on the large board, and the two halves of
+    // one ternary disagreed about the rules.
+    const large = createInitialState(1, CORES[0].cards, CORES[1].cards, ["P1"], undefined, undefined, 5);
+    expect(large.players.P1.spellbook.length).toBe(MAX_SPELLBOOK_LARGE);
+    const small = createInitialState(1, CORES[0].cards, CORES[1].cards, ["P1"], undefined, undefined, 4);
+    expect(small.players.P1.spellbook.length).toBe(MAX_SPELLBOOK);
+  });
+});
