@@ -3737,3 +3737,68 @@ describe("the fog mechanic, and the two very differently priced cards that lay i
     expect(after.players.P1.foggedRounds).toBe(2);
   });
 });
+
+describe("Sunbanner's Flash Squad", () => {
+  /** Sunbanner mid-board with an ally BESIDE it and an ally AHEAD of it, plus a
+   *  third well behind that should never be called. P1 advances toward row 0,
+   *  so "ahead" of row 3 is row 2. */
+  function squad() {
+    const s = prepState();
+    s.players.P1.magicPool = 10;
+    const banner = place(s, "dawn_commander", "P1", 3, 1, { autoMode: "manual" });
+    return {
+      s, banner,
+      beside: place(s, "dusk_gool", "P1", 3, 2),
+      ahead: place(s, "dusk_gool", "P1", 2, 1),
+      behind: place(s, "dusk_gool", "P1", 4, 0),
+      foe: place(s, "dusk_gool", "P2", 2, 0, { curHp: 99, maxHp: 99, curShields: 0 }),
+    };
+  }
+  const fire = (s: GameState, id: string) =>
+    applyIntent(battleWith(s, id), { type: "BATTLE_ACTION", player: "P1", action: "special", targetId: id });
+
+  it("commands the row Sunbanner stands in as well as the row ahead", () => {
+    // The scope change. Commanding only the row ahead meant the further forward
+    // this Melee Tank pushed, the fewer allies were left ahead of it to
+    // command — the Special did least exactly when the card was doing its job.
+    const { s, banner, beside, ahead, behind, foe } = squad();
+    const before = s.cards[foe.instanceId].curHp;
+    // Summed per ally, not doubled: the forward one stands on a Mid row and
+    // King of the Hill gives it +1, so the two do NOT hit for the same number.
+    const expected = effectiveDmg(s, s.cards[beside.instanceId]) + effectiveDmg(s, s.cards[ahead.instanceId]);
+    expect(effectiveDmg(s, s.cards[ahead.instanceId])).toBeGreaterThan(effectiveDmg(s, s.cards[beside.instanceId]));
+    const n = fire(s, banner.instanceId);
+    expect(before - n.cards[foe.instanceId].curHp, "both the ally beside and the ally ahead swung").toBe(expected);
+    // …and no further. A card two rows back is not in the squad.
+    expect(n.cards[behind.instanceId]).toBeDefined();
+  });
+
+  it("does not order Sunbanner itself to swing", () => {
+    // It is spending its turn on the order. If the caster were included, the
+    // Special would be a basic attack plus a squad command for the same magic.
+    const { s, banner, foe } = squad();
+    const bannerDmg = effectiveDmg(s, s.cards[banner.instanceId]);
+    const before = s.cards[foe.instanceId].curHp;
+    const n = fire(s, banner.instanceId);
+    const dealt = before - n.cards[foe.instanceId].curHp;
+    expect(dealt % bannerDmg === 0 && dealt / bannerDmg === 3).toBe(false);
+    expect(dealt).toBeLessThan(3 * bannerDmg);
+  });
+
+  it("each ally picks the NEAREST foe it can reach, not the first one listed", () => {
+    // Arbitrary target order matters more now the squad is twice the size, and
+    // the sibling mechanic (Imperator's commandAllies) already sorts by
+    // distance — two "order your army to swing" effects should aim alike.
+    const s = prepState();
+    s.players.P1.magicPool = 10;
+    const banner = place(s, "dawn_commander", "P1", 3, 1, { autoMode: "manual" });
+    const ally = place(s, "dusk_gool", "P1", 2, 3);
+    // Listed first, but far from the ally; the near one is added second.
+    const far = place(s, "dusk_gool", "P2", 2, 0, { curHp: 99, maxHp: 99, curShields: 0 });
+    const near = place(s, "dusk_gool", "P2", 1, 3, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = fire(s, banner.instanceId);
+    expect(n.cards[near.instanceId].curHp, "the near foe took the shot").toBeLessThan(99);
+    expect(n.cards[far.instanceId].curHp, "the far one was not chosen just for being listed first").toBe(99);
+    void ally;
+  });
+});

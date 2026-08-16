@@ -3544,14 +3544,32 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
    *  basic attack. */
   flashSquad(draft, attacker, _targets, _params) {
     if (!attacker.pos) return;
-    const row = rowAhead(attacker.owner, attacker.pos.row);
-    const squad = boardCards(draft, attacker.owner).filter(
-      (a) => a.instanceId !== attacker.instanceId && a.curHp > 0 && a.pos?.row === row,
-    );
+    // The squad is the line Sunbanner is standing IN plus the line directly
+    // ahead of it — the rank beside it and the rank it is pushing forward. The
+    // caster is excluded: it is spending its turn on the order, not swinging.
+    //
+    // Sunbanner is a Melee Tank that wants to be at the front, and commanding
+    // only the row ahead meant the further forward it got the fewer allies were
+    // left ahead of it to command — the Special did least exactly when the card
+    // was doing its job.
+    const ahead = rowAhead(attacker.owner, attacker.pos.row);
+    const rows = new Set([attacker.pos.row, ahead]);
+    // Snapshot by ID, then re-look-up: a kill mid-command can remove bodies from
+    // draft.cards or spawn new ones, and a held object reference would go stale.
+    const squad = boardCards(draft, attacker.owner)
+      .filter((a) => a.instanceId !== attacker.instanceId && a.curHp > 0 && a.pos != null && rows.has(a.pos.row))
+      .map((a) => a.instanceId);
     let acted = 0;
-    for (const a of squad) {
-      if (a.curHp <= 0) continue;
-      const prey = boardCards(draft, enemyOf(attacker.owner)).find((e) => e.curHp > 0 && canTarget(draft, a, e));
+    for (const id of squad) {
+      const a = draft.cards[id];
+      if (!a || a.curHp <= 0 || !a.pos) continue;
+      // NEAREST reachable foe, not the first one the board happens to list.
+      // Arbitrary picks matter more now that the squad is twice the size, and
+      // this is what the sibling mechanic (Imperator's commandAllies) already
+      // does — two "order your army to swing" effects should aim alike.
+      const prey = boardCards(draft, enemyOf(attacker.owner))
+        .filter((e) => e.curHp > 0 && e.pos && canTarget(draft, a, e))
+        .sort((x, y) => manhattan(a.pos!, x.pos!) - manhattan(a.pos!, y.pos!))[0];
       if (prey) { basicAttack(draft, a.instanceId, prey.instanceId); acted++; }
     }
     draft.log.push(`${label(draft, attacker)} calls the Flash Squad — ${acted} ally(ies) open fire.`);

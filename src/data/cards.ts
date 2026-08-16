@@ -7700,14 +7700,17 @@ export const CARDS: CardDef[] = [
     // Light Mitigation (Aura): allies are topped up +1 shield each round (the
     // doc's flat −1 DMG expressed as standing armour).
     aura: { scope: "all", shields: 1 },
-    // Flash Squad: order the allies in the row ahead to fire their basics.
+    // Flash Squad: order the allies beside and ahead of Sunbanner to fire their
+    // basics. Magic 3 rather than 2 — the squad is roughly twice the size now,
+    // and an extra free basic per body is the strongest thing a Special can
+    // hand out on a board where damage is the scarce resource.
     special: {
       name: "Flash Squad",
-      cost: 2,
+      cost: 3,
       handler: "flashSquad",
       params: {},
       targetSide: "self",
-      text: "Command allies in the row directly ahead to each use their basic attack.",
+      text: "Command allies in the same row and the row directly ahead to each use their basic attack.",
     },
   },
 
