@@ -3325,11 +3325,26 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
    *  equipped Basic Attack Weapon (its dmg × hits). */
   sprayWeapon(draft, attacker, _targets, _params) {
     if (!attacker.pos) return;
-    const row = rowAhead(attacker.owner, attacker.pos.row);
-    const foes = boardCards(draft, enemyOf(attacker.owner)).filter((e) => e.curHp > 0 && e.pos?.row === row);
+    // The NEAREST `targets` opponents anywhere on the board, not the row ahead.
+    //
+    // A row-scoped spray on a Ranged card was hostage to how the enemy happened
+    // to be arranged: against a column, or against anything not standing in the
+    // single row in front of it, General's whole Special hit nobody at all. The
+    // nearest-N shape always finds a target while still rewarding position —
+    // closing the distance is what decides who is caught.
+    const n = num(_params, "targets", 3);
+    const foes = boardCards(draft, enemyOf(attacker.owner))
+      .filter((e) => e.curHp > 0 && e.pos)
+      .sort((a, b) => manhattan(attacker.pos!, a.pos!) - manhattan(attacker.pos!, b.pos!))
+      .slice(0, n);
     const dmg = effectiveDmg(draft, attacker);
     const hits = effectiveBasicHits(attacker);
-    for (const e of foes) resolveHit(draft, attacker, e, { kind: "special", dmg, hits, pen: false, crit: false });
+    // Re-checked per target: the weapon fires several times and an earlier
+    // volley can kill a body or the attacker (REFLECT, thorns) mid-spray.
+    for (const e of foes) {
+      if (attacker.curHp <= 0 || !draft.cards[e.instanceId] || e.curHp <= 0) continue;
+      resolveHit(draft, attacker, e, { kind: "special", dmg, hits, pen: false, crit: false });
+    }
     draft.log.push(`${label(draft, attacker)} sprays thunder across ${foes.length} foe(s) (${dmg}×${hits}).`);
   },
   /** Flying Flame Strike (FireFly): a spray of 1-DMG hits across up to N distinct

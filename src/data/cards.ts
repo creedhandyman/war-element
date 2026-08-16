@@ -6671,15 +6671,22 @@ export const CARDS: CardDef[] = [
       { name: "ARC88", dmg: 2, hits: 4, spCost: 2 },
       { name: "ThunderRPG", dmg: 10, hits: 1, spCost: 3 },
     ],
-    // Spraying Thunder: rake the row ahead with the current weapon.
+    // Spraying Thunder: rake the three CLOSEST opponents with the current weapon.
+    // Was the row directly ahead, which meant an enemy line arranged as a column
+    // — or simply standing anywhere but that one row — took nothing at all.
     special: {
       name: "Spraying Thunder",
       cost: 3,
       handler: "sprayWeapon",
-      params: {},
+      // `closest` is for the PREVIEW, not the handler — specialTargets mirrors it
+      // (rules.ts) to sort by distance and slice to `targets`, so the on-board
+      // highlight shows the three that will actually be hit. Without it the
+      // preview lights up every reachable foe and over-reports, which it did for
+      // the row-ahead version too.
+      params: { targets: 3, closest: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "Attack every opponent in the row directly ahead using the current Basic Attack Weapon.",
+      text: "Attack the 3 closest opponents using the current Basic Attack Weapon.",
     },
   },
 

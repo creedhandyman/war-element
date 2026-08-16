@@ -4157,3 +4157,41 @@ describe("Bird Bomb detonates rather than holding a grudge", () => {
     expect(s.cards[far.instanceId].curHp, "across the board, untouched").toBe(40);
   });
 });
+
+describe("General's Spraying Thunder hits the three closest", () => {
+  it("picks the nearest three anywhere on the board, not a row", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 10;
+    const gen = place(s, "bolt_general", "P1", 3, 0, { autoMode: "manual" });
+    // Four foes at increasing distance, none of them in the row directly ahead
+    // — the arrangement that used to make this Special hit nobody at all.
+    const foes = [
+      place(s, "dusk_gool", "P2", 3, 1, { curHp: 60, maxHp: 60, curShields: 0 }), // 1
+      place(s, "dusk_gool", "P2", 3, 2, { curHp: 60, maxHp: 60, curShields: 0 }), // 2
+      place(s, "dusk_gool", "P2", 3, 3, { curHp: 60, maxHp: 60, curShields: 0 }), // 3
+      place(s, "dusk_gool", "P2", 0, 3, { curHp: 60, maxHp: 60, curShields: 0 }), // farthest
+    ];
+    // targetSide is "enemy", so the intent still needs an enemy pick even though
+    // the handler computes its own three — the pick is the aim, not the list.
+    const n = applyIntent(battleWith(s, gen.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foes[0].instanceId,
+    });
+    const hurt = foes.map((f) => 60 - n.cards[f.instanceId].curHp);
+    expect(hurt.slice(0, 3).every((h) => h > 0), "the three nearest were struck").toBe(true);
+    expect(hurt[3], "the farthest was spared").toBe(0);
+  });
+
+  it("fires with the CURRENT weapon, not the printed line", () => {
+    // Power Grab cycles dmg x hits; the spray has always used whatever is
+    // equipped, and that must survive the retarget.
+    const s = prepState();
+    s.players.P1.magicPool = 10;
+    const gen = place(s, "bolt_general", "P1", 3, 0, { autoMode: "manual", weaponMode: 3 }); // ThunderRPG 10x1
+    const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    const n = applyIntent(battleWith(s, gen.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    const heavy = getDef("bolt_general").weaponModes![3];
+    expect(60 - n.cards[foe.instanceId].curHp).toBeGreaterThanOrEqual(heavy.dmg);
+  });
+});
