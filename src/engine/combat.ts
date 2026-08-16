@@ -17,7 +17,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget } from "./rules";
-import { DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, PYRO_BURN_STACK_CAP, hasElementAura } from "./auras";
+import { DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, PYRO_BURN_STACK_CAP, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
@@ -59,6 +59,15 @@ export function shadeDodgePct(draft: GameState, card: CardInstance): number {
   const pl = draft.players[card.owner];
   if (draft.round > (pl.shadeUntilRound ?? -1)) return 0;
   return Math.min(DUSK_SHADE_MAX_STACKS, pl.shadeStacks ?? 0) * DUSK_SHADE_PCT;
+}
+
+/** Slipstream (GALE): a card's dodge chance from its own speed. Single source
+ *  of truth so the roll and the card inspector cannot disagree, matching
+ *  `shadeDodgePct` above. Reads EFFECTIVE SP, so Zephyr's per-round ramp and
+ *  every haste effect feed it. */
+export function slipstreamDodgePct(draft: GameState, card: CardInstance): number {
+  if (!hasElementAura(getDef(card.defId), "GALE")) return 0;
+  return slipstreamPct(effectiveSp(draft, card));
 }
 
 /** FLYING — the innate keyword OR a granted temporary flight (FireFly's BlastOff). */
@@ -883,6 +892,19 @@ export function resolveHit(
         result.dodgedHits++;
         target.fxMiss = (target.fxMiss ?? 0) + 1;
         draft.log.push(`${label(draft, target)} melts into the shadows — ${aDef.name} finds nothing.`);
+        continue;
+      }
+    }
+    // Slipstream (GALE aura): too fast to be where the blow lands. Rolled after
+    // the shadows for the same reason those are rolled after EVASION — a card
+    // already dodging does not need a second check — and under the same
+    // alwaysHit/neverMiss rules as every dodge above it.
+    if (opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !neverMiss) {
+      const slip = slipstreamDodgePct(draft, target);
+      if (slip > 0 && pctChance(draft, slip)) {
+        result.dodgedHits++;
+        target.fxMiss = (target.fxMiss ?? 0) + 1;
+        draft.log.push(`${label(draft, target)} slips the wind — ${aDef.name}'s attack passes through.`);
         continue;
       }
     }

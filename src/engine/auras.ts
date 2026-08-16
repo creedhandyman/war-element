@@ -25,7 +25,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   DUSK: { name: "Midnight Shade", desc: "On death, deals a third of its DMG back to the killer, and the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%)." },
   AQUA: { name: "Flow Change", desc: "On summon, choose a boost for 3 rounds: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for half its DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 14)." },
-  GALE: { name: "Zephyr", desc: "End of round, +2 SP (caps at SP 21); the first time it passes SP 15, a one-time +1 DMG." },
+  GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21); the first time it passes SP 15, a one-time +1 DMG." },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +2 DMG to any opponent carrying a status." },
 };
 
@@ -47,6 +47,49 @@ export const EXOSTONE_SHIELDS: Record<string, number> = {
 export const EXOSTONE_DEFAULT = 2;
 
 export const GALE_SP_CAP = 21;
+
+/** ZEPHYR'S TWO NEW HALVES — the speed GALE pays for finally converts.
+ *
+ *  Measured, GALE sat bottom of the game at 32.5% with the lowest damage (53 a
+ *  match against a field of 85-95) and the fewest cards left standing (1.77,
+ *  next worst 2.45). The cause is structural rather than any one card: the stat
+ *  budget counts SP against HP and damage, and GALE spends 31.6% of its power
+ *  on SP — the most of any element, against BORE's 21.8% — for a stat that
+ *  bought nothing but turn order. It was paying full price for a dead stat,
+ *  which is why it is simultaneously the weakest attacker (5.4 dmg×hits) and
+ *  the flimsiest body in the game (0.33 shields, against BORE's 2.64).
+ *
+ *  So the answer is not to hand GALE stats it has not paid for — it has paid —
+ *  but to make what it bought worth something. Both halves key off SP, so they
+ *  scale with exactly the stat that was being wasted and nothing else changes.
+ *
+ *  Deliberately NOT another speed nudge: that axis was tried on DAWN (First
+ *  Light) and measured as not working. */
+
+/** TAILWIND: +1 DMG per this many SP. */
+export const GALE_TAILWIND_PER = 6;
+/** ...to here, so a multi-hit body cannot turn it into a blowout. */
+export const GALE_TAILWIND_CAP = 3;
+
+/** SLIPSTREAM: dodge starts once a card is faster than this. */
+export const GALE_SLIPSTREAM_BASE = 6;
+/** Each this-many SP above the base is worth `GALE_SLIPSTREAM_PCT`. */
+export const GALE_SLIPSTREAM_PER = 3;
+export const GALE_SLIPSTREAM_PCT = 5;
+/** And no further — a card that dodges most of what is thrown at it stops
+ *  being fragile-and-fast and starts being unkillable. */
+export const GALE_SLIPSTREAM_CAP = 20;
+
+/** Tailwind's bonus damage, per hit, for a card at `sp`. */
+export const tailwindDmg = (sp: number): number =>
+  Math.min(GALE_TAILWIND_CAP, Math.floor(Math.max(0, sp) / GALE_TAILWIND_PER));
+
+/** Slipstream's dodge chance, as a percentage, for a card at `sp`. */
+export const slipstreamPct = (sp: number): number =>
+  Math.min(
+    GALE_SLIPSTREAM_CAP,
+    Math.max(0, Math.floor((sp - GALE_SLIPSTREAM_BASE) / GALE_SLIPSTREAM_PER)) * GALE_SLIPSTREAM_PCT,
+  );
 
 /** Where First Light (DAWN) stops quickening. Well under GALE's 21: speed is
  *  GALE's identity, and this exists to lift the game's most expensive, second

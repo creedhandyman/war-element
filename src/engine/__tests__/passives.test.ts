@@ -2110,11 +2110,14 @@ describe("medium-tier passives (audit batch)", () => {
 
   it("WolfBane's Hastened Assault CRITs only when faster, healing per crit", () => {
     const s = prepState();
-    const wolf = place(s, "gale_wolfbane", "P1", 3, 0, { curHp: 10, maxHp: 17 }); // SP 4
-    const slow = place(s, "bore_hillbilly", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 }); // SP 2 < 4
+    const wolf = place(s, "gale_wolfbane", "P1", 3, 0, { curHp: 10, maxHp: 17 }); // SP 9
+    const slow = place(s, "bore_hillbilly", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 }); // SP 2 < 9
     s.rngState = seedForCoins(true); // crit coin succeeds
+    // 9 printed + 1 Tailwind (GALE aura, +1 DMG per 6 SP — floor(9/6) = 1),
+    // then doubled by the CRIT.
+    expect(effectiveDmg(s, s.cards[wolf.instanceId])).toBe(10);
     basicAttack(s, wolf.instanceId, slow.instanceId);
-    expect(s.cards[slow.instanceId].curHp).toBe(40 - 18); // 9 DMG doubled by CRIT
+    expect(s.cards[slow.instanceId].curHp).toBe(40 - 20);
     expect(s.cards[wolf.instanceId].curHp).toBe(13); // 10 + 3 heal per crit
   });
 });
@@ -2444,12 +2447,15 @@ describe("Autumnal's Fall's Emergence scales Leaf Storm", () => {
 describe("Klipso's Harsh Winds", () => {
   it("adds bonus DMG on the first strike vs an opponent, once", () => {
     const s = prepState();
-    const klipso = place(s, "gale_klipso", "P1", 3, 0); // 9 DMG + 4 first-strike
+    // 9 printed + 2 Tailwind (GALE aura, +1 DMG per 6 SP — Klipso is SP 13, so
+    // floor(13/6) = 2) = 11, plus the 4 first-strike bonus on the opener.
+    const klipso = place(s, "gale_klipso", "P1", 3, 0);
     const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 60 });
+    expect(effectiveDmg(s, s.cards[klipso.instanceId])).toBe(11);
     basicAttack(s, klipso.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curHp).toBe(47); // 60 − (9 + 4)
+    expect(s.cards[foe.instanceId].curHp).toBe(45); // 60 − (11 + 4)
     basicAttack(s, klipso.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curHp).toBe(38); // 47 − 9 (no bonus the 2nd time)
+    expect(s.cards[foe.instanceId].curHp).toBe(34); // 45 − 11 (no bonus the 2nd time)
   });
 });
 

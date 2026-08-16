@@ -2,6 +2,7 @@
 // incoming state once (structuredClone) and mutate only the clone.
 
 import { getDef, deckById } from "../data/cards";
+import { hasElementAura, tailwindDmg } from "./auras";
 import { coin, shuffle } from "./rng";
 import { BURN_HEAL_MULT } from "./matchups";
 import { spellCapForBoard, spellbookFor, spellbookFromIds } from "./spells";
@@ -541,6 +542,17 @@ function dmgBeforeIntimidation(state: GameState, card: CardInstance): number {
   if (def.highSpeedImpact) {
     const over = Math.max(0, effectiveSp(state, card) - 10);
     dmg += def.highSpeedImpact.cap === undefined ? over : Math.min(def.highSpeedImpact.cap, over);
+  }
+  // Tailwind (GALE aura): the speed it paid for, converted. Keyed off SP so it
+  // scales with exactly the stat GALE overspends on — see `auras.ts`.
+  //
+  // NOT on a card that already converts SP into damage. Tailwind exists to give
+  // the other thirty-seven GALE cards what Stormquill and Tempest were always
+  // getting from High Speed Impact; stacking the two would re-buff precisely
+  // the pair that never needed it — one of which has already been capped once
+  // for being too strong.
+  if (hasElementAura(def, "GALE") && !def.highSpeedImpact) {
+    dmg += tailwindDmg(effectiveSp(state, card));
   }
   // Apex Predator (Stormfang): +1 DMG per `per` SP above `above`.
   if (def.speedDmgTiered)

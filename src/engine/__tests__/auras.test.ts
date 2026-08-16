@@ -10,11 +10,12 @@ import { CARDS, getDef } from "../../data/cards";
 import {
   DAWN_SP_CAP, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
   EXOSTONE_SHIELDS, GALE_SP_CAP, LEAF_SHIELD_CAP, PYRO_BURN_STACK_CAP, hasElementAura,
+  slipstreamPct, tailwindDmg,
 } from "../auras";
-import { applyStatus, basicAttack, defeatCard, shadeDodgePct } from "../combat";
+import { applyStatus, basicAttack, defeatCard, shadeDodgePct, slipstreamDodgePct } from "../combat";
 import { advance, applyIntent, openFlowRepick } from "../phases";
 import { basicIsInert } from "../rules";
-import { boardCards } from "../state";
+import { boardCards, effectiveDmg } from "../state";
 import type { Element } from "../types";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 
@@ -286,6 +287,57 @@ describe("DAWN — Awakening", () => {
     expect(after.cards[dawn.instanceId].statuses.length, "peeled, not wiped").toBe(before - 1);
     expect(after.cards[dawn.instanceId].spBonus).toBeGreaterThan(0);
     expect(def.sp + after.cards[dawn.instanceId].spBonus).toBeLessThanOrEqual(DAWN_SP_CAP);
+  });
+});
+
+describe("GALE — Zephyr's Tailwind and Slipstream", () => {
+  it("converts SP into damage, on a curve with a ceiling", () => {
+    expect([0, 5, 6, 11, 12, 17, 18, 30].map(tailwindDmg)).toEqual([0, 0, 1, 1, 2, 2, 3, 3]);
+  });
+
+  it("converts SP into dodge, on a curve with a ceiling", () => {
+    expect([0, 6, 8, 9, 12, 15, 18, 40].map(slipstreamPct)).toEqual([0, 0, 0, 5, 10, 15, 20, 20]);
+  });
+
+  it("a GALE card's printed damage is raised by its own speed", () => {
+    const s = prepState();
+    // Klipso is SP 13, so floor(13/6) = +2 on top of its printed 9.
+    const k = place(s, "gale_klipso", "P1", 3, 0);
+    expect(effectiveDmg(s, s.cards[k.instanceId])).toBe(getDef("gale_klipso").dmg + 2);
+  });
+
+  it("does NOT stack on the two cards that already convert SP to damage", () => {
+    // Stormquill and Tempest have High Speed Impact. Tailwind exists to give
+    // the other GALE cards what those two always had; stacking would re-buff
+    // the pair that never needed it — one of which is already capped for
+    // being too strong.
+    const s = prepState();
+    for (const id of ["gale_hawk", "gale_tempest"]) {
+      const def = getDef(id);
+      expect(def.highSpeedImpact, `${id} has HSI`).toBeTruthy();
+      const c = place(s, id, "P1", 3, id === "gale_hawk" ? 0 : 1);
+      // Below SP 10 HSI contributes nothing, so effective === printed proves
+      // Tailwind stayed out of it.
+      const hsi = Math.max(0, def.sp - 10);
+      expect(effectiveDmg(s, s.cards[c.instanceId]), id).toBe(def.dmg + Math.min(def.highSpeedImpact!.cap ?? hsi, hsi));
+    }
+  });
+
+  it("gives non-GALE cards neither half", () => {
+    const s = prepState();
+    for (const el of ["LEAF", "BORE", "DUSK"] as Element[]) {
+      const def = cheapest(el);
+      const c = place(s, def.id, "P1", 3, 0);
+      expect(effectiveDmg(s, s.cards[c.instanceId]), `${def.id} dmg`).toBe(def.dmg);
+      expect(slipstreamDodgePct(s, s.cards[c.instanceId]), `${def.id} dodge`).toBe(0);
+      s.cards[c.instanceId].pos = null; // clear the slot for the next one
+    }
+  });
+
+  it("a fast GALE card carries a real dodge chance", () => {
+    const s = prepState();
+    const k = place(s, "gale_klipso", "P1", 3, 0); // SP 13 -> floor((13-6)/3)=2 -> 10%
+    expect(slipstreamDodgePct(s, s.cards[k.instanceId])).toBe(10);
   });
 });
 

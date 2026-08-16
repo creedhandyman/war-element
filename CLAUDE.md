@@ -184,6 +184,16 @@ Solo cores, **both boards**, round-robin with **both seat orders**, 50 seeds per
 ordered matchup — 5,600 matches, n=1,400 per element (±2.6 at 95%):
 
 ```
+bolt 60.7 · bore 56.9 · aqua 52.1 · pyro 50.3
+leaf 49.9 · gale 48.8 · dusk 44.1 · dawn 37.3     spread 23.4
+```
+
+**GALE was fixed by the Zephyr rework** — 32.5 -> 48.8, damage 53 -> 78, cards
+alive 1.77 -> 2.77, and the spread came in from 30.4 to 23.4. See below for
+what and why. Every other element gave up 2-3 points to it, which is simply
+where those 16 points came from. The pre-rework field was:
+
+```
 bolt 62.9 · bore 59.1 · aqua 54.6 · pyro 53.4
 leaf 52.8 · dusk 46.1 · dawn 38.6 · gale 32.5     spread 30.4
 ```
@@ -235,23 +245,42 @@ printing 3+ shields out of half its own aura. Worth remembering as the general
 lesson — the element's problem was an aura that never fired, and four rounds
 of stat tuning never found it.
 
-**GALE (32.5) and DAWN (38.6) are the floor**, ~30 points under BOLT.
+**DAWN (37.3) is now the floor**, alone, ~23 points under BOLT.
 
-**Their problem is OUTPUT, not speed and not survivability.** Both deal ~55
-damage a match where the whole field deals 85-95 — and per ROUND, where match
-length cancels out, GALE 4.6 and DAWN 5.2 against BOLT 7.5, AQUA 7.1, BORE 7.0.
-They are not losing a race they are nearly winning; they are not producing.
+**GALE — SOLVED, and the reasoning generalises.** It sat bottom at 32.5 with
+the lowest damage (53 against a field of 85-95) and the fewest cards standing
+(1.77). The cause was structural rather than any one card: the stat budget
+counts SP against HP and damage, and GALE spent **31.6% of its power on SP**,
+the most of any element (BORE 21.8%), for a stat that bought nothing but turn
+order. It was paying full price for a dead stat — which is exactly why it was
+simultaneously the weakest attacker (5.4 dmg×hits) and the flimsiest body
+(0.33 shields, against BORE's 2.64).
 
-That retires the standing hypothesis. DAWN was read as "buys bodies that hold
-ground they cannot advance from", and First Light (+1 SP a round) was added to
-convert that surviving board into tempo. The board is not there to convert:
-DAWN ends matches with 2.45 cards alive, second LOWEST, on the least gold
-(4.5) and the shortest matches (10.8 rounds). It is losing quickly, not
-slowly. GALE is the same shape and worse — 1.77 alive, the lowest in the game
-by a wide margin, and the fewest captures (2.56).
+The fix was not to hand GALE stats it had not paid for, but to make what it
+bought worth something. Zephyr gained two halves, both keyed to SP so they
+scale with precisely the over-spent stat: **Tailwind** (+1 DMG per 6 SP, cap
++3) and **Slipstream** (dodge 5% per 3 SP above 6, cap 20%). Result: 48.8,
+mid-field, still the fragile lower-damage element it is meant to be (78 dmg
+and 2.77 alive against the leaders' 92 and 4.27).
 
-So the next attempt should go at damage and staying power, and should NOT be
-another speed nudge — that axis has now been tried and measured.
+Tailwind deliberately SKIPS Stormquill and Tempest — they already convert SP
+to damage through High Speed Impact, and stacking would re-buff the only two
+cards that never needed it.
+
+**The generalisable lesson**: check what an element is SPENDING its budget on
+before touching its cards. Both fixes that have worked — LEAF's Photosynthesis
+and GALE's Zephyr — were auras that were not paying, not stat lines that were
+too low. Auras sit outside the `5*cost+10` budget, so they are the only lever
+that can add power without breaking `state.test.ts`.
+
+**DAWN is the same diagnosis and still open.** It deals 56 damage, ends with
+2.38 cards alive on the least gold (4.5) and the shortest matches (10.8
+rounds) — losing quickly, not slowly. First Light (+1 SP a round) was added to
+convert a surviving board into tempo and the board is not there to convert.
+Do NOT try another speed nudge; that axis is tried and measured. Note DAWN's
+budget profile is the opposite of GALE's — it is the most EXPENSIVE element
+(avg cost 4.21) with ordinary SP (7.1) and good shields (1.90), so the answer
+will not be the same shape.
 
 Two other things the diagnostics turned up, neither yet acted on:
 
@@ -303,9 +332,9 @@ Rollo / Zombination / Doom changes and everything since.
 
 ## Open threads
 
-- GALE (32.5) and DAWN (38.6) are ~30 points below BOLT; spread 30.4. Their
-  measured problem is DAMAGE OUTPUT, not speed — see "Where balance stood".
-  LEAF is no longer the problem.
+- DAWN (37.3) is the last outlier, ~23 below BOLT; spread 23.4. Its measured
+  problem is OUTPUT, not speed — see "Where balance stood". GALE and LEAF are
+  both solved, each by an aura that was not paying.
 - `ELEMENT_MATCHUP` has no UI surface.
 - `deckById`'s silent fallback (see Measuring balance).
 - Spell curve expansion — the big queued feature. Today's `spells.ts` has the
