@@ -1,9 +1,28 @@
 # Card art drop folder
 
-Drop one image per card here, named `<card id>.png` — it appears
+Drop one image per card here, named `<card id>.webp` — it appears
 automatically on board tokens, hand cards, and the mulligan screen.
 No file = the flat colored token (nothing breaks). Add art one card at a
 time; unnamed cards keep the fallback.
+
+**`.webp`, not `.png`.** The loader builds `/cards/<id>.webp` with the
+extension hard-coded, and `engine/__tests__/art.test.ts` only globs `*.webp`
+— so a `.png` dropped here is invisible to both. It does not 404 loudly, it
+just silently keeps the fallback token, which is exactly the failure that
+test was written to catch. This file used to say `.png` and all 344 arts on
+disk are `.webp`; the instruction was the thing that was wrong.
+
+Convert after exporting (Pillow, one line):
+
+```python
+from PIL import Image
+im = Image.open("dawn_sphere.png").convert("RGB")
+w = round(im.width * 1000 / im.height)          # every art here is 1000px tall
+im.resize((w, 1000), Image.LANCZOS).save("dawn_sphere.webp", "WEBP", quality=86, method=6)
+```
+
+Then delete the `.png`. `public/` ships verbatim, so a 3 MB source left
+behind is 3 MB served to every visitor for a file nothing reads.
 
 ## How to export from Canva
 
@@ -15,7 +34,8 @@ time; unnamed cards keep the fallback.
    delete the text/badge layers before exporting, or crop to just the art.)
 3. Portrait crop, ~300×360 px or larger. The image is cover-cropped with
    the **top-center kept most visible** — put the creature's face there.
-4. Save as `<card id>.png` into this folder (`public/cards/`). Refresh the
+4. Save as `<card id>.png` into this folder (`public/cards/`), convert it to
+   `<card id>.webp` with the snippet above, and delete the `.png`. Refresh the
    game — done.
 
 ## Filenames — the 38 alpha cards (id → card name)

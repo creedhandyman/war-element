@@ -2,5 +2,11 @@ node_modules/
 dist/
 *.local
 
-# Card art binaries (~3MB each) are tracked via Git LFS — see .gitattributes.
+# Card/spell art: committed as compressed WebP blobs, NOT LFS. This line used
+# to say the opposite — see .gitattributes for the Jul 2026 migration OUT of
+# LFS, after 2.9MB PNGs blew GitHub's bandwidth cap on every redeploy and
+# blanked all art in production. Raw drops are ignored so that cannot recur;
+# convert to .webp (public/cards/README.md) and commit that.
+public/cards/*.png
+public/spells/*.png
 .vercel
