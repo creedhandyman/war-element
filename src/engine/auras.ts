@@ -167,6 +167,22 @@ export const BOLT_VS_STATUS_DMG = 1;
  *  multi-hit attacker loses a fraction of its volley rather than all of it. */
 export const BLINDING_STAR_MISS_PCT = 10;
 
+/** How often an attack is lost in a standing fog, when the source does not say
+ *  otherwise. A coin, which is what the mechanic has always been — Aftermath's
+ *  Smog still pays a cost-4 Special off a cost-6 body for exactly that. */
+export const FOG_MISS_PCT = 50;
+
+/** Misty's Fog Settlement, which is the same mechanic bought at a very
+ *  different price: a cost-1 body that lays it FREE the moment it lands, with
+ *  no target, no roll to land it, and nothing the opponent can cleanse.
+ *
+ *  Halving every attack an opponent makes for a round is not a 1-drop's worth
+ *  of effect, and at 50% it was strictly better than most cards' entire
+ *  Specials while costing a single gold. Quartering is still the widest
+ *  accuracy debuff in the game per gold spent — Blinding Star, on a cost-9
+ *  mythic, is 10 — it is just no longer a coin flip on the opponent's turn. */
+export const MISTY_FOG_MISS_PCT = 25;
+
 /** Scorch stacks its BURN to here and no further. Uncapped, a multi-hit PYRO
  *  card would stack a lethal DOT off one attack and the aura would stop being
  *  chip damage. */

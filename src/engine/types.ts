@@ -1536,10 +1536,20 @@ export interface PlayerState {
   /** Accelerator (Scorch): rounds remaining in which BURN this player inflicted
    *  on its ENEMIES deals double. Ticked down in Cleanup. */
   burnBoostRounds?: number;
-  /** Fog Settlement (Misty): rounds left of a board-wide −50% accuracy on
-   *  attacks aimed at THIS player's cards. Flat coin, not a status — uncleansed.
-   *  Decrements each Cleanup. */
+  /** Fog Settlement (Misty) / Smog (Aftermath): rounds left of a board-wide
+   *  accuracy penalty on attacks aimed at THIS player's cards. Flat, not a
+   *  status — uncleansed. Decrements each Cleanup. */
   foggedRounds?: number;
+  /** How thick the standing fog is — the miss chance the SOURCE laid it at.
+   *  Absent = FOG_MISS_PCT.
+   *
+   *  On the player rather than folded into the mechanic because the two
+   *  carriers are priced nothing alike: Misty is a cost-1 body that fogs for
+   *  free the moment it lands, while Aftermath spends a cost-4 Special off a
+   *  cost-6 card. One number for both meant tuning either one moved the other.
+   *  Every application writes this, so a thin fog can never linger under a
+   *  thick one laid afterwards. */
+  foggedPct?: number;
   /** Sky Scout (Sightwing): rounds left in which this player's single-target
    *  basics also clip one enemy adjacent to their target. Ticked in Cleanup. */
   basicSplashRounds?: number;

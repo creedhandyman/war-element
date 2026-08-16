@@ -2,7 +2,7 @@
 // All reducers clone the incoming state once and mutate only the clone.
 
 import { getDef } from "../data/cards";
-import { applyFlow, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasElementAura, LEAF_SHIELD_CAP } from "./auras";
+import { applyFlow, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
@@ -156,8 +156,12 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // the onSummon block below — Prism has no onSummon, so nesting it there
       // meant the passive never fired at all.
       if (arrived && def.startsWithFreeSpecial) inst.freeSpecial = true;
-      // Fog Settlement (Misty): the owner's battlefield fogs over on summon.
-      if (arrived && def.summonFog) draft.players[inst.owner].foggedRounds = def.summonFog;
+      // Fog Settlement (Misty): the owner's battlefield fogs over on summon —
+      // thinner than a paid Smog, because this one costs nothing to lay.
+      if (arrived && def.summonFog) {
+        draft.players[inst.owner].foggedRounds = def.summonFog;
+        draft.players[inst.owner].foggedPct = MISTY_FOG_MISS_PCT;
+      }
       // On-summon passive: fires immediately, free, via the handler registry.
       // `spread` (columns each side) uses the forward-area projection — the
       // blast reaches toward the enemy battlefield as far as the card's range

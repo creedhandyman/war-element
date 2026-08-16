@@ -1260,7 +1260,7 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 1,
     keywords: {},
-    tribe: "SeaC",
+    tribe: ["SeaC", "Vapor"],
     // King of the Seas (On Kill): coin flip — gain +2 or +1 DMG permanently.
     // Scalding Shot: the cannon's basic sears whatever it hits (SCALD 1).
     passiveNames: { onKill: "King of the Seas", onHitStatus: "Scalding Shot" },
@@ -4028,8 +4028,17 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
+    tribe: "Vapor",
     // Fog Settlement (On Summon): the whole battlefield fogs for 1 round —
-    // every enemy basic aimed at your cards whiffs on a coin. Flat, no status.
+    // every enemy basic aimed at your cards whiffs on a MISTY_FOG_MISS_PCT roll.
+    // Flat, no status, and nothing has to be landed for it.
+    //
+    // It was a coin — 50%, board-wide, uncleansable, free on summon, on a
+    // cost-1 card. Halving every attack the opponent makes for a round is not
+    // a 1-drop's worth of effect at any price, and it is priced at nothing.
+    // Aftermath's Smog buys the same mechanic for a cost-4 Special on a cost-6
+    // body, which is why the rate lives on the source rather than on the fog
+    // (see PlayerState.foggedPct) — the paid one keeps its coin.
     passiveNames: { summonFog: "Fog Settlement" },
     summonFog: 1,
   },
@@ -6947,7 +6956,7 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 3,
     keywords: { STEALTH: true },
-    tribe: ["Deep Creatures", "SeaC"], // brief's Deep Creatures + the school it had
+    tribe: ["Deep Creatures", "SeaC", "Vapor"], // brief's Deep Creatures + the school it had, and the fog it works in
     // Perpetual Fog (On Kill): cloak Driftwraith and same-row AQUA allies in
     // STEALTH for 1 round.
     passiveNames: { onKill: "Perpetual Fog" },

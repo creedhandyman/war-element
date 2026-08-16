@@ -13,7 +13,7 @@
  */
 import type { ReactNode } from "react";
 import type { CardDef, StatusKind } from "../engine";
-import { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, getDef } from "../engine";
+import { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, MISTY_FOG_MISS_PCT, getDef } from "../engine";
 import { KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 
 // Colour lookup for keyword/status terms so they render as chips in card text.
@@ -659,7 +659,7 @@ export function describePassives(def: CardDef): string[] {
   else if (breakClause)
     named("onShieldBreak", `The first time its shields are broken, it ${breakClause}.`);
   if (def.summonFog)
-    named("summonFog", `On summon, fog rolls over your battlefield for ${rounds(def.summonFog)} — every enemy basic aimed at your cards has a 50% chance to whiff (flat, no status).`);
+    named("summonFog", `On summon, fog rolls over your battlefield for ${rounds(def.summonFog)} — every enemy basic aimed at your cards has a ${MISTY_FOG_MISS_PCT}% chance to whiff (flat, no status).`);
   if (def.roundTick?.selfHpCost)
     named("selfHpCost", `Each round it pays ${def.roundTick.selfHpCost} of its own HP to do so (never lethal).`);
   if (def.roundTick?.spawnTriggerAt && def.special)

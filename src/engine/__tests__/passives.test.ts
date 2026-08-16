@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, shadeDodgePct, SPECIAL_HANDLERS, TARGETLESS_HANDLERS } from "../combat";
-import { applyFlow, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, hasElementAura, PYRO_BURN_STACK_CAP } from "../auras";
+import { applyFlow, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire } from "../state";
@@ -3661,5 +3661,62 @@ describe("Rubyscale opens a wound", () => {
     const handId = giveHand(s, "P1", "leaf_rubyo");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     expect(boardCards(next, "P1").some((c) => c.defId === "leaf_greegon")).toBe(true);
+  });
+});
+
+describe("the fog mechanic, and the two very differently priced cards that lay it", () => {
+  /** N swings at a fogged card, returning how much damage actually landed.
+   *  Gool is the control attacker: 4 DMG, one hit, and with no miss source on
+   *  the board it lands all 4 on every seed (asserted below), so any shortfall
+   *  here is the fog and only the fog. */
+  function dealt(trials: number, pct: number | undefined, rounds = 1): number {
+    let total = 0;
+    for (let seed = 0; seed < trials; seed++) {
+      const s = prepState();
+      // Attacker OFF the hill: row 2 is a Mid row and King of the Hill would
+      // quietly make every swing a 5, which is how the first draft of this test
+      // failed. Row 3 is the same geometry the splash tests above rely on.
+      const gool = place(s, "dusk_gool", "P1", 3, 0);
+      const victim = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+      s.players.P2.foggedRounds = rounds;
+      if (pct != null) s.players.P2.foggedPct = pct;
+      s.rngState = seed;
+      basicAttack(s, gool.instanceId, victim.instanceId);
+      total += 40 - s.cards[victim.instanceId].curHp;
+    }
+    return total;
+  }
+
+  it("Misty's Fog Settlement is a quarter, not a coin", () => {
+    const clear = dealt(400, undefined, 0); // no fog at all — the control
+    expect(clear, "nothing else in this setup causes a miss").toBe(400 * 4);
+    const thin = 1 - dealt(400, MISTY_FOG_MISS_PCT) / clear;
+    const thick = 1 - dealt(400, FOG_MISS_PCT) / clear;
+    // Wide bands — this pins the MAGNITUDE each constant names, not the RNG's
+    // luck on 400 draws.
+    expect(thin).toBeGreaterThan(0.15);
+    expect(thin).toBeLessThan(0.35);
+    expect(thick).toBeGreaterThan(0.40);
+    expect(thick).toBeLessThan(0.60);
+    expect(thin).toBeLessThan(thick);
+  });
+
+  it("Misty lays the thin one; Aftermath's paid Smog still lays the coin", () => {
+    // The reason the rate lives on the player rather than in the roll: these two
+    // buy the same mechanic at wildly different prices — a cost-1 body that fogs
+    // free on arrival, against a cost-4 Special off a cost-6 card.
+    const s = prepState();
+    s.players.P1.gold = 20;
+    place(s, "dusk_gool", "P2", 0, 0); // keep P2 non-empty
+    const handId = giveHand(s, "P1", "aqua_misty");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    expect(next.players.P1.foggedRounds).toBe(1);
+    expect(next.players.P1.foggedPct).toBe(MISTY_FOG_MISS_PCT);
+
+    const after = { ...next, players: { ...next.players } };
+    const aftermath = place(after, "pyro_aftermath", "P1", 4, 3);
+    SPECIAL_HANDLERS.smokeScreen(after, after.cards[aftermath.instanceId], [], { rounds: 2 });
+    expect(after.players.P1.foggedPct, "a paid Smog never inherits Misty's thin fog").toBe(FOG_MISS_PCT);
+    expect(after.players.P1.foggedRounds).toBe(2);
   });
 });

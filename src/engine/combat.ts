@@ -17,7 +17,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget } from "./rules";
-import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, PYRO_BURN_STACK_CAP, hasElementAura, slipstreamPct } from "./auras";
+import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
@@ -806,18 +806,19 @@ export function resolveHit(
       draft.log.push(`${label(draft, attacker)} loses the shot in the fog.`);
       continue;
     }
-    // Fog Settlement (Misty): attacks aimed at a fogged player's cards whiff on
-    // a coin — board-wide, flat, uncleansable. Rolled per hit like BLIND.
+    // Fog Settlement (Misty) / Smog (Aftermath): attacks aimed at a fogged
+    // player's cards whiff — board-wide, flat, uncleansable. Rolled per hit
+    // like BLIND, and at whatever thickness the source laid it at.
     if (
       opts.kind === "basic" &&
       !aDef.alwaysHit &&
       !neverMiss &&
       (draft.players[target.owner].foggedRounds ?? 0) > 0 &&
-      !coin(draft)
+      pctChance(draft, draft.players[target.owner].foggedPct ?? FOG_MISS_PCT)
     ) {
       result.dodgedHits++;
       target.fxMiss = (target.fxMiss ?? 0) + 1;
-      draft.log.push(`${label(draft, attacker)} loses the shot in Misty's fog.`);
+      draft.log.push(`${label(draft, attacker)} loses the shot in the fog.`);
       continue;
     }
     if (opts.kind === "basic" && !aDef.alwaysHit && !neverMiss && hasStatus(attacker, "BLIND") && !coin(draft)) {
@@ -3501,6 +3502,9 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
    *  whiffing (reuses the fog mechanic). */
   smokeScreen(draft, attacker, _targets, params) {
     draft.players[attacker.owner].foggedRounds = num(params, "rounds", 2);
+    // Written explicitly, not left to the default: Misty may have laid a
+    // thinner fog earlier in the match, and a paid Special must not inherit it.
+    draft.players[attacker.owner].foggedPct = num(params, "missPct", FOG_MISS_PCT);
     draft.log.push(`${label(draft, attacker)} blankets the field in smoke (${num(params, "rounds", 2)}r).`);
   },
   /** Golden Guardian (Leo): a sustained heal-over-time — +N HP each round for a

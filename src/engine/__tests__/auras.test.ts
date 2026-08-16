@@ -15,7 +15,7 @@ import {
 import { applyStatus, basicAttack, defeatCard, shadeDodgePct, slipstreamDodgePct } from "../combat";
 import { advance, applyIntent, openFlowRepick } from "../phases";
 import { basicIsInert } from "../rules";
-import { boardCards, effectiveDmg } from "../state";
+import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import type { Element } from "../types";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 
@@ -478,5 +478,45 @@ describe("DAWN's two tribes cover the whole element", () => {
     expect(tribesOf(nova)).toContain("Dragon");
     expect(tribesOf(nova)).toContain("Stars");
     expect(getDef("dawn_drakonbane").vsTarget?.tribe).toBe("Dragon");
+  });
+});
+
+describe("Vapor has a tribe to buff", () => {
+  // Hydrogon's Vapor aura (+4 SP) reached two other cards, which was easy to
+  // miss twice over: a count that does not unpack ARRAY tribes reads Vapor as
+  // having a single member, because Hydrogon's and Sapphire's tags are inside
+  // ["Dragon", "Vapor"]. Both halves of that are asserted here — the real
+  // membership, and that the aura is scoped to it.
+  const tribesOf = (t: string | string[] | undefined) =>
+    t == null ? [] : Array.isArray(t) ? t : [t];
+  const vapor = CARDS.filter((c) => tribesOf(c.tribe).includes("Vapor"));
+
+  it("the fog-workers are all in it, however their tribe tag is shaped", () => {
+    const ids = vapor.map((c) => c.id);
+    for (const id of [
+      "aqua_hydrogon",    // the aura holder itself
+      "aqua_sapphire",    // ["Dragon", "Vapor"] — already there
+      "aqua_vaporem",     // "Vapor" — the only plain-string tag
+      "aqua_blackbeard",  // ["SeaC", "Vapor"]
+      "aqua_driftwraith", // ["Deep Creatures", "SeaC", "Vapor"]
+      "aqua_misty",       // the fog itself
+    ]) expect(ids, id).toContain(id);
+    expect(vapor.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("Hydrogon's aura is Vapor-scoped and buffs somebody other than itself", () => {
+    const hydro = getDef("aqua_hydrogon");
+    expect(hydro.aura?.match).toBe("Vapor");
+    expect(hydro.aura?.sp).toBe(4);
+    expect(tribesOf(hydro.tribe)).toContain("Vapor");
+    // End-to-end: a Vapor ally gains the SP, a non-Vapor AQUA ally does not.
+    const s = prepState();
+    const mate = place(s, "aqua_misty", "P1", 3, 1);
+    const outsider = place(s, "aqua_coralgolem", "P1", 3, 2); // AQUA, no tribe
+    const mateBefore = effectiveSp(s, s.cards[mate.instanceId]);
+    const outsiderBefore = effectiveSp(s, s.cards[outsider.instanceId]);
+    place(s, "aqua_hydrogon", "P1", 4, 1);
+    expect(effectiveSp(s, s.cards[mate.instanceId]) - mateBefore).toBe(4);
+    expect(effectiveSp(s, s.cards[outsider.instanceId])).toBe(outsiderBefore);
   });
 });
