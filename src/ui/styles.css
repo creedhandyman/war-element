@@ -1772,7 +1772,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   font-family: var(--head); font-size: 13px; font-weight: 700; letter-spacing: .03em;
 }
 .gt-start .gt-sub { font-family: var(--font-ui); font-weight: 400; }
-.gt-pay { font-style: normal; font-size: 10px; font-weight: 700; color: #bfe6ff; }
+/* inline-flex + gap so the shard sits ON the text baseline rather than being
+   pushed around by the em's line box. Same 4px the shop balance uses, and the
+   same #bfe6ff — which is the shard gradient's own top stop, so the glyph and
+   the number read as one unit. */
+.gt-pay {
+  font-style: normal; font-size: 10px; font-weight: 700; color: #bfe6ff;
+  display: inline-flex; align-items: center; gap: 4px;
+}
 .gt-done { font-style: normal; font-size: 9px; color: var(--legal); }
 /* One pip per seat. Banked, current and lost are three different states and a
    count cannot show all three. */

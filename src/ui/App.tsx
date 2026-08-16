@@ -2610,7 +2610,13 @@ export function App() {
                   >
                     <span className="gt-start-main">
                       Run the {runTier === "easy" ? "Easy" : runTier === "mid" ? "Even" : "Hard"} gauntlet
-                      <em className="gt-pay">+{runReward(runTier, boardSize)}</em>
+                      {/* Number then icon, matching the shop's signed amounts
+                          (`-{PACK_COST}<i className="shard" />`). The bare "+12"
+                          did not say WHAT it paid, and the gauntlet is the one
+                          place on this screen that pays anything. */}
+                      <em className="gt-pay">
+                        +{runReward(runTier, boardSize)}<i className="shard" aria-hidden="true" />
+                      </em>
                       {(story.gauntlet?.cleared ?? []).includes(runTier) && (
                         <i className="gt-done" title="Cleared before">✓</i>
                       )}
