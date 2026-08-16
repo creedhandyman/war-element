@@ -76,12 +76,16 @@ describe("card text covers every mechanic", () => {
     for (const def of all) {
       const rt = def.roundTick as Record<string, unknown> | undefined;
       if (!rt) continue;
-      const before = describePassives({ ...def, roundTick: undefined }).length;
-      const after = describePassives(def).length;
+      // TEXT LENGTH, not line count. A named roundTick half now JOINS the line
+      // its ability already owns rather than opening a new one — Magmadon's
+      // Scorched Fury is one line with two clauses, where it used to be two
+      // lines with the same prefix. Counting lines called that invisible.
+      // Counting characters asks the question this test actually means: does
+      // turning the effect on put anything in front of the player?
+      const before = describePassives({ ...def, roundTick: undefined }).join(" ").length;
+      const after = describePassives(def).join(" ").length;
       for (const k of ROUND_TICK_KEYS) {
         if (rt[k] == null) continue;
-        // Adding the roundTick must add text. If it doesn't, this effect is
-        // invisible to the player.
         if (after <= before) silent.push(`${def.id}.roundTick.${k}`);
       }
     }
@@ -201,5 +205,40 @@ describe("card text covers every mechanic", () => {
       d.roundTick != null;
     const silent = all.filter((d) => hasMechanic(d) && describePassives(d).length <= 1).map((d) => d.id);
     expect(silent, `cards with a hidden mechanic:\n  ${silent.join("\n  ")}`).toEqual([]);
+  });
+});
+
+describe("every named passive actually shows its name", () => {
+  // The complement of the ablation test above. That one asks whether an ability
+  // FIELD produces text; this asks whether the NAME the data gives that field
+  // survives into the text. Two cards were failing it silently: Hunter's
+  // Trapper named its on-summon half and the renderer pushed that line raw, and
+  // Scorch's Wildfire was looked up under a key ("enemyHomeRowStatus") that no
+  // card declares. In both cases one ability rendered as two — one titled, one
+  // anonymous — and nothing anywhere objected.
+  it("no card declares a passive name that never reaches the card face", () => {
+    const missing: string[] = [];
+    for (const def of [...CARDS, ...TOKENS]) {
+      const names = new Set(Object.values(def.passiveNames ?? {}));
+      if (!names.size) continue;
+      const text = describePassives(def).join("\n");
+      for (const n of names) if (!text.includes(n)) missing.push(`${def.id}: "${n}"`);
+    }
+    expect(missing, `declared but never rendered:\n${missing.join("\n")}`).toEqual([]);
+  });
+
+  it("and never prints the same ability name on two separate lines", () => {
+    // RIP's Dead Clock is spread over four def fields and printed four lines
+    // each opening "Dead Clock —", which reads as a rendering fault rather than
+    // as one ability with four clauses.
+    const doubled: string[] = [];
+    for (const def of [...CARDS, ...TOKENS]) {
+      const lines = describePassives(def);
+      for (const n of new Set(Object.values(def.passiveNames ?? {}))) {
+        const hits = lines.filter((l) => l.startsWith(`${n} —`)).length;
+        if (hits > 1) doubled.push(`${def.id}: "${n}" on ${hits} lines`);
+      }
+    }
+    expect(doubled, `repeated name prefixes:\n${doubled.join("\n")}`).toEqual([]);
   });
 });

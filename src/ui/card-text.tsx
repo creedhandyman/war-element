@@ -152,7 +152,10 @@ function describeOnSummon(os: {
 
 /** "1 round" / "2 rounds". The card face used to print a literal "round(s)" in
  *  eight places, which read like unfinished copy. */
-export const rounds = (n: number) => `${n} round${n === 1 ? "" : "s"}`;
+/** 99 is the codebase's idiom for "does not expire" (Velvolt Knight's Live
+ *  Current, Voltis' arrival volley). Printing it literally put "for 99 rounds"
+ *  on the card face, which reads as a number the player is meant to count. */
+export const rounds = (n: number) => (n >= 99 ? "the rest of the match" : `${n} round${n === 1 ? "" : "s"}`);
 
 /** Passive one-liners derived purely from a card definition (no live state).
  *  The element aura (shared by every card of this element) leads the list.
@@ -167,12 +170,53 @@ export function describePassives(def: CardDef): string[] {
 
   /** Push a line, prefixed with the card's own name for that passive when it
    *  has one. `key` is the def field the line was derived from. */
+  // Where each named ability's line already sits, so a SECOND mechanic under the
+  // same name joins it instead of starting a new line with the same prefix.
+  //
+  // Cards routinely split one named ability across several def fields — RIP's
+  // Dead Clock is four (roundTick, selfHpCost, spawnTriggerAt, spawnMaxAlive) —
+  // and each used to print its own "Dead Clock — …" line. Four consecutive lines
+  // with an identical prefix reads as a rendering fault, not as one ability with
+  // four clauses, and it buried the clause that actually mattered.
+  const namedAt = new Map<string, number>();
+  /** Title a line from the FIRST of `keys` the card actually declares.
+   *
+   *  Cards name a composite ability under whichever sub-field reads best —
+   *  Whintey files Frosty Bites under `rootZeroSp`, Efy files Nature's
+   *  Protection under `refreshShieldsTo`, Storm files Supercell under
+   *  `buffDmgEveryN` — while the renderer only ever looked up the PARENT key.
+   *  Nineteen cards declared a name that reached nothing as a result. */
+  const namedAny = (keys: string[], text: string) =>
+    named(keys.find((k) => def.passiveNames?.[k]) ?? keys[0], text);
+  /** One LINE can carry more than one named ability: Season's roundTick holds
+   *  both Grounded and Evera's Bloom, and picking the first would have silently
+   *  dropped the other. Titles the line with every distinct name it covers. */
+  const namedAll = (keys: string[], text: string) => {
+    const all = [...new Set(keys.map((k) => def.passiveNames?.[k]).filter(Boolean) as string[])];
+    if (all.length <= 1) return namedAny(keys, text);
+    passives.push(`${all.join(" / ")} — ${text}`);
+  };
   const named = (key: string, text: string) => {
     const n = def.passiveNames?.[key];
+    if (!n) { passives.push(text); return; }
     // Some descriptions already open with the ability's name (Regenerative,
     // Hastened Assault, Obsidian Claws…). Prefixing those produced
-    // "Regenerative — Regenerative: …", so only prefix when it isn't there.
-    passives.push(n && !text.startsWith(n) ? `${n} — ${text}` : text);
+    // "Regenerative — Regenerative: …", so strip it before prefixing once.
+    const body = text.startsWith(n) ? text.slice(n.length).replace(/^\s*[—:-]\s*/, "") : text;
+    const at = namedAt.get(n);
+    if (at == null) {
+      namedAt.set(n, passives.length);
+      passives.push(`${n} — ${body}`);
+      return;
+    }
+    // Joined with a semicolon, and the clause de-capitalised so it reads as a
+    // continuation — unless it opens on an ACRONYM (ROOT, BURN, DMG, PEN), where
+    // lowercasing would corrupt a game term.
+    const first = body.split(/\s/)[0] ?? "";
+    const cont = /^[A-Z]{2,}$/.test(first.replace(/[^A-Za-z]/g, ""))
+      ? body
+      : body.charAt(0).toLowerCase() + body.slice(1);
+    passives[at] = `${passives[at].replace(/\.\s*$/, "")}; ${cont}`;
   };
   // Passive-flavored keywords read as the card's own ability, not just a chip.
   const kw = def.keywords;
@@ -301,15 +345,15 @@ export function describePassives(def: CardDef): string[] {
     // Not an every-round effect, so it gets its own line — "Each round: every 3
     // rounds…" reads as a contradiction.
     if (t.buffDmgEveryN)
-      passives.push(
+      namedAny(["buffDmgEveryN", "roundTick"],
         `Every ${t.buffDmgEveryN.n} rounds: permanently gains ${[t.buffDmgEveryN.amount ? `+${t.buffDmgEveryN.amount} DMG` : "", t.buffDmgEveryN.sp ? `+${t.buffDmgEveryN.sp} SP` : "", t.buffDmgEveryN.hp ? `+${t.buffDmgEveryN.hp} HP` : ""].filter(Boolean).join(", ")} (stacking).`,
       );
     // Some roundTick fields (selfShields, rowAheadDmg, ward/cleanse…) get their
     // own dedicated line below — don't emit an empty "Each round: ." for those.
     // "Each round" would be a lie for a firstRoundOnly tick — it fires once.
     if (bits.length)
-      named(
-        "roundTick",
+      namedAll(
+        ["roundTick", ...Object.keys(t)],
         t.firstRoundOnly
           ? `Once, at the end of the round it lands: ${bits.join(" · ")}.`
           : `Each round: ${bits.join(" · ")}.`,
@@ -333,7 +377,17 @@ export function describePassives(def: CardDef): string[] {
       a.reflect && `REFLECT ${a.reflect}`,
       a.pen && "PEN on basics",
     ].filter(Boolean);
-    passives.push(`Aura — ${who} gain ${bits.join(" / ")}.`);
+    // Named, when the card names it. Twelve-plus cards declare an aura name in
+    // passiveNames.aura — Volcanic, Skyborn, Cavernous, Suns, Stars, Vapor,
+    // Forged Tech, Arc — and every one of them was thrown away here, so the
+    // player saw a generic "Aura —" while the card's own text elsewhere talked
+    // about the ability by a name that appeared nowhere.
+    //
+    // Only `def.aura` takes the name; the extra `def.auras` entries are a second
+    // effect on the same card (Kloud's Mage and Ranger lines) and would be
+    // wrong to file under the first one's title.
+    const auraName = a === def.aura ? def.passiveNames?.aura : undefined;
+    passives.push(`${auraName ?? "Aura"} — ${who} gain ${bits.join(" / ")}.`);
   }
   if (def.weaponFromShields)
     passives.push(`Icicle Weapon: its basic attack damage equals its current shield count.`);
@@ -386,7 +440,7 @@ export function describePassives(def: CardDef): string[] {
       "onOppSummon",
       o.spawnToken
         ? `When an enemy is summoned, spawns a ${getDef(o.spawnToken).name} in the closest empty adjacent slot and hits it with ${bits}.`
-        : `When an enemy is summoned${o.chase ? ", hops to the closest empty adjacent slot and" : " within range,"} hits it with ${bits}.`,
+        : `When an enemy is summoned${o.chase ? ", hops to the closest empty adjacent slot and" : o.boardWide ? " ANYWHERE on the board," : " within range,"} hits it with ${bits}.`,
     );
   }
   if (def.onAllyKilled) {
@@ -507,7 +561,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.weaponModes)
     named("weaponModes", `Power Grab: on move (once/round), cycle its Basic Attack Weapon — ${def.weaponModes.map((w) => `${w.name} ${w.dmg}×${w.hits}`).join(", ")}.`);
   if (def.roundTick?.rowAheadDmg)
-    passives.push(
+    namedAny(["rowAheadDmg", "roundTick"],
       `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,
     );
   if (def.roundTick?.inRangeStatus)
@@ -515,13 +569,13 @@ export function describePassives(def: CardDef): string[] {
       `When battle begins: applies ${def.roundTick.inRangeStatus.kind} for ${def.roundTick.inRangeStatus.duration} round(s) to every opponent in range.`,
     );
   if (def.roundTick?.inRangeDmg)
-    passives.push(
+    namedAny(["inRangeDmg", "roundTick"],
       `End of round: deals ${def.roundTick.inRangeDmg} DMG to every opponent in range${def.roundTick.inRangeDmgPen ? " (pierces shields)" : ""}.`,
     );
   if (def.roundTick?.selfShields)
-    passives.push(`Gains +${def.roundTick.selfShields} shield at the end of each round.`);
+    namedAny(["selfShields", "roundTick"], `Gains +${def.roundTick.selfShields} shield at the end of each round.`);
   if (def.roundTick?.allyInRangeShields)
-    passives.push(
+    namedAny(["allyInRangeShields", "roundTick"],
       `End of round: grants +${def.roundTick.allyInRangeShields} shield` +
       `${def.roundTick.allyInRangeShields === 1 ? "" : "s"} to every ally within range.`,
     );
@@ -680,7 +734,11 @@ export function describePassives(def: CardDef): string[] {
     passives.push(
       `On Kill, its Special recasts free next round (ignores cost & cooldown).`,
     );
-  if (def.onSummon) passives.push(describeOnSummon(def.onSummon, def.vsTarget, def.element));
+  // Through `named`, not a raw push: Hunter's Trapper, Scorch's Wildfire and
+  // Velvolt Knight's Live Current all name their on-summon half in the data, and
+  // the name was silently dropped here — so the same ability appeared once
+  // titled and once anonymous, which read as two unrelated passives.
+  if (def.onSummon) named("onSummon", describeOnSummon(def.onSummon, def.vsTarget, def.element));
   if (def.onDeath) {
     const od = def.onDeath;
     const parts: string[] = [];
@@ -738,8 +796,12 @@ export function describePassives(def: CardDef): string[] {
       : `Every landed hit shoves the victim back ${def.onHitPush} slot (if open).`);
   if (def.roundTick?.enemyHomeRowStatus) {
     const st = def.roundTick.enemyHomeRowStatus;
+    // Keyed on `roundTick`, which is what the DATA declares (Scorch names its
+    // Wildfire that). Looking up "enemyHomeRowStatus" found nothing, so the
+    // line rendered anonymous while the on-summon half carried the title — one
+    // ability appearing as two, which is the shape this whole pass is removing.
     named(
-      "enemyHomeRowStatus",
+      "roundTick",
       `The enemy Home row stays alight: each round it applies ${st.kind}${st.power ? ` ${st.power}` : ""} for ${st.duration} rounds to everything standing there.`,
     );
   }
@@ -763,10 +825,21 @@ export function describePassives(def: CardDef): string[] {
   if (def.summonSpawn) {
     const { token, count, adjacentOnly, spawnRadius } = def.summonSpawn;
     const tokName = (() => { try { return getDef(token).name; } catch { return "token"; } })();
-    passives.push(
+    named(
+      "summonSpawn",
       `On summon: brings ${count} ${tokName}${count > 1 ? "s" : ""} onto the board${adjacentOnly ? ", right beside it" : spawnRadius ? `, within ${spawnRadius} spaces of it` : ""}.`,
     );
   }
+  // Neither of these produced a line of any kind — not an unnamed one either.
+  // A card entering play wearing another card's face is the single most
+  // surprising thing that can happen to a player, and it was undocumented.
+  if (def.disguise)
+    named(
+      "disguise",
+      `Enters play disguised as ${(() => { try { return getDef(def.disguise.as).name; } catch { return "another card"; } })()}. When the disguise is killed it does not die — it reverts to its true form at full HP${def.disguise.strikeKillerOnReveal ? " and casts its Special at whoever unmasked it, free" : ""}.`,
+    );
+  if (def.onOpponentDeath)
+    named("onOpponentDeath", `Whenever an opponent dies, deals ${def.onOpponentDeath.dmg} DMG to the closest remaining foe.`);
   if (def.alwaysHit)
     passives.push("Hot Shot: its attacks never miss — ignores its own BLIND and the target's EVASION.");
   if (def.basicHealsAllies)
