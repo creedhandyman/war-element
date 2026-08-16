@@ -1063,15 +1063,29 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 8, // LEGENDARY
-    dmg: 5,
+    // 10x1 + 21 + 4 + 10 = 45 — the SAME total it printed before (5 DMG / 26 HP),
+    // just redistributed, so its existing entry in state.test.ts's cost-8 band
+    // exception still describes it correctly and needed no edit.
+    dmg: 10,
     hits: 1,
-    hp: 26,
+    hp: 21,
     sp: 10,
     shields: 2,
     keywords: {},
     // Mounted until Dismount: below 10 HP it loses the mount, and with it the
     // king-move — `transformed` gates that, so a dismounted rider walks.
     mounted: true,
+    // The mount is worth 10 HP on top, so it rides at 31 and walks away at 21.
+    // Off-curve on purpose and modelled on Equestrian's 24K Stallion, which
+    // carries its mount the same way (+20 HP via summonSelfBuff) — the formula
+    // prices the rider, not the horse.
+    //
+    // NOT removed at Dismount, and that is deliberate rather than an oversight:
+    // this grants MAX and CURRENT HP together, and Dismount only fires once the
+    // card is already under 10 HP, so by then the mount's HP has been spent.
+    // Clawing back a ceiling the card is nowhere near would change nothing
+    // except to make a legendary read as if it loses something it does not.
+    summonSelfBuff: { dmg: 0, hp: 10 },
     // Dismount: below 10 HP, deal 5 DMG, lose 5 SP and the Special (basic skeleton).
     passiveNames: { onLowHp: "Dismount" },
     onLowHp: { threshold: 10, dmg: 5, loseSp: 5, loseSpecial: true },

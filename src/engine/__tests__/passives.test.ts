@@ -4104,3 +4104,29 @@ describe("Driftwraith's Perpetual Fog", () => {
     expect(statusOf(s.cards[kin.instanceId], "STEALTH"), "and no cloak either").toBeUndefined();
   });
 });
+
+describe("Skelider rides in heavier than it walks away", () => {
+  it("arrives at printed HP + the mount's 10", () => {
+    const s = prepState();
+    s.players.P1.gold = 12;
+    place(s, "dusk_gool", "P2", 0, 0); // keep P2 non-empty
+    const handId = giveHand(s, "P1", "dusk_skelider");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    const sk = boardCards(next, "P1").find((c) => c.defId === "dusk_skelider")!;
+    const def = getDef("dusk_skelider");
+    const mount = def.summonSelfBuff!.hp;
+    expect(mount).toBe(10);
+    expect(sk.maxHp, "the horse counts toward the ceiling").toBe(def.hp + mount);
+    expect(sk.curHp, "and it arrives on it, not below").toBe(def.hp + mount);
+  });
+
+  it("the mount is off-curve — the printed line alone is what the budget reads", () => {
+    // Equestrian carries its 24K Stallion the same way. The formula prices the
+    // rider; the horse rides free, which is why this card's printed 21 HP looks
+    // low for a cost-8 legendary and plays like 31.
+    const def = getDef("dusk_skelider");
+    const printed = def.dmg * def.hits + def.hp + def.shields * 2 + def.sp;
+    expect(printed, "same total it carried at 5 DMG / 26 HP").toBe(45);
+    expect(printed + def.summonSelfBuff!.hp, "what it actually fields").toBeGreaterThan(printed);
+  });
+});
