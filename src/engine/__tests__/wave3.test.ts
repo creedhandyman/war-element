@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getDef } from "../../data/cards";
 import { advance, applyIntent } from "../phases";
-import { boardCards, effectiveDmg, effectiveMaxHp, effectiveSp } from "../state";
+import { boardCards, effectiveDmg, effectiveMaxHp } from "../state";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
@@ -28,12 +28,13 @@ describe("Bluejay", () => {
     expect(newcomer.curHp).toBeLessThan(getDef("leaf_greegon").hp);
   });
 
-  it("Twin Wind Strikes DOUBLE-tapped: 14 DMG, WEAKEN, and a STACKED −10 SP", () => {
+  it("Twin Wind Strikes DOUBLE-tapped: 14 DMG, WEAKEN, and a 4-space shove", () => {
     const s = prepState();
     s.players.P1.magicPool = 9;
-    const jay = place(s, "gale_bluejay", "P1", 3, 0);
-    const foe = place(s, "leaf_greegon", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
-    const before = effectiveSp(s, foe);
+    const jay = place(s, "gale_bluejay", "P1", 3, 1);
+    // Deep in P1's territory, so there is room to be shoved back and the two
+    // aiming modes land the victim in different places.
+    const foe = place(s, "leaf_greegon", "P2", 3, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     // Both strikes onto one target — the focus play.
     const next = applyIntent(battleWith(s, jay.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetIds: [foe.instanceId, foe.instanceId],
@@ -41,28 +42,29 @@ describe("Bluejay", () => {
     const hit = next.cards[foe.instanceId];
     expect(hit.curHp).toBe(40 - 14); // 7 + 7
     expect(statusOf(hit, "WEAKEN")).toBeTruthy();
-    // Two −5 SP buffs are stacked. effectiveSp FLOORS at 0 (Greegon's 4 − 10
-    // clamps), so the stack is read off the buffs directly, not the total.
-    expect(hit.buffs.filter((b) => b.sp === -5)).toHaveLength(2);
-    expect(effectiveSp(next, hit)).toBe(Math.max(0, before - 10));
+    // The push rides EACH strike, so focusing shoves 2 twice. P2 is pushed
+    // toward its own home row (0), and pushBack stops there rather than walking
+    // it off the board — from row 3 that is as far back as it goes.
+    expect(hit.pos!.row).toBe(0);
   });
 
-  it("...or SPLIT across two foes: 7 and −5 SP to each", () => {
+  it("...or SPLIT across two foes: 7 and a 2-space shove to each", () => {
+    // The two ways to aim this are now genuinely different rather than one
+    // simply larger: SPLIT moves two separate bodies back 2, FOCUS moves one
+    // back 4 — which can put a card out of its own reach entirely.
     const s = prepState();
     s.players.P1.magicPool = 9;
-    const jay = place(s, "gale_bluejay", "P1", 3, 0);
-    const a = place(s, "leaf_greegon", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
-    const b = place(s, "leaf_greegon", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
-    const spA = effectiveSp(s, a), spB = effectiveSp(s, b);
+    const jay = place(s, "gale_bluejay", "P1", 3, 2);
+    const a = place(s, "leaf_greegon", "P2", 3, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const b = place(s, "leaf_greegon", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
     const next = applyIntent(battleWith(s, jay.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetIds: [a.instanceId, b.instanceId],
     });
     expect(next.cards[a.instanceId].curHp).toBe(40 - 7);
     expect(next.cards[b.instanceId].curHp).toBe(40 - 7);
-    // Floored, like the double-tap above: effectiveSp never reports below 0, and
-    // a 5-point sap on a 4-SP body would otherwise be asserted as -1.
-    expect(effectiveSp(next, next.cards[a.instanceId])).toBe(Math.max(0, spA - 5));
-    expect(effectiveSp(next, next.cards[b.instanceId])).toBe(Math.max(0, spB - 5));
+    // One strike each, so one 2-space shove each — 3 -> 1, not to the home row.
+    expect(next.cards[a.instanceId].pos!.row).toBe(1);
+    expect(next.cards[b.instanceId].pos!.row).toBe(1);
   });
 });
 

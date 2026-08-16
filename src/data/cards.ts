@@ -2540,14 +2540,21 @@ export const CARDS: CardDef[] = [
       name: "Twin Wind Strikes",
       cost: 4,
       // barrage, not strike: TWO 7-DMG strikes the caster assigns — one each to
-      // two foes, or both onto one. Each strike carries -5 SP + WEAKEN, applied
-      // PER strike (barrage runs maybeStatus + applyDebuffRiders every target
-      // slot). Double-tapping one target is now the FOCUS play the card asks
-      // for: 14 DMG and a stacked -10 SP, at the cost of hitting only one.
+      // two foes, or both onto one. Each strike carries its riders PER STRIKE,
+      // because barrage runs maybeStatus + applyDebuffRiders on every target
+      // slot — so double-tapping one body is the FOCUS play the card asks for.
+      //
+      // -5 SP out, a 2-space shove in. The sap was the second debuff on a
+      // Special that already WEAKENs, and it only ever reordered a queue; the
+      // push moves the board, which is what GALE wins with. It also makes the
+      // two ways to aim this genuinely different rather than just bigger:
+      // SPLIT shoves two separate bodies back 2, FOCUS shoves ONE back 4 (the
+      // rider fires per strike, and pushBack walks it a slot at a time), which
+      // can put a card out of its own reach entirely.
       handler: "barrage",
-      params: { dmg: 7, hits: 1, targets: 2, statusKind: "WEAKEN", statusDuration: 2, spDebuff: 5, spDebuffRounds: 2 },
+      params: { dmg: 7, hits: 1, targets: 2, statusKind: "WEAKEN", statusDuration: 2, push: 2 },
       targetSide: "enemy",
-      text: "Two 7-DMG strikes — split across two opponents, or both onto one. Each saps 5 SP and WEAKENs for 2 rounds, so a double hit stacks to 14 DMG and −10 SP.",
+      text: "Two 7-DMG strikes — split across two opponents, or both onto one. Each WEAKENs for 2 rounds and pushes 2 spaces, so a double hit is 14 DMG and a 4-space shove.",
     },
   },
   {
