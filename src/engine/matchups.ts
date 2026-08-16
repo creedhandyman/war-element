@@ -28,7 +28,7 @@ export const ELEMENT_MATCHUP: Partial<Record<Element, MatchupDef>> = {
   AQUA: { name: "Quenching", desc: "BURN on an AQUA card lasts half as long (rounded up)." },
   DAWN: { name: "Daybreak", desc: "Deals +25% DMG to DUSK." },
   DUSK: { name: "Nightfall", desc: "Deals +25% DMG to DAWN." },
-  GALE: { name: "Untouchable", desc: "20% chance to dodge a BORE attack, and sheds ELECTRIFIED a round early." },
+  GALE: { name: "Untouchable", desc: "20% chance to dodge a BORE attack." },
   BORE: { name: "Grounded Stone", desc: "ELECTRIFIED and PARALYZE on a BORE card last half as long (rounded up)." },
 };
 
@@ -85,7 +85,15 @@ export function matchupStatusDuration(element: Element, kind: StatusKind, durati
   if (element === "AQUA" && kind === "BURN") return halved(duration);
   // Grounded Stone: stone earths a charge.
   if (element === "BORE" && (kind === "ELECTRIFIED" || kind === "PARALYZE")) return halved(duration);
-  // Untouchable: GALE is moving too fast to hold a charge — one round less.
-  if (element === "GALE" && kind === "ELECTRIFIED") return Math.max(1, duration - 1);
+  // GALE has NO status resistance. It used to shed ELECTRIFIED a round early
+  // under Untouchable — removed, because that half was never meant to be here:
+  // Untouchable is a DODGE matchup against BORE, and a second, unrelated
+  // resistance against BOLT had been filed under the same name.
+  //
+  // It also cut across the design note at the top of this file. BOLT's whole
+  // identity is "basics leave the target ELECTRIFIED, and BOLT hits statused
+  // cards harder"; BORE answers that deliberately and pays for it in the
+  // matchup table. GALE was answering it too, for free, as a rider on a
+  // completely different matchup.
   return duration;
 }

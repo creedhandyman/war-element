@@ -13,6 +13,7 @@ import {
   applyMatchupDamage,
   dodgesByMatchup,
   matchupStatusDuration,
+  ELEMENT_MATCHUP,
 } from "../matchups";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
 
@@ -55,10 +56,16 @@ describe("element matchups — status resistance", () => {
     expect(matchupStatusDuration("BORE", "BURN", 4)).toBe(4);
   });
 
-  it("GALE sheds ELECTRIFIED a round early, never to nothing", () => {
-    expect(matchupStatusDuration("GALE", "ELECTRIFIED", 3)).toBe(2);
+  it("GALE has no status resistance at all", () => {
+    // It used to shed ELECTRIFIED a round early. That was filed under
+    // Untouchable, which is a DODGE matchup against BORE — an unrelated
+    // resistance against BOLT wearing the same name. Asserted as an ABSENCE so
+    // the rider cannot come back unnoticed: BORE is the element that answers
+    // ELECTRIFIED, and it pays for that in the matchup table.
+    expect(matchupStatusDuration("GALE", "ELECTRIFIED", 3)).toBe(3);
     expect(matchupStatusDuration("GALE", "ELECTRIFIED", 1)).toBe(1);
     expect(matchupStatusDuration("GALE", "PARALYZE", 3)).toBe(3);
+    expect(ELEMENT_MATCHUP.GALE?.desc ?? "").not.toContain("ELECTRIFIED");
   });
 
   it("resistance is real through applyStatus, not just the helper", () => {
