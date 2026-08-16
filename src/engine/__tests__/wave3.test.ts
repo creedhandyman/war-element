@@ -186,7 +186,11 @@ describe("Magmadon", () => {
     const base = effectiveDmg(s, mag);
     const next = advance(atCleanup(s));
     const after = next.cards[mag.instanceId];
-    expect(after.curHp).toBe(37);
+    // Derived, because Magmadon now stands in its OWN Volcanic aura and that
+    // aura COSTS 1 max HP. Cleanup clamps curHp to the effective ceiling, so a
+    // card printed at 38 sits at 37 before Scorched Fury takes its point — this
+    // read a flat 37 and broke on the aura, not on the passive it tests.
+    expect(after.curHp).toBe(effectiveMaxHp(next, after) - 1);
     expect(effectiveDmg(next, after)).toBe(base + 2);
   });
 
@@ -217,19 +221,26 @@ describe("Magmadon", () => {
     expect(frozen.cards[mag.instanceId].channelOn).toBe(false);
   });
 
-  it("Trial by Fire tithes PYRO allies only", () => {
+  it("Volcanic charges the line 1 max HP for +2 DMG", () => {
+    // Replaces Trial by Fire, which did this ONCE on arrival for a single round.
+    // As a standing aura it is the same trade, always on, and — being the first
+    // aura in the game with a NEGATIVE component — the half that had to be made
+    // to work: the aura fold kept the highest value from a floor of 0, so the
+    // -1 was silently discarded and this would have been a free +2.
     const s = prepState();
-    s.players.P1.gold = 20;
-    const pyro = place(s, "pyro_firebird", "P1", 3, 1, { curHp: 20, maxHp: 20 });
-    const other = place(s, "leaf_greegon", "P1", 3, 2, { curHp: 20, maxHp: 20 });
-    const pyroDmg = effectiveDmg(s, pyro);
-    const otherDmg = effectiveDmg(s, other);
-    s.players.P1.hand = [{ handId: "h1", defId: "pyro_magmadon" }];
-    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });
-    expect(next.cards[pyro.instanceId].curHp).toBe(19); // paid a point
-    expect(effectiveDmg(next, next.cards[pyro.instanceId])).toBe(pyroDmg + 2);
-    expect(next.cards[other.instanceId].curHp).toBe(20); // spared
-    expect(effectiveDmg(next, next.cards[other.instanceId])).toBe(otherDmg);
+    const kin = place(s, "pyro_fenrir", "P1", 3, 1);      // Volcanic
+    const other = place(s, "pyro_firebird", "P1", 3, 2);  // PYRO, not Volcanic
+    const kinDmg = effectiveDmg(s, s.cards[kin.instanceId]);
+    const kinHp = effectiveMaxHp(s, s.cards[kin.instanceId]);
+    const otherDmg = effectiveDmg(s, s.cards[other.instanceId]);
+    const otherHp = effectiveMaxHp(s, s.cards[other.instanceId]);
+
+    place(s, "pyro_magmadon", "P1", 4, 1);
+    expect(effectiveDmg(s, s.cards[kin.instanceId])).toBe(kinDmg + 2);
+    expect(effectiveMaxHp(s, s.cards[kin.instanceId]), "the aura charges for it").toBe(kinHp - 1);
+    // Element is no longer the scope — a PYRO card outside the tribe gets nothing.
+    expect(effectiveDmg(s, s.cards[other.instanceId])).toBe(otherDmg);
+    expect(effectiveMaxHp(s, s.cards[other.instanceId])).toBe(otherHp);
   });
 });
 

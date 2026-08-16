@@ -2372,7 +2372,6 @@ export const CARDS: CardDef[] = [
     // Scorched Fury, in two halves: the tick below bleeds 1 HP each Cleanup for
     // +2 DMG the following round, and furyBelowHp adds a further flat +2 once
     // it drops under 10. A 38 HP body that gets angrier the longer it burns.
-    passiveNames: { roundTick: "Scorched Fury", furyBelowHp: "Scorched Fury" },
     furyBelowHp: { hp: 10, dmg: 2 },
     roundTick: {
       selfBurnForDmg: { hp: 1, dmg: 2 },
@@ -2386,13 +2385,23 @@ export const CARDS: CardDef[] = [
       // Scorched Fury above feed the eruption they are paying HP to sustain.
       channel: { hpCost: 2, inRangeDmg: 5 },
     },
-    // Trial by Fire: the whole PYRO line pays a point of blood for a round of
-    // fire the moment Magmadon lands.
-    onSummon: {
-      handler: "empowerElement",
-      targetSide: "ally",
-      params: { amount: 2, hpCost: 1, rounds: 1 },
-    },
+    // Volcanic (Aura): +2 DMG and -1 max HP to the Volcanic line — Fenrir,
+    // Volcanon, Infernus Rex, Pyrogon and Magmadon itself.
+    //
+    // It replaces Trial by Fire, which did the same thing ONCE, on arrival, for
+    // a single round: every PYRO ally paid 1 HP for +2 DMG. As a standing aura
+    // the trade is the same shape and always on, and it reads off the board
+    // instead of off a log line that scrolled away three rounds ago.
+    //
+    // THE FIRST AURA IN THE GAME THAT CHARGES FOR WHAT IT GIVES. Negative aura
+    // components were silently discarded before this (see auraPick in state.ts):
+    // the fold kept the highest value from a floor of 0, so -1 was never picked
+    // and this would have shipped as a free +2.
+    //
+    // Retires `empowerElement` — Magmadon was its only caller. Left wired, like
+    // `lure`, for the next card that wants it.
+    passiveNames: { roundTick: "Scorched Fury", furyBelowHp: "Scorched Fury", aura: "Volcanic" },
+    aura: { scope: "tribe", match: "Volcanic", dmg: 2, maxHp: -1 },
     special: {
       name: "Meltdown",
       cost: 4,
@@ -2616,8 +2625,16 @@ export const CARDS: CardDef[] = [
     // On Kill: permanent +7 HP and +1 DMG.
     onKill: { buffMaxHp: 7, buffDmg: 1 },
     // Volcanic (Aura): the mountain lends its PYRO allies its own heat and bulk.
-    passiveNames: { aura: "Volcanic" },
-    aura: { scope: "element", dmg: 1, maxHp: 3 },
+    // Dragon, not Volcanic — the tribe it shares with Sapphire, Hydrogon,
+    // Supernova, Phrost and the rest, rather than every PYRO card on the board.
+    //
+    // NOTE this NARROWS it inside a mono-PYRO deck (element scope reached all 15
+    // of them; Dragon reaches the handful that are Dragons) and WIDENS it
+    // everywhere else, because Dragon is a cross-element tribe 13 strong. It is
+    // a different aura, not a bigger or smaller one. Pyrogon is itself a Dragon,
+    // so it keeps buffing itself either way.
+    passiveNames: { aura: "Dragon" },
+    aura: { scope: "tribe", match: "Dragon", dmg: 1, maxHp: 3 },
     special: {
       name: "Flame Engulf",
       cost: 4,

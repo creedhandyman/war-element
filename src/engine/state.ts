@@ -303,17 +303,34 @@ function auraMatches(a: AuraBonusDef, holder: CardInstance, target: CardInstance
   }
 }
 
+/** Fold a set of matching aura values into one, NON-STACKING IN BOTH
+ *  DIRECTIONS: the strongest positive applies, the harshest negative applies,
+ *  and two auras of the same sign never add.
+ *
+ *  The old rule was `if (v > best) best = v` starting at 0, which quietly
+ *  discarded every NEGATIVE value — a penalty aura simply did nothing, with no
+ *  error and no log line. Magmadon's Volcanic (+2 DMG, -1 HP) is the first aura
+ *  in the game to charge for what it gives, and it would have been a free +2. */
+function auraPick(values: readonly number[]): number {
+  let up = 0;
+  let down = 0;
+  for (const v of values) {
+    if (v > up) up = v;
+    else if (v < down) down = v;
+  }
+  return up + down;
+}
+
 export function auraBonus(state: GameState, card: CardInstance, stat: "dmg" | "sp"): number {
-  let best = 0;
+  const vals: number[] = [];
   for (const holder of boardCards(state, card.owner)) {
     const hDef = getDef(holder.defId);
     for (const a of [hDef.aura, ...(hDef.auras ?? [])]) {
       if (!a || !auraMatches(a, holder, card)) continue;
-      const v = stat === "dmg" ? a.dmg ?? 0 : a.sp ?? 0;
-      if (v > best) best = v;
+      vals.push(stat === "dmg" ? a.dmg ?? 0 : a.sp ?? 0);
     }
   }
-  return best;
+  return auraPick(vals);
 }
 
 /** Every allied aura currently touching `card`, named by its source holder — for
@@ -325,7 +342,10 @@ export function auraSources(state: GameState, card: CardInstance): { name: strin
     for (const a of [hDef.aura, ...(hDef.auras ?? [])]) {
       if (!a || !auraMatches(a, holder, card)) continue;
       const bits = [
-        a.dmg && `+${a.dmg} DMG`, a.sp && `+${a.sp} SP`, a.maxHp && `+${a.maxHp} HP`,
+        // Signed: an aura may now COST something, and "+-1 HP" is not a number.
+        a.dmg && `${a.dmg > 0 ? "+" : ""}${a.dmg} DMG`,
+        a.sp && `${a.sp > 0 ? "+" : ""}${a.sp} SP`,
+        a.maxHp && `${a.maxHp > 0 ? "+" : ""}${a.maxHp} HP`,
         a.shields && `+${a.shields} shield`, a.reflect && `REFLECT ${a.reflect}`, a.pen && "PEN",
       ].filter(Boolean);
       if (bits.length) out.push({ name: hDef.name, text: bits.join(", ") });
@@ -338,13 +358,19 @@ export function auraSources(state: GameState, card: CardInstance): { name: strin
  *  maxHP aura (Kraken's SeaC +4). Equals maxHp for cards under no such aura, so
  *  it's a safe drop-in for every healing cap and the HP display. */
 export function effectiveMaxHp(state: GameState, card: CardInstance): number {
-  let bonus = 0;
+  const vals: number[] = [];
   for (const holder of boardCards(state, card.owner)) {
     const hDef = getDef(holder.defId);
-    if (!hDef.aura?.maxHp || !auraMatches(hDef.aura, holder, card)) continue;
-    if (hDef.aura.maxHp > bonus) bonus = hDef.aura.maxHp;
+    // `auras` too, not just `aura` — the extra slot was skipped here while
+    // auraBonus read both, so a second aura's maxHp was invisible.
+    for (const a of [hDef.aura, ...(hDef.auras ?? [])]) {
+      if (!a?.maxHp || !auraMatches(a, holder, card)) continue;
+      vals.push(a.maxHp);
+    }
   }
-  return card.maxHp + bonus;
+  // Floored at 1: a penalty aura must be able to make a card frail, never to
+  // reduce it to a 0-HP body that every cap and heal then divides against.
+  return Math.max(1, card.maxHp + auraPick(vals));
 }
 
 /** The single choke-point for restoring HP. Honors Bluflame (SEAL): a sealed

@@ -15,7 +15,7 @@ import {
 import { applyStatus, basicAttack, defeatCard, shadeDodgePct, slipstreamDodgePct } from "../combat";
 import { advance, applyIntent, openFlowRepick } from "../phases";
 import { basicIsInert } from "../rules";
-import { boardCards, effectiveDmg, effectiveSp } from "../state";
+import { boardCards, effectiveDmg, effectiveMaxHp, effectiveSp } from "../state";
 import type { Element } from "../types";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 
@@ -578,5 +578,51 @@ describe("the Pirate crew", () => {
     for (const id of ["aqua_blackbeard", "aqua_driftwraith"])
       expect(tribesOf(getDef(id).tribe), `${id} left SeaC`).not.toContain("SeaC");
     expect(tribesOf(getDef("aqua_octoirate").tribe), "Octoirate kept it").toContain("SeaC");
+  });
+});
+
+describe("Pyrogon leads the Dragons, not the whole PYRO line", () => {
+  it("buffs Dragons of ANY element, and skips a PYRO card that is not one", () => {
+    // Rescoped from `scope: "element"` to the Dragon tribe. That NARROWS it in a
+    // mono-PYRO deck and WIDENS it everywhere else — Dragon is cross-element and
+    // 13 strong — so it is a different aura, not a bigger or smaller one.
+    const def = getDef("pyro_pyrogon");
+    expect(def.aura?.scope).toBe("tribe");
+    expect(def.aura?.match).toBe("Dragon");
+
+    const s = prepState();
+    // An AQUA Dragon: proves the aura is not element-filtered.
+    const dragon = place(s, "aqua_sapphire", "P1", 3, 1);
+    // PYRO, but no Dragon tag — the group that used to be covered and is not now.
+    const pyroOnly = place(s, "pyro_firebird", "P1", 3, 2);
+    const dBefore = effectiveDmg(s, s.cards[dragon.instanceId]);
+    const pBefore = effectiveDmg(s, s.cards[pyroOnly.instanceId]);
+
+    place(s, "pyro_pyrogon", "P1", 4, 1);
+    expect(effectiveDmg(s, s.cards[dragon.instanceId]) - dBefore).toBe(def.aura!.dmg);
+    expect(effectiveDmg(s, s.cards[pyroOnly.instanceId]), "PYRO alone is not enough").toBe(pBefore);
+  });
+
+  it("a NEGATIVE aura component actually applies", () => {
+    // The engine used to fold auras with `if (v > best) best = v` from a floor
+    // of 0, so any negative value was silently discarded — Magmadon's Volcanic
+    // (+2 DMG / -1 max HP) would have shipped as a free +2. Both directions are
+    // non-stacking: strongest positive plus harshest negative.
+    const mag = getDef("pyro_magmadon");
+    expect(mag.aura?.maxHp).toBeLessThan(0);
+    const s = prepState();
+    const kin = place(s, "pyro_volcanon", "P1", 3, 1); // Volcanic
+    const before = effectiveMaxHp(s, s.cards[kin.instanceId]);
+    place(s, "pyro_magmadon", "P1", 4, 1);
+    expect(effectiveMaxHp(s, s.cards[kin.instanceId])).toBe(before + mag.aura!.maxHp!);
+  });
+
+  it("and never drives a card's ceiling to zero", () => {
+    // A penalty aura may make a card frail; it must not produce a 0-HP body that
+    // every heal cap and HP readout then divides against.
+    const s = prepState();
+    const tiny = place(s, "pyro_volcanon", "P1", 3, 1, { maxHp: 1, curHp: 1 });
+    place(s, "pyro_magmadon", "P1", 4, 1);
+    expect(effectiveMaxHp(s, s.cards[tiny.instanceId])).toBeGreaterThan(0);
   });
 });

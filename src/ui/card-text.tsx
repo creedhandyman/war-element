@@ -376,9 +376,9 @@ export function describePassives(def: CardDef): string[] {
       a.scope === "class" ? `${el}${a.match} allies` :
       a.scope === "adjacent" ? `adjacent ${el}allies` : `all ${el}allies`;
     const bits = [
-      a.dmg && `+${a.dmg} DMG`,
-      a.sp && `+${a.sp} SP`,
-      a.maxHp && `+${a.maxHp} max HP`,
+      a.dmg && `${a.dmg > 0 ? "+" : ""}${a.dmg} DMG`,
+      a.sp && `${a.sp > 0 ? "+" : ""}${a.sp} SP`,
+      a.maxHp && `${a.maxHp > 0 ? "+" : ""}${a.maxHp} max HP`,
       a.shields && `+${a.shields} shields`,
       a.reflect && `REFLECT ${a.reflect}`,
       a.pen && "PEN on basics",
