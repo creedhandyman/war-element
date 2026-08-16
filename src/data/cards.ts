@@ -2986,10 +2986,27 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 1,
+    // 1x3 -> 1x2, and SP 8 -> 10. 2 + 4 + 10 = 16 against a cost-1 budget of 15,
+    // +1 and inside tolerance. A hit comes off the volley and the points go into
+    // speed, which on GALE is never only speed:
+    //
+    //   · SHIELD STRIPPING, the real cut. Every landed hit chips a plate, so
+    //     three 1-damage pinpricks stripped THREE plates a turn off a cost-1
+    //     body — more than most heavy hitters manage. Two hits strip two.
+    //   · Damage falls a third. Tailwind is per HIT and pays +1 at either speed
+    //     (it steps every 6 SP), so the volley goes from (1+1)x3 = 6 to
+    //     (1+1)x2 = 4 effective.
+    //   · SLIPSTREAM is what the SP actually buys, and it is a THRESHOLD, not a
+    //     slope: dodge starts at 5% once a card is 3 SP clear of 6, so Skyforce
+    //     goes from 0% to 5%. At SP 9 it would have been the same 5%; at 8 it
+    //     was nothing at all. Plus it acts earlier in the speed queue.
+    //
+    // Both shapes stay under MULTI_HIT_BONUS_MIN (4), so the hill keeps giving
+    // it +1 DMG rather than flipping to the +1 HIT branch.
     dmg: 1,
-    hits: 3,
+    hits: 2,
     hp: 4,
-    sp: 8,
+    sp: 10,
     shields: 0,
     keywords: { FLYING: true },
     // Sonic Boom (On Summon): 1 DMG to all opponents.
