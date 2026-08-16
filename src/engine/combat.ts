@@ -17,7 +17,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget } from "./rules";
-import { BOLT_VS_STATUS_DMG, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, PYRO_BURN_STACK_CAP, hasElementAura, slipstreamPct } from "./auras";
+import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, PYRO_BURN_STACK_CAP, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
@@ -824,6 +824,21 @@ export function resolveHit(
       result.dodgedHits++;
       target.fxMiss = (target.fxMiss ?? 0) + 1;
       draft.log.push(`${label(draft, attacker)} misses (BLIND).`);
+      continue;
+    }
+    // Blinding Star (Supernova): a living enemy holder glares the whole board
+    // down — every enemy basic rolls to miss. Board-wide and range-free, unlike
+    // the fields above, because the star is a light source and not a weather
+    // front. Cheap to test (one predicate over the enemy side) and only reached
+    // when the attack is a basic that can miss at all.
+    if (
+      opts.kind === "basic" && !aDef.alwaysHit && !neverMiss &&
+      boardCards(draft, enemyOf(attacker.owner)).some((e) => e.curHp > 0 && getDef(e.defId).blindingStar) &&
+      pctChance(draft, BLINDING_STAR_MISS_PCT)
+    ) {
+      result.dodgedHits++;
+      target.fxMiss = (target.fxMiss ?? 0) + 1;
+      draft.log.push(`${label(draft, attacker)} is dazzled by the Blinding Star and misses.`);
       continue;
     }
     // Shell Tuck (Tide): a flat self-inflicted accuracy penalty on its own basics
@@ -1832,11 +1847,14 @@ export function basicAttack(
   // Sky Scout (Sightwing): while the owner's scout buff is up, a single-target
   // basic also clips ONE enemy adjacent to the primary target. Not for the
   // follow-up shots themselves (no chains).
-  // Blinding Star (Supernova): a living enemy holder suppresses this attacker's
-  // ONE extra splash target — its basics hit one fewer.
-  const blinded = boardCards(draft, enemyOf(attacker.owner)).some((e) => e.curHp > 0 && getDef(e.defId).blindingStar);
   // A team splash aura: a living ally holder grants the whole side the extra
-  // adjacent target, standing (no timer). Blinding Star still cancels it.
+  // adjacent target, standing (no timer).
+  //
+  // Blinding Star used to cancel this. It no longer does — the aura is a flat
+  // accuracy penalty now (see BLINDING_STAR_MISS_PCT), which costs a splashing
+  // attacker its extra target on the same roll that costs it the primary hit.
+  // Nothing else in the game answers a splash aura, so this is a real, if
+  // narrow, loss: Supernova was the only counter to Totem Spirit and Downpour.
   //
   // Two strengths. `true` is a second FULL basic hit (Totem Spirit); a number is
   // a flat chip (Cloudburst's Downpour). The strongest source on the board wins,
@@ -1852,7 +1870,7 @@ export function basicAttack(
     return typeof v === "number" && v > best ? v : best;
   }, 0);
   if (
-    !fromFollowup && agg.landedHits > 0 && attacker.curHp > 0 && !blinded &&
+    !fromFollowup && agg.landedHits > 0 && attacker.curHp > 0 &&
     (auraFull || auraFlat > 0)
   ) {
     const primary = draft.cards[groups[0]?.targetId];
@@ -1879,8 +1897,10 @@ export function basicAttack(
       }
     }
   }
-  // Flying Arrow (Ollie): an allied Ollie standing directly behind this attacker
-  // looses its own shot at the same target. Guarded so a follow-up can't chain.
+  // Flying Arrow (Ollie): an allied Ollie standing directly AHEAD of this
+  // attacker looses its own shot at the same target — the bird takes its cue
+  // from the ally BEHIND it, so it screens forward rather than trailing.
+  // Guarded so a follow-up can't chain.
   if (!fromFollowup && agg.landedHits > 0 && attacker.pos) {
     const primary = draft.cards[groups[0]?.targetId];
     if (primary && primary.curHp > 0) {
@@ -1888,7 +1908,7 @@ export function basicAttack(
         (a) =>
           a.instanceId !== attacker.instanceId && a.curHp > 0 && getDef(a.defId).flyingArrow &&
           a.pos != null && attacker.pos != null && a.pos.col === attacker.pos.col &&
-          rowAhead(a.owner, a.pos.row) === attacker.pos.row,
+          rowAhead(attacker.owner, attacker.pos.row) === a.pos.row,
       );
       for (const archer of archers) {
         if (primary.curHp > 0 && draft.cards[primary.instanceId])
@@ -1912,7 +1932,7 @@ export function basicAttack(
   }
   // Rainstorm (Cloudburst): a landed basic splashes onto one enemy adjacent to the
   // primary target.
-  if (aDef.basicSplash && agg.landedHits > 0 && attacker.curHp > 0 && !blinded) {
+  if (aDef.basicSplash && agg.landedHits > 0 && attacker.curHp > 0) {
     const primary = draft.cards[groups[0]?.targetId];
     if (primary?.pos) {
       const neighbours = boardCards(draft, enemyOf(attacker.owner)).filter(
@@ -4044,6 +4064,45 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     draft.log.push(
       `${label(draft, attacker)} accelerates the burn (2x BURN for ${rounds}r, +${sp} SP` +
       `${permanent ? " permanently" : ""} to ${kin.length} ${el} all(y/ies)).`,
+    );
+  },
+
+  /** Powder Keg (Scallywag): mine the enemy row directly ahead — one concealed
+   *  keg per free slot, armed rather than detonated.
+   *
+   *  Skips slots that already hold a trap (one charge per square, the same rule
+   *  Dark Hunting follows) and slots that are permanently captured, since a
+   *  locked square is not somewhere anything will ever step. */
+  trapRow(draft, attacker, _targets, params) {
+    if (!attacker.pos) return;
+    const row = rowAhead(attacker.owner, attacker.pos.row);
+    if (row < 0 || row >= draft.boardSize) return;
+    const def = getDef(attacker.defId);
+    const dmg = num(params, "dmg", 4);
+    const power = num(params, "statusPower");
+    const duration = num(params, "statusDuration", 2);
+    const kind = params.statusKind;
+    let laid = 0;
+    for (let col = 0; col < draft.boardSize; col++) {
+      if (draft.slots[row][col].capturedBy) continue;
+      if (draft.traps.some((t) => t.pos.row === row && t.pos.col === col)) continue;
+      draft.traps.push({
+        owner: attacker.owner,
+        label: `${def.name}'s Powder Keg`,
+        element: def.element,
+        pos: { row, col },
+        dmg,
+        status: typeof kind === "string" && kind
+          ? { kind: kind as StatusKind, duration, power }
+          : undefined,
+        sourceId: attacker.instanceId,
+      });
+      laid++;
+    }
+    draft.log.push(
+      laid > 0
+        ? `${label(draft, attacker)} mines the row ahead — ${laid} powder keg(s) laid.`
+        : `${label(draft, attacker)} finds nowhere to lay a keg.`,
     );
   },
 

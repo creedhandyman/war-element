@@ -1664,9 +1664,10 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Wolf",
-    // Omega Restore (On Kill): heal +4 HP per opponent killed.
+    // Omega Restore (On Kill): +2 max HP and heal 4 per opponent killed — the
+    // same restore Omega carries, so the pair share their signature.
     passiveNames: { onKill: "Omega Restore" },
-    onKill: { healSelf: 4 },
+    onKill: { buffMaxHp: 2, healSelf: 4 },
   },
   {
     id: "gale_hawk",
@@ -2306,6 +2307,10 @@ export const CARDS: CardDef[] = [
       // In RANGE, not the row ahead: Magmadon is a melee tank that wades into
       // the middle of things, and an eruption that only ever went forward left
       // whatever was packed around it untouched.
+      //
+      // `inRangeDmg` is a FLOOR, not the figure: channelDmg() adds whatever
+      // Magmadon's damage has gained over its printed 7, so the two halves of
+      // Scorched Fury above feed the eruption they are paying HP to sustain.
       channel: { hpCost: 2, inRangeDmg: 5 },
     },
     // Trial by Fire: the whole PYRO line pays a point of blood for a round of
@@ -2325,7 +2330,7 @@ export const CARDS: CardDef[] = [
       handler: "spawn",
       params: { startsChannel: 1 },
       targetSide: "self",
-      text: "Deal 5 DMG to every opponent in range, then keep erupting every round for 2 HP a round — until Magmadon dies, or is FROZEN or ROOTED.",
+      text: "Deal 5 DMG (+ Magmadon's bonus DMG) to every opponent in range, then keep erupting every round for 2 HP a round — until Magmadon dies, or is FROZEN or ROOTED. Scorched Fury makes each eruption hotter than the last.",
     },
   },
   {
@@ -6432,10 +6437,12 @@ export const CARDS: CardDef[] = [
     shields: 1,
     keywords: {},
     tribe: "Wolf",
-    // Ride or Die: Luna grants +3 DMG and +8 HP on summon; each kill grants +2 HP.
-    passiveNames: { summonSelfBuff: "Ride or Die", onKill: "Ride or Die" },
+    // Ride or Die: Luna grants +3 DMG and +8 HP on summon.
+    // Omega Restore: each kill grants +2 max HP and heals 4 — the pair feed on
+    // the hunt, so a kill should put something back as well as build.
+    passiveNames: { summonSelfBuff: "Ride or Die", onKill: "Omega Restore" },
     summonSelfBuff: { dmg: 3, hp: 8 },
-    onKill: { buffMaxHp: 2 },
+    onKill: { buffMaxHp: 2, healSelf: 4 },
     // Search and Destroy: charge up to 3 into the enemy field and deal 10 DMG.
     special: {
       name: "Search and Destroy",
@@ -6587,10 +6594,12 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 0,
     keywords: {},
-    // Twisted Rush (end of its first round): gore the enemy directly ahead for 6;
-    // if it dies, Wailverine takes its slot.
+    // Twisted Rush (end of EVERY round): gore the enemy directly ahead for 3;
+    // if it dies, Wailverine takes its slot. Was a one-off 6 on its first round
+    // only — the same total against a single body, but a standing threat that
+    // keeps pushing rather than a single opening lunge.
     passiveNames: { roundTick: "Twisted Rush" },
-    roundTick: { firstRoundOnly: true, pokeAheadAdvance: 6 },
+    roundTick: { pokeAheadAdvance: 3 },
   },
   {
     id: "gale_vvulture",
@@ -7763,14 +7772,16 @@ export const CARDS: CardDef[] = [
     // Flame Eater: heal 3 HP when it strikes a BURNing opponent.
     passiveNames: { vsStatus: "Flame Eater" },
     vsStatus: { status: "BURN", healOnHit: 3 },
-    // Heat Crunch: the next 3 basic attacks apply BURN 2 for 3 rounds.
+    // Heat Crunch: bite NOW and set the wound alight. Was a loaded buff on the
+    // next three basics — a cost-1 special that did nothing the turn you spent
+    // it, on a melee body that has to survive to cash it in.
     special: {
       name: "Heat Crunch",
       cost: 1,
-      handler: "loadOnHit",
-      params: { statusKind: "BURN", statusPower: 2, statusDuration: 3, attacks: 3 },
-      targetSide: "self",
-      text: "Your next 3 basic attacks apply BURN 2 for 3 rounds.",
+      handler: "strike",
+      params: { dmg: 6, statusKind: "BURN", statusPower: 2, statusDuration: 3 },
+      targetSide: "enemy",
+      text: "Bite an opponent for 6 DMG and set BURN 2 on it for 3 rounds.",
     },
   },
   {
@@ -7792,16 +7803,16 @@ export const CARDS: CardDef[] = [
     passiveNames: { onHitStatus: "Bounty Hunter", onEnemySpecial: "Bounty Hunter" },
     onHitStatus: { kind: "BURN", duration: 2, power: 2 },
     onEnemySpecial: { status: { kind: "BURN", duration: 2, power: 2 } },
-    // Powder Keg: a fire bomb on the enemy row ahead — 2 DMG + BURN. (Doc's
-    // home-slot trap trigger simplified.)
+    // Powder Keg: MINE the row ahead rather than blowing it now. The kegs sit
+    // concealed until something walks onto one — which is the trap trigger the
+    // card was written around before it was simplified into instant damage.
     special: {
       name: "Powder Keg",
       cost: 2,
-      handler: "barrage",
-      params: { dmg: 2, rowAhead: 1, targets: 99, statusKind: "BURN", statusPower: 2, statusDuration: 2 },
-      targetSide: "enemy",
-      ranged: true,
-      text: "Bomb the enemy row ahead for 2 DMG and BURN 2.",
+      handler: "trapRow",
+      params: { dmg: 6, statusKind: "BURN", statusPower: 2, statusDuration: 2 },
+      targetSide: "self",
+      text: "Lay a concealed powder keg on every open slot of the enemy row ahead. Each deals 6 DMG and BURN 2 to the first opponent that moves onto it.",
     },
   },
   {
@@ -8120,10 +8131,29 @@ export const CARDS: CardDef[] = [
     shields: 2,
     keywords: {},
     // Electro Knight: +1 shield each round, and a broken shield PARALYZEs the
-    // breaker for 2 rounds. Aura: opponents in range are ELECTRIFIED, so BOLT
-    // allies (which hit statused foes harder) get the bonus against them.
-    passiveNames: { onShieldBreak: "Electro Knight" },
-    roundTick: { selfShields: 1, selfShieldsMax: 5, inRangeStatus: { kind: "ELECTRIFIED", duration: 1, power: 0 } },
+    // breaker for 2 rounds.
+    //
+    // Live Current is the aura, and it is now a FIELD rather than a pulse. It
+    // used to be `roundTick.inRangeStatus` — a 1-round mark, reapplied every
+    // Cleanup, to whatever happened to be in reach at that moment. Two things
+    // were wrong with that on a cost-9 mythic. Range: a Ranged knight standing
+    // in its own home row can see very little, so the "aura" routinely lit up
+    // nobody. And timing: a 1-round status refreshed at Cleanup means allies
+    // attacking earlier in the round found the mark already expired — the very
+    // window the +2-vs-statused payoff is supposed to open.
+    //
+    // So it lands ONCE and stays: every opponent on the board when the Knight
+    // arrives (onSummon, reachNearest = the whole board, not its reach), and
+    // every opponent that arrives afterwards (onOppSummon). Duration 99 is the
+    // codebase's existing "for the match" idiom — see Voltis' arrival volley.
+    passiveNames: { onShieldBreak: "Electro Knight", onSummon: "Live Current", onOppSummon: "Live Current" },
+    roundTick: { selfShields: 1, selfShieldsMax: 5 },
+    onSummon: {
+      handler: "statusNova",
+      targetSide: "enemy",
+      params: { reachNearest: 1, targets: 99, statusKind: "ELECTRIFIED", statusDuration: 99 },
+    },
+    onOppSummon: { boardWide: true, status: { kind: "ELECTRIFIED", duration: 99, power: 0 } },
     onShieldBreak: { status: { kind: "PARALYZE", duration: 2, power: 0 } },
     // Ultra Power Gauntlets: +2 DMG, FLYING, and basics clip +1 adjacent target,
     // all for 3 rounds.
@@ -8341,8 +8371,10 @@ export const CARDS: CardDef[] = [
     tribe: "Forged Tech",
     // Unstable Core (On Death): a final explosion — 10 DMG to every opponent on
     // the board, however it dies.
-    passiveNames: { deathExplosion: "Unstable Core" },
+    // Forged Tech (Aura): the whole workshop runs hotter — +1 DMG and +3 SP.
+    passiveNames: { deathExplosion: "Unstable Core", aura: "Forged Tech" },
     deathExplosion: 10,
+    aura: { scope: "tribe", match: "Forged Tech", dmg: 1, sp: 3 },
     // Volatile Formula: 13 DMG to all opponents in range, 30% chance to double.
     special: {
       name: "Volatile Formula",
@@ -8402,14 +8434,16 @@ export const CARDS: CardDef[] = [
     cost: 9,
     dmg: 7,
     hits: 2,
-    hp: 32,
+    // 14 + 34 + 9 = 57 against a cost-9 budget of 55 — inside the ±2 the stat
+    // test allows, and the two points are what the aura's rewrite is paid with.
+    hp: 34,
     sp: 9,
     shields: 0,
     keywords: { FLYING: true },
     tribe: "Dragon",
     // Immediate Impact (On Summon): 2 DMG to all opponents on arrival.
     onSummon: { handler: "barrage", params: { dmg: 2, targets: 99 } },
-    // Blinding Star (Aura): opponents' basics hit one fewer target.
+    // Blinding Star (Aura): every enemy basic attack rolls a 10% miss.
     passiveNames: { blindingStar: "Blinding Star" },
     blindingStar: true,
     // Gamma Ray Burst: 14 DMG to a target AND to opponents adjacent to it (same
@@ -8706,6 +8740,10 @@ export const CARDS: CardDef[] = [
     // Crystal Carapace: BLOCK 1 (harder shields) and REFLECT 1 back at attackers.
     keywords: { BLOCK: 1, REFLECT: 1 },
     tribe: "Cavernous",
+    // Cavernous (Aura): the carapace is catching — Cavernous allies gain
+    // REFLECT 1. Stacks onto their own REFLECT rather than replacing it.
+    passiveNames: { aura: "Cavernous" },
+    aura: { scope: "tribe", match: "Cavernous", reflect: 1 },
     // Core Drill: burrow straight through its own column, 12 PEN to every
     // opponent standing in it.
     special: {
@@ -8809,7 +8847,7 @@ export const CARDS: CardDef[] = [
       handler: "spawn",
       params: { token: "gale_ollie", count: 3, radius: 2 },
       targetSide: "self",
-      text: "Spawn 3 attacking Ollies — each also fires at whatever the ally in front of it strikes.",
+      text: "Spawn 3 attacking Ollies — each also fires at whatever the ally behind it strikes at.",
     },
   },
   {
@@ -8933,7 +8971,7 @@ export const TOKENS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: { FLYING: true },
-    // Flying Arrow: also fires at whatever the ally directly in front of it just
+    // Flying Arrow: also fires at whatever the ally directly BEHIND it just
     // struck with a basic attack.
     passiveNames: { flyingArrow: "Flying Arrow" },
     flyingArrow: true,

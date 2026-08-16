@@ -336,8 +336,10 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           }
           continue; // the drone made the reaction; the guard itself does nothing more
         }
-        // Only reacts to a newcomer it can actually reach (in targeting range).
-        if (!canTarget(draft, guard, inst)) continue;
+        // Only reacts to a newcomer it can actually reach (in targeting range)
+        // — unless the reaction is an aura rather than a strike, which is not
+        // aimed at anything and so has nothing to reach. See `boardWide`.
+        if (!gd.onOppSummon.boardWide && !canTarget(draft, guard, inst)) continue;
         spend();
         if (gd.onOppSummon.dmg && inst.curHp > 0) {
           // Log it under the passive's name — the generic "hits for N" line reads
@@ -1498,7 +1500,7 @@ function performBattleAction(
       // paid magic for it), then the channel takes over from next Cleanup.
       const ch = def.roundTick?.channel;
       if (ch) {
-        const hit = eruptInRange(draft, card, ch.inRangeDmg);
+        const hit = eruptInRange(draft, card, channelDmg(draft, card, ch.inRangeDmg));
         draft.log.push(`${label(draft, card)} erupts — ${hit} caught in range.`);
       }
       card.channelOn = true;
@@ -1915,6 +1917,21 @@ function eruptInRange(draft: GameState, card: CardInstance, dmg: number): number
   return caught.length;
 }
 
+/** Meltdown's blast strength (Magmadon). Scorched Fury's whole premise is that
+ *  the volcano gets angrier the longer it burns — and the eruption is the thing
+ *  it is angry WITH. A flat 5 meant every point of self-inflicted bleed bought
+ *  a bigger BASIC attack only, while the channel those points are spent
+ *  sustaining stayed exactly as hot as the round it was lit. The blast now
+ *  carries whatever the card's damage has gained over its printed number: the
+ *  round buff, the below-10 fury, an ally's aura, all of it.
+ *
+ *  Floored at the printed base, so WEAKEN shrinks the swing and not the
+ *  mountain — and read fresh each Cleanup rather than banked at cast time,
+ *  which is what makes bleeding itself down a plan rather than a cost. */
+function channelDmg(draft: GameState, card: CardInstance, base: number): number {
+  return base + Math.max(0, effectiveDmg(draft, card) - getDef(card.defId).dmg);
+}
+
 /** Resolve every card's periodic (end-of-round) self-driven passive. Runs in
  *  Cleanup after DOT/REGEN and status-duration ticks. */
 function doRoundTicks(draft: GameState): void {
@@ -2076,7 +2093,7 @@ function doRoundTicks(draft: GameState): void {
         draft.log.push(`${label(draft, card)} burns out — the meltdown ends.`);
       } else {
         card.curHp -= rt.channel.hpCost;
-        eruptInRange(draft, card, rt.channel.inRangeDmg);
+        eruptInRange(draft, card, channelDmg(draft, card, rt.channel.inRangeDmg));
         draft.log.push(`${label(draft, card)} erupts again (−${rt.channel.hpCost} HP).`);
       }
     }

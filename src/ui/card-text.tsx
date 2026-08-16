@@ -13,7 +13,7 @@
  */
 import type { ReactNode } from "react";
 import type { CardDef, StatusKind } from "../engine";
-import { ELEMENT_AURA, getDef } from "../engine";
+import { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, getDef } from "../engine";
 import { KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 
 // Colour lookup for keyword/status terms so they render as chips in card text.
@@ -442,7 +442,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.falseHead)
     named("falseHead", `once per game, the first BASIC attack against it hits a decoy head and deals no damage. Specials go through.`);
   if (def.flyingArrow)
-    named("flyingArrow", `Flying Arrow: also attacks whatever the ally directly in front of it strikes with a basic attack.`);
+    named("flyingArrow", `Flying Arrow: also attacks whatever the ally directly behind it strikes with a basic attack.`);
   if (def.skyScout)
     named("skyScout", `Sky Scout: when it enters a Mid row, allies' basic attacks hit +1 adjacent target for the round.`);
   if (def.critPen)
@@ -573,7 +573,7 @@ export function describePassives(def: CardDef): string[] {
       `Aura: opponents within ${def.intimidate.rows === 1 ? "one row" : `${def.intimidate.rows} rows`} whose DMG is lower than this card's CURRENT DMG lose ${def.intimidate.dmg} DMG from their basic attacks.`,
     );
   if (def.blindingStar)
-    named("blindingStar", `Blinding Star (Aura): while it lives, opponents' basic attacks hit one fewer target (their splash is suppressed).`);
+    named("blindingStar", `Blinding Star (Aura): while it lives, every opponent's basic attacks have a ${BLINDING_STAR_MISS_PCT}% chance to miss.`);
   if (def.splashAura)
     // Phrased to PARALLEL `basicSplash` above when it is a flat number, because
     // that is what it now is — the same splash, granted to the whole team.

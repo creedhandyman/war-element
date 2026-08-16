@@ -452,8 +452,9 @@ export interface CardDef {
   /** Braced Stance (Stormhide Bison): immune to knockback / pull — it plants and
    *  the storms other GALE cards ride wash over it. */
   pushImmune?: boolean;
-  /** Flying Arrow (Ollie): also fires at whatever the ally directly in front of
-   *  it just struck with a basic attack. */
+  /** Flying Arrow (Ollie): also fires at whatever the ally directly BEHIND it
+   *  just struck with a basic attack — the bird flies point and answers the
+   *  shot called from behind it. */
   flyingArrow?: boolean;
   /** Sky Scout (Sightwing): entering a Mid row lets allied basics hit +1 adjacent
    *  target for the round. */
@@ -664,6 +665,17 @@ export interface CardDef {
      *  pays out a drone per body, which is the whole opponent's turn punished
      *  several times over by a single 3-cost card. */
     oncePerRound?: boolean;
+    /** Ignore the reach gate — react to a newcomer ANYWHERE on the board
+     *  (Velvolt Knight's Live Current).
+     *
+     *  The gate is right for a reaction that is a strike: something has to be
+     *  in range to be hit. It is wrong for an aura, and every arrival lands in
+     *  the summoning player's HOME ROW, which the Home Slot rule puts outside
+     *  normal targeting entirely — so a range-gated reaction to a summon is
+     *  close to a reaction to nothing. Opt-in rather than the default, because
+     *  the existing carriers (Cave Guard, Shocker, Drone Sweep) are strikes and
+     *  are balanced around having to reach. */
+    boardWide?: boolean;
   };
   /** This card's attacks do NOT wake SLEEPING targets (Dunewraith's Nightmare —
    *  his hits ignore SLEEP's break-on-hit rule). */
@@ -808,11 +820,16 @@ export interface CardDef {
    *  Only basics: it is read inside effectiveDmg, and Specials carry their own
    *  printed damage rather than routing through it. */
   intimidate?: { dmg: number; rows: number };
-  /** Blinding Star (Supernova): while this card lives, opponents' basic attacks
-   *  hit ONE fewer target — their extra/splash target is suppressed. */
+  /** Blinding Star (Supernova): while this card lives, every OPPONENT's basic
+   *  attack rolls a flat BLINDING_STAR_MISS_PCT chance to miss — board-wide,
+   *  range-free, per hit.
+   *
+   *  It used to suppress the attacker's extra splash target instead, which only
+   *  bit against the few cards carrying `basicSplash` or `splashAura` and was
+   *  inert against everything else. See auras.ts for why 10%. */
   blindingStar?: boolean;
   /** A team aura: while this card lives, its side's basic attacks also clip ONE
-   *  extra adjacent target. (The mirror of Blinding Star; the two cancel out.)
+   *  extra adjacent target.
    *
    *  `true` = the extra target takes FULL basic damage (Totem Spirit).
    *  A number = it takes that flat amount instead (Cloudburst's Downpour, which

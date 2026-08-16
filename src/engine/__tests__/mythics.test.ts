@@ -989,3 +989,54 @@ describe("Shadow Charge rides diagonally, and tramples along the diagonal", () =
     expect(Math.max(Math.abs(p.row - 1), Math.abs(p.col - 3))).toBeGreaterThan(1);
   });
 });
+
+describe("mythic auras that stand rather than pulse", () => {
+  it("Velvolt Knight's Live Current electrifies the whole enemy board, in range or not", () => {
+    const s = prepState();
+    s.players.P1.gold = 30;
+    // One enemy the Knight can plainly see, and one in the enemy HOME row —
+    // which the Home Slot rule puts outside a Ranged card's normal targeting
+    // entirely. The old roundTick version, scoped to what was in reach, lit up
+    // neither reliably; this is the case that proves the aura is board-wide.
+    const near = place(s, "dusk_gool", "P2", 2, 0);
+    const homeRow = place(s, "dusk_gool", "P2", 0, 4);
+    const handId = giveHand(s, "P1", "bolt_velvolt_knight");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 2 });
+    expect(statusOf(next.cards[near.instanceId], "ELECTRIFIED")).toBeTruthy();
+    expect(statusOf(next.cards[homeRow.instanceId], "ELECTRIFIED")).toBeTruthy();
+    // And it STANDS: not a 1-round mark waiting on the next Cleanup to be
+    // reapplied, which is what made the old aura miss the window its own +DMG
+    // payoff was supposed to open.
+    expect(statusOf(next.cards[near.instanceId], "ELECTRIFIED")!.duration).toBeGreaterThan(10);
+  });
+
+  it("…and catches opponents that arrive after it", () => {
+    const s = prepState(42, "P2"); // P2 is the one summoning here
+    s.players.P2.gold = 30;
+    // The Knight is PLACED rather than summoned: what is under test is the
+    // reaction to a later arrival, and driving two summons through the real
+    // priority handshake would be testing the turn order instead.
+    place(s, "bolt_velvolt_knight", "P1", 4, 2);
+    const goolHand = giveHand(s, "P2", "dusk_gool");
+    const after = applyIntent(s, { type: "SUMMON", player: "P2", handId: goolHand, col: 3 });
+    const newcomer = boardCards(after, "P2").find((c) => c.defId === "dusk_gool")!;
+    expect(statusOf(after.cards[newcomer.instanceId], "ELECTRIFIED")).toBeTruthy();
+  });
+
+  it("Nitro's Forged Tech aura is +1 DMG / +3 SP, and includes Nitro", () => {
+    const s = prepState();
+    const nitro = place(s, "pyro_nitro", "P1", 3, 0);
+    const def = getDef("pyro_nitro");
+    // Non-stacking auras include the holder when it matches its own scope, which
+    // Nitro does — it is Forged Tech itself.
+    expect(effectiveDmg(s, s.cards[nitro.instanceId])).toBe(def.dmg + 1);
+    expect(effectiveSp(s, s.cards[nitro.instanceId])).toBe(def.sp + 3);
+    // A Forged Tech ally picks it up; anything else on the same side does not.
+    const mate = CARDS.find((c) => c.tribe === "Forged Tech" && c.id !== "pyro_nitro");
+    expect(mate, "the aura has somebody to buff").toBeTruthy();
+    const ally = place(s, mate!.id, "P1", 4, 1);
+    const outsider = place(s, "dusk_gool", "P1", 4, 2);
+    expect(effectiveSp(s, s.cards[ally.instanceId]) - getDef(mate!.id).sp).toBe(3);
+    expect(effectiveSp(s, s.cards[outsider.instanceId])).toBe(getDef("dusk_gool").sp);
+  });
+});

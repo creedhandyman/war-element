@@ -151,6 +151,22 @@ export const LEAF_SHIELD_CAP = 3;
  *  part that was double-counting. */
 export const BOLT_VS_STATUS_DMG = 1;
 
+/** Blinding Star (Supernova): the flat miss chance its glare imposes on every
+ *  enemy basic attack, board-wide, while it lives.
+ *
+ *  It replaces a splash SUPPRESSION — "opponents' basics hit one fewer target" —
+ *  which read as a strong aura and almost never did anything: it only bit
+ *  against the handful of cards carrying `basicSplash` or a `splashAura`, so
+ *  against most boards the mythic's signature aura was literally inert. A miss
+ *  chance applies to every attacker on the field.
+ *
+ *  10 is deliberately small next to BLIND's 50. BLIND is a status somebody has
+ *  to land, lasts a few rounds and is cleansable; this is unconditional,
+ *  uncleansable, and covers the whole enemy side for as long as a 34 HP flier
+ *  survives. Rolled per HIT, like every other accuracy check in the chain, so a
+ *  multi-hit attacker loses a fraction of its volley rather than all of it. */
+export const BLINDING_STAR_MISS_PCT = 10;
+
 /** Scorch stacks its BURN to here and no further. Uncapped, a multi-hit PYRO
  *  card would stack a lethal DOT off one attack and the aura would stop being
  *  chip damage. */

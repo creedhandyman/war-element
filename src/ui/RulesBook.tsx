@@ -273,7 +273,7 @@ export function RulesBook(props: { onClose: () => void }) {
               <li><b>WEAKEN</b> — deals 25% less damage.</li>
               <li><b>BLIND</b> — its basic attacks have a ~50% chance to miss.</li>
               <li><b>SEAL</b> — cannot be healed while sealed.</li>
-              <li><b>ELECTRIFIED</b> — harmless on its own, but Bolt cards deal +2 DMG to <i>any</i> statused foe.</li>
+              <li><b>ELECTRIFIED</b> — harmless on its own, but Bolt cards deal +1 DMG to <i>any</i> statused foe.</li>
               <li><b>STEALTH / EVASION</b> — also appear as timed <i>buffs</i>: temporary untargetability or dodge.</li>
             </ul>
           </section>

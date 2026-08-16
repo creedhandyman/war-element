@@ -261,23 +261,60 @@ describe("medium-tier passives (audit batch)", () => {
     expect(40 - s.cards[other.instanceId].curHp).toBe(2);
   });
 
-  it("Supernova's Blinding Star cancels a granted splash target", () => {
-    const splashDealt = (withStar: boolean) => {
-      const s = prepState();
-      // The granter is Cloudburst's Downpour, not Totem: Totem Spirit is an
-      // ACCURACY aura now and grants no splash at all. Downpour is a flat chip
-      // (splashAura: 1) not a full basic, so the number is 1 — what is under test
-      // is whether Blinding Star cancels the grant, not how big the grant is.
-      const gool = place(s, "dusk_gool", "P1", 3, 0); // 4 DMG, no splash of its own
-      place(s, "aqua_rain", "P1", 3, 1); // Downpour grants P1 the extra target
-      const primary = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
-      const adj = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
-      if (withStar) place(s, "dawn_supernova", "P2", 0, 3); // Blinding Star on the enemy side
-      basicAttack(s, gool.instanceId, primary.instanceId);
-      return 40 - s.cards[adj.instanceId].curHp;
-    };
-    expect(splashDealt(false)).toBe(1); // Downpour grants the extra target
-    expect(splashDealt(true)).toBe(0); // Blinding Star cancels it
+  /** One Gool basic into a wall of HP, with the option of a Supernova watching
+   *  from the far corner. `seed` drives the miss roll; the primary's HP loss is
+   *  what comes back. */
+  function goolSwing(seed: number, withStar: boolean): { primary: number; adjacent: number } {
+    const s = prepState();
+    const gool = place(s, "dusk_gool", "P1", 3, 0); // 4 DMG, no splash of its own
+    place(s, "aqua_rain", "P1", 3, 1); // Downpour grants P1 an extra adjacent target
+    const primary = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const adj = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    if (withStar) place(s, "dawn_supernova", "P2", 0, 3); // out of everyone's reach
+    s.rngState = seed;
+    basicAttack(s, gool.instanceId, primary.instanceId);
+    return { primary: 40 - s.cards[primary.instanceId].curHp, adjacent: 40 - s.cards[adj.instanceId].curHp };
+  }
+
+  it("Supernova's Blinding Star makes enemy basics miss", () => {
+    // Statistical rather than seed-pinned: the accuracy chain is a sequence of
+    // guarded rolls, and pinning a seed asserts the ORDER of that sequence as
+    // much as the aura. Over 300 swings a 10% miss chance is unmistakable and
+    // cannot be flaky — the alternative hypothesis is that the star does
+    // nothing at all, which reads as an exact tie.
+    let clean = 0;
+    let dazzled = 0;
+    for (let seed = 0; seed < 300; seed++) {
+      clean += goolSwing(seed, false).primary;
+      dazzled += goolSwing(seed, true).primary;
+    }
+    expect(clean, "nothing else in this setup can cause a miss").toBe(300 * 4);
+    expect(dazzled).toBeLessThan(clean);
+    // ~10% of the damage lost. Wide bands: this asserts the magnitude is the one
+    // the constant names, not that the RNG hit its expectation exactly.
+    const lost = (clean - dazzled) / clean;
+    expect(lost).toBeGreaterThan(0.02);
+    expect(lost).toBeLessThan(0.25);
+  });
+
+  it("Blinding Star no longer cancels a granted splash target", () => {
+    // It used to, and that was the whole aura. Losing the counter is a real
+    // (if narrow) cost of the rewrite, so it is asserted rather than left to be
+    // rediscovered — with the star standing, Downpour's grant still lands.
+    const swings = Array.from({ length: 120 }, (_, seed) => goolSwing(seed, true));
+    // Without it, the grant is unconditional: every swing splashes for 1.
+    expect(Array.from({ length: 120 }, (_, seed) => goolSwing(seed, false))
+      .every((r) => r.primary === 4 && r.adjacent === 1)).toBe(true);
+    // With it, the clip is a basic attack in its own right (it goes back through
+    // resolveHit), so it rolls its own miss — but it is suppressed by the ROLL,
+    // never by the aura. Most connect.
+    const landed = swings.filter((r) => r.primary > 0);
+    expect(landed.length, "most swings still connect").toBeGreaterThan(90);
+    expect(landed.filter((r) => r.adjacent === 1).length / landed.length).toBeGreaterThan(0.75);
+    // And the ordering invariant holds in both directions: no clip without a
+    // landed primary, and the clip is never bigger than the grant.
+    expect(swings.some((r) => r.primary === 0 && r.adjacent > 0)).toBe(false);
+    expect(swings.every((r) => r.adjacent <= 1)).toBe(true);
   });
 
   it("Liquark's Lurk gives +4 DMG/+4 SP while STEALTHed, lost the moment it attacks", () => {
@@ -3314,13 +3351,25 @@ describe("Meltdown erupts in every direction, not just forward", () => {
     };
   }
 
+  /** The eruption is 5 PLUS whatever Magmadon's damage has gained over its
+   *  printed 7 — so the expected number is derived, not typed. Written flat as
+   *  `35` this test broke the moment the blast started scaling, for the mundane
+   *  reason that row 2 is a mid row and King of the Hill was quietly adding a
+   *  point. Deriving it measures the eruption; hardcoding it measured the board
+   *  the test happened to set up. */
+  function blast(s: GameState, mag: { instanceId: string }): number {
+    return 5 + Math.max(0, effectiveDmg(s, s.cards[mag.instanceId]) - getDef("pyro_magmadon").dmg);
+  }
+
   it("the opening blast catches everything it can reach", () => {
     const { s, mag, beside, diagBack, farAhead } = surrounded();
+    const hit = blast(s, mag);
+    expect(hit, "the hill is stoking it").toBeGreaterThan(5);
     const next = applyIntent(battleWith(s, mag.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: mag.instanceId,
     });
-    expect(next.cards[beside.instanceId].curHp, "beside it").toBe(35);
-    expect(next.cards[diagBack.instanceId].curHp, "diagonally behind").toBe(35);
+    expect(next.cards[beside.instanceId].curHp, "beside it").toBe(40 - hit);
+    expect(next.cards[diagBack.instanceId].curHp, "diagonally behind").toBe(40 - hit);
     expect(next.cards[farAhead.instanceId].curHp, "row ahead but out of reach").toBe(40);
   });
 
@@ -3331,7 +3380,31 @@ describe("Meltdown erupts in every direction, not just forward", () => {
     });
     expect(lit.cards[mag.instanceId].channelOn).toBe(true);
     const after = advance(atCleanup(lit));
-    expect(after.cards[beside.instanceId].curHp).toBeLessThan(35);
+    expect(after.cards[beside.instanceId].curHp).toBeLessThan(40 - blast(lit, mag));
+  });
+
+  it("Scorched Fury feeds the eruption it is bleeding to sustain", () => {
+    // The point of the change. A channel that erupted for a flat 5 ignored every
+    // point of damage Magmadon had paid HP to buy — the passive and the Special
+    // it sustains ran on separate books.
+    //
+    // Measured as two real Cleanups rather than against a pre-tick reading of
+    // blast(): selfBurnForDmg resolves BEFORE the channel in the same tick, so
+    // the eruption already carries that round's +2 by the time it fires, and a
+    // number computed beforehand is short by exactly that.
+    const tickDealt = (startHp?: number) => {
+      const { s, mag, beside } = surrounded();
+      const lit = applyIntent(battleWith(s, mag.instanceId), {
+        type: "BATTLE_ACTION", player: "P1", action: "special", targetId: mag.instanceId,
+      });
+      if (startHp != null) lit.cards[mag.instanceId].curHp = startHp;
+      const before = lit.cards[beside.instanceId].curHp;
+      const after = advance(atCleanup(lit));
+      return before - after.cards[beside.instanceId].curHp;
+    };
+    // 9 HP: under furyBelowHp's threshold of 10, so the wounded volcano adds its
+    // +2 on top of the round buff both cases get.
+    expect(tickDealt(9) - tickDealt()).toBe(2);
   });
 });
 

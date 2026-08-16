@@ -51,7 +51,7 @@ export { effectiveBasicHits } from "./combat";
 export { aiMulligan, aiPrepIntent, chooseBattleAction } from "./ai";
 export { CARDS, CARD_INDEX, getDef, DECK_P1, DECK_P2, DECKS, deckById, CORES, coreById, pairingCards } from "../data/cards";
 export type { DeckDef, CoreDef } from "../data/cards";
-export { ELEMENT_AURA, GALE_SP_CAP, FLOW_MODES, liquidGivesHit } from "./auras";
+export { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, GALE_SP_CAP, FLOW_MODES, liquidGivesHit } from "./auras";
 export type { AuraDef, FlowMode } from "./auras";
 export { ELEMENT_MATCHUP } from "./matchups";
 export type { MatchupDef } from "./matchups";
