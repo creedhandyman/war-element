@@ -3150,13 +3150,23 @@ export const CARDS: CardDef[] = [
     passiveNames: { onHitSelfBuff: "Rager Twins" },
     onHitSelfBuff: { dmg: 1, max: 3 }, // 2 hits, so +3 is +6 on the swing — Volcanon's +5 ceiling, adjusted for the extra hit
     weakBelowHp: { hp: 12, dmgMult: 0.5 },
+    // Doubled damage, and the sustain changes KIND: `selfMaxHp` raises the
+    // ceiling permanently (and the current HP with it) where `healSelf` only
+    // topped up toward a fixed 29. On a card whose own Rager Twins ramp is
+    // switched OFF below 12 HP, a bigger pool is worth more than a bigger heal —
+    // it moves the floor it must not fall through, rather than climbing back
+    // toward it. It also stacks across casts, which a heal cannot.
+    //
+    // Twins measured LAST of every card ranked in mixed decks (-25.7 against its
+    // cost-5 cohort), though at n=42 that carries a +/-15 band — this is a buff
+    // aimed at a card that reads weak rather than one proven weak.
     special: {
       name: "Double Trouble",
       cost: 2,
       handler: "strike",
-      params: { dmg: 2, hits: 2, healSelf: 6 },
+      params: { dmg: 4, hits: 2, selfMaxHp: 8 },
       targetSide: "enemy",
-      text: "Deal 2×2 DMG to an opponent and gain +6 HP.",
+      text: "Deal 2×4 DMG to an opponent and gain +8 max HP.",
     },
   },
   {
@@ -8743,8 +8753,9 @@ export const CARDS: CardDef[] = [
     attackType: "Ranged",
     cost: 3,
     // Was DMG 0 — literally unable to make a basic attack, so a whole turn of
-    // the card did nothing but tick. DMG 2 (paid for out of HP) makes it a body
-    // that can actually swing while Moving Forest carries the real output.
+    // the card did nothing but tick. A printed 3 (paid for out of HP) makes it a
+    // body that can actually swing while Moving Forest carries the real output.
+    // (This comment said "DMG 2" while the field read 3; the field is right.)
     dmg: 3,
     hits: 1,
     hp: 23,
@@ -8752,11 +8763,19 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Moving Forest (End of Round): march forward one space if it's open (this
-    // overrides its SP 0), and drop fruit — 3 DMG to the nearest opponent and
-    // +3 HP to the lowest-HP ally.
+    // overrides its SP 0), and drop fruit — 2 DMG to the nearest opponent and
+    // +2 HP to the lowest-HP ally.
     // Undergrowth: a landed basic ROOTs for 2 rounds.
+    //
+    // Down from 3 and 3. Moving Forest is unconditional, needs no target, no
+    // magic and no cooldown, and fires EVERY round from a cost-3 body that also
+    // walks itself forward at SP 0 — so it is free value that compounds with
+    // how long the card survives, which Root Growth's doubled healing is built
+    // to extend. It measured +20.4 against its cost-3 cohort over n=187, third
+    // of every card ranked in mixed decks and the highest with a sample that
+    // size.
     passiveNames: { roundTick: "Moving Forest", healReceivedMult: "Root Growth", onHitStatus: "Undergrowth" },
-    roundTick: { advance: 1, randomEnemyDmg: 3, healLowestAlly: 3 },
+    roundTick: { advance: 1, randomEnemyDmg: 2, healLowestAlly: 2 },
     onHitStatus: { kind: "ROOT", duration: 2, power: 0 },
     // Root Growth: drinks in 2× from every healing source.
     healReceivedMult: 2,

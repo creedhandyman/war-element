@@ -3913,3 +3913,78 @@ describe("token spawns are mirror-symmetric between the seats", () => {
     }
   });
 });
+
+describe("Double Trouble (Twins) and Moving Forest (Elephlora)", () => {
+  it("Double Trouble hits twice for 4 and raises the CEILING, not just the pool", () => {
+    // selfMaxHp is not a heal: it lifts maxHp AND curHp together, so it works
+    // at full health where healSelf did nothing. That matters on this card
+    // specifically — Rager Twins switches OFF below 12 HP, so a bigger pool
+    // moves the floor it must not fall through rather than climbing back to it.
+    const s = prepState();
+    s.players.P1.magicPool = 10;
+    const twins = place(s, "pyro_twins", "P1", 3, 0, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 99, maxHp: 99, curShields: 0 });
+    const maxBefore = s.cards[twins.instanceId].maxHp;
+    const hpBefore = s.cards[twins.instanceId].curHp;
+    expect(hpBefore, "at FULL health, so a heal would be wasted here").toBe(maxBefore);
+
+    const n = applyIntent(battleWith(s, twins.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    const p = getDef("pyro_twins").special!.params!;
+    expect(99 - n.cards[foe.instanceId].curHp).toBe(Number(p.dmg) * Number(p.hits));
+    expect(n.cards[twins.instanceId].maxHp - maxBefore).toBe(Number(p.selfMaxHp));
+    expect(n.cards[twins.instanceId].curHp - hpBefore).toBe(Number(p.selfMaxHp));
+  });
+
+  it("…and the max-HP gain STACKS with every cast — it has no lifetime cap", () => {
+    // Pinned deliberately rather than left implicit. selfMaxHp does not go
+    // through cappedSelfGrowth (only selfDmg does) and this Special declares no
+    // `maxStacks`, so on the default 2-round cooldown the gain repeats for as
+    // long as the game runs. The one other permanently-stacking Special in the
+    // pool pairs selfMaxHp with `maxStacks: 3`. If that limit is ever wanted
+    // here, this test is where the change will show up.
+    const s = prepState();
+    s.players.P1.magicPool = 30;
+    const twins = place(s, "pyro_twins", "P1", 3, 0, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 999, maxHp: 999, curShields: 0 });
+    const gain = Number(getDef("pyro_twins").special!.params!.selfMaxHp);
+    let cur = s;
+    for (let i = 0; i < 3; i++) {
+      cur = applyIntent(battleWith(cur, twins.instanceId), {
+        type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+      });
+      cur.cards[twins.instanceId].specialCooldown = 0; // skip the wait, not the rule
+    }
+    expect(cur.cards[twins.instanceId].maxHp).toBe(getDef("pyro_twins").hp + 3 * gain);
+    expect(getDef("pyro_twins").special!.params!.maxStacks, "no lifetime cap declared").toBeUndefined();
+  });
+
+  it("Moving Forest drops 2 damage and 2 healing a round", () => {
+    // Down from 3/3. It is unconditional, needs no target, no magic and no
+    // cooldown, and fires every round off a cost-3 body — free value that
+    // compounds with how long the card lives, which Root Growth is built to
+    // extend.
+    // DIFFERENCED against a control board with no Elephlora on it. The first
+    // draft asserted the healing directly and read 6 for a printed 2, because
+    // LEAF's own Photosynthesis aura tops the same wounded ally up in the same
+    // Cleanup. Subtracting a control measures Moving Forest; a raw reading
+    // measures every LEAF heal on the board at once.
+    const build = (withTree: boolean) => {
+      const s = prepState();
+      if (withTree) place(s, "leaf_walking_tree", "P1", 3, 0);
+      const hurt = place(s, "leaf_greegon", "P1", 3, 2, { curHp: 5, maxHp: 40 });
+      const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+      const after = advance(atCleanup(s));
+      return {
+        healed: after.cards[hurt.instanceId].curHp - 5,
+        dealt: 40 - after.cards[foe.instanceId].curHp,
+      };
+    };
+    const tick = getDef("leaf_walking_tree").roundTick!;
+    const withTree = build(true);
+    const without = build(false);
+    expect(withTree.dealt - without.dealt).toBe(tick.randomEnemyDmg);
+    expect(withTree.healed - without.healed).toBe(tick.healLowestAlly);
+  });
+});
