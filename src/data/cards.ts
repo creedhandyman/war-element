@@ -3446,17 +3446,14 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     tribe: "Stars",
     attackType: "Ranged",
-    cost: 2,
-    // 2 + 7 + 0 + 6 = 15 against a cost-2 budget of 20 — FIVE under, and listed
-    // in state.test.ts's ability-carried exceptions because of it. That is the
-    // largest proportional discount on that list (25%, where the next worst is
-    // 14%), so it is worth being explicit about what is meant to carry it: PEN
-    // on every basic from RANGED reach, the off-curve +2 barrier below, and
-    // DAWN's Awakening striking on arrival.
-    //
-    // Worth knowing: 15 is EXACTLY a cost-1 budget. If this reads as too thin
-    // for a 2-drop in play, the honest fix is `cost: 1` — one character, and the
-    // test exception disappears with it.
+    // 2 + 7 + 0 + 6 = 15, EXACTLY the cost-1 budget. The remodel left the stat
+    // line five under a cost-2 budget and needed an ability-carried exception in
+    // state.test.ts to ship; dropping the cost deletes the exception instead of
+    // widening what that list is allowed to excuse, which is the better end of
+    // the same trade. PEN, the off-curve +2 barrier and DAWN's Awakening are now
+    // value ON TOP of a card that pays its own way rather than the argument for
+    // why it does not have to.
+    cost: 1,
     dmg: 2,
     hits: 1,
     hp: 7,
