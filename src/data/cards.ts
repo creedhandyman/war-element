@@ -3713,12 +3713,18 @@ export const CARDS: CardDef[] = [
     // range, ambushes, and has to survive standing where it landed, so it wants
     // a little of each rather than a lot of one.
     cost: 5,
-    dmg: 3,
+    // 4x2 + 16 + 11 = 35, still exactly the cost-5 budget — the two points come
+    // straight off HP and land on the blades. Read as TWO hits of 4, keeping
+    // the two-blade shape the card is built around; four hits of 2 would total
+    // the same 8 and sit on the same budget, but it is a different card.
+    dmg: 4,
     hits: 2,
-    hp: 18,
+    hp: 16,
     sp: 11,
     shields: 0,
-    // Both blades of the 3×2 roll for a crit.
+    // Both blades of the 4×2 roll for a crit — which is where the shape matters:
+    // CRIT doubles a HIT, so heavier blades are worth more to it than more of
+    // them, and an unshielded target can now take 16 off a single swing.
     keywords: { CRIT: true },
     // Wind Warp: it moves to anywhere open on the board, at any distance.
     passiveNames: { windWarp: "Wind Warp" },
