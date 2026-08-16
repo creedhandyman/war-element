@@ -4041,3 +4041,39 @@ describe("King of Sunfall Harbor (Scallywag)", () => {
     expect(c.curShields + c.dmgBonus, "two kills, two payouts").toBe(2);
   });
 });
+
+describe("Anglerfish's Lure is a bite now", () => {
+  const bite = () => Number(getDef("aqua_anglerfish").onSummon!.params!.dmg);
+
+  it("hits the CLOSEST opponent, not the first one listed", () => {
+    const s = prepState();
+    s.players.P1.gold = 6;
+    // Far one placed first, so board order and distance order disagree.
+    const far = place(s, "dusk_gool", "P2", 0, 4, { curHp: 40, maxHp: 40, curShields: 0 });
+    const near = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const handId = giveHand(s, "P1", "aqua_anglerfish");
+    const n = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    expect(40 - n.cards[near.instanceId].curHp).toBe(bite());
+    expect(n.cards[far.instanceId].curHp, "only one target").toBe(40);
+  });
+
+  it("still fires when the only foe stands on its own HOME row", () => {
+    // The Saltjacks failure, guarded up front: a summoning card lands in ITS
+    // home row and the Home Slot rule blocks home-row-to-home-row targeting, so
+    // a range-gated on-summon does nothing at all in the opening — which is
+    // exactly when a cost-1 body gets played. `reachNearest` scans the board.
+    const s = prepState();
+    s.players.P1.gold = 6;
+    const foe = place(s, "dusk_gool", "P2", 0, 2, { curHp: 40, maxHp: 40, curShields: 0 });
+    const handId = giveHand(s, "P1", "aqua_anglerfish");
+    const n = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 2 });
+    expect(40 - n.cards[foe.instanceId].curHp).toBe(bite());
+  });
+
+  it("no card carries the old lure mechanic any more", () => {
+    // Retired rather than deleted: `lure` is still wired end to end, so this
+    // records that nothing uses it rather than asserting it is gone. If a card
+    // takes it up again, this test is the place that says so.
+    expect(CARDS.filter((c) => c.lure).map((c) => c.id)).toEqual([]);
+  });
+});

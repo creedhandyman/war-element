@@ -5202,10 +5202,22 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 0,
     keywords: {},
-    // Lure (On Summon): opponents in range have −25% accuracy against Anglerfish
-    // for 1 round.
-    passiveNames: { lure: "Lure" },
-    lure: { pct: 25, rounds: 1 },
+    // Kraken's school — the SeaC aura grants its members +4 max HP.
+    tribe: "SeaC",
+    // Lure (On Summon): 2 DMG to the closest opponent. The name still fits —
+    // an anglerfish draws prey in and then bites it — but the ability is now
+    // the bite rather than the dangle.
+    //
+    // `reachNearest` scans the WHOLE board and sorts by distance, so this does
+    // not depend on Anglerfish being able to reach anything from the home row
+    // it lands in. A range-gated on-summon on a cost-1 body would have fired
+    // almost never (see Saltjacks).
+    //
+    // NOTE this leaves `lure` unused by any card in the set. The mechanic is
+    // still fully wired — types, state, combat and card text — so it costs
+    // nothing to keep and is there for the next card that wants it.
+    passiveNames: { onSummon: "Lure" },
+    onSummon: { handler: "strike", params: { dmg: 2, reachNearest: 1 }, targetSide: "enemy" },
   },
   {
     id: "gale_stormhide_bison",
@@ -8944,6 +8956,8 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
+    // Kraken's school — the SeaC aura grants its members +4 max HP.
+    tribe: "SeaC",
     // Liquid Humidity (End of Round): drinks itself back to full HP.
     passiveNames: { roundTick: "Liquid Humidity" },
     roundTick: { healSelfToFull: true },
