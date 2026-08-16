@@ -1270,10 +1270,16 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 1,
     keywords: {},
-    tribe: ["SeaC", "Vapor"],
+    // SeaC -> Pirate. Note what that costs him: Kraken's school aura is
+    // tribe-matched on SeaC and grants +4 max HP, so BlackBeard no longer
+    // receives it. He trades a conditional +4 HP for leading a crew of six.
+    tribe: ["Pirate", "Vapor"],
     // King of the Seas (On Kill): coin flip — gain +2 or +1 DMG permanently.
     // Scalding Shot: the cannon's basic sears whatever it hits (SCALD 1).
-    passiveNames: { onKill: "King of the Seas", onHitStatus: "Scalding Shot" },
+    // Pirate (Aura): +1 DMG to the whole crew. No element filter — Pirates are
+    // a cross-element tribe (Scallywag is PYRO), so this reaches all of them.
+    passiveNames: { onKill: "King of the Seas", onHitStatus: "Scalding Shot", aura: "Pirate" },
+    aura: { scope: "tribe", match: "Pirate", dmg: 1 },
     onKill: { coinBonusDmg: 2 },
     onHitStatus: { kind: "SCALD", duration: 2, power: 1 },
     special: {
@@ -3114,7 +3120,10 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
-    tribe: ["SeaC", "Liquid"],
+    // Liquid -> Pirate; SeaC is KEPT, so unlike BlackBeard and Driftwraith this
+    // one stays in Kraken's school and gains the crew's +1 DMG on top. "Liquid"
+    // is read by no aura or payoff in the game, so nothing was lost with it.
+    tribe: ["SeaC", "Pirate"],
     // On Kill: +3 max HP permanently. Sucker Sword: a landed basic drags the
     // struck enemy 1 slot toward Octoirate.
     onKill: { buffMaxHp: 3 },
@@ -4948,6 +4957,7 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
+    tribe: "Pirate",
     // Fires on the CROSSING onto enemy ground, not on every step taken once it
     // is already there. 1 -> 3 DMG, so the invasion actually hurts.
     // Running Profits (On Kill): +2 HP, permanently (max and current).
@@ -5437,6 +5447,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    tribe: "Pirate",
     // Back-ups (On Summon): a shot straight down its column, hitting every
     // opponent in that line for 2. (Doc's on-death self-copy is deferred — a
     // full copy would recurse its own On-Death, and there's no non-recursive
@@ -7037,7 +7048,10 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 3,
     keywords: { STEALTH: true },
-    tribe: ["Deep Creatures", "SeaC", "Vapor"], // brief's Deep Creatures + the school it had, and the fog it works in
+    // Deep Creatures and SeaC both replaced by Pirate. "Deep Creatures" was read
+    // by nothing at all, so dropping it is free; SeaC costs it Kraken's +4 max
+    // HP the same way it costs BlackBeard.
+    tribe: ["Pirate", "Vapor"],
     // Perpetual Fog (On Kill): cloak Driftwraith and same-row AQUA allies in
     // STEALTH for 1 round.
     passiveNames: { onKill: "Perpetual Fog" },

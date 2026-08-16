@@ -533,3 +533,50 @@ describe("Vapor has a tribe to buff", () => {
     expect(effectiveSp(s, s.cards[outsider.instanceId])).toBe(outsiderBefore);
   });
 });
+
+describe("the Pirate crew", () => {
+  const tribesOf = (t: string | string[] | undefined) =>
+    t == null ? [] : Array.isArray(t) ? t : [t];
+  const crew = CARDS.filter((c) => tribesOf(c.tribe).includes("Pirate"));
+
+  it("is six strong and crosses elements", () => {
+    const ids = crew.map((c) => c.id);
+    for (const id of [
+      "pyro_scully",      // Scallywag — PYRO, so the tribe is not AQUA-only
+      "aqua_buccaneers",  // Saltjacks
+      "aqua_octoirate",   // Octoirate — keeps SeaC alongside
+      "aqua_blackbeard",  // BlackBeard — the aura holder
+      "aqua_bootlegger",  // Bootlegger — keeps Avian alongside
+      "aqua_driftwraith", // Driftwraith
+    ]) expect(ids, id).toContain(id);
+    expect(new Set(crew.map((c) => c.element)).size, "not a single-element tribe").toBeGreaterThan(1);
+  });
+
+  it("BlackBeard's aura pays the crew +1 DMG, across elements and including himself", () => {
+    const bb = getDef("aqua_blackbeard");
+    expect(bb.aura?.match).toBe("Pirate");
+    expect(bb.aura?.dmg).toBe(1);
+    expect(bb.aura?.element, "no element filter — Scallywag is PYRO").toBeUndefined();
+
+    const s = prepState();
+    // A PYRO crewmate and a non-Pirate AQUA control, both on BlackBeard's side.
+    const mate = place(s, "pyro_scully", "P1", 3, 1);
+    const outsider = place(s, "aqua_coralgolem", "P1", 3, 2);
+    const mateBefore = effectiveDmg(s, s.cards[mate.instanceId]);
+    const outsiderBefore = effectiveDmg(s, s.cards[outsider.instanceId]);
+    const bbCard = place(s, "aqua_blackbeard", "P1", 4, 1);
+    expect(effectiveDmg(s, s.cards[mate.instanceId]) - mateBefore).toBe(1);
+    expect(effectiveDmg(s, s.cards[outsider.instanceId])).toBe(outsiderBefore);
+    expect(effectiveDmg(s, s.cards[bbCard.instanceId])).toBe(getDef("aqua_blackbeard").dmg + 1);
+  });
+
+  it("BlackBeard and Driftwraith really did leave Kraken's school", () => {
+    // Not incidental — SeaC is tribe-matched by Kraken's +4 max HP aura, so
+    // trading it for Pirate is a live cost, and Octoirate deliberately kept
+    // SeaC to avoid paying it. Pinned so the trade is a decision on the record.
+    expect(getDef("aqua_kraken").aura?.match).toBe("SeaC");
+    for (const id of ["aqua_blackbeard", "aqua_driftwraith"])
+      expect(tribesOf(getDef(id).tribe), `${id} left SeaC`).not.toContain("SeaC");
+    expect(tribesOf(getDef("aqua_octoirate").tribe), "Octoirate kept it").toContain("SeaC");
+  });
+});

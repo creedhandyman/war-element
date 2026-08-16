@@ -475,8 +475,14 @@ describe("ranged specials on melee cards", () => {
     const s = prepState();
     const bb = place(s, "aqua_blackbeard", "P1", 2, 0); // a Mid row: +1 King of the Hill
     const far = place(s, "dusk_gool", "P2", 1, 1, { curHp: 30, maxHp: 30, curShields: 0 });
+    // Derived, not typed. This read a flat 6 (printed 5 + 1 hill) and broke when
+    // BlackBeard gained the Pirate aura — which is +1 DMG to Pirates, and he is
+    // one, so it applies to himself. The test is about SCALD and reach; pinning
+    // his damage total made it a test of every buff he might ever carry.
+    const expected = effectiveDmg(s, s.cards[bb.instanceId]);
+    expect(expected, "hill and crew both counted").toBeGreaterThan(getDef("aqua_blackbeard").dmg);
     basicAttack(s, bb.instanceId, far.instanceId);
-    expect(30 - s.cards[far.instanceId].curHp).toBe(6); // printed 5 + 1 hill
+    expect(30 - s.cards[far.instanceId].curHp).toBe(expected);
     expect(statusOf(s.cards[far.instanceId], "SCALD")?.power).toBe(1);
   });
 });
