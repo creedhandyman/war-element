@@ -161,6 +161,14 @@ export interface OnKillDef {
    *  "which stat", and folding them together would make either card's number
    *  ambiguous to read off the data. */
   coinShieldOrDmg?: { shields: number; dmg: number };
+  /** Perpetual Fog (Driftwraith): a kill leaves it EVASIVE for this many rounds.
+   *
+   *  Distinct from `grantStealth`, which cloaks the killer AND its same-row,
+   *  same-element kin. This one is the killer alone, and EVASION rather than
+   *  STEALTH — a dodge chance instead of untargetability. On a card that already
+   *  prints the STEALTH keyword permanently, granting itself more STEALTH was
+   *  close to a no-op; a dodge is something it did not already have. */
+  grantEvasion?: number;
   reduceSpecialCost?: number; // King Me (Heir): shave N off this card's Special cost per kill
   /** Static Charge (Static): on a kill, extend the named status on every enemy
    *  that already carries it by `rounds` (deepen the crowd-control). */

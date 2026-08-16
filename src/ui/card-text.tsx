@@ -302,6 +302,7 @@ export function describePassives(def: CardDef): string[] {
       // Was missing, so Splint and Driftwraith both read "On a kill: ." — their
       // only on-kill payoff is the cloak.
       k.grantStealth && `STEALTH for ${k.grantStealth} round${k.grantStealth > 1 ? "s" : ""}`,
+      k.grantEvasion && `EVASION for ${k.grantEvasion} round${k.grantEvasion > 1 ? "s" : ""}`,
     ].filter(Boolean);
     named("onKill", `On a kill: ${bits.join(" · ")}.`);
   }

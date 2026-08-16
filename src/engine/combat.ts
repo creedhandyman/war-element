@@ -2608,6 +2608,13 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
     }
     draft.log.push(`${name}'s fog thickens — STEALTH covers the kill.`);
   }
+  // Perpetual Fog (Driftwraith): the fog closes around the killer itself — a
+  // dodge window, not a cloak. Self only; the same-row half belongs to
+  // grantStealth above.
+  if (def.grantEvasion) {
+    applyStatus(draft, killer, "EVASION", def.grantEvasion, 0, getDef(killer.defId).element);
+    draft.log.push(`${name} slips into the fog — EVASION for ${def.grantEvasion} round(s).`);
+  }
   // Star Blaster (Zenith): a kill BLINDs nearby opponents for the round.
   if (def.blindInRange && killer.pos) {
     const near = boardCards(draft, enemyOf(killer.owner)).filter(

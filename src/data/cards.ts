@@ -7066,8 +7066,14 @@ export const CARDS: CardDef[] = [
     tribe: ["Pirate", "Vapor"],
     // Perpetual Fog (On Kill): cloak Driftwraith and same-row AQUA allies in
     // STEALTH for 1 round.
+    // On a kill the fog closes around it: EVASION for 2 rounds, itself only.
+    //
+    // It used to grant STEALTH for 1 round to itself and its same-row AQUA kin —
+    // and the self half was very nearly a no-op, because Driftwraith PRINTS the
+    // STEALTH keyword permanently. A dodge window is something it does not
+    // already have. The same-row cloak is what this gives up.
     passiveNames: { onKill: "Perpetual Fog" },
-    onKill: { grantStealth: 1 },
+    onKill: { grantEvasion: 2 },
     // Boneyard Ambush: 14 DMG PEN to an opponent in range.
     special: {
       name: "Boneyard Ambush",

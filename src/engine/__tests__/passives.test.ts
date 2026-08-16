@@ -4077,3 +4077,30 @@ describe("Anglerfish's Lure is a bite now", () => {
     expect(CARDS.filter((c) => c.lure).map((c) => c.id)).toEqual([]);
   });
 });
+
+describe("Driftwraith's Perpetual Fog", () => {
+  it("a kill leaves it EVASIVE for 2 rounds", () => {
+    const s = prepState();
+    const dw = place(s, "aqua_driftwraith", "P1", 3, 0);
+    const prey = place(s, "bore_iron", "P2", 2, 0, { curHp: 1, maxHp: 40, curShields: 0 });
+    expect(statusOf(s.cards[dw.instanceId], "EVASION")).toBeUndefined();
+    basicAttack(s, dw.instanceId, prey.instanceId);
+    expect(s.cards[prey.instanceId], "the kill actually landed").toBeUndefined();
+    const ev = statusOf(s.cards[dw.instanceId], "EVASION");
+    expect(ev?.duration).toBe(getDef("aqua_driftwraith").onKill!.grantEvasion);
+  });
+
+  it("cloaks itself only — the same-row STEALTH half is gone", () => {
+    // It used to grant STEALTH to itself AND same-row AQUA kin. The self half
+    // was nearly a no-op (Driftwraith PRINTS the STEALTH keyword permanently),
+    // and the ally half is what this change gives up — asserted so that loss is
+    // recorded rather than assumed.
+    const s = prepState();
+    const dw = place(s, "aqua_driftwraith", "P1", 3, 0);
+    const kin = place(s, "aqua_spinefin", "P1", 3, 1);
+    const prey = place(s, "bore_iron", "P2", 2, 0, { curHp: 1, maxHp: 40, curShields: 0 });
+    basicAttack(s, dw.instanceId, prey.instanceId);
+    expect(statusOf(s.cards[kin.instanceId], "EVASION"), "allies get nothing now").toBeUndefined();
+    expect(statusOf(s.cards[kin.instanceId], "STEALTH"), "and no cloak either").toBeUndefined();
+  });
+});
