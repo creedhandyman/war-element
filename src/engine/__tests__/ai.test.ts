@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { aiMulligan, aiPrepIntent, chooseBattleAction } from "../ai";
+import { getSpell } from "../spells";
 import { advance, applyIntent, needsP1Input } from "../phases";
 import { canFireSpecial, validTargets } from "../rules";
 import { boardCards, createInitialState } from "../state";
@@ -326,5 +327,59 @@ describe("AI vision (fog of war)", () => {
     } else {
       expect(choice.action).toBe("skip");
     }
+  });
+});
+
+describe("the AI reads battle commands", () => {
+  /** Arm one spell in the AI's book with the magic to pay for it. */
+  function arm(s: GameState, spellId: string) {
+    const cost = getSpell(spellId).cost;
+    s.players.P1.spellbook = [{ defId: spellId, used: false }];
+    s.players.P1.magicPool = cost;
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+  }
+
+  it("casts Charge when the order actually connects", () => {
+    // Commands carry a kind for the tray's colour but none of what the
+    // kind-based branches read — no dmg, no ally target, no row — so every one
+    // of them skipped these and all three were dead to the AI on arrival.
+    const s = prepState();
+    arm(s, "dawn_solar_flare");
+    place(s, "dawn_beam", "P1", 2, 0);
+    place(s, "dawn_beam", "P1", 2, 1);
+    place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+    place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40 });
+    const intent = aiPrepIntent(s, "P1");
+    expect(intent).toMatchObject({ type: "CAST_SPELL", spellId: "dawn_solar_flare" });
+  });
+
+  it("holds Charge when only one card could swing", () => {
+    // A one-shot spent to land a single basic is worse than not casting it.
+    const s = prepState();
+    arm(s, "dawn_solar_flare");
+    place(s, "dawn_beam", "P1", 2, 0);
+    place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+    const intent = aiPrepIntent(s, "P1");
+    expect(intent?.type === "CAST_SPELL" && intent.spellId === "dawn_solar_flare").toBe(false);
+  });
+
+  it("casts Retreat only when the line is actually about to break", () => {
+    const safe = prepState();
+    arm(safe, "dawn_cleansing_light");
+    place(safe, "dawn_beam", "P1", 1, 0, { curHp: 40, maxHp: 40 });
+    place(safe, "dawn_beam", "P1", 1, 1, { curHp: 40, maxHp: 40 });
+    const held = aiPrepIntent(safe, "P1");
+    expect(held?.type === "CAST_SPELL" && held.spellId === "dawn_cleansing_light").toBe(false);
+
+    const doomed = prepState();
+    arm(doomed, "dawn_cleansing_light");
+    place(doomed, "dawn_beam", "P1", 1, 0, { curHp: 2, maxHp: 40, curShields: 0 });
+    place(doomed, "dawn_beam", "P1", 1, 1, { curHp: 2, maxHp: 40, curShields: 0 });
+    // Two heavy hitters in reach of both.
+    place(doomed, "pyro_magmadon", "P2", 0, 0, { curHp: 40, maxHp: 40 });
+    place(doomed, "pyro_magmadon", "P2", 0, 1, { curHp: 40, maxHp: 40 });
+    expect(aiPrepIntent(doomed, "P1")).toMatchObject({
+      type: "CAST_SPELL", spellId: "dawn_cleansing_light",
+    });
   });
 });

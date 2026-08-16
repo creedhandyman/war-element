@@ -169,6 +169,56 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
   const affordable = book.filter((s) => p.magicPool >= getSpell(s.defId).cost);
   const of = (kind: string) => affordable.filter((s) => getSpell(s.defId).kind === kind);
 
+  // 0. BATTLE COMMANDS (DAWN) -> an order to your own line. These have to come
+  //    FIRST and be matched on the field rather than the kind, because a command
+  //    borrows a kind for the tray's colour (Charge is "damage", Retreat is
+  //    "heal") while carrying none of what those branches read: no `dmg`, no
+  //    `allyHeal`, no ally target, no row. Every branch below skipped them, so
+  //    all three were dead to the AI from the moment they shipped — the spell
+  //    sat in the book for the whole match and was never cast once.
+  for (const slot of affordable) {
+    const spell = getSpell(slot.defId);
+    const c = spell.command;
+    if (!c) continue;
+    let army = boardCards(state, player).filter((a) => a.curHp > 0 && a.pos);
+    if (c.sameElement) army = army.filter((a) => getDef(a.defId).element === spell.element);
+    if (army.length === 0) continue;
+    // Same ordering the resolver uses — nearest the enemy first — so the AI
+    // judges the order on the cards that will actually receive it.
+    const mineHome = homeRow(player, state.boardSize);
+    army = [...army].sort((a, b) => Math.abs(b.pos!.row - mineHome) - Math.abs(a.pos!.row - mineHome));
+    const ordered = c.max != null ? army.slice(0, c.max) : army;
+
+    if (c.strike) {
+      // Worth the one-shot only when the order actually connects. Measured from
+      // where each card will BE — a step forward is part of the command, so
+      // judging from where it stands now would refuse a Charge whose whole
+      // point is to close the distance first.
+      const step = c.step ?? 0;
+      const dir = player === "P1" ? -1 : 1;
+      const connects = ordered.filter((a) => {
+        const row = Math.max(0, Math.min(state.boardSize - 1, a.pos!.row + step * dir));
+        const ghost: CardInstance = { ...a, pos: { ...a.pos!, row } as Pos };
+        return boardCards(state, enemyOf(player)).some(
+          (e) => e.curHp > 0 && canTarget(state, ghost, e),
+        );
+      }).length;
+      if (connects >= 2 && canCastSpell(state, player, spell.id).ok)
+        return { type: "CAST_SPELL", player, spellId: spell.id };
+      continue;
+    }
+
+    if ((c.step ?? 0) < 0) {
+      // Retreat: spend it to save a line that is about to break, not to shuffle
+      // a healthy one. Two or more cards standing in lethal incoming damage.
+      const dying = ordered.filter(
+        (a) => threatAt(state, a, a.pos!) >= a.curHp + a.curShields * 2,
+      ).length;
+      if (dying >= 2 && canCastSpell(state, player, spell.id).ok)
+        return { type: "CAST_SPELL", player, spellId: spell.id };
+    }
+  }
+
   // 1. Damage spell -> secure a kill. One-shot economy: only for an actual kill.
   const enemies = spellEnemyTargets(state, player);
   for (const slot of of("damage")) {
@@ -557,6 +607,21 @@ function findAdvance(
   const homeRowMine = homeRow(player, state.boardSize);
   const held = homeSlotsHeld(state, player);
 
+  // NO "FALL BACK AND FARM" RULE HERE, and that is a measured decision rather
+  // than an oversight. Income is 1/round + 1 per home slot held, and every
+  // candidate below is FORWARD, so a side killed off its own home row cannot
+  // walk back onto one — income is a ratchet. Adding a rule that did walk one
+  // home whenever the AI held no slots and could not afford its cheapest card
+  // made it CAMP: seed 3 and the 5x5 integration match went from ~100ms to
+  // ~56s each, which is not slowness but matches running to MAX_ROUNDS and
+  // being decided on time instead of won.
+  //
+  // That is the same failure the HOME_RESERVE comment above records from its
+  // own tuning ("higher values measured worse: the AI camped, and camping is a
+  // guaranteed non-win"). Advancing beats income here because every win
+  // condition is forward, so the reserve — which stops departures — is the
+  // right shape and a repatriation rule is not.
+
   for (const mover of movers) {
     // Hold the last slot back while there is still something to buy with it.
     // Anything above the reserve advances as before, and `desperate` ignores it
@@ -590,6 +655,7 @@ function findAdvance(
       }
     }
   }
+
   return null;
 }
 
