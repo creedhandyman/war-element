@@ -183,6 +183,27 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
               ? boardCards(draft, enemyOf(inst.owner)).filter(
                   (e) => e.curHp > 0 && e.pos?.row === homeRow(enemyOf(inst.owner), draft.boardSize),
                 )
+            // Back-ups (Saltjacks): a LINE down its own column, and the same
+            // ZONE argument as Wildfire above — so it is sourced from the board
+            // for the same reason, and this is the bug that reasoning was
+            // written for and then not applied to.
+            //
+            // Saltjacks summons into its own home row and shoots down its
+            // column. The Home Slot rule blocks a home-row card from targeting
+            // the enemy's home row, so validTargets came back empty whenever the
+            // foe in that column was standing on its home row — and an empty
+            // list means the `picked.length > 0` gate below never calls the
+            // handler at all. Not a weaker shot: NO shot, and no log line
+            // either. Worst of all in the opening, where every enemy card is on
+            // its home row by definition and a cost-1 body is most likely to be
+            // played.
+            //
+            // barrage re-filters by column itself, so this is idempotent — it
+            // widens what reaches the handler, it does not change what is hit.
+            : Number(params.sameColumn ?? 0) > 0 && inst.pos
+              ? boardCards(draft, enemyOf(inst.owner)).filter(
+                  (e) => e.curHp > 0 && e.pos?.col === inst.pos!.col,
+                )
             : Number(params.spread ?? -1) >= 0
               ? forwardAreaTargets(draft, inst, Number(params.spread), params.forwardDepth != null ? Number(params.forwardDepth) : undefined)
               // No spread → every enemy in normal targeting range. For a melee

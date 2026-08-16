@@ -3828,3 +3828,46 @@ describe("Sunbanner's Flash Squad", () => {
     void ally;
   });
 });
+
+describe("Saltjacks' Back-ups reaches down the whole column", () => {
+  /** Summon Saltjacks into column 2 with one foe in that column at `row`, and
+   *  report what the on-summon volley actually dealt. */
+  function shoot(row: number): number {
+    const s = prepState();
+    s.players.P1.gold = 10;
+    const foe = place(s, "dusk_gool", "P2", row, 2, { curHp: 40, maxHp: 40, curShields: 0 });
+    const handId = giveHand(s, "P1", "aqua_buccaneers");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 2 });
+    return 40 - next.cards[foe.instanceId].curHp;
+  }
+
+  it("hits a foe standing on its own HOME row — the case that silently did nothing", () => {
+    // The bug: Saltjacks summons into ITS home row, and the Home Slot rule
+    // blocks a home-row card from targeting the enemy's home row. validTargets
+    // came back empty, and an empty list means the on-summon gate never calls
+    // the handler — so this was not a weaker shot, it was NO shot and no log
+    // line. Worst in the opening, where every enemy card is on its home row by
+    // definition and a cost-1 body is most likely to be played.
+    expect(shoot(0)).toBe(getDef("aqua_buccaneers").dmg);
+  });
+
+  it("…and still hits everywhere else it always did", () => {
+    // The fix widens what reaches the handler; it must not change these.
+    expect(shoot(1)).toBe(getDef("aqua_buccaneers").dmg);
+    expect(shoot(2)).toBe(getDef("aqua_buccaneers").dmg);
+  });
+
+  it("does not spray outside its column", () => {
+    // `targets: 99` with the column sourced from the board is only safe because
+    // barrage re-filters by column. Pinned, since the sourcing now hands it the
+    // whole enemy side rather than a pre-narrowed reach list.
+    const s = prepState();
+    s.players.P1.gold = 10;
+    const inLine = place(s, "dusk_gool", "P2", 0, 2, { curHp: 40, maxHp: 40, curShields: 0 });
+    const beside = place(s, "dusk_gool", "P2", 0, 3, { curHp: 40, maxHp: 40, curShields: 0 });
+    const handId = giveHand(s, "P1", "aqua_buccaneers");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 2 });
+    expect(next.cards[inLine.instanceId].curHp).toBeLessThan(40);
+    expect(next.cards[beside.instanceId].curHp, "the next column over is untouched").toBe(40);
+  });
+});
