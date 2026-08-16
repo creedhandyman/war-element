@@ -184,17 +184,42 @@ Solo cores, **both boards**, round-robin with **both seat orders**, 50 seeds per
 ordered matchup — 5,600 matches, n=1,400 per element (±2.6 at 95%):
 
 ```
-bolt 59.1 · bore 57.4 · aqua 50.6 · leaf 48.9
-pyro 48.6 · gale 46.6 · dawn 46.0 · dusk 43.0     spread 16.1
+bore 60.1 · bolt 56.1 · leaf 50.4 · aqua 49.9
+pyro 48.8 · gale 45.3 · dusk 45.1 · dawn 44.3     spread 15.8
 ```
 
-**The tightest this has measured.** BOLT is no longer a lone outlier — BORE
-(57.4) sits 1.7 behind it, so the top is a cluster rather than a spike. Nerfing
-BOLT further would just hand the crown to BORE; the next move, if there is one,
-is a broader pass rather than another single-element fix.
+**The tightest this has measured**, and the shape has changed: the top is now
+the whole problem. BORE (60.1) is four clear of BOLT and ten clear of third,
+while the bottom five sit inside 6 points and the bottom THREE inside one. The
+next move, if there is one, is BORE — not another lift from below, which at
+this point only compresses an already-tight floor.
 
-That is AFTER the cost-3 epic migration (below), which cost about 2.4 points of
-spread. The tuned field before it was 17.0:
+That is after Midnight Shade's death recoil went to FULL damage, measured
+against an otherwise identical tree:
+
+```
+half recoil   bore 60.2 · bolt 56.3 · leaf 51.1 · aqua 50.7 · pyro 50.1 · gale 46.0 · dawn 44.7 · dusk 40.8   spread 19.4
+full recoil   bore 60.1 · bolt 56.1 · leaf 50.4 · aqua 49.9 · pyro 48.8 · gale 45.3 · dusk 45.1 · dawn 44.3   spread 15.8
+```
+
+**DUSK +4.3, and every other element down between 0.1 and 1.3** — which is what
+a genuine single-element lift looks like: the seven others each lose a little
+win rate against the one that gained, and nothing else moves. It took DUSK from
+last (40.8) to sixth, and left DAWN as the new floor at 44.3 — but the floor is
+now a cluster, not a hole.
+
+Two cautions from the same pass:
+
+- **GALE got three buffs in that window (Angale, Rayfen, Alluring Aura) plus
+  WEAKEN stacking, and measured 0.7 DOWN.** Read against the −0.1 to −1.3 the
+  other non-DUSK elements all drifted, that is indistinguishable from having
+  changed nothing at all. Card-level buffs to a mid-tier element are not a
+  balance lever at this resolution; the levers that have ever moved a number
+  here are auras and element-wide rules.
+- **The DAWN tribe split measured +0.1** against a controlled A/B (see below).
+
+Further back: the cost-3 epic migration cost about 2.4 points of spread, and
+the tuned field before it was 17.0:
 
 ```
 bolt 59.7 · bore 56.8 · aqua 51.1 · leaf 48.8 · pyro 48.5 · gale 47.2 · dawn 45.2 · dusk 42.7   spread 17.0
