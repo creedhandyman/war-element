@@ -13,7 +13,7 @@
  */
 import type { ReactNode } from "react";
 import type { CardDef, StatusKind } from "../engine";
-import { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, MISTY_FOG_MISS_PCT, getDef } from "../engine";
+import { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, MISTY_FOG_MISS_PCT, WEAKEN_MAX_STACKS, WEAKEN_PCT_PER_STACK, getDef } from "../engine";
 import { KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 
 // Colour lookup for keyword/status terms so they render as chips in card text.
@@ -813,7 +813,7 @@ export const STATUS_TEXT: Record<StatusKind, string> = {
   DOT: "Damaged over time each round.",
   FREEZE: "Frozen — SP 0 and takes half damage dealt.",
   STUN: "Stunned — can't act.",
-  WEAKEN: "Weakened — deals ~25% less damage.",
+  WEAKEN: `Weakened — deals ${WEAKEN_PCT_PER_STACK}% less damage per stack (compounding, max ${WEAKEN_MAX_STACKS}). Re-applying deepens it instead of refreshing.`,
   PARALYZE: "Paralyzed — 50% chance to skip its action, and moves only 1 space (no effect on SP 7 and under).",
   MUTED: "Muted — can't fire its Special.",
   SLEEP: "Asleep — can't act until it wakes.",

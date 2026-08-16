@@ -183,6 +183,42 @@ export const FOG_MISS_PCT = 50;
  *  mythic, is 10 — it is just no longer a coin flip on the opponent's turn. */
 export const MISTY_FOG_MISS_PCT = 25;
 
+/** WEAKEN's bite per stack, as a percentage of damage removed.
+ *
+ *  It used to be a PRESENCE flag: one flat -25%, and a second application did
+ *  nothing but refresh the timer. Every source in the game applies it with
+ *  power 0, so a card built to WEAKEN repeatedly — Angale retaliating on every
+ *  hit, a row spell cast twice, a Special on a two-round cooldown — got
+ *  progressively less out of its own ability the more of it it did. */
+export const WEAKEN_PCT_PER_STACK = 25;
+
+/** And no deeper. Three stacks is -58% (see below), which is a heavy debuff
+ *  and still leaves the card a threat.
+ *
+ *  The stacks are MULTIPLICATIVE — 0.75, then 0.75 of that — not additive.
+ *  Additive 25s reach exactly zero at four stacks, and a card that deals no
+ *  damage at all is removed from the game by a status rather than debuffed by
+ *  one; there is no counterplay left to find once the number is 0. Compounding
+ *  can be stacked forever and never gets there, so the cap is about how fast
+ *  it bites rather than about preventing a lock. */
+export const WEAKEN_MAX_STACKS = 3;
+
+/** How many WEAKEN stacks a card is carrying, 0 if none.
+ *
+ *  `power` is the stack depth, but every pre-existing source applies WEAKEN
+ *  with power 0 — those are one stack, not zero, or the status would do
+ *  nothing at all on the cards that have always applied it. */
+export function weakenStacks(card: { statuses: { kind: string; power: number }[] }): number {
+  const st = card.statuses.find((s) => s.kind === "WEAKEN");
+  if (!st) return 0;
+  return Math.min(WEAKEN_MAX_STACKS, Math.max(1, st.power));
+}
+
+/** The damage multiplier for `n` stacks of WEAKEN. 1 when clean. */
+export function weakenMult(n: number): number {
+  return (1 - WEAKEN_PCT_PER_STACK / 100) ** n;
+}
+
 /** Scorch stacks its BURN to here and no further. Uncapped, a multi-hit PYRO
  *  card would stack a lethal DOT off one attack and the aura would stop being
  *  chip damage. */

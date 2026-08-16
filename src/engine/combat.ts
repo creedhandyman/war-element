@@ -17,7 +17,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget } from "./rules";
-import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, hasElementAura, slipstreamPct } from "./auras";
+import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
@@ -242,6 +242,28 @@ export function applyStatus(
   const dur = resisted + extend;
   const fresh = { kind, duration: dur, power, source };
   const existing = target.statuses.findIndex((s) => s.kind === kind);
+  // WEAKEN DEEPENS rather than refreshing. Handled here, in the one funnel every
+  // source passes through — basics, Specials, spells, walls, round-ticks — so
+  // stacking is a property of the STATUS and not something each of the dozen
+  // cards that apply it has to opt into. They all pass power 0, so the depth is
+  // counted rather than taken from the caller: existing stacks + 1, capped.
+  //
+  // Duration takes the longer of the two, like stackStatus: a fresh application
+  // should never SHORTEN a debuff already running.
+  if (kind === "WEAKEN" && existing >= 0) {
+    const st = target.statuses[existing];
+    const before = Math.max(1, st.power);
+    st.power = Math.min(WEAKEN_MAX_STACKS, before + 1);
+    st.duration = Math.max(st.duration, dur);
+    st.source = source;
+    draft.log.push(
+      st.power > before
+        ? `${label(draft, target)} is weakened further (WEAKEN x${st.power}).`
+        : `${label(draft, target)} is already weakened to the bone (WEAKEN x${st.power}).`,
+    );
+    if (NEGATIVE_STATUSES.includes(kind)) creditDebuff(draft.stats, target);
+    return;
+  }
   if (existing >= 0) target.statuses[existing] = fresh;
   else target.statuses.push(fresh);
   // Counted HERE, past every immunity / ward / fizzle gate above, so the report

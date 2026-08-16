@@ -2,7 +2,7 @@
 // incoming state once (structuredClone) and mutate only the clone.
 
 import { getDef, deckById } from "../data/cards";
-import { hasElementAura, tailwindDmg } from "./auras";
+import { hasElementAura, tailwindDmg, weakenMult, weakenStacks } from "./auras";
 import { coin, shuffle } from "./rng";
 import { BURN_HEAL_MULT } from "./matchups";
 import { spellCapForBoard, spellbookFor, spellbookFromIds } from "./spells";
@@ -494,7 +494,7 @@ export function effectiveSp(state: GameState, card: CardInstance): number {
 
 /**
  * Effective damage per hit:
- * - WEAKEN −25% (round down), FREEZE −50% (round down)
+ * - WEAKEN −25% per stack, compounding and capped (round down); FREEZE −50%
  * - King of the Hill: +1 while in a Mid row; +1 board-wide per fully
  *   controlled Mid row (all 4 slots held by this card's owner).
  */
@@ -567,7 +567,12 @@ function dmgBeforeIntimidation(state: GameState, card: CardInstance): number {
   // still scale the whole number, like every other flat bonus above.
   const fury = def.furyBelowHp;
   if (fury && card.curHp < fury.hp) dmg += fury.dmg;
-  if (hasStatus(card, "WEAKEN")) dmg = Math.floor(dmg * 0.75);
+  // WEAKEN STACKS: -25% compounding per stack, capped (see auras.ts). One
+  // Math.floor at the end rather than one per stack, so three stacks bite the
+  // same whether they landed together or one at a time — flooring per stack
+  // would make the ORDER of application change the result.
+  const weak = weakenStacks(card);
+  if (weak > 0) dmg = Math.floor(dmg * weakenMult(weak));
   if (hasStatus(card, "FREEZE")) dmg = Math.floor(dmg * 0.5);
   // King of the Hill (A): sitting in a Mid row grants +1 DMG — but heavy
   // multi-hit cards get +1 HIT instead (in effectiveBasicHits), so a flat

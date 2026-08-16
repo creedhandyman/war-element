@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus } from "../combat";
+import { WEAKEN_MAX_STACKS, weakenMult, weakenStacks } from "../auras";
 import { canMove, isActionBlocked, legalMoves } from "../rules";
 import { getDef } from "../../data/cards";
 import { SP_SLOW_MAX } from "../state";
@@ -143,5 +144,62 @@ describe("PARALYZE — mobility", () => {
     applyStatus(s, c, "PARALYZE", 2, 0, "BOLT");
     expect(canMove(s, "P1", c.instanceId, twoAway).ok).toBe(false);
     expect(canMove(s, "P1", c.instanceId, { row: 1, col: 1 }).ok).toBe(true); // one step still fine
+  });
+});
+
+describe("WEAKEN stacks", () => {
+  /** A clean body plus its printed damage, so every expectation below is
+   *  derived from the card rather than typed. */
+  function subject() {
+    const s = prepState();
+    const c = place(s, "pyro_ember_scorpion", "P1", 3, 0);
+    return { s, c, base: effectiveDmg(s, s.cards[c.instanceId]) };
+  }
+  const weaken = (s: ReturnType<typeof subject>["s"], id: string, rounds = 2) =>
+    applyStatus(s, s.cards[id], "WEAKEN", rounds, 0, "GALE");
+
+  it("a second application deepens instead of refreshing", () => {
+    const { s, c, base } = subject();
+    weaken(s, c.instanceId);
+    const once = effectiveDmg(s, s.cards[c.instanceId]);
+    expect(once).toBe(Math.floor(base * weakenMult(1)));
+
+    weaken(s, c.instanceId);
+    expect(s.cards[c.instanceId].statuses.filter((x) => x.kind === "WEAKEN")).toHaveLength(1);
+    expect(weakenStacks(s.cards[c.instanceId])).toBe(2);
+    const twice = effectiveDmg(s, s.cards[c.instanceId]);
+    expect(twice).toBe(Math.floor(base * weakenMult(2)));
+    expect(twice, "the whole point — the old flag re-applied to no effect").toBeLessThan(once);
+  });
+
+  it("stacks compound rather than adding, and cap", () => {
+    const { s, c, base } = subject();
+    for (let i = 0; i < WEAKEN_MAX_STACKS + 3; i++) weaken(s, c.instanceId);
+    expect(weakenStacks(s.cards[c.instanceId])).toBe(WEAKEN_MAX_STACKS);
+    expect(effectiveDmg(s, s.cards[c.instanceId])).toBe(Math.floor(base * weakenMult(WEAKEN_MAX_STACKS)));
+    // Compounding never reaches zero, which is the reason it is not additive:
+    // an additive 25 per stack is exactly 0 damage at four stacks, and a card
+    // dealing 0 has been removed from the game by a status rather than debuffed.
+    expect(weakenMult(WEAKEN_MAX_STACKS)).toBeGreaterThan(0);
+    expect(effectiveDmg(s, s.cards[c.instanceId])).toBeGreaterThan(0);
+  });
+
+  it("a shorter re-application deepens the stack without shortening the timer", () => {
+    const { s, c } = subject();
+    weaken(s, c.instanceId, 4);
+    weaken(s, c.instanceId, 1);
+    const st = s.cards[c.instanceId].statuses.find((x) => x.kind === "WEAKEN")!;
+    expect(st.duration, "a fresh hit must never cut a debuff already running short").toBe(4);
+    expect(weakenStacks(s.cards[c.instanceId])).toBe(2);
+  });
+
+  it("Equestrian's Solar Sovereign still blocks it outright, at any depth", () => {
+    // The immunity gate sits ahead of the stacking branch; if stacking had been
+    // wired in before it, a WEAKEN-immune ally would have started collecting
+    // stacks it is supposed to be untouchable by.
+    const { s, c } = subject();
+    place(s, "dawn_equestrian", "P1", 4, 0);
+    for (let i = 0; i < 3; i++) weaken(s, c.instanceId);
+    expect(weakenStacks(s.cards[c.instanceId])).toBe(0);
   });
 });

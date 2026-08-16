@@ -270,7 +270,7 @@ export function RulesBook(props: { onClose: () => void }) {
           <section>
             <h3>📉 Statuses — debuffs & marks</h3>
             <ul className="rules-defs">
-              <li><b>WEAKEN</b> — deals 25% less damage.</li>
+              <li><b>WEAKEN</b> — deals 25% less damage, and <i>stacks</i>: each new application compounds (25% / 44% / 58%) up to three deep, rather than just refreshing the timer.</li>
               <li><b>BLIND</b> — its basic attacks have a ~50% chance to miss.</li>
               <li><b>SEAL</b> — cannot be healed while sealed.</li>
               <li><b>ELECTRIFIED</b> — harmless on its own, but Bolt cards deal +1 DMG to <i>any</i> statused foe.</li>
