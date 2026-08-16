@@ -184,19 +184,24 @@ Solo cores, **both boards**, round-robin with **both seat orders**, 50 seeds per
 ordered matchup — 5,600 matches, n=1,400 per element (±2.6 at 95%):
 
 ```
-bolt 60.7 · bore 56.9 · aqua 52.1 · pyro 50.3
-leaf 49.9 · gale 48.8 · dusk 44.1 · dawn 37.3     spread 23.4
+bolt 59.7 · bore 56.8 · aqua 51.1 · leaf 48.8
+pyro 48.5 · gale 47.2 · dawn 45.2 · dusk 42.7     spread 17.0
 ```
 
-**GALE was fixed by the Zephyr rework** — 32.5 -> 48.8, damage 53 -> 78, cards
-alive 1.77 -> 2.77, and the spread came in from 30.4 to 23.4. See below for
-what and why. Every other element gave up 2-3 points to it, which is simply
-where those 16 points came from. The pre-rework field was:
+**Every element is now inside seventeen points**, the tightest this has ever
+measured — it was 18.3 at the oldest recorded pass and 30.4 before these two
+fixes. Six of the eight sit between 45 and 57. Two reworks got it there, and
+the history is worth keeping because both were auras that were not paying:
 
 ```
-bolt 62.9 · bore 59.1 · aqua 54.6 · pyro 53.4
-leaf 52.8 · dusk 46.1 · dawn 38.6 · gale 32.5     spread 30.4
+before both   bolt 62.9 · bore 59.1 · aqua 54.6 · pyro 53.4 · leaf 52.8 · dusk 46.1 · dawn 38.6 · gale 32.5   spread 30.4
+after GALE    bolt 60.7 · bore 56.9 · aqua 52.1 · pyro 50.3 · leaf 49.9 · gale 48.8 · dusk 44.1 · dawn 37.3   spread 23.4
+after DAWN    bolt 59.7 · bore 56.8 · aqua 51.1 · leaf 48.8 · pyro 48.5 · gale 47.2 · dawn 45.2 · dusk 42.7   spread 17.0
 ```
+
+DUSK (42.7) is now the lowest, and only 2.5 points under DAWN. **Do not chase
+DAWN to exactly 50** — at this spread, lifting anyone further just makes the
+next element the outlier.
 
 Per board, and near-identical — this is not a board-size artifact:
 
@@ -208,7 +213,8 @@ Per board, and near-identical — this is not a board-size artifact:
 BOLT is the one element that cares which board it is on (58.7 -> 67.0).
 
 **Diagnostics, per match, combined.** Measure these, not just the rate — a win
-rate says an element is losing, not why:
+rate says an element is losing, not why. (This table predates both reworks; the
+shape of the argument is what matters, not the exact figures.)
 
 ```
 el     win%  rounds  alive  gold  caps  deaths   dmg  shielded
@@ -273,14 +279,42 @@ and GALE's Zephyr — were auras that were not paying, not stat lines that were
 too low. Auras sit outside the `5*cost+10` budget, so they are the only lever
 that can add power without breaking `state.test.ts`.
 
-**DAWN is the same diagnosis and still open.** It deals 56 damage, ends with
-2.38 cards alive on the least gold (4.5) and the shortest matches (10.8
-rounds) — losing quickly, not slowly. First Light (+1 SP a round) was added to
-convert a surviving board into tempo and the board is not there to convert.
-Do NOT try another speed nudge; that axis is tried and measured. Note DAWN's
-budget profile is the opposite of GALE's — it is the most EXPENSIVE element
-(avg cost 4.21) with ordinary SP (7.1) and good shields (1.90), so the answer
-will not be the same shape.
+**DAWN — SOLVED, and the route there is the useful part.** 37.3 -> 45.2, damage
+56 -> 62, alive 2.38 -> 2.74. Awakening's on-summon strike went from HALF the
+card's DMG to its full DMG. That is all it took, and it is on-theme: the light
+arriving is the card's attack, so it should hit like one.
+
+**GOLD IS NOT A TUNING KNOB IN THIS GAME.** Three discount shapes were measured
+against DAWN before the strike, and every one is worth 40+ points where 13 was
+needed:
+
+```
+-1 Gold, every card        37.3 -> 82.8    (spread 23.4 -> 44.8)
+-1 Gold, cost 5 and up     37.3 -> 34.9    WORSE than doing nothing
+-1 Gold, cost 3 and below  37.3 -> 78.5
+```
+
+Three things fall out, all of which generalise:
+
+- One Gold off a summon moves an element ~45 points. GALE's entire Zephyr
+  rework — damage AND dodge, across 39 cards — moved it 16. Gold is roughly an
+  order of magnitude more powerful than stats here, so **stat-shaped auras are
+  the tuning instrument and Gold is not.**
+- Nearly all of that value is at the CHEAP end: twelve cheap cards bought 41 of
+  the 45. Cheap-and-wide is the strategy, and Gold is what buys it.
+- Discounting the HEAVY end is actively HARMFUL. `aiPrepIntent` summons the
+  highest-cost affordable card, so cheapening big cards only brings them into
+  reach sooner and spends on one body where two would have gone down.
+
+A caveat on that last point, and on DAWN's number generally: it is tuned
+against the AI's greedy buy rule, which a human would not fall for as readily.
+DAWN is the element where that assumption does the most work — worth a
+play-test on device before trusting 45.2 completely.
+
+**Awakening's strike takes the elemental matchup like a real attack** — 5
+printed DMG lands as 6 into DUSK (x1.25, floored) and a flat 9 into LEAF. It
+also reads PRINTED DMG rather than dmg x hits, so re-statting a card from 2x2
+to 1x4 silently doubles it. Both are pinned by tests.
 
 Two other things the diagnostics turned up, neither yet acted on:
 
@@ -332,9 +366,10 @@ Rollo / Zombination / Doom changes and everything since.
 
 ## Open threads
 
-- DAWN (37.3) is the last outlier, ~23 below BOLT; spread 23.4. Its measured
-  problem is OUTPUT, not speed — see "Where balance stood". GALE and LEAF are
-  both solved, each by an aura that was not paying.
+- Element balance is DONE for now: spread 17.0, everyone between 42.7 and 59.7.
+  LEAF, GALE and DAWN were each solved by an aura that was not paying. If it is
+  revisited, DUSK (42.7) and BOLT (59.7) are the ends — but see the warning in
+  "Where balance stood" about chasing anyone to 50 at this spread.
 - `ELEMENT_MATCHUP` has no UI surface.
 - `deckById`'s silent fallback (see Measuring balance).
 - Spell curve expansion — the big queued feature. Today's `spells.ts` has the

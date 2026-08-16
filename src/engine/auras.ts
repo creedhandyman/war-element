@@ -24,7 +24,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   BORE: { name: "Exostone", desc: "Enters play with shields by rarity — Rare 2, Epic 2, Legendary 3, Mythic 4. Never loses more than 1 shield to a single hit however heavy, and gains +1 shield whenever its attack breaks one off an opponent." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals a third of its DMG back to the killer, and the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%)." },
   AQUA: { name: "Flow Change", desc: "On summon, choose a boost for 3 rounds: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
-  DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for half its DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 14)." },
+  DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for its full DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 14)." },
   GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21); the first time it passes SP 15, a one-time +1 DMG." },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +2 DMG to any opponent carrying a status." },
 };
@@ -90,6 +90,35 @@ export const slipstreamPct = (sp: number): number =>
     GALE_SLIPSTREAM_CAP,
     Math.max(0, Math.floor((sp - GALE_SLIPSTREAM_BASE) / GALE_SLIPSTREAM_PER)) * GALE_SLIPSTREAM_PCT,
   );
+
+/** AWAKENING'S STRIKE — what a DAWN card hits for as it lands, as a fraction of
+ *  its own DMG. Was a half; it is the whole thing now.
+ *
+ *  DAWN sat bottom of the game at 37.3% with the lowest damage in it: 56 a
+ *  match against a field of 85-95. This is the smallest change that goes at
+ *  that number directly, and it is on-theme — the light arriving IS the card's
+ *  attack, so it should hit like one.
+ *
+ *  GOLD WAS THE WRONG LEVER, and the two attempts are recorded because the
+ *  finding generalises well beyond DAWN:
+ *
+ *    -1 Gold on every card       37.3 -> 82.8%   (spread 23.4 -> 44.8)
+ *    -1 Gold from cost 5 up      37.3 -> 34.9%   (WORSE than no change)
+ *    -1 Gold up to cost 3        37.3 -> 78.5%
+ *
+ *  Three things fall out of that. Gold is enormously more valuable than stats
+ *  here — one Gold off a summon moved an element +45 points, where GALE's whole
+ *  Zephyr rework (damage AND dodge, on 39 cards) moved it +16. Essentially all
+ *  of that value is at the CHEAP end: twelve cheap cards bought +41 of the +45.
+ *  And discounting the HEAVY end is actively harmful, because
+ *  `aiPrepIntent` summons the highest-cost affordable card, so cheapening big
+ *  cards only brings them into reach sooner and spends on one body where two
+ *  would have gone down.
+ *
+ *  So gold has no granularity to offer: every shape of discount is worth 40+
+ *  points and DAWN needs about 13. A damage aura is the right size — it is the
+ *  size GALE's was. */
+export const DAWN_STRIKE_DIVISOR = 1;
 
 /** Where First Light (DAWN) stops quickening. Well under GALE's 21: speed is
  *  GALE's identity, and this exists to lift the game's most expensive, second

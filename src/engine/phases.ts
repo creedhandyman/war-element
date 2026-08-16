@@ -2,7 +2,7 @@
 // All reducers clone the incoming state once and mutate only the clone.
 
 import { getDef } from "../data/cards";
-import { applyFlow, DAWN_SP_CAP, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasElementAura, LEAF_SHIELD_CAP } from "./auras";
+import { applyFlow, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasElementAura, LEAF_SHIELD_CAP } from "./auras";
 import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
@@ -1869,8 +1869,12 @@ function applyOneElementSummonAura(draft: GameState, inst: CardInstance, def: Ca
       }
       break;
     }
-    case "DAWN": { // Awakening — strike the nearest enemy for half its DMG.
-      const dmg = Math.floor(def.dmg / 2);
+    case "DAWN": { // Awakening — strike the nearest enemy as it lands.
+      // Full DMG, not half. DAWN measured lowest in the game on damage dealt
+      // (56 a match against a field of 85-95), and this is the aura that was
+      // already pointed at that number. See DAWN_STRIKE_DIVISOR for why the
+      // gold-discount routes were measured and abandoned.
+      const dmg = Math.floor(def.dmg / DAWN_STRIKE_DIVISOR);
       if (dmg > 0) {
         const foe = closest(inst, boardCards(draft, enemyOf(inst.owner)).filter((c) => c.curHp > 0));
         if (foe) {

@@ -2791,13 +2791,15 @@ describe("element auras", () => {
     expect(shaded).toBeLessThan(200);
   });
 
-  it("Awakening (DAWN): summoning strikes the nearest enemy for half its DMG", () => {
+  it("Awakening (DAWN): summoning strikes the nearest enemy for its full DMG", () => {
     const s = prepState();
     s.players.P1.gold = 5;
     const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 15 });
-    const handId = giveHand(s, "P1", "dawn_solstice"); // DMG 5 → half 2
+    const handId = giveHand(s, "P1", "dawn_solstice"); // DMG 5
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
-    expect(next.cards[foe.instanceId].curHp).toBe(13); // 15 − 2 Awakening
+    // 5 printed, then the DAWN->DUSK matchup bonus (x1.25, floored) = 6. The
+    // strike is a real attack and takes the matchup like one.
+    expect(next.cards[foe.instanceId].curHp).toBe(9);
   });
 
   it("Flow Change (AQUA): a human summon defers the choice; Liquid grants +2 DMG for 3 rounds", () => {
@@ -2947,12 +2949,11 @@ describe("element-aura telegraphs (fx counters)", () => {
     const s = prepState();
     s.players.P1.gold = 9;
     const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
-    // Musk Ox, not GoldenEagle: Awakening is floor(dmg / 2), and a 1-DMG card
-    // deals 0, so the aura never fires and there'd be nothing to telegraph.
-    const handId = giveHand(s, "P1", "dawn_musk_ox"); // DAWN, 5 DMG -> strikes for 2
+    const handId = giveHand(s, "P1", "dawn_musk_ox"); // DAWN, 5 DMG
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const summoned = boardCards(next, "P1").find((c) => c.defId === "dawn_musk_ox")!;
-    expect(next.cards[foe.instanceId].curHp).toBe(38); // it really struck (40 − floor(5/2))
+    // 5 printed, +25% into DUSK = 6. It really struck.
+    expect(next.cards[foe.instanceId].curHp).toBe(34);
     expect(summoned.fxLunge ?? 0).toBe(1);
   });
 
@@ -3028,15 +3029,15 @@ describe("Sphere — one heavy shot instead of a 2x2 volley", () => {
   });
 
   it("the printed DMG also doubles its DAWN Awakening on summon", () => {
-    // Awakening strikes for floor(printed DMG / 2) — it reads the printed
-    // number, NOT dmg x hits, so moving 2x2 to 1x4 quietly doubles it from 1
-    // to 2. Easy to ship without noticing.
+    // Awakening reads the PRINTED DMG, not dmg x hits, so moving 2x2 to 1x4
+    // quietly doubles it. Easy to ship without noticing — which is the whole
+    // point of this test, and still true now the strike is the full number.
     const s = prepState();
     s.players.P1.gold = 6;
     const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     const handId = giveHand(s, "P1", "dawn_sphere");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
-    expect(40 - next.cards[foe.instanceId].curHp).toBe(2);
+    expect(40 - next.cards[foe.instanceId].curHp).toBe(5); // 4 printed, +25% into DUSK
   });
 });
 
