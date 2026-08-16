@@ -34,10 +34,24 @@ export function SpellTray(props: {
         // Castable RIGHT NOW (your turn, unspent, affordable) and not already
         // armed → a soft ready-glow so you can see what you can actually cast.
         const ready = props.myTurn && !slot.used && afford && !armed;
+        // FOUR STATES, EACH READABLE WITHOUT COLOUR. `disabled` used to flatten
+        // "already cast", "can't afford it" and "not your turn" into one grey
+        // row at 42% opacity — three different reasons wearing the same face,
+        // and on a phone with no hover there was nothing else to consult.
+        //
+        // `poor` is split out because it is the only one of the three the player
+        // can DO something about: it names the price it is short of. Spent stays
+        // in place rather than hiding, because a cast spell is still information
+        // about the match.
+        const poor = !slot.used && !afford;
+        const note = armed ? "TAP A TARGET TO CAST"
+          : slot.used ? "ALREADY CAST"
+          : poor ? `NEEDS ${spell.cost} MAGIC`
+          : "";
         return (
           <button
             key={slot.defId}
-            className={`spellchip ${armed ? "armed" : ""} ${slot.used ? "used" : ""} ${ready ? "ready" : ""}`}
+            className={`spellchip ${armed ? "armed" : ""} ${slot.used ? "used" : ""} ${ready ? "ready" : ""} ${poor ? "poor" : ""}`}
             data-el={spell.element}
             disabled={disabled}
             title={`${spell.name} (cost ${spell.cost}) — ${spell.text}${slot.used ? " · already cast" : afford ? "" : " · not enough Magic"}`}
@@ -61,7 +75,15 @@ export function SpellTray(props: {
                 / board-AoE spells cast the instant you tap them, so there was no
                 later moment to read what you'd just committed to. */}
             <span className="spellchip-body">
-              <span className="spellchip-name">{spell.name}</span>
+              <span className="spellchip-head">
+                <span className="spellchip-name">{spell.name}</span>
+                {/* The state's own word, or a green dot when the state IS
+                    "nothing is stopping you". Both sit at the end of the name
+                    line so the eye finds them in the same place every row. */}
+                {note
+                  ? <span className="spellchip-note">{note}</span>
+                  : ready ? <span className="spellchip-dot" aria-hidden="true" /> : null}
+              </span>
               <span className="spellchip-text">{spell.text}</span>
             </span>
           </button>
@@ -78,7 +100,20 @@ export function SpellTray(props: {
   if (props.collapsible) {
     return (
       <div className={`spellbook${open ? " open" : ""}${props.vertical ? " vertical" : ""}`}>
-        {open && <div className="spellbook-pop">{chips}</div>}
+        {open && (
+          <div className="spellbook-pop">
+            {/* Both numbers the decision needs, above the rows: how many casts
+                are left in the book at all, and how much Magic there is to pay
+                with. Without the second one every "NEEDS n MAGIC" below is a
+                figure with nothing to compare it against. */}
+            <div className="spellbook-head">
+              <span className="sbh-title">Spellbook</span>
+              <span className="sbh-left">{remaining} of {book.length} left</span>
+              <span className="sbh-magic"><i>✦</i><b>{magic}</b> magic</span>
+            </div>
+            {chips}
+          </div>
+        )}
         <button
           className={`spellbook-toggle ${anyCastable && !open ? "has-ready" : ""}`}
           onClick={() => setOpen((o) => !o)}
