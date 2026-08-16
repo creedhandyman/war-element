@@ -184,27 +184,41 @@ Solo cores, **both boards**, round-robin with **both seat orders**, 50 seeds per
 ordered matchup — 5,600 matches, n=1,400 per element (±2.6 at 95%):
 
 ```
-bolt 56.6 · bore 55.8 · leaf 50.7 · aqua 50.3
-pyro 49.5 · dawn 45.9 · dusk 45.6 · gale 45.5     spread 11.1
+bolt 54.2 · bore 53.4 · dawn 52.4 · leaf 49.9
+pyro 49.9 · aqua 49.2 · dusk 47.3 · gale 43.8     spread 10.4
 ```
 
-**The tightest this has ever measured, by a wide margin** — the previous best
-was 15.8, and the oldest recorded pass was 30.4. It has also settled into three
-clean tiers rather than a ladder:
+**The tightest measured** (previous bests 11.1, then 15.8; the oldest recorded
+pass was 30.4) — but the SHAPE changed, and that is the more useful half:
 
 ```
-top     bolt 56.6 · bore 55.8            (0.8 apart)
-middle  leaf 50.7 · aqua 50.3 · pyro 49.5  (1.2 apart, sitting on 50)
-bottom  dawn 45.9 · dusk 45.6 · gale 45.5  (0.4 apart)
+top     bolt 54.2 · bore 53.4 · dawn 52.4     1.8 apart
+middle  leaf 49.9 · pyro 49.9 · aqua 49.2     0.7 apart, on 50
+floor   dusk 47.3 ............ gale 43.8      3.5 apart
 ```
 
-No element is a spike any more; every tier is a cluster. **There is no obvious
-next move**, and that matters more than the number: the remaining structure is
-two ~5-point steps between tiers, not one outlier to shave. Chasing it further
-means moving a whole tier, and the last four passes are a record of how easily
-that overshoots.
+Six of the eight sit inside 5 points. **GALE is a lone outlier at the bottom** —
+3.5 clear of DUSK, where the previous pass had a three-element floor inside 0.4.
+That makes it the first single-element target since BORE, and the obvious next
+move if there is one.
 
-That is after Exostone stopped wearing the plate it breaks, which is what
+DAWN +6.5 in one pass, sixth to third — the largest single-element move recorded
+here, bigger than DUSK's +4.3 or BORE's −4.3. It follows the four BATTLE
+COMMANDS and, just as importantly, the AI branch that lets it cast them: they
+were dead to the AI on arrival (findSpellCast dispatches on `kind`, and a command
+carries a kind only for the tray's colour), so the spells sat unused in its book
+every match until that shipped. **A spell the AI cannot reach is worth nothing in
+any measurement taken with the AI** — and every number in this file is taken with
+the AI. That is a class of bug, not a one-off.
+
+CAUTION ON ATTRIBUTION: twenty commits separate this from the 11.1 pass, and one
+of them — derived spellbooks filling to 8 on the large board instead of 5 —
+changed the resource EVERY element spends, on half the matches. It is a plausible
+confound for all of the movement above, including the 2.4 that came off both
+leaders. Do not treat any single figure here as isolated; A/B a suspect before
+acting on it.
+
+Before that, Exostone stopped wearing the plate it breaks, which is what
 collapsed the top:
 
 ```
