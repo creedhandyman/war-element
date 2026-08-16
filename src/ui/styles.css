@@ -1793,6 +1793,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 .ar-foot { flex: none; padding: 4px 16px 0; }
 .ar-start { width: 100%; height: 52px; font-size: 17px; }
+/* A gauntlet seat and a throwaway single fight used to commit through one
+   identical button. The label now names which — and this carries the same gold
+   the gauntlet panel above it wears, so the two read apart at a glance as well
+   as on the words. Colour is the second signal here, never the only one. */
+.ar-start.gauntlet {
+  background: linear-gradient(180deg, rgba(201, 162, 75, .28), rgba(201, 162, 75, .12));
+  border-color: var(--gold-lit);
+  color: var(--gold-lit);
+  box-shadow: 0 0 16px rgba(201, 162, 75, .28);
+}
 .ar-ghosts { margin-top: 9px; display: flex; gap: 8px; }
 .ar-ghosts .ghost { flex: 1; height: 40px; }
 .ar-foot .net-status { margin-top: 9px; }

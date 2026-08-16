@@ -2609,7 +2609,11 @@ export function App() {
                     }}
                   >
                     <span className="gt-start-main">
-                      Run the {runTier === "easy" ? "Easy" : runTier === "mid" ? "Even" : "Hard"} gauntlet
+                      {/* "Run the …" promised a fight this button does not
+                          start: it ARMS the run and points the opponent seat at
+                          seat 1, and the actual match still begins from Start
+                          Match below. "Line up" says what the tap does. */}
+                      Line up the {runTier === "easy" ? "Easy" : runTier === "mid" ? "Even" : "Hard"} gauntlet
                       {/* Number then icon, matching the shop's signed amounts
                           (`-{PACK_COST}<i className="shard" />`). The bare "+12"
                           did not say WHAT it paid, and the gauntlet is the one
@@ -2621,7 +2625,7 @@ export function App() {
                         <i className="gt-done" title="Cleared before">✓</i>
                       )}
                     </span>
-                    <span className="gt-sub">Four dealt opponents. One loss ends the run.</span>
+                    <span className="gt-sub">Four dealt opponents, one loss ends the run — then start it below.</span>
                   </button>
                 ) : (
                   <>
@@ -2753,7 +2757,7 @@ export function App() {
             <div className="ar-foot">
               {!onlineMode ? (
                 <button
-                  className="lockin ar-start"
+                  className={`lockin ar-start${gauntletRun && !runOver(gauntletRun) ? " gauntlet" : ""}`}
                   onClick={() => {
                     const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
                     const p1Cards = resolveDeckCards(p1DeckId);
@@ -2785,7 +2789,14 @@ export function App() {
                     setStarted(true);
                   }}
                 >
-                  Start Match
+                  {/* The deception this fixes: one button, two very different
+                      commitments. With a run armed this begins a GAUNTLET SEAT
+                      — a loss ends four matches' progress — and it read exactly
+                      the same as a throwaway single fight. The label now names
+                      which one you are agreeing to, and where you are in it. */}
+                  {gauntletRun && !runOver(gauntletRun)
+                    ? `Start Gauntlet · Seat ${gauntletRun.won + 1} of ${gauntletRun.seats.length}`
+                    : "Start Match"}
                 </button>
               ) : (
                 <button className="lockin ar-start" disabled>
