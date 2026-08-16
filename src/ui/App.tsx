@@ -605,6 +605,12 @@ export function App() {
     setSel(null);
     setPending(null);
     setPicks([]);
+    // A staged summon does not survive the turn it was staged in. It never
+    // should have — the column it points at may be taken by the time priority
+    // comes back — and now that it blocks Pass, a stale one would leave the
+    // button reading "Confirm your summon first" over a summon that no longer
+    // makes sense, with no way to clear it.
+    setStaged(null);
     setSurrenderArmed(false);
     setDetailId(null);
     setMobilePanel(null); // close any mobile edge panel on a phase/turn flip
@@ -1986,12 +1992,33 @@ export function App() {
             </div>
             {/* Pass Priority is the primary action; secondary controls stack
                 underneath it so the hand keeps its width. */}
+            {/* A STAGED SUMMON BLOCKS THE PASS. Picking a card and a column only
+                previews the placement — it is not on the board until Confirm —
+                so passing here silently threw the summon away, and did it at the
+                one moment the player was most sure they had just played a card.
+                Two consecutive passes start the Battle, so the mistake could
+                also end the whole prep phase a card down.
+
+                The button says which of the two things to do rather than going
+                quietly dead, because a disabled control with no reason on it is
+                the same trap one step later. A half-built SPELL is deliberately
+                NOT blocked — passing is how you stop placing, and the hint for
+                it says so. */}
             <button
-              className={`lockin pass-btn ${myPrep && sel === null && !hasAnyPlay ? "nudge" : ""}`}
-              disabled={!myPrep}
-              onClick={() => me && dispatch({ type: "PASS", player: me })}
+              className={`lockin pass-btn ${myPrep && !staged && sel === null && !hasAnyPlay ? "nudge" : ""}`}
+              disabled={!myPrep || staged !== null}
+              title={staged ? "Confirm or cancel your placement before passing" : undefined}
+              onClick={() => me && !staged && dispatch({ type: "PASS", player: me })}
             >
-              {myPrep ? (
+              {!myPrep ? (
+                "Waiting…"
+              ) : staged ? (
+                // Same width as "Pass Priority" on purpose: the phone rule is
+                // `white-space: nowrap; overflow: hidden`, so a longer label
+                // clips. The full sentence is in the title and in the hint,
+                // which already reads "Confirm placement — …".
+                "Confirm first"
+              ) : (
                 <>
                   Pass Priority
                   <span className="pass-dots" title="Two consecutive passes → Battle">
@@ -1999,8 +2026,6 @@ export function App() {
                     <span className={`pd ${(game.prep?.consecutivePasses ?? 0) >= 2 ? "on" : ""}`} />
                   </span>
                 </>
-              ) : (
-                "Waiting…"
               )}
             </button>
             {/* Everything that is not the committing action, behind one button.
