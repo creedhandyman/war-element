@@ -2949,8 +2949,14 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (splash > 0 && center) {
       for (const e of boardCards(draft, enemyOf(attacker.owner))) {
         if (e.instanceId === target.instanceId || !e.pos) continue;
-        if (Math.max(Math.abs(e.pos.row - center.row), Math.abs(e.pos.col - center.col)) === 1)
+        if (Math.max(Math.abs(e.pos.row - center.row), Math.abs(e.pos.col - center.col)) === 1) {
           directDamage(draft, attacker, e, splash, num(params, "pen") > 0);
+          // splashStatus (Stormfang's Whirling Missile): the blast's rider lands
+          // on everyone it catches, not just the card it was aimed at. Opt-in,
+          // because every existing splash is damage-only and silently adding a
+          // status to all of them would re-tune cards nobody touched.
+          if (num(params, "splashStatus") > 0) maybeStatus(draft, attacker, e, params);
+        }
       }
     }
     // splashAll (Valcana's Magma Rock Burst): a lesser burst to EVERY other

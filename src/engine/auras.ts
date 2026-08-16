@@ -66,8 +66,21 @@ export const GALE_SP_CAP = 21;
  *  Deliberately NOT another speed nudge: that axis was tried on DAWN (First
  *  Light) and measured as not working. */
 
-/** TAILWIND: +1 DMG per this many SP. */
-export const GALE_TAILWIND_PER = 6;
+/** TAILWIND: +1 DMG per this many SP.
+ *
+ *  6 -> 5. The cap stays at 3 — that exists to stop a multi-hit body turning
+ *  this into a blowout and is not what was holding GALE back. What was: at 6 a
+ *  card needed SP 18 to reach the cap and SP 12 for even +2, and GALE's own
+ *  documented problem is DAMAGE (5.4 dmg x hits, the weakest attacker in the
+ *  game). At 5 the first point lands at SP 5 instead of 6 and the second at 10
+ *  instead of 12, so the conversion actually reaches the mid-speed cards that
+ *  make up most of the element rather than only its two fastest.
+ *
+ *  Aimed at the measurement: GALE sits at 43.8%, 3.5 clear of the next element
+ *  and the first lone outlier since BORE. Card buffs have been tried on it —
+ *  three in one pass — and measured 0.7 DOWN. Auras are the lever that has
+ *  moved an element here, every time. */
+export const GALE_TAILWIND_PER = 5;
 /** ...to here, so a multi-hit body cannot turn it into a blowout. */
 export const GALE_TAILWIND_CAP = 3;
 

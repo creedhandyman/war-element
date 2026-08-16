@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, shadeDodgePct, SPECIAL_HANDLERS, TARGETLESS_HANDLERS } from "../combat";
+import { weakenStacks } from "../auras";
 import { applyFlow, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
@@ -4193,5 +4194,62 @@ describe("General's Spraying Thunder hits the three closest", () => {
     });
     const heavy = getDef("bolt_general").weaponModes![3];
     expect(60 - n.cards[foe.instanceId].curHp).toBeGreaterThanOrEqual(heavy.dmg);
+  });
+});
+
+describe("GALE's WEAKEN kit", () => {
+  it("Whirling Missile weakens the splash, not just the card it was aimed at", () => {
+    // splashStatus is opt-in: every other splash in the game is damage-only, so
+    // applying the rider to all of them would have re-tuned cards nobody
+    // touched. Without it a board-clearing missile debuffs exactly one body.
+    const s = prepState();
+    s.players.P1.magicPool = 12;
+    const fang = place(s, "gale_stormfang", "P1", 3, 1, { autoMode: "manual" });
+    const aimed = place(s, "dusk_gool", "P2", 2, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    const beside = place(s, "dusk_gool", "P2", 2, 2, { curHp: 99, maxHp: 99, curShields: 0 });
+    const n = applyIntent(battleWith(s, fang.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: aimed.instanceId,
+    });
+    expect(statusOf(n.cards[aimed.instanceId], "WEAKEN")?.duration).toBe(3);
+    expect(statusOf(n.cards[beside.instanceId], "WEAKEN"), "the splash carries it").toBeTruthy();
+  });
+
+  it("Totem Pole weakens everything in reach the moment it plants", () => {
+    // An SP-0 body that can never reposition — its arrival has to matter where
+    // it lands, because it will never land anywhere else.
+    const s = prepState();
+    s.players.P1.gold = 10;
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40 });
+    const handId = giveHand(s, "P1", "gale_totem_pole");
+    const n = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    expect(statusOf(n.cards[foe.instanceId], "WEAKEN")).toBeTruthy();
+    expect(n.cards[foe.instanceId].curHp, "no damage — the debuff IS the arrival").toBe(40);
+  });
+
+  it("Totem Rampage takes the five NEAREST, not the first five listed", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 8;
+    const pole = place(s, "gale_totem_pole", "P1", 3, 2, { autoMode: "manual" });
+    // Far one placed first, so board order and distance order disagree.
+    const far = place(s, "dusk_gool", "P2", 0, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const near = place(s, "dusk_gool", "P2", 2, 2, { curHp: 40, maxHp: 40, curShields: 0 });
+    const dmg = Number(getDef("gale_totem_pole").special!.params!.dmg);
+    const n = applyIntent(battleWith(s, pole.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: near.instanceId,
+    });
+    expect(40 - n.cards[near.instanceId].curHp).toBe(dmg);
+    expect(statusOf(n.cards[near.instanceId], "WEAKEN")).toBeTruthy();
+    void far;
+  });
+
+  it("the element's WEAKEN stacks on a body two GALE cards both hit", () => {
+    // The point of the whole kit. WEAKEN deepens rather than refreshing, so a
+    // second GALE source compounds (25% -> 44%) instead of doing nothing.
+    const s = prepState();
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 99, maxHp: 99, curShields: 0 });
+    applyStatus(s, s.cards[foe.instanceId], "WEAKEN", 2, 0, "GALE");
+    const once = weakenStacks(s.cards[foe.instanceId]);
+    applyStatus(s, s.cards[foe.instanceId], "WEAKEN", 2, 0, "GALE");
+    expect(weakenStacks(s.cards[foe.instanceId])).toBe(once + 1);
   });
 });

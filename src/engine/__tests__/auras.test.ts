@@ -10,7 +10,7 @@ import { CARDS, getDef } from "../../data/cards";
 import {
   DAWN_SP_CAP, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
   EXOSTONE_SHIELDS, GALE_SP_CAP, LEAF_SHIELD_CAP, PYRO_BURN_STACK_CAP, hasElementAura,
-  slipstreamPct, tailwindDmg,
+  slipstreamPct, tailwindDmg, GALE_TAILWIND_PER, GALE_TAILWIND_CAP,
 } from "../auras";
 import { applyStatus, basicAttack, defeatCard, shadeDodgePct, slipstreamDodgePct } from "../combat";
 import { advance, applyIntent, openFlowRepick } from "../phases";
@@ -297,7 +297,18 @@ describe("DAWN — Awakening", () => {
 
 describe("GALE — Zephyr's Tailwind and Slipstream", () => {
   it("converts SP into damage, on a curve with a ceiling", () => {
-    expect([0, 5, 6, 11, 12, 17, 18, 30].map(tailwindDmg)).toEqual([0, 0, 1, 1, 2, 2, 3, 3]);
+    // Derived from the constants. The literal curve here was written for PER 6
+    // and broke when the step tightened to 5 — while testing the SHAPE (a step
+    // per PER, flat once capped), which had not changed at all. What is asserted
+    // now is that shape, plus a spot-check that the first point lands ON the
+    // step rather than one past it.
+    const per = GALE_TAILWIND_PER;
+    const cap = GALE_TAILWIND_CAP;
+    expect(tailwindDmg(0)).toBe(0);
+    expect(tailwindDmg(per - 1), "one short of the step buys nothing").toBe(0);
+    expect(tailwindDmg(per), "the step itself pays").toBe(1);
+    for (let n = 1; n <= cap; n++) expect(tailwindDmg(per * n)).toBe(n);
+    expect(tailwindDmg(per * (cap + 5)), "flat once capped").toBe(cap);
   });
 
   it("converts SP into dodge, on a curve with a ceiling", () => {
@@ -306,9 +317,11 @@ describe("GALE — Zephyr's Tailwind and Slipstream", () => {
 
   it("a GALE card's printed damage is raised by its own speed", () => {
     const s = prepState();
-    // Klipso is SP 13, so floor(13/6) = +2 on top of its printed 9.
+    // Derived too — this said "floor(13/6) = +2" in a comment and +2 in the
+    // assertion, both of which are the old step written out by hand.
     const k = place(s, "gale_klipso", "P1", 3, 0);
-    expect(effectiveDmg(s, s.cards[k.instanceId])).toBe(getDef("gale_klipso").dmg + 2);
+    const def = getDef("gale_klipso");
+    expect(effectiveDmg(s, s.cards[k.instanceId])).toBe(def.dmg + tailwindDmg(def.sp));
   });
 
   it("does NOT stack on the two cards that already convert SP to damage", () => {

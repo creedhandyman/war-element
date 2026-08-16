@@ -1919,10 +1919,14 @@ export const CARDS: CardDef[] = [
       name: "Whirlwind Slasher",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 5, targets: 99, spDebuff: 2, spDebuffRounds: 1 },
+      // -2 SP for ONE round was close to nothing: it expired before the next
+      // Prep in most cases and only ever reordered a queue. WEAKEN 2 cuts what
+      // they hit for, stacks with the rest of the element's, and the 1-space
+      // shove buys the board position GALE actually wants.
+      params: { dmg: 5, targets: 99, push: 1, statusKind: "WEAKEN", statusDuration: 2 },
       targetSide: "enemy",
       ranged: true, // "5 DMG to all opponents" — reaches the whole board
-      text: "Deal 5 DMG to every opponent and −2 SP for the round.",
+      text: "Deal 5 DMG to every opponent, WEAKEN them for 2 rounds, and push each back 1 space.",
     },
   },
   {
@@ -3364,9 +3368,9 @@ export const CARDS: CardDef[] = [
     // round and 2 DMG.
     talent: {
       name: "Wave Pounce",
-      text: "Once per game, free: deal 2 DMG to all opponents and drop their SP by 3 for the round.",
+      text: "Once per game, free: deal 2 DMG to all opponents and WEAKEN them for 2 rounds.",
       handler: "barrage",
-      params: { dmg: 2, targets: 99, spDebuff: 3, spDebuffRounds: 1 },
+      params: { dmg: 2, targets: 99, statusKind: "WEAKEN", statusDuration: 2 },
     },
   },
   {
@@ -8753,7 +8757,14 @@ export const CARDS: CardDef[] = [
       name: "Whirling Missile",
       cost: 5,
       handler: "strike",
-      params: { dmg: 14, splash: 7, charge: 4, chargeFirst: 1, chargeLateral: 1 },
+      // splashStatus: the WEAKEN rides the blast, so the four bodies caught by
+      // the splash are weakened too — otherwise a board-clearing missile would
+      // debuff exactly one card. And WEAKEN STACKS now (25% / 44% / 58%), so
+      // this is the anchor of GALE's new identity rather than a rider on it.
+      params: {
+        dmg: 14, splash: 7, charge: 4, chargeFirst: 1, chargeLateral: 1,
+        statusKind: "WEAKEN", statusDuration: 3, splashStatus: 1,
+      },
       targetSide: "enemy",
       text: "Dash into the target's row, then deal 14 DMG to it and 7 DMG to opponents adjacent to it.",
     },
@@ -9497,8 +9508,29 @@ export const TOKENS: CardDef[] = [
     shields: 2,
     keywords: {},
     // Totem Wrath (End of Round): crackling energy scorches the row ahead.
-    passiveNames: { roundTick: "Totem Wrath" },
+    // On summon the pole's first act is to WEAKEN everything it can reach —
+    // no damage, just the debuff, which is the point: an SP-0 body that can
+    // never reposition needs its arrival to matter where it lands.
+    passiveNames: { roundTick: "Totem Wrath", onSummon: "Totem Wrath" },
     roundTick: { rowAheadDmg: 2 },
+    onSummon: {
+      handler: "statusNova",
+      params: { statusKind: "WEAKEN", statusDuration: 2, targets: 99 },
+      targetSide: "enemy",
+    },
+    // Totem Rampage: the pole had NO Special at all — an SP-0 body that never
+    // moves, with one row-ahead tick and nothing to spend magic on. `closest`
+    // is read by both the barrage handler and specialTargets, so the five it
+    // strikes are the five nearest and the on-board preview shows exactly those.
+    special: {
+      name: "Totem Rampage",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 4, targets: 5, closest: 1, statusKind: "WEAKEN", statusDuration: 2 },
+      targetSide: "enemy",
+      ranged: true, // a planted pole cannot walk to its targets
+      text: "Deal 4 DMG to the 5 closest opponents and WEAKEN them for 2 rounds.",
+    },
   },
   {
     id: "dusk_skeleton_tok",
