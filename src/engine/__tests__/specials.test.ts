@@ -237,7 +237,7 @@ describe("firing specials", () => {
     // stands on its own instead of on a seeded coin.
     // Both targets sit on a ray one space out (straight ahead and diagonal), so
     // the ranged queen-line reach isn't what's under test here.
-    const shift = place(s, "bore_shift", "P1", 3, 1, { autoMode: "manual" }); // 2 dmg × 3
+    const shift = place(s, "bore_shift", "P1", 3, 1, { autoMode: "manual" }); // 3 dmg × 3
     const t1 = place(s, "dusk_gool", "P2", 2, 1, { curHp: 13 });
     const t2 = place(s, "dusk_ghastly", "P2", 2, 2, { curHp: 19, curShields: 1 });
     s.rngState = seedForCoins(false, false, false); // no CRITs muddying the math
@@ -247,9 +247,9 @@ describe("firing specials", () => {
       action: "basic",
       targetIds: [t1.instanceId, t1.instanceId, t2.instanceId], // 2 hits + 1 hit
     });
-    expect(next.cards[t1.instanceId].curHp).toBe(9); // 13 − 2 − 2
-    // t2: 2 − 1 shield = 1 to HP, shield stripped
-    expect(next.cards[t2.instanceId].curHp).toBe(18);
+    expect(next.cards[t1.instanceId].curHp).toBe(7); // 13 − 3 − 3
+    // t2: 3 − 1 shield = 2 to HP, shield stripped
+    expect(next.cards[t2.instanceId].curHp).toBe(17);
     expect(next.cards[t2.instanceId].curShields).toBe(0);
   });
 
