@@ -164,8 +164,14 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 5,
-    dmg: 3, // "5×1 DMG" = 5 hits × 1 dmg
+    // Down a cost, paid entirely out of per-hit damage: 2x5 + 13 + 7 = 30,
+    // exactly the cost-4 budget. The five-hit shape is the card, so the hits
+    // stay — and a 2-damage shredder is not the dead weapon it looks like,
+    // because every landed hit strips a plate, so the volley opens armour for
+    // its own later hits (2 shields eats the first hit, the third onward land
+    // clean).
+    cost: 4,
+    dmg: 2, // "5×1 DMG" in the doc; 5 small hits is the identity
     hits: 5,
     hp: 13,
     sp: 7,
@@ -875,19 +881,17 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Ghost",
-    // Spook (On Hit, first time only): FRIGHTEN the opponent for 2 rounds.
+    // Spook (On Hit, first time only): FRIGHTEN the opponent for 1 round.
     //
-    // Duration 2 for the reason Hunter's Trapper and Elderroot already give in
-    // their own comments: a status applied during BATTLE at duration 1 is ticked
-    // away at Cleanup before Prep ever comes round, so the half of FRIGHTEN that
-    // stops a card MOVING never landed once. Only the immediate retreat did.
-    //
-    // It matters more here than anywhere. Gool was the one card in the set
-    // dominated outright on both axes — Hunter is the same rarity, cost, attack
-    // type, HP and SP with +1 DMG and three passives to Gool's one — and that one
-    // passive was half inert.
+    // DELIBERATE, AND IT COSTS HALF THE STATUS. A status applied during BATTLE
+    // at duration 1 is ticked away at Cleanup before Prep comes round, so the
+    // half of FRIGHTEN that stops a card MOVING never lands — only the immediate
+    // retreat does. This comment used to explain why the duration was 2 for
+    // exactly that reason; it is 1 now by request, so Spook is a knockback and
+    // nothing more. If the move-lock is ever wanted back, 2 is the floor that
+    // buys it — 1 is not a shorter FRIGHTEN, it is a different ability.
     passiveNames: { onHitStatus: "Spook" },
-    onHitStatus: { kind: "FRIGHTEN", duration: 2, power: 0, firstHitOnly: true },
+    onHitStatus: { kind: "FRIGHTEN", duration: 1, power: 0, firstHitOnly: true },
   },
   {
     id: "dusk_ghastly",
@@ -938,9 +942,15 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: ["Ghost", "ScareKrow"],
-    // Frightening (On Hit, first time only): FRIGHTEN the target for 1 round.
+    // Frightening (On Hit, first time only): FRIGHTEN the target for 2 rounds.
+    //
+    // Up from 1, and the extra round is not a small buff — it is the difference
+    // between half the status working and all of it. At duration 1 the mark is
+    // ticked away at Cleanup before Prep, so the move-lock never landed and
+    // Frightening was a pure knockback. At 2 it survives into the opponent's
+    // Prep and actually pins the card.
     passiveNames: { onHitStatus: "Frightening" },
-    onHitStatus: { kind: "FRIGHTEN", duration: 1, power: 0, firstHitOnly: true },
+    onHitStatus: { kind: "FRIGHTEN", duration: 2, power: 0, firstHitOnly: true },
     special: {
       name: "Jacked",
       cost: 2,
