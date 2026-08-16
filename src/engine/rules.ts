@@ -960,6 +960,17 @@ export function canCastSpell(
       return { ok: false, reason: "That Field is already the terrain here" };
     return { ok: true };
   }
+  // BATTLE COMMANDS: an order to your OWN line, so there is nothing to aim at.
+  // Placed ahead of the kind checks because a command borrows a kind for its
+  // tray colour ("damage" for Charge) and would otherwise be refused for want of
+  // a target it never uses.
+  if (spell.command) {
+    const army = boardCards(state, player).filter(
+      (a) => a.curHp > 0 && a.pos && (!spell.command!.sameElement || getDef(a.defId).element === spell.element),
+    );
+    if (army.length === 0) return { ok: false, reason: `No ${spell.element} card to command` };
+    return { ok: true };
+  }
   if (spell.kind === "convert") {
     // Pure pool conversion — no target, no board state to check. The magic
     // check above is the only gate.

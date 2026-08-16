@@ -310,32 +310,33 @@ export const SPELLS: SpellDef[] = [
   },
 
   // ───────── Cost 8 — wide control (two adjacent rows) ─────────
-  {
+    {
+    // COMMAND, and the big one — move AND strike, the whole line, uncapped. The
+    // order is fixed (advance first, then swing), so the charge hits from where
+    // it arrives rather than where it set off.
     id: "dawn_solar_flare",
-    name: "Solar Flare",
+    name: "Charge",
     element: "DAWN",
     cost: 8,
-    kind: "aoe",
-    area: "tworows",
-    text: "BLIND every opponent across two adjacent rows for 2 rounds.",
-    status: { kind: "BLIND", duration: 2, power: 0 },
+    kind: "damage",
+    text: "Every DAWN ally advances 1 space and then strikes the nearest opponent it can reach.",
+    command: { step: 1, strike: true, sameElement: true },
   },
 
   // ───────── Cleanse — strip negative statuses off your own side ─────────
-  {
+    {
+    // COMMAND. DAWN had THREE spells carrying a cleanse (this, Dawn's Grace and
+    // Judgment) and four carrying BLIND — an element of ten spells saying the
+    // same two things repeatedly. Four of them are orders to your own line now,
+    // which is what the DAWN roster has always looked like: Sunbanner,
+    // Imperator, Reveille, Outrider, Vigil.
     id: "dawn_cleansing_light",
-    name: "Cleansing Light",
+    name: "Retreat",
     element: "DAWN",
     cost: 2,
     kind: "heal",
-    // 2 statuses each, not "every one". At cleanse 99 this stripped a control
-    // deck's entire round off the whole team for 2 magic — and made the cost-5
-    // team spells, which cleanse ONE apiece, strictly worse on the axis they
-    // share. It is still the dedicated cleanse and still the cheapest; what the
-    // cost-5s buy over it is the healing beside it.
-    text: "CLEANSE all DAWN allies — remove up to 2 negative statuses each.",
-    allAllies: true,
-    cleanse: 2,
+    text: "Order the DAWN line back 1 space toward your Home row and brace: +2 shields each.",
+    command: { step: -1, shield: 2, sameElement: true },
   },
   {
     id: "leaf_groves_blessing",
@@ -359,16 +360,21 @@ export const SPELLS: SpellDef[] = [
     allyHeal: 5,
     cleanse: 1,
   },
-  {
+    {
+    // COMMAND. Reuses `rerouteCount`, which BOLT's Full Reroute already
+    // implements — redeploying the line IS a battle command, and it needed no
+    // engine work at all. Fewer cards than Full Reroute (3 vs its own count) so
+    // the two spells are not the same card in different colours.
     id: "dawn_judgment",
-    name: "Judgment",
+    name: "Flanking Order",
     element: "DAWN",
     cost: 7,
-    kind: "damage",
-    text: "Deal 10 DMG (PEN) to a target and cleanse one status from each DAWN ally.",
-    dmg: 10,
-    pen: true,
-    cleanse: 1,
+    // "convert" is what Full Reroute — the same mechanic — already uses. It is a
+    // poor name for a reposition, but it is the kind the reroute path is keyed
+    // on, and inventing a ninth SpellKind for one spell would be worse.
+    kind: "convert",
+    text: "Redeploy up to 3 of your cards to any open slots, ignoring their movement tier.",
+    rerouteCount: 3,
   },
 
   // ───────── Cost 7 — BOLT's one board wipe ─────────
@@ -878,15 +884,17 @@ export const SPELLS: SpellDef[] = [
   },
 
   // ── DAWN ────────────────────────────────────────────────────────────────
-  {
+    {
+    // COMMAND. Capped at two, and that cap is the whole design: a free basic for
+    // every body on the board is the strongest thing a spell can do at any
+    // price, so this is a raid by whoever is already furthest forward.
     id: "dawn_grace",
-    name: "Grace",
+    name: "Surprise Attack",
     element: "DAWN",
     cost: 3,
-    kind: "heal",
-    text: "Heal a DAWN ally 5 HP and give it +1 DMG for the round.",
-    allyHeal: 5,
-    allyDmgRound: 1,
+    kind: "damage",
+    text: "The 2 DAWN allies closest to the enemy each strike the nearest opponent immediately.",
+    command: { strike: true, sameElement: true, max: 2 },
   },
   {
     id: "dawn_eternal_dawn",
@@ -975,6 +983,12 @@ export function isSpell(id: string): boolean {
 export function spellPickKind(
   spell: SpellDef,
 ): "none" | "enemy" | "ally" | "row" | "slot" | "cards" | "mode" {
+  // BATTLE COMMANDS take no pick — they order your OWN line. Ahead of the kind
+  // checks because a command borrows a kind for its tray colour (Charge is
+  // "damage"), and the tray would otherwise sit waiting for an enemy target
+  // that the spell never reads. There is a whole-pool test asserting this
+  // function and canCastSpell agree, and it is what caught the mismatch.
+  if (spell.command) return "none";
   if (spell.swapAllies || spell.rerouteCount) return "cards";
   if (spell.kind === "choice") return "mode";
   if (spell.kind === "trap") return "slot";

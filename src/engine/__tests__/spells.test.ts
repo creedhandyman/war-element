@@ -215,7 +215,12 @@ describe("single-target support spells are AIMED, not auto-cast", () => {
   });
 
   it("every single-target support spell in the set is classified \"ally\"", () => {
-    for (const spell of SPELLS.filter((x) => x.kind === "heal" && !x.allAllies))
+    // Commands are excluded for the same reason `allAllies` is: the rule here is
+    // "a support spell aimed at ONE ally must be aimed by the caster", and an
+    // order given to the whole line has nothing to aim. Retreat carries the
+    // "heal" kind for its tray colour — it hands out shields — but it is a
+    // command, and asking it for an ally pick would refuse a legal cast.
+    for (const spell of SPELLS.filter((x) => x.kind === "heal" && !x.allAllies && !x.command))
       expect(spellPickKind(spell), spell.id).toBe("ally");
   });
 });
@@ -450,16 +455,25 @@ describe("AoE spells (row / two-row)", () => {
     expect(statusOf(next.cards[other.instanceId], "BLEED")).toBeFalsy(); // row 2, spared
   });
 
-  it("Solar Flare: BLINDs opponents across the chosen row + the one behind it", () => {
+  it("Charge: the DAWN line advances, THEN swings", () => {
+    // Order matters and is fixed. Advancing first is what lets a card that
+    // could reach nothing from where it stood arrive in range and connect —
+    // strike-then-move would make the advance decorative.
     const s = prepState();
     armSpell(s, "dawn_solar_flare", 8);
-    const r1 = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20 });
-    const r2 = place(s, "dusk_vamp", "P2", 2, 0, { curHp: 6 });
-    const r3 = place(s, "dusk_skeleton_knight", "P2", 3, 0, { curHp: 7 }); // outside the pair (1,2)
-    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dawn_solar_flare", row: 1 });
-    expect(statusOf(next.cards[r1.instanceId], "BLIND")).toBeTruthy();
-    expect(statusOf(next.cards[r2.instanceId], "BLIND")).toBeTruthy();
-    expect(statusOf(next.cards[r3.instanceId], "BLIND")).toBeFalsy();
+    const a = place(s, "dawn_beam", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dawn_solar_flare" });
+    expect(next.cards[a.instanceId].pos!.row, "advanced toward the enemy").toBeLessThan(3);
+    expect(next.cards[foe.instanceId].curHp, "and struck from where it arrived").toBeLessThan(40);
+  });
+
+  it("Charge needs no target, but does need someone to command", () => {
+    const s = prepState();
+    armSpell(s, "dawn_solar_flare", 8);
+    expect(canCastSpell(s, "P1", "dawn_solar_flare", {}).ok, "no DAWN card on the board").toBe(false);
+    place(s, "dawn_beam", "P1", 3, 0);
+    expect(canCastSpell(s, "P1", "dawn_solar_flare", {}).ok, "no pick required").toBe(true);
   });
 
   it("a row AoE needs a row, and the enemy Home row stays gated until reached", () => {
@@ -474,14 +488,18 @@ describe("AoE spells (row / two-row)", () => {
 });
 
 describe("cleanse + board wipes", () => {
-  it("Cleansing Light strips all negative statuses from DAWN allies", () => {
+  it("Retreat pulls the DAWN line back toward home and braces it", () => {
     const s = prepState();
     armSpell(s, "dawn_cleansing_light", 2);
-    const ally = place(s, "dawn_beam", "P1", 3, 0, {
-      status: { kind: "ROOT", duration: 2, power: 0, source: "LEAF" },
-    });
+    // Standing forward of its own home row, so there is somewhere to fall back to.
+    const ally = place(s, "dawn_beam", "P1", 1, 0, { curShields: 0 });
+    const other = place(s, "dusk_gool", "P1", 1, 1, { curShields: 0 }); // not DAWN
     const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dawn_cleansing_light" });
-    expect(statusOf(next.cards[ally.instanceId], "ROOT")).toBeFalsy();
+    expect(next.cards[ally.instanceId].pos!.row, "fell back toward home").toBeGreaterThan(1);
+    expect(next.cards[ally.instanceId].curShields).toBe(2);
+    // sameElement: the order is given to the DAWN line, not to whoever shares the board.
+    expect(next.cards[other.instanceId].pos!.row, "a non-DAWN ally holds position").toBe(1);
+    expect(next.cards[other.instanceId].curShields).toBe(0);
   });
 
   it("Grove's Blessing heals all LEAF allies and cleanses one status each", () => {
@@ -496,16 +514,27 @@ describe("cleanse + board wipes", () => {
     expect(statusOf(next.cards[a.instanceId], "BURN")).toBeFalsy(); // cleansed
   });
 
-  it("Judgment: 10 PEN to a foe + cleanse each DAWN ally", () => {
+  it("Surprise Attack is capped at two, and sends the ones already forward", () => {
+    // The cap is the design. An uncapped free basic for every body on the board
+    // is the strongest thing a spell can do at any price, so this is a raid by
+    // whoever is nearest the enemy — not a general order.
     const s = prepState();
-    armSpell(s, "dawn_judgment", 7);
-    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, curShields: 5 });
-    const ally = place(s, "dawn_beam", "P1", 3, 0, {
-      status: { kind: "WEAKEN", duration: 2, power: 0, source: "GALE" },
-    });
-    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dawn_judgment", targetId: foe.instanceId });
-    expect(next.cards[foe.instanceId].curHp).toBe(10); // 10 PEN (shields ignored)
-    expect(statusOf(next.cards[ally.instanceId], "WEAKEN")).toBeFalsy(); // cleansed
+    armSpell(s, "dawn_grace", 3);
+    const fwd1 = place(s, "dawn_beam", "P1", 1, 0);
+    const fwd2 = place(s, "dawn_beam", "P1", 1, 1);
+    const back = place(s, "dawn_beam", "P1", 3, 2); // furthest from the enemy
+    const foes = [
+      place(s, "dusk_gool", "P2", 0, 0, { curHp: 40, maxHp: 40, curShields: 0 }),
+      place(s, "dusk_gool", "P2", 0, 1, { curHp: 40, maxHp: 40, curShields: 0 }),
+      place(s, "dusk_gool", "P2", 0, 2, { curHp: 40, maxHp: 40, curShields: 0 }),
+    ];
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dawn_grace" });
+    const hurt = foes.filter((f) => next.cards[f.instanceId].curHp < 40).length;
+    expect(hurt, "exactly two swings landed").toBe(2);
+    // Nobody moved — Surprise Attack carries no step.
+    expect(next.cards[fwd1.instanceId].pos!.row).toBe(1);
+    expect(next.cards[back.instanceId].pos!.row).toBe(3);
+    void fwd2;
   });
 
   it("Lightning Storm: 8 to EVERY opponent + PARALYZE all", () => {
@@ -940,16 +969,15 @@ describe("area spells do the whole of what they say", () => {
 });
 
 describe("support spells do the whole of what they say", () => {
-  it("Grace heals 5 AND hands over the +1 DMG it promises", () => {
+  it("Retreat will not shove a card that is already home", () => {
+    // pushBack stops at the home row rather than walking cards off the board,
+    // so the order is a no-op for a line that never left — it still braces.
     const s = prepState();
-    armSpell(s, "dawn_grace", 3);
-    const ally = place(s, "dawn_beam", "P1", 3, 0, { curHp: 3, maxHp: 20 });
-    const before = effectiveDmg(s, s.cards[ally.instanceId]);
-    const next = applyIntent(s, {
-      type: "CAST_SPELL", player: "P1", spellId: "dawn_grace", targetId: ally.instanceId,
-    });
-    expect(next.cards[ally.instanceId].curHp).toBe(8);
-    expect(effectiveDmg(next, next.cards[ally.instanceId])).toBe(before + 1);
+    armSpell(s, "dawn_cleansing_light", 2);
+    const home = place(s, "dawn_beam", "P1", 3, 0, { curShields: 0 });
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dawn_cleansing_light" });
+    expect(next.cards[home.instanceId].pos!.row).toBe(3);
+    expect(next.cards[home.instanceId].curShields, "the brace lands regardless").toBe(2);
   });
 });
 

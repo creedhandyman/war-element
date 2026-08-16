@@ -1480,6 +1480,34 @@ export interface SpellDef {
    *  game is a board wipe — and the rung is fixed, one spell per cost per
    *  element, so the effect had to grow rather than the price shrink. */
   clearCooldowns?: boolean;
+  /** BATTLE COMMANDS (DAWN): an order given to your own army rather than an
+   *  effect aimed at the enemy. One composable field instead of four bespoke
+   *  mechanics, because the four DAWN commands differ only in which riders they
+   *  carry — Retreat is step-back plus armour, Charge is step-forward plus a
+   *  strike, Surprise Attack is the strike alone and capped.
+   *
+   *  Order of resolution is fixed and matters: MOVE, then STRIKE, so a charge
+   *  hits from where it arrives rather than where it set off, and a retreat is
+   *  out of reach before anything answers. */
+  command?: {
+    /** Slots each ordered ally steps. NEGATIVE retreats toward its own home row
+     *  (through pushBack, so pushImmune cards hold the line); POSITIVE advances
+     *  toward the enemy (through chargeForward, which stops at an occupied or
+     *  captured square). */
+    step?: number;
+    /** After moving, each ordered ally fires a basic at the nearest foe it can
+     *  actually reach. Cards that can reach nothing simply do not swing. */
+    strike?: boolean;
+    /** Armour handed out with the order. */
+    shield?: number;
+    /** Restrict the order to allies of the spell's own element — DAWN commands
+     *  the DAWN line, not whatever else happens to share the board. */
+    sameElement?: boolean;
+    /** Cap on how many allies obey, nearest the enemy first. A raid is not a
+     *  general order, and an uncapped free strike for every body on the board is
+     *  the strongest thing a spell can do at any price. */
+    max?: number;
+  };
   /** Rewire: swap the board positions of two of the caster's own cards. */
   swapAllies?: boolean;
   /** Full Reroute: freely relocate up to N of the caster's cards to open slots,

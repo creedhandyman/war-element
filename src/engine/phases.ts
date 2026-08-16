@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
-import { applyStatus, applyTimedBuff, basicAttack, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin, randInt } from "./rng";
@@ -666,6 +666,50 @@ function resolveSpell(
     return;
   }
 
+  // BATTLE COMMANDS (DAWN). Move, then strike, then hand out armour — see the
+  // `command` doc in types.ts for why that order is fixed.
+  if (spell.command) {
+    const c = spell.command;
+    let army = boardCards(draft, player).filter((a) => a.curHp > 0 && a.pos);
+    if (c.sameElement) army = army.filter((a) => getDef(a.defId).element === spell.element);
+    // Nearest the enemy first, so a capped order goes to the cards already in
+    // the fight rather than to whoever happens to sit first in the array.
+    const home = homeRow(player, draft.boardSize);
+    army.sort((a, b) => Math.abs(b.pos!.row - home) - Math.abs(a.pos!.row - home));
+    if (c.max != null) army = army.slice(0, c.max);
+    // Snapshot by id: a strike below can kill a body (REFLECT) or spawn one.
+    const ids = army.map((a) => a.instanceId);
+    let moved = 0;
+    let struck = 0;
+    for (const id of ids) {
+      const a = draft.cards[id];
+      if (!a || a.curHp <= 0 || !a.pos) continue;
+      if (c.step) {
+        const before = { ...a.pos };
+        if (c.step < 0) pushBack(draft, a, -c.step, player);
+        else chargeForward(draft, a, c.step);
+        if (a.pos && (a.pos.row !== before.row || a.pos.col !== before.col)) moved++;
+      }
+      if (c.shield) a.curShields += c.shield;
+    }
+    if (c.strike) {
+      for (const id of ids) {
+        const a = draft.cards[id];
+        if (!a || a.curHp <= 0 || !a.pos) continue;
+        const prey = boardCards(draft, enemyOf(player))
+          .filter((e) => e.curHp > 0 && e.pos && canTarget(draft, a, e))
+          .sort((x, y) => manhattan(a.pos!, x.pos!) - manhattan(a.pos!, y.pos!))[0];
+        if (prey) { basicAttack(draft, a.instanceId, prey.instanceId); struck++; }
+      }
+    }
+    const bits = [
+      c.step ? `${moved} moved` : "",
+      c.strike ? `${struck} struck` : "",
+      c.shield ? `+${c.shield} shield each` : "",
+    ].filter(Boolean);
+    draft.log.push(`${spell.name}: ${ids.length} answer the order${bits.length ? ` — ${bits.join(", ")}` : ""}.`);
+    return;
+  }
   if (spell.swapAllies && targetIds && targetIds.length === 2) {
     const a = draft.cards[targetIds[0]];
     const b = draft.cards[targetIds[1]];

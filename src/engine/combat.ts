@@ -2168,7 +2168,7 @@ function maybeStatus(
 /** Advance a card up to `steps` open slots toward the enemy home row (the
  *  reposition half of a move-and-strike special). Stops at a captured/occupied
  *  slot; can end on an uncaptured enemy home slot (a capture push). */
-function chargeForward(draft: GameState, card: CardInstance, steps: number): void {
+export function chargeForward(draft: GameState, card: CardInstance, steps: number): void {
   const dir = card.owner === "P1" ? -1 : 1;
   const enemyHome = homeRow(enemyOf(card.owner), draft.boardSize);
   let moved = 0;
