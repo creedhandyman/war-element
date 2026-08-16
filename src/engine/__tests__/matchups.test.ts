@@ -147,27 +147,24 @@ describe("Exostone (BORE): stone chips one plate at a time", () => {
   });
 });
 
-describe("Exostone (BORE): the stone takes what it breaks", () => {
-  it("gains a shield when its attack breaks one off an opponent", () => {
+describe("Exostone (BORE): breaking a plate is not the same as taking one", () => {
+  // This block used to assert the opposite — that a BORE attack WORE the plate
+  // it broke. That half of the aura is gone (BORE measured 60.1% at the top of
+  // a 15.8-point field), so what is pinned now is its absence: the removal is
+  // the behaviour, and without a test the mechanic could be reintroduced by a
+  // merge and nothing would object.
+  it("gains nothing from breaking a shield off an opponent", () => {
     const s = prepState();
     const bore = place(s, "bore_armadillo", "P1", 2, 0, { curShields: 2 });
     const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 3 });
     basicAttack(s, bore.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curShields).toBe(2); // the gate's usual strip
-    expect(s.cards[bore.instanceId].curShields).toBe(3); // ...worn by the attacker
+    expect(s.cards[foe.instanceId].curShields, "the gate still strips its usual plate").toBe(2);
+    expect(s.cards[bore.instanceId].curShields, "…and the attacker keeps exactly what it had").toBe(2);
   });
 
-  it("takes nothing off an unarmoured target — it loots breaks, not bodies", () => {
-    const s = prepState();
-    const bore = place(s, "bore_armadillo", "P1", 2, 0, { curShields: 2 });
-    const bare = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
-    basicAttack(s, bore.instanceId, bare.instanceId);
-    expect(s.cards[bore.instanceId].curShields).toBe(2);
-  });
-
-  it("costs the target no MORE than it always did", () => {
-    // The gain rides the break the shield gate was already making; it does not
-    // pry off an extra plate. A non-BORE attacker is the control.
+  it("still costs the target exactly what a non-BORE attacker would", () => {
+    // Unchanged by the removal, and worth keeping: the strip was always the
+    // shield gate's, never something the aura added on top.
     const s = prepState();
     const bore = place(s, "bore_armadillo", "P1", 2, 0, { curShields: 0 });
     const other = place(s, "leaf_hunter", "P1", 3, 0, { curShields: 0 });

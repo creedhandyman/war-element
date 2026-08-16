@@ -1073,24 +1073,23 @@ export function resolveHit(
         // armour in the game (avg 2.64 a card) and a single heavy hit could
         // strip most of it. Now a big swing takes one plate, same as a small one.
         const broke = hasElementAura(tDef, "BORE") ? 1 : shieldsBrokenBy(remaining);
-        const hadShields = target.curShields;
         target.curShields = Math.max(0, target.curShields - broke);
-        // Exostone (BORE): the stone TAKES what it breaks. Break a plate off
-        // something and wear it — DRAIN's trade, in the currency BORE is built
-        // in. It is the aura's first offensive half: arrival plating and the
-        // one-plate loss cap only help BORE survive, and BORE measured all day
-        // as an element that holds its board and never converts.
+        // REMOVED: Exostone used to hand the attacker +1 shield for every plate
+        // its hit broke off an opponent — "the stone takes what it breaks". It
+        // was added as the aura's offensive half, on the reading that BORE holds
+        // its board and never converts.
         //
-        // Gains on the break the gate was already making, rather than prying off
-        // an EXTRA plate — so a hit still costs the target exactly what it
-        // always did. Conditional by nature: most elements carry under 1 shield
-        // a card, so this bites hardest on the armoured ones (DAWN, BOLT, and
-        // the BORE mirror). Reflect damage isn't an attack, so it doesn't loot.
-        if (hadShields > target.curShields && opts.kind !== "reflect" &&
-            hasElementAura(aDef, "BORE") && attacker.curHp > 0) {
-          attacker.curShields += 1;
-          draft.log.push(`${aDef.name} tears a plate off ${tDef.name} and wears it.`);
-        }
+        // It converted far too well. BORE measured 60.1% at the top of an
+        // otherwise 15.8-point field, four clear of second and ten clear of
+        // third, and this was the compounding piece: BORE already carries the
+        // most armour in the game (2.64 a card) and already caps its own losses
+        // at one plate a hit, so looting on top meant attacking INTO it and
+        // being attacked BY it both fed the same stat. Nothing else in the game
+        // gains a defensive resource for landing an ordinary basic.
+        //
+        // Kept: the rarity-tiered arrival plating and the one-plate loss cap.
+        // Those are what make BORE the armour element; this was what made
+        // trading with it a losing proposition on both sides of the swing.
         // Gate Keeper (Veil): the first time the shield wall breaks, harden up.
         if (target.curShields === 0 && tDef.onShieldBreak && !target.shieldBroken) {
           target.shieldBroken = true;
