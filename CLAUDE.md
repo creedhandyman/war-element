@@ -184,9 +184,14 @@ Solo cores, **both boards**, round-robin with **both seat orders**, 50 seeds per
 ordered matchup — 5,600 matches, n=1,400 per element (±2.6 at 95%):
 
 ```
-bolt 62.1 · bore 57.0 · aqua 50.4 · leaf 47.9
-pyro 47.9 · gale 46.1 · dawn 45.7 · dusk 42.8     spread 19.4
+bolt 59.1 · bore 57.4 · aqua 50.6 · leaf 48.9
+pyro 48.6 · gale 46.6 · dawn 46.0 · dusk 43.0     spread 16.1
 ```
+
+**The tightest this has measured.** BOLT is no longer a lone outlier — BORE
+(57.4) sits 1.7 behind it, so the top is a cluster rather than a spike. Nerfing
+BOLT further would just hand the crown to BORE; the next move, if there is one,
+is a broader pass rather than another single-element fix.
 
 That is AFTER the cost-3 epic migration (below), which cost about 2.4 points of
 spread. The tuned field before it was 17.0:
@@ -272,10 +277,10 @@ Moving a card changes its BUDGET (`5*cost + 10`), so every one needed +5 or
 - **Multi-hit offence caps at +2 DMG.** A +1 DMG is worth `hits`, so Strawman
   would have gone 5x2 -> 8x2, i.e. 16 burst at cost 5.
 
-**What it cost, and this is still open: spread went 17.0 -> 19.4 and STAYED
-there.** Returning the sixteen fixed the curve but did not reclaim the points —
-GALE and DAWN each came back ~1.3 and BORE gave up 1.8, and it netted out. BOLT
-(62.1) is now the clear outlier at the top; DUSK (42.8) is still the floor.
+**What it cost: spread went 17.0 -> 19.4, and returning the sixteen did not
+reclaim it** — GALE and DAWN each came back ~1.3, BORE gave up 1.8, and it
+netted out. What finally did was halving Electrify's rider (19.4 -> 16.1), so
+the points came back from a different direction than they were lost.
 
 The direction was not what was predicted: BOLT and BORE GAINED from the
 migration, because stronger cards help the elements that were already best.
@@ -417,11 +422,11 @@ Rollo / Zombination / Doom changes and everything since.
 
 ## Open threads
 
-- Element balance: spread 19.4, everyone between 42.8 and 62.1. LEAF, GALE and
-  DAWN were each solved by an aura that was not paying, reaching 17.0; the
-  cost-3 migration gave ~2.4 of that back and returning sixteen cards to 3 did
-  not reclaim it. BOLT (62.1) is now the clear top outlier — the obvious next
-  target, and the first one that would need a NERF rather than a buff.
+- Element balance: **spread 16.1**, everyone between 43.0 and 59.1 — the
+  tightest measured. LEAF, GALE and DAWN were each solved by an aura that was
+  not paying; BOLT by halving one that paid twice. No lone outlier remains
+  (BOLT 59.1 / BORE 57.4 at the top, DUSK 43.0 at the floor), so the next move
+  is a broader pass rather than another single-element fix.
 - `ELEMENT_MATCHUP` has no UI surface.
 - `deckById`'s silent fallback (see Measuring balance).
 - Spell curve expansion — the big queued feature. Today's `spells.ts` has the

@@ -26,7 +26,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   AQUA: { name: "Flow Change", desc: "On summon, choose a boost for 3 rounds: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for its full DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 14)." },
   GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21); the first time it passes SP 15, a one-time +1 DMG." },
-  BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +2 DMG to any opponent carrying a status." },
+  BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +1 DMG to any opponent carrying a status." },
 };
 
 /** Exostone's arrival plating, by rarity. It was a flat +2 for every BORE card,
@@ -134,6 +134,22 @@ export const DAWN_SP_CAP = 14;
  *  This is a BONUS cap, not a total. Read as a total it silently excluded every
  *  LEAF card printing 3+ shields from its own element aura. */
 export const LEAF_SHIELD_CAP = 3;
+
+/** ELECTRIFY's damage rider: what a BOLT card adds against an opponent already
+ *  carrying a status. Power Grid adds its field bonus on top.
+ *
+ *  Was 2, and 2 was too much once the other half of the aura made it
+ *  self-enabling: a BOLT basic ELECTRIFIES a clean target, so from the second
+ *  hit of any exchange onward the rider is simply always on. It is not a
+ *  conditional bonus in practice, it is BOLT's base damage — and BOLT measured
+ *  top of the game at 62.1% with the field's best board presence (4.21 cards
+ *  alive against a 3.2 average).
+ *
+ *  The pairing is the problem rather than either half. Both were introduced
+ *  together to lift BOLT off 38%, and together they overshot; halving the rider
+ *  keeps the setup — which is what made the aura legible — and takes back the
+ *  part that was double-counting. */
+export const BOLT_VS_STATUS_DMG = 1;
 
 /** Scorch stacks its BURN to here and no further. Uncapped, a multi-hit PYRO
  *  card would stack a lethal DOT off one attack and the aura would stop being

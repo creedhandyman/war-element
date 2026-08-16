@@ -17,7 +17,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget } from "./rules";
-import { DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, PYRO_BURN_STACK_CAP, hasElementAura, slipstreamPct } from "./auras";
+import { BOLT_VS_STATUS_DMG, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, PYRO_BURN_STACK_CAP, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
@@ -1633,11 +1633,13 @@ export function basicAttack(
     // Dragon's Bane: the same shape as vsStatus above, but matched on the
     // target's tribe / size rather than a status it happens to be carrying.
     if (aDef.vsTarget?.bonusDmg && matchesVsTarget(aDef, t)) dmg += aDef.vsTarget.bonusDmg;
-    // Electrify (BOLT aura): +2 DMG vs any statused opponent — +3 under Power
-    // Grid. Raised from +1: even once the aura was made self-enabling (see the
-    // ELECTRIFIED rider below) a single point moved BOLT's win rate 38% -> 39%,
-    // i.e. not at all. On BOLT's ~5-damage cards +1 is a rounding error.
-    if (hasElementAura(aDef, "BOLT") && t.statuses.length > 0) dmg += 2 + fieldBonus(draft, attacker, "electrify");
+    // Electrify (BOLT aura): bonus DMG vs any statused opponent, plus Power
+    // Grid's field bonus. See BOLT_VS_STATUS_DMG for why this came back down
+    // from 2 — with the self-enabling half below, the rider is on for every
+    // hit after the first, so it is base damage wearing a condition.
+    if (hasElementAura(aDef, "BOLT") && t.statuses.length > 0) {
+      dmg += BOLT_VS_STATUS_DMG + fieldBonus(draft, attacker, "electrify");
+    }
     // Harsh Winds / Shadow: bonus DMG the first time this card strikes a given
     // opponent. Squall's version only counts while it stands on the enemy side.
     const fsEligible = Boolean(aDef.firstStrikeBonus) && (!aDef.firstStrikeEnemySideOnly || onEnemySide(attacker, draft.boardSize));

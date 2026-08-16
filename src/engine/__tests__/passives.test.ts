@@ -1806,9 +1806,9 @@ describe("medium-tier passives (audit batch)", () => {
     basicAttack(s, buzz.instanceId, foe.instanceId);
     expect(s.cards[foe.instanceId].curHp).toBe(26);
     expect(statusOf(s.cards[foe.instanceId], "ELECTRIFIED")).toBeTruthy();
-    // Marked: Electrify adds +2 vs a statused target = 6.
+    // Marked: Electrify adds +1 vs a statused target = 5.
     basicAttack(s, buzz.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curHp).toBe(20);
+    expect(s.cards[foe.instanceId].curHp).toBe(21);
   });
 
   it("Shimmering Featherrows volleys three targets, then cloaks the eagle", () => {
@@ -2851,7 +2851,7 @@ describe("element auras", () => {
     expect(golem.tempShields).toBe(0); // KEPT — tempShields is the refund marker
   });
 
-  it("Electrify (BOLT): +2 DMG vs a statused opponent", () => {
+  it("Electrify (BOLT): +1 DMG vs a statused opponent", () => {
     const withStatus = prepState();
     const zap = place(withStatus, "bolt_zap", "P1", 3, 0); // DMG 5, home row (no KotH)
     const t = place(withStatus, "dusk_gool", "P2", 3, 1, {
@@ -2859,7 +2859,7 @@ describe("element auras", () => {
       status: { kind: "ROOT", duration: 2, power: 0, source: "LEAF" },
     });
     basicAttack(withStatus, zap.instanceId, t.instanceId);
-    expect(withStatus.cards[t.instanceId].curHp).toBe(13); // 20 − 7 (5 + Electrify 2)
+    expect(withStatus.cards[t.instanceId].curHp).toBe(14); // 20 − 6 (5 + Electrify 1)
 
     const noStatus = prepState();
     const z2 = place(noStatus, "bolt_zap", "P1", 3, 0);
