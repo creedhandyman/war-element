@@ -184,17 +184,42 @@ Solo cores, **both boards**, round-robin with **both seat orders**, 50 seeds per
 ordered matchup — 5,600 matches, n=1,400 per element (±2.6 at 95%):
 
 ```
-bore 60.1 · bolt 56.1 · leaf 50.4 · aqua 49.9
-pyro 48.8 · gale 45.3 · dusk 45.1 · dawn 44.3     spread 15.8
+bolt 56.6 · bore 55.8 · leaf 50.7 · aqua 50.3
+pyro 49.5 · dawn 45.9 · dusk 45.6 · gale 45.5     spread 11.1
 ```
 
-**The tightest this has measured**, and the shape has changed: the top is now
-the whole problem. BORE (60.1) is four clear of BOLT and ten clear of third,
-while the bottom five sit inside 6 points and the bottom THREE inside one. The
-next move, if there is one, is BORE — not another lift from below, which at
-this point only compresses an already-tight floor.
+**The tightest this has ever measured, by a wide margin** — the previous best
+was 15.8, and the oldest recorded pass was 30.4. It has also settled into three
+clean tiers rather than a ladder:
 
-That is after Midnight Shade's death recoil went to FULL damage, measured
+```
+top     bolt 56.6 · bore 55.8            (0.8 apart)
+middle  leaf 50.7 · aqua 50.3 · pyro 49.5  (1.2 apart, sitting on 50)
+bottom  dawn 45.9 · dusk 45.6 · gale 45.5  (0.4 apart)
+```
+
+No element is a spike any more; every tier is a cluster. **There is no obvious
+next move**, and that matters more than the number: the remaining structure is
+two ~5-point steps between tiers, not one outlier to shave. Chasing it further
+means moving a whole tier, and the last four passes are a record of how easily
+that overshoots.
+
+That is after Exostone stopped wearing the plate it breaks, which is what
+collapsed the top:
+
+```
+before  bore 60.1 · bolt 56.1 · leaf 50.4 · aqua 49.9 · pyro 48.8 · gale 45.3 · dusk 45.1 · dawn 44.3   spread 15.8
+after   bolt 56.6 · bore 55.8 · leaf 50.7 · aqua 50.3 · pyro 49.5 · dawn 45.9 · dusk 45.6 · gale 45.5   spread 11.1
+```
+
+**BORE −4.3, everyone else +0.2 to +0.7** — the exact mirror of the DUSK lift
+below, and the same signature: one element moves, the other seven drift the
+other way by a fraction each. DAWN's +1.6 is the one figure above that drift,
+and Flash Squad + the Sphere remodel landed in the same window, so some of it is
+probably theirs — but +1.2 over the drift at ±2.6 is suggestive, not proven.
+Do not bank it without an A/B.
+
+Before that, Midnight Shade's death recoil went to FULL damage, measured
 against an otherwise identical tree:
 
 ```
@@ -205,8 +230,7 @@ full recoil   bore 60.1 · bolt 56.1 · leaf 50.4 · aqua 49.9 · pyro 48.8 · g
 **DUSK +4.3, and every other element down between 0.1 and 1.3** — which is what
 a genuine single-element lift looks like: the seven others each lose a little
 win rate against the one that gained, and nothing else moves. It took DUSK from
-last (40.8) to sixth, and left DAWN as the new floor at 44.3 — but the floor is
-now a cluster, not a hole.
+last (40.8) to sixth.
 
 Two cautions from the same pass:
 
