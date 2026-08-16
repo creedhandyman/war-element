@@ -1591,10 +1591,16 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     tribe: "Stars",
     attackType: "Melee",
-    cost: 4,
+    // Down a cost, and the five points come entirely out of HP: 7 + 10 + 8 = 25,
+    // exactly the cost-3 budget. Keeping the 7 DMG is the point — an Assassin
+    // whose Special, on-kill ramp and death recoil are all built around landing
+    // one big hit does not want to be re-costed by having the hit shrunk. What
+    // it becomes is genuinely fragile, which suits a card that deals 7 back to
+    // whoever kills it: dying was always half its plan.
+    cost: 3,
     dmg: 7,
     hits: 1,
-    hp: 15,
+    hp: 10,
     sp: 8,
     shields: 0,
     keywords: {},
@@ -3386,11 +3392,16 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     tribe: "Suns",
     attackType: "Melee",
-    cost: 4, // doc prints cost 5; re-costed to fit the curve
-    dmg: 5,
+    // Back to the cost the card doc printed. 6 + 19 + 4 + 6 = 35, exactly the
+    // cost-5 budget; the five new points are split rather than poured into one
+    // stat, and two of them go to SPEED. At 4 SP a Melee Warrior acted close to
+    // last every round, which is a poor place to be holding an 11-DMG any-target
+    // Special — the extra damage matters less than getting to use it.
+    cost: 5,
+    dmg: 6,
     hits: 1,
-    hp: 17,
-    sp: 4,
+    hp: 19,
+    sp: 6,
     shields: 2,
     keywords: {},
     // Brightest Warrior (On Summon): +1 max HP & +1 DMG per 7 max HP of the
@@ -5934,10 +5945,17 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     tribe: "Suns",
     attackType: "Melee",
-    cost: 3,
-    dmg: 4,
+    // Up a cost. 5 + 16 + 4 + 5 = 30, exactly the cost-4 budget (it was a point
+    // OVER the cost-3 one). The four points go to the bruiser half — Relentless
+    // only pays while Gilden is alive and being swung at, so HP is the stat that
+    // makes its own passive worth more.
+    //
+    // Note it leaves OPENING_COST_CAP territory doing this: a cost-4 body can no
+    // longer be placed in a region's opening battle, where a cost-3 one could.
+    cost: 4,
+    dmg: 5,
     hits: 1,
-    hp: 13,
+    hp: 16,
     sp: 5,
     shields: 2,
     keywords: {},

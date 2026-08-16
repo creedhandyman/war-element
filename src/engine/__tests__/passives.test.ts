@@ -2970,14 +2970,20 @@ describe("partial-effect fixes (Epic sweep)", () => {
   });
 
   it("Radiance's Brightest Warrior scales off the strongest foe on summon", () => {
+    // Both the gold and the expected HP come from the card, not from numbers
+    // typed here: this test asserts the SCALING, and pinning Radiance's printed
+    // 17 meant a re-cost broke it while the passive it covers was untouched.
+    const def = getDef("dawn_radiance");
     const s = prepState();
-    s.players.P1.gold = 6;
+    s.players.P1.gold = def.cost + 1;
     place(s, "leaf_squanch", "P2", 0, 0, { maxHp: 23 }); // strongest foe: 23 max HP
     const handId = giveHand(s, "P1", "dawn_radiance");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const rad = Object.values(next.cards).find((c) => c.defId === "dawn_radiance")!;
-    expect(rad.maxHp).toBe(20); // 17 + floor(23/7)=3
-    expect(rad.dmgBonus).toBe(3); // +3 DMG
+    const step = Math.floor(23 / def.summonScaleFromEnemy!.per); // 23 max HP / per 7 = 3
+    expect(step, "the foe is big enough for the passive to have something to do").toBe(3);
+    expect(rad.maxHp).toBe(def.hp + step);
+    expect(rad.dmgBonus).toBe(step);
   });
 });
 
