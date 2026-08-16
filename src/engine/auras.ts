@@ -22,7 +22,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP — plus 1 more for every ROOTed opponent — and gain +1 shield per hit they took that round, up to 3 above their printed shields." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
   BORE: { name: "Exostone", desc: "Enters play with shields by rarity — Rare 2, Epic 2, Legendary 3, Mythic 4. Never loses more than 1 shield to a single hit however heavy, and gains +1 shield whenever its attack breaks one off an opponent." },
-  DUSK: { name: "Midnight Shade", desc: "On death, deals half its DMG back to the killer, and the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%)." },
+  DUSK: { name: "Midnight Shade", desc: "On death, deals its full DMG back to the killer, and the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%)." },
   AQUA: { name: "Flow Change", desc: "On summon, choose a boost for 3 rounds: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for its full DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 14)." },
   GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21); the first time it passes SP 15, a one-time +1 DMG." },
@@ -189,20 +189,29 @@ export const MISTY_FOG_MISS_PCT = 25;
 export const PYRO_BURN_STACK_CAP = 5;
 
 /** Midnight Shade's first half: what fraction of its own DMG a dying DUSK card
- *  deals back to whoever killed it — its DMG divided by this. Two, so a half.
+ *  deals back to whoever killed it — its DMG divided by this. ONE, so all of it.
  *
- *  It was cut to a third on the reasoning that DUSK is the disposable-body
- *  element and an aura paying out for LOSING cards rewards precisely what it is
- *  already best at. That reasoning was right about the shape and wrong about the
- *  size: DUSK has since measured 39.4% against a field top of 60.4 — the worst
- *  element by six and a half points, and the outlier BOLT used to be. The
- *  recoil is the whole of what makes attacking into DUSK a decision, and a
- *  third of a small printed DMG rounds down to almost nothing.
+ *  This dial has now been a third, a half, and none: killing a DUSK card costs
+ *  the killer exactly what that card hit for. The reasoning behind the original
+ *  cut still reads correctly — an aura that pays out for LOSING cards rewards
+ *  the disposable-body element for what it is already best at — but DUSK has
+ *  measured last every time since, by six points and more, and a fraction of a
+ *  small printed DMG rounds away to nothing on precisely the cheap bodies the
+ *  element is built out of.
  *
- *  The dodge half is NOT restored with it. That one stacks per corpse and is
- *  the half that could make a bad round unwinnable; this one is flat, once per
- *  death, and floors at 1. */
-export const DUSK_SHADE_DEATH_DIVISOR = 2;
+ *  What full damage buys is not really the number. It is that the trade becomes
+ *  legible: a DUSK card's printed DMG is now what it costs to remove, so an
+ *  opponent can read the price off the card before committing. Half of a
+ *  printed 7 was a real cost that nothing on the board announced.
+ *
+ *  THE DODGE HALF IS STILL NOT RESTORED. That one stacks per corpse, scales
+ *  with how badly the round went, and is what could make a bad round
+ *  unwinnable. This one is flat, once per death, and cannot chain — the recoil
+ *  is dealt by a card already off the board.
+ *
+ *  At a divisor of 1 the max(1, ...) floor below only does work for RIP, the
+ *  one DUSK-aura carrier printing 0 DMG. */
+export const DUSK_SHADE_DEATH_DIVISOR = 1;
 
 /** Midnight Shade's second half: each DUSK card that falls thickens the shadows
  *  over its surviving DUSK allies by this much dodge chance. */

@@ -1352,14 +1352,13 @@ export function resolveHit(
         }
       }
     } else if (hasElementAura(tDef, "DUSK") && opts.kind !== "reflect" && attacker.curHp > 0) {
-      // Midnight Shade (DUSK aura): a dying card deals HALF its DMG back to the
+      // Midnight Shade (DUSK aura): a dying card deals its FULL DMG back to the
       // killer. Only when the card has no stronger card-specific onDeath.
       //
-      // Cut to a third once, and restored — see DUSK_SHADE_DEATH_DIVISOR for
-      // why. The short version is that the nerf was aimed at the right shape (an
-      // aura that pays out for losing cards rewards the disposable-body element
-      // for what it already does) but overshot the size, and DUSK has measured
-      // last by a wide margin ever since.
+      // A third, then a half, now all of it — see DUSK_SHADE_DEATH_DIVISOR for
+      // the reasoning and for why the DODGE half of the aura stays capped. The
+      // trade is legible at full: what a DUSK card hits for is what removing it
+      // costs, readable off the card before committing to the swing.
       // At least 1 — a dying DUSK card always bites back, even a 0-DMG support.
       const back = Math.max(1, Math.floor(tDef.dmg / DUSK_SHADE_DEATH_DIVISOR));
       {

@@ -2659,15 +2659,20 @@ describe("element auras", () => {
   });
 
   it("...and even the cheapest bodies bite back for at least 1", () => {
-    // Floored at 1: Vamp prints 1 DMG, so the halved recoil rounds to 0 — but a
-    // dying DUSK card always lashes for at least a point. The floor bites in a
-    // narrower band now than it did at a third (printed 0–1 rather than 0–2),
-    // which is exactly why this asserts the floor on a card that still hits it.
+    // The floor's band has narrowed every time the divisor has: at a third it
+    // caught printed 0-2, at a half 0-1, and at FULL damage only 0. So this
+    // uses RIP, the one DUSK-aura carrier printing 0 DMG and therefore the only
+    // card whose recoil is still the floor rather than its own number.
+    //
+    // Vamp used to stand here and would now pass for the wrong reason: it
+    // prints 1, which at a divisor of 1 comes out as 1 whether the floor exists
+    // or not, so it would assert nothing.
     const s = prepState();
+    expect(getDef("dusk_rip").dmg, "RIP is the 0-DMG case the floor exists for").toBe(0);
     const killer = place(s, "gale_duster", "P1", 2, 0, { curHp: 5, curShields: 0 });
-    const vamp = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 }); // DMG 2 → floored to 1
-    basicAttack(s, killer.instanceId, vamp.instanceId);
-    expect(s.cards[vamp.instanceId]).toBeUndefined();
+    const rip = place(s, "dusk_rip", "P2", 2, 1, { curHp: 1 });
+    basicAttack(s, killer.instanceId, rip.instanceId);
+    expect(s.cards[rip.instanceId]).toBeUndefined();
     expect(s.cards[killer.instanceId].curHp).toBe(4); // 5 − 1 Midnight Shade floor
   });
 

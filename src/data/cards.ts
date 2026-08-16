@@ -8879,7 +8879,12 @@ export const CARDS: CardDef[] = [
     hp: 12,
     sp: 10,
     shields: 0,
-    keywords: { FLYING: true },
+    // EVASION rather than FLYING. Both are defensive, but they answer different
+    // things: FLYING is about what can REACH it, EVASION about what LANDS. A
+    // Ranger that already sits out of reach and whose whole job is to keep a
+    // Raptor standing in front of it gets more out of shrugging off the shots
+    // that do arrive than out of another layer of unreachability.
+    keywords: { EVASION: true },
     tribe: "Avian",
     // Raptor Assault (End of Round): if no Raptor stands, raise one (capped at 1).
     passiveNames: { roundTick: "Raptor Assault" },
