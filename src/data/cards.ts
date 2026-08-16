@@ -148,13 +148,23 @@ export const CARDS: CardDef[] = [
     vsStatus: { status: "ROOT", lifesteal: true },
     // Back to Epic: Takedown is a repeatable Special again (rarity rule — a
     // repeatable Special needs epic+), not the one-shot Talent of its Rare form.
+    // Takedown: a TACKLE now, not a swipe from where it stands — Alpha closes
+    // on the target first and hits from the slot it lands in.
+    //
+    // `chargeFirst` is what buys the reach as well as the movement: a Special
+    // that charges BEFORE it strikes may aim as far as it can travel
+    // (validSpecialTargets' chargeReach), so charge 2 gives this Melee card a
+    // 2-space target list without `ranged: true` — which would have handed it
+    // unlimited board reach instead. `chargeLateral` lets it track the victim
+    // across columns rather than ploughing straight up its own, which is what
+    // "the closest spot to the opponent" means on a grid.
     special: {
       name: "Takedown",
-      cost: 3,
+      cost: 2,
       handler: "strike",
-      params: { dmg: 6, statusKind: "ROOT", statusDuration: 3 },
+      params: { dmg: 8, statusKind: "ROOT", statusDuration: 3, charge: 2, chargeLateral: 1, chargeFirst: 1 },
       targetSide: "enemy",
-      text: "Tackle an opponent for 6 DMG and ROOT them for 3 rounds.",
+      text: "Tackle an opponent within 2 spaces for 8 DMG and ROOT them for 3 rounds, closing to the nearest slot beside them first.",
     },
   },
   {

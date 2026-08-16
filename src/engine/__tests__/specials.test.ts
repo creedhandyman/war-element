@@ -81,8 +81,12 @@ describe("firing specials", () => {
   it("Alpha's Takedown is a repeatable Special again — costs magic, reusable", () => {
     // Alpha is back to Epic, so Takedown is a normal paid Special rather than
     // the one-shot free Talent it carried while the card was demoted to Rare.
+    // Numbers derived from the def. This read a flat 14 (20 - 6) and a flat 3
+    // magic, so it broke on a re-cost while testing neither the cost nor the
+    // damage — what it is actually for is "repeatable, paid, not a Talent".
+    const sp = getDef("leaf_alpha").special!;
     const s = prepState();
-    s.players.P1.magicPool = 3;
+    s.players.P1.magicPool = sp.cost;
     const a = place(s, "leaf_alpha", "P1", 2, 0);
     const t = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, curShields: 0 });
     const next = applyIntent(battleWith(s, a.instanceId), {
@@ -91,10 +95,30 @@ describe("firing specials", () => {
       action: "special",
       targetId: t.instanceId,
     });
-    expect(next.cards[t.instanceId].curHp).toBe(14); // 20 − 6
+    expect(next.cards[t.instanceId].curHp).toBe(20 - Number(sp.params!.dmg));
     expect(next.cards[t.instanceId].statuses.find((x) => x.kind === "ROOT")?.duration).toBe(3);
-    expect(next.players.P1.magicPool).toBe(0); // 3 magic paid
+    expect(next.players.P1.magicPool).toBe(0);
     expect(next.cards[a.instanceId].talentUsed).toBeFalsy(); // not a one-shot
+  });
+
+  it("Takedown tackles: it reaches 2 spaces and closes before it hits", () => {
+    // A MELEE card targeting something two squares away. The reach comes from
+    // chargeFirst — validSpecialTargets lets a Special that charges before it
+    // strikes aim as far as it can travel — NOT from `ranged`, which would have
+    // given it the whole board instead of the two spaces the card prints.
+    const sp = getDef("leaf_alpha").special!;
+    const s = prepState();
+    s.players.P1.magicPool = sp.cost;
+    const a = place(s, "leaf_alpha", "P1", 3, 0);
+    // Two king-steps away and off Alpha's column, so a straight-ahead charge
+    // would not reach it — chargeLateral is what tracks it across.
+    const far = place(s, "dusk_gool", "P2", 1, 1, { curHp: 30, maxHp: 30, curShields: 0 });
+    const next = applyIntent(battleWith(s, a.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: far.instanceId,
+    });
+    expect(30 - next.cards[far.instanceId].curHp, "the tackle landed").toBe(Number(sp.params!.dmg));
+    const moved = next.cards[a.instanceId].pos!;
+    expect(moved.row !== 3 || moved.col !== 0, "and Alpha closed to reach it").toBe(true);
   });
 
   it("barrage: hits every target (Leaf Storm = 3×1 to all)", () => {
