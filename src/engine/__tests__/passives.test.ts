@@ -7,7 +7,7 @@ import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, h
 import { applyFlow, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
-import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire } from "../state";
+import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire, spawnTokens } from "../state";
 import { CARDS, TOKENS, getDef } from "../../data/cards";
 import { announces } from "../../ui/SummonAnnounce";
 import { atBattle, atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
@@ -3869,5 +3869,47 @@ describe("Saltjacks' Back-ups reaches down the whole column", () => {
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 2 });
     expect(next.cards[inLine.instanceId].curHp).toBeLessThan(40);
     expect(next.cards[beside.instanceId].curHp, "the next column over is untouched").toBe(40);
+  });
+});
+
+describe("token spawns are mirror-symmetric between the seats", () => {
+  /** A clean 5x5 with one spawner, returning where its tokens landed. P1's
+   *  spawner sits at row 3 and P2's at row 1 — mirrored positions, so a
+   *  seat-neutral spawner must put both sets on the same row. */
+  function spawnFor(owner: "P1" | "P2", count: number): { row: number; col: number }[] {
+    const s = prepState();
+    s.boardSize = 5;
+    s.slots = Array.from({ length: 5 }, () => Array.from({ length: 5 }, () => ({ capturedBy: null })));
+    const sp = place(s, "leaf_trinezer", owner, owner === "P1" ? 3 : 1, 2);
+    spawnTokens(s, s.cards[sp.instanceId], "leaf_reptilian_tok", count, 1);
+    return boardCards(s, owner)
+      .filter((c) => c.defId === "leaf_reptilian_tok")
+      .map((c) => ({ row: c.pos!.row, col: c.pos!.col }))
+      .sort((a, b) => a.row - b.row || a.col - b.col);
+  }
+
+  it("both sides screen FORWARD, not just the player", () => {
+    // The bug: the ring search scanned dr from -ring upward, so it always
+    // filled the lowest row index first. That is toward the enemy for P1 and
+    // toward its own back line for P2 — the player's spawns screened forward
+    // while the AI's fell in BEHIND the spawner, often onto its own summoning
+    // row, clogging the slots it needed to summon into. Same card, same code,
+    // opposite behaviour purely from which seat asked.
+    expect(spawnFor("P1", 1)[0].row, "P1 advances toward row 0").toBe(2);
+    expect(spawnFor("P2", 1)[0].row, "P2 advances toward row 4").toBe(2);
+  });
+
+  it("and land in the same shape as each other", () => {
+    // Mirrored spawners, so the full three-body footprint should be identical
+    // — not merely 'also forward'.
+    expect(spawnFor("P2", 3)).toEqual(spawnFor("P1", 3));
+  });
+
+  it("a single token lands directly ahead rather than off to a corner", () => {
+    // The forwardness sort is tie-broken by column distance, so a horde packs
+    // beside its spawner instead of fanning to the ring's corners.
+    for (const owner of ["P1", "P2"] as const) {
+      expect(spawnFor(owner, 1)[0].col, `${owner} keeps the spawner's column`).toBe(2);
+    }
   });
 });

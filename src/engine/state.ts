@@ -758,17 +758,39 @@ export function spawnTokens(
     if (isOpen(r, c) && !slots.some((s) => s.row === r && s.col === c))
       slots.push({ row: r as Pos["row"], col: c as Pos["col"] });
   };
-  // Nearest ring first, working outward, so bodies pack around the spawner
-  // rather than scattering. With no radius the search then opens to the whole
-  // board; with one, the horde is physically tethered to whatever raised it.
+  // FORWARD IS NOT THE SAME DIRECTION FOR BOTH SIDES, and this search used to
+  // assume it was. Scanning `dr` from -ring upward always fills the LOWEST row
+  // index first, which is toward the enemy for P1 and toward its own back line
+  // for P2 — so the player's spawns screened forward while the AI's fell in
+  // behind the spawner, frequently onto its own summoning row, where they also
+  // clogged the slots it needed to summon into. Same card, same code, opposite
+  // behaviour, purely from seat.
+  //
+  // Ordered by FORWARDNESS relative to the owner instead: `dr * fwd` is +1 for a
+  // step toward the enemy and -1 for a step back, whichever seat is asking.
+  // Column distance breaks the tie so a horde still packs beside its spawner
+  // rather than fanning to the ring's corners.
+  const fwd = owner === "P1" ? -1 : 1;
   const reach = radius ?? 1;
-  for (let ring = 1; ring <= reach; ring++)
+  for (let ring = 1; ring <= reach; ring++) {
+    const ringSlots: { r: number; c: number; ahead: number; sideways: number }[] = [];
     for (let dr = -ring; dr <= ring; dr++)
       for (let dc = -ring; dc <= ring; dc++)
         if (Math.max(Math.abs(dr), Math.abs(dc)) === ring)
-          push(spawner.pos.row + dr, spawner.pos.col + dc);
-  if (radius == null)
-    for (let r = 0; r < draft.boardSize; r++) for (let c = 0; c < draft.boardSize; c++) push(r, c);
+          ringSlots.push({
+            r: spawner.pos.row + dr, c: spawner.pos.col + dc,
+            ahead: dr * fwd, sideways: Math.abs(dc),
+          });
+    ringSlots.sort((a, b) => b.ahead - a.ahead || a.sideways - b.sideways);
+    for (const k of ringSlots) push(k.r, k.c);
+  }
+  // The open-board fallback needs the same ordering for the same reason — a row
+  // sweep from 0 upward is the identical bias one scale larger.
+  if (radius == null) {
+    const rows = [...Array(draft.boardSize).keys()]
+      .sort((a, b) => (a - spawner.pos!.row) * fwd > (b - spawner.pos!.row) * fwd ? -1 : 1);
+    for (const r of rows) for (let c = 0; c < draft.boardSize; c++) push(r, c);
+  }
 
   const out: CardInstance[] = [];
   for (const pos of slots.slice(0, count)) {
