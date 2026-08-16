@@ -184,8 +184,8 @@ Solo cores, **both boards**, round-robin with **both seat orders**, 50 seeds per
 ordered matchup — 5,600 matches, n=1,400 per element (±2.6 at 95%):
 
 ```
-bolt 61.7 · bore 58.8 · aqua 51.8 · pyro 48.4
-leaf 47.9 · gale 44.9 · dawn 44.3 · dusk 42.3     spread 19.4
+bolt 62.1 · bore 57.0 · aqua 50.4 · leaf 47.9
+pyro 47.9 · gale 46.1 · dawn 45.7 · dusk 42.8     spread 19.4
 ```
 
 That is AFTER the cost-3 epic migration (below), which cost about 2.4 points of
@@ -241,12 +241,21 @@ Home slots and nothing else; any change should be read against that first.
 ### The cost curve, and the cost-3 migration
 
 ```
-1:45  2:45  3:43  4:65  5:41  6:27  7:20  8:9  9:9  10:8
+1:45  2:45  3:59  4:49  5:41  6:27  7:20  8:9  9:9  10:8
 ```
 
 Cost 3 held **80 of 312 cards (26%)** — 42 Rare and 38 Epic, LEAF alone with
 sixteen against three 4s and one 5. Thirty-seven of the 38 Epics were moved up,
-25 to cost 4 and 12 to cost 5, which took cost 3 to 43 (14%).
+25 to cost 4 and 12 to cost 5.
+
+That over-corrected: cost 4 became the new pile at 65. Sixteen of those 25 were
+then returned to 3 — the LIGHTEST by offence (`dmg x hits`), since a low-damage
+body is what a cheap card is for — restoring their original lines exactly.
+Cost 3 finished at 59 (19%) and cost 4 at 49 (16%).
+
+Note there are NO thin cards above cost 3 to demote instead: every cost-4 and
+cost-5 card is an Epic with a Special. "Weak enough to be cheap" is not a
+property the pool has up there.
 
 `leaf_sakuroot` stayed at 3 and must: `OPENING_COST_CAP` is 3, and Sakuroot is
 both STARTER_DECK and the card LEAF's opening battle is built around. The other
@@ -263,14 +272,15 @@ Moving a card changes its BUDGET (`5*cost + 10`), so every one needed +5 or
 - **Multi-hit offence caps at +2 DMG.** A +1 DMG is worth `hits`, so Strawman
   would have gone 5x2 -> 8x2, i.e. 16 burst at cost 5.
 
-**Two things it cost, both open:**
+**What it cost, and this is still open: spread went 17.0 -> 19.4 and STAYED
+there.** Returning the sixteen fixed the curve but did not reclaim the points —
+GALE and DAWN each came back ~1.3 and BORE gave up 1.8, and it netted out. BOLT
+(62.1) is now the clear outlier at the top; DUSK (42.8) is still the floor.
 
-1. **Cost 4 is now the crowded bucket at 65.** The pile moved rather than
-   flattened. If this is revisited, push more of the 12/25 split toward 5 and 6.
-2. **Spread widened 17.0 -> 19.4.** BOLT and BORE each gained ~2 (stronger
-   cards help the elements that were already best) and GALE lost 2.3 (its
-   tempo is the most cost-sensitive). Damage fell across the board — 92 -> 86
-   for BOLT, 78 -> 69 for GALE — because dearer cards mean fewer on the board.
+The direction was not what was predicted: BOLT and BORE GAINED from the
+migration, because stronger cards help the elements that were already best.
+Damage fell across the board (BOLT 92 -> 86, GALE 78 -> 69) since dearer cards
+mean fewer of them on the board.
 
 Play both seats. A mirror match measured from the P2 seat reads ~41%, so a
 one-sided round-robin bakes a first-player edge into whichever element sat in
@@ -407,12 +417,11 @@ Rollo / Zombination / Doom changes and everything since.
 
 ## Open threads
 
-- Element balance: spread 19.4, everyone between 42.3 and 61.7. LEAF, GALE and
+- Element balance: spread 19.4, everyone between 42.8 and 62.1. LEAF, GALE and
   DAWN were each solved by an aura that was not paying, reaching 17.0; the
-  cost-3 migration then gave ~2.4 of that back. DUSK (42.3) and BOLT (61.7) are
-  the ends — but see the warning about chasing anyone to 50 at this spread.
-- Cost 4 now holds 65 cards, the crowding the cost-3 migration displaced rather
-  than removed. See "The cost curve".
+  cost-3 migration gave ~2.4 of that back and returning sixteen cards to 3 did
+  not reclaim it. BOLT (62.1) is now the clear top outlier — the obvious next
+  target, and the first one that would need a NERF rather than a buff.
 - `ELEMENT_MATCHUP` has no UI surface.
 - `deckById`'s silent fallback (see Measuring balance).
 - Spell curve expansion — the big queued feature. Today's `spells.ts` has the

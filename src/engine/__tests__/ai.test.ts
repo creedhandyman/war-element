@@ -190,19 +190,26 @@ describe("full AI-vs-AI matches (integration)", () => {
   it("a 5x5 match plays out properly — every row used, decided not timed out", () => {
     // Before homeRow took the board size, a 5x5 ran P1's home at row 3, leaving
     // row 4 dead ground: matches limped to the round cap without a capture.
-    // Seed 3 (7 flipped to a grindy round-cap with the new tanky BORE/DUSK cards
-    // — a balance fluke on one seed, not the geometry limp this guards; the vast
-    // majority of 5x5 seeds still resolve decisively).
-    const end = playMatch(3, "leaf_pyro", "bore_dusk", 5);
-    expect(end.boardSize).toBe(5);
-    expect(end.win).not.toBeNull();
+    //
+    // MEASURED OVER SEEDS, not pinned to one. About 8% of 5x5 seeds run the
+    // clock out as an ordinary tail (4% on 4x4), so a single seed is a coin
+    // that balance changes keep flipping — this assertion has been re-seeded
+    // twice already, seed 7 -> 3 and then 3 -> here, each time for a card
+    // change that had nothing to do with board geometry. The bug it guards
+    // would make nearly EVERY seed limp, so a majority is the honest test and
+    // it stops the false alarms.
+    const seeds = [1, 2, 3, 4, 5, 6, 7, 8];
+    const ends = seeds.map((s) => playMatch(s, "leaf_pyro", "bore_dusk", 5));
+    for (const end of ends) {
+      expect(end.boardSize).toBe(5);
+      expect(end.win).not.toBeNull();
+    }
     // "Decided", not a specific win type. This used to assert `by === "capture"`,
-    // which quietly made a board-GEOMETRY test depend on card balance: buffing
-    // Ghastly flipped this seed to a round-43 elimination, which is just as
-    // decisive. The bug being guarded is a match limping to the round cap, and
-    // that is exactly what these two assertions catch.
-    expect(end.win!.by).not.toBe("timeout");
-    expect(end.round).toBeLessThan(MAX_ROUNDS);
+    // which quietly made a board-GEOMETRY test depend on card balance: an
+    // elimination on round 43 is just as decisive.
+    const decisive = ends.filter((e) => e.win!.by !== "timeout" && e.round < MAX_ROUNDS);
+    expect(decisive.length, `${decisive.length}/${seeds.length} resolved decisively`)
+      .toBeGreaterThanOrEqual(6);
   });
 
   it.each([1, 2, 3, 7, 13, 42, 60, 80])(
