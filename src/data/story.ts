@@ -1218,7 +1218,17 @@ export const newHero = (): Hero => ({
   spells: [],
   essence: {},
   shards: 0,
-  freePacks: 0,
+  // A booster on the house. The campaign opens at rags — one Sakuroot — which
+  // is the right shape for the OPENING BATTLE and a poor shape for everything
+  // around it: a deck builder with one card in it, a collection reading 1 of
+  // 312, and no reason to visit the Shop. Five cards and a guaranteed Epic
+  // turns all three into something you can actually use, and it costs the
+  // rags-to-riches framing nothing, because the pack is opened by the player
+  // rather than handed to them mid-fight.
+  //
+  // Exactly one pack: the opening deck cap is SIX, and one Sakuroot plus a
+  // five-card pack is exactly six.
+  freePacks: 1,
   shiny: [],
 });
 

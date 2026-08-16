@@ -16,6 +16,11 @@ import {
 const shards = (s: StorySave): number => s.hero?.shards ?? 0;
 const withShards = (s: StorySave, n: number): StorySave =>
   ({ ...s, hero: { ...(s.hero ?? { name: "", affinity: "LEAF", spells: [], essence: {}, shards: 0, freePacks: 0, shiny: [] }), shards: n } });
+/** A save whose starter pack has already been opened. A NEW campaign now ships
+ *  with one free booster, so any test about the paid route, or about having
+ *  nothing, has to say so rather than lean on the default. */
+const spent = (s: StorySave): StorySave =>
+  ({ ...s, hero: { ...s.hero!, freePacks: 0 } });
 
 describe("event decks", () => {
   for (const event of EVENTS) {
@@ -157,7 +162,7 @@ describe("completing an event", () => {
   });
 
   it("makes a pack openable on a save that could not afford one", () => {
-    const broke = withShards(newSave(), 0);
+    const broke = spent(withShards(newSave(), 0));
     expect(canOpenPack(broke)).toBe(false);
     const done = completeEvent(broke, event.id);
     expect(canOpenPack(done)).toBe(true);
@@ -167,7 +172,8 @@ describe("completing an event", () => {
   it("spends the free pack, not the shards, and only once", () => {
     // The ordering rule in `applyPack`: holding both, the free one goes first,
     // or the gift waits until you are broke and your balance drains instead.
-    const rich = withShards(completeEvent(newSave(), event.id), 100);
+    // Starter pack already opened, so the ONE free pack here is the reward.
+    const rich = withShards(completeEvent(spent(newSave()), event.id), 100);
     expect(packIsFree(rich)).toBe(true);
 
     const after = applyPack(rich, openPack(rich, () => 0.5));
@@ -209,6 +215,9 @@ describe("completing an event", () => {
     const save: StorySave = { ...newSave(), hero: undefined };
     const next = completeEvent(save, event.id);
     expect(next.hero).toBeTruthy();
-    expect(freePacks(next)).toBe(event.rewardPacks);
+    // The minted hero is a NEW one, so it carries the starter booster as well
+    // as the reward. A save old enough to predate heroes getting the opening
+    // pack is a small gift, not a bug.
+    expect(freePacks(next)).toBe(1 + event.rewardPacks);
   });
 });

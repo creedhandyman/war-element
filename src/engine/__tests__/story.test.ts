@@ -375,8 +375,11 @@ describe("story: the deck cap ladder", () => {
   });
 
   it("...and opening one charges shards, banks the new cards and the refunds", () => {
+    // freePacks 0 explicitly: this is the PAID route, and a new save now opens
+    // with a booster on the house that would be spent ahead of the shards.
     const rich: StorySave = {
-      ...newSave(), collection: ["leaf_sakuroot"], hero: { ...newHero(), shards: PACK_COST + 5 },
+      ...newSave(), collection: ["leaf_sakuroot"],
+      hero: { ...newHero(), shards: PACK_COST + 5, freePacks: 0 },
     };
     expect(canOpenPack(rich)).toBe(true);
     let n = 3;
@@ -391,7 +394,11 @@ describe("story: the deck cap ladder", () => {
   });
 
   it("...and cannot be opened without the shards", () => {
-    const poor: StorySave = { ...newSave(), hero: { ...newHero(), shards: PACK_COST - 1 } };
+    // Once the starter pack is spent — it is openable regardless of shards,
+    // which is the point of it.
+    const poor: StorySave = {
+      ...newSave(), hero: { ...newHero(), shards: PACK_COST - 1, freePacks: 0 },
+    };
     expect(canOpenPack(poor)).toBe(false);
   });
 
@@ -508,6 +515,19 @@ describe("story: the deck cap ladder", () => {
     expect(after.hero!.essence.LEAF).toBe(ESSENCE_PER_CLEAR[l1.kind]);
     // A Throne is worth more than a skirmish.
     expect(ESSENCE_PER_CLEAR.throne).toBeGreaterThan(ESSENCE_PER_CLEAR.skirmish);
+  });
+
+  it("a new campaign opens with one card and a booster on the house", () => {
+    const save = newSave();
+    expect(save.collection).toEqual(["leaf_sakuroot"]);
+    // The rags opening is the right shape for the FIRST BATTLE and a poor one
+    // for everything around it — a one-card deck builder, a collection reading
+    // 1 of 312, no reason to open the Shop. One pack is five cards and a
+    // guaranteed Epic, and one Sakuroot plus five is exactly the opening deck
+    // cap of six.
+    expect(save.hero?.freePacks).toBe(1);
+    expect(save.hero?.shards).toBe(0); // the gift is a PACK, not currency
+    expect(canOpenPack(save), "and it is openable immediately").toBe(true);
   });
 
   it("...and a hero survives a round-trip through storage", () => {
