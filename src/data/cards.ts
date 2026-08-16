@@ -840,7 +840,7 @@ export const CARDS: CardDef[] = [
     // DOT for 3 rounds (15 total, if it lives that long). inRangeOnly: a melee
     // grudge only reaches a killer that came within a slot of it, so a ranged
     // pick-off is now clean. NOTE a card-specific onDeath REPLACES DUSK's
-    // Midnight Shade retaliation, so it trades that instant 3 for the venom.
+    // Midnight Shade retaliation, so it trades that instant hit for the venom.
     passiveNames: { onDeath: "Lingering Venom" },
     onDeath: { dmg: 0, inRangeOnly: true, killerStatus: { kind: "DOT", duration: 3, power: 5 } },
   },
@@ -7232,12 +7232,16 @@ export const CARDS: CardDef[] = [
     element: "PYRO",
     cardClass: "Support",
     attackType: "Ranged",
+    // 2x3 + 20 + 2 + 12 = 40, exactly the cost-6 budget. Rebuilt off the single
+    // 29 HP body it was: the same points, spent on a second swing, armour and
+    // twelve speed instead of a wall of HP, which is what a Ranged Support that
+    // opens with a two-row blast and then wants to cast Smog is actually doing.
     cost: 6,
     dmg: 3,
-    hits: 1,
-    hp: 29,
-    sp: 8,
-    shields: 0,
+    hits: 2,
+    hp: 20,
+    sp: 12,
+    shields: 1,
     keywords: {},
     // Explosion (On Summon): 5 DMG to the adjacent row and 3 to the row beyond.
     passiveNames: { onSummon: "Explosion" },

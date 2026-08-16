@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, shadeDodgePct, SPECIAL_HANDLERS, TARGETLESS_HANDLERS } from "../combat";
-import { applyFlow, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
+import { applyFlow, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire } from "../state";
@@ -2642,21 +2642,27 @@ describe("element auras", () => {
     expect(s.cards[t.instanceId].statuses.some((x) => x.kind === "BURN")).toBe(true);
   });
 
-  it("Midnight Shade (DUSK): a dying DUSK card hits its killer for a THIRD of its DMG", () => {
-    // Cut from a half. It fired ~10 times a game — the only aura that pays out
-    // for LOSING cards, which is exactly the disposable-body game DUSK is best
-    // at (7 of its cards cost 2 or less, two of them spawnable tokens).
+  it("Midnight Shade (DUSK): a dying DUSK card hits its killer for HALF its DMG", () => {
+    // Cut to a third once and restored — the nerf had the right shape (an aura
+    // that pays out for LOSING cards rewards the disposable-body element for
+    // what it already does) and the wrong size; DUSK measured last by six and a
+    // half points afterwards. Derived from the constant rather than typed, so
+    // the next move of that dial does not need this test edited to agree.
     const s = prepState();
     const killer = place(s, "gale_duster", "P1", 2, 0, { curHp: 9 });
-    const dusk = place(s, "dusk_reaper", "P2", 2, 1, { curHp: 1 }); // DMG 7 → third 2
+    const dusk = place(s, "dusk_reaper", "P2", 2, 1, { curHp: 1 });
+    const back = Math.max(1, Math.floor(getDef("dusk_reaper").dmg / DUSK_SHADE_DEATH_DIVISOR));
+    expect(back, "Reaper is big enough that the floor is not what is under test").toBeGreaterThan(1);
     basicAttack(s, killer.instanceId, dusk.instanceId);
     expect(s.cards[dusk.instanceId]).toBeUndefined();
-    expect(s.cards[killer.instanceId].curHp).toBe(7); // 9 − 2 (was 3 at a half)
+    expect(s.cards[killer.instanceId].curHp).toBe(9 - back);
   });
 
   it("...and even the cheapest bodies bite back for at least 1", () => {
-    // Floored at 1: at 2 DMG the third rounds to 0, but a dying DUSK card always
-    // lashes for at least a point — so Vamp/Spider still cost their killer.
+    // Floored at 1: Vamp prints 1 DMG, so the halved recoil rounds to 0 — but a
+    // dying DUSK card always lashes for at least a point. The floor bites in a
+    // narrower band now than it did at a third (printed 0–1 rather than 0–2),
+    // which is exactly why this asserts the floor on a card that still hits it.
     const s = prepState();
     const killer = place(s, "gale_duster", "P1", 2, 0, { curHp: 5, curShields: 0 });
     const vamp = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 }); // DMG 2 → floored to 1

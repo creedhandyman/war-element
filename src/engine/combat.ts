@@ -17,7 +17,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget } from "./rules";
-import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, hasElementAura, slipstreamPct } from "./auras";
+import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
@@ -1352,18 +1352,16 @@ export function resolveHit(
         }
       }
     } else if (hasElementAura(tDef, "DUSK") && opts.kind !== "reflect" && attacker.curHp > 0) {
-      // Midnight Shade (DUSK aura): a dying card deals a THIRD of its DMG to the
+      // Midnight Shade (DUSK aura): a dying card deals HALF its DMG back to the
       // killer. Only when the card has no stronger card-specific onDeath.
       //
-      // Cut from a half. Measured at ~10 procs a game, it is the only aura in
-      // the game that pays out for LOSING cards — which is precisely the
-      // disposable-body strategy DUSK is already best at: 7 of its cards cost 2
-      // or less, two of them are spawnable tokens, and it fields and loses more
-      // bodies than any other element. Free damage on every one of those deaths,
-      // with no cost, cooldown or counterplay, is what made attacking into DUSK
-      // a losing trade even when the individual cards were not tough.
+      // Cut to a third once, and restored — see DUSK_SHADE_DEATH_DIVISOR for
+      // why. The short version is that the nerf was aimed at the right shape (an
+      // aura that pays out for losing cards rewards the disposable-body element
+      // for what it already does) but overshot the size, and DUSK has measured
+      // last by a wide margin ever since.
       // At least 1 — a dying DUSK card always bites back, even a 0-DMG support.
-      const back = Math.max(1, Math.floor(tDef.dmg / 3));
+      const back = Math.max(1, Math.floor(tDef.dmg / DUSK_SHADE_DEATH_DIVISOR));
       {
         draft.log.push(`${tDef.name} lashes out from the shadows (${back} DMG).`);
         // Telegraph on the KILLER, not the source: defeatCard has already
