@@ -4282,3 +4282,40 @@ describe("Purple Wind Surge shoves rather than saps", () => {
     expect(p.push).toBe(1);
   });
 });
+
+describe("SEAL rides the reaper and the frenzy", () => {
+  it("Death's Approach seals what it cuts, so the wound cannot be healed", () => {
+    // PEN puts the 7 through armour; SEAL stops it being repaired. The two
+    // halves answer the two ways a target survives a sniper.
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const reaper = place(s, "dusk_reaper", "P1", 3, 0, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 1, 2, { curHp: 40, maxHp: 40, curShields: 6 });
+    const n = applyIntent(battleWith(s, reaper.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    const hit = n.cards[foe.instanceId];
+    expect(statusOf(hit, "SEAL")?.duration).toBe(2);
+    expect(hit.curShields, "PEN went straight past the plate").toBe(6);
+    // And the seal actually bites: healCard is the single choke-point for every
+    // heal in the game and refuses outright while SEAL is up.
+    expect(healCard(n, hit, 10)).toBe(0);
+  });
+
+  it("Moon Frenzy seals the whole board it drains", () => {
+    // DRAIN moves HP to the caster; SEAL stops them putting it back. Draining a
+    // board that can heal through it is a wash — this is what makes it stick.
+    const s = prepState();
+    s.players.P1.magicPool = 8;
+    const caster = place(s, "dusk_scar", "P1", 3, 1, { autoMode: "manual" });
+    const a = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const b = place(s, "dusk_gool", "P2", 2, 2, { curHp: 40, maxHp: 40, curShields: 0 });
+    const n = applyIntent(battleWith(s, caster.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: a.instanceId,
+    });
+    for (const foe of [a, b]) {
+      expect(statusOf(n.cards[foe.instanceId], "SEAL")?.duration, "every one of them").toBe(2);
+      expect(healCard(n, n.cards[foe.instanceId], 10)).toBe(0);
+    }
+  });
+});

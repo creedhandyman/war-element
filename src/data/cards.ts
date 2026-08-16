@@ -3493,9 +3493,13 @@ export const CARDS: CardDef[] = [
       cost: 2,
       handler: "strike",
       ranged: true, // the reaper hurls its scythe — reaches any opponent on the board
-      params: { dmg: 7, pen: 1 },
+      // SEAL rides the cut: PEN already puts the 7 straight through armour, and
+      // sealing the wound stops it being healed back for two rounds. The two
+      // halves answer the two ways a target survives a sniper — plating and
+      // repair — which is what makes this a finisher rather than chip damage.
+      params: { dmg: 7, pen: 1, statusKind: "SEAL", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Hurl the scythe — 7 DMG (PEN) to any opponent, anywhere.",
+      text: "Hurl the scythe — 7 DMG (PEN) to any opponent, anywhere, and SEAL it for 2 rounds (it cannot be healed).",
     },
   },
   {
@@ -7640,10 +7644,14 @@ export const CARDS: CardDef[] = [
       name: "Moon Frenzy",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 3, targets: 99, drain: 1 },
+      // SEAL on top of DRAIN, and the pairing is the point: DRAIN moves HP from
+      // them to the caster, and SEAL stops them putting it back. Draining a
+      // board that can simply heal through it is a wash; draining a sealed board
+      // is permanent for two rounds.
+      params: { dmg: 3, targets: 99, drain: 1, statusKind: "SEAL", statusDuration: 2 },
       targetSide: "enemy",
       ranged: true,
-      text: "Attack all opponents for 3 DMG and DRAIN from each.",
+      text: "Attack all opponents for 3 DMG, DRAIN from each, and SEAL them for 2 rounds (they cannot be healed).",
     },
   },
 
