@@ -439,6 +439,12 @@ describe("DAWN's two tribes cover the whole element", () => {
   const tribesOf = (c: { tribe?: string | string[] }) =>
     c.tribe == null ? [] : Array.isArray(c.tribe) ? c.tribe : [c.tribe];
 
+  // Sphere is a deliberate exception: it was remodelled from a Mage into a Tank
+  // and kept its Stars tag rather than being dragged across to Suns by the
+  // remodel. Named here rather than loosening the rule, so the rule still
+  // catches an untagged newcomer — which is the failure this test exists for.
+  const CLASS_RULE_EXCEPTIONS = new Set(["dawn_sphere"]);
+
   it("every DAWN card is a Sun or a Star, and which one follows from its class", () => {
     expect(dawn.length).toBeGreaterThan(30);
     for (const c of dawn) {
@@ -447,7 +453,9 @@ describe("DAWN's two tribes cover the whole element", () => {
         : STARS_CLASSES.includes(c.cardClass) ? "Stars"
         : null;
       expect(want, `${c.id} has class ${c.cardClass}, which belongs to neither half`).toBeTruthy();
-      expect(tribes, `${c.id} (${c.cardClass})`).toContain(want);
+      // The exceptions still have to be in ONE of the two — they just get to
+      // pick the other one. Only the class MAPPING is waived, not membership.
+      if (!CLASS_RULE_EXCEPTIONS.has(c.id)) expect(tribes, `${c.id} (${c.cardClass})`).toContain(want);
       // Exactly one of the two — a card cannot be both halves of the element.
       expect(tribes.filter((t) => t === "Suns" || t === "Stars")).toHaveLength(1);
     }

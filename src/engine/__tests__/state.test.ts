@@ -116,6 +116,17 @@ describe("setup", () => {
       // an ability-carried near-mythic (Volcanic Charge + Burning Roar stacks +
       // on-summon BURN AoE).
       "pyro_infernus_rex",
+      // Ability-carried, downward: 15 vs a Cost-2 budget of 20. Sphere was
+      // remodelled from a Mage into a Tank and lost 2 DMG and 3 SP doing it.
+      // What is meant to carry the gap: PEN on every basic, at RANGED reach, so
+      // shields never blunt it; an on-summon +2 barrier the formula does not
+      // count; and DAWN's Awakening striking on arrival.
+      //
+      // FLAGGED, not endorsed: at 25% this is the largest proportional discount
+      // on this list — the next worst is 14% — and 15 is exactly a cost-1
+      // budget. If Sphere plays thin, `cost: 1` removes the need for this entry
+      // rather than widening what the entry is allowed to excuse.
+      "dawn_sphere",
     ]);
     for (const def of CARDS) {
       if (exceptions.has(def.id)) continue;

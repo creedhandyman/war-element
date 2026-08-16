@@ -3065,29 +3065,55 @@ describe("Hawko — Aerial Dominance", () => {
   });
 });
 
-describe("Sphere — one heavy shot instead of a 2x2 volley", () => {
-  it("BLOCK 2 only halves it now, where it used to blank the volley", () => {
-    // BLOCK is flat and charged PER HIT. At 2x2 every shard was fully absorbed
-    // (0 through), so armour was a hard counter. A single 4 pays BLOCK once.
+describe("Sphere — a 2-DMG PEN Tank", () => {
+  it("PEN carries its basic past shields, which is most of what it has", () => {
+    // The whole case for a 2-DMG attacker: shields never blunt it. A 4-shield
+    // body takes the full printed number, where an unpierced 2 would land 0.
+    const s = prepState();
+    const sphere = place(s, "dawn_sphere", "P1", 3, 0, { autoMode: "manual" });
+    const plated = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 4 });
+    basicAttack(s, sphere.instanceId, plated.instanceId);
+    const printed = getDef("dawn_sphere").dmg;
+    // +25% into DUSK (Daybreak) is the only matchup DAWN has.
+    expect(40 - s.cards[plated.instanceId].curHp).toBe(Math.floor(printed * 1.25));
+    expect(s.cards[plated.instanceId].curShields, "PEN never strips plate either").toBe(4);
+  });
+
+  it("…but BLOCK 2 now blanks it outright, where 4 DMG used to punch through", () => {
+    // Worth pinning rather than discovering. BLOCK is a flat reduction taken
+    // BEFORE shields and it applies even to PEN, so at a printed 2 an armoured
+    // body with BLOCK 2 takes literally nothing. At the old printed 4 the same
+    // card took 2. Dropping the DMG did not halve this matchup, it ended it.
     const s = prepState();
     const sphere = place(s, "dawn_sphere", "P1", 3, 0, { autoMode: "manual" });
     const armour = place(s, "bore_armadillo", "P2", 2, 0, {
       curHp: 40, maxHp: 40, curShields: 0, // shields off: BLOCK alone under test
     }); // BLOCK 2
     basicAttack(s, sphere.instanceId, armour.instanceId);
-    expect(40 - s.cards[armour.instanceId].curHp).toBe(2); // 4 − BLOCK 2, once
+    expect(40 - s.cards[armour.instanceId].curHp).toBe(0);
   });
 
-  it("the printed DMG also doubles its DAWN Awakening on summon", () => {
-    // Awakening reads the PRINTED DMG, not dmg x hits, so moving 2x2 to 1x4
-    // quietly doubles it. Easy to ship without noticing — which is the whole
-    // point of this test, and still true now the strike is the full number.
+  it("its DAWN Awakening strike on summon is the full PRINTED DMG", () => {
+    // Awakening reads printed DMG, not dmg x hits. Measured against a NON-DUSK
+    // foe on purpose: Daybreak's +25% is DAWN's only matchup, and including it
+    // would make this test assert the matchup table as much as the strike.
     const s = prepState();
     s.players.P1.gold = 6;
-    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const foe = place(s, "bore_clubber", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     const handId = giveHand(s, "P1", "dawn_sphere");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
-    expect(40 - next.cards[foe.instanceId].curHp).toBe(5); // 4 printed, +25% into DUSK
+    expect(40 - next.cards[foe.instanceId].curHp).toBe(getDef("dawn_sphere").dmg);
+  });
+
+  it("lands behind its own 2-shield barrier", () => {
+    const s = prepState();
+    s.players.P1.gold = 6;
+    place(s, "bore_clubber", "P2", 2, 0, { curHp: 40, maxHp: 40 });
+    const handId = giveHand(s, "P1", "dawn_sphere");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const sphere = boardCards(next, "P1").find((c) => c.defId === "dawn_sphere")!;
+    expect(getDef("dawn_sphere").shields, "the barrier is off-curve — printed shields stay 0").toBe(0);
+    expect(sphere.curShields).toBe(2);
   });
 });
 

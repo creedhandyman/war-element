@@ -3440,20 +3440,27 @@ export const CARDS: CardDef[] = [
     name: "Sphere",
     rarity: "rare",
     element: "DAWN",
-    cardClass: "Mage",
+    // A Tank now, not a Mage. Note what that costs elsewhere: Kloud's class aura
+    // (+1 DMG to allied Mages) no longer reaches Sphere in a mixed DAWN/GALE
+    // deck, and nothing grants Tanks in exchange.
+    cardClass: "Tank",
     tribe: "Stars",
     attackType: "Ranged",
-    // Cost 2 at 4+7+9 = 20, exactly 5*2+10. The printed 0 shields is what the
-    // formula reads; the +2 barrier below is an off-curve on-summon grant.
     cost: 2,
-    // One heavy shot instead of 2x2. Same 4 raw, but it lands very differently:
-    // BLOCK is subtracted PER HIT, so BLOCK 2 used to zero the whole volley and
-    // now only halves it. It also raises the DAWN Awakening on-summon strike
-    // (floor(dmg/2)) from 1 to 2, since that reads printed DMG, not dmg x hits.
-    dmg: 4,
+    // 2 + 7 + 0 + 6 = 15 against a cost-2 budget of 20 — FIVE under, and listed
+    // in state.test.ts's ability-carried exceptions because of it. That is the
+    // largest proportional discount on that list (25%, where the next worst is
+    // 14%), so it is worth being explicit about what is meant to carry it: PEN
+    // on every basic from RANGED reach, the off-curve +2 barrier below, and
+    // DAWN's Awakening striking on arrival.
+    //
+    // Worth knowing: 15 is EXACTLY a cost-1 budget. If this reads as too thin
+    // for a 2-drop in play, the honest fix is `cost: 1` — one character, and the
+    // test exception disappears with it.
+    dmg: 2,
     hits: 1,
     hp: 7,
-    sp: 9,
+    sp: 6,
     shields: 0,
     keywords: { PEN: true }, // Light Sphere — basic attacks gain PEN
     // Light Sphere (On Summon): raise a +2 shield (a passive grant, off-curve).
