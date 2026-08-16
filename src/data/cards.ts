@@ -1779,25 +1779,43 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 3,
+    // Up a cost, and the five points go to HP and SPEED rather than to the
+    // basic. 4 + 15 + 11 = 30, exactly the cost-4 budget.
+    //
+    // Purple Wind Surge is now a board-wide control cast, and a controller is
+    // worth what it can apply BEFORE the other side swings — WEAKEN and −2 SP
+    // landed after the enemy turn are half a card. So the speed is the buy, and
+    // the HP is what lets it cast twice. GALE compounds both: Tailwind reads SP
+    // as damage and Slipstream reads it as dodge, so a point of speed on this
+    // element is never only a point of speed.
+    cost: 4,
     dmg: 4,
     hits: 1,
-    hp: 12,
-    sp: 9,
+    hp: 15,
+    sp: 11,
     shields: 0,
     keywords: { FLYING: true },
     tribe: "Avian",
-    // Alluring Aura (On Hit by Melee): the attacker is WEAKENed.
+    // Alluring Aura (When hit): the attacker is WEAKENed — whoever it was.
+    //
+    // `anyAttacker` upgrades it off the default melee-only thorns. Melee-only
+    // was close to dead text on this card: Angale is a Ranged FLYING Mage that
+    // stands at the back, so the attackers that actually reach it are the
+    // shooters the aura could not answer. Same effect, now on the attacks the
+    // card is realistically going to take.
     passiveNames: { onHitByMelee: "Alluring Aura" },
-    onHitByMelee: { status: { kind: "WEAKEN", duration: 2, power: 0 } },
+    onHitByMelee: { anyAttacker: true, status: { kind: "WEAKEN", duration: 2, power: 0 } },
     special: {
       name: "Purple Wind Surge",
       cost: 2,
       handler: "barrage",
-      // "4×1 DMG to the row ahead + WEAKEN + −2 SP each"
-      params: { dmg: 1, hits: 4, targets: 3, statusKind: "WEAKEN", statusDuration: 2, spDebuff: 2, spDebuffRounds: 2 },
+      // targets: 99 = everything the surge can reach, not a hand-picked three.
+      // The damage is deliberately trivial (4 pinpricks); what the cast is FOR
+      // is the WEAKEN and the −2 SP, and a wind that blows across a line has no
+      // business stopping at the third body in it.
+      params: { dmg: 1, hits: 4, targets: 99, statusKind: "WEAKEN", statusDuration: 2, spDebuff: 2, spDebuffRounds: 2 },
       targetSide: "enemy",
-      text: "Deal 1 DMG × 4, WEAKEN, and −2 SP to up to 3 opponents for 2 rounds.",
+      text: "Deal 1 DMG × 4, WEAKEN, and −2 SP to up to all opponents in range for 2 rounds.",
     },
   },
   {
@@ -3587,25 +3605,29 @@ export const CARDS: CardDef[] = [
     // card does what it always said it did.
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 4,
-    dmg: 2,
+    // Up a cost, spread across all three stats: 3x2 + 18 + 11 = 35, exactly the
+    // cost-5 budget. Nothing here is a specialist's bump — Rayfen warps into
+    // range, ambushes, and has to survive standing where it landed, so it wants
+    // a little of each rather than a lot of one.
+    cost: 5,
+    dmg: 3,
     hits: 2,
-    hp: 16,
-    sp: 10,
+    hp: 18,
+    sp: 11,
     shields: 0,
-    // Both blades of the 2×2 roll for a crit.
+    // Both blades of the 3×2 roll for a crit.
     keywords: { CRIT: true },
     // Wind Warp: it moves to anywhere open on the board, at any distance.
     passiveNames: { windWarp: "Wind Warp" },
     windWarp: true,
     special: {
       name: "Ambush",
-      cost: 2,
+      cost: 3,
       handler: "barrage",
       ranged: true, // strikes the far row
-      params: { dmg: 5, pen: 1, targets: 2 },
+      params: { dmg: 7, pen: 1, targets: 3 },
       targetSide: "enemy",
-      text: "Deal 5 DMG (PEN) to 2 opponents anywhere on the board.",
+      text: "Deal 7 DMG (PEN) to up to 3 opponents anywhere on the board.",
     },
   },
   {
