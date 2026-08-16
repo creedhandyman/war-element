@@ -2581,6 +2581,19 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
     killer.dmgBonus += bonus;
     draft.log.push(`${name} claims the spoils (+${bonus} DMG).`);
   }
+  // King of Sunfall Harbor: the spoils are armour OR teeth, never both, and the
+  // card does not choose. Permanent either way, so a long-lived Scallywag drifts
+  // toward whichever the coin has favoured rather than growing on a fixed line.
+  if (def.coinShieldOrDmg) {
+    const c = def.coinShieldOrDmg;
+    if (coin(draft)) {
+      killer.curShields += c.shields;
+      draft.log.push(`${name} takes the harbour's plate (+${c.shields} shield).`);
+    } else {
+      killer.dmgBonus += c.dmg;
+      draft.log.push(`${name} takes the harbour's steel (+${c.dmg} DMG).`);
+    }
+  }
   if (def.healSelf) {
     const h = healCard(draft, killer, def.healSelf, killer);
     if (h > 0) draft.log.push(`${name} heals ${h} on the kill.`);

@@ -3988,3 +3988,56 @@ describe("Double Trouble (Twins) and Moving Forest (Elephlora)", () => {
     expect(withTree.healed - without.healed).toBe(tick.healLowestAlly);
   });
 });
+
+describe("King of Sunfall Harbor (Scallywag)", () => {
+  /** Kill a 1-HP victim with Scallywag on `seed` and report what the coin paid.
+   *
+   *  The victim is deliberately NOT a DUSK card. Midnight Shade makes a dying
+   *  DUSK body deal its full DMG back to its killer, and a landed hit strips a
+   *  plate — so killing a DUSK card and winning the SHIELD side of this coin
+   *  nets nothing, the recoil takes the plate straight back off. That is the
+   *  two mechanics working, not a fault, but it makes DUSK useless as a probe:
+   *  the first draft of this test read "the coin never pays a shield". */
+  function spoils(seed: number) {
+    const s = prepState(seed);
+    const sc = place(s, "pyro_scully", "P1", 3, 0, { curShields: 0 });
+    const prey = place(s, "bore_iron", "P2", 2, 0, { curHp: 1, maxHp: 40, curShields: 0 });
+    const before = { sh: s.cards[sc.instanceId].curShields, dmg: s.cards[sc.instanceId].dmgBonus };
+    basicAttack(s, sc.instanceId, prey.instanceId);
+    expect(s.cards[prey.instanceId], "the victim actually died").toBeUndefined();
+    return {
+      shield: s.cards[sc.instanceId].curShields - before.sh,
+      dmg: s.cards[sc.instanceId].dmgBonus - before.dmg,
+    };
+  }
+
+  it("pays exactly one of the two, never both and never neither", () => {
+    const def = getDef("pyro_scully").onKill!.coinShieldOrDmg!;
+    for (let seed = 0; seed < 40; seed++) {
+      const got = spoils(seed);
+      const gotShield = got.shield === def.shields && got.dmg === 0;
+      const gotDmg = got.dmg === def.dmg && got.shield === 0;
+      expect(gotShield || gotDmg, `seed ${seed} paid ${JSON.stringify(got)}`).toBe(true);
+    }
+  });
+
+  it("and both outcomes actually occur — it is a coin, not a constant", () => {
+    // The failure this guards is a coin wired to one branch: every seed paying
+    // the same stat would satisfy the test above completely.
+    const outcomes = new Set(
+      Array.from({ length: 40 }, (_, seed) => (spoils(seed).shield > 0 ? "shield" : "dmg")),
+    );
+    expect(outcomes, "both sides of the coin turn up over 40 kills").toEqual(new Set(["shield", "dmg"]));
+  });
+
+  it("is permanent — a second kill stacks on the first", () => {
+    const s = prepState();
+    const sc = place(s, "pyro_scully", "P1", 3, 0, { curShields: 0 });
+    for (let i = 0; i < 2; i++) {
+      const prey = place(s, "bore_iron", "P2", 2, i, { curHp: 1, maxHp: 40, curShields: 0 });
+      basicAttack(s, sc.instanceId, prey.instanceId);
+    }
+    const c = s.cards[sc.instanceId];
+    expect(c.curShields + c.dmgBonus, "two kills, two payouts").toBe(2);
+  });
+});

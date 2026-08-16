@@ -7930,11 +7930,24 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
+    // First card in the Pirate tribe. Nothing reads it yet — no aura or payoff
+    // matches "Pirate" — so it is flavour until something does, exactly as
+    // Suns and Stars were before they had members.
+    tribe: "Pirate",
     // Bounty Hunter: basics apply BURN 2, and any opponent who fires a Special
     // is marked with BURN 2 for it (reactive bounty).
-    passiveNames: { onHitStatus: "Bounty Hunter", onEnemySpecial: "Bounty Hunter" },
+    // King of Sunfall Harbor (On Kill): a coin — +1 shield or +1 DMG, permanent.
+    // Modelled on BlackBeard's King of the Seas, but that coin picks between two
+    // sizes of DMG; this one picks between two STATS, so a Scallywag that keeps
+    // killing drifts toward armour or toward teeth rather than up a fixed line.
+    passiveNames: {
+      onHitStatus: "Bounty Hunter",
+      onEnemySpecial: "Bounty Hunter",
+      onKill: "King of Sunfall Harbor",
+    },
     onHitStatus: { kind: "BURN", duration: 2, power: 2 },
     onEnemySpecial: { status: { kind: "BURN", duration: 2, power: 2 } },
+    onKill: { coinShieldOrDmg: { shields: 1, dmg: 1 } },
     // Powder Keg: MINE the row ahead rather than blowing it now. The kegs sit
     // concealed until something walks onto one — which is the trap trigger the
     // card was written around before it was simplified into instant damage.

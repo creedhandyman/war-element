@@ -281,6 +281,11 @@ export function describePassives(def: CardDef): string[] {
       k.extendStatus &&
         `extends ${k.extendStatus.kind} on every enemy by ${k.extendStatus.rounds} round${k.extendStatus.rounds > 1 ? "s" : ""}`,
       k.coinBonusDmg && `+${k.coinBonusDmg}/${k.coinBonusDmg - 1} DMG`,
+      // "or", not "/" — this coin picks between two different STATS, where
+      // coinBonusDmg's picks between two sizes of one, and the slash would read
+      // as "both" on a card that grants exactly one of them.
+      k.coinShieldOrDmg &&
+        `a coin flip: +${k.coinShieldOrDmg.shields} shield or +${k.coinShieldOrDmg.dmg} DMG, permanently`,
       k.healSelf && `heal ${k.healSelf} HP`,
       k.gainShields && `+${k.gainShields} shields`,
       k.aoeDmg && `${k.aoeDmg} to all enemies`,

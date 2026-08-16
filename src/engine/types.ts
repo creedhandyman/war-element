@@ -152,6 +152,15 @@ export interface OnKillDef {
    *  opponent for `lowestHpDmg` — the serpent finishes the weak. */
   lowestHpDmg?: number;
   coinBonusDmg?: number; // coin flip: +this or +this−1 permanent DMG
+  /** King of Sunfall Harbor (Scallywag): a coin flip between two DIFFERENT
+   *  stats — armour or teeth — where coinBonusDmg only ever chooses between two
+   *  sizes of the same one. Both permanent, both stacking with every kill.
+   *
+   *  Its own field rather than a flag on coinBonusDmg because the two answer
+   *  different questions: BlackBeard's coin is "how much DMG", this one is
+   *  "which stat", and folding them together would make either card's number
+   *  ambiguous to read off the data. */
+  coinShieldOrDmg?: { shields: number; dmg: number };
   reduceSpecialCost?: number; // King Me (Heir): shave N off this card's Special cost per kill
   /** Static Charge (Static): on a kill, extend the named status on every enemy
    *  that already carries it by `rounds` (deepen the crowd-control). */
