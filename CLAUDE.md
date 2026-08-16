@@ -184,23 +184,29 @@ Solo cores, **both boards**, round-robin with **both seat orders**, 50 seeds per
 ordered matchup — 5,600 matches, n=1,400 per element (±2.6 at 95%):
 
 ```
-bolt 54.2 · bore 53.4 · dawn 52.4 · leaf 49.9
-pyro 49.9 · aqua 49.2 · dusk 47.3 · gale 43.8     spread 10.4
+bolt 54.4 · bore 52.8 · dawn 51.1 · leaf 49.0
+pyro 48.9 · aqua 48.6 · gale 48.5 · dusk 46.7     spread 7.7
 ```
 
-**The tightest measured** (previous bests 11.1, then 15.8; the oldest recorded
-pass was 30.4) — but the SHAPE changed, and that is the more useful half:
+**The tightest measured by a wide margin** — 7.7, against previous bests of
+10.4, 11.1 and 15.8, and 30.4 at the oldest recorded pass. There is no outlier
+left in either direction: the field is a smooth slope, and the two gaps that
+bound it (BOLT to BORE, 1.6; GALE to DUSK, 1.8) are both inside the ±2.6 error
+bar. Four elements — leaf, pyro, aqua, gale — sit within 0.5 of each other.
 
-```
-top     bolt 54.2 · bore 53.4 · dawn 52.4     1.8 apart
-middle  leaf 49.9 · pyro 49.9 · aqua 49.2     0.7 apart, on 50
-floor   dusk 47.3 ............ gale 43.8      3.5 apart
-```
+**GALE +4.7**, off the floor and into the middle. It was the lone outlier at
+43.8, 3.5 BELOW DUSK; it is now 1.8 above it. Every other element moved -0.6 to
+-1.3 (BOLT +0.2, inside noise), which is the signature of a genuine
+single-element lift and not a field-wide shift.
 
-Six of the eight sit inside 5 points. **GALE is a lone outlier at the bottom** —
-3.5 clear of DUSK, where the previous pass had a three-element floor inside 0.4.
-That makes it the first single-element target since BORE, and the obvious next
-move if there is one.
+This one has unusually clean attribution: only TWO commits separate it from the
+10.4 pass and both are GALE — Tailwind's step tightened from 6 SP to 5, the
+five-source WEAKEN kit (Stormfang's splash, Totem Pole's new Special and its
+on-summon, WolfBane, Whirlwolf), and Rayfen's 4x2. Contrast the pass before it,
+which had twenty commits and a spellbook change confounding all of them.
+
+**There is no obvious next move.** Chasing 7.7 lower means moving a whole tier,
+and this file's own history is a record of how easily that overshoots.
 
 DAWN +6.5 in one pass, sixth to third — the largest single-element move recorded
 here, bigger than DUSK's +4.3 or BORE's −4.3. It follows the four BATTLE
