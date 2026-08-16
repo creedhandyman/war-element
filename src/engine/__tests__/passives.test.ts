@@ -4253,3 +4253,32 @@ describe("GALE's WEAKEN kit", () => {
     expect(weakenStacks(s.cards[foe.instanceId])).toBe(once + 1);
   });
 });
+
+describe("Purple Wind Surge shoves rather than saps", () => {
+  it("weakens and pushes every opponent in range, once each", () => {
+    // The push rides applyDebuffRiders, which runs once per TARGET and not per
+    // hit — so a 4-hit surge shoves one space, not four. Worth pinning: the
+    // handler loops hits inside the target loop, and the opposite reading is
+    // the obvious mistake to make when adding a rider to a multi-hit barrage.
+    const s = prepState();
+    s.players.P1.magicPool = 8;
+    const angale = place(s, "gale_angale", "P1", 3, 1, { autoMode: "manual" });
+    const a = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const b = place(s, "dusk_gool", "P2", 2, 2, { curHp: 40, maxHp: 40, curShields: 0 });
+    const n = applyIntent(battleWith(s, angale.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: a.instanceId,
+    });
+    for (const foe of [a, b]) {
+      expect(statusOf(n.cards[foe.instanceId], "WEAKEN"), "weakened").toBeTruthy();
+      // pushBack shoves a card toward its OWN home row, and P2's is row 0 — so
+      // "back" here is a LOWER row: 2 -> 1, exactly one step of it.
+      expect(n.cards[foe.instanceId].pos!.row, "shoved one space, not four").toBe(1);
+    }
+  });
+
+  it("no longer saps speed", () => {
+    const p = getDef("gale_angale").special!.params!;
+    expect(p.spDebuff, "the -SP is gone").toBeUndefined();
+    expect(p.push).toBe(1);
+  });
+});

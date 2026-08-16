@@ -1861,9 +1861,19 @@ export const CARDS: CardDef[] = [
       // The damage is deliberately trivial (4 pinpricks); what the cast is FOR
       // is the WEAKEN and the −2 SP, and a wind that blows across a line has no
       // business stopping at the third body in it.
-      params: { dmg: 1, hits: 4, targets: 99, statusKind: "WEAKEN", statusDuration: 2, spDebuff: 2, spDebuffRounds: 2 },
+      // -2 SP out, a 1-space shove in — the same trade WolfBane's Whirlwind
+      // Slasher took. A speed sap only ever reorders a queue, and on a card
+      // whose WEAKEN already cuts what the target hits FOR, it was the second
+      // debuff doing the less interesting job. A push moves the board, which is
+      // the thing GALE wins with, and it stacks with the surge's own reach:
+      // everything in range is shoved a step further from what it was about to
+      // capture.
+      //
+      // applyDebuffRiders runs once per TARGET rather than per hit, so the four
+      // pinpricks do not compound into a four-space shove.
+      params: { dmg: 1, hits: 4, targets: 99, statusKind: "WEAKEN", statusDuration: 2, push: 1 },
       targetSide: "enemy",
-      text: "Deal 1 DMG × 4, WEAKEN, and −2 SP to up to all opponents in range for 2 rounds.",
+      text: "Deal 1 DMG × 4 to up to all opponents in range, WEAKEN them for 2 rounds, and push each back 1 space.",
     },
   },
   {
