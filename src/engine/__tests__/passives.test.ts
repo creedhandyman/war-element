@@ -4338,3 +4338,30 @@ describe("Phantom Gouge seals what it pierces", () => {
     }
   });
 });
+
+describe("Mark of Hoax brands and seals", () => {
+  it("marks for the CRIT and seals for the rest of the match", () => {
+    // The seal has to outlast a 2-round timer: the mark is a FLAG with no
+    // duration — it holds until the target dies — so a short seal would expire
+    // while the thing it rides was still on the card.
+    const s = prepState();
+    s.players.P1.magicPool = 8;
+    const hoax = place(s, "dusk_hoax", "P1", 3, 1, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const n = applyIntent(battleWith(s, hoax.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    const hit = n.cards[foe.instanceId];
+    expect(hit.hoaxMarked, "still branded").toBe(true);
+    expect(statusOf(hit, "SEAL")?.duration).toBeGreaterThan(10);
+    expect(healCard(n, hit, 12), "and it refuses every heal").toBe(0);
+  });
+
+  it("the seal is declared by the CARD, not baked into the handler", () => {
+    // markTarget routes through maybeStatus now, so what a brand carries lives
+    // in the card data. A later marker can carry something else without the
+    // handler being taught about it.
+    const p = getDef("dusk_hoax").special!.params!;
+    expect(p.statusKind).toBe("SEAL");
+  });
+});

@@ -7819,10 +7819,16 @@ export const CARDS: CardDef[] = [
       name: "Mark of Hoax",
       cost: 4,
       handler: "markTarget",
-      params: {},
+      // A LASTING seal, matching the brand it rides. The mark itself is a flag
+      // with no timer — it holds until the target dies — so a 2-round seal would
+      // have expired while the thing it was attached to was still on the card.
+      // 99 is this codebase's idiom for "does not expire" (Velvolt Knight's Live
+      // Current, Voltis' arrival volley), and card text renders it as "the rest
+      // of the match" rather than printing the number.
+      params: { statusKind: "SEAL", statusDuration: 99 },
       targetSide: "enemy",
       ranged: true,
-      text: "Mark an opponent — every basic attack against them is a guaranteed CRIT. When a marked target dies, Blur banks a one-time auto-dodge.",
+      text: "Mark an opponent — every basic attack against them is a guaranteed CRIT, and they cannot be healed for the rest of the match. When a marked target dies, Blur banks a one-time auto-dodge.",
     },
   },
   {

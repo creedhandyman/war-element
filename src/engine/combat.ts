@@ -3780,12 +3780,17 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   },
   /** Mark of Hoax: brand one opponent — while marked, EVERY basic attack against
    *  it is a guaranteed CRIT, and its death banks Hoax a guaranteed dodge. */
-  markTarget(draft, attacker, targets, _params) {
+  markTarget(draft, attacker, targets, params) {
     const t = targets[0];
     if (!t) return;
     t.hoaxMarked = true;
     t.hoaxMarkedBy = attacker.instanceId;
     draft.log.push(`${label(draft, attacker)} marks ${label(draft, t)} — every basic against it now CRITS.`);
+    // Through the shared status path rather than hard-coding one: the mark is a
+    // BRAND, and what the brand carries belongs on the card, not in here. Hoax
+    // declares SEAL; a later marker can declare something else without this
+    // handler learning about it.
+    maybeStatus(draft, attacker, t, params);
   },
   /** Adamantize (Adamant): crystallize the team's armour — every living ally gains
    *  a timed BLOCK, stacking with their own. */
