@@ -16,7 +16,10 @@ describe("rare passives", () => {
     // once, so the per-target number is the only lever holding it down.
     const s = prepState();
     place(s, "bore_ufo", "P1", 2, 0);
-    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13, curShields: 5 });
+    const foe = // maxHp too, not just curHp: this dummy is set ABOVE Gool's printed HP, and
+    // Cleanup clamps curHp to effectiveMaxHp — so without it the tick below
+    // measures the clamp instead of the Radiation it is testing.
+    place(s, "dusk_gool", "P2", 1, 0, { curHp: 13, maxHp: 13, curShields: 5 });
     const next = advance(atCleanup(s));
     expect(next.cards[foe.instanceId].curHp).toBe(12); // −1 to HP…
     expect(next.cards[foe.instanceId].curShields).toBe(5); // …shields untouched (PEN)
@@ -205,7 +208,7 @@ describe("UFO flies", () => {
     // Radiation is untouched by the keyword.
     const s2 = prepState();
     place(s2, "bore_ufo", "P1", 2, 0);
-    const foe = place(s2, "dusk_gool", "P2", 1, 0, { curHp: 13, curShields: 5 });
+    const foe = place(s2, "dusk_gool", "P2", 1, 0, { curHp: 13, maxHp: 13, curShields: 5 });
     const n = advance(atCleanup(s2));
     expect(n.cards[foe.instanceId].curHp).toBe(12); // 1 PEN, cut from 2
     expect(n.cards[foe.instanceId].curShields).toBe(5); // PEN

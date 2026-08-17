@@ -2294,34 +2294,43 @@ describe("gated on-hit riders", () => {
 });
 
 describe("roundTick self effects", () => {
+  // Gool's printed HP, for the round-tick tests below. They used to write 13 by
+  // hand into `curHp` and leave maxHp at the default — so when Gool's line
+  // changed, Cleanup's clamp to effectiveMaxHp pulled the dummy down to the new
+  // maximum BEFORE the tick landed, and three tests failed over a card none of
+  // them are about.
+  const GOOL_HP = getDef("dusk_gool").hp;
+  const gool = (s: GameState, row: number, col: number) =>
+    place(s, "dusk_gool", "P2", row, col, { curHp: GOOL_HP, maxHp: GOOL_HP });
+
   it("Dunewraith's Sandstorm dings every enemy in Cleanup", () => {
     const s = prepState();
     place(s, "bore_sandman", "P1", 2, 0);
     place(s, "leaf_greegon", "P1", 3, 0); // keep P1 on the board
-    const enemy = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
+    const enemy = gool(s, 1, 0);
     const next = advance(atCleanup(s));
-    expect(next.cards[enemy.instanceId].curHp).toBe(12); // −1 Sandstorm
+    expect(next.cards[enemy.instanceId].curHp).toBe(GOOL_HP - 1); // −1 Sandstorm
   });
 
   it("Tiki's Sweeping Flames burns only the row directly ahead", () => {
     const s = prepState();
     const tiki = place(s, "pyro_tiki", "P1", 2, 0); // ahead = row 1
-    const inFront = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
-    const farBack = place(s, "dusk_gool", "P2", 0, 3, { curHp: 13 }); // not row ahead
+    const inFront = gool(s, 1, 0);
+    const farBack = gool(s, 0, 3); // not row ahead
     const next = advance(atCleanup(s));
-    expect(next.cards[inFront.instanceId].curHp).toBe(12); // −1 Sweeping Flames
-    expect(next.cards[farBack.instanceId].curHp).toBe(13); // untouched
+    expect(next.cards[inFront.instanceId].curHp).toBe(GOOL_HP - 1); // −1 Sweeping Flames
+    expect(next.cards[farBack.instanceId].curHp).toBe(GOOL_HP); // untouched
     void tiki;
   });
 
   it("Smog's Black Smoke chokes every enemy in range, not just the row ahead", () => {
     const s = prepState();
     const smog = place(s, "pyro_smog_card", "P1", 2, 0); // ranged, mid row (clears the home-row rule)
-    const near = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 }); // row directly ahead
-    const far = place(s, "dusk_gool", "P2", 0, 3, { curHp: 13 }); // back home row — a ranged tick still reaches
+    const near = gool(s, 1, 0); // row directly ahead
+    const far = gool(s, 0, 3); // back home row — a ranged tick still reaches
     const next = advance(atCleanup(s));
-    expect(next.cards[near.instanceId].curHp).toBe(12); // −1 Black Smoke
-    expect(next.cards[far.instanceId].curHp).toBe(12); // whole board, unlike Sweeping Flames' row-ahead
+    expect(next.cards[near.instanceId].curHp).toBe(GOOL_HP - 1); // −1 Black Smoke
+    expect(next.cards[far.instanceId].curHp).toBe(GOOL_HP - 1); // whole board, unlike Sweeping Flames' row-ahead
     void smog;
   });
 });
@@ -2417,22 +2426,31 @@ describe("timed team buffs & −SP debuffs", () => {
   it("Mighty Winds pushes enemies back and −8 SP for the round", () => {
     const s = prepState();
     const galeon = place(s, "gale_galeon", "P1", 3, 0);
-    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20 }); // SP 8, mid row
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20 }); // mid row
     SPECIAL_HANDLERS.statusNova(s, galeon, [foe], {
       statusKind: "WEAKEN", statusDuration: 2, targets: 99, push: 2, spDebuff: 8, spDebuffRounds: 1,
     });
     expect(s.cards[foe.instanceId].pos!.row).toBe(0); // pushed back 2 → P2 home row
-    expect(effectiveSp(s, s.cards[foe.instanceId])).toBe(0); // 8 − 8
+    // Derived: this read a flat 0 with "8 - 8" written beside it, which is the
+    // DUMMY's printed speed hand-copied into a test about Galeon.
+    const sap = Number(getDef("gale_galeon").special!.params!.spDebuff ?? 0);
+    expect(effectiveSp(s, s.cards[foe.instanceId])).toBe(Math.max(0, getDef("dusk_gool").sp - sap));
   });
 
-  it("Purple Wind Surge applies −2 SP alongside its damage", () => {
+  it("barrage's spDebuff rider saps the speed of every target it hits", () => {
+    // RETITLED. This was "Purple Wind Surge applies -2 SP", but it calls the
+    // barrage handler with INLINE params rather than the card's — so it never
+    // read Angale at all, and went on passing after Purple Wind Surge dropped
+    // its sap for a push. A test named after a card should use that card's
+    // params or not claim to be about it; this one is really about the rider,
+    // which Galeon still carries, so it is named for the rider now.
     const s = prepState();
     const angale = place(s, "gale_angale", "P1", 2, 0);
-    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20 }); // SP 8
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20 });
     SPECIAL_HANDLERS.barrage(s, angale, [foe], {
       dmg: 1, hits: 4, targets: 3, statusKind: "WEAKEN", statusDuration: 2, spDebuff: 2, spDebuffRounds: 2,
     });
-    expect(effectiveSp(s, s.cards[foe.instanceId])).toBe(6); // 8 − 2
+    expect(effectiveSp(s, s.cards[foe.instanceId])).toBe(getDef("dusk_gool").sp - 2);
   });
 });
 
@@ -2503,7 +2521,10 @@ describe("on-opponent-summon reactions", () => {
     const handId = giveHand(s, "P1", "dusk_gool"); // HP 13
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const fresh = boardCards(next, "P1").find((c) => c.defId === "dusk_gool")!;
-    expect(fresh.curHp).toBe(9); // 13 − 4 Cave Guard
+    // Derived: Gool is the newcomer here and this read "13 - 4" with the dummy's
+    // printed HP written in by hand — a test about Cave Guard's REACH failing
+    // over an unrelated card's stat line.
+    expect(fresh.curHp).toBe(getDef("dusk_gool").hp - 4); // −4 Cave Guard
     expect(fresh.statuses.some((x) => x.kind === "ELECTRIFIED")).toBe(true);
 
     // A reactor parked on its own home row can't reach the enemy home slot → no effect.
@@ -2537,7 +2558,7 @@ describe("on-opponent-summon reactions", () => {
     const handId = giveHand(s, "P1", "dusk_gool"); // HP 13
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const fresh = boardCards(next, "P1").find((c) => c.defId === "dusk_gool")!;
-    expect(fresh.curHp).toBe(13); // untouched — Rock Goblin couldn't reach it
+    expect(fresh.curHp).toBe(getDef("dusk_gool").hp); // untouched — Rock Goblin couldn't reach it
   });
 });
 

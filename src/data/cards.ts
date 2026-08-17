@@ -884,24 +884,32 @@ export const CARDS: CardDef[] = [
     cardClass: "Support",
     attackType: "Ranged",
     cost: 3,
+    // 4 + 8 + 13 = 25, still exactly the cost-3 budget — five HP traded straight
+    // across for five SP. It does NOT buy extra movement: moveReach steps at
+    // SP 8 and Gool was already there, so what the speed buys is TURN ORDER,
+    // and what it costs is a body that now folds to almost anything.
     dmg: 4,
     hits: 1,
-    hp: 13,
-    sp: 8,
+    hp: 8,
+    sp: 13,
     shields: 0,
     keywords: {},
     tribe: "Ghost",
-    // Spook (On Hit, first time only): FRIGHTEN the opponent for 1 round.
+    // Spook (On Hit, first time only): FRIGHTEN the opponent for 2 rounds.
+    // One touch, and whoever took it spends the next two rounds deciding not to
+    // move.
     //
-    // DELIBERATE, AND IT COSTS HALF THE STATUS. A status applied during BATTLE
-    // at duration 1 is ticked away at Cleanup before Prep comes round, so the
-    // half of FRIGHTEN that stops a card MOVING never lands — only the immediate
-    // retreat does. This comment used to explain why the duration was 2 for
-    // exactly that reason; it is 1 now by request, so Spook is a knockback and
-    // nothing more. If the move-lock is ever wanted back, 2 is the floor that
-    // buys it — 1 is not a shorter FRIGHTEN, it is a different ability.
+    // Back to 2, which is the floor that buys the move-lock at all: a status
+    // applied during BATTLE at duration 1 is ticked away at Cleanup before Prep
+    // comes round, so at 1 the half of FRIGHTEN that stops a card MOVING never
+    // lands and Spook is a knockback and nothing else. At 2 it survives into the
+    // opponent's Prep and actually pins them.
+    //
+    // It is the whole card now. Gool trades 5 HP for 5 SP above — it goes early
+    // and it dies to anything — so what it is FOR is touching something once,
+    // first, and taking it out of the race for two rounds.
     passiveNames: { onHitStatus: "Spook" },
-    onHitStatus: { kind: "FRIGHTEN", duration: 1, power: 0, firstHitOnly: true },
+    onHitStatus: { kind: "FRIGHTEN", duration: 2, power: 0, firstHitOnly: true },
   },
   {
     id: "dusk_ghastly",

@@ -5,7 +5,7 @@ import { advance, applyIntent } from "../phases";
 import { canMove, canSummon, openHomeSlots } from "../rules";
 import { boardCards, cardAt, moveReach, SP_MID_MAX, SP_SLOW_MAX } from "../state";
 import { freshGame, giveHand, place, prepState } from "./helpers";
-import { getDef } from "../../data/cards";
+import { CARDS, getDef } from "../../data/cards";
 import type { GameState } from "../types";
 
 describe("summoning", () => {
@@ -114,10 +114,20 @@ describe("movement", () => {
   it("the FAST tier cuts corners — that is what it buys", () => {
     // A diagonal costs a mid card 2 of its 2 steps (Manhattan) and a fast card
     // 1 (Chebyshev), so only the fast card can go diagonally AND keep moving.
+    // The mid-band card is FOUND, not named. This hand-picked dusk_gool, and a
+    // re-cost that moved Gool from SP 8 to 13 pushed it over SP_MID_MAX into the
+    // fast tier — so the "mid" card cut corners too and a test about the tier
+    // boundary failed over a card it was only borrowing. The sibling test below
+    // already says this in its own comment; this one had not caught up.
+    const midDef = CARDS.find(
+      (c) => !c.keywords.FLYING && !c.mounted &&
+        moveReach(c.sp) === 2 && c.sp <= SP_MID_MAX,
+    )!;
+    expect(midDef, "the pool still has a mid-band card").toBeTruthy();
     const s = prepState();
-    const mid = place(s, "dusk_gool", "P1", 2, 1); // mid band
+    const mid = place(s, midDef.id, "P1", 2, 1);
     const fast = place(s, "dusk_silkstalker", "P1", 2, 3); // SP 12
-    expect(moveReach(getDef("dusk_gool").sp)).toBe(2);
+    expect(moveReach(midDef.sp)).toBe(2);
     expect(moveReach(getDef("dusk_silkstalker").sp)).toBe(2); // same reach...
     // ...but only the fast one reaches TWO diagonal steps away.
     expect(canMove(s, "P1", fast.instanceId, { row: 0, col: 1 }).ok).toBe(true);
