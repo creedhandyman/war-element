@@ -184,9 +184,13 @@ Solo cores, **both boards**, round-robin with **both seat orders**, 50 seeds per
 ordered matchup — 5,600 matches, n=1,400 per element (±2.6 at 95%):
 
 ```
-bolt 54.4 · bore 52.8 · dawn 51.1 · leaf 49.0
-pyro 48.9 · aqua 48.6 · gale 48.5 · dusk 46.7     spread 7.7
+bolt 54.4 · bore 52.8 · dawn 51.1 · leaf 48.9
+gale 48.9 · pyro 48.9 · aqua 48.4 · dusk 46.6     spread 7.7
 ```
+
+Re-measured after six further commits (three GALE, four DUSK) and it did not
+move: every element inside ±0.4, four of them identical to the decimal. See
+"anti-healing measures as nothing" below for why the DUSK half was inert.
 
 **The tightest measured by a wide margin** — 7.7, against previous bests of
 10.4, 11.1 and 15.8, and 30.4 at the oldest recorded pass. There is no outlier
@@ -311,6 +315,29 @@ GALE   32.5    11.6   1.77   4.7  2.56    5.65    53         3
 
 **99% of matches end by CAPTURE. Elimination is 0%.** The game is a race for
 Home slots and nothing else; any change should be read against that first.
+
+#### Anti-healing measures as nothing — a worked example of not reading it
+
+SEAL (the "cannot be healed" status) was added to FOUR DUSK Specials in one
+pass — Death's Approach, Moon Frenzy, Phantom Gouge, and Mark of Hoax, the last
+of them permanent and one of them board-wide. Measured against an otherwise
+identical tree, DUSK moved **-0.1** and the spread did not change at all.
+
+It is the sentence above, unread. SEAL is checked at healCard, so it only ever
+bites in an ATTRITION race — and there is no attrition race. Denying an opponent
+their healing does not slow them toward a Home slot, which is the only thing
+that decides a game. The prediction was available before the work was done, from
+a line already in this file, and was not applied until the numbers came back.
+
+Generalise it: an effect that only changes how long cards SURVIVE is close to
+free in this game, and an effect that changes where they STAND is not. That is
+the same shape as the two other lessons here — gold is not a tuning knob, and
+card buffs to a mid-tier element measure ~0 — while WEAKEN, pushes, ROOT and
+the DAWN battle commands all moved numbers because they touch the race.
+
+None of which makes the SEALs wrong to have: they read well on the cards and
+cost nothing. They are simply not a balance lever, and should not be reached for
+as one.
 
 ### The cost curve, and the cost-3 migration
 
