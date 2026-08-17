@@ -16,6 +16,7 @@ import {
   effectiveDmg,
   effectiveSp,
   fieldBonus,
+  gainMaxHp,
   hasCaptureWin,
   hasStatus,
   auraShieldBonus,
@@ -275,7 +276,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         );
         const n = Math.floor(topHp / cfg.per);
         if (n > 0) {
-          if (cfg.maxHp) { inst.maxHp += n * cfg.maxHp; inst.curHp += n * cfg.maxHp; }
+          if (cfg.maxHp) inst.curHp += gainMaxHp(inst, n * cfg.maxHp);
           if (cfg.dmg) inst.dmgBonus += n * cfg.dmg;
           draft.log.push(`${def.name} draws power from the strongest foe (+${n * (cfg.maxHp ?? 0)} HP, +${n * (cfg.dmg ?? 0)} DMG).`);
         }
@@ -1014,8 +1015,7 @@ function resolveSpell(
       target.curHp = Math.min(target.curHp, target.maxHp);
       const ally = pickSpellAlly(draft, player, spell.element);
       if (ally) {
-        ally.maxHp += steal;
-        ally.curHp += steal;
+        ally.curHp += gainMaxHp(ally, steal);
         draft.log.push(`${label(draft, ally)} steals ${steal} max HP.`);
       }
     }
@@ -2051,7 +2051,7 @@ function doRoundTicks(draft: GameState): void {
       const bn = rt.buffDmgEveryN;
       card.dmgBonus += bn.amount;
       if (bn.sp) card.spBonus += bn.sp; // Dragon's Blade
-      if (bn.hp) { card.maxHp += bn.hp; card.curHp += bn.hp; } // Supercell's +HP ramp
+      if (bn.hp) card.curHp += gainMaxHp(card, bn.hp); // Supercell's +HP ramp
       if (bn.maxTicks) card.rampTicks = (card.rampTicks ?? 0) + 1;
       const parts = [bn.amount ? `+${bn.amount} DMG` : "", bn.sp ? `+${bn.sp} SP` : "", bn.hp ? `+${bn.hp} HP` : ""].filter(Boolean);
       draft.log.push(`${label(draft, card)} sharpens (${parts.join(" ")}).`);

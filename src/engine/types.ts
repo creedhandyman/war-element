@@ -411,6 +411,20 @@ export interface CardDef {
   dmg: number; // base damage per hit
   hits: number; // multi-hit count (1 = single); dmg × hits
   hp: number;
+  /** Ceiling on how far this card's max HP may GROW, in absolute HP.
+   *
+   *  For the handful of cards whose whole design is banking other cards' max HP
+   *  — Violet drains on every basic, again every round from anything adjacent,
+   *  and again in bulk off its Special — which otherwise compounds without any
+   *  ceiling at all. Enforced in `gainMaxHp`, the one place growth happens, so
+   *  no route around it exists.
+   *
+   *  Caps the card's OWN pool, not `effectiveMaxHp`: aura bonuses still layer
+   *  on top, the same way they do for every other card. They are a property of
+   *  the board rather than of the card, they come off when the holder dies, and
+   *  they cannot compound — `auraPick` folds them non-stacking. The unbounded
+   *  thing is the banking, so that is what this bounds. */
+  maxHpCap?: number;
   sp: number; // 0–15 (GALE cap 21 out of alpha scope — no GALE cards)
   shields: number;
   keywords: Partial<Record<Keyword, number | true>>;

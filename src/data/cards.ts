@@ -6643,6 +6643,15 @@ export const CARDS: CardDef[] = [
     dmg: 2,
     hits: 3,
     hp: 13,
+    // Violet banks max HP three ways at once — DRAIN on all three basic hits,
+    // Draining Siphon off everything adjacent every round, and Bloody Exchange
+    // taking 2 from every other card on the board at once — and nothing in any
+    // of them ever stopped. Left alone on a 5×5 it does not plateau, it
+    // compounds: the bigger it gets the longer it survives to keep draining.
+    // 60 is a shade under five times its printed 13 and roughly the biggest
+    // body in the game, so the ramp is still the point and the ceiling is only
+    // where the ramp stops being a win condition on its own.
+    maxHpCap: 60,
     sp: 12,
     shields: 2,
     keywords: { DRAIN: true },

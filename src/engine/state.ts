@@ -373,6 +373,22 @@ export function effectiveMaxHp(state: GameState, card: CardInstance): number {
   return Math.max(1, card.maxHp + auraPick(vals));
 }
 
+/** The single choke-point for RAISING a card's max HP, and the only place
+ *  `maxHpCap` is enforced. Returns the amount actually gained, which is what
+ *  callers must add to `curHp` — every growth site pairs the two, and adding
+ *  the requested amount instead of the granted one would push curHp above a
+ *  capped ceiling for Cleanup to silently claw back.
+ *
+ *  A card with no cap gains exactly what it was given, so routing the growth
+ *  sites through this changed nothing for any of them. */
+export function gainMaxHp(card: CardInstance, amount: number): number {
+  if (amount <= 0) return 0;
+  const cap = getDef(card.defId).maxHpCap;
+  const gain = cap == null ? amount : Math.max(0, Math.min(amount, cap - card.maxHp));
+  card.maxHp += gain;
+  return gain;
+}
+
 /** The single choke-point for restoring HP. Honors Bluflame (SEAL): a sealed
  *  card can't be healed by REGEN, LIFESTEAL/DRAIN, or aura heals. Caps at
  *  effective max HP. Returns the amount actually restored (0 if blocked). */
@@ -734,7 +750,7 @@ export function summonCard(
   // Ride or Die (Omega): Luna's buff applies the instant it enters play.
   if (def.summonSelfBuff) {
     inst.dmgBonus += def.summonSelfBuff.dmg;
-    inst.maxHp += def.summonSelfBuff.hp;
+    gainMaxHp(inst, def.summonSelfBuff.hp);
     inst.curHp += def.summonSelfBuff.hp;
   }
   // The Butler (Nightfang): a disguised card enters play wearing another def

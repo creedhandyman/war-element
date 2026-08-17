@@ -2293,6 +2293,76 @@ describe("gated on-hit riders", () => {
   });
 });
 
+describe("Violet's max-HP cap", () => {
+  // Violet banks max HP three separate ways and none of them used to stop, so
+  // the cap is tested on each route rather than once on the helper — a cap that
+  // only guards two of three is not a cap.
+  const CAP = getDef("dusk_violet").maxHpCap!;
+
+  it("is a real ceiling, not a formality", () => {
+    // Derived everywhere below so a re-tune does not break four tests — which
+    // leaves those four unable to notice if the number goes missing or turns
+    // absurd, because they would place Violet at cap-1 and pass against any
+    // value at all. This is the one assertion that reads it as a NUMBER: a
+    // band, not the literal, so moving 60 to 50 or 70 is still fine.
+    expect(CAP).toBeGreaterThan(getDef("dusk_violet").hp);
+    expect(CAP).toBeLessThan(100);
+  });
+
+  /** Violet already fattened to one point under the ceiling. */
+  const nearCap = (s: GameState) =>
+    place(s, "dusk_violet", "P1", 2, 0, { curHp: CAP - 1, maxHp: CAP - 1 });
+
+  it("stops the DRAIN keyword on basics at the ceiling", () => {
+    const s = prepState();
+    const violet = nearCap(s);
+    const prey = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+    // Three points offered, one seat left under the cap.
+    drainMaxHp(s, violet, prey, 3);
+    expect(violet.maxHp).toBe(CAP);
+    // The theft still HURTS: the cap bounds what Violet banks, not what the
+    // attack costs its target. Draining is an attack before it is a ramp.
+    expect(prey.maxHp).toBe(37);
+  });
+
+  it("stops Draining Siphon's round tick at the ceiling", () => {
+    const s = prepState();
+    const violet = nearCap(s);
+    place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+    place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40 });
+    const next = advance(atCleanup(s));
+    expect(next.cards[violet.instanceId].maxHp).toBe(CAP);
+  });
+
+  it("stops Bloody Exchange, which takes from the whole board at once", () => {
+    const s = prepState();
+    const violet = nearCap(s);
+    // Six bodies × 2 = twelve points on offer against a single seat of room.
+    for (let c = 0; c < 3; c++) {
+      place(s, "dusk_gool", "P2", 1, c, { curHp: 40, maxHp: 40 });
+      place(s, "dusk_gool", "P1", 3, c, { curHp: 40, maxHp: 40 });
+    }
+    SPECIAL_HANDLERS.bloodyExchange(s, violet, [], { amount: 2 });
+    expect(violet.maxHp).toBe(CAP);
+    // curHp cannot be left above the ceiling either. It is the pairing that
+    // used to break: every growth site added the REQUESTED amount to curHp
+    // beside the granted one, so a capped card floated above its own maximum
+    // until Cleanup clawed it back.
+    expect(violet.curHp).toBeLessThanOrEqual(CAP);
+  });
+
+  it("leaves an UNCAPPED drainer growing exactly as before", () => {
+    const s = prepState();
+    // Nightfang has no maxHpCap, so routing every growth site through the same
+    // helper must be invisible to it.
+    const other = place(s, "dusk_nightfang", "P1", 2, 0, { curHp: 200, maxHp: 200 });
+    expect(getDef("dusk_nightfang").maxHpCap).toBeUndefined();
+    const prey = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+    drainMaxHp(s, other, prey, 5);
+    expect(other.maxHp).toBe(205);
+  });
+});
+
 describe("roundTick self effects", () => {
   // Gool's printed HP, for the round-tick tests below. They used to write 13 by
   // hand into `curHp` and leave maxHp at the default — so when Gool's line
