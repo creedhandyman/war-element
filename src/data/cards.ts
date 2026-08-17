@@ -9609,13 +9609,24 @@ export const TOKENS: CardDef[] = [
     // Renamed off "SkullDrake": it shared that name EXACTLY with the draftable
     // Rare dusk_skulldrake, which breaks any lookup, deck list or node roster
     // keyed on name rather than id. The two are different cards — the Rare is a
-    // c3 Ranged Ranger with Purple Flames, this is the melee attacker SkullKing
+    // c3 Ranged Ranger with Purple Flames, this is the c4 bruiser SkullKing
     // raises. Borrows the Rare's art, which is why they read as one thing.
+    //
+    // RANGED, AND STILL A WARRIOR. Only `attackType` moved, which is the field
+    // the engine actually reads: reach 2 rather than adjacency, and it stops
+    // tripping the `onHitByMelee` defences that fire on being hit in melee.
+    // Its CLASS stays Warrior on purpose, because class is not decoration here
+    // — Iron Ore halves damage from Rangers and Assassins and Dynomight hits
+    // Warriors and Tanks twice as hard, so "Ranger" would quietly rewrite two
+    // matchups nobody asked to change. BlackBeard is already a Ranged Warrior,
+    // so the pairing is not a one-off. The stat line does not move either:
+    // 11 + 10 + 9 = 30 is exactly the cost-4 budget, and attackType is not one
+    // of the terms the budget prices.
     name: "Risen Drake",
     rarity: "epic",
     element: "DUSK",
     cardClass: "Warrior",
-    attackType: "Melee",
+    attackType: "Ranged",
     cost: 4,
     dmg: 11,
     hits: 1,
