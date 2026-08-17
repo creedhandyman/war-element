@@ -928,9 +928,18 @@ export const CARDS: CardDef[] = [
       // the damage; the printed number is now 5.
       // NOTE each target takes 8, not 5: attackTrade (Ethereal Trade) adds its
       // +3 to the Special as well as to basics. 8 x 2 = 16 for 2 magic.
-      params: { dmg: 5, targets: 2, pen: 1 },
+      // SEAL 2 joins the PEN, same pairing as the Reaper's scythe: the pierce
+      // beats the plate, the seal beats the repair.
+      //
+      // WORTH WATCHING ON THIS ONE. The comment above records why the target
+      // count was cut to 2 — a board-wide version measured 12.0 dmg/magic, tied
+      // for the highest in the game — and Ethereal Trade already lifts each hit
+      // from 5 to 8, so this is 16 damage for 2 magic before the seal. If the
+      // card turns up hot, the TARGET COUNT is the dial that has been used on it
+      // before, not the damage.
+      params: { dmg: 5, targets: 2, pen: 1, statusKind: "SEAL", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 5 DMG (PEN) to up to 2 opponents in range.",
+      text: "Deal 5 DMG (PEN) to up to 2 opponents in range and SEAL them for 2 rounds (they cannot be healed).",
     },
     // Ethereal Trade (On Attack): +3 DMG per attack — basic AND Phantom Gouge —
     // at the cost of 2 HP each time.

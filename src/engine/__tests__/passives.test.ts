@@ -4319,3 +4319,22 @@ describe("SEAL rides the reaper and the frenzy", () => {
     }
   });
 });
+
+describe("Phantom Gouge seals what it pierces", () => {
+  it("both targets are sealed, and PEN still ignores their plate", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const ghast = place(s, "dusk_ghastly", "P1", 3, 1, { autoMode: "manual" });
+    const a = place(s, "bore_iron", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 5 });
+    const b = place(s, "bore_iron", "P2", 2, 2, { curHp: 40, maxHp: 40, curShields: 5 });
+    const n = applyIntent(battleWith(s, ghast.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetIds: [a.instanceId, b.instanceId],
+    });
+    for (const foe of [a, b]) {
+      const hit = n.cards[foe.instanceId];
+      expect(statusOf(hit, "SEAL")?.duration).toBe(2);
+      expect(hit.curShields, "PEN neither spends nor strips the plate").toBe(5);
+      expect(healCard(n, hit, 10), "and the seal refuses the repair").toBe(0);
+    }
+  });
+});
