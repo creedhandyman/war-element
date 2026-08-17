@@ -18,6 +18,7 @@ import {
   effectiveSp,
   moveReachFor,
   movesLikeKing,
+  SP_MID_MAX,
 } from "./state";
 import type {
   CardDef,
@@ -119,6 +120,71 @@ export function shoveTarget(
   return { victim, dest: beyond };
 }
 
+const AROUND: readonly (readonly [number, number])[] = [
+  [-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1],
+];
+
+/** The enemy card standing in the way of a two-step move, or null.
+ *
+ *  Until this existed `canMove` only ever looked at the DESTINATION, so any
+ *  card with reach 2 walked straight through an occupied square — bodies were
+ *  something you moved around only because you could not stop on them, never
+ *  something that stopped you. Now a body is a body: ANY summoned card holds
+ *  its square against an enemy, because any card on the board is defending its
+ *  own home whatever its class or keywords say.
+ *
+ *  WHO IS STOPPED. Anything at SP 10 or below. That is `SP_MID_MAX`, not a
+ *  written 11 — it is the same line `movesLikeKing` already draws, so "quick
+ *  enough to slip past a shield wall" and "quick enough to cut corners" are one
+ *  speed tier rather than two thresholds that could drift apart.
+ *
+ *  FLYING GOES OVER, which is not an extra rule so much as the existing one:
+ *  `applyWalls` already documents that "FLYING cards soar over walls entirely"
+ *  and traps skip them for the same reason. A shield wall that grounded dragons
+ *  would be the odd case here, not the exemption.
+ *
+ *  ONLY WHEN EVERY ROUTE IS SHUT. A two-step move usually has more than one
+ *  path — an L-shaped pair of orthogonal steps has two, a king's pair has
+ *  several — and blocking on the first shut square would stop moves that could
+ *  plainly go round. So this walks the candidate middles, in the mover's OWN
+ *  step geometry, and only reports a blocker when there is no clear one.
+ *
+ *  Allies never block: an ally in the way reads as a clear route, which is what
+ *  it was before this function existed. The ask was to stop opponents. */
+export function pathBlocker(
+  state: GameState,
+  card: CardInstance,
+  to: Pos,
+): CardInstance | null {
+  if (!card.pos) return null;
+  const def = getDef(card.defId);
+  if (def.keywords.FLYING) return null;
+  const sp = effectiveSp(state, card);
+  if (sp > SP_MID_MAX) return null;
+  const step = movesLikeKing(def, card, sp) ? chebyshev : manhattan;
+  // Two steps is the only walk-through there is, because `moveReach` caps at 2.
+  // A longer move can only be Rayfen's Wind Warp, which is a warp rather than a
+  // walk — there is no square it passes through for a body to stand in.
+  if (step(card.pos, to) !== 2) return null;
+  // The eight surrounding squares, not a board scan. Any square one step away
+  // is one of these under EITHER geometry (manhattan-1 is a subset of the
+  // eight, chebyshev-1 is exactly the eight), so `step` still picks the right
+  // four or eight and the answer is identical. It matters because this sits
+  // inside `legalMoves`, which already calls `canMove` once per square: a scan
+  // here made move generation O(n^4) per card in the AI's hot loop.
+  let blocker: CardInstance | null = null;
+  for (const [dr, dc] of AROUND) {
+    const mid = { row: card.pos.row + dr, col: card.pos.col + dc } as Pos;
+    if (mid.row < 0 || mid.row >= state.boardSize) continue;
+    if (mid.col < 0 || mid.col >= state.boardSize) continue;
+    if (step(card.pos, mid) !== 1 || step(mid, to) !== 1) continue;
+    const occ = cardAt(state, mid.row, mid.col);
+    if (!occ || occ.owner === card.owner) return null; // a way round exists
+    blocker = occ;
+  }
+  return blocker;
+}
+
 export function canMove(
   state: GameState,
   player: PlayerId,
@@ -166,6 +232,12 @@ export function canMove(
     return { ok: false, reason: "Can't cross from your Home row to theirs in one move" };
   if (cardAt(state, to.row, to.col) && !shoveTarget(state, card, to))
     return { ok: false, reason: "Destination occupied" };
+  // …and now the squares BETWEEN, which nothing used to look at. Checked after
+  // the destination so "occupied" still wins when both are true — the shorter,
+  // more obvious reason is the more useful one to show.
+  const wall = pathBlocker(state, card, to);
+  if (wall)
+    return { ok: false, reason: `${getDef(wall.defId).name} holds the way — too slow to slip past` };
   // Captured slots are locked: cards may pass through, but can't stop on one.
   if (isCaptured(state, to.row, to.col))
     return { ok: false, reason: "Slot is permanently captured (locked)" };

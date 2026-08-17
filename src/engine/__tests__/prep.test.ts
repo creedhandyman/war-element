@@ -404,3 +404,79 @@ describe("a summon can arrive on a chosen auto mode", () => {
     expect(boardCards(next, "P2")[0].autoMode).toBe("full");
   });
 });
+
+describe("a body holds its square against a slow enemy", () => {
+  // Before this, `canMove` only ever looked at the DESTINATION, so anything with
+  // reach 2 walked straight through an occupied square. These pin the new rule
+  // and, just as importantly, the three ways OUT of it.
+  const BLOCKER = "bore_armadillo";       // any summoned card will do
+  const PLAIN = "dusk_pumpkin";           // no keywords at all — still blocks
+  /** A mid-tier walker: reach 2, so it has a middle square to be stopped on. */
+  const SLOW = "dusk_skeleton_knight";
+
+  it("stops a card too slow to slip past", () => {
+    const s = prepState();
+    expect(moveReach(getDef(SLOW).sp), "needs reach 2 to pass through anything").toBe(2);
+    expect(getDef(SLOW).sp).toBeLessThanOrEqual(SP_MID_MAX);
+    const mover = place(s, SLOW, "P1", 3, 0);
+    place(s, BLOCKER, "P2", 2, 0);
+    // (2,0) is the ONLY square between (3,0) and (1,0), so there is no way round.
+    const move = canMove(s, "P1", mover.instanceId, { row: 1, col: 0 });
+    expect(move.ok).toBe(false);
+    expect(move.reason).toContain(getDef(BLOCKER).name);
+  });
+
+  it("holds with ANY card, not just the armoured ones", () => {
+    // Deliberately not gated on BLOCK or on class: every summoned card is
+    // defending its own home, so a bare 1-cost body stops a runner the same way
+    // a Tank does. This is the assertion that says so.
+    const s = prepState();
+    expect(getDef(PLAIN).keywords.BLOCK, "no keywords to lean on").toBeUndefined();
+    const mover = place(s, SLOW, "P1", 3, 0);
+    place(s, PLAIN, "P2", 2, 0);
+    expect(canMove(s, "P1", mover.instanceId, { row: 1, col: 0 }).ok).toBe(false);
+  });
+
+  it("lets the FAST tier slip past", () => {
+    const s = prepState();
+    // SP 11+ — the same line `movesLikeKing` draws, which is why the threshold
+    // is SP_MID_MAX here rather than a written 11.
+    const fast = CARDS.find((c) => c.sp > SP_MID_MAX && !c.keywords.FLYING && !c.mounted)!;
+    const mover = place(s, fast.id, "P1", 3, 0);
+    place(s, BLOCKER, "P2", 2, 0);
+    expect(canMove(s, "P1", mover.instanceId, { row: 1, col: 0 }).ok).toBe(true);
+  });
+
+  it("lets FLYING over the top", () => {
+    const s = prepState();
+    // Not a special case for this rule — walls and traps already skip fliers.
+    const flier = CARDS.find((c) => c.keywords.FLYING && c.sp <= SP_MID_MAX && moveReach(c.sp) === 2)!;
+    const mover = place(s, flier.id, "P1", 3, 0);
+    place(s, BLOCKER, "P2", 2, 0);
+    expect(canMove(s, "P1", mover.instanceId, { row: 1, col: 0 }).ok).toBe(true);
+  });
+
+  it("does not let a blocker wall in its OWN side", () => {
+    const s = prepState();
+    const mover = place(s, SLOW, "P1", 3, 0);
+    place(s, BLOCKER, "P1", 2, 0); // same owner
+    expect(canMove(s, "P1", mover.instanceId, { row: 1, col: 0 }).ok).toBe(true);
+  });
+
+  it("only shuts a move when EVERY route is shut", () => {
+    // (3,0) -> (2,1) is an L: it can go via (2,0) or via (3,1). One blocker
+    // leaves a way round, and blocking on the first shut square would have
+    // denied a move that can plainly be walked.
+    const s = prepState();
+    const mover = place(s, SLOW, "P1", 3, 0);
+    const round = place(s, BLOCKER, "P2", 2, 0);
+    expect(canMove(s, "P1", mover.instanceId, { row: 2, col: 1 }).ok, "goes via (3,1)").toBe(true);
+    // Shut the other one and it is genuinely walled in.
+    place(s, BLOCKER, "P2", 3, 1);
+    expect(canMove(s, "P1", mover.instanceId, { row: 2, col: 1 }).ok).toBe(false);
+    // …while the one-step move onto neither middle is still legal: a blocker
+    // adjacent to you was never the thing being stopped.
+    expect(round.pos).toEqual({ row: 2, col: 0 });
+    expect(canMove(s, "P1", mover.instanceId, { row: 2, col: 3 }).ok).toBe(false); // too far, unrelated
+  });
+});
