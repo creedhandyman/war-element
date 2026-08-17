@@ -50,6 +50,22 @@ describe("event decks", () => {
         expect(new Set(book).size, "no repeats").toBe(book.length);
       });
 
+      it("is dressed in its OWN element, with art that exists", () => {
+        // The bug a second event exposed: HomeScreen's loop renders every
+        // event and had DUSK's sigil, map and rim hardcoded into it, so a
+        // mono-DAWN deck was advertised as a DUSK one. Both halves are checked
+        // — the element matches the deck, and the map is a real file (globbed
+        // rather than fs-checked, for the reasons art.test.ts gives).
+        const maps = new Set(
+          Object.keys(import.meta.glob("../../../public/maps/*.webp"))
+            .map((p) => `/maps/${p.split("/").pop()}`),
+        );
+        expect(maps.has(event.art), `${event.art} is not in public/maps`).toBe(true);
+        const elements = new Set(event.deck.cards.map((id) => getDef(id).element));
+        expect(elements.size, `${event.name} is meant to be mono-element`).toBe(1);
+        expect(event.el, "the card wears the deck's element").toBe([...elements][0]);
+      });
+
       it("pays a whole pack, not its price in shards", () => {
         expect(event.rewardPacks).toBeGreaterThanOrEqual(1);
         expect(Number.isInteger(event.rewardPacks)).toBe(true);

@@ -50,6 +50,16 @@ export interface GameEvent {
    *  A DEPTH rather than a flag, because sorting the WHOLE deck is not
    *  universally better and the measurement says so — see `restackByCost`. */
   scriptedOpening?: number;
+  /** How the Home card is dressed: sigil, backdrop, rim.
+   *
+   *  On the event rather than in HomeScreen because the first cut hardcoded
+   *  DUSK's three values into the loop that renders EVERY event — which was
+   *  invisible while there was one event and served the second one's mono-DAWN
+   *  deck under a dusk map and a violet rim. A card that advertises the wrong
+   *  element is worse than a plain one. */
+  el: string;
+  art: string;
+  rim: string;
   /** Packs owed on the FIRST clear.
    *
    *  Packs, not their price in shards. The first cut paid `PACK_COST` shards on
@@ -83,6 +93,7 @@ export const DARKEST_NIGHT: GameEvent = {
   blurb: "Thirty shades of DUSK on the large board, with all eight spells. "
     + "Beat it once and a free booster pack is yours.",
   boardSize: 5,
+  el: "DUSK", art: "/maps/dusk.webp", rim: "rgba(149,117,255,.5)",
   // One opening hand's worth. Measured across all eighteen 5x5 builds, 720
   // matches per depth: shuffled 42.8%, then 74.7 / 75.0 / 75.0 / 74.7% at
   // depths 3 / 5 / 8 / 30. The whole effect arrives by the third card and the
@@ -114,7 +125,95 @@ export const DARKEST_NIGHT: GameEvent = {
   },
 };
 
-export const EVENTS: GameEvent[] = [DARKEST_NIGHT];
+/** The Brightest Day — Darkest Night's opposite number, and deliberately its
+ *  MIRROR rather than a second idea: 5×5, thirty mono-DAWN cards, eight spells,
+ *  the same scripted opening and the same one pack. Two events that differ in
+ *  difficulty as well as element give the player no way to read which one is
+ *  the harder fight, so the only variable here is the element.
+ *
+ *  Written by hand rather than imported from a deck code, so unlike its sibling
+ *  this list IS sorted by cost — there is no source transcript to check it
+ *  against, and the curve is the thing worth being able to see.
+ *
+ *  ON THE CURVE. It is Darkest Night's, card for card: 4/4/4/5/5/2/3/1/1/1 from
+ *  1 to 10. DAWN prints 39 buildable cards and the deck takes 30, and the nine
+ *  that had to go happen to be exactly the nine that make the two curves match
+ *  — so the comparison between the events is about the CARDS, not about which
+ *  one ramps faster.
+ *
+ *  ON THE NINE DROPPED. Redundant halves of near-identical pairs — Oxin beside
+ *  Musk Ox (both SP-2 BLOCK), Star beside Amble (Star's 2×2 is the half that
+ *  shields eat), Zenith beside Ariel (7×1, SH2, SP7 both), Aurora beside
+ *  Empyrean (Empyrean FLIES), Equestrian beside Supernova — plus the three
+ *  cards that cannot cross a board: Vigil (SP 2, 1 DMG), Veil (SP 2) and
+ *  WarPhant (SP 1, a 29 HP statue).
+ *
+ *  THAT LAST CUT IS WRONG AND THE MEASUREMENT SAYS SO. "99% of matches end by
+ *  capture, so speed beats bulk" is true of the PLAYER's seat and backwards in
+ *  this one. Putting the statues back, one cost-for-cost swap at a time, made
+ *  the boss STRONGER every time — 87.5% as written, 91.2% with three of them
+ *  back, 92.1% with all six swaps. The boss defends the home row it is already
+ *  standing on; it does not need to cross anything, and a wall that will not
+ *  die is exactly what a race wants parked on the contested slot. The list is
+ *  left as written because it is the WEAKEST arrangement of this curve, which
+ *  is the direction this event needed to go — see below.
+ *
+ *  ON DIFFICULTY, WHICH IS NOT ITS SIBLING'S. Against the same field — every
+ *  5×5 premade, 20 seeds, 360 matches — Darkest Night wins 75.8% and this wins
+ *  86.4%. That gap is the ELEMENT, not the build, and it is not tunable from
+ *  here: every curve-preserving swap moved it the wrong way (above), and the
+ *  scripted opening is a cliff rather than a slope (58.3 / 63.9 / 86.1 / 87.5 /
+ *  87.5 / 87.5 at depths 0-5 — DAWN's plateau lands at 2 where DUSK's landed at
+ *  3, and there is nothing between 64% and 86% to pick). Shuffled, with no help
+ *  at all, this deck still wins 58.3% where its sibling won 42.8%.
+ *
+ *  So the inputs are mirrored and the element is allowed to be the difference,
+ *  which is the whole point of an all-one-element event. It also agrees with
+ *  what the balance table already says — DAWN 51.1%, DUSK 46.6%, the strongest
+ *  and the weakest — and a mono build amplifies its element rather than hiding
+ *  it. Faking parity here would mean deliberately building DAWN badly. */
+export const BRIGHTEST_DAY: GameEvent = {
+  id: "ev_brightest_day",
+  name: "The Brightest Day",
+  tag: "Event · one time only",
+  blurb: "Thirty shades of DAWN on the large board, with eight spells and "
+    + "every battle command. Beat it once and a free booster pack is yours.",
+  boardSize: 5,
+  el: "DAWN", art: "/maps/dawn.webp", rim: "rgba(240,200,90,.5)",
+  // Five, because its sibling is five and mirroring is the point — not because
+  // this deck needs it. Its plateau arrives at 2 (see the header); 3, 4 and 5
+  // all measure the same, so this is the plateau taken at one opening hand's
+  // worth, which is the same sentence Darkest Night's number is written in.
+  scriptedOpening: 5,
+  rewardPacks: 1,
+  deck: {
+    id: "ev_brightest_day_deck",
+    name: "Brightest day",
+    cards: [
+      "dawn_sparkle", "dawn_sphere", "dawn_beam", "dawn_roy",
+      "dawn_glime", "dawn_reflection", "dawn_shine", "dawn_stbern",
+      "dawn_musk_ox", "dawn_amble", "dawn_lazor", "dawn_goldeneagle",
+      "dawn_solstice", "dawn_golde", "dawn_ty", "dawn_solara", "dawn_ariel",
+      "dawn_clipsey", "dawn_drakonbane", "dawn_radiance", "dawn_sircrest", "dawn_halo",
+      "dawn_heir_tok", "dawn_kosmos",
+      "dawn_aurelion", "dawn_commander", "dawn_leo",
+      "dawn_dawn", "dawn_supernova", "dawn_imperator",
+    ],
+    // Costs 1 through 8, contiguous. DAWN prints ten spells and the two left
+    // out are the top two, which is the same trim Darkest Night made — but for
+    // a different reason, and it is worth being clear about which. Its cut was
+    // redundancy; this one is that costs 2, 3, 7 and 8 are the four BATTLE
+    // COMMANDS, and a book that reaches for Dawn's Judgment or Eternal Dawn has
+    // to drop two of them to get there. The commands are what makes this book
+    // DAWN's rather than eight assorted spells, so they set the ceiling.
+    spells: [
+      "dawn_sunbeam", "dawn_cleansing_light", "dawn_grace", "dawn_radiant_barrier",
+      "dawn_dawns_grace", "dawn_blazing_sun", "dawn_judgment", "dawn_solar_flare",
+    ],
+  },
+};
+
+export const EVENTS: GameEvent[] = [DARKEST_NIGHT, BRIGHTEST_DAY];
 
 /** Every event deck, for the resolver that turns a seat's deck id into cards.
  *  Kept apart from `PREMADE_DECKS` on purpose — see the header. */

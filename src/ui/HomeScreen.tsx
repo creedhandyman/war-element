@@ -310,7 +310,9 @@ function buildLive(
       body: e.blurb,
       cta: "Challenge",
       onGo: () => go.onEvent(e),
-      el: "DUSK", art: "/maps/dusk.webp", rim: "rgba(149,117,255,.5)",
+      // From the EVENT, not fixed here — this loop renders every one of them,
+      // and DUSK's three values were being worn by a mono-DAWN deck.
+      el: e.el, art: e.art, rim: e.rim,
     });
   }
 
