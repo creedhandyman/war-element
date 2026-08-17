@@ -80,8 +80,37 @@ export function sanitizeSpells(ids: string[] | undefined, boardSize = 5): string
  *  (they live in code, not localStorage). `premade: true` marks them so the UI
  *  can label them and the delete-cleanup never drops their selection. */
 /** Matchmaker rungs. See `PremadeDeck.tier`. */
-export type DeckTier = "easy" | "mid" | "hard";
-export const DECK_TIERS: readonly DeckTier[] = ["easy", "mid", "hard"];
+export type DeckTier = "easy" | "mid" | "hard" | "elite";
+export const DECK_TIERS: readonly DeckTier[] = ["easy", "mid", "hard", "elite"];
+
+/** What each rung is CALLED. A map rather than the chained ternary this used to
+ *  be in two places — `t === "easy" ? "Easy" : t === "mid" ? "Even" : "Hard"`
+ *  has no branch for a fourth rung, so adding one silently labelled it "Hard"
+ *  on both the opponent segment and the gauntlet button. */
+export const TIER_LABEL: Record<DeckTier, string> = {
+  easy: "Easy", mid: "Even", hard: "Hard", elite: "Elite",
+};
+
+/** The rungs that actually have decks on a battlefield, in ladder order.
+ *
+ *  Elite is LARGE-BOARD ONLY: its four decks are thirty cards with eight-spell
+ *  books and there is no 4×4 cut of them. Anything that offers a rung has to
+ *  ask this rather than walk `DECK_TIERS`, or the standard board shows a fourth
+ *  button that deals a run with no seats in it. */
+export const tiersFor = (boardSize: number): DeckTier[] =>
+  DECK_TIERS.filter((t) => decksForTier(t, boardSize).length > 0);
+
+/** The scripted-opening depth for a deck id, if it has one. See
+ *  `PremadeDeck.scriptedOpening`. */
+export const scriptedOpeningFor = (deckId: string): number | undefined =>
+  PREMADE_DECKS.find((d) => d.id === deckId)?.scriptedOpening;
+
+/** How many of an elite deck's cheapest cards are hoisted at the deal.
+ *
+ *  One number for the whole rung, not a per-deck dial: the rung is supposed to
+ *  read as one difficulty, and four separately-tuned depths would be four
+ *  difficulties wearing one name. See `PremadeDeck.scriptedOpening`. */
+export const ELITE_OPENING_STACK = 3;
 
 export interface PremadeDeck extends CustomDeck {
   premade: true;
@@ -95,6 +124,8 @@ export interface PremadeDeck extends CustomDeck {
    *    easy  a melee pile with a top-heavy curve, no front line and no healer.
    *    mid   a curve, a wall, a healer, and enough reach to use them.
    *    hard  cheap bodies everywhere, healed, with shooters over the top.
+   *    elite all of that, plus an opening it cannot stumble on — see
+   *          `scriptedOpening`. Large board only.
    *
    *  NOT rarity, which types.ts documents as cosmetic. See the ladder's own
    *  banner further down for why that was tried, how it backfired, and the
@@ -104,6 +135,31 @@ export interface PremadeDeck extends CustomDeck {
    *  archetypes rather than rungs on a ladder, and the matchmaker leaves them
    *  out rather than guessing where they sit. */
   tier?: DeckTier;
+  /** Hoist this deck's N cheapest cards to the top of its deck at the deal, so
+   *  it can always act while gold is tight. Only ever applied to the OPPONENT
+   *  seat — the player's own draw is never reordered.
+   *
+   *  The elite rung's difficulty is THIS rather than better cards, and that was
+   *  a measurement, not a preference. Against every shipped 5×5 premade, 216
+   *  matches each, the four elite lists posted 47.7 / 60.2 / 66.2 / 77.8% as
+   *  built — an average no better than the hard rung's 60.2% and with three
+   *  times its spread. Rebuilding them made it WORSE in both directions:
+   *  swapping filler for the benched legendaries dropped Blazing Cyclone to
+   *  31.0% and Tombstone to 37.5%, and swapping for cheap tough bodies dropped
+   *  Chlorophyll to 44.9%. These lists are already near the best their pools
+   *  allow, and hand-editing them mostly breaks the aura and tribe packages
+   *  holding them together.
+   *
+   *  The opening is the dial that works: 71.8 / 85.6 / 81.9 / 88.9% at depth 3,
+   *  every deck clear of the hard rung's best (65.7%). It also NARROWS the rung
+   *  — spread 30.1 points down to 17.1 — because a scripted opening is worth
+   *  most to the deck that was stumbling worst.
+   *
+   *  Depth 3 because that is where the curve flattens: 5 and 8 measure the same
+   *  within noise (85.6 -> 87.5 on the one deck that moved at all). Same finding
+   *  as `DARKEST_NIGHT.scriptedOpening`, which took the plateau at its cheapest
+   *  for the same reason. */
+  scriptedOpening?: number;
   /** One line on what this deck is trying to do, in the game's own voice.
    *
    *  Lifted out of the comment that already sat above every list — the best
@@ -875,6 +931,85 @@ const LARGE_DECKS: PremadeDeck[] = [
       "aqua_harp", "aqua_buccaneers", "aqua_bulletshrimp", "aqua_liquark", "aqua_hydrogon",
     ],
     spells: ["gale_gust", "aqua_chill", "aqua_frost_patch", "gale_tailwind", "aqua_dense_fog", "gale_downdraft", "aqua_steam_vent", "aqua_ice_wall"],
+  },
+  // ───────────────────────── ELITE (large board only) ─────────────────────
+  //
+  // Four two-element builds covering all eight elements exactly once, fifteen
+  // cards each side. Imported from deck codes and kept AS BUILT — see
+  // `scriptedOpening` for the measurements that say editing them makes them
+  // worse, and for why the rung's difficulty is the opening rather than the
+  // lists.
+  {
+    id: "pre_tombstone_5",
+    name: "Tombstone",
+    note: "DUSK + BORE — armour in front, the risen behind it, and it never runs out of bodies.",
+    premade: true,
+    boardSize: 5,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    cards: [
+      "dusk_reaper", "dusk_haunt", "dusk_pumpkin", "bore_rockgoblin", "bore_bearocks",
+      "bore_sandman", "bore_deepest", "bore_krysteel", "bore_score", "bore_rollo",
+      "bore_hillbilly", "dusk_zhunk", "dusk_rip", "dusk_hix", "dusk_violet",
+      "dusk_zombie_husk", "bore_cavedweller", "bore_cosmic", "bore_thorny_ripper", "bore_sling",
+      "bore_bolder", "bore_sheish", "bore_ufo", "dusk_vamp", "dusk_skeleton_knight",
+      "dusk_jackl", "dusk_gool", "dusk_zombination", "dusk_skullking", "dusk_brute",
+    ],
+    spells: ["dusk_chill_touch", "bore_stone_wall", "dusk_veil_of_shadows", "bore_bedrock", "dusk_bone_snare", "bore_shatterpoint", "bore_mountains_fall", "dusk_endless_night"],
+  },
+  {
+    id: "pre_chlorophyll_5",
+    name: "Chlorophyll",
+    note: "LEAF + DAWN — it out-heals what you can do to it, then out-reaches you.",
+    premade: true,
+    boardSize: 5,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    cards: [
+      "leaf_walking_tree", "leaf_sakuroot", "leaf_squanch", "dawn_glime", "dawn_beam",
+      "dawn_shine", "dawn_musk_ox", "dawn_amble", "dawn_golde", "dawn_solara",
+      "dawn_drakonbane", "dawn_leo", "dawn_equestrian", "dawn_sircrest", "leaf_sumerose",
+      "leaf_trinezer", "leaf_fallow", "leaf_nightshade", "leaf_oak", "leaf_stickviper",
+      "leaf_thorn", "leaf_darth", "leaf_dartfrog", "leaf_sticks", "leaf_nettle",
+      "dawn_veil", "dawn_warphant", "dawn_ty", "leaf_sprinu", "dawn_reflection",
+    ],
+    spells: ["dawn_sunbeam", "leaf_lushfield", "dawn_eternal_dawn", "leaf_bramble_wall", "leaf_snare", "leaf_bloodroot_surge", "dawn_radiant_barrier", "leaf_withering_grasp"],
+  },
+  {
+    id: "pre_blazing_cyclone_5",
+    name: "Blazing Cyclone",
+    note: "PYRO + GALE — the fastest rung on the ladder. It is across the board before you have paid for a wall.",
+    premade: true,
+    boardSize: 5,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    cards: [
+      "pyro_bbq", "pyro_florence", "pyro_staph", "pyro_baboom", "pyro_flamehound",
+      "pyro_heatsink_golem", "pyro_firebird", "pyro_liza", "pyro_woof", "pyro_sarra",
+      "pyro_fenix", "pyro_fenrir", "pyro_volcanon", "pyro_magmaw", "pyro_firefly",
+      "gale_sirocco", "gale_hawko", "gale_swillow", "gale_duster", "gale_stormhide_bison",
+      "gale_tumbleweed", "gale_luna", "gale_wailverine", "gale_guan", "gale_masala",
+      "gale_vvulture", "gale_omega", "gale_stormfang", "gale_whirlwolf", "gale_totem",
+    ],
+    spells: ["pyro_cataclysm", "pyro_heatwave", "pyro_spark", "pyro_firewall", "pyro_flare_push", "gale_cyclone", "gale_jetstream", "gale_squall_line"],
+  },
+  {
+    id: "pre_thunderstorm_5",
+    name: "Thunderstorm",
+    note: "AQUA + BOLT — fat cheap bodies all the way up, and it never has a turn it cannot use.",
+    premade: true,
+    boardSize: 5,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    cards: [
+      "aqua_hydrogon", "aqua_siren", "aqua_magalogoon", "aqua_driftwraith", "aqua_rain",
+      "aqua_blackbeard", "aqua_sapphire", "aqua_liquark", "aqua_spinefin", "aqua_blub",
+      "aqua_misty", "aqua_buccaneers", "aqua_bulletshrimp", "aqua_kinguin", "aqua_harp",
+      "bolt_junker", "bolt_rodd", "bolt_zipp", "bolt_staticcloud", "bolt_scrapper",
+      "bolt_ning", "bolt_buzzard", "bolt_striik", "bolt_surge", "bolt_general",
+      "bolt_volta", "bolt_velvolt_knight", "bolt_shock", "bolt_voltcher", "bolt_buzz",
+    ],
+    spells: ["aqua_chill", "aqua_steam_vent", "aqua_ice_wall", "aqua_downpour", "bolt_lightning_storm", "bolt_power_rebate", "aqua_tsunami", "bolt_total_network_control"],
   },
 ];
 

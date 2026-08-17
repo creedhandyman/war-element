@@ -7,7 +7,7 @@ import { CARD_INDEX, getDef } from "../../data/cards";
 import { getSpell, spellCapForBoard } from "../spells";
 import {
   DECK_TIERS, PREMADE_DECKS, deckLimits, decksForTier, isBuildable, premadeDecksFor,
-  rollOpponent, tierOf, validateDeck,
+  ELITE_OPENING_STACK, rollOpponent, tierOf, tiersFor, validateDeck,
 } from "../../data/custom-decks";
 
 describe("premade decks", () => {
@@ -55,9 +55,14 @@ describe("board-sized premade builds", () => {
     // the assertion is that the two boards offer the SAME set, which a literal
     // count stops testing the moment someone adds a deck.
     const standard = PREMADE_DECKS.filter((d) => d.boardSize === 4);
-    expect(standard).toHaveLength(6 + DECK_TIERS.length * 4);
+    expect(standard).toHaveLength(6 + tiersFor(4).length * 4);
     expect(premadeDecksFor(4)).toHaveLength(standard.length);
-    expect(premadeDecksFor(5)).toHaveLength(standard.length);
+    // The large board offers everything the standard one does PLUS the elite
+    // rung, which has no 4x4 cut — thirty-card lists with eight-spell books
+    // are not a thing the standard board can hold. It is the one deliberate
+    // asymmetry between the two pickers, so it is named rather than absorbed
+    // into a looser count.
+    expect(premadeDecksFor(5)).toHaveLength(standard.length + decksForTier("elite", 5).length);
     // The formats are EXACT sizes, not bands — eighteen and thirty.
     for (const d of premadeDecksFor(4)) expect(d.cards).toHaveLength(deckLimits(4).target);
     for (const d of premadeDecksFor(5)) expect(d.cards).toHaveLength(deckLimits(5).target);
@@ -88,8 +93,17 @@ describe("board-sized premade builds", () => {
     // would show up in one picker and not the other.
     for (const large of premadeDecksFor(5)) {
       expect(large.id.endsWith("_5"), `${large.id} naming`).toBe(true);
+      // Elite is large-board only by design and so is legitimately twinless.
+      // Checked as an exact set rather than skipped by tier, so a deck that
+      // goes missing from the standard board cannot hide here by claiming to
+      // be elite.
+      if (large.tier === "elite") continue;
       expect(premadeDecksFor(4).some((d) => `${d.id}_5` === large.id), `${large.id} orphan`).toBe(true);
     }
+    expect(
+      premadeDecksFor(5).filter((d) => !premadeDecksFor(4).some((s) => `${s.id}_5` === d.id)).map((d) => d.id).sort(),
+      "the ONLY large-only decks are the elite rung",
+    ).toEqual(decksForTier("elite", 5).map((d) => d.id).sort());
   });
 
   it("a large-board deck is rejected on the standard board", () => {
@@ -139,11 +153,49 @@ describe("the 5x5 premades bring a full spellbook", () => {
 });
 
 describe("the matchmaker ladder", () => {
-  it("has four decks on every rung", () => {
-    for (const tier of DECK_TIERS) {
-      expect(decksForTier(tier, 4), tier).toHaveLength(4);
-      expect(decksForTier(tier, 5), `${tier} 5x5`).toHaveLength(4);
+  it("buys the elite rung's difficulty with the opening, at one depth", () => {
+    // The rung is supposed to read as ONE difficulty. Four separately-tuned
+    // depths would be four difficulties wearing a single name, so the constant
+    // is shared and this is what says so.
+    const elite = decksForTier("elite", 5);
+    for (const d of elite) expect(d.scriptedOpening, d.id).toBe(ELITE_OPENING_STACK);
+    // And nothing else is scripted. A scripted opening is worth 20-plus points
+    // of win rate (see PremadeDeck.scriptedOpening), so an ordinary rung
+    // acquiring one by copy-paste would silently stop being that rung.
+    expect(
+      PREMADE_DECKS.filter((d) => d.scriptedOpening != null).map((d) => d.id).sort(),
+    ).toEqual(elite.map((d) => d.id).sort());
+    expect(decksForTier("elite", 4), "elite is large-board only").toHaveLength(0);
+  });
+
+  it("fields every element exactly once across the elite rung", () => {
+    // The four lists are two-element builds covering all eight, fifteen cards
+    // a side. That is the shape they were handed over in and the reason the
+    // rung feels like a tour rather than four decks — worth pinning, because
+    // it is invisible in any single deck.
+    const seen: string[] = [];
+    for (const d of decksForTier("elite", 5)) {
+      const counts: Record<string, number> = {};
+      for (const id of d.cards) {
+        const el = CARD_INDEX[id]!.element;
+        counts[el] = (counts[el] ?? 0) + 1;
+      }
+      const els = Object.keys(counts).sort();
+      expect(els, `${d.name} is two elements`).toHaveLength(2);
+      for (const el of els) expect(counts[el], `${d.name} ${el} count`).toBe(15);
+      seen.push(...els);
     }
+    expect(seen.sort()).toEqual(["AQUA", "BOLT", "BORE", "DAWN", "DUSK", "GALE", "LEAF", "PYRO"]);
+  });
+
+  it("has four decks on every rung the board offers", () => {
+    for (const board of [4, 5] as const)
+      for (const tier of tiersFor(board))
+        expect(decksForTier(tier, board), `${tier} ${board}x${board}`).toHaveLength(4);
+    // And the rungs each board offers are exactly these — otherwise `tiersFor`
+    // could quietly answer "none" and the loop above would pass over nothing.
+    expect(tiersFor(4)).toEqual(["easy", "mid", "hard"]);
+    expect(tiersFor(5)).toEqual(["easy", "mid", "hard", "elite"]);
   });
 
   it("can play from round one on every rung", () => {

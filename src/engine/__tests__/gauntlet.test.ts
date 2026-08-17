@@ -3,7 +3,7 @@ import {
   RUN_LENGTH, RUN_REWARD, boardOfRun, ladderProgress, nextSeat, recordResult, rewardFor, runReward,
   runComplete, runOver, startRun,
 } from "../../data/gauntlet";
-import { DECK_TIERS, decksForTier } from "../../data/custom-decks";
+import { DECK_TIERS, decksForTier, tiersFor } from "../../data/custom-decks";
 import { settleArena } from "../../data/gauntlet";
 import { awardShards, newSave, type StorySave } from "../../data/story";
 
@@ -11,13 +11,16 @@ const seq = (...n: number[]) => { let i = 0; return () => n[i++ % n.length]; };
 
 describe("the gauntlet", () => {
   it("deals a full rung, in an order the player did not choose", () => {
-    for (const tier of DECK_TIERS) {
-      const run = startRun(tier, 4, seq(0));
-      expect(run.seats).toHaveLength(RUN_LENGTH);
-      expect(new Set(run.seats).size, "no repeats").toBe(RUN_LENGTH);
-      const rung = new Set(decksForTier(tier, 4).map((d) => d.id));
-      for (const id of run.seats) expect(rung.has(id), `${id} is on ${tier}`).toBe(true);
-    }
+    // Per BOARD, not just 4x4: elite exists only on the large one, so walking
+    // DECK_TIERS against a fixed board deals a run with no seats in it.
+    for (const board of [4, 5] as const)
+      for (const tier of tiersFor(board)) {
+        const run = startRun(tier, board, seq(0));
+        expect(run.seats, `${tier} ${board}x${board}`).toHaveLength(RUN_LENGTH);
+        expect(new Set(run.seats).size, "no repeats").toBe(RUN_LENGTH);
+        const rung = new Set(decksForTier(tier, board).map((d) => d.id));
+        for (const id of run.seats) expect(rung.has(id), `${id} is on ${tier}`).toBe(true);
+      }
   });
 
   it("cannot be re-rolled — the seats are fixed at the start", () => {
@@ -88,6 +91,7 @@ describe("the gauntlet", () => {
       { tier: "easy", cleared: true },
       { tier: "mid", cleared: false },
       { tier: "hard", cleared: false },
+      { tier: "elite", cleared: false },
     ]);
     expect(ladderProgress(undefined).every((r) => !r.cleared)).toBe(true);
   });

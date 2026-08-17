@@ -51,7 +51,7 @@ import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../dat
 import { REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
 import {
-  DECK_TIERS, loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, tierOf,
+  loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
   type CustomDeck,
 } from "../data/custom-decks";
 import { SpIcon } from "./icons";
@@ -388,6 +388,12 @@ export function App() {
    *  is. The deck in the chair already answers the question, and it answers it
    *  correctly for free: pick any other deck and this goes null on its own. */
   const eventRun: GameEvent | null = eventForDeck(p2DeckId) ?? null;
+  /** Depth of the scripted opening for whatever is in the opponent seat: an
+   *  event carries its own, an elite premade carries the rung's. One value so
+   *  the match-start call has a single thing to pass, and so a deck that is
+   *  somehow both cannot script the seat twice. */
+  const scriptedP2: number | undefined =
+    eventRun?.scriptedOpening ?? scriptedOpeningFor(p2DeckId);
   /** The rung a new run would use — whatever the opponent seat is currently on.
    *  An untiered deck (an original, or one you built) has no rung, so the
    *  middle one is the sensible default and the button names it either way. */
@@ -2570,7 +2576,10 @@ export function App() {
               <div className="ar-field">
                 <span className="ar-flabel">OPPONENT</span>
                 <div className="seg">
-                  {DECK_TIERS.map((t) => (
+                  {/* The rungs THIS board has, not every rung in the type.
+                      Elite is large-board only, so the standard board must not
+                      grow a fourth button that deals a run with no seats. */}
+                  {tiersFor(boardSize).map((t) => (
                     <button
                       key={t}
                       className={tierOf(p2DeckId) === t ? "on" : ""}
@@ -2579,7 +2588,7 @@ export function App() {
                         if (pick) setP2DeckId(pick.id);
                       }}
                     >
-                      {t === "easy" ? "Easy" : t === "mid" ? "Even" : "Hard"}
+                      {TIER_LABEL[t]}
                     </button>
                   ))}
                 </div>
@@ -2613,7 +2622,7 @@ export function App() {
                           start: it ARMS the run and points the opponent seat at
                           seat 1, and the actual match still begins from Start
                           Match below. "Line up" says what the tap does. */}
-                      Line up the {runTier === "easy" ? "Easy" : runTier === "mid" ? "Even" : "Hard"} gauntlet
+                      Line up the {TIER_LABEL[runTier]} gauntlet
                       {/* Number then icon, matching the shop's signed amounts
                           (`-{PACK_COST}<i className="shard" />`). The bare "+12"
                           did not say WHAT it paid, and the gauntlet is the one
@@ -2778,7 +2787,10 @@ export function App() {
                       undefined, undefined,
                       // Only the EVENT seat is scripted. Your own deck is never
                       // reordered — the ramp is the boss's, not a rule change.
-                      eventRun?.scriptedOpening ? { P2: eventRun.scriptedOpening } : undefined,
+                      // …and the ELITE rung, which buys its difficulty the
+                      // same way: an opening it cannot stumble on. Same seat,
+                      // same rule — your own draw is never reordered.
+                      scriptedP2 ? { P2: scriptedP2 } : undefined,
                     ));
                     setViewSide("P1");
                     setSel(null);
