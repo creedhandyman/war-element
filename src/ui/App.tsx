@@ -41,6 +41,9 @@ import { spellCapForBoard } from "../engine/spells";
 import {
   boardOfRun, nextSeat, runComplete, runOver, runReward, settleArena, startRun,
 } from "../data/gauntlet";
+import {
+  afterMatch, recordLadderMatch, tierForStreak, winsToNextRung, WINS_PER_RUNG,
+} from "../data/matchmaker";
 import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online";
 import { Board } from "./Board";
 import { CardView } from "./CardView";
@@ -541,13 +544,23 @@ export function App() {
       // The reward is paid inside the same set-membership check that records the
       // clear, so a replayed settle returns the save untouched and cannot pay
       // twice — and a loss records nothing, leaving the event open.
-      const next = event
+      const settled = event
         ? (won ? completeEvent(prev, event.id) : prev)
         : settleArena(prev, { won, againstPremade }, (sv) => awardShards(sv, "arena"));
+      // The ladder is a THIRD axis, independent of both shards and the run: it
+      // moves on any match against the rung it asked for — a matchmade fight or
+      // a Gauntlet seat, both are premade decks at a known difficulty — and
+      // never for an event, which has no rung and is fought once.
+      // `recordLadderMatch` returns the same object when the seat was off-rung,
+      // so hand-picking an easier opponent settles to `settled` untouched.
+      const ladder = event
+        ? settled.ladder
+        : recordLadderMatch(settled.ladder, { won, tier: tierOf(p2DeckId), boardSize });
+      const next = ladder === settled.ladder ? settled : { ...settled, ladder };
       if (next !== prev) saveStory(next);
       return next;
     });
-  }, [started, storyNode, game, p2DeckId]);
+  }, [started, storyNode, game, p2DeckId, boardSize]);
 
   useEffect(() => {
     if (me) setViewSide(me);
@@ -2594,6 +2607,50 @@ export function App() {
                 </div>
               </div>
             )}
+
+            {/* THE MATCHMAKER. One button, an opponent you did not pick, and a
+                rung that climbs with the streak — two wins buys the next one,
+                so the seventh win in a row is an elite deck. Hidden while a
+                Gauntlet run is live: that run already owns which deck is in
+                the seat, and a button that reseats it would end the run on a
+                match you never agreed to fight. */}
+            {!onlineMode && !twoPlayer && (!gauntletRun || runOver(gauntletRun)) && (() => {
+              const streak = story.ladder?.streak ?? 0;
+              const tier = tierForStreak(streak, boardSize);
+              const owed = winsToNextRung(streak, boardSize);
+              const onRung = tierOf(p2DeckId) === tier;
+              // "a Easy match". Three of the four rung names open on a vowel
+              // (Easy, Even, Elite) and only Hard does not, so the article has
+              // to be derived rather than written.
+              const a = /^[AEIOU]/i.test(TIER_LABEL[tier]) ? "an" : "a";
+              return (
+                <div className="ar-gauntlet mm">
+                  <button
+                    className="gt-start"
+                    onClick={() => {
+                      const pick = rollOpponent(tier, boardSize, p2DeckId);
+                      if (pick) setP2DeckId(pick.id);
+                    }}
+                  >
+                    <span className="gt-start-main">
+                      {/* Names the rung, because the whole point is that the
+                          matchmaker chose it and the player should be able to
+                          see what it chose before agreeing to the fight. */}
+                      {onRung ? "Reroll" : "Find"} {a} {TIER_LABEL[tier]} match
+                      <em className="gt-pay mm-streak">{streak}<i aria-hidden="true">&#9650;</i></em>
+                    </span>
+                    <span className="gt-sub">
+                      {streak === 0
+                        ? `A random ${TIER_LABEL[tier]} deck. Win ${WINS_PER_RUNG} in a row to move up a rung.`
+                        : owed > 0
+                          ? `${streak} in a row · ${owed} more to reach ${TIER_LABEL[tierForStreak(streak + owed, boardSize)]}`
+                          : `${streak} in a row · top rung — a loss drops you to ${TIER_LABEL[tierForStreak(afterMatch(streak, false, boardSize), boardSize)]}`}
+                      {(story.ladder?.best ?? 0) > streak && ` · best ${story.ladder!.best}`}
+                    </span>
+                  </button>
+                </div>
+              );
+            })()}
 
             {/* THE GAUNTLET. Four opponents from one rung, dealt rather than
                 chosen, and a single loss ends it. This is the earn path: a win

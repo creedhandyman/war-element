@@ -15,6 +15,7 @@ import { CARDS, CARD_INDEX, getDef } from "./cards";
 import { SPELLS, getSpell, spellCapForBoard } from "../engine/spells";
 import { DECK_TIERS } from "./custom-decks";
 import type { GauntletState } from "./gauntlet";
+import type { LadderState } from "./matchmaker";
 
 // ── shape ───────────────────────────────────────────────────────────────────
 
@@ -2167,6 +2168,13 @@ export interface StorySave {
    *  the save rather than in React state precisely so it CANNOT be re-rolled:
    *  leaving the Arena and coming back has to resume the same four opponents. */
   gauntlet?: GauntletState;
+  /** The matchmaker's win streak. See `data/matchmaker.ts`.
+   *
+   *  In the save rather than in React state for the same reason the Gauntlet
+   *  run is: a streak you can reset by reloading the tab is not a streak. Absent
+   *  on every save written before this existed, which reads as zero — the right
+   *  answer, since nobody has beaten anything on a ladder that did not exist. */
+  ladder?: LadderState;
   /** Cards you own but have not LOOKED at yet — the ones that still wear a
    *  NEW flag in the collection.
    *
@@ -2403,6 +2411,17 @@ export function loadStory(): StorySave {
             : undefined,
           cleared: Array.isArray(g.cleared) ? g.cleared.filter((t) => DECK_TIERS.includes(t)) : [],
         };
+      })(),
+      // Two non-negative integers or nothing. A junk streak would pick the rung
+      // the matchmaker seats, so a hand-edited save could deal itself elite
+      // decks — which is allowed (it is a local save) but must not crash the
+      // rung lookup, and `best` must never read below `streak`.
+      ladder: (() => {
+        const l = p.ladder as LadderState | undefined;
+        if (!l || typeof l !== "object") return undefined;
+        const streak = Number.isFinite(l.streak) ? Math.max(0, Math.floor(l.streak)) : 0;
+        const best = Number.isFinite(l.best) ? Math.max(0, Math.floor(l.best)) : 0;
+        return { streak, best: Math.max(best, streak) };
       })(),
       loadouts: Array.isArray(p.loadouts)
         ? (p.loadouts as Loadout[])

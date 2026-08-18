@@ -5099,3 +5099,21 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   width: auto; min-width: 13px; padding: 0 3px;
   gap: 1px; font-variant-numeric: tabular-nums;
 }
+
+/* The matchmaker sits above the Gauntlet and borrows its frame, minus the gold:
+   the gold block on this screen is the one that PAYS, and a second gold card
+   would read as a second reward rather than as a free single match. */
+.ar-gauntlet.mm {
+  border-color: rgba(255, 255, 255, .1);
+  background: linear-gradient(180deg, rgba(120, 160, 255, .07), rgba(10, 10, 17, .5));
+}
+.ar-gauntlet.mm .gt-start {
+  background: rgba(120, 160, 255, .1);
+  border-color: rgba(120, 160, 255, .28);
+  color: #cfe0ff;
+}
+.ar-gauntlet.mm .gt-start:hover { background: rgba(120, 160, 255, .2); }
+/* The streak rides where the Gauntlet's payout does, so the eye finds the
+   number in the same place on both cards. */
+.mm-streak { color: #cfe0ff; font-style: normal; }
+.mm-streak i { font-size: 8px; margin-left: 3px; vertical-align: 1px; opacity: .8; }
