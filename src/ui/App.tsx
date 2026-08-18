@@ -50,6 +50,8 @@ import { CardView } from "./CardView";
 import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
 import { deckCodeFromUrl } from "../data/deck-code";
+import { absorbLegacy, loadSquads } from "../data/squads";
+import { rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
 import { REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
@@ -273,7 +275,15 @@ export function App() {
   const roomRef = useRef<Room | null>(null);
   const onlineStartedRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
-  const [customDecks, setCustomDecks] = useState<CustomDeck[]>(() => loadCustomDecks());
+  const [customDecks, setCustomDecks] = useState<CustomDeck[]>(() => {
+    // Fold the two old libraries into the one squad store, once. Runs before the
+    // first read so nothing is ever shown from the pre-merge world, and stamps
+    // itself so a deleted squad cannot be resurrected on the next boot.
+    // RAW, not loadStory(): that one trims a team to the cards you currently own,
+    // which would delete from the merge the very lineups the merge exists to keep.
+    absorbLegacy(loadCustomDecks(), rawStoredLoadouts());
+    return loadSquads() as unknown as CustomDeck[];
+  });
   const [builderOpen, setBuilderOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   // A deck arriving by shared link (?deck=WE1-...). Read ONCE, on the first

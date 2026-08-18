@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   absorbLegacy, deleteSquad, loadSquads, missingNames, saveSquad, squadUsableIn,
 } from "../../data/squads";
+import { loadStory, rawStoredLoadouts } from "../../data/story";
 
 // jsdom is not on in this project, so stand up the smallest localStorage that
 // behaves like the real one for these calls.
@@ -116,5 +117,28 @@ describe("squads — where one can be used", () => {
 
   it("refuses an empty one", () => {
     expect(squadUsableIn({ id: "s3", name: "None", cards: [] }).ok).toBe(false);
+  });
+});
+
+describe("squads — migration reads the raw store, not the playable view", () => {
+  it("keeps a campaign team naming cards the collection no longer holds", () => {
+    // The bug this pins. `loadStory` trims a team's cards to what you currently
+    // own — correct for playing, since you cannot field what you have not
+    // earned, and destructive for migrating: a team whose cards are all unowned
+    // comes back EMPTY and is then dropped. Migrating through it silently
+    // deleted the very lineups the merge exists to preserve.
+    store.clear();
+    store.set("we_story_v1", JSON.stringify({
+      collection: [],                        // owns nothing
+      loadouts: [{ id: "t1", name: "Kept", cards: ["leaf_greegon"], element: "LEAF" }],
+    }));
+    const raw = rawStoredLoadouts();
+    expect(raw, "the raw store still has it").toHaveLength(1);
+    expect(loadStory().loadouts ?? [], "the playable view drops it").toHaveLength(0);
+
+    const out = absorbLegacy([], raw)!;
+    expect(out.map((s) => s.name)).toEqual(["Kept"]);
+    // And it is correctly reported as unfieldable rather than silently dropped.
+    expect(squadUsableIn(out[0], { owned: [] }).ok).toBe(false);
   });
 });

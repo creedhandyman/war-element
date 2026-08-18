@@ -5134,3 +5134,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .mm-manual .ar-flabel { flex: none; }
 .mm-manual .seg { flex: 1; }
 .mm-manual .seg button { padding: 5px 4px; font-size: 11px; }
+
+/* A squad you cannot field here — in the campaign, one holding cards you have
+   not earned. Shown rather than hidden: it is still yours, and a squad that
+   silently disappears from a list reads as data loss. Still loadable, so it can
+   be edited into something legal. */
+.db-saved-row.locked .db-load { opacity: 0.55; }
+.db-saved-row.locked .db-load b { text-decoration: line-through; text-decoration-thickness: 1px; }
+.db-locked-why { color: var(--threat); font-style: normal; }

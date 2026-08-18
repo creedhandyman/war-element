@@ -2359,6 +2359,32 @@ export function newSave(): StorySave {
 
 /** Read the save, dropping anything that no longer exists — so removing a card
  *  or renaming a node can never brick a campaign the way it could a deck. */
+/** The saved teams EXACTLY as written, with no collection filter.
+ *
+ *  `loadStory` deliberately trims a team's cards to what you currently own, which
+ *  is right for playing — you cannot field what you have not earned — and wrong
+ *  for migrating. A team naming a card the save no longer owns comes back from
+ *  loadStory with those cards stripped, and if that empties it, dropped entirely.
+ *  Reading through it during the one-time merge into the squad library would have
+ *  quietly destroyed exactly the lineups the merge promised to keep.
+ *
+ *  Migration wants the truth on disk; `squadUsableIn` decides fieldability later.
+ */
+export function rawStoredLoadouts(): Loadout[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const p = JSON.parse(raw) as Partial<StorySave>;
+    return Array.isArray(p.loadouts)
+      ? (p.loadouts as Loadout[]).filter(
+          (l) => l && typeof l.id === "string" && typeof l.name === "string" && Array.isArray(l.cards),
+        )
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 export function loadStory(): StorySave {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

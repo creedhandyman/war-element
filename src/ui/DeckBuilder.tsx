@@ -3,15 +3,13 @@ import type { CardClass, Element } from "../engine";
 import { getDef, SPELLS } from "../engine";
 import {
   buildableCards,
-  deleteCustomDeck,
-  loadCustomDecks,
   deckLimits,
   sanitizeSpells,
-  saveCustomDeck,
   validateDeck,
   type CustomDeck,
 } from "../data/custom-decks";
 import { STANDARD_CAP } from "../data/story";
+import { deleteSquad, loadSquads, saveSquad, squadUsableIn, type Squad } from "../data/squads";
 import { deckLinkFor, decodeDeck, encodeDeck } from "../data/deck-code";
 import { EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE, spellArtSrc } from "./shared";
 import { CardView } from "./CardView";
@@ -81,7 +79,10 @@ export function DeckBuilder(props: {
   const limits = story
     ? { ...deckLimits(buildSize), min: 1, max: story.cap, target: story.cap }
     : deckLimits(buildSize);
-  const [decks, setDecks] = useState<CustomDeck[]>(() => loadCustomDecks());
+  // ONE library, whichever screen opened the builder. What changes between the
+  // Arena and the campaign is which squads you can FIELD, not which you can see —
+  // that is `squadUsableIn`, applied per row below.
+  const [squads, setSquads] = useState<Squad[]>(() => loadSquads());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
@@ -263,21 +264,32 @@ export function DeckBuilder(props: {
   }
   function save() {
     if (!check.ok) return;
-    if (story) {
-      story.onSaveTeam(name.trim() || `${story.element ?? "New"} team`, picked, pickedSpells);
-      reset();
-      return;
-    }
-    const next = saveCustomDeck({ id: editingId ?? undefined, name, cards: picked, spells: pickedSpells });
-    setDecks(next);
-    props.onChange(next);
+    const label = name.trim() || (story ? `${story.element ?? "New"} squad` : "Untitled squad");
+    const next = saveSquad({
+      id: editingId ?? undefined,
+      name: label,
+      cards: picked,
+      spells: pickedSpells,
+      // Tag it with the region it was built in, so the campaign's quick-select
+      // can float the right one. Cosmetic — nothing enforces it.
+      element: story?.element,
+      boardSize: story ? undefined : buildSize,
+    });
+    setSquads(next);
+    // Squad is structurally a CustomDeck, so the Arena's deck pickers keep
+    // working off this without knowing anything changed.
+    props.onChange(next as unknown as CustomDeck[]);
+    // BRIDGE: the prep screen's quick-select still reads story.loadouts. Until
+    // that reads squads too, a campaign save writes both — otherwise saving a
+    // squad here would make it vanish from the screen you fight from.
+    if (story) story.onSaveTeam(label, picked, pickedSpells);
     reset();
   }
   function remove(id: string) {
-    if (story) { story.onDeleteTeam(id); if (editingId === id) reset(); return; }
-    const next = deleteCustomDeck(id);
-    setDecks(next);
-    props.onChange(next);
+    const next = deleteSquad(id);
+    setSquads(next);
+    props.onChange(next as unknown as CustomDeck[]);
+    if (story) story.onDeleteTeam(id);
     if (editingId === id) reset();
   }
 
@@ -318,7 +330,7 @@ export function DeckBuilder(props: {
     <div className={`overlay ${story ? "on-top" : ""}`} onClick={props.onClose}>
       <div className="modal deck-builder" onClick={(e) => e.stopPropagation()}>
         <div className="db-head">
-          <h2>{story ? "Build a team" : "Deck Builder"}</h2>
+          <h2>Squad Builder</h2>
           <button className="cd-x" title="Close" onClick={props.onClose}>✕</button>
         </div>
 
@@ -338,7 +350,7 @@ export function DeckBuilder(props: {
               aria-expanded={deckOpen}
             >
               <span className="db-handle-lbl">
-                {name.trim() || (story ? `${story.element ?? "New"} team` : "Untitled deck")}
+                {name.trim() || (story ? `${story.element ?? "New"} squad` : "Untitled squad")}
                 {!story && <> · {buildSize}×{buildSize}</>}
               </span>
               <span className={`db-handle-state ${check.ok && !thin ? "ok" : ""} ${thin ? "thin" : ""}`}>
@@ -349,7 +361,7 @@ export function DeckBuilder(props: {
             </button>
             <input
               className="db-name"
-              placeholder={story ? `${story.element ?? "New"} team` : "Deck name"}
+              placeholder={story ? `${story.element ?? "New"} squad` : "Squad name"}
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={28}
@@ -429,7 +441,7 @@ export function DeckBuilder(props: {
             </div>
             <div className="db-actions">
               <button className="lockin" disabled={!check.ok} onClick={save}>
-                {story ? "Save team" : `${editingId ? "Update" : "Save"} deck`}
+                {editingId ? "Update squad" : "Save squad"}
               </button>
               <button className="ghost" onClick={reset}>New / clear</button>
             </div>
@@ -488,9 +500,7 @@ export function DeckBuilder(props: {
                 Spells {pickedSpells.length}/{limits.spells}
               </button>
               <button className={`db-tool ${savedShown ? "on" : ""}`} onClick={() => togglePanel("saved")}>
-                {story
-                  ? `Teams${story.teams.length ? ` ${story.teams.length}` : ""}`
-                  : `Saved${decks.length ? ` ${decks.length}` : ""}`}
+                {`Squads${squads.length ? ` ${squads.length}` : ""}`}
               </button>
             </div>
 
@@ -574,14 +584,17 @@ export function DeckBuilder(props: {
 
             {savedShown && (
               <div className="db-saved db-panel">
-              {(story ? story.teams : decks).length === 0 && (
+              {squads.length === 0 && (
                 <div className="db-empty">None yet — build one →</div>
               )}
-              {(story
-                ? story.teams.map((t) => ({ id: t.id, name: t.name, cards: t.cards, spells: t.spells, tag: t.element }))
-                : decks.map((d) => ({ id: d.id, name: d.name, cards: d.cards, spells: d.spells, tag: undefined }))
-              ).map((d) => (
-                <div key={d.id} className={`db-saved-row ${editingId === d.id ? "on" : ""}`}>
+              {squads.map((sq) => {
+                // Shown everywhere, fieldable where it is legal. A campaign squad
+                // holding cards you have not earned is greyed and says which ones,
+                // rather than disappearing and leaving you wondering where it went.
+                const usable = squadUsableIn(sq, story ? { owned: story.owned, cap: story.cap } : {});
+                return { id: sq.id, name: sq.name, cards: sq.cards, spells: sq.spells, tag: sq.element, usable };
+              }).map((d) => (
+                <div key={d.id} className={`db-saved-row ${editingId === d.id ? "on" : ""} ${d.usable.ok ? "" : "locked"}`}>
                   <button
                     className="db-load"
                     // Load the book with the team. It used to be skipped in
@@ -589,13 +602,14 @@ export function DeckBuilder(props: {
                     // one, and loading a team to re-tune it must not silently
                     // drop the spells it was saved with.
                     onClick={() => { setEditingId(d.id); setName(d.name); setPicked(d.cards.slice()); setPickedSpells((d.spells ?? []).slice()); }}
-                    title={story ? "Load this team" : "Edit this deck"}
+                    title={d.usable.ok ? "Load this squad" : `Load to edit — ${d.usable.reason}`}
                   >
                     <b>{d.name}</b>
                     <span>
                       {d.cards.length} cards
                       {d.spells && d.spells.length ? ` · ${d.spells.length} spells` : ""}
                       {d.tag ? ` · for ${d.tag}` : ""}
+                      {!d.usable.ok && <em className="db-locked-why"> · {d.usable.reason}</em>}
                     </span>
                   </button>
                   <button className="db-del" title="Delete" onClick={() => remove(d.id)}>🗑</button>
