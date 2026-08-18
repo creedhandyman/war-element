@@ -2576,44 +2576,22 @@ export function App() {
               </div>
             )}
 
-            {/* THE MATCHMAKER. Pick how hard you want it and the seat opposite
-                fills itself — which is the question most players are actually
-                asking of the deck list ("give me a fair fight"), not "which of
-                eighteen names do I want". The seat still has `change` for
-                picking a specific one.
+            {/* THE OPPONENT. One block, because there were two: a rung segment
+                whose own comment called it "the matchmaker", and the streak
+                matchmaker underneath it doing the same job one step further.
+                Two controls that both fill the same seat, stacked, each
+                claiming the same name.
 
-                The rung shows as active only while the seat is actually on a
-                deck from it, so choosing a deck by hand leaves the control
-                honest instead of claiming a difficulty it did not set. */}
-            {!onlineMode && !gauntletRun && (
-              <div className="ar-field">
-                <span className="ar-flabel">OPPONENT</span>
-                <div className="seg">
-                  {/* The rungs THIS board has, not every rung in the type.
-                      Elite is large-board only, so the standard board must not
-                      grow a fourth button that deals a run with no seats. */}
-                  {tiersFor(boardSize).map((t) => (
-                    <button
-                      key={t}
-                      className={tierOf(p2DeckId) === t ? "on" : ""}
-                      onClick={() => {
-                        const pick = rollOpponent(t, boardSize, p2DeckId);
-                        if (pick) setP2DeckId(pick.id);
-                      }}
-                    >
-                      {TIER_LABEL[t]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+                So they are one control with a hierarchy now — the automatic
+                answer first, the manual override under it. The rungs still
+                roll a random deck at a difficulty you name; the button above
+                names the difficulty for you and climbs.
 
-            {/* THE MATCHMAKER. One button, an opponent you did not pick, and a
-                rung that climbs with the streak — two wins buys the next one,
-                so the seventh win in a row is an elite deck. Hidden while a
-                Gauntlet run is live: that run already owns which deck is in
-                the seat, and a button that reseats it would end the run on a
-                match you never agreed to fight. */}
+                Hidden while a Gauntlet run is live, because that run owns the
+                seat and reseating it would end the run on a match you never
+                agreed to fight. Hidden in 2-player too, where the other seat is
+                a person choosing their own deck rather than a difficulty — the
+                old rung segment showed there and never made sense. */}
             {!onlineMode && !twoPlayer && (!gauntletRun || runOver(gauntletRun)) && (() => {
               const streak = story.ladder?.streak ?? 0;
               const tier = tierForStreak(streak, boardSize);
@@ -2648,6 +2626,28 @@ export function App() {
                       {(story.ladder?.best ?? 0) > streak && ` · best ${story.ladder!.best}`}
                     </span>
                   </button>
+                  <div className="mm-manual">
+                    <span className="ar-flabel">OR PICK</span>
+                    <div className="seg">
+                      {/* The rungs THIS board has, not every rung in the type:
+                          elite is large-board only. Active only while the seat
+                          really holds a deck from that rung, so picking one by
+                          hand from the VS card leaves this honest rather than
+                          claiming a difficulty it did not set. */}
+                      {tiersFor(boardSize).map((rung) => (
+                        <button
+                          key={rung}
+                          className={tierOf(p2DeckId) === rung ? "on" : ""}
+                          onClick={() => {
+                            const pick = rollOpponent(rung, boardSize, p2DeckId);
+                            if (pick) setP2DeckId(pick.id);
+                          }}
+                        >
+                          {TIER_LABEL[rung]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               );
             })()}

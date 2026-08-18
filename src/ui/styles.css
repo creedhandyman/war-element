@@ -1791,7 +1791,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .ar-codehint { font-size: 11px; color: #7d8aa8; text-align: center; }
 .lockin.sm, .ghost.sm { padding: 7px 16px; font-size: 12px; border-radius: 9px; }
 
-.ar-foot { flex: none; padding: 4px 16px 0; }
+/* STICKY, because Start Match is the point of this screen and it was below the
+   fold: 947px of lobby in an 812px phone, so the primary action had to be
+   hunted for by scrolling. Sticking it costs nothing above it and survives a
+   shorter phone, where trimming content only moves the same problem.
+   `bottom: 0`, NOT 74: a sticky inset resolves against the scrollport's PADDING
+   box, and `.arena` already reserves the fixed nav's 74px there. Writing 74
+   here counted that reservation twice and parked the footer 148px up, with a
+   band of dead screen between it and the nav. */
+.ar-foot {
+  flex: none; padding: 8px 16px 0; position: sticky; bottom: 0; z-index: 2;
+  background: linear-gradient(180deg, rgba(13, 12, 24, 0) 0%, var(--void) 28%);
+}
 .ar-start { width: 100%; height: 52px; font-size: 17px; }
 /* A gauntlet seat and a throwaway single fight used to commit through one
    identical button. The label now names which — and this carries the same gold
@@ -5117,3 +5128,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    number in the same place on both cards. */
 .mm-streak { color: #cfe0ff; font-style: normal; }
 .mm-streak i { font-size: 8px; margin-left: 3px; vertical-align: 1px; opacity: .8; }
+/* The manual override under the matchmaker button: same row shape as an
+   `.ar-field`, minus its own card, because it now lives inside one. */
+.mm-manual { display: flex; align-items: center; gap: 8px; }
+.mm-manual .ar-flabel { flex: none; }
+.mm-manual .seg { flex: 1; }
+.mm-manual .seg button { padding: 5px 4px; font-size: 11px; }
