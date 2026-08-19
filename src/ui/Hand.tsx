@@ -105,7 +105,15 @@ export function Hand(props: {
               style={{
                 ["--rot" as string]: `${rot}deg`,
                 ["--ty" as string]: `${ty}px`,
-                zIndex: 30 - Math.round(Math.abs(off) * 2),
+                // STRICTLY increasing left to right, so every card sits above
+                // the one to its left and its own left edge stays on top. It
+                // used to peak at the CENTRE (30 - |off|*2), which reads fine
+                // as a fan and quietly hid half the hand's costs: the gem is at
+                // the card's top-LEFT, cards overlap by their full 28-38px
+                // margin, and every card RIGHT of centre was underneath its
+                // left neighbour — so its gem was covered and only the left
+                // half of the hand showed a price.
+                zIndex: 30 + i,
               }}
               title={
                 noRoom

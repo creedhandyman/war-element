@@ -2882,7 +2882,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      a taller picture of a card you are about to play anyway. */
   .hand-float {
     order: 4; position: static; left: auto; bottom: auto; transform: none;
-    width: 100%; flex: 0 0 auto; min-height: 0; max-height: var(--hand-peek, 90px); overflow: hidden;
+    width: 100%; flex: 0 0 auto; min-height: 0; max-height: var(--hand-peek, 90px);
+    /* overflow VISIBLE, not hidden. `.hand-fan`'s own rule already says a card
+       that grows on hover "can grow over the log strip above it, which is what
+       overflow:visible on the fan is for" — and then this, the PARENT, clipped
+       it anyway. Tapping a card lifted it 26px into a 90px box and the top of
+       the card was cut off, which reads as the log strip covering it.
+       The height is fixed just below, so nothing here needs the clip to hold
+       the row's shape. */
+    overflow: visible;
     display: flex; align-items: flex-start; justify-content: center;
     padding: 2px 4px 0; pointer-events: auto;
   }
@@ -2910,7 +2918,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      the height of a card, and a card that grows on hover can grow over the log
      strip above it, which is what overflow:visible on the fan is for. */
   .hand-float .hand-fan { padding-top: 2px; align-items: flex-start; }
-  .hand-float .hcard { width: 74px; height: 82px; margin: 0 -14px; transform-origin: 50% 96%; }
+  /* No dip in portrait. The fan's outer cards translate DOWN by up to 14px,
+     which in an 82px card inside a 90px peek already fell outside the box and
+     was being clipped away — so flattening it shows exactly what was on screen
+     before, and is what makes turning the clip off safe: without this, that
+     hidden 14px would newly spill over the action bar. */
+  .hand-float .hcard { width: 74px; height: 82px; margin: 0 -14px; transform-origin: 50% 96%; --ty: 0px; }
   .hand-float .hcard:hover { transform: translateY(-26px) scale(1.14); z-index: 50 !important; }
   .hand-float .hc-name { font-size: 12px; }
   .hand-float .hc-type { font-size: 8.5px; }
