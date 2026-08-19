@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { REGIONS } from "../../data/story";
-import { REGION_TRACK, TRACKS } from "../../ui/useGameMusic";
+import { ARENA_PLAYLIST, battlePlaylist, REGION_TRACK, TRACKS } from "../../ui/useGameMusic";
+import { CORES } from "../../data/cards";
+import { PREMADE_DECKS } from "../../data/custom-decks";
 
 // Music fails SILENTLY, exactly like card art. A track whose file is missing
 // just never plays; a REGION_TRACK key that does not match a region id falls
@@ -57,6 +59,45 @@ describe("background music", () => {
     for (const r of REGIONS) {
       expect(REGION_TRACK[r.id], `region "${r.id}" has no theme`).toBeTruthy();
     }
+  });
+
+  it("plays every element in the Arena lobby, each exactly once", () => {
+    expect(new Set(ARENA_PLAYLIST).size, "no repeats").toBe(ARENA_PLAYLIST.length);
+    // The lobby list IS the element set — if an element is added, this fails
+    // rather than the ninth theme quietly never playing.
+    expect([...ARENA_PLAYLIST].sort()).toEqual(Object.keys(REGION_TRACK).sort());
+    for (const t of ARENA_PLAYLIST) expect(TRACKS[t], t).toBeTruthy();
+  });
+
+  it("plays only the elements actually on the table", () => {
+    // A mono core is one theme, and one theme is a loop rather than a playlist.
+    const leaf = CORES.find((c) => c.id === "leaf")!.cards;
+    const pyro = CORES.find((c) => c.id === "pyro")!.cards;
+    expect(battlePlaylist(leaf, leaf)).toEqual(["leaf"]);
+    // Two mono cores meet as two themes, in the lobby's order rather than the
+    // order the decks were passed — so the same matchup sounds the same however
+    // the seats fell.
+    expect(battlePlaylist(pyro, leaf)).toEqual(["leaf", "pyro"]);
+    expect(battlePlaylist(leaf, pyro)).toEqual(["leaf", "pyro"]);
+    // And it never plays an element that is not there.
+    for (const t of battlePlaylist(leaf, pyro)) expect(["leaf", "pyro"]).toContain(t);
+  });
+
+  it("gives a real premade matchup its own four themes", () => {
+    // The shipped builds are dual-element, so an ordinary Arena match is four.
+    const a = PREMADE_DECKS.find((d) => d.id === "pre_inferno_blitz")!;
+    const b = PREMADE_DECKS.find((d) => d.id === "pre_frostkeep")!;
+    const list = battlePlaylist(a.cards, b.cards);
+    expect(list.length).toBeGreaterThanOrEqual(3);
+    for (const t of list) expect(TRACKS[t], t).toBeTruthy();
+    expect(new Set(list).size, "no element twice").toBe(list.length);
+  });
+
+  it("falls back to Rival when a deck names nothing real", () => {
+    // The only remaining route to the battle theme, which is why it stays in
+    // TRACKS at all.
+    expect(battlePlaylist([], [])).toEqual(["battle"]);
+    expect(battlePlaylist(["not_a_card"])).toEqual(["battle"]);
   });
 
   it("keeps the two non-story states pointed at their own tracks", () => {

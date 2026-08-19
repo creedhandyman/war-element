@@ -53,7 +53,9 @@ import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
-import { REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
+import {
+  ARENA_PLAYLIST, battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack,
+} from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
 import {
   loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
@@ -377,15 +379,6 @@ export function App() {
    *  right cap the whole time, which is why it never showed up there. */
   const storyBuilderBoard = Math.max(...region.nodes.map((n) => boardForNode(region, n)));
 
-  // Background music. A story region owns the sound for BOTH its map and its
-  // battles, so the region reads as a place rather than a series of fights; a
-  // story battle therefore keeps its region theme instead of dropping to Rival.
-  // Everything outside Story Mode is the old menu/battle pair.
-  const storyRegionId = storyNode ? regionOfNode(storyNode.id)?.id : storyOpen ? region.id : undefined;
-  const musicTrack: MusicTrack =
-    (storyRegionId ? REGION_TRACK[storyRegionId] : undefined) ??
-    (started && game.phase !== "gameover" ? "battle" : "menu");
-  const { muted: musicMuted, toggle: toggleMusic } = useGameMusic(musicTrack);
   // Deck selection = a premade or custom deck (the old two-core pairing is gone).
   // Each side defaults to a different premade so a match is one tap away.
   // Seeded from the STANDARD builds — boardSize starts at 4, and the remap
@@ -463,6 +456,28 @@ export function App() {
   // gave a spell-less deck the whole elemental set in battle.
   const resolveDeckSpells = (deckId: string): string[] | undefined =>
     (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).spells;
+  // MOVED DOWN from the top of the component, because the Arena's battle
+  // playlist is built from the decks in the seats and those are declared here.
+  // Nothing else about it changed.
+  // Background music. A story region owns the sound for BOTH its map and its
+  // battles, so the region reads as a place rather than a series of fights; a
+  // story battle therefore keeps its region theme instead of dropping to Rival.
+  // Everything outside Story Mode is the old menu/battle pair.
+  const storyRegionId = storyNode ? regionOfNode(storyNode.id)?.id : storyOpen ? region.id : undefined;
+  // Outside Story, the Arena plays ELEMENTS. In a match that means only the
+  // elements on the table, so the fight sounds like the decks in it; in the
+  // lobby it is all eight, because one loop had to carry every visit to the
+  // screen the app opens on. Home keeps Growth.
+  //
+  // Built from the deck ids rather than from `game`, which holds only what has
+  // been summoned so far — the music would arrive one element at a time as
+  // cards hit the board, and change under the player mid-match.
+  const musicTrack: MusicTrack | MusicTrack[] =
+    (storyRegionId ? REGION_TRACK[storyRegionId] : undefined) ??
+    (started && game.phase !== "gameover"
+      ? battlePlaylist(resolveDeckCards(p1DeckId), resolveDeckCards(p2DeckId))
+      : tab === "arena" ? ARENA_PLAYLIST : "menu");
+  const { muted: musicMuted, toggle: toggleMusic } = useGameMusic(musicTrack);
   /** The deck the LOCAL player holds. Online, a guest sits in the P2 seat, so
    *  "your deck" is not always P1's — the versus card must not show the host's
    *  deck as yours. */

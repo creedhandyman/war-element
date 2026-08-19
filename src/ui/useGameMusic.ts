@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { CARD_INDEX } from "../data/cards";
 
-/** Background music. Growth on the home/menu screen, Rival in a non-story
- *  battle, and a per-region theme whenever Story Mode is on screen — the region
- *  map and its battles share one track, so a region reads as a place rather than
- *  a series of fights.
+/** Background music. Growth on the home/menu screen, a per-region theme whenever
+ *  Story Mode is on screen — the region map and its battles share one track, so
+ *  a region reads as a place rather than a series of fights — and in the Arena,
+ *  a PLAYLIST of element themes rather than any single track.
+ *
+ *  Pass one track to loop it, or several to play them in turn and wrap. The two
+ *  Arena playlists are built by `arenaPlaylist` and `battlePlaylist` below.
  *
  *  Browsers block autoplay until the first user gesture, so we retry play() once
  *  the page has been interacted with. A mute toggle is persisted to localStorage.
@@ -43,7 +47,31 @@ export const REGION_TRACK: Partial<Record<string, MusicTrack>> = {
 
 const VOLUME = 0.45;
 
-export function useGameMusic(track: MusicTrack): { muted: boolean; toggle: () => void } {
+/** The eight element themes, in the game's own element order. Played through in
+ *  the Arena lobby, where a single loop had to carry every visit to the screen
+ *  the app opens on. */
+export const ARENA_PLAYLIST: MusicTrack[] = [
+  "leaf", "pyro", "aqua", "bolt", "gale", "bore", "dusk", "dawn",
+];
+
+/** The themes for the elements actually on the table, in that same order.
+ *
+ *  A match between two dual-element decks is four themes; two mono decks of the
+ *  same element is one, and one is a loop. Empty (a deck of unknown ids) falls
+ *  back to Rival, which is the only thing left that still plays it — every other
+ *  path now has an element to name. */
+export function battlePlaylist(...decks: string[][]): MusicTrack[] {
+  const seen = new Set<string>();
+  for (const deck of decks)
+    for (const id of deck) {
+      const def = CARD_INDEX[id];
+      if (def) seen.add(def.element.toLowerCase());
+    }
+  const out = ARENA_PLAYLIST.filter((t) => seen.has(t));
+  return out.length ? out : ["battle"];
+}
+
+export function useGameMusic(track: MusicTrack | MusicTrack[]): { muted: boolean; toggle: () => void } {
   const [muted, setMuted] = useState<boolean>(
     () => typeof localStorage !== "undefined" && localStorage.getItem("we_music_muted") === "1",
   );
@@ -69,21 +97,43 @@ export function useGameMusic(track: MusicTrack): { muted: boolean; toggle: () =>
     return () => { window.removeEventListener("pointerdown", on); window.removeEventListener("keydown", on); };
   }, [unlocked]);
 
+  const list = Array.isArray(track) ? track : [track];
+  // The effect keys on the JOINED STRING, not the array. Callers build these
+  // from deck contents and hand over a fresh array every render, so depending on
+  // the array itself would restart the music on every render — which is silence,
+  // since nothing ever gets more than a frame to play.
+  const key = list.join(",");
+  const [step, setStep] = useState(0);
+  // A different playlist starts at its own beginning rather than wherever the
+  // last one had got to.
+  useEffect(() => { setStep(0); }, [key]);
+  const current = list[step % list.length] ?? list[0];
+
   // Play the track that matches the current state; pause every other one.
   // Re-runs when `unlocked` flips so the first gesture kicks playback off.
   useEffect(() => {
-    for (const [key, audio] of pool.current) if (key !== track || muted) audio.pause();
+    for (const [id, audio] of pool.current) if (id !== current || muted) audio.pause();
     if (muted) return;
-    let audio = pool.current.get(track);
+    let audio = pool.current.get(current);
     if (!audio) {
-      audio = new Audio(TRACKS[track]);
-      audio.loop = true;
+      audio = new Audio(TRACKS[current]);
       audio.volume = VOLUME;
       audio.preload = "auto";
-      pool.current.set(track, audio);
+      pool.current.set(current, audio);
     }
+    // A lone track loops; a playlist hands over at the end. `onended` is
+    // ASSIGNED rather than added, because these elements are pooled and reused
+    // — addEventListener would stack a fresh advance on every pass through the
+    // list and skip tracks in accelerating multiples.
+    const many = list.length > 1;
+    audio.loop = !many;
+    audio.onended = many ? () => setStep((i) => (i + 1) % list.length) : null;
+    // Rewind a track that has already played. A pooled element sits at its end
+    // once it fires `ended`, so coming back to it a cycle later would end again
+    // on the spot and spin the playlist as fast as the event loop allows.
+    if (audio.ended || audio.currentTime >= audio.duration) audio.currentTime = 0;
     void audio.play().catch(() => {}); // still gesture-blocked → the unlock effect retries
-  }, [track, muted, unlocked]);
+  }, [current, key, muted, unlocked]);
 
   const toggle = () =>
     setMuted((v) => {
