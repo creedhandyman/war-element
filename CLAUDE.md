@@ -127,12 +127,16 @@ There's no committed balance harness — build a disposable one, read it, delete
 it. Convention: name it `src/engine/__tests__/zzz-*.test.ts` so it sorts last
 and is obviously temporary, and **delete it before committing**.
 
-Drive matches through the public intent API exactly as `ai.test.ts` does:
-`createInitialState` → loop `needsP1Input(s) ? driveP1(s) : advance(s)` until
-`s.phase === "gameover"`. Copy `driveP1` from `ai.test.ts` — it handles the
-`FLOW_CHANGE` / `MULLIGAN` / `prep` / `battle` branches.
+**Copy the canonical harness from "Pin the harness" below rather than writing
+one.** It passes `humans: []`, so `advance()` alone runs the match and there is
+no P1 input to answer. This used to prescribe the `ai.test.ts` loop instead —
+`needsP1Input(s) ? driveP1(s) : advance(s)` with `humans: ["P1"]` — which is
+still the right shape for testing the AI, but is the wrong one for measuring
+BALANCE: `driveP1` hardcodes `mode: "water"` on a FLOW_CHANGE where the engine
+calls `aiFlowChoice`, so the two seats play differently and every element is
+seated as P1 half the time. It measures about a point wider.
 
-Two traps that have both burned real time:
+Three traps that have all burned real time:
 
 1. **`deckById()` silently falls back to `DECKS[0]`** for any id it doesn't
    recognize — including the solo-element core ids (`"leaf"`, `"pyro"`, …),
@@ -143,8 +147,14 @@ Two traps that have both burned real time:
    other caller ever passes an unrecognized id.
 2. **`state.win` is `{ winner, by }`, not a player string.** `end.win === "P1"`
    is always false and every element reports 0%.
+3. **The spell argument is not optional.** `undefined` derives a book from the
+   deck's elements; `[]` is "chose none" and hands every element an empty one.
+   Both are legal and they differ by seventeen points of spread — see the table
+   below. `smoke-matches.test.ts` passes `[]`, so copying from there silently
+   measures a spell-less game.
 
-A full 8-core round-robin, both seats, 14 seeds = 784 matches ≈ 40s.
+A full 8-core round-robin, both seats, 14 seeds = 784 matches ≈ 40s; the
+canonical 50-seed run is 5,600 matches and takes about six minutes.
 
 ### Two metrics that look convincing and are not
 
@@ -178,39 +188,111 @@ overpowered.** The real finds were design flaws that measurement never
 surfaced — Aurora's unbounded orb recharge and Keeper's Hive Mind absorbing to
 the death. Both were fixed on reasoning, not on a win-rate delta.
 
-### Where balance stood at last measure
+### Pin the harness before you trust a number
 
-Solo cores, **both boards**, round-robin with **both seat orders**, 50 seeds per
-ordered matchup — 5,600 matches, n=1,400 per element (±2.6 at 95%):
+**The single most expensive lesson in this file.** Every reading below was
+recorded in prose — "solo cores, both boards, both seat orders, 50 seeds" — and
+that is not enough to reproduce one. Three choices go unstated in that sentence
+and each one moves the answer more than any card change ever has:
+
+| choice | options | measured spread at HEAD |
+| --- | --- | --- |
+| spellbooks | `undefined` (derived from the deck's elements) | **10.9** |
+| | `[]` (none — what `smoke-matches.test.ts` passes) | **27.9** |
+| `humans` | `[]` — the AI plays both seats | **10.9** |
+| | `["P1"]` + `driveP1` — the loop this file used to prescribe | **11.4** |
+| seeds | unrecorded; any 50 | unknown |
+
+Seventeen points of spread ride on the spellbook argument alone. Two readings
+that disagree on it are not two measurements of the same thing, and comparing
+them produces confident nonsense — which is exactly what happened: a "LEAF
+dropped 4.5 points" investigation that ended in LEAF never having moved.
+
+So: **quote the harness with the number, or the number is a rumour.** The
+canonical one is below. Copy it verbatim rather than writing a fresh one.
+
+```ts
+// src/engine/__tests__/zzz-bal.test.ts — delete before committing
+const wins: Record<string, number> = {}, games: Record<string, number> = {};
+for (const c of CORES) { wins[c.id] = 0; games[c.id] = 0; }
+for (let i = 0; i < CORES.length; i++)
+  for (let j = 0; j < CORES.length; j++) {
+    if (i === j) continue;                       // both seat orders come from i!==j
+    for (const board of [4, 5]) for (let k = 0; k < 50; k++) {
+      let s = createInitialState(k * 31 + 7, CORES[i].cards, CORES[j].cards,
+        [], undefined, undefined, board);        // humans [] · spells undefined
+      let st = 0;
+      while (s.phase !== "gameover" && st < 8000) { s = advance(s); st++; }
+      games[CORES[i].id]++; games[CORES[j].id]++;
+      if (s.win?.winner === "P1") wins[CORES[i].id]++;
+      else if (s.win?.winner === "P2") wins[CORES[j].id]++;
+    }
+  }
+```
+
+`humans: []` rather than `["P1"]` + `driveP1`, and the reason is not just speed.
+`driveP1` answers a FLOW_CHANGE with a hardcoded `mode: "water"` where the
+internal path calls `aiFlowChoice` and picks by card class — so under that loop
+P1 and P2 play differently, and the round-robin seats every element as P1 half
+the time. `humans: []` runs one code path on both sides. It is also ~2x faster,
+which matters at 5,600 matches.
+
+### Where balance stands
+
+Harness above, verbatim. 5,600 matches, n=1,400 per element, ±2.6 at 95%:
 
 ```
-bolt 54.4 · bore 52.8 · dawn 51.1 · leaf 48.9
-gale 48.9 · pyro 48.9 · aqua 48.4 · dusk 46.6     spread 7.7
+bolt 55.4 · gale 53.4 · bore 53.0 · dawn 52.2
+pyro 50.6 · aqua 46.1 · leaf 44.9 · dusk 44.4     spread 10.9
 ```
 
-Re-measured after six further commits (three GALE, four DUSK) and it did not
-move: every element inside ±0.4, four of them identical to the decimal. See
-"anti-healing measures as nothing" below for why the DUSK half was inert.
+The shape is a top five spanning 4.8, **a 4.5-point cliff**, and then a bottom
+three packed into 1.7. The cliff is the balance problem; there is no lone
+outlier at either end, which is why the next move is a tier rather than a card.
 
-**The tightest measured by a wide margin** — 7.7, against previous bests of
-10.4, 11.1 and 15.8, and 30.4 at the oldest recorded pass. There is no outlier
-left in either direction: the field is a smooth slope, and the two gaps that
-bound it (BOLT to BORE, 1.6; GALE to DUSK, 1.8) are both inside the ±2.6 error
-bar. Four elements — leaf, pyro, aqua, gale — sit within 0.5 of each other.
+Measured WITH the body-blocks-movement rule, because that rule is shipped and
+this has to be HEAD. Without it the same harness reads `bolt 53.9 · bore 53.7 ·
+dawn 52.7 · gale 52.0 · pyro 51.0 · aqua 48.6 · leaf 44.4 · dusk 43.6`, spread
+10.2 — so the rule is worth +0.7 of spread, inside the error bar. Quoting a
+number from a working tree that has a rule disabled is its own version of the
+mistake this section is about.
 
-**GALE +4.7**, off the floor and into the middle. It was the lone outlier at
-43.8, 3.5 BELOW DUSK; it is now 1.8 above it. Every other element moved -0.6 to
--1.3 (BOLT +0.2, inside noise), which is the signature of a genuine
-single-element lift and not a field-wide shift.
+**THE 7.7 RECORDED HERE BEFORE COULD NOT BE REPRODUCED, and nothing should be
+compared against it.** Four configurations were tried and every one landed
+between 9.6 and 11.4 — the harness above at `b517a30`, the commit whose own
+message announced 7.7, **9.6**; at HEAD **10.9**; at HEAD with the movement
+rule disabled **10.2**; and the `driveP1` loop this file used to prescribe, at
+HEAD, **11.4**.
 
-This one has unusually clean attribution: only TWO commits separate it from the
-10.4 pass and both are GALE — Tailwind's step tightened from 6 SP to 5, the
-five-source WEAKEN kit (Stormfang's splash, Totem Pole's new Special and its
-on-summon, WolfBane, Whirlwolf), and Rayfen's 4x2. Contrast the pass before it,
-which had twenty commits and a spellbook change confounding all of them.
+The old table also puts LEAF fourth at 48.9. LEAF measures 44.2-44.9 and
+last-or-second-last in all four, which is a structurally different result
+rather than a seed effect — whatever produced 7.7, it was not this code under
+any harness that can be reconstructed from what was written down.
 
-**There is no obvious next move.** Chasing 7.7 lower means moving a whole tier,
-and this file's own history is a record of how easily that overshoots.
+The historical passes further down (15.8, 11.1, 30.4 …) were recorded the same
+unpinned way and carry the same warning: read them as a NARRATIVE of what moved and why, never as a scale to
+measure a new number against.
+
+### The standing balance problem: LEAF cannot outrun GALE
+
+Reproducible, and it is one matchup rather than a weak element. LEAF's row:
+
+```
+bore 55.5 · aqua 55.5 · dusk 51.0 · pyro 44.0 · dawn 44.0 · bolt 38.5 · gale 25.5
+```
+
+**25.5% into GALE, thirteen points below its next-worst.** It measured 28.5% at
+`b517a30` too, so it predates every recent change. Of 200 LEAF-v-GALE matches
+GALE takes 147 by CAPTURE and 2 by timeout, average 11.3 rounds — nobody is
+killing anybody, it is a footrace. GALE averages SP 9.3 with zero immobile
+cards; LEAF averages 6.6 and is **the only element carrying cards that cannot
+move at all** (Oakgre 55 HP, Oak, Dandelion, Elephlora, all reach 0, plus ten
+more at reach 1). In a race for home slots that is not a matchup.
+
+The lever is mobility — LEAF's own SP, or something that slows GALE — not more
+wall. A tempting fix that measured NOTHING: GALE swapping SP-sap for shoves
+looked like the perfect counter to walls that can never walk back, and removing
+the shove moved the matchup 25.5% -> 25.5%, exactly zero.
 
 DAWN +6.5 in one pass, sixth to third — the largest single-element move recorded
 here, bigger than DUSK's +4.3 or BORE's −4.3. It follows the four BATTLE
@@ -518,11 +600,13 @@ Rollo / Zombination / Doom changes and everything since.
 
 ## Open threads
 
-- Element balance: **spread 16.1**, everyone between 43.0 and 59.1 — the
-  tightest measured. LEAF, GALE and DAWN were each solved by an aura that was
-  not paying; BOLT by halving one that paid twice. No lone outlier remains
-  (BOLT 59.1 / BORE 57.4 at the top, DUSK 43.0 at the floor), so the next move
-  is a broader pass rather than another single-element fix.
+- Element balance: see "Where balance stands". Deliberately NOT restated here —
+  this entry carried `spread 16.1 … the tightest measured` long after the same
+  file recorded 7.7 and then 10.2, because a number copied to two places only
+  gets updated in one. The open question is the bottom of the table (leaf, dusk)
+  and specifically LEAF-vs-GALE at 25.5%, which is a mobility problem rather
+  than a weak element — the section below has the evidence and the dead end
+  already tried.
 - `ELEMENT_MATCHUP` has no UI surface.
 - `deckById`'s silent fallback (see Measuring balance).
 - Spell curve expansion — the big queued feature. Today's `spells.ts` has the
