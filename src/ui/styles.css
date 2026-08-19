@@ -5149,3 +5149,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: transparent;
 }
 .sp-chip.sp-more:hover { color: var(--ink); border-color: var(--gold-line); }
+/* "Fill" sits on the Taking-in label, so the label becomes a row. */
+.sr-label.sp-takelabel { display: flex; align-items: center; gap: 8px; }
+.sp-fillbtn {
+  margin-left: auto; flex: none; cursor: pointer;
+  padding: 2px 9px; border-radius: 999px; font-size: 10px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--gold-lit); background: rgba(201, 162, 75, .12);
+  border: 1px solid var(--gold-line);
+}
+.sp-fillbtn:hover { background: rgba(201, 162, 75, .24); }

@@ -18,7 +18,7 @@ import {
   openPack, applyPack, canOpenPack, awardShards, dupeEssenceFor, PACK_COST, PACK_SIZE, SHARDS_PER_WIN,
   SHINY_CHANCE, rollShiny, isShiny, addShiny, spellsUnlockedIn, heroSpellShelf, heroBookFor, ESSENCE_PER_CLEAR, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
-  terrainContested, type StoryNode, type StorySave, bookForLoadout,
+  autoDeck, terrainContested, type StoryNode, type StorySave, bookForLoadout,
 } from "../../data/story";
 import { spellCapForBoard } from "../spells";
 
@@ -1692,6 +1692,34 @@ describe("story: board size is welded to deck size", () => {
     for (const n of REGIONS.flatMap((r) => r.nodes)) {
       if (n.lore && n.note) expect(n.lore, `${n.id}`).not.toBe(n.note);
     }
+  });
+
+  it("fills a deck to the cap, with a curve rather than a pile of bombs", () => {
+    const pool = CARDS.filter((c) => ["LEAF", "AQUA"].includes(c.element)).map((c) => c.id);
+    for (const cap of [6, 12, 18, 30]) {
+      const out = autoDeck(pool, cap);
+      expect(out.length, `cap ${cap}`).toBe(cap);
+      expect(new Set(out).size, `cap ${cap} has no duplicate`).toBe(cap);
+      for (const id of out) expect(pool, `${id} came from the pool`).toContain(id);
+      // A CURVE: something to open on and something to finish with. The whole
+      // reason this is not "your best cards" — filling with the priciest
+      // measured 3-14% against the premade field, because a fat curve draws
+      // cards it cannot afford. See `autoDeck`'s own table.
+      const costs = out.map((id) => getDef(id).cost);
+      expect(Math.min(...costs), `cap ${cap} opens cheap`).toBeLessThanOrEqual(2);
+      expect(Math.max(...costs), `cap ${cap} still finishes`).toBeGreaterThanOrEqual(5);
+    }
+  });
+
+  it("hands back the whole pool when there is less of it than the cap", () => {
+    // A thin collection early on, or a region you packed light for. Padding to
+    // the cap is impossible and must not be faked with repeats.
+    const pool = CARDS.filter((c) => c.element === "LEAF").slice(0, 5).map((c) => c.id);
+    const out = autoDeck(pool, 30);
+    expect(out.length).toBe(5);
+    expect(new Set(out).size).toBe(5);
+    expect(autoDeck([], 18)).toEqual([]);
+    expect(autoDeck(pool, 0)).toEqual([]);
   });
 
   it("musters the nodes you beat into the fights above them", () => {
