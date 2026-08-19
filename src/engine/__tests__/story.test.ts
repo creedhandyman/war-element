@@ -11,7 +11,7 @@ import {
   applyClear, baseRateFor, blightAddsFor, blightLevel, canBlight, deckCapFor, isOpen, isOverflow,
   DUPLICATE_CAP, EPIC_DUPLICATE_FROM_CAP, PLACED_CARDS, copyCapFor, STARTER_DECK as STARTER, bestSource, buildFormation,
   demandMet, doublesEpics, gateCheck, isGate, regionOfNode, boardForNode, BIG_BATTLE_KINDS,
-  capForNode, STANDARD_CAP, BIG_BOARD_CAP, preferredLoadout, type Loadout,
+  capForNode, STANDARD_CAP, BIG_BOARD_CAP,
   formationSize, isRegionCleared, isRegionOpen,
   SQUAD_BASE, SQUAD_PER_THRONE, guaranteedDrops, isRegionConquered, squadCapFor, squadCapInRegion,
   isOpeningNode, autoSquad, newHero, canCraft, craftCard, craftCostOf, CRAFT_COST,
@@ -1662,29 +1662,9 @@ describe("story: board size is welded to deck size", () => {
     }
   });
 
-  it("offers back the team you last used, then the NEWEST match", () => {
-    // The bug this replaces: prep searched loadouts FORWARDS for an element
-    // match, and teams are appended — so saving a new team and returning to the
-    // node silently fought with the oldest one instead. The save was fine; the
-    // recall was wrong, which reads from the player's side as "teams not saving".
-    const team = (id: string, element: string, n: number): Loadout =>
-      ({ id, name: id, element, cards: Array.from({ length: n }, () => "leaf_nettle") });
-    const base = { ...newSave(), loadouts: [team("old", "LEAF", 3), team("new", "LEAF", 5)] };
-    const anyLegal = () => true;
-
-    // No memory yet -> the NEWEST element match, not the first.
-    expect(preferredLoadout(base, "LEAF", anyLegal)?.id).toBe("new");
-    // With a memory -> exactly what was last used, even though it is older.
-    expect(preferredLoadout({ ...base, lastTeamId: "old" }, "LEAF", anyLegal)?.id).toBe("old");
-    // A remembered team that is no longer LEGAL here falls through rather than
-    // being offered and then refused.
-    expect(preferredLoadout({ ...base, lastTeamId: "old" }, "LEAF", (l) => l.cards.length > 4)?.id)
-      .toBe("new");
-    // A remembered id that no longer exists is simply ignored.
-    expect(preferredLoadout({ ...base, lastTeamId: "deleted" }, "LEAF", anyLegal)?.id).toBe("new");
-    // Nothing for this element -> undefined, and prep keeps the current deck.
-    expect(preferredLoadout(base, "PYRO", anyLegal)).toBeUndefined();
-  });
+  /* "offers back the team you last used, then the NEWEST match" moved to
+     squads.test.ts with `preferredSquad`, when the campaign's library merged
+     into the shared one. */
 
   it("keeps every lore line short enough to read before a fight", () => {
     // Lore is Story Bible flavour shown on the node panel and the prep screen.

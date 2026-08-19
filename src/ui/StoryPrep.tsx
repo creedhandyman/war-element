@@ -6,19 +6,22 @@
  *  walk back out, rebuild, and walk in again.
  *
  *  This is that rebuild, brought to where the decision actually happens: what
- *  you are about to fight, on which board, with which team — and a shelf of
- *  saved teams tagged by the element they answer, so arriving in PYRO offers
- *  you the deck you built for PYRO.
+ *  you are about to fight, on which board, with which squad — and the shelf of
+ *  saved squads, the ones tagged for this element first, so arriving in PYRO
+ *  offers you the squad you built for PYRO.
  */
 import { useEffect, useRef, useState } from "react";
 import { getDef } from "../data/cards";
 import { getSpell, spellCapForBoard } from "../engine/spells";
 import {
-  boardForNode, deckCapFor, deckForRegion, fightCap, isGate, loadoutLegal, loadoutsFor, localCards,
-  packSquad, packableFor, poolForRegion, preferredLoadout, recruitablePool, rememberDeck,
+  boardForNode, deckCapFor, deckForRegion, fightCap, isGate, loadoutLegal, localCards,
+  packSquad, packableFor, poolForRegion, recruitablePool, rememberDeck,
   squadCapInRegion, squadFor, squadIsExplicit, squadIsOfferable,
-  type Loadout, type StoryNode, type StoryRegion, type StorySave, STANDARD_CAP, bookForLoadout,
+  type StoryNode, type StoryRegion, type StorySave, STANDARD_CAP, bookForLoadout,
 } from "../data/story";
+import {
+  deleteSquad, preferredSquad, saveSquad, squadNamed, squadsFor, type Squad,
+} from "../data/squads";
 import { CardView } from "./CardView";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3 };
@@ -27,8 +30,15 @@ export function StoryPrep(props: {
   region: StoryRegion;
   node: StoryNode;
   save: StorySave;
-  /** Persist a change to the saved teams (and the current deck). */
+  /** Persist a change to the campaign save: the deck in hand, and which squad
+   *  it came from. The squads themselves are not in there — they are one
+   *  library shared with the Arena, which this screen reads like anything else. */
   onSave: (next: StorySave) => void;
+  /** That library, owned by App. Passed down rather than read from storage,
+   *  because the builder opens as an overlay ON TOP of this screen — reading it
+   *  once at mount would leave a squad saved up there invisible down here. */
+  squads: Squad[];
+  onSquads: (next: Squad[]) => void;
   onEditDeck: () => void;
   onCancel: () => void;
   onFight: (deck: string[], book: string[]) => void;
@@ -55,8 +65,8 @@ export function StoryPrep(props: {
   // Quick select: arriving at a node ALREADY holding the team built for this
   // element is the point of tagging them. Falls back to the last deck used.
   const owned = (ids: string[]) => ids.filter((id) => pool.includes(id));
-  const preferred = preferredLoadout(save, region.element, (l) => {
-    const n = owned(l.cards).length;
+  const preferred = preferredSquad(props.squads, region.element, save.lastTeamId, (s) => {
+    const n = owned(s.cards).length;
     return n > 0 && n <= cap;
   });
   /** Top a seed deck up from the pool, in pool order, to the cap.
@@ -113,7 +123,10 @@ export function StoryPrep(props: {
   useEffect(() => {
     if (save.deck === lastSavedDeck.current) return;
     lastSavedDeck.current = save.deck;
-    if (save.deck.length) { setDeck(save.deck.filter((id) => pool.includes(id))); setPickedTeam(null); }
+    // Follow the POINTER as well as the cards: the builder records which squad
+    // it just saved, and dropping that on the way back left the shelf showing
+    // nothing selected for a squad that was, in fact, exactly what you held.
+    if (save.deck.length) { setDeck(save.deck.filter((id) => pool.includes(id))); setPickedTeam(save.lastTeamId ?? null); }
   }, [save.deck]); // eslint-disable-line react-hooks/exhaustive-deps -- `pool` is derived; only a real save change should resync
   const [naming, setNaming] = useState(false);
   // Same idea as the node panel: the squad is what you are building against, so
@@ -126,12 +139,33 @@ export function StoryPrep(props: {
    *  to the board. The same call the fight makes, so the readout cannot drift
    *  from the thing it describes. */
   const fightBook = bookForLoadout(save, { id: "", name: "", cards: deck, spells: book }, boardForNode(region, node));
-  const teams = loadoutsFor(save, region.element);
+  /** The shelf, as this fight sees it.
+   *
+   *  One library now, so squads built in the Arena show up here too — and away
+   *  from home you field what you PACKED, so what decides a squad is how much of
+   *  it is actually available, not which screen saved it. A squad with nothing
+   *  available is shown and disabled rather than hidden: it is still yours, it
+   *  just is not here. Tapping one used to be a trap — it emptied the deck and
+   *  greyed out Fight without ever saying why. */
+  const away = pool.length < save.collection.length;
+  const teams = squadsFor(props.squads, region.element).map((s) => {
+    const have = owned(s.cards).length;
+    return {
+      squad: s,
+      have,
+      usable: have > 0,
+      why: have > 0
+        ? (s.element ? `Built for ${s.element}` : "Built in the Arena")
+        : away
+          ? `None of these ${s.cards.length} cards came with you into ${region.element}`
+          : `You do not own any of these ${s.cards.length} cards yet`,
+    };
+  });
   const enemy = [...new Set([...recruitablePool(node), ...node.adds])]
     .map(getDef)
     .sort((a, b) => (RARITY_ORDER[a.rarity ?? ""] ?? 9) - (RARITY_ORDER[b.rarity ?? ""] ?? 9));
 
-  const applyTeam = (t: Loadout) => {
+  const applyTeam = (t: Squad) => {
     setDeck(owned(t.cards));
     // A team's book travels with it. Absent = fall back to the shelf, which is
     // what every pre-spellbook team in an existing save has.
@@ -144,28 +178,34 @@ export function StoryPrep(props: {
   };
 
   const saveTeam = () => {
-    const name = draftName.trim() || `${region.element} team`;
-    // Same name = overwrite. Re-tuning the PYRO deck after a loss should not
-    // leave you scrolling past four decks all called "PYRO team".
-    const rest = (save.loadouts ?? []).filter((l) => l.name.toLowerCase() !== name.toLowerCase());
-    const next: Loadout = {
-      id: `${name.toLowerCase().replace(/\s+/g, "-")}-${rest.length}`,
+    const name = draftName.trim() || `${region.element} squad`;
+    // Same name overwrites — `saveSquad` matches by name, deliberately, so
+    // re-tuning the PYRO squad after a loss replaces it instead of leaving you
+    // scrolling past four things all called "PYRO squad".
+    const next = saveSquad({
       name,
       element: region.element,
       cards: [...deck],
       spells: book.length ? [...book] : undefined,
-    };
-    props.onSave({ ...save, loadouts: [...rest, next], deck, lastTeamId: next.id });
+    });
+    props.onSquads(next);
+    const saved = squadNamed(next, name);
+    // The save keeps the deck in HAND and a pointer to where it came from; the
+    // squad itself went to the shared library above. Priming the ref first so
+    // the sync effect treats this as the no-op it is — without that, saving
+    // here bounced back through the effect and cleared the highlight off the
+    // very squad you had just saved.
+    lastSavedDeck.current = deck;
+    props.onSave({ ...save, deck, lastTeamId: saved?.id });
+    setPickedTeam(saved?.id ?? null);
     setNaming(false);
     setDraftName("");
   };
 
-  const deleteTeam = (id: string) =>
-    props.onSave({
-      ...save,
-      loadouts: (save.loadouts ?? []).filter((l) => l.id !== id),
-      lastTeamId: save.lastTeamId === id ? undefined : save.lastTeamId,
-    });
+  const deleteTeam = (id: string) => {
+    props.onSquads(deleteSquad(id));
+    if (save.lastTeamId === id) props.onSave({ ...save, lastTeamId: undefined });
+  };
 
   // ── packing step ──────────────────────────────────────────────────────────
   // You are standing at a border you have not taken with more cards than you can
@@ -300,19 +340,17 @@ export function StoryPrep(props: {
           <>
             <div className="sr-label">Quick select</div>
             <div className="sp-quick">
-              {teams.map((t) => {
-                const n = owned(t.cards).length;
-                return (
-                  <button
-                    key={t.id}
-                    className={`sp-chip ${pickedTeam === t.id ? "on" : ""} ${t.element === region.element ? "match" : ""}`}
-                    onClick={() => applyTeam(t)}
-                    title={t.element ? `Built for ${t.element}` : undefined}
-                  >
-                    {t.name}<em>{n > cap ? `${n}!` : n}</em>
-                  </button>
-                );
-              })}
+              {teams.map(({ squad: t, have, usable, why }) => (
+                <button
+                  key={t.id}
+                  className={`sp-chip ${pickedTeam === t.id ? "on" : ""} ${t.element === region.element ? "match" : ""} ${usable ? "" : "locked"}`}
+                  onClick={() => applyTeam(t)}
+                  disabled={!usable}
+                  title={why}
+                >
+                  {t.name}<em>{have > cap ? `${have}!` : have}</em>
+                </button>
+              ))}
             </div>
           </>
         )}
@@ -389,7 +427,7 @@ export function StoryPrep(props: {
           )}
           {pickedTeam && (
             <button className="ghost sm" onClick={() => { deleteTeam(pickedTeam); setPickedTeam(null); }}>
-              Delete team
+              Delete squad
             </button>
           )}
           {naming ? (
@@ -397,7 +435,7 @@ export function StoryPrep(props: {
               <input
                 autoFocus
                 value={draftName}
-                placeholder={`${region.element} team`}
+                placeholder={`${region.element} squad`}
                 onChange={(e) => setDraftName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && saveTeam()}
               />
@@ -405,7 +443,7 @@ export function StoryPrep(props: {
             </span>
           ) : (
             <button className="ghost sm" onClick={() => setNaming(true)} disabled={!legal.ok}>
-              Save as team
+              Save squad
             </button>
           )}
           <button className="ghost sm" onClick={props.onCancel}>Back</button>
@@ -423,7 +461,7 @@ export function StoryPrep(props: {
             props.onFight(deck, book);
           }}
         >
-          {legal.ok ? "Fight" : (legal.reason ?? "Fix your team")}
+          {legal.ok ? "Fight" : (legal.reason ?? "Fix your squad")}
         </button>
       </div>
     </div>

@@ -131,6 +131,43 @@ export function squadUsableIn(
   return { ok: true, missing };
 }
 
+/** Squads most likely to be wanted against `element`, best first. One tagged
+ *  for this element leads; everything else keeps its own order. */
+export function squadsFor(squads: readonly Squad[], element?: string): Squad[] {
+  if (!element) return [...squads];
+  return [...squads].sort((a, b) => Number(b.element === element) - Number(a.element === element));
+}
+
+/** The squad to offer on arrival at a node, or undefined for "keep what you
+ *  are holding".
+ *
+ *  Order: the one last saved or fought with, then the MOST RECENT squad tagged
+ *  for this element. Newest-first is the whole point — squads are appended, so
+ *  searching forwards returned the oldest match, and a freshly saved squad was
+ *  never the one you got back. `legal` is applied to both, so one that has
+ *  outgrown the node's cap is skipped rather than offered and then refused. */
+export function preferredSquad(
+  squads: readonly Squad[],
+  element: string | undefined,
+  lastId: string | undefined,
+  legal: (s: Squad) => boolean,
+): Squad | undefined {
+  const last = squads.find((s) => s.id === lastId);
+  if (last && legal(last)) return last;
+  for (let i = squads.length - 1; i >= 0; i--)
+    if (squads[i].element === element && legal(squads[i])) return squads[i];
+  return undefined;
+}
+
+/** The squad a `saveSquad` call just wrote, out of the list it returned. That
+ *  call matches by name, so this does too — a caller needs the id back to point
+ *  at what it saved, and re-deriving it any other way risks naming a different
+ *  squad than the one actually written. */
+export function squadNamed(squads: readonly Squad[], name: string): Squad | undefined {
+  const key = name.trim().toLowerCase();
+  return squads.find((s) => s.name.toLowerCase() === key);
+}
+
 /** Readable names for the cards a squad is missing, for the greyed-out tooltip. */
 export function missingNames(missing: readonly string[]): string[] {
   return missing.map((id) => (CARD_INDEX[id] ? getDef(id).name : id));

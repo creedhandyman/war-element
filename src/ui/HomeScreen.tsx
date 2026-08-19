@@ -27,8 +27,9 @@
 import { useMemo } from "react";
 import {
   BLIGHT_MAX, PACK_COST, PLACED_CARDS, REGIONS, blightLevel, canCraft, craftCostOf,
-  deckCapFor, freePacks, isCleared, isOpen, preferredLoadout, type StoryRegion, type StorySave,
+  deckCapFor, freePacks, isCleared, isOpen, type StoryRegion, type StorySave,
 } from "../data/story";
+import { loadSquads } from "../data/squads";
 import { CARDS } from "../data/cards";
 import { openEvents, type GameEvent } from "../data/events";
 import { boardOfRun, runOver, runReward } from "../data/gauntlet";
@@ -99,10 +100,6 @@ export function HomeScreen(props: {
     return PLACED_CARDS.filter((id) => owned.has(id)).length;
   }, [save.collection]);
 
-  /** Through the shared helper, NOT `loadouts[0]`. Teams are appended, so a
-   *  forward search returns the OLDEST match — `preferredLoadout` exists
-   *  precisely to stop that, and Story prep goes through it. Two screens one
-   *  tap apart naming different teams is the bug it was written for. */
   /** Cards you own and have not opened yet. Scoped to the collection so a flag
    *  left behind by a card you no longer hold cannot inflate it. */
   const newCards = useMemo(() => {
@@ -110,9 +107,16 @@ export function HomeScreen(props: {
     return (save.unseen ?? []).filter((id) => owned.has(id)).length;
   }, [save.unseen, save.collection]);
 
+  /** The squad you last took into a fight, by id.
+   *
+   *  NOT a search for the newest untagged one, which is what this used to do:
+   *  since the two libraries merged, "untagged" means "built in the Arena", so
+   *  that search would name an Arena deck as your campaign squad — and the prep
+   *  screen one tap away would say otherwise. Two screens naming different
+   *  squads is the bug this line exists to avoid, in both of its versions. */
   const teamName = useMemo(
-    () => preferredLoadout(save, undefined, () => true)?.name ?? null,
-    [save],
+    () => loadSquads().find((s) => s.id === save.lastTeamId)?.name ?? null,
+    [save.lastTeamId],
   );
   /** The cap is a CEILING, not a quota — story.ts says so outright and the
    *  builder repeats it: twelve good cards instead of eighteen mediocre ones is

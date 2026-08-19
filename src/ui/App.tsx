@@ -50,7 +50,7 @@ import { CardView } from "./CardView";
 import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
 import { deckCodeFromUrl } from "../data/deck-code";
-import { absorbLegacy, loadSquads } from "../data/squads";
+import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
 import { REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
@@ -275,14 +275,14 @@ export function App() {
   const roomRef = useRef<Room | null>(null);
   const onlineStartedRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
-  const [customDecks, setCustomDecks] = useState<CustomDeck[]>(() => {
+  const [customDecks, setCustomDecks] = useState<Squad[]>(() => {
     // Fold the two old libraries into the one squad store, once. Runs before the
     // first read so nothing is ever shown from the pre-merge world, and stamps
     // itself so a deleted squad cannot be resurrected on the next boot.
     // RAW, not loadStory(): that one trims a team to the cards you currently own,
     // which would delete from the merge the very lineups the merge exists to keep.
     absorbLegacy(loadCustomDecks(), rawStoredLoadouts());
-    return loadSquads() as unknown as CustomDeck[];
+    return loadSquads();
   });
   const [builderOpen, setBuilderOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -2474,6 +2474,8 @@ export function App() {
           node={prepNode}
           save={story}
           onSave={(next) => { setStory(next); saveStory(next); }}
+          squads={customDecks}
+          onSquads={setCustomDecks}
           onEditDeck={() => navDo({ t: "builder", open: true })}
           onCancel={() => navDo({ t: "prep", node: null })}
           onFight={(deck, book) => {
@@ -2999,34 +3001,30 @@ export function App() {
       <DeckBuilder
         open={nav.builder}
         onClose={() => navDo({ t: "builder", open: false })}
-        onChange={() => {}}
+        // Not a no-op any more: the campaign and the Arena share one library, so
+        // a squad saved in here has to reach the shelf on the prep screen this
+        // opened on top of.
+        onChange={setCustomDecks}
         boardSize={storyBuilderBoard}
         story={{
           owned: storyBuilderOwned,
-          teams: story.loadouts ?? [],
           cap: storyBuilderCap,
           element: region.element,
           spellPool: heroSpellShelf(story),
           foils: foilIds,
-          onSaveTeam: (name, cards, spells) => {
-            const rest = (story.loadouts ?? []).filter((l) => l.name.toLowerCase() !== name.toLowerCase());
-            const id = `${name.toLowerCase().replace(/\s+/g, "-")}-${rest.length}`;
-            const next = {
-              ...story,
-              loadouts: [...rest, { id, name, element: region.element, cards, spells: spells.length ? spells : undefined }],
-              deck: cards,
-              // The team you just built is the one you meant to take.
-              lastTeamId: id,
-            };
+          // The squad itself went to the shared library. What belongs in the
+          // SAVE is what you are HOLDING and which squad it came from — the
+          // campaign's pointer, not a second copy of the library. `loadouts` is
+          // read-only legacy from here on: `absorbLegacy` migrates it on boot
+          // and nothing writes it again.
+          onSaved: (cards, squadId) => {
+            const next = { ...story, deck: cards, lastTeamId: squadId ?? story.lastTeamId };
             setStory(next);
             saveStory(next);
           },
-          onDeleteTeam: (id) => {
-            const next = {
-              ...story,
-              loadouts: (story.loadouts ?? []).filter((l) => l.id !== id),
-              lastTeamId: story.lastTeamId === id ? undefined : story.lastTeamId,
-            };
+          onDeleted: (id) => {
+            if (story.lastTeamId !== id) return;
+            const next = { ...story, lastTeamId: undefined };
             setStory(next);
             saveStory(next);
           },

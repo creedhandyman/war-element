@@ -4,7 +4,8 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  absorbLegacy, deleteSquad, loadSquads, missingNames, saveSquad, squadUsableIn,
+  absorbLegacy, deleteSquad, loadSquads, missingNames, preferredSquad, saveSquad, squadNamed,
+  squadUsableIn, squadsFor, type Squad,
 } from "../../data/squads";
 import { loadStory, rawStoredLoadouts } from "../../data/story";
 
@@ -140,5 +141,56 @@ describe("squads — migration reads the raw store, not the playable view", () =
     expect(out.map((s) => s.name)).toEqual(["Kept"]);
     // And it is correctly reported as unfieldable rather than silently dropped.
     expect(squadUsableIn(out[0], { owned: [] }).ok).toBe(false);
+  });
+});
+
+
+describe("squads — which one a screen offers", () => {
+  const sq = (id: string, element: string | undefined, n: number): Squad =>
+    ({ id, name: id, element, cards: Array.from({ length: n }, () => "leaf_nettle") });
+
+  it("offers back the squad you last used, then the NEWEST match", () => {
+    // The bug this guards: prep searched the library FORWARDS for an element
+    // match, and squads are appended — so saving a new one and returning to the
+    // node silently fought with the oldest. The save was fine; the recall was
+    // wrong, which reads from the player's side as "squads not saving".
+    const all = [sq("old", "LEAF", 3), sq("new", "LEAF", 5)];
+    const anyLegal = () => true;
+
+    // No memory yet -> the NEWEST element match, not the first.
+    expect(preferredSquad(all, "LEAF", undefined, anyLegal)?.id).toBe("new");
+    // With a memory -> exactly what was last used, even though it is older.
+    expect(preferredSquad(all, "LEAF", "old", anyLegal)?.id).toBe("old");
+    // A remembered squad that is no longer LEGAL here falls through rather than
+    // being offered and then refused.
+    expect(preferredSquad(all, "LEAF", "old", (s) => s.cards.length > 4)?.id).toBe("new");
+    // A remembered id that no longer exists is simply ignored.
+    expect(preferredSquad(all, "LEAF", "deleted", anyLegal)?.id).toBe("new");
+    // Nothing for this element -> undefined, and prep keeps the current deck.
+    expect(preferredSquad(all, "PYRO", undefined, anyLegal)).toBeUndefined();
+  });
+
+  it("floats the matching element without dropping the rest", () => {
+    // One library now, so the campaign shelf shows Arena squads too. Sorting is
+    // the whole answer to that — hiding them would rebuild the split.
+    const all = [sq("arena", undefined, 3), sq("pyro", "PYRO", 3), sq("leaf", "LEAF", 3)];
+    expect(squadsFor(all, "PYRO").map((s) => s.id)).toEqual(["pyro", "arena", "leaf"]);
+    expect(squadsFor(all, undefined).map((s) => s.id)).toEqual(["arena", "pyro", "leaf"]);
+    expect(squadsFor(all, "PYRO"), "does not mutate the input").not.toBe(all);
+    expect(all.map((s) => s.id), "input order intact").toEqual(["arena", "pyro", "leaf"]);
+  });
+
+  it("hands back the id of the squad just saved, so a caller can point at it", () => {
+    // The campaign remembers WHICH squad you took in. `saveSquad` matches by
+    // name and mints its own id, so without this the pointer would be a guess.
+    const next = saveSquad({ name: "Anti-PYRO", cards: ["leaf_nettle"], element: "LEAF" });
+    const saved = squadNamed(next, "Anti-PYRO");
+    expect(saved?.id).toBeTruthy();
+    expect(loadSquads().find((s) => s.id === saved!.id)?.name).toBe("Anti-PYRO");
+    // Re-tuning under the same name overwrites, and the pointer still resolves.
+    const again = saveSquad({ name: "  anti-pyro  ", cards: ["leaf_greegon"], element: "LEAF" });
+    expect(again).toHaveLength(1);
+    expect(squadNamed(again, "Anti-PYRO")?.id, "same squad, same id").toBe(saved!.id);
+    expect(squadNamed(again, "nothing named this")).toBeUndefined();
   });
 });

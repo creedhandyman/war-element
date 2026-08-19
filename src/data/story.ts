@@ -2312,40 +2312,18 @@ export function bookForLoadout(
   return (own.length ? own : heroBookFor(save, boardSize)).slice(0, spellCapForBoard(boardSize));
 }
 
-/** Loadouts most likely to be wanted against `element`, best first. A team
- *  tagged for this element leads; everything else keeps its own order. */
-export function loadoutsFor(save: StorySave, element?: string): Loadout[] {
-  const all = save.loadouts ?? [];
-  if (!element) return all;
-  return [...all].sort((a, b) => Number(b.element === element) - Number(a.element === element));
-}
-
-/** The team to offer on arrival at a node, or undefined for "keep the last deck".
- *
- *  Order: the team last saved or fought with, then the MOST RECENT team tagged
- *  for this element. Newest-first is the whole point — teams are appended, so
- *  searching forwards returned the oldest match and a freshly saved team was
- *  never the one you got back. `legal` is applied to both so a team that has
- *  outgrown the node's cap is skipped rather than silently offered and refused. */
-export function preferredLoadout(
-  save: StorySave,
-  element: string | undefined,
-  legal: (l: Loadout) => boolean,
-): Loadout | undefined {
-  const all = save.loadouts ?? [];
-  const last = all.find((l) => l.id === save.lastTeamId);
-  if (last && legal(last)) return last;
-  for (let i = all.length - 1; i >= 0; i--)
-    if (all[i].element === element && legal(all[i])) return all[i];
-  return undefined;
-}
+/* Squads used to be listed and ranked from here, out of `save.loadouts`. Both
+ * lookups moved to `data/squads.ts` (`squadsFor` / `preferredSquad`) when the
+ * campaign's library merged with the Arena's — "which lineup do I offer" is not
+ * a question about a save file. `loadouts` survives in the save as a MIGRATION
+ * SOURCE only: `absorbLegacy` reads it once, on boot. Nothing writes it. */
 
 /** Whether a team can legally be taken into this fight. Undersized is the only
  *  hard failure — the cap is a ceiling, not a quota, and a player who wants to
  *  fight a Skirmish with twelve good cards instead of eighteen mediocre ones
  *  should be allowed to. */
 export function loadoutLegal(cards: string[], cap: number): { ok: boolean; reason?: string } {
-  if (cards.length === 0) return { ok: false, reason: "Empty team" };
+  if (cards.length === 0) return { ok: false, reason: "Empty squad" };
   if (cards.length > cap) return { ok: false, reason: `${cards.length} cards — the cap here is ${cap}` };
   return { ok: true };
 }

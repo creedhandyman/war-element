@@ -6,10 +6,9 @@ import {
   deckLimits,
   sanitizeSpells,
   validateDeck,
-  type CustomDeck,
 } from "../data/custom-decks";
 import { STANDARD_CAP } from "../data/story";
-import { deleteSquad, loadSquads, saveSquad, squadUsableIn, type Squad } from "../data/squads";
+import { deleteSquad, loadSquads, saveSquad, squadNamed, squadUsableIn, type Squad } from "../data/squads";
 import { deckLinkFor, decodeDeck, encodeDeck } from "../data/deck-code";
 import { EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE, spellArtSrc } from "./shared";
 import { CardView } from "./CardView";
@@ -37,8 +36,6 @@ const rarityRank = (r?: string) => (r && r in RARITY_RANK ? RARITY_RANK[r] : 99)
 export interface StoryBuildMode {
   /** Card ids the player owns. The pool is filtered to these. */
   owned: string[];
-  /** Named teams already saved in the campaign. */
-  teams: { id: string; name: string; element?: string; cards: string[]; spells?: string[] }[];
   /** Spell ids the hero has actually UNLOCKED. The Arena offers every spell of
    *  a deck's elements; the campaign hands them out for walking a region, so
    *  offering the rest here would be showing the player a book they cannot
@@ -51,8 +48,11 @@ export interface StoryBuildMode {
   foils?: ReadonlySet<string>;
   /** Tag applied to a team saved from here, so prep can float it to the top. */
   element?: string;
-  onSaveTeam: (name: string, cards: string[], spells: string[]) => void;
-  onDeleteTeam: (id: string) => void;
+  /** Told what was just saved, so the campaign can remember which squad it is
+   *  holding. The squad is already in the shared library by then — this is a
+   *  pointer, not a second write of the same data. */
+  onSaved: (cards: string[], squadId?: string) => void;
+  onDeleted: (id: string) => void;
 }
 
 export function DeckBuilder(props: {
@@ -62,7 +62,7 @@ export function DeckBuilder(props: {
    *  Loaded, not saved — see the import handler. */
   incomingCode?: string | null;
   onIncomingConsumed?: () => void;
-  onChange: (decks: CustomDeck[]) => void;
+  onChange: (squads: Squad[]) => void;
   /** Battlefield the player is building for — decides the legal deck size,
    *  which is EXACT: 18 on the standard board, 30 on the large one. */
   boardSize?: number;
@@ -246,6 +246,16 @@ export function DeckBuilder(props: {
     props.onIncomingConsumed?.();
   }, [props.open, props.incomingCode]);
 
+  // Re-read the shelf on every open. This list is seeded once at mount, and the
+  // builder is mounted the whole session behind an `open` flag — which was
+  // harmless while the campaign kept its own separate library, and stopped being
+  // harmless the moment there was ONE. Save a squad on the prep screen, open the
+  // builder over the top of it, and the squad was not there. Storage is the
+  // source of truth; both save paths write it, so re-reading is the whole fix.
+  useEffect(() => {
+    if (props.open) setSquads(loadSquads());
+  }, [props.open]);
+
   if (!props.open) return null;
 
   function toggle(id: string) {
@@ -278,18 +288,18 @@ export function DeckBuilder(props: {
     setSquads(next);
     // Squad is structurally a CustomDeck, so the Arena's deck pickers keep
     // working off this without knowing anything changed.
-    props.onChange(next as unknown as CustomDeck[]);
-    // BRIDGE: the prep screen's quick-select still reads story.loadouts. Until
-    // that reads squads too, a campaign save writes both — otherwise saving a
-    // squad here would make it vanish from the screen you fight from.
-    if (story) story.onSaveTeam(label, picked, pickedSpells);
+    props.onChange(next);
+    // One write, one library. The campaign is only told WHICH squad, so the
+    // prep screen can come back to it — `saveSquad` matches by name, so that is
+    // how the id is recovered.
+    if (story) story.onSaved(picked, squadNamed(next, label)?.id);
     reset();
   }
   function remove(id: string) {
     const next = deleteSquad(id);
     setSquads(next);
-    props.onChange(next as unknown as CustomDeck[]);
-    if (story) story.onDeleteTeam(id);
+    props.onChange(next);
+    if (story) story.onDeleted(id);
     if (editingId === id) reset();
   }
 
