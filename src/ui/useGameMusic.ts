@@ -77,10 +77,10 @@ export function useGameMusic(track: MusicTrack | MusicTrack[]): { muted: boolean
   );
   const [unlocked, setUnlocked] = useState(false);
   // Built on demand rather than up front, and this matters more than it did:
-  // ten tracks now, and TWO of them are mastered at 320kbps against the
-  // library's 96 — DAWN's Stars of Dawn at 8MB and DUSK's Underground at 7.3MB,
-  // where every other theme is 1.7-2.6MB. Lazy means only a player who actually
-  // walks into one of those regions pays for it.
+  // ten tracks now, and Stars of Dawn alone is 8MB where every other theme is
+  // 1.7-2.6MB — it is the one track still mastered at 320kbps against the
+  // library's 96. Lazy means only a player who actually walks into DAWN pays
+  // for it.
   const pool = useRef<Map<MusicTrack, HTMLAudioElement>>(new Map());
 
   // Stop and drop everything on unmount.
