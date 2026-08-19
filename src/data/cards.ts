@@ -330,6 +330,7 @@ export const CARDS: CardDef[] = [
     hp: 19,
     sp: 11,
     shields: 2,
+    tribe: "Suns",
     keywords: {},
     // Incinerate: consecutive hits on the same target this round ramp +1 DMG/hit.
     passiveNames: { incinerate: "Incinerate" },
@@ -598,6 +599,7 @@ export const CARDS: CardDef[] = [
     sp: 1,
     shields: 4,
     // Adapted for alpha: Curl Up (+2 shields when melee-targeted) → BLOCK 2.
+    tribe: "Mountain Beasts",
     keywords: { BLOCK: 2 },
   },
   {
@@ -629,6 +631,7 @@ export const CARDS: CardDef[] = [
     hp: 14,
     sp: 9,
     shields: 1,
+    tribe: "Sand Village",
     keywords: {},
     // Sandstorm (Aura): 1 DMG to all opponents each round.
     roundTick: { aoeDmg: 1 },
@@ -1764,6 +1767,7 @@ export const CARDS: CardDef[] = [
     hp: 10,
     sp: 7,
     shields: 0,
+    tribe: "Avian",
     keywords: {},
     // High Speed Impact: +1 DMG per SP point above 10, to a maximum of +5.
     //
@@ -2885,6 +2889,7 @@ export const CARDS: CardDef[] = [
     mounted: true, // rides — moves like a king in Prep, same as its charge
     sp: 13,
     shields: 0,
+    tribe: "Dark",
     keywords: {},
     // Long Reach: the lance carries. Its BASIC strikes up to 2 slots straight
     // ahead, behind, or to either side — diagonals stay at the usual one step,
@@ -3440,6 +3445,7 @@ export const CARDS: CardDef[] = [
     hp: 3,
     sp: 10,
     shields: 0,
+    tribe: "Avian",
     keywords: { FLYING: true },
     // Aerial Dominance: 1 DMG to any opponent summoned within range.
     passiveNames: { onOppSummon: "Aerial Dominance" },
@@ -3633,6 +3639,7 @@ export const CARDS: CardDef[] = [
     hp: 10,
     sp: 11,
     shields: 0,
+    tribe: "Avian",
     keywords: {},
     // Burning Ashes (On Death): revive once at 1 HP. (Doc also grants +4 shields
     // and a skipped turn on revive — not modeled.)
@@ -4070,6 +4077,7 @@ export const CARDS: CardDef[] = [
     hp: 25,
     sp: 11,
     shields: 0,
+    tribe: "Vamp",
     keywords: { LIFESTEAL: true },
     // The Butler (On Summon): it does not arrive as itself. It takes the
     // Butler's face and stat line, and the disguise is only dropped when
@@ -4398,6 +4406,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     // Tox: a flyer whose basic attacks leave a generic DOT ticking (GALE owns no
     // named DOT status, so this is element-free).
+    tribe: "Avian",
     keywords: { FLYING: true },
     onHitStatus: { kind: "DOT", duration: 2, power: 1 },
   },
@@ -5000,6 +5009,7 @@ export const CARDS: CardDef[] = [
     hp: 12,
     sp: 12,
     shields: 0,
+    tribe: "ARC",
     keywords: {},
     // Discharges into whatever it marked. The literal ELECTRIFIED status, so it
     // combos with its OWN Special rather than with any stray DOT on the board.
@@ -5531,6 +5541,7 @@ export const CARDS: CardDef[] = [
     hp: 2,
     sp: 11,
     shields: 0,
+    tribe: "Avian",
     keywords: { FLYING: true },
     // Sky Scout: when Sightwing enters a Mid row, allies' basic attacks hit +1
     // adjacent target for the round.
@@ -5680,6 +5691,7 @@ export const CARDS: CardDef[] = [
     hp: 17,
     sp: 2,
     shields: 0,
+    tribe: "Reptile",
     keywords: {},
     // Constriction: while adjacent to an opponent, drains 2 HP from it at end of
     // round (deal 2, heal 2) — a squeeze that doesn't need to swing.
@@ -5730,6 +5742,7 @@ export const CARDS: CardDef[] = [
     hp: 15,
     sp: 3,
     shields: 0,
+    tribe: "Forged Tech",
     keywords: {},
     // Bloodember (basic): its molten barbs open a BLEED — and being PYRO, the
     // Scorch aura layers BURN on the same swing. So a single basic sets the
@@ -5801,6 +5814,7 @@ export const CARDS: CardDef[] = [
     hp: 7,
     sp: 9,
     shields: 0,
+    tribe: "Ice",
     keywords: {},
     // Freeze Tag: a 25% chance to FREEZE on a basic hit. (A simpler take than the
     // doc's on-kill retaliation, using the same coin-flip on-hit.)
@@ -6827,6 +6841,7 @@ export const CARDS: CardDef[] = [
     hp: 3,
     sp: 8,
     shields: 0,
+    tribe: "Avian",
     keywords: { FLYING: true },
     // Gusta Burst (On Summon): deal 4 DMG to the nearest opponent.
     passiveNames: { onSummon: "Gusta Burst" },
@@ -9587,6 +9602,7 @@ export const TOKENS: CardDef[] = [
     sp: 4,
     shields: 3,
     // A sturdy bodyguard summoned by Solara — soaks damage behind BLOCK 1.
+    tribe: "Suns",
     keywords: { BLOCK: 1 },
   },
   {

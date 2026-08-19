@@ -37,6 +37,17 @@ export interface StoryNode {
   kind: NodeKind;
   /** Recruitable roster — the cards this node can actually give you. */
   roster: string[];
+  /** The tribe this node fights AS — "Ghost", "Spider", "ARC" — driving both
+   *  the fight's filler (`buildFormation` pads with same-tribe cards before the
+   *  region's generic rank and file) and how the node reads.
+   *
+   *  Explicit rather than always derived, because the roster is only the
+   *  recruitable seed: a three-card Ghost roster in a fifteen-card fight says
+   *  almost nothing about what actually stands on the board. Absent = derive
+   *  from the roster's dominant tribe (2+ cards sharing one), so untagged and
+   *  future nodes still benefit; `null` would mean "explicitly none" if a node
+   *  ever needs to opt out. */
+  tribe?: string;
   /** Non-recruitable filler. Tokens where the element has them; never rollable. */
   adds: string[];
   /** Elemental Overflow (§10.5): cheap Rares from the NEIGHBOURING region that
@@ -197,22 +208,25 @@ const LEAF: StoryRegion = {
       lore: "Keepers of Renewal. Their duty is beginnings: healing what's broken, coaxing new growth from old wounds. The least warlike of the four tribes, and the most trusted by outsiders."
     },
     { id: "L2", name: "Cherry Grove Path", kind: "skirmish", at: { x: 19, y: 24 },
-      requires: ["L1"], roster: ["leaf_birch", "leaf_leaf", "leaf_guardian"], adds: [],
+      requires: ["L1"], roster: ["leaf_sakuroot", "leaf_sprinu", "leaf_leaf"], adds: [],
       lore: "The blossom lasts nine days, and the Spring Tribe dates its agreements by it. A promise made under the petals is understood to expire when they fall."
      },
     { id: "L3", name: "Bloomwardens' Ring", kind: "warden", at: { x: 32, y: 40 },
-      requires: ["L2"], roster: ["leaf_stickers", "leaf_splint", "leaf_fallona"], adds: ["leaf_acorn_tok"],
+      requires: ["L2"], roster: ["leaf_stickers", "leaf_dartfrog", "leaf_bark_bushmen"], adds: ["leaf_acorn_tok"],
+      note: "No Reptiles here — just what lives in the blooms. The dart frog is not decoration.",
       lore: "Bloomwardens are not appointed. A candidate of any season stands inside the ring until it blooms around them, and a year of standing there is an ordinary wait."
      },
     { id: "L4", name: "Evergreen Plains", kind: "skirmish", at: { x: 25, y: 62 },
-      requires: ["L1"], roster: ["leaf_oak", "leaf_python", "leaf_sticks", "leaf_sprinu"], adds: [],
+      requires: ["L1"], roster: ["leaf_oak", "leaf_python", "leaf_sticks", "leaf_walking_tree"], adds: [],
+      note: "Unclaimed by any season, so everything grazes here — including the python.",
       lore: "Green in every month. The four tribes divide the Mega Forest by season, and the plains are the one stretch that division has never managed to reach."
      },
     { id: "L5", name: "Summer's Embrace Grove", kind: "warden", at: { x: 40, y: 74 },
-      requires: ["L4"], roster: ["leaf_alpha", "leaf_dande", "leaf_squanch"], adds: ["leaf_acorn_tok"] ,
+      requires: ["L4"], roster: ["leaf_sumerose", "leaf_dande", "leaf_squanch"], adds: ["leaf_acorn_tok"] ,
+      note: "Summer at full strength. Estival left the Wilds to sun herself here — she is still an assassin.",
       lore: "Where Spring starts things, Summer sustains them. Guardians of Growth, stewards of the plains where the forest stands at its fullest strength."
     },
-    { id: "L6", name: "Jungle Wilds", kind: "warden", at: { x: 83, y: 60 },
+    { id: "L6", name: "Jungle Wilds", kind: "warden", tribe: "Reptile", at: { x: 83, y: 60 },
       requires: ["L5"], roster: ["leaf_stickviper", "leaf_gecko", "leaf_cactus"], adds: ["leaf_reptilian_tok"],
       note: "The Reptile node — StickViper and Gecko are the tribe. Fight it before the warlord who buffs it.",
       lore: "Reptiles, not Keepers. The four tribes count the Wilds as forest rather than as a fifth people, a decision made early and never put to the brood."
@@ -220,25 +234,25 @@ const LEAF: StoryRegion = {
     // Gated off L10, not L2: the art puts Rustling Woods at Autumn's Gold in the
     // far north-east, so the approach is along the northern treeline.
     { id: "L7", name: "Rustling Woods", kind: "skirmish", at: { x: 78, y: 38 },
-      requires: ["L10"], roster: ["leaf_walking_tree", "leaf_hunter", "leaf_dartfrog"], adds: [],
+      requires: ["L10"], roster: ["leaf_hunter", "leaf_alpha", "leaf_fallona"], adds: [],
       overflow: ["aqua_misty"], // fronts Eastleaf Port — the Gateway to Aqua
-      note: "Autumn's Gold. Eastleaf Port and the sea road to AQUA lie just east.",
+      note: "Autumn's Gold, and the pack that hunts it. Eastleaf Port and the sea road to AQUA lie just east.",
       lore: "Autumn's Gold, where the leaves turn fire-coloured and then to rot that feeds the following spring. LEAF's realists tend the ending as carefully as the growth."
     },
     // Gated off L5, not L7: the Rot Line is painted across the SOUTHERN treeline,
     // a step past Summer's Embrace — nowhere near the northern woods.
     { id: "L8", name: "The Rot Line", kind: "warden", at: { x: 41, y: 84 },
-      requires: ["L5"], roster: ["leaf_nightshade", "leaf_darth", "leaf_bark_bushmen"], adds: [],
+      requires: ["L5"], roster: ["leaf_nightshade", "leaf_rubyo", "leaf_darth"], adds: [],
       overflow: ["pyro_staph"], // fronts the Southern Burn — the open road to PYRO
-      note: "The mid-forest spike, and the scar DUSK left. Where a starter deck stops working.",
+      note: "The scar DUSK left, and what nests in it now. Where a starter deck stops working.",
       lore: "Every other ending in the Mega Forest feeds a beginning — this one feeds something else. No Keeper will say aloud how much further south the Cycle still holds."
      },
     { id: "L9", name: "Winter's Reach Treeline", kind: "skirmish", at: { x: 40, y: 21 },
-      requires: ["L2"], roster: ["leaf_lumberjack", "leaf_whintey", "leaf_sakuroot"], adds: [] ,
+      requires: ["L2"], roster: ["leaf_whintey", "leaf_lumberjack", "leaf_birch"], adds: [] ,
       lore: "Along Winter's Reach the Sun's Army Fronts ride in open daylight, beside LEAF's Winter Tribe, watching the same snow. It is the only border DAWN keeps this way."
     },
     { id: "L10", name: "Winter Village Sentinels", kind: "warden", at: { x: 58, y: 23 },
-      requires: ["L9"], roster: ["leaf_sumerose", "leaf_rubyo", "leaf_citra"], adds: [],
+      requires: ["L9"], roster: ["leaf_citra", "leaf_guardian", "leaf_splint"], adds: [],
       note: "Under the Arctic Veil. The ice wall north is DAWN's border — sealed all campaign.",
       lore: "Sentinels of Rest. Not dormant — on duty. Winter holds that a forest which never stops to sleep eventually forgets how to grow."
     },
@@ -313,59 +327,62 @@ const PYRO: StoryRegion = {
       lore: "Where other nations fear the volcano, PYRO simply built a city that agrees with it. Flame fuels progress, and the strongest rule — stamped into every gate and forge-wall in the city."
     },
     { id: "P3", name: "Cinder Road", kind: "skirmish", at: { x: 61, y: 27 },
-      requires: ["P1"], roster: ["pyro_ingit", "pyro_bbq", "pyro_baboom", "pyro_taper"], adds: [],
+      requires: ["P1"], roster: ["pyro_ingit", "pyro_bbq", "pyro_taper", "pyro_heatsink_golem"], adds: [],
+      note: "Nobody built this fight either — loose embers off the road. Cheap, and they add up if you dawdle.",
       lore: "No one laid the Cinder Road: ash banked against ash for longer than the city has kept records, until there was a road, and PYRO counts that as having built it."
      },
-    { id: "P4", name: "Dessaer District: Forge of Fire", kind: "skirmish", at: { x: 30, y: 31 },
-      requires: ["P1"], roster: ["pyro_smog_card", "pyro_heatsink_golem", "pyro_spitfire", "pyro_dyna"], adds: [],
+    { id: "P4", name: "Dessaer District: Forge of Fire", kind: "skirmish", tribe: "Forged Tech", at: { x: 30, y: 31 },
+      requires: ["P1"], roster: ["pyro_baboom", "pyro_spitfire", "pyro_flamehound", "pyro_canister"], adds: [],
       note: "Forged Tech works. Fight the tribe here before you meet its Mythic at the Forge Core.",
       lore: "The Forged are not soldiers first but makers: constructs, war-engines, and the strange half-alive machinery that keeps the city's less glamorous work running."
     },
     { id: "P5", name: "The Slagfields", kind: "skirmish", at: { x: 84, y: 31 },
-      requires: ["P3"], roster: ["pyro_ash_boar", "pyro_slag_tortoise", "pyro_ember_scorpion", "pyro_wick"], adds: [],
+      requires: ["P3"], roster: ["pyro_ash_boar", "pyro_slag_tortoise", "pyro_ember_scorpion", "pyro_smog_card"], adds: [],
       note: "Cooled lava badlands. Four Rares and no champion — the heaviest Skirmish in the region.",
       lore: "The name suggests a dumping ground. The Slagfields are older than the forges that would have filled them — this is lava the mountain put down and has never come back to collect."
      },
     { id: "P6", name: "Pyro City Gates", kind: "warden", at: { x: 46, y: 55 },
-      requires: ["P3"], roster: ["pyro_firebird", "pyro_liza", "pyro_scully"], adds: [],
+      requires: ["P3"], roster: ["pyro_liza", "pyro_sarra", "pyro_firefly"], adds: [],
+      note: "The gates never close, so the watch does the closing. Utility Epics — answer them or play around them all day.",
       lore: "Pyro City's gates have hinges that have never been used. Closing one would concede there is something out there worth closing against, and nobody here will say that aloud."
      },
-    { id: "P9", name: "Firespine Foothills", kind: "warden", at: { x: 16, y: 34 },
-      requires: ["P4"], roster: ["pyro_fenrir", "pyro_firefly", "pyro_twins"], adds: [],
-      note: "The whole Cost-5 band on one node. The last gate before the Landmarks.",
+    { id: "P9", name: "Firespine Foothills", kind: "warden", tribe: "Wolf", at: { x: 16, y: 34 },
+      requires: ["P4"], roster: ["pyro_woof", "pyro_firebird", "pyro_fenrir"], adds: [],
+      note: "Wolf country. The pack hunts as one — drop the howler before the flanks close.",
       lore: "Above the last forge the slopes belong to whatever climbed there first. PYRO stopped building at that line and still calls the decision a courtesy rather than a retreat."
      },
     { id: "P7", name: "Ember Fortress Drill Yard", kind: "warden", at: { x: 68, y: 41 },
-      requires: ["P6"], roster: ["pyro_woof", "pyro_scorch", "pyro_tiki"], adds: [] ,
+      requires: ["P6"], roster: ["pyro_tiki", "pyro_twins", "pyro_scorch"], adds: [] ,
+      note: "The Knights at drill: a wall, a second wall, and the Support keeping both standing. Bring a can opener.",
       lore: "The Pyro Knights garrison here. Where the Forged build the city's strength, the Knights are sworn to make sure nothing ever gets close enough to test it."
     },
     { id: "P8", name: "Forgotten Ruins", kind: "warden", at: { x: 88, y: 57 },
-      requires: ["P5"], roster: ["pyro_sarra", "pyro_sseerr", "pyro_fenix"], adds: [],
-      note: "Half-buried civilization. Where a LEAF-only deck stops working — three BURN Epics with real Specials.",
+      requires: ["P5"], roster: ["pyro_dyna", "pyro_sseerr", "pyro_fenix"], adds: [],
+      note: "A wyrm roost in the rubble. The dragons were under the city before there was a city — Emberclaw still is.",
       lore: "Pyro City was built, quite literally, on top of whatever came before it — and has never once apologized for building over the evidence."
     },
     // Gated off the city, not off P1: the painted road to the harbour runs
     // through Pyro City. Still only four nodes deep, which keeps the doc's
     // point that a player finding PYRO too punishing can sail out early.
     { id: "P2", name: "Sunfall Coast", kind: "skirmish", at: { x: 34, y: 88 },
-      requires: ["P6"], roster: ["pyro_flamehound", "pyro_firecrack", "pyro_canister"], adds: [],
+      requires: ["P6"], roster: ["pyro_scully", "pyro_wick", "pyro_firecrack"], adds: [],
       overflow: ["aqua_buccaneers"], // pirate haven — the sea road to AQUA
       note: "Pirate haven. Gate C opens the sea route to AQUA from here.",
       lore: "Ships fly no particular flag here. The city tolerates it the way a forge tolerates ash: not proudly, but as an acknowledged cost of the fire being worth having."
     },
-    { id: "P10", name: "Ember Fortress: Inner Keep", kind: "landmark", at: { x: 74, y: 49 },
-      requires: ["P7", "P8"], roster: ["pyro_infernus_rex", "pyro_magmadon", "pyro_magmaw"], adds: [],
-      note: "The three heavy bruisers. Magmaw exists only in the live build — no project doc has it.",
+    { id: "P10", name: "Ember Fortress: Inner Keep", kind: "landmark", tribe: "Volcanic", at: { x: 74, y: 49 },
+      requires: ["P7", "P8"], roster: ["pyro_infernus_rex", "pyro_magmadon", "pyro_volcanon"], adds: [],
+      note: "The mountain's own: three Volcanic Legendaries behind walls that face inward. Now you know what they keep.",
       lore: "The Inner Keep's heaviest walls face inward — a detail visitors notice and the garrison declines to explain. Ember Fortress was raised around what PYRO keeps, not against what might arrive."
      },
     { id: "P11", name: "Sunfall Watch", kind: "landmark", at: { x: 62, y: 72 },
-      requires: ["P2", "P10"], roster: ["pyro_volcanon", "pyro_sol", "pyro_aftermath", "pyro_dynomight"], adds: [],
-      note: "The Cost-6 utility tier, all four on one node.",
+      requires: ["P2", "P10"], roster: ["pyro_magmaw", "pyro_sol", "pyro_aftermath", "pyro_dynomight"], adds: [],
+      note: "The long watch — Sol and Magmaw counting the mountain's days, plus the loose Legendaries that answer to no tribe.",
       lore: "Sunfall Watch counts the days the Firespine has left before it opens again. That number has only ever changed how hot the forges run, never who was told to leave."
      },
     { id: "P13", name: "Firespine Peaks: Dragon's Lair", kind: "throne", at: { x: 10, y: 53 },
       requires: ["P9", "P10"], roster: ["pyro_pyrogon"],
-      // Escorts: the volcanic beasts of the slopes, farmable at P5.
+      // Escorts: the volcanic beasts of the slopes, farmable on the story map.
       adds: ["pyro_ash_boar", "pyro_wick", "pyro_firebird"], required: true,
       note: "Required. Clearing it opens Gate D — the Veil Gate, and the DUSK reach.",
       lore: "Every child here is raised on the same understanding: the city's fire and the Dragon's fire are the same fire, and the Dragon has simply been keeping more of it, longer, than anyone alive."
@@ -417,54 +434,56 @@ const AQUA: StoryRegion = {
       note: "Where ships arrive. Misty and Saltjacks bleed out to LEAF and PYRO — this is their home.",
       lore: "Not simply the sea between the continents: the Life Source of the World, the endless water that sustained life before there were eight elements to sustain."
     },
-    { id: "A2", name: "Coral Isles Shallows", kind: "skirmish", at: { x: 8, y: 44 },
-      requires: ["A1"], roster: ["aqua_blub", "aqua_anglerfish", "aqua_subcool"], adds: [],
+    { id: "A2", name: "Coral Isles Shallows", kind: "skirmish", tribe: "SeaC", at: { x: 8, y: 44 },
+      requires: ["A1"], roster: ["aqua_blub", "aqua_anglerfish", "aqua_bulletshrimp"], adds: [],
+      note: "The SeaC nursery — everything here is small, cheap, and wet. Learn the tribe before the sea starts meaning it.",
       lore: "AQUA's shallowest people: a whole culture living where the bottom is always underfoot. Outsiders read that as caution, and the isles call it the floor of the house."
      },
     { id: "A3", name: "Aqua Village Docks", kind: "skirmish", at: { x: 17, y: 54 },
-      requires: ["A1"], roster: ["aqua_arctik", "aqua_bootlegger", "aqua_harp", "aqua_kinguin"],
+      requires: ["A1"], roster: ["aqua_arctik", "aqua_icyninza", "aqua_kinguin", "aqua_subcool"],
       adds: ["aqua_guin_tok"] ,
+      note: "Kinguin's village — the Stars run cold this far south, and the Guin turning out to watch is the whole town.",
       lore: "Harmony between land and sea, half on stilts and half submerged. Where most outsiders first meet AQUA, and where AQUA first decides whether it likes them."
     },
-    { id: "A4", name: "Corsair Lanes", kind: "warden", at: { x: 26, y: 64 },
-      requires: ["A3"], roster: ["aqua_bulletshrimp", "aqua_icyninza", "aqua_krakler", "aqua_spinefin"], adds: [],
-      note: "The SeaC crews. Krakler is what Siren turns into — you meet the shape before the source.",
+    { id: "A4", name: "Corsair Lanes", kind: "warden", tribe: "Pirate", at: { x: 26, y: 64 },
+      requires: ["A3"], roster: ["aqua_bootlegger", "aqua_octoirate", "aqua_blackbeard", "aqua_harp"], adds: [],
+      note: "The Pirate node — every corsair in the region flies through these lanes. Harp keeps the crew singing; cut the song first.",
       lore: "Sailors without kings, seekers of treasure and infamy, answering to no crown and no council. A kingdom, they'll tell you, is just a very large ship no one's allowed to leave."
     },
-    { id: "A5", name: "The Reef Wall", kind: "skirmish", at: { x: 9, y: 63 },
-      requires: ["A2"], roster: ["aqua_coralgolem", "aqua_siphon", "aqua_tide"], adds: [],
+    { id: "A5", name: "The Reef Wall", kind: "skirmish", tribe: "SeaC", at: { x: 9, y: 63 },
+      requires: ["A2"], roster: ["aqua_coralgolem", "aqua_tide", "aqua_spinefin"], adds: [],
       overflow: ["pyro_canister"], // fronts the open sea route to PYRO
-      note: "The Talent node — Siphon and Tide both carry once-per-game Talents. The clearest teaching fight for them.",
+      note: "The reef fights for itself. Tide still teaches the once-per-game Talent, and Spinefin is why nobody anchors here.",
       lore: "Most of what AQUA eats begins somewhere on the reef. Nobody quarries it, nobody anchors on it, and no crew in these lanes has ever had to be told why."
      },
-    { id: "A6", name: "Mists of Despair", kind: "warden", at: { x: 28, y: 85 },
-      requires: ["A5"], roster: ["aqua_octoirate", "aqua_bahari", "aqua_blackice"], adds: [],
-      note: "Shipwreck boneyard, perpetual fog.",
+    { id: "A6", name: "Mists of Despair", kind: "warden", tribe: "Liquid", at: { x: 28, y: 85 },
+      requires: ["A5"], roster: ["aqua_siphon", "aqua_bahari", "aqua_anos"], adds: [],
+      note: "Shipwreck boneyard, perpetual fog — and the water in it is the tribe. Three Liquid casters and no frontline to hit.",
       lore: "A shipwreck boneyard wrapped in fog that has never once lifted for a living sailor. Neither AQUA nor DUSK claims what happens inside, and neither has gone looking."
     },
     // Gated off A1, not A3: the floes are the next water NORTH of where ships
     // arrive, while the village is well south of them.
-    { id: "A7", name: "Northern Ice Floes", kind: "skirmish", at: { x: 38, y: 18 },
+    { id: "A7", name: "Northern Ice Floes", kind: "skirmish", tribe: "Ice", at: { x: 38, y: 18 },
       requires: ["A1"], roster: ["aqua_icynin", "aqua_owlette", "aqua_polarbear"], adds: [],
       lore: "The Ice Kingdom's outermost water — a border never twice the same shape. Its northern families name every floe they winter on, and keep the name long after the floe is gone."
      },
-    { id: "A8", name: "Ice Castle Outer Ward", kind: "warden", at: { x: 46, y: 26 },
-      requires: ["A7"], roster: ["aqua_cryo", "aqua_anos", "aqua_icewall"], adds: [],
+    { id: "A8", name: "Ice Castle Outer Ward", kind: "warden", tribe: "Ice", at: { x: 46, y: 26 },
+      requires: ["A7"], roster: ["aqua_cryo", "aqua_blackice", "aqua_icewall"], adds: [],
       note: "Ice Wall belongs to the castle it walls. A real wall, not a damage race — bring something that gets through 20 HP behind BLOCK.",
       lore: "The Ice Kingdom does not simply neighbour the Arctic. \"Descendants of the frozen deep\" is not a poetic title to them. It is a genealogy."
     },
     // Gated off A8, not A6: the Trench is painted on the EAST edge and the mists
     // are in the far south-west. The lane from the Ice Castle is the short one.
-    { id: "A9", name: "The Steamvent Trench", kind: "warden", at: { x: 78, y: 40 },
-      requires: ["A8"], roster: ["aqua_sapphire", "aqua_vaporem", "aqua_blackbeard", "aqua_liquark"], adds: [],
-      note: "The spike — three Cost-5s and a lurker, 19 gold of board. Liquark hunts from the vents rather than holding a line.",
+    { id: "A9", name: "The Steamvent Trench", kind: "warden", tribe: "Vapor", at: { x: 78, y: 40 },
+      requires: ["A8"], roster: ["aqua_sapphire", "aqua_vaporem", "aqua_liquark", "aqua_krakler"], adds: [],
+      note: "Still the spike — two Cost-5 Vapors holding the steam while Liquark and Krakler hunt from the vents underneath.",
       lore: "Scalding water and freezing water meet along the trench and neither wins. In the deep, cold and heat have never needed permission to coexist." },
     { id: "A10", name: "Ice Castle: Guardians of Ice", kind: "landmark", at: { x: 60, y: 14 },
       requires: ["A8"], roster: ["aqua_polarking", "aqua_phrost", "aqua_glacius"], adds: [],
       note: "A pure FREEZE wall, and the only node touching the Arctic Gate — DAWN's border, sealed until Act V.",
       lore: "Three nations claim the Frozen Citadel, and the Guardians have never confirmed any of them — either diplomacy, or the oldest joke in Concord, depending entirely on who's asking."
     },
-    { id: "A11", name: "Atlantis Outer Ring", kind: "landmark", at: { x: 65, y: 55 },
+    { id: "A11", name: "Atlantis Outer Ring", kind: "landmark", tribe: "SeaC", at: { x: 65, y: 55 },
       requires: ["A6", "A9"], roster: ["aqua_siren", "aqua_rain", "aqua_driftwraith", "aqua_magalogoon"], adds: [],
       note: "Four Legendaries — the richest node in the first three acts. Both arms of the sea have to be yours first.",
       lore: "Everything the sea carries stops at the outer ring, and almost none of it was invited. Atlantis does not refuse arrivals. It simply lets the ring do the deciding."
@@ -551,51 +570,53 @@ const GALE: StoryRegion = {
       lore: "GALE's only forest. Its orangewood exists for exactly one purpose — standing between the worst of the storms and the people trying to grow something in its shadow. No one worships it. They thank it."
     },
     { id: "G3", name: "The Rolling Flats", kind: "skirmish", at: { x: 40, y: 56 },
-      requires: ["G2"], roster: ["gale_breeze", "gale_duster", "gale_tumbleweed"], adds: [],
+      requires: ["G2"], roster: ["gale_breeze", "gale_tumbleweed", "gale_klouy"], adds: [],
+      note: "Everything out here moves with the wind — tumbleweed, spindrift, and you.",
       lore: "Open ground in every direction, and a prevailing wind steady enough to reckon by. GALE gives directions across the Flats in hours of wind, not in distance."
      },
     { id: "G5", name: "Dark Wind Township", kind: "skirmish", at: { x: 17, y: 79 },
-      requires: ["G2"], roster: ["gale_luna", "gale_wailverine", "gale_windsor"], adds: [],
+      requires: ["G2"], roster: ["gale_luna", "gale_duster", "gale_windsor"], adds: [],
       note: "Under perpetual cloud. The Wolves start here — Luna is the first of the pack.",
       lore: "GALE's furthest edge, where the nation's own patience runs out and its rawest weather takes over. Airship and sea traffic cross here more often than either nation admits."
     },
     { id: "G4", name: "The Raptor Roosts", kind: "skirmish", at: { x: 89, y: 79 },
-      requires: ["G3"], roster: ["gale_toxhawk", "gale_hawk", "gale_hawko"], adds: ["gale_toxhawk_tok"],
+      requires: ["G3"], roster: ["gale_vaga", "gale_hawk", "gale_hawko"], adds: ["gale_toxhawk_tok"],
       note: "Cliffside aeries. Fight the birds here before you meet what raises them.",
       lore: "Wyverns and young dragons test their wings in GALE's storms before they are strong enough to fly anywhere else in Concord. This sky is a proving ground for more than GALE's own people."
     },
     { id: "G6", name: "Northern Wind Villages", kind: "warden", at: { x: 38, y: 22 },
-      requires: ["G3"], roster: ["gale_vvulture", "gale_stormhide_bison", "gale_whirlwolf"], adds: [] ,
+      requires: ["G3"], roster: ["gale_stormhide_bison", "gale_wailverine", "gale_rayfen"], adds: [] ,
+      note: "Herd country. Count the bison on the way in; count what's watching them on the way out.",
       lore: "Farmsteads and highland homes behind the natural windbreaks of the Amberleaf. GALE's villages are practical in a way few other nations bother to be."
     },
-    { id: "G8", name: "Gale Village", kind: "warden", at: { x: 58, y: 35 },
-      requires: ["G3"], roster: ["gale_klouy", "gale_vaga", "gale_fano"], adds: [],
+    { id: "G8", name: "Gale Village", kind: "warden", tribe: "Avian", at: { x: 58, y: 35 },
+      requires: ["G3"], roster: ["gale_toxhawk", "gale_wista", "gale_fano"], adds: [],
       note: "The hardy people of the Orange Plains, and the wandering twisters they live with.",
       lore: "Funnel clouds rise and dissolve across the horizon on any given day, and the nation's heart has simply learned to build around them rather than pretend they'll stop."
     },
-    { id: "G7", name: "Skyforge Aerie", kind: "warden", at: { x: 91, y: 62 },
+    { id: "G7", name: "Skyforge Aerie", kind: "warden", tribe: "Avian", at: { x: 91, y: 62 },
       requires: ["G4"], roster: ["gale_angale", "gale_buf", "gale_sway"], adds: ["gale_ollie"],
       note: "Sway's Birds of Prey spawns Ollie, so the filler here is diegetic rather than padding.",
       lore: "GALE does not train the birds of this aerie. It keeps an arrangement with them, and its handlers say it has always been the bird's to end."
      },
-    { id: "G9", name: "The Shrike Line", kind: "warden", at: { x: 72, y: 58 },
-      requires: ["G7", "G8"], roster: ["gale_guan", "gale_masala", "gale_rayfen"],
+    { id: "G9", name: "The Shrike Line", kind: "warden", tribe: "Avian", at: { x: 72, y: 58 },
+      requires: ["G7", "G8"], roster: ["gale_masala", "gale_vvulture", "gale_guan"],
       adds: ["gale_toxhawk_tok"],
       note: "Mesala's Raptor Assault raises the same bird you fought at the Roosts.",
       lore: "Shrikes keep their larder along the thorn line, and GALE has never thinned it. A bird that stores more than it can eat is a neighbour this nation understands."
      },
-    { id: "G10", name: "Stormwall Approach", kind: "warden", at: { x: 73, y: 27 },
-      requires: ["G6"], roster: ["gale_omega", "gale_wista", "gale_wolfbane"], adds: [],
+    { id: "G10", name: "Stormwall Approach", kind: "warden", tribe: "Wolf", at: { x: 73, y: 27 },
+      requires: ["G6"], roster: ["gale_omega", "gale_whirlwolf", "gale_wolfbane"], adds: [],
       note: "Omega and Luna were written as a pair — this is where the pack closes.",
       lore: "GALE's mapmakers draw exactly one fixed line on the continent, and the Stormwall is it. They have redrawn it four times in living memory and still call it fixed."
      },
-    { id: "G11", name: "Stormwatch Cliffs: The Totem", kind: "landmark", at: { x: 84, y: 52 },
+    { id: "G11", name: "Stormwatch Cliffs: The Totem", kind: "landmark", tribe: "Avian", at: { x: 84, y: 52 },
       requires: ["G9", "G10"], roster: ["gale_eagon", "gale_tempest", "gale_totem"],
       adds: ["gale_totem_pole"],
       note: "The wind elemental shrine. The only node in the game whose filler is a Legendary-rarity token.",
       lore: "Stormwatch keeps no calendar of years. It keeps a count of the totems the cliffs have taken, and a second count of the ones standing again before anyone climbed up to raise them."
      },
-    { id: "G12", name: "The Eye of the Storm", kind: "landmark", at: { x: 60, y: 80 },
+    { id: "G12", name: "The Eye of the Storm", kind: "landmark", tribe: "Avian", at: { x: 60, y: 80 },
       requires: ["G5", "G9"],
       roster: ["gale_bluejay", "gale_galeon", "gale_klipso", "gale_kloud"], adds: [],
       note: "The whole Cost-7 Legendary band on one node — the richest recruit in Act IV.",
@@ -645,8 +666,8 @@ const BOLT: StoryRegion = {
       note: "Where the sea road from AQUA meets the sprawl.",
       lore: "\"Magic is just power no one's bothered to wire up yet.\" Painted above the door of every research wing in the city."
     },
-    { id: "B2", name: "Drone Field", kind: "skirmish", at: { x: 27, y: 46 },
-      requires: ["B1"], roster: ["bolt_rodd", "bolt_stingray", "bolt_zipp"], adds: ["bolt_drone_tok"],
+    { id: "B2", name: "Drone Field", kind: "skirmish", tribe: "ARC", at: { x: 27, y: 46 },
+      requires: ["B1"], roster: ["bolt_zipp", "bolt_rodd", "bolt_static"], adds: ["bolt_drone_tok"],
       note: "Neon sprawl and strung cables. Zipp's Swarm Deploy makes the Drones.",
       lore: "BOLT wires ground before anyone settles it. The lines go out to empty lots first, and whoever builds there afterwards is treated as proof the survey was right."
      },
@@ -654,8 +675,8 @@ const BOLT: StoryRegion = {
       requires: ["B1"], roster: ["bolt_drshock", "bolt_electricel", "bolt_jolt"], adds: [],
       lore: "Substation Row splits the city's current between districts, and posts the division publicly each morning. BOLT holds that a grid nobody can audit is a grid somebody has already tapped."
      },
-    { id: "B4", name: "The Static Flats", kind: "skirmish", at: { x: 28, y: 12 },
-      requires: ["B3"], roster: ["bolt_ning", "bolt_scrapper", "bolt_staticcloud"],
+    { id: "B4", name: "The Static Flats", kind: "skirmish", tribe: "ARC", at: { x: 28, y: 12 },
+      requires: ["B3"], roster: ["bolt_staticcloud", "bolt_ning", "bolt_stingray"],
       adds: ["bolt_static_wisp_tok"],
       note: "Fused glass and a lightning-scarred gateway. The north road to GALE runs through here.",
       lore: "BOLT did not merely build lines to carry lightning after it struck. It built a spire at the border to gather it before it has finished being GALE's storm at all."
@@ -666,38 +687,40 @@ const BOLT: StoryRegion = {
       lore: "Wet ground carries a charge better than dry, which is the only reason the marsh was never drained. BOLT keeps it flooded on purpose and treats the water as wiring."
      },
     { id: "B6", name: "Breaker Yard", kind: "warden", at: { x: 41, y: 41 },
-      requires: ["B3"], roster: ["bolt_lytning", "bolt_storm", "bolt_zagphu"], adds: [],
+      requires: ["B3"], roster: ["bolt_scrapper", "bolt_storm", "bolt_thundercat"], adds: [],
       lore: "Every grid fails somewhere, and BOLT's answer was to decide in advance where. The Breaker Yard is the address the rest of the city agreed to hand it."
      },
     { id: "B8", name: "Overload Junction", kind: "warden", at: { x: 63, y: 45 },
-      requires: ["B6"], roster: ["bolt_shoksa", "bolt_striik", "bolt_thundercat"], adds: [],
+      requires: ["B6"], roster: ["bolt_shoksa", "bolt_striik", "bolt_lytning"], adds: [],
+      note: "More current than anything downstream can spend. Dynamo makes it, Highroller bets it, Lytning spends it on you.",
       lore: "More current arrives at the junction than anything downstream of it can spend, and that is the specification, not an accident. Overload was a boast before anyone read it as a warning."
      },
-    { id: "B7", name: "Arc Industries Yards", kind: "warden", at: { x: 89, y: 55 },
-      requires: ["B8"], roster: ["bolt_static", "bolt_webster", "bolt_sentry"], adds: [],
+    { id: "B7", name: "Arc Industries Yards", kind: "warden", tribe: "ARC", at: { x: 89, y: 55 },
+      requires: ["B8"], roster: ["bolt_webster", "bolt_sentry", "bolt_voltcher"], adds: [],
       note: "Cooling towers and conduit pylons. The ARC spine starts here — every one of them Epic or above.",
       lore: "The mega fabrication plant. Machines, weapons, innovation: if it can be built, Arc Industries has already built a faster version."
     },
-    { id: "B9", name: "The Forge Grid", kind: "warden", at: { x: 79, y: 41 },
-      requires: ["B7"], roster: ["bolt_surge", "bolt_voltcher", "bolt_kore"],
+    { id: "B9", name: "The Forge Grid", kind: "warden", tribe: "ARC", at: { x: 79, y: 41 },
+      requires: ["B7"], roster: ["bolt_surge", "bolt_kore", "bolt_zagphu"],
       adds: ["bolt_static_wisp_tok"] ,
+      note: "ARC's heavy line — Surge, Kore, and Ricochet, fresh off the forge floor.",
       lore: "Voltis Plaza honours whoever first proved storm-lightning could be caught. The official histories name no one. Ask an old GearHollow dwarf and you may get a different answer."
     },
-    { id: "B10", name: "Forsaken Heights", kind: "warden", at: { x: 88, y: 21 },
+    { id: "B10", name: "Forsaken Heights", kind: "warden", tribe: "ARC", at: { x: 88, y: 21 },
       requires: ["B9"], roster: ["bolt_general", "bolt_thunder", "bolt_volta"], adds: [],
       note: "Iron lightning-rods drawing the storm. Volta's Grid Deployment spawns Rodd — a card you already own from the Drone Field.",
       lore: "The Heights were homes before they were rods. BOLT records the buyout as an upgrade — a word none of the families who signed it has ever used since."
      },
-    { id: "B11", name: "The Hive Array", kind: "landmark", at: { x: 72, y: 67 },
-      requires: ["B5", "B9"], roster: ["bolt_jack_arc", "bolt_keeper", "bolt_shock", "bolt_zoez"],
+    { id: "B11", name: "The Hive Array", kind: "landmark", tribe: "ARC", at: { x: 72, y: 67 },
+      requires: ["B5", "B9"], roster: ["bolt_jack_arc", "bolt_keeper", "bolt_gigavolt", "bolt_zoez"],
       adds: ["bolt_beebot"],
-      note: "GearHollow's swarm. Keeper breeds a Beebot every round to a cap of 5 — solve the engine, not the board.",
+      note: "GearHollow's swarm. Keeper breeds a Beebot every round to a cap of 5 while GigaVolt's Turret Mode pins what it touches — solve the engine, not the board.",
       lore: "GearHollow's dwarves sign nothing they build. In the tunnels a name on a diagram reads as an admission that one person could have got the whole thing wrong."
      },
     { id: "B12", name: "Stormcaller's Spire", kind: "landmark", at: { x: 66, y: 18 },
-      requires: ["B4", "B10"], roster: ["bolt_gigavolt", "bolt_stormcaller", "bolt_voltogon"],
+      requires: ["B4", "B10"], roster: ["bolt_stormcaller", "bolt_shock", "bolt_voltogon"],
       adds: ["bolt_static_wisp_tok"],
-      note: "By the airship docks. GigaVolt's Turret Mode pins the board with ELECTRIFIED, which turns every other BOLT card into a +2 threat.",
+      note: "By the airship docks. The machines stay below — this is the storm itself, and Voltogon rides it in.",
       lore: "GALE's storms are sacred and untamed. BOLT's engineers look at the same lightning and ask a very different question: what is this actually for?"
     },
     { id: "B13", name: "The Grid Vault", kind: "throne", at: { x: 43, y: 83 },
@@ -761,7 +784,7 @@ const BORE: StoryRegion = {
       lore: "Nothing leaves the Black Smith's forges quickly. BORE's crafters have never once apologized for a customer who waited a year for something worth carrying for a lifetime."
     },
     { id: "R4", name: "Sand Village", kind: "skirmish", at: { x: 23, y: 80 },
-      requires: ["R3"], roster: ["bore_old_timer", "bore_sling", "bore_thorny_ripper"], adds: [],
+      requires: ["R3"], roster: ["bore_sling", "bore_thorny_ripper", "bore_valcana"], adds: [],
       note: "Desert dwellers under cloth awnings. We trade, travel, survive.",
       lore: "Desert dwellers who live not in the mountain's stone but on its sand — closer to the Worm's territory than anyone in the Fortress would prefer, and entirely unbothered by that fact."
     },
@@ -776,7 +799,7 @@ const BORE: StoryRegion = {
       lore: "A single vast Sand Worm prowls the depths, dragging the dunes into slow spiralling wounds when it surfaces. BORE's storytellers never call it the only one. They call it the one that's already awake."
     },
     { id: "R7", name: "Faultline", kind: "warden", at: { x: 30, y: 38 },
-      requires: ["R5"], roster: ["bore_shift", "bore_valcana", "bore_rhe"],
+      requires: ["R5"], roster: ["bore_shift", "bore_rhe", "bore_sheish"],
       adds: ["bore_cosmic", "bore_crock"],
       lore: "The stonework here is set without mortar on purpose: the ground can shift a hand's width and the wall goes with it. Building rigid was tried once."
      },
@@ -787,18 +810,18 @@ const BORE: StoryRegion = {
       lore: "Giant mystical crystals grow undisturbed here. The scholars who first theorized the War Element still cross-reference their notes against something they only ever call \"the deeper hum.\""
     },
     { id: "R9", name: "The Rolling Deep", kind: "warden", at: { x: 52, y: 45 },
-      requires: ["R7"], roster: ["bore_rollo", "bore_sheish", "bore_bolder"],
+      requires: ["R7"], roster: ["bore_rollo", "bore_bolder", "bore_old_timer"],
       adds: ["bore_iron", "bore_kcor"],
       lore: "Stone that has been rolling long enough to lose its corners, in galleries no one has finished clearing. The haulers work by ear and step aside before they see a reason to."
      },
-    { id: "R10", name: "Cavernous Descent", kind: "warden", at: { x: 35, y: 65 },
-      requires: ["R4", "R9"], roster: ["bore_gemaga", "bore_obsidi", "bore_rohojohn"],
+    { id: "R10", name: "Cavernous Descent", kind: "warden", tribe: "Cavernous", at: { x: 35, y: 65 },
+      requires: ["R4", "R9"], roster: ["bore_gemaga", "bore_obsidi", "bore_score"],
       adds: ["bore_hillbilly", "bore_cavedweller"],
       note: "Beneath the mountain, secrets breathe.",
       lore: "Miners go down here with a lamp, and the ones who stay stop carrying it back up. No one teaches that. The dark simply arranges it."
      },
     { id: "R11", name: "The Gem Vault", kind: "landmark", at: { x: 44, y: 55 },
-      requires: ["R8", "R9"], roster: ["bore_diam", "bore_prism", "bore_sandman", "bore_score"],
+      requires: ["R8", "R9"], roster: ["bore_diam", "bore_prism", "bore_sandman", "bore_rohojohn"],
       adds: [],
       note: "The lantern-lit descent of the Diamond Mine. The utility tier, all four on one node.",
       lore: "The Diamond Mine carves its stronghold out of rock too patient to notice the excavation. BORE's quiet wealth: beauty that simply accumulates, given enough centuries."
@@ -869,61 +892,61 @@ const DUSK: StoryRegion = {
       note: "Under the Rot Line door. These are the bodies that have been turning up in your regions for four Acts.",
       lore: "\"Shadows hold power, and only the forgotten endure.\" Carved above the gates of every Dead Forest cemetery in Concord."
     },
-    { id: "D2", name: "Potter's Field", kind: "skirmish", at: { x: 33, y: 22 },
-      requires: ["D1"], roster: ["dusk_zombie_husk", "dusk_skeleton_knight", "dusk_zhunk"],
+    { id: "D2", name: "Potter's Field", kind: "skirmish", tribe: "Zombie", at: { x: 33, y: 22 },
+      requires: ["D1"], roster: ["dusk_zombie_husk", "dusk_zhunk", "dusk_gravekeeper"],
       adds: ["dusk_zombie_tok", "dusk_skeleton_tok"],
       note: "Dead Forest West. The risen — they rot, they rise, they do not stop.",
       lore: "DUSK's dead do not rise because they refuse to die. They rise because dying was never the part of the process the living world actually controlled. Being forgotten was."
     },
-    { id: "D3", name: "Widow's Hollow", kind: "skirmish", at: { x: 34, y: 34 },
-      requires: ["D2"], roster: ["dusk_spider", "dusk_widowbite", "dusk_vamp", "dusk_scarlett"],
+    { id: "D3", name: "Widow's Hollow", kind: "skirmish", tribe: "Spider", at: { x: 34, y: 34 },
+      requires: ["D2"], roster: ["dusk_spider", "dusk_widowbite", "dusk_silkstalker", "dusk_sarachnid"],
       adds: [],
-      note: "Spiders weave and wait; vampires rule the night.",
+      note: "Spiders weave and wait — every widow in the hollow, and nothing that isn't one.",
       lore: "Widows here go on keeping the house exactly as it was kept, and the household is under no obligation to still be alive. The hollow's spiders were named for them."
      },
-    { id: "D4", name: "The Weeping Chapel", kind: "skirmish", at: { x: 44, y: 22 },
+    { id: "D4", name: "The Weeping Chapel", kind: "skirmish", tribe: "Ghost", at: { x: 44, y: 22 },
       requires: ["D2"], roster: ["dusk_harve", "dusk_gool", "dusk_soul_wisp"],
       adds: ["dusk_specter_tok"],
       lore: "The chapel is older than the forest that grew around it, and whoever built it left no name on anything. Only the congregation has changed, one funeral at a time."
      },
-    { id: "D5", name: "Scarecrow Rows", kind: "skirmish", at: { x: 41, y: 49 },
-      requires: ["D3"], roster: ["dusk_jackl", "dusk_hix", "dusk_gravekeeper", "dusk_skulldrake"],
+    { id: "D5", name: "Scarecrow Rows", kind: "skirmish", tribe: "ScareKrow", at: { x: 41, y: 49 },
+      requires: ["D3"], roster: ["dusk_jackl", "dusk_skrow", "dusk_hix", "dusk_plaguecrow"],
       adds: [],
       note: "The Nightmare Fields, at the western landing of the bridge — torn ground, and the hoofprints of the damned.",
       lore: "Nothing has grown in these rows in living memory, and the scarecrows are still maintained: restuffed, re-hung, and walked back out each season by hands that have no use for a harvest."
      },
-    { id: "D6", name: "Forsaken Heights", kind: "warden", at: { x: 22, y: 27 },
-      requires: ["D1"], roster: ["dusk_silkstalker", "dusk_skrow", "dusk_spectra"],
+    { id: "D6", name: "Forsaken Heights", kind: "warden", tribe: "Vamp", at: { x: 22, y: 27 },
+      requires: ["D1"], roster: ["dusk_vamp", "dusk_scarlett", "dusk_violet"],
       adds: ["dusk_specter_tok"],
       note: "The Green Continent reach, fought at Act III scale by anyone who came through PYRO's Veil Gate early.",
       lore: "The Dead Forest spreads on both continents at once — the same leafless blight in LEAF's southern edge and BORE's western mountains, one corruption that never respected a border."
     },
-    { id: "D7", name: "The Haunting Ground", kind: "warden", at: { x: 84, y: 22 },
-      requires: ["D8"], roster: ["dusk_ghastly", "dusk_haunt", "dusk_plaguecrow"],
+    { id: "D7", name: "The Haunting Ground", kind: "warden", tribe: "Ghost", at: { x: 84, y: 22 },
+      requires: ["D8"], roster: ["dusk_spectra", "dusk_ghastly", "dusk_haunt"],
       adds: ["dusk_specter_tok"],
       note: "Dead Forest East — the souls that remain.",
       lore: "The eastern forest is not cleared but conceded — a strip of ground the living quietly hand back, fence by fence, to whatever declined to move on."
      },
-    { id: "D8", name: "Bonefield Muster", kind: "warden", at: { x: 63, y: 46 },
-      requires: ["D5"], roster: ["dusk_reaper", "dusk_sarachnid", "dusk_brute"],
+    { id: "D8", name: "Bonefield Muster", kind: "warden", tribe: "Skeleton", at: { x: 63, y: 46 },
+      requires: ["D5"], roster: ["dusk_skeleton_knight", "dusk_skulldrake", "dusk_reaper"],
       adds: ["dusk_skeleton_tok"],
       note: "The eastern landing of the bridge, below the Boneyard. Born of bone, and they march eternal — the only way across the Shadow Pass ravine.",
       lore: "Where LEAF's people speak of the Cycle as a wheel, DUSK's people speak of Shadow Pass as a door — one that has never fully closed since whatever died first opened it."
     },
     { id: "D9", name: "The Veil Gate", kind: "warden", at: { x: 13, y: 46 },
-      requires: ["D6"], roster: ["dusk_ender", "dusk_rip", "dusk_violet", "dusk_wedded_wraith"],
+      requires: ["D6"], roster: ["dusk_ender", "dusk_rip", "dusk_brute", "dusk_wedded_wraith"],
       adds: ["dusk_risen_tok", "dusk_specter_tok"],
       note: "The portal to the forgotten souls, and the region's spike at cost 20.",
       lore: "DUSK's account of the Sundering is the shortest, and the one no other nation enjoys hearing repeated: something died. Not a person. Not a nation."
     },
     { id: "D10", name: "Death Island: The Landing", kind: "landmark", at: { x: 40, y: 62 },
       requires: ["D5", "D9"],
-      roster: ["dusk_ravven", "dusk_scar", "dusk_hoax", "dusk_zombination"],
+      roster: ["dusk_ravven", "dusk_scar", "dusk_hoax", "dusk_nightfang"],
       adds: ["dusk_zombie_tok", "dusk_redreven"],
       lore: "Nobody is carried up the stones from the Landing. Whatever condition an arrival is in, DUSK holds that the last stretch of a journey belongs to the one making it."
      },
     { id: "D11", name: "Death Island: The Barrows", kind: "landmark", at: { x: 66, y: 64 },
-      requires: ["D7"], roster: ["dusk_destro", "dusk_nightfang", "dusk_skelider"],
+      requires: ["D7"], roster: ["dusk_zombination", "dusk_skelider", "dusk_destro"],
       adds: ["dusk_skeleton_tok"],
       lore: "The mounds are numbered, swept, and reopened as needed, the way a street keeps its houses. The families who do the upkeep are mostly buried in the same row."
      },
@@ -980,48 +1003,51 @@ const DAWN: StoryRegion = {
       note: "The guarded way, and the only road in. Everything past the wall has been unseen all campaign.",
       lore: "Sailors who have tried to chart the Veil all report the same thing: the storm does not end because you outlast it. It ends because it decides you may pass."
     },
-    { id: "W2", name: "First Light Camp", kind: "skirmish", at: { x: 36, y: 72 },
+    { id: "W2", name: "First Light Camp", kind: "skirmish", tribe: "Suns", at: { x: 36, y: 72 },
       requires: ["W1"], roster: ["dawn_roy", "dawn_sparkle", "dawn_glime"], adds: [],
       lore: "Whoever the Veil lets through is fed and warmed here before being asked a single question. The order is deliberate: no one lies well an hour after surviving that storm."
      },
-    { id: "W3", name: "Mirrorfield", kind: "skirmish", at: { x: 27, y: 62 },
+    { id: "W3", name: "Mirrorfield", kind: "skirmish", tribe: "Stars", at: { x: 27, y: 62 },
       requires: ["W2"], roster: ["dawn_reflection", "dawn_shine", "dawn_sphere"], adds: [],
       lore: "Mirror banks angled at the low sun. They put DAWN's light on ground the sun itself cannot reach, and the polishers will never see the wall they keep lit."
      },
-    { id: "W4", name: "Golden Farmlands", kind: "skirmish", at: { x: 16, y: 58 },
+    { id: "W4", name: "Golden Farmlands", kind: "skirmish", tribe: "Suns", at: { x: 16, y: 58 },
       requires: ["W3"],
       roster: ["dawn_stbern", "dawn_goldeneagle", "dawn_musk_ox", "dawn_oxin"], adds: [],
       note: "Royal gardens, green in the snow — and the herd that works them.",
       lore: "Fertile soil nurtured by sunlight and care. Even a kingdom built around a wall against the dark still has to eat."
     },
-    { id: "W5", name: "Sunrise Muster", kind: "warden", at: { x: 44, y: 64 },
-      requires: ["W2"], roster: ["dawn_amble", "dawn_golde", "dawn_lazor", "dawn_star"], adds: [],
+    { id: "W5", name: "Sunrise Muster", kind: "warden", tribe: "Suns", at: { x: 44, y: 64 },
+      requires: ["W2"], roster: ["dawn_amble", "dawn_halo", "dawn_star", "dawn_ty"], adds: [],
+      note: "Sun and star answer the same roll call — DAWN keeps no separate list.",
       lore: "The names are called here at sunrise, and the fallen are read out with the living. Someone in the line answers for each. DAWN keeps no separate list."
      },
-    { id: "W6", name: "The Blazing Road", kind: "warden", at: { x: 58, y: 70 },
-      requires: ["W5"], roster: ["dawn_ariel", "dawn_radiance", "dawn_raya", "dawn_ty"], adds: [],
+    { id: "W6", name: "The Blazing Road", kind: "warden", tribe: "Suns", at: { x: 58, y: 70 },
+      requires: ["W5"], roster: ["dawn_golde", "dawn_radiance", "dawn_drakonbane", "dawn_lazor"], adds: [],
+      note: "The knights' road north, never in shadow — and never unguarded.",
       lore: "Not the shortest road north — the only one never in shadow. DAWN would rather add a day's march than hand the dark a stretch of road."
      },
-    { id: "W7", name: "The Solar Bastion", kind: "warden", at: { x: 26, y: 38 },
+    { id: "W7", name: "The Solar Bastion", kind: "warden", tribe: "Suns", at: { x: 26, y: 38 },
       requires: ["W4"],
       roster: ["dawn_solara", "dawn_solstice", "dawn_veil", "dawn_warphant"],
       adds: ["dawn_radiant_guardian"],
       note: "The wall that shines. We hold the wall; nothing passes.",
       lore: "The Golden Kingdom does not hide because it is proud. It hides because it is standing in front of something, and it has never been fully certain what happens if it stops."
     },
-    { id: "W8", name: "High Noon", kind: "warden", at: { x: 68, y: 47 },
+    { id: "W8", name: "High Noon", kind: "warden", tribe: "Stars", at: { x: 68, y: 47 },
       requires: ["W6"],
-      roster: ["dawn_clipsey", "dawn_drakonbane", "dawn_halo", "dawn_sircrest"], adds: [],
+      roster: ["dawn_clipsey", "dawn_sircrest", "dawn_ariel", "dawn_raya"], adds: [],
+      note: "Noon, and the sky darkens anyway. The Stars take the sun's own hour.",
       lore: "Every clock and boundary stone in the Kingdom is reckoned from the moment the sun crosses this ground. No king set the mark: generations of surveyors argued their way to it."
      },
-    { id: "W9", name: "Castle Grounds", kind: "landmark", at: { x: 50, y: 57 },
+    { id: "W9", name: "Castle Grounds", kind: "landmark", tribe: "Stars", at: { x: 50, y: 57 },
       requires: ["W5", "W7"],
       roster: ["dawn_aurora", "dawn_heir_tok", "dawn_kosmos", "dawn_aurelion"],
       adds: ["dawn_radiant_guardian"],
       note: "Outer wards, tilt-yards and gatehouses. Heir is a Legendary despite the token-shaped id — it is fully draftable.",
       lore: "An heir is named in these yards, not in the Court above them, so that whoever is standing watch that morning is a witness. DAWN does not crown anyone in private."
      },
-    { id: "W10", name: "The Golden Court", kind: "landmark", at: { x: 50, y: 41 },
+    { id: "W10", name: "The Golden Court", kind: "landmark", tribe: "Suns", at: { x: 50, y: 41 },
       requires: ["W8", "W9"], roster: ["dawn_commander", "dawn_leo", "dawn_dawn"],
       adds: ["dawn_radiant_guardian"] ,
       lore: "DAWN's nobility is a chess hierarchy every child learns before they learn to read: King, Queen, Bishop, Rook, Knight — and Pawn, which is most of DAWN."
@@ -2144,6 +2170,10 @@ export const ENEMY_DEPLOY = 0;
 export const isFirstBattle = (region: StoryRegion, node: StoryNode): boolean =>
   !region.requires?.length && region.opening.node === node.id;
 
+/** A card's tribes, whichever shape the field takes. */
+const tribesOf = (d: { tribe?: string | string[] }): string[] =>
+  d.tribe == null ? [] : Array.isArray(d.tribe) ? d.tribe : [d.tribe];
+
 export function buildFormation(save: StorySave, region: StoryRegion, node: StoryNode): string[] {
   const uniques = recruitablePool(node);
   const opening = isOpeningNode(region, node);
@@ -2211,6 +2241,35 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
    *  should be the cheap end; this is the region's defeated force arriving
    *  behind its next defender, and it should be the heavy end. Sorting it the
    *  same way would have added cards without adding weight. */
+  /** The tribe this fight is OF — the node's declared tribe, else the roster's
+   *  dominant one (2+ members). What makes a node a Ghost manor rather than a
+   *  rarity band with a ghost in it. */
+  const nodeTribe = node.tribe ?? (() => {
+    const counts = new Map<string, number>();
+    for (const id of uniques)
+      for (const tb of tribesOf(getDef(id)))
+        counts.set(tb, (counts.get(tb) ?? 0) + 1);
+    let best: string | undefined; let bestN = 1;
+    for (const [tb, n2] of counts) if (n2 > bestN) { best = tb; bestN = n2; }
+    return best;
+  })();
+  /** Same-tribe cards of a rarity, from the whole REGION, not yet standing.
+   *  Filled ahead of `regionPool` at every band, so a Ghost node pads with
+   *  ghosts before it reaches for the region's generic cheap end — the roster
+   *  is only the recruitable seed, and before this the other ten or twelve
+   *  bodies in the fight were whatever was cheapest, which is why a "Spider
+   *  Woods" fielded one spider and a crowd of unrelated rank and file.
+   *
+   *  AFTER the muster, not before: the muster is the region's defeated force
+   *  arriving behind its next defender, a difficulty mechanic that was asked
+   *  for by name, and a tribe pool ahead of it would starve it of slots. The
+   *  fallen legions reinforcing the next bastion reads fine. */
+  const tribePool = (r: string) =>
+    nodeTribe == null ? [] :
+      [...new Set(region.nodes.flatMap((n) => n.roster))]
+        .filter((id) => rarity(id) === r && !present.includes(id)
+          && tribesOf(getDef(id)).includes(nodeTribe))
+        .sort(byCost);
   const musterPool = (r: string) =>
     !region.musters ? [] :
       [...new Set(
@@ -2248,13 +2307,16 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
   // node fills with what you beat before it falls back to the region's cheap
   // rank and file. Both are no-ops in a region that does not muster.
   fill(musterPool("legendary"), maxLeg);
+  fill(tribePool("legendary"), maxLeg);
   fill(regionPool("legendary"), maxLeg);
   fill(present.filter((id) => rarity(id) === "epic").sort(byCost), maxEpic);
   fill(musterPool("epic"), maxEpic);
+  fill(tribePool("epic"), maxEpic);
   fill(regionPool("epic"), maxEpic);
   // Rares are the remainder — no quota, they fill whatever is left.
   fill(present.filter((id) => rarity(id) === "rare").sort(byCost), -1);
   fill(musterPool("rare"), -1);
+  fill(tribePool("rare"), -1);
   fill(regionPool("rare"), -1);
   return out;
 }

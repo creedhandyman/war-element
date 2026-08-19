@@ -1723,6 +1723,81 @@ describe("story: board size is welded to deck size", () => {
     expect(autoDeck(pool, 0)).toEqual([]);
   });
 
+  // A card's tribes, whichever shape the field takes (Ravven is Dark AND Avian).
+  const tribesOf = (d: { tribe?: string | string[] }): string[] =>
+    d.tribe == null ? [] : Array.isArray(d.tribe) ? d.tribe : [d.tribe];
+
+  it("declares no node tribe it cannot field", () => {
+    // Every node that declares a tribe must hold at least TWO carriers among its
+    // roster and adds — one card is a guest, two is a faction. This exists
+    // because the reshape was designed against a generated card pack whose
+    // extractor over-reported tribes (a regex window bleeding into the next card
+    // def), and seven of the forty-seven declared tribes shipped with a single
+    // real carrier before this swept them. The pack is gone; the invariant is
+    // what stops the next reshape repeating it.
+    let declared = 0;
+    for (const r of REGIONS)
+      for (const n of r.nodes) {
+        const tb = (n as { tribe?: string }).tribe;
+        if (!tb) continue;
+        declared++;
+        const carriers = [...n.roster, ...n.adds].filter((id) => tribesOf(getDef(id)).includes(tb));
+        expect(carriers.length, `${r.id} ${n.id} claims ${tb} with ${carriers.join(", ") || "nobody"}`)
+          .toBeGreaterThanOrEqual(2);
+      }
+    // And the feature is actually in use — a refactor that silently dropped
+    // every declaration would pass the loop above over nothing.
+    expect(declared).toBeGreaterThan(30);
+  });
+
+  it("fills tribed nodes' fights with their OWN tribes, beyond the roster", () => {
+    // The engine half of the reshape: a node's roster is only the recruitable
+    // seed, and before the tribe pool the other ten or twelve bodies were
+    // whatever was cheapest — a "Spider Woods" fielded one spider and a crowd of
+    // unrelated rank and file.
+    //
+    // Asserted as TOTAL on-tribe reinforcements across every declared node, and
+    // the metric was chosen by falsification, not taste. The first version
+    // counted NODES with at least one off-roster tribemate and passed with the
+    // tribe pool unplugged — the generic cheapest-first fill delivers on-tribe
+    // rares by accident often enough to clear any per-node bar. Card MASS is
+    // what actually separates: 370 with the pool, 171 without. 270 sits
+    // between with ~100 of margin each way, so a card rebalance cannot flap it
+    // and an unplugged pool cannot pass it.
+    const ladder = ["L14", "P13", "A13", "G14", "B14"]; // cap 30
+    let tribed = 0, mass = 0;
+    for (const r of REGIONS)
+      for (const n of r.nodes) {
+        const tb = (n as { tribe?: string }).tribe;
+        if (!tb) continue;
+        tribed++;
+        const form = buildFormation({ ...newSave(), cleared: ladder }, r, n);
+        const seeded = new Set([...n.roster, ...n.adds]);
+        mass += form.filter((id) => !seeded.has(id) && tribesOf(getDef(id)).includes(tb)).length;
+      }
+    expect(tribed).toBeGreaterThan(30);
+    expect(mass, `${mass} on-tribe reinforcements across ${tribed} tribed nodes`).toBeGreaterThanOrEqual(270);
+  });
+
+  it("derives a tribe from an undeclared roster that plainly has one", () => {
+    // The fallback half: a node with no explicit tribe whose roster carries two
+    // of one anyway (GALE's Raptor Roosts — two hawks and Squall) fills on-tribe
+    // too, so an untagged or future node benefits without anyone declaring
+    // anything. Threshold by the same falsification as above: G4 fields 8
+    // off-roster avians with the derivation and 2 without it — the 2 are the
+    // generic fill tripping over cheap birds — so 5 separates the mechanisms.
+    const gale = REGIONS.find((r) => r.id === "gale")!;
+    const node = gale.nodes.find((n) => n.id === "G4")!;
+    expect((node as { tribe?: string }).tribe, "the point is that G4 does NOT declare").toBeUndefined();
+    const onRoster = node.roster.filter((id) => tribesOf(getDef(id)).includes("Avian"));
+    expect(onRoster.length, "two birds seed the derivation").toBeGreaterThanOrEqual(2);
+    const ladder = ["L14", "P13", "A13", "G14", "B14"];
+    const form = buildFormation({ ...newSave(), cleared: ladder }, gale, node);
+    const seeded = new Set([...node.roster, ...node.adds]);
+    const avians = form.filter((id) => !seeded.has(id) && tribesOf(getDef(id)).includes("Avian"));
+    expect(avians.length, "avians the roster does not carry").toBeGreaterThanOrEqual(5);
+  });
+
   it("musters the nodes you beat into the fights above them", () => {
     // Same node, same ladder, heavier force once the region behind it has
     // fallen. The muster changes WHAT fills a formation, never how much — the
@@ -1739,8 +1814,16 @@ describe("story: board size is welded to deck size", () => {
         const fresh = at(node, []);
         const late = at(node, whole(node));
         expect(late.length, `${r.id} ${node.id} size`).toBe(fresh.length);
-        // NEVER weaker, everywhere. This is the half that holds unconditionally.
-        expect(cost(late), `${r.id} ${node.id} not weakened`).toBeGreaterThanOrEqual(cost(fresh));
+        // Within noise everywhere. This said "never weaker, unconditionally"
+        // when the fresh filler was cheapest-generic — the weakest arrangement a
+        // formation could take, so the muster beat it for free. The filler is
+        // ON-TRIBE now, which is genuinely good, and at an all-rare fight the
+        // two pools cycle the same cards in different orders: W2 measured 53
+        // against 54 over thirty slots, loop-order rounding rather than a
+        // weakening. The muster's real claim — heavier where the rarity quotas
+        // let it reach for epics and legendaries — is the strict half below.
+        expect(cost(late), `${r.id} ${node.id} weakened past noise`)
+          .toBeGreaterThanOrEqual(cost(fresh) - 2);
       }
 
       // And STRICTLY heavier at the top, which is what the flag is for. Only the
