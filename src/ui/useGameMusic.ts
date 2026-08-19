@@ -3,11 +3,11 @@ import { CARD_INDEX } from "../data/cards";
 
 /** Background music. Growth on the home/menu screen, a per-region theme whenever
  *  Story Mode is on screen — the region map and its battles share one track, so
- *  a region reads as a place rather than a series of fights — and in the Arena,
- *  a PLAYLIST of element themes rather than any single track.
+ *  a region reads as a place rather than a series of fights — and in an Arena
+ *  BATTLE, a playlist of the elements on the table rather than any single track.
  *
- *  Pass one track to loop it, or several to play them in turn and wrap. The two
- *  Arena playlists are built by `arenaPlaylist` and `battlePlaylist` below.
+ *  Pass one track to loop it, or several to play them in turn and wrap. The
+ *  battle playlist is built by `battlePlaylist` below.
  *
  *  Browsers block autoplay until the first user gesture, so we retry play() once
  *  the page has been interacted with. A mute toggle is persisted to localStorage.
@@ -47,10 +47,14 @@ export const REGION_TRACK: Partial<Record<string, MusicTrack>> = {
 
 const VOLUME = 0.45;
 
-/** The eight element themes, in the game's own element order. Played through in
- *  the Arena lobby, where a single loop had to carry every visit to the screen
- *  the app opens on. */
-export const ARENA_PLAYLIST: MusicTrack[] = [
+/** The eight element themes in the game's own element order — the ORDER a battle
+ *  playlist is built in, not a playlist anyone plays start to finish.
+ *
+ *  It was `ARENA_PLAYLIST` and did briefly run whole in the Arena lobby. That
+ *  was wrong twice over: the elements belong to the FIGHT, and cycling eight
+ *  tracks on a screen you are meant to leave made Growth something you only
+ *  heard on the way past. */
+export const ELEMENT_TRACKS: MusicTrack[] = [
   "leaf", "pyro", "aqua", "bolt", "gale", "bore", "dusk", "dawn",
 ];
 
@@ -67,7 +71,7 @@ export function battlePlaylist(...decks: string[][]): MusicTrack[] {
       const def = CARD_INDEX[id];
       if (def) seen.add(def.element.toLowerCase());
     }
-  const out = ARENA_PLAYLIST.filter((t) => seen.has(t));
+  const out = ELEMENT_TRACKS.filter((t) => seen.has(t));
   return out.length ? out : ["battle"];
 }
 

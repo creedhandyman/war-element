@@ -53,9 +53,7 @@ import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
-import {
-  ARENA_PLAYLIST, battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack,
-} from "./useGameMusic";
+import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
 import {
   loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
@@ -464,10 +462,11 @@ export function App() {
   // story battle therefore keeps its region theme instead of dropping to Rival.
   // Everything outside Story Mode is the old menu/battle pair.
   const storyRegionId = storyNode ? regionOfNode(storyNode.id)?.id : storyOpen ? region.id : undefined;
-  // Outside Story, the Arena plays ELEMENTS. In a match that means only the
-  // elements on the table, so the fight sounds like the decks in it; in the
-  // lobby it is all eight, because one loop had to carry every visit to the
-  // screen the app opens on. Home keeps Growth.
+  // Elements play IN THE FIGHT, and only there — the playlist is the elements
+  // actually on the table, so a match sounds like the decks in it. Everything
+  // outside a match keeps Growth, the Arena lobby included: it briefly cycled
+  // all eight there, which made the menu theme something you only heard on the
+  // way past and turned a screen you are meant to leave into a jukebox.
   //
   // Built from the deck ids rather than from `game`, which holds only what has
   // been summoned so far — the music would arrive one element at a time as
@@ -476,7 +475,7 @@ export function App() {
     (storyRegionId ? REGION_TRACK[storyRegionId] : undefined) ??
     (started && game.phase !== "gameover"
       ? battlePlaylist(resolveDeckCards(p1DeckId), resolveDeckCards(p2DeckId))
-      : tab === "arena" ? ARENA_PLAYLIST : "menu");
+      : "menu");
   const { muted: musicMuted, toggle: toggleMusic } = useGameMusic(musicTrack);
   /** The deck the LOCAL player holds. Online, a guest sits in the P2 seat, so
    *  "your deck" is not always P1's — the versus card must not show the host's

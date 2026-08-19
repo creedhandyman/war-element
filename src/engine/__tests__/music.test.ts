@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { REGIONS } from "../../data/story";
-import { ARENA_PLAYLIST, battlePlaylist, REGION_TRACK, TRACKS } from "../../ui/useGameMusic";
+import { battlePlaylist, ELEMENT_TRACKS, REGION_TRACK, TRACKS } from "../../ui/useGameMusic";
 import { CORES } from "../../data/cards";
 import { PREMADE_DECKS } from "../../data/custom-decks";
 
@@ -61,12 +61,14 @@ describe("background music", () => {
     }
   });
 
-  it("plays every element in the Arena lobby, each exactly once", () => {
-    expect(new Set(ARENA_PLAYLIST).size, "no repeats").toBe(ARENA_PLAYLIST.length);
-    // The lobby list IS the element set — if an element is added, this fails
-    // rather than the ninth theme quietly never playing.
-    expect([...ARENA_PLAYLIST].sort()).toEqual(Object.keys(REGION_TRACK).sort());
-    for (const t of ARENA_PLAYLIST) expect(TRACKS[t], t).toBeTruthy();
+  it("can name every element, each exactly once", () => {
+    // ELEMENT_TRACKS is the ORDER a battle playlist is filtered into, not
+    // something played start to finish — but it still has to cover the whole
+    // element set, or a match containing the ninth element would drop it
+    // silently rather than fail here.
+    expect(new Set(ELEMENT_TRACKS).size, "no repeats").toBe(ELEMENT_TRACKS.length);
+    expect([...ELEMENT_TRACKS].sort()).toEqual(Object.keys(REGION_TRACK).sort());
+    for (const t of ELEMENT_TRACKS) expect(TRACKS[t], t).toBeTruthy();
   });
 
   it("plays only the elements actually on the table", () => {
