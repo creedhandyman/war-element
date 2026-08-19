@@ -57,12 +57,10 @@ describe("board-sized premade builds", () => {
     const standard = PREMADE_DECKS.filter((d) => d.boardSize === 4);
     expect(standard).toHaveLength(6 + tiersFor(4).length * 4);
     expect(premadeDecksFor(4)).toHaveLength(standard.length);
-    // The large board offers everything the standard one does PLUS the elite
-    // rung, which has no 4x4 cut — thirty-card lists with eight-spell books
-    // are not a thing the standard board can hold. It is the one deliberate
-    // asymmetry between the two pickers, so it is named rather than absorbed
-    // into a looser count.
-    expect(premadeDecksFor(5)).toHaveLength(standard.length + decksForTier("elite", 5).length);
+    // Symmetric again. Elite shipped 5x5-only and was the one deliberate
+    // asymmetry here; it has a standard-board cut now, so both pickers offer
+    // the same set and this is back to the plain equality it was before.
+    expect(premadeDecksFor(5)).toHaveLength(standard.length);
     // The formats are EXACT sizes, not bands — eighteen and thirty.
     for (const d of premadeDecksFor(4)) expect(d.cards).toHaveLength(deckLimits(4).target);
     for (const d of premadeDecksFor(5)) expect(d.cards).toHaveLength(deckLimits(5).target);
@@ -93,17 +91,13 @@ describe("board-sized premade builds", () => {
     // would show up in one picker and not the other.
     for (const large of premadeDecksFor(5)) {
       expect(large.id.endsWith("_5"), `${large.id} naming`).toBe(true);
-      // Elite is large-board only by design and so is legitimately twinless.
-      // Checked as an exact set rather than skipped by tier, so a deck that
-      // goes missing from the standard board cannot hide here by claiming to
-      // be elite.
-      if (large.tier === "elite") continue;
       expect(premadeDecksFor(4).some((d) => `${d.id}_5` === large.id), `${large.id} orphan`).toBe(true);
     }
+    // And no large-only decks at all now that elite has both cuts. The elite
+    // exception that used to live here is gone rather than loosened.
     expect(
-      premadeDecksFor(5).filter((d) => !premadeDecksFor(4).some((s) => `${s.id}_5` === d.id)).map((d) => d.id).sort(),
-      "the ONLY large-only decks are the elite rung",
-    ).toEqual(decksForTier("elite", 5).map((d) => d.id).sort());
+      premadeDecksFor(5).filter((d) => !premadeDecksFor(4).some((s) => `${s.id}_5` === d.id)),
+    ).toHaveLength(0);
   });
 
   it("a large-board deck is rejected on the standard board", () => {
@@ -157,7 +151,7 @@ describe("the matchmaker ladder", () => {
     // The rung is supposed to read as ONE difficulty. Four separately-tuned
     // depths would be four difficulties wearing a single name, so the constant
     // is shared and this is what says so.
-    const elite = decksForTier("elite", 5);
+    const elite = [...decksForTier("elite", 5), ...decksForTier("elite", 4)];
     for (const d of elite) expect(d.scriptedOpening, d.id).toBe(ELITE_OPENING_STACK);
     // And nothing else is scripted. A scripted opening is worth 20-plus points
     // of win rate (see PremadeDeck.scriptedOpening), so an ordinary rung
@@ -165,7 +159,7 @@ describe("the matchmaker ladder", () => {
     expect(
       PREMADE_DECKS.filter((d) => d.scriptedOpening != null).map((d) => d.id).sort(),
     ).toEqual(elite.map((d) => d.id).sort());
-    expect(decksForTier("elite", 4), "elite is large-board only").toHaveLength(0);
+    for (const d of decksForTier("elite", 4)) expect(d.scriptedOpening, d.id).toBe(ELITE_OPENING_STACK);
   });
 
   it("fields every element exactly once across the elite rung", () => {
@@ -194,7 +188,9 @@ describe("the matchmaker ladder", () => {
         expect(decksForTier(tier, board), `${tier} ${board}x${board}`).toHaveLength(4);
     // And the rungs each board offers are exactly these — otherwise `tiersFor`
     // could quietly answer "none" and the loop above would pass over nothing.
-    expect(tiersFor(4)).toEqual(["easy", "mid", "hard"]);
+    // Every rung on both boards, which is what it was before elite arrived
+    // 5x5-only and what it is again now that elite has a standard-board cut.
+    expect(tiersFor(4)).toEqual(["easy", "mid", "hard", "elite"]);
     expect(tiersFor(5)).toEqual(["easy", "mid", "hard", "elite"]);
   });
 
@@ -318,8 +314,11 @@ describe("the matchmaker ladder", () => {
   it("leaves the six originals off the ladder", () => {
     // They are hand-tuned archetypes, not rungs, and the matchmaker should not
     // guess where they sit.
+    // Derived from the rungs rather than written as 12, which is what made this
+    // a maintenance step every time the ladder grew a rung — it was 12 for three
+    // rungs and elite's standard-board cut makes it 16.
     const tiered = PREMADE_DECKS.filter((d) => d.boardSize === 4 && d.tier);
-    expect(tiered).toHaveLength(12);
+    expect(tiered).toHaveLength(tiersFor(4).length * 4);
     expect(tierOf("pre_inferno_blitz")).toBeNull();
   });
 

@@ -86,7 +86,7 @@ import { ActionWheel, type WheelVerb } from "./ActionWheel";
 import { Shop } from "./Shop";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
-  loadStory, isFirstBattle, awardShards, heroBookFor, isRegionOpen, poolForRegion, recruitablePool,
+  loadStory, isFirstBattle, addShards, awardShards, heroBookFor, SHARDS_PER_WIN, isRegionOpen, poolForRegion, recruitablePool,
   regionOfNode, rollRecruits, saveStory, THRONE_OPENING_STACK, type StorySave, heroSpellShelf,
 } from "../data/story";
 
@@ -578,10 +578,16 @@ export function App() {
       // never for an event, which has no rung and is fought once.
       // `recordLadderMatch` returns the same object when the seat was off-rung,
       // so hand-picking an easier opponent settles to `settled` untouched.
-      const ladder = event
-        ? settled.ladder
+      // The ladder pays as well as tracking: a win on-rung banks bonus shards on
+      // top of the Arena's flat rate, scaled by the rung faced and the streak
+      // held. Both come from the one call, so the money and the streak can never
+      // disagree about whether the match counted.
+      const climb = event
+        ? null
         : recordLadderMatch(settled.ladder, { won, tier: tierOf(p2DeckId), boardSize });
-      const next = ladder === settled.ladder ? settled : { ...settled, ladder };
+      const next = !climb || climb.ladder === settled.ladder
+        ? settled
+        : addShards({ ...settled, ladder: climb.ladder }, climb.bonus);
       if (next !== prev) saveStory(next);
       return next;
     });
@@ -2628,6 +2634,13 @@ export function App() {
               // (Easy, Even, Elite) and only Hard does not, so the article has
               // to be derived rather than written.
               const a = /^[AEIOU]/i.test(TIER_LABEL[tier]) ? "an" : "a";
+              // What the NEXT win is worth, stated before you agree to the
+              // fight. The ladder pays by rung and streak, so "wins pay 12" is
+              // the whole reason to be up here rather than farming Easy — and
+              // it is invisible unless the lobby says it.
+              const winPay = SHARDS_PER_WIN.arena
+                + recordLadderMatch({ streak, best: streak },
+                    { won: true, tier, boardSize }).bonus;
               return (
                 <div className="ar-gauntlet mm">
                   <button
@@ -2646,10 +2659,10 @@ export function App() {
                     </span>
                     <span className="gt-sub">
                       {streak === 0
-                        ? `A random ${TIER_LABEL[tier]} deck. Win ${WINS_PER_RUNG} in a row to move up a rung.`
+                        ? `A random ${TIER_LABEL[tier]} deck · wins pay ${winPay}. Win ${WINS_PER_RUNG} in a row to move up a rung.`
                         : owed > 0
-                          ? `${streak} in a row · ${owed} more to reach ${TIER_LABEL[tierForStreak(streak + owed, boardSize)]}`
-                          : `${streak} in a row · top rung — a loss drops you to ${TIER_LABEL[tierForStreak(afterMatch(streak, false, boardSize), boardSize)]}`}
+                          ? `${streak} in a row · wins pay ${winPay} · ${owed} more to reach ${TIER_LABEL[tierForStreak(streak + owed, boardSize)]}`
+                          : `${streak} in a row · wins pay ${winPay} · top rung, a loss drops you to ${TIER_LABEL[tierForStreak(afterMatch(streak, false, boardSize), boardSize)]}`}
                       {(story.ladder?.best ?? 0) > streak && ` · best ${story.ladder!.best}`}
                     </span>
                   </button>

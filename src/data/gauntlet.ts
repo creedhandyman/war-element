@@ -36,13 +36,13 @@ export const RUN_LENGTH = 4;
  *  already gives, so a finished hard run is roughly a booster pack (30 + 4x2
  *  against a 40-shard pack) and a finished easy run is about half of one.
  *  Deliberately steep between rungs: the point of a ladder is that the top of
- *  it is worth climbing to. */
-/** `elite` is only ever paid at the 5×5 rate, since the rung exists on the large
- *  board alone — 50 x 1.5 = 75 shards, a shade under two 40-shard packs for
- *  four wins against decks that beat the shipped 5×5 field better than four
- *  times in five. Its 4×4 figure is notional and unreachable; it is written as
- *  the base anyway so the table stays one shape rather than growing a special
- *  case for the one rung that skips a board. */
+ *  it is worth climbing to.
+ *
+ *  `elite` pays 50, so 75 on the large board — a shade under two packs for four
+ *  wins against decks that beat the shipped 5x5 field better than four times in
+ *  five. Its 4x4 figure was notional while elite existed on the large board
+ *  alone; the rung has a standard-board cut now, so 50 is a rate that actually
+ *  gets paid. */
 export const RUN_REWARD: Record<DeckTier, number> = { easy: 10, mid: 18, hard: 30, elite: 50 };
 
 /** What the LARGE board multiplies that by.

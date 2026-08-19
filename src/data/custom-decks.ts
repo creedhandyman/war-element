@@ -93,10 +93,12 @@ export const TIER_LABEL: Record<DeckTier, string> = {
 
 /** The rungs that actually have decks on a battlefield, in ladder order.
  *
- *  Elite is LARGE-BOARD ONLY: its four decks are thirty cards with eight-spell
- *  books and there is no 4×4 cut of them. Anything that offers a rung has to
- *  ask this rather than walk `DECK_TIERS`, or the standard board shows a fourth
- *  button that deals a run with no seats in it. */
+ *  Both boards carry all four today — elite was large-board only when it shipped
+ *  and has a standard-board cut now. This still exists rather than being
+ *  replaced by `DECK_TIERS`, because "which rungs does this board have" is a
+ *  question about the DECK LIST and the answer has already changed once: while
+ *  elite was 5x5-only, anything that walked DECK_TIERS blind put a fourth button
+ *  on the standard board that dealt a run with no seats in it. */
 export const tiersFor = (boardSize: number): DeckTier[] =>
   DECK_TIERS.filter((t) => decksForTier(t, boardSize).length > 0);
 
@@ -125,7 +127,7 @@ export interface PremadeDeck extends CustomDeck {
    *    mid   a curve, a wall, a healer, and enough reach to use them.
    *    hard  cheap bodies everywhere, healed, with shooters over the top.
    *    elite all of that, plus an opening it cannot stumble on — see
-   *          `scriptedOpening`. Large board only.
+   *          `scriptedOpening`.
    *
    *  NOT rarity, which types.ts documents as cosmetic. See the ladder's own
    *  banner further down for why that was tried, how it backfired, and the
@@ -608,6 +610,85 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "aqua_bootlegger", "aqua_icynin", "aqua_kraken",
     ],
     spells: ["aqua_chill", "aqua_frost_patch", "aqua_ice_wall", "aqua_glacial_wave", "aqua_maelstrom"],
+  },
+  // ───────────────────────── ELITE (standard board) ───────────────────────
+  //
+  // The 4x4 cut of the elite rung, one twin per large build: same name, same
+  // note, same two elements, NINE cards a side instead of fifteen, and the five
+  // cheapest of its eight spells.
+  //
+  // Elite shipped large-board only, which made it the one rung that broke the
+  // both-boards symmetry every other premade keeps — the twin test needed it
+  // named as an exception and `tiersFor` had a rung to hide. Both of those go
+  // back to being ordinary now.
+  //
+  // The curve follows the shipped 4x4 HARD decks rather than the 5x5 lists
+  // these came from: cheap-heavy with a pair of finishers, because a standard
+  // board fight is shorter and a top-heavy 18 draws cards it cannot afford.
+  // Same finding the Fill button rests on.
+  {
+    id: "pre_tombstone",
+    name: "Tombstone",
+    note: "DUSK + BORE — armour in front, the risen behind it, and it never runs out of bodies.",
+    premade: true,
+    boardSize: 4,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    cards: [
+      "dusk_pumpkin", "dusk_zombie_husk", "dusk_vamp", "dusk_skeleton_knight", "dusk_jackl",
+      "dusk_zhunk", "dusk_gool", "dusk_haunt", "dusk_skullking", "bore_hillbilly",
+      "bore_cavedweller", "bore_cosmic", "bore_rockgoblin", "bore_sling", "bore_ufo",
+      "bore_rollo", "bore_bolder", "bore_deepest",
+    ],
+    spells: ["dusk_chill_touch", "dusk_bone_snare", "bore_stone_wall", "dusk_veil_of_shadows", "bore_bedrock"],
+  },
+  {
+    id: "pre_chlorophyll",
+    name: "Chlorophyll",
+    note: "LEAF + DAWN — it out-heals what you can do to it, then out-reaches you.",
+    premade: true,
+    boardSize: 4,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    cards: [
+      "leaf_stickviper", "leaf_nettle", "leaf_oak", "leaf_sticks", "leaf_walking_tree",
+      "leaf_dartfrog", "leaf_sumerose", "leaf_squanch", "leaf_trinezer", "dawn_beam",
+      "dawn_glime", "dawn_shine", "dawn_reflection", "dawn_musk_ox", "dawn_amble",
+      "dawn_golde", "dawn_drakonbane", "dawn_equestrian",
+    ],
+    spells: ["dawn_sunbeam", "leaf_snare", "leaf_bramble_wall", "dawn_radiant_barrier", "leaf_lushfield"],
+  },
+  {
+    id: "pre_blazing_cyclone",
+    name: "Blazing Cyclone",
+    note: "PYRO + GALE — the fastest rung on the ladder. It is across the board before you have paid for a wall.",
+    premade: true,
+    boardSize: 4,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    cards: [
+      "pyro_bbq", "pyro_florence", "pyro_staph", "pyro_baboom", "pyro_flamehound",
+      "pyro_liza", "pyro_sarra", "pyro_fenrir", "pyro_volcanon", "gale_sirocco",
+      "gale_hawko", "gale_swillow", "gale_duster", "gale_tumbleweed", "gale_whirlwolf",
+      "gale_masala", "gale_omega", "gale_stormfang",
+    ],
+    spells: ["pyro_spark", "pyro_flare_push", "pyro_firewall", "gale_squall_line", "pyro_heatwave"],
+  },
+  {
+    id: "pre_thunderstorm",
+    name: "Thunderstorm",
+    note: "AQUA + BOLT — fat cheap bodies all the way up, and it never has a turn it cannot use.",
+    premade: true,
+    boardSize: 4,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    cards: [
+      "aqua_blub", "aqua_misty", "aqua_buccaneers", "aqua_bulletshrimp", "aqua_harp",
+      "aqua_spinefin", "aqua_liquark", "aqua_sapphire", "aqua_hydrogon", "bolt_junker",
+      "bolt_rodd", "bolt_zipp", "bolt_staticcloud", "bolt_scrapper", "bolt_buzz",
+      "bolt_striik", "bolt_general", "bolt_velvolt_knight",
+    ],
+    spells: ["aqua_chill", "aqua_steam_vent", "aqua_ice_wall", "bolt_power_rebate", "aqua_downpour"],
   },
 ];
 
