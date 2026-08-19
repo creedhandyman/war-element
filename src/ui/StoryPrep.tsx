@@ -15,8 +15,8 @@ import { getDef } from "../data/cards";
 import { getSpell, spellCapForBoard } from "../engine/spells";
 import {
   autoDeck,
-  boardForNode, deckCapFor, deckForRegion, fightCap, isGate, loadoutLegal, localCards,
-  packSquad, packableFor, poolForRegion, recruitablePool, rememberDeck,
+  boardForNode, deckCapFor, deckForRegion, fieldedBy, fightCap, isGate, loadoutLegal, localCards,
+  packSquad, packableFor, poolForRegion, rememberDeck,
   squadCapInRegion, squadFor, squadIsExplicit, squadIsOfferable,
   type StoryNode, type StoryRegion, type StorySave, STANDARD_CAP, bookForLoadout,
 } from "../data/story";
@@ -209,7 +209,7 @@ export function StoryPrep(props: {
     // step with the first.
     .sort((a, b) => Number(b.usable) - Number(a.usable));
 
-  const enemy = [...new Set([...recruitablePool(node), ...node.adds])]
+  const enemy = fieldedBy(node)
     .map(getDef)
     .sort((a, b) => (RARITY_ORDER[a.rarity ?? ""] ?? 9) - (RARITY_ORDER[b.rarity ?? ""] ?? 9));
 

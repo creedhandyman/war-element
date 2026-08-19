@@ -3445,6 +3445,33 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   color: var(--ink-faint); border: 1px solid var(--panel-line); border-radius: 999px; padding: 1px 5px;
 }
 .np-adds.blight { color: #b47dff; }
+/* The node's FACE - the toughest card it fields, bleeding in from the right
+   under a mask. The same move `.ar-seat-art` makes with a deck's finisher, and
+   the same reasoning: the roster below says WHO is there, the art says what that
+   means. Sized in % rather than the Arena's fixed 132px because this panel is a
+   330px rail on desktop and full width on a phone. */
+.np-hero { position: relative; overflow: hidden; border-radius: 12px; padding: 10px 12px 11px; }
+.np-hero.faced {
+  padding-right: 33%;
+  border: 1px solid var(--panel-line);
+  background: linear-gradient(150deg, rgba(184, 67, 60, .12), rgba(10, 10, 17, .5));
+}
+/* Everything that is not the art sits above it. */
+.np-hero > :not(.np-face) { position: relative; }
+.np-hero h3 { margin-top: 6px; }
+.np-face {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 44%;
+  padding: 0; border: 0; cursor: pointer; background-color: transparent;
+  background-size: cover; background-position: 50% 10%;
+  mask-image: linear-gradient(to left, #000 26%, transparent);
+  -webkit-mask-image: linear-gradient(to left, #000 26%, transparent);
+  transition: filter .14s;
+}
+.np-face:hover { filter: brightness(1.14) saturate(1.06); }
+.np-boss { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin: 7px 0 0; font-size: 11.5px; }
+.np-boss-lead { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; font-weight: 800; color: var(--ink-faint); }
+.np-boss b { color: var(--ink); font-weight: 650; font-size: 12.5px; }
+
 /* Roster thumbnails: the squad is the reason to pick a node, so show it. */
 .np-roster li { align-items: center; }
 .npr-art { flex: none; width: 30px; height: 40px; padding: 0; border-radius: 4px; overflow: hidden;

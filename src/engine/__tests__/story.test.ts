@@ -18,8 +18,9 @@ import {
   openPack, applyPack, canOpenPack, awardShards, dupeEssenceFor, PACK_COST, PACK_SIZE, SHARDS_PER_WIN,
   SHINY_CHANCE, rollShiny, isShiny, addShiny, spellsUnlockedIn, heroSpellShelf, heroBookFor, ESSENCE_PER_CLEAR, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
-  autoDeck, terrainContested, type StoryNode, type StorySave, bookForLoadout,
+  autoDeck, terrainContested, type StoryNode, type StorySave, bookForLoadout, fieldedBy,
 } from "../../data/story";
+import { finisherOf } from "../../ui/DeckPickerSheet";
 import { spellCapForBoard } from "../spells";
 
 const leaf = REGIONS.find((r) => r.id === "leaf")!;
@@ -2132,5 +2133,93 @@ describe("foils are farmable in the campaign", () => {
         expect(pool, `${id} is not on this node`).toContain(id);
       }
     }
+  });
+});
+
+
+// The node panel shows the toughest card a node fields as its face, the way an
+// Arena deck seat shows its finisher. That is only honest if "what a node
+// fields" and "strongest" both mean one thing app-wide - hence `fieldedBy` in
+// the data layer and the Arena's own `finisherOf` doing the picking.
+describe("what a node fields, and the face it wears", () => {
+  it("counts the spawned filler, not just what you can win", () => {
+    // The distinction the whole helper exists for. `recruitablePool` answers
+    // "what can I take home", which is NOT "what am I fighting" - the adds are
+    // real cards on a real board that simply never drop. A screen describing the
+    // fight off the pool alone under-reports it.
+    const withAdds = ALL_NODES.filter((n) => n.adds.length > 0);
+    expect(withAdds.length, "the campaign has nodes with filler at all").toBeGreaterThan(0);
+    const grew = withAdds.filter((n) => fieldedBy(n).length > recruitablePool(n).length);
+    expect(grew.length, "filler makes the fielded set bigger somewhere").toBeGreaterThan(0);
+    for (const n of ALL_NODES)
+      for (const id of n.adds)
+        expect(fieldedBy(n), `${n.id} fields its own add ${id}`).toContain(id);
+  });
+
+  it("counts a card once when it is both recruitable and spawned", () => {
+    const dupe: StoryNode = {
+      ...ALL_NODES[0],
+      roster: ["leaf_nettle", "leaf_greegon"],
+      overflow: [],
+      adds: ["leaf_nettle"],
+    };
+    expect(fieldedBy(dupe)).toEqual(["leaf_nettle", "leaf_greegon"]);
+  });
+
+  it("gives a Border Gate its patrol, without asking whether it is a gate", () => {
+    // Gates carry an empty `roster` and keep the patrol in `adds`. That is what
+    // lets ONE expression serve every node kind - if a gate ever grew a roster,
+    // this is the test that would catch the two meanings drifting apart.
+    const gates = ALL_NODES.filter(isGate);
+    expect(gates.length).toBeGreaterThan(0);
+    for (const g of gates) {
+      expect(recruitablePool(g), `${g.id} recruits nothing`).toEqual([]);
+      expect(fieldedBy(g), `${g.id} fields its patrol`).toEqual([...new Set(g.adds)]);
+    }
+  });
+
+  it("leaves no node without a face", () => {
+    // A node that fields nothing would render a panel with a hole where the art
+    // goes. Every node in the campaign has to answer.
+    for (const n of ALL_NODES) {
+      const id = finisherOf(fieldedBy(n));
+      expect(id, `node ${n.id} fields nothing`).toBeTruthy();
+      expect(fieldedBy(n), `${n.id}'s face is a card it fields`).toContain(id!);
+    }
+  });
+
+  it("faces every node with the dearest thing on its board", () => {
+    // Same rule as the Arena, applied to the campaign: dearest first, biggest as
+    // the tiebreak. Checked against the node's own contents rather than against
+    // `finisherOf` run twice, so a change to the rule shows up here.
+    for (const n of ALL_NODES) {
+      const fielded = fieldedBy(n);
+      const face = getDef(finisherOf(fielded)!);
+      const dearest = Math.max(...fielded.map((id) => getDef(id).cost));
+      expect(face.cost, `${n.id}: ${face.name} is not the dearest it fields`).toBe(dearest);
+      const bulk = (d: ReturnType<typeof getDef>) => d.dmg * d.hits + d.hp;
+      for (const id of fielded) {
+        const d = getDef(id);
+        if (d.cost === dearest)
+          expect(bulk(face), `${n.id}: ${d.name} outweighs the face at equal cost`)
+            .toBeGreaterThanOrEqual(bulk(d));
+      }
+    }
+  });
+
+  it("lets spawned filler take the frame when filler is the biggest thing there", () => {
+    // Not a hypothetical worth guarding against - it is the correct answer. If
+    // the largest card on the board is one you cannot recruit, that is exactly
+    // what the player needs warning about.
+    const add: StoryNode = {
+      ...ALL_NODES[0],
+      roster: ["leaf_nettle"],
+      overflow: [],
+      adds: ["leaf_greegon"],
+    };
+    const nettle = getDef("leaf_nettle"), greegon = getDef("leaf_greegon");
+    expect(greegon.cost, "fixture assumes Greegon is the dearer of the two")
+      .toBeGreaterThan(nettle.cost);
+    expect(finisherOf(fieldedBy(add))).toBe("leaf_greegon");
   });
 });

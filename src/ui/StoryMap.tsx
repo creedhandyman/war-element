@@ -9,12 +9,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { getDef } from "../data/cards";
 import {
-  BIG_BATTLE_KINDS, BLIGHT_MAX, blightAddsFor, blightLevel, blightNodeFor, deckCapFor, fightCap,
-  gateCheck, isBlightNode, isCleared, isGate, isOpen, isOverflow, isRegionCleared,
+  BIG_BATTLE_KINDS, BLIGHT_MAX, blightAddsFor, blightLevel, blightNodeFor, deckCapFor, fieldedBy,
+  fightCap, gateCheck, isBlightNode, isCleared, isGate, isOpen, isOverflow, isRegionCleared,
   recruitChance, recruitablePool, regionOfNode, terrainContested,
   type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
 import { EL_COLOR } from "./shared";
+import { finisherOf } from "./DeckPickerSheet";
 import { CardView } from "./CardView";
 import { StorySquad } from "./StorySquad";
 
@@ -228,17 +229,49 @@ function NodePanel(props: {
   // A gate refuses on deck SHAPE, not on progress — so it needs its own reason
   // line, separate from the locked-by-prerequisites one.
   const gate = gateCheck(save, node);
+  /** The node's face: the toughest thing it fields.
+   *
+   *  Straight off the Arena's deck seats, which show a deck's finisher art for
+   *  the same reason — a column of names tells you nothing about what you are
+   *  walking into, and the art tells you at a glance. Deliberately the SAME
+   *  `finisherOf` the Arena uses (dearest, then biggest), so "strongest" cannot
+   *  come to mean two different things one screen apart.
+   *
+   *  Reads `fieldedBy`, so the filler a node spawns counts. Filler is cheap and
+   *  loses this sort anyway; when it does win, it is genuinely the biggest thing
+   *  on that board and has earned the frame. */
+  const faceId = finisherOf(fieldedBy(node));
+  const face = faceId ? getDef(faceId) : null;
 
   return (
     <div className="node-panel">
-      <div className="np-head">
-        <span className={`np-kind ${node.kind}`}>{KIND_LABEL[node.kind]}</span>
-        {node.kind === "throne" && (
-          <span className="np-flag">{node.required ? "Required" : "Optional"}</span>
+      <div className={`np-hero ${face ? "faced" : ""}`}>
+        {face && (
+          <button
+            className="np-face"
+            style={{ backgroundImage: `url(/cards/${face.art ?? face.id}.webp)` }}
+            title={`${face.name} — the toughest card here. Tap for the full card.`}
+            aria-label={`${face.name} — see the card`}
+            onClick={() => setPreviewId(face.id)}
+          />
         )}
-        {cleared && <span className="np-flag done">Cleared</span>}
+        <div className="np-head">
+          <span className={`np-kind ${node.kind}`}>{KIND_LABEL[node.kind]}</span>
+          {node.kind === "throne" && (
+            <span className="np-flag">{node.required ? "Required" : "Optional"}</span>
+          )}
+          {cleared && <span className="np-flag done">Cleared</span>}
+        </div>
+        <h3>{node.id} · {node.name}</h3>
+        {face && (
+          <p className="np-boss">
+            <span className="np-boss-lead">Toughest</span>
+            <b>{face.name}</b>
+            <span className={`npr-rar r-${face.rarity ?? "rare"}`}>{face.rarity ?? "rare"}</span>
+            <span className="npr-cost">{face.cost}◆</span>
+          </p>
+        )}
       </div>
-      <h3>{node.id} · {node.name}</h3>
       {node.lore && <p className="np-lore">{node.lore}</p>}
       {node.note && <p className="np-note">{node.note}</p>}
       {region && (

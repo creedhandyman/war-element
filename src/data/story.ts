@@ -1910,6 +1910,17 @@ export const isOverflow = (node: StoryNode, defId: string): boolean =>
 /** Everything a node can actually give you: its own roster plus any bleed. */
 export const recruitablePool = (node: StoryNode): string[] => [...node.roster, ...(node.overflow ?? [])];
 
+/** Everything a node actually puts on the board — what you can WIN from it plus
+ *  the filler it spawns. Not the same question as `recruitablePool`: the adds
+ *  are real opponents you simply cannot recruit, and a screen describing the
+ *  fight has to count them.
+ *
+ *  One expression for every node kind. A Border Gate carries an empty `roster`
+ *  and keeps its patrol in `adds`, so this collapses to the patrol there without
+ *  needing to ask whether the node is a gate. */
+export const fieldedBy = (node: StoryNode): string[] =>
+  [...new Set([...recruitablePool(node), ...node.adds])];
+
 // ── board size ──────────────────────────────────────────────────────────────
 
 /** Node kinds fought on the LARGE board. Everything else is 4x4.
