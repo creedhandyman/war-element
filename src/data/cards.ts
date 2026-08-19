@@ -2498,7 +2498,10 @@ export const CARDS: CardDef[] = [
     },
   },
   {
-    // 7 + 14 + (3x2) + 3 = 30, exactly a cost-4 budget.
+    // 9 + 15 + (3x2) + 5 = 35, exactly the cost-5 budget. (The old note here
+    // read "7 + 14 + (3x2) + 3 = 30, a cost-4 budget" — the line it described
+    // has not existed for some time.) Neither the bane nor Sunlight Strike is
+    // priced by the formula: keywords and Specials never are.
     id: "dawn_drakonbane",
     name: "Drakonbane",
     rarity: "epic",
@@ -2513,11 +2516,12 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 3,
     keywords: {},
-    // Dragon's Bane: +2 on BASICS against a Dragon or anything still above 25
-    // HP (current, not max — see vsTarget). Specials carry their own printed
-    // number, exactly as vsStatus works, so Sunlight Strike is 14/10 flat.
+    // Dragon's Bane: +2 on BASICS against a Dragon, or anything whose MAX HP is
+    // 25 or more — max, not current, so a giant stays bane-worthy after you
+    // have opened it up. Specials carry their own printed number, exactly as
+    // vsStatus works, so Sunlight Strike is 14/10 flat.
     passiveNames: { vsTarget: "Dragon's Bane" },
-    vsTarget: { tribe: "Dragon", hpAbove: 25, bonusDmg: 2 },
+    vsTarget: { tribe: "Dragon", maxHpFrom: 25, bonusDmg: 2 },
     // ...and if it lands next to such a target, it opens on it immediately.
     // onlyVsTarget gates the shot: no bane-worthy enemy in range, no ambush.
     onSummon: {
@@ -2528,9 +2532,9 @@ export const CARDS: CardDef[] = [
       name: "Sunlight Strike",
       cost: 2,
       handler: "strike",
-      params: { dmg: 10, dmgVsTarget: 14, onKillSelfShields: 2 },
+      params: { dmg: 10, dmgVsTarget: 14, onKillSelfShields: 2, onKillSelfHeal: 7 },
       targetSide: "enemy",
-      text: "Deal 14 DMG to a Dragon (or anything above 25 HP), 10 DMG otherwise. On Kill: gain 2 shield.",
+      text: "Deal 14 DMG to a Dragon (or anything with 25+ max HP), 10 DMG otherwise. On Kill: gain 2 shield and heal 7 HP.",
     },
   },
   {

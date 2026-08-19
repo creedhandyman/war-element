@@ -456,10 +456,24 @@ export interface CardDef {
    *  than what status it carries — a tribe, or simply a big enough body. The
    *  two conditions are OR'd: either one makes a target "bane-worthy".
    *
-   *  `hpAbove` reads CURRENT HP, not max. A wounded giant stops being the thing
-   *  a bane hunter is built to kill, which is also what keeps a cost-4 card
-   *  from carrying a permanent +2 against the whole top of the curve. */
-  vsTarget?: { tribe?: string; hpAbove?: number; bonusDmg?: number };
+   *  `maxHpFrom` reads MAX HP, and inclusively — 25 means 25 counts.
+   *
+   *  It used to read CURRENT HP, on the argument that a wounded giant stops
+   *  being the thing a bane hunter is built to kill, and that this is what kept
+   *  a cost-5 card from carrying a permanent +2 against the whole top of the
+   *  curve. That is a real cost and it is being paid deliberately: what it
+   *  bought was a passive that turned itself off exactly when the fight got
+   *  long, so the answer to Drakonbane was to let it hit the giant once. A bane
+   *  hunter that stops working on a bleeding target is a strange kind of hunter.
+   *
+   *  The bound is ~10% of the pool — 30 of 330 cards print 25 or more, plus the
+   *  13 Dragons that qualify by tribe whatever their HP.
+   *
+   *  Reads the INSTANCE's `maxHp`, so growth counts (Violet banking its way past
+   *  25 becomes bane-worthy) but auras do not — `matchesVsTarget` has no state
+   *  to resolve them against, and a target sliding in and out of range as an
+   *  aura holder dies is the flicker this just moved away from. */
+  vsTarget?: { tribe?: string; maxHpFrom?: number; bonusDmg?: number };
   /** Swamp Monster (Magalogoon): stealth as a CONDITIONAL passive, not a
    *  standing keyword. The card is hidden ONLY while it has neither moved nor
    *  attacked this round — so it is never "always" stealthed the way the STEALTH

@@ -69,21 +69,40 @@ describe("Bluejay", () => {
 });
 
 describe("Drakonbane", () => {
-  it("Dragon's Bane adds +2 to BASICS against a big target, not a small one", () => {
+  it("Dragon's Bane adds +2 to BASICS by MAX HP, wounded or not", () => {
     // effectiveDmg is target-independent, so this has to be measured through a
     // real attack rather than read off the attacker.
+    //
+    // The rule reads MAX HP, inclusively. It used to read CURRENT, and the
+    // wounded giant below is exactly the case that changed: at 10 of 30 it was
+    // spared, which meant the counter-play to a bane hunter was to let it hit
+    // the giant once. A hunter that stops working on a bleeding target is a
+    // strange kind of hunter.
     const s = prepState();
     const dk = place(s, "dawn_drakonbane", "P1", 3, 0);
     const big = place(s, "leaf_greegon", "P2", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
-    const small = place(s, "leaf_greegon", "P2", 2, 1, { curHp: 10, maxHp: 30, curShields: 0 });
-    const hitBig = applyIntent(battleWith(s, dk.instanceId), {
-      type: "BATTLE_ACTION", player: "P1", action: "basic", targetId: big.instanceId,
+    // 20 of 30: under the OLD current-HP rule this was below the line and got
+    // no bonus; under the new one its maximum keeps it bane-worthy. High enough
+    // to survive the 11 and be measured.
+    const wounded = place(s, "leaf_greegon", "P2", 2, 1, { curHp: 20, maxHp: 30, curShields: 0 });
+    const hit = (id: string) => applyIntent(battleWith(s, dk.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "basic", targetId: id,
     });
-    const hitSmall = applyIntent(battleWith(s, dk.instanceId), {
+    expect(30 - hit(big.instanceId).cards[big.instanceId].curHp).toBe(11); // 9 + 2
+    expect(20 - hit(wounded.instanceId).cards[wounded.instanceId].curHp, "still bane-worthy at 20/30")
+      .toBe(11);
+  });
+
+  it("Dragon's Bane spares a genuinely small body", () => {
+    // The negative case has to be small by MAX HP now, not merely hurt. 25 is
+    // inclusive, so this checks the card one under the line.
+    const s = prepState();
+    const dk = place(s, "dawn_drakonbane", "P1", 3, 0);
+    const small = place(s, "leaf_greegon", "P2", 2, 0, { curHp: 24, maxHp: 24, curShields: 0 });
+    const after = applyIntent(battleWith(s, dk.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "basic", targetId: small.instanceId,
     });
-    expect(30 - hitBig.cards[big.instanceId].curHp).toBe(11); // 9 + 2, over 25 HP
-    expect(10 - hitSmall.cards[small.instanceId].curHp).toBe(9); // no bonus (base 9)
+    expect(24 - after.cards[small.instanceId].curHp).toBe(9); // base, no bonus
   });
 
   it("Sunlight Strike is 14 into a Dragon and 10 into anything else", () => {
@@ -108,12 +127,36 @@ describe("Drakonbane", () => {
     const w = applyIntent(worthy, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });
     expect(boardCards(w, "P2")[0].curHp).toBe(30 - 7 - 9); // 7 ambush + 9 Awakening (its full DMG)
 
+    // Small by MAX HP, not merely wounded — a hurt giant is still a giant now,
+    // and this used to place one at 10/30 and expect to be spared.
     const spared = prepState();
     spared.players.P1.gold = 20;
-    place(spared, "leaf_greegon", "P2", 2, 0, { curHp: 10, maxHp: 30, curShields: 0 });
+    place(spared, "leaf_greegon", "P2", 2, 0, { curHp: 24, maxHp: 24, curShields: 0 });
     spared.players.P1.hand = [{ handId: "h1", defId: "dawn_drakonbane" }];
     const sp = applyIntent(spared, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });
-    expect(boardCards(sp, "P2")[0].curHp).toBe(10 - 9); // Awakening only (its full 9) — no ambush
+    expect(boardCards(sp, "P2")[0].curHp).toBe(24 - 9); // Awakening only (its full 9) — no ambush
+  });
+
+  it("Sunlight Strike pays a kill in shields AND health", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const dk = place(s, "dawn_drakonbane", "P1", 3, 0, { curHp: 4, curShields: 0 });
+    const prey = place(s, "leaf_greegon", "P2", 2, 0, { curHp: 3, maxHp: 30, curShields: 0 });
+    const after = fire(s, dk.instanceId, prey.instanceId);
+    const me = after.cards[dk.instanceId];
+    expect(me.curShields).toBe(2);
+    expect(me.curHp, "4 + 7, and its maximum is well clear of that").toBe(11);
+  });
+
+  it("pays nothing when the strike does not kill", () => {
+    // The rider is ON KILL. A strike that only wounds must leave both alone.
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const dk = place(s, "dawn_drakonbane", "P1", 3, 0, { curHp: 4, curShields: 0 });
+    const tank = place(s, "leaf_greegon", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const me = fire(s, dk.instanceId, tank.instanceId).cards[dk.instanceId];
+    expect(me.curShields).toBe(0);
+    expect(me.curHp).toBe(4);
   });
 
   it("the ambush REACHES a bane target across the board, not just an adjacent one", () => {

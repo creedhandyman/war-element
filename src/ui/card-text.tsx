@@ -59,7 +59,7 @@ function describeOnSummon(os: {
   selfStatus?: string;
   selfStatusDuration?: number;
   extendSelfStatusOnKill?: number;
-}, vsTarget?: { tribe?: string; hpAbove?: number }, element = "same-element"): string {
+}, vsTarget?: { tribe?: string; maxHpFrom?: number }, element = "same-element"): string {
   const p = os.params ?? {};
   const n = (k: string) => Number(p[k] ?? 0);
   // A pure self-status on-summon (Frostveil's Icy Mist — no target handler).
@@ -74,7 +74,7 @@ function describeOnSummon(os: {
     if (Number(p.onlyVsTarget ?? 0) > 0 && vsTarget) {
       const who = [
         vsTarget.tribe ? `${vsTarget.tribe}` : "",
-        vsTarget.hpAbove != null ? `a foe above ${vsTarget.hpAbove} HP` : "",
+        vsTarget.maxHpFrom != null ? `a foe with ${vsTarget.maxHpFrom}+ max HP` : "",
       ].filter(Boolean).join(" or ");
       return `the nearest ${who} on the board`;
     }
@@ -622,7 +622,7 @@ export function describePassives(def: CardDef): string[] {
     named("startsWithFreeSpecial", "Arrives with its Special already charged — the first cast is free.");
   if (def.vsTarget?.bonusDmg) {
     const vt = def.vsTarget;
-    const who = [vt.tribe ? `${vt.tribe}s` : "", vt.hpAbove != null ? `anything above ${vt.hpAbove} HP` : ""]
+    const who = [vt.tribe ? `${vt.tribe}s` : "", vt.maxHpFrom != null ? `anything with ${vt.maxHpFrom}+ max HP` : ""]
       .filter(Boolean)
       .join(" and ");
     named("vsTarget", `Basic attacks deal +${vt.bonusDmg} DMG against ${who}.`);

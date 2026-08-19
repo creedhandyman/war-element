@@ -2074,7 +2074,7 @@ export function matchesVsTarget(def: CardDef, target: CardInstance): boolean {
     const has = Array.isArray(tribe) ? tribe.includes(vt.tribe) : tribe === vt.tribe;
     if (has) return true;
   }
-  if (vt.hpAbove != null && target.curHp > vt.hpAbove) return true;
+  if (vt.maxHpFrom != null && target.maxHp >= vt.maxHpFrom) return true;
   return false;
 }
 
@@ -2878,6 +2878,14 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (r.targetDied && killShields > 0 && attacker.curHp > 0) {
       attacker.curShields += killShields;
       draft.log.push(`${label(draft, attacker)} basks in the kill (+${killShields} shield).`);
+    }
+    // …and the same trigger can pay in HP. Through `healCard`, not a raw add, so
+    // it honours SEAL and cannot lift the attacker past its own maximum — the
+    // two things every other heal in the game respects.
+    const killHeal = num(params, "onKillSelfHeal");
+    if (r.targetDied && killHeal > 0 && attacker.curHp > 0) {
+      const got = healCard(draft, attacker, killHeal, attacker);
+      if (got > 0) draft.log.push(`${label(draft, attacker)} drinks the kill (+${got} HP).`);
     }
     // Self-buff status only if the strike KILLED (Jungle Culling → STEALTH on kill).
     const onKillStatus = params.onKillSelfStatus;
