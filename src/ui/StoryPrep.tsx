@@ -129,8 +129,8 @@ export function StoryPrep(props: {
     if (save.deck.length) { setDeck(save.deck.filter((id) => pool.includes(id))); setPickedTeam(save.lastTeamId ?? null); }
   }, [save.deck]); // eslint-disable-line react-hooks/exhaustive-deps -- `pool` is derived; only a real save change should resync
   const [naming, setNaming] = useState(false);
-  /** Show the squads that cannot be fielded in this region. Off by default. */
-  const [showAway, setShowAway] = useState(false);
+  /** Is the squad list open? Closed by default — see the Quick select block. */
+  const [pickerOpen, setPickerOpen] = useState(false);
   // Same idea as the node panel: the squad is what you are building against, so
   // it is worth seeing rather than reading.
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -163,17 +163,17 @@ export function StoryPrep(props: {
           : `You do not own any of these ${s.cards.length} cards yet`,
     };
   })
-    // PICKABLE FIRST. The list is every squad you own, so on a full collection
-    // it opened with whichever happened to be saved first and buried the two you
-    // could actually field here under a dozen you could not.
+    // PICKABLE FIRST, which is what the list looks like once OPENED — the
+    // closed state is just the squad you are holding. Without it the list is in
+    // save order, so opening it on a full collection buries the ones you can
+    // field here under the ones you cannot.
     //
     // ONE key, not two: `squadsFor` has already put this element's squads at the
     // front, and Array.sort is stable, so that order survives inside each group.
     // Repeating the element rule here would be a second copy of it to keep in
     // step with the first.
     .sort((a, b) => Number(b.usable) - Number(a.usable));
-  const pickable = teams.filter((t) => t.usable);
-  const elsewhere = teams.filter((t) => !t.usable);
+
   const enemy = [...new Set([...recruitablePool(node), ...node.adds])]
     .map(getDef)
     .sort((a, b) => (RARITY_ORDER[a.rarity ?? ""] ?? 9) - (RARITY_ORDER[b.rarity ?? ""] ?? 9));
@@ -349,43 +349,49 @@ export function StoryPrep(props: {
         {node.lore && <p className="sp-lore">{node.lore}</p>}
         {node.note && <p className="sp-note">{node.note}</p>}
 
-        {teams.length > 0 && (
-          <>
-            <div className="sr-label">Quick select</div>
-            <div className="sp-quick">
-              {(showAway ? teams : pickable).map(({ squad: t, have, usable, why }) => (
-                <button
-                  key={t.id}
-                  className={`sp-chip ${pickedTeam === t.id ? "on" : ""} ${t.element === region.element ? "match" : ""} ${usable ? "" : "locked"}`}
-                  onClick={() => applyTeam(t)}
-                  disabled={!usable}
-                  title={why}
-                >
-                  {t.name}<em>{have > cap ? `${have}!` : have}</em>
-                </button>
-              ))}
-              {/* The squads you own that cannot be fielded HERE are folded away
-                  rather than dropped. They were shown flat and disabled on
-                  purpose — tapping one used to empty the deck and grey out
-                  Fight without saying why — but on a full collection that is
-                  most of the list, and the top third of the screen went to
-                  chips reading 0 before you could see the enemy. Folded keeps
-                  the answer to "where did my squad go" one tap away. */}
-              {elsewhere.length > 0 && (
+        {teams.length > 0 && (() => {
+          // COLLAPSED TO THE ONE YOU ARE HOLDING. The first cut folded only the
+          // squads that could not be fielded here, which helps a save whose
+          // squads are mostly foreign and does nothing for one whose squads are
+          // mostly usable — the list is still every squad you own, and eleven
+          // pickable chips wrap as far as nineteen did.
+          //
+          // A squad is already CHOSEN on arrival (`pickedTeam` starts on
+          // `preferred`), so the closed state has the real answer in it and the
+          // rest is a question nobody asked yet. One control, not the two
+          // nested folds this replaced.
+          const shown = pickerOpen ? teams : teams.filter((t) => t.squad.id === pickedTeam);
+          return (
+            <>
+              <div className="sr-label">Quick select</div>
+              <div className="sp-quick">
+                {shown.map(({ squad: t, have, usable, why }) => (
+                  <button
+                    key={t.id}
+                    className={`sp-chip ${pickedTeam === t.id ? "on" : ""} ${t.element === region.element ? "match" : ""} ${usable ? "" : "locked"}`}
+                    onClick={() => applyTeam(t)}
+                    disabled={!usable}
+                    title={why}
+                  >
+                    {t.name}<em>{have > cap ? `${have}!` : have}</em>
+                  </button>
+                ))}
+                {/* Opening shows every squad you own, the unfieldable ones
+                    included — still disabled, still carrying the reason why.
+                    That was a deliberate fix (tapping one used to empty the
+                    deck and grey out Fight in silence) and folding must not
+                    quietly undo it. */}
                 <button
                   className="sp-chip sp-more"
-                  onClick={() => setShowAway((v) => !v)}
-                  title={`Squads with no cards available in ${region.element}`}
+                  onClick={() => setPickerOpen((v) => !v)}
+                  title={pickerOpen ? "Show only the squad you are holding" : "Every squad you own"}
                 >
-                  {showAway ? "Hide" : `+${elsewhere.length} not here`}
+                  {pickerOpen ? "Hide" : pickedTeam ? `Change · ${teams.length}` : `Choose · ${teams.length}`}
                 </button>
-              )}
-              {pickable.length === 0 && !showAway && (
-                <span className="sp-none">Nothing you own can be fielded here yet.</span>
-              )}
-            </div>
-          </>
-        )}
+              </div>
+            </>
+          );
+        })()}
 
         <div className="sr-label">They field</div>
         <div className="sp-enemy">
