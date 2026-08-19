@@ -8788,14 +8788,30 @@ export const CARDS: CardDef[] = [
     roundTick: { healHomeRow: 1 },
     // Purelight (Aura): DAWN allies immune to BLIND; their attacks pierce EVASION.
     purelightAura: true,
-    // Mending Horn: heal an ally +8 and strip its negatives + stat changes.
+    // Mending Horn: heal the WHOLE side +7 and strip their negatives + stat
+    // changes. `validAllyTargets` has no range limit, so targets 99 is every
+    // card you have on the board, not merely the ones standing nearby.
+    //
+    // It was one ally for +8. Widening it to the team is most of a card's worth
+    // of healing, so the 3-round lockout is the price rather than decoration —
+    // the default is 2, and on matches that average about eleven rounds that is
+    // roughly four casts instead of five or six.
+    //
+    // WORTH KNOWING NEXT TO GROVE'S EMBRACE (leaf_elderroot): that one heals the
+    // same 7 across the same whole side for FOUR magic off a cost-6 card, on the
+    // default 2-round cooldown, and its `cleanse` wipes everything — including
+    // the ally's own buffs. This heals for three off a cost-5 card and its
+    // `cleanseNegatives` keeps those buffs. The longer lockout is the only axis
+    // on which Grove's Embrace is now ahead. Deliberate, and flagged here so it
+    // is a decision rather than a thing nobody noticed.
     special: {
       name: "Mending Horn",
       cost: 3,
+      cooldown: 3,
       handler: "heal",
-      params: { targets: 1, amount: 8, cleanseNegatives: 1 },
+      params: { targets: 99, amount: 7, cleanseNegatives: 1 },
       targetSide: "ally",
-      text: "Heal an ally +8 HP and CLEANSE them (remove negative statuses and stat changes).",
+      text: "Heal allies +7 HP and CLEANSE them (remove negative statuses and stat changes).",
     },
   },
   {

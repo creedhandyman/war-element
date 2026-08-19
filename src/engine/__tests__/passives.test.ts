@@ -10,6 +10,7 @@ import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire, spawnTokens } from "../state";
 import { CARDS, TOKENS, getDef } from "../../data/cards";
+import { DEFAULT_SPECIAL_COOLDOWN } from "../types";
 import { announces } from "../../ui/SummonAnnounce";
 import { atBattle, atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
 import { createInitialState } from "../state";
@@ -823,23 +824,42 @@ describe("medium-tier passives (audit batch)", () => {
     expect(9 - s.cards[evader.instanceId].curHp).toBe(3); // always lands (3 DMG), no dodge
   });
 
-  it("Halo: Blessed Light heals home-row allies; Mending Horn heals +8 and strips only negatives", () => {
+  it("Halo: Blessed Light heals home-row allies; Mending Horn mends the WHOLE side", () => {
     const s = prepState();
     place(s, "dawn_halo", "P1", 3, 0);
     const home = place(s, "dawn_able", "P1", 3, 2, { curHp: 5, maxHp: 20 });
     const next = advance(atCleanup(s));
     expect(next.cards[home.instanceId].curHp).toBe(6); // +1 Blessed Light (home row)
 
-    // Mending Horn: +8 HP, strip BLEED (negative), keep a positive timed buff.
+    // Mending Horn, driven by the CARD's own params rather than a copy of them.
+    // This used to pass `{ targets: 1, amount: 8, cleanseNegatives: 1 }` inline,
+    // so it never read Halo at all: it tested the shared `heal` handler while
+    // claiming Mending Horn in its title, and went on passing when the Special
+    // widened to the whole side and dropped to 7.
+    const horn = getDef("dawn_halo").special!;
+    const heal = Number(horn.params!.amount);
     const s2 = prepState();
     const h2 = place(s2, "dawn_halo", "P1", 3, 0);
-    const ally = place(s2, "dawn_able", "P1", 3, 1, { curHp: 6, maxHp: 20 });
-    s2.cards[ally.instanceId].statuses = [{ kind: "BLEED", duration: 2, power: 2, source: "LEAF" }];
-    s2.cards[ally.instanceId].buffs = [{ dmg: 2, sp: 0, rounds: 2 }];
-    SPECIAL_HANDLERS.heal(s2, s2.cards[h2.instanceId], [s2.cards[ally.instanceId]], { targets: 1, amount: 8, cleanseNegatives: 1 });
-    expect(s2.cards[ally.instanceId].curHp).toBe(14); // 6 + 8
-    expect(statusOf(s2.cards[ally.instanceId], "BLEED")).toBeUndefined(); // negative stripped
-    expect(s2.cards[ally.instanceId].buffs).toHaveLength(1); // positive buff kept
+    // TWO allies, because "targets: 99" is the point of the card now.
+    const a1 = place(s2, "dawn_able", "P1", 3, 1, { curHp: 6, maxHp: 20 });
+    const a2 = place(s2, "dawn_beam", "P1", 2, 1, { curHp: 4, maxHp: 20 });
+    for (const a of [a1, a2]) {
+      s2.cards[a.instanceId].statuses = [{ kind: "BLEED", duration: 2, power: 2, source: "LEAF" }];
+      s2.cards[a.instanceId].buffs = [{ dmg: 2, sp: 0, rounds: 2 }];
+    }
+    SPECIAL_HANDLERS.heal(
+      s2, s2.cards[h2.instanceId],
+      [s2.cards[a1.instanceId], s2.cards[a2.instanceId]], horn.params!,
+    );
+    expect(s2.cards[a1.instanceId].curHp).toBe(6 + heal);
+    expect(s2.cards[a2.instanceId].curHp, "the second ally too").toBe(4 + heal);
+    for (const a of [a1, a2]) {
+      expect(statusOf(s2.cards[a.instanceId], "BLEED")).toBeUndefined(); // negative stripped
+      expect(s2.cards[a.instanceId].buffs, "positive buff kept").toHaveLength(1);
+    }
+    // And it prints a longer lockout than the default, which is what pays for
+    // the reach.
+    expect(horn.cooldown!).toBeGreaterThan(DEFAULT_SPECIAL_COOLDOWN);
   });
 
   it("Twinbolt's Twin Strike chains a bonus CRIT strike on a crit, once per round", () => {
