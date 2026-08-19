@@ -5142,3 +5142,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-saved-row.locked .db-load { opacity: 0.55; }
 .db-saved-row.locked .db-load b { text-decoration: line-through; text-decoration-thickness: 1px; }
 .db-locked-why { color: var(--threat); font-style: normal; }
+/* The "+N not here" disclosure in Quick select. Muted and dashed so it reads as
+   a fold rather than as another squad you could pick. */
+.sp-chip.sp-more {
+  border-style: dashed; color: var(--ink-faint); font-weight: 400;
+  background: transparent;
+}
+.sp-chip.sp-more:hover { color: var(--ink); border-color: var(--gold-line); }

@@ -129,6 +129,8 @@ export function StoryPrep(props: {
     if (save.deck.length) { setDeck(save.deck.filter((id) => pool.includes(id))); setPickedTeam(save.lastTeamId ?? null); }
   }, [save.deck]); // eslint-disable-line react-hooks/exhaustive-deps -- `pool` is derived; only a real save change should resync
   const [naming, setNaming] = useState(false);
+  /** Show the squads that cannot be fielded in this region. Off by default. */
+  const [showAway, setShowAway] = useState(false);
   // Same idea as the node panel: the squad is what you are building against, so
   // it is worth seeing rather than reading.
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -160,7 +162,18 @@ export function StoryPrep(props: {
           ? `None of these ${s.cards.length} cards came with you into ${region.element}`
           : `You do not own any of these ${s.cards.length} cards yet`,
     };
-  });
+  })
+    // PICKABLE FIRST. The list is every squad you own, so on a full collection
+    // it opened with whichever happened to be saved first and buried the two you
+    // could actually field here under a dozen you could not.
+    //
+    // ONE key, not two: `squadsFor` has already put this element's squads at the
+    // front, and Array.sort is stable, so that order survives inside each group.
+    // Repeating the element rule here would be a second copy of it to keep in
+    // step with the first.
+    .sort((a, b) => Number(b.usable) - Number(a.usable));
+  const pickable = teams.filter((t) => t.usable);
+  const elsewhere = teams.filter((t) => !t.usable);
   const enemy = [...new Set([...recruitablePool(node), ...node.adds])]
     .map(getDef)
     .sort((a, b) => (RARITY_ORDER[a.rarity ?? ""] ?? 9) - (RARITY_ORDER[b.rarity ?? ""] ?? 9));
@@ -340,7 +353,7 @@ export function StoryPrep(props: {
           <>
             <div className="sr-label">Quick select</div>
             <div className="sp-quick">
-              {teams.map(({ squad: t, have, usable, why }) => (
+              {(showAway ? teams : pickable).map(({ squad: t, have, usable, why }) => (
                 <button
                   key={t.id}
                   className={`sp-chip ${pickedTeam === t.id ? "on" : ""} ${t.element === region.element ? "match" : ""} ${usable ? "" : "locked"}`}
@@ -351,6 +364,25 @@ export function StoryPrep(props: {
                   {t.name}<em>{have > cap ? `${have}!` : have}</em>
                 </button>
               ))}
+              {/* The squads you own that cannot be fielded HERE are folded away
+                  rather than dropped. They were shown flat and disabled on
+                  purpose — tapping one used to empty the deck and grey out
+                  Fight without saying why — but on a full collection that is
+                  most of the list, and the top third of the screen went to
+                  chips reading 0 before you could see the enemy. Folded keeps
+                  the answer to "where did my squad go" one tap away. */}
+              {elsewhere.length > 0 && (
+                <button
+                  className="sp-chip sp-more"
+                  onClick={() => setShowAway((v) => !v)}
+                  title={`Squads with no cards available in ${region.element}`}
+                >
+                  {showAway ? "Hide" : `+${elsewhere.length} not here`}
+                </button>
+              )}
+              {pickable.length === 0 && !showAway && (
+                <span className="sp-none">Nothing you own can be fielded here yet.</span>
+              )}
             </div>
           </>
         )}
@@ -422,7 +454,11 @@ export function StoryPrep(props: {
               onClick={() => { setPacking(squadFor(save, region).length ? squadFor(save, region) : pool.filter((id) => getDef(id).element !== region.element)); setOpenPack(true); }}
               title={`Choose which cards travel with you into ${region.element}`}
             >
-              Squad
+              {/* "Pack", not "Squad". This button chooses which cards TRAVEL
+                  with you, and it sat between "Save squad" and "Delete squad",
+                  which act on a saved team — three buttons, one word, two
+                  meanings, ever since squad became the name for a saved team. */}
+              Pack
             </button>
           )}
           {pickedTeam && (
