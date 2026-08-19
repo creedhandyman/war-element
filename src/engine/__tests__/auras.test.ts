@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import { CARDS, getDef } from "../../data/cards";
 import {
   DAWN_SP_CAP, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
-  EXOSTONE_SHIELDS, GALE_SP_CAP, LEAF_SHIELD_CAP, PYRO_BURN_STACK_CAP, hasElementAura,
+  EXOSTONE_SHIELDS, GALE_SP_CAP, LEAF_SHIELD_CAP, PYRO_BURN_DURATION, PYRO_BURN_STACK_CAP, hasElementAura,
   slipstreamPct, tailwindDmg, GALE_TAILWIND_PER, GALE_TAILWIND_CAP,
 } from "../auras";
 import { applyStatus, basicAttack, defeatCard, shadeDodgePct, slipstreamDodgePct } from "../combat";
@@ -77,6 +77,38 @@ describe("PYRO — Scorch", () => {
       basicAttack(s, pyro.instanceId, foe.instanceId);
     }
     expect(statusOf(s.cards[foe.instanceId], "BURN")!.power).toBe(PYRO_BURN_STACK_CAP);
+  });
+
+  it("leaves a burn that OUTLIVES the swing that lit it", () => {
+    // The half this file never checked. Scorch's burn ran for one round, so it
+    // ticked once and expired: the aura only ever paid while its card was
+    // already landing hits, and a PYRO card blocked, pushed or killed left
+    // nothing behind. Power was pinned above from the start; duration was not,
+    // which is how it sat at 1 without anyone noticing it did nothing.
+    const s = prepState();
+    const pyro = place(s, cheapest("PYRO").id, "P1", 3, 0);
+    const foe = place(s, cheapest("DUSK").id, "P2", 2, 0, { curHp: 500, maxHp: 500, curShields: 0 });
+    basicAttack(s, pyro.instanceId, foe.instanceId);
+    expect(statusOf(s.cards[foe.instanceId], "BURN")!.duration).toBe(PYRO_BURN_DURATION);
+
+    // And it is still alight a round later, with the attacker doing nothing.
+    const next = advance(atCleanup(s));
+    expect(statusOf(next.cards[foe.instanceId], "BURN"), "still burning next round").toBeTruthy();
+  });
+
+  it("refreshes the duration when it stacks, not just the power", () => {
+    // Stacking a burn that is about to expire and leaving it about to expire is
+    // most of why Scorch did nothing once the attacker stopped swinging.
+    const s = prepState();
+    const pyro = place(s, cheapest("PYRO").id, "P1", 3, 0);
+    const foe = place(s, cheapest("DUSK").id, "P2", 2, 0, { curHp: 500, maxHp: 500, curShields: 0 });
+    basicAttack(s, pyro.instanceId, foe.instanceId);
+    s.cards[foe.instanceId].statuses.find((x) => x.kind === "BURN")!.duration = 1; // nearly out
+    s.cards[pyro.instanceId].attackedThisRound = false;
+    basicAttack(s, pyro.instanceId, foe.instanceId);
+    const burn = statusOf(s.cards[foe.instanceId], "BURN")!;
+    expect(burn.power, "stacked").toBe(2);
+    expect(burn.duration, "and topped back up").toBe(PYRO_BURN_DURATION);
   });
 });
 

@@ -17,7 +17,7 @@
 import { getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget } from "./rules";
-import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
+import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
@@ -1758,10 +1758,13 @@ export function basicAttack(
       // so a stronger card BURN is still never overwritten, only built on.
       if (hasElementAura(aDef, "PYRO") && t.curHp > 0) {
         const burning = t.statuses.find((x) => x.kind === "BURN");
-        if (!burning) applyStatus(draft, t, "BURN", 1, 1, "PYRO");
+        if (!burning) applyStatus(draft, t, "BURN", PYRO_BURN_DURATION, 1, "PYRO");
         else if (burning.power < PYRO_BURN_STACK_CAP) {
           burning.power += 1;
-          burning.duration = Math.max(burning.duration, 1);
+          // REFRESHED to the full duration, not merely kept alive at 1. Stacking
+          // a burn that is about to expire and leaving it about to expire is
+          // most of why Scorch did nothing once the attacker stopped swinging.
+          burning.duration = Math.max(burning.duration, PYRO_BURN_DURATION);
           draft.log.push(`${label(draft, t)}'s burn deepens (BURN ${burning.power}).`);
         }
       }

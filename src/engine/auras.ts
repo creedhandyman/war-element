@@ -76,11 +76,20 @@ export const GALE_SP_CAP = 21;
  *  instead of 12, so the conversion actually reaches the mid-speed cards that
  *  make up most of the element rather than only its two fastest.
  *
- *  Aimed at the measurement: GALE sits at 43.8%, 3.5 clear of the next element
- *  and the first lone outlier since BORE. Card buffs have been tried on it —
- *  three in one pass — and measured 0.7 DOWN. Auras are the lever that has
- *  moved an element here, every time. */
-export const GALE_TAILWIND_PER = 5;
+ *  SIX AGAIN, and the round trip is the useful part of this note.
+ *
+ *  It went 6 -> 5 when GALE sat at 43.8%, the first lone outlier since BORE,
+ *  after three card buffs in one pass had measured 0.7 DOWN — auras are the
+ *  lever that has moved an element here, every time. That change was worth
+ *  +4.7 and did exactly what it was for.
+ *
+ *  What put it back was not a card: the AI learned to hold its home slots for
+ *  income (see `findAdvance`), which suits elements that sit and shoot and
+ *  carried GALE to 57.9% at the top of a 14.9 spread. The element did not get
+ *  better; the opponent got better at playing it. So the lift it needed at 43.8
+ *  is a lift it no longer needs, and this is the cheapest way to hand it back —
+ *  a lever whose price has already been measured once. */
+export const GALE_TAILWIND_PER = 6;
 /** ...to here, so a multi-hit body cannot turn it into a blowout. */
 export const GALE_TAILWIND_CAP = 3;
 
@@ -236,6 +245,22 @@ export function weakenMult(n: number): number {
  *  card would stack a lethal DOT off one attack and the aura would stop being
  *  chip damage. */
 export const PYRO_BURN_STACK_CAP = 5;
+
+/** How long Scorch's burn lasts, in rounds.
+ *
+ *  TWO, and it was one — which meant the fire went out the moment PYRO stopped
+ *  swinging. A one-round BURN ticks once and expires, so Scorch only ever paid
+ *  while its card was already landing hits, and a PYRO card that got blocked,
+ *  pushed or killed left nothing behind at all. Every other element aura keeps
+ *  working when its holder is not attacking; this one did not.
+ *
+ *  Aimed at the measurement, and at the bottom of the table rather than the
+ *  top: PYRO fell to 43.0% when the AI learned to hold home slots for income
+ *  (see `findAdvance`) — the worst-hit element of that change, because a plan
+ *  built on chip damage and pressure is the one that suffers most when the
+ *  other side is content to sit. Its own aura not persisting is the part of
+ *  that worth fixing rather than compensating for elsewhere. */
+export const PYRO_BURN_DURATION = 2;
 
 /** Midnight Shade's first half: what fraction of its own DMG a dying DUSK card
  *  deals back to whoever killed it — its DMG divided by this. ONE, so all of it.
