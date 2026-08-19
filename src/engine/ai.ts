@@ -23,6 +23,7 @@ import {
   canSummon,
   canTarget,
   legalWallRows,
+  openHomeSlots,
   spellEnemyTargets,
   validAllyTargets,
   specialTargets,
@@ -583,13 +584,55 @@ function findAdvance(
   // lead with the toughest body instead.
   const enemyHome = homeRow(enemyOf(player), state.boardSize);
   const forward = player === "P2" ? 1 : -1; // P2 pushes toward row 3, P1 toward row 0
+  const homeRowMine = homeRow(player, state.boardSize);
+  const me = state.players[player];
+  const cheapestInHand = me.hand.reduce((m, h) => Math.min(m, getDef(h.defId).cost), Infinity);
+
+  // TWO DIFFERENT QUESTIONS, and they used to share one flag.
+  //
+  // `wantIncome` — is a held home slot still worth anything? Yes while ANY card
+  // remains in hand, however poor the pool is. This used to be the affordability
+  // test below, which inverted the rule exactly when it mattered: at 0 gold with
+  // a 3-cost cheapest card the reserve DISENGAGED, the last home card walked off
+  // its own income, and 1/round + 1/slot became 1/round with six cards stranded
+  // in hand. Reported from a real game — round 5, no gold, no magic, an empty
+  // home row and one card on the board. A poor side needs the slot most; the
+  // case the reserve is meant to release is an EMPTY hand, not an empty purse.
+  //
+  // `canBuySoon` — would an open home slot actually get used this turn or next?
+  // That one does want affordability, because unjamming the summon zone while
+  // nothing can be bought trades income away for a slot that stays empty.
+  const wantIncome = me.hand.length > 0;
+  const canBuySoon = cheapestInHand !== Infinity
+    && cheapestInHand <= me.gold + HOME_RESERVE_LOOKAHEAD;
+
+  // A card can only be summoned into an OPEN HOME SLOT, and the AI takes one
+  // action a priority turn. So when the home row is full and there is something
+  // affordable in hand, the single most valuable move on the board is whichever
+  // one OPENS A SLOT — and the deepest-first sort below is precisely the wrong
+  // order for that, because home-row cards sort LAST and never move.
+  //
+  // Reported from a real game: the AI on eleven gold and fifteen magic, hand
+  // held, home row full, still walking its front line forward — with Eclipse
+  // arriving around round 22, by which time the fight it was bought for is
+  // over. Deployment stalls at about one card per two turns because half those
+  // turns go to a move that unblocks nothing.
+  const jammed = openHomeSlots(state, player).length === 0;
+  const homeFirst = !desperate && canBuySoon && jammed;
   const movers = boardCards(state, player)
     .filter((c) => moveReachFor(state, c) > 0)
-    .sort((a, b) =>
-      desperate
-        ? b.curHp + b.curShields * 2 - (a.curHp + a.curShields * 2)
-        : (b.pos!.row - a.pos!.row) * forward,
-    );
+    .sort((a, b) => {
+      if (desperate) return b.curHp + b.curShields * 2 - (a.curHp + a.curShields * 2);
+      // Unjamming beats depth, but only BETWEEN a home-row card and one that is
+      // not — among the home-row cards themselves the usual order still decides
+      // which of them leaves.
+      if (homeFirst) {
+        const ah = a.pos!.row === homeRowMine ? 0 : 1;
+        const bh = b.pos!.row === homeRowMine ? 0 : 1;
+        if (ah !== bh) return ah - bh;
+      }
+      return (b.pos!.row - a.pos!.row) * forward;
+    });
 
   // Income is 1 a round plus 1 per HOME SLOT held, so a card that walks off the
   // back line stops paying for itself. Measured before this guard, the AI held
@@ -601,10 +644,6 @@ function findAdvance(
   // you cannot spend is not income, it is a hoard. So once the hand is empty (or
   // nothing in it is within reach of the pool) every card is free to advance,
   // which keeps the capture win — and the stall-breaker below — intact.
-  const me = state.players[player];
-  const cheapestInHand = me.hand.reduce((m, h) => Math.min(m, getDef(h.defId).cost), Infinity);
-  const stillBuying = cheapestInHand !== Infinity && cheapestInHand <= me.gold + HOME_RESERVE_LOOKAHEAD;
-  const homeRowMine = homeRow(player, state.boardSize);
   const held = homeSlotsHeld(state, player);
 
   // NO "FALL BACK AND FARM" RULE HERE, and that is a measured decision rather
@@ -627,7 +666,7 @@ function findAdvance(
     // Anything above the reserve advances as before, and `desperate` ignores it
     // outright — a total standoff is a guaranteed loss and outranks income.
     if (
-      !desperate && stillBuying &&
+      !desperate && wantIncome &&
       mover.pos!.row === homeRowMine && held <= HOME_RESERVE
     ) continue;
     const reach = moveReachFor(state, mover);
