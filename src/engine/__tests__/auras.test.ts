@@ -457,11 +457,15 @@ describe("DAWN's two tribes cover the whole element", () => {
   const tribesOf = (c: { tribe?: string | string[] }) =>
     c.tribe == null ? [] : Array.isArray(c.tribe) ? c.tribe : [c.tribe];
 
-  // Sphere is a deliberate exception: it was remodelled from a Mage into a Tank
-  // and kept its Stars tag rather than being dragged across to Suns by the
-  // remodel. Named here rather than loosening the rule, so the rule still
-  // catches an untagged newcomer — which is the failure this test exists for.
-  const CLASS_RULE_EXCEPTIONS = new Set(["dawn_sphere"]);
+  // Two deliberate exceptions, one in each direction. Sphere was remodelled from
+  // a Mage into a Tank and KEPT its Stars tag rather than being dragged across
+  // by the remodel; Drakonbane is an Assassin that CROSSED to Suns, because it
+  // wants Equestrian's shield and HP rather than Aurora's speed for a card whose
+  // whole job is walking up to the biggest thing on the board.
+  //
+  // Named here rather than loosening the rule, so the rule still catches an
+  // untagged newcomer — which is the failure this test exists for.
+  const CLASS_RULE_EXCEPTIONS = new Set(["dawn_sphere", "dawn_drakonbane"]);
 
   it("every DAWN card is a Sun or a Star, and which one follows from its class", () => {
     expect(dawn.length).toBeGreaterThan(30);

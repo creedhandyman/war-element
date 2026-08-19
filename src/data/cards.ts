@@ -2507,7 +2507,20 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "DAWN",
     cardClass: "Assassin",
-    tribe: "Stars",
+    // SUNS, against the class rule that would put an Assassin in Stars — see
+    // CLASS_RULE_EXCEPTIONS in auras.test.ts, where it is named rather than the
+    // rule being loosened.
+    //
+    // It swaps Aurora's aura (+1 DMG, +2 SP) for Equestrian's (+1 DMG, +1
+    // shield, +1 max HP), and that is the right package for what this card
+    // does: it walks up to the biggest thing on the board and trades with it.
+    // Three shields on an Assassin was already a bruiser's stat line.
+    //
+    // THE COST IS A MOVEMENT STEP. At SP 5 it sits on `SP_SLOW_MAX`, so Aurora's
+    // +2 used to carry it to 7 and `moveReach` 1 -> 2 whenever she was out. In
+    // Suns it is reach 1 always, which in a capture race is a real loss and the
+    // one thing given up here.
+    tribe: "Suns",
     attackType: "Melee",
     cost: 5,
     dmg: 9,
