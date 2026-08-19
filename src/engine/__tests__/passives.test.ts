@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, shadeDodgePct, SPECIAL_HANDLERS, TARGETLESS_HANDLERS } from "../combat";
 import { weakenStacks } from "../auras";
-import { applyFlow, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
+import { applyFlow, ARC_DISCHARGE_DIVISOR, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire, spawnTokens } from "../state";
@@ -66,10 +66,15 @@ describe("clean-win passives (audit batch)", () => {
       curHp: 20, maxHp: 40, curShields: 0,
       status: { kind: "PARALYZE", duration: 2, power: 0, source: "BOLT" },
     });
-    const healthy = place(s, "dusk_gool", "P2", 1, 1, { curHp: 20, maxHp: 40, curShields: 0 });
+    // OUT of Sentry's reach 2 — Sentry is ARC now, and its tribe Discharge hums
+    // at everything in range regardless of PARALYZE. Volt Turret's "only" claim
+    // is about the turret, so the control body stands where only the turret
+    // could reach it if it fired indiscriminately.
+    const healthy = place(s, "dusk_gool", "P2", 0, 3, { curHp: 20, maxHp: 40, curShields: 0 });
     const next = advance(atCleanup(s));
-    expect(next.cards[stunned.instanceId].curHp).toBe(15); // −5 Volt Turret
-    expect(next.cards[healthy.instanceId].curHp).toBe(20); // spared
+    const zap = Math.floor((getDef("bolt_sentry").dmg * getDef("bolt_sentry").hits) / ARC_DISCHARGE_DIVISOR);
+    expect(next.cards[stunned.instanceId].curHp).toBe(20 - 5 - zap); // Volt Turret + Discharge
+    expect(next.cards[healthy.instanceId].curHp).toBe(20); // spared by BOTH
   });
 
   it("Hillbilly's Hillside braces an ally the first time IT is hit, once each", () => {

@@ -255,7 +255,7 @@ describe("First Light (DAWN): +1 SP a round, to a low cap", () => {
     expect(effectiveSp(n, n.cards[dawn.instanceId])).toBe(before + 1);
   });
 
-  it("stops at the cap, which is well under GALE's", () => {
+  it("stops at the cap, which every DAWN card converges on", () => {
     expect(DAWN_SP_CAP).toBeLessThan(GALE_SP_CAP); // speed stays GALE's identity
     const s = prepState();
     const dawn = place(s, "dawn_beam", "P1", 3, 0);
@@ -263,7 +263,9 @@ describe("First Light (DAWN): +1 SP a round, to a low cap", () => {
     let n = s;
     for (let i = 0; i < 20; i++) n = advance(atCleanup(n));
     const def = getDef("dawn_beam");
-    expect(def.sp + n.cards[dawn.instanceId].spBonus).toBeLessThanOrEqual(DAWN_SP_CAP);
+    // EXACTLY the ceiling after twenty rounds — an absolute cap means every
+    // quickened card lands on the same number, however slow its printing.
+    expect(def.sp + n.cards[dawn.instanceId].spBonus).toBe(DAWN_SP_CAP);
   });
 
   it("non-DAWN cards are not quickened", () => {

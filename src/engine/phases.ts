@@ -2,7 +2,7 @@
 // All reducers clone the incoming state once and mutate only the clone.
 
 import { getDef } from "../data/cards";
-import { applyFlow, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
+import { applyFlow, ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import { applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
@@ -2574,6 +2574,27 @@ function doCleanupPhase(draft: GameState): void {
       // off the floor rather than a second speed element.
       const curSp = def.sp + card.spBonus;
       if (curSp < DAWN_SP_CAP) card.spBonus += Math.min(1, DAWN_SP_CAP - curSp);
+    }
+    // Discharge (ARC): the tribe's standing passive — at the end of every
+    // round, an ARC card sheds a quarter of its CURRENT basic-attack damage
+    // (bonuses included, floored) to every opponent within its own reach.
+    // Through tickDamage, so a Discharge kill still fires the card's onKill,
+    // exactly as Radiation and Black Smoke do. Guarded on curHp/pos because an
+    // earlier card's discharge this same loop can have killed this one.
+    {
+      const tribes = def.tribe == null ? [] : Array.isArray(def.tribe) ? def.tribe : [def.tribe];
+      if (tribes.includes("ARC") && card.curHp > 0 && card.pos) {
+        const zap = Math.floor((effectiveDmg(draft, card) * effectiveBasicHits(card)) / ARC_DISCHARGE_DIVISOR);
+        if (zap > 0) {
+          const reach = def.attackType === "Melee" ? 1 : RANGED_REACH;
+          const caught = boardCards(draft, enemyOf(card.owner)).filter(
+            (e) => e.curHp > 0 && e.pos && chebyshev(card.pos!, e.pos) <= reach,
+          );
+          for (const e of caught) tickDamage(draft, card, e, zap, false);
+          if (caught.length)
+            draft.log.push(`${label(draft, card)} discharges — ${zap} DMG to ${caught.length} in reach.`);
+        }
+      }
     }
     if (hasElementAura(def, "LEAF")) {
       // Photosynthesis feeds on what the roots hold: +2 base, and +1 more for

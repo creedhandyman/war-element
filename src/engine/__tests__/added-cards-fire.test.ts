@@ -5,6 +5,8 @@
 // Fallow's aura sat behind a crit roll it could almost never win.
 
 import { describe, expect, it } from "vitest";
+import { ARC_DISCHARGE_DIVISOR } from "../auras";
+import { getDef } from "../../data/cards";
 import { applyStatus, basicAttack, defeatCard } from "../combat";
 import { advance, applyIntent } from "../phases";
 import { canFireSpecial, canMove, legalMoves } from "../rules";
@@ -204,8 +206,11 @@ describe("wave 1: Cragrider, Dynamo, Lumberjack, Bootlegger", () => {
     applyStatus(s, marked, "ELECTRIFIED", 3, 0, "BOLT");
     void shoksa;
     const next = advance(atCleanup(s));
-    expect(60 - next.cards[marked.instanceId].curHp).toBe(2);
-    expect(next.cards[clean.instanceId].curHp).toBe(60); // unmarked, untouched
+    // Dynamo's own 2, plus the ARC tribe's Discharge quarter — Shoksa is ARC,
+    // so both bodies in its reach take the hum on top of what this measures.
+    const zap = Math.floor((getDef("bolt_shoksa").dmg * getDef("bolt_shoksa").hits) / ARC_DISCHARGE_DIVISOR);
+    expect(60 - next.cards[marked.instanceId].curHp).toBe(2 + zap);
+    expect(60 - next.cards[clean.instanceId].curHp, "unmarked — Discharge only").toBe(zap);
   });
 
   it("Lumberjack fells straight down its OWN column, 3 slots deep", () => {

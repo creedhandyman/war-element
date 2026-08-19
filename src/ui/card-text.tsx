@@ -167,6 +167,13 @@ export function describePassives(def: CardDef): string[] {
     const a = ELEMENT_AURA[el];
     passives.push(`${el} aura — ${a.name}: ${a.desc}`);
   }
+  // The tribe passive, printed the same way the element aura is — a standing
+  // behaviour the card has by what it IS, not a per-card config.
+  {
+    const tribes = def.tribe == null ? [] : Array.isArray(def.tribe) ? def.tribe : [def.tribe];
+    if (tribes.includes("ARC"))
+      passives.push("ARC tribe — Discharge: end of round, deals a quarter of its current basic damage to every opponent in reach.");
+  }
 
   /** Push a line, prefixed with the card's own name for that passive when it
    *  has one. `key` is the def field the line was derived from. */

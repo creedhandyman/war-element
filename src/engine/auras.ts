@@ -24,7 +24,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   BORE: { name: "Exostone", desc: "Enters play with shields by rarity — Rare 2, Epic 2, Legendary 3, Mythic 4. Never loses more than 1 shield to a single hit, however heavy." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals its full DMG back to the killer, and the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%)." },
   AQUA: { name: "Flow Change", desc: "On summon, choose a boost for 3 rounds: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
-  DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for its full DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 14)." },
+  DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for its full DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 12)." },
   GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21); the first time it passes SP 15, a one-time +1 DMG." },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +1 DMG to any opponent carrying a status." },
 };
@@ -142,11 +142,18 @@ export const slipstreamPct = (sp: number): number =>
  *  size GALE's was. */
 export const DAWN_STRIKE_DIVISOR = 1;
 
-/** Where First Light (DAWN) stops quickening. Well under GALE's 21: speed is
- *  GALE's identity, and this exists to lift the game's most expensive, second
- *  slowest element off the floor of the capture race — not to make a second
- *  speed element. */
-export const DAWN_SP_CAP = 14;
+/** Where First Light (DAWN) stops quickening — an ABSOLUTE ceiling, and that
+ *  shape is the owner's call, made twice. It was 14; a relative +5 was tried
+ *  when DAWN took the top of the table at 58.6%, and it was rejected before it
+ *  ever measured: the statue that spends ten rounds climbing into the king-move
+ *  tier is not an accident of the cap's shape, it is the fantasy — DAWN is the
+ *  campaign's final region, and its slow gold giants waking up IS the boss
+ *  fight. So the trim is two points off the summit instead. Every card still
+ *  converges on the same ceiling; the slowest just arrive later and land lower
+ *  in the turn order than they used to.
+ *
+ *  Well under GALE's 21 either way: speed stays GALE's identity. */
+export const DAWN_SP_CAP = 12;
 
 /** How much armour Photosynthesis may add ON TOP OF a card's printed shields.
  *  Uncapped, a LEAF card under sustained fire would plate up faster than it
@@ -240,6 +247,19 @@ export function weakenStacks(card: { statuses: { kind: string; power: number }[]
 export function weakenMult(n: number): number {
   return (1 - WEAKEN_PCT_PER_STACK / 100) ** n;
 }
+
+/** Discharge (ARC): the fraction of a card's CURRENT basic-attack damage it
+ *  sheds to every opponent in reach at the end of each round — total damage
+ *  divided by this. A TRIBE passive, the first one: elements have standing
+ *  auras, and ARC — sixteen cards, the game's densest tribe — now has its own
+ *  identity instead of being a label the rosters happen to share.
+ *
+ *  CURRENT damage, so buffs feed it, and floored — a 3-damage battery sheds 0,
+ *  which is right: rank-and-file ARC hums, it does not strike. Elecdroid sheds
+ *  3 a round to everything in reach, which is what a mythic dynamo should read
+ *  like. Reach is the card's own: adjacent for melee, RANGED_REACH otherwise —
+ *  the same rule Bird Bomb's death blast uses. */
+export const ARC_DISCHARGE_DIVISOR = 4;
 
 /** Scorch stacks its BURN to here and no further. Uncapped, a multi-hit PYRO
  *  card would stack a lethal DOT off one attack and the aura would stop being

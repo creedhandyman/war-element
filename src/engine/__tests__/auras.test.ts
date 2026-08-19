@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 import { CARDS, getDef } from "../../data/cards";
 import {
-  DAWN_SP_CAP, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
+  ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
   EXOSTONE_SHIELDS, GALE_SP_CAP, LEAF_SHIELD_CAP, PYRO_BURN_DURATION, PYRO_BURN_STACK_CAP, hasElementAura,
   slipstreamPct, tailwindDmg, GALE_TAILWIND_PER, GALE_TAILWIND_CAP,
 } from "../auras";
@@ -61,6 +61,57 @@ describe("LEAF — Photosynthesis", () => {
     const s2 = prepState();
     const l2 = place(s2, def.id, "P1", 3, 0, { curHp: 30, maxHp: 30, hitsTakenThisRound: 99 });
     expect(advance(atCleanup(s2)).cards[l2.instanceId].curShields).toBe(def.shields + LEAF_SHIELD_CAP);
+  });
+});
+
+describe("ARC tribe — Discharge", () => {
+  // The first TRIBE passive: every ARC card sheds a quarter of its CURRENT
+  // basic damage to every opponent in its own reach at the end of each round.
+  const HP = { curHp: 30, maxHp: 30, curShields: 0 };
+
+  it("sheds floor(total/4) to everything in reach, and nothing beyond it", () => {
+    const s = prepState();
+    const arc = place(s, "bolt_static", "P1", 3, 0); // 4x1, Ranged -> reach 2
+    const near = place(s, "dusk_gool", "P2", 1, 0, HP);   // chebyshev 2 — caught
+    const far = place(s, "dusk_gool", "P2", 0, 3, HP);    // chebyshev 3 — clear
+    const zap = Math.floor((getDef("bolt_static").dmg * getDef("bolt_static").hits) / ARC_DISCHARGE_DIVISOR);
+    expect(zap).toBeGreaterThan(0);
+    const n = advance(atCleanup(s));
+    expect(30 - n.cards[near.instanceId].curHp).toBe(zap);
+    expect(n.cards[far.instanceId].curHp, "out of reach").toBe(30);
+    expect(n.cards[arc.instanceId].curHp, "never itself").toBe(getDef("bolt_static").hp);
+  });
+
+  it("reads CURRENT damage, so a buffed battery hits harder", () => {
+    const s = prepState();
+    const arc = place(s, "bolt_static", "P1", 3, 0);
+    s.cards[arc.instanceId].dmgBonus += 4; // 4 -> 8, so the quarter doubles
+    const prey = place(s, "dusk_gool", "P2", 2, 0, HP);
+    const n = advance(atCleanup(s));
+    expect(30 - n.cards[prey.instanceId].curHp).toBe(2);
+  });
+
+  it("multiplies the hits in — a barrage discharges its whole volley's quarter", () => {
+    const s = prepState();
+    place(s, "bolt_jack_arc", "P1", 3, 0); // 2x3 = 6 total -> 1
+    const prey = place(s, "dusk_gool", "P2", 2, 0, HP);
+    const jack = getDef("bolt_jack_arc");
+    const zap = Math.floor((jack.dmg * jack.hits) / ARC_DISCHARGE_DIVISOR);
+    // The per-hit quarter would be 0 (2/4 floors away) — only the volley total
+    // discharges anything, which is what this case pins.
+    expect(Math.floor(jack.dmg / ARC_DISCHARGE_DIVISOR)).toBe(0);
+    expect(zap).toBeGreaterThan(0);
+    const n = advance(atCleanup(s));
+    expect(30 - n.cards[prey.instanceId].curHp).toBe(zap);
+  });
+
+  it("hums, not strikes, below 4 total — and non-ARC BOLT sheds nothing", () => {
+    const s = prepState();
+    place(s, "bolt_zipp", "P1", 3, 0);   // ARC, 3x1 -> floor(3/4) = 0
+    place(s, "bolt_buzz", "P1", 3, 1);   // BOLT but NOT ARC, 3x1
+    const prey = place(s, "dusk_gool", "P2", 2, 0, HP);
+    const n = advance(atCleanup(s));
+    expect(n.cards[prey.instanceId].curHp, "nobody discharged").toBe(30);
   });
 });
 
