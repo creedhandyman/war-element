@@ -101,6 +101,37 @@ export interface StoryRegion {
   /** Node ids that must be cleared before this region is reachable at all.
    *  Empty/absent = open from the start (LEAF). */
   requires?: string[];
+  /** THE REGION MUSTERS. Every node you have already beaten here reinforces the
+   *  ones above it: their rosters join the filler pool for later fights, heaviest
+   *  card first, ahead of the region's ordinary rank and file.
+   *
+   *  Without it, filler is `regionPool` — the region's CHEAPEST cards of each
+   *  rarity, drawn the same whether you are on the first node or the last. That
+   *  is a flat curve dressed as a climb: the roster changes but the padding
+   *  behind it never does.
+   *
+   *  With it, the pool grows as you clear and the fights at the top field what
+   *  you already put down. It self-scales — an early node has cleared almost
+   *  nothing and is untouched — so the difficulty compounds where the region is
+   *  supposed to be hardest rather than needing a hand-tuned curve.
+   *
+   *  DAWN and DUSK only, the two late regions, where the fiction is a kingdom
+   *  and a host closing ranks behind you.
+   *
+   *  WHAT IT ACTUALLY MOVES, measured at cap 30 as total formation cost, fresh
+   *  vs the region cleared behind you:
+   *
+   *      DUSK  skirmish 61->71  warden 65->75  landmark 99->111  throne 102->123
+   *      DAWN  skirmish 57->57  warden 66->66  landmark 86->104  throne 104->112
+   *
+   *  DAWN's ordinary nodes do not move, and that is the mechanism showing
+   *  through rather than a bug: a preference can only bite where the fill has a
+   *  CHOICE, and DAWN's rare pool is small enough that a 30-card formation
+   *  already takes all of it twice. Reordering an exhausted pool moves nothing.
+   *  DUSK prints more cards, so it strengthens at every tier. Both hold the
+   *  property that matters — never weaker anywhere, strictly heavier at the set
+   *  pieces, which are the upper levels this was asked for. */
+  musters?: boolean;
   /** The region's rags-to-riches opener. See `RegionOpening`. */
   opening: RegionOpening;
   /** The Throne that counts as CONQUERING this region — the one flagged
@@ -821,7 +852,12 @@ const DUSK: StoryRegion = {
   name: "Dusk — Realm of Shadows",
   element: "DUSK",
   terrain: "Nightfall",
-  board: 4,
+  // FIVE. Its ordinary nodes were on the standard board, which ceilinged them
+  // at STANDARD_CAP 18 no matter how far the cap ladder had come — and anyone
+  // who can reach here is on 24 or 30. The fights were capped below the army
+  // the player was allowed to bring.
+  board: 5,
+  musters: true,
   opening: { node: "D1", epic: "dusk_spectra" },
   throne: "D13",
   art: "/maps/dusk.webp",
@@ -925,7 +961,12 @@ const DAWN: StoryRegion = {
   name: "Dawn — The Golden Kingdom",
   element: "DAWN",
   terrain: "Blazing Sun",
-  board: 4,
+  // FIVE. Its ordinary nodes were on the standard board, which ceilinged them
+  // at STANDARD_CAP 18 no matter how far the cap ladder had come — and anyone
+  // who can reach here is on 24 or 30. The fights were capped below the army
+  // the player was allowed to bring.
+  board: 5,
+  musters: true,
   opening: { node: "W1", epic: "dawn_veil" },
   throne: "W13",
   art: "/maps/dawn.webp",
@@ -2106,6 +2147,21 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
     [...new Set(region.nodes.flatMap((n) => n.roster))]
       .filter((id) => rarity(id) === r && !present.includes(id))
       .sort(byCost);
+  /** The muster: cards off the nodes you have already BEATEN in this region,
+   *  heaviest first. Empty unless the region musters, and empty at its opening
+   *  node either way, so it grows with the climb — which is the whole point.
+   *
+   *  Descending, where `regionPool` ascends. Ordinary filler is padding and
+   *  should be the cheap end; this is the region's defeated force arriving
+   *  behind its next defender, and it should be the heavy end. Sorting it the
+   *  same way would have added cards without adding weight. */
+  const musterPool = (r: string) =>
+    !region.musters ? [] :
+      [...new Set(
+        region.nodes.filter((n) => save.cleared.includes(n.id)).flatMap((n) => n.roster),
+      )]
+        .filter((id) => rarity(id) === r && !present.includes(id))
+        .sort((a, b) => getDef(b).cost - getDef(a).cost);
 
   /** Add from `pool` until the formation hits `limit` of that rarity, or fills. */
   const fill = (pool: string[], limit: number) => {
@@ -2132,11 +2188,17 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
   const scale = quotaScale(cap);
   const maxLeg = Math.floor(target * p.legendary * scale);
   const maxEpic = Math.floor(target * p.epic * scale);
+  // The muster goes in AHEAD of the ordinary pool at every rarity, so a late
+  // node fills with what you beat before it falls back to the region's cheap
+  // rank and file. Both are no-ops in a region that does not muster.
+  fill(musterPool("legendary"), maxLeg);
   fill(regionPool("legendary"), maxLeg);
   fill(present.filter((id) => rarity(id) === "epic").sort(byCost), maxEpic);
+  fill(musterPool("epic"), maxEpic);
   fill(regionPool("epic"), maxEpic);
   // Rares are the remainder — no quota, they fill whatever is left.
   fill(present.filter((id) => rarity(id) === "rare").sort(byCost), -1);
+  fill(musterPool("rare"), -1);
   fill(regionPool("rare"), -1);
   return out;
 }

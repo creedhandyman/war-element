@@ -1650,16 +1650,25 @@ describe("story: board size is welded to deck size", () => {
     expect(capForNode(late, leaf, big)).toBe(BIG_BOARD_CAP);
   });
 
-  it("sends set pieces to 5x5 and everything else to 4x4", () => {
-    // The campaign is a 4x4 game that opens up for the fight an Act builds to.
+  it("sends set pieces to 5x5, and everything in a large-board region", () => {
+    // The campaign is a 4x4 game that opens up for the fight an Act builds to —
+    // and then, in the last two regions, stops closing again. DAWN and DUSK are
+    // fought entirely on the large board: their ordinary nodes were ceilinged at
+    // STANDARD_CAP 18 while anyone who can reach them is on the ladder's 24 or
+    // 30, so the fights were capped below the army the player was allowed to
+    // bring. The rule is still per-node and still derived, just from the REGION
+    // as well as the kind.
     for (const r of REGIONS) {
       for (const n of r.nodes) {
         const board = boardForNode(r, n);
         const big = BIG_BATTLE_KINDS.includes(n.kind);
-        expect(board, `${n.id} (${n.kind})`).toBe(n.board ?? (big ? 5 : 4));
+        expect(board, `${n.id} (${n.kind})`).toBe(n.board ?? (big ? 5 : r.board));
         expect([4, 5], `${n.id} board ${board}`).toContain(board);
       }
     }
+    // And the two that do it are named, so a third region joining them is a
+    // decision someone makes rather than one that happens.
+    expect(REGIONS.filter((r) => r.board === 5).map((r) => r.id).sort()).toEqual(["dawn", "dusk"]);
   });
 
   /* "offers back the team you last used, then the NEWEST match" moved to
@@ -1685,13 +1694,68 @@ describe("story: board size is welded to deck size", () => {
     }
   });
 
-  it("keeps the large board rare enough to stay an event", () => {
-    const all = REGIONS.flatMap((r) => r.nodes.map((n) => boardForNode(r, n)));
-    const big = all.filter((b) => b === 5).length;
-    // Landmarks and Thrones only — a third of the map at most, or "important
-    // battle" stops meaning anything.
+  it("musters the nodes you beat into the fights above them", () => {
+    // Same node, same ladder, heavier force once the region behind it has
+    // fallen. The muster changes WHAT fills a formation, never how much — the
+    // difficulty is the weight of the cards, not a bigger army.
+    const ladder = ["L14", "P13", "A13", "G14", "B14"]; // cap 30, so nothing clips
+    const cost = (ids: string[]) => ids.reduce((s, id) => s + getDef(id).cost, 0);
+
+    for (const r of REGIONS.filter((x) => x.musters)) {
+      const at = (node: StoryNode, cleared: string[]) =>
+        buildFormation({ ...newSave(), cleared: [...ladder, ...cleared] }, r, node);
+      const whole = (node: StoryNode) => r.nodes.filter((n) => n.id !== node.id).map((n) => n.id);
+
+      for (const node of r.nodes) {
+        const fresh = at(node, []);
+        const late = at(node, whole(node));
+        expect(late.length, `${r.id} ${node.id} size`).toBe(fresh.length);
+        // NEVER weaker, everywhere. This is the half that holds unconditionally.
+        expect(cost(late), `${r.id} ${node.id} not weakened`).toBeGreaterThanOrEqual(cost(fresh));
+      }
+
+      // And STRICTLY heavier at the top, which is what the flag is for. Only the
+      // set pieces are asserted, because the muster can only bite where the fill
+      // has a CHOICE to make: DAWN's wardens already take its entire rare pool
+      // twice over to reach 30, so there is nothing left for a preference to
+      // prefer and reordering moves nothing. DUSK, with more cards printed,
+      // strengthens at every tier. Measured, not assumed.
+      const top = r.nodes.filter((n) => BIG_BATTLE_KINDS.includes(n.kind));
+      expect(top.length, `${r.id} has set pieces`).toBeGreaterThan(0);
+      for (const node of top)
+        expect(cost(at(node, whole(node))), `${r.id} ${node.id} (${node.kind})`)
+          .toBeGreaterThan(cost(at(node, [])));
+    }
+  });
+
+  it("leaves a region that does not muster exactly as it was", () => {
+    // The flag is opt-in and LEAF does not carry it, so clearing the whole
+    // region must not change a thing about what its nodes field.
+    const leaf = REGIONS.find((r) => r.id === "leaf")!;
+    expect(leaf.musters).toBeFalsy();
+    const node = [...leaf.nodes].reverse().find((n) => n.kind === "warden")!;
+    const at = (cleared: string[]) =>
+      buildFormation({ ...newSave(), cleared: ["L14", "P13", ...cleared] }, leaf, node);
+    expect(at(leaf.nodes.map((n) => n.id))).toEqual(at([]));
+  });
+
+  it("keeps the large board an event in the regions that are not fought on it", () => {
+    // The bound this used to put on the whole map — under a third of nodes —
+    // cannot survive two regions going large end to end, and loosening it to fit
+    // would have measured nothing: at 43% it would just be a number that passes.
+    //
+    // So it is asked of the SMALL-BOARD regions instead, which is where "an
+    // important battle" still has to mean something. In DAWN and DUSK the big
+    // board is the format rather than the occasion, and their set pieces are
+    // marked out by the muster and the Mythic instead.
+    const small = REGIONS.filter((r) => r.board !== 5);
+    const nodes = small.flatMap((r) => r.nodes.map((n) => boardForNode(r, n)));
+    const big = nodes.filter((b) => b === 5).length;
     expect(big).toBeGreaterThan(0);
-    expect(big / all.length).toBeLessThan(0.35);
+    expect(big / nodes.length, "set pieces only, in a 4x4 region").toBeLessThan(0.35);
+    // The large-board regions are wholly large — no stragglers left on 4x4.
+    for (const r of REGIONS.filter((r) => r.board === 5))
+      for (const n of r.nodes) expect(boardForNode(r, n), `${n.id}`).toBe(5);
   });
 });
 
