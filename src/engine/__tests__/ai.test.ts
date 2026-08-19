@@ -211,7 +211,13 @@ describe("full AI-vs-AI matches (integration)", () => {
     const decisive = ends.filter((e) => e.win!.by !== "timeout" && e.round < MAX_ROUNDS);
     expect(decisive.length, `${decisive.length}/${seeds.length} resolved decisively`)
       .toBeGreaterThanOrEqual(6);
-  });
+    // 30s, because eight full 5x5 matches land at ~4958ms against vitest's 5000
+    // default — a 42ms margin, which is not a margin. It tipped over twice in
+    // one afternoon under nothing worse than the rest of the suite running
+    // beside it, and each time it FAILED WITHOUT AN ASSERTION, so it reads as
+    // "the board geometry broke" rather than "the clock ran out". A timing
+    // failure wearing a correctness failure's clothes is worse than a slow test.
+  }, 30_000);
 
   it.each([1, 2, 3, 7, 13, 42, 60, 80])(
     "seed %i: completes with a winner and no illegal states",

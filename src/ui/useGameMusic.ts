@@ -15,7 +15,7 @@ export const TRACKS = {
   pyro: "/music/scorched-horizon.mp3",
   aqua: "/music/atlantic.mp3",
   bolt: "/music/city.mp3",
-  gale: "/music/nightowl.mp3",
+  gale: "/music/cyclone.mp3",
   bore: "/music/quake.mp3",
   dusk: "/music/ghosts.mp3",
   dawn: "/music/stars-of-dawn.mp3",

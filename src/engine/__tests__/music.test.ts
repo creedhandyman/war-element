@@ -28,6 +28,17 @@ describe("background music", () => {
     }
   });
 
+  it("ships no track nothing plays", () => {
+    // The other direction from the check above, and it has teeth: everything in
+    // `public/` is copied into `dist` whether or not a line of code names it, so
+    // an orphaned theme is dead weight served to every player. Retiring GALE's
+    // nightowl.mp3 for cyclone.mp3 would have left 2.6MB behind exactly that way.
+    // A file parked here on purpose is not a case worth supporting — park it
+    // outside `public/`, or this is the same silent MB in production.
+    const played = new Set(Object.values(TRACKS).map((url) => url.split("/").pop()!));
+    for (const f of files) expect(played.has(f), `public/music/${f} is in no TRACKS entry`).toBe(true);
+  });
+
   it("points every region theme at a region that exists", () => {
     const ids = new Set(REGIONS.map((r) => r.id));
     for (const key of Object.keys(REGION_TRACK)) {
