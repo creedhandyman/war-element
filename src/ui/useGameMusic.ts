@@ -80,11 +80,14 @@ export function useGameMusic(track: MusicTrack | MusicTrack[]): { muted: boolean
     () => typeof localStorage !== "undefined" && localStorage.getItem("we_music_muted") === "1",
   );
   const [unlocked, setUnlocked] = useState(false);
-  // Built on demand rather than up front, and this matters more than it did:
-  // ten tracks now, and Stars of Dawn alone is 8MB where every other theme is
-  // 1.7-2.6MB — it is the one track still mastered at 320kbps against the
-  // library's 96. Lazy means only a player who actually walks into DAWN pays
-  // for it.
+  // Built on demand rather than up front. The library is uniform now — ten
+  // tracks, all 96kbps, 1.7-2.4MB each — which is about 23MB of audio against a
+  // session that hears one region's theme or one Arena playlist. Building all
+  // ten eagerly would fetch most of that to never play it.
+  //
+  // The argument used to rest on Stars of Dawn alone, an 8MB 320kbps outlier.
+  // It and Underground were re-encoded down to the library's 96, so what makes
+  // this worth doing is the total rather than any single track.
   const pool = useRef<Map<MusicTrack, HTMLAudioElement>>(new Map());
 
   // Stop and drop everything on unmount.
