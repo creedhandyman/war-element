@@ -242,40 +242,38 @@ which matters at 5,600 matches.
 Harness above, verbatim. 5,600 matches, n=1,400 per element, ±2.6 at 95%:
 
 ```
-bolt 55.4 · gale 53.4 · bore 53.0 · dawn 52.2
-pyro 50.6 · aqua 46.1 · leaf 44.9 · dusk 44.4     spread 10.9
+dawn 58.8 · bolt 57.9 · gale 54.4 · leaf 47.3
+bore 47.2 · pyro 45.3 · dusk 45.0 · aqua 44.1     spread 14.6
 ```
 
-The shape is a top five spanning 4.8, **a 4.5-point cliff**, and then a bottom
-three packed into 1.7. The cliff is the balance problem; there is no lone
-outlier at either end, which is why the next move is a tier rather than a card.
+**DAWN leads BY CHOICE.** It is the campaign's final region and the owner wants
+it to read as the final boss — a knock-down was implemented (a relative +5 SP
+cap that stopped the statues short of the king-move tier) and rejected before
+it measured. Do not "fix" DAWN's number without asking; its cap sits at 12
+purely as a turn-order trim, and the commit for it records why that value is a
+flavour dial, not a lever (the king-move line is 10, so 12 and 14 grant the
+same tier).
 
-Measured WITH the body-blocks-movement rule, because that rule is shipped and
-this has to be HEAD. Without it the same harness reads `bolt 53.9 · bore 53.7 ·
-dawn 52.7 · gale 52.0 · pyro 51.0 · aqua 48.6 · leaf 44.4 · dusk 43.6`, spread
-10.2 — so the rule is worth +0.7 of spread, inside the error bar. Quoting a
-number from a working tree that has a rule disabled is its own version of the
-mistake this section is about.
+**How it got here from 10.9**, most recent first, each measured at the time:
 
-**THE 7.7 RECORDED HERE BEFORE COULD NOT BE REPRODUCED, and nothing should be
-compared against it.** Four configurations were tried and every one landed
-between 9.6 and 11.4 — the harness above at `b517a30`, the commit whose own
-message announced 7.7, **9.6**; at HEAD **10.9**; at HEAD with the movement
-rule disabled **10.2**; and the `driveP1` loop this file used to prescribe, at
-HEAD, **11.4**.
-
-The old table also puts LEAF fourth at 48.9. LEAF measures 44.2-44.9 and
-last-or-second-last in all four, which is a structurally different result
-rather than a seed effect — whatever produced 7.7, it was not this code under
-any harness that can be reconstructed from what was written down.
-
-The historical passes further down (15.8, 11.1, 30.4 …) were recorded the same
-unpinned way and carry the same warning: read them as a NARRATIVE of what moved and why, never as a scale to
-measure a new number against.
+- ARC's Discharge tribe passive: BOLT +2.0.
+- GALE hands back its Tailwind lift (6→5→6, +4.7 each way) and Scorch persists
+  a round: GALE −3.3, PYRO +3.0, and DAWN inherited the crown — a round-robin
+  sums to 50, so pulling one element down promotes the next.
+- **The AI income fix re-priced the whole table** (10.9 → 14.9): holding home
+  slots for income suits elements that sit and shoot, so GALE/DAWN rose and
+  PYRO/BORE fell. This is the biggest single mover in the file's history that
+  was not a card change, and the reason older numbers cannot be compared
+  across it: every figure here was always cards-PLUS-AI, and the AI got
+  better. Isolated: the summon-unjam half was +1.3 (noise); the income half
+  carried the rest.
 
 ### The standing balance problem: LEAF cannot outrun GALE
 
-Reproducible, and it is one matchup rather than a weak element. LEAF's row:
+Measured UNDER THE PRE-INCOME AI and not yet re-measured since — the fix that
+re-priced the table may have moved this matchup too, so re-run the row before
+acting on it. As of that measurement it was one matchup rather than a weak
+element. LEAF's row:
 
 ```
 bore 55.5 · aqua 55.5 · dusk 51.0 · pyro 44.0 · dawn 44.0 · bolt 38.5 · gale 25.5
