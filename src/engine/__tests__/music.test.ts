@@ -35,6 +35,19 @@ describe("background music", () => {
     }
   });
 
+  it("gives every region its own theme, now that all eight exist", () => {
+    // Deliberately NOT the same assertion as the one above. That one says a
+    // declared theme points at a real region; this says every region has one.
+    // The map was incomplete by design while tracks were still being written —
+    // BOLT shipped without music, then DAWN — and a missing theme falls back to
+    // menu/battle rather than breaking. All eight are filled in now, so this
+    // turns "silently plays the wrong thing" into a failing test for the next
+    // region that ships ahead of its music.
+    for (const r of REGIONS) {
+      expect(REGION_TRACK[r.id], `region "${r.id}" has no theme`).toBeTruthy();
+    }
+  });
+
   it("keeps the two non-story states pointed at their own tracks", () => {
     // A region theme is allowed to be missing — that falls back to menu/battle
     // on purpose — but menu and battle themselves are not optional.

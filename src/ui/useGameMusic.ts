@@ -18,6 +18,7 @@ export const TRACKS = {
   gale: "/music/nightowl.mp3",
   bore: "/music/quake.mp3",
   dusk: "/music/ghosts.mp3",
+  dawn: "/music/stars-of-dawn.mp3",
 } as const;
 
 export type MusicTrack = keyof typeof TRACKS;
@@ -26,7 +27,9 @@ export type MusicMode = "menu" | "battle";
 
 /** Region id -> its theme. A region with no entry falls back to the normal
  *  menu/battle pair, so shipping a region's map before its music is not a break
- *  — which is how BOLT shipped, and it is now the last one filled in. */
+ *  — which is how BOLT shipped, and then DAWN, the last of the eight. All eight
+ *  elements have their own theme now, so this map is complete and a new entry
+ *  here means a new REGION rather than a gap being filled. */
 export const REGION_TRACK: Partial<Record<string, MusicTrack>> = {
   leaf: "leaf",
   pyro: "pyro",
@@ -35,6 +38,7 @@ export const REGION_TRACK: Partial<Record<string, MusicTrack>> = {
   gale: "gale",
   bore: "bore",
   dusk: "dusk",
+  dawn: "dawn",
 };
 
 const VOLUME = 0.45;
@@ -44,8 +48,10 @@ export function useGameMusic(track: MusicTrack): { muted: boolean; toggle: () =>
     () => typeof localStorage !== "undefined" && localStorage.getItem("we_music_muted") === "1",
   );
   const [unlocked, setUnlocked] = useState(false);
-  // Built on demand rather than up front: the four tracks are ~28MB together,
-  // and a player who never opens Story Mode should never fetch its themes.
+  // Built on demand rather than up front, and this matters more than it did:
+  // ten tracks now, and Stars of Dawn alone is 8MB where every other theme is
+  // 1.7-2.6MB — it is the one track mastered at 320kbps against the library's
+  // 96. Lazy means only a player who actually walks into DAWN pays for it.
   const pool = useRef<Map<MusicTrack, HTMLAudioElement>>(new Map());
 
   // Stop and drop everything on unmount.
