@@ -58,7 +58,7 @@ import { RulesBook } from "./RulesBook";
 import { TutorialCoach } from "./TutorialCoach";
 import {
   loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
-  type CustomDeck,
+  validateDeck, type CustomDeck, type DeckTier,
 } from "../data/custom-decks";
 import { SpIcon } from "./icons";
 import { Hand } from "./Hand";
@@ -436,10 +436,18 @@ export function App() {
    *  somehow both cannot script the seat twice. */
   const scriptedP2: number | undefined =
     eventRun?.scriptedOpening ?? scriptedOpeningFor(p2DeckId);
-  /** The rung a new run would use — whatever the opponent seat is currently on.
-   *  An untiered deck (an original, or one you built) has no rung, so the
-   *  middle one is the sensible default and the button names it either way. */
-  const runTier = tierOf(p2DeckId) ?? "mid";
+  /** The rung a new run is dealt from — PICKED, on its own control.
+   *
+   *  It used to be `tierOf(p2DeckId) ?? "mid"`: read off whichever deck happened
+   *  to be sitting in the opponent chair. That was already oblique — nothing
+   *  said the seat was steering the difficulty — and it stopped working
+   *  entirely once the chair was locked, which it has to be, because a mode
+   *  that deals your opponents cannot also let you choose them.
+   *
+   *  So difficulty is the one thing gauntlet mode DOES ask you, and it asks it
+   *  outright. Clamped to the rungs this board actually has. */
+  const [runTierPick, setRunTierPick] = useState<DeckTier>("mid");
+  const runTier: DeckTier = tiersFor(boardSize).includes(runTierPick) ? runTierPick : "mid";
   /** The Gauntlet's current seat, when a run is live. While it is, the AI's
    *  deck is not the player's to set — that is the whole point of a run. */
   const gauntletSeat =
@@ -524,6 +532,49 @@ export function App() {
   const mySeatDeckId = onlineMode && onlineRole === "guest" ? p2DeckId : p1DeckId;
   const deckLabel = (deckId: string): string =>
     (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).name;
+
+  /** The battlefield is the RUN's while one is live — it was dealt for a board
+   *  and pays that board's rate. */
+  const boardLocked = arenaGame === "gauntlet" && !!gauntletRun && !runOver(gauntletRun);
+  const runBoard = gauntletRun && !runOver(gauntletRun) ? boardOfRun(gauntletRun) : null;
+  useEffect(() => {
+    // Coming back to a run started on the other board, the lobby would show the
+    // run's seats against the wrong field until you noticed. It snaps.
+    if (arenaGame === "gauntlet" && runBoard && runBoard !== boardSize) setBoardSize(runBoard);
+  }, [arenaGame, runBoard, boardSize]);
+
+  /** MAY THIS MATCH START, and if not, what is wrong.
+   *
+   *  Two rules, both from the same principle: a mode that picks your opponent
+   *  is a CHALLENGE, and a challenge you can bend the terms of is a sandbox
+   *  wearing a challenge's name.
+   *
+   *    THE FORMAT. A 5x5 squad is thirty cards and a 4x4 squad is eighteen; the
+   *    engine enforces neither, so a thirty-card squad would happily walk into a
+   *    4x4 gauntlet with twelve extra cards of depth. Blocked in Streak and
+   *    Gauntlet. Casual only WARNS — an unfinished squad against a deck you
+   *    chose yourself is a sandbox, and that is what casual is for.
+   *
+   *    THE OPPONENT. Streak and Gauntlet do not start "a normal match". The
+   *    seat is dealt, and with no run lined up there is nothing to fight yet —
+   *    the button says so rather than quietly starting a fight that scores
+   *    nothing against a deck you picked.
+   *
+   *  Online and hot-seat are neither: the other seat is a person. */
+  const myDeckCheck = validateDeck(resolveDeckCards(mySeatDeckId), boardSize);
+  const startGate: { ok: boolean; why?: string; warn?: string } = (() => {
+    if (onlineMode || twoPlayer || storyNode) return { ok: true };
+    const challenge = arenaGame === "gauntlet" || arenaGame === "streak";
+    if (challenge && !myDeckCheck.ok) {
+      return {
+        ok: false,
+        why: `Your squad is not a ${boardSize}×${boardSize} squad — ${myDeckCheck.reason?.toLowerCase()}`,
+      };
+    }
+    if (arenaGame === "gauntlet" && (!gauntletRun || runOver(gauntletRun)))
+      return { ok: false, why: "Line up a gauntlet above to begin a run." };
+    return { ok: true, warn: myDeckCheck.ok ? undefined : myDeckCheck.reason };
+  })();
 
   /** THE FIGHT ALREADY LINED UP, for the win screen.
    *
@@ -2837,12 +2888,24 @@ export function App() {
               <div className="ar-field">
                 <span className="ar-flabel">BATTLEFIELD</span>
                 <div className="seg">
-                  <button className={boardSize === 4 ? "on" : ""} onClick={() => setBoardSize(4)}>
-                    4×4 · Standard
-                  </button>
-                  <button className={boardSize === 5 ? "on" : ""} onClick={() => setBoardSize(5)}>
-                    5×5 · Large
-                  </button>
+                  {/* LOCKED while a run is live. A run is dealt for a board — it
+                      stores which one, and it pays that board's rate — so
+                      switching underneath it would leave four 4x4 opponents
+                      waiting on a 5x5 field, and your squad the wrong size for
+                      both. The run owns this until it ends. */}
+                  {([4, 5] as const).map((sz) => (
+                    <button
+                      key={sz}
+                      className={boardSize === sz ? "on" : ""}
+                      disabled={boardLocked && boardSize !== sz}
+                      title={boardLocked && boardSize !== sz
+                        ? "The gauntlet run was dealt for this battlefield"
+                        : undefined}
+                      onClick={() => setBoardSize(sz)}
+                    >
+                      {sz}×{sz} · {sz === 4 ? "Standard" : "Large"}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
@@ -2946,28 +3009,13 @@ export function App() {
                       {(story.ladder?.best ?? 0) > streak && ` · best ${story.ladder!.best}`}
                     </span>
                   </button>
-                  <div className="mm-manual">
-                    <span className="ar-flabel">OR PICK</span>
-                    <div className="seg">
-                      {/* The rungs THIS board has, not every rung in the type:
-                          elite is large-board only. Active only while the seat
-                          really holds a deck from that rung, so picking one by
-                          hand from the VS card leaves this honest rather than
-                          claiming a difficulty it did not set. */}
-                      {tiersFor(boardSize).map((rung) => (
-                        <button
-                          key={rung}
-                          className={tierOf(p2DeckId) === rung ? "on" : ""}
-                          onClick={() => {
-                            const pick = rollOpponent(rung, boardSize, p2DeckId);
-                            if (pick) setP2DeckId(pick.id);
-                          }}
-                        >
-                          {TIER_LABEL[rung]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  {/* THE "OR PICK" RUNG ROW IS GONE. It let you hand yourself
+                      any difficulty you liked and then climb on it, which is
+                      the one thing a ladder may not allow — and it was dead
+                      weight besides, since an off-rung match already scored
+                      nothing (`recordLadderMatch` returns the ladder
+                      unchanged). The rung is the streak's to decide; choosing
+                      your own fight is what Casual is for. */}
                 </div>
               );
             })()}
@@ -2981,14 +3029,39 @@ export function App() {
                 Its own MODE now, so an armed run cannot be spent by a match
                 that was never part of it — see `settleArena`'s `gauntletSeat`.
                 A run left standing here is still standing when you come back. */}
+            {/* DIFFICULTY, asked outright. The rung used to be read off whichever
+                deck was sitting in the opponent chair — oblique even then, and
+                unusable now the chair is dealt rather than chosen. Shown only
+                while there is no run: mid-run the rung is settled, and a live
+                control that cannot change anything is a lie. */}
+            {!onlineMode && !twoPlayer && arenaGame === "gauntlet"
+              && (!gauntletRun || runOver(gauntletRun)) && (
+              <div className="ar-field">
+                <span className="ar-flabel">DIFFICULTY</span>
+                <div className="seg">
+                  {tiersFor(boardSize).map((rung) => (
+                    <button
+                      key={rung}
+                      className={runTier === rung ? "on" : ""}
+                      title={`Four ${TIER_LABEL[rung]} decks · clears for ${runReward(rung, boardSize)} shards`}
+                      onClick={() => setRunTierPick(rung)}
+                    >
+                      {TIER_LABEL[rung]}
+                      {(story.gauntlet?.cleared ?? []).includes(rung) && (
+                        <i className="rung-done" title="Cleared before" aria-hidden="true">✓</i>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {!onlineMode && !twoPlayer && arenaGame === "gauntlet" && (
               <div className="ar-gauntlet">
                 {!gauntletRun ? (
-                  /* ONE difficulty picker on this screen, not two. The row above
-                     already asks which rung you want; repeating the same three
-                     words here was a second way to answer the same question and
-                     cost a row the lobby did not have. The button runs whichever
-                     rung the opponent seat is already on. */
+                  /* Runs the rung the row above names. That row is the ONLY
+                     difficulty control on the screen — this button states the
+                     choice back rather than offering it a second time. */
                   <button
                     className="gt-start"
                     onClick={() => {
@@ -3137,9 +3210,15 @@ export function App() {
                   flag={eventRun ? "EVENT · ONE TIME ONLY" : gauntletSeat ? `GAUNTLET · SEAT ${(gauntletRun?.won ?? 0) + 1}` : twoPlayer ? "P2 · SECOND PLAYER" : "AI · P2"}
                   label={deckLabel(p2DeckId)}
                   cards={resolveDeckCards(p2DeckId)}
-                  /* Dealt, not chosen: opening the sheet here would be the
-                     re-roll the run exists to prevent. */
-                  onChange={gauntletSeat ? undefined : () => setPickSeat("p2")}
+                  /* DEALT, NOT CHOSEN — in either challenge mode. A run's seat
+                     was already locked (opening the sheet is the re-roll the run
+                     exists to prevent), but STREAK's was not: you could hand
+                     yourself the softest deck on the rung and climb on it. The
+                     point of both modes is that the opponent is picked FOR you,
+                     and Casual is where picking your own fight lives. */
+                  onChange={
+                    gauntletSeat || arenaGame !== "casual" ? undefined : () => setPickSeat("p2")
+                  }
                 />
               )}
             </div>
@@ -3148,6 +3227,7 @@ export function App() {
               {!onlineMode ? (
                 <button
                   className={`lockin ar-start${arenaGame === "gauntlet" && gauntletRun && !runOver(gauntletRun) ? " gauntlet" : ""}`}
+                  disabled={!startGate.ok}
                   onClick={startArenaMatch}
                 >
                   {/* The deception this fixes: one button, two very different
@@ -3155,16 +3235,25 @@ export function App() {
                       — a loss ends four matches' progress — and it read exactly
                       the same as a throwaway single fight. The label now names
                       which one you are agreeing to, and where you are in it. */}
-                  {arenaGame === "gauntlet" && gauntletRun && !runOver(gauntletRun)
-                    ? `Start Gauntlet · Seat ${gauntletRun.won + 1} of ${gauntletRun.seats.length}`
-                    : arenaGame === "streak" && !twoPlayer && !onlineMode
-                      ? `Start Streak Match · ${TIER_LABEL[tierForStreak(story.ladder?.streak ?? 0, boardSize)]}`
-                      : "Start Match"}
+                  {!startGate.ok
+                    ? startGate.why
+                    : arenaGame === "gauntlet" && gauntletRun && !runOver(gauntletRun)
+                      ? `Start Gauntlet · Seat ${gauntletRun.won + 1} of ${gauntletRun.seats.length}`
+                      : arenaGame === "streak" && !twoPlayer && !onlineMode
+                        ? `Start Streak Match · ${TIER_LABEL[tierForStreak(story.ladder?.streak ?? 0, boardSize)]}`
+                        : "Start Match"}
                 </button>
               ) : (
                 <button className="lockin ar-start" disabled>
                   {online ? "Waiting for your buddy…" : "Fill the seat to start"}
                 </button>
+              )}
+              {startGate.warn && (
+                /* Casual lets a half-built squad fight — that is what a sandbox
+                   is for — but the engine never enforced deck size at all, so
+                   "why did I run out of cards" had no answer anywhere on the
+                   screen. */
+                <div className="ar-warn">{startGate.warn} · fine here, not in Streak or Gauntlet.</div>
               )}
               {/* Two ghosts, not four — Story and Shop live in the nav. */}
               <div className="ar-ghosts">

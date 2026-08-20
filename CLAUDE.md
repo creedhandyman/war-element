@@ -908,7 +908,18 @@ Three pieces, all in `src/data/`:
 - **Three MODES, not three overlapping selections** (`arenaGame` in App.tsx —
   `casual` / `streak` / `gauntlet`). Exactly one owns the lobby, the opponent
   seat, and the settlement, and switching away PARKS the others rather than
-  scoring them. This is load-bearing, not cosmetic: `settleArena` used to
+  scoring them. **Streak and Gauntlet are CHALLENGES**, and `startGate` is what
+  makes that word mean something: the opponent chair is dealt in both (no
+  `onChange` — Casual is where picking your own fight lives), neither will start
+  "a normal match" (gauntlet mode with no run armed refuses, rather than quietly
+  fighting a deck you picked), the battlefield is locked to a live run's board,
+  and your squad must be the format's exact size. That last one is enforced
+  NOWHERE ELSE — the engine never checked deck length — so a 30-card 5x5 squad
+  would otherwise walk into a 4x4 gauntlet with twelve extra cards of depth.
+  Casual warns instead of blocking; a sandbox is what it is for. Difficulty in
+  gauntlet mode is its own control (`runTierPick`) — it used to be read off
+  whichever deck sat in the opponent chair, which stopped working the moment
+  that chair was dealt rather than chosen. This is load-bearing, not cosmetic: `settleArena` used to
   advance — and on a loss END — any live Gauntlet run, guarded only by
   `runOver`, so one casual match destroyed a run it was never part of. The
   caller now states `gauntletSeat`, and the ladder is likewise gated on streak
@@ -917,7 +928,9 @@ Three pieces, all in `src/data/`:
 
 - **The matchmaker** — the OPPONENT row in the Arena, shown in STREAK mode.
   Pick a rung, it rolls a deck from it, and re-rolling the same rung avoids the
-  deck already seated. Streak also deals the NEXT opponent the moment a match
+  deck already seated. The old "OR PICK" manual rung row is gone: it let you
+  hand yourself any difficulty and then climb on it, and it was dead weight
+  besides — an off-rung match already scored nothing. Streak also deals the NEXT opponent the moment a match
   ends, off the rung you are on *after* it, excluding the deck you just beat —
   and the win screen shows what is queued (name, elements, rung, pay) with
   Fight and Leave as equals. Rematch stands down while a dealt opponent waits:
