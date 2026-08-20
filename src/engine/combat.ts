@@ -1583,6 +1583,10 @@ export function basicAttack(
   // PARALYZE: 50% chance to attack at all.
   if (hasStatus(attacker, "PARALYZE") && !chance(draft, 50)) {
     draft.log.push(`${label(draft, attacker)} is paralyzed and can't attack.`);
+    // Say so ON THE CARD as well. This was a log line and nothing else: the
+    // turn simply produced no numbers, which reads as a bug rather than as the
+    // coin PARALYZE is. Cosmetic only — the return below is the behaviour.
+    attacker.fxParalyzed = (attacker.fxParalyzed ?? 0) + 1;
     return missed;
   }
 

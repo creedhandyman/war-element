@@ -260,6 +260,10 @@ export function Token(props: {
   const motionFx = useMotionFx(card.instanceId, card.fxLunge ?? 0, card.fxRecoil ?? 0);
   const dmgFx = useDamageFloats(card.instanceId, card.fxDmgSeq ?? 0, card.fxDmgHits ?? EMPTY_HITS);
   const coinFx = useCoinFloat(card.instanceId, card.fxCoin ?? 0);
+  // Same bump-a-counter shape as the coin float — a PARALYZE that actually cost
+  // the card its turn floats the word, so a turn that produced nothing reads as
+  // the coin it was rather than as the game skipping a beat.
+  const zapFx = useCoinFloat(card.instanceId, card.fxParalyzed ?? 0);
   // Attack spotlight: during Battle, the card at the front of the speed queue is
   // the one taking its turn — grow it slightly so you can see who's acting.
   const battle = game.battle;
@@ -381,6 +385,9 @@ export function Token(props: {
         <span key={`coin${coinFx}`} className="fx-coin">
           +1<i className="coin" />
         </span>
+      )}
+      {zapFx > 0 && (
+        <span key={`zap${zapFx}`} className="fx-para">PARALYZED</span>
       )}
       {dmgFx && (
         <div key={dmgFx.key} className="fx-dmg-stack">

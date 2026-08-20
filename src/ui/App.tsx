@@ -55,6 +55,7 @@ import { rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
+import { TutorialCoach } from "./TutorialCoach";
 import {
   loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
   type CustomDeck,
@@ -204,6 +205,14 @@ export function App() {
   // a newly-used spell in their book and flash its art too — with its own timer
   // so it never clobbers a local flash-then-cast in flight.
   const oppFlashTimerRef = useRef<number | null>(null);
+  // A SPRUNG TRAP flashes its art too. Traps are hidden — the whole point — so
+  // walking into one is the moment the player has least idea what just hit
+  // them, and the log line scrolls past. `draft.traps.splice` on trigger is the
+  // ONLY place a trap leaves the board (no expiry, no dispel), so a trap that
+  // vanishes between renders detonated, and there is no false positive to
+  // guard against. Its own timer, so it cannot clobber a cast mid-flight.
+  const trapFlashTimerRef = useRef<number | null>(null);
+  const prevTrapsRef = useRef<string[]>([]);
   const prevOppUsedRef = useRef<Set<string>>(new Set());
   // Powerful-creature entrance: legendary and above get their art announced
   // full-screen. My own summon holds the intent and dispatches AFTER the
@@ -688,6 +697,26 @@ export function App() {
         );
     }
   }, [phaseKey, game, twoPlayer, online]);
+
+  // Trap sprung → flash its art. Keyed on spellId, so a card-laid trap with no
+  // spell behind it (Nightbriar's Dark Hunting) is silently skipped rather than
+  // flashing a blank card.
+  useEffect(() => {
+    const now = game.traps.map((tr) => `${tr.pos.row},${tr.pos.col}:${tr.spellId ?? ""}`);
+    const gone = prevTrapsRef.current.filter((k) => !now.includes(k));
+    prevTrapsRef.current = now;
+    if (!started || trapFlashTimerRef.current !== null) return;
+    const sprung = gone.map((k) => k.split(":")[1]).find(Boolean);
+    if (!sprung) return;
+    setCastFlash({ spellId: sprung });
+    trapFlashTimerRef.current = window.setTimeout(() => {
+      trapFlashTimerRef.current = null;
+      setCastFlash(null);
+    }, 1400);
+  }, [game.traps, started]);
+  useEffect(() => () => {
+    if (trapFlashTimerRef.current !== null) window.clearTimeout(trapFlashTimerRef.current);
+  }, []);
 
   function broadcast(state: GameState) {
     roomRef.current?.sendState(state, seatNamesRef.current ? { names: seatNamesRef.current } : undefined);
@@ -2016,6 +2045,24 @@ export function App() {
           </div>
 
           <div className="controls">
+            {/* The coach sits ABOVE the hint and answers a different question:
+                the hint says what to DO, this says why. First fight only, and
+                each idea once ever — see TutorialCoach. */}
+            {!online && !twoPlayer && !(story.taught ?? []).includes("SKIP") && (
+              <TutorialCoach
+                game={game}
+                me={me}
+                taught={story.taught ?? []}
+                onTaught={(id) => {
+                  const next = { ...story, taught: [...new Set([...(story.taught ?? []), id])] };
+                  setStory(next); saveStory(next);
+                }}
+                onSkipAll={() => {
+                  const next = { ...story, taught: [...new Set([...(story.taught ?? []), "SKIP"])] };
+                  setStory(next); saveStory(next);
+                }}
+              />
+            )}
             <div className="hint" dangerouslySetInnerHTML={{ __html: hint }} />
             {/* Portrait: surface the spellbook right in the action panel (desktop
                 keeps its own tray in the right rail; this one is CSS-hidden there).

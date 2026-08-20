@@ -1256,6 +1256,15 @@ export interface CardInstance {
    *  the income rule is something you watch happen rather than infer from the
    *  gold counter ticking. */
   fxCoin?: number;
+  /** Bumped when PARALYZE actually COSTS this card its attack — the renderer
+   *  diffs it and floats "PARALYZED" over the token.
+   *
+   *  A counter rather than a boolean, because the interesting event is the
+   *  ROLL, not the status: PARALYZE is a coin flipped at act time, so the card
+   *  carries the icon whether or not it was stopped this turn, and the one
+   *  thing the player could not see was which. The status pip says "might be
+   *  stopped"; this says "was". */
+  fxParalyzed?: number;
   /** UI-only damage readout: every point of HP this card has lost, one entry
    *  per hit, most recent last — and a counter that ticks once per entry.
    *

@@ -2348,6 +2348,13 @@ export interface StorySave {
    *  the save rather than in React state precisely so it CANNOT be re-rolled:
    *  leaving the Arena and coming back has to resume the same four opponents. */
   gauntlet?: GauntletState;
+  /** Tutorial steps already taught. See `ui/TutorialCoach.tsx`.
+   *
+   *  In the save because a tutorial that repeats is a nag: these fire once per
+   *  PLAYER, not once per fight. "SKIP" is the sentinel for "teach me nothing
+   *  else" — a single value rather than the whole list, so adding a sixth step
+   *  later does not un-skip everyone who already opted out. */
+  taught?: string[];
   /** The matchmaker's win streak. See `data/matchmaker.ts`.
    *
    *  In the save rather than in React state for the same reason the Gauntlet
@@ -2596,6 +2603,7 @@ export function loadStory(): StorySave {
           cleared: Array.isArray(g.cleared) ? g.cleared.filter((t) => DECK_TIERS.includes(t)) : [],
         };
       })(),
+      taught: Array.isArray(p.taught) ? p.taught.filter((x) => typeof x === "string") : undefined,
       // Two non-negative integers or nothing. A junk streak would pick the rung
       // the matchmaker seats, so a hand-edited save could deal itself elite
       // decks — which is allowed (it is a local save) but must not crash the
