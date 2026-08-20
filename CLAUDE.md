@@ -948,6 +948,37 @@ every pre-existing team is that case — and the offer in the builder is gated
 on what the hero has actually unlocked, because spells are earned by walking a
 region.
 
+### Squads
+
+- **It is a SQUAD, on screen, everywhere.** The same saved object used to be a
+  deck, a squad, a team, an army and a loadout depending on which screen you
+  stood on — a tile marked "Deck builder" reading "No team saved" opening a
+  modal titled "Squad Builder". `Squad` is also the only type (`squads.ts`,
+  `we_squads_v1`); `CustomDeck` and `Loadout` are aliases. **"Deck" now means
+  exactly one thing in user-facing copy: the pile you draw from once the match
+  starts.** If you add a string, pick the right one of those two.
+
+- **Both editors can do both verbs.** `DeckBuilder` was the only surface that
+  could ADD a card and had no fill; `StoryPrep` had a fill and could not touch a
+  single card. So the builder has **Auto-fill** (tops up, never replaces, and
+  fills from the FILTERED pool — narrow to GALE Rangers and it builds GALE
+  Rangers) and prep's chips are tappable to drop with an Add beside them. The
+  builder's spell fill must NOT go through `autoDeck`: that reads `getDef`,
+  which knows cards and throws on a spell id, and the two are both `string[]`.
+
+- **The picked squad is always on screen in the builder**, not one of four
+  panels behind a pill. The desktop default used to be Composition — the
+  default state of the squad builder was one where you could not see the squad.
+
+- **The campaign builder's cap and board follow the PREPPED NODE** when prep is
+  open (`builderCap` / `builderBoard` in App.tsx), and the region's maximum
+  otherwise. Those were quietly different numbers, and the region-max answer
+  painted a 20-card squad legal that the 12-cap node in front of you then
+  rejected. The cap line names the fight so the shifting ceiling reads as
+  intent. Related: `buildSize` is `useState(props.boardSize)` and the builder is
+  mounted all session, so it needs the prop-sync effect — without it the board
+  freezes at the first render of the APP.
+
 ## Traps found the hard way
 
 - **A NEW top-level class name must be grepped against the JSX before it is

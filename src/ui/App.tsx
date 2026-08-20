@@ -841,6 +841,14 @@ export function App() {
     const now = game.traps.map((tr) => `${tr.pos.row},${tr.pos.col}:${tr.spellId ?? ""}`);
     const gone = prevTrapsRef.current.filter((k) => !now.includes(k));
     prevTrapsRef.current = now;
+    // A FRESH MATCH is not four traps springing at once. `createInitialState`
+    // opens in mulligan with an empty trap list, and the ref is still holding
+    // the LAST match's board — the game object survives in the lobby, so the
+    // baseline never got a chance to clear. Every trap from the game you just
+    // finished would detonate on screen the moment you started the next one.
+    // Nothing can spring during a mulligan (no movement, no battle), so this
+    // suppresses no real trigger.
+    if (game.phase === "mulligan") return;
     if (!started || trapFlashTimerRef.current !== null) return;
     const sprung = gone.map((k) => k.split(":")[1]).find(Boolean);
     if (!sprung) return;
