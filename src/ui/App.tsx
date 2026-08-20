@@ -3283,6 +3283,7 @@ export function App() {
         story={{
           owned: storyBuilderOwned,
           cap: builderCap,
+          forNode: prepNode?.name,
           element: region.element,
           spellPool: heroSpellShelf(story),
           foils: foilIds,

@@ -5297,3 +5297,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   color: var(--gold-lit);
 }
 .win-earned span { font-size: 11px; font-weight: 500; color: var(--dim); }
+
+/* Which fight the campaign builder's ceiling belongs to. Opened from prep the
+   cap is that node's, not the region's biggest — a number that moves between
+   entrances has to say why it moved. */
+.db-fornode { display: block; margin-top: 2px; color: var(--ink-faint); font-size: 10px; }

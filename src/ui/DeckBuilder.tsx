@@ -48,6 +48,11 @@ export interface StoryBuildMode {
   foils?: ReadonlySet<string>;
   /** Tag applied to a team saved from here, so prep can float it to the top. */
   element?: string;
+  /** The node this build is FOR, when one is being prepped. Present only from
+   *  the prep entrance, where `cap` and the board are that node's rather than
+   *  the region's largest. Naming it is what keeps the shifting ceiling from
+   *  reading as a bug. */
+  forNode?: string;
   /** Told what was just saved, so the campaign can remember which squad it is
    *  holding. The squad is already in the shared library by then — this is a
    *  pointer, not a second write of the same data. */
@@ -73,6 +78,27 @@ export function DeckBuilder(props: {
   // Which battlefield this deck is being built for — you can build an 18-card
   // (4×4) or a 30-card (5×5) deck regardless of the current game mode.
   const [buildSize, setBuildSize] = useState<number>(props.boardSize ?? 4);
+  /** FOLLOW THE PROP WHEN IT MOVES.
+   *
+   *  This is `useState(props.boardSize)` and nothing ever re-read it, so the
+   *  board froze at whatever it was on the builder's FIRST render — and the
+   *  builder is mounted for the whole session with `open` toggled, so that is
+   *  the first render of the app. Standing in front of a 4x4 node it still said
+   *  "5×5 · 8 spells", and offered a book two spells longer than the fight can
+   *  hold.
+   *
+   *  Only on a CHANGE, tracked in a ref: in the Arena `buildSize` is the
+   *  player's own toggle and loading a deck code re-points it, and neither may
+   *  be stomped on every render by a prop that has not moved. */
+  const lastPropBoard = useRef(props.boardSize);
+  useEffect(() => {
+    if (props.boardSize == null || props.boardSize === lastPropBoard.current) return;
+    lastPropBoard.current = props.boardSize;
+    setBuildSize(props.boardSize);
+    // The smaller board holds a shorter book, so trim rather than carry an
+    // illegal one across — same rule the manual toggle applies.
+    setPickedSpells((cur) => sanitizeSpells(cur, props.boardSize!) ?? []);
+  }, [props.boardSize]);
   // Story Mode's ceiling is the campaign's, not the format's. `min` stays 1 —
   // `loadoutLegal` deliberately treats the cap as a ceiling, not a quota, so a
   // twelve-card team is a legal choice and the builder must not call it broken.
@@ -441,6 +467,12 @@ export function DeckBuilder(props: {
                 <b>{buildSize}×{buildSize}</b> · carry up to <b>{story.cap}</b>
                 {" "}· <b>{limits.spells}</b> spells
                 {story.cap > STANDARD_CAP && <span> · set-piece size</span>}
+                {/* Opened from prep these are THAT NODE's numbers, not the
+                    region's biggest — building to a set piece and then arriving
+                    at a smaller node over-cap is the failure this replaced, and
+                    a ceiling that changes between entrances has to say which
+                    fight it belongs to. */}
+                {story.forNode && <span className="db-fornode">for {story.forNode}</span>}
               </div>
             ) : (
               <div className="db-size">
