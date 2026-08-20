@@ -68,7 +68,7 @@ import { SpeedQueue } from "./SpeedQueue";
 import { SpellTray } from "./SpellTray";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
-import { WinScreen } from "./WinScreen";
+import { WinScreen, type NextUp } from "./WinScreen";
 import { EL_COLOR, EL_ICON, type PendingBattle, type Selection } from "./shared";
 import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
@@ -392,6 +392,12 @@ export function App() {
   // effect below re-points these if the player switches battlefield.
   const [p1DeckId, setP1DeckId] = useState(premadeDecksFor(4)[0].id);
   const [p2DeckId, setP2DeckId] = useState(premadeDecksFor(4)[1].id);
+  // WHAT KIND of AI match this is — a MODE, not a selection buried in the
+  // lobby. Three, and they no longer bleed into each other: Casual picks its
+  // own fight and scores nothing, Streak climbs the ladder, Gauntlet runs the
+  // four seats. A run now survives you playing the other two, which is the
+  // reported bug: with a run armed, ANY match advanced it and a loss ENDED it.
+  const [arenaGame, setArenaGame] = useState<"casual" | "streak" | "gauntlet">("casual");
   const gauntletRun = story.gauntlet?.run;
   /** The event being fought, DERIVED from the opponent seat rather than stored.
    *
@@ -422,7 +428,10 @@ export function App() {
     // unconditionally, so tapping the Home event card while one was live handed
     // you the gauntlet deck instead — and then settled the result against the
     // run. An event does not touch the run, in either direction.
-    arenaMode === "ai" && !eventRun && gauntletRun && !runOver(gauntletRun)
+    // And only in GAUNTLET MODE. A run is a thing you can walk away from and
+    // come back to now, so while you are in Casual or Streak the run is parked:
+    // it neither fills the opponent chair nor is scored by what happens in it.
+    arenaGame === "gauntlet" && arenaMode === "ai" && !eventRun && gauntletRun && !runOver(gauntletRun)
       ? nextSeat(gauntletRun, boardSize)
       : null;
   /** THE RUN OWNS THE OPPONENT DECK while it is live.
@@ -492,6 +501,57 @@ export function App() {
   const mySeatDeckId = onlineMode && onlineRole === "guest" ? p2DeckId : p1DeckId;
   const deckLabel = (deckId: string): string =>
     (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).name;
+
+  /** THE FIGHT ALREADY LINED UP, for the win screen.
+   *
+   *  Streak and Gauntlet both deal their own next opponent, so the moment a
+   *  match ends there is a real, named, already-seated fight waiting. Showing
+   *  it on the result screen is what turns "the mode picked for you" from a
+   *  thing that happens to you into a thing you agree to — and it is the only
+   *  place where leaving is offered as an equal option to continuing, which is
+   *  what makes a saved run mean anything.
+   *
+   *  Null in every other case: story battles settle their own way, events are
+   *  fought once, and two of the three Arena modes have nothing queued. */
+  const nextUp: NextUp | null = (() => {
+    if (storyNode || eventRun || twoPlayer || onlineMode) return null;
+    if (game.phase !== "gameover") return null;
+    const elements = [...new Set(resolveDeckCards(p2DeckId).map((id) => getDef(id).element))];
+    if (arenaGame === "gauntlet") {
+      const run = gauntletRun;
+      // A finished run has nothing next — the panel in the lobby says what
+      // happened, and this would be a button to fight a seat that does not
+      // exist. Only a LIVE run queues a seat.
+      if (!run || runOver(run)) return null;
+      return {
+        flag: `GAUNTLET · SEAT ${run.won + 1} OF ${run.seats.length}`,
+        label: deckLabel(p2DeckId),
+        elements,
+        sub: `${run.seats.length - run.won} left · clear the run for ${runReward(run.tier, boardOfRun(run))} shards. `
+          + "A loss ends it.",
+        goLabel: `Fight seat ${run.won + 1}`,
+        leaveLabel: "Leave — run is saved",
+        onGo: startArenaMatch,
+      };
+    }
+    if (arenaGame === "streak") {
+      const streak = story.ladder?.streak ?? 0;
+      const tier = tierForStreak(streak, boardSize);
+      const pay = SHARDS_PER_WIN.arena
+        + recordLadderMatch({ streak, best: streak }, { won: true, tier, boardSize }).bonus;
+      return {
+        flag: streak > 0 ? `STREAK · ${streak} IN A ROW` : "STREAK · NEXT UP",
+        label: deckLabel(p2DeckId),
+        elements,
+        sub: `${TIER_LABEL[tier]} rung · a win pays ${pay} shards`
+          + (streak > 0 ? ` · a loss drops you to ${TIER_LABEL[tierForStreak(afterMatch(streak, false, boardSize), boardSize)]}` : ""),
+        goLabel: "Fight next opponent",
+        leaveLabel: "Leave the streak",
+        onGo: startArenaMatch,
+      };
+    }
+    return null;
+  })();
 
   // Switching battlefield re-points a premade selection at the same archetype's
   // build for the new size (Inferno Blitz 4x4 <-> Inferno Blitz 5x5) rather than
@@ -579,7 +639,12 @@ export function App() {
       // twice — and a loss records nothing, leaving the event open.
       const settled = event
         ? (won ? completeEvent(prev, event.id) : prev)
-        : settleArena(prev, { won, againstPremade }, (sv) => awardShards(sv, "arena"));
+        : settleArena(
+            prev,
+            // The mode decides whether this match belongs to the run at all.
+            { won, againstPremade, gauntletSeat: arenaGame === "gauntlet" },
+            (sv) => awardShards(sv, "arena"),
+          );
       // The ladder is a THIRD axis, independent of both shards and the run: it
       // moves on any match against the rung it asked for — a matchmade fight or
       // a Gauntlet seat, both are premade decks at a known difficulty — and
@@ -590,7 +655,10 @@ export function App() {
       // top of the Arena's flat rate, scaled by the rung faced and the streak
       // held. Both come from the one call, so the money and the streak can never
       // disagree about whether the match counted.
-      const climb = event
+      // STREAK MODE ONLY. It used to move on any on-rung match, which meant a
+      // casual fight against the right difficulty silently counted — and a
+      // Gauntlet seat did too, scoring one match on two ladders at once.
+      const climb = event || arenaGame !== "streak"
         ? null
         : recordLadderMatch(settled.ladder, { won, tier: tierOf(p2DeckId), boardSize });
       const next = !climb || climb.ladder === settled.ladder
@@ -599,7 +667,24 @@ export function App() {
       if (next !== prev) saveStory(next);
       return next;
     });
-  }, [started, storyNode, game, p2DeckId, boardSize]);
+    // STREAK deals the next opponent itself, the moment this one falls.
+    //
+    // Two reasons it cannot wait for the lobby. You had to walk back and press
+    // "Find a match" to get a fight the mode had already decided the shape of,
+    // and — because a reroll excludes only the deck currently seated — the
+    // opponent you had just beaten was as likely as any other to come straight
+    // back. `rollOpponent`'s exclusion is what makes the run feel like a ladder
+    // rather than the same three decks shuffled.
+    //
+    // The rung is read from the ladder AFTER this match, not before: winning
+    // the fifth in a row moves you up, and the next opponent should already be
+    // standing on the new rung when the win screen names it.
+    if (arenaGame === "streak" && !event) {
+      const climbed = recordLadderMatch(story.ladder, { won, tier: tierOf(p2DeckId), boardSize });
+      const pick = rollOpponent(tierForStreak(climbed.ladder.streak, boardSize), boardSize, p2DeckId);
+      if (pick) setP2DeckId(pick.id);
+    }
+  }, [started, storyNode, game, p2DeckId, boardSize, arenaGame, story]);
 
   useEffect(() => {
     if (me) setViewSide(me);
@@ -746,6 +831,43 @@ export function App() {
         fresh: true,
       });
     }
+  }
+
+  /** Deal an Arena match with whatever the two seats currently hold.
+   *
+   *  Lifted out of the Start Match button because the WIN SCREEN now starts
+   *  matches too: Streak and Gauntlet deal your next opponent as soon as the
+   *  last one falls, and "fight it" there has to mean exactly what the lobby
+   *  button means — same seats, same setup, same remembered rematch. */
+  function startArenaMatch() {
+    const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
+    const p1Cards = resolveDeckCards(p1DeckId);
+    const p2Cards = resolveDeckCards(p2DeckId);
+    // Remembered so Rematch can run the same two decks back.
+    setupRef.current = {
+      p1: p1Cards, p1s: resolveDeckSpells(p1DeckId),
+      p2: p2Cards, p2s: resolveDeckSpells(p2DeckId),
+      board: boardSize, humans,
+    };
+    setGame(createInitialState(
+      newSeed(), p1Cards, p2Cards, humans,
+      resolveDeckSpells(p1DeckId), resolveDeckSpells(p2DeckId),
+      boardSize,
+      // No opening allowance and no terrain in the Arena; the positions are
+      // held so the scripted flag lands on the right parameter.
+      undefined, undefined,
+      // Only the EVENT seat is scripted. Your own deck is never reordered —
+      // the ramp is the boss's, not a rule change. …and the ELITE rung, which
+      // buys its difficulty the same way: an opening it cannot stumble on.
+      scriptedP2 ? { P2: scriptedP2 } : undefined,
+    ));
+    setViewSide("P1");
+    setSel(null);
+    setPending(null);
+    setPicks([]);
+    setMullToss([]);
+    setHint("Mulligan: click cards to send back, then confirm.");
+    setStarted(true);
   }
 
   /** The Rematch button. Offline it just re-deals; online it is a handshake. */
@@ -2470,6 +2592,7 @@ export function App() {
           // one of the two players.
           onRematch={online || setupRef.current ? askRematch : undefined}
           rematch={{ mine: rematchMine, theirs: rematchTheirs, online: !!online }}
+          next={nextUp ?? undefined}
           onNewGame={() => {
             if (online) leaveOnline(); // tear down the room before returning
             setStarted(false); // back to the deck picker
@@ -2655,6 +2778,48 @@ export function App() {
               </div>
             )}
 
+            {/* THE MODE. Gauntlet and Streak used to be things you could stumble
+                into from the same lobby as a casual fight, which is how a run
+                got ended by a match that was never part of it. They are modes
+                now: exactly one is live, each owns the seat while it is, and
+                switching away LEAVES a run standing rather than scoring it. */}
+            {!onlineMode && !twoPlayer && (
+              <div className="ar-field">
+                <span className="ar-flabel">MODE</span>
+                <div className="seg">
+                  {([
+                    ["casual", "Casual", "Pick your own fight. Nothing is scored."],
+                    ["streak", "Streak", "Climb the rungs. Wins pay more the longer you hold it."],
+                    ["gauntlet", "Gauntlet", "Four dealt opponents. One loss ends the run."],
+                  ] as const).map(([id, label, why]) => (
+                    <button
+                      key={id}
+                      className={arenaGame === id ? "on" : ""}
+                      title={why}
+                      onClick={() => {
+                        setArenaGame(id);
+                        // Entering STREAK seats a rung-appropriate opponent at
+                        // once, so "Start Streak Match · Even" is not sitting
+                        // over whatever deck the last casual fight left behind.
+                        if (id === "streak") {
+                          const tier = tierForStreak(story.ladder?.streak ?? 0, boardSize);
+                          if (tierOf(p2DeckId) !== tier) {
+                            const pick = rollOpponent(tier, boardSize, p2DeckId);
+                            if (pick) setP2DeckId(pick.id);
+                          }
+                        }
+                      }}
+                    >
+                      {label}
+                      {id === "gauntlet" && gauntletRun && !runOver(gauntletRun) && (
+                        <i className="mode-live" title="A run is waiting" aria-hidden="true">•</i>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* THE OPPONENT. One block, because there were two: a rung segment
                 whose own comment called it "the matchmaker", and the streak
                 matchmaker underneath it doing the same job one step further.
@@ -2671,7 +2836,7 @@ export function App() {
                 agreed to fight. Hidden in 2-player too, where the other seat is
                 a person choosing their own deck rather than a difficulty — the
                 old rung segment showed there and never made sense. */}
-            {!onlineMode && !twoPlayer && (!gauntletRun || runOver(gauntletRun)) && (() => {
+            {!onlineMode && !twoPlayer && arenaGame === "streak" && (() => {
               const streak = story.ladder?.streak ?? 0;
               const tier = tierForStreak(streak, boardSize);
               const owed = winsToNextRung(streak, boardSize);
@@ -2742,8 +2907,12 @@ export function App() {
                 chosen, and a single loss ends it. This is the earn path: a win
                 against a deck you built yourself pays nothing, because
                 eighteen of your worst cards in the other seat was two shards a
-                match for as long as you cared to click. */}
-            {!onlineMode && !twoPlayer && (
+                match for as long as you cared to click.
+
+                Its own MODE now, so an armed run cannot be spent by a match
+                that was never part of it — see `settleArena`'s `gauntletSeat`.
+                A run left standing here is still standing when you come back. */}
+            {!onlineMode && !twoPlayer && arenaGame === "gauntlet" && (
               <div className="ar-gauntlet">
                 {!gauntletRun ? (
                   /* ONE difficulty picker on this screen, not two. The row above
@@ -2909,49 +3078,19 @@ export function App() {
             <div className="ar-foot">
               {!onlineMode ? (
                 <button
-                  className={`lockin ar-start${gauntletRun && !runOver(gauntletRun) ? " gauntlet" : ""}`}
-                  onClick={() => {
-                    const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
-                    const p1Cards = resolveDeckCards(p1DeckId);
-                    const p2Cards = resolveDeckCards(p2DeckId);
-                    // Remembered so Rematch can run the same two decks back.
-                    setupRef.current = {
-                      p1: p1Cards, p1s: resolveDeckSpells(p1DeckId),
-                      p2: p2Cards, p2s: resolveDeckSpells(p2DeckId),
-                      board: boardSize, humans,
-                    };
-                    setGame(createInitialState(
-                      newSeed(), p1Cards, p2Cards, humans,
-                      resolveDeckSpells(p1DeckId), resolveDeckSpells(p2DeckId),
-                      boardSize,
-                      // No opening allowance and no terrain in the Arena; the
-                      // positions are held so the scripted flag lands on the
-                      // right parameter.
-                      undefined, undefined,
-                      // Only the EVENT seat is scripted. Your own deck is never
-                      // reordered — the ramp is the boss's, not a rule change.
-                      // …and the ELITE rung, which buys its difficulty the
-                      // same way: an opening it cannot stumble on. Same seat,
-                      // same rule — your own draw is never reordered.
-                      scriptedP2 ? { P2: scriptedP2 } : undefined,
-                    ));
-                    setViewSide("P1");
-                    setSel(null);
-                    setPending(null);
-                    setPicks([]);
-                    setMullToss([]);
-                    setHint("Mulligan: click cards to send back, then confirm.");
-                    setStarted(true);
-                  }}
+                  className={`lockin ar-start${arenaGame === "gauntlet" && gauntletRun && !runOver(gauntletRun) ? " gauntlet" : ""}`}
+                  onClick={startArenaMatch}
                 >
                   {/* The deception this fixes: one button, two very different
                       commitments. With a run armed this begins a GAUNTLET SEAT
                       — a loss ends four matches' progress — and it read exactly
                       the same as a throwaway single fight. The label now names
                       which one you are agreeing to, and where you are in it. */}
-                  {gauntletRun && !runOver(gauntletRun)
+                  {arenaGame === "gauntlet" && gauntletRun && !runOver(gauntletRun)
                     ? `Start Gauntlet · Seat ${gauntletRun.won + 1} of ${gauntletRun.seats.length}`
-                    : "Start Match"}
+                    : arenaGame === "streak" && !twoPlayer && !onlineMode
+                      ? `Start Streak Match · ${TIER_LABEL[tierForStreak(story.ladder?.streak ?? 0, boardSize)]}`
+                      : "Start Match"}
                 </button>
               ) : (
                 <button className="lockin ar-start" disabled>

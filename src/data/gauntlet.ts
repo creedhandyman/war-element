@@ -140,12 +140,26 @@ export const ladderProgress = (g: GauntletState | undefined) =>
  *  slow one. A premade is an opponent somebody else chose. */
 export function settleArena(
   save: StorySave,
-  opts: { won: boolean; againstPremade: boolean },
+  opts: {
+    won: boolean;
+    againstPremade: boolean;
+    /** Was this match actually a GAUNTLET SEAT?
+     *
+     *  The bug this exists to kill, reported from play: a run in progress was
+     *  advanced — and on a loss, ENDED — by any Arena match at all. Fight one
+     *  casual game with a run armed and the run was over, scored against a deck
+     *  it never dealt you. `runOver` was the only guard, and "a run is live" is
+     *  not the same question as "this match belongs to it".
+     *
+     *  So the caller now states it, and a run survives every other mode: the
+     *  Arena is a place you can leave and come back to. */
+    gauntletSeat?: boolean;
+  },
   award: (s: StorySave) => StorySave,
 ): StorySave {
   let next = opts.won && opts.againstPremade ? award(save) : save;
   const run = save.gauntlet?.run;
-  if (run && !runOver(run)) {
+  if (opts.gauntletSeat && run && !runOver(run)) {
     const after = recordResult(run, opts.won);
     const reward = rewardFor(after);
     const cleared = runComplete(after)

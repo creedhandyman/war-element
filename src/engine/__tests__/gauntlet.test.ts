@@ -113,11 +113,11 @@ describe("settling an arena match", () => {
   it("advances a run on a win and pays the rung on the fourth", () => {
     let s = save({ gauntlet: { run: startRun("mid", 4, seq(0.3)), cleared: [] } });
     for (let i = 0; i < RUN_LENGTH - 1; i++) {
-      s = settleArena(s, { won: true, againstPremade: true }, pay);
+      s = settleArena(s, { won: true, againstPremade: true, gauntletSeat: true }, pay);
       expect(s.gauntlet!.run!.won, `after ${i + 1}`).toBe(i + 1);
       expect(shards(s), "only the per-win shards so far").toBe((i + 1) * 2);
     }
-    s = settleArena(s, { won: true, againstPremade: true }, pay);
+    s = settleArena(s, { won: true, againstPremade: true, gauntletSeat: true }, pay);
     expect(runComplete(s.gauntlet!.run)).toBe(true);
     expect(shards(s)).toBe(RUN_LENGTH * 2 + RUN_REWARD.mid);
     expect(s.gauntlet!.cleared).toEqual(["mid"]);
@@ -125,8 +125,8 @@ describe("settling an arena match", () => {
 
   it("ends the run on a loss and pays nothing for it", () => {
     let s = save({ gauntlet: { run: startRun("hard", 4, seq(0.7)), cleared: [] } });
-    s = settleArena(s, { won: true, againstPremade: true }, pay);
-    s = settleArena(s, { won: false, againstPremade: true }, pay);
+    s = settleArena(s, { won: true, againstPremade: true, gauntletSeat: true }, pay);
+    s = settleArena(s, { won: false, againstPremade: true, gauntletSeat: true }, pay);
     expect(s.gauntlet!.run!.lost).toBe(true);
     expect(shards(s), "the one win still paid; the run did not").toBe(2);
     expect(s.gauntlet!.cleared).toEqual([]);
@@ -136,19 +136,58 @@ describe("settling an arena match", () => {
     // The effect guards on the game object, but a pure function that pays again
     // when handed a finished run would turn any re-render into free shards.
     let s = save({ gauntlet: { run: startRun("easy", 4, seq(0.2)), cleared: [] } });
-    for (let i = 0; i < RUN_LENGTH; i++) s = settleArena(s, { won: true, againstPremade: true }, pay);
+    for (let i = 0; i < RUN_LENGTH; i++) s = settleArena(s, { won: true, againstPremade: true, gauntletSeat: true }, pay);
     const banked = shards(s);
     expect(banked).toBe(RUN_LENGTH * 2 + RUN_REWARD.easy);
-    const again = settleArena(s, { won: true, againstPremade: true }, pay);
+    const again = settleArena(s, { won: true, againstPremade: true, gauntletSeat: true }, pay);
     // The per-win shards still apply — that is an ordinary arena win — but the
     // RUN must not pay again.
     expect(shards(again) - banked).toBe(2);
     expect(again.gauntlet!.run).toEqual(s.gauntlet!.run);
   });
 
+  it("parks a run rather than spending it when the match was another mode", () => {
+    // The reported bug, and the reason `gauntletSeat` exists: a run in progress
+    // was advanced by ANY arena match, and ENDED by any arena loss. Play one
+    // casual game with a run armed and the run was gone, scored against a deck
+    // it never dealt you. "A run is live" is not the same question as "this
+    // match belongs to it", and only the caller knows the second one.
+    const armed = save({ gauntlet: { run: startRun("mid", 4, seq(0.3)), cleared: [] } });
+
+    // A LOSS in another mode must leave the run untouched — this is the half
+    // that destroyed progress.
+    const lost = settleArena(armed, { won: false, againstPremade: true }, pay);
+    expect(lost.gauntlet!.run!.lost, "a casual loss must not end the run").toBeUndefined();
+    expect(lost.gauntlet!.run!.won).toBe(0);
+
+    // A WIN in another mode must not advance it either — a free seat is the
+    // same bug wearing a friendlier face.
+    const won = settleArena(armed, { won: true, againstPremade: true }, pay);
+    expect(won.gauntlet!.run!.won, "a casual win must not bank a seat").toBe(0);
+    expect(shards(won), "it is still an ordinary arena win").toBe(2);
+
+    // And the run is still there to come back to, which is the point.
+    expect(runOver(won.gauntlet!.run)).toBe(false);
+  });
+
+  it("still finishes a run that was left and returned to", () => {
+    // Leaving mid-run is now a supported thing to do, so the seats banked
+    // before you left have to be the seats you resume on.
+    let s = save({ gauntlet: { run: startRun("easy", 4, seq(0.2)), cleared: [] } });
+    s = settleArena(s, { won: true, againstPremade: true, gauntletSeat: true }, pay);
+    // …two matches in other modes, one of them a loss…
+    s = settleArena(s, { won: false, againstPremade: true }, pay);
+    s = settleArena(s, { won: true, againstPremade: true }, pay);
+    expect(s.gauntlet!.run!.won, "the run kept its place").toBe(1);
+    for (let i = 0; i < RUN_LENGTH - 1; i++)
+      s = settleArena(s, { won: true, againstPremade: true, gauntletSeat: true }, pay);
+    expect(runComplete(s.gauntlet!.run)).toBe(true);
+    expect(s.gauntlet!.cleared).toEqual(["easy"]);
+  });
+
   it("leaves a save with no run completely alone apart from the win", () => {
     const before = save();
-    const after = settleArena(before, { won: true, againstPremade: true }, pay);
+    const after = settleArena(before, { won: true, againstPremade: true, gauntletSeat: true }, pay);
     expect(after.gauntlet).toBeUndefined();
     expect(shards(after)).toBe(2);
   });

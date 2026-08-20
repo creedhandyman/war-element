@@ -1,5 +1,28 @@
-import type { GameState, PlayerId } from "../engine";
+import type { Element, GameState, PlayerId } from "../engine";
 import { MatchReport } from "./MatchReport";
+import { EL_COLOR, EL_ICON } from "./shared";
+
+/** The fight already lined up behind this one.
+ *
+ *  Streak and Gauntlet deal their own opponents, so by the time you read
+ *  VICTORY the next seat is filled — and the ask was to be shown it and choose,
+ *  rather than be dropped back into a lobby to rediscover it. Everything here
+ *  is a description of a match that exists: the deck, the rung, what a win
+ *  pays. `onGo` starts it; `onNewGame` walks away with the mode's progress
+ *  intact, which is the whole reason leaving is safe now. */
+export interface NextUp {
+  /** "SEAT 3 OF 4", "STREAK · 5 IN A ROW" — where this sits in the run. */
+  flag: string;
+  /** The opponent's deck name. */
+  label: string;
+  /** One line: rung, pay, and what a loss costs. */
+  sub: string;
+  /** The elements it fields, for a read of the matchup before agreeing to it. */
+  elements?: Element[];
+  goLabel: string;
+  leaveLabel: string;
+  onGo: () => void;
+}
 
 export function WinScreen(props: {
   game: GameState;
@@ -15,6 +38,8 @@ export function WinScreen(props: {
   /** PvP handshake state. Both sides must ask before the host re-deals, so the
    *  button has to say which half is outstanding. */
   rematch?: { mine: boolean; theirs: boolean; online: boolean };
+  /** Present only in a mode that deals its own opponents. */
+  next?: NextUp;
 }) {
   const { game, me } = props;
   const win = game.win;
@@ -67,8 +92,41 @@ export function WinScreen(props: {
 
         <MatchReport game={game} me={me} />
 
+        {/* WHAT IS NEXT, before you have to leave the screen to find out. A
+            mode that picks your opponent owes you a look at it. */}
+        {props.next && (
+          <div className="win-next">
+            <span className="wn-flag">{props.next.flag}</span>
+            <div className="wn-row">
+              <b className="wn-name">{props.next.label}</b>
+              {!!props.next.elements?.length && (
+                <span className="wn-els">
+                  {props.next.elements.map((el) => (
+                    <img
+                      key={el}
+                      src={EL_ICON[el]}
+                      alt={el}
+                      title={el}
+                      style={{ borderColor: EL_COLOR[el] }}
+                    />
+                  ))}
+                </span>
+              )}
+            </div>
+            <span className="wn-sub">{props.next.sub}</span>
+          </div>
+        )}
+
         <div className="win-acts">
-          {props.onRematch && (
+          {props.next && (
+            <button className="lockin glow" onClick={props.next.onGo}>
+              {props.next.goLabel}
+            </button>
+          )}
+          {/* Rematch runs the SAME two decks back, which is the one thing a
+              streak is not allowed to do — so it stands down while a dealt
+              opponent is waiting. */}
+          {props.onRematch && !props.next && (
             <button
               className={`lockin ${invited ? "glow" : ""}`}
               onClick={props.onRematch}
@@ -77,8 +135,11 @@ export function WinScreen(props: {
               {rematchLabel}
             </button>
           )}
-          <button className={props.onRematch ? "ghost" : "lockin"} onClick={props.onNewGame}>
-            {r?.online ? "Leave" : "New Match"}
+          <button
+            className={props.onRematch || props.next ? "ghost" : "lockin"}
+            onClick={props.onNewGame}
+          >
+            {props.next ? props.next.leaveLabel : r?.online ? "Leave" : "New Match"}
           </button>
         </div>
       </div>
