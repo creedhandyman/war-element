@@ -905,8 +905,23 @@ Three pieces, all in `src/data/`:
   which is what inverted the small board. Take three of every five out of each
   ROLE, so the 18 is the 30 in miniature on both axes.
 
-- **The matchmaker** — the OPPONENT row in the Arena. Pick a rung, it rolls a
-  deck from it, and re-rolling the same rung avoids the deck already seated.
+- **Three MODES, not three overlapping selections** (`arenaGame` in App.tsx —
+  `casual` / `streak` / `gauntlet`). Exactly one owns the lobby, the opponent
+  seat, and the settlement, and switching away PARKS the others rather than
+  scoring them. This is load-bearing, not cosmetic: `settleArena` used to
+  advance — and on a loss END — any live Gauntlet run, guarded only by
+  `runOver`, so one casual match destroyed a run it was never part of. The
+  caller now states `gauntletSeat`, and the ladder is likewise gated on streak
+  mode (a Gauntlet seat was scoring on two ladders at once). If you add a fourth
+  kind of AI match, it is a mode, and it says which settlements it belongs to.
+
+- **The matchmaker** — the OPPONENT row in the Arena, shown in STREAK mode.
+  Pick a rung, it rolls a deck from it, and re-rolling the same rung avoids the
+  deck already seated. Streak also deals the NEXT opponent the moment a match
+  ends, off the rung you are on *after* it, excluding the deck you just beat —
+  and the win screen shows what is queued (name, elements, rung, pay) with
+  Fight and Leave as equals. Rematch stands down while a dealt opponent waits:
+  it runs the same two decks back, which is the one thing a streak may not do.
 
 - **The Gauntlet** (`gauntlet.ts`). Four dealt opponents from one rung, order
   fixed at the start, 10/18/30 shards on completion, one loss ends it. The four
@@ -916,7 +931,16 @@ Three pieces, all in `src/data/`:
   path should be testable without playing four matches. **A win against a deck
   the player BUILT pays nothing**, which is what closed the original farm.
   It is not tamper-proof and the header says so; the claim is only that the
-  honest path is no longer the slow one.
+  honest path is no longer the slow one. A run now SURVIVES you playing other
+  modes — leaving is a supported thing to do, and the mode strip shows a dot
+  when one is waiting.
+
+- **Online pays 10 for a win and 5 for a loss** (`onlineMatchShards`), the only
+  mode that pays a loser, because a human opponent is not infinite the way the
+  AI seat is. A CONCEDE pays zero, or the best rate in the game is two people
+  surrendering to each other. Online settles on its own short path and touches
+  neither the ladder nor a run — it used to fall through the arena's, where
+  `won` was hardcoded to P1 and so paid a losing GUEST (who sits in P2).
 
 Story teams carry their own spellbook (`Loadout.spells`, resolved by
 `bookForLoadout`). Absent or empty keeps meaning "use the hero's shelf" —
