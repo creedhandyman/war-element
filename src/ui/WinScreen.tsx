@@ -40,6 +40,11 @@ export function WinScreen(props: {
   rematch?: { mine: boolean; theirs: boolean; online: boolean };
   /** Present only in a mode that deals its own opponents. */
   next?: NextUp;
+  /** Shards this match just paid, when it paid any. Shown because a currency
+   *  that arrives silently is a currency the player does not know they have —
+   *  online pays on a LOSS too, and that is precisely the case nobody would
+   *  think to go and check their balance after. */
+  earned?: number;
 }) {
   const { game, me } = props;
   const win = game.win;
@@ -89,6 +94,13 @@ export function WinScreen(props: {
             </>
           )}
         </p>
+
+        {!!props.earned && (
+          <div className="win-earned">
+            +{props.earned}<i className="shard" aria-hidden="true" />
+            <span>{youWon ? "for the win" : "for the match"}</span>
+          </div>
+        )}
 
         <MatchReport game={game} me={me} />
 

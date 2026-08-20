@@ -85,7 +85,8 @@ import { ActionWheel, type WheelVerb } from "./ActionWheel";
 import { Shop } from "./Shop";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
-  loadStory, isFirstBattle, addShards, awardShards, heroBookFor, SHARDS_PER_WIN, isRegionOpen, poolForRegion, recruitablePool,
+  loadStory, isFirstBattle, addShards, awardShards, heroBookFor, SHARDS_PER_WIN, onlineMatchShards,
+  isRegionOpen, poolForRegion, recruitablePool,
   regionOfNode, rollRecruits, saveStory, THRONE_OPENING_STACK, type StorySave, heroSpellShelf,
 } from "../data/story";
 
@@ -624,6 +625,34 @@ export function App() {
     if (game.phase !== "gameover") return;
     if (settledMatch.current === game) return;         // one settlement per match
     settledMatch.current = game;
+    // ONLINE settles on its own short path and never touches the arena's.
+    //
+    // It used to fall straight through this effect, which got both halves
+    // wrong: `won` was hardcoded to P1, so a GUEST — who sits in P2 — was paid
+    // for losing and paid nothing for winning; and if the opponent happened to
+    // have picked a premade, `againstPremade` was true and an online match
+    // quietly paid arena rates. Neither the ladder nor a run may move here at
+    // all: there is no rung behind a human, and a run is not something a
+    // stranger's deck can spend.
+    if (online) {
+      const iWon = game.win?.winner === online.myId;
+      // A surrender pays the surrenderer nothing. The consolation is for
+      // showing up and losing a real match, and without this line the fastest
+      // way to earn in the game is two people conceding to each other on
+      // repeat — 15 shards a round trip, for no game.
+      const paid = onlineMatchShards({
+        won: iWon,
+        surrendered: game.win?.by === "surrender" && !iWon,
+      });
+      if (paid) {
+        setStory((prev) => {
+          const next = addShards(prev, paid);
+          saveStory(next);
+          return next;
+        });
+      }
+      return;
+    }
     const won = game.win?.winner === "P1";
     const againstPremade = PREMADE_DECKS.some((d) => d.id === p2DeckId);
     const event = eventForDeck(p2DeckId);
@@ -684,7 +713,7 @@ export function App() {
       const pick = rollOpponent(tierForStreak(climbed.ladder.streak, boardSize), boardSize, p2DeckId);
       if (pick) setP2DeckId(pick.id);
     }
-  }, [started, storyNode, game, p2DeckId, boardSize, arenaGame, story]);
+  }, [started, storyNode, game, p2DeckId, boardSize, arenaGame, story, online]);
 
   useEffect(() => {
     if (me) setViewSide(me);
@@ -2593,6 +2622,16 @@ export function App() {
           onRematch={online || setupRef.current ? askRematch : undefined}
           rematch={{ mine: rematchMine, theirs: rematchTheirs, online: !!online }}
           next={nextUp ?? undefined}
+          // Online is the only mode that pays on the result screen's own terms
+          // — every other one banks quietly into the shop's counter.
+          earned={
+            online && game.win
+              ? onlineMatchShards({
+                  won: game.win.winner === online.myId,
+                  surrendered: game.win.by === "surrender" && game.win.winner !== online.myId,
+                })
+              : undefined
+          }
           onNewGame={() => {
             if (online) leaveOnline(); // tear down the room before returning
             setStarted(false); // back to the deck picker

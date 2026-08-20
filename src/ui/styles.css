@@ -5272,3 +5272,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   border: 1px solid; opacity: .9;
 }
 .win-next .wn-sub { font-size: 11px; color: var(--dim); line-height: 1.4; }
+
+/* What the match just paid. Online alone pays a loser, which is the one case a
+   player would never think to go and check their balance for. */
+.win-earned {
+  display: flex; align-items: center; gap: 6px;
+  margin: 6px 0 2px; font-size: 16px; font-weight: 700;
+  color: var(--gold-lit);
+}
+.win-earned span { font-size: 11px; font-weight: 500; color: var(--dim); }

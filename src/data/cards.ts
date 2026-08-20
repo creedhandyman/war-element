@@ -2786,9 +2786,19 @@ export const CARDS: CardDef[] = [
       cost: 5,
       cooldown: 3, // spawns a 10/10 Heir — 3-round lockout between casts
       handler: "spawn",
-      params: { token: "dawn_heir_tok", count: 1, commandAllies: 1 },
+      params: {
+        token: "dawn_heir_tok",
+        count: 1,
+        commandAllies: 1,
+        // With an Heir already standing, a second one is the least interesting
+        // thing a 5-cost 3-round special could do — so the summons reaches
+        // higher instead. Data-driven so the pool grows with the set.
+        escalateIfPresent: "dawn_heir_tok",
+        escalateElement: "DAWN",
+        escalateRarity: "epic",
+      },
       targetSide: "self",
-      text: "Spawn Heir (10/10/2🛡/SP10), then command the charge — every ally immediately fires a basic attack. Crowned: cleanses allies each round. 3-round cooldown.",
+      text: "Spawn Heir (10/10/2🛡/SP10) — or, if an Heir already stands, a random DAWN Epic instead — then command the charge: every ally immediately fires a basic attack. Crowned: cleanses allies each round. 3-round cooldown.",
     },
   },
   {

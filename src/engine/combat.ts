@@ -14,7 +14,7 @@
 //      against the current shield count.
 //   5. On-hit keywords: LIFESTEAL (basic), DRAIN (basic), REFLECT X.
 
-import { getDef } from "../data/cards";
+import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget } from "./rules";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
@@ -2379,6 +2379,18 @@ function spawnRadiusOf(params: Record<string, string | number>): number | undefi
   return params.spawnRadius == null ? undefined : num(params, "spawnRadius", 1);
 }
 
+/** Cards a spawn may ESCALATE into — read off the real card list rather than
+ *  written out, so a DAWN epic added later joins the pool without anyone having
+ *  to remember this exists. Tokens are excluded by construction: they live in
+ *  `TOKENS`, not `CARDS`. Sorted so the roll is reproducible from the seed
+ *  whatever order the file happens to be in. */
+function escalationPool(element: string, rarity: string): string[] {
+  return CARDS
+    .filter((c) => (!element || c.element === element) && (!rarity || c.rarity === rarity))
+    .map((c) => c.id)
+    .sort();
+}
+
 /** How much permanent self-DMG growth a card may still take. Uncapped (no
  *  `onHitSelfBuff.max`) returns the full amount, which is every card but the one
  *  that asks for a ceiling. */
@@ -2792,8 +2804,30 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // No token named → nothing to raise. Magmadon's Meltdown routes through here
     // because its whole effect is a rider (the row-ahead eruption + the
     // channel), and an unguarded getDef("") threw mid-battle.
-    const token = String(params.token ?? "");
+    let token = String(params.token ?? "");
     if (!token) return;
+    // ESCALATION. Imperator's Strike of Dawn raises an Heir — and once one is
+    // standing, raising a second one is the least interesting thing the crown
+    // could do with a 5-cost 3-round special. So when the body it would spawn
+    // is already on the field, the summons reaches further instead: a random
+    // DAWN epic, whatever is in the set.
+    //
+    // The caster's OWN side, deliberately. This is about the Heir your Imperator
+    // already crowned having made the ordinary cast redundant; an enemy Heir in
+    // a mirror match is a reason to raise yours, not to skip it.
+    const already = String(params.escalateIfPresent ?? "");
+    if (already && boardCards(draft, attacker.owner).some((c) => c.curHp > 0 && c.defId === already)) {
+      const pool = escalationPool(
+        String(params.escalateElement ?? ""),
+        String(params.escalateRarity ?? ""),
+      );
+      if (pool.length) {
+        token = pool[randInt(draft, pool.length)];
+        draft.log.push(
+          `${label(draft, attacker)} — ${getDef(already).name} already stands; the crown calls higher.`,
+        );
+      }
+    }
     spawnTokens(draft, attacker, token, num(params, "count", 1), radius);
     // Grove's Blessing: the same burst that raises the tree tops up every ally
     // on the caster's side (Sylvane's Emergence). Element-agnostic — heals all.

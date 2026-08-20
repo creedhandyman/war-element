@@ -1505,7 +1505,37 @@ export function addShiny(save: StorySave, ids: readonly string[]): StorySave {
  *  same reason a Throne pays more essence than a skirmish: the campaign is the
  *  game, and the Arena is the place you go to practise. Arena still pays, so a
  *  player who only wants to fight is still collecting. */
-export const SHARDS_PER_WIN = { story: 3, arena: 2 } as const;
+/** What a finished match pays.
+ *
+ *  ONLINE is the outlier and deliberately so. It pays 10 for a win and — alone
+ *  among the three — pays for a LOSS as well, at 5. The AI rates are low
+ *  because the AI is infinite: a deck you built yourself in the other seat was
+ *  two shards a match for as long as you cared to click, and the Gauntlet exists
+ *  because that had to stop being the fast way to earn. A human opponent is not
+ *  infinite. Somebody has to show up, and the match takes as long as it takes,
+ *  so it can afford to be the best rate in the game — a pack in four wins.
+ *
+ *  Paying the loser is the same argument pushed one step: an online loss that
+ *  paid nothing is twenty minutes for nothing, against an opponent who could
+ *  simply be better than you, and the thing that gets quit is the mode. Half
+ *  price keeps winning worth twice as much without making losing a waste. */
+export const SHARDS_PER_WIN = { story: 3, arena: 2, online: 10 } as const;
+
+/** Consolation for an online LOSS. No other mode pays one — see above. */
+export const SHARDS_ONLINE_LOSS = 5;
+
+/** What an online match pays the player who just finished it.
+ *
+ *  Pure and separate from the effect that calls it because it is the money
+ *  path, and because the two ways to get it wrong are both invisible from the
+ *  UI: paying the wrong seat (the guest sits in P2, so "P1 won" is not "I won")
+ *  and paying a concede.
+ *
+ *  `surrendered` means THIS player surrendered — a concede pays nothing. The
+ *  consolation is for showing up and losing a real match; without that rule the
+ *  best rate in the game is two people conceding to each other on repeat. */
+export const onlineMatchShards = (opts: { won: boolean; surrendered: boolean }): number =>
+  opts.won ? SHARDS_PER_WIN.online : opts.surrendered ? 0 : SHARDS_ONLINE_LOSS;
 
 /** What a pack costs, and what it holds. Five cards, one of them Epic or better
  *  — the guarantee is what stops a pack ever feeling like nothing happened. */
