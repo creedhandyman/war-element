@@ -386,6 +386,28 @@ export function App() {
    *  allows, on any node, ever. The Arena builder passed its board and had the
    *  right cap the whole time, which is why it never showed up there. */
   const storyBuilderBoard = Math.max(...region.nodes.map((n) => boardForNode(region, n)));
+  /** …UNLESS prep is open on a specific node, in which case build for THAT
+   *  fight.
+   *
+   *  The region-wide figures above are right for the Home and Collection
+   *  entrances, where there is no node in mind. Opened from prep there is one,
+   *  and the two answers were quietly different: the builder painted a 20-card
+   *  squad legal against the region's biggest set piece, and the 12-cap node
+   *  you were standing in front of then rendered it over-cap. Same for the
+   *  board — an eight-spell book chosen against a 5x5 set piece was silently
+   *  trimmed to five by `spellCapForBoard` on arriving at a 4x4 node.
+   *
+   *  Building for the fight you are looking at is the less surprising of the
+   *  two, and it is the only one where the number on screen is the number the
+   *  fight will use. */
+  const prepRegion = prepNode ? (regionOfNode(prepNode.id) ?? region) : null;
+  const builderCap = prepNode && prepRegion
+    ? Math.min(
+        capForNode(story.cleared, prepRegion, prepNode),
+        storyBuilderOwned.length || Number.POSITIVE_INFINITY,
+      )
+    : storyBuilderCap;
+  const builderBoard = prepNode && prepRegion ? boardForNode(prepRegion, prepNode) : storyBuilderBoard;
 
   // Deck selection = a premade or custom deck (the old two-core pairing is gone).
   // Each side defaults to a different premade so a match is one tap away.
@@ -3138,7 +3160,7 @@ export function App() {
               )}
               {/* Two ghosts, not four — Story and Shop live in the nav. */}
               <div className="ar-ghosts">
-                <button className="ghost" onClick={() => setBuilderOpen(true)}>Build decks</button>
+                <button className="ghost" onClick={() => setBuilderOpen(true)}>Build a squad</button>
                 <button className="ghost" onClick={() => setRulesOpen(true)}>How to play</button>
               </div>
               {onlineMode && !onlineConfigured && (
@@ -3160,8 +3182,8 @@ export function App() {
             <DeckPickerSheet
               title={
                 pickSeat === "p1"
-                  ? (onlineMode || !twoPlayer ? "Your deck" : "Player 1 deck")
-                  : (onlineMode ? "Your deck" : twoPlayer ? "Player 2 deck" : "Opponent deck")
+                  ? (onlineMode || !twoPlayer ? "Your squad" : "Player 1 squad")
+                  : (onlineMode ? "Your squad" : twoPlayer ? "Player 2 squad" : "Opponent squad")
               }
               boardSize={boardSize}
               premades={modePremades}
@@ -3257,10 +3279,10 @@ export function App() {
         // a squad saved in here has to reach the shelf on the prep screen this
         // opened on top of.
         onChange={setCustomDecks}
-        boardSize={storyBuilderBoard}
+        boardSize={builderBoard}
         story={{
           owned: storyBuilderOwned,
-          cap: storyBuilderCap,
+          cap: builderCap,
           element: region.element,
           spellPool: heroSpellShelf(story),
           foils: foilIds,

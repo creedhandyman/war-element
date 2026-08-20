@@ -39,13 +39,14 @@ export function RulesBook(props: { onClose: () => void }) {
           </section>
 
           <section>
-            <h3>🃏 Your deck</h3>
+            <h3>🃏 Your squad</h3>
             <ul className="rules-defs">
               <li><b>4×4 Standard</b> — 18 cards, up to <b>5</b> spells.</li>
               <li><b>5×5 Large</b> — 28 cards, up to <b>8</b> spells.</li>
               <li>
-                Every card is <b>unique</b> — no duplicates. Build in the Deck Builder,
-                then pick your deck before the match.
+                Every card is <b>unique</b> — no duplicates. Build one in the Squad
+                Builder, then pick it before the match. (The <b>deck</b> is what that
+                squad becomes once the match starts — the pile you draw from.)
               </li>
             </ul>
           </section>

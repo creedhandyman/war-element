@@ -97,7 +97,7 @@ export function VersusIntro(props: {
     <div className="overlay on-top pvi-wrap" onClick={onDone}>
       <div className="pvi" onClick={(e) => e.stopPropagation()}>
         <div className="pvi-col">
-          <DeckSeat side="mine" flag={`YOU · ${me}`} label={names?.[me] ?? "Your deck"} cards={mine} />
+          <DeckSeat side="mine" flag={`YOU · ${me}`} label={names?.[me] ?? "Your squad"} cards={mine} />
           <Detail cards={mine} />
         </div>
 

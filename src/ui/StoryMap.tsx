@@ -99,7 +99,7 @@ export function StoryMap(props: {
         <div className="story-stats">
           <span><b>{done}</b>/{total} nodes</span>
           <span><b>{haveHere}</b>/{regionCards.length} cards</span>
-          <span>deck cap <b>{deckCapFor(save.cleared)}</b></span>
+          <span>squad cap <b>{deckCapFor(save.cleared)}</b></span>
           {blight > 0 && (
             <span
               className="story-blight"

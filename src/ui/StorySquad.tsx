@@ -88,7 +88,7 @@ export function StorySquad(props: {
     return (
       <section className="squad-strip home">
         <div className="sq-head">
-          <span className="sq-title">Your army here</span>
+          <span className="sq-title">Your squad here</span>
           <span className="sq-note">home ground — every card you own fights</span>
         </div>
         <div className="sq-row">

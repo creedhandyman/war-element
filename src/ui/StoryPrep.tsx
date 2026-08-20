@@ -358,7 +358,7 @@ export function StoryPrep(props: {
         <div className="sp-facts">
           <span><b>{region.element}</b> · {region.terrain} runs all battle</span>
           <span>
-            Deck cap <b>{cap}</b>
+            Squad cap <b>{cap}</b>
             {cap > STANDARD_CAP && " · the big board opens it up"}
             {cap < ladder && squadLimit === null && ` · ${ladder} allowed on a set piece`}
           </span>
@@ -469,16 +469,37 @@ export function StoryPrep(props: {
             </button>
           )}
         </div>
+        {/* TAPPABLE, because they were not.
+            This screen could Fill and it could apply a whole saved squad, but
+            it could not touch one card — so dropping the healer you did not
+            want meant leaving for the builder, which then opened on a different
+            cap and a different board. One card is the commonest edit there is
+            and it was the one edit this screen refused. */}
         <div className="sp-deck">
           {deck.map((id, i) => {
             const d = getDef(id);
             return (
-              <span key={`${id}-${i}`} className={`sp-foe r-${d.rarity ?? "rare"}`}>
+              <button
+                key={`${id}-${i}`}
+                className={`sp-foe pick r-${d.rarity ?? "rare"}`}
+                title={`Drop ${d.name}`}
+                aria-label={`Drop ${d.name}`}
+                onClick={() => setDeck((cur) => cur.filter((x) => x !== id))}
+              >
                 {d.name}
                 <em className="cost">{d.cost}<i className="coin" /></em>
-              </span>
+                <i className="sp-drop" aria-hidden="true">✕</i>
+              </button>
             );
           })}
+          {deck.length < cap && (
+            /* The other half of the same complaint: with room left, the only
+               way to fill it by hand was to leave. Fill is one tap for "any
+               cards"; this is one tap for "these cards". */
+            <button className="sp-foe add" onClick={props.onEditDeck} title="Pick cards yourself">
+              + Add cards
+            </button>
+          )}
         </div>
 
         {/* The book you are walking in with, stated. Spells are chosen in the
@@ -503,7 +524,7 @@ export function StoryPrep(props: {
         </div>
 
         <div className="sp-actions">
-          <button className="ghost sm" onClick={props.onEditDeck}>Deck builder</button>
+          <button className="ghost sm" onClick={props.onEditDeck}>Edit squad</button>
           {canPack && (
             <button
               className="ghost sm"

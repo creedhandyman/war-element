@@ -158,7 +158,7 @@ export function StoryCollection(props: {
         </div>
         <div className="story-actions">
           {props.onOpenBuilder && (
-            <button className="bb" onClick={props.onOpenBuilder}>Build a team</button>
+            <button className="bb" onClick={props.onOpenBuilder}>Build a squad</button>
           )}
           <button className="ghost" onClick={props.onClose}>
             {props.closeLabel ?? "Back to the map"}

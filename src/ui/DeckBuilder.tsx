@@ -7,7 +7,7 @@ import {
   sanitizeSpells,
   validateDeck,
 } from "../data/custom-decks";
-import { STANDARD_CAP } from "../data/story";
+import { STANDARD_CAP, autoDeck } from "../data/story";
 import { deleteSquad, loadSquads, saveSquad, squadNamed, squadUsableIn, type Squad } from "../data/squads";
 import { deckLinkFor, decodeDeck, encodeDeck } from "../data/deck-code";
 import { EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE, spellArtSrc } from "./shared";
@@ -100,9 +100,14 @@ export function DeckBuilder(props: {
   // open one-at-a-time below it, so the card pool keeps the screen. Desktop has
   // the room to start with Composition open; phone starts clean.
   const phone = typeof window !== "undefined" && (window.matchMedia?.("(max-width: 720px)").matches ?? false);
-  const [panel, setPanel] = useState<"deck" | "comp" | "spells" | "saved" | null>(phone ? null : "comp");
-  const togglePanel = (p: "deck" | "comp" | "spells" | "saved") => setPanel((cur) => (cur === p ? null : p));
-  const deckShown = panel === "deck";
+  // THE DECK IS NOT A PANEL ANY MORE. It was one of four things behind a pill,
+  // opening one at a time, and on desktop the pill that started open was
+  // Composition — so the default state of the deck BUILDER was one where you
+  // could not see the deck. You were picking cards blind and finding out what
+  // you had by reading a number. The list is always on screen now, and the
+  // pills switch only the extras.
+  const [panel, setPanel] = useState<"comp" | "spells" | "saved" | null>(phone ? null : "comp");
+  const togglePanel = (p: "comp" | "spells" | "saved") => setPanel((cur) => (cur === p ? null : p));
   const compShown = panel === "comp";
   const savedShown = panel === "saved";
   const spellsShown = panel === "spells";
@@ -133,7 +138,7 @@ export function DeckBuilder(props: {
   const pickedSet = new Set(picked);
   const check = story
     ? picked.length === 0
-      ? { ok: false as const, reason: "Empty team" }
+      ? { ok: false as const, reason: "Empty squad" }
       : picked.length > story.cap
         ? { ok: false as const, reason: `${picked.length} cards — the cap is ${story.cap}` }
         : { ok: true as const, reason: undefined }
@@ -156,6 +161,53 @@ export function DeckBuilder(props: {
       return next.length === cur.length ? cur : next;
     });
   }, [picked]);
+
+  /** ONE TAP TO A LEGAL SQUAD.
+   *
+   *  This builder was the only editor in the game that could ADD a card, and
+   *  the only one with no fill — so an arena deck cost eighteen deliberate taps
+   *  through a three-hundred-card grid, while the prep screen next door built
+   *  one in a single press. That asymmetry is most of what "hard to make decks"
+   *  meant.
+   *
+   *  It TOPS UP rather than replaces: what you have already chosen is a
+   *  decision, and a fill button that throws it away is a fill button nobody
+   *  presses twice. It also fills from what is ON SCREEN — narrow the pool to
+   *  GALE Rangers and Fill gives you GALE Rangers, which turns the filter row
+   *  from four ways to search into a way to say what you want built.
+   *
+   *  `autoDeck` is the campaign's own cost-stride, not "your best cards": a
+   *  deck of nothing but mythics cannot be summoned in the rounds a match
+   *  lasts, and the measurements behind that live on `autoDeck` itself. */
+  function fillToCap() {
+    const room = limits.target - picked.length;
+    if (room <= 0) return;
+    // Whatever the filters are showing, minus what is already in — so a second
+    // press after narrowing the pool adds from the new selection.
+    const candidates = shown.map((c) => c.id).filter((id) => !pickedSet.has(id));
+    const next = [...picked, ...autoDeck(candidates, room)];
+    setPicked(next);
+    // And the SPELLBOOK, which is behind a tool pill and therefore invisible
+    // unless you go looking for it. Only when it is empty: a book you chose is
+    // a decision, same as the cards. Legal elements only — the effect below
+    // would strip anything else on the next render anyway.
+    if (pickedSpells.length === 0) {
+      const els = new Set(next.map((id) => getDef(id).element));
+      // CHEAPEST FIRST, and not through `autoDeck` — that reads `getDef`, which
+      // knows cards and throws on a spell id. Two `string[]`s that the type
+      // system cannot tell apart; it threw on the first press and the deck
+      // still filled, so the only symptom was a book that stayed empty.
+      // Cheap is also the right shelf: an eight-Magic spell in a five-slot book
+      // is a slot you cannot cast until the match is nearly over.
+      setPickedSpells(
+        SPELLS
+          .filter((s) => els.has(s.element) && (!story || story.spellPool.includes(s.id)))
+          .sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name))
+          .slice(0, limits.spells)
+          .map((s) => s.id),
+      );
+    }
+  }
 
   // ── deck codes ────────────────────────────────────────────────────────────
   const [importing, setImporting] = useState(false);
@@ -453,8 +505,52 @@ export function DeckBuilder(props: {
               <button className="lockin" disabled={!check.ok} onClick={save}>
                 {editingId ? "Update squad" : "Save squad"}
               </button>
-              <button className="ghost" onClick={reset}>New / clear</button>
+              {/* Sits BEFORE the clear, because it is the button a new player
+                  needs and "New / clear" is the one they need least. Says how
+                  many it will add, so it is never a surprise. */}
+              <button
+                className="ghost db-fill"
+                disabled={picked.length >= limits.target}
+                title="Top the squad up from the cards on screen — narrow the pool first to steer it"
+                onClick={fillToCap}
+              >
+                {picked.length === 0
+                  ? `Auto-fill ${limits.target}`
+                  : `Fill +${limits.target - picked.length}`}
+              </button>
+              <button className="ghost" onClick={reset}>Clear</button>
             </div>
+
+            {/* THE SQUAD ITSELF. Always on screen: the only way to remove a
+                card used to be finding it again among three hundred in the pool
+                and tapping it a second time, and the filters are no help
+                because you are hunting one specific card you already own rather
+                than a kind of card. */}
+            {(
+              <div className="db-picked db-panel">
+                {picked.length === 0 ? (
+                  <div className="db-spell-hint">Nothing picked yet — tap cards in the pool to add them.</div>
+                ) : (
+                  picked.map((id) => {
+                    const d = getDef(id);
+                    return (
+                      <div key={id} className="dp-row" data-el={d.element}>
+                        <span className="dp-cost">{d.cost}</span>
+                        <span className="dp-name">{d.name}</span>
+                        <span className="dp-meta">{d.element} · {d.cardClass}</span>
+                        <span className="dp-stats">
+                          <i className="s-dmg">{d.dmg}{d.hits > 1 ? `×${d.hits}` : ""}</i>
+                          <i className="s-hp">{d.hp}</i>
+                          <i className="s-sp">{d.sp}</i>
+                        </span>
+                        <button className="dp-x" title={`Remove ${d.name}`} aria-label={`Remove ${d.name}`}
+                          onClick={() => toggle(id)}>✕</button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
 
             {/* Deck codes. Share is enabled whenever there is anything to share —
                 deliberately NOT gated on `check.ok`, because a half-built deck is
@@ -489,11 +585,6 @@ export function DeckBuilder(props: {
             {/* Compact tool row — one tap opens Composition / Spellbook / Saved
                 in a panel below, one at a time, so the card pool keeps the room. */}
             <div className="db-tools">
-              {/* Deck first: it is the list you reach for most, and the count on
-                  the label means the panel can stay shut while you scroll. */}
-              <button className={`db-tool ${deckShown ? "on" : ""}`} onClick={() => togglePanel("deck")}>
-                Deck {picked.length}
-              </button>
               {picked.length > 0 && (
                 <button className={`db-tool ${compShown ? "on" : ""}`} onClick={() => togglePanel("comp")}>
                   Comp · {stats.avg.toFixed(1)}
@@ -514,38 +605,6 @@ export function DeckBuilder(props: {
               </button>
             </div>
 
-            {/* THE DECK ITSELF, which this screen did not have a way to show.
-                Until now the only way to remove a card was to find it again
-                among three hundred in the pool and tap it a second time — and
-                the filters are no help, because you are looking for one
-                specific card you already own rather than a kind of card. That
-                is a list, and this is it. */}
-            {deckShown && (
-              <div className="db-picked db-panel">
-                {picked.length === 0 ? (
-                  <div className="db-spell-hint">Nothing picked yet — tap cards in the pool to add them.</div>
-                ) : (
-                  picked.map((id) => {
-                    const d = getDef(id);
-                    return (
-                      <div key={id} className="dp-row" data-el={d.element}>
-                        <span className="dp-cost">{d.cost}</span>
-                        <span className="dp-name">{d.name}</span>
-                        <span className="dp-meta">{d.element} · {d.cardClass}</span>
-                        <span className="dp-stats">
-                          <i className="s-dmg">{d.dmg}{d.hits > 1 ? `×${d.hits}` : ""}</i>
-                          <i className="s-hp">{d.hp}</i>
-                          <i className="s-sp">{d.sp}</i>
-                        </span>
-                        <button className="dp-x" title={`Remove ${d.name}`} aria-label={`Remove ${d.name}`}
-                          onClick={() => toggle(id)}>✕</button>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            )}
-
             {/* Deck composition — cards per element / class / cost. */}
             {compShown && picked.length > 0 && <DeckStats stats={stats} />}
 
@@ -556,7 +615,7 @@ export function DeckBuilder(props: {
               <div className="db-spells db-panel">
                 <div className="db-spell-hint">
                   {deckEls.size === 0
-                    ? "Add cards to your deck to unlock its element spells."
+                    ? "Add cards to your squad to unlock its element spells."
                     : story && deckSpells.length === 0
                     ? "No spells unlocked for these elements yet — clear nodes in their regions to earn them."
                     : pickedSpells.length === 0
@@ -804,7 +863,7 @@ export function DeckBuilder(props: {
           def={detail}
           onClose={() => setDetailId(null)}
           action={{
-            label: pickedSet.has(detail.id) ? "− Remove from deck" : "+ Add to deck",
+            label: pickedSet.has(detail.id) ? "− Remove from squad" : "+ Add to squad",
             primary: !pickedSet.has(detail.id),
             disabled: !pickedSet.has(detail.id) && picked.length >= limits.max,
             onClick: () => { toggle(detail.id); setDetailId(null); },

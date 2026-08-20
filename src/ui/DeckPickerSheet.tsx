@@ -176,7 +176,7 @@ export function DeckPickerSheet(props: {
         <div className="dp-list">
           {props.customs.map((d) => rows(d, true))}
           <button className="dp-build" onClick={() => { props.onClose(); props.onBuild(); }}>
-            Build a new deck
+            Build a new squad
           </button>
         </div>
 

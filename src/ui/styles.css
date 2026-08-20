@@ -3760,6 +3760,22 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .sp-foe.r-mythic { border-color: var(--rar-mythic); color: color-mix(in srgb, var(--rar-mythic) 55%, #fff); }
 .sp-foe.r-legendary { border-color: var(--rar-legendary); color: color-mix(in srgb, var(--rar-legendary) 55%, #fff); }
 .sp-foe.r-epic { border-color: var(--rar-epic); color: color-mix(in srgb, var(--rar-epic) 55%, #fff); }
+/* A chip you can drop. The prep screen could Fill and it could swap in a whole
+   saved squad, but it could not remove ONE card — the commonest edit there is.
+   The ✕ only appears on hover/focus so a full row still reads as a lineup
+   rather than a row of delete buttons. */
+.sp-foe.pick { cursor: pointer; font: inherit; font-size: 11.5px; font-weight: 700; }
+.sp-foe.pick:hover, .sp-foe.pick:focus-visible { border-color: var(--danger, #e06060); }
+.sp-foe .sp-drop {
+  font-style: normal; font-size: 9px; color: var(--ink-faint);
+  opacity: 0; transition: opacity .12s;
+}
+.sp-foe.pick:hover .sp-drop, .sp-foe.pick:focus-visible .sp-drop { opacity: 1; color: var(--danger, #e06060); }
+.sp-foe.add {
+  cursor: pointer; font: inherit; font-size: 11.5px; font-weight: 700;
+  border-style: dashed; color: var(--ink-dim);
+}
+.sp-foe.add:hover { border-color: var(--gold-line); color: var(--ink); }
 /* Packing the squad. The panel sits half-transparent over the region map — you
    are choosing who crosses a border, and the place you are crossing into should
    stay visible behind the choice. */

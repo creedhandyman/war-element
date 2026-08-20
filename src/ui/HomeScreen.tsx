@@ -231,10 +231,10 @@ export function HomeScreen(props: {
 
         <div className="home-prep">
           <button className="home-tile deck" onClick={props.onBuilder}>
-            <span className="home-tile-name">Deck builder</span>
-            <span className="home-tile-sub">{teamName ?? "No team saved"}</span>
+            <span className="home-tile-name">Squad builder</span>
+            <span className="home-tile-sub">{teamName ?? "No squad saved"}</span>
             <span className={`home-tile-num ${deckEmpty ? "warn" : "ok"}`}>
-              {deckEmpty ? "NO DECK" : `${save.deck.length} CARD${save.deck.length === 1 ? "" : "S"} · CAP ${deckCap}`}
+              {deckEmpty ? "NO SQUAD" : `${save.deck.length} CARD${save.deck.length === 1 ? "" : "S"} · CAP ${deckCap}`}
             </span>
           </button>
           <button className="home-tile col" onClick={props.onCollection}>
