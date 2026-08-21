@@ -2386,8 +2386,22 @@ function doRoundTicks(draft: GameState): void {
     }
     if (rt.cleanseAllies) {
       // Crowned: wash the negative statuses off every ally.
-      for (const a of allies())
+      //
+      // It SAYS SO now. This fired every round and printed nothing, which is
+      // indistinguishable from not firing — and the statuses it removes are
+      // exactly the ones a player is watching for (BLIND, FREEZE, PARALYZE:
+      // "why did my card miss / not act"). Every other cleanse in the game
+      // announces itself; this one washed a board clean in silence.
+      let washed = 0;
+      for (const a of allies()) {
+        const before = a.statuses.length;
         a.statuses = a.statuses.filter((s) => !NEGATIVE_STATUSES.includes(s.kind));
+        washed += before - a.statuses.length;
+      }
+      if (washed > 0)
+        draft.log.push(
+          `${label(draft, card)} — Crowned washes ${washed} negative effect${washed > 1 ? "s" : ""} off the army.`,
+        );
     }
   }
 }
