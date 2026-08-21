@@ -18,6 +18,10 @@ export {
   moveReachFor,
   isEliminated,
   hasCaptureWin,
+  // The two never-miss sources, for the token: a BLIND that cannot cost this
+  // card anything has to LOOK different from one that can.
+  fieldFlag,
+  hasTotemSpirit,
 } from "./state";
 export {
   canSummon,

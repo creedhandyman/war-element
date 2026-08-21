@@ -775,6 +775,34 @@ export function resolveHit(
   // Stronger than card-level `alwaysHit`, deliberately — see Rocky Force Field
   // below, which alwaysHit does NOT beat.
   const neverMiss = fieldFlag(draft, attacker, "neverMiss") || hasTotemSpirit(draft, attacker);
+  // AND IT SAYS SO WHEN IT SAVES ONE.
+  //
+  // Blazing Sun promises DAWN allies "cannot miss" and delivered it in total
+  // silence: the branches below simply do not fire, so nothing is logged, and
+  // the card goes on wearing its BLIND pip with no sign the field is ignoring
+  // it. Reported as the spell being broken — which is the right conclusion from
+  // the only evidence the game was offering.
+  //
+  // Announced once per ATTACK rather than per hit (this sits above the hit
+  // loop), and only when something would actually have been shrugged off —
+  // a line every swing would be noise. Consumes no RNG, so replays are
+  // unaffected.
+  if (neverMiss && opts.kind === "basic" && !aDef.alwaysHit) {
+    const wouldHaveMissed =
+      hasStatus(attacker, "BLIND")
+      || (draft.players[target.owner].foggedRounds ?? 0) > 0
+      || draft.fields.some((f) => f.owner !== attacker.owner && f.enemyMissChance)
+      || (attacker.attackMissRounds ?? 0) > 0
+      || boardCards(draft, enemyOf(attacker.owner)).some((e) => e.curHp > 0 && getDef(e.defId).blindingStar);
+    if (wouldHaveMissed) {
+      attacker.fxNeverMiss = (attacker.fxNeverMiss ?? 0) + 1;
+      draft.log.push(
+        `${label(draft, attacker)} sees clear and strikes true — ${
+          fieldFlag(draft, attacker, "neverMiss") ? "Blazing Sun" : "Totem Spirit"
+        } holds.`,
+      );
+    }
+  }
   // False Head (Thorny Ripper): ONE free dodge for the whole game, against a
   // BASIC attack. The first basic it takes strikes the decoy and deals nothing,
   // and the decoy is then gone for good.

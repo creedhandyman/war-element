@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CardInstance, GameState, PlayerId } from "../engine";
-import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, getDef, isBloodfire, legalMoves } from "../engine";
+import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, fieldFlag, getDef, hasTotemSpirit, isBloodfire, legalMoves } from "../engine";
 import { KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 
 /** One letter, because the tile has no room for a word and the marker only has
@@ -264,6 +264,11 @@ export function Token(props: {
   // the card its turn floats the word, so a turn that produced nothing reads as
   // the coin it was rather than as the game skipping a beat.
   const zapFx = useCoinFloat(card.instanceId, card.fxParalyzed ?? 0);
+  // The other direction: a swing that SHOULD have been shrugged off and was not,
+  // because Blazing Sun or a Totem is holding. The card still wears its BLIND
+  // pip — the field does not remove the status, it ignores it — so without this
+  // the promise "cannot miss" is kept entirely off-screen.
+  const trueFx = useCoinFloat(card.instanceId, card.fxNeverMiss ?? 0);
   // Attack spotlight: during Battle, the card at the front of the speed queue is
   // the one taking its turn — grow it slightly so you can see who's acting.
   const battle = game.battle;
@@ -316,10 +321,23 @@ export function Token(props: {
       cls: "timed",
     });
   }
+  // A BLIND that cannot cost this card anything. Blazing Sun and Totem Spirit
+  // do not CURE the status — they ignore it — so the pip stays, looking exactly
+  // like the one on a card that is about to whiff. Reported as the spell being
+  // broken, which is the right read of an unmarked pip. It is struck through
+  // and says why instead.
+  const missProof = fieldFlag(game, card, "neverMiss") || hasTotemSpirit(game, card);
   for (const s of card.statuses) {
     const st = STATUS_STYLE[s.kind];
-    pips.push({ key: s.kind, glyph: st.glyph, color: st.color,
-                title: `${s.kind}${s.power ? ` ${s.power}` : ""}${s.source ? ` from ${s.source}` : ""} — ${s.duration} round(s)` });
+    const moot = missProof && s.kind === "BLIND";
+    pips.push({
+      key: s.kind,
+      glyph: st.glyph,
+      color: st.color,
+      cls: moot ? "pip-moot" : undefined,
+      title: `${s.kind}${s.power ? ` ${s.power}` : ""}${s.source ? ` from ${s.source}` : ""} — ${s.duration} round(s)`
+        + (moot ? " · ignored: this card cannot miss right now" : ""),
+    });
   }
   if (mods.debuffs.length > 0)
     pips.push({ key: "debuffs", glyph: `▼${mods.debuffs.length}`, color: "#ff4d4d",
@@ -388,6 +406,9 @@ export function Token(props: {
       )}
       {zapFx > 0 && (
         <span key={`zap${zapFx}`} className="fx-para">PARALYZED</span>
+      )}
+      {trueFx > 0 && (
+        <span key={`true${trueFx}`} className="fx-true">STRIKES TRUE</span>
       )}
       {dmgFx && (
         <div key={dmgFx.key} className="fx-dmg-stack">

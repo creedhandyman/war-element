@@ -1265,6 +1265,15 @@ export interface CardInstance {
    *  thing the player could not see was which. The status pip says "might be
    *  stopped"; this says "was". */
   fxParalyzed?: number;
+  /** Bumped when a never-miss source (Blazing Sun, Totem Spirit) SAVES a swing
+   *  that would otherwise have been shrugged off — the renderer floats it.
+   *
+   *  Same reasoning as `fxParalyzed`, pointed the other way: the effect is the
+   *  ABSENCE of a miss, which is invisible by construction. A card under
+   *  Blazing Sun wears its BLIND pip exactly like one that is about to whiff,
+   *  and the only difference between them is a branch that quietly does not
+   *  run. Without this the field's whole promise is unobservable. */
+  fxNeverMiss?: number;
   /** UI-only damage readout: every point of HP this card has lost, one entry
    *  per hit, most recent last — and a counter that ticks once per entry.
    *

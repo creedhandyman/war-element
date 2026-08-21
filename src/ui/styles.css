@@ -5277,6 +5277,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   color: #ffe27a; text-shadow: 0 0 8px rgba(255, 210, 60, .9), 0 1px 2px #000;
   animation: fxPara 1s ease-out forwards;
 }
+/* The inverse of the miss float: a swing that SHOULD have been shrugged off and
+   was not, because Blazing Sun or a Totem is holding. Sun-gold rather than the
+   PARALYZE amber, and it rises from the attacker, not the target. */
+.fx-true {
+  position: absolute; left: 50%; top: 42%; transform: translateX(-50%);
+  pointer-events: none; z-index: 6; white-space: nowrap;
+  font-family: var(--head); font-size: 9px; font-weight: 800; letter-spacing: .1em;
+  color: #fff3c4; text-shadow: 0 0 10px rgba(255, 236, 150, .95), 0 1px 2px #000;
+  animation: fxPara 1s ease-out forwards;
+}
 @keyframes fxPara {
   0% { opacity: 0; transform: translateX(-50%) scale(.7); }
   22% { opacity: 1; transform: translateX(-50%) scale(1.08); }
@@ -5337,3 +5347,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   border: 1px solid var(--gold-line); background: rgba(255, 200, 90, .07);
   color: var(--ink-dim); font-size: 11px; line-height: 1.4;
 }
+
+/* A status pip that is currently MOOT — the card carries BLIND but cannot miss
+   (Blazing Sun, Totem Spirit). The status is not cured, it is ignored, and an
+   unmarked pip is why "cannot miss" got reported as broken. */
+.tk-pip.pip-moot { opacity: .42; text-decoration: line-through; }
