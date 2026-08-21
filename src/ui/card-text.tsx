@@ -689,6 +689,12 @@ export function describePassives(def: CardDef): string[] {
     passives.push(
       "Trample Through: in Prep it can step onto an adjacent opponent with less max HP, shoving it back a slot and taking the square (needs the slot behind it open).",
     );
+  if (def.summonScaleFromKin) {
+    const k = def.summonScaleFromKin;
+    const who = k.element ? `${k.element} ally` : "ally";
+    const gains = [k.maxHp && `+${k.maxHp} max HP`, k.dmg && `+${k.dmg} DMG`].filter(Boolean).join(" and ");
+    named("summonScaleFromKin", `On summon, ${gains} for every ${who} already on the board.`);
+  }
   if (def.mounted)
     passives.push(
       "Mounted: moves like a chess king — a diagonal step costs 1, not 2 (lost if it dismounts).",

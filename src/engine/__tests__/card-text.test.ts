@@ -28,6 +28,8 @@ const ABILITY_FIELDS = [
   // Wave 3b — Magalogoon, Keeper, Prism.
   "stealthWhenIdle", "hiveAbsorb", "startsWithFreeSpecial", "diesAfterAttacking", "contagionAura", "summonFog",
   "purelightAura", "totemSpiritAura", "penWhileAlly", "falseHead", "advanceOnBasic", "windWarp",
+  // Wave 4 — Imperator scaling off the army already standing.
+  "summonScaleFromKin",
 ] as const;
 
 /** Every effect a roundTick can carry. */

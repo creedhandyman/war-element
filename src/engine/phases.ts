@@ -281,6 +281,25 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           draft.log.push(`${def.name} draws power from the strongest foe (+${n * (cfg.maxHp ?? 0)} HP, +${n * (cfg.dmg ?? 0)} DMG).`);
         }
       }
+      // Radiant Court (Imperator): scale off the army already standing.
+      if (arrived && def.summonScaleFromKin) {
+        const cfg = def.summonScaleFromKin;
+        const court = boardCards(draft, inst.owner).filter(
+          (a) =>
+            a.instanceId !== inst.instanceId &&
+            a.curHp > 0 &&
+            (!cfg.element || getDef(a.defId).element === cfg.element),
+        ).length;
+        if (court > 0) {
+          const hp = cfg.maxHp ? gainMaxHp(inst, court * cfg.maxHp) : 0;
+          if (hp) inst.curHp += hp;
+          if (cfg.dmg) inst.dmgBonus += court * cfg.dmg;
+          draft.log.push(
+            `${def.name} rises before ${court} ${cfg.element ?? "ally"}${court > 1 ? "s" : ""}`
+            + `${hp ? ` (+${hp} max HP)` : ""}${cfg.dmg ? ` (+${court * cfg.dmg} DMG)` : ""}.`,
+          );
+        }
+      }
       // Token spawns (Trinezer's Reptilian Screech).
       if (arrived && def.summonSpawn)
         spawnTokens(draft, inst, def.summonSpawn.token, def.summonSpawn.count, def.summonSpawn.adjacentOnly ? 1 : def.summonSpawn.spawnRadius);

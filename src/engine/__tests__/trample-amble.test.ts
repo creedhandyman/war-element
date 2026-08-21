@@ -90,7 +90,7 @@ describe("Amble's basic can heal", () => {
     const before = s.cards[hurt.instanceId].curHp;
     const r = basicAttack(s, amble.instanceId, hurt.instanceId);
     expect(s.cards[hurt.instanceId].curHp, "healed, not hit").toBeGreaterThan(before);
-    expect(r.landedHits, "and it was not an attack").toBe(0);
+    expect(r?.landedHits, "and it was not an attack").toBe(0);
     expect(s.log.some((l) => /tends/.test(l))).toBe(true);
   });
 

@@ -747,6 +747,24 @@ export interface CardDef {
    *  +`dmg` DMG and/or +`maxHp` max HP for each `per` max-HP the highest-HP
    *  opponent on the board has. */
   summonScaleFromEnemy?: { per: number; dmg?: number; maxHp?: number };
+  /** Radiant Court (Imperator): on summon, scale off the ARMY already standing
+   *  — `maxHp` / `dmg` per matching ally on the board.
+   *
+   *  The mirror of `summonScaleFromEnemy` above, pointed the other way: that one
+   *  reads the strongest thing across the table, this one reads how many of your
+   *  own are out. Which makes it a REWARD FOR ARRIVING LATE, and that is the
+   *  point on a cost-10 body — an emperor summoned into an empty board is just
+   *  an expensive card, and one summoned behind a standing court is worth the
+   *  ten Gold it took to get there.
+   *
+   *  `element` filters who counts (omit to count every ally). The card itself is
+   *  never counted: it is on the board by the time this resolves, and "+1 per
+   *  ally" that silently includes yourself is a floor nobody asked for.
+   *
+   *  Fixed at summon, permanently — allies arriving or dying later do not move
+   *  it. A live count would make a mythic's HP a moving target every time a
+   *  1-cost token traded. */
+  summonScaleFromKin?: { element?: string; maxHp?: number; dmg?: number };
   /** A permanent self-buff applied when a basic attack LANDS (once per attack):
    *  Volcanon's Bad Temper and the Rager Twins (+1 DMG on hit).
    *

@@ -2803,6 +2803,13 @@ export const CARDS: CardDef[] = [
     // (Order's shield-on-ally-summon and Chaos/Awakening remain deferred — the
     //  "Awakening" bonus-attack mechanic is undefined elsewhere in the docs.)
     roundTick: { cleanseAllies: true },
+    // Radiant Court: +1 max HP for every DAWN ally already standing when it
+    // arrives. A reward for arriving LATE, which is the right shape for a
+    // cost-10 body — an emperor summoned onto an empty board is just an
+    // expensive card, and one summoned behind a standing court is worth the ten
+    // Gold it took to get there. Fixed at summon; it does not track the board.
+    passiveNames: { summonScaleFromKin: "Radiant Court" },
+    summonScaleFromKin: { element: "DAWN", maxHp: 1 },
     special: {
       name: "Strike of Dawn",
       cost: 5,
