@@ -1167,8 +1167,11 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // Venom Spines: basic attacks apply SCALD 2 for 2 rounds (non-stacking).
-    passiveNames: { onHitStatus: "Venom Spines" },
+    // Vapor Spines: basic attacks apply SCALD 2 for 2 rounds (non-stacking).
+    // Renamed from "Venom Spines", which named the wrong thing — the status is
+    // SCALD, AQUA's scalding-steam DOT, and has never been poison. The lore
+    // line already read "what they leave in the water", which is vapour.
+    passiveNames: { onHitStatus: "Vapor Spines" },
     onHitStatus: { kind: "SCALD", duration: 2, power: 2 },
   },
   {
