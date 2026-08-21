@@ -796,6 +796,8 @@ export const CARDS: CardDef[] = [
     keywords: {},
     passiveNames: { statusImmune: "Hibernation" },
     statusImmune: true, // Hibernation: immune to status effects
+    // Trample Through: 30 HP walks through most of the board's front line.
+    shoveWeaker: true,
     // On Death: revive once at 24 HP, then SLEEP itself for 1 round.
     onRevive: { heal: 24, sleep: 1 },
     special: {
@@ -1475,6 +1477,8 @@ export const CARDS: CardDef[] = [
     // Thick Hide: −1 DMG from every incoming attack (flat, applies pre-shield
     // and even to PEN) — that's exactly what BLOCK does.
     keywords: { BLOCK: 1 },
+    // Trample Through: it shoulders past anything smaller than it.
+    shoveWeaker: true,
   },
   {
     id: "dawn_star",
@@ -1584,9 +1588,19 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 2,
     keywords: { FLYING: true },
-    // First Responder (End of Round): heal the lowest-HP ally +4 HP. (Doc also
-    // lets basic attacks target allies to heal — not modeled yet.)
+    // First Responder (End of Round): heal the lowest-HP ally +4 HP.
     roundTick: { healLowestAlly: 4 },
+    // …and the other half of First Responder, which this card carried a
+    // "not modeled yet" note about since it was written: the basic attack can
+    // be aimed at a hurt ally to heal them for its DMG instead of striking.
+    // The machinery was already here and four other cards use it — Amble is a
+    // Support that heals on a timer, on a Special, and now on demand, which is
+    // what a medic on a battlefield is for.
+    //
+    // Reaches the whole board: Amble is Ranged and FLYING, so the basic's own
+    // range is what limits where it can help, and that is deliberately generous
+    // on a 10-HP body that dies to a stiff breeze.
+    basicHealsAllies: true,
     special: {
       name: "Battle Maiden",
       cost: 2,
@@ -1832,6 +1846,9 @@ export const CARDS: CardDef[] = [
     // Roost: −1 DMG from all incoming (BLOCK 1) and +1 HP end of round (REGEN 1).
     keywords: { BLOCK: 1, REGEN: 1 },
     tribe: "Avian",
+    // Trample Through: the horns are the whole card. At 18 HP it only bullies
+    // the genuinely small, which is the point of the max-HP gate.
+    shoveWeaker: true,
     special: {
       name: "Horn Toss",
       cost: 2,
@@ -2617,6 +2634,11 @@ export const CARDS: CardDef[] = [
     // board — and a card that out-grows Oakgre walks out from under it.
     passiveNames: { intimidate: "Intimidation" },
     intimidate: { dmg: 1, rows: 1 },
+    // Trample Through: a walking tree does not go around things. Dead weight
+    // until Uprooted clears its SP 0 — Oakgre cannot move at all before that,
+    // and a trample is a move — which suits the card: the Special is what turns
+    // it from a wall into something that walks over you.
+    shoveWeaker: true,
     special: {
       name: "Uprooted",
       cost: 5,
@@ -4129,6 +4151,9 @@ export const CARDS: CardDef[] = [
     // Rebuilds its barrier +2 shields each round (on top of BORE's Exostone +2
     // on summon); when the barrier first breaks it enrages (+3 DMG / +2 SP).
     roundTick: { selfShields: 2, selfShieldsMax: 12 },
+    // Trample Through: a moving wall. The gate reads effective MAX HP, not
+    // shields, so its six plates buy it nothing here — 31 HP does.
+    shoveWeaker: true,
     onShieldBreak: { dmg: 3, sp: 2 },
     special: {
       name: "Boulder Barrage",
@@ -5374,6 +5399,10 @@ export const CARDS: CardDef[] = [
     keywords: { BLOCK: 1 },
     passiveNames: { pushImmune: "Braced Stance" },
     pushImmune: true,
+    // Trample Through: it moves things, and nothing moves it. A Bison mirror is
+    // a stalemate on purpose — Braced Stance now blocks a trample the same way
+    // it blocks every other push.
+    shoveWeaker: true,
   },
   {
     id: "bolt_junker",

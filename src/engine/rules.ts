@@ -108,6 +108,11 @@ export function shoveTarget(
   if (Math.max(Math.abs(dr), Math.abs(dc)) !== 1) return null; // one square only
   const victim = cardAt(state, to.row, to.col);
   if (!victim || victim.owner === card.owner) return null;
+  // Braced Stance (pushImmune) holds here too. `pushBack` and `pull` both
+  // refuse to move these cards, and a trample that shoved one anyway would be
+  // the single push in the game that ignores "it doesn't budge" — most visibly
+  // in a Stormhide Bison mirror, where the same card carries both.
+  if (getDef(victim.defId).pushImmune) return null;
   if (effectiveMaxHp(state, victim) >= effectiveMaxHp(state, card)) return null;
   const beyond = { row: to.row + dr, col: to.col + dc };
   if (
