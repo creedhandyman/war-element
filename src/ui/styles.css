@@ -2114,40 +2114,64 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-spells { margin-top: 4px; padding: 9px 10px; border: 1px solid var(--gold-line); border-radius: 10px; background: var(--void-2); display: flex; flex-direction: column; gap: 8px; }
 .db-spells-h { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold-lit); font-weight: 800; }
 .db-spell-hint { font-size: 10px; color: var(--ink-faint); line-height: 1.35; }
-/* Mini spell cards — art preview on top, cost + add-mark in the corners, name
-   below. Spells without art fall back to the element-tinted placeholder. */
-.db-spell-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 7px; }
+/* The spellbook as the pool's OTHER view — it takes the column the card grid
+   would have, so it gets the same height and the same scroll behaviour. */
+.db-pool > .db-spells.db-panel {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px;
+}
+/* Spell rows. Was a grid of 84px art thumbs with the effect text hidden in a
+   `title` — a tooltip, which a touch screen does not have, so on a phone the
+   picker was a wall of unlabelled pictures. A card can be sold by its art
+   because its stats are printed on it; a spell is nothing but its sentence, so
+   the sentence is the tile. Wide rows, one per spell, art kept small. */
+.db-spell-grid {
+  /* On the POOL side now, which is where there is room for a sentence — the
+     224px rail gave the text about eighty pixels and clamped it to nothing.
+     Columns as wide as the pool allows, one spell per cell. */
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 7px;
+  /* A rainbow squad offers every spell of seven elements, so the list carries
+     its own scroll rather than pushing the panel off the bottom. */
+  overflow-y: auto; padding-right: 2px; min-height: 0;
+}
+/* The line between what is IN the book and what is merely on offer, now that
+   the chosen ones are sorted to the top. */
+.db-spell.on + .db-spell:not(.on) { margin-top: 5px; border-top-color: var(--gold-line); }
 .db-spell {
-  position: relative; display: flex; flex-direction: column; cursor: pointer; font: inherit;
-  padding: 0 0 5px; border-radius: 9px; overflow: hidden;
+  position: relative; display: flex; align-items: stretch; gap: 8px; text-align: left;
+  cursor: pointer; font: inherit; padding: 6px 26px 6px 6px; border-radius: 9px;
   border: 1.5px solid color-mix(in srgb, var(--el, var(--steel)) 55%, #0d0c14);
   background: linear-gradient(180deg, #16182a, #0e1020); color: var(--ink);
-  transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s;
+  transition: border-color 0.12s, box-shadow 0.12s;
 }
-.db-spell:hover:not(:disabled) { border-color: var(--el, var(--steel-lit)); transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.5); }
+.db-spell:hover:not(:disabled) { border-color: var(--el, var(--steel-lit)); box-shadow: 0 4px 14px rgba(0,0,0,0.5); }
 .db-spell.on { border-color: var(--gold-lit); box-shadow: 0 0 0 1px var(--gold-lit), 0 0 12px rgba(201,162,75,0.35); }
-.db-spell:disabled { opacity: 0.4; cursor: default; }
+.db-spell:disabled { opacity: 0.45; cursor: default; }
 .db-spell-art {
-  display: block; width: 100%; aspect-ratio: 1 / 1; overflow: hidden;
+  flex: none; width: 46px; height: 46px; border-radius: 7px; overflow: hidden; align-self: flex-start;
   background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 45%, #0b0d16), #0b0d18);
 }
 .db-spell-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.db-spell-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.db-spell-head { display: flex; align-items: center; gap: 6px; }
+.db-spell-name { font-size: 11.5px; font-weight: 700; color: #e6e0d0; }
 .db-spell-cost {
-  position: absolute; top: 4px; left: 4px; z-index: 2;
-  width: 19px; height: 19px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-  font-size: 10.5px; font-weight: 800; color: #1a140a; background: var(--el, var(--steel-lit));
-  box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  flex: none; width: 17px; height: 17px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-style: normal; font-size: 10px; font-weight: 800;
+  color: #1a140a; background: var(--el, var(--steel-lit));
+}
+/* The whole point of the change. Clamped at three lines so one wordy spell
+   cannot make its row twice the height of its neighbours. */
+.db-spell-text {
+  font-size: 10px; line-height: 1.35; color: var(--ink-dim);
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
 }
 .db-spell-mark {
-  position: absolute; top: 4px; right: 4px; z-index: 2;
-  width: 19px; height: 19px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 900; color: #d8d2c0; background: rgba(10,10,16,0.72);
+  position: absolute; top: 6px; right: 6px;
+  width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 900; color: #d8d2c0; background: rgba(10,10,16,0.72);
 }
 .db-spell.on .db-spell-mark { color: #1a140a; background: var(--gold-lit); }
-.db-spell-name {
-  padding: 5px 5px 0; font-size: 10px; font-weight: 700; text-align: center; line-height: 1.15; color: #d8d2c0;
-  overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-}
 
 /* ── Spell cast flash — full-screen art for ~2s, then the effect resolves ── */
 .castflash {

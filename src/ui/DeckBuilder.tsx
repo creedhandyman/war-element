@@ -407,7 +407,14 @@ export function DeckBuilder(props: {
   const deckSpells = SPELLS
     .filter((s) => deckEls.has(s.element))
     .filter((s) => !unlocked || unlocked.has(s.id))
-    .sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name));
+    // PICKED FIRST. A seven-element squad offers seventy spells for a book that
+    // holds five, and the five you chose were scattered through the other
+    // sixty-five — so removing one meant hunting for it. The book you are
+    // building sits at the top of the list of things you could put in it.
+    .sort((a, b) =>
+      Number(pickedSpells.includes(b.id)) - Number(pickedSpells.includes(a.id))
+      || a.cost - b.cost
+      || a.name.localeCompare(b.name));
 
   return (
     // `on-top` in story mode: the campaign screens (.story-wrap, z-70) sit ABOVE
@@ -640,49 +647,6 @@ export function DeckBuilder(props: {
             {/* Deck composition — cards per element / class / cost. */}
             {compShown && picked.length > 0 && <DeckStats stats={stats} />}
 
-            {/* Spellbook — up to 5 spells this deck carries into a match (each
-                castable once). None picked = the engine auto-fills one from the
-                deck's elements, exactly as before. */}
-            {spellsShown && (
-              <div className="db-spells db-panel">
-                <div className="db-spell-hint">
-                  {deckEls.size === 0
-                    ? "Add cards to your squad to unlock its element spells."
-                    : story && deckSpells.length === 0
-                    ? "No spells unlocked for these elements yet — clear nodes in their regions to earn them."
-                    : pickedSpells.length === 0
-                    ? "None picked — auto-filled from your deck's elements at match start."
-                    : "Tap a spell to add or remove it."}
-                </div>
-                {deckSpells.length > 0 && (
-                <div className="db-spell-grid">
-                  {deckSpells.map((s) => {
-                    const on = pickedSpells.includes(s.id);
-                    const full = !on && pickedSpells.length >= limits.spells;
-                    return (
-                      <button
-                        key={s.id}
-                        className={`db-spell ${on ? "on" : ""}`}
-                        data-el={s.element}
-                        disabled={full}
-                        title={`${s.name} (cost ${s.cost} · ${s.element}) — ${s.text}`}
-                        onClick={() => toggleSpell(s.id)}
-                      >
-                        <span className="db-spell-art">
-                          <img src={spellArtSrc(s.id)} alt="" draggable={false}
-                            onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                        </span>
-                        <span className="db-spell-cost">{s.cost}</span>
-                        <span className="db-spell-mark">{on ? "✓" : "+"}</span>
-                        <span className="db-spell-name">{s.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                )}
-              </div>
-            )}
-
             {savedShown && (
               <div className="db-saved db-panel">
               {squads.length === 0 && (
@@ -722,6 +686,73 @@ export function DeckBuilder(props: {
 
           {/* Right: the card pool. Tap a card to add it; the ⓘ corner reads it. */}
           <div className="db-pool">
+            {/* THE SPELLBOOK BROWSES ON THE WIDE SIDE.
+                It used to live in the 224px rail, where a row carrying an
+                effect sentence has about eighty pixels for the sentence — so
+                the text that was the entire point of the change came out
+                clamped and truncated. Choosing spells is the same job as
+                choosing cards: read a description, decide, tap. So it happens
+                where that job already happens, and the card grid stands down
+                while it does. */}
+
+            {/* Spellbook — up to 5 spells this deck carries into a match (each
+                castable once). None picked = the engine auto-fills one from the
+                deck's elements, exactly as before. */}
+            {spellsShown ? (
+              <div className="db-spells db-panel">
+                <div className="db-spell-hint">
+                  {deckEls.size === 0
+                    ? "Add cards to your squad to unlock its element spells."
+                    : story && deckSpells.length === 0
+                    ? "No spells unlocked for these elements yet — clear nodes in their regions to earn them."
+                    : pickedSpells.length === 0
+                    ? "None picked — auto-filled from your deck's elements at match start."
+                    : "Tap a spell to add or remove it."}
+                </div>
+                {deckSpells.length > 0 && (
+                <div className="db-spell-grid">
+                  {deckSpells.map((s) => {
+                    const on = pickedSpells.includes(s.id);
+                    const full = !on && pickedSpells.length >= limits.spells;
+                    return (
+                      /* WHAT IT DOES, on the tile.
+                         The effect text lived in a `title` and nowhere else — a
+                         hover tooltip, which does not exist on a touch screen at
+                         all, so on a phone there was no way to find out what any
+                         of these did short of casting one in a match and
+                         watching. A picker where the choices are unlabelled is
+                         not a picker. The card pool can get away with art alone
+                         because a card's stats are printed on it; a spell is
+                         nothing but its sentence. */
+                      <button
+                        key={s.id}
+                        className={`db-spell ${on ? "on" : ""}`}
+                        data-el={s.element}
+                        disabled={full}
+                        title={full ? `Book is full — remove one first` : undefined}
+                        onClick={() => toggleSpell(s.id)}
+                      >
+                        <span className="db-spell-art">
+                          <img src={spellArtSrc(s.id)} alt="" draggable={false}
+                            onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                        </span>
+                        <span className="db-spell-body">
+                          <span className="db-spell-head">
+                            <b className="db-spell-name">{s.name}</b>
+                            <i className="db-spell-cost" title={`Costs ${s.cost} Magic to cast`}>
+                              {s.cost}
+                            </i>
+                          </span>
+                          <span className="db-spell-text">{s.text}</span>
+                        </span>
+                        <span className="db-spell-mark">{on ? "✓" : "+"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                )}
+              </div>
+            ) : (<>
             {/* Three hundred cards behind element and class pills only, on a
                 phone, means scrolling to find a card you can already name. The
                 filters answer "show me a KIND of card"; this answers "show me
@@ -884,6 +915,7 @@ export function DeckBuilder(props: {
                 );
               })}
             </div>
+            </>)}
           </div>
         </div>
       </div>
