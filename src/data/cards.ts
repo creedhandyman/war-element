@@ -1167,12 +1167,18 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    // Vapor Spines: basic attacks apply SCALD 2 for 2 rounds (non-stacking).
+    // Vapor Spines: basic attacks apply SCALD 1 for 2 rounds (non-stacking).
     // Renamed from "Venom Spines", which named the wrong thing — the status is
     // SCALD, AQUA's scalding-steam DOT, and has never been poison. The lore
     // line already read "what they leave in the water", which is vapour.
+    //
+    // POWER, not duration: SCALD "1 for 2 rounds" ticks 1 a round for two, so
+    // the rider is 2 damage over the fight rather than 4. Halved from 2 — the
+    // spines are a lingering scald off a 6-DMG ranged basic, not a second
+    // damage source, and non-stacking means a Spinefin cannot pile it up by
+    // shooting the same target twice.
     passiveNames: { onHitStatus: "Vapor Spines" },
-    onHitStatus: { kind: "SCALD", duration: 2, power: 2 },
+    onHitStatus: { kind: "SCALD", duration: 2, power: 1 },
   },
   {
     id: "aqua_bulletshrimp",
