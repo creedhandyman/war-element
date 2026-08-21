@@ -592,6 +592,10 @@ export function describePassives(def: CardDef): string[] {
       `End of round: grants +${def.roundTick.allyInRangeShields} shield` +
       `${def.roundTick.allyInRangeShields === 1 ? "" : "s"} to every ally within range.`,
     );
+  if (def.roundTick?.healAlliesInRange)
+    namedAny(["healAlliesInRange", "roundTick"],
+      `End of round: heals every other ally within range +${def.roundTick.healAlliesInRange} HP.`,
+    );
   if (def.roundTick?.advance)
     named("roundTick", `Seed Roll: rolls ${def.roundTick.advance} slot${def.roundTick.advance === 1 ? "" : "s"} forward toward the enemy home at the end of each round (until blocked).`);
   if (def.advanceOnBasic)

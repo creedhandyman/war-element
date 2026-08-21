@@ -271,6 +271,12 @@ export interface RoundTickDef {
   healHomeRow?: number; // Blessed Light (Halo): heal allies on the caster's home row N
   healHomeRowElement?: number; // Petalfall (Sakuroot): heal SAME-element allies on the home row N
   allyInRangeShields?: number; // Reflection: grant N shields to allies within range each round
+  /** Butler's Service: heal every OTHER ally within this card's own attack
+   *  range N HP each round. Range, not the whole board — the same reach
+   *  `allyInRangeShields` uses (RANGED_REACH for a shooter, adjacent for
+   *  everyone else), so a melee healer has to stand with the people it is
+   *  keeping alive. */
+  healAlliesInRange?: number;
   healSelfToFull?: boolean; // Dewling's Liquid Humidity — restore to full max HP
   /** +DMG (and optionally +SP) every Nth round, stacking (Dragon's Blade). */
   buffDmgEveryN?: { n: number; amount: number; sp?: number; hp?: number; maxTicks?: number };

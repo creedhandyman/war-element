@@ -46,6 +46,8 @@ const ROUND_TICK_KEYS = [
   "paralyzeLowHp", "selfBurnForDmg", "drainAdjacent", "overheatDmg", "healWoundedAllies",
   "rootZeroSp", "lockEnemySpecials", "drainMaxAdjacent", "rootFastest", "refreshShieldsTo",
   "rootedStatus", "pokeAheadAdvance",
+  // The Butler's Service.
+  "healAlliesInRange",
 ] as const;
 
 describe("card text covers every mechanic", () => {

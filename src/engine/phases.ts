@@ -2378,6 +2378,19 @@ function doRoundTicks(draft: GameState): void {
       }
       if (touched) draft.log.push(`${label(draft, card)} shields ${touched} nearby ally(ies) (+${rt.allyInRangeShields}).`);
     }
+    // Butler's Service: mend the allies standing with it, each round.
+    if (rt.healAlliesInRange && card.pos) {
+      const reach = getDef(card.defId).attackType === "Ranged" ? RANGED_REACH : 1;
+      let touched = 0;
+      for (const a of allies()) {
+        if (a.instanceId === card.instanceId || !a.pos) continue;
+        if (chebyshev(card.pos, a.pos) <= reach && healCard(draft, a, rt.healAlliesInRange, card) > 0) touched++;
+      }
+      if (touched)
+        draft.log.push(
+          `${label(draft, card)} attends ${touched} nearby ally(ies) (+${rt.healAlliesInRange} HP).`,
+        );
+    }
     // Petalfall (Sakuroot): heal SAME-element allies standing on the home row.
     if (rt.healHomeRowElement) {
       const home = homeRow(card.owner, draft.boardSize);

@@ -9388,6 +9388,14 @@ export const TOKENS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Dark",
+    // Butler's Service: +4 HP to every other ally standing beside it, each
+    // round. It is a Support by class and now by behaviour, which is the
+    // disguise doing its job — a card that visibly mends the line reads as
+    // exactly the harmless back-row body Nightfang wants you to see, and the
+    // healing is real while it lasts. Melee, so "in range" is adjacent: it has
+    // to stand with the people it keeps alive.
+    passiveNames: { roundTick: "Butler's Service" },
+    roundTick: { healAlliesInRange: 4 },
   },
   {
     id: "gale_ollie",
