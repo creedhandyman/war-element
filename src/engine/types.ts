@@ -271,6 +271,25 @@ export interface RoundTickDef {
   healHomeRow?: number; // Blessed Light (Halo): heal allies on the caster's home row N
   healHomeRowElement?: number; // Petalfall (Sakuroot): heal SAME-element allies on the home row N
   allyInRangeShields?: number; // Reflection: grant N shields to allies within range each round
+  /** Snare Garden (Snapmaw): every ROOTed opponent — from ANY source, not just
+   *  this card's — takes N BLEED at the end of the round.
+   *
+   *  For THAT ROUND ONLY: applied at duration 1 so the cleanup tick that
+   *  follows expires it, and re-applied next round if the target is still
+   *  rooted. So it neither stacks nor carries, and a target that breaks the
+   *  root stops bleeding immediately — the garden is the damage, not the wound. */
+  rootedBleed?: number;
+  /** Dreamweaver (Dreamcatcher): at the end of the round, put a status on the
+   *  single HIGHEST-DMG opponent this card can reach.
+   *
+   *  The opposite selection to `lowestEnemyStatus`, which picks the weakest
+   *  thing on the board. A debuffer that softens whatever is nearly dead is
+   *  wasting itself; this one always spends its round on the biggest threat in
+   *  front of it, which is what makes a 4-DMG Support worth a slot. Range is
+   *  `canTarget`'s, so a Ranged holder reaches and a Melee one has to stand in
+   *  it. Effective DMG, so it reads buffs and auras rather than the printed
+   *  number. */
+  topDmgInRangeStatus?: { kind: StatusKind; duration: number; power: number };
   /** Butler's Service: heal every OTHER ally within this card's own attack
    *  range N HP each round. Range, not the whole board — the same reach
    *  `allyInRangeShields` uses (RANGED_REACH for a shooter, adjacent for
@@ -568,7 +587,18 @@ export interface CardDef {
   elementAuras?: Element[];
   /** Golden Resonance (Lithara): each successful Special use grants +shields and
    *  +DMG (stacking). */
-  onSpecialUse?: { shields: number; dmg: number };
+  onSpecialUse?: {
+    shields?: number;
+    dmg?: number;
+    /** Super Charger (Burnout): a TIMED speed burst rather than a permanent
+     *  grant — `sp` for `spRounds` rounds after each cast, through the same
+     *  `applyTimedBuff` every other temporary stat change uses. Lithara's
+     *  shields/DMG stay permanent and stacking; both halves live here because
+     *  they answer the same trigger and splitting them would mean two hooks on
+     *  one line of the cast path. */
+    sp?: number;
+    spRounds?: number;
+  };
   /** Brutal (Brute): a basic CRIT saps N DMG off the target's attacks for the
    *  round. */
   onCritDebuff?: number;
@@ -889,6 +919,14 @@ export interface CardDef {
    *  Only basics: it is read inside effectiveDmg, and Specials carry their own
    *  printed damage rather than routing through it. */
   intimidate?: { dmg: number; rows: number };
+  /** Broodmother (Aranea): a STANDING aura — allied cards of this tribe hit for
+   *  +`dmg` while a living holder is on the board.
+   *
+   *  Not `onDeath.allyTribeBuffDmg`, which is the Wedded Wraith's parting gift
+   *  and permanent. This one is rented: kill the queen and the brood goes back
+   *  to normal, which is what makes her worth targeting. Read live in
+   *  `dmgBeforeIntimidation`, so it follows tokens spawned after she landed. */
+  tribeDmgAura?: { tribe: string; dmg: number };
   /** Blinding Star (Supernova): while this card lives, every OPPONENT's basic
    *  attack rolls a flat BLINDING_STAR_MISS_PCT chance to miss — board-wide,
    *  range-free, per hit.

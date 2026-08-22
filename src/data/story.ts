@@ -227,7 +227,7 @@ const LEAF: StoryRegion = {
       lore: "Where Spring starts things, Summer sustains them. Guardians of Growth, stewards of the plains where the forest stands at its fullest strength."
     },
     { id: "L6", name: "Jungle Wilds", kind: "warden", tribe: "Reptile", at: { x: 83, y: 60 },
-      requires: ["L5"], roster: ["leaf_stickviper", "leaf_gecko", "leaf_cactus"], adds: ["leaf_reptilian_tok"],
+      requires: ["L5"], roster: ["leaf_stickviper", "leaf_gecko", "leaf_cactus", "leaf_snapmaw"], adds: ["leaf_reptilian_tok"],
       note: "The Reptile node — StickViper and Gecko are the tribe. Fight it before the warlord who buffs it.",
       lore: "Reptiles, not Keepers. The four tribes count the Wilds as forest rather than as a fifth people, a decision made early and never put to the brood."
      },
@@ -352,7 +352,7 @@ const PYRO: StoryRegion = {
       lore: "Above the last forge the slopes belong to whatever climbed there first. PYRO stopped building at that line and still calls the decision a courtesy rather than a retreat."
      },
     { id: "P7", name: "Ember Fortress Drill Yard", kind: "warden", at: { x: 68, y: 41 },
-      requires: ["P6"], roster: ["pyro_tiki", "pyro_twins", "pyro_scorch"], adds: [] ,
+      requires: ["P6"], roster: ["pyro_tiki", "pyro_twins", "pyro_scorch", "pyro_burnout"], adds: [] ,
       note: "The Knights at drill: a wall, a second wall, and the Support keeping both standing. Bring a can opener.",
       lore: "The Pyro Knights garrison here. Where the Forged build the city's strength, the Knights are sworn to make sure nothing ever gets close enough to test it."
     },
@@ -484,7 +484,7 @@ const AQUA: StoryRegion = {
       lore: "Three nations claim the Frozen Citadel, and the Guardians have never confirmed any of them — either diplomacy, or the oldest joke in Concord, depending entirely on who's asking."
     },
     { id: "A11", name: "Atlantis Outer Ring", kind: "landmark", tribe: "SeaC", at: { x: 65, y: 55 },
-      requires: ["A6", "A9"], roster: ["aqua_siren", "aqua_rain", "aqua_driftwraith", "aqua_magalogoon"], adds: [],
+      requires: ["A6", "A9"], roster: ["aqua_siren", "aqua_rain", "aqua_driftwraith", "aqua_magalogoon", "aqua_killerwhale"], adds: [],
       note: "Four Legendaries — the richest node in the first three acts. Both arms of the sea have to be yours first.",
       lore: "Everything the sea carries stops at the outer ring, and almost none of it was invited. Atlantis does not refuse arrivals. It simply lets the ring do the deciding."
      },
@@ -585,7 +585,7 @@ const GALE: StoryRegion = {
       lore: "Wyverns and young dragons test their wings in GALE's storms before they are strong enough to fly anywhere else in Concord. This sky is a proving ground for more than GALE's own people."
     },
     { id: "G6", name: "Northern Wind Villages", kind: "warden", at: { x: 38, y: 22 },
-      requires: ["G3"], roster: ["gale_stormhide_bison", "gale_wailverine", "gale_rayfen"], adds: [] ,
+      requires: ["G3"], roster: ["gale_stormhide_bison", "gale_wailverine", "gale_rayfen", "gale_dreamcatcher"], adds: [] ,
       note: "Herd country. Count the bison on the way in; count what's watching them on the way out.",
       lore: "Farmsteads and highland homes behind the natural windbreaks of the Amberleaf. GALE's villages are practical in a way few other nations bother to be."
     },
@@ -701,7 +701,7 @@ const BOLT: StoryRegion = {
       lore: "The mega fabrication plant. Machines, weapons, innovation: if it can be built, Arc Industries has already built a faster version."
     },
     { id: "B9", name: "The Forge Grid", kind: "warden", tribe: "ARC", at: { x: 79, y: 41 },
-      requires: ["B7"], roster: ["bolt_surge", "bolt_kore", "bolt_zagphu"],
+      requires: ["B7"], roster: ["bolt_surge", "bolt_kore", "bolt_zagphu", "bolt_havoc"],
       adds: ["bolt_static_wisp_tok"] ,
       note: "ARC's heavy line — Surge, Kore, and Ricochet, fresh off the forge floor.",
       lore: "Voltis Plaza honours whoever first proved storm-lightning could be caught. The official histories name no one. Ask an old GearHollow dwarf and you may get a different answer."
@@ -799,8 +799,8 @@ const BORE: StoryRegion = {
       lore: "A single vast Sand Worm prowls the depths, dragging the dunes into slow spiralling wounds when it surfaces. BORE's storytellers never call it the only one. They call it the one that's already awake."
     },
     { id: "R7", name: "Faultline", kind: "warden", at: { x: 30, y: 38 },
-      requires: ["R5"], roster: ["bore_shift", "bore_rhe", "bore_sheish"],
-      adds: ["bore_cosmic", "bore_crock"],
+      requires: ["R5"], roster: ["bore_shift", "bore_rhe", "bore_sheish", "bore_kobra"],
+      adds: ["bore_cosmic", "bore_crock", "bore_kingcobra_tok"],
       lore: "The stonework here is set without mortar on purpose: the ground can shift a hand's width and the wall goes with it. Building rigid was tried once."
      },
     { id: "R8", name: "Crystal Seam", kind: "warden", at: { x: 9, y: 38 },
@@ -934,7 +934,7 @@ const DUSK: StoryRegion = {
       lore: "Where LEAF's people speak of the Cycle as a wheel, DUSK's people speak of Shadow Pass as a door — one that has never fully closed since whatever died first opened it."
     },
     { id: "D9", name: "The Veil Gate", kind: "warden", at: { x: 13, y: 46 },
-      requires: ["D6"], roster: ["dusk_ender", "dusk_rip", "dusk_brute", "dusk_wedded_wraith"],
+      requires: ["D6"], roster: ["dusk_ender", "dusk_rip", "dusk_brute", "dusk_wedded_wraith", "dusk_aranea"],
       adds: ["dusk_risen_tok", "dusk_specter_tok"],
       note: "The portal to the forgotten souls, and the region's spike at cost 20.",
       lore: "DUSK's account of the Sundering is the shortest, and the one no other nation enjoys hearing repeated: something died. Not a person. Not a nation."
@@ -1036,7 +1036,7 @@ const DAWN: StoryRegion = {
     },
     { id: "W8", name: "High Noon", kind: "warden", tribe: "Stars", at: { x: 68, y: 47 },
       requires: ["W6"],
-      roster: ["dawn_clipsey", "dawn_sircrest", "dawn_ariel", "dawn_raya"], adds: [],
+      roster: ["dawn_clipsey", "dawn_sircrest", "dawn_ariel", "dawn_raya", "dawn_lassos"], adds: [],
       note: "Noon, and the sky darkens anyway. The Stars take the sun's own hour.",
       lore: "Every clock and boundary stone in the Kingdom is reckoned from the moment the sun crosses this ground. No king set the mark: generations of surveyors argued their way to it."
      },

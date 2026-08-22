@@ -43,11 +43,25 @@ describe("deck codes — the registry", () => {
     expect(CODE_IDS[0]).toBe("aqua_anglerfish");
     expect(CODE_IDS.indexOf("leaf_greegon")).toBeGreaterThan(-1);
     expect(CODE_IDS[CODE_IDS.indexOf("leaf_greegon")]).toBe("leaf_greegon");
-    // Cards come first, then the spell block — a spell must never sort in among
-    // the cards, or `resolve` would reject valid codes.
+    // The seeded registry was written cards-then-spells, and this used to assert
+    // that everything after the first spell IS a spell. That is stricter than
+    // the format needs, and it collided with the rule that actually protects
+    // shared codes: `resolve` reads the id AT AN INDEX and branches on its
+    // `spell:` prefix, never on where it sits, so a card appended after the
+    // spell block decodes correctly. Keeping the old assertion would have meant
+    // inserting new cards ahead of the spells — which shifts every spell index
+    // and silently repoints every code ever shared that carried one.
+    //
+    // So: append-only wins, and what is checked here is what `resolve` relies
+    // on — that a spell is always distinguishable from a card by prefix alone.
     const firstSpell = CODE_IDS.findIndex((id) => id.startsWith(SPELL_KEY_PREFIX));
     expect(firstSpell).toBeGreaterThan(0);
-    expect(CODE_IDS.slice(firstSpell).every((id) => id.startsWith(SPELL_KEY_PREFIX))).toBe(true);
+    // The seeded spell block is still contiguous where it was written.
+    const lastSpell = CODE_IDS.map((id) => id.startsWith(SPELL_KEY_PREFIX)).lastIndexOf(true);
+    expect(
+      CODE_IDS.slice(firstSpell, lastSpell + 1).every((id) => id.startsWith(SPELL_KEY_PREFIX)),
+      "a card was inserted INTO the spell block — append instead",
+    ).toBe(true);
   });
 
   it("still fits the 10-bit index space", () => {

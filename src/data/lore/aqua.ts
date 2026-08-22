@@ -186,4 +186,7 @@ export const AQUA_LORE: Record<string, string> = {
 
   aqua_tsunami:
     "The Life Source, briefly reminded of what it is. Afterwards your side is armoured every round, for good.",
+
+  aqua_killerwhale:
+    "The water goes still before it does. That is the part to notice.",
 };

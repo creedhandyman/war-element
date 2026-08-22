@@ -529,8 +529,20 @@ export function describePassives(def: CardDef): string[] {
     named("blockVsClasses", `Iron Ore: takes half damage from ${def.blockVsClasses.join(" and ")} attackers.`);
   if (def.bonusVsShield)
     named("bonusVsShield", `Diamond's Edge: basic attacks deal ${def.bonusVsShield}× damage against a shielded target.`);
-  if (def.onSpecialUse)
-    named("onSpecialUse", `Golden Resonance: each Special use grants +${def.onSpecialUse.shields} shields and +${def.onSpecialUse.dmg} DMG (stacking).`);
+  if (def.onSpecialUse) {
+    // Two shapes on one trigger: Lithara's permanent shields/DMG, and Burnout's
+    // rented SP. Written as a list so a card carrying only one of them does not
+    // print "+0" for the other — which is how a passive reads as broken.
+    const o = def.onSpecialUse;
+    const parts = [
+      o.shields && `+${o.shields} shields`,
+      o.dmg && `+${o.dmg} DMG`,
+    ].filter(Boolean).join(" and ");
+    if (parts) named("onSpecialUse", `Each Special use grants ${parts} (stacking).`);
+    if (o.sp)
+      named("onSpecialUse",
+        `After each Special use: +${o.sp} SP for ${o.spRounds ?? 1} round${(o.spRounds ?? 1) === 1 ? "" : "s"}.`);
+  }
   if (def.onCritDebuff)
     named("onCritDebuff", `Brutal: a basic CRIT saps ${def.onCritDebuff} DMG off the target's own attacks for the round.`);
   if (def.onCritBonus)
@@ -592,6 +604,18 @@ export function describePassives(def: CardDef): string[] {
       `End of round: grants +${def.roundTick.allyInRangeShields} shield` +
       `${def.roundTick.allyInRangeShields === 1 ? "" : "s"} to every ally within range.`,
     );
+  if (def.roundTick?.rootedBleed)
+    namedAny(["rootedBleed", "roundTick"],
+      `End of round: every ROOTed opponent takes BLEED ${def.roundTick.rootedBleed} for that round — `
+      + "from any source of ROOT, and it neither stacks nor carries.",
+    );
+  if (def.roundTick?.topDmgInRangeStatus) {
+    const s = def.roundTick.topDmgInRangeStatus;
+    namedAny(["topDmgInRangeStatus", "roundTick"],
+      `End of round: applies ${s.kind} for ${s.duration} round${s.duration === 1 ? "" : "s"} `
+      + "to the highest-DMG opponent in range.",
+    );
+  }
   if (def.roundTick?.healAlliesInRange)
     namedAny(["healAlliesInRange", "roundTick"],
       `End of round: heals every other ally within range +${def.roundTick.healAlliesInRange} HP.`,
@@ -692,6 +716,10 @@ export function describePassives(def: CardDef): string[] {
   if (def.shoveWeaker)
     passives.push(
       "Trample Through: in Prep it can step onto an adjacent opponent with less max HP, shoving it back a slot and taking the square (needs the slot behind it open).",
+    );
+  if (def.tribeDmgAura)
+    named("tribeDmgAura",
+      `Aura: allied ${def.tribeDmgAura.tribe}s deal +${def.tribeDmgAura.dmg} DMG while this card lives.`,
     );
   if (def.summonScaleFromKin) {
     const k = def.summonScaleFromKin;

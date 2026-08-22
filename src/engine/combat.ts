@@ -2916,6 +2916,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   strike(draft, attacker, targets, params) {
     const target = targets[0];
     if (!target) return;
+    // Devour (Snapmaw): a Special that only bites what is already held. barrage
+    // has filtered on `requireStatus` for a long time; strike could not, so a
+    // single-target conditional had to be written as a passive instead of as
+    // the ability the card prints. Refused out loud — a Special that costs
+    // magic and silently does nothing is the worst version of this.
+    const needs = String(params.requireStatus ?? "");
+    if (needs && !hasStatus(target, needs as StatusKind)) {
+      draft.log.push(
+        `${label(draft, attacker)} finds nothing to sink into — ${getDef(target.defId).name} is not ${needs}.`,
+      );
+      return;
+    }
     const center = target.pos ? { ...target.pos } : null; // splash centre (target may die)
     // Rover (Rumbler): the roll comes BEFORE the bash — it closes the distance and
     // THEN hits, rather than striking from where it stood and repositioning
@@ -2933,6 +2945,9 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     // Sunlight Strike: a bigger number against what this card hunts. Read
     // through the SAME matcher as the passive, so "vs Dragons" means one thing.
+    // Snapshotted before the strike, or ThunderShot's conditional would be
+    // satisfied by the PARALYZE the same cast just applied.
+    const alreadyAfflicted = target.statuses.some((s) => NEGATIVE_STATUSES.includes(s.kind));
     const baneDmg = num(params, "dmgVsTarget");
     const dmgNow =
       baneDmg > 0 && matchesVsTarget(getDef(attacker.defId), target) ? baneDmg : num(params, "dmg");
@@ -2964,6 +2979,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // Culling the Weak (Trinezer): a kill made BY this Special lifts the whole
     // side, permanently and cumulatively. Lives on the Special's params rather
     // than the card's onKill so it can't also fire off a basic attack.
+    // …and in permanent DMG on the caster (Devour). The sibling of
+    // onKillSelfShields/onKillSelfHeal above, and deliberately on the SPECIAL's
+    // params rather than the card's `onKill`, so it cannot also fire off a
+    // basic attack — Devour grows by devouring, not by plinking.
+    const killDmg = num(params, "onKillSelfDmg");
+    if (r.targetDied && killDmg > 0 && attacker.curHp > 0) {
+      attacker.dmgBonus += killDmg;
+      draft.log.push(`${label(draft, attacker)} swallows it whole (+${killDmg} DMG, permanently).`);
+    }
     const cullBuff = num(params, "onKillAllyBuffDmg");
     if (r.targetDied && cullBuff > 0) {
       const kin = boardCards(draft, attacker.owner).filter((a) => a.curHp > 0);
@@ -2979,6 +3003,20 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const strikeDebuff = params.debuffStatus;
     if (typeof strikeDebuff === "string" && strikeDebuff && draft.cards[target.instanceId] && target.curHp > 0)
       applyStatus(draft, target, strikeDebuff as StatusKind, num(params, "debuffStatusRounds", 1), 0, getDef(attacker.defId).element);
+    // ThunderShot (Havoc): a rider that only lands on a target ALREADY carrying
+    // something. BOLT's whole identity is punishing the afflicted (its aura
+    // reads "+1 DMG vs any statused target"), and this is the same idea spent
+    // on control instead of damage — hit something clean and it is a paralyse,
+    // hit something already held and it is silenced too. Checked BEFORE the
+    // primary status is applied would make it self-satisfying, so it reads the
+    // board as the Special found it.
+    const ifStatused = params.statusIfAlready;
+    if (
+      typeof ifStatused === "string" && ifStatused && alreadyAfflicted
+      && draft.cards[target.instanceId] && target.curHp > 0
+    ) {
+      applyStatus(draft, target, ifStatused as StatusKind, num(params, "statusIfAlreadyRounds", 1), 0, getDef(attacker.defId).element);
+    }
     // Shared per-target riders (push, timed −SP). barrage has always called
     // these; strike had not, so a single-target Special could not sap speed.
     applyDebuffRiders(draft, target, params, attacker);
@@ -3316,6 +3354,12 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (seen.size >= n) break;
       seen.add(target.instanceId);
       maybeStatus(draft, attacker, target, params);
+      // A SECOND status alongside the primary (Soul Snare = SLEEP + WEAKEN).
+      // strike and barrage have both carried this rider for a while; statusNova
+      // is the pure-status handler and was the one that could not stack two.
+      const novaSecond = params.debuffStatus;
+      if (typeof novaSecond === "string" && novaSecond && draft.cards[target.instanceId] && target.curHp > 0)
+        applyStatus(draft, target, novaSecond as StatusKind, num(params, "debuffStatusRounds", 1), 0, getDef(attacker.defId).element);
       applyDebuffRiders(draft, target, params, attacker); // Mighty Winds push + −SP
       // Bluflames (Sarra): mark the target so it can't be healed.
       const sealR = num(params, "sealRounds");

@@ -176,4 +176,7 @@ export const PYRO_LORE: Record<string, string> = {
 
   pyro_volcanic_eruption:
     "The Flame Spire answers once a battle. Every forge on your side runs hotter afterwards — permanently.",
+
+  pyro_burnout:
+    "It does not stop at the target. Stopping is a separate system it was not given.",
 };

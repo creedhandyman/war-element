@@ -567,6 +567,33 @@ export function effectiveDmg(state: GameState, card: CardInstance): number {
   return Math.max(0, base - intimidationPenalty(state, card, base));
 }
 
+/** Broodmother (Aranea): +DMG to every ALLY of a named tribe while a living
+ *  holder stands.
+ *
+ *  Read live rather than stamped on at summon, which is the whole difference
+ *  between this and `onDeath.allyTribeBuffDmg`: the brood is RENTED. Spiders
+ *  spawned after the queen landed pick it up, and killing her takes it back
+ *  from all of them at once — which is what makes her the thing to shoot.
+ *
+ *  Summed rather than maxed, so two queens stack. There is one card carrying
+ *  this today; the rule is stated here so a second one does not need a
+ *  decision made about it in a hurry. */
+function tribeAuraDmg(state: GameState, card: CardInstance): number {
+  const mine = getDef(card.defId).tribe;
+  if (!mine) return 0;
+  let bonus = 0;
+  for (const a of boardCards(state, card.owner)) {
+    const aura = getDef(a.defId).tribeDmgAura;
+    if (!aura || a.curHp <= 0) continue;
+    // The holder does not buff itself — an aura that also pumps its own damage
+    // is a stat line pretending to be an ability.
+    if (a.instanceId === card.instanceId) continue;
+    const tribes = Array.isArray(mine) ? mine : [mine];
+    if (tribes.includes(aura.tribe)) bonus += aura.dmg;
+  }
+  return bonus;
+}
+
 /** Everything except Intimidation. Split out so the intimidator's own damage —
  *  the number an enemy is measured against — can be read without re-entering
  *  the penalty that depends on it. */
@@ -578,7 +605,7 @@ function dmgBeforeIntimidation(state: GameState, card: CardInstance): number {
   const baseDmg = def.weaponFromShields
     ? card.curShields
     : def.weaponModes ? def.weaponModes[card.weaponMode ?? 0].dmg : def.dmg;
-  let dmg = baseDmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0) + buffDmg + auraBonus(state, card, "dmg") + fieldBonus(state, card, "dmgBonus");
+  let dmg = baseDmg + (card.dmgBonus ?? 0) + (card.dmgBonusRound ?? 0) + buffDmg + auraBonus(state, card, "dmg") + fieldBonus(state, card, "dmgBonus") + tribeAuraDmg(state, card);
   // High Speed Impact: +1 DMG per point of SP above 10, capped where the card
   // says so (Stormquill +5) and unbounded where it does not (Tempest).
   if (def.highSpeedImpact) {

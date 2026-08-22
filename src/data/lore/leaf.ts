@@ -181,4 +181,7 @@ export const LEAF_LORE: Record<string, string> = {
 
   leaf_heart_of_the_forest:
     "The Spirit Tree does not intervene often. When it does, the Cycle simply resumes from the beginning — for one side only.",
+
+  leaf_snapmaw:
+    "It does not chase. It waits for the roots to finish the argument.",
 };

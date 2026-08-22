@@ -201,4 +201,10 @@ export const DUSK_LORE: Record<string, string> = {
 
   dusk_endless_night:
     "The door at Shadow Pass, opened all the way, once. Afterwards everything of yours feeds itself.",
+
+  dusk_aranea:
+    "Killing the web is not the answer. The web is not the one deciding.",
+
+  dusk_monstrous_spider_tok:
+    "Stepping on it does not end it. It ends the part of it you could see.",
 };

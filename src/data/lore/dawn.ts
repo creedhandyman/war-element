@@ -188,4 +188,7 @@ export const DAWN_LORE: Record<string, string> = {
 
   dawn_eternal_dawn:
     "The Vigil, held all at once. Afterwards the line mends a little more every round, for good.",
+
+  dawn_lassos:
+    "Every shot lands. The rope is only there to decide where you are standing when it does.",
 };

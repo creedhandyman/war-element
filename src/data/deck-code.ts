@@ -135,6 +135,8 @@ export const CODE_IDS: readonly string[] = [
   "spell:leaf_thorn_patch", "spell:leaf_withering_grasp", "spell:pyro_ashfall", "spell:pyro_cataclysm",
   "spell:pyro_ember_trap", "spell:pyro_firewall", "spell:pyro_flare_push", "spell:pyro_heatwave",
   "spell:pyro_inferno_pit", "spell:pyro_meltdown", "spell:pyro_spark", "spell:pyro_volcanic_eruption",
+  // The eight legends — appended, never inserted.
+  "bolt_havoc", "leaf_snapmaw", "gale_dreamcatcher", "aqua_killerwhale", "dawn_lassos", "bore_kobra", "pyro_burnout", "dusk_aranea",
 ];
 
 const INDEX_OF = new Map<string, number>(CODE_IDS.map((id, i) => [id, i]));

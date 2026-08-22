@@ -189,4 +189,7 @@ export const GALE_LORE: Record<string, string> = {
 
   "spell:gale_tempest":
     "The full storm, once. Everything on the far side stops dead — and afterwards, every wing on your side is quicker for good.",
+
+  gale_dreamcatcher:
+    "It takes the loudest thing in the room first. Everything after that is quiet.",
 };

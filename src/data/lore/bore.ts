@@ -181,4 +181,10 @@ export const BORE_LORE: Record<string, string> = {
 
   bore_mountains_fall:
     "The mountain, arriving all at once. Afterwards your side puts on another plate every round, for as long as it takes.",
+
+  bore_kobra:
+    "You are not bitten where you were looking.",
+
+  bore_kingcobra_tok:
+    "The second one was always there. You were busy.",
 };

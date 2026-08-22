@@ -190,4 +190,7 @@ export const BOLT_LORE: Record<string, string> = {
 
   bolt_total_network_control:
     "Two rounds of silence on their side, and your grid never pays full price again.",
+
+  bolt_havoc:
+    "The current has somewhere to be. Standing in the way is not a plan.",
 };

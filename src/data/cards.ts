@@ -9363,6 +9363,289 @@ export const CARDS: CardDef[] = [
       text: "Charge straight ahead, dealing 15 DMG to opponents in the column and pushing the leader to the farthest slot.",
     },
   },
+
+  // ─────────────────── THE EIGHT LEGENDS (one per element) ───────────────────
+  // Every stat line here lands on the cost-6 budget of 40 exactly
+  // (dmg*hits + hp + shields*2 + sp), except Havoc, which is cost 5 at 34
+  // against 35 — one under, inside the ±2 the formula test allows.
+  {
+    id: "bolt_havoc",
+    name: "Havoc",
+    rarity: "legendary",
+    element: "BOLT",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 5,
+    dmg: 4,
+    hits: 2,
+    hp: 15,
+    sp: 5,
+    shields: 3,
+    keywords: {},
+    tribe: "Bolt City Gang",
+    passiveNames: { onHitByMelee: "Spiked Conduit", summonSpawn: "Running Crew" },
+    // Spiked Conduit: the armour is live. Melee only — walking into it is the
+    // mistake, shooting it is not.
+    onHitByMelee: { dmg: 3, status: { kind: "ELECTRIFIED", duration: 2, power: 0 } },
+    // Running Crew: Havoc does not arrive alone. Surge is a real cost-4 CARD
+    // rather than a token, which makes this the most expensive line on the
+    // card — a 5-cost body that puts nine Gold of material on the board.
+    summonSpawn: { token: "bolt_surge", count: 1 },
+    special: {
+      name: "ThunderShot",
+      cost: 3,
+      handler: "strike",
+      // The MUTE lands only on a target that was ALREADY carrying something
+      // when the shot was fired — BOLT's identity is punishing the afflicted,
+      // spent here on silence instead of damage.
+      params: {
+        dmg: 7,
+        statusKind: "PARALYZE", statusDuration: 2,
+        statusIfAlready: "MUTED", statusIfAlreadyRounds: 2,
+      },
+      targetSide: "enemy",
+      text: "7 DMG to a target and PARALYZE it for 2 rounds. If it already had a status, MUTE it for 2 rounds as well.",
+    },
+  },
+  {
+    id: "leaf_snapmaw",
+    name: "Snapmaw",
+    rarity: "legendary",
+    element: "LEAF",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 5,
+    hits: 1,
+    hp: 18,
+    sp: 13,
+    shields: 2,
+    keywords: {},
+    tribe: "Reptile",
+    passiveNames: { onSummon: "Snare Garden", roundTick: "Snare Garden", vsStatus: "Devour" },
+    // Snare Garden, first half: it plants a root the moment it lands, so the
+    // aura below and Devour both have something to work with immediately.
+    onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, statusKind: "ROOT", statusDuration: 2 } },
+    // …and second half: the roots ARE the weapon. Any ROOT counts, not only its
+    // own — a LEAF deck full of them turns this into a board-wide DOT.
+    roundTick: { rootedBleed: 1 },
+    // Devour: it feeds on what it has already caught. Carried as a passive so
+    // the basic drinks too, which is what "devour" means.
+    vsStatus: { status: "ROOT", lifesteal: true },
+    special: {
+      name: "Devour",
+      cost: 3,
+      handler: "strike",
+      params: { dmg: 6, requireStatus: "ROOT", onKillSelfDmg: 2 },
+      targetSide: "enemy",
+      text: "6 DMG to a ROOTed target and heal for the damage dealt. If it dies, Snapmaw gains +2 DMG permanently. Refuses a target that is not ROOTed.",
+    },
+  },
+  {
+    id: "gale_dreamcatcher",
+    name: "Dreamcatcher",
+    rarity: "legendary",
+    element: "GALE",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 4,
+    hits: 1,
+    hp: 16,
+    sp: 16,
+    shields: 2,
+    keywords: {},
+    tribe: "Dark Wind",
+    passiveNames: { roundTick: "Dreamweaver" },
+    // Dreamweaver: always the biggest threat it can reach, never whatever is
+    // nearly dead — a debuffer that softens a corpse is wasting its round.
+    roundTick: { topDmgInRangeStatus: { kind: "WEAKEN", duration: 2, power: 1 } },
+    special: {
+      name: "Soul Snare",
+      cost: 3,
+      handler: "statusNova",
+      params: {
+        targets: 99,
+        statusKind: "SLEEP", statusDuration: 1,
+        debuffStatus: "WEAKEN", debuffStatusRounds: 2,
+      },
+      targetSide: "enemy",
+      text: "Every opponent in range falls asleep for a round and is WEAKENed for 2. No damage — waking them is the opponent's problem.",
+    },
+  },
+  {
+    id: "aqua_killerwhale",
+    name: "Killer Whale",
+    rarity: "legendary",
+    element: "AQUA",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 6,
+    dmg: 7,
+    hits: 1,
+    hp: 24,
+    sp: 3,
+    shields: 3,
+    keywords: {},
+    tribe: "SeaC", // Kraken's school (+4 max HP)
+    passiveNames: { vsStatus: "Apex Predator" },
+    // Apex Predator: it hunts what cannot run. Pairs with its own Special, which
+    // is the point — Tidal Crush freezes the row and then it eats.
+    vsStatus: { status: "FREEZE", bonusDmg: 3 },
+    special: {
+      name: "Tidal Crush",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 6, targets: 99, rowAhead: 1, statusKind: "FREEZE", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "6 DMG to every opponent in the row directly ahead and FREEZE them for 2 rounds.",
+    },
+  },
+  {
+    id: "dawn_lassos",
+    name: "Lassos",
+    rarity: "legendary",
+    element: "DAWN",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 6,
+    hits: 1,
+    hp: 16,
+    sp: 14,
+    shields: 2,
+    keywords: {},
+    // DAWN'S TRIBES SPLIT BY CLASS — Suns are the Tanks/Warriors/Supports,
+    // Stars the Assassins/Mages/Rangers (see WarPhant). A Ranger is a Star, and
+    // a third DAWN tribe would leave this card outside BOTH auras. Tagged with
+    // its own name as well, since tribe is a list and nothing forces one.
+    tribe: ["Stars", "Sun's Army"],
+    passiveNames: {
+      alwaysHit: "Deadeye", vsStatus: "Deadeye",
+      mounted: "Ride or Die", summonSelfBuff: "Ride or Die",
+    },
+    // Deadeye, both halves: it never misses, and it hits hardest what cannot
+    // see it coming — which its own Hogtie arranges.
+    alwaysHit: true,
+    vsStatus: { status: "BLIND", bonusDmg: 2 },
+    // Ride or Die: the horse is the extra body. Mounted is the king-move in
+    // Prep; the HP is a passive grant, so it stays off the cost curve like every
+    // other summon-time buff.
+    mounted: true,
+    summonSelfBuff: { dmg: 0, hp: 12 },
+    special: {
+      name: "Hogtie",
+      cost: 2,
+      handler: "strike",
+      params: { dmg: 5, pull: 1, statusKind: "BLIND", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "5 DMG, drag the target one slot toward you, and BLIND it for 2 rounds — which Deadeye then punishes.",
+    },
+  },
+  {
+    id: "bore_kobra",
+    name: "Kobra",
+    rarity: "legendary",
+    element: "BORE",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 6,
+    dmg: 10,
+    hits: 1,
+    hp: 16,
+    sp: 10,
+    shields: 2,
+    // EVASION: it is not there when the blow lands. A striker holding 16 HP
+    // does not survive by soaking, so the dodge is the armour.
+    keywords: { EVASION: true },
+    tribe: "Sand Village",
+    passiveNames: { vsStatus: "Ambush Coil", summonSpawn: "Ambush Coil" },
+    // Ambush Coil: doubles into a sleeping target, which its own Venom Strike
+    // puts there — the Special sets up the next round's basic.
+    vsStatus: { status: "SLEEP", dmgMult: 2 },
+    summonSpawn: { token: "bore_kingcobra_tok", count: 1 },
+    special: {
+      name: "Venom Strike",
+      cost: 3,
+      handler: "strike",
+      params: { dmg: 10, statusKind: "SLEEP", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "10 DMG and SLEEP the target for 2 rounds. Ambush Coil then doubles everything Kobra lands on it.",
+    },
+  },
+  {
+    id: "pyro_burnout",
+    name: "Burnout",
+    rarity: "legendary",
+    element: "PYRO",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 6,
+    dmg: 6,
+    hits: 1,
+    hp: 22,
+    sp: 8,
+    shields: 2,
+    keywords: {},
+    tribe: "Forged Tech",
+    passiveNames: { onHitByMelee: "Burning Frame", onSpecialUse: "Super Charger" },
+    // Burning Frame: the chassis is on fire. No damage of its own — hitting it
+    // simply costs you the burn.
+    onHitByMelee: { status: { kind: "BURN", duration: 2, power: 2 } },
+    // Super Charger: RENTED speed, not owned. An SP 8 tank that spikes to 16 for
+    // a round crosses ground it otherwise never would — and then settles back,
+    // so the ram is a commitment rather than a permanent stat line.
+    onSpecialUse: { sp: 8, spRounds: 1 },
+    special: {
+      name: "Blitzing Ram",
+      cost: 3,
+      handler: "strike",
+      // chargeFirst: it closes the distance and THEN crashes, so the splash is
+      // measured from where it ends up. statusSplash carries the BURN to
+      // everything touching the impact — "all touching it".
+      params: {
+        chargeFirst: 1, charge: 2,
+        dmg: 6,
+        statusKind: "BURN", statusDuration: 3, statusPower: 3,
+        statusSplash: 1,
+      },
+      targetSide: "enemy",
+      text: "Charge up to 2 slots and crash into a target: 6 DMG and BURN 3 for 3 rounds, with the same burn spreading to everything touching it.",
+    },
+  },
+  {
+    id: "dusk_aranea",
+    name: "Aranea",
+    rarity: "legendary",
+    element: "DUSK",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 6,
+    dmg: 6,
+    hits: 1,
+    hp: 16,
+    sp: 14,
+    shields: 2,
+    keywords: {},
+    tribe: "Spider",
+    passiveNames: { tribeDmgAura: "Broodmother" },
+    // Broodmother: a STANDING aura, so it is rented — the brood she raises picks
+    // it up as it lands, and killing her takes it back from all of them at once.
+    // That is what makes her the thing to shoot rather than the spiders.
+    tribeDmgAura: { tribe: "Spider", dmg: 2 },
+    special: {
+      name: "Brood Summon",
+      cost: 3,
+      handler: "statusNova",
+      params: {
+        targets: 99,
+        statusKind: "FRIGHTEN", statusDuration: 1,
+        spawnToken: "dusk_monstrous_spider_tok", spawnCount: 1,
+      },
+      targetSide: "enemy",
+      text: "Raise a Monstrous Spider and FRIGHTEN every opponent in range for a round. It bursts into 2 Spiders when it falls, and all three carry Broodmother's +2 DMG.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
@@ -9405,6 +9688,57 @@ export const TOKENS: CardDef[] = [
     // to stand with the people it keeps alive.
     passiveNames: { roundTick: "Butler's Service" },
     roundTick: { healAlliesInRange: 4 },
+  },
+  {
+    // Ambush Coil's second half (Kobra). A TOKEN, not a draftable card: it is
+    // spawned or it does not exist, so it never enters a deck and the
+    // cost-formula test never sees it. Cost 4 is display only — what the Kobra
+    // that raised it is worth a piece of.
+    id: "bore_kingcobra_tok",
+    art: "bore_kingcobra_tok",
+    name: "King Cobra",
+    rarity: "epic",
+    element: "BORE",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 5,
+    hits: 1,
+    hp: 8,
+    sp: 10,
+    shields: 4,
+    keywords: {},
+    tribe: "Sand Village",
+  },
+  {
+    // Aranea's brood. A TOKEN — spawned or it does not exist — so it never
+    // enters a deck and the cost-formula test never weighs it.
+    //
+    // It is the two Spiders, delivered with a body in front of them: kill it and
+    // they arrive anyway. That is what makes it worth more than the pair it
+    // becomes, and why Brood Summon raises ONE of these rather than two — two
+    // would be four more on death, six bodies off a single 3-magic cast.
+    //
+    // Tagged Spider, so Broodmother's aura covers it, and so do its own
+    // children after it falls.
+    id: "dusk_monstrous_spider_tok",
+    art: "dusk_monstrous_spider_tok",
+    name: "Monstrous Spider",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 4,
+    dmg: 5,
+    hits: 1,
+    hp: 12,
+    sp: 6,
+    shields: 2,
+    keywords: {},
+    tribe: "Spider",
+    passiveNames: { onDeath: "Bursting Brood" },
+    // Bursting Brood: it does not die so much as divide.
+    onDeath: { dmg: 0, spawnToken: { token: "dusk_spider", count: 2 } },
   },
   {
     id: "gale_ollie",

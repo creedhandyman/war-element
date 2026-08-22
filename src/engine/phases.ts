@@ -1546,9 +1546,18 @@ function performBattleAction(
     // Golden Resonance (Lithara): each successful Special use hardens + sharpens.
     const osu = getDef(card.defId).onSpecialUse;
     if (osu && draft.cards[card.instanceId] && card.curHp > 0) {
-      card.curShields += osu.shields;
-      card.dmgBonus += osu.dmg;
-      draft.log.push(`${label(draft, card)} resonates (+${osu.shields} shields, +${osu.dmg} DMG).`);
+      card.curShields += osu.shields ?? 0;
+      card.dmgBonus += osu.dmg ?? 0;
+      if (osu.shields || osu.dmg)
+        draft.log.push(`${label(draft, card)} resonates (+${osu.shields ?? 0} shields, +${osu.dmg ?? 0} DMG).`);
+      // Super Charger (Burnout): the same trigger, paid in SPEED and rented
+      // rather than owned — the chassis over-revs after a cast and settles
+      // again. Through applyTimedBuff so it ticks down with every other
+      // temporary stat change instead of needing a counter of its own.
+      if (osu.sp) {
+        applyTimedBuff(card, 0, osu.sp, osu.spRounds ?? 1);
+        draft.log.push(`${label(draft, card)} over-revs — +${osu.sp} SP for ${osu.spRounds ?? 1} round(s).`);
+      }
     }
     // On Kill → grant a free recast next round (Volcanon's Eruption). Detect a
     // kill by the enemy board shrinking across the handler.
@@ -2377,6 +2386,39 @@ function doRoundTicks(draft: GameState): void {
         if (chebyshev(card.pos, a.pos) <= reach) { a.curShields += rt.allyInRangeShields; touched++; }
       }
       if (touched) draft.log.push(`${label(draft, card)} shields ${touched} nearby ally(ies) (+${rt.allyInRangeShields}).`);
+    }
+    // Dreamweaver (Dreamcatcher): spend the round on the biggest threat it can
+    // actually reach, rather than on whatever happens to be nearly dead.
+    if (rt.topDmgInRangeStatus && card.pos) {
+      const reachable = enemies().filter((e) => e.pos && canTarget(draft, card, e));
+      const top = reachable.reduce<CardInstance | null>(
+        (best, e) => (!best || effectiveDmg(draft, e) > effectiveDmg(draft, best) ? e : best),
+        null,
+      );
+      if (top) {
+        const s = rt.topDmgInRangeStatus;
+        applyStatus(draft, top, s.kind, s.duration, s.power, el);
+        draft.log.push(`${label(draft, card)} weaves ${s.kind} onto ${label(draft, top)} — the strongest thing in reach.`);
+      }
+    }
+    // Snare Garden (Snapmaw): the roots themselves are the weapon. Every ROOTed
+    // opponent bleeds — from any source, not only this card's own root.
+    //
+    // Duration 1, deliberately: the cleanup tick immediately below expires it,
+    // and next round re-applies it if the target is still held. So it never
+    // stacks, never carries, and a target that breaks free stops bleeding at
+    // once — the garden is the damage, not the wound.
+    if (rt.rootedBleed) {
+      let caught = 0;
+      for (const e of boardCards(draft, enemyOf(card.owner))) {
+        if (e.curHp <= 0 || !hasStatus(e, "ROOT")) continue;
+        applyStatus(draft, e, "BLEED", 1, rt.rootedBleed, el);
+        caught++;
+      }
+      if (caught)
+        draft.log.push(
+          `${label(draft, card)}'s Snare Garden bleeds ${caught} rooted opponent(s) for ${rt.rootedBleed}.`,
+        );
     }
     // Butler's Service: mend the allies standing with it, each round.
     if (rt.healAlliesInRange && card.pos) {
