@@ -9728,12 +9728,11 @@ export const CARDS: CardDef[] = [
   // (allyRevive once-per-card, firstAttackMisses, critAlways) — the doc's own
   // §6 conversion table, implemented.
   //
-  // Art is ALIASED to an existing card's webp for now (`art:` fields below) —
-  // placeholders until boss art lands; art.test.ts is satisfied either way.
+  // Each boss has its OWN art at public/cards/boss_<name>.webp (they shipped
+  // with placeholder aliases for one commit; real art landed the same day).
   {
     id: "boss_rotroot",
     name: "Rotroot",
-    art: "dusk_zombination",
     rarity: "mythic",
     element: "DUSK",
     cardClass: "Tank",
@@ -9766,7 +9765,6 @@ export const CARDS: CardDef[] = [
   {
     id: "boss_skeleeze",
     name: "Skeleeze Ranger",
-    art: "dusk_skelider",
     rarity: "mythic",
     element: "DUSK",
     cardClass: "Ranger",
@@ -9802,7 +9800,6 @@ export const CARDS: CardDef[] = [
   {
     id: "boss_xilty",
     name: "Xilty",
-    art: "dusk_sarachnid",
     rarity: "mythic",
     element: "DUSK",
     cardClass: "Assassin",
@@ -9841,7 +9838,6 @@ export const CARDS: CardDef[] = [
   {
     id: "boss_permafrost",
     name: "Permafrost",
-    art: "aqua_polarking",
     rarity: "mythic",
     element: "AQUA",
     cardClass: "Tank",
@@ -9873,7 +9869,6 @@ export const CARDS: CardDef[] = [
   {
     id: "boss_overclock",
     name: "Overclock",
-    art: "bolt_gigavolt",
     rarity: "mythic",
     element: "BOLT",
     cardClass: "Warrior",
@@ -9908,7 +9903,6 @@ export const CARDS: CardDef[] = [
   {
     id: "boss_nightshrike",
     name: "Nightshrike",
-    art: "dusk_ravven",
     rarity: "mythic",
     element: "GALE",
     cardClass: "Assassin",
@@ -9942,7 +9936,6 @@ export const CARDS: CardDef[] = [
   {
     id: "boss_basilisk",
     name: "Basilisk",
-    art: "leaf_snapmaw",
     rarity: "mythic",
     element: "LEAF",
     cardClass: "Tank",
