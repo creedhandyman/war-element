@@ -322,17 +322,23 @@ describe("the trials", () => {
     // its hand in the opening rounds and then stood on a rising gold pool with
     // nothing to spend it on, and the player won by outlasting an opponent that
     // had already stopped playing. Once the boss brings a full deck it beats
-    // this AI-piloted opponent about nine times in ten.
+    // AI-piloted opponents about four times in five (20 seeds x 7 bosses vs the
+    // cheapest-LEAF floor deck and three tuned 5x5 premades: 87/80/82/81%).
     //
     // Which is not the same claim as "unbeatable". These are oversized bodies
     // with a free Special on a 3-round clock, built to be solved rather than
     // out-statted, and the solving is done by a human who reads the telegraph —
     // something an AI-vs-AI harness cannot do and so cannot measure. Whether a
     // floor is fair is tuning, done on-device; what belongs in a test is that
-    // the fights RESOLVE and the boss is a threat. Measured while removing it:
-    // 4 of the 7 (Overclock, Nightshrike, Xilty, Permafrost) beat every deck
-    // tried at every deck depth including the old empty one, so their tuning is
-    // its own question and not this padding's doing.
+    // the fights RESOLVE and the boss is a threat.
+    //
+    // The SPREAD inside that average is the part worth acting on, and it is not
+    // this padding's doing — it holds at every deck depth including the old
+    // empty one. Overclock and Nightshrike beat every deck tried, 100%; Xilty,
+    // Permafrost and Basilisk sit at 85-100%; Rotroot is the outlier the other
+    // way at 25-40%, the only Floor-1 boss an ordinary deck beats on the
+    // numbers alone. Floor 1 is meant to teach seven different lessons, so
+    // that is a tuning pass waiting to happen.
   }, 30_000);
 });
 

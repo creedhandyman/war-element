@@ -111,8 +111,11 @@ export function VoidTower(props: {
                         alt=""
                         loading="lazy"
                       />
-                      {/* Over the art, bottom-anchored, on its own scrim — the
-                          face keeps the top two-thirds it was drawn for. */}
+                      {/* Over the art, bottom-anchored, on its own scrim. The
+                          scrim only reaches full opacity across the bottom
+                          fifth of the tile and fades out above that, so the
+                          face stays readable even on the narrow phone tiles
+                          where the text block is half the tile tall. */}
                       <span className="vt-boss-body">
                         <span className="vt-boss-pair">
                           {b.tribeElement} / {b.mechanicElement} · {b.tribe}
