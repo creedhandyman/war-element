@@ -216,6 +216,30 @@ describe("Killer Whale and Kobra hunt what they disable", () => {
       .toEqual(getDef("bore_kobra").vsStatus);
   });
 
+  it("and makes its own openings — a 30% bite that sleeps", () => {
+    // The loop closing on itself: it can put a target under and then double into
+    // it next swing, without needing Venom Strike to have gone first.
+    const rider = getDef("bore_kingcobra_tok").onHitStatus!;
+    expect(rider.kind).toBe("SLEEP");
+    expect(rider.duration).toBe(2);
+    expect(rider.chance).toBe(30);
+
+    // And it really fires — roughly a third of landed basics, never all of them.
+    // A wide seed sweep rather than one roll, so this measures the rate and not
+    // whichever way a single coin happened to land.
+    let slept = 0;
+    const n = 300;
+    for (let i = 0; i < n; i++) {
+      const s = prepState(i * 7 + 1);
+      const cobra = place(s, "bore_kingcobra_tok", "P1", 2, 1);
+      const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 400, maxHp: 400, curShields: 0 });
+      basicAttack(s, cobra.instanceId, foe.instanceId);
+      if (statusOf(s.cards[foe.instanceId], "SLEEP")) slept++;
+    }
+    expect(slept, `slept on ${slept}/${n}`).toBeGreaterThan(n * 0.15);
+    expect(slept, "a chance, not a lock").toBeLessThan(n * 0.5);
+  });
+
   it("Kobra is the Assassin it was rebuilt into, and dodges", () => {
     const d = getDef("bore_kobra");
     expect(d.cardClass).toBe("Assassin");

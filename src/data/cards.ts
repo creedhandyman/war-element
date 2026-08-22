@@ -9716,7 +9716,13 @@ export const TOKENS: CardDef[] = [
     shields: 4,
     keywords: {},
     tribe: "Sand Village",
-    passiveNames: { vsStatus: "Ambush Coil" },
+    passiveNames: { vsStatus: "Ambush Coil", onHitStatus: "Sleeping Venom" },
+    // Sleeping Venom: it makes its OWN openings. A 30% bite closes the loop
+    // Ambush Coil below only half-opens — the Cobra no longer needs the Kobra
+    // to have gone first, it can put something under and then double into it on
+    // the next swing. Chance rather than certainty because a guaranteed 2-round
+    // SLEEP on every landed basic is a lock, not a passive.
+    onHitStatus: { kind: "SLEEP", duration: 2, power: 0, chance: 30 },
     // The same instinct as the Kobra that raised it, and the reason the pair
     // reads as a hunting team rather than two bodies that happen to arrive
     // together: Venom Strike puts a target to sleep, and then BOTH of them hit
