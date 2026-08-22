@@ -4649,7 +4649,12 @@ export const CARDS: CardDef[] = [
     onDeath: {
       dmg: 0,
       allyTribeBuffDmg: { tribe: "Ghost", dmg: 2 },
-      frightenInRange: 1,
+      // 2, for the same off-by-one Brood Summon had. FRIGHTEN retreats a card
+      // on application and stops it MOVING in Prep; a death resolves in BATTLE
+      // and Cleanup ticks straight after, so at 1 the status expired before the
+      // Prep it was meant to freeze — everyone stepped back and then moved
+      // freely anyway. 2 is one round of fear as the player experiences it.
+      frightenInRange: 2,
     },
     special: {
       name: "Shadow Summon",
@@ -6144,7 +6149,11 @@ export const CARDS: CardDef[] = [
       name: "Silk Chase",
       cost: 2,
       handler: "tribeSwarm",
-      params: { tribe: "Spider", frighten: 1, healPerHit: 2, spawnOnKill: "dusk_spider" },
+      // frighten: 2 — see Last Waltz and Brood Summon. The swarm resolves in
+      // BATTLE and Cleanup follows immediately, so a 1-round FRIGHTEN was gone
+      // before it could pin anything. The card text still reads "1 round"
+      // because that is what 2 ticks buys: one Prep turn where they cannot move.
+      params: { tribe: "Spider", frighten: 2, healPerHit: 2, spawnOnKill: "dusk_spider" },
       targetSide: "enemy",
       text: "Every allied Spider attacks; each opponent hit is FRIGHTENed 1 round and Sarachnid heals 2 HP per hit. Every opponent killed nests another Spider.",
     },
