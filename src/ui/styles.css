@@ -5424,6 +5424,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   margin: 0; padding: 8px 10px; border-radius: 9px; font-size: 11.5px; line-height: 1.45;
   border: 1px solid var(--gold-line); background: rgba(255, 200, 90, .08); color: var(--ink-dim);
 }
+.acct-link {
+  background: none; border: 0; padding: 0; font: inherit; cursor: pointer;
+  color: var(--gold); text-decoration: underline;
+}
 .acct-msg { font-size: 11.5px; color: var(--ink-dim); }
 .acct-msg.bad { color: #ff6b6b; }
 @media (max-width: 420px) { .acct-compare { grid-template-columns: 1fr; } }

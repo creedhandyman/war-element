@@ -16,8 +16,9 @@
 // and the player is asked whenever both sides have something to lose.
 import { useEffect, useState } from "react";
 import {
-  accountConfigured, applyBundle, arrivedFromEmailLink, currentUser, localBundle, onAuthChange,
-  pullSave, pushSave, requestCode, sameSave, signOut, summarize,
+  accountConfigured, applyBundle, arrivedFromEmailLink, clearPendingSignIn, currentUser,
+  localBundle, onAuthChange, pendingSignIn, pullSave, pushSave, requestCode, resendWaitMs,
+  sameSave, signOut, summarize,
   type AccountUser, type SaveBundle, type SaveSummary,
 } from "../net/account";
 import { verifyCode } from "../net/account";
@@ -57,9 +58,17 @@ export function AccountPanel(props: {
   onRestored: () => void;
 }) {
   const [user, setUser] = useState<AccountUser | null>(null);
-  const [email, setEmail] = useState("");
+  // Seeded from the PERSISTED pending, so closing the panel to go and read the
+  // email -- or iOS reloading the whole page while it is in the background --
+  // comes back to the code box instead of to a blank email form. Coming back to
+  // the blank form is what made people ask for a second code, trip the
+  // one-a-minute limit, and conclude that signing in was broken.
+  const [pending, setPending] = useState(() => pendingSignIn());
+  const [email, setEmail] = useState(() => pending?.email ?? "");
   const [code, setCode] = useState("");
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState(() => pending != null);
+  /** Seconds until another code may be sent; 0 once it may. */
+  const [wait, setWait] = useState(() => Math.ceil(resendWaitMs(pending) / 1000));
   const [busy, setBusy] = useState<Busy>(null);
   const [msg, setMsg] = useState<{ text: string; bad?: boolean } | null>(null);
   const [cloud, setCloud] = useState<SaveBundle | null>(null);
@@ -73,6 +82,17 @@ export function AccountPanel(props: {
     void currentUser().then(setUser);
     return onAuthChange(setUser);
   }, []);
+
+  // Tick the cooldown down. A Resend that silently refuses is indistinguishable
+  // from a broken one, and mashing it is what invalidates the code already
+  // sitting in the player's inbox -- so the wait is shown, not just enforced.
+  useEffect(() => {
+    if (!pending) { setWait(0); return; }
+    const tick = () => setWait(Math.ceil(resendWaitMs(pending) / 1000));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [pending]);
 
   // Whatever is in the cloud, fetched once per sign-in. Not on a timer: this
   // panel is the only thing that writes it, so it cannot go stale while open.
@@ -91,6 +111,7 @@ export function AccountPanel(props: {
     setBusy("code"); setMsg(null);
     const r = await requestCode(email);
     setBusy(null);
+    setPending(pendingSignIn());
     // Deliberately vague about WHICH — the email is a link or a code depending on
     // whether the project has custom SMTP, and the app cannot tell from here.
     // Promising a code that does not arrive is what sent the last person hunting
@@ -98,15 +119,30 @@ export function AccountPanel(props: {
     if (r.ok) {
       setSent(true);
       setMsg({ text: `Sent to ${email.trim()}. Tap the link in the email, or type the code below if it has one. Expires in an hour.` });
+      return;
     }
-    else setMsg({ text: r.error, bad: true });
+    // A cooldown means the code they want is ALREADY in their inbox. Showing
+    // that in red next to a dead form reads as "it failed"; the useful move is
+    // to put them on the code box and say which code to use.
+    if (r.cooldown) { setSent(true); setMsg({ text: r.error }); return; }
+    setMsg({ text: r.error, bad: true });
+  }
+
+  /** Start over with a different address.
+   *
+   *  Without this the code screen is a trap: mistype the address and the only
+   *  way out is to close the panel, which used to lose everything anyway. It is
+   *  how one player ended up with two accounts — and two separate saves. */
+  function useDifferentEmail() {
+    clearPendingSignIn();
+    setPending(null); setSent(false); setCode(""); setMsg(null);
   }
 
   async function doVerify() {
     setBusy("verify"); setMsg(null);
     const r = await verifyCode(email, code);
     setBusy(null);
-    if (r.ok) { setUser(r.user); setCode(""); setSent(false); setMsg({ text: "Signed in." }); }
+    if (r.ok) { setUser(r.user); setCode(""); setSent(false); setPending(null); setMsg({ text: "Signed in." }); }
     else setMsg({ text: r.error, bad: true });
   }
 
@@ -185,12 +221,27 @@ export function AccountPanel(props: {
                     onChange={(e) => { setCode(e.target.value); setMsg(null); }}
                   />
                 </label>
+                {/* ABOVE the buttons on purpose. Down at the bottom of the modal
+                    it sat below the fold on a phone, so a rate-limit read as the
+                    Sign in button doing nothing at all. */}
+                {msg && <div className={`acct-msg ${msg.bad ? "bad" : ""}`}>{msg.text}</div>}
                 <div className="acct-row">
                   <button className="lockin" disabled={busy !== null || code.trim().length < 4} onClick={doVerify}>
                     {busy === "verify" ? "Checking…" : "Sign in"}
                   </button>
-                  <button className="ghost" disabled={busy !== null} onClick={doRequest}>Resend</button>
+                  <button
+                    className="ghost" onClick={doRequest}
+                    disabled={busy !== null || wait > 0}
+                    title={wait > 0 ? "A code was just sent — use that one" : undefined}
+                  >
+                    {wait > 0 ? `Resend in ${wait}s` : "Resend"}
+                  </button>
                 </div>
+                <p className="acct-note small">
+                  Waiting on {email.trim() || "your email"} — check spam too. A new code cancels
+                  the last one, so use the newest email you have.{" "}
+                  <button className="acct-link" onClick={useDifferentEmail}>Use a different email</button>
+                </p>
               </>
             )}
           </>
@@ -245,7 +296,9 @@ export function AccountPanel(props: {
           </>
         )}
 
-        {msg && <div className={`acct-msg ${msg.bad ? "bad" : ""}`}>{msg.text}</div>}
+        {/* Not while the code box is up — that branch renders `msg` itself, above
+            its own buttons, and two copies is worse than none. */}
+        {msg && !(!user && sent) && <div className={`acct-msg ${msg.bad ? "bad" : ""}`}>{msg.text}</div>}
         {arrivedFromEmailLink && !user && !msg && (
           /* The link brought them here and it did NOT sign them in — expired,
              already used, or an origin the project does not allow. Saying so

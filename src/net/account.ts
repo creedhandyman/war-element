@@ -175,6 +175,62 @@ export const arrivedFromEmailLink: boolean = (() => {
   return /access_token=|refresh_token=|type=(magiclink|signup|recovery)|error_code=|error_description=/.test(h + q);
 })();
 
+/** A code that has been asked for but not yet typed in.
+ *
+ *  Persisted, and that is the entire point. Reading the email means LEAVING the
+ *  app — closing the panel at best, and on iOS a backgrounded tab is evicted
+ *  and reloaded freely. React state survives neither. So the player came back
+ *  to the EMAIL form with no code box, asked for a second code, hit the
+ *  one-a-minute limit, saw a red line below the fold, and reported it as
+ *  "I get the code, enter it, click sign in and it won't".
+ *
+ *  The auth logs said the same thing from the other side: every `/verify` that
+ *  ever reached the server succeeded. Nothing was wrong with the codes. What
+ *  failed was getting back to the box to type one into. */
+const PENDING_KEY = "we_signin_pending";
+
+/** Supabase will not send a second code to the same address inside a minute. */
+export const RESEND_COOLDOWN_MS = 60_000;
+/** And the code itself dies after an hour, so a pending older than that is
+ *  scrap — restoring it would put someone on a code screen with no live code. */
+const PENDING_TTL_MS = 60 * 60_000;
+
+export interface PendingSignIn {
+  email: string;
+  /** epoch ms of the request that is waiting to be redeemed */
+  requestedAt: number;
+}
+
+/** The sign-in this device is part-way through, or null. */
+export function pendingSignIn(now: number = Date.now()): PendingSignIn | null {
+  try {
+    const raw = localStorage.getItem(PENDING_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as Partial<PendingSignIn>;
+    if (typeof v?.email !== "string" || typeof v?.requestedAt !== "number") return null;
+    if (now - v.requestedAt > PENDING_TTL_MS) { clearPendingSignIn(); return null; }
+    return { email: v.email, requestedAt: v.requestedAt };
+  } catch { return null; }
+}
+
+export function setPendingSignIn(email: string, now: number = Date.now()): void {
+  try { localStorage.setItem(PENDING_KEY, JSON.stringify({ email, requestedAt: now })); } catch { /* ignore */ }
+}
+
+export function clearPendingSignIn(): void {
+  try { localStorage.removeItem(PENDING_KEY); } catch { /* ignore */ }
+}
+
+/** How long until another code may be sent to this address, in ms. 0 = now.
+ *
+ *  Shown as a countdown rather than enforced silently: a Resend button that
+ *  does nothing is indistinguishable from a broken one, and mashing it is what
+ *  invalidates the code already sitting in the player's inbox. */
+export function resendWaitMs(p: PendingSignIn | null, now: number = Date.now()): number {
+  if (!p) return 0;
+  return Math.max(0, p.requestedAt + RESEND_COOLDOWN_MS - now);
+}
+
 export async function currentUser(): Promise<AccountUser | null> {
   const c = db();
   if (!c) return null;
@@ -199,7 +255,31 @@ export function onAuthChange(fn: (u: AccountUser | null) => void): () => void {
  *  account is an email and nothing else, so "sign in" and "make an account" are
  *  the same action and asking the player which one they want is a question they
  *  have no way to answer on a new phone. */
-export async function requestCode(email: string): Promise<{ ok: true } | { ok: false; error: string }> {
+export type RequestResult =
+  | { ok: true }
+  /** `cooldown` means a code was ALREADY SENT and is still live — the send is
+   *  what is blocked, not the sign-in. Worth distinguishing from a real error,
+   *  because the right response is "go type the one you have", not "try again". */
+  | { ok: false; error: string; cooldown?: boolean; waitMs?: number };
+
+/** Is this Supabase error the one-a-minute send limit, and if so, how long?
+ *
+ *  Supabase phrases it as "For security purposes, you can only request this
+ *  after N seconds." Trusting our own clock instead would be wrong whenever the
+ *  request came from another device or before a reload. */
+function cooldownMs(
+  err: { status?: number; code?: string; message: string },
+  fallback: number,
+): number | null {
+  const limited = err.status === 429
+    || /rate limit|only request this after|too many requests/i.test(err.message)
+    || /rate_limit/i.test(err.code ?? "");
+  if (!limited) return null;
+  const m = /after (\d+)\s*second/i.exec(err.message);
+  return m ? Number(m[1]) * 1000 : Math.max(fallback, 1000);
+}
+
+export async function requestCode(email: string): Promise<RequestResult> {
   const c = db();
   if (!c) return { ok: false, error: "Online is not configured on this build." };
   const clean = email.trim().toLowerCase();
@@ -216,7 +296,17 @@ export async function requestCode(email: string): Promise<{ ok: true } | { ok: f
       emailRedirectTo: typeof window === "undefined" ? undefined : window.location.origin,
     },
   });
-  return error ? { ok: false, error: error.message } : { ok: true };
+  if (!error) { setPendingSignIn(clean); return { ok: true }; }
+  const wait = cooldownMs(error, resendWaitMs(pendingSignIn()));
+  if (wait == null) return { ok: false, error: error.message };
+  // Do NOT clear the pending here — the code it refers to is the live one.
+  const secs = Math.ceil(wait / 1000);
+  return {
+    ok: false,
+    cooldown: true,
+    waitMs: wait,
+    error: `A code was already sent to ${clean}. Use that one — another can be sent in ${secs}s.`,
+  };
 }
 
 /** Step two: exchange the emailed code for a session. */
@@ -233,6 +323,7 @@ export async function verifyCode(
   });
   if (error) return { ok: false, error: error.message };
   const u = sessionUser(data.session);
+  if (u) clearPendingSignIn();
   return u ? { ok: true, user: u } : { ok: false, error: "That code did not sign you in. Try again." };
 }
 
