@@ -21,7 +21,7 @@ import { advance } from "../phases";
 import { SPECIAL_HANDLERS, applyStatus, basicAttack, defeatCard } from "../combat";
 import { canFireSpecial, canMove } from "../rules";
 import { boardCards } from "../state";
-import { BOSS_HOLD_ROUNDS } from "../types";
+import { BOSS_HOLD_ROUNDS, MAX_ROUNDS, VOID_TOWER_ROUNDS } from "../types";
 import { createInitialState, summonCard } from "../state";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
 
@@ -40,6 +40,26 @@ describe("the roster", () => {
       expect(d.element, `${v.cardId} element is its tribe element`).toBe(v.tribeElement);
       expect(inTribe(v.cardId, v.tribe), `${v.cardId} belongs to its own tribe`).toBe(true);
       expect(v.tribeElement, `${v.cardId} is a two-element design`).not.toBe(v.mechanicElement);
+    }
+  });
+
+  it("every boss's body is the MEASURED one — a change here must be deliberate", () => {
+    // The cap is a ceiling, not a target, and the spread underneath it is the
+    // tuning: Basilisk holds a fight on 70 points because REGEN and LIFESTEAL
+    // do the work, Rotroot needs 165 because it has no kit at all. That spread
+    // is measured, not felt, so it is pinned — the alternative is what actually
+    // happened, which is five of seven quietly sitting 13 to 78 points under
+    // their floor's budget because only the ceiling was ever checked.
+    //
+    // Against AI-piloted premades on the 24-round clock these land at:
+    // Rotroot 53% · Permafrost 47% · Nightshrike 67% · Basilisk 70% ·
+    // Overclock 73% · Xilty 73% · Skeleeze 77%. Change a number, re-measure.
+    const MEASURED: Record<string, number> = {
+      boss_rotroot: 165, boss_permafrost: 169, boss_overclock: 76,
+      boss_nightshrike: 84, boss_basilisk: 70, boss_skeleeze: 128, boss_xilty: 166,
+    };
+    for (const v of VOID_BOSSES) {
+      expect(bodyTotal(getDef(v.cardId)), v.cardId).toBe(MEASURED[v.cardId]);
     }
   });
 
@@ -222,6 +242,57 @@ describe("the new mechanics", () => {
   });
 });
 
+describe("the 24-round clock", () => {
+  // Once the slot race came off, the boss had no realistic way to win: the
+  // player wins by killing ONE card and the boss by eliminating thirty-one. The
+  // three that did "win" were not winning, they were OUTLASTING the 50-round
+  // global limit at 43-48 rounds. That made survival-to-50 the only dial and it
+  // barely turned — scaling Permafrost's entire body by FIVE moved it from 10%
+  // to 20%, because surviving 40 rounds and surviving 20 both lose to a clock
+  // at 50. The mode needs its own, much shorter one.
+
+  it("running the clock out is how the BOSS wins", () => {
+    const s = prepState();
+    s.voidTower = true;
+    place(s, "boss_rotroot", "P2", 0, 2);
+    place(s, "leaf_alpha", "P1", 2, 0);
+    s.round = VOID_TOWER_ROUNDS;
+    const n = advance(atCleanup(s));
+    expect(n.phase).toBe("gameover");
+    expect(n.win).toEqual({ winner: "P2", by: "timeout" });
+  });
+
+  it("one round earlier the fight is still on", () => {
+    const s = prepState();
+    s.voidTower = true;
+    place(s, "boss_rotroot", "P2", 0, 2);
+    place(s, "leaf_alpha", "P1", 2, 0);
+    s.round = VOID_TOWER_ROUNDS - 1;
+    expect(advance(atCleanup(s)).phase).not.toBe("gameover");
+  });
+
+  it("is far shorter than the global limit, and scoped to the flag", () => {
+    expect(VOID_TOWER_ROUNDS).toBeLessThan(MAX_ROUNDS);
+    const s = prepState();                       // no voidTower flag
+    place(s, "boss_rotroot", "P2", 0, 2);
+    place(s, "leaf_alpha", "P1", 2, 0);
+    s.round = VOID_TOWER_ROUNDS;
+    expect(advance(atCleanup(s)).phase, "an ordinary match runs on").not.toBe("gameover");
+  });
+
+  it("slaying it still beats the clock — the boss does not win on a tie", () => {
+    // The slay check runs BEFORE the clock in Cleanup, so a boss that dies on
+    // the final round is a win, not a photo finish lost to the timer.
+    const s = prepState();
+    s.voidTower = true;
+    const boss = place(s, "boss_rotroot", "P2", 0, 2);
+    place(s, "leaf_alpha", "P1", 2, 0);
+    s.round = VOID_TOWER_ROUNDS;
+    defeatCard(s, s.cards[boss.instanceId], "test");
+    expect(advance(atCleanup(s)).win).toEqual({ winner: "P1", by: "slain" });
+  });
+});
+
 describe("deck depth", () => {
   // The bug: the summons were the whole deck, so a boss brought 2-9 cards to a
   // fight where the player brings 30 and spent the back half of every match
@@ -253,6 +324,24 @@ describe("deck depth", () => {
         expect(inTribe(id, b.tribe), `${b.cardId} summons ${id}`).toBe(true);
       }
     }
+  });
+
+  it("every boss gets the SAME size bench, however deep its tribe is", () => {
+    // "Half the tribe" made a boss's bench a function of how many cards its
+    // tribe happens to own, and that turned out to be the biggest single thing
+    // separating these fights. Avian is 20 cards deep, so Nightshrike fielded a
+    // curated ten-card GALE toolbox and won 97% with the player holding 0.1
+    // cards alive, never having reached a boss still on two thirds of its HP.
+    // Zombie is 5 deep, so Rotroot fielded three weak bodies and won 7%. The
+    // bosses were not mismatched; their armies were.
+    for (const b of VOID_BOSSES) {
+      const bench = reinforcementPool(b.tribe);
+      expect(bench.length, `${b.cardId} (${b.tribe})`).toBeLessThanOrEqual(4);
+      expect(bench.length, `${b.cardId} (${b.tribe}) has SOME bench`).toBeGreaterThanOrEqual(2);
+    }
+    // And the cap actually bites on the deep tribes, or it is proving nothing.
+    expect(tribePool("Avian").length).toBeGreaterThan(4);
+    expect(reinforcementPool("Avian").length).toBe(4);
   });
 
   it("reinforcements are rank and file, not more of the elite", () => {

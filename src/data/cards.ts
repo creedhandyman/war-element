@@ -2597,7 +2597,7 @@ export const CARDS: CardDef[] = [
     hp: 24,
     sp: 9,
     shields: 1,
-    keywords: {},
+    keywords: { FLYING: true },
     tribe: "Avian",
     // Gustarrows (On Opp Summon): a reaction shot at anything that arrives in
     // range. Can CRIT, so an unshielded newcomer sometimes eats 4.
@@ -9750,9 +9750,14 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     attackType: "Melee",
     cost: 12,
-    dmg: 15,
+    // Doubled body and damage. At 15/60 it died on round 16 of a 24-round
+    // clock — two thirds of the way through a fight it is meant to be able to
+    // outlast — and 15 damage a round killed nothing, so it could not win by
+    // any route at all. A Tank on the floor's 170 budget, spent almost entirely
+    // on meat, because "kill the source" should mean a long dig.
+    dmg: 30,
     hits: 1,
-    hp: 60,
+    hp: 130,
     sp: 5,
     shields: 0,
     keywords: {},
@@ -9788,9 +9793,12 @@ export const CARDS: CardDef[] = [
     cardClass: "Ranger",
     attackType: "Ranged",
     cost: 12,
-    dmg: 5,
+    // Floor 2's budget is 230 and this was built to 58 — it died on round 14,
+    // faster than any Floor-1 boss, on the floor above them. Damage doubled so
+    // the column shot is a threat between Piercing Arrows.
+    dmg: 12,
     hits: 1,
-    hp: 42,
+    hp: 105,
     sp: 11,
     shields: 0,
     keywords: {},
@@ -9822,11 +9830,16 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 12,
-    dmg: 10,
+    // Floor 3, built to 82 of a 290 budget. Scaling it alone barely moved the
+    // fight (5x body took it from 7% to 10%) because the clock, not its HP, was
+    // what decided things — so this is sized to the floor rather than to a
+    // measurement that could not respond. Shields carry a big share: Web Trap
+    // buys the rounds, armour is what it buys them for.
+    dmg: 14,
     hits: 2,
-    hp: 30,
+    hp: 72,
     sp: 12,
-    shields: 10,
+    shields: 27,
     keywords: {},
     tribe: "Spider",
     boss: true,
@@ -9866,11 +9879,14 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     attackType: "Melee",
     cost: 12,
-    dmg: 6,
+    // 6 damage a round killed nothing, which is why no amount of extra HP could
+    // make it win: it survived longer and still lost. Doubled, and the armour
+    // that is its whole identity gets most of the floor's budget.
+    dmg: 14,
     hits: 1,
-    hp: 40,
+    hp: 90,
     sp: 5,
-    shields: 15,
+    shields: 30,
     keywords: { BLOCK: 2 },
     tribe: "Ice",
     boss: true,
@@ -9903,11 +9919,14 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Ranged",
     cost: 12,
-    dmg: 6,
+    // Body only. Overclock was already one of the two that could hold a fight,
+    // and it does that on its KIT — a capped Drone line and BURN — so the extra
+    // budget goes into staying up rather than into hitting harder.
+    dmg: 8,
     hits: 1,
-    hp: 35,
+    hp: 40,
     sp: 12,
-    shields: 5,
+    shields: 8,
     keywords: {},
     tribe: "ARC",
     boss: true,
@@ -9955,19 +9974,37 @@ export const CARDS: CardDef[] = [
     // slaying it is the win condition, since the fight only exists if the
     // player's board survives long enough to walk over and do that.
     hits: 1,
-    hp: 20,
+    // STILL THE GLASS ONE. It ends up with the smallest body on the floor by a
+    // distance, and that is the design — "kill it first, or survive one round"
+    // is not a boss you grind down. It survived 45 rounds at 20 HP because it
+    // FLIES and shoots, not because it was tough, so the budget it did not
+    // spend is the puzzle rather than an oversight.
+    hp: 55,
     sp: 14,
     shields: 0,
-    keywords: { FLYING: true },
+    // NOT FLYING, which on this card was a lockout rather than a keyword.
+    // FLYING is immunity to Melee outright, so a melee-weighted board could not
+    // touch it at all — it held 100% of its fights with the dodge gone and at
+    // four tenths of its body, because nothing about it was survivability. The
+    // counter (ranged, or a status that drags it down) is buildable, but this
+    // is FLOOR ONE, the floor the doc requires be beatable with LEAF alone, and
+    // "own the right tech or you cannot participate" is not the lesson this
+    // boss is named for. It is still Ranged and still hits harder than anything
+    // else on the floor; the glass cannon is intact and now reachable.
+    keywords: {},
     tribe: "Avian",
     boss: true,
-    // Floor 1 — THE GLASS CANNON. 30 damage a round on 20 HP: kill it first or
-    // survive one round, there is no third plan. Its slipperiness is the
-    // deterministic form — the first attack each round misses — so correct
-    // sequencing (lead with the sure hit, follow with the killers) beats it
-    // where a 55% EVASION would just be a coin.
-    passiveNames: { firstAttackMisses: "Between Wingbeats" },
-    firstAttackMisses: true,
+    // Floor 1 — THE GLASS CANNON. Kill it first or survive one round; there is
+    // no third plan.
+    //
+    // It used to carry `firstAttackMisses` — the first attack on it each round
+    // whiffed — and that turned out to be the entire boss. It held 100% of its
+    // fights at full body and 93% at four TENTHS of it: HP was never what kept
+    // it alive, being unreachable was. A board that could not spare two
+    // attackers in one turn simply never touched it, which makes "kill it
+    // first" not a plan but a wish. Gone, and what is left is what the card
+    // says: almost no HP, the hardest hit on the floor, and it dies the moment
+    // you get to it.
     // The clock: its Special fires itself every 3 rounds, free.
     roundTick: { fireSpecialEveryN: 3 },
     special: {
@@ -9987,9 +10024,12 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     attackType: "Melee",
     cost: 12,
-    dmg: 8,
+    // The nearest to the band already — it reached round 30 unaided — so this
+    // is the lightest hand of the seven: enough body to hold a 24-round clock,
+    // and REGEN + LIFESTEAL keep doing the rest.
+    dmg: 12,
     hits: 1,
-    hp: 45,
+    hp: 44,
     sp: 8,
     shields: 3,
     keywords: { REGEN: 3, LIFESTEAL: true },

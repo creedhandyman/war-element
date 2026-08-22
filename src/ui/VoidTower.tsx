@@ -32,6 +32,7 @@ import { Check, Lock, Swords } from "lucide-react";
 import type { StorySave } from "../data/story";
 import { EVENTS, type GameEvent } from "../data/events";
 import { getDef } from "../data/cards";
+import { VOID_TOWER_ROUNDS } from "../engine/types";
 import {
   bodyCap, bossDefeated, bossesOnFloor, floorCleared, floorOpen,
   summonBudget, towerProgress, trialEventId, voidFloors,
@@ -144,8 +145,11 @@ export function VoidTower(props: {
 
       <p className="vt-foot">
         Bosses are fought with your own deck — pick it in the Arena when the
-        fight seats. A first clear pays one booster pack and 25 shards; every
-        refight after that pays 10.
+        fight seats. <b>Slay the boss within {VOID_TOWER_ROUNDS} rounds</b> —
+        home slots cannot be captured in here, so killing it is the only way
+        through, and its Special fires free every 3 rounds while you try. A
+        first clear pays one booster pack and 25 shards; every refight after
+        that pays 10.
       </p>
     </div>
   );

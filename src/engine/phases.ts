@@ -65,6 +65,7 @@ import {
   isMidRow,
   DEFAULT_SPECIAL_COOLDOWN,
   MAX_ROUNDS,
+  VOID_TOWER_ROUNDS,
   NEGATIVE_STATUSES,
   OPENING_COST_CAP,
   poolGainForRound,
@@ -3004,6 +3005,17 @@ function doCleanupPhase(draft: GameState): void {
       draft.log.push(`${player} WINS by elimination!`);
       return;
     }
+  }
+
+  // 7a. A VOID TOWER fight runs on its own, much shorter clock, and running it
+  //     out is how the BOSS wins. Not `decideOnTime`: that scores the board on
+  //     slots, bodies and HP, and in here the only question that matters is
+  //     whether the thing is dead. It is not. The floor keeps you.
+  if (draft.voidTower && draft.round >= VOID_TOWER_ROUNDS) {
+    draft.win = { winner: "P2", by: "timeout" };
+    draft.phase = "gameover";
+    draft.log.push("The floor holds — the boss outlasted you.");
+    return;
   }
 
   // 7. Time limit. Nothing else in the engine bounds a match, so this is what

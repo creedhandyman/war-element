@@ -1,4 +1,5 @@
 import type { GameState } from "../engine";
+import { VOID_TOWER_ROUNDS } from "../engine/types";
 
 const PHASES = ["draw", "resource", "prep", "battle", "cleanup"] as const;
 
@@ -22,8 +23,18 @@ export function PhaseRibbon(props: { game: GameState }) {
     <div className="phase-ribbon">
       {/* Deployment runs at round 0, before the first round proper. Showing
           "ROUND 1" there would claim the match had started. */}
-      <span className="roundchip">
-        {game.opening ? <b>DEPLOY</b> : <>ROUND <b>{Math.max(1, game.round)}</b></>}
+      {/* A Void Tower fight is on a 24-round clock and running it out is a
+          LOSS, so the chip counts down instead of up. A timer you cannot see is
+          not a puzzle, it is an ambush; this is the only place the player looks
+          for the round, so it is where the deadline belongs. Turns urgent on
+          the last five. */}
+      <span className={`roundchip${game.voidTower && !game.opening
+        ? ` vt${VOID_TOWER_ROUNDS - game.round <= 5 ? " urgent" : ""}` : ""}`}>
+        {game.opening
+          ? <b>DEPLOY</b>
+          : game.voidTower
+            ? <>ROUND <b>{Math.max(1, game.round)}</b> / {VOID_TOWER_ROUNDS}</>
+            : <>ROUND <b>{Math.max(1, game.round)}</b></>}
       </span>
       <div className="phase-pills">
         {PHASES.map((p) => (

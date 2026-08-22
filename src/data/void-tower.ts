@@ -41,8 +41,14 @@ import type { CardDef, Element } from "../engine/types";
 /** Floor-1 boss body budget; grows per floor. A SOFT cap: the band below
  *  tolerates +5, the same shape as the card set's ±2 stat band (Xilty is 82
  *  against Floor 1's 80, held deliberately). */
-export const FLOOR1_BODY_CAP = 80;
-export const BODY_CAP_PER_FLOOR = 40;
+/** 80 was calibrated for a fight that ended by CAPTURE in six to sixteen
+ *  rounds. It does not survive the mode it is in now: a boss has to hold out
+ *  against a whole 30-card deck for the length of the fight, and 80 body points
+ *  is under two mythic cards. Measured, a Floor-1 boss at 80 dies around round
+ *  16 against an AI-piloted premade — two thirds of the way through a clock it
+ *  is supposed to be able to run out. */
+export const FLOOR1_BODY_CAP = 170;
+export const BODY_CAP_PER_FLOOR = 60;
 export const BODY_CAP_TOLERANCE = 5;
 export const bodyCap = (floor: number): number =>
   FLOOR1_BODY_CAP + BODY_CAP_PER_FLOOR * (floor - 1);
@@ -291,11 +297,22 @@ export function tribePool(tribe: string): string[] {
  *  are too small to fill 30 slots without repeats anyway (Zombie has five). */
 export function reinforcementPool(tribe: string): string[] {
   const pool = tribePool(tribe);
-  // The CHEAP HALF, minimum two, so there is still some variety in the tide.
-  // Cycling the whole pool would put Rotroot's cost-7 legendary in the rotation
-  // and hand it a Zombination every other round — the elite is what the 12-Gold
-  // budget buys once, not what turns up forever afterwards.
-  return pool.slice(0, Math.max(2, Math.ceil(pool.length / 2)));
+  // The CHEAP HALF, at least two and AT MOST FOUR.
+  //
+  // Cheap, because cycling the whole pool would put Rotroot's cost-7 legendary
+  // in the rotation and hand it a Zombination every other round — the elite is
+  // what the 12-Gold budget buys once, not what turns up forever afterwards.
+  //
+  // Capped, because "half the tribe" made a boss's bench a function of how many
+  // cards its tribe happens to own, and that turned out to be the single
+  // biggest thing separating these fights. Avian is 20 cards deep, so
+  // Nightshrike fielded a curated ten-card GALE toolbox; Zombie is 5, so
+  // Rotroot fielded three weak bodies. It was not the bosses that were
+  // mismatched, it was their armies — Nightshrike won 97% of its fights with
+  // the player holding an average of 0.1 cards alive, having never reached a
+  // boss still sitting on two thirds of its HP. Four apiece puts every boss on
+  // the same bench and hands the fight back to the boss.
+  return pool.slice(0, Math.max(2, Math.min(4, Math.ceil(pool.length / 2))));
 }
 
 export function paddedFormation(boss: VoidBoss, deckSize: number): string[] {

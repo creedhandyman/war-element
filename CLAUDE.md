@@ -995,16 +995,44 @@ consequences to know about:
 (wall), Overclock (swarm), Nightshrike (glass cannon), Basilisk (attrition).
 All seven formations spend exactly 12 and it is pinned by test.
 
-**Difficulty, measured** (20 seeds/boss vs the cheapest-LEAF floor deck and
-three tuned 5x5 premades): bosses win ~80-87% overall, but the SPREAD is the
-story — Overclock and Nightshrike beat every deck tried at 100%, Xilty /
-Permafrost / Basilisk sit at 85-100%, and Rotroot is the outlier the other way
-at 25-40%. Floor 1 is meant to teach seven different lessons, so a tuning pass
-is waiting. NOTE this holds at every deck depth including the old empty one, so
-it is not the padding's doing. The smoke test's old "bosses lose some of the 21"
-bound was green ONLY because of the empty-deck bug and has been removed with
-that reasoning recorded — an AI-vs-AI harness cannot read a telegraph, so it
-cannot measure whether a puzzle is fair. That is on-device tuning.
+**THE FIGHT'S OWN RULES** (all scoped to a `GameState.voidTower` flag; ordinary
+matches, story and arena are untouched, and control tests pin that):
+- **Slay the boss to win.** Home slots CANNOT be captured in here, in either
+  direction. Under the ordinary rules 36 of 36 fights ended by capture, several
+  inside six rounds with the boss untouched at 91% HP — every puzzle is written
+  as "kill the source" and not one was ever settled that way.
+- **Capture is off as a MECHANIC too, not just as a win.** Removing only the win
+  left the boss padlocking all five home slots permanently: the player could
+  never summon again, was not losing, and could not continue. A capture that
+  cannot win the game must not be permanent.
+- **24-round clock** (`VOID_TOWER_ROUNDS`), and running it out is the BOSS's
+  win. Without it the boss had no realistic path — player kills ONE card, boss
+  must eliminate thirty-one — so "winning" meant outlasting the global 50-round
+  limit at 43-48 rounds. That made survival-to-50 the only dial and it barely
+  turned: scaling Permafrost's whole body by FIVE moved it 10% → 20%. The clock
+  is shown counting down in the round chip and stated on the tower screen.
+- **The boss holds its home row for 2 rounds** (`BOSS_HOLD_ROUNDS`). It holds,
+  it does not freeze — attacks, Specials and the clock all fire, and it may
+  still slide ALONG its own row. One `bossHeldHome` for both ways off the row.
+
+**Difficulty, measured** (vs three tuned 5x5 premades on the 24-round clock):
+Permafrost 47% · Rotroot 53% · Nightshrike 67% · Basilisk 70% · Overclock 73% ·
+Xilty 73% · Skeleeze 77%. Floor 2 and 3 sit above the Floor-1 average, which is
+the point of floors. Bodies are PINNED by test (`MEASURED` in void-tower.test.ts)
+because the cap is a ceiling, not a target, and only checking the ceiling is how
+five of seven quietly ended up 13-78 points under their floor's budget.
+
+**THE BENCH CAP IS WHY THEY MATCH.** `reinforcementPool` is the tribe's cheap
+half capped at FOUR. Uncapped it made a boss's bench a function of how many
+cards its tribe owns, and that was the single biggest thing separating these
+fights: Avian is 20 deep so Nightshrike fielded a curated ten-card GALE toolbox
+and won 97% with the player holding 0.1 cards alive, never reaching a boss still
+on two thirds of its HP; Zombie is 5 deep so Rotroot fielded three weak bodies
+and won 7%. The bosses were never mismatched — their armies were.
+
+An AI-vs-AI harness cannot read a telegraph, bring cleanse, or focus a boss, so
+it cannot say whether a puzzle is FAIR — only whether the seven are comparable.
+Fairness is on-device.
 
 **The tower SCREEN shipped** (`src/ui/VoidTower.tsx`, Tower nav tab): floors
 rendered top-down, all progression DERIVED from `StorySave.eventsDone` so it

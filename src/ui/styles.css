@@ -5591,3 +5591,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .vt-boss:hover:not(:disabled) { transform: none; }
 }
 .vt-foot { font-size: 11px; color: var(--ink-faint, #778); margin: 0; line-height: 1.5; }
+
+/* The Void Tower countdown. The round chip is the only place a player looks for
+   the round, so it is where the deadline lives — violet to match the tower, and
+   red on the last five rounds because "you have four left" is a different piece
+   of information from "you are on round twenty". */
+.roundchip.vt { border-color: rgba(139, 125, 201, 0.55); color: #c9bdf0; }
+.roundchip.vt.urgent {
+  border-color: rgba(255, 110, 110, 0.7); color: #ff9d9d;
+  animation: vtTick 1.4s ease-in-out infinite;
+}
+@keyframes vtTick { 0%, 100% { opacity: 1; } 50% { opacity: 0.62; } }
+@media (prefers-reduced-motion: reduce) { .roundchip.vt.urgent { animation: none; } }

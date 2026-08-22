@@ -29,7 +29,7 @@
 import { type StorySave, addFreePacks, addShards } from "./story";
 import type { CustomDeck } from "./custom-decks";
 import { getDef } from "./cards";
-import type { Element } from "../engine/types";
+import { VOID_TOWER_ROUNDS, type Element } from "../engine/types";
 import { VOID_BOSSES, buildVoidEncounter, trialEventId } from "./void-tower";
 
 export interface GameEvent {
@@ -253,7 +253,9 @@ const VOID_TRIALS: GameEvent[] = VOID_BOSSES.map((b) => {
     id: trialEventId(b.cardId),
     name: boss.name,
     tag: "VOID TOWER TRIAL",
-    blurb: b.puzzle,
+    // The puzzle AND the rule, because the seat's blurb is the last thing read
+    // before the fight starts and the clock is not visible until it has.
+    blurb: `${b.puzzle} Slay it within ${VOID_TOWER_ROUNDS} rounds.`,
     boardSize: enc.boardSize,
     scriptedOpening: enc.stacked.P2,
     el: boss.element,

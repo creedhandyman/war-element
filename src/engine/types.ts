@@ -2098,6 +2098,25 @@ export function hillGivesHit(dmg: number, hits: number): boolean {
  *  decided on progress instead (see decideOnTime). */
 export const MAX_ROUNDS = 50;
 
+/** Rounds a Void Tower fight lasts. Slay the boss inside it or the floor keeps
+ *  you.
+ *
+ *  WHY THE MODE NEEDS ITS OWN CLOCK. Once the slot race came off, the boss had
+ *  no realistic way to win: the player wins by killing ONE card and the boss by
+ *  eliminating thirty-one, so every fight was the player grinding it down. The
+ *  three bosses that did "win" were not winning, they were OUTLASTING — running
+ *  the 50-round global limit out at 43-48 rounds and taking it on the tiebreak.
+ *  That made survival-to-50 the only dial, and it barely turned: scaling
+ *  Permafrost's whole body by FIVE moved it from 10% to 20%, because a boss
+ *  that survives 40 rounds and one that survives 20 both lose to a clock at 50.
+ *
+ *  24 rounds gives the boss a real win condition — hold out — which is exactly
+ *  the shape the fights already had, at a length a phone can hold. It is also
+ *  the number the mode was already telling you: the Special fires every 3
+ *  rounds, so a Void Tower fight is eight casts, start to finish, and you can
+ *  count them. */
+export const VOID_TOWER_ROUNDS = 24;
+
 /** The back row a player summons into and defends. P2 is always row 0; P1 is
  *  the far edge, which depends on how big the board is — hence the required
  *  `boardSize`. It has NO default on purpose: a silent fallback to 4 would put
