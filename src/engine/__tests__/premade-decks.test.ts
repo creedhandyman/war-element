@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { CARD_INDEX, getDef } from "../../data/cards";
 import { getSpell, spellCapForBoard } from "../spells";
+import { RUN_LENGTH } from "../../data/gauntlet";
 import {
   DECK_TIERS, PREMADE_DECKS, deckLimits, decksForTier, isBuildable, premadeDecksFor,
   ELITE_OPENING_STACK, rollOpponent, tierOf, tiersFor, validateDeck,
@@ -62,7 +63,8 @@ describe("board-sized premade builds", () => {
     const standard = PREMADE_DECKS.filter((d) => d.boardSize === 4);
     const byTier = new Map<string, number>();
     for (const d of standard) byTier.set(d.tier ?? "-", (byTier.get(d.tier ?? "-") ?? 0) + 1);
-    for (const tier of tiersFor(4)) expect(byTier.get(tier), `${tier} rung`).toBe(4);
+    for (const tier of tiersFor(4))
+      expect(byTier.get(tier) ?? 0, `${tier} rung`).toBeGreaterThanOrEqual(RUN_LENGTH);
     expect(
       [...byTier.keys()].filter((k) => k !== "-").sort(),
       "a deck on a rung that is not a rung",
@@ -191,13 +193,31 @@ describe("the matchmaker ladder", () => {
       for (const el of els) expect(counts[el], `${d.name} ${el} count`).toBe(15);
       seen.push(...els);
     }
-    expect(seen.sort()).toEqual(["AQUA", "BOLT", "BORE", "DAWN", "DUSK", "GALE", "LEAF", "PYRO"]);
+    // COVERAGE, not a partition. Five decks is ten element-slots for eight
+    // elements, so two elements appear twice — but all eight still appear, and
+    // none has quietly dropped off the rung, which is what the property was
+    // protecting. The cap keeps it a tour rather than letting a third deck of
+    // one element turn it into that element's rung.
+    expect([...new Set(seen)].sort()).toEqual(["AQUA", "BOLT", "BORE", "DAWN", "DUSK", "GALE", "LEAF", "PYRO"]);
+    for (const el of new Set(seen))
+      expect(seen.filter((x) => x === el).length, `${el} elite decks`).toBeLessThanOrEqual(2);
   });
 
-  it("has four decks on every rung the board offers", () => {
+  it("holds at least a full run on every rung the board offers", () => {
+    // Was "exactly four". Every rung is five now, and `startRun` shuffles the
+    // rung before it slices RUN_LENGTH — so a run is still four fights, drawn
+    // fresh from five each time rather than being the whole rung in a new
+    // order. What must hold is the FLOOR: a rung shorter than a run would deal
+    // a short one, and `runComplete` measures wins against `seats.length`, so
+    // it would quietly pay out after three.
     for (const board of [4, 5] as const)
       for (const tier of tiersFor(board))
-        expect(decksForTier(tier, board), `${tier} ${board}x${board}`).toHaveLength(4);
+        expect(decksForTier(tier, board).length, `${tier} ${board}x${board}`)
+          .toBeGreaterThanOrEqual(RUN_LENGTH);
+    // And both boards offer the same ladder, or one battlefield is easier.
+    for (const tier of tiersFor(4))
+      expect(decksForTier(tier, 5).length, `${tier} across boards`)
+        .toBe(decksForTier(tier, 4).length);
     // And the rungs each board offers are exactly these — otherwise `tiersFor`
     // could quietly answer "none" and the loop above would pass over nothing.
     // Every rung on both boards, which is what it was before elite arrived
@@ -246,7 +266,17 @@ describe("the matchmaker ladder", () => {
     for (const board of [4, 5] as const) {
       // Easy has NO front line and NO healer. Capture is a win condition, so
       // holding nothing is a real hole rather than a smaller number.
-      for (const d of of("easy", board)) expect(d.comp, `${d.name} runs no comp`).toBe(0);
+      // AT MOST ONE EXCEPTION, and it is named by counting rather than by id.
+      // Easy is the rung with no front line and no healer, and its four
+      // originals still field neither. Scrapyard Reactor is the fifth and its
+      // whole point is Burnout, which is a Tank — so it carries exactly one
+      // wall card and everything else in those slots was traded out. A second
+      // exception would mean the rung had quietly stopped being easy.
+      const easy = of("easy", board);
+      const withComp = easy.filter((d) => d.comp > 0);
+      expect(withComp.length, `easy decks fielding a comp: ${withComp.map((d) => d.name).join(", ")}`)
+        .toBeLessThanOrEqual(1);
+      for (const d of withComp) expect(d.comp, `${d.name} is one card's exception`).toBeLessThanOrEqual(1);
       for (const tier of ["mid", "hard"] as const)
         for (const d of of(tier, board)) expect(d.comp, `${d.name} fields one`).toBeGreaterThanOrEqual(4);
 
@@ -309,7 +339,17 @@ describe("the matchmaker ladder", () => {
       const ds = decksForTier(tier, board);
       for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++) {
         const shared = ds[i].cards.filter((id) => ds[j].cards.includes(id));
-        expect(shared.length, `${ds[i].name} vs ${ds[j].name} share ${shared.join(", ")}`).toBe(0);
+        // A CAP, not zero, since each rung grew a fifth deck. The rule exists
+        // because a run deals from the rung and `rollOpponent` only avoids the
+        // deck already seated — so two lists "sharing half their list" hand back
+        // the same fight. A fifth of a deck does not; the sixteen originals
+        // still share nothing, and the four newcomers top out at 3/18 and 6/30.
+        //
+        // Asserted as a FRACTION so it keeps meaning the same thing on both
+        // board sizes rather than being two hand-picked integers.
+        const cap = Math.floor(ds[i].cards.length * 0.2);
+        expect(shared.length, `${ds[i].name} vs ${ds[j].name} share ${shared.join(", ")}`)
+          .toBeLessThanOrEqual(cap);
       }
     }
   });
@@ -330,7 +370,10 @@ describe("the matchmaker ladder", () => {
     // a maintenance step every time the ladder grew a rung — it was 12 for three
     // rungs and elite's standard-board cut makes it 16.
     const tiered = PREMADE_DECKS.filter((d) => d.boardSize === 4 && d.tier);
-    expect(tiered).toHaveLength(tiersFor(4).length * 4);
+    // Summed from the rungs rather than assuming four apiece — they hold five.
+    expect(tiered).toHaveLength(
+      tiersFor(4).reduce((n, tier) => n + decksForTier(tier, 4).length, 0),
+    );
     expect(tierOf("pre_inferno_blitz")).toBeNull();
   });
 

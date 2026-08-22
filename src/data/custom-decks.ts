@@ -453,6 +453,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
     name: "Scrapyard Reactor",
     note: "BOLT + PYRO — machines that punish contact. Everything you touch bites back.",
     premade: true,
+    tier: "easy",
     boardSize: 4,
     // Havoc + Burnout — contact hurts (Spiked Conduit, Burning Frame, Surge's
     // Electro Surge) and Havoc shoots over the top of it.
@@ -475,9 +476,9 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // BOLT+PYRO because every alternative pairing measured worse, and because
     // this is the one that leaves LEAF+BORE and GALE+DAWN intact.
     cards: [
-      "bolt_stingray", "bolt_electricel", "bolt_ning", "bolt_storm", "bolt_surge",
-      "bolt_shoksa", "bolt_thundercat", "bolt_kore", "bolt_havoc", "pyro_sparky",
-      "pyro_flamehound", "pyro_taper", "pyro_dyna", "pyro_spitfire", "pyro_sarra",
+      "bolt_zap", "bolt_electricel", "bolt_scrapper", "bolt_storm", "bolt_voltcher",
+      "bolt_zagphu", "bolt_thundercat", "bolt_zoez", "bolt_havoc", "pyro_sparky",
+      "pyro_firecrack", "pyro_baboom", "pyro_dyna", "pyro_spitfire", "pyro_sarra",
       "pyro_fenix", "pyro_scully", "pyro_burnout",
     ],
     // A cheap SPELL matters as much as a cheap body. The first cut of this book
@@ -490,6 +491,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
     name: "Deeproot Ambush",
     note: "LEAF + BORE — roots you to the spot, then bites what can no longer move.",
     premade: true,
+    tier: "hard",
     boardSize: 4,
     // Snapmaw + Kobra: the two halves of the same trick. LEAF pins something
     // (ROOT), BORE puts it under (SLEEP), and both legends are paid double for
@@ -499,7 +501,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "leaf_stickviper", "leaf_oak", "leaf_python", "leaf_gecko", "leaf_hunter",
       "leaf_sumerose", "leaf_citra", "leaf_snapmaw", "leaf_season", "bore_cavedweller",
       "bore_thorny_ripper", "bore_old_timer", "bore_ankylosaur", "bore_rock", "bore_krysteel",
-      "bore_bolder", "bore_kobra", "bore_bastion",
+      "bore_bolder", "bore_kobra", "bore_sling",
     ],
     spells: ["leaf_snare", "leaf_thorn_patch", "bore_sand_trap", "leaf_withering_grasp", "bore_tremor"],
   },
@@ -508,6 +510,8 @@ const STANDARD_DECKS: PremadeDeck[] = [
     name: "Skydream",
     note: "GALE + DAWN — drags you out of position, then lights up whatever is left standing.",
     premade: true,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
     boardSize: 4,
     // Dreamcatcher + Lassos — the displacement deck. Both legends move you
     // somewhere you did not choose, and everything else is built to punish a
@@ -525,6 +529,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
     name: "Drowned Web",
     note: "AQUA + DUSK — pulls you under the surface and fills the water with spiders.",
     premade: true,
+    tier: "mid",
     boardSize: 4,
     // Killer Whale + Aranea. The AQUA half drags things under; the DUSK half is
     // a genuine spider package — Spider, Widowbite, Sarachnid, and Aranea's
@@ -537,6 +542,42 @@ const STANDARD_DECKS: PremadeDeck[] = [
     ],
     spells: ["aqua_chill", "dusk_chill_touch", "aqua_ice_wall", "dusk_phantom_spikes", "aqua_maelstrom"],
   },
+  // ── All four new decks are ON the ladder, one per rung, nothing displaced ──
+  // Scrapyard -> easy · Drowned Web -> mid · Deeproot -> hard · Skydream -> elite.
+  // Every rung holds FIVE now, and `startRun` shuffles before it slices
+  // RUN_LENGTH, so a run is four fights drawn fresh from five: the same length
+  // of run with a different fifth of the rung each time.
+  //
+  // Three bounded relaxations were needed, because a fifth deck is what makes
+  // them necessary. Each keeps the property and gives up only the absolute:
+  //
+  //   ZERO SHARED CARDS -> at most 20% pairwise. The rule guards against decks
+  //   "sharing half their list"; the sixteen originals still share nothing and
+  //   the newcomers top out at 3/18 and 6/30.
+  //
+  //   EASY FIELDS NO FRONT LINE -> its four originals still field none, and at
+  //   most ONE deck may carry one wall card. Scrapyard exists to show off
+  //   Burnout, which is a Tank; every other wall slot was traded out.
+  //
+  //   ELITE'S EIGHT-ELEMENT TOUR -> coverage capped at two decks per element.
+  //   Ten slots for eight elements means GALE and DAWN double, but nothing
+  //   drops off the rung, which is what the tour was protecting.
+  //
+  // Two decks were retuned to their rung's PLAN, not just its band: Scrapyard
+  // shed its front line and its Ranged density (on easy it would otherwise have
+  // squeezed hard's required +0.1 reach margin to 0.01), and Deeproot was made
+  // cheaper so hard still out-cheaps mid.
+  //
+  // Measured, 48 matches per deck against the eight cores (new / incumbents):
+  //   4x4  easy 27.1 / 12.5-31.3 · mid 29.2 / 22.9-58.3
+  //        hard 60.4 / 39.6-68.8 · elite 58.3 / 54.2-72.9
+  //   5x5  easy 25.0 / 16.7-33.3 · mid 58.3 / 31.3-64.6
+  //        hard 54.2 / 60.4-72.9 · elite 47.9 / 39.6-79.2
+  //
+  // AND 48 MATCHES CARRIES +-14 POINTS at 95%, which is most of a rung. Read
+  // these as "lands in the right band", not as a ranking: Deeproot's 54.2 on
+  // 5x5 is the only figure nominally outside its rung and it is under half the
+  // noise band below the floor. Chasing it would be tuning on a coin flip.
   {
     id: "pre_sapling_creek",
     name: "Sapling Creek",
@@ -920,16 +961,17 @@ const LARGE_DECKS: PremadeDeck[] = [
     name: "Scrapyard Reactor",
     note: "BOLT + PYRO — machines that punish contact. Everything you touch bites back.",
     premade: true,
+    tier: "easy",
     boardSize: 5,
     // The large cut trades none of that — it just has room for the second
     // rank of machines, and for Voltogon and Magmadon behind them.
     cards: [
-      "bolt_junker", "bolt_rodd", "bolt_jolt", "bolt_scrapper", "bolt_ning",
-      "bolt_buzz", "bolt_storm", "bolt_surge", "bolt_striik", "bolt_shoksa",
-      "bolt_volta", "bolt_kore", "bolt_shock", "bolt_havoc", "bolt_voltogon",
-      "pyro_canister", "pyro_sparky", "pyro_heatsink_golem", "pyro_firecrack", "pyro_taper",
-      "pyro_slag_tortoise", "pyro_wick", "pyro_scorch", "pyro_fenix", "pyro_sarra",
-      "pyro_scully", "pyro_twins", "pyro_magmaw", "pyro_burnout", "pyro_magmadon",
+      "bolt_zap", "bolt_twotales", "bolt_electricel", "bolt_scrapper", "bolt_zagphu",
+      "bolt_webster", "bolt_storm", "bolt_thundercat", "bolt_voltcher", "bolt_sentry",
+      "bolt_lytning", "bolt_buzzard", "bolt_zoez", "bolt_havoc", "bolt_voltogon",
+      "pyro_ingit", "pyro_sparky", "pyro_baboom", "pyro_firecrack", "pyro_ember_scorpion",
+      "pyro_ash_boar", "pyro_wick", "pyro_firebird", "pyro_fenix", "pyro_sarra",
+      "pyro_scully", "pyro_firefly", "pyro_magmaw", "pyro_burnout", "pyro_spitfire",
     ],
     spells: ["bolt_overload_field", "pyro_firewall", "pyro_heatwave", "bolt_power_grid", "pyro_inferno_pit", "pyro_spark", "bolt_lightning_storm", "pyro_ember_trap"],
   },
@@ -938,13 +980,14 @@ const LARGE_DECKS: PremadeDeck[] = [
     name: "Deeproot Ambush",
     note: "LEAF + BORE — roots you to the spot, then bites what can no longer move.",
     premade: true,
+    tier: "hard",
     boardSize: 5,
     // Thirty cards is where the lock actually closes: more roots, more bodies
     // to hold the line while they take hold, and Warden behind it.
     cards: [
       "leaf_stickviper", "leaf_weeds", "leaf_oak", "leaf_python", "leaf_sticks",
       "leaf_gecko", "leaf_hunter", "leaf_walking_tree", "leaf_sumerose", "leaf_darth",
-      "leaf_citra", "leaf_whintey", "leaf_snapmaw", "leaf_season", "leaf_warden",
+      "leaf_citra", "leaf_whintey", "leaf_snapmaw", "leaf_season", "leaf_leaf",
       "bore_cavedweller", "bore_iron", "bore_thorny_ripper", "bore_old_timer", "bore_rockgoblin",
       "bore_ankylosaur", "bore_rock", "bore_stone", "bore_krysteel", "bore_rhe",
       "bore_bolder", "bore_shift", "bore_diam", "bore_kobra", "bore_bastion",
@@ -956,6 +999,8 @@ const LARGE_DECKS: PremadeDeck[] = [
     name: "Skydream",
     note: "GALE + DAWN — drags you out of position, then lights up whatever is left standing.",
     premade: true,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
     boardSize: 5,
     // On the big board displacement is worth more, because there is further to
     // be moved and longer to spend getting back.
@@ -974,6 +1019,7 @@ const LARGE_DECKS: PremadeDeck[] = [
     name: "Drowned Web",
     note: "AQUA + DUSK — pulls you under the surface and fills the water with spiders.",
     premade: true,
+    tier: "mid",
     boardSize: 5,
     // More water and more web. Glacius and Nightfang cap it, and the swarm has
     // the squares to actually spread across.

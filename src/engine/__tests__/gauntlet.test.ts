@@ -23,6 +23,34 @@ describe("the gauntlet", () => {
       }
   });
 
+  it("rolls WHICH four, now that a rung holds five", () => {
+    // The point of an over-sized rung: two runs at the same difficulty are not
+    // the same four fights. Asserts the SET changes and not merely the order —
+    // a shuffle that only reordered would pass a naive "the runs differ" check
+    // while dealing identical opponents.
+    for (const board of [4, 5] as const)
+      for (const tier of tiersFor(board)) {
+        if (decksForTier(tier, board).length <= RUN_LENGTH) continue;
+        const sets = new Set<string>();
+        for (let i = 0; i < 200; i++) sets.add([...startRun(tier, board).seats].sort().join("|"));
+        expect(sets.size, `${tier} ${board}x${board} deals only one set`).toBeGreaterThan(1);
+        // Every deck on the rung is reachable — a fifth nobody ever meets is
+        // content that does not exist.
+        const seen = new Set<string>();
+        for (let i = 0; i < 400; i++) for (const id of startRun(tier, board).seats) seen.add(id);
+        expect(seen.size, `${tier} ${board}x${board} unreachable decks`)
+          .toBe(decksForTier(tier, board).length);
+      }
+  });
+
+  it("never deals a short run, on any rung", () => {
+    // `runComplete` measures wins against `seats.length`, so a rung smaller than
+    // RUN_LENGTH would deal three seats and pay out after three fights.
+    for (const board of [4, 5] as const)
+      for (const tier of tiersFor(board))
+        expect(startRun(tier, board).seats.length, `${tier} ${board}x${board}`).toBe(RUN_LENGTH);
+  });
+
   it("cannot be re-rolled — the seats are fixed at the start", () => {
     // This is the whole anti-farm property: leaving and coming back has to
     // resume the same run, not deal a kinder one. The run is data, so what the

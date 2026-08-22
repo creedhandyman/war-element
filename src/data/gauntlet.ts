@@ -12,7 +12,8 @@
  *  What that buys, and what it does not:
  *
  *    You cannot cherry-pick. The run deals the seats, so the softest deck on
- *    the rung is one of four rather than all four.
+ *    the rung is one of four rather than all four — and with five on a rung it
+ *    may not be dealt at all.
  *    You cannot re-roll. The sequence is stored, so quitting and coming back
  *    resumes the same run rather than dealing a kinder one.
  *    You cannot un-lose. The loss is written before the result screen, so
@@ -29,7 +30,14 @@
 import { DECK_TIERS, decksForTier, type DeckTier, type PremadeDeck } from "./custom-decks";
 import type { StorySave } from "./story";
 
-/** Opponents in a run. Four is the whole rung — you face every deck on it. */
+/** Opponents in a run.
+ *
+ *  The LENGTH OF A RUN, not the size of a rung. Every rung holds five now, and
+ *  `startRun` shuffles before it slices — so a run is four fights drawn fresh
+ *  from five, and two runs at the same difficulty are not the same four
+ *  opponents in a different order. Raising this above the smallest rung would
+ *  deal a SHORT run, which `runComplete` would treat as cleared early; there is
+ *  a test on that floor. */
 export const RUN_LENGTH = 4;
 
 /** Paid once, on completing a run. On top of the per-win shards the Arena
@@ -82,7 +90,10 @@ export interface GauntletState {
   cleared?: DeckTier[];
 }
 
-/** Deal a run. `rand` is injectable so tests are not at the mercy of a shuffle. */
+/** Deal a run. `rand` is injectable so tests are not at the mercy of a shuffle.
+ *
+ *  Shuffle THEN slice, which is what lets a rung be bigger than a run: five
+ *  decks means the player faces a random four of them. */
 export function startRun(tier: DeckTier, boardSize: number, rand: () => number = Math.random): GauntletRun {
   const pool = decksForTier(tier, boardSize);
   const seats = [...pool];
