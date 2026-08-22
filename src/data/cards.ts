@@ -9387,9 +9387,13 @@ export const CARDS: CardDef[] = [
   },
 
   // ─────────────────── THE EIGHT LEGENDS (one per element) ───────────────────
-  // Every stat line here lands on the cost-6 budget of 40 exactly
-  // (dmg*hits + hp + shields*2 + sp), except Havoc, which is cost 5 at 34
-  // against 35 — one under, inside the ±2 the formula test allows.
+  // Stat lines land on their own cost's budget (dmg*hits + hp + shields*2 + sp
+  // against 5*cost + 10) EXACTLY — Snapmaw and Dreamcatcher at cost 6 on 40,
+  // Killer Whale and Destro at cost 7 on 45 — with two deliberate exceptions,
+  // both of which buy a free body instead of stats: Kobra is 4 under and brings
+  // King Cobra, Havoc is 8 under and brings Surge. Those two are asserted in
+  // eight-legends.test.ts rather than merely skipped, so deleting the spawn
+  // breaks a test that names the reason.
   {
     id: "bolt_havoc",
     name: "Havoc",
@@ -9403,9 +9407,9 @@ export const CARDS: CardDef[] = [
     attackType: "Ranged",
     basicMissPct: 15,
     cost: 7,
-    dmg: 4,
+    dmg: 3,
     hits: 2,
-    hp: 15,
+    hp: 20,
     sp: 5,
     shields: 3,
     keywords: {},
@@ -9415,10 +9419,10 @@ export const CARDS: CardDef[] = [
     // mistake, shooting it is not.
     onHitByMelee: { dmg: 3, status: { kind: "ELECTRIFIED", duration: 2, power: 0 } },
     // Running Crew: Havoc does not arrive alone. Surge is a real cost-4 CARD
-    // rather than a token, and at cost 7 with an unchanged stat line that free
-    // body IS the card's remaining value: 34 body points against a budget of
-    // 45, with a 32-point Surge arriving beside it. See the exceptions note in
-    // state.test.ts — this is ability-carried, downward, and deliberately so.
+    // rather than a token, and at cost 7 that free body IS the card's remaining
+    // value: 37 body points against a budget of 45, with a 32-point Surge
+    // arriving beside it. See the exceptions note in state.test.ts — this is
+    // ability-carried, downward, and deliberately so.
     summonSpawn: { token: "bolt_surge", count: 1 },
     special: {
       name: "ThunderShot",
