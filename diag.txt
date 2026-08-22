@@ -1,8 +1,0 @@
-boss           win%  rounds  bossHP%  foeSide   by
-rotroot          0%    13.9       0%      1.9   slain:36
-skeleeze         3%    12.3       1%      2.8   slain:34 timeout:2
-xilty           17%    25.1      11%      5.8   slain:30 timeout:6
-permafrost       8%    20.1       6%      6.9   slain:33 timeout:3
-overclock       78%    42.7      65%      0.6   timeout:28 slain:8
-nightshrike     83%    44.6      59%      0.7   timeout:29 slain:6 elimination:1
-basilisk        25%    28.4      25%      6.7   slain:27 timeout:7 elimination:2
