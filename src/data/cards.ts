@@ -9716,6 +9716,13 @@ export const TOKENS: CardDef[] = [
     shields: 4,
     keywords: {},
     tribe: "Sand Village",
+    passiveNames: { vsStatus: "Ambush Coil" },
+    // The same instinct as the Kobra that raised it, and the reason the pair
+    // reads as a hunting team rather than two bodies that happen to arrive
+    // together: Venom Strike puts a target to sleep, and then BOTH of them hit
+    // it for double. Inherited rather than granted — it is written on the snake,
+    // so it keeps hunting after the Kobra is dead.
+    vsStatus: { status: "SLEEP", dmgMult: 2 },
   },
   {
     // Aranea's brood. A TOKEN — spawned or it does not exist — so it never

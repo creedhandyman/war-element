@@ -196,6 +196,26 @@ describe("Killer Whale and Kobra hunt what they disable", () => {
     expect(200 - s.cards[asleep.instanceId].curHp).toBeGreaterThan(plain);
   });
 
+  it("the King Cobra it raises hunts the same way", () => {
+    // Venom Strike sleeps a target and then BOTH snakes hit it for double —
+    // which is what makes the spawn a hunting partner rather than a spare body.
+    const s = prepState();
+    const cobra = place(s, "bore_kingcobra_tok", "P1", 2, 1);
+    const awake = place(s, "dusk_gool", "P2", 1, 1, { curHp: 200, maxHp: 200, curShields: 0 });
+    const asleep = place(s, "dusk_gool", "P2", 1, 2, {
+      curHp: 200, maxHp: 200, curShields: 0,
+      status: { kind: "SLEEP", duration: 2, power: 0, source: "BORE" },
+    });
+    basicAttack(s, cobra.instanceId, awake.instanceId);
+    const plain = 200 - s.cards[awake.instanceId].curHp;
+    basicAttack(s, cobra.instanceId, asleep.instanceId);
+    expect(200 - s.cards[asleep.instanceId].curHp).toBeGreaterThan(plain);
+    // Written on the snake, not lent by its parent — it keeps hunting after the
+    // Kobra is gone.
+    expect(getDef("bore_kingcobra_tok").vsStatus)
+      .toEqual(getDef("bore_kobra").vsStatus);
+  });
+
   it("Kobra is the Assassin it was rebuilt into, and dodges", () => {
     const d = getDef("bore_kobra");
     expect(d.cardClass).toBe("Assassin");
