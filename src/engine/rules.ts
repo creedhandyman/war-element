@@ -380,6 +380,13 @@ export function canTarget(
    *  ground charger still cannot pull a flier out of the air, which is why this
    *  exists instead of just flagging those Specials `ranged`. */
   extraReach = 0,
+  /** A SPECIAL that reaches into the enemy home row. The card-level
+   *  `ignoresHomeRule` widens everything a card does, basics included; this is
+   *  the same exemption scoped to one ability, declared as a param so the
+   *  targeting layer reads it the way it already reads `reach` and
+   *  `chargeFirst`. Snapmaw's Devour is the first: it may bite anything ROOTed
+   *  anywhere, and having spent a root on the target is the price. */
+  ignoreHomeRule = false,
 ): boolean {
   if (!attacker.pos || !target.pos) return false;
   if (target.owner === attacker.owner) return false;
@@ -480,6 +487,7 @@ export function canTarget(
     target.pos.row === defenderHome &&
     defenderHome === homeRow(enemyOf(attacker.owner), state.boardSize) &&
     !aDef.ignoresHomeRule && // Catapult-style passives skip this rule
+    !ignoreHomeRule &&        // …and a Special may claim the same exemption alone
     // Totem Spirit sees the invasion row from anywhere — the "hit through
     // invasion blind" half of the aura. Without it a card sitting in its own home
     // row cannot touch the enemy home row at all, however good its aim.
@@ -557,8 +565,9 @@ export function validSpecialTargets(state: GameState, attackerId: string): CardI
   // literally touching it. 1 is the ordinary melee square, so reach−1 is the
   // widening. Takes the larger of the two: a Special could both charge and sweep.
   const ownReach = Math.max(0, Number(special?.params?.reach ?? 1) - 1);
+  const ignoreHome = Number(special?.params?.ignoreHomeRule ?? 0) > 0;
   return boardCards(state, enemyOf(attacker.owner)).filter((t) =>
-    canTarget(state, attacker, t, asRanged, false, Math.max(chargeReach, ownReach)),
+    canTarget(state, attacker, t, asRanged, false, Math.max(chargeReach, ownReach), ignoreHome),
   );
 }
 

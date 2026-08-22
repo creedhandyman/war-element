@@ -7,6 +7,7 @@
 // aura reaching the brood she raises after she lands).
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
+import { validSpecialTargets, validTargets } from "../rules";
 import { SPECIAL_HANDLERS, basicAttack } from "../combat";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
@@ -129,6 +130,21 @@ describe("Snapmaw — Snare Garden and Devour", () => {
     cast(s, maw, free);
     expect(s.cards[free.instanceId].curHp, "untouched").toBe(40);
     expect(s.log.some((l) => /nothing to sink into/.test(l)), "and it says why").toBe(true);
+  });
+
+  it("reaches ANY rooted opponent, the enemy home row included", () => {
+    // Ordinary targeting keeps the defender's home row off-limits from your own
+    // back line — that rule is what protects the capture race. Devour is exempt,
+    // and the exemption is scoped to the SPECIAL: the basic still respects it,
+    // and having spent a root on the target is what pays for the reach.
+    const s = prepState(1, "P1");
+    const maw = place(s, "leaf_snapmaw", "P1", 3, 0);      // its own home row
+    const inHome = place(s, "dusk_gool", "P2", 0, 3, { status: ROOT }); // theirs
+    const ids = validSpecialTargets(s, maw.instanceId).map((c) => c.instanceId);
+    expect(ids, "the Special reaches").toContain(inHome.instanceId);
+    // …and the basic does not, which is the half that keeps this a Special.
+    const basicIds = validTargets(s, maw.instanceId).map((c) => c.instanceId);
+    expect(basicIds, "the basic still obeys the home rule").not.toContain(inHome.instanceId);
   });
 
   it("Devour bites a ROOTed one, and grows permanently on the kill", () => {

@@ -3925,11 +3925,11 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Support",
     attackType: "Melee",
-    cost: 7,
+    cost: 6,
     dmg: 5,
     hits: 1,
-    hp: 21,
-    sp: 9,
+    hp: 20,
+    sp: 6,
     shields: 5,
     keywords: {},
     // Basic attacks entangle: ROOT the target (SP→0, can't move) for 2 rounds.
@@ -9438,9 +9438,13 @@ export const CARDS: CardDef[] = [
       name: "Devour",
       cost: 3,
       handler: "strike",
-      params: { dmg: 6, requireStatus: "ROOT", onKillSelfDmg: 2 },
+      // ignoreHomeRule: anything ROOTed, ANYWHERE — the enemy home row
+      // included, which ordinary targeting keeps off-limits from your own back
+      // line. Scoped to this Special, so Snapmaw's basic still respects it.
+      // Having spent a root on the target is what pays for the reach.
+      params: { dmg: 8, requireStatus: "ROOT", onKillSelfDmg: 2, ignoreHomeRule: 1 },
       targetSide: "enemy",
-      text: "6 DMG to a ROOTed target and heal for the damage dealt. If it dies, Snapmaw gains +2 DMG permanently. Refuses a target that is not ROOTed.",
+      text: "8 DMG to any ROOTed opponent on the board and heal for the damage dealt. If it dies, Snapmaw gains +2 DMG permanently. Refuses a target that is not ROOTed.",
     },
   },
   {
