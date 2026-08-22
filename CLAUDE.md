@@ -242,9 +242,22 @@ which matters at 5,600 matches.
 Harness above, verbatim. 5,600 matches, n=1,400 per element, ±2.6 at 95%:
 
 ```
-dawn 58.8 · bolt 57.9 · gale 54.4 · leaf 47.3
-bore 47.2 · pyro 45.3 · dusk 45.0 · aqua 44.1     spread 14.6
+dawn 57.2 · bolt 57.1 · gale 52.5 · leaf 50.4
+bore 48.8 · pyro 45.9 · dusk 45.6 · aqua 42.4     spread 14.8
 ```
+
+Measured after the eight legends, eleven recosts and the Discharge restriction.
+The reading BEFORE that restriction was `bolt 59.4 · dawn 56.4 · gale 52.0 ·
+leaf 50.1 · bore 48.6 · pyro 45.9 · dusk 45.1 · aqua 42.5`, spread 16.9 — BOLT
+had taken the top and the spread had opened 2.3 points. Narrowing Discharge to
+ARC's mythic and legendary put BOLT back at 57.1 and the spread back to 14.8.
+
+**AQUA is the floor and has been drifting down** (44.1 → 42.5 → 42.4). An
+ablation with a control group (n=392, ±5) put Killer Whale at +9.2 when cut
+against peers at +4.8/+5.4/+7.1 — the largest positive anywhere, meaning AQUA
+measured BETTER without it, though the gap over the peer mean is inside the
+noise band. Both AQUA cards recost UPWARD the same day (Killer Whale 6→7,
+Glacius 7→8). Worth a look before anything else in the table.
 
 **DAWN leads BY CHOICE.** It is the campaign's final region and the owner wants
 it to read as the final boss — a knock-down was implemented (a relative +5 SP
