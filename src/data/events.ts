@@ -29,7 +29,7 @@
 import { type StorySave, addFreePacks } from "./story";
 import type { CustomDeck } from "./custom-decks";
 import { getDef } from "./cards";
-import { VOID_BOSSES, buildVoidEncounter } from "./void-tower";
+import { VOID_BOSSES, buildVoidEncounter, trialEventId } from "./void-tower";
 
 export interface GameEvent {
   id: string;
@@ -230,7 +230,7 @@ const VOID_TRIALS: GameEvent[] = VOID_BOSSES.map((b) => {
   const boss = getDef(b.cardId);
   const enc = buildVoidEncounter(b);
   return {
-    id: `void_${b.cardId}`,
+    id: trialEventId(b.cardId),
     name: boss.name,
     tag: "VOID TOWER TRIAL",
     blurb: b.puzzle,

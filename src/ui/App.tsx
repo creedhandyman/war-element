@@ -54,6 +54,7 @@ import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
 import { voidBossSeat } from "../data/void-tower";
+import { VoidTower } from "./VoidTower";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
 import { TutorialCoach } from "./TutorialCoach";
@@ -960,6 +961,19 @@ export function App() {
    *  matches too: Streak and Gauntlet deal your next opponent as soon as the
    *  last one falls, and "fight it" there has to mean exactly what the lobby
    *  button means — same seats, same setup, same remembered rematch. */
+  /** Seat an event (or Void Trial) and drop the player in the Arena on its
+   *  board, ready to start. Not auto-started: the fight is fought with YOUR
+   *  deck and the Arena is where you pick it — walking in without that step
+   *  would be fighting a designed puzzle with whatever was last selected.
+   *  Shared by Home's event cards and the Void Tower's Fight buttons, so the
+   *  two entry points cannot drift. */
+  function seatEventFight(e: GameEvent) {
+    setArenaMode("ai");
+    setBoardSize(e.boardSize);
+    setP2DeckId(e.deck.id);
+    setTab("arena");
+  }
+
   function startArenaMatch() {
     const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
     const p1Cards = resolveDeckCards(p1DeckId);
@@ -3351,12 +3365,7 @@ export function App() {
           // start. Not auto-started: the event is fought with YOUR deck and the
           // Arena is where you pick it, so walking in without that step would be
           // fighting a 30-card DUSK build with whatever was last selected.
-          onEvent={(e) => {
-            setArenaMode("ai");
-            setBoardSize(e.boardSize);
-            setP2DeckId(e.deck.id);
-            setTab("arena");
-          }}
+          onEvent={seatEventFight}
           onShop={(t) => { setShopTab(t); setTab("shop"); }}
           onBuilder={() => navDo({ t: "builder", open: true })}
           onCollection={() => setHomeCollection(true)}
@@ -3382,6 +3391,10 @@ export function App() {
           }}
           onOpenBuilder={() => navDo({ t: "builder", open: true })}
         />
+      )}
+
+      {!started && !storyOpen && tab === "tower" && (
+        <VoidTower save={story} onFight={seatEventFight} />
       )}
 
       {!started && !storyOpen && tab === "shop" && (

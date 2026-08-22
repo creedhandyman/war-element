@@ -175,6 +175,48 @@ export const VOID_BOSSES: VoidBoss[] = [
 export const voidBossById = (cardId: string): VoidBoss | null =>
   VOID_BOSSES.find((b) => b.cardId === cardId) ?? null;
 
+// ── Floor progression ────────────────────────────────────────────────────────
+//
+// DERIVED, not stored. A boss's defeat is already recorded by the trial-event
+// settle path (`completeEvent` writes `void_<cardId>` into StorySave.eventsDone
+// in the same save-write that pays the first-clear pack), so the tower's whole
+// progression state is a pure function of `eventsDone` — one source of truth,
+// no second field that can disagree with it, and nothing new to migrate. The
+// price is that these helpers take the eventsDone ARRAY rather than the save,
+// which also keeps this file free of a StorySave import cycle.
+
+/** The event id a boss's trial writes on a win. The single definition —
+ *  events.ts builds its trial ids from this, so the two cannot drift. */
+export const trialEventId = (cardId: string): string => `void_${cardId}`;
+
+/** Every floor that has at least one boss, ascending. */
+export const voidFloors = (): number[] =>
+  [...new Set(VOID_BOSSES.map((b) => b.floor))].sort((a, b) => a - b);
+
+export const bossesOnFloor = (floor: number): VoidBoss[] =>
+  VOID_BOSSES.filter((b) => b.floor === floor);
+
+export const bossDefeated = (eventsDone: string[], cardId: string): boolean =>
+  eventsDone.includes(trialEventId(cardId));
+
+/** A floor is cleared when EVERY boss on it is down. Floor 1 is seven lessons
+ *  and the tower should not open its second act to someone who skipped five of
+ *  them — the floor is the unit of progress, not the boss. */
+export const floorCleared = (eventsDone: string[], floor: number): boolean =>
+  bossesOnFloor(floor).every((b) => bossDefeated(eventsDone, b.cardId));
+
+/** A floor is open when every floor BELOW it (that exists) is cleared. Ground
+ *  floor is always open. Checked against the floors that actually hold bosses
+ *  rather than `floor - 1`, so a gap in the numbering can never wall off the
+ *  content above it. */
+export const floorOpen = (eventsDone: string[], floor: number): boolean =>
+  voidFloors().filter((f) => f < floor).every((f) => floorCleared(eventsDone, f));
+
+export const towerProgress = (eventsDone: string[]): { defeated: number; total: number } => ({
+  defeated: VOID_BOSSES.filter((b) => bossDefeated(eventsDone, b.cardId)).length,
+  total: VOID_BOSSES.length,
+});
+
 /** Does this card belong to the boss's tribe? Accepts multi-tribe cards and
  *  TOKENS — the summon rule is tribe membership, not deck legality. */
 export function inTribe(defId: string, tribe: string): boolean {

@@ -322,7 +322,12 @@ function buildLive(
   // below this decays at all, and an event is the only row here that can be
   // used up. No `live` dot for exactly that reason: this file reserves the dot
   // for things that are running and can end without you, and an event waits.
-  for (const e of openEvents(save)) {
+  // `!e.bossId`: Void Trials came OFF this band the day the tower screen
+  // shipped — seven boss cards were drowning the two real events, and a boss
+  // fight behind a locked floor must not be reachable from Home anyway. The
+  // events still exist (the settle path finds them by deck id); the Tower tab
+  // is where they are offered, gated by floor.
+  for (const e of openEvents(save).filter((ev) => !ev.bossId)) {
     out.push({
       id: e.id,
       tag: e.tag,

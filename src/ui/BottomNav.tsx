@@ -1,4 +1,4 @@
-/** The four places you can be when you are not in a match.
+/** The places you can be when you are not in a match.
  *
  *  War Element's front end was one screen: a title, a mode toggle, two deck
  *  pickers and a stack of ghost buttons, with Story Mode as one of those buttons
@@ -9,9 +9,9 @@
  *  eats the row the player needs most, and there is nowhere to navigate to
  *  mid-fight anyway — Surrender is the exit and it already exists.
  */
-import { Home, Swords, Map, Store } from "lucide-react";
+import { Home, Swords, Map, Store, Landmark } from "lucide-react";
 
-export type Tab = "home" | "arena" | "story" | "shop";
+export type Tab = "home" | "arena" | "story" | "tower" | "shop";
 
 /** Order is the order they sit in the bar. Home is not first: it is second-left,
  *  because the thumb rests near the middle on a phone and Home is the one you
@@ -20,6 +20,7 @@ const TABS: { id: Tab; label: string; Icon: typeof Home }[] = [
   { id: "arena", label: "Arena", Icon: Swords },
   { id: "home", label: "Home", Icon: Home },
   { id: "story", label: "Story", Icon: Map },
+  { id: "tower", label: "Tower", Icon: Landmark },
   { id: "shop", label: "Shop", Icon: Store },
 ];
 

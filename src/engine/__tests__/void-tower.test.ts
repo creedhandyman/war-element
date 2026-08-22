@@ -9,8 +9,9 @@
 import { describe, expect, it } from "vitest";
 import { CARDS, TOKENS, CARD_INDEX, getDef } from "../../data/cards";
 import {
-  BODY_CAP_TOLERANCE, FLOOR1_SUMMON_BUDGET, VOID_BOSSES, bodyCap, bodyTotal, buildVoidEncounter,
-  chanceProblems, inTribe, summonBudget, summonProblems, voidBossById, voidBossSeat,
+  BODY_CAP_TOLERANCE, FLOOR1_SUMMON_BUDGET, VOID_BOSSES, bodyCap, bodyTotal, bossDefeated,
+  buildVoidEncounter, chanceProblems, floorCleared, floorOpen, inTribe, summonBudget,
+  summonProblems, towerProgress, trialEventId, voidBossById, voidBossSeat, voidFloors,
 } from "../../data/void-tower";
 import { isBuildable, validateDeck } from "../../data/custom-decks";
 import { EVENTS } from "../../data/events";
@@ -253,6 +254,63 @@ describe("the trials", () => {
     // would mean Floor 1 is unbeatable by the deck it must be beatable with.
     expect(bossWins, "bosses win some").toBeGreaterThan(0);
     expect(bossWins, "and lose some").toBeLessThan(21);
+  });
+});
+
+describe("floor progression", () => {
+  // All DERIVED from eventsDone — the trial-event settle path is the single
+  // writer, so the tower cannot disagree with the save. These pin the ladder's
+  // rules; the trial ids are the shared vocabulary.
+  const beat = (...ids: string[]) => ids.map(trialEventId);
+  const FLOOR1 = VOID_BOSSES.filter((b) => b.floor === 1).map((b) => b.cardId);
+
+  it("the floors are contiguous from 1, so nothing is walled off by a gap", () => {
+    const floors = voidFloors();
+    expect(floors[0]).toBe(1);
+    for (let i = 1; i < floors.length; i++)
+      expect(floors[i] - floors[i - 1], `gap before floor ${floors[i]}`).toBe(1);
+  });
+
+  it("the ground floor is open on a fresh save; nothing above it is", () => {
+    expect(floorOpen([], 1)).toBe(true);
+    for (const f of voidFloors().filter((x) => x > 1))
+      expect(floorOpen([], f), `floor ${f}`).toBe(false);
+  });
+
+  it("a floor clears only when EVERY boss on it is down", () => {
+    const allButOne = beat(...FLOOR1.slice(0, -1));
+    expect(floorCleared(allButOne, 1), "one boss standing").toBe(false);
+    expect(floorOpen(allButOne, 2), "so the next floor stays shut").toBe(false);
+    const all = beat(...FLOOR1);
+    expect(floorCleared(all, 1)).toBe(true);
+    expect(floorOpen(all, 2), "and now the tower opens").toBe(true);
+    expect(floorOpen(all, 3), "one floor at a time").toBe(false);
+  });
+
+  it("beating a higher boss without the floor below buys nothing", () => {
+    // The save CAN hold this state (a pre-tower player beat Xilty's trial off
+    // the Home band before floors existed) — it must degrade gracefully rather
+    // than corrupt: the defeat is remembered, the ladder still demands its
+    // floors in order.
+    const skipped = beat("boss_xilty");
+    expect(bossDefeated(skipped, "boss_xilty")).toBe(true);
+    expect(floorOpen(skipped, 2)).toBe(false);
+    expect(floorOpen(skipped, 3)).toBe(false);
+  });
+
+  it("the whole climb: 7 down opens everything and reads 7/7", () => {
+    const all = beat(...VOID_BOSSES.map((b) => b.cardId));
+    for (const f of voidFloors()) expect(floorCleared(all, f), `floor ${f}`).toBe(true);
+    expect(towerProgress(all)).toEqual({ defeated: 7, total: 7 });
+  });
+
+  it("every boss has a trial event under the shared id, and no trial is orphaned", () => {
+    // The screen looks trials up by trialEventId; a rename on either side
+    // strands a Fight button. Both directions.
+    for (const v of VOID_BOSSES)
+      expect(EVENTS.some((e) => e.id === trialEventId(v.cardId)), v.cardId).toBe(true);
+    for (const e of EVENTS.filter((x) => x.bossId))
+      expect(e.id).toBe(trialEventId(e.bossId!));
   });
 });
 

@@ -39,7 +39,12 @@ describe("smoke: whole matches run to completion", () => {
       expect(s.phase, `${a.id} vs ${b.id}`).toBe("gameover");
     }
     expect(big.length).toBeGreaterThan(0);
-  });
+    // 20s, not the 5s default: the premade roster has grown to 26 5x5 decks
+    // (the ladder's fifth rung members included), which sits at ~3.5s alone and
+    // over 5s under a loaded parallel run — where it flaked once. The budget is
+    // for scheduling noise, not for a slower game: a real stall still trips the
+    // per-match step cap long before any timeout does.
+  }, 20_000);
 
   it("rotates the whole draftable pool through real matches", () => {
     // So no single card's trigger path is left unexercised by the suite.
