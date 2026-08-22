@@ -61,9 +61,14 @@ describe("setup", () => {
       // ahead and wears them. Total immunity is the expensive part — the missing
       // 5 body points are what it costs.
       "bore_steel",
-      // Ability-carried, downward: 35 vs a Cost-6 budget of 40. Dunewraith was
+      // Ability-carried, downward: 40 vs a Cost-7 budget of 45. Dunewraith was
       // nerfed (HP 19→14) to rein in Frostkeep; its Nightmare Special (5×2 +
       // SLEEP nova) carries the missing points. Deliberately under-statted.
+      //
+      // Recost 6→7 kept the DISCOUNT rather than cashing it: it was 5 points
+      // under budget before and it is 5 points under budget now. Raising the
+      // stats to the new ceiling would have quietly handed back a nerf that was
+      // made for a reason.
       "bore_sandman",
       // Ability-carried, downward: 52 vs a Cost-9 budget of 55. SkullKing raises
       // 2 Skeletons on summon + 2 every round + a SkullDrake on its Special, and

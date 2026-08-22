@@ -625,11 +625,11 @@ export const CARDS: CardDef[] = [
     element: "BORE",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 6,
+    cost: 7,
     dmg: 2, // "5×2 DMG"
     hits: 5,
-    hp: 14,
-    sp: 9,
+    hp: 17,
+    sp: 11,
     shields: 1,
     tribe: "Sand Village",
     keywords: {},
@@ -1299,10 +1299,10 @@ export const CARDS: CardDef[] = [
     element: "AQUA",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 6, // LEGENDARY
-    dmg: 6,
+    cost: 7, // LEGENDARY
+    dmg: 7,
     hits: 1,
-    hp: 22,
+    hp: 26,
     sp: 4,
     shields: 4,
     keywords: {},
@@ -3925,11 +3925,11 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Support",
     attackType: "Melee",
-    cost: 6,
+    cost: 7,
     dmg: 5,
     hits: 1,
-    hp: 20,
-    sp: 6,
+    hp: 21,
+    sp: 9,
     shields: 5,
     keywords: {},
     // Basic attacks entangle: ROOT the target (SP→0, can't move) for 2 rounds.
@@ -3985,11 +3985,11 @@ export const CARDS: CardDef[] = [
     element: "AQUA",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 7,
-    dmg: 3,
+    cost: 8,
+    dmg: 4,
     hits: 2,
     hp: 25,
-    sp: 8,
+    sp: 11,
     shields: 3,
     keywords: {},
     // Freezer Burn: SCALD any FROZEN enemy for 2 each Cleanup (pairs with the Special).
@@ -7069,15 +7069,15 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Support",
     attackType: "Ranged",
-    cost: 6,
+    cost: 7,
     dmg: 4,
     hits: 2,
-    hp: 23,
+    hp: 25,
     // 10 -> 7. Grounded roots the FASTEST opponent, so Evera at 10 SP was
     // usually acting before the card she was about to pin and taking the first
     // shot as well. At 7 the root still lands, but she is no longer quicker
     // than most of what she is answering.
-    sp: 7,
+    sp: 12,
     shields: 0,
     keywords: {},
     // Grounded (End of Round): ROOT the fastest opponent 2 rounds. Aura: heal all
@@ -7357,11 +7357,11 @@ export const CARDS: CardDef[] = [
     element: "BOLT",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 6,
+    cost: 7,
     dmg: 2,
     hits: 5,
-    hp: 19,
-    sp: 11,
+    hp: 22,
+    sp: 13,
     shields: 0,
     keywords: {},
     // Amplifier (On Summon): 5 DMG CRIT to a foe. On Kill: +1 DMG for the round.
@@ -7608,10 +7608,10 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 6,
-    dmg: 7,
+    cost: 7,
+    dmg: 9,
     hits: 1,
-    hp: 22,
+    hp: 25,
     // Traded its 2 shields straight across for +4 SP — a GALE flier should be
     // fast rather than armoured, and 4 shield-points = 4 SP keeps it on budget.
     sp: 11,
@@ -7677,10 +7677,10 @@ export const CARDS: CardDef[] = [
     element: "BORE",
     cardClass: "Support",
     attackType: "Ranged",
-    cost: 6,
+    cost: 7,
     dmg: 8,
     hits: 1,
-    hp: 9,
+    hp: 14,
     sp: 11,
     shields: 6,
     keywords: {},
@@ -7776,10 +7776,10 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 7,
+    cost: 8,
     dmg: 9,
     hits: 1,
-    hp: 24,
+    hp: 28,
     sp: 5,
     shields: 4,
     keywords: {},
@@ -9592,10 +9592,15 @@ export const CARDS: CardDef[] = [
     // Burning Frame: the chassis is on fire. No damage of its own — hitting it
     // simply costs you the burn.
     onHitByMelee: { status: { kind: "BURN", duration: 2, power: 2 } },
-    // Super Charger: RENTED speed, not owned. An SP 8 tank that spikes to 16 for
-    // a round crosses ground it otherwise never would — and then settles back,
-    // so the ram is a commitment rather than a permanent stat line.
-    onSpecialUse: { sp: 8, spRounds: 1 },
+    // Super Charger: RENTED speed, not owned. An SP 8 tank that spikes to 16
+    // crosses ground it otherwise never would — and then settles back, so the
+    // ram is a commitment rather than a permanent stat line.
+    //
+    // TWO rounds, not one: at one it was spent almost entirely on the cast's own
+    // charge, which Blitzing Ram already pays for itself. Two is the difference
+    // between a longer ram and a genuine repositioning — the tank arrives, and
+    // then still has a turn of speed to be somewhere else with.
+    onSpecialUse: { sp: 8, spRounds: 2 },
     special: {
       name: "Blitzing Ram",
       cost: 3,

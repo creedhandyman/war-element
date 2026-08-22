@@ -208,8 +208,13 @@ describe("Burnout — Super Charger", () => {
     const n = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "special" } as never);
     const revved = effectiveSp(n, n.cards[burn.instanceId]);
     expect(revved - base, "+8 while it is lit").toBe(8);
-    const later = advance(atCleanup(n));
-    expect(effectiveSp(later, later.cards[burn.instanceId]), "and it settles back").toBe(base);
+    // TWO rounds. At one it was spent almost entirely on the cast's own charge,
+    // which Blitzing Ram already pays for — the second round is the difference
+    // between a longer ram and a genuine repositioning.
+    const r1 = advance(atCleanup(n));
+    expect(effectiveSp(r1, r1.cards[burn.instanceId]) - base, "still lit a round later").toBe(8);
+    const r2 = advance(atCleanup(r1));
+    expect(effectiveSp(r2, r2.cards[burn.instanceId]), "and then it settles back").toBe(base);
   });
 });
 
