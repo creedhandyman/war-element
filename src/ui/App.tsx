@@ -3394,7 +3394,13 @@ export function App() {
       )}
 
       {!started && !storyOpen && tab === "tower" && (
-        <VoidTower save={story} onFight={seatEventFight} />
+        // Inside an `.overlay` like every other destination — the pre-match
+        // battle chrome hides by class but its GRID does not, so a bare child
+        // here lands in the 194px log column. Home hit the same wall and the
+        // overlay is how it climbed out.
+        <div className="overlay arena-wrap vt-overlay">
+          <VoidTower save={story} onFight={seatEventFight} />
+        </div>
       )}
 
       {!started && !storyOpen && tab === "shop" && (

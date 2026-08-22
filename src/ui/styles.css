@@ -5443,8 +5443,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 
 /* ── Void Tower ──────────────────────────────────────────────────────────── */
+/* The overlay is the viewport; the screen is a centred, scrolling column in
+   it. `place-items: center` on .overlay would VERTICALLY centre a short tower
+   and clip a tall one — stretch + overflow-y is the Home pattern. */
+.vt-overlay { align-items: stretch; justify-items: center; overflow-y: auto; }
 .vt-screen {
-  max-width: 720px; margin: 0 auto; padding: 14px 14px 90px;
+  width: min(720px, 100vw); padding: 14px 14px 90px;
   display: flex; flex-direction: column; gap: 14px;
 }
 .vt-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
