@@ -1,5 +1,12 @@
 /** The Void Tower — floors of boss puzzles, climbed from the ground up.
  *
+ *  THE ART IS THE SCREEN. A boss is a face you are meant to recognise across
+ *  the room and remember losing to; a 46px thumbnail beside a text row made
+ *  seven of them look like a settings list. Each boss is now a portrait tile
+ *  with its name and puzzle written over the bottom of the art, and the TILE is
+ *  the fight button — there is nothing else on it to press, so a separate
+ *  control was only ever a smaller target.
+ *
  *  RENDERED TOP-DOWN: the highest floor sits at the top of the screen because
  *  the thing is a TOWER, and scrolling up toward what you have not earned yet
  *  is the shape of the promise. The ground floor — the only open one on a
@@ -83,35 +90,47 @@ export function VoidTower(props: {
                   const down = bossDefeated(done, b.cardId);
                   const event = EVENTS.find((e) => e.id === trialEventId(b.cardId));
                   const tint = EL_TINT[b.tribeElement] ?? "#8b7dc9";
+                  const playable = open && !!event;
                   return (
-                    <article key={b.cardId} className={`vt-boss ${down ? "down" : ""}`}>
+                    <button
+                      key={b.cardId}
+                      type="button"
+                      className={`vt-boss ${down ? "down" : ""} ${playable ? "" : "locked"}`}
+                      style={{ ["--tint" as string]: tint }}
+                      disabled={!playable}
+                      onClick={playable ? () => props.onFight(event!) : undefined}
+                      aria-label={
+                        playable
+                          ? `${down ? "Refight" : "Fight"} ${def.name} — ${b.puzzle}`
+                          : `${def.name}, locked`
+                      }
+                    >
                       <img
                         className="vt-boss-art"
                         src={`/cards/${def.art ?? def.id}.webp`}
                         alt=""
                         loading="lazy"
-                        style={{ borderColor: tint }}
                       />
-                      <div className="vt-boss-body">
-                        <span className="vt-boss-name">
-                          {def.name}
-                          {down && <Check size={14} className="vt-check" aria-hidden="true" />}
-                        </span>
-                        <span className="vt-boss-pair" style={{ color: tint }}>
+                      {/* Over the art, bottom-anchored, on its own scrim — the
+                          face keeps the top two-thirds it was drawn for. */}
+                      <span className="vt-boss-body">
+                        <span className="vt-boss-pair">
                           {b.tribeElement} / {b.mechanicElement} · {b.tribe}
                         </span>
+                        <span className="vt-boss-name">{def.name}</span>
                         <span className="vt-boss-puzzle">{b.puzzle}</span>
-                      </div>
-                      {open && event && (
-                        <button
-                          className={`vt-fight ${down ? "again" : ""}`}
-                          onClick={() => props.onFight(event)}
-                        >
-                          <Swords size={14} aria-hidden="true" />
-                          {down ? "Refight" : "Fight"}
-                        </button>
-                      )}
-                    </article>
+                      </span>
+                      {/* The state badge sits top-right and says only what is
+                          true: cleared, locked, or the verb you are about to
+                          perform. */}
+                      <span className="vt-badge">
+                        {!open
+                          ? <><Lock size={12} aria-hidden="true" />LOCKED</>
+                          : down
+                            ? <><Check size={12} aria-hidden="true" />CLEARED</>
+                            : <><Swords size={12} aria-hidden="true" />FIGHT</>}
+                      </span>
+                    </button>
                   );
                 })}
               </div>

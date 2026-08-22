@@ -5459,35 +5459,79 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   border: 1px solid rgba(139,125,201,.35); border-radius: 12px;
   padding: 10px 12px; background: rgba(20,16,34,.55);
 }
-.vt-floor.locked { opacity: .55; }
+/* Only the CHROME dims on a locked floor — the tiles do their own greying, and
+   stacking the two made locked art almost invisible. */
+.vt-floor.locked .vt-floor-head { opacity: .6; }
 .vt-floor.cleared { border-color: rgba(127,216,154,.45); }
 .vt-floor-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .vt-floor-name { font-size: 13px; font-weight: 800; letter-spacing: .1em; display: inline-flex; align-items: center; gap: 6px; }
 .vt-floor-sub { font-size: 10.5px; color: var(--ink-faint, #778); letter-spacing: .05em; text-transform: uppercase; }
 .vt-floor.cleared .vt-floor-sub { color: #7fd89a; }
-.vt-bosses { display: flex; flex-direction: column; gap: 8px; }
+/* Portrait tiles, as many per row as the width allows. auto-fill rather than
+   auto-fit so a floor holding ONE boss (2 and 3 do) gets one tile the size of
+   the others instead of a single portrait stretched across the whole screen. */
+.vt-bosses {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+}
 .vt-boss {
-  display: flex; align-items: center; gap: 10px;
-  border: 1px solid rgba(255,255,255,.08); border-radius: 10px;
-  padding: 8px; background: rgba(0,0,0,.25);
+  position: relative; display: block; width: 100%; padding: 0;
+  aspect-ratio: 4 / 5; overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--tint, #8b7dc9) 45%, transparent);
+  border-radius: 14px; background: rgba(0,0,0,.35); color: inherit;
+  cursor: pointer; text-align: left;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
 }
-.vt-boss.down { opacity: .75; }
+.vt-boss:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--tint, #8b7dc9);
+  box-shadow: 0 8px 22px -8px color-mix(in srgb, var(--tint, #8b7dc9) 70%, transparent);
+}
+.vt-boss:disabled { cursor: default; }
 .vt-boss-art {
-  width: 46px; height: 46px; object-fit: cover; border-radius: 8px;
-  border: 1.5px solid; flex: none;
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; display: block;
 }
-.vt-floor.locked .vt-boss-art { filter: grayscale(1) brightness(.6); }
-.vt-boss-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-.vt-boss-name { font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
-.vt-check { color: #7fd89a; }
-.vt-boss-pair { font-size: 10px; font-weight: 700; letter-spacing: .08em; }
-.vt-boss-puzzle { font-size: 11px; color: var(--ink-dim, #9aa); }
-.vt-fight {
-  flex: none; display: inline-flex; align-items: center; gap: 6px;
-  border: 1px solid rgba(139,125,201,.6); border-radius: 8px;
-  background: rgba(139,125,201,.18); color: inherit;
-  padding: 7px 12px; font-size: 12px; font-weight: 700; cursor: pointer;
+/* A cleared boss keeps its colour and simply dims — it is a trophy, not a
+   disabled control. A LOCKED one greys out, because you have not met it. */
+.vt-boss.down .vt-boss-art { opacity: .82; }
+.vt-boss.locked .vt-boss-art { filter: grayscale(1) brightness(.55); }
+.vt-boss-body {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 26px 10px 10px;
+  /* The scrim is the whole reason text over art stays readable regardless of
+     what the artist put in the bottom third. */
+  background: linear-gradient(to top, rgba(6,4,12,.94) 38%, rgba(6,4,12,.72) 66%, transparent);
 }
-.vt-fight:hover { background: rgba(139,125,201,.32); }
-.vt-fight.again { opacity: .7; border-style: dashed; }
+.vt-boss-name { font-size: 15px; font-weight: 800; line-height: 1.15; }
+.vt-boss-pair {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .09em;
+  color: var(--tint, #b39ddb); text-transform: uppercase;
+}
+.vt-boss-puzzle {
+  font-size: 10.5px; line-height: 1.35; color: rgba(255,255,255,.72);
+  /* Two lines, then ellipsis: the puzzles are one sentence but the tiles must
+     stay the same height whatever a future one says. */
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  line-clamp: 2; overflow: hidden;
+}
+.vt-badge {
+  position: absolute; top: 8px; right: 8px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 7px; border-radius: 999px;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .07em;
+  background: rgba(6,4,12,.72); border: 1px solid rgba(255,255,255,.14);
+  backdrop-filter: blur(3px);
+}
+.vt-boss:not(.locked):not(.down) .vt-badge {
+  color: var(--tint, #b39ddb);
+  border-color: color-mix(in srgb, var(--tint, #8b7dc9) 55%, transparent);
+}
+.vt-boss.down .vt-badge { color: #7fd89a; border-color: rgba(127,216,154,.5); }
+.vt-boss.locked .vt-badge { color: rgba(255,255,255,.6); }
+@media (prefers-reduced-motion: reduce) {
+  .vt-boss { transition: none; }
+  .vt-boss:hover:not(:disabled) { transform: none; }
+}
 .vt-foot { font-size: 11px; color: var(--ink-faint, #778); margin: 0; line-height: 1.5; }
