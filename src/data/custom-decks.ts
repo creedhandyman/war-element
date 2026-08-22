@@ -431,6 +431,112 @@ const STANDARD_DECKS: PremadeDeck[] = [
   // a deck whose cheapest card costs 3 stands there until round three. All
   // twelve carry a 1-cost card and at least four under three. That was the
   // bug, there is a test on it, and it is not coming back.
+
+  // ── The new legends' decks ────────────────────────────────────────────────
+  // Four more hand-tuned archetypes, one per pair of the eight legends added
+  // after this file was written. Every one of those eight was unfielded: none
+  // of them appeared in a single premade, so a player could meet Havoc or
+  // Aranea only by building them, never by being hit with them.
+  //
+  // UNTIERED, like the six above and for the same reason — they are archetypes
+  // rather than rungs, and the matchmaker's ladder is a fixed partition of four
+  // decks per rung that a fifth would break. They show up where the six do: in
+  // the deck picker, and in the Arena's hand-picked OPPONENT segment.
+  //
+  // Each is built AROUND its two legends rather than merely including them —
+  // Scrapyard on contact damage, Deeproot on root-then-bite, Skydream on
+  // displacement, Drowned Web on the spider swarm. A list that happened to
+  // contain a new card would not have been worth adding.
+
+  {
+    id: "pre_scrapyard_reactor",
+    name: "Scrapyard Reactor",
+    note: "BOLT + PYRO — machines that punish contact. Everything you touch bites back.",
+    premade: true,
+    boardSize: 4,
+    // Havoc + Burnout — contact hurts (Spiked Conduit, Burning Frame, Surge's
+    // Electro Surge) and Havoc shoots over the top of it.
+    //
+    // THE WEAKEST OF THE FOUR, measured rather than guessed. Against the eight
+    // cores, 24 matches each: 37.5% here against 70.8 / 58.3 / 41.7 for the
+    // other three, with the six shipped archetypes spanning 37.5-66.7 on the
+    // same harness. It sits on that floor rather than under it.
+    //
+    // BOLT is why, and it is not fixable by editing the list. On a longer run
+    // (48 matches each) the pure BOLT core measures 37.5% and EVERY pairing
+    // tried came in under it — PYRO 29.2, AQUA 25.0, DUSK 16.7. Nine cards is
+    // not enough BOLT to keep its tribe and Electrify packages running, so half
+    // a BOLT deck is worth less than half of one.
+    //
+    // The first cut measured 0.0% over 24 matches. Two causes, both "cannot act
+    // early": Canister is 0 DMG at SP 0 and Junker and Slag Tortoise sat at
+    // SP 1, so a fifth of the deck could neither attack nor advance; and the
+    // book opened at cost 4. Fast bodies and a 1-cost spell fixed both. Kept as
+    // BOLT+PYRO because every alternative pairing measured worse, and because
+    // this is the one that leaves LEAF+BORE and GALE+DAWN intact.
+    cards: [
+      "bolt_stingray", "bolt_electricel", "bolt_ning", "bolt_storm", "bolt_surge",
+      "bolt_shoksa", "bolt_thundercat", "bolt_kore", "bolt_havoc", "pyro_sparky",
+      "pyro_flamehound", "pyro_taper", "pyro_dyna", "pyro_spitfire", "pyro_sarra",
+      "pyro_fenix", "pyro_scully", "pyro_burnout",
+    ],
+    // A cheap SPELL matters as much as a cheap body. The first cut of this book
+    // opened at cost 4; every other list here carries a 1-cost spell, and that
+    // difference was most of the 0% below.
+    spells: ["pyro_spark", "pyro_ember_trap", "bolt_overload_field", "pyro_firewall", "bolt_power_grid"],
+  },
+  {
+    id: "pre_deeproot_ambush",
+    name: "Deeproot Ambush",
+    note: "LEAF + BORE — roots you to the spot, then bites what can no longer move.",
+    premade: true,
+    boardSize: 4,
+    // Snapmaw + Kobra: the two halves of the same trick. LEAF pins something
+    // (ROOT), BORE puts it under (SLEEP), and both legends are paid double for
+    // hitting a target in that state — Devour reaches any ROOTed card on the
+    // board, Ambush Coil doubles into anything asleep.
+    cards: [
+      "leaf_stickviper", "leaf_oak", "leaf_python", "leaf_gecko", "leaf_hunter",
+      "leaf_sumerose", "leaf_citra", "leaf_snapmaw", "leaf_season", "bore_cavedweller",
+      "bore_thorny_ripper", "bore_old_timer", "bore_ankylosaur", "bore_rock", "bore_krysteel",
+      "bore_bolder", "bore_kobra", "bore_bastion",
+    ],
+    spells: ["leaf_snare", "leaf_thorn_patch", "bore_sand_trap", "leaf_withering_grasp", "bore_tremor"],
+  },
+  {
+    id: "pre_skydream",
+    name: "Skydream",
+    note: "GALE + DAWN — drags you out of position, then lights up whatever is left standing.",
+    premade: true,
+    boardSize: 4,
+    // Dreamcatcher + Lassos — the displacement deck. Both legends move you
+    // somewhere you did not choose, and everything else is built to punish a
+    // card standing in the wrong square.
+    cards: [
+      "gale_sirocco", "gale_duster", "gale_megair", "gale_whirlwolf", "gale_vaga",
+      "gale_sway", "gale_rayfen", "gale_dreamcatcher", "gale_bluejay", "dawn_beam",
+      "dawn_shine", "dawn_stbern", "dawn_star", "dawn_oxin", "dawn_solstice",
+      "dawn_raya", "dawn_lassos", "dawn_aurelion",
+    ],
+    spells: ["gale_gust", "dawn_sunbeam", "gale_tailwind", "dawn_radiant_barrier", "gale_cyclone"],
+  },
+  {
+    id: "pre_drowned_web",
+    name: "Drowned Web",
+    note: "AQUA + DUSK — pulls you under the surface and fills the water with spiders.",
+    premade: true,
+    boardSize: 4,
+    // Killer Whale + Aranea. The AQUA half drags things under; the DUSK half is
+    // a genuine spider package — Spider, Widowbite, Sarachnid, and Aranea's
+    // Monstrous Spider splitting into two more when it dies.
+    cards: [
+      "aqua_piranha", "aqua_icyninza", "aqua_arctik", "aqua_siphon", "aqua_blackice",
+      "aqua_anos", "aqua_vaporem", "aqua_killerwhale", "aqua_glacius", "dusk_spider",
+      "dusk_harve", "dusk_jackl", "dusk_widowbite", "dusk_zhunk", "dusk_sarachnid",
+      "dusk_violet", "dusk_aranea", "dusk_destro",
+    ],
+    spells: ["aqua_chill", "dusk_chill_touch", "aqua_ice_wall", "dusk_phantom_spikes", "aqua_maelstrom"],
+  },
   {
     id: "pre_sapling_creek",
     name: "Sapling Creek",
@@ -808,6 +914,78 @@ const LARGE_DECKS: PremadeDeck[] = [
       "dusk_gool", "dusk_scarlett", "dusk_skeleton_knight", "leaf_birch", "pyro_ingit",
     ],
     spells: ["pyro_ember_trap", "dusk_chill_touch", "dusk_bone_snare", "dusk_wake_of_the_dead", "leaf_bramble_wall", "leaf_thorn_patch", "pyro_ashfall", "dusk_grave_pit"],
+  },
+  {
+    id: "pre_scrapyard_reactor_5",
+    name: "Scrapyard Reactor",
+    note: "BOLT + PYRO — machines that punish contact. Everything you touch bites back.",
+    premade: true,
+    boardSize: 5,
+    // The large cut trades none of that — it just has room for the second
+    // rank of machines, and for Voltogon and Magmadon behind them.
+    cards: [
+      "bolt_junker", "bolt_rodd", "bolt_jolt", "bolt_scrapper", "bolt_ning",
+      "bolt_buzz", "bolt_storm", "bolt_surge", "bolt_striik", "bolt_shoksa",
+      "bolt_volta", "bolt_kore", "bolt_shock", "bolt_havoc", "bolt_voltogon",
+      "pyro_canister", "pyro_sparky", "pyro_heatsink_golem", "pyro_firecrack", "pyro_taper",
+      "pyro_slag_tortoise", "pyro_wick", "pyro_scorch", "pyro_fenix", "pyro_sarra",
+      "pyro_scully", "pyro_twins", "pyro_magmaw", "pyro_burnout", "pyro_magmadon",
+    ],
+    spells: ["bolt_overload_field", "pyro_firewall", "pyro_heatwave", "bolt_power_grid", "pyro_inferno_pit", "pyro_spark", "bolt_lightning_storm", "pyro_ember_trap"],
+  },
+  {
+    id: "pre_deeproot_ambush_5",
+    name: "Deeproot Ambush",
+    note: "LEAF + BORE — roots you to the spot, then bites what can no longer move.",
+    premade: true,
+    boardSize: 5,
+    // Thirty cards is where the lock actually closes: more roots, more bodies
+    // to hold the line while they take hold, and Warden behind it.
+    cards: [
+      "leaf_stickviper", "leaf_weeds", "leaf_oak", "leaf_python", "leaf_sticks",
+      "leaf_gecko", "leaf_hunter", "leaf_walking_tree", "leaf_sumerose", "leaf_darth",
+      "leaf_citra", "leaf_whintey", "leaf_snapmaw", "leaf_season", "leaf_warden",
+      "bore_cavedweller", "bore_iron", "bore_thorny_ripper", "bore_old_timer", "bore_rockgoblin",
+      "bore_ankylosaur", "bore_rock", "bore_stone", "bore_krysteel", "bore_rhe",
+      "bore_bolder", "bore_shift", "bore_diam", "bore_kobra", "bore_bastion",
+    ],
+    spells: ["leaf_snare", "leaf_thorn_patch", "bore_sand_trap", "leaf_withering_grasp", "bore_tremor", "leaf_overgrowth", "bore_bulwark", "leaf_bloodroot_surge"],
+  },
+  {
+    id: "pre_skydream_5",
+    name: "Skydream",
+    note: "GALE + DAWN — drags you out of position, then lights up whatever is left standing.",
+    premade: true,
+    boardSize: 5,
+    // On the big board displacement is worth more, because there is further to
+    // be moved and longer to spend getting back.
+    cards: [
+      "gale_sirocco", "gale_hawko", "gale_duster", "gale_megair", "gale_breeze",
+      "gale_whirlwolf", "gale_windsor", "gale_klouy", "gale_vaga", "gale_sway",
+      "gale_masala", "gale_rayfen", "gale_wista", "gale_dreamcatcher", "gale_bluejay",
+      "dawn_beam", "dawn_roy", "dawn_shine", "dawn_stbern", "dawn_glime",
+      "dawn_star", "dawn_oxin", "dawn_goldeneagle", "dawn_solstice", "dawn_raya",
+      "dawn_ty", "dawn_halo", "dawn_warphant", "dawn_lassos", "dawn_aurelion",
+    ],
+    spells: ["gale_gust", "dawn_sunbeam", "gale_tailwind", "dawn_radiant_barrier", "gale_cyclone", "dawn_solar_flare", "gale_jetstream", "dawn_dawns_grace"],
+  },
+  {
+    id: "pre_drowned_web_5",
+    name: "Drowned Web",
+    note: "AQUA + DUSK — pulls you under the surface and fills the water with spiders.",
+    premade: true,
+    boardSize: 5,
+    // More water and more web. Glacius and Nightfang cap it, and the swarm has
+    // the squares to actually spread across.
+    cards: [
+      "aqua_piranha", "aqua_subcool", "aqua_icyninza", "aqua_arctik", "aqua_harp",
+      "aqua_siphon", "aqua_blackice", "aqua_icynin", "aqua_anos", "aqua_cryo",
+      "aqua_vaporem", "aqua_icewall", "aqua_driftwraith", "aqua_killerwhale", "aqua_glacius",
+      "dusk_spider", "dusk_pumpkin", "dusk_harve", "dusk_jackl", "dusk_doom",
+      "dusk_widowbite", "dusk_zhunk", "dusk_hix", "dusk_sarachnid", "dusk_ghastly",
+      "dusk_violet", "dusk_ender", "dusk_aranea", "dusk_destro", "dusk_nightfang",
+    ],
+    spells: ["aqua_chill", "dusk_chill_touch", "aqua_ice_wall", "dusk_phantom_spikes", "aqua_maelstrom", "dusk_veil_of_shadows", "aqua_downpour", "dusk_grave_pit"],
   },
   {
     id: "pre_sapling_creek_5",

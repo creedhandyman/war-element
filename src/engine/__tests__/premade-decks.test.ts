@@ -50,12 +50,24 @@ describe("premade decks", () => {
 
 describe("board-sized premade builds", () => {
   it("offers the same decks on both battlefields, and only those", () => {
-    // Six hand-tuned originals (four dual-element, two three-element) plus the
-    // twelve-deck matchmaker ladder. Derived rather than restated: the point of
-    // the assertion is that the two boards offer the SAME set, which a literal
-    // count stops testing the moment someone adds a deck.
+    // Hand-tuned archetypes plus the matchmaker ladder. The count used to read
+    // `6 + tiersFor(4).length * 4` and its own comment claimed to be derived —
+    // the `6` was not, so adding a deck failed this test on a number rather
+    // than on anything true, which is what a literal total is worth.
+    //
+    // The STRUCTURE is what matters and is what is asserted now: every standard
+    // deck is either untiered or on a real rung, each rung holds exactly four,
+    // and the archetypes are still there. Adding an archetype is legal; adding
+    // a fifth deck to a rung is not, and that is the failure worth catching.
     const standard = PREMADE_DECKS.filter((d) => d.boardSize === 4);
-    expect(standard).toHaveLength(6 + tiersFor(4).length * 4);
+    const byTier = new Map<string, number>();
+    for (const d of standard) byTier.set(d.tier ?? "-", (byTier.get(d.tier ?? "-") ?? 0) + 1);
+    for (const tier of tiersFor(4)) expect(byTier.get(tier), `${tier} rung`).toBe(4);
+    expect(
+      [...byTier.keys()].filter((k) => k !== "-").sort(),
+      "a deck on a rung that is not a rung",
+    ).toEqual([...tiersFor(4)].sort());
+    expect(byTier.get("-") ?? 0, "hand-tuned archetypes").toBeGreaterThanOrEqual(6);
     expect(premadeDecksFor(4)).toHaveLength(standard.length);
     // Symmetric again. Elite shipped 5x5-only and was the one deliberate
     // asymmetry here; it has a standard-board cut now, so both pickers offer
