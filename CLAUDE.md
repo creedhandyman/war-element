@@ -941,6 +941,17 @@ soft band — Xilty is 82 on purpose). A test asserts a boss is acquirable
 NOWHERE; keep it green when adding acquisition paths. Art is currently ALIASED
 to existing webps via the `art` field — placeholders until boss art lands.
 
+**EVERY BOSS SPECIAL IS ON A CLOCK** — `roundTick.fireSpecialEveryN: 3`: free,
+automatic, at Cleanup, and `canFireSpecial` REFUSES the ordinary cast for any
+card carrying it, so the clock is the only way it fires. A puzzle needs a threat
+you can count; left on the ordinary path the same Special lands whenever the AI
+could afford the magic, which is a different fight on every retry. MUTE and the
+action-blocking statuses still stop it, which is what keeps silencing a boss a
+real answer. Boss specials therefore print NO `cooldown` (dead config beside a
+Special you cannot hand-cast) — and the "board-wide mythic nuke prints a
+cooldown" rule in passives.test.ts now accepts a clock of 3+ as the stricter
+equivalent, rather than exempting boss ids.
+
 **No random percentages** — a puzzle is solved once and then executed
 (`chanceProblems` is the rule as code; a test sweeps every boss def). The
 deterministic replacements are reusable CardDef fields any card may carry:

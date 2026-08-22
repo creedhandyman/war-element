@@ -9722,6 +9722,14 @@ export const CARDS: CardDef[] = [
   // bodies answer the Void Tower floor cap (80 +5 at Floor 1), not the cost
   // curve; `cost: 12` is the summon budget worn as a badge, never paid.
   //
+  // EVERY BOSS'S SPECIAL IS ON A CLOCK — free, automatic, every 3 rounds, and
+  // it never casts any other way (`roundTick.fireSpecialEveryN`, gated in
+  // canFireSpecial). A puzzle needs a threat you can COUNT: left on the
+  // ordinary path the same Special lands whenever the AI could afford it, which
+  // is a different fight on every retry. Three is the doc's own number for
+  // Xilty — "one guaranteed clean round in three, so a combo can be banked for
+  // the window" — and what was right for the lock is right for all of them.
+  //
   // NO RANDOM PERCENTAGES, and it is testable: no chance/statusChance/EVASION/
   // CRIT-coin field appears on any boss def. Where the design doc rolled dice
   // (50% revive, 55% evasion, 55% crit) these use the deterministic forms
@@ -9751,10 +9759,11 @@ export const CARDS: CardDef[] = [
     // down. The answer is to ignore the board and reach Rotroot behind it.
     passiveNames: { allyRevive: "Undead Resilience" },
     allyRevive: { tribe: "Zombie", healFraction: 0.5 },
+    // The clock: its Special fires itself every 3 rounds, free.
+    roundTick: { fireSpecialEveryN: 3 },
     special: {
       name: "Rotten Grasp",
       cost: 3,
-      cooldown: 2,
       handler: "barrage",
       // reach 2 = the widened melee square, Kraken's Black Wave Crash precedent.
       params: { dmg: 7, targets: 99, reach: 2, statusKind: "ROOT", statusDuration: 2 },
@@ -9783,14 +9792,13 @@ export const CARDS: CardDef[] = [
     // moves predictably: clear out of it while the Skeletons press forward.
     // The doc's random sidestep is gone on purpose — same threat, now solvable.
     passiveNames: { roundTick: "Swiftshooter" },
-    roundTick: { shiftLateral: 1 },
+    roundTick: { fireSpecialEveryN: 3, shiftLateral: 1 },
     // `critPen` is what lets the guaranteed CRIT below fire through shields —
     // the printed "10 DMG (PEN)" is a crit that pierces, not a pen that crits.
     critPen: true,
     special: {
       name: "Piercing Arrow",
       cost: 3,
-      cooldown: 2,
       handler: "barrage",
       params: { dmg: 10, targets: 99, sameColumn: 1, crit: 1, critAlways: 1 },
       targetSide: "enemy",
@@ -9824,11 +9832,10 @@ export const CARDS: CardDef[] = [
     // get locked, or kite and its Special never fires. Advancing forces the
     // engagement (straight up its column; the doc's "toward the nearest
     // opponent" simplifies to this, and the telegraph is better for it).
-    roundTick: { advance: 1 },
+    roundTick: { fireSpecialEveryN: 3, advance: 1 },
     special: {
       name: "Web Trap",
       cost: 3,
-      cooldown: 3,
       handler: "statusNova",
       params: { statusKind: "PARALYZE", statusDuration: 2, targets: 99 },
       targetSide: "enemy",
@@ -9855,10 +9862,11 @@ export const CARDS: CardDef[] = [
     // every cast: crack it with PEN and shield-strips, or go around and take
     // the slots it is too slow to defend. Tribe from AQUA (Ice), mechanic from
     // BORE (the armour) — the doc's Cavernous pick could not spend 12 Gold.
+    // The clock: its Special fires itself every 3 rounds, free.
+    roundTick: { fireSpecialEveryN: 3 },
     special: {
       name: "Whiteout",
       cost: 3,
-      cooldown: 2,
       handler: "polarShift",
       params: { underHp: 6, freeze: 2, allyShield: 2 },
       targetSide: "enemy",
@@ -9890,10 +9898,11 @@ export const CARDS: CardDef[] = [
     // which is exactly what a dynamo at the head of a machine tide should do.
     passiveNames: { onHitStatus: "Sparks Catch" },
     onHitStatus: { kind: "BURN", duration: 2, power: 2 },
+    // The clock: its Special fires itself every 3 rounds, free.
+    roundTick: { fireSpecialEveryN: 3 },
     special: {
       name: "Production Run",
       cost: 3,
-      cooldown: 2,
       handler: "spawn",
       params: { token: "bolt_drone_tok", count: 2 },
       targetSide: "self",
@@ -9923,10 +9932,11 @@ export const CARDS: CardDef[] = [
     // where a 55% EVASION would just be a coin.
     passiveNames: { firstAttackMisses: "Between Wingbeats" },
     firstAttackMisses: true,
+    // The clock: its Special fires itself every 3 rounds, free.
+    roundTick: { fireSpecialEveryN: 3 },
     special: {
       name: "Death From Above",
       cost: 3,
-      cooldown: 2,
       handler: "barrage",
       params: { dmg: 8, targets: 2 },
       targetSide: "enemy",
@@ -9953,10 +9963,11 @@ export const CARDS: CardDef[] = [
     // the Special: every round you fail to close, it is further ahead. Out-heal
     // it, out-burst it, or race the capture win — waiting is the one wrong
     // answer, which is the lesson this fight exists to teach.
+    // The clock: its Special fires itself every 3 rounds, free.
+    roundTick: { fireSpecialEveryN: 3 },
     special: {
       name: "Wither Coil",
       cost: 3,
-      cooldown: 2,
       handler: "barrage",
       params: { dmg: 5, targets: 3, drain: 2 },
       targetSide: "enemy",

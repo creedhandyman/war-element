@@ -319,6 +319,20 @@ export interface RoundTickDef {
   /** Seed Roll (Acorn token): roll forward N rows toward the enemy home each
    *  round, stopping at the first occupied/captured slot or the board edge. */
   advance?: number;
+  /** THE BOSS CLOCK: fire this card's Special FREE every N rounds, at Cleanup.
+   *
+   *  It is a clock rather than a discount, and that is the whole point — a Void
+   *  Tower fight is a puzzle, and a puzzle needs a threat you can COUNT. Left to
+   *  the ordinary path the same Special lands whenever the AI happens to be able
+   *  to afford it, which is a different fight every time you retry and nothing a
+   *  player can plan around.
+   *
+   *  A card carrying this cannot cast that Special the ordinary way at all (see
+   *  `canFireSpecial`): the clock is the only way it fires, so what you count is
+   *  what you get. It also never misses a beat for lack of magic — free means
+   *  free — though MUTE and the action-blocking statuses still stop it, which is
+   *  what keeps silencing a boss a real answer. */
+  fireSpecialEveryN?: number;
   /** Swiftshooter (Skeleeze): slide one slot along the OWN home row each
    *  Cleanup, wrapping — to the NEXT OPEN slot, staying put when the row is
    *  full. Only fires while the card is standing in its home row: a boss that

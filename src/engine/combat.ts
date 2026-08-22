@@ -1612,7 +1612,7 @@ const autoFiring = new Set<string>();
 /** Fire a card's OWN Special for free (no magic cost, no targeting UI) — used by
  *  passives that auto-cast (Voltcher's High Voltage Sentry, Highroller's Jackpot,
  *  FireFly's BlastOff). */
-function fireCardSpecial(draft: GameState, card: CardInstance): void {
+export function fireCardSpecial(draft: GameState, card: CardInstance): void {
   const sp = getDef(card.defId).special;
   if (!sp) return;
   if (autoFiring.has(card.instanceId)) return; // re-entrancy guard (BlastOff)

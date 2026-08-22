@@ -18,6 +18,8 @@ import { EVENTS } from "../../data/events";
 import { canCraft, newSave, openPack } from "../../data/story";
 import { advance } from "../phases";
 import { SPECIAL_HANDLERS, applyStatus, basicAttack } from "../combat";
+import { canFireSpecial } from "../rules";
+import { boardCards } from "../state";
 import { createInitialState, summonCard } from "../state";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
 
@@ -254,6 +256,99 @@ describe("the trials", () => {
     // would mean Floor 1 is unbeatable by the deck it must be beatable with.
     expect(bossWins, "bosses win some").toBeGreaterThan(0);
     expect(bossWins, "and lose some").toBeLessThan(21);
+  });
+});
+
+describe("the boss clock", () => {
+  // A puzzle needs a threat you can COUNT. These pin the three halves of that
+  // promise: it lands on the beat, it costs nothing, and it is the ONLY way
+  // the Special ever fires — a boss that also cast whenever it could afford
+  // the magic would be a different fight on every retry.
+
+  it("every boss is on a 3-round clock", () => {
+    for (const b of BOSSES) {
+      expect(b.roundTick?.fireSpecialEveryN, `${b.id}`).toBe(3);
+      expect(b.special, `${b.id} has a Special to fire`).toBeTruthy();
+    }
+  });
+
+  it("no boss Special declares a cooldown — the clock owns the timing", () => {
+    // Dead config otherwise, and worse than dead: a cooldown printed beside a
+    // Special that cannot be cast by hand reads as a second, contradictory
+    // schedule.
+    for (const b of BOSSES) expect(b.special?.cooldown, `${b.id}`).toBeUndefined();
+  });
+
+  it("fires on rounds 3, 6, 9 — and on no other round", () => {
+    const s = prepState();
+    const boss = place(s, "boss_rotroot", "P2", 0, 2);
+    place(s, "leaf_alpha", "P1", 1, 2, { curHp: 999, maxHp: 999, curShields: 0 });
+    const fired: number[] = [];
+    let g = s;
+    for (let round = 1; round <= 9; round++) {
+      g.round = round;
+      const before = g.log.length;
+      g = advance(atCleanup(g));
+      if (g.log.slice(before).some((l) => l.includes("Rotten Grasp"))) fired.push(round);
+      // `advance` moves the phase on; re-seat for the next Cleanup.
+      g.cards[boss.instanceId].specialCooldown = 0;
+    }
+    expect(fired).toEqual([3, 6, 9]);
+  });
+
+  it("costs the boss nothing — an empty magic pool still fires it", () => {
+    const s = prepState();
+    s.players.P2.magicPool = 0;
+    const boss = place(s, "boss_rotroot", "P2", 0, 2);
+    const prey = place(s, "leaf_alpha", "P1", 1, 2, { curHp: 999, maxHp: 999, curShields: 0 });
+    s.round = 3;
+    const n = advance(atCleanup(s));
+    expect(n.players.P2.magicPool, "not a penny spent").toBe(0);
+    expect(n.cards[prey.instanceId].curHp, "and it still landed").toBeLessThan(999);
+    void boss;
+  });
+
+  it("is the ONLY way it fires — the ordinary cast is refused outright", () => {
+    // With magic to burn and no cooldown, a normal card would be free to cast.
+    const s = prepState();
+    s.players.P2.magicPool = 99;
+    const boss = place(s, "boss_rotroot", "P2", 0, 2);
+    place(s, "leaf_alpha", "P1", 1, 2, { curHp: 999, maxHp: 999, curShields: 0 });
+    boss.specialCooldown = 0;
+    const r = canFireSpecial(s, boss.instanceId);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toContain("clock");
+  });
+
+  it("MUTE stops the clock — silencing a boss is a real answer", () => {
+    const s = prepState();
+    const boss = place(s, "boss_rotroot", "P2", 0, 2);
+    const prey = place(s, "leaf_alpha", "P1", 1, 2, { curHp: 999, maxHp: 999, curShields: 0 });
+    applyStatus(s, boss, "MUTED", 3, 0, "DUSK");
+    s.round = 3;
+    const n = advance(atCleanup(s));
+    expect(n.cards[prey.instanceId].curHp, "the beat was skipped").toBe(999);
+  });
+
+  it("a dead boss does not cast", () => {
+    const s = prepState();
+    const boss = place(s, "boss_rotroot", "P2", 0, 2, { curHp: 0 });
+    const prey = place(s, "leaf_alpha", "P1", 1, 2, { curHp: 999, maxHp: 999, curShields: 0 });
+    s.round = 3;
+    const n = advance(atCleanup(s));
+    expect(n.cards[prey.instanceId].curHp).toBe(999);
+    void boss;
+  });
+
+  it("a self-targeted Special still works on the clock (Overclock spawns)", () => {
+    // `fireCardSpecial` picks targets by targetSide; calling the handler raw
+    // would hand a self-targeted spawn an enemy list and quietly do nothing.
+    const s = prepState();
+    place(s, "boss_overclock", "P2", 0, 2);
+    const before = boardCards(s, "P2").length;
+    s.round = 3;
+    const n = advance(atCleanup(s));
+    expect(boardCards(n, "P2").length, "Drones stamped out").toBeGreaterThan(before);
   });
 });
 

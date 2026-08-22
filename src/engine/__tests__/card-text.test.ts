@@ -45,7 +45,7 @@ const ROUND_TICK_KEYS = [
   "pokeParalyzedDmg", "aoeParalyzedDmg", "rootedDmg", "roundHealElement",
   "spawn", "aoeElectrifiedDmg", "selfHpCost", "spawnTriggerAt", "enemyHomeRowStatus",
   "spawnMaxAlive", "healHomeRow", "healHomeRowElement", "allyInRangeShields", "randomEnemyStatus",
-  "shiftLateral",
+  "shiftLateral", "fireSpecialEveryN",
   // Absent from this list is how Blackout's Power Grid and Magmadon's Scorched
   // Fury stayed invisible: the roundTick check only walks the keys named here,
   // so an effect nobody added was an effect nobody checked.

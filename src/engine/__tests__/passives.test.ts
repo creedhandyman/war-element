@@ -3653,10 +3653,20 @@ describe("balance pass: reach, payloads and lockouts", () => {
       "dusk_skullking", // its board-wide Special deals no damage at all
       "bore_the_coreborer", // hits one column, not the board
     ]);
+    // A CLOCK counts as a printed schedule, and a stricter one. Void Tower
+    // bosses cannot cast by hand at all (`canFireSpecial` refuses them), so
+    // `fireSpecialEveryN` is not "a cooldown they might beat" — it is exactly
+    // how often the Special can ever land. Held to Kraken's printed 3, so the
+    // exemption cannot be used to smuggle in a faster board-wide nuke.
+    const CLOCK_FLOOR = 3;
     const offenders = CARDS.filter((d) => {
       if (d.rarity !== "mythic" || !d.special || EXEMPT.has(d.id)) return false;
       const p = d.special.params ?? {};
-      return Number(p.targets ?? 0) >= 99 && Number(p.dmg ?? 0) > 0 && d.special.cooldown == null;
+      const boardWideNuke = Number(p.targets ?? 0) >= 99 && Number(p.dmg ?? 0) > 0;
+      if (!boardWideNuke) return false;
+      const clock = d.roundTick?.fireSpecialEveryN ?? 0;
+      if (clock >= CLOCK_FLOOR) return false;
+      return d.special.cooldown == null;
     }).map((d) => d.id);
     expect(offenders, `board-wide mythic nuke on the default lockout: ${offenders.join(", ")}`).toEqual([]);
   });

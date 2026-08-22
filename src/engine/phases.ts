@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { applyFlow, ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
-import { applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
+import { applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin, randInt } from "./rng";
@@ -2086,6 +2086,23 @@ function doRoundTicks(draft: GameState): void {
         rolled++;
       }
       if (rolled > 0) draft.log.push(`${label(draft, card)} rolls forward ${rolled} slot(s).`);
+    }
+
+    // THE BOSS CLOCK: the Special fires itself, free, on the beat. Placed
+    // FIRST among the ticks so a boss that is about to slide or advance casts
+    // from where the player last saw it — the telegraph is the position you
+    // read on your turn, not the one it moves to afterwards.
+    //
+    // `fireCardSpecial` rather than calling the handler raw: it picks targets
+    // by `targetSide` (Overclock's spawn is self-targeted, Permafrost's is
+    // board-wide) and carries the re-entrancy guard. Blocked by MUTE and the
+    // action-stopping statuses, deliberately — silencing a boss is one of the
+    // answers these puzzles are built to reward.
+    if (rt.fireSpecialEveryN && card.curHp > 0 && getDef(card.defId).special
+        && draft.round % rt.fireSpecialEveryN === 0
+        && !hasStatus(card, "MUTED") && !isActionBlocked(card)) {
+      draft.log.push(`${label(draft, card)} — ${getDef(card.defId).special!.name} comes round again.`);
+      fireCardSpecial(draft, card);
     }
 
     // Swiftshooter (shiftLateral): slide along the OWN home row, wrapping to

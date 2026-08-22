@@ -824,6 +824,12 @@ export function canFireSpecial(
   // A free Special (Volcanon's On-Kill recast) ignores cooldown + magic cost.
   if (!card.freeSpecial && !def.special.talent && card.specialCooldown > 0)
     return { ok: false, reason: `Special is recharging (${card.specialCooldown} more round${card.specialCooldown === 1 ? "" : "s"})` };
+  // THE BOSS CLOCK owns this Special outright. Without this the AI would also
+  // cast it whenever it could afford the magic, and a threat that lands on a
+  // countable beat AND at unpredictable extra moments is not a countable beat —
+  // every Void Tower puzzle is built on the player being able to plan around it.
+  if (getDef(card.defId).roundTick?.fireSpecialEveryN)
+    return { ok: false, reason: "Fires on its own clock" };
   if (hasStatus(card, "MUTED")) return { ok: false, reason: "MUTED" };
   if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
   if (!card.freeSpecial && !def.special.talent && state.players[card.owner].magicPool < effectiveSpecialCost(state, card, def.special.cost))

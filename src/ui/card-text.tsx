@@ -370,6 +370,13 @@ export function describePassives(def: CardDef): string[] {
       t.selfBurnForDmg &&
         `burn ${t.selfBurnForDmg.hp} of its own HP to hit +${t.selfBurnForDmg.dmg} harder next round`,
     ].filter(Boolean);
+    // Its own line for the same reason buffDmgEveryN has one: "Each round:
+    // every 3 rounds…" reads as a contradiction. Leads with the count, because
+    // the count is the thing the player is being asked to hold on to.
+    if (t.fireSpecialEveryN)
+      namedAny(["fireSpecialEveryN", "roundTick"],
+        `Every ${t.fireSpecialEveryN} rounds: casts ${def.special?.name ?? "its Special"} automatically and free. It never casts any other way.`,
+      );
     // Not an every-round effect, so it gets its own line — "Each round: every 3
     // rounds…" reads as a contradiction.
     if (t.buffDmgEveryN)
