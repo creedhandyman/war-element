@@ -2924,7 +2924,23 @@ function doCleanupPhase(draft: GameState): void {
 
   // 5. Capture by survival: an enemy card still standing on a home slot at
   //    Cleanup captures it permanently.
-  for (const player of ["P1", "P2"] as PlayerId[]) {
+  //
+  //    NOT IN A VOID TOWER FIGHT, and this half is as load-bearing as turning
+  //    off the capture WIN below. Taking the win condition away while leaving
+  //    the mechanic running produced the worst state in the game: the boss
+  //    walked its brood onto all five of the player's home slots and locked
+  //    them permanently, so the player could never summon again — "Home row
+  //    full", a hand they cannot play, and no win condition left to end it.
+  //    Not losing; unable to continue, for thirty more rounds until the clock
+  //    ran out. A capture that cannot win the game has no business being
+  //    permanent.
+  //
+  //    Bodies can still STAND on a home row and block the slot they occupy —
+  //    that is ordinary board presence and killing the invader frees it again.
+  //    What is gone is the permanent lock, in both directions: the player
+  //    cannot padlock the boss's summoning row either, because the fight is
+  //    supposed to be decided by reaching the boss, not by walling it in.
+  if (!draft.voidTower) for (const player of ["P1", "P2"] as PlayerId[]) {
     const row = homeRow(player, draft.boardSize);
     for (let col = 0; col < draft.boardSize; col++) {
       if (draft.slots[row][col].capturedBy) continue;

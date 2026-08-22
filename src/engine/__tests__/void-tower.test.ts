@@ -307,6 +307,40 @@ describe("slay the boss to win", () => {
     expect(n.win).toEqual({ winner: "P1", by: "slain" });
   });
 
+  it("a boss standing on your home row does NOT padlock it", () => {
+    // THE SOFTLOCK. Taking the capture WIN away while leaving the capture
+    // MECHANIC running produced the worst state the game can reach: the boss
+    // walked its brood onto all five home slots, locked them permanently, and
+    // the player could never summon again — a full hand, "Home row full", and
+    // no win condition left to end it. Not losing. Unable to continue, for
+    // thirty more rounds until the clock ran out.
+    const { s } = bossFight("boss_overclock");
+    for (let col = 0; col < s.boardSize; col++) place(s, "bolt_zipp", "P2", 3, col);
+    const n = advance(atCleanup(s));
+    for (let col = 0; col < n.boardSize; col++) {
+      expect(n.slots[3][col].capturedBy, `home slot ${col}`).toBeNull();
+    }
+  });
+
+  it("...and neither does the player on the boss's row — it cuts both ways", () => {
+    const s = prepState();
+    s.voidTower = true;
+    place(s, "boss_rotroot", "P2", 1, 2);
+    for (let col = 0; col < s.boardSize; col++) place(s, "leaf_alpha", "P1", 0, col);
+    const n = advance(atCleanup(s));
+    for (let col = 0; col < n.boardSize; col++) {
+      expect(n.slots[0][col].capturedBy, `boss home slot ${col}`).toBeNull();
+    }
+  });
+
+  it("an ORDINARY match still padlocks — the reprieve is scoped to the flag", () => {
+    const s = prepState();
+    place(s, "leaf_alpha", "P1", 2, 0);
+    place(s, "bolt_zipp", "P2", 3, 0);
+    const n = advance(atCleanup(s));
+    expect(n.slots[3][0].capturedBy).toBe("P2");
+  });
+
   it("the slot race is OFF — a boss holding every home slot has not won", () => {
     const { s } = bossFight("boss_overclock");
     // Fill P1's home row with the boss's side: an ordinary match ends here.
