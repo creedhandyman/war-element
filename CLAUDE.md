@@ -346,22 +346,47 @@ which matters at 5,600 matches.
 Harness above, verbatim. 5,600 matches, n=1,400 per element, ±2.6 at 95%:
 
 ```
-dawn 57.2 · bolt 57.1 · gale 52.5 · leaf 50.4
-bore 48.8 · pyro 45.9 · dusk 45.6 · aqua 42.4     spread 14.8
+bolt 57.8 · dawn 56.0 · gale 52.6 · leaf 49.7
+bore 48.4 · pyro 45.5 · aqua 45.1 · dusk 44.8     spread 13.0
 ```
 
-Measured after the eight legends, eleven recosts and the Discharge restriction.
-The reading BEFORE that restriction was `bolt 59.4 · dawn 56.4 · gale 52.0 ·
-leaf 50.1 · bore 48.6 · pyro 45.9 · dusk 45.1 · aqua 42.5`, spread 16.9 — BOLT
-had taken the top and the spread had opened 2.3 points. Narrowing Discharge to
-ARC's mythic and legendary put BOLT back at 57.1 and the spread back to 14.8.
+Measured after permanent Flow Change, Polar King back to 6, Havoc ranged at
+85%, Surge's stored shot and Kobra's recost. Previous reading, same harness:
+`dawn 57.2 · bolt 57.1 · gale 52.5 · leaf 50.4 · bore 48.8 · pyro 45.9 · dusk
+45.6 · aqua 42.4`, spread 14.8.
 
-**AQUA is the floor and has been drifting down** (44.1 → 42.5 → 42.4). An
-ablation with a control group (n=392, ±5) put Killer Whale at +9.2 when cut
-against peers at +4.8/+5.4/+7.1 — the largest positive anywhere, meaning AQUA
-measured BETTER without it, though the gap over the peer mean is inside the
-noise band. Both AQUA cards recost UPWARD the same day (Killer Whale 6→7,
-Glacius 7→8). Worth a look before anything else in the table.
+**±2.6 IS THE BAND ON ONE READING, NOT ON A DIFFERENCE.** Two independent
+readings each carrying ±2.6 give a difference carrying ~±3.7 (√2 wider). The
+seeds are identical run to run, so the comparison is PAIRED and the true figure
+is somewhere below that — but it is not ±2.6, and treating it as such promotes
+noise to a finding. Only AQUA's +2.7 comes near either threshold; every other
+element moved less than 1.3.
+
+**AQUA came off the floor: 42.4 → 45.1**, the largest move in the table and the
+one the changes were aimed at (permanent Flow Change, Polar King a gold
+cheaper). It had been drifting down for three readings (44.1 → 42.5 → 42.4) and
+sat 3.2 points clear of the field in last place; it is now inside a three-way
+bottom cluster spanning 0.7 (dusk 44.8 · aqua 45.1 · pyro 45.5) that no single
+run can rank. Directionally right and the biggest mover, but +2.7 against the
+caveat above is suggestive, not settled — confirm on the next reading before
+treating AQUA as fixed.
+
+**DUSK is nominally the new floor at 44.8** — do not act on that. It moved −0.8,
+which is nothing; it is last because AQUA rose, not because DUSK fell. A
+round-robin sums to 50, so one element rising necessarily pushes the rest down,
+and five of the other seven drifted down between 0.4 and 1.2 for exactly that
+reason. There is no DUSK finding here.
+
+**BOLT did not measurably rise from Havoc going ranged and Surge's stored
+shot** — 57.1 → 57.8, well inside noise. That risk was flagged before the
+measurement and did not materialise; the accuracy cost (Havoc misses 15% of its
+basics) appears to have paid for the reach. BOLT is now nominally above DAWN
+(57.8 vs 56.0), which matters only because **DAWN leads BY CHOICE** (see below)
+— both moves are individually inside noise, so the swap may be an artifact of a
+single run rather than a real change of order.
+
+The spread narrowed 14.8 → 13.0. That is the cleanest signal in the run because
+it aggregates across all eight elements rather than resting on one.
 
 **DAWN leads BY CHOICE.** It is the campaign's final region and the owner wants
 it to read as the final boss — a knock-down was implemented (a relative +5 SP
@@ -373,6 +398,10 @@ same tier).
 
 **How it got here from 10.9**, most recent first, each measured at the time:
 
+- The AQUA pass (permanent Flow Change + Polar King back to 6) alongside Havoc
+  ranged / Surge's shot / Kobra's recost: AQUA +2.7, spread 14.8 → 13.0. The
+  only element to move more than 1.3, and the smallest spread on record since
+  the AI income fix re-priced the table.
 - ARC's Discharge tribe passive: BOLT +2.0.
 - GALE hands back its Tailwind lift (6→5→6, +4.7 each way) and Scorch persists
   a round: GALE −3.3, PYRO +3.0, and DAWN inherited the crown — a round-robin
