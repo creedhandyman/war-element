@@ -35,15 +35,35 @@ describe("the eight legends are on the board", () => {
     for (const id of IDS) expect(getDef(id).rarity, id).toBe("legendary");
   });
 
-  it("every stat line sits on the cost budget — except the one that buys a body", () => {
+  it("every stat line sits on the cost budget — except the ones that buy a body", () => {
     // state.test.ts already sweeps CARDS for this; stated again here so a tweak
     // to one of these eight fails in the file that is about them.
+    //
+    // The two skips are the same design, not two separate excuses: both spawn a
+    // REAL card on summon, and both pay for it out of their own stat line. Each
+    // is asserted properly in its own test below rather than merely waved past.
+    const BUYS_A_BODY = new Set(["bolt_havoc", "bore_kobra"]);
     for (const id of IDS) {
-      if (id === "bolt_havoc") continue; // see below
+      if (BUYS_A_BODY.has(id)) continue;
       const d = getDef(id);
       const total = d.dmg * d.hits + d.hp + d.shields * 2 + d.sp;
       expect(Math.abs(total - (5 * d.cost + 10)), `${id}: ${total}`).toBeLessThanOrEqual(2);
     }
+  });
+
+  it("Kobra is under budget BECAUSE it brings the King Cobra", () => {
+    // Computed, not remembered — the equivalent note in state.test.ts warns
+    // that this kind of entry has been silently wrong before, quoting figures
+    // for a card that was actually inside the band.
+    const k = getDef("bore_kobra");
+    const tok = getDef("bore_kingcobra_tok");
+    const body = (d: typeof k) => d.dmg * d.hits + d.hp + d.shields * 2 + d.sp;
+    expect(body(k), "Kobra's own line").toBe(41);
+    expect(5 * k.cost + 10, "the Cost-7 budget it is measured against").toBe(45);
+    expect(body(tok), "and the free snake beside it").toBe(31);
+    // The discount is real but small; the RECOST is what pays for the token.
+    expect(5 * k.cost + 10 - body(k), "four points under").toBe(4);
+    expect(k.summonSpawn?.token).toBe("bore_kingcobra_tok");
   });
 
   it("Havoc is under budget BECAUSE it brings Surge", () => {
@@ -261,7 +281,14 @@ describe("Killer Whale and Kobra hunt what they disable", () => {
     expect(d.cardClass).toBe("Assassin");
     expect(d.keywords.EVASION).toBe(true);
     expect(d.dmg).toBe(10);
-    expect(d.hp).toBe(16);
+    // Cost 7 after the recost, and the HP was TRIMMED rather than raised to the
+    // new ceiling — the extra gold pays for the King Cobra, so handing back a
+    // bigger body as well would be charging for the token twice and delivering
+    // it once. The speed is where the cost went: SP 10 -> 12, so the Assassin
+    // gets to the sleeping target first.
+    expect(d.cost).toBe(7);
+    expect(d.hp).toBe(15);
+    expect(d.sp).toBe(12);
   });
 });
 

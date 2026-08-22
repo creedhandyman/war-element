@@ -902,6 +902,20 @@ export function resolveHit(
       draft.log.push(`${label(draft, attacker)} swings wide, tucked in.`);
       continue;
     }
+    // A standing accuracy penalty printed on the CARD (Havoc's 85%). Rolled per
+    // hit like BLIND, so a multi-hit volley lands some and whiffs others rather
+    // than being all-or-nothing — and it sits below the timed penalties so a
+    // card carrying both rolls both, which is the honest reading of two
+    // separate sources of inaccuracy.
+    if (
+      opts.kind === "basic" && !aDef.alwaysHit && !neverMiss &&
+      (aDef.basicMissPct ?? 0) > 0 && pctChance(draft, aDef.basicMissPct ?? 0)
+    ) {
+      result.dodgedHits++;
+      target.fxMiss = (target.fxMiss ?? 0) + 1;
+      draft.log.push(`${label(draft, attacker)}'s shot goes wide.`);
+      continue;
+    }
 
     // Life Cycle (Aurora): a Light Orb intercepts the hit like a shield, then
     // bursts its effect at the attacker and disappears. One orb per hit.
@@ -1591,6 +1605,15 @@ export function basicAttack(
   if (picks.length === 0) return null;
   const aDef = getDef(attacker.defId);
   attacker.attackedThisRound = true; // STEALTH breaks even on a miss
+  // Spend a pocketed ranged shot. Here rather than on a hit, because the shot
+  // is the ATTEMPT: it was already fired at range by the time anything rolled
+  // to dodge, and refunding a miss would quietly make the grant unlimited
+  // against an evasive target. `fromFollowup` volleys are riders on an attack
+  // that already paid, so they never spend a second one.
+  if (!fromFollowup && (attacker.rangedShotsLeft ?? 0) > 0) {
+    attacker.rangedShotsLeft = (attacker.rangedShotsLeft ?? 0) - 1;
+    draft.log.push(`${label(draft, attacker)} looses its stored charge from range.`);
+  }
 
   // Morning Dew (Vernal): aimed at an ALLY, the basic is a heal for its DMG —
   // no hit roll, no statuses, no riders. Checked before anything else so none of
@@ -3440,6 +3463,16 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   electroSurge(draft, attacker, _targets, _params) {
     const es = getDef(attacker.defId).electroSurge;
     attacker.electroSurgeActive = true;
+    // The stored charge has to go somewhere. Casting is this round's whole
+    // action, so the shot is necessarily thrown on a LATER round — "one ranged
+    // attack on the next turn" falls out of that without a round counter.
+    // Set, not added: re-arming early does not stockpile shots.
+    if (es?.rangedShots) {
+      attacker.rangedShotsLeft = es.rangedShots;
+      draft.log.push(
+        `${label(draft, attacker)} stores a charge — its next attack strikes at range.`,
+      );
+    }
     if (es?.shield) attacker.curShields += es.shield;
     if (es?.dmgBoost) applyTimedBuff(attacker, es.dmgBoost, 0, es.boostRounds);
     draft.log.push(`${label(draft, attacker)} charges its Electro Surge (+${es?.shield ?? 0} shield, +${es?.dmgBoost ?? 0} DMG for ${es?.boostRounds ?? 0}r).`);

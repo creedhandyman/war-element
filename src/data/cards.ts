@@ -6406,9 +6406,12 @@ export const CARDS: CardDef[] = [
     tribe: "ARC",
     // Surge Protector + Electro Surge: starts armed on summon; while armed it's
     // status-immune, and the first hit it takes discharges — PARALYZE the
-    // attacker 3r, then deactivate.
+    // attacker 3r, then deactivate. Re-arming also stores ONE ranged basic.
+    // Buzz shares this passive and deliberately does NOT get the shot: its
+    // re-arm is a once-per-game Talent on a cost-3 rare, so a free ranged
+    // attack on top would be the better half of a legendary's kit for 3.
     passiveNames: { electroSurge: "Electro Surge" },
-    electroSurge: { paralyze: 3, shield: 1, dmgBoost: 5, boostRounds: 2 },
+    electroSurge: { paralyze: 3, shield: 1, dmgBoost: 5, boostRounds: 2, rangedShots: 1 },
     // Live current: +2 SP every round (stacking).
     roundTick: { buffDmgEveryN: { n: 1, amount: 0, sp: 2, maxTicks: 5 } },
     special: {
@@ -6417,7 +6420,7 @@ export const CARDS: CardDef[] = [
       handler: "electroSurge",
       params: {},
       targetSide: "self",
-      text: "Re-arm Electro Surge: +1 shield and +5 DMG for 2 rounds. While armed: status-immune, and the next hit PARALYZEs the attacker 3 rounds.",
+      text: "Re-arm Electro Surge: +1 shield and +5 DMG for 2 rounds, and its next attack strikes at RANGE. While armed: status-immune, and the next hit PARALYZEs the attacker 3 rounds.",
     },
   },
   {
@@ -9394,7 +9397,12 @@ export const CARDS: CardDef[] = [
     rarity: "legendary",
     element: "BOLT",
     cardClass: "Warrior",
-    attackType: "Melee",
+    // Ranged, and the only card in the set that pays for its reach in ACCURACY
+    // rather than in stats: 15% of its hits go wide (see `basicMissPct`). Two
+    // hits is what makes that a cost instead of a coin flip — the usual outcome
+    // is one-and-a-bit landing, not nothing.
+    attackType: "Ranged",
+    basicMissPct: 15,
     cost: 7,
     dmg: 4,
     hits: 2,
@@ -9417,6 +9425,10 @@ export const CARDS: CardDef[] = [
       name: "ThunderShot",
       cost: 3,
       handler: "strike",
+      // A shot, so it reaches. Unlike the basics above it does NOT roll to
+      // miss: Specials auto-hit throughout the game, and carving an exception
+      // for this one would make a 3-magic cast a gamble.
+      ranged: true,
       // The MUTE lands only on a target that was ALREADY carrying something
       // when the shot was fired — BOLT's identity is punishing the afflicted,
       // spent here on silence instead of damage.
@@ -9426,7 +9438,7 @@ export const CARDS: CardDef[] = [
         statusIfAlready: "MUTED", statusIfAlreadyRounds: 2,
       },
       targetSide: "enemy",
-      text: "7 DMG to a target and PARALYZE it for 2 rounds. If it already had a status, MUTE it for 2 rounds as well.",
+      text: "7 DMG to any target and PARALYZE it for 2 rounds. If it already had a status, MUTE it for 2 rounds as well.",
     },
   },
   {
@@ -9575,11 +9587,11 @@ export const CARDS: CardDef[] = [
     element: "BORE",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 6,
+    cost: 7,
     dmg: 10,
     hits: 1,
-    hp: 16,
-    sp: 10,
+    hp: 15,
+    sp: 12,
     shields: 2,
     // EVASION: it is not there when the blow lands. A striker holding 16 HP
     // does not survive by soaking, so the dodge is the armour.

@@ -392,7 +392,13 @@ export function canTarget(
   if (target.owner === attacker.owner) return false;
   const aDef = getDef(attacker.defId);
   const tDef = getDef(target.defId);
-  const melee = aDef.attackType === "Melee" && !asRanged;
+  // A pocketed ranged shot (Surge's Electro Surge) makes THIS basic a ranged
+  // one: it drops the melee reach/FLYING limits and picks up the ranged reach
+  // cap and sight screen instead, exactly like any other shooter. Scoped to
+  // basics — the grant is an ATTACK, not a general upgrade, so it must not
+  // quietly widen the card's Specials as well.
+  const pocketShot = forBasic && (attacker.rangedShotsLeft ?? 0) > 0;
+  const melee = aDef.attackType === "Melee" && !asRanged && !pocketShot;
 
   // STEALTH: untargetable — unless the attacker stands in its own Blazing Sun, or
   // a Totem stands on its side. Those are the two effects in the game that reveal

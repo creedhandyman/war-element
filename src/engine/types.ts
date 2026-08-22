@@ -542,7 +542,22 @@ export interface CardDef {
    *  for `boostRounds` rounds. While active the card is status-immune (Surge
    *  Protector); the first time it's hit while active it PARALYZEs the attacker
    *  `paralyze` rounds and deactivates. */
-  electroSurge?: { paralyze: number; shield: number; dmgBoost: number; boostRounds: number };
+  /** A PERMANENT accuracy penalty on this card's own basic attacks, in percent
+   *  (15 = lands 85% of the time). Rolled per hit, like BLIND, and skipped by
+   *  the same alwaysHit / neverMiss exemptions — a card that cannot miss still
+   *  cannot miss. Distinct from the instance-level `attackMissPct`, which is a
+   *  TIMED penalty a card inflicts on itself (Tide's Shell Tuck); this one is
+   *  part of the card. Havoc is the first: reach across the whole board, bought
+   *  with a shakier hand rather than with stats. */
+  basicMissPct?: number;
+  electroSurge?: {
+    paralyze: number; shield: number; dmgBoost: number; boostRounds: number;
+    /** Basics that fire at RANGE after the Special re-arms it (Surge). Casting a
+     *  Special is the whole of that round's action, so a grant made here is
+     *  always spent on a LATER round's attack — which is what "one ranged attack
+     *  on the next turn" means, without needing to track a round number. */
+    rangedShots?: number;
+  };
   /** Magic Potion (Hexvial): a landed basic hurls a random potion at the target —
    *  Poison (DOT 1), Damage (3), or Sleep (FRIGHTEN 2). */
   potionOnHit?: boolean;
@@ -1215,6 +1230,11 @@ export interface CardInstance {
   deathSaveUsed?: boolean;
   /** Electro Surge (Surge): whether the reactive charge is currently armed. */
   electroSurgeActive?: boolean;
+  /** Basic attacks that fire at RANGE while this is > 0, on a card that is
+   *  otherwise Melee (Surge, after Electro Surge). Decremented as each one is
+   *  thrown, so it is a count of SHOTS and not a count of rounds — a shot kept
+   *  in the pocket is still there next round. */
+  rangedShotsLeft?: number;
   /** BlastOff (FireFly): rounds of granted temporary FLIGHT remaining. */
   flyingRoundsLeft?: number;
   /** Power Grab (General): index of the current weapon; whether it already
