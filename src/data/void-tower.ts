@@ -35,7 +35,8 @@
  */
 import { CARD_INDEX, getDef } from "./cards";
 import { DUPLICATE_CAP } from "./story";
-import type { CardDef } from "../engine/types";
+import { deckSizeFor } from "./custom-decks";
+import type { CardDef, Element } from "../engine/types";
 
 /** Floor-1 boss body budget; grows per floor. A SOFT cap: the band below
  *  tolerates +5, the same shape as the card set's ±2 stat band (Xilty is 82
@@ -62,11 +63,11 @@ export interface VoidBoss {
   /** Which floor's caps this fight is tuned to. */
   floor: number;
   /** Element A — where the tribe comes from. */
-  tribeElement: string;
+  tribeElement: Element;
   /** Element B — where the mechanic comes from. The boss's Special and
    *  passives express THIS element, not A; it is why the fight plays the way
    *  it does. */
-  mechanicElement: string;
+  mechanicElement: Element;
   /** The tribe every summon must belong to. */
   tribe: string;
   /** The formation, priced against `summonBudget(floor)`. Duplicates listed
@@ -187,6 +188,14 @@ export const voidBossById = (cardId: string): VoidBoss | null =>
 
 /** The event id a boss's trial writes on a win. The single definition —
  *  events.ts builds its trial ids from this, so the two cannot drift. */
+/** The two elements a boss's fight is pitched on, tribe first, deduped. The UI
+ *  shows this in place of a chip-count of the summons — see `ElChips.only`. */
+export const voidBossElements = (cardId: string): Element[] | undefined => {
+  const b = voidBossById(cardId);
+  if (!b) return undefined;
+  return [...new Set([b.tribeElement, b.mechanicElement])];
+};
+
 export const trialEventId = (cardId: string): string => `void_${cardId}`;
 
 /** Every floor that has at least one boss, ascending. */
@@ -247,27 +256,86 @@ export function summonProblems(boss: VoidBoss): string[] {
   return out;
 }
 
+/** The tribe's rank and file, cheapest first — everything in CARDS that belongs
+ *  to the tribe, tokens included, bosses never. The reinforcement pool. */
+export function tribePool(tribe: string): string[] {
+  return Object.values(CARD_INDEX)
+    .filter((d) => !d.boss && inTribe(d.id, tribe))
+    .sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id))
+    .map((d) => d.id);
+}
+
+/** The formation padded out to a full deck.
+ *
+ *  THE BUG THIS FIXES: the summons were the whole P2 deck, so a boss brought
+ *  2-9 cards to a fight where the player brings 30. It emptied its hand in the
+ *  opening rounds and then stood there for the rest of the match with a rising
+ *  gold pool and nothing to spend it on. Every Floor-1 puzzle was trivially
+ *  won by outlasting an opponent that had already stopped playing.
+ *
+ *  So the budget keeps its real job and loses the one it was never meant to
+ *  have. It still decides the OPENING — that is the promise the doc makes, and
+ *  `stacked` hoists exactly those cards to the top of the deck. What follows is
+ *  reinforcements: the tribe's cheapest bodies, cycled, so the boss can always
+ *  afford the next one and the fight stays a fight. It is the same shape as the
+ *  campaign's `formationSize(cap) === cap` — the enemy brings a whole deck
+ *  matched to your card count — arrived at for the same reason.
+ *
+ *  Cheapest-first and cycled rather than the budgeted list repeated: repeating
+ *  it would hand Rotroot fifteen Zombinations, turning a 12-Gold opening into a
+ *  7-cost legendary every other round. Reinforcements should be the rank and
+ *  file, not the elite, and a wave of chaff is what a tribe boss is for.
+ *
+ *  Duplicate caps deliberately do not apply here. They are a deckbuilding rule
+ *  about variety; this is one tribe throwing bodies at you, and several tribes
+ *  are too small to fill 30 slots without repeats anyway (Zombie has five). */
+export function reinforcementPool(tribe: string): string[] {
+  const pool = tribePool(tribe);
+  // The CHEAP HALF, minimum two, so there is still some variety in the tide.
+  // Cycling the whole pool would put Rotroot's cost-7 legendary in the rotation
+  // and hand it a Zombination every other round — the elite is what the 12-Gold
+  // budget buys once, not what turns up forever afterwards.
+  return pool.slice(0, Math.max(2, Math.ceil(pool.length / 2)));
+}
+
+export function paddedFormation(boss: VoidBoss, deckSize: number): string[] {
+  const deck = [...boss.summons];
+  const pool = reinforcementPool(boss.tribe);
+  if (!pool.length) return deck; // no tribe to draw on; the formation stands alone
+  for (let i = 0; deck.length < deckSize; i++) deck.push(pool[i % pool.length]);
+  return deck;
+}
+
 /** The encounter, shaped for `createInitialState`'s P2 seat.
  *
- *  The formation is the deck; `stacked` hoists the cheap half so the boss's
- *  opening never hinges on a draw (the same measured reasoning as Thrones and
- *  elite gauntlet decks). Spells `[]`, deliberately: the boss's threats are
- *  its body, its Special and its tribe — a spellbook on top is chaos the
- *  puzzles never priced in. The boss CARD is not in the deck: place it with
+ *  The budgeted formation opens the fight and `stacked` hoists it to the top of
+ *  the deck, so the opening never hinges on a draw (the same measured reasoning
+ *  as Thrones and elite gauntlet decks); `paddedFormation` fills the rest with
+ *  tribe reinforcements so the boss does not run out of cards while the player
+ *  still holds twenty. Spells `[]`, deliberately: the boss's threats are its
+ *  body, its Special and its tribe — a spellbook on top is chaos the puzzles
+ *  never priced in. The boss CARD is not in the deck: place it with
  *  `voidBossSeat` after construction, outside the economy. */
 export function buildVoidEncounter(boss: VoidBoss): {
   deck: string[];
   spells: string[];
   boardSize: 4 | 5;
-  stacked: { P2: number };
+  stacked: { P2: readonly string[] };
 } {
+  // The doc's board: the boss holds the centre of a 5-slot home row, with 4
+  // free slots beside it — advance to summon more, the player's own maths.
+  const boardSize = 5 as const;
   return {
-    deck: [...boss.summons],
+    deck: paddedFormation(boss, deckSizeFor(boardSize)),
     spells: [],
-    // The doc's board: the boss holds the centre of a 5-slot home row, with 4
-    // free slots beside it — advance to summon more, the player's own maths.
-    boardSize: 5,
-    stacked: { P2: Math.min(3, boss.summons.length) },
+    boardSize,
+    // Hoist the BUDGETED cards BY NAME. The cheapest-first stack every other
+    // scripted deck uses would do the opposite of what is wanted here: the
+    // formation is the expensive half of a deck padded with cost-1 chaff, so
+    // "three cheapest" is three pieces of chaff and the fight's centrepiece
+    // sinks into the bottom twenty. What the puzzle promises is that the
+    // formation SHOWS UP.
+    stacked: { P2: [...boss.summons] },
   };
 }
 

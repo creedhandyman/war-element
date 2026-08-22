@@ -53,7 +53,7 @@ import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
-import { voidBossSeat } from "../data/void-tower";
+import { voidBossElements, voidBossSeat } from "../data/void-tower";
 import { VoidTower } from "./VoidTower";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
@@ -434,11 +434,13 @@ export function App() {
    *  is. The deck in the chair already answers the question, and it answers it
    *  correctly for free: pick any other deck and this goes null on its own. */
   const eventRun: GameEvent | null = eventForDeck(p2DeckId) ?? null;
-  /** Depth of the scripted opening for whatever is in the opponent seat: an
-   *  event carries its own, an elite premade carries the rung's. One value so
-   *  the match-start call has a single thing to pass, and so a deck that is
-   *  somehow both cannot script the seat twice. */
-  const scriptedP2: number | undefined =
+  /** How the opponent seat's opening is scripted: an event carries its own, an
+   *  elite premade carries the rung's. A NUMBER is a depth of cheapest cards; a
+   *  LIST names the exact cards to hoist (Void Trials, whose formation is the
+   *  expensive half of a padded deck). One value so the match-start call has a
+   *  single thing to pass, and so a deck that is somehow both cannot script the
+   *  seat twice. */
+  const scriptedP2: number | readonly string[] | undefined =
     eventRun?.scriptedOpening ?? scriptedOpeningFor(p2DeckId);
   /** The rung a new run is dealt from — PICKED, on its own control.
    *
@@ -3256,6 +3258,11 @@ export function App() {
                   flag={eventRun?.bossId ? "VOID TOWER · BOSS" : eventRun ? "EVENT · ONE TIME ONLY" : gauntletSeat ? `GAUNTLET · SEAT ${(gauntletRun?.won ?? 0) + 1}` : twoPlayer ? "P2 · SECOND PLAYER" : "AI · P2"}
                   label={eventRun?.bossId ? getDef(eventRun.bossId).name : deckLabel(p2DeckId)}
                   artOverride={eventRun?.bossId ? `/cards/${getDef(eventRun.bossId).art ?? eventRun.bossId}.webp` : undefined}
+                  /* The DUEL, not the brood. A boss fight is pitched as two
+                     elements — the tribe's and the mechanic's — and that pair
+                     is what the puzzle is built on; counting the summons in the
+                     chair instead described the wrong half of the fight. */
+                  elements={eventRun?.bossId ? voidBossElements(eventRun.bossId) : undefined}
                   cards={resolveDeckCards(p2DeckId)}
                   /* DEALT, NOT CHOSEN — in either challenge mode. A run's seat
                      was already locked (opening the sheet is the re-roll the run

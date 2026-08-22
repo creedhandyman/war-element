@@ -54,8 +54,27 @@ export function ElChips(props: {
    *  legitimately field all eight elements and the strip is the only place that
    *  says so. */
   wrap?: boolean;
+  /** Show THESE elements instead of counting the deck's, and without counts.
+   *  For a Void Tower boss, whose seat holds only its summons: the fight is a
+   *  DUEL of two elements the boss declares, and a chip strip counting the
+   *  brood ("DUSK 2") answers a question nobody asked while hiding the one
+   *  thing you plan around. Deduped, because a mono-element boss should print
+   *  one chip rather than the same word twice. */
+  only?: readonly Element[];
 }) {
   const split = elementSplit(props.cards).slice(0, props.max ?? 5);
+  if (props.only) {
+    const els = [...new Set(props.only)];
+    return (
+      <span className={`el-chips ${props.small ? "sm" : ""} ${props.wrap ? "wrap" : ""}`}>
+        {els.map((el) => (
+          <span key={el} className="el-chip" style={{ borderColor: EL_COLOR[el], color: EL_COLOR[el] }}>
+            {el}
+          </span>
+        ))}
+      </span>
+    );
+  }
   return (
     <span className={`el-chips ${props.small ? "sm" : ""} ${props.wrap ? "wrap" : ""}`}>
       {split.map(({ el, n }) => (
@@ -86,6 +105,8 @@ export function DeckSeat(props: {
    *  and the seat wearing Zombination's face for Rotroot's fight undersold
    *  every fight on the tower. The BOSS is the opponent; the seat says so. */
   artOverride?: string;
+  /** Passed straight to `ElChips.only` — see there. */
+  elements?: readonly Element[];
 }) {
   const art = props.artOverride ?? deckArtUrl(props.cards);
   return (
@@ -107,7 +128,7 @@ export function DeckSeat(props: {
             simply lost the rest — the seat said BORE/DUSK/LEAF/BOLT and quietly
             dropped the other four, which is the one thing this strip exists to
             tell you. `wrap` on the strip stacks the overflow underneath. */}
-        <ElChips cards={props.cards} max={99} wrap />
+        <ElChips cards={props.cards} max={99} wrap only={props.elements} />
         {props.onChange && <span className="ar-change">change</span>}
       </span>
     </button>

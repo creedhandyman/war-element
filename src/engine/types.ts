@@ -1771,6 +1771,21 @@ export interface PlayerState {
    *  mulligan reshuffles: stacking only at deal time was undone the moment the
    *  AI tossed a card. */
   stackCheapest?: number;
+  /** Hoist exactly THESE cards to the top of the deck, in this order, after
+   *  every shuffle — one deck slot per entry, so duplicates in the list hoist
+   *  duplicates. The sibling of `stackCheapest` for a fight that cares WHICH
+   *  cards arrive rather than how cheap they are.
+   *
+   *  Void Tower is why it exists. A boss's budgeted formation is the fight —
+   *  "kill the source, ignore the tokens" needs the source to turn up — but the
+   *  formation is the EXPENSIVE half of a deck padded out with tribe chaff, so
+   *  `stackCheapest` would reliably bury it under the chaff and guarantee the
+   *  opposite of what was wanted.
+   *
+   *  Applied after the cheapest-stack when both are set, so the named cards end
+   *  up on top; and beside every shuffle for the same reason as its sibling,
+   *  because the mulligan reshuffles. */
+  stackFirst?: readonly string[];
   /** Running tally of this player's cards that have died — feeds Destro's
    *  graveyard-scaling (its DMG grows with the fallen). */
   deaths?: number;

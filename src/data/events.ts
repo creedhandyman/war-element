@@ -50,8 +50,13 @@ export interface GameEvent {
    *  the first few rounds and hands the player a free board.
    *
    *  A DEPTH rather than a flag, because sorting the WHOLE deck is not
-   *  universally better and the measurement says so — see `restackByCost`. */
-  scriptedOpening?: number;
+   *  universally better and the measurement says so — see `restackByCost`.
+   *
+   *  A LIST of card ids instead of a number names the exact cards to hoist, for
+   *  a fight that cares WHICH ones arrive. Void Trials use it: a boss's deck is
+   *  its budgeted formation padded out with cheap tribe reinforcements, so
+   *  "hoist the cheapest" would bury the formation the puzzle is about. */
+  scriptedOpening?: number | readonly string[];
   /** How the Home card is dressed: sigil, backdrop, rim.
    *
    *  On the event rather than in HomeScreen because the first cut hardcoded

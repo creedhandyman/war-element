@@ -120,9 +120,11 @@ describe("event decks", () => {
 });
 
 describe("a scripted opening", () => {
-  const event = EVENTS.find((e) => e.scriptedOpening)!;
+  // The NUMERIC variant specifically — Void Trials script theirs as a list of
+  // card ids, which is a different rule with its own block below.
+  const event = EVENTS.find((e) => typeof e.scriptedOpening === "number")!;
   const costs = (ids: string[]) => ids.map((id) => getDef(id).cost);
-  const depth = event.scriptedOpening!;
+  const depth = event.scriptedOpening as number;
   const start = () => createInitialState(
     12345, PREMADE_DECKS.find((d) => d.boardSize === event.boardSize)!.cards,
     event.deck.cards, ["P1"], undefined, event.deck.spells, event.boardSize,
@@ -153,6 +155,22 @@ describe("a scripted opening", () => {
     // already-cheap lists — this is an opening, not a scripted game.
     const tail = costs(start().players.P2.deck.slice(Math.max(0, depth - 5)));
     expect(tail).not.toEqual([...tail].sort((a, b) => a - b));
+  });
+
+  it("a NAMED opening hoists those cards, not the cheapest", () => {
+    // The Void Trial rule. Its deck is the budgeted formation padded out with
+    // cost-1 tribe chaff, so the two rules pull in opposite directions and the
+    // named one has to win: the formation is what the puzzle is about.
+    const trial = EVENTS.find((e) => Array.isArray(e.scriptedOpening))!;
+    const named = trial.scriptedOpening as readonly string[];
+    const s = createInitialState(
+      12345, PREMADE_DECKS.find((d) => d.boardSize === trial.boardSize)!.cards,
+      trial.deck.cards, ["P1"], undefined, trial.deck.spells, trial.boardSize,
+      undefined, undefined, { P2: named },
+    );
+    // Drawn off the top, so hand-then-deck is the true order.
+    const drawn = [...s.players.P2.hand.map((h) => h.defId), ...s.players.P2.deck];
+    expect(drawn.slice(0, named.length)).toEqual([...named]);
   });
 
   it("does NOT reorder the unscripted side", () => {

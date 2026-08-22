@@ -73,9 +73,11 @@ export function createInitialState(
   /** A Field spell id to run as standing terrain for the whole battle (§4).
    *  Story nodes pass their region's; ordinary matches pass nothing. */
   terrainSpellId?: string,
-  /** How many of each side's cheapest cards are hoisted to the top of the deck
-   *  — see `PlayerState.stackCheapest`. Omit for an ordinary match. */
-  stacked?: { P1?: number; P2?: number },
+  /** How each side's deck is stacked on top of the shuffle. A NUMBER hoists
+   *  that many of its cheapest cards (`PlayerState.stackCheapest`); a LIST of
+   *  card ids hoists exactly those, in order (`PlayerState.stackFirst`). Omit
+   *  for an ordinary match. */
+  stacked?: { P1?: number | readonly string[]; P2?: number | readonly string[] },
 ): GameState {
   const state: GameState = {
     rngState: seed | 0,
@@ -154,26 +156,43 @@ export function createInitialState(
  *  turning this on cannot shift the rest of the match's RNG. */
 export function restackByCost(p: PlayerState): void {
   const n = p.stackCheapest ?? 0;
-  if (n <= 0 || !p.deck.length) return;
-  // Indices sorted by cost, ties broken by current (shuffled) position so the
-  // result is deterministic for a given seed.
-  const order = p.deck
-    .map((_, i) => i)
-    .sort((a, b) => getDef(p.deck[a]).cost - getDef(p.deck[b]).cost || a - b);
-  const head = order.slice(0, n);
-  const taken = new Set(head);
-  p.deck = [
-    ...head.map((i) => p.deck[i]),                 // cheapest, ascending
-    ...p.deck.filter((_, i) => !taken.has(i)),     // the rest, still shuffled
-  ];
+  if (n > 0 && p.deck.length) {
+    // Indices sorted by cost, ties broken by current (shuffled) position so the
+    // result is deterministic for a given seed.
+    const order = p.deck
+      .map((_, i) => i)
+      .sort((a, b) => getDef(p.deck[a]).cost - getDef(p.deck[b]).cost || a - b);
+    const head = order.slice(0, n);
+    const taken = new Set(head);
+    p.deck = [
+      ...head.map((i) => p.deck[i]),                 // cheapest, ascending
+      ...p.deck.filter((_, i) => !taken.has(i)),     // the rest, still shuffled
+    ];
+  }
+  // …then the named cards, which end up above the cheap ones when both apply:
+  // `stackFirst` names the cards the fight is ABOUT, so it outranks a heuristic
+  // about affordability. One deck slot per entry, so a formation listing three
+  // Arctiks hoists three of them and leaves any fourth where the shuffle put it.
+  const named = p.stackFirst;
+  if (named?.length && p.deck.length) {
+    const rest = [...p.deck];
+    const head: string[] = [];
+    for (const id of named) {
+      const i = rest.indexOf(id);
+      if (i >= 0) head.push(...rest.splice(i, 1));
+    }
+    p.deck = [...head, ...rest];
+  }
 }
 
 function emptyPlayer(
-  deck: string[], spellIds?: string[], spellCap?: number, stackCheapest?: number,
+  deck: string[], spellIds?: string[], spellCap?: number,
+  stack?: number | readonly string[],
 ): PlayerState {
   return {
     deck,
-    ...(stackCheapest ? { stackCheapest } : {}),
+    ...(typeof stack === "number" ? (stack ? { stackCheapest: stack } : {})
+      : stack?.length ? { stackFirst: stack } : {}),
     hand: [],
     // A hand-picked spellbook wins — INCLUDING an empty one. `undefined` means
     // "this deck never chose", so derive from its elements; `[]` means "chose
