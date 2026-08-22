@@ -7,7 +7,7 @@
 // aura reaching the brood she raises after she lands).
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
-import { validSpecialTargets, validTargets } from "../rules";
+import { canMove, validSpecialTargets, validTargets } from "../rules";
 import { SPECIAL_HANDLERS, basicAttack } from "../combat";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
@@ -349,6 +349,28 @@ describe("Aranea — Broodmother", () => {
     expect(effectiveDmg(s, spider)).toBe(getDef("dusk_spider").dmg + 2);
     s.cards[q.instanceId].curHp = 0;
     expect(effectiveDmg(s, spider), "back to normal").toBe(getDef("dusk_spider").dmg);
+  });
+
+  it("the FRIGHTEN survives to the Prep it is supposed to freeze", () => {
+    // The whole bug, reported as "spiders don't fright". FRIGHTEN does two
+    // things — retreats the target a slot when applied, and stops it MOVING in
+    // Prep. The cast lands in BATTLE and Cleanup runs straight after, so at
+    // duration 1 the status expired before the Prep it existed to freeze: the
+    // retreat fired and the fear never did. Asserted through the real phase
+    // driver, because the whole failure was an interaction with Cleanup that a
+    // direct handler call cannot see.
+    const s = prepState();
+    const q = place(s, "dusk_aranea", "P1", 2, 1);
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40 });
+    cast(s, q, foe);
+    expect(statusOf(s.cards[foe.instanceId], "FRIGHTEN"), "applied").toBeDefined();
+    const n = advance(atCleanup(s));
+    expect(statusOf(n.cards[foe.instanceId], "FRIGHTEN"), "and still there next round").toBeDefined();
+    // …which is the half that actually does something: a frightened card cannot move.
+    const frightened = n.cards[foe.instanceId];
+    n.phase = "prep";
+    n.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    expect(canMove(n, "P2", frightened.instanceId, { row: 2, col: 2 }).ok, "pinned by fear").toBe(false);
   });
 
   it("Brood Summon raises a Monstrous Spider that bursts into two", () => {

@@ -9669,7 +9669,16 @@ export const CARDS: CardDef[] = [
       handler: "statusNova",
       params: {
         targets: 99,
-        statusKind: "FRIGHTEN", statusDuration: 1,
+        // DURATION 2 FOR ONE ROUND OF FEAR — not a typo, an off-by-one between
+        // engine ticks and what a player experiences. FRIGHTEN does two things:
+        // it retreats the target a slot on application, and it stops it MOVING
+        // during Prep. The cast happens in Battle, and Cleanup runs immediately
+        // after, so at duration 1 the status was already gone before the Prep it
+        // was supposed to freeze — the retreat fired and the fear never did.
+        // Reported as "spiders don't fright". 2 survives that Cleanup and
+        // blocks exactly one Prep turn, which is what "for a round" means from
+        // the chair. The set's two other FRIGHTEN statuses are both 2.
+        statusKind: "FRIGHTEN", statusDuration: 2,
         spawnToken: "dusk_monstrous_spider_tok", spawnCount: 1,
       },
       targetSide: "enemy",
