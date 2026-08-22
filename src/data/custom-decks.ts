@@ -490,6 +490,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
     name: "Deeproot Ambush",
     note: "LEAF + BORE — roots you to the spot, then bites what can no longer move.",
     premade: true,
+    tier: "hard",
     boardSize: 4,
     // Snapmaw + Kobra: the two halves of the same trick. LEAF pins something
     // (ROOT), BORE puts it under (SLEEP), and both legends are paid double for
@@ -497,8 +498,8 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // board, Ambush Coil doubles into anything asleep.
     cards: [
       "leaf_stickviper", "leaf_oak", "leaf_python", "leaf_gecko", "leaf_hunter",
-      "leaf_sumerose", "leaf_citra", "leaf_snapmaw", "leaf_season", "bore_cavedweller",
-      "bore_thorny_ripper", "bore_old_timer", "bore_ankylosaur", "bore_rock", "bore_krysteel",
+      "leaf_sumerose", "leaf_sticks", "leaf_snapmaw", "leaf_season", "bore_crock",
+      "bore_thorny_ripper", "bore_old_timer", "bore_stone", "bore_rock", "bore_krysteel",
       "bore_bolder", "bore_kobra", "bore_bastion",
     ],
     spells: ["leaf_snare", "leaf_thorn_patch", "bore_sand_trap", "leaf_withering_grasp", "bore_tremor"],
@@ -525,6 +526,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
     name: "Drowned Web",
     note: "AQUA + DUSK — pulls you under the surface and fills the water with spiders.",
     premade: true,
+    tier: "mid",
     boardSize: 4,
     // Killer Whale + Aranea. The AQUA half drags things under; the DUSK half is
     // a genuine spider package — Spider, Widowbite, Sarachnid, and Aranea's
@@ -537,6 +539,29 @@ const STANDARD_DECKS: PremadeDeck[] = [
     ],
     spells: ["aqua_chill", "dusk_chill_touch", "aqua_ice_wall", "dusk_phantom_spikes", "aqua_maelstrom"],
   },
+  // ── Two of the new decks are ON the ladder, by SWAP rather than by adding ──
+  // Drowned Web took mid from Nightcircuit; Deeproot Ambush took hard from
+  // Black Tide. Both displaced decks keep their lists and lose only `tier`, so
+  // they stay in the picker as archetypes.
+  //
+  // A FIFTH DECK DOES NOT FIT, and that is arithmetic rather than taste. Each
+  // rung's four decks already span all eight elements at fifteen cards a side
+  // on 5x5, and an element holds 25-40 usable cards — so a fifth two-element
+  // deck needs fifteen more of two elements that are already spoken for, and
+  // comes up short. Dropping one deck frees its thirty and makes room.
+  //
+  // EASY CAN TAKE NONE OF THEM. On top of the shared-card rule it bans
+  // Tank/Support and Mythics, which cuts each element to ~25, and none of the
+  // new decks' element pairs matches an easy deck's pair — so after a swap one
+  // of the newcomer's two elements is STILL held by a deck that stays, leaving
+  // 10-13 where 15 are needed. Scrapyard measured at exactly easy strength
+  // (29.2% / 31.3% against the eight cores) and is untiered for that reason.
+  //
+  // Measured after the swap, 48 matches per deck against the eight cores:
+  //   4x4  easy 18.2 · mid 36.5 · hard 56.8 · elite 62.0
+  //   5x5  easy 21.9 · mid 55.7 · hard 65.1 · elite 63.0
+  // Drowned Web 29.2/54.2 and Deeproot 54.2/58.3 both sit inside their rung's
+  // range on both boards, and the rung ordering the ladder depends on holds.
   {
     id: "pre_sapling_creek",
     name: "Sapling Creek",
@@ -648,7 +673,6 @@ const STANDARD_DECKS: PremadeDeck[] = [
     note: "DUSK + BOLT — status on your front rank while shooters take the squares.",
     premade: true,
     boardSize: 4,
-    tier: "mid",
     cards: [
       "dusk_zombie_husk", "dusk_rip", "dusk_doom", "dusk_haunt", "dusk_harve",
       "dusk_skulldrake", "dusk_ghastly", "dusk_ravven", "dusk_brute", "bolt_junker",
@@ -693,7 +717,6 @@ const STANDARD_DECKS: PremadeDeck[] = [
     note: "DUSK + LEAF — never stops deploying, never stops healing, never stops trading.",
     premade: true,
     boardSize: 4,
-    tier: "hard",
     cards: [
       "dusk_zombie_husk", "dusk_rip", "dusk_doom", "dusk_scarlett", "dusk_haunt",
       "dusk_pumpkin", "dusk_ravven", "dusk_skeleton_knight", "dusk_gravekeeper", "leaf_oak",
@@ -938,16 +961,17 @@ const LARGE_DECKS: PremadeDeck[] = [
     name: "Deeproot Ambush",
     note: "LEAF + BORE — roots you to the spot, then bites what can no longer move.",
     premade: true,
+    tier: "hard",
     boardSize: 5,
     // Thirty cards is where the lock actually closes: more roots, more bodies
     // to hold the line while they take hold, and Warden behind it.
     cards: [
       "leaf_stickviper", "leaf_weeds", "leaf_oak", "leaf_python", "leaf_sticks",
       "leaf_gecko", "leaf_hunter", "leaf_walking_tree", "leaf_sumerose", "leaf_darth",
-      "leaf_citra", "leaf_whintey", "leaf_snapmaw", "leaf_season", "leaf_warden",
-      "bore_cavedweller", "bore_iron", "bore_thorny_ripper", "bore_old_timer", "bore_rockgoblin",
-      "bore_ankylosaur", "bore_rock", "bore_stone", "bore_krysteel", "bore_rhe",
-      "bore_bolder", "bore_shift", "bore_diam", "bore_kobra", "bore_bastion",
+      "leaf_citra", "leaf_whintey", "leaf_snapmaw", "leaf_season", "leaf_leaf",
+      "bore_kcor", "bore_iron", "bore_thorny_ripper", "bore_clubber", "bore_crock",
+      "bore_warthog", "bore_rock", "bore_stone", "bore_krysteel", "bore_rhe",
+      "bore_bolder", "bore_shift", "bore_sandman", "bore_kobra", "bore_steel",
     ],
     spells: ["leaf_snare", "leaf_thorn_patch", "bore_sand_trap", "leaf_withering_grasp", "bore_tremor", "leaf_overgrowth", "bore_bulwark", "leaf_bloodroot_surge"],
   },
@@ -974,13 +998,14 @@ const LARGE_DECKS: PremadeDeck[] = [
     name: "Drowned Web",
     note: "AQUA + DUSK — pulls you under the surface and fills the water with spiders.",
     premade: true,
+    tier: "mid",
     boardSize: 5,
     // More water and more web. Glacius and Nightfang cap it, and the swarm has
     // the squares to actually spread across.
     cards: [
-      "aqua_piranha", "aqua_subcool", "aqua_icyninza", "aqua_arctik", "aqua_harp",
-      "aqua_siphon", "aqua_blackice", "aqua_icynin", "aqua_anos", "aqua_cryo",
-      "aqua_vaporem", "aqua_icewall", "aqua_driftwraith", "aqua_killerwhale", "aqua_glacius",
+      "aqua_piranha", "aqua_blub", "aqua_icyninza", "aqua_arctik", "aqua_bulletshrimp",
+      "aqua_siphon", "aqua_blackice", "aqua_icynin", "aqua_anos", "aqua_owlette",
+      "aqua_vaporem", "aqua_icewall", "aqua_phrost", "aqua_killerwhale", "aqua_glacius",
       "dusk_spider", "dusk_pumpkin", "dusk_harve", "dusk_jackl", "dusk_doom",
       "dusk_widowbite", "dusk_zhunk", "dusk_hix", "dusk_sarachnid", "dusk_ghastly",
       "dusk_violet", "dusk_ender", "dusk_aranea", "dusk_destro", "dusk_nightfang",
@@ -1112,7 +1137,6 @@ const LARGE_DECKS: PremadeDeck[] = [
     note: "DUSK + BOLT — status on your front rank while shooters take the squares.",
     premade: true,
     boardSize: 5,
-    tier: "mid",
     cards: [
       "dusk_zombie_husk", "dusk_rip", "dusk_doom", "dusk_haunt", "dusk_harve",
       "dusk_skulldrake", "dusk_ghastly", "dusk_ravven", "dusk_brute", "bolt_junker",
@@ -1163,7 +1187,6 @@ const LARGE_DECKS: PremadeDeck[] = [
     note: "DUSK + LEAF — never stops deploying, never stops healing, never stops trading.",
     premade: true,
     boardSize: 5,
-    tier: "hard",
     cards: [
       "dusk_zombie_husk", "dusk_zhunk", "dusk_skullking", "dusk_doom", "dusk_scarlett",
       "dusk_haunt", "dusk_pumpkin", "dusk_ravven", "dusk_skeleton_knight", "leaf_oak",
