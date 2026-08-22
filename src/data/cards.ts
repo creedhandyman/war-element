@@ -6593,22 +6593,22 @@ export const CARDS: CardDef[] = [
     // Brutal (On CRIT): the target loses 1 DMG on its attacks for the round.
     passiveNames: { onCritDebuff: "Brutal" },
     onCritDebuff: 1,
-    // Sweep: basic-attack every opponent in the row ahead; +2 shields per kill.
+    // Sweep: basic-attack every opponent IN RANGE; +2 shields per kill.
     special: {
       name: "Sweep",
       cost: 3,
       handler: "sweep",
       params: { shieldPerKill: 2 },
       targetSide: "enemy",
-      // `ranged` here is about the FIRE GATE, not the reach: canFireSpecial
-      // refuses when nothing is in normal targeting range, which for a Melee
-      // card is the eight adjacent tiles. Sweep aims at nothing — it takes the
-      // whole row ahead, every column — so without this Brute was locked out of
-      // its own printed effect whenever the row-ahead enemy stood two or more
-      // columns away. Every other targetless enemy Special on a Melee card
-      // (WarPhant, Storm, Liquark) already carries it; Brute was the one missed.
-      ranged: true,
-      text: "Attack every opponent in the row directly ahead; gain +2 shields per kill.",
+      // NO `ranged` flag, deliberately, and it used to have one. That flag is
+      // about the FIRE GATE: canFireSpecial refuses when nothing is in normal
+      // targeting range, and the old Sweep took the whole row ahead — a set
+      // that could be occupied while the adjacent tiles were empty, so the gate
+      // and the effect disagreed and Brute was locked out of its own printed
+      // ability. Sweep now hits exactly what a basic could reach, so the
+      // ordinary melee gate IS the right gate and the flag would only let it
+      // fire at nothing.
+      text: "Attack every opponent in range; gain +2 shields per kill.",
     },
   },
   {

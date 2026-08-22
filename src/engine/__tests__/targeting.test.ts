@@ -376,9 +376,23 @@ describe("a Special that charges can aim as far as it charges", () => {
     expect(picks.filter((p) => getDef(p.defId).keywords.FLYING)).toHaveLength(0);
   });
 
-  it("Brute's Sweep fires at a row-ahead enemy three columns away", () => {
+  it("Brute's Sweep will NOT fire at a row-ahead enemy three columns away", () => {
+    // Inverted, and deliberately. Sweep used to take the whole row ahead, which
+    // is a set the ordinary melee fire gate cannot see — so the Special carried
+    // `ranged: true` purely to stop canFireSpecial refusing it, and gate and
+    // effect described different things.
+    //
+    // Sweep now hits everything in RANGE (`validTargets`, the same list a basic
+    // offers), so the melee gate is exactly the right gate. An enemy three
+    // columns away in the row ahead is no longer something Sweep would touch,
+    // and firing at it would spend 3 magic on an empty swing. See
+    // brute-sweep.test.ts for what it does hit.
     const { s, a } = apart("dusk_brute", 3);
-    expect(canFireSpecial(s, a.instanceId).ok).toBe(true);
+    expect(canFireSpecial(s, a.instanceId).ok).toBe(false);
+    // And it still fires when something IS in reach — the gate did not simply
+    // become "never", which is the way this fix could quietly go wrong.
+    const near = apart("dusk_brute", 1);
+    expect(canFireSpecial(near.s, near.a.instanceId).ok).toBe(true);
   });
 });
 

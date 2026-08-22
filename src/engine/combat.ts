@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, canTarget } from "./rules";
+import { RANGED_REACH, canTarget, validTargets } from "./rules";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
@@ -3575,8 +3575,14 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
    *  basic attack, gaining shields per kill. */
   sweep(draft, attacker, _targets, params) {
     if (!attacker.pos) return;
-    const row = rowAhead(attacker.owner, attacker.pos.row);
-    const foes = boardCards(draft, enemyOf(attacker.owner)).filter((e) => e.curHp > 0 && e.pos?.row === row);
+    // EVERY opponent in range, not the row ahead. `validTargets` is the same
+    // list the basic attack itself offers, so the sweep reaches exactly what
+    // Brute could have hit one at a time — and inherits FLYING, STEALTH and the
+    // Home-Slot rule instead of re-deriving them. The row-ahead version missed
+    // anything standing beside it and swung at an empty row when the enemy had
+    // stepped off the lane.
+    const foes = validTargets(draft, attacker.instanceId)
+      .filter((e) => e.curHp > 0 && e.owner !== attacker.owner);
     const per = num(params, "shieldPerKill", 2);
     let kills = 0;
     for (const foe of foes) {
