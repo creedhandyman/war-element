@@ -5,7 +5,7 @@
 // save. The auth calls are Supabase's and are not worth mocking; these are the
 // rules that are OURS.
 import { beforeEach, describe, expect, it } from "vitest";
-import { SAVE_KEYS, applyBundle, localBundle, summarize } from "../../net/account";
+import { SAVE_KEYS, applyBundle, localBundle, sameSave, summarize } from "../../net/account";
 
 /** A localStorage that behaves, for a test environment that may not have one. */
 function fakeStorage() {
@@ -82,6 +82,38 @@ describe("restoring is a replacement, not a merge", () => {
     localStorage.clear();
     applyBundle(before);
     expect(localBundle().keys).toEqual(before.keys);
+  });
+});
+
+describe("sameSave — is there actually a conflict", () => {
+  const A = { keys: { we_story_v1: STORY(), we_squads_v1: SQUADS }, savedAt: "2020-01-01T00:00:00Z", device: "iPhone" };
+
+  it("ignores WHEN and WHERE it was written", () => {
+    // The bug this fixes: the panel warned about a conflict on two identical
+    // saves, which is what you see immediately after uploading. localBundle()
+    // stamps a fresh timestamp on every call, so comparing whole objects would
+    // never report a match and the warning would never stop.
+    const B = { ...A, savedAt: "2026-08-22T02:26:08Z", device: "Android" };
+    expect(sameSave(A, B)).toBe(true);
+  });
+
+  it("spots a real difference", () => {
+    expect(sameSave(A, { ...A, keys: { ...A.keys, we_story_v1: STORY({ cleared: ["L1"] }) } })).toBe(false);
+  });
+
+  it("a missing key differs from a present one", () => {
+    // Restoring is a replacement, so "has no squads" and "has squads" are
+    // genuinely different saves and must not be called identical.
+    expect(sameSave(A, { ...A, keys: { we_story_v1: STORY() } })).toBe(false);
+  });
+
+  it("is false when either side is absent", () => {
+    expect(sameSave(A, null)).toBe(false);
+    expect(sameSave(null, null), "two nothings are not a match to report").toBe(false);
+  });
+
+  it("two empty saves count as the same", () => {
+    expect(sameSave({ keys: {}, savedAt: "" }, { keys: {}, savedAt: "" })).toBe(true);
   });
 });
 

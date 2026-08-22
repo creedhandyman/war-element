@@ -17,7 +17,7 @@
 import { useEffect, useState } from "react";
 import {
   accountConfigured, applyBundle, arrivedFromEmailLink, currentUser, localBundle, onAuthChange,
-  pullSave, pushSave, requestCode, signOut, summarize,
+  pullSave, pushSave, requestCode, sameSave, signOut, summarize,
   type AccountUser, type SaveBundle, type SaveSummary,
 } from "../net/account";
 import { verifyCode } from "../net/account";
@@ -141,9 +141,13 @@ export function AccountPanel(props: {
     );
   }
 
-  // BOTH sides hold a real game. The only state where this panel refuses to act
-  // on its own — see the header.
-  const conflict = !!user && loadedCloud && !localS.empty && !cloudS.empty;
+  // The two saves are the SAME save — normal right after an upload, and the
+  // common case for someone who plays on one device. Said plainly, because the
+  // alternative is a conflict warning about a conflict that does not exist.
+  const inSync = !!user && loadedCloud && sameSave(local, cloud);
+  // BOTH sides hold a real game AND they differ. The only state where this panel
+  // refuses to act on its own — see the header.
+  const conflict = !!user && loadedCloud && !localS.empty && !cloudS.empty && !inSync;
 
   return (
     <div className="overlay on-top" onClick={props.onClose}>
@@ -207,9 +211,12 @@ export function AccountPanel(props: {
 
             {conflict && (
               <p className="acct-warn">
-                Both have progress. Whichever you choose replaces the other — pick the one
-                you want to keep.
+                Both have progress, and they are different. Whichever you choose replaces
+                the other — pick the one you want to keep.
               </p>
+            )}
+            {inSync && !localS.empty && (
+              <p className="acct-sync">This device and the cloud match. Nothing to do.</p>
             )}
 
             <div className="acct-row">

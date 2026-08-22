@@ -298,6 +298,22 @@ export interface SaveSummary {
   empty: boolean;
 }
 
+/** Are these two bundles the same SAVE?
+ *
+ *  Compares the payload only — `savedAt` and `device` are metadata about the
+ *  write, not the game, and `localBundle()` stamps a fresh timestamp every time
+ *  it is called, so comparing whole objects would never report a match.
+ *
+ *  Exists because the conflict warning was firing on identical saves. Right
+ *  after an upload the cloud IS this device, and "both have progress, one will
+ *  replace the other" is alarming, true, and useless — the kind of warning a
+ *  player learns to click past, which is exactly what you do not want on the
+ *  one screen that can delete a campaign. */
+export function sameSave(a: SaveBundle | null, b: SaveBundle | null): boolean {
+  if (!a || !b) return false;
+  return SAVE_KEYS.every((k) => (a.keys[k] ?? null) === (b.keys[k] ?? null));
+}
+
 export function summarize(b: SaveBundle | null): SaveSummary {
   const out: SaveSummary = { cards: 0, cleared: 0, shards: 0, squads: 0, empty: true };
   if (!b) return out;
