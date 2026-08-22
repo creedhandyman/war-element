@@ -74,6 +74,13 @@ describe("setup", () => {
       // 2 Skeletons on summon + 2 every round + a SkullDrake on its Special, and
       // buffs the whole bone army — the free bodies carry the missing points.
       "dusk_skullking",
+      // Ability-carried, downward, and the steepest in the set: 34 vs a Cost-7
+      // budget of 45. Running Crew summons SURGE — a real cost-4 CARD, not a
+      // token — so a 32-point body arrives beside Havoc every time it lands.
+      // Eleven points under budget for thirty-two points of free material is
+      // still generous to Havoc; the cost went 5->7 for exactly that reason and
+      // the stat line was deliberately left alone.
+      "bolt_havoc",
       // (Sparkle and ToxHawk both used to sit here as "SP-heavy glass cannons"
       // running past the ±2 band. Sparkle traded SP 14 -> 9 to pay for cost 1,
       // and ToxHawk dropped 2 HP to land 2 over at cost 2. Both are inside the

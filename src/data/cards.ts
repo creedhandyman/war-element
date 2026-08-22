@@ -9375,7 +9375,7 @@ export const CARDS: CardDef[] = [
     element: "BOLT",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 5,
+    cost: 7,
     dmg: 4,
     hits: 2,
     hp: 15,
@@ -9388,8 +9388,10 @@ export const CARDS: CardDef[] = [
     // mistake, shooting it is not.
     onHitByMelee: { dmg: 3, status: { kind: "ELECTRIFIED", duration: 2, power: 0 } },
     // Running Crew: Havoc does not arrive alone. Surge is a real cost-4 CARD
-    // rather than a token, which makes this the most expensive line on the
-    // card — a 5-cost body that puts nine Gold of material on the board.
+    // rather than a token, and at cost 7 with an unchanged stat line that free
+    // body IS the card's remaining value: 34 body points against a budget of
+    // 45, with a 32-point Surge arriving beside it. See the exceptions note in
+    // state.test.ts — this is ability-carried, downward, and deliberately so.
     summonSpawn: { token: "bolt_surge", count: 1 },
     special: {
       name: "ThunderShot",
@@ -9480,11 +9482,11 @@ export const CARDS: CardDef[] = [
     element: "AQUA",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 6,
+    cost: 7,
     dmg: 7,
     hits: 1,
-    hp: 24,
-    sp: 3,
+    hp: 27,
+    sp: 5,
     shields: 3,
     keywords: {},
     tribe: "SeaC", // Kraken's school (+4 max HP)

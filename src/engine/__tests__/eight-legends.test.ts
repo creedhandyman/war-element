@@ -34,14 +34,28 @@ describe("the eight legends are on the board", () => {
     for (const id of IDS) expect(getDef(id).rarity, id).toBe("legendary");
   });
 
-  it("every stat line sits on the cost budget", () => {
+  it("every stat line sits on the cost budget — except the one that buys a body", () => {
     // state.test.ts already sweeps CARDS for this; stated again here so a tweak
     // to one of these eight fails in the file that is about them.
     for (const id of IDS) {
+      if (id === "bolt_havoc") continue; // see below
       const d = getDef(id);
       const total = d.dmg * d.hits + d.hp + d.shields * 2 + d.sp;
       expect(Math.abs(total - (5 * d.cost + 10)), `${id}: ${total}`).toBeLessThanOrEqual(2);
     }
+  });
+
+  it("Havoc is under budget BECAUSE it brings Surge", () => {
+    // The exception is the design, so it is asserted rather than merely skipped:
+    // Running Crew summons a real cost-4 CARD, and the day someone deletes that
+    // line this test should be what objects — not a stat sweep that has quietly
+    // been passing an 11-point hole for months.
+    const havoc = getDef("bolt_havoc");
+    const body = (d: typeof havoc) => d.dmg * d.hits + d.hp + d.shields * 2 + d.sp;
+    const gap = 5 * havoc.cost + 10 - body(havoc);
+    expect(gap, "deliberately under-statted").toBeGreaterThan(2);
+    expect(havoc.summonSpawn?.token, "and this is what pays for it").toBe("bolt_surge");
+    expect(body(getDef("bolt_surge")), "a body worth more than the gap").toBeGreaterThan(gap);
   });
 });
 
