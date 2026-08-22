@@ -33,6 +33,21 @@ export function prepState(seed = 42, priority: PlayerId = "P1"): GameState {
   return s;
 }
 
+/** The same, on the LARGE board. Rules that name rows by number rather than by
+ *  their relation to the board's edges tend to be right on 4x4 and wrong here —
+ *  the 5x5 has a third row between the home rows — so anything row-shaped wants
+ *  a test at both sizes. */
+export function bigPrepState(seed = 42, priority: PlayerId = "P1"): GameState {
+  const s = createInitialState(seed, undefined, undefined, ["P1"], undefined, undefined, 5);
+  s.players.P1.mulliganDone = true;
+  s.players.P2.mulliganDone = true;
+  s.round = 1;
+  s.phase = "prep";
+  s.firstPlayer = priority;
+  s.prep = { priority, consecutivePasses: 0, movedThisTurn: false };
+  return s;
+}
+
 /** Place a card directly on the board (bypasses summon rules; not summon-locked).
  *  Accepts a `status` shorthand override — it becomes the card's one entry in
  *  the `statuses` array. */

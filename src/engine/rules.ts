@@ -29,7 +29,7 @@ import type {
   SpellDef,
   StatusKind,
 } from "./types";
-import { OPENING_COST_CAP, enemyOf, homeRow, isMidRow } from "./types";
+import { OPENING_COST_CAP, enemyOf, homeRow } from "./types";
 import { getSpell, spellPickKind } from "./spells";
 import { hasElementAura } from "./auras";
 
@@ -499,10 +499,21 @@ export function canTarget(
     // row cannot touch the enemy home row at all, however good its aim.
     !hasTotemSpirit(state, attacker)
   ) {
-    const ar = attacker.pos.row;
-    const inMid = ar === 1 || ar === 2;
-    const inThatHome = ar === defenderHome;
-    if (!inMid && !inThatHome) return false;
+    // "Mid" means ANY row between the two home rows, derived from the board
+    // rather than hardcoded. It used to read `ar === 1 || ar === 2`, which is
+    // every mid row on a 4x4 and only SOME of them on a 5x5 — leaving row 3 a
+    // safe zone that P1 alone benefited from, since row 3 is adjacent to P1's
+    // home row and nowhere near P2's. An enemy could stand directly in front of
+    // your back line and be told it had no valid action.
+    //
+    // Stated positively, the rule is simply: you cannot reach across the whole
+    // board into the enemy home row from inside your own. Once you have left
+    // home you are close enough, wherever you are.
+    //
+    // NOTE this is NOT `isMidRow`, which stays rows 1-2 at both sizes on
+    // purpose (see its comment) because widening it would re-tune every King of
+    // the Hill bonus at once. Same words, two different questions.
+    if (attacker.pos.row === homeRow(attacker.owner, state.boardSize)) return false;
   }
   return true;
 }
@@ -872,14 +883,18 @@ export function plannedAction(state: GameState, instanceId: string): PlannedActi
 
 // ── spells ────────────────────────────────────────────────────────────────────
 
-/** The Home Slot rule for Spells: a caster reaches their own Home + both Mid
- *  rows freely, but to touch the ENEMY Home row they must already hold a card
- *  in a Mid row (1/2) or in that enemy Home row. */
+/** The Home Slot rule for Spells: a caster reaches their own Home + every row
+ *  between the homes freely, but to touch the ENEMY Home row they must already
+ *  hold a card somewhere past their own home row. */
 function spellReachesEnemyHome(state: GameState, player: PlayerId): boolean {
-  const enemyHome = homeRow(enemyOf(player), state.boardSize);
-  return boardCards(state, player).some(
-    (c) => c.pos != null && (isMidRow(c.pos.row) || c.pos.row === enemyHome),
-  );
+  const ownHome = homeRow(player, state.boardSize);
+  // "Has a card past its own home row" — the same board-derived reading the
+  // basic-attack rule uses, and for the same reason: `isMidRow` is rows 1-2 at
+  // both sizes, so on a 5x5 a beachhead in row 3 used to count for nothing even
+  // though it is the row ADJACENT to the enemy home. The proxy is meant to ask
+  // "did you commit anything forward?", not "did you land on one of two rows".
+  // The enemy home row is itself past your own, so it needs no separate clause.
+  return boardCards(state, player).some((c) => c.pos != null && c.pos.row !== ownHome);
 }
 
 /** Can `player` hit this enemy card with a damage Spell right now? */

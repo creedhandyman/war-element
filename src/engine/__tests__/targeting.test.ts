@@ -1,11 +1,11 @@
 // Milestone 3: targeting — melee rows, ranged, Home Slot Rule, FLYING, STEALTH.
 
 import { describe, expect, it } from "vitest";
-import { canFireSpecial, canMove, canTarget, previewOnSummonArea, rangedCanSee, rangedReachFor, specialTargets, validSpecialTargets, validTargets } from "../rules";
+import { canFireSpecial, canMove, canSpellHitEnemy, canTarget, previewOnSummonArea, rangedCanSee, rangedReachFor, specialTargets, validSpecialTargets, validTargets } from "../rules";
 import { applyStatus } from "../combat";
 import { applyIntent } from "../phases";
 import { getDef } from "../../data/cards";
-import { place, prepState } from "./helpers";
+import { bigPrepState, place, prepState } from "./helpers";
 import type { Pos } from "../types";
 
 const key = (p: Pos) => `${p.row},${p.col}`;
@@ -77,6 +77,47 @@ describe("Home Slot Targeting Rule", () => {
     const defender = place(s, "leaf_alpha", "P1", 3, 0);
     const invader = place(s, "dusk_vamp", "P2", 3, 1); // standing on P1 home, beside us
     expect(canTarget(s, defender, invader)).toBe(true);
+  });
+
+  // ── the 5x5 safe zone ──────────────────────────────────────────────────────
+  // The rule's mid test was written `row === 1 || row === 2`, which is every
+  // row between the homes on a 4x4 and only two of the three on a 5x5. Row 3 —
+  // the row ADJACENT to P1's home — counted as neither mid nor home, so an
+  // attacker standing directly in front of the player's back line was told it
+  // had no valid action. It was asymmetric: the mirrored position (P1 in row 1
+  // shooting into P2's home row 0) worked fine, because row 1 IS "mid". Every
+  // 5x5 match in the game shipped with a safe zone that only the player could
+  // use, and the AI would walk into the home row to attack at all.
+
+  it("5x5: an attacker in row 3 CAN hit the home row it is standing in front of", () => {
+    const s = bigPrepState();
+    const attacker = place(s, "dusk_gool", "P2", 3, 2);
+    const homeSitter = place(s, "leaf_alpha", "P1", 4, 2);
+    expect(canTarget(s, attacker, homeSitter)).toBe(true);
+  });
+
+  it("5x5: and the mirrored shot still works, so the rule reads the same both ways", () => {
+    const s = bigPrepState();
+    const attacker = place(s, "leaf_alpha", "P1", 1, 2);
+    const homeSitter = place(s, "dusk_gool", "P2", 0, 2);
+    expect(canTarget(s, attacker, homeSitter)).toBe(true);
+  });
+
+  it("5x5: camping in your OWN home row is still denied — that half was the point", () => {
+    // The fix must not become "the home rule does nothing on the big board".
+    const s = bigPrepState();
+    const camper = place(s, "leaf_fallona", "P1", 4, 0); // ranged, own home
+    const homeSitter = place(s, "dusk_vamp", "P2", 0, 0);
+    expect(canTarget(s, camper, homeSitter)).toBe(false);
+  });
+
+  it("5x5: a beachhead in row 3 counts as reach for SPELLS too", () => {
+    // spellReachesEnemyHome asked the same rows-1-and-2 question, so a board
+    // presence one step from the enemy home row bought no spell reach at all.
+    const s = bigPrepState();
+    place(s, "leaf_alpha", "P2", 1, 2);
+    const camping = canSpellHitEnemy(s, "P2", place(s, "leaf_alpha", "P1", 4, 0));
+    expect(camping, "row 1 is past P2's home (row 0), so it reaches").toBe(true);
   });
 
   it("a ranged defender sees the WHOLE of its own home row, past the reach cap", () => {
