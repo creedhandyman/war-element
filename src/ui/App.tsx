@@ -1005,6 +1005,9 @@ export function App() {
     // "the boss is already standing when you arrive" means mechanically.
     if (eventRun?.bossId) {
       const seat = voidBossSeat(fresh.boardSize);
+      // Scores this match as a boss fight: no slot race, and killing the boss
+      // IS the win (see the `voidTower` branch in doCleanupPhase).
+      fresh.voidTower = true;
       const inst = summonCard(fresh, "P2", eventRun.bossId, seat as never);
       inst.summonedThisRound = false;
     }

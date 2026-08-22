@@ -326,7 +326,14 @@ export function buildVoidEncounter(boss: VoidBoss): {
   // free slots beside it — advance to summon more, the player's own maths.
   const boardSize = 5 as const;
   return {
-    deck: paddedFormation(boss, deckSizeFor(boardSize)),
+    // HALF the player's deck, not parity. The boss also brings a free 12-cost
+    // body that never passes through the economy and a Special that fires free
+    // every three rounds, so card-for-card parity was overshooting — and it
+    // showed on the board rather than in the win column: a padded-to-30 boss
+    // held seventeen to twenty-one bodies on a twenty-five slot board, which is
+    // not a fight, it is a wall with a boss somewhere behind it. Halving it
+    // costs nothing measurable in outcomes and gives the board back.
+    deck: paddedFormation(boss, Math.round(deckSizeFor(boardSize) / 2)),
     spells: [],
     boardSize,
     // Hoist the BUDGETED cards BY NAME. The cheapest-first stack every other

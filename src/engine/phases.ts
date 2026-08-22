@@ -2939,9 +2939,37 @@ function doCleanupPhase(draft: GameState): void {
     }
   }
 
+  // 6a. A VOID TOWER fight is decided by the BOSS, and only by the boss.
+  //
+  //     Every one of these puzzles is stated as "kill the source" — ignore the
+  //     brood and reach Rotroot, clear the kill-column and reach Skeleeze. Under
+  //     the ordinary rules not one of them was ever settled that way: measured
+  //     across seven bosses and three decks, 36 fights out of 36 ended by
+  //     CAPTURE, several inside six rounds with the boss untouched at 91% HP.
+  //     The fight was a race to five home slots that the boss won on sheer body
+  //     count, and the puzzle it was named for never came up. That is also why
+  //     tuning the bosses did nothing: their damage, their locks and their
+  //     spawns were not what decided anything.
+  //
+  //     So the slot race is off here and the boss IS the win condition. Kill it
+  //     and you have solved the floor, whatever else is standing; the brood is
+  //     the obstacle it was always described as rather than a second, faster
+  //     way to lose. The boss still wins the ordinary way, by elimination —
+  //     it does not need a shortcut, it needs you to have to come to it.
+  //     Detected by ABSENCE, not by `curHp <= 0`: `defeatCard` deletes the
+  //     instance outright, so a dead boss is not a zero-HP body still standing
+  //     there to be found. The boss always seats as P2 (`voidBossSeat`, and a
+  //     test pins it), so its absence is P1's win.
+  if (draft.voidTower && !boardCards(draft).some((c) => getDef(c.defId).boss)) {
+    draft.win = { winner: "P1", by: "slain" };
+    draft.phase = "gameover";
+    draft.log.push("The boss is slain — the floor is yours!");
+    return;
+  }
+
   // 6. Win conditions — capture takes precedence if both trigger.
   for (const player of ["P1", "P2"] as PlayerId[]) {
-    if (hasCaptureWin(draft, player)) {
+    if (!draft.voidTower && hasCaptureWin(draft, player)) {
       draft.win = { winner: player, by: "capture" };
       draft.phase = "gameover";
       draft.log.push(`${player} WINS by capture!`);

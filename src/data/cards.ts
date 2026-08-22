@@ -9763,7 +9763,12 @@ export const CARDS: CardDef[] = [
     // down. The answer is to ignore the board and reach Rotroot behind it.
     passiveNames: { allyRevive: "Undead Resilience" },
     allyRevive: { tribe: "Zombie", healFraction: 0.5 },
-    // The clock: its Special fires itself every 3 rounds, free.
+    // The clock: its Special fires itself every 3 rounds, free. NO advance,
+    // deliberately, and it is worth saying why since Xilty has one: under the
+    // Void Tower win rule the player has to come to the boss to win at all, so
+    // a boss that walks to meet them is throwing away the one advantage the
+    // fight hands it. Tried it — Rotroot went from 39% to 19% doing exactly
+    // that, shambling into the grinder a round earlier each time.
     roundTick: { fireSpecialEveryN: 3 },
     special: {
       name: "Rotten Grasp",
@@ -9841,9 +9846,16 @@ export const CARDS: CardDef[] = [
       name: "Web Trap",
       cost: 3,
       handler: "statusNova",
-      params: { statusKind: "PARALYZE", statusDuration: 2, targets: 99 },
+      // ONE round, not two. Two rounds of PARALYZE on a three-round clock is
+      // two-thirds uptime on everything in range: the player acted one round in
+      // three, and Xilty went undamaged in over half its fights. A lock you
+      // cannot play through does not teach "bring cleanse or immunity", it just
+      // ends the game — and now that the win condition is reaching Xilty and
+      // killing it, being unable to act is being unable to play at all. At one
+      // round the answer still matters and the fight still exists without it.
+      params: { statusKind: "PARALYZE", statusDuration: 1, targets: 99 },
       targetSide: "enemy",
-      text: "PARALYZE every opponent in range for 2 rounds.",
+      text: "PARALYZE every opponent in range for 1 round.",
     },
   },
   {
@@ -9872,7 +9884,12 @@ export const CARDS: CardDef[] = [
       name: "Whiteout",
       cost: 3,
       handler: "polarShift",
-      params: { underHp: 6, freeze: 2, allyShield: 2 },
+      // allyShield 1, not 2. It lands on EVERY ally every three rounds and
+      // never expires, so on a wide Ice board it compounded into armour nothing
+      // in the set could chew through — the boss sat at 90% HP, untouched,
+      // behind a wall it thickened for free every third round. A wall you are
+      // meant to "break through, or go around" has to be finite.
+      params: { underHp: 6, freeze: 2, allyShield: 1 },
       targetSide: "enemy",
       ranged: true, // board-wide, like Polar King's own cast
       text: "FREEZE every opponent at 6 HP or less for 2 rounds, and every ally gains +2 shields.",
@@ -9908,9 +9925,17 @@ export const CARDS: CardDef[] = [
       name: "Production Run",
       cost: 3,
       handler: "spawn",
-      params: { token: "bolt_drone_tok", count: 2 },
+      // maxAlive, because this fires FREE every 3 rounds forever and nothing
+      // capped the stock: `spawnMaxAlive` already leashes the round-tick spawn
+      // and the onOppSummon one, and the SPECIAL was the single spawn path
+      // without a ceiling. Uncapped it is the Buzzard problem again — two a
+      // cast, and the only way a body leaves the board is by dying. The puzzle
+      // is "AoE it, or choke the approach"; a line you can never get ahead of
+      // is not a puzzle, it is a clock you lose to. Four standing Drones is a
+      // wall you must clear, and it re-stamps the moment you do.
+      params: { token: "bolt_drone_tok", count: 2, maxAlive: 4 },
       targetSide: "self",
-      text: "Stamp out 2 Drones beside it.",
+      text: "Stamp out 2 Drones beside it, up to 4 on the field at once.",
     },
   },
   {
@@ -9922,7 +9947,14 @@ export const CARDS: CardDef[] = [
     attackType: "Ranged",
     cost: 12,
     dmg: 15,
-    hits: 2,
+    // ONE hit, not two. At 15x2 it put out 30 ranged damage a round, more than
+    // twice any other boss, and cleared the board before the player had
+    // deployed — which is not "kill it first, or survive one round", it is
+    // "there was no round". One heavy shot is the shape the puzzle names:
+    // something has to eat it, and then you get to answer. Doubly so now that
+    // slaying it is the win condition, since the fight only exists if the
+    // player's board survives long enough to walk over and do that.
+    hits: 1,
     hp: 20,
     sp: 14,
     shields: 0,

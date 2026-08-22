@@ -2928,7 +2928,23 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         );
       }
     }
-    spawnTokens(draft, attacker, token, num(params, "count", 1), radius);
+    // STOCK CAP. `spawnMaxAlive` already leashes the round-tick spawn and the
+    // onOppSummon one (see phases.ts); the SPECIAL was the one spawn path with
+    // no ceiling, and on a repeatable cast that is the Buzzard problem again —
+    // two a cast forever, and the only way a body leaves the board is by dying.
+    // Overclock's Production Run fires free every 3 rounds, so uncapped it just
+    // buried the board. Counts LIVING tokens of this id on the caster's side.
+    let want = num(params, "count", 1);
+    const maxAlive = params.maxAlive == null ? Infinity : num(params, "maxAlive", 0);
+    if (maxAlive !== Infinity) {
+      const alive = boardCards(draft, attacker.owner)
+        .filter((c) => c.curHp > 0 && c.defId === token).length;
+      want = Math.max(0, Math.min(want, maxAlive - alive));
+      if (want === 0) {
+        draft.log.push(`${label(draft, attacker)} — the line is at capacity.`);
+      }
+    }
+    if (want > 0) spawnTokens(draft, attacker, token, want, radius);
     // Grove's Blessing: the same burst that raises the tree tops up every ally
     // on the caster's side (Sylvane's Emergence). Element-agnostic — heals all.
     const healAmt = num(params, "healAllies");

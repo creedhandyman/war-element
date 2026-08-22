@@ -18,7 +18,7 @@ import { deckSizeFor, isBuildable, validateDeck } from "../../data/custom-decks"
 import { EVENTS } from "../../data/events";
 import { canCraft, newSave, openPack } from "../../data/story";
 import { advance } from "../phases";
-import { SPECIAL_HANDLERS, applyStatus, basicAttack } from "../combat";
+import { SPECIAL_HANDLERS, applyStatus, basicAttack, defeatCard } from "../combat";
 import { canFireSpecial } from "../rules";
 import { boardCards } from "../state";
 import { createInitialState, summonCard } from "../state";
@@ -226,9 +226,12 @@ describe("deck depth", () => {
   // fight where the player brings 30 and spent the back half of every match
   // unable to act. These pin the shape of the fix.
 
-  it("every boss brings a full deck", () => {
+  it("every boss brings half a deck — real depth, not a wall", () => {
+    // Half, because the boss ALSO brings a free 12-cost body and a Special that
+    // fires free every three rounds. At parity it held 17-21 bodies on a
+    // 25-slot board and the player could not reach it through them.
     for (const b of VOID_BOSSES) {
-      expect(buildVoidEncounter(b).deck.length, b.cardId).toBe(deckSizeFor(5));
+      expect(buildVoidEncounter(b).deck.length, b.cardId).toBe(Math.round(deckSizeFor(5) / 2));
     }
   });
 
@@ -277,6 +280,110 @@ describe("deck depth", () => {
   });
 });
 
+describe("slay the boss to win", () => {
+  // Every one of these puzzles is stated as "kill the source". Under the
+  // ordinary rules not one was ever settled that way: 36 fights out of 36 ended
+  // by CAPTURE, several inside six rounds with the boss untouched at 91% HP.
+  // The fight was a race to five home slots won on body count, and the puzzle
+  // it was named for never came up — which is also why tuning the bosses
+  // themselves moved nothing.
+
+  const bossFight = (bossId: string) => {
+    const s = prepState();
+    s.voidTower = true;
+    const boss = place(s, bossId, "P2", 0, 2);
+    place(s, "leaf_alpha", "P1", 2, 0);   // mid row, so it never blocks a home slot
+    return { s, boss };
+  };
+
+  it("killing the boss wins on the spot, whatever else is standing", () => {
+    const { s, boss } = bossFight("boss_rotroot");
+    // A whole brood still alive — the point is that it does not matter.
+    place(s, "dusk_zombination", "P2", 0, 0);
+    place(s, "dusk_rip", "P2", 0, 1);
+    defeatCard(s, s.cards[boss.instanceId], "test");
+    const n = advance(atCleanup(s));
+    expect(n.phase).toBe("gameover");
+    expect(n.win).toEqual({ winner: "P1", by: "slain" });
+  });
+
+  it("the slot race is OFF — a boss holding every home slot has not won", () => {
+    const { s } = bossFight("boss_overclock");
+    // Fill P1's home row with the boss's side: an ordinary match ends here.
+    for (let col = 0; col < s.boardSize; col++) place(s, "bolt_zipp", "P2", 3, col);
+    const n = advance(atCleanup(s));
+    expect(n.phase, "the fight goes on").not.toBe("gameover");
+  });
+
+  it("...and it is off for the PLAYER too, so neither side can skip the fight", () => {
+    const s = prepState();
+    s.voidTower = true;
+    place(s, "boss_rotroot", "P2", 1, 2);   // off its own home row, so P1 can fill it
+    for (let col = 0; col < s.boardSize; col++) place(s, "leaf_alpha", "P1", 0, col);
+    const n = advance(atCleanup(s));
+    expect(n.phase).not.toBe("gameover");
+  });
+
+  it("an ORDINARY match still ends on capture — the rule is scoped to the flag", () => {
+    const s = prepState();                       // no voidTower flag
+    place(s, "leaf_alpha", "P1", 2, 0);          // NOT in the home row it is defending
+    for (let col = 0; col < s.boardSize; col++) place(s, "bolt_zipp", "P2", 3, col);
+    const n = advance(atCleanup(s));
+    expect(n.win?.by).toBe("capture");
+  });
+
+  it("the boss still wins the ordinary way, by elimination", () => {
+    const s = prepState();
+    s.voidTower = true;
+    place(s, "boss_rotroot", "P2", 0, 2);
+    const prey = place(s, "leaf_alpha", "P1", 2, 0);
+    // Elimination is board AND hand AND deck — the boss needs you to have
+    // nothing left anywhere, which is what makes it the slower way to lose.
+    s.players.P1.hand = [];
+    s.players.P1.deck = [];
+    defeatCard(s, s.cards[prey.instanceId], "test");
+    const n = advance(atCleanup(s));
+    expect(n.win).toEqual({ winner: "P2", by: "elimination" });
+  });
+
+  it("the boss seats as P2 — the win rule reads its absence, so this is load-bearing", () => {
+    // `defeatCard` deletes the instance, so a slain boss cannot be asked who
+    // owned it; the rule hardcodes P1 as the victor and this is what pins it.
+    for (const b of VOID_BOSSES) {
+      const enc = buildVoidEncounter(b);
+      expect(enc.stacked.P2, `${b.cardId} is the P2 seat`).toBeTruthy();
+    }
+    expect(voidBossSeat(5).row, "P2's home row").toBe(0);
+  });
+});
+
+describe("a spawn Special has a stock cap", () => {
+  it("Production Run stops at 4 Drones and re-stamps as they die", () => {
+    // `spawnMaxAlive` already leashed the round-tick and onOppSummon spawns; the
+    // SPECIAL was the one path with no ceiling, and on a free 3-round clock that
+    // is the Buzzard problem again — two a cast, forever.
+    const s = prepState();
+    const boss = place(s, "boss_overclock", "P2", 0, 2);
+    const def = getDef("boss_overclock").special!;
+    const drones = () => boardCards(s, "P2").filter((c) => c.curHp > 0 && c.defId === "bolt_drone_tok").length;
+    for (let i = 0; i < 5; i++) SPECIAL_HANDLERS.spawn(s, boss, [], def.params!);
+    expect(drones(), "capped").toBe(4);
+    // Kill one; the line re-stamps rather than being spent for the match.
+    const one = boardCards(s, "P2").find((c) => c.defId === "bolt_drone_tok")!;
+    defeatCard(s, s.cards[one.instanceId], "test");
+    SPECIAL_HANDLERS.spawn(s, boss, [], def.params!);
+    expect(drones(), "back to the cap").toBe(4);
+  });
+
+  it("an uncapped spawn Special is unaffected", () => {
+    const s = prepState();
+    const rip = place(s, "dusk_rip", "P2", 0, 2);
+    const before = boardCards(s, "P2").length;
+    SPECIAL_HANDLERS.spawn(s, rip, [], { token: "dusk_zombie_tok", count: 2 });
+    expect(boardCards(s, "P2").length).toBe(before + 2);
+  });
+});
+
 describe("the trials", () => {
   it("one event per boss, generated from the same data", () => {
     for (const v of VOID_BOSSES) {
@@ -285,7 +392,7 @@ describe("the trials", () => {
       // The formation OPENS the fight; the rest of the deck is reinforcements.
       expect(ev!.deck.cards.slice(0, v.summons.length),
         "the trial opens on the formation").toEqual(v.summons);
-      expect(ev!.deck.cards.length, "and brings a full deck").toBe(deckSizeFor(5));
+      expect(ev!.deck.cards.length, "and brings half a deck").toBe(Math.round(deckSizeFor(5) / 2));
       expect(ev!.scriptedOpening, "hoisted by name, not by cost").toEqual(v.summons);
     }
   });

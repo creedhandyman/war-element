@@ -1894,7 +1894,7 @@ export interface SlotState {
 export interface WinInfo {
   /** null only on a timeout that nothing could separate — a genuine draw. */
   winner: PlayerId | null;
-  by: "capture" | "elimination" | "surrender" | "timeout";
+  by: "capture" | "elimination" | "surrender" | "timeout" | "slain";
 }
 
 /** Post-match analytics, accumulated live in the reducer. `dmg` is HP damage
@@ -1981,6 +1981,10 @@ export interface GameState {
    *  pendingFlow's owner, not just that card. pendingFlow still names one of
    *  them so the existing prompt has something to render. */
   pendingFlowAll?: boolean;
+  /** A VOID TOWER boss fight, which is scored differently from every other
+   *  match — see `slayWin` in phases.ts. Set by the encounter, never by a
+   *  player choice, and inert everywhere else. */
+  voidTower?: true;
   win: WinInfo | null;
   log: string[];
   nextId: number; // instance/hand id counter
