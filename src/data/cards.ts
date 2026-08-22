@@ -1298,11 +1298,17 @@ export const CARDS: CardDef[] = [
     rarity: "legendary",
     element: "AQUA",
     cardClass: "Tank",
+    // Back to cost 6, and the stat line goes back with it. The 6->7 recost
+    // bought exactly +1 DMG and +4 HP under the "re-stat to match, based on
+    // class" rule (Tank: DMG 13% / HP 61% / SHIELD 13% / SP 13%), so undoing
+    // the cost undoes the purchase — 40 points against a Cost-6 budget of 40,
+    // on the nose. Keeping the bigger body at the lower price would be five
+    // free points on a legendary that already answers melee with a 50% FREEZE.
     attackType: "Melee",
-    cost: 7, // LEGENDARY
-    dmg: 7,
+    cost: 6, // LEGENDARY
+    dmg: 6,
     hits: 1,
-    hp: 26,
+    hp: 22,
     sp: 4,
     shields: 4,
     keywords: {},
