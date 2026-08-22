@@ -1994,12 +1994,12 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 7, // LEGENDARY
+    cost: 8, // LEGENDARY
     dmg: 4,
     hits: 2,
-    hp: 27,
+    hp: 30,
     sp: 6,
-    shields: 2,
+    shields: 3,
     keywords: {},
     // Wind Guardian (End of Round): blow opponents in range back 1 slot.
     roundTick: { pushEnemies: 1 },
