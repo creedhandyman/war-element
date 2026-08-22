@@ -65,6 +65,66 @@ Preview via the launch.json entry named `war-element`, which pins
 **port 5199** (`--port 5199 --strictPort`). A bare `npm run dev` does NOT pass
 that flag and lands on 5173 — the two disagree, so know which one you started.
 
+## Accounts and cloud saves
+
+Every save lives in localStorage (`we_story_v1`, `we_squads_v1`,
+`we_custom_decks_v1`, `we_auto_defaults`), which is per-browser and per-device:
+installing the PWA on a second phone starts a stranger's game, and clearing site
+data ends the first one. `src/net/account.ts` is the way back — email sign-in
+plus a save you can move.
+
+**It needs one table.** Run this once in the Supabase SQL editor, or sign-in
+works and every save operation fails with "the player_saves table is missing":
+
+```sql
+create table if not exists player_saves (
+  user_id    uuid primary key references auth.users on delete cascade,
+  data       jsonb not null,
+  updated_at timestamptz not null default now()
+);
+alter table player_saves enable row level security;
+create policy "own save read"   on player_saves for select using (auth.uid() = user_id);
+create policy "own save write"  on player_saves for insert with check (auth.uid() = user_id);
+create policy "own save update" on player_saves for update
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+```
+
+**RLS is not optional.** Without those policies the anon key — which ships in
+the client bundle, by design — can read every row in the table. Every player's
+save would be public, and one of them is the owner's.
+
+No new env vars: it reuses `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`, so
+configuring online play configures this too. It builds its own client rather
+than sharing `online.ts`'s, which documents itself as "no DB, no auth" — sharing
+one would mean signing in silently changes the key a PvP channel authenticates
+with.
+
+Four decisions worth not re-litigating:
+
+- **A six-digit code, not a magic link.** Supabase offers both from one call. A
+  link opens the device's DEFAULT BROWSER, which for a home-screen PWA is not
+  the app — the player ends up signed in inside Safari looking at a copy of the
+  game with none of their local progress, while the installed one is still
+  signed out. A code is typed into the app that asked for it.
+- **No passwords, ever.** The app never sees, stores or transmits one. There is
+  nothing to leak.
+- **NEWEST-WINS IS THE WRONG RULE** and it is the one that looks safest. A fresh
+  install has a *newer* empty save than a two-month campaign in the cloud, so
+  "keep the most recent" deletes everything. What is automatic is one-directional
+  — an empty side never overwrites a full one — and when both sides hold real
+  progress the panel shows both (cards, nodes, shards, squads, when, which
+  device) and makes the player choose.
+- **Restore replaces, it does not merge.** Keys absent from the incoming bundle
+  are REMOVED, so restoring a save with no squads does not leave the previous
+  player's squads behind. After a restore the phone looks like the save rather
+  than like a mixture of two. `AccountPanel` then reloads the page, because four
+  different modules read those keys at boot and re-seeding them by hand is four
+  chances to miss one.
+
+`we_music_muted` is deliberately NOT synced: it is a property of the device, and
+carrying it would mean muting the game on a phone because it was muted on a
+laptop. Progress travels; preferences stay.
+
 ## The rules that keep the card set coherent
 
 **Stat budget.** `dmg*hits + hp + shields*2 + sp ≈ 5*cost + 10`, tolerance ±2.

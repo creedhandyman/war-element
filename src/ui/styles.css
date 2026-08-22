@@ -5381,3 +5381,49 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    the "change" pill sits beside a two-row block and drags it off-centre. */
 .ar-seat-foot:has(.el-chips.wrap) { flex-direction: column; align-items: stretch; gap: 5px; flex: none; }
 .ar-seat-foot:has(.el-chips.wrap) .ar-change { margin-left: auto; }
+
+/* ── Account: email sign-in and the cloud save ─────────────────────────────── */
+.home-acct {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 999px; cursor: pointer;
+  background: rgba(6, 7, 12, .72); border: 1px solid var(--panel-line);
+  color: var(--ink-dim); font-size: 11px; font-weight: 700;
+}
+.home-acct:hover { border-color: var(--gold-line); color: var(--ink); }
+.modal.acct { width: min(430px, 94vw); display: flex; flex-direction: column; gap: 11px; }
+.acct-head { display: flex; align-items: center; }
+.acct-head h2 { margin: 0; flex: 1; }
+.acct-note { margin: 0; font-size: 12px; line-height: 1.45; color: var(--ink-dim); }
+.acct-note.small { font-size: 10.5px; }
+.acct-field { display: flex; flex-direction: column; gap: 4px; }
+.acct-field span { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); font-weight: 700; }
+.acct-field input {
+  padding: 9px 11px; border-radius: 9px; font: inherit; font-size: 14px;
+  background: var(--void-2); border: 1px solid var(--panel-line); color: var(--ink);
+}
+.acct-field input:focus { outline: none; border-color: var(--gold-line); }
+.acct-row { display: flex; gap: 8px; }
+.acct-row > button { flex: 1; }
+.acct-row > button.wide { flex: 1 1 100%; }
+.acct-who { display: flex; align-items: center; gap: 8px; }
+.acct-email { flex: 1; font-size: 13px; font-weight: 700; color: var(--ink); word-break: break-all; }
+/* The two saves, side by side. The comparison IS the feature — a player about
+   to overwrite two months of progress should be looking at both numbers. */
+.acct-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.acct-side {
+  display: flex; flex-direction: column; gap: 5px; padding: 9px 10px;
+  border-radius: 10px; border: 1px solid var(--panel-line); background: var(--void-2);
+}
+.acct-side-h { font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); font-weight: 700; }
+.acct-side-empty { font-size: 11px; color: var(--ink-faint); font-style: italic; }
+.acct-stats { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.acct-stats li { font-size: 11px; color: var(--ink-dim); }
+.acct-stats b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.acct-when { font-size: 9.5px; color: var(--ink-faint); }
+.acct-warn {
+  margin: 0; padding: 8px 10px; border-radius: 9px; font-size: 11.5px; line-height: 1.45;
+  border: 1px solid var(--gold-line); background: rgba(255, 200, 90, .08); color: var(--ink-dim);
+}
+.acct-msg { font-size: 11.5px; color: var(--ink-dim); }
+.acct-msg.bad { color: #ff6b6b; }
+@media (max-width: 420px) { .acct-compare { grid-template-columns: 1fr; } }

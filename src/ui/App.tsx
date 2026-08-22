@@ -80,6 +80,8 @@ import { StoryResult } from "./StoryResult";
 import { StoryPrep } from "./StoryPrep";
 import { BottomNav, type Tab } from "./BottomNav";
 import { HomeScreen } from "./HomeScreen";
+import { AccountPanel } from "./AccountPanel";
+import { currentUser, onAuthChange } from "../net/account";
 import { VersusIntro } from "./VersusIntro";
 import { ActionWheel, type WheelVerb } from "./ActionWheel";
 import { Shop } from "./Shop";
@@ -480,6 +482,14 @@ export function App() {
   useEffect(() => {
     if (gauntletSeatId && gauntletSeatId !== p2DeckId) setP2DeckId(gauntletSeatId);
   }, [gauntletSeatId, p2DeckId]);
+  /** The account panel (email sign-in + cloud save). */
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
+  useEffect(() => {
+    void currentUser().then((u) => setAccountEmail(u?.email ?? null));
+    return onAuthChange((u) => setAccountEmail(u?.email ?? null));
+  }, []);
+
   /** Which seat the deck sheet is filling, or null when it is shut. */
   const [pickSeat, setPickSeat] = useState<"p1" | "p2" | null>(null);
   // Premade builds sized for the CHOSEN battlefield — a 30-card large build must
@@ -3335,6 +3345,8 @@ export function App() {
           onShop={(t) => { setShopTab(t); setTab("shop"); }}
           onBuilder={() => navDo({ t: "builder", open: true })}
           onCollection={() => setHomeCollection(true)}
+          onAccount={() => setAccountOpen(true)}
+          accountEmail={accountEmail}
         />
       )}
 
@@ -3421,6 +3433,18 @@ export function App() {
         }}
       />
       {rulesOpen && <RulesBook onClose={() => setRulesOpen(false)} />}
+      {accountOpen && (
+        <AccountPanel
+          onClose={() => setAccountOpen(false)}
+          // A restore rewrites localStorage under an app that read it at boot,
+          // so nothing on screen would change without this. A full reload is
+          // the honest way to re-read EVERY save file at once — the campaign,
+          // the squads, the deck library and the auto defaults are loaded by
+          // four different modules, and re-seeding them by hand would be four
+          // chances to miss one and leave the player looking at a mixture.
+          onRestored={() => window.location.reload()}
+        />
+      )}
 
       {/* Hidden during a match: a bottom bar over a 5x5 board eats the row the
           player needs most, and there is nowhere to navigate to mid-fight. */}

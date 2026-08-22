@@ -72,6 +72,11 @@ export function HomeScreen(props: {
   onShop: (tab: "packs" | "crafter") => void;
   onBuilder: () => void;
   onCollection: () => void;
+  /** Open the account panel — email sign-in and the cloud save. */
+  onAccount: () => void;
+  /** Signed-in address, or null. Only used to label the button, so the home
+   *  screen never has to know how any of that works. */
+  accountEmail: string | null;
 }) {
   const { save } = props;
   const hero = save.hero;
@@ -160,6 +165,17 @@ export function HomeScreen(props: {
           <span className="home-purse p-ess" title={`${totalEssence} essence, across every element`}>
             <i className="ess" aria-hidden="true" /><b>{totalEssence}</b>
           </span>
+          {/* Beside the purse because it belongs to the HERO — it is what says
+              which account all of this hangs off — rather than in the tile grid
+              below, which is about what to do next. */}
+          <button
+            className="home-acct"
+            onClick={props.onAccount}
+            title="Sign in to save your progress across devices"
+          >
+            {props.accountEmail ? "\u2601" : "\u2601\uFE0F"}
+            <span>{props.accountEmail ? "Synced" : "Sign in"}</span>
+          </button>
         </div>
 
         <button className="home-cont" onClick={() => props.onStory(region.id)}>
