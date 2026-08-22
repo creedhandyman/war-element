@@ -16,7 +16,7 @@
 // and the player is asked whenever both sides have something to lose.
 import { useEffect, useState } from "react";
 import {
-  accountConfigured, applyBundle, currentUser, localBundle, onAuthChange,
+  accountConfigured, applyBundle, arrivedFromEmailLink, currentUser, localBundle, onAuthChange,
   pullSave, pushSave, requestCode, signOut, summarize,
   type AccountUser, type SaveBundle, type SaveSummary,
 } from "../net/account";
@@ -91,7 +91,14 @@ export function AccountPanel(props: {
     setBusy("code"); setMsg(null);
     const r = await requestCode(email);
     setBusy(null);
-    if (r.ok) { setSent(true); setMsg({ text: `Code sent to ${email.trim()}. It expires in an hour.` }); }
+    // Deliberately vague about WHICH — the email is a link or a code depending on
+    // whether the project has custom SMTP, and the app cannot tell from here.
+    // Promising a code that does not arrive is what sent the last person hunting
+    // through their inbox for six digits that were never in it.
+    if (r.ok) {
+      setSent(true);
+      setMsg({ text: `Sent to ${email.trim()}. Tap the link in the email, or type the code below if it has one. Expires in an hour.` });
+    }
     else setMsg({ text: r.error, bad: true });
   }
 
@@ -150,7 +157,7 @@ export function AccountPanel(props: {
           <>
             <p className="acct-note">
               Sign in with an email to keep your progress and carry it to another phone.
-              No password — we email you a six-digit code.
+              No password.
             </p>
             <label className="acct-field">
               <span>Email</span>
@@ -167,7 +174,7 @@ export function AccountPanel(props: {
             ) : (
               <>
                 <label className="acct-field">
-                  <span>Code</span>
+                  <span>Code (only if the email has one)</span>
                   <input
                     inputMode="numeric" autoComplete="one-time-code" maxLength={8}
                     value={code} placeholder="123456"
@@ -232,6 +239,15 @@ export function AccountPanel(props: {
         )}
 
         {msg && <div className={`acct-msg ${msg.bad ? "bad" : ""}`}>{msg.text}</div>}
+        {arrivedFromEmailLink && !user && !msg && (
+          /* The link brought them here and it did NOT sign them in — expired,
+             already used, or an origin the project does not allow. Saying so
+             beats a sign-in form that looks like nothing ever happened. */
+          <div className="acct-msg bad">
+            That sign-in link did not work — it may have expired or already been used.
+            Ask for a new one.
+          </div>
+        )}
       </div>
     </div>
   );

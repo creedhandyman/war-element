@@ -101,11 +101,23 @@ with.
 
 Four decisions worth not re-litigating:
 
-- **A six-digit code, not a magic link.** Supabase offers both from one call. A
-  link opens the device's DEFAULT BROWSER, which for a home-screen PWA is not
-  the app — the player ends up signed in inside Safari looking at a copy of the
-  game with none of their local progress, while the installed one is still
-  signed out. A code is typed into the app that asked for it.
+- **Link AND code, because which one arrives is not the app's choice.**
+  Supabase gates email-template editing behind CUSTOM SMTP, and the built-in
+  mailer's default template carries `{{ .ConfirmationURL }}` and no
+  `{{ .Token }}` — so on the built-in sender there is no six-digit code in
+  existence, whatever the form asks for. `detectSessionInUrl` redeems a link,
+  `verifyCode` redeems a code, both are live. **The code is the better flow and
+  the one to move to**: a link tapped on a phone opens the default browser,
+  which for a home-screen PWA is not the app, so the player ends up signed in
+  inside Safari looking at a copy of the game with none of their progress.
+  Custom SMTP unlocks it — and also removes the built-in mailer's 2-4
+  emails/hour cap, which no real player base survives.
+- **Site URL and Redirect URLs must point at the deploy.** They ship as
+  `http://localhost:3000` and empty, which is why the first link anyone clicked
+  went nowhere. Currently `https://war-element.vercel.app` with
+  `https://war-element.vercel.app/**` allow-listed. `requestCode` also sends
+  `emailRedirectTo: window.location.origin`; an origin that is not allow-listed
+  is ignored and Site URL is used instead, so a dev server falls back safely.
 - **No passwords, ever.** The app never sees, stores or transmits one. There is
   nothing to leak.
 - **NEWEST-WINS IS THE WRONG RULE** and it is the one that looks safest. A fresh

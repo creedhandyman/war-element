@@ -6,13 +6,22 @@
  *  installing the PWA on a second phone starts a stranger's game, and clearing
  *  site data ends the first one. This is the way back.
  *
- *  ── WHY A CODE AND NOT A MAGIC LINK ───────────────────────────────────────
- *  Supabase offers both from the same call. A magic link opens the device's
- *  DEFAULT BROWSER, which for a game added to the home screen is not the app —
- *  the player lands signed-in in Safari looking at a copy of the game with none
- *  of their local progress, while the installed one is still signed out. The
- *  six-digit code is typed into the app that asked for it, so it works
- *  identically in a tab, in a home-screen PWA, and in a webview.
+ *  ── LINK AND CODE, BOTH ───────────────────────────────────────────────────
+ *  Supabase sends one email from one call, and WHICH it contains is not the
+ *  app's choice — it is the project's. Template editing is gated behind custom
+ *  SMTP, and the built-in sender's default template carries
+ *  `{{ .ConfirmationURL }}` and no `{{ .Token }}`. So on a project using the
+ *  built-in mailer there is no six-digit code in existence, whatever the form
+ *  asks for. This module redeems both: `detectSessionInUrl` consumes a link,
+ *  `verifyCode` consumes a code, and neither cares which one arrived.
+ *
+ *  The CODE is the better flow and the one to move to. A link tapped on a phone
+ *  opens the default browser, which for a game added to the home screen is not
+ *  the app — the player ends up signed in inside Safari looking at a copy of
+ *  the game with none of their local progress, while the installed one is still
+ *  signed out. A code is typed into the app that asked for it and works
+ *  identically in a tab, in a PWA and in a webview. Configuring custom SMTP is
+ *  what unlocks it; until then the link is what there is.
  *
  *  ── WHAT IS NOT HERE ──────────────────────────────────────────────────────
  *  No passwords. The app never sees, stores or transmits one, which is the
@@ -58,9 +67,22 @@ function db(): SupabaseClient | null {
   if (!accountConfigured) return null;
   client ??= createClient(URL!, ANON!, {
     auth: {
-      persistSession: true,      // stay signed in across app launches
+      persistSession: true,   // stay signed in across app launches
       autoRefreshToken: true,
-      detectSessionInUrl: false, // codes, not links — nothing arrives in the URL
+      // TRUE, because on this project the email is a LINK and not a code.
+      //
+      // Supabase gates email-template editing behind custom SMTP, and the
+      // built-in sender's default template carries `{{ .ConfirmationURL }}` and
+      // no `{{ .Token }}` — so there is no six-digit code to type, whatever the
+      // form below asks for. The link is the only credential that exists on this
+      // setup, and this is what redeems it: supabase-js reads the tokens out of
+      // the URL fragment on construction and establishes the session.
+      //
+      // The code path is KEPT rather than removed. It is the better flow the
+      // moment custom SMTP is configured — a link tapped on a phone opens the
+      // default browser rather than the installed game — so both are live and
+      // whichever the email contains will work.
+      detectSessionInUrl: true,
     },
   });
   return client;
@@ -135,6 +157,24 @@ function deviceName(): string {
 
 export type AccountUser = { id: string; email: string };
 
+/** Did this page load from a sign-in link?
+ *
+ *  Read at MODULE LOAD, before any client is constructed, because
+ *  `detectSessionInUrl` consumes the fragment and scrubs the address bar — by
+ *  the time anything renders there is nothing left to look at. Without it,
+ *  tapping the link drops the player on the Home screen with no sign that
+ *  anything happened, which reads exactly like a link that did not work.
+ *
+ *  Matches the recovery/error shapes too, so a LINK THAT FAILED (expired, or
+ *  already used) is distinguishable from a cold start rather than being
+ *  silently identical to one. */
+export const arrivedFromEmailLink: boolean = (() => {
+  if (typeof window === "undefined") return false;
+  const h = window.location.hash || "";
+  const q = window.location.search || "";
+  return /access_token=|refresh_token=|type=(magiclink|signup|recovery)|error_code=|error_description=/.test(h + q);
+})();
+
 export async function currentUser(): Promise<AccountUser | null> {
   const c = db();
   if (!c) return null;
@@ -166,7 +206,15 @@ export async function requestCode(email: string): Promise<{ ok: true } | { ok: f
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) return { ok: false, error: "That does not look like an email address." };
   const { error } = await c.auth.signInWithOtp({
     email: clean,
-    options: { shouldCreateUser: true },
+    options: {
+      shouldCreateUser: true,
+      // Come back HERE. Without it the link lands on the project's Site URL,
+      // which ships as `http://localhost:3000` and is why the first link anyone
+      // clicked went nowhere. An origin that is not on the project's redirect
+      // allow-list is ignored and Site URL is used instead, so this is safe to
+      // send from a dev server too — it simply falls back.
+      emailRedirectTo: typeof window === "undefined" ? undefined : window.location.origin,
+    },
   });
   return error ? { ok: false, error: error.message } : { ok: true };
 }
