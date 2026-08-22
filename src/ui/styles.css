@@ -5469,10 +5469,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .vt-floor.cleared .vt-floor-sub { color: #7fd89a; }
 /* Portrait tiles, as many per row as the width allows. auto-fill rather than
    auto-fit so a floor holding ONE boss (2 and 3 do) gets one tile the size of
-   the others instead of a single portrait stretched across the whole screen. */
+   the others instead of a single portrait stretched across the whole screen.
+
+   140px, measured rather than guessed: a 375px phone leaves the grid 321px
+   once the screen's padding, the floor card's padding and its border are off,
+   and at 158px two columns needed 326 — so it fell to ONE tile per row, 321
+   wide and 401 tall, and Floor 1's five bosses became two thousand pixels of
+   scrolling. 140 fits two with room to spare, which is what makes the floor
+   read as a roster you are choosing from. */
 .vt-bosses {
   display: grid; gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
 }
 .vt-boss {
   position: relative; display: block; width: 100%; padding: 0;
@@ -5499,7 +5506,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .vt-boss-body {
   position: absolute; left: 0; right: 0; bottom: 0;
   display: flex; flex-direction: column; gap: 2px;
-  padding: 26px 10px 10px;
+  padding: 20px 10px 9px;
   /* The scrim is the whole reason text over art stays readable regardless of
      what the artist put in the bottom third. */
   background: linear-gradient(to top, rgba(6,4,12,.94) 38%, rgba(6,4,12,.72) 66%, transparent);
