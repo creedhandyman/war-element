@@ -3245,9 +3245,17 @@ export function App() {
                      night" — nothing on the screen said a pack was riding on
                      it. The seat stays CHANGEABLE (unlike a run's): picking
                      another deck is how you back out, and `eventRun` derives
-                     from this seat, so doing so ends the event cleanly. */
-                  flag={eventRun ? "EVENT · ONE TIME ONLY" : gauntletSeat ? `GAUNTLET · SEAT ${(gauntletRun?.won ?? 0) + 1}` : twoPlayer ? "P2 · SECOND PLAYER" : "AI · P2"}
-                  label={deckLabel(p2DeckId)}
+                     from this seat, so doing so ends the event cleanly.
+
+                     A VOID TRIAL'S SEAT IS THE BOSS. The deck in the chair is
+                     only its summons, so left alone the seat wore the brood's
+                     finisher ("Rotroot's brood", Zombination's face) — the one
+                     card that is NOT in the deck is the whole fight. Name, face
+                     and flag all come from the boss; the chips below still show
+                     what it brings. */
+                  flag={eventRun?.bossId ? "VOID TOWER · BOSS" : eventRun ? "EVENT · ONE TIME ONLY" : gauntletSeat ? `GAUNTLET · SEAT ${(gauntletRun?.won ?? 0) + 1}` : twoPlayer ? "P2 · SECOND PLAYER" : "AI · P2"}
+                  label={eventRun?.bossId ? getDef(eventRun.bossId).name : deckLabel(p2DeckId)}
+                  artOverride={eventRun?.bossId ? `/cards/${getDef(eventRun.bossId).art ?? eventRun.bossId}.webp` : undefined}
                   cards={resolveDeckCards(p2DeckId)}
                   /* DEALT, NOT CHOSEN — in either challenge mode. A run's seat
                      was already locked (opening the sheet is the re-roll the run

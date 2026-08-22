@@ -81,8 +81,13 @@ export function DeckSeat(props: {
   /** Absent = this seat is not the player's to change (a Gauntlet run deals
    *  it). The card renders as a plain panel rather than a dead button. */
   onChange?: () => void;
+  /** Face the seat with THIS art instead of the deck's finisher. A Void Tower
+   *  trial's deck is only the boss's summons — its finisher is a lieutenant,
+   *  and the seat wearing Zombination's face for Rotroot's fight undersold
+   *  every fight on the tower. The BOSS is the opponent; the seat says so. */
+  artOverride?: string;
 }) {
-  const art = deckArtUrl(props.cards);
+  const art = props.artOverride ?? deckArtUrl(props.cards);
   return (
     <button
       className={`ar-seat ${props.side} ${props.onChange ? "" : "locked"}`}
