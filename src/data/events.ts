@@ -26,7 +26,7 @@
  *  pack. It is a `CustomDeck` that lives in code, reachable only through the
  *  Home card that starts it.
  */
-import { type StorySave, addFreePacks } from "./story";
+import { type StorySave, addFreePacks, addShards } from "./story";
 import type { CustomDeck } from "./custom-decks";
 import { getDef } from "./cards";
 import { VOID_BOSSES, buildVoidEncounter, trialEventId } from "./void-tower";
@@ -76,6 +76,17 @@ export interface GameEvent {
    *  cheaper rather than free, and a later price change would silently re-value
    *  a gift that was supposed to be one pack. */
   rewardPacks: number;
+  /** Shards paid the FIRST time this event is cleared, on top of the packs. */
+  rewardShards?: number;
+  /** Shards paid for clearing it AGAIN, every time after the first.
+   *
+   *  Most events cannot pay this because they cannot be replayed — they are
+   *  one-time-only and leave the Home band once beaten. Void Tower trials can:
+   *  the tower offers a Refight, and a floor you have already cleared is the
+   *  only repeatable fight in the game that is genuinely hard. Lower than the
+   *  first clear on purpose, so beating a boss for the first time stays the
+   *  moment and the rest is a grind you chose. */
+  replayShards?: number;
   deck: CustomDeck;
   /** A VOID TOWER TRIAL: this card id is placed on the opponent's home row at
    *  match start, outside the economy — the deck above is only its summons.
@@ -247,6 +258,13 @@ const VOID_TRIALS: GameEvent[] = VOID_BOSSES.map((b) => {
     art: `/maps/${b.tribeElement.toLowerCase()}.webp`,
     rim: "rgba(139,125,201,.5)",
     rewardPacks: 1,
+    // A boss is the hardest fight in the game and, once cleared, the only hard
+    // one you can go back to. 25 for the kill and 10 a refight — against the
+    // Arena's 2 a win, which is the rate this is deliberately beating: the
+    // Arena is infinite and a tower boss is not, so paying the tower better is
+    // the same argument that makes an online win worth 10.
+    rewardShards: 25,
+    replayShards: 10,
     bossId: b.cardId,
     deck: { id: `void_deck_${b.cardId}`, name: `${boss.name}'s brood`, cards: enc.deck, spells: enc.spells },
   };
@@ -272,14 +290,29 @@ export const eventDone = (save: StorySave, id: string): boolean =>
 export const openEvents = (save: StorySave): GameEvent[] =>
   EVENTS.filter((e) => !eventDone(save, e.id));
 
-/** Record the clear and pay the reward, exactly once.
+/** Record the clear and pay for it.
  *
- *  Returns the SAME object when the event is already done, so the caller's
- *  `next !== prev` guard skips the write and nothing is paid a second time.
- *  Both halves happen here rather than at the call site because they must not
- *  be able to happen separately. */
+ *  The FIRST clear records the event and pays packs plus `rewardShards`. Both
+ *  halves happen here rather than at the call site because they must not be
+ *  able to happen separately.
+ *
+ *  A REPEAT clear records nothing — it is already recorded — and pays only
+ *  `replayShards`, for the events that have one. This used to return the save
+ *  untouched, and the safety of paying twice rested on that: a settle that ran
+ *  again was a no-op. It no longer is, so the guard that matters is the
+ *  caller's `settledMatch` ref, which fires this exactly once per match. That
+ *  is the same guard the Arena's per-win shards have always relied on.
+ *
+ *  An event with no `replayShards` still returns the identical object on a
+ *  repeat, so nothing changes for the one-time-only events. */
 export function completeEvent(save: StorySave, id: string): StorySave {
   const event = EVENTS.find((e) => e.id === id);
-  if (!event || eventDone(save, id)) return save;
-  return addFreePacks({ ...save, eventsDone: [...(save.eventsDone ?? []), id] }, event.rewardPacks);
+  if (!event) return save;
+  if (eventDone(save, id)) {
+    return event.replayShards ? addShards(save, event.replayShards) : save;
+  }
+  const cleared = addFreePacks(
+    { ...save, eventsDone: [...(save.eventsDone ?? []), id] }, event.rewardPacks,
+  );
+  return event.rewardShards ? addShards(cleared, event.rewardShards) : cleared;
 }

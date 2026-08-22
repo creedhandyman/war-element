@@ -200,6 +200,64 @@ describe("a scripted opening", () => {
   });
 });
 
+describe("a Void Tower trial pays for the kill, and for coming back", () => {
+  const trial = EVENTS.find((e) => e.bossId)!;
+  // The rates, pinned once. Everything below derives from these, so changing
+  // what a boss pays is a one-line diff here and not a hunt through the block.
+  const KILL = 25, REFIGHT = 10;
+
+  it("the advertised rates are what the trials actually carry", () => {
+    // The tower screen prints these numbers at the player in plain words, so a
+    // silent edit to one would make the UI lie.
+    for (const e of EVENTS.filter((x) => x.bossId)) {
+      expect(e.rewardShards, e.id).toBe(KILL);
+      expect(e.replayShards, e.id).toBe(REFIGHT);
+    }
+  });
+
+  it("the first clear pays a pack AND the kill rate", () => {
+    const save = newSave();
+    const done = completeEvent(save, trial.id);
+    expect(freePacks(done)).toBe(freePacks(save) + trial.rewardPacks);
+    expect(shards(done)).toBe(shards(save) + KILL);
+    expect(eventDone(done, trial.id)).toBe(true);
+  });
+
+  it("every refight after pays the refight rate — and never another pack", () => {
+    const first = completeEvent(newSave(), trial.id);
+    const again = completeEvent(first, trial.id);
+    expect(shards(again), "the refight rate").toBe(shards(first) + REFIGHT);
+    expect(freePacks(again), "the pack is a first-clear reward only")
+      .toBe(freePacks(first));
+    expect(again.eventsDone, "and the clear is not recorded twice")
+      .toEqual(first.eventsDone);
+  });
+
+  it("refights keep paying, at that rate, without compounding", () => {
+    let s = completeEvent(newSave(), trial.id);
+    const afterFirst = shards(s);
+    for (let i = 0; i < 4; i++) s = completeEvent(s, trial.id);
+    expect(shards(s)).toBe(afterFirst + 4 * REFIGHT);
+    expect(freePacks(s)).toBe(freePacks(completeEvent(newSave(), trial.id)));
+  });
+
+  it("a refight pays LESS than the kill — the first time stays the moment", () => {
+    for (const e of EVENTS.filter((x) => x.replayShards != null)) {
+      expect(e.replayShards!, e.id).toBeLessThan(e.rewardShards ?? 0);
+      expect(e.replayShards!, `${e.id} still pays something`).toBeGreaterThan(0);
+    }
+  });
+
+  it("only replayable events pay a refight", () => {
+    // The one-time-only events leave the Home band once beaten, so a
+    // `replayShards` on one would be unreachable config pretending to be a
+    // reward. Void Tower trials are the replayable kind — the tower offers a
+    // Refight — and they are the only ones that carry it.
+    for (const e of EVENTS)
+      if (e.replayShards != null) expect(e.bossId, e.id).toBeTruthy();
+  });
+});
+
 describe("completing an event", () => {
   const event = EVENTS[0];
 
@@ -249,10 +307,15 @@ describe("completing an event", () => {
   });
 
   it("cannot pay twice — a replayed settle is a no-op", () => {
-    // The property the whole design rests on. A refresh, a double render or a
-    // re-entered effect must not mint a second pack, so the second call has to
-    // return the SAME OBJECT — that identity is what the caller's
-    // `next !== prev` guard uses to skip the write.
+    // EVENTS[0] is one-time-only and carries no `replayShards`, so a repeat
+    // clear still returns the SAME OBJECT. A refresh, a double render or a
+    // re-entered effect must not mint a second pack.
+    //
+    // Void Tower trials DO pay a refight, so that identity no longer holds for
+    // every event — see the trial block below. What still holds everywhere is
+    // the part that matters here: a repeat never mints a second pack and never
+    // records the clear twice.
+    expect(event.replayShards, "this event is the non-replaying kind").toBeUndefined();
     const first = completeEvent(newSave(), event.id);
     const second = completeEvent(first, event.id);
     expect(second).toBe(first);

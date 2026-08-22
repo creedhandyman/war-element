@@ -144,8 +144,8 @@ export function VoidTower(props: {
 
       <p className="vt-foot">
         Bosses are fought with your own deck — pick it in the Arena when the
-        fight seats. A first clear pays one booster pack. Refights are free
-        practice.
+        fight seats. A first clear pays one booster pack and 25 shards; every
+        refight after that pays 10.
       </p>
     </div>
   );

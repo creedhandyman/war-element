@@ -750,9 +750,15 @@ export function App() {
       // outright on a loss. It pays no arena shards either way: an event deck is
       // not in PREMADE_DECKS, so there was nothing for `settleArena` to award.
       //
-      // The reward is paid inside the same set-membership check that records the
-      // clear, so a replayed settle returns the save untouched and cannot pay
-      // twice — and a loss records nothing, leaving the event open.
+      // The first clear's reward is paid inside the same set-membership check
+      // that records it, so the two cannot come apart, and a loss records
+      // nothing, leaving the event open.
+      //
+      // A REFIGHT pays too, for the events that carry `replayShards` — Void
+      // Tower trials do. That means a repeated settle is no longer the no-op it
+      // used to be, and what keeps it honest is the `settledMatch` ref above:
+      // one settlement per match, the same guard the Arena's per-win shards
+      // have always run on.
       const settled = event
         ? (won ? completeEvent(prev, event.id) : prev)
         : settleArena(
