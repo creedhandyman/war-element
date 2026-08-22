@@ -10,7 +10,7 @@ import { CARDS, getDef } from "../../data/cards";
 import {
   ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
   EXOSTONE_SHIELDS, GALE_SP_CAP, LEAF_SHIELD_CAP, PYRO_BURN_DURATION, PYRO_BURN_STACK_CAP, hasElementAura,
-  slipstreamPct, tailwindDmg, GALE_TAILWIND_PER, GALE_TAILWIND_CAP,
+  slipstreamPct, tailwindDmg, GALE_TAILWIND_PER, GALE_TAILWIND_CAP, applyFlow,
 } from "../auras";
 import { applyStatus, basicAttack, defeatCard, shadeDodgePct, slipstreamDodgePct } from "../combat";
 import { advance, applyIntent, openFlowRepick } from "../phases";
@@ -313,6 +313,51 @@ describe("AQUA — Flow Change", () => {
     s.players.P1.gold = 30;
     const handId = giveHand(s, "P1", cheapest("AQUA").id);
     expect(applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 }).pendingFlow).toBeTruthy();
+  });
+
+  it("the boost is PERMANENT — it is still there rounds later", () => {
+    // The aura has been round-scoped, permanent, and timed at 3 rounds. This is
+    // the assertion that says which: AQUA measured as the floor of the element
+    // spread, and a buff that expires on a card still standing made it the one
+    // aura that got weaker the longer a match ran.
+    //
+    // Ten Cleanups, well past the 3 the timed version granted. Written against
+    // the CLEANUP tick rather than a round counter because that is what expires
+    // a `buffs` entry — a permanence test that never runs the expiry machinery
+    // would pass on a timed buff too.
+    const s = prepState();
+    const card = place(s, "aqua_vaporem", "P1", 3, 1);
+    place(s, "dusk_gool", "P2", 0, 1, { curHp: 99, maxHp: 99 });
+    applyFlow(card, "steam", true);
+    const boosted = effectiveSp(s, s.cards[card.instanceId]);
+    expect(boosted, "+4 SP landed").toBe(getDef("aqua_vaporem").sp + 4);
+    let g = s;
+    for (let i = 0; i < 10; i++) g = advance(atCleanup(g));
+    expect(effectiveSp(g, g.cards[card.instanceId]), "and never faded").toBe(boosted);
+  });
+
+  it("Liquid gives a multi-hit card an extra HIT, not +2 on every hit", () => {
+    // The guard the timed version was allowed to drop. Permanent +2 DMG on
+    // Vaporem's 2x5 is +4 a turn forever; on Sapphire's 3x2 it is +6 — the
+    // blowout that made the split exist. Coming back to permanent brings the
+    // guard back with it.
+    const s = prepState();
+    const multi = place(s, "aqua_vaporem", "P1", 3, 1);
+    expect(getDef("aqua_vaporem").hits, "the fixture is genuinely multi-hit").toBeGreaterThan(1);
+    applyFlow(multi, "water", true);
+    expect(multi.hitsBonus, "an extra hit").toBe(1);
+    expect(multi.dmgBonus, "and no per-hit inflation").toBe(0);
+  });
+
+  it("Downpour's re-pick stays round-scoped, or it stacks without limit", () => {
+    // The one path that must NOT follow the summon pick. Downpour re-flows every
+    // AQUA ally EVERY round; permanent there would be +4 SP per round per card,
+    // so five rounds of one field is +20 SP on the whole side.
+    const s = prepState();
+    const card = place(s, "aqua_vaporem", "P1", 3, 1);
+    applyFlow(card, "steam"); // no flags — the Downpour path
+    expect(card.spBonusRound, "granted for this round").toBe(4);
+    expect(card.spBonus, "and NOT banked").toBe(0);
   });
 });
 

@@ -23,7 +23,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
   BORE: { name: "Exostone", desc: "Enters play with shields by rarity — Rare 2, Epic 2, Legendary 3, Mythic 4. Never loses more than 1 shield to a single hit, however heavy." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals its full DMG back to the killer, and the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%)." },
-  AQUA: { name: "Flow Change", desc: "On summon, choose a boost for 3 rounds: Liquid +2 DMG · Frozen +3 shields · Vapor +4 SP." },
+  AQUA: { name: "Flow Change", desc: "On summon, choose a boost it keeps for good: Liquid +2 DMG (+1 hit if it already strikes twice) · Frozen +3 shields · Vapor +4 SP." },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for its full DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 12)." },
   GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21); the first time it passes SP 15, a one-time +1 DMG." },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +1 DMG to any opponent carrying a status." },
@@ -322,7 +322,7 @@ export const DUSK_SHADE_PCT = 5;
  *  stacks — a quarter of all incoming hits — is the ceiling. */
 export const DUSK_SHADE_MAX_STACKS = 5;
 
-// AQUA Flow Change — the three-way summon choice (the summon pick lasts 3 rounds).
+// AQUA Flow Change — the three-way summon choice. The summon pick is PERMANENT.
 export type FlowMode = "water" | "ice" | "steam";
 export const FLOW_MODES: Record<FlowMode, { label: string; blurb: string }> = {
   water: { label: "Liquid", blurb: "+2 DMG" },
@@ -339,24 +339,37 @@ export function liquidGivesHit(card: CardInstance): boolean {
 
 /** Apply the chosen Flow Change buff.
  *
- *  `rounds > 0` (the SUMMON pick) grants a TIMED buff that lasts that many rounds
- *  then fades — the current design: on-summon Flow lasts 3 rounds. It used to be
- *  round-scoped (one round only, the weakest aura in the game), then permanent;
- *  3 rounds is the middle ground.
+ *  `permanent` (the SUMMON pick) grants a buff that never fades. This aura has
+ *  now been all three things: round-scoped, which made it the weakest in the
+ *  game; permanent; then timed at 3 rounds. It is permanent again because AQUA
+ *  measured as the standing FLOOR of the element spread, and a boost that
+ *  expires on a card that is still alive is the one aura in the set that gets
+ *  weaker the longer a match runs — the opposite of what a floor element needs.
  *
- *  `permanent`/round-scoped remain for Downpour, which re-picks Flow for every
- *  AQUA ally EVERY round — a timed or permanent grant there would stack without
- *  limit, so that path keeps the one-round version it was designed around. */
+ *  Round-scoped (`permanent = false`, `rounds = 0`) remains for DOWNPOUR, which
+ *  re-picks Flow for every AQUA ally EVERY round. A permanent grant on that path
+ *  would stack without limit — five rounds of Downpour would be +10 DMG or +20
+ *  SP on the whole side — so it keeps the one-round version it was designed
+ *  around. `rounds > 0` is no longer used by any caller; it is kept because it
+ *  is the mechanism the timed experiment was built on and re-running that
+ *  experiment should not mean rewriting this function.
+ *
+ *  The LIQUID split matters again now. A permanent +2 DMG on a multi-hit card is
+ *  +2 PER HIT forever (Vaporem 2x5, Sapphire 3x2), which is why the permanent
+ *  path grants +1 hit there instead — the guard the timed version was able to
+ *  drop, and has to come back with it. */
 export function applyFlow(card: CardInstance, mode: FlowMode, permanent = false, rounds = 0): void {
-  // The SUMMON pick now grants a TIMED buff (rounds > 0) instead of a permanent
-  // one — Flow Change lasts 3 rounds, then fades. Pushed straight onto the same
+  // `timed` is the 3-round experiment's path. No caller reaches it any more —
+  // the summon pick is permanent — but it is left wired so the middle ground is
+  // one argument away rather than a rewrite. Pushed straight onto the same
   // `buffs` array applyTimedBuff uses (avoids an auras→combat import cycle); the
   // Cleanup that ticks those handles the expiry.
   const timed = rounds > 0;
   if (mode === "water") {
     // Liquid: +1 hit on multi-hit cards (avoids the per-hit +2 blowout),
-    // otherwise +2 DMG. The timed grant uses flat +2 DMG for all — on a
-    // temporary buff the multi-hit blowout no longer needs guarding against.
+    // otherwise +2 DMG. Only the TIMED grant may use flat +2 DMG for all — on a
+    // buff that expires the multi-hit blowout does not need guarding against.
+    // The permanent grant does, which is what the `liquidGivesHit` branch is.
     if (timed) card.buffs.push({ dmg: 2, sp: 0, rounds });
     else if (liquidGivesHit(card)) {
       if (permanent) card.hitsBonus += 1;

@@ -581,7 +581,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       }
       // The human's SUMMON pick — permanent, matching the AI path above. The
       // Downpour branch a few lines up stays round-scoped on purpose.
-      applyFlow(card, intent.mode as FlowMode, false, 3); // Flow lasts 3 rounds now
+      applyFlow(card, intent.mode as FlowMode, true); // the summon pick is PERMANENT
       draft.pendingFlow = null;
       draft.log.push(`${getDef(card.defId).name} shifts state (Flow Change).`);
       return draft;
@@ -1978,7 +1978,7 @@ function applyOneElementSummonAura(draft: GameState, inst: CardInstance, def: Ca
         // Human chooses via the UI; gate until they pick.
         draft.pendingFlow = inst.instanceId;
       } else {
-        applyFlow(inst, aiFlowChoice(def.cardClass), false, 3); // summon pick lasts 3 rounds
+        applyFlow(inst, aiFlowChoice(def.cardClass), true); // the summon pick is PERMANENT
       }
       break;
     }

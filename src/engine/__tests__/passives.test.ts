@@ -2967,7 +2967,7 @@ describe("element auras", () => {
     expect(next.cards[foe.instanceId].curHp).toBe(9);
   });
 
-  it("Flow Change (AQUA): a human summon defers the choice; Liquid grants +2 DMG for 3 rounds", () => {
+  it("Flow Change (AQUA): a human summon defers the choice; Liquid grants +2 DMG for good", () => {
     const s = prepState();
     s.players.P1.gold = 5;
     const handId = giveHand(s, "P1", "aqua_spinefin");
@@ -2978,12 +2978,14 @@ describe("element auras", () => {
     const picked = applyIntent(summoned, {
       type: "FLOW_CHANGE", player: "P1", instanceId: fin.instanceId, mode: "water",
     });
-    // The SUMMON pick is a TIMED buff now (3 rounds), not permanent — it rides the
-    // `buffs` array (so effectiveDmg reflects it) rather than dmgBonus, and fades
-    // after 3 Cleanups instead of lasting the whole game.
+    // The SUMMON pick is PERMANENT — it banks into `dmgBonus` rather than riding
+    // the `buffs` array that Cleanup ticks down. Asserting the STORAGE and not
+    // just the effective number is the point: a 3-round buff shows the same
+    // effectiveDmg on the round it is granted, so `dmgBonus` is what tells the
+    // permanent version apart from the timed one it replaced.
     const c = picked.cards[fin.instanceId];
-    expect(c.dmgBonus).toBe(0);
-    expect(c.buffs.some((b) => b.dmg === 2 && b.rounds === 3)).toBe(true);
+    expect(c.dmgBonus, "banked, not timed").toBe(2);
+    expect(c.buffs.some((b) => b.dmg === 2), "and not on the expiry list").toBe(false);
     expect(effectiveDmg(picked, c)).toBe(base + 2);
     expect(picked.pendingFlow).toBeNull();
   });
