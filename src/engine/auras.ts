@@ -263,6 +263,23 @@ export function weakenMult(n: number): number {
  *  the same rule Bird Bomb's death blast uses. */
 export const ARC_DISCHARGE_DIVISOR = 4;
 
+/** Does this card actually carry ARC's Discharge?
+ *
+ *  THE ONE PLACE THAT RULE LIVES, and it is a function rather than a comment
+ *  because it was written down twice and the copies drifted. The mechanic was
+ *  narrowed to mythic and legendary in the engine's Cleanup loop; the CARD
+ *  INSPECTOR kept its own `tribes.includes("ARC")` check and went on printing
+ *  "ARC tribe — Discharge" on all sixteen. Thirteen cards advertised a passive
+ *  they did not have, for four commits, and it read exactly like the
+ *  restriction never shipped.
+ *
+ *  Both the Cleanup hook and the inspector call this now. A third caller should
+ *  too — the rule is not "is it ARC", it is this. */
+export function hasArcDischarge(def: CardDef): boolean {
+  const tribes = def.tribe == null ? [] : Array.isArray(def.tribe) ? def.tribe : [def.tribe];
+  return tribes.includes("ARC") && (def.rarity === "mythic" || def.rarity === "legendary");
+}
+
 /** Scorch stacks its BURN to here and no further. Uncapped, a multi-hit PYRO
  *  card would stack a lethal DOT off one attack and the aura would stop being
  *  chip damage. */

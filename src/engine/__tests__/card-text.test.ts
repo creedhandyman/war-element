@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { CARDS, TOKENS } from "../../data/cards";
 import { SPELLS } from "../spells";
 import { describePassives } from "../../ui/card-text";
+import { hasArcDischarge } from "../auras";
 
 /** Card-def fields that carry a real ability the player should be told about.
  *  Purely structural fields (art, rarity, stats, tribe) are not listed. */
@@ -244,5 +245,43 @@ describe("every named passive actually shows its name", () => {
       }
     }
     expect(doubled, `repeated name prefixes:\n${doubled.join("\n")}`).toEqual([]);
+  });
+});
+
+describe("the card text does not promise a passive the card lacks", () => {
+  // The failure this exists for, in the reporter's words: "arc tribe still has
+  // not been fixed. You did not remove the discharge passive from the lower
+  // level Arc tribe cards."
+  //
+  // It HAD been fixed — in the engine. Discharge was narrowed to ARC's mythic
+  // and legendary in the Cleanup loop, and the inspector kept its own
+  // `tribes.includes("ARC")` check and went on printing the line for all
+  // sixteen. Thirteen cards advertised a passive that did nothing, for four
+  // commits. Every existing test asked "does the mechanic fire?" and passed;
+  // none asked "does the card claim it?".
+  //
+  // Written against the TEXT and the ENGINE'S OWN predicate together, so the
+  // two cannot drift apart again without this failing.
+  it("only ARC's mythic and legendary say they Discharge", () => {
+    const wrong: string[] = [];
+    for (const def of [...CARDS, ...TOKENS]) {
+      const claims = describePassives(def).some((l) => l.includes("ARC tribe — Discharge"));
+      if (claims !== hasArcDischarge(def))
+        wrong.push(`${def.id} (${def.rarity}): text says ${claims}, engine says ${hasArcDischarge(def)}`);
+    }
+    expect(wrong, `text and engine disagree:\n${wrong.join("\n")}`).toEqual([]);
+  });
+
+  it("and that is genuinely three cards, not sixteen", () => {
+    // Pins the SIZE of the set. Were `hasArcDischarge` loosened back to plain
+    // tribe membership, the test above would still pass — text and engine would
+    // agree, on the wrong rule.
+    const carriers = [...CARDS, ...TOKENS].filter(hasArcDischarge).map((d) => d.id).sort();
+    expect(carriers).toEqual(["bolt_elecdroid", "bolt_gigavolt", "bolt_jack_arc"]);
+    const arc = [...CARDS, ...TOKENS].filter((d) => {
+      const t = d.tribe == null ? [] : Array.isArray(d.tribe) ? d.tribe : [d.tribe];
+      return t.includes("ARC");
+    });
+    expect(arc.length, "out of a tribe this size").toBeGreaterThan(12);
   });
 });

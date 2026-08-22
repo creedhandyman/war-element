@@ -13,7 +13,7 @@
  */
 import type { ReactNode } from "react";
 import type { CardDef, StatusKind } from "../engine";
-import { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, MISTY_FOG_MISS_PCT, WEAKEN_MAX_STACKS, WEAKEN_PCT_PER_STACK, getDef } from "../engine";
+import { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, MISTY_FOG_MISS_PCT, WEAKEN_MAX_STACKS, WEAKEN_PCT_PER_STACK, getDef, hasArcDischarge } from "../engine";
 import { KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 
 // Colour lookup for keyword/status terms so they render as chips in card text.
@@ -169,11 +169,11 @@ export function describePassives(def: CardDef): string[] {
   }
   // The tribe passive, printed the same way the element aura is — a standing
   // behaviour the card has by what it IS, not a per-card config.
-  {
-    const tribes = def.tribe == null ? [] : Array.isArray(def.tribe) ? def.tribe : [def.tribe];
-    if (tribes.includes("ARC"))
-      passives.push("ARC tribe — Discharge: end of round, deals a quarter of its current basic damage to every opponent in reach.");
-  }
+  // Only the three cards that actually carry it. Membership of ARC is not the
+  // rule — `hasArcDischarge` is, and this line claiming otherwise is what made
+  // the restriction look like it had never shipped.
+  if (hasArcDischarge(def))
+    passives.push("ARC tribe — Discharge: end of round, deals a quarter of its current basic damage to every opponent in reach.");
 
   /** Push a line, prefixed with the card's own name for that passive when it
    *  has one. `key` is the def field the line was derived from. */

@@ -2,7 +2,7 @@
 // All reducers clone the incoming state once and mutate only the clone.
 
 import { getDef } from "../data/cards";
-import { applyFlow, ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
+import { applyFlow, ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import { applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
@@ -2691,9 +2691,10 @@ function doCleanupPhase(draft: GameState): void {
     // sits at the top of the table. Three carriers now — Arc, GigaVolt and Jack
     // Arc — which reads better besides: a dynamo hums, a battery does not.
     {
-      const tribes = def.tribe == null ? [] : Array.isArray(def.tribe) ? def.tribe : [def.tribe];
-      const bigEnough = def.rarity === "mythic" || def.rarity === "legendary";
-      if (tribes.includes("ARC") && bigEnough && card.curHp > 0 && card.pos) {
+      // `hasArcDischarge` rather than an inline rarity check — the inspector
+      // needs the same answer, and when this rule lived in two places the two
+      // disagreed for four commits.
+      if (hasArcDischarge(def) && card.curHp > 0 && card.pos) {
         const zap = Math.floor((effectiveDmg(draft, card) * effectiveBasicHits(card)) / ARC_DISCHARGE_DIVISOR);
         if (zap > 0) {
           const reach = def.attackType === "Melee" ? 1 : RANGED_REACH;
