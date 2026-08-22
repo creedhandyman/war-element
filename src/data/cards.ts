@@ -793,11 +793,10 @@ export const CARDS: CardDef[] = [
     hp: 30,
     sp: 3,
     shields: 2,
-    keywords: {},
+    keywords: { TRAMPLE: true },
     passiveNames: { statusImmune: "Hibernation" },
     statusImmune: true, // Hibernation: immune to status effects
     // Trample Through: 30 HP walks through most of the board's front line.
-    shoveWeaker: true,
     // On Death: revive once at 24 HP, then SLEEP itself for 1 round.
     onRevive: { heal: 24, sleep: 1 },
     special: {
@@ -1491,9 +1490,8 @@ export const CARDS: CardDef[] = [
     shields: 0,
     // Thick Hide: −1 DMG from every incoming attack (flat, applies pre-shield
     // and even to PEN) — that's exactly what BLOCK does.
-    keywords: { BLOCK: 1 },
+    keywords: { BLOCK: 1, TRAMPLE: true },
     // Trample Through: it shoulders past anything smaller than it.
-    shoveWeaker: true,
   },
   {
     id: "dawn_star",
@@ -1859,11 +1857,10 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 0,
     // Roost: −1 DMG from all incoming (BLOCK 1) and +1 HP end of round (REGEN 1).
-    keywords: { BLOCK: 1, REGEN: 1 },
+    keywords: { BLOCK: 1, REGEN: 1, TRAMPLE: true },
     tribe: "Avian",
     // Trample Through: the horns are the whole card. At 18 HP it only bullies
     // the genuinely small, which is the point of the max-HP gate.
-    shoveWeaker: true,
     special: {
       name: "Horn Toss",
       cost: 2,
@@ -2643,7 +2640,7 @@ export const CARDS: CardDef[] = [
     hp: 55,
     sp: 0, // rooted — moveReach(0) is 0. Uprooted is the only way it ever moves.
     shields: 0,
-    keywords: {},
+    keywords: { TRAMPLE: true },
     // Intimidation (Aura): anything weaker than Oakgre flinches. Gated on a LIVE
     // comparison, so as Uprooted grows its DMG the aura catches more of the
     // board — and a card that out-grows Oakgre walks out from under it.
@@ -2653,7 +2650,6 @@ export const CARDS: CardDef[] = [
     // until Uprooted clears its SP 0 — Oakgre cannot move at all before that,
     // and a trample is a move — which suits the card: the Special is what turns
     // it from a wall into something that walks over you.
-    shoveWeaker: true,
     special: {
       name: "Uprooted",
       cost: 5,
@@ -4169,13 +4165,12 @@ export const CARDS: CardDef[] = [
     hp: 31,
     sp: 2,
     shields: 6,
-    keywords: {},
+    keywords: { TRAMPLE: true },
     // Rebuilds its barrier +2 shields each round (on top of BORE's Exostone +2
     // on summon); when the barrier first breaks it enrages (+3 DMG / +2 SP).
     roundTick: { selfShields: 2, selfShieldsMax: 12 },
     // Trample Through: a moving wall. The gate reads effective MAX HP, not
     // shields, so its six plates buy it nothing here — 31 HP does.
-    shoveWeaker: true,
     onShieldBreak: { dmg: 3, sp: 2 },
     special: {
       name: "Boulder Barrage",
@@ -5193,7 +5188,7 @@ export const CARDS: CardDef[] = [
     hp: 29,
     sp: 1,
     shields: 0,
-    keywords: {},
+    keywords: { TRAMPLE: true },
     passiveNames: {
       summonSelfShields: "War Ready",
       onEnterMidRow: "War Ready",
@@ -5204,7 +5199,6 @@ export const CARDS: CardDef[] = [
     // effective max HP, shoving it one slot further along the same line and
     // taking the square. Needs the slot beyond the victim open — nothing gets
     // crushed against a wall or another body.
-    shoveWeaker: true,
     summonSelfShields: 4, // the Hardened Gold Armor it rides in with
     onEnterMidRow: { shields: 2 }, // ...and it plates up on reaching the middle
     onDeath: { dmg: 0, spawnToken: { token: "dawn_warrider_tok", count: 1 } },
@@ -5423,13 +5417,12 @@ export const CARDS: CardDef[] = [
     shields: 0,
     // Braced Stance: −1 DMG from every incoming attack (BLOCK) and immune to
     // knockback/pull — it plants and lets GALE's storms wash over it.
-    keywords: { BLOCK: 1 },
+    keywords: { BLOCK: 1, TRAMPLE: true },
     passiveNames: { pushImmune: "Braced Stance" },
     pushImmune: true,
     // Trample Through: it moves things, and nothing moves it. A Bison mirror is
     // a stalemate on purpose — Braced Stance now blocks a trample the same way
     // it blocks every other push.
-    shoveWeaker: true,
   },
   {
     id: "bolt_junker",
@@ -9630,7 +9623,7 @@ export const CARDS: CardDef[] = [
     hp: 24,
     sp: 8,
     shields: 4,
-    keywords: {},
+    keywords: { TRAMPLE: true },
     tribe: "Forged Tech",
     passiveNames: { onHitByMelee: "Burning Frame", onSpecialUse: "Super Charger" },
     // Burning Frame: the chassis is on fire. No damage of its own — hitting it
@@ -9641,7 +9634,6 @@ export const CARDS: CardDef[] = [
     // Burning Frame punishes whatever is forced to touch it, and Super Charger
     // is a rented +8 SP, so the rounds it spends shouldering through the front
     // line are exactly the rounds it can afford to.
-    shoveWeaker: true,
     // Super Charger: RENTED speed, not owned. An SP 8 tank that spikes to 16
     // crosses ground it otherwise never would — and then settles back, so the
     // ram is a commitment rather than a permanent stat line.

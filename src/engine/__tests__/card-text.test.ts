@@ -23,7 +23,9 @@ const ABILITY_FIELDS = [
   "evasionEnemySideOnly",
   // Wave 1/2 additions — every one of these shipped with NO card text at all
   // until this list caught up, which is exactly what the list is for.
-  "meleeBonusDmg", "onEnterEnemySide", "onEnterMidRow", "onHitPush", "basicLineReach", "mounted", "shoveWeaker",
+  "meleeBonusDmg", "onEnterEnemySide", "onEnterMidRow", "onHitPush", "basicLineReach", "mounted",
+  // (shoveWeaker was here until Trample Through became the TRAMPLE keyword. It
+  // is covered by the keyword sweep below instead — this list is def FIELDS.)
   // Wave 3 — Oakgre's enemy-facing aura and Drakonbane's target-keyed bonus.
   "intimidate", "vsTarget",
   // Wave 3b — Magalogoon, Keeper, Prism.
@@ -245,6 +247,46 @@ describe("every named passive actually shows its name", () => {
       }
     }
     expect(doubled, `repeated name prefixes:\n${doubled.join("\n")}`).toEqual([]);
+  });
+});
+
+describe("every keyword is either self-evident or explained", () => {
+  // The field sweep above only covers def FIELDS, so a keyword can ship
+  // working-but-invisible exactly the way ~19 passives once did. TRAMPLE is the
+  // first keyword to arrive as a MIGRATION rather than as new content — it had
+  // a card-text line as `shoveWeaker` and could have lost it on the way.
+  //
+  // Not "every keyword produces text": most do not, and should not. FLYING and
+  // CRIT are chips whose meaning is the word itself, and spelling them out on
+  // forty cards would bury the abilities that actually need explaining. What
+  // the test enforces is a CHOICE — every keyword in use is deliberately in one
+  // bucket or the other, so a new one cannot slip in unclassified.
+  const CHIP_ONLY = new Set(["FLYING", "STEALTH", "CRIT", "PEN"]);
+  const EXPLAINED = new Set(["REGEN", "LIFESTEAL", "DRAIN", "BLOCK", "REFLECT", "EVASION", "TRAMPLE"]);
+
+  it("classifies every keyword any card carries", () => {
+    const inUse = new Set<string>();
+    for (const def of [...CARDS, ...TOKENS])
+      for (const [k, v] of Object.entries(def.keywords)) if (v) inUse.add(k);
+    const unclassified = [...inUse].filter((k) => !CHIP_ONLY.has(k) && !EXPLAINED.has(k));
+    expect(unclassified, `keyword neither chip-only nor explained: ${unclassified.join(", ")}`).toEqual([]);
+  });
+
+  it("the explained ones actually say their own name on every carrier", () => {
+    const missing: string[] = [];
+    for (const def of [...CARDS, ...TOKENS]) {
+      const text = describePassives(def).join(" | ");
+      for (const [k, v] of Object.entries(def.keywords))
+        if (v && EXPLAINED.has(k) && !text.includes(k)) missing.push(`${def.id}: ${k}`);
+    }
+    expect(missing, `carried but never described: ${missing.join(", ")}`).toEqual([]);
+  });
+
+  it("TRAMPLE survived the move from a def field to a keyword", () => {
+    // The specific regression this block was written for.
+    const burnout = CARDS.find((d) => d.id === "pyro_burnout")!;
+    expect(burnout.keywords.TRAMPLE).toBe(true);
+    expect(describePassives(burnout).join(" | ")).toContain("TRAMPLE");
   });
 });
 

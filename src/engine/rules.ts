@@ -102,7 +102,7 @@ export function shoveTarget(
   card: CardInstance,
   to: Pos,
 ): { victim: CardInstance; dest: Pos } | null {
-  if (!card.pos || !getDef(card.defId).shoveWeaker) return null;
+  if (!card.pos || !getDef(card.defId).keywords.TRAMPLE) return null;
   const dr = to.row - card.pos.row;
   const dc = to.col - card.pos.col;
   if (Math.max(Math.abs(dr), Math.abs(dc)) !== 1) return null; // one square only

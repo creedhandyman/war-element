@@ -1,5 +1,9 @@
 // Two grants, both onto machinery that already existed.
 //
+// Trample Through is the TRAMPLE keyword now, not a `shoveWeaker` boolean. The
+// rule and its gates are untouched — only where the flag lives changed — so
+// these tests carried over as they were, which is the point of moving it.
+//
 // Trample Through (`shoveWeaker`) and heal-on-basic (`basicHealsAllies`) were
 // each fully implemented and each carried by a card or four already, so what is
 // worth testing is not the mechanic — it is that the RIGHT cards now have it,
@@ -36,8 +40,11 @@ const moveTo = (s: GameState, id: string, to: Pos) =>
   applyIntent(s, { type: "MOVE", player: "P1", instanceId: id, to } as never);
 
 describe("Trample Through", () => {
-  it("is on every carrier, and they are the heavy ones", () => {
-    for (const id of TRAMPLERS) expect(getDef(id).shoveWeaker, id).toBe(true);
+  it("is a KEYWORD on every carrier, and they are the heavy ones", () => {
+    // A keyword rather than a def field, so it reads as a chip on the card the
+    // way FLYING and BLOCK do — the ability was always printed to the player as
+    // "Trample Through" and now the data says the same thing.
+    for (const id of TRAMPLERS) expect(getDef(id).keywords.TRAMPLE, id).toBe(true);
     // The gate is max HP, so a trampler has to outweigh something for the grant
     // to be worth anything. The club runs 16 (Stormhide Bison) to 55 (Oakgre)
     // and Burnout joins at 24 — comfortably mid-pack, and above the median.

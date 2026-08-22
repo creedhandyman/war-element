@@ -123,6 +123,7 @@ export const KEYWORD_STYLE: Record<string, { glyph: string; color: string }> = {
   DRAIN: { glyph: "🕳", color: "#c94b4b" },
   CRIT: { glyph: "★", color: "#ffd763" },
   REGEN: { glyph: "✚", color: "#7fd89a" },
+  TRAMPLE: { glyph: "🐾", color: "#c9a06a" },
 };
 
 export type Selection =

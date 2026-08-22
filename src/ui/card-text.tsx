@@ -234,6 +234,10 @@ export function describePassives(def: CardDef): string[] {
   if (kw.BLOCK) passives.push(`BLOCK ${kw.BLOCK}: every incoming hit is reduced by ${kw.BLOCK} — before shields, and even against PEN.`);
   if (kw.REFLECT) passives.push(`REFLECT ${kw.REFLECT}: returns ${kw.REFLECT} DMG to attackers.`);
   if (kw.EVASION) passives.push("EVASION: ~50% chance to dodge each incoming hit.");
+  if (kw.TRAMPLE)
+    passives.push(
+      "TRAMPLE: in Prep it can step onto an adjacent opponent with less max HP, shoving it back a slot and taking the square (needs the slot behind it open).",
+    );
   if (def.onHitStatus) {
     const h = def.onHitStatus;
     const gate = h.chance != null ? `${h.chance}% chance to ` : h.firstHitOnly ? "first hit: " : h.onSecondHit ? "2nd hit: " : "";
@@ -713,10 +717,7 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.onHitByMelee?.doubleBurn)
     named("onHitByMelee", `Hot Hot: when hit by melee, doubles the BURN already on the attacker.`);
-  if (def.shoveWeaker)
-    passives.push(
-      "Trample Through: in Prep it can step onto an adjacent opponent with less max HP, shoving it back a slot and taking the square (needs the slot behind it open).",
-    );
+
   if (def.tribeDmgAura)
     named("tribeDmgAura",
       `Aura: allied ${def.tribeDmgAura.tribe}s deal +${def.tribeDmgAura.dmg} DMG while this card lives.`,
