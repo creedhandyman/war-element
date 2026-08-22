@@ -7853,10 +7853,18 @@ export const CARDS: CardDef[] = [
     shields: 5,
     keywords: {},
     tribe: "ARC",
-    // Power Up (End of Round): +1 DMG, +1 SP. On Kill: +2 shields. Aura: BOLT
-    // allies +1 basic DMG. (Doc's "after 3 Power Ups" gate simplified.)
+    // Power Up (End of Round): +1 DMG. On Kill: +2 shields. Aura: BOLT allies
+    // +1 basic DMG. (Doc's "after 3 Power Ups" gate simplified.)
+    //
+    // POWER ONLY — the +1 SP a round is gone. GigaVolt is printed at SP 0 and
+    // Power Up was the thing that unpinned it, so this leaves it immobile for
+    // the whole game: moveReach(0) is 0. That is the card — Turret Mode is its
+    // Special and a turret does not walk — but it is a real consequence, not a
+    // rounding: it can never advance, never take a home slot, and never
+    // contribute to the capture race that decides almost every match. It holds
+    // ground and shoots, and that is all.
     passiveNames: { roundTick: "Power Up", onKill: "Power Up" },
-    roundTick: { buffDmgEveryN: { n: 1, amount: 1, sp: 1, maxTicks: 5 } },
+    roundTick: { buffDmgEveryN: { n: 1, amount: 1, maxTicks: 5 } },
     onKill: { gainShields: 2 },
     aura: { scope: "element", dmg: 1 },
     // Turret Mode: lock down and open fire on the ELECTRIFIED — 3 DMG to every
@@ -8479,11 +8487,14 @@ export const CARDS: CardDef[] = [
     // empty slot beside the newcomer; the drone strafes it for 1. Buzzard itself
     // stays put now — it deploys rather than chases.
     //
-    // ONE per round. A turn where the opponent summons three bodies used to pay
-    // three drones, so a single 3-cost card punished the whole turn and left a
-    // wall of chip damage behind it.
+    // ONE per round, and ONE ON THE BOARD. A turn where the opponent summons
+    // three bodies used to pay three drones, so a single 3-cost card punished
+    // the whole turn and left a wall of chip damage behind it — that was the
+    // rate. The stock was still unbounded: one a round over a fifteen-round
+    // match is fifteen drones, since the only way one leaves is dying. Buzzard
+    // keeps a single drone up now and launches the next when that one falls.
     passiveNames: { onOppSummon: "Drone Sweep" },
-    onOppSummon: { spawnToken: "bolt_drone_tok", dmg: 1, oncePerRound: true },
+    onOppSummon: { spawnToken: "bolt_drone_tok", dmg: 1, oncePerRound: true, spawnMaxAlive: 1 },
   },
   {
     id: "bolt_staticcloud",

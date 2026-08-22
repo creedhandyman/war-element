@@ -5352,3 +5352,32 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    (Blazing Sun, Totem Spirit). The status is not cured, it is ignored, and an
    unmarked pip is why "cannot miss" got reported as broken. */
 .tk-pip.pip-moot { opacity: .42; text-decoration: line-through; }
+
+/* Element strip, four to a row, stacking. The Arena seats were capped at four
+   chips on one clipped line, so a squad fielding five or more elements silently
+   lost the rest — and that strip is the only place the seat says what it plays.
+   A GRID rather than flex-wrap: four equal columns means the second row lines
+   up under the first instead of ragging, and a 5th element reads as the start
+   of a new row rather than as an orphan. */
+.el-chips.wrap {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 3px; overflow: visible; width: 100%;
+  /* Both of these are load-bearing. A grid that is a flex item absorbs the
+     column's spare height into its ROWS — measured at 17px + 785px for six
+     chips, which blew the seat from 118px to 909px. `min-content` rows and
+     `start` alignment keep it the height of its chips and nothing more. */
+  grid-auto-rows: min-content; align-content: start;
+  /* And pinned outright. As a flex item this grid was being handed the whole
+     column's height — measured at 812px for two 17px chips, blowing the seat
+     from 118px to 909px. `align-self` stops the stretch, `height: max-content`
+     is the belt to its braces. */
+  align-self: start; height: max-content;
+}
+.el-chips.wrap .el-chip {
+  text-align: center; padding: 2px 3px; font-size: 9px;
+  overflow: hidden; text-overflow: ellipsis;
+}
+/* The strip is no longer one line, so the seat's footer has to stack too or
+   the "change" pill sits beside a two-row block and drags it off-centre. */
+.ar-seat-foot:has(.el-chips.wrap) { flex-direction: column; align-items: stretch; gap: 5px; flex: none; }
+.ar-seat-foot:has(.el-chips.wrap) .ar-change { margin-left: auto; }

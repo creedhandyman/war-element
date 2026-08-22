@@ -352,6 +352,19 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         // the strike. Handled before the reach gate below on purpose — the drone
         // is adjacent by construction, so Buzzard's own range is irrelevant.
         const droneId = gd.onOppSummon.spawnToken;
+        // A STOCK, not just a rate. `oncePerRound` caps the launches per turn
+        // and nothing capped the fleet: one a round over a fifteen-round match
+        // is fifteen drones, and the only way one leaves the board is dying. The
+        // count is of THIS guard's side, so two Buzzards do not share a ceiling
+        // — each keeps its own drone up, which is what a per-card cap means.
+        const droneCap = gd.onOppSummon.spawnMaxAlive ?? Infinity;
+        // PER CARD: counted off what THIS guard launched, not off the side. Every
+        // drone is the same token, so a side-wide count would hand two Buzzards
+        // one ceiling between them and make the second one dead weight.
+        const droneAlive = (guard.spawnedIds ?? []).filter(
+          (id) => draft.cards[id]?.curHp > 0 && draft.cards[id]?.defId === droneId,
+        ).length;
+        if (droneId && droneAlive >= droneCap) continue;
         if (droneId && inst.pos && draft.cards[inst.instanceId]) {
           let best: { row: number; col: number } | null = null;
           let bestD = Infinity;
@@ -370,6 +383,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           if (best) {
             spend();
             const drone = summonCard(draft, guard.owner, droneId, { row: best.row as Pos["row"], col: best.col });
+            (guard.spawnedIds ??= []).push(drone.instanceId);
             const pName = gd.passiveNames?.onOppSummon ?? gd.name;
             draft.log.push(`${pName}: ${gd.name} launches a ${getDef(droneId).name} beside ${getDef(inst.defId).name}.`);
             if (gd.onOppSummon.dmg && inst.curHp > 0 && draft.cards[inst.instanceId]) {
@@ -2663,15 +2677,23 @@ function doCleanupPhase(draft: GameState): void {
       const curSp = def.sp + card.spBonus;
       if (curSp < DAWN_SP_CAP) card.spBonus += Math.min(1, DAWN_SP_CAP - curSp);
     }
-    // Discharge (ARC): the tribe's standing passive — at the end of every
-    // round, an ARC card sheds a quarter of its CURRENT basic-attack damage
-    // (bonuses included, floored) to every opponent within its own reach.
-    // Through tickDamage, so a Discharge kill still fires the card's onKill,
-    // exactly as Radiation and Black Smoke do. Guarded on curHp/pos because an
-    // earlier card's discharge this same loop can have killed this one.
+    // Discharge (ARC): at the end of every round, an ARC card sheds a quarter
+    // of its CURRENT basic-attack damage (bonuses included, floored) to every
+    // opponent within its own reach. Through tickDamage, so a Discharge kill
+    // still fires the card's onKill, exactly as Radiation and Black Smoke do.
+    // Guarded on curHp/pos because an earlier card's discharge this same loop
+    // can have killed this one.
+    //
+    // THE BIG ONES ONLY — mythic and legendary. It shipped as a whole-tribe
+    // passive across all fourteen ARC cards, and that was too wide in two ways:
+    // it made every rank-and-file battery a source of free chip damage (nine
+    // epics shedding 1 a round each, for nothing), and it is most of why BOLT
+    // sits at the top of the table. Three carriers now — Arc, GigaVolt and Jack
+    // Arc — which reads better besides: a dynamo hums, a battery does not.
     {
       const tribes = def.tribe == null ? [] : Array.isArray(def.tribe) ? def.tribe : [def.tribe];
-      if (tribes.includes("ARC") && card.curHp > 0 && card.pos) {
+      const bigEnough = def.rarity === "mythic" || def.rarity === "legendary";
+      if (tribes.includes("ARC") && bigEnough && card.curHp > 0 && card.pos) {
         const zap = Math.floor((effectiveDmg(draft, card) * effectiveBasicHits(card)) / ARC_DISCHARGE_DIVISOR);
         if (zap > 0) {
           const reach = def.attackType === "Melee" ? 1 : RANGED_REACH;

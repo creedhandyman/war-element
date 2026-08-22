@@ -250,9 +250,11 @@ export function weakenMult(n: number): number {
 
 /** Discharge (ARC): the fraction of a card's CURRENT basic-attack damage it
  *  sheds to every opponent in reach at the end of each round — total damage
- *  divided by this. A TRIBE passive, the first one: elements have standing
- *  auras, and ARC — sixteen cards, the game's densest tribe — now has its own
- *  identity instead of being a label the rosters happen to share.
+ *  divided by this. A tribe passive, but NOT a whole-tribe one: only ARC's
+ *  MYTHIC and LEGENDARY carry it — Arc, GigaVolt and Jack Arc, three of the
+ *  fourteen. It shipped across the whole tribe and was too wide: nine epic
+ *  batteries each shedding 1 a round is a lot of free chip damage for nothing,
+ *  and it is most of why BOLT took the top of the balance table.
  *
  *  CURRENT damage, so buffs feed it, and floored — a 3-damage battery sheds 0,
  *  which is right: rank-and-file ARC hums, it does not strike. Elecdroid sheds

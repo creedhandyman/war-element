@@ -45,10 +45,19 @@ export const deckArtUrl = (cards: readonly string[]): string | null => {
   return `/cards/${d.art ?? d.id}.webp`;
 };
 
-export function ElChips(props: { cards: readonly string[]; max?: number; small?: boolean }) {
+export function ElChips(props: {
+  cards: readonly string[];
+  max?: number;
+  small?: boolean;
+  /** Lay out four to a row and stack the rest underneath, rather than clipping
+   *  whatever does not fit on one line. For the Arena seats, where a squad can
+   *  legitimately field all eight elements and the strip is the only place that
+   *  says so. */
+  wrap?: boolean;
+}) {
   const split = elementSplit(props.cards).slice(0, props.max ?? 5);
   return (
-    <span className={`el-chips ${props.small ? "sm" : ""}`}>
+    <span className={`el-chips ${props.small ? "sm" : ""} ${props.wrap ? "wrap" : ""}`}>
       {split.map(({ el, n }) => (
         <span key={el} className="el-chip" style={{ borderColor: EL_COLOR[el], color: EL_COLOR[el] }}>
           {el} {n}
@@ -89,7 +98,11 @@ export function DeckSeat(props: {
       </span>
       <span className="ar-deckname">{props.label}</span>
       <span className="ar-seat-foot">
-        <ElChips cards={props.cards} max={4} />
+        {/* EVERY element, four to a row. It was capped at 4 and a rainbow squad
+            simply lost the rest — the seat said BORE/DUSK/LEAF/BOLT and quietly
+            dropped the other four, which is the one thing this strip exists to
+            tell you. `wrap` on the strip stacks the overflow underneath. */}
+        <ElChips cards={props.cards} max={99} wrap />
         {props.onChange && <span className="ar-change">change</span>}
       </span>
     </button>

@@ -65,30 +65,56 @@ describe("LEAF — Photosynthesis", () => {
 });
 
 describe("ARC tribe — Discharge", () => {
-  // The first TRIBE passive: every ARC card sheds a quarter of its CURRENT
-  // basic damage to every opponent in its own reach at the end of each round.
+  // A tribe passive, but NOT a whole-tribe one: only ARC's MYTHIC and LEGENDARY
+  // shed a quarter of their CURRENT basic damage to every opponent in reach at
+  // the end of each round. It shipped across all fourteen ARC cards and was too
+  // wide — nine epic batteries each humming for 1 a round is a lot of free chip
+  // damage, and it was most of why BOLT led the balance table.
   const HP = { curHp: 30, maxHp: 30, curShields: 0 };
+  const CARRIER = "bolt_jack_arc"; // legendary, Ranged, 2x3 = 6 total -> sheds 1
 
   it("sheds floor(total/4) to everything in reach, and nothing beyond it", () => {
     const s = prepState();
-    const arc = place(s, "bolt_static", "P1", 3, 0); // 4x1, Ranged -> reach 2
+    const arc = place(s, CARRIER, "P1", 3, 0); // Ranged -> reach 2
     const near = place(s, "dusk_gool", "P2", 1, 0, HP);   // chebyshev 2 — caught
     const far = place(s, "dusk_gool", "P2", 0, 3, HP);    // chebyshev 3 — clear
-    const zap = Math.floor((getDef("bolt_static").dmg * getDef("bolt_static").hits) / ARC_DISCHARGE_DIVISOR);
+    const zap = Math.floor((getDef(CARRIER).dmg * getDef(CARRIER).hits) / ARC_DISCHARGE_DIVISOR);
     expect(zap).toBeGreaterThan(0);
     const n = advance(atCleanup(s));
     expect(30 - n.cards[near.instanceId].curHp).toBe(zap);
     expect(n.cards[far.instanceId].curHp, "out of reach").toBe(30);
-    expect(n.cards[arc.instanceId].curHp, "never itself").toBe(getDef("bolt_static").hp);
+    expect(n.cards[arc.instanceId].curHp, "never itself").toBe(getDef(CARRIER).hp);
   });
 
-  it("reads CURRENT damage, so a buffed battery hits harder", () => {
+  it("reads CURRENT damage, so a buffed dynamo hits harder", () => {
     const s = prepState();
-    const arc = place(s, "bolt_static", "P1", 3, 0);
-    s.cards[arc.instanceId].dmgBonus += 4; // 4 -> 8, so the quarter doubles
+    const arc = place(s, CARRIER, "P1", 3, 0);
+    s.cards[arc.instanceId].dmgBonus += 2; // per hit: 2x3 -> 4x3, so 1 -> 3
+    const prey = place(s, "dusk_gool", "P2", 2, 0, HP);
+    const base = getDef(CARRIER);
+    const buffed = Math.floor(((base.dmg + 2) * base.hits) / ARC_DISCHARGE_DIVISOR);
+    const plain = Math.floor((base.dmg * base.hits) / ARC_DISCHARGE_DIVISOR);
+    expect(buffed).toBeGreaterThan(plain);
+    const n = advance(atCleanup(s));
+    expect(30 - n.cards[prey.instanceId].curHp).toBe(buffed);
+  });
+
+  it("an EPIC ARC card sheds nothing, however hard it hits", () => {
+    // The rarity gate itself. Shoksa is a 6-damage epic — it would shed 1 under
+    // the old whole-tribe rule, and that multiplied across nine epics is the
+    // change. Without this the gate could be deleted and only the balance run
+    // would notice, months later.
+    const s = prepState();
+    const epic = place(s, "bolt_shoksa", "P1", 3, 0);
+    expect(getDef("bolt_shoksa").rarity, "still an epic").toBe("epic");
+    expect(
+      Math.floor((getDef("bolt_shoksa").dmg * getDef("bolt_shoksa").hits) / ARC_DISCHARGE_DIVISOR),
+      "and would have shed under the old rule",
+    ).toBeGreaterThan(0);
     const prey = place(s, "dusk_gool", "P2", 2, 0, HP);
     const n = advance(atCleanup(s));
-    expect(30 - n.cards[prey.instanceId].curHp).toBe(2);
+    expect(n.cards[prey.instanceId].curHp, "but sheds nothing now").toBe(30);
+    void epic;
   });
 
   it("multiplies the hits in — a barrage discharges its whole volley's quarter", () => {
@@ -106,9 +132,12 @@ describe("ARC tribe — Discharge", () => {
   });
 
   it("hums, not strikes, below 4 total — and non-ARC BOLT sheds nothing", () => {
+    // GigaVolt is a LEGENDARY carrier and still sheds nothing on arrival: it is
+    // printed at 0 damage, and floor(0/4) is 0. So the damage floor is tested
+    // independently of the rarity gate rather than by a card that fails both.
     const s = prepState();
-    place(s, "bolt_zipp", "P1", 3, 0);   // ARC, 3x1 -> floor(3/4) = 0
-    place(s, "bolt_buzz", "P1", 3, 1);   // BOLT but NOT ARC, 3x1
+    place(s, "bolt_gigavolt", "P1", 3, 0); // ARC legendary, 0x1 -> 0
+    place(s, "bolt_buzz", "P1", 3, 1);     // BOLT but NOT ARC
     const prey = place(s, "dusk_gool", "P2", 2, 0, HP);
     const n = advance(atCleanup(s));
     expect(n.cards[prey.instanceId].curHp, "nobody discharged").toBe(30);

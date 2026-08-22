@@ -135,8 +135,13 @@ export function DeckBuilder(props: {
   const [panel, setPanel] = useState<"comp" | "spells" | "saved" | null>(phone ? null : "comp");
   const togglePanel = (p: "comp" | "spells" | "saved") => setPanel((cur) => (cur === p ? null : p));
   const compShown = panel === "comp";
+  // THE SPELLBOOK NEEDS A SQUAD. It is the pool column's other view, so with an
+  // empty squad it rendered as a full-height empty box where the card grid
+  // should be — reported after saving, because `save` calls `reset` and the
+  // panel was left open over the squad it had just cleared. Derived rather than
+  // corrected in an effect: there is no state in which it can be wrong.
   const savedShown = panel === "saved";
-  const spellsShown = panel === "spells";
+  const spellsShown = panel === "spells" && picked.length > 0;
 
   const ownedSet = useMemo(() => new Set(story?.owned ?? []), [story?.owned]);
   const pool = useMemo(
@@ -349,6 +354,10 @@ export function DeckBuilder(props: {
     setName("");
     setPicked([]);
     setPickedSpells([]);
+    // Back to the pool. You have just emptied the squad, so cards are the only
+    // thing there is to do next — and leaving the spellbook open over nothing is
+    // what the empty-box report was.
+    setPanel(phone ? null : "comp");
   }
   function save() {
     if (!check.ok) return;
@@ -636,9 +645,11 @@ export function DeckBuilder(props: {
                   spells; the player just had no say in which ones. The offer is
                   gated on what the hero has unlocked (see `deckSpells`), and a
                   team carries its book into the fight. */}
-              <button className={`db-tool ${spellsShown ? "on" : ""}`} onClick={() => togglePanel("spells")}>
-                Spells {pickedSpells.length}/{limits.spells}
-              </button>
+              {picked.length > 0 && (
+                <button className={`db-tool ${spellsShown ? "on" : ""}`} onClick={() => togglePanel("spells")}>
+                  Spells {pickedSpells.length}/{limits.spells}
+                </button>
+              )}
               <button className={`db-tool ${savedShown ? "on" : ""}`} onClick={() => togglePanel("saved")}>
                 {`Squads${squads.length ? ` ${squads.length}` : ""}`}
               </button>

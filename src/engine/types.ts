@@ -742,6 +742,13 @@ export interface CardDef {
      *  closest empty slot beside the newcomer. The DRONE then deals `dmg` (it is
      *  adjacent by construction, so the guard's own reach never gates it). */
     spawnToken?: string;
+    /** Ceiling on how many of `spawnToken` this card may have ALIVE at once.
+     *
+     *  `oncePerRound` is a RATE limit and does not bound the total: one drone a
+     *  round across a fifteen-round match is fifteen drones, and they only ever
+     *  leave the board by dying. This is the stock — Buzzard keeps one drone up,
+     *  and the next summon it answers replaces nothing until that one falls. */
+    spawnMaxAlive?: number;
     /** Answer at most ONE summon per round. Without it a wide summoning turn
      *  pays out a drone per body, which is the whole opponent's turn punished
      *  several times over by a single 3-cost card. */
@@ -1129,6 +1136,13 @@ export interface CardInstance {
   /** Spread: how many bodies this one has already put up. Seeded at the card's
    *  `max` on a spawned copy, which is what makes clones sterile. */
   spawnedOnHit?: number;
+  /** Instance ids this card has SPAWNED, for a per-card fleet cap
+   *  (`onOppSummon.spawnMaxAlive`). Tokens are indistinguishable on the board —
+   *  every drone is `bolt_drone_tok` — so counting the owner's side would make a
+   *  second Buzzard dead weight, sharing one ceiling with the first. The ids are
+   *  filtered against the living each time rather than decremented on death, so
+   *  nothing has to hook into `defeatCard` to keep the count honest. */
+  spawnedIds?: string[];
   /** Enemy hits this card has TAKEN this round — every attack that connected,
    *  including one fully soaked by shields. Powers Squanch's Regenerative, which
    *  cashes it in at Cleanup; reset there too. */
