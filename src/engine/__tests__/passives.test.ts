@@ -1737,7 +1737,11 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[wraith.instanceId]).toBeUndefined();
     expect(effectiveDmg(s, s.cards[ghost.instanceId])).toBe(ghostDmgBefore + 2);
     expect(s.cards[notGhost.instanceId].dmgBonus).toBe(0); // tribe-scoped
-    expect(statusOf(s.cards[killer.instanceId], "FRIGHTEN")?.duration).toBe(1);
+    // TWO ticks, which is one round of fear from the chair. A death resolves in
+    // BATTLE and Cleanup runs straight after, so at 1 this expired before the
+    // Prep it exists to freeze — everyone stepped back and then moved freely.
+    // See frighten-duration.test.ts for the rule and the other two carriers.
+    expect(statusOf(s.cards[killer.instanceId], "FRIGHTEN")?.duration).toBe(2);
   });
 
   it("Kinguin lands with its guard on adjacent slots", () => {
