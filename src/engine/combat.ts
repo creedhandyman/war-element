@@ -1652,14 +1652,37 @@ export function basicAttack(
   if (picks.length === 0) return null;
   const aDef = getDef(attacker.defId);
   attacker.attackedThisRound = true; // STEALTH breaks even on a miss
-  // Spend a pocketed ranged shot. Here rather than on a hit, because the shot
-  // is the ATTEMPT: it was already fired at range by the time anything rolled
-  // to dodge, and refunding a miss would quietly make the grant unlimited
-  // against an evasive target. `fromFollowup` volleys are riders on an attack
-  // that already paid, so they never spend a second one.
+  // Spend a pocketed ranged shot — but ONLY if the shot is what reached.
+  //
+  // It used to spend on any basic at all, which meant charging Surge and then
+  // hitting the card standing next to it burned the charge on a swing that
+  // needed no reach whatsoever: no extra damage, no message, and the shot you
+  // were saving for something across the board was simply gone. The card
+  // promises "its next attack strikes at RANGE"; an attack already inside melee
+  // reach is not that attack.
+  //
+  // Asked of the rule rather than re-derived here, so FLYING, the sight screen
+  // and the Home-slot rule all get their say: could this target have been
+  // picked WITHOUT the stored shot? The shot is set aside for the question and
+  // put straight back — `canTarget` reads `rangedShotsLeft` to decide whether
+  // this basic counts as ranged, so it is the one honest way to ask.
+  //
+  // Spent on the ATTEMPT, not the hit: it was already loosed by the time
+  // anything rolled to dodge, and refunding a miss would quietly make the grant
+  // unlimited against an evasive target. `fromFollowup` volleys are riders on
+  // an attack that already paid, so they never spend a second one.
   if (!fromFollowup && (attacker.rangedShotsLeft ?? 0) > 0) {
-    attacker.rangedShotsLeft = (attacker.rangedShotsLeft ?? 0) - 1;
-    draft.log.push(`${label(draft, attacker)} looses its stored charge from range.`);
+    const stored = attacker.rangedShotsLeft ?? 0;
+    attacker.rangedShotsLeft = 0;
+    const meleeAlone = picks.every((id) => {
+      const t = draft.cards[id];
+      return t != null && canTarget(draft, attacker, t, false, true);
+    });
+    attacker.rangedShotsLeft = stored;
+    if (!meleeAlone) {
+      attacker.rangedShotsLeft = stored - 1;
+      draft.log.push(`${label(draft, attacker)} looses its stored charge from range.`);
+    }
   }
 
   // Morning Dew (Vernal): aimed at an ALLY, the basic is a heal for its DMG —

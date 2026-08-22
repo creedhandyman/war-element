@@ -48,6 +48,36 @@ describe("Surge stores one ranged attack", () => {
     expect(canHit(g, surge, far), "in range once charged").toBe(true);
   });
 
+  it("an adjacent swing does NOT spend it — the charge is for REACH", () => {
+    // The bug this pins: any basic at all used to spend the shot, so charging
+    // Surge and then hitting the card standing next to it burned the charge on
+    // a swing that needed no reach — no extra damage, no message, and the shot
+    // you were holding for something across the board was simply gone. The card
+    // says "its next attack strikes at RANGE"; a swing already inside melee
+    // reach is not that attack.
+    const g = prepState();
+    const surge = place(g, "bolt_surge", "P1", 2, 1);
+    const near = place(g, "dusk_gool", "P2", 1, 1, { curHp: 90, maxHp: 90 });
+    const far = place(g, "dusk_vamp", "P2", 1, 3, { curHp: 90, maxHp: 90 });
+    reArm(g, surge);
+    basicAttack(g, surge.instanceId, near.instanceId);
+    expect(g.cards[surge.instanceId].rangedShotsLeft, "still charged").toBe(1);
+    expect(g.cards[near.instanceId].curHp, "and the swing still landed").toBeLessThan(90);
+    expect(canHit(g, g.cards[surge.instanceId], g.cards[far.instanceId]),
+      "the shot is still there for the target that needs it").toBe(true);
+  });
+
+  it("...and the melee swing gets no ranged log line to explain itself", () => {
+    // A charge that was not spent must not announce that it was.
+    const g = prepState();
+    const surge = place(g, "bolt_surge", "P1", 2, 1);
+    const near = place(g, "dusk_gool", "P2", 1, 1, { curHp: 90, maxHp: 90 });
+    reArm(g, surge);
+    const before = g.log.length;
+    basicAttack(g, surge.instanceId, near.instanceId);
+    expect(g.log.slice(before).some((l) => l.includes("stored charge"))).toBe(false);
+  });
+
   it("throwing it spends it — one attack, not a permanent upgrade", () => {
     const g = prepState();
     const surge = place(g, "bolt_surge", "P1", 2, 1);
