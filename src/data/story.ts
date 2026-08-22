@@ -222,7 +222,7 @@ const LEAF: StoryRegion = {
       lore: "Green in every month. The four tribes divide the Mega Forest by season, and the plains are the one stretch that division has never managed to reach."
      },
     { id: "L5", name: "Summer's Embrace Grove", kind: "warden", at: { x: 40, y: 74 },
-      requires: ["L4"], roster: ["leaf_sumerose", "leaf_dande", "leaf_squanch"], adds: ["leaf_acorn_tok"] ,
+      requires: ["L4"], roster: ["leaf_sumerose", "leaf_dande", "leaf_splint"], adds: ["leaf_acorn_tok"] ,
       note: "Summer at full strength. Estival left the Wilds to sun herself here — she is still an assassin.",
       lore: "Where Spring starts things, Summer sustains them. Guardians of Growth, stewards of the plains where the forest stands at its fullest strength."
     },
@@ -252,7 +252,7 @@ const LEAF: StoryRegion = {
       lore: "Along Winter's Reach the Sun's Army Fronts ride in open daylight, beside LEAF's Winter Tribe, watching the same snow. It is the only border DAWN keeps this way."
     },
     { id: "L10", name: "Winter Village Sentinels", kind: "warden", at: { x: 58, y: 23 },
-      requires: ["L9"], roster: ["leaf_citra", "leaf_guardian", "leaf_splint"], adds: [],
+      requires: ["L9"], roster: ["leaf_citra", "leaf_guardian", "leaf_squanch"], adds: [],
       note: "Under the Arctic Veil. The ice wall north is DAWN's border — sealed all campaign.",
       lore: "Sentinels of Rest. Not dormant — on duty. Winter holds that a forest which never stops to sleep eventually forgets how to grow."
     },
