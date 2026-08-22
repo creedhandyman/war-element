@@ -2115,6 +2115,31 @@ export function homeRow(player: PlayerId, boardSize: number): number {
  *  design call, and widening it here would silently re-tune every hill bonus at
  *  once. This is the single definition — change it here and every consumer
  *  follows. */
+/** Rounds a boss holds its own home row before it may take a step forward.
+ *
+ *  A boss is standing on the board from round one — placed outside the economy,
+ *  while the player is still deploying their first one or two cards. Letting it
+ *  walk immediately meant the fight was on top of you before you had a board to
+ *  meet it with, and a puzzle you are supposed to read and answer has to give
+ *  you the reading half first. Two rounds is the opening: it looms, its clock
+ *  is visibly counting, and you get to choose your ground.
+ *
+ *  It HOLDS rather than freezes — attacks, Specials and the free clock all fire
+ *  normally, and it may still slide ALONG its own home row (Skeleeze's
+ *  Swiftshooter), because that is repositioning, not advancing. What it cannot
+ *  do is leave the row. */
+export const BOSS_HOLD_ROUNDS = 2;
+
+/** Is this card a boss that has not yet been released from its home row?
+ *
+ *  One function, because there are two ways off that row — the AI moving it in
+ *  Prep and `roundTick.advance` walking it at Cleanup — and a rule written
+ *  twice is a rule that drifts. (See the ARC discharge passive, which was
+ *  gated in the engine and ungated in the card text for a month.) */
+export function bossHeldHome(state: GameState, def: CardDef): boolean {
+  return def.boss === true && state.round <= BOSS_HOLD_ROUNDS;
+}
+
 export function isMidRow(row: number): boolean {
   return row === 1 || row === 2;
 }

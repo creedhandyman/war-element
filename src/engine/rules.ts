@@ -29,7 +29,7 @@ import type {
   SpellDef,
   StatusKind,
 } from "./types";
-import { OPENING_COST_CAP, enemyOf, homeRow } from "./types";
+import { OPENING_COST_CAP, bossHeldHome, enemyOf, homeRow } from "./types";
 import { getSpell, spellPickKind } from "./spells";
 import { hasElementAura } from "./auras";
 
@@ -210,6 +210,12 @@ export function canMove(
     return { ok: false, reason: "ASLEEP — cannot move until woken" };
   if (hasStatus(card, "FRIGHTEN"))
     return { ok: false, reason: "FRIGHTENED — cannot move" };
+  // A boss holds its home row for the opening — see BOSS_HOLD_ROUNDS. Sliding
+  // ALONG the row is still fine; what it cannot do is leave it.
+  if (bossHeldHome(state, getDef(card.defId))
+      && to.row !== homeRow(card.owner, state.boardSize)) {
+    return { ok: false, reason: "The boss has not moved from its home row yet" };
+  }
   const reach = moveReachFor(state, card);
   if (reach === 0) return { ok: false, reason: "This card can't move (SP 0)" };
   if (to.row < 0 || to.row >= state.boardSize || to.col < 0 || to.col >= state.boardSize)

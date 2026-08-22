@@ -61,6 +61,7 @@ import type {
 } from "./types";
 import {
   HAND_CAP,
+  bossHeldHome,
   isMidRow,
   DEFAULT_SPECIAL_COOLDOWN,
   MAX_ROUNDS,
@@ -2075,7 +2076,11 @@ function doRoundTicks(draft: GameState): void {
 
     // Seed Roll (Acorn): trundle forward toward the enemy home each round, one
     // open slot at a time — the same walk as Oak's on-summon roll, per round.
-    if (rt.advance && card.pos) {
+    //
+    // A boss holds still for the opening (BOSS_HOLD_ROUNDS) — the same gate the
+    // Prep move reads, so the two ways off the home row cannot disagree about
+    // when it is allowed to leave.
+    if (rt.advance && card.pos && !bossHeldHome(draft, getDef(card.defId))) {
       const dir = card.owner === "P1" ? -1 : 1;
       let rolled = 0;
       while (rolled < rt.advance && card.pos) {

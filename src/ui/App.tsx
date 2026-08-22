@@ -977,6 +977,14 @@ export function App() {
    *  two entry points cannot drift. */
   function seatEventFight(e: GameEvent) {
     setArenaMode("ai");
+    // BACK TO CASUAL. An event is not a Gauntlet seat and not a Streak match,
+    // and leaving the mode where it was presented a Void Trial as one: the run
+    // banner read "Seat 1 of 4 · Nightshrike's brood" and the start button said
+    // "Start Gauntlet · Seat 1 of 4" over a boss fight that could not advance
+    // the run in either direction. Casual is where a run is PARKED (see
+    // `gauntletSeat`), so this leaves it intact and waiting rather than
+    // spending or ending it — the same state as tapping Casual yourself.
+    setArenaGame("casual");
     setBoardSize(e.boardSize);
     setP2DeckId(e.deck.id);
     setTab("arena");
@@ -3151,7 +3159,14 @@ export function App() {
                           ? `Run cleared — +${runReward(gauntletRun.tier, boardOfRun(gauntletRun))} shards banked.`
                           : gauntletRun.lost
                             ? `Beaten on seat ${gauntletRun.won + 1}. The run is over.`
-                            : `Seat ${gauntletRun.won + 1} of ${gauntletRun.seats.length} · ${deckLabel(p2DeckId)}`}
+                            : `Seat ${gauntletRun.won + 1} of ${gauntletRun.seats.length}${
+                                // Only name the deck when the RUN put it there.
+                                // `p2DeckId` is whatever is in the chair, so
+                                // with a run parked behind an event this read
+                                // "Seat 1 of 4 · Nightshrike's brood" — the run
+                                // announcing an opponent it never dealt and
+                                // would never score.
+                                gauntletSeat ? ` · ${deckLabel(p2DeckId)}` : " · parked"}`}
                       </span>
                     </div>
                     {/* One pip per seat: what you have banked and what is left,
@@ -3289,7 +3304,7 @@ export function App() {
             <div className="ar-foot">
               {!onlineMode ? (
                 <button
-                  className={`lockin ar-start${arenaGame === "gauntlet" && gauntletRun && !runOver(gauntletRun) ? " gauntlet" : ""}`}
+                  className={`lockin ar-start${arenaGame === "gauntlet" && gauntletRun && !runOver(gauntletRun) && !eventRun ? " gauntlet" : ""}`}
                   disabled={!startGate.ok}
                   onClick={startArenaMatch}
                 >
@@ -3300,7 +3315,7 @@ export function App() {
                       which one you are agreeing to, and where you are in it. */}
                   {!startGate.ok
                     ? startGate.why
-                    : arenaGame === "gauntlet" && gauntletRun && !runOver(gauntletRun)
+                    : arenaGame === "gauntlet" && gauntletRun && !runOver(gauntletRun) && !eventRun
                       ? `Start Gauntlet · Seat ${gauntletRun.won + 1} of ${gauntletRun.seats.length}`
                       : arenaGame === "streak" && !twoPlayer && !onlineMode
                         ? `Start Streak Match · ${TIER_LABEL[tierForStreak(story.ladder?.streak ?? 0, boardSize)]}`

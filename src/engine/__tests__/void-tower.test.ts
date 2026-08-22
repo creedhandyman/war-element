@@ -19,8 +19,9 @@ import { EVENTS } from "../../data/events";
 import { canCraft, newSave, openPack } from "../../data/story";
 import { advance } from "../phases";
 import { SPECIAL_HANDLERS, applyStatus, basicAttack, defeatCard } from "../combat";
-import { canFireSpecial } from "../rules";
+import { canFireSpecial, canMove } from "../rules";
 import { boardCards } from "../state";
+import { BOSS_HOLD_ROUNDS } from "../types";
 import { createInitialState, summonCard } from "../state";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
 
@@ -277,6 +278,75 @@ describe("deck depth", () => {
     expect(paddedFormation(
       { ...VOID_BOSSES[0], tribe: "NotATribe" }, 30,
     )).toEqual(VOID_BOSSES[0].summons);
+  });
+});
+
+describe("the boss holds its home row for the opening", () => {
+  // It is standing there from round one, placed outside the economy, while the
+  // player is still deploying their first card or two. Walking immediately put
+  // the fight on top of you before you had a board to meet it with, and a
+  // puzzle you are meant to read and answer has to hand you the reading half
+  // first.
+
+  const advancer = "boss_xilty";   // the one boss with roundTick.advance
+
+  it("does not advance on rounds 1 and 2", () => {
+    for (const round of [1, 2]) {
+      const s = prepState();
+      s.round = round;
+      const boss = place(s, advancer, "P2", 0, 2);
+      const n = advance(atCleanup(s));
+      expect(n.cards[boss.instanceId].pos, `round ${round}`).toEqual({ row: 0, col: 2 });
+    }
+  });
+
+  it("...and does from round 3, which is when the hold ends", () => {
+    const s = prepState();
+    s.round = BOSS_HOLD_ROUNDS + 1;
+    const boss = place(s, advancer, "P2", 0, 2);
+    const n = advance(atCleanup(s));
+    expect(n.cards[boss.instanceId].pos!.row, "off the home row at last").toBe(1);
+  });
+
+  it("cannot be walked off the row by hand either, while it holds", () => {
+    // Two ways off that row — the Prep move and the advance tick — and both
+    // read the same gate, so they cannot disagree about when it is released.
+    const s = prepState(42, "P2");
+    s.round = 1;
+    const boss = place(s, advancer, "P2", 0, 2);
+    expect(canMove(s, "P2", boss.instanceId, { row: 1, col: 2 } as never).ok).toBe(false);
+    expect(canMove(s, "P2", boss.instanceId, { row: 1, col: 2 } as never).reason)
+      .toContain("home row");
+  });
+
+  it("may still slide ALONG its home row — that is repositioning, not advancing", () => {
+    // Skeleeze's Swiftshooter is a lateral step, and holding the row is not the
+    // same as being frozen to a slot.
+    const s = prepState(42, "P2");
+    s.round = 1;
+    const boss = place(s, advancer, "P2", 0, 2);
+    expect(canMove(s, "P2", boss.instanceId, { row: 0, col: 1 } as never).ok).toBe(true);
+  });
+
+  it("HOLDS, it does not freeze — the clock still fires on round 3", () => {
+    // The hold is about position only. A boss that also stopped acting would be
+    // two free rounds, which is a different and much worse gift.
+    const s = prepState();
+    place(s, "boss_rotroot", "P2", 0, 2);
+    const prey = place(s, "leaf_alpha", "P1", 1, 2, { curHp: 999, maxHp: 999, curShields: 0 });
+    s.round = 3;
+    const n = advance(atCleanup(s));
+    expect(n.cards[prey.instanceId].curHp, "Rotten Grasp still landed").toBeLessThan(999);
+  });
+
+  it("an ordinary advancer is untouched — the hold is a BOSS rule", () => {
+    const s = prepState();
+    s.round = 1;
+    const acorn = CARDS.find((c) => c.roundTick?.advance && !c.boss);
+    if (!acorn) return;
+    const inst = place(s, acorn.id, "P2", 0, 2);
+    const n = advance(atCleanup(s));
+    expect(n.cards[inst.instanceId].pos!.row, `${acorn.id} still rolls`).toBe(1);
   });
 });
 
