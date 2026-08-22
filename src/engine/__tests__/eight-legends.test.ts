@@ -292,6 +292,36 @@ describe("Burnout — Super Charger", () => {
   });
 });
 
+describe("Burnout — Blitzing Ram", () => {
+  it("charges TOWARD the target, not straight ahead", () => {
+    // chargeForward walks it at the enemy home row whatever it aimed at, so a
+    // target off to one side was rammed from wherever Burnout happened to stop
+    // — the charge and the crash pointed different ways.
+    const s = prepState();
+    const burn = place(s, "pyro_burnout", "P1", 3, 0);
+    // Off to the side AND ahead, so "forward" and "toward" are different moves.
+    const foe = place(s, "dusk_gool", "P2", 1, 3, { curHp: 90, maxHp: 90, curShields: 0 });
+    const from = { ...burn.pos! };
+    cast(s, burn, foe);
+    const to = s.cards[burn.instanceId].pos!;
+    expect(to, "it moved").not.toEqual(from);
+    // Closer to the target on the COLUMN axis is the whole point — a pure
+    // forward charge cannot change the column at all.
+    expect(Math.abs(to.col - foe.pos!.col), "closed the lateral gap")
+      .toBeLessThan(Math.abs(from.col - foe.pos!.col));
+  });
+
+  it("still burns everything touching the impact", () => {
+    const s = prepState();
+    const burn = place(s, "pyro_burnout", "P1", 3, 1);
+    const target = place(s, "dusk_gool", "P2", 1, 1, { curHp: 90, maxHp: 90, curShields: 0 });
+    const beside = place(s, "dusk_gool", "P2", 1, 2, { curHp: 90, maxHp: 90, curShields: 0 });
+    cast(s, burn, target);
+    expect(statusOf(s.cards[target.instanceId], "BURN"), "the target").toBeDefined();
+    expect(statusOf(s.cards[beside.instanceId], "BURN"), "and what it touches").toBeDefined();
+  });
+});
+
 describe("Aranea — Broodmother", () => {
   it("buffs allied Spiders and nothing else", () => {
     const s = prepState();

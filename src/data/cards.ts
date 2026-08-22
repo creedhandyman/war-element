@@ -9625,8 +9625,16 @@ export const CARDS: CardDef[] = [
       // chargeFirst: it closes the distance and THEN crashes, so the splash is
       // measured from where it ends up. statusSplash carries the BURN to
       // everything touching the impact — "all touching it".
+      //
+      // chargeLateral: it rams TOWARD THE TARGET rather than straight ahead.
+      // Without it `chargeForward` walks it at the enemy home row whatever it
+      // aimed at, so a target off to one side was struck from wherever Burnout
+      // happened to end up — the charge and the crash pointed different ways.
+      // No `chargeDiagonal`: a ground charger spends two steps to cut a corner,
+      // the same price prep movement charges, and a chassis this heavy has not
+      // earned the exemption a horse gets.
       params: {
-        chargeFirst: 1, charge: 2,
+        chargeFirst: 1, charge: 2, chargeLateral: 1,
         dmg: 6,
         statusKind: "BURN", statusDuration: 3, statusPower: 3,
         statusSplash: 1,
