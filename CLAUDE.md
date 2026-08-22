@@ -924,8 +924,10 @@ through seven "Void Trial" EVENTS on the Home band and tested headlessly.
 
 **The formula**: Element A gives the TRIBE, Element B the MECHANIC, and the
 boss summons its tribe on a 12-Gold budget. The budget is a BUILD-TIME cap on
-the boss's formation (`src/data/void-tower.ts`, validated in
-`void-tower.test.ts`) — not a runtime wallet. The summons ARE the P2 deck; the
+the boss's OPENING (`src/data/void-tower.ts`, validated in
+`void-tower.test.ts`) — not a runtime wallet. The formation opens the fight and
+the rest of the P2 deck is tribe reinforcements (`paddedFormation`, filled to
+`deckSizeFor(5)` = 30 from the tribe's CHEAP HALF, cycled); the
 ordinary AI plays them on the ordinary income; the boss card itself is placed
 by `summonCard` outside the economy (`voidBossSeat`, wired in
 `startArenaMatch`). Tribe TOKENS are legal summons (story `adds` are tokens by
@@ -975,15 +977,45 @@ Ice); the doc's Xilty list cost 13 (Silkstalker is 4); "Deep Creatures" and a
 usable "Bot" tribe don't exist; Wolf spans 3 elements, Avian 4; seven one-card
 tribes can never fund a boss.
 
+**THE DECK IS PADDED, and it matters.** The summons used to BE the whole P2
+deck, so a boss brought 2-9 cards against the player's 30, emptied its hand in
+the opening rounds and stood on a rising gold pool doing nothing — every fight
+was won by outlasting an opponent that had already stopped playing. Two
+consequences to know about:
+- Reinforcements come from the tribe's cheap half, NOT by repeating the
+  budgeted list (that would hand Rotroot fifteen cost-7 Zombinations).
+- It needed `PlayerState.stackFirst` — hoist THESE cards by name — because
+  `stackCheapest` now does the opposite of what the puzzle wants: the formation
+  is the expensive half of a deck padded with cost-1 chaff. `scriptedOpening`
+  and `createInitialState`'s `stacked` take a number (cheapest N) OR a list of
+  ids. Void Trials pass the formation.
+
 **Floor 1's seven puzzles, all authored**: Rotroot (engine), Skeleeze
 (kill-column — doc floor 2), Xilty (status lock — doc floor 3), Permafrost
 (wall), Overclock (swarm), Nightshrike (glass cannon), Basilisk (attrition).
-All seven formations spend exactly 12 and it is pinned by test. Headless smoke:
-21 LEAF-only matches resolve, bosses win some and lose some.
+All seven formations spend exactly 12 and it is pinned by test.
 
-**Still open** (blocked on the unwritten mode doc): the tower screen, floor
-progression/run persistence (`App.tsx:673` already promises "Void Tower owns
-run-loss stakes"), the reward loop, floors 2-10 content, board modifiers,
+**Difficulty, measured** (20 seeds/boss vs the cheapest-LEAF floor deck and
+three tuned 5x5 premades): bosses win ~80-87% overall, but the SPREAD is the
+story — Overclock and Nightshrike beat every deck tried at 100%, Xilty /
+Permafrost / Basilisk sit at 85-100%, and Rotroot is the outlier the other way
+at 25-40%. Floor 1 is meant to teach seven different lessons, so a tuning pass
+is waiting. NOTE this holds at every deck depth including the old empty one, so
+it is not the padding's doing. The smoke test's old "bosses lose some of the 21"
+bound was green ONLY because of the empty-deck bug and has been removed with
+that reasoning recorded — an AI-vs-AI harness cannot read a telegraph, so it
+cannot measure whether a puzzle is fair. That is on-device tuning.
+
+**The tower SCREEN shipped** (`src/ui/VoidTower.tsx`, Tower nav tab): floors
+rendered top-down, all progression DERIVED from `StorySave.eventsDone` so it
+can never disagree with the save. Each boss is a portrait ART TILE — the tile
+itself is the fight button, with a corner badge reading FIGHT / CLEARED /
+LOCKED. Grid min is 140px, measured: a 375px phone leaves the grid 321px, so
+158px fell to one 321x401 tile per row.
+
+**Still open** (blocked on the unwritten mode doc): run state / run-loss stakes
+(`App.tsx:673` already promises "Void Tower owns run-loss stakes"), the reward
+loop beyond the trials' first-clear pack, floors 2-10 content, board modifiers,
 the rule-breaking floor 10.
 
 ## The UI after the mobile redesign
@@ -1211,6 +1243,26 @@ region.
   freezes at the first render of the APP.
 
 ## Traps found the hard way
+
+- **A rule that names board rows by NUMBER is probably wrong on one of the two
+  board sizes.** The Home Slot rule's "is the attacker in a mid row" test was
+  written `row === 1 || row === 2`. That is every row between the home rows on
+  a 4x4 and only two of the three on a 5x5, where row 3 sits between mid and
+  P1's home row 4. So on every 5x5 board in the game — story landmarks and
+  thrones, the 5x5 arena, the elite gauntlet, Void Tower — a card in row 3
+  could not attack into the home row it was standing directly in front of, and
+  reported "has no valid action" with a target under its nose. It was
+  ASYMMETRIC and only ever helped the player: the mirrored shot (P1 in row 1
+  into P2's home row 0) always worked, because row 1 is "mid". `spellReaches‐
+  EnemyHome` had the identical hole. Both now derive from `state.boardSize`:
+  the rule is "you cannot reach into the enemy home row from inside your own".
+  Regression tests live in `targeting.test.ts` with a `bigPrepState()` helper —
+  **anything row-shaped wants a test at BOTH board sizes.**
+
+  `isMidRow` itself is deliberately NOT the same function and was left alone.
+  It answers the King of the Hill question, and its own comment records that
+  excluding row 3 on the 5x5 is an open design call; widening it would silently
+  re-tune every hill bonus at once. Same words, two different questions.
 
 - **A NEW top-level class name must be grepped against the JSX before it is
   written.** This session shipped the same collision twice in two commits, in
