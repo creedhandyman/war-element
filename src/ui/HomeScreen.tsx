@@ -30,11 +30,11 @@ import {
   deckCapFor, freePacks, isCleared, isOpen, type StoryRegion, type StorySave,
 } from "../data/story";
 import { loadSquads } from "../data/squads";
-import { CARDS } from "../data/cards";
+import { CARDS, getDef } from "../data/cards";
 import { openEvents, type GameEvent } from "../data/events";
 import { boardOfRun, runOver, runReward } from "../data/gauntlet";
 import { decksForTier } from "../data/custom-decks";
-import { deckArtUrl } from "./DeckPickerSheet";
+import { deckArtUrl, finisherOf } from "./DeckPickerSheet";
 import { EL_COLOR, EL_ICON } from "./shared";
 
 /** One row in the middle band. `feature` promotes it to the big card at the
@@ -142,6 +142,7 @@ export function HomeScreen(props: {
   );
   const feature = live.find((l) => l.feature);
   const rows = live.filter((l) => !l.feature);
+  const events = useMemo(() => homeEvents(save), [save]);
 
   return (
     <div className="overlay arena-wrap">
@@ -238,6 +239,41 @@ export function HomeScreen(props: {
           </>
         )}
 
+        {/* THE EVENTS, as a matched set. Their own section rather than seats in
+            the band above, because that band promotes its head to a card and
+            leaves the rest as rows — which rendered one of a matched pair with
+            full-bleed art and its twin as a 26px sigil, on nothing but list
+            order. Two tiles, identical treatment, each wearing the face of the
+            deck it seats. */}
+        {events.length > 0 && (
+          <>
+            <div className="home-lbl">
+              <span>EVENTS</span>
+              <em>One time only</em>
+            </div>
+            <div className="home-evs">
+              {events.map(({ event, art, leader }) => (
+                <button
+                  key={event.id}
+                  className="home-ev"
+                  style={event.rim ? { ["--rim" as string]: event.rim } : undefined}
+                  onClick={() => onEvent(event)}
+                >
+                  {art && <img className="home-ev-art" src={art} alt="" loading="lazy" />}
+                  <span className="home-ev-body">
+                    {/* The leader's NAME as well as its face: the portrait is
+                        the hook, but "led by Imperator" is the part a player
+                        can actually plan against. */}
+                    {leader && <span className="home-ev-led">Led by {leader}</span>}
+                    <span className="home-ev-name">{event.name}</span>
+                    <span className="home-ev-cta">Challenge</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
         {/* Only when there is a band to sit above. Pinning the tiles to the
             bottom of an otherwise empty screen leaves 340px of hole in the
             MIDDLE, and a hole between content reads as something that failed
@@ -268,6 +304,34 @@ export function HomeScreen(props: {
       </div>
     </div>
   );
+}
+
+/** The events still open to the player, with the face of the deck each one
+ *  seats.
+ *
+ *  THE LEADER, not a region map. The two events used to wear `/maps/dusk.webp`
+ *  and `/maps/dawn.webp` — the same backdrop the Blight row uses — which said
+ *  "DUSK happens here" and nothing whatever about the fight. What you are
+ *  actually walking into is a specific deck with a specific card at the top of
+ *  it, so that card's portrait is the honest illustration: the Shadow Horsemen
+ *  for Darkest Night, the Imperator for The Brightest Day.
+ *
+ *  `finisherOf` picks it — highest cost, biggest body on a tie — which is the
+ *  same rule the Arena seats use to choose a deck's face, so a deck looks like
+ *  itself wherever it is shown. Derived rather than authored per event: an
+ *  event that changed its list would otherwise keep advertising a card it no
+ *  longer runs. */
+function homeEvents(save: StorySave): { event: GameEvent; art: string | null; leader: string | null }[] {
+  // `!e.bossId`: Void Trials came off Home the day the tower screen shipped —
+  // seven boss cards drowned the two real events, and a fight behind a locked
+  // floor must not be reachable from here anyway. They still exist (the settle
+  // path finds them by deck id); the Tower tab offers them, gated by floor.
+  return openEvents(save)
+    .filter((e) => !e.bossId)
+    .map((event) => {
+      const id = finisherOf(event.deck.cards);
+      return { event, art: deckArtUrl(event.deck.cards), leader: id ? getDef(id).name : null };
+    });
 }
 
 /** The middle band, assembled from things that are actually true right now.
@@ -317,29 +381,16 @@ function buildLive(
     });
   }
 
-  // Events sit under a live run and above everything else. A run can be LOST by
-  // walking away and an event cannot, so it does not outrank one — but nothing
-  // below this decays at all, and an event is the only row here that can be
-  // used up. No `live` dot for exactly that reason: this file reserves the dot
-  // for things that are running and can end without you, and an event waits.
-  // `!e.bossId`: Void Trials came OFF this band the day the tower screen
-  // shipped — seven boss cards were drowning the two real events, and a boss
-  // fight behind a locked floor must not be reachable from Home anyway. The
-  // events still exist (the settle path finds them by deck id); the Tower tab
-  // is where they are offered, gated by floor.
-  for (const e of openEvents(save).filter((ev) => !ev.bossId)) {
-    out.push({
-      id: e.id,
-      tag: e.tag,
-      title: e.name,
-      body: e.blurb,
-      cta: "Challenge",
-      onGo: () => go.onEvent(e),
-      // From the EVENT, not fixed here — this loop renders every one of them,
-      // and DUSK's three values were being worn by a mono-DAWN deck.
-      el: e.el, art: e.art, rim: e.rim,
-    });
-  }
+  // EVENTS ARE NOT IN THIS BAND ANY MORE — see `homeEvents` and the section
+  // that renders them. This list is one feature card and a tail of plain rows,
+  // and with two events in it exactly one of them got the art while its twin
+  // got a 26px sigil: two halves of one matched pair, rendered as if they were
+  // different kinds of thing, purely because of list order. They are a set and
+  // they now look like one.
+  //
+  // Nothing below decays either, but the rest of this band is genuinely about
+  // what is happening right now; an event waits, which is why it never carried
+  // the `live` dot even when it lived here.
 
   // Full Blight puts a real node on that region's map. It got there through
   // world progress rather than a timer, which is the closest thing the game

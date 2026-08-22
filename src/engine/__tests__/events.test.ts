@@ -71,16 +71,12 @@ describe("event decks", () => {
       });
 
       it("is dressed in its OWN element, with art that exists", () => {
-        // The bug a second event exposed: HomeScreen's loop renders every
-        // event and had DUSK's sigil, map and rim hardcoded into it, so a
-        // mono-DAWN deck was advertised as a DUSK one. Both halves are checked
-        // — the element matches the deck, and the map is a real file (globbed
-        // rather than fs-checked, for the reasons art.test.ts gives).
-        const maps = new Set(
-          Object.keys(import.meta.glob("../../../public/maps/*.webp"))
-            .map((p) => `/maps/${p.split("/").pop()}`),
-        );
-        expect(maps.has(event.art), `${event.art} is not in public/maps`).toBe(true);
+        // The bug a second event exposed: HomeScreen's loop renders every event
+        // and had DUSK's sigil, map and rim hardcoded into it, so a mono-DAWN
+        // deck was advertised as a DUSK one. The map half of that check is gone
+        // with the field — Home draws the deck's LEADER now, derived from the
+        // card list, so there is no per-event image left to get wrong. What is
+        // still worth pinning is the element.
         const elements = new Set(event.deck.cards.map((id) => getDef(id).element));
         if (isTrial) {
           // A trial wears its BOSS's element. The formation may cross elements

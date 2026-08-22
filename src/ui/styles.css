@@ -4251,6 +4251,55 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   font-size: 11px; font-weight: 600; color: var(--gold-lit);
 }
 
+/* THE EVENTS, as a matched pair. Deliberately the same visual language as the
+   Void Tower's boss tiles — portrait art, a scrim, the name written over the
+   bottom of it, the whole tile being the button — because they are the same
+   KIND of thing: a named one-off fight against a specific deck. Two events fit
+   side by side on a phone at this minimum, which is the point; they are a set
+   and you should be able to see both at once. */
+.home-evs {
+  flex: none; display: grid; gap: 8px; padding: 0 16px 14px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+.home-ev {
+  position: relative; display: block; width: 100%; padding: 0;
+  aspect-ratio: 4 / 5; overflow: hidden; border-radius: 12px;
+  border: 1px solid var(--rim, var(--panel-line));
+  background: var(--void-2); cursor: pointer; text-align: left;
+  font: inherit; color: inherit;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.home-ev:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -8px var(--rim, rgba(201,162,75,.5));
+}
+.home-ev-art {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: 50% 12%; display: block;
+}
+.home-ev-body {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; flex-direction: column; gap: 3px; padding: 22px 10px 9px;
+  background: linear-gradient(to top, rgba(6,7,12,.95) 40%, rgba(6,7,12,.7) 70%, transparent);
+}
+.home-ev-led {
+  font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--rim, var(--gold-lit));
+  /* One line: a long leader name must not push the title around and leave the
+     two tiles disagreeing about where their names sit. */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.home-ev-name { font-family: var(--head); font-size: 14px; line-height: 1.1; color: var(--ink); }
+.home-ev-cta {
+  align-self: flex-start; margin-top: 4px; padding: 3px 9px; border-radius: var(--r-chip, 8px);
+  border: 1px solid var(--gold-line); background: rgba(201, 162, 75, 0.12);
+  font-size: 10px; font-weight: 600; color: var(--gold-lit);
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-ev { transition: none; }
+  .home-ev:hover { transform: none; }
+}
+
 .home-row {
   display: flex; align-items: center; gap: 10px; width: 100%;
   padding: 8px 12px; border-radius: 12px;

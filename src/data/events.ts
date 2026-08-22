@@ -29,6 +29,7 @@
 import { type StorySave, addFreePacks, addShards } from "./story";
 import type { CustomDeck } from "./custom-decks";
 import { getDef } from "./cards";
+import type { Element } from "../engine/types";
 import { VOID_BOSSES, buildVoidEncounter, trialEventId } from "./void-tower";
 
 export interface GameEvent {
@@ -57,15 +58,18 @@ export interface GameEvent {
    *  its budgeted formation padded out with cheap tribe reinforcements, so
    *  "hoist the cheapest" would bury the formation the puzzle is about. */
   scriptedOpening?: number | readonly string[];
-  /** How the Home card is dressed: sigil, backdrop, rim.
+  /** The element this event's deck is. Asserted against the deck's actual
+   *  contents by test — a mono-element event whose `el` drifted would be
+   *  advertising the wrong fight. */
+  el: Element;
+  /** The accent it is dressed in: the tile border on Home, and the colour of
+   *  the "Led by" line written over the art.
    *
-   *  On the event rather than in HomeScreen because the first cut hardcoded
-   *  DUSK's three values into the loop that renders EVERY event — which was
-   *  invisible while there was one event and served the second one's mono-DAWN
-   *  deck under a dusk map and a violet rim. A card that advertises the wrong
-   *  element is worse than a plain one. */
-  el: string;
-  art: string;
+   *  There used to be an `art` beside this, a region map from `/maps`. Home
+   *  shows the LEADER of the deck now — see `homeEvents` in HomeScreen — which
+   *  is derived from the card list rather than authored, so a deck that changed
+   *  cannot keep advertising a face it no longer runs. The map field went with
+   *  it rather than staying as config nothing reads. */
   rim: string;
   /** Packs owed on the FIRST clear.
    *
@@ -117,7 +121,7 @@ export const DARKEST_NIGHT: GameEvent = {
   blurb: "Thirty shades of DUSK on the large board, with all eight spells. "
     + "Beat it once and a free booster pack is yours.",
   boardSize: 5,
-  el: "DUSK", art: "/maps/dusk.webp", rim: "rgba(149,117,255,.5)",
+  el: "DUSK", rim: "rgba(149,117,255,.5)",
   // One opening hand's worth. Measured across all eighteen 5x5 builds, 720
   // matches per depth: shuffled 42.8%, then 74.7 / 75.0 / 75.0 / 74.7% at
   // depths 3 / 5 / 8 / 30. The whole effect arrives by the third card and the
@@ -203,7 +207,7 @@ export const BRIGHTEST_DAY: GameEvent = {
   blurb: "Thirty shades of DAWN on the large board, with eight spells and "
     + "every battle command. Beat it once and a free booster pack is yours.",
   boardSize: 5,
-  el: "DAWN", art: "/maps/dawn.webp", rim: "rgba(240,200,90,.5)",
+  el: "DAWN", rim: "rgba(240,200,90,.5)",
   // Five, because its sibling is five and mirroring is the point — not because
   // this deck needs it. Its plateau arrives at 2 (see the header); 3, 4 and 5
   // all measure the same, so this is the plateau taken at one opening hand's
@@ -253,9 +257,6 @@ const VOID_TRIALS: GameEvent[] = VOID_BOSSES.map((b) => {
     boardSize: enc.boardSize,
     scriptedOpening: enc.stacked.P2,
     el: boss.element,
-    // The Home card's BACKDROP is a region map, not card art — the two
-    // original events established that and HomeScreen renders it as one.
-    art: `/maps/${b.tribeElement.toLowerCase()}.webp`,
     rim: "rgba(139,125,201,.5)",
     rewardPacks: 1,
     // A boss is the hardest fight in the game and, once cleared, the only hard
