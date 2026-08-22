@@ -24,6 +24,15 @@ production. **The workflow runs `npm test` as a gate** — a failing test blocks
 the deploy. Card art is in Git LFS (~837MB) and the workflow caches it, so
 don't casually re-add large binaries.
 
+**Live at `https://war-element.com`** (also `war-element.vercel.app`; DNS at
+Namecheap — apex `A @ -> 216.150.1.1`, plus `CNAME www ->
+48a2dd5c95e65538.vercel-dns-016.com.` which Vercel 308s to the apex). The apex
+is canonical: a redirect hop between Supabase's origin and the app's is one
+more thing to go wrong in a sign-in link, so `www` redirects and nothing is
+served from it. The four `*.mail` / `_dmarc` / `resend._domainkey` records on
+that zone are Resend's — **do not touch them**, they are what makes sign-in
+email deliverable.
+
 ## Layout
 
 ```
@@ -114,10 +123,33 @@ Four decisions worth not re-litigating:
   emails/hour cap, which no real player base survives.
 - **Site URL and Redirect URLs must point at the deploy.** They ship as
   `http://localhost:3000` and empty, which is why the first link anyone clicked
-  went nowhere. Currently `https://war-element.vercel.app` with
-  `https://war-element.vercel.app/**` allow-listed. `requestCode` also sends
+  went nowhere. Site URL is now `https://war-element.com`, with BOTH
+  `https://war-element.com/**` and `https://war-element.vercel.app/**`
+  allow-listed so the old address keeps working. `requestCode` also sends
   `emailRedirectTo: window.location.origin`; an origin that is not allow-listed
   is ignored and Site URL is used instead, so a dev server falls back safely.
+- **The half-finished sign-in is PERSISTED, and that is a fix rather than a
+  nicety.** Reading the emailed code means leaving the app; the panel is mounted
+  as `{accountOpen && <AccountPanel/>}` so closing it destroys `email`/`sent`/
+  `code`, and on iOS a backgrounded tab is evicted and the page reloads.
+  Players came back to a blank email form with no code box, asked for another
+  code, tripped Supabase's ONE-PER-MINUTE send limit, and read the red line at
+  the bottom of the modal — below the fold on a phone — as nothing happening.
+  Reported as "I get the code, enter it, click sign in and it won't"; the auth
+  logs showed every `/verify` that ever reached the server succeeding, with all
+  the ERRORs on `/otp`. `pendingSignIn()` / `setPendingSignIn()` /
+  `resendWaitMs()` in `account.ts` hold `{email, requestedAt}` in
+  `we_signin_pending`, expiring after an hour along with the code they point
+  at. A cooldown is surfaced as "your code is already in your inbox", not as an
+  error, and Resend counts down instead of silently refusing — mashing it
+  invalidates the code the player already has. **When debugging sign-in, read
+  Supabase's auth logs first**: `/otp` is requesting a code and `/verify` is
+  redeeming one, and which of the two is erroring splits the diagnosis in half.
+- **One account per ADDRESS, and nothing reconciles two.** A player who gives
+  up on one email and tries another gets a second account with its own separate
+  save, silently. That is what "Use a different email" on the code screen is
+  defending against; there is no merge, and joining two after the fact means
+  restoring one onto a device and re-uploading it under the other.
 - **No passwords, ever.** The app never sees, stores or transmits one. There is
   nothing to leak.
 - **NEWEST-WINS IS THE WRONG RULE** and it is the one that looks safest. A fresh
