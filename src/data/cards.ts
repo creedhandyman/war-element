@@ -9636,6 +9636,12 @@ export const CARDS: CardDef[] = [
     // Burning Frame: the chassis is on fire. No damage of its own — hitting it
     // simply costs you the burn.
     onHitByMelee: { status: { kind: "BURN", duration: 2, power: 2 } },
+    // Trample Through: 24 HP of burning machine does not go around things. It
+    // pairs with both halves of the kit rather than sitting beside them —
+    // Burning Frame punishes whatever is forced to touch it, and Super Charger
+    // is a rented +8 SP, so the rounds it spends shouldering through the front
+    // line are exactly the rounds it can afford to.
+    shoveWeaker: true,
     // Super Charger: RENTED speed, not owned. An SP 8 tank that spikes to 16
     // crosses ground it otherwise never would — and then settles back, so the
     // ram is a commitment rather than a permanent stat line.

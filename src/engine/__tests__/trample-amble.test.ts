@@ -17,6 +17,7 @@ import type { GameState, Pos } from "../types";
 const TRAMPLERS = [
   "leaf_oakgre", "gale_buf", "bore_bearocks",
   "bore_bastion", "dawn_musk_ox", "gale_stormhide_bison",
+  "pyro_burnout",
 ] as const;
 
 /** P1 has priority and may move; put `mover` at r2c1 with `victim` ahead of it. */
@@ -35,8 +36,41 @@ const moveTo = (s: GameState, id: string, to: Pos) =>
   applyIntent(s, { type: "MOVE", player: "P1", instanceId: id, to } as never);
 
 describe("Trample Through", () => {
-  it("is on all six cards, and they are the heavy ones", () => {
+  it("is on every carrier, and they are the heavy ones", () => {
     for (const id of TRAMPLERS) expect(getDef(id).shoveWeaker, id).toBe(true);
+    // The gate is max HP, so a trampler has to outweigh something for the grant
+    // to be worth anything. The club runs 16 (Stormhide Bison) to 55 (Oakgre)
+    // and Burnout joins at 24 — comfortably mid-pack, and above the median.
+    // 16 is the floor rather than a round number because that is what the
+    // lightest carrier actually is; a trampler under it would be a card
+    // carrying an ability it could almost never use.
+    for (const id of TRAMPLERS) expect(getDef(id).hp, `${id} too light to shove anything`).toBeGreaterThanOrEqual(16);
+    expect(getDef("pyro_burnout").hp).toBe(24);
+  });
+
+  it("Burnout tramples, and its own kit is what it walks into", () => {
+    // Not just the flag: the reason it was given. Trample puts Burning Frame's
+    // owner in contact on purpose, so the shove and the punish are one move.
+    const s = prepState();
+    const burn = place(s, "pyro_burnout", "P1", 2, 1);
+    const victim = place(s, "dusk_gool", "P2", 1, 1);
+    burn.spBonus = 6;
+    const to = { row: 1, col: 1 } as Pos;
+    expect(canMove(s, "P1", burn.instanceId, to).ok, "steps onto a lighter card").toBe(true);
+    const n = moveTo(s, burn.instanceId, to);
+    expect(n.cards[burn.instanceId].pos).toEqual({ row: 1, col: 1 });
+    expect(n.cards[victim.instanceId].pos, "driven back a slot").toEqual({ row: 0, col: 1 });
+    expect(getDef("pyro_burnout").onHitByMelee?.status?.kind, "and melee into it still burns").toBe("BURN");
+  });
+
+  it("does not trample something as big as it", () => {
+    // 24 HP is the lower end of the club: Polar King at 22 moves, Burnout's own
+    // 24 does not move a 24. The gate is strictly-less, not less-or-equal.
+    const s = prepState();
+    const burn = place(s, "pyro_burnout", "P1", 2, 1);
+    place(s, "pyro_burnout", "P2", 1, 1);
+    burn.spBonus = 6;
+    expect(canMove(s, "P1", burn.instanceId, { row: 1, col: 1 } as Pos).ok).toBe(false);
   });
 
   it("steps onto a weaker enemy and drives it back a slot", () => {
