@@ -189,4 +189,7 @@ export const AQUA_LORE: Record<string, string> = {
 
   aqua_killerwhale:
     "The water goes still before it does. That is the part to notice.",
+
+  // ── Void Tower bosses ──
+  boss_permafrost: "The wall was here before the war, and it has heard your plan to crack it.",
 };

@@ -75,7 +75,7 @@ export function StoryCollection(props: {
   const foils = (save.hero?.shiny ?? []).length;
 
   const shown = useMemo(() => {
-    const list = CARDS.filter((d) => {
+    const list = CARDS.filter((d) => !d.boss).filter((d) => {
       if (el !== "ALL" && d.element !== el) return false;
       if (cls !== "ALL" && d.cardClass !== cls) return false;
       if (scope === "owned") return owned.has(d.id);

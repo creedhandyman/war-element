@@ -238,6 +238,16 @@ export function describePassives(def: CardDef): string[] {
     passives.push(
       "TRAMPLE: in Prep it can step onto an adjacent opponent with less max HP, shoving it back a slot and taking the square (needs the slot behind it open).",
     );
+  if (def.allyRevive)
+    named(
+      "allyRevive",
+      `While this stands, a defeated ${def.allyRevive.tribe ? `allied ${def.allyRevive.tribe}` : "ally"} gets back up at ${Math.round(def.allyRevive.healFraction * 100)}% HP in its own slot — once per card per battle.`,
+    );
+  if (def.firstAttackMisses)
+    named(
+      "firstAttackMisses",
+      "The first attack against this card each round misses. No roll — lead with a sure hit to spend it.",
+    );
   if (def.onHitStatus) {
     const h = def.onHitStatus;
     const gate = h.chance != null ? `${h.chance}% chance to ` : h.firstHitOnly ? "first hit: " : h.onSecondHit ? "2nd hit: " : "";
@@ -336,6 +346,7 @@ export function describePassives(def: CardDef): string[] {
       t.randomEnemyStatus && `${t.randomEnemyStatus.kind} a random opponent for ${t.randomEnemyStatus.duration} round${t.randomEnemyStatus.duration > 1 ? "s" : ""}`,
       t.pokeStatus && `${t.pokeStatus.kind} the closest opponent for ${forR(t.pokeStatus.duration)}`,
       t.pushEnemies && `push every opponent back ${t.pushEnemies} slot${t.pushEnemies > 1 ? "s" : ""}`,
+      t.shiftLateral && `shift one slot along its home row (wrapping)`,
       t.healAllies && `heal every ally ${t.healAllies} HP`,
       t.healLowestAlly && `heal the most wounded ally ${t.healLowestAlly} HP`,
       t.healHomeRow && `heal home-row allies ${t.healHomeRow} HP`,

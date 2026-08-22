@@ -1355,12 +1355,12 @@ export const tierOf = (deckId: string): DeckTier | null =>
 /** Every card a player may put in a deck — the real CARDS list (tokens are
  *  excluded from CARDS by construction, so they can never be built with). */
 export function buildableCards(): CardDef[] {
-  return CARDS;
+  return CARDS.filter((c) => !c.boss);
 }
 
-/** Is `id` a real, deck-eligible card (in CARDS, not a token)? */
+/** Is `id` a real, deck-eligible card (in CARDS, not a token, not a boss)? */
 export function isBuildable(id: string): boolean {
-  return CARDS.some((c) => c.id === id);
+  return CARDS.some((c) => c.id === id && !c.boss);
 }
 
 export interface DeckValidation {

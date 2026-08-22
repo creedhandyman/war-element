@@ -1431,6 +1431,7 @@ export const craftCostOf = (defId: string): number =>
 /** Can this card be conjured right now? Owning it already is the usual no. */
 export function canCraft(save: StorySave, defId: string): { ok: boolean; reason?: string } {
   if (!CARD_INDEX[defId]) return { ok: false, reason: "No such card" };
+  if (CARD_INDEX[defId].boss) return { ok: false, reason: "Void Tower bosses cannot be crafted" };
   if (save.collection.includes(defId)) return { ok: false, reason: "Already collected" };
   const el = getDef(defId).element;
   const have = save.hero?.essence[el] ?? 0;
@@ -1590,7 +1591,7 @@ export interface PackResult {
  *  your collection got, which is backwards. Duplicates are the cost of buying
  *  volume, and they come back as essence. */
 export function openPack(save: StorySave, rand: () => number = Math.random): PackResult {
-  const pool = CARDS.map((c) => c.id);
+  const pool = CARDS.filter((c) => !c.boss).map((c) => c.id); // bosses are not pullable
   const owned = new Set(save.collection);
   const pulled: string[] = [];
   const fresh: string[] = [];

@@ -22,6 +22,9 @@ export {
   // card anything has to LOOK different from one that can.
   fieldFlag,
   hasTotemSpirit,
+  // Void Trials place their BOSS directly (outside the summon economy); tests
+  // have always used it through helpers — this makes the door official.
+  summonCard,
 } from "./state";
 export {
   canSummon,

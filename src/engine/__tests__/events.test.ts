@@ -23,25 +23,45 @@ const spent = (s: StorySave): StorySave =>
   ({ ...s, hero: { ...s.hero!, freePacks: 0 } });
 
 describe("event decks", () => {
+  // Void Trials are exempt from the DECK-shaped assertions below, and the
+  // exemption is the point rather than a loophole: a trial's seat is a boss
+  // FORMATION — a 12-Gold summon list with duplicates and tribe tokens, plus a
+  // boss placed outside the economy — and its legality rules (budget, tribe,
+  // caps, determinism) are void-tower.test.ts's whole job. Asserting deck
+  // shape on it would demand thirty unique buildable cards of a list whose
+  // design is five spiders. The art/element/reward assertions still apply.
   for (const event of EVENTS) {
+    const isTrial = Boolean(event.bossId);
     // From the EVENT's board, not the deck's — a `CustomDeck` has no board size
     // of its own, which is exactly why `GameEvent` carries one.
     const limits = deckLimits(event.boardSize);
     describe(`${event.name} (${event.boardSize}x${event.boardSize})`, () => {
-      it("is a legal deck for its own board", () => {
+      it(isTrial ? "is a validated boss formation (see void-tower.test.ts)" : "is a legal deck for its own board", () => {
+        if (isTrial) {
+          // Real ids only; everything else about the list is the tower's law.
+          for (const id of event.deck.cards)
+            expect(CARD_INDEX[id], `unknown card "${id}" in ${event.name}`).toBeTruthy();
+          return;
+        }
         expect(validateDeck(event.deck.cards, event.boardSize)).toEqual({ ok: true });
         expect(event.deck.cards.length).toBe(limits.target);
       });
 
-      it("references only real, buildable cards", () => {
+      it("references only real cards" + (isTrial ? "" : ", all buildable"), () => {
         for (const id of event.deck.cards) {
           expect(CARD_INDEX[id], `unknown card "${id}" in ${event.name}`).toBeTruthy();
-          expect(isBuildable(id), `"${id}" is not deck-eligible`).toBe(true);
+          if (!isTrial) expect(isBuildable(id), `"${id}" is not deck-eligible`).toBe(true);
         }
       });
 
-      it("carries a full, real spellbook for its board", () => {
+      it(isTrial ? "brings NO spellbook — the boss is the threat" : "carries a full, real spellbook for its board", () => {
         const book = event.deck.spells ?? [];
+        if (isTrial) {
+          // Deliberate: the puzzles price the boss's body, Special and tribe.
+          // A spellbook on top is chaos nothing in the doc accounted for.
+          expect(book).toEqual([]);
+          return;
+        }
         // The whole reason the book was refilled by hand: the deck code this was
         // imported from carried five, which is the STANDARD board's cap, and it
         // is fought on the large one.
@@ -62,6 +82,13 @@ describe("event decks", () => {
         );
         expect(maps.has(event.art), `${event.art} is not in public/maps`).toBe(true);
         const elements = new Set(event.deck.cards.map((id) => getDef(id).element));
+        if (isTrial) {
+          // A trial wears its BOSS's element. The formation may cross elements
+          // (Nightshrike's Avians span GALE and DUSK — the cross-element tribe
+          // is the design), so mono-element is the wrong demand here.
+          expect(event.el, "the card wears the boss's element").toBe(getDef(event.bossId!).element);
+          return;
+        }
         expect(elements.size, `${event.name} is meant to be mono-element`).toBe(1);
         expect(event.el, "the card wears the deck's element").toBe([...elements][0]);
       });

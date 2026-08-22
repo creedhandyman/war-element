@@ -319,6 +319,13 @@ export interface RoundTickDef {
   /** Seed Roll (Acorn token): roll forward N rows toward the enemy home each
    *  round, stopping at the first occupied/captured slot or the board edge. */
   advance?: number;
+  /** Swiftshooter (Skeleeze): slide one slot along the OWN home row each
+   *  Cleanup, wrapping — to the NEXT OPEN slot, staying put when the row is
+   *  full. Only fires while the card is standing in its home row: a boss that
+   *  has been dragged off its rail stops sliding. Deterministic and
+   *  telegraphed, which is the point — the rotating kill-column is a puzzle
+   *  precisely because the player can read where it goes next. */
+  shiftLateral?: number;
   /** Spawn a token each round (Trinezer's Reptilian Screech). adjacentOnly =
    *  only into an open king's-reach slot; no spawn if none is open. */
   /** Wildfire (Scorch): re-apply a status to every opponent standing in THEIR
@@ -543,6 +550,28 @@ export interface CardDef {
    *  for `boostRounds` rounds. While active the card is status-immune (Surge
    *  Protector); the first time it's hit while active it PARALYZEs the attacker
    *  `paralyze` rounds and deactivates. */
+  /** A VOID TOWER BOSS. Structural, like `tribe` — not an ability.
+   *
+   *  Bosses live in CARDS so the inspector, lore and art pipelines all see
+   *  them, but they are NOT part of the player's game: `isBuildable`, the shop
+   *  pack/craft/collection pools, the element cores (`deckFor`) and
+   *  `escalationPool` all refuse a `boss` card. The stat-budget test skips
+   *  them too — a boss's body answers the Void Tower floor cap
+   *  (`void-tower.ts`), not the cost curve. There is a test asserting a boss
+   *  can be acquired nowhere. */
+  boss?: true;
+  /** Undead Resilience (Rotroot): while this card lives, a defeated ALLY (of
+   *  `tribe`, when named) gets back up at `healFraction` of its max HP — once
+   *  per card per battle, deterministically. The design doc wrote this as a
+   *  50% roll; the Void Tower rule is no random percentages, and "once per
+   *  card, at half HP" is its own stated replacement. */
+  allyRevive?: { tribe?: string; healFraction: number };
+  /** The first attack against this card each ROUND misses, whole — the
+   *  deterministic replacement for a 55% EVASION (Xilty, Nightshrike). The
+   *  attempt springs it whatever happens: an `alwaysHit` attacker or Blazing
+   *  Sun connects, but the guard is still spent, so leading with the sure hit
+   *  is the correct sequencing and is rewarded. Re-arms each Cleanup. */
+  firstAttackMisses?: true;
   /** A PERMANENT accuracy penalty on this card's own basic attacks, in percent
    *  (15 = lands 85% of the time). Rolled per hit, like BLIND, and skipped by
    *  the same alwaysHit / neverMiss exemptions — a card that cannot miss still
@@ -1315,6 +1344,13 @@ export interface CardInstance {
   /** How many times a capped `buffDmgEveryN` ramp has fired (Storm's Supercell
    *  stops after `maxTicks` rounds). Absent = never ramped. */
   rampTicks?: number;
+  /** Already dragged back up once by an ally's `allyRevive` — the once-per-card
+   *  cap lives on the REVIVED card, so it survives the keeper dying later. */
+  allyRevived?: boolean;
+  /** `firstAttackMisses` has been sprung this round. Set by the first basic
+   *  attack AGAINST this card whether or not the miss was overridden; cleared
+   *  each Cleanup. */
+  firstGuardUsedRound?: boolean;
   /** One-shot guard for Gate Keeper's shield-break buff (Veil). */
   shieldBroken: boolean;
   /** Per-round guard for Powertrip's once-per-round on-kill AoE (Voltogon).

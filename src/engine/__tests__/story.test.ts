@@ -27,7 +27,10 @@ const leaf = REGIONS.find((r) => r.id === "leaf")!;
 /** Real cards, by element. The squad pool reads each card's element, so a
  *  fabricated id has nowhere to belong and getDef throws on it. */
 const ofElement = (el: string) => CARDS.filter((c) => c.element === el).map((c) => c.id);
-const draftable = (el: string) => CARDS.filter((c) => c.element === el).map((c) => c.id);
+// `!c.boss`: Void Tower bosses live in CARDS but are fought, never owned —
+// pillar 3 ("nothing in the game is unobtainable") is about the PLAYER's
+// collection, and a boss on a story roster would be a bug these tests catch.
+const draftable = (el: string) => CARDS.filter((c) => c.element === el && !c.boss).map((c) => c.id);
 const tokenIds = new Set(TOKENS.map((t) => t.id));
 
 describe("story: node placement", () => {
@@ -1947,7 +1950,7 @@ describe("story: the campaign is complete", () => {
     // one element at a time: nothing in the game is unobtainable.
     const placed = REGIONS.flatMap((r) => r.nodes.flatMap((n) => n.roster));
     expect(placed.filter((id, i) => placed.indexOf(id) !== i)).toEqual([]);
-    expect([...placed].sort()).toEqual([...CARDS.map((c) => c.id)].sort());
+    expect([...placed].sort()).toEqual([...CARDS.filter((c) => !c.boss).map((c) => c.id)].sort());
   });
 
   it("can be walked from the starting deck to the last Throne", () => {

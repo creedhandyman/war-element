@@ -135,7 +135,7 @@ export function Shop(props: {
    *  are least likely to have rolled. */
   const missing = useMemo(
     () =>
-      CARDS.filter((c) => !owned.has(c.id))
+      CARDS.filter((c) => !owned.has(c.id) && !c.boss)
         .filter((c) => el === "ALL" || c.element === el)
         .sort(
           (a, b) =>

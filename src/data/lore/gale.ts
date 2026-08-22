@@ -192,4 +192,7 @@ export const GALE_LORE: Record<string, string> = {
 
   gale_dreamcatcher:
     "It takes the loudest thing in the room first. Everything after that is quiet.",
+
+  // ── Void Tower bosses ──
+  boss_nightshrike: "You will hear one wingbeat. Payment is due on the second.",
 };

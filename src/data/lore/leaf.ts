@@ -184,4 +184,7 @@ export const LEAF_LORE: Record<string, string> = {
 
   leaf_snapmaw:
     "It does not chase. It waits for the roots to finish the argument.",
+
+  // ── Void Tower bosses ──
+  boss_basilisk: "It is not winning the fight. It is winning the wait.",
 };

@@ -9710,6 +9710,266 @@ export const CARDS: CardDef[] = [
       text: "Raise a Monstrous Spider and FRIGHTEN every opponent in range for a round. It bursts into 2 Spiders when it falls, and all three carry Broodmother's +2 DMG.",
     },
   },
+  // ─────────────────── VOID TOWER — FLOOR 1 BOSSES ───────────────────────────
+  // The doc's formula: Element A gives the TRIBE, Element B gives the MECHANIC,
+  // and the boss summons its tribe on a 12-Gold budget. The budget is not a
+  // runtime wallet — it is a build-time cap on the boss's formation, validated
+  // in void-tower.test.ts against the lists in src/data/void-tower.ts.
+  //
+  // Every def here is `boss: true`: in CARDS so the inspector/lore/art
+  // pipelines see them, but refused by isBuildable, the shop pools, the element
+  // cores and escalationPool — a boss can be FOUGHT and nothing else. Their
+  // bodies answer the Void Tower floor cap (80 +5 at Floor 1), not the cost
+  // curve; `cost: 12` is the summon budget worn as a badge, never paid.
+  //
+  // NO RANDOM PERCENTAGES, and it is testable: no chance/statusChance/EVASION/
+  // CRIT-coin field appears on any boss def. Where the design doc rolled dice
+  // (50% revive, 55% evasion, 55% crit) these use the deterministic forms
+  // (allyRevive once-per-card, firstAttackMisses, critAlways) — the doc's own
+  // §6 conversion table, implemented.
+  //
+  // Art is ALIASED to an existing card's webp for now (`art:` fields below) —
+  // placeholders until boss art lands; art.test.ts is satisfied either way.
+  {
+    id: "boss_rotroot",
+    name: "Rotroot",
+    art: "dusk_zombination",
+    rarity: "mythic",
+    element: "DUSK",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 12,
+    dmg: 15,
+    hits: 1,
+    hp: 60,
+    sp: 5,
+    shields: 0,
+    keywords: {},
+    tribe: "Zombie",
+    boss: true,
+    // Floor 1 — THE ENGINE. Killing Zombies is wasted damage: Undead Resilience
+    // stands each one back up once, and RIP's Dead Clock refills what stays
+    // down. The answer is to ignore the board and reach Rotroot behind it.
+    passiveNames: { allyRevive: "Undead Resilience" },
+    allyRevive: { tribe: "Zombie", healFraction: 0.5 },
+    special: {
+      name: "Rotten Grasp",
+      cost: 3,
+      cooldown: 2,
+      handler: "barrage",
+      // reach 2 = the widened melee square, Kraken's Black Wave Crash precedent.
+      params: { dmg: 7, targets: 99, reach: 2, statusKind: "ROOT", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "Deal 7 DMG and ROOT for 2 rounds to every opponent within 2 spaces.",
+    },
+  },
+  {
+    id: "boss_skeleeze",
+    name: "Skeleeze Ranger",
+    art: "dusk_skelider",
+    rarity: "mythic",
+    element: "DUSK",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 12,
+    dmg: 5,
+    hits: 1,
+    hp: 42,
+    sp: 11,
+    shields: 0,
+    keywords: {},
+    tribe: "Skeleton",
+    boss: true,
+    // Floor 2 — THE ROTATING KILL-COLUMN. Swiftshooter slides one slot along
+    // the home row each Cleanup, wrapping, so the column is telegraphed and
+    // moves predictably: clear out of it while the Skeletons press forward.
+    // The doc's random sidestep is gone on purpose — same threat, now solvable.
+    passiveNames: { roundTick: "Swiftshooter" },
+    roundTick: { shiftLateral: 1 },
+    // `critPen` is what lets the guaranteed CRIT below fire through shields —
+    // the printed "10 DMG (PEN)" is a crit that pierces, not a pen that crits.
+    critPen: true,
+    special: {
+      name: "Piercing Arrow",
+      cost: 3,
+      cooldown: 2,
+      handler: "barrage",
+      params: { dmg: 10, targets: 99, sameColumn: 1, crit: 1, critAlways: 1 },
+      targetSide: "enemy",
+      text: "10 DMG to every opponent in the column directly ahead — a guaranteed CRIT that pierces shields.",
+    },
+  },
+  {
+    id: "boss_xilty",
+    name: "Xilty",
+    art: "dusk_sarachnid",
+    rarity: "mythic",
+    element: "DUSK",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 12,
+    dmg: 10,
+    hits: 2,
+    hp: 30,
+    sp: 12,
+    shields: 10,
+    keywords: {},
+    tribe: "Spider",
+    boss: true,
+    // Floor 3 — THE STATUS LOCK. The answer is deckbuilding: bring cleanse or
+    // immunity (Siphon, Buzz, Surge, Anos, Halo, Elderroot). Web Trap at 3 CD
+    // means one guaranteed clean round in three — bank the combo for it.
+    // 82 body vs the 80 cap: inside the Floor band's +5, held deliberately.
+    passiveNames: { onHitStatus: "Venomous Stinger", firstAttackMisses: "Slip the Silk" },
+    onHitStatus: { kind: "DOT", duration: 2, power: 2 },
+    firstAttackMisses: true,
+    // It walks. A melee lockdown boss that sits home is binary — approach and
+    // get locked, or kite and its Special never fires. Advancing forces the
+    // engagement (straight up its column; the doc's "toward the nearest
+    // opponent" simplifies to this, and the telegraph is better for it).
+    roundTick: { advance: 1 },
+    special: {
+      name: "Web Trap",
+      cost: 3,
+      cooldown: 3,
+      handler: "statusNova",
+      params: { statusKind: "PARALYZE", statusDuration: 2, targets: 99 },
+      targetSide: "enemy",
+      text: "PARALYZE every opponent in range for 2 rounds.",
+    },
+  },
+  {
+    id: "boss_permafrost",
+    name: "Permafrost",
+    art: "aqua_polarking",
+    rarity: "mythic",
+    element: "AQUA",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 12,
+    dmg: 6,
+    hits: 1,
+    hp: 40,
+    sp: 5,
+    shields: 15,
+    keywords: { BLOCK: 2 },
+    tribe: "Ice",
+    boss: true,
+    // Floor 1 — THE WALL. Fifteen shields behind BLOCK 2, re-plating its side
+    // every cast: crack it with PEN and shield-strips, or go around and take
+    // the slots it is too slow to defend. Tribe from AQUA (Ice), mechanic from
+    // BORE (the armour) — the doc's Cavernous pick could not spend 12 Gold.
+    special: {
+      name: "Whiteout",
+      cost: 3,
+      cooldown: 2,
+      handler: "polarShift",
+      params: { underHp: 6, freeze: 2, allyShield: 2 },
+      targetSide: "enemy",
+      ranged: true, // board-wide, like Polar King's own cast
+      text: "FREEZE every opponent at 6 HP or less for 2 rounds, and every ally gains +2 shields.",
+    },
+  },
+  {
+    id: "boss_overclock",
+    name: "Overclock",
+    art: "bolt_gigavolt",
+    rarity: "mythic",
+    element: "BOLT",
+    cardClass: "Warrior",
+    attackType: "Ranged",
+    cost: 12,
+    dmg: 6,
+    hits: 1,
+    hp: 35,
+    sp: 12,
+    shields: 5,
+    keywords: {},
+    tribe: "ARC",
+    boss: true,
+    // Floor 1 — THE SWARM. All 12 Gold in cost-1 and cost-2 machines, and the
+    // factory keeps stamping Drones out behind them: AoE the tide or choke the
+    // approach. Tribe from BOLT (ARC — the doc's Forged Tech is mono-PYRO and
+    // could not span the pair), mechanic from PYRO: everything it touches
+    // BURNs, no roll. As a mythic ARC it also carries the tribe's Discharge,
+    // which is exactly what a dynamo at the head of a machine tide should do.
+    passiveNames: { onHitStatus: "Sparks Catch" },
+    onHitStatus: { kind: "BURN", duration: 2, power: 2 },
+    special: {
+      name: "Production Run",
+      cost: 3,
+      cooldown: 2,
+      handler: "spawn",
+      params: { token: "bolt_drone_tok", count: 2 },
+      targetSide: "self",
+      text: "Stamp out 2 Drones beside it.",
+    },
+  },
+  {
+    id: "boss_nightshrike",
+    name: "Nightshrike",
+    art: "dusk_ravven",
+    rarity: "mythic",
+    element: "GALE",
+    cardClass: "Assassin",
+    attackType: "Ranged",
+    cost: 12,
+    dmg: 15,
+    hits: 2,
+    hp: 20,
+    sp: 14,
+    shields: 0,
+    keywords: { FLYING: true },
+    tribe: "Avian",
+    boss: true,
+    // Floor 1 — THE GLASS CANNON. 30 damage a round on 20 HP: kill it first or
+    // survive one round, there is no third plan. Its slipperiness is the
+    // deterministic form — the first attack each round misses — so correct
+    // sequencing (lead with the sure hit, follow with the killers) beats it
+    // where a 55% EVASION would just be a coin.
+    passiveNames: { firstAttackMisses: "Between Wingbeats" },
+    firstAttackMisses: true,
+    special: {
+      name: "Death From Above",
+      cost: 3,
+      cooldown: 2,
+      handler: "barrage",
+      params: { dmg: 8, targets: 2 },
+      targetSide: "enemy",
+      text: "Dive two opponents for 8 DMG each.",
+    },
+  },
+  {
+    id: "boss_basilisk",
+    name: "Basilisk",
+    art: "leaf_snapmaw",
+    rarity: "mythic",
+    element: "LEAF",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 12,
+    dmg: 8,
+    hits: 1,
+    hp: 45,
+    sp: 8,
+    shields: 3,
+    keywords: { REGEN: 3, LIFESTEAL: true },
+    tribe: "Reptile",
+    boss: true,
+    // Floor 1 — ATTRITION. REGEN 3 and LIFESTEAL on the body, max-HP theft on
+    // the Special: every round you fail to close, it is further ahead. Out-heal
+    // it, out-burst it, or race the capture win — waiting is the one wrong
+    // answer, which is the lesson this fight exists to teach.
+    special: {
+      name: "Wither Coil",
+      cost: 3,
+      cooldown: 2,
+      handler: "barrage",
+      params: { dmg: 5, targets: 3, drain: 2 },
+      targetSide: "enemy",
+      text: "5 DMG to 3 opponents and DRAIN 2 max HP from each.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
@@ -10218,7 +10478,10 @@ for (const def of [...CARDS, ...TOKENS]) {
 // Element-pair decks. Each card appears once (once-per-game rule). LEAF is
 // ≥50% of the leaf_pyro deck, so its Photosynthesis aura is active there.
 const deckFor = (...els: string[]): string[] =>
-  CARDS.filter((c) => els.includes(c.element)).map((c) => c.id);
+  // `!c.boss`: a Void Tower boss shares an element with 40 real cards, and
+  // without this it would quietly enter the element CORES — including the
+  // balance harness, where an off-curve 80-stat body would poison every number.
+  CARDS.filter((c) => els.includes(c.element) && !c.boss).map((c) => c.id);
 
 export const DECK_P1: string[] = deckFor("LEAF", "PYRO");
 export const DECK_P2: string[] = deckFor("BORE", "DUSK");

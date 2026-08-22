@@ -28,6 +28,8 @@
  */
 import { type StorySave, addFreePacks } from "./story";
 import type { CustomDeck } from "./custom-decks";
+import { getDef } from "./cards";
+import { VOID_BOSSES, buildVoidEncounter } from "./void-tower";
 
 export interface GameEvent {
   id: string;
@@ -70,6 +72,12 @@ export interface GameEvent {
    *  a gift that was supposed to be one pack. */
   rewardPacks: number;
   deck: CustomDeck;
+  /** A VOID TOWER TRIAL: this card id is placed on the opponent's home row at
+   *  match start, outside the economy — the deck above is only its summons.
+   *  The boss framework's test surface until the tower has a screen of its
+   *  own; the fights are real, the mode around them is not here yet.
+   *  See src/data/void-tower.ts. */
+  bossId?: string;
 }
 
 /** Darkest Night — 30 mono-DUSK cards and the full eight-spell book.
@@ -213,7 +221,33 @@ export const BRIGHTEST_DAY: GameEvent = {
   },
 };
 
-export const EVENTS: GameEvent[] = [DARKEST_NIGHT, BRIGHTEST_DAY];
+/** The Void Trials — one event per Floor-1 boss, generated FROM the boss data
+ *  so the two can never disagree about a formation. These are the framework's
+ *  playable test surface: real fights, one pack on a first clear, and no tower
+ *  around them yet. When the mode ships its own screen, these come off the
+ *  Home band and the bosses keep working unchanged. */
+const VOID_TRIALS: GameEvent[] = VOID_BOSSES.map((b) => {
+  const boss = getDef(b.cardId);
+  const enc = buildVoidEncounter(b);
+  return {
+    id: `void_${b.cardId}`,
+    name: boss.name,
+    tag: "VOID TOWER TRIAL",
+    blurb: b.puzzle,
+    boardSize: enc.boardSize,
+    scriptedOpening: enc.stacked.P2,
+    el: boss.element,
+    // The Home card's BACKDROP is a region map, not card art — the two
+    // original events established that and HomeScreen renders it as one.
+    art: `/maps/${b.tribeElement.toLowerCase()}.webp`,
+    rim: "rgba(139,125,201,.5)",
+    rewardPacks: 1,
+    bossId: b.cardId,
+    deck: { id: `void_deck_${b.cardId}`, name: `${boss.name}'s brood`, cards: enc.deck, spells: enc.spells },
+  };
+});
+
+export const EVENTS: GameEvent[] = [DARKEST_NIGHT, BRIGHTEST_DAY, ...VOID_TRIALS];
 
 /** Every event deck, for the resolver that turns a seat's deck id into cards.
  *  Kept apart from `PREMADE_DECKS` on purpose — see the header. */

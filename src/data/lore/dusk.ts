@@ -207,4 +207,9 @@ export const DUSK_LORE: Record<string, string> = {
 
   dusk_monstrous_spider_tok:
     "Stepping on it does not end it. It ends the part of it you could see.",
+
+  // ── Void Tower bosses ──
+  boss_rotroot: "It does not raise the dead. It declines their resignation.",
+  boss_skeleeze: "One slot to the right, every round, forever. You have been told.",
+  boss_xilty: "The first blow finds silk. The web decides about the second.",
 };

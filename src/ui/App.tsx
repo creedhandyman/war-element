@@ -36,7 +36,7 @@ import {
   boardCards,
   isCaptured,
   SPELLS,
-  spellbookFor} from "../engine";
+  spellbookFor, summonCard} from "../engine";
 import { spellCapForBoard } from "../engine/spells";
 import {
   boardOfRun, nextSeat, runComplete, runOver, runReward, settleArena, startRun,
@@ -53,6 +53,7 @@ import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
+import { voidBossSeat } from "../data/void-tower";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
 import { TutorialCoach } from "./TutorialCoach";
@@ -969,7 +970,7 @@ export function App() {
       p2: p2Cards, p2s: resolveDeckSpells(p2DeckId),
       board: boardSize, humans,
     };
-    setGame(createInitialState(
+    const fresh = createInitialState(
       newSeed(), p1Cards, p2Cards, humans,
       resolveDeckSpells(p1DeckId), resolveDeckSpells(p2DeckId),
       boardSize,
@@ -980,7 +981,18 @@ export function App() {
       // the ramp is the boss's, not a rule change. …and the ELITE rung, which
       // buys its difficulty the same way: an opening it cannot stumble on.
       scriptedP2 ? { P2: scriptedP2 } : undefined,
-    ));
+    );
+    // A Void Trial seats its BOSS directly on the board, outside the economy —
+    // the deck is only its summons. `summonCard` is the same door every card
+    // enters through, so auras and on-summon hooks all fire; clearing
+    // `summonedThisRound` lets it act from the first round, which is what
+    // "the boss is already standing when you arrive" means mechanically.
+    if (eventRun?.bossId) {
+      const seat = voidBossSeat(fresh.boardSize);
+      const inst = summonCard(fresh, "P2", eventRun.bossId, seat as never);
+      inst.summonedThisRound = false;
+    }
+    setGame(fresh);
     setViewSide("P1");
     setSel(null);
     setPending(null);

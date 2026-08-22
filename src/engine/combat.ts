@@ -164,6 +164,11 @@ export interface HitOptions {
   /** This particular attack ignores accuracy checks (Fallow's Hunting Season).
    *  Card-level `alwaysHit` is the whole card; this is one Special. */
   alwaysHit?: boolean;
+  /** This Special's CRIT skips the coin (Skeleeze's Piercing Arrow) — the
+   *  deterministic form of `crit`. The OTHER crit gates still hold: pair it
+   *  with card-level `critPen` to fire through shields, exactly as Hoax's
+   *  guaranteed mark behaves on a basic. */
+  critAlways?: boolean;
   /** Suppress the generic "X hits Y for N" line — the caller has better context
    *  and will log it itself (e.g. an on-opponent-summon reaction, which otherwise
    *  reads like an ordinary attack with no hint it fired off a summon). */
@@ -382,6 +387,28 @@ export function defeatCard(
         card.statuses.push({ kind: "SLEEP", duration: def.onRevive.sleep, power: 0, source: def.element });
       }
       draft.log.push(`${label(draft, card)} refuses to fall — it revives at ${card.curHp} HP!`);
+      return false;
+    }
+  }
+  // Undead Resilience (allyRevive): a living ally keeps this tribe's dead on
+  // their feet. Sits past every SELF-revive above — a card that can save itself
+  // does, and the keeper's grace is spent only when nothing else caught it.
+  // Once per card per battle, capped on the REVIVED card (`allyRevived`) so the
+  // cap survives the keeper falling later. In its own slot: the body never
+  // left the board, it just refused to.
+  if (card.pos && !card.allyRevived) {
+    const keeper = boardCards(draft, card.owner).find((c) => {
+      if (c.instanceId === card.instanceId || c.curHp <= 0) return false;
+      const ar = getDef(c.defId).allyRevive;
+      return !!ar && (!ar.tribe || tribeOf(card, ar.tribe));
+    });
+    if (keeper) {
+      const ar = getDef(keeper.defId).allyRevive!;
+      card.allyRevived = true;
+      card.curHp = Math.max(1, Math.floor(effectiveMaxHp(draft, card) * ar.healFraction));
+      draft.log.push(
+        `${label(draft, keeper)} will not let ${label(draft, card)} fall — it rises at ${card.curHp} HP!`,
+      );
       return false;
     }
   }
@@ -775,6 +802,17 @@ export function resolveHit(
   // Stronger than card-level `alwaysHit`, deliberately — see Rocky Force Field
   // below, which alwaysHit does NOT beat.
   const neverMiss = fieldFlag(draft, attacker, "neverMiss") || hasTotemSpirit(draft, attacker);
+  // First Guard (firstAttackMisses): the first basic ATTACK against this card
+  // each round misses — the whole volley, since one attack is one attempt. The
+  // ATTEMPT springs the guard whatever happens: alwaysHit and Blazing Sun still
+  // connect, but the guard is spent either way, so leading with the sure hit is
+  // real sequencing rather than a wasted counter. Computed once, above the hit
+  // loop, or a 2-hit volley would miss its first hit and land its second.
+  let firstGuard = false;
+  if (opts.kind === "basic" && getDef(target.defId).firstAttackMisses && !target.firstGuardUsedRound) {
+    target.firstGuardUsedRound = true;
+    firstGuard = !aDef.alwaysHit && !opts.alwaysHit && !neverMiss;
+  }
   // AND IT SAYS SO WHEN IT SAVES ONE.
   //
   // Blazing Sun promises DAWN allies "cannot miss" and delivered it in total
@@ -840,6 +878,14 @@ export function resolveHit(
     // made from 0 HP, and the broader test cancelled those outright.
     if (result.attackerDied) break;
 
+    // First Guard — see above the loop. No roll: the first attack simply
+    // misses, and the card text says exactly that.
+    if (firstGuard) {
+      result.dodgedHits++;
+      target.fxMiss = (target.fxMiss ?? 0) + 1;
+      draft.log.push(`${label(draft, target)} slips the first blow of the round.`);
+      continue;
+    }
     // 0. BLIND — −50% accuracy, rolled PER HIT on a basic attack (so a blinded
     //    multi-hit lands some and whiffs others). Specials auto-hit.
     // Dense Fog (AQUA): the ENEMY's field makes this attack roll to miss, on the
@@ -1079,7 +1125,8 @@ export function resolveHit(
     let pierces = opts.pen;
     // Mark of Hoax: a basic against a marked target CRITs guaranteed (skips the
     // coin). Everything else still rolls the usual 50%.
-    const guaranteedCrit = opts.kind === "basic" && Boolean(target.hoaxMarked);
+    const guaranteedCrit =
+      (opts.kind === "basic" && Boolean(target.hoaxMarked)) || Boolean(opts.critAlways);
     if (opts.crit && !opts.pen && (target.curShields === 0 || aDef.critPen) && (guaranteedCrit || coin(draft))) {
       remaining *= 2;
       result.critHits = (result.critHits ?? 0) + 1;
@@ -2437,6 +2484,8 @@ function spawnRadiusOf(params: Record<string, string | number>): number | undefi
  *  whatever order the file happens to be in. */
 function escalationPool(element: string, rarity: string): string[] {
   return CARDS
+    // Never a boss: Imperator's crown reaching higher must not raise Rotroot.
+    .filter((c) => !c.boss)
     .filter((c) => (!element || c.element === element) && (!rarity || c.rarity === rarity))
     .map((c) => c.id)
     .sort();
@@ -3249,6 +3298,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         crit: num(params, "crit") > 0,
         // Hunting Season: the volley is aimed, not sprayed — EVASION doesn't save you.
         alwaysHit: num(params, "alwaysHit") > 0,
+        critAlways: num(params, "critAlways") > 0,
         // Incinerate (Sol) rides the Special too, not just basics. Seeded with
         // hits already landed on this target this round, same as basicAttack —
         // the ramp is "consecutive hits on the same target within a round",

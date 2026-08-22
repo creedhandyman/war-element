@@ -914,6 +914,67 @@ engine runtime and no React, so it stays testable headlessly
   switching regions changed the volume. Normalize from the MASTER, not from the
   committed 96k file, or you stack two generations of lossy encoding.
 
+## Void Tower (boss framework — data + engine only; NO mode yet)
+
+Spec: `Downloads\War_Element_Void_Tower_Bosses.md`. Its companion mode doc
+(`War_Element_Void_Tower.md` — floors, run rules, rewards) WAS NEVER WRITTEN;
+it exists nowhere on the machine, so the mode screen/run state/reward loop are
+deliberately unbuilt. What shipped is every fight's data and engine, playable
+through seven "Void Trial" EVENTS on the Home band and tested headlessly.
+
+**The formula**: Element A gives the TRIBE, Element B the MECHANIC, and the
+boss summons its tribe on a 12-Gold budget. The budget is a BUILD-TIME cap on
+the boss's formation (`src/data/void-tower.ts`, validated in
+`void-tower.test.ts`) — not a runtime wallet. The summons ARE the P2 deck; the
+ordinary AI plays them on the ordinary income; the boss card itself is placed
+by `summonCard` outside the economy (`voidBossSeat`, wired in
+`startArenaMatch`). Tribe TOKENS are legal summons (story `adds` are tokens by
+the same rule); duplicate caps are the full `DUPLICATE_CAP` (rare×3 epic×2
+leg×1), unconditionally.
+
+**Bosses are CARDS, flagged `boss: true`** — visible to inspector/lore/art,
+refused by every acquisition path: `isBuildable`, `openPack`, `canCraft`, the
+Shop missing-list, `StoryCollection`, `deckFor` (so they can NEVER enter the
+element CORES or the balance harness), and `escalationPool`. The stat-budget
+test skips them; their body answers the floor cap instead (80 + 40/floor, +5
+soft band — Xilty is 82 on purpose). A test asserts a boss is acquirable
+NOWHERE; keep it green when adding acquisition paths. Art is currently ALIASED
+to existing webps via the `art` field — placeholders until boss art lands.
+
+**No random percentages** — a puzzle is solved once and then executed
+(`chanceProblems` is the rule as code; a test sweeps every boss def). The
+deterministic replacements are reusable CardDef fields any card may carry:
+- `allyRevive {tribe?, healFraction}` — a defeated tribe ALLY stands back up
+  once per card per battle (Rotroot). In `defeatCard`, past every self-revive.
+- `firstAttackMisses` — the first basic attack against the card each round
+  misses WHOLE; the attempt springs the guard even when alwaysHit/Blazing Sun
+  overrides it, so leading with the sure hit is real sequencing (Xilty,
+  Nightshrike). Re-arms at Cleanup (`firstGuardUsedRound`).
+- `roundTick.shiftLateral` — slide along the OWN home row, wrapping to the
+  next open slot, only while standing in it (Skeleeze's kill-column).
+- barrage `critAlways` param — skips the CRIT coin only; pair with card-level
+  `critPen` for "guaranteed CRIT that pierces" (Piercing Arrow).
+
+**Corrections found auditing the doc's §3 against cards.ts** (also appended to
+the doc itself): Forged Tech is mono-PYRO (the Pyro+Bolt marquee boss is
+impossible — Overclock uses ARC instead, and as a mythic ARC it carries
+Discharge, deliberately); DAWN is the DEEPEST tribal element (Stars 18 /
+Suns 22), not the emptiest; Cavernous cannot land on 12 (Wall boss uses AQUA's
+Ice); the doc's Xilty list cost 13 (Silkstalker is 4); "Deep Creatures" and a
+usable "Bot" tribe don't exist; Wolf spans 3 elements, Avian 4; seven one-card
+tribes can never fund a boss.
+
+**Floor 1's seven puzzles, all authored**: Rotroot (engine), Skeleeze
+(kill-column — doc floor 2), Xilty (status lock — doc floor 3), Permafrost
+(wall), Overclock (swarm), Nightshrike (glass cannon), Basilisk (attrition).
+All seven formations spend exactly 12 and it is pinned by test. Headless smoke:
+21 LEAF-only matches resolve, bosses win some and lose some.
+
+**Still open** (blocked on the unwritten mode doc): the tower screen, floor
+progression/run persistence (`App.tsx:673` already promises "Void Tower owns
+run-loss stakes"), the reward loop, floors 2-10 content, board modifiers,
+the rule-breaking floor 10.
+
 ## The UI after the mobile redesign
 
 Eight landings took the phone match screen from a square board with 58x60 tiles

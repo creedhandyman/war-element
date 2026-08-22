@@ -33,6 +33,8 @@ const ABILITY_FIELDS = [
   "purelightAura", "totemSpiritAura", "penWhileAlly", "falseHead", "advanceOnBasic", "windWarp",
   // Wave 4 — Imperator scaling off the army already standing.
   "summonScaleFromKin",
+  // Void Tower boss mechanics — reusable fields, so any card may carry them.
+  "allyRevive", "firstAttackMisses",
 ] as const;
 
 /** Every effect a roundTick can carry. */
@@ -43,6 +45,7 @@ const ROUND_TICK_KEYS = [
   "pokeParalyzedDmg", "aoeParalyzedDmg", "rootedDmg", "roundHealElement",
   "spawn", "aoeElectrifiedDmg", "selfHpCost", "spawnTriggerAt", "enemyHomeRowStatus",
   "spawnMaxAlive", "healHomeRow", "healHomeRowElement", "allyInRangeShields", "randomEnemyStatus",
+  "shiftLateral",
   // Absent from this list is how Blackout's Power Grid and Magmadon's Scorched
   // Fury stayed invisible: the roundTick check only walks the keys named here,
   // so an effect nobody added was an effect nobody checked.
@@ -319,7 +322,11 @@ describe("the card text does not promise a passive the card lacks", () => {
     // tribe membership, the test above would still pass — text and engine would
     // agree, on the wrong rule.
     const carriers = [...CARDS, ...TOKENS].filter(hasArcDischarge).map((d) => d.id).sort();
-    expect(carriers).toEqual(["bolt_elecdroid", "bolt_gigavolt", "bolt_jack_arc"]);
+    // boss_overclock is the fourth ON PURPOSE: it is a mythic ARC card, and the
+    // rule is rarity-gated tribe membership — a dynamo at the head of a machine
+    // tide discharging is the tribe rule doing exactly what it says. It is a
+    // Void Tower boss, so it can never reach a player's deck.
+    expect(carriers).toEqual(["bolt_elecdroid", "bolt_gigavolt", "bolt_jack_arc", "boss_overclock"]);
     const arc = [...CARDS, ...TOKENS].filter((d) => {
       const t = d.tribe == null ? [] : Array.isArray(d.tribe) ? d.tribe : [d.tribe];
       return t.includes("ARC");

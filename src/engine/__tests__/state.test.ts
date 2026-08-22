@@ -141,6 +141,10 @@ describe("setup", () => {
     ]);
     for (const def of CARDS) {
       if (exceptions.has(def.id)) continue;
+      // Void Tower bosses are off the cost curve BY DESIGN — their body answers
+      // the floor cap in void-tower.test.ts, and they can be acquired nowhere
+      // (also tested there), so the curve has nothing to protect against them.
+      if (def.boss) continue;
       const total = def.dmg * def.hits + def.hp + def.shields * 2 + def.sp;
       const expected = 5 * def.cost + 10;
       expect(

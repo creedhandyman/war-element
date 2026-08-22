@@ -2088,6 +2088,24 @@ function doRoundTicks(draft: GameState): void {
       if (rolled > 0) draft.log.push(`${label(draft, card)} rolls forward ${rolled} slot(s).`);
     }
 
+    // Swiftshooter (shiftLateral): slide along the OWN home row, wrapping to
+    // the next OPEN slot. Only while actually standing in the home row — a
+    // card dragged off its rail stops sliding, which is itself an answer the
+    // player can force. Deterministic: the kill-column telegraphs itself.
+    if (rt.shiftLateral && card.pos) {
+      const home = homeRow(card.owner, draft.boardSize);
+      if (card.pos.row === home) {
+        for (let step = 1; step < draft.boardSize; step++) {
+          const col = (card.pos.col + rt.shiftLateral * step) % draft.boardSize;
+          if (!cardAt(draft, home, col) && !draft.slots[home][col].capturedBy) {
+            card.pos = { row: home as Pos["row"], col: col as Pos["col"] };
+            draft.log.push(`${label(draft, card)} shifts along its row.`);
+            break;
+          }
+        }
+      }
+    }
+
     if (rt.buffDmgEveryN && draft.round % rt.buffDmgEveryN.n === 0
         && (!rt.buffDmgEveryN.maxTicks || (card.rampTicks ?? 0) < rt.buffDmgEveryN.maxTicks)) {
       const bn = rt.buffDmgEveryN;
@@ -2869,6 +2887,7 @@ function doCleanupPhase(draft: GameState): void {
     card.spBonusRound = 0;
     card.hitsBonusRound = 0;
     card.struckThisRound = {};
+    card.firstGuardUsedRound = false; // First Guard re-arms each round
     card.hitsTakenThisRound = 0; // Regenerative already cashed these in above
     card.fieldEvasionUsed = false; // Nightfall's cover returns next round
     // Timed DMG/SP buffs & debuffs tick down; expired ones drop off.

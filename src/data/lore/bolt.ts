@@ -193,4 +193,7 @@ export const BOLT_LORE: Record<string, string> = {
 
   bolt_havoc:
     "The current has somewhere to be. Standing in the way is not a plan.",
+
+  // ── Void Tower bosses ──
+  boss_overclock: "The line does not stop for losses. Losses are a scheduled output.",
 };

@@ -137,6 +137,13 @@ export const CODE_IDS: readonly string[] = [
   "spell:pyro_inferno_pit", "spell:pyro_meltdown", "spell:pyro_spark", "spell:pyro_volcanic_eruption",
   // The eight legends — appended, never inserted.
   "bolt_havoc", "leaf_snapmaw", "gale_dreamcatcher", "aqua_killerwhale", "dawn_lassos", "bore_kobra", "pyro_burnout", "dusk_aranea",
+
+  // Void Tower bosses. APPENDED like everything else — the registry is
+  // append-only, and every id must have an index so codes stay total. A boss
+  // id inside a shared deck code decodes fine and then fails deck validation
+  // (isBuildable refuses bosses), which is the right place for that refusal.
+  "boss_rotroot", "boss_skeleeze", "boss_xilty", "boss_permafrost",
+  "boss_overclock", "boss_nightshrike", "boss_basilisk",
 ];
 
 const INDEX_OF = new Map<string, number>(CODE_IDS.map((id, i) => [id, i]));
