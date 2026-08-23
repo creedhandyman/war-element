@@ -363,6 +363,34 @@ export function buildVoidEncounter(boss: VoidBoss): {
   };
 }
 
+/** The head start the PLAYER gets in a boss fight, in gold, paid as round-1
+ *  income.
+ *
+ *  A boss is placed outside the economy — a body standing there on round one,
+ *  for nothing, while the player is still affording their first card. That
+ *  asymmetry was never paid for, and this pays it.
+ *
+ *  TWO, and not the boss's 12-gold cost, because the boss does not HOLD twelve
+ *  gold — it holds one body, which earns its side about a gold a round off the
+ *  home slot it stands on. Twelve gold in the player's hand on round one is a
+ *  different object entirely: it buys three or four bodies at once, against the
+ *  boss's one. Measured across seven bosses and three decks:
+ *
+ *    +0g   53-83%      +4g   11-69%
+ *    +2g   44-69%      +6g    3-56%
+ *                      +12g   0-22%
+ *
+ *  At +12 the mode stops existing — Skeleeze and Permafrost win nothing at all
+ *  — and putting the fights back in band from there would need every boss
+ *  scaled between 1.5x and 4x, which is not compensating for a free body, it is
+ *  rebuilding the tower around the compensation. +2 is the size that is a real
+ *  head start and still leaves seven fights worth having.
+ *
+ *  One constant, so going back to "the boss's whole cost" is a one-line change
+ *  followed by a re-tune, rather than a hunt. */
+export const VOID_PLAYER_HEAD_START = 2;
+export const voidPlayerHeadStart = (_bossCost: number): number => VOID_PLAYER_HEAD_START;
+
 /** Where the boss stands: centre of P2's home row (row 0 on every board). */
 export function voidBossSeat(boardSize: number): { row: number; col: number } {
   return { row: 0, col: Math.floor(boardSize / 2) };

@@ -2,6 +2,7 @@
 // All reducers clone the incoming state once and mutate only the clone.
 
 import { getDef } from "../data/cards";
+import { voidPlayerHeadStart } from "../data/void-tower";
 import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import { applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
@@ -1341,9 +1342,23 @@ function doResourcePhase(draft: GameState): void {
   const magicGain = poolGainForRound(draft.round);
   const goldBase = poolGainForRound(draft.round);
   const gains = {} as Record<PlayerId, number>;
+  // THE VOID TOWER HEAD START. The boss is placed outside the economy — a
+  // 12-cost body standing there on round one, for nothing — while the player is
+  // still affording their first card. The player opens with the same gold the
+  // boss was handed in body.
+  //
+  // Paid as round-1 INCOME rather than banked at setup, because gold carries
+  // over capped at 10: a 12-gold grant made before the first Resource phase
+  // would have two of it quietly shaved off on the way in.
+  //
+  // Read off the boss actually standing there, so it tracks a recost.
+  const headStart = draft.voidTower && draft.round === 1
+    ? voidPlayerHeadStart(
+        getDef(boardCards(draft).find((c) => getDef(c.defId).boss)?.defId ?? "").cost ?? 0)
+    : 0;
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const p = draft.players[player];
-    const gain = goldBase + homeSlotsHeld(draft, player);
+    const gain = goldBase + homeSlotsHeld(draft, player) + (player === "P1" ? headStart : 0);
     gains[player] = gain;
     // Show the money being earned, on the card earning it.
     const row = homeRow(player, draft.boardSize);

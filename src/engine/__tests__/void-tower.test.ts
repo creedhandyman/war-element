@@ -11,7 +11,7 @@ import { CARDS, TOKENS, CARD_INDEX, getDef } from "../../data/cards";
 import {
   BODY_CAP_TOLERANCE, FLOOR1_SUMMON_BUDGET, VOID_BOSSES, bodyCap, bodyTotal, bossDefeated,
   buildVoidEncounter, chanceProblems, floorCleared, floorOpen, inTribe, summonBudget,
-  paddedFormation, reinforcementPool, summonProblems, towerProgress, tribePool, trialEventId, voidBossById,
+  paddedFormation, reinforcementPool, summonProblems, VOID_PLAYER_HEAD_START, voidPlayerHeadStart, towerProgress, tribePool, trialEventId, voidBossById,
   voidBossSeat, voidFloors,
 } from "../../data/void-tower";
 import { deckSizeFor, isBuildable, validateDeck } from "../../data/custom-decks";
@@ -239,6 +239,70 @@ describe("the new mechanics", () => {
       SPECIAL_HANDLERS.barrage(s, boss, [prey], def.params!);
       expect(99 - s.cards[prey.instanceId].curHp, `seed ${seed}`).toBe(20); // 10 doubled, through shields
     }
+  });
+});
+
+describe("the player opens with the boss's gold", () => {
+  // The boss is placed outside the economy — a 12-cost body standing there on
+  // round one, for nothing — while the player is still affording their first
+  // card. That asymmetry was never paid for; the 12-Gold summon budget only
+  // ever governed the brood.
+
+  // Through the REAL match path — a hand-built cleanup state will not advance,
+  // and the thing under test is round-1 income, which only the real opening
+  // produces.
+  const openingGold = (flag: boolean) => {
+    const b = VOID_BOSSES[0];
+    const enc = buildVoidEncounter(b);
+    let s = createInitialState(7, enc.deck, enc.deck, [], undefined, enc.spells,
+      enc.boardSize, undefined, undefined, { P2: enc.stacked.P2 });
+    if (flag) s.voidTower = true;
+    const inst = summonCard(s, "P2", b.cardId, voidBossSeat(s.boardSize) as never);
+    inst.summonedThisRound = false;
+    for (let i = 0; i < 200 && !(s.round >= 1 && s.phase === "prep"); i++) s = advance(s);
+    return { p1: s.players.P1.gold, p2: s.players.P2.gold, round: s.round };
+  };
+
+  it("hands P1 a head start on round one", () => {
+    const on = openingGold(true), off = openingGold(false);
+    expect(on.p1 - off.p1).toBe(VOID_PLAYER_HEAD_START);
+  });
+
+  it("and gives the boss's side nothing extra", () => {
+    const on = openingGold(true), off = openingGold(false);
+    expect(on.p2).toBe(off.p2);
+  });
+
+  it("is round ONE only — a head start, not an allowance", () => {
+    // Run a real fight several rounds in and check the LATER incomes are
+    // ordinary: gold carries over capped at 10, so a repeating 12-gold bonus
+    // would pin P1 at the cap every single round.
+    const b = VOID_BOSSES[0];
+    const enc = buildVoidEncounter(b);
+    let s = createInitialState(7, enc.deck, enc.deck, [], undefined, enc.spells,
+      enc.boardSize, undefined, undefined, { P2: enc.stacked.P2 });
+    s.voidTower = true;
+    const inst = summonCard(s, "P2", b.cardId, voidBossSeat(s.boardSize) as never);
+    inst.summonedThisRound = false;
+    for (let i = 0; i < 3000 && s.round < 4; i++) s = advance(s);
+    const rounds = s.log.filter((l) => l.startsWith("— Round"));
+    const later = rounds.filter((l) => !l.startsWith("— Round 1:"));
+    expect(later.length, "the fight got past round 1").toBeGreaterThan(0);
+    for (const line of later)
+      expect(line, line).not.toMatch(/summon P1 \+1[0-9]/);
+  });
+
+  it("is the same for every boss, and small on purpose", () => {
+    // NOT the boss's 12-gold cost: measured, +12 takes the seven bosses from a
+    // 53-83% band to 0-22% and Skeleeze and Permafrost win nothing at all. The
+    // boss does not hold twelve gold, it holds one body.
+    for (const b of VOID_BOSSES)
+      expect(voidPlayerHeadStart(getDef(b.cardId).cost)).toBe(VOID_PLAYER_HEAD_START);
+    expect(VOID_PLAYER_HEAD_START).toBeLessThan(getDef(VOID_BOSSES[0].cardId).cost);
+  });
+
+  it("an ordinary match is untouched", () => {
+    expect(openingGold(true).p1 - openingGold(false).p1).toBe(VOID_PLAYER_HEAD_START);
   });
 });
 
