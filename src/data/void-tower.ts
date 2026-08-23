@@ -172,17 +172,15 @@ export const VOID_BOSSES: VoidBoss[] = [
   {
     cardId: "boss_basilisk",
     // FLOOR 2. Attrition is a patience lesson, and patience is a poor first
-    // thing to teach — it also reads oddly beside Smolder, which now holds the
-    // Reptile brood on Floor 1 with the cheap half of it. Basilisk brings the
-    // same tribe back a floor later with Snapmaw at the head of it, so the
-    // escalation is the tribe you already know arriving heavier.
+    // thing to teach. Reptile is Basilisk's alone again now that Smolder leads
+    // the Grove, so the list below is simply the best of the tribe rather than
+    // the half Smolder left.
     floor: 2,
     tribeElement: "LEAF",
     mechanicElement: "AQUA",
     tribe: "Reptile",
-    // 6 + 3×3 + 1×3 + 1×2 = 20, Floor 2's budget exactly. Snapmaw anchors it —
-    // the same brood Smolder fields on Floor 1, a floor later and with LEAF's
-    // legend at the head of it.
+    // 6 + 3×3 + 1×3 + 1×2 = 20, Floor 2's budget exactly, with LEAF's legend at
+    // the head of it.
     summons: [
       "leaf_snapmaw",
       "leaf_gecko", "leaf_gecko", "leaf_gecko",
@@ -223,15 +221,24 @@ export const VOID_BOSSES: VoidBoss[] = [
     floor: 3,
     tribeElement: "AQUA",
     mechanicElement: "DAWN",
-    tribe: "SeaC",
-    // 10 + 7 + 4x2 + 1x3 = 28, exact. SeaC rather than Ice: Ice cannot fund a
-    // floor-2 budget at all (its four dearest total under 20) and Permafrost
-    // already holds it on Floor 1. SeaC is twelve cards deep with a 1-gold
-    // bench, which is what a floor-3 tribe needs.
+    tribe: "Ice",
+    // 6 + 4×2 + 4×2 + 2×3 = 28, exact.
+    //
+    // ICE, not SeaC. It was SeaC on a funding claim that was simply wrong —
+    // "Ice cannot fund a floor-2 budget, its four dearest total under 20" reads
+    // the pool as if duplicates did not exist, and with the caps applied Ice
+    // spends up to 48. The cost of that error was a frozen bison leading a
+    // school of fish. It leads polar bears and frost elementals now, which is
+    // what it looked like all along.
+    //
+    // Permafrost also holds Ice, on Floor 1, and that is a shape rather than a
+    // clash: the frost tribe you met at the bottom of the tower turns up again
+    // near the top with something much larger in front of it.
     summons: [
-      "aqua_kraken", "aqua_killerwhale",
-      "aqua_liquark", "aqua_liquark",
-      "aqua_piranha", "aqua_piranha", "aqua_piranha",
+      "aqua_phrost",
+      "aqua_polarbear", "aqua_polarbear",
+      "aqua_cryo", "aqua_cryo",
+      "aqua_arctik", "aqua_arctik", "aqua_arctik",
     ],
     puzzle: "The juggernaut: stop it once, or let it arrive.",
   },
@@ -279,21 +286,19 @@ export const VOID_BOSSES: VoidBoss[] = [
     floor: 1,
     tribeElement: "LEAF",
     mechanicElement: "PYRO",
-    tribe: "Reptile",
-    // 1×3 + 1×3 + 2×3 = 12, exact — a carpet of the smallest things in the
-    // tribe, which is what a fire spreading through undergrowth should look
-    // like. Deliberately the CHEAP end, so it reads nothing like Basilisk's
-    // Floor 2 list of the same tribe: Smolder brings the litter, Basilisk
-    // brings Snapmaw.
+    tribe: "Grove",
+    // 1×3 + 1×3 + 2×3 = 12, exact — undergrowth, which is what catches first.
     //
-    // Reptile is LEAF's only tribe, so the two share it. That is a shape rather
-    // than a compromise — Floor 1 teaches you the brood and Floor 2 brings it
-    // back heavier — but it is the one thing to revisit if LEAF ever grows a
-    // second tribe worth leading.
+    // GROVE, a tribe that did not exist until Smolder needed one. LEAF is the
+    // plant element and had exactly one tribe, Reptile, so a burning tree ended
+    // up leading a litter of lizards — which is what the tribe list allowed and
+    // not what the card is. Seventeen of LEAF's thirty-three untribed cards are
+    // plainly flora (Acorn, Birch, Nettle, Oak, Sticks, Elderroot, Thorn,
+    // Hartwood…), so the gap was in the data rather than in the design.
     summons: [
-      "leaf_stickviper", "leaf_stickviper", "leaf_stickviper",
-      "leaf_reptilian_tok", "leaf_reptilian_tok", "leaf_reptilian_tok",
-      "leaf_python", "leaf_python", "leaf_python",
+      "leaf_birch", "leaf_birch", "leaf_birch",
+      "leaf_nettle", "leaf_nettle", "leaf_nettle",
+      "leaf_oak", "leaf_oak", "leaf_oak",
     ],
     puzzle: "The bonfire: everything that touches it burns — fight it at range.",
   },

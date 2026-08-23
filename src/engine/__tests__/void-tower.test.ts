@@ -65,7 +65,7 @@ describe("the roster", () => {
       // down like everything else. That is the lesson: the cap is a ceiling and
       // the number under it is the tuning, and building to the ceiling is how
       // you get a boss nobody reaches.
-      boss_helion: 121, boss_hoarfell: 159,
+      boss_helion: 121, boss_hoarfell: 111,
       // Thunderfangs is the smallest body on the top floor ON PURPOSE:
       // most of its damage is borrowed from the pack and handed back as
       // the pack dies, so a Floor-3 body on top of that is two bosses'

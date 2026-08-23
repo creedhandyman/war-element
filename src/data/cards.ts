@@ -243,6 +243,7 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
+    tribe: "Grove",
     onHitStatus: { kind: "BLEED", duration: 2, power: 1 }, // Magic Razor Leaf
   },
   {
@@ -259,6 +260,7 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
+    tribe: "Grove",
     onHitStatus: { kind: "BLEED", duration: 2, power: 1 }, // Stinging Barbs
     // Bloodletting: Nettle chips BLEED itself, and once a PYRO ally has set the
     // target burning too, each of its three little hits leeches life and bites
@@ -285,6 +287,7 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 3,
     keywords: {},
+    tribe: "Grove",
     // Barbed Basics: every basic deepens the wound — BLEED 1 for 2 rounds that
     // STACKS (up to 6), onto its own prior hits AND onto the Special's BLEED.
     // Feeds Transfusion, which drinks from all the BLEED Thorn's side deals.
@@ -1044,6 +1047,7 @@ export const CARDS: CardDef[] = [
     // Shadow Step: STEALTH until first attack each round — exactly the
     // alpha STEALTH keyword.
     keywords: { CRIT: true, STEALTH: true },
+    tribe: "Grove",
     // Predator's Snare (On Kill): lay a trap on the slot the prey fell on. The
     // next opponent to walk onto it — OR be summoned onto it — eats 3 DMG,
     // ROOT 2, and LIFESTEAL to Nightbriar.
@@ -3049,6 +3053,7 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
+    tribe: "Grove",
     // Needles (On Hit by Melee): a melee attacker takes 2 back AND is left
     // BLEEDing 2 for 2. Was a limp 1-DMG poke — Cactus was the weakest LEAF
     // card, a 2-DMG body with a rounding-error thorn and no aura synergy. The
@@ -3941,6 +3946,7 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 5,
     keywords: {},
+    tribe: "Grove",
     // Basic attacks entangle: ROOT the target (SP→0, can't move) for 2 rounds.
     // Duration 2, not 1: a ROOT applied in Battle with duration 1 is ticked away
     // by the same Cleanup, so it expires before the victim's next Prep and never
@@ -4236,6 +4242,7 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 0,
     keywords: {},
+    tribe: "Grove",
     // Boon Striker (On Summon): strike the NEAREST opponent for 7 and sap its
     // NEXT basic attack by 2 (a flat, statusless debuff). reachNearest lets it
     // pounce a foe anywhere — melee-gated it never fired from the home row.
@@ -4256,6 +4263,7 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 0,
     keywords: {},
+    tribe: "Grove",
     // Quadruple Strike (On Kill): the kill flows into the nearest survivor —
     // 4x1, four separate hits, so it shreds shields.
     passiveNames: { onKill: "Quadruple Strike" },
@@ -5553,6 +5561,7 @@ export const CARDS: CardDef[] = [
     sp: 0,
     shields: 0,
     keywords: {},
+    tribe: "Grove",
     // Acorn Drop: every hit Oak takes sprouts an Acorn — a 2/3/3 seedling that
     // Seed-Rolls one slot forward each round. Root Growth: Oak drinks in 2× from
     // every healing source (REGEN, aura heals, ally lifesteal…).
@@ -5784,6 +5793,7 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 0,
     keywords: {},
+    tribe: "Grove",
     // Spread: a landed basic has a 15% chance to put another Weeds on the board.
     //
     // Replaces Offspring (revive at half HP with a 50% second chance). Same
@@ -7061,6 +7071,7 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 2,
     keywords: {},
+    tribe: "Grove",
     // Nature's Protection (End of Round): refresh Sylvane's shields back up to 2.
     // Shared Grove (Aura): LEAF allies are topped up +1 shield each round too.
     passiveNames: { refreshShieldsTo: "Nature's Protection", aura: "Shared Grove" },
@@ -7808,6 +7819,7 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 4,
     keywords: {},
+    tribe: "Grove",
     // Overwatch: when an ally is killed, answer the killer with 7 DMG (once per
     // round).
     passiveNames: { onAllyKilled: "Overwatch" },
@@ -8114,6 +8126,7 @@ export const CARDS: CardDef[] = [
     sp: 0,
     shields: 3,
     keywords: { REGEN: 3 },
+    tribe: "Grove",
     // Super Weed: REGEN 3 each round and grows +2 max HP (it just keeps
     // spreading). Bramble: a melee attacker takes 1 back and is left with a
     // clinging thorn (DOT 1 for 2 rounds).
@@ -9065,6 +9078,7 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 2,
     keywords: {},
+    tribe: "Grove",
     // Bark Shield (End of Round): +1 shield each round, capping at 5.
     passiveNames: { roundTick: "Bark Shield" },
     roundTick: { selfShields: 1, selfShieldsMax: 5 },
@@ -9103,6 +9117,7 @@ export const CARDS: CardDef[] = [
     sp: 0,
     shields: 0,
     keywords: {},
+    tribe: "Grove",
     // Moving Forest (End of Round): march forward one space if it's open (this
     // overrides its SP 0), and drop fruit — 2 DMG to the nearest opponent and
     // +2 HP to the lowest-HP ally.
@@ -9136,6 +9151,7 @@ export const CARDS: CardDef[] = [
     shields: 4,
     // LIFESTEAL: basics heal Sakuroot for the damage dealt.
     keywords: { LIFESTEAL: true },
+    tribe: "Grove",
     // Deep Roots: planted — immune to push / pull / knockback.
     // Petalfall (End of Round): heal LEAF allies on the home row +2 HP.
     passiveNames: { pushImmune: "Deep Roots", roundTick: "Petalfall" },
@@ -10182,14 +10198,17 @@ export const CARDS: CardDef[] = [
     // crossing the whole board, because crossing the board IS the threat.
     dmg: 15,
     hits: 1,
-    hp: 102,
+    // Retuned when it moved from SeaC to Ice: the frost brood — Phrost, two
+    // PolarBears, two Cryos — is a great deal heavier than the school of fish
+    // it used to lead, and the same body behind it read 92%.
+    hp: 66,
     sp: 6,
-    shields: 18,
+    shields: 12,
     // TRAMPLE is the point rather than a rider: it walks THROUGH the lighter
     // half of your board instead of stopping at it, so a chump block has to be
     // something with real max HP or it just gets shoved aside.
     keywords: { TRAMPLE: true },
-    tribe: "SeaC",
+    tribe: "Ice",
     boss: true,
     // Floor 3 — THE JUGGERNAUT. It advances a slot a round and every
     // unobstructed step makes it hit harder, to +12; stop it once and the whole
@@ -10331,7 +10350,7 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 10,
     keywords: {},
-    tribe: "Reptile",
+    tribe: "Grove",
     boss: true,
     // Floor 1 — THE BONFIRE. Everything that touches it burns: its own hits set
     // you alight, and so does hitting it. Nothing else in the tower teaches the
@@ -10594,6 +10613,7 @@ export const TOKENS: CardDef[] = [
     sp: 3,
     shields: 0,
     keywords: {},
+    tribe: "Grove",
     // Seed Roll: rolls one slot forward toward the enemy home at end of each round.
     passiveNames: { roundTick: "Seed Roll" },
     roundTick: { advance: 1 },
