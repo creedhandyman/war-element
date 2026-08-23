@@ -29,7 +29,7 @@ export const ELEMENT_MATCHUP: Partial<Record<Element, MatchupDef>> = {
   DAWN: { name: "Daybreak", desc: "Deals +25% DMG to DUSK." },
   DUSK: { name: "Nightfall", desc: "Deals +25% DMG to DAWN." },
   GALE: { name: "Untouchable", desc: "20% chance to dodge a BORE attack." },
-  BORE: { name: "Grounded Stone", desc: "ELECTRIFIED and PARALYZE on a BORE card last half as long (rounded up)." },
+  BORE: { name: "Grounded Stone", desc: "BORE cards cannot be ELECTRIFIED or PARALYZED at all — stone earths a charge." },
 };
 
 /** HP a LEAF card drinks back from each landed AQUA hit. */
@@ -66,6 +66,29 @@ export function applyMatchupDamage(attacker: Element, target: Element, dmg: numb
   return dmg + Math.floor(dmg * (mult - 1));
 }
 
+/** Statuses an element simply does not take.
+ *
+ *  GROUNDED STONE, the game's one hard counter, and it is pointed at the top of
+ *  the table on purpose. BOLT's whole identity is the pair — every basic leaves
+ *  the target ELECTRIFIED, and BOLT hits a statused card for +1 — so a card
+ *  that cannot be electrified turns both halves off at once. That is a great
+ *  deal of BOLT's kit to switch off, which is exactly why it belongs on the
+ *  element that measured FIRST (57.2%) and nowhere else. The mirror of the note
+ *  above BURN_HEAL_MULT, which softened an anti-heal because it was aimed at
+ *  the element that could least afford one: this is aimed at the one that can.
+ *
+ *  Halving was the old shape and it was not a counter, it was a rounding
+ *  error — `halved` never goes below 1, so a 2-round ELECTRIFIED became a
+ *  1-round ELECTRIFIED and BOLT's damage rider stayed on regardless. Stone
+ *  either earths a charge or it does not.
+ *
+ *  Source-agnostic, like every other matchup rule here: Havoc's ThunderShot and
+ *  Xilty's Web Trap fizzle on BORE too. "Stone cannot be paralysed" is a fact
+ *  about stone, not about who is holding the wire. */
+export function matchupImmune(element: Element, kind: StatusKind): boolean {
+  return element === "BORE" && (kind === "ELECTRIFIED" || kind === "PARALYZE");
+}
+
 /** Does `target`'s element let it slip this attacker entirely? Caller rolls. */
 export function dodgesByMatchup(attacker: Element, target: Element): number {
   if (target === "GALE" && attacker === "BORE") return GALE_DODGE_VS_BORE_PCT;
@@ -83,8 +106,9 @@ export function matchupStatusDuration(element: Element, kind: StatusKind, durati
   if (duration <= 0) return duration;
   // Quenching: water puts fires out.
   if (element === "AQUA" && kind === "BURN") return halved(duration);
-  // Grounded Stone: stone earths a charge.
-  if (element === "BORE" && (kind === "ELECTRIFIED" || kind === "PARALYZE")) return halved(duration);
+  // Grounded Stone is now IMMUNITY, handled by `matchupImmune` before this is
+  // ever reached — a charge does not last a shorter time in stone, it does not
+  // take at all.
   // GALE has NO status resistance. It used to shed ELECTRIFIED a round early
   // under Untouchable — removed, because that half was never meant to be here:
   // Untouchable is a DODGE matchup against BORE, and a second, unrelated

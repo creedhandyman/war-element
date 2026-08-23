@@ -18,7 +18,7 @@ import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget, validTargets } from "./rules";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
-import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupStatusDuration } from "./matchups";
+import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
 import type {
@@ -202,6 +202,15 @@ export function applyStatus(
 ): void {
   if (getDef(target.defId).statusImmune) {
     draft.log.push(`${label(draft, target)} is immune to status (${kind} fizzles).`);
+    return;
+  }
+  // Grounded Stone (BORE): ELECTRIFIED and PARALYZE do not take on stone. Here
+  // with the other immunities rather than as a zero in the duration maths,
+  // because a status that lands with 0 rounds on it is still a status — it sits
+  // in the array, reads as "afflicted", and satisfies every `hasStatus` check
+  // in the game for the rest of the round.
+  if (matchupImmune(getDef(target.defId).element, kind)) {
+    draft.log.push(`${label(draft, target)} earths the charge — ${kind} does not take.`);
     return;
   }
   // Equestrian's aura: allies are immune to stat reduction (WEAKEN) while a

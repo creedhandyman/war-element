@@ -12,6 +12,7 @@ import {
   LEAF_WATER_HEAL,
   applyMatchupDamage,
   dodgesByMatchup,
+  matchupImmune,
   matchupStatusDuration,
   ELEMENT_MATCHUP,
 } from "../matchups";
@@ -49,11 +50,35 @@ describe("element matchups — status resistance", () => {
     expect(matchupStatusDuration("AQUA", "BURN", 1)).toBe(1);
   });
 
-  it("BORE earths ELECTRIFIED and PARALYZE", () => {
-    expect(matchupStatusDuration("BORE", "ELECTRIFIED", 4)).toBe(2);
-    expect(matchupStatusDuration("BORE", "PARALYZE", 3)).toBe(2);
-    // ...and nothing else.
+  it("BORE earths ELECTRIFIED and PARALYZE — immune, not merely resistant", () => {
+    // Halving was never a counter, it was a rounding error: `halved` never
+    // goes below 1, so a 2-round ELECTRIFIED became a 1-round ELECTRIFIED and
+    // BOLT's +1-vs-statused rider stayed on regardless. Stone either earths a
+    // charge or it does not.
+    expect(matchupImmune("BORE", "ELECTRIFIED")).toBe(true);
+    expect(matchupImmune("BORE", "PARALYZE")).toBe(true);
+    // ...and nothing else, on BORE or anywhere.
+    expect(matchupImmune("BORE", "BURN")).toBe(false);
+    expect(matchupImmune("BORE", "FREEZE")).toBe(false);
+    for (const el of ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK"] as const)
+      expect(matchupImmune(el, "ELECTRIFIED"), el).toBe(false);
+    // The duration table no longer has an opinion about it — the immunity gate
+    // in applyStatus returns before this is ever consulted.
     expect(matchupStatusDuration("BORE", "BURN", 4)).toBe(4);
+  });
+
+  it("the immunity actually stops the status landing", () => {
+    // The gate is in `applyStatus`, not in the duration maths, because a status
+    // that lands with 0 rounds on it is still a status: it sits in the array,
+    // reads as afflicted, and satisfies every hasStatus check for the round.
+    const s = prepState();
+    const stone = place(s, "bore_kobra", "P1", 3, 0);
+    applyStatus(s, stone, "ELECTRIFIED", 3, 0, "BOLT");
+    applyStatus(s, stone, "PARALYZE", 2, 0, "BOLT");
+    expect(stone.statuses, "nothing took").toHaveLength(0);
+    // …and BOLT's damage rider has nothing to key off, which is the point.
+    applyStatus(s, stone, "BURN", 2, 3, "PYRO");
+    expect(stone.statuses.map((x) => x.kind), "other statuses land normally").toEqual(["BURN"]);
   });
 
   it("GALE has no status resistance at all", () => {
