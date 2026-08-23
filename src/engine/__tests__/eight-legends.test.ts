@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
 import { canMove, validSpecialTargets, validTargets } from "../rules";
-import { SPECIAL_HANDLERS, basicAttack } from "../combat";
+import { SPECIAL_HANDLERS, basicAttack, defeatCard } from "../combat";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
@@ -77,6 +77,95 @@ describe("the eight legends are on the board", () => {
     expect(gap, "deliberately under-statted").toBeGreaterThan(2);
     expect(havoc.summonSpawn?.token, "and this is what pays for it").toBe("bolt_surge");
     expect(body(getDef("bolt_surge")), "a body worth more than the gap").toBeGreaterThan(gap);
+  });
+});
+
+describe("the two growth engines are bounded", () => {
+  // Both were found by reading rather than by measurement, which is the pattern
+  // the balance notes record: "no card was found to be measurably overpowered —
+  // the real finds were design flaws that measurement never surfaced." Neither
+  // of these showed up as a win-rate outlier; both are numbers that only ever
+  // go up, on cards that create their own opportunities to raise them.
+
+  it("Devour's permanent DMG stops at +6", () => {
+    const s = prepState();
+    // Roomy HP: the victims must die to Devour, not kill Snapmaw on the way out
+    // (Gool's death-lash was quietly finishing it before the sixth meal).
+    const snap = place(s, "leaf_snapmaw", "P1", 3, 0, { curHp: 999, maxHp: 999 });
+    const def = getDef("leaf_snapmaw").special!;
+    // Six ROOTed victims, each in its own slot — the bonus must stall at the
+    // cap, not at the number of kills. Devour ignores the Home rule, so any
+    // enemy square is reachable.
+    for (let i = 0; i < 6; i++) {
+      const prey = place(s, "leaf_alpha", "P2", (i < 3 ? 1 : 2) as never, (i % 3) as never, {
+        curHp: 1, maxHp: 1, curShields: 0,
+        status: { kind: "ROOT", duration: 3, power: 0, source: "LEAF" },
+      });
+      SPECIAL_HANDLERS.strike(s, s.cards[snap.instanceId], [prey], def.params!);
+      expect(s.cards[prey.instanceId], `victim ${i} was devoured`).toBeUndefined();
+    }
+    expect(s.cards[snap.instanceId].dmgBonus, "capped").toBe(6);
+  });
+
+  it("...and the cap is declared on the card, not buried in the handler", () => {
+    expect(getDef("leaf_snapmaw").special!.params!.onKillSelfDmgMax).toBe(6);
+  });
+
+  it("Aranea's brood stops at two Monstrous Spiders", () => {
+    const s = prepState();
+    const aranea = place(s, "dusk_aranea", "P1", 3, 0);
+    const def = getDef("dusk_aranea").special!;
+    const brood = () => boardCards(s, "P1")
+      .filter((c) => c.curHp > 0 && c.defId === "dusk_monstrous_spider_tok").length;
+    for (let i = 0; i < 5; i++)
+      SPECIAL_HANDLERS.statusNova(s, s.cards[aranea.instanceId], [], def.params!);
+    expect(brood(), "capped").toBe(2);
+  });
+
+  it("...and it is a STOCK — clearing the brood re-arms the summon", () => {
+    // The distinction that keeps "AoE the swarm" an answer: a per-game
+    // allowance would mean waiting it out beats clearing it.
+    const s = prepState();
+    const aranea = place(s, "dusk_aranea", "P1", 3, 0);
+    const def = getDef("dusk_aranea").special!;
+    const brood = () => boardCards(s, "P1")
+      .filter((c) => c.curHp > 0 && c.defId === "dusk_monstrous_spider_tok");
+    for (let i = 0; i < 3; i++)
+      SPECIAL_HANDLERS.statusNova(s, s.cards[aranea.instanceId], [], def.params!);
+    expect(brood()).toHaveLength(2);
+    defeatCard(s, brood()[0], "test");
+    SPECIAL_HANDLERS.statusNova(s, s.cards[aranea.instanceId], [], def.params!);
+    expect(brood(), "the gap is refilled").toHaveLength(2);
+  });
+});
+
+describe("Burnout — King of the Streets", () => {
+  it("every kill is permanently +1 DMG and +1 SP", () => {
+    const s = prepState();
+    const burn = place(s, "pyro_burnout", "P1", 3, 0);
+    const prey = place(s, "dusk_gool", "P2", 3, 1, { curHp: 1, maxHp: 1, curShields: 0 });
+    basicAttack(s, burn.instanceId, prey.instanceId);
+    const b = s.cards[burn.instanceId];
+    expect(b.dmgBonus).toBe(1);
+    expect(b.spBonus).toBe(1);
+  });
+
+  it("it stacks, the way Sapphire's Vaporizer does", () => {
+    // Uncapped on purpose, and the reason is the distinction from Snapmaw
+    // above: these are kills you had to go and get with a melee body in
+    // contested combat, not prey the card rooted for itself.
+    const s = prepState();
+    const burn = place(s, "pyro_burnout", "P1", 3, 0);
+    for (const col of [1, 2]) {
+      const prey = place(s, "dusk_gool", "P2", 3, col, { curHp: 1, maxHp: 1, curShields: 0 });
+      basicAttack(s, burn.instanceId, prey.instanceId);
+    }
+    expect(s.cards[burn.instanceId].dmgBonus).toBe(2);
+    expect(s.cards[burn.instanceId].spBonus).toBe(2);
+  });
+
+  it("is named on the card, so the inspector explains it", () => {
+    expect(getDef("pyro_burnout").passiveNames?.onKill).toBe("King of the Streets");
   });
 });
 

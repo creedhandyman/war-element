@@ -2240,6 +2240,39 @@ export function matchesVsTarget(def: CardDef, target: CardInstance): boolean {
 /** Contagion: a dying Zombie sprays every adjacent opponent. */
 export const CONTAGION_SPLASH = 2;
 
+/** Raise tokens, but never past a standing-count ceiling.
+ *
+ *  `spawnMaxAlive` already leashes the round-tick spawn and the onOppSummon one
+ *  (phases.ts); this is the same ceiling for the SPECIAL paths, which are the
+ *  ones that repeat on a cooldown and so compound hardest. Buzzard is the
+ *  cautionary tale the field was invented for — "one a round across a fifteen
+ *  round match is fifteen drones, and the only way one leaves the board is by
+ *  dying" — and a repeatable Special is that with fewer steps.
+ *
+ *  Counts LIVING tokens of this id on the caster's side, so the ceiling is a
+ *  STOCK and not a per-game allowance: kill one and the next cast refills it,
+ *  which keeps the answer to a swarm being "clear it" rather than "wait". */
+function spawnCapped(
+  draft: GameState,
+  attacker: CardInstance,
+  token: string,
+  count: number,
+  radius: number | undefined,
+  maxAlive: number,
+): void {
+  let want = count;
+  if (maxAlive !== Infinity) {
+    const alive = boardCards(draft, attacker.owner)
+      .filter((c) => c.curHp > 0 && c.defId === token).length;
+    want = Math.max(0, Math.min(want, maxAlive - alive));
+    if (want === 0) {
+      draft.log.push(`${label(draft, attacker)} — its brood is already at full strength.`);
+      return;
+    }
+  }
+  if (want > 0) spawnTokens(draft, attacker, token, want, radius);
+}
+
 function tribeOf(card: CardInstance, tribe: string): boolean {
   const t = getDef(card.defId).tribe;
   return Array.isArray(t) ? t.includes(tribe) : t === tribe;
@@ -2986,17 +3019,8 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // two a cast forever, and the only way a body leaves the board is by dying.
     // Overclock's Production Run fires free every 3 rounds, so uncapped it just
     // buried the board. Counts LIVING tokens of this id on the caster's side.
-    let want = num(params, "count", 1);
-    const maxAlive = params.maxAlive == null ? Infinity : num(params, "maxAlive", 0);
-    if (maxAlive !== Infinity) {
-      const alive = boardCards(draft, attacker.owner)
-        .filter((c) => c.curHp > 0 && c.defId === token).length;
-      want = Math.max(0, Math.min(want, maxAlive - alive));
-      if (want === 0) {
-        draft.log.push(`${label(draft, attacker)} — the line is at capacity.`);
-      }
-    }
-    if (want > 0) spawnTokens(draft, attacker, token, want, radius);
+    spawnCapped(draft, attacker, token, num(params, "count", 1), radius,
+      params.maxAlive == null ? Infinity : num(params, "maxAlive", 0));
     // Grove's Blessing: the same burst that raises the tree tops up every ally
     // on the caster's side (Sylvane's Emergence). Element-agnostic — heals all.
     const healAmt = num(params, "healAllies");
@@ -3125,8 +3149,24 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // basic attack — Devour grows by devouring, not by plinking.
     const killDmg = num(params, "onKillSelfDmg");
     if (r.targetDied && killDmg > 0 && attacker.curHp > 0) {
-      attacker.dmgBonus += killDmg;
-      draft.log.push(`${label(draft, attacker)} swallows it whole (+${killDmg} DMG, permanently).`);
+      // A CEILING on permanent growth. Unbounded it is the Aurora pattern the
+      // balance notes single out — a number that only ever goes up, on a card
+      // that also creates its own prey (Snare Garden ROOTs, Devour reaches
+      // anywhere) and heals off it. Nothing in a match stops the loop except
+      // running out of match, which is not a limit, it is a duration.
+      //
+      // The cap is on the ACCUMULATED bonus rather than the number of kills, so
+      // it reads the same however the rider is priced later.
+      const cap = params.onKillSelfDmgMax == null
+        ? Infinity : num(params, "onKillSelfDmgMax", 0);
+      const room = cap - attacker.dmgBonus;
+      const gain = Math.max(0, Math.min(killDmg, room));
+      if (gain > 0) {
+        attacker.dmgBonus += gain;
+        draft.log.push(`${label(draft, attacker)} swallows it whole (+${gain} DMG, permanently).`);
+      } else {
+        draft.log.push(`${label(draft, attacker)} is glutted — it can grow no further.`);
+      }
     }
     const cullBuff = num(params, "onKillAllyBuffDmg");
     if (r.targetDied && cullBuff > 0) {
@@ -3510,7 +3550,8 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // Solara's Blinding Sunrise also calls another Radiant Guardian to her side.
     const spawnTok = typeof params.spawnToken === "string" ? params.spawnToken : "";
     if (spawnTok && attacker.curHp > 0)
-      spawnTokens(draft, attacker, spawnTok, num(params, "spawnCount", 1), spawnRadiusOf(params));
+      spawnCapped(draft, attacker, spawnTok, num(params, "spawnCount", 1), spawnRadiusOf(params),
+        params.spawnMaxAlive == null ? Infinity : num(params, "spawnMaxAlive", 0));
     applySelfRiders(draft, attacker, params); // e.g. Dreadgaze's +5 max HP
   },
   /** Thunder Strike (Storm): pure damage to every opponent carrying a required

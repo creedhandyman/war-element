@@ -9482,9 +9482,19 @@ export const CARDS: CardDef[] = [
       // included, which ordinary targeting keeps off-limits from your own back
       // line. Scoped to this Special, so Snapmaw's basic still respects it.
       // Having spent a root on the target is what pays for the reach.
-      params: { dmg: 8, requireStatus: "ROOT", onKillSelfDmg: 2, ignoreHomeRule: 1 },
+      // +2 a kill, to a CEILING of +6. Unbounded it was a number that only
+      // ever went up, on a card that also makes its own prey — Snare Garden
+      // ROOTs on arrival, rootedBleed finishes the wounded, Devour reaches
+      // anywhere on the board and heals for what it deals. Nothing in a match
+      // interrupted the loop except the match ending, which is a duration
+      // rather than a limit. Three devours still doubles its damage; the
+      // fourth is where a legendary stops being a snowball.
+      params: {
+        dmg: 8, requireStatus: "ROOT", ignoreHomeRule: 1,
+        onKillSelfDmg: 2, onKillSelfDmgMax: 6,
+      },
       targetSide: "enemy",
-      text: "8 DMG to any ROOTed opponent on the board and heal for the damage dealt. If it dies, Snapmaw gains +2 DMG permanently. Refuses a target that is not ROOTed.",
+      text: "8 DMG to any ROOTed opponent on the board and heal for the damage dealt. If it dies, Snapmaw gains +2 DMG permanently, up to +6. Refuses a target that is not ROOTed.",
     },
   },
   {
@@ -9634,7 +9644,10 @@ export const CARDS: CardDef[] = [
     shields: 4,
     keywords: { TRAMPLE: true },
     tribe: "Forged Tech",
-    passiveNames: { onHitByMelee: "Burning Frame", onSpecialUse: "Super Charger" },
+    passiveNames: {
+      onHitByMelee: "Burning Frame", onSpecialUse: "Super Charger",
+      onKill: "King of the Streets",
+    },
     // Burning Frame: the chassis is on fire. No damage of its own — hitting it
     // simply costs you the burn.
     onHitByMelee: { status: { kind: "BURN", duration: 2, power: 2 } },
@@ -9652,6 +9665,22 @@ export const CARDS: CardDef[] = [
     // between a longer ram and a genuine repositioning — the tank arrives, and
     // then still has a turn of speed to be somewhere else with.
     onSpecialUse: { sp: 8, spRounds: 2 },
+    // King of the Streets: every kill is permanently +1 DMG and +1 SP. The same
+    // rider Sapphire's Vaporizer carries, and uncapped for the same reason it is
+    // uncapped there — the growth is paid for in kills you had to go and get,
+    // with a melee body, in contested combat.
+    //
+    // Which is the line Snapmaw's Devour is on the wrong side of, and worth
+    // stating so the two do not look inconsistent: that one has a ceiling
+    // because it manufactures its own prey — Snare Garden ROOTs on arrival,
+    // Devour reaches any square on the board and heals for what it deals — so
+    // the loop never had to leave home. Burnout has to drive at things.
+    //
+    // It compounds with TRAMPLE and with Super Charger, which is the point: a
+    // wrecking ball that gets faster and hits harder the more it wrecks. The
+    // permanent SP is the half to watch, because speed is what lets it reach
+    // the NEXT kill — re-measure PYRO if it starts climbing.
+    onKill: { buffDmg: 1, buffSp: 1 },
     special: {
       name: "Blitzing Ram",
       cost: 3,
@@ -9713,7 +9742,14 @@ export const CARDS: CardDef[] = [
         // blocks exactly one Prep turn, which is what "for a round" means from
         // the chair. The set's two other FRIGHTEN statuses are both 2.
         statusKind: "FRIGHTEN", statusDuration: 2,
-        spawnToken: "dusk_monstrous_spider_tok", spawnCount: 1,
+        // TWO at a time, no more. The Monstrous Spider is a free cost-4 body
+        // (27 points) that bursts into two more Spiders when it falls, all of
+        // them carrying Broodmother's +2 — and Brood Summon repeats on a
+        // cooldown with nothing counting what was already standing. That is
+        // Buzzard's fleet again: the only way one left the board was by dying,
+        // and here dying is the PAYOFF. A stock rather than an allowance, so
+        // clearing the brood is still what re-arms it.
+        spawnToken: "dusk_monstrous_spider_tok", spawnCount: 1, spawnMaxAlive: 2,
       },
       targetSide: "enemy",
       text: "Raise a Monstrous Spider and FRIGHTEN every opponent in range for a round. It bursts into 2 Spiders when it falls, and all three carry Broodmother's +2 DMG.",
