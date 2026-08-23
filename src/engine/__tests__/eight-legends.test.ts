@@ -7,11 +7,11 @@
 // aura reaching the brood she raises after she lands).
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
-import { canMove, validSpecialTargets, validTargets } from "../rules";
+import { canFireSpecial, canMove, validSpecialTargets, validTargets } from "../rules";
 import { SPECIAL_HANDLERS, basicAttack, defeatCard } from "../combat";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
-import { atCleanup, place, prepState, statusOf } from "./helpers";
+import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import type { CardInstance, GameState } from "../types";
 
 const params = (id: string) => getDef(id).special!.params as Record<string, string | number>;
@@ -136,6 +136,50 @@ describe("the two growth engines are bounded", () => {
     defeatCard(s, brood()[0], "test");
     SPECIAL_HANDLERS.statusNova(s, s.cards[aranea.instanceId], [], def.params!);
     expect(brood(), "the gap is refilled").toHaveLength(2);
+  });
+});
+
+describe("Killer Whale — Breach", () => {
+  // A cost-7 body that needed a whole turn and 3 magic before it did anything,
+  // on the element that measured last for most of its life.
+
+  it("Tidal Crush fires the moment it lands", () => {
+    const s = prepState(42, "P2");
+    const prey = place(s, "leaf_alpha", "P1", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    s.players.P2.gold = 30;
+    s.players.P2.magicPool = 0;          // free: no magic, and none is spent
+    const handId = giveHand(s, "P2", "aqua_killerwhale");
+    const n = applyIntent(s, { type: "SUMMON", player: "P2", handId, col: 1 } as never);
+    expect(n.players.P2.magicPool, "not a penny").toBe(0);
+    const hurt = boardCards(n, "P1").find((c) => c.instanceId === prey.instanceId)!;
+    expect(hurt.curHp, "the row ahead took it").toBeLessThan(99);
+    expect(hurt.statuses.map((x) => x.kind), "and froze").toContain("FREEZE");
+  });
+
+  it("is declared as the flag, not as a second copy of the Special", () => {
+    // The obvious way to write this is to paste the Special's handler and
+    // params into `onSummon`, and it is the wrong way: two descriptions of one
+    // effect drift the first time the Special is retuned, and the card then
+    // does something its own printed text no longer says.
+    const os = getDef("aqua_killerwhale").onSummon!;
+    expect(os.castsOwnSpecial).toBe(true);
+    expect(os.handler, "no duplicated handler").toBeUndefined();
+    expect(os.params, "no duplicated params").toBeUndefined();
+  });
+
+  it("still costs magic when cast the ordinary way", () => {
+    // Free ON SUMMON only. If the arrival cast made the Special free
+    // thereafter, the card would be casting a 3-magic board wipe every cooldown
+    // for nothing.
+    const s = prepState(42, "P2");
+    const kw = place(s, "aqua_killerwhale", "P2", 0, 1);
+    place(s, "leaf_alpha", "P1", 1, 1, { curHp: 99, maxHp: 99 });
+    s.players.P2.magicPool = 10;
+    kw.specialCooldown = 0;
+    const before = s.players.P2.magicPool;
+    const r = canFireSpecial(s, kw.instanceId);
+    expect(r.ok, "castable").toBe(true);
+    expect(before, "and the pool is what pays for it").toBe(10);
   });
 });
 

@@ -173,6 +173,11 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       if (arrived && def.onSummon) {
         const os = def.onSummon;
         const params = os.params ?? {};
+        // Its own Special, free, on arrival — see `castsOwnSpecial`. Before the
+        // handler branches below, because it replaces them rather than joining
+        // them: a card that casts its Special on landing has said everything it
+        // is going to do on landing.
+        if (os.castsOwnSpecial) fireCardSpecial(draft, inst);
         if (os.handler && os.targetSide === "ally") {
           // Ally-buff on summon (Smith Reforged / Duster Dust Off).
           applyAllyOnSummon(draft, inst, os.handler, params);

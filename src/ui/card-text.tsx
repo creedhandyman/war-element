@@ -53,6 +53,7 @@ export function chipify(text: string): ReactNode[] {
 /** Spell out an on-summon passive from its handler + params, instead of the old
  *  catch-all "fires an effect". Mirrors how the effect actually resolves. */
 function describeOnSummon(os: {
+  castsOwnSpecial?: true;
   handler?: string;
   params?: Record<string, number | string>;
   targetSide?: string;
@@ -62,6 +63,11 @@ function describeOnSummon(os: {
 }, vsTarget?: { tribe?: string; maxHpFrom?: number }, element = "same-element"): string {
   const p = os.params ?? {};
   const n = (k: string) => Number(p[k] ?? 0);
+  // Its own Special, free, on arrival. Named rather than re-described: the
+  // Special's own text is printed on the card directly below this line, so
+  // spelling the effect out twice would be the same words in two places — and
+  // the second copy would be the one that went stale.
+  if (os.castsOwnSpecial) return "Casts its Special for free the moment it lands.";
   // A pure self-status on-summon (Frostveil's Icy Mist — no target handler).
   if (!os.handler && os.selfStatus) {
     const dur = os.selfStatusDuration ? ` for ${rounds(os.selfStatusDuration)}` : "";

@@ -1154,6 +1154,16 @@ export interface CardDef {
    *  obey normal targeting rules; params.rowAhead=1 limits them to the row
    *  directly ahead of where it was summoned. */
   onSummon?: {
+    /** Fire this card's OWN Special as it lands, free — no magic, no cooldown,
+     *  no summon-turn lockout.
+     *
+     *  A flag rather than a copy of the Special's handler and params into the
+     *  fields below, which is the obvious way to write it and the wrong one:
+     *  two descriptions of one effect drift the first time the Special is
+     *  retuned, and the card then does something its own text no longer says.
+     *  Routed through `fireCardSpecial`, so target selection, `targetSide` and
+     *  the re-entrancy guard are the same ones the ordinary cast uses. */
+    castsOwnSpecial?: true;
     /** Optional — omit for a pure self-status on-summon (Frostveil's Icy Mist). */
     handler?: string;
     params?: Record<string, number | string>;

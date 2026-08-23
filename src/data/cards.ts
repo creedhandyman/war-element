@@ -9553,10 +9553,17 @@ export const CARDS: CardDef[] = [
     shields: 3,
     keywords: {},
     tribe: "SeaC", // Kraken's school (+4 max HP)
-    passiveNames: { vsStatus: "Apex Predator" },
+    passiveNames: { vsStatus: "Apex Predator", onSummon: "Breach" },
     // Apex Predator: it hunts what cannot run. Pairs with its own Special, which
     // is the point — Tidal Crush freezes the row and then it eats.
     vsStatus: { status: "FREEZE", bonusDmg: 3 },
+    // BREACH: it does not arrive, it lands ON something. Tidal Crush fires free
+    // the moment Killer Whale hits the board, which also switches its own combo
+    // on from the first round — the row ahead is FROZEN and Apex Predator is +3
+    // against exactly that. It was a cost-7 body that needed a whole turn and 3
+    // magic before it did anything, on the element that measured last for most
+    // of its life.
+    onSummon: { castsOwnSpecial: true },
     special: {
       name: "Tidal Crush",
       cost: 3,
