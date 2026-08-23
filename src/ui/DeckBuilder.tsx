@@ -425,6 +425,79 @@ export function DeckBuilder(props: {
       || a.cost - b.cost
       || a.name.localeCompare(b.name));
 
+  /** The spellbook, rendered in ONE of two places.
+   *
+   *  It browses on the WIDE side on a desktop, and the reason is still good:
+   *  the 224px rail gives a row carrying an effect sentence about eighty pixels
+   *  for the sentence, so the text that is the whole point of the panel came
+   *  out clamped. Choosing spells is the same job as choosing cards — read a
+   *  description, decide, tap — so it happens where that job happens.
+   *
+   *  On a PHONE the rail is full width, so that constraint does not exist, and
+   *  the placement was actively wrong instead: the panel opened at the top of
+   *  the sheet while the button that opened it sits at the very bottom, next to
+   *  Comp and Squads which both open in place. Tapping "Spells" appeared to do
+   *  nothing until you scrolled the whole builder up. So on a phone it opens
+   *  with its siblings, under the tool row.
+   *
+   *  One element, two mount points, because a spellbook maintained twice is a
+   *  spellbook that disagrees with itself. */
+  const spellPanel = (
+            <div className="db-spells db-panel">
+              <div className="db-spell-hint">
+                {deckEls.size === 0
+                  ? "Add cards to your squad to unlock its element spells."
+                  : story && deckSpells.length === 0
+                  ? "No spells unlocked for these elements yet — clear nodes in their regions to earn them."
+                  : pickedSpells.length === 0
+                  ? "None picked — auto-filled from your deck's elements at match start."
+                  : "Tap a spell to add or remove it."}
+              </div>
+              {deckSpells.length > 0 && (
+              <div className="db-spell-grid">
+                {deckSpells.map((s) => {
+                  const on = pickedSpells.includes(s.id);
+                  const full = !on && pickedSpells.length >= limits.spells;
+                  return (
+                    /* WHAT IT DOES, on the tile.
+                       The effect text lived in a `title` and nowhere else — a
+                       hover tooltip, which does not exist on a touch screen at
+                       all, so on a phone there was no way to find out what any
+                       of these did short of casting one in a match and
+                       watching. A picker where the choices are unlabelled is
+                       not a picker. The card pool can get away with art alone
+                       because a card's stats are printed on it; a spell is
+                       nothing but its sentence. */
+                    <button
+                      key={s.id}
+                      className={`db-spell ${on ? "on" : ""}`}
+                      data-el={s.element}
+                      disabled={full}
+                      title={full ? `Book is full — remove one first` : undefined}
+                      onClick={() => toggleSpell(s.id)}
+                    >
+                      <span className="db-spell-art">
+                        <img src={spellArtSrc(s.id)} alt="" draggable={false}
+                          onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                      </span>
+                      <span className="db-spell-body">
+                        <span className="db-spell-head">
+                          <b className="db-spell-name">{s.name}</b>
+                          <i className="db-spell-cost" title={`Costs ${s.cost} Magic to cast`}>
+                            {s.cost}
+                          </i>
+                        </span>
+                        <span className="db-spell-text">{s.text}</span>
+                      </span>
+                      <span className="db-spell-mark">{on ? "✓" : "+"}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              )}
+            </div>
+  );
+
   return (
     // `on-top` in story mode: the campaign screens (.story-wrap, z-70) sit ABOVE
     // the plain overlay layer (z-65), so without it "Build a team" opened the
@@ -658,6 +731,9 @@ export function DeckBuilder(props: {
             {/* Deck composition — cards per element / class / cost. */}
             {compShown && picked.length > 0 && <DeckStats stats={stats} />}
 
+            {/* The spellbook, on a phone, where its button is. See `spellPanel`. */}
+            {spellsShown && phone && spellPanel}
+
             {savedShown && (
               <div className="db-saved db-panel">
               {squads.length === 0 && (
@@ -709,60 +785,8 @@ export function DeckBuilder(props: {
             {/* Spellbook — up to 5 spells this deck carries into a match (each
                 castable once). None picked = the engine auto-fills one from the
                 deck's elements, exactly as before. */}
-            {spellsShown ? (
-              <div className="db-spells db-panel">
-                <div className="db-spell-hint">
-                  {deckEls.size === 0
-                    ? "Add cards to your squad to unlock its element spells."
-                    : story && deckSpells.length === 0
-                    ? "No spells unlocked for these elements yet — clear nodes in their regions to earn them."
-                    : pickedSpells.length === 0
-                    ? "None picked — auto-filled from your deck's elements at match start."
-                    : "Tap a spell to add or remove it."}
-                </div>
-                {deckSpells.length > 0 && (
-                <div className="db-spell-grid">
-                  {deckSpells.map((s) => {
-                    const on = pickedSpells.includes(s.id);
-                    const full = !on && pickedSpells.length >= limits.spells;
-                    return (
-                      /* WHAT IT DOES, on the tile.
-                         The effect text lived in a `title` and nowhere else — a
-                         hover tooltip, which does not exist on a touch screen at
-                         all, so on a phone there was no way to find out what any
-                         of these did short of casting one in a match and
-                         watching. A picker where the choices are unlabelled is
-                         not a picker. The card pool can get away with art alone
-                         because a card's stats are printed on it; a spell is
-                         nothing but its sentence. */
-                      <button
-                        key={s.id}
-                        className={`db-spell ${on ? "on" : ""}`}
-                        data-el={s.element}
-                        disabled={full}
-                        title={full ? `Book is full — remove one first` : undefined}
-                        onClick={() => toggleSpell(s.id)}
-                      >
-                        <span className="db-spell-art">
-                          <img src={spellArtSrc(s.id)} alt="" draggable={false}
-                            onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                        </span>
-                        <span className="db-spell-body">
-                          <span className="db-spell-head">
-                            <b className="db-spell-name">{s.name}</b>
-                            <i className="db-spell-cost" title={`Costs ${s.cost} Magic to cast`}>
-                              {s.cost}
-                            </i>
-                          </span>
-                          <span className="db-spell-text">{s.text}</span>
-                        </span>
-                        <span className="db-spell-mark">{on ? "✓" : "+"}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                )}
-              </div>
+            {spellsShown && !phone ? (
+              spellPanel
             ) : (<>
             {/* Three hundred cards behind element and class pills only, on a
                 phone, means scrolling to find a card you can already name. The
