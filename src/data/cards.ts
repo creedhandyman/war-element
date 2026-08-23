@@ -10261,6 +10261,62 @@ export const CARDS: CardDef[] = [
       text: "9 DMG and ELECTRIFIED for 2 rounds to every opponent within 2 spaces — and Storm Teeth adds 4 to everything it lands on the afflicted.",
     },
   },
+  {
+    id: "boss_umbranova",
+    name: "Umbranova",
+    rarity: "mythic",
+    element: "PYRO",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 12,
+    dmg: 12,
+    hits: 1,
+    // Written at 150/15 — a Floor-4 body — and it measured 97%. The escalation
+    // is the threat, not the meat: by the sixth cast Meteor Fall is landing for
+    // twice what it started at, on everything, through shields, so a body sized
+    // for the floor on top of that is a boss nobody finishes. At 90/9 it reads
+    // 80%, the hardest fight in the tower and still a fight.
+    hp: 90,
+    sp: 8,
+    shields: 9,
+    keywords: {},
+    tribe: "Dragon",
+    boss: true,
+    // Floor 4 — THE RAIN, and it is the first boss the board cannot answer.
+    // Every other fight in the tower is decided by WHERE you stand: get out of
+    // Helion's lane, block Hoarfell, thin Thunderfangs' pack, reach Rotroot.
+    // Meteor Fall lands on every opponent alive, wherever they are, so position
+    // buys nothing at all. What is left is sustain, armour, or killing it
+    // before the sky finishes falling.
+    //
+    // And it ESCALATES: every cast makes the next one worse, permanently
+    // (onSpecialUse). That turns the 24-round clock from a deadline into a
+    // countdown you can hear getting louder — eight casts is the whole fight,
+    // and the eighth is not the first.
+    //
+    // NO FLYING, deliberately, however much a dragon wants it: FLYING is
+    // immunity to Melee outright, and "own ranged cards or you cannot
+    // participate" is the lockout that came off Nightshrike. A boss whose
+    // damage already ignores position must not also be unreachable.
+    passiveNames: { onSpecialUse: "Kindling", alwaysHit: "Coronal" },
+    // Coronal, the DAWN half: light does not miss. Deterministic, which the
+    // mode requires — a board-wide nuke that sometimes whiffs would make the
+    // countdown unreadable.
+    alwaysHit: true,
+    onSpecialUse: { dmg: 3 },
+    roundTick: { fireSpecialEveryN: 3 },
+    special: {
+      name: "Meteor Fall",
+      cost: 3,
+      handler: "smite",
+      // `smite` with no requireStatus is every living opponent, ignoring range.
+      // pen, because shields are one of the three real answers and stripping
+      // them is the point — a wall you can hide behind forever is a fourth.
+      params: { dmg: 10, pen: 1 },
+      targetSide: "enemy",
+      text: "The sky falls: 10 DMG to every opponent on the board, through shields, wherever they stand. Each cast makes the next one worse.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

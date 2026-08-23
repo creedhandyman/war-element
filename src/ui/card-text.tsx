@@ -942,8 +942,16 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.onOpponentDeath)
     named("onOpponentDeath", `Whenever an opponent dies, deals ${def.onOpponentDeath.dmg} DMG to the closest remaining foe.`);
-  if (def.alwaysHit)
-    passives.push("Hot Shot: its attacks never miss — ignores its own BLIND and the target's EVASION.");
+  if (def.alwaysHit) {
+    // The card's OWN name for it when it has declared one. This line used to
+    // hardcode "Hot Shot", which meant a card naming the passive something else
+    // had that name printed nowhere — Lassos only got away with it because
+    // "Deadeye" also sits on its vsStatus line, and Umbranova's "Coronal" had
+    // no second home to hide in. The sweep that checks every declared passive
+    // name reaches the card face is what caught it.
+    const nm = def.passiveNames?.alwaysHit ?? "Hot Shot";
+    passives.push(`${nm}: its attacks never miss — ignores its own BLIND and the target's EVASION.`);
+  }
   if (def.basicHealsAllies)
     passives.push("Its basic attack can be aimed at a wounded ally to heal them for its DMG instead of striking.");
   if (def.basicHealsTeam)

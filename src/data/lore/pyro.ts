@@ -179,4 +179,7 @@ export const PYRO_LORE: Record<string, string> = {
 
   pyro_burnout:
     "It does not stop at the target. Stopping is a separate system it was not given.",
+
+  // ── Void Tower bosses ──
+  boss_umbranova: "It is not aiming. There is nowhere it is not aiming."
 };

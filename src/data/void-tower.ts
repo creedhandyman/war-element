@@ -242,6 +242,24 @@ export const VOID_BOSSES: VoidBoss[] = [
     ],
     puzzle: "The pack: for once, kill the escorts first.",
   },
+  {
+    cardId: "boss_umbranova",
+    floor: 4,
+    tribeElement: "PYRO",
+    mechanicElement: "DAWN",
+    tribe: "Dragon",
+    // 10 + 9 + 7 + 5 + 5 = 36, exact. Five heavies rather than a swarm, which
+    // is what a floor-4 formation should feel like next to floor 3's packs of
+    // seven — and Dragon is the one tribe deep enough in BIG cards to do it.
+    //
+    // Dragon also spans all eight elements, so a mixed flight is the tribe
+    // behaving normally rather than a compromise; it is led by the PYRO and
+    // DAWN mythics the boss is named after either half of.
+    summons: [
+      "pyro_pyrogon", "dawn_supernova", "gale_eagon", "pyro_sseerr", "pyro_fenrir",
+    ],
+    puzzle: "The rain: position buys nothing — outlast it or outrun it.",
+  },
 ];
 
 export const voidBossById = (cardId: string): VoidBoss | null =>

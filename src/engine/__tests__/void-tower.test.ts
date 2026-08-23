@@ -71,6 +71,10 @@ describe("the roster", () => {
       // the pack dies, so a Floor-3 body on top of that is two bosses'
       // worth of threat. It measured 97% at 90 HP.
       boss_thunderfangs: 96,
+      // Umbranova does not need a Floor-4 body to be a Floor-4 fight: its
+      // damage ignores position and escalates every cast, so the threat is the
+      // countdown rather than the meat.
+      boss_umbranova: 128,
     };
     for (const v of VOID_BOSSES) {
       expect(bodyTotal(getDef(v.cardId)), v.cardId).toBe(MEASURED[v.cardId]);
@@ -518,7 +522,17 @@ describe("every boss moves like itself", () => {
         : rt.aimLateral ? "aim" : rt.shiftLateral ? "slide" : "still";
     });
     expect(new Set(gaits).size, "and they are not all the same").toBeGreaterThanOrEqual(4);
-    expect(gaits.filter((g) => g === "still").length, "only the wall and the line").toBe(2);
+    // Three that stand still, and each has a reason: Permafrost is a wall,
+    // Overclock is a production line, and Umbranova's damage lands everywhere
+    // regardless — a boss that rains on the whole board has nothing to walk
+    // toward. Named rather than counted loosely, so a fourth cannot join them
+    // by accident.
+    const still = VOID_BOSSES.filter((b) => {
+      const rt = getDef(b.cardId).roundTick ?? {};
+      return !rt.prowl && !rt.advance && !rt.advanceEveryN && !rt.momentum
+        && !rt.aimLateral && !rt.shiftLateral;
+    }).map((b) => b.cardId);
+    expect(still.sort()).toEqual(["boss_overclock", "boss_permafrost", "boss_umbranova"]);
   });
 
   it("a prowler still holds its home row for the opening", () => {

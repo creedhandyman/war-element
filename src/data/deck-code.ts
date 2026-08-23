@@ -147,7 +147,7 @@ export const CODE_IDS: readonly string[] = [
   // Void Tower bosses — appended, never inserted: the code is an INDEX into
   // this list, so putting a name anywhere but the end re-points every saved
   // deck after it.
-  "boss_helion", "boss_hoarfell", "boss_thunderfangs",
+  "boss_helion", "boss_hoarfell", "boss_thunderfangs", "boss_umbranova",
 ];
 
 const INDEX_OF = new Map<string, number>(CODE_IDS.map((id, i) => [id, i]));
