@@ -2,8 +2,11 @@
  *
  *  ── WHAT THIS IS ──────────────────────────────────────────────────────────
  *  Every Void Tower boss is built the same way: Element A gives the TRIBE,
- *  Element B gives the MECHANIC, and the boss summons its tribe on a 12-Gold
- *  budget. This file holds the floor-scaling maths, the boss roster, and the
+ *  Element B gives the MECHANIC, and the boss fields a formation on its floor's
+ *  gold budget. That formation is its tribe FIRST and either of its elements
+ *  after — a boss is two elements, so it builds a proper two-element deck
+ *  rather than whatever one tribe list happened to allow (see
+ *  `bossSummonPool`). This file holds the floor-scaling maths, the boss roster, and the
  *  encounter builder. The boss CARDS themselves live in cards.ts, flagged
  *  `boss: true` (fought, never owned — see the flag's doc in types.ts).
  *
@@ -23,8 +26,8 @@
  *  Legendary/Mythic ×1 — story.ts's DUPLICATE_CAP), unconditionally: the
  *  campaign's "epics stay unique until cap 18" refinement is a pacing rule for
  *  Act I skirmishes, and a boss fight is what that rule exists to save you
- *  from. TOKENS of the tribe are legal summons — story `adds` are tokens by
- *  the same logic, and "a nest of identical spiders" is the fantasy.
+ *  from. TOKENS are legal summons — story `adds` are tokens by the same logic,
+ *  and "a nest of identical spiders" is the fantasy.
  *
  *  ── NO RANDOM PERCENTAGES ─────────────────────────────────────────────────
  *  A puzzle is solved once and then executed; every dice roll converts skill
@@ -74,7 +77,9 @@ export interface VoidBoss {
    *  passives express THIS element, not A; it is why the fight plays the way
    *  it does. */
   mechanicElement: Element;
-  /** The tribe every summon must belong to. */
+  /** The boss's tribe — its identity, what the brood is called, and what the
+   *  reinforcement bench leads with. NOT the whole roster: a formation may also
+   *  draw on either of the boss's two elements (see `bossSummonPool`). */
   tribe: string;
   /** The formation, priced against `summonBudget(floor)`. Duplicates listed
    *  explicitly — the list IS the spend. Tokens of the tribe are legal. */
@@ -368,6 +373,27 @@ export function inTribe(defId: string, tribe: string): boolean {
 
 /** Everything wrong with a boss's formation, or [] when it is legal. A list
  *  rather than a boolean so the test's failure names every violation at once. */
+/** Everything a boss may legally summon: its TRIBE, plus anything of either of
+ *  its two elements.
+ *
+ *  The framework started stricter — tribe members only — and that turned out to
+ *  be a rule about tribe lists rather than about fights. Two elements is what a
+ *  boss IS, so two elements is what it should be able to field, and the strict
+ *  version kept forcing formations that were wrong in the fiction because they
+ *  were the only thing legal: a burning tree leading lizards because LEAF owned
+ *  exactly one tribe, a frozen bison leading fish, a siege engine that could not
+ *  be BORE at all because Cavernous is four cards whose cheapest is 5 gold.
+ *
+ *  The tribe stays the boss's IDENTITY — it is what the brood is called and what
+ *  the bench leads with — but it is no longer the whole roster. */
+export function bossSummonPool(boss: VoidBoss): string[] {
+  const els = new Set<string>([boss.tribeElement, boss.mechanicElement]);
+  return Object.values(CARD_INDEX)
+    .filter((d) => !d.boss && (inTribe(d.id, boss.tribe) || els.has(d.element)))
+    .sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id))
+    .map((d) => d.id);
+}
+
 export function summonProblems(boss: VoidBoss): string[] {
   const out: string[] = [];
   const budget = summonBudget(boss.floor);
@@ -377,7 +403,10 @@ export function summonProblems(boss: VoidBoss): string[] {
   for (const id of boss.summons) {
     const d = CARD_INDEX[id];
     if (!d) { out.push(`unknown card ${id}`); continue; }
-    if (!inTribe(id, boss.tribe)) out.push(`${id} is not ${boss.tribe}`);
+    // Tribe OR either element — see `bossSummonPool`.
+    if (!inTribe(id, boss.tribe)
+        && d.element !== boss.tribeElement && d.element !== boss.mechanicElement)
+      out.push(`${id} is neither ${boss.tribe} nor ${boss.tribeElement}/${boss.mechanicElement}`);
     copies.set(id, (copies.get(id) ?? 0) + 1);
   }
   for (const [id, n] of copies) {
@@ -420,8 +449,8 @@ export function tribePool(tribe: string): string[] {
  *  Duplicate caps deliberately do not apply here. They are a deckbuilding rule
  *  about variety; this is one tribe throwing bodies at you, and several tribes
  *  are too small to fill 30 slots without repeats anyway (Zombie has five). */
-export function reinforcementPool(tribe: string): string[] {
-  const pool = tribePool(tribe);
+export function reinforcementPool(boss: VoidBoss): string[] {
+  const pool = tribePool(boss.tribe);
   // The CHEAP HALF, at least two and AT MOST FOUR.
   //
   // Cheap, because cycling the whole pool would put Rotroot's cost-7 legendary
@@ -437,12 +466,25 @@ export function reinforcementPool(tribe: string): string[] {
   // the player holding an average of 0.1 cards alive, having never reached a
   // boss still sitting on two thirds of its HP. Four apiece puts every boss on
   // the same bench and hands the fight back to the boss.
-  return pool.slice(0, Math.max(2, Math.min(4, Math.ceil(pool.length / 2))));
+  const bench = pool.slice(0, Math.max(2, Math.min(4, Math.ceil(pool.length / 2))));
+  // TRIBE FIRST, then the elements fill the gap. A thin tribe used to mean a
+  // thin bench with nothing to be done about it — Zombie is three cards, so
+  // Rotroot reinforced with two bodies while the Avian-deep bosses got four.
+  // The tribe still leads, because it is the boss's identity and should be what
+  // you see most of; the rest comes from either of its elements, cheapest
+  // first, so every boss reaches the same four however small its tribe is.
+  if (bench.length < 4) {
+    for (const id of bossSummonPool(boss)) {
+      if (bench.length >= 4) break;
+      if (!bench.includes(id)) bench.push(id);
+    }
+  }
+  return bench;
 }
 
 export function paddedFormation(boss: VoidBoss, deckSize: number): string[] {
   const deck = [...boss.summons];
-  const pool = reinforcementPool(boss.tribe);
+  const pool = reinforcementPool(boss);
   if (!pool.length) return deck; // no tribe to draw on; the formation stands alone
   for (let i = 0; deck.length < deckSize; i++) deck.push(pool[i % pool.length]);
   return deck;

@@ -11,7 +11,7 @@ import { CARDS, TOKENS, CARD_INDEX, getDef } from "../../data/cards";
 import {
   BODY_CAP_TOLERANCE, FLOOR1_SUMMON_BUDGET, VOID_BOSSES, bodyCap, bodyTotal, bossDefeated,
   buildVoidEncounter, chanceProblems, floorCleared, floorOpen, inTribe, summonBudget,
-  paddedFormation, reinforcementPool, summonProblems, VOID_PLAYER_HEAD_START, voidPlayerHeadStart, towerProgress, tribePool, trialEventId, voidBossById,
+  bossSummonPool, paddedFormation, reinforcementPool, summonProblems, VOID_PLAYER_HEAD_START, voidPlayerHeadStart, towerProgress, tribePool, trialEventId, voidBossById,
   voidBossSeat, voidFloors,
 } from "../../data/void-tower";
 import { deckSizeFor, isBuildable, validateDeck } from "../../data/custom-decks";
@@ -410,30 +410,53 @@ describe("deck depth", () => {
     }
   });
 
-  it("reinforcements are the boss's OWN tribe — never a stranger", () => {
+  it("everything it summons is its tribe OR one of its two elements", () => {
+    // The rule used to be TRIBE ONLY, and that was a rule about tribe lists
+    // rather than about fights: it forced a burning tree to lead lizards
+    // because LEAF owned exactly one tribe. A boss is two elements, so it may
+    // field two elements — but never a stranger to both.
     for (const b of VOID_BOSSES) {
+      const legal = new Set(bossSummonPool(b));
       for (const id of buildVoidEncounter(b).deck) {
-        expect(inTribe(id, b.tribe), `${b.cardId} summons ${id}`).toBe(true);
+        expect(legal.has(id), `${b.cardId} summons ${id}`).toBe(true);
+        const el = getDef(id).element;
+        expect(
+          inTribe(id, b.tribe) || el === b.tribeElement || el === b.mechanicElement,
+          `${b.cardId} summons ${id} (${el})`,
+        ).toBe(true);
       }
     }
   });
 
-  it("every boss gets the SAME size bench, however deep its tribe is", () => {
+  it("...and a card from neither is still refused", () => {
+    // The loosening must not become "anything goes" — that would make the
+    // pairing decorative.
+    const rot = VOID_BOSSES.find((b) => b.cardId === "boss_rotroot")!;  // DUSK/LEAF
+    const stranger = CARDS.find((c) => !c.boss && c.element === "BOLT")!;
+    expect(summonProblems({ ...rot, summons: [stranger.id] }).length).toBeGreaterThan(0);
+  });
+
+  it("every boss gets the SAME size bench, however thin its tribe is", () => {
     // "Half the tribe" made a boss's bench a function of how many cards its
-    // tribe happens to own, and that turned out to be the biggest single thing
-    // separating these fights. Avian is 20 cards deep, so Nightshrike fielded a
-    // curated ten-card GALE toolbox and won 97% with the player holding 0.1
-    // cards alive, never having reached a boss still on two thirds of its HP.
-    // Zombie is 5 deep, so Rotroot fielded three weak bodies and won 7%. The
-    // bosses were not mismatched; their armies were.
+    // tribe happens to own, and that was the biggest single thing separating
+    // these fights — Avian is 20 deep, Zombie is 3. The cap fixed the deep end;
+    // the element fill fixes the thin end, so every boss reaches four.
     for (const b of VOID_BOSSES) {
-      const bench = reinforcementPool(b.tribe);
-      expect(bench.length, `${b.cardId} (${b.tribe})`).toBeLessThanOrEqual(4);
-      expect(bench.length, `${b.cardId} (${b.tribe}) has SOME bench`).toBeGreaterThanOrEqual(2);
+      const bench = reinforcementPool(b);
+      expect(bench.length, `${b.cardId} (${b.tribe})`).toBe(4);
     }
-    // And the cap actually bites on the deep tribes, or it is proving nothing.
-    expect(tribePool("Avian").length).toBeGreaterThan(4);
-    expect(reinforcementPool("Avian").length).toBe(4);
+  });
+
+  it("the bench leads with the TRIBE and only then fills from the elements", () => {
+    // Identity first: what you see most of should be the brood the boss is
+    // named for. Rotroot is the case that proves it — Zombie is three cards, so
+    // its bench is the whole tribe's cheap end plus one outsider, in that
+    // order, rather than four cheap DUSK cards with no zombies in them.
+    const rot = VOID_BOSSES.find((b) => b.cardId === "boss_rotroot")!;
+    const bench = reinforcementPool(rot);
+    const tribeCheap = tribePool(rot.tribe).slice(0, 2);
+    expect(bench.slice(0, tribeCheap.length), "tribe first").toEqual(tribeCheap);
+    expect(bench.length, "then filled").toBe(4);
   });
 
   it("reinforcements are rank and file, not more of the elite", () => {
@@ -441,24 +464,24 @@ describe("deck depth", () => {
     // Zombinations — a 12-Gold opening turned into a 7-cost legendary every
     // other round. The pool is cost-ascending, so what repeats is the cheap end.
     for (const b of VOID_BOSSES) {
-      const cheap = new Set(reinforcementPool(b.tribe));
+      const cheap = new Set(reinforcementPool(b));
       const pad = buildVoidEncounter(b).deck.slice(b.summons.length);
       for (const id of pad) {
         expect(cheap.has(id), `${b.cardId} reinforced with ${id}`).toBe(true);
       }
-      // …and the cheap half really is the cheap half.
-      const dearestCheap = Math.max(...[...cheap].map((id) => getDef(id).cost));
-      const dearestAll = Math.max(...tribePool(b.tribe).map((id) => getDef(id).cost));
-      if (tribePool(b.tribe).length > 3) {
-        expect(dearestCheap, `${b.tribe}`).toBeLessThan(dearestAll);
-      }
+      // …and the bench really is the cheap end of what it may field.
+      const dearestBench = Math.max(...[...cheap].map((id) => getDef(id).cost));
+      const dearestAll = Math.max(...bossSummonPool(b).map((id) => getDef(id).cost));
+      expect(dearestBench, `${b.cardId}`).toBeLessThan(dearestAll);
     }
   });
 
   it("a boss whose tribe has no cards keeps its formation rather than throwing", () => {
-    expect(paddedFormation(
-      { ...VOID_BOSSES[0], tribe: "NotATribe" }, 30,
-    )).toEqual(VOID_BOSSES[0].summons);
+    // A tribe with no cards no longer means no bench — the elements still
+    // fill it — so what this pins is that it does not throw and still opens
+    // on the budgeted formation.
+    const deck = paddedFormation({ ...VOID_BOSSES[0], tribe: "NotATribe" }, 30);
+    expect(deck.slice(0, VOID_BOSSES[0].summons.length)).toEqual(VOID_BOSSES[0].summons);
   });
 });
 
