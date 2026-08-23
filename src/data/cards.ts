@@ -9817,13 +9817,15 @@ export const CARDS: CardDef[] = [
     // down. The answer is to ignore the board and reach Rotroot behind it.
     passiveNames: { allyRevive: "Undead Resilience" },
     allyRevive: { tribe: "Zombie", healFraction: 0.5 },
-    // The clock: its Special fires itself every 3 rounds, free. NO advance,
-    // deliberately, and it is worth saying why since Xilty has one: under the
-    // Void Tower win rule the player has to come to the boss to win at all, so
-    // a boss that walks to meet them is throwing away the one advantage the
-    // fight hands it. Tried it — Rotroot went from 39% to 19% doing exactly
-    // that, shambling into the grinder a round earlier each time.
-    roundTick: { fireSpecialEveryN: 3 },
+    // The clock, and a SHAMBLE: one slot every three rounds.
+    //
+    // It had a full `advance` once and that was too much — under the Void Tower
+    // rule the player must come to the boss to win at all, so a boss that jogs
+    // out to meet them throws away the fight's one structural advantage.
+    // Rotroot went 39% -> 19% doing exactly that. At a third of the pace it is
+    // something coming for you rather than something running at you, which is
+    // what a corpse should be, and it gives its ground up slowly.
+    roundTick: { fireSpecialEveryN: 3, advanceEveryN: 3 },
     special: {
       name: "Rotten Grasp",
       cost: 3,
@@ -10043,6 +10045,11 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Avian",
     boss: true,
+    // It does not hold still either. Nightshrike slides along its row every
+    // round, which is what a bird on a wire does and, more usefully, means the
+    // column you lined a shot up on is not the column it is in when the shot
+    // lands. LATERAL rather than forward on purpose: a glass cannon does not
+    // close, it repositions.
     // Floor 1 — THE GLASS CANNON. Kill it first or survive one round; there is
     // no third plan.
     //
@@ -10055,7 +10062,7 @@ export const CARDS: CardDef[] = [
     // says: almost no HP, the hardest hit on the floor, and it dies the moment
     // you get to it.
     // The clock: its Special fires itself every 3 rounds, free.
-    roundTick: { fireSpecialEveryN: 3 },
+    roundTick: { fireSpecialEveryN: 3, shiftLateral: 1 },
     special: {
       name: "Death From Above",
       cost: 3,
@@ -10089,7 +10096,12 @@ export const CARDS: CardDef[] = [
     // it, out-burst it, or race the capture win — waiting is the one wrong
     // answer, which is the lesson this fight exists to teach.
     // The clock: its Special fires itself every 3 rounds, free.
-    roundTick: { fireSpecialEveryN: 3 },
+    // PROWL — forward, forward, back, still, and round again. This is the one
+    // the AI was doing by accident and the owner asked for on purpose: a thing
+    // that paces, coils back, waits a beat, then comes again. It suits the
+    // attrition puzzle better than a straight line, because Basilisk wins by
+    // lasting and pacing is what lasting looks like.
+    roundTick: { fireSpecialEveryN: 3, prowl: true },
     special: {
       name: "Wither Coil",
       cost: 3,

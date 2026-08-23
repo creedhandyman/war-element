@@ -319,6 +319,19 @@ export interface RoundTickDef {
   /** Seed Roll (Acorn token): roll forward N rows toward the enemy home each
    *  round, stopping at the first occupied/captured slot or the board edge. */
   advance?: number;
+  /** PROWL: a four-beat pacing pattern — forward, forward, back, hold — walked
+   *  one slot at a time toward and away from the enemy home.
+   *
+   *  DETERMINISTIC, and that is the whole trick. It reads as a restless animal
+   *  that cannot decide, which is exactly what it looked like when the AI was
+   *  moving Basilisk around by accident and the owner liked it. But a Void
+   *  Tower fight is a puzzle, and a puzzle cannot be solved against a coin —
+   *  so this is a CYCLE you can count, not a roll. Watch two beats and you know
+   *  where it will be on the fourth. */
+  prowl?: true;
+  /** Shamble: advance one slot every N rounds instead of every round. The slow
+   *  half of `advance` — something that is coming for you, but not quickly. */
+  advanceEveryN?: number;
   /** THE BOSS CLOCK: fire this card's Special FREE every N rounds, at Cleanup.
    *
    *  It is a clock rather than a discount, and that is the whole point — a Void
@@ -1188,6 +1201,8 @@ export interface CardInstance {
   flowMode?: "water" | "ice" | "steam";   // mirrors auras.ts FlowMode
   /** How many tides this card has already taken, against `AQUA_TIDE_MAX`. */
   tideTicks?: number;
+  /** Which beat of the four-beat `prowl` cycle this card is on. */
+  prowlStep?: number;
   hitsBonusRound: number; // extra basic hits for the turn (Flow Change Liquid on multi-hit)
   tempShields: number; // shields granted "for the turn" (removed in Cleanup)
   /** Basic hits this card has LANDED on each target this round (keyed by target

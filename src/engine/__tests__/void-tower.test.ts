@@ -434,6 +434,81 @@ describe("deck depth", () => {
   });
 });
 
+describe("every boss moves like itself", () => {
+  // Seven bosses used to share two gaits between them — Xilty advanced,
+  // Skeleeze slid, and the other five stood exactly still while the ordinary
+  // AI shuffled them about. What looked like Basilisk pacing and striking was
+  // that AI, by accident. It reads well enough to be worth designing.
+
+  /** Walk a boss forward `rounds` cleanups and report where it ended up. */
+  const walk = (id: string, rounds: number, startRow = 0) => {
+    const s = prepState();
+    const boss = place(s, id, "P2", startRow as never, 2);
+    place(s, "leaf_alpha", "P1", 3, 0, { curHp: 999, maxHp: 999 });
+    const seen: string[] = [];
+    let g = s;
+    for (let r = 1; r <= rounds; r++) {
+      g.round = r;
+      g = advance(atCleanup(g));
+      const c = g.cards[boss.instanceId];
+      seen.push(c?.pos ? `${c.pos.row},${c.pos.col}` : "gone");
+    }
+    return seen;
+  };
+
+  it("PROWL is a cycle, not a coin — forward, forward, back, hold", () => {
+    // Deterministic on purpose: a Void Tower fight is a puzzle, and a puzzle
+    // cannot be solved against randomness. Two beats of watching tell you where
+    // it will be on the fourth.
+    const seen = walk("boss_basilisk", 6, 1);
+    // Rounds 1-2 are the opening hold (BOSS_HOLD_ROUNDS) — the cycle starts
+    // after it, which is also why the hold and the gait have to be tested
+    // together rather than each assuming the other is not there.
+    expect(seen.slice(0, 2), "held first").toEqual(["1,2", "1,2"]);
+    // Then: close, close, give one back, go still.
+    expect(seen.slice(2, 6)).toEqual(["2,2", "3,2", "2,2", "2,2"]);
+  });
+
+  it("the same start always walks the same path", () => {
+    expect(walk("boss_basilisk", 6, 1)).toEqual(walk("boss_basilisk", 6, 1));
+  });
+
+  it("SHAMBLE is slow — Rotroot gives ground every third round, not every one", () => {
+    const seen = walk("boss_rotroot", 6, 0);
+    // Held for the opening, then one slot on each multiple of three.
+    expect(new Set(seen).size, "it does not sprint").toBeLessThanOrEqual(3);
+    expect(seen[seen.length - 1]).not.toBe(seen[0]);
+  });
+
+  it("the two that stand still do so on purpose", () => {
+    // Permafrost is a wall and Overclock is a production line; neither has any
+    // business chasing anyone. Asserted as an ABSENCE so a later pass does not
+    // hand them a gait without deciding to.
+    for (const id of ["boss_permafrost", "boss_overclock"]) {
+      const seen = walk(id, 8, 0);
+      expect(new Set(seen).size, id).toBe(1);
+    }
+  });
+
+  it("all seven have a gait recorded, even the still ones", () => {
+    const gaits = VOID_BOSSES.map((b) => {
+      const rt = getDef(b.cardId).roundTick ?? {};
+      return rt.prowl ? "prowl" : rt.advance ? "advance"
+        : rt.advanceEveryN ? "shamble" : rt.shiftLateral ? "slide" : "still";
+    });
+    expect(new Set(gaits).size, "and they are not all the same").toBeGreaterThanOrEqual(4);
+    expect(gaits.filter((g) => g === "still").length, "only the wall and the line").toBe(2);
+  });
+
+  it("a prowler still holds its home row for the opening", () => {
+    const s = prepState();
+    const boss = place(s, "boss_basilisk", "P2", 0, 2);
+    s.round = 1;
+    const n = advance(atCleanup(s));
+    expect(n.cards[boss.instanceId].pos, "held").toEqual({ row: 0, col: 2 });
+  });
+});
+
 describe("the boss holds its home row for the opening", () => {
   // It is standing there from round one, placed outside the economy, while the
   // player is still deploying their first card or two. Walking immediately put

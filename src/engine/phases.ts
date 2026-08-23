@@ -2129,6 +2129,42 @@ function doRoundTicks(draft: GameState): void {
       fireCardSpecial(draft, card);
     }
 
+    // PROWL: forward, forward, back, hold — and then round again.
+    //
+    // The pattern is the point. A boss that walks straight at you is read once
+    // and never again; one that paces is read every round, which is the tension
+    // the owner spotted when the AI was shuffling Basilisk about by accident.
+    // But it is a CYCLE and not a coin: a Void Tower fight is a puzzle and a
+    // puzzle cannot be solved against randomness, so two beats of watching tell
+    // you where it will be on the fourth.
+    //
+    // Held by BOSS_HOLD_ROUNDS like every other boss movement, so the opening
+    // is still yours. Blocked squares simply cost it that beat — it does not
+    // get a second attempt, because a pattern with retries is not a pattern.
+    if (rt.prowl && card.pos && !bossHeldHome(draft, getDef(card.defId))) {
+      const beat = (card.prowlStep ?? 0) % 4;
+      card.prowlStep = (card.prowlStep ?? 0) + 1;
+      const dir = card.owner === "P1" ? -1 : 1;
+      const step = beat <= 1 ? dir : beat === 2 ? -dir : 0;
+      if (step !== 0) {
+        const row = card.pos.row + step;
+        if (row >= 0 && row < draft.boardSize
+            && !cardAt(draft, row, card.pos.col)
+            && !draft.slots[row][card.pos.col].capturedBy) {
+          card.pos = { row: row as Pos["row"], col: card.pos.col };
+          draft.log.push(`${label(draft, card)} ${step === dir ? "stalks closer" : "coils back"}.`);
+        }
+      } else {
+        draft.log.push(`${label(draft, card)} goes still.`);
+      }
+    }
+
+    // Shamble: the slow half of `advance` — one slot every few rounds.
+    if (rt.advanceEveryN && card.pos && draft.round % rt.advanceEveryN === 0
+        && !bossHeldHome(draft, getDef(card.defId))) {
+      chargeForward(draft, card, 1);
+    }
+
     // Swiftshooter (shiftLateral): slide along the OWN home row, wrapping to
     // the next OPEN slot. Only while actually standing in the home row — a
     // card dragged off its rail stops sliding, which is itself an answer the
