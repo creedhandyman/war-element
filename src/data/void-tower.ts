@@ -171,15 +171,23 @@ export const VOID_BOSSES: VoidBoss[] = [
   },
   {
     cardId: "boss_basilisk",
-    floor: 1,
+    // FLOOR 2. Attrition is a patience lesson, and patience is a poor first
+    // thing to teach — it also reads oddly beside Smolder, which now holds the
+    // Reptile brood on Floor 1 with the cheap half of it. Basilisk brings the
+    // same tribe back a floor later with Snapmaw at the head of it, so the
+    // escalation is the tribe you already know arriving heavier.
+    floor: 2,
     tribeElement: "LEAF",
     mechanicElement: "AQUA",
     tribe: "Reptile",
-    // 1×3 + 2×3 + 3 = 12.
+    // 6 + 3×3 + 1×3 + 1×2 = 20, Floor 2's budget exactly. Snapmaw anchors it —
+    // the same brood Smolder fields on Floor 1, a floor later and with LEAF's
+    // legend at the head of it.
     summons: [
+      "leaf_snapmaw",
+      "leaf_gecko", "leaf_gecko", "leaf_gecko",
       "leaf_stickviper", "leaf_stickviper", "leaf_stickviper",
-      "leaf_python", "leaf_python", "leaf_python",
-      "leaf_gecko",
+      "leaf_reptilian_tok", "leaf_reptilian_tok",
     ],
     puzzle: "Attrition: out-sustain it, or race the clock.",
   },
@@ -265,6 +273,29 @@ export const VOID_BOSSES: VoidBoss[] = [
       "pyro_pyrogon", "dawn_supernova", "gale_eagon", "pyro_sseerr", "pyro_fenrir",
     ],
     puzzle: "The rain: position buys nothing — outlast it or outrun it.",
+  },
+  {
+    cardId: "boss_smolder",
+    floor: 1,
+    tribeElement: "LEAF",
+    mechanicElement: "PYRO",
+    tribe: "Reptile",
+    // 1×3 + 1×3 + 2×3 = 12, exact — a carpet of the smallest things in the
+    // tribe, which is what a fire spreading through undergrowth should look
+    // like. Deliberately the CHEAP end, so it reads nothing like Basilisk's
+    // Floor 2 list of the same tribe: Smolder brings the litter, Basilisk
+    // brings Snapmaw.
+    //
+    // Reptile is LEAF's only tribe, so the two share it. That is a shape rather
+    // than a compromise — Floor 1 teaches you the brood and Floor 2 brings it
+    // back heavier — but it is the one thing to revisit if LEAF ever grows a
+    // second tribe worth leading.
+    summons: [
+      "leaf_stickviper", "leaf_stickviper", "leaf_stickviper",
+      "leaf_reptilian_tok", "leaf_reptilian_tok", "leaf_reptilian_tok",
+      "leaf_python", "leaf_python", "leaf_python",
+    ],
+    puzzle: "The bonfire: everything that touches it burns — fight it at range.",
   },
 ];
 

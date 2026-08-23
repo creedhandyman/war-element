@@ -187,4 +187,7 @@ export const LEAF_LORE: Record<string, string> = {
 
   // ── Void Tower bosses ──
   boss_basilisk: "It is not winning the fight. It is winning the wait.",
+
+  // ── Void Tower bosses ──
+  boss_smolder: "The forest did not burn down. It stood up."
 };

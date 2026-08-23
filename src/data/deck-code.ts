@@ -148,6 +148,7 @@ export const CODE_IDS: readonly string[] = [
   // this list, so putting a name anywhere but the end re-points every saved
   // deck after it.
   "boss_helion", "boss_hoarfell", "boss_thunderfangs", "boss_umbranova",
+  "boss_smolder",
 ];
 
 const INDEX_OF = new Map<string, number>(CODE_IDS.map((id, i) => [id, i]));

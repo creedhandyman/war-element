@@ -75,6 +75,10 @@ describe("the roster", () => {
       // damage ignores position and escalates every cast, so the threat is the
       // countdown rather than the meat.
       boss_umbranova: 128,
+      // Smolder is a Floor-1 body and reads 69% — most of its threat is the
+      // BURN it puts on anything that touches it, which costs no stat points
+      // at all.
+      boss_smolder: 114,
     };
     for (const v of VOID_BOSSES) {
       expect(bodyTotal(getDef(v.cardId)), v.cardId).toBe(MEASURED[v.cardId]);
@@ -522,17 +526,18 @@ describe("every boss moves like itself", () => {
         : rt.aimLateral ? "aim" : rt.shiftLateral ? "slide" : "still";
     });
     expect(new Set(gaits).size, "and they are not all the same").toBeGreaterThanOrEqual(4);
-    // Three that stand still, and each has a reason: Permafrost is a wall,
-    // Overclock is a production line, and Umbranova's damage lands everywhere
-    // regardless — a boss that rains on the whole board has nothing to walk
-    // toward. Named rather than counted loosely, so a fourth cannot join them
-    // by accident.
+    // Four that stand still, and each has a reason: Permafrost is a wall,
+    // Overclock is a production line, Umbranova's damage lands everywhere
+    // regardless, and Smolder is a TREE — the one boss you are supposed to
+    // walk up to and then wish you had not. Named rather than counted loosely,
+    // so a fifth cannot join them by accident.
     const still = VOID_BOSSES.filter((b) => {
       const rt = getDef(b.cardId).roundTick ?? {};
       return !rt.prowl && !rt.advance && !rt.advanceEveryN && !rt.momentum
         && !rt.aimLateral && !rt.shiftLateral;
     }).map((b) => b.cardId);
-    expect(still.sort()).toEqual(["boss_overclock", "boss_permafrost", "boss_umbranova"]);
+    expect(still.sort()).toEqual(
+      ["boss_overclock", "boss_permafrost", "boss_smolder", "boss_umbranova"]);
   });
 
   it("a prowler still holds its home row for the opening", () => {

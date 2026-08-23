@@ -10317,6 +10317,47 @@ export const CARDS: CardDef[] = [
       text: "The sky falls: 10 DMG to every opponent on the board, through shields, wherever they stand. Each cast makes the next one worse.",
     },
   },
+  {
+    id: "boss_smolder",
+    name: "Smolder",
+    rarity: "mythic",
+    element: "LEAF",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 12,
+    dmg: 10,
+    hits: 1,
+    hp: 80,
+    sp: 4,
+    shields: 10,
+    keywords: {},
+    tribe: "Reptile",
+    boss: true,
+    // Floor 1 — THE BONFIRE. Everything that touches it burns: its own hits set
+    // you alight, and so does hitting it. Nothing else in the tower teaches the
+    // difference between reaching something and standing next to it, which is
+    // the most basic positional idea in the game and was somehow not on the
+    // tutorial floor. Answer it from range, or bring something that does not
+    // mind being on fire.
+    //
+    // Burning Roots is the LEAF/PYRO pairing in one move: the roots take hold
+    // (ROOT, LEAF's own control) and everything they hold is already burning.
+    // A rooted card cannot walk out of melee, which is the joke — the punishment
+    // for touching it also stops you leaving.
+    passiveNames: { onHitByMelee: "Ashen Bark", onHitStatus: "Ember Grain" },
+    onHitByMelee: { status: { kind: "BURN", duration: 3, power: 4 } },
+    onHitStatus: { kind: "BURN", duration: 3, power: 3 },
+    roundTick: { fireSpecialEveryN: 3 },
+    special: {
+      name: "Burning Roots",
+      cost: 3,
+      handler: "barrage",
+      // reach 2 = the widened melee square, the Kraken/Rotroot precedent.
+      params: { dmg: 8, targets: 99, reach: 2, statusKind: "ROOT", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "8 DMG and ROOT for 2 rounds to every opponent within 2 spaces — and everything Smolder touches is already burning.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
