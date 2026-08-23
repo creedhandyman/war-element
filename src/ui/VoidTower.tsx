@@ -32,16 +32,13 @@ import { Check, Lock, Swords } from "lucide-react";
 import type { StorySave } from "../data/story";
 import { EVENTS, type GameEvent } from "../data/events";
 import { getDef } from "../data/cards";
+import { EL_COLOR } from "./shared";
 import { VOID_TOWER_ROUNDS } from "../engine/types";
 import {
   bodyCap, bossDefeated, bossesOnFloor, floorCleared, floorOpen,
   summonBudget, towerProgress, trialEventId, voidFloors,
 } from "../data/void-tower";
 
-const EL_TINT: Record<string, string> = {
-  LEAF: "#7fd89a", PYRO: "#ff8a5c", AQUA: "#7fc4e8", BORE: "#c9a06a",
-  GALE: "#b9e0d0", DAWN: "#ffd763", BOLT: "#ffe066", DUSK: "#b39ddb",
-};
 
 export function VoidTower(props: {
   save: StorySave;
@@ -90,14 +87,24 @@ export function VoidTower(props: {
                   const def = getDef(b.cardId);
                   const down = bossDefeated(done, b.cardId);
                   const event = EVENTS.find((e) => e.id === trialEventId(b.cardId));
-                  const tint = EL_TINT[b.tribeElement] ?? "#8b7dc9";
+                  // EL_COLOR, not a local copy. This screen carried its own
+                  // `EL_TINT` map and it had already drifted — its LEAF was
+                  // #7fd89a against the real #4caf6d — so the tower was the one
+                  // place in the game where an element was the wrong colour.
+                  const tintA = EL_COLOR[b.tribeElement];
+                  const tintB = EL_COLOR[b.mechanicElement];
                   const playable = open && !!event;
                   return (
                     <button
                       key={b.cardId}
                       type="button"
                       className={`vt-boss ${down ? "down" : ""} ${playable ? "" : "locked"}`}
-                      style={{ ["--tint" as string]: tint }}
+                      // TWO accents, because the fight is a duel of two
+                      // elements and the tile should say which two before you
+                      // read a word of it. `--tint` stays the tribe's — it is
+                      // the boss's primary and what the badge and hover glow
+                      // key off — and `--tint2` gives the border a second stop.
+                      style={{ ["--tint" as string]: tintA, ["--tint2" as string]: tintB }}
                       disabled={!playable}
                       onClick={playable ? () => props.onFight(event!) : undefined}
                       aria-label={
@@ -119,7 +126,16 @@ export function VoidTower(props: {
                           where the text block is half the tile tall. */}
                       <span className="vt-boss-body">
                         <span className="vt-boss-pair">
-                          {b.tribeElement} / {b.mechanicElement} · {b.tribe}
+                          {/* Each element in ITS OWN colour. The pair used to be
+                              printed entirely in the tribe element's tint, so a
+                              DUSK/LEAF boss said LEAF in purple — the one line
+                              on the screen whose whole job is to tell you what
+                              you are walking into. */}
+                          <b style={{ color: tintA }}>{b.tribeElement}</b>
+                          <i>/</i>
+                          <b style={{ color: tintB }}>{b.mechanicElement}</b>
+                          <i>·</i>
+                          <span className="vt-boss-tribe">{b.tribe}</span>
                         </span>
                         <span className="vt-boss-name">{def.name}</span>
                         <span className="vt-boss-puzzle">{b.puzzle}</span>

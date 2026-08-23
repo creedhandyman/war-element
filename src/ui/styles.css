@@ -5555,6 +5555,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .vt-boss {
   position: relative; display: block; width: 100%; padding: 0;
   aspect-ratio: 4 / 5; overflow: hidden;
+  /* Single-colour border, the tribe element's. A two-stop gradient frame was
+     tried and reverted: `border-image` ignores `border-radius`, so it squared
+     off every rounded tile on the screen to decorate a line of text that now
+     carries both colours by itself. */
   border: 1px solid color-mix(in srgb, var(--tint, #8b7dc9) 45%, transparent);
   border-radius: 14px; background: rgba(0,0,0,.35); color: inherit;
   cursor: pointer; text-align: left;
@@ -5584,9 +5588,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .vt-boss-name { font-size: 15px; font-weight: 800; line-height: 1.15; }
 .vt-boss-pair {
+  display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap;
   font-size: 9.5px; font-weight: 800; letter-spacing: .09em;
-  color: var(--tint, #b39ddb); text-transform: uppercase;
+  text-transform: uppercase;
 }
+/* The separators and the tribe stay quiet so the two element colours are the
+   only things carrying meaning on this line. */
+.vt-boss-pair i { font-style: normal; color: rgba(255,255,255,.35); font-weight: 600; }
+.vt-boss-tribe { color: rgba(255,255,255,.6); font-weight: 700; }
 .vt-boss-puzzle {
   font-size: 10.5px; line-height: 1.35; color: rgba(255,255,255,.72);
   /* Two lines, then ellipsis: the puzzles are one sentence but the tiles must
