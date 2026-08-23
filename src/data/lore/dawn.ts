@@ -191,4 +191,7 @@ export const DAWN_LORE: Record<string, string> = {
 
   dawn_lassos:
     "Every shot lands. The rope is only there to decide where you are standing when it does.",
+
+  // ── Void Tower bosses ──
+  boss_helion: "It has already chosen your lane. Walking there was the courtesy."
 };

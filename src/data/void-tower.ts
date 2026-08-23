@@ -177,6 +177,50 @@ export const VOID_BOSSES: VoidBoss[] = [
     ],
     puzzle: "Attrition: out-sustain it, or race the clock.",
   },
+  {
+    cardId: "boss_helion",
+    floor: 2,
+    tribeElement: "DAWN",
+    mechanicElement: "BORE",
+    tribe: "Suns",
+    // 3x2 + 3x3 + 2x2 + 1 = 20, exact.
+    //
+    // NOT the guards it started with. Radiant Guardian x2 + Solstice x2 held 92%
+    // of its fights with Helion at BLOCK 0 and a lance cut to 12 — the boss's
+    // own kit measured irrelevant because the BROOD was winning, which is the
+    // exact flaw the bench cap exists to prevent. Solstice carries a team-wide
+    // status ward and Radiant Guardian is a dedicated screen; two of each is a
+    // fortress the player never gets through, and a boss you never reach is not
+    // a puzzle whatever its Special says.
+    //
+    // BORE is the MECHANIC and not the tribe on purpose: Cavernous is four
+    // cards whose cheapest is 5 gold, so a BORE-tribe boss would field a bench
+    // of two expensive bodies and deploy roughly one every three rounds.
+    summons: [
+      "dawn_amble", "dawn_amble",
+      "dawn_musk_ox", "dawn_musk_ox", "dawn_musk_ox",
+      "dawn_glime", "dawn_glime",
+      "dawn_able",
+    ],
+    puzzle: "The siege: read the lane, and pay to leave it.",
+  },
+  {
+    cardId: "boss_hoarfell",
+    floor: 3,
+    tribeElement: "AQUA",
+    mechanicElement: "DAWN",
+    tribe: "SeaC",
+    // 10 + 7 + 4x2 + 1x3 = 28, exact. SeaC rather than Ice: Ice cannot fund a
+    // floor-2 budget at all (its four dearest total under 20) and Permafrost
+    // already holds it on Floor 1. SeaC is twelve cards deep with a 1-gold
+    // bench, which is what a floor-3 tribe needs.
+    summons: [
+      "aqua_kraken", "aqua_killerwhale",
+      "aqua_liquark", "aqua_liquark",
+      "aqua_piranha", "aqua_piranha", "aqua_piranha",
+    ],
+    puzzle: "The juggernaut: stop it once, or let it arrive.",
+  },
 ];
 
 export const voidBossById = (cardId: string): VoidBoss | null =>

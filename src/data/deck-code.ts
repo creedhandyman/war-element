@@ -144,6 +144,10 @@ export const CODE_IDS: readonly string[] = [
   // (isBuildable refuses bosses), which is the right place for that refusal.
   "boss_rotroot", "boss_skeleeze", "boss_xilty", "boss_permafrost",
   "boss_overclock", "boss_nightshrike", "boss_basilisk",
+  // Void Tower bosses — appended, never inserted: the code is an INDEX into
+  // this list, so putting a name anywhere but the end re-points every saved
+  // deck after it.
+  "boss_helion", "boss_hoarfell",
 ];
 
 const INDEX_OF = new Map<string, number>(CODE_IDS.map((id, i) => [id, i]));

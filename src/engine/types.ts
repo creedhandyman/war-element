@@ -319,6 +319,24 @@ export interface RoundTickDef {
   /** Seed Roll (Acorn token): roll forward N rows toward the enemy home each
    *  round, stopping at the first occupied/captured slot or the board edge. */
   advance?: number;
+  /** SIEGE AIM: slide one slot along the OWN home row toward the column holding
+   *  the most opponents, one step a round.
+   *
+   *  THE TELEGRAPH IS THE BODY. A siege boss that simply picked a lane and fired
+   *  would be a die roll with extra steps; this one walks to your lane in front
+   *  of you, a square at a time, and its Special hits the column it is standing
+   *  in. You can read where the shot is going two rounds before it lands, and
+   *  the answer — move, or block the last square — is one you can actually
+   *  execute. Ties go to the lowest column, because a tie broken at random is a
+   *  telegraph that lies. */
+  aimLateral?: true;
+  /** JUGGERNAUT: advance one slot a round, and let the run build.
+   *
+   *  Each unobstructed step adds `per` DMG up to `max`; being stopped — by a
+   *  body, a captured slot, or the board's edge — resets it to nothing. That is
+   *  the whole puzzle in one field: standing in front of it costs you the
+   *  blocker, and letting it run costs you the damage. */
+  momentum?: { per: number; max: number };
   /** PROWL: a four-beat pacing pattern — forward, forward, back, hold — walked
    *  one slot at a time toward and away from the enemy home.
    *
@@ -1213,6 +1231,9 @@ export interface CardInstance {
   tideTicks?: number;
   /** Which beat of the four-beat `prowl` cycle this card is on. */
   prowlStep?: number;
+  /** How much of this card's `dmgBonus` is JUGGERNAUT momentum right now, so a
+   *  reset takes back exactly what the run put on and nothing else. */
+  momentumDmg?: number;
   hitsBonusRound: number; // extra basic hits for the turn (Flow Change Liquid on multi-hit)
   tempShields: number; // shields granted "for the turn" (removed in Cleanup)
   /** Basic hits this card has LANDED on each target this round (keyed by target

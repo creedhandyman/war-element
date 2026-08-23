@@ -10124,6 +10124,100 @@ export const CARDS: CardDef[] = [
       text: "5 DMG to 3 opponents and DRAIN 2 max HP from each.",
     },
   },
+  {
+    id: "boss_helion",
+    name: "Helion",
+    rarity: "mythic",
+    element: "DAWN",
+    cardClass: "Tank",
+    attackType: "Ranged",
+    cost: 12,
+    // Floor 2's budget is 230 and almost all of it is armour. Helion is a siege
+    // engine: it barely moves, it barely swings, and once every three rounds it
+    // deletes a column. The basic is a formality — what you are racing is the
+    // clock, and what the body has to do is survive being raced.
+    dmg: 8,
+    hits: 1,
+    hp: 70,
+    sp: 3,
+    shields: 20,
+    // BLOCK is the BORE half of the pairing, expressed without borrowing BORE's
+    // aura: stone does not dodge, it simply refuses to be dented. Every hit,
+    // however small, arrives 3 lighter — which makes chip damage useless against
+    // it and rewards the one big swing, the opposite of the swarm answer.
+    keywords: { BLOCK: 3 },
+    tribe: "Suns",
+    boss: true,
+    // Floor 2 — THE SIEGE. Its Special fires down the column it is STANDING in,
+    // and Traverse walks it toward whichever column holds the most of your
+    // cards, one square a round. So the shot is announced twice: once by the
+    // three-round clock, and once by a hundred tons of gold walking into your
+    // lane while you watch. The lesson is that you are given the answer in
+    // advance and still have to pay to take it — move, and give up the ground;
+    // stay, and block the lane with something you can afford to lose.
+    passiveNames: { roundTick: "Traverse" },
+    roundTick: { fireSpecialEveryN: 3, aimLateral: true },
+    // Placeholder art, aliased to the DAWN mythic until Helion has its own —
+    // the art sweep checks the FILE exists, so an alias is the honest way to
+    // ship a card whose portrait has not been drawn yet.
+    art: "dawn_imperator",
+    special: {
+      name: "Solar Lance",
+      // No cooldown: the clock owns this Special outright (see fireSpecialEveryN).
+      cost: 3,
+      handler: "barrage",
+      // The whole column, through everything. `pen` because a lance that stopped
+      // at the first body would be answered by parking a token in front of it,
+      // and "the front rank eats it" is not a puzzle, it is a tax.
+      params: { dmg: 22, targets: 99, sameColumn: 1, pen: 1 },
+      targetSide: "enemy",
+      text: "Fires down the column it stands in: 22 DMG to every opponent in the lane, straight through shields.",
+    },
+  },
+  {
+    id: "boss_hoarfell",
+    name: "Hoarfell",
+    rarity: "mythic",
+    element: "AQUA",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 12,
+    // Floor 3's budget is 290. Hoarfell spends it on a body that has to survive
+    // crossing the whole board, because crossing the board IS the threat.
+    dmg: 15,
+    hits: 1,
+    hp: 102,
+    sp: 6,
+    shields: 18,
+    // TRAMPLE is the point rather than a rider: it walks THROUGH the lighter
+    // half of your board instead of stopping at it, so a chump block has to be
+    // something with real max HP or it just gets shoved aside.
+    keywords: { TRAMPLE: true },
+    tribe: "SeaC",
+    boss: true,
+    // Floor 3 — THE JUGGERNAUT. It advances a slot a round and every
+    // unobstructed step makes it hit harder, to +12; stop it once and the whole
+    // run is gone. That is the entire fight in one sentence — standing in front
+    // of it costs you the blocker, letting it run costs you the damage — and
+    // unlike a status lock or a swarm, the answer is a decision rather than a
+    // card you either brought or did not.
+    passiveNames: { roundTick: "Avalanche", vsStatus: "Whiteout Hunter" },
+    roundTick: { fireSpecialEveryN: 3, momentum: { per: 3, max: 12 } },
+    // The DAWN half of the pairing: its Special BLINDs, and it hunts what it has
+    // blinded. Aurora light off a wall of ice — you do not see it coming, which
+    // is a strange thing to say about something this size and exactly the joke.
+    vsStatus: { status: "BLIND", bonusDmg: 5 },
+    art: "aqua_kraken",
+    special: {
+      name: "Aurora Break",
+      cost: 3,
+      handler: "barrage",
+      // reach 2 = the widened melee square, the Kraken/Rotroot precedent.
+      params: { dmg: 10, targets: 99, reach: 2, statusKind: "BLIND", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "10 DMG and BLIND for 2 rounds to every opponent within 2 spaces — and Whiteout Hunter adds 5 to everything it lands on the blinded.",
+    },
+  },
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────

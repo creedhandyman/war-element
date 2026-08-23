@@ -2134,6 +2134,49 @@ function doRoundTicks(draft: GameState): void {
       fireCardSpecial(draft, card);
     }
 
+    // SIEGE AIM: traverse the home row toward the busiest column. The Special
+    // fires down the column the boss is STANDING in, so this is the telegraph —
+    // the player watches the lane being chosen and has the rounds it spends
+    // walking to answer. One step a round, deliberately: a gun that snapped to
+    // its target would be the same effect with none of the reading.
+    if (rt.aimLateral && card.pos && !bossHeldHome(draft, getDef(card.defId))) {
+      const home = homeRow(card.owner, draft.boardSize);
+      if (card.pos.row === home) {
+        const counts = new Array<number>(draft.boardSize).fill(0);
+        for (const e of boardCards(draft, enemyOf(card.owner)))
+          if (e.curHp > 0 && e.pos) counts[e.pos.col] += 1;
+        // Lowest column wins a tie — a telegraph broken at random is a lie.
+        let want = -1, most = 0;
+        for (let c = 0; c < counts.length; c++)
+          if (counts[c] > most) { most = counts[c]; want = c; }
+        if (want >= 0 && want !== card.pos.col) {
+          const col = card.pos.col + (want > card.pos.col ? 1 : -1);
+          if (!cardAt(draft, home, col) && !draft.slots[home][col].capturedBy) {
+            card.pos = { row: home as Pos["row"], col: col as Pos["col"] };
+            draft.log.push(`${label(draft, card)} traverses — the lane is column ${col}.`);
+          }
+        }
+      }
+    }
+
+    // JUGGERNAUT: it advances, and the run builds. Stopped is stopped — the
+    // bonus goes back to nothing rather than decaying, because "block it once"
+    // has to be worth doing.
+    if (rt.momentum && card.pos && !bossHeldHome(draft, getDef(card.defId))) {
+      const from = card.pos.row;
+      chargeForward(draft, card, 1);
+      const rolled = card.pos != null && card.pos.row !== from;
+      const had = card.momentumDmg ?? 0;
+      const now = rolled ? Math.min(rt.momentum.max, had + rt.momentum.per) : 0;
+      if (now !== had) {
+        card.dmgBonus += now - had;   // take back exactly what the run put on
+        card.momentumDmg = now;
+        draft.log.push(rolled
+          ? `${label(draft, card)} gathers speed (+${now} DMG while it runs).`
+          : `${label(draft, card)} is stopped dead — the charge is spent.`);
+      }
+    }
+
     // PROWL: forward, forward, back, hold — and then round again.
     //
     // The pattern is the point. A boss that walks straight at you is read once

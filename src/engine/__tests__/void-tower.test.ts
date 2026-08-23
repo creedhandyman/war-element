@@ -23,13 +23,16 @@ import { canFireSpecial, canMove } from "../rules";
 import { boardCards } from "../state";
 import { BOSS_HOLD_ROUNDS, MAX_ROUNDS, VOID_TOWER_ROUNDS } from "../types";
 import { createInitialState, summonCard } from "../state";
-import { atCleanup, place, prepState, statusOf } from "./helpers";
+import { atCleanup, bigPrepState, place, prepState, statusOf } from "./helpers";
 
 const BOSSES = CARDS.filter((c) => c.boss);
 
 describe("the roster", () => {
-  it("is seven bosses, every one flagged, every one in VOID_BOSSES", () => {
-    expect(BOSSES).toHaveLength(7);
+  it("every boss card is flagged and carries framework data", () => {
+    // Counted against VOID_BOSSES rather than a literal: the roster grows, and
+    // a hardcoded number turns "we added a boss" into a failing test that says
+    // nothing about what is wrong.
+    expect(BOSSES).toHaveLength(VOID_BOSSES.length);
     for (const b of BOSSES) expect(voidBossById(b.id), `${b.id} has framework data`).toBeTruthy();
     for (const v of VOID_BOSSES) expect(CARD_INDEX[v.cardId]?.boss, `${v.cardId} is a boss card`).toBe(true);
   });
@@ -57,6 +60,12 @@ describe("the roster", () => {
     const MEASURED: Record<string, number> = {
       boss_rotroot: 165, boss_permafrost: 169, boss_overclock: 76,
       boss_nightshrike: 84, boss_basilisk: 70, boss_skeleeze: 128, boss_xilty: 166,
+      // These two WERE written to their floor budgets — 221 and 251 — and both
+      // measured straight out of band at 97% and 100%, so they were tuned back
+      // down like everything else. That is the lesson: the cap is a ceiling and
+      // the number under it is the tuning, and building to the ceiling is how
+      // you get a boss nobody reaches.
+      boss_helion: 121, boss_hoarfell: 159,
     };
     for (const v of VOID_BOSSES) {
       expect(bodyTotal(getDef(v.cardId)), v.cardId).toBe(MEASURED[v.cardId]);
@@ -82,17 +91,23 @@ describe("the 12-Gold summon budget", () => {
     }
   });
 
-  it("and every one of these seven spends exactly 12", () => {
-    // Twelve, NOT summonBudget(floor): Skeleeze and Xilty carry the doc's
-    // Floor 2/3 assignments, whose budgets are 20 and 28 — ceilings for lists
-    // not yet written. The doc's §5 rebuilt all three prototypes TO twelve
-    // ("Rotroot landing on 12 unprompted is a good sign the number is right"),
-    // and the four new bosses were authored to the same number, so this pins
-    // what was actually tuned. A drive-by cost change to any summon says so
-    // here instead of silently bending a fight.
+  it("and every one spends its floor's budget exactly", () => {
+    // It used to be a flat twelve for everybody, because the first seven were
+    // all built to Floor 1's number even where they were assigned upward —
+    // Skeleeze and Xilty sat on Floor 2 and 3 spending a Floor 1 budget. Helion
+    // and Hoarfell are the first written TO their floor, so the rule is the
+    // floor's budget now and the two older ones are the exceptions below.
+    // A drive-by cost change to any summon still says so here rather than
+    // silently bending a fight.
+    // The two built before the rule: assigned upward but authored to Floor 1's
+    // twelve. Named rather than waved past, so raising either is a deliberate
+    // edit to this list and not a silent drift.
+    const BUILT_TO_FLOOR_ONE = new Set(["boss_skeleeze", "boss_xilty"]);
     for (const v of VOID_BOSSES) {
       const spend = v.summons.reduce((n, id) => n + getDef(id).cost, 0);
-      expect(spend, `${v.cardId}`).toBe(FLOOR1_SUMMON_BUDGET);
+      const want = BUILT_TO_FLOOR_ONE.has(v.cardId)
+        ? FLOOR1_SUMMON_BUDGET : summonBudget(v.floor);
+      expect(spend, `${v.cardId}`).toBe(want);
       expect(spend, `${v.cardId} inside its own floor's ceiling too`)
         .toBeLessThanOrEqual(summonBudget(v.floor));
     }
@@ -494,7 +509,8 @@ describe("every boss moves like itself", () => {
     const gaits = VOID_BOSSES.map((b) => {
       const rt = getDef(b.cardId).roundTick ?? {};
       return rt.prowl ? "prowl" : rt.advance ? "advance"
-        : rt.advanceEveryN ? "shamble" : rt.shiftLateral ? "slide" : "still";
+        : rt.advanceEveryN ? "shamble" : rt.momentum ? "juggernaut"
+        : rt.aimLateral ? "aim" : rt.shiftLateral ? "slide" : "still";
     });
     expect(new Set(gaits).size, "and they are not all the same").toBeGreaterThanOrEqual(4);
     expect(gaits.filter((g) => g === "still").length, "only the wall and the line").toBe(2);
@@ -575,6 +591,118 @@ describe("the boss holds its home row for the opening", () => {
     const inst = place(s, acorn.id, "P2", 0, 2);
     const n = advance(atCleanup(s));
     expect(n.cards[inst.instanceId].pos!.row, `${acorn.id} still rolls`).toBe(1);
+  });
+});
+
+describe("Helion — the siege aims where you are", () => {
+  // Its Special fires down the column it is STANDING in, so Traverse is the
+  // telegraph: a hundred tons of gold walks into your lane, one square a round,
+  // while you watch. The answer is given in advance and still costs something.
+
+  const field = (cols: number[]) => {
+    const s = prepState();
+    const boss = place(s, "boss_helion", "P2", 0, 0);
+    for (const c of cols) place(s, "leaf_alpha", "P1", 3, c as never, { curHp: 999, maxHp: 999 });
+    s.round = BOSS_HOLD_ROUNDS + 1;    // past the opening hold
+    return { s, boss };
+  };
+
+  it("walks toward the busiest column, one square a round", () => {
+    const { s, boss } = field([3, 3]);   // two bodies stacked… well, one column
+    const n = advance(atCleanup(s));
+    expect(n.cards[boss.instanceId].pos!.col, "one step, not a snap").toBe(1);
+  });
+
+  it("keeps walking until it is in the lane, then stops", () => {
+    let { s, boss } = field([2]);
+    for (let i = 0; i < 6; i++) { s.round = BOSS_HOLD_ROUNDS + 1 + i; s = advance(atCleanup(s)); }
+    expect(s.cards[boss.instanceId].pos!.col, "arrived and held").toBe(2);
+  });
+
+  it("ties go to the LOWEST column — a telegraph must not lie", () => {
+    // One enemy in column 1 and one in column 3, boss starting at 2. A random
+    // tiebreak here would make the lane unreadable on exactly the turn the
+    // player most needs to read it.
+    const s = prepState();
+    const boss = place(s, "boss_helion", "P2", 0, 2);
+    place(s, "leaf_alpha", "P1", 3, 1, { curHp: 999, maxHp: 999 });
+    place(s, "leaf_alpha", "P1", 3, 3, { curHp: 999, maxHp: 999 });
+    s.round = BOSS_HOLD_ROUNDS + 1;
+    expect(advance(atCleanup(s)).cards[boss.instanceId].pos!.col).toBe(1);
+  });
+
+  it("the lance fires down the lane it is standing in, through shields", () => {
+    const s = prepState();
+    const boss = place(s, "boss_helion", "P2", 0, 2);
+    const inLane = place(s, "leaf_alpha", "P1", 3, 2, { curHp: 999, maxHp: 999, curShields: 9 });
+    const clear = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 999, maxHp: 999 });
+    SPECIAL_HANDLERS.barrage(s, s.cards[boss.instanceId],
+      boardCards(s, "P1"), getDef("boss_helion").special!.params!);
+    expect(s.cards[inLane.instanceId].curHp, "in the lane").toBeLessThan(999);
+    expect(s.cards[clear.instanceId].curHp, "out of it").toBe(999);
+  });
+});
+
+describe("Hoarfell — the juggernaut", () => {
+  // It advances a slot a round and every unobstructed step makes it hit harder.
+  // Stop it once and the whole run is gone: standing in front of it costs you
+  // the blocker, letting it run costs you the damage.
+
+  const roll = (rounds: number, blockAt?: number) => {
+    const s = prepState();
+    const boss = place(s, "boss_hoarfell", "P2", 0, 1);
+    if (blockAt != null)
+      place(s, "leaf_alpha", "P1", blockAt as never, 1, { curHp: 9999, maxHp: 9999 });
+    let g = s;
+    for (let r = 1; r <= rounds; r++) { g.round = BOSS_HOLD_ROUNDS + r; g = advance(atCleanup(g)); }
+    return g.cards[boss.instanceId];
+  };
+
+  it("builds while it runs", () => {
+    const m = getDef("boss_hoarfell").roundTick!.momentum!;
+    expect(roll(1).momentumDmg).toBe(m.per);
+    expect(roll(2).momentumDmg).toBe(m.per * 2);
+  });
+
+  it("and the speed is real damage, not a counter", () => {
+    const base = getDef("boss_hoarfell").dmg;
+    expect(roll(2).dmgBonus, "the run is on the card").toBe(getDef("boss_hoarfell").roundTick!.momentum!.per * 2);
+    void base;
+  });
+
+  it("caps, so a long lane is not a free kill", () => {
+    // On the BIG board, because Void Tower is 5x5 and the cap is written for
+    // it: four unobstructed steps is exactly `max`. On a 4x4 the juggernaut
+    // physically cannot reach it — three steps and it is at the far edge, which
+    // counts as being stopped and takes the run back. That is correct rather
+    // than a bug, and it is why this test does not use `roll`.
+    const m = getDef("boss_hoarfell").roundTick!.momentum!;
+    let g = bigPrepState();
+    const boss = place(g, "boss_hoarfell", "P2", 0, 2);
+    const seen: number[] = [];
+    for (let r = 1; r <= 8; r++) {
+      g.round = BOSS_HOLD_ROUNDS + r;
+      g = advance(atCleanup(g));
+      seen.push(g.cards[boss.instanceId].momentumDmg ?? 0);
+    }
+    expect(Math.max(...seen), "it reaches the ceiling").toBe(m.max);
+    expect(seen.every((v) => v <= m.max), "and never passes it").toBe(true);
+  });
+
+  it("STOPPING it takes the whole run back, not a slice of it", () => {
+    // The reason a chump block is worth a body: this is a reset, not a decay.
+    const blocked = roll(6, 2);   // a wall it cannot pass, two rows ahead
+    expect(blocked.momentumDmg ?? 0).toBe(0);
+    expect(blocked.dmgBonus, "and the damage went with it").toBe(0);
+  });
+
+  it("holds its home row for the opening like every other boss", () => {
+    const s = prepState();
+    const boss = place(s, "boss_hoarfell", "P2", 0, 1);
+    s.round = 1;
+    const n = advance(atCleanup(s));
+    expect(n.cards[boss.instanceId].pos).toEqual({ row: 0, col: 1 });
+    expect(n.cards[boss.instanceId].momentumDmg ?? 0, "and builds nothing while held").toBe(0);
   });
 });
 
@@ -915,10 +1043,13 @@ describe("floor progression", () => {
     expect(floorOpen(skipped, 3)).toBe(false);
   });
 
-  it("the whole climb: 7 down opens everything and reads 7/7", () => {
+  it("the whole climb: every boss down opens everything and reads full", () => {
+    // Counted off VOID_BOSSES rather than a literal, so adding a boss is a
+    // one-line data change and not a test that fails saying "7".
     const all = beat(...VOID_BOSSES.map((b) => b.cardId));
     for (const f of voidFloors()) expect(floorCleared(all, f), `floor ${f}`).toBe(true);
-    expect(towerProgress(all)).toEqual({ defeated: 7, total: 7 });
+    expect(towerProgress(all))
+      .toEqual({ defeated: VOID_BOSSES.length, total: VOID_BOSSES.length });
   });
 
   it("every boss has a trial event under the shared id, and no trial is orphaned", () => {
