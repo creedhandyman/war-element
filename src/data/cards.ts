@@ -6398,9 +6398,14 @@ export const CARDS: CardDef[] = [
     cost: 4,
     dmg: 7,
     hits: 1,
-    hp: 10,
+    // Meat over plate. Shields are the better resource point for point — they
+    // block before HP and Electro Surge tops them up every cast — so trading
+    // two of them for five HP makes the same body harder to burst and easier to
+    // chip, which is the shape a Tank that re-arms itself should have. It is
+    // also the half of the line that shield-strip cannot take away.
+    hp: 15,
     sp: 5,
-    shields: 5,
+    shields: 3,
     keywords: {},
     tribe: "ARC",
     // Surge Protector + Electro Surge: starts armed on summon; while armed it's
@@ -9420,7 +9425,7 @@ export const CARDS: CardDef[] = [
     onHitByMelee: { dmg: 3, status: { kind: "ELECTRIFIED", duration: 2, power: 0 } },
     // Running Crew: Havoc does not arrive alone. Surge is a real cost-4 CARD
     // rather than a token, and at cost 7 that free body IS the card's remaining
-    // value: 37 body points against a budget of 45, with a 32-point Surge
+    // value: 37 body points against a budget of 45, with a 33-point Surge
     // arriving beside it. See the exceptions note in state.test.ts — this is
     // ability-carried, downward, and deliberately so.
     summonSpawn: { token: "bolt_surge", count: 1 },
