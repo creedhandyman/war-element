@@ -269,13 +269,42 @@ export function applyStatus(
     if (NEGATIVE_STATUSES.includes(kind)) creditDebuff(draft.stats, target);
     return;
   }
-  if (existing >= 0) target.statuses[existing] = fresh;
-  else target.statuses.push(fresh);
+  // THE STRONGER ONE STICKS. A re-application used to overwrite wholesale, so
+  // the weaker of two identical statuses won purely by landing second: a BURN 2
+  // from a chip attack downgraded a BURN 5 already ticking, and a 1-round
+  // application cut a 3-round one short. Nothing wanted that — it made a
+  // heavy DOT worth less the more attacks followed it, which is backwards.
+  //
+  // Power and duration are taken independently, each keeping the better of the
+  // two, because they are separate promises: a long weak BURN followed by a
+  // short fierce one should leave you burning fiercely for the long time. That
+  // is the same rule WEAKEN and `stackStatus` already use for duration —
+  // "a fresh application should never SHORTEN a debuff already running" — now
+  // applied in the one funnel every source passes through, so it is a property
+  // of the STATUS rather than something each caller opts into.
+  //
+  // NOT stacking: `stackStatus` ADDS power (Thorn's cumulative BLEED) and stays
+  // the opt-in for cards whose whole design is that wounds accumulate. This is
+  // the default, and the default should be that hitting something twice does
+  // not make its burn worse than either hit promised.
+  let note = "";
+  if (existing >= 0) {
+    const st = target.statuses[existing];
+    const grew = power > st.power || dur > st.duration;
+    // Attribution follows the application that is actually doing the work, so
+    // a weak re-application cannot quietly reassign a strong DOT's element.
+    if (power >= st.power) st.source = source;
+    st.power = Math.max(st.power, power);
+    st.duration = Math.max(st.duration, dur);
+    note = grew ? " (refreshed)" : " (already worse — held)";
+  } else {
+    target.statuses.push(fresh);
+  }
   // Counted HERE, past every immunity / ward / fizzle gate above, so the report
   // reflects control that actually landed rather than control attempted.
   if (NEGATIVE_STATUSES.includes(kind)) creditDebuff(draft.stats, target);
   draft.log.push(
-    `${label(draft, target)} is afflicted: ${kind}${power ? ` ${power}` : ""} (${dur}r)${resisted < duration ? " — resisted" : ""}${extend ? " +field" : ""}${existing >= 0 ? " (refreshed)" : ""}.`,
+    `${label(draft, target)} is afflicted: ${kind}${power ? ` ${power}` : ""} (${dur}r)${resisted < duration ? " — resisted" : ""}${extend ? " +field" : ""}${note}.`,
   );
   // FRIGHTEN is a positioning effect: forced retreat 1 slot back toward the
   // target's own home row, if that slot is open (can also push an invader

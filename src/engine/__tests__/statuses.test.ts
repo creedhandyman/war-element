@@ -147,6 +147,92 @@ describe("PARALYZE — mobility", () => {
   });
 });
 
+describe("re-applying a status keeps the STRONGER one", () => {
+  // A re-application used to overwrite wholesale, so the weaker of two
+  // identical statuses won purely by landing second: a BURN 2 from a chip
+  // attack downgraded a BURN 5 already ticking, and a 1-round application cut
+  // a 3-round one short. That made a heavy DOT worth LESS the more attacks
+  // followed it, which is backwards.
+  const burn = (s: ReturnType<typeof prepState>, c: ReturnType<typeof place>, dur: number, pow: number) =>
+    applyStatus(s, c, "BURN", dur, pow, "PYRO");
+  const got = (c: ReturnType<typeof place>) => c.statuses.find((x) => x.kind === "BURN")!;
+
+  it("a weaker BURN cannot downgrade a fiercer one", () => {
+    const s = prepState();
+    const c = place(s, "leaf_alpha", "P1", 3, 0);
+    burn(s, c, 3, 5);
+    burn(s, c, 3, 2);
+    expect(got(c).power, "the 5 holds").toBe(5);
+  });
+
+  it("a fiercer BURN does upgrade a weaker one", () => {
+    const s = prepState();
+    const c = place(s, "leaf_alpha", "P1", 3, 0);
+    burn(s, c, 3, 2);
+    burn(s, c, 3, 5);
+    expect(got(c).power).toBe(5);
+  });
+
+  it("a shorter application cannot cut a longer one short", () => {
+    const s = prepState();
+    const c = place(s, "leaf_alpha", "P1", 3, 0);
+    burn(s, c, 4, 3);
+    burn(s, c, 1, 3);
+    expect(got(c).duration, "the 4 rounds hold").toBe(4);
+  });
+
+  it("power and duration are kept INDEPENDENTLY — the best of each", () => {
+    // A long weak burn then a short fierce one should leave you burning
+    // fiercely for the long time; neither half of the promise is discarded
+    // because the other half happened to be worse.
+    const s = prepState();
+    const c = place(s, "leaf_alpha", "P1", 3, 0);
+    burn(s, c, 5, 1);
+    burn(s, c, 1, 9);
+    expect(got(c).power).toBe(9);
+    expect(got(c).duration).toBe(5);
+  });
+
+  it("it REPLACES nothing — there is still only one BURN", () => {
+    const s = prepState();
+    const c = place(s, "leaf_alpha", "P1", 3, 0);
+    burn(s, c, 3, 2);
+    burn(s, c, 3, 5);
+    burn(s, c, 3, 4);
+    expect(c.statuses.filter((x) => x.kind === "BURN")).toHaveLength(1);
+  });
+
+  it("and it does NOT stack — two 3s do not make a 6", () => {
+    // `stackStatus` is the opt-in that ADDS power (Thorn's cumulative BLEED).
+    // The default must not quietly become it, or every repeated chip attack
+    // turns into a compounding DOT.
+    const s = prepState();
+    const c = place(s, "leaf_alpha", "P1", 3, 0);
+    burn(s, c, 3, 3);
+    burn(s, c, 3, 3);
+    expect(got(c).power).toBe(3);
+  });
+
+  it("attribution follows the stronger application, not the latest", () => {
+    // `source` decides which element gets credit for the tick; a weak
+    // re-application must not quietly reassign a strong DOT.
+    const s = prepState();
+    const c = place(s, "leaf_alpha", "P1", 3, 0);
+    applyStatus(s, c, "BLEED", 3, 5, "PYRO");
+    applyStatus(s, c, "BLEED", 3, 1, "GALE");
+    expect(c.statuses.find((x) => x.kind === "BLEED")!.source).toBe("PYRO");
+  });
+
+  it("the log says which way it went", () => {
+    const s = prepState();
+    const c = place(s, "leaf_alpha", "P1", 3, 0);
+    burn(s, c, 3, 5);
+    const before = s.log.length;
+    burn(s, c, 1, 1);
+    expect(s.log.slice(before).join(" ")).toContain("held");
+  });
+});
+
 describe("WEAKEN stacks", () => {
   /** A clean body plus its printed damage, so every expectation below is
    *  derived from the card rather than typed. */
