@@ -2895,7 +2895,11 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bolt_elecdroid",
-    name: "Arc",
+    // ALL CAPS, to match the tribe it is the mythic of. Every other mention of
+    // ARC in the game — the tribe field, the aura text, the boss's roster — is
+    // capitalised, so the one card actually named after it was the only place
+    // it read as an ordinary word.
+    name: "ARC",
     rarity: "mythic",
     element: "BOLT",
     cardClass: "Assassin",
