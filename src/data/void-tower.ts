@@ -221,6 +221,27 @@ export const VOID_BOSSES: VoidBoss[] = [
     ],
     puzzle: "The juggernaut: stop it once, or let it arrive.",
   },
+  {
+    cardId: "boss_thunderfangs",
+    floor: 3,
+    tribeElement: "GALE",
+    mechanicElement: "BOLT",
+    tribe: "Wolf",
+    // 6 + 5x2 + 3x3 + 3 = 28, exact, and all GALE — Wolf spans GALE, PYRO and
+    // LEAF, so an all-GALE pack is a choice rather than an accident.
+    //
+    // GALE is the TRIBE half because Wolf is a GALE tribe (five of its eight),
+    // and BOLT has no wolves at all — so the storm has to be the mechanic. It
+    // is the pairing the other way round from what the tribe list would let
+    // you build.
+    summons: [
+      "gale_totem",
+      "gale_omega", "gale_omega",
+      "gale_luna", "gale_luna", "gale_luna",
+      "gale_whirlwolf",
+    ],
+    puzzle: "The pack: for once, kill the escorts first.",
+  },
 ];
 
 export const voidBossById = (cardId: string): VoidBoss | null =>

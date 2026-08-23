@@ -319,6 +319,16 @@ export interface RoundTickDef {
   /** Seed Roll (Acorn token): roll forward N rows toward the enemy home each
    *  round, stopping at the first occupied/captured slot or the board edge. */
   advance?: number;
+  /** THE PACK: this card's damage scales with how many living allies of `tribe`
+   *  stand with it — `per` each, to `max` — RECOMPUTED every round.
+   *
+   *  Recomputed rather than accumulated, and that is the entire design. Every
+   *  other boss in the tower teaches "kill the source, ignore the tokens"; this
+   *  one inverts it. The number goes DOWN as the escorts die, in front of you,
+   *  so the fight tells you what to do without a tutorial: thin the pack and
+   *  the thing leading it stops being a problem. It is the one boss you are
+   *  supposed to answer by clearing the board first. */
+  packDmg?: { tribe: string; per: number; max: number };
   /** SIEGE AIM: slide one slot along the OWN home row toward the column holding
    *  the most opponents, one step a round.
    *
@@ -1234,6 +1244,9 @@ export interface CardInstance {
   /** How much of this card's `dmgBonus` is JUGGERNAUT momentum right now, so a
    *  reset takes back exactly what the run put on and nothing else. */
   momentumDmg?: number;
+  /** …and the same bookkeeping for THE PACK, which recomputes every round and
+   *  so has to be able to hand back exactly what it last gave. */
+  packBonus?: number;
   hitsBonusRound: number; // extra basic hits for the turn (Flow Change Liquid on multi-hit)
   tempShields: number; // shields granted "for the turn" (removed in Cleanup)
   /** Basic hits this card has LANDED on each target this round (keyed by target

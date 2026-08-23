@@ -195,4 +195,7 @@ export const GALE_LORE: Record<string, string> = {
 
   // ── Void Tower bosses ──
   boss_nightshrike: "You will hear one wingbeat. Payment is due on the second.",
+
+  // ── Void Tower bosses ──
+  boss_thunderfangs: "It never hunts alone, and it has never had to learn how."
 };

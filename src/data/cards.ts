@@ -10157,10 +10157,6 @@ export const CARDS: CardDef[] = [
     // stay, and block the lane with something you can afford to lose.
     passiveNames: { roundTick: "Traverse" },
     roundTick: { fireSpecialEveryN: 3, aimLateral: true },
-    // Placeholder art, aliased to the DAWN mythic until Helion has its own —
-    // the art sweep checks the FILE exists, so an alias is the honest way to
-    // ship a card whose portrait has not been drawn yet.
-    art: "dawn_imperator",
     special: {
       name: "Solar Lance",
       // No cooldown: the clock owns this Special outright (see fireSpecialEveryN).
@@ -10207,7 +10203,6 @@ export const CARDS: CardDef[] = [
     // blinded. Aurora light off a wall of ice — you do not see it coming, which
     // is a strange thing to say about something this size and exactly the joke.
     vsStatus: { status: "BLIND", bonusDmg: 5 },
-    art: "aqua_kraken",
     special: {
       name: "Aurora Break",
       cost: 3,
@@ -10216,6 +10211,54 @@ export const CARDS: CardDef[] = [
       params: { dmg: 10, targets: 99, reach: 2, statusKind: "BLIND", statusDuration: 2 },
       targetSide: "enemy",
       text: "10 DMG and BLIND for 2 rounds to every opponent within 2 spaces — and Whiteout Hunter adds 5 to everything it lands on the blinded.",
+    },
+  },
+  {
+    id: "boss_thunderfangs",
+    name: "Thunderfangs",
+    rarity: "mythic",
+    element: "GALE",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 12,
+    // Fast and sharp rather than heavy: Thunderfangs is the one boss that is
+    // NOT supposed to be a wall. Most of its damage is borrowed from the pack
+    // and hands itself back as the pack dies, so the printed line is what is
+    // left of it when you have done the work.
+    dmg: 10,
+    hits: 2,
+    // Written at 90/10 and it measured 97% — most of its damage is BORROWED
+    // from the pack, so a body sized like a Floor-3 boss's on top of that is
+    // two bosses' worth of threat. At roughly half it lands in band, and the
+    // small printed line is the point: this is what is left of Thunderfangs
+    // once you have done the work the fight is asking for.
+    hp: 50,
+    sp: 14,
+    shields: 6,
+    keywords: {},
+    tribe: "Wolf",
+    boss: true,
+    // Floor 3 — THE PACK, and it is the tower's one INVERSION. Every other boss
+    // teaches "kill the source, ignore the tokens"; this one is only dangerous
+    // while its escorts live, and the number falls in front of you as they die.
+    // The fight tells you what to do without a tutorial: thin the pack first.
+    //
+    // BOLT is the mechanic half — the storm in its teeth. Thunder Run leaves
+    // everything ELECTRIFIED and Storm Teeth hits the afflicted harder, so the
+    // Special sets up its own basic exactly the way BOLT's aura does.
+    passiveNames: { roundTick: "Pack Law", vsStatus: "Storm Teeth" },
+    vsStatus: { status: "ELECTRIFIED", bonusDmg: 4 },
+    roundTick: { fireSpecialEveryN: 3, packDmg: { tribe: "Wolf", per: 3, max: 12 }, advance: 1 },
+    special: {
+      name: "Thunder Run",
+      cost: 3,
+      handler: "barrage",
+      params: {
+        dmg: 9, targets: 99, reach: 2,
+        statusKind: "ELECTRIFIED", statusDuration: 2,
+      },
+      targetSide: "enemy",
+      text: "9 DMG and ELECTRIFIED for 2 rounds to every opponent within 2 spaces — and Storm Teeth adds 4 to everything it lands on the afflicted.",
     },
   },
 ];

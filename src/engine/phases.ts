@@ -2070,6 +2070,13 @@ function channelDmg(draft: GameState, card: CardInstance, base: number): number 
 
 /** Resolve every card's periodic (end-of-round) self-driven passive. Runs in
  *  Cleanup after DOT/REGEN and status-duration ticks. */
+/** Tribe membership, accepting the multi-tribe form. Local to the pack tick —
+ *  `inTribe` in void-tower.ts takes a def id and this takes a live card. */
+function inTribeOf(card: CardInstance, tribe: string): boolean {
+  const tr = getDef(card.defId).tribe;
+  return Array.isArray(tr) ? tr.includes(tribe) : tr === tribe;
+}
+
 function doRoundTicks(draft: GameState): void {
   for (const card of boardCards(draft)) {
     if (card.curHp <= 0) continue;
@@ -2132,6 +2139,24 @@ function doRoundTicks(draft: GameState): void {
         && !hasStatus(card, "MUTED") && !isActionBlocked(card)) {
       draft.log.push(`${label(draft, card)} — ${getDef(card.defId).special!.name} comes round again.`);
       fireCardSpecial(draft, card);
+    }
+
+    // THE PACK: strength borrowed from whoever is still standing. Recomputed
+    // from scratch each round rather than added to, so it FALLS as the escorts
+    // die — which is the tell the whole fight is built on.
+    if (rt.packDmg) {
+      const pack = boardCards(draft, card.owner).filter(
+        (a) => a.curHp > 0 && a.instanceId !== card.instanceId && inTribeOf(a, rt.packDmg!.tribe),
+      ).length;
+      const had = card.packBonus ?? 0;
+      const now = Math.min(rt.packDmg.max, pack * rt.packDmg.per);
+      if (now !== had) {
+        card.dmgBonus += now - had;   // hand back exactly what was last given
+        card.packBonus = now;
+        draft.log.push(now > had
+          ? `${label(draft, card)} runs with the pack (+${now} DMG, ${pack} at its side).`
+          : `${label(draft, card)} is thinning out (+${now} DMG, ${pack} left).`);
+      }
     }
 
     // SIEGE AIM: traverse the home row toward the busiest column. The Special

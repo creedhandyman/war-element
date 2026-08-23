@@ -66,6 +66,11 @@ describe("the roster", () => {
       // the number under it is the tuning, and building to the ceiling is how
       // you get a boss nobody reaches.
       boss_helion: 121, boss_hoarfell: 159,
+      // Thunderfangs is the smallest body on the top floor ON PURPOSE:
+      // most of its damage is borrowed from the pack and handed back as
+      // the pack dies, so a Floor-3 body on top of that is two bosses'
+      // worth of threat. It measured 97% at 90 HP.
+      boss_thunderfangs: 96,
     };
     for (const v of VOID_BOSSES) {
       expect(bodyTotal(getDef(v.cardId)), v.cardId).toBe(MEASURED[v.cardId]);
