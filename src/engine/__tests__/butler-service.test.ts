@@ -21,7 +21,10 @@ describe("Butler's Service", () => {
     expect(n.cards[near.instanceId].curHp, "orthogonally adjacent").toBe(14);
     // Range is chebyshev, so the eight surrounding squares all count — the same
     // shape a Melee basic reaches.
-    expect(n.cards[diagonal.instanceId].curHp, "diagonally adjacent").toBe(14);
+    // 14 from the Butler, +1 from CREEPING DARK: the diagonal gool is itself a
+    // DUSK card standing in contact with the enemy at (0,0), so it drains one
+    // and keeps it. Two auras land on the same body and both are working.
+    expect(n.cards[diagonal.instanceId].curHp, "diagonally adjacent").toBe(15);
     expect(n.log.some((l) => /attends 2 nearby/.test(l))).toBe(true);
     void butler;
   });

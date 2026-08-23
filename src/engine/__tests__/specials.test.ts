@@ -5,6 +5,7 @@ import { applyIntent } from "../phases";
 import { applyStatus, basicAttack, effectiveBasicHits } from "../combat";
 import { canBasicAttack, canFireSpecial, isActionBlocked } from "../rules";
 import { effectiveDmg, effectiveSp } from "../state";
+import { DUSK_DRAIN } from "../auras";
 import { CARDS, getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
 import { advance } from "../phases";
@@ -1163,7 +1164,12 @@ describe("outlier cuts and the Thorn sweep", () => {
     const { next, foes, dealt } = sweep("bolt_lytning");
     const after = advance(atCleanup(next));
     const total = foes.reduce((t, f) => t + (900 - after.cards[f.instanceId].curHp), 0);
-    expect(total).toBe(dealt + 8); // 2 DMG on each of the 4 still-PARALYZED foes
+    // 2 DMG on each of the 4 still-PARALYZED foes, less CREEPING DARK: the
+    // foes are DUSK cards and three of the four (cols 0-2) stand in contact
+    // with the caster at (2,1), so each drains one off it and keeps it. The
+    // fourth, at col 3, is two squares away and drinks nothing — which is why
+    // the correction is three and not four.
+    expect(total).toBe(dealt + 8 - DUSK_DRAIN * 3);
   });
 });
 

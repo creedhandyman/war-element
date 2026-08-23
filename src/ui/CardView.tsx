@@ -39,7 +39,7 @@ import { EL_COLOR, EL_ICON, RARITY_STYLE, STATUS_STYLE, KEYWORD_STYLE} from "./s
 import { cardMods, grantedKeywords } from "./Token";
 import { SpIcon } from "./icons";
 import { autoPrefFor, setAutoPref } from "./auto-prefs";
-import { chipify, describePassives, rounds, STATUS_TEXT } from "./card-text";
+import { chipify, describeOwnPassives, describeSharedPassives, rounds, STATUS_TEXT } from "./card-text";
 
 export type CardViewProps =
   | {
@@ -135,7 +135,16 @@ export function CardView(props: CardViewProps) {
     : browseModel(props.def);
   const d = vm.def;
   const kws = Object.entries(d.keywords).map(([k, v]) => (v === true ? k : `${k} ${v}`));
-  const passives = describePassives(d);
+  // SHARED RULES ARE NAMED, NOT SPELLED OUT. A DUSK card spent four lines on
+  // Midnight Shade — the same four lines every DUSK card carries — above the one
+  // line saying what THIS card does, and the shared text crowded out the part
+  // that differs. The name stays visible; the sentence is one tap away.
+  const shared = describeSharedPassives(d);
+  const auras = shared.filter((s) => s.kind === "aura");
+  const kwText = new Map(shared.filter((s) => s.kind === "keyword").map((s) => [s.label, s.desc]));
+  const passives = describeOwnPassives(d);
+  const [openRule, setOpenRule] = useState<string | null>(null);
+  const toggleRule = (k: string) => setOpenRule((cur) => (cur === k ? null : k));
 
   // Buffs from standing in a friendly wall's row. Inspect-only: it needs the
   // board position and the live wall list.
@@ -220,8 +229,23 @@ export function CardView(props: CardViewProps) {
 
             {kws.length > 0 && (
               <div className="cd-kws">
-                {kws.map((k) => <span key={k} className="cd-kw">{k}</span>)}
+                {kws.map((k) => (
+                  // The chip was always the name; now it also holds the meaning.
+                  // Only the keywords that HAVE a passive description become
+                  // buttons — the rest stay plain chips rather than offering a
+                  // tap that does nothing.
+                  kwText.has(k) ? (
+                    <button
+                      key={k}
+                      className={`cd-kw tappable ${openRule === k ? "on" : ""}`}
+                      onClick={(e) => { e.stopPropagation(); toggleRule(k); }}
+                    >{k}</button>
+                  ) : <span key={k} className="cd-kw">{k}</span>
+                ))}
               </div>
+            )}
+            {openRule && kwText.has(openRule) && (
+              <p className="cd-rule-body">{chipify(kwText.get(openRule)!)}</p>
             )}
 
             {/* ── zone 2a · live state (inspect only) ─────────────────────── */}
@@ -271,10 +295,28 @@ export function CardView(props: CardViewProps) {
           </div>
         )}
 
+        {/* ── zone 3a2 · the rules it shares with its whole element ───────── */}
+        {auras.length > 0 && (
+          <div className="cd-section">
+            {auras.map((a) => (
+              <div key={a.label}>
+                <button
+                  className={`cd-rule ${openRule === a.label ? "on" : ""}`}
+                  onClick={(e) => { e.stopPropagation(); toggleRule(a.label); }}
+                >
+                  <span>{a.label}</span>
+                  <span className="cd-rule-caret">{openRule === a.label ? "−" : "+"}</span>
+                </button>
+                {openRule === a.label && <p className="cd-rule-body">{chipify(a.desc)}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* ── zone 3b · passives ──────────────────────────────────────────── */}
         {passives.length > 0 && (
           <div className="cd-section">
-            <div className="cd-h">Passives</div>
+            <div className="cd-h">What makes it different</div>
             <ul className="cd-list">
               {passives.map((p, i) => <li key={i}>{chipify(p)}</li>)}
             </ul>

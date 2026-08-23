@@ -166,21 +166,58 @@ export const rounds = (n: number) => (n >= 99 ? "the rest of the match" : `${n} 
 /** Passive one-liners derived purely from a card definition (no live state).
  *  The element aura (shared by every card of this element) leads the list.
  *  Shared by the in-game CardDetail and the Deck Builder's card preview. */
-export function describePassives(def: CardDef): string[] {
-  const passives: string[] = [];
+/** One shared rule a card carries by WHAT IT IS rather than by its own design:
+ *  its element aura, a tribe passive, a keyword. Every card of that element or
+ *  with that keyword has the identical text. */
+export interface SharedPassive {
+  label: string;
+  desc: string;
+  /** Where the panel should hang it. A keyword already has a chip in the header
+   *  — it gets its text there rather than a second copy lower down. */
+  kind: "aura" | "keyword";
+}
+
+/** The shared rules only — element aura(s), tribe passives, keywords.
+ *
+ *  Split out so the card panel can print the NAME and keep the sentence behind
+ *  a tap. A DUSK card spent four lines explaining Midnight Shade, which is the
+ *  same four lines on all forty DUSK cards, above the one line that said what
+ *  THIS card does. The shared text is worth having and worth reading once; it
+ *  is not worth re-reading every time you inspect a card, and it was crowding
+ *  out the part that differs. */
+export function describeSharedPassives(def: CardDef): SharedPassive[] {
+  const shared: SharedPassive[] = [];
   // The card's own element aura, plus any it borrows (SirCrest's PYRO + AQUA).
   for (const el of [def.element, ...(def.elementAuras ?? [])]) {
     const a = ELEMENT_AURA[el];
-    passives.push(`${el} aura — ${a.name}: ${a.desc}`);
+    shared.push({ kind: "aura", label: `${el} aura — ${a.name}`, desc: a.desc });
   }
-  // The tribe passive, printed the same way the element aura is — a standing
-  // behaviour the card has by what it IS, not a per-card config.
-  // Only the three cards that actually carry it. Membership of ARC is not the
-  // rule — `hasArcDischarge` is, and this line claiming otherwise is what made
-  // the restriction look like it had never shipped.
   if (hasArcDischarge(def))
-    passives.push("ARC tribe — Discharge: end of round, deals a quarter of its current basic damage to every opponent in reach.");
+    shared.push({
+      kind: "aura",
+      label: "ARC tribe — Discharge",
+      desc: "end of round, deals a quarter of its current basic damage to every opponent in reach.",
+    });
+  // Passive-flavoured keywords: the chip names them, this says what it means.
+  const kw = def.keywords;
+  if (kw.REGEN) shared.push({ kind: "keyword", label: `REGEN ${kw.REGEN}`, desc: `heals ${kw.REGEN} HP at the end of each round.` });
+  if (kw.LIFESTEAL) shared.push({ kind: "keyword", label: "LIFESTEAL", desc: "basic attacks heal it for the damage dealt." });
+  if (kw.DRAIN)
+    shared.push({ kind: "keyword", label: "DRAIN", desc: "basic attacks heal it for the damage dealt AND steal 1 max HP from the target — it grows as it feeds (DUSK lifesteal)." });
+  if (kw.BLOCK) shared.push({ kind: "keyword", label: `BLOCK ${kw.BLOCK}`, desc: `every incoming hit is reduced by ${kw.BLOCK} — before shields, and even against PEN.` });
+  if (kw.REFLECT) shared.push({ kind: "keyword", label: `REFLECT ${kw.REFLECT}`, desc: `returns ${kw.REFLECT} DMG to attackers.` });
+  if (kw.EVASION) shared.push({ kind: "keyword", label: "EVASION", desc: "~50% chance to dodge each incoming hit." });
+  if (kw.TRAMPLE)
+    shared.push({ kind: "keyword", label: "TRAMPLE", desc: "in Prep it can step onto an adjacent opponent with less max HP, shoving it back a slot and taking the square (needs the slot behind it open)." });
+  return shared;
+}
 
+export function describePassives(def: CardDef): string[] {
+  // Shared rules first, flattened back to sentences. The panel renders the two
+  // groups differently now, but this stays whole so anything that wants the
+  // full text of a card — and the sweep that checks every mechanic HAS text —
+  // still gets all of it from one call.
+  const passives: string[] = describeSharedPassives(def).map((s) => `${s.label}: ${s.desc}`);
   /** Push a line, prefixed with the card's own name for that passive when it
    *  has one. `key` is the def field the line was derived from. */
   // Where each named ability's line already sits, so a SECOND mechanic under the
@@ -231,19 +268,6 @@ export function describePassives(def: CardDef): string[] {
       : body.charAt(0).toLowerCase() + body.slice(1);
     passives[at] = `${passives[at].replace(/\.\s*$/, "")}; ${cont}`;
   };
-  // Passive-flavored keywords read as the card's own ability, not just a chip.
-  const kw = def.keywords;
-  if (kw.REGEN) passives.push(`REGEN ${kw.REGEN}: heals ${kw.REGEN} HP at the end of each round.`);
-  if (kw.LIFESTEAL) passives.push("LIFESTEAL: basic attacks heal it for the damage dealt.");
-  if (kw.DRAIN)
-    passives.push("DRAIN: basic attacks heal it for the damage dealt AND steal 1 max HP from the target — it grows as it feeds (DUSK lifesteal).");
-  if (kw.BLOCK) passives.push(`BLOCK ${kw.BLOCK}: every incoming hit is reduced by ${kw.BLOCK} — before shields, and even against PEN.`);
-  if (kw.REFLECT) passives.push(`REFLECT ${kw.REFLECT}: returns ${kw.REFLECT} DMG to attackers.`);
-  if (kw.EVASION) passives.push("EVASION: ~50% chance to dodge each incoming hit.");
-  if (kw.TRAMPLE)
-    passives.push(
-      "TRAMPLE: in Prep it can step onto an adjacent opponent with less max HP, shoving it back a slot and taking the square (needs the slot behind it open).",
-    );
   if (def.allyRevive)
     named(
       "allyRevive",
@@ -953,6 +977,12 @@ export function describePassives(def: CardDef): string[] {
     named("diesAfterAttacking", "A one-shot: it dies at the end of any round it attacks.");
 
   return passives;
+}
+
+/** Only what makes THIS card different — everything `describePassives` returns
+ *  minus the shared rules it opens with. */
+export function describeOwnPassives(def: CardDef): string[] {
+  return describePassives(def).slice(describeSharedPassives(def).length);
 }
 
 // Plain-language blurb for each status kind, shown under a card's active effects.

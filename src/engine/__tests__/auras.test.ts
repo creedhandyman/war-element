@@ -10,8 +10,7 @@ import { CARDS, getDef } from "../../data/cards";
 import {
   ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
   EXOSTONE_SHIELDS, GALE_SP_CAP, LEAF_SHIELD_CAP, PYRO_BURN_DURATION, PYRO_BURN_STACK_CAP, hasElementAura,
-  slipstreamPct, tailwindDmg, GALE_TAILWIND_PER, GALE_TAILWIND_CAP, applyFlow,
-} from "../auras";
+  slipstreamPct, tailwindDmg, GALE_TAILWIND_PER, GALE_TAILWIND_CAP, applyFlow, DUSK_DRAIN } from "../auras";
 import { applyStatus, basicAttack, defeatCard, shadeDodgePct, slipstreamDodgePct } from "../combat";
 import { advance, applyIntent, openFlowRepick } from "../phases";
 import { basicIsInert } from "../rules";
@@ -64,6 +63,62 @@ describe("LEAF — Photosynthesis", () => {
   });
 });
 
+describe("Creeping Dark (DUSK)", () => {
+  // Both halves of Midnight Shade fire on DEATH: your card is killed, it deals
+  // its damage back, the shadows thicken over whoever is left. That is a
+  // comeback mechanic and nothing else — DUSK could not press an advantage,
+  // only be paid for losing one, and it measured last at 40.5% with no winning
+  // matchup on the board. This is the half that works while it is winning.
+
+  it("a DUSK card in contact drains an enemy and keeps it", () => {
+    const s = prepState();
+    const shade = place(s, "dusk_gool", "P1", 2, 1, { curHp: 10, maxHp: 40 });
+    const foe = place(s, "bolt_zipp", "P2", 1, 1, { curHp: 30, maxHp: 30 });
+    const n = advance(atCleanup(s));
+    expect(n.cards[foe.instanceId].curHp, "drained").toBe(30 - DUSK_DRAIN);
+    expect(n.cards[shade.instanceId].curHp, "and kept").toBe(10 + DUSK_DRAIN);
+  });
+
+  it("needs CONTACT — it is not a board-wide tick", () => {
+    // The cost of the aura is that the card has to stand where it can be hit.
+    const s = prepState();
+    place(s, "dusk_gool", "P1", 3, 0);
+    const far = place(s, "bolt_zipp", "P2", 0, 3, { curHp: 30, maxHp: 30 });
+    expect(advance(atCleanup(s)).cards[far.instanceId].curHp).toBe(30);
+  });
+
+  it("takes from the WEAKEST neighbour, deterministically", () => {
+    // Every DUSK card runs this every round; a random pick would make the same
+    // board play differently on a re-run, and this element fields the widest
+    // boards in the game. Lowest HP is also the choice a player would make —
+    // the drain is worth most when it finishes something.
+    const s = prepState();
+    place(s, "dusk_gool", "P1", 2, 1);
+    const hurt = place(s, "bolt_zipp", "P2", 1, 1, { curHp: 4, maxHp: 30 });
+    const hale = place(s, "bolt_zipp", "P2", 1, 2, { curHp: 30, maxHp: 30 });
+    const n = advance(atCleanup(s));
+    expect(n.cards[hurt.instanceId].curHp).toBe(4 - DUSK_DRAIN);
+    expect(n.cards[hale.instanceId].curHp, "untouched").toBe(30);
+  });
+
+  it("can finish something off, and the kill is credited", () => {
+    const s = prepState();
+    place(s, "dusk_gool", "P1", 2, 1);
+    const dying = place(s, "bolt_zipp", "P2", 1, 1, { curHp: DUSK_DRAIN, maxHp: 30 });
+    const n = advance(atCleanup(s));
+    expect(n.cards[dying.instanceId], "gone").toBeUndefined();
+  });
+
+  it("is DUSK's alone", () => {
+    // A BOLT victim on purpose: a LEAF one heals +2 at Cleanup under
+    // Photosynthesis, which would hide a 1 HP drain completely.
+    const s = prepState();
+    place(s, "bolt_zipp", "P1", 2, 1);
+    const foe = place(s, "bolt_zipp", "P2", 1, 1, { curHp: 30, maxHp: 30 });
+    expect(advance(atCleanup(s)).cards[foe.instanceId].curHp).toBe(30);
+  });
+});
+
 describe("ARC tribe — Discharge", () => {
   // A tribe passive, but NOT a whole-tribe one: only ARC's MYTHIC and LEGENDARY
   // shed a quarter of their CURRENT basic damage to every opponent in reach at
@@ -96,7 +151,11 @@ describe("ARC tribe — Discharge", () => {
     const plain = Math.floor((base.dmg * base.hits) / ARC_DISCHARGE_DIVISOR);
     expect(buffed).toBeGreaterThan(plain);
     const n = advance(atCleanup(s));
-    expect(30 - n.cards[prey.instanceId].curHp).toBe(buffed);
+    // CREEPING DARK: the prey is a DUSK card in contact with the ARC carrier,
+    // so it drains 1 HP off it and keeps it. Netted out here rather than by
+    // swapping the dummy, because the dummy's position is what puts it in
+    // discharge range in the first place.
+    expect(30 - n.cards[prey.instanceId].curHp + DUSK_DRAIN).toBe(buffed);
   });
 
   it("an EPIC ARC card sheds nothing, however hard it hits", () => {
@@ -128,7 +187,8 @@ describe("ARC tribe — Discharge", () => {
     expect(Math.floor(jack.dmg / ARC_DISCHARGE_DIVISOR)).toBe(0);
     expect(zap).toBeGreaterThan(0);
     const n = advance(atCleanup(s));
-    expect(30 - n.cards[prey.instanceId].curHp).toBe(zap);
+    // …and the same Creeping Dark heal on the DUSK prey — see above.
+    expect(30 - n.cards[prey.instanceId].curHp + DUSK_DRAIN).toBe(zap);
   });
 
   it("hums, not strikes, below 4 total — and non-ARC BOLT sheds nothing", () => {

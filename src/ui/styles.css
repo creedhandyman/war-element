@@ -1475,6 +1475,28 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .cd-val { font-size: 14px; font-weight: 800; }
 .cd-kws { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
 .cd-kw { font-size: 10px; font-weight: 800; letter-spacing: 0.04em; padding: 2px 7px; border-radius: 999px; background: rgba(143,195,255,0.14); color: #8fc3ff; }
+/* A keyword chip that holds its own explanation. Same chip, plus an affordance
+   — the dotted underline is the only thing distinguishing "this is a label"
+   from "this will tell you what it does" at 10px. */
+.cd-kw.tappable {
+  border: 0; font: inherit; font-size: 10px; font-weight: 800; letter-spacing: 0.04em;
+  cursor: pointer; text-decoration: underline dotted rgba(143,195,255,0.5);
+  text-underline-offset: 2px;
+}
+.cd-kw.tappable.on { background: rgba(143,195,255,0.3); text-decoration: none; }
+/* The element aura, named and folded away. It is the same sentence on every
+   card of the element, so it is worth reading once and not worth re-reading
+   every time — the name stays, the sentence is a tap. */
+.cd-rule {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; padding: 6px 8px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03);
+  color: var(--ink-dim); font: inherit; font-size: 11.5px; font-weight: 600;
+  cursor: pointer; text-align: left;
+}
+.cd-rule.on { color: var(--ink); border-color: rgba(255,255,255,0.2); }
+.cd-rule-caret { flex: none; opacity: 0.6; font-weight: 700; }
+.cd-rule-body { margin: 6px 2px 0; font-size: 11.5px; line-height: 1.5; color: var(--ink-dim); }
 .cd-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--panel-line); }
 .cd-h { font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
 .cd-cost-pill { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: rgba(124,77,255,0.2); color: #b79bff; margin-left: auto; }

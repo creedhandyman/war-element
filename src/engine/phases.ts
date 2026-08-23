@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { voidPlayerHeadStart } from "../data/void-tower";
-import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
+import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import { applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
@@ -2855,6 +2855,29 @@ function doCleanupPhase(draft: GameState): void {
       if (perm.shieldPerRound) card.curShields += perm.shieldPerRound;
       if (perm.healPerRound) healCard(draft, card, perm.healPerRound, card);
     }
+    // CREEPING DARK (DUSK): a DUSK card in contact with an enemy drains a little
+    // life out of it each round, and keeps it. See DUSK_DRAIN for why the
+    // element needed something that works while it is winning.
+    //
+    // The victim is chosen by LOWEST HP, ties broken by instance id — this runs
+    // on every DUSK card every round and a random pick would make the same
+    // board play differently on a re-run. Lowest-HP is also the choice a player
+    // would make: the drain is worth most when it finishes something.
+    if (hasElementAura(def, "DUSK") && card.pos && card.curHp > 0) {
+      const touching = boardCards(draft, enemyOf(card.owner))
+        .filter((e) => e.curHp > 0 && e.pos && chebyshev(card.pos!, e.pos) === 1)
+        .sort((a, b) => a.curHp - b.curHp || a.instanceId.localeCompare(b.instanceId));
+      const victim = touching[0];
+      if (victim) {
+        const drained = Math.min(DUSK_DRAIN, victim.curHp);
+        victim.curHp -= drained;
+        noteDamageFx(victim, drained);
+        healCard(draft, card, drained, card);
+        draft.log.push(`${label(draft, card)} drinks from the dark (${drained} from ${label(draft, victim)}).`);
+        if (victim.curHp <= 0) defeatCard(draft, victim, "Creeping Dark", card);
+      }
+    }
+
     // THE TIDE (AQUA): the Flow chosen at summon deepens every few rounds, a
     // smaller helping each time, only so many times. See AQUA_TIDE_EVERY for
     // why the element needed an engine at all.

@@ -373,6 +373,26 @@ export const DUSK_SHADE_PCT = 5;
  *  stacks — a quarter of all incoming hits — is the ceiling. */
 export const DUSK_SHADE_MAX_STACKS = 5;
 
+/** CREEPING DARK — Midnight Shade's missing half.
+ *
+ *  Both halves of the old aura fire on DEATH: your card is killed, it deals its
+ *  damage back, and the shadows thicken over whoever is left. That is a
+ *  comeback mechanic and nothing else — DUSK could not press an advantage, only
+ *  be paid for losing one. It measured last at 40.5% with no winning matchup on
+ *  the board, which is the same shape AQUA had when Flow Change was the only
+ *  one-shot aura in the game.
+ *
+ *  So the dark works while you are winning too. At end of round every DUSK card
+ *  standing next to an enemy drains a little life out of it. It scales with
+ *  BOARD PRESENCE, which is exactly DUSK's identity — seven of its cards cost 2
+ *  or less and two of those are spawnable tokens, so a wide cheap board is what
+ *  the element is FOR, and this is the first thing that pays it for being wide
+ *  rather than for dying wide.
+ *
+ *  Adjacency is the cost. It is not a free tick like LEAF's heal; the card has
+ *  to be in contact, which is the same place it can be hit. */
+export const DUSK_DRAIN = 1;
+
 // AQUA Flow Change — the three-way summon choice. The summon pick is PERMANENT.
 export type FlowMode = "water" | "ice" | "steam";
 export const FLOW_MODES: Record<FlowMode, { label: string; blurb: string }> = {

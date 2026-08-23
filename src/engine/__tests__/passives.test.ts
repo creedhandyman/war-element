@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, shadeDodgePct, SPECIAL_HANDLERS, TARGETLESS_HANDLERS } from "../combat";
 import { weakenStacks } from "../auras";
-import { applyFlow, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
+import { applyFlow, DUSK_DRAIN, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire, spawnTokens } from "../state";
@@ -73,8 +73,12 @@ describe("clean-win passives (audit batch)", () => {
     // reach is a stronger check than one it could not.
     const healthy = place(s, "dusk_gool", "P2", 0, 3, { curHp: 20, maxHp: 40, curShields: 0 });
     const next = advance(atCleanup(s));
-    expect(next.cards[stunned.instanceId].curHp).toBe(20 - 5); // Volt Turret, nothing else
-    expect(next.cards[healthy.instanceId].curHp).toBe(20);     // not PARALYZED — spared
+    // +DUSK_DRAIN throughout this file: a DUSK card in contact with a P1 body
+    // drains one off it and keeps it every Cleanup, so a DUSK punching bag is
+    // no longer inert. Written as the mechanic PLUS the heal so the number
+    // under test stays legible instead of becoming a magic constant.
+    expect(next.cards[stunned.instanceId].curHp).toBe(20 - 5 + DUSK_DRAIN); // Volt Turret + drain
+    expect(next.cards[healthy.instanceId].curHp).toBe(20);     // not PARALYZED — spared, and out of contact
   });
 
   it("Hillbilly's Hillside braces an ally the first time IT is hit, once each", () => {
@@ -126,8 +130,8 @@ describe("medium-tier passives (audit batch)", () => {
     });
     const free = place(s, "dusk_gool", "P2", 1, 1, { curHp: 20, maxHp: 40, curShields: 0 });
     const next = advance(atCleanup(s));
-    expect(next.cards[stunned.instanceId].curHp).toBe(18); // −2 Complete Circuit
-    expect(next.cards[free.instanceId].curHp).toBe(20); // not paralyzed → spared
+    expect(next.cards[stunned.instanceId].curHp).toBe(18 + DUSK_DRAIN); // −2 Complete Circuit, +1 Creeping Dark
+    expect(next.cards[free.instanceId].curHp).toBe(20 + DUSK_DRAIN); // not paralyzed → spared, but still drinks
   });
 
   it("Squanch's Regenerative banks enemy hits and cashes them in at Cleanup", () => {
@@ -587,11 +591,13 @@ describe("medium-tier passives (audit batch)", () => {
     expect(statusOf(s.cards[zap.instanceId], "ELECTRIFIED")).toBeTruthy(); // pinned
     expect(100 - s.cards[zap.instanceId].curHp).toBe(3); // volley 1 (on cast)
     let n = advance(atCleanup(s));
-    expect(100 - n.cards[zap.instanceId].curHp).toBe(6); // volley 2
+    expect(100 - n.cards[zap.instanceId].curHp).toBe(6 - DUSK_DRAIN); // volley 2, less one Creeping Dark heal
     n = advance(atCleanup(n));
-    expect(100 - n.cards[zap.instanceId].curHp).toBe(9); // volley 3
+    expect(100 - n.cards[zap.instanceId].curHp).toBe(9 - DUSK_DRAIN * 2); // volley 3, less two Cleanups of drain-heal
     n = advance(atCleanup(n));
-    expect(100 - n.cards[zap.instanceId].curHp).toBe(9); // turret spent — no 4th
+    // Turret spent — no 4th volley. The number still moves because Creeping
+    // Dark does not stop when the turret does, which is the point of it.
+    expect(100 - n.cards[zap.instanceId].curHp).toBe(9 - DUSK_DRAIN * 3);
   });
 
   it("Sarachnid's Silk Chase nests a new Spider for every opponent it kills", () => {
@@ -2016,7 +2022,7 @@ describe("medium-tier passives (audit batch)", () => {
     basicAttack(s, fallow.instanceId, foe.instanceId);
     const afterHit = s.cards[foe.instanceId].curHp;
     const next = advance(atCleanup(s));
-    expect(next.cards[foe.instanceId].curHp).toBe(afterHit - 1); // Trapper bit
+    expect(next.cards[foe.instanceId].curHp).toBe(afterHit - 1 + DUSK_DRAIN); // Trapper bit, Creeping Dark gave it back
     expect(statusOf(next.cards[foe.instanceId], "ROOT")?.duration).toBe(1); // still pinned for its Prep
   });
 
