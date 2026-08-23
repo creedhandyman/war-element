@@ -109,6 +109,16 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
       const desperate = findAdvance(state, player, true) ?? findClosingMove(state, player);
       if (desperate) return desperate;
     }
+    // A step to the side can be the difference between standing there and
+    // fighting — see findFlankingMove. AFTER the stall-breaker, and that order
+    // is the whole reason the first two attempts at this failed the smoke
+    // suite: with the flank tried first, two camped ranged lines each had an
+    // idle card that could always find a better angle, so `standoff` never got
+    // a turn, nobody ever advanced, and matches ran to the round cap. When the
+    // WHOLE army is idle the answer is to close the distance; a sidestep is for
+    // the card that is idle while the rest of the board is fighting.
+    const flank = findFlankingMove(state, player);
+    if (flank) return flank;
   }
 
   return { type: "PASS", player };
@@ -519,6 +529,91 @@ function bfsDistance(state: GameState, from: Pos, goals: Pos[]): number {
     dist++;
   }
   return Infinity;
+}
+
+/**
+ * SIDESTEP TO LINE UP A SHOT.
+ *
+ * `findAdvance` generates candidates from `d = reach; d >= 1`, so every move it
+ * will ever consider makes at least one row of forward progress — a purely
+ * LATERAL move is not in its candidate set at all. Sideways only ever happened
+ * as a rider on going forward. Reported from real games as the AI not knowing
+ * when to go left or right, only forward, and that is exactly what the loop
+ * says.
+ *
+ * It matters because reach is not a circle: the Home-slot rule, the sight
+ * screen down a lane, a body parked in the column and the melee/ranged reach
+ * cap all mean the difference between "cannot touch anything" and "hits two
+ * cards" is frequently one square to the side. A player makes that step
+ * constantly. The AI could not make it at all.
+ *
+ * THE RULE THAT STOPS IT PACING: only a card that can currently hit NOTHING may
+ * do this, and only onto a square from which it can hit something. Idle to
+ * useful, once — not "useful to slightly more useful", which is a licence to
+ * shuffle.
+ *
+ * That bound is measured, not cautious. The first cut let any card improve its
+ * target count and the smoke suite immediately stopped finishing matches: with
+ * the board changing every turn, targets(A) and targets(B) can each look like
+ * an improvement on different rounds, so the strict-increase argument that
+ * holds within one turn does not hold across them — and even where it did, the
+ * AI spent its one move a turn edging sideways instead of advancing, and games
+ * ran to the round cap. Restricted to cards with nothing to shoot at, it fires
+ * rarely and only when the alternative is standing still.
+ *
+ * Tried AFTER `findAdvance`, so closing the distance still comes first — this
+ * is what a card does when it cannot usefully move up and is standing one
+ * square away from being able to fight at all.
+ */
+function findFlankingMove(state: GameState, player: PlayerId): Intent | null {
+  const enemyHome = homeRow(enemyOf(player), state.boardSize);
+  const movers = boardCards(state, player)
+    .filter((c) => moveReachFor(state, c) > 0)
+    // A card already standing on an enemy home slot is mid-capture; walking it
+    // sideways for a better angle throws away the win condition for a swing.
+    .filter((c) => !isMidCapture(state, c, enemyHome))
+    // IDLE ONLY — see the note above. A card that can already fight should be
+    // fighting, not improving its angle.
+    .filter((c) => validTargets(state, c.instanceId).length === 0)
+    // ONCE A ROUND PER CARD, and this is what makes the Prep phase terminate.
+    //
+    // Prep ends on two consecutive passes. A repeatable move means the AI never
+    // passes, and the third attempt at this hung a smoke match in `prep` for
+    // exactly that reason: one idle card kept finding a better angle, turn after
+    // turn, and the phase had no way to close. Because every card may take at
+    // most one of these a round, the supply is finite and the AI runs out and
+    // passes — which is also the honest reading of the move: it is a
+    // reposition, not a dance.
+    .filter((c) => !c.movedThisRound);
+
+  for (const mover of movers) {
+    let best: Pos | null = null;
+    let bestCount = 0;
+    let bestThreat = Infinity;
+    for (let row = 0; row < state.boardSize; row++)
+      for (let col = 0; col < state.boardSize; col++) {
+        const to = { row, col } as Pos;
+        if (!canMove(state, player, mover.instanceId, to).ok) continue;
+        // Count what it could hit from there. `validTargets` reads the card's
+        // CURRENT position, so the count is taken on a ghost standing at `to` —
+        // the same trick `threatAt` uses.
+        const ghost = { ...state, cards: { ...state.cards,
+          [mover.instanceId]: { ...mover, pos: to } } };
+        const after = validTargets(ghost, mover.instanceId).length;
+        if (after <= bestCount) continue;
+        // Do not walk into a grave for one extra target.
+        const threat = threatAt(state, mover, to);
+        if (threat >= mover.curHp + mover.curShields * 2 && threat > 0) continue;
+        // Ties on target count go to the safer square.
+        if (after > bestCount || threat < bestThreat) {
+          bestCount = after;
+          bestThreat = threat;
+          best = to;
+        }
+      }
+    if (best) return { type: "MOVE", player, instanceId: mover.instanceId, to: best };
+  }
+  return null;
 }
 
 /**

@@ -273,6 +273,77 @@ describe("full AI-vs-AI matches (integration)", () => {
   });
 });
 
+describe("the AI steps sideways to line up a shot", () => {
+  // `findAdvance` generates candidates from `d = reach; d >= 1`, so every move
+  // it could ever pick makes at least one row of forward progress — a purely
+  // LATERAL move was not in its candidate set at all. Reported from real games
+  // as the AI not knowing when to go left or right, only forward, which is
+  // precisely what that loop said.
+
+  it("makes purely lateral moves in real matches", () => {
+    // Tested through PLAY rather than a hand-built board, because the thing
+    // that was missing is a behaviour and the boards where it applies are
+    // exactly the ones that are awkward to construct by hand. Before this went
+    // in, a sideways move with no forward component was not reachable at all —
+    // the count below was zero across every seed.
+    let lateral = 0, forward = 0;
+    for (let seed = 0; seed < 6; seed++) {
+      let s = createInitialState(seed * 31 + 7, "leaf_pyro", "bore_dusk", []);
+      let steps = 0;
+      while (s.phase !== "gameover" && steps < 4000) {
+        const before = new Map(boardCards(s).map((c) => [c.instanceId, c.pos]));
+        s = advance(s);
+        for (const c of boardCards(s)) {
+          const was = before.get(c.instanceId);
+          if (!was || !c.pos) continue;
+          if (was.row === c.pos.row && was.col !== c.pos.col) lateral++;
+          else if (was.row !== c.pos.row) forward++;
+        }
+        steps++;
+      }
+    }
+    expect(forward, "cards still advance").toBeGreaterThan(0);
+    expect(lateral, "and some of them step sideways").toBeGreaterThan(0);
+  });
+
+  it("the AI still reaches a PASS when there is nothing to do", () => {
+    // THE PROPERTY THE PREP PHASE RESTS ON, and the one this change broke
+    // twice. Prep ends on two consecutive passes, so any move the AI can repeat
+    // forever means the phase never closes. The first two cuts of the sidestep
+    // did exactly that and the smoke suite reported it as a match stuck in
+    // `prep` twenty files away — so it is asserted here, directly, where the
+    // failure would name itself.
+    const s = prepState(42, "P2");
+    s.players.P2.hand = [];
+    s.players.P2.gold = 0;
+    s.players.P2.magicPool = 0;
+    expect(aiPrepIntent(s, "P2").type).toBe("PASS");
+  });
+
+  it("...and keeps reaching it with idle cards on the board", () => {
+    // The sidestep is capped at one a round per card (`movedThisRound`), which
+    // is what makes the supply finite. Walk a full Prep phase and check it
+    // terminates rather than running the priority back and forth forever.
+    let s = prepState(42, "P2");
+    // BOTH seats on the AI. `prepState` leaves P1 human, and `advance` will
+    // sit waiting for input that never arrives — which looks exactly like the
+    // hang this test is meant to catch and is not it.
+    s.humans = [];
+    s.players.P2.hand = [];
+    s.players.P1.hand = [];
+    s.players.P2.gold = 0;
+    s.players.P1.gold = 0;
+    s.players.P2.magicPool = 0;
+    s.players.P1.magicPool = 0;
+    place(s, "dusk_gool", "P2", 0, 0);
+    place(s, "dusk_gool", "P2", 0, 1);
+    place(s, "leaf_alpha", "P1", 3, 3, { curHp: 999, maxHp: 999 });
+    let guard = 0;
+    while (s.phase === "prep" && guard < 400) { s = advance(s); guard++; }
+    expect(guard, "the Prep phase closed").toBeLessThan(400);
+  });
+});
+
 describe("AI vision (fog of war)", () => {
   it("prep decisions read only its own hand and the board", () => {
     // Structural check: identical board + P2 hand but different P1 hands
