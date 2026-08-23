@@ -195,5 +195,6 @@ export const BOLT_LORE: Record<string, string> = {
     "The current has somewhere to be. Standing in the way is not a plan.",
 
   // ── Void Tower bosses ──
+  bolt_firebolt_tok: "Shipped with a warranty. The warranty is the explosion.",
   boss_overclock: "The line does not stop for losses. Losses are a scheduled output.",
 };

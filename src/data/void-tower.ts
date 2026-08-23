@@ -137,18 +137,24 @@ export const VOID_BOSSES: VoidBoss[] = [
   },
   {
     cardId: "boss_overclock",
-    floor: 1,
+    // FLOOR 2. The swarm reads as a harder lesson than the four it stood beside
+    // — "AoE it, or choke the approach" wants a collection with answers already
+    // in it — and the line it stamps out now burns what it shoots and detonates
+    // when it falls, which is not a Floor-1 tutorial any more.
+    floor: 2,
     tribeElement: "BOLT",
     mechanicElement: "PYRO",
     tribe: "ARC",
-    // 1×3 + 2×3 + 1×3 = 12 — the whole budget in cost-1/2 machines, wide and
-    // cheap, exactly the tide the puzzle wants. Wisps are ARC tokens, legal by
-    // the stated rule. (The doc's Forged Tech is mono-PYRO; ARC is BOLT's real
+    // 1×3 + 2×3 + 1×3 + 4 + 4 = 20, Floor 2's budget exactly. Still the wide
+    // cheap tide the puzzle is built on — Sentry and Dynamo are line
+    // supervisors, not a change of plan. Wisps are ARC tokens, legal by the
+    // stated rule. (The doc's Forged Tech is mono-PYRO; ARC is BOLT's real
     // machine tribe, so the formula's A/B flips against the doc here too.)
     summons: [
       "bolt_zipp", "bolt_zipp", "bolt_zipp",
       "bolt_staticcloud", "bolt_staticcloud", "bolt_staticcloud",
       "bolt_static_wisp_tok", "bolt_static_wisp_tok", "bolt_static_wisp_tok",
+      "bolt_sentry", "bolt_shoksa",
     ],
     puzzle: "The swarm: AoE it, or choke the approach.",
   },

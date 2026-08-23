@@ -10016,9 +10016,9 @@ export const CARDS: CardDef[] = [
       // is "AoE it, or choke the approach"; a line you can never get ahead of
       // is not a puzzle, it is a clock you lose to. Four standing Drones is a
       // wall you must clear, and it re-stamps the moment you do.
-      params: { token: "bolt_drone_tok", count: 2, maxAlive: 4 },
+      params: { token: "bolt_firebolt_tok", count: 2, maxAlive: 4 },
       targetSide: "self",
-      text: "Stamp out 2 Drones beside it, up to 4 on the field at once.",
+      text: "Stamp out 2 Firebolt Drones beside it, up to 4 at once — each one burns what it shoots and detonates when it falls.",
     },
   },
   {
@@ -10489,6 +10489,35 @@ export const TOKENS: CardDef[] = [
     keywords: { FLYING: true },
     // ARC with the rest of BOLT's machines, and with Zipp that builds it.
     tribe: "ARC",
+  },
+  {
+    id: "bolt_firebolt_tok",
+    name: "Firebolt Drone",
+    rarity: "rare",
+    element: "BOLT",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    // The Drone's line exactly — 1/1/1, flying, ARC — because the point is that
+    // it is the SAME machine off the same line, with two things bolted on.
+    cost: 1,
+    dmg: 1,
+    hits: 1,
+    hp: 1,
+    sp: 8,
+    shields: 1,
+    keywords: { FLYING: true },
+    tribe: "ARC",
+    passiveNames: { onDeath: "Scrap Blast", onHitStatus: "Cinder Rounds" },
+    // Scrap Blast: it goes off like a Crow does (`inRangeDmg`, the Bird Bomb
+    // shape). Four rather than the Crow's five — this one is spawned in
+    // numbers by a boss on a free three-round clock, and a Crow is a card you
+    // had to buy and place.
+    onDeath: { dmg: 0, inRangeDmg: 4 },
+    // Cinder Rounds: the PYRO half of Overclock's pairing, expressed on the
+    // thing it builds rather than on itself. A 1-damage drone is a rounding
+    // error; a 1-damage drone that leaves you burning is a reason to shoot it,
+    // which is what the swarm puzzle wants you doing.
+    onHitStatus: { kind: "BURN", duration: 2, power: 2 },
   },
   {
     id: "dusk_redreven",

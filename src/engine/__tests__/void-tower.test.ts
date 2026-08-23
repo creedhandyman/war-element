@@ -837,18 +837,18 @@ describe("slay the boss to win", () => {
 });
 
 describe("a spawn Special has a stock cap", () => {
-  it("Production Run stops at 4 Drones and re-stamps as they die", () => {
+  it("Production Run stops at 4 Firebolt Drones and re-stamps as they die", () => {
     // `spawnMaxAlive` already leashed the round-tick and onOppSummon spawns; the
     // SPECIAL was the one path with no ceiling, and on a free 3-round clock that
     // is the Buzzard problem again — two a cast, forever.
     const s = prepState();
     const boss = place(s, "boss_overclock", "P2", 0, 2);
     const def = getDef("boss_overclock").special!;
-    const drones = () => boardCards(s, "P2").filter((c) => c.curHp > 0 && c.defId === "bolt_drone_tok").length;
+    const drones = () => boardCards(s, "P2").filter((c) => c.curHp > 0 && c.defId === "bolt_firebolt_tok").length;
     for (let i = 0; i < 5; i++) SPECIAL_HANDLERS.spawn(s, boss, [], def.params!);
     expect(drones(), "capped").toBe(4);
     // Kill one; the line re-stamps rather than being spent for the match.
-    const one = boardCards(s, "P2").find((c) => c.defId === "bolt_drone_tok")!;
+    const one = boardCards(s, "P2").find((c) => c.defId === "bolt_firebolt_tok")!;
     defeatCard(s, s.cards[one.instanceId], "test");
     SPECIAL_HANDLERS.spawn(s, boss, [], def.params!);
     expect(drones(), "back to the cap").toBe(4);
