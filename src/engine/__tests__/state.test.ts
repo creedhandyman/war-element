@@ -140,13 +140,14 @@ describe("setup", () => {
       "pyro_infernus_rex",
       // ONE point outside the band, and the only entry here that is a tuning
       // choice rather than an ability-carried line: 33 vs a Cost-4 budget of 30.
-      // Surge traded 2 shields for 5 HP, and because the formula prices shields
-      // at x2 and HP at x1 that swap is +1 on a card already sitting at the
-      // +2 edge. The card is unchanged in power — arguably weaker, since shields
-      // block first and Electro Surge refills them — so trimming a point of SP
-      // or damage to satisfy the arithmetic would change how it plays in order
-      // to keep a number tidy. Recorded instead of hidden; if the band is ever
-      // enforced strictly, this is the one to revisit first.
+      // Surge gave up 2 shields for 5 HP, and because the formula prices
+      // shields at x2 and HP at x1 that swap is +1 on a card already sitting at
+      // the +2 edge. (A later 2 damage for 2 HP is exactly body-neutral and
+      // does not move this.) The card is not stronger for it — arguably weaker,
+      // since shields block first and Electro Surge refills them — so trimming
+      // SP or damage to satisfy the arithmetic would change how it plays in
+      // order to keep a number tidy. Recorded instead of hidden; if the band is
+      // ever enforced strictly, this is the one to revisit first.
       "bolt_surge",
     ]);
     for (const def of CARDS) {

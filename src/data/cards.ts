@@ -6399,14 +6399,16 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     attackType: "Melee",
     cost: 4,
-    dmg: 7,
+    // A TANK THAT SOAKS RATHER THAN SWINGS. The line has walked twice now, both
+    // times the same direction: 5 shields and 10 HP became 3 and 15, and then
+    // 7 damage became 5 to buy two more HP. Every step trades output for the
+    // ability to still be standing, which is what a Tank whose whole kit is a
+    // reactive charge wants — Electro Surge only pays if Surge is alive to
+    // re-arm it, and the retaliation punishes whoever hit it, not whoever it
+    // hit. HP is also the half of the line that shield-strip cannot take away.
+    dmg: 5,
     hits: 1,
-    // Meat over plate. Shields are the better resource point for point — they
-    // block before HP and Electro Surge tops them up every cast — so trading
-    // two of them for five HP makes the same body harder to burst and easier to
-    // chip, which is the shape a Tank that re-arms itself should have. It is
-    // also the half of the line that shield-strip cannot take away.
-    hp: 15,
+    hp: 17,
     sp: 5,
     shields: 3,
     keywords: {},
