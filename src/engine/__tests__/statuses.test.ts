@@ -2,7 +2,9 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus } from "../combat";
-import { WEAKEN_MAX_STACKS, weakenMult, weakenStacks } from "../auras";
+import { AQUA_TIDE_EVERY, AQUA_TIDE_MAX, WEAKEN_MAX_STACKS, weakenMult, weakenStacks } from "../auras";
+import { advance } from "../phases";
+import { atCleanup } from "./helpers";
 import { canMove, isActionBlocked, legalMoves } from "../rules";
 import { getDef } from "../../data/cards";
 import { SP_SLOW_MAX } from "../state";
@@ -144,6 +146,57 @@ describe("PARALYZE — mobility", () => {
     applyStatus(s, c, "PARALYZE", 2, 0, "BOLT");
     expect(canMove(s, "P1", c.instanceId, twoAway).ok).toBe(false);
     expect(canMove(s, "P1", c.instanceId, { row: 1, col: 1 }).ok).toBe(true); // one step still fine
+  });
+});
+
+describe("the tide (AQUA's Flow Change deepens)", () => {
+  // AQUA measured last, and the structural reason was that every other
+  // element's aura is an engine while Flow Change was a one-off: an AQUA board
+  // got weaker relative to every other board with each round that passed.
+
+  const tide = (mode: "water" | "ice" | "steam", rounds: number) => {
+    const s = prepState();
+    const c = place(s, "aqua_glacius", "P1", 3, 0);
+    c.flowMode = mode;
+    let g = s;
+    for (let r = 1; r <= rounds; r++) { g.round = r; g = advance(atCleanup(g)); }
+    return g.cards[c.instanceId];
+  };
+
+  it("comes in on the clock, not every round", () => {
+    expect(tide("water", AQUA_TIDE_EVERY - 1).tideTicks ?? 0, "not yet").toBe(0);
+    expect(tide("water", AQUA_TIDE_EVERY).tideTicks, "on the beat").toBe(1);
+  });
+
+  it("stops at the cap", () => {
+    const c = tide("water", AQUA_TIDE_EVERY * (AQUA_TIDE_MAX + 3));
+    expect(c.tideTicks).toBe(AQUA_TIDE_MAX);
+    expect(c.dmgBonus, "+1 DMG per tide, capped").toBe(AQUA_TIDE_MAX);
+  });
+
+  it("deepens the Flow the card actually chose", () => {
+    expect(tide("water", AQUA_TIDE_EVERY).dmgBonus).toBe(1);
+    const ice = tide("ice", AQUA_TIDE_EVERY);
+    expect(ice.curShields).toBeGreaterThan(getDef("aqua_glacius").shields);
+    expect(tide("steam", AQUA_TIDE_EVERY).spBonus).toBe(2);
+  });
+
+  it("does nothing for a card that never chose a Flow", () => {
+    // Everything non-AQUA, and any AQUA card placed outside the summon path.
+    const s = prepState();
+    const c = place(s, "aqua_glacius", "P1", 3, 0);   // no flowMode set
+    s.round = AQUA_TIDE_EVERY;
+    const n = advance(atCleanup(s));
+    expect(n.cards[c.instanceId].tideTicks ?? 0).toBe(0);
+  });
+
+  it("is AQUA's alone", () => {
+    const s = prepState();
+    const c = place(s, "leaf_alpha", "P1", 3, 0);
+    (c as { flowMode?: string }).flowMode = "water";
+    s.round = AQUA_TIDE_EVERY;
+    const n = advance(atCleanup(s));
+    expect(n.cards[c.instanceId].dmgBonus, "LEAF does not ride the tide").toBe(0);
   });
 });
 

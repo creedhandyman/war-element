@@ -1182,6 +1182,12 @@ export interface CardInstance {
   spBonus: number; // permanent SP modifiers (on-kill buffs, GALE Zephyr)
   spBonusRound: number; // SP buff that resets each Cleanup (AQUA Flow Change Steam)
   hitsBonus: number; // permanent extra basic hits (Fenrir On Kill)
+  /** The Flow this AQUA card picked at summon, kept so the tide can deepen it
+   *  later (see `AQUA_TIDE_EVERY`). Set at the two PERMANENT `applyFlow` call
+   *  sites; absent on anything that never chose one. */
+  flowMode?: "water" | "ice" | "steam";   // mirrors auras.ts FlowMode
+  /** How many tides this card has already taken, against `AQUA_TIDE_MAX`. */
+  tideTicks?: number;
   hitsBonusRound: number; // extra basic hits for the turn (Flow Change Liquid on multi-hit)
   tempShields: number; // shields granted "for the turn" (removed in Cleanup)
   /** Basic hits this card has LANDED on each target this round (keyed by target

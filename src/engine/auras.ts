@@ -18,12 +18,45 @@ export interface AuraDef {
   desc: string;
 }
 
+/** THE TIDE — Flow Change's missing second half.
+ *
+ *  AQUA measured LAST, and the structural reason is visible the moment the
+ *  eight auras are read side by side: every other element's is an ENGINE and
+ *  AQUA's was a one-off. BOLT electrifies on every basic, PYRO burns on every
+ *  basic, LEAF heals and plates every round, DAWN cleanses and quickens every
+ *  round, GALE gains speed every round, BORE carries permanent plating and a
+ *  damage floor, DUSK pays out on death. Flow Change handed a card ONE boost as
+ *  it landed and then never spoke again — so an AQUA board got weaker relative
+ *  to every other board with each round that passed, which is exactly the shape
+ *  of a 41% average with no winning matchup anywhere on the table.
+ *
+ *  So the tide comes in. The Flow a card chose at summon deepens on a clock,
+ *  a smaller helping each time and only so many times. That makes AQUA the LATE
+ *  element — it does not out-tempo anyone, it out-lasts them — which is a
+ *  identity the set did not have, and it is what water is.
+ *
+ *  THE CADENCE IS MEASURED, not felt. AQUA's average against the field, 560
+ *  matches a reading:
+ *
+ *    every 4, max 3   47.0%      every 2, max 4   51.1%
+ *    every 3, max 3   47.7%      every 2, max 5   51.1%
+ *    every 3, max 4   47.5%
+ *
+ *  Slow tides barely register — a cap reached on round twelve is a cap most
+ *  matches never see, which is why every-3 and every-4 all land in the same
+ *  47%. The cadence is what matters, not the ceiling: at every-2 the whole
+ *  ladder arrives while the game is still being decided. And max 5 measures
+ *  identically to max 4, so the fourth helping is the last one that does any
+ *  work — anything past it is a number on a card that never gets read. */
+export const AQUA_TIDE_EVERY = 2;
+export const AQUA_TIDE_MAX = 4;
+
 export const ELEMENT_AURA: Record<Element, AuraDef> = {
   LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP — plus 1 more for every ROOTed opponent — and gain +1 shield per hit they took that round, up to 3 above their printed shields." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
   BORE: { name: "Exostone", desc: "Enters play with shields by rarity — Rare 2, Epic 2, Legendary 3, Mythic 4. Never loses more than 1 shield to a single hit, however heavy." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals its full DMG back to the killer, and the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%)." },
-  AQUA: { name: "Flow Change", desc: "On summon, choose a boost it keeps for good: Liquid +2 DMG (+1 hit if it already strikes twice) · Frozen +3 shields · Vapor +4 SP." },
+  AQUA: { name: "Flow Change", desc: `On summon, choose a boost it keeps for good: Liquid +2 DMG (+1 hit if it already strikes twice) · Frozen +3 shields · Vapor +4 SP. Then the tide comes in: every ${AQUA_TIDE_EVERY} rounds that same choice deepens again — +1 DMG · +1 shield · +2 SP — up to ${AQUA_TIDE_MAX} times.` },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for its full DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 12)." },
   GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21); the first time it passes SP 15, a one-time +1 DMG." },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +1 DMG to any opponent carrying a status." },
@@ -163,6 +196,7 @@ export const DAWN_SP_CAP = 12;
  *  This is a BONUS cap, not a total. Read as a total it silently excluded every
  *  LEAF card printing 3+ shields from its own element aura. */
 export const LEAF_SHIELD_CAP = 3;
+
 
 /** ELECTRIFY's damage rider: what a BOLT card adds against an opponent already
  *  carrying a status. Power Grid adds its field bonus on top.

@@ -2,7 +2,7 @@
 // All reducers clone the incoming state once and mutate only the clone.
 
 import { getDef } from "../data/cards";
-import { applyFlow, ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
+import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import { applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
@@ -584,6 +584,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // The human's SUMMON pick — permanent, matching the AI path above. The
       // Downpour branch a few lines up stays round-scoped on purpose.
       applyFlow(card, intent.mode as FlowMode, true); // the summon pick is PERMANENT
+      card.flowMode = intent.mode as FlowMode;        // …and the tide remembers it
       draft.pendingFlow = null;
       draft.log.push(`${getDef(card.defId).name} shifts state (Flow Change).`);
       return draft;
@@ -1980,7 +1981,9 @@ function applyOneElementSummonAura(draft: GameState, inst: CardInstance, def: Ca
         // Human chooses via the UI; gate until they pick.
         draft.pendingFlow = inst.instanceId;
       } else {
-        applyFlow(inst, aiFlowChoice(def.cardClass), true); // the summon pick is PERMANENT
+        const aiMode = aiFlowChoice(def.cardClass);
+        applyFlow(inst, aiMode, true); // the summon pick is PERMANENT
+        inst.flowMode = aiMode;       // …and the tide remembers it
       }
       break;
     }
@@ -2796,6 +2799,28 @@ function doCleanupPhase(draft: GameState): void {
       if (perm.shieldPerRound) card.curShields += perm.shieldPerRound;
       if (perm.healPerRound) healCard(draft, card, perm.healPerRound, card);
     }
+    // THE TIDE (AQUA): the Flow chosen at summon deepens every few rounds, a
+    // smaller helping each time, only so many times. See AQUA_TIDE_EVERY for
+    // why the element needed an engine at all.
+    //
+    // Keyed off the ROUND rather than a per-card timer, so a whole AQUA board
+    // surges together and the player can count the next one — a tide, not four
+    // independent egg timers. A card summoned late simply catches the tides
+    // that are left, which is the cost of arriving late.
+    if (hasElementAura(def, "AQUA") && card.flowMode
+        && draft.round % AQUA_TIDE_EVERY === 0
+        && (card.tideTicks ?? 0) < AQUA_TIDE_MAX) {
+      card.tideTicks = (card.tideTicks ?? 0) + 1;
+      // HALF a Flow, near enough: the summon pick is +2 DMG / +3 shields /
+      // +4 SP, and these are the smaller echoes of it. Flat +1 DMG rather than
+      // Liquid's +1 hit, because `applyFlow` guards multi-hit cards against a
+      // per-hit blowout and an echo has no business reopening that.
+      if (card.flowMode === "water") card.dmgBonus += 1;
+      else if (card.flowMode === "ice") card.curShields += 1;
+      else card.spBonus += 2;
+      draft.log.push(`${label(draft, card)} — the tide comes in (${card.tideTicks}/${AQUA_TIDE_MAX}).`);
+    }
+
     // Zephyr (GALE): +2 SP each round (total capped at 21). The first time its
     // speed pushes past 15, a one-time +1 DMG (not a per-round ramp).
     if (hasElementAura(def, "GALE")) {
