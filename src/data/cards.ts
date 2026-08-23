@@ -2884,10 +2884,13 @@ export const CARDS: CardDef[] = [
         dmg: 24, splash: 5, recoilPct: 25,
         statusKind: "WEAKEN", statusDuration: 2,
         selfStatus: "STEALTH", selfStatusDuration: 1,
-        charge: 3, chargeLateral: 1, chargeFirst: 1,
+        // A dive that kills lands ON the perch it cleared. It already flies
+        // three slots in any direction to get there; stopping one square short
+        // of the thing it just deleted was the one part that did not read.
+        charge: 3, chargeLateral: 1, chargeFirst: 1, takeSpotOnKill: 1,
       },
       targetSide: "enemy",
-      text: "Dive up to 3 spaces in any direction onto your target, deal 24 DMG (+5 splash) and WEAKEN it for 2 rounds, taking 25% recoil, then vanish into STEALTH until next round. 3-round cooldown.",
+      text: "Dive up to 3 spaces in any direction onto your target, deal 24 DMG (+5 splash) and WEAKEN it for 2 rounds, taking 25% recoil, then vanish into STEALTH until next round. A kill leaves Skyrend standing in its place. 3-round cooldown.",
     },
   },
   {
@@ -9697,13 +9700,18 @@ export const CARDS: CardDef[] = [
       // the same price prep movement charges, and a chassis this heavy has not
       // earned the exemption a horse gets.
       params: {
-        chargeFirst: 1, charge: 2, chargeLateral: 1,
+        // THREE slots, and it keeps the wreck. Two was a nudge — a ram whose
+        // whole identity is TRAMPLE could not reach across a mid row to find
+        // anything worth ramming. At three it crosses a rank, and if the crash
+        // kills, Burnout ends the turn standing where its target was instead of
+        // one slot short of it.
+        chargeFirst: 1, charge: 3, chargeLateral: 1, takeSpotOnKill: 1,
         dmg: 6,
         statusKind: "BURN", statusDuration: 3, statusPower: 3,
         statusSplash: 1,
       },
       targetSide: "enemy",
-      text: "Charge up to 2 slots and crash into a target: 6 DMG and BURN 3 for 3 rounds, with the same burn spreading to everything touching it.",
+      text: "Charge up to 3 slots and crash into a target: 6 DMG and BURN 3 for 3 rounds, with the same burn spreading to everything touching it. If the crash kills, Burnout takes its place.",
     },
   },
   {

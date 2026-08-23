@@ -3122,6 +3122,26 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       pen: num(params, "pen") > 0,
       crit: false,
     });
+    // TAKE THE SPOT. A charge that kills what it crashed into should end up
+    // WHERE it crashed into — the ram stops in the hole it made, the dive lands
+    // on the perch it just cleared. Without it both specials shoved a body one
+    // slot short of its target and then stood there, which reads as the charge
+    // stopping politely at the door.
+    //
+    // `center` is the target's position snapshotted BEFORE the strike, because
+    // `defeatCard` deletes the instance — by the time we know it died there is
+    // nothing left to ask where it stood.
+    //
+    // Guarded on the slot being genuinely free: a captured slot is off limits to
+    // everyone, and something else can already be standing there (a splash kill
+    // that shuffled bodies, a spawn-on-death filling its own corpse's square).
+    if (num(params, "takeSpotOnKill") > 0 && r.targetDied && center
+        && attacker.curHp > 0 && attacker.pos
+        && !draft.slots[center.row][center.col].capturedBy
+        && !cardAt(draft, center.row, center.col)) {
+      attacker.pos = { row: center.row as Pos["row"], col: center.col };
+      draft.log.push(`${label(draft, attacker)} takes the ground it cleared.`);
+    }
     const killShields = num(params, "onKillSelfShields");
     if (r.targetDied && killShields > 0 && attacker.curHp > 0) {
       attacker.curShields += killShields;

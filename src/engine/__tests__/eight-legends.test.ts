@@ -139,6 +139,60 @@ describe("the two growth engines are bounded", () => {
   });
 });
 
+describe("a charge that kills takes the ground", () => {
+  // Both specials already close the distance; both used to stop one slot short
+  // of the thing they had just deleted and stand there, which reads as the
+  // charge halting politely at the door.
+
+  const kill = (id: string, from: [number, number], at: [number, number]) => {
+    const s = prepState();
+    const me = place(s, id, "P1", from[0] as never, from[1] as never);
+    const prey = place(s, "leaf_alpha", "P2", at[0] as never, at[1] as never,
+      { curHp: 1, maxHp: 1, curShields: 0 });
+    SPECIAL_HANDLERS.strike(s, s.cards[me.instanceId], [prey], getDef(id).special!.params!);
+    return { s, me: s.cards[me.instanceId], gone: s.cards[prey.instanceId] === undefined };
+  };
+
+  it("Burnout ends the crash standing where its target was", () => {
+    const r = kill("pyro_burnout", [3, 1], [1, 1]);
+    expect(r.gone, "the target died").toBe(true);
+    expect(r.me.pos).toEqual({ row: 1, col: 1 });
+  });
+
+  it("Skyrend lands on the perch it cleared", () => {
+    const r = kill("gale_griffith", [3, 0], [1, 2]);
+    expect(r.gone).toBe(true);
+    expect(r.me.pos).toEqual({ row: 1, col: 2 });
+  });
+
+  it("a target that SURVIVES is not vacated — the ram stops where it stopped", () => {
+    const s = prepState();
+    const me = place(s, "pyro_burnout", "P1", 3, 1);
+    const prey = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 999, maxHp: 999 });
+    SPECIAL_HANDLERS.strike(s, s.cards[me.instanceId], [prey],
+      getDef("pyro_burnout").special!.params!);
+    expect(s.cards[prey.instanceId].pos, "still standing there").toEqual({ row: 1, col: 1 });
+    expect(s.cards[me.instanceId].pos).not.toEqual({ row: 1, col: 1 });
+  });
+
+  it("will not step onto a CAPTURED slot, even one it just emptied", () => {
+    // A captured slot is off limits to everyone, permanently. Walking a ram
+    // into one would put a body somewhere no body may stand.
+    const s = prepState();
+    const me = place(s, "pyro_burnout", "P1", 3, 1);
+    const prey = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 1, maxHp: 1, curShields: 0 });
+    s.slots[1][1].capturedBy = "P2";
+    SPECIAL_HANDLERS.strike(s, s.cards[me.instanceId], [prey],
+      getDef("pyro_burnout").special!.params!);
+    expect(s.cards[prey.instanceId], "the kill still happened").toBeUndefined();
+    expect(s.cards[me.instanceId].pos, "but it stayed out").not.toEqual({ row: 1, col: 1 });
+  });
+
+  it("Burnout charges three slots now, not two", () => {
+    expect(getDef("pyro_burnout").special!.params!.charge).toBe(3);
+  });
+});
+
 describe("Burnout — King of the Streets", () => {
   it("every kill is permanently +1 DMG and +1 SP", () => {
     const s = prepState();
