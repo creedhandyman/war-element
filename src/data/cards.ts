@@ -10247,10 +10247,6 @@ export const CARDS: CardDef[] = [
     name: "Vulcanyx",
     rarity: "mythic",
     element: "BORE",
-    // The art is a placeholder alias until the real render lands: Infernus Rex
-    // is the closest thing in the set to what Vulcanyx is, which is the joke —
-    // Infernus Rex is one of its brood.
-    art: "pyro_infernus_rex",
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 12,
