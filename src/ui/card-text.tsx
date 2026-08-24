@@ -377,6 +377,10 @@ export function describePassives(def: CardDef): string[] {
       t.pokeStatus && `${t.pokeStatus.kind} the closest opponent for ${forR(t.pokeStatus.duration)}`,
       t.pushEnemies && `push every opponent back ${t.pushEnemies} slot${t.pushEnemies > 1 ? "s" : ""}`,
       t.shiftLateral && `shift one slot along its home row (wrapping)`,
+      t.escortAdvance &&
+        `advance one slot — but ONLY with ${t.escortAdvance.need} or more allies level with it or further forward`,
+      t.kite && `give ground one slot once below ${t.kite.belowPct}% HP`,
+      t.avoidLateral && `drift along its home row toward the emptiest column`,
       t.healAllies && `heal every ally ${t.healAllies} HP`,
       t.healLowestAlly && `heal the most wounded ally ${t.healLowestAlly} HP`,
       t.healHomeRow && `heal home-row allies ${t.healHomeRow} HP`,

@@ -9944,7 +9944,7 @@ export const CARDS: CardDef[] = [
     // immunity (Siphon, Buzz, Surge, Anos, Halo, Elderroot). Web Trap at 3 CD
     // means one guaranteed clean round in three — bank the combo for it.
     // 82 body vs the 80 cap: inside the Floor band's +5, held deliberately.
-    passiveNames: { onHitStatus: "Venomous Stinger", firstAttackMisses: "Slip the Silk" },
+    passiveNames: { onHitStatus: "Venomous Stinger", firstAttackMisses: "Slip the Silk", roundTick: "Stalk" },
     onHitStatus: { kind: "DOT", duration: 2, power: 2 },
     firstAttackMisses: true,
     // It walks. A melee lockdown boss that sits home is binary — approach and
@@ -10003,9 +10003,13 @@ export const CARDS: CardDef[] = [
     // that is its whole identity gets most of the floor's budget.
     dmg: 14,
     hits: 1,
-    hp: 90,
+    // 90/30 -> 70/22 (body 169 -> 133). Glacial Creep took this fight from
+    // 82.3% to 89.6%, which made a FLOOR 1 boss harder than anything on Floor 3
+    // — the gait was worth keeping and the progression was not worth inverting
+    // for it. 70/22 reads 77.1%, between Rotroot (81.3) and Smolder (70.8).
+    hp: 70,
     sp: 5,
-    shields: 30,
+    shields: 22,
     keywords: { BLOCK: 2 },
     tribe: "Ice",
     boss: true,
@@ -10014,7 +10018,11 @@ export const CARDS: CardDef[] = [
     // the slots it is too slow to defend. Tribe from AQUA (Ice), mechanic from
     // BORE (the armour) — the doc's Cavernous pick could not spend 12 Gold.
     // The clock: its Special fires itself every 3 rounds, free.
-    roundTick: { fireSpecialEveryN: 3 },
+    // A GLACIER: one slot every fourth round, and it never stops. Slower than
+    // Rotroot's shamble on purpose — this is the wall, and the whole threat is
+    // that it is still coming.
+    passiveNames: { roundTick: "Glacial Creep" },
+    roundTick: { fireSpecialEveryN: 3, advanceEveryN: 4 },
     special: {
       name: "Whiteout",
       cost: 3,
@@ -10148,7 +10156,10 @@ export const CARDS: CardDef[] = [
     // says: almost no HP, the hardest hit on the floor, and it dies the moment
     // you get to it.
     // The clock: its Special fires itself every 3 rounds, free.
-    roundTick: { fireSpecialEveryN: 3, shiftLateral: 1 },
+    // It slides along the wire, and once it is hurt it BREAKS OFF — a glass
+    // cannon that stands and trades is just a slow cannon.
+    passiveNames: { roundTick: "Wingbeat" },
+    roundTick: { fireSpecialEveryN: 3, shiftLateral: 1, kite: { belowPct: 50 } },
     special: {
       name: "Death From Above",
       cost: 3,
@@ -10428,7 +10439,14 @@ export const CARDS: CardDef[] = [
     // Special sets up its own basic exactly the way BOLT's aura does.
     passiveNames: { roundTick: "Pack Law", vsStatus: "Storm Teeth" },
     vsStatus: { status: "ELECTRIFIED", bonusDmg: 4 },
-    roundTick: { fireSpecialEveryN: 3, packDmg: { tribe: "Wolf", per: 3, max: 12 }, advance: 1 },
+    // PACK LAW moves it, too. It used to carry plain `advance` — Acorn's Seed
+    // Roll — so the one boss whose entire design is "only dangerous with the
+    // pack up" walked down the board ahead of its wolves and died there.
+    roundTick: {
+      fireSpecialEveryN: 3,
+      packDmg: { tribe: "Wolf", per: 3, max: 12 },
+      escortAdvance: { need: 2 },
+    },
     special: {
       name: "Thunder Run",
       cost: 3,
@@ -10478,13 +10496,17 @@ export const CARDS: CardDef[] = [
     // immunity to Melee outright, and "own ranged cards or you cannot
     // participate" is the lockout that came off Nightshrike. A boss whose
     // damage already ignores position must not also be unreachable.
-    passiveNames: { onSpecialUse: "Kindling", alwaysHit: "Coronal" },
+    passiveNames: { onSpecialUse: "Kindling", alwaysHit: "Coronal", roundTick: "High Circle" },
     // Coronal, the DAWN half: light does not miss. Deterministic, which the
     // mode requires — a board-wide nuke that sometimes whiffs would make the
     // countdown unreadable.
     alwaysHit: true,
     onSpecialUse: { dmg: 3 },
-    roundTick: { fireSpecialEveryN: 3 },
+    // ALOOF. Meteor Fall ignores position entirely, so closing buys Umbranova
+    // nothing and distance costs it nothing — it drifts toward the emptiest
+    // lane instead, the mirror of Helion's Traverse. Previously it did not
+    // move at all, which is not a personality, it is an omission.
+    roundTick: { fireSpecialEveryN: 3, avoidLateral: true },
     special: {
       name: "Meteor Fall",
       cost: 3,

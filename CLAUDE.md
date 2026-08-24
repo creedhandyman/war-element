@@ -1034,6 +1034,38 @@ An AI-vs-AI harness cannot read a telegraph, bring cleanse, or focus a boss, so
 it cannot say whether a puzzle is FAIR — only whether the seven are comparable.
 Fairness is on-device.
 
+**EVERY BOSS MOVES LIKE ITSELF — and `roundTick.advance` IS Acorn's SEED ROLL.**
+Reported from the device: "why do all the bosses still mostly have the same
+movement pattern? I didn't ask for most of them to be given seed roll." Audited,
+and dead right: nine of thirteen ran one of three behaviours — plain `advance`
+(Xilty, Vulcanyx, Thunderfangs), `shiftLateral` (Skeleeze, Nightshrike), or
+nothing at all (Permafrost, Overclock, Umbranova, Smolder). Only four had a
+bespoke gait. `advance` is literally Acorn's ability and logged its line, so
+three bosses moved AND read like a LEAF sapling trundling up the board.
+
+Three new gaits, and a rule: a card that names its `roundTick` gets its own log
+line instead of "rolls forward".
+
+  escortAdvance {need}  Thunderfangs — steps only with N allies level or ahead.
+                        The boss whose whole design is "dangerous with the pack
+                        up" was charging alone. Counts allies AHEAD, so trailing
+                        escorts do not give permission.
+  kite {belowPct}       Nightshrike — gives ground below 50% HP.
+  avoidLateral          Umbranova — drifts to the EMPTIEST column, the mirror of
+                        Helion's aimLateral. Its damage ignores position, so
+                        closing buys nothing and distance costs nothing.
+
+Permafrost took `advanceEveryN: 4` (Glacial Creep, slower than Rotroot's
+shamble). Only Overclock (a production line) and Smolder (a TREE) stand still
+now, and a test names them so a third cannot join by accident; another pins that
+no gait owns more than 3 of the roster and at least 7 are distinct.
+
+GAITS ARE CHARACTER, NOT POWER — measured: Thunderfangs 94.8 → 94.8, Umbranova
+96.9 → 95.8, Xilty 81.3 → 81.3 (unchanged, the control), Nightshrike 65.2 →
+60.4. The exception was Permafrost, 82.3 → 89.6, which made a FLOOR 1 boss
+harder than anything on Floor 3; body trimmed 169 → 133 to bring it to 77.1%
+rather than give the gait back.
+
 **A TOWER WIN RATE IS AN AVERAGE OVER EIGHT VERY DIFFERENT FIGHTS — read it
 with that in mind.** Every number in this section is the boss's win rate across
 the 8 CORES. Broken out per deck, Nightshrike's 42% is:

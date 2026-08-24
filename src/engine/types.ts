@@ -380,7 +380,21 @@ export interface RoundTickDef {
    *  has been dragged off its rail stops sliding. Deterministic and
    *  telegraphed, which is the point — the rotating kill-column is a puzzle
    *  precisely because the player can read where it goes next. */
-  shiftLateral?: number;
+    /** PACK HUNTER (Thunderfangs): advance only when `need` living allies are
+   *  level with it or further forward. A wolf does not charge alone — and the
+   *  boss that most obviously should not was marching down the board by itself
+   *  and dying, which is what the owner reported. */
+  escortAdvance?: { need: number };
+  /** SKITTISH (Nightshrike): once below `belowPct` of max HP, give ground —
+   *  one slot back toward its own home row, if it is open. A glass cannon that
+   *  never retreats is just a slow cannon. */
+  kite?: { belowPct: number };
+  /** ALOOF (Umbranova): slide along the row toward the EMPTIEST column — the
+   *  mirror of `aimLateral`, which seeks the busiest. For a boss whose damage
+   *  ignores position entirely, closing is pointless and staying out of reach
+   *  is the whole game. */
+  avoidLateral?: true;
+shiftLateral?: number;
   /** Spawn a token each round (Trinezer's Reptilian Screech). adjacentOnly =
    *  only into an open king's-reach slot; no spawn if none is open. */
   /** Wildfire (Scorch): re-apply a status to every opponent standing in THEIR

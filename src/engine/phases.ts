@@ -2127,7 +2127,17 @@ function doRoundTicks(draft: GameState): void {
         card.pos = { row: nextRow as Pos["row"], col: card.pos.col };
         rolled++;
       }
-      if (rolled > 0) draft.log.push(`${label(draft, card)} rolls forward ${rolled} slot(s).`);
+      // NAME THE GAIT. `advance` is Acorn's Seed Roll, and every card sharing
+      // it narrated "rolls forward" — so three bosses moved, and read, like a
+      // LEAF sapling trundling up the board. Reported as exactly that: "I
+      // didn't ask for most of them to be given seed roll". A card that names
+      // its roundTick gets its own line.
+      if (rolled > 0) {
+        const gait = getDef(card.defId).passiveNames?.roundTick;
+        draft.log.push(gait
+          ? `${label(draft, card)} — ${gait}: ${rolled} slot(s) forward.`
+          : `${label(draft, card)} rolls forward ${rolled} slot(s).`);
+      }
     }
 
     // THE BOSS CLOCK: the Special fires itself, free, on the beat. Placed
@@ -2185,6 +2195,64 @@ function doRoundTicks(draft: GameState): void {
           if (!cardAt(draft, home, col) && !draft.slots[home][col].capturedBy) {
             card.pos = { row: home as Pos["row"], col: col as Pos["col"] };
             draft.log.push(`${label(draft, card)} traverses — the lane is column ${col}.`);
+          }
+        }
+      }
+    }
+
+    // PACK HUNTER (escortAdvance): step forward only with the pack up. Counts
+    // allies LEVEL WITH OR AHEAD of it, so escorts trailing behind do not give
+    // permission — the boss waits for them rather than the other way round.
+    if (rt.escortAdvance && card.pos && !bossHeldHome(draft, getDef(card.defId))) {
+      const dir = card.owner === "P1" ? -1 : 1;
+      const up = boardCards(draft, card.owner).filter(
+        (a) => a.curHp > 0 && a !== card && a.pos
+          && (dir > 0 ? a.pos.row >= card.pos!.row : a.pos.row <= card.pos!.row),
+      ).length;
+      const gait = getDef(card.defId).passiveNames?.roundTick;
+      if (up >= rt.escortAdvance.need) {
+        const row = card.pos.row + dir;
+        if (row >= 0 && row < draft.boardSize && !cardAt(draft, row, card.pos.col)
+            && !draft.slots[row][card.pos.col].capturedBy) {
+          card.pos = { row: row as Pos["row"], col: card.pos.col };
+          draft.log.push(`${label(draft, card)} — ${gait ?? "the pack"} moves up together.`);
+        }
+      } else {
+        draft.log.push(`${label(draft, card)} holds — ${gait ?? "it"} waits for the pack.`);
+      }
+    }
+
+    // SKITTISH (kite): hurt, it gives ground rather than trading.
+    if (rt.kite && card.pos && !bossHeldHome(draft, getDef(card.defId))) {
+      const maxHp = effectiveMaxHp(draft, card) || 1;
+      if ((100 * card.curHp) / maxHp < rt.kite.belowPct) {
+        const back = card.pos.row + (card.owner === "P1" ? 1 : -1);
+        if (back >= 0 && back < draft.boardSize && !cardAt(draft, back, card.pos.col)
+            && !draft.slots[back][card.pos.col].capturedBy) {
+          card.pos = { row: back as Pos["row"], col: card.pos.col };
+          draft.log.push(`${label(draft, card)} breaks off and gives ground.`);
+        }
+      }
+    }
+
+    // ALOOF (avoidLateral): the mirror of Traverse — slide toward the EMPTIEST
+    // column instead of the busiest. Same tie rule (lowest column wins), same
+    // home-row-only restriction, for the same reason: a telegraph broken at
+    // random is a lie.
+    if (rt.avoidLateral && card.pos && !bossHeldHome(draft, getDef(card.defId))) {
+      const home = homeRow(card.owner, draft.boardSize);
+      if (card.pos.row === home) {
+        const counts = new Array<number>(draft.boardSize).fill(0);
+        for (const e of boardCards(draft, enemyOf(card.owner)))
+          if (e.curHp > 0 && e.pos) counts[e.pos.col] += 1;
+        let want = -1, fewest = Infinity;
+        for (let c = 0; c < counts.length; c++)
+          if (counts[c] < fewest) { fewest = counts[c]; want = c; }
+        if (want >= 0 && want !== card.pos.col) {
+          const col = card.pos.col + (want > card.pos.col ? 1 : -1);
+          if (!cardAt(draft, home, col) && !draft.slots[home][col].capturedBy) {
+            card.pos = { row: home as Pos["row"], col: col as Pos["col"] };
+            draft.log.push(`${label(draft, card)} drifts clear — column ${col}.`);
           }
         }
       }

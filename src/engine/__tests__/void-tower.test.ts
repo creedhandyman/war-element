@@ -59,7 +59,9 @@ describe("the roster", () => {
     // Rotroot 53% · Permafrost 47% · Nightshrike 67% · Basilisk 70% ·
     // Overclock 73% · Xilty 73% · Skeleeze 77%. Change a number, re-measure.
     const MEASURED: Record<string, number> = {
-      boss_rotroot: 165, boss_permafrost: 169, boss_overclock: 76,
+      boss_rotroot: 165, // 169 -> 133: trimmed when Glacial Creep gave it a gait and took it
+      // to 89.6%, harder than any Floor-3 boss. 77.1% now.
+      boss_permafrost: 133, boss_overclock: 76,
       // 84 -> 108: +12 shields, the lever that took the tower's easiest fight
       // from 45.5% to 65.2%. Still the smallest body on Floor 1.
       boss_nightshrike: 108, boss_basilisk: 70, boss_skeleeze: 128,
@@ -588,13 +590,43 @@ describe("every boss moves like itself", () => {
   });
 
   it("the two that stand still do so on purpose", () => {
-    // Permafrost is a wall and Overclock is a production line; neither has any
+    // Overclock is a production line and Smolder is a TREE; neither has any
     // business chasing anyone. Asserted as an ABSENCE so a later pass does not
     // hand them a gait without deciding to.
-    for (const id of ["boss_permafrost", "boss_overclock"]) {
+    //
+    // Permafrost used to be on this list and is not any more: standing still
+    // was never a decision for it, it was the absence of one, and a wall whose
+    // whole threat is that it keeps coming should keep coming. It creeps a slot
+    // every fourth round now (Glacial Creep).
+    for (const id of ["boss_overclock", "boss_smolder"]) {
       const seen = walk(id, 8, 0);
       expect(new Set(seen).size, id).toBe(1);
     }
+  });
+
+  it("no two bosses share a gait by accident — Seed Roll was the default", () => {
+    // THE REPORT: "Why do all the bosses still mostly have the same movement
+    // pattern? I didn't ask for most of them to be given seed roll."
+    //
+    // Dead right, and `advance` IS Seed Roll — Acorn's trundle, which three
+    // bosses had inherited as a default nobody chose, alongside four that did
+    // not move at all and two more sharing shiftLateral. Nine of thirteen ran
+    // one of three behaviours. This pins the spread rather than the assignment,
+    // so a boss may be re-gaited but the roster cannot collapse back into a
+    // column of Seed Rolls.
+    const gaitOf = (id: string) => {
+      const rt = getDef(id).roundTick ?? {};
+      return rt.prowl ? "prowl" : rt.escortAdvance ? "pack" : rt.momentum ? "juggernaut"
+        : rt.advance ? "advance" : rt.advanceEveryN ? "shamble"
+        : rt.aimLateral ? "aim" : rt.avoidLateral ? "aloof"
+        : rt.kite ? "skittish" : rt.shiftLateral ? "slide" : "still";
+    };
+    const gaits = VOID_BOSSES.map((b) => gaitOf(b.cardId));
+    const counts = new Map<string, number>();
+    for (const g of gaits) counts.set(g, (counts.get(g) ?? 0) + 1);
+    expect(counts.size, "distinct gaits across the roster").toBeGreaterThanOrEqual(7);
+    // No single gait may own half the tower.
+    expect(Math.max(...counts.values())).toBeLessThanOrEqual(3);
   });
 
   it("all seven have a gait recorded, even the still ones", () => {
@@ -605,18 +637,22 @@ describe("every boss moves like itself", () => {
         : rt.aimLateral ? "aim" : rt.shiftLateral ? "slide" : "still";
     });
     expect(new Set(gaits).size, "and they are not all the same").toBeGreaterThanOrEqual(4);
-    // Four that stand still, and each has a reason: Permafrost is a wall,
-    // Overclock is a production line, Umbranova's damage lands everywhere
-    // regardless, and Smolder is a TREE — the one boss you are supposed to
-    // walk up to and then wish you had not. Named rather than counted loosely,
-    // so a fifth cannot join them by accident.
+    // TWO that stand still, and each has a reason: Overclock is a production
+    // line and Smolder is a TREE — the one boss you are supposed to walk up to
+    // and then wish you had not. Named rather than counted loosely, so a third
+    // cannot join them by accident.
+    //
+    // Permafrost and Umbranova were on this list and came off it: neither was
+    // standing still by decision. A wall whose threat is that it keeps coming
+    // now creeps (Glacial Creep), and a dragon whose damage ignores position
+    // drifts toward the emptiest lane rather than parking (High Circle).
     const still = VOID_BOSSES.filter((b) => {
       const rt = getDef(b.cardId).roundTick ?? {};
       return !rt.prowl && !rt.advance && !rt.advanceEveryN && !rt.momentum
-        && !rt.aimLateral && !rt.shiftLateral;
+        && !rt.aimLateral && !rt.shiftLateral && !rt.escortAdvance
+        && !rt.avoidLateral && !rt.kite;
     }).map((b) => b.cardId);
-    expect(still.sort()).toEqual(
-      ["boss_overclock", "boss_permafrost", "boss_smolder", "boss_umbranova"]);
+    expect(still.sort()).toEqual(["boss_overclock", "boss_smolder"]);
   });
 
   it("a prowler still holds its home row for the opening", () => {
