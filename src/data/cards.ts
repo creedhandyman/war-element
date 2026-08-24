@@ -10100,7 +10100,17 @@ export const CARDS: CardDef[] = [
     // spend is the puzzle rather than an oversight.
     hp: 55,
     sp: 14,
-    shields: 0,
+    // 0 -> 12. THE LEVER, measured: shields alone took this fight from 45.5% to
+    // 65.2% where a straight Special upgrade managed 51.8%, and they do it in
+    // the matchups that mattered — Kraken 7 -> 43, The Deepest 21 -> 64,
+    // Imperator 14 -> 36. Shields block per HIT, so on a board of many small
+    // attacks they buy far more than the 2 budget points apiece they cost;
+    // Xilty proved the same thing from the other direction.
+    //
+    // It is STILL the smallest body on Floor 1 at 108 (Smolder 114, Rotroot 165,
+    // Permafrost 169), so the glass cannon is intact — it just is not made of
+    // tissue paper any more.
+    shields: 12,
     // FLYING, REINSTATED at the owner's call after playing it — Nightshrike was
     // the tower's easiest fight by a distance (41.7%) and the one boss the war
     // chest did not move at all (41.7 -> 40.6), so its problem was never gold.
@@ -10143,9 +10153,20 @@ export const CARDS: CardDef[] = [
       name: "Death From Above",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 8, targets: 2 },
+      // 8x2 -> 12x3. This was the weakest Special on the tower by a distance —
+      // 16 damage every three rounds, against Aurora Break's 10-to-everything
+      // plus BLIND and Thunder Run's 9 plus ELECTRIFIED. On its own the upgrade
+      // was worth 6 points (45.5 -> 51.8), so it is not what makes the fight
+      // hard; it is what makes the dive read like a dive.
+      //
+      // Shipped alongside the shields rather than instead of them BECAUSE of
+      // where it lands: shields alone left Shadow Horsemen at 7% and the two
+      // together take it to 21%. Same average, better fight — the gain comes
+      // from the matchup Nightshrike was losing worst instead of padding the
+      // ones it already won.
+      params: { dmg: 12, targets: 3 },
       targetSide: "enemy",
-      text: "Dive two opponents for 8 DMG each.",
+      text: "Dive three opponents for 12 DMG each.",
     },
   },
   {

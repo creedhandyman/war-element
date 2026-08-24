@@ -60,7 +60,9 @@ describe("the roster", () => {
     // Overclock 73% · Xilty 73% · Skeleeze 77%. Change a number, re-measure.
     const MEASURED: Record<string, number> = {
       boss_rotroot: 165, boss_permafrost: 169, boss_overclock: 76,
-      boss_nightshrike: 84, boss_basilisk: 70, boss_skeleeze: 128,
+      // 84 -> 108: +12 shields, the lever that took the tower's easiest fight
+      // from 45.5% to 65.2%. Still the smallest body on Floor 1.
+      boss_nightshrike: 108, boss_basilisk: 70, boss_skeleeze: 128,
       // Xilty trimmed 166 -> 154 when Web Trap was repaired (it declared no
       // `reach`, so a MELEE boss's signature only ever caught what was
       // touching it). 72.9% at 66 HP / 24 shields.
