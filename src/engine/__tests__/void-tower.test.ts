@@ -33,8 +33,17 @@ describe("the roster", () => {
     // Counted against VOID_BOSSES rather than a literal: the roster grows, and
     // a hardcoded number turns "we added a boss" into a failing test that says
     // nothing about what is wrong.
-    expect(BOSSES).toHaveLength(VOID_BOSSES.length);
-    for (const b of BOSSES) expect(voidBossById(b.id), `${b.id} has framework data`).toBeTruthy();
+    // SECOND FORMS are boss cards with no floor of their own — they are reached
+    // by transforming, never by a fight listing them (Thunderfangs, Stormform).
+    const secondForms = new Set(
+      CARDS.map((c) => c.transformAtKills?.into).filter(Boolean) as string[],
+    );
+    const fought = BOSSES.filter((b) => !secondForms.has(b.id));
+    expect(fought).toHaveLength(VOID_BOSSES.length);
+    for (const b of fought) expect(voidBossById(b.id), `${b.id} has framework data`).toBeTruthy();
+    // ...and a second form is still a boss card in every other respect, so it
+    // stays unacquirable with the rest.
+    for (const id of secondForms) expect(CARD_INDEX[id]?.boss, `${id} is flagged`).toBe(true);
     for (const v of VOID_BOSSES) expect(CARD_INDEX[v.cardId]?.boss, `${v.cardId} is a boss card`).toBe(true);
   });
 

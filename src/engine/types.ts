@@ -145,7 +145,7 @@ export interface OnKillDef {
    *  status, the BOLT proxy), at most once per round. */
   aoeDmgElectrified?: number;
   /** Harvester (Wedded Wraith): every kill raises another token. */
-  spawnToken?: { token: string; count: number };
+  spawnToken?: { token: string; count: number; maxAlive?: number };
   /** Quadruple Strike (Birch): on a kill, hit the CLOSEST surviving enemy for
    *  dmg×hits (a shield-shredding follow-up, distinct from aoeDmg's spray). */
   nearestVolley?: { dmg: number; hits: number };
@@ -566,6 +566,14 @@ export interface CardDef {
    *  `pos` directly), so this stops everything except the movement the card was
    *  designed around. */
   holdsPosition?: true;
+  /** SECOND FORM: once this card has made `kills` kills, it becomes `into`.
+   *
+   *  Thunderfangs is the first — a pack hunter that grows into the storm it has
+   *  been carrying. The count is on the INSTANCE (`killCount`), so it is earned
+   *  in one battle rather than banked across a run, and the transform runs the
+   *  ordinary `transform` handler: fresh body from the new form, stat mods
+   *  wiped, the new form's onSummon fired. */
+  transformAtKills?: { kills: number; into: string };
   /** On-kill trigger (this card's attack defeats an enemy). */
   onKill?: OnKillDef;
   /** Conditional basic-attack keyword vs a target carrying a status. */
@@ -1312,6 +1320,8 @@ export interface CardInstance {
   /** Sea Terror (Siren): while transformed into another card, the defId to
    *  revert to when this form dies. Set on transform, cleared on revert. */
   transformedFrom?: string;
+  /** Kills this card has made THIS BATTLE. Drives `transformAtKills`. */
+  killCount?: number;
   /** King of the Wild (Leo): its once-per-round on-opp-summon buff has fired. */
   kingWildFiredRound?: boolean;
   /** Zephyr (GALE): the one-time +1 DMG for crossing SP 15 has been granted. */

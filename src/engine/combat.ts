@@ -1377,6 +1377,7 @@ export function resolveHit(
     // On-kill trigger for the attacker (basic/special kills only).
     if ((opts.kind === "basic" || opts.kind === "special") && attacker.curHp > 0) {
       if (aDef.onKill) applyOnKill(draft, attacker, aDef.onKill, deathPos);
+      registerKill(draft, attacker);
       // Gaslighting (Liza): an allied enabler spurs whoever lands the kill.
       for (const gl of boardCards(draft, attacker.owner)) {
         const akb = getDef(gl.defId).allyKillBuff;
@@ -2655,6 +2656,7 @@ export function tickDamage(
   if (died && source.curHp > 0) {
     const def = getDef(source.defId);
     if (def.onKill) applyOnKill(draft, source, def.onKill);
+    registerKill(draft, source);
   }
   return died;
 }
@@ -2742,6 +2744,18 @@ function applyOnHitZap(
 }
 
 /** On-kill: buff the killer / heal / blast. */
+/** Count a kill on the killer and, if its def names a second form, grow into it.
+ *
+ *  Called at BOTH kill sites (the basic/special path and `tickDamage`), and
+ *  deliberately outside the `if (def.onKill)` guard beside each: the count is
+ *  about the killer, not about whether it happens to carry an on-kill rider. */
+function registerKill(draft: GameState, killer: CardInstance): void {
+  killer.killCount = (killer.killCount ?? 0) + 1;
+  const t = getDef(killer.defId).transformAtKills;
+  if (!t || killer.killCount < t.kills || killer.defId === t.into) return;
+  SPECIAL_HANDLERS.transform(draft, killer, [], { into: t.into });
+}
+
 function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, deathPos?: Pos | null): void {
   const name = getDef(killer.defId).name;
   // Dark Hunting (Nightbriar): lay a trap on the slot the victim just vacated. The
@@ -2773,8 +2787,20 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
   if (def.buffSp) killer.spBonus += def.buffSp;
   if (def.spawnToken) {
     // Harvester: the fallen get up again on her side.
-    const raised = spawnTokens(draft, killer, def.spawnToken.token, def.spawnToken.count);
-    if (raised.length) draft.log.push(`${name} harvests the fallen — ${raised.length} rise.`);
+    //
+    // `maxAlive` is a CEILING on how many of the token may stand at once, the
+    // same shape the `spawn` Special already uses, and Thunderfangs is why it
+    // exists: raising a wolf on every kill, with Pack Law turning each wolf
+    // back into damage, snowballs. It measured a flat 100% win rate with 98% of
+    // those ending in an overrun, because the pack simply filled the board. A
+    // pack is a pack, not a tide.
+    const cap = def.spawnToken.maxAlive;
+    if (cap == null) {
+      const raised = spawnTokens(draft, killer, def.spawnToken.token, def.spawnToken.count);
+      if (raised.length) draft.log.push(`${name} harvests the fallen — ${raised.length} rise.`);
+    } else {
+      spawnCapped(draft, killer, def.spawnToken.token, def.spawnToken.count, undefined, cap);
+    }
   }
   // Quadruple Strike (Birch): the kill flows into the nearest survivor.
   if (def.nearestVolley && killer.pos && killer.curHp > 0) {

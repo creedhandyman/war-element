@@ -10460,7 +10460,21 @@ export const CARDS: CardDef[] = [
     // BOLT is the mechanic half — the storm in its teeth. Thunder Run leaves
     // everything ELECTRIFIED and Storm Teeth hits the afflicted harder, so the
     // Special sets up its own basic exactly the way BOLT's aura does.
-    passiveNames: { roundTick: "Pack Law", vsStatus: "Storm Teeth" },
+    passiveNames: {
+      roundTick: "Pack Law", vsStatus: "Storm Teeth",
+      onKill: "Raise the Pack", transformAtKills: "Stormform",
+    },
+    // Raise the Pack: every kill puts another Spark Wind Wolf on the board. It
+    // feeds the boss twice over — a body, and another point of Pack Law, which
+    // is the stat its own damage is borrowed from. The wolves ELECTRIFY what
+    // they bite and Storm Teeth adds 4 against the electrified, so the pack
+    // sets its leader up as well as escorting it.
+    onKill: { spawnToken: { token: "gale_sparkwolf_tok", count: 1, maxAlive: 3 } },
+    // STORMFORM at five kills: the hunt becomes the storm. +20% on every line
+    // (10/50/14/6 -> 12/60/17/7), taken as a real second form rather than a
+    // buff, so the art and the name change with it and the board can see what
+    // it has become.
+    transformAtKills: { kills: 5, into: "boss_thunderfangs_2" },
     vsStatus: { status: "ELECTRIFIED", bonusDmg: 4 },
     // PACK LAW moves it, too. It used to carry plain `advance` — Acorn's Seed
     // Roll — so the one boss whose entire design is "only dangerous with the
@@ -10480,6 +10494,50 @@ export const CARDS: CardDef[] = [
       },
       targetSide: "enemy",
       text: "9 DMG and ELECTRIFIED for 2 rounds to every opponent within 2 spaces — and Storm Teeth adds 4 to everything it lands on the afflicted.",
+    },
+  },
+  {
+    id: "boss_thunderfangs_2",
+    name: "Thunderfangs, Stormform",
+    rarity: "mythic",
+    element: "GALE",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 12,
+    // Every printed line +20% off the first form (10/50/14/6), rounded to the
+    // nearest whole: body 96 -> 115. Not a floor-4 body and not meant to be —
+    // this is Floor 3's boss having earned five kills, not a bigger boss.
+    dmg: 12,
+    hits: 2,
+    hp: 60,
+    sp: 17,
+    shields: 7,
+    keywords: {},
+    tribe: "Wolf",
+    boss: true,
+    // NOT reachable except by transforming: it is absent from VOID_BOSSES, so
+    // no floor lists it and nothing summons it. The `boss` flag keeps it out of
+    // every acquisition path exactly like the rest.
+    passiveNames: { roundTick: "Pack Law", vsStatus: "Storm Teeth", onKill: "Raise the Pack" },
+    vsStatus: { status: "ELECTRIFIED", bonusDmg: 4 },
+    onKill: { spawnToken: { token: "gale_sparkwolf_tok", count: 1, maxAlive: 3 } },
+    roundTick: {
+      fireSpecialEveryN: 3,
+      packDmg: { tribe: "Wolf", per: 3, max: 12 },
+      escortAdvance: { need: 2 },
+    },
+    // No further transform — Stormform is the end of the line, and the guard in
+    // `registerKill` (defId === into) would stop a loop anyway.
+    special: {
+      name: "Thunder Run",
+      cost: 3,
+      handler: "barrage",
+      params: {
+        dmg: 11, targets: 99, reach: 2,
+        statusKind: "ELECTRIFIED", statusDuration: 2,
+      },
+      targetSide: "enemy",
+      text: "11 DMG and ELECTRIFIED for 2 rounds to every opponent within 2 spaces — and Storm Teeth adds 4 to everything it lands on the afflicted.",
     },
   },
   {
@@ -10591,6 +10649,31 @@ export const CARDS: CardDef[] = [
 // them. (Reptilian and Heir used to live here — they are draftable now, but are
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
+  {
+    id: "gale_sparkwolf_tok",
+    name: "Spark Wind Wolf",
+    rarity: "rare",
+    element: "GALE",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 1,
+    dmg: 3,
+    hits: 1,
+    hp: 8,
+    sp: 9,
+    shields: 0,
+    keywords: {},
+    // WOLF, which is the whole point of it: Thunderfangs' Pack Law scales its
+    // damage with living Wolves to +12, so every wolf raised is teeth on the
+    // boss as well as a body on the board.
+    tribe: "Wolf",
+    passiveNames: { onHitStatus: "Static Coat" },
+    // Static Coat: it leaves the storm on whatever it bites — and Storm Teeth
+    // adds 4 to everything Thunderfangs lands on the ELECTRIFIED, so the pack
+    // sets up its own leader. Fast (SP 9) and paper-thin, because a spark on
+    // the wind is not supposed to survive being answered.
+    onHitStatus: { kind: "ELECTRIFIED", duration: 2, power: 0 },
+  },
   {
     // Nightfang's disguise. A TOKEN, not a draftable card: you never put the
     // Butler in a deck — Nightfang wears it, and killing it is what takes it

@@ -1074,6 +1074,24 @@ Skeleeze 68.8 · Basilisk 68.8 · Helion 68.8 · F3 Thunderfangs 96.9 · Hoarfel
 84.4 · Xilty 82.3 · Vulcanyx 69.8 · F4 Umbranova 96.9. The high ones are fights
 the player finished with an empty board.
 
+**THUNDERFANGS HAS A SECOND FORM, AND A PACK THAT REPLENISHES.** Raise the Pack
+(`onKill.spawnToken`, capped at 3 alive) puts a **Spark Wind Wolf** token on the
+board with every kill — Wolf tribe, so it feeds Pack Law, and it ELECTRIFIES what
+it bites so Storm Teeth (+4 vs afflicted) lands harder. At **5 kills** it becomes
+`boss_thunderfangs_2`, "Thunderfangs, Stormform", +20% on every line
+(10/50/14/6 -> 12/60/17/7) via the new `transformAtKills` field and a per-instance
+`killCount`. Second forms are boss cards with NO VOID_BOSSES entry — reachable
+only by transforming — and the roster test knows about that shape now.
+
+IT READS 100% AND ITS STATS CANNOT FIX THAT. Stormform is reached in ~32% of
+fights, and **97% of its wins are overruns**. Swept: Pack Law max 12 -> 8 -> 6 and
+HP 50 -> 44 -> 38 all still measure 99-100%. That is the general lesson for this
+mode — for a boss that fields MANY BODIES (Thunderfangs' wolves, Overclock's
+drones), overrun is close to automatic and the boss's own line is nearly
+irrelevant to the outcome. Tune the RULE, not the card. And remember the harness
+plays the player's side with the AI: overrun only fires on an empty board, so a
+human who keeps one is not in this measurement at all.
+
 **CAUTION on the boss-in-the-row clause.** It was added to stop drone chaff
 delivering the win, and it does (Helion 20% -> 0% overrun, Overclock 90.6 ->
 85.4) — but a SPAWNER swamping an empty board is exactly the case the rule is

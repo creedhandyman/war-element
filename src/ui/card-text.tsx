@@ -319,6 +319,11 @@ export function describePassives(def: CardDef): string[] {
       `When hit${m.anyAttacker ? " (melee or ranged)" : " by melee"}${m.chance ? ` (${m.chance}%)` : ""}: retaliate — ${bits}.`,
     );
   }
+  if (def.transformAtKills) {
+    const t = def.transformAtKills;
+    named("transformAtKills",
+      `After ${t.kills} kills it becomes ${getDef(t.into).name}.`);
+  }
   if (def.onKill) {
     const k = def.onKill;
     const bits = [
