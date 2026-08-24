@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, canTarget, validTargets } from "./rules";
+import { RANGED_REACH, canTarget, validSpecialTargets, validTargets } from "./rules";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
@@ -1671,8 +1671,25 @@ function fireCardSpecialInner(
   sp: NonNullable<CardDef["special"]>,
   handler: SpecialHandler,
 ): void {
+  // ENEMY targets come through the SAME door as a manual cast.
+  //
+  // This used to hand the handler every living enemy on the board, which meant
+  // `reach` did nothing at all on the auto-fire path — and the auto-fire path is
+  // the only one a boss ever uses (its Special fires on `fireSpecialEveryN` and
+  // `canFireSpecial` refuses a manual cast outright). Measured: a card FOUR
+  // squares from Hoarfell took exactly the same 9 damage as one standing next to
+  // it, and the same for Thunderfangs, Smolder, Rotroot and Vulcanyx. Every
+  // "to every opponent within 2 spaces" on the tower was a board-wide nova
+  // wearing a radius in its text.
+  //
+  // `validSpecialTargets` is what the manual path uses, so the two now agree —
+  // and it reads `reach`, `ranged`, `chargeFirst` and the Home-Slot exemption
+  // the same way the on-board preview does, which is what makes the telegraph
+  // honest. Specials that really are board-wide say so themselves: Permafrost's
+  // Whiteout declares `ranged`, Umbranova's Meteor Fall is `smite` and ignores
+  // range by design.
   const targets = sp.targetSide === "enemy"
-    ? boardCards(draft, enemyOf(card.owner)).filter((e) => e.curHp > 0)
+    ? validSpecialTargets(draft, card.instanceId)
     : sp.targetSide === "ally"
       ? boardCards(draft, card.owner).filter((a) => a.curHp > 0)
       : [];

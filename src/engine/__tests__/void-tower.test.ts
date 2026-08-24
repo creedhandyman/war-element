@@ -86,7 +86,7 @@ describe("the roster", () => {
       // down like everything else. That is the lesson: the cap is a ceiling and
       // the number under it is the tuning, and building to the ceiling is how
       // you get a boss nobody reaches.
-      boss_helion: 121, boss_hoarfell: 111,
+      boss_helion: 121, boss_hoarfell: 135,
       // Thunderfangs is the smallest body on the top floor ON PURPOSE:
       // most of its damage is borrowed from the pack and handed back as
       // the pack dies, so a Floor-3 body on top of that is two bosses'
@@ -750,6 +750,60 @@ describe("Thunderfangs, Stormform — the second form", () => {
 
   it("does not loop — Stormform names no further form", () => {
     expect(getDef("boss_thunderfangs_2").transformAtKills).toBeUndefined();
+  });
+});
+
+describe("an AUTO-FIRED Special obeys its own reach", () => {
+  // THE BUG: `fireCardSpecialInner` handed the handler every living enemy on the
+  // board and never ran the targeting rules — and the auto-fire path is the ONLY
+  // one a boss uses, because its Special fires on `fireSpecialEveryN` and
+  // canFireSpecial refuses a manual boss cast outright. So `reach` did nothing.
+  // Measured before the fix: a card FOUR squares from Hoarfell took the same 9
+  // damage as one standing beside it, and the same for Thunderfangs, Smolder,
+  // Rotroot and Vulcanyx. Every "within 2 spaces" on the tower was a board-wide
+  // nova wearing a radius in its text.
+  const hitAt = (bossId: string, row: number, col: number) => {
+    const s = bigPrepState();
+    s.round = 3; // the boss clock fires on multiples of three
+    const boss = place(s, bossId, "P2", 0, 0);
+    boss.summonedThisRound = false;
+    const victim = place(s, "leaf_stickviper", "P1", row, col, { curHp: 90, maxHp: 90, curShields: 0 });
+    return 90 - advance(atCleanup(s)).cards[victim.instanceId].curHp;
+  };
+
+  it("lands inside the radius and stops outside it", () => {
+    for (const id of ["boss_hoarfell", "boss_thunderfangs", "boss_smolder",
+                      "boss_rotroot", "boss_vulcanyx"]) {
+      expect(hitAt(id, 1, 1), `${id} hits what is beside it`).toBeGreaterThan(0);
+      expect(hitAt(id, 4, 4), `${id} does NOT reach four squares away`).toBe(0);
+    }
+  });
+
+  it("...and a Special that declares itself RANGED still reaches the board", () => {
+    // Permafrost's Whiteout says `ranged`, so it is board-wide BY DECLARATION
+    // rather than by the targeting layer being skipped. That distinction is the
+    // whole point of the fix.
+    expect(getDef("boss_permafrost").special!.ranged).toBe(true);
+  });
+});
+
+describe("Helion's lance reaches the back line", () => {
+  it("Solar Lance ignores the Home-Slot rule", () => {
+    // Two changes collided here. Helion is EMPLACED so it never leaves its own
+    // home row, and auto-fired Specials now go through validSpecialTargets,
+    // which enforces the Home-Slot rule — a slot in the defender's home row may
+    // only be targeted from a MID row or from inside it. Measured: 0 damage to
+    // the player's home row, 22 to the mid row. A siege engine you beat by
+    // parking everything in the back line is not a siege engine.
+    const s = bigPrepState();
+    s.round = 3;
+    const boss = place(s, "boss_helion", "P2", 0, 2);
+    boss.summonedThisRound = false;
+    const back = place(s, "leaf_stickviper", "P1", 4, 2, { curHp: 90, maxHp: 90, curShields: 0 });
+    const mid = place(s, "leaf_stickviper", "P1", 2, 2, { curHp: 90, maxHp: 90, curShields: 0 });
+    const n = advance(atCleanup(s));
+    expect(90 - n.cards[mid.instanceId].curHp, "the lane").toBeGreaterThan(0);
+    expect(90 - n.cards[back.instanceId].curHp, "and the back line with it").toBeGreaterThan(0);
   });
 });
 

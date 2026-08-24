@@ -10301,7 +10301,19 @@ export const CARDS: CardDef[] = [
       // The whole column, through everything. `pen` because a lance that stopped
       // at the first body would be answered by parking a token in front of it,
       // and "the front rank eats it" is not a puzzle, it is a tax.
-      params: { dmg: 22, targets: 99, sameColumn: 1, pen: 1 },
+      // ignoreHomeRule: the lance reaches the BACK LINE. Two changes collided to
+      // make this necessary. Helion is EMPLACED (holdsPosition) so it never
+      // leaves its own home row, and auto-fired Specials now go through
+      // validSpecialTargets — which enforces the Home-Slot rule, where a slot in
+      // the defender's home row may only be targeted from a MID row or from
+      // inside that row. Measured: a card in the player's home row took 0 while
+      // one in the mid row took 22. A siege engine that cannot shell the back
+      // line is one you beat by parking everything in it.
+      //
+      // The same exemption Snapmaw's Devour declares, scoped to this one
+      // ability rather than the card-level `ignoresHomeRule` — Helion's BASIC
+      // still obeys the rule like everything else.
+      params: { dmg: 22, targets: 99, sameColumn: 1, pen: 1, ignoreHomeRule: 1 },
       targetSide: "enemy",
       text: "Fires down the column it stands in: 22 DMG to every opponent in the lane, straight through shields.",
     },
@@ -10321,7 +10333,14 @@ export const CARDS: CardDef[] = [
     // Retuned when it moved from SeaC to Ice: the frost brood — Phrost, two
     // PolarBears, two Cryos — is a great deal heavier than the school of fish
     // it used to lead, and the same body behind it read 92%.
-    hp: 66,
+    // 66 -> 90 (body 111 -> 135). Raised alongside the reach fix: every boss
+    // Special had been firing board-wide regardless of its printed radius, and
+    // honouring `reach` cut Aurora Break from a whole-board nova to the two
+    // squares its text actually promises. Hoarfell loses more than most to
+    // that — it is the JUGGERNAUT, so the rounds it spends walking are rounds
+    // it now threatens nothing at range, and the body is what those rounds are
+    // bought with.
+    hp: 90,
     sp: 6,
     shields: 12,
     // TRAMPLE is the point rather than a rider: it walks THROUGH the lighter
@@ -10408,23 +10427,27 @@ export const CARDS: CardDef[] = [
       // floor-mates throw (the Skeleeze precedent) — the floor should not ask
       // the same positional question three times.
       handler: "barrage",
-      // RANGED, or the lane is a lie. `sameColumn` FILTERS the targets the
-      // targeting layer already chose — it does not rescan the board — so on a
-      // MELEE card with no reach it narrows an 8-square melee box down to the
-      // one card directly ahead. This shipped that way and promised "through
-      // everything in the column"; it is the same omission that made Xilty's
-      // Web Trap read as trash, found by auditing the rest of the tower for it.
+      // EVERYTHING IN MELEE REACH — the plain 8-square melee box, which is what
+      // a Melee card's Special targets when it declares no `reach` at all.
       //
-      // `ranged` rather than `reach: N` because the fissure is not a swing with
-      // a longer arm — it runs the whole lane, and Permafrost's Whiteout already
-      // uses this flag for the same reason.
-      ranged: true,
+      // It was a COLUMN before (ranged + sameColumn, the whole lane ahead), and
+      // before that a BROKEN column: `sameColumn` filters targets the layer has
+      // already chosen rather than rescanning, so on a melee card with no reach
+      // it narrowed the box down to the one card directly in front. The lane
+      // version worked, but the ground opening in a ring around a charging rex
+      // is the better read of the card — it walks INTO you, and what it does on
+      // arrival should be about where it is standing.
+      //
+      // No `reach: 2` on purpose: three of its floor-mates already throw a
+      // reach-2 nova, and the tight radius is what distinguishes this one. `pen`
+      // stays — that is about SHIELDS, not distance, and lava does not care what
+      // you are holding up.
       params: {
-        dmg: 11, pen: 1, sameColumn: 1, targets: 99,
+        dmg: 11, pen: 1, targets: 99,
         statusKind: "BURN", statusDuration: 2, statusPower: 3,
       },
       targetSide: "enemy",
-      text: "11 DMG through everything in the column ahead, and BURN 3 for 2 rounds on all of it.",
+      text: "11 DMG to every opponent in melee reach, through shields, and BURN 3 for 2 rounds on all of it.",
     },
   },
   {

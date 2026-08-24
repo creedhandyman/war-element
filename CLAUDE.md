@@ -1074,6 +1074,40 @@ Skeleeze 68.8 · Basilisk 68.8 · Helion 68.8 · F3 Thunderfangs 96.9 · Hoarfel
 84.4 · Xilty 82.3 · Vulcanyx 69.8 · F4 Umbranova 96.9. The high ones are fights
 the player finished with an empty board.
 
+**AUTO-FIRED SPECIALS NOW OBEY THEIR OWN REACH — the single biggest correction
+in the mode.** `fireCardSpecialInner` handed the handler EVERY living enemy on
+the board and never ran the targeting rules. The auto-fire path is the only one a
+boss ever uses (the Special fires on `fireSpecialEveryN`, and canFireSpecial
+refuses a manual boss cast), so `reach` did nothing at all. Measured before the
+fix — a card FOUR squares away versus one adjacent:
+
+    Hoarfell 9 / 9 · Thunderfangs 9 / 9 · Smolder 8 / 8 · Rotroot 7 / 7 · Vulcanyx 11 / 11
+
+Every "to every opponent within 2 spaces" on the tower was a board-wide nova
+wearing a radius in its text. Enemy targets now come through
+`validSpecialTargets`, the same door a manual cast uses, so the two agree and the
+telegraph is honest; Specials that really are board-wide say so themselves
+(Permafrost's Whiteout declares `ranged`, Umbranova's Meteor Fall is `smite`).
+
+IT ALSO RETRACTS TWO EARLIER ENTRIES. Web Trap's "missing reach" was never what
+made it weak — reach did nothing on that path — so its +3.2 came from the ROOT
+rider added alongside. And Fissure's `ranged: true` measuring exactly 0.0 was not
+noise: it was a no-op, because `sameColumn` had always filtered the whole board
+correctly. The measurement was saying so and it was read as noise.
+
+Cost, measured (before -> after): Basilisk 68.8 -> 54.2 · Smolder 81.3 -> 69.8 ·
+Helion 68.8 -> 58.3 · Rotroot 79.2 -> 70.8 · Hoarfell 84.4 -> 79.2. The melee-nova
+bosses paid for it; Nightshrike, Thunderfangs, Umbranova and Overclock did not
+move at all, because their wins never came from the Special (see overrun).
+
+**Two follow-ups it forced.** HELION needed `ignoreHomeRule` on Solar Lance: it is
+EMPLACED in its own home row, and the Home-Slot rule lets a defender's home slot
+be targeted only from a MID row or from inside it — so a siege engine measured 0
+damage to the back line and 22 to the mid row, and you beat it by parking
+everything at the back. 58.3 -> 67.7 with the exemption. HOARFELL went 66 -> 90 HP
+(body 111 -> 135, 79.2 -> 85.4): the juggernaut spends its rounds walking, and
+those rounds now threaten nothing at range.
+
 **A GROWTH TRANSFORM MUST NOT HEAL.** `SPECIAL_HANDLERS.transform` takes the new
 form's FRESH body (full HP, full shields, stat mods wiped), which is correct for a
 Special that turns into something else and badly wrong for a second form earned
