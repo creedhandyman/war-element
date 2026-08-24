@@ -706,6 +706,41 @@ describe("Thunderfangs, Stormform — the second form", () => {
     expect(two.hits, "hits are not a percentage").toBe(one.hits);
   });
 
+  it("GROWS, it does not heal — the wound carries into the new form", () => {
+    // "Thunderfangs never dies, it just comes back", from the device. It was
+    // right: `transform` takes the new form's FRESH body, so a boss whittled to
+    // 4 of 50 came back as 60 of 60 with full shields the moment it landed its
+    // fifth kill. The worst possible moment for a full heal — the player had
+    // done the work and the kill that undid it was free.
+    //
+    // Only the INCREASE is granted now: +20% on a 50 HP body is +10 max and +10
+    // current, so 4/50 becomes 14/60. Fixed in `registerKill` rather than in the
+    // handler, which is shared with cards whose transformation IS a new body.
+    const wound = (hp: number, shields: number) => {
+      const s = prepState();
+      const boss = place(s, "boss_thunderfangs", "P1", 2, 1);
+      for (let i = 0; i < 4; i++) {
+        const v = place(s, "leaf_stickviper", "P2", 1, 1, { curHp: 1, maxHp: 1, curShields: 0 });
+        basicAttack(s, boss.instanceId, v.instanceId);
+      }
+      s.cards[boss.instanceId].curHp = hp;
+      s.cards[boss.instanceId].curShields = shields;
+      const v = place(s, "leaf_stickviper", "P2", 1, 1, { curHp: 1, maxHp: 1, curShields: 0 });
+      basicAttack(s, boss.instanceId, v.instanceId);
+      return s.cards[boss.instanceId];
+    };
+    const one = getDef("boss_thunderfangs"), two = getDef("boss_thunderfangs_2");
+    const gained = two.hp - one.hp;
+
+    const hurt = wound(4, 0);
+    expect(hurt.curHp, "the wound survives the storm").toBe(4 + gained);
+    expect(hurt.curHp).toBeLessThan(hurt.maxHp);
+
+    const whole = wound(one.hp, one.shields);
+    expect(whole.curHp, "and a healthy one is still healthy").toBe(two.hp);
+    expect(whole.curShields).toBe(two.shields);
+  });
+
   it("counts kills per INSTANCE, so it is earned in one battle", () => {
     const { s, boss } = fiveKills();
     expect(s.cards[boss.instanceId].killCount).toBe(5);

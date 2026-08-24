@@ -2753,7 +2753,24 @@ function registerKill(draft: GameState, killer: CardInstance): void {
   killer.killCount = (killer.killCount ?? 0) + 1;
   const t = getDef(killer.defId).transformAtKills;
   if (!t || killer.killCount < t.kills || killer.defId === t.into) return;
+
+  // IT GROWS — IT DOES NOT HEAL. `transform` takes the new form's FRESH body,
+  // which is right for a Special that turns into something else and badly wrong
+  // for a second form earned mid-fight: Thunderfangs whittled to 4 of 50 came
+  // back as 60 of 60 with full shields the instant it landed its fifth kill.
+  // Reported from the device as "Thunderfangs never dies, it just comes back",
+  // and it is the worst possible moment for a full heal — the player had done
+  // the work and the kill that undid it was free.
+  //
+  // So the wound carries over and only the INCREASE is granted: at +20% on a 50
+  // HP body that is +10 max and +10 current, so 4/50 becomes 14/60. Same for
+  // shields. Fixed HERE rather than in the handler, because the handler is
+  // shared with cards whose transformation IS meant to be a new body.
+  const hpWas = killer.curHp, maxWas = killer.maxHp, shieldsWas = killer.curShields;
   SPECIAL_HANDLERS.transform(draft, killer, [], { into: t.into });
+  killer.curHp = Math.max(1, Math.min(killer.maxHp, hpWas + Math.max(0, killer.maxHp - maxWas)));
+  const shieldsGained = Math.max(0, getDef(t.into).shields - getDef(killer.transformedFrom ?? "").shields);
+  killer.curShields = Math.min(killer.curShields, shieldsWas + shieldsGained);
 }
 
 function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, deathPos?: Pos | null): void {

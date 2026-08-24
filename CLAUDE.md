@@ -1074,6 +1074,17 @@ Skeleeze 68.8 · Basilisk 68.8 · Helion 68.8 · F3 Thunderfangs 96.9 · Hoarfel
 84.4 · Xilty 82.3 · Vulcanyx 69.8 · F4 Umbranova 96.9. The high ones are fights
 the player finished with an empty board.
 
+**A GROWTH TRANSFORM MUST NOT HEAL.** `SPECIAL_HANDLERS.transform` takes the new
+form's FRESH body (full HP, full shields, stat mods wiped), which is correct for a
+Special that turns into something else and badly wrong for a second form earned
+mid-fight. Thunderfangs whittled to 4 of 50 came back as 60 of 60 the instant it
+landed its fifth kill — "it never dies, it just comes back", from the device.
+`registerKill` now carries the wound across and grants only the INCREASE (+10 max
+and +10 current at +20% of a 50 HP body, so 4/50 -> 14/60; a healthy one still
+ends healthy). Fixed at the CALL SITE, not in the handler, because the handler is
+shared with cards whose transformation is meant to be a new body. Any future
+`transformAtKills` card inherits the fix.
+
 **THUNDERFANGS HAS A SECOND FORM, AND A PACK THAT REPLENISHES.** Raise the Pack
 (`onKill.spawnToken`, capped at 3 alive) puts a **Spark Wind Wolf** token on the
 board with every kill — Wolf tribe, so it feeds Pack Law, and it ELECTRIFIES what
