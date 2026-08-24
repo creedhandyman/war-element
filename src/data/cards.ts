@@ -10636,9 +10636,26 @@ export const CARDS: CardDef[] = [
       cost: 3,
       handler: "barrage",
       // reach 2 = the widened melee square, the Kraken/Rotroot precedent.
-      params: { dmg: 8, targets: 99, reach: 2, statusKind: "ROOT", statusDuration: 2 },
+      //
+      // IT BURNS NOW. The move is called Burning Roots and applied only ROOT —
+      // the "burning" half lived on Smolder's basic (Ember Grain) and on being
+      // touched (Ashen Bark), so the Special that carries the name was the one
+      // part of the kit that did not set anything alight. Same class of mistake
+      // as Web Trap declaring no reach: the text promised what the params did
+      // not do.
+      //
+      // BURN is the PRIMARY status because `debuffStatus` applies at power 0,
+      // and a BURN with no power is nothing. So the burn carries the power and
+      // ROOT rides along — which is also the right way round for the fiction:
+      // the roots take hold, and everything they hold is already on fire.
+      // Matched to the rest of the kit at 3 rounds (Ember Grain's BURN 3/3).
+      params: {
+        dmg: 8, targets: 99, reach: 2,
+        statusKind: "BURN", statusDuration: 3, statusPower: 3,
+        debuffStatus: "ROOT", debuffStatusRounds: 2,
+      },
       targetSide: "enemy",
-      text: "8 DMG and ROOT for 2 rounds to every opponent within 2 spaces — and everything Smolder touches is already burning.",
+      text: "8 DMG to every opponent within 2 spaces, setting them alight — BURN 3 for 3 rounds — and ROOTing them for 2, so they burn where they stand.",
     },
   },
 ];

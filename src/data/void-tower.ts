@@ -339,11 +339,18 @@ export const VOID_BOSSES: VoidBoss[] = [
     // Black Smoke ticks 1 to the whole enemy board and heals the brood 1, every
     // round. Smoke off a burning tree, punishing exactly the stand-off the
     // fight demands, and the one engine an all-flora deck cannot otherwise hold.
+    // 1 + 1x3 + 2x2 + 2x2 = 12, exact. A SECOND Smog, paid for with TWO Birches:
+    // swapping a 1-cost Birch for a 2-cost Smog costs a gold the budget does not
+    // have, so a second Birch came out rather than thinning the Nettles.
+    // Eight bodies instead of nine, and a fair trade for doubling the only
+    // ranged thing in the formation — two Smogs tick 2 a round across the whole
+    // enemy board and heal the undergrowth 2, which is attrition an all-melee
+    // grove cannot otherwise apply. Smog is rare, so x2 is inside its x3 cap.
     summons: [
-      "leaf_birch", "leaf_birch", "leaf_birch",
+      "leaf_birch",
       "leaf_nettle", "leaf_nettle", "leaf_nettle",
       "leaf_oak", "leaf_oak",
-      "pyro_smog_card",
+      "pyro_smog_card", "pyro_smog_card",
     ],
     puzzle: "The bonfire: everything that touches it burns — fight it at range.",
   },

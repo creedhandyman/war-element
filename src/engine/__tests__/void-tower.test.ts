@@ -676,6 +676,37 @@ describe("every boss moves like itself", () => {
   });
 });
 
+describe("an ability does what its NAME says", () => {
+  // Third instance of the same class of bug in this mode, so it gets a home.
+  // Web Trap declared no reach and caught almost nothing; Fissure promised a
+  // lane it could not reach; BURNING Roots applied only ROOT. The burning half
+  // lived on Smolder's basic (Ember Grain) and on touching it (Ashen Bark), so
+  // the one move carrying the name was the one part of the kit that set nothing
+  // alight.
+  it("Burning Roots BURNS, and roots", () => {
+    const s = bigPrepState();
+    s.round = 3; // the boss clock fires on multiples of three
+    const boss = place(s, "boss_smolder", "P2", 2, 2);
+    boss.summonedThisRound = false;
+    const foe = place(s, "leaf_stickviper", "P1", 3, 2, { curHp: 40, maxHp: 40, curShields: 0 });
+    const n = advance(atCleanup(s));
+    const hit = n.cards[foe.instanceId];
+    expect(statusOf(hit, "BURN"), "it burns").toBeTruthy();
+    expect(statusOf(hit, "ROOT"), "and roots").toBeTruthy();
+    expect(hit.curHp, "and lands its damage").toBeLessThan(40);
+  });
+
+  it("...with BURN as the primary status, because the rider has no power", () => {
+    // `debuffStatus` applies at power 0 and a BURN with no power is nothing, so
+    // the burn has to be the one carrying statusPower. If these two are ever
+    // swapped back the ability silently stops burning again.
+    const p = getDef("boss_smolder").special!.params!;
+    expect(p.statusKind, "BURN carries the power").toBe("BURN");
+    expect(Number(p.statusPower), "and it is not zero").toBeGreaterThan(0);
+    expect(p.debuffStatus, "ROOT rides along").toBe("ROOT");
+  });
+});
+
 describe("OVERRUN — the boss can win the board, not just outlast it", () => {
   // Void Tower switches the slot race off entirely: capture is disabled, the
   // player wins by SLAYING and the boss by elimination or by running the clock
