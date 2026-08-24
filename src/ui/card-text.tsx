@@ -208,7 +208,7 @@ export function describeSharedPassives(def: CardDef): SharedPassive[] {
   if (kw.REFLECT) shared.push({ kind: "keyword", label: `REFLECT ${kw.REFLECT}`, desc: `returns ${kw.REFLECT} DMG to attackers.` });
   if (kw.EVASION) shared.push({ kind: "keyword", label: "EVASION", desc: "~50% chance to dodge each incoming hit." });
   if (kw.TRAMPLE)
-    shared.push({ kind: "keyword", label: "TRAMPLE", desc: "in Prep it can step onto an adjacent opponent with less max HP, shoving it back a slot and taking the square (needs the slot behind it open)." });
+    shared.push({ kind: "keyword", label: "TRAMPLE", desc: "in Prep it can step onto an adjacent opponent with less max HP and take the square — in any direction. The victim is driven a slot straight back, or knocked aside into any free square further from you if the slot behind it is blocked." });
   return shared;
 }
 

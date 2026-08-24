@@ -114,15 +114,49 @@ export function shoveTarget(
   // in a Stormhide Bison mirror, where the same card carries both.
   if (getDef(victim.defId).pushImmune) return null;
   if (effectiveMaxHp(state, victim) >= effectiveMaxHp(state, card)) return null;
+  const open = (p: { row: number; col: number }) =>
+    p.row >= 0 && p.row < state.boardSize && p.col >= 0 && p.col < state.boardSize
+    && !state.slots[p.row][p.col].capturedBy && !cardAt(state, p.row, p.col);
+
+  // STRAIGHT BACK FIRST — the shove proper, and still what happens whenever
+  // there is room for it.
   const beyond = { row: to.row + dr, col: to.col + dc };
-  if (
-    beyond.row < 0 || beyond.row >= state.boardSize ||
-    beyond.col < 0 || beyond.col >= state.boardSize ||
-    state.slots[beyond.row][beyond.col].capturedBy ||
-    cardAt(state, beyond.row, beyond.col)
-  )
-    return null;
-  return { victim, dest: beyond };
+  if (open(beyond)) return { victim, dest: beyond as Pos };
+
+  // KNOCKED ASIDE. When the square straight back is off the board, occupied or
+  // captured, the victim is driven into any other free square that puts it
+  // FURTHER from the trampler than it started.
+  //
+  // Why this exists: direction was never what stopped a sideways trample — the
+  // room beyond was. Forward, "beyond" is deeper into the board and usually
+  // empty; sideways it is the next column out, off the edge half the time on a
+  // 4-wide board. Same rule, wildly different hit rate, which is why TRAMPLE
+  // read as a forward-only charge when it never was one.
+  //
+  // ANY free square around the victim EXCEPT the one the trampler is vacating,
+  // which is what keeps this a shove rather than a swap.
+  //
+  // "Strictly further from the trampler" was the first cut and it does not do
+  // the job: the victim is already adjacent, so at a board edge every free
+  // neighbour it has is the same distance away, and the exact lateral case this
+  // was built for would still have failed. Preference, not requirement —
+  // genuinely-further squares sort first, and a sideways nudge is the fallback.
+  //
+  // The cost, stated plainly: a victim now resists only when ALL its free
+  // neighbours are gone, so TRAMPLE lands far more often for every carrier
+  // (Burnout, Hoarfell, WarPhant, Bearocks, Oakgre, Stormhide Bison).
+  //
+  // Deterministic ordering, because a telegraph broken at random is a lie:
+  // furthest from the trampler first, then lowest row, then lowest column. The
+  // same tie rule as aimLateral and the spawn placements.
+  const origin = card.pos;
+  const cand = AROUND
+    .map(([r, c]) => ({ row: to.row + r, col: to.col + c }))
+    .filter((p) => open(p) && !(p.row === origin.row && p.col === origin.col))
+    .sort((a, b) =>
+      chebyshev(b as Pos, origin) - chebyshev(a as Pos, origin)
+      || a.row - b.row || a.col - b.col);
+  return cand.length ? { victim, dest: cand[0] as Pos } : null;
 }
 
 const AROUND: readonly (readonly [number, number])[] = [

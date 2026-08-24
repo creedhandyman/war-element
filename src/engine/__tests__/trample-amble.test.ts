@@ -95,10 +95,29 @@ describe("Trample Through", () => {
     expect(canMove(s, "P1", mover.instanceId, to).ok).toBe(false);
   });
 
-  it("refuses when the slot behind the victim is taken", () => {
-    // Nothing is crushed against another body.
+  it("KNOCKS ASIDE when the slot behind the victim is taken", () => {
+    // Was "refuses". Nothing is crushed against another body — but the victim is
+    // no longer safe behind one either: with the straight square blocked it is
+    // driven into a free square to the side instead, preferring whichever is
+    // furthest from the trampler.
     const { s, mover, to } = facing("bore_bearocks", "dusk_gool", { beyondBlocked: true });
-    expect(canMove(s, "P1", mover.instanceId, to).ok).toBe(false);
+    const shove = shoveTarget(s, s.cards[mover.instanceId], to);
+    expect(shove, "it still goes through").not.toBeNull();
+    expect(shove!.dest, "and not onto the square the trampler is vacating")
+      .not.toEqual(mover.pos);
+    expect(canMove(s, "P1", mover.instanceId, to).ok).toBe(true);
+  });
+
+  it("...and refuses only when the victim has NOWHERE to go", () => {
+    // The real limit now: boxed in on every side. This is the case that keeps
+    // the shove from being unconditional.
+    const s = prepState();
+    const mover = place(s, "bore_bearocks", "P1", 2, 1);
+    mover.spBonus = 6;
+    place(s, "dusk_gool", "P2", 1, 1, { curHp: 8, maxHp: 8 });
+    for (const [r, c] of [[0, 0], [0, 1], [0, 2], [1, 0], [1, 2], [2, 0], [2, 2]])
+      place(s, "dusk_gool", "P2", r, c, { curHp: 8, maxHp: 8 });
+    expect(shoveTarget(s, s.cards[mover.instanceId], { row: 1, col: 1 } as Pos)).toBeNull();
   });
 
   it("Braced Stance stops a trample like it stops every other push", () => {
@@ -200,11 +219,16 @@ describe("what actually stops a sideways trample is the room BEYOND", () => {
   it("shoves when the next column out is free", () => {
     expect(lateral(1, 2)).not.toBeNull();
   });
-  it("refuses at the board EDGE — there is nowhere to put the victim", () => {
-    expect(lateral(2, 3)).toBeNull();
+  it("works at the board EDGE now — the victim is knocked aside instead", () => {
+    // THE CASE THIS WAS ALL FOR. Sideways into the edge column used to refuse:
+    // "beyond" was off the board, so a lateral trample failed on half the
+    // columns of a 4-wide board and TRAMPLE read as forward-only.
+    const shove = lateral(2, 3);
+    expect(shove).not.toBeNull();
+    expect(shove!.dest.col, "shoved off the edge column").not.toBe(3);
   });
-  it("refuses when something is standing beyond it", () => {
-    expect(lateral(1, 2, 3)).toBeNull();
+  it("knocks the victim aside when something is standing beyond it", () => {
+    expect(lateral(1, 2, 3)).not.toBeNull();
   });
   it("refuses a victim with equal or greater max HP, sideways as anywhere", () => {
     expect(lateral(1, 2, undefined, 24)).toBeNull();

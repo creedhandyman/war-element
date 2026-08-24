@@ -617,19 +617,21 @@ describe("WarPhant — Trample Through (Prep) and the reworked Battle Charge", (
     void tough;
   });
 
-  it("will not shove when the slot beyond is blocked or off the board", () => {
-    // Nothing gets crushed: a victim with its back to a body, or to the edge,
-    // simply cannot be moved and the step stays illegal.
+  it("shoves ASIDE when the slot beyond is blocked or off the board", () => {
+    // Was "will not shove". A victim with its back to a body — or to the wall —
+    // is no longer safe: the straight square being unavailable now knocks it
+    // sideways into any free square instead, preferring the one furthest from
+    // the trampler. It refuses only when the victim is boxed in entirely.
     const s = armPrep(prepState());
     const wp = place(s, "dawn_warphant", "P1", 2, 1);
     place(s, "dusk_gool", "P2", 1, 1, { curHp: 13, maxHp: 13 });
-    place(s, "dusk_vamp", "P2", 0, 1, { curHp: 13, maxHp: 13 }); // blocks the shove
-    expect(canMove(s, "P1", wp.instanceId, { row: 1, col: 1 }).ok).toBe(false);
+    place(s, "dusk_vamp", "P2", 0, 1, { curHp: 13, maxHp: 13 }); // blocks the STRAIGHT shove
+    expect(canMove(s, "P1", wp.instanceId, { row: 1, col: 1 }).ok).toBe(true);
 
     const edge = armPrep(prepState());
     const wp2 = place(edge, "dawn_warphant", "P1", 1, 1);
     place(edge, "dusk_gool", "P2", 0, 1, { curHp: 13, maxHp: 13 }); // its back is the wall
-    expect(canMove(edge, "P1", wp2.instanceId, { row: 0, col: 1 }).ok).toBe(false);
+    expect(canMove(edge, "P1", wp2.instanceId, { row: 0, col: 1 }).ok).toBe(true);
   });
 
   it("only WarPhant does it — an ordinary card still cannot enter an occupied slot", () => {
