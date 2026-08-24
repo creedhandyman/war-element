@@ -1034,6 +1034,28 @@ An AI-vs-AI harness cannot read a telegraph, bring cleanse, or focus a boss, so
 it cannot say whether a puzzle is FAIR — only whether the seven are comparable.
 Fairness is on-device.
 
+**OVERRUN — the boss can now WIN the board.** `WinInfo.by` gained `"overrun"`:
+in a Void Tower fight, if the boss's side occupies EVERY slot of the player's
+home row at Cleanup, the boss wins outright (7z in `doCleanupPhase`). The mode
+switches the slot race off entirely — capture disabled, player wins by slaying,
+boss by elimination or the 24-round clock — which left the boss no way to win the
+board, only to survive it. A brood standing in all of your back line had beaten
+you and still had to wait out the clock.
+
+EVERY slot, not a majority, and checked by OCCUPANCY rather than `capturedBy`
+because capture is exactly what this mode turns off. It is deliberately
+ASYMMETRIC: the player filling the BOSS's home row still wins nothing — slaying
+is the player's condition, and a test pins both halves. One pre-existing test
+asserted "a boss holding every home slot has not won" and is re-pointed; it still
+guards that the ending is an overrun and never a capture.
+
+**Floor 2 took +25% HP** (owner's call after playing it): Overclock 40->50,
+Basilisk 44->55. Skeleeze and Helion excepted by explicit instruction. With
+overrun also landing, the floor now reads Overclock 91.7% (from 67.7 — its body
+was the smallest on the tower at 76, so +10 HP is proportionally huge and it is a
+spawner that compounds every round it survives), Skeleeze 69.8, Helion 68.8,
+Basilisk 67.7.
+
 **EVERY BOSS MOVES LIKE ITSELF — and `roundTick.advance` IS Acorn's SEED ROLL.**
 Reported from the device: "why do all the bosses still mostly have the same
 movement pattern? I didn't ask for most of them to be given seed roll." Audited,

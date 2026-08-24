@@ -3253,6 +3253,34 @@ function doCleanupPhase(draft: GameState): void {
     }
   }
 
+  // 7z. OVERRUN: the boss holds every slot of the player's home row.
+  //
+  //      Void Tower turns the slot race off entirely — capture is disabled, the
+  //      player wins by slaying and the boss by elimination or by running the
+  //      clock out — which left the boss with no way to WIN the board, only to
+  //      survive it. A brood that has physically taken your whole back line has
+  //      beaten you, and should not have to wait out the clock to be told so.
+  //
+  //      Every slot, not a majority: it is the last-ditch condition, and on a
+  //      5-wide board it means the boss's side is standing in all five of your
+  //      home squares with nothing of yours left in any of them. Checked by
+  //      OCCUPANCY rather than by `capturedBy`, because capture is exactly the
+  //      mechanic this mode switches off.
+  if (draft.voidTower) {
+    const home = homeRow("P1", draft.boardSize);
+    let held = 0;
+    for (let col = 0; col < draft.boardSize; col++) {
+      const sitting = cardAt(draft, home, col);
+      if (sitting && sitting.owner === "P2" && sitting.curHp > 0) held++;
+    }
+    if (held === draft.boardSize) {
+      draft.win = { winner: "P2", by: "overrun" };
+      draft.phase = "gameover";
+      draft.log.push("Your home row is gone — the brood is standing in all of it.");
+      return;
+    }
+  }
+
   // 7a. A VOID TOWER fight runs on its own, much shorter clock, and running it
   //     out is how the BOSS wins. Not `decideOnTime`: that scores the board on
   //     slots, bodies and HP, and in here the only question that matters is

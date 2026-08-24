@@ -88,7 +88,10 @@ export function WinScreen(props: {
             <>
               {youWon ? "You" : "The opponent"} won by{" "}
               <b style={{ color: "var(--ink)" }}>
-                {win.by === "capture" ? "capturing all 4 Home slots" : "elimination"}
+                {win.by === "capture" ? "capturing all 4 Home slots"
+                  : win.by === "slain" ? "slaying the boss"
+                  : win.by === "overrun" ? "overrunning the whole Home row"
+                  : "elimination"}
               </b>{" "}
               on round {game.round}.
             </>

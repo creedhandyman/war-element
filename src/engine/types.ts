@@ -1989,7 +1989,7 @@ export interface SlotState {
 export interface WinInfo {
   /** null only on a timeout that nothing could separate — a genuine draw. */
   winner: PlayerId | null;
-  by: "capture" | "elimination" | "surrender" | "timeout" | "slain";
+  by: "capture" | "elimination" | "surrender" | "timeout" | "slain" | "overrun";
 }
 
 /** Post-match analytics, accumulated live in the reducer. `dmg` is HP damage

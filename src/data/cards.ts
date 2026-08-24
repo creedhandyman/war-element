@@ -10064,7 +10064,9 @@ export const CARDS: CardDef[] = [
     // budget goes into staying up rather than into hitting harder.
     dmg: 8,
     hits: 1,
-    hp: 40,
+    // +25% HP (40 -> 50, body 76 -> 86) — Floor 2 across the board,
+    // Skeleeze excepted, at the owner's call after playing the floor.
+    hp: 50,
     sp: 12,
     shields: 8,
     keywords: {},
@@ -10206,7 +10208,9 @@ export const CARDS: CardDef[] = [
     // and REGEN + LIFESTEAL keep doing the rest.
     dmg: 12,
     hits: 1,
-    hp: 44,
+    // +25% HP (44 -> 55, body 70 -> 81) — Floor 2 across the board,
+    // Skeleeze excepted, at the owner's call after playing the floor.
+    hp: 55,
     sp: 8,
     shields: 3,
     keywords: { REGEN: 3, LIFESTEAL: true },

@@ -59,12 +59,15 @@ describe("the roster", () => {
     // Rotroot 53% · Permafrost 47% · Nightshrike 67% · Basilisk 70% ·
     // Overclock 73% · Xilty 73% · Skeleeze 77%. Change a number, re-measure.
     const MEASURED: Record<string, number> = {
+      // FLOOR 2 took +25% HP at the owner's call after playing it —
+      // Overclock 40->50, Basilisk 44->55. Skeleeze and Helion excepted,
+      // both by explicit instruction.
       boss_rotroot: 165, // 169 -> 133: trimmed when Glacial Creep gave it a gait and took it
       // to 89.6%, harder than any Floor-3 boss. 77.1% now.
-      boss_permafrost: 133, boss_overclock: 76,
+      boss_permafrost: 133, boss_overclock: 86,
       // 84 -> 108: +12 shields, the lever that took the tower's easiest fight
       // from 45.5% to 65.2%. Still the smallest body on Floor 1.
-      boss_nightshrike: 108, boss_basilisk: 70, boss_skeleeze: 128,
+      boss_nightshrike: 108, boss_basilisk: 81, boss_skeleeze: 128,
       // Xilty trimmed 166 -> 154 when Web Trap was repaired (it declared no
       // `reach`, so a MELEE boss's signature only ever caught what was
       // touching it). 72.9% at 66 HP / 24 shields.
@@ -664,6 +667,46 @@ describe("every boss moves like itself", () => {
   });
 });
 
+describe("OVERRUN — the boss can win the board, not just outlast it", () => {
+  // Void Tower switches the slot race off entirely: capture is disabled, the
+  // player wins by SLAYING and the boss by elimination or by running the clock
+  // out. That left the boss no way to WIN the board, only to survive it — a
+  // brood standing in every square of your back line had beaten you and still
+  // had to wait out the clock to be told so.
+  //
+  // Checked by OCCUPANCY rather than `capturedBy`, because capture is precisely
+  // the mechanic this mode turns off.
+  const overrun = (n: number) => {
+    const s = bigPrepState();
+    s.voidTower = true;
+    place(s, "boss_hoarfell", "P2", 0, 2);
+    for (let c = 0; c < n; c++) place(s, "dusk_gool", "P2", 4, c);
+    // Anything of the player's still standing in the row keeps it theirs.
+    for (let c = n; c < 5; c++) place(s, "leaf_stickviper", "P1", 4, c);
+    return advance(atCleanup(s));
+  };
+
+  it("every slot of the player's home row, and the floor is lost", () => {
+    const n = overrun(5);
+    expect(n.phase).toBe("gameover");
+    expect(n.win).toEqual({ winner: "P2", by: "overrun" });
+  });
+
+  it("EVERY slot — four of five is not enough", () => {
+    // The last-ditch condition, deliberately: one body left in the back line is
+    // the difference between losing the floor and still being in the fight.
+    expect(overrun(4).win, "four").toBeFalsy();
+    expect(overrun(3).win, "three").toBeFalsy();
+  });
+
+  it("is scoped to the tower — an ordinary match is untouched", () => {
+    const s = bigPrepState();
+    place(s, "boss_hoarfell", "P2", 0, 2);
+    for (let c = 0; c < 5; c++) place(s, "dusk_gool", "P2", 4, c);
+    expect(advance(atCleanup(s)).win?.by).not.toBe("overrun");
+  });
+});
+
 describe("the boss holds its home row for the opening", () => {
   // It is standing there from round one, placed outside the economy, while the
   // player is still deploying their first card or two. Walking immediately put
@@ -906,12 +949,17 @@ describe("slay the boss to win", () => {
     expect(n.slots[3][0].capturedBy).toBe("P2");
   });
 
-  it("the slot race is OFF — a boss holding every home slot has not won", () => {
+  it("the slot race is OFF — holding every home slot is an OVERRUN, never a capture", () => {
+    // This used to assert the fight simply went on. It no longer does: a brood
+    // standing in every square of your back line wins by OVERRUN (see 7z in
+    // doCleanupPhase). What the test still guards is the thing it was written
+    // for — that CAPTURE is off in here, so the ending is the new one and not
+    // the slot race sneaking back in.
     const { s } = bossFight("boss_overclock");
-    // Fill P1's home row with the boss's side: an ordinary match ends here.
     for (let col = 0; col < s.boardSize; col++) place(s, "bolt_zipp", "P2", 3, col);
     const n = advance(atCleanup(s));
-    expect(n.phase, "the fight goes on").not.toBe("gameover");
+    expect(n.win?.by, "not by capture").not.toBe("capture");
+    expect(n.win?.by, "by overrun").toBe("overrun");
   });
 
   it("...and it is off for the PLAYER too, so neither side can skip the fight", () => {
