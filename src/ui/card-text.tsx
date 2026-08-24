@@ -319,6 +319,11 @@ export function describePassives(def: CardDef): string[] {
       `When hit${m.anyAttacker ? " (melee or ranged)" : " by melee"}${m.chance ? ` (${m.chance}%)` : ""}: retaliate — ${bits}.`,
     );
   }
+  if (def.vsFrozenRamp) {
+    const r = def.vsFrozenRamp;
+    named("vsFrozenRamp",
+      `+${r.per} DMG for every round a FROZEN target has been held, up to +${r.max}. Breaking the freeze resets it.`);
+  }
   if (def.transformAtKills) {
     const t = def.transformAtKills;
     named("transformAtKills",
@@ -884,6 +889,8 @@ export function describePassives(def: CardDef): string[] {
     if (od.roundEndAoe) parts.push(`calls down a meteor — ${od.roundEndAoe} DMG to every opponent at the end of next round`);
     if (od.passEnchant) parts.push("hands its armed Enchantment to the ally with the highest DMG");
     if (od.frightenInRange) parts.push(`FRIGHTENs nearby enemies for ${rounds(od.frightenInRange)}`);
+    if (od.inRangeStatus)
+      parts.push(`bursts open — ${od.inRangeStatus.kind} for ${rounds(od.inRangeStatus.duration)} on every opponent in range`);
     if (od.allyTribeBuffDmg)
       parts.push(`gives surviving ${od.allyTribeBuffDmg.tribe}s +${od.allyTribeBuffDmg.dmg} DMG permanently`);
     if (od.killerStatus)

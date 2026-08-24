@@ -1049,6 +1049,35 @@ is the player's condition, and a test pins both halves. One pre-existing test
 asserted "a boss holding every home slot has not won" and is re-pointed; it still
 guards that the ending is an overrun and never a capture.
 
+**CRYOVEX — Floor 4's SECOND boss** (AQUA tribe / DUSK mechanic, tribe Dragon).
+The ice flight: Hydrogon (AQUA's aura dragon, +4 SP to Vapor) + Glacius + Phrost
++ Sapphire + Coilblade + SkullDrake + Arctik, 36 exact. Pyrogon STAYS with
+Umbranova — the fire aura dragon belongs to the fire boss.
+
+DEEP FREEZE (`vsFrozenRamp: {per, max}`) is the new mechanic: +4 DMG for every
+round a target has been held FROZEN, to +16, read off a per-instance
+`frozenRounds` that Cleanup keeps. The counter RESETS the moment the freeze
+lifts, so cleanse is the fight rather than a tax — the inverse of Xilty's lock one
+floor down, where the answer was to bank a round and play through it. Verified
+ramping 13 -> 17 -> 21 -> 25.
+  * `frozenRounds` MUST be counted above `if (!rt) continue` in doRoundTicks. It
+    was written below it first, so it only ticked for cards that happened to
+    carry a roundTick — an ordinary body could be frozen ten rounds and Cryovex
+    would never notice. Its own test caught that.
+  * CRYSTAL BLOOM: every kill grows a **Blackice Crystal** token (max 3 alive) —
+    0 DMG, SP 0, FREEZEs the closest opponent each round, and `onDeath.
+    inRangeStatus` (new, the generic form of `frightenInRange`) bursts it into
+    another FREEZE on everything beside it. Killing the crystals is itself what
+    starts the next freeze.
+
+**NOTHING TUNES A FLOOR-4 BOSS IN THIS HARNESS.** Swept across the whole design
+space — formations of 7/5/4/3 bodies, Absolute Zero freezing for 2 or 1, Hoarbite
+on and off, crystals inert, and NO FREEZE ANYWHERE — every variant measured
+97.9-100% with 79-85% of wins by overrun. Umbranova is the same shape at 96.9%.
+On Floor 4 the AI cannot hold a board, so the fight ends in the back line whatever
+the boss does. Size these cards against each OTHER (Cryovex 131 body vs
+Umbranova 128) and judge their feel on-device; the win rate is not measuring them.
+
 **THE HOME-ROW SOFTLOCK (`summonLandingRow`) — and why overrun looked broken.**
 Summoning is column-addressed with the row IMPLIED to be your home row, so a side
 whose home row is entirely enemy-held could not play a card at all. An ordinary

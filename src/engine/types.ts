@@ -576,6 +576,14 @@ export interface CardDef {
   transformAtKills?: { kills: number; into: string };
   /** On-kill trigger (this card's attack defeats an enemy). */
   onKill?: OnKillDef;
+  /** DEEP FREEZE (Cryovex): bonus damage against a FROZEN target that GROWS with
+   *  how long it has been frozen — `per` for each round it has been held, capped
+   *  at `max`. Reads the victim's `frozenRounds`, which the Cleanup tick keeps.
+   *
+   *  Distinct from `vsStatus`, which is a flat bonus for carrying a status at
+   *  all: this one makes the freeze itself the threat, so the answer is to break
+   *  it early rather than to play around a fixed number. */
+  vsFrozenRamp?: { per: number; max: number };
   /** Conditional basic-attack keyword vs a target carrying a status. */
   vsStatus?: VsStatusDef;
   /** Dragon's Bane (Drakonbane): a bonus keyed on WHAT the target IS rather
@@ -1191,6 +1199,10 @@ export interface CardDef {
     /** WarPhant: the rider survives the mount and keeps fighting. */
     spawnToken?: { token: string; count: number };
     frightenInRange?: number; // rounds of FRIGHTEN on reachable enemies
+    /** SHATTER (Blackice Crystal): it bursts as it dies and applies a status to
+     *  every opponent in the eight squares around it. The generic form of
+     *  `frightenInRange` — kill the crystal and it still gets you. */
+    inRangeStatus?: { kind: StatusKind; duration: number; power: number };
     /** Bird Bomb: the body detonates — this much to EVERY opponent inside the
      *  dying card's own attack reach, measured from the slot it fell on.
      *
@@ -1320,6 +1332,10 @@ export interface CardInstance {
   /** Sea Terror (Siren): while transformed into another card, the defId to
    *  revert to when this form dies. Set on transform, cleared on revert. */
   transformedFrom?: string;
+  /** Consecutive rounds this card has spent FROZEN. Reset the moment the freeze
+   *  lifts. Read by `vsFrozenRamp` — the longer you are held, the harder the
+   *  thing holding you hits. */
+  frozenRounds?: number;
   /** Kills this card has made THIS BATTLE. Drives `transformAtKills`. */
   killCount?: number;
   /** King of the Wild (Leo): its once-per-round on-opp-summon buff has fired. */

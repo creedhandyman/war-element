@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { CARDS, TOKENS, CARD_INDEX, getDef } from "../../data/cards";
 import {
   BODY_CAP_TOLERANCE, FLOOR1_SUMMON_BUDGET, VOID_BOSSES, bodyCap, bodyTotal, bossDefeated,
-  buildVoidEncounter, chanceProblems, floorCleared, floorOpen, inTribe, summonBudget,
+  bossesOnFloor, buildVoidEncounter, chanceProblems, floorCleared, floorOpen, inTribe, summonBudget,
   bossSummonPool, paddedFormation, reinforcementPool, summonProblems, VOID_PLAYER_HEAD_START, voidPlayerHeadStart, towerProgress, tribePool, trialEventId, voidBossById,
   voidBossSeat, voidFloors,
 } from "../../data/void-tower";
@@ -98,6 +98,11 @@ describe("the roster", () => {
       // damage ignores position and escalates every cast, so the threat is the
       // countdown rather than the meat.
       boss_umbranova: 128,
+      // Sized against Umbranova's 128, not Floor 4's 350 cap. The number is
+      // nearly irrelevant to the outcome: every variant swept — formation 7 to
+      // 3 bodies, the Special freezing 2 or 1, Hoarbite on/off, crystals inert,
+      // and no freeze at all — measured 97.9-100% with ~80% overruns.
+      boss_cryovex: 131,
       // Smolder is a Floor-1 body and reads 69% — most of its threat is the
       // BURN it puts on anything that touches it, which costs no stat points
       // at all.
@@ -753,6 +758,59 @@ describe("Thunderfangs, Stormform — the second form", () => {
 
   it("does not loop — Stormform names no further form", () => {
     expect(getDef("boss_thunderfangs_2").transformAtKills).toBeUndefined();
+  });
+});
+
+describe("Cryovex — Deep Freeze and the crystals", () => {
+  it("hits harder the longer a target has been held, and caps", () => {
+    const s = bigPrepState();
+    const boss = place(s, "boss_cryovex", "P2", 2, 2);
+    boss.summonedThisRound = false;
+    const foe = place(s, "leaf_stickviper", "P1", 2, 3, { curHp: 400, maxHp: 400, curShields: 0 });
+    applyStatus(s, s.cards[foe.instanceId], "FREEZE", 30, 0, "AQUA");
+    const hits: number[] = [];
+    for (let r = 0; r < 6; r++) {
+      const before = s.cards[foe.instanceId].curHp;
+      basicAttack(s, boss.instanceId, foe.instanceId);
+      hits.push(before - s.cards[foe.instanceId].curHp);
+      s.cards[foe.instanceId].frozenRounds = (s.cards[foe.instanceId].frozenRounds ?? 0) + 1;
+      s.cards[boss.instanceId].attackedThisRound = false;
+    }
+    const ramp = getDef("boss_cryovex").vsFrozenRamp!;
+    // Round 0 held = printed damage; each further round adds `per`, to `max`.
+    expect(hits[1] - hits[0], "it ramps").toBe(ramp.per);
+    expect(hits[hits.length - 1] - hits[0], "and stops at the cap").toBe(ramp.max);
+  });
+
+  it("the clock RESETS when the freeze breaks — that is the answer to it", () => {
+    const s = bigPrepState();
+    const foe = place(s, "leaf_stickviper", "P1", 2, 3, { curHp: 90, maxHp: 90 });
+    applyStatus(s, s.cards[foe.instanceId], "FREEZE", 5, 0, "AQUA");
+    let n = advance(atCleanup(s));
+    expect(n.cards[foe.instanceId].frozenRounds, "counting").toBeGreaterThan(0);
+    n.cards[foe.instanceId].statuses = [];
+    n = advance(atCleanup(n));
+    expect(n.cards[foe.instanceId].frozenRounds, "and forgotten the moment it lifts").toBe(0);
+  });
+
+  it("a Blackice Crystal bursts on death and freezes what is beside it", () => {
+    const s = bigPrepState();
+    const crystal = place(s, "aqua_blackice_crystal_tok", "P2", 2, 2, { curHp: 1, maxHp: 14 });
+    const near = place(s, "leaf_stickviper", "P1", 2, 3, { curHp: 60, maxHp: 60, curShields: 0 });
+    const far = place(s, "leaf_stickviper", "P1", 4, 4, { curHp: 60, maxHp: 60, curShields: 0 });
+    const killer = place(s, "leaf_alpha", "P1", 3, 2);
+    basicAttack(s, killer.instanceId, crystal.instanceId);
+    expect(statusOf(s.cards[near.instanceId], "FREEZE"), "in range").toBeTruthy();
+    expect(statusOf(s.cards[far.instanceId], "FREEZE"), "and not the far side").toBeFalsy();
+  });
+
+  it("is the SECOND Floor-4 boss, and Pyrogon stayed with Umbranova", () => {
+    expect(voidBossById("boss_cryovex")!.floor).toBe(4);
+    expect(bossesOnFloor(4).length, "two fights on the top floor").toBe(2);
+    const umbra = voidBossById("boss_umbranova")!;
+    expect(umbra.summons, "the fire aura dragon belongs to the fire boss")
+      .toContain("pyro_pyrogon");
+    expect(voidBossById("boss_cryovex")!.summons).not.toContain("pyro_pyrogon");
   });
 });
 

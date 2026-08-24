@@ -10643,6 +10643,73 @@ export const CARDS: CardDef[] = [
     },
   },
   {
+    id: "boss_cryovex",
+    name: "Cryovex",
+    rarity: "mythic",
+    element: "AQUA",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 12,
+    // 131 body points, sized against Umbranova's 128 rather than against Floor
+    // 4's 350 cap — the cap has measured 97-100% every time anyone has built to
+    // it. Written at 163 first and trimmed, though honestly the number barely
+    // matters here: see below.
+    //
+    // NOTHING MOVES THIS FIGHT IN THE HARNESS. Measured across the whole design
+    // space — 7 / 5 / 4 / 3-body formations, Absolute Zero freezing for 2 or 1,
+    // Hoarbite on and off, the crystals inert, and NO FREEZE ANYWHERE AT ALL —
+    // every single variant read between 97.9% and 100.0%, with 79-85% of the
+    // wins ending by overrun. Floor 4 is where the AI cannot hold a board, so
+    // the fight ends in the back line whatever the boss is doing. Umbranova is
+    // the same shape at 96.9%. Do not tune this card against those numbers; the
+    // rule is what decides it. Its FEEL is what the kit below is for.
+    dmg: 13,
+    hits: 1,
+    hp: 80,
+    sp: 6,
+    shields: 16,
+    keywords: {},
+    tribe: "Dragon",
+    boss: true,
+    // Floor 4 — THE DEEP FREEZE, and the tower's second Floor-4 fight beside
+    // Umbranova. AQUA gives the tribe (Dragon spans all eight elements, so an
+    // ice flight is the tribe behaving normally rather than a compromise) and
+    // DUSK gives the mechanic: the cold that does not stop once it has you.
+    //
+    // THE LESSON: break the freeze EARLY. Deep Freeze adds 4 damage for every
+    // round a target has been held, to +16, and the counter resets the moment
+    // the freeze lifts — so cleanse is not a tax here, it is the fight. Waiting
+    // out a freeze is how you lose, which is the exact inverse of Xilty's lock
+    // one floor down, where the answer was to bank a round and play through it.
+    passiveNames: {
+      vsFrozenRamp: "Deep Freeze", onKill: "Crystal Bloom",
+      onHitStatus: "Hoarbite", roundTick: "Glacial Advance",
+    },
+    vsFrozenRamp: { per: 4, max: 16 },
+    // Hoarbite: it freezes what it touches, so it starts its own clock.
+    onHitStatus: { kind: "FREEZE", duration: 1, power: 0 },
+    // Crystal Bloom: every kill grows a Blackice Crystal, capped at three alive.
+    // The crystals keep the freezes running and burst into another freeze when
+    // killed, which is what makes Deep Freeze climb without Cryovex having to do
+    // anything itself.
+    onKill: { spawnToken: { token: "aqua_blackice_crystal_tok", count: 1, maxAlive: 3 } },
+    roundTick: { fireSpecialEveryN: 3, advanceEveryN: 2 },
+    special: {
+      name: "Absolute Zero",
+      cost: 3,
+      handler: "barrage",
+      // reach 2, the widened melee square. FREEZE 2 rather than damage-heavy:
+      // the Special exists to START clocks on everything nearby, and Deep Freeze
+      // is what turns them into damage.
+      params: {
+        dmg: 7, targets: 99, reach: 2,
+        statusKind: "FREEZE", statusDuration: 2,
+      },
+      targetSide: "enemy",
+      text: "7 DMG and FREEZE for 2 rounds to every opponent within 2 spaces — and Deep Freeze then hits the frozen for 4 more per round they have been held, to +16.",
+    },
+  },
+  {
     id: "boss_smolder",
     name: "Smolder",
     rarity: "mythic",
@@ -10708,6 +10775,32 @@ export const CARDS: CardDef[] = [
 // them. (Reptilian and Heir used to live here — they are draftable now, but are
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
+  {
+    id: "aqua_blackice_crystal_tok",
+    name: "Blackice Crystal",
+    rarity: "rare",
+    element: "AQUA",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 2,
+    dmg: 0,
+    hits: 1,
+    hp: 14,
+    sp: 0, // a spire of ice — it is grown, not deployed
+    shields: 3,
+    keywords: {},
+    tribe: "Ice",
+    passiveNames: { roundTick: "Creeping Rime", onDeath: "Shatter" },
+    // Creeping Rime: it does no damage at all. Its whole job is to keep the
+    // nearest opponent FROZEN, which is what feeds Cryovex — Deep Freeze scales
+    // with how long a card has been held, so the crystals are the clock and the
+    // dragon is the hammer. `pokeStatus` takes the CLOSEST, so it telegraphs.
+    roundTick: { pokeStatus: { kind: "FREEZE", duration: 1, power: 0 } },
+    // Shatter: killing it is not an escape. It bursts as it dies and freezes
+    // everything in the eight squares around it — so clearing the crystals off
+    // your board is itself the thing that starts the next freeze.
+    onDeath: { dmg: 0, inRangeStatus: { kind: "FREEZE", duration: 1, power: 0 } },
+  },
   {
     id: "gale_sparkwolf_tok",
     name: "Spark Wind Wolf",

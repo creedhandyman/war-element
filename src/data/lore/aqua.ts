@@ -193,4 +193,10 @@ export const AQUA_LORE: Record<string, string> = {
   // ── Void Tower bosses ──
   boss_permafrost: "The wall was here before the war, and it has heard your plan to crack it.",
   boss_hoarfell: "Every step is louder than the last. That is not a warning, it is a count.",
+
+  boss_cryovex:
+    "It does not hunt. It waits, and the cold does the walking.",
+
+  aqua_blackice_crystal_tok:
+    "It grows where something stopped moving.",
 };

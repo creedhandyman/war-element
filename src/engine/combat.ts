@@ -1489,6 +1489,20 @@ export function resolveHit(
         applyStatus(draft, e, "FRIGHTEN", tDef.onDeath.frightenInRange, 0, tDef.element);
       if (scared.length) draft.log.push(`The dread of her passing drives ${scared.length} back.`);
     }
+    // SHATTER: it bursts open as it dies and the burst catches whatever is
+    // standing next to it. Placed with frightenInRange rather than inside the
+    // block below because, like that one, it fires however the card died —
+    // killing the crystal is not an escape from it.
+    if (tDef.onDeath?.inRangeStatus && deathPos) {
+      const st = tDef.onDeath.inRangeStatus;
+      const caught = boardCards(draft, enemyOf(deadOwner)).filter(
+        (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, deathPos) <= 1,
+      );
+      for (const e of caught) applyStatus(draft, e, st.kind, st.duration, st.power, tDef.element);
+      draft.log.push(caught.length
+        ? `${tDef.name} bursts — ${st.kind} on ${caught.length} in range.`
+        : `${tDef.name} bursts with nothing in range.`);
+    }
     // On-death effects.
     if (tDef.onDeath && opts.kind !== "reflect") {
       // Pop (Florence): an immediate burst across the whole enemy board.
@@ -1905,6 +1919,12 @@ export function basicAttack(
     if (amp !== 1) dmg = Math.floor(dmg * amp);
     // vsStatus's flat bonus is added AFTER its multiplier, exactly as before.
     if (vs && vsMatch && vs.bonusDmg) dmg += vs.bonusDmg;
+    // DEEP FREEZE: the longer the target has been held, the harder this lands.
+    // Reads the VICTIM's frozenRounds, which Cleanup keeps and a broken freeze
+    // resets, so the counter is the fight rather than a stat.
+    const ramp = aDef.vsFrozenRamp;
+    if (ramp && hasStatus(t, "FREEZE"))
+      dmg += Math.min(ramp.max, ramp.per * (t.frozenRounds ?? 0));
     // Dragon's Bane: the same shape as vsStatus above, but matched on the
     // target's tribe / size rather than a status it happens to be carrying.
     if (aDef.vsTarget?.bonusDmg && matchesVsTarget(aDef, t)) dmg += aDef.vsTarget.bonusDmg;

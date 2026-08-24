@@ -309,11 +309,33 @@ export const VOID_BOSSES: VoidBoss[] = [
     //
     // Dragon also spans all eight elements, so a mixed flight is the tribe
     // behaving normally rather than a compromise; it is led by the PYRO and
-    // DAWN mythics the boss is named after either half of.
+    // DAWN mythics the boss is named after either half of. Pyrogon STAYS here:
+    // Cryovex takes the AQUA dragons, not the fire one.
     summons: [
       "pyro_pyrogon", "dawn_supernova", "gale_eagon", "pyro_sseerr", "pyro_fenrir",
     ],
     puzzle: "The rain: position buys nothing — outlast it or outrun it.",
+  },
+  {
+    cardId: "boss_cryovex",
+    floor: 4,
+    tribeElement: "AQUA",
+    mechanicElement: "DUSK",
+    tribe: "Dragon",
+    // 9 + 8 + 6 + 5 + 3 + 3 + 2 = 36, exact. THE AQUA DRAGONS, which is the whole
+    // brief: every ice dragon the set owns — Hydrogon, Phrost, Sapphire,
+    // Coilblade — plus DUSK's SkullDrake for the mechanic half, Glacius for
+    // weight and an Arctik to round it out. Five of the seven are Dragons.
+    //
+    // HYDROGON is the aura carrier here (+4 SP to the Vapor half), and it is the
+    // reason this reads as a flight rather than a pile: AQUA's dragons are all
+    // slow and Hydrogon is what gets them moving. Umbranova keeps Pyrogon — the
+    // fire aura dragon belongs with the fire boss.
+    summons: [
+      "aqua_hydrogon", "aqua_glacius", "aqua_phrost", "aqua_sapphire",
+      "aqua_icynin", "dusk_skulldrake", "aqua_arctik",
+    ],
+    puzzle: "The deep freeze: break it early — every round held hits harder.",
   },
   {
     cardId: "boss_smolder",

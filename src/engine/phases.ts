@@ -2105,6 +2105,18 @@ function doRoundTicks(draft: GameState): void {
         continue;
       }
     }
+    // DEEP FREEZE's clock. ABOVE the `if (!rt) continue` below, deliberately:
+    // this has to run for EVERY card, and while it sat under that guard it only
+    // counted for cards that happened to carry a roundTick — so an ordinary body
+    // could be frozen for ten rounds and Cryovex would never notice. Caught by
+    // its own test.
+    //
+    // Counting up while held and forgetting the instant it lifts is what makes
+    // cleanse the answer: breaking the freeze RESETS the ramp rather than
+    // pausing it.
+    if (hasStatus(card, "FREEZE")) card.frozenRounds = (card.frozenRounds ?? 0) + 1;
+    else if (card.frozenRounds) card.frozenRounds = 0;
+
     const rt = getDef(card.defId).roundTick;
     if (!rt) continue;
     // firstRoundOnly: fires on the card's first Cleanup after landing, then
