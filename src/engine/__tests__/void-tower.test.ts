@@ -676,6 +676,48 @@ describe("every boss moves like itself", () => {
   });
 });
 
+describe("Thunderfangs, Stormform — the second form", () => {
+  const fiveKills = () => {
+    const s = prepState();
+    const boss = place(s, "boss_thunderfangs", "P1", 2, 1);
+    const seen: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const victim = place(s, "leaf_stickviper", "P2", 1, 1, { curHp: 1, maxHp: 1, curShields: 0 });
+      basicAttack(s, boss.instanceId, victim.instanceId);
+      seen.push(s.cards[boss.instanceId].defId);
+    }
+    return { s, boss, seen };
+  };
+
+  it("arrives on the FIFTH kill, not before", () => {
+    const { seen } = fiveKills();
+    expect(seen.slice(0, 4), "still itself after four").toEqual(Array(4).fill("boss_thunderfangs"));
+    expect(seen[4], "and the storm on the fifth").toBe("boss_thunderfangs_2");
+  });
+
+  it("takes the new form's body, +20% on every line", () => {
+    const { s, boss } = fiveKills();
+    const one = getDef("boss_thunderfangs"), two = getDef("boss_thunderfangs_2");
+    expect(s.cards[boss.instanceId].maxHp).toBe(two.hp);
+    // 10/50/14/6 -> 12/60/17/7, each rounded to the nearest whole.
+    for (const [k, a, b] of [["dmg", one.dmg, two.dmg], ["hp", one.hp, two.hp],
+                             ["sp", one.sp, two.sp], ["shields", one.shields, two.shields]] as const)
+      expect(b, `${k} is +20%`).toBe(Math.round(a * 1.2));
+    expect(two.hits, "hits are not a percentage").toBe(one.hits);
+  });
+
+  it("counts kills per INSTANCE, so it is earned in one battle", () => {
+    const { s, boss } = fiveKills();
+    expect(s.cards[boss.instanceId].killCount).toBe(5);
+    const fresh = place(prepState(), "boss_thunderfangs", "P1", 2, 1);
+    expect(fresh.killCount ?? 0, "a new one starts at nothing").toBe(0);
+  });
+
+  it("does not loop — Stormform names no further form", () => {
+    expect(getDef("boss_thunderfangs_2").transformAtKills).toBeUndefined();
+  });
+});
+
 describe("an ability does what its NAME says", () => {
   // Third instance of the same class of bug in this mode, so it gets a home.
   // Web Trap declared no reach and caught almost nothing; Fissure promised a
