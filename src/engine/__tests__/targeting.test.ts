@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { canFireSpecial, canMove, canSpellHitEnemy, canTarget, previewOnSummonArea, rangedCanSee, rangedReachFor, specialTargets, validSpecialTargets, validTargets } from "../rules";
 import { applyStatus } from "../combat";
 import { applyIntent } from "../phases";
-import { getDef } from "../../data/cards";
+import { CARDS, getDef } from "../../data/cards";
 import { bigPrepState, place, prepState } from "./helpers";
 import type { Pos } from "../types";
 
@@ -477,5 +477,39 @@ describe("Wind Warp: distance is no object, the Home rule still is", () => {
     const pinned = warper(2, 0);
     applyStatus(pinned.s, pinned.s.cards[pinned.a.instanceId], "ROOT", 2, 0, "LEAF");
     expect(canMove(pinned.s, "P1", pinned.a.instanceId, { row: 0, col: 3 }).ok, "rooted").toBe(false);
+  });
+});
+
+describe("a lane weapon has to be able to reach the lane", () => {
+  it("no MELEE Special filters to sameColumn without ranged, reach or a charge", () => {
+    // THE BUG THIS CATCHES, twice over. `sameColumn` (and rowAhead, and
+    // enemyHomeRow) FILTER the targets the targeting layer already chose — they
+    // do not rescan the board. On a Melee card with no reach, the chosen set is
+    // the 8-square melee box, so filtering it to one column leaves the single
+    // card standing directly ahead. Anything whose text promises a LANE is then
+    // lying.
+    //
+    // Xilty's Web Trap shipped like this (statusNova, no reach at all) and read
+    // as "trash" on the device; auditing the rest of the tower for the same
+    // omission found Vulcanyx's Fissure promising "through everything in the
+    // column ahead" and hitting one card. `reach` is a GENERIC Special param
+    // that validSpecialTargets honours for every handler, and `ranged` lifts
+    // the melee limit entirely — a lane weapon needs one of them.
+    //
+    // rowAhead is deliberately NOT included: the melee box already contains the
+    // three squares in the row ahead, so that filter yields three targets and
+    // means exactly what it says (Blackice, Sakuroot, Killer Whale).
+    const offenders: string[] = [];
+    for (const def of CARDS) {
+      const sp = def.special;
+      if (!sp || def.attackType !== "Melee") continue;
+      const params = (sp.params ?? {}) as Record<string, unknown>;
+      if (!Number(params.sameColumn ?? 0)) continue;
+      if (sp.ranged) continue;
+      if (Number(params.reach ?? 0) > 1) continue;
+      if (Number(params.charge ?? 0) > 0) continue; // it closes the distance itself
+      offenders.push(`${def.id} (${sp.name})`);
+    }
+    expect(offenders, "melee lane weapons that cannot reach their lane").toEqual([]);
   });
 });

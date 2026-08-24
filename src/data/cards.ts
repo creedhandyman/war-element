@@ -10296,6 +10296,12 @@ export const CARDS: CardDef[] = [
     // The curve flattens above this — 132/26 to 144/28 bought 1.1 points — so
     // more meat is not the lever if this ever needs to be harder. Give it a kit
     // that fires without cooperation instead.
+    //
+    // Body UNCHANGED when Fissure was repaired to actually reach its lane: it
+    // measured 68.8% before and 68.8% after. Xilty's repair was worth +3.2 the
+    // same way. A boss Special is worth far less in the win column than it is
+    // on the screen — which is an argument for fixing them, not for leaving
+    // them broken, and a warning against paying for one with stats.
     dmg: 28,
     hits: 1,
     hp: 144,
@@ -10325,6 +10331,17 @@ export const CARDS: CardDef[] = [
       // floor-mates throw (the Skeleeze precedent) — the floor should not ask
       // the same positional question three times.
       handler: "barrage",
+      // RANGED, or the lane is a lie. `sameColumn` FILTERS the targets the
+      // targeting layer already chose — it does not rescan the board — so on a
+      // MELEE card with no reach it narrows an 8-square melee box down to the
+      // one card directly ahead. This shipped that way and promised "through
+      // everything in the column"; it is the same omission that made Xilty's
+      // Web Trap read as trash, found by auditing the rest of the tower for it.
+      //
+      // `ranged` rather than `reach: N` because the fissure is not a swing with
+      // a longer arm — it runs the whole lane, and Permafrost's Whiteout already
+      // uses this flag for the same reason.
+      ranged: true,
       params: {
         dmg: 11, pen: 1, sameColumn: 1, targets: 99,
         statusKind: "BURN", statusDuration: 2, statusPower: 3,
