@@ -10101,16 +10101,24 @@ export const CARDS: CardDef[] = [
     hp: 55,
     sp: 14,
     shields: 0,
-    // NOT FLYING, which on this card was a lockout rather than a keyword.
-    // FLYING is immunity to Melee outright, so a melee-weighted board could not
-    // touch it at all — it held 100% of its fights with the dodge gone and at
-    // four tenths of its body, because nothing about it was survivability. The
-    // counter (ranged, or a status that drags it down) is buildable, but this
-    // is FLOOR ONE, the floor the doc requires be beatable with LEAF alone, and
-    // "own the right tech or you cannot participate" is not the lesson this
-    // boss is named for. It is still Ranged and still hits harder than anything
-    // else on the floor; the glass cannon is intact and now reachable.
-    keywords: {},
+    // FLYING, REINSTATED at the owner's call after playing it — Nightshrike was
+    // the tower's easiest fight by a distance (41.7%) and the one boss the war
+    // chest did not move at all (41.7 -> 40.6), so its problem was never gold.
+    //
+    // Know what this turns back on. FLYING is outright immunity to Melee, and
+    // the win condition is now SLAYING the boss, so a melee-weighted board does
+    // not merely struggle, it cannot finish the fight and loses on the 24-round
+    // clock. That is why it came off: it held 100% of its fights with the dodge
+    // gone and at four tenths of this body, because nothing about this card was
+    // ever survivability — it was unreachability.
+    //
+    // What makes it survivable now is that the ground is not the only answer:
+    // ROOT, FREEZE, STUN, SLEEP and PARALYZE all drag a flier down
+    // (GROUNDING_STATUSES), and Floor 1's own bosses hand those out. The body
+    // below is sized to it — see the measured per-deck check, which is the real
+    // gate: no core deck may be locked out of the floor the doc requires be
+    // beatable with LEAF alone.
+    keywords: { FLYING: true },
     tribe: "Avian",
     boss: true,
     // It does not hold still either. Nightshrike slides along its row every

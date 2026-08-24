@@ -1034,6 +1034,21 @@ An AI-vs-AI harness cannot read a telegraph, bring cleanse, or focus a boss, so
 it cannot say whether a puzzle is FAIR — only whether the seven are comparable.
 Fairness is on-device.
 
+**A TOWER WIN RATE IS AN AVERAGE OVER EIGHT VERY DIFFERENT FIGHTS — read it
+with that in mind.** Every number in this section is the boss's win rate across
+the 8 CORES. Broken out per deck, Nightshrike's 42% is:
+
+    Skyrend 100 · Trinezer 86 · Pyrogon 64 · Elecdroid 43 · Imperator 21 ·
+    The Deepest 14 · Kraken 7 · Shadow Horsemen 0
+
+That is not a 42% fight, it is four near-certain losses and four near-certain
+wins depending on what you brought — and it is PRE-EXISTING, measured with a
+no-keyword control, not caused by any recent change. Before concluding a boss is
+"balanced" at some aggregate, break it out per core: an even average can hide a
+deck that cannot win and a deck that cannot lose. Nightshrike carries FLYING
+again (owner's call, Aug 2026) — worth +3.5 points and it does NOT create the
+spread; Skyrend was already 100% and Shadow Horsemen already 0% without it.
+
 **THE BOSS'S ARMY WAS PRICED TWICE — `VOID_BOSS_INCOME`.** Reported from the
 device: bosses "come down and just get killed" and "at the end it still has a
 lot of its army left that was never used". Instrumented, and the AI was
