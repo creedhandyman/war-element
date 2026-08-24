@@ -18,6 +18,7 @@ import { deckSizeFor, isBuildable, validateDeck } from "../../data/custom-decks"
 import { EVENTS } from "../../data/events";
 import { canCraft, newSave, openPack } from "../../data/story";
 import { advance } from "../phases";
+import { VOID_BOSS_INCOME } from "../types";
 import { SPECIAL_HANDLERS, applyStatus, basicAttack, defeatCard } from "../combat";
 import { canFireSpecial, canMove } from "../rules";
 import { boardCards } from "../state";
@@ -305,9 +306,53 @@ describe("the player opens with the boss's gold", () => {
     expect(on.p1 - off.p1).toBe(VOID_PLAYER_HEAD_START);
   });
 
-  it("and gives the boss's side nothing extra", () => {
+  it("pays the BOSS a war chest every round — its army is priced twice without it", () => {
+    // The formation is costed as a BUILD-TIME budget (28 gold on Floor 3, 36 on
+    // Floor 4) and the doc says so explicitly — "a build-time cap on the
+    // formation's OPENING, not a runtime wallet". But Void Tower passes no
+    // opening deployment, so the boss then BUYS that same army at retail on
+    // min(5, ceil(round/5)) income, and the free-placement cost cap is 3, which
+    // none of Umbranova's 10/9/7/5/5 would clear anyway.
+    //
+    // Measured, before this existed: Thunderfangs and Umbranova ended 60-65% of
+    // Prep phases holding cards they could not afford, while the AI passed up a
+    // legal summon 0% of the time. It was never the AI. Reported from the device
+    // as bosses that "come down and just get killed" with "a lot of army left
+    // that was never used".
+    // Same state, flag on vs off, counting the Resource phases that actually
+    // ran — more than one precedes the first round-1 Prep, so a hardcoded
+    // single grant would be measuring the phase machine, not the income.
+    const take = (flag: boolean) => {
+      const b = VOID_BOSSES[0];
+      const enc = buildVoidEncounter(b);
+      let s = createInitialState(7, enc.deck, enc.deck, [], undefined, enc.spells,
+        enc.boardSize, undefined, undefined, { P2: enc.stacked.P2 });
+      if (flag) s.voidTower = true;
+      const inst = summonCard(s, "P2", b.cardId, voidBossSeat(s.boardSize) as never);
+      inst.summonedThisRound = false;
+      let grants = 0, seen = "";
+      for (let i = 0; i < 200 && !(s.round >= 1 && s.phase === "prep"); i++) {
+        s = advance(s);
+        if (s.phase !== seen) { seen = s.phase; if (s.phase === "resource") grants++; }
+      }
+      return { gold: s.players.P2.gold, grants };
+    };
+    const on = take(true), off = take(false);
+    expect(VOID_BOSS_INCOME).toBeGreaterThan(0);
+    expect(on.grants, "same phase machine either way").toBe(off.grants);
+    expect(on.gold - off.gold).toBe(VOID_BOSS_INCOME * on.grants);
+  });
+
+  it("and the boss's side gets its war chest and NOT the head start", () => {
+    // This used to read "gives the boss's side nothing extra", and it was right
+    // until the boss's economy was found to be underwriting an army it could
+    // never deploy (see VOID_BOSS_INCOME). What it still guards is the part that
+    // has not changed: the two grants are separate and neither leaks into the
+    // other. P1's head start is round-1 only; the boss's purse is every round;
+    // the boss never receives the head start.
     const on = openingGold(true), off = openingGold(false);
-    expect(on.p2).toBe(off.p2);
+    expect(on.p2 - off.p2, "the war chest, exactly").toBe(VOID_BOSS_INCOME);
+    expect(on.p2 - off.p2, "and NOT the player's head start").not.toBe(VOID_PLAYER_HEAD_START + VOID_BOSS_INCOME);
   });
 
   it("is round ONE only — a head start, not an allowance", () => {

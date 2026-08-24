@@ -2196,6 +2196,27 @@ export const MAX_ROUNDS = 50;
  *  the number the mode was already telling you: the Special fires every 3
  *  rounds, so a Void Tower fight is eight casts, start to finish, and you can
  *  count them. */
+/** Extra gold the BOSS's side earns each round in a Void Tower fight.
+ *
+ *  THE BUG THIS FIXES: "most boss battles end with a lot of its army left that
+ *  was never used", from the device — and the instrumentation agreed. At the end
+ *  of Prep, Thunderfangs and Umbranova spend 60-65% of rounds holding cards they
+ *  cannot afford, while the AI leaves a legal summon on the table 0% of the time.
+ *  It is not the AI. It is the economy.
+ *
+ *  The formation is priced as a BUILD-TIME budget — 28 gold on Floor 3, 36 on
+ *  Floor 4 — and the doc is explicit that this "is a build-time cap on the
+ *  formation's OPENING, not a runtime wallet". But Void Tower passes no opening
+ *  deployment, so the boss buys its own army at retail on `min(5, ceil(r/5))`
+ *  income: about 70 gold across a whole fight, against a deck whose formation
+ *  alone can cost 36 and whose cheapest reinforcements cost 3 apiece. Umbranova
+ *  fields 10/9/7/5/5 on pocket change. So the boss walks down alone, dies, and
+ *  the army it was supposed to be leading is still in its hand.
+ *
+ *  Paid as income rather than a lump so it cannot be shaved by the carryover
+ *  cap, and only to the boss's seat — P1 keeps `VOID_PLAYER_HEAD_START`. */
+export const VOID_BOSS_INCOME = 2;
+
 export const VOID_TOWER_ROUNDS = 24;
 
 /** The back row a player summons into and defends. P2 is always row 0; P1 is

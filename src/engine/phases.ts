@@ -73,6 +73,7 @@ import {
   POOL_CARRYOVER_CAP,
   enemyOf,
   homeRow,
+  VOID_BOSS_INCOME,
 } from "./types";
 import { chooseBattleAction, aiMulligan, aiPrepIntent } from "./ai";
 
@@ -1363,7 +1364,12 @@ function doResourcePhase(draft: GameState): void {
     : 0;
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const p = draft.players[player];
-    const gain = goldBase + homeSlotsHeld(draft, player) + (player === "P1" ? headStart : 0);
+    // The boss's war chest — see VOID_BOSS_INCOME. Its army is priced as a
+    // build-time budget and then charged for again at retail; this is what pays
+    // the difference, so the formation actually reaches the board.
+    const bossPurse = draft.voidTower && player === "P2" ? VOID_BOSS_INCOME : 0;
+    const gain =
+      goldBase + homeSlotsHeld(draft, player) + (player === "P1" ? headStart : 0) + bossPurse;
     gains[player] = gain;
     // Show the money being earned, on the card earning it.
     const row = homeRow(player, draft.boardSize);

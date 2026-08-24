@@ -1034,6 +1034,40 @@ An AI-vs-AI harness cannot read a telegraph, bring cleanse, or focus a boss, so
 it cannot say whether a puzzle is FAIR — only whether the seven are comparable.
 Fairness is on-device.
 
+**THE BOSS'S ARMY WAS PRICED TWICE — `VOID_BOSS_INCOME`.** Reported from the
+device: bosses "come down and just get killed" and "at the end it still has a
+lot of its army left that was never used". Instrumented, and the AI was
+innocent — it passed up a legal summon **0%** of the time. The economy was the
+problem. A formation is costed as a BUILD-TIME budget (12/20/28/36 by floor) and
+the doc says so outright — "a build-time cap on the formation's OPENING, not a
+runtime wallet" — but Void Tower passes NO opening deployment, so the boss then
+bought that same army at retail on `min(5, ceil(round/5))`, about 70 gold across
+a whole fight. Umbranova fields 10/9/7/5/5 on that. The free-placement path would
+not have helped either: `OPENING_COST_CAP` is 3.
+
+The boss's seat now earns +2 a round in a Void Tower fight (P1 keeps its separate
+round-1 `VOID_PLAYER_HEAD_START`). Measured, before → after:
+
+    end of Prep holding cards it cannot afford:  Thunderfangs 65% → 32% ·
+    Umbranova 60% → 30% · Vulcanyx 34% → 21% · Rotroot 24% → 12%
+    bodies on board:  Thunderfangs 5.8 → 9.3 · Umbranova 7.7 → 10.5
+    BOSS OUT AHEAD OF ITS WHOLE ARMY:  Thunderfangs 21% → 3% · Umbranova 16% → 7%
+
+That last row is the report answered without touching movement at all: the boss
+stopped walking down alone because its escorts could finally keep up. Win rates
+(vs 8 CORES, n=96): Rotroot 65.6→81.3 · Permafrost 58.3→82.3 · Smolder 61.5→70.8
+· Skeleeze 64.6→67.7 · Overclock 67.7→74.0 · Basilisk 63.5→60.4 · Helion
+72.9→74.0 · Xilty 72.9→81.3 · Hoarfell 72.9→79.2 · **Thunderfangs 74.0→94.8** ·
+Vulcanyx 68.8→74.0 · **Umbranova 87.5→96.9**. Nightshrike did NOT move (41.7 →
+40.6) — whatever ails the tower's easiest fight is unrelated to gold.
+
+**Thunderfangs' +20.8 is the one to watch**: Pack Law scales its damage with
+living escorts to +12, and its 96-point body was tuned when the pack never fully
+arrived. Fixing the economy re-armed the exact trap its card comment warns about.
+Umbranova is the same shape. Both are candidates for a trim if they play unfair
+— and remember the harness OVERSTATES a boss, because it plays the human's side
+with the AI. Fairness is on-device; this number is a comparability check.
+
 **Floor 3 gained VULCANYX** (BORE tribe / PYRO mechanic, tribe Mountain Beasts
 — the two stone dinosaurs; formation is PYRO's two 8-gold Volcanic legendaries,
 Infernus Rex + Magmadon, over four of them, 28 exact). THE APEX: `onKill` is +3
