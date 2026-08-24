@@ -10064,9 +10064,15 @@ export const CARDS: CardDef[] = [
     // budget goes into staying up rather than into hitting harder.
     dmg: 8,
     hits: 1,
-    // +25% HP (40 -> 50, body 76 -> 86) — Floor 2 across the board,
-    // Skeleeze excepted, at the owner's call after playing the floor.
-    hp: 50,
+    // 40 -> 50 -> 45 (body 76 -> 81), and HP IS NOT WHAT MOVES THIS FIGHT.
+    // Overclock read 67.7% before OVERRUN shipped and 91.7% after, and the
+    // first explanation given was the +25% HP it took in the same pass. Wrong,
+    // and measured: 40, 45 and 50 HP all read 91.7% to the decimal, and 91% of
+    // its wins are BY OVERRUN. Production Run floods the board with drones,
+    // the drones walk into the player's home row, and the fight ends there —
+    // the boss barely participates. The 45 is kept because it was asked for and
+    // costs nothing; the number to turn is the overrun rule, not this one.
+    hp: 45,
     sp: 12,
     shields: 8,
     keywords: {},

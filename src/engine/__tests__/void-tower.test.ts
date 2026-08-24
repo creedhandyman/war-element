@@ -60,11 +60,11 @@ describe("the roster", () => {
     // Overclock 73% · Xilty 73% · Skeleeze 77%. Change a number, re-measure.
     const MEASURED: Record<string, number> = {
       // FLOOR 2 took +25% HP at the owner's call after playing it —
-      // Overclock 40->50, Basilisk 44->55. Skeleeze and Helion excepted,
-      // both by explicit instruction.
+      // Basilisk 44->55, Overclock 40->50 and then back to 45 when the full
+      // bump measured 91.7%. Skeleeze and Helion excepted by instruction.
       boss_rotroot: 165, // 169 -> 133: trimmed when Glacial Creep gave it a gait and took it
       // to 89.6%, harder than any Floor-3 boss. 77.1% now.
-      boss_permafrost: 133, boss_overclock: 86,
+      boss_permafrost: 133, boss_overclock: 81,
       // 84 -> 108: +12 shields, the lever that took the tower's easiest fight
       // from 45.5% to 65.2%. Still the smallest body on Floor 1.
       boss_nightshrike: 108, boss_basilisk: 81, boss_skeleeze: 128,

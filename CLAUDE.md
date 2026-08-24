@@ -1049,12 +1049,16 @@ is the player's condition, and a test pins both halves. One pre-existing test
 asserted "a boss holding every home slot has not won" and is re-pointed; it still
 guards that the ending is an overrun and never a capture.
 
-**Floor 2 took +25% HP** (owner's call after playing it): Overclock 40->50,
-Basilisk 44->55. Skeleeze and Helion excepted by explicit instruction. With
-overrun also landing, the floor now reads Overclock 91.7% (from 67.7 — its body
-was the smallest on the tower at 76, so +10 HP is proportionally huge and it is a
-spawner that compounds every round it survives), Skeleeze 69.8, Helion 68.8,
-Basilisk 67.7.
+**Floor 2 took +25% HP** (owner's call after playing it): Basilisk 44->55,
+Overclock 40->45. Skeleeze and Helion excepted by explicit instruction. The floor
+reads Skeleeze 69.8, Helion 68.8, Basilisk 67.7 — and **Overclock 91.7%, which
+is OVERRUN and not the HP.** Measured: 40, 45 and 50 HP all read 91.7% to the
+decimal, and 91% of its wins come by overrun. Production Run floods the board
+with drones, the drones walk into the player's home row, and the fight ends
+there with the boss barely involved. A SPAWNER converts the overrun rule into a
+near-automatic win, which is worth knowing before tuning anyone's stat line
+against it — and worth deciding about, since the mode's premise is that you win
+by slaying the boss.
 
 **EVERY BOSS MOVES LIKE ITSELF — and `roundTick.advance` IS Acorn's SEED ROLL.**
 Reported from the device: "why do all the bosses still mostly have the same
