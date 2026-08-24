@@ -482,7 +482,7 @@ describe("Killer Whale and Kobra hunt what they disable", () => {
 describe("Burnout — Super Charger", () => {
   it("spikes SP for a round after a cast, then gives it back", () => {
     // Through the real BATTLE_ACTION path, not the handler — Super Charger
-    // hangs off the CAST, not off Blitzing Ram, so calling the handler direct
+    // hangs off the CAST, not off Crash Out, so calling the handler direct
     // would skip the very thing under test.
     const s = prepState();
     const burn = place(s, "pyro_burnout", "P1", 3, 1);
@@ -497,7 +497,7 @@ describe("Burnout — Super Charger", () => {
     const revved = effectiveSp(n, n.cards[burn.instanceId]);
     expect(revved - base, "+8 while it is lit").toBe(8);
     // TWO rounds. At one it was spent almost entirely on the cast's own charge,
-    // which Blitzing Ram already pays for — the second round is the difference
+    // which Crash Out already pays for — the second round is the difference
     // between a longer ram and a genuine repositioning.
     const r1 = advance(atCleanup(n));
     expect(effectiveSp(r1, r1.cards[burn.instanceId]) - base, "still lit a round later").toBe(8);
@@ -506,7 +506,7 @@ describe("Burnout — Super Charger", () => {
   });
 });
 
-describe("Burnout — Blitzing Ram", () => {
+describe("Burnout — Crash Out", () => {
   it("charges TOWARD the target, not straight ahead", () => {
     // chargeForward walks it at the enemy home row whatever it aimed at, so a
     // target off to one side was rammed from wherever Burnout happened to stop

@@ -9699,7 +9699,7 @@ export const CARDS: CardDef[] = [
     // ram is a commitment rather than a permanent stat line.
     //
     // TWO rounds, not one: at one it was spent almost entirely on the cast's own
-    // charge, which Blitzing Ram already pays for itself. Two is the difference
+    // charge, which Crash Out already pays for itself. Two is the difference
     // between a longer ram and a genuine repositioning — the tank arrives, and
     // then still has a turn of speed to be somewhere else with.
     onSpecialUse: { sp: 8, spRounds: 2 },
@@ -9720,7 +9720,7 @@ export const CARDS: CardDef[] = [
     // the NEXT kill — re-measure PYRO if it starts climbing.
     onKill: { buffDmg: 1, buffSp: 1 },
     special: {
-      name: "Blitzing Ram",
+      name: "Crash Out",
       cost: 3,
       handler: "strike",
       // chargeFirst: it closes the distance and THEN crashes, so the splash is
@@ -9741,12 +9741,25 @@ export const CARDS: CardDef[] = [
         // kills, Burnout ends the turn standing where its target was instead of
         // one slot short of it.
         chargeFirst: 1, charge: 3, chargeLateral: 1, takeSpotOnKill: 1,
-        dmg: 6,
+        // 6 -> 10, and it now COSTS 2 HP to pull. The ram was the one part of
+        // this kit that did not read like the rest of it: a 3-slot charge into
+        // a burning crash that landed for less than the card's own basic plus
+        // King of the Streets. Ten hurts. Two HP off a 24 HP chassis, every
+        // cast, is what keeps it from being free.
+        //
+        // NOT lethal: `selfHpCost` is refused by canFireSpecial when the cost
+        // would kill, unless the Special declares `selfHpLethal` (RIP's Horde
+        // does; this does not). So a burnt-down Burnout simply cannot ram any
+        // more — it runs out of chassis to spend rather than driving itself
+        // into the ground, which is the right shape for a card that also grows
+        // +1 DMG and +1 SP on every kill.
+        dmg: 10,
+        selfHpCost: 2,
         statusKind: "BURN", statusDuration: 3, statusPower: 3,
         statusSplash: 1,
       },
       targetSide: "enemy",
-      text: "Charge up to 3 slots and crash into a target: 6 DMG and BURN 3 for 3 rounds, with the same burn spreading to everything touching it. If the crash kills, Burnout takes its place.",
+      text: "Charge up to 3 slots and crash into a target: 10 DMG and BURN 3 for 3 rounds, with the same burn spreading to everything touching it. If the crash kills, Burnout takes its place. Costs Burnout 2 HP.",
     },
   },
   {
