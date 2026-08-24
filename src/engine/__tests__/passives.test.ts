@@ -4364,20 +4364,25 @@ describe("GALE's WEAKEN kit", () => {
     expect(n.cards[foe.instanceId].curHp, "no damage — the debuff IS the arrival").toBe(40);
   });
 
-  it("Totem Rampage takes the five NEAREST, not the first five listed", () => {
+  it("Spirit Ward plates the pole and every ally beside it — and nothing further", () => {
+    // Replaced Totem Rampage, which was a fourth source of damage on a SUPPORT
+    // and shared a name with the Totem's own Rampage. `nearby` is the 8 slots
+    // around the pole, itself included, which is exactly the ground an SP-0
+    // body that can never move is committed to.
     const s = prepState();
     s.players.P1.magicPool = 8;
     const pole = place(s, "gale_totem_pole", "P1", 3, 2, { autoMode: "manual" });
-    // Far one placed first, so board order and distance order disagree.
-    const far = place(s, "dusk_gool", "P2", 0, 0, { curHp: 40, maxHp: 40, curShields: 0 });
-    const near = place(s, "dusk_gool", "P2", 2, 2, { curHp: 40, maxHp: 40, curShields: 0 });
-    const dmg = Number(getDef("gale_totem_pole").special!.params!.dmg);
+    const beside = place(s, "leaf_stickviper", "P1", 3, 1, { curHp: 5, maxHp: 20, curShields: 0 });
+    const away = place(s, "leaf_stickviper", "P1", 0, 0, { curHp: 5, maxHp: 20, curShields: 0 });
+    const amount = Number(getDef("gale_totem_pole").special!.params!.amount);
     const n = applyIntent(battleWith(s, pole.instanceId), {
-      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: near.instanceId,
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: beside.instanceId,
     });
-    expect(40 - n.cards[near.instanceId].curHp).toBe(dmg);
-    expect(statusOf(n.cards[near.instanceId], "WEAKEN")).toBeTruthy();
-    void far;
+    expect(n.cards[beside.instanceId].curShields, "the ally beside it").toBe(amount);
+    expect(n.cards[beside.instanceId].curHp, "and healed").toBeGreaterThan(5);
+    expect(n.cards[pole.instanceId].curShields, "itself, it planted the ward")
+      .toBeGreaterThan(pole.curShields);
+    expect(n.cards[away.instanceId].curShields, "not the far side of the board").toBe(0);
   });
 
   it("the element's WEAKEN stacks on a body two GALE cards both hit", () => {

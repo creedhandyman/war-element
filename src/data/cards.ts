@@ -11007,18 +11007,25 @@ export const TOKENS: CardDef[] = [
       params: { statusKind: "WEAKEN", statusDuration: 2, targets: 99 },
       targetSide: "enemy",
     },
-    // Totem Rampage: the pole had NO Special at all — an SP-0 body that never
-    // moves, with one row-ahead tick and nothing to spend magic on. `closest`
-    // is read by both the barrage handler and specialTargets, so the five it
-    // strikes are the five nearest and the on-board preview shows exactly those.
+    // Spirit Ward, replacing TOTEM RAMPAGE — a 4-DMG five-target barrage that
+    // was the wrong ability twice over. It shared a name with the Totem's own
+    // Rampage, so the pair read as one card printed at two sizes; and it was a
+    // third attack on a SUPPORT whose damage is already covered by Totem Wrath
+    // ticking the row ahead every round plus a WEAKEN nova on arrival.
+    //
+    // A totem pole is a WARD — a guardian post you plant and then hold ground
+    // around. `nearby` is the 8 slots surrounding it, itself included, so what
+    // it protects is exactly the ground an SP-0 body that can never move is
+    // committed to. It also completes the pair properly: the Totem's aura makes
+    // the war band HIT (Totem Spirit, no misses), and its pole makes the war
+    // band LAST.
     special: {
-      name: "Totem Rampage",
+      name: "Spirit Ward",
       cost: 3,
-      handler: "barrage",
-      params: { dmg: 4, targets: 5, closest: 1, statusKind: "WEAKEN", statusDuration: 2 },
-      targetSide: "enemy",
-      ranged: true, // a planted pole cannot walk to its targets
-      text: "Deal 4 DMG to the 5 closest opponents and WEAKEN them for 2 rounds.",
+      handler: "grantShield",
+      params: { amount: 3, nearby: 1, heal: 2 },
+      targetSide: "ally",
+      text: "Ward the ground it stands on: +3 shields and 2 HP to itself and every ally beside it.",
     },
   },
   {
