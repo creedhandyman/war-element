@@ -1072,9 +1072,14 @@ measured (vs the 8 CORES, 12 seeds, n=96 each; control in brackets):
 Floor 1 was untouched by construction. Three findings, all of which cost a
 measurement pass and are worth not re-buying:
 
-1. **Boss HP is a nearly dead lever.** Xilty drops 72→40 HP — over half its body
-   — and moves 92.7→87.5. Helion's first 10 HP move it 0.0. You cannot retune a
-   bench change by shrinking the boss.
+1. **Boss HP alone is a nearly dead lever — SHIELDS are the live one.** Xilty
+   drops 72→40 HP with shields held at 27 and moves 92.7→87.5; Helion's first
+   10 HP move it 0.0. But move HP *and* shields together and Xilty runs
+   81.3 → 63.5 → 53.1 → 40.6 (72/27 → 60/20 → 50/14 → 42/10). Shields block
+   per HIT, so on a board of many small attacks they are worth far more than
+   their 2-points-per-shield budget price, and a boss's armour is the first
+   thing to reach for when it needs to come down. Sweep BOTH or the reading
+   is a lie — that mistake was made here and reported before it was caught.
 2. **Bench SIZE is a dead lever too.** Three seats instead of four moved Xilty
    0.0 and Overclock 0.0.
 3. **A blanket formula cannot work here**, because every tribe has its own cost

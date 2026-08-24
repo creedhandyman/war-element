@@ -59,7 +59,11 @@ describe("the roster", () => {
     // Overclock 73% · Xilty 73% · Skeleeze 77%. Change a number, re-measure.
     const MEASURED: Record<string, number> = {
       boss_rotroot: 165, boss_permafrost: 169, boss_overclock: 76,
-      boss_nightshrike: 84, boss_basilisk: 70, boss_skeleeze: 128, boss_xilty: 166,
+      boss_nightshrike: 84, boss_basilisk: 70, boss_skeleeze: 128,
+      // Xilty trimmed 166 -> 154 when Web Trap was repaired (it declared no
+      // `reach`, so a MELEE boss's signature only ever caught what was
+      // touching it). 72.9% at 66 HP / 24 shields.
+      boss_xilty: 154,
       // These two WERE written to their floor budgets — 221 and 251 — and both
       // measured straight out of band at 97% and 100%, so they were tuned back
       // down like everything else. That is the lesson: the cap is a ceiling and

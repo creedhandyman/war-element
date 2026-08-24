@@ -9921,11 +9921,22 @@ export const CARDS: CardDef[] = [
     // what decided things — so this is sized to the floor rather than to a
     // measurement that could not respond. Shields carry a big share: Web Trap
     // buys the rounds, armour is what it buys them for.
+    // 154 body points, trimmed from 166 to pay for Web Trap finally working —
+    // see the Special. That repair was worth only +3.2 points on its own
+    // (78.1% -> 81.3%), which is the clearest measure of how little the Special
+    // had been doing; 66/24 puts Xilty back at 72.9%, beside Hoarfell and
+    // Thunderfangs.
+    //
+    // The ARMOUR is the lever here, not the HP, and the old comment was right
+    // about that before the harness was: dropping 72->40 HP with shields left
+    // at 27 moves this fight ~5 points, while moving both together runs 81.3%
+    // down to 40.6%. Shields block per HIT, so against a board of many small
+    // attacks they are worth far more than the 2 budget points apiece they cost.
     dmg: 14,
     hits: 2,
-    hp: 72,
+    hp: 66,
     sp: 12,
-    shields: 27,
+    shields: 24,
     keywords: {},
     tribe: "Spider",
     boss: true,
@@ -9952,9 +9963,31 @@ export const CARDS: CardDef[] = [
       // ends the game — and now that the win condition is reaching Xilty and
       // killing it, being unable to act is being unable to play at all. At one
       // round the answer still matters and the fight still exists without it.
-      params: { statusKind: "PARALYZE", statusDuration: 1, targets: 99 },
+      //
+      // REACH 2 — the widened melee square, and the thing that was actually
+      // wrong with this Special. `reach` is a generic param that
+      // `validSpecialTargets` honours for ANY handler, and Web Trap never
+      // declared one, so a MELEE boss's signature move only ever caught what
+      // was literally touching it. Every other nova on the tower (Aurora Break,
+      // Thunder Run, Burning Roots, Fissure) declares reach 2; Xilty's was the
+      // narrowest ability in the mode by omission rather than by design, and
+      // then took the duration cut from 2 rounds to 1 on top of that. Both
+      // nerfs landed on the same card and it stopped reading as a lockdown boss
+      // at all — "Web Trap is trash", from the device.
+      //
+      // ROOT is what pays for the duration staying at 1. PARALYZE for one round
+      // in three is the fair version of a lock (see above — two was the game
+      // ending), but on its own it is a blink. The web HOLDS: everything caught
+      // is ROOTed for 2, which stops it moving without stopping it acting, so
+      // the board freezes around Xilty while you can still fight back. That is
+      // a spider's Special rather than a stun, and it is the half that makes
+      // approaching Xilty a decision.
+      params: {
+        statusKind: "PARALYZE", statusDuration: 1, targets: 99, reach: 2,
+        debuffStatus: "ROOT", debuffStatusRounds: 2,
+      },
       targetSide: "enemy",
-      text: "PARALYZE every opponent in range for 1 round.",
+      text: "Every opponent within 2 spaces is PARALYZED for 1 round and ROOTed for 2.",
     },
   },
   {
