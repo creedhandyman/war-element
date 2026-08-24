@@ -45,6 +45,7 @@ import {
   RANGED_REACH,
   specialTargets,
   talentTargets,
+  summonLandingRow,
   validTargets,
 } from "./rules";
 import type {
@@ -106,8 +107,13 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       p.hand = p.hand.filter((h) => h.handId !== intent.handId);
       // The opening placement is free — that is the whole of the head start.
       if (!draft.opening) p.gold -= def.cost;
+      // The row is RESOLVED, not assumed: normally the home row, and the nearest
+      // open slot up the column when the home row has been taken entirely. See
+      // `summonLandingRow` — canSummon approved exactly this square.
+      const landing = summonLandingRow(draft, intent.player, intent.col)
+        ?? homeRow(intent.player, draft.boardSize);
       const inst = summonCard(draft, intent.player, hand.defId, {
-        row: homeRow(intent.player, draft.boardSize),
+        row: landing as Pos["row"],
         col: intent.col,
       });
       if (!draft.humans.includes(intent.player)) inst.autoMode = "full";

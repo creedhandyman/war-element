@@ -1049,6 +1049,36 @@ is the player's condition, and a test pins both halves. One pre-existing test
 asserted "a boss holding every home slot has not won" and is re-pointed; it still
 guards that the ending is an overrun and never a capture.
 
+**THE HOME-ROW SOFTLOCK (`summonLandingRow`) — and why overrun looked broken.**
+Summoning is column-addressed with the row IMPLIED to be your home row, so a side
+whose home row is entirely enemy-held could not play a card at all. An ordinary
+match hides this completely: holding every enemy home slot IS the capture win, so
+the state ends the game the moment it happens. Void Tower turns capture off, so
+it persisted — measured at the instant an overrun fired, the player held **6.92
+cards in hand and 23.79 in deck, with 0.00 open home slots and 0% of them
+playable.** Thirty-one cards and no legal move for the rest of the fight.
+
+So overrun was never misfiring; it was ending a game that had already become
+unplayable. The fix is the LOCKOUT. `summonLandingRow` resolves a summon's row
+instead of assuming it: the home row normally, else the nearest open square up
+that column. Two limits, both load-bearing:
+
+  * it opens ONLY when the row is blocked by things you cannot clear — enemy
+    bodies and captured slots. A row packed with your OWN cards is not a lockout
+    (move one forward), so the hatch stays shut and ordinary tempo is untouched.
+    A test failure is what forced that distinction.
+  * reinforcements land FORWARD, toward whatever took the back line. An escape
+    hatch, not a free redeploy.
+
+No intent change was needed — summons stay column-addressed. Effect on the tower
+(overrun's SHARE of wins in brackets): Nightshrike 96.9 -> 92.7 (85% -> 80%) ·
+Overclock 86.5 -> 82.3 (82 -> 78) · Permafrost 78.1 -> 77.1 (35 -> 24) · Hoarfell
+85.4 (57 -> 52) · Rotroot 70.8 -> 71.9 (9 -> 4). Thunderfangs (97.9) and Umbranova
+(96.9) did NOT move: against those two the player's board is genuinely wiped, so
+the hatch places a card forward and it dies. Their remaining problem is that they
+field more bodies than the player can answer, which is a strength question about
+those two cards rather than anything to do with this rule.
+
 **OVERRUN EXISTS TO STOP SPELL-CARRIED, BOARDLESS RUNS — and it works.** The
 owner's reason, which is not visible from the win rates: a player with a full
 spellbook can stall an empty board and snipe the boss, which makes a run far too

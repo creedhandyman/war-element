@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
-import { canMove, canSummon, openHomeSlots } from "../rules";
+import { canMove, canSummon, openHomeSlots, summonLandingRow } from "../rules";
 import { boardCards, cardAt, moveReach, SP_MID_MAX, SP_SLOW_MAX } from "../state";
 import { freshGame, giveHand, place, prepState } from "./helpers";
 import { CARDS, getDef } from "../../data/cards";
@@ -64,6 +64,45 @@ describe("summoning", () => {
     expect(openHomeSlots(s, "P1")).toEqual([]);
     for (let col = 0; col < s.boardSize; col++)
       expect(canSummon(s, "P1", handId, col).ok).toBe(false);
+  });
+
+  it("a home row taken by the ENEMY falls back — it is not a softlock", () => {
+    // THE BUG. Summoning is column-addressed with the row implied to be your
+    // home row, so a side whose home row is entirely enemy-held could not play a
+    // card at all. An ordinary match hides it — holding every enemy home slot IS
+    // the capture win, so the state ends the game at once — but Void Tower turns
+    // capture off and it persisted: measured, at the moment an overrun fired the
+    // player held 6.92 cards in hand and 23.79 in deck, with 0.00 open home
+    // slots and 0% of them playable. Thirty-one cards and no legal move.
+    const s = prepState();
+    s.players.P1.gold = 99;
+    const handId = giveHand(s, "P1", "leaf_greegon");
+    for (let col = 0; col < s.boardSize; col++) place(s, "dusk_vamp", "P2", 3, col);
+    expect(openHomeSlots(s, "P1"), "the row is gone").toEqual([]);
+    expect(canSummon(s, "P1", handId, 1).ok, "and yet there is a play").toBe(true);
+    // It lands FORWARD, toward whatever took the back line — dangerous ground.
+    expect(summonLandingRow(s, "P1", 1)).toBe(2);
+  });
+
+  it("...but a row full of your OWN cards still refuses — you can move those", () => {
+    // The distinction that keeps this from changing ordinary tempo: your own
+    // card can step forward and free the slot, so it was never a lockout, and
+    // the hatch stays shut.
+    const s = prepState();
+    s.players.P1.gold = 99;
+    const handId = giveHand(s, "P1", "leaf_greegon");
+    for (let col = 0; col < s.boardSize; col++) place(s, "leaf_alpha", "P1", 3, col);
+    expect(canSummon(s, "P1", handId, 1).ok).toBe(false);
+    expect(summonLandingRow(s, "P1", 1)).toBeNull();
+  });
+
+  it("...and one own card among enemies is enough to keep it shut", () => {
+    const s = prepState();
+    s.players.P1.gold = 99;
+    const handId = giveHand(s, "P1", "leaf_greegon");
+    for (let col = 0; col < s.boardSize; col++) place(s, "dusk_vamp", "P2", 3, col);
+    s.cards[Object.values(s.cards).find((c) => c.pos?.row === 3 && c.pos?.col === 0)!.instanceId].owner = "P1";
+    expect(canSummon(s, "P1", handId, 1).ok, "it can move that one instead").toBe(false);
   });
 
   it("openHomeSlots asks about the board only, never the price", () => {

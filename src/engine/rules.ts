@@ -57,7 +57,12 @@ export function canSummon(
     return { ok: false, reason: "Not enough Gold" };
   }
   const blocked = homeSlotBlocker(state, player, col);
-  return blocked ? { ok: false, reason: blocked } : { ok: true };
+  if (!blocked) return { ok: true };
+  // The line falls back when the home row is gone entirely — see
+  // `summonLandingRow`. Without this a side with a full hand and a full deck has
+  // no legal move at all, which is a softlock rather than a defeat.
+  if (summonLandingRow(state, player, col) !== null) return { ok: true };
+  return { ok: false, reason: blocked };
 }
 
 /** Why this Home-row column can't take a summon, or null if it can — the
@@ -73,6 +78,52 @@ function homeSlotBlocker(
   if (isCaptured(state, row, col)) return "Slot is permanently captured";
   if (isContested(state, player, col)) return "Slot is contested by an enemy card";
   if (cardAt(state, row, col)) return "Slot is occupied";
+  return null;
+}
+
+/** WHERE a summon into `col` actually lands: the home row if that slot is free,
+ *  otherwise the nearest open slot up that column — and ONLY when the player has
+ *  no open home slot left at all. Null means there is nowhere.
+ *
+ *  THE SOFTLOCK THIS FIXES. Summoning is column-addressed with the row implied
+ *  to be your home row, so a side whose home row is entirely occupied by enemies
+ *  cannot play a card at all. In an ordinary match that state ends the game at
+ *  once — holding every enemy home slot IS the capture win — so the lockout is
+ *  never visible. Void Tower switches capture OFF, so it persists: measured, at
+ *  the moment an overrun fired the player held 6.92 cards in hand and 23.79 in
+ *  deck, with 0.00 open home slots and 0% of them playable. Thirty-one cards and
+ *  no legal move for the rest of the fight.
+ *
+ *  So the line falls back rather than ceasing to exist. Reinforcements arrive at
+ *  the nearest open square in the column you aimed at, which is FORWARD, toward
+ *  the thing that took your back line — dangerous ground, deliberately. It is an
+ *  escape hatch, not a free redeploy, and it only opens once the home row is
+ *  completely gone. */
+export function summonLandingRow(
+  state: GameState,
+  player: PlayerId,
+  col: number,
+): number | null {
+  const home = homeRow(player, state.boardSize);
+  if (homeSlotBlocker(state, player, col) === null) return home;
+  // Only when the row is wholly unavailable — otherwise use the open slot.
+  if (openHomeSlots(state, player).length > 0) return null;
+  // ...and only when it is blocked by things this side CANNOT clear. A home row
+  // packed with your OWN cards is not a lockout: move one forward and the slot
+  // is yours again, so the fallback stays shut and the ordinary tempo of the
+  // game is untouched. Enemy bodies and captured slots are the ones you have no
+  // answer to from the hand.
+  const home2 = homeRow(player, state.boardSize);
+  for (let c = 0; c < state.boardSize; c++) {
+    const sitting = cardAt(state, home2, c);
+    if (sitting && sitting.owner === player) return null;
+  }
+  const dir = player === "P1" ? -1 : 1; // away from home, into the board
+  for (let row = home + dir; row >= 0 && row < state.boardSize; row += dir) {
+    if (isCaptured(state, row, col)) continue;
+    if (cardAt(state, row, col)) continue;
+    return row;
+  }
   return null;
 }
 
