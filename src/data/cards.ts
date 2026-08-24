@@ -10149,7 +10149,7 @@ export const CARDS: CardDef[] = [
     attackType: "Melee",
     cost: 12,
     // The nearest to the band already — it reached round 30 unaided — so this
-    // is the lightest hand of the seven: enough body to hold a 24-round clock,
+    // is the lightest hand on the tower: enough body to hold a 24-round clock,
     // and REGEN + LIFESTEAL keep doing the rest.
     dmg: 12,
     hits: 1,
@@ -10159,7 +10159,7 @@ export const CARDS: CardDef[] = [
     keywords: { REGEN: 3, LIFESTEAL: true },
     tribe: "Reptile",
     boss: true,
-    // Floor 1 — ATTRITION. REGEN 3 and LIFESTEAL on the body, max-HP theft on
+    // Floor 2 — ATTRITION. REGEN 3 and LIFESTEAL on the body, max-HP theft on
     // the Special: every round you fail to close, it is further ahead. Out-heal
     // it, out-burst it, or race the capture win — waiting is the one wrong
     // answer, which is the lesson this fight exists to teach.
@@ -10174,9 +10174,23 @@ export const CARDS: CardDef[] = [
       name: "Wither Coil",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 5, targets: 3, drain: 2 },
+      // reach 2 = the widened melee square, the same one Rotroot, Hoarfell,
+      // Thunderfangs, Smolder and Xilty all declare.
+      //
+      // This one was not LYING the way Web Trap and Fissure were — "3
+      // opponents" promises no range — but the kit was fighting itself, which
+      // is the same complaint from the player's side. PROWL paces Basilisk
+      // forward, forward, BACK, still; Wither Coil then fires itself every
+      // three rounds and needs those opponents to be touching it. The gait
+      // spends half its cycle undoing the Special's only requirement, so the
+      // free cast landed on one card or none and the boss read as inert.
+      //
+      // At reach 2 the pacing becomes the point instead of the problem: it
+      // withers what it circles. Which is also what a basilisk does — the gaze
+      // is a look, not a touch.
+      params: { dmg: 5, targets: 3, drain: 2, reach: 2 },
       targetSide: "enemy",
-      text: "5 DMG to 3 opponents and DRAIN 2 max HP from each.",
+      text: "5 DMG and DRAIN 2 max HP from up to 3 opponents within 2 spaces.",
     },
   },
   {
