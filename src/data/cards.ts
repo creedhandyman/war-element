@@ -10218,7 +10218,18 @@ export const CARDS: CardDef[] = [
     // Skeleeze excepted, at the owner's call after playing the floor.
     hp: 55,
     sp: 8,
-    shields: 3,
+    // 3 -> 10 (body 81 -> 95). Honouring `reach` on auto-fired Specials cost
+    // Basilisk more than any other boss — 68.8% -> 54.2%, the weakest fight in
+    // the mode — because Wither Coil's radius had never bound before, and PROWL
+    // spends half its cycle pacing AWAY from what it wants to reach.
+    //
+    // ARMOUR, not more HP, and not a wider Special: +12 shields alone measured
+    // 73.2% where widening Wither Coil to reach 3 managed 58.0%, which is the
+    // honest size of that kit tension. At 10 it reads 68.8%, level with Skeleeze
+    // (68.8) and Helion (67.7). Shields block per HIT, and an attrition boss
+    // that REGENs 3 a round wants exactly that: the chip never lands, and what
+    // does land it heals back.
+    shields: 10,
     keywords: { REGEN: 3, LIFESTEAL: true },
     tribe: "Reptile",
     boss: true,
