@@ -686,17 +686,44 @@ describe("OVERRUN — the boss can win the board, not just outlast it", () => {
     return advance(atCleanup(s));
   };
 
-  it("every slot of the player's home row, and the floor is lost", () => {
-    const n = overrun(5);
-    expect(n.phase).toBe("gameover");
-    expect(n.win).toEqual({ winner: "P2", by: "overrun" });
+  it("takes TWO consecutive Cleanups — the first is a warning, not a loss", () => {
+    // At one Cleanup the rule was being won by chaff: Overclock closed 91.7% of
+    // its fights with 91% of those ending in an overrun, because Production Run
+    // floods the board with drones and the drones walk into the back line. The
+    // boss barely participated, in a mode whose premise is that you win by
+    // slaying it. A hold turns "the board tipped over once" into "you had a
+    // full round to kill ONE body and did not".
+    const first = overrun(5);
+    expect(first.phase, "still playing").not.toBe("gameover");
+    expect(first.overrunHeld).toBe(1);
+    expect(first.log.some((l) => /break it/.test(l)), "and it says so out loud").toBe(true);
+
+    const second = advance(atCleanup(first));
+    expect(second.phase).toBe("gameover");
+    expect(second.win).toEqual({ winner: "P2", by: "overrun" });
   });
 
-  it("EVERY slot — four of five is not enough", () => {
+  it("...and the count RESETS the moment one slot is broken", () => {
+    const first = overrun(5);
+    expect(first.overrunHeld).toBe(1);
+    // Kill one of the occupiers: the row is theirs again, and so is the clock.
+    const occupier = Object.values(first.cards).find(
+      (c) => c.pos?.row === 4 && c.owner === "P2" && c.curHp > 0,
+    )!;
+    first.cards[occupier.instanceId].pos = undefined;
+    const second = advance(atCleanup(first));
+    expect(second.overrunHeld, "back to nothing").toBe(0);
+    expect(second.phase).not.toBe("gameover");
+  });
+
+  it("EVERY slot — four of five never even starts the count", () => {
     // The last-ditch condition, deliberately: one body left in the back line is
     // the difference between losing the floor and still being in the fight.
-    expect(overrun(4).win, "four").toBeFalsy();
-    expect(overrun(3).win, "three").toBeFalsy();
+    for (const n of [4, 3]) {
+      const s = overrun(n);
+      expect(s.win, `${n} slots`).toBeFalsy();
+      expect(s.overrunHeld ?? 0, `${n} slots — no count`).toBe(0);
+    }
   });
 
   it("is scoped to the tower — an ordinary match is untouched", () => {
@@ -957,7 +984,8 @@ describe("slay the boss to win", () => {
     // the slot race sneaking back in.
     const { s } = bossFight("boss_overclock");
     for (let col = 0; col < s.boardSize; col++) place(s, "bolt_zipp", "P2", 3, col);
-    const n = advance(atCleanup(s));
+    // TWO cleanups — the overrun is a hold, not a snapshot.
+    const n = advance(atCleanup(advance(atCleanup(s))));
     expect(n.win?.by, "not by capture").not.toBe("capture");
     expect(n.win?.by, "by overrun").toBe("overrun");
   });

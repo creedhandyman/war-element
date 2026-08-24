@@ -1049,6 +1049,32 @@ is the player's condition, and a test pins both halves. One pre-existing test
 asserted "a boss holding every home slot has not won" and is re-pointed; it still
 guards that the ending is an overrun and never a capture.
 
+**OVERRUN HAS TAKEN OVER THE MODE — read this before tuning any boss.** A
+two-round hold was added (`OVERRUN_HOLD_ROUNDS`, count resets the moment a slot
+breaks, with a warning line logged on the first round) and it barely moved
+anything. Measured across the tower, win rate and the SHARE of those wins ending
+by overrun:
+
+    F1 Nightshrike 96.9 (89% overrun) · Rotroot 79.2 (10%) · Permafrost 77.1 (41%) · Smolder 71.9 (0%)
+    F2 Overclock   90.6 (90%) · Skeleeze 68.8 (24%) · Basilisk 68.8 (10%) · Helion 68.8 (20%)
+    F3 Thunderfangs 96.9 (90%) · Hoarfell 84.4 (63%) · Xilty 82.3 (32%) · Vulcanyx 69.8 (9%)
+    F4 Umbranova   96.9 (84%)
+
+Four bosses now close 84-90% of their wins by standing in the back line, and
+Nightshrike went 60.4 -> 96.9 — the fight that had just been tuned to be fair is
+suddenly the hardest on the tower. The hold does not help because by the time a
+side has taken all five home slots the player is already losing and cannot spare
+a body to break one.
+
+WHY IT IS SO STRONG: capture is disabled in here, so "enemies parked in your home
+row" was an ordinary mid-game state with no consequence. Giving it a consequence
+turned the mode's default board into a loss. This is a LAST-DITCH condition being
+reached as a matter of course.
+
+The candidate fix, not yet built: require the BOSS ITSELF to be among the
+occupiers. It cannot then be won by drone chaff, it means what the name says, and
+it puts the thing you came to kill inside your reach to do it. 
+
 **Floor 2 took +25% HP** (owner's call after playing it): Basilisk 44->55,
 Overclock 40->45. Skeleeze and Helion excepted by explicit instruction. The floor
 reads Skeleeze 69.8, Helion 68.8, Basilisk 67.7 — and **Overclock 91.7%, which

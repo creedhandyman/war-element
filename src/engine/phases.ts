@@ -74,6 +74,7 @@ import {
   enemyOf,
   homeRow,
   VOID_BOSS_INCOME,
+  OVERRUN_HOLD_ROUNDS,
 } from "./types";
 import { chooseBattleAction, aiMulligan, aiPrepIntent } from "./ai";
 
@@ -3274,10 +3275,20 @@ function doCleanupPhase(draft: GameState): void {
       if (sitting && sitting.owner === "P2" && sitting.curHp > 0) held++;
     }
     if (held === draft.boardSize) {
-      draft.win = { winner: "P2", by: "overrun" };
-      draft.phase = "gameover";
-      draft.log.push("Your home row is gone — the brood is standing in all of it.");
-      return;
+      draft.overrunHeld = (draft.overrunHeld ?? 0) + 1;
+      if (draft.overrunHeld >= OVERRUN_HOLD_ROUNDS) {
+        draft.win = { winner: "P2", by: "overrun" };
+        draft.phase = "gameover";
+        draft.log.push("Your home row is gone — the brood is standing in all of it.");
+        return;
+      }
+      // The warning round. Said out loud, because a last-ditch loss you could
+      // not see coming is just a rug pull.
+      draft.log.push(
+        "Your home row is overrun — break it before the end of the next round or the floor is lost.",
+      );
+    } else {
+      draft.overrunHeld = 0;
     }
   }
 

@@ -2080,6 +2080,9 @@ export interface GameState {
    *  match — see `slayWin` in phases.ts. Set by the encounter, never by a
    *  player choice, and inert everywhere else. */
   voidTower?: true;
+  /** Consecutive Cleanups the boss's side has held the player's ENTIRE home row.
+   *  Reset the moment it does not. See OVERRUN_HOLD_ROUNDS. */
+  overrunHeld?: number;
   win: WinInfo | null;
   log: string[];
   nextId: number; // instance/hand id counter
@@ -2230,6 +2233,21 @@ export const MAX_ROUNDS = 50;
  *  Paid as income rather than a lump so it cannot be shaved by the carryover
  *  cap, and only to the boss's seat — P1 keeps `VOID_PLAYER_HEAD_START`. */
 export const VOID_BOSS_INCOME = 2;
+
+/** Consecutive Cleanups the boss's side must hold EVERY slot of the player's
+ *  home row before the overrun lands.
+ *
+ *  Two, because at one the rule was being won by chaff. Overclock took 91.7% of
+ *  its fights with 91% of those ending in an overrun: Production Run floods the
+ *  board with drones, the drones walk into the back line, and the fight was over
+ *  with the boss barely involved — which is the opposite of a mode whose premise
+ *  is that you win by slaying the thing. Its own HP was irrelevant to that
+ *  number (40, 45 and 50 all measured 91.7% to the decimal).
+ *
+ *  A hold turns "the board tipped over for one Cleanup" into "you had a full
+ *  round to kill ONE body and did not". Same last-ditch ending, with the turn to
+ *  answer it that every other threat in this mode gives you. */
+export const OVERRUN_HOLD_ROUNDS = 2;
 
 export const VOID_TOWER_ROUNDS = 24;
 
