@@ -676,13 +676,14 @@ describe("OVERRUN — the boss can win the board, not just outlast it", () => {
   //
   // Checked by OCCUPANCY rather than `capturedBy`, because capture is precisely
   // the mechanic this mode turns off.
+  // The BOSS occupies one of the slots — the rule requires it there in person.
   const overrun = (n: number) => {
     const s = bigPrepState();
     s.voidTower = true;
-    place(s, "boss_hoarfell", "P2", 0, 2);
-    for (let c = 0; c < n; c++) place(s, "dusk_gool", "P2", 4, c);
+    place(s, "boss_hoarfell", "P2", 4, 0);
+    for (let c = 1; c < n; c++) place(s, "dusk_gool", "P2", 4, c);
     // Anything of the player's still standing in the row keeps it theirs.
-    for (let c = n; c < 5; c++) place(s, "leaf_stickviper", "P1", 4, c);
+    for (let c = Math.max(n, 1); c < 5; c++) place(s, "leaf_stickviper", "P1", 4, c);
     return advance(atCleanup(s));
   };
 
@@ -708,9 +709,10 @@ describe("OVERRUN — the boss can win the board, not just outlast it", () => {
     expect(first.overrunHeld).toBe(1);
     // Kill one of the occupiers: the row is theirs again, and so is the clock.
     const occupier = Object.values(first.cards).find(
-      (c) => c.pos?.row === 4 && c.owner === "P2" && c.curHp > 0,
+      (c) => c.pos?.row === 4 && c.owner === "P2" && c.curHp > 0
+        && !getDef(c.defId).boss,
     )!;
-    first.cards[occupier.instanceId].pos = undefined;
+    first.cards[occupier.instanceId].pos = null;
     const second = advance(atCleanup(first));
     expect(second.overrunHeld, "back to nothing").toBe(0);
     expect(second.phase).not.toBe("gameover");
@@ -724,6 +726,21 @@ describe("OVERRUN — the boss can win the board, not just outlast it", () => {
       expect(s.win, `${n} slots`).toBeFalsy();
       expect(s.overrunHeld ?? 0, `${n} slots — no count`).toBe(0);
     }
+  });
+
+  it("the BOSS has to be standing in the row itself — chaff cannot deliver it", () => {
+    // The rule's load-bearing clause. Without it the condition was won by
+    // drones and took the mode over: four bosses closed 84-90% of their wins in
+    // the back line, Overclock 90% of its fights, and Nightshrike went 60.4% ->
+    // 96.9%. A two-round hold barely dented it. Requiring the boss in person
+    // puts the thing you came to kill inside your reach to do it.
+    const s = bigPrepState();
+    s.voidTower = true;
+    place(s, "boss_hoarfell", "P2", 0, 2);          // boss stays home
+    for (let c = 0; c < 5; c++) place(s, "dusk_gool", "P2", 4, c); // brood takes the row
+    const n = advance(atCleanup(advance(atCleanup(s))));
+    expect(n.phase, "the fight goes on").not.toBe("gameover");
+    expect(n.overrunHeld ?? 0, "the count never starts").toBe(0);
   });
 
   it("is scoped to the tower — an ordinary match is untouched", () => {
@@ -983,8 +1000,11 @@ describe("slay the boss to win", () => {
     // for — that CAPTURE is off in here, so the ending is the new one and not
     // the slot race sneaking back in.
     const { s } = bossFight("boss_overclock");
-    for (let col = 0; col < s.boardSize; col++) place(s, "bolt_zipp", "P2", 3, col);
-    // TWO cleanups — the overrun is a hold, not a snapshot.
+    // The BOSS in the row plus its brood filling the rest — the overrun needs it
+    // there in person, and TWO cleanups, because it is a hold not a snapshot.
+    const boss = Object.values(s.cards).find((c) => getDef(c.defId).boss)!;
+    s.cards[boss.instanceId].pos = { row: 3, col: 0 };
+    for (let col = 1; col < s.boardSize; col++) place(s, "bolt_zipp", "P2", 3, col);
     const n = advance(atCleanup(advance(atCleanup(s))));
     expect(n.win?.by, "not by capture").not.toBe("capture");
     expect(n.win?.by, "by overrun").toBe("overrun");

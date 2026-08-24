@@ -3262,19 +3262,36 @@ function doCleanupPhase(draft: GameState): void {
   //      survive it. A brood that has physically taken your whole back line has
   //      beaten you, and should not have to wait out the clock to be told so.
   //
-  //      Every slot, not a majority: it is the last-ditch condition, and on a
-  //      5-wide board it means the boss's side is standing in all five of your
-  //      home squares with nothing of yours left in any of them. Checked by
+  //      Every slot, not a majority, AND THE BOSS ITSELF AMONG THEM. Checked by
   //      OCCUPANCY rather than by `capturedBy`, because capture is exactly the
   //      mechanic this mode switches off.
+  //
+  //      The boss requirement is the whole reason this rule is survivable.
+  //      Without it the condition was won by CHAFF and took the mode over: four
+  //      bosses closed 84-90% of their wins by standing in the back line,
+  //      Overclock 90% of its fights on drones alone, and Nightshrike went from
+  //      60.4% to 96.9% — the fight that had just been tuned to be fair became
+  //      the hardest on the tower. A two-round hold barely dented it, because by
+  //      the time a side holds all five slots the player has nothing left to
+  //      spare to break one.
+  //
+  //      The cause was structural: capture is DISABLED in here, so enemies
+  //      parked in the player's home row is an ordinary mid-game state. Attaching
+  //      a loss to it turned the mode's default board into a defeat. Requiring
+  //      the boss puts the thing you came to kill inside your own reach to do it,
+  //      and it cannot be delivered by a drone.
   if (draft.voidTower) {
     const home = homeRow("P1", draft.boardSize);
     let held = 0;
+    let bossInRow = false;
     for (let col = 0; col < draft.boardSize; col++) {
       const sitting = cardAt(draft, home, col);
-      if (sitting && sitting.owner === "P2" && sitting.curHp > 0) held++;
+      if (sitting && sitting.owner === "P2" && sitting.curHp > 0) {
+        held++;
+        if (getDef(sitting.defId).boss) bossInRow = true;
+      }
     }
-    if (held === draft.boardSize) {
+    if (held === draft.boardSize && bossInRow) {
       draft.overrunHeld = (draft.overrunHeld ?? 0) + 1;
       if (draft.overrunHeld >= OVERRUN_HOLD_ROUNDS) {
         draft.win = { winner: "P2", by: "overrun" };
@@ -3291,6 +3308,7 @@ function doCleanupPhase(draft: GameState): void {
       draft.overrunHeld = 0;
     }
   }
+
 
   // 7a. A VOID TOWER fight runs on its own, much shorter clock, and running it
   //     out is how the BOSS wins. Not `decideOnTime`: that scores the board on

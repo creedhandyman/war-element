@@ -1071,9 +1071,27 @@ row" was an ordinary mid-game state with no consequence. Giving it a consequence
 turned the mode's default board into a loss. This is a LAST-DITCH condition being
 reached as a matter of course.
 
-The candidate fix, not yet built: require the BOSS ITSELF to be among the
-occupiers. It cannot then be won by drone chaff, it means what the name says, and
-it puts the thing you came to kill inside your reach to do it. 
+BOTH FIXES ARE NOW BUILT AND NEITHER IS ENOUGH. With the two-round hold AND the
+boss required in the row in person:
+
+    F1 Nightshrike 96.9 (88% overrun) · Rotroot 79.2 (10%) · Permafrost 77.1 (36%) · Smolder 71.9 (0%)
+    F2 Overclock   85.4 (81%) · Skeleeze 68.8 (24%) · Basilisk 68.8 (10%) · Helion 68.8 (0%)
+    F3 Thunderfangs 96.9 (90%) · Hoarfell 84.4 (63%) · Xilty 82.3 (32%) · Vulcanyx 69.8 (9%)
+    F4 Umbranova   96.9 (84%)
+
+The boss clause helps where the boss stays home (Helion 20% -> 0% overrun,
+Overclock 90.6 -> 85.4) and does nothing where it advances, because the AI walks
+bosses into the player's home row anyway.
+
+**THE REAL PROBLEM IS THAT OVERRUN FIGHTS THE MODE'S PREMISE.** Void Tower tells
+the player to ignore the board and go kill the boss — capture is off precisely so
+the slot race cannot decide it. A player doing exactly that leaves their home row
+uncontested, which is now a loss. Nightshrike went 60.4% -> 96.9%: overrun did not
+make close fights closer, it converted roughly a third of PLAYER WINS into losses,
+and those were the fights where the player was surviving and walking over to
+finish the job. Any further patch has to answer that, not the occupancy details.
+Options left: require the player to hold nothing anywhere (which is elimination
+with extra steps), or drop the rule. 
 
 **Floor 2 took +25% HP** (owner's call after playing it): Basilisk 44->55,
 Overclock 40->45. Skeleeze and Helion excepted by explicit instruction. The floor
