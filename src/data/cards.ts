@@ -9631,9 +9631,15 @@ export const CARDS: CardDef[] = [
       name: "Hogtie",
       cost: 2,
       handler: "strike",
-      params: { dmg: 5, pull: 1, statusKind: "BLIND", statusDuration: 2 },
+      // pullToCaster, not `pull`. `pull` drags toward the caster's HOME ROW along
+      // the target's own column, which for a rope is the wrong axis entirely:
+      // anything off to one side was hauled up the board and ended no nearer
+      // Lassos than it started. This closes both axes, so the rope pulls from
+      // any direction — sideways and backwards included — and stops when the
+      // target is standing beside it.
+      params: { dmg: 5, pullToCaster: 1, statusKind: "BLIND", statusDuration: 2 },
       targetSide: "enemy",
-      text: "5 DMG, drag the target one slot toward you, and BLIND it for 2 rounds — which Deadeye then punishes.",
+      text: "5 DMG, rope the target one slot toward you from any direction, and BLIND it for 2 rounds — which Deadeye then punishes.",
     },
   },
   {

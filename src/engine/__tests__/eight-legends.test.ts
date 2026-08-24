@@ -14,6 +14,15 @@ import { getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
 import type { CardInstance, GameState } from "../types";
 
+/** Hand the battle queue one card and wait on it, so a Special can be cast
+ *  directly. Same shape as the helper in mythics/legendaries. */
+function battleWith(s: GameState, activeId: string): GameState {
+  s.phase = "battle";
+  s.prep = null;
+  s.battle = { queue: [activeId], index: 0, awaitingInput: activeId };
+  return s;
+}
+
 const params = (id: string) => getDef(id).special!.params as Record<string, string | number>;
 const ROOT = { kind: "ROOT" as const, duration: 3, power: 0, source: "LEAF" as const };
 
@@ -626,6 +635,43 @@ describe("Lassos", () => {
     const l = boardCards(n, "P1").find((c) => c.defId === "dawn_lassos")!;
     expect(l.maxHp, "16 printed + 12 from the mount").toBe(getDef("dawn_lassos").hp + 12);
     expect(getDef("dawn_lassos").mounted).toBe(true);
+  });
+
+  it("ropes a target in from ANY direction, not just up the board", () => {
+    // Hogtie used `pull`, which drags toward the caster's HOME ROW along the
+    // TARGET'S OWN COLUMN — the wrong axis for a rope. Anything off to one side
+    // was hauled up the board and ended no nearer Lassos than it started, and a
+    // target level with it or behind it could not be pulled toward it at all.
+    // `pullToCaster` closes both axes (see reelToCaster).
+    const rope = (vr: number, vc: number) => {
+      const s = prepState();
+      s.players.P1.magicPool = 8;
+      const lasso = place(s, "dawn_lassos", "P1", 2, 1, { autoMode: "manual" });
+      const foe = place(s, "dusk_gool", "P2", vr, vc, { curHp: 60, maxHp: 60, curShields: 0 });
+      const n = applyIntent(battleWith(s, lasso.instanceId), {
+        type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+      } as never);
+      return n.cards[foe.instanceId].pos!;
+    };
+    const near = (p: { row: number; col: number }) =>
+      Math.max(Math.abs(p.row - 2), Math.abs(p.col - 1));
+
+    // Every direction ends CLOSER to Lassos than it started.
+    expect(near(rope(0, 1)), "straight ahead").toBeLessThan(2);
+    expect(near(rope(0, 3)), "diagonally off to the side").toBeLessThan(2);
+    expect(near(rope(2, 3)), "level with it — the case `pull` could not do").toBeLessThan(2);
+    expect(near(rope(3, 3)), "and from behind").toBeLessThan(2);
+  });
+
+  it("reels in, it does not drag through — it stops beside the roper", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 8;
+    const lasso = place(s, "dawn_lassos", "P1", 2, 1, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 2, 2, { curHp: 60, maxHp: 60, curShields: 0 });
+    const n = applyIntent(battleWith(s, lasso.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    } as never);
+    expect(n.cards[foe.instanceId].pos, "already adjacent — it stays put").toEqual({ row: 2, col: 2 });
   });
 
   it("is a Star, because DAWN's tribes split by class", () => {

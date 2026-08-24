@@ -748,6 +748,50 @@ export function pullToward(
   if (moved > 0) draft.log.push(`${label(draft, card)} is dragged in ${moved} slot(s).`);
 }
 
+/** Reel `card` in toward the PULLER ITSELF, a king-step at a time, from any
+ *  direction — the lasso.
+ *
+ *  Distinct from `pullToward`, which drags toward the puller's HOME ROW along
+ *  the target's own column and so can only ever close the row axis: a target off
+ *  to one side was hauled up the board but never any nearer the thing that
+ *  roped it. This closes both axes, so a rope thrown sideways or backwards pulls
+ *  the way a rope actually does.
+ *
+ *  Stops when it is standing beside the puller (chebyshev 1) — it is reeled in,
+ *  not dragged through. Blocked squares are stepped AROUND: the straight line is
+ *  tried first, then each single axis, so a body in the way costs the diagonal
+ *  rather than the whole pull. Braced Stance still refuses, like every push. */
+export function reelToCaster(
+  draft: GameState,
+  card: CardInstance,
+  steps: number,
+  puller: CardInstance,
+): void {
+  if (getDef(card.defId).pushImmune) return;
+  let moved = 0;
+  for (let i = 0; i < steps; i++) {
+    const pos = card.pos, to = puller.pos;
+    if (!pos || !to || chebyshev(pos, to) <= 1) break;
+    const dr = Math.sign(to.row - pos.row), dc = Math.sign(to.col - pos.col);
+    // Straight at the puller first, then one axis at a time.
+    const tries: [number, number][] = [[dr, dc], [dr, 0], [0, dc]];
+    let stepped = false;
+    for (const [r, c] of tries) {
+      if (!r && !c) continue;
+      const row = pos.row + r, col = pos.col + c;
+      if (row < 0 || row >= draft.boardSize || col < 0 || col >= draft.boardSize) continue;
+      if (draft.slots[row][col].capturedBy || cardAt(draft, row, col)) continue;
+      card.pos = { row: row as Pos["row"], col: col as Pos["col"] };
+      stepped = true;
+      moved++;
+      break;
+    }
+    if (!stepped) break;
+  }
+  if (moved > 0)
+    draft.log.push(`${label(draft, puller)} ropes ${getDef(card.defId).name} in ${moved} slot(s).`);
+}
+
 /** HP-threshold transform (Skelider Dismount): fires once when the card first
  *  drops below its threshold. */
 export function checkLowHpTransform(draft: GameState, card: CardInstance): void {
@@ -2993,6 +3037,10 @@ function applyDebuffRiders(
   // across the board should do.
   const pull = num(params, "pull");
   if (pull > 0 && attacker) pullToward(draft, target, pull, attacker.owner);
+  // The LASSO: toward the caster itself rather than toward its home row, so the
+  // rope closes sideways and backwards too. See `reelToCaster`.
+  const rope = num(params, "pullToCaster");
+  if (rope > 0 && attacker) reelToCaster(draft, target, rope, attacker);
   const spDebuff = num(params, "spDebuff");
   if (spDebuff > 0) applyTimedBuff(target, 0, -spDebuff, num(params, "spDebuffRounds", 1));
 }
