@@ -1049,49 +1049,36 @@ is the player's condition, and a test pins both halves. One pre-existing test
 asserted "a boss holding every home slot has not won" and is re-pointed; it still
 guards that the ending is an overrun and never a capture.
 
-**OVERRUN HAS TAKEN OVER THE MODE — read this before tuning any boss.** A
-two-round hold was added (`OVERRUN_HOLD_ROUNDS`, count resets the moment a slot
-breaks, with a warning line logged on the first round) and it barely moved
-anything. Measured across the tower, win rate and the SHARE of those wins ending
-by overrun:
+**OVERRUN EXISTS TO STOP SPELL-CARRIED, BOARDLESS RUNS — and it works.** The
+owner's reason, which is not visible from the win rates: a player with a full
+spellbook can stall an empty board and snipe the boss, which makes a run far too
+easy. Void Tower gives the BOSS no spells (`buildVoidEncounter` passes `[]`) and
+the player a full derived book — 8 on the 5x5 — so the asymmetry is real.
 
-    F1 Nightshrike 96.9 (89% overrun) · Rotroot 79.2 (10%) · Permafrost 77.1 (41%) · Smolder 71.9 (0%)
-    F2 Overclock   90.6 (90%) · Skeleeze 68.8 (24%) · Basilisk 68.8 (10%) · Helion 68.8 (20%)
-    F3 Thunderfangs 96.9 (90%) · Hoarfell 84.4 (63%) · Xilty 82.3 (32%) · Vulcanyx 69.8 (9%)
-    F4 Umbranova   96.9 (84%)
+Measured, at the moment each fight ended (n=624 across the roster):
 
-Four bosses now close 84-90% of their wins by standing in the back line, and
-Nightshrike went 60.4 -> 96.9 — the fight that had just been tuned to be fair is
-suddenly the hardest on the tower. The hold does not help because by the time a
-side has taken all five home slots the player is already losing and cannot spare
-a body to break one.
+    boss won BY OVERRUN      P1 had 0.06 cards on board — EMPTY 95% of the time
+    boss won any other way   P1 had 4.44
+    player won               P1 had 7.81 — empty only 7%
 
-WHY IT IS SO STRONG: capture is disabled in here, so "enemies parked in your home
-row" was an ordinary mid-game state with no consequence. Giving it a consequence
-turned the mode's default board into a loss. This is a LAST-DITCH condition being
-reached as a matter of course.
+So overrun is not taking board-based fights off the player. It is ending games
+where the player has nothing left but a spellbook, which is precisely its target.
+A first read of the win rates alone concluded the opposite ("it converted a third
+of player wins into losses") and recommended dropping the rule — WRONG, and worth
+recording as a lesson: a win-rate delta says nothing about WHICH fights moved.
+Ask what the board looked like when the game ended.
 
-BOTH FIXES ARE NOW BUILT AND NEITHER IS ENOUGH. With the two-round hold AND the
-boss required in the row in person:
+Win rates with the rule live (hold=2, boss required in the row): F1 Nightshrike
+96.9 · Rotroot 79.2 · Permafrost 77.1 · Smolder 71.9 · F2 Overclock 85.4 ·
+Skeleeze 68.8 · Basilisk 68.8 · Helion 68.8 · F3 Thunderfangs 96.9 · Hoarfell
+84.4 · Xilty 82.3 · Vulcanyx 69.8 · F4 Umbranova 96.9. The high ones are fights
+the player finished with an empty board.
 
-    F1 Nightshrike 96.9 (88% overrun) · Rotroot 79.2 (10%) · Permafrost 77.1 (36%) · Smolder 71.9 (0%)
-    F2 Overclock   85.4 (81%) · Skeleeze 68.8 (24%) · Basilisk 68.8 (10%) · Helion 68.8 (0%)
-    F3 Thunderfangs 96.9 (90%) · Hoarfell 84.4 (63%) · Xilty 82.3 (32%) · Vulcanyx 69.8 (9%)
-    F4 Umbranova   96.9 (84%)
-
-The boss clause helps where the boss stays home (Helion 20% -> 0% overrun,
-Overclock 90.6 -> 85.4) and does nothing where it advances, because the AI walks
-bosses into the player's home row anyway.
-
-**THE REAL PROBLEM IS THAT OVERRUN FIGHTS THE MODE'S PREMISE.** Void Tower tells
-the player to ignore the board and go kill the boss — capture is off precisely so
-the slot race cannot decide it. A player doing exactly that leaves their home row
-uncontested, which is now a loss. Nightshrike went 60.4% -> 96.9%: overrun did not
-make close fights closer, it converted roughly a third of PLAYER WINS into losses,
-and those were the fights where the player was surviving and walking over to
-finish the job. Any further patch has to answer that, not the occupancy details.
-Options left: require the player to hold nothing anywhere (which is elimination
-with extra steps), or drop the rule. 
+**CAUTION on the boss-in-the-row clause.** It was added to stop drone chaff
+delivering the win, and it does (Helion 20% -> 0% overrun, Overclock 90.6 ->
+85.4) — but a SPAWNER swamping an empty board is exactly the case the rule is
+FOR, so this clause works against its own purpose on Overclock. Revisit it before
+adding more conditions.
 
 **Floor 2 took +25% HP** (owner's call after playing it): Basilisk 44->55,
 Overclock 40->45. Skeleeze and Helion excepted by explicit instruction. The floor
