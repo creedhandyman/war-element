@@ -329,10 +329,21 @@ export const VOID_BOSSES: VoidBoss[] = [
     // not what the card is. Seventeen of LEAF's thirty-three untribed cards are
     // plainly flora (Acorn, Birch, Nettle, Oak, Sticks, Elderroot, Thorn,
     // Hartwood…), so the gap was in the data rather than in the design.
+    // 1x3 + 1x3 + 2x2 + 2 = 12, exact. An Oak traded for SMOG.
+    //
+    // Smolder was the only boss on the tower fielding a single element, and
+    // every card in that army was cost-1-or-2 melee flora — which left the
+    // puzzle ("everything that touches it burns, so fight it at RANGE") with no
+    // answer at all to the range it was telling you to use. Smog is PYRO, the
+    // mechanic half of the pairing and legal on that basis, and it is Ranged:
+    // Black Smoke ticks 1 to the whole enemy board and heals the brood 1, every
+    // round. Smoke off a burning tree, punishing exactly the stand-off the
+    // fight demands, and the one engine an all-flora deck cannot otherwise hold.
     summons: [
       "leaf_birch", "leaf_birch", "leaf_birch",
       "leaf_nettle", "leaf_nettle", "leaf_nettle",
-      "leaf_oak", "leaf_oak", "leaf_oak",
+      "leaf_oak", "leaf_oak",
+      "pyro_smog_card",
     ],
     puzzle: "The bonfire: everything that touches it burns — fight it at range.",
   },
