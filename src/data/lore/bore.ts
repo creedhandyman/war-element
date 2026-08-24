@@ -187,4 +187,7 @@ export const BORE_LORE: Record<string, string> = {
 
   bore_kingcobra_tok:
     "The second one was always there. You were busy.",
+
+  boss_vulcanyx:
+    "The mountain did not erupt. It got hungry.",
 };

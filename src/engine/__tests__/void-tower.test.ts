@@ -79,6 +79,11 @@ describe("the roster", () => {
       // BURN it puts on anything that touches it, which costs no stat points
       // at all.
       boss_smolder: 114,
+      // Vulcanyx is the heaviest boss on the tower and needs to be: its threat
+      // is on-KILL, the one currency an opponent can decline to pay, so unlike
+      // Thunderfangs (pack) or Hoarfell (momentum) it borrows nothing for free.
+      // Measured across eight bodies — 60/14 read 39.6%, 144/28 reads 68.8%.
+      boss_vulcanyx: 200,
     };
     for (const v of VOID_BOSSES) {
       expect(bodyTotal(getDef(v.cardId)), v.cardId).toBe(MEASURED[v.cardId]);

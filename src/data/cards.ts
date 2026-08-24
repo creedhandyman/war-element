@@ -7901,7 +7901,13 @@ export const CARDS: CardDef[] = [
     // contribute to the capture race that decides almost every match. It holds
     // ground and shoots, and that is all.
     passiveNames: { roundTick: "Power Up", onKill: "Power Up" },
-    roundTick: { buffDmgEveryN: { n: 1, amount: 1, maxTicks: 5 } },
+    // Cap raised 5 -> 15. GigaVolt prints at DMG 0 and cannot move, so the cap
+    // IS the card: at +5 it topped out at 5 DMG in round five and then sat
+    // there for the rest of the match as a 35 HP turret that could not chase
+    // anything. Fifteen rounds of winding up is a real investment on a body
+    // that never takes a slot and never contributes to the capture race — the
+    // payoff should be a gun worth protecting for that long.
+    roundTick: { buffDmgEveryN: { n: 1, amount: 1, maxTicks: 15 } },
     onKill: { gainShields: 2 },
     aura: { scope: "element", dmg: 1 },
     // Turret Mode: lock down and open fire on the ELECTRIFIED — 3 DMG to every
@@ -10172,6 +10178,10 @@ export const CARDS: CardDef[] = [
     // advance and still have to pay to take it — move, and give up the ground;
     // stay, and block the lane with something you can afford to lose.
     passiveNames: { roundTick: "Traverse" },
+    // EMPLACED. Traverse IS Helion's movement — the AI walking it forward on top
+    // of that is what put a siege engine in the front rank with nothing left to
+    // shoot down. See `holdsPosition`.
+    holdsPosition: true,
     roundTick: { fireSpecialEveryN: 3, aimLateral: true },
     special: {
       name: "Solar Lance",
@@ -10230,6 +10240,68 @@ export const CARDS: CardDef[] = [
       params: { dmg: 10, targets: 99, reach: 2, statusKind: "BLIND", statusDuration: 2 },
       targetSide: "enemy",
       text: "10 DMG and BLIND for 2 rounds to every opponent within 2 spaces — and Whiteout Hunter adds 5 to everything it lands on the blinded.",
+    },
+  },
+  {
+    id: "boss_vulcanyx",
+    name: "Vulcanyx",
+    rarity: "mythic",
+    element: "BORE",
+    // The art is a placeholder alias until the real render lands: Infernus Rex
+    // is the closest thing in the set to what Vulcanyx is, which is the joke —
+    // Infernus Rex is one of its brood.
+    art: "pyro_infernus_rex",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 12,
+    // 200 body points — nearly DOUBLE Hoarfell's 111 and Thunderfangs' 96, and
+    // the one boss on the tower that needed real meat. Measured, in eight steps:
+    // 60/14 read 39.6%, and it took 144/28 to reach 68.8%, still a shade under
+    // its floor-mates. Every other boss on this floor borrows its threat from
+    // something free — Thunderfangs from the pack, Hoarfell from momentum — and
+    // can be printed small as a result. Vulcanyx borrows its threat from KILLS,
+    // which is the one currency an opponent can refuse to pay: play around it
+    // and Apex Hunger never fires once, so the printed line has to be a real
+    // Floor-3 threat all by itself. It is still 90 points under the cap.
+    //
+    // The curve flattens above this — 132/26 to 144/28 bought 1.1 points — so
+    // more meat is not the lever if this ever needs to be harder. Give it a kit
+    // that fires without cooperation instead.
+    dmg: 28,
+    hits: 1,
+    hp: 144,
+    sp: 8,
+    shields: 10,
+    keywords: {},
+    tribe: "Mountain Beasts",
+    boss: true,
+    // Floor 3 — THE APEX. Every other boss on the tower asks "can you get
+    // through this"; this one asks "what are you willing to give it". It walks
+    // a slot a round and every kill it makes is permanently +3 DMG and 10 HP
+    // back, so the reflex that beats a juggernaut — throw a cheap body in front
+    // of it and buy a round — is the single worst thing you can do here.
+    //
+    // That is deliberately the INVERSE of Hoarfell, one floor-mate over: there,
+    // standing in front of it is the answer and the cost is the blocker. Here
+    // the blocker IS the cost, twice, because it comes back as teeth. Kill it
+    // or starve it; there is no third thing.
+    passiveNames: { onKill: "Apex Hunger", roundTick: "Magma Tread" },
+    onKill: { buffDmg: 3, healSelf: 10 },
+    roundTick: { fireSpecialEveryN: 3, advance: 1 },
+    special: {
+      name: "Fissure",
+      cost: 3,
+      // The PYRO half, delivered the BORE way: the ground opens along the lane
+      // it is walking down. A COLUMN rather than the reach-2 nova both of its
+      // floor-mates throw (the Skeleeze precedent) — the floor should not ask
+      // the same positional question three times.
+      handler: "barrage",
+      params: {
+        dmg: 11, pen: 1, sameColumn: 1, targets: 99,
+        statusKind: "BURN", statusDuration: 2, statusPower: 3,
+      },
+      targetSide: "enemy",
+      text: "11 DMG through everything in the column ahead, and BURN 3 for 2 rounds on all of it.",
     },
   },
   {

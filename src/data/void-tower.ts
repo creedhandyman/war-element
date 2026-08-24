@@ -269,6 +269,35 @@ export const VOID_BOSSES: VoidBoss[] = [
     puzzle: "The pack: for once, kill the escorts first.",
   },
   {
+    cardId: "boss_vulcanyx",
+    floor: 3,
+    tribeElement: "BORE",
+    mechanicElement: "PYRO",
+    tribe: "Mountain Beasts",
+    // 8 + 8 + 3x2 + 3x2 = 28, exact. TWO tribes' worth of identity and no
+    // filler: PYRO's two 8-gold Volcanic legendaries out front — Infernus Rex
+    // and Magmadon, the fire rex and the lava tank a lava rex ought to be
+    // leading — behind them four Mountain Beasts, which is the whole of that
+    // tribe twice over (it is two cards, both stone dinosaurs, both cost 3).
+    //
+    // THIS COSTS ABOUT 23 POINTS OF WIN RATE and is worth knowing before anyone
+    // "fixes" it. The first draft spent the same 28 on six different cards —
+    // Infernus Rex, Volcanon, Valcana, both dinosaurs, a Thorny Ripper — and on
+    // an identical body it measured 62.5% where this reads 39.6%. The two are
+    // even on paper (Volcanon + Valcana + Ripper is 100 stat points for 14 gold;
+    // Magmadon + a dinosaur + a dinosaur is 100 points for 14) and the doubles
+    // have MORE cards under the free-opening cost cap, so it is kit quality,
+    // not stats or tempo: Magmadon is a passive Tank where the other two bring
+    // something. The war party was chosen anyway and Vulcanyx's body pays for
+    // it — which is why it is the heaviest boss on the tower.
+    summons: [
+      "pyro_infernus_rex", "pyro_magmadon",
+      "bore_ankylosaur", "bore_ankylosaur",
+      "bore_armadillo", "bore_armadillo",
+    ],
+    puzzle: "The apex: every body you feed it comes back as teeth.",
+  },
+  {
     cardId: "boss_umbranova",
     floor: 4,
     tribeElement: "PYRO",
@@ -451,28 +480,7 @@ export function tribePool(tribe: string): string[] {
  *  are too small to fill 30 slots without repeats anyway (Zombie has five). */
 export function reinforcementPool(boss: VoidBoss): string[] {
   const pool = tribePool(boss.tribe);
-  // The CHEAP HALF, at least two and AT MOST FOUR.
-  //
-  // Cheap, because cycling the whole pool would put Rotroot's cost-7 legendary
-  // in the rotation and hand it a Zombination every other round — the elite is
-  // what the 12-Gold budget buys once, not what turns up forever afterwards.
-  //
-  // Capped, because "half the tribe" made a boss's bench a function of how many
-  // cards its tribe happens to own, and that turned out to be the single
-  // biggest thing separating these fights. Avian is 20 cards deep, so
-  // Nightshrike fielded a curated ten-card GALE toolbox; Zombie is 5, so
-  // Rotroot fielded three weak bodies. It was not the bosses that were
-  // mismatched, it was their armies — Nightshrike won 97% of its fights with
-  // the player holding an average of 0.1 cards alive, having never reached a
-  // boss still sitting on two thirds of its HP. Four apiece puts every boss on
-  // the same bench and hands the fight back to the boss.
   const bench = pool.slice(0, Math.max(2, Math.min(4, Math.ceil(pool.length / 2))));
-  // TRIBE FIRST, then the elements fill the gap. A thin tribe used to mean a
-  // thin bench with nothing to be done about it — Zombie is three cards, so
-  // Rotroot reinforced with two bodies while the Avian-deep bosses got four.
-  // The tribe still leads, because it is the boss's identity and should be what
-  // you see most of; the rest comes from either of its elements, cheapest
-  // first, so every boss reaches the same four however small its tribe is.
   if (bench.length < 4) {
     for (const id of bossSummonPool(boss)) {
       if (bench.length >= 4) break;

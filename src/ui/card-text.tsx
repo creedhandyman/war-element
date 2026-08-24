@@ -411,7 +411,11 @@ export function describePassives(def: CardDef): string[] {
     // rounds…" reads as a contradiction.
     if (t.buffDmgEveryN)
       namedAny(["buffDmgEveryN", "roundTick"],
-        `Every ${t.buffDmgEveryN.n} rounds: permanently gains ${[t.buffDmgEveryN.amount ? `+${t.buffDmgEveryN.amount} DMG` : "", t.buffDmgEveryN.sp ? `+${t.buffDmgEveryN.sp} SP` : "", t.buffDmgEveryN.hp ? `+${t.buffDmgEveryN.hp} HP` : ""].filter(Boolean).join(", ")} (stacking).`,
+        // The CAP was missing, so five cards promised growth that never ends —
+        // GigaVolt reads as an unbounded gun and stops dead at its maxTicks.
+        // Stated as the total it reaches, not as a tick count, because the
+        // total is the thing worth protecting a turret for.
+        `Every ${t.buffDmgEveryN.n} rounds: permanently gains ${[t.buffDmgEveryN.amount ? `+${t.buffDmgEveryN.amount} DMG` : "", t.buffDmgEveryN.sp ? `+${t.buffDmgEveryN.sp} SP` : "", t.buffDmgEveryN.hp ? `+${t.buffDmgEveryN.hp} HP` : ""].filter(Boolean).join(", ")} (stacking${t.buffDmgEveryN.maxTicks ? `, up to ${[t.buffDmgEveryN.amount ? `+${t.buffDmgEveryN.amount * t.buffDmgEveryN.maxTicks} DMG` : "", t.buffDmgEveryN.sp ? `+${t.buffDmgEveryN.sp * t.buffDmgEveryN.maxTicks} SP` : "", t.buffDmgEveryN.hp ? `+${t.buffDmgEveryN.hp * t.buffDmgEveryN.maxTicks} HP` : ""].filter(Boolean).join(", ")}` : ""}).`,
       );
     // Some roundTick fields (selfShields, rowAheadDmg, ward/cleanse…) get their
     // own dedicated line below — don't emit an empty "Each round: ." for those.

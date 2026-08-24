@@ -1034,6 +1034,61 @@ An AI-vs-AI harness cannot read a telegraph, bring cleanse, or focus a boss, so
 it cannot say whether a puzzle is FAIR — only whether the seven are comparable.
 Fairness is on-device.
 
+**Floor 3 gained VULCANYX** (BORE tribe / PYRO mechanic, tribe Mountain Beasts
+— the two stone dinosaurs; formation is PYRO's two 8-gold Volcanic legendaries,
+Infernus Rex + Magmadon, over four of them, 28 exact). THE APEX: `onKill` is +3
+DMG and 10 HP back, permanently, so chump-blocking — the reflex that beats a
+juggernaut — is the worst play against it. Deliberately the inverse of Hoarfell
+one slot over. It is the HEAVIEST body on the tower (200) and needs to be: every
+other boss borrows threat for free (Thunderfangs from the pack, Hoarfell from
+momentum) while Vulcanyx borrows from KILLS, which an opponent can decline to
+pay. Measured over eight bodies, 60/14 → 39.6% and 144/28 → 68.8%; the curve
+flattens above that (132→144 bought 1.1 points), so more meat is NOT the lever
+if it needs to be harder — give it a kit that fires without cooperation. Its art
+is aliased to `pyro_infernus_rex` pending the real render.
+
+**`holdsPosition` (EMPLACED)** — a new CardDef flag: nothing may MOVE the card,
+its `roundTick` gait is the whole of its movement. Enforced in `canMove`, which
+the gaits bypass (they assign `pos` directly). Helion is why it exists: a Ranged
+siege engine whose Special fires down the column it STANDS in, with a card
+comment promising "it barely moves" — but `findClosingMove` marches every card
+it owns at the enemy home row, and a siege engine standing INSIDE that row has
+no lane in front of it, so Solar Lance fired into empty space every three rounds
+for the rest of the fight. Reported from the device as "it just gets here and
+doesn't do much else". Helion reads 72.9% emplaced. **If a boss's kit implies a
+position, give it this flag** — the per-boss movement personalities in
+`roundTick` are meant to BE its movement, and the generic mover overrides them.
+
+**A FLOOR-SCALED BENCH TIER WAS TRIED AND REVERTED — do not re-attempt it
+blind.** The idea was sound and the request was reasonable: higher floors should
+reinforce with better cards, not the same cost-1 chaff a Floor-1 boss throws.
+Implemented as a cost band per floor (`benchFloorCost` / `benchCeilCost`), it
+measured (vs the 8 CORES, 12 seeds, n=96 each; control in brackets):
+
+    Skeleeze 64.6 [64.6] · Overclock 85.4 [67.7] · Basilisk 71.9 [63.5] ·
+    Helion 84.4 [77.1] · Xilty 92.7 [78.1] · Hoarfell 85.4 [72.9] ·
+    Thunderfangs 74.0 [74.0] · Umbranova 87.5 [87.5]
+
+Floor 1 was untouched by construction. Three findings, all of which cost a
+measurement pass and are worth not re-buying:
+
+1. **Boss HP is a nearly dead lever.** Xilty drops 72→40 HP — over half its body
+   — and moves 92.7→87.5. Helion's first 10 HP move it 0.0. You cannot retune a
+   bench change by shrinking the boss.
+2. **Bench SIZE is a dead lever too.** Three seats instead of four moved Xilty
+   0.0 and Overclock 0.0.
+3. **A blanket formula cannot work here**, because every tribe has its own cost
+   curve and one band lands somewhere different on each. A "chaff slot" (three
+   tiered seats + one warm body) fixed Hoarfell (74.0) and Helion (75.0), did
+   nothing at all for Xilty (92.7 — which also disproved the tidy story that one
+   cost-1 token was carrying the whole swing), and took Skeleeze to **35.4**,
+   because the Skeleton tribe is cheap already so the slot cost it a real body.
+
+If it is worth another attempt, do it as **explicit per-boss bench lists**
+(`VoidBoss.bench?: string[]`) measured one boss at a time — not a formula over
+thirteen tribes. The bench is the highest-leverage knob in the mode and it is
+chaotic; that is the actual lesson.
+
 **The tower SCREEN shipped** (`src/ui/VoidTower.tsx`, Tower nav tab): floors
 rendered top-down, all progression DERIVED from `StorySave.eventsDone` so it
 can never disagree with the save. Each boss is a portrait ART TILE — the tile

@@ -216,6 +216,9 @@ export function canMove(
       && to.row !== homeRow(card.owner, state.boardSize)) {
     return { ok: false, reason: "The boss has not moved from its home row yet" };
   }
+  // EMPLACED — its gait is its whole movement. See `holdsPosition`.
+  if (getDef(card.defId).holdsPosition)
+    return { ok: false, reason: "This card holds its position" };
   const reach = moveReachFor(state, card);
   if (reach === 0) return { ok: false, reason: "This card can't move (SP 0)" };
   if (to.row < 0 || to.row >= state.boardSize || to.col < 0 || to.col >= state.boardSize)

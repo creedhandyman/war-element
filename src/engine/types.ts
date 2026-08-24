@@ -536,6 +536,22 @@ export interface CardDef {
     dmg: number;
     status?: { kind: StatusKind; duration: number; power: number };
   };
+  /** EMPLACED: nothing may MOVE this card — not the AI, not its own side. Its
+   *  `roundTick` gait is the whole of its movement.
+   *
+   *  For cards whose kit is a fixed weapon rather than a body. Helion is the
+   *  case that produced it: a Ranged siege engine whose Special fires down the
+   *  column it STANDS in, with `aimLateral` to line that column up, and a card
+   *  comment promising "it barely moves". The generic AI marched it down the
+   *  board anyway — closing on the enemy home row is what the mover wants for
+   *  every card it owns — and a siege engine standing INSIDE your home row has
+   *  no lane left in front of it, so Solar Lance fired into empty space every
+   *  three rounds for the rest of the fight. It arrived, and then it had no kit.
+   *
+   *  Enforced in `canMove`, which the gaits deliberately bypass (they assign
+   *  `pos` directly), so this stops everything except the movement the card was
+   *  designed around. */
+  holdsPosition?: true;
   /** On-kill trigger (this card's attack defeats an enemy). */
   onKill?: OnKillDef;
   /** Conditional basic-attack keyword vs a target carrying a status. */
