@@ -10396,31 +10396,33 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 12,
-    // 200 body points — nearly DOUBLE Hoarfell's 111 and Thunderfangs' 96, and
-    // the one boss on the tower that needed real meat. Measured, in eight steps:
-    // 60/14 read 39.6%, and it took 144/28 to reach 68.8%, still a shade under
-    // its floor-mates. Every other boss on this floor borrows its threat from
-    // something free — Thunderfangs from the pack, Hoarfell from momentum — and
-    // can be printed small as a result. Vulcanyx borrows its threat from KILLS,
-    // which is the one currency an opponent can refuse to pay: play around it
-    // and Apex Hunger never fires once, so the printed line has to be a real
-    // Floor-3 threat all by itself. It is still 90 points under the cap.
+    // 156 body points, down from 200 — it was the HEAVIEST boss on the tower and
+    // no longer needs to be. That 200 was meat bought to cover a kit that was
+    // not working; LIFESTEAL does the job properly, so the card got leaner AND
+    // stronger in the same pass (70.8% -> 87.5%). Now in line with Hoarfell's 135
+    // rather than towering over it.
     //
-    // The curve flattens above this — 132/26 to 144/28 bought 1.1 points — so
-    // more meat is not the lever if this ever needs to be harder. Give it a kit
-    // that fires without cooperation instead.
-    //
-    // Body UNCHANGED when Fissure was repaired to actually reach its lane: it
-    // measured 68.8% before and 68.8% after. Xilty's repair was worth +3.2 the
-    // same way. A boss Special is worth far less in the win column than it is
-    // on the screen — which is an argument for fixing them, not for leaving
-    // them broken, and a warning against paying for one with stats.
-    dmg: 28,
+    // "More meat is not the lever" was the right conclusion from the old sweep
+    // (132/26 to 144/28 bought 1.1 points) and "give it a kit that fires without
+    // cooperation" was the right prescription — LIFESTEAL is that kit.
+    dmg: 18,
     hits: 1,
-    hp: 144,
+    hp: 110,
     sp: 8,
     shields: 10,
-    keywords: {},
+    // LIFESTEAL — the apex predator EATS, and this is what finally made the card
+    // work. It read 70.8%, the weakest fight on Floor 3 by eleven points, and
+    // the old comment here guessed wrong about why: it assumed the problem was
+    // that Apex Hunger needs kills an opponent can decline to give. Measured,
+    // the problem was the opposite. Vulcanyx kills fine — bonus damage does
+    // NOTHING for it (vsStatus BURN at +6 and at +10 both read 70.8% to the
+    // decimal, because 28 DMG already one-shot anything it touched, so every
+    // point past lethal was thrown away). What killed it was dying.
+    //
+    // So the overkill was traded for sustain. LIFESTEAL alone took it to 90.6%,
+    // and cutting DMG 28 -> 18 cost exactly one point (90.6 -> 89.6) because that
+    // damage was never being used. 18/110 reads 87.5%.
+    keywords: { LIFESTEAL: true },
     tribe: "Mountain Beasts",
     boss: true,
     // Floor 3 — THE APEX. Every other boss on the tower asks "can you get

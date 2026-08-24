@@ -102,11 +102,12 @@ describe("the roster", () => {
       // BURN it puts on anything that touches it, which costs no stat points
       // at all.
       boss_smolder: 114,
-      // Vulcanyx is the heaviest boss on the tower and needs to be: its threat
-      // is on-KILL, the one currency an opponent can decline to pay, so unlike
-      // Thunderfangs (pack) or Hoarfell (momentum) it borrows nothing for free.
-      // Measured across eight bodies — 60/14 read 39.6%, 144/28 reads 68.8%.
-      boss_vulcanyx: 200,
+      // 200 -> 156 (28/144 -> 18/110) when LIFESTEAL replaced the meat. It was
+      // the heaviest boss on the tower purely to cover a kit that was not
+      // working; bonus damage did nothing for it (28 DMG already one-shot
+      // everything, so vsStatus BURN at +6 and +10 both read 70.8%) and dying
+      // was the actual problem. 70.8% -> 87.5%, leaner AND stronger.
+      boss_vulcanyx: 156,
     };
     for (const v of VOID_BOSSES) {
       expect(bodyTotal(getDef(v.cardId)), v.cardId).toBe(MEASURED[v.cardId]);
