@@ -12,7 +12,7 @@
 // rest of the game's pushes do.
 import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
-import { canMove, validTargets } from "../rules";
+import { canMove, shoveTarget, validTargets } from "../rules";
 import { basicAttack } from "../combat";
 import { getDef } from "../../data/cards";
 import { place, prepState } from "./helpers";
@@ -158,5 +158,55 @@ describe("Amble's basic can heal", () => {
     expect(ids, "and the enemy").toContain(foe.instanceId);
     expect(ids, "never itself, however hurt").not.toContain(amble.instanceId);
     expect(ids, "and not an ally at full HP").not.toContain(whole.instanceId);
+  });
+});
+
+describe("TRAMPLE shoves in EVERY direction — it is not a forward charge", () => {
+  // Asked for as "allow trample to work to the side as well", and it already
+  // did: `shoveTarget` takes its direction from the MOVE (dr/dc), so any single
+  // king-step qualifies and the victim is driven straight back along whichever
+  // way the trampler came. Pinned here because the behaviour is invisible in
+  // practice and reads as forward-only for a reason that is nothing to do with
+  // direction — see the next test.
+  const ram = (pr: number, pc: number, vr: number, vc: number, vhp = 8) => {
+    const s = prepState();
+    const t = place(s, "pyro_burnout", "P1", pr, pc, { curHp: 24, maxHp: 24 });
+    place(s, "dusk_gool", "P2", vr, vc, { curHp: vhp, maxHp: vhp });
+    return shoveTarget(s, s.cards[t.instanceId], { row: vr, col: vc } as Pos);
+  };
+  it("forward", () => expect(ram(2, 1, 1, 1)).not.toBeNull());
+  it("sideways, either way", () => {
+    expect(ram(1, 1, 1, 2), "right").not.toBeNull();
+    expect(ram(1, 2, 1, 1), "left").not.toBeNull();
+  });
+  it("backward", () => expect(ram(1, 1, 2, 1)).not.toBeNull());
+  it("diagonally", () => expect(ram(2, 1, 1, 2)).not.toBeNull());
+});
+
+describe("what actually stops a sideways trample is the room BEYOND", () => {
+  // The real answer to "trample doesn't work to the side". Direction was never
+  // the gate — the shove needs the square past the victim to be on the board,
+  // empty and uncaptured, and "past the victim" is measured along the SHOVE.
+  // Forward that square is deeper into the board and usually free; sideways it
+  // is the next column out, which on a 4-wide board is off the edge half the
+  // time. Same rule, wildly different hit rate.
+  const lateral = (pc: number, vc: number, behind?: number, vhp = 8) => {
+    const s = prepState();
+    const t = place(s, "pyro_burnout", "P1", 2, pc, { curHp: 24, maxHp: 24 });
+    place(s, "dusk_gool", "P2", 2, vc, { curHp: vhp, maxHp: vhp });
+    if (behind !== undefined) place(s, "dusk_gool", "P2", 2, behind, { curHp: 8, maxHp: 8 });
+    return shoveTarget(s, s.cards[t.instanceId], { row: 2, col: vc } as Pos);
+  };
+  it("shoves when the next column out is free", () => {
+    expect(lateral(1, 2)).not.toBeNull();
+  });
+  it("refuses at the board EDGE — there is nowhere to put the victim", () => {
+    expect(lateral(2, 3)).toBeNull();
+  });
+  it("refuses when something is standing beyond it", () => {
+    expect(lateral(1, 2, 3)).toBeNull();
+  });
+  it("refuses a victim with equal or greater max HP, sideways as anywhere", () => {
+    expect(lateral(1, 2, undefined, 24)).toBeNull();
   });
 });
