@@ -1419,7 +1419,12 @@ export function resolveHit(
     result.targetDied = true;
     if (target.owner !== attacker.owner) creditKill(draft.stats, attacker, attacker.owner);
     // On-kill trigger for the attacker (basic/special kills only).
-    if ((opts.kind === "basic" || opts.kind === "special") && attacker.curHp > 0) {
+    // Masonry feeds nothing — see `noKillReward`. Checked before BOTH the rider
+    // and the counter, so a Fortress Gate cannot grow Vulcanyx, raise a wolf for
+    // Thunderfangs, bloom a crystal for Cryovex, or tick anyone toward a second
+    // form on its way down.
+    const feeds = !tDef.noKillReward;
+    if ((opts.kind === "basic" || opts.kind === "special") && attacker.curHp > 0 && feeds) {
       if (aDef.onKill) applyOnKill(draft, attacker, aDef.onKill, deathPos);
       registerKill(draft, attacker);
       // Gaslighting (Liza): an allied enabler spurs whoever lands the kill.
@@ -2736,8 +2741,10 @@ export function tickDamage(
   const died = directDamage(draft, source, target, dmg, pen);
   if (died && source.curHp > 0) {
     const def = getDef(source.defId);
-    if (def.onKill) applyOnKill(draft, source, def.onKill);
-    registerKill(draft, source);
+    if (!getDef(target.defId).noKillReward) {
+      if (def.onKill) applyOnKill(draft, source, def.onKill);
+      registerKill(draft, source);
+    }
   }
   return died;
 }

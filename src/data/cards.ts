@@ -10776,6 +10776,38 @@ export const CARDS: CardDef[] = [
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
   {
+    id: "void_fortress_gate_tok",
+    name: "Fortress Gate",
+    rarity: "rare",
+    element: "BORE",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 0,
+    // 20 HP behind 10 shields. Shields block per HIT, which is exactly what a
+    // gate should do to a boss that swings once for a great deal: Vulcanyx's 18
+    // and Hoarfell's 15 both arrive 10 lighter, so the wall holds for rounds
+    // rather than for one swing.
+    dmg: 0,
+    hits: 1,
+    hp: 20,
+    sp: 0, // it is masonry — it does not move, and moveReach(0) is 0
+    shields: 10,
+    keywords: {},
+    // Braced Stance: a gate is not shoved aside. Without this, TRAMPLE would
+    // walk straight through it — Hoarfell's whole design is walking through the
+    // lighter half of your board, and it outweighs 20 HP comfortably.
+    pushImmune: true,
+    passiveNames: { noKillReward: "Nothing to Gain", guardsHomeRow: "Hold the Line" },
+    // Hold the Line: nothing may be targeted in the three home squares BEHIND it
+    // while it stands — fliers and ranged included, which is the entire point. A
+    // gate a dragon can simply shoot over is not a gate.
+    guardsHomeRow: true,
+    // Nothing to Gain: killing it feeds NOTHING. Every boss in this mode is
+    // built to grow on kills, so a gate that paid out on the way down would be
+    // a free meal parked inside the boss's reach rather than a wall.
+    noKillReward: true,
+  },
+  {
     id: "aqua_blackice_crystal_tok",
     name: "Blackice Crystal",
     rarity: "rare",

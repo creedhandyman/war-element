@@ -574,6 +574,35 @@ export interface CardDef {
    *  ordinary `transform` handler: fresh body from the new form, stat mods
    *  wiped, the new form's onSummon fired. */
   transformAtKills?: { kills: number; into: string };
+  /** WORTH NOTHING TO KILL. Defeating this card fires NO on-kill rider on the
+   *  killer and does not advance its `killCount`.
+   *
+   *  The Fortress Gate is why: it stands in front of the player's home row to
+   *  buy them a few rounds, and every Void Tower boss is built to be FED by
+   *  kills — Vulcanyx grows +3 DMG and heals 10, Thunderfangs raises a wolf and
+   *  counts toward Stormform, Cryovex grows a Blackice Crystal. A gate that
+   *  handed all of that over on the way down would be worse than no gate at
+   *  all: it would be a free meal parked within reach. So it is masonry, and
+   *  masonry does not feed anything. */
+  noKillReward?: true;
+  /** A WALL: while this card stands, enemies cannot target anything in its
+   *  owner's HOME ROW. They have to come through it first.
+   *
+   *  FLYING is the reason this is a targeting rule rather than a pathing one.
+   *  `pathBlocker` already stops a ground card walking past a body, but it lets
+   *  fliers over by design, and it says nothing about who may be SHOT — so a
+   *  flying or ranged boss would simply reach over the gate and kill what it was
+   *  built to protect. `canTarget` is the one door every attack, Special and
+   *  spell passes through, so screening there covers all of them at once.
+   *
+   *  Scoped to the gate's own column and the two beside it — what is BEHIND it —
+   *  rather than the whole row. Measured: screening all five squares took
+   *  Permafrost from 77.1% to 27.1%, because a slow ranged boss had nothing it
+   *  could legally touch. One column alone would be a decoration on a five-wide
+   *  board; three is wide enough to matter and narrow enough that going around
+   *  it is a real answer. */
+  guardsHomeRow?: true;
+
   /** On-kill trigger (this card's attack defeats an enemy). */
   onKill?: OnKillDef;
   /** DEEP FREEZE (Cryovex): bonus damage against a FROZEN target that GROWS with

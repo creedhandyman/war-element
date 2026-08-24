@@ -53,7 +53,7 @@ import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
-import { voidBossElements, voidBossSeat } from "../data/void-tower";
+import { VOID_GATE, voidBossElements, voidBossSeat, voidGateSeats } from "../data/void-tower";
 import { VoidTower } from "./VoidTower";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
@@ -1024,6 +1024,14 @@ export function App() {
       fresh.voidTower = true;
       const inst = summonCard(fresh, "P2", eventRun.bossId, seat as never);
       inst.summonedThisRound = false;
+      // ...and the player gets a WALL. Fortress Gates fill the row directly in
+      // front of their home row, one per column, and cost them nothing — they
+      // are there so the opening rounds are not decided before the player has a
+      // board, and they feed the boss nothing when they fall (`noKillReward`).
+      for (const gseat of voidGateSeats(fresh.boardSize)) {
+        const gate = summonCard(fresh, "P1", VOID_GATE, gseat as never);
+        gate.summonedThisRound = false;
+      }
     }
     setGame(fresh);
     setViewSide("P1");

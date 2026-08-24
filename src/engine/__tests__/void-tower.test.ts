@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { CARDS, TOKENS, CARD_INDEX, getDef } from "../../data/cards";
 import {
   BODY_CAP_TOLERANCE, FLOOR1_SUMMON_BUDGET, VOID_BOSSES, bodyCap, bodyTotal, bossDefeated,
-  bossesOnFloor, buildVoidEncounter, chanceProblems, floorCleared, floorOpen, inTribe, summonBudget,
+  VOID_GATE, voidGateSeats, bossesOnFloor, buildVoidEncounter, chanceProblems, floorCleared, floorOpen, inTribe, summonBudget,
   bossSummonPool, paddedFormation, reinforcementPool, summonProblems, VOID_PLAYER_HEAD_START, voidPlayerHeadStart, towerProgress, tribePool, trialEventId, voidBossById,
   voidBossSeat, voidFloors,
 } from "../../data/void-tower";
@@ -18,6 +18,8 @@ import { deckSizeFor, isBuildable, validateDeck } from "../../data/custom-decks"
 import { EVENTS } from "../../data/events";
 import { canCraft, newSave, openPack } from "../../data/story";
 import { advance } from "../phases";
+import { canTarget } from "../rules";
+import { homeRow } from "../types";
 import { VOID_BOSS_INCOME } from "../types";
 import { SPECIAL_HANDLERS, applyStatus, basicAttack, defeatCard } from "../combat";
 import { canFireSpecial, canMove } from "../rules";
@@ -758,6 +760,80 @@ describe("Thunderfangs, Stormform — the second form", () => {
 
   it("does not loop — Stormform names no further form", () => {
     expect(getDef("boss_thunderfangs_2").transformAtKills).toBeUndefined();
+  });
+});
+
+describe("the Fortress Gates", () => {
+  const wall = (bossId = "boss_nightshrike") => {
+    const s = bigPrepState();
+    const boss = place(s, bossId, "P2", 2, 2); // within reach of the wall
+    boss.summonedThisRound = false;
+    for (const seat of voidGateSeats(s.boardSize))
+      place(s, VOID_GATE, "P1", seat.row, seat.col);
+    const behind = place(s, "leaf_stickviper", "P1", 4, 2, { curHp: 40, maxHp: 40 });
+    return { s, boss, behind };
+  };
+
+  it("fill the whole row in front of the player's home row, one per column", () => {
+    const s = bigPrepState();
+    const seats = voidGateSeats(s.boardSize);
+    expect(seats).toHaveLength(s.boardSize);
+    // IN FRONT of the home row, never in it — those five squares are where the
+    // player summons from, and a wall parked there would take every deployment
+    // slot from the side it is meant to protect.
+    const home = homeRow("P1", s.boardSize);
+    for (const seat of seats) expect(seat.row).toBe(home - 1);
+    expect(new Set(seats.map((x) => x.col)).size, "a full line").toBe(s.boardSize);
+  });
+
+  it("screen what is DIRECTLY behind them — fliers and ranged included", () => {
+    const { s, boss, behind } = wall();
+    expect(getDef("boss_nightshrike").keywords.FLYING, "it flies").toBe(true);
+    expect(canTarget(s, s.cards[boss.instanceId], s.cards[behind.instanceId], false, true),
+      "cannot reach over the wall").toBe(false);
+    // The gates themselves stand in front of the row, so they stay targetable.
+    const gate = boardCards(s, "P1").find((c) => c.defId === VOID_GATE && c.pos?.col === 2)!;
+    expect(canTarget(s, s.cards[boss.instanceId], s.cards[gate.instanceId], false, true),
+      "break it first").toBe(true);
+  });
+
+  it("...and breaking one opens THAT lane only", () => {
+    const { s, boss, behind } = wall();
+    const gate = boardCards(s, "P1").find((c) => c.defId === VOID_GATE && c.pos?.col === 2)!;
+    s.cards[gate.instanceId].curHp = 0;
+    s.cards[gate.instanceId].pos = null;
+    expect(canTarget(s, s.cards[boss.instanceId], s.cards[behind.instanceId], false, true),
+      "the hole you made").toBe(true);
+    const other = place(s, "leaf_stickviper", "P1", 4, 0, { curHp: 40, maxHp: 40 });
+    expect(canTarget(s, s.cards[boss.instanceId], s.cards[other.instanceId], false, true),
+      "and nowhere else").toBe(false);
+  });
+
+  it("feed the boss NOTHING when they fall", () => {
+    // Every boss in this mode grows on kills — Vulcanyx +3 DMG and 10 HP,
+    // Thunderfangs a wolf and a tick toward Stormform, Cryovex a crystal. A wall
+    // that paid all that out on the way down would be a free meal parked inside
+    // the boss's reach rather than a wall.
+    for (const bossId of ["boss_vulcanyx", "boss_thunderfangs", "boss_cryovex"]) {
+      const s = prepState();
+      const boss = place(s, bossId, "P2", 2, 1);
+      const gate = place(s, VOID_GATE, "P1", 1, 1, { curHp: 1, maxHp: 20, curShields: 0 });
+      const hp = s.cards[boss.instanceId].curHp;
+      const dmg = s.cards[boss.instanceId].dmgBonus ?? 0;
+      basicAttack(s, boss.instanceId, gate.instanceId);
+      const b = s.cards[boss.instanceId];
+      expect(b.killCount ?? 0, `${bossId} counts nothing`).toBe(0);
+      expect(b.dmgBonus ?? 0, `${bossId} grows nothing`).toBe(dmg);
+      expect(b.curHp, `${bossId} heals nothing`).toBeLessThanOrEqual(hp);
+      expect(boardCards(s, "P2").filter((c) => c.defId !== bossId), `${bossId} raises nothing`)
+        .toHaveLength(0);
+    }
+  });
+
+  it("are not shoved aside — TRAMPLE does not open a lane for free", () => {
+    // Hoarfell's whole design is walking THROUGH the lighter half of your board,
+    // and it outweighs a 20 HP gate comfortably.
+    expect(getDef(VOID_GATE).pushImmune).toBe(true);
   });
 });
 

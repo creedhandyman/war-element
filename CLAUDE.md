@@ -1049,6 +1049,40 @@ is the player's condition, and a test pins both halves. One pre-existing test
 asserted "a boss holding every home slot has not won" and is re-pointed; it still
 guards that the ending is an overrun and never a capture.
 
+**THE FORTRESS GATES — a five-wide wall the player starts every Void fight
+behind.** One `void_fortress_gate_tok` per column in the row DIRECTLY IN FRONT of
+the player's home row (`voidGateSeats`), placed free at setup. 20 HP behind 10
+shields, SP 0, `pushImmune` (Hoarfell's TRAMPLE would otherwise shove a fortress
+aside), and it costs the player nothing.
+
+Two flags carry it, both new:
+  * `guardsHomeRow` — while a gate stands, enemies cannot TARGET the home square
+    directly behind it. Enforced in `canTarget`, deliberately, not in pathing:
+    `pathBlocker` lets fliers over by design and says nothing about who may be
+    SHOT, so a flying or ranged boss would simply reach over the wall. canTarget
+    is the one door every attack, Special and spell passes through. Per COLUMN,
+    so breaking one gate opens exactly that lane — a single gate screening the
+    whole ROW instead measured Permafrost 77.1% -> 27.1%, a fight switched off
+    rather than a wall to break.
+  * `noKillReward` — killing a gate fires NO on-kill rider and does not advance
+    `killCount`. Every boss here grows on kills (Vulcanyx +3 DMG and 10 HP,
+    Thunderfangs a wolf plus a tick toward Stormform, Cryovex a crystal), so a
+    wall that paid out on the way down would be a free meal parked in reach.
+
+**IT LARGELY REVERSES THE TOWER — the bosses need re-tuning against it.** Before
+-> after: Permafrost 77.1 -> 6.3 · Hoarfell 85.4 -> 12.5 · Skeleeze 67.7 -> 20.8 ·
+Helion 68.8 -> 29.2 · Basilisk 68.8 -> 33.3 · Xilty 81.3 -> 35.4 · Rotroot
+71.9 -> 36.5 · Smolder 75.0 -> 50.0 · Nightshrike 92.7 -> 51.0 · Vulcanyx
+87.5 -> 52.1 · Cryovex ~98 -> 53.1 · Overclock 82.3 -> 58.3 · Thunderfangs
+97.9 -> 81.3 · Umbranova 96.9 -> 96.9. Slow bosses suffer most — five gates at
+20/10 is a lot of material against a 24-round clock, and Permafrost spends the
+fight chewing masonry.
+
+IT ALSO KILLED THE OVERRUN PROBLEM: overrun's share of wins fell to 0-3% for most
+of the roster (from 80-93% on the worst offenders), because the boss can no longer
+walk into an undefended home row. Umbranova is the lone holdout at 96.9% — its
+damage ignores position entirely, so a wall means nothing to it.
+
 **CRYOVEX — Floor 4's SECOND boss** (AQUA tribe / DUSK mechanic, tribe Dragon).
 The ice flight: Hydrogon (AQUA's aura dragon, +4 SP to Vapor) + Glacius + Phrost
 + Sapphire + Coilblade + SkullDrake + Arctik, 36 exact. Pyrogon STAYS with

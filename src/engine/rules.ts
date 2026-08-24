@@ -486,6 +486,28 @@ export function canTarget(
   if (target.owner === attacker.owner) return false;
   const aDef = getDef(attacker.defId);
   const tDef = getDef(target.defId);
+
+  // HOLD THE LINE: a standing gate screens the home square DIRECTLY BEHIND IT.
+  // Checked FIRST, above every reach and sight rule, because it must not care
+  // how the attacker gets there — a flier or a shooter reaching over the wall to
+  // kill what it protects is the exact thing this exists to stop.
+  //
+  // Per COLUMN, because the wall is five gates wide (see `voidGateSeats`): the
+  // whole line is screened while it stands, and every gate you break opens the
+  // lane behind that one. That is the shape of the fight — pick a gate, commit
+  // to it, and live with the hole you have made. A row-wide screen off a single
+  // gate would instead switch the fight off wholesale; measured, it took
+  // Permafrost from 77.1% to 27.1%, since a slow ranged boss then had nothing it
+  // could legally touch anywhere.
+  //
+  // The gates sit IN FRONT of the home row (`voidGateSeats`), so they stay
+  // targetable — which is the whole idea.
+  if (target.pos.row === homeRow(target.owner, state.boardSize)
+      && boardCards(state, target.owner).some(
+        (c) => c.curHp > 0 && c.pos && getDef(c.defId).guardsHomeRow
+          && c.pos.col === target.pos!.col))
+    return false;
+
   // A pocketed ranged shot (Surge's Electro Surge) makes THIS basic a ranged
   // one: it drops the melee reach/FLYING limits and picks up the ranged reach
   // cap and sight screen instead, exactly like any other shooter. Scoped to

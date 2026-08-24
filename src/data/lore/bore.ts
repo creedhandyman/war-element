@@ -190,4 +190,7 @@ export const BORE_LORE: Record<string, string> = {
 
   boss_vulcanyx:
     "The mountain did not erupt. It got hungry.",
+
+  void_fortress_gate_tok:
+    "It was never going to hold. It only had to hold for now.",
 };

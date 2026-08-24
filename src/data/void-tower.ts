@@ -610,6 +610,26 @@ export const voidPlayerHeadStart = (_bossCost: number): number => VOID_PLAYER_HE
 export function voidBossSeat(boardSize: number): { row: number; col: number } {
   return { row: 0, col: Math.floor(boardSize / 2) };
 }
+/** The id of the wall that stands in front of the player when a floor opens. */
+export const VOID_GATE = "void_fortress_gate_tok";
+
+/** Where the Fortress Gates stand: the WHOLE row directly in front of the
+ *  player's home row — one gate per column, a wall between them and whatever is
+ *  coming down the board.
+ *
+ *  In front of the home row rather than in it, deliberately. The home row is
+ *  where the player summons from, and gates parked in those five slots would be
+ *  taking every deployment square from the side they are meant to protect.
+ *
+ *  A full line rather than a single gate is what makes the screening rule read
+ *  cleanly: each gate covers the square behind IT, so the line holds while it
+ *  stands and every gate broken opens exactly one lane. Choosing which one to
+ *  break, and living with the hole, is the decision the wall exists to create. */
+export function voidGateSeats(boardSize: number): { row: number; col: number }[] {
+  const home = boardSize - 1; // P1's home row
+  return Array.from({ length: boardSize }, (_, col) => ({ row: home - 1, col }));
+}
+
 
 /** The determinism rule as data: fields no boss def may carry. Kept beside the
  *  bosses so adding a chance mechanic to one is a one-line diff AWAY from this

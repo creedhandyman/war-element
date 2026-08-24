@@ -319,6 +319,10 @@ export function describePassives(def: CardDef): string[] {
       `When hit${m.anyAttacker ? " (melee or ranged)" : " by melee"}${m.chance ? ` (${m.chance}%)` : ""}: retaliate — ${bits}.`,
     );
   }
+  if (def.guardsHomeRow)
+    named("guardsHomeRow", "While it stands, opponents cannot target the home square directly behind it — fliers and ranged attackers included. They have to break it first.");
+  if (def.noKillReward)
+    named("noKillReward", "Killing it grants the attacker nothing — no on-kill bonus, and it counts toward no tally.");
   if (def.vsFrozenRamp) {
     const r = def.vsFrozenRamp;
     named("vsFrozenRamp",
