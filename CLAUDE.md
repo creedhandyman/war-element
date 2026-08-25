@@ -1049,6 +1049,45 @@ is the player's condition, and a test pins both halves. One pre-existing test
 asserted "a boss holding every home slot has not won" and is re-pointed; it still
 guards that the ending is an overrun and never a capture.
 
+**RE-TUNING THE SLOW BOSSES AGAINST THE WALL — what worked and what did not.**
+The Gates cost the single-swing bosses everything, because SHIELDS BLOCK PER HIT:
+Smolder's 10 landed for ZERO against 10 shields, Permafrost's 14 for 4, and
+Xilty's 14x2 lost ten twice, while Helion and Skeleeze — whose Specials already
+declared `pen` — barely noticed. The split was never about how strong a boss is,
+only about whether it had a way through masonry.
+
+WORKED:
+  * **A boss's damage PIERCES a gate's shields** (`resolveHit`: `aDef.boss &&
+    tDef.guardsHomeRow`). Put it on the BASIC path first and that missed the half
+    that mattered — Hoarfell's Aurora Break hits three gates for 10 each and was
+    doing zero to every one of them. At the damage layer it covers Specials too:
+    Hoarfell 12.5 -> 30.2, Cryovex 53.1 -> 75.0, Nightshrike 51.0 -> 77.1.
+  * **The gate is NOT pushImmune.** It was, on the reasoning that a fortress does
+    not budge — and that deleted Hoarfell's whole identity, since TRAMPLE was
+    refused AND its momentum ramp needs unobstructed advance, so Avalanche never
+    built once. A keyword the wall ANSWERS is fine; a keyword the wall DELETES is
+    not. A juggernaut now shoves a gate aside and opens a lane without the wall
+    falling.
+  * **Straight damage on the three stragglers**: Permafrost 14/70 -> 22/90 (body
+    161, under Floor 1's 170 cap), Skeleeze 12/105 -> 30/110, Helion 8/70 -> 14/90.
+
+DID NOT WORK — do not retry:
+  * **A LONGER CLOCK MAKES BOSSES WEAKER, NOT STRONGER.** Running the clock out
+    is a BOSS win (`VOID_TOWER_ROUNDS`), so extending it 24 -> 30 just hands the
+    player more time to slay: Rotroot 40.6 -> 13.5, Xilty 46.9 -> 10.4, Hoarfell
+    30.2 -> 9.4. It reads like "more time to break the wall" and is the opposite.
+  * **Speed did not save Permafrost.** Advancing every round instead of every
+    second measured WORSE (11.5 -> 9.4). Its kit has no answer to masonry at all —
+    Whiteout only fires on targets at 6 HP or less, so a 20 HP gate is invisible
+    to it — and arriving sooner with nothing to say changes nothing.
+
+Tower with the wall, after the pass: Rotroot 40.6 · Permafrost 34.4 · Smolder
+60.4 · Nightshrike 77.1 · Skeleeze 32.3 · Overclock 64.6 · Basilisk 34.4 · Helion
+51.0 · Xilty 46.9 · Hoarfell 30.2 · Thunderfangs 88.5 · Vulcanyx 51.0 · Umbranova
+94.8 · Cryovex 75.0. Still player-favoured on the lower floors and Umbranova is
+still untouched by any of it (its damage ignores position, so a wall is nothing to
+it) — the next pass, if wanted, is the remaining low end.
+
 **THE FORTRESS GATES — a five-wide wall the player starts every Void fight
 behind.** One `void_fortress_gate_tok` per column in the row DIRECTLY IN FRONT of
 the player's home row (`voidGateSeats`), placed free at setup. 20 HP behind 10

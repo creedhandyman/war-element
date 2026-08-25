@@ -9901,9 +9901,13 @@ export const CARDS: CardDef[] = [
     // Floor 2's budget is 230 and this was built to 58 — it died on round 14,
     // faster than any Floor-1 boss, on the floor above them. Damage doubled so
     // the column shot is a threat between Piercing Arrows.
-    dmg: 12,
+    // 12/105 -> 30/110 (body 128 -> 151). The archer had the same wall problem
+    // from the other side: Piercing Arrow clears ONE column per cast, so five
+    // gates is five casts — fifteen rounds of a twenty-four round clock spent
+    // shooting masonry. A bigger arrow is what buys those rounds back.
+    dmg: 30,
     hits: 1,
-    hp: 105,
+    hp: 110,
     sp: 11,
     shields: 0,
     keywords: {},
@@ -10020,13 +10024,20 @@ export const CARDS: CardDef[] = [
     // 6 damage a round killed nothing, which is why no amount of extra HP could
     // make it win: it survived longer and still lost. Doubled, and the armour
     // that is its whole identity gets most of the floor's budget.
-    dmg: 14,
+    // 14/70 -> 22/90 (body 133 -> 161, under Floor 1's 170 cap). THE WALL: five
+    // Fortress Gates took Permafrost to 6.3%, the worst on the tower, and no
+    // amount of speed fixed it — advancing every round instead of every second
+    // measured WORSE (9.4%). Its kit simply has no answer to masonry: Whiteout
+    // only fires on targets at 6 HP or less, so a 20 HP gate is invisible to it,
+    // and a glacier that arrives with nothing to say is still a glacier with
+    // nothing to say. Damage is the only lever it has. 34.4%.
+    dmg: 22,
     hits: 1,
     // 90/30 -> 70/22 (body 169 -> 133). Glacial Creep took this fight from
     // 82.3% to 89.6%, which made a FLOOR 1 boss harder than anything on Floor 3
     // — the gait was worth keeping and the progression was not worth inverting
     // for it. 70/22 reads 77.1%, between Rotroot (81.3) and Smolder (70.8).
-    hp: 70,
+    hp: 90,
     sp: 5,
     shields: 22,
     keywords: { BLOCK: 2 },
@@ -10037,11 +10048,14 @@ export const CARDS: CardDef[] = [
     // the slots it is too slow to defend. Tribe from AQUA (Ice), mechanic from
     // BORE (the armour) — the doc's Cavernous pick could not spend 12 Gold.
     // The clock: its Special fires itself every 3 rounds, free.
-    // A GLACIER: one slot every fourth round, and it never stops. Slower than
-    // Rotroot's shamble on purpose — this is the wall, and the whole threat is
-    // that it is still coming.
+    // A GLACIER: one slot every second round, and it never stops. It was every
+    // FOURTH, which was the right pace for an empty board and hopeless once the
+    // Fortress Gates went up — Permafrost could not cross the board AND break
+    // five gates inside a 24-round clock, and read 6.3%. Its Special cannot help
+    // either: Whiteout only fires on targets at 6 HP or less, so a 20 HP gate is
+    // invisible to it. Speed is the only lever it has.
     passiveNames: { roundTick: "Glacial Creep" },
-    roundTick: { fireSpecialEveryN: 3, advanceEveryN: 4 },
+    roundTick: { fireSpecialEveryN: 3, advanceEveryN: 2 },
     special: {
       name: "Whiteout",
       cost: 3,
@@ -10285,9 +10299,13 @@ export const CARDS: CardDef[] = [
     // engine: it barely moves, it barely swings, and once every three rounds it
     // deletes a column. The basic is a formality — what you are racing is the
     // clock, and what the body has to do is survive being raced.
-    dmg: 8,
+    // 8/70 -> 14/90 (body 121 -> 147). Solar Lance already pierces and already
+    // deletes the gate in its lane; the basic was the problem — 8 damage between
+    // casts on a boss that cannot move meant the three rounds between shots did
+    // nothing at all. 29.2% -> 51.0%.
+    dmg: 14,
     hits: 1,
-    hp: 70,
+    hp: 90,
     sp: 3,
     shields: 20,
     // BLOCK is the BORE half of the pairing, expressed without borrowing BORE's
@@ -10793,10 +10811,16 @@ export const TOKENS: CardDef[] = [
     sp: 0, // it is masonry — it does not move, and moveReach(0) is 0
     shields: 10,
     keywords: {},
-    // Braced Stance: a gate is not shoved aside. Without this, TRAMPLE would
-    // walk straight through it — Hoarfell's whole design is walking through the
-    // lighter half of your board, and it outweighs 20 HP comfortably.
-    pushImmune: true,
+    // NOT pushImmune, and that is the point. TRAMPLE shoves the gate ASIDE
+    // rather than through it, so a juggernaut opens a lane without the wall
+    // having to fall — which is exactly what a juggernaut should do to a gate.
+    //
+    // It was pushImmune first, on the reasoning that a fortress does not budge.
+    // Measured, that reasoning cost Hoarfell its whole identity: TRAMPLE
+    // refused, its momentum ramp needs UNOBSTRUCTED advance so Avalanche never
+    // built once, and it read 12.5% — the wall did not slow the juggernaut down,
+    // it switched it off. A keyword the wall answers is fine; a keyword the wall
+    // deletes is not.
     passiveNames: { noKillReward: "Nothing to Gain", guardsHomeRow: "Hold the Line" },
     // Hold the Line: nothing may be targeted in the three home squares BEHIND it
     // while it stands — fliers and ranged included, which is the entire point. A

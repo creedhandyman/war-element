@@ -18,7 +18,7 @@ import { deckSizeFor, isBuildable, validateDeck } from "../../data/custom-decks"
 import { EVENTS } from "../../data/events";
 import { canCraft, newSave, openPack } from "../../data/story";
 import { advance } from "../phases";
-import { canTarget } from "../rules";
+import { canTarget, shoveTarget } from "../rules";
 import { homeRow } from "../types";
 import { VOID_BOSS_INCOME } from "../types";
 import { SPECIAL_HANDLERS, applyStatus, basicAttack, defeatCard } from "../combat";
@@ -75,12 +75,12 @@ describe("the roster", () => {
       // bump measured 91.7%. Skeleeze and Helion excepted by instruction.
       boss_rotroot: 165, // 169 -> 133: trimmed when Glacial Creep gave it a gait and took it
       // to 89.6%, harder than any Floor-3 boss. 77.1% now.
-      boss_permafrost: 133, boss_overclock: 81,
+      boss_permafrost: 161, boss_overclock: 81,
       // 84 -> 108: +12 shields, the lever that took the tower's easiest fight
       // from 45.5% to 65.2%. Still the smallest body on Floor 1.
       boss_nightshrike: 108, // 81 -> 95 (shields 3 -> 10) after the reach fix left it the weakest
       // fight on the tower at 54.2%. 68.8% now.
-      boss_basilisk: 95, boss_skeleeze: 128,
+      boss_basilisk: 95, boss_skeleeze: 151,
       // Xilty trimmed 166 -> 154 when Web Trap was repaired (it declared no
       // `reach`, so a MELEE boss's signature only ever caught what was
       // touching it). 72.9% at 66 HP / 24 shields.
@@ -90,7 +90,7 @@ describe("the roster", () => {
       // down like everything else. That is the lesson: the cap is a ceiling and
       // the number under it is the tuning, and building to the ceiling is how
       // you get a boss nobody reaches.
-      boss_helion: 121, boss_hoarfell: 135,
+      boss_helion: 147, boss_hoarfell: 135,
       // Thunderfangs is the smallest body on the top floor ON PURPOSE:
       // most of its damage is borrowed from the pack and handed back as
       // the pack dies, so a Floor-3 body on top of that is two bosses'
@@ -830,10 +830,33 @@ describe("the Fortress Gates", () => {
     }
   });
 
-  it("are not shoved aside — TRAMPLE does not open a lane for free", () => {
-    // Hoarfell's whole design is walking THROUGH the lighter half of your board,
-    // and it outweighs a 20 HP gate comfortably.
-    expect(getDef(VOID_GATE).pushImmune).toBe(true);
+  it("CAN be shoved aside — TRAMPLE is the juggernaut's answer to a wall", () => {
+    // The gate was pushImmune first, on the reasoning that a fortress does not
+    // budge. That cost Hoarfell its whole identity: TRAMPLE refused, and its
+    // momentum ramp needs UNOBSTRUCTED advance so Avalanche never built once. It
+    // read 12.5%. A keyword the wall answers is fine; a keyword the wall deletes
+    // is not — so a juggernaut shoves the gate aside and opens a lane without
+    // the wall having to fall.
+    expect(getDef(VOID_GATE).pushImmune).toBeUndefined();
+    const s = prepState();
+    const ram = place(s, "boss_hoarfell", "P1", 2, 1);
+    place(s, VOID_GATE, "P2", 1, 1);
+    expect(shoveTarget(s, s.cards[ram.instanceId], { row: 1, col: 1 } as never),
+      "it goes through").not.toBeNull();
+  });
+
+  it("a boss's basic PIERCES gate shields — a wall slows a siege, it does not blunt one", () => {
+    // Shields block per HIT and the badly-hurt bosses are all one big swing:
+    // Smolder's 10 landed for ZERO against 10 shields, Permafrost's 14 for 4.
+    // Helion and Skeleeze, whose Specials already declare `pen`, barely noticed
+    // the wall — the split was never about strength, only about a way through
+    // masonry.
+    const s = prepState();
+    const boss = place(s, "boss_smolder", "P1", 2, 1);
+    const gate = place(s, VOID_GATE, "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 10 });
+    basicAttack(s, boss.instanceId, gate.instanceId);
+    expect(s.cards[gate.instanceId].curHp, "straight through the masonry")
+      .toBeLessThan(20);
   });
 });
 

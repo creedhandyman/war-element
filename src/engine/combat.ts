@@ -862,6 +862,19 @@ export function resolveHit(
 ): AttackResult {
   const tDef = getDef(target.defId);
   const aDef = getDef(attacker.defId);
+  // A WALL SLOWS A SIEGE; IT DOES NOT BLUNT ONE. Every point of damage a BOSS
+  // deals to something that `guardsHomeRow` pierces its shields.
+  //
+  // Here rather than on the basic-attack path, because that was the version
+  // written first and it missed the half that mattered: shields block per HIT,
+  // so Hoarfell's Aurora Break — 10 damage to three gates at once — was doing
+  // ZERO to every one of them, and the Special is where a slow boss's output
+  // actually lives. Basics alone moved Permafrost 6.3% -> 8.3% and Hoarfell
+  // 12.5% -> 10.4%; the Specials were the missing half.
+  //
+  // Scoped to bosses and to gates, so nothing about how a boss fights the
+  // player's real cards changes and the tower's tuning against those stands.
+  if (aDef.boss && tDef.guardsHomeRow) opts = { ...opts, pen: true };
   const result: AttackResult = {
     landedHits: 0,
     dodgedHits: 0,
