@@ -10805,6 +10805,12 @@ export const CARDS: CardDef[] = [
     // shell removes only a fraction of the total, so if this ever needs moving,
     // move the CHAIN (a form's keywords, or how many forms there are) rather
     // than the numbers on any one of them.
+    //
+    // And that is exactly what happened: giving each shell its own HANDLER, and
+    // the jet its bank-across, took the fight 79.2% -> 67.7% while the numbers
+    // stayed put — and doubled how often the chain runs its full length (26% ->
+    // 42% of fights reach Stormwing). The kit is the lever on a chain, not the
+    // stat line.
     dmg: 14,
     hits: 1,
     hp: 36,
@@ -10929,6 +10935,10 @@ export const CARDS: CardDef[] = [
     // The BOLT payoff, at the end of the chain: it hits the storm-struck harder,
     // and every form before it has been leaving that storm behind.
     vsStatus: { status: "ELECTRIFIED", bonusDmg: 5 },
+    // NEVER STILL: two slots a round toward the crowd between passes, then the
+    // bank across the board on every strafe (selfMirror, below). It is the most
+    // active thing on the tower and it should be — the other two shells were a
+    // tank and a stalking cat.
     roundTick: { fireSpecialEveryN: 3, aimLateral: true, aimLateralSteps: 2 },
     special: {
       name: "Thunderhead",
@@ -10944,11 +10954,15 @@ export const CARDS: CardDef[] = [
       // beatable by parking everything at the back, which is not what a jet is.
       params: {
         dmg: 10, pen: 1, targets: 99, sameColumn: 1, ignoreHomeRule: 1,
+        // ...and then it LEAVES. `selfMirror` throws it to the opposite slot the
+        // moment the pass ends, so the column it just emptied is never the
+        // column it is standing in — you answer where it was, not where it is.
+        selfMirror: 1,
         statusKind: "ELECTRIFIED", statusDuration: 2,
       },
       ranged: true,
       targetSide: "enemy",
-      text: "10 DMG through shields down the whole column it is over, and ELECTRIFIED for 2 rounds — and Stormfall adds 5 to everything it lands on the afflicted.",
+      text: "10 DMG through shields down the whole column it is over, and ELECTRIFIED for 2 rounds — then it banks to the opposite side of the board. Stormfall adds 5 to everything it lands on the afflicted.",
     },
   },
   {

@@ -3110,6 +3110,32 @@ function applySelfRiders(
       draft.log.push(`${label(draft, caster)} grows hotter (+${gain} DMG).`);
     }
   }
+  // BANK ACROSS (Kato, Stormwing): after the pass, throw itself to the mirrored
+  // slot on the far side of the board — column c becomes (boardSize-1 - c),
+  // same row. A strafing run that finishes where it started is a gun emplacement
+  // with wings; this one leaves.
+  //
+  // Deterministic, like every other movement in this mode: the exact mirror
+  // first, then the nearest open column to it, ties going to the LOWER column.
+  // It stays in its own row — mirroring the ROW as well would drop it into the
+  // player's home row, which is not a bank, it is a landing.
+  if (num(params, "selfMirror") > 0 && caster.pos) {
+    const row = caster.pos.row;
+    const want = draft.boardSize - 1 - caster.pos.col;
+    // Its OWN square counts as free — it is vacating it. Without that, a jet in
+    // the middle column of an odd board (whose mirror is itself) saw itself in
+    // the way and hopped sideways to a slot that is not the mirror of anything.
+    const free = (c: number) =>
+      c >= 0 && c < draft.boardSize && !draft.slots[row][c].capturedBy
+      && (c === caster.pos!.col || !cardAt(draft, row, c));
+    let dest = -1;
+    for (let d = 0; d < draft.boardSize && dest < 0; d++)
+      for (const c of [want - d, want + d]) if (free(c)) { dest = c; break; }
+    if (dest >= 0 && dest !== caster.pos.col) {
+      caster.pos = { row: row as Pos["row"], col: dest as Pos["col"] };
+      draft.log.push(`${label(draft, caster)} banks hard across the board — column ${dest}.`);
+    }
+  }
   // (selfStatus is applied once per Special in performBattleAction, so it works
   // for every handler — barrage included — not just strike.)
 }

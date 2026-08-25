@@ -1254,10 +1254,20 @@ THE DODGE IS `firstAttackMisses`, NOT EVASION. `chanceProblems` fails the build 
 EVASION by name — bosses here roll no dice — and the doc replaced its own 55%
 EVASION with exactly this. Same idea, made countable.
 
-79.2%, with 79% of fights reaching Prowlform and 26% reaching Stormwing. BODY IS
-A WEAK LEVER on a chain: 40/40/34, 36/36/30 and 32/32/26 measured 83.3 / 79.2 /
-82.3, all inside noise, because three lives means trimming each shell removes only
-a fraction of the total. Move the CHAIN if it needs moving, not the numbers.
+**EACH SHELL FIGHTS WITH ITS OWN HANDLER** — machine `battleCharge` (ploughs the
+lane), cat `strike` (springs and takes the square), jet `barrage` (strafes a
+column, then `selfMirror` banks it to the opposite slot so the column it emptied
+is never the one it is standing in). All three were `barrage` first, which made
+the chain one move resized three times AND broke the cat outright:
+`takeSpotOnKill` and `chargeLateral` are STRIKE-only params that a barrage never
+reads, so the pounce never took its square.
+
+67.7%, with 42% of fights reaching Stormwing. BODY IS A WEAK LEVER on a chain:
+40/40/34, 36/36/30 and 32/32/26 measured 83.3 / 79.2 / 82.3, all inside noise,
+because three lives means trimming each shell removes only a fraction of the
+total. THE KIT IS THE LEVER — giving each form its own handler moved the fight
+79.2% -> 67.7% and doubled how often the chain runs its full length (26% -> 42%)
+without changing a single number.
 
 It is also the floor's answer to a real complaint about its shape: Umbranova
 ignores position and Cryovex freezes you in place, so both are in their way

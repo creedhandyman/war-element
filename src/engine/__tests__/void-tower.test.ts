@@ -1050,6 +1050,44 @@ describe("Kato — the chain that has to be broken three times", () => {
     expect(90 - s.cards[other.instanceId].curHp, "one column only").toBe(0);
   });
 
+  it("the jet BANKS ACROSS after every pass — you answer where it was", () => {
+    // A strafing run that finishes where it started is a gun emplacement with
+    // wings. `selfMirror` throws it to the opposite slot the moment the pass
+    // ends, so the column it just emptied is never the column it is standing in.
+    const bank = (col: number, block?: number) => {
+      const s = bigPrepState();
+      const boss = place(s, "boss_kato_3", "P2", 0, col);
+      if (block !== undefined) place(s, "dusk_gool", "P2", 0, block);
+      place(s, "leaf_stickviper", "P1", 2, col, { curHp: 90, maxHp: 90, curShields: 0 });
+      fireCardSpecial(s, s.cards[boss.instanceId]);
+      return s.cards[boss.instanceId].pos!.col;
+    };
+    const size = bigPrepState().boardSize;
+    for (const col of [0, 1, size - 2, size - 1])
+      expect(bank(col), `col ${col} mirrors`).toBe(size - 1 - col);
+  });
+
+  it("...and the CENTRE column stays put, because its mirror is itself", () => {
+    // It saw its own body in the way and hopped sideways to a slot that is the
+    // mirror of nothing. Its own square counts as free — it is vacating it.
+    const s = bigPrepState();
+    const mid = Math.floor(s.boardSize / 2);
+    const boss = place(s, "boss_kato_3", "P2", 0, mid);
+    place(s, "leaf_stickviper", "P1", 2, mid, { curHp: 90, maxHp: 90, curShields: 0 });
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    expect(s.cards[boss.instanceId].pos!.col).toBe(mid);
+  });
+
+  it("...and a blocked mirror takes the nearest open column to it", () => {
+    const s = bigPrepState();
+    const boss = place(s, "boss_kato_3", "P2", 0, 0);
+    place(s, "dusk_gool", "P2", 0, s.boardSize - 1);       // the mirror itself
+    place(s, "leaf_stickviper", "P1", 2, 0, { curHp: 90, maxHp: 90, curShields: 0 });
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    const landed = s.cards[boss.instanceId].pos!.col;
+    expect(landed, "as close to the far side as it can get").toBe(s.boardSize - 2);
+  });
+
   it("each shell answers to something different", () => {
     // The whole fight: what beat the machine will not beat the cat.
     expect(getDef("boss_kato").keywords.TRAMPLE, "tracks").toBe(true);
