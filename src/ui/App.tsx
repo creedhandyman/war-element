@@ -36,7 +36,9 @@ import {
   boardCards,
   isCaptured,
   SPELLS,
-  spellbookFor, summonCard} from "../engine";
+  spellbookFor, summonCard,
+  // The boss clock, made visible.
+  bossTelegraphs, telegraphBlast} from "../engine";
 import { spellCapForBoard } from "../engine/spells";
 import {
   boardOfRun, nextSeat, runComplete, runOver, runReward, settleArena, startRun,
@@ -1509,6 +1511,11 @@ export function App() {
     if (!h) return [];
     return previewOnSummonArea(game, getDef(h.defId), me, { row: homeRow(me, game.boardSize), col: activeCol } as Pos);
   }, [activeHandId, activeCol, me, game]);
+  // THE BOSS TELEGRAPH — the countdown badges, and the red zone under the
+  // Special that lands at the end of this round. Both come back empty for any
+  // fight without a boss clock in it, so every other mode is untouched.
+  const telegraphs = useMemo(() => bossTelegraphs(game), [game]);
+  const blast = useMemo(() => (view === null ? [] : telegraphBlast(game, view)), [game, view]);
   // Drop a stale stage if the context changes (different card, phase, priority).
   useEffect(() => {
     if (!staged) return;
@@ -2172,6 +2179,8 @@ export function App() {
             legalTargetIds={legalTargetIds}
             targetsAreEnemies={targetsAreEnemies}
             previewArea={previewArea}
+            blast={blast}
+            telegraphs={telegraphs}
             stagedSlot={stagedSlot}
             pickCounts={picks.reduce<Record<string, number>>((acc, id) => {
               acc[id] = (acc[id] ?? 0) + 1;

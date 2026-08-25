@@ -1,4 +1,4 @@
-import type { FieldBuff, FieldState, GameState, PlayerId, Pos } from "../engine";
+import type { BossTelegraph, FieldBuff, FieldState, GameState, PlayerId, Pos } from "../engine";
 import { cardAt, enemyOf, getSpell, homeRow, isContested } from "../engine";
 import { getDef } from "../data/cards";
 import { Slot } from "./Slot";
@@ -32,6 +32,12 @@ export function Board(props: {
   legalTargetIds: string[]; // battle-phase / spell target picks
   targetsAreEnemies: boolean; // true → target cards glow red (attack), false → green (ally)
   previewArea: Pos[]; // red on-summon damage-area preview for a staged summon
+  /** THE BOSS TELEGRAPH. `blast` is every square a boss Special will cover at
+   *  the end of THIS round — the red zone. `telegraphs` carries the countdowns,
+   *  one per boss, hung on the square the boss is standing on. Both are empty
+   *  outside a Void Tower fight, so ordinary matches render exactly as before. */
+  blast: Pos[];
+  telegraphs: BossTelegraph[];
   stagedSlot: Pos | null; // the home slot a summon is staged into (awaiting confirm)
   pickCounts: Record<string, number>; // hits assigned per target so far
   hasSelection: boolean;
@@ -183,10 +189,15 @@ export function Board(props: {
               const redTarget = isTargetCard && props.targetsAreEnemies;
               const greenLegal = isLegalSlot || (isTargetCard && !props.targetsAreEnemies);
               const preview = props.previewArea.some((p) => p.row === row && p.col === col);
+              const blast = props.blast.some((p) => p.row === row && p.col === col);
+              const clock = props.telegraphs.find((t) => t.pos.row === row && t.pos.col === col) ?? null;
               const staged = props.stagedSlot != null && props.stagedSlot.row === row && props.stagedSlot.col === col;
               const dimmed =
                 (props.hasSelection || props.legalTargetIds.length > 0 || props.previewArea.length > 0) &&
-                !greenLegal && !redTarget && !preview && !staged;
+                // A square about to be hit stays LIT through a dim. Fading the
+                // warning out the moment the player picks up a card is fading
+                // it out exactly when they are deciding where to put it.
+                !greenLegal && !redTarget && !preview && !staged && !blast;
               const contested =
                 (row === homeRow("P2", game.boardSize) && isContested(game, "P2", col)) ||
                 (row === homeRow("P1", game.boardSize) && isContested(game, "P1", col));
@@ -202,6 +213,8 @@ export function Board(props: {
                   legal={greenLegal}
                   isTarget={redTarget}
                   preview={preview}
+                  blast={blast}
+                  clock={clock}
                   staged={staged}
                   dimmed={dimmed}
                   grayed={props.grayTeam !== null && card !== null && card.owner === props.grayTeam}

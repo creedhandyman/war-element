@@ -576,6 +576,62 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   0%, 100% { box-shadow: inset 0 0 14px var(--threat-soft), 0 0 8px var(--threat-soft); }
   50% { box-shadow: inset 0 0 24px rgba(229, 83, 61, 0.34), 0 0 16px rgba(229, 83, 61, 0.25); }
 }
+/* THE BOSS BLAST ZONE — every square a boss Special covers at the end of THIS
+   round. Deliberately the loudest red on the board: it is not a hint about what
+   a card COULD do, it is a statement about what is going to happen, and the
+   turn it is drawn on is the last turn anything can leave it. Heavier than the
+   on-summon preview above (a filled wash and a hatch, not just a rim) so the
+   two never read as the same warning at a glance. */
+.slot.blast {
+  border-color: var(--threat);
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(229, 83, 61, 0.24) 0 6px,
+    rgba(229, 83, 61, 0.07) 6px 12px
+  );
+  animation: blastpulse 1s infinite;
+  z-index: 2;
+}
+@keyframes blastpulse {
+  0%, 100% { box-shadow: inset 0 0 0 2px rgba(229, 83, 61, 0.75), inset 0 0 22px rgba(229, 83, 61, 0.3), 0 0 12px var(--threat-soft); }
+  50% { box-shadow: inset 0 0 0 2px var(--threat), inset 0 0 34px rgba(229, 83, 61, 0.5), 0 0 22px rgba(229, 83, 61, 0.4); }
+}
+/* THE BOSS CLOCK — rounds until the Special lands, on the boss's own tile.
+   Sits top-LEFT so it never collides with the capture lock (top-right). */
+.boss-clock {
+  position: absolute; top: 3px; left: 3px; z-index: 4;
+  display: grid; place-items: center; min-width: 19px; height: 19px;
+  padding: 0 4px; border-radius: 9px;
+  font-size: 11px; font-weight: 900; line-height: 1; letter-spacing: 0.02em;
+  color: #f4d9a8; background: rgba(10, 11, 16, 0.92);
+  border: 1px solid rgba(244, 217, 168, 0.6);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.7);
+  cursor: help;
+}
+/* The beat lands this round. */
+.boss-clock.now {
+  color: #fff2ee; background: linear-gradient(180deg, #e5533d, #b53421);
+  border-color: #ffb9a8; font-size: 10px;
+  animation: clocknow 0.9s infinite;
+}
+@keyframes clocknow {
+  0%, 100% { box-shadow: 0 0 8px rgba(229, 83, 61, 0.55); }
+  50% { box-shadow: 0 0 18px rgba(229, 83, 61, 0.95); }
+}
+/* The badge sits over the top-left of the token, which is exactly where the
+   name starts — on the board it read "NOW" over a half-eaten "Rotroot". Move
+   the name's BOX rather than padding it, so the ellipsis still lands on the
+   right end where it belongs, and only on a tile that actually carries a clock
+   so every other token keeps the width it had. Two widths because the badge has
+   two: a digit is narrow, "NOW" is not. */
+.slot:has(.boss-clock) .tk-name { left: 26px; }
+.slot:has(.boss-clock.now) .tk-name { left: 34px; }
+/* Silenced — the beat is skipped, and that is worth seeing as clearly as the
+   countdown itself. A player who spends a MUTE on a boss bought this. */
+.boss-clock.hushed {
+  color: #9aa0b0; border-color: rgba(154, 160, 176, 0.5);
+  border-style: dashed; animation: none;
+}
 /* The home slot a summon is staged into — a bright green "place here" ring. */
 .slot.staged { border-color: var(--legal); box-shadow: 0 0 0 2px var(--legal), 0 0 22px rgba(78, 203, 143, 0.5), inset 0 0 18px var(--legal-soft); z-index: 3; }
 /* Staged-summon confirm bar — floats over the board's lower edge until Confirm/Cancel. */

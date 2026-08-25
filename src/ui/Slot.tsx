@@ -1,4 +1,4 @@
-import type { CardInstance, GameState, PlayerId, TrapState } from "../engine";
+import type { BossTelegraph, CardInstance, GameState, PlayerId, TrapState } from "../engine";
 import { enemyOf, getSpell, homeRow } from "../engine";
 import { EL_COLOR } from "./shared";
 import { Token } from "./Token";
@@ -14,6 +14,10 @@ export function Slot(props: {
   legal: boolean;
   isTarget: boolean; // enemy attack/special target → red
   preview: boolean; // on-summon damage-area preview → red
+  /** This square is inside a boss Special that lands at the end of this round. */
+  blast: boolean;
+  /** A boss stands here — its countdown badge hangs on this tile. */
+  clock: BossTelegraph | null;
   staged: boolean; // the home slot a summon is staged into → green ring
   dimmed: boolean;
   grayed: boolean;
@@ -52,6 +56,7 @@ export function Slot(props: {
     props.legal ? "legal" : "",
     props.isTarget ? "target" : "",
     props.preview ? "preview" : "",
+    props.blast ? "blast" : "",
     props.staged ? "staged" : "",
     props.dimmed ? "dimmed" : "",
     props.grayed ? "grayed" : "",
@@ -110,6 +115,42 @@ export function Slot(props: {
           ⤢
         </span>
       )}
+      {/* THE BOSS CLOCK. A boss Special fires on a fixed beat and cannot be cast
+          any other way, which makes it the one threat in the game a player can
+          plan around perfectly — but only if they can see it. Before this the
+          rhythm lived in the card data and nowhere else, so it had to be learned
+          by losing to it and counting.
+
+          NOW = it goes off at the end of the round being played, so this turn is
+          the last one in which anything can walk out of the red. */}
+      {props.clock && (() => {
+        const c = props.clock;
+        const now = c.roundsUntil === 0 && !c.silenced;
+        const beats = `Fires every ${c.everyN} rounds.`;
+        const where = c.cells.length === 0
+          ? "Nothing on the board is in it."
+          : c.strikes >= c.cells.length
+            ? `Everything in the red — ${c.cells.length} card(s).`
+            : `${c.strikes} of the ${c.cells.length} card(s) in the red.`;
+        return (
+          <span
+            className={`boss-clock${now ? " now" : ""}${c.silenced ? " hushed" : ""}`}
+            title={c.silenced
+              ? `${c.specialName} — SILENCED. The beat is skipped: the status on this boss outlasts the tick that would clear it. ${beats}`
+              : now
+                ? `${c.specialName} lands at the END OF THIS ROUND.
+${where}` +
+                  (c.dmg > 0 ? `
+${c.dmg} damage a hit.` : "") +
+                  `
+
+This is your last turn to move out of the red.`
+                : `${c.specialName} in ${c.roundsUntil} round(s). ${beats}`}
+          >
+            {c.silenced ? "—" : now ? "NOW" : c.roundsUntil}
+          </span>
+        );
+      })()}
       {props.pickCount > 0 && (
         <div className="pick-count" title={`${props.pickCount} hit(s) assigned`}>
           ×{props.pickCount}
