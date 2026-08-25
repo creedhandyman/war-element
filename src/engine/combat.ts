@@ -1706,6 +1706,11 @@ export function resolveHit(
   if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && tDef.onHitZap) {
     if (applyOnHitZap(draft, target, attacker, tDef.onHitZap)) result.attackerDied = true;
   }
+  // Gale Riposte: only a HEAVY blow gets answered, and the answer is ground
+  // rather than damage. Same `reflect` exemption as the discharge above, so a
+  // bounce cannot set off a second riposte.
+  if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && tDef.onHeavyHit)
+    applyHeavyHit(draft, target, tDef.onHeavyHit, result.totalToHp + result.totalShielded);
 
   // REFLECT — plain damage back through the attacker's BLOCK + shield gate.
   // No EVASION/CRIT/REFLECT on the bounce (no chains).
@@ -2894,6 +2899,42 @@ function applyOnHitZap(
     }
   }
   return attackerDied;
+}
+
+/** Gale Riposte: a blow big enough to be worth answering gets answered.
+ *
+ *  The threshold reads the WHOLE swing — what reached HP plus what the shields
+ *  ate — rather than HP damage alone. A 20-damage hit soaked entirely by
+ *  shields is still a 20-damage hit, and gating on HP would have made stacking
+ *  shields onto the carrier the way to switch its own passive off.
+ *
+ *  Deals no damage on purpose. It repositions: everything close is pushed out
+ *  of reach and WEAKENed, so landing one big hit costs the attacker the ground
+ *  it was standing on. Chip damage slips under it untouched, which is the
+ *  decision the printed threshold exists to offer. */
+function applyHeavyHit(
+  draft: GameState,
+  defender: CardInstance,
+  def: NonNullable<CardDef["onHeavyHit"]>,
+  dealt: number,
+): void {
+  if (dealt <= def.over || !defender.pos) return;
+  const caught = boardCards(draft, enemyOf(defender.owner)).filter((e) => {
+    if (!e.pos || e.curHp <= 0) return false;
+    return Math.max(Math.abs(e.pos.row - defender.pos!.row),
+                    Math.abs(e.pos.col - defender.pos!.col)) <= def.reach;
+  });
+  if (caught.length === 0) return;
+  const name = getDef(defender.defId).passiveNames?.onHeavyHit ?? "Riposte";
+  draft.log.push(`${label(draft, defender)} — ${name}: ${dealt} was too much, and the wind answers ${caught.length}.`);
+  for (const e of caught) {
+    if (def.status)
+      applyStatus(draft, e, def.status, def.statusDuration ?? 1, 0, getDef(defender.defId).element);
+    // Pushed AFTER the status, so a shove that carries a card out of reach
+    // cannot cost it the debuff it had already earned by standing there.
+    if (def.push && def.push > 0 && draft.cards[e.instanceId] && e.curHp > 0)
+      pushBack(draft, e, def.push, defender.owner);
+  }
 }
 
 /** On-kill: buff the killer / heal / blast. */

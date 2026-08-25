@@ -113,6 +113,17 @@ describe("the roster", () => {
       // dropping `pen` changed nothing); the BODY was, because the body is what
       // the clock gets spent on. 72.9% now.
       boss_umbranova: 90,
+      // Kazehaya is a THRESHOLD boss: 15 damage on the sword, and 15 as the
+      // line its Riposte trips over. Sized against its neighbours, not the cap,
+      // and it landed in the band first try — 67.7% against Umbranova 60.4,
+      // Cryovex 70.8 and Kato 70.8, all four measured in one pass.
+      //
+      // Its win TYPE is the odd one out and worth keeping: 61 timeouts to 4
+      // overruns, where every other Floor-4 boss wins mostly by clearing the
+      // board. That is the gait doing what it was written to do — `aimLateral`
+      // never advances, so this boss outlasts the clock from its own line
+      // instead of walking down the board. Do not "fix" the timeouts.
+      boss_kazehaya: 109,
       // Sized against Umbranova's 128, not Floor 4's 350 cap. The number is
       // nearly irrelevant to the outcome: every variant swept — formation 7 to
       // 3 bodies, the Special freezing 2 or 1, Hoarbite on/off, crystals inert,
@@ -1188,9 +1199,89 @@ describe("Cryovex — Deep Freeze and the crystals", () => {
     expect(statusOf(s.cards[far.instanceId], "FREEZE"), "and not the far side").toBeFalsy();
   });
 
+describe("Kazehaya — the duellist", () => {
+  const OVER = getDef("boss_kazehaya").onHeavyHit!.over;
+
+  it("a BIG swing throws the line back and WEAKENs it", () => {
+    const s = bigPrepState();
+    const boss = place(s, "boss_kazehaya", "P2", 0, 2, { curHp: 200, maxHp: 200, curShields: 0 });
+    // The hitter and a bystander, both inside the 2-space answer.
+    const hitter = place(s, "leaf_stickviper", "P1", 1, 2, { curHp: 90, maxHp: 90, dmgBonusRound: 99 });
+    const nearby = place(s, "leaf_stickviper", "P1", 1, 3, { curHp: 90, maxHp: 90 });
+    const away = place(s, "leaf_stickviper", "P1", 4, 0, { curHp: 90, maxHp: 90 });
+    basicAttack(s, hitter.instanceId, boss.instanceId);
+    expect(s.cards[boss.instanceId].curHp, "the blow landed and it survived").toBeLessThan(200);
+    expect(statusOf(s.cards[hitter.instanceId], "WEAKEN"), "the one that swung").toBeTruthy();
+    expect(statusOf(s.cards[nearby.instanceId], "WEAKEN"), "and everything beside it").toBeTruthy();
+    expect(statusOf(s.cards[away.instanceId], "WEAKEN"), "but not the far side").toBeFalsy();
+    expect(s.cards[hitter.instanceId].pos!.row, "and it is thrown back").toBeGreaterThan(1);
+  });
+
+  it("CHIP damage slips under it — which is the whole answer to this fight", () => {
+    const s = bigPrepState();
+    const boss = place(s, "boss_kazehaya", "P2", 0, 2, { curHp: 200, maxHp: 200, curShields: 0 });
+    const pecker = place(s, "leaf_stickviper", "P1", 1, 2, { curHp: 90, maxHp: 90 });
+    expect(getDef("leaf_stickviper").dmg, "a small hitter").toBeLessThanOrEqual(OVER);
+    basicAttack(s, pecker.instanceId, boss.instanceId);
+    expect(s.cards[boss.instanceId].curHp, "it still got through").toBeLessThan(200);
+    expect(statusOf(s.cards[pecker.instanceId], "WEAKEN"), "and nothing answered it").toBeFalsy();
+    expect(s.cards[pecker.instanceId].pos!.row, "nor moved it").toBe(1);
+  });
+
+  it("SHIELDS do not hide the blow — the whole swing counts", () => {
+    // Gating on HP damage alone would have made stacking shields onto the
+    // carrier the way to switch its own passive off.
+    const s = bigPrepState();
+    const boss = place(s, "boss_kazehaya", "P2", 0, 2, { curHp: 200, maxHp: 200, curShields: 99 });
+    const hitter = place(s, "leaf_stickviper", "P1", 1, 2, { curHp: 90, maxHp: 90, dmgBonusRound: 99 });
+    basicAttack(s, hitter.instanceId, boss.instanceId);
+    // Almost the whole swing went into shields: the HP loss on its own is
+    // nowhere near the threshold, so a gate reading HP damage would have
+    // stayed quiet here.
+    expect(200 - s.cards[boss.instanceId].curHp, "barely any of it reached HP").toBeLessThan(OVER);
+    expect(statusOf(s.cards[hitter.instanceId], "WEAKEN"), "and it answered anyway").toBeTruthy();
+  });
+
+  it("a killing blow gets no answer — it has to SURVIVE", () => {
+    const s = bigPrepState();
+    const boss = place(s, "boss_kazehaya", "P2", 0, 2, { curHp: 1, maxHp: 200, curShields: 0 });
+    const hitter = place(s, "leaf_stickviper", "P1", 1, 2, { curHp: 90, maxHp: 90, dmgBonusRound: 99 });
+    basicAttack(s, hitter.instanceId, boss.instanceId);
+    expect(s.cards[boss.instanceId]?.curHp ?? 0, "down").toBeLessThanOrEqual(0);
+    expect(statusOf(s.cards[hitter.instanceId], "WEAKEN"), "the dead do not riposte").toBeFalsy();
+  });
+
+  it("Cutting Wind DRAGS what it hits into contact and ROOTs it there", () => {
+    // The second half of the same idea: staying out of reach is not an answer,
+    // because the Special reels you into it.
+    const s = bigPrepState();
+    s.round = 3;
+    const boss = place(s, "boss_kazehaya", "P2", 0, 2);
+    const foe = place(s, "leaf_stickviper", "P1", 2, 2, { curHp: 90, maxHp: 90, curShields: 0 });
+    const was = { ...foe.pos! };
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    const now = s.cards[foe.instanceId].pos!;
+    expect(now.row, "hauled toward the samurai").toBeLessThan(was.row);
+    expect(statusOf(s.cards[foe.instanceId], "ROOT"), "and pinned where it lands").toBeTruthy();
+  });
+
+  it("its threshold is its own sword, printed twice", () => {
+    // The number a player has to stay under is the number the boss hits for.
+    expect(getDef("boss_kazehaya").dmg).toBe(OVER);
+  });
+
+  it("is the FOURTH Floor-4 boss, and rolls no dice", () => {
+    const b = voidBossById("boss_kazehaya")!;
+    expect(b.floor).toBe(4);
+    expect(b.tribeElement).toBe("LEAF");
+    expect(b.mechanicElement).toBe("GALE");
+    expect(chanceProblems(getDef("boss_kazehaya")), "deterministic like the rest").toEqual([]);
+  });
+});
+
   it("is the SECOND Floor-4 boss, and Pyrogon stayed with Umbranova", () => {
     expect(voidBossById("boss_cryovex")!.floor).toBe(4);
-    expect(bossesOnFloor(4).length, "three fights on the top floor").toBe(3);
+    expect(bossesOnFloor(4).length, "four fights on the top floor").toBe(4);
     const umbra = voidBossById("boss_umbranova")!;
     expect(umbra.summons, "the fire aura dragon belongs to the fire boss")
       .toContain("pyro_pyrogon");

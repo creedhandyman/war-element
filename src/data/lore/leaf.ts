@@ -189,5 +189,10 @@ export const LEAF_LORE: Record<string, string> = {
   boss_basilisk: "It is not winning the fight. It is winning the wait.",
 
   // ── Void Tower bosses ──
-  boss_smolder: "The forest did not burn down. It stood up."
+  boss_smolder: "The forest did not burn down. It stood up.",
+
+  boss_kazehaya: "It has never taken the first swing. It has never needed to.",
+
+  leaf_leafwind_guardian_tok:
+    "It does not catch you. It decides where you will be standing.",
 };

@@ -203,5 +203,8 @@ export const GALE_LORE: Record<string, string> = {
     "Five, and the storm stopped following it around.",
 
   gale_sparkwolf_tok:
-    "You hear the pack before the weather turns. Only just before."
+    "You hear the pack before the weather turns. Only just before.",
+
+  gale_whirlwind_warrior_tok:
+    "Every leaf in it was somebody's cover.",
 };

@@ -10788,6 +10788,78 @@ export const CARDS: CardDef[] = [
     },
   },
   {
+    id: "boss_kazehaya",
+    name: "Kazehaya",
+    rarity: "mythic",
+    element: "LEAF",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 12,
+    // 109 body points, sized against its Floor-4 neighbours (Umbranova 90,
+    // Cryovex 131) rather than the floor's 350 cap — building to that cap has
+    // measured 97-100% every single time anyone has tried it.
+    dmg: 15,
+    hits: 1,
+    hp: 60,
+    sp: 10,
+    shields: 12,
+    keywords: {},
+    tribe: "Grove",
+    boss: true,
+    art: "boss_kazehaya",
+    // Floor 4 — THE DUELLIST, and the fourth fight on the top floor. LEAF gives
+    // the tribe (a grove that has learned to hold a line) and GALE gives the
+    // mechanic: wind, which on this card means the board itself moving.
+    //
+    // THE LESSON: it punishes the BIG SWING. Everything else on the tower is
+    // answered by hitting it as hard as you can as fast as you can, and doing
+    // that here throws your own line backwards and takes its damage with it —
+    // Gale Riposte trips on any single blow over 15, and the whole swing counts,
+    // so hiding the hit behind its shields does not help. The answer is small,
+    // frequent damage, which is the exact inverse of the fight one seat over:
+    // Cryovex has to be broken early and hard.
+    //
+    // And it does not let you keep your distance either. Cutting Wind DRAGS what
+    // it hits into contact, so a ranged line gets reeled into the reach of a
+    // melee mythic and then has to walk back out — which is the second half of
+    // the same idea. The two halves fight each other on purpose: come close and
+    // you are inside a 15-damage sword, stay back and it pulls you in anyway.
+    passiveNames: {
+      onHeavyHit: "Gale Riposte", roundTick: "Iai Stance",
+    },
+    // Gale Riposte. 15 is set to its OWN damage deliberately: the threshold a
+    // player has to stay under is printed on the card twice, once as the number
+    // and once as the sword that enforces it.
+    onHeavyHit: { over: 15, reach: 2, push: 1, status: "WEAKEN", statusDuration: 2 },
+    // IAI STANCE — it squares up rather than closing. `aimLateral` slides it
+    // along to line its column up with a target and it never advances a row,
+    // which is the whole posture: the duellist does not walk to you. Cutting
+    // Wind is what closes the distance, and it closes it in the wrong direction
+    // for whoever is standing there.
+    //
+    // It shambled forward like Permafrost and Cryovex when first written, which
+    // was three bosses on one gait and, worse, a samurai jogging up the board.
+    roundTick: { fireSpecialEveryN: 3, aimLateral: true },
+    special: {
+      name: "Cutting Wind",
+      cost: 3,
+      handler: "barrage",
+      // `pullToCaster` rather than `pull`: the rope closes sideways and
+      // backwards too, so a card that slipped past the samurai gets hauled back
+      // to it rather than merely shuffled one row toward its home.
+      //
+      // Damage is low (8) BY DESIGN. The Special is not how this boss kills —
+      // the sword is. What the Special does is undo your positioning, and the
+      // damage is a receipt for it.
+      params: {
+        dmg: 8, targets: 99, reach: 2, pullToCaster: 1,
+        statusKind: "ROOT", statusDuration: 1,
+      },
+      targetSide: "enemy",
+      text: "8 DMG to every opponent within 2 spaces, drags each of them into contact, and ROOTs them there for a round.",
+    },
+  },
+  {
     id: "boss_kato",
     name: "Kato",
     rarity: "mythic",
@@ -11076,6 +11148,58 @@ export const TOKENS: CardDef[] = [
     // built to grow on kills, so a gate that paid out on the way down would be
     // a free meal parked inside the boss's reach rather than a wall.
     noKillReward: true,
+  },
+  {
+    id: "leaf_leafwind_guardian_tok",
+    name: "Leafwind Forest Guardian",
+    rarity: "epic",
+    element: "LEAF",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 4,
+    // Fast and light — 8 SP so it arrives before the thing it is dragging can
+    // reposition, and a body that folds to the same chip damage Kazehaya's
+    // riposte is trying to make you use. Killing the retinue is meant to be the
+    // easy part; getting to swing at the samurai is not.
+    dmg: 6,
+    hits: 2,
+    hp: 26,
+    sp: 8,
+    shields: 2,
+    keywords: {},
+    tribe: "Grove",
+    art: "leaf_leafwind_guardian_tok",
+    passiveNames: { pullOnAttack: "Hooked Vine" },
+    // Hooked Vine: it does the samurai's work. Every landed hit hauls the
+    // target one slot closer, so a back line that is carefully staying out of
+    // Kazehaya's 15-damage reach gets walked into it by the escorts — the same
+    // idea as Cutting Wind, arriving twice a round instead of once every three.
+    pullOnAttack: 1,
+  },
+  {
+    id: "gale_whirlwind_warrior_tok",
+    name: "Whirlwind Forest Warrior",
+    rarity: "epic",
+    element: "GALE",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 3,
+    // The other half of the pincer, and deliberately the cheaper one: it costs
+    // 3 so a formation can field two of it beside one Guardian.
+    dmg: 7,
+    hits: 1,
+    hp: 24,
+    sp: 9,
+    shields: 1,
+    keywords: {},
+    tribe: "Grove",
+    art: "gale_whirlwind_warrior_tok",
+    passiveNames: { onHitPush: "Wind Shear" },
+    // Wind Shear: it shoves. Pointed the OPPOSITE way to the Guardian's hook on
+    // purpose — one drags you in, the other blows you back out, and between them
+    // a player's careful line stops being a line at all. Neither does much
+    // damage; scattering the board is the contribution.
+    onHitPush: 1,
   },
   {
     id: "aqua_blackice_crystal_tok",

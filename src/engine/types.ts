@@ -559,6 +559,28 @@ export interface CardDef {
   onHitSpawn?: { token: string; chance: number; max: number };
   /** Thorns: retaliate when hit by a melee attacker. */
   onHitByMelee?: OnHitByMeleeDef;
+  /** Gale Riposte (Kazehaya): a HEAVY blow answers itself. When one attack puts
+   *  more than `over` damage on this card and it is still standing, every enemy
+   *  within `reach` is shoved back `push` slots and takes `status`.
+   *
+   *  Distinct from `onHitZap`, which answers ANY landed hit with damage. This
+   *  one deals none: it is a THRESHOLD reaction, and it moves the board instead.
+   *  Chip damage passes through it untouched, so the answer to a card carrying
+   *  this is to hit it small and often — a real decision, and one the printed
+   *  number lets the player make on purpose. Shields do not hide the blow: the
+   *  gate reads the whole swing, so parking damage on shields still trips it.
+   *
+   *  Deterministic (no chance field), which is what lets a boss carry it. */
+  onHeavyHit?: {
+    /** Strictly greater than this, in a single attack. */
+    over: number;
+    /** King-move radius around this card. */
+    reach: number;
+    /** Slots each caught enemy is shoved back. Omit for a pure debuff. */
+    push?: number;
+    status?: StatusKind;
+    statusDuration?: number;
+  };
   /** Jelly Shock (Jellyfish): discharge when HIT and still standing — `dmg` to
    *  the attacker plus every enemy adjacent to this card. Unlike thorns it
    *  answers RANGED attackers too, and it splashes rather than hitting one. */

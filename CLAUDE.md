@@ -1231,6 +1231,33 @@ of the roster (from 80-93% on the worst offenders), because the boss can no long
 walk into an undefended home row. Umbranova is the lone holdout at 96.9% — its
 damage ignores position entirely, so a wall means nothing to it.
 
+**KAZEHAYA — Floor 4's FOURTH boss, the duellist.** LEAF tribe / GALE mechanic,
+tribe Grove (Warden + Galeon + 2 Sakuroot + the two new retinue tokens, 36 exact).
+
+It is the tower's one THRESHOLD boss. Gale Riposte (`onHeavyHit`, a new reusable
+CardDef field) trips on any SINGLE attack over 15 and answers by WEAKENing and
+throwing back everything within 2 — no damage, just ground. The gate reads the
+WHOLE swing, HP damage plus what the shields ate, so stacking shields onto the
+carrier cannot switch its own passive off. 15 is also its printed DMG: the number
+you have to stay under is on the card twice. The answer is small, frequent hits,
+which is the exact inverse of Cryovex one seat over.
+
+Staying at range is not the other answer, because Cutting Wind (`pullToCaster`)
+DRAGS everything it hits into contact and ROOTs it there. Its gait is
+`aimLateral` — it squares up and never advances, so the Special is the only thing
+that closes distance, and it closes it the wrong way for you.
+
+Two TOKENS were added with it and are the point of the formation, not filler:
+**Leafwind Forest Guardian** (`leaf_leafwind_guardian_tok`, 4g, `pullOnAttack`)
+hooks what it hits one slot closer — doing the samurai's job twice a round
+against a Special that only fires every three — and **Whirlwind Forest Warrior**
+(`gale_whirlwind_warrior_tok`, 3g, `onHitPush`) shoves one slot away. Pointed
+opposite ways deliberately: between them a player's line stops being a line.
+
+Measured 67.7% (Umbranova 60.4 / Cryovex 70.8 / Kato 70.8, one pass). Its win
+TYPE is the odd one out — 61 timeouts to 4 overruns where the rest win by
+clearing the board — and that is `aimLateral` behaving correctly. Don't "fix" it.
+
 **KATO — Floor 4's THIRD boss, and the tower's first CHAIN.** BORE tribe / BOLT
 mechanic, tribe Cavernous (the whole four-card tribe: Deepest + Coreborer +
 Venomarch + Obsidian x2 + a Zipp, 36 exact — Cavernous costs 5/6/9/10 and could

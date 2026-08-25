@@ -338,6 +338,34 @@ export const VOID_BOSSES: VoidBoss[] = [
     puzzle: "The deep freeze: break it early — every round held hits harder.",
   },
   {
+    cardId: "boss_kazehaya",
+    floor: 4,
+    tribeElement: "LEAF",
+    mechanicElement: "GALE",
+    tribe: "Grove",
+    // 8 + 8 + 4x2 + 3x2 + 3x2 = 36, exact. A RETINUE rather than a swarm, which
+    // is the shape Floor 4 wants — seven bodies, every one of them wood or wind.
+    //
+    // The two TOKENS are the point of the formation rather than filler. The
+    // Guardians hook what they hit one slot closer and the Warriors shove what
+    // they hit one slot away, which between them means a player's line stops
+    // being a line — and the hooking half is doing Kazehaya's own job for it,
+    // twice a round, against a boss whose Special only closes distance once
+    // every three. Warden and Galeon are the weight they work in front of.
+    //
+    // Grove is Smolder's tribe too, one floor down, and that repeat is
+    // deliberate rather than a shortage: Umbranova and Cryovex already split
+    // Dragon between them on this same floor. Smolder takes the BURNING grove;
+    // this one takes the grove that learned to hold a line.
+    summons: [
+      "leaf_warden", "gale_galeon",
+      "leaf_leafwind_guardian_tok", "leaf_leafwind_guardian_tok",
+      "gale_whirlwind_warrior_tok", "gale_whirlwind_warrior_tok",
+      "leaf_sakuroot", "leaf_sakuroot",
+    ],
+    puzzle: "The duellist: hit it small and often — one big swing and it throws your line back.",
+  },
+  {
     cardId: "boss_kato",
     floor: 4,
     tribeElement: "BORE",

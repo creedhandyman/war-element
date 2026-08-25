@@ -551,6 +551,15 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.evasionEnemySideOnly)
     passives.push("Shadow Haunter: its EVASION is live only while it stands on the opponent's battlefield.");
+  if (def.onHeavyHit) {
+    const h = def.onHeavyHit;
+    named("onHeavyHit",
+      `Gale Riposte: take more than ${h.over} damage from ONE attack and survive, and every enemy within ${h.reach} space(s)` +
+      `${h.status ? ` takes ${h.status}${h.statusDuration ? ` for ${h.statusDuration} round(s)` : ""}` : ""}` +
+      `${h.push ? `${h.status ? " and" : ""} is thrown back ${h.push} slot(s)` : ""}.` +
+      ` Shields don't hide the blow — the whole swing counts. Chip damage never trips it.`,
+    );
+  }
   if (def.onHitZap)
     named("onHitZap", 
       `Jelly Shock: when it's hit and survives, discharges ${def.onHitZap.dmg} DMG into the attacker — melee or ranged — and every enemy standing next to it${def.onHitZap.status ? ` (+${def.onHitZap.status.kind})` : ""}.`,
