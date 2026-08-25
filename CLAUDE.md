@@ -1049,6 +1049,28 @@ is the player's condition, and a test pins both halves. One pre-existing test
 asserted "a boss holding every home slot has not won" and is re-pointed; it still
 guards that the ending is an overrun and never a capture.
 
+**HOARFELL CRUSHES — `trampleDmg`, and the gait shoves too.** The juggernaut was
+the weakest fight on Floor 3 at 30.2%, because the Fortress Gates do not merely
+slow it, they switch it off: its momentum ramp needs UNOBSTRUCTED advance and
+`chargeForward` simply stopped at the first body, so Avalanche never built once
+in a whole fight.
+
+Two changes, in order of how much they mattered:
+  * `chargeForward` now SHOVES for a TRAMPLE card, using the same `shoveTarget`
+    the Prep move uses, so the gait and the move cannot disagree. Worth almost
+    nothing on its own — 30.2% -> 31.3% — because shoving a gate aside merely
+    REARRANGES the wall: the gate lives, the line still stands, and the round was
+    spent moving furniture.
+  * `trampleDmg` (per CARD, not a property of TRAMPLE) makes the shove HURT.
+    Hoarfell crushes for 12, through shields, because masonry is not armour to a
+    juggernaut. 30.2% -> **50.0%**, level with Vulcanyx (51.0) and Xilty (46.9).
+    Swept: 8 gives 32.3, 16 gives 47.9 — 12 is the efficient point because it
+    breaks a 20 HP gate in exactly two steps and anything past that is wasted.
+
+Both shove sites go through one `applyShove` helper so the damage cannot drift
+between them. WarPhant, Bearocks, Oakgre, Bison and Burnout are untouched —
+measured, Vulcanyx and Umbranova did not move.
+
 **SKELEEZE AIMS, AND NIGHTSHRIKE CAME BACK DOWN.** Two follow-ups to the wall
 pass, both from on-device reports.
 

@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, canTarget, validSpecialTargets, validTargets } from "./rules";
+import { RANGED_REACH, canTarget, shoveTarget, validSpecialTargets, validTargets } from "./rules";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
@@ -2465,6 +2465,23 @@ function maybeStatus(
 /** Advance a card up to `steps` open slots toward the enemy home row (the
  *  reposition half of a move-and-strike special). Stops at a captured/occupied
  *  slot; can end on an uncaptured enemy home slot (a capture push). */
+/** Resolve a TRAMPLE shove: the victim is driven to `dest`, and a card that
+ *  CRUSHES (`trampleDmg`) hurts it on the way through.
+ *
+ *  Shared by the Prep move and the round-tick gait so the two cannot drift —
+ *  they already resolved the destination from the same `shoveTarget`, and the
+ *  damage has to come from one place for the same reason. */
+export function applyShove(
+  draft: GameState,
+  mover: CardInstance,
+  shove: { victim: CardInstance; dest: Pos },
+): void {
+  shove.victim.pos = { ...shove.dest };
+  const crush = getDef(mover.defId).trampleDmg ?? 0;
+  if (crush > 0)
+    tickDamage(draft, mover, shove.victim, crush, true); // pen: masonry is not armour to a juggernaut
+}
+
 export function chargeForward(draft: GameState, card: CardInstance, steps: number): void {
   const dir = card.owner === "P1" ? -1 : 1;
   const enemyHome = homeRow(enemyOf(card.owner), draft.boardSize);
@@ -2475,7 +2492,20 @@ export function chargeForward(draft: GameState, card: CardInstance, steps: numbe
     const row: number = pos.row + dir;
     if (row < 0 || row >= draft.boardSize) break;
     if (draft.slots[row][pos.col].capturedBy) break;
-    if (cardAt(draft, row, pos.col)) break;
+    const blocker = cardAt(draft, row, pos.col);
+    if (blocker) {
+      // A JUGGERNAUT SHOVES. A TRAMPLE card walking into a lighter body drives
+      // it back and takes the square, exactly as `shoveTarget` does in Prep —
+      // the gait had no such rule, so Hoarfell's advance simply STOPPED at the
+      // first thing in front of it, and stopping is what resets Avalanche. Put
+      // a wall in front of a boss whose entire threat is an uninterrupted run
+      // and the threat is not slowed, it is deleted: 12.5% against the Fortress
+      // Gates, with the ramp never building once in a whole fight.
+      const shove = shoveTarget(draft, card, { row, col: pos.col } as Pos);
+      if (!shove) break;
+      draft.log.push(`${label(draft, card)} bulls through ${getDef(shove.victim.defId).name}.`);
+      applyShove(draft, card, shove);
+    }
     card.pos = { row: row as Pos["row"], col: pos.col };
     moved++;
     if (row === enemyHome) break; // stop on the enemy home row

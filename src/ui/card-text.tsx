@@ -321,6 +321,8 @@ export function describePassives(def: CardDef): string[] {
   }
   if (def.guardsHomeRow)
     named("guardsHomeRow", "While it stands, opponents cannot target the home square directly behind it — fliers and ranged attackers included. They have to break it first.");
+  if (def.trampleDmg)
+    named("trampleDmg", `Anything it tramples takes ${def.trampleDmg} DMG through shields as it is driven back.`);
   if (def.noKillReward)
     named("noKillReward", "Killing it grants the attacker nothing — no on-kill bonus, and it counts toward no tally.");
   if (def.vsFrozenRamp) {

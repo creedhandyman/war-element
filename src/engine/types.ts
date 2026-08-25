@@ -612,6 +612,15 @@ export interface CardDef {
    *  it is a real answer. */
   guardsHomeRow?: true;
 
+  /** CRUSH: a TRAMPLE shove from this card also deals this much damage to what
+   *  it bulls through, wherever the shove happens — the Prep move and the
+   *  round-tick gait both.
+   *
+   *  Hoarfell is why. Shoving a Fortress Gate aside merely REARRANGES the wall:
+   *  the gate lives, the line still stands, and the juggernaut has spent its
+   *  round tidying. A thing whose whole identity is an unstoppable run should
+   *  break what it runs over. */
+  trampleDmg?: number;
   /** On-kill trigger (this card's attack defeats an enemy). */
   onKill?: OnKillDef;
   /** DEEP FREEZE (Cryovex): bonus damage against a FROZEN target that GROWS with

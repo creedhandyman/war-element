@@ -4,7 +4,8 @@
 import { getDef } from "../data/cards";
 import { voidPlayerHeadStart } from "../data/void-tower";
 import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
-import { applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
+import {
+  applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin, randInt } from "./rng";
@@ -470,10 +471,10 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // which square the victim ends on.
       const shove = shoveTarget(draft, card, intent.to);
       if (shove) {
-        shove.victim.pos = { ...shove.dest };
         draft.log.push(
           `${getDef(card.defId).name} bulls ${getDef(shove.victim.defId).name} back to r${shove.dest.row}c${shove.dest.col}.`,
         );
+        applyShove(draft, card, shove); // ...and CRUSHES it, if it crushes
       }
       // Stepping onto your own home row starts it earning — say so immediately
       // rather than leaving the player to notice next Resource phase.

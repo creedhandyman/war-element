@@ -10401,6 +10401,13 @@ export const CARDS: CardDef[] = [
     // half of your board instead of stopping at it, so a chump block has to be
     // something with real max HP or it just gets shoved aside.
     keywords: { TRAMPLE: true },
+    // AVALANCHE CRUSHES. Shoving something aside merely REARRANGES it — against
+    // the Fortress Gates the gate lived, the line still stood, and Hoarfell had
+    // spent its round tidying the wall (30.2% -> 31.3%, which is nothing). A
+    // thing whose whole identity is an unstoppable run should break what it runs
+    // over, so every trample now costs the victim 12, straight through shields:
+    // masonry is not armour to a juggernaut.
+    trampleDmg: 12,
     tribe: "Ice",
     boss: true,
     // Floor 3 — THE JUGGERNAUT. It advances a slot a round and every

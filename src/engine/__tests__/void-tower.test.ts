@@ -17,7 +17,7 @@ import {
 import { deckSizeFor, isBuildable, validateDeck } from "../../data/custom-decks";
 import { EVENTS } from "../../data/events";
 import { canCraft, newSave, openPack } from "../../data/story";
-import { advance } from "../phases";
+import { advance, applyIntent } from "../phases";
 import { canTarget, shoveTarget } from "../rules";
 import { homeRow } from "../types";
 import { VOID_BOSS_INCOME } from "../types";
@@ -865,6 +865,35 @@ describe("the Fortress Gates", () => {
     place(s, VOID_GATE, "P2", 1, 1);
     expect(shoveTarget(s, s.cards[ram.instanceId], { row: 1, col: 1 } as never),
       "it goes through").not.toBeNull();
+  });
+
+  it("Hoarfell CRUSHES what it tramples — shoving alone only tidied the wall", () => {
+    // Shoving a gate aside REARRANGES the wall: the gate lives, the line still
+    // stands, and the juggernaut has spent its round moving furniture. Measured
+    // at 30.2% -> 31.3%, which is nothing. Crushing takes it to 50.0%.
+    const s = prepState();
+    s.round = 3; // past BOSS_HOLD_ROUNDS — a boss keeps its home row for the opening
+    const ram = place(s, "boss_hoarfell", "P1", 2, 1);
+    const gate = place(s, VOID_GATE, "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 10 });
+    // applyIntent returns a NEW state — read the result, not the input.
+    const n = applyIntent(s, { type: "MOVE", player: "P1", instanceId: ram.instanceId,
+      to: { row: 1, col: 1 } } as never);
+    const after = n.cards[gate.instanceId];
+    expect(after.curHp, "crushed on the way through")
+      .toBe(20 - getDef("boss_hoarfell").trampleDmg!);
+    expect(after.curShields, "and straight through the masonry — pen").toBe(10);
+  });
+
+  it("...and a trampler with no CRUSH still only shoves", () => {
+    // trampleDmg is per-card, not a property of TRAMPLE: WarPhant and the rest
+    // are untouched, and measured, Vulcanyx and Umbranova did not move.
+    expect(getDef("dawn_warphant").trampleDmg).toBeUndefined();
+    const s = prepState();
+    const ram = place(s, "dawn_warphant", "P1", 2, 1);
+    const victim = place(s, "dusk_gool", "P2", 1, 1, { curHp: 13, maxHp: 13, curShields: 0 });
+    const n2 = applyIntent(s, { type: "MOVE", player: "P1", instanceId: ram.instanceId,
+      to: { row: 1, col: 1 } } as never);
+    expect(n2.cards[victim.instanceId].curHp, "shoved, not crushed").toBe(13);
   });
 
   it("a boss's basic PIERCES gate shields — a wall slows a siege, it does not blunt one", () => {
