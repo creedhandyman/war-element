@@ -101,7 +101,12 @@ describe("the roster", () => {
       // Umbranova does not need a Floor-4 body to be a Floor-4 fight: its
       // damage ignores position and escalates every cast, so the threat is the
       // countdown rather than the meat.
-      boss_umbranova: 128,
+      // 128 -> 90. It was the one boss nothing moved — 94.8% with 69% overrun,
+      // 26% TIMEOUT and 0% elimination, i.e. the player never killed it. The
+      // Special was not the cause (6 damage instead of 10 still read 88.5%, and
+      // dropping `pen` changed nothing); the BODY was, because the body is what
+      // the clock gets spent on. 72.9% now.
+      boss_umbranova: 90,
       // Sized against Umbranova's 128, not Floor 4's 350 cap. The number is
       // nearly irrelevant to the outcome: every variant swept — formation 7 to
       // 3 bodies, the Special freezing 2 or 1, Hoarbite on/off, crystals inert,

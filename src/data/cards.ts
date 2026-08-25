@@ -10636,14 +10636,20 @@ export const CARDS: CardDef[] = [
     cost: 12,
     dmg: 12,
     hits: 1,
-    // Written at 150/15 — a Floor-4 body — and it measured 97%. The escalation
-    // is the threat, not the meat: by the sixth cast Meteor Fall is landing for
-    // twice what it started at, on everything, through shields, so a body sized
-    // for the floor on top of that is a boss nobody finishes. At 90/9 it reads
-    // 80%, the hardest fight in the tower and still a fight.
-    hp: 90,
+    // 150/15 -> 90/9 -> 60/5 (body 128 -> 90). Lighter than Thunderfangs' 96 on
+    // the floor below, and that is consistent rather than strange: this boss has
+    // never needed meat, because its damage ignores position and escalates.
+    //
+    // THE NUMBERS THAT MATTERED, measured. Umbranova sat at 94.8% and was the one
+    // boss NOTHING moved — not the Fortress Gates, not the reach fix, not the
+    // overrun changes. Breaking its wins down showed why: 69% overrun, 26%
+    // TIMEOUT, and 0% elimination. The player was never killing it at all. So the
+    // Special was not the problem and the sweeps say so — 6 damage instead of 10
+    // still read 88.5%, and removing `pen` entirely changed NOTHING. Its body was
+    // the problem, because the body is what the clock is spent on.
+    hp: 60,
     sp: 8,
-    shields: 9,
+    shields: 5,
     keywords: {},
     tribe: "Dragon",
     boss: true,
@@ -10668,7 +10674,11 @@ export const CARDS: CardDef[] = [
     // mode requires — a board-wide nuke that sometimes whiffs would make the
     // countdown unreadable.
     alwaysHit: true,
-    onSpecialUse: { dmg: 3 },
+    // Kindling +3 -> +2. Eight casts used to run 10,13,16,19,22,25,28,31; it now
+    // runs 7,9,11,13,15,17,19,21 — still a countdown that gets louder, and still
+    // the loudest thing in the tower, but one the player can outlive long enough
+    // to reach the dragon.
+    onSpecialUse: { dmg: 2 },
     // ALOOF. Meteor Fall ignores position entirely, so closing buys Umbranova
     // nothing and distance costs it nothing — it drifts toward the emptiest
     // lane instead, the mirror of Helion's Traverse. Previously it did not
@@ -10681,9 +10691,9 @@ export const CARDS: CardDef[] = [
       // `smite` with no requireStatus is every living opponent, ignoring range.
       // pen, because shields are one of the three real answers and stripping
       // them is the point — a wall you can hide behind forever is a fourth.
-      params: { dmg: 10, pen: 1 },
+      params: { dmg: 7, pen: 1 },
       targetSide: "enemy",
-      text: "The sky falls: 10 DMG to every opponent on the board, through shields, wherever they stand. Each cast makes the next one worse.",
+      text: "The sky falls: 7 DMG to every opponent on the board, through shields, wherever they stand. Each cast makes the next one worse.",
     },
   },
   {
