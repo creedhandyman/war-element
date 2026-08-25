@@ -919,16 +919,27 @@ describe("the Fortress Gates", () => {
     expect(after.curShields, "and straight through the masonry — pen").toBe(10);
   });
 
-  it("...and a trampler with no CRUSH still only shoves", () => {
-    // trampleDmg is per-card, not a property of TRAMPLE: WarPhant and the rest
-    // are untouched, and measured, Vulcanyx and Umbranova did not move.
-    expect(getDef("dawn_warphant").trampleDmg).toBeUndefined();
+  it("...and an ordinary trampler crushes for its OWN value, not the boss's", () => {
+    // This used to assert WarPhant had NO crush at all, pinning that Hoarfell's
+    // 12 had not leaked onto every trampler. The carriers were given crush of
+    // their own since (roughly a third of attack, measured), so the guard moves
+    // rather than goes: what it protects is that trampleDmg is PER-CARD, and a
+    // rank-and-file rammer must never inherit a boss's number.
+    expect(getDef("dawn_warphant").trampleDmg).toBe(2);
+    expect(getDef("boss_hoarfell").trampleDmg).toBe(12);
+    // Genuinely per-card, not one shared constant wearing eight hats.
+    expect(new Set([
+      getDef("dawn_warphant").trampleDmg,
+      getDef("bore_bearocks").trampleDmg,
+      getDef("gale_stormhide_bison").trampleDmg,
+    ]).size, "carriers do not all share one value").toBe(3);
+
     const s = prepState();
     const ram = place(s, "dawn_warphant", "P1", 2, 1);
     const victim = place(s, "dusk_gool", "P2", 1, 1, { curHp: 13, maxHp: 13, curShields: 0 });
     const n2 = applyIntent(s, { type: "MOVE", player: "P1", instanceId: ram.instanceId,
       to: { row: 1, col: 1 } } as never);
-    expect(n2.cards[victim.instanceId].curHp, "shoved, not crushed").toBe(13);
+    expect(n2.cards[victim.instanceId].curHp, "crushed for 2, not for a boss's 12").toBe(11);
   });
 
   it("a boss's basic PIERCES gate shields — a wall slows a siege, it does not blunt one", () => {

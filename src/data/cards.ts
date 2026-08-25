@@ -797,6 +797,7 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 2,
     keywords: { TRAMPLE: true },
+    trampleDmg: 3,
     passiveNames: { statusImmune: "Hibernation" },
     statusImmune: true, // Hibernation: immune to status effects
     // Trample Through: 30 HP walks through most of the board's front line.
@@ -1495,6 +1496,7 @@ export const CARDS: CardDef[] = [
     // Thick Hide: −1 DMG from every incoming attack (flat, applies pre-shield
     // and even to PEN) — that's exactly what BLOCK does.
     keywords: { BLOCK: 1, TRAMPLE: true },
+    trampleDmg: 2,
     // Trample Through: it shoulders past anything smaller than it.
   },
   {
@@ -1862,6 +1864,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     // Roost: −1 DMG from all incoming (BLOCK 1) and +1 HP end of round (REGEN 1).
     keywords: { BLOCK: 1, REGEN: 1, TRAMPLE: true },
+    trampleDmg: 1,
     tribe: "Avian",
     // Trample Through: the horns are the whole card. At 18 HP it only bullies
     // the genuinely small, which is the point of the max-HP gate.
@@ -2645,6 +2648,7 @@ export const CARDS: CardDef[] = [
     sp: 0, // rooted — moveReach(0) is 0. Uprooted is the only way it ever moves.
     shields: 0,
     keywords: { TRAMPLE: true },
+    trampleDmg: 4,
     // Intimidation (Aura): anything weaker than Oakgre flinches. Gated on a LIVE
     // comparison, so as Uprooted grows its DMG the aura catches more of the
     // board — and a card that out-grows Oakgre walks out from under it.
@@ -4179,6 +4183,7 @@ export const CARDS: CardDef[] = [
     sp: 2,
     shields: 6,
     keywords: { TRAMPLE: true },
+    trampleDmg: 2,
     // Rebuilds its barrier +2 shields each round (on top of BORE's Exostone +2
     // on summon); when the barrier first breaks it enrages (+3 DMG / +2 SP).
     roundTick: { selfShields: 2, selfShieldsMax: 12 },
@@ -5204,6 +5209,7 @@ export const CARDS: CardDef[] = [
     sp: 1,
     shields: 0,
     keywords: { TRAMPLE: true },
+    trampleDmg: 2,
     passiveNames: {
       summonSelfShields: "War Ready",
       onEnterMidRow: "War Ready",
@@ -5433,6 +5439,7 @@ export const CARDS: CardDef[] = [
     // Braced Stance: −1 DMG from every incoming attack (BLOCK) and immune to
     // knockback/pull — it plants and lets GALE's storms wash over it.
     keywords: { BLOCK: 1, TRAMPLE: true },
+    trampleDmg: 1,
     passiveNames: { pushImmune: "Braced Stance" },
     pushImmune: true,
     // Trample Through: it moves things, and nothing moves it. A Bison mirror is
@@ -9687,6 +9694,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 4,
     keywords: { TRAMPLE: true },
+    trampleDmg: 2,
     tribe: "Forged Tech",
     passiveNames: {
       onHitByMelee: "Burning Frame", onSpecialUse: "Super Charger",
