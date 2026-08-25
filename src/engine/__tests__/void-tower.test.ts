@@ -277,8 +277,9 @@ describe("the new mechanics", () => {
   });
 
   it("shiftLateral slides along the home row, wrapping past bodies", () => {
+    // Nightshrike, not Skeleeze: the archer AIMS now (see Swiftshooter below).
     const s = prepState();
-    const boss = place(s, "boss_skeleeze", "P2", 0, 2);
+    const boss = place(s, "boss_nightshrike", "P2", 0, 2);
     place(s, "dusk_gool", "P2", 0, 3); // the next slot right is TAKEN
     const n = advance(atCleanup(s));
     // 4x4 board: from col 2, col 3 is occupied → wraps to col 0.
@@ -287,9 +288,28 @@ describe("the new mechanics", () => {
 
   it("shiftLateral stays put when dragged off the home row", () => {
     const s = prepState();
-    const boss = place(s, "boss_skeleeze", "P2", 1, 2);
+    const boss = place(s, "boss_nightshrike", "P2", 1, 2);
     const n = advance(atCleanup(s));
     expect(n.cards[boss.instanceId].pos).toEqual({ row: 1, col: 2 });
+  });
+
+  it("SWIFTSHOOTER: Skeleeze aims two slots and TRADES with what is in the way", () => {
+    // `shiftLateral` before — a blind one-slot shuffle that wrapped to the next
+    // open square and happened to end up somewhere. An archer whose whole
+    // Special is a column shot should be CHOOSING the column, and a screen
+    // parked in front of it should relocate the problem rather than solve it.
+    const s = prepState();
+    s.round = 3; // past BOSS_HOLD_ROUNDS — aimLateral honours the opening hold
+    const boss = place(s, "boss_skeleeze", "P2", 0, 0);
+    const screen = place(s, "dusk_gool", "P2", 0, 1); // standing in the way
+    // Two enemies stacked in column 2 — that is the lane it wants.
+    place(s, "leaf_stickviper", "P1", 3, 2);
+    place(s, "leaf_stickviper", "P1", 2, 2);
+    const n = advance(atCleanup(s));
+    expect(n.cards[boss.instanceId].pos, "two slots toward the crowd")
+      .toEqual({ row: 0, col: 2 });
+    expect(n.cards[screen.instanceId].pos, "and the body it shouldered past took its place")
+      .toEqual({ row: 0, col: 0 });
   });
 
   it("critAlways skips the coin: Piercing Arrow doubles on every cast", () => {

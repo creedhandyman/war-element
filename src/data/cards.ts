@@ -9918,7 +9918,19 @@ export const CARDS: CardDef[] = [
     // moves predictably: clear out of it while the Skeletons press forward.
     // The doc's random sidestep is gone on purpose — same threat, now solvable.
     passiveNames: { roundTick: "Swiftshooter" },
-    roundTick: { fireSpecialEveryN: 3, shiftLateral: 1 },
+    // SWIFTSHOOTER: it AIMS now, the way Helion does — toward the column holding
+    // the most of your cards — but two slots a round instead of one, and it does
+    // not stop for bodies. Anything in the way trades places with it.
+    //
+    // `shiftLateral` before, which slid one slot along the row and wrapped to
+    // the next OPEN one: a blind shuffle that happened to end up somewhere. An
+    // archer whose whole Special is a column shot should be CHOOSING the column,
+    // and a screen parked in front of it should relocate the problem rather than
+    // solve it.
+    roundTick: {
+      fireSpecialEveryN: 3,
+      aimLateral: true, aimLateralSteps: 2, aimLateralSwap: true,
+    },
     // `critPen` is what lets the guaranteed CRIT below fire through shields —
     // the printed "10 DMG (PEN)" is a crit that pierces, not a pen that crits.
     critPen: true,

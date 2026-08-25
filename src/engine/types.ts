@@ -340,6 +340,15 @@ export interface RoundTickDef {
    *  execute. Ties go to the lowest column, because a tie broken at random is a
    *  telegraph that lies. */
   aimLateral?: true;
+  /** How many columns `aimLateral` covers in one Cleanup. Default 1 (Helion's
+   *  Traverse — a hundred tons of gold does not sidestep twice). */
+  aimLateralSteps?: number;
+  /** Skeleeze's Swiftshooter: it does not stop for bodies, it TRADES with them.
+   *  An occupied slot in its path swaps the two cards rather than halting the
+   *  slide, so a screen parked in front of the archer relocates the archer's
+   *  problem instead of solving it. Captured slots still stop it — nothing may
+   *  come to rest on one, the swap victim included. */
+  aimLateralSwap?: true;
   /** JUGGERNAUT: advance one slot a round, and let the run build.
    *
    *  Each unobstructed step adds `per` DMG up to `max`; being stopped — by a

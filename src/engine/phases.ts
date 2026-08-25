@@ -2209,11 +2209,28 @@ function doRoundTicks(draft: GameState): void {
         let want = -1, most = 0;
         for (let c = 0; c < counts.length; c++)
           if (counts[c] > most) { most = counts[c]; want = c; }
-        if (want >= 0 && want !== card.pos.col) {
-          const col = card.pos.col + (want > card.pos.col ? 1 : -1);
-          if (!cardAt(draft, home, col) && !draft.slots[home][col].capturedBy) {
+        // One column by default (Helion's Traverse); Skeleeze covers two and
+        // TRADES places with whatever is in the way rather than stopping.
+        // Recomputed per step off the SAME `want`, so a two-step slide is one
+        // decision carried out twice rather than two changes of mind.
+        const steps = Math.max(1, rt.aimLateralSteps ?? 1);
+        for (let n = 0; n < steps; n++) {
+          if (want < 0 || want === card.pos.col) break;
+          const col: number = card.pos.col + (want > card.pos.col ? 1 : -1);
+          if (draft.slots[home][col].capturedBy) break; // nothing rests on a captured slot
+          const sitting = cardAt(draft, home, col);
+          if (sitting) {
+            // A captured slot cannot take the victim either, so the trade is off.
+            if (!rt.aimLateralSwap || draft.slots[home][card.pos.col].capturedBy) break;
+            const from = { ...card.pos };
             card.pos = { row: home as Pos["row"], col: col as Pos["col"] };
-            draft.log.push(`${label(draft, card)} traverses — the lane is column ${col}.`);
+            sitting.pos = { row: from.row as Pos["row"], col: from.col as Pos["col"] };
+            draft.log.push(
+              `${label(draft, card)} shoulders past ${getDef(sitting.defId).name} — they trade places.`,
+            );
+          } else {
+            card.pos = { row: home as Pos["row"], col: col as Pos["col"] };
+            draft.log.push(`${label(draft, card)} traverses — the lane is column ${want}.`);
           }
         }
       }
