@@ -2933,7 +2933,11 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
   }
   if (def.buffDmgRound) killer.dmgBonusRound += def.buffDmgRound;
   if (def.buffSp) killer.spBonus += def.buffSp;
-  if (def.spawnToken) {
+  // `everyNKills`: only on every Nth kill. `killCount` has not been bumped for
+  // THIS kill yet (registerKill runs after this), so count it in here.
+  const everyN = def.spawnToken?.everyNKills ?? 0;
+  const killNo = (killer.killCount ?? 0) + 1;
+  if (def.spawnToken && (everyN <= 0 || killNo % everyN === 0)) {
     // Harvester: the fallen get up again on her side.
     //
     // `maxAlive` is a CEILING on how many of the token may stand at once, the

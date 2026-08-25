@@ -145,10 +145,17 @@ export interface OnKillDef {
    *  status, the BOLT proxy), at most once per round. */
   aoeDmgElectrified?: number;
   /** Harvester (Wedded Wraith): every kill raises another token. */
-  spawnToken?: { token: string; count: number; maxAlive?: number };
+  spawnToken?: { token: string; count: number; maxAlive?: number; everyNKills?: number };
   /** Quadruple Strike (Birch): on a kill, hit the CLOSEST surviving enemy for
    *  dmg×hits (a shield-shredding follow-up, distinct from aoeDmg's spray). */
   nearestVolley?: { dmg: number; hits: number };
+  /** `everyNKills`: raise one only on every Nth kill, not on all of them.
+   *
+   *  The DETERMINISTIC form of "sometimes". Void Tower requires its bosses to
+   *  roll no dice (`chanceProblems` pins it, and the design doc replaced its own
+   *  50% rolls with deterministic effects for exactly this reason), so a
+   *  chance-based pack is not available here — but "every other kill" gives the
+   *  same every-so-often feel and stays readable: the player can count it. */
   /** Infinite Serpent (Hydrogon): on a kill, snipe the LOWEST-HP surviving
    *  opponent for `lowestHpDmg` — the serpent finishes the weak. */
   lowestHpDmg?: number;

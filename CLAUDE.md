@@ -1067,8 +1067,17 @@ turned out to be nearly irrelevant to the outcome:
     24-round clock gets spent on.
 
 Retuned on body alone: Umbranova 128 -> 90 (94.8 -> 72.9, timeouts 26% -> 16%),
-Thunderfangs 96 -> 72 (88.5 -> 57.3). Stormform tracks the first form at +20% on
-every line and a test pins that relationship, so it moved to 87 with it.
+Thunderfangs 96 -> 76 (88.5 -> 69.8). Stormform tracks the first form at +20% on
+every line and a test pins that relationship, so it followed to 92.
+
+THUNDERFANGS' CURVE IS STEEP — leave the number alone: body 72 / 76 / 80 reads
+60.4% / 69.8% / 77.1%, so four points of body is worth about eight of win rate.
+
+And its pack now comes on every SECOND kill (`spawnToken.everyNKills`). The owner
+asked for a chance-based spawn; Void Tower requires its bosses to roll no dice
+(`chanceProblems` pins it, and the doc replaced its own 50% rolls for the same
+reason), so this is the deterministic form of "sometimes" — the same
+every-so-often feel, and the player can count it.
 
 **HOARFELL CRUSHES — `trampleDmg`, and the gait shoves too.** The juggernaut was
 the weakest fight on Floor 3 at 30.2%, because the Fortress Gates do not merely

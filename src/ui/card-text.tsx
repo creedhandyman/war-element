@@ -344,7 +344,7 @@ export function describePassives(def: CardDef): string[] {
       k.buffSp && `+${k.buffSp} SP`,
       k.buffMaxHp && `+${k.buffMaxHp} max HP`,
       k.spawnToken &&
-        `raises ${k.spawnToken.count} ${getDef(k.spawnToken.token).name}${k.spawnToken.count > 1 ? "s" : ""}`,
+        `raises ${k.spawnToken.count} ${getDef(k.spawnToken.token).name}${k.spawnToken.count > 1 ? "s" : ""}${k.spawnToken.everyNKills && k.spawnToken.everyNKills > 1 ? ` on every ${k.spawnToken.everyNKills === 2 ? "second" : `${k.spawnToken.everyNKills}th`} kill` : ""}${k.spawnToken.maxAlive ? ` (max ${k.spawnToken.maxAlive} at once)` : ""}`,
       k.extendStatus &&
         `extends ${k.extendStatus.kind} on every enemy by ${k.extendStatus.rounds} round${k.extendStatus.rounds > 1 ? "s" : ""}`,
       k.coinBonusDmg && `+${k.coinBonusDmg}/${k.coinBonusDmg - 1} DMG`,

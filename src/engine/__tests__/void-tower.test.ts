@@ -100,7 +100,7 @@ describe("the roster", () => {
       // 96 -> 72. Its 88.5% broke down as 74% OVERRUN + 15% timeout, and the
       // pack was not the cause — halving Pack Law moved it 1 point, removing the
       // wolves entirely moved it 4. Bodies are not what the clock is spent on.
-      boss_thunderfangs: 72,
+      boss_thunderfangs: 76,
       // Umbranova does not need a Floor-4 body to be a Floor-4 fight: its
       // damage ignores position and escalates every cast, so the threat is the
       // countdown rather than the meat.
@@ -744,6 +744,25 @@ describe("Thunderfangs, Stormform — the second form", () => {
                              ["sp", one.sp, two.sp], ["shields", one.shields, two.shields]] as const)
       expect(b, `${k} is +20%`).toBe(Math.round(a * 1.2));
     expect(two.hits, "hits are not a percentage").toBe(one.hits);
+  });
+
+  it("raises a wolf on every SECOND kill — deterministically, never on a roll", () => {
+    // The owner asked for the pack to come "on a chance after kill". Void Tower
+    // requires its bosses to roll no dice — `chanceProblems` pins it, and the
+    // design doc replaced its own 50% rolls with deterministic effects for the
+    // same reason — so this is the deterministic form of "sometimes": every
+    // OTHER kill. Same every-so-often feel, and the player can count it.
+    const s = prepState();
+    const boss = place(s, "boss_thunderfangs", "P1", 2, 1);
+    const wolves = () => boardCards(s, "P1").filter((c) => c.defId === "gale_sparkwolf_tok").length;
+    const seen: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      const victim = place(s, "leaf_stickviper", "P2", 1, 1, { curHp: 1, maxHp: 1, curShields: 0 });
+      basicAttack(s, boss.instanceId, victim.instanceId);
+      seen.push(wolves());
+    }
+    expect(seen, "nothing, wolf, nothing, wolf").toEqual([0, 1, 1, 2]);
+    expect(getDef("boss_thunderfangs").onKill!.spawnToken!.everyNKills).toBe(2);
   });
 
   it("GROWS, it does not heal — the wound carries into the new form", () => {

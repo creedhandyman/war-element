@@ -10541,8 +10541,13 @@ export const CARDS: CardDef[] = [
     //
     // Still the smallest printed line on Floor 3, which was always the design:
     // most of this card's damage is borrowed from the pack and handed back as
-    // the pack dies. 57.3%, top of its floor over Vulcanyx's 51.0.
-    hp: 32,
+    // the pack dies.
+    //
+    // Settled at 76 (69.8%) rather than 72 (60.4%) — the owner wants this one
+    // near 70, and it is the top of Floor 3 either way. The curve here is steep:
+    // 72 -> 76 -> 80 reads 60.4 -> 69.8 -> 77.1, so four points of body is worth
+    // roughly eight of win rate and this number wants leaving alone.
+    hp: 36,
     sp: 14,
     shields: 3,
     keywords: {},
@@ -10565,7 +10570,7 @@ export const CARDS: CardDef[] = [
     // is the stat its own damage is borrowed from. The wolves ELECTRIFY what
     // they bite and Storm Teeth adds 4 against the electrified, so the pack
     // sets its leader up as well as escorting it.
-    onKill: { spawnToken: { token: "gale_sparkwolf_tok", count: 1, maxAlive: 3 } },
+    onKill: { spawnToken: { token: "gale_sparkwolf_tok", count: 1, maxAlive: 3, everyNKills: 2 } },
     // STORMFORM at five kills: the hunt becomes the storm. +20% on every line
     // (10/50/14/6 -> 12/60/17/7), taken as a real second form rather than a
     // buff, so the art and the name change with it and the board can see what
@@ -10600,13 +10605,13 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 12,
-    // Every printed line +20% off the first form (10/32/14/3), rounded to the
-    // nearest whole: body 72 -> 87. Not a floor-4 body and not meant to be —
+    // Every printed line +20% off the first form (10/36/14/3), rounded to the
+    // nearest whole: body 76 -> 92. Not a floor-4 body and not meant to be —
     // this is Floor 3's boss having earned five kills, not a bigger boss. Moves
     // whenever the first form moves; a test pins the +20% relationship.
     dmg: 12,
     hits: 2,
-    hp: 38,
+    hp: 43,
     sp: 17,
     shields: 4,
     keywords: {},
@@ -10617,7 +10622,7 @@ export const CARDS: CardDef[] = [
     // every acquisition path exactly like the rest.
     passiveNames: { roundTick: "Pack Law", vsStatus: "Storm Teeth", onKill: "Raise the Pack" },
     vsStatus: { status: "ELECTRIFIED", bonusDmg: 4 },
-    onKill: { spawnToken: { token: "gale_sparkwolf_tok", count: 1, maxAlive: 3 } },
+    onKill: { spawnToken: { token: "gale_sparkwolf_tok", count: 1, maxAlive: 3, everyNKills: 2 } },
     roundTick: {
       fireSpecialEveryN: 3,
       packDmg: { tribe: "Wolf", per: 3, max: 12 },
