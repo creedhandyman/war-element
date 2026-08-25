@@ -97,7 +97,10 @@ describe("the roster", () => {
       // most of its damage is borrowed from the pack and handed back as
       // the pack dies, so a Floor-3 body on top of that is two bosses'
       // worth of threat. It measured 97% at 90 HP.
-      boss_thunderfangs: 96,
+      // 96 -> 72. Its 88.5% broke down as 74% OVERRUN + 15% timeout, and the
+      // pack was not the cause — halving Pack Law moved it 1 point, removing the
+      // wolves entirely moved it 4. Bodies are not what the clock is spent on.
+      boss_thunderfangs: 72,
       // Umbranova does not need a Floor-4 body to be a Floor-4 fight: its
       // damage ignores position and escalates every cast, so the threat is the
       // countdown rather than the meat.

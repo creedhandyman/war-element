@@ -1049,6 +1049,27 @@ is the player's condition, and a test pins both halves. One pre-existing test
 asserted "a boss holding every home slot has not won" and is re-pointed; it still
 guards that the ending is an overrun and never a capture.
 
+**THE BODY IS WHAT THE CLOCK IS SPENT ON — the finding that closed the tower
+out.** Umbranova and Thunderfangs both sat near 95% and both shrugged off every
+systemic change of the session. Breaking their wins down BY TYPE is what
+explained them, and it should be the first move on any boss that will not budge:
+
+    Umbranova    94.8%  =  69% overrun + 26% TIMEOUT + 0% elimination
+    Thunderfangs 88.5%  =  74% overrun + 15% timeout + 0% elimination
+
+Zero eliminations means the player never killed the thing. That is a BODY
+problem, and it is invisible in the aggregate — both bosses' signature mechanics
+turned out to be nearly irrelevant to the outcome:
+  * Umbranova's Meteor Fall at 6 damage instead of 10 still read 88.5%, and
+    removing `pen` entirely changed NOTHING (94.8% either way).
+  * Thunderfangs' pack: halving Pack Law's cap moved it 1 point; removing the
+    wolves ENTIRELY moved it 4. Wolves are bodies, and bodies are not what a
+    24-round clock gets spent on.
+
+Retuned on body alone: Umbranova 128 -> 90 (94.8 -> 72.9, timeouts 26% -> 16%),
+Thunderfangs 96 -> 72 (88.5 -> 57.3). Stormform tracks the first form at +20% on
+every line and a test pins that relationship, so it moved to 87 with it.
+
 **HOARFELL CRUSHES — `trampleDmg`, and the gait shoves too.** The juggernaut was
 the weakest fight on Floor 3 at 30.2%, because the Fortress Gates do not merely
 slow it, they switch it off: its momentum ramp needs UNOBSTRUCTED advance and

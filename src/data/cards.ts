@@ -10532,9 +10532,19 @@ export const CARDS: CardDef[] = [
     // two bosses' worth of threat. At roughly half it lands in band, and the
     // small printed line is the point: this is what is left of Thunderfangs
     // once you have done the work the fight is asking for.
-    hp: 50,
+    // 90/10 -> 50/6 -> 32/3 (body 96 -> 72). Same finding as Umbranova, arrived at
+    // the same way: broken down, its 88.5% was 74% OVERRUN and 15% timeout with
+    // the player's only wins coming by slaying. The pack was not the cause —
+    // halving Pack Law's cap moved it 1 point and removing the wolves ENTIRELY
+    // moved it 4 — because the wolves are bodies, and bodies are not what the
+    // 24-round clock is spent on. The BODY is.
+    //
+    // Still the smallest printed line on Floor 3, which was always the design:
+    // most of this card's damage is borrowed from the pack and handed back as
+    // the pack dies. 57.3%, top of its floor over Vulcanyx's 51.0.
+    hp: 32,
     sp: 14,
-    shields: 6,
+    shields: 3,
     keywords: {},
     tribe: "Wolf",
     boss: true,
@@ -10590,14 +10600,15 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 12,
-    // Every printed line +20% off the first form (10/50/14/6), rounded to the
-    // nearest whole: body 96 -> 115. Not a floor-4 body and not meant to be —
-    // this is Floor 3's boss having earned five kills, not a bigger boss.
+    // Every printed line +20% off the first form (10/32/14/3), rounded to the
+    // nearest whole: body 72 -> 87. Not a floor-4 body and not meant to be —
+    // this is Floor 3's boss having earned five kills, not a bigger boss. Moves
+    // whenever the first form moves; a test pins the +20% relationship.
     dmg: 12,
     hits: 2,
-    hp: 60,
+    hp: 38,
     sp: 17,
-    shields: 7,
+    shields: 4,
     keywords: {},
     tribe: "Wolf",
     boss: true,
