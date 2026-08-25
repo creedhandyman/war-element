@@ -10671,7 +10671,29 @@ export const CARDS: CardDef[] = [
     // Special was not the problem and the sweeps say so — 6 damage instead of 10
     // still read 88.5%, and removing `pen` entirely changed NOTHING. Its body was
     // the problem, because the body is what the clock is spent on.
-    hp: 60,
+    //
+    // 60 -> 100 (body 90 -> 130) at the owner's call. Worth knowing what that
+    // walks back toward: 128 is the body the two paragraphs above tore down for
+    // reading 94.8%. It is NOT the same 128, because that measurement predates
+    // the Fortress Gates, the auto-fire reach fix and the overrun rework — and
+    // measured after all three, this was the WEAKEST fight on Floor 4 (60.4%,
+    // against Cryovex and Kato at 70.8 and Kazehaya at 67.7).
+    //
+    // HP is a very strong lever on THIS boss specifically — swept in one pass:
+    //
+    //     hp 60   60.4%       hp 100   82.3%
+    //     hp 80   77.1%       hp 120   86.5%
+    //
+    // which is the mirror image of the finding above. Damage did nothing to this
+    // fight (6 instead of 10 read 88.5%, dropping `pen` read the same) because
+    // the Special was never what decided it; HP moves it 22 points across the
+    // same span, because the body IS what the clock gets spent on and Meteor
+    // Fall means the player cannot shorten the clock by repositioning.
+    //
+    // 100 is the owner's call and it puts this ~12 points clear of the rest of
+    // the floor. That is a deliberate difficulty ordering, not a miss — if it
+    // should come back into band, 80 is the nearest rung.
+    hp: 100,
     sp: 8,
     shields: 5,
     keywords: {},

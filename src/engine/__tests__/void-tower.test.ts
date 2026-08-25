@@ -111,8 +111,14 @@ describe("the roster", () => {
       // 26% TIMEOUT and 0% elimination, i.e. the player never killed it. The
       // Special was not the cause (6 damage instead of 10 still read 88.5%, and
       // dropping `pen` changed nothing); the BODY was, because the body is what
-      // the clock gets spent on. 72.9% now.
-      boss_umbranova: 90,
+      // the clock gets spent on.
+      //
+      // 90 -> 130 (hp 60 -> 100) at the owner's call. Re-swept after the Gates,
+      // the reach fix and the overrun rework, this fight had drifted to the
+      // WEAKEST on its floor at 60.4%, and HP is the lever that moves it:
+      // 60/80/100/120 read 60.4 / 77.1 / 82.3 / 86.5. At 100 it is now the
+      // hardest fight on Floor 4 by about 12 points, deliberately.
+      boss_umbranova: 130,
       // Kazehaya is a THRESHOLD boss: 15 damage on the sword, and 15 as the
       // line its Riposte trips over. Sized against its neighbours, not the cap,
       // and it landed in the band first try — 67.7% against Umbranova 60.4,

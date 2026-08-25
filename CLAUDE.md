@@ -1107,6 +1107,16 @@ Retuned on body alone: Umbranova 128 -> 90 (94.8 -> 72.9, timeouts 26% -> 16%),
 Thunderfangs 96 -> 76 (88.5 -> 69.8). Stormform tracks the first form at +20% on
 every line and a test pins that relationship, so it followed to 92.
 
+**UMBRANOVA IS BACK UP: body 90 -> 130 (hp 60 -> 100), owner's call.** Re-measured
+after the Gates, the reach fix and the overrun rework, it had drifted to the
+WEAKEST fight on Floor 4 at 60.4%. HP is the lever on this one and it is steep —
+hp 60/80/100/120 reads 60.4 / 77.1 / 82.3 / 86.5 — which is the exact mirror of
+the finding above that its DAMAGE moves nothing. Meteor Fall ignores position, so
+the player cannot shorten the clock by repositioning; the body is all there is to
+chew through. At hp 100 it is now ~12 points clear of the rest of Floor 4
+(Cryovex 70.8, Kato 70.8, Kazehaya 67.7) — a deliberate difficulty ordering. If it
+should come back into band, 80 is the nearest rung.
+
 THUNDERFANGS' CURVE IS STEEP — leave the number alone: body 72 / 76 / 80 reads
 60.4% / 69.8% / 77.1%, so four points of body is worth about eight of win rate.
 
