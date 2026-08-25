@@ -10833,16 +10833,16 @@ export const CARDS: CardDef[] = [
     // Tracks: it grinds forward and the run builds, and TRAMPLE means bodies do
     // not stop it — the two halves of a war machine working together.
     roundTick: { fireSpecialEveryN: 3, advance: 1, momentum: { per: 2, max: 8 } },
+    // A DIFFERENT HANDLER PER FORM, not one move with three sets of numbers.
+    // `battleCharge` is the machine's: it rolls forward and ploughs the lane it
+    // ends up in, biggest hit on whatever it meets first and the shunt behind.
     special: {
       name: "Shattercharge",
       cost: 3,
-      handler: "barrage",
-      params: {
-        dmg: 9, targets: 99, reach: 2,
-        statusKind: "ELECTRIFIED", statusDuration: 2,
-      },
+      handler: "battleCharge",
+      params: { charge: 1, dmg: 14, chainDmg: 8, pen: 1, push: 1 },
       targetSide: "enemy",
-      text: "9 DMG and ELECTRIFIED for 2 rounds to every opponent within 2 spaces.",
+      text: "Rolls a slot forward and ploughs the lane: 14 DMG through shields to the first opponent ahead and 8 to everything packed behind it, shoving the front one back.",
     },
   },
   {
@@ -10886,9 +10886,14 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Pounce",
       cost: 3,
-      handler: "barrage",
+      // `strike`, and it HAS to be: `takeSpotOnKill` and `chargeLateral` are
+      // strike-only params, and this was written as a barrage — which reads
+      // `chargeFirst`/`charge` but ignores both of those, so the pounce never
+      // took the square and never sprang sideways. It was a slightly odd volley
+      // wearing a cat's name.
+      handler: "strike",
       params: {
-        dmg: 13, pen: 1, targets: 1, chargeFirst: 1, charge: 2, chargeLateral: 1,
+        dmg: 13, pen: 1, chargeFirst: 1, charge: 2, chargeLateral: 1,
         takeSpotOnKill: 1,
         statusKind: "ELECTRIFIED", statusDuration: 2,
       },
@@ -10928,9 +10933,17 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Thunderhead",
       cost: 3,
+      // The only barrage of the three: a strafing run down a whole column, from
+      // above and out of reach. Machine ploughs, cat springs, jet strafes.
       handler: "barrage",
+      // ignoreHomeRule, the same exemption Helion's Solar Lance needs and for
+      // the same reason: the Home-Slot rule lets a defender's home slot be
+      // targeted only from a MID row or from inside it, and this thing lives in
+      // its own home row (aimLateral only slides along that row). Measured, the
+      // strafing run was doing 10 to the mid row and ZERO to the back line —
+      // beatable by parking everything at the back, which is not what a jet is.
       params: {
-        dmg: 10, pen: 1, targets: 99, sameColumn: 1,
+        dmg: 10, pen: 1, targets: 99, sameColumn: 1, ignoreHomeRule: 1,
         statusKind: "ELECTRIFIED", statusDuration: 2,
       },
       ranged: true,

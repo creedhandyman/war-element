@@ -21,7 +21,7 @@ import { advance, applyIntent } from "../phases";
 import { canTarget, shoveTarget } from "../rules";
 import { homeRow } from "../types";
 import { VOID_BOSS_INCOME } from "../types";
-import { SPECIAL_HANDLERS, applyStatus, basicAttack, defeatCard } from "../combat";
+import { SPECIAL_HANDLERS, applyStatus, basicAttack, defeatCard, fireCardSpecial } from "../combat";
 import { canFireSpecial, canMove } from "../rules";
 import { boardCards } from "../state";
 import { BOSS_HOLD_ROUNDS, MAX_ROUNDS, VOID_TOWER_ROUNDS } from "../types";
@@ -998,6 +998,56 @@ describe("Kato — the chain that has to be broken three times", () => {
     // were not flagged, breaking the first shell would end the floor.
     for (const id of ["boss_kato", "boss_kato_2", "boss_kato_3"])
       expect(getDef(id).boss, id).toBe(true);
+  });
+
+  it("each shell FIGHTS differently — three handlers, not one move resized", () => {
+    // Machine ploughs, cat springs, jet strafes. All three were `barrage` at
+    // first, which made them one move with three sets of numbers — and it also
+    // broke the cat outright: `takeSpotOnKill` and `chargeLateral` are
+    // strike-only params, so a barrage read neither and the pounce never took
+    // the square it landed on.
+    const handlers = ["boss_kato", "boss_kato_2", "boss_kato_3"]
+      .map((id) => getDef(id).special!.handler);
+    expect(new Set(handlers).size, "three different handlers").toBe(3);
+    expect(handlers).toEqual(["battleCharge", "strike", "barrage"]);
+  });
+
+  it("the machine ploughs a LANE — hardest at the front, and nothing off it", () => {
+    const s = bigPrepState();
+    const boss = place(s, "boss_kato", "P2", 1, 2);
+    const front = place(s, "leaf_stickviper", "P1", 3, 2, { curHp: 90, maxHp: 90, curShields: 0 });
+    const behind = place(s, "leaf_stickviper", "P1", 4, 2, { curHp: 90, maxHp: 90, curShields: 0 });
+    const aside = place(s, "leaf_stickviper", "P1", 3, 0, { curHp: 90, maxHp: 90, curShields: 0 });
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    const hit = (c: typeof front) => 90 - s.cards[c.instanceId].curHp;
+    expect(hit(front), "the one it meets").toBeGreaterThan(hit(behind));
+    expect(hit(behind), "and the shunt behind it").toBeGreaterThan(0);
+    expect(hit(aside), "nothing out of the lane").toBe(0);
+  });
+
+  it("the cat SPRINGS and takes the square", () => {
+    const s = bigPrepState();
+    const boss = place(s, "boss_kato_2", "P2", 1, 1);
+    const prey = place(s, "leaf_stickviper", "P1", 3, 3, { curHp: 1, maxHp: 1, curShields: 0 });
+    const square = { ...prey.pos! };
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    expect(s.cards[boss.instanceId].pos, "it lands where the prey stood").toEqual(square);
+  });
+
+  it("the jet STRAFES a column, back line included", () => {
+    // ignoreHomeRule, the same exemption Helion needs: this form lives in its
+    // own home row (aimLateral only slides along it), and without the exemption
+    // the strafing run measured 10 to the mid row and ZERO to the home row —
+    // beatable by parking everything at the back.
+    const s = bigPrepState();
+    const boss = place(s, "boss_kato_3", "P2", 0, 2);
+    const mid = place(s, "leaf_stickviper", "P1", 2, 2, { curHp: 90, maxHp: 90, curShields: 0 });
+    const back = place(s, "leaf_stickviper", "P1", 4, 2, { curHp: 90, maxHp: 90, curShields: 0 });
+    const other = place(s, "leaf_stickviper", "P1", 4, 0, { curHp: 90, maxHp: 90, curShields: 0 });
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    expect(90 - s.cards[mid.instanceId].curHp, "down the column").toBeGreaterThan(0);
+    expect(90 - s.cards[back.instanceId].curHp, "and into the back line").toBeGreaterThan(0);
+    expect(90 - s.cards[other.instanceId].curHp, "one column only").toBe(0);
   });
 
   it("each shell answers to something different", () => {
