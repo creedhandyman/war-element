@@ -120,8 +120,9 @@ describe("the roster", () => {
       boss_cryovex: 131,
       // Kato is THREE bodies — 62 + 74 + 72 across the chain — so each shell is
       // small and only the first is checked against the floor cap. Winning the
-      // fight means winning it three times. 79.2%, with 79% of fights reaching
-      // Prowlform and 26% reaching Stormwing.
+      // fight means winning it three times. 70.8%, with 89% of fights reaching
+      // Prowlform and 46% reaching Stormwing — the chain is the fight, and both
+      // later shells are seen often enough to be worth authoring separately.
       boss_kato: 62,
       // Smolder is a Floor-1 body and reads 69% — most of its threat is the
       // BURN it puts on anything that touches it, which costs no stat points
@@ -1032,6 +1033,44 @@ describe("Kato — the chain that has to be broken three times", () => {
     const square = { ...prey.pos! };
     fireCardSpecial(s, s.cards[boss.instanceId]);
     expect(s.cards[boss.instanceId].pos, "it lands where the prey stood").toEqual(square);
+  });
+
+  it("the cat springs TWICE, and the second leap picks a fresh victim", () => {
+    // A double pounce that lands both feet on the same card is just a bigger
+    // single hit. The second spring re-picks its target from where the cat
+    // LANDED, preferring anything it has not already mauled — the read of the
+    // move is the cat bouncing between two of your cards.
+    const s = bigPrepState();
+    const boss = place(s, "boss_kato_2", "P2", 1, 1);
+    const near = place(s, "leaf_stickviper", "P1", 2, 2, { curHp: 90, maxHp: 90, curShields: 0 });
+    const other = place(s, "leaf_stickviper", "P1", 3, 2, { curHp: 90, maxHp: 90, curShields: 0 });
+    const away = place(s, "leaf_stickviper", "P1", 4, 4, { curHp: 90, maxHp: 90, curShields: 0 });
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    const hit = (c: typeof near) => 90 - s.cards[c.instanceId].curHp;
+    expect(hit(near), "the first pounce").toBeGreaterThan(0);
+    expect(hit(other), "and a second one, elsewhere").toBeGreaterThan(0);
+    expect(hit(away), "two leaps, not a nova").toBe(0);
+  });
+
+  it("and springs again at the SAME card only when nothing else is standing", () => {
+    // The bound is what matters here: `pounceAgain` is stripped from the params
+    // it recurses with, so a lone target takes exactly two hits, not a loop.
+    const s = bigPrepState();
+    const boss = place(s, "boss_kato_2", "P2", 1, 1);
+    const only = place(s, "leaf_stickviper", "P1", 2, 2, { curHp: 200, maxHp: 200, curShields: 0 });
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    const dmg = getDef("boss_kato_2").special!.params!.dmg as number;
+    expect(200 - s.cards[only.instanceId].curHp, "twice, and then it stops").toBe(dmg * 2);
+  });
+
+  it("the second spring takes its square too, if that leap kills", () => {
+    const s = bigPrepState();
+    const boss = place(s, "boss_kato_2", "P2", 1, 1);
+    place(s, "leaf_stickviper", "P1", 2, 2, { curHp: 1, maxHp: 1, curShields: 0 });
+    const second = place(s, "leaf_stickviper", "P1", 3, 3, { curHp: 1, maxHp: 1, curShields: 0 });
+    const square = { ...second.pos! };
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    expect(s.cards[boss.instanceId].pos, "it ends on the second kill").toEqual(square);
   });
 
   it("the jet STRAFES a column, back line included", () => {

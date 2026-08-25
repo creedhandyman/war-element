@@ -3560,6 +3560,35 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         else chargeForward(draft, attacker, num(params, "charge"));
       }
     }
+    // POUNCE AGAIN (Kato, Prowlform): spring a second time, re-picking the
+    // target from where it LANDED rather than from where it started. That is the
+    // whole point of a double pounce — the second leap is chosen by the board the
+    // first one left behind, so killing the first target sends the cat somewhere
+    // you did not expect.
+    //
+    // Nearest surviving enemy, ties by instanceId, so it is deterministic like
+    // everything else in this mode. `pounceAgain` is STRIPPED from the params it
+    // recurses with, which is what bounds this at exactly two.
+    if (num(params, "pounceAgain") > 0 && attacker.curHp > 0 && attacker.pos) {
+      const here = attacker.pos;
+      const first = targets[0]?.instanceId;
+      const next = boardCards(draft, enemyOf(attacker.owner))
+        .filter((e) => e.curHp > 0 && e.pos && draft.cards[e.instanceId])
+        // A FRESH victim outranks distance: two pounces onto the same card is
+        // just a big single hit, and the whole read of the move is the cat
+        // bouncing between two of your cards. The one it already mauled is only
+        // chosen when nothing else is left standing.
+        .sort((a, b) =>
+          Number(a.instanceId === first) - Number(b.instanceId === first)
+          || chebyshev(here, a.pos!) - chebyshev(here, b.pos!)
+          || a.instanceId.localeCompare(b.instanceId))[0];
+      if (next) {
+        const { pounceAgain: _drop, ...once } = params as Record<string, number | string>;
+        void _drop;
+        draft.log.push(`${label(draft, attacker)} lands and springs again.`);
+        SPECIAL_HANDLERS.strike(draft, attacker, [next], once);
+      }
+    }
   },
 
   /** Battle Charge (WarPhant): rumble forward, then hit the column it is facing

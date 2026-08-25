@@ -10898,13 +10898,21 @@ export const CARDS: CardDef[] = [
       // took the square and never sprang sideways. It was a slightly odd volley
       // wearing a cat's name.
       handler: "strike",
+      // TWICE. The second spring re-picks its target from where the cat LANDED,
+      // so killing the first one sends it somewhere you were not expecting.
+      //
+      // 11 a leap, measured: one 13 read 60.4%, two 9s 64.6%, two 11s 70.8% —
+      // and two 13s ALSO 70.8%, i.e. saturated. Past 11 the extra damage lands
+      // on things the pounce was already killing, so 11 is the whole gain at
+      // the smaller number. The control matters as much as the result: one 9
+      // read 61.5%, so the lift is the second spring, not the numbers.
       params: {
-        dmg: 13, pen: 1, chargeFirst: 1, charge: 2, chargeLateral: 1,
-        takeSpotOnKill: 1,
+        dmg: 11, pen: 1, chargeFirst: 1, charge: 2, chargeLateral: 1,
+        takeSpotOnKill: 1, pounceAgain: 1,
         statusKind: "ELECTRIFIED", statusDuration: 2,
       },
       targetSide: "enemy",
-      text: "Springs up to 2 slots and lands on one target: 13 DMG through shields and ELECTRIFIED for 2 rounds. If the pounce kills, Kato takes its place.",
+      text: "Springs up to 2 slots onto a target for 11 DMG through shields and ELECTRIFIED for 2 rounds — then springs AGAIN at whatever is nearest where it landed. Either pounce that kills takes the victim's square.",
     },
   },
   {
