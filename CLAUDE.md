@@ -914,6 +914,43 @@ engine runtime and no React, so it stays testable headlessly
   switching regions changed the volume. Normalize from the MASTER, not from the
   committed 96k file, or you stack two generations of lossy encoding.
 
+## Spells — the "written but never read" bug class
+
+**RECON PING DID NOTHING FOR ITS ENTIRE LIFE.** It set
+`players[foe].handRevealedUntilRound` and NOTHING anywhere in the app read that
+field — not the UI, not the engine — while the card's own comment claimed "the
+reveal is information only, the UI reads it". A Cost-2 spell whose headline
+effect was a number no one looked at. `Board.tsx` reads it now (the opposing fan
+turns face up for the round, art and all, with "HAND EXPOSED" replacing "deck
+hidden").
+
+**AUDITED ALL 80 SPELLS FOR THE SAME SHAPE. Nothing else is dead.** Three levels,
+because the cheap check is not sufficient:
+  1. every spell produces a real state change when cast — all 80 pass;
+  2. every spell-effect FIELD has a consumer — 31 distinct fields, none
+     write-only. Five `field:` keys looked dead to a string-key grep
+     (burnPersists, enemyMissChance, extendStatus, flowRepick, kinds) and all
+     five are read by PROPERTY ACCESS instead, so grep counts alone lie;
+  3. no `PlayerState` field is write-only, which is the exact shape of the bug.
+     `handRevealedUntilRound` was the only one.
+
+THE FIRST CHECK IS THE FLOOR, NOT THE CEILING, and the pinned test says so:
+Recon Ping would have PASSED it before the fix, because it did change state (it
+set the field) while doing nothing observable. Catching that class needs level 2
+or 3.
+
+Writing the harness is most of the work: a spell that appears dead is usually the
+harness. Element-gated heals and commands refuse without a WOUNDED SAME-ELEMENT
+ally ("No BORE ally to heal"), enemies must sit outside their home row for the
+Home-Slot rule, wall/aoe spells need a bare `row`, and swap/reroute need
+`targetIds` + empty `slots`. Eleven spells looked broken for those reasons alone.
+
+**TOTAL NETWORK CONTROL** was a different fault — it worked and was trivially
+bypassed. It sprayed MUTED once, so the answer to a Cost-10 ultimate was to
+summon a fresh card. It is a LOCK on the player now
+(`networkLockUntilRound`, 3 rounds), applied AT THE SUMMON SITE as well as at
+cast, so reinforcements arrive muted too.
+
 ## Void Tower (boss framework — data + engine only; NO mode yet)
 
 Spec: `Downloads\War_Element_Void_Tower_Bosses.md`. Its companion mode doc

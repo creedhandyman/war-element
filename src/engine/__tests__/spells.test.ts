@@ -1112,7 +1112,7 @@ describe("Recon Ping actually reveals, and Total Network Control actually locks"
 });
 
 describe("no spell writes a field nothing reads (the Recon Ping class)", () => {
-  it("every BOLT spell actually changes the game state when cast", () => {
+  it("EVERY spell in the game actually changes the state when cast", () => {
     // Recon Ping passed a weaker version of this check for its whole life: it
     // DID change state (it set handRevealedUntilRound) while doing nothing
     // observable, because no consumer existed. So this is the floor, not the
@@ -1126,26 +1126,60 @@ describe("no spell writes a field nothing reads (the Recon Ping class)", () => {
       ]),
       fields: g.fields.length, walls: g.walls.length,
     });
-    for (const sp of SPELLS.filter((x) => x.element === "BOLT")) {
-      const s = prepState();
-      s.players.P1.spellbook = [{ defId: sp.id, used: false }];
-      s.players.P1.magicPool = 20;
-      place(s, "leaf_alpha", "P1", 3, 0, { curHp: 30, maxHp: 30 });
-      place(s, "leaf_greegon", "P1", 3, 1, { curHp: 30, maxHp: 30 });
-      // Mid row, not the home row: the Home-Slot rule blocks targeting a home
-      // slot from outside it, which is a targeting rule and not a spell fault.
-      place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
-      place(s, "dusk_vamp", "P2", 1, 1, { curHp: 40, maxHp: 40 });
-      giveHand(s, "P2", "leaf_greegon");
-      const mine = boardCards(s, "P1").map((c) => c.instanceId);
-      const before = snap(s);
-      const n = applyIntent(s, {
-        type: "CAST_SPELL", player: "P1", spellId: sp.id,
-        targetId: boardCards(s, "P2")[0].instanceId,
-        row: 1, col: 1, targetIds: mine.slice(0, 2),
-        slots: [{ row: 2, col: 3 }, { row: 2, col: 2 }],
-      } as never);
-      expect(snap(n), `${sp.name} (${sp.id}) did nothing`).not.toBe(before);
+    // ONE WOUNDED ALLY PER ELEMENT. The element-gated heals and commands refuse
+    // without a same-element ally ("No BORE ally to heal", "No DAWN card to
+    // command"), and a heal refuses a target already at full HP — five spells
+    // looked broken for that reason alone before the board was built properly.
+    const setUp = () => {
+      const g = prepState();
+      g.players.P1.magicPool = 30;
+      g.players.P1.gold = 10;
+      place(g, "leaf_alpha", "P1", 3, 0, { curHp: 20, maxHp: 30 });
+      place(g, "bore_clubber", "P1", 3, 1, { curHp: 10, maxHp: 30 });
+      place(g, "gale_duster", "P1", 3, 2, { curHp: 5, maxHp: 20 });
+      place(g, "dusk_pumpkin", "P1", 3, 3, { curHp: 5, maxHp: 20 });
+      place(g, "dawn_beam", "P1", 2, 0, { curHp: 5, maxHp: 20 });
+      place(g, "aqua_subcool", "P1", 2, 1, { curHp: 5, maxHp: 20 });
+      place(g, "pyro_flamehound", "P1", 2, 3, { curHp: 5, maxHp: 20 });
+      place(g, "bolt_twotales", "P1", 0, 3, { curHp: 5, maxHp: 20 });
+      // Enemies in a MID row: the Home-Slot rule blocks targeting a home slot
+      // from outside it, which is a targeting rule and not a spell fault.
+      place(g, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+      place(g, "dusk_vamp", "P2", 1, 1, { curHp: 40, maxHp: 40 });
+      giveHand(g, "P2", "leaf_greegon");
+      g.cards[boardCards(g, "P1")[0].instanceId].specialCooldown = 2;
+      return g;
+    };
+
+    for (const sp of SPELLS) {
+      const probe = setUp();
+      const mineCards = boardCards(probe, "P1");
+      const mine = mineCards.map((c) => c.instanceId);
+      const kin = mineCards.filter((c) => getDef(c.defId).element === sp.element).map((c) => c.instanceId);
+      const foes = boardCards(probe, "P2").map((c) => c.instanceId);
+      const free = [{ row: 1, col: 2 }, { row: 1, col: 3 }];
+      const shapes: Record<string, unknown>[] = [
+        { targetId: kin[0] ?? mine[0], row: 1, col: 2, targetIds: (kin.length ? kin : mine).slice(0, 2), slots: free },
+        { targetId: foes[0], row: 1, col: 1, targetIds: mine.slice(0, 2), slots: free },
+        { row: 1, col: 2 },
+        { row: 2, col: 2 },
+        { row: 2 },
+        { row: 1 },
+        { row: 3 },
+        { row: 0 },
+        {},
+      ];
+      let moved = false;
+      for (const shape of shapes) {
+        const g = setUp();
+        g.players.P1.spellbook = [{ defId: sp.id, used: false }];
+        const before = snap(g);
+        try {
+          const n = applyIntent(g, { type: "CAST_SPELL", player: "P1", spellId: sp.id, ...shape } as never);
+          if (snap(n) !== before) { moved = true; break; }
+        } catch { /* wrong shape for this spell — try the next */ }
+      }
+      expect(moved, `${sp.element} ${sp.name} (${sp.id}) did nothing`).toBe(true);
     }
   });
 });
