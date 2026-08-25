@@ -1049,6 +1049,26 @@ is the player's condition, and a test pins both halves. One pre-existing test
 asserted "a boss holding every home slot has not won" and is re-pointed; it still
 guards that the ending is an overrun and never a capture.
 
+**SKELEEZE AIMS, AND NIGHTSHRIKE CAME BACK DOWN.** Two follow-ups to the wall
+pass, both from on-device reports.
+
+Swiftshooter was `shiftLateral` — a blind one-slot shuffle that wrapped to the
+next OPEN square. It now uses Helion's `aimLateral` (toward the column holding
+the most of the player's cards) at TWO slots a round, TRADING places with
+anything in the way, so a screen parked in front of the archer relocates the
+problem rather than solving it. New `aimLateralSteps` (default 1) and
+`aimLateralSwap` on the shared gait, so Helion is untouched. 32.3% -> 42.7%.
+NOTE `aimLateral` honours BOSS_HOLD_ROUNDS and `shiftLateral` does not, so
+Skeleeze now holds its home row for the opening like everything else.
+
+NIGHTSHRIKE 77.1% -> 61.5% (shields 12 -> 6, Death From Above 12x3 -> 9x2, body
+108 -> 96). Worth reading as a cautionary tale about tuning mid-flight: this card
+was the tower's EASIEST fight at 45.5%, was given shields and a bigger dive to
+fix that, and then the war chest, the reach fix and the Fortress Gates all landed
+on top — leaving it the hardest thing on Floor 1, ahead of Smolder's 60.4 and
+double Permafrost's. The buff was correct when measured and wrong by the time the
+session ended. RE-MEASURE EARLIER TUNING AFTER ANY SYSTEMIC CHANGE.
+
 **RE-TUNING THE SLOW BOSSES AGAINST THE WALL — what worked and what did not.**
 The Gates cost the single-swing bosses everything, because SHIELDS BLOCK PER HIT:
 Smolder's 10 landed for ZERO against 10 shields, Permafrost's 14 for 4, and

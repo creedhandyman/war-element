@@ -78,7 +78,9 @@ describe("the roster", () => {
       boss_permafrost: 161, boss_overclock: 81,
       // 84 -> 108: +12 shields, the lever that took the tower's easiest fight
       // from 45.5% to 65.2%. Still the smallest body on Floor 1.
-      boss_nightshrike: 108, // 81 -> 95 (shields 3 -> 10) after the reach fix left it the weakest
+      // 84 -> 108 -> 96. The 108 was for a 45.5% pushover; it read 77.1% once
+      // the war chest, the reach fix and the Gates all landed. 61.5% now.
+      boss_nightshrike: 96, // 81 -> 95 (shields 3 -> 10) after the reach fix left it the weakest
       // fight on the tower at 54.2%. 68.8% now.
       boss_basilisk: 95, boss_skeleeze: 151,
       // Xilty trimmed 166 -> 154 when Web Trap was repaired (it declared no

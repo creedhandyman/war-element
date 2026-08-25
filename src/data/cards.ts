@@ -10171,7 +10171,14 @@ export const CARDS: CardDef[] = [
     // It is STILL the smallest body on Floor 1 at 108 (Smolder 114, Rotroot 165,
     // Permafrost 169), so the glass cannon is intact — it just is not made of
     // tissue paper any more.
-    shields: 12,
+    // 0 -> 12 -> 6 (body 108 -> 96). The 12 was right when this was the EASIEST
+    // fight on the tower at 45.5%; it overshot once everything else landed — the
+    // war chest, auto-fired Specials obeying their reach, and the Fortress Gates
+    // — and Nightshrike ended up the hardest thing on Floor 1 at 77.1%, ahead of
+    // Smolder's 60.4 and well ahead of Rotroot's 40.6. Halving the armour and
+    // trimming the dive puts it at 61.5%: still the top of the floor, no longer
+    // running away with it.
+    shields: 6,
     // FLYING, REINSTATED at the owner's call after playing it — Nightshrike was
     // the tower's easiest fight by a distance (41.7%) and the one boss the war
     // chest did not move at all (41.7 -> 40.6), so its problem was never gold.
@@ -10228,9 +10235,9 @@ export const CARDS: CardDef[] = [
       // together take it to 21%. Same average, better fight — the gain comes
       // from the matchup Nightshrike was losing worst instead of padding the
       // ones it already won.
-      params: { dmg: 12, targets: 3 },
+      params: { dmg: 9, targets: 2 },
       targetSide: "enemy",
-      text: "Dive three opponents for 12 DMG each.",
+      text: "Dive two opponents for 9 DMG each.",
     },
   },
   {
