@@ -193,4 +193,13 @@ export const BORE_LORE: Record<string, string> = {
 
   void_fortress_gate_tok:
     "It was never going to hold. It only had to hold for now.",
+
+  boss_kato:
+    "You will beat it. That is not the same as it being over.",
+
+  boss_kato_2:
+    "It left the wheels in the crater and came on anyway.",
+
+  boss_kato_3:
+    "Nothing left to armour. Nothing left to catch, either.",
 };

@@ -149,7 +149,7 @@ export const CODE_IDS: readonly string[] = [
   // deck after it.
   "boss_helion", "boss_hoarfell", "boss_thunderfangs", "boss_umbranova",
   "boss_smolder", "boss_vulcanyx", "boss_thunderfangs_2",
-  "boss_cryovex",
+  "boss_cryovex", "boss_kato", "boss_kato_2", "boss_kato_3",
 ];
 
 const INDEX_OF = new Map<string, number>(CODE_IDS.map((id, i) => [id, i]));

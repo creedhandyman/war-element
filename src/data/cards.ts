@@ -10780,6 +10780,157 @@ export const CARDS: CardDef[] = [
     },
   },
   {
+    id: "boss_kato",
+    name: "Kato",
+    rarity: "mythic",
+    element: "BORE",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 12,
+    // THREE BODIES, so each is small: 62 + 74 + 72 = 208 across a fight the
+    // player has to win three times. Only the FIRST form is checked against
+    // Floor 4's 350 cap — the other two are reached by the chain and carry no
+    // VOID_BOSSES entry, exactly like Stormform.
+    //
+    // BODY IS A WEAK LEVER HERE, measured: 40/40/34, 36/36/30 and 32/32/26 read
+    // 83.3%, 79.2% and 82.3% — all inside noise. Three lives means trimming each
+    // shell removes only a fraction of the total, so if this ever needs moving,
+    // move the CHAIN (a form's keywords, or how many forms there are) rather
+    // than the numbers on any one of them.
+    dmg: 14,
+    hits: 1,
+    hp: 36,
+    sp: 8,
+    shields: 2,
+    // THE MACHINE TRAMPLES — it is a war engine on tracks, and it rolls over
+    // what is in front of it. Lost when the shell breaks. Each form answers to
+    // something different, which is the whole fight: what beat the machine will
+    // not beat the cat.
+    keywords: { TRAMPLE: true },
+    tribe: "Cavernous",
+    boss: true,
+    // Floor 4 — THE THING THAT WON'T STAY DEAD, and the floor's third fight.
+    // Umbranova ignores position and Cryovex freezes you in place; both are, in
+    // their way, immune to where you stand. Kato is the opposite: it is a
+    // POSITIONAL fight three times over, and the position that solves one form
+    // is the wrong one for the next.
+    //
+    // Kill it and it gets back up as something else, at full HP, with different
+    // rules. Machine, then beast, then whatever is left flying — each shell
+    // lighter and faster than the one it climbed out of.
+    passiveNames: { transformOnDefeat: "Rebuild", onHitStatus: "Shardstrike" },
+    transformOnDefeat: { into: "boss_kato_2" },
+    // The BOLT half: crystal shrapnel leaves the storm in the wound.
+    onHitStatus: { kind: "ELECTRIFIED", duration: 2, power: 0 },
+    // Tracks: it grinds forward and the run builds, and TRAMPLE means bodies do
+    // not stop it — the two halves of a war machine working together.
+    roundTick: { fireSpecialEveryN: 3, advance: 1, momentum: { per: 2, max: 8 } },
+    special: {
+      name: "Shattercharge",
+      cost: 3,
+      handler: "barrage",
+      params: {
+        dmg: 9, targets: 99, reach: 2,
+        statusKind: "ELECTRIFIED", statusDuration: 2,
+      },
+      targetSide: "enemy",
+      text: "9 DMG and ELECTRIFIED for 2 rounds to every opponent within 2 spaces.",
+    },
+  },
+  {
+    id: "boss_kato_2",
+    name: "Kato, Prowlform",
+    rarity: "mythic",
+    element: "BORE",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 12,
+    dmg: 16,
+    hits: 1,
+    hp: 36,
+    sp: 12,
+    shields: 5,
+    // NO TRAMPLE — the tracks are gone and it walks on crystal now. It DODGES
+    // instead, and loses that too when this shell breaks: the cat is hard to HIT
+    // where the machine was hard to STOP. Whatever you brought for the first
+    // form is the wrong tool for the second.
+    //
+    // `firstAttackMisses`, not the EVASION keyword. Void Tower bosses roll no
+    // dice — `chanceProblems` fails the build on EVASION by name — and the
+    // design doc replaced its own 55% EVASION with exactly this for exactly that
+    // reason. It is the same idea made countable: the first swing at it each
+    // round misses, every round, and the player can plan around that instead of
+    // praying. `neverMiss` still beats it, like every other dodge.
+    keywords: {},
+    firstAttackMisses: true,
+    tribe: "Cavernous",
+    boss: true,
+    passiveNames: {
+      transformOnDefeat: "Rebuild", onHitStatus: "Shardstrike",
+      firstAttackMisses: "Crystal Blur",
+    },
+    transformOnDefeat: { into: "boss_kato_3" },
+    onHitStatus: { kind: "ELECTRIFIED", duration: 2, power: 0 },
+    // It stalks rather than rolls: forward, forward, back, hold — the same beat
+    // Basilisk keeps, on a body that is suddenly much quicker than the tank it
+    // climbed out of.
+    roundTick: { fireSpecialEveryN: 3, prowl: true },
+    special: {
+      name: "Pounce",
+      cost: 3,
+      handler: "barrage",
+      params: {
+        dmg: 13, pen: 1, targets: 1, chargeFirst: 1, charge: 2, chargeLateral: 1,
+        takeSpotOnKill: 1,
+        statusKind: "ELECTRIFIED", statusDuration: 2,
+      },
+      targetSide: "enemy",
+      text: "Springs up to 2 slots and lands on one target: 13 DMG through shields and ELECTRIFIED for 2 rounds. If the pounce kills, Kato takes its place.",
+    },
+  },
+  {
+    id: "boss_kato_3",
+    name: "Kato, Stormwing",
+    rarity: "mythic",
+    element: "BORE",
+    cardClass: "Assassin",
+    attackType: "Ranged",
+    cost: 12,
+    dmg: 18,
+    hits: 1,
+    hp: 30,
+    sp: 16,
+    shields: 4,
+    // FLYING, and no dodge — the last shell gets off the ground instead. The end of the chain: it declares no `transformOnDefeat`, so this
+    // one actually dies, and killing it is what ends the floor.
+    //
+    // FLYING is immunity to Melee, which is a lockout when a boss has it from
+    // round one (see Nightshrike). Here it is EARNED — the player has already
+    // beaten two forms by the time it matters, and it arrives as a change of
+    // problem rather than a wall in front of the whole fight.
+    keywords: { FLYING: true },
+    tribe: "Cavernous",
+    boss: true,
+    passiveNames: { onHitStatus: "Shardstrike", vsStatus: "Stormfall" },
+    onHitStatus: { kind: "ELECTRIFIED", duration: 2, power: 0 },
+    // The BOLT payoff, at the end of the chain: it hits the storm-struck harder,
+    // and every form before it has been leaving that storm behind.
+    vsStatus: { status: "ELECTRIFIED", bonusDmg: 5 },
+    roundTick: { fireSpecialEveryN: 3, aimLateral: true, aimLateralSteps: 2 },
+    special: {
+      name: "Thunderhead",
+      cost: 3,
+      handler: "barrage",
+      params: {
+        dmg: 10, pen: 1, targets: 99, sameColumn: 1,
+        statusKind: "ELECTRIFIED", statusDuration: 2,
+      },
+      ranged: true,
+      targetSide: "enemy",
+      text: "10 DMG through shields down the whole column it is over, and ELECTRIFIED for 2 rounds — and Stormfall adds 5 to everything it lands on the afflicted.",
+    },
+  },
+  {
     id: "boss_smolder",
     name: "Smolder",
     rarity: "mythic",

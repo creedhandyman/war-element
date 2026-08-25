@@ -37,9 +37,12 @@ describe("the roster", () => {
     // nothing about what is wrong.
     // SECOND FORMS are boss cards with no floor of their own — they are reached
     // by transforming, never by a fight listing them (Thunderfangs, Stormform).
-    const secondForms = new Set(
-      CARDS.map((c) => c.transformAtKills?.into).filter(Boolean) as string[],
-    );
+    // Reached by a chain, never by a floor listing them: Stormform (kill count)
+    // and Kato's shells (on defeat).
+    const secondForms = new Set([
+      ...CARDS.map((c) => c.transformAtKills?.into),
+      ...CARDS.map((c) => c.transformOnDefeat?.into),
+    ].filter(Boolean) as string[]);
     const fought = BOSSES.filter((b) => !secondForms.has(b.id));
     expect(fought).toHaveLength(VOID_BOSSES.length);
     for (const b of fought) expect(voidBossById(b.id), `${b.id} has framework data`).toBeTruthy();
@@ -115,6 +118,11 @@ describe("the roster", () => {
       // 3 bodies, the Special freezing 2 or 1, Hoarbite on/off, crystals inert,
       // and no freeze at all — measured 97.9-100% with ~80% overruns.
       boss_cryovex: 131,
+      // Kato is THREE bodies — 62 + 74 + 72 across the chain — so each shell is
+      // small and only the first is checked against the floor cap. Winning the
+      // fight means winning it three times. 79.2%, with 79% of fights reaching
+      // Prowlform and 26% reaching Stormwing.
+      boss_kato: 62,
       // Smolder is a Floor-1 body and reads 69% — most of its threat is the
       // BURN it puts on anything that touches it, which costs no stat points
       // at all.
@@ -938,6 +946,67 @@ describe("the Fortress Gates", () => {
   });
 });
 
+describe("Kato — the chain that has to be broken three times", () => {
+  const kill = (id: string) => {
+    const s = bigPrepState();
+    const boss = place(s, id, "P2", 2, 2, { curHp: 1 });
+    const killer = place(s, "leaf_alpha", "P1", 3, 2);
+    // Swing until the shell breaks. Prowlform costs two extra swings before it
+    // goes — the first is dodged (Crystal Blur) and the second is eaten by its
+    // shields — which this helper discovered the hard way and is worth keeping
+    // as a demonstration that both defences are live.
+    for (let i = 0; i < 6 && s.cards[boss.instanceId]?.defId === id; i++) {
+      s.cards[killer.instanceId].attackedThisRound = false;
+      basicAttack(s, killer.instanceId, boss.instanceId);
+    }
+    return s.cards[boss.instanceId];
+  };
+
+  it("rises as the next form at FULL HP instead of dying", () => {
+    const after = kill("boss_kato");
+    expect(after.defId).toBe("boss_kato_2");
+    expect(after.curHp, "a fresh shell").toBe(getDef("boss_kato_2").hp);
+    const after2 = kill("boss_kato_2");
+    expect(after2.defId).toBe("boss_kato_3");
+  });
+
+  it("...and the LAST form actually dies — that is what ends the floor", () => {
+    expect(getDef("boss_kato_3").transformOnDefeat, "no fourth shell").toBeUndefined();
+    const s = bigPrepState();
+    const boss = place(s, "boss_kato_3", "P2", 2, 2, { curHp: 1, curShields: 0 });
+    const killer = place(s, "leaf_alpha", "P1", 3, 2);
+    for (let i = 0; i < 6 && s.cards[boss.instanceId]; i++) {
+      s.cards[killer.instanceId].attackedThisRound = false;
+      basicAttack(s, killer.instanceId, boss.instanceId);
+    }
+    expect(s.cards[boss.instanceId], "gone").toBeUndefined();
+  });
+
+  it("every form is a BOSS, so slay-to-win cannot fire early", () => {
+    // The player's win condition is the absence of a boss card. If a middle form
+    // were not flagged, breaking the first shell would end the floor.
+    for (const id of ["boss_kato", "boss_kato_2", "boss_kato_3"])
+      expect(getDef(id).boss, id).toBe(true);
+  });
+
+  it("each shell answers to something different", () => {
+    // The whole fight: what beat the machine will not beat the cat.
+    expect(getDef("boss_kato").keywords.TRAMPLE, "tracks").toBe(true);
+    expect(getDef("boss_kato_2").keywords.TRAMPLE, "no tracks on the cat").toBeUndefined();
+    expect(getDef("boss_kato_2").firstAttackMisses, "it dodges instead").toBe(true);
+    expect(getDef("boss_kato_3").firstAttackMisses, "and stops dodging").toBeUndefined();
+    expect(getDef("boss_kato_3").keywords.FLYING, "it flies").toBe(true);
+  });
+
+  it("dodges DETERMINISTICALLY — no boss in this mode rolls dice", () => {
+    // EVASION is a roll and `chanceProblems` fails the build on it by name. The
+    // design doc replaced its own 55% EVASION with firstAttackMisses for the
+    // same reason: same idea, made countable.
+    expect(getDef("boss_kato_2").keywords.EVASION).toBeUndefined();
+    expect(chanceProblems(getDef("boss_kato_2"))).toEqual([]);
+  });
+});
+
 describe("Cryovex — Deep Freeze and the crystals", () => {
   it("hits harder the longer a target has been held, and caps", () => {
     const s = bigPrepState();
@@ -983,7 +1052,7 @@ describe("Cryovex — Deep Freeze and the crystals", () => {
 
   it("is the SECOND Floor-4 boss, and Pyrogon stayed with Umbranova", () => {
     expect(voidBossById("boss_cryovex")!.floor).toBe(4);
-    expect(bossesOnFloor(4).length, "two fights on the top floor").toBe(2);
+    expect(bossesOnFloor(4).length, "three fights on the top floor").toBe(3);
     const umbra = voidBossById("boss_umbranova")!;
     expect(umbra.summons, "the fire aura dragon belongs to the fire boss")
       .toContain("pyro_pyrogon");

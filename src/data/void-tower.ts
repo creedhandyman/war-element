@@ -338,6 +338,26 @@ export const VOID_BOSSES: VoidBoss[] = [
     puzzle: "The deep freeze: break it early — every round held hits harder.",
   },
   {
+    cardId: "boss_kato",
+    floor: 4,
+    tribeElement: "BORE",
+    mechanicElement: "BOLT",
+    tribe: "Cavernous",
+    // 10 + 9 + 6 + 5x2 + 1 = 36, exact — the WHOLE of Cavernous, which is a
+    // four-card tribe costing 5/6/9/10 and could not fund a floor below this
+    // one. It has waited three floors for a budget that fits it.
+    //
+    // Cavernous is also the only tribe that reads as what Kato is: things grown
+    // in the deep out of crystal and rock. The Zipp is the BOLT half showing up
+    // in person, and the cheapest thing on the board next to a 10-gold mythic —
+    // which is what a spark looks like beside a mountain.
+    summons: [
+      "bore_deepest", "bore_the_coreborer", "bore_score",
+      "bore_obsidi", "bore_obsidi", "bolt_zipp",
+    ],
+    puzzle: "The thing that won't stay dead: kill it three times, differently each time.",
+  },
+  {
     cardId: "boss_smolder",
     floor: 1,
     tribeElement: "LEAF",

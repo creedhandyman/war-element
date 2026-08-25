@@ -330,6 +330,9 @@ export function describePassives(def: CardDef): string[] {
     named("vsFrozenRamp",
       `+${r.per} DMG for every round a FROZEN target has been held, up to +${r.max}. Breaking the freeze resets it.`);
   }
+  if (def.transformOnDefeat)
+    named("transformOnDefeat",
+      `When it would be defeated it rises as ${getDef(def.transformOnDefeat.into).name} instead, at full HP.`);
   if (def.transformAtKills) {
     const t = def.transformAtKills;
     named("transformAtKills",

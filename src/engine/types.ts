@@ -589,6 +589,20 @@ export interface CardDef {
    *  in one battle rather than banked across a run, and the transform runs the
    *  ordinary `transform` handler: fresh body from the new form, stat mods
    *  wiped, the new form's onSummon fired. */
+  /** RISES AS SOMETHING ELSE: when this card would be defeated it becomes
+   *  `into` instead, at the new form's full HP. The last form in the chain
+   *  declares nothing and dies normally.
+   *
+   *  Forward, unlike the `transformedFrom` revert (Siren's Sea Terror), which
+   *  sends a disguise BACK to what it really was — so this deliberately does NOT
+   *  set `transformedFrom`, or the two would fight over the same death and the
+   *  chain would bounce instead of advancing.
+   *
+   *  Each form is its own card with its own keywords, which is the point: Kato
+   *  tramples as a beast, dodges as a machine, and flies as neither. Every form
+   *  carries `boss: true`, so the slay-to-win check does not fire until the last
+   *  one is actually gone. */
+  transformOnDefeat?: { into: string };
   transformAtKills?: { kills: number; into: string };
   /** WORTH NOTHING TO KILL. Defeating this card fires NO on-kill rider on the
    *  killer and does not advance its `killCount`.

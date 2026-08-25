@@ -347,6 +347,28 @@ export function defeatCard(
    *  needs it, so every other call site can go on ignoring it. */
   killer?: CardInstance,
 ): boolean {
+  // RISES AS SOMETHING ELSE (Kato): this form does not die, the NEXT one takes
+  // the field at full HP. Checked before the Siren revert below because the two
+  // answer the same moment in opposite directions — that one sends a disguise
+  // BACK to what it really was, this one carries a chain FORWARD — and a card
+  // that did both would bounce between forms instead of advancing. It never sets
+  // `transformedFrom`, which is what keeps them apart.
+  const rises = getDef(card.defId).transformOnDefeat?.into;
+  if (rises && card.pos) {
+    const nd = getDef(rises);
+    card.defId = rises;
+    card.maxHp = nd.hp;
+    card.curHp = nd.hp;
+    card.curShields = nd.shields;
+    card.dmgBonus = 0;
+    card.spBonus = 0;
+    card.hitsBonus = 0;
+    card.buffs = [];
+    card.statuses = [];
+    card.killCount = 0;
+    draft.log.push(`The ${cause} breaks the shell — ${nd.name} rises from the wreck!`);
+    return false;
+  }
   // Sea Terror (Siren): a transformed form doesn't die — it reverts to the
   // original card at full HP.
   if (card.transformedFrom && card.pos) {

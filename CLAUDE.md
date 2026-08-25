@@ -1194,6 +1194,39 @@ of the roster (from 80-93% on the worst offenders), because the boss can no long
 walk into an undefended home row. Umbranova is the lone holdout at 96.9% — its
 damage ignores position entirely, so a wall means nothing to it.
 
+**KATO — Floor 4's THIRD boss, and the tower's first CHAIN.** BORE tribe / BOLT
+mechanic, tribe Cavernous (the whole four-card tribe: Deepest + Coreborer +
+Venomarch + Obsidian x2 + a Zipp, 36 exact — Cavernous costs 5/6/9/10 and could
+not fund a floor below this one).
+
+Kill it and it gets back up as something else, at full HP, with different rules:
+
+    Kato (war machine)  TRAMPLE      -> lost when the shell breaks
+    Kato, Prowlform     dodges       -> lost when THAT shell breaks
+    Kato, Stormwing     FLYING       -> the end of the chain; this one dies
+
+New `transformOnDefeat: { into }` on CardDef, hooked at the TOP of `defeatCard`,
+ABOVE the Siren `transformedFrom` revert — the two answer the same moment in
+opposite directions (that one sends a disguise BACK, this carries a chain
+FORWARD) and a card doing both would bounce between forms instead of advancing.
+It deliberately never sets `transformedFrom`, which is what keeps them apart.
+Every form is `boss: true` so slay-to-win cannot fire until the last is gone, and
+the middle forms carry no VOID_BOSSES entry (the roster test knows that shape).
+
+THE DODGE IS `firstAttackMisses`, NOT EVASION. `chanceProblems` fails the build on
+EVASION by name — bosses here roll no dice — and the doc replaced its own 55%
+EVASION with exactly this. Same idea, made countable.
+
+79.2%, with 79% of fights reaching Prowlform and 26% reaching Stormwing. BODY IS
+A WEAK LEVER on a chain: 40/40/34, 36/36/30 and 32/32/26 measured 83.3 / 79.2 /
+82.3, all inside noise, because three lives means trimming each shell removes only
+a fraction of the total. Move the CHAIN if it needs moving, not the numbers.
+
+It is also the floor's answer to a real complaint about its shape: Umbranova
+ignores position and Cryovex freezes you in place, so both are in their way
+immune to where you stand. Kato is a POSITIONAL fight three times over, and the
+position that solves one form is the wrong one for the next.
+
 **CRYOVEX — Floor 4's SECOND boss** (AQUA tribe / DUSK mechanic, tribe Dragon).
 The ice flight: Hydrogon (AQUA's aura dragon, +4 SP to Vapor) + Glacius + Phrost
 + Sapphire + Coilblade + SkullDrake + Arctik, 36 exact. Pyrogon STAYS with
