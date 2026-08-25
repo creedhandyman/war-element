@@ -1814,6 +1814,9 @@ export interface SpellDef {
   /** Total Network Control: permanently discount the caster's BOLT Specials by N
    *  (min 1) for the rest of the game — applied after the AoE resolves. */
   grantBoltDiscount?: number;
+  /** Total Network Control: hold the OPPOSING side muted for N rounds, arrivals
+   *  included. See `PlayerState.networkLockUntilRound`. */
+  networkLock?: number;
   /** Volcanic Eruption: permanently grant every SAME-element ally +N DMG for the
    *  rest of the game, applied after the AoE resolves. Unlike the BOLT discount
    *  this lands on the CARDS, so it also covers allies summoned later. */
@@ -2025,6 +2028,10 @@ export interface PlayerState {
   /** Recon Ping: the round through which this player's hand is visible to the
    *  opponent. Information, not board state — the UI reads it. */
   handRevealedUntilRound?: number;
+  /** Total Network Control: the last round in which THIS player's cards are all
+   *  MUTED. A lock, not a status — so a card summoned after the spell landed is
+   *  muted too, which is what "the network is down" should mean. */
+  networkLockUntilRound?: number;
   /** Wake of the Dead, armed. `deaths` is the opponent's death count at the
    *  moment of casting, so only kills made AFTER it resolves are harvested —
    *  the spell says "killed this round", not "killed so far". */

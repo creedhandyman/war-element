@@ -1,5 +1,6 @@
 import type { FieldBuff, FieldState, GameState, PlayerId, Pos } from "../engine";
 import { cardAt, enemyOf, getSpell, homeRow, isContested } from "../engine";
+import { getDef } from "../data/cards";
 import { Slot } from "./Slot";
 import { EL_COLOR } from "./shared";
 
@@ -61,18 +62,41 @@ export function Board(props: {
   const foeGlow = "var(--opp-home-glow)";
   const opp = game.players[enemyOf(props.viewPlayer)];
   const oppName = (game.humans ?? ["P1"]).length > 1 ? enemyOf(props.viewPlayer) : "Opponent";
+  // Recon Ping: exposed for the round it was cast in, and no longer.
+  const revealed = (opp.handRevealedUntilRound ?? -1) >= game.round;
   return (
     <div className="board-area">
-      {/* Fog of war: the opponent's hand is face-down; their deck is hidden. */}
+      {/* Fog of war: the opponent's hand is face-down; their deck is hidden —
+          unless RECON PING has exposed it for the round.
+
+          This is the half of Recon Ping that never existed. The spell set
+          `handRevealedUntilRound` and the card's own comment said "the UI reads
+          it"; nothing did, anywhere in the app, so the reveal was writing a
+          number no one looked at and the spell's headline effect did nothing at
+          all. */}
       <div className="opp-fog">
-        <div className="opp-fan" title={`${oppName}: ${opp.hand.length} cards in hand`}>
-          {Array.from({ length: Math.min(opp.hand.length, 8) }).map((_, i) => (
-            <span key={i} className="opp-back" style={{ ["--i" as string]: i - Math.min(opp.hand.length, 8) / 2 }} />
+        <div className="opp-fan" title={revealed
+          ? `${oppName}: ${opp.hand.map((h) => getDef(h.defId).name).join(", ") || "empty"}`
+          : `${oppName}: ${opp.hand.length} cards in hand`}>
+          {opp.hand.slice(0, 8).map((h, i) => (
+            revealed
+              ? (
+                <span
+                  key={h.handId}
+                  className="opp-back revealed"
+                  title={getDef(h.defId).name}
+                  style={{
+                    ["--i" as string]: i - Math.min(opp.hand.length, 8) / 2,
+                    backgroundImage: `url(/cards/${getDef(h.defId).art ?? getDef(h.defId).id}.webp)`,
+                  }}
+                />
+              )
+              : <span key={h.handId} className="opp-back" style={{ ["--i" as string]: i - Math.min(opp.hand.length, 8) / 2 }} />
           ))}
         </div>
         <div className="opp-meta">
           <b>{oppName}</b> · {opp.hand.length} cards
-          <span className="opp-hidden">deck hidden</span>
+          <span className="opp-hidden">{revealed ? "HAND EXPOSED" : "deck hidden"}</span>
         </div>
         <div className="opp-res">
           <span className="opp-pip gold" title="Gold">◆ {opp.gold}</span>

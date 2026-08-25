@@ -1068,3 +1068,45 @@ describe("Withering Grasp heals for what it actually dealt", () => {
     expect(next.cards[hurt.instanceId].curHp).toBe(7); // 1 + (8 − Armadillo's BLOCK 2)
   });
 });
+
+describe("Recon Ping actually reveals, and Total Network Control actually locks", () => {
+  it("Recon Ping marks the opposing hand exposed for THIS round", () => {
+    // It set this field and NOTHING read it — not the UI, not the engine, not
+    // anywhere in the app — so the spell's headline effect did nothing at all
+    // while its own comment claimed "the UI reads it". Board.tsx reads it now.
+    const s = prepState();
+    armSpell(s, "bolt_recon_ping");
+    giveHand(s, "P2", "leaf_greegon");
+    const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bolt_recon_ping" } as never);
+    expect(n.players.P2.handRevealedUntilRound, "exposed this round").toBe(n.round);
+    // ...and it is a ROUND effect, not a permanent one.
+    expect(n.players.P2.handRevealedUntilRound).toBeLessThan(n.round + 1);
+  });
+
+  it("Total Network Control mutes what is standing AND what arrives after", () => {
+    // The old version sprayed MUTED once, so the answer to a Cost-10 ultimate
+    // was to summon a fresh card and carry on — the network was "down" for
+    // exactly the cards already on it.
+    const s = prepState();
+    armSpell(s, "bolt_total_network_control", 12);
+    const standing = place(s, "dusk_gool", "P2", 0, 0);
+    let n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bolt_total_network_control" } as never);
+    expect(statusOf(n.cards[standing.instanceId], "MUTED"), "everything standing").toBeTruthy();
+    expect(n.players.P2.networkLockUntilRound, "and the lock is set").toBeGreaterThanOrEqual(n.round);
+
+    // Now P2 summons into the blackout.
+    n.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    n.players.P2.gold = 10;
+    const handId = giveHand(n, "P2", "leaf_greegon");
+    const after = applyIntent(n, { type: "SUMMON", player: "P2", handId, col: 2 } as never);
+    const fresh = boardCards(after, "P2").find((c) => c.defId === "leaf_greegon")!;
+    expect(statusOf(fresh, "MUTED"), "reinforcements arrive with no signal").toBeTruthy();
+  });
+
+  it("...and the lock expires — it is three rounds, not the rest of the game", () => {
+    const s = prepState();
+    armSpell(s, "bolt_total_network_control", 12);
+    const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bolt_total_network_control" } as never);
+    expect(n.players.P2.networkLockUntilRound).toBe(n.round + 2); // 3 rounds inclusive
+  });
+});

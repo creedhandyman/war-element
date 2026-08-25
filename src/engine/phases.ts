@@ -117,6 +117,14 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         row: landing as Pos["row"],
         col: intent.col,
       });
+      // ...and it arrives MUTED if its side's network is down (Total Network
+      // Control). Applied here rather than only at cast time, which is the whole
+      // point of the lock: summoning past it was the old counterplay.
+      const lock = p.networkLockUntilRound ?? -1;
+      if (lock >= draft.round) {
+        applyStatus(draft, inst, "MUTED", lock - draft.round + 1, 0, def.element);
+        draft.log.push(`${def.name} boots up with no signal — MUTED.`);
+      }
       if (!draft.humans.includes(intent.player)) inst.autoMode = "full";
       // A human's remembered default for this card, if they set one. After the
       // AI line on purpose: an AI-controlled seat is always full-auto and no
@@ -801,6 +809,19 @@ function resolveSpell(
   // ABOVE the discount and with no `return`: Recon Ping now carries both, and
   // the discount branch below returns, so a reveal placed after it would never
   // run. Falls through on purpose.
+  // Total Network Control: hold the far side down for the duration. The MUTED
+  // status above covers everything standing NOW; this covers everything that
+  // arrives while the lock lasts.
+  if (spell.networkLock) {
+    const foe = draft.players[enemyOf(player)];
+    foe.networkLockUntilRound = Math.max(
+      foe.networkLockUntilRound ?? -1,
+      draft.round + spell.networkLock - 1,
+    );
+    draft.log.push(
+      `${player} takes the network down — ${enemyOf(player)} is locked out for ${spell.networkLock} rounds, reinforcements included.`,
+    );
+  }
   if (spell.revealHand) {
     draft.players[enemyOf(player)].handRevealedUntilRound = draft.round;
     draft.log.push(`${player} pings the network — the opposing hand is exposed this round.`);

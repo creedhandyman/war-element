@@ -427,16 +427,23 @@ export const SPELLS: SpellDef[] = [
 
   {
     // BOLT's Cost-10 ultimate — not a damage nuke, but its identity made
-    // permanent: shut the enemy's tools down for two rounds, then make every
+    // permanent: shut the enemy's tools down for three rounds, then make every
     // BOLT Special (current AND future) cost 1 less (min 1) for the rest of the game.
+    //
+    // A LOCK, not a status sprayed once. The old version applied MUTED to
+    // whatever happened to be standing when it landed, so the answer to a Cost-10
+    // ultimate was to summon a fresh card and carry on — the network was "down"
+    // for exactly the cards that were already on it. `networkLock` holds the
+    // whole side down for the duration, arrivals included.
     id: "bolt_total_network_control",
     name: "Total Network Control",
     element: "BOLT",
     cost: 10,
     kind: "aoe",
     area: "board",
-    text: "MUTE every opponent for 2 rounds. Then, for the rest of the game, your BOLT Specials cost 1 less (min 1).",
-    status: { kind: "MUTED", duration: 2, power: 0 },
+    text: "The opposing network goes down for 3 rounds: every opponent is MUTED, and anything they summon arrives MUTED too. Then, for the rest of the game, your BOLT Specials cost 1 less (min 1).",
+    status: { kind: "MUTED", duration: 3, power: 0 },
+    networkLock: 3,
     grantBoltDiscount: 1,
   },
 
