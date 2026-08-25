@@ -1110,3 +1110,42 @@ describe("Recon Ping actually reveals, and Total Network Control actually locks"
     expect(n.players.P2.networkLockUntilRound).toBe(n.round + 2); // 3 rounds inclusive
   });
 });
+
+describe("no spell writes a field nothing reads (the Recon Ping class)", () => {
+  it("every BOLT spell actually changes the game state when cast", () => {
+    // Recon Ping passed a weaker version of this check for its whole life: it
+    // DID change state (it set handRevealedUntilRound) while doing nothing
+    // observable, because no consumer existed. So this is the floor, not the
+    // ceiling — a spell that fails here is definitely broken; passing only means
+    // it is not obviously broken.
+    const snap = (g: GameState) => JSON.stringify({
+      cards: Object.values(g.cards).map((c) => [c.curHp, c.curShields, c.pos, c.statuses.length, c.specialCooldown]),
+      players: Object.values(g.players).map((v) => [
+        v.gold, v.magicPool, v.hand.length, v.specialDiscountRound,
+        v.handRevealedUntilRound, v.networkLockUntilRound,
+      ]),
+      fields: g.fields.length, walls: g.walls.length,
+    });
+    for (const sp of SPELLS.filter((x) => x.element === "BOLT")) {
+      const s = prepState();
+      s.players.P1.spellbook = [{ defId: sp.id, used: false }];
+      s.players.P1.magicPool = 20;
+      place(s, "leaf_alpha", "P1", 3, 0, { curHp: 30, maxHp: 30 });
+      place(s, "leaf_greegon", "P1", 3, 1, { curHp: 30, maxHp: 30 });
+      // Mid row, not the home row: the Home-Slot rule blocks targeting a home
+      // slot from outside it, which is a targeting rule and not a spell fault.
+      place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40 });
+      place(s, "dusk_vamp", "P2", 1, 1, { curHp: 40, maxHp: 40 });
+      giveHand(s, "P2", "leaf_greegon");
+      const mine = boardCards(s, "P1").map((c) => c.instanceId);
+      const before = snap(s);
+      const n = applyIntent(s, {
+        type: "CAST_SPELL", player: "P1", spellId: sp.id,
+        targetId: boardCards(s, "P2")[0].instanceId,
+        row: 1, col: 1, targetIds: mine.slice(0, 2),
+        slots: [{ row: 2, col: 3 }, { row: 2, col: 2 }],
+      } as never);
+      expect(snap(n), `${sp.name} (${sp.id}) did nothing`).not.toBe(before);
+    }
+  });
+});
