@@ -1389,7 +1389,10 @@ function doResourcePhase(draft: GameState): void {
   // Read off the boss actually standing there, so it tracks a recost.
   const headStart = draft.voidTower && draft.round === 1
     ? voidPlayerHeadStart(
-        getDef(boardCards(draft).find((c) => getDef(c.defId).boss)?.defId ?? "").cost ?? 0)
+        // The boss the player came to FIGHT, not a tamed one they brought with
+        // them — `find` takes the first boss-flagged body on the board in either
+        // seat, and a tamed ally could be it.
+        getDef(boardCards(draft).find((c) => getDef(c.defId).boss && !c.tamed)?.defId ?? "").cost ?? 0)
     : 0;
   for (const player of ["P1", "P2"] as PlayerId[]) {
     const p = draft.players[player];
@@ -3293,7 +3296,12 @@ function doCleanupPhase(draft: GameState): void {
   //     instance outright, so a dead boss is not a zero-HP body still standing
   //     there to be found. The boss always seats as P2 (`voidBossSeat`, and a
   //     test pins it), so its absence is P1's win.
-  if (draft.voidTower && !boardCards(draft).some((c) => getDef(c.defId).boss)) {
+  //     A TAMED boss on the player's side does not count. It is boss-flagged
+  //     and standing on the board, so without this exclusion the fight could
+  //     never be won: you kill the thing you came for, your own loaner is still
+  //     a boss, and the check says the floor is not yours.
+  if (draft.voidTower
+      && !boardCards(draft).some((c) => getDef(c.defId).boss && !c.tamed)) {
     draft.win = { winner: "P1", by: "slain" };
     draft.phase = "gameover";
     draft.log.push("The boss is slain — the floor is yours!");
@@ -3352,7 +3360,11 @@ function doCleanupPhase(draft: GameState): void {
       const sitting = cardAt(draft, home, col);
       if (sitting && sitting.owner === "P2" && sitting.curHp > 0) {
         held++;
-        if (getDef(sitting.defId).boss) bossInRow = true;
+        // A tamed boss is yours; it cannot be part of an overrun OF you. (The
+        // owner check above already scopes this to P2, so this is belt and
+        // braces for a mirror — but the rule reads as "an enemy boss", so it
+        // should say so.)
+        if (getDef(sitting.defId).boss && !sitting.tamed) bossInRow = true;
       }
     }
     if (held === draft.boardSize && bossInRow) {

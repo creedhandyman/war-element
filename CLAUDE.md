@@ -1241,6 +1241,57 @@ of the roster (from 80-93% on the worst offenders), because the boss can no long
 walk into an undefended home row. Umbranova is the lone holdout at 96.9% — its
 damage ignores position entirely, so a wall means nothing to it.
 
+## BOSS TAMING — the tower's first loop that points BACKWARD
+
+Clear a floor and every boss on it turns **ENRAGED** (`bossEnraged`, derived from
+`eventsDone` like all tower progression — no stored flag that can disagree).
+Beat one while it is enraged and it fights **for you** in your next 3 battles at
+**half of everything**. The reward for finishing a floor is a reason to return
+to it, and what you earn there is spent upstairs.
+
+Owner's calls, settled up front: the tamed boss is **pre-placed free** on your
+centre home slot (a 12-cost mythic is never affordable in a 24-round fight, so
+one you had to buy is one you would never field); **one per fight**; enraged
+means **buffed stats**, not just a label; a use is spent on **entering**, win or
+lose (paying at settle would make it farmable by conceding at round one).
+
+**`statScale` is why this needed a new field rather than a stacked WEAKEN.** The
+instance model has no printed base stats — DMG and SP are deltas layered on the
+def at read time — and, more importantly, **WEAKEN and FREEZE do not reduce
+Special damage at all**: a Special's number is hardcoded on the def and never
+passes through `effectiveDmg`. A half-strength body built on the WEAKEN pattern
+would swing for half and then cast at full. So `statScale` is a multiplier read
+in three places: `effectiveDmg`, `effectiveSp`, and `resolveHit` (for
+`kind !== "basic"` — basics arrive pre-scaled from `effectiveDmg`, so scaling
+them again would quarter them). HP/shields are absolute, so `scaleInstance`
+rewrites those once at placement. ENRAGE uses the same field pointed the other
+way.
+
+**THREE RULES SCANNED THE BOARD FOR A BOSS ON EITHER SIDE, and all three broke
+on a player-side one.** The worst made the fight *unwinnable*: slay-to-win fires
+when no boss-flagged body is left standing, so your own loaner kept the floor
+from ever being yours. Also the home-row overrun check and the Void Tower
+deployment head start (`find` takes the first boss in either seat). All three now
+skip a `tamed` instance — grep `c.tamed` in phases.ts. **Any future rule that
+looks for "the boss" must decide which side it means.**
+
+**Taming is NOT ownership.** It never enters `collection`; the test asserting a
+boss can be acquired nowhere still holds and must keep holding.
+
+**Save:** `StorySave.tamed?: Record<string, number>` (boss id -> battles left).
+`loadStory` is a hand-written whitelist — a new field is invisible until listed
+there — and it clamps to `MAX_TAME_USES`, a local constant mirroring `TAME_USES`
+because void-tower imports story and the dependency only runs one way. A test
+round-trips a 9999-use save and asserts the clamp lands on `TAME_USES`, so the
+two cannot drift.
+
+**UI:** `BossDetail.tsx` — the tower tile now OPENS a boss page (locked ones
+included; lore and tips are most worth reading about a fight you cannot reach
+yet) with large art, lore, the authored `puzzle` line, derived facts, the
+Special and its beat, `describeOwnPassives`, and the tamed-boss picker. Note
+`.modal.bd-modal`, not `.bd-modal`: the base `.modal` declares its own 26px
+padding and is declared LATER in styles.css, so at equal specificity it wins.
+
 **GATES ARE SCENERY (`noBattleTurn`) — they are not in the speed queue.** Five
 Fortress Gates were adding five "CAN'T ACT" rows to the queue every round of a
 24-round fight, in the one panel whose whole job is saying what happens next and

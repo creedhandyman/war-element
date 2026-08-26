@@ -1406,6 +1406,32 @@ export interface CardInstance {
   /** …and the same bookkeeping for THE PACK, which recomputes every round and
    *  so has to be able to hand back exactly what it last gave. */
   packBonus?: number;
+  /** A flat multiplier on THIS BODY's stats. Absent = 1 (every ordinary card).
+   *
+   *  The instance model has no printed base stats — DMG and SP exist only as
+   *  deltas layered on the def at read time — so a card that is "half of what
+   *  it says" cannot be expressed by editing the instance's numbers. Stamping a
+   *  negative `dmgBonus` (the trick `onRevive.decay` uses) gets the first read
+   *  right and every later one wrong: an on-kill buff then climbs back off the
+   *  halved floor rather than a halved ceiling.
+   *
+   *  So it is a MULTIPLIER, read at the same three places the printed stats are:
+   *  `effectiveDmg`, `effectiveSp`, and `resolveHit` for Special damage. HP and
+   *  shields are absolute on the instance, so those are scaled once at
+   *  placement instead (see `scaleInstance`).
+   *
+   *  Used by BOSS TAMING (0.5) and by an ENRAGED boss (>1). */
+  statScale?: number;
+  /** This body is a TAMED boss fighting for the player — a loaner, not a
+   *  captured card. It is never in the collection.
+   *
+   *  Load-bearing beyond flavour: three rules scan the board for a boss-flagged
+   *  card on EITHER side, and all three would misfire on a player-side boss.
+   *  Slay-to-win would never trigger (a boss is still standing — yours), the
+   *  home-row overrun check would count it, and the Void Tower deployment
+   *  head-start reads whichever boss it finds first. Each of those now skips a
+   *  tamed body, and this flag is how. */
+  tamed?: boolean;
   hitsBonusRound: number; // extra basic hits for the turn (Flow Change Liquid on multi-hit)
   tempShields: number; // shields granted "for the turn" (removed in Cleanup)
   /** Basic hits this card has LANDED on each target this round (keyed by target

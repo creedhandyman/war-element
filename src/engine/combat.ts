@@ -1206,6 +1206,17 @@ export function resolveHit(
     // damage before every flat rider below, so the bonus scales the printed
     // attack rather than the accumulated total.
     let remaining = applyMatchupDamage(aDef.element, tDef.element, opts.dmg);
+    // See `CardInstance.statScale`. A Special's damage is a hardcoded number on
+    // the def that never passes through `effectiveDmg`, so the two existing
+    // damage multipliers in this game (WEAKEN and FREEZE) do not touch Specials
+    // at all — a "half strength" body built on that pattern would swing for half
+    // and then cast at full. This is the one line both paths share.
+    //
+    // BASICS ARE EXCLUDED because they arrive here already scaled: their number
+    // came from `effectiveDmg`, which applies the multiplier itself so the token
+    // on the board shows the halved figure. Scaling again here would quarter it.
+    if (opts.kind !== "basic" && attacker.statScale != null && attacker.statScale !== 1)
+      remaining = Math.max(0, Math.floor(remaining * attacker.statScale));
     // War Mount (Cragrider): the mount mauls whatever the Ranger stands beside —
     // its BASIC hits an ADJACENT target for extra. Applied here rather than in
     // effectiveDmg because it depends on the TARGET's distance, which

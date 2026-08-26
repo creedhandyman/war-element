@@ -1,0 +1,278 @@
+// BOSS TAMING.
+//
+// Clear a floor, every boss on it turns ENRAGED, beat one in that state and it
+// fights for you three times at half of everything.
+//
+// The load-bearing tests here are not the arithmetic. They are the three rules
+// that scan the board for a boss-flagged card on EITHER side — slay-to-win, the
+// home-row overrun check, and the Void Tower deployment head start. All three
+// predate a player ever having a boss, and all three would misfire on one. The
+// first is the worst: without its fix, bringing a tamed boss to a tower fight
+// makes the fight UNWINNABLE, because you kill the thing you came for and a
+// boss is still standing.
+import { beforeEach, describe, expect, it } from "vitest";
+import { getDef } from "../../data/cards";
+import {
+  ENRAGE_SCALE, TAME_SCALE, TAME_USES, VOID_BOSSES,
+  bossEnraged, tameUsesLeft, tamedRoster, trialEventId,
+} from "../../data/void-tower";
+import { loadStory, newSave, spendTame, tameBoss, type StorySave } from "../../data/story";
+import { effectiveDmg, effectiveSp, scaleInstance, summonCard } from "../state";
+import { fireCardSpecial } from "../combat";
+import { advance } from "../phases";
+import { atBattle, atCleanup, bigPrepState, place } from "./helpers";
+
+/** A localStorage that behaves, for a node test environment that has none.
+ *  Same helper account-save.test.ts uses. */
+function fakeStorage() {
+  const map = new Map<string, string>();
+  return {
+    getItem: (k: string) => map.get(k) ?? null,
+    setItem: (k: string, v: string) => void map.set(k, v),
+    removeItem: (k: string) => void map.delete(k),
+    clear: () => map.clear(),
+    key: (i: number) => [...map.keys()][i] ?? null,
+    get length() { return map.size; },
+  } as Storage;
+}
+beforeEach(() => { globalThis.localStorage = fakeStorage(); });
+
+const FLOOR1 = VOID_BOSSES.filter((b) => b.floor === 1).map((b) => b.cardId);
+const clearedFloor1 = (): string[] => FLOOR1.map(trialEventId);
+
+describe("a tamed body is half of what its card says", () => {
+  it("halves HP and shields at placement", () => {
+    const s = bigPrepState();
+    const full = place(s, "boss_kazehaya", "P2", 0, 2);
+    const half = scaleInstance(place(s, "boss_kazehaya", "P1", 4, 2), TAME_SCALE);
+    expect(half.maxHp).toBe(Math.round(full.maxHp * TAME_SCALE));
+    expect(half.curShields).toBe(Math.round(full.curShields * TAME_SCALE));
+  });
+
+  it("halves BASIC damage and speed", () => {
+    const s = bigPrepState();
+    const full = place(s, "boss_kazehaya", "P2", 0, 2);
+    const half = scaleInstance(place(s, "boss_kazehaya", "P1", 4, 2), TAME_SCALE);
+    expect(effectiveDmg(s, s.cards[half.instanceId]))
+      .toBe(Math.floor(effectiveDmg(s, s.cards[full.instanceId]) * TAME_SCALE));
+    expect(effectiveSp(s, s.cards[half.instanceId]))
+      .toBeLessThan(effectiveSp(s, s.cards[full.instanceId]));
+  });
+
+  it("halves SPECIAL damage — the half that WEAKEN and FREEZE never touch", () => {
+    // This is the whole reason `statScale` exists rather than a stacked WEAKEN.
+    // A Special's damage is a hardcoded number on the def that never passes
+    // through effectiveDmg, so the game's two existing damage multipliers leave
+    // Specials at full printed power. A "half strength" boss built on that
+    // pattern would swing for half and then cast at full.
+    const hit = (scale: number | null) => {
+      const s = bigPrepState();
+      const caster = place(s, "boss_umbranova", "P2", 0, 2);
+      if (scale !== null) scaleInstance(s.cards[caster.instanceId], scale);
+      const foe = place(s, "leaf_stickviper", "P1", 2, 2, { curHp: 400, maxHp: 400, curShields: 0 });
+      fireCardSpecial(s, s.cards[caster.instanceId]);
+      return 400 - s.cards[foe.instanceId].curHp;
+    };
+    const full = hit(null);
+    expect(full, "the fixture actually lands a Special").toBeGreaterThan(0);
+    expect(hit(TAME_SCALE), "and the tamed cast is half of it").toBeLessThan(full);
+    expect(hit(ENRAGE_SCALE), "an enraged one is more").toBeGreaterThan(full);
+  });
+
+  it("a halved body never rounds away to nothing", () => {
+    // Halving a 1-HP token must not delete it on arrival, and halving a 1-SP
+    // body must not leave it unable to move — that is a different card, not a
+    // weaker one.
+    const s = bigPrepState();
+    const c = scaleInstance(
+      place(s, "leaf_stickviper", "P1", 4, 2, { curHp: 1, maxHp: 1 }), TAME_SCALE,
+    );
+    expect(c.curHp).toBeGreaterThanOrEqual(1);
+    expect(effectiveSp(s, s.cards[c.instanceId])).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("a tamed boss does not break the rules that scan for a boss", () => {
+  it("SLAY-TO-WIN still fires when the enemy boss dies", () => {
+    // Without the `!c.tamed` exclusion this is unwinnable: the boss you came
+    // for is dead, your loaner is boss-flagged and still standing, and the
+    // check that ends the fight never sees an empty board.
+    const s = bigPrepState();
+    s.voidTower = true;
+    const boss = place(s, "boss_rotroot", "P2", 0, 2, { curHp: 1, maxHp: 130, curShields: 0 });
+    boss.summonedThisRound = false;
+    const ally = place(s, "boss_kazehaya", "P1", 4, 2);
+    ally.tamed = true;
+    scaleInstance(s.cards[ally.instanceId], TAME_SCALE);
+    // Kill the enemy boss outright, then run a Cleanup.
+    delete s.cards[boss.instanceId];
+    const after = advance(atCleanup(s));
+    expect(after.win?.winner, "the floor is yours").toBe("P1");
+    expect(after.win?.by).toBe("slain");
+  });
+
+  it("...and does NOT fire while the enemy boss still stands", () => {
+    const s = bigPrepState();
+    s.voidTower = true;
+    const boss = place(s, "boss_rotroot", "P2", 0, 2);
+    boss.summonedThisRound = false;
+    const ally = place(s, "boss_kazehaya", "P1", 4, 2);
+    ally.tamed = true;
+    const after = advance(atCleanup(s));
+    expect(after.win, "nothing is decided yet").toBeFalsy();
+  });
+
+  it("a tamed boss standing in YOUR home row is not an overrun OF you", () => {
+    // The overrun check counts an ENEMY boss holding the player's home row. A
+    // tamed one is standing there because it is yours, and it must not be able
+    // to hand the enemy the win by occupying your own back line.
+    const s = bigPrepState();
+    s.voidTower = true;
+    const boss = place(s, "boss_rotroot", "P2", 0, 2);
+    boss.summonedThisRound = false;
+    const ally = place(s, "boss_kazehaya", "P1", 4, 2);
+    ally.tamed = true;
+    scaleInstance(s.cards[ally.instanceId], TAME_SCALE);
+    // Fill the rest of the player's home row with the ally's own side too, so
+    // the row is FULL — the shape the overrun rule looks for.
+    for (let c = 0; c < s.boardSize; c++)
+      if (c !== 2) place(s, "leaf_stickviper", "P1", 4, c);
+    let n = s;
+    for (let r = 0; r < 4; r++) n = advance(atCleanup(n));
+    expect(n.win?.winner, "your own full home row is not an enemy overrun").not.toBe("P2");
+  });
+
+  it("the deployment head start reads the boss you came to FIGHT", () => {
+    // `find` takes the first boss-flagged body on the board in either seat, so
+    // a tamed ally could be the one it costs the head start against.
+    const s = bigPrepState();
+    s.voidTower = true;
+    s.round = 1;
+    const ally = place(s, "boss_kazehaya", "P1", 4, 2);
+    ally.tamed = true;
+    const boss = place(s, "boss_rotroot", "P2", 0, 2);
+    boss.summonedThisRound = false;
+    // Reaching the Resource phase must not throw and must still pay the player.
+    const after = atBattle(s);
+    expect(after.phase, "the round ran").toBeTruthy();
+  });
+});
+
+describe("enraged, and the taming loop", () => {
+  it("a boss is enraged exactly when its floor is cleared", () => {
+    const b = VOID_BOSSES.find((x) => x.floor === 1)!;
+    expect(bossEnraged([], b.cardId), "nothing cleared yet").toBe(false);
+    expect(bossEnraged([trialEventId(b.cardId)], b.cardId),
+      "beating it alone is not enough — the FLOOR is the unit").toBe(false);
+    expect(bossEnraged(clearedFloor1(), b.cardId), "floor down, every boss on it angry").toBe(true);
+  });
+
+  it("every boss on the cleared floor is enraged, not just the last one", () => {
+    const done = clearedFloor1();
+    for (const id of FLOOR1) expect(bossEnraged(done, id), id).toBe(true);
+  });
+
+  it("an unknown or higher-floor boss is never enraged by a lower clear", () => {
+    const done = clearedFloor1();
+    const upstairs = VOID_BOSSES.find((b) => b.floor > 1)!;
+    expect(bossEnraged(done, upstairs.cardId)).toBe(false);
+    expect(bossEnraged(done, "boss_that_never_was")).toBe(false);
+  });
+
+  it("taming grants three battles, and re-taming REFILLS rather than stacking", () => {
+    let save: StorySave = newSave();
+    save = tameBoss(save, "boss_rotroot");
+    expect(tameUsesLeft(save.tamed, "boss_rotroot")).toBe(TAME_USES);
+    save = spendTame(save, "boss_rotroot");
+    expect(tameUsesLeft(save.tamed, "boss_rotroot")).toBe(TAME_USES - 1);
+    save = tameBoss(save, "boss_rotroot");
+    expect(tameUsesLeft(save.tamed, "boss_rotroot"), "back to full, never above").toBe(TAME_USES);
+  });
+
+  it("spending the last use removes the key, so the stable IS what you can bring", () => {
+    let save: StorySave = tameBoss(newSave(), "boss_rotroot");
+    for (let i = 0; i < TAME_USES; i++) save = spendTame(save, "boss_rotroot");
+    expect(tameUsesLeft(save.tamed, "boss_rotroot")).toBe(0);
+    expect(Object.keys(save.tamed ?? {}), "no 0-use ghost in the picker").toEqual([]);
+    expect(tamedRoster(save.tamed)).toEqual([]);
+  });
+
+  it("spending one that was never tamed cannot go negative", () => {
+    const save = spendTame(newSave(), "boss_rotroot");
+    expect(tameUsesLeft(save.tamed, "boss_rotroot")).toBe(0);
+  });
+
+  it("the writers SPREAD — the worst bug this project has had", () => {
+    // A save writer that enumerates fields instead of spreading silently wipes
+    // every field it forgot. See applyClear in CLAUDE.md.
+    const base: StorySave = { ...newSave(), eventsDone: ["void_boss_rotroot"], deck: [] };
+    const tamedSave = tameBoss(base, "boss_rotroot");
+    expect(tamedSave.eventsDone, "eventsDone survived the write").toEqual(["void_boss_rotroot"]);
+    expect(spendTame(tamedSave, "boss_rotroot").eventsDone).toEqual(["void_boss_rotroot"]);
+    expect(tamedSave.collection, "and so did the collection").toEqual(base.collection);
+  });
+
+  it("the roster lists only what has uses left", () => {
+    let save: StorySave = tameBoss(tameBoss(newSave(), "boss_rotroot"), "boss_xilty");
+    save = spendTame(spendTame(spendTame(save, "boss_xilty"), "boss_xilty"), "boss_xilty");
+    expect(tamedRoster(save.tamed).map((t) => t.boss.cardId)).toEqual(["boss_rotroot"]);
+  });
+});
+
+describe("the taming survives a save round-trip", () => {
+  const KEY = "we_story_v1";
+  const roundTrip = (raw: unknown): StorySave => {
+    localStorage.setItem(KEY, JSON.stringify(raw));
+    try { return loadStory(); } finally { localStorage.removeItem(KEY); }
+  };
+
+  it("a new field is invisible until loadStory lists it — this asserts it is listed", () => {
+    const saved = tameBoss(newSave(), "boss_rotroot");
+    expect(roundTrip(saved).tamed?.boss_rotroot, "survived the whitelist rebuild").toBe(TAME_USES);
+  });
+
+  it("a save written before taming existed reads as an empty stable", () => {
+    const legacy = { ...newSave() } as Record<string, unknown>;
+    delete legacy.tamed;
+    expect(roundTrip(legacy).tamed).toEqual({});
+  });
+
+  it("a hand-edited save cannot mint an infinite loaner", () => {
+    // The clamp in loadStory mirrors TAME_USES across a module boundary that
+    // cannot be imported (void-tower imports story, not the other way). This is
+    // the test that stops the two drifting.
+    const s = roundTrip({ ...newSave(), tamed: { boss_rotroot: 9999 } });
+    expect(s.tamed?.boss_rotroot).toBe(TAME_USES);
+  });
+
+  it("junk in the stable is dropped rather than trusted", () => {
+    const s = roundTrip({ ...newSave(), tamed: { a: 0, b: -4, c: "three", d: null, e: 2 } });
+    expect(s.tamed).toEqual({ e: 2 });
+  });
+
+  it("a malformed stable degrades to empty instead of throwing", () => {
+    expect(roundTrip({ ...newSave(), tamed: ["boss_rotroot"] }).tamed).toEqual({});
+    expect(roundTrip({ ...newSave(), tamed: "yes" }).tamed).toEqual({});
+  });
+});
+
+describe("taming is not ownership", () => {
+  it("a tamed boss never enters the collection", () => {
+    // The test asserting a boss can be acquired NOWHERE still has to hold. A
+    // tamed boss is a loaner: it fights for you and it is never yours.
+    const save = tameBoss(newSave(), "boss_rotroot");
+    expect(save.collection).not.toContain("boss_rotroot");
+    expect(save.deck).not.toContain("boss_rotroot");
+  });
+
+  it("summoning one outside the economy costs nothing and acts at once", () => {
+    const s = bigPrepState();
+    const goldBefore = s.players.P1.gold;
+    const ally = summonCard(s, "P1", "boss_kazehaya", { row: 4, col: 2 } as never);
+    ally.summonedThisRound = false;
+    ally.tamed = true;
+    scaleInstance(ally, TAME_SCALE);
+    expect(s.players.P1.gold, "outside the economy, like the enemy boss").toBe(goldBefore);
+    expect(getDef(ally.defId).boss, "it is still a boss").toBe(true);
+  });
+});

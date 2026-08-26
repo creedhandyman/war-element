@@ -36,7 +36,7 @@ import {
   boardCards,
   isCaptured,
   SPELLS,
-  spellbookFor, summonCard,
+  spellbookFor, summonCard, scaleInstance,
   // The boss clock, made visible.
   bossTelegraphs, telegraphBlast} from "../engine";
 import { spellCapForBoard } from "../engine/spells";
@@ -55,7 +55,9 @@ import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
-import { VOID_GATE, voidBossElements, voidBossSeat, voidGateSeats } from "../data/void-tower";
+import {
+  ENRAGE_SCALE, TAME_SCALE, VOID_GATE, voidBossElements, voidBossSeat, voidGateSeats,
+} from "../data/void-tower";
 import { VoidTower } from "./VoidTower";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
@@ -94,6 +96,7 @@ import {
   loadStory, isFirstBattle, addShards, awardShards, heroBookFor, SHARDS_PER_WIN, onlineMatchShards,
   isRegionOpen, poolForRegion, recruitablePool,
   regionOfNode, rollRecruits, saveStory, THRONE_OPENING_STACK, type StorySave, heroSpellShelf,
+  tameBoss, spendTame,
 } from "../data/story";
 
 function newSeed(): number {
@@ -761,8 +764,14 @@ export function App() {
       // used to be, and what keeps it honest is the `settledMatch` ref above:
       // one settlement per match, the same guard the Arena's per-win shards
       // have always run on.
+      // TAMING. Beating a boss while it is ENRAGED brings it over to your side
+      // for the next three battles. Folded into the event settle rather than
+      // bolted beside it so it rides the same `settledMatch` guard — one
+      // settlement per match, so a re-render cannot re-tame.
+      const tamedSave = (sv: StorySave) =>
+        won && bossRun?.enraged ? tameBoss(sv, bossRun.cardId) : sv;
       const settled = event
-        ? (won ? completeEvent(prev, event.id) : prev)
+        ? (won ? tamedSave(completeEvent(prev, event.id)) : prev)
         : settleArena(
             prev,
             // The mode decides whether this match belongs to the run at all.
@@ -977,7 +986,25 @@ export function App() {
    *  would be fighting a designed puzzle with whatever was last selected.
    *  Shared by Home's event cards and the Void Tower's Fight buttons, so the
    *  two entry points cannot drift. */
-  function seatEventFight(e: GameEvent) {
+  /** BOSS TAMING, in flight. Set when a fight is seated from the boss detail
+   *  screen and read in two later places that cannot see that screen: match
+   *  START (scale the boss up if enraged, place the tamed ally) and match
+   *  SETTLE (a win over an enraged boss tames it).
+   *
+   *  It is not derivable from `p2DeckId` the way `eventRun` is, because the
+   *  same trial event now seats two different fights — ordinary and enraged —
+   *  and the choice of ally is not in the event at all. */
+  const [bossRun, setBossRun] = useState<{
+    cardId: string;
+    enraged: boolean;
+    ally: string | null;
+  } | null>(null);
+
+  function seatEventFight(e: GameEvent, opts?: { enraged?: boolean; ally?: string | null }) {
+    setBossRun(e.bossId
+      ? { cardId: e.bossId, enraged: !!opts?.enraged, ally: opts?.ally ?? null }
+      : null);
+
     setArenaMode("ai");
     // BACK TO CASUAL. An event is not a Gauntlet seat and not a Streak match,
     // and leaving the mode where it was presented a Void Trial as one: the run
@@ -1026,6 +1053,10 @@ export function App() {
       fresh.voidTower = true;
       const inst = summonCard(fresh, "P2", eventRun.bossId, seat as never);
       inst.summonedThisRound = false;
+      // ENRAGED: the taming trial. The same boss, angrier — scaled through the
+      // one multiplier the whole feature runs on, so its Special is stronger
+      // too and not just its body.
+      if (bossRun?.enraged) scaleInstance(inst, ENRAGE_SCALE);
       // ...and the player gets a WALL. Fortress Gates fill the row directly in
       // front of their home row, one per column, and cost them nothing — they
       // are there so the opening rounds are not decided before the player has a
@@ -1034,6 +1065,35 @@ export function App() {
         const gate = summonCard(fresh, "P1", VOID_GATE, gseat as never);
         gate.summonedThisRound = false;
       }
+      // ...and a TAMED boss fights alongside them, seated the same way the enemy
+      // boss is: on the board at round one, outside the economy. It has to be —
+      // a 12-cost mythic is not something a 24-round tower fight ever affords,
+      // so a tamed boss you had to buy would be a tamed boss you never fielded.
+      // Half of everything (`TAME_SCALE`) and three battles is what pays for it.
+      //
+      // The seat is the player's own centre home slot, mirroring `voidBossSeat`.
+      // The gates stand in the row IN FRONT of home, so this square is free.
+      if (bossRun?.ally) {
+        const mySeat = { row: homeRow("P1", fresh.boardSize), col: Math.floor(fresh.boardSize / 2) };
+        if (!cardAt(fresh, mySeat.row, mySeat.col)) {
+          const ally = summonCard(fresh, "P1", bossRun.ally, mySeat as never);
+          ally.summonedThisRound = false;
+          ally.tamed = true;
+          scaleInstance(ally, TAME_SCALE);
+        }
+      }
+    }
+    // A use is spent on ENTERING, win or lose. Done here rather than at settle
+    // deliberately: settling only runs when a match reaches gameover, so paying
+    // there would make backing out of a fight free and a taming farmable by
+    // conceding at round one.
+    if (bossRun?.ally) {
+      const spendId = bossRun.ally;
+      setStory((prev) => {
+        const next = spendTame(prev, spendId);
+        if (next !== prev) saveStory(next);
+        return next;
+      });
     }
     setGame(fresh);
     setViewSide("P1");

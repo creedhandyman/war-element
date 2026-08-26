@@ -474,6 +474,58 @@ export const floorCleared = (eventsDone: string[], floor: number): boolean =>
 export const floorOpen = (eventsDone: string[], floor: number): boolean =>
   voidFloors().filter((f) => f < floor).every((f) => floorCleared(eventsDone, f));
 
+// ── BOSS TAMING ──────────────────────────────────────────────────────────────
+//
+// Clear a floor and every boss on it turns ENRAGED. Go back, beat one while it
+// is enraged, and it fights FOR you in the next three battles at half of
+// everything it has.
+//
+// The shape of the loop is deliberate: it points BACKWARD. The reward for
+// finishing a floor is a reason to return to it, and the thing you earn there
+// is spent upstairs — so a floor you have cleared stops being finished content
+// and becomes the armoury for the one above it.
+
+/** What a tamed boss fights at. Half of every stat AND its Special's damage —
+ *  see `CardInstance.statScale`, which is read in `effectiveDmg`, `effectiveSp`
+ *  and `resolveHit` so the Special is covered too. The body is halved once at
+ *  placement. */
+export const TAME_SCALE = 0.5;
+
+/** Battles a taming is good for. Spent on ENTERING a fight with it, win or
+ *  lose — the honest reading, and the one that cannot be farmed by conceding. */
+export const TAME_USES = 3;
+
+/** What ENRAGED does. The taming trial has to be harder than the fight you
+ *  already won, or "enraged" is a label rather than a state. Applied through
+ *  the same `statScale` the taming uses, pointed the other way. */
+export const ENRAGE_SCALE = 1.25;
+
+/** A boss is ENRAGED once its floor is cleared.
+ *
+ *  Derived, like every other piece of tower progression — no stored flag that
+ *  can disagree with `eventsDone`. Clearing a floor requires beating every boss
+ *  on it, so "defeated" is implied and is not checked again here.
+ *
+ *  It STAYS enraged after taming. Re-beating it refills the uses rather than
+ *  being refused, so running a stable dry is a setback and never a dead end. */
+export const bossEnraged = (eventsDone: string[], cardId: string): boolean => {
+  const b = voidBossById(cardId);
+  return !!b && floorCleared(eventsDone, b.floor);
+};
+
+/** Battles left on a taming. 0 = not tamed (or spent). */
+export const tameUsesLeft = (
+  tamed: Record<string, number> | undefined, cardId: string,
+): number => Math.max(0, Math.floor(tamed?.[cardId] ?? 0));
+
+/** Every boss currently available to bring, with its remaining uses. */
+export const tamedRoster = (
+  tamed: Record<string, number> | undefined,
+): { boss: VoidBoss; uses: number }[] =>
+  VOID_BOSSES
+    .map((boss) => ({ boss, uses: tameUsesLeft(tamed, boss.cardId) }))
+    .filter((t) => t.uses > 0);
+
 export const towerProgress = (eventsDone: string[]): { defeated: number; total: number } => ({
   defeated: VOID_BOSSES.filter((b) => bossDefeated(eventsDone, b.cardId)).length,
   total: VOID_BOSSES.length,

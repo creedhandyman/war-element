@@ -28,16 +28,19 @@
  *  trials' first-clear pack. The mode-rules doc that defines them was never
  *  written; the floor ladder is the half the boss doc does specify.
  */
-import { Check, Lock, Swords } from "lucide-react";
+import { useState } from "react";
+import { Check, Flame, Lock, Swords } from "lucide-react";
 import type { StorySave } from "../data/story";
 import { EVENTS, type GameEvent } from "../data/events";
 import { getDef } from "../data/cards";
 import { EL_COLOR } from "./shared";
 import { VOID_TOWER_ROUNDS } from "../engine/types";
 import {
-  bodyCap, bossDefeated, bossesOnFloor, floorCleared, floorOpen,
-  summonBudget, towerProgress, trialEventId, voidFloors,
+  type VoidBoss,
+  bodyCap, bossDefeated, bossEnraged, bossesOnFloor, floorCleared, floorOpen,
+  TAME_USES, summonBudget, tameUsesLeft, towerProgress, trialEventId, voidFloors,
 } from "../data/void-tower";
+import { BossDetail } from "./BossDetail";
 
 
 export function VoidTower(props: {
@@ -45,9 +48,12 @@ export function VoidTower(props: {
   /** Seat this boss's trial and take the player to the Arena — the exact
    *  handler Home's event cards use, threaded through so the two entry points
    *  cannot drift. */
-  onFight: (event: GameEvent) => void;
+  onFight: (event: GameEvent, opts?: { enraged?: boolean; ally?: string | null }) => void;
 }) {
   const done = props.save.eventsDone ?? [];
+  // The ONE piece of state this screen owns beyond its scroll position: which
+  // boss is open. Progression is still entirely derived — see the header.
+  const [openBoss, setOpenBoss] = useState<VoidBoss | null>(null);
   const floors = voidFloors();
   const progress = towerProgress(done);
   // Top-down: highest first.
@@ -94,23 +100,34 @@ export function VoidTower(props: {
                   const tintA = EL_COLOR[b.tribeElement];
                   const tintB = EL_COLOR[b.mechanicElement];
                   const playable = open && !!event;
+                  // ENRAGED — its floor is cleared, so it can be tamed. Shown
+                  // on the tile as well as the detail page, because the whole
+                  // point of the state is to pull the player back DOWN the
+                  // tower, and they will not go looking for a reason on a floor
+                  // they think they are finished with.
+                  const rage = bossEnraged(done, b.cardId);
+                  const uses = tameUsesLeft(props.save.tamed, b.cardId);
                   return (
                     <button
                       key={b.cardId}
                       type="button"
-                      className={`vt-boss ${down ? "down" : ""} ${playable ? "" : "locked"}`}
+                      className={`vt-boss ${down ? "down" : ""} ${playable ? "" : "locked"} ${rage ? "rage" : ""}`}
                       // TWO accents, because the fight is a duel of two
                       // elements and the tile should say which two before you
                       // read a word of it. `--tint` stays the tribe's — it is
                       // the boss's primary and what the badge and hover glow
                       // key off — and `--tint2` gives the border a second stop.
                       style={{ ["--tint" as string]: tintA, ["--tint2" as string]: tintB }}
-                      disabled={!playable}
-                      onClick={playable ? () => props.onFight(event!) : undefined}
+                      // EVERY tile opens, locked ones included. The detail
+                      // page is where a boss's lore, its lesson and what its
+                      // Special does now live, and those are most worth reading
+                      // about a fight you cannot reach yet — refusing the tap
+                      // would hide the content exactly when it is useful.
+                      onClick={() => setOpenBoss(b)}
                       aria-label={
                         playable
-                          ? `${down ? "Refight" : "Fight"} ${def.name} — ${b.puzzle}`
-                          : `${def.name}, locked`
+                          ? `${def.name} — ${b.puzzle}`
+                          : `${def.name}, locked — read about it`
                       }
                     >
                       <img
@@ -139,6 +156,9 @@ export function VoidTower(props: {
                         </span>
                         <span className="vt-boss-name">{def.name}</span>
                         <span className="vt-boss-puzzle">{b.puzzle}</span>
+                        {uses > 0 && (
+                          <span className="vt-boss-tamed">TAMED · {uses} battle{uses === 1 ? "" : "s"} left</span>
+                        )}
                       </span>
                       {/* The state badge sits top-right and says only what is
                           true: cleared, locked, or the verb you are about to
@@ -146,9 +166,11 @@ export function VoidTower(props: {
                       <span className="vt-badge">
                         {!open
                           ? <><Lock size={12} aria-hidden="true" />LOCKED</>
-                          : down
-                            ? <><Check size={12} aria-hidden="true" />CLEARED</>
-                            : <><Swords size={12} aria-hidden="true" />FIGHT</>}
+                          : rage
+                            ? <><Flame size={12} aria-hidden="true" />ENRAGED</>
+                            : down
+                              ? <><Check size={12} aria-hidden="true" />CLEARED</>
+                              : <><Swords size={12} aria-hidden="true" />FIGHT</>}
                       </span>
                     </button>
                   );
@@ -159,6 +181,17 @@ export function VoidTower(props: {
         })}
       </div>
 
+      {openBoss && (
+        <BossDetail
+          boss={openBoss}
+          save={props.save}
+          event={EVENTS.find((e) => e.id === trialEventId(openBoss.cardId)) ?? null}
+          open={floorOpen(done, openBoss.floor)}
+          onClose={() => setOpenBoss(null)}
+          onFight={(e, opts) => { setOpenBoss(null); props.onFight(e, opts); }}
+        />
+      )}
+
       <p className="vt-foot">
         Bosses are fought with your own deck — pick it in the Arena when the
         fight seats. <b>Slay the boss within {VOID_TOWER_ROUNDS} rounds</b> —
@@ -166,6 +199,13 @@ export function VoidTower(props: {
         through, and its Special fires free every 3 rounds while you try. A
         first clear pays one booster pack and 25 shards; every refight after
         that pays 10.
+      </p>
+      <p className="vt-foot">
+        <b>Clear a floor and every boss on it turns ENRAGED</b> — stronger than the
+        one you beat, and worth going back down for. Beat a boss while it is
+        enraged and it fights <b>for you</b> in your next {TAME_USES} battles at
+        half of everything it has. One tamed boss per fight, chosen on its page;
+        a use is spent whether you win or lose.
       </p>
     </div>
   );

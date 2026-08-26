@@ -25,6 +25,8 @@ export {
   // Void Trials place their BOSS directly (outside the summon economy); tests
   // have always used it through helpers — this makes the door official.
   summonCard,
+  // Boss taming / enrage: a body that is a fraction of its card.
+  scaleInstance,
 } from "./state";
 export {
   canSummon,

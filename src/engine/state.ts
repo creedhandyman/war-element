@@ -547,10 +547,14 @@ export function effectiveSp(state: GameState, card: CardInstance): number {
   const base = def.spWhileStealthed != null && hasStatus(card, "STEALTH") ? def.spWhileStealthed : def.sp;
   // Lurk (Liquark): +SP while hidden in STEALTH.
   const lurkSp = def.lurk && hasStatus(card, "STEALTH") ? def.lurk.sp : 0;
-  return Math.max(
-    0,
-    base + lurkSp + (card.spBonus ?? 0) + (card.spBonusRound ?? 0) + buffSp + auraBonus(state, card, "sp") + fieldBonus(state, card, "sp"),
-  );
+  const sp = base + lurkSp + (card.spBonus ?? 0) + (card.spBonusRound ?? 0) + buffSp
+    + auraBonus(state, card, "sp") + fieldBonus(state, card, "sp");
+  // See `statScale`. Floored at 1 rather than 0 for a card that HAS speed: a
+  // halved 1-SP body would round to 0 and stop being able to move at all, which
+  // is a different card, not a weaker one. A printed 0 stays 0.
+  if (card.statScale != null && card.statScale !== 1 && sp > 0)
+    return Math.max(1, Math.floor(sp * card.statScale));
+  return Math.max(0, sp);
 }
 
 /**
@@ -662,6 +666,12 @@ function dmgBeforeIntimidation(state: GameState, card: CardInstance): number {
   const weak = weakenStacks(card);
   if (weak > 0) dmg = Math.floor(dmg * weakenMult(weak));
   if (hasStatus(card, "FREEZE")) dmg = Math.floor(dmg * 0.5);
+  // A body that is a fraction (or a multiple) of what its card says — a tamed
+  // boss at half, an enraged one above full. Applied AFTER the additive bonuses
+  // and the status multipliers, so it scales what the card actually swings for
+  // rather than only its printed number: a tamed boss that picks up an on-kill
+  // buff is still fighting at half, which is what the promise means.
+  if (card.statScale != null && card.statScale !== 1) dmg = Math.floor(dmg * card.statScale);
   // King of the Hill (A): sitting in a Mid row grants +1 DMG — but heavy
   // multi-hit cards get +1 HIT instead (in effectiveBasicHits), so a flat
   // per-hit +1 doesn't balloon on shredders. hillGivesHit() decides which half,
@@ -742,6 +752,26 @@ export function manhattan(a: Pos, b: Pos): number {
  *  measure movement this way, so they move freely diagonally. */
 export function chebyshev(a: Pos, b: Pos): number {
   return Math.max(Math.abs(a.row - b.row), Math.abs(a.col - b.col));
+}
+
+/** Make a body a FRACTION (or a multiple) of the card it was dealt from.
+ *
+ *  Two halves, because the instance model splits stats two ways. HP and shields
+ *  are absolute numbers on the instance, so they are rewritten here, once, at
+ *  placement. DMG and SP exist only as deltas layered on the def at read time,
+ *  so those cannot be rewritten at all — `statScale` is stored and read by
+ *  `effectiveDmg` / `effectiveSp` / `resolveHit` instead.
+ *
+ *  HP is floored at 1: halving a 1-HP body must not delete it on arrival.
+ *
+ *  Call it immediately after `summonCard`, before anything reads the card.
+ *  Mutates and returns the instance, matching `summonCard`'s own style. */
+export function scaleInstance(inst: CardInstance, scale: number): CardInstance {
+  inst.statScale = scale;
+  inst.maxHp = Math.max(1, Math.round(inst.maxHp * scale));
+  inst.curHp = Math.max(1, Math.round(inst.curHp * scale));
+  inst.curShields = Math.max(0, Math.round(inst.curShields * scale));
+  return inst;
 }
 
 export function summonCard(

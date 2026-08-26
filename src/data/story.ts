@@ -2450,6 +2450,19 @@ export interface StorySave {
    *  impossible. Absent on every save written before events existed, which
    *  correctly reads as "none beaten yet". */
   eventsDone?: string[];
+  /** VOID TOWER TAMINGS: boss card id -> battles remaining on it.
+   *
+   *  Beat an ENRAGED boss (any boss on a floor you have cleared) and it fights
+   *  for you three times at half strength. A key is present only while it has
+   *  uses left; spending the last one removes it, so `tamed` is also the answer
+   *  to "what can I bring".
+   *
+   *  Deliberately NOT the collection. A tamed boss is a loaner, not a card you
+   *  own — it never enters `collection`, is never craftable, packable or
+   *  buildable, and the test asserting a boss can be acquired nowhere still
+   *  holds. Absent on every save written before taming existed, which correctly
+   *  reads as "nothing tamed". */
+  tamed?: Record<string, number>;
   /** Region id -> Blight earned from world progress. The region's own baseline
    *  is applied on read, so it can never be saved away. */
   blight: Record<string, number>;
@@ -2475,6 +2488,11 @@ export interface StorySave {
   squad?: { region: string; cards: string[] };
 }
 
+/** Mirrors `TAME_USES` in data/void-tower.ts, which cannot be imported here:
+ *  void-tower imports DUPLICATE_CAP from this file, so the dependency only
+ *  runs one way. A test round-trips a save through `loadStory` and asserts the
+ *  clamp lands on `TAME_USES`, so the two cannot drift silently. */
+const MAX_TAME_USES = 3;
 const STORAGE_KEY = "we_story_v1";
 
 /** The player themselves: the one who casts the spells and keeps the cards.
@@ -2642,6 +2660,19 @@ export function loadStory(): StorySave {
       eventsDone: Array.isArray(p.eventsDone)
         ? [...new Set(p.eventsDone.filter((x): x is string => typeof x === "string"))]
         : [],
+      // Tamings. Clamped to 1..TAME_USES on the way in and dropped at 0, so a
+      // hand-edited save cannot mint an infinite loaner and a spent entry can
+      // never linger as a 0-use ghost in the picker. Keys are NOT checked
+      // against the boss list, for the same reason `eventsDone` is not: an id
+      // for a boss that was renamed is inert everywhere (`voidBossById` returns
+      // null) and costs nothing to keep.
+      tamed: p.tamed && typeof p.tamed === "object" && !Array.isArray(p.tamed)
+        ? Object.fromEntries(
+            Object.entries(p.tamed as Record<string, unknown>)
+              .map(([k, v]) => [k, Math.min(MAX_TAME_USES, Math.floor(Number(v) || 0))] as const)
+              .filter(([, v]) => v > 0),
+          )
+        : {},
       // A deck can only hold cards you own — a stale entry silently drops out.
       deck: known(p.deck).filter((id) => collection.includes(id)),
       blight: p.blight && typeof p.blight === "object" ? (p.blight as Record<string, number>) : {},
@@ -2758,6 +2789,28 @@ export function loadStory(): StorySave {
   } catch {
     return newSave();
   }
+}
+
+/** Record a taming: the boss fights for the player for the next MAX_TAME_USES
+ *  battles. Beating an already-tamed boss REFILLS rather than adding, so a
+ *  stable cannot be stockpiled past three and running one dry is a setback
+ *  rather than a dead end.
+ *
+ *  Spreads the save (see the applyClear bug in CLAUDE.md — a writer that
+ *  enumerates fields silently wipes every field it forgot). */
+export function tameBoss(save: StorySave, cardId: string): StorySave {
+  return { ...save, tamed: { ...(save.tamed ?? {}), [cardId]: MAX_TAME_USES } };
+}
+
+/** Spend one battle of a taming. Called when the player ENTERS a fight with it,
+ *  win or lose. The key is deleted at zero rather than left as a 0, so `tamed`
+ *  is directly the list of what can still be brought. */
+export function spendTame(save: StorySave, cardId: string): StorySave {
+  const left = Math.floor(save.tamed?.[cardId] ?? 0) - 1;
+  const next = { ...(save.tamed ?? {}) };
+  if (left > 0) next[cardId] = left;
+  else delete next[cardId];
+  return { ...save, tamed: next };
 }
 
 export function saveStory(save: StorySave): void {
