@@ -10697,6 +10697,17 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 5,
     keywords: {},
+    // IT ACTUALLY SHOOTS. Same hole Stormwing had: `attackType: "Ranged"` caps a
+    // basic at reach 2 from the row it was summoned in and 3 once it advances
+    // off it, and `avoidLateral` never advances at all — so measured, the boss
+    // whose entire lesson is "position buys nothing" reached rows 1 and 2 with
+    // its own attack and could not touch the back half of the board.
+    //
+    // That was the one place on this card where position bought EVERYTHING, and
+    // it sat directly against the fight's premise. `ignoresHomeRule` drops the
+    // reach cap and the sight screen, so the basic finally agrees with Meteor
+    // Fall about what kind of boss this is.
+    ignoresHomeRule: true,
     tribe: "Dragon",
     boss: true,
     // Floor 4 — THE RAIN, and it is the first boss the board cannot answer.
@@ -10715,7 +10726,7 @@ export const CARDS: CardDef[] = [
     // immunity to Melee outright, and "own ranged cards or you cannot
     // participate" is the lockout that came off Nightshrike. A boss whose
     // damage already ignores position must not also be unreachable.
-    passiveNames: { onSpecialUse: "Kindling", alwaysHit: "Coronal", roundTick: "High Circle" },
+    passiveNames: { ignoresHomeRule: "Skyfire", onSpecialUse: "Kindling", alwaysHit: "Coronal", roundTick: "High Circle" },
     // Coronal, the DAWN half: light does not miss. Deterministic, which the
     // mode requires — a board-wide nuke that sometimes whiffs would make the
     // countdown unreadable.
@@ -10817,12 +10828,26 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 12,
-    // 109 body points, sized against its Floor-4 neighbours (Umbranova 90,
-    // Cryovex 131) rather than the floor's 350 cap — building to that cap has
-    // measured 97-100% every single time anyone has tried it.
+    // 129 body points, sized against its Floor-4 neighbours rather than the
+    // floor's 350 cap — building to that cap has measured 97-100% every single
+    // time anyone has tried it.
+    //
+    // THE SPECIAL IS THE LEVER HERE, not the body, and that is the opposite of
+    // what the same sweep found one seat over on Kato's jet (whose Special was
+    // unraisable — 10 and 40 damage read identically). Measured in one pass:
+    //
+    //     old Special, hp 60   67.7%      new Special, hp  80   85.4%
+    //     new Special, hp 60   82.3%      new Special, hp 100   88.5%
+    //
+    // Reach 3 is why. A nova that catches three squares out on a five-square
+    // board is catching most of what the player owns, and hauling it two slots
+    // in leaves it standing next to a 15-damage sword.
     dmg: 15,
     hits: 1,
-    hp: 60,
+    // 60 -> 80 (body 109 -> 129) at the owner's call, and the SMALLER half of
+    // what moved this fight. See the Special: 15 damage on a reach-3 nova was
+    // worth +14.6 points on its own, before a single hit point was added.
+    hp: 80,
     sp: 10,
     shields: 12,
     keywords: {},
@@ -10870,15 +10895,23 @@ export const CARDS: CardDef[] = [
       // backwards too, so a card that slipped past the samurai gets hauled back
       // to it rather than merely shuffled one row toward its home.
       //
-      // Damage is low (8) BY DESIGN. The Special is not how this boss kills —
-      // the sword is. What the Special does is undo your positioning, and the
-      // damage is a receipt for it.
+      // A LONGER ROPE, at the owner's call: reach 2 -> 3 and the haul 1 -> 2.
+      // Both halves of "range" moved on purpose — it now catches things a full
+      // three squares out AND drags them twice as far in, so slipping the net is
+      // a matter of leaving the samurai's half of the board rather than of
+      // standing one square further back.
+      //
+      // Damage 8 -> 15. It was low BY DESIGN (the sword was meant to be how this
+      // boss killed, the Special only undoing your positioning) and that reading
+      // is now retired: at 15 the Special is a real threat on its own, and 15 is
+      // also the Riposte's threshold — the boss hits its own magic number with
+      // both hands.
       params: {
-        dmg: 8, targets: 99, reach: 2, pullToCaster: 1,
+        dmg: 15, targets: 99, reach: 3, pullToCaster: 2,
         statusKind: "ROOT", statusDuration: 1,
       },
       targetSide: "enemy",
-      text: "8 DMG to every opponent within 2 spaces, drags each of them into contact, and ROOTs them there for a round.",
+      text: "15 DMG to every opponent within 3 spaces, hauls each of them 2 slots into contact, and ROOTs them there for a round.",
     },
   },
   {

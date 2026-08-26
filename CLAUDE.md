@@ -1274,6 +1274,31 @@ Honest caveat: NONE of it measures. Every variant swept (spread 1/2 x dmg
 only reached in 46% of fights and the outcome is set before it arrives. This is
 a FEEL change, which is exactly what the Cryovex note says to do on Floor 4.
 
+**FLOOR 4 IS NOW TOP-HEAVY, on purpose — check this before tuning anything there.**
+Latest measured pass: Umbranova 85.4 · Kazehaya 85.4 · Cryovex 70.8 · Kato ~69.
+The two that were raised are ~15 points clear of the two that were not. That is a
+deliberate ordering rather than drift, but it is a real spread and the next person
+in should know it before "fixing" Cryovex or Kato upward.
+
+**UMBRANOVA SHOOTS NOW TOO** (`ignoresHomeRule`, 82.3 -> 85.4). Same hole Stormwing
+had, and worse here for being on-theme: a ranged basic caps at reach 2 from the
+row it was summoned in and `avoidLateral` never advances, so the boss whose whole
+lesson is "position buys nothing" could not reach past row 2 with its own attack.
+That was the one place on the card where position bought everything.
+
+**REACH IS THE LEVER ON A NOVA; DAMAGE IS NOT.** The single most useful finding of
+this pass, from two bosses measured the same way in the same sweep:
+
+- Kato's Stormwing — a one-column `sameColumn` strafe — could not be raised into
+  relevance at ALL. dmg 10 and dmg 40 read the same 68.8%.
+- Kazehaya's Cutting Wind — a `reach` nova — went 67.7% -> 82.3% on the Special
+  alone (8 dmg/reach 2/haul 1 -> 15/reach 3/haul 2), with the body untouched.
+
+The difference is how much board the shape covers. On a 5x5, reach 3 catches most
+of what the player owns; one column catches whatever happens to be standing in it,
+which by Floor 4 is usually nothing. Before raising a boss Special's damage, check
+whether its SHAPE can hit anything first.
+
 **KAZEHAYA — Floor 4's FOURTH boss, the duellist.** LEAF tribe / GALE mechanic,
 tribe Grove (Warden + Galeon + 2 Sakuroot + the two new retinue tokens, 36 exact).
 
@@ -1297,7 +1322,7 @@ against a Special that only fires every three — and **Whirlwind Forest Warrior
 (`gale_whirlwind_warrior_tok`, 3g, `onHitPush`) shoves one slot away. Pointed
 opposite ways deliberately: between them a player's line stops being a line.
 
-Measured 67.7% (Umbranova 60.4 / Cryovex 70.8 / Kato 70.8, one pass). Its win
+Measured 85.4% after the Special raise + hp 80 (see the Floor-4 note above). Its win
 TYPE is the odd one out — 61 timeouts to 4 overruns where the rest win by
 clearing the board — and that is `aimLateral` behaving correctly. Don't "fix" it.
 

@@ -120,17 +120,21 @@ describe("the roster", () => {
       // 60/80/100/120 read 60.4 / 77.1 / 82.3 / 86.5. At 100 it is now the
       // hardest fight on Floor 4 by about 12 points, deliberately.
       boss_umbranova: 130,
-      // Kazehaya is a THRESHOLD boss: 15 damage on the sword, and 15 as the
-      // line its Riposte trips over. Sized against its neighbours, not the cap,
-      // and it landed in the band first try — 67.7% against Umbranova 60.4,
-      // Cryovex 70.8 and Kato 70.8, all four measured in one pass.
+      // Kazehaya is a THRESHOLD boss: 15 damage on the sword, 15 on the Special,
+      // and 15 as the line its Riposte trips over.
       //
-      // Its win TYPE is the odd one out and worth keeping: 61 timeouts to 4
-      // overruns, where every other Floor-4 boss wins mostly by clearing the
-      // board. That is the gait doing what it was written to do — `aimLateral`
-      // never advances, so this boss outlasts the clock from its own line
-      // instead of walking down the board. Do not "fix" the timeouts.
-      boss_kazehaya: 109,
+      // 109 -> 129 (hp 60 -> 80), and the body is the SMALL half of that change.
+      // Cutting Wind went to 15 damage on a reach-3 rope hauling 2, and measured
+      // alone that was worth 67.7% -> 82.3% before any HP moved; 80 then takes
+      // it to 85.4%, level with Umbranova. Note this is the exact inverse of
+      // Kato's jet, whose Special could not be raised into relevance at all —
+      // reach is what separates them, not damage.
+      //
+      // Its win TYPE is still the odd one out and worth keeping: it wins on the
+      // clock rather than by clearing the board, because `aimLateral` never
+      // advances and this boss outlasts you from its own line. Don't "fix" the
+      // timeouts.
+      boss_kazehaya: 129,
       // Sized against Umbranova's 128, not Floor 4's 350 cap. The number is
       // nearly irrelevant to the outcome: every variant swept — formation 7 to
       // 3 bodies, the Special freezing 2 or 1, Hoarbite on/off, crystals inert,
@@ -1320,6 +1324,33 @@ describe("Kazehaya — the duellist", () => {
     const now = s.cards[foe.instanceId].pos!;
     expect(now.row, "hauled toward the samurai").toBeLessThan(was.row);
     expect(statusOf(s.cards[foe.instanceId], "ROOT"), "and pinned where it lands").toBeTruthy();
+  });
+
+  it("the rope reaches THREE squares and hauls TWO", () => {
+    // Both halves of the range, pinned against the def so a re-tune has to come
+    // through here. A card at reach 3 was outside the old net entirely.
+    const p = getDef("boss_kazehaya").special!.params!;
+    expect(p.reach, "catches from three out").toBe(3);
+    expect(p.pullToCaster, "and hauls two in").toBe(2);
+    const s = bigPrepState();
+    s.round = 3;
+    const boss = place(s, "boss_kazehaya", "P2", 0, 1);
+    const far = place(s, "leaf_stickviper", "P1", 3, 1, { curHp: 90, maxHp: 90, curShields: 0 });
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    const now = s.cards[far.instanceId];
+    expect(90 - now.curHp, "three squares out is inside the net now").toBeGreaterThan(0);
+    expect(now.pos!.row, "and it is dragged two slots, not one").toBe(1);
+  });
+
+  it("the widened rope is what the TELEGRAPH draws", () => {
+    // `specialTargets` reads `reach`, so the red zone follows the longer rope
+    // for free — but only if nothing else caps it. Asserted rather than assumed.
+    const s = bigPrepState();
+    s.round = 3;
+    const boss = place(s, "boss_kazehaya", "P2", 0, 1);
+    const far = place(s, "leaf_stickviper", "P1", 3, 1, { curHp: 90, maxHp: 90, curShields: 0 });
+    const cells = bossTelegraphs(s).find((t) => t.bossId === boss.instanceId)!.cells;
+    expect(cells, "three squares out is lit").toContainEqual(far.pos);
   });
 
   it("its threshold is its own sword, printed twice", () => {
