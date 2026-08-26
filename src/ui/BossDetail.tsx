@@ -29,7 +29,7 @@ import { VOID_TOWER_ROUNDS } from "../engine/types";
 import { describeOwnPassives } from "./card-text";
 import {
   ENRAGE_SCALE, TAME_SCALE, TAME_USES, type VoidBoss,
-  bodyCap, bossDefeated, bossEnraged, summonBudget, tameUsesLeft, tamedRoster,
+  bodyCap, bossDefeated, bossEnraged, summonBudget, tameUsesLeft, tamedRoster, tamedStats,
 } from "../data/void-tower";
 
 /** The scale multipliers as a percentage, for prose. */
@@ -45,6 +45,11 @@ export function BossDetail(props: {
    *  cannot be fought, which is the whole reason the page is worth opening on
    *  one. */
   open: boolean;
+  /** JUST TAMED — the player has this second come back from beating it while
+   *  enraged. The page opens on the reveal instead of on the fight, because
+   *  the moment a boss changes sides is the moment worth showing, and the win
+   *  screen has no idea which boss it was fighting. */
+  justTamed?: boolean;
   onClose: () => void;
   onFight: (event: GameEvent, opts: { enraged: boolean; ally: string | null }) => void;
 }) {
@@ -99,11 +104,52 @@ export function BossDetail(props: {
           </span>
         </div>
 
+        {/* THE REVEAL. Shown above the lore, because it is the answer to the
+            question the player is holding when this page opens. It states the
+            body they actually get, computed by the same rounding the board
+            uses — a preview that disagreed with the card on the table would be
+            worse than no preview. */}
+        {props.justTamed && (() => {
+          const t = tamedStats(def);
+          return (
+            <div className="bd-tamed-reveal">
+              <div className="bd-tamed-head">
+                <Flame size={14} aria-hidden="true" />
+                <b>TAMED</b>
+              </div>
+              <p>
+                {def.name} fights for you in your next <b>{myUses || TAME_USES}</b>{" "}
+                battle{(myUses || TAME_USES) === 1 ? "" : "s"} — bring it from any boss's page.
+              </p>
+              {/* A stat the card does not have is left out entirely — Rotroot
+                  has no shields, and a "SHLD 0 → 0" cell is a row of noise in
+                  the middle of the payoff. */}
+              <div className="bd-tamed-stats">
+                {([
+                  ["DMG", def.dmg, t.dmg],
+                  ["HP", def.hp, t.hp],
+                  ["SHLD", def.shields, t.shields],
+                  ["SP", def.sp, t.sp],
+                ] as [string, number, number][])
+                  .filter(([, was]) => was > 0)
+                  .map(([label, was, now]) => (
+                    <span key={label}><i>{label}</i>{was}<em>→</em><b>{now}</b></span>
+                  ))}
+              </div>
+              <p className="bd-tamed-foot">
+                Its Special is halved too — {sp ? sp.name : "everything it does"} included.
+                These are its printed stats; on the board its element's aura still
+                applies on top, so it can only be better than this.
+              </p>
+            </div>
+          );
+        })()}
+
         {/* Lore is authored per boss and already on the def — see cards.ts,
             which folds LORE onto every def at module load. */}
         {def.lore && <p className="bd-lore" data-el={def.element}>{def.lore}</p>}
 
-        {enraged && (
+        {enraged && !props.justTamed && (
           <div className="bd-rage">
             <b>It has not forgotten.</b> Clearing Floor {boss.floor} left every boss on it
             enraged — this one comes back at {pct(ENRAGE_SCALE)} of its old strength, Special

@@ -14,7 +14,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { getDef } from "../../data/cards";
 import {
   ENRAGE_SCALE, TAME_SCALE, TAME_USES, VOID_BOSSES,
-  bossEnraged, tameUsesLeft, tamedRoster, trialEventId,
+  bossEnraged, tameUsesLeft, tamedRoster, tamedStats, trialEventId,
 } from "../../data/void-tower";
 import { loadStory, newSave, spendTame, tameBoss, type StorySave } from "../../data/story";
 import { effectiveDmg, effectiveSp, scaleInstance, summonCard } from "../state";
@@ -89,6 +89,48 @@ describe("a tamed body is half of what its card says", () => {
     );
     expect(c.curHp).toBeGreaterThanOrEqual(1);
     expect(effectiveSp(s, s.cards[c.instanceId])).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("the reveal shows the body the player actually gets", () => {
+  // `tamedStats` feeds the post-win reveal and the picker, and it duplicates
+  // rounding that lives in `scaleInstance` and the effective-stat readers — so
+  // it is checked against a REAL scaled instance rather than against a copy of
+  // the arithmetic.
+  //
+  // The guarantee is ONE-DIRECTIONAL, and this is the test that found out why.
+  // It first asserted equality and Nightshrike failed at 7 vs 8: it is GALE, and
+  // Zephyr's static +DMG-per-SP aura lands on the board number BEFORE the
+  // halving. A preview holding only a CardDef cannot know that. So the rule is
+  // that the preview never OVER-promises — the tamed boss is always at least
+  // the card the player was shown, never less.
+  for (const b of VOID_BOSSES) {
+    it(`${b.cardId}: the preview never over-promises`, () => {
+      const def = getDef(b.cardId);
+      const s = bigPrepState();
+      const inst = scaleInstance(place(s, b.cardId, "P1", 4, 2), TAME_SCALE);
+      const preview = tamedStats(def);
+      // HP and shields are absolute on the instance — these are exact.
+      expect(preview.hp, "HP is exact").toBe(inst.maxHp);
+      expect(preview.shields, "shields are exact").toBe(inst.curShields);
+      // DMG and SP may be raised by auras on a live board; they may never be
+      // lower than what was shown.
+      expect(effectiveDmg(s, s.cards[inst.instanceId]), "DMG on the board is never worse")
+        .toBeGreaterThanOrEqual(preview.dmg);
+      expect(effectiveSp(s, s.cards[inst.instanceId]), "SP on the board is never worse")
+        .toBeGreaterThanOrEqual(preview.sp);
+    });
+  }
+
+  it("and it really is HALF the card, not a rounding of nothing", () => {
+    // Guards the guard: a `tamedStats` that returned the printed numbers
+    // untouched would pass every over-promise check above.
+    for (const b of VOID_BOSSES) {
+      const def = getDef(b.cardId);
+      const t = tamedStats(def);
+      expect(t.hp, `${b.cardId} hp`).toBeLessThan(def.hp);
+      expect(t.dmg, `${b.cardId} dmg`).toBeLessThan(def.dmg);
+    }
   });
 });
 

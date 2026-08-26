@@ -1285,6 +1285,20 @@ because void-tower imports story and the dependency only runs one way. A test
 round-trips a 9999-use save and asserts the clamp lands on `TAME_USES`, so the
 two cannot drift.
 
+**THE REVEAL.** Winning an enraged fight routes the player to the tower with
+that boss's page open on a TAMED panel (`towerOpenOn` in App -> `openOnMount` on
+VoidTower -> `justTamed` on BossDetail, consumed once so a later visit shows the
+ordinary page). The win screen holds a GameState and cannot know which boss the
+match was against, so the hand-off is recorded at settle — the only place that
+knows both that the match was won and what it was against.
+
+`tamedStats(def)` feeds that panel. It is the PRINTED card halved, not the board
+number, and the difference is real: an element aura (GALE's Zephyr, +DMG off SP)
+lands BEFORE the halving, so a tamed Nightshrike swings 8 where its printed 15
+halves to 7. The test asserted equality first and caught exactly that, so the
+guarantee is now one-directional — **the preview never over-promises** — with a
+second test to stop `tamedStats` degenerating into "return the printed numbers".
+
 **UI:** `BossDetail.tsx` — the tower tile now OPENS a boss page (locked ones
 included; lore and tips are most worth reading about a fight you cannot reach
 yet) with large art, lore, the authored `puzzle` line, derived facts, the

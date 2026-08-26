@@ -28,7 +28,7 @@
  *  trials' first-clear pack. The mode-rules doc that defines them was never
  *  written; the floor ladder is the half the boss doc does specify.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Flame, Lock, Swords } from "lucide-react";
 import type { StorySave } from "../data/story";
 import { EVENTS, type GameEvent } from "../data/events";
@@ -38,7 +38,7 @@ import { VOID_TOWER_ROUNDS } from "../engine/types";
 import {
   type VoidBoss,
   bodyCap, bossDefeated, bossEnraged, bossesOnFloor, floorCleared, floorOpen,
-  TAME_USES, summonBudget, tameUsesLeft, towerProgress, trialEventId, voidFloors,
+  TAME_USES, VOID_BOSSES, summonBudget, tameUsesLeft, towerProgress, trialEventId, voidFloors,
 } from "../data/void-tower";
 import { BossDetail } from "./BossDetail";
 
@@ -49,11 +49,31 @@ export function VoidTower(props: {
    *  handler Home's event cards use, threaded through so the two entry points
    *  cannot drift. */
   onFight: (event: GameEvent, opts?: { enraged?: boolean; ally?: string | null }) => void;
+  /** A boss to open the moment this screen mounts, and whether the player has
+   *  just tamed it. Set by the parent after a win over an enraged boss: the
+   *  win screen cannot know which boss it was, so the tower is told to open on
+   *  the one that changed sides. */
+  openOnMount?: { cardId: string; justTamed: boolean } | null;
+  /** Called once the mount-open has been honoured, so a later visit to the
+   *  tower does not re-open the same reveal. */
+  onOpenConsumed?: () => void;
 }) {
   const done = props.save.eventsDone ?? [];
   // The ONE piece of state this screen owns beyond its scroll position: which
   // boss is open. Progression is still entirely derived — see the header.
   const [openBoss, setOpenBoss] = useState<VoidBoss | null>(null);
+  // Was the boss currently open opened BY the just-tamed hand-off? Tracked
+  // separately from `openBoss` so closing the reveal and opening the same boss
+  // again shows the ordinary page rather than replaying the celebration.
+  const [revealing, setRevealing] = useState(false);
+  const mountOpen = props.openOnMount;
+  const consume = props.onOpenConsumed;
+  useEffect(() => {
+    if (!mountOpen) return;
+    const b = VOID_BOSSES.find((x) => x.cardId === mountOpen.cardId);
+    if (b) { setOpenBoss(b); setRevealing(mountOpen.justTamed); }
+    consume?.();
+  }, [mountOpen, consume]);
   const floors = voidFloors();
   const progress = towerProgress(done);
   // Top-down: highest first.
@@ -187,8 +207,9 @@ export function VoidTower(props: {
           save={props.save}
           event={EVENTS.find((e) => e.id === trialEventId(openBoss.cardId)) ?? null}
           open={floorOpen(done, openBoss.floor)}
-          onClose={() => setOpenBoss(null)}
-          onFight={(e, opts) => { setOpenBoss(null); props.onFight(e, opts); }}
+          justTamed={revealing}
+          onClose={() => { setOpenBoss(null); setRevealing(false); }}
+          onFight={(e, opts) => { setOpenBoss(null); setRevealing(false); props.onFight(e, opts); }}
         />
       )}
 

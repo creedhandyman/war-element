@@ -768,8 +768,14 @@ export function App() {
       // for the next three battles. Folded into the event settle rather than
       // bolted beside it so it rides the same `settledMatch` guard — one
       // settlement per match, so a re-render cannot re-tame.
-      const tamedSave = (sv: StorySave) =>
-        won && bossRun?.enraged ? tameBoss(sv, bossRun.cardId) : sv;
+      const tamedSave = (sv: StorySave) => {
+        if (!won || !bossRun?.enraged) return sv;
+        // Queue the reveal for the tower. Set here rather than in the win
+        // screen because this is the only place that knows both that the match
+        // was won and which boss it was against.
+        setTowerOpenOn({ cardId: bossRun.cardId, justTamed: true });
+        return tameBoss(sv, bossRun.cardId);
+      };
       const settled = event
         ? (won ? tamedSave(completeEvent(prev, event.id)) : prev)
         : settleArena(
@@ -999,6 +1005,12 @@ export function App() {
     enraged: boolean;
     ally: string | null;
   } | null>(null);
+  /** The boss the tower should open on next time it is shown, and whether the
+   *  player has just tamed it. The win screen has no idea which boss the match
+   *  was against — it is handed a GameState, not a trial — so the moment a boss
+   *  changes sides is recorded here and spent when the player leaves the
+   *  result screen. */
+  const [towerOpenOn, setTowerOpenOn] = useState<{ cardId: string; justTamed: boolean } | null>(null);
 
   function seatEventFight(e: GameEvent, opts?: { enraged?: boolean; ally?: string | null }) {
     setBossRun(e.bossId
@@ -2854,6 +2866,11 @@ export function App() {
             setSel(null);
             setPending(null);
             setMullToss([]);
+            // A boss just changed sides — go and look at it. Leaving a taming
+            // to be discovered later in a menu would waste the one moment the
+            // whole loop is built around; the Arena's deck picker is not where
+            // you find out you now own a dragon.
+            if (towerOpenOn) setTab("tower");
           }}
         />
       )}
@@ -3515,7 +3532,12 @@ export function App() {
         // here lands in the 194px log column. Home hit the same wall and the
         // overlay is how it climbed out.
         <div className="overlay arena-wrap vt-overlay">
-          <VoidTower save={story} onFight={seatEventFight} />
+          <VoidTower
+          save={story}
+          onFight={seatEventFight}
+          openOnMount={towerOpenOn}
+          onOpenConsumed={() => setTowerOpenOn(null)}
+        />
         </div>
       )}
 

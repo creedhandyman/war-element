@@ -518,6 +518,30 @@ export const tameUsesLeft = (
   tamed: Record<string, number> | undefined, cardId: string,
 ): number => Math.max(0, Math.floor(tamed?.[cardId] ?? 0));
 
+/** The boss's PRINTED card, halved — what the reveal and the picker show.
+ *
+ *  Rounded the way the real thing is: HP and shields rounded (they are
+ *  rewritten on the instance by `scaleInstance`), damage and speed floored
+ *  (they run through the effective-stat readers).
+ *
+ *  IT IS THE CARD, NOT THE BOARD, and that gap is real rather than sloppy.
+ *  On the board a card also carries its element's aura — GALE's Zephyr grants
+ *  up to +3 DMG off SP — and that lands BEFORE the halving, so a tamed
+ *  Nightshrike swings for 8 where its printed 15 halves to 7. A preview cannot
+ *  know that without a GameState it does not have.
+ *
+ *  So the guarantee is one-directional and the test enforces exactly that: this
+ *  never OVER-promises. A tamed boss is always at least as good as the numbers
+ *  the player was shown, never worse. */
+export function tamedStats(def: CardDef): { dmg: number; hp: number; shields: number; sp: number } {
+  return {
+    dmg: Math.floor(def.dmg * TAME_SCALE),
+    hp: Math.max(1, Math.round(def.hp * TAME_SCALE)),
+    shields: Math.max(0, Math.round(def.shields * TAME_SCALE)),
+    sp: def.sp > 0 ? Math.max(1, Math.floor(def.sp * TAME_SCALE)) : 0,
+  };
+}
+
 /** Every boss currently available to bring, with its remaining uses. */
 export const tamedRoster = (
   tamed: Record<string, number> | undefined,
