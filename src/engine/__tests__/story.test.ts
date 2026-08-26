@@ -16,6 +16,7 @@ import {
   SQUAD_BASE, SQUAD_PER_THRONE, guaranteedDrops, isRegionConquered, squadCapFor, squadCapInRegion,
   isOpeningNode, autoSquad, newHero, canCraft, craftCard, craftCostOf, CRAFT_COST,
   openPack, applyPack, canOpenPack, awardShards, dupeEssenceFor, PACK_COST, PACK_SIZE, SHARDS_PER_WIN,
+  BOX_COST, BOX_PACKS, BOX_PAID_PACKS, BOX_BONUS_PACKS, BOX_SAVING, buyBox, canBuyBox, addShards, addFreePacks,
   SHINY_CHANCE, rollShiny, isShiny, addShiny, spellsUnlockedIn, heroSpellShelf, heroBookFor, ESSENCE_PER_CLEAR, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   autoDeck, terrainContested, type StoryNode, type StorySave, bookForLoadout, fieldedBy,
@@ -2307,5 +2308,68 @@ describe("what a node fields, and the face it wears", () => {
     expect(greegon.cost, "fixture assumes Greegon is the dearer of the two")
       .toBeGreaterThan(nettle.cost);
     expect(finisherOf(fieldedBy(add))).toBe("leaf_greegon");
+  });
+});
+
+
+// The booster box is a PRICE, not a new way to open cards: it banks owed packs
+// that the existing pack flow spends. These pin the money, because that is the
+// only part a player can be cheated by.
+describe("the booster box", () => {
+  const rich = (n: number) => addShards(newSave(), n);
+
+  it("charges for five packs and banks seven", () => {
+    expect(BOX_PACKS).toBe(BOX_PAID_PACKS + BOX_BONUS_PACKS);
+    expect(BOX_COST).toBe(PACK_COST * BOX_PAID_PACKS);
+    const before = rich(BOX_COST);
+    const after = buyBox(before);
+    expect(after.hero!.shards, "paid exactly the sticker price").toBe(0);
+    // A DELTA, not an absolute: a new save is already gifted a pack
+    // (`newHero().freePacks` is 1), so asserting 7 here would be asserting that
+    // the welcome gift does not exist.
+    expect(after.hero!.freePacks - before.hero!.freePacks, "seven packs added")
+      .toBe(BOX_PACKS);
+  });
+
+  it("is cheaper than buying the same seven packs one at a time", () => {
+    // The whole offer, stated as a test so a later price edit cannot quietly
+    // make the box the WORSE deal while the shop still calls it a saving.
+    expect(BOX_COST).toBeLessThan(PACK_COST * BOX_PACKS);
+    expect(BOX_SAVING).toBe(PACK_COST * BOX_PACKS - BOX_COST);
+    expect(BOX_SAVING).toBe(PACK_COST * BOX_BONUS_PACKS);
+  });
+
+  it("refuses on credit rather than granting a box it was not paid for", () => {
+    const broke = rich(BOX_COST - 1);
+    expect(canBuyBox(broke)).toBe(false);
+    const after = buyBox(broke);
+    // Identity, not a field check: the same object back is the strongest form
+    // of "nothing happened", and it cannot be fooled by a baseline (the welcome
+    // pack) the way an absolute count can.
+    expect(after, "save comes back untouched").toBe(broke);
+    expect(canBuyBox(rich(BOX_COST))).toBe(true);
+  });
+
+  it("free packs cannot buy a box — that loop would print money", () => {
+    // Seven owed packs and no shards is not seven packs' worth of currency.
+    const owed = addFreePacks(newSave(), 99);
+    expect(canBuyBox(owed)).toBe(false);
+    expect(buyBox(owed).hero!.freePacks, "not one pack moved").toBe(owed.hero!.freePacks);
+  });
+
+  it("hands its packs to the ordinary pack flow, free and unmetered", () => {
+    // The box's packs are the SAME packs: opening one spends an owed pack and
+    // charges nothing, which is what makes a second opening path unnecessary.
+    let save = buyBox(rich(BOX_COST));
+    expect(save.hero!.shards).toBe(0);
+    const owed = save.hero!.freePacks; // the box's seven, plus the welcome pack
+    expect(owed).toBeGreaterThanOrEqual(BOX_PACKS);
+    for (let i = 0; i < owed; i++) {
+      expect(canOpenPack(save), `pack ${i + 1} of ${owed} is openable`).toBe(true);
+      save = applyPack(save, openPack(save, () => 0.5));
+      expect(save.hero!.shards, "never charged for a box pack").toBe(0);
+    }
+    expect(save.hero!.freePacks, "every owed pack spent").toBe(0);
+    expect(canOpenPack(save), "and then it is empty, with no shards").toBe(false);
   });
 });

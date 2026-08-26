@@ -24,9 +24,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CARDS, getDef } from "../data/cards";
 import {
+  BOX_BONUS_PACKS, BOX_COST, BOX_PACKS, BOX_PAID_PACKS, BOX_SAVING,
   CRAFT_COST, PACK_COST, PACK_SIZE, PACK_WEIGHT, REGIONS, SHINY_CHANCE,
-  applyPack, canCraft, canOpenPack, craftCard, craftCostOf, dupeEssenceFor,
-  freePacks, openPack, packIsFree, type PackResult, type StorySave,
+  applyPack, buyBox, canBuyBox, canCraft, canOpenPack, craftCard, craftCostOf,
+  dupeEssenceFor, freePacks, openPack, packIsFree, type PackResult, type StorySave,
 } from "../data/story";
 import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { CardView } from "./CardView";
@@ -92,6 +93,8 @@ export function Shop(props: {
   /** Falls back to the drawn seal if the pack shot fails to load — the Packs
    *  tab should never be a hole where its one object was. */
   const [packArt, setPackArt] = useState(true);
+  /** Same fallback for the box shot, for the same reason. */
+  const [boxArt, setBoxArt] = useState(true);
   /** The tear-open beat. The result is already computed and saved when this is
    *  true — this only delays SHOWING it, so skipping cannot change a pull. */
   const [tearing, setTearing] = useState(false);
@@ -310,6 +313,41 @@ export function Shop(props: {
               number itself. Packs you are OWED are counted separately rather
               than folded in: they are not a balance, and a total that mixed them
               would go down when you opened one and stay put when you did not. */}
+          {/* THE BOX. Deliberately under the single pack rather than beside it:
+              the pack is the thing being explained above — odds, guarantee, foil
+              rate — and the box is the same pack seven times, so it reads as an
+              upsell on something understood rather than a competing choice made
+              before either is. */}
+          <div className="box-offer">
+            <div className={`box-shot ${boxArt ? "art" : ""}`}>
+              {boxArt ? (
+                <img src="/box.webp" alt={`War Element ${BOX_PACKS}-pack booster box`}
+                  draggable={false} onError={() => setBoxArt(false)} />
+              ) : (
+                <span className="box-shot-mark">{BOX_PACKS}</span>
+              )}
+            </div>
+            <div className="box-body">
+              <div className="box-name">Booster box</div>
+              <div className="box-sub">
+                {BOX_PAID_PACKS} packs <em>+ {BOX_BONUS_PACKS} bonus</em> · {BOX_PACKS} total
+              </div>
+              {/* The saving as PACKS, not a percentage. The offer is "two of
+                  these for nothing", and that is worth more than "29% off". */}
+              <div className="box-save">
+                Costs {BOX_PAID_PACKS} packs — {BOX_BONUS_PACKS} are free
+                <span> (save {BOX_SAVING}<i className="shard" />)</span>
+              </div>
+              <button className={`box-buy ${canBuyBox(save) ? "can" : ""}`}
+                disabled={!canBuyBox(save)}
+                onClick={() => props.onSave(buyBox(save))}>
+                {canBuyBox(save)
+                  ? <>Buy the box for {BOX_COST}<i className="shard" /></>
+                  : <>{BOX_COST - shards} more shards</>}
+              </button>
+            </div>
+          </div>
+
           <div className="pack-afford">
             {owedPacks > 0 && (
               <b className="pack-owed">

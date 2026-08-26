@@ -1541,6 +1541,24 @@ export const onlineMatchShards = (opts: { won: boolean; surrendered: boolean }):
 /** What a pack costs, and what it holds. Five cards, one of them Epic or better
  *  — the guarantee is what stops a pack ever feeling like nothing happened. */
 export const PACK_COST = 40;
+
+/** The booster BOX: five packs bought, two thrown in, seven opened.
+ *
+ *  Priced at five packs exactly, so the two bonus packs are the whole offer and
+ *  the discount is legible without a percentage: you pay for what it says on
+ *  the front and get what it says underneath.
+ *
+ *  It does NOT open anything. Buying banks seven owed packs and the player tears
+ *  them one at a time through the pack flow that already exists — same odds,
+ *  same Epic guarantee, same foil roll, same reveal. A box that opened itself in
+ *  one burst would need a second copy of all of that, and would take the best
+ *  part of the shop away to save seven taps. */
+export const BOX_PAID_PACKS = 5;
+export const BOX_BONUS_PACKS = 2;
+export const BOX_PACKS = BOX_PAID_PACKS + BOX_BONUS_PACKS;
+export const BOX_COST = PACK_COST * BOX_PAID_PACKS;
+/** What the box saves against buying the same seven packs one at a time. */
+export const BOX_SAVING = PACK_COST * BOX_BONUS_PACKS;
 export const PACK_SIZE = 5;
 
 /** Pull weights. Deliberately close to the recruitment table (`DROP_RATE`, which
@@ -1669,6 +1687,25 @@ export function addFreePacks(save: StorySave, n: number): StorySave {
   if (!n) return save;
   const hero = save.hero ?? newHero();
   return { ...save, hero: { ...hero, freePacks: Math.max(0, hero.freePacks + n) } };
+}
+
+/** Can the box be afforded right now? Free packs do NOT pay for a box — they
+ *  are the thing it hands out, and spending one to buy seven would be a loop. */
+export const canBuyBox = (save: StorySave): boolean =>
+  (save.hero?.shards ?? 0) >= BOX_COST;
+
+/** Buy the box: charge for five, bank seven.
+ *
+ *  Returns the save UNCHANGED when it cannot be afforded rather than granting on
+ *  credit — the Shop disables the button, but the guard lives here so the rule
+ *  is enforced where the shards actually move. */
+export function buyBox(save: StorySave): StorySave {
+  if (!canBuyBox(save)) return save;
+  const hero = save.hero ?? newHero();
+  return addFreePacks(
+    { ...save, hero: { ...hero, shards: Math.max(0, hero.shards - BOX_COST) } },
+    BOX_PACKS,
+  );
 }
 
 /** Bank shards. The one place they are added, so a grant that is not a match

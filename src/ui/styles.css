@@ -4518,6 +4518,46 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .pack-sub { font-size: var(--fs-3); color: var(--ink-dim); }
 
+/* The booster box: a wide product row under the single pack. Art left, offer
+   right — the same shape the deck picker rows use, so it reads as a THING FOR
+   SALE rather than another panel of the pack above it. */
+.box-offer {
+  display: flex; gap: 12px; align-items: center; width: 100%;
+  margin-top: 14px; padding: 11px; border-radius: 12px;
+  border: 1px solid var(--gold-line);
+  background: linear-gradient(150deg, rgba(201, 162, 75, .13), rgba(10, 10, 17, .55));
+  text-align: left;
+}
+.box-shot {
+  flex: 0 0 76px; height: 96px; border-radius: 8px; overflow: hidden; line-height: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--void-2); border: 1px solid var(--panel-line);
+}
+.box-shot.art { background: transparent; border-color: transparent; }
+.box-shot img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.box-shot-mark { font-family: var(--head); font-size: 30px; font-weight: 800; color: var(--gold); }
+.box-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.box-name { font-family: var(--head); font-weight: 800; font-size: var(--fs-2); color: var(--gold-lit); letter-spacing: .04em; }
+.box-sub { font-size: var(--fs-3); color: var(--ink); }
+.box-sub em { font-style: normal; color: var(--gold); font-weight: 700; }
+.box-save { font-size: var(--fs-4); color: var(--ink-dim); }
+.box-save span { color: var(--gold); }
+.box-buy {
+  margin-top: 5px; align-self: flex-start; padding: 8px 14px; border-radius: 9px;
+  font-family: var(--head); font-weight: 800; font-size: var(--fs-3); letter-spacing: .04em;
+  display: inline-flex; align-items: center; gap: 5px;
+  color: var(--ink-faint); border: 1px solid var(--panel-line); background: var(--void-2);
+  cursor: not-allowed; transition: .14s;
+}
+.box-buy.can {
+  color: var(--gold-lit); border-color: var(--gold); cursor: pointer;
+  background: linear-gradient(180deg, rgba(201, 162, 75, .24), rgba(201, 162, 75, .08));
+}
+.box-buy.can:hover { background: linear-gradient(180deg, rgba(201, 162, 75, .34), rgba(201, 162, 75, .14)); }
+@media (max-width: 380px) {
+  .box-shot { flex-basis: 62px; height: 78px; }
+}
+
 .odds-head {
   margin-top: 6px; font-size: var(--fs-1); letter-spacing: 0.1em;
   color: var(--ink-faint); text-transform: uppercase;
