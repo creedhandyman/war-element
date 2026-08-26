@@ -477,19 +477,24 @@ export const floorOpen = (eventsDone: string[], floor: number): boolean =>
 // ── BOSS TAMING ──────────────────────────────────────────────────────────────
 //
 // Clear a floor and every boss on it turns ENRAGED. Go back, beat one while it
-// is enraged, and it fights FOR you in the next three battles at half of
-// everything it has.
+// is enraged, and it fights FOR you in the next three battles at a fraction of
+// everything it has (`TAME_SCALE`).
 //
 // The shape of the loop is deliberate: it points BACKWARD. The reward for
 // finishing a floor is a reason to return to it, and the thing you earn there
 // is spent upstairs — so a floor you have cleared stops being finished content
 // and becomes the armoury for the one above it.
 
-/** What a tamed boss fights at. Half of every stat AND its Special's damage —
- *  see `CardInstance.statScale`, which is read in `effectiveDmg`, `effectiveSp`
- *  and `resolveHit` so the Special is covered too. The body is halved once at
- *  placement. */
-export const TAME_SCALE = 0.5;
+/** What a tamed boss fights at — every stat AND its Special's damage, scaled by
+ *  this. See `CardInstance.statScale`, read in `effectiveDmg`, `effectiveSp` and
+ *  `resolveHit` so the Special is covered too; the body is scaled once at
+ *  placement by `scaleInstance`.
+ *
+ *  0.5 -> 0.7 at the owner's call. NOTHING IN THE UI HARD-CODES "half" any
+ *  more: every line that quotes a number reads it from here, because the first
+ *  version had "half strength" written into three separate strings and a
+ *  re-tune would have left the game describing a card it no longer fielded. */
+export const TAME_SCALE = 0.7;
 
 /** Battles a taming is good for. Spent on ENTERING a fight with it, win or
  *  lose — the honest reading, and the one that cannot be farmed by conceding. */
@@ -518,7 +523,8 @@ export const tameUsesLeft = (
   tamed: Record<string, number> | undefined, cardId: string,
 ): number => Math.max(0, Math.floor(tamed?.[cardId] ?? 0));
 
-/** The boss's PRINTED card, halved — what the reveal and the picker show.
+/** The boss's PRINTED card, scaled by `TAME_SCALE` — what the reveal and the
+ *  picker show.
  *
  *  Rounded the way the real thing is: HP and shields rounded (they are
  *  rewritten on the instance by `scaleInstance`), damage and speed floored
@@ -526,9 +532,9 @@ export const tameUsesLeft = (
  *
  *  IT IS THE CARD, NOT THE BOARD, and that gap is real rather than sloppy.
  *  On the board a card also carries its element's aura — GALE's Zephyr grants
- *  up to +3 DMG off SP — and that lands BEFORE the halving, so a tamed
- *  Nightshrike swings for 8 where its printed 15 halves to 7. A preview cannot
- *  know that without a GameState it does not have.
+ *  up to +3 DMG off SP — and that lands BEFORE the scaling, so a tamed card can
+ *  swing for more than its printed number scaled. A preview cannot know that
+ *  without a GameState it does not have.
  *
  *  So the guarantee is one-directional and the test enforces exactly that: this
  *  never OVER-promises. A tamed boss is always at least as good as the numbers

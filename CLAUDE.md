@@ -1246,7 +1246,7 @@ damage ignores position entirely, so a wall means nothing to it.
 Clear a floor and every boss on it turns **ENRAGED** (`bossEnraged`, derived from
 `eventsDone` like all tower progression — no stored flag that can disagree).
 Beat one while it is enraged and it fights **for you** in your next 3 battles at
-**half of everything**. The reward for finishing a floor is a reason to return
+**`TAME_SCALE` of everything** (0.7 — it was 0.5). The reward for finishing a floor is a reason to return
 to it, and what you earn there is spent upstairs.
 
 Owner's calls, settled up front: the tamed boss is **pre-placed free** on your
@@ -1254,6 +1254,10 @@ centre home slot (a 12-cost mythic is never affordable in a 24-round fight, so
 one you had to buy is one you would never field); **one per fight**; enraged
 means **buffed stats**, not just a label; a use is spent on **entering**, win or
 lose (paying at settle would make it farmable by conceding at round one).
+
+**No string hard-codes the number.** Every UI line that quotes it reads `TAME_SCALE`;
+the first version wrote "half strength" into three separate strings, which a
+re-tune would have left describing a card the game no longer fielded.
 
 **`statScale` is why this needed a new field rather than a stacked WEAKEN.** The
 instance model has no printed base stats — DMG and SP are deltas layered on the
@@ -1330,6 +1334,16 @@ Note it needed fixing in TWO places. `startBattle` builds the locked queue, but
 so fixing only the engine left the gates showing all the way through prep and
 clearing only once battle locked, i.e. exactly the half of the round the player
 reads that panel in. If you add another queue-visibility rule, check both.
+
+**THE BLAST ZONE STANDS DOWN WHILE THE PLAYER IS AIMING.** It is a warning about
+the boss's turn; the moment the player is picking their OWN targets it stops
+being background information and competes for the same tiles — a square can be
+both "about to be hit" and "one I may hit", and two rings on one tile is not two
+pieces of information, it is neither. Gated on `legalTargetIds.length > 0` in
+Board.tsx, so it is scoped to TARGET picking and stays lit during a summon,
+which is exactly what the player is deciding against. Verified live: arming a
+spell on a firing round took blast 5 -> 0 / targets 0 -> 9, and cancelling
+restored it.
 
 **THE TELEGRAPH IS VIOLET, NOT RED — and that is load-bearing.** The boss blast
 zone shipped in `--threat`, the same red the player's own attack targeting uses,

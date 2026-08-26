@@ -38,7 +38,7 @@ import { VOID_TOWER_ROUNDS } from "../engine/types";
 import {
   type VoidBoss,
   bodyCap, bossDefeated, bossEnraged, bossesOnFloor, floorCleared, floorOpen,
-  TAME_USES, VOID_BOSSES, summonBudget, tameUsesLeft, towerProgress, trialEventId, voidFloors,
+  TAME_SCALE, TAME_USES, VOID_BOSSES, summonBudget, tameUsesLeft, towerProgress, trialEventId, voidFloors,
 } from "../data/void-tower";
 import { BossDetail } from "./BossDetail";
 
@@ -224,8 +224,9 @@ export function VoidTower(props: {
       <p className="vt-foot">
         <b>Clear a floor and every boss on it turns ENRAGED</b> — stronger than the
         one you beat, and worth going back down for. Beat a boss while it is
-        enraged and it fights <b>for you</b> in your next {TAME_USES} battles at
-        half of everything it has. One tamed boss per fight, chosen on its page;
+        enraged and it fights <b>for you</b> in your next {TAME_USES} battles at{" "}
+        {Math.round(TAME_SCALE * 100)}% of everything it has. One tamed boss per
+        fight, chosen on its page;
         a use is spent whether you win or lose.
       </p>
     </div>

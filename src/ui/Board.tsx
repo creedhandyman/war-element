@@ -189,14 +189,27 @@ export function Board(props: {
               const redTarget = isTargetCard && props.targetsAreEnemies;
               const greenLegal = isLegalSlot || (isTargetCard && !props.targetsAreEnemies);
               const preview = props.previewArea.some((p) => p.row === row && p.col === col);
-              const blast = props.blast.some((p) => p.row === row && p.col === col);
+              // THE BLAST ZONE STANDS DOWN WHILE YOU ARE AIMING. It is a
+              // warning about the boss's turn, and the moment the player is
+              // picking their OWN targets it stops being background information
+              // and starts competing for the same tiles: a square can be both
+              // "about to be hit" and "one I may hit", and two rings on one tile
+              // is not two pieces of information, it is neither.
+              //
+              // Scoped to TARGET picking (`legalTargetIds`), not to any
+              // selection — during a summon the zone is exactly what the player
+              // is deciding against, so it stays lit for that.
+              const aiming = props.legalTargetIds.length > 0;
+              const blast = !aiming && props.blast.some((p) => p.row === row && p.col === col);
               const clock = props.telegraphs.find((t) => t.pos.row === row && t.pos.col === col) ?? null;
               const staged = props.stagedSlot != null && props.stagedSlot.row === row && props.stagedSlot.col === col;
               const dimmed =
                 (props.hasSelection || props.legalTargetIds.length > 0 || props.previewArea.length > 0) &&
-                // A square about to be hit stays LIT through a dim. Fading the
-                // warning out the moment the player picks up a card is fading
-                // it out exactly when they are deciding where to put it.
+                // A square about to be hit stays LIT through a dim — while it
+                // is shown at all. Fading the warning out the moment the player
+                // picks up a card would fade it out exactly when they are
+                // deciding where to put it. (While AIMING it is not shown, so
+                // `blast` is already false and this term does nothing.)
                 !greenLegal && !redTarget && !preview && !staged && !blast;
               const contested =
                 (row === homeRow("P2", game.boardSize) && isContested(game, "P2", col)) ||

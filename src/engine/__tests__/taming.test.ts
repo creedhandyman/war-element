@@ -1,7 +1,7 @@
 // BOSS TAMING.
 //
 // Clear a floor, every boss on it turns ENRAGED, beat one in that state and it
-// fights for you three times at half of everything.
+// fights for you three times at TAME_SCALE of everything.
 //
 // The load-bearing tests here are not the arithmetic. They are the three rules
 // that scan the board for a boss-flagged card on EITHER side — slay-to-win, the
@@ -40,8 +40,8 @@ beforeEach(() => { globalThis.localStorage = fakeStorage(); });
 const FLOOR1 = VOID_BOSSES.filter((b) => b.floor === 1).map((b) => b.cardId);
 const clearedFloor1 = (): string[] => FLOOR1.map(trialEventId);
 
-describe("a tamed body is half of what its card says", () => {
-  it("halves HP and shields at placement", () => {
+describe("a tamed body is a FRACTION of what its card says", () => {
+  it("scales HP and shields at placement", () => {
     const s = bigPrepState();
     const full = place(s, "boss_kazehaya", "P2", 0, 2);
     const half = scaleInstance(place(s, "boss_kazehaya", "P1", 4, 2), TAME_SCALE);
@@ -49,7 +49,7 @@ describe("a tamed body is half of what its card says", () => {
     expect(half.curShields).toBe(Math.round(full.curShields * TAME_SCALE));
   });
 
-  it("halves BASIC damage and speed", () => {
+  it("scales BASIC damage and speed", () => {
     const s = bigPrepState();
     const full = place(s, "boss_kazehaya", "P2", 0, 2);
     const half = scaleInstance(place(s, "boss_kazehaya", "P1", 4, 2), TAME_SCALE);
@@ -59,12 +59,12 @@ describe("a tamed body is half of what its card says", () => {
       .toBeLessThan(effectiveSp(s, s.cards[full.instanceId]));
   });
 
-  it("halves SPECIAL damage — the half that WEAKEN and FREEZE never touch", () => {
+  it("scales SPECIAL damage — the half that WEAKEN and FREEZE never touch", () => {
     // This is the whole reason `statScale` exists rather than a stacked WEAKEN.
     // A Special's damage is a hardcoded number on the def that never passes
     // through effectiveDmg, so the game's two existing damage multipliers leave
-    // Specials at full printed power. A "half strength" boss built on that
-    // pattern would swing for half and then cast at full.
+    // Specials at full printed power. A reduced-strength boss built on that
+    // pattern would swing reduced and then cast at full.
     const hit = (scale: number | null) => {
       const s = bigPrepState();
       const caster = place(s, "boss_umbranova", "P2", 0, 2);
@@ -75,12 +75,12 @@ describe("a tamed body is half of what its card says", () => {
     };
     const full = hit(null);
     expect(full, "the fixture actually lands a Special").toBeGreaterThan(0);
-    expect(hit(TAME_SCALE), "and the tamed cast is half of it").toBeLessThan(full);
+    expect(hit(TAME_SCALE), "and the tamed cast is less than it").toBeLessThan(full);
     expect(hit(ENRAGE_SCALE), "an enraged one is more").toBeGreaterThan(full);
   });
 
-  it("a halved body never rounds away to nothing", () => {
-    // Halving a 1-HP token must not delete it on arrival, and halving a 1-SP
+  it("a scaled body never rounds away to nothing", () => {
+    // Scaling a 1-HP token must not delete it on arrival, and scaling a 1-SP
     // body must not leave it unable to move — that is a different card, not a
     // weaker one.
     const s = bigPrepState();
@@ -101,7 +101,7 @@ describe("the reveal shows the body the player actually gets", () => {
   // The guarantee is ONE-DIRECTIONAL, and this is the test that found out why.
   // It first asserted equality and Nightshrike failed at 7 vs 8: it is GALE, and
   // Zephyr's static +DMG-per-SP aura lands on the board number BEFORE the
-  // halving. A preview holding only a CardDef cannot know that. So the rule is
+  // scaling. A preview holding only a CardDef cannot know that. So the rule is
   // that the preview never OVER-promises — the tamed boss is always at least
   // the card the player was shown, never less.
   for (const b of VOID_BOSSES) {
@@ -122,7 +122,7 @@ describe("the reveal shows the body the player actually gets", () => {
     });
   }
 
-  it("and it really is HALF the card, not a rounding of nothing", () => {
+  it("and it really is REDUCED, not a rounding of nothing", () => {
     // Guards the guard: a `tamedStats` that returned the printed numbers
     // untouched would pass every over-promise check above.
     for (const b of VOID_BOSSES) {

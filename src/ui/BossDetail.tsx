@@ -119,7 +119,8 @@ export function BossDetail(props: {
               </div>
               <p>
                 {def.name} fights for you in your next <b>{myUses || TAME_USES}</b>{" "}
-                battle{(myUses || TAME_USES) === 1 ? "" : "s"} — bring it from any boss's page.
+                battle{(myUses || TAME_USES) === 1 ? "" : "s"}, at {pct(TAME_SCALE)} of
+                everything it has — bring it from any boss's page.
               </p>
               {/* A stat the card does not have is left out entirely — Rotroot
                   has no shields, and a "SHLD 0 → 0" cell is a row of noise in
@@ -137,7 +138,7 @@ export function BossDetail(props: {
                   ))}
               </div>
               <p className="bd-tamed-foot">
-                Its Special is halved too — {sp ? sp.name : "everything it does"} included.
+                Its Special is scaled too — {sp ? sp.name : "everything it does"} included.
                 These are its printed stats; on the board its element's aura still
                 applies on top, so it can only be better than this.
               </p>
@@ -193,7 +194,7 @@ export function BossDetail(props: {
           <div className="bd-stable">
             <div className="bd-stable-head">
               Bring a tamed boss
-              <span>half strength · one per fight · spends a use even if you lose</span>
+              <span>{pct(TAME_SCALE)} strength · one per fight · spends a use even if you lose</span>
             </div>
             <div className="bd-stable-row">
               <button
