@@ -1255,6 +1255,34 @@ one you had to buy is one you would never field); **one per fight**; enraged
 means **buffed stats**, not just a label; a use is spent on **entering**, win or
 lose (paying at settle would make it farmable by conceding at round one).
 
+**WHAT A TAMED BOSS IS ACTUALLY WORTH — measured, and it is a lot.** The balance
+harness had never brought one (every Floor-4 number ever taken is a BARE fight),
+so this was a new measurement, not a re-run. Player win %, 8 cores x 12 seeds,
+ally = a tamed Vulcanyx on the centre home slot:
+
+| boss | bare | ally 0.5 | ally 0.7 |
+| --- | --- | --- | --- |
+| Umbranova | 14.6 | 60.4 | **74.0** |
+| Kazehaya  | 13.5 | 36.5 | **60.4** |
+| Cryovex   |  8.3 | 58.3 | **71.9** |
+| Kato      | 16.7 | 43.8 | **56.3** |
+
+A tamed boss at 0.7 takes Floor 4 from ~13% to ~66% — a 50-point swing, three
+times. That is a power spike you SPEND, which is the design, but it does mean
+the floor is soft while you hold a charge. Ally survival also jumps with the
+scale (0.5: 20-43%, 0.7: 40-74%), so the two compound. If it wants reining in,
+the levers in order of bluntness are uses (3 -> 2), scale, and making the ally
+cost gold rather than arrive free. Note the ally here is a Floor-3 boss — the
+strongest thing a Floor-4 challenger could hold — so these are the CEILING of
+what taming does, not its average.
+
+**The bare column drifted a little from the pinned numbers** (Cryovex 86.5 ->
+91.7 boss-win, Kato 85.4 -> 83.3). One core deck changed since: DAWN now runs
+Lassos, which brings a Golden Bull. Plausible mechanism for it costing the
+player against Cryovex specifically — the bull charges in alone and dies, and
+Crystal Bloom pays Cryovex a Blackice Crystal for every kill — but that is a
+hypothesis, not a measured cause; it is inside n=96 noise either way.
+
 **No string hard-codes the number.** Every UI line that quotes it reads `TAME_SCALE`;
 the first version wrote "half strength" into three separate strings, which a
 re-tune would have left describing a card the game no longer fielded.
