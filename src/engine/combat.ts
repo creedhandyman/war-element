@@ -3692,9 +3692,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       targets = targets.filter((t) => t.pos?.row === row);
     }
     // Battle Charge (WarPhant): "straight ahead" is the card's own column.
+    //
+    // `columnSpread` widens that lane by N columns EACH SIDE (0 = the single
+    // column, which is every existing caller and why they are unaffected).
+    // Added for Kato's Stormwing, where a one-column strafe was measured doing
+    // literally nothing: 10 damage and 40 damage read the same 68.8% with an
+    // identical win breakdown, because by Floor 4 the column the jet happens to
+    // be over is usually empty. A number that cannot miss harder is not a
+    // number worth raising — the run had to get wider instead.
     if (num(params, "sameColumn") > 0 && attacker.pos) {
       const col = attacker.pos.col;
-      targets = targets.filter((t) => t.pos?.col === col);
+      const spread = num(params, "columnSpread");
+      targets = targets.filter((t) => Math.abs((t.pos?.col ?? -99) - col) <= spread);
     }
     if (num(params, "rowAhead") > 0 && attacker.pos) {
       const row = rowAhead(attacker.owner, attacker.pos.row);

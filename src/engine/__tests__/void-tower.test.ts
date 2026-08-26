@@ -18,7 +18,8 @@ import { deckSizeFor, isBuildable, validateDeck } from "../../data/custom-decks"
 import { EVENTS } from "../../data/events";
 import { canCraft, newSave, openPack } from "../../data/story";
 import { advance, applyIntent } from "../phases";
-import { canTarget, shoveTarget } from "../rules";
+import { canTarget, shoveTarget, validTargets } from "../rules";
+import { bossTelegraphs } from "../telegraph";
 import { homeRow } from "../types";
 import { VOID_BOSS_INCOME } from "../types";
 import { SPECIAL_HANDLERS, applyStatus, basicAttack, defeatCard, fireCardSpecial } from "../combat";
@@ -1088,6 +1089,56 @@ describe("Kato — the chain that has to be broken three times", () => {
     const square = { ...second.pos! };
     fireCardSpecial(s, s.cards[boss.instanceId]);
     expect(s.cards[boss.instanceId].pos, "it ends on the second kill").toEqual(square);
+  });
+
+  it("the jet's strafe is THREE columns wide, and stops there", () => {
+    // A one-column strafe measured as doing nothing at all — 10 damage and 40
+    // read the same 68.8% with an identical win breakdown, because the column
+    // the jet happens to be over is usually empty by Floor 4. `columnSpread`
+    // is the fix, and it is the width rather than the number that is the point.
+    const s = bigPrepState();
+    const boss = place(s, "boss_kato_3", "P2", 0, 2);
+    const under = place(s, "leaf_stickviper", "P1", 2, 2, { curHp: 90, maxHp: 90, curShields: 0 });
+    const beside = place(s, "leaf_stickviper", "P1", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
+    const outside = place(s, "leaf_stickviper", "P1", 2, 4, { curHp: 90, maxHp: 90, curShields: 0 });
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    const hit = (c: typeof under) => 90 - s.cards[c.instanceId].curHp;
+    expect(hit(under), "straight below").toBeGreaterThan(0);
+    expect(hit(beside), "and one column over").toBeGreaterThan(0);
+    expect(hit(outside), "two columns over is clear — it is a swath, not a nova").toBe(0);
+  });
+
+  it("the widened strafe is what the TELEGRAPH draws", () => {
+    // `specialTargets` is the function the boss telegraph lights its red zone
+    // from. Widening the volley without widening that would light one column
+    // and hit three, which is the one thing the telegraph must never do.
+    const s = bigPrepState();
+    s.round = 3;
+    const boss = place(s, "boss_kato_3", "P2", 0, 2);
+    const beside = place(s, "leaf_stickviper", "P1", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
+    const outside = place(s, "leaf_stickviper", "P1", 2, 4, { curHp: 90, maxHp: 90, curShields: 0 });
+    const cells = bossTelegraphs(s).find((t) => t.bossId === boss.instanceId)!.cells;
+    expect(cells, "the neighbouring column is lit").toContainEqual(beside.pos);
+    expect(cells, "and the far one is not").not.toContainEqual(outside.pos);
+  });
+
+  it("the jet actually SHOOTS — the whole board, not two rows", () => {
+    // `attackType: "Ranged"` alone bought this form almost nothing: a ranged
+    // basic is capped at reach 2 from the row it was summoned in, and this
+    // shell's aimLateral gait slides along its own home row and never advances
+    // off it. Measured, the jet reached rows 1-2 and nothing further — one row
+    // more than the melee cat it grew out of. `ignoresHomeRule` drops the reach
+    // cap and the sight screen both: from above there is no lane.
+    const reach = (id: string, row: number) => {
+      const s = bigPrepState();
+      const b = place(s, id, "P2", 0, 2);
+      const foe = place(s, "leaf_stickviper", "P1", row, 2, { curHp: 90, maxHp: 90 });
+      return validTargets(s, b.instanceId).some((x) => x.instanceId === foe.instanceId);
+    };
+    expect(reach("boss_kato_2", 4), "the cat cannot touch the back line").toBe(false);
+    expect(reach("boss_kato_3", 3), "the jet reaches deep").toBe(true);
+    expect(reach("boss_kato_3", 4), "and all the way to the back line").toBe(true);
+    expect(getDef("boss_kato_3").ignoresHomeRule).toBe(true);
   });
 
   it("the jet STRAFES a column, back line included", () => {

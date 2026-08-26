@@ -48,6 +48,15 @@
   --legal-soft: rgba(78, 203, 143, 0.18);
   --threat: #e5533d;
   --threat-soft: rgba(229, 83, 61, 0.16);
+  /* INCOMING BOSS DAMAGE — deliberately NOT --threat. The blast zone was drawn
+     in the same red the player's own attack targeting uses, and on a live board
+     the two are indistinguishable: "the squares I am about to hit" and "the
+     squares that are about to hit me" are opposite meanings wearing one colour.
+     Violet is the tower's own hue (the Void Trial rim), and it is about as far
+     from both the red targeting and the green legal-move ring as the wheel
+     allows, which is the actual requirement. */
+  --blast: #b45cff;
+  --blast-soft: rgba(180, 92, 255, 0.18);
   --accent: var(--gold-lit);
   --head: "Cinzel", serif;
   --body-font: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
@@ -583,18 +592,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    on-summon preview above (a filled wash and a hatch, not just a rim) so the
    two never read as the same warning at a glance. */
 .slot.blast {
-  border-color: var(--threat);
+  border-color: var(--blast);
   background-image: repeating-linear-gradient(
     135deg,
-    rgba(229, 83, 61, 0.24) 0 6px,
-    rgba(229, 83, 61, 0.07) 6px 12px
+    rgba(180, 92, 255, 0.26) 0 6px,
+    rgba(180, 92, 255, 0.08) 6px 12px
   );
   animation: blastpulse 1s infinite;
   z-index: 2;
 }
 @keyframes blastpulse {
-  0%, 100% { box-shadow: inset 0 0 0 2px rgba(229, 83, 61, 0.75), inset 0 0 22px rgba(229, 83, 61, 0.3), 0 0 12px var(--threat-soft); }
-  50% { box-shadow: inset 0 0 0 2px var(--threat), inset 0 0 34px rgba(229, 83, 61, 0.5), 0 0 22px rgba(229, 83, 61, 0.4); }
+  0%, 100% { box-shadow: inset 0 0 0 2px rgba(180, 92, 255, 0.75), inset 0 0 22px rgba(180, 92, 255, 0.32), 0 0 12px var(--blast-soft); }
+  50% { box-shadow: inset 0 0 0 2px var(--blast), inset 0 0 34px rgba(180, 92, 255, 0.52), 0 0 22px rgba(180, 92, 255, 0.42); }
 }
 /* THE BOSS CLOCK — rounds until the Special lands, on the boss's own tile.
    Sits top-LEFT so it never collides with the capture lock (top-right). */
@@ -608,15 +617,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.7);
   cursor: help;
 }
-/* The beat lands this round. */
+/* The beat lands this round. Wears the BLAST violet, not the targeting red —
+   the badge and the squares it is about to cover have to read as one event. */
 .boss-clock.now {
-  color: #fff2ee; background: linear-gradient(180deg, #e5533d, #b53421);
-  border-color: #ffb9a8; font-size: 10px;
+  color: #f7edff; background: linear-gradient(180deg, #b45cff, #7a2fc4);
+  border-color: #dcb8ff; font-size: 10px;
   animation: clocknow 0.9s infinite;
 }
 @keyframes clocknow {
-  0%, 100% { box-shadow: 0 0 8px rgba(229, 83, 61, 0.55); }
-  50% { box-shadow: 0 0 18px rgba(229, 83, 61, 0.95); }
+  0%, 100% { box-shadow: 0 0 8px rgba(180, 92, 255, 0.6); }
+  50% { box-shadow: 0 0 18px rgba(180, 92, 255, 0.95); }
 }
 /* The badge sits over the top-left of the token, which is exactly where the
    name starts — on the board it read "NOW" over a half-eaten "Rotroot". Move

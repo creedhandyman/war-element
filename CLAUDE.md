@@ -1241,6 +1241,39 @@ of the roster (from 80-93% on the worst offenders), because the boss can no long
 walk into an undefended home row. Umbranova is the lone holdout at 96.9% — its
 damage ignores position entirely, so a wall means nothing to it.
 
+**THE TELEGRAPH IS VIOLET, NOT RED — and that is load-bearing.** The boss blast
+zone shipped in `--threat`, the same red the player's own attack targeting uses,
+and on a live board the two are indistinguishable: "squares I am about to hit"
+and "squares about to hit me" are opposite meanings wearing one colour. There is
+now a `--blast` token (#b45cff) used by `.slot.blast` and `.boss-clock.now`.
+Violet is the tower's own hue and is about as far from both the red targeting and
+the green legal-move ring as the wheel allows. Note the visible colour on a tile
+is carried by the inset box-shadow and the hatch, NOT by `border-color` — every
+state rule on `.slot` sets `border-color` and they all resolve to the same
+neutral, so don't rely on the border to distinguish a state.
+
+**STORMWING (Kato's third shell) ACTUALLY SHOOTS NOW, and its strafe is a swath.**
+Two findings worth keeping:
+
+- `attackType: "Ranged"` alone bought it almost nothing. A ranged basic is capped
+  at reach 2 from the row it was summoned in and 3 once it advances off it, and
+  this shell's `aimLateral` gait slides along its own home row and NEVER advances.
+  Measured, the jet reached rows 1-2 and nothing beyond — one row more than the
+  melee cat it grew out of. It now carries `ignoresHomeRule`, which drops the
+  reach cap and the sight screen both.
+- **Thunderhead's damage was unraisable.** dmg 10 and dmg 40 measured the SAME
+  68.8% with a byte-identical win breakdown, because a one-column `sameColumn`
+  strafe on a Floor-4 board is usually over an empty column. A number that keeps
+  missing cannot be raised into relevance. The fix was width: a new
+  `columnSpread` barrage param (0 = the old single column, so every other caller
+  is untouched) makes it three columns wide, and the damage went 10 -> 16 on top.
+  `specialTargets` mirrors the param, which is what keeps the red zone honest.
+
+Honest caveat: NONE of it measures. Every variant swept (spread 1/2 x dmg
+10/14/18, ranged on/off) landed in 68.8-70.8%, inside noise, because the jet is
+only reached in 46% of fights and the outcome is set before it arrives. This is
+a FEEL change, which is exactly what the Cryovex note says to do on Floor 4.
+
 **KAZEHAYA — Floor 4's FOURTH boss, the duellist.** LEAF tribe / GALE mechanic,
 tribe Grove (Warden + Galeon + 2 Sakuroot + the two new retinue tokens, 36 exact).
 

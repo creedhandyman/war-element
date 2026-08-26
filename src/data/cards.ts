@@ -11030,9 +11030,22 @@ export const CARDS: CardDef[] = [
     // beaten two forms by the time it matters, and it arrives as a change of
     // problem rather than a wall in front of the whole fight.
     keywords: { FLYING: true },
+    // IT ACTUALLY SHOOTS. `attackType: "Ranged"` alone was not buying this form
+    // anything you could feel: a ranged basic is capped at reach 2 from the row
+    // it was summoned in and 3 once it advances off it, and this shell's
+    // `aimLateral` gait slides it along its OWN home row and never advances at
+    // all. Measured, that left the jet reaching rows 1 and 2 and nothing beyond
+    // — one row further than the melee cat it grew out of, on a five-row board.
+    // A flier that cannot reach the back line is not a strafing run.
+    //
+    // `ignoresHomeRule` is the same exemption Catapult carries and the same one
+    // its own Special already declares as a param: it drops the reach cap AND
+    // the sight screen, so the jet shoots the whole board and bodies in the lane
+    // do not block it. From above, there is no lane.
+    ignoresHomeRule: true,
     tribe: "Cavernous",
     boss: true,
-    passiveNames: { onHitStatus: "Shardstrike", vsStatus: "Stormfall" },
+    passiveNames: { onHitStatus: "Shardstrike", vsStatus: "Stormfall", ignoresHomeRule: "Gun Run" },
     onHitStatus: { kind: "ELECTRIFIED", duration: 2, power: 0 },
     // The BOLT payoff, at the end of the chain: it hits the storm-struck harder,
     // and every form before it has been leaving that storm behind.
@@ -11045,7 +11058,7 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Thunderhead",
       cost: 3,
-      // The only barrage of the three: a strafing run down a whole column, from
+      // The only barrage of the three: a strafing run down a whole SWATH, from
       // above and out of reach. Machine ploughs, cat springs, jet strafes.
       handler: "barrage",
       // ignoreHomeRule, the same exemption Helion's Solar Lance needs and for
@@ -11054,8 +11067,21 @@ export const CARDS: CardDef[] = [
       // its own home row (aimLateral only slides along that row). Measured, the
       // strafing run was doing 10 to the mid row and ZERO to the back line —
       // beatable by parking everything at the back, which is not what a jet is.
+      // 10 -> 16, and THREE COLUMNS WIDE (`columnSpread: 1`).
+      //
+      // The width is the part that matters, and it is why the number moved at
+      // all. Measured, Thunderhead's damage did NOTHING to this fight: 10 and
+      // 40 read the same 68.8% with a byte-identical win breakdown, because a
+      // one-column strafe on a Floor-4 board is usually flying over an empty
+      // column. Nothing can be gained by raising a number that keeps missing.
+      //
+      // Honest caveat: the widened version does not measure either — every
+      // variant swept (spread 1/2 x dmg 10/14/18) landed in 68.8-69.8%, inside
+      // noise, because the jet is only reached in 46% of fights and the fight is
+      // decided before it arrives. This is a FEEL change, which is exactly what
+      // the note on Cryovex says to do with a Floor-4 boss.
       params: {
-        dmg: 10, pen: 1, targets: 99, sameColumn: 1, ignoreHomeRule: 1,
+        dmg: 16, pen: 1, targets: 99, sameColumn: 1, columnSpread: 1, ignoreHomeRule: 1,
         // ...and then it LEAVES. `selfMirror` throws it to the opposite slot the
         // moment the pass ends, so the column it just emptied is never the
         // column it is standing in — you answer where it was, not where it is.
@@ -11064,7 +11090,7 @@ export const CARDS: CardDef[] = [
       },
       ranged: true,
       targetSide: "enemy",
-      text: "10 DMG through shields down the whole column it is over, and ELECTRIFIED for 2 rounds — then it banks to the opposite side of the board. Stormfall adds 5 to everything it lands on the afflicted.",
+      text: "16 DMG through shields down the three columns it is over, and ELECTRIFIED for 2 rounds — then it banks to the opposite side of the board. Stormfall adds 5 to everything it lands on the afflicted.",
     },
   },
   {
