@@ -9624,7 +9624,16 @@ export const CARDS: CardDef[] = [
     passiveNames: {
       alwaysHit: "Deadeye", vsStatus: "Deadeye",
       mounted: "Ride or Die", summonSelfBuff: "Ride or Die",
+      summonSpawn: "Rope the Herd",
     },
+    // Rope the Herd: the rope goes out ONCE, as Lassos rides in, and what comes
+    // back on the end of it is a Golden Bull already at a dead run.
+    //
+    // On SUMMON rather than on Hogtie, deliberately: Hogtie is a repeatable
+    // Special on a 1-round cooldown, and a free 4-cost body every other round
+    // is a second card stapled to this one rather than a flourish on its
+    // entrance. Once, on arrival, is the whole of it.
+    summonSpawn: { token: "dawn_golden_bull_tok", count: 1 },
     // Deadeye, both halves: it never misses, and it hits hardest what cannot
     // see it coming — which its own Hogtie arranges.
     alwaysHit: true,
@@ -11319,6 +11328,37 @@ export const TOKENS: CardDef[] = [
     // a player's careful line stops being a line at all. Neither does much
     // damage; scattering the board is the contribution.
     onHitPush: 1,
+  },
+  {
+    id: "dawn_golden_bull_tok",
+    name: "Golden Bull",
+    rarity: "epic",
+    element: "DAWN",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 4,
+    // It is a RUNAWAY, not a bodyguard: heavy enough to hurt on the way through
+    // and thin enough that whatever it lands next to gets to answer it. The
+    // damage that matters is on the charge, not on the body.
+    dmg: 5,
+    hits: 1,
+    hp: 18,
+    sp: 11,
+    shields: 0,
+    keywords: { TRAMPLE: true },
+    tribe: "Sun's Army",
+    art: "dawn_golden_bull_tok",
+    passiveNames: { summonCharge: "Wild Charge" },
+    // Wild Charge: it arrives already running. Straight up its column for the
+    // enemy home row, 6 PEN to every opponent in the lane, and it does not stop
+    // for any of them — it ends on the furthest open square it reached, which
+    // on an empty board is the far side of the battlefield.
+    //
+    // 6 is a lane, not a nova: it only ever touches the column it was spawned
+    // into, so a player who keeps their line spread pays almost nothing and one
+    // who stacks a column pays for all of it. That is the decision the card is
+    // for.
+    summonCharge: { dmg: 6 },
   },
   {
     id: "aqua_blackice_crystal_tok",

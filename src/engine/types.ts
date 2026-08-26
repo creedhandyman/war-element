@@ -1041,6 +1041,20 @@ export interface CardDef {
   /** On summon, spawn `count` token cards (one-shot). The token's def lives in
    *  CARD_INDEX but never appears in a deck. */
   summonSpawn?: { token: string; count: number; adjacentOnly?: boolean; spawnRadius?: number };
+  /** WILD CHARGE (Golden Bull): the moment it arrives it BOLTS, straight up its
+   *  column toward the enemy home row, and it does not stop for anyone.
+   *
+   *  Distinct from `summonAdvance`, which is the same idea for something that
+   *  can be blocked: a Seed Roll halts at the first occupied slot. This one
+   *  runs THROUGH — an enemy in the lane takes `dmg` PEN and is left standing
+   *  where it was while the bull carries on past it, ending on the furthest
+   *  open square it reached. It stops only at the board edge, a captured slot,
+   *  or one of its OWN side's bodies, because a stampede that flattened its
+   *  own line would be a drawback rather than a charge.
+   *
+   *  PEN because hooves do not care about armour — the same reasoning the
+   *  `trampleDmg` rider carries. */
+  summonCharge?: { dmg: number };
   /** Brightest Warrior (Radiance): on summon, scale up by the strongest foe —
    *  +`dmg` DMG and/or +`maxHp` max HP for each `per` max-HP the highest-HP
    *  opponent on the board has. */

@@ -156,6 +156,10 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         }
         if (rolled > 0) draft.log.push(`${def.name} rolls forward ${rolled} slot(s) on summon.`);
       }
+      // Wild Charge — the un-blockable cousin of the roll above. Wired here as
+      // well as at the token-spawn site so a hand-summoned card could carry it;
+      // today only the Golden Bull does, and it arrives as a token.
+      if (inst.pos) chargeOnArrival(draft, inst);
       // A trap springs on ARRIVAL, however the card arrived. Nightbriar's
       // Predator's Snare marks the slot its prey fell on, and a slot the enemy
       // wants back is exactly the slot they will summon into — so a trap that
@@ -326,8 +330,13 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         }
       }
       // Token spawns (Trinezer's Reptilian Screech).
-      if (arrived && def.summonSpawn)
-        spawnTokens(draft, inst, def.summonSpawn.token, def.summonSpawn.count, def.summonSpawn.adjacentOnly ? 1 : def.summonSpawn.spawnRadius);
+      if (arrived && def.summonSpawn) {
+        const born = spawnTokens(draft, inst, def.summonSpawn.token, def.summonSpawn.count, def.summonSpawn.adjacentOnly ? 1 : def.summonSpawn.spawnRadius);
+        // ...and anything that BOLTS on arrival does it now, from wherever it
+        // landed. `spawnTokens` drops a body beside its spawner and returns it;
+        // it has no idea the thing it just made intends to leave immediately.
+        for (const b of born) chargeOnArrival(draft, b);
+      }
       // A permanent element grant already in force covers cards summoned after
       // it resolved — otherwise "for the rest of the game" would quietly mean
       // "for the cards that happened to be out".
@@ -2120,6 +2129,50 @@ function channelDmg(draft: GameState, card: CardInstance, base: number): number 
 function inTribeOf(card: CardInstance, tribe: string): boolean {
   const tr = getDef(card.defId).tribe;
   return Array.isArray(tr) ? tr.includes(tribe) : tr === tribe;
+}
+
+/** WILD CHARGE: it arrives already running.
+ *
+ *  Straight up its own column toward the enemy home row, trampling every
+ *  ENEMY in the lane for `dmg` PEN and carrying on past. Where it ENDS is the
+ *  furthest OPEN square it reached — a body it trampled is still standing on
+ *  its own slot, so the bull cannot stop there, but it can stop beyond it, and
+ *  it can stop ON it if the trample killed the occupant outright.
+ *
+ *  It halts for its own side. A stampede that flattened the line it was called
+ *  to help would be a drawback wearing a charge's name. */
+export function chargeOnArrival(draft: GameState, card: CardInstance): void {
+  const charge = getDef(card.defId).summonCharge;
+  if (!charge || !card.pos) return;
+  const dir = card.owner === "P1" ? -1 : 1;
+  const col = card.pos.col;
+  let row: number = card.pos.row;
+  let landed: number = card.pos.row;
+  let trampled = 0;
+  for (;;) {
+    const next = row + dir;
+    if (next < 0 || next >= draft.boardSize) break;
+    if (draft.slots[next][col].capturedBy) break;
+    const occupant = cardAt(draft, next, col);
+    if (occupant) {
+      if (occupant.owner === card.owner) break; // it will not run down its own
+      directDamage(draft, card, occupant, charge.dmg, true); // PEN — hooves
+      trampled++;
+      // If that killed it the square is free and the bull may stop there;
+      // otherwise it passes over and keeps looking for somewhere to stand.
+      if (!cardAt(draft, next, col)) landed = next;
+      row = next;
+      if (card.curHp <= 0 || !draft.cards[card.instanceId]) return; // died to REFLECT
+      continue;
+    }
+    row = next;
+    landed = next;
+  }
+  if (landed !== card.pos.row) card.pos = { row: landed as Pos["row"], col: col as Pos["col"] };
+  if (trampled > 0)
+    draft.log.push(`${label(draft, card)} stampedes through ${trampled} opponent(s) (${charge.dmg} PEN each).`);
+  else if (landed !== card.pos.row)
+    draft.log.push(`${label(draft, card)} bolts for the far side.`);
 }
 
 function doRoundTicks(draft: GameState): void {

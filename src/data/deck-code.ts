@@ -151,6 +151,7 @@ export const CODE_IDS: readonly string[] = [
   "boss_smolder", "boss_vulcanyx", "boss_thunderfangs_2",
   "boss_cryovex", "boss_kato", "boss_kato_2", "boss_kato_3",
   "boss_kazehaya", "leaf_leafwind_guardian_tok", "gale_whirlwind_warrior_tok",
+  "dawn_golden_bull_tok",
 ];
 
 const INDEX_OF = new Map<string, number>(CODE_IDS.map((id, i) => [id, i]));

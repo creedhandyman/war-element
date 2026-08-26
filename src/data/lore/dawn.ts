@@ -193,5 +193,7 @@ export const DAWN_LORE: Record<string, string> = {
     "Every shot lands. The rope is only there to decide where you are standing when it does.",
 
   // ── Void Tower bosses ──
-  boss_helion: "It has already chosen your lane. Walking there was the courtesy."
+  boss_helion: "It has already chosen your lane. Walking there was the courtesy.",
+
+  dawn_golden_bull_tok: "The rope did not tame it. It only pointed it.",
 };
