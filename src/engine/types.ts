@@ -588,6 +588,25 @@ export interface CardDef {
     dmg: number;
     status?: { kind: StatusKind; duration: number; power: number };
   };
+  /** SCENERY: this piece never takes a battle turn at all — it is skipped when
+   *  the speed queue is built rather than queued and then refused.
+   *
+   *  For things that are furniture rather than combatants. The Fortress Gates
+   *  put FIVE entries into every Void Tower queue reading "CAN'T ACT", one per
+   *  column, every single round of a 24-round fight: a wall of noise in the one
+   *  display whose entire job is telling the player what is about to happen and
+   *  in what order.
+   *
+   *  Deliberately a DECLARED property and not "0 DMG with no Special", because
+   *  those are two different statements. A 0-damage card that can still be
+   *  STUNNED, cleansed, or buffed into relevance belongs in the queue showing
+   *  why it cannot act — that is information. A gate belongs in the queue the
+   *  way a rock does. Only a def that says it is scenery is treated as scenery.
+   *
+   *  Being out of the queue changes NOTHING else: it is still a board card, it
+   *  still occupies its square, still screens what stands behind it, still takes
+   *  damage and still has to be broken. */
+  noBattleTurn?: boolean;
   /** EMPLACED: nothing may MOVE this card — not the AI, not its own side. Its
    *  `roundTick` gait is the whole of its movement.
    *

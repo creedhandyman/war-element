@@ -551,6 +551,8 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.evasionEnemySideOnly)
     passives.push("Shadow Haunter: its EVASION is live only while it stands on the opponent's battlefield.");
+  if (def.noBattleTurn)
+    named("noBattleTurn", "A piece, not a combatant — it never takes a battle turn and never enters the speed queue.");
   if (def.onHeavyHit) {
     const h = def.onHeavyHit;
     named("onHeavyHit",

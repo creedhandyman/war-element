@@ -1241,6 +1241,20 @@ of the roster (from 80-93% on the worst offenders), because the boss can no long
 walk into an undefended home row. Umbranova is the lone holdout at 96.9% — its
 damage ignores position entirely, so a wall means nothing to it.
 
+**GATES ARE SCENERY (`noBattleTurn`) — they are not in the speed queue.** Five
+Fortress Gates were adding five "CAN'T ACT" rows to the queue every round of a
+24-round fight, in the one panel whose whole job is saying what happens next and
+in what order. The flag is DECLARED per-def rather than derived from "0 DMG with
+no Special", because those are different statements: a 0-damage card that can
+still be stunned or buffed into relevance belongs in the queue showing why it
+cannot act — that is information; a gate belongs there the way a rock does.
+
+Note it needed fixing in TWO places. `startBattle` builds the locked queue, but
+`SpeedQueue.tsx` builds its OWN list off the board for the pre-battle preview —
+so fixing only the engine left the gates showing all the way through prep and
+clearing only once battle locked, i.e. exactly the half of the round the player
+reads that panel in. If you add another queue-visibility rule, check both.
+
 **THE TELEGRAPH IS VIOLET, NOT RED — and that is load-bearing.** The boss blast
 zone shipped in `--threat`, the same red the player's own attack targeting uses,
 and on a live board the two are indistinguishable: "squares I am about to hit"

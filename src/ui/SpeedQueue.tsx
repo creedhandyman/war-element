@@ -16,9 +16,17 @@ export function SpeedQueue(props: { game: GameState }) {
   const inBattle = game.phase === "battle" && game.battle !== null;
 
   // During battle show the locked queue; otherwise a live SP-order preview.
+  //
+  // The preview has to apply the SAME scenery rule the real queue does
+  // (`noBattleTurn`, skipped when the queue is built). It built its own list
+  // straight off the board, so the five Fortress Gates went on showing five
+  // "CAN'T ACT" rows all the way through prep and only vanished once the battle
+  // queue was locked — the half of the round where the player is actually
+  // reading this panel to decide anything.
   const entries = inBattle
     ? game.battle!.queue.map((id, i) => ({ id, done: i < game.battle!.index }))
     : boardCards(game)
+        .filter((c) => !getDef(c.defId).noBattleTurn)
         .sort((a, b) => effectiveSp(game, b) - effectiveSp(game, a))
         .map((c) => ({ id: c.instanceId, done: false }));
 

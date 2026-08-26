@@ -11249,7 +11249,16 @@ export const TOKENS: CardDef[] = [
     // built once, and it read 12.5% — the wall did not slow the juggernaut down,
     // it switched it off. A keyword the wall answers is fine; a keyword the wall
     // deletes is not.
-    passiveNames: { noKillReward: "Nothing to Gain", guardsHomeRow: "Hold the Line" },
+    passiveNames: {
+      noKillReward: "Nothing to Gain", guardsHomeRow: "Hold the Line",
+      noBattleTurn: "Masonry",
+    },
+    // Masonry: it is a PIECE, not a combatant, so it never enters the speed
+    // queue. Five gates were adding five "CAN'T ACT" rows to the queue every
+    // round of a 24-round fight — for both sides, since the display shows the
+    // whole board's order. It still stands, still screens, still has to be
+    // broken; it just does not queue up to do nothing.
+    noBattleTurn: true,
     // Hold the Line: nothing may be targeted in the three home squares BEHIND it
     // while it stands — fliers and ranged included, which is the entire point. A
     // gate a dragon can simply shoot over is not a gate.

@@ -27,7 +27,7 @@ import { canFireSpecial, canMove } from "../rules";
 import { boardCards } from "../state";
 import { BOSS_HOLD_ROUNDS, MAX_ROUNDS, VOID_TOWER_ROUNDS } from "../types";
 import { createInitialState, summonCard } from "../state";
-import { atCleanup, bigPrepState, place, prepState, statusOf } from "./helpers";
+import { atBattle, atCleanup, bigPrepState, place, prepState, statusOf } from "./helpers";
 
 const BOSSES = CARDS.filter((c) => c.boss);
 
@@ -853,6 +853,50 @@ describe("the Fortress Gates", () => {
     const behind = place(s, "leaf_stickviper", "P1", 4, 2, { curHp: 40, maxHp: 40 });
     return { s, boss, behind };
   };
+
+  it("a gate is SCENERY — it never enters the speed queue", () => {
+    // Five gates were putting five "CAN'T ACT" rows into every queue, every
+    // round of a 24-round fight, in the display whose whole job is telling the
+    // player what is about to happen and in what order.
+    const s = bigPrepState();
+    for (const seat of voidGateSeats(s.boardSize)) place(s, VOID_GATE, "P1", seat.row, seat.col);
+    const fighter = place(s, "leaf_stickviper", "P1", 4, 2);
+    const boss = place(s, "boss_rotroot", "P2", 0, 2);
+    boss.summonedThisRound = false;
+    const battle = atBattle(s);
+    const queue = battle.battle?.queue ?? [];
+    expect(queue.length, "there is a queue at all").toBeGreaterThan(0);
+    expect(queue, "the real combatants are in it").toContain(fighter.instanceId);
+    expect(queue, "and so is the boss").toContain(boss.instanceId);
+    for (const g of boardCards(battle, "P1").filter((c) => c.defId === VOID_GATE))
+      expect(queue, "but no masonry").not.toContain(g.instanceId);
+  });
+
+  it("...and is still a board piece in every other way", () => {
+    // Out of the queue changes nothing else: it stands, it screens, it breaks.
+    const s = bigPrepState();
+    const gate = place(s, VOID_GATE, "P1", 3, 2, { curHp: 20, maxHp: 20, curShields: 0 });
+    const behind = place(s, "leaf_stickviper", "P1", 4, 2, { curHp: 90, maxHp: 90 });
+    const boss = place(s, "boss_hoarfell", "P2", 2, 2);
+    expect(boardCards(s, "P1").some((c) => c.instanceId === gate.instanceId), "still on the board").toBe(true);
+    expect(canTarget(s, s.cards[boss.instanceId], s.cards[behind.instanceId]),
+      "still screens the square behind it").toBe(false);
+    basicAttack(s, boss.instanceId, gate.instanceId);
+    expect(s.cards[gate.instanceId]?.curHp ?? 0, "and still takes damage").toBeLessThan(20);
+  });
+
+  it("a side holding NOTHING but gates still resolves its battle phase", () => {
+    // The opening state of every tower fight: the player's whole board is wall.
+    // A queue with no player entries must not wedge the phase.
+    const s = bigPrepState();
+    for (const seat of voidGateSeats(s.boardSize)) place(s, VOID_GATE, "P1", seat.row, seat.col);
+    const boss = place(s, "boss_rotroot", "P2", 0, 2);
+    boss.summonedThisRound = false;
+    let n = atBattle(s);
+    let steps = 0;
+    while (n.phase === "battle" && steps < 200) { n = advance(n); steps++; }
+    expect(steps, "it ran to the end of the queue rather than stalling").toBeLessThan(200);
+  });
 
   it("fill the whole row in front of the player's home row, one per column", () => {
     const s = bigPrepState();

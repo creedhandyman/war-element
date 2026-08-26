@@ -1456,10 +1456,17 @@ function startBattle(draft: GameState): void {
     if (marked.length) draft.log.push(`${label(draft, card)} arcs — ${marked.length} opponent(s) ${st.kind}.`);
   }
   // Speed queue: all cards SP 15→0, ties broken by seeded coin flip.
-  const units = boardCards(draft).map((c) => ({
-    id: c.instanceId,
-    sp: effectiveSp(draft, c),
-  }));
+  //
+  // SCENERY IS NOT IN IT. A piece that can never take a turn is skipped here
+  // rather than queued and then refused — five Fortress Gates were putting five
+  // "CAN'T ACT" rows into every queue, every round, in the one display whose job
+  // is to tell the player what is about to happen and in what order.
+  const units = boardCards(draft)
+    .filter((c) => !getDef(c.defId).noBattleTurn)
+    .map((c) => ({
+      id: c.instanceId,
+      sp: effectiveSp(draft, c),
+    }));
   units.sort((a, b) => b.sp - a.sp);
   // coin-flip adjacent ties (repeated passes = a fair-enough shuffle per tie group)
   for (let i = 0; i < units.length - 1; i++) {
