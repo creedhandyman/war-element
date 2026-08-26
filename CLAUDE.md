@@ -1255,6 +1255,32 @@ one you had to buy is one you would never field); **one per fight**; enraged
 means **buffed stats**, not just a label; a use is spent on **entering**, win or
 lose (paying at settle would make it farmable by conceding at round one).
 
+**FLOORS 3 AND 4 RE-TUNED FOR THE TAMED PLAYER (per-boss body/DMG/shield
+multipliers: Xilty/Hoarfell/Thunderfangs x1.6, Vulcanyx x1.2, Umbranova x1.4,
+Cryovex x1.35, Kazehaya x1.2, Kato x1.3 — the chain shells follow the first
+form).** Boss win %, n=96, ally = the biggest body on the floor below:
+
+| | bare before | bare after | ally before | ally after |
+| --- | --- | --- | --- | --- |
+| Floor 3 avg | 48 | **74** | 13 | **36** |
+| Floor 4 avg | 87 | **91** | 34 | **40** |
+
+**THE FLOORS ARE COUPLED, and this is the thing to know before touching either.**
+The tamed ally a Floor-4 challenger brings is a FLOOR-3 boss, so buffing Floor 3
+buffs Floor 4's ally too and the two changes partly cancel: Floor 4's ally case
+moved only 34 -> 40 despite a 1.2-1.4x buff, and the harness's ally pick even
+switched from Vulcanyx to Hoarfell mid-pass because the buff made Hoarfell the
+bigger body. Never tune a floor's difficulty without re-measuring the floor
+ABOVE it.
+
+**Bare Floor 4 is now brutal** — 91% average, Cryovex 96.9% (3.1% player win).
+That makes the top floor effectively ally-required, which is a defensible reading
+of the taming loop but IS a decision: if it should be beatable bare, Cryovex's
+1.35 is the first number to walk back. Hoarfell is the other outlier, the other
+way: its curve is nearly flat to body (4.2 -> 14.6 across a 50% buff), so it sits
+at 15.6% with an ally where its floormates are 38-48. It needs a KIT lever, not
+more meat.
+
 **WHAT A TAMED BOSS IS ACTUALLY WORTH — measured, and it is a lot.** The balance
 harness had never brought one (every Floor-4 number ever taken is a BARE fight),
 so this was a new measurement, not a re-run. Player win %, 8 cores x 12 seeds,
