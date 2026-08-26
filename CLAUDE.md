@@ -1249,6 +1249,17 @@ no Special", because those are different statements: a 0-damage card that can
 still be stunned or buffed into relevance belongs in the queue showing why it
 cannot act — that is information; a gate belongs there the way a rock does.
 
+**The scenery list is exactly two, and it is pinned by test:** the Fortress Gates
+and Cryovex's Blackice Crystals (three alive at once, each one queuing to swing
+for the 1 damage the effective-damage floor hands any 0-DMG card, on a card whose
+own def says it does no damage at all — and both things it really does, Creeping
+Rime and Shatter, happen at Cleanup and on death). What was deliberately left OUT
+matters as much: Overclock's static wisps and Static Cloud are 0-DMG too, but
+BOLT's Electrify turns a 0-damage basic into a real one against anything statused
+and they drift forward on a roundTick — hazards that act, not masonry. Note
+`basicIsInert` is NOT the right predicate for this: a damage floor gives every
+0-DMG card an effective 1, so even the gate reads as non-inert.
+
 Note it needed fixing in TWO places. `startBattle` builds the locked queue, but
 `SpeedQueue.tsx` builds its OWN list off the board for the pre-battle preview —
 so fixing only the engine left the gates showing all the way through prep and

@@ -11335,7 +11335,21 @@ export const TOKENS: CardDef[] = [
     shields: 3,
     keywords: {},
     tribe: "Ice",
-    passiveNames: { roundTick: "Creeping Rime", onDeath: "Shatter" },
+    passiveNames: {
+      roundTick: "Creeping Rime", onDeath: "Shatter", noBattleTurn: "Ice Spire",
+    },
+    // Ice Spire: SCENERY, the same as the Fortress Gates. Cryovex keeps up to
+    // three of these alive at once, and each one was taking a speed-queue slot
+    // to swing for the 1 damage the effective-damage floor hands any 0-DMG card
+    // — against a card whose own note two lines down says "it does no damage at
+    // all". Both of the things it actually does happen outside the queue:
+    // Creeping Rime is a roundTick (Cleanup) and Shatter is an onDeath.
+    //
+    // The other 0-DMG boss-side pieces were deliberately NOT given this. The
+    // static wisps and Static Cloud (Overclock) carry BOLT's Electrify, which
+    // turns a 0-damage basic into a real one against anything statused, and they
+    // drift forward on a roundTick — they are hazards that act, not masonry.
+    noBattleTurn: true,
     // Creeping Rime: it does no damage at all. Its whole job is to keep the
     // nearest opponent FROZEN, which is what feeds Cryovex — Deep Freeze scales
     // with how long a card has been held, so the crystals are the clock and the

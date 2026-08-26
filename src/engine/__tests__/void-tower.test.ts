@@ -1269,6 +1269,47 @@ describe("Cryovex — Deep Freeze and the crystals", () => {
     expect(n.cards[foe.instanceId].frozenRounds, "and forgotten the moment it lifts").toBe(0);
   });
 
+  it("the SCENERY list is exactly these two — anything else is a decision", () => {
+    // Pinned so a future 0-DMG piece gets an argument rather than drifting into
+    // (or out of) the queue by accident. The ones deliberately left OUT are as
+    // much of the decision as the ones in: Overclock's static wisps and Static
+    // Cloud carry BOLT's Electrify, which turns a 0-damage basic into a real one
+    // against anything statused, and they drift forward on a roundTick — they
+    // are hazards that act, not masonry. Smog is a player card and PYRO burns on
+    // contact, so it is not scenery either.
+    const scenery = [...CARDS, ...TOKENS].filter((c) => c.noBattleTurn).map((c) => c.id).sort();
+    expect(scenery).toEqual(["aqua_blackice_crystal_tok", "void_fortress_gate_tok"]);
+    for (const id of ["bolt_static_wisp_tok", "bolt_staticcloud", "pyro_smog_card"])
+      expect(getDef(id).noBattleTurn, `${id} acts — it keeps its turn`).toBeUndefined();
+  });
+
+  it("a crystal is SCENERY too — three spires, none of them in the queue", () => {
+    // Cryovex keeps up to three alive at once, each one taking a queue slot to
+    // swing for the 1 damage the effective-damage floor hands any 0-DMG card —
+    // on a card whose own def says it does no damage at all.
+    const s = bigPrepState();
+    const crystals = [0, 1, 2].map((c) => place(s, "aqua_blackice_crystal_tok", "P2", 1, c));
+    const boss = place(s, "boss_cryovex", "P2", 0, 3);
+    boss.summonedThisRound = false;
+    const fighter = place(s, "leaf_stickviper", "P1", 4, 2);
+    const queue = atBattle(s).battle?.queue ?? [];
+    expect(queue, "the boss queues").toContain(boss.instanceId);
+    expect(queue, "and so does the player").toContain(fighter.instanceId);
+    for (const c of crystals)
+      expect(queue, "the spires do not").not.toContain(c.instanceId);
+  });
+
+  it("...and Creeping Rime still fires, because it never needed a turn", () => {
+    // Both things a crystal does happen OUTSIDE the queue: Creeping Rime is a
+    // roundTick (Cleanup) and Shatter is an onDeath. Taking away the turn it
+    // could not use must not take away the job it exists for.
+    const s = bigPrepState();
+    place(s, "aqua_blackice_crystal_tok", "P2", 1, 2);
+    const foe = place(s, "leaf_stickviper", "P1", 2, 2, { curHp: 60, maxHp: 60 });
+    const after = advance(atCleanup(s));
+    expect(statusOf(after.cards[foe.instanceId], "FREEZE"), "the rime still creeps").toBeTruthy();
+  });
+
   it("a Blackice Crystal bursts on death and freezes what is beside it", () => {
     const s = bigPrepState();
     const crystal = place(s, "aqua_blackice_crystal_tok", "P2", 2, 2, { curHp: 1, maxHp: 14 });
