@@ -1274,11 +1274,30 @@ Honest caveat: NONE of it measures. Every variant swept (spread 1/2 x dmg
 only reached in 46% of fights and the outcome is set before it arrives. This is
 a FEEL change, which is exactly what the Cryovex note says to do on Floor 4.
 
-**FLOOR 4 IS NOW TOP-HEAVY, on purpose — check this before tuning anything there.**
-Latest measured pass: Umbranova 85.4 · Kazehaya 85.4 · Cryovex 70.8 · Kato ~69.
-The two that were raised are ~15 points clear of the two that were not. That is a
-deliberate ordering rather than drift, but it is a real spread and the next person
-in should know it before "fixing" Cryovex or Kato upward.
+**FLOOR 4 IS NOW LEVEL, all four inside 1.1 points** — Umbranova 85.4 ·
+Kazehaya 85.4 · Cryovex 86.5 · Kato 85.4. Every one of them was raised to that
+line deliberately, so treat a boss drifting off it as a regression.
+
+**HOW EACH ONE GOT THERE IS THE USEFUL PART — the lever differs by SHAPE:**
+
+| boss | what moved it | what did NOT |
+| --- | --- | --- |
+| Umbranova | HP 60->100, then ranged basics | damage (6 vs 10 read the same) |
+| Kazehaya  | Special reach 2->3 (+14.6 pts alone) | body was the small half |
+| Cryovex   | Special reach 2->3, then dmg 7->12 | +HP overshot to 95.8% |
+| Kato      | +6 basic DMG per shell | body: a HARD ceiling at 82.3% |
+
+Two rules fall out of it, and both are cheap to check before you tune anything:
+
+1. **On a nova, reach beats damage.** Kazehaya and Cryovex both jumped ~10-15
+   points on radius alone. Kato's jet as a one-column strafe could not be raised
+   at all — 10 damage and 40 damage read an identical 68.8%. Ask what a Special
+   can REACH before raising what it hits for.
+2. **Read the win TYPES before adding body.** Kato capped at 82.3% across +40,
+   +55 and +70 HP and across two shield levels — the same number four different
+   ways — because 72-75 of its 96 wins were already TIMEOUTS. More body buys
+   more timeouts. A boss that is running out the clock needs to kill faster, not
+   live longer.
 
 **UMBRANOVA SHOOTS NOW TOO** (`ignoresHomeRule`, 82.3 -> 85.4). Same hole Stormwing
 had, and worse here for being on-theme: a ranged basic caps at reach 2 from the

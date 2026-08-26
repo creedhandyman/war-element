@@ -817,13 +817,8 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   // damage-area highlight over-reports (a row-ahead sweep lit up the whole board).
   if (Number(p.enemyHomeRow ?? 0) > 0)
     list = list.filter((t) => t.pos?.row === homeRow(enemyOf(card.owner), state.boardSize));
-  // Mirrors barrage's own lane filter, `columnSpread` included — this is the
-  // function the boss telegraph draws its red zone from, so a widened strafe
-  // that was not mirrored here would light one column and hit three.
-  if (Number(p.sameColumn ?? 0) > 0 && card.pos) {
-    const spread = Number(p.columnSpread ?? 0);
-    list = list.filter((t) => Math.abs((t.pos?.col ?? -99) - card.pos!.col) <= spread);
-  }
+  if (Number(p.sameColumn ?? 0) > 0 && card.pos)
+    list = list.filter((t) => t.pos?.col === card.pos!.col);
   if (Number(p.rowAhead ?? 0) > 0 && card.pos) {
     const ahead = card.pos.row + (card.owner === "P1" ? -1 : 1);
     list = list.filter((t) => t.pos?.row === ahead);

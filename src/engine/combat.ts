@@ -3151,15 +3151,34 @@ function applySelfRiders(
       draft.log.push(`${label(draft, caster)} grows hotter (+${gain} DMG).`);
     }
   }
-  // BANK ACROSS (Kato, Stormwing): after the pass, throw itself to the mirrored
-  // slot on the far side of the board — column c becomes (boardSize-1 - c),
-  // same row. A strafing run that finishes where it started is a gun emplacement
-  // with wings; this one leaves.
+  // WITHDRAW (Kato, Stormwing): after the pass, pull back toward its OWN home
+  // row, staying in the column it fired down. The jet arrives wherever the
+  // panther died — `takeSpotOnKill` regularly leaves that shell deep in the
+  // player's half — so this is the half of the move that gets it out again:
+  // strike, then break off toward friendly air.
   //
-  // Deterministic, like every other movement in this mode: the exact mirror
-  // first, then the nearest open column to it, ties going to the LOWER column.
-  // It stays in its own row — mirroring the ROW as well would drop it into the
-  // player's home row, which is not a bank, it is a landing.
+  // Deterministic and blocked by bodies: it stops at the first occupied or
+  // captured square rather than phasing through one, so a player who parks
+  // something behind it can pin the jet forward where they can reach it. That
+  // is the counter-play the rider exists to create.
+  const back = num(params, "retreatHome");
+  if (back > 0 && caster.pos) {
+    const home = homeRow(caster.owner, draft.boardSize);
+    const dir = Math.sign(home - caster.pos.row);
+    let moved = 0;
+    const col = caster.pos.col;
+    let row: number = caster.pos.row;
+    while (dir !== 0 && moved < back) {
+      const r = row + dir;
+      if (r < 0 || r >= draft.boardSize) break;
+      if (cardAt(draft, r, col) || draft.slots[r][col].capturedBy) break;
+      row = r;
+      caster.pos = { row: row as Pos["row"], col };
+      moved++;
+    }
+    if (moved > 0)
+      draft.log.push(`${label(draft, caster)} breaks off and climbs back ${moved} slot(s).`);
+  }
   if (num(params, "selfMirror") > 0 && caster.pos) {
     const row = caster.pos.row;
     const want = draft.boardSize - 1 - caster.pos.col;
@@ -3692,18 +3711,9 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       targets = targets.filter((t) => t.pos?.row === row);
     }
     // Battle Charge (WarPhant): "straight ahead" is the card's own column.
-    //
-    // `columnSpread` widens that lane by N columns EACH SIDE (0 = the single
-    // column, which is every existing caller and why they are unaffected).
-    // Added for Kato's Stormwing, where a one-column strafe was measured doing
-    // literally nothing: 10 damage and 40 damage read the same 68.8% with an
-    // identical win breakdown, because by Floor 4 the column the jet happens to
-    // be over is usually empty. A number that cannot miss harder is not a
-    // number worth raising — the run had to get wider instead.
     if (num(params, "sameColumn") > 0 && attacker.pos) {
       const col = attacker.pos.col;
-      const spread = num(params, "columnSpread");
-      targets = targets.filter((t) => Math.abs((t.pos?.col ?? -99) - col) <= spread);
+      targets = targets.filter((t) => t.pos?.col === col);
     }
     if (num(params, "rowAhead") > 0 && attacker.pos) {
       const row = rowAhead(attacker.owner, attacker.pos.row);

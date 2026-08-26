@@ -10809,15 +10809,30 @@ export const CARDS: CardDef[] = [
       name: "Absolute Zero",
       cost: 3,
       handler: "barrage",
-      // reach 2, the widened melee square. FREEZE 2 rather than damage-heavy:
-      // the Special exists to START clocks on everything nearby, and Deep Freeze
-      // is what turns them into damage.
+      // REACH 3, damage 7 -> 12, raised to sit level with the rest of Floor 4.
+      //
+      // Reach first, and that ordering is the finding: this is a nova, and on a
+      // 5x5 board the radius is what decides how much of the player's side it
+      // touches. Measured in one pass from 70.8% —
+      //
+      //     reach 3                 80.2%
+      //     reach 3 + dmg 12        86.5%   <- shipped
+      //     reach 3 + dmg 12 + 110hp 95.8%  <- overshoots badly
+      //
+      // The body is deliberately NOT raised. It was already the heaviest on the
+      // floor at 131, and adding to it took the fight straight past every
+      // neighbour. Kazehaya's sweep said the same thing about the same shape.
+      //
+      // FREEZE 2 still rather than damage-heavy: the Special exists to START
+      // clocks on everything nearby, and Deep Freeze (+4 a round held, to +16)
+      // is what turns them into damage — so a wider radius compounds through
+      // the ramp rather than just hitting harder once.
       params: {
-        dmg: 7, targets: 99, reach: 2,
+        dmg: 12, targets: 99, reach: 3,
         statusKind: "FREEZE", statusDuration: 2,
       },
       targetSide: "enemy",
-      text: "7 DMG and FREEZE for 2 rounds to every opponent within 2 spaces — and Deep Freeze then hits the frozen for 4 more per round they have been held, to +16.",
+      text: "12 DMG and FREEZE for 2 rounds to every opponent within 3 spaces — and Deep Freeze then hits the frozen for 4 more per round they have been held, to +16.",
     },
   },
   {
@@ -10938,9 +10953,18 @@ export const CARDS: CardDef[] = [
     // stayed put — and doubled how often the chain runs its full length (26% ->
     // 42% of fights reach Stormwing). The kit is the lever on a chain, not the
     // stat line.
-    dmg: 14,
+    // RAISED TO MATCH THE FLOOR (69.8% -> 85.4%), and the route there is the
+    // whole lesson of this card. BODY ALONE HITS A HARD CEILING: +40, +55 and
+    // +70 HP read 78.1 / 81.3 / 82.3, and adding SHIELDS on top of any of them
+    // read 82.3 four times over — the same number, four different ways. The win
+    // types said why: 72-75 of 96 wins were TIMEOUTS, so more body just bought
+    // more timeouts. Kato was not losing because it died, it was losing because
+    // it could not kill fast enough. +6 basic DMG on each shell is what broke
+    // the ceiling (hp+55 dmg+6 = 85.4%), and it is identity-preserving: the
+    // machine's tracks, the cat's claws and the jet's guns, not a new shape.
+    dmg: 20,
     hits: 1,
-    hp: 36,
+    hp: 91,
     sp: 8,
     shields: 2,
     // THE MACHINE TRAMPLES — it is a war engine on tracks, and it rolls over
@@ -10986,9 +11010,9 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 12,
-    dmg: 16,
+    dmg: 22,
     hits: 1,
-    hp: 36,
+    hp: 91,
     sp: 12,
     shields: 5,
     // NO TRAMPLE — the tracks are gone and it walks on crystal now. It DODGES
@@ -11050,9 +11074,9 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Ranged",
     cost: 12,
-    dmg: 18,
+    dmg: 24,
     hits: 1,
-    hp: 30,
+    hp: 85,
     sp: 16,
     shields: 4,
     // FLYING, and no dodge — the last shell gets off the ground instead. The end of the chain: it declares no `transformOnDefeat`, so this
@@ -11091,8 +11115,9 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Thunderhead",
       cost: 3,
-      // The only barrage of the three: a strafing run down a whole SWATH, from
-      // above and out of reach. Machine ploughs, cat springs, jet strafes.
+      // The only barrage of the three: a strafing pass over the nearest four,
+      // from above and out of reach, and then it is gone. Machine ploughs, cat
+      // springs, jet strafes and leaves.
       handler: "barrage",
       // ignoreHomeRule, the same exemption Helion's Solar Lance needs and for
       // the same reason: the Home-Slot rule lets a defender's home slot be
@@ -11100,30 +11125,34 @@ export const CARDS: CardDef[] = [
       // its own home row (aimLateral only slides along that row). Measured, the
       // strafing run was doing 10 to the mid row and ZERO to the back line —
       // beatable by parking everything at the back, which is not what a jet is.
-      // 10 -> 16, and THREE COLUMNS WIDE (`columnSpread: 1`).
+      // FOUR TARGETS IN RANGE, then it withdraws.
       //
-      // The width is the part that matters, and it is why the number moved at
-      // all. Measured, Thunderhead's damage did NOTHING to this fight: 10 and
-      // 40 read the same 68.8% with a byte-identical win breakdown, because a
-      // one-column strafe on a Floor-4 board is usually flying over an empty
-      // column. Nothing can be gained by raising a number that keeps missing.
+      // This replaced a `sameColumn` strafe, and the reason is measured: as a
+      // one-column run its damage could not be raised into relevance AT ALL —
+      // 10 and 40 read the same 68.8% with a byte-identical win breakdown,
+      // because by Floor 4 the column the jet happens to be over is usually
+      // empty. Widening it to three columns did not help either (68.8-69.8%
+      // across every spread x damage combination). A shape that keeps missing
+      // cannot be fixed with a number, which is the general lesson: check what
+      // a Special can REACH before raising what it hits for.
       //
-      // Honest caveat: the widened version does not measure either — every
-      // variant swept (spread 1/2 x dmg 10/14/18) landed in 68.8-69.8%, inside
-      // noise, because the jet is only reached in 46% of fights and the fight is
-      // decided before it arrives. This is a FEEL change, which is exactly what
-      // the note on Cryovex says to do with a Floor-4 boss.
+      // `closest` picks the nearest four rather than whatever order the pool
+      // arrived in — deterministic, like everything else in this mode, and it
+      // means the four it takes are the four you can see it is nearest to.
       params: {
-        dmg: 16, pen: 1, targets: 99, sameColumn: 1, columnSpread: 1, ignoreHomeRule: 1,
-        // ...and then it LEAVES. `selfMirror` throws it to the opposite slot the
-        // moment the pass ends, so the column it just emptied is never the
-        // column it is standing in — you answer where it was, not where it is.
-        selfMirror: 1,
+        dmg: 16, pen: 1, targets: 4, closest: 1, ignoreHomeRule: 1,
+        // ...and then it BREAKS OFF, back toward its own lines, down the column
+        // it just fired along. The jet inherits whatever square the panther died
+        // on — `takeSpotOnKill` regularly leaves that shell deep in the player's
+        // half — so this is what gets it out again. It stops at the first body
+        // in the way, which is the counter-play: pin it forward and you can
+        // reach it.
+        retreatHome: 2,
         statusKind: "ELECTRIFIED", statusDuration: 2,
       },
       ranged: true,
       targetSide: "enemy",
-      text: "16 DMG through shields down the three columns it is over, and ELECTRIFIED for 2 rounds — then it banks to the opposite side of the board. Stormfall adds 5 to everything it lands on the afflicted.",
+      text: "16 DMG through shields to the nearest 4 opponents in range, and ELECTRIFIED for 2 rounds — then it breaks off 2 slots back toward its own lines. Stormfall adds 5 to everything it lands on the afflicted.",
     },
   },
   {

@@ -145,7 +145,7 @@ describe("the roster", () => {
       // fight means winning it three times. 70.8%, with 89% of fights reaching
       // Prowlform and 46% reaching Stormwing — the chain is the fight, and both
       // later shells are seen often enough to be worth authoring separately.
-      boss_kato: 62,
+      boss_kato: 123,
       // Smolder is a Floor-1 body and reads 69% — most of its threat is the
       // BURN it puts on anything that touches it, which costs no stat points
       // at all.
@@ -1095,37 +1095,8 @@ describe("Kato — the chain that has to be broken three times", () => {
     expect(s.cards[boss.instanceId].pos, "it ends on the second kill").toEqual(square);
   });
 
-  it("the jet's strafe is THREE columns wide, and stops there", () => {
-    // A one-column strafe measured as doing nothing at all — 10 damage and 40
-    // read the same 68.8% with an identical win breakdown, because the column
-    // the jet happens to be over is usually empty by Floor 4. `columnSpread`
-    // is the fix, and it is the width rather than the number that is the point.
-    const s = bigPrepState();
-    const boss = place(s, "boss_kato_3", "P2", 0, 2);
-    const under = place(s, "leaf_stickviper", "P1", 2, 2, { curHp: 90, maxHp: 90, curShields: 0 });
-    const beside = place(s, "leaf_stickviper", "P1", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
-    const outside = place(s, "leaf_stickviper", "P1", 2, 4, { curHp: 90, maxHp: 90, curShields: 0 });
-    fireCardSpecial(s, s.cards[boss.instanceId]);
-    const hit = (c: typeof under) => 90 - s.cards[c.instanceId].curHp;
-    expect(hit(under), "straight below").toBeGreaterThan(0);
-    expect(hit(beside), "and one column over").toBeGreaterThan(0);
-    expect(hit(outside), "two columns over is clear — it is a swath, not a nova").toBe(0);
-  });
-
-  it("the widened strafe is what the TELEGRAPH draws", () => {
-    // `specialTargets` is the function the boss telegraph lights its red zone
-    // from. Widening the volley without widening that would light one column
-    // and hit three, which is the one thing the telegraph must never do.
-    const s = bigPrepState();
-    s.round = 3;
-    const boss = place(s, "boss_kato_3", "P2", 0, 2);
-    const beside = place(s, "leaf_stickviper", "P1", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
-    const outside = place(s, "leaf_stickviper", "P1", 2, 4, { curHp: 90, maxHp: 90, curShields: 0 });
-    const cells = bossTelegraphs(s).find((t) => t.bossId === boss.instanceId)!.cells;
-    expect(cells, "the neighbouring column is lit").toContainEqual(beside.pos);
-    expect(cells, "and the far one is not").not.toContainEqual(outside.pos);
-  });
-
+  
+  
   it("the jet actually SHOOTS — the whole board, not two rows", () => {
     // `attackType: "Ranged"` alone bought this form almost nothing: a ranged
     // basic is capped at reach 2 from the row it was summoned in, and this
@@ -1145,58 +1116,63 @@ describe("Kato — the chain that has to be broken three times", () => {
     expect(getDef("boss_kato_3").ignoresHomeRule).toBe(true);
   });
 
-  it("the jet STRAFES a column, back line included", () => {
-    // ignoreHomeRule, the same exemption Helion needs: this form lives in its
-    // own home row (aimLateral only slides along it), and without the exemption
-    // the strafing run measured 10 to the mid row and ZERO to the home row —
-    // beatable by parking everything at the back.
+  it("the jet takes the NEAREST FOUR in range, and no more", () => {
+    // It was a one-column strafe, and as one its damage could not be raised
+    // into relevance at all: 10 and 40 measured the same 68.8% with an
+    // identical win breakdown, because the column it happens to be over is
+    // usually empty by Floor 4. Four targets anywhere in range is the answer to
+    // a shape that kept missing.
     const s = bigPrepState();
     const boss = place(s, "boss_kato_3", "P2", 0, 2);
-    const mid = place(s, "leaf_stickviper", "P1", 2, 2, { curHp: 90, maxHp: 90, curShields: 0 });
-    const back = place(s, "leaf_stickviper", "P1", 4, 2, { curHp: 90, maxHp: 90, curShields: 0 });
-    const other = place(s, "leaf_stickviper", "P1", 4, 0, { curHp: 90, maxHp: 90, curShields: 0 });
+    const foes = [[1, 0], [1, 4], [2, 2], [3, 1], [4, 4], [4, 0]].map(([r, c]) =>
+      place(s, "leaf_stickviper", "P1", r, c, { curHp: 90, maxHp: 90, curShields: 0 }));
     fireCardSpecial(s, s.cards[boss.instanceId]);
-    expect(90 - s.cards[mid.instanceId].curHp, "down the column").toBeGreaterThan(0);
-    expect(90 - s.cards[back.instanceId].curHp, "and into the back line").toBeGreaterThan(0);
-    expect(90 - s.cards[other.instanceId].curHp, "one column only").toBe(0);
+    const hurt = foes.filter((f) => s.cards[f.instanceId].curHp < 90);
+    expect(hurt.length, "exactly four, out of six standing").toBe(4);
   });
 
-  it("the jet BANKS ACROSS after every pass — you answer where it was", () => {
-    // A strafing run that finishes where it started is a gun emplacement with
-    // wings. `selfMirror` throws it to the opposite slot the moment the pass
-    // ends, so the column it just emptied is never the column it is standing in.
-    const bank = (col: number, block?: number) => {
-      const s = bigPrepState();
-      const boss = place(s, "boss_kato_3", "P2", 0, col);
-      if (block !== undefined) place(s, "dusk_gool", "P2", 0, block);
-      place(s, "leaf_stickviper", "P1", 2, col, { curHp: 90, maxHp: 90, curShields: 0 });
-      fireCardSpecial(s, s.cards[boss.instanceId]);
-      return s.cards[boss.instanceId].pos!.col;
-    };
-    const size = bigPrepState().boardSize;
-    for (const col of [0, 1, size - 2, size - 1])
-      expect(bank(col), `col ${col} mirrors`).toBe(size - 1 - col);
-  });
-
-  it("...and the CENTRE column stays put, because its mirror is itself", () => {
-    // It saw its own body in the way and hopped sideways to a slot that is the
-    // mirror of nothing. Its own square counts as free — it is vacating it.
+  it("...and they are the nearest four, not an arbitrary four", () => {
+    // `closest` makes the pick readable off the board rather than off array
+    // order — the four it takes are the four you can see it is nearest to.
     const s = bigPrepState();
-    const mid = Math.floor(s.boardSize / 2);
-    const boss = place(s, "boss_kato_3", "P2", 0, mid);
-    place(s, "leaf_stickviper", "P1", 2, mid, { curHp: 90, maxHp: 90, curShields: 0 });
+    const boss = place(s, "boss_kato_3", "P2", 0, 2);
+    const near = [[1, 2], [1, 1], [1, 3], [2, 2]].map(([r, c]) =>
+      place(s, "leaf_stickviper", "P1", r, c, { curHp: 90, maxHp: 90, curShields: 0 }));
+    const far = [[4, 0], [4, 4]].map(([r, c]) =>
+      place(s, "leaf_stickviper", "P1", r, c, { curHp: 90, maxHp: 90, curShields: 0 }));
     fireCardSpecial(s, s.cards[boss.instanceId]);
-    expect(s.cards[boss.instanceId].pos!.col).toBe(mid);
+    for (const f of near) expect(s.cards[f.instanceId].curHp, "the close ones").toBeLessThan(90);
+    for (const f of far) expect(s.cards[f.instanceId].curHp, "and not the far ones").toBe(90);
   });
 
-  it("...and a blocked mirror takes the nearest open column to it", () => {
+  it("the jet BREAKS OFF afterwards — back toward its own lines, same column", () => {
+    // The jet inherits whatever square the panther died on, and takeSpotOnKill
+    // regularly leaves that shell deep in the player's half. This is the half of
+    // the move that gets it out again.
     const s = bigPrepState();
-    const boss = place(s, "boss_kato_3", "P2", 0, 0);
-    place(s, "dusk_gool", "P2", 0, s.boardSize - 1);       // the mirror itself
-    place(s, "leaf_stickviper", "P1", 2, 0, { curHp: 90, maxHp: 90, curShields: 0 });
+    const boss = place(s, "boss_kato_3", "P2", 3, 2); // deep in enemy territory
+    place(s, "leaf_stickviper", "P1", 4, 2, { curHp: 90, maxHp: 90, curShields: 0 });
     fireCardSpecial(s, s.cards[boss.instanceId]);
-    const landed = s.cards[boss.instanceId].pos!.col;
-    expect(landed, "as close to the far side as it can get").toBe(s.boardSize - 2);
+    const now = s.cards[boss.instanceId].pos!;
+    expect(now.col, "it never leaves the column it fired down").toBe(2);
+    expect(now.row, "and climbs 2 back toward its own home row").toBe(1);
+  });
+
+  it("...and a body in the way PINS it forward — that is the counter-play", () => {
+    const s = bigPrepState();
+    const boss = place(s, "boss_kato_3", "P2", 3, 2);
+    place(s, "dusk_gool", "P2", 2, 2);  // its own escort, blocking the way back
+    place(s, "leaf_stickviper", "P1", 4, 2, { curHp: 90, maxHp: 90, curShields: 0 });
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    expect(s.cards[boss.instanceId].pos!.row, "it stops at the body, it does not phase through").toBe(3);
+  });
+
+  it("already home, there is nowhere to break off TO", () => {
+    const s = bigPrepState();
+    const boss = place(s, "boss_kato_3", "P2", 0, 2);
+    place(s, "leaf_stickviper", "P1", 2, 2, { curHp: 90, maxHp: 90, curShields: 0 });
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    expect(s.cards[boss.instanceId].pos!.row, "stays put rather than flying off the board").toBe(0);
   });
 
   it("each shell answers to something different", () => {
