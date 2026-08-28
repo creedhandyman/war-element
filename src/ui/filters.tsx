@@ -18,10 +18,19 @@ import type { CardClass, Element, Keyword } from "../engine";
 import { EL_COLOR, EL_ICON, ELEMENTS, KEYWORD_STYLE, KEYWORDS, RARITY_STYLE } from "./shared";
 
 /** Folded state, shared across all three grids under one key: it is a
- *  preference about how you browse, not a fact about the screen you are on. */
+ *  preference about how you browse, not a fact about the screen you are on.
+ *
+ *  CLOSED by default. The rows are a way to narrow 320 cards, and narrowing is
+ *  the second thing anyone does — the first is look at the cards. Opening on
+ *  the grid gives the phone a full extra row before a single tap.
+ *
+ *  Read as `=== "1"` rather than `!== "0"`, so only an explicit open is
+ *  remembered as one. That also migrates the two existing values correctly:
+ *  someone who had already folded them stored "0" and stays folded, someone who
+ *  left them open stored "1" and stays open. */
 export function useFilterFold(): [boolean, () => void] {
   const [open, setOpen] = useState<boolean>(() => {
-    try { return localStorage.getItem("we_db_filters") !== "0"; } catch { return true; }
+    try { return localStorage.getItem("we_db_filters") === "1"; } catch { return false; }
   });
   const toggle = () => setOpen((v) => {
     try { localStorage.setItem("we_db_filters", v ? "0" : "1"); } catch { /* ignore */ }
