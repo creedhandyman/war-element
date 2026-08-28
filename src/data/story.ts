@@ -772,71 +772,71 @@ const BORE: StoryRegion = {
     { id: "R1", name: "Quarry Mouth", kind: "skirmish", at: { x: 22, y: 16 },
       requires: [], roster: ["bore_cavedweller", "bore_iron", "bore_kcor"], adds: [],
       note: "The Reveen Foothills, where the mountain pass down from BOLT lets out.",
-      lore: "Not old the way a kingdom counts its kings — old the way stone is old: unhurried, and entirely uninterested in proving anything to anyone in less time than it takes."
+      lore: "Old the way stone is old rather than the way a kingdom counts its kings: unhurried, and uninterested in proving anything in less time than it takes. Iron was at the mouth before the pass was."
     },
     { id: "R2", name: "Rubble Road", kind: "skirmish", at: { x: 36, y: 22 },
       requires: ["R1"], roster: ["bore_cosmic", "bore_crock", "bore_hillbilly"], adds: [],
-      lore: "Reveen's hill folk do not repair the road so much as walk it flat again. Some of the stone they shoulder aside did not fall from the mountain."
+      lore: "Reveen's hill folk do not repair the road so much as walk it flat again. Hillbilly has shouldered stone aside for years, and some of it did not fall from the mountain."
      },
     { id: "R3", name: "The Smithy Camp", kind: "skirmish", at: { x: 23, y: 47 },
       requires: ["R1"], roster: ["bore_clubber", "bore_rockgoblin", "bore_smith"], adds: [],
       note: "Open forges — home of the legendary crafters.",
-      lore: "Nothing leaves the Black Smith's forges quickly. BORE's crafters have never once apologized for a customer who waited a year for something worth carrying for a lifetime."
+      lore: "Nothing leaves the Black Smith's forges quickly. Smith has never once apologised to a customer who waited a year for something worth carrying for a lifetime."
     },
     { id: "R4", name: "Sand Village", kind: "skirmish", at: { x: 23, y: 80 },
       requires: ["R3"], roster: ["bore_sling", "bore_thorny_ripper", "bore_valcana"], adds: [],
       note: "Desert dwellers under cloth awnings. We trade, travel, survive.",
-      lore: "Desert dwellers who live not in the mountain's stone but on its sand — closer to the Worm's territory than anyone in the Fortress would prefer, and entirely unbothered by that fact."
+      lore: "Desert dwellers who live on the mountain's sand rather than in its stone, closer to the Worm's territory than anyone in the Fortress would prefer. Valcana has never raised the subject."
     },
     { id: "R5", name: "Mountain Beast Range", kind: "skirmish", at: { x: 52, y: 20 },
       requires: ["R2"], roster: ["bore_ankylosaur", "bore_armadillo", "bore_warthog"], adds: [],
       note: "The armour school — three Tanks, two of them Granite. A deck that cannot break shields stops here, early enough to be a lesson rather than a wall.",
-      lore: "The herds were on this range before anyone thought to name it, and BORE has never fenced a foot of it. Grazing rights here run the other direction."
+      lore: "The herds were on this range before anyone thought to name it, and BORE has never fenced a foot of it. Grazing rights here run the other direction, and the Granite Ankylosaur collects them."
      },
     { id: "R6", name: "The Standing Stones", kind: "skirmish", at: { x: 65, y: 34 },
       requires: ["R5"], roster: ["bore_rock", "bore_stone", "bore_ufo"], adds: [],
       note: "Out toward the sand worm's dunes. UFO is 2 HP behind 5 shields that irradiates the whole board — the damage is trivial, getting to it is the fight.",
-      lore: "A single vast Sand Worm prowls the depths, dragging the dunes into slow spiralling wounds when it surfaces. BORE's storytellers never call it the only one. They call it the one that's already awake."
+      lore: "A vast Sand Worm drags the dunes into slow spiralling wounds when it surfaces. BORE's storytellers never call it the only one, only the one already awake. Slugger has stood the stones throughout."
     },
     { id: "R7", name: "Faultline", kind: "warden", at: { x: 30, y: 38 },
       requires: ["R5"], roster: ["bore_shift", "bore_rhe", "bore_sheish", "bore_kobra"],
       adds: ["bore_cosmic", "bore_crock", "bore_kingcobra_tok"],
-      lore: "The stonework here is set without mortar on purpose: the ground can shift a hand's width and the wall goes with it. Building rigid was tried once."
+      lore: "The stonework is set without mortar on purpose: the ground can shift a hand's width and the wall goes with it. Building rigid was tried once, and Shift is what the ground does about it."
      },
     { id: "R8", name: "Crystal Seam", kind: "warden", at: { x: 9, y: 38 },
       requires: ["R3"], roster: ["bore_krysteel", "bore_lithara", "bore_monger"],
       adds: ["bore_smith", "bore_clubber"],
       note: "Giant mystical crystals, light spilling out of the rock.",
-      lore: "Giant mystical crystals grow undisturbed here. The scholars who first theorized the War Element still cross-reference their notes against something they only ever call \"the deeper hum.\""
+      lore: "Giant crystals grow undisturbed in the seam and Krysteel grows with them. The scholars who first theorised the War Element still cross-reference their notes against what they only call the deeper hum."
     },
     { id: "R9", name: "The Rolling Deep", kind: "warden", at: { x: 52, y: 45 },
       requires: ["R7"], roster: ["bore_rollo", "bore_bolder", "bore_old_timer"],
       adds: ["bore_iron", "bore_kcor"],
-      lore: "Stone that has been rolling long enough to lose its corners, in galleries no one has finished clearing. The haulers work by ear and step aside before they see a reason to."
+      lore: "Stone that has been rolling long enough to lose its corners, in galleries nobody has finished clearing. The haulers work by ear, and Old Timer steps aside before there is a reason to."
      },
     { id: "R10", name: "Cavernous Descent", kind: "warden", tribe: "Cavernous", at: { x: 35, y: 65 },
       requires: ["R4", "R9"], roster: ["bore_gemaga", "bore_obsidi", "bore_score"],
       adds: ["bore_hillbilly", "bore_cavedweller"],
       note: "Beneath the mountain, secrets breathe.",
-      lore: "Miners go down here with a lamp, and the ones who stay stop carrying it back up. No one teaches that. The dark simply arranges it."
+      lore: "Miners go down here with a lamp, and the ones who stay stop carrying it back up. Nobody teaches that; the dark arranges it, and the CaveDweller was arranged for a long time ago."
      },
     { id: "R11", name: "The Gem Vault", kind: "landmark", at: { x: 44, y: 55 },
       requires: ["R8", "R9"], roster: ["bore_diam", "bore_prism", "bore_sandman", "bore_rohojohn"],
       adds: [],
       note: "The lantern-lit descent of the Diamond Mine. The utility tier, all four on one node.",
-      lore: "The Diamond Mine carves its stronghold out of rock too patient to notice the excavation. BORE's quiet wealth: beauty that simply accumulates, given enough centuries."
+      lore: "The Diamond Mine carves its stronghold out of rock too patient to notice the excavation. Beauty that simply accumulates, given centuries, and Adamant is what accumulating looks like finished."
     },
     { id: "R12", name: "The Unbroken Wall", kind: "landmark", at: { x: 79, y: 58 },
       requires: ["R6", "R10"], roster: ["bore_bastion", "bore_bearocks", "bore_steel"], adds: [],
       note: "Bore Fortress — stone guardians. The campaign's hardest Landmark to out-damage rather than out-think, and Ironclad is immune to every status and DOT in the game. Bring PEN or bring a plan.",
-      lore: "Bore Fortress is held by the Stone Guardians — and \"held\" is the correct word, not \"ruled.\" A mountain is handed to whoever is willing to keep living on it."
+      lore: "Bore Fortress is held by the Stone Guardians, and held is the correct word rather than ruled. A mountain is handed to whoever will keep living on it, and Bastion has kept living on it."
     },
     { id: "R13", name: "Corebore Shaft", kind: "throne", at: { x: 66, y: 76 },
       requires: ["R12"], roster: ["bore_the_coreborer"],
       // Escorts: the quarry crew, farmable at R1.
       adds: ["bore_cavedweller", "bore_iron", "bore_valcana"],
       note: "Optional.",
-      lore: "Every other shaft in the mountain carries the tool marks of the crew that cut it. This one is round, unmarked, and still a little deeper each time anyone measures it."
+      lore: "Every other shaft in the mountain carries the tool marks of the crew that cut it. This one is round, unmarked, and a little deeper each time anyone measures. The Coreborer is still in it."
      },
     // The door the BORE art paints as "To Dusk — Shadow Border (Locked)".
     // Two of the three Gray Thrones open it, in any combination.
@@ -845,14 +845,14 @@ const BORE: StoryRegion = {
       adds: ["bore_stone", "bore_iron", "dusk_crow", "dusk_pumpkin", "dusk_spider", "dusk_doom", "bore_shift", "dusk_silkstalker"],
       demand: { kind: "class", value: "Tank", count: 4 },
       note: "Where the stone gives out and the shadow starts. Everything past here is Act V.",
-      lore: "Not a wall, and not guarded. The stone thins, the light goes, and somewhere inside that thinning the maps quietly stop agreeing with one another."
+      lore: "Not a wall, and not guarded. The stone thins, the light goes, and somewhere inside that thinning the maps stop agreeing with one another — Silkstalker crossed before they disagreed."
      },
     { id: "R14", name: "The Deepest Dark", kind: "throne", at: { x: 49, y: 84 },
       requires: ["R11", "R12"], roster: ["bore_deepest"],
       // Escorts: the standing stones, farmable at R6.
       adds: ["bore_stone", "bore_rock", "bore_shift"], required: true,
       note: "Below all other levels — an endless black drop. Required. The Shadow Border west stays sealed until Act V.",
-      lore: "Titans sleep beneath the sands. Not titan. Titans — plural, ancient, and, as far as anyone in Bore Fortress will confirm out loud, not yet disturbed."
+      lore: "Titans sleep beneath the sands. Not titan — Titans, plural and ancient and, as far as anyone in Bore Fortress will confirm aloud, not yet disturbed. The Deepest is not one of them."
     },
   ],
 };
