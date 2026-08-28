@@ -233,6 +233,10 @@ export function App() {
   const trapFlashTimerRef = useRef<number | null>(null);
   const prevTrapsRef = useRef<string[]>([]);
   const prevOppUsedRef = useRef<Set<string>>(new Set());
+  /** WHICH SEAT that baseline was taken from. The opponent is not always the
+   *  same seat — vs AI it is P2, and as an online GUEST it is P1 — so a
+   *  baseline taken against one is meaningless against the other. */
+  const prevOppSeatRef = useRef<PlayerId | null>(null);
   // Powerful-creature entrance: legendary and above get their art announced
   // full-screen. My own summon holds the intent and dispatches AFTER the
   // announcement (a true preview); the opponent's resolves outside our dispatch,
@@ -1190,18 +1194,37 @@ export function App() {
   // it. Skipped while a local flash-then-cast is mid-flight (don't interrupt it).
   useEffect(() => {
     const opp: PlayerId | null = online ? enemyOf(online.myId) : twoPlayer ? null : "P2";
-    if (!opp) return;
+    if (!opp) { prevOppSeatRef.current = null; return; }
     const book = game.players[opp]?.spellbook ?? [];
     const nowUsed = new Set(book.filter((s) => s.used).map((s) => s.defId));
+    // RE-BASELINE INSTEAD OF FLASHING, in the three cases where a difference in
+    // this set is not somebody casting a spell. Same bug the trap flash above
+    // already carries a guard for, and the same cause: the finished game object
+    // SURVIVES INTO THE LOBBY, so a diff taken there is against last match.
+    //
+    //   · not in a match — the lobby, where nothing should flash at all. This
+    //     effect never had the `started` gate its two neighbours do.
+    //   · a fresh deal (mulligan) — nothing can have been cast yet.
+    //   · THE OPPONENT'S SEAT CHANGED, which is the one that actually bit.
+    //     Vs the AI the opponent is P2; as an online GUEST it is P1. Joining a
+    //     room flips `online` while `game` is still the last match, so the diff
+    //     switched to reading the seat the PLAYER had been sitting in — and
+    //     every spell they cast last game read as freshly used and flashed, in
+    //     the lobby, on top of the versus screen.
+    if (!started || game.phase === "mulligan" || prevOppSeatRef.current !== opp) {
+      prevOppSeatRef.current = opp;
+      prevOppUsedRef.current = nowUsed;
+      return;
+    }
     let fresh: string | null = null;
     for (const id of nowUsed) if (!prevOppUsedRef.current.has(id)) { fresh = id; break; }
-    prevOppUsedRef.current = nowUsed; // resets naturally to {} on a new match
+    prevOppUsedRef.current = nowUsed;
     if (fresh && castTimerRef.current === null) {
       setCastFlash({ spellId: fresh });
       if (oppFlashTimerRef.current !== null) window.clearTimeout(oppFlashTimerRef.current);
       oppFlashTimerRef.current = window.setTimeout(() => { oppFlashTimerRef.current = null; setCastFlash(null); }, 2000);
     }
-  }, [game, online, twoPlayer]);
+  }, [game, online, twoPlayer, started]);
 
   // Announce the OPPONENT's powerful creatures. Their summons resolve outside
   // confirmSummon (AI / remote), so we diff the board for a legendary+ instance
