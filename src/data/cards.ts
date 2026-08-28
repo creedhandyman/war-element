@@ -10581,6 +10581,23 @@ export const CARDS: CardDef[] = [
     passiveNames: {
       roundTick: "Pack Law", vsStatus: "Storm Teeth",
       onKill: "Raise the Pack", transformAtKills: "Stormform",
+      transformOnDefeat: "Last Howl",
+    },
+    // LAST HOWL: put it down before it has earned Stormform and it takes the
+    // form anyway — at 70% of that body, with a PARALYZE shockwave two squares
+    // out.
+    //
+    // It only exists on THIS form, which is the whole rule: kill it as
+    // Stormform and it stays dead. So the fight has two answers rather than
+    // one — starve it of kills and face a wolf that gets back up, or let it
+    // earn the form and kill the thing it became.
+    //
+    // The burst is timed where it hurts: the round you finally break it is the
+    // round your whole board is stacked around it.
+    transformOnDefeat: {
+      into: "boss_thunderfangs_2",
+      hpPct: 0.7,
+      burst: { status: "PARALYZE", duration: 2, reach: 2 },
     },
     // Raise the Pack: every kill puts another Spark Wind Wolf on the board. It
     // feeds the boss twice over — a body, and another point of Pack Law, which

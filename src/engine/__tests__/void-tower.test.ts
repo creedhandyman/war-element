@@ -772,6 +772,57 @@ describe("Thunderfangs, Stormform — the second form", () => {
     expect(seen[4], "and the storm on the fifth").toBe("boss_thunderfangs_2");
   });
 
+  it("LAST HOWL: killed before it earned Stormform, it takes the form anyway", () => {
+    // The whole shape of the fight: starve it of kills and you face a wolf that
+    // gets back up; let it earn the form and you have to kill what it became.
+    const s = bigPrepState();
+    const boss = place(s, "boss_thunderfangs", "P2", 1, 2, { curHp: 1, curShields: 0 });
+    const killer = place(s, "leaf_alpha", "P1", 2, 2);
+    basicAttack(s, killer.instanceId, boss.instanceId);
+    const now = s.cards[boss.instanceId];
+    expect(now, "it did not die").toBeTruthy();
+    expect(now.defId, "it rose as Stormform").toBe("boss_thunderfangs_2");
+    const pct = getDef("boss_thunderfangs").transformOnDefeat!.hpPct!;
+    expect(now.curHp, "at 70% of the new body").toBe(Math.round(getDef("boss_thunderfangs_2").hp * pct));
+    expect(now.maxHp, "with the new body's full ceiling").toBe(getDef("boss_thunderfangs_2").hp);
+  });
+
+  it("...and the rise PARALYZES what is standing over it", () => {
+    // Timed where it hurts: the round you finally break it is the round your
+    // whole board is stacked around it.
+    const s = bigPrepState();
+    const boss = place(s, "boss_thunderfangs", "P2", 1, 2, { curHp: 1, curShields: 0 });
+    const killer = place(s, "leaf_alpha", "P1", 2, 2);
+    const nearby = place(s, "leaf_stickviper", "P1", 2, 3);
+    const far = place(s, "leaf_stickviper", "P1", 4, 0);
+    basicAttack(s, killer.instanceId, boss.instanceId);
+    const b = getDef("boss_thunderfangs").transformOnDefeat!.burst!;
+    expect(statusOf(s.cards[killer.instanceId], b.status), "the one that swung").toBeTruthy();
+    expect(statusOf(s.cards[nearby.instanceId], b.status), "and everything beside it").toBeTruthy();
+    expect(statusOf(s.cards[far.instanceId], b.status), "but not the far side").toBeFalsy();
+    expect(statusOf(s.cards[killer.instanceId], b.status)!.duration).toBe(b.duration);
+  });
+
+  it("kill it AS Stormform and it stays dead", () => {
+    // Only the first form carries the rider, which is what makes the revive a
+    // one-time answer rather than an infinite one.
+    expect(getDef("boss_thunderfangs_2").transformOnDefeat, "no second life").toBeUndefined();
+    const s = bigPrepState();
+    const boss = place(s, "boss_thunderfangs_2", "P2", 1, 2, { curHp: 1, curShields: 0 });
+    const killer = place(s, "leaf_alpha", "P1", 2, 2);
+    basicAttack(s, killer.instanceId, boss.instanceId);
+    expect(s.cards[boss.instanceId], "down for good").toBeFalsy();
+  });
+
+  it("having ALREADY transformed, it does not get the revive either", () => {
+    // `transformAtKills` repoints defId to Stormform, and Stormform has no
+    // rider — so earning the form spends the second life rather than stacking
+    // with it. Asserted through the real transform, not by assuming it.
+    const { s, boss } = fiveKills();
+    expect(s.cards[boss.instanceId].defId).toBe("boss_thunderfangs_2");
+    expect(getDef(s.cards[boss.instanceId].defId).transformOnDefeat).toBeUndefined();
+  });
+
   it("takes the new form's body, +20% on every line", () => {
     const { s, boss } = fiveKills();
     const one = getDef("boss_thunderfangs"), two = getDef("boss_thunderfangs_2");

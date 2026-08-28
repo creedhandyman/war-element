@@ -1255,6 +1255,31 @@ one you had to buy is one you would never field); **one per fight**; enraged
 means **buffed stats**, not just a label; a use is spent on **entering**, win or
 lose (paying at settle would make it farmable by conceding at round one).
 
+**ENRAGE IS 1.5** (was 1.25) — half again on every line including the Special,
+since it runs through the same `statScale`. The Floor 3/4 numbers below were
+measured at 1.25 and are NOT re-measured for this; the enraged fight is a
+separate, harder version of each.
+
+**LAST HOWL (Thunderfangs).** `transformOnDefeat` gained `hpPct` and `burst`.
+Kill Thunderfangs before it has earned Stormform through kills and it takes the
+form ANYWAY — 70% of that body, plus PARALYZE 2 on everything within 2 squares,
+timed for the round your board is stacked around it. The rider lives only on the
+FIRST form, so killing it as Stormform is final and earning the form spends the
+second life rather than stacking with it; both are asserted.
+
+**CANCEL IS A ✕ IN THE BAR, not "Clear" in the ⋯ menu.** The action always
+existed — it was filed with Auto and Surrender as "something you do once or
+twice a match", which targeting disproved: arm an attack, change your mind, and
+the way out was two taps into a menu you had no reason to think held it, while
+the hints told you to press a button you could not see. It renders only when
+there is something to cancel, and it is 44x44 in portrait — the same target as
+the ⋯ that used to hide it. NOTE the desktop `.controls` is a stretch COLUMN, so
+it needs its own height or it collapses (it first shipped 38x16).
+
+**The mute button matches the ✕ it sits beside** — both 28x28. It was 30x30 at
+15px against 28x28 at 13px, and an emoji carries more visual weight than a glyph
+at the same size, so it read as the more important of the two.
+
 **FLOORS 3 AND 4 RE-TUNED FOR THE TAMED PLAYER (per-boss body/DMG/shield
 multipliers: Xilty/Hoarfell/Thunderfangs x1.6, Vulcanyx x1.2, Umbranova x1.4,
 Cryovex x1.35, Kazehaya x1.2, Kato x1.3 — the chain shells follow the first

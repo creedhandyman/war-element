@@ -551,6 +551,13 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.evasionEnemySideOnly)
     passives.push("Shadow Haunter: its EVASION is live only while it stands on the opponent's battlefield.");
+  if (def.transformOnDefeat) {
+    const t = def.transformOnDefeat;
+    named("transformOnDefeat",
+      `When it falls it does not die — it rises as ${getDef(t.into).name}`
+      + `${t.hpPct != null ? ` at ${Math.round(t.hpPct * 100)}% HP` : " at full strength"}`
+      + `${t.burst ? `, ${t.burst.status} every enemy within ${t.burst.reach} space(s) for ${t.burst.duration} round(s)` : ""}.`);
+  }
   if (def.summonCharge)
     named("summonCharge",
       `Wild Charge: on arrival it bolts straight up its column for the enemy home row, dealing ${def.summonCharge.dmg} DMG through shields to every opponent in the lane and running on past them. It stops at the board edge or at one of your own cards.`);

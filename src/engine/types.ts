@@ -643,7 +643,18 @@ export interface CardDef {
    *  tramples as a beast, dodges as a machine, and flies as neither. Every form
    *  carries `boss: true`, so the slay-to-win check does not fire until the last
    *  one is actually gone. */
-  transformOnDefeat?: { into: string };
+  transformOnDefeat?: {
+    into: string;
+    /** Fraction of the NEW form's printed HP to rise with. Omit for a fresh
+     *  shell (Kato's chain, where each body is a whole new fight). Thunderfangs
+     *  rises at 0.7: it is the same wolf getting back up, not a second boss. */
+    hpPct?: number;
+    /** A shockwave as it rises — this status on every enemy within `reach`.
+     *  The moment a boss comes back is the moment the player has just committed
+     *  everything to killing it, so it is also the moment their board is
+     *  closest and most exposed. */
+    burst?: { status: StatusKind; duration: number; reach: number };
+  };
   transformAtKills?: { kills: number; into: string };
   /** WORTH NOTHING TO KILL. Defeating this card fires NO on-kill rider on the
    *  killer and does not advance its `killCount`.

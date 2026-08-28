@@ -187,6 +187,15 @@ export function App() {
   );
   const [mullToss, setMullToss] = useState<string[]>([]);
   const [surrenderArmed, setSurrenderArmed] = useState(false);
+  /** Drop everything in flight: the selected card, a half-built battle action,
+   *  the targets armed for it, and a primed Surrender. One function so the bar's
+   *  ✕ and the overflow menu's "Clear" can never come to mean different things. */
+  const clearAction = () => {
+    setSel(null);
+    setPending(null);
+    setPicks([]);
+    setSurrenderArmed(false);
+  };
   /** The action bar's overflow menu. Shut by default — the bar is one row. */
   const [barMenu, setBarMenu] = useState(false);
   // Shut it when the phase moves on. Mid-battle CSS hides the whole block, the
@@ -1750,7 +1759,7 @@ export function App() {
       // where the decision is.
       if (pending === "talent") {
         if (clicked) setDetailId(clicked.instanceId);
-        else setHint("This Talent takes no target — press <b>Confirm</b> to use it, or <b>Clear</b>.");
+        else setHint("This Talent takes no target — press <b>Confirm</b> to use it, or <b>✕</b> to cancel.");
         return;
       }
       if (clicked && legalTargetIds.includes(clicked.instanceId)) {
@@ -2019,7 +2028,7 @@ export function App() {
     // (choosing allies to assist / enemies to hit). Keep the selection and say
     // how to switch on purpose.
     if (pending === "special" && picks.length > 0) {
-      setHint("⚠ Special targets are still armed — press <b>Clear</b> first to switch to a basic attack.");
+      setHint("⚠ Special targets are still armed — press <b>✕</b> first to switch to a basic attack.");
       return;
     }
     if (pending === "basic") {
@@ -2045,7 +2054,7 @@ export function App() {
     const spec = activeDef.special;
     // Symmetric to Attack: don't let a stray tap wipe basic-attack targets.
     if (pending === "basic" && picks.length > 0) {
-      setHint("⚠ Basic-attack targets are still armed — press <b>Clear</b> first to switch to the Special.");
+      setHint("⚠ Basic-attack targets are still armed — press <b>✕</b> first to switch to the Special.");
       return;
     }
     if (pending === "special") {
@@ -2090,7 +2099,7 @@ export function App() {
       return;
     }
     if (pending !== null && picks.length > 0) {
-      setHint("⚠ Targets are still armed — press <b>Clear</b> first to switch to the Talent.");
+      setHint("⚠ Targets are still armed — press <b>✕</b> first to switch to the Talent.");
       return;
     }
     setPending("talent");
@@ -2500,6 +2509,27 @@ export function App() {
                 </>
               )}
             </button>
+            {/* CANCEL, in the bar and not behind a menu.
+                This action existed the whole time — as "Clear", inside the ⋯
+                overflow, next to Auto and Surrender, on the reasoning that it
+                is "something you do once or twice a match". Targeting proved
+                that wrong: arm an attack, change your mind, and the way out was
+                two taps into a menu you had no reason to think held it. Nothing
+                on screen said so, and the hints that named it were telling you
+                to press a button you could not see.
+                
+                Only rendered when there IS something to cancel, so the bar is
+                unchanged the rest of the time. */}
+            {(sel !== null || pending !== null || picks.length > 0 || surrenderArmed) && (
+              <button
+                className="ctl-cancel"
+                aria-label="Cancel"
+                title="Cancel — drop the selection and any armed targets"
+                onClick={clearAction}
+              >
+                ✕
+              </button>
+            )}
             {/* Everything that is not the committing action, behind one button.
                 Auto / Clear / Surrender are things you do once or twice a match,
                 and as a second full-width row they cost 34px of every screen for
@@ -2538,16 +2568,7 @@ export function App() {
                 <option value="basic">All Auto-Basic</option>
                 <option value="full">All Full-Auto</option>
               </select>
-              <button
-                className="ghost sm"
-                onClick={() => {
-                  setSel(null);
-                  setPending(null);
-                  setPicks([]);
-                  setSurrenderArmed(false);
-                  setBarMenu(false);
-                }}
-              >
+              <button className="ghost sm" onClick={() => { clearAction(); setBarMenu(false); }}>
                 Clear
               </button>
               {game.win === null && me !== null && (
@@ -2561,7 +2582,7 @@ export function App() {
                       setBarMenu(false);
                     } else {
                       setSurrenderArmed(true);
-                      setHint("⚠ Surrender? Click again to confirm, or Clear to cancel.");
+                      setHint("⚠ Surrender? Click again to confirm, or ✕ to cancel.");
                     }
                   }}
                 >

@@ -353,12 +353,16 @@ export function defeatCard(
   // BACK to what it really was, this one carries a chain FORWARD — and a card
   // that did both would bounce between forms instead of advancing. It never sets
   // `transformedFrom`, which is what keeps them apart.
-  const rises = getDef(card.defId).transformOnDefeat?.into;
-  if (rises && card.pos) {
+  const rise = getDef(card.defId).transformOnDefeat;
+  const rises = rise?.into;
+  if (rise && rises && card.pos) {
     const nd = getDef(rises);
     card.defId = rises;
+    // A fresh shell by default (Kato's chain: each body is a whole new fight).
+    // `hpPct` is for a boss that GETS BACK UP rather than becoming something
+    // else — same creature, hurt, and angrier.
     card.maxHp = nd.hp;
-    card.curHp = nd.hp;
+    card.curHp = rise.hpPct != null ? Math.max(1, Math.round(nd.hp * rise.hpPct)) : nd.hp;
     card.curShields = nd.shields;
     card.dmgBonus = 0;
     card.spBonus = 0;
@@ -367,6 +371,20 @@ export function defeatCard(
     card.statuses = [];
     card.killCount = 0;
     draft.log.push(`The ${cause} breaks the shell — ${nd.name} rises from the wreck!`);
+    // THE SHOCKWAVE. Fired after the new form is on the board so its element is
+    // the one that lands the status. The player has just committed everything
+    // to putting this thing down, so their board is as close and as exposed as
+    // it will ever be — which is exactly why the rise is worth answering.
+    const burst = rise.burst;
+    if (burst) {
+      const caught = boardCards(draft, enemyOf(card.owner)).filter(
+        (e) => e.curHp > 0 && e.pos
+          && Math.max(Math.abs(e.pos.row - card.pos!.row), Math.abs(e.pos.col - card.pos!.col)) <= burst.reach,
+      );
+      for (const e of caught) applyStatus(draft, e, burst.status, burst.duration, 0, nd.element);
+      if (caught.length)
+        draft.log.push(`${nd.name} lands — ${caught.length} opponent(s) ${burst.status} for ${burst.duration}.`);
+    }
     return false;
   }
   // Sea Terror (Siren): a transformed form doesn't die — it reverts to the

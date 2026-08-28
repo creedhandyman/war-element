@@ -502,8 +502,13 @@ export const TAME_USES = 3;
 
 /** What ENRAGED does. The taming trial has to be harder than the fight you
  *  already won, or "enraged" is a label rather than a state. Applied through
- *  the same `statScale` the taming uses, pointed the other way. */
-export const ENRAGE_SCALE = 1.25;
+ *  the same `statScale` the taming uses, pointed the other way — so the Special
+ *  scales with it, not just the body.
+ *
+ *  1.25 -> 1.5 at the owner's call. Half again on every line is a genuinely
+ *  different fight rather than a nudge, which is the point: the enraged version
+ *  is the price of the loaner. */
+export const ENRAGE_SCALE = 1.5;
 
 /** A boss is ENRAGED once its floor is cleared.
  *

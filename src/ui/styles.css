@@ -265,12 +265,37 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      collection — and there IS a menu track playing on all of them, so muting
      was possible only once a match had started. */
   position: fixed; top: 6px; left: 6px; z-index: var(--z-nav);
-  width: 30px; height: 30px; padding: 0; border-radius: 8px; cursor: pointer;
+  /* 28x28 to match `.panel-close`, the ✕ it sits beside. It was 30x30 at 15px
+     against that button's 28x28 at 13px, and the emoji carries more visual
+     weight than a glyph at the same size — so the mute read as the bigger, more
+     important control of the two, which it is not. 12px on the emoji lands the
+     two optically level. */
+  width: 28px; height: 28px; padding: 0; border-radius: 8px; cursor: pointer;
   background: rgba(10, 12, 22, 0.7); border: 1px solid rgba(120, 150, 220, 0.35);
-  font-size: 15px; line-height: 1; display: grid; place-items: center;
+  font-size: 12px; line-height: 1; display: grid; place-items: center;
   backdrop-filter: blur(4px); opacity: 0.7; transition: opacity 0.12s;
 }
 .music-toggle:hover { opacity: 1; }
+
+/* CANCEL, in the control bar. Sized and shaped like `.ctl-more` beside it —
+   they are the same class of thing, small persistent controls flanking the one
+   big committing action — but tinted toward the threat colour, because this is
+   the button that undoes rather than opens. */
+.ctl-cancel {
+  /* Desktop `.controls` is a stretch COLUMN, so this needs its own height or it
+     collapses to the glyph — it first rendered 38x16, a third of the 44px tap
+     target beside it. Portrait re-places it in the grid below. */
+  display: grid; place-items: center; height: 34px; flex: none; padding: 0;
+  border-radius: 10px; cursor: pointer; font-size: 14px; line-height: 1;
+  color: var(--threat);
+  background: rgba(24, 14, 12, 0.9);
+  border: 1px solid color-mix(in srgb, var(--threat) 45%, transparent);
+  transition: background 0.12s, border-color 0.12s;
+}
+.ctl-cancel:hover {
+  background: rgba(40, 18, 14, 0.95);
+  border-color: var(--threat);
+}
 
 /* Floating hand — sits over the bottom edge of the board, not inside the bar, so
    the bar stays thin. Pops up on your turn, tucks low (collapsed) otherwise. */
@@ -2853,9 +2878,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      or twice in a match — and charged 34px of every screen for the whole game.
      On a phone that 34px is board. They live behind the ⋯ now, which is the
      design's own answer and the same shape the top strip already uses. */
-  .controls { grid-template-columns: auto 1fr auto; }
+  .controls { grid-template-columns: auto 1fr auto auto; }
+  /* Beside the ⋯ and the SAME SIZE as it — this is a thumb target on a phone,
+     and the whole reason it exists is that cancelling was previously two taps
+     into a menu. A smaller button than the one that hid it would be a poor
+     trade. Only rendered when there is something to cancel, so the row is
+     three columns wide the rest of the time and nothing shifts. */
+  .ctl-cancel {
+    grid-row: 2; grid-column: 3; width: 44px; height: 44px; font-size: 15px;
+  }
   .ctl-more {
-    grid-row: 2; grid-column: 3; display: grid; place-items: center;
+    grid-column: 4;
+    grid-row: 2; display: grid; place-items: center;
     width: 44px; height: 44px; flex: none; cursor: pointer;
     border-radius: 10px; border: 1px solid rgba(233, 226, 210, .2);
     background: rgba(6, 7, 12, .6); color: var(--ink-dim);
