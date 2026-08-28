@@ -1308,6 +1308,56 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 /* Collapsed hand — a compact pile of art thumbnails when you can't act. Hovering
    a card peeks it (scales up + shows its plate) without growing the bar. */
+/* ── FLAT AND FITTED — landscape and desktop ────────────────────────────────
+   The fan is a PORTRAIT affordance. Overlapping by 19px a side and rotating
+   each card buys horizontal room on a phone, and pays for it in readability:
+   every card but one is half-covered and sitting at an angle. With width to
+   spare there is nothing to buy, so the hand lies flat and spreads out.
+
+   Only the LIVE hand. `.hand.collapsed` is the between-turns peek strip, where
+   the tight overlap is the point — it is meant to be a sliver, not a hand.
+
+   The rotation is cancelled by zeroing the CUSTOM PROPERTIES rather than by
+   setting `transform: none`, so the `:hover` transform below still composes
+   normally instead of fighting a null. */
+@media (min-width: 721px), (orientation: landscape) {
+  .hand:not(.collapsed) .hand-fan {
+    padding-top: 8px;            /* the fan's 30px was headroom for the dip */
+    gap: clamp(3px, 0.5vw, 10px);
+    /* SAFE centre: plain `center` centres an overflowing row by pushing its
+       first card off the left edge, where it cannot be scrolled back to. */
+    justify-content: safe center;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .hand:not(.collapsed) .hand-fan::-webkit-scrollbar { display: none; }
+  .hand:not(.collapsed) .hand-fan .hcard {
+    /* `!important` because Hand.tsx sets --rot and --ty as INLINE styles, one
+       pair per card, and an inline custom property beats any stylesheet rule
+       however specific. Without it this block applied its padding and gap and
+       left every card still rotated, which is most of the way to looking
+       broken. The alternative is teaching the component about the breakpoint,
+       and a fan angle is a presentation detail — it belongs here. */
+    --rot: 0deg !important;
+    --ty: 0px !important;
+    margin: 0;
+    /* Full card as the basis, free to shrink: a big hand narrows the cards
+       rather than overflowing the row or clipping the last one. */
+    flex: 0 1 112px;
+    /* A FLOOR, not zero. Left free to shrink, a five-card hand in a 290px rail
+       (a 740px landscape phone) went to 55px a card and the NAME started
+       overflowing its own tile — fitted is worth nothing if the card stops
+       being readable. Past this the row scrolls instead. */
+    min-width: 86px;
+    /* 135% belonged to the fan, which swung cards about a point below the
+       hand. Flat, hover should lift from where the card actually sits. */
+    transform-origin: 50% 100%;
+  }
+  .hand:not(.collapsed) .hand-fan .hcard:hover {
+    transform: translateY(-20px) scale(1.07);
+  }
+}
+
 .hand.collapsed .hand-fan { padding-top: 4px; }
 .hand.collapsed .hcard { height: 44px; margin: 0 -33px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); }
 .hand.collapsed .hc-plate { display: none; }
