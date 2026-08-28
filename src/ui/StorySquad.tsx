@@ -19,7 +19,7 @@ import { useMemo, useState } from "react";
 import type { CardClass, Keyword } from "../engine";
 import {
   CostRow, FilterToggle, KeywordRow, RarityRow,
-  matchesCost, useFilterFold, type CostFilter, type RarityFilter,
+  cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter,
 } from "./filters";
 import { getDef } from "../data/cards";
 import {
@@ -131,7 +131,7 @@ export function StorySquad(props: {
     const d = getDef(id);
     return (fEl === "ALL" || d.element === fEl)
       && (fCls === "ALL" || d.cardClass === fCls)
-      && (kw === "ALL" || !!d.keywords[kw])
+      && (kw === "ALL" || cardHasKeyword(d, kw))
       && (rar === "ALL" || d.rarity === rar)
       && matchesCost(d.cost, cost);
   });

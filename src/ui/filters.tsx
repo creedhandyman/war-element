@@ -14,7 +14,8 @@
  *  genuinely share, each holding its own value and nothing else.
  */
 import { useState } from "react";
-import type { CardClass, Element, Keyword } from "../engine";
+import type { CardClass, CardDef, Element, Keyword } from "../engine";
+import { describePassives } from "./card-text";
 import { EL_COLOR, EL_ICON, ELEMENTS, KEYWORD_STYLE, KEYWORDS, RARITY_STYLE } from "./shared";
 
 /** Folded state, shared across all three grids under one key: it is a
@@ -122,6 +123,37 @@ function Row<T extends string>(props: {
 }
 
 // ── keyword ────────────────────────────────────────────────────────────────
+/** Does this card have anything to do with `kw`?
+ *
+ *  The PRINTED keyword is only half of it. A card that grants FLYING from its
+ *  Special, or hands out BLOCK through a passive, is exactly what somebody
+ *  filtering for FLYING or BLOCK is looking for — and `keywords[kw]` says no,
+ *  because the pip is not on the frame. So the card's own rules text counts
+ *  too: the Special's text and everything `describePassives` renders, which is
+ *  the same text the card view shows you.
+ *
+ *  Word-boundaried, so REGEN does not match "REGENERATE" in some future line and
+ *  PEN does not match the middle of a word. Cast wide on purpose: a card that
+ *  says "ignores BLOCK" comes back for BLOCK, and that is a card a player asking
+ *  about BLOCK wants to see.
+ *
+ *  Memoised because the filter rows ask this ~11 times per card per keystroke:
+ *  describePassives builds strings, and 320 cards times eleven pills is real
+ *  work to redo on every render. */
+const KW_CACHE = new Map<string, boolean>();
+export function cardHasKeyword(def: CardDef, kw: Keyword): boolean {
+  if (def.keywords[kw]) return true;
+  const key = `${def.id}|${kw}`;
+  const hit = KW_CACHE.get(key);
+  if (hit !== undefined) return hit;
+  const text = [def.special?.text ?? "", ...describePassives(def)].join(" ");
+  // Concatenated, not a template literal: inside a template `\b` is the
+  // BACKSPACE escape rather than a word boundary, so the first cut of this
+  // matched nothing and the whole widening was a silent no-op.
+  const found = new RegExp("\\b" + kw + "\\b").test(text.toUpperCase());
+  KW_CACHE.set(key, found);
+  return found;
+}
 export function KeywordRow(props: {
   value: Keyword | "ALL";
   onChange: (v: Keyword | "ALL") => void;

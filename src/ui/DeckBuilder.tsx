@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CardClass, Element, Keyword } from "../engine";
-import { getDef, SPELLS } from "../engine";
+import { getDef, SPELLS, spellCopyCap } from "../engine";
 import {
   buildableCards,
   deckLimits,
@@ -13,7 +13,7 @@ import { deckLinkFor, decodeDeck, encodeDeck } from "../data/deck-code";
 import { EL_COLOR, EL_ICON, RARITY_STYLE, spellArtSrc } from "./shared";
 import {
   ClassRow, CostRow, ElementRow, FilterToggle, KeywordRow, RarityRow,
-  matchesCost, useFilterFold, type CostFilter, type RarityFilter,
+  cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter,
 } from "./filters";
 import { CardView } from "./CardView";
 import { DeckStats, useComposition } from "./DeckStats";
@@ -167,7 +167,7 @@ export function DeckBuilder(props: {
       (c) =>
         (filter === "ALL" || c.element === filter) &&
         (classFilter === "ALL" || c.cardClass === classFilter) &&
-        (kw === "ALL" || !!c.keywords[kw]) &&
+        (kw === "ALL" || cardHasKeyword(c, kw)) &&
         (rar === "ALL" || c.rarity === rar) &&
         matchesCost(c.cost, cost) &&
         (q === "" || c.name.toLowerCase().includes(q)),
@@ -203,7 +203,7 @@ export function DeckBuilder(props: {
       pred(c)
       && (skip === "el" || filter === "ALL" || c.element === filter)
       && (skip === "cls" || classFilter === "ALL" || c.cardClass === classFilter)
-      && (skip === "kw" || kw === "ALL" || !!c.keywords[kw])
+      && (skip === "kw" || kw === "ALL" || cardHasKeyword(c, kw))
       && (skip === "rar" || rar === "ALL" || c.rarity === rar)
       && (skip === "cost" || matchesCost(c.cost, cost))).length;
   const pickedSet = new Set(picked);
@@ -384,10 +384,21 @@ export function DeckBuilder(props: {
   function toggle(id: string) {
     setPicked((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= limits.max ? cur : [...cur, id]));
   }
-  // A deck's spellbook: up to limits.spells (5 standard / 8 large), each castable
-  // once in a match.
+  // A deck's spellbook: up to limits.spells (5 standard / 8 large), each SLOT
+  // castable once in a match — so two copies of a spell really are two casts.
+  //
+  // CYCLES rather than toggles, because a toggle cannot express a count. Tap
+  // adds a copy; tapping past the spell's own cap clears it back to none. That
+  // keeps one control per spell (the grid is already dense on a phone) and
+  // makes "how do I remove this" the same gesture as "how do I add another",
+  // which is the thing a +/- pair would have cost two targets to say.
   function toggleSpell(id: string) {
-    setPickedSpells((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= limits.spells ? cur : [...cur, id]));
+    setPickedSpells((cur) => {
+      const have = cur.filter((x) => x === id).length;
+      if (have > 0 && (have >= spellCopyCap(id) || cur.length >= limits.spells))
+        return cur.filter((x) => x !== id); // at its ceiling — next tap clears
+      return [...cur, id];
+    });
   }
   function reset() {
     setEditingId(null);
@@ -491,12 +502,17 @@ export function DeckBuilder(props: {
                   ? "No spells unlocked for these elements yet — clear nodes in their regions to earn them."
                   : pickedSpells.length === 0
                   ? "None picked — auto-filled from your deck's elements at match start."
-                  : "Tap a spell to add or remove it."}
+                  : "Tap to add. Cheap spells stack — tap again for a second copy, and past its limit to clear it."}
               </div>
               {deckSpells.length > 0 && (
               <div className="db-spell-grid">
                 {deckSpells.map((s) => {
-                  const on = pickedSpells.includes(s.id);
+                  const copies = pickedSpells.filter((x) => x === s.id).length;
+                  const on = copies > 0;
+                  const capped = copies >= spellCopyCap(s.id);
+                  // Only truly unusable when it is not IN the book — a picked
+                  // spell must stay tappable, because tapping is now also how
+                  // you take it back out.
                   const full = !on && pickedSpells.length >= limits.spells;
                   return (
                     /* WHAT IT DOES, on the tile.
@@ -513,7 +529,14 @@ export function DeckBuilder(props: {
                       className={`db-spell ${on ? "on" : ""}`}
                       data-el={s.element}
                       disabled={full}
-                      title={full ? `Book is full — remove one first` : undefined}
+                      title={
+                        full ? "Book is full — remove one first"
+                          : `${s.name} · cost ${s.cost} — ${
+                              spellCopyCap(s.id) === Infinity
+                                ? "as many copies as the book holds"
+                                : `up to ${spellCopyCap(s.id)} cop${spellCopyCap(s.id) === 1 ? "y" : "ies"}`
+                            }${copies ? ` · you have ${copies}${capped ? " (its limit — tap to clear)" : ""}` : ""}`
+                      }
                       onClick={() => toggleSpell(s.id)}
                     >
                       <span className="db-spell-art">
@@ -529,7 +552,13 @@ export function DeckBuilder(props: {
                         </span>
                         <span className="db-spell-text">{s.text}</span>
                       </span>
-                      <span className="db-spell-mark">{on ? "✓" : "+"}</span>
+                      {/* THE CORNER SAYS HOW MANY, not just whether. A second
+                          copy that looked identical to the first is a book the
+                          player cannot read back — and the count is what tells
+                          them the next tap adds one more or clears the lot. */}
+                      <span className={`db-spell-mark ${copies > 1 ? "many" : ""}`}>
+                        {copies > 1 ? `×${copies}` : on ? "✓" : "+"}
+                      </span>
                     </button>
                   );
                 })}
@@ -866,7 +895,7 @@ export function DeckBuilder(props: {
               onChange={setClassFilter}
               countFor={(c) => countIf((d) => d.cardClass === c, "cls")}
             />
-            <KeywordRow value={kw} onChange={setKw} countFor={(k) => countIf((d) => !!d.keywords[k], "kw")} />
+            <KeywordRow value={kw} onChange={setKw} countFor={(k) => countIf((d) => cardHasKeyword(d, k), "kw")} />
             <RarityRow value={rar} onChange={setRar} countFor={(r) => countIf((d) => d.rarity === r, "rar")} />
             <CostRow value={cost} onChange={setCost} countFor={(c) => countIf((d) => matchesCost(d.cost, c), "cost")} />
             <div className="db-sort">

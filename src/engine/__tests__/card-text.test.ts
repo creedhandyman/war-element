@@ -8,6 +8,7 @@ import { CARDS, TOKENS } from "../../data/cards";
 import { SPELLS } from "../spells";
 import { describePassives } from "../../ui/card-text";
 import { KEYWORDS, KEYWORD_STYLE } from "../../ui/shared";
+import { cardHasKeyword } from "../../ui/filters";
 import { buildableCards } from "../../data/custom-decks";
 import { hasArcDischarge } from "../auras";
 
@@ -352,6 +353,24 @@ describe("the keyword filter rows", () => {
       expect(KEYWORD_STYLE[k].glyph, `${k} glyph`).toBeTruthy();
       expect(KEYWORD_STYLE[k].color, `${k} colour`).toBeTruthy();
     }
+  });
+
+  it("reaches into the special and the passives, not just the printed pip", () => {
+    // The point of the widening: a card that GRANTS a keyword from its Special
+    // or hands one out through a passive is exactly what somebody filtering for
+    // that keyword wants, and `keywords[kw]` says no because the pip is not on
+    // the frame. Asserted as "strictly more than the printed count" per keyword
+    // rather than against a hand-listed card, so it cannot rot when a card is
+    // retuned - and at least one keyword must actually gain, or the widening
+    // silently does nothing.
+    let gained = 0;
+    for (const k of KEYWORDS) {
+      const printed = buildableCards().filter((d) => !!d.keywords[k]).length;
+      const widened = buildableCards().filter((d) => cardHasKeyword(d, k)).length;
+      expect(widened, `${k} lost cards`).toBeGreaterThanOrEqual(printed);
+      if (widened > printed) gained++;
+    }
+    expect(gained, "no keyword gained a card from its text").toBeGreaterThan(0);
   });
 
   it("offers no keyword that no card carries", () => {

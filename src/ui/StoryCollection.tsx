@@ -22,7 +22,7 @@ import {
 import { EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
 import {
   ClassRow, CostRow, FilterToggle, KeywordRow, RarityRow,
-  matchesCost, useFilterFold, type CostFilter, type RarityFilter,
+  cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter,
 } from "./filters";
 import { SpIcon } from "./icons";
 import { CardView } from "./CardView";
@@ -104,7 +104,7 @@ export function StoryCollection(props: {
     const list = CARDS.filter((d) => !d.boss).filter((d) => {
       if (el !== "ALL" && d.element !== el) return false;
       if (cls !== "ALL" && d.cardClass !== cls) return false;
-      if (kw !== "ALL" && !d.keywords[kw]) return false;
+      if (kw !== "ALL" && !cardHasKeyword(d, kw)) return false;
       if (rar !== "ALL" && d.rarity !== rar) return false;
       if (!matchesCost(d.cost, cost)) return false;
       if (scope === "owned") return owned.has(d.id);
