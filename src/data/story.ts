@@ -1001,75 +1001,75 @@ const DAWN: StoryRegion = {
     { id: "W1", name: "The Arctic Veil", kind: "skirmish", at: { x: 49, y: 78 },
       requires: [], roster: ["dawn_able", "dawn_beam", "dawn_flash"], adds: [],
       note: "The guarded way, and the only road in. Everything past the wall has been unseen all campaign.",
-      lore: "Sailors who have tried to chart the Veil all report the same thing: the storm does not end because you outlast it. It ends because it decides you may pass."
+      lore: "Sailors who have tried to chart the Veil report the same thing: the storm does not end because you outlast it, it ends because it decides you may pass. Vigil keeps the gate on this side."
     },
     { id: "W2", name: "First Light Camp", kind: "skirmish", tribe: "Suns", at: { x: 36, y: 72 },
       requires: ["W1"], roster: ["dawn_roy", "dawn_sparkle", "dawn_glime"], adds: [],
-      lore: "Whoever the Veil lets through is fed and warmed here before being asked a single question. The order is deliberate: no one lies well an hour after surviving that storm."
+      lore: "Whoever the Veil lets through is fed and warmed before being asked a single question. The order is deliberate, and the Outrider who brings them in asks nothing at all on the way."
      },
     { id: "W3", name: "Mirrorfield", kind: "skirmish", tribe: "Stars", at: { x: 27, y: 62 },
       requires: ["W2"], roster: ["dawn_reflection", "dawn_shine", "dawn_sphere"], adds: [],
-      lore: "Mirror banks angled at the low sun. They put DAWN's light on ground the sun itself cannot reach, and the polishers will never see the wall they keep lit."
+      lore: "Mirror banks angled at the low sun, putting DAWN's light on ground the sun cannot reach. The polishers will never see the wall they keep lit, and Reflection is how the light gets there."
      },
     { id: "W4", name: "Golden Farmlands", kind: "skirmish", tribe: "Suns", at: { x: 16, y: 58 },
       requires: ["W3"],
       roster: ["dawn_stbern", "dawn_goldeneagle", "dawn_musk_ox", "dawn_oxin"], adds: [],
       note: "Royal gardens, green in the snow — and the herd that works them.",
-      lore: "Fertile soil nurtured by sunlight and care. Even a kingdom built around a wall against the dark still has to eat."
+      lore: "Fertile soil nurtured by sunlight and care: a kingdom built around a wall against the dark still has to eat, and the Musk Ox works the rows without ever being told twice."
     },
     { id: "W5", name: "Sunrise Muster", kind: "warden", tribe: "Suns", at: { x: 44, y: 64 },
       requires: ["W2"], roster: ["dawn_amble", "dawn_halo", "dawn_star", "dawn_ty"], adds: [],
       note: "Sun and star answer the same roll call — DAWN keeps no separate list.",
-      lore: "The names are called here at sunrise, and the fallen are read out with the living. Someone in the line answers for each. DAWN keeps no separate list."
+      lore: "The names are called at sunrise and the fallen are read out with the living, and someone in the line answers for each of them. Halo has answered for more than one."
      },
     { id: "W6", name: "The Blazing Road", kind: "warden", tribe: "Suns", at: { x: 58, y: 70 },
       requires: ["W5"], roster: ["dawn_golde", "dawn_radiance", "dawn_drakonbane", "dawn_lazor"], adds: [],
       note: "The knights' road north, never in shadow — and never unguarded.",
-      lore: "Not the shortest road north — the only one never in shadow. DAWN would rather add a day's march than hand the dark a stretch of road."
+      lore: "Not the shortest road north — the only one never in shadow. DAWN would rather add a day's march than hand the dark a stretch of road, and Drakonbane rides the whole of it."
      },
     { id: "W7", name: "The Solar Bastion", kind: "warden", tribe: "Suns", at: { x: 26, y: 38 },
       requires: ["W4"],
       roster: ["dawn_solara", "dawn_solstice", "dawn_veil", "dawn_warphant"],
       adds: ["dawn_radiant_guardian"],
       note: "The wall that shines. We hold the wall; nothing passes.",
-      lore: "The Golden Kingdom does not hide because it is proud. It hides because it is standing in front of something, and it has never been fully certain what happens if it stops."
+      lore: "The Golden Kingdom does not hide because it is proud. It hides because it is standing in front of something, and Solara has held this wall a long time without being certain what happens if it stops."
     },
     { id: "W8", name: "High Noon", kind: "warden", tribe: "Stars", at: { x: 68, y: 47 },
       requires: ["W6"],
       roster: ["dawn_clipsey", "dawn_sircrest", "dawn_ariel", "dawn_raya", "dawn_lassos"], adds: [],
       note: "Noon, and the sky darkens anyway. The Stars take the sun's own hour.",
-      lore: "Every clock and boundary stone in the Kingdom is reckoned from the moment the sun crosses this ground. No king set the mark: generations of surveyors argued their way to it."
+      lore: "Every clock and boundary stone in the Kingdom is reckoned from the moment the sun crosses this ground. No king set the mark — surveyors argued their way to it, and Zenith holds it now."
      },
     { id: "W9", name: "Castle Grounds", kind: "landmark", tribe: "Stars", at: { x: 50, y: 57 },
       requires: ["W5", "W7"],
       roster: ["dawn_aurora", "dawn_heir_tok", "dawn_kosmos", "dawn_aurelion"],
       adds: ["dawn_radiant_guardian"],
       note: "Outer wards, tilt-yards and gatehouses. Heir is a Legendary despite the token-shaped id — it is fully draftable.",
-      lore: "An heir is named in these yards, not in the Court above them, so that whoever is standing watch that morning is a witness. DAWN does not crown anyone in private."
+      lore: "An heir is named in these yards rather than in the Court above them, so whoever stands watch that morning is a witness. DAWN crowns nobody in private, and Reveille sounds the hour."
      },
     { id: "W10", name: "The Golden Court", kind: "landmark", tribe: "Suns", at: { x: 50, y: 41 },
       requires: ["W8", "W9"], roster: ["dawn_commander", "dawn_leo", "dawn_dawn"],
       adds: ["dawn_radiant_guardian"] ,
-      lore: "DAWN's nobility is a chess hierarchy every child learns before they learn to read: King, Queen, Bishop, Rook, Knight — and Pawn, which is most of DAWN."
+      lore: "DAWN's nobility is a chess hierarchy every child learns before reading: King, Queen, Bishop, Rook, Knight — and Pawn, which is most of DAWN. Leo stands where the board says to stand."
     },
     // Two optional Thrones, both seats the painting names outright.
     { id: "W11", name: "Sun's Army Fronts", kind: "throne", at: { x: 72, y: 70 },
       requires: ["W6"], roster: ["dawn_equestrian"],
       adds: ["dawn_warrider_tok", "dawn_stbern", "dawn_golde"],
       note: "Guardians of Dawn, watching over the wilds. Optional — the Equestrian seat.",
-      lore: "Knights of the Sun, who march without fear and consider retreat a kind of lie. They fight in daylight, by choice. Light that hides has already lost."
+      lore: "Knights of the Sun, who march without fear and consider retreat a kind of lie. They fight in daylight by choice, and the Equestrian has never asked anyone for a second reason."
     },
     { id: "W12", name: "Stars Army Flakes", kind: "throne", at: { x: 88, y: 43 },
       requires: ["W8"], roster: ["dawn_supernova"],
       adds: ["dawn_sparkle", "dawn_glime", "dawn_lazor"],
       note: "Silver pavilions where the lights touch down. Optional — the Supernova seat, and the star that fell is still burning in the Sundered Sky above it.",
-      lore: "Named for the way starlight and snowfall look the same from far enough away. The Flakes keep their oldest devotions where the frozen lands can hear them. The sun sleeps; they do not."
+      lore: "Named for the way starlight and snowfall look the same from far enough away. The Flakes keep their oldest devotions where the frozen lands can hear them; the sun sleeps and Supernova does not."
     },
     { id: "W13", name: "Dawn Castle", kind: "throne", at: { x: 50, y: 22 },
       requires: ["W10"], roster: ["dawn_imperator"],
       adds: ["dawn_warrider_tok", "dawn_radiant_guardian", "dawn_amble"], required: true,
       note: "The Golden Seat, throne of the kingdom. Required — the end of the road.",
-      lore: "The Golden King's title is not simply \"ruler.\" It is keeper of the Eternal Vigil, an unbroken watch DAWN's records insist has never once been allowed to fail."
+      lore: "The Golden King's title is not ruler but keeper of the Eternal Vigil, a watch the records insist has never once failed. Imperator holds the Golden Seat and does not discuss the alternative."
     },
   ],
 };
