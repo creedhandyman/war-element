@@ -1276,14 +1276,24 @@ are where the fliers live: against the GALE core Kazehaya went 42 -> 83 bare and
 Thunderfangs 67 -> 92. Kazehaya gains most because its whole kit is hauling
 things into its sword and fliers were simply exempt from it.
 
-**THE LEAF BARK CHANGE COST KAZEHAYA 35 POINTS — isolated, not guessed.** Its
-ally case read 34.4 before this batch and 11.5 after, which anti-air (+5) came
-nowhere near explaining. Re-running with ONLY the old `printed + 3` ceiling
-restored put it back to 46.9 while every other boss moved 0-2. Kazehaya is the
-tower's most LEAF-dependent fight — a LEAF boss printing 14 shields, fielding
-Warden (4) and two Sakuroot (4) — so a flat cap of 3 hits it and nothing else.
-It is now the softest fight on Floor 4 by 20 points. Re-tune it or accept it,
-but do not re-measure it and conclude anti-air did that.
+**THE LEAF BARK CHANGE COST KAZEHAYA 35 POINTS — isolated, not guessed, then
+FIXED ON ITS OWN CARD.** Its ally case read 34.4 before that batch and 11.5
+after, which anti-air (+5) came nowhere near explaining. Re-running with ONLY
+the old `printed + 3` ceiling restored put it back to 46.9 while every other
+boss moved 0-2. Kazehaya is the tower's most LEAF-dependent fight — a LEAF boss
+printing 14 shields, fielding Warden (4) and two Sakuroot (4) — so a flat cap of
+3 lands on it and essentially nothing else.
+
+Repaired with **HEARTWOOD** (`shieldPerHitTaken`, 1 per blow, ceiling 9) rather
+than by reverting the element rule: the rule was right and this card depended on
+it. Ceiling 9 not 14, because a FULL rebuild over-corrects — the curve is steep
+at the top and worth keeping:
+
+    none 11.5 · cap 4 19.8 · cap 6 26.0 · cap 8 36.5 · **cap 9 45.8** · cap 10 49.0 · cap 14 62.5
+
+Kazehaya now reads **45.8% with an ally** (Umbranova 32.3, Cryovex 44.8, Kato
+51.0) and 96.9% bare. GENERAL LESSON: an element-wide rule change can land almost
+entirely on one card. Check the element's own boss before shipping one.
 
 **EVERY BOSS ANSWERS FLYING (`antiAir`), and the audit method is the lesson.**
 FLYING is immunity to melee and the tower is mostly melee. Reading the defs said

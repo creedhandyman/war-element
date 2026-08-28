@@ -1520,6 +1520,36 @@ describe("Kazehaya — the duellist", () => {
     expect(cells, "three squares out is lit").toContainEqual(far.pos);
   });
 
+  it("HEARTWOOD regrows its bark, one plate per blow, and stops short of its print", () => {
+    // Repairs what the LEAF element change took from this card specifically:
+    // Photosynthesis used to regrow any LEAF card to printed + 3 and is now a
+    // flat 3, which is right for the element and lands almost entirely on the
+    // one boss printing 14 shields. Measured at 35 points of win rate.
+    //
+    // Capped BELOW its print on purpose — a full rebuild over-corrected to
+    // 62.5% against floormates at 32-51.
+    const hw = getDef("boss_kazehaya").shieldPerHitTaken!;
+    expect(hw.maxShields, "regrows most of its armour, not all of it")
+      .toBeLessThan(getDef("boss_kazehaya").shields);
+    const s = bigPrepState();
+    const boss = place(s, "boss_kazehaya", "P2", 1, 2, { curShields: 0, curHp: 90, maxHp: 90 });
+    const foe = place(s, "leaf_stickviper", "P1", 2, 2);
+    for (let i = 0; i < 3; i++) basicAttack(s, foe.instanceId, boss.instanceId);
+    const after = advance(atCleanup(s));
+    expect(after.cards[boss.instanceId].curShields, "one plate per blow it took")
+      .toBeGreaterThan(0);
+  });
+
+  it("...and never past the Heartwood ceiling, however many blows it takes", () => {
+    const s = bigPrepState();
+    const cap = getDef("boss_kazehaya").shieldPerHitTaken!.maxShields!;
+    const boss = place(s, "boss_kazehaya", "P2", 1, 2, { curShields: 0, curHp: 400, maxHp: 400 });
+    const foe = place(s, "leaf_stickviper", "P1", 2, 2);
+    for (let i = 0; i < 20; i++) basicAttack(s, foe.instanceId, boss.instanceId);
+    const after = advance(atCleanup(s));
+    expect(after.cards[boss.instanceId].curShields, "held at the ceiling").toBeLessThanOrEqual(cap);
+  });
+
   it("its threshold is its own sword, printed twice", () => {
     // The number a player has to stay under is the number the boss hits for.
     expect(getDef("boss_kazehaya").dmg).toBe(OVER);

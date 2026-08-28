@@ -10984,7 +10984,35 @@ export const CARDS: CardDef[] = [
     // you are inside a 15-damage sword, stay back and it pulls you in anyway.
     passiveNames: {
       onHeavyHit: "Gale Riposte", roundTick: "Iai Stance",
+      shieldPerHitTaken: "Heartwood",
     },
+    // HEARTWOOD: it regrows its own armour, one plate per blow it took — up to
+    // 9, which is MOST of the 14 it prints and deliberately not all of them. A
+    // full rebuild measured 62.5% with an ally against floormates at 32-51: it
+    // over-corrected past the thing it was repairing. The ceiling is the lever
+    // and the curve is steep at the top —
+    //
+    //     no Heartwood  11.5%      cap 8   36.5%      cap 10  49.0%
+    //     cap 4         19.8%      cap 9   45.8%  <-  cap 14  62.5%
+    //     cap 6         26.0%
+    //
+    // 9 puts it between Cryovex (44.8) and Kato (51.0) rather than at either
+    // end. Bare it reads 96.9%, second only to Cryovex on the floor.
+    //
+    // This is not a buff so much as a REPAIR of one, and the measurement is why
+    // it exists. Photosynthesis used to regrow any LEAF card to its printed
+    // shields plus three; it is now a flat cap of 3, which is the right rule for
+    // the element and lands almost entirely on ONE card — this one. A LEAF boss
+    // printing 14 shields, fielding Warden (4) and two Sakuroot (4), lost
+    // its armour permanently the first time it was stripped. Isolated at 35
+    // points of win rate: 46.9% with the old ceiling against 11.5% with the new
+    // one, while every other boss on the tower moved 0-2.
+    //
+    // Given back on the CARD rather than by reverting the element rule, because
+    // the element rule was the thing that was wrong and this boss is the thing
+    // that depended on it. Same mechanism Squanch carries, and a tree that
+    // grows its bark back is not a new idea for it.
+    shieldPerHitTaken: { shields: 1, maxShields: 9 },
     // Gale Riposte. 18 is set to its OWN damage deliberately: the threshold a
     // player has to stay under is printed on the card twice, once as the number
     // and once as the sword that enforces it.
