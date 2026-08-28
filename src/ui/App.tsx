@@ -2211,7 +2211,7 @@ export function App() {
    *  querying immediately can find the PREVIOUS acting slot. */
   const [wheelAt, setWheelAt] = useState<{ x: number; y: number } | null>(null);
   useEffect(() => {
-    if (!portrait || !iActBattle || !awaitingId) { setWheelAt(null); return; }
+    if (!iActBattle || !awaitingId) { setWheelAt(null); return; }
     let live = true;
     const measure = () => {
       if (!live) return;
@@ -2230,15 +2230,21 @@ export function App() {
     const raf = requestAnimationFrame(measure);
     window.addEventListener("resize", measure);
     return () => { live = false; cancelAnimationFrame(raf); window.removeEventListener("resize", measure); };
-  }, [portrait, iActBattle, awaitingId, game]);
+  }, [iActBattle, awaitingId, game]);
 
   /** The same four verbs the action row renders, shortened for a 52px chip.
    *  Seats are top / right / bottom / left in this order — Skip sits at the top
    *  because it is the one you reach for when nothing else is possible, and it
    *  must never be the hardest to find again. */
   /** The ring is actually on screen. The action row keys its own hiding on
-   *  this, so if the ring fails to mount for any reason the buttons stay. */
-  const wheelUp = portrait && iActBattle && wheelAt !== null;
+   *  this, so if the ring fails to mount for any reason the buttons stay.
+   *
+   *  NOT gated on `portrait` any more. The wheel was built for the phone and is
+   *  simply the better control everywhere: the verbs sit around the card they
+   *  act with, instead of in a row at the bottom of the screen that you have to
+   *  look away from the board to read. One interaction to learn, on every size.
+   *  `.wrap.wheel-up` still hides the button row, so the two never both show. */
+  const wheelUp = iActBattle && wheelAt !== null;
 
   const wheelVerbs: WheelVerb[] = activeCard && activeDef
     ? [
