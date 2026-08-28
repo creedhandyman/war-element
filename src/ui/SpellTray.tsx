@@ -26,11 +26,15 @@ export function SpellTray(props: {
 
   const chips = (
     <div className="spelltray-row">
-      {book.map((slot) => {
+      {book.map((slot, i) => {
         const spell = getSpell(slot.defId);
         const afford = magic >= spell.cost;
         const disabled = !props.myTurn || slot.used || !afford;
-        const armed = props.armedSpellId === slot.defId;
+        // A book can hold TWO of a cheap spell, and arming by id alone lit both
+        // chips — the player saw two armed spells and one cast. Only the copy
+        // that will actually be spent (the first unspent one) wears the state.
+        const armed = props.armedSpellId === slot.defId && !slot.used
+          && book.findIndex((s) => s.defId === slot.defId && !s.used) === i;
         // Castable RIGHT NOW (your turn, unspent, affordable) and not already
         // armed → a soft ready-glow so you can see what you can actually cast.
         const ready = props.myTurn && !slot.used && afford && !armed;
@@ -50,7 +54,7 @@ export function SpellTray(props: {
           : "";
         return (
           <button
-            key={slot.defId}
+            key={`${slot.defId}-${i}`}
             className={`spellchip ${armed ? "armed" : ""} ${slot.used ? "used" : ""} ${ready ? "ready" : ""} ${poor ? "poor" : ""}`}
             data-el={spell.element}
             disabled={disabled}

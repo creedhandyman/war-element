@@ -2,24 +2,59 @@
 // fresh game (explicit book wins; empty falls back to auto-from-elements).
 
 import { describe, expect, it } from "vitest";
-import { SPELLS, spellbookFromIds, spellbookFor, getSpell, spellPickKind, MAX_SPELLBOOK, MAX_SPELLBOOK_LARGE, spellCapForBoard } from "../spells";
+import { SPELLS, spellbookFromIds, spellbookFor, getSpell, spellPickKind, MAX_SPELLBOOK, MAX_SPELLBOOK_LARGE, spellCapForBoard, spellCopyCap } from "../spells";
 import { CORES, deckById } from "../../data/cards";
 import { createInitialState } from "../state";
 import { canCastSpell } from "../rules";
+import { applyIntent } from "../phases";
 import { place, prepState } from "./helpers";
 
 describe("spellbookFromIds", () => {
-  it("keeps order, drops unknowns, dedupes, and caps at MAX_SPELLBOOK", () => {
+  it("keeps order, drops unknowns, HONOURS COPY CAPS, and caps at MAX_SPELLBOOK", () => {
+    // Books used to be deduped outright — one of anything, always. Copies are
+    // allowed now by COST tier (see `spellCopyCap`), so a cheap spell listed
+    // twice is two slots and two casts.
     const ids = [
-      "pyro_spark", "not_a_spell", "aqua_chill", "pyro_spark", // dup
-      "gale_gust", "dawn_sunbeam", "bore_pebble_toss", "dusk_chill_touch", // → 6 valid uniques
+      "pyro_spark", "not_a_spell", "aqua_chill", "pyro_spark",
+      "gale_gust", "dawn_sunbeam", "bore_pebble_toss", "dusk_chill_touch",
     ];
     const book = spellbookFromIds(ids);
-    expect(book.length).toBe(MAX_SPELLBOOK); // capped at 5
-    expect(book.map((s) => s.defId)).toEqual([
-      "pyro_spark", "aqua_chill", "gale_gust", "dawn_sunbeam", "bore_pebble_toss",
-    ]);
-    expect(book.every((s) => s.used === false)).toBe(true);
+    expect(book.length).toBe(MAX_SPELLBOOK);
+    expect(book.every((s) => s.used === false), "every slot casts on its own").toBe(true);
+    const sparkCap = spellCopyCap("pyro_spark");
+    const sparks = book.filter((s) => s.defId === "pyro_spark").length;
+    expect(sparks, "the second Spark survives if its cost allows it")
+      .toBe(Math.min(2, sparkCap));
+    expect(book[0].defId, "order is preserved").toBe("pyro_spark");
+    expect(book.some((s) => s.defId === "not_a_spell"), "unknowns dropped").toBe(false);
+  });
+
+  it("the copy cap is a COST tier, and the tiers are the printed ones", () => {
+    for (const sp of SPELLS) {
+      const cap = spellCopyCap(sp.id);
+      if (sp.cost >= 6) expect(cap, `${sp.id} costs ${sp.cost}`).toBe(1);
+      else if (sp.cost >= 3) expect(cap, `${sp.id} costs ${sp.cost}`).toBe(2);
+      else expect(cap, `${sp.id} costs ${sp.cost}`).toBe(Infinity);
+    }
+  });
+
+  it("an expensive spell is held to ONE however many times it is listed", () => {
+    const dear = SPELLS.find((sp) => sp.cost >= 6)!;
+    const book = spellbookFromIds([dear.id, dear.id, dear.id], 8);
+    expect(book.length, `${dear.id} costs ${dear.cost}`).toBe(1);
+  });
+
+  it("a mid-cost spell is held to TWO", () => {
+    const mid = SPELLS.find((sp) => sp.cost >= 3 && sp.cost <= 5)!;
+    const book = spellbookFromIds([mid.id, mid.id, mid.id, mid.id], 8);
+    expect(book.length, `${mid.id} costs ${mid.cost}`).toBe(2);
+  });
+
+  it("a cheap spell is limited only by the size of the book", () => {
+    const cheap = SPELLS.find((sp) => sp.cost <= 2)!;
+    expect(spellCopyCap(cheap.id)).toBe(Infinity);
+    const book = spellbookFromIds(Array(20).fill(cheap.id), 8);
+    expect(book.length, "the book's own cap is the only limit").toBe(8);
   });
 
   it("empty input yields an empty book", () => {
@@ -127,6 +162,66 @@ describe("a derived book samples the element, not the file", () => {
   it("...and the cap still holds", () => {
     for (const deck of ["leaf_pyro", "bore_dusk", "aqua_dawn", "gale_bolt"])
       expect(spellbookFor(deckById(deck).cards).length).toBeLessThanOrEqual(MAX_SPELLBOOK);
+  });
+});
+
+describe("a SECOND copy of a spell is a second cast", () => {
+  /** A prep state holding `n` copies of a cheap damage spell and magic to burn. */
+  function twoSparks(n = 2) {
+    const s = prepState();
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    s.players.P1.magicPool = 30;
+    s.players.P1.spellbook = Array.from({ length: n }, () => ({ defId: "pyro_spark", used: false }));
+    const foe = place(s, "dusk_vamp", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    return { s, foe };
+  }
+
+  it("casting the first copy does NOT retire the second", () => {
+    // The bug the copy rule would have shipped with. Legality asked "is the
+    // spell spent" by finding the FIRST slot with that id and reading its
+    // `used` — so the moment copy #1 was cast, copy #2 sat in the book, in the
+    // tray, unspent, and refused with "Already cast this game".
+    const { s, foe } = twoSparks();
+    s.players.P1.spellbook[0].used = true;
+    expect(canCastSpell(s, "P1", "pyro_spark", { targetId: foe.instanceId }).ok,
+      "the unspent copy is still castable").toBe(true);
+  });
+
+  it("...and the last copy DOES retire it", () => {
+    const { s, foe } = twoSparks();
+    for (const sl of s.players.P1.spellbook) sl.used = true;
+    const check = canCastSpell(s, "P1", "pyro_spark", { targetId: foe.instanceId });
+    expect(check.ok).toBe(false);
+    expect(check.reason).toBe("Already cast this game");
+  });
+
+  it("each cast spends its OWN slot and its OWN magic", () => {
+    // The spend used the same first-match `find`, so the second cast re-marked
+    // the already-used slot: the spell fired, nothing was consumed, and it was
+    // castable again — a cheap spell with infinite uses.
+    const { s, foe } = twoSparks();
+    const before = s.players.P1.magicPool;
+    const cost = getSpell("pyro_spark").cost;
+    const a = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "pyro_spark", targetId: foe.instanceId });
+    expect(a.players.P1.spellbook.filter((x) => x.used).length, "one spent").toBe(1);
+    expect(a.players.P1.magicPool).toBe(before - cost);
+
+    a.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const b = applyIntent(a, { type: "CAST_SPELL", player: "P1", spellId: "pyro_spark", targetId: foe.instanceId });
+    expect(b.players.P1.spellbook.filter((x) => x.used).length, "then the other").toBe(2);
+    expect(b.players.P1.magicPool, "paid for twice").toBe(before - cost * 2);
+    expect(b.cards[foe.instanceId].curHp, "and it landed twice").toBeLessThan(40 - 1);
+  });
+
+  it("the third cast is refused — the book is out of copies", () => {
+    const { s, foe } = twoSparks();
+    let g = s;
+    for (let i = 0; i < 2; i++) {
+      g.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+      g = applyIntent(g, { type: "CAST_SPELL", player: "P1", spellId: "pyro_spark", targetId: foe.instanceId });
+    }
+    g.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    expect(canCastSpell(g, "P1", "pyro_spark", { targetId: foe.instanceId }).ok).toBe(false);
   });
 });
 

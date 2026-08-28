@@ -397,6 +397,7 @@ export function DeckBuilder(props: {
       const have = cur.filter((x) => x === id).length;
       if (have > 0 && (have >= spellCopyCap(id) || cur.length >= limits.spells))
         return cur.filter((x) => x !== id); // at its ceiling — next tap clears
+      if (cur.length >= limits.spells) return cur; // full book, and this is a NEW spell
       return [...cur, id];
     });
   }

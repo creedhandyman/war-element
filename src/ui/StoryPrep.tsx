@@ -511,10 +511,10 @@ export function StoryPrep(props: {
           {book.length === 0 && <span className="sp-auto"> — auto, your cheapest unlocked</span>}
         </div>
         <div className="sp-deck">
-          {fightBook.map((id) => {
+          {fightBook.map((id, i) => {
             const sp = getSpell(id);
             return (
-              <span key={id} className="sp-foe">
+              <span key={`${id}-${i}`} className="sp-foe">
                 {sp.name}
                 <em className="cost">{sp.cost}<i className="gem" /></em>
               </span>

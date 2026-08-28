@@ -557,7 +557,10 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       });
       if (!check.ok) throw new Error(`Illegal spell: ${check.reason}`);
       const p = draft.players[intent.player];
-      const slot = p.spellbook.find((s) => s.defId === intent.spellId)!;
+      // Spend an UNSPENT copy — with two of a cheap spell in the book, `find`
+      // by id alone re-marked the copy that was already used and the cast came
+      // out free.
+      const slot = p.spellbook.find((s) => s.defId === intent.spellId && !s.used)!;
       const spell = getSpell(intent.spellId);
       p.magicPool -= spell.cost;
       slot.used = true;

@@ -12,7 +12,7 @@
 // duplicate of it here that could drift.
 
 import { CARDS, CARD_INDEX, getDef } from "./cards";
-import { SPELLS, getSpell, spellCapForBoard } from "../engine/spells";
+import { SPELLS, getSpell, spellCapForBoard, spellCopyCap } from "../engine/spells";
 import { DECK_TIERS } from "./custom-decks";
 import type { GauntletState } from "./gauntlet";
 import type { LadderState } from "./matchmaker";
@@ -2723,9 +2723,21 @@ export function loadStory(): StorySave {
               element: typeof l.element === "string" ? l.element : undefined,
               cards: known(l.cards).filter((id) => collection.includes(id)),
               // A book naming a spell that no longer exists must not reach the
-              // engine; an absent one keeps meaning "use the shelf".
+              // engine; an absent one keeps meaning "use the shelf". COPIES of
+              // a cheap spell are legal now, so this trims to each spell's cost
+              // cap rather than deduping — a flat `new Set` quietly threw away
+              // the player's second copy every time the save was reopened.
               spells: Array.isArray(l.spells)
-                ? [...new Set(l.spells)].filter((id) => SPELLS.some((sp) => sp.id === id))
+                ? (() => {
+                    const seen = new Map<string, number>();
+                    return l.spells.filter((id) => {
+                      if (!SPELLS.some((sp) => sp.id === id)) return false;
+                      const have = seen.get(id) ?? 0;
+                      if (have >= spellCopyCap(id)) return false;
+                      seen.set(id, have + 1);
+                      return true;
+                    });
+                  })()
                 : undefined,
             }))
             .filter((l) => l.cards.length > 0)

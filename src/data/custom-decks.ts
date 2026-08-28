@@ -5,7 +5,7 @@
 // the deterministic engine reducer).
 
 import { CARDS, CARD_INDEX } from "./cards";
-import { isSpell, MAX_SPELLBOOK, MAX_SPELLBOOK_LARGE } from "../engine/spells";
+import { isSpell, MAX_SPELLBOOK, MAX_SPELLBOOK_LARGE, spellCopyCap } from "../engine/spells";
 import type { CardDef } from "../engine/types";
 
 /** Deck-size rules for one battlefield. The bigger board holds more cards, so
@@ -63,11 +63,15 @@ export interface CustomDeck {
 export function sanitizeSpells(ids: string[] | undefined, boardSize = 5): string[] {
   if (!Array.isArray(ids)) return [];
   const cap = maxSpellsFor(boardSize);
-  const seen = new Set<string>();
+  // Copies are allowed now, by cost tier — see `spellCopyCap`. This used to
+  // dedupe outright, so a saved book with two Zaps came back with one.
+  const taken = new Map<string, number>();
   const out: string[] = [];
   for (const id of ids) {
-    if (typeof id !== "string" || seen.has(id) || !isSpell(id)) continue;
-    seen.add(id);
+    if (typeof id !== "string" || !isSpell(id)) continue;
+    const have = taken.get(id) ?? 0;
+    if (have >= spellCopyCap(id)) continue;
+    taken.set(id, have + 1);
     out.push(id);
     if (out.length >= cap) break;
   }

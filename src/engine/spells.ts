@@ -1043,12 +1043,41 @@ export function spellbookFor(deck: string[], cap: number = MAX_SPELLBOOK): Spell
  *  match setup. The cap is board-size dependent (5 standard / 8 large), passed
  *  in by the caller; a flat MAX_SPELLBOOK here would cut a legal large-board
  *  book of 8 down to 5 at match setup. */
+/** How many COPIES of a spell one book may hold, by its Magic cost.
+ *
+ *  Cheap spells are the ones you want to lean on and the ones that cost you a
+ *  turn's magic to cast twice; expensive ones are the swing, and a book holding
+ *  two Cataclysms is not a deck decision, it is the same decision printed
+ *  twice. So the limit tightens as the cost climbs:
+ *
+ *    cost 6-10  ->  1 copy      the finishers, once each
+ *    cost 3-5   ->  2 copies
+ *    cost 1-2   ->  unlimited   (the book's own size is the only cap)
+ *
+ *  Books were fully DEDUPED before this — one of anything, always — so the
+ *  cheap end had no way to be doubled down on at all. */
+export const SPELL_COPY_CAPS: readonly { minCost: number; copies: number }[] = [
+  { minCost: 6, copies: 1 },
+  { minCost: 3, copies: 2 },
+  { minCost: 0, copies: Infinity },
+];
+
+export function spellCopyCap(spellId: string): number {
+  const sp = SPELL_INDEX[spellId];
+  if (!sp) return 0;
+  return SPELL_COPY_CAPS.find((t) => sp.cost >= t.minCost)!.copies;
+}
+
 export function spellbookFromIds(ids: string[], cap = MAX_SPELLBOOK): SpellSlot[] {
-  const seen = new Set<string>();
+  // COUNTS copies rather than deduping — see `spellCopyCap`. Each slot is its
+  // own `used` flag, so two copies of a cheap spell really are two casts.
+  const taken = new Map<string, number>();
   const book: SpellSlot[] = [];
   for (const id of ids) {
-    if (seen.has(id) || !isSpell(id)) continue;
-    seen.add(id);
+    if (!isSpell(id)) continue;
+    const have = taken.get(id) ?? 0;
+    if (have >= spellCopyCap(id)) continue;
+    taken.set(id, have + 1);
     book.push({ defId: id, used: false });
     if (book.length >= cap) break;
   }

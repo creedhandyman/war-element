@@ -1116,9 +1116,13 @@ export function canCastSpell(
   if (state.phase !== "prep") return { ok: false, reason: "Not the Prep Phase" };
   if (state.prep?.priority !== player) return { ok: false, reason: "You don't have priority" };
   const p = state.players[player];
-  const slot = p.spellbook.find((s) => s.defId === spellId);
-  if (!slot) return { ok: false, reason: "Not in your spellbook" };
-  if (slot.used) return { ok: false, reason: "Already cast this game" };
+  // A book may hold MORE THAN ONE copy of a cheap spell, so the question is not
+  // "is that spell spent" but "is there a copy of it left". Finding the first
+  // slot by id and reading its `used` retired the second copy the moment the
+  // first was cast — the copies were in the book and could never be reached.
+  const copies = p.spellbook.filter((s) => s.defId === spellId);
+  if (copies.length === 0) return { ok: false, reason: "Not in your spellbook" };
+  if (copies.every((s) => s.used)) return { ok: false, reason: "Already cast this game" };
   let spell: SpellDef;
   try {
     spell = getSpell(spellId);

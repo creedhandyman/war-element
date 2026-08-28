@@ -914,6 +914,40 @@ engine runtime and no React, so it stays testable headlessly
   switching regions changed the volume. Normalize from the MASTER, not from the
   committed 96k file, or you stack two generations of lossy encoding.
 
+## Spells — copies are legal now, and everything treated a book as a SET
+
+A spellbook used to hold **one of anything, always** — `spellbookFromIds` deduped
+through a `Set`. Copies are allowed by COST TIER (`SPELL_COPY_CAPS` /
+`spellCopyCap` in `spells.ts`): **cost 6–10 → 1, cost 3–5 → 2, cost 1–2 →
+unlimited**, all still bounded by the book itself (5 on 4×4, 8 on 5×5). The tier
+is a ceiling per spell, not per book.
+
+**Relaxing the builder was the small half.** Five places downstream identified a
+spell by `find(s => s.defId === id)` or stored one in a `Set`, and every one of
+them broke silently on the second copy:
+
+- `rules.ts canCastSpell` — found the FIRST slot and read its `used`, so casting
+  copy #1 refused copy #2 with "Already cast this game". The copies were in the
+  book, in the tray, unspent, and unreachable. Now: *are ALL copies spent*.
+- `phases.ts CAST_SPELL` — the same `find` on the spend side re-marked the
+  already-used slot, so the second cast consumed nothing and was repeatable.
+  Now: `find(… && !s.used)`.
+- `story.ts` save load — `[...new Set(l.spells)]` threw the player's second copy
+  away every time the save was reopened. Now counts to `spellCopyCap`.
+- `SpellTray.tsx` — duplicate React `key`, and `armed` matched on id so BOTH
+  copies lit up for one cast. Only the copy that will be spent wears the state.
+- `App.tsx` opponent cast-flash — diffed a `Set` of used ids, so the opponent's
+  second cast of a duplicated spell changed nothing and never flashed. Counted
+  now.
+
+THE LESSON: `defId` stopped being a primary key for a slot. Anything that
+answers "which slot is this spell" has to answer "which COPY", and the four
+downstream bugs were all one grep (`spellbook.*find\|new Set(.*spell`) away.
+
+The builder tile CYCLES rather than toggles — tap adds a copy, tapping past the
+spell's own cap clears it — and the corner mark carries the count (`×2`) so a
+book with two of something can be read back.
+
 ## Spells — the "written but never read" bug class
 
 **RECON PING DID NOTHING FOR ITS ENTIRE LIFE.** It set
