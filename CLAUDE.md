@@ -1259,6 +1259,37 @@ one you had to buy is one you would never field); **one per fight**; enraged
 means **buffed stats**, not just a label; a use is spent on **entering**, win or
 lose (paying at settle would make it farmable by conceding at round one).
 
+## TOWER DIFFICULTY TARGETS (owner's, and the tower is NOT there yet)
+
+Boss win %. Floors 1-2 judged BARE; floors 3-4 judged WITH A TAMED ALLY,
+because those floors are meant to expect one.
+
+| floor | target | now | verdict |
+| --- | --- | --- | --- |
+| 1 | 50 | 41.9 | close — Permafrost 20.8 and Smolder 37.5 drag it |
+| 2 | 60 | 46.6 | short — Basilisk 24.0 and Skeleeze 39.6 drag it |
+| 3 (ally) | 60-70 | 37.5 | short — only Vulcanyx (62.5) is in band |
+| 4 (ally) | 80-90 | 66.9 | short — only Kazehaya (81.3) is in band |
+
+Body caps were raised to allow this at all (`FLOOR1_BODY_CAP` 170 -> 300,
+`BODY_CAP_PER_FLOOR` 60 -> 90): the targets need x1.85-2.4 on most bosses and
+the old ceilings forbade it.
+
+**WHY IT DOES NOT CONVERGE BY BUFFING BODIES, and read this before the next
+pass.** Two structural problems, both measured:
+
+1. **THE FLOORS ARE COUPLED, and it bit twice.** A floor's tamed ally is the
+   biggest boss on the floor BELOW, so buffing floor N buffs floor N+1's ally.
+   Buffing Floor 2 this pass took Thunderfangs' ally case from 67.7 DOWN to
+   35.4 — its ally (Helion) got 1.7x bigger. Any floor-by-floor pass fights
+   itself; the tower has to be tuned bottom-up in one go, re-measuring above.
+2. **SEVERAL BOSSES ARE SATURATED ON BODY.** Xilty's ally case moves +21.9 on
+   the first quarter-multiplier then +3.1 on the next. Hoarfell's `overrun`
+   count is 16/15/15 across a 50% buff — dead flat, it converts stats into
+   survival and never into kills. Umbranova the same (42.7 -> 43.8 across
+   x1.25 -> x1.5). For these, more body buys a longer stalemate, not a harder
+   fight; they need KIT changes — a kill path or clock pressure.
+
 **THE CLOCK IS 30 ROUNDS** (`VOID_TOWER_ROUNDS`, was 24) — owner's call, and it
 is the single biggest lever on tower difficulty because TIMEOUT is how most of
 these bosses win. Boss win %, n=96, measured before and after:

@@ -50,8 +50,19 @@ import type { CardDef, Element } from "../engine/types";
  *  is under two mythic cards. Measured, a Floor-1 boss at 80 dies around round
  *  16 against an AI-piloted premade — two thirds of the way through a clock it
  *  is supposed to be able to run out. */
-export const FLOOR1_BODY_CAP = 170;
-export const BODY_CAP_PER_FLOOR = 60;
+// 170 -> 300, for the same reason BODY_CAP_PER_FLOOR moved: this was the
+// ceiling for a 24-round bare fight at ~50% boss win, and the targets are now
+// a 30-round clock at 50/60/60-70/80-90 by floor. Measured, Floor 1 sat at
+// 22.4% against a 50% target — the bodies needed roughly doubling and the old
+// ceiling forbade it.
+export const FLOOR1_BODY_CAP = 300;
+// 60 -> 90. The cap is a CEILING, not a target, and it was set when the goal
+// was a 24-round clock and a bare fight. The goal is now a 30-round clock and
+// floors 3-4 that expect the player to bring a tamed boss, which measured out
+// at x1.85-2.2 body on most of the top two floors — straight through the old
+// ceiling. Raising the ceiling is the honest move; pretending the target fits
+// under it is not.
+export const BODY_CAP_PER_FLOOR = 90;
 export const BODY_CAP_TOLERANCE = 5;
 export const bodyCap = (floor: number): number =>
   FLOOR1_BODY_CAP + BODY_CAP_PER_FLOOR * (floor - 1);

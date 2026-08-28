@@ -9875,9 +9875,9 @@ export const CARDS: CardDef[] = [
     // outlast — and 15 damage a round killed nothing, so it could not win by
     // any route at all. A Tank on the floor's 170 budget, spent almost entirely
     // on meat, because "kill the source" should mean a long dig.
-    dmg: 30,
+    dmg: 46,
     hits: 1,
-    hp: 130,
+    hp: 202,
     sp: 5,
     shields: 0,
     keywords: {},
@@ -9929,9 +9929,9 @@ export const CARDS: CardDef[] = [
     // from the other side: Piercing Arrow clears ONE column per cast, so five
     // gates is five casts — fifteen rounds of a twenty-four round clock spent
     // shooting masonry. A bigger arrow is what buys those rounds back.
-    dmg: 30,
+    dmg: 52,
     hits: 1,
-    hp: 110,
+    hp: 192,
     sp: 11,
     shields: 0,
     keywords: {},
@@ -9991,11 +9991,11 @@ export const CARDS: CardDef[] = [
     // at 27 moves this fight ~5 points, while moving both together runs 81.3%
     // down to 40.6%. Shields block per HIT, so against a board of many small
     // attacks they are worth far more than the 2 budget points apiece they cost.
-    dmg: 22,
+    dmg: 32,
     hits: 2,
-    hp: 106,
+    hp: 154,
     sp: 12,
-    shields: 38,
+    shields: 55,
     keywords: {},
     tribe: "Spider",
     boss: true,
@@ -10074,15 +10074,15 @@ export const CARDS: CardDef[] = [
     // only fires on targets at 6 HP or less, so a 20 HP gate is invisible to it,
     // and a glacier that arrives with nothing to say is still a glacier with
     // nothing to say. Damage is the only lever it has. 34.4%.
-    dmg: 22,
+    dmg: 42,
     hits: 1,
     // 90/30 -> 70/22 (body 169 -> 133). Glacial Creep took this fight from
     // 82.3% to 89.6%, which made a FLOOR 1 boss harder than anything on Floor 3
     // — the gait was worth keeping and the progression was not worth inverting
     // for it. 70/22 reads 77.1%, between Rotroot (81.3) and Smolder (70.8).
-    hp: 90,
+    hp: 171,
     sp: 5,
-    shields: 22,
+    shields: 42,
     keywords: { BLOCK: 2 },
     tribe: "Ice",
     boss: true,
@@ -10132,7 +10132,7 @@ export const CARDS: CardDef[] = [
     // Body only. Overclock was already one of the two that could hold a fight,
     // and it does that on its KIT — a capped Drone line and BURN — so the extra
     // budget goes into staying up rather than into hitting harder.
-    dmg: 8,
+    dmg: 10,
     hits: 1,
     // 40 -> 50 -> 45 (body 76 -> 81), and HP IS NOT WHAT MOVES THIS FIGHT.
     // Overclock read 67.7% before OVERRUN shipped and 91.7% after, and the
@@ -10142,9 +10142,9 @@ export const CARDS: CardDef[] = [
     // the drones walk into the player's home row, and the fight ends there —
     // the boss barely participates. The 45 is kept because it was asked for and
     // costs nothing; the number to turn is the overrun rule, not this one.
-    hp: 45,
+    hp: 56,
     sp: 12,
-    shields: 8,
+    shields: 10,
     keywords: {},
     tribe: "ARC",
     boss: true,
@@ -10296,11 +10296,11 @@ export const CARDS: CardDef[] = [
     // The nearest to the band already — it reached round 30 unaided — so this
     // is the lightest hand on the tower: enough body to hold the clock,
     // and REGEN + LIFESTEAL keep doing the rest.
-    dmg: 12,
+    dmg: 25,
     hits: 1,
     // +25% HP (44 -> 55, body 70 -> 81) — Floor 2 across the board,
     // Skeleeze excepted, at the owner's call after playing the floor.
-    hp: 55,
+    hp: 116,
     sp: 8,
     // 3 -> 10 (body 81 -> 95). Honouring `reach` on auto-fired Specials cost
     // Basilisk more than any other boss — 68.8% -> 54.2%, the weakest fight in
@@ -10313,7 +10313,7 @@ export const CARDS: CardDef[] = [
     // (68.8) and Helion (67.7). Shields block per HIT, and an attrition boss
     // that REGENs 3 a round wants exactly that: the chip never lands, and what
     // does land it heals back.
-    shields: 10,
+    shields: 21,
     keywords: { REGEN: 3, LIFESTEAL: true },
     tribe: "Reptile",
     boss: true,
@@ -10374,11 +10374,11 @@ export const CARDS: CardDef[] = [
     // deletes the gate in its lane; the basic was the problem — 8 damage between
     // casts on a boss that cannot move meant the three rounds between shots did
     // nothing at all. 29.2% -> 51.0%.
-    dmg: 14,
+    dmg: 24,
     hits: 1,
-    hp: 90,
+    hp: 153,
     sp: 3,
-    shields: 20,
+    shields: 34,
     // BLOCK is the BORE half of the pairing, expressed without borrowing BORE's
     // aura: stone does not dodge, it simply refuses to be dented. Every hit,
     // however small, arrives 3 lighter — which makes chip damage useless against
@@ -10434,7 +10434,7 @@ export const CARDS: CardDef[] = [
     cost: 12,
     // Floor 3's budget is 290. Hoarfell spends it on a body that has to survive
     // crossing the whole board, because crossing the board IS the threat.
-    dmg: 24,
+    dmg: 40,
     hits: 1,
     // Retuned when it moved from SeaC to Ice: the frost brood — Phrost, two
     // PolarBears, two Cryos — is a great deal heavier than the school of fish
@@ -10446,9 +10446,9 @@ export const CARDS: CardDef[] = [
     // that — it is the JUGGERNAUT, so the rounds it spends walking are rounds
     // it now threatens nothing at range, and the body is what those rounds are
     // bought with.
-    hp: 144,
+    hp: 238,
     sp: 6,
-    shields: 19,
+    shields: 31,
     // TRAMPLE is the point rather than a rider: it walks THROUGH the lighter
     // half of your board instead of stopping at it, so a chump block has to be
     // something with real max HP or it just gets shoved aside.
@@ -10508,11 +10508,11 @@ export const CARDS: CardDef[] = [
     // "More meat is not the lever" was the right conclusion from the old sweep
     // (132/26 to 144/28 bought 1.1 points) and "give it a kit that fires without
     // cooperation" was the right prescription — LIFESTEAL is that kit.
-    dmg: 22,
+    dmg: 41,
     hits: 1,
-    hp: 132,
+    hp: 244,
     sp: 8,
-    shields: 12,
+    shields: 22,
     // LIFESTEAL — the apex predator EATS, and this is what finally made the card
     // work. It read 70.8%, the weakest fight on Floor 3 by eleven points, and
     // the old comment here guessed wrong about why: it assumed the problem was
@@ -10591,7 +10591,7 @@ export const CARDS: CardDef[] = [
     // NOT supposed to be a wall. Most of its damage is borrowed from the pack
     // and hands itself back as the pack dies, so the printed line is what is
     // left of it when you have done the work.
-    dmg: 16,
+    dmg: 19,
     hits: 2,
     // Written at 90/10 and it measured 97% — most of its damage is BORROWED
     // from the pack, so a body sized like a Floor-3 boss's on top of that is
@@ -10613,9 +10613,9 @@ export const CARDS: CardDef[] = [
     // near 70, and it is the top of Floor 3 either way. The curve here is steep:
     // 72 -> 76 -> 80 reads 60.4 -> 69.8 -> 77.1, so four points of body is worth
     // roughly eight of win rate and this number wants leaving alone.
-    hp: 58,
+    hp: 70,
     sp: 14,
-    shields: 5,
+    shields: 6,
     keywords: {},
     tribe: "Wolf",
     boss: true,
@@ -10699,11 +10699,11 @@ export const CARDS: CardDef[] = [
     // nearest whole: body 76 -> 92. Not a floor-4 body and not meant to be —
     // this is Floor 3's boss having earned five kills, not a bigger boss. Moves
     // whenever the first form moves; a test pins the +20% relationship.
-    dmg: 19,
+    dmg: 23,
     hits: 2,
-    hp: 70,
+    hp: 84,
     sp: 17,
-    shields: 6,
+    shields: 7,
     keywords: {},
     tribe: "Wolf",
     boss: true,
@@ -10747,7 +10747,7 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 12,
-    dmg: 17,
+    dmg: 41,
     hits: 1,
     // 150/15 -> 90/9 -> 60/5 (body 128 -> 90). Lighter than Thunderfangs' 96 on
     // the floor below, and that is consistent rather than strange: this boss has
@@ -10782,9 +10782,9 @@ export const CARDS: CardDef[] = [
     // 100 is the owner's call and it puts this ~12 points clear of the rest of
     // the floor. That is a deliberate difficulty ordering, not a miss — if it
     // should come back into band, 80 is the nearest rung.
-    hp: 140,
+    hp: 336,
     sp: 8,
-    shields: 7,
+    shields: 17,
     keywords: {},
     // IT ACTUALLY SHOOTS. Same hole Stormwing had: `attackType: "Ranged"` caps a
     // basic at reach 2 from the row it was summoned in and 3 once it advances
@@ -10863,11 +10863,11 @@ export const CARDS: CardDef[] = [
     // the fight ends in the back line whatever the boss is doing. Umbranova is
     // the same shape at 96.9%. Do not tune this card against those numbers; the
     // rule is what decides it. Its FEEL is what the kit below is for.
-    dmg: 18,
+    dmg: 33,
     hits: 1,
-    hp: 108,
+    hp: 200,
     sp: 6,
-    shields: 22,
+    shields: 41,
     keywords: {},
     tribe: "Dragon",
     boss: true,
@@ -10953,14 +10953,14 @@ export const CARDS: CardDef[] = [
     // Reach 3 is why. A nova that catches three squares out on a five-square
     // board is catching most of what the player owns, and hauling it two slots
     // in leaves it standing next to a 15-damage sword.
-    dmg: 18,
+    dmg: 40,
     hits: 1,
     // 60 -> 80 (body 109 -> 129) at the owner's call, and the SMALLER half of
     // what moved this fight. See the Special: 15 damage on a reach-3 nova was
     // worth +14.6 points on its own, before a single hit point was added.
-    hp: 96,
+    hp: 211,
     sp: 10,
-    shields: 14,
+    shields: 31,
     keywords: {},
     tribe: "Grove",
     boss: true,
@@ -11012,11 +11012,11 @@ export const CARDS: CardDef[] = [
     // the element rule was the thing that was wrong and this boss is the thing
     // that depended on it. Same mechanism Squanch carries, and a tree that
     // grows its bark back is not a new idea for it.
-    shieldPerHitTaken: { shields: 1, maxShields: 9 },
-    // Gale Riposte. 18 is set to its OWN damage deliberately: the threshold a
+    shieldPerHitTaken: { shields: 1, maxShields: 20 },
+    // Gale Riposte. 40 is set to its OWN damage deliberately: the threshold a
     // player has to stay under is printed on the card twice, once as the number
     // and once as the sword that enforces it.
-    onHeavyHit: { over: 18, reach: 2, push: 1, status: "WEAKEN", statusDuration: 2 },
+    onHeavyHit: { over: 40, reach: 2, push: 1, status: "WEAKEN", statusDuration: 2 },
     // IAI STANCE — it squares up rather than closing. `aimLateral` slides it
     // along to line its column up with a target and it never advances a row,
     // which is the whole posture: the duellist does not walk to you. Cutting
@@ -11093,11 +11093,11 @@ export const CARDS: CardDef[] = [
     // it could not kill fast enough. +6 basic DMG on each shell is what broke
     // the ceiling (hp+55 dmg+6 = 85.4%), and it is identity-preserving: the
     // machine's tracks, the cat's claws and the jet's guns, not a new shape.
-    dmg: 26,
+    dmg: 57,
     hits: 1,
-    hp: 118,
+    hp: 260,
     sp: 8,
-    shields: 3,
+    shields: 7,
     // THE MACHINE TRAMPLES — it is a war engine on tracks, and it rolls over
     // what is in front of it. Lost when the shell breaks. Each form answers to
     // something different, which is the whole fight: what beat the machine will
@@ -11141,11 +11141,11 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 12,
-    dmg: 29,
+    dmg: 64,
     hits: 1,
-    hp: 118,
+    hp: 260,
     sp: 12,
-    shields: 6,
+    shields: 13,
     // NO TRAMPLE — the tracks are gone and it walks on crystal now. It DODGES
     // instead, and loses that too when this shell breaks: the cat is hard to HIT
     // where the machine was hard to STOP. Whatever you brought for the first
@@ -11212,11 +11212,11 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Ranged",
     cost: 12,
-    dmg: 31,
+    dmg: 68,
     hits: 1,
-    hp: 110,
+    hp: 242,
     sp: 16,
-    shields: 5,
+    shields: 11,
     // FLYING, and no dodge — the last shell gets off the ground instead. The end of the chain: it declares no `transformOnDefeat`, so this
     // one actually dies, and killing it is what ends the floor.
     //
@@ -11301,11 +11301,11 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     attackType: "Melee",
     cost: 12,
-    dmg: 10,
+    dmg: 20,
     hits: 1,
-    hp: 80,
+    hp: 156,
     sp: 4,
-    shields: 10,
+    shields: 20,
     keywords: {},
     tribe: "Grove",
     boss: true,

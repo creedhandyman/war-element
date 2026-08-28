@@ -84,26 +84,26 @@ describe("the roster", () => {
       // FLOOR 2 took +25% HP at the owner's call after playing it —
       // Basilisk 44->55, Overclock 40->50 and then back to 45 when the full
       // bump measured 91.7%. Skeleeze and Helion excepted by instruction.
-      boss_rotroot: 165, // 169 -> 133: trimmed when Glacial Creep gave it a gait and took it
+      boss_rotroot: 253, // 169 -> 133: trimmed when Glacial Creep gave it a gait and took it
       // to 89.6%, harder than any Floor-3 boss. 77.1% now.
-      boss_permafrost: 161, boss_overclock: 81,
+      boss_permafrost: 302, boss_overclock: 98,
       // 84 -> 108: +12 shields, the lever that took the tower's easiest fight
       // from 45.5% to 65.2%. Still the smallest body on Floor 1.
       // 84 -> 108 -> 96. The 108 was for a 45.5% pushover; it read 77.1% once
       // the war chest, the reach fix and the Gates all landed. 61.5% now.
       boss_nightshrike: 96, // 81 -> 95 (shields 3 -> 10) after the reach fix left it the weakest
       // fight on the tower at 54.2%. 68.8% now.
-      boss_basilisk: 95, boss_skeleeze: 151,
+      boss_basilisk: 191, boss_skeleeze: 255,
       // Xilty trimmed 166 -> 154 when Web Trap was repaired (it declared no
       // `reach`, so a MELEE boss's signature only ever caught what was
       // touching it). 72.9% at 66 HP / 24 shields.
-      boss_xilty: 238,
+      boss_xilty: 340,
       // These two WERE written to their floor budgets — 221 and 251 — and both
       // measured straight out of band at 97% and 100%, so they were tuned back
       // down like everything else. That is the lesson: the cap is a ceiling and
       // the number under it is the tuning, and building to the ceiling is how
       // you get a boss nobody reaches.
-      boss_helion: 147, boss_hoarfell: 212,
+      boss_helion: 248, boss_hoarfell: 346,
       // Thunderfangs is the smallest body on the top floor ON PURPOSE:
       // most of its damage is borrowed from the pack and handed back as
       // the pack dies, so a Floor-3 body on top of that is two bosses'
@@ -111,7 +111,7 @@ describe("the roster", () => {
       // 96 -> 72. Its 88.5% broke down as 74% OVERRUN + 15% timeout, and the
       // pack was not the cause — halving Pack Law moved it 1 point, removing the
       // wolves entirely moved it 4. Bodies are not what the clock is spent on.
-      boss_thunderfangs: 114,
+      boss_thunderfangs: 134,
       // Umbranova does not need a Floor-4 body to be a Floor-4 fight: its
       // damage ignores position and escalates every cast, so the threat is the
       // countdown rather than the meat.
@@ -126,7 +126,7 @@ describe("the roster", () => {
       // WEAKEST on its floor at 60.4%, and HP is the lever that moves it:
       // 60/80/100/120 read 60.4 / 77.1 / 82.3 / 86.5. At 100 it is now the
       // hardest fight on Floor 4 by about 12 points, deliberately.
-      boss_umbranova: 179,
+      boss_umbranova: 419,
       // Kazehaya is a THRESHOLD boss: 15 damage on the sword, 15 on the Special,
       // and 15 as the line its Riposte trips over.
       //
@@ -141,28 +141,28 @@ describe("the roster", () => {
       // clock rather than by clearing the board, because `aimLateral` never
       // advances and this boss outlasts you from its own line. Don't "fix" the
       // timeouts.
-      boss_kazehaya: 152,
+      boss_kazehaya: 323,
       // Sized against Umbranova's 128, not Floor 4's 350 cap. The number is
       // nearly irrelevant to the outcome: every variant swept — formation 7 to
       // 3 bodies, the Special freezing 2 or 1, Hoarbite on/off, crystals inert,
       // and no freeze at all — measured 97.9-100% with ~80% overruns.
-      boss_cryovex: 176,
+      boss_cryovex: 321,
       // Kato is THREE bodies — 62 + 74 + 72 across the chain — so each shell is
       // small and only the first is checked against the floor cap. Winning the
       // fight means winning it three times. 70.8%, with 89% of fights reaching
       // Prowlform and 46% reaching Stormwing — the chain is the fight, and both
       // later shells are seen often enough to be worth authoring separately.
-      boss_kato: 158,
+      boss_kato: 339,
       // Smolder is a Floor-1 body and reads 69% — most of its threat is the
       // BURN it puts on anything that touches it, which costs no stat points
       // at all.
-      boss_smolder: 114,
+      boss_smolder: 220,
       // 200 -> 156 (28/144 -> 18/110) when LIFESTEAL replaced the meat. It was
       // the heaviest boss on the tower purely to cover a kit that was not
       // working; bonus damage did nothing for it (28 DMG already one-shot
       // everything, so vsStatus BURN at +6 and +10 both read 70.8%) and dying
       // was the actual problem. 70.8% -> 87.5%, leaner AND stronger.
-      boss_vulcanyx: 186,
+      boss_vulcanyx: 337,
     };
     for (const v of VOID_BOSSES) {
       expect(bodyTotal(getDef(v.cardId)), v.cardId).toBe(MEASURED[v.cardId]);
@@ -1124,10 +1124,14 @@ describe("the Fortress Gates", () => {
     // masonry.
     const s = prepState();
     const boss = place(s, "boss_smolder", "P1", 2, 1);
-    const gate = place(s, VOID_GATE, "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 10 });
+    // Given a body big enough to SURVIVE the swing, because what is being
+    // measured is penetration, not lethality — the tower's bosses have since
+    // been retuned hard enough that a printed 20-HP gate is now one-shot, and a
+    // dead gate is a removed card with no curHp to read.
+    const gate = place(s, VOID_GATE, "P2", 1, 1, { curHp: 500, maxHp: 500, curShields: 10 });
     basicAttack(s, boss.instanceId, gate.instanceId);
     expect(s.cards[gate.instanceId].curHp, "straight through the masonry")
-      .toBeLessThan(20);
+      .toBeLessThan(500);
   });
 });
 
