@@ -2328,6 +2328,46 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-del:hover { border-color: var(--threat); color: var(--threat); }
 .db-pool { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; border-left: 1px solid var(--panel-line); padding-left: 18px; }
 .db-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ONE control for the whole filter block.
+   Four rows of chrome sat between the search box and the first card, which on a
+   phone is most of the first screen. Collapsing them is the point; carrying the
+   ACTIVE ones in the summary is what keeps a filtered grid from reading as a
+   broken one, so the button is a readout as much as a switch. */
+.db-filtoggle {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 7px 10px; border-radius: 9px; cursor: pointer; text-align: left;
+  border: 1px solid var(--panel-line); background: var(--void-2);
+  color: var(--ink-dim); font: inherit; transition: .14s;
+}
+.db-filtoggle:hover { border-color: var(--gold-line); color: var(--ink); }
+.db-filtoggle.active { border-color: var(--gold-line); }
+.dbf-lbl {
+  font-family: var(--head); font-size: 10px; font-weight: 800;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); flex: none;
+}
+.db-filtoggle.active .dbf-lbl { color: var(--gold-lit); }
+/* The active filters, as chips. Scrolls rather than wraps: this button must
+   stay one row tall or collapsing it has bought nothing. */
+.dbf-sum {
+  flex: 1; min-width: 0; display: flex; gap: 4px; overflow-x: auto;
+  scrollbar-width: none; white-space: nowrap;
+}
+.dbf-sum::-webkit-scrollbar { display: none; }
+.dbf-sum em {
+  font-style: normal; font-size: var(--fs-4); padding: 1px 7px; border-radius: 999px;
+  border: 1px solid var(--gold-line); color: var(--gold-lit); background: rgba(201, 162, 75, .1);
+}
+.dbf-sum em.dbf-none { border-color: var(--panel-line); color: var(--ink-faint); background: none; }
+.dbf-count {
+  margin-left: auto; flex: none; font-variant-numeric: tabular-nums;
+  font-size: var(--fs-4); color: var(--ink-faint);
+}
+.dbf-chev { flex: none; font-style: normal; font-size: 11px; color: var(--ink-faint); }
+/* A keyword pill carries its board glyph, so the row reads the same way the
+   tokens do rather than being a second vocabulary for the same eleven things. */
+.db-kwfl i { font-style: normal; margin-right: 4px; }
+.db-clear { margin-left: 6px; }
 .db-fl { font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 999px; background: var(--void-2); color: var(--ink-dim); border: 1px solid var(--panel-line); cursor: pointer; transition: 0.12s; }
 .db-fl.on { border-color: var(--accent); color: var(--ink); background: rgba(167, 139, 250, 0.14); }
 /* Element filters carry their own colour (set inline) — a dot + tinted label. */
@@ -2542,8 +2582,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   /* Fixed-height panel: compact header + collapsed sections on top, the card pool
      fills the rest and scrolls on its own (no more scrolling the whole modal past
      the composition + saved decks to reach the cards). */
+  /* `width: 100%`, not `auto`. The overlay is a grid with `place-items: center`,
+     so an auto-width modal is sized by its WIDEST CHILD — which was the filter
+     chip rows. Collapsing them therefore narrowed the whole builder from 376px
+     to 246px and dropped the card grid from three columns to two: hiding the
+     filters made the cards BIGGER and fewer, which is the opposite of the point.
+     The width now comes from the screen. */
   .deck-builder {
-    width: auto; height: calc(100dvh - 20px); max-height: none; padding: 14px;
+    width: 100%; height: calc(100dvh - 20px); max-height: none; padding: 14px;
     display: flex; flex-direction: column; overflow: hidden;
   }
   .db-head { flex: none; margin-bottom: 6px; }
@@ -2632,7 +2678,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    that fills the wide, short screen. Ordered after the max-width:720px block so
    it wins for a small landscape phone that matches both. */
 @media (max-height: 540px) {
-  .deck-builder { width: auto; height: calc(100dvh - 12px); max-height: none; padding: 10px 12px; }
+  .deck-builder { width: 100%; height: calc(100dvh - 12px); max-height: none; padding: 10px 12px; }
   .db-head { margin-bottom: 4px; }
   .db-body { flex-direction: row; align-items: stretch; gap: 12px; }
   .db-side { width: 200px; flex: none; max-height: none; }

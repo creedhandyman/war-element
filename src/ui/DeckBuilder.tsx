@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CardClass, Element } from "../engine";
+import type { CardClass, Element, Keyword } from "../engine";
 import { getDef, SPELLS } from "../engine";
 import {
   buildableCards,
@@ -10,7 +10,7 @@ import {
 import { STANDARD_CAP, autoDeck } from "../data/story";
 import { deleteSquad, loadSquads, saveSquad, squadNamed, squadUsableIn, type Squad } from "../data/squads";
 import { deckLinkFor, decodeDeck, encodeDeck } from "../data/deck-code";
-import { EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE, spellArtSrc } from "./shared";
+import { EL_COLOR, EL_ICON, ELEMENTS, KEYWORD_STYLE, KEYWORDS, RARITY_STYLE, spellArtSrc } from "./shared";
 import { CardView } from "./CardView";
 import { DeckStats, useComposition } from "./DeckStats";
 import { SpIcon } from "./icons";
@@ -115,6 +115,20 @@ export function DeckBuilder(props: {
   const [pickedSpells, setPickedSpells] = useState<string[]>([]);
   const [filter, setFilter] = useState<Element | "ALL">("ALL");
   const [classFilter, setClassFilter] = useState<CardClass | "ALL">("ALL");
+  /** Keyword filter. The one axis the builder could not search on: "show me the
+   *  FLYING cards" was a question you had to answer by reading every card. */
+  const [kw, setKw] = useState<Keyword | "ALL">("ALL");
+  /** Are the filter rows showing? Four rows of chrome sit between the search box
+   *  and the first card, which on a phone is most of the screen. Collapsed is
+   *  remembered, because it is a preference about how you browse rather than a
+   *  state of this particular visit. */
+  const [filtersOpen, setFiltersOpen] = useState<boolean>(() => {
+    try { return localStorage.getItem("we_db_filters") !== "0"; } catch { return true; }
+  });
+  const toggleFilters = () => setFiltersOpen((v) => {
+    try { localStorage.setItem("we_db_filters", v ? "0" : "1"); } catch { /* ignore */ }
+    return !v;
+  });
   const [sortBy, setSortBy] = useState<SortKey>("cost");
   const [query, setQuery] = useState("");
   /** Phone only: the deck rail is a BAR by default and rises over the pool when
@@ -157,6 +171,7 @@ export function DeckBuilder(props: {
       (c) =>
         (filter === "ALL" || c.element === filter) &&
         (classFilter === "ALL" || c.cardClass === classFilter) &&
+        (kw === "ALL" || !!c.keywords[kw]) &&
         (q === "" || c.name.toLowerCase().includes(q)),
     );
     return [...base].sort((a, b) => {
@@ -165,7 +180,19 @@ export function DeckBuilder(props: {
         return rarityRank(a.rarity) - rarityRank(b.rarity) || a.cost - b.cost || a.name.localeCompare(b.name);
       return a.cost - b.cost || rarityRank(a.rarity) - rarityRank(b.rarity) || a.name.localeCompare(b.name);
     });
-  }, [pool, filter, classFilter, sortBy, query]);
+  }, [pool, filter, classFilter, kw, sortBy, query]);
+
+  /** What is narrowing the grid right now. Sort is NOT a filter and is left out
+   *  on purpose: it changes the order, never the contents, so listing it would
+   *  make a collapsed row claim to be hiding cards it is not. */
+  const filterSummary = [
+    filter !== "ALL" ? filter : null,
+    classFilter !== "ALL" ? classFilter : null,
+    kw !== "ALL" ? kw : null,
+    query.trim() ? `"${query.trim()}"` : null,
+  ].filter(Boolean) as string[];
+  const anyFilter = filterSummary.length > 0;
+  const clearFilters = () => { setFilter("ALL"); setClassFilter("ALL"); setKw("ALL"); setQuery(""); };
   const pickedSet = new Set(picked);
   const check = story
     ? picked.length === 0
@@ -808,6 +835,27 @@ export function DeckBuilder(props: {
                 <button className="db-search-x" onClick={() => setQuery("")} aria-label="Clear search">✕</button>
               )}
             </div>
+            {/* ONE button for the whole filter block. Collapsed, the rows go
+                and the cards come up the screen; what does NOT go is the state
+                of the filters — an active filter with its controls hidden is a
+                grid that looks broken, so the summary below carries it. */}
+            <button
+              className={`db-filtoggle ${filtersOpen ? "open" : ""} ${anyFilter ? "active" : ""}`}
+              onClick={toggleFilters}
+              aria-expanded={filtersOpen}
+            >
+              <span className="dbf-lbl">Filters</span>
+              {!filtersOpen && (
+                <span className="dbf-sum">
+                  {anyFilter
+                    ? filterSummary.map((t) => <em key={t}>{t}</em>)
+                    : <em className="dbf-none">All cards</em>}
+                </span>
+              )}
+              <span className="dbf-count">{shown.length}</span>
+              <i className="dbf-chev" aria-hidden="true">{filtersOpen ? "▴" : "▾"}</i>
+            </button>
+            {filtersOpen && (<>
             <div className="db-filters">
               <button className={`db-fl ${filter === "ALL" ? "on" : ""}`} onClick={() => setFilter("ALL")}>All</button>
               {/* Always in the element's own colour — a wall of identical grey
@@ -858,6 +906,37 @@ export function DeckBuilder(props: {
                 );
               })}
             </div>
+            <div className="db-sort db-kw">
+              <span className="db-sort-lbl">Keyword</span>
+              <button className={`db-fl ${kw === "ALL" ? "on" : ""}`} onClick={() => setKw("ALL")}>All</button>
+              {KEYWORDS.map((k) => {
+                // Dimmed rather than hidden when the other filters leave none,
+                // exactly like the class row: a row that reshuffles as you
+                // change element is harder to hit than one that stays put.
+                const n = pool.filter(
+                  (d) => !!d.keywords[k]
+                    && (filter === "ALL" || d.element === filter)
+                    && (classFilter === "ALL" || d.cardClass === classFilter),
+                ).length;
+                const st = KEYWORD_STYLE[k];
+                return (
+                  <button
+                    key={k}
+                    className={`db-fl db-kwfl ${kw === k ? "on" : ""}`}
+                    onClick={() => setKw(kw === k ? "ALL" : k)}
+                    style={{
+                      borderColor: st?.color,
+                      color: st?.color,
+                      background: kw === k ? `color-mix(in srgb, ${st?.color} 26%, transparent)` : undefined,
+                      ...(n === 0 && kw !== k ? { opacity: 0.35 } : null),
+                    }}
+                    title={`${n} card${n === 1 ? "" : "s"} with ${k}`}
+                  >
+                    <i aria-hidden="true">{st?.glyph}</i>{k}
+                  </button>
+                );
+              })}
+            </div>
             <div className="db-sort">
               <span className="db-sort-lbl">Sort</span>
               {SORTS.map(([key, label]) => (
@@ -876,7 +955,11 @@ export function DeckBuilder(props: {
               <span className="db-shown">
                 {shown.length === pool.length ? `${shown.length} cards` : `${shown.length} shown`}
               </span>
+              {anyFilter && (
+                <button className="db-fl db-clear" onClick={clearFilters}>Clear</button>
+              )}
             </div>
+            </>)}
             <div className="db-grid">
               {shown.map((d) => {
                 const on = pickedSet.has(d.id);

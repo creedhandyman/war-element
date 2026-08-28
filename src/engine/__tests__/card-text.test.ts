@@ -7,6 +7,8 @@ import { describe, expect, it } from "vitest";
 import { CARDS, TOKENS } from "../../data/cards";
 import { SPELLS } from "../spells";
 import { describePassives } from "../../ui/card-text";
+import { KEYWORDS, KEYWORD_STYLE } from "../../ui/shared";
+import { buildableCards } from "../../data/custom-decks";
 import { hasArcDischarge } from "../auras";
 
 /** Card-def fields that carry a real ability the player should be told about.
@@ -332,5 +334,33 @@ describe("the card text does not promise a passive the card lacks", () => {
       return t.includes("ARC");
     });
     expect(arc.length, "out of a tribe this size").toBeGreaterThan(12);
+  });
+});
+
+
+// The builder and the collection both filter by KEYWORD now. A pill that can
+// never match anything is a dead control, and a pill with no glyph is a blank
+// one — neither is visible by reading the filter code.
+describe("the keyword filter rows", () => {
+  it("lists every keyword exactly once", () => {
+    expect(new Set(KEYWORDS).size, "no repeats").toBe(KEYWORDS.length);
+  });
+
+  it("gives every keyword a glyph to render", () => {
+    for (const k of KEYWORDS) {
+      expect(KEYWORD_STYLE[k], `${k} has no pip style`).toBeTruthy();
+      expect(KEYWORD_STYLE[k].glyph, `${k} glyph`).toBeTruthy();
+      expect(KEYWORD_STYLE[k].color, `${k} colour`).toBeTruthy();
+    }
+  });
+
+  it("offers no keyword that no card carries", () => {
+    // Buildable cards only: the filters run over the draftable pool, so a
+    // keyword that exists solely on a boss or a token would still be a pill
+    // that always empties the grid.
+    for (const k of KEYWORDS) {
+      const n = buildableCards().filter((d) => !!d.keywords[k]).length;
+      expect(n, `${k} matches no buildable card`).toBeGreaterThan(0);
+    }
   });
 });

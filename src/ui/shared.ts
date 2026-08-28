@@ -1,6 +1,6 @@
 // Tiny UI-shared bits (no game rules here).
 
-import type { Element, StatusKind } from "../engine";
+import type { Element, Keyword, StatusKind } from "../engine";
 
 // Element colors — the redesign palette (brighter, reads on the cosmic board).
 /** THE element order, wherever a UI lists all eight.
@@ -125,6 +125,17 @@ export const KEYWORD_STYLE: Record<string, { glyph: string; color: string }> = {
   REGEN: { glyph: "✚", color: "#7fd89a" },
   TRAMPLE: { glyph: "🐾", color: "#c9a06a" },
 };
+
+/** Every keyword, in pip order, for the filter rows.
+ *
+ *  Derived from an EXHAUSTIVE record rather than written as an array: a new
+ *  entry on the `Keyword` union then fails to compile until it is listed here,
+ *  instead of quietly never appearing as a filter. */
+const ALL_KEYWORDS: Record<Keyword, true> = {
+  FLYING: true, STEALTH: true, EVASION: true, BLOCK: true, REFLECT: true, PEN: true,
+  LIFESTEAL: true, DRAIN: true, CRIT: true, REGEN: true, TRAMPLE: true,
+};
+export const KEYWORDS = Object.keys(ALL_KEYWORDS) as Keyword[];
 
 export type Selection =
   | { kind: "hand"; handId: string }
