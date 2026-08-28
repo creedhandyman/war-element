@@ -593,7 +593,7 @@ export interface CardDef {
    *
    *  For things that are furniture rather than combatants. The Fortress Gates
    *  put FIVE entries into every Void Tower queue reading "CAN'T ACT", one per
-   *  column, every single round of a 24-round fight: a wall of noise in the one
+   *  column, every single round of a tower fight: a wall of noise in the one
    *  display whose entire job is telling the player what is about to happen and
    *  in what order.
    *
@@ -2401,7 +2401,7 @@ export const MAX_ROUNDS = 50;
  *  Permafrost's whole body by FIVE moved it from 10% to 20%, because a boss
  *  that survives 40 rounds and one that survives 20 both lose to a clock at 50.
  *
- *  24 rounds gives the boss a real win condition — hold out — which is exactly
+ *  The clock gives the boss a real win condition — hold out — which is exactly
  *  the shape the fights already had, at a length a phone can hold. It is also
  *  the number the mode was already telling you: the Special fires every 3
  *  rounds, so a Void Tower fight is eight casts, start to finish, and you can
@@ -2442,7 +2442,15 @@ export const VOID_BOSS_INCOME = 2;
  *  answer it that every other threat in this mode gives you. */
 export const OVERRUN_HOLD_ROUNDS = 2;
 
-export const VOID_TOWER_ROUNDS = 24;
+/** The clock a Void Tower fight is played against: slay the boss inside this
+ *  many rounds or it wins by timeout.
+ *
+ *  24 -> 30 at the owner's call. Not a small dial — TIMEOUT is how most of the
+ *  tower's bosses actually win (Kazehaya bare took 72 of its 96 wins that way,
+ *  Kato 70), so six more rounds is six more chances at the kill on precisely
+ *  the fights that were running out of clock. Measured after the change; see
+ *  the Floor 3/4 table in CLAUDE.md. */
+export const VOID_TOWER_ROUNDS = 30;
 
 /** The back row a player summons into and defends. P2 is always row 0; P1 is
  *  the far edge, which depends on how big the board is — hence the required

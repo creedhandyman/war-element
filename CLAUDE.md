@@ -1042,7 +1042,7 @@ matches, story and arena are untouched, and control tests pin that):
   left the boss padlocking all five home slots permanently: the player could
   never summon again, was not losing, and could not continue. A capture that
   cannot win the game must not be permanent.
-- **24-round clock** (`VOID_TOWER_ROUNDS`), and running it out is the BOSS's
+- **30-round clock** (`VOID_TOWER_ROUNDS`), and running it out is the BOSS's
   win. Without it the boss had no realistic path — player kills ONE card, boss
   must eliminate thirty-one — so "winning" meant outlasting the global 50-round
   limit at 43-48 rounds. That made survival-to-50 the only dial and it barely
@@ -1075,7 +1075,7 @@ Fairness is on-device.
 in a Void Tower fight, if the boss's side occupies EVERY slot of the player's
 home row at Cleanup, the boss wins outright (7z in `doCleanupPhase`). The mode
 switches the slot race off entirely — capture disabled, player wins by slaying,
-boss by elimination or the 24-round clock — which left the boss no way to win the
+boss by elimination or the round clock — which left the boss no way to win the
 board, only to survive it. A brood standing in all of your back line had beaten
 you and still had to wait out the clock.
 
@@ -1191,10 +1191,14 @@ WORKED:
     161, under Floor 1's 170 cap), Skeleeze 12/105 -> 30/110, Helion 8/70 -> 14/90.
 
 DID NOT WORK — do not retry:
-  * **A LONGER CLOCK MAKES BOSSES WEAKER, NOT STRONGER.** Running the clock out
-    is a BOSS win (`VOID_TOWER_ROUNDS`), so extending it 24 -> 30 just hands the
-    player more time to slay: Rotroot 40.6 -> 13.5, Xilty 46.9 -> 10.4, Hoarfell
-    30.2 -> 9.4. It reads like "more time to break the wall" and is the opposite.
+  * **A LONGER CLOCK MAKES BOSSES WEAKER, NOT STRONGER** — and the tower now
+    RUNS AT 30 anyway, at the owner's call, with the cost known and accepted.
+    Running the clock out is a BOSS win (`VOID_TOWER_ROUNDS`), so every round
+    added is a round the player gets to keep swinging. Measured twice, years
+    apart in this file's terms, and it points the same way both times. See
+    "THE CLOCK IS 30" below for the current numbers. Left in this list because
+    the INSTINCT it corrects is still wrong: it reads like "more time to break
+    the wall" and it is the opposite.
   * **Speed did not save Permafrost.** Advancing every round instead of every
     second measured WORSE (11.5 -> 9.4). Its kit has no answer to masonry at all —
     Whiteout only fires on targets at 6 HP or less, so a 20 HP gate is invisible
@@ -1255,7 +1259,30 @@ one you had to buy is one you would never field); **one per fight**; enraged
 means **buffed stats**, not just a label; a use is spent on **entering**, win or
 lose (paying at settle would make it farmable by conceding at round one).
 
-**FLOOR 3/4 AFTER ANTI-AIR — measured, boss win %, n=96 per cell:**
+**THE CLOCK IS 30 ROUNDS** (`VOID_TOWER_ROUNDS`, was 24) — owner's call, and it
+is the single biggest lever on tower difficulty because TIMEOUT is how most of
+these bosses win. Boss win %, n=96, measured before and after:
+
+| | bare 24 | bare 30 | ally 24 | ally 30 |
+| --- | --- | --- | --- | --- |
+| Xilty | 78.1 | 40.6 | 46.9 | 20.8 |
+| Hoarfell | 68.8 | 39.6 | 18.8 | 7.3 |
+| Thunderfangs | 92.7 | 86.5 | 54.2 | 49.0 |
+| Vulcanyx | 69.8 | 57.3 | 47.9 | 38.5 |
+| **Floor 3 avg** | **77.4** | **56.0** | **42.0** | **28.9** |
+| Umbranova | 92.7 | 90.6 | 32.3 | 28.1 |
+| Cryovex | 97.9 | 90.6 | 44.8 | 27.1 |
+| Kazehaya | 96.9 | 82.3 | 45.8 | 26.0 |
+| Kato | 84.4 | 76.0 | 51.0 | 28.1 |
+| **Floor 4 avg** | **93.0** | **84.9** | **43.5** | **27.3** |
+
+Floor 3 lost 21 points bare; Floor 4 lost 8. The floors that were tuned to the
+24-round clock are all now easier than the numbers recorded against them, and
+Xilty and Hoarfell (40 / 39.6 bare) have fallen out of band entirely. Re-tune
+against THIS table, not the ones above it.
+
+**FLOOR 3/4 AFTER ANTI-AIR — measured at the OLD 24-round clock, kept for the
+anti-air delta rather than as current difficulty:**
 
 | | bare | with ally |
 | --- | --- | --- |

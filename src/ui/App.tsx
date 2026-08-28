@@ -1108,7 +1108,7 @@ export function App() {
       }
       // ...and a TAMED boss fights alongside them, seated the same way the enemy
       // boss is: on the board at round one, outside the economy. It has to be —
-      // a 12-cost mythic is not something a 24-round tower fight ever affords,
+      // a 12-cost mythic is not something a tower fight ever affords,
       // so a tamed boss you had to buy would be a tamed boss you never fielded.
       // Half of everything (`TAME_SCALE`) and three battles is what pays for it.
       //

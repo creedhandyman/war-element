@@ -70,7 +70,8 @@ describe("the roster", () => {
     // happened, which is five of seven quietly sitting 13 to 78 points under
     // their floor's budget because only the ceiling was ever checked.
     //
-    // Against AI-piloted premades on the 24-round clock these land at:
+    // Against AI-piloted premades on the OLD 24-round clock these landed at
+    // (the clock is 30 now — see CLAUDE.md for the current table):
     // Rotroot 53% · Permafrost 47% · Nightshrike 67% · Basilisk 70% ·
     // Overclock 73% · Xilty 73% · Skeleeze 77%. Change a number, re-measure.
     // FLOORS 3 AND 4 WERE RE-TUNED WHOLESALE once boss taming shipped, so the
@@ -481,7 +482,7 @@ describe("the player opens with the boss's gold", () => {
   });
 });
 
-describe("the 24-round clock", () => {
+describe("the tower clock", () => {
   // Once the slot race came off, the boss had no realistic way to win: the
   // player wins by killing ONE card and the boss by eliminating thirty-one. The
   // three that did "win" were not winning, they were OUTLASTING the 50-round
@@ -962,7 +963,7 @@ describe("the Fortress Gates", () => {
 
   it("a gate is SCENERY — it never enters the speed queue", () => {
     // Five gates were putting five "CAN'T ACT" rows into every queue, every
-    // round of a 24-round fight, in the display whose whole job is telling the
+    // round of a tower fight, in the display whose whole job is telling the
     // player what is about to happen and in what order.
     const s = bigPrepState();
     for (const seat of voidGateSeats(s.boardSize)) place(s, VOID_GATE, "P1", seat.row, seat.col);

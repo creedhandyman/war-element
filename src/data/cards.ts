@@ -10094,7 +10094,7 @@ export const CARDS: CardDef[] = [
     // A GLACIER: one slot every second round, and it never stops. It was every
     // FOURTH, which was the right pace for an empty board and hopeless once the
     // Fortress Gates went up — Permafrost could not cross the board AND break
-    // five gates inside a 24-round clock, and read 6.3%. Its Special cannot help
+    // five gates inside the then-24-round clock, and read 6.3%. Its Special cannot help
     // either: Whiteout only fires on targets at 6 HP or less, so a 20 HP gate is
     // invisible to it. Speed is the only lever it has.
     passiveNames: { roundTick: "Glacial Creep" },
@@ -10294,7 +10294,7 @@ export const CARDS: CardDef[] = [
     attackType: "Melee",
     cost: 12,
     // The nearest to the band already — it reached round 30 unaided — so this
-    // is the lightest hand on the tower: enough body to hold a 24-round clock,
+    // is the lightest hand on the tower: enough body to hold the clock,
     // and REGEN + LIFESTEAL keep doing the rest.
     dmg: 12,
     hits: 1,
@@ -10603,7 +10603,7 @@ export const CARDS: CardDef[] = [
     // the player's only wins coming by slaying. The pack was not the cause —
     // halving Pack Law's cap moved it 1 point and removing the wolves ENTIRELY
     // moved it 4 — because the wolves are bodies, and bodies are not what the
-    // 24-round clock is spent on. The BODY is.
+    // clock is spent on. The BODY is.
     //
     // Still the smallest printed line on Floor 3, which was always the design:
     // most of this card's damage is borrowed from the pack and handed back as
@@ -11400,7 +11400,7 @@ export const TOKENS: CardDef[] = [
     },
     // Masonry: it is a PIECE, not a combatant, so it never enters the speed
     // queue. Five gates were adding five "CAN'T ACT" rows to the queue every
-    // round of a 24-round fight — for both sides, since the display shows the
+    // round of a tower fight — for both sides, since the display shows the
     // whole board's order. It still stands, still screens, still has to be
     // broken; it just does not queue up to do nothing.
     noBattleTurn: true,

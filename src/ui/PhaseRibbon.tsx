@@ -23,7 +23,7 @@ export function PhaseRibbon(props: { game: GameState }) {
     <div className="phase-ribbon">
       {/* Deployment runs at round 0, before the first round proper. Showing
           "ROUND 1" there would claim the match had started. */}
-      {/* A Void Tower fight is on a 24-round clock and running it out is a
+      {/* A Void Tower fight is on a fixed clock and running it out is a
           LOSS, so the chip counts down instead of up. A timer you cannot see is
           not a puzzle, it is an ambush; this is the only place the player looks
           for the round, so it is where the deadline belongs. Turns urgent on
