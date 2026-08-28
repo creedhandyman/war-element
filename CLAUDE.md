@@ -1255,6 +1255,34 @@ one you had to buy is one you would never field); **one per fight**; enraged
 means **buffed stats**, not just a label; a use is spent on **entering**, win or
 lose (paying at settle would make it farmable by conceding at round one).
 
+**EVERY BOSS ANSWERS FLYING (`antiAir`), and the audit method is the lesson.**
+FLYING is immunity to melee and the tower is mostly melee. Reading the defs said
+six bosses were stuck; TESTING said **eleven**. The five the field audit let
+through were the ones whose Specials apply a grounding status — they could not
+land ROOT or FREEZE on a flier because they could not TARGET one, so the answer
+needed the answer. Audit reach by firing the thing, not by reading what it says.
+
+`antiAir` is a Special param that lifts ONLY the FLYING dodge. `ranged` would
+also have worked and is the wrong tool: `asRanged` skips the whole melee block,
+so it discards the Special's printed `reach` and turns "within 2 spaces" back
+into the board-wide nova that was already fixed once. A test now fires every
+boss at a flier, so this cannot regress.
+
+**LEAF bark is a FLAT cap of 3, not printed + 3.** The old ceiling handed an
+armoured LEAF card three shields ON TOP of its print every round it was struck,
+so it ended rounds harder to kill than it started. Stated cost, pinned by test:
+a card printing MORE than 3 (Thorn, Trinezer, Elderroot, Warden, Dandelion,
+Sakuroot) is pulled down to the line by damage and held there — it does not get
+its last points back. That is the trade the old rule existed to avoid, in the
+other direction.
+
+**Token spawns search NEAREST RING OUTWARD.** `spawnTokens` searched ring 1 and
+then fell back to a whole-board row sweep ordered most-forward-first, so the
+moment the adjacent square was taken the token deployed to the furthest forward
+slot on the board — a card standing in front of the spawner sent its own spawn
+to the other end of the battlefield. The ring loop now runs to the board's
+width and the fallback is gone.
+
 **ENRAGE IS 1.5** (was 1.25) — half again on every line including the Special,
 since it runs through the same `statScale`. The Floor 3/4 numbers below were
 measured at 1.25 and are NOT re-measured for this; the enraged fight is a

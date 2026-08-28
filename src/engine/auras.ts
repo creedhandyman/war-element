@@ -52,7 +52,7 @@ export const AQUA_TIDE_EVERY = 2;
 export const AQUA_TIDE_MAX = 4;
 
 export const ELEMENT_AURA: Record<Element, AuraDef> = {
-  LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP — plus 1 more for every ROOTed opponent — and gain +1 shield per hit they took that round, up to 3 above their printed shields." },
+  LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP — plus 1 more for every ROOTed opponent — and regrow +1 shield per hit they took that round, up to 3 shields total." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
   BORE: { name: "Exostone", desc: "Enters play with shields by rarity — Rare 2, Epic 2, Legendary 3, Mythic 4. Never loses more than 1 shield to a single hit, however heavy." },
   DUSK: { name: "Midnight Shade", desc: "On death, deals its full DMG back to the killer, and the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%)." },
@@ -188,13 +188,18 @@ export const DAWN_STRIKE_DIVISOR = 1;
  *  Well under GALE's 21 either way: speed stays GALE's identity. */
 export const DAWN_SP_CAP = 12;
 
-/** How much armour Photosynthesis may add ON TOP OF a card's printed shields.
- *  Uncapped, a LEAF card under sustained fire would plate up faster than it
- *  could be chewed through and the aura would stop being a comeback mechanic
- *  and start being a stall engine.
+/** The most armour Photosynthesis will regrow a LEAF card to — a FLAT TOTAL,
+ *  not a bonus on top of its printed shields.
  *
- *  This is a BONUS cap, not a total. Read as a total it silently excluded every
- *  LEAF card printing 3+ shields from its own element aura. */
+ *  It was `printed + 3`, and that is what made the aura a stall engine: a card
+ *  that prints armour finished a round harder to kill than it started, every
+ *  round it was struck. Bark regrows to a fixed line and stops.
+ *
+ *  The known cost, stated rather than discovered: the six LEAF cards printing
+ *  3+ shields (Thorn, Trinezer, Elderroot, Warden, Dandelion, Sakuroot) start
+ *  at or above the line and so gain nothing from this half of their own element
+ *  aura. That was the reason the +3 bonus existed. It is the owner's call which
+ *  end of the roster to favour, and this is the end that stops the stall. */
 export const LEAF_SHIELD_CAP = 3;
 
 

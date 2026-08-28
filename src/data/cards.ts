@@ -9902,7 +9902,14 @@ export const CARDS: CardDef[] = [
       cost: 3,
       handler: "barrage",
       // reach 2 = the widened melee square, Kraken's Black Wave Crash precedent.
-      params: { dmg: 7, targets: 99, reach: 2, statusKind: "ROOT", statusDuration: 2 },
+      // ANTI-AIR. Every melee boss on the tower was unanswerable-proof against
+      // FLYING, and that included the ones whose Specials apply a grounding
+      // status: they could not land ROOT or FREEZE on a flier because they
+      // could not TARGET one, so the answer needed the answer. `antiAir` lifts
+      // only the FLYING dodge — `ranged` would have worked too and would also
+      // have thrown away this Special's printed radius.
+      params: {
+        antiAir: 1, dmg: 7, targets: 99, reach: 2, statusKind: "ROOT", statusDuration: 2 },
       targetSide: "enemy",
       text: "Deal 7 DMG and ROOT for 2 rounds to every opponent within 2 spaces.",
     },
@@ -10034,7 +10041,14 @@ export const CARDS: CardDef[] = [
       // the board freezes around Xilty while you can still fight back. That is
       // a spider's Special rather than a stun, and it is the half that makes
       // approaching Xilty a decision.
+      // ANTI-AIR. Every melee boss on the tower was unanswerable-proof against
+      // FLYING, and that included the ones whose Specials apply a grounding
+      // status: they could not land ROOT or FREEZE on a flier because they
+      // could not TARGET one, so the answer needed the answer. `antiAir` lifts
+      // only the FLYING dodge — `ranged` would have worked too and would also
+      // have thrown away this Special's printed radius.
       params: {
+        antiAir: 1,
         statusKind: "PARALYZE", statusDuration: 1, targets: 99, reach: 2,
         debuffStatus: "ROOT", debuffStatusRounds: 2,
       },
@@ -10094,7 +10108,14 @@ export const CARDS: CardDef[] = [
       // in the set could chew through — the boss sat at 90% HP, untouched,
       // behind a wall it thickened for free every third round. A wall you are
       // meant to "break through, or go around" has to be finite.
-      params: { underHp: 6, freeze: 2, allyShield: 1 },
+      // ANTI-AIR. Every melee boss on the tower was unanswerable-proof against
+      // FLYING, and that included the ones whose Specials apply a grounding
+      // status: they could not land ROOT or FREEZE on a flier because they
+      // could not TARGET one, so the answer needed the answer. `antiAir` lifts
+      // only the FLYING dodge — `ranged` would have worked too and would also
+      // have thrown away this Special's printed radius.
+      params: {
+        antiAir: 1, underHp: 6, freeze: 2, allyShield: 1 },
       targetSide: "enemy",
       ranged: true, // board-wide, like Polar King's own cast
       text: "FREEZE every opponent at 6 HP or less for 2 rounds, and every ally gains +2 shields.",
@@ -10149,7 +10170,14 @@ export const CARDS: CardDef[] = [
       // is "AoE it, or choke the approach"; a line you can never get ahead of
       // is not a puzzle, it is a clock you lose to. Four standing Drones is a
       // wall you must clear, and it re-stamps the moment you do.
-      params: { token: "bolt_firebolt_tok", count: 2, maxAlive: 4 },
+      // ANTI-AIR. Every melee boss on the tower was unanswerable-proof against
+      // FLYING, and that included the ones whose Specials apply a grounding
+      // status: they could not land ROOT or FREEZE on a flier because they
+      // could not TARGET one, so the answer needed the answer. `antiAir` lifts
+      // only the FLYING dodge — `ranged` would have worked too and would also
+      // have thrown away this Special's printed radius.
+      params: {
+        antiAir: 1, token: "bolt_firebolt_tok", count: 2, maxAlive: 4 },
       targetSide: "self",
       text: "Stamp out 2 Firebolt Drones beside it, up to 4 at once — each one burns what it shoots and detonates when it falls.",
     },
@@ -10318,7 +10346,14 @@ export const CARDS: CardDef[] = [
       // At reach 2 the pacing becomes the point instead of the problem: it
       // withers what it circles. Which is also what a basilisk does — the gaze
       // is a look, not a touch.
-      params: { dmg: 5, targets: 3, drain: 2, reach: 2 },
+      // ANTI-AIR. Every melee boss on the tower was unanswerable-proof against
+      // FLYING, and that included the ones whose Specials apply a grounding
+      // status: they could not land ROOT or FREEZE on a flier because they
+      // could not TARGET one, so the answer needed the answer. `antiAir` lifts
+      // only the FLYING dodge — `ranged` would have worked too and would also
+      // have thrown away this Special's printed radius.
+      params: {
+        antiAir: 1, dmg: 5, targets: 3, drain: 2, reach: 2 },
       targetSide: "enemy",
       text: "5 DMG and DRAIN 2 max HP from up to 3 opponents within 2 spaces.",
     },
@@ -10444,7 +10479,14 @@ export const CARDS: CardDef[] = [
       cost: 3,
       handler: "barrage",
       // reach 2 = the widened melee square, the Kraken/Rotroot precedent.
-      params: { dmg: 10, targets: 99, reach: 2, statusKind: "BLIND", statusDuration: 2 },
+      // ANTI-AIR. Every melee boss on the tower was unanswerable-proof against
+      // FLYING, and that included the ones whose Specials apply a grounding
+      // status: they could not land ROOT or FREEZE on a flier because they
+      // could not TARGET one, so the answer needed the answer. `antiAir` lifts
+      // only the FLYING dodge — `ranged` would have worked too and would also
+      // have thrown away this Special's printed radius.
+      params: {
+        antiAir: 1, dmg: 10, targets: 99, reach: 2, statusKind: "BLIND", statusDuration: 2 },
       targetSide: "enemy",
       text: "10 DMG and BLIND for 2 rounds to every opponent within 2 spaces — and Whiteout Hunter adds 5 to everything it lands on the blinded.",
     },
@@ -10522,7 +10564,14 @@ export const CARDS: CardDef[] = [
       // reach-2 nova, and the tight radius is what distinguishes this one. `pen`
       // stays — that is about SHIELDS, not distance, and lava does not care what
       // you are holding up.
+      // ANTI-AIR. Every melee boss on the tower was unanswerable-proof against
+      // FLYING, and that included the ones whose Specials apply a grounding
+      // status: they could not land ROOT or FREEZE on a flier because they
+      // could not TARGET one, so the answer needed the answer. `antiAir` lifts
+      // only the FLYING dodge — `ranged` would have worked too and would also
+      // have thrown away this Special's printed radius.
       params: {
+        antiAir: 1,
         dmg: 11, pen: 1, targets: 99,
         statusKind: "BURN", statusDuration: 2, statusPower: 3,
       },
@@ -10623,7 +10672,14 @@ export const CARDS: CardDef[] = [
       name: "Thunder Run",
       cost: 3,
       handler: "barrage",
+      // ANTI-AIR. Every melee boss on the tower was unanswerable-proof against
+      // FLYING, and that included the ones whose Specials apply a grounding
+      // status: they could not land ROOT or FREEZE on a flier because they
+      // could not TARGET one, so the answer needed the answer. `antiAir` lifts
+      // only the FLYING dodge — `ranged` would have worked too and would also
+      // have thrown away this Special's printed radius.
       params: {
+        antiAir: 1,
         dmg: 9, targets: 99, reach: 2,
         statusKind: "ELECTRIFIED", statusDuration: 2,
       },
@@ -10668,7 +10724,14 @@ export const CARDS: CardDef[] = [
       name: "Thunder Run",
       cost: 3,
       handler: "barrage",
+      // ANTI-AIR. Every melee boss on the tower was unanswerable-proof against
+      // FLYING, and that included the ones whose Specials apply a grounding
+      // status: they could not land ROOT or FREEZE on a flier because they
+      // could not TARGET one, so the answer needed the answer. `antiAir` lifts
+      // only the FLYING dodge — `ranged` would have worked too and would also
+      // have thrown away this Special's printed radius.
       params: {
+        antiAir: 1,
         dmg: 11, targets: 99, reach: 2,
         statusKind: "ELECTRIFIED", statusDuration: 2,
       },
@@ -10853,7 +10916,14 @@ export const CARDS: CardDef[] = [
       // clocks on everything nearby, and Deep Freeze (+4 a round held, to +16)
       // is what turns them into damage — so a wider radius compounds through
       // the ramp rather than just hitting harder once.
+      // ANTI-AIR. Every melee boss on the tower was unanswerable-proof against
+      // FLYING, and that included the ones whose Specials apply a grounding
+      // status: they could not land ROOT or FREEZE on a flier because they
+      // could not TARGET one, so the answer needed the answer. `antiAir` lifts
+      // only the FLYING dodge — `ranged` would have worked too and would also
+      // have thrown away this Special's printed radius.
       params: {
+        antiAir: 1,
         dmg: 12, targets: 99, reach: 3,
         statusKind: "FREEZE", statusDuration: 2,
       },
@@ -10947,7 +11017,14 @@ export const CARDS: CardDef[] = [
       // is now retired: at 15 the Special is a real threat on its own, and 15 is
       // also the Riposte's threshold — the boss hits its own magic number with
       // both hands.
+      // ANTI-AIR. Every melee boss on the tower was unanswerable-proof against
+      // FLYING, and that included the ones whose Specials apply a grounding
+      // status: they could not land ROOT or FREEZE on a flier because they
+      // could not TARGET one, so the answer needed the answer. `antiAir` lifts
+      // only the FLYING dodge — `ranged` would have worked too and would also
+      // have thrown away this Special's printed radius.
       params: {
+        antiAir: 1,
         dmg: 15, targets: 99, reach: 3, pullToCaster: 2,
         statusKind: "ROOT", statusDuration: 1,
       },
@@ -11083,7 +11160,14 @@ export const CARDS: CardDef[] = [
       // on things the pounce was already killing, so 11 is the whole gain at
       // the smaller number. The control matters as much as the result: one 9
       // read 61.5%, so the lift is the second spring, not the numbers.
+      // ANTI-AIR. Every melee boss on the tower was unanswerable-proof against
+      // FLYING, and that included the ones whose Specials apply a grounding
+      // status: they could not land ROOT or FREEZE on a flier because they
+      // could not TARGET one, so the answer needed the answer. `antiAir` lifts
+      // only the FLYING dodge — `ranged` would have worked too and would also
+      // have thrown away this Special's printed radius.
       params: {
+        antiAir: 1,
         dmg: 11, pen: 1, chargeFirst: 1, charge: 2, chargeLateral: 1,
         takeSpotOnKill: 1, pounceAgain: 1,
         statusKind: "ELECTRIFIED", statusDuration: 2,
@@ -11230,7 +11314,14 @@ export const CARDS: CardDef[] = [
       // ROOT rides along — which is also the right way round for the fiction:
       // the roots take hold, and everything they hold is already on fire.
       // Matched to the rest of the kit at 3 rounds (Ember Grain's BURN 3/3).
+      // ANTI-AIR. Every melee boss on the tower was unanswerable-proof against
+      // FLYING, and that included the ones whose Specials apply a grounding
+      // status: they could not land ROOT or FREEZE on a flier because they
+      // could not TARGET one, so the answer needed the answer. `antiAir` lifts
+      // only the FLYING dodge — `ranged` would have worked too and would also
+      // have thrown away this Special's printed radius.
       params: {
+        antiAir: 1,
         dmg: 8, targets: 99, reach: 2,
         statusKind: "BURN", statusDuration: 3, statusPower: 3,
         debuffStatus: "ROOT", debuffStatusRounds: 2,
@@ -11357,10 +11448,14 @@ export const TOKENS: CardDef[] = [
     // It is a RUNAWAY, not a bodyguard: heavy enough to hurt on the way through
     // and thin enough that whatever it lands next to gets to answer it. The
     // damage that matters is on the charge, not on the body.
+    //
+    // 18/11 -> 14/7 at the owner's call. It arrives deep in enemy territory by
+    // design, so a body that could also survive there was doing two jobs; now
+    // the charge is the whole of it and what it runs into gets to answer.
     dmg: 5,
     hits: 1,
-    hp: 18,
-    sp: 11,
+    hp: 14,
+    sp: 7,
     shields: 0,
     keywords: { TRAMPLE: true },
     tribe: "Sun's Army",

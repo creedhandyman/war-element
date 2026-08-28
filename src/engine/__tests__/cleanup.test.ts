@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { advance } from "../phases";
-import { atCleanup, place, prepState } from "./helpers";
+import { atCleanup, def, place, prepState } from "./helpers";
 import { DAWN_SP_CAP, GALE_SP_CAP, LEAF_SHIELD_CAP } from "../auras";
 import { effectiveSp } from "../state";
 import { basicAttack } from "../combat";
@@ -279,29 +279,75 @@ describe("First Light (DAWN): +1 SP a round, to a low cap", () => {
 });
 
 describe("Photosynthesis: heal 2, and bark up where it was struck", () => {
-  it("a LEAF card that was HIT banks a shield", () => {
+  it("a stripped LEAF card REGROWS a shield where it was struck", () => {
     // The trigger is damage TAKEN, not full health. Full-health was tried first
     // and measured almost nothing: in the seat where LEAF needed the help it was
     // under fire every round, so it never reached full health to bank anything.
+    //
+    // Uses a card that PRINTS armour, because the ceiling is now the printed
+    // value — bark regrows to what the card says and no further.
     const s = prepState();
-    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0, curHp: 10, maxHp: 14 });
+    const leaf = place(s, "leaf_thorn", "P1", 3, 0, { curShields: 0, curHp: 10, maxHp: 18 });
     const foe = place(s, "dusk_gool", "P2", 3, 1);
     basicAttack(s, foe.instanceId, leaf.instanceId);
     const n = advance(atCleanup(s));
     expect(n.cards[leaf.instanceId].curShields).toBe(1);
   });
 
-  it("...one shield PER HIT, so a heavy round armours harder", () => {
-    // The whole point of the trigger. It used to bank a flat +1 however many
-    // times the card was struck, so three hits armoured exactly as well as one
-    // — which read from the outside as the aura not firing.
+  it("...one shield PER HIT, so a heavy round regrows more of it", () => {
+    // It used to bank a flat +1 however many times the card was struck, so three
+    // hits armoured exactly as well as one — which read as the aura not firing.
     const s = prepState();
-    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0, curHp: 40, maxHp: 40 });
+    const leaf = place(s, "leaf_thorn", "P1", 3, 0, { curShields: 0, curHp: 40, maxHp: 40 });
     const foe = place(s, "dusk_gool", "P2", 3, 1);
     for (let i = 0; i < 3; i++) basicAttack(s, foe.instanceId, leaf.instanceId);
     expect(s.cards[leaf.instanceId].hitsTakenThisRound).toBe(3);
     const n = advance(atCleanup(s));
     expect(n.cards[leaf.instanceId].curShields).toBe(3);
+  });
+
+  it("...and STOPS at the printed value — bark regrows, it does not thicken", () => {
+    // The rule this replaced let a struck LEAF card finish the round harder to
+    // kill than it started, up to 3 above its card. It cannot any more.
+    const s = prepState();
+    const printed = def("leaf_thorn").shields;
+    const leaf = place(s, "leaf_thorn", "P1", 3, 0, { curShields: printed, curHp: 40, maxHp: 40 });
+    const foe = place(s, "dusk_gool", "P2", 3, 1);
+    for (let i = 0; i < 3; i++) basicAttack(s, foe.instanceId, leaf.instanceId);
+    const n = advance(atCleanup(s));
+    expect(n.cards[leaf.instanceId].curShields, "already full — nothing to regrow").toBe(printed);
+  });
+
+  it("...and an UNARMOURED LEAF card regrows to the same flat line", () => {
+    // The ceiling is a total, not a bonus, so a card printing no shields earns
+    // the whole of it — the aura is a comeback for whoever is being hit.
+    const s = prepState();
+    const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0, curHp: 40, maxHp: 40 });
+    const foe = place(s, "dusk_gool", "P2", 3, 1);
+    for (let i = 0; i < 5; i++) basicAttack(s, foe.instanceId, leaf.instanceId);
+    const n = advance(atCleanup(s));
+    expect(def("leaf_alpha").shields, "the fixture prints no armour").toBe(0);
+    expect(n.cards[leaf.instanceId].curShields, "and regrows to the flat cap").toBe(LEAF_SHIELD_CAP);
+  });
+
+  it("...and an ARMOURED one can never regrow past it — the cost of a flat cap", () => {
+    // The stated trade-off, and it is sharper than "gains nothing": a LEAF card
+    // printing MORE than the cap is pulled down to the line by damage and then
+    // held there. Elderroot prints 5, is stripped, and regrows to 3 — it does
+    // not get its last two points back, this round or ever.
+    //
+    // That is the reason the old rule added the cap ON TOP of printed, and the
+    // reason that rule was a stall engine. Pinned so the trade is visible rather
+    // than rediscovered by whoever plays Elderroot next.
+    const s = prepState();
+    const printed = def("leaf_elderroot").shields;
+    expect(printed, "prints more armour than the cap").toBeGreaterThan(LEAF_SHIELD_CAP);
+    const leaf = place(s, "leaf_elderroot", "P1", 3, 0, { curShields: printed, curHp: 40, maxHp: 40 });
+    const foe = place(s, "dusk_gool", "P2", 3, 1);
+    for (let i = 0; i < 3; i++) basicAttack(s, foe.instanceId, leaf.instanceId);
+    const n = advance(atCleanup(s));
+    expect(n.cards[leaf.instanceId].curShields, "held at the flat line, under its own print")
+      .toBe(LEAF_SHIELD_CAP);
   });
 
   it("...but never past the cap, however many hits land", () => {

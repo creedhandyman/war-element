@@ -889,7 +889,22 @@ export function spawnTokens(
   // Column distance breaks the tie so a horde still packs beside its spawner
   // rather than fanning to the ring's corners.
   const fwd = owner === "P1" ? -1 : 1;
-  const reach = radius ?? 1;
+  // NEAREST RING FIRST, ALL THE WAY OUT. This used to search ring 1 only and
+  // then fall back to a whole-board ROW SWEEP ordered by forwardness — which
+  // meant that the moment the adjacent square was taken, the token deployed to
+  // the furthest forward slot on the board. On a 5x5 that is four rows away,
+  // alone, in front of everything: a card standing in front of the spawner sent
+  // its own spawn to the other end of the battlefield.
+  //
+  // The ring loop already expands outward from the spawner, so it IS the
+  // nearest-open-slot search the fallback was trying to be. Running it to the
+  // board's width makes the fallback unnecessary, and "closest to the thing
+  // that made it" falls out of the ordering rather than being a special case.
+  //
+  // Within a ring the forward-then-sideways preference is unchanged and still
+  // deliberate — see the note above; it is what keeps a horde packed beside its
+  // spawner and screening the right way for whichever seat is asking.
+  const reach = radius ?? draft.boardSize - 1;
   for (let ring = 1; ring <= reach; ring++) {
     const ringSlots: { r: number; c: number; ahead: number; sideways: number }[] = [];
     for (let dr = -ring; dr <= ring; dr++)
@@ -902,14 +917,6 @@ export function spawnTokens(
     ringSlots.sort((a, b) => b.ahead - a.ahead || a.sideways - b.sideways);
     for (const k of ringSlots) push(k.r, k.c);
   }
-  // The open-board fallback needs the same ordering for the same reason — a row
-  // sweep from 0 upward is the identical bias one scale larger.
-  if (radius == null) {
-    const rows = [...Array(draft.boardSize).keys()]
-      .sort((a, b) => (a - spawner.pos!.row) * fwd > (b - spawner.pos!.row) * fwd ? -1 : 1);
-    for (const r of rows) for (let c = 0; c < draft.boardSize; c++) push(r, c);
-  }
-
   const out: CardInstance[] = [];
   for (const pos of slots.slice(0, count)) {
     const tok = summonCard(draft, owner, tokenDefId, pos);

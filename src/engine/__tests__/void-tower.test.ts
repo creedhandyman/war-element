@@ -900,6 +900,55 @@ describe("Thunderfangs, Stormform — the second form", () => {
   });
 });
 
+describe("every boss has an answer to FLYING", () => {
+  // FLYING is immunity to melee, and the tower is mostly melee. Measured rather
+  // than read off the defs, and the two disagreed sharply: reading fields said
+  // six bosses were stuck, TESTING said ELEVEN. The five the field audit let
+  // through were the ones whose Specials apply a grounding status — ROOT,
+  // FREEZE — and they were the worst case, because the answer needed the
+  // answer: they could not land the status that grounds a flier without first
+  // being able to target the flier.
+  //
+  // Fixed with an `antiAir` param rather than `ranged`. Both reach a flier;
+  // `ranged` also skips the melee block entirely, which would have thrown away
+  // every one of these Specials' printed radius and turned "within 2 spaces"
+  // back into the board-wide nova that was fixed once already.
+  const FLIER = CARDS.find((c) => c.keywords.FLYING && !c.boss && c.cost <= 4)!.id;
+
+  it("there is a flier to test against", () => {
+    expect(getDef(FLIER).keywords.FLYING).toBe(true);
+  });
+
+  for (const b of CARDS.filter((c) => c.boss)) {
+    it(`${b.id} can touch one`, () => {
+      // FRAIL, because Permafrost's answer is Polar Shift and that only takes
+      // what is under its HP line — which is the card's whole identity, not a
+      // gap in its anti-air.
+      const reach = (): boolean => {
+        const s = bigPrepState();
+        const boss = place(s, b.id, "P2", 1, 2);
+        boss.summonedThisRound = false;
+        const fliers = [[2, 2], [2, 1], [3, 2], [2, 3]].map(([r, c]) =>
+          place(s, FLIER, "P1", r, c, { curHp: 3, maxHp: 200, curShields: 0 }));
+        // A basic that can pick one is an answer on its own.
+        if (validTargets(s, boss.instanceId).some((t) => fliers.some((f) => f.instanceId === t.instanceId)))
+          return true;
+        const before = fliers.map((f) => ({
+          hp: s.cards[f.instanceId].curHp, st: s.cards[f.instanceId].statuses.length,
+        }));
+        if (!getDef(b.id).special) return false;
+        s.round = getDef(b.id).roundTick?.fireSpecialEveryN ?? 3;
+        fireCardSpecial(s, s.cards[boss.instanceId]);
+        return fliers.some((f, i) => {
+          const n = s.cards[f.instanceId];
+          return !n || n.curHp < before[i].hp || n.statuses.length > before[i].st;
+        });
+      };
+      expect(reach(), `${b.id} cannot reach a flier at all`).toBe(true);
+    });
+  }
+});
+
 describe("the Fortress Gates", () => {
   const wall = (bossId = "boss_nightshrike") => {
     const s = bigPrepState();

@@ -481,6 +481,19 @@ export function canTarget(
    *  `chargeFirst`. Snapmaw's Devour is the first: it may bite anything ROOTed
    *  anywhere, and having spent a root on the target is the price. */
   ignoreHomeRule = false,
+  /** ANTI-AIR: this attack may pick a FLYING target that melee could not.
+   *
+   *  Deliberately NOT `ranged`, which is the other way to reach a flier and
+   *  the wrong one here: `asRanged` skips the whole melee block, so it also
+   *  throws away the Special's `reach` and turns a "within 2 spaces" burst into
+   *  a board-wide nova. This lifts ONLY the FLYING dodge and leaves the radius
+   *  exactly where the card printed it.
+   *
+   *  Why it exists: every melee Void Tower boss was unanswerable-proof against
+   *  fliers, INCLUDING the five whose Specials apply a grounding status. They
+   *  could not land ROOT on a flier because they could not target one in the
+   *  first place — the status was the answer and the answer needed the status. */
+  antiAir = false,
 ): boolean {
   if (!attacker.pos || !target.pos) return false;
   if (target.owner === attacker.owner) return false;
@@ -531,7 +544,7 @@ export function canTarget(
   // FLYING here is the keyword OR FireFly's granted temporary flight.
   const targetFlying = tDef.keywords.FLYING || (target.flyingRoundsLeft ?? 0) > 0;
   const attackerFlying = aDef.keywords.FLYING || (attacker.flyingRoundsLeft ?? 0) > 0;
-  if (targetFlying && melee && !attackerFlying && !isGrounded(target)) return false;
+  if (targetFlying && melee && !attackerFlying && !isGrounded(target) && !antiAir) return false;
   // Shadow (Squall): only adjacent attackers reach it — ranged shots from a row
   // or more away find nothing to hit.
   if (
@@ -699,8 +712,9 @@ export function validSpecialTargets(state: GameState, attackerId: string): CardI
   // widening. Takes the larger of the two: a Special could both charge and sweep.
   const ownReach = Math.max(0, Number(special?.params?.reach ?? 1) - 1);
   const ignoreHome = Number(special?.params?.ignoreHomeRule ?? 0) > 0;
+  const antiAir = Number(special?.params?.antiAir ?? 0) > 0;
   return boardCards(state, enemyOf(attacker.owner)).filter((t) =>
-    canTarget(state, attacker, t, asRanged, false, Math.max(chargeReach, ownReach), ignoreHome),
+    canTarget(state, attacker, t, asRanged, false, Math.max(chargeReach, ownReach), ignoreHome, antiAir),
   );
 }
 

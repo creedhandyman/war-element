@@ -3096,14 +3096,12 @@ function doCleanupPhase(draft: GameState): void {
       // being broken. Scales like Squanch's Regenerative below, which is the
       // same idea and always did count hits.
       //
-      // The ceiling is the card's PRINTED shields plus the cap, not a flat
-      // total. Testing total shields meant any LEAF card printing 3+ — Thorn,
-      // Trinezer, Dandelion, Sakuroot, Hartwood, Elderroot, i.e. the whole top of the
-      // element — could never gain anything from half of its own element aura,
-      // because it started at or over the line. Anchoring to printed shields
-      // gives every LEAF card the same 3 points of bark to earn, and lets one
-      // stripped bare regrow rather than being locked out for the game.
-      const barkCeiling = def.shields + LEAF_SHIELD_CAP;
+      // A FLAT CEILING, not printed-plus-cap. It was `def.shields +
+      // LEAF_SHIELD_CAP`, which handed an armoured LEAF card three shields ON
+      // TOP of what it prints every round it was struck — so it ended rounds
+      // harder to kill than it started, which is a stall engine rather than a
+      // comeback. Bark regrows to a fixed line and stops there.
+      const barkCeiling = LEAF_SHIELD_CAP;
       if (card.hitsTakenThisRound > 0 && card.curShields < barkCeiling) {
         const grown = Math.min(barkCeiling - card.curShields, card.hitsTakenThisRound);
         card.curShields += grown;
