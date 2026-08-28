@@ -324,42 +324,42 @@ const PYRO: StoryRegion = {
     { id: "P1", name: "Ashfall Approach", kind: "skirmish", at: { x: 52, y: 17 },
       requires: [], roster: ["pyro_staph", "pyro_sparky", "pyro_florence"], adds: [],
       note: "Where the forest dies. The road back to LEAF is right behind you.",
-      lore: "Where other nations fear the volcano, PYRO simply built a city that agrees with it. Flame fuels progress, and the strongest rule — stamped into every gate and forge-wall in the city."
+      lore: "Where other nations fear the volcano, PYRO built a city that agrees with it. The approach is not guarded so much as advertised — Staph and Sparky are what the city sends out to say hello."
     },
     { id: "P3", name: "Cinder Road", kind: "skirmish", at: { x: 61, y: 27 },
       requires: ["P1"], roster: ["pyro_ingit", "pyro_bbq", "pyro_taper", "pyro_heatsink_golem"], adds: [],
       note: "Nobody built this fight either — loose embers off the road. Cheap, and they add up if you dawdle.",
-      lore: "No one laid the Cinder Road: ash banked against ash for longer than the city has kept records, until there was a road, and PYRO counts that as having built it."
+      lore: "No one laid the Cinder Road: ash banked against ash until there was a road, and PYRO counts that as having built it. Ingit and the Heatsink Golem keep it warm; the embers do the rest."
      },
     { id: "P4", name: "Dessaer District: Forge of Fire", kind: "skirmish", tribe: "Forged Tech", at: { x: 30, y: 31 },
       requires: ["P1"], roster: ["pyro_baboom", "pyro_spitfire", "pyro_flamehound", "pyro_canister"], adds: [],
       note: "Forged Tech works. Fight the tribe here before you meet its Mythic at the Forge Core.",
-      lore: "The Forged are not soldiers first but makers: constructs, war-engines, and the strange half-alive machinery that keeps the city's less glamorous work running."
+      lore: "The Forged are makers before they are soldiers, and the district fights the way it works. BaBoom and Canister go off exactly as designed, and Spitfire is already assembling the next one."
     },
     { id: "P5", name: "The Slagfields", kind: "skirmish", at: { x: 84, y: 31 },
       requires: ["P3"], roster: ["pyro_ash_boar", "pyro_slag_tortoise", "pyro_ember_scorpion", "pyro_smog_card"], adds: [],
       note: "Cooled lava badlands. Four Rares and no champion — the heaviest Skirmish in the region.",
-      lore: "The name suggests a dumping ground. The Slagfields are older than the forges that would have filled them — this is lava the mountain put down and has never come back to collect."
+      lore: "Older than the forges that would have filled it — this is lava the mountain put down and never came back to collect. The Slag Tortoise has not moved since, and sees no reason to start."
      },
     { id: "P6", name: "Pyro City Gates", kind: "warden", at: { x: 46, y: 55 },
       requires: ["P3"], roster: ["pyro_liza", "pyro_sarra", "pyro_firefly"], adds: [],
       note: "The gates never close, so the watch does the closing. Utility Epics — answer them or play around them all day.",
-      lore: "Pyro City's gates have hinges that have never been used. Closing one would concede there is something out there worth closing against, and nobody here will say that aloud."
+      lore: "The gates have hinges that have never been used: closing one would concede there is something out there worth closing against. Liza and Sarra do the closing instead, and do it faster."
      },
     { id: "P9", name: "Firespine Foothills", kind: "warden", tribe: "Wolf", at: { x: 16, y: 34 },
       requires: ["P4"], roster: ["pyro_woof", "pyro_firebird", "pyro_fenrir"], adds: [],
       note: "Wolf country. The pack hunts as one — drop the howler before the flanks close.",
-      lore: "Above the last forge the slopes belong to whatever climbed there first. PYRO stopped building at that line and still calls the decision a courtesy rather than a retreat."
+      lore: "Above the last forge the slopes belong to whatever climbed there first. PYRO calls stopping at that line a courtesy, and Fenrir's pack has never asked which word the city prefers."
      },
     { id: "P7", name: "Ember Fortress Drill Yard", kind: "warden", at: { x: 68, y: 41 },
       requires: ["P6"], roster: ["pyro_tiki", "pyro_twins", "pyro_scorch", "pyro_burnout"], adds: [] ,
       note: "The Knights at drill: a wall, a second wall, and the Support keeping both standing. Bring a can opener.",
-      lore: "The Pyro Knights garrison here. Where the Forged build the city's strength, the Knights are sworn to make sure nothing ever gets close enough to test it."
+      lore: "The Pyro Knights garrison here. The Forged build the city's strength; the Knights make certain nothing gets close enough to test it — and Burnout would honestly rather something tried."
     },
     { id: "P8", name: "Forgotten Ruins", kind: "warden", at: { x: 88, y: 57 },
       requires: ["P5"], roster: ["pyro_dyna", "pyro_sseerr", "pyro_fenix"], adds: [],
       note: "A wyrm roost in the rubble. The dragons were under the city before there was a city — Emberclaw still is.",
-      lore: "Pyro City was built, quite literally, on top of whatever came before it — and has never once apologized for building over the evidence."
+      lore: "Pyro City was built, quite literally, on top of whatever came before it, and has never once apologised for building over the evidence. Fenix keeps coming back up through the floor."
     },
     // Gated off the city, not off P1: the painted road to the harbour runs
     // through Pyro City. Still only four nodes deep, which keeps the doc's
@@ -368,31 +368,31 @@ const PYRO: StoryRegion = {
       requires: ["P6"], roster: ["pyro_scully", "pyro_wick", "pyro_firecrack"], adds: [],
       overflow: ["aqua_buccaneers"], // pirate haven — the sea road to AQUA
       note: "Pirate haven. Gate C opens the sea route to AQUA from here.",
-      lore: "Ships fly no particular flag here. The city tolerates it the way a forge tolerates ash: not proudly, but as an acknowledged cost of the fire being worth having."
+      lore: "Ships fly no particular flag here. The city tolerates it the way a forge tolerates ash — an acknowledged cost of the fire being worth having — and Scallywag charges rent on the ash."
     },
     { id: "P10", name: "Ember Fortress: Inner Keep", kind: "landmark", tribe: "Volcanic", at: { x: 74, y: 49 },
       requires: ["P7", "P8"], roster: ["pyro_infernus_rex", "pyro_magmadon", "pyro_volcanon"], adds: [],
       note: "The mountain's own: three Volcanic Legendaries behind walls that face inward. Now you know what they keep.",
-      lore: "The Inner Keep's heaviest walls face inward — a detail visitors notice and the garrison declines to explain. Ember Fortress was raised around what PYRO keeps, not against what might arrive."
+      lore: "The heaviest walls face inward, a detail visitors notice and the garrison declines to explain. Ember Fortress was raised around Infernus Rex, not against anything that might arrive."
      },
     { id: "P11", name: "Sunfall Watch", kind: "landmark", at: { x: 62, y: 72 },
       requires: ["P2", "P10"], roster: ["pyro_magmaw", "pyro_sol", "pyro_aftermath", "pyro_dynomight"], adds: [],
       note: "The long watch — Sol and Magmaw counting the mountain's days, plus the loose Legendaries that answer to no tribe.",
-      lore: "Sunfall Watch counts the days the Firespine has left before it opens again. That number has only ever changed how hot the forges run, never who was told to leave."
+      lore: "Sunfall Watch counts the days the Firespine has left before it opens again. Sol has never revised that number downward, and Aftermath is the name given to being wrong about it."
      },
     { id: "P13", name: "Firespine Peaks: Dragon's Lair", kind: "throne", at: { x: 10, y: 53 },
       requires: ["P9", "P10"], roster: ["pyro_pyrogon"],
       // Escorts: the volcanic beasts of the slopes, farmable on the story map.
       adds: ["pyro_ash_boar", "pyro_wick", "pyro_firebird"], required: true,
       note: "Required. Clearing it opens Gate D — the Veil Gate, and the DUSK reach.",
-      lore: "Every child here is raised on the same understanding: the city's fire and the Dragon's fire are the same fire, and the Dragon has simply been keeping more of it, longer, than anyone alive."
+      lore: "Every child here is raised on the same understanding: the city's fire and the Dragon's fire are one fire. Pyrogon has simply been keeping more of it, longer, than anyone alive."
     },
     { id: "P12", name: "The Forge Core", kind: "throne", at: { x: 23, y: 66 },
       requires: ["P13"], roster: ["pyro_nitro"],
       // Escorts: Forged Tech, the tribe Nitro tops — farmable at P4.
       adds: ["pyro_heatsink_golem", "pyro_dyna", "pyro_liza"],
       note: "Optional. Where the first flame burns — Forged Tech's Mythic.",
-      lore: "The Flame Spire has never gone cold, not once in any account anyone still tells. Every district's forge-fire is lit, however many generations removed, from that first flame."
+      lore: "The Flame Spire has never gone cold in any account still told, and every district lights its forge from it. Nitro is what the Spire produces when it is asked for more than heat."
     },
     // Gate C, PYRO side. Its twin sits on AQUA's map, so switching routes never
     // means walking back through LEAF.
@@ -401,7 +401,7 @@ const PYRO: StoryRegion = {
       adds: ["pyro_flamehound", "pyro_canister", "aqua_buccaneers", "aqua_bootlegger", "aqua_piranha", "aqua_blub", "pyro_liza", "aqua_blackice"],
       demand: { kind: "class", value: "Tank", count: 3 },
       note: "Boarding actions in the pirate lanes. Bring bodies that can hold a deck.",
-      lore: "Neither nation admits to governing the harbour and both collect a fee at it. The arrangement has outlasted three separate attempts to write it down."
+      lore: "Neither nation admits to governing the harbour and both collect a fee at it. The arrangement has outlasted three attempts to write it down, and Saltjacks board alongside Flamehound."
      },
   ],
 };
