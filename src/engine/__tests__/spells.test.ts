@@ -1183,3 +1183,21 @@ describe("no spell writes a field nothing reads (the Recon Ping class)", () => {
     }
   });
 });
+
+
+describe("Dawn's Grace", () => {
+  it("heals 5 AND gives 2 shields, to DAWN allies only", () => {
+    const s = prepState(11);
+    s.players.P1.magicPool = 20;
+    s.players.P1.spellbook = [{ defId: "dawn_dawns_grace", used: false }] as never;
+    const dawn = place(s, "dawn_beam", "P1", 3, 0, { curHp: 5, maxHp: 40, curShields: 0 });
+    const leaf = place(s, "leaf_greegon", "P1", 3, 1, { curHp: 5, maxHp: 40, curShields: 0 });
+    const g = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dawn_dawns_grace" } as never);
+    expect(g.cards[dawn.instanceId].curHp, "healed 5").toBe(10);
+    expect(g.cards[dawn.instanceId].curShields, "and shielded 2").toBe(2);
+    // "all DAWN allies" is the whole restriction, and the shields must respect
+    // it the same way the heal always has.
+    expect(g.cards[leaf.instanceId].curHp, "a LEAF ally gets nothing").toBe(5);
+    expect(g.cards[leaf.instanceId].curShields, "not even the shields").toBe(0);
+  });
+});

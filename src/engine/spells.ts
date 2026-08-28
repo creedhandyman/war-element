@@ -355,9 +355,10 @@ export const SPELLS: SpellDef[] = [
     element: "DAWN",
     cost: 5,
     kind: "heal",
-    text: "Heal all DAWN allies 5 HP and cleanse one negative status from each.",
+    text: "Heal all DAWN allies 5 HP, give each 2 shields, and cleanse one negative status from each.",
     allAllies: true,
     allyHeal: 5,
+    allyShield: 2,
     cleanse: 1,
   },
     {

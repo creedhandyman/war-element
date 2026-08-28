@@ -14,6 +14,8 @@ import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
 import { basicAttack } from "../combat";
 import { place, prepState } from "./helpers";
+import { canTarget } from "../rules";
+import { createInitialState } from "../state";
 import type { GameState } from "../types";
 
 const BLIND = { kind: "BLIND" as const, duration: 3, power: 0, source: "DUSK" as const };
@@ -84,5 +86,35 @@ describe("Blazing Sun", () => {
     const me = place(s, "dawn_star", "P1", 3, 0, { status: BLIND });
     const g = withSun(s);
     expect(g.cards[me.instanceId].statuses.some((st) => st.kind === "BLIND")).toBe(true);
+  });
+  // ── the OTHER half of the card, which had no coverage at all ─────────────
+  it("sees STEALTH when it is CAST, for DAWN allies only", () => {
+    // Reported as "not allowing targeting of stealth opponents". Cast, it does:
+    // the control (no field) proves the STEALTH block is real, so the `true`
+    // below is the field lifting it rather than STEALTH never applying.
+    const stealthy = "leaf_darth";
+    const canSee = (attacker: string, sun: boolean) => {
+      const s = prepState(7);
+      const me = place(s, attacker, "P1", 3, 0);
+      const foe = place(s, stealthy, "P2", 2, 0, { curHp: 90, maxHp: 90 });
+      const g = sun ? withSun(s) : s;
+      return canTarget(g, g.cards[me.instanceId], g.cards[foe.instanceId], true);
+    };
+    expect(canSee("dawn_beam", false), "STEALTH blocks a DAWN ally with no field").toBe(false);
+    expect(canSee("dawn_beam", true), "and the cast field lifts it").toBe(true);
+    // "your DAWN allies" — the same field does nothing for anybody else.
+    expect(canSee("leaf_greegon", true), "a LEAF ally under the same sun still cannot see it").toBe(false);
+  });
+
+  it("does NOT see STEALTH as standing terrain, which is the rule not a bug", () => {
+    // DAWN's region terrain IS Blazing Sun, and terrain deliberately drops every
+    // FLAG (see `terrainBuff`): permanent see-through-STEALTH in every DAWN node
+    // is a rule change rather than a battlefield. Only the 6-magic cast grants
+    // it. Pinned because it reads exactly like the bug above from a chair.
+    const s = createInitialState(7, ["dawn_beam"], ["leaf_darth"], [], undefined, undefined, 4,
+      undefined, "dawn_blazing_sun");
+    expect(s.fields.length, "terrain is standing").toBeGreaterThan(0);
+    for (const f of s.fields)
+      expect((f as unknown as Record<string, unknown>).seeStealth, "terrain carries no flags").toBeFalsy();
   });
 });
