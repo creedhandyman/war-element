@@ -562,79 +562,79 @@ const GALE: StoryRegion = {
     { id: "G1", name: "Windward Steps", kind: "skirmish", at: { x: 14, y: 33 },
       requires: [], roster: ["gale_gastly", "gale_megair", "gale_sirocco"], adds: [],
       note: "Where the airships put down. The sea road back to AQUA is west.",
-      lore: "GALE's proof of strength is simpler than any other nation's: you're still here, and the storm hasn't taken you yet."
+      lore: "GALE's proof of strength is simpler than any other nation's: you are still here, and the storm has not taken you. Sirocco was on the steps before the airship finished tying up."
     },
     { id: "G2", name: "Amberleaf Groves", kind: "skirmish", at: { x: 26, y: 46 },
       requires: ["G1"], roster: ["gale_skyforce", "gale_swillow", "gale_syt_bird"], adds: [],
       note: "Orangewood bent flat by the wind.",
-      lore: "GALE's only forest. Its orangewood exists for exactly one purpose — standing between the worst of the storms and the people trying to grow something in its shadow. No one worships it. They thank it."
+      lore: "GALE's only forest, and the orangewood exists for one purpose: standing between the worst of the storms and whatever is trying to grow behind it. Nobody worships it. Sightwing nests in it."
     },
     { id: "G3", name: "The Rolling Flats", kind: "skirmish", at: { x: 40, y: 56 },
       requires: ["G2"], roster: ["gale_breeze", "gale_tumbleweed", "gale_klouy"], adds: [],
       note: "Everything out here moves with the wind — tumbleweed, spindrift, and you.",
-      lore: "Open ground in every direction, and a prevailing wind steady enough to reckon by. GALE gives directions across the Flats in hours of wind, not in distance."
+      lore: "Open ground in every direction and a prevailing wind steady enough to reckon by. GALE gives directions across the Flats in hours of wind, and Tumbleweed has already covered most of them."
      },
     { id: "G5", name: "Dark Wind Township", kind: "skirmish", at: { x: 17, y: 79 },
       requires: ["G2"], roster: ["gale_luna", "gale_duster", "gale_windsor"], adds: [],
       note: "Under perpetual cloud. The Wolves start here — Luna is the first of the pack.",
-      lore: "GALE's furthest edge, where the nation's own patience runs out and its rawest weather takes over. Airship and sea traffic cross here more often than either nation admits."
+      lore: "GALE's furthest edge, where the nation's own patience runs out and its rawest weather takes over. Airship and sea traffic cross here more than either admits, and Duster watches all of it."
     },
     { id: "G4", name: "The Raptor Roosts", kind: "skirmish", at: { x: 89, y: 79 },
       requires: ["G3"], roster: ["gale_vaga", "gale_hawk", "gale_hawko"], adds: ["gale_toxhawk_tok"],
       note: "Cliffside aeries. Fight the birds here before you meet what raises them.",
-      lore: "Wyverns and young dragons test their wings in GALE's storms before they are strong enough to fly anywhere else in Concord. This sky is a proving ground for more than GALE's own people."
+      lore: "Wyverns and young dragons test their wings in these storms before they are strong enough for anywhere else in Concord. Stormquill was raised on this cliff and has never needed a second."
     },
     { id: "G6", name: "Northern Wind Villages", kind: "warden", at: { x: 38, y: 22 },
       requires: ["G3"], roster: ["gale_stormhide_bison", "gale_wailverine", "gale_rayfen", "gale_dreamcatcher"], adds: [] ,
       note: "Herd country. Count the bison on the way in; count what's watching them on the way out.",
-      lore: "Farmsteads and highland homes behind the natural windbreaks of the Amberleaf. GALE's villages are practical in a way few other nations bother to be."
+      lore: "Farmsteads and highland homes behind the Amberleaf's natural windbreaks. GALE's villages are practical in a way few nations bother to be, and the Stormhide Bison are part of the windbreak."
     },
     { id: "G8", name: "Gale Village", kind: "warden", tribe: "Avian", at: { x: 58, y: 35 },
       requires: ["G3"], roster: ["gale_toxhawk", "gale_wista", "gale_fano"], adds: [],
       note: "The hardy people of the Orange Plains, and the wandering twisters they live with.",
-      lore: "Funnel clouds rise and dissolve across the horizon on any given day, and the nation's heart has simply learned to build around them rather than pretend they'll stop."
+      lore: "Funnel clouds rise and dissolve across the horizon most days, and the nation's heart builds around them rather than pretend they will stop. Zephyra has never once been surprised by one."
     },
     { id: "G7", name: "Skyforge Aerie", kind: "warden", tribe: "Avian", at: { x: 91, y: 62 },
       requires: ["G4"], roster: ["gale_angale", "gale_buf", "gale_sway"], adds: ["gale_ollie"],
       note: "Sway's Birds of Prey spawns Ollie, so the filler here is diegetic rather than padding.",
-      lore: "GALE does not train the birds of this aerie. It keeps an arrangement with them, and its handlers say it has always been the bird's to end."
+      lore: "GALE does not train the birds of this aerie, it keeps an arrangement with them. The handlers say it has always been Sway's to end, and not one of them expects to be told first."
      },
     { id: "G9", name: "The Shrike Line", kind: "warden", tribe: "Avian", at: { x: 72, y: 58 },
       requires: ["G7", "G8"], roster: ["gale_masala", "gale_vvulture", "gale_guan"],
       adds: ["gale_toxhawk_tok"],
       note: "Mesala's Raptor Assault raises the same bird you fought at the Roosts.",
-      lore: "Shrikes keep their larder along the thorn line, and GALE has never thinned it. A bird that stores more than it can eat is a neighbour this nation understands."
+      lore: "Shrikes keep their larder along the thorn line and GALE has never thinned it. A bird that stores more than it can eat is a neighbour this nation understands, and Vulture waits on the surplus."
      },
     { id: "G10", name: "Stormwall Approach", kind: "warden", tribe: "Wolf", at: { x: 73, y: 27 },
       requires: ["G6"], roster: ["gale_omega", "gale_whirlwolf", "gale_wolfbane"], adds: [],
       note: "Omega and Luna were written as a pair — this is where the pack closes.",
-      lore: "GALE's mapmakers draw exactly one fixed line on the continent, and the Stormwall is it. They have redrawn it four times in living memory and still call it fixed."
+      lore: "GALE's mapmakers draw exactly one fixed line on the continent, and the Stormwall is it. They have redrawn it four times in living memory, and WolfBane had crossed each version already."
      },
     { id: "G11", name: "Stormwatch Cliffs: The Totem", kind: "landmark", tribe: "Avian", at: { x: 84, y: 52 },
       requires: ["G9", "G10"], roster: ["gale_eagon", "gale_tempest", "gale_totem"],
       adds: ["gale_totem_pole"],
       note: "The wind elemental shrine. The only node in the game whose filler is a Legendary-rarity token.",
-      lore: "Stormwatch keeps no calendar of years. It keeps a count of the totems the cliffs have taken, and a second count of the ones standing again before anyone climbed up to raise them."
+      lore: "Stormwatch keeps no calendar of years. It counts the totems the cliffs have taken, and counts separately the ones standing again before anyone climbed up — Eagon does not explain the second number."
      },
     { id: "G12", name: "The Eye of the Storm", kind: "landmark", tribe: "Avian", at: { x: 60, y: 80 },
       requires: ["G5", "G9"],
       roster: ["gale_bluejay", "gale_galeon", "gale_klipso", "gale_kloud"], adds: [],
       note: "The whole Cost-7 Legendary band on one node — the richest recruit in Act IV.",
-      lore: "The only still air in GALE, and the least trusted: a people who read wind for warning have never settled on what to make of a place with nothing to read."
+      lore: "The only still air in GALE and the least trusted: a people who read wind for warning have never settled what to make of a place with nothing to read. Galeon keeps the eye regardless."
      },
     { id: "G13", name: "Wolfrun Hollow", kind: "throne", at: { x: 62, y: 10 },
       requires: ["G10"], roster: ["gale_stormfang"],
       // Escorts: the pack itself, farmable at G6 and G5.
       adds: ["gale_whirlwolf", "gale_luna", "gale_buf"],
       note: "StormFang's Throne. Optional — the Wolf payoff, and its Pack aura reaches four cards you already met.",
-      lore: "Wolfrun does not hunt its wolves. It watches them — the pack picks its ground by weather that has not arrived yet, and a village that ignores where they run loses roofs."
+      lore: "Wolfrun does not hunt its wolves, it watches them. Stormfang's pack picks its ground by weather that has not arrived yet, and a village that ignores where they run loses roofs."
      },
     { id: "G14", name: "Tempest Peaks", kind: "throne", at: { x: 93, y: 26 },
       requires: ["G11", "G12"], roster: ["gale_griffith"],
       // Escorts: the birds of the Roosts, farmable at G4 and G2.
       adds: ["gale_ollie", "gale_hawk", "gale_skyforce", "gale_angale"], required: true,
       note: "Thunder Reach. Required — clearing it opens the airship routes on to BOLT and BORE.",
-      lore: "Past Stormwatch the storms stop being merely violent and become constant — close enough to BOLT that lightning from both skies is hard to tell apart by the time it reaches the ground."
+      lore: "Past Stormwatch the storms stop being merely violent and become constant, close enough to BOLT that lightning from both skies is hard to tell apart. Skyrend is already up there in it."
     },
   ],
 };
