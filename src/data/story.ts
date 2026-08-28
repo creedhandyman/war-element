@@ -205,31 +205,31 @@ const LEAF: StoryRegion = {
     { id: "L1", name: "Spring Village Outskirts", kind: "skirmish", at: { x: 15, y: 41 },
       requires: [], roster: ["leaf_nettle", "leaf_weeds", "leaf_greegon"], adds: [],
       note: "The tutorial. Greegon is a REGEN tank you cannot out-race — capture the slot.",
-      lore: "Keepers of Renewal. Their duty is beginnings: healing what's broken, coaxing new growth from old wounds. The least warlike of the four tribes, and the most trusted by outsiders."
+      lore: "Nobody planted the verge. Nettle and weed took it themselves, and the village long ago stopped pulling them: an edge that grows back on its own is cheaper than a wall that does not."
     },
     { id: "L2", name: "Cherry Grove Path", kind: "skirmish", at: { x: 19, y: 24 },
       requires: ["L1"], roster: ["leaf_sakuroot", "leaf_sprinu", "leaf_leaf"], adds: [],
-      lore: "The blossom lasts nine days, and the Spring Tribe dates its agreements by it. A promise made under the petals is understood to expire when they fall."
+      lore: "The blossom lasts nine days and the Spring Tribe dates its promises by it. Vernal and Frond hold the path for all nine and then let it fall — a grove is not defended by refusing to lose it."
      },
     { id: "L3", name: "Bloomwardens' Ring", kind: "warden", at: { x: 32, y: 40 },
       requires: ["L2"], roster: ["leaf_stickers", "leaf_dartfrog", "leaf_bark_bushmen"], adds: ["leaf_acorn_tok"],
       note: "No Reptiles here — just what lives in the blooms. The dart frog is not decoration.",
-      lore: "Bloomwardens are not appointed. A candidate of any season stands inside the ring until it blooms around them, and a year of standing there is an ordinary wait."
+      lore: "A Bloomwarden is not appointed. The candidate stands inside the ring until it blooms around them, and Stickers and the Bark Bushmen stand there for however long that takes."
      },
     { id: "L4", name: "Evergreen Plains", kind: "skirmish", at: { x: 25, y: 62 },
       requires: ["L1"], roster: ["leaf_oak", "leaf_python", "leaf_sticks", "leaf_walking_tree"], adds: [],
       note: "Unclaimed by any season, so everything grazes here — including the python.",
-      lore: "Green in every month. The four tribes divide the Mega Forest by season, and the plains are the one stretch that division has never managed to reach."
+      lore: "Green in every month, so no season could ever claim it. The four tribes gave up dividing the plains and left Oak and Elephlora to hold the one stretch of forest that never changes hands."
      },
     { id: "L5", name: "Summer's Embrace Grove", kind: "warden", at: { x: 40, y: 74 },
       requires: ["L4"], roster: ["leaf_sumerose", "leaf_dande", "leaf_splint"], adds: ["leaf_acorn_tok"] ,
       note: "Summer at full strength. Estival left the Wilds to sun herself here — she is still an assassin.",
-      lore: "Where Spring starts things, Summer sustains them. Guardians of Growth, stewards of the plains where the forest stands at its fullest strength."
+      lore: "Guardians of Growth, where the forest stands at its fullest. Summer is in no hurry — Dandelion has outlasted every boot that crossed this grove, and Estival simply waits in the warm."
     },
     { id: "L6", name: "Jungle Wilds", kind: "warden", tribe: "Reptile", at: { x: 83, y: 60 },
       requires: ["L5"], roster: ["leaf_stickviper", "leaf_gecko", "leaf_cactus", "leaf_snapmaw"], adds: ["leaf_reptilian_tok"],
       note: "The Reptile node — StickViper and Gecko are the tribe. Fight it before the warlord who buffs it.",
-      lore: "Reptiles, not Keepers. The four tribes count the Wilds as forest rather than as a fifth people, a decision made early and never put to the brood."
+      lore: "Reptiles, not Keepers. The four tribes counted the Wilds as forest rather than as a fifth people: a decision made early, never put to the brood, and Snapmaw has never once accepted it."
      },
     // Gated off L10, not L2: the art puts Rustling Woods at Autumn's Gold in the
     // far north-east, so the approach is along the northern treeline.
@@ -237,7 +237,7 @@ const LEAF: StoryRegion = {
       requires: ["L10"], roster: ["leaf_hunter", "leaf_alpha", "leaf_fallona"], adds: [],
       overflow: ["aqua_misty"], // fronts Eastleaf Port — the Gateway to Aqua
       note: "Autumn's Gold, and the pack that hunts it. Eastleaf Port and the sea road to AQUA lie just east.",
-      lore: "Autumn's Gold, where the leaves turn fire-coloured and then to rot that feeds the following spring. LEAF's realists tend the ending as carefully as the growth."
+      lore: "Autumn's Gold, where the leaves turn fire-coloured and then to the rot that feeds the spring. The pack tends the ending — Alpha hunts the slow, and the woods are quieter for it."
     },
     // Gated off L5, not L7: the Rot Line is painted across the SOUTHERN treeline,
     // a step past Summer's Embrace — nowhere near the northern woods.
@@ -245,39 +245,39 @@ const LEAF: StoryRegion = {
       requires: ["L5"], roster: ["leaf_nightshade", "leaf_rubyo", "leaf_darth"], adds: [],
       overflow: ["pyro_staph"], // fronts the Southern Burn — the open road to PYRO
       note: "The scar DUSK left, and what nests in it now. Where a starter deck stops working.",
-      lore: "Every other ending in the Mega Forest feeds a beginning — this one feeds something else. No Keeper will say aloud how much further south the Cycle still holds."
+      lore: "Every other ending in the Mega Forest feeds a beginning. This one feeds Nightshade. No Keeper will say aloud how much further south the Cycle still holds."
      },
     { id: "L9", name: "Winter's Reach Treeline", kind: "skirmish", at: { x: 40, y: 21 },
       requires: ["L2"], roster: ["leaf_whintey", "leaf_lumberjack", "leaf_birch"], adds: [] ,
-      lore: "Along Winter's Reach the Sun's Army Fronts ride in open daylight, beside LEAF's Winter Tribe, watching the same snow. It is the only border DAWN keeps this way."
+      lore: "The one border DAWN keeps in the open: the Sun's Army rides in daylight while Hibernal and Birch watch the same snow from the treeline. Neither side has ever needed to explain itself."
     },
     { id: "L10", name: "Winter Village Sentinels", kind: "warden", at: { x: 58, y: 23 },
       requires: ["L9"], roster: ["leaf_citra", "leaf_guardian", "leaf_squanch"], adds: [],
       note: "Under the Arctic Veil. The ice wall north is DAWN's border — sealed all campaign.",
-      lore: "Sentinels of Rest. Not dormant — on duty. Winter holds that a forest which never stops to sleep eventually forgets how to grow."
+      lore: "Sentinels of Rest — not dormant, on duty. Winter holds that a forest which never stops to sleep forgets how to grow, and Squanch has stood the village gate through four of them."
     },
     { id: "L11", name: "Heart of Nature: Outer Roots", kind: "landmark", at: { x: 40, y: 60 },
       requires: ["L3", "L8"], roster: ["leaf_season", "leaf_thorn", "leaf_elderroot"], adds: [],
       note: "Elderroot is the game's only melee Support.",
-      lore: "The weathered stones around the Tree are not markers. Graves. The first Keepers of every tribe chose to be buried here, at the roots, rather than in their own season's ground."
+      lore: "The weathered stones around the Tree are not markers but graves. The first Keepers of every tribe chose the roots over their own season's ground, and Elderroot has not left them since."
     },
     { id: "L12", name: "Heart of Nature: The Spirit Tree", kind: "landmark", at: { x: 56, y: 56 },
       requires: ["L11"], roster: ["leaf_warden", "leaf_efy", "leaf_fallow"], adds: [] ,
-      lore: "Some elders whisper the roots go down farther than any living Keeper has followed — that the Tree draws from something already there when the first tribe arrived."
+      lore: "Elders whisper that the roots reach further down than any Keeper has followed — to something already here when the first tribe arrived. Hartwood does not whisper it, and does not deny it."
     },
     { id: "L13", name: "Jungle Throne", kind: "throne", at: { x: 67, y: 81 },
       requires: ["L6", "L12"], roster: ["leaf_trinezer"],
       // Escorts: the Reptile tribe it commands, already farmable at L6.
       adds: ["leaf_reptilian_tok", "leaf_stickviper", "leaf_gecko", "leaf_alpha"],
       note: "Deep Grove. Optional — an early skill check with a Mythic reward.",
-      lore: "Unchecked growth is only rot arriving later — every Keeper will say so. Not one of the four tribes ever volunteered for the work. The Deep Grove did."
+      lore: "Unchecked growth is only rot arriving later; every Keeper says so, and not one of the four tribes volunteered for the pruning. The Deep Grove did, and it sent Trinezer to do it."
      },
     { id: "L14", name: "The Spirit Tree Rises", kind: "throne", at: { x: 48, y: 45 },
       requires: ["L12"], roster: ["leaf_oakgre"],
       // Escorts: the old growth around it, farmable at L4 and L2.
       adds: ["leaf_acorn_tok", "leaf_oak", "leaf_birch", "leaf_bark_bushmen"], required: true,
       note: "Required. Clearing it opens the borders to PYRO and AQUA.",
-      lore: "LEAF has no king, and the reason is not modesty: the forest decides for itself. A Keeper's entire training is learning to notice the moment it has."
+      lore: "LEAF has no king, and the reason is not modesty: the forest decides for itself. A Keeper's whole training is noticing the moment it has — and when Oakgre pulls up its roots, it has."
      },
     // Gates. Rosters live in `adds` because a gate is a checkpoint, not a farm —
     // its squad is a mixed border patrol of BOTH elements, and putting real
@@ -287,14 +287,14 @@ const LEAF: StoryRegion = {
       adds: ["leaf_gecko", "leaf_dartfrog", "pyro_staph", "pyro_sparky", "pyro_florence", "pyro_ingit", "leaf_alpha", "pyro_firebird"],
       demand: { kind: "attack", value: "Ranged", count: 3 },
       note: "The open road south. The burn punishes anything that has to close distance.",
-      lore: "The forest simply stops here, in a line nobody drew. LEAF calls it the Southern Burn and PYRO the northern treeline, and both are naming the same scorched mile."
+      lore: "The forest simply stops here, in a line nobody drew. LEAF calls it the Southern Burn and PYRO the northern treeline, and the patrol that walks it has Gecko on one flank and FireBird on the other."
      },
     { id: "GB", name: "Gate B: Eastleaf Port", kind: "gate", at: { x: 93, y: 30 },
       requires: ["L14"], roster: [], opens: ["aqua"],
       adds: ["leaf_hunter", "leaf_walking_tree", "aqua_misty", "aqua_buccaneers", "aqua_piranha", "aqua_blub", "leaf_bark_bushmen", "aqua_bahari"],
       demand: { kind: "class", value: "Support", count: 2 },
       note: "The sea road east. A long crossing — bring something that can keep a crew alive.",
-      lore: "Eastleaf keeps no harbourmaster. A ship is met by whichever Autumn family is nearest the water, an arrangement the sea trade long ago stopped finding strange."
+      lore: "Eastleaf keeps no harbourmaster. A ship is met by whichever Autumn family is nearest the water — lately Hunter, and whatever came up the channel behind it with Misty."
      },
   ],
 };
