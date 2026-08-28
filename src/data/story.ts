@@ -890,77 +890,77 @@ const DUSK: StoryRegion = {
     { id: "D1", name: "The Blighted Verge", kind: "skirmish", at: { x: 20, y: 13 },
       requires: [], roster: ["dusk_crow", "dusk_pumpkin", "dusk_doom"], adds: [],
       note: "Under the Rot Line door. These are the bodies that have been turning up in your regions for four Acts.",
-      lore: "\"Shadows hold power, and only the forgotten endure.\" Carved above the gates of every Dead Forest cemetery in Concord."
+      lore: "“Shadows hold power, and only the forgotten endure” — carved above the gates of every Dead Forest cemetery in Concord. Crow has been reading it to arrivals for a long time."
     },
     { id: "D2", name: "Potter's Field", kind: "skirmish", tribe: "Zombie", at: { x: 33, y: 22 },
       requires: ["D1"], roster: ["dusk_zombie_husk", "dusk_zhunk", "dusk_gravekeeper"],
       adds: ["dusk_zombie_tok", "dusk_skeleton_tok"],
       note: "Dead Forest West. The risen — they rot, they rise, they do not stop.",
-      lore: "DUSK's dead do not rise because they refuse to die. They rise because dying was never the part of the process the living world actually controlled. Being forgotten was."
+      lore: "DUSK's dead do not rise because they refuse to die. They rise because dying was never the part the living world controlled — being forgotten was, and the Gravekeeper keeps that register."
     },
     { id: "D3", name: "Widow's Hollow", kind: "skirmish", tribe: "Spider", at: { x: 34, y: 34 },
       requires: ["D2"], roster: ["dusk_spider", "dusk_widowbite", "dusk_silkstalker", "dusk_sarachnid"],
       adds: [],
       note: "Spiders weave and wait — every widow in the hollow, and nothing that isn't one.",
-      lore: "Widows here go on keeping the house exactly as it was kept, and the household is under no obligation to still be alive. The hollow's spiders were named for them."
+      lore: "Widows here go on keeping the house exactly as it was kept, and the household is under no obligation to still be alive. The hollow's spiders were named for them; Widowbite kept the name."
      },
     { id: "D4", name: "The Weeping Chapel", kind: "skirmish", tribe: "Ghost", at: { x: 44, y: 22 },
       requires: ["D2"], roster: ["dusk_harve", "dusk_gool", "dusk_soul_wisp"],
       adds: ["dusk_specter_tok"],
-      lore: "The chapel is older than the forest that grew around it, and whoever built it left no name on anything. Only the congregation has changed, one funeral at a time."
+      lore: "The chapel is older than the forest that grew around it, and whoever built it left no name on anything. Only the congregation changes, one funeral at a time, and Harrow keeps the book."
      },
     { id: "D5", name: "Scarecrow Rows", kind: "skirmish", tribe: "ScareKrow", at: { x: 41, y: 49 },
       requires: ["D3"], roster: ["dusk_jackl", "dusk_skrow", "dusk_hix", "dusk_plaguecrow"],
       adds: [],
       note: "The Nightmare Fields, at the western landing of the bridge — torn ground, and the hoofprints of the damned.",
-      lore: "Nothing has grown in these rows in living memory, and the scarecrows are still maintained: restuffed, re-hung, and walked back out each season by hands that have no use for a harvest."
+      lore: "Nothing has grown in these rows in living memory and the scarecrows are still maintained — restuffed, re-hung, walked back out each season. Strawman has been walked back out more than most."
      },
     { id: "D6", name: "Forsaken Heights", kind: "warden", tribe: "Vamp", at: { x: 22, y: 27 },
       requires: ["D1"], roster: ["dusk_vamp", "dusk_scarlett", "dusk_violet"],
       adds: ["dusk_specter_tok"],
       note: "The Green Continent reach, fought at Act III scale by anyone who came through PYRO's Veil Gate early.",
-      lore: "The Dead Forest spreads on both continents at once — the same leafless blight in LEAF's southern edge and BORE's western mountains, one corruption that never respected a border."
+      lore: "The Dead Forest spreads on both continents at once, the same leafless blight in LEAF's southern edge and BORE's western mountains: one corruption that never respected a border, and Scarlett came with it."
     },
     { id: "D7", name: "The Haunting Ground", kind: "warden", tribe: "Ghost", at: { x: 84, y: 22 },
       requires: ["D8"], roster: ["dusk_spectra", "dusk_ghastly", "dusk_haunt"],
       adds: ["dusk_specter_tok"],
       note: "Dead Forest East — the souls that remain.",
-      lore: "The eastern forest is not cleared but conceded — a strip of ground the living quietly hand back, fence by fence, to whatever declined to move on."
+      lore: "The eastern forest is not cleared but conceded, a strip of ground the living hand back fence by fence to whatever declined to move on. The Ghastly Groom is still waiting on one of them."
      },
     { id: "D8", name: "Bonefield Muster", kind: "warden", tribe: "Skeleton", at: { x: 63, y: 46 },
       requires: ["D5"], roster: ["dusk_skeleton_knight", "dusk_skulldrake", "dusk_reaper"],
       adds: ["dusk_skeleton_tok"],
       note: "The eastern landing of the bridge, below the Boneyard. Born of bone, and they march eternal — the only way across the Shadow Pass ravine.",
-      lore: "Where LEAF's people speak of the Cycle as a wheel, DUSK's people speak of Shadow Pass as a door — one that has never fully closed since whatever died first opened it."
+      lore: "Where LEAF speaks of the Cycle as a wheel, DUSK speaks of Shadow Pass as a door — one that has never fully closed since whatever died first opened it. The Reaper works the near side."
     },
     { id: "D9", name: "The Veil Gate", kind: "warden", at: { x: 13, y: 46 },
       requires: ["D6"], roster: ["dusk_ender", "dusk_rip", "dusk_brute", "dusk_wedded_wraith", "dusk_aranea"],
       adds: ["dusk_risen_tok", "dusk_specter_tok"],
       note: "The portal to the forgotten souls, and the region's spike at cost 20.",
-      lore: "DUSK's account of the Sundering is the shortest, and the one no other nation enjoys hearing repeated: something died. Not a person. Not a nation."
+      lore: "DUSK's account of the Sundering is the shortest, and the one no other nation enjoys hearing repeated: something died. Not a person, not a nation. Ender has never elaborated on it."
     },
     { id: "D10", name: "Death Island: The Landing", kind: "landmark", at: { x: 40, y: 62 },
       requires: ["D5", "D9"],
       roster: ["dusk_ravven", "dusk_scar", "dusk_hoax", "dusk_nightfang"],
       adds: ["dusk_zombie_tok", "dusk_redreven"],
-      lore: "Nobody is carried up the stones from the Landing. Whatever condition an arrival is in, DUSK holds that the last stretch of a journey belongs to the one making it."
+      lore: "Nobody is carried up the stones from the Landing. Whatever condition an arrival is in, DUSK holds the last stretch of a journey belongs to the one making it, and Vesper only counts them in."
      },
     { id: "D11", name: "Death Island: The Barrows", kind: "landmark", at: { x: 66, y: 64 },
       requires: ["D7"], roster: ["dusk_zombination", "dusk_skelider", "dusk_destro"],
       adds: ["dusk_skeleton_tok"],
-      lore: "The mounds are numbered, swept, and reopened as needed, the way a street keeps its houses. The families who do the upkeep are mostly buried in the same row."
+      lore: "The mounds are numbered, swept, and reopened as needed, the way a street keeps its houses. The families who do the upkeep are mostly buried in the same row, and Zombination works both shifts."
      },
     { id: "D12", name: "The Bone Throne", kind: "throne", at: { x: 86, y: 58 },
       requires: ["D11"], roster: ["dusk_skullking"],
       adds: ["dusk_skeleton_tok", "dusk_skulldrake_tok", "dusk_skrow"],
       note: "Nightward Keep — the watchers of Dusk. Optional.",
-      lore: "Every piece of the Bone Throne was given rather than taken. A place in the seat is the last posting of a very long service. Most apply early."
+      lore: "Every piece of the Bone Throne was given rather than taken. A place in the seat is the last posting of a very long service, and SkullKing applied a good deal earlier than most."
      },
     { id: "D13", name: "The Long Night", kind: "throne", at: { x: 50, y: 79 },
       requires: ["D10", "D11"], roster: ["dusk_shadowhorsemen"],
       adds: ["dusk_specter_tok", "dusk_risen_tok", "dusk_silkstalker"], required: true,
       note: "Death Island, land of the forgotten. Required.",
-      lore: "Not a place the forgotten go, but a place where forgetting itself has settled permanently, the way fog settles into a valley it likes. No living ruler has ever claimed it."
+      lore: "Not a place the forgotten go, but a place where forgetting itself has settled, the way fog settles into a valley it likes. No living ruler has claimed it; the Shadow Horsemen ride it anyway."
     },
   ],
 };
