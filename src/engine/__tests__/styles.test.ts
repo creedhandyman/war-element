@@ -194,3 +194,58 @@ describe("the rarity palette has ONE source", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+
+describe("a foil is one finish, everywhere", () => {
+  const nlChar = String.fromCharCode(10);
+  /** The declaration block of a rule, by selector. */
+  const rule = (sel: string) => {
+    // Anchored to a LINE START. A bare indexOf(".foil::after {") also matches
+    // ".cd-art.foil::after {" - a different rule, three lines above, whose whole
+    // body is one border-radius - and the test then reports that the foil has no
+    // gradient. Any selector that ENDS with the one asked for is a false hit.
+    const at = CSS.indexOf(nlChar + sel + " {");
+    expect(at, `no rule for ${sel}`).toBeGreaterThan(-1);
+    const open = CSS.indexOf("{", at);
+    let depth = 0;
+    for (let i = open; i < CSS.length; i++) {
+      if (CSS[i] === "{") depth++;
+      else if (CSS[i] === "}" && --depth === 0) return CSS.slice(open + 1, i);
+    }
+    throw new Error(`unterminated rule ${sel}`);
+  };
+  /** Its gradient, with comments and whitespace flattened out so only the
+   *  colour stops are compared. */
+  const gradient = (sel: string) => {
+    const body = rule(sel).replace(/\/\*[\s\S]*?\*\//g, "");
+    const at = body.indexOf("linear-gradient(");
+    expect(at, `no gradient in ${sel}`).toBeGreaterThan(-1);
+    let depth = 0;
+    for (let i = body.indexOf("(", at); i < body.length; i++) {
+      if (body[i] === "(") depth++;
+      else if (body[i] === ")" && --depth === 0)
+        return body.slice(at, i + 1).replace(/\s+/g, " ").trim();
+    }
+    throw new Error(`unterminated gradient in ${sel}`);
+  };
+
+  it("shines the same sheen in a fight as in the collection", () => {
+    // `.tk-foil` used to be a DIMMED copy of `.foil::after` - same shape, lower
+    // opacities - so the same card read as two different finishes depending on
+    // which screen you were looking at. They are one gradient now, and this is
+    // what stops the two drifting apart again the next time either is tuned.
+    expect(gradient(".tk-foil")).toBe(gradient(".foil::after"));
+  });
+
+  it("keeps the sweep in step with the tile it was derived from", () => {
+    // The one-tile shift in `foilSweep` is computed from a 260% tile. A rule
+    // that animates with foilSweep and sizes its tile differently does not look
+    // slightly off, it snaps back mid-loop - which is the flicker the comment
+    // above the keyframes exists to explain.
+    for (const sel of [".foil::after", ".tk-foil"]) {
+      const body = rule(sel);
+      expect(body, `${sel} rides foilSweep`).toContain("foilSweep");
+      expect(body, `${sel} sizes its tile to match`).toContain("260% 100%");
+    }
+  });
+});

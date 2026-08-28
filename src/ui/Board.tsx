@@ -46,8 +46,8 @@ export function Board(props: {
   actingId: string | null;
   grayTeam: PlayerId | null; // whose cards to gray out (the idle team on your turn)
   viewPlayer: PlayerId; // whose side you're looking from (the opponent is fogged)
-  /** Card ids the local player holds in foil. Cosmetic, UI-only. */
-  foils?: ReadonlySet<string>;
+  /** Each seat's foils, keyed by owner. Cosmetic, UI-only. */
+  foils?: { P1?: ReadonlySet<string>; P2?: ReadonlySet<string> };
   onSlotClick: (row: number, col: number) => void;
   onSlotDragOver: (row: number, col: number) => void; // drag-to-summon: hover
   onSlotDrop: (row: number, col: number) => void; // drag-to-summon: drop

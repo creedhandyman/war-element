@@ -293,6 +293,11 @@ export function App() {
    *  Held in a ref as well because `broadcast` reads it outside React's flow. */
   const [seatNames, setSeatNames] = useState<{ P1: string; P2: string } | null>(null);
   const seatNamesRef = useRef<{ P1: string; P2: string } | null>(null);
+  /** Both seats' foils, relayed exactly like the names above and for the same
+   *  reason: a foil is a fact about a COLLECTION, and the GameState carries
+   *  card ids. Null offline, where only the local player can have any. */
+  const [seatFoils, setSeatFoils] = useState<{ P1: string[]; P2: string[] } | null>(null);
+  const seatFoilsRef = useRef<{ P1: string[]; P2: string[] } | null>(null);
   /** What this match was dealt FROM, kept so a rematch can run the same two
    *  decks back. Not derivable from the finished state — by the end the decks
    *  are drawn down and the cards are dead or scattered. */
@@ -843,6 +848,14 @@ export function App() {
   }, [me]);
   // Online: the board is always shown from MY side; local: follow the active human.
   const view: PlayerId = online ? online.myId : (me ?? viewSide);
+  /** The board reads foils per SEAT. Online both seats are known because the
+   *  host relays them; offline only the viewer can have any, so the other side
+   *  is empty rather than absent — a missing set and an empty one render the
+   *  same, and one of them is a lie about the opponent. */
+  const boardFoils = useMemo<{ P1?: ReadonlySet<string>; P2?: ReadonlySet<string> }>(() => {
+    if (seatFoils) return { P1: new Set(seatFoils.P1), P2: new Set(seatFoils.P2) };
+    return view === "P1" ? { P1: foilIds, P2: new Set() } : { P1: new Set(), P2: foilIds };
+  }, [seatFoils, view, foilIds]);
 
   // Auto-advance the non-interactive steps. Local: whoever's driving advances
   // whenever no human is needed. Online: ONLY the host advances the shared
@@ -964,7 +977,9 @@ export function App() {
   }, []);
 
   function broadcast(state: GameState) {
-    roomRef.current?.sendState(state, seatNamesRef.current ? { names: seatNamesRef.current } : undefined);
+    roomRef.current?.sendState(state, (seatNamesRef.current || seatFoilsRef.current)
+      ? { names: seatNamesRef.current ?? undefined, foils: seatFoilsRef.current ?? undefined }
+      : undefined);
   }
 
   /** Deal a fresh match from the remembered setup and drop straight into it.
@@ -988,6 +1003,7 @@ export function App() {
       setPvpIntro(true);
       roomRef.current?.sendState(g, {
         names: seatNamesRef.current ?? undefined,
+        foils: seatFoilsRef.current ?? undefined,
         fresh: true,
       });
     }
@@ -1281,7 +1297,7 @@ export function App() {
     roomRef.current = joinRoom(code, "host", {
       onState: (state) => setGame(state),
       onRematch: () => setRematchTheirs(true),
-      onJoin: (guestCards, guestSpells, guestName) => {
+      onJoin: (guestCards, guestSpells, guestName, guestFoils) => {
         if (onlineStartedRef.current) return; // already playing — ignore re-joins
         onlineStartedRef.current = true;
         const g = createInitialState(newSeed(), hostCards, guestCards, ["P1", "P2"], hostSpells, guestSpells, hostBoardSize);
@@ -1290,6 +1306,10 @@ export function App() {
         const names = { P1: hostName, P2: guestName?.trim() || "Their deck" };
         seatNamesRef.current = names;
         setSeatNames(names);
+        // Only the host sees both collections, so only the host can pair them up.
+        const foils = { P1: [...foilIds], P2: guestFoils ?? [] };
+        seatFoilsRef.current = foils;
+        setSeatFoils(foils);
         setupRef.current = {
           p1: hostCards, p1s: hostSpells, p2: guestCards, p2s: guestSpells,
           board: hostBoardSize, humans: ["P1", "P2"],
@@ -1302,7 +1322,7 @@ export function App() {
         setOnline({ role: "host", code, myId: "P1" });
         setStarted(true);
         setPvpIntro(true);
-        roomRef.current?.sendState(g, { names }); // deal the opening state to the guest
+        roomRef.current?.sendState(g, { names, foils }); // deal the opening state to the guest
       },
     });
     setOnline({ role: "host", code, myId: "P1" });
@@ -1326,6 +1346,7 @@ export function App() {
         // Every state carries them, so a missed opening message is not a
         // permanently nameless versus screen.
         if (meta?.names) { seatNamesRef.current = meta.names; setSeatNames(meta.names); }
+        if (meta?.foils) { seatFoilsRef.current = meta.foils; setSeatFoils(meta.foils); }
         // A rematch the host has dealt: clear the handshake and replay the
         // versus screen, rather than leaving the guest on a stale result.
         if (meta?.fresh && onlineStartedRef.current) {
@@ -1345,7 +1366,7 @@ export function App() {
         }
       },
       onRematch: () => setRematchTheirs(true),
-      onSubscribed: () => roomRef.current?.sendJoin(guestCards, guestSpells, guestName),
+      onSubscribed: () => roomRef.current?.sendJoin(guestCards, guestSpells, guestName, [...foilIds]),
     });
     setOnline({ role: "guest", code, myId: "P2" });
   }
@@ -2278,7 +2299,7 @@ export function App() {
         <>
           <Board
             game={game}
-            foils={foilIds}
+            foils={boardFoils}
             legalSlots={legalSlots}
             legalTargetIds={legalTargetIds}
             targetsAreEnemies={targetsAreEnemies}

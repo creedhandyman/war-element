@@ -30,6 +30,12 @@ export type Role = "host" | "guest";
  *  its picker, the guest's from the join), so the host relays them. */
 export interface StateMeta {
   names?: { P1: string; P2: string };
+  /** Which cards each SEAT holds in foil. Relayed for the same reason the names
+   *  are: a foil lives in a player's collection, not in the GameState, so the
+   *  other client has no way to know a card on the board is shiny. Without this
+   *  every online board looked plain on both sides — you could not see your own
+   *  foils in the one mode where somebody else is watching. */
+  foils?: { P1: string[]; P2: string[] };
   /** This state is a freshly dealt match, not a step within one. Set on a
    *  rematch so the guest knows to clear its rematch flags and replay the
    *  versus screen, rather than having to infer a new match from the shape of
@@ -45,9 +51,11 @@ export interface Room {
    *  original clock. The reliability heartbeat; a no-op before the first send. */
   resend: () => void;
   /** Guest → host: announce arrival with the guest's resolved deck (card ids),
-   *  hand-picked spellbook (spell ids; empty = auto-from-elements) and the
-   *  deck's display name. */
-  sendJoin: (cards: string[], spells?: string[], name?: string) => void;
+   *  hand-picked spellbook (spell ids; empty = auto-from-elements), the deck's
+   *  display name, and the card ids it holds in FOIL — the host is the only
+   *  side that can see both collections, so it is the only side that can relay
+   *  them back. */
+  sendJoin: (cards: string[], spells?: string[], name?: string, foils?: string[]) => void;
   /** "I want to run it back." Both sides must ask before the host re-deals —
    *  a one-tap rematch would yank the other player off a result screen they
    *  are still reading. */
@@ -66,7 +74,7 @@ export function joinRoom(
   role: Role,
   handlers: {
     onState: (state: GameState, meta?: StateMeta) => void;
-    onJoin?: (cards: string[], spells?: string[], name?: string) => void; // host only
+    onJoin?: (cards: string[], spells?: string[], name?: string, foils?: string[]) => void; // host only
     onRematch?: () => void;
     onSubscribed?: () => void;
   },
@@ -118,6 +126,7 @@ export function joinRoom(
         payload.cards as string[],
         payload.spells as string[] | undefined,
         payload.name as string | undefined,
+        payload.foils as string[] | undefined,
       ),
     );
   }
@@ -142,8 +151,8 @@ export function joinRoom(
     resend: () => {
       if (last) push(last.state, last.clock, last.meta);
     },
-    sendJoin: (cards, spells, name) =>
-      void channel.send({ type: "broadcast", event: "join", payload: { cards, spells, name } }),
+    sendJoin: (cards, spells, name, foils) =>
+      void channel.send({ type: "broadcast", event: "join", payload: { cards, spells, name, foils } }),
     sendRematch: () => void channel.send({ type: "broadcast", event: "rematch", payload: {} }),
     close: () => void supabase.removeChannel(channel),
   };

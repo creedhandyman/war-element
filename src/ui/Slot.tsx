@@ -8,8 +8,11 @@ export function Slot(props: {
   row: number;
   col: number;
   viewer: PlayerId; // the local player's side (threaded to Token for "mine")
-  /** Card ids the local player holds in foil. UI-only — see Token. */
-  foils?: ReadonlySet<string>;
+  /** Each SEAT's foils, keyed by owner. Was a single "the local player's" set
+   *  tested against `owner === viewer`, which is the same thing offline and
+   *  wrong online: the opponent's shinies are theirs to show, and yours have to
+   *  keep shining when somebody else is looking at them. */
+  foils?: { P1?: ReadonlySet<string>; P2?: ReadonlySet<string> };
   card: CardInstance | null;
   legal: boolean;
   isTarget: boolean; // enemy attack/special target → red
@@ -163,9 +166,9 @@ This is your last turn to move out of the red.`
           viewer={props.viewer}
           selected={props.selectedId === props.card.instanceId}
           acting={props.actingId === props.card.instanceId}
-          // Only YOUR copies shine. A foil is something in your collection, and
+          // Each side's own copies shine. A foil is something in a collection, and
           // the opponent's cards are not in it — online, theirs are unknowable.
-          foil={props.card.owner === props.viewer && !!props.foils?.has(props.card.defId)}
+          foil={!!props.foils?.[props.card.owner]?.has(props.card.defId)}
         />
       )}
     </div>

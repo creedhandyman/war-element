@@ -5275,11 +5275,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .tk-foil {
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
   border-radius: inherit; overflow: hidden;
+  /* The DECK BUILDER's gradient, exactly — same stops, same opacities. This
+     used to be a dimmed copy (0.16/0.26/0.24/0.24/0.14, stops 24-80%) so a
+     shiny read as noticeably duller in a fight than in the collection: the same
+     card, two finishes. It keeps its own z-index and element (see above), which
+     is what still protects the name and stat row; only the SHEEN matches. */
   background: linear-gradient(
     115deg,
-    transparent 24%, rgba(255, 255, 255, 0.16) 36%,
-    rgba(120, 230, 255, 0.26) 44%, rgba(255, 200, 255, 0.24) 52%,
-    rgba(255, 240, 160, 0.24) 60%, rgba(255, 255, 255, 0.14) 68%, transparent 80%
+    transparent 22%, rgba(255, 255, 255, 0.20) 34%,
+    rgba(120, 230, 255, 0.34) 42%, rgba(255, 200, 255, 0.30) 50%,
+    rgba(255, 240, 160, 0.30) 58%, rgba(255, 255, 255, 0.18) 66%, transparent 78%
   );
   background-size: 260% 100%;   /* must match .foil::after — foilSweep's one-tile
                                    shift is derived from this exact number */
