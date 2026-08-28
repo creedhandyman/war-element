@@ -432,75 +432,75 @@ const AQUA: StoryRegion = {
     { id: "A1", name: "Leafward Crossing", kind: "skirmish", at: { x: 24, y: 30 },
       requires: [], roster: ["aqua_misty", "aqua_buccaneers", "aqua_piranha"], adds: [],
       note: "Where ships arrive. Misty and Saltjacks bleed out to LEAF and PYRO — this is their home.",
-      lore: "Not simply the sea between the continents: the Life Source of the World, the endless water that sustained life before there were eight elements to sustain."
+      lore: "Not simply the sea between the continents but the Life Source itself, the water that sustained life before there were eight elements to sustain. Piranha has been permitted the crossing for most of it."
     },
     { id: "A2", name: "Coral Isles Shallows", kind: "skirmish", tribe: "SeaC", at: { x: 8, y: 44 },
       requires: ["A1"], roster: ["aqua_blub", "aqua_anglerfish", "aqua_bulletshrimp"], adds: [],
       note: "The SeaC nursery — everything here is small, cheap, and wet. Learn the tribe before the sea starts meaning it.",
-      lore: "AQUA's shallowest people: a whole culture living where the bottom is always underfoot. Outsiders read that as caution, and the isles call it the floor of the house."
+      lore: "AQUA's shallowest people: a culture living where the bottom is always underfoot. Outsiders call that caution, the isles call it the floor of the house — and Anglerfish keeps the dark beneath it."
      },
     { id: "A3", name: "Aqua Village Docks", kind: "skirmish", at: { x: 17, y: 54 },
       requires: ["A1"], roster: ["aqua_arctik", "aqua_icyninza", "aqua_kinguin", "aqua_subcool"],
       adds: ["aqua_guin_tok"] ,
       note: "Kinguin's village — the Stars run cold this far south, and the Guin turning out to watch is the whole town.",
-      lore: "Harmony between land and sea, half on stilts and half submerged. Where most outsiders first meet AQUA, and where AQUA first decides whether it likes them."
+      lore: "Harmony between land and sea, half on stilts and half submerged. Where most outsiders first meet AQUA, and where AQUA decides whether it likes them — Frostveil is usually already on the dock."
     },
     { id: "A4", name: "Corsair Lanes", kind: "warden", tribe: "Pirate", at: { x: 26, y: 64 },
       requires: ["A3"], roster: ["aqua_bootlegger", "aqua_octoirate", "aqua_blackbeard", "aqua_harp"], adds: [],
       note: "The Pirate node — every corsair in the region flies through these lanes. Harp keeps the crew singing; cut the song first.",
-      lore: "Sailors without kings, seekers of treasure and infamy, answering to no crown and no council. A kingdom, they'll tell you, is just a very large ship no one's allowed to leave."
+      lore: "Sailors without kings, seekers of treasure and infamy, answering to no crown and no council. A kingdom, BlackBeard will tell you, is only a very large ship nobody is allowed to leave."
     },
     { id: "A5", name: "The Reef Wall", kind: "skirmish", tribe: "SeaC", at: { x: 9, y: 63 },
       requires: ["A2"], roster: ["aqua_coralgolem", "aqua_tide", "aqua_spinefin"], adds: [],
       overflow: ["pyro_canister"], // fronts the open sea route to PYRO
       note: "The reef fights for itself. Tide still teaches the once-per-game Talent, and Spinefin is why nobody anchors here.",
-      lore: "Most of what AQUA eats begins somewhere on the reef. Nobody quarries it, nobody anchors on it, and no crew in these lanes has ever had to be told why."
+      lore: "Most of what AQUA eats begins somewhere on the reef. Nobody quarries it and nobody anchors on it, and the Coral Golem is the reef's way of never having to put that in writing."
      },
     { id: "A6", name: "Mists of Despair", kind: "warden", tribe: "Liquid", at: { x: 28, y: 85 },
       requires: ["A5"], roster: ["aqua_siphon", "aqua_bahari", "aqua_anos"], adds: [],
       note: "Shipwreck boneyard, perpetual fog — and the water in it is the tribe. Three Liquid casters and no frontline to hit.",
-      lore: "A shipwreck boneyard wrapped in fog that has never once lifted for a living sailor. Neither AQUA nor DUSK claims what happens inside, and neither has gone looking."
+      lore: "A shipwreck boneyard wrapped in fog that has never once lifted for a living sailor. Neither AQUA nor DUSK claims what happens inside, and Serenos has never been asked to account for it."
     },
     // Gated off A1, not A3: the floes are the next water NORTH of where ships
     // arrive, while the village is well south of them.
     { id: "A7", name: "Northern Ice Floes", kind: "skirmish", tribe: "Ice", at: { x: 38, y: 18 },
       requires: ["A1"], roster: ["aqua_icynin", "aqua_owlette", "aqua_polarbear"], adds: [],
-      lore: "The Ice Kingdom's outermost water — a border never twice the same shape. Its northern families name every floe they winter on, and keep the name long after the floe is gone."
+      lore: "The Ice Kingdom's outermost water, a border never twice the same shape. The northern families name every floe they winter on, and the PolarBear keeps the name long after the floe is gone."
      },
     { id: "A8", name: "Ice Castle Outer Ward", kind: "warden", tribe: "Ice", at: { x: 46, y: 26 },
       requires: ["A7"], roster: ["aqua_cryo", "aqua_blackice", "aqua_icewall"], adds: [],
       note: "Ice Wall belongs to the castle it walls. A real wall, not a damage race — bring something that gets through 20 HP behind BLOCK.",
-      lore: "The Ice Kingdom does not simply neighbour the Arctic. \"Descendants of the frozen deep\" is not a poetic title to them. It is a genealogy."
+      lore: "\"Descendants of the frozen deep\" is not a poetic title here, it is a genealogy. The Ice Kingdom does not merely neighbour the Arctic, and Cryo has never had to argue the point."
     },
     // Gated off A8, not A6: the Trench is painted on the EAST edge and the mists
     // are in the far south-west. The lane from the Ice Castle is the short one.
     { id: "A9", name: "The Steamvent Trench", kind: "warden", tribe: "Vapor", at: { x: 78, y: 40 },
       requires: ["A8"], roster: ["aqua_sapphire", "aqua_vaporem", "aqua_liquark", "aqua_krakler"], adds: [],
       note: "Still the spike — two Cost-5 Vapors holding the steam while Liquark and Krakler hunt from the vents underneath.",
-      lore: "Scalding water and freezing water meet along the trench and neither wins. In the deep, cold and heat have never needed permission to coexist." },
+      lore: "Scalding water and freezing water meet along the trench and neither one wins. In the deep, cold and heat have never needed permission to coexist — Vaporem is what the argument looks like." },
     { id: "A10", name: "Ice Castle: Guardians of Ice", kind: "landmark", at: { x: 60, y: 14 },
       requires: ["A8"], roster: ["aqua_polarking", "aqua_phrost", "aqua_glacius"], adds: [],
       note: "A pure FREEZE wall, and the only node touching the Arctic Gate — DAWN's border, sealed until Act V.",
-      lore: "Three nations claim the Frozen Citadel, and the Guardians have never confirmed any of them — either diplomacy, or the oldest joke in Concord, depending entirely on who's asking."
+      lore: "Three nations claim the Frozen Citadel and the Polar King has confirmed none of them: diplomacy, or the oldest joke in Concord, depending entirely on who is doing the asking."
     },
     { id: "A11", name: "Atlantis Outer Ring", kind: "landmark", tribe: "SeaC", at: { x: 65, y: 55 },
       requires: ["A6", "A9"], roster: ["aqua_siren", "aqua_rain", "aqua_driftwraith", "aqua_magalogoon", "aqua_killerwhale"], adds: [],
       note: "Four Legendaries — the richest node in the first three acts. Both arms of the sea have to be yours first.",
-      lore: "Everything the sea carries stops at the outer ring, and almost none of it was invited. Atlantis does not refuse arrivals. It simply lets the ring do the deciding."
+      lore: "Everything the sea carries stops at the outer ring, and almost none of it was invited. Atlantis does not refuse arrivals — it lets the ring decide, and the Siren does the deciding."
      },
     { id: "A13", name: "Atlantis: Heart of the Ocean", kind: "throne", at: { x: 50, y: 45 },
       requires: ["A11"], roster: ["aqua_hydrogon"],
       // Escorts: the reef that guards the city, farmable at A5.
       adds: ["aqua_coralgolem", "aqua_tide", "aqua_blackice"], required: true,
       note: "Required. Clearing it opens the sea lanes, which is what makes the rest of the campaign non-linear.",
-      lore: "Press an elder and the answer is always some version of the same sentence: \"Atlantis was not lost. It was put down there.\" No one has ever gotten one to finish explaining."
+      lore: "Press an elder and the answer is always a version of the same sentence: Atlantis was not lost, it was put down there. None has ever finished the thought, and Hydrogon is not asked to."
     },
     { id: "A12", name: "The Deep", kind: "throne", at: { x: 54, y: 88 },
       requires: ["A13"], roster: ["aqua_kraken"],
       // Escorts: the deep's own, farmable at A4.
       adds: ["aqua_krakler", "aqua_spinefin", "aqua_bahari"],
       note: "Optional, and the hardest fight in Act II — deliberately harder than either required Throne.",
-      lore: "Some say the Deep is a place. Some say it is a thing — the oldest and hungriest of the Deep Creatures, coiled beneath the city, keeping something in or keeping something out."
+      lore: "Some say the Deep is a place. Some say it is the Kraken — oldest and hungriest of the Deep Creatures, coiled beneath the city, keeping something in or else keeping something out."
     },
     // Gate F: the Arctic Gate. The AQUA art paints it "To Dawn (Locked)" — it
     // stays sealed until Act V, so it wants two of the three Gray Thrones just
@@ -510,7 +510,7 @@ const AQUA: StoryRegion = {
       adds: ["aqua_cryo", "aqua_anos", "dawn_beam", "dawn_flash", "dawn_able", "dawn_sparkle", "aqua_icynin", "dawn_amble"],
       demand: { kind: "class", value: "Mage", count: 3 },
       note: "The road through the ice wall. Nothing has crossed it in either direction all campaign.",
-      lore: "DAWN opens the ice from the far side, or it does not open. The Golden Kingdom has never explained the rule, and the nations below it have stopped asking for one."
+      lore: "DAWN opens the ice from the far side, or it does not open. The Golden Kingdom has never explained the rule, and Vigil has stood that seam long enough that nobody below still asks for one."
      },
     // Gate E: the Gray Continent ports. Gated on BOTH Green Thrones rather than
     // AQUA's alone — §2 makes PYRO and AQUA mandatory before Act IV so the
@@ -520,7 +520,7 @@ const AQUA: StoryRegion = {
       adds: ["aqua_arctik", "aqua_harp", "gale_sirocco", "gale_megair", "gale_gastly", "gale_skyforce", "aqua_bahari", "gale_angale"],
       demand: { kind: "attack", value: "Ranged", count: 4 },
       note: "The airship lanes north. Everything past here is fought on the 5x5 board.",
-      lore: "The crossing that made the Gray Continent reachable at all. Every line running north still paints the old charter markings on its hulls, centuries after the company that issued them dissolved."
+      lore: "The crossing that made the Gray Continent reachable at all. Every line running north still paints the old charter markings on its hulls, and Skyforce still honours them."
      },
     // Gate C, AQUA side — the same harbor from the other direction.
     { id: "GC2", name: "Gate C: Sunfall Harbor", kind: "gate", at: { x: 10, y: 72 },
@@ -528,7 +528,7 @@ const AQUA: StoryRegion = {
       adds: ["aqua_buccaneers", "aqua_bootlegger", "pyro_flamehound", "pyro_canister", "pyro_firecrack", "pyro_taper", "aqua_icynin", "pyro_scorch"],
       demand: { kind: "class", value: "Tank", count: 3 },
       note: "The same harbor from the water. Sail east and PYRO's coast is yours without going back through LEAF.",
-      lore: "The glow reaches a ship long before the coast does. AQUA's charts mark Sunfall by that light rather than its docks, and no captain has ever admitted to steering by another nation's fire."
+      lore: "The glow reaches a ship long before the coast does. AQUA's charts mark Sunfall by that light rather than by its docks, and no captain admits to steering by Flamehound's fire."
      },
   ],
 };
