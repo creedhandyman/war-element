@@ -1255,6 +1255,36 @@ one you had to buy is one you would never field); **one per fight**; enraged
 means **buffed stats**, not just a label; a use is spent on **entering**, win or
 lose (paying at settle would make it farmable by conceding at round one).
 
+**FLOOR 3/4 AFTER ANTI-AIR — measured, boss win %, n=96 per cell:**
+
+| | bare | with ally |
+| --- | --- | --- |
+| Xilty | 78.1 | 46.9 |
+| Hoarfell | 68.8 | 18.8 |
+| Thunderfangs | 92.7 | 54.2 |
+| Vulcanyx | 69.8 | 47.9 |
+| **Floor 3 avg** | **77.4** | **42.0** |
+| Umbranova | 92.7 | 32.3 |
+| Cryovex | 97.9 | 44.8 |
+| Kazehaya | 89.6 | 11.5 |
+| Kato | 84.4 | 51.0 |
+| **Floor 4 avg** | **91.2** | **34.9** |
+
+**Anti-air itself is worth 0-5 points** on most bosses (toggled on/off in one
+pass), which is what 25 fliers across 8 core decks should buy. The exceptions
+are where the fliers live: against the GALE core Kazehaya went 42 -> 83 bare and
+Thunderfangs 67 -> 92. Kazehaya gains most because its whole kit is hauling
+things into its sword and fliers were simply exempt from it.
+
+**THE LEAF BARK CHANGE COST KAZEHAYA 35 POINTS — isolated, not guessed.** Its
+ally case read 34.4 before this batch and 11.5 after, which anti-air (+5) came
+nowhere near explaining. Re-running with ONLY the old `printed + 3` ceiling
+restored put it back to 46.9 while every other boss moved 0-2. Kazehaya is the
+tower's most LEAF-dependent fight — a LEAF boss printing 14 shields, fielding
+Warden (4) and two Sakuroot (4) — so a flat cap of 3 hits it and nothing else.
+It is now the softest fight on Floor 4 by 20 points. Re-tune it or accept it,
+but do not re-measure it and conclude anti-air did that.
+
 **EVERY BOSS ANSWERS FLYING (`antiAir`), and the audit method is the lesson.**
 FLYING is immunity to melee and the tower is mostly melee. Reading the defs said
 six bosses were stuck; TESTING said **eleven**. The five the field audit let
