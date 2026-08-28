@@ -16,7 +16,11 @@
  *  rather than showing an editor that cannot change anything.
  */
 import { useMemo, useState } from "react";
-import type { CardClass } from "../engine";
+import type { CardClass, Keyword } from "../engine";
+import {
+  CostRow, FilterToggle, KeywordRow, RarityRow,
+  matchesCost, useFilterFold, type CostFilter, type RarityFilter,
+} from "./filters";
 import { getDef } from "../data/cards";
 import {
   autoSquad, localCards, packSquad, packableFor, squadCapInRegion, squadFor,
@@ -57,11 +61,20 @@ export function StorySquad(props: {
   const [fEl, setFEl] = useState<string>("ALL");
   const [fCls, setFCls] = useState<CardClass | "ALL">("ALL");
   const [carriedOnly, setCarriedOnly] = useState(false);
-  const clearFilters = () => { setFEl("ALL"); setFCls("ALL"); setCarriedOnly(false); };
+  const [kw, setKw] = useState<Keyword | "ALL">("ALL");
+  const [rar, setRar] = useState<RarityFilter>("ALL");
+  const [cost, setCost] = useState<CostFilter>("ALL");
+  const [filtersOpen, toggleFilters] = useFilterFold();
+  const clearFilters = () => {
+    setFEl("ALL"); setFCls("ALL"); setCarriedOnly(false);
+    setKw("ALL"); setRar("ALL"); setCost("ALL");
+  };
   /** Carrying is a SCOPE, not a third axis. ANDed with the others its own label
    *  stops being true — "Carrying 14" showing two cards because Support was
    *  still on — so picking it clears them and picking one of them clears it. */
-  const showCarried = () => { setFEl("ALL"); setFCls("ALL"); setCarriedOnly(true); };
+  const showCarried = () => {
+    setFEl("ALL"); setFCls("ALL"); setKw("ALL"); setRar("ALL"); setCost("ALL"); setCarriedOnly(true);
+  };
 
   const packable = packableFor(save, region);
   /** Only the chips this pool can actually fill. The collection screen shows
@@ -116,8 +129,22 @@ export function StorySquad(props: {
   const shown = byRarity.filter((id) => {
     if (carriedOnly && !draft.includes(id)) return false;
     const d = getDef(id);
-    return (fEl === "ALL" || d.element === fEl) && (fCls === "ALL" || d.cardClass === fCls);
+    return (fEl === "ALL" || d.element === fEl)
+      && (fCls === "ALL" || d.cardClass === fCls)
+      && (kw === "ALL" || !!d.keywords[kw])
+      && (rar === "ALL" || d.rarity === rar)
+      && matchesCost(d.cost, cost);
   });
+
+  /** Carrying is a SCOPE and is named separately on its own chip, so it stays
+   *  out of the summary; everything else here hides cards and belongs in it. */
+  const filterSummary = [
+    fEl !== "ALL" ? fEl : null,
+    fCls !== "ALL" ? fCls : null,
+    kw !== "ALL" ? kw : null,
+    rar !== "ALL" ? rar.toUpperCase() : null,
+    cost !== "ALL" ? `${cost}◆` : null,
+  ].filter(Boolean) as string[];
 
   return (
     <section className="squad-strip">
@@ -184,7 +211,15 @@ export function StorySquad(props: {
 
           {/* Reuses the deck builder's filter chips, which already scroll
               sideways with a faded right edge on a phone — this strip lives
-              under the map and cannot afford two wrapped rows of chips. */}
+              under the map and cannot afford two wrapped rows of chips, which
+              is also why it folds. */}
+          <FilterToggle
+            open={filtersOpen}
+            onToggle={toggleFilters}
+            summary={filterSummary}
+            count={shown.length}
+          />
+          {filtersOpen && (<>
           <div className="db-filters sq-filters">
             <button className={`db-fl ${fEl === "ALL" && !carriedOnly ? "on" : ""}`}
               onClick={() => { setFEl("ALL"); setCarriedOnly(false); }}>All</button>
@@ -226,6 +261,13 @@ export function StorySquad(props: {
                 onClick={() => { setFCls(fCls === c ? "ALL" : c); setCarriedOnly(false); }}>{c}</button>
             ))}
           </div>
+          {/* Each of these clears the carried SCOPE for the same reason the
+              element and class chips do: "Carrying 14" showing two cards
+              because a keyword was still on makes its own label a lie. */}
+          <KeywordRow value={kw} onChange={(v) => { setKw(v); setCarriedOnly(false); }} />
+          <RarityRow value={rar} onChange={(v) => { setRar(v); setCarriedOnly(false); }} />
+          <CostRow value={cost} onChange={(v) => { setCost(v); setCarriedOnly(false); }} />
+          </>)}
 
           {shown.length === 0 ? (
             <p className="story-hint sq-empty">

@@ -10,7 +10,11 @@ import {
 import { STANDARD_CAP, autoDeck } from "../data/story";
 import { deleteSquad, loadSquads, saveSquad, squadNamed, squadUsableIn, type Squad } from "../data/squads";
 import { deckLinkFor, decodeDeck, encodeDeck } from "../data/deck-code";
-import { EL_COLOR, EL_ICON, ELEMENTS, KEYWORD_STYLE, KEYWORDS, RARITY_STYLE, spellArtSrc } from "./shared";
+import { EL_COLOR, EL_ICON, RARITY_STYLE, spellArtSrc } from "./shared";
+import {
+  ClassRow, CostRow, ElementRow, FilterToggle, KeywordRow, RarityRow,
+  matchesCost, useFilterFold, type CostFilter, type RarityFilter,
+} from "./filters";
 import { CardView } from "./CardView";
 import { DeckStats, useComposition } from "./DeckStats";
 import { SpIcon } from "./icons";
@@ -118,17 +122,9 @@ export function DeckBuilder(props: {
   /** Keyword filter. The one axis the builder could not search on: "show me the
    *  FLYING cards" was a question you had to answer by reading every card. */
   const [kw, setKw] = useState<Keyword | "ALL">("ALL");
-  /** Are the filter rows showing? Four rows of chrome sit between the search box
-   *  and the first card, which on a phone is most of the screen. Collapsed is
-   *  remembered, because it is a preference about how you browse rather than a
-   *  state of this particular visit. */
-  const [filtersOpen, setFiltersOpen] = useState<boolean>(() => {
-    try { return localStorage.getItem("we_db_filters") !== "0"; } catch { return true; }
-  });
-  const toggleFilters = () => setFiltersOpen((v) => {
-    try { localStorage.setItem("we_db_filters", v ? "0" : "1"); } catch { /* ignore */ }
-    return !v;
-  });
+  const [rar, setRar] = useState<RarityFilter>("ALL");
+  const [cost, setCost] = useState<CostFilter>("ALL");
+  const [filtersOpen, toggleFilters] = useFilterFold();
   const [sortBy, setSortBy] = useState<SortKey>("cost");
   const [query, setQuery] = useState("");
   /** Phone only: the deck rail is a BAR by default and rises over the pool when
@@ -172,6 +168,8 @@ export function DeckBuilder(props: {
         (filter === "ALL" || c.element === filter) &&
         (classFilter === "ALL" || c.cardClass === classFilter) &&
         (kw === "ALL" || !!c.keywords[kw]) &&
+        (rar === "ALL" || c.rarity === rar) &&
+        matchesCost(c.cost, cost) &&
         (q === "" || c.name.toLowerCase().includes(q)),
     );
     return [...base].sort((a, b) => {
@@ -180,7 +178,7 @@ export function DeckBuilder(props: {
         return rarityRank(a.rarity) - rarityRank(b.rarity) || a.cost - b.cost || a.name.localeCompare(b.name);
       return a.cost - b.cost || rarityRank(a.rarity) - rarityRank(b.rarity) || a.name.localeCompare(b.name);
     });
-  }, [pool, filter, classFilter, kw, sortBy, query]);
+  }, [pool, filter, classFilter, kw, rar, cost, sortBy, query]);
 
   /** What is narrowing the grid right now. Sort is NOT a filter and is left out
    *  on purpose: it changes the order, never the contents, so listing it would
@@ -189,10 +187,25 @@ export function DeckBuilder(props: {
     filter !== "ALL" ? filter : null,
     classFilter !== "ALL" ? classFilter : null,
     kw !== "ALL" ? kw : null,
+    rar !== "ALL" ? rar.toUpperCase() : null,
+    cost !== "ALL" ? `${cost}◆` : null,
     query.trim() ? `"${query.trim()}"` : null,
   ].filter(Boolean) as string[];
   const anyFilter = filterSummary.length > 0;
-  const clearFilters = () => { setFilter("ALL"); setClassFilter("ALL"); setKw("ALL"); setQuery(""); };
+  const clearFilters = () => {
+    setFilter("ALL"); setClassFilter("ALL"); setKw("ALL");
+    setRar("ALL"); setCost("ALL"); setQuery("");
+  };
+  /** How many cards a candidate value would leave, given the OTHER filters.
+   *  Shared by every row so a dimmed pill means the same thing everywhere. */
+  const countIf = (pred: (c: (typeof pool)[number]) => boolean, skip: "el" | "cls" | "kw" | "rar" | "cost") =>
+    pool.filter((c) =>
+      pred(c)
+      && (skip === "el" || filter === "ALL" || c.element === filter)
+      && (skip === "cls" || classFilter === "ALL" || c.cardClass === classFilter)
+      && (skip === "kw" || kw === "ALL" || !!c.keywords[kw])
+      && (skip === "rar" || rar === "ALL" || c.rarity === rar)
+      && (skip === "cost" || matchesCost(c.cost, cost))).length;
   const pickedSet = new Set(picked);
   const check = story
     ? picked.length === 0
@@ -839,104 +852,23 @@ export function DeckBuilder(props: {
                 and the cards come up the screen; what does NOT go is the state
                 of the filters — an active filter with its controls hidden is a
                 grid that looks broken, so the summary below carries it. */}
-            <button
-              className={`db-filtoggle ${filtersOpen ? "open" : ""} ${anyFilter ? "active" : ""}`}
-              onClick={toggleFilters}
-              aria-expanded={filtersOpen}
-            >
-              <span className="dbf-lbl">Filters</span>
-              {!filtersOpen && (
-                <span className="dbf-sum">
-                  {anyFilter
-                    ? filterSummary.map((t) => <em key={t}>{t}</em>)
-                    : <em className="dbf-none">All cards</em>}
-                </span>
-              )}
-              <span className="dbf-count">{shown.length}</span>
-              <i className="dbf-chev" aria-hidden="true">{filtersOpen ? "▴" : "▾"}</i>
-            </button>
+            <FilterToggle
+              open={filtersOpen}
+              onToggle={toggleFilters}
+              summary={filterSummary}
+              count={shown.length}
+            />
             {filtersOpen && (<>
-            <div className="db-filters">
-              <button className={`db-fl ${filter === "ALL" ? "on" : ""}`} onClick={() => setFilter("ALL")}>All</button>
-              {/* Always in the element's own colour — a wall of identical grey
-                  pills made you read every label to find an element. Selected
-                  additionally gets the tinted fill. */}
-              {ELEMENTS.map((el) => (
-                <button
-                  key={el}
-                  className={`db-fl el-fl ${filter === el ? "on" : ""}`}
-                  onClick={() => setFilter(el)}
-                  style={{
-                    borderColor: EL_COLOR[el],
-                    color: EL_COLOR[el],
-                    background: filter === el ? `color-mix(in srgb, ${EL_COLOR[el]} 26%, transparent)` : undefined,
-                  }}
-                >
-                  <img className="el-fl-sig" src={EL_ICON[el]} alt="" draggable={false}
-                    onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                  {el}
-                </button>
-              ))}
-            </div>
-            <div className="db-sort">
-              <span className="db-sort-lbl">Class</span>
-              <button
-                className={`db-fl ${classFilter === "ALL" ? "on" : ""}`}
-                onClick={() => setClassFilter("ALL")}
-              >
-                All
-              </button>
-              {CLASSES.map((c) => {
-                // Dim a class the current element filter has none of, rather
-                // than hiding it — a row that reshuffles as you switch element
-                // is harder to hit than one that stays put.
-                const n = pool.filter(
-                  (d) => d.cardClass === c && (filter === "ALL" || d.element === filter),
-                ).length;
-                return (
-                  <button
-                    key={c}
-                    className={`db-fl ${classFilter === c ? "on" : ""}`}
-                    onClick={() => setClassFilter(c)}
-                    style={n === 0 && classFilter !== c ? { opacity: 0.35 } : undefined}
-                    title={`${n} card${n === 1 ? "" : "s"}`}
-                  >
-                    {c}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="db-sort db-kw">
-              <span className="db-sort-lbl">Keyword</span>
-              <button className={`db-fl ${kw === "ALL" ? "on" : ""}`} onClick={() => setKw("ALL")}>All</button>
-              {KEYWORDS.map((k) => {
-                // Dimmed rather than hidden when the other filters leave none,
-                // exactly like the class row: a row that reshuffles as you
-                // change element is harder to hit than one that stays put.
-                const n = pool.filter(
-                  (d) => !!d.keywords[k]
-                    && (filter === "ALL" || d.element === filter)
-                    && (classFilter === "ALL" || d.cardClass === classFilter),
-                ).length;
-                const st = KEYWORD_STYLE[k];
-                return (
-                  <button
-                    key={k}
-                    className={`db-fl db-kwfl ${kw === k ? "on" : ""}`}
-                    onClick={() => setKw(kw === k ? "ALL" : k)}
-                    style={{
-                      borderColor: st?.color,
-                      color: st?.color,
-                      background: kw === k ? `color-mix(in srgb, ${st?.color} 26%, transparent)` : undefined,
-                      ...(n === 0 && kw !== k ? { opacity: 0.35 } : null),
-                    }}
-                    title={`${n} card${n === 1 ? "" : "s"} with ${k}`}
-                  >
-                    <i aria-hidden="true">{st?.glyph}</i>{k}
-                  </button>
-                );
-              })}
-            </div>
+            <ElementRow value={filter} onChange={setFilter} />
+            <ClassRow
+              all={CLASSES}
+              value={classFilter}
+              onChange={setClassFilter}
+              countFor={(c) => countIf((d) => d.cardClass === c, "cls")}
+            />
+            <KeywordRow value={kw} onChange={setKw} countFor={(k) => countIf((d) => !!d.keywords[k], "kw")} />
+            <RarityRow value={rar} onChange={setRar} countFor={(r) => countIf((d) => d.rarity === r, "rar")} />
+            <CostRow value={cost} onChange={setCost} countFor={(c) => countIf((d) => matchesCost(d.cost, c), "cost")} />
             <div className="db-sort">
               <span className="db-sort-lbl">Sort</span>
               {SORTS.map(([key, label]) => (

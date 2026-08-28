@@ -19,7 +19,11 @@ import {
   PLACED_CARDS, bestSource, deckCapFor, isShiny, markSeen, recruitChance, sourcesOf,
   type StorySave,
 } from "../data/story";
-import { EL_COLOR, EL_ICON, ELEMENTS, KEYWORD_STYLE, KEYWORDS, RARITY_STYLE } from "./shared";
+import { EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
+import {
+  ClassRow, CostRow, FilterToggle, KeywordRow, RarityRow,
+  matchesCost, useFilterFold, type CostFilter, type RarityFilter,
+} from "./filters";
 import { SpIcon } from "./icons";
 import { CardView } from "./CardView";
 
@@ -63,17 +67,13 @@ export function StoryCollection(props: {
   const [el, setEl] = useState<Element | "ALL">("ALL");
   const [cls, setCls] = useState<CardClass | "ALL">("ALL");
   const [kw, setKw] = useState<Keyword | "ALL">("ALL");
+  const [rar, setRar] = useState<RarityFilter>("ALL");
+  const [cost, setCost] = useState<CostFilter>("ALL");
   /** Same one-button collapse as the builder, and the same reasoning: the rows
    *  cost a phone most of its first screen of cards. Shares the stored key, so
    *  the preference follows you between the two grids rather than being set
    *  twice. */
-  const [filtersOpen, setFiltersOpen] = useState<boolean>(() => {
-    try { return localStorage.getItem("we_db_filters") !== "0"; } catch { return true; }
-  });
-  const toggleFilters = () => setFiltersOpen((v) => {
-    try { localStorage.setItem("we_db_filters", v ? "0" : "1"); } catch { /* ignore */ }
-    return !v;
-  });
+  const [filtersOpen, toggleFilters] = useFilterFold();
   const [detailId, setDetailId] = useState<string | null>(null);
   const owned = useMemo(() => new Set(save.collection), [save.collection]);
   const inDeck = useMemo(() => new Set(save.deck), [save.deck]);
@@ -92,15 +92,21 @@ export function StoryCollection(props: {
     el !== "ALL" ? el : null,
     cls !== "ALL" ? cls : null,
     kw !== "ALL" ? kw : null,
+    rar !== "ALL" ? rar.toUpperCase() : null,
+    cost !== "ALL" ? `${cost}◆` : null,
   ].filter(Boolean) as string[];
   const anyFilter = filterSummary.length > 0;
-  const clearFilters = () => { setScope("all"); setEl("ALL"); setCls("ALL"); setKw("ALL"); };
+  const clearFilters = () => {
+    setScope("all"); setEl("ALL"); setCls("ALL"); setKw("ALL"); setRar("ALL"); setCost("ALL");
+  };
 
   const shown = useMemo(() => {
     const list = CARDS.filter((d) => !d.boss).filter((d) => {
       if (el !== "ALL" && d.element !== el) return false;
       if (cls !== "ALL" && d.cardClass !== cls) return false;
       if (kw !== "ALL" && !d.keywords[kw]) return false;
+      if (rar !== "ALL" && d.rarity !== rar) return false;
+      if (!matchesCost(d.cost, cost)) return false;
       if (scope === "owned") return owned.has(d.id);
       // "Missing" means findable and not yet found. A card in an unbuilt region
       // is not a to-do item — it is a content gap, and listing it as one would
@@ -127,7 +133,7 @@ export function StoryCollection(props: {
       Number(owned.has(b.id)) - Number(owned.has(a.id)) ||
       rarityRank(a.rarity) - rarityRank(b.rarity) ||
       a.cost - b.cost || a.name.localeCompare(b.name));
-  }, [scope, el, cls, kw, owned, placed, save]);
+  }, [scope, el, cls, kw, rar, cost, owned, placed, save]);
 
   /** Per-element completion. The grid can tell you a card is missing; only this
    *  can tell you WHICH REGION to go back to, which is the version of the
@@ -244,22 +250,7 @@ export function StoryCollection(props: {
 
       <div className="story-body">
         <div className="col-pool">
-          <button
-            className={`db-filtoggle ${filtersOpen ? "open" : ""} ${anyFilter ? "active" : ""}`}
-            onClick={toggleFilters}
-            aria-expanded={filtersOpen}
-          >
-            <span className="dbf-lbl">Filters</span>
-            {!filtersOpen && (
-              <span className="dbf-sum">
-                {anyFilter
-                  ? filterSummary.map((t) => <em key={t}>{t}</em>)
-                  : <em className="dbf-none">All cards</em>}
-              </span>
-            )}
-            <span className="dbf-count">{shown.length}</span>
-            <i className="dbf-chev" aria-hidden="true">{filtersOpen ? "▴" : "▾"}</i>
-          </button>
+          <FilterToggle open={filtersOpen} onToggle={toggleFilters} summary={filterSummary} count={shown.length} />
           {filtersOpen && (<>
           <div className="db-filters col-scope">
             {([["all", "All"], ["owned", "Owned"], ["missing", "Missing"]] as const).map(([k, label]) => (
@@ -268,36 +259,15 @@ export function StoryCollection(props: {
               </button>
             ))}
           </div>
-          <div className="db-sort">
-            <span className="db-sort-lbl">Class</span>
-            <button className={`db-fl ${cls === "ALL" ? "on" : ""}`} onClick={() => setCls("ALL")}>All</button>
-            {CLASSES.map((c) => (
-              <button key={c} className={`db-fl ${cls === c ? "on" : ""}`} onClick={() => setCls(c)}>{c}</button>
-            ))}
-          </div>
-          <div className="db-sort db-kw">
-            <span className="db-sort-lbl">Keyword</span>
-            <button className={`db-fl ${kw === "ALL" ? "on" : ""}`} onClick={() => setKw("ALL")}>All</button>
-            {KEYWORDS.map((k) => {
-              const st = KEYWORD_STYLE[k];
-              return (
-                <button
-                  key={k}
-                  className={`db-fl db-kwfl ${kw === k ? "on" : ""}`}
-                  onClick={() => setKw(kw === k ? "ALL" : k)}
-                  style={{
-                    borderColor: st?.color,
-                    color: st?.color,
-                    background: kw === k ? `color-mix(in srgb, ${st?.color} 26%, transparent)` : undefined,
-                  }}
-                  title={`Cards with ${k}`}
-                >
-                  <i aria-hidden="true">{st?.glyph}</i>{k}
-                </button>
-              );
-            })}
-            {anyFilter && <button className="db-fl db-clear" onClick={clearFilters}>Clear</button>}
-          </div>
+          <ClassRow all={CLASSES} value={cls} onChange={setCls} />
+          <KeywordRow value={kw} onChange={setKw} />
+          <RarityRow value={rar} onChange={setRar} />
+          <CostRow value={cost} onChange={setCost} />
+          {anyFilter && (
+            <div className="db-sort">
+              <button className="db-fl db-clear" onClick={clearFilters}>Clear filters</button>
+            </div>
+          )}
           </>)}
 
           {shown.length === 0 ? (
