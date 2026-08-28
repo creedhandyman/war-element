@@ -10003,7 +10003,21 @@ export const CARDS: CardDef[] = [
     // immunity (Siphon, Buzz, Surge, Anos, Halo, Elderroot). Web Trap at 3 CD
     // means one guaranteed clean round in three — bank the combo for it.
     // 82 body vs the 80 cap: inside the Floor band's +5, held deliberately.
-    passiveNames: { onHitStatus: "Venomous Stinger", firstAttackMisses: "Slip the Silk", roundTick: "Stalk" },
+    passiveNames: {
+      onHitStatus: "Venomous Stinger", firstAttackMisses: "Slip the Silk",
+      roundTick: "Stalk", vsStatus: "Feeding Time",
+    },
+    // FEEDING TIME — the kit fix, and the diagnosis was in the win types.
+    // Xilty's `overrun` count sat at exactly 4 of 96 across a FIFTY PERCENT body
+    // buff: it never killed anything, it only survived. Web Trap is a pure
+    // status nova with no damage at all, so the boss locked the board down and
+    // then had no way to cash the lock in. It won by outlasting the clock, which
+    // is why raising the clock to 30 gutted it and why more body did nothing.
+    //
+    // Now the web is the setup and the bite is the payoff: everything within 2
+    // is ROOTed every three rounds, and a rooted target takes +20 from every
+    // hit of a 2-hit basic. Wrap, then eat.
+    vsStatus: { status: "ROOT", bonusDmg: 20 },
     onHitStatus: { kind: "DOT", duration: 2, power: 2 },
     firstAttackMisses: true,
     // It walks. A melee lockdown boss that sits home is binary — approach and
@@ -10014,7 +10028,15 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Web Trap",
       cost: 3,
-      handler: "statusNova",
+      // BARRAGE, not statusNova. A `statusNova` deals NO DAMAGE AT ALL, and that
+      // was the whole of Xilty's problem: it locked the board down every three
+      // rounds with no way to cash the lock in, so it won by outlasting the
+      // clock and nothing else. Its `overrun` count sat at 4 of 96 through a 50%
+      // body buff AND through a +20 payoff on its basics — the bite could not
+      // reach what the web caught, because a melee spider advancing one slot a
+      // round mostly never gets there. So the web bites. Same PARALYZE, same
+      // ROOT — barrage carries both riders — with damage on top.
+      handler: "barrage",
       // ONE round, not two. Two rounds of PARALYZE on a three-round clock is
       // two-thirds uptime on everything in range: the player acted one round in
       // three, and Xilty went undamaged in over half its fights. A lock you
@@ -10048,12 +10070,12 @@ export const CARDS: CardDef[] = [
       // only the FLYING dodge — `ranged` would have worked too and would also
       // have thrown away this Special's printed radius.
       params: {
-        antiAir: 1,
+        antiAir: 1, dmg: 15,
         statusKind: "PARALYZE", statusDuration: 1, targets: 99, reach: 2,
         debuffStatus: "ROOT", debuffStatusRounds: 2,
       },
       targetSide: "enemy",
-      text: "Every opponent within 2 spaces is PARALYZED for 1 round and ROOTed for 2.",
+      text: "15 DMG to every opponent within 2 spaces, PARALYZED for 1 round and ROOTed for 2 — and Feeding Time adds 20 to every hit it lands on the rooted.",
     },
   },
   {
@@ -10469,7 +10491,17 @@ export const CARDS: CardDef[] = [
     // unlike a status lock or a swarm, the answer is a decision rather than a
     // card you either brought or did not.
     passiveNames: { roundTick: "Avalanche", vsStatus: "Whiteout Hunter" },
-    roundTick: { fireSpecialEveryN: 3, momentum: { per: 3, max: 12 } },
+    // THE COLD ARRIVES BEFORE IT DOES. Hoarfell's `overrun` count was 16/15/15
+    // across a 50% body buff — dead flat. It spends the fight WALKING, and while
+    // it walked it threatened nothing, so every point of body bought another
+    // round of walking rather than a kill. `inRangeDmg` gives the approach teeth
+    // without giving the juggernaut a ranged attack it should not have: stand
+    // near it and you are already losing.
+    //
+    // Measured, it is the ONLY lever that moves this boss: 0 -> 6 -> 11 took its
+    // ally case 10.4 -> 35.4 -> 41.7 where a 50% body buff had moved it 2. 17 is
+    // the third step on that curve.
+    roundTick: { fireSpecialEveryN: 3, momentum: { per: 3, max: 12 }, inRangeDmg: 17 },
     // The DAWN half of the pairing: its Special BLINDs, and it hunts what it has
     // blinded. Aurora light off a wall of ice — you do not see it coming, which
     // is a strange thing to say about something this size and exactly the joke.
@@ -10486,9 +10518,9 @@ export const CARDS: CardDef[] = [
       // only the FLYING dodge — `ranged` would have worked too and would also
       // have thrown away this Special's printed radius.
       params: {
-        antiAir: 1, dmg: 10, targets: 99, reach: 2, statusKind: "BLIND", statusDuration: 2 },
+        antiAir: 1, dmg: 17, targets: 99, reach: 2, statusKind: "BLIND", statusDuration: 2 },
       targetSide: "enemy",
-      text: "10 DMG and BLIND for 2 rounds to every opponent within 2 spaces — and Whiteout Hunter adds 5 to everything it lands on the blinded.",
+      text: "17 DMG and BLIND for 2 rounds to every opponent within 2 spaces — and Whiteout Hunter adds 5 to everything it lands on the blinded.",
     },
   },
   {
@@ -10837,9 +10869,15 @@ export const CARDS: CardDef[] = [
       // `smite` with no requireStatus is every living opponent, ignoring range.
       // pen, because shields are one of the three real answers and stripping
       // them is the point — a wall you can hide behind forever is a fourth.
-      params: { dmg: 7, pen: 1 },
+      // 7 -> 17. THE BODY WAS SCALED AND THE SPECIAL WAS NOT — across three
+      // retunes this card went to 336 HP and a 41 basic while Meteor Fall still
+      // hit the whole board for SEVEN. That is the whole of its "saturation":
+      // more body simply meant more rounds of a Special that could not matter.
+      // 17 measured 94.8% with an ally and 14 measured 93.8% — it saturates at the
+      // top, so the dial-back has to go further than the gap suggests.
+      params: { dmg: 12, pen: 1 },
       targetSide: "enemy",
-      text: "The sky falls: 7 DMG to every opponent on the board, through shields, wherever they stand. Each cast makes the next one worse.",
+      text: "The sky falls: 12 DMG to every opponent on the board, through shields, wherever they stand. Each cast makes the next one worse.",
     },
   },
   {

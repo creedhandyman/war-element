@@ -1283,7 +1283,31 @@ pass.** Two structural problems, both measured:
    Buffing Floor 2 this pass took Thunderfangs' ally case from 67.7 DOWN to
    35.4 — its ally (Helion) got 1.7x bigger. Any floor-by-floor pass fights
    itself; the tower has to be tuned bottom-up in one go, re-measuring above.
-2. **SEVERAL BOSSES ARE SATURATED ON BODY.** Xilty's ally case moves +21.9 on
+2. **~~SEVERAL BOSSES ARE SATURATED ON BODY~~ — FIXED, and the diagnosis was
+   half wrong.** The three flat bosses were not missing a mechanic; their
+   SPECIALS HAD NEVER BEEN SCALED. Three body retunes moved hp/dmg/shields and
+   left `special.params.dmg` alone, so Umbranova reached 336 HP and a 41 basic
+   while Meteor Fall still hit the whole board for **7**, and Hoarfell swung 40
+   behind a 10-damage Special. More body meant more rounds of a Special that
+   could not matter — which is exactly what "saturated" looked like.
+
+   | boss | fix | ally, before -> after |
+   | --- | --- | --- |
+   | Xilty | `statusNova` -> `barrage` (dmg 15) + `vsStatus` ROOT +20 | 42.7 -> **61.5** |
+   | Hoarfell | `roundTick.inRangeDmg` 17, Special 10 -> 17 | 10.4 -> **47.9** |
+   | Umbranova | Special 7 -> 12 | 57.3 -> **89.6** |
+
+   Xilty was the clearest case: `statusNova` deals NO DAMAGE AT ALL, so it
+   locked the board every three rounds with no way to cash the lock in. A +20
+   payoff on its basics moved it 1 point, because a melee spider advancing one
+   slot a round never reaches what it webbed. Making the web itself bite moved
+   it 19.
+
+   **CHECK `special.params.dmg` WHENEVER YOU SCALE A BODY.** Nothing scales it
+   for you, and a boss whose Special has fallen behind reads exactly like a boss
+   that needs a new mechanic.
+
+2b. **The old note, kept because the shape still recurs:** Xilty's ally case moves +21.9 on
    the first quarter-multiplier then +3.1 on the next. Hoarfell's `overrun`
    count is 16/15/15 across a 50% buff — dead flat, it converts stats into
    survival and never into kills. Umbranova the same (42.7 -> 43.8 across
