@@ -664,78 +664,78 @@ const BOLT: StoryRegion = {
     { id: "B1", name: "Scrapyard Verge", kind: "skirmish", at: { x: 16, y: 30 },
       requires: [], roster: ["bolt_junker", "bolt_zap", "bolt_twotales"], adds: [],
       note: "Where the sea road from AQUA meets the sprawl.",
-      lore: "\"Magic is just power no one's bothered to wire up yet.\" Painted above the door of every research wing in the city."
+      lore: "“Magic is just power no one has bothered to wire up yet” — painted above the door of every research wing in the city. Junker has been dragging the proof out of the sprawl for years."
     },
     { id: "B2", name: "Drone Field", kind: "skirmish", tribe: "ARC", at: { x: 27, y: 46 },
       requires: ["B1"], roster: ["bolt_zipp", "bolt_rodd", "bolt_static"], adds: ["bolt_drone_tok"],
       note: "Neon sprawl and strung cables. Zipp's Swarm Deploy makes the Drones.",
-      lore: "BOLT wires ground before anyone settles it. The lines go out to empty lots first, and whoever builds there afterwards is treated as proof the survey was right."
+      lore: "BOLT wires ground before anyone settles it. The lines go out to empty lots first and whoever builds there afterwards is filed as proof the survey was right; the Drones were here before the lots."
      },
     { id: "B3", name: "Substation Row", kind: "skirmish", at: { x: 34, y: 33 },
       requires: ["B1"], roster: ["bolt_drshock", "bolt_electricel", "bolt_jolt"], adds: [],
-      lore: "Substation Row splits the city's current between districts, and posts the division publicly each morning. BOLT holds that a grid nobody can audit is a grid somebody has already tapped."
+      lore: "Substation Row splits the city's current between districts and posts the division publicly each morning. A grid nobody can audit, DrShock will tell you, is a grid somebody has already tapped."
      },
     { id: "B4", name: "The Static Flats", kind: "skirmish", tribe: "ARC", at: { x: 28, y: 12 },
       requires: ["B3"], roster: ["bolt_staticcloud", "bolt_ning", "bolt_stingray"],
       adds: ["bolt_static_wisp_tok"],
       note: "Fused glass and a lightning-scarred gateway. The north road to GALE runs through here.",
-      lore: "BOLT did not merely build lines to carry lightning after it struck. It built a spire at the border to gather it before it has finished being GALE's storm at all."
+      lore: "BOLT did not build lines to carry lightning after it struck — it built a spire to gather it before it has finished being GALE's storm. The Static Cloud is what the spire has not collected yet."
     },
     { id: "B5", name: "Conduit Marsh", kind: "skirmish", at: { x: 26, y: 63 },
       requires: ["B2"], roster: ["bolt_buzz", "bolt_buzzard", "bolt_jellyfish"], adds: ["bolt_drone_tok"],
       note: "The same Drone from a second source — Buzzard's Drone Sweep.",
-      lore: "Wet ground carries a charge better than dry, which is the only reason the marsh was never drained. BOLT keeps it flooded on purpose and treats the water as wiring."
+      lore: "Wet ground carries a charge better than dry, which is the only reason the marsh was never drained. BOLT keeps it flooded to spec and treats the water as wiring; Jellyfish treats it as home."
      },
     { id: "B6", name: "Breaker Yard", kind: "warden", at: { x: 41, y: 41 },
       requires: ["B3"], roster: ["bolt_scrapper", "bolt_storm", "bolt_thundercat"], adds: [],
-      lore: "Every grid fails somewhere, and BOLT's answer was to decide in advance where. The Breaker Yard is the address the rest of the city agreed to hand it."
+      lore: "Every grid fails somewhere, so BOLT decided in advance where. The Breaker Yard is the address the rest of the city agreed to hand it, and Scrapper is what the address is staffed with."
      },
     { id: "B8", name: "Overload Junction", kind: "warden", at: { x: 63, y: 45 },
       requires: ["B6"], roster: ["bolt_shoksa", "bolt_striik", "bolt_lytning"], adds: [],
       note: "More current than anything downstream can spend. Dynamo makes it, Highroller bets it, Lytning spends it on you.",
-      lore: "More current arrives at the junction than anything downstream of it can spend, and that is the specification, not an accident. Overload was a boast before anyone read it as a warning."
+      lore: "More current arrives here than anything downstream can spend, and that is the specification rather than an accident. Dynamo was built to that number before it was ever read as a warning."
      },
     { id: "B7", name: "Arc Industries Yards", kind: "warden", tribe: "ARC", at: { x: 89, y: 55 },
       requires: ["B8"], roster: ["bolt_webster", "bolt_sentry", "bolt_voltcher"], adds: [],
       note: "Cooling towers and conduit pylons. The ARC spine starts here — every one of them Epic or above.",
-      lore: "The mega fabrication plant. Machines, weapons, innovation: if it can be built, Arc Industries has already built a faster version."
+      lore: "The mega fabrication plant — machines, weapons, innovation. If it can be built, Arc has already built a faster one, and Sentry is the version they stopped improving because it was finished."
     },
     { id: "B9", name: "The Forge Grid", kind: "warden", tribe: "ARC", at: { x: 79, y: 41 },
       requires: ["B7"], roster: ["bolt_surge", "bolt_kore", "bolt_zagphu", "bolt_havoc"],
       adds: ["bolt_static_wisp_tok"] ,
       note: "ARC's heavy line — Surge, Kore, and Ricochet, fresh off the forge floor.",
-      lore: "Voltis Plaza honours whoever first proved storm-lightning could be caught. The official histories name no one. Ask an old GearHollow dwarf and you may get a different answer."
+      lore: "Voltis Plaza honours whoever first proved storm-lightning could be caught, and the official histories name no one. Ask an old GearHollow dwarf and you may get a name; Havoc came off this floor."
     },
     { id: "B10", name: "Forsaken Heights", kind: "warden", tribe: "ARC", at: { x: 88, y: 21 },
       requires: ["B9"], roster: ["bolt_general", "bolt_thunder", "bolt_volta"], adds: [],
       note: "Iron lightning-rods drawing the storm. Volta's Grid Deployment spawns Rodd — a card you already own from the Drone Field.",
-      lore: "The Heights were homes before they were rods. BOLT records the buyout as an upgrade — a word none of the families who signed it has ever used since."
+      lore: "The Heights were homes before they were lightning-rods. BOLT records the buyout as an upgrade, a word none of the families who signed it has used since, and the General does not discuss it."
      },
     { id: "B11", name: "The Hive Array", kind: "landmark", tribe: "ARC", at: { x: 72, y: 67 },
       requires: ["B5", "B9"], roster: ["bolt_jack_arc", "bolt_keeper", "bolt_gigavolt", "bolt_zoez"],
       adds: ["bolt_beebot"],
       note: "GearHollow's swarm. Keeper breeds a Beebot every round to a cap of 5 while GigaVolt's Turret Mode pins what it touches — solve the engine, not the board.",
-      lore: "GearHollow's dwarves sign nothing they build. In the tunnels a name on a diagram reads as an admission that one person could have got the whole thing wrong."
+      lore: "GearHollow's dwarves sign nothing they build: in the tunnels a name on a diagram reads as an admission that one person could have got the whole thing wrong. Jack Arc signs nothing either."
      },
     { id: "B12", name: "Stormcaller's Spire", kind: "landmark", at: { x: 66, y: 18 },
       requires: ["B4", "B10"], roster: ["bolt_stormcaller", "bolt_shock", "bolt_voltogon"],
       adds: ["bolt_static_wisp_tok"],
       note: "By the airship docks. The machines stay below — this is the storm itself, and Voltogon rides it in.",
-      lore: "GALE's storms are sacred and untamed. BOLT's engineers look at the same lightning and ask a very different question: what is this actually for?"
+      lore: "GALE's storms are sacred and untamed. BOLT's engineers look at the same lightning and ask what it is for — Stormcaller is the answer they built, and nothing here is struck by accident."
     },
     { id: "B13", name: "The Grid Vault", kind: "throne", at: { x: 43, y: 83 },
       requires: ["B11"], roster: ["bolt_velvolt_knight"],
       // Escorts: the Drone Field's own, farmable at B2.
       adds: ["bolt_drone_tok", "bolt_zipp", "bolt_rodd", "bolt_static"],
       note: "Sealed below the core behind blast doors. Optional.",
-      lore: "A season of charge, sealed under the city and never once drawn on. BOLT files it as ballast rather than reserve: a grid this large needs weight at the bottom of it."
+      lore: "A season of charge sealed under the city and never once drawn on. BOLT files it as ballast rather than reserve, and the Velvolt Knight is what that filing looks like from the wrong side."
      },
     { id: "B14", name: "City Power Core", kind: "throne", at: { x: 50, y: 31 },
       requires: ["B11", "B12"], roster: ["bolt_elecdroid"],
       // Escorts: the scrapyard where the region started, farmable at B1.
       adds: ["bolt_beebot", "bolt_zap", "bolt_junker", "bolt_lytning"], required: true,
       note: "The Arc Lightning Conduit itself. Required — clearing it opens the mountain pass to BORE.",
-      lore: "BOLT calls the Core a machine — engineered, replicable, understood. Its senior engineers admit, quietly, that no one has explained why it draws more power than its conduits should allow."
+      lore: "BOLT calls the Core a machine: engineered, replicable, understood. Its senior engineers admit, quietly, that nobody has explained why ARC draws more power than its conduits should allow."
     },
   ],
 };
