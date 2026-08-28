@@ -30,7 +30,7 @@ import {
   deckCapFor, freePacks, isCleared, isOpen, type StoryRegion, type StorySave,
 } from "../data/story";
 import { loadSquads } from "../data/squads";
-import { CARDS, getDef } from "../data/cards";
+import { CARDS, TOKENS, getDef } from "../data/cards";
 import { openEvents, type GameEvent } from "../data/events";
 import { boardOfRun, runOver, runReward } from "../data/gauntlet";
 import { decksForTier } from "../data/custom-decks";
@@ -56,6 +56,11 @@ interface Live {
   rim?: string;
 }
 
+/** What the Gallery tile counts: the WHOLE set, bosses and tokens included.
+ *  Deliberately not `PLACED_CARDS` (what the campaign can drop) — that is the
+ *  Collection tile's number, and the two tiles sit next to each other. */
+const GALLERY_COUNT = CARDS.length + TOKENS.length;
+
 export function HomeScreen(props: {
   save: StorySave;
   /** The region the player was last reading. Continue points at this one. */
@@ -72,6 +77,10 @@ export function HomeScreen(props: {
   onShop: (tab: "packs" | "crafter") => void;
   onBuilder: () => void;
   onCollection: () => void;
+  /** The reference book — every card, boss and token in the game, art and all.
+   *  Sits next to Collection because that is where a player looks for a card;
+   *  it is a different question, though, and the tile says so. */
+  onGallery: () => void;
   /** Open the account panel — email sign-in and the cloud save. */
   onAccount: () => void;
   /** Signed-in address, or null. Only used to label the button, so the home
@@ -299,6 +308,15 @@ export function HomeScreen(props: {
             {newCards > 0
               ? <span className="home-tile-num gold">{newCards} NEW</span>
               : <span className="home-tile-num">{PLACED_CARDS.length - collected} MISSING</span>}
+          </button>
+          {/* NOT a third way to look at your collection. Collection answers
+              "what have I got and where is the rest"; this answers "what is in
+              this game at all" — including the bosses and tokens no other
+              screen will show you. */}
+          <button className="home-tile gal" onClick={props.onGallery}>
+            <span className="home-tile-name">Gallery</span>
+            <span className="home-tile-sub">Every card & token</span>
+            <span className="home-tile-num">{GALLERY_COUNT} PLATES</span>
           </button>
         </div>
       </div>

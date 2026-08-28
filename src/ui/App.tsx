@@ -61,6 +61,7 @@ import {
 import { VoidTower } from "./VoidTower";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
+import { CardGallery } from "./CardGallery";
 import { TutorialCoach } from "./TutorialCoach";
 import {
   loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
@@ -323,6 +324,10 @@ export function App() {
   });
   const [builderOpen, setBuilderOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  // The card gallery is a reference book, not a destination: it opens over
+  // whatever you were looking at and touches no save state, so a plain boolean
+  // beside `rulesOpen` is the whole of its routing.
+  const [galleryOpen, setGalleryOpen] = useState(false);
   // A deck arriving by shared link (?deck=WE1-...). Read ONCE, on the first
   // render, and stripped from the address bar immediately: leaving it there
   // would re-import the same deck on every refresh and would follow the player
@@ -3577,6 +3582,7 @@ export function App() {
           onShop={(t) => { setShopTab(t); setTab("shop"); }}
           onBuilder={() => navDo({ t: "builder", open: true })}
           onCollection={() => setHomeCollection(true)}
+          onGallery={() => setGalleryOpen(true)}
           onAccount={() => setAccountOpen(true)}
           accountEmail={accountEmail}
         />
@@ -3680,6 +3686,7 @@ export function App() {
         }}
       />
       {rulesOpen && <RulesBook onClose={() => setRulesOpen(false)} />}
+      {galleryOpen && <CardGallery onClose={() => setGalleryOpen(false)} />}
       {accountOpen && (
         <AccountPanel
           onClose={() => setAccountOpen(false)}
@@ -3695,7 +3702,7 @@ export function App() {
 
       {/* Hidden during a match: a bottom bar over a 5x5 board eats the row the
           player needs most, and there is nowhere to navigate to mid-fight. */}
-      {!started && !builderOpen && !rulesOpen && (
+      {!started && !builderOpen && !rulesOpen && !galleryOpen && (
         <BottomNav
           tab={storyOpen ? "story" : tab}
           spendable={Object.values(story.hero?.essence ?? {}).reduce((a, b) => a + b, 0)}

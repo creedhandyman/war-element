@@ -6025,3 +6025,80 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 @keyframes vtTick { 0%, 100% { opacity: 1; } 50% { opacity: 0.62; } }
 @media (prefers-reduced-motion: reduce) { .roundchip.vt.urgent { animation: none; } }
+
+/* ── Card Gallery ─────────────────────────────────────────────────────────
+   The reference book: every plate in the game in one grid, tokens and Void
+   Tower bosses included. It is a FULL-SCREEN panel rather than the centred
+   640px `.modal` the class would otherwise give it — 366 tiles in a 640px
+   column is a very long thin list, and the whole point of the screen is to
+   look at artwork several rows at a time. */
+.gallery-overlay { z-index: var(--z-modal); place-items: stretch; }
+.gallery-modal {
+  max-width: none; max-height: none; width: 100%; height: 100dvh;
+  border: none; border-radius: 0; padding: 14px 16px 18px;
+  text-align: left; display: flex; flex-direction: column; gap: 9px;
+  overflow: hidden; /* the GRID scrolls, not the panel — the search box stays put */
+}
+.gal-head { flex: none; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.gal-title h2 { font-size: 17px; letter-spacing: 0.04em; margin: 0; }
+.gal-sub { display: block; margin-top: 2px; font-size: 10px; color: var(--ink-faint); letter-spacing: 0.03em; }
+.gal-close { flex: none; }
+
+.gal-search { flex: none; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gal-q {
+  flex: 1; min-width: 160px; padding: 7px 11px; border-radius: 9px;
+  border: 1px solid var(--panel-line); background: var(--void-2);
+  color: var(--ink); font: inherit; font-size: 12px;
+}
+.gal-q:focus { outline: none; border-color: var(--accent); }
+.gal-sorts { display: flex; gap: 5px; flex-wrap: wrap; }
+.gal-kinds { flex: none; }
+
+/* The grid is the only thing that scrolls, and it takes every pixel the
+   controls above it did not. `.db-grid`'s 60vh cap is a deck-builder PANEL
+   rule and would leave a full-screen gallery scrolling inside a short box in
+   the middle of an empty page. */
+.gal-grid {
+  flex: 1; min-height: 0; max-height: none;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+}
+/* Taller than `.db-card` by one line: the gallery tile carries the rule name,
+   which the builder's does not. */
+.gal-card { height: 142px; }
+.gal-card.boss { border-color: color-mix(in srgb, var(--threat) 55%, var(--panel-line)); }
+.gal-card.token { border-color: color-mix(in srgb, var(--steel-lit) 45%, var(--panel-line)); }
+/* WHAT THIS IS, when it is not an ordinary card. Sits in the top row beside
+   the cost badge — a token or a boss shown unlabelled next to a legendary
+   reads as something you could put in a deck. */
+.gal-kind {
+  margin-left: auto; padding: 1px 5px; border-radius: 4px;
+  font-size: 7.5px; font-weight: 900; letter-spacing: 0.06em; line-height: 1.5;
+  background: rgba(6, 8, 14, 0.78); border: 1px solid;
+}
+.gal-kind.boss { color: var(--threat); border-color: var(--threat); }
+.gal-kind.token { color: var(--steel-lit); border-color: var(--steel-lit); }
+/* The Special's name on the tile — clamped to one line so a long one cannot
+   push the stat row off the bottom of a fixed-height tile. */
+.gal-rule {
+  font-size: 8.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--ink-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 1px 2px #000; margin-top: 1px;
+}
+.gal-empty { margin-top: 18px; }
+
+/* The detail panel's footer: what it is, what summons it, and the pager. */
+.gal-extra { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; text-align: left; }
+.gal-extra-line { font-size: 11px; color: var(--ink-dim); }
+.gal-extra-line b { color: var(--ink); font-weight: 700; }
+.gal-step { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 4px; }
+.gal-step-n { font-size: 10px; color: var(--ink-faint); letter-spacing: 0.05em; }
+
+/* The Home tile. Its own hue so the three tiles in that row are three things,
+   not one thing repeated. */
+.home-tile.gal { background: linear-gradient(160deg, rgba(201, 162, 75, 0.13), rgba(10, 10, 17, 0.6)); }
+
+@media (max-width: 560px) {
+  .gallery-modal { padding: 12px 10px 14px; }
+  .gal-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+  .gal-card { height: 132px; }
+}

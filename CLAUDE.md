@@ -2072,6 +2072,44 @@ LOCKED. Grid min is 140px, measured: a 375px phone leaves the grid 321px, so
 loop beyond the trials' first-clear pack, floors 2-10 content, board modifiers,
 the rule-breaking floor 10.
 
+## Card Gallery — the screen that shows what the other grids hide
+
+`src/ui/CardGallery.tsx`. Every def in the game in one grid: **366 plates** —
+339 CARDS (19 of them Void Tower bosses) + 27 TOKENS.
+
+THE REASON IT EXISTS: the two card grids that already existed both filter, and
+between them **46 finished paintings had nowhere to be looked at**. The deck
+builder shows what you can draft; `StoryCollection` opens with
+`CARDS.filter((d) => !d.boss)` and neither has ever touched the `TOKENS` array.
+A player could only see a boss or a token by meeting one mid-match.
+
+- **Reuses `CardView` in browse mode for the detail panel** rather than drawing
+  a second one — that mode already renders Special, passives, keyword rules and
+  lore from a bare `CardDef` with no `GameState` (its zones 3 / 3b / 2c). Two
+  card panels is exactly how the pair this codebase used to have drifted apart.
+- **Tokens need no special-casing.** Measured, not assumed: all 27 carry cost,
+  rarity, cardClass, keywords, lore and every stat; 22 carry `tribe`; only 1
+  has a `special`. So the same panel renders them.
+- **No missing art, and it is test-enforced** — `art.test.ts` already covers
+  `CARDS` *and* `TOKENS`. An audit across all 366 found 0 missing (and 18 orphan
+  .webp files nothing points at). This grid is the only place all 366 render at
+  once, so a hole here would be very visible.
+- **`SPAWNED_BY` is derived, not authored**: a deep string scan of every def for
+  a token id, because there are at least five fields that can spawn one
+  (`summonSpawn`, `special.params.spawnToken`, `transformOnDefeat.into`,
+  `reviveAs`, `onHitSpawn.token`) and a hand-written field list goes stale.
+- Perf for 366 tiles is `loading="lazy"` + `decoding="async"`, nothing more.
+- Routed like `RulesBook`: a top-level boolean in App.tsx, mounted beside it,
+  and added to the `!rulesOpen` guard that hides `BottomNav`. Opened from a
+  third Home tile (`.home-tile.gal`). It never reads or writes the save.
+- `.gal-grid` overrides `.db-grid`'s `max-height: 60vh` — that cap is a
+  deck-builder PANEL rule and would box a full-screen gallery.
+
+`src/engine/__tests__/card-gallery.test.ts` pins the ABSENCE of a filter (the
+set is the whole set, bosses and tokens are non-empty, no duplicate ids) —
+rendering is not tested because this repo has **no DOM test environment**
+(`vite.config.ts`: `environment: "node"`) and no component tests at all.
+
 ## The UI after the mobile redesign
 
 Eight landings took the phone match screen from a square board with 58x60 tiles
