@@ -3716,9 +3716,9 @@ export const CARDS: CardDef[] = [
       cost: 2,
       handler: "strike",
       // BURN 2 on the target spreads to its adjacent opponents (statusSplash).
-      params: { dmg: 8, statusKind: "BURN", statusPower: 2, statusDuration: 2, statusSplash: 1 },
+      params: { dmg: 10, statusKind: "BURN", statusPower: 3, statusDuration: 2, statusSplash: 1 },
       targetSide: "enemy",
-      text: "Deal 8 DMG and apply BURN 2 (2r) to the target and its neighbors.",
+      text: "Deal 10 DMG and apply BURN 3 (2r) to the target and its neighbors.",
     },
   },
   {
