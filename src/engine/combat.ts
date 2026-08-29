@@ -4977,6 +4977,16 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const rounds = num(params, "buffRounds");
     if (rounds > 0) {
       applyTimedBuff(attacker, dmg, sp, rounds, hits, num(params, "selfPen") > 0);
+      // selfRangedShots: the charged blow also fires at RANGE (Ariel's
+      // 100,000°). Reuses `rangedShotsLeft`, the pocket already built for
+      // Surge's Electro Surge, rather than inventing a second way to be
+      // temporarily ranged — canTarget and basicAttack both read it, so the
+      // grant lands on every path a basic takes without touching either.
+      const shots = num(params, "selfRangedShots");
+      if (shots > 0) {
+        attacker.rangedShotsLeft = (attacker.rangedShotsLeft ?? 0) + shots;
+        draft.log.push(`${label(draft, attacker)} takes aim — its next blow carries.`);
+      }
       // Was hardcoded to Ravven's "+N DMG" flavour, which read as "+0 DMG" for
       // any timed buff that grants SP instead (Stormquill's Glide Rush).
       const parts = [dmg ? `+${dmg} DMG` : "", sp ? `+${sp} SP` : "",

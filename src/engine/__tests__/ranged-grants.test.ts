@@ -217,3 +217,55 @@ describe("Havoc shoots, at 85%", () => {
     expect(rate, `landed ${hits}/${N * 2}`).toBeLessThan(0.95);
   });
 });
+
+// ── Ariel's 100,000°: a charge that lands NEXT round, at range ─────────────
+// The third way reach gets bought, and it rides the SAME pocket Surge uses
+// rather than a second mechanism — which is the point of testing it here.
+describe("100,000° (Ariel)", () => {
+  const ARIEL = "dawn_ariel";
+  const charge = (g: GameState, a: CardInstance) =>
+    SPECIAL_HANDLERS.empower(g, a, [], getDef(ARIEL).special!.params!);
+
+  /** Ariel, and a target three rows away — well outside a melee reach. */
+  function setup() {
+    const g = prepState(5);
+    const a = place(g, ARIEL, "P1", 4, 1);
+    // BORE, deliberately: DAWN beats DUSK, and an element bonus on top would
+    // make the damage assertion below read 22 and mean nothing.
+    const foe = place(g, "bore_clubber", "P2", 1, 1, { curHp: 90, maxHp: 90, curShields: 12 });
+    return { g, a: g.cards[a.instanceId], foe: g.cards[foe.instanceId] };
+  }
+
+  it("cannot reach across the board until it charges", () => {
+    const { g, a, foe } = setup();
+    expect(canHit(g, a, foe), "a Melee assassin reached three rows").toBe(false);
+    charge(g, a);
+    expect(canHit(g, a, foe), "the charge did not buy reach").toBe(true);
+  });
+
+  it("lands 18 — the printed 7 plus 11 — and pierces shields", () => {
+    const { g, a, foe } = setup();
+    charge(g, a);
+    basicAttack(g, a.instanceId, foe.instanceId);
+    expect(90 - g.cards[foe.instanceId].curHp, "not 7 + 11").toBe(18);
+    // PEN: the shields are untouched and the damage went straight to HP.
+    expect(g.cards[foe.instanceId].curShields, "the charge stopped at the shields").toBe(12);
+  });
+
+  it("is ONE shot — the pocket is empty afterwards", () => {
+    const { g, a, foe } = setup();
+    charge(g, a);
+    expect(a.rangedShotsLeft).toBe(1);
+    basicAttack(g, a.instanceId, foe.instanceId);
+    expect(g.cards[a.instanceId].rangedShotsLeft, "the charge fired twice").toBe(0);
+  });
+
+  it("does not widen its SPECIALS, only the basic", () => {
+    // The grant is an ATTACK, not a general upgrade — the same scoping Surge's
+    // pocket has, which is why it reuses it.
+    const { g, a } = setup();
+    const before = validSpecialTargets(g, a.instanceId).length;
+    charge(g, a);
+    expect(validSpecialTargets(g, a.instanceId).length).toBe(before);
+  });
+});

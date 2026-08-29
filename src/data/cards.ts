@@ -8480,17 +8480,25 @@ export const CARDS: CardDef[] = [
     passiveNames: { onSummon: "Dawning Assault", onOpponentDeath: "Last Light" },
     onSummon: { handler: "strike", params: { dmg: 7, reachNearest: 1, targetAttackMissPct: 50, targetAttackMissRounds: 1 }, targetSide: "enemy" },
     onOpponentDeath: { dmg: 2 },
-    // 100,000°: +14 DMG on the next basic attack, WITH PEN — the boost pierces
-    // shields. The card always printed that; `selfPen` is what finally makes it
-    // true, riding on the timed buff rather than on Ariel, because it is the
-    // boost that pierces and not the card.
+    // 100,000°: Ariel charges, and the blow lands NEXT round — 7 + 11 = 18 DMG,
+    // PEN, and thrown at RANGE from a card that is otherwise Melee.
+    //
+    // The damage came DOWN, from +14 to +11, and the reach is what it bought.
+    // A melee assassin has to walk into the fight to use a charge, which is the
+    // round its target gets to move or kill it; at range the charge lands from
+    // wherever Ariel is standing, so the swing was worth more than the three
+    // points it gave up.
+    //
+    // `selfPen` rides the timed buff rather than sitting on Ariel, because it
+    // is the boost that pierces and not the card. `selfRangedShots` rides
+    // `rangedShotsLeft`, the pocket Surge already uses.
     special: {
       name: "100,000°",
       cost: 2,
       handler: "empower",
-      params: { selfDmg: 14, selfPen: 1, buffRounds: 1 },
+      params: { selfDmg: 11, selfPen: 1, selfRangedShots: 1, buffRounds: 1 },
       targetSide: "self",
-      text: "Your next basic attack deals +14 DMG (PEN).",
+      text: "Charge: your next basic attack fires at RANGE for +11 DMG (PEN).",
     },
   },
   {
