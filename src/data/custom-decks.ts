@@ -28,6 +28,12 @@ export interface DeckLimits {
 const DECK_LIMITS: Record<number, DeckLimits> = {
   4: { min: 18, max: 18, target: 18, spells: MAX_SPELLBOOK },
   5: { min: 30, max: 30, target: 30, spells: MAX_SPELLBOOK_LARGE },
+  // 7 is Domination. It REUSES the large board's economy rather than inventing
+  // a third one: 30/8 is a tuned pair, and a 7x7 that fell through to the
+  // default would have played on the 4x4's eighteen cards across forty-nine
+  // slots. A starting point to measure from, not a claim that 30 is right for
+  // a board this size.
+  7: { min: 30, max: 30, target: 30, spells: MAX_SPELLBOOK_LARGE },
 };
 /** The one number a board's deck must be. Prefer this where the old code said
  *  `target` or `max` and meant "the size". */

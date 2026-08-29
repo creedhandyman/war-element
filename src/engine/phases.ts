@@ -3,6 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
+import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, dominationMap, heldCount, poiRing, resolveHolders } from "../data/domination";
 import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import {
   applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
@@ -102,7 +103,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       return draft;
     }
     case "SUMMON": {
-      const check = canSummon(draft, intent.player, intent.handId, intent.col);
+      const check = canSummon(draft, intent.player, intent.handId, intent.col, intent.row);
       if (!check.ok) throw new Error(`Illegal summon: ${check.reason}`);
       const p = draft.players[intent.player];
       const hand = p.hand.find((h) => h.handId === intent.handId)!;
@@ -113,7 +114,9 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // The row is RESOLVED, not assumed: normally the home row, and the nearest
       // open slot up the column when the home row has been taken entirely. See
       // `summonLandingRow` — canSummon approved exactly this square.
-      const landing = summonLandingRow(draft, intent.player, intent.col)
+      // A shrine names its own square; everything else resolves to a column.
+      const landing = intent.row
+        ?? summonLandingRow(draft, intent.player, intent.col)
         ?? homeRow(intent.player, draft.boardSize);
       const inst = summonCard(draft, intent.player, hand.defId, {
         row: landing as Pos["row"],
@@ -1194,6 +1197,66 @@ function triggerWallsOnMove(draft: GameState, card: CardInstance, fromRow: numbe
 
 // ── phase transitions ───────────────────────────────────────────────────────
 
+/** DOMINATION: recount every Point, then see whether that has won the match.
+ *
+ *  Run at the END of a round, once, after everything else has finished moving
+ *  and dying — control is a statement about where the board settled, not about
+ *  where it was mid-fight.
+ *
+ *  Returns true when the match is over, so the caller stops. */
+function resolveDomination(draft: GameState): boolean {
+  const dom = draft.domination;
+  const map = dom && dominationMap(dom.mapId);
+  if (!dom || !map) return false;
+
+  // Count bodies on each Point's RING. The centre is impassable, so nothing can
+  // be standing on it and it needs no special case here.
+  const counts = {} as Record<string, { P1: number; P2: number }>;
+  for (const poi of map.pois) {
+    const tally = { P1: 0, P2: 0 };
+    for (const slot of poiRing(poi)) {
+      const occ = cardAt(draft, slot.row, slot.col);
+      if (occ && occ.curHp > 0) tally[occ.owner]++;
+    }
+    counts[poi.id] = tally;
+  }
+  const before = dom.held;
+  dom.held = resolveHolders(map, counts, dom.held);
+  for (const poi of map.pois)
+    if (dom.held[poi.id] !== before[poi.id] && dom.held[poi.id])
+      draft.log.push(`${dom.held[poi.id]} takes ${poi.name}.`);
+
+  // ALL FOUR ends it on the spot — no waiting, no second round to confirm.
+  for (const player of ["P1", "P2"] as PlayerId[]) {
+    if (heldCount(dom.held, player) === map.pois.length) {
+      draft.win = { winner: player, by: "domination" };
+      draft.phase = "gameover";
+      draft.log.push(`${player} holds every Point — TOTAL DOMINATION!`);
+      return true;
+    }
+  }
+
+  // ...otherwise a MAJORITY has to survive a round. Taking three Points does not
+  // win; still holding three after the opponent has had a full turn to break it
+  // does. The streak resets the moment the majority slips, so it is a lead that
+  // has to be defended rather than a counter that only ever goes up.
+  for (const player of ["P1", "P2"] as PlayerId[]) {
+    const holds = heldCount(dom.held, player) >= DOMINATION_MAJORITY;
+    dom.streak[player] = holds ? dom.streak[player] + 1 : 0;
+    if (dom.streak[player] >= DOMINATION_HOLD_ROUNDS) {
+      draft.win = { winner: player, by: "domination" };
+      draft.phase = "gameover";
+      draft.log.push(
+        `${player} has held ${heldCount(dom.held, player)} Points for `
+        + `${DOMINATION_HOLD_ROUNDS} rounds — the map is theirs!`);
+      return true;
+    }
+    if (holds && dom.streak[player] === 1)
+      draft.log.push(`${player} holds the majority — one more round to take it.`);
+  }
+  return false;
+}
+
 /** The match hit MAX_ROUNDS. Decide it on progress toward the real win
  *  conditions rather than calling it off: home slots captured first (that IS
  *  the win condition), then cards left standing, then total HP. A null winner
@@ -1203,14 +1266,17 @@ function decideOnTime(draft: GameState): void {
     draft.slots.flat().filter((s) => s.capturedBy === p).length;
   const standing = (p: PlayerId) => boardCards(draft, p).length;
   const totalHp = (p: PlayerId) => boardCards(draft, p).reduce((n, c) => n + c.curHp, 0);
+  // In Domination the Points ARE the win condition, so they are what a timeout
+  // is decided on — Home slots cannot even be captured in that mode.
+  const points = (p: PlayerId) =>
+    draft.domination ? heldCount(draft.domination.held, p) : 0;
 
   let winner: PlayerId | null = null;
   let reason = "dead level";
-  for (const [name, metric] of [
-    ["home slots captured", captured],
-    ["cards still standing", standing],
-    ["total HP", totalHp],
-  ] as [string, (p: PlayerId) => number][]) {
+  for (const [name, metric] of (draft.domination
+    ? [["Points held", points], ["cards still standing", standing], ["total HP", totalHp]]
+    : [["home slots captured", captured], ["cards still standing", standing], ["total HP", totalHp]]
+  ) as [string, (p: PlayerId) => number][]) {
     const a = metric("P1");
     const b = metric("P2");
     if (a !== b) {
@@ -3569,9 +3635,15 @@ function doCleanupPhase(draft: GameState): void {
     return;
   }
 
+  // 6a. DOMINATION is scored on the Points and nothing else. It runs first
+  //     because holding all four should end the match before any other rule
+  //     gets a say, and it switches Home-row capture off below the way Void
+  //     Tower does.
+  if (resolveDomination(draft)) return;
+
   // 6. Win conditions — capture takes precedence if both trigger.
   for (const player of ["P1", "P2"] as PlayerId[]) {
-    if (!draft.voidTower && hasCaptureWin(draft, player)) {
+    if (!draft.voidTower && !draft.domination && hasCaptureWin(draft, player)) {
       draft.win = { winner: player, by: "capture" };
       draft.phase = "gameover";
       draft.log.push(`${player} WINS by capture!`);

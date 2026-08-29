@@ -2302,7 +2302,7 @@ export interface SlotState {
 export interface WinInfo {
   /** null only on a timeout that nothing could separate — a genuine draw. */
   winner: PlayerId | null;
-  by: "capture" | "elimination" | "surrender" | "timeout" | "slain" | "overrun";
+  by: "capture" | "elimination" | "surrender" | "timeout" | "slain" | "overrun" | "domination";
 }
 
 /** Post-match analytics, accumulated live in the reducer. `dmg` is HP damage
@@ -2393,6 +2393,21 @@ export interface GameState {
    *  match — see `slayWin` in phases.ts. Set by the encounter, never by a
    *  player choice, and inert everywhere else. */
   voidTower?: true;
+  /** A DOMINATION match: the board is the win condition. Present only in that
+   *  mode, and like `voidTower` it switches the Home-row capture win OFF — see
+   *  `src/data/domination.ts` for the map and the rules that ride on it.
+   *
+   *  Only the map ID travels, not the terrain: the map is static, so 49 slots
+   *  of it on every relayed online message would be 49 slots of the same
+   *  answer. What DOES change round to round is who holds each Point and how
+   *  long they have held a majority, and that is all this carries. */
+  domination?: {
+    mapId: string;
+    /** Who holds each Point. Sticky — a tie leaves the previous holder. */
+    held: Record<string, PlayerId | null>;
+    /** Consecutive completed rounds each side has ended holding a majority. */
+    streak: Record<PlayerId, number>;
+  };
   /** Consecutive Cleanups the boss's side has held the player's ENTIRE home row.
    *  Reset the moment it does not. See OVERRUN_HOLD_ROUNDS. */
   overrunHeld?: number;
@@ -2409,7 +2424,14 @@ export type Intent =
    *  inside the engine: the engine is pure and replayable, and a value pulled
    *  out of one browser's localStorage mid-resolution would desync an online
    *  match and make a replay non-deterministic. */
-  | { type: "SUMMON"; player: PlayerId; handId: string; col: number; autoMode?: AutoMode }
+  | {
+      type: "SUMMON"; player: PlayerId; handId: string; col: number; autoMode?: AutoMode;
+      /** DOMINATION shrines only. Summoning is column-addressed with the row
+       *  implied to be your Home row; a shrine is a specific SQUARE that either
+       *  side may deploy onto, so it needs to name one. Absent everywhere else,
+       *  which keeps every existing summon byte-identical. */
+      row?: number;
+    }
   | { type: "MOVE"; player: PlayerId; instanceId: string; to: Pos }
   | {
       type: "CAST_SPELL";

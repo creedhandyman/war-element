@@ -32,6 +32,20 @@ import type {
 import { OPENING_COST_CAP, bossHeldHome, enemyOf, homeRow } from "./types";
 import { getSpell, spellPickKind } from "./spells";
 import { hasElementAura } from "./auras";
+import { dominationMap, isImpassable, isShrine, runsAlongRoad } from "../data/domination";
+
+/** The map this match is played on, or undefined in every ordinary match.
+ *  One lookup, so no rule below has to know how the mode is stored. */
+export function domMap(state: GameState) {
+  return state.domination ? dominationMap(state.domination.mapId) : undefined;
+}
+
+/** Nothing may STAND here — a Point's citadel, or the closed centre of the
+ *  road cross. Cards may still pass over one; what they cannot do is stop. */
+export function slotIsImpassable(state: GameState, row: number, col: number): boolean {
+  const m = domMap(state);
+  return !!m && isImpassable(m, row, col);
+}
 
 // ── prep phase ──────────────────────────────────────────────────────────────
 
@@ -40,6 +54,7 @@ export function canSummon(
   player: PlayerId,
   handId: string,
   col: number,
+  row?: number,
 ): { ok: boolean; reason?: string } {
   if (state.phase !== "prep") return { ok: false, reason: "Not the Prep Phase" };
   if (state.prep?.priority !== player)
@@ -56,6 +71,11 @@ export function canSummon(
   } else if (def.cost > state.players[player].gold) {
     return { ok: false, reason: "Not enough Gold" };
   }
+  // SHRINES (Domination): a named square either side may deploy onto, rather
+  // than a column landing on your own Home row. Gold and the opening cost cap
+  // above still apply — the shrine changes WHERE a summon may go, not what it
+  // costs or whether you can afford it.
+  if (row !== undefined) return shrineBlocker(state, row, col);
   const blocked = homeSlotBlocker(state, player, col);
   if (!blocked) return { ok: true };
   // The line falls back when the home row is gone entirely — see
@@ -63,6 +83,27 @@ export function canSummon(
   // no legal move at all, which is a softlock rather than a defeat.
   if (summonLandingRow(state, player, col) !== null) return { ok: true };
   return { ok: false, reason: blocked };
+}
+
+/** Whether a shrine square will take a summon from EITHER side.
+ *
+ *  Deliberately owner-blind: the four shrines are neutral ground, so the only
+ *  questions are whether the square is a shrine at all and whether anything is
+ *  already standing on it. First there holds it — which is what makes the lanes
+ *  between the Points worth contesting rather than just worth walking down. */
+function shrineBlocker(
+  state: GameState,
+  row: number,
+  col: number,
+): { ok: boolean; reason?: string } {
+  const m = domMap(state);
+  if (!m) return { ok: false, reason: "No shrines on this battlefield" };
+  if (row < 0 || row >= state.boardSize || col < 0 || col >= state.boardSize)
+    return { ok: false, reason: "Off the board" };
+  if (!isShrine(m, row, col)) return { ok: false, reason: "Not a shrine" };
+  if (cardAt(state, row, col)) return { ok: false, reason: "Shrine is occupied" };
+  if (isCaptured(state, row, col)) return { ok: false, reason: "Slot is permanently captured" };
+  return { ok: true };
 }
 
 /** Why this Home-row column can't take a summon, or null if it can — the
@@ -306,8 +347,15 @@ export function canMove(
   // EMPLACED — its gait is its whole movement. See `holdsPosition`.
   if (getDef(card.defId).holdsPosition)
     return { ok: false, reason: "This card holds its position" };
-  const reach = moveReachFor(state, card);
-  if (reach === 0) return { ok: false, reason: "This card can't move (SP 0)" };
+  const base = moveReachFor(state, card);
+  if (base === 0) return { ok: false, reason: "This card can't move (SP 0)" };
+  // ROADS: +1 while the move runs along the cross. Applied to the reach rather
+  // than to the distance so a rooted card (reach 0, refused above) gets nothing
+  // from standing on a lane — a road is a faster way to travel, not a way to
+  // travel at all.
+  const dm = domMap(state);
+  const onRoad = !!dm && runsAlongRoad(dm, card.pos, to);
+  const reach = base + (onRoad ? 1 : 0);
   if (to.row < 0 || to.row >= state.boardSize || to.col < 0 || to.col >= state.boardSize)
     return { ok: false, reason: "Off the board" };
   // FLYING, MOUNTED and FAST-tier cards move like a chess king — a diagonal step
@@ -342,6 +390,9 @@ export function canMove(
   // Captured slots are locked: cards may pass through, but can't stop on one.
   if (isCaptured(state, to.row, to.col))
     return { ok: false, reason: "Slot is permanently captured (locked)" };
+  // ...and so is a citadel or the closed centre of the road cross.
+  if (slotIsImpassable(state, to.row, to.col))
+    return { ok: false, reason: "Nothing can stand there" };
   return { ok: true };
 }
 
