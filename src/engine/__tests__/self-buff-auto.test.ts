@@ -5,8 +5,10 @@
 // move — for the whole game.
 
 import { describe, expect, it } from "vitest";
-import { advance, applyIntent, canFireSpecial, createInitialState } from "../index";
+import { advance, applyIntent, canFireSpecial, createInitialState, validTargets } from "../index";
 import { summonCard } from "../state";
+import { getDef } from "../../data/cards";
+import { atBattle, place, prepState } from "./helpers";
 import type { GameState } from "../index";
 
 const DECK = [
@@ -110,5 +112,69 @@ describe("Uprooted stacks three times and stops", () => {
     other.summonedThisRound = false;
     other.specialCasts = 99;
     expect(canFireSpecial(s, other.instanceId).reason ?? "").not.toMatch(/fully grown/i);
+  });
+});
+// ── the other half of the same bug ─────────────────────────────────────────
+// A self-buff was not the only thing auto mode threw away. Any card whose
+// Special reaches FURTHER than its own attack can be legal to fire while having
+// nothing to swing at, and auto mode skipped every one of them.
+//
+// Sarachnid is the reported case. Silk Chase is swung by her SPIDERS, so it is
+// legal whenever they can reach somebody — but she is melee, and parked a
+// square back she has no target of her own. On auto she logged "Sarachnid
+// waits" every round with a board full of spiders sitting on the enemy line.
+//
+// A hand-placed board rather than a driven game: driving one to completion
+// stops at whatever unrelated card prompts first, which says nothing about the
+// card under test.
+describe("a Special that outreaches the card's own attack", () => {
+  /** Step the battle until it asks for input or the round ends. */
+  function runRound(s: GameState): GameState {
+    for (let i = 0; i < 40 && s.phase === "battle" && !s.battle?.awaitingInput; i++) {
+      const next = advance(s);
+      if (next === s) break;
+      s = next;
+    }
+    return s;
+  }
+
+  it("is offered to the player instead of having the turn skipped", () => {
+    const s = prepState();
+    s.humans = ["P1"];
+    s.players.P1.magicPool = 20;
+    const sar = place(s, "dusk_sarachnid", "P1", 3, 0);
+    sar.autoMode = "basic";
+    for (const col of [1, 2]) {
+      const sp = place(s, "dusk_spider", "P1", 1, col);
+      sp.autoMode = "basic";   // they swing on their own; only SHE may prompt
+    }
+    place(s, "leaf_greegon", "P2", 0, 1, { curHp: 200, maxHp: 200 });
+    const b = atBattle(s);
+    // The premise: nothing SHE can hit, but the Special is legal.
+    expect(validTargets(b, sar.instanceId).length, "she should have no basic target").toBe(0);
+    expect(canFireSpecial(b, sar.instanceId).ok, "Silk Chase is legal via the swarm").toBe(true);
+    const end = runRound(b);
+    // Asked, not skipped. Auto mode means "attack for me", never "throw the
+    // turn away" — and because Silk Chase is aimed at the board and costs
+    // magic, the choice stays the player's rather than being auto-fired.
+    expect(end.battle?.awaitingInput, "her turn was skipped again").toBe(sar.instanceId);
+    expect(end.log.some((l) => /Sarachnid.*waits/i.test(l)), "logged a wasted turn").toBe(false);
+  });
+
+  it("still skips a card that genuinely has nothing to do", () => {
+    // The guard on the whole change: no basic, no Special and no Talent is
+    // still a skip, or the battle would stop and ask on every dead turn.
+    // Weeds has no Special at all, which is the cleanest statement of it.
+    const s = prepState();
+    s.humans = ["P1"];
+    s.players.P1.magicPool = 20;
+    const w = place(s, "leaf_weeds", "P1", 3, 0);
+    w.autoMode = "basic";
+    place(s, "leaf_greegon", "P2", 0, 1, { curHp: 200, maxHp: 200 });
+    const b = atBattle(s);
+    expect(getDef(w.defId).special, "pick a card with no Special").toBeUndefined();
+    expect(validTargets(b, w.instanceId).length, "nobody in reach").toBe(0);
+    const end = runRound(b);
+    expect(end.battle?.awaitingInput ?? null, "stopped to ask about a dead turn").toBeNull();
   });
 });

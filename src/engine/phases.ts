@@ -1850,12 +1850,31 @@ function stepBattle(draft: GameState): boolean {
     // and for Oakgre that is a trap, because Uprooted (+3 SP) is the only thing
     // that ever unpins a melee card printed at SP 0. It can't reach anyone, so
     // it can't attack; it never fires the buff, so it never moves.
-    // Narrow on purpose: only when the turn would be wasted entirely, and only
-    // for a SELF-targeted Special, which takes no targeting decision away from
-    // the player. Anything aimed at the board still waits for them.
+    // Narrow on purpose: a SELF-targeted Special takes no targeting decision
+    // away from the player, so firing it for them costs them nothing.
     performBattleAction(draft, id, "special");
   } else {
-    performBattleAction(draft, id, "skip");
+    // NOTHING TO SWING AT, BUT SOMETHING TO DO — so ask, do not skip.
+    //
+    // We only reach here when the card has no basic target, and the gate above
+    // has already established it has SOME legal action: an off-cooldown Special
+    // it can pay for with valid targets, or a Talent. Auto mode used to skip
+    // the turn outright, which threw that action away without ever offering it.
+    //
+    // Sarachnid is the case that surfaced it. Silk Chase is swung by her
+    // SPIDERS, so it is legal whenever they can reach somebody — but she is a
+    // melee card, and parked one square back she has no target of her own. On
+    // auto she logged "Sarachnid waits" every round with a board full of
+    // spiders sitting on the enemy line. Anything whose Special reaches further
+    // than its own attack has the same shape.
+    //
+    // Handing it to the player rather than auto-firing is the deliberate half:
+    // these are aimed at the board and cost magic, so the choice of target —
+    // and of whether to spend at all — stays theirs. Skip is still one tap away
+    // on the wheel; what changes is that it is now a decision instead of a
+    // default. Auto mode means "attack for me", never "throw the turn away".
+    battle.awaitingInput = id;
+    return false;
   }
   battle.index++;
   return true;
