@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
-import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, POI_MAGIC, dominationMap, heldCount, poiRing, resolveHolders } from "../data/domination";
+import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, POI_MAGIC, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
 import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import {
   applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
@@ -1991,7 +1991,39 @@ export function pickBasicTarget(
     return volley - shieldSoak >= t.curHp;
   });
   const pool = killable.length > 0 ? killable : targets;
-  return pool.reduce((best, t) => (t.curHp < best.curHp ? t : best), pool[0]);
+  // DOMINATION: a body standing on a Point is worth more than one that is not,
+  // because killing it takes a number off that ring — and the ring count IS the
+  // score. Two bodies of equal health are not equal targets when one of them is
+  // the reason you do not hold Point C.
+  //
+  // Layered UNDER "kill it if you can", not over it: the killable pool is
+  // chosen first and this only orders within it. A corpse holds no ground, so a
+  // kill anywhere still beats chip damage on an objective.
+  return pool.reduce((best, t) => {
+    const bw = pointWorth(draft, attacker, best);
+    const tw = pointWorth(draft, attacker, t);
+    if (tw !== bw) return tw > bw ? t : best;
+    return t.curHp < best.curHp ? t : best;
+  }, pool[0]);
+}
+
+/** What killing this card is worth in Points, to `attacker`'s side.
+ *
+ *  2 — it is standing on a ring its own side HOLDS: killing it can flip the
+ *      Point, which is the whole game.
+ *  1 — it is on a ring nobody has taken from us yet: killing it denies a
+ *      contest before it starts.
+ *  0 — it is not on a Point, or this is not Domination.
+ */
+function pointWorth(draft: GameState, attacker: CardInstance, target: CardInstance): number {
+  const dom = draft.domination;
+  const map = dom && dominationMap(dom.mapId);
+  if (!map || !target.pos) return 0;
+  const poi = poiAt(map, target.pos.row, target.pos.col);
+  if (!poi) return 0;
+  const holder = dom!.held[poi.id];
+  if (holder === attacker.owner) return 0;   // our own Point; the body on it is incidental
+  return holder === target.owner ? 2 : 1;
 }
 
 /** Spread a MULTI-HIT basic across targets instead of dumping every hit on one.

@@ -14,6 +14,7 @@ import {
 import { advance, applyIntent, canMove, canSummon, createInitialState, legalMoves } from "../index";
 import { homeSlots, rangedCanSee, summonLandingRow, terrainBlocksPath } from "../rules";
 import { cardAt, summonCard } from "../state";
+import { pickBasicTarget } from "../phases";
 import { deckLimits } from "../../data/custom-decks";
 import type { GameState, PlayerId } from "../types";
 
@@ -582,5 +583,95 @@ describe("the AI plays the objective", () => {
     }
     expect(s.phase).toBe("gameover");
     expect(s.win?.by).not.toBe("domination");
+  });
+});
+
+describe("a Point you hold is a forward spawn", () => {
+  it("lets you deploy onto the ring of a Point you hold", () => {
+    const s = domState();
+    const poi = M.pois[0];
+    s.domination!.held[poi.id] = "P1";
+    const ring = poiRing(poi)[0];
+    const hand = s.players.P1.hand[0];
+    expect(canSummon(s, "P1", hand.handId, ring.col, ring.row).ok,
+      "could not land on a Point we hold").toBe(true);
+    expect(homeSlots(s, "P1").some((x) => x.row === ring.row && x.col === ring.col)).toBe(true);
+  });
+
+  it("does NOT let you deploy onto a Point somebody else holds", () => {
+    const s = domState();
+    const poi = M.pois[1];
+    s.domination!.held[poi.id] = "P2";
+    const ring = poiRing(poi)[0];
+    const hand = s.players.P1.hand[0];
+    expect(canSummon(s, "P1", hand.handId, ring.col, ring.row).ok).toBe(false);
+  });
+
+  it("takes the spawn away with the Point when it flips", () => {
+    // The rule reads `held` live, so losing the ground loses the landing zone.
+    const s = domState();
+    const poi = M.pois[2];
+    const ring = poiRing(poi)[0];
+    s.domination!.held[poi.id] = "P1";
+    expect(homeSlots(s, "P1").some((x) => x.row === ring.row && x.col === ring.col)).toBe(true);
+    s.domination!.held[poi.id] = "P2";
+    expect(homeSlots(s, "P1").some((x) => x.row === ring.row && x.col === ring.col)).toBe(false);
+  });
+
+  it("still always offers the four neutral shrines", () => {
+    const s = domState();
+    for (const sh of M.shrines)
+      expect(homeSlots(s, "P1").some((x) => x.row === sh.row && x.col === sh.col),
+        `shrine ${sh.row},${sh.col} stopped being a deploy square`).toBe(true);
+  });
+});
+
+describe("battle targeting goes for the Point holders", () => {
+  it("picks the body on a Point over an equal one that is not", () => {
+    const s = domState();
+    const poi = M.pois[0];
+    s.domination!.held[poi.id] = "P2";           // P2 holds it — killing flips it
+    const attacker = put(s, "pyro_flamehound", "P1", 3, 3);
+    const ring = poiRing(poi).find((x) => x.row === 2 && x.col === 2)!;
+    const onPoint = put(s, "leaf_weeds", "P2", ring.row, ring.col);
+    const offPoint = put(s, "leaf_weeds", "P2", 3, 4);
+    for (const c of [onPoint, offPoint]) {        // identical bodies
+      s.cards[c.instanceId].curHp = 9;
+      s.cards[c.instanceId].maxHp = 9;
+      s.cards[c.instanceId].curShields = 0;
+    }
+    const pick = pickBasicTarget(s, s.cards[attacker.instanceId],
+      [s.cards[onPoint.instanceId], s.cards[offPoint.instanceId]]);
+    expect(pick.instanceId, "ignored the one holding the Point").toBe(onPoint.instanceId);
+  });
+
+  it("still takes a KILL over an objective it cannot finish", () => {
+    // Layered UNDER lethality on purpose: a corpse holds no ground, so a kill
+    // anywhere beats chip damage on a Point.
+    const s = domState();
+    const poi = M.pois[0];
+    s.domination!.held[poi.id] = "P2";
+    const attacker = put(s, "pyro_flamehound", "P1", 3, 3);
+    const ring = poiRing(poi).find((x) => x.row === 2 && x.col === 2)!;
+    const tanky = put(s, "leaf_weeds", "P2", ring.row, ring.col);
+    const frail = put(s, "leaf_weeds", "P2", 3, 4);
+    s.cards[tanky.instanceId].curHp = 99; s.cards[tanky.instanceId].maxHp = 99;
+    s.cards[tanky.instanceId].curShields = 0;
+    s.cards[frail.instanceId].curHp = 1; s.cards[frail.instanceId].maxHp = 9;
+    s.cards[frail.instanceId].curShields = 0;
+    const pick = pickBasicTarget(s, s.cards[attacker.instanceId],
+      [s.cards[tanky.instanceId], s.cards[frail.instanceId]]);
+    expect(pick.instanceId, "chased a Point instead of taking the kill").toBe(frail.instanceId);
+  });
+
+  it("leaves an ordinary board's targeting alone", () => {
+    let s: GameState = createInitialState(4, ["leaf_weeds"], ["leaf_weeds"], [], undefined, [], 5);
+    const attacker = summonCard(s, "P1", "pyro_flamehound", { row: 4, col: 2 });
+    const a = summonCard(s, "P2", "leaf_weeds", { row: 3, col: 2 });
+    const b = summonCard(s, "P2", "leaf_weeds", { row: 3, col: 3 });
+    s.cards[a.instanceId].curHp = 9; s.cards[b.instanceId].curHp = 3;
+    const pick = pickBasicTarget(s, s.cards[attacker.instanceId],
+      [s.cards[a.instanceId], s.cards[b.instanceId]]);
+    expect(pick.instanceId).toBe(b.instanceId);
   });
 });

@@ -53,7 +53,7 @@ import { Board } from "./Board";
 import { CardView } from "./CardView";
 import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
-import { DOMINATION_7X7, dominationMap, newDomination } from "../data/domination";
+import { DOMINATION_7X7, newDomination } from "../data/domination";
 import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { rawStoredLoadouts } from "../data/story";
@@ -1737,13 +1737,14 @@ export function App() {
       for (let col = 0; col < game.boardSize; col++)
         if (canSummon(game, view, sel.handId, col).ok)
           out.push({ row: hr, col } as Pos);
-      // DOMINATION shrines: neutral squares either side may deploy onto, so
-      // they glow alongside your own Home row rather than instead of it.
-      const dmap = game.domination ? dominationMap(game.domination.mapId) : undefined;
-      if (dmap)
-        for (const sh of dmap.shrines)
-          if (canSummon(game, view, sel.handId, sh.col, sh.row).ok)
-            out.push({ row: sh.row, col: sh.col } as Pos);
+      // DOMINATION deploy squares: the four neutral shrines, plus the rings of
+      // any Point this side holds. Read from `homeSlots` rather than the map's
+      // shrine list, so a Point that flips takes its landing squares with it
+      // without this having to know the rule.
+      if (game.domination)
+        for (const sq of homeSlots(game, view))
+          if (canSummon(game, view, sel.handId, sq.col, sq.row).ok)
+            out.push({ row: sq.row, col: sq.col } as Pos);
       return out;
     }
     if (sel?.kind === "card") return legalMoves(game, view, sel.instanceId);

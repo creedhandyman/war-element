@@ -31,7 +31,7 @@ import type {
 import { OPENING_COST_CAP, bossHeldHome, enemyOf, homeRow } from "./types";
 import { getSpell, spellPickKind } from "./spells";
 import { hasElementAura } from "./auras";
-import { dominationMap, isImpassable, isShrine, runsAlongRoad } from "../data/domination";
+import { dominationMap, isImpassable, isShrine, runsAlongRoad, poiRing} from "../data/domination";
 
 /** The map this match is played on, or undefined in every ordinary match.
  *  One lookup, so no rule below has to know how the mode is stored. */
@@ -114,18 +114,32 @@ export function homeSlots(state: GameState, player: PlayerId): Pos[] {
     const row = homeRow(player, n);
     return Array.from({ length: n }, (_, col) => ({ row, col }));
   }
-  // DOMINATION HAS NO HOME ROW. Every seat deploys at the four SHRINES and
-  // nowhere else, and all four are neutral — first there holds one.
+  // DOMINATION HAS NO HOME ROW. A seat deploys at the four SHRINES — all
+  // neutral, first there holds one — AND onto any Point it currently HOLDS.
   //
-  // That is what lets a square board seat FOUR players: `homeRow` hands out
+  // Shrines are what let a square board seat FOUR players: `homeRow` hands out
   // rows and there are only two of those, so a third and fourth seat had
-  // nowhere of their own to come in. Shrines are squares, there are four, and
-  // they sit one per edge in the map's own rotational symmetry — the map was
-  // always shaped for this.
+  // nowhere of their own to come in. They sit one per edge in the map's own
+  // rotational symmetry — the map was always shaped for this.
   //
-  // It also removes the back line as a concept here, which is the point of an
-  // objective mode: there is no safe row to build behind, only ground to hold.
-  return m.shrines.map((sh) => ({ row: sh.row, col: sh.col }));
+  // A HELD POINT IS A FORWARD SPAWN, and that is what makes holding one worth
+  // more than the score it prints. It also unblocks the mode's real bottleneck:
+  // four shrine squares were the whole table's deployment, one summon a turn, so
+  // whoever entered first could sit on the doors. Taking ground now buys you
+  // somewhere to land, which is the loop an objective mode wants — you fight for
+  // a Point, and the Point pays you in reinforcements as well as gold.
+  //
+  // Lost the Point, lost the spawn: this reads `held` live, so a Point that
+  // flips takes its landing squares with it.
+  const dom = state.domination;
+  const mine: Pos[] = dom
+    ? m.pois
+      .filter((p) => dom.held[p.id] === player)
+      .flatMap((p) => poiRing(p))
+      .filter((s) => s.row >= 0 && s.row < n && s.col >= 0 && s.col < n
+        && !isImpassable(m, s.row, s.col))
+    : [];
+  return [...m.shrines.map((sh) => ({ row: sh.row, col: sh.col })), ...mine];
 }
 
 /** Whether a shrine square will take a summon from EITHER side.
