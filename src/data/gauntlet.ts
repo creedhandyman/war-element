@@ -61,9 +61,22 @@ export const RUN_REWARD: Record<DeckTier, number> = { easy: 10, mid: 18, hard: 3
  *  minute, which is the wrong incentive to put on the harder format. */
 export const BIG_BOARD_PAY = 1.5;
 
+/** ...and what DOMINATION's 7x7 multiplies it by.
+ *
+ *  Above the large board's rate because it is a bigger ask again on every axis
+ *  the 5x5 was: forty-nine slots instead of twenty-five, an objective that has
+ *  to be held for three consecutive rounds rather than a line to reach, and a
+ *  mode where a run's opponent is playing the map as well as the deck.
+ *
+ *  Without a rate of its own a 7x7 run fell through this to the 4x4 figure —
+ *  the hardest format in the game paying the standard board's rung price, which
+ *  is the wrong incentive pointed at the wrong format. */
+export const DOM_BOARD_PAY = 2;
+
 /** Shards for CLEARING a rung on a board. The table above is the 4x4 figure. */
 export const runReward = (tier: DeckTier, board: number): number =>
-  Math.round(RUN_REWARD[tier] * (board === 5 ? BIG_BOARD_PAY : 1));
+  Math.round(RUN_REWARD[tier]
+    * (board >= 7 ? DOM_BOARD_PAY : board === 5 ? BIG_BOARD_PAY : 1));
 
 export interface GauntletRun {
   tier: DeckTier;

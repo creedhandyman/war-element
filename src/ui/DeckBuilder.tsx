@@ -81,7 +81,13 @@ export function DeckBuilder(props: {
   const story = props.story;
   // Which battlefield this deck is being built for — you can build an 18-card
   // (4×4) or a 30-card (5×5) deck regardless of the current game mode.
-  const [buildSize, setBuildSize] = useState<number>(props.boardSize ?? 4);
+  // A 7x7 builds as the LARGE board. `deckLimits(7)` is `deckLimits(5)` exactly
+  // — thirty cards, eight spells — and `premadeDecksFor(7)` returns the large
+  // builds, so the whole game already treats 7 as "large" for deck purposes.
+  // Seeding a third build size with identical rules would only create decks the
+  // deck-code writer drops (it encodes 4 and 5) for no gain.
+  const asBuildSize = (n: number | undefined) => (n === undefined ? 4 : n >= 5 ? 5 : 4);
+  const [buildSize, setBuildSize] = useState<number>(asBuildSize(props.boardSize));
   /** FOLLOW THE PROP WHEN IT MOVES.
    *
    *  This is `useState(props.boardSize)` and nothing ever re-read it, so the
@@ -98,7 +104,7 @@ export function DeckBuilder(props: {
   useEffect(() => {
     if (props.boardSize == null || props.boardSize === lastPropBoard.current) return;
     lastPropBoard.current = props.boardSize;
-    setBuildSize(props.boardSize);
+    setBuildSize(asBuildSize(props.boardSize));
     // The smaller board holds a shorter book, so trim rather than carry an
     // illegal one across — same rule the manual toggle applies.
     setPickedSpells((cur) => sanitizeSpells(cur, props.boardSize!) ?? []);

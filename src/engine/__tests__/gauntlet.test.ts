@@ -257,3 +257,55 @@ describe("the large board pays more", () => {
     expect(boardOfRun({ tier: small.tier, seats: small.seats, won: 0 })).toBe(4);
   });
 });
+
+describe("the 7×7 runs its own ladder", () => {
+  const B = 7;
+
+  it("has every rung, with a full deck pool on each", () => {
+    // `tiersFor` derives the rungs from whether decks EXIST for the board, so a
+    // 7x7 with an empty pool would silently offer no run at all.
+    expect(tiersFor(B)).toEqual(DECK_TIERS);
+    for (const t of DECK_TIERS)
+      expect(decksForTier(t, B).length, `${t} has no decks on 7x7`).toBeGreaterThanOrEqual(RUN_LENGTH);
+  });
+
+  it("deals a full run that remembers it is a 7×7", () => {
+    for (const t of DECK_TIERS) {
+      const run = startRun(t, B, seq(0.5));
+      expect(run.seats).toHaveLength(RUN_LENGTH);
+      expect(run.board, "a run that forgets its board pays the wrong rate").toBe(B);
+      expect(boardOfRun(run)).toBe(B);
+      expect(nextSeat(run, B), `${t} has no first seat`).toBeTruthy();
+    }
+  });
+
+  it("pays MORE than the large board, which pays more than the standard", () => {
+    // Without a rate of its own the 7x7 fell through to the 4x4 figure — the
+    // hardest format in the game paying the standard board's price.
+    for (const t of DECK_TIERS) {
+      expect(runReward(t, B)).toBeGreaterThan(runReward(t, 5));
+      expect(runReward(t, 5)).toBeGreaterThan(runReward(t, 4));
+      expect(runReward(t, 4)).toBe(RUN_REWARD[t]);
+    }
+    expect(runReward("elite", B)).toBe(100);
+  });
+
+  it("pays the 7×7 rate for a completed 7×7 run", () => {
+    let run = startRun("hard", B, seq(0.5));
+    for (let i = 0; i < RUN_LENGTH; i++) run = recordResult(run, true);
+    expect(runComplete(run)).toBe(true);
+    expect(runOver(run)).toBe(true);
+    expect(rewardFor(run), "settled at the wrong board's rate").toBe(runReward("hard", B));
+  });
+
+  it("still pays the 7×7 rate when the board field is missing", () => {
+    // A run saved before `board` existed, or one whose board was dropped by a
+    // sanitiser, falls back to sniffing the seat ids — and the 7x7 fields the
+    // LARGE builds, whose ids end `_5`. So a boardless 7x7 run reads as a 5x5.
+    // Recorded rather than fixed: the sanitiser now keeps 7, so the only way to
+    // land here is a save written before that, which genuinely was a 5x5.
+    const run = startRun("mid", B, seq(0.5));
+    const boardless = { ...run, board: undefined };
+    expect(boardOfRun(boardless)).toBe(5);
+  });
+});

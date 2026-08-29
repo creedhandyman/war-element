@@ -1126,7 +1126,13 @@ export function App() {
     // online both hand the other seat to a person, and there is one other
     // person. Clamped here rather than in the picker so a leftover 4 from a
     // previous match cannot deal a four-way on a 5x5.
-    const domSeats = boardSize === DOMINATION_7X7.boardSize && !twoPlayer && !onlineMode
+    // ...and a LADDER is one opponent per seat. Gauntlet deals a run of named
+    // seats and Streak deals the next rung: both are "you versus this deck",
+    // so a free-for-all there would be a run whose seat you only fought a third
+    // of. Casual is where the extra chairs live.
+    const ladder = arenaGame === "gauntlet" || arenaGame === "streak";
+    const domSeats = boardSize === DOMINATION_7X7.boardSize
+      && !twoPlayer && !onlineMode && !ladder
       ? seatCount : 2;
     const p1Cards = resolveDeckCards(p1DeckId);
     const p2Cards = resolveDeckCards(p2DeckId);
@@ -3464,7 +3470,9 @@ export function App() {
                 won by holding Points, has four of them and four shrines in
                 rotational symmetry, and so has somewhere for everyone to come
                 in from. */}
-            {boardSize === DOMINATION_7X7.boardSize && (!onlineMode || onlineRole === "host") && (
+            {boardSize === DOMINATION_7X7.boardSize
+              && arenaGame !== "gauntlet" && arenaGame !== "streak"
+              && (!onlineMode || onlineRole === "host") && (
               <div className="ar-field">
                 <span className="ar-flabel">{onlineMode || twoPlayer ? "PLAYERS" : "OPPONENTS"}</span>
                 <div className="seg">

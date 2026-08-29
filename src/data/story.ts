@@ -2702,7 +2702,10 @@ export function loadStory(): StorySave {
           // rate; anything that is not 4 or 5 is dropped and `boardOfRun`
           // falls back to reading the seat ids.
           run: ok
-            ? { ...run, board: run.board === 4 || run.board === 5 ? run.board : undefined }
+            // 7 included, or a Domination run came back from storage with its
+            // board erased, fell through `boardOfRun` to the seat-id sniff, read
+            // as a 5x5 and paid the 5x5 rate for a 7x7 clear.
+            ? { ...run, board: [4, 5, 7].includes(run.board as number) ? run.board : undefined }
             : undefined,
           cleared: Array.isArray(g.cleared) ? g.cleared.filter((t) => DECK_TIERS.includes(t)) : [],
         };
