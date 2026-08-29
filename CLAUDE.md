@@ -276,6 +276,42 @@ Inferno Blitz 46.7 · Blight 48.3 · **Radiant Host 26.7 · Scrapyard Reactor
 file already warns that ablation needs a control group; the same is true of a
 bare win rate against a hand-picked field.
 
+## The AI could not fire 38 of its own Specials
+
+`chooseBattleAction` picks a Special through a chain of `sp.handler === "..."`
+cases. A chain of named cases is a list that goes stale the moment a handler is
+added, and it had — twice. The file's own comment records seven Specials once
+falling through every branch and never being cast. An audit found the number had
+grown to **41 handlers with no branch at all, against the 22 the chain knew**.
+
+Of those 41:
+- **~38 were a real gap** — ordinary cards whose Special the AI would never
+  cast. They basic-attacked all game, and their Specials were invisible to every
+  balance run ever recorded in this file.
+- **3 were not**: `smite`, `polarShift` and `igniter` are CONDITIONAL (an
+  ELECTRIFIED target, an HP line, something already burning) and the AI declines
+  correctly when the condition is absent. A first cut of the coverage test
+  flagged all three, and the test was wrong, not the AI.
+- **Bosses were never in scope.** `canFireSpecial` refuses them outright —
+  "Fires on its own clock" — because a boss that also cast whenever it could
+  afford the magic would be a different fight on every retry. Both Floor-5
+  bosses' Specials looked like AI gaps and were not.
+
+THE FIX IS A SHAPE-DRIVEN FALLBACK, not 41 more cases: the last branch reads
+who the Special targets and what its params say it does (damages / heals /
+shields / self-or-targetless / control) and decides on that. A new handler is
+fired by default now and only needs a named case when the generic read is wrong
+for it. `ai-special-coverage.test.ts` asserts the OUTCOME — given a board built
+to invite it, the AI takes the Special — so the gap cannot silently return.
+
+**AND IT MOVED THE BALANCE LANDSCAPE.** Every number in this file was measured
+against an AI that could not fire those Specials. Re-measuring Floor 5
+immediately after: Skybreaker **96.9 -> 91.7** and Continental **74.0 -> 94.8**
+(n=96). Skybreaker fell because the player side got better; Continental ROSE
+twenty points because its own formation is AI-piloted too and gained more from
+the fix than the player's cores did. Both now sit above the 80-90 band they were
+tuned into. **Treat pre-fix readings as measurements of a different game.**
+
 ## Measuring balance
 
 There's no committed balance harness — build a disposable one, read it, delete

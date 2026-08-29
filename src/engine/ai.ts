@@ -13,7 +13,7 @@ import {
   isCaptured,
   moveReachFor,
 } from "./state";
-import { hasEvasion } from "./combat";
+import { hasEvasion, TARGETLESS_HANDLERS } from "./combat";
 import {
   canCastSpell,
   spellAllyTargets,
@@ -992,6 +992,56 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
       // allies on the board and nothing more urgent to do with the turn.
       const allies = boardCards(state, card.owner).filter((a) => a.curHp > 0);
       if (!basicCanKill && allies.length >= 2) return { action: "special" };
+    } else {
+      // ── THE FALLBACK, and it is the important branch ────────────────────
+      //
+      // Everything above is hand-tuned per handler, and a chain of named cases
+      // is a list that goes stale the moment a handler is added. It already
+      // had: an audit across the live roster found FORTY-ONE handlers with no
+      // branch at all — some on cards, some on BOSSES (Umbranova's smite,
+      // Permafrost's polarShift, and both Floor-5 bosses' Specials) — against
+      // twenty-two the chain knew. Those cards basic-attacked all game and
+      // their Specials were invisible to every balance run, which is the exact
+      // failure this file's own comment records happening once before.
+      //
+      // So the last branch reads the Special's declared SHAPE rather than its
+      // name — who it targets and what its params say it does — and decides on
+      // that. A new handler is now fired by default and only needs a named case
+      // when the generic read is wrong for it.
+      const heals = Number(params.heal ?? params.amount ?? 0) > 0;
+      const shields = Number(params.shields ?? 0) > 0;
+      const damages = dmg > 0;
+      const selfish = sp.targetSide === "self" || TARGETLESS_HANDLERS.has(sp.handler);
+
+      // BOARD-WIDE handlers enumerate no targets — `specialTargets` returns
+      // nothing for smite, which picks every living foe itself. Falling back to
+      // the living enemies keeps those castable instead of silently unreachable.
+      const reachable = specTargets.length > 0
+        ? specTargets
+        : boardCards(state, enemyOf(card.owner)).filter((t) => t.curHp > 0);
+
+      if (damages && reachable.length > 0) {
+        // Same policy the strike/barrage branch uses: take a kill whenever one
+        // is on the table, otherwise spend spare magic on the biggest cluster.
+        const kill = reachable.find((t) => willKill(t, estimateVolley(dmg, hits, pen, t), state.boardSize));
+        if (kill) return { action: "special", targetId: specTargets.length ? kill.instanceId : undefined };
+        if (rich || reachable.length >= 2)
+          return { action: "special", targetId: specTargets.length ? specTargets[0].instanceId : undefined };
+      } else if (heals || shields) {
+        const hurt = validAllyTargets(state, instanceId).filter((a) => a.curHp < a.maxHp);
+        if (hurt.length > 0 && !basicCanKill)
+          return { action: "special", targetId: sp.targetSide === "self" ? undefined : hurt[0].instanceId };
+        if (selfish && !basicCanKill && card.curHp < card.maxHp) return { action: "special" };
+      } else if (selfish) {
+        // Buffs, spawns, stances and anything that aims at nobody: it costs the
+        // turn, so only when there is no kill to take and the pool can afford it.
+        if (!basicCanKill && rich) return { action: "special" };
+      } else if (reachable.length > 0) {
+        // Control with no damage number — statuses, pulls, debuffs. Worth it on
+        // a cluster, or on anything at all when the magic would otherwise rot.
+        if (reachable.length >= 2 || (rich && !basicCanKill))
+          return { action: "special", targetId: specTargets.length ? specTargets[0].instanceId : undefined };
+      }
     }
   }
 
