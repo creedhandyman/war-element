@@ -1326,6 +1326,19 @@ export interface CardDef {
   /** Catapult-style passives: this card may target the enemy Home row from
    *  anywhere (skips the Home Slot Targeting Rule). */
   ignoresHomeRule?: boolean;
+  /** THE GIANTS (Floor 5): this card's BASIC attack reaches the whole board.
+   *
+   *  Reach only. `ignoresHomeRule` — Catapult's — is the neighbouring flag and
+   *  does MORE than this: it also skips the sight screen and the enemy-home
+   *  rule, so a card carrying it lobs over everything. A Floor-5 giant is tall,
+   *  not omniscient: an enemy body on the straight line still blocks the shot,
+   *  which is what keeps the player's free wall of Fortress Gates meaningful on
+   *  the one floor where every boss outranges them.
+   *
+   *  Expressed as the same widening the home-defence branch already performs
+   *  (`reach = state.boardSize`), so there is one idea of "the whole board" in
+   *  the targeting code rather than two. */
+  fullBoardBasic?: true;
   /** Hibernation-style passives: negative statuses never land on this card
    *  (ROOT/BURN/SLEEP/etc. are all refused). */
   statusImmune?: boolean;

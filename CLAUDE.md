@@ -2145,6 +2145,40 @@ the scroll range: ✕ on screen at every position, and zero overlap between ✕,
 state badge, mute and the hero title. **Reading the CSS would not have found
 any of this** — every one of the three needed the computed box.
 
+## FLOOR 5's TWO STANDING RULES — the giants, and three elements
+
+Floor 5 is not just "floor 4 but bigger". Two rules apply to every boss on it:
+
+**1. THE GIANTS REACH THE WHOLE BOARD.** `CardDef.fullBoardBasic` widens a
+BASIC attack's reach to `state.boardSize` — the same widening the home-defence
+branch in `canTarget` already performs, so there is one idea of "the whole
+board" in the targeting code rather than two.
+
+Deliberately REACH ONLY, and the neighbour is why: `ignoresHomeRule`
+(Catapult's) does more — it also skips the sight screen AND the enemy-home rule,
+so a card carrying it lobs over everything. A giant is tall, not omniscient:
+- an enemy body on the straight line **still blocks the shot**, which is what
+  keeps the player's free wall of Fortress Gates meaningful on the one floor
+  where every boss outranges it;
+- the enemy **home row is still protected**. If Floor 5 is ever meant to shoot
+  the back line from the back line, that is `ignoresHomeRule` and a separate
+  call. Both are pinned by test so neither can drift into being an accident.
+
+**2. THREE ELEMENTS ARE LEGAL FROM FLOOR 5.** `VoidBoss.thirdElement`, gated by
+`THIRD_ELEMENT_FROM_FLOOR = 5` and enforced by `elementProblems` — a floor-1
+boss with three elements is a BUILD FAILURE, not a review note. `bossElementSet`
+is the single definition of "this boss's elements"; the summon pool, the
+formation legality check and the UI chips all read it, so they cannot disagree
+about what a boss is. On the CARD the third element is `elementAuras`, so the
+boss genuinely runs those elements' auras rather than being described as them.
+
+**BOTH RULES ARE EXPENSIVE, MEASURED.** Applying them to Skybreaker moved it
+**85.4% -> 95.8%** against a tamed ally on the same harness (n=96) — the two
+rules are worth more than a third of its body. Win type moved too: overrun
+87->67, timeout 9->25, because a boss that shoots across the board without
+advancing wins more fights on the clock. Budget for this when authoring the
+rest of Floor 5: a giant needs LESS body than a Floor-4 boss, not more.
+
 ## FLOOR 5 — Skybreaker, the boss whose Special is its movement
 
 `boss_skybreaker` (3x16 DMG / 298 HP / 20 SP = **366** body against Floor 5's

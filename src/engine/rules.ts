@@ -613,7 +613,13 @@ export function canTarget(
     // control.
     const ownHome = homeRow(attacker.owner, state.boardSize);
     const defendingOwnHome = attacker.pos.row === ownHome && target.pos.row === ownHome;
-    const reach = defendingOwnHome ? state.boardSize : rangedReachFor(state, attacker);
+    // A GIANT sees the whole board — the same widening home defence performs,
+    // and deliberately only the widening: the sight screen below still applies,
+    // so the Fortress Gates a Void Tower player is given for free are still
+    // cover on the one floor where every boss outranges them.
+    const reach = aDef.fullBoardBasic || defendingOwnHome
+      ? state.boardSize
+      : rangedReachFor(state, attacker);
     if (!rangedCanSee(state, attacker.pos, target.pos, attacker.owner, reach)) return false;
   }
 

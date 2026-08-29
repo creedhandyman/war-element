@@ -13,10 +13,11 @@
 // rotation, which is DERIVED and so is the thing most likely to be subtly
 // wrong), and `spawnOnRound` (a body on a clock).
 import { describe, expect, it } from "vitest";
-import { getDef } from "../../data/cards";
-import { voidBossById } from "../../data/void-tower";
+import { CARDS, getDef } from "../../data/cards";
+import { VOID_BOSSES, bossElementSet, bossSummonPool, elementProblems, THIRD_ELEMENT_FROM_FLOOR, voidBossById } from "../../data/void-tower";
 import { advance } from "../phases";
 import { fireCardSpecial } from "../combat";
+import { canTarget } from "../rules";
 import { bossTelegraphs } from "../telegraph";
 import { boardCards, effectiveSp } from "../state";
 import { atCleanup, bigPrepState, place, statusOf } from "./helpers";
@@ -58,6 +59,92 @@ describe("the shape of the fight", () => {
     const t = getDef(STORM);
     expect([t.dmg, t.hp, t.sp]).toEqual([20, 100, 15]);
     expect(t.roundTick?.pushEnemies, "Wind Wake").toBe(1);
+  });
+});
+
+describe("THE GIANTS — Floor 5 reaches the whole board", () => {
+  it("its basic attack reaches clear across the board", () => {
+    // Reach 2 (3 once advanced) is the ordinary ranged cap, and on THIS boss
+    // the extra reach is load-bearing rather than decorative: it never walks,
+    // so without it a stationary boss cannot answer anything that stands off.
+    //
+    // Row 3, not row 4. Row 4 is P1's HOME ROW, which a separate rule protects
+    // and only `ignoresHomeRule` (Catapult's) bypasses — `fullBoardBasic` is
+    // reach and nothing else. Row 3 col 4 is 3 king-steps out and off any
+    // straight line from (0,2), so it isolates the reach cap cleanly.
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 2);
+    const far = foeAt(s, 3, 4, 500);
+    expect(canTarget(s, s.cards[boss.instanceId], s.cards[far.instanceId], false, true),
+      "three squares out is in range").toBe(true);
+  });
+
+  it("the enemy HOME ROW is still protected — reach is not the home rule", () => {
+    // Worth pinning as a decision rather than leaving as an accident: a giant
+    // is not also a Catapult. If Floor 5 is ever meant to shoot the back line
+    // from the back line, that is `ignoresHomeRule` and a separate call.
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 2);
+    const home = foeAt(s, 4, 4, 500);          // P1's own home row
+    expect(canTarget(s, s.cards[boss.instanceId], s.cards[home.instanceId], false, true),
+      "the back line still has to be walked up to").toBe(false);
+  });
+
+  it("...but a body in the way still blocks the shot", () => {
+    // Reach only. `ignoresHomeRule` (Catapult's) is the neighbouring flag and
+    // lobs over everything; a giant is tall, not omniscient. This is what keeps
+    // the player's free wall of Fortress Gates meaningful on the one floor
+    // where every boss outranges it.
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 2);
+    const behind = foeAt(s, 4, 2, 500);        // straight down the column
+    foeAt(s, 2, 2, 500);                       // screening body on the line
+    expect(canTarget(s, s.cards[boss.instanceId], s.cards[behind.instanceId], false, true),
+      "screened").toBe(false);
+  });
+
+  it("an ordinary ranged card is NOT given the reach — same square, refused", () => {
+    // The control for the test above: identical seat, identical target, and the
+    // only difference is the flag.
+    const s = bigPrepState();
+    const me = place(s, "gale_rayfen", "P2", 0, 2);
+    const far = foeAt(s, 3, 4, 500);
+    expect(getDef("gale_rayfen").fullBoardBasic).toBeUndefined();
+    expect(canTarget(s, s.cards[me.instanceId], s.cards[far.instanceId], false, true),
+      "out of an ordinary shooter's reach").toBe(false);
+  });
+});
+
+describe("THREE elements, which Floor 5 is the first floor to allow", () => {
+  it("Skybreaker is GALE, BOLT and AQUA", () => {
+    const b = voidBossById(BOSS)!;
+    expect([...bossElementSet(b)].sort()).toEqual(["AQUA", "BOLT", "GALE"]);
+    expect(getDef(BOSS).elementAuras, "and the CARD carries them too")
+      .toEqual(["BOLT", "AQUA"]);
+  });
+
+  it("the third element widens what it may field", () => {
+    const b = voidBossById(BOSS)!;
+    const pool = new Set(bossSummonPool(b));
+    const aqua = CARDS.find((c) => c.element === "AQUA" && !c.boss)!;
+    expect(pool.has(aqua.id), "AQUA is legal for it now").toBe(true);
+  });
+
+  it("no boss below Floor 5 may have one, and the rule is enforced not reviewed", () => {
+    for (const b of VOID_BOSSES) {
+      expect(elementProblems(b), b.cardId).toEqual([]);
+      if (b.floor < THIRD_ELEMENT_FROM_FLOOR)
+        expect(b.thirdElement, `${b.cardId} is below the floor`).toBeUndefined();
+    }
+    // ...and the gate actually fails when it should, rather than passing
+    // vacuously because nothing violates it today.
+    const smuggled = { ...voidBossById("boss_rotroot")!, thirdElement: "AQUA" as const };
+    expect(elementProblems(smuggled).length, "a Floor-1 boss with three elements").toBeGreaterThan(0);
+  });
+
+  it("a third element that repeats one it already has is rejected", () => {
+    const dupe = { ...voidBossById(BOSS)!, thirdElement: "GALE" as const };
+    expect(elementProblems(dupe).length).toBeGreaterThan(0);
   });
 });
 

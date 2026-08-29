@@ -970,6 +970,8 @@ export function describePassives(def: CardDef): string[] {
   if (def.statusImmune) named("statusImmune", "Immune to negative statuses.");
   if (def.ignoresHomeRule)
     named("ignoresHomeRule", "Can target the enemy Home row from anywhere.");
+  if (def.fullBoardBasic)
+    named("fullBoardBasic", "Its basic attack reaches the whole board — bodies in the way still block the shot.");
   if (def.special?.ranged)
     passives.push("Its Special reaches any slot on the board.");
 

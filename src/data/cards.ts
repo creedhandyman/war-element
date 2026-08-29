@@ -11111,14 +11111,16 @@ export const CARDS: CardDef[] = [
     id: "boss_skybreaker",
     name: "Skybreaker",
     rarity: "mythic",
-    // GALE on the card, and that is the ONE element the engine reads. The
-    // design is a three-element idea — a hurricane is wind over warm water with
-    // lightning in it — and the other two are expressed through the KIT rather
-    // than through `elementAuras`: AQUA is the SCALD its basics leave, BOLT is
-    // the PARALYZE its Special lands. Declaring the extra elements would have
-    // handed it two more element auras' worth of unmeasured power for what is
-    // really a flavour note; the tower entry records the pairing as GALE/BOLT.
+    // A THREE-ELEMENT CARD, which Floor 5 is the first floor to allow. GALE is
+    // the printed element; `elementAuras` makes it behave as BOLT and AQUA too,
+    // so it runs those elements' auras and its basics carry their on-hit riders
+    // — a hurricane is wind over warm water with lightning in it, and here it
+    // actually is all three rather than being described as three.
+    //
+    // Held back on the first pass precisely because it is REAL power and not
+    // flavour; it is measured now (see the MEASURED note in void-tower.test.ts).
     element: "GALE",
+    elementAuras: ["BOLT", "AQUA"],
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 12,
@@ -11134,6 +11136,12 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Hurricane",
     boss: true,
+    // A GIANT. Floor 5's bosses tower over the board and their BASIC attacks
+    // reach all of it — which matters most on THIS one, because it never walks:
+    // without the reach a stationary boss simply cannot answer anything that
+    // stays two squares away. The sight screen still applies, so the player's
+    // free wall of Fortress Gates is still cover.
+    fullBoardBasic: true,
     art: "boss_skybreaker",
     // FLOOR 5, and the first boss on it. GALE gives the tribe, BOLT gives the
     // mechanic.
@@ -11149,6 +11157,7 @@ export const CARDS: CardDef[] = [
     //
     // Both answers cost something, which is what stops it having a right one.
     passiveNames: {
+      fullBoardBasic: "Titan's Reach",
       onHitStatus: "Vapor Waves",
       slowEnemies: "Storm Front",
       cycloneSpin: "High-Speed Cyclone",

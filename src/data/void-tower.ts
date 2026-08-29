@@ -88,6 +88,17 @@ export interface VoidBoss {
    *  passives express THIS element, not A; it is why the fight plays the way
    *  it does. */
   mechanicElement: Element;
+  /** A THIRD element, Floor 5 and up.
+   *
+   *  Floors 1-4 are two-element designs on purpose — tribe from one, mechanic
+   *  from the other, and the fight reads as the collision of exactly two ideas.
+   *  Floor 5 lifts that: the giants are big enough to be three things at once,
+   *  which widens both what they may field (`bossSummonPool`) and, on the card
+   *  itself, which element auras they run (`elementAuras`).
+   *
+   *  Optional and floor-gated, so nothing below Floor 5 can quietly acquire a
+   *  third element — `elementProblems` fails the build if one does. */
+  thirdElement?: Element;
   /** The boss's tribe — its identity, what the brood is called, and what the
    *  reinforcement bench leads with. NOT the whole roster: a formation may also
    *  draw on either of the boss's two elements (see `bossSummonPool`). */
@@ -448,6 +459,12 @@ export const VOID_BOSSES: VoidBoss[] = [
     // on the basics as SCALD. `mechanicElement` is documented as "the element
     // the Special and passives express", and that is the thunder.
     mechanicElement: "BOLT",
+    // THE THIRD, now that Floor 5 allows one. A hurricane is wind over warm
+    // water with lightning in it, and it can finally be all three: GALE is the
+    // tribe, BOLT is the mechanic the Special expresses (the PARALYZE in the
+    // eye), AQUA is the SCALD its basics leave. It also widens what the boss may
+    // field — see `bossSummonPool`.
+    thirdElement: "AQUA",
     tribe: "Hurricane",
     // 7 + 6 + 6 + 5 + 5 + 7 + 5 + 1x3 = 44, exact — Floor 5's budget.
     //
@@ -489,7 +506,7 @@ export const voidBossById = (cardId: string): VoidBoss | null =>
 export const voidBossElements = (cardId: string): Element[] | undefined => {
   const b = voidBossById(cardId);
   if (!b) return undefined;
-  return [...new Set([b.tribeElement, b.mechanicElement])];
+  return [...bossElementSet(b)];
 };
 
 export const trialEventId = (cardId: string): string => `void_${cardId}`;
@@ -634,11 +651,37 @@ export function inTribe(defId: string, tribe: string): boolean {
  *  The tribe stays the boss's IDENTITY — it is what the brood is called and what
  *  the bench leads with — but it is no longer the whole roster. */
 export function bossSummonPool(boss: VoidBoss): string[] {
-  const els = new Set<string>([boss.tribeElement, boss.mechanicElement]);
+  const els = bossElementSet(boss);
   return Object.values(CARD_INDEX)
     .filter((d) => !d.boss && (inTribe(d.id, boss.tribe) || els.has(d.element)))
     .sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id))
     .map((d) => d.id);
+}
+
+/** Every element this boss is pitched on — two below Floor 5, three at and
+ *  above it. The single definition; the summon pool, the legality check and the
+ *  UI chips all read it, so they cannot disagree about what a boss IS. */
+export function bossElementSet(boss: VoidBoss): Set<Element> {
+  const els = new Set<Element>([boss.tribeElement, boss.mechanicElement]);
+  if (boss.thirdElement) els.add(boss.thirdElement);
+  return els;
+}
+
+/** THE FLOOR GATE on a third element, as data. Floors 1-4 are two-element
+ *  designs and a third arriving on one would be a silent power creep, so it is
+ *  a build failure rather than a review note. */
+export const THIRD_ELEMENT_FROM_FLOOR = 5;
+export function elementProblems(boss: VoidBoss): string[] {
+  const out: string[] = [];
+  if (boss.tribeElement === boss.mechanicElement)
+    out.push(`${boss.cardId}: tribe and mechanic elements are the same`);
+  if (boss.thirdElement) {
+    if (boss.floor < THIRD_ELEMENT_FROM_FLOOR)
+      out.push(`${boss.cardId}: a third element is Floor ${THIRD_ELEMENT_FROM_FLOOR}+ only`);
+    if (bossElementSet(boss).size !== 3)
+      out.push(`${boss.cardId}: its third element repeats one it already has`);
+  }
+  return out;
 }
 
 export function summonProblems(boss: VoidBoss): string[] {
@@ -651,9 +694,8 @@ export function summonProblems(boss: VoidBoss): string[] {
     const d = CARD_INDEX[id];
     if (!d) { out.push(`unknown card ${id}`); continue; }
     // Tribe OR either element — see `bossSummonPool`.
-    if (!inTribe(id, boss.tribe)
-        && d.element !== boss.tribeElement && d.element !== boss.mechanicElement)
-      out.push(`${id} is neither ${boss.tribe} nor ${boss.tribeElement}/${boss.mechanicElement}`);
+    if (!inTribe(id, boss.tribe) && !bossElementSet(boss).has(d.element))
+      out.push(`${id} is neither ${boss.tribe} nor ${[...bossElementSet(boss)].join("/")}`);
     copies.set(id, (copies.get(id) ?? 0) + 1);
   }
   for (const [id, n] of copies) {

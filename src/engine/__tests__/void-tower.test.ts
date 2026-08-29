@@ -11,7 +11,7 @@ import { CARDS, TOKENS, CARD_INDEX, getDef } from "../../data/cards";
 import {
   BODY_CAP_TOLERANCE, FLOOR1_SUMMON_BUDGET, VOID_BOSSES, bodyCap, bodyTotal, bossDefeated,
   VOID_GATE, voidGateSeats, bossesOnFloor, buildVoidEncounter, chanceProblems, floorCleared, floorOpen, inTribe, summonBudget,
-  bossSummonPool, paddedFormation, reinforcementPool, summonProblems, VOID_PLAYER_HEAD_START, voidPlayerHeadStart, towerProgress, tribePool, trialEventId, voidBossById,
+  bossElementSet, bossSummonPool, elementProblems, THIRD_ELEMENT_FROM_FLOOR, paddedFormation, reinforcementPool, summonProblems, VOID_PLAYER_HEAD_START, voidPlayerHeadStart, towerProgress, tribePool, trialEventId, voidBossById,
   voidBossSeat, voidFloors,
 } from "../../data/void-tower";
 import { deckSizeFor, isBuildable, validateDeck } from "../../data/custom-decks";
@@ -58,7 +58,12 @@ describe("the roster", () => {
       const d = getDef(v.cardId);
       expect(d.element, `${v.cardId} element is its tribe element`).toBe(v.tribeElement);
       expect(inTribe(v.cardId, v.tribe), `${v.cardId} belongs to its own tribe`).toBe(true);
-      expect(v.tribeElement, `${v.cardId} is a two-element design`).not.toBe(v.mechanicElement);
+      // TWO elements below Floor 5, three at or above it — and never a third
+      // that merely repeats one it already has. `elementProblems` owns the rule
+      // so a boss cannot acquire a third element by drive-by edit.
+      expect(elementProblems(v), `${v.cardId}`).toEqual([]);
+      if (v.floor < THIRD_ELEMENT_FROM_FLOOR)
+        expect(v.thirdElement, `${v.cardId} is below the three-element floor`).toBeUndefined();
     }
   });
 
@@ -169,7 +174,8 @@ describe("the roster", () => {
       // boss that teleports via its own token, taxes SP every round and spins
       // the board) rather than the meat.
       //
-      // MEASURED at this body: 100% bare, 85.4% against a tamed ally, n=96
+      // MEASURED at this body, BEFORE the Floor-5 rules landed: 100% bare,
+      // 85.4% against a tamed ally, n=96
       // (8 cores x 12 seeds, 5x5, humans [], spells from the encounter, gates
       // seated, voidTower on, ally = Umbranova at TAME_SCALE). In the SAME run
       // and against the SAME ally, the Floor-4 bosses read Kato 26.0%, Cryovex
@@ -182,6 +188,18 @@ describe("the roster", () => {
       // reading inside this one run is meaningful. And an AI-vs-AI sweep cannot
       // read a telegraph, so every one of these overstates a boss against a
       // human who can.
+      //
+      // RE-MEASURED after the two Floor-5 rules (three elements via
+      // `elementAuras`, and `fullBoardBasic`): **95.8% with a tamed ally**, up
+      // 10.4 points from 85.4 on the same harness — so those two rules are
+      // worth more than a third of the body. Win type moved with it, overrun
+      // 87->67 and timeout 9->25: a boss that shoots across the board without
+      // advancing wins more of its fights on the clock.
+      //
+      // 95.8 is ABOVE the 80-90 band Floor 4 was tuned to and is left as the
+      // owner's specified stat line rather than trimmed. HP is the lever if it
+      // wants to come down — this body is 366 against a 660 cap, so there is
+      // room in both directions.
       boss_skybreaker: 366,
     };
     for (const v of VOID_BOSSES) {
@@ -578,18 +596,24 @@ describe("deck depth", () => {
     }
   });
 
-  it("everything it summons is its tribe OR one of its two elements", () => {
+  it("everything it summons is its tribe OR one of its OWN elements", () => {
     // The rule used to be TRIBE ONLY, and that was a rule about tribe lists
     // rather than about fights: it forced a burning tree to lead lizards
-    // because LEAF owned exactly one tribe. A boss is two elements, so it may
-    // field two elements — but never a stranger to both.
+    // because LEAF owned exactly one tribe. A boss may field its own elements —
+    // but never a stranger to all of them.
+    //
+    // "its own elements" is two below Floor 5 and three at or above it, so this
+    // reads `bossElementSet` rather than naming the two fields: a Floor-5 giant
+    // fielding its third element is legal and a Floor-2 boss doing so is not,
+    // and that distinction belongs in one place.
     for (const b of VOID_BOSSES) {
       const legal = new Set(bossSummonPool(b));
+      const els = bossElementSet(b);
       for (const id of buildVoidEncounter(b).deck) {
         expect(legal.has(id), `${b.cardId} summons ${id}`).toBe(true);
         const el = getDef(id).element;
         expect(
-          inTribe(id, b.tribe) || el === b.tribeElement || el === b.mechanicElement,
+          inTribe(id, b.tribe) || els.has(el),
           `${b.cardId} summons ${id} (${el})`,
         ).toBe(true);
       }
