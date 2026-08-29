@@ -734,3 +734,58 @@ describe("the Well pays on arrival", () => {
     expect(next.cards[c.instanceId].curHp).toBe(10);
   });
 });
+
+describe("Point control counts EVERY seat", () => {
+  const none = () => ({ A: null, B: null, C: null, D: null } as Record<string, PlayerId | null>);
+  const counts = (a: Partial<Record<PlayerId, number>>) => ({
+    A: a, B: {}, C: {}, D: {},
+  }) as never;
+
+  it("lets P3 take a Point — it could not before", () => {
+    // The bug this covers: `resolveHolders` compared P1 against P2 and nothing
+    // else, so a third or fourth seat was tallied and then ignored. P3 could
+    // stand its whole army on a ring and never take it.
+    expect(resolveHolders(M, counts({ P1: 0, P2: 0, P3: 2, P4: 0 }), none() as never).A).toBe("P3");
+    expect(resolveHolders(M, counts({ P1: 0, P2: 0, P3: 0, P4: 1 }), none() as never).A).toBe("P4");
+  });
+
+  it("lets a P3 body BLOCK P2, instead of being invisible to it", () => {
+    // The other half of the same bug: a lone P2 body used to beat any number of
+    // P3 bodies, because P3 was never in the comparison. Level is level — the
+    // Point stays where it was.
+    const held = { ...none(), A: "P1" } as Record<string, PlayerId | null>;
+    expect(resolveHolders(M, counts({ P1: 0, P2: 1, P3: 1, P4: 0 }), held as never).A,
+      "P2 took it while level with P3").toBe("P1");
+    // ...and out-numbering still works.
+    expect(resolveHolders(M, counts({ P1: 0, P2: 2, P3: 1, P4: 0 }), held as never).A).toBe("P2");
+  });
+
+  it("keeps the 1v1 rule exactly as it was", () => {
+    const held = { ...none(), A: "P2" } as Record<string, PlayerId | null>;
+    expect(resolveHolders(M, counts({ P1: 2, P2: 1 }), held as never).A).toBe("P1");
+    expect(resolveHolders(M, counts({ P1: 1, P2: 2 }), held as never).A).toBe("P2");
+    expect(resolveHolders(M, counts({ P1: 2, P2: 2 }), held as never).A, "a tie flipped it").toBe("P2");
+    expect(resolveHolders(M, counts({ P1: 0, P2: 0 }), held as never).A, "an empty ring flipped it").toBe("P2");
+  });
+
+  it("resolves a real four-seat board the same way", () => {
+    // End to end rather than through the helper: three seats on one ring, P3
+    // ahead, and the round's recount has to agree with the rule above.
+    const s = domState();
+    const poi = M.pois[0];
+    const ring = poiRing(poi);
+    put(s, "leaf_weeds", "P2", ring[0].row, ring[0].col);
+    put(s, "leaf_weeds", "P3", ring[1].row, ring[1].col);
+    put(s, "leaf_weeds", "P3", ring[2].row, ring[2].col);
+    s.seats = ["P1", "P2", "P3"];
+    let out = s;
+    for (let i = 0; i < 400 && out.round < s.round + 1 && out.phase !== "gameover"; i++) {
+      const n = out.phase === "prep" && out.prep
+        ? applyIntent(out, { type: "PASS", player: out.prep.priority })
+        : advance(out);
+      if (n === out) break;
+      out = n;
+    }
+    expect(out.domination!.held[poi.id], "P3 out-numbered 2-1 and did not take it").toBe("P3");
+  });
+});

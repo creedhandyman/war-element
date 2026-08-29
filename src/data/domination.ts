@@ -167,19 +167,37 @@ export function runsAlongRoad(map: DominationMap, from: Pos, to: Pos): boolean {
   }
 }
 
-/** Who holds each Point after a round: strictly MORE bodies on the ring takes
- *  it, a tie leaves it with whoever held it. `counts` is per-Point (P1, P2). */
+/** Who holds each Point after a round: strictly MORE bodies on the ring than
+ *  ANYONE else takes it, and anything short of that leaves it with whoever held
+ *  it. `counts` is per-Point, per-seat.
+ *
+ *  EVERY SEAT, which it did not used to be. This compared `c.P1 > c.P2` and
+ *  nothing else, so on a three- or four-player map P3 and P4 were counted into
+ *  the tally and then never consulted: they could not take a Point however many
+ *  bodies they put on a ring, and their bodies did not block anyone either — a
+ *  lone P2 body beat three P3 bodies for control. Written when the mode was
+ *  two-seat and missed when the seats widened.
+ *
+ *  Sticky needs the LEAD to be unique, not just non-zero. Two opponents level
+ *  on a ring have both failed to out-number the other, so the Point stays where
+ *  it was — the same rule a 1v1 tie has always followed, which is what makes
+ *  holding one mean something. */
 export function resolveHolders(
   map: DominationMap,
-  counts: Record<PoiId, { P1: number; P2: number }>,
+  counts: Record<PoiId, Partial<Record<PlayerId, number>>>,
   held: Record<PoiId, PlayerId | null>,
 ): Record<PoiId, PlayerId | null> {
   const next = { ...held };
   for (const p of map.pois) {
-    const c = counts[p.id];
-    if (c.P1 > c.P2) next[p.id] = "P1";
-    else if (c.P2 > c.P1) next[p.id] = "P2";
-    // equal (including 0-0) — sticky: the previous holder keeps it
+    const c = counts[p.id] ?? {};
+    let best = 0;
+    let leaders: PlayerId[] = [];
+    for (const [seat, n] of Object.entries(c) as [PlayerId, number][]) {
+      if (n > best) { best = n; leaders = [seat]; }
+      else if (n === best && n > 0) leaders.push(seat);
+    }
+    // A unique lead takes it; a tie for the lead, or an empty ring, does not.
+    if (best > 0 && leaders.length === 1) next[p.id] = leaders[0];
   }
   return next;
 }
