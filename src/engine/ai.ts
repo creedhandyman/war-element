@@ -29,6 +29,7 @@ import {
   validTargets,
   homeSlots,
   neutralDeploySlots,
+  domMap,
 } from "./rules";
 import type {
   CardInstance,
@@ -39,6 +40,7 @@ import type {
   StatusKind,
 } from "./types";
 import { enemyOf, homeRow, NEGATIVE_STATUSES } from "./types";
+import { isImpassable, poiAt, poiRing, type PoiDef } from "../data/domination";
 
 // ── mulligan ────────────────────────────────────────────────────────────────
 
@@ -101,16 +103,25 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
   const spell = findSpellCast(state, player);
   if (spell) return spell;
 
+  // 3. DOMINATION plays a different game entirely — the board is the win
+  //    condition, so the whole movement plan is "stand on the Points". It
+  //    replaces the capture-and-advance steps below rather than adding to
+  //    them: those aim at an enemy Home row this mode does not have.
+  if (state.domination && !state.prep?.movedThisTurn) {
+    const dom = findDominationMove(state, player);
+    if (dom) return dom;
+  }
+
   // 3. Capture step: an uncaptured enemy Home slot in reach is the win
   //    condition itself — take it. (Also the endgame stall-breaker: forward-
   //    only advancing never walks sideways along the enemy home row.)
-  if (!state.prep?.movedThisTurn) {
+  if (!state.domination && !state.prep?.movedThisTurn) {
     const grab = findCaptureMove(state, player);
     if (grab) return grab;
   }
 
   // 3. Advance one card toward the enemy Home if it looks survivable.
-  if (!state.prep?.movedThisTurn) {
+  if (!state.domination && !state.prep?.movedThisTurn) {
     const move = findAdvance(state, player, false);
     if (move) return move;
     // Stall-breaker: total standoff (none of our cards can reach anything) —
@@ -477,6 +488,144 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
 }
 
 /** Move a healthy card onto an uncaptured, open enemy Home slot if one is in reach. */
+
+// ── DOMINATION ────────────────────────────────────────────────────────────
+// The AI's whole plan is "walk at the enemy Home row and stand on it", because
+// on every other board that IS the win condition. Domination has no Home row
+// and no capture: it is won by holding three of four Points for three rounds.
+// Pointed at a row that means nothing, the AI marched its army at one edge of
+// the map and lost on a clock it never knew was running.
+//
+// So in that mode it plays a different game, and these are its rules.
+
+/** The Points this side should be going for, best first.
+ *
+ *  A Point you do not hold is worth more than one you do — taking a fourth is
+ *  how the match ends, and defending a Point nobody is contesting is a card
+ *  standing still. Contested Points come next, because losing one you already
+ *  hold costs the streak AND the income. */
+function pointsWanted(state: GameState, player: PlayerId): PoiDef[] {
+  const m = domMap(state);
+  const dom = state.domination;
+  if (!m || !dom) return [];
+  const mine = (p: PoiDef) => dom.held[p.id] === player;
+  const contested = (p: PoiDef) => poiRing(p).some((s) => {
+    const occ = cardAt(state, s.row, s.col);
+    return occ != null && occ.curHp > 0 && occ.owner !== player;
+  });
+  const notMine = m.pois.filter((p) => !mine(p));
+  const underThreat = m.pois.filter((p) => mine(p) && contested(p));
+  const want = [...notMine, ...underThreat];
+  // Holding everything, uncontested: spread out rather than freeze. Standing
+  // still is how a side that is ahead lets the clock take it back.
+  return want.length > 0 ? want : m.pois;
+}
+
+/** Every square worth standing on: the rings of the Points worth having. */
+function pointGoals(state: GameState, player: PlayerId): Pos[] {
+  const m = domMap(state);
+  if (!m) return [];
+  return pointsWanted(state, player)
+    .flatMap((p) => poiRing(p))
+    .filter((s) => !isImpassable(m, s.row, s.col)
+      && s.row >= 0 && s.row < state.boardSize && s.col >= 0 && s.col < state.boardSize);
+}
+
+/** Is this card already doing its job — standing on a ring the side has not
+ *  yet secured? Moving it off would hand the Point straight back, which is the
+ *  same oscillation `isMidCapture` exists to prevent on a standard board. */
+function holdingAPoint(state: GameState, card: CardInstance, player: PlayerId): boolean {
+  const m = domMap(state);
+  const dom = state.domination;
+  if (!m || !dom || !card.pos) return false;
+  const poi = poiAt(m, card.pos.row, card.pos.col);
+  if (!poi) return false;
+  // Standing on a Point that is not securely ours: stay. Standing on one we
+  // hold uncontested is a card that may go and take another.
+  if (dom.held[poi.id] !== player) return true;
+  return poiRing(poi).some((s) => {
+    const occ = cardAt(state, s.row, s.col);
+    return occ != null && occ.curHp > 0 && occ.owner !== player;
+  });
+}
+
+/** Step ONTO a Point. The Domination equivalent of the capture step: the square
+ *  that wins the game is the square to be standing on. */
+function findPointMove(state: GameState, player: PlayerId): Intent | null {
+  const goals = pointGoals(state, player);
+  if (goals.length === 0) return null;
+  const movers = boardCards(state, player)
+    .filter((c) => c.curHp > 0 && moveReachFor(state, c) > 0)
+    .filter((c) => !holdingAPoint(state, c, player))
+    .sort((a, b) => b.curHp + b.curShields * 2 - (a.curHp + a.curShields * 2));
+  for (const mover of movers) {
+    for (const to of goals) {
+      if (!canMove(state, player, mover.instanceId, to).ok) continue;
+      // Do not feed a body into a square that kills it for nothing — a corpse
+      // holds no ground. Unless nothing can reach it, in which case it is free.
+      const threat = threatAt(state, mover, to);
+      if (threat === 0 || threat < mover.curHp + mover.curShields * 2)
+        return { type: "MOVE", player, instanceId: mover.instanceId, to };
+    }
+  }
+  return null;
+}
+
+/** A hurt card walks to the Well. It heals 2 a round for 3 rounds and keeps
+ *  healing after the card leaves, so this is a detour that pays for itself —
+ *  and the Well sits at the crossroads, which is on the way to everything. */
+function findWellMove(state: GameState, player: PlayerId): Intent | null {
+  const m = domMap(state);
+  if (!m?.well) return null;
+  const at = m.well.at;
+  if (cardAt(state, at.row, at.col)) return null; // taken
+  const hurt = boardCards(state, player)
+    .filter((c) => c.curHp > 0 && moveReachFor(state, c) > 0)
+    .filter((c) => (c.regenRoundsLeft ?? 0) === 0)
+    .filter((c) => c.curHp * 2 <= effectiveMaxHp(state, c))   // at or under half
+    .filter((c) => !holdingAPoint(state, c, player))
+    .sort((a, b) => a.curHp / effectiveMaxHp(state, a) - b.curHp / effectiveMaxHp(state, b));
+  for (const mover of hurt) {
+    if (canMove(state, player, mover.instanceId, at as Pos).ok)
+      return { type: "MOVE", player, instanceId: mover.instanceId, to: at as Pos };
+  }
+  return null;
+}
+
+/** Walk toward the Points when none is in reach this turn. Same BFS the
+ *  standard board uses to close on a Home row, pointed at the right squares. */
+function findPointApproach(state: GameState, player: PlayerId): Intent | null {
+  const goals = pointGoals(state, player);
+  if (goals.length === 0) return null;
+  const distToGoal = (p: Pos) => bfsDistance(state, p, goals);
+  const movers = boardCards(state, player)
+    .filter((c) => c.curHp > 0 && moveReachFor(state, c) > 0)
+    .filter((c) => !holdingAPoint(state, c, player))
+    .sort((a, b) => distToGoal(a.pos!) - distToGoal(b.pos!));
+  for (const mover of movers) {
+    let best: Pos | null = null;
+    let bestDist = distToGoal(mover.pos!);
+    for (let row = 0; row < state.boardSize; row++)
+      for (let col = 0; col < state.boardSize; col++) {
+        const to = { row, col } as Pos;
+        if (!canMove(state, player, mover.instanceId, to).ok) continue;
+        const d = distToGoal(to);
+        if (d < bestDist) { bestDist = d; best = to; }
+      }
+    if (best) return { type: "MOVE", player, instanceId: mover.instanceId, to: best };
+  }
+  return null;
+}
+
+/** The Domination move, in priority order. Returns null only when there is
+ *  genuinely nothing worth doing, and the caller falls through to its own
+ *  sidestep-or-pass. */
+function findDominationMove(state: GameState, player: PlayerId): Intent | null {
+  return findPointMove(state, player)
+    ?? findWellMove(state, player)
+    ?? findPointApproach(state, player);
+}
+
 function findCaptureMove(state: GameState, player: PlayerId): Intent | null {
   const enemyHome = homeRow(enemyOf(player), state.boardSize);
   const movers = boardCards(state, player)

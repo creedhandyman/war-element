@@ -13,7 +13,7 @@ import {
 } from "../../data/domination";
 import { advance, applyIntent, canMove, canSummon, createInitialState, legalMoves } from "../index";
 import { homeSlots, rangedCanSee, summonLandingRow, terrainBlocksPath } from "../rules";
-import { summonCard } from "../state";
+import { cardAt, summonCard } from "../state";
 import { deckLimits } from "../../data/custom-decks";
 import type { GameState, PlayerId } from "../types";
 
@@ -518,5 +518,69 @@ describe("the Well", () => {
     for (let r = 0; r < M.boardSize; r++)
       for (let c = 0; c < M.boardSize; c++) if (isWell(M, r, c)) count++;
     expect(count, "more than one Well").toBe(1);
+  });
+});
+
+describe("the AI plays the objective", () => {
+  /** An AI-vs-AI Domination match, driven to the end. */
+  function aiMatch(seed: number, seats = 2) {
+    const D = (id: string) => Array.from({ length: 30 }, () => id);
+    const extra = ([{ id: "P3" as PlayerId, deck: D("leaf_weeds") },
+                    { id: "P4" as PlayerId, deck: D("leaf_weeds") }]).slice(0, seats - 2);
+    let s: GameState = createInitialState(
+      seed, D("leaf_weeds"), D("leaf_weeds"), [], undefined, [], M.boardSize,
+      undefined, undefined, undefined, extra.length ? extra : undefined);
+    s.domination = newDomination(M);
+    let everOnRing = 0;
+    for (let i = 0; i < 40000 && s.phase !== "gameover"; i++) {
+      const n = advance(s);
+      if (n === s) break;
+      s = n;
+      let onRing = 0;
+      for (const poi of M.pois)
+        for (const sq of poiRing(poi)) {
+          const occ = cardAt(s, sq.row, sq.col);
+          if (occ && occ.curHp > 0) onRing++;
+        }
+      everOnRing = Math.max(everOnRing, onRing);
+    }
+    return { end: s, everOnRing };
+  }
+
+  it("wins on the Points instead of grinding to the clock", () => {
+    // Measured before this existed: the AI aimed at `homeRow(enemyOf(player))`,
+    // which on this map is ordinary ground and worth nothing — 9 of 12 matches
+    // ran the full 50 rounds and ended on the timeout tiebreak. Pointed at the
+    // Points it wins in single figures.
+    const { end } = aiMatch(11);
+    expect(end.phase).toBe("gameover");
+    expect(end.win?.by, `won by ${end.win?.by} on round ${end.round}`).toBe("domination");
+    expect(end.round, "took the clock's whole 50 rounds").toBeLessThan(30);
+  });
+
+  it("actually stands on the Points", () => {
+    // The behaviour underneath the win: bodies on the rings, which is the only
+    // way control is ever taken.
+    const { everOnRing } = aiMatch(23);
+    expect(everOnRing, "never put a card on a Point").toBeGreaterThan(2);
+  });
+
+  it("does it in a four-way too", () => {
+    const { end } = aiMatch(37, 4);
+    expect(end.phase).toBe("gameover");
+    expect(end.win?.by).toBe("domination");
+  });
+
+  it("leaves the standard board's AI alone", () => {
+    // The Domination branch is gated on `state.domination`; a 5x5 must still be
+    // played by the capture-and-advance ladder, and still end.
+    const D = (id: string) => Array.from({ length: 30 }, () => id);
+    let s: GameState = createInitialState(9, D("leaf_weeds"), D("pyro_bbq"), [], undefined, [], 5);
+    expect(s.domination).toBeUndefined();
+    for (let i = 0; i < 40000 && s.phase !== "gameover"; i++) {
+      const n = advance(s); if (n === s) break; s = n;
+    }
+    expect(s.phase).toBe("gameover");
+    expect(s.win?.by).not.toBe("domination");
   });
 });
