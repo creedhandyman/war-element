@@ -27,6 +27,7 @@ import { getDef } from "../data/cards";
 import type { GameState, PlayerId } from "../engine";
 import { seatsOf } from "../engine";
 import { DeckSeat } from "./DeckPickerSheet";
+import { SEAT_SUIT } from "./shared";
 
 /** How long the screen holds before the match begins. Short on purpose — this
  *  is a flourish in front of a fight someone is waiting to play, and every
@@ -107,7 +108,14 @@ export function VersusIntro(props: {
     <div className="overlay on-top pvi-wrap" onClick={onDone}>
       <div className={`pvi${many ? " pvi-many" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="pvi-col">
-          <DeckSeat side="mine" flag={`YOU · ${me}`} label={names?.[me] ?? "Your squad"} cards={mine} />
+          {/* Named by SUIT as well as seat, so the identity you learn here is the
+              one you read off the board a minute later. */}
+          <DeckSeat
+            side="mine"
+            flag={`YOU · ${SEAT_SUIT[me].glyph} ${me}`}
+            label={names?.[me] ?? "Your squad"}
+            cards={mine}
+          />
           <Detail cards={mine} />
         </div>
 
@@ -122,7 +130,7 @@ export function VersusIntro(props: {
             <div className="pvi-col" key={f.seat}>
               <DeckSeat
                 side="foe"
-                flag={`${many ? "" : "OPPONENT · "}${f.seat}`}
+                flag={`${many ? "" : "OPPONENT · "}${SEAT_SUIT[f.seat].glyph} ${f.seat}`}
                 label={names?.[f.seat] ?? "Their deck"}
                 cards={f.cards}
               />

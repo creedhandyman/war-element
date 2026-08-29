@@ -40,7 +40,9 @@ import {
   SPELLS,
   spellbookFor, summonCard, scaleInstance,
   // The boss clock, made visible.
-  bossTelegraphs, telegraphBlast} from "../engine";
+  bossTelegraphs, telegraphBlast,
+  seatsOf,
+} from "../engine";
 import { spellCapForBoard } from "../engine/spells";
 import {
   boardOfRun, nextSeat, runComplete, runOver, runReward, settleArena, startRun,
@@ -243,7 +245,8 @@ export function App() {
   /** WHICH SEAT that baseline was taken from. The opponent is not always the
    *  same seat — vs AI it is P2, and as an online GUEST it is P1 — so a
    *  baseline taken against one is meaningless against the other. */
-  const prevOppSeatRef = useRef<PlayerId | null>(null);
+  // The opponent SET, joined — see the flash effect. Was a single seat id.
+  const prevOppSeatRef = useRef<string | null>(null);
   // Powerful-creature entrance: legendary and above get their art announced
   // full-screen. My own summon holds the intent and dispatches AFTER the
   // announcement (a true preview); the opponent's resolves outside our dispatch,
@@ -1300,13 +1303,23 @@ export function App() {
   // flash its art. Hot-seat: both sides cast locally, so castSpell already covers
   // it. Skipped while a local flash-then-cast is mid-flight (don't interrupt it).
   useEffect(() => {
-    const opp: PlayerId | null = online ? enemyOf(online.myId) : twoPlayer ? null : "P2";
-    if (!opp) { prevOppSeatRef.current = null; return; }
-    const book = game.players[opp]?.spellbook ?? [];
+    // EVERY opponent, not one of them. This read a single seat — `enemyOf` —
+    // which is the whole story in a 1v1 and a third of it in a four-player
+    // free-for-all: P3 and P4 could cast anything they liked and the board
+    // never flashed it, so two of your three opponents played invisibly.
+    const opps: PlayerId[] = online
+      ? seatsOf(game).filter((p) => p !== online.myId)
+      : twoPlayer ? [] : ["P2"];
+    const oppKey = opps.join(",");
+    if (opps.length === 0) { prevOppSeatRef.current = null; return; }
     // COUNTED, not a set of ids: a book can hold two of a cheap spell, and with
     // a set the opponent's second cast of one changed nothing and never flashed.
+    // Counted ACROSS the seats too, so two opponents casting the same spell in
+    // one round reads as two casts rather than one.
     const nowUsed = new Map<string, number>();
-    for (const sl of book) if (sl.used) nowUsed.set(sl.defId, (nowUsed.get(sl.defId) ?? 0) + 1);
+    for (const p of opps)
+      for (const sl of game.players[p]?.spellbook ?? [])
+        if (sl.used) nowUsed.set(sl.defId, (nowUsed.get(sl.defId) ?? 0) + 1);
     // RE-BASELINE INSTEAD OF FLASHING, in the three cases where a difference in
     // this set is not somebody casting a spell. Same bug the trap flash above
     // already carries a guard for, and the same cause: the finished game object
@@ -1321,8 +1334,8 @@ export function App() {
     //     switched to reading the seat the PLAYER had been sitting in — and
     //     every spell they cast last game read as freshly used and flashed, in
     //     the lobby, on top of the versus screen.
-    if (!started || game.phase === "mulligan" || prevOppSeatRef.current !== opp) {
-      prevOppSeatRef.current = opp;
+    if (!started || game.phase === "mulligan" || prevOppSeatRef.current !== oppKey) {
+      prevOppSeatRef.current = oppKey;
       prevOppUsedRef.current = nowUsed;
       return;
     }
@@ -1345,7 +1358,12 @@ export function App() {
   // announcement or cast flash is mid-flight so nothing gets clobbered.
   useEffect(() => {
     if (!started) return;
-    const opp: PlayerId | null = online ? enemyOf(online.myId) : twoPlayer ? null : "P2";
+    // Every opponent, for the same reason the spell flash needed it: a
+    // legendary walking onto the board is the loudest thing that happens in a
+    // round, and two of three opponents were doing it silently.
+    const opps: PlayerId[] = online
+      ? seatsOf(game).filter((p) => p !== online.myId)
+      : twoPlayer ? [] : ["P2"];
     let fresh: string | null = null;
     for (const c of Object.values(game.cards)) {
       if (!c.pos) continue;
@@ -1355,7 +1373,7 @@ export function App() {
       // preview in confirmSummon, and the owner check below skips it regardless.
       if (seenBigRef.current.has(c.instanceId)) continue;
       seenBigRef.current.add(c.instanceId);
-      if (opp && c.owner === opp && announces(c.defId) && fresh === null) fresh = c.defId;
+      if (opps.includes(c.owner) && announces(c.defId) && fresh === null) fresh = c.defId;
     }
     if (fresh && announceTimerRef.current === null && castTimerRef.current === null) {
       setAnnounce({ defId: fresh, mine: false });

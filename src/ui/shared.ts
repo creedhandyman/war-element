@@ -160,8 +160,8 @@ export type PendingBattle = "basic" | "special" | "talent" | null;
  *  giving the suit its traditional colour would put two meanings on one
  *  channel and break the pairing above. */
 export const SEAT_SUIT: Record<PlayerId, { glyph: string; key: string }> = {
-  P1: { glyph: "♥", key: "heart" },
+  P1: { glyph: "♠", key: "spade" },
   P2: { glyph: "♣", key: "club" },
   P3: { glyph: "♦", key: "diamond" },
-  P4: { glyph: "♠", key: "spade" },
+  P4: { glyph: "♥", key: "heart" },
 };
