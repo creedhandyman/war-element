@@ -6518,3 +6518,24 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Closed ground shows the STATE through its letter, not through a ring — a
    square nothing can stand on should not look like a square you can take. */
 .slot.dom-closed.obj { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.65), inset 0 0 24px rgba(0, 0, 0, 0.72); animation: none; border-color: rgba(150, 150, 170, 0.30); }
+
+/* ── WHOSE CARD IS THIS ───────────────────────────────────────────────────
+   The token's name is tinted by SEAT. `mine`/`enemy` is viewer-relative and
+   collapses every opponent into one colour — all a 1v1 ever needed, and not
+   enough for a free-for-all, where three enemy cards from three different
+   hands read as one army.
+
+   Tinting the NAME rather than the frame on purpose: the token's border is
+   already carrying the element colour, which is what you read a card's
+   matchups by, and overloading it would cost more than it gave. */
+.token.seat-p1 > .tk-name { color: #7ef0b0; }   /* P1 — green  */
+.token.seat-p2 > .tk-name { color: #ff9a90; }   /* P2 — red    */
+.token.seat-p3 > .tk-name { color: #d7a6ff; }   /* P3 — violet */
+.token.seat-p4 > .tk-name { color: #ffc75e; }   /* P4 — amber  */
+/* A faint plate behind it, so the tint survives whatever art is underneath —
+   a pale portrait was washing the lighter two out. */
+.token > .tk-name {
+  background: linear-gradient(180deg, rgba(6, 7, 12, 0.72), rgba(6, 7, 12, 0.22));
+  border-radius: 3px;
+  padding: 0 2px;
+}

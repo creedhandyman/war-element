@@ -25,6 +25,7 @@ import {
   legalWallRows,
   needsInput,
   needsP1Input,
+  homeSlots,
   openHomeSlots,
   previewOnSummonArea,
   spellEnemyTargets,
@@ -284,6 +285,9 @@ export function App() {
    *  Online: only the host's choice counts — the guest receives the host's whole
    *  state, board size included, so there is nothing to agree on. */
   const [boardSize, setBoardSize] = useState(4);
+  /** How many seats a Domination match deals. Two everywhere else — the other
+   *  battlefields have one Home row per side and nowhere to put a third. */
+  const [seatCount, setSeatCount] = useState(2);
   // Online PvP over Supabase Realtime. `online` is set once a room is live.
   const [online, setOnline] = useState<{ role: Role; code: string; myId: PlayerId } | null>(null);
   const [onlineRole, setOnlineRole] = useState<Role>("host");
@@ -1073,6 +1077,12 @@ export function App() {
 
   function startArenaMatch() {
     const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
+    // Only Domination seats more than two, and only against AI: hot-seat and
+    // online both hand the other seat to a person, and there is one other
+    // person. Clamped here rather than in the picker so a leftover 4 from a
+    // previous match cannot deal a four-way on a 5x5.
+    const domSeats = boardSize === DOMINATION_7X7.boardSize && !twoPlayer && !onlineMode
+      ? seatCount : 2;
     const p1Cards = resolveDeckCards(p1DeckId);
     const p2Cards = resolveDeckCards(p2DeckId);
     // Remembered so Rematch can run the same two decks back.
@@ -1081,6 +1091,16 @@ export function App() {
       p2: p2Cards, p2s: resolveDeckSpells(p2DeckId),
       board: boardSize, humans,
     };
+    // EXTRA SEATS (Domination free-for-all). Each AI seat gets its own premade
+    // so the table is not three copies of one deck; they are taken from the
+    // board's own pool, skipping the two already seated.
+    const extraSeats = domSeats > 2
+      ? (["P3", "P4"] as const).slice(0, domSeats - 2).map((id, i) => {
+          const taken = new Set([p1DeckId, p2DeckId]);
+          const pick = modePremades.filter((d) => !taken.has(d.id))[i] ?? modePremades[0];
+          return { id, deck: pick.cards, spells: pick.spells };
+        })
+      : undefined;
     const fresh = createInitialState(
       newSeed(), p1Cards, p2Cards, humans,
       resolveDeckSpells(p1DeckId), resolveDeckSpells(p2DeckId),
@@ -1092,6 +1112,7 @@ export function App() {
       // the ramp is the boss's, not a rule change. …and the ELITE rung, which
       // buys its difficulty the same way: an opening it cannot stumble on.
       scriptedP2 ? { P2: scriptedP2 } : undefined,
+      extraSeats,
     );
     // DOMINATION: the 7x7 is the map, so picking that battlefield IS picking
     // the mode. Stamped here rather than plumbed through createInitialState
@@ -1469,9 +1490,12 @@ export function App() {
   // drop to stage it for confirm.
   function onDragStartCard(handId: string) {
     if (me === null || game.phase !== "prep" || game.prep?.priority !== me) return;
-    // Same gate as the tap: some column has to be willing to take the card,
-    // otherwise the drag arms a summon with nowhere to drop it.
-    if (!openHomeSlots(game, me).some((col) => canSummon(game, me, handId, col).ok)) return;
+    // Same gate as the tap: some SQUARE has to be willing to take the card,
+    // otherwise the drag arms a summon with nowhere to drop it. Squares, not
+    // columns — Domination deploys at shrines and has no Home row to ask about.
+    const dom = !!game.domination;
+    if (!homeSlots(game, me).some((sq) =>
+      canSummon(game, me, handId, sq.col, dom ? sq.row : undefined).ok)) return;
     setSel({ kind: "hand", handId }); // arm so the legal home slots light up
     setStaged(null);
     setDrag(handId);
@@ -1510,7 +1534,13 @@ export function App() {
   /** Home-row columns that could take a summon at all. Empty = the row is full
    *  (or captured/contested) end to end, so nothing in hand is placeable no
    *  matter what it costs — a board problem, not a Gold problem. */
-  const openSlots = useMemo(() => openHomeSlots(game, view), [game, view]);
+  // "Is there anywhere to put a card" — the Home row's open columns on a
+  // standard board, the free shrines in Domination.
+  const openSlots = useMemo(
+    () => (game.domination
+      ? homeSlots(game, view).filter((sq) => !cardAt(game, sq.row, sq.col))
+      : openHomeSlots(game, view)),
+    [game, view]);
 
   /** Which hand cards can actually be summoned right now, asked of the engine
    *  card-by-card over every column — the SAME canSummon that decides which
@@ -1700,16 +1730,25 @@ export function App() {
     }
     const p = game.players[me];
     const def = getDef(p.hand.find((h) => h.handId === handId)!.defId);
-    // Never arm a summon that no slot would take: the hint would send the
-    // player hunting for a glowing Home slot that doesn't exist. Ask the engine
-    // about a column that IS open, so its refusal is about the card (Gold, the
+    // Never arm a summon that no square would take: the hint would send the
+    // player hunting for a glowing slot that doesn't exist. Ask the engine
+    // about a square that IS open, so its refusal is about the card (Gold, the
     // opening ceiling) rather than about whichever square happens to be first.
-    const open = openHomeSlots(game, me);
+    //
+    // `homeSlots` rather than the Home row, because Domination has no Home row
+    // — it deploys at the four shrines. Asking the old column-addressed
+    // question there refused every card before it could even be armed, which
+    // is a hand you cannot play at all.
+    const dom = !!game.domination;
+    const spots = homeSlots(game, me);
+    const open = spots.filter((sq) => !cardAt(game, sq.row, sq.col));
     if (open.length === 0) {
-      setHint("⚠ Your Home row is full — move a card forward, or wait for a slot to clear.");
+      setHint(dom
+        ? "⚠ All four shrines are taken — move a card off one, or wait."
+        : "⚠ Your Home row is full — move a card forward, or wait for a slot to clear.");
       return;
     }
-    const chk = canSummon(game, me, handId, open[0]);
+    const chk = canSummon(game, me, handId, open[0].col, dom ? open[0].row : undefined);
     if (!chk.ok) {
       setHint(
         chk.reason === "Not enough Gold"
@@ -1719,7 +1758,7 @@ export function App() {
       return;
     }
     setSel({ kind: "hand", handId });
-    setHint(`Summoning <b>${def.name}</b> — tap a glowing Home slot.`);
+    setHint(`Summoning <b>${def.name}</b> — tap a glowing ${dom ? "shrine" : "Home slot"}.`);
   }
 
   function onPickSpell(spellId: string) {
@@ -3236,6 +3275,40 @@ export function App() {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* PLAYERS. Domination only, and that is a rule rather than a
+                restriction of the picker: the other battlefields seat two
+                because they are won by taking the opponent's Home row, and a
+                square board has exactly two of those to hand out. This map is
+                won by holding Points, has four of them and four shrines in
+                rotational symmetry, and so has somewhere for everyone to come
+                in from. */}
+            {boardSize === DOMINATION_7X7.boardSize && (!onlineMode || onlineRole === "host") && (
+              <div className="ar-field">
+                <span className="ar-flabel">PLAYERS</span>
+                <div className="seg">
+                  {([2, 3, 4] as const).map((n) => (
+                    <button
+                      key={n}
+                      className={seatCount === n ? "on" : ""}
+                      disabled={onlineMode && n > 2}
+                      title={onlineMode && n > 2
+                        ? "Online seats two — a free-for-all is local only for now"
+                        : undefined}
+                      onClick={() => setSeatCount(n)}
+                    >
+                      {n} players
+                    </button>
+                  ))}
+                </div>
+                {seatCount > 2 && (
+                  <p className="ar-mode-note">
+                    Free-for-all: {seatCount - 1} AI opponents, every seat for itself.
+                    Everyone deploys at the four shrines.
+                  </p>
+                )}
               </div>
             )}
 

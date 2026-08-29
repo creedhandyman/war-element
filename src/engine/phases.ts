@@ -1520,10 +1520,16 @@ function doResourcePhase(draft: GameState): void {
     p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGain + poiMagic[player];
   }
   // The two sides can now earn different amounts, so the log has to say whose.
+  // Every SEAT, not the first two — a four-player round that only reported P1
+  // and P2 would leave half the table's income unaccounted for in the log.
+  const seats = seatsOf(draft);
   draft.log.push(
-    `— Round ${draft.round}: summon P1 +${gains.P1} / P2 +${gains.P2}, magic +${magicGain}`
-    + (poiMagic.P1 || poiMagic.P2
-      ? ` (Points: magic P1 +${poiMagic.P1} / P2 +${poiMagic.P2})` : "")
+    `— Round ${draft.round}: summon `
+    + seats.map((p) => `${p} +${gains[p]}`).join(" / ")
+    + `, magic +${magicGain}`
+    + (seats.some((p) => poiMagic[p])
+      ? ` (Points: ${seats.filter((p) => poiMagic[p]).map((p) => `${p} +${poiMagic[p]}`).join(" / ")})`
+      : "")
     + ". —",
   );
   // Roll straight into the next round rather than playing an empty one. The

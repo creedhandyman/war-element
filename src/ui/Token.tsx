@@ -358,6 +358,11 @@ export function Token(props: {
   const cls = [
     "token",
     mine ? "mine" : "enemy",
+    // WHOSE card this is, by seat. `mine`/`enemy` is viewer-relative and
+    // collapses every opponent into one colour, which is all a 1v1 needs and
+    // not enough for a free-for-all: three enemy cards in three different
+    // hands looked like one army. The name is tinted from this.
+    `seat-${card.owner.toLowerCase()}`,
     props.selected ? "selected" : "",
     props.acting ? "acting" : "",
     isAttacking ? "attacking" : "",
