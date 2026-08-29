@@ -841,83 +841,97 @@ const STANDARD_DECKS: PremadeDeck[] = [
     ],
     spells: ["aqua_chill", "aqua_steam_vent", "aqua_ice_wall", "bolt_power_rebate", "aqua_downpour"],
   },
-  // ── THREE-ELEMENT ARCHETYPES ────────────────────────────────────────────
-  // Untiered on purpose. The ladder's rungs hold exactly four decks each and
-  // the elite rung fields every element exactly once, so a three-element build
-  // cannot join either without breaking a rule that is doing real work. These
-  // are shelf decks — pickable, not laddered — which is what "hand-tuned
-  // archetype" has meant here all along.
+  // ── THREE-ELEMENT LADDER DECKS ──────────────────────────────────────────
+  // One per rung, each built to its rung's PLAN rather than merely labelled
+  // with it: easy fields no Tank, no Support and no Mythic; mid and hard carry
+  // a real comp; hard is the densest ranged line of the four, because reach is
+  // the axis that separates that rung and nothing else.
   //
-  // Split 6/6/6 on the standard board and 10/10/10 on the large one: the
-  // evenness rule the element test already anticipated for three.
+  // WHICH TRIO SITS WHERE WAS FORCED, not chosen. Elite caps each element at
+  // two decks and GALE and DAWN were already at two, so Deep Shade is the only
+  // trio that can join it. Easy is the tightest rung — no Tank, no Support, no
+  // Mythic on top of the five decks already there — and its melee pool is
+  // nearly exhausted in every element, which is why the easy build runs a high
+  // reach for its rung and the ladder's reach ordering still had to be checked
+  // by hand before this shipped.
+  //
+  // Split 6/6/6 on the standard board and 10/10/10 on the large one.
   {
     id: "pre_verdant_tide",
     name: "Verdant Tide",
-    note: "LEAF + AQUA + DAWN — heal, hold, and outlast.",
-    // THREE ELEMENTS, and the shell is the point: LEAF regrows, AQUA holds
-    // the line and DAWN puts the health back. Nothing here kills quickly and
-    // everything here refuses to die — a different question to answer than any
-    // two-element build on the shelf asks.
+    note: "LEAF + AQUA + DAWN — green, shallow and quick, with nothing to hide behind.",
+    tier: "easy",
+    // EASY, and built to the rung rather than filed under it: no Tank, no Support,
+    // no Mythic. Its reach is HIGH for this rung and that was forced, not chosen —
+    // the five decks already here have taken nearly every melee non-Tank card in
+    // these three elements, so a fresh build has little else to be made of. The
+    // rung's average still clears hard's by the margin the ladder test demands.
     premade: true,
     boardSize: 4,
     cards: [
-      "leaf_birch", "leaf_leaf", "leaf_dartfrog", "leaf_walking_tree", "leaf_sumerose",
-      "leaf_efy", "aqua_anglerfish", "aqua_arctik", "aqua_bahari", "aqua_siphon",
-      "aqua_owlette", "aqua_driftwraith", "dawn_able", "dawn_glime", "dawn_lazor",
-      "dawn_raya", "dawn_drakonbane", "dawn_kosmos",
+      "leaf_stickviper", "leaf_dartfrog", "leaf_darth", "leaf_stickers", "leaf_sticks",
+      "leaf_sumerose", "aqua_subcool", "aqua_spinefin", "aqua_cryo", "aqua_piranha",
+      "aqua_bootlegger", "aqua_liquark", "dawn_beam", "dawn_star", "dawn_raya",
+      "dawn_roy", "dawn_lazor", "dawn_ariel",
     ],
     spells: ["leaf_sprout", "aqua_chill", "dawn_sunbeam", "leaf_thorn_patch", "aqua_frost_patch"],
   },
   {
     id: "pre_stormfront",
     name: "Stormfront",
-    note: "PYRO + BOLT + GALE — speed and burst, nothing held back.",
-    // The opposite build. PYRO burns, BOLT paralyses and GALE moves the board
-    // out from under you, and none of the three has a plan past round eight. The
-    // fastest thing in the picker, and it loses to whatever it cannot finish.
+    note: "PYRO + BOLT + GALE — speed and burst, with just enough shell to survive it.",
+    tier: "mid",
+    // MID. Three elements that all want the same thing, plus the comp this rung
+    // demands: it is the first rung where a deck has to still be standing on
+    // round ten, and the shell is what buys that.
     premade: true,
     boardSize: 4,
     cards: [
-      "pyro_bbq", "pyro_baboom", "pyro_ash_boar", "pyro_wick", "pyro_tiki",
-      "pyro_aftermath", "bolt_junker", "bolt_drshock", "bolt_buzz", "bolt_sentry",
-      "bolt_zagphu", "bolt_jack_arc", "gale_gastly", "gale_breeze", "gale_buf",
-      "gale_windsor", "gale_vaga", "gale_dreamcatcher",
+      "pyro_staph", "pyro_baboom", "pyro_slag_tortoise", "pyro_scorch", "pyro_ingit",
+      "pyro_firebird", "bolt_zap", "bolt_drshock", "bolt_static", "bolt_surge",
+      "bolt_electricel", "bolt_thundercat", "gale_skyforce", "gale_duster", "gale_whirlwolf",
+      "gale_wista", "gale_stormhide_bison", "gale_guan",
     ],
     spells: ["pyro_spark", "bolt_zap", "gale_gust", "pyro_ember_trap", "bolt_recon_ping"],
+  },
+  {
+    id: "pre_eclipse_guard",
+    name: "Eclipse Guard",
+    note: "DAWN + DUSK + BOLT — light, shadow and the spark between, all of it at range.",
+    tier: "hard",
+    // HARD, and it is the RANGE that puts it there. Reach is the one axis that
+    // separates this rung and nothing else, so this is the densest ranged line of
+    // the four — DAWN and DUSK counter each other card-for-card and BOLT settles
+    // the argument from three squares away.
+    premade: true,
+    boardSize: 4,
+    cards: [
+      "dawn_sparkle", "dawn_sphere", "dawn_stbern", "dawn_star", "dawn_solara",
+      "dawn_lassos", "dusk_harve", "dusk_jackl", "dusk_vamp", "dusk_gool",
+      "dusk_violet", "dusk_skulldrake", "bolt_zipp", "bolt_drshock", "bolt_ning",
+      "bolt_static", "bolt_kore", "bolt_jellyfish",
+    ],
+    spells: ["dawn_sunbeam", "dusk_chill_touch", "bolt_zap", "dawn_cleansing_light", "dusk_bone_snare"],
   },
   {
     id: "pre_deep_shade",
     name: "Deep Shade",
     note: "DUSK + BORE + AQUA — grind them down in the dark.",
-    // Attrition from three directions: DUSK drains, BORE will not move and AQUA
-    // freezes whatever is left. The slowest deck on the shelf and the one most
-    // likely to still be standing on the last round.
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    // ELITE, and the only one of the four that COULD go there: the rung caps each
+    // element at two decks and GALE and DAWN were already at two, so this trio is
+    // the one that joins without pushing an element to three. It carries the
+    // rung's shared scripted opening like the rest of them.
     premade: true,
     boardSize: 4,
     cards: [
-      "dusk_crow", "dusk_gravekeeper", "dusk_scarlett", "dusk_ghastly", "dusk_brute",
-      "dusk_aranea", "bore_cavedweller", "bore_clubber", "bore_ankylosaur", "bore_krysteel",
-      "bore_bolder", "bore_prism", "aqua_anglerfish", "aqua_arctik", "aqua_bahari",
-      "aqua_siphon", "aqua_owlette", "aqua_driftwraith",
+      "dusk_crow", "dusk_harve", "dusk_scarlett", "dusk_rip", "dusk_skulldrake",
+      "dusk_spider", "bore_crock", "bore_clubber", "bore_armadillo", "bore_gemaga",
+      "bore_stone", "bore_lithara", "aqua_subcool", "aqua_icyninza", "aqua_coralgolem",
+      "aqua_vaporem", "aqua_piranha", "aqua_blackice",
     ],
     spells: ["dusk_chill_touch", "bore_pebble_toss", "aqua_chill", "dusk_bone_snare", "bore_sand_trap"],
-  },
-  {
-    id: "pre_eclipse_guard",
-    name: "Eclipse Guard",
-    note: "DAWN + DUSK + BOLT — light, shadow and the spark between.",
-    // The pair the game keeps apart, plus the element that does not care which
-    // wins. DAWN and DUSK counter each other card-for-card, so this build is
-    // deliberately at war with itself and BOLT is what settles the argument.
-    premade: true,
-    boardSize: 4,
-    cards: [
-      "dawn_able", "dawn_glime", "dawn_lazor", "dawn_raya", "dawn_drakonbane",
-      "dawn_kosmos", "dusk_crow", "dusk_gravekeeper", "dusk_scarlett", "dusk_ghastly",
-      "dusk_brute", "dusk_aranea", "bolt_junker", "bolt_drshock", "bolt_buzz",
-      "bolt_sentry", "bolt_zagphu", "bolt_jack_arc",
-    ],
-    spells: ["dawn_sunbeam", "dusk_chill_touch", "bolt_zap", "dawn_cleansing_light", "dusk_bone_snare"],
   },
 ];
 
@@ -1398,91 +1412,105 @@ const LARGE_DECKS: PremadeDeck[] = [
     ],
     spells: ["aqua_chill", "aqua_steam_vent", "aqua_ice_wall", "aqua_downpour", "bolt_lightning_storm", "bolt_power_rebate", "aqua_tsunami", "bolt_total_network_control"],
   },
-  // ── THREE-ELEMENT ARCHETYPES ────────────────────────────────────────────
-  // Untiered on purpose. The ladder's rungs hold exactly four decks each and
-  // the elite rung fields every element exactly once, so a three-element build
-  // cannot join either without breaking a rule that is doing real work. These
-  // are shelf decks — pickable, not laddered — which is what "hand-tuned
-  // archetype" has meant here all along.
+  // ── THREE-ELEMENT LADDER DECKS ──────────────────────────────────────────
+  // One per rung, each built to its rung's PLAN rather than merely labelled
+  // with it: easy fields no Tank, no Support and no Mythic; mid and hard carry
+  // a real comp; hard is the densest ranged line of the four, because reach is
+  // the axis that separates that rung and nothing else.
   //
-  // Split 6/6/6 on the standard board and 10/10/10 on the large one: the
-  // evenness rule the element test already anticipated for three.
+  // WHICH TRIO SITS WHERE WAS FORCED, not chosen. Elite caps each element at
+  // two decks and GALE and DAWN were already at two, so Deep Shade is the only
+  // trio that can join it. Easy is the tightest rung — no Tank, no Support, no
+  // Mythic on top of the five decks already there — and its melee pool is
+  // nearly exhausted in every element, which is why the easy build runs a high
+  // reach for its rung and the ladder's reach ordering still had to be checked
+  // by hand before this shipped.
+  //
+  // Split 6/6/6 on the standard board and 10/10/10 on the large one.
   {
     id: "pre_verdant_tide_5",
     name: "Verdant Tide",
-    note: "LEAF + AQUA + DAWN — heal, hold, and outlast.",
-    // THREE ELEMENTS, and the shell is the point: LEAF regrows, AQUA holds
-    // the line and DAWN puts the health back. Nothing here kills quickly and
-    // everything here refuses to die — a different question to answer than any
-    // two-element build on the shelf asks.
+    note: "LEAF + AQUA + DAWN — green, shallow and quick, with nothing to hide behind.",
+    tier: "easy",
+    // EASY, and built to the rung rather than filed under it: no Tank, no Support,
+    // no Mythic. Its reach is HIGH for this rung and that was forced, not chosen —
+    // the five decks already here have taken nearly every melee non-Tank card in
+    // these three elements, so a fresh build has little else to be made of. The
+    // rung's average still clears hard's by the margin the ladder test demands.
     premade: true,
     boardSize: 5,
     cards: [
-      "leaf_birch", "leaf_weeds", "leaf_python", "leaf_dartfrog", "leaf_hunter",
-      "leaf_darth", "leaf_sumerose", "leaf_squanch", "leaf_snapmaw", "leaf_season",
-      "aqua_anglerfish", "aqua_piranha", "aqua_bulletshrimp", "aqua_bahari", "aqua_krakler",
-      "aqua_tide", "aqua_owlette", "aqua_sapphire", "aqua_polarking", "aqua_siren",
-      "dawn_able", "dawn_sparkle", "dawn_shine", "dawn_lazor", "dawn_ariel",
-      "dawn_solstice", "dawn_drakonbane", "dawn_warphant", "dawn_aurelion", "dawn_dawn",
+      "leaf_stickers", "leaf_cactus", "leaf_dartfrog", "leaf_hunter", "leaf_bark_bushmen",
+      "leaf_fallona", "leaf_darth", "leaf_citra", "leaf_sticks", "leaf_stickviper",
+      "aqua_subcool", "aqua_buccaneers", "aqua_spinefin", "aqua_octoirate", "aqua_anos",
+      "aqua_cryo", "aqua_piranha", "aqua_blub", "aqua_bulletshrimp", "aqua_bootlegger",
+      "dawn_beam", "dawn_sparkle", "dawn_star", "dawn_goldeneagle", "dawn_ty",
+      "dawn_raya", "dawn_flash", "dawn_roy", "dawn_glime", "dawn_musk_ox",
     ],
     spells: ["leaf_sprout", "aqua_chill", "dawn_sunbeam", "leaf_thorn_patch", "aqua_frost_patch", "dawn_cleansing_light", "leaf_snare", "aqua_steam_vent"],
   },
   {
     id: "pre_stormfront_5",
     name: "Stormfront",
-    note: "PYRO + BOLT + GALE — speed and burst, nothing held back.",
-    // The opposite build. PYRO burns, BOLT paralyses and GALE moves the board
-    // out from under you, and none of the three has a plan past round eight. The
-    // fastest thing in the picker, and it loses to whatever it cannot finish.
+    note: "PYRO + BOLT + GALE — speed and burst, with just enough shell to survive it.",
+    tier: "mid",
+    // MID. Three elements that all want the same thing, plus the comp this rung
+    // demands: it is the first rung where a deck has to still be standing on
+    // round ten, and the shell is what buys that.
     premade: true,
     boardSize: 5,
     cards: [
-      "pyro_bbq", "pyro_sparky", "pyro_flamehound", "pyro_ash_boar", "pyro_slag_tortoise",
-      "pyro_fenix", "pyro_tiki", "pyro_sseerr", "pyro_sol", "pyro_infernus_rex",
-      "bolt_junker", "bolt_zap", "bolt_jolt", "bolt_buzz", "bolt_storm",
-      "bolt_striik", "bolt_zagphu", "bolt_thunder", "bolt_zoez", "bolt_stormcaller",
-      "gale_gastly", "gale_swillow", "gale_megair", "gale_buf", "gale_wailverine",
-      "gale_fano", "gale_vaga", "gale_wista", "gale_totem", "gale_kloud",
+      "pyro_staph", "pyro_ingit", "pyro_florence", "pyro_firecrack", "pyro_slag_tortoise",
+      "pyro_liza", "pyro_burnout", "pyro_sparky", "pyro_ash_boar", "pyro_sseerr",
+      "bolt_zap", "bolt_stingray", "bolt_zipp", "bolt_ning", "bolt_static",
+      "bolt_surge", "bolt_jack_arc", "bolt_elecdroid", "bolt_twotales", "bolt_junker",
+      "gale_skyforce", "gale_hawko", "gale_swillow", "gale_megair", "gale_whirlwolf",
+      "gale_fano", "gale_totem", "gale_windsor", "gale_vaga", "gale_omega",
     ],
     spells: ["pyro_spark", "bolt_zap", "gale_gust", "pyro_ember_trap", "bolt_recon_ping", "gale_downdraft", "pyro_flare_push", "bolt_rewire"],
+  },
+  {
+    id: "pre_eclipse_guard_5",
+    name: "Eclipse Guard",
+    note: "DAWN + DUSK + BOLT — light, shadow and the spark between, all of it at range.",
+    tier: "hard",
+    // HARD, and it is the RANGE that puts it there. Reach is the one axis that
+    // separates this rung and nothing else, so this is the densest ranged line of
+    // the four — DAWN and DUSK counter each other card-for-card and BOLT settles
+    // the argument from three squares away.
+    premade: true,
+    boardSize: 5,
+    cards: [
+      "dawn_flash", "dawn_roy", "dawn_glime", "dawn_halo", "dawn_aurelion",
+      "dawn_commander", "dawn_star", "dawn_goldeneagle", "dawn_ty", "dawn_clipsey",
+      "dusk_vamp", "dusk_crow", "dusk_spider", "dusk_spectra", "dusk_violet",
+      "dusk_scar", "dusk_skulldrake", "dusk_hix", "dusk_ghastly", "dusk_plaguecrow",
+      "bolt_drshock", "bolt_staticcloud", "bolt_twotales", "bolt_junker", "bolt_scrapper",
+      "bolt_static", "bolt_webster", "bolt_buzzard", "bolt_striik", "bolt_general",
+    ],
+    spells: ["dawn_sunbeam", "dusk_chill_touch", "bolt_zap", "dawn_cleansing_light", "dusk_bone_snare", "bolt_recon_ping", "dawn_grace", "dusk_shadow_step"],
   },
   {
     id: "pre_deep_shade_5",
     name: "Deep Shade",
     note: "DUSK + BORE + AQUA — grind them down in the dark.",
-    // Attrition from three directions: DUSK drains, BORE will not move and AQUA
-    // freezes whatever is left. The slowest deck on the shelf and the one most
-    // likely to still be standing on the last round.
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    // ELITE, and the only one of the four that COULD go there: the rung caps each
+    // element at two decks and GALE and DAWN were already at two, so this trio is
+    // the one that joins without pushing an element to three. It carries the
+    // rung's shared scripted opening like the rest of them.
     premade: true,
     boardSize: 5,
     cards: [
-      "dusk_crow", "dusk_zombie_husk", "dusk_jackl", "dusk_scarlett", "dusk_widowbite",
-      "dusk_plaguecrow", "dusk_brute", "dusk_violet", "dusk_scar", "dusk_nightfang",
-      "bore_cavedweller", "bore_iron", "bore_rockgoblin", "bore_ankylosaur", "bore_ufo",
-      "bore_monger", "bore_bolder", "bore_shift", "bore_diam", "bore_bearocks",
-      "aqua_anglerfish", "aqua_piranha", "aqua_bulletshrimp", "aqua_bahari", "aqua_krakler",
-      "aqua_tide", "aqua_owlette", "aqua_sapphire", "aqua_polarking", "aqua_siren",
+      "dusk_crow", "dusk_spider", "dusk_doom", "dusk_scarlett", "dusk_spectra",
+      "dusk_skulldrake", "dusk_plaguecrow", "dusk_ravven", "dusk_gravekeeper", "dusk_hoax",
+      "bore_crock", "bore_iron", "bore_smith", "bore_armadillo", "bore_gemaga",
+      "bore_stone", "bore_lithara", "bore_valcana", "bore_clubber", "bore_obsidi",
+      "aqua_subcool", "aqua_anglerfish", "aqua_bootlegger", "aqua_coralgolem", "aqua_polarbear",
+      "aqua_icewall", "aqua_octoirate", "aqua_piranha", "aqua_tide", "aqua_polarking",
     ],
     spells: ["dusk_chill_touch", "bore_pebble_toss", "aqua_chill", "dusk_bone_snare", "bore_sand_trap", "aqua_frost_patch", "dusk_shadow_step", "bore_bulwark"],
-  },
-  {
-    id: "pre_eclipse_guard_5",
-    name: "Eclipse Guard",
-    note: "DAWN + DUSK + BOLT — light, shadow and the spark between.",
-    // The pair the game keeps apart, plus the element that does not care which
-    // wins. DAWN and DUSK counter each other card-for-card, so this build is
-    // deliberately at war with itself and BOLT is what settles the argument.
-    premade: true,
-    boardSize: 5,
-    cards: [
-      "dawn_able", "dawn_sparkle", "dawn_shine", "dawn_lazor", "dawn_ariel",
-      "dawn_solstice", "dawn_drakonbane", "dawn_warphant", "dawn_aurelion", "dawn_dawn",
-      "dusk_crow", "dusk_zombie_husk", "dusk_jackl", "dusk_scarlett", "dusk_widowbite",
-      "dusk_plaguecrow", "dusk_brute", "dusk_violet", "dusk_scar", "dusk_nightfang",
-      "bolt_junker", "bolt_zap", "bolt_jolt", "bolt_buzz", "bolt_storm",
-      "bolt_striik", "bolt_zagphu", "bolt_thunder", "bolt_zoez", "bolt_stormcaller",
-    ],
-    spells: ["dawn_sunbeam", "dusk_chill_touch", "bolt_zap", "dawn_cleansing_light", "dusk_bone_snare", "bolt_recon_ping", "dawn_grace", "dusk_shadow_step"],
   },
 ];
 

@@ -189,8 +189,15 @@ describe("the matchmaker ladder", () => {
         counts[el] = (counts[el] ?? 0) + 1;
       }
       const els = Object.keys(counts).sort();
-      expect(els, `${d.name} is two elements`).toHaveLength(2);
-      for (const el of els) expect(counts[el], `${d.name} ${el} count`).toBe(15);
+      // TWO AT FIFTEEN, or THREE AT TEN. The rung shipped as four two-element
+      // builds and that shape is what makes it read as a tour rather than as
+      // four decks — but the property being protected is an EVEN split, not the
+      // number two, and Deep Shade is a three-element build at 10/10/10. The
+      // coverage and per-element checks below are untouched and are what keep
+      // the rung a tour; this only stops a lopsided list sneaking on.
+      expect([2, 3], `${d.name} element count`).toContain(els.length);
+      const even = d.cards.length / els.length;
+      for (const el of els) expect(counts[el], `${d.name} ${el} count`).toBe(even);
       seen.push(...els);
     }
     // COVERAGE, not a partition. Five decks is ten element-slots for eight

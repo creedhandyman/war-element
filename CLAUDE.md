@@ -225,18 +225,36 @@ the ladder.
 **Not yet done:** the matchup table isn't surfaced in the card inspector the
 way `ELEMENT_AURA` is. Players feel these rules without being told them.
 
-## Arena shelf — four three-element archetypes
+## Arena ladder — four three-element decks, one per rung
 
 `custom-decks.ts` gained Verdant Tide (LEAF/AQUA/DAWN), Stormfront
 (PYRO/BOLT/GALE), Deep Shade (DUSK/BORE/AQUA) and Eclipse Guard
 (DAWN/DUSK/BOLT), each as a 4x4 + 5x5 twin pair. The shelf had two
 three-element decks already (Tempest, Blight); it has six now.
 
-**UNTIERED ON PURPOSE.** The ladder's rungs hold exactly four decks each and
-the elite rung fields every element exactly once — a three-element build cannot
-join either without breaking a rule that is doing real work. `premade-decks.test`
-states outright that adding an archetype is legal and adding a fifth deck to a
-rung is not.
+**ONE PER RUNG, and each is built to its rung's PLAN rather than labelled with
+it** — easy fields no Tank, no Support and no Mythic; mid and hard carry a comp
+of 4+; hard is the densest ranged line, because reach is the axis that separates
+that rung and nothing else. Every rung is six decks now.
+
+**WHICH TRIO SITS WHERE WAS FORCED.** Elite caps each element at two decks and
+GALE and DAWN were already at two, so Deep Shade (DUSK/BORE/AQUA) is the only
+one that can join it. Easy is the tightest rung and its melee pool is nearly
+exhausted — fresh melee non-Tank cards run 3/1/0 across LEAF/AQUA/DAWN — so its
+build is high-reach by necessity and the ladder's reach ordering had to be
+checked by hand before it shipped.
+
+**ONE RULE WAS RELAXED, deliberately.** Elite required every deck to be exactly
+two elements at 15/15. It now accepts two-at-15 OR three-at-10 — the property
+being protected is an EVEN split, not the number two, and the coverage and
+per-element-cap checks that make the rung a tour are untouched.
+
+**FOUR INVARIANTS BIT ON THE WAY IN**, all of them real: the elite rung's shared
+`scriptedOpening` (a scripted opening is worth 20+ points, so it is asserted to
+exist on elite and NOWHERE else), the near-clone cap (a fifth of the deck shared
+with any rung-mate, because `rollOpponent` only avoids the deck already seated),
+the ordered min-cheap across rungs, and the reach margin. Fitting a deck to a
+rung here is a constraint-satisfaction problem, not a label.
 
 The constraints a new pair has to satisfy: 18 cards / 5 spells on 4x4 and
 30 / 8 on 5x5, an `_5`-suffixed twin agreeing on name, note and tier, the same
