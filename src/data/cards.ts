@@ -9891,6 +9891,10 @@ export const CARDS: CardDef[] = [
     name: "Rotroot",
     rarity: "mythic",
     element: "DUSK",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, LEAF is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["LEAF"],
     cardClass: "Tank",
     attackType: "Melee",
     cost: 12,
@@ -9943,6 +9947,10 @@ export const CARDS: CardDef[] = [
     name: "Skeleeze Ranger",
     rarity: "mythic",
     element: "DUSK",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, GALE is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["GALE"],
     cardClass: "Ranger",
     attackType: "Ranged",
     cost: 12,
@@ -9996,6 +10004,10 @@ export const CARDS: CardDef[] = [
     name: "Xilty",
     rarity: "mythic",
     element: "DUSK",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, BOLT is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["BOLT"],
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 12,
@@ -10107,6 +10119,10 @@ export const CARDS: CardDef[] = [
     name: "Permafrost",
     rarity: "mythic",
     element: "AQUA",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, BORE is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["BORE"],
     cardClass: "Tank",
     attackType: "Melee",
     cost: 12,
@@ -10172,6 +10188,10 @@ export const CARDS: CardDef[] = [
     name: "Overclock",
     rarity: "mythic",
     element: "BOLT",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, PYRO is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["PYRO"],
     cardClass: "Warrior",
     attackType: "Ranged",
     cost: 12,
@@ -10233,6 +10253,10 @@ export const CARDS: CardDef[] = [
     name: "Nightshrike",
     rarity: "mythic",
     element: "GALE",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, DUSK is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["DUSK"],
     cardClass: "Assassin",
     attackType: "Ranged",
     cost: 12,
@@ -10336,6 +10360,10 @@ export const CARDS: CardDef[] = [
     name: "Basilisk",
     rarity: "mythic",
     element: "LEAF",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, AQUA is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["AQUA"],
     cardClass: "Tank",
     attackType: "Melee",
     cost: 12,
@@ -10409,6 +10437,10 @@ export const CARDS: CardDef[] = [
     name: "Helion",
     rarity: "mythic",
     element: "DAWN",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, BORE is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["BORE"],
     cardClass: "Tank",
     attackType: "Ranged",
     cost: 12,
@@ -10475,6 +10507,10 @@ export const CARDS: CardDef[] = [
     name: "Hoarfell",
     rarity: "mythic",
     element: "AQUA",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, DAWN is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["DAWN"],
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 12,
@@ -10552,6 +10588,10 @@ export const CARDS: CardDef[] = [
     name: "Vulcanyx",
     rarity: "mythic",
     element: "BORE",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, PYRO is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["PYRO"],
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 12,
@@ -10640,6 +10680,10 @@ export const CARDS: CardDef[] = [
     name: "Thunderfangs",
     rarity: "mythic",
     element: "GALE",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, BOLT is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["BOLT"],
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 12,
@@ -10748,6 +10792,10 @@ export const CARDS: CardDef[] = [
     name: "Thunderfangs, Stormform",
     rarity: "mythic",
     element: "GALE",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, BOLT is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["BOLT"],
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 12,
@@ -10800,6 +10848,10 @@ export const CARDS: CardDef[] = [
     name: "Umbranova",
     rarity: "mythic",
     element: "PYRO",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, DAWN is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["DAWN"],
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 12,
@@ -10909,6 +10961,10 @@ export const CARDS: CardDef[] = [
     name: "Cryovex",
     rarity: "mythic",
     element: "AQUA",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, DUSK is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["DUSK"],
     cardClass: "Tank",
     attackType: "Melee",
     cost: 12,
@@ -10998,6 +11054,10 @@ export const CARDS: CardDef[] = [
     name: "Kazehaya",
     rarity: "mythic",
     element: "LEAF",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, GALE is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["GALE"],
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 12,
@@ -11314,6 +11374,10 @@ fireSpecialEveryN: 3,
     name: "Kato",
     rarity: "mythic",
     element: "BORE",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, BOLT is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["BOLT"],
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 12,
@@ -11387,6 +11451,10 @@ fireSpecialEveryN: 3,
     name: "Kato, Prowlform",
     rarity: "mythic",
     element: "BORE",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, BOLT is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["BOLT"],
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 12,
@@ -11458,6 +11526,10 @@ fireSpecialEveryN: 3,
     name: "Kato, Stormwing",
     rarity: "mythic",
     element: "BORE",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, BOLT is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["BOLT"],
     cardClass: "Assassin",
     attackType: "Ranged",
     cost: 12,
@@ -11547,6 +11619,10 @@ fireSpecialEveryN: 3,
     name: "Smolder",
     rarity: "mythic",
     element: "LEAF",
+    // TWO elements, per its own VOID_BOSSES entry: the printed one is where
+    // the tribe comes from, PYRO is where the MECHANIC comes from — and that
+    // entry states the boss runs that element's aura on the card. It did not.
+    elementAuras: ["PYRO"],
     cardClass: "Tank",
     attackType: "Melee",
     cost: 12,

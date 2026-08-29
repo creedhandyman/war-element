@@ -12,13 +12,14 @@ import {
   BODY_CAP_TOLERANCE, FLOOR1_SUMMON_BUDGET, VOID_BOSSES, bodyCap, bodyTotal, bossDefeated,
   VOID_GATE, voidGateSeats, bossesOnFloor, buildVoidEncounter, chanceProblems, floorCleared, floorOpen, inTribe, summonBudget,
   bossElementSet, bossSummonPool, elementProblems, THIRD_ELEMENT_FROM_FLOOR, paddedFormation, reinforcementPool, summonProblems, VOID_PLAYER_HEAD_START, voidPlayerHeadStart, towerProgress, tribePool, trialEventId, voidBossById,
-  voidBossSeat, voidFloors,
+  voidBossElements, voidBossSeat, voidFloors,
 } from "../../data/void-tower";
 import { deckSizeFor, isBuildable, validateDeck } from "../../data/custom-decks";
 import { EVENTS } from "../../data/events";
 import { canCraft, newSave, openPack } from "../../data/story";
 import { advance, applyIntent } from "../phases";
 import { canTarget, shoveTarget, validTargets } from "../rules";
+import { hasElementAura } from "../auras";
 import { bossTelegraphs } from "../telegraph";
 import { homeRow } from "../types";
 import { VOID_BOSS_INCOME } from "../types";
@@ -51,6 +52,40 @@ describe("the roster", () => {
     // stays unacquirable with the rest.
     for (const id of secondForms) expect(CARD_INDEX[id]?.boss, `${id} is flagged`).toBe(true);
     for (const v of VOID_BOSSES) expect(CARD_INDEX[v.cardId]?.boss, `${v.cardId} is a boss card`).toBe(true);
+  });
+
+  it("runs the auras of BOTH its elements, on the card", () => {
+    // The framework says a boss IS its two elements, and `thirdElement` is
+    // documented as widening "which element auras they run (`elementAuras`)".
+    // The card data did not say so: sixteen of the eighteen carried no
+    // elementAuras at all, so every one of them fought as a single element
+    // while its own entry described a collision of two. Nothing checked it,
+    // which is exactly why it drifted.
+    const wrong: string[] = [];
+    for (const v of VOID_BOSSES) {
+      const d = getDef(v.cardId);
+      const want = (voidBossElements(v.cardId) ?? []).filter((e) => e !== d.element).sort();
+      const have = [...(d.elementAuras ?? [])].sort();
+      if (JSON.stringify(want) !== JSON.stringify(have))
+        wrong.push(`${v.cardId}: entry says ${JSON.stringify(want)}, card carries ${JSON.stringify(have)}`);
+      // ...and hasElementAura is what the engine actually gates on, so assert
+      // through it rather than trusting the field to be read.
+      for (const el of voidBossElements(v.cardId) ?? [])
+        if (!hasElementAura(d, el)) wrong.push(`${v.cardId}: no ${el} aura at the gate`);
+    }
+    expect(wrong, `boss elements disagree with the card:\n  ${wrong.join("\n  ")}`).toEqual([]);
+  });
+
+  it("gives a second form the same elements as the body it grew out of", () => {
+    // A second form is the same fight wearing a new body, so it inherits. It
+    // has no VOID_BOSSES entry of its own, which is precisely how it would be
+    // missed by the check above.
+    for (const c of CARDS) {
+      const into = c.transformAtKills?.into ?? c.transformOnDefeat?.into;
+      if (!into || !getDef(c.id).boss) continue;
+      expect([...(getDef(into).elementAuras ?? [])].sort(),
+        `${into} should inherit ${c.id}'s auras`).toEqual([...(getDef(c.id).elementAuras ?? [])].sort());
+    }
   });
 
   it("follows the formula: tribe from A, and the tribe is real", () => {
