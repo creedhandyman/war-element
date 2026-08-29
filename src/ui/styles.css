@@ -2384,6 +2384,20 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    phone is most of the first screen. Collapsing them is the point; carrying the
    ACTIVE ones in the summary is what keeps a filtered grid from reading as a
    broken one, so the button is a readout as much as a switch. */
+/* Fill-the-pack-from-a-saved-squad picker. A <select> rather than chips: it
+   sits in a one-line toolbar next to Best and Clear, the list is as long as the
+   player's squad library, and each option carries a count that would not fit on
+   a chip. */
+.sq-fromsquad {
+  font-family: var(--font-ui); font-size: var(--fs-2); font-weight: 600;
+  color: var(--gold-lit); background: var(--void-2);
+  border: 1px solid var(--gold-line); border-radius: 8px;
+  padding: 3px 6px; max-width: 46vw; cursor: pointer;
+}
+.sq-fromsquad:hover { border-color: var(--gold); }
+.sq-fromsquad option { color: var(--ink); background: var(--panel); }
+.sq-fromsquad option:disabled { color: var(--ink-faint); }
+
 .db-filtoggle {
   display: flex; align-items: center; gap: 8px; width: 100%;
   padding: 7px 10px; border-radius: 9px; cursor: pointer; text-align: left;

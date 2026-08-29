@@ -4,7 +4,7 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  absorbLegacy, deleteSquad, loadSquads, missingNames, preferredSquad, saveSquad, squadNamed,
+  absorbLegacy, deleteSquad, loadSquads, missingNames, packFromSquad, preferredSquad, saveSquad, squadNamed,
   squadUsableIn, squadsFor, type Squad,
 } from "../../data/squads";
 import { loadStory, rawStoredLoadouts } from "../../data/story";
@@ -192,5 +192,46 @@ describe("squads — which one a screen offers", () => {
     expect(again).toHaveLength(1);
     expect(squadNamed(again, "Anti-PYRO")?.id, "same squad, same id").toBe(saved!.id);
     expect(squadNamed(again, "nothing named this")).toBeUndefined();
+  });
+});
+
+
+// Story mode asks you to choose twice: once in the builder, and again at a
+// border deciding which of those cards travel. `packFromSquad` answers the
+// second from the first, and the two things it silently drops are the whole
+// reason the screen prints a count per squad.
+describe("filling a region's pack from a saved squad", () => {
+  const dear = "leaf_oakgre";      // cost 10
+  const mid = "leaf_greegon";
+  const cheap = "leaf_nettle";
+
+  it("takes only what the region will actually let you carry", () => {
+    // Packable is the region's pool: what you own, minus the locals that fight
+    // free. Anything else in the squad is not being ignored - it cannot travel.
+    const squad = [dear, mid, cheap, "aqua_kraken"];
+    expect(packFromSquad(squad, [dear, mid, cheap], 10).sort())
+      .toEqual([dear, mid, cheap].sort());
+    // aqua_kraken is owned by the squad but not in this region's pool.
+    expect(packFromSquad(squad, [dear, mid, cheap], 10)).not.toContain("aqua_kraken");
+  });
+
+  it("says nothing travels rather than half-filling, when nothing can", () => {
+    // A LEAF squad carried into LEAF: every card is local, so the pack is empty
+    // and the screen disables that option instead of offering a no-op tap.
+    expect(packFromSquad([dear, mid, cheap], [], 10)).toEqual([]);
+  });
+
+  it("keeps the DEAREST when the squad outgrows the region's limit", () => {
+    // Same instinct as the screen's own "Best": a trimmed pack should lose the
+    // filler, not whatever happened to be last in the builder's pick order.
+    const got = packFromSquad([cheap, mid, dear], [cheap, mid, dear], 2);
+    expect(got).toHaveLength(2);
+    expect(got, "the 10-drop survives a trim").toContain(dear);
+    expect(got, "the cheapest is what goes").not.toContain(cheap);
+  });
+
+  it("never carries the same card twice, and never more than the limit", () => {
+    expect(packFromSquad([mid, mid, mid], [mid], 5)).toEqual([mid]);
+    expect(packFromSquad([dear, mid, cheap], [dear, mid, cheap], 0)).toEqual([]);
   });
 });

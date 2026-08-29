@@ -27,6 +27,7 @@ import {
   type StoryRegion, type StorySave,
 } from "../data/story";
 import { EL_COLOR, EL_ICON, ELEMENTS } from "./shared";
+import { loadSquads, packFromSquad } from "../data/squads";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3, common: 4 };
 /** Filter order, fixed rather than derived, so the chips do not reshuffle
@@ -49,6 +50,10 @@ export function StorySquad(props: {
   const chosen = save.squads?.[region.id] ? squadFor(save, region) : null;
   const carried = chosen ?? autoSquad(save, region);
   const [draft, setDraft] = useState<string[]>(carried);
+  /** The saved squads, for filling the pack from one instead of picking the
+   *  same cards a second time. Read once on mount: the builder is not reachable
+   *  from this screen, so the library cannot change under it. */
+  const squads = useMemo(() => loadSquads(), []);
   /** Picker filters. The pool here is EVERYTHING you own that is not local, so
    *  in a late-game region it is most of the collection in one flat grid — and
    *  the question it has to answer is a narrow one. This file's own opening
@@ -206,6 +211,36 @@ export function StorySquad(props: {
                 {filtering ? "Fill shown" : "Best"}
               </button>
               <button className="ghost sm" disabled={!draft.length} onClick={() => setDraft([])}>Clear</button>
+              {/* FILL FROM A SAVED SQUAD — the whole point of this control is
+                  that the campaign otherwise asks you to choose twice: once in
+                  the builder, and again here deciding which of those cards
+                  travel. Each option states what that squad would ACTUALLY put
+                  in the pack, because two things subtract from it silently:
+                  the region's own element is not packable (locals fight free)
+                  and cards you have not earned are not in the pool. A squad
+                  that can contribute nothing says so and is disabled, rather
+                  than being a tap that appears to do nothing. */}
+              {squads.length > 0 && (
+                <select
+                  className="sq-fromsquad"
+                  aria-label="Fill the pack from a saved squad"
+                  value=""
+                  onChange={(e) => {
+                    const sq = squads.find((x) => x.id === e.target.value);
+                    if (sq) { setDraft(packFromSquad(sq.cards, packable, limit)); setCarriedOnly(false); }
+                  }}
+                >
+                  <option value="">From squad…</option>
+                  {squads.map((sq) => {
+                    const n = packFromSquad(sq.cards, packable, limit).length;
+                    return (
+                      <option key={sq.id} value={sq.id} disabled={n === 0}>
+                        {sq.name} — {n === 0 ? "nothing travels" : `${n} travel`}
+                      </option>
+                    );
+                  })}
+                </select>
+              )}
             </span>
           </div>
 

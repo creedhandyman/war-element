@@ -168,6 +168,33 @@ export function squadNamed(squads: readonly Squad[], name: string): Squad | unde
   return squads.find((s) => s.name.toLowerCase() === key);
 }
 
+/** What a saved squad would actually carry into a region.
+ *
+ *  The campaign asks you to choose twice: once in the builder, and again at the
+ *  border deciding which of those cards travel. This is the second choice
+ *  answered from the first — hand it a squad and the region's packable pool and
+ *  it returns exactly the cards that can go.
+ *
+ *  Two silent subtractions, and the caller is expected to SHOW both rather than
+ *  let a squad quietly under-deliver:
+ *    - the region's own element is not packable at all (local cards fight free),
+ *      so a LEAF squad walking into LEAF contributes nothing to the pack and is
+ *      not being ignored;
+ *    - cards you do not own are not in the pool either.
+ *
+ *  Over the limit it keeps the DEAREST, which is the same instinct as the
+ *  screen's own "Best" button — a trimmed pack should lose the filler. */
+export function packFromSquad(
+  squad: readonly string[],
+  packable: readonly string[],
+  limit: number,
+): string[] {
+  const can = new Set(packable);
+  return [...new Set(squad.filter((id) => can.has(id)))]
+    .sort((a, b) => getDef(b).cost - getDef(a).cost)
+    .slice(0, Math.max(0, limit));
+}
+
 /** Readable names for the cards a squad is missing, for the greyed-out tooltip. */
 export function missingNames(missing: readonly string[]): string[] {
   return missing.map((id) => (CARD_INDEX[id] ? getDef(id).name : id));
