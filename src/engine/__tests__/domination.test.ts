@@ -925,3 +925,69 @@ describe("corridor Specials can be aimed on the 7×7", () => {
     expect(ids).toContain(ahead.instanceId);
   });
 });
+
+describe("Cryo's 2×2 falls the way it was thrown", () => {
+  // Mega Icicle anchors a 2×2 on the target. It always fell down-and-right,
+  // whoever threw it — arbitrary on a board you cross, a real loss here, where
+  // the enemy can be in any direction and half the area lands behind the fight
+  // (or off the board, when the target is near the far edge).
+  const CRYO = "aqua_cryo";
+
+  /** Fire Mega Icicle from `from` at `at`, and report who took damage. */
+  function icicle(from: { row: number; col: number }, at: { row: number; col: number },
+                  others: { row: number; col: number }[]) {
+    const s = domState();
+    const c = put(s, CRYO, "P1", from.row, from.col);
+    s.cards[c.instanceId].summonedThisRound = false;
+    s.players.P1.magicPool = 20;
+    const victims = [at, ...others].map((p) => {
+      const v = put(s, "leaf_weeds", "P2", p.row, p.col);
+      s.cards[v.instanceId].curHp = 40;
+      s.cards[v.instanceId].maxHp = 40;
+      s.cards[v.instanceId].curShields = 0;
+      return v;
+    });
+    const b = atBattle(s);
+    b.battle = { queue: [c.instanceId], index: 0, awaitingInput: c.instanceId };
+    const out = applyIntent(b, {
+      type: "BATTLE_ACTION", player: "P1", action: "special",
+      targetIds: [victims[0].instanceId],
+    } as never);
+    return victims.map((v) => 40 - out.cards[v.instanceId].curHp);
+  }
+
+  it("catches the square BEHIND the target when firing away from itself", () => {
+    // Cryo at the centre firing north: the block should take the target and the
+    // card beyond it, which the old fixed down-right quadrant never would.
+    const [onTarget, beyond] = icicle({ row: 4, col: 3 }, { row: 3, col: 3 }, [{ row: 2, col: 3 }]);
+    expect(onTarget, "missed the card it aimed at").toBeGreaterThan(0);
+    expect(beyond, "the block fell back toward the caster").toBeGreaterThan(0);
+  });
+
+  it("falls the other way when the caster is on the other side", () => {
+    // Same geometry mirrored: firing south, the block reaches the card below.
+    const [onTarget, beyond] = icicle({ row: 2, col: 3 }, { row: 3, col: 3 }, [{ row: 4, col: 3 }]);
+    expect(onTarget).toBeGreaterThan(0);
+    expect(beyond, "the block did not follow the throw").toBeGreaterThan(0);
+  });
+
+  it("leaves a standard board's fixed quadrant alone", () => {
+    // Every other board keeps the down-and-right block it has always thrown;
+    // changing it there would be a balance edit nobody asked for.
+    let s: GameState = createInitialState(6, DECK, DECK, ["P1"], undefined, [], 5);
+    const c = summonCard(s, "P1", CRYO, { row: 4, col: 1 });
+    c.summonedThisRound = false;
+    s.players.P1.magicPool = 20;
+    const at = summonCard(s, "P2", "leaf_weeds", { row: 2, col: 1 });
+    const below = summonCard(s, "P2", "leaf_weeds", { row: 3, col: 1 }); // down-right of it
+    for (const v of [at, below]) { v.curHp = 40; v.maxHp = 40; v.curShields = 0; }
+    const b = atBattle(s);
+    b.battle = { queue: [c.instanceId], index: 0, awaitingInput: c.instanceId };
+    const out = applyIntent(b, {
+      type: "BATTLE_ACTION", player: "P1", action: "special",
+      targetIds: [at.instanceId],
+    } as never);
+    expect(40 - out.cards[at.instanceId].curHp).toBeGreaterThan(0);
+    expect(40 - out.cards[below.instanceId].curHp, "the fixed quadrant changed").toBeGreaterThan(0);
+  });
+});

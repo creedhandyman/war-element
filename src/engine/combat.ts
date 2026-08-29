@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, canTarget, shoveTarget, validSpecialTargets, validTargets } from "./rules";
+import { RANGED_REACH, canTarget, shoveTarget, validSpecialTargets, validTargets, domMap } from "./rules";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
@@ -4525,7 +4525,26 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const target = targets[0];
     if (!target?.pos) return;
     const { row, col } = target.pos;
-    const cells = [[row, col], [row, col + 1], [row + 1, col], [row + 1, col + 1]];
+    // WHICH WAY THE 2x2 FALLS.
+    //
+    // It was always down-and-right from the target, whoever threw it and
+    // whatever the board looked like. On a board you cross that is merely
+    // arbitrary; in Domination it is a real loss, because the enemy can be in
+    // any direction and a fixed quadrant spends half its area off the side of
+    // the fight — or off the board entirely, when the target is near the far
+    // edge, at which point a 2x2 hits one card.
+    //
+    // Aimed, it falls AWAY from the caster: the target is the near corner and
+    // the ice shatters onward through the squares behind it, which is both what
+    // the throw looks like and the half of the area a shooter can actually see.
+    // Predictable rather than clever — the player picks a victim and knows what
+    // else is going to be caught, which a hit-the-most rule would not give them.
+    const dm = attacker.pos && draft.domination ? domMap(draft) : undefined;
+    const rStep = dm ? (Math.sign(row - attacker.pos!.row) || 1) : 1;
+    const cStep = dm ? (Math.sign(col - attacker.pos!.col) || 1) : 1;
+    const cells = [
+      [row, col], [row, col + cStep], [row + rStep, col], [row + rStep, col + cStep],
+    ];
     const hit = new Set<string>();
     for (const [r, c] of cells) {
       const victim = enemyCards(draft, attacker.owner).find(
