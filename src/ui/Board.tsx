@@ -3,7 +3,7 @@ import { cardAt, enemyOf, getSpell, homeRow, isContested } from "../engine";
 import { getDef } from "../data/cards";
 import { Slot } from "./Slot";
 import { EL_COLOR } from "./shared";
-import { dominationMap, isImpassable, isRoad, isShrine, poiAt } from "../data/domination";
+import { dominationMap, isImpassable, isRoad, isShrine, poiAt, poiRing } from "../data/domination";
 
 /** Plain-language summary of a live Field's numeric bonuses. Used for terrain,
  *  whose printed spell text describes a stronger thing than it is running. */
@@ -77,6 +77,65 @@ function domScore(game: GameState, viewer: PlayerId) {
   );
 }
 
+
+/** A Point's letter, drawn on its CITADEL — the closed middle square, which is
+ *  the one square in a Point that can never hold a token to cover it up. */
+function poiLetterAt(game: GameState, row: number, col: number): string | undefined {
+  const dom = game.domination;
+  const map = dom && dominationMap(dom.mapId);
+  if (!map) return undefined;
+  const poi = map.pois.find((p) => p.centre.row === row && p.centre.col === col);
+  return poi?.id;
+}
+
+/** How a square stands as an OBJECTIVE, viewer-relative.
+ *
+ *  One vocabulary for both kinds of board, because they are the same question
+ *  asked twice: on a standard board the objectives are the two Home rows, and in
+ *  Domination they are the Points. It replaces the red/blue row tinting, which
+ *  coloured ground by WHOSE it was rather than by whether it had been taken —
+ *  and on a board where taking ground is the win condition, the second is the
+ *  thing worth seeing.
+ *
+ *      blue    nobody holds it
+ *      green   you hold it
+ *      red     they hold it
+ *      orange  contested — both sides have a body on it
+ *
+ *  Red is not in the three colours that were asked for, but a scheme with no
+ *  way to show a Point held AGAINST you cannot show you losing. */
+function objectiveAt(
+  game: GameState, viewer: PlayerId, row: number, col: number,
+): "open" | "yours" | "theirs" | "contested" | undefined {
+  const dom = game.domination;
+  const map = dom && dominationMap(dom.mapId);
+  if (dom && map) {
+    const poi = poiAt(map, row, col);
+    if (!poi) return undefined;
+    // The citadel gets the state too, even though nothing can stand on it: its
+    // LETTER is coloured by it, which is what makes the letter the score. The
+    // ring itself is suppressed on closed ground in CSS.
+    let mine = 0, theirs = 0;
+    for (const sq of poiRing(poi)) {
+      const occ = cardAt(game, sq.row, sq.col);
+      if (!occ || occ.curHp <= 0) continue;
+      if (occ.owner === viewer) mine++; else theirs++;
+    }
+    if (mine > 0 && theirs > 0) return "contested";
+    const who = dom.held[poi.id];
+    return who === null ? "open" : who === viewer ? "yours" : "theirs";
+  }
+  // Standard board: the two Home rows are the objectives.
+  const isHome = row === homeRow(viewer, game.boardSize)
+    || row === homeRow(enemyOf(viewer), game.boardSize);
+  if (!isHome) return undefined;
+  const capturedBy = game.slots[row][col].capturedBy;
+  if (capturedBy) return capturedBy === viewer ? "yours" : "theirs";
+  const owner: PlayerId = row === homeRow(viewer, game.boardSize) ? viewer : enemyOf(viewer);
+  if (isContested(game, owner, col)) return "contested";
+  return "open";
+}
+
 export function Board(props: {
   game: GameState;
   legalSlots: Pos[]; // summon/move destinations (green)
@@ -112,11 +171,9 @@ export function Board(props: {
   const ascending = Array.from({ length: game.boardSize }, (_, i) => i);
   const rows: number[] = props.viewPlayer === "P2" ? [...ascending].reverse() : ascending;
   const cols: number[] = ascending; // columns stay left-to-right (vertical flip only)
-  // Side colours are viewer-relative now (see Slot.tsx): your home row is blue
-  // and the enemy's is red on both sides of a hot-seat game, so the crests no
-  // longer swap by player — the bottom one is always "yours".
-  const homeGlow = "var(--your-home-glow)";
-  const foeGlow = "var(--opp-home-glow)";
+  // The two crests that used to sit above and below the board are gone; the
+  // per-square objective highlight says what they said, and says it about the
+  // squares that matter rather than about whole rows.
   const opp = game.players[enemyOf(props.viewPlayer)];
   const oppName = (game.humans ?? ["P1"]).length > 1 ? enemyOf(props.viewPlayer) : "Opponent";
   // Recon Ping: exposed for the round it was cast in, and no longer.
@@ -160,15 +217,13 @@ export function Board(props: {
           <span className="opp-pip magic" title="Magic">✦ {opp.magicPool}</span>
         </div>
       </div>
-      {domScore(game, props.viewPlayer) ?? (
-        <div className="crest opp" style={{ ["--c" as string]: foeGlow }}>
-          <span className="crest-bar" />
-          <span className="crest-shield">✦</span>
-          <span className="crest-text">Opponent Home</span>
-          <span className="crest-shield">✦</span>
-          <span className="crest-bar" />
-        </div>
-      )}
+      {/* The red "Opponent Home" and blue "Your Home" crests are gone. They
+          coloured the board's two ends by WHOSE they were, which the objective
+          highlight now says better and per square — and in Domination they
+          advertised a win condition the mode switches off entirely. What stands
+          here in that mode is the scoreboard, because it is the one thing the
+          board cannot show you by itself. */}
+      {domScore(game, props.viewPlayer)}
       {/* `tight` = a board with more than four columns, where every tile is
           smaller and the tokens have to shed furniture to keep the stat row on
           one line. Keyed on the size, not on a literal 5, so a 6x6 inherits it. */}
@@ -288,6 +343,8 @@ export function Board(props: {
                   contested={contested}
                   captured={game.slots[row][col].capturedBy}
                   terrain={domTerrain(game, row, col)}
+                  objective={objectiveAt(game, props.viewPlayer, row, col)}
+                  poiLetter={poiLetterAt(game, row, col)}
                   trap={myTrap ?? null}
                   canDrop={isLegalSlot}
                   pickCount={card ? (props.pickCounts[card.instanceId] ?? 0) : 0}
@@ -301,13 +358,6 @@ export function Board(props: {
             })}
           </div>
         ))}
-      </div>
-      <div className="crest your" style={{ ["--c" as string]: homeGlow }}>
-        <span className="crest-bar" />
-        <span className="crest-shield">✦</span>
-        <span className="crest-text">{game.domination ? "Your Line" : "Your Home"}</span>
-        <span className="crest-shield">✦</span>
-        <span className="crest-bar" />
       </div>
     </div>
   );

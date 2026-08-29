@@ -18,6 +18,14 @@ export function Slot(props: {
     poi?: string;
     poiOwner?: PlayerId | null;
   };
+  /** How this square stands as an OBJECTIVE, viewer-relative: unclaimed, held
+   *  by you, held against you, or being fought over. Undefined on a square that
+   *  is not an objective at all. */
+  objective?: "open" | "yours" | "theirs" | "contested";
+  /** A Point's letter, drawn on its citadel — the closed middle of the 3x3,
+   *  which is the one square in a Point that can never hold a token to cover
+   *  it. Domination only. */
+  poiLetter?: string;
   /** Each SEAT's foils, keyed by owner. Was a single "the local player's" set
    *  tested against `owner === viewer`, which is the same thing offline and
    *  wrong online: the opponent's shinies are theirs to show, and yours have to
@@ -83,7 +91,10 @@ export function Slot(props: {
     props.terrain?.road ? "dom-road" : "",
     props.terrain?.shrine ? "dom-shrine" : "",
     props.terrain?.poi ? "dom-poi" : "",
-    props.terrain?.poiOwner ? `dom-held-${props.terrain.poiOwner.toLowerCase()}` : "",
+    // ONE vocabulary for every objective square on every board — see `objective`
+    // in Board.tsx. Replaces the red/blue "whose row is this" tinting, which
+    // said who owned the ground rather than whether it had been taken.
+    props.objective ? `obj obj-${props.objective}` : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -102,6 +113,7 @@ export function Slot(props: {
         props.onDrop(props.row, props.col);
       }}
     >
+      {props.poiLetter && <span className="poi-letter" aria-hidden="true">{props.poiLetter}</span>}
       {props.captured && (
         <span
           className="lock"
