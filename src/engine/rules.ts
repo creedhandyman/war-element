@@ -912,22 +912,50 @@ export function validSpecialTargets(state: GameState, attackerId: string): CardI
  * - Still filtered by canTarget, so FLYING / STEALTH / the Home-Slot rule apply
  *   (e.g. from your own home row the enemy home row stays off-limits).
  */
+/** The four ways a corridor can point. */
+export const CORRIDOR_DIRS = [
+  { dr: -1, dc: 0 }, { dr: 1, dc: 0 }, { dr: 0, dc: -1 }, { dr: 0, dc: 1 },
+] as const;
+
+/** Which way a corridor has to point to reach `to` from `from`: the dominant
+ *  axis, so a target more rows away than columns fires up or down and one more
+ *  columns away fires left or right. Ties go to the vertical, which is the
+ *  direction every corridor pointed before they could be aimed at all. */
+export function corridorDir(from: Pos, to: Pos): { dr: number; dc: number } {
+  const dRow = to.row - from.row;
+  const dCol = to.col - from.col;
+  return Math.abs(dRow) >= Math.abs(dCol)
+    ? { dr: Math.sign(dRow) || 1, dc: 0 }
+    : { dr: 0, dc: Math.sign(dCol) };
+}
+
 export function forwardAreaTargets(
   state: GameState,
   card: CardInstance,
   spread: number,
   depth?: number, // explicit forward reach; projects past melee adjacency
+  /** Where the corridor points. Omitted, it points at the enemy Home row, which
+   *  is what "forward" means on a board won by crossing it. Domination has no
+   *  such direction — its objectives sit in four corners — so there the caster
+   *  aims, and this is how. */
+  dir?: { dr: number; dc: number },
 ): CardInstance[] {
   if (!card.pos) return [];
   const def = getDef(card.defId);
-  const dir = card.owner === "P1" ? -1 : 1; // toward the enemy home
+  const d = dir ?? { dr: card.owner === "P1" ? -1 : 1, dc: 0 };
   const enemyHome = homeRow(enemyOf(card.owner), state.boardSize);
   const maxDepth =
-    depth ?? (def.attackType === "Ranged" ? Math.max(1, Math.abs(enemyHome - card.pos.row)) : 1);
+    depth ?? (def.attackType === "Ranged"
+      ? (dir ? state.boardSize : Math.max(1, Math.abs(enemyHome - card.pos.row)))
+      : 1);
   const out: CardInstance[] = [];
   for (const enemy of enemyCards(state, card.owner)) {
-    const dRow = (enemy.pos!.row - card.pos.row) * dir; // forward distance
-    const dCol = Math.abs(enemy.pos!.col - card.pos.col);
+    // Distance ALONG the corridor, and across it. With the default vertical
+    // direction these are exactly the old row/column terms.
+    const dRow = (enemy.pos!.row - card.pos.row) * d.dr + (enemy.pos!.col - card.pos.col) * d.dc;
+    const dCol = d.dr !== 0
+      ? Math.abs(enemy.pos!.col - card.pos.col)
+      : Math.abs(enemy.pos!.row - card.pos.row);
     if (dRow < 1 || dRow > maxDepth || dCol > spread) continue;
     const eDef = getDef(enemy.defId);
     if (depth != null) {
@@ -942,9 +970,9 @@ export function forwardAreaTargets(
   // Nearest first. Timberer ROOTs "the first target the volley lands on", and
   // for a corridor that has to mean the closest one — board order is arbitrary,
   // so without this the tree pinned whichever body the array happened to list.
-  return out.sort(
-    (a, b) => (a.pos!.row - card.pos!.row) * dir - (b.pos!.row - card.pos!.row) * dir,
-  );
+  const along = (c: CardInstance) =>
+    (c.pos!.row - card.pos!.row) * d.dr + (c.pos!.col - card.pos!.col) * d.dc;
+  return out.sort((a, b) => along(a) - along(b));
 }
 
 /** Where a card's ON-SUMMON effect would land if summoned at `pos` — used by the
@@ -993,6 +1021,12 @@ export function previewOnSummonArea(
   return out;
 }
 
+/** Unique by instanceId, keeping first-seen order. */
+function dedupeCards(list: CardInstance[]): CardInstance[] {
+  const seen = new Set<string>();
+  return list.filter((c) => (seen.has(c.instanceId) ? false : (seen.add(c.instanceId), true)));
+}
+
 /** The enemy/ally set a card's Special reaches — ally-targeted, a forward
  *  corridor (forwardDepth), or the normal special reach. */
 export function specialTargets(state: GameState, instanceId: string): CardInstance[] {
@@ -1035,7 +1069,16 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   const fd = Number(p.forwardDepth ?? 0);
   let list =
     fd > 0
-      ? forwardAreaTargets(state, card, Number(p.spread ?? 0), fd)
+      ? (domMap(state)
+        // AIMABLE. On this map "ahead" is not a direction that means anything —
+        // the objectives are in four corners and enemies come from all of them,
+        // so a corridor locked toward one edge is a card that can only ever
+        // threaten a quarter of the board. Every legal victim in any of the four
+        // corridors is offered, and the one the caster PICKS decides which way
+        // the blast actually goes (see performBattleAction).
+        ? dedupeCards(CORRIDOR_DIRS.flatMap(
+          (d) => forwardAreaTargets(state, card, Number(p.spread ?? 0), fd, d)))
+        : forwardAreaTargets(state, card, Number(p.spread ?? 0), fd))
       : validSpecialTargets(state, instanceId);
   // Mirror the barrage handler's own target filters, so the preview shows EXACTLY
   // what the volley will hit — not everything the card can see. Without these the

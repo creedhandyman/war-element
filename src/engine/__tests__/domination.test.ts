@@ -12,10 +12,11 @@ import {
   resolveHolders, runsAlongRoad,
 } from "../../data/domination";
 import { advance, applyIntent, canMove, canSummon, createInitialState, legalMoves } from "../index";
-import { homeSlots, rangedCanSee, summonLandingRow, terrainBlocksPath } from "../rules";
+import { homeSlots, rangedCanSee, specialTargets, summonLandingRow, terrainBlocksPath } from "../rules";
 import { cardAt, summonCard } from "../state";
 import { pickBasicTarget } from "../phases";
 import { aiPrepIntent } from "../ai";
+import { atBattle } from "./helpers";
 import { deckLimits } from "../../data/custom-decks";
 import type { GameState, PlayerId } from "../types";
 import { homeRow } from "../types";
@@ -842,5 +843,85 @@ describe("the trap and reroute spells aim at Points, not a Home row", () => {
     const intent = aiPrepIntent(s, "P2");
     if (intent.type === "CAST_SPELL" && intent.row !== undefined)
       expect(intent.row, "stopped defending its own Home row").toBe(homeRow("P2", 5));
+  });
+});
+
+describe("corridor Specials can be aimed on the 7×7", () => {
+  // Pyrogon's Flame Engulf is the archetype: 3 wide, 2 deep, "the opponents
+  // directly ahead". On a board won by crossing it, "ahead" is the only
+  // direction worth having. Here the objectives are in four corners.
+  const PYRO = "pyro_pyrogon";
+
+  function withPyrogon() {
+    const s = domState();
+    const p = put(s, PYRO, "P1", 3, 3);          // the Well, dead centre
+    s.cards[p.instanceId].summonedThisRound = false;
+    s.players.P1.magicPool = 20;
+    return { s, id: p.instanceId };
+  }
+
+  it("offers victims in every direction, not just one", () => {
+    const { s, id } = withPyrogon();
+    const north = put(s, "leaf_weeds", "P2", 2, 3);
+    const south = put(s, "leaf_weeds", "P2", 4, 3);
+    const east = put(s, "leaf_weeds", "P2", 3, 4);
+    const west = put(s, "leaf_weeds", "P2", 3, 2);
+    const ids = specialTargets(s, id).map((t) => t.instanceId);
+    for (const [name, c] of [["north", north], ["south", south], ["east", east], ["west", west]] as const)
+      expect(ids, `${name} was unreachable`).toContain(c.instanceId);
+  });
+
+  it("fires down ONE corridor — the one the caster pointed at", () => {
+    // The guard that matters: offering four directions must not mean hitting
+    // all four. That is not a corridor, it is a nova.
+    const { s, id } = withPyrogon();
+    const east = put(s, "leaf_weeds", "P2", 3, 4);
+    const west = put(s, "leaf_weeds", "P2", 3, 2);
+    for (const c of [east, west]) {
+      s.cards[c.instanceId].curHp = 40; s.cards[c.instanceId].maxHp = 40;
+      s.cards[c.instanceId].curShields = 0;
+    }
+    // Seat the battle on this card so the real intent path can be used: the
+    // queue being on Pyrogon is a phase-machine fact, not the thing under test.
+    const b = atBattle(s);
+    b.battle = { queue: [id], index: 0, awaitingInput: id };
+    const out = applyIntent(b, {
+      type: "BATTLE_ACTION", player: "P1", action: "special",
+      targetIds: [east.instanceId],
+    } as never);
+    expect(out.cards[east.instanceId].curHp, "the aimed target was missed").toBeLessThan(40);
+    expect(out.cards[west.instanceId].curHp, "the blast went both ways").toBe(40);
+  });
+
+  it("still carries its whole width and depth down that corridor", () => {
+    // Aiming must not shrink it: spread 1, depth 2 means a 3-wide, 2-deep block.
+    const { s, id } = withPyrogon();
+    const near = put(s, "leaf_weeds", "P2", 1, 3);   // 2 north, on the axis
+    const wide = put(s, "leaf_weeds", "P2", 2, 4);   // 1 north, 1 across
+    for (const c of [near, wide]) {
+      s.cards[c.instanceId].curHp = 40; s.cards[c.instanceId].maxHp = 40;
+      s.cards[c.instanceId].curShields = 0;
+    }
+    const b = atBattle(s);
+    b.battle = { queue: [id], index: 0, awaitingInput: id };
+    const out = applyIntent(b, {
+      type: "BATTLE_ACTION", player: "P1", action: "special",
+      targetIds: [near.instanceId],
+    } as never);
+    expect(out.cards[near.instanceId].curHp).toBeLessThan(40);
+    expect(out.cards[wide.instanceId].curHp, "the corridor lost its width").toBeLessThan(40);
+  });
+
+  it("leaves the standard board pointing forward, exactly as it did", () => {
+    // Every other board is won by crossing it, so "ahead" is still the only
+    // direction a corridor should have. Nothing here may aim.
+    let s: GameState = createInitialState(3, DECK, DECK, ["P1"], undefined, [], 5);
+    const p = summonCard(s, "P1", PYRO, { row: 3, col: 2 });
+    p.summonedThisRound = false;
+    const behind = summonCard(s, "P2", "leaf_weeds", { row: 4, col: 2 }); // BEHIND it
+    const ahead = summonCard(s, "P2", "leaf_weeds", { row: 2, col: 2 });
+    const ids = specialTargets(s, p.instanceId).map((t) => t.instanceId);
+    expect(ids, "aimed backwards on a standard board").not.toContain(behind.instanceId);
+    expect(ids).toContain(ahead.instanceId);
   });
 });
