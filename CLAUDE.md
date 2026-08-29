@@ -225,6 +225,38 @@ the ladder.
 **Not yet done:** the matchup table isn't surfaced in the card inspector the
 way `ELEMENT_AURA` is. Players feel these rules without being told them.
 
+## Domination — the third and fourth seats are the player's to choose
+
+The 7x7 is the only mode that deals more than two seats, and the extra ones used
+to be filled FOR the player: `modePremades.filter(not already seated)[i]`. So a
+four-way free-for-all was three armies you could not see and one you could —
+you were about to fight them and the lobby would not say what they were.
+
+`p3DeckId` / `p4DeckId` are lobby state now, seated exactly like P1 and P2 and
+resolved through the same `resolveDeckCards` / `resolveDeckSpells` — so a CUSTOM
+deck is legal in seat three, and an id left over from another battlefield
+degrades to this board's shelf the same way the first two do. Defaults are
+distinct decks off the large shelf, so an untouched lobby still deals four
+different armies.
+
+WHERE THEY RENDER: below the versus card, not inside it. `.ar-vs` draws a DUEL —
+two seats facing each other across a VS — and a free-for-all is not that shape.
+The extra seats are a side-by-side row (`.ar-table`) in a neutral gold rather
+than the opponent's red, because a third and fourth RED seat reads as three
+opponents ganging up on you when in fact everyone is everyone's problem. Hidden
+online (the host does not pick other people's decks) and in hot-seat (which
+cannot deal more than two anyway).
+
+The 7x7 draws from the LARGE shelf — `premadeDecksFor` matches `boardSize >= 5`,
+so it offers the 30-card builds, which are the only ones legal there.
+
+`domination-seats.test.ts` pins the wiring rather than the picker: a deck NAMED
+for the third seat is the deck sitting in that chair, its spellbook comes with
+it, and four seats still deal four distinct armies. Note `players[p].deck` is
+the remaining DRAW PILE — the opening hand is already dealt off it — so a
+seating check has to compare `deck + hand` or it finds 26 of 30 and looks like
+the wrong deck.
+
 ## Arena ladder — four three-element decks, one per rung
 
 `custom-decks.ts` gained Verdant Tide (LEAF/AQUA/DAWN), Stormfront

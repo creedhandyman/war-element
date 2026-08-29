@@ -485,6 +485,14 @@ export function App() {
   // effect below re-points these if the player switches battlefield.
   const [p1DeckId, setP1DeckId] = useState(premadeDecksFor(4)[0].id);
   const [p2DeckId, setP2DeckId] = useState(premadeDecksFor(4)[1].id);
+  // THE THIRD AND FOURTH SEATS (Domination only). They used to be chosen FOR
+  // the player — the first two premades not already seated — so a free-for-all
+  // was three decks the player could not see and one they could. Seated here
+  // like the other two, defaulted to distinct decks off the large shelf (which
+  // is the 7x7's shelf too, see `premadeDecksFor`) so a fresh lobby still deals
+  // four different armies without anyone touching them.
+  const [p3DeckId, setP3DeckId] = useState(premadeDecksFor(5)[2].id);
+  const [p4DeckId, setP4DeckId] = useState(premadeDecksFor(5)[3].id);
   // WHAT KIND of AI match this is — a MODE, not a selection buried in the
   // lobby. Three, and they no longer bleed into each other: Casual picks its
   // own fight and scores nothing, Streak climbs the ladder, Gauntlet runs the
@@ -561,7 +569,7 @@ export function App() {
   }, []);
 
   /** Which seat the deck sheet is filling, or null when it is shut. */
-  const [pickSeat, setPickSeat] = useState<"p1" | "p2" | null>(null);
+  const [pickSeat, setPickSeat] = useState<"p1" | "p2" | "p3" | "p4" | null>(null);
   // Premade builds sized for the CHOSEN battlefield — a 30-card large build must
   // never show up in a 4x4 picker, and vice versa.
   const modePremades = premadeDecksFor(boardSize);
@@ -1128,15 +1136,18 @@ export function App() {
       p2: p2Cards, p2s: resolveDeckSpells(p2DeckId),
       board: boardSize, humans,
     };
-    // EXTRA SEATS (Domination free-for-all). Each AI seat gets its own premade
-    // so the table is not three copies of one deck; they are taken from the
-    // board's own pool, skipping the two already seated.
+    // EXTRA SEATS (Domination free-for-all), now the PLAYER's choice rather
+    // than the lobby's. They resolve through the same two helpers the first two
+    // seats use, so a custom deck is legal in seat three and an id left over
+    // from another battlefield degrades to this board's shelf exactly as P1's
+    // and P2's do.
+    const extraDeckIds = [p3DeckId, p4DeckId];
     const extraSeats = domSeats > 2
-      ? (["P3", "P4"] as const).slice(0, domSeats - 2).map((id, i) => {
-          const taken = new Set([p1DeckId, p2DeckId]);
-          const pick = modePremades.filter((d) => !taken.has(d.id))[i] ?? modePremades[0];
-          return { id, deck: pick.cards, spells: pick.spells };
-        })
+      ? (["P3", "P4"] as const).slice(0, domSeats - 2).map((id, i) => ({
+          id,
+          deck: resolveDeckCards(extraDeckIds[i]),
+          spells: resolveDeckSpells(extraDeckIds[i]),
+        }))
       : undefined;
     const fresh = createInitialState(
       newSeed(), p1Cards, p2Cards, humans,
@@ -3873,6 +3884,43 @@ export function App() {
               )}
             </div>
 
+            {/* THE OTHER SEATS AT THE TABLE. Domination is the only mode that
+                deals more than two, and until now the third and fourth were
+                chosen for you — the first premades not already seated — so a
+                four-way was three armies you could not see and one you could.
+                You are about to fight them; the lobby should say what they are.
+
+                Below the VS card rather than inside it, because the versus card
+                is a DUEL: two seats facing each other is what it draws, and a
+                free-for-all is not that shape. These read as the rest of the
+                table, which is what they are.
+
+                Hidden online — the host does not choose other people's decks —
+                and hidden in hot-seat, which cannot deal more than two anyway. */}
+            {boardSize === DOMINATION_7X7.boardSize && seatCount > 2
+              && !onlineMode && !twoPlayer && (
+              <div className="ar-table">
+                <span className="ar-flabel">
+                  {seatCount === 3 ? "THIRD SEAT" : "THE OTHER SEATS"}
+                </span>
+                <div className="ar-table-seats">
+                  {(["p3", "p4"] as const).slice(0, seatCount - 2).map((seat, i) => {
+                    const id = seat === "p3" ? p3DeckId : p4DeckId;
+                    return (
+                      <DeckSeat
+                        key={seat}
+                        side="foe"
+                        flag={`AI · P${i + 3}`}
+                        label={deckLabel(id)}
+                        cards={resolveDeckCards(id)}
+                        onChange={() => setPickSeat(seat)}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="ar-foot">
               {!onlineMode ? (
                 <button
@@ -3928,16 +3976,22 @@ export function App() {
       {!started && !storyOpen && tab === "arena" && pickSeat && (
             <DeckPickerSheet
               title={
-                pickSeat === "p1"
+                pickSeat === "p3" ? "Third squad"
+                : pickSeat === "p4" ? "Fourth squad"
+                : pickSeat === "p1"
                   ? (onlineMode || !twoPlayer ? "Your squad" : "Player 1 squad")
                   : (onlineMode ? "Your squad" : twoPlayer ? "Player 2 squad" : "Opponent squad")
               }
               boardSize={boardSize}
               premades={modePremades}
               customs={customDecks}
-              value={pickSeat === "p1" ? p1DeckId : p2DeckId}
+              value={pickSeat === "p1" ? p1DeckId
+                : pickSeat === "p2" ? p2DeckId
+                : pickSeat === "p3" ? p3DeckId : p4DeckId}
               onPick={(id) => {
                 if (pickSeat === "p1") setP1DeckId(id);
+                else if (pickSeat === "p3") setP3DeckId(id);
+                else if (pickSeat === "p4") setP4DeckId(id);
                 else setP2DeckId(id);
               }}
               onClose={() => setPickSeat(null)}

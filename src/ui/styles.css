@@ -6631,3 +6631,29 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .lob-ready.open { opacity: 0.5; }
 .lob-actions { display: flex; gap: 6px; width: 100%; }
 .lob-actions button { flex: 1; }
+
+/* ── Domination: the rest of the table ────────────────────────────────────
+   The third and fourth seats. They sit BELOW the versus card rather than in
+   it, because that card draws a duel — two seats facing each other across a VS
+   — and a free-for-all is not that shape. These read as what they are: the
+   other armies at the table, side by side.
+
+   Only Domination deals more than two seats, so this row never renders
+   anywhere else and needs no board-size guard of its own. */
+.ar-table { flex: none; padding: 6px 16px 2px; display: flex; flex-direction: column; gap: 6px; }
+.ar-table-seats { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
+/* Shorter than the duelling seats: these are context, not the matchup. The
+   art and chips inside them are the same components, so only the box shrinks. */
+.ar-table-seats .ar-seat { min-height: 96px; padding: 9px 11px; }
+/* A third and fourth RED seat beside the opponent's would read as three
+   opponents ganging up on you. In a free-for-all everyone is everyone's
+   problem, so these are neutral — the board's own third and fourth seat
+   colours rather than the duel's red. */
+.ar-table-seats .ar-seat.foe {
+  border-color: rgba(201, 162, 75, 0.45);
+  background: linear-gradient(150deg, rgba(201, 162, 75, 0.10), rgba(10, 10, 17, 0.7));
+}
+@media (max-width: 560px) {
+  .ar-table { padding: 5px 10px 2px; }
+  .ar-table-seats { grid-template-columns: 1fr; }
+}
