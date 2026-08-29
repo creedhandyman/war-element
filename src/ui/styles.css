@@ -6528,8 +6528,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    Tinting the NAME rather than the frame on purpose: the token's border is
    already carrying the element colour, which is what you read a card's
    matchups by, and overloading it would cost more than it gave. */
-.token.seat-p1 > .tk-name { color: #7ef0b0; }   /* P1 — green  */
-.token.seat-p2 > .tk-name { color: #ff9a90; }   /* P2 — red    */
+.token.seat-p1 > .tk-name { color: #ff9a90; }   /* P1 — red    */
+.token.seat-p2 > .tk-name { color: #7ef0b0; }   /* P2 — green  */
 .token.seat-p3 > .tk-name { color: #d7a6ff; }   /* P3 — violet */
 .token.seat-p4 > .tk-name { color: #ffc75e; }   /* P4 — amber  */
 /* A faint plate behind it, so the tint survives whatever art is underneath —
@@ -6609,8 +6609,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   font-family: var(--head); font-size: var(--fs-1); font-weight: 800;
   padding: 2px 0; border-radius: 4px; border: 1px solid currentColor;
 }
-.lob-seat.seat-p1 { color: #7ef0b0; }
-.lob-seat.seat-p2 { color: #ff9a90; }
+.lob-seat.seat-p1 { color: #ff9a90; }
+.lob-seat.seat-p2 { color: #7ef0b0; }
 .lob-seat.seat-p3 { color: #d7a6ff; }
 .lob-seat.seat-p4 { color: #ffc75e; }
 .lob-name {
@@ -6675,8 +6675,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 /* The suit takes the SEAT's colour, not the card-deck convention: here the
    colour means which player, and the shape is the redundant half. */
-.token.seat-p1 > .tk-suit { color: #7ef0b0; }
-.token.seat-p2 > .tk-suit { color: #ff9a90; }
+.token.seat-p1 > .tk-suit { color: #ff9a90; }
+.token.seat-p2 > .tk-suit { color: #7ef0b0; }
 .token.seat-p3 > .tk-suit { color: #d7a6ff; }
 .token.seat-p4 > .tk-suit { color: #ffc75e; }
 /* Make room, so a long card name ellipsises before it runs under the suit
