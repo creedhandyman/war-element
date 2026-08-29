@@ -237,6 +237,42 @@ describe("the boulder rolls THROUGH", () => {
 });
 
 describe("Rolling Boulder, the Special", () => {
+  it("leaves the rock behind when it KILLS, in the dead card's square", () => {
+    // What makes the Special more than chip damage: every kill it lands turns
+    // into a rolling body the player then has to answer.
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 0);
+    const frail = foeAt(s, 3, 3, 4);      // one body, and it dies to 35
+    const where = { ...s.cards[frail.instanceId].pos! };
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    expect(s.cards[frail.instanceId], "it died").toBeFalsy();
+    const rock = boardCards(s, "P2").find((c) => c.curHp > 0 && c.defId === ROCK);
+    expect(rock, "and a boulder settled there").toBeTruthy();
+    expect(rock!.pos).toEqual(where);
+  });
+
+  it("leaves nothing behind when the target SURVIVES", () => {
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 0);
+    foeAt(s, 3, 3, 500);                  // survives 35 comfortably
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    expect(boardCards(s, "P2").some((c) => c.curHp > 0 && c.defId === ROCK),
+      "no kill, no rock").toBe(false);
+  });
+
+  it("the rock it leaves does not roll the round it lands", () => {
+    // Same `rollHeld` rule every loosed boulder follows: a rock that appeared
+    // and immediately moved would never be seen in the square it took.
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 0);
+    const frail = foeAt(s, 3, 3, 4);
+    const where = { ...s.cards[frail.instanceId].pos! };
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    const rock = boardCards(s, "P2").find((c) => c.defId === ROCK)!;
+    expect(rock.rollHeld, "held for one tick").toBe(true);
+    expect(rock.pos).toEqual(where);
+  });
+
   it("hits exactly one opponent, anywhere on the board", () => {
     const s = bigPrepState();
     const boss = place(s, BOSS, "P2", 0, 0);

@@ -55,13 +55,14 @@ describe("the shape of the fight", () => {
       expect(rt[gait], `${gait} would undo the puzzle`).toBeUndefined();
   });
 
-  it("the hurricane is a real body, not scenery — and it is MELEE", () => {
+  it("the hurricane is a real body, not scenery — a RANGED mage", () => {
     const t = getDef(STORM);
     expect([t.dmg, t.hp, t.sp]).toEqual([20, 85, 15]);
-    expect(t.attackType, "it has to close").toBe("Melee");
-    // Warrior rather than Mage: `attackType` is "derived from class" per
-    // CardDef, and this set has no other Melee Mage.
-    expect(t.cardClass).toBe("Warrior");
+    // It spent a spell as a melee Warrior and came back to range (owner's
+    // call). Ranged also resolves the tension melee created: a body whose
+    // passive shoves the board away could never reach what it had pushed.
+    expect(t.attackType).toBe("Ranged");
+    expect(t.cardClass).toBe("Mage");
     expect(t.roundTick?.pushEnemies, "Wind Wake").toBe(1);
   });
 
@@ -92,11 +93,11 @@ describe("the shape of the fight", () => {
   });
 
   it("Wind Wake shoves on the BEAT, and holds its ground between", () => {
-    // THE FIX FOR WHAT BEING MELEE CREATED. Shoving every Cleanup meant this
-    // thing spent every round pushing off the bodies its own basic needed to
-    // reach — measured, giving it splash was worth ONE point, because the
-    // attack never landed. On a two-beat it alternates instead: shove them off,
-    // then hit whatever walked back in.
+    // It arrived to fix the melee version's self-defeat — a body that shoved
+    // away everything its own basic needed to touch — and is KEPT now the card
+    // is ranged again, because it is better weather: a board shoved every
+    // single round can never form up at all, while a two-beat lets it re-form
+    // and then breaks it again.
     const at = (round: number) => {
       const s = bigPrepState();
       place(s, STORM, "P2", 2, 2);

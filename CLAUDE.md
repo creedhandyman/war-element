@@ -2238,7 +2238,31 @@ rarely all fall before round 15, so the wall gate was already doing this. What
 the round gate buys is that a player who clears the wall fast can no longer pull
 the giant out early.
 
-**FLOOR 5 IS NOW FLAT AT ~74-77.** It got there from the OTHER end: making the
+**FLOOR 5 IS IN BAND: Skybreaker 88.0, Continental 89.6 (n=192).** Both reached
+WITHOUT touching a boss's HP, which was the constraint — and just as well for
+Continental, which HP could not have fixed: a sweep read 400 -> 74.0, 450 ->
+76.0, 500 -> 77.1, 550 -> 80.2, and 550 is a 701 body, over the floor's 660 cap.
+
+What actually moved each one:
+- **Continental +13.5** — its Special now leaves a boulder in the square of
+  anything it kills. Every kill becomes a permanent rolling body.
+- **Skybreaker +18.7 then -7.8** — the hurricane going back to a RANGED Mage,
+  then the boss's clock moving 3 -> 7. The range change is about SURVIVAL, not
+  damage: a ranged token lives where a melee one walks forward and dies, and
+  this boss's mobility dies with it.
+- **Everything else read as noise**: the SP tax, the splash number and scope,
+  where the round-6 hurricane forms, whether the formation starts with one
+  (the Special just calls one when there is none), and the Special's own
+  cadence at 3/4 (95.8/95.8) before it broke at 5.
+
+**THE 3-ROUND BOSS CLOCK IS NOW "A FIXED BEAT, THREE BY DEFAULT".** The promise
+was countability, not the number, and Skybreaker earns the one named exception
+at seven: its Special IS its movement, so the beat decides how often the boss
+relocates rather than merely when damage lands. The exception list is
+test-asserted to be exactly one long — a second boss leaving the house beat is
+a conversation, not a drive-by edit.
+
+**PREVIOUSLY, FLAT AT ~74-77.** It got there from the OTHER end: making the
 Thundering Hurricane melee at 75 HP moved Skybreaker 95.8 -> 75.0 in one edit
 (see below). A little under Floor 4's 80-90 band, and internally consistent,
 which the earlier 75.0-95.8 spread was not.

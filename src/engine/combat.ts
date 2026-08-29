@@ -20,7 +20,7 @@ import { RANGED_REACH, canTarget, shoveTarget, validSpecialTargets, validTargets
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
-import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens } from "./state";
+import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens, summonCard } from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -4059,8 +4059,35 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (!live.length) return;
     const victim = live[randInt(draft, live.length)];
     const dmg = num(params, "dmg");
+    // WHERE IT WAS STANDING, read BEFORE the hit — a defeated card's `pos` is
+    // gone by the time `resolveHit` returns, and the square is the whole point
+    // of the rider below.
+    const where = victim.pos ? { ...victim.pos } : null;
+    const name = label(draft, victim);
     resolveHit(draft, attacker, victim, { kind: "special", dmg, hits: 1, pen: false, crit: false });
-    draft.log.push(`${label(draft, attacker)} hurls a boulder at ${label(draft, victim)} (${dmg}).`);
+    draft.log.push(`${label(draft, attacker)} hurls a boulder at ${name} (${dmg}).`);
+
+    // THE ROCK STAYS WHERE IT LANDED. On a kill the boulder is not spent — it
+    // settles in the hole the body left and rolls on from there, so every kill
+    // this Special makes becomes a permanent piece of board the player has to
+    // deal with rather than a one-off 35 damage.
+    //
+    // Guarded on the square actually being FREE: the victim's slot is vacated
+    // by `defeatCard`, but a captured slot, or a body shoved into the gap by
+    // something resolving first, would make this an overwrite.
+    const spawn = String(params.spawnOnKill ?? "");
+    const dead = !draft.cards[victim.instanceId] || draft.cards[victim.instanceId].curHp <= 0;
+    if (spawn && dead && where
+        && !draft.slots[where.row][where.col].capturedBy
+        && !boardCards(draft).some((c) => c.pos?.row === where.row && c.pos.col === where.col)) {
+      const born = summonCard(draft, attacker.owner, spawn, where as never);
+      born.summonedThisRound = false;
+      // It rolls from the NEXT round like every other loosed boulder — see
+      // `rollHeld`. A rock that appeared and immediately moved would never be
+      // seen in the square it was supposed to take.
+      born.rollHeld = true;
+      draft.log.push(`The boulder settles where ${name} stood.`);
+    }
   },
 
   /** Search and Rescue (Stone's Talent): swap board positions with a chosen

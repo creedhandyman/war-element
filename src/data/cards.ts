@@ -11180,7 +11180,18 @@ export const CARDS: CardDef[] = [
       // destroys FORMATION, which is the resource a one-move-a-turn game is
       // actually made of.
       cycloneSpin: 1,
-      fireSpecialEveryN: 3,
+      // SEVEN, not three, and this is the ONE lever that moved this fight without
+      // touching a printed stat. Measured at n=192: everyN 3 -> 95.8%, 4 ->
+      // 95.8, 5 -> 91.1, 6 -> 90.1, **7 -> 88.0**, 8 -> 90.6. Everything else
+      // under my control read as noise — the SP tax, the splash number and
+      // scope, where the hurricane forms, and whether the formation starts with
+      // one (the Special just calls one when there is none).
+      //
+      // A slow beat suits this boss anyway: the Special IS its movement, so a
+      // seven-round clock makes every Eye of the Storm an event the telegraph
+      // has been warning about for six rounds rather than a thing that happens
+      // constantly.
+      fireSpecialEveryN: 7,
     },
     special: {
       name: "Eye of the Storm",
@@ -11273,10 +11284,13 @@ export const CARDS: CardDef[] = [
       name: "Rolling Boulder",
       cost: 4,
       handler: "boulderThrow",
-      params: { dmg: 35 },
+      // ...and on a KILL the rock stays, in the square the body left. That is
+      // what makes this Special more than chip damage: every kill it lands
+      // converts into a rolling body the player then has to answer.
+      params: { dmg: 35, spawnOnKill: "bore_rolling_boulder_tok" },
       // "self": the handler picks its own victim, board-wide and at random.
       targetSide: "self",
-      text: "Hurls a boulder at one random opponent anywhere on the board for 35 DMG.",
+      text: "Hurls a boulder at one random opponent anywhere on the board for 35 DMG. If that kills it, the boulder settles in its square and starts rolling.",
     },
   },
   {
@@ -11626,13 +11640,13 @@ export const TOKENS: CardDef[] = [
     name: "Thundering Hurricane",
     rarity: "epic",
     element: "GALE",
-    // WARRIOR, not Mage, because it is MELEE. `attackType` is documented on
-    // CardDef as "derived from class", and the set had no Melee Mage in 366
-    // cards — one here would have been the first, and a contradiction of the
-    // field's own definition rather than a design. Mechanically near-inert:
-    // nothing in Skybreaker's formation carries a class-scoped aura.
-    cardClass: "Warrior",
-    attackType: "Melee",
+    // BACK TO A RANGED MAGE (owner's call, after a spell as a melee Warrior).
+    // It reaches from where it stands again, which is what a storm should do —
+    // and it resolves the tension the melee spell created: a body whose passive
+    // shoves the board away could never reach what it pushed. Ranged, that
+    // passive costs it nothing, and Storm Surge's splash lands from range.
+    cardClass: "Mage",
+    attackType: "Ranged",
     // Cost held at 6 even though the body came down, and deliberately: it is
     // priced for what it DOES on arrival — reeling the board in, 15 damage and
     // a 2-round hold — not for its meat. It also keeps Skybreaker's formation
@@ -11663,12 +11677,11 @@ export const TOKENS: CardDef[] = [
     // board trying to close on the hurricane loses ground just for standing
     // near it.
     //
-    // ON A TWO-BEAT, and that is the fix for the problem being melee created.
-    // Shoving the whole board away every Cleanup meant this thing spent every
-    // round pushing off the bodies its own basic needed to reach: measured,
-    // giving it splash moved the fight one point, because the attack never
-    // landed. Alternating gives it both halves — shove them off on the even
-    // round, hit whatever walked back in on the odd one.
+    // ON A TWO-BEAT. It arrived to fix the melee version's self-defeat (a body
+    // that shoved away everything its own basic needed to touch), and it is
+    // KEPT now that the card is ranged again, because it is better weather:
+    // a board shoved every single round can never form up at all, while a
+    // two-beat lets it re-form and then breaks it again.
     roundTick: { pushEnemies: 1, pushEnemiesEveryN: 2 },
     // ON ARRIVAL it does the exact opposite — reels everything within 2 into
     // contact, hits for 15 and holds it there for 2 rounds. The two halves

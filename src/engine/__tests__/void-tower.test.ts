@@ -231,7 +231,15 @@ describe("the roster", () => {
       // attack (melee, splash, +HP) moved the fight by a point between them.
       // The two-beat is what makes the attack reachable at all.
       //
-      // The floor is FLAT at this point: Skybreaker 77.1, Continental 75.0.
+      // FINAL for this pass, after the hurricane went back to a RANGED Mage
+      // (owner's call) and the clock moved to seven: **88.0%, n=192**, inside
+      // the 80-90 target. The range change alone was worth +18.7, and the
+      // reason is survival rather than damage — a ranged token lives where a
+      // melee one walks forward and dies, and this boss's mobility dies with
+      // it. Splash, the SP tax, where the hurricane forms and whether the
+      // formation starts with one all read as NOISE.
+      //
+      // The floor at this point: Skybreaker 88.0, Continental 89.6 (n=192).
       // That is a little under the 80-90 band Floor 4 was tuned to, and it is
       // internally consistent, which the 75.0-95.8 spread before it was not.
       // HP remains the lever in either direction (366 body against a 660 cap).
@@ -253,7 +261,15 @@ describe("the roster", () => {
       // than a win-rate change. Timeouts drifted 18 -> 20, which is the shape
       // you would expect from a boss that starts moving later.
       //
-      // MEASURED: 99.0% bare, **74.0% with a tamed ally** (n=96, same harness
+      // FINAL for this pass: the Special leaving a boulder in the square of
+      // anything it kills (owner's call) was worth **+13.5** — 74.0 -> 87.5%,
+      // and 89.6% re-measured at n=192. Inside the 80-90 target, and reached
+      // WITHOUT touching HP, which is just as well: HP could not have done it.
+      // A sweep read 400 -> 74.0, 450 -> 76.0, 500 -> 77.1, 550 -> 80.2, and
+      // 550 is a 701 body — over the floor's 660 cap. This boss was not
+      // reachable on meat.
+      //
+      // MEASURED before that: 99.0% bare, 74.0% with a tamed ally (n=96, harness
       // as Skybreaker: 8 cores x 12 seeds, 5x5, gates seated, voidTower on,
       // ally = Umbranova at TAME_SCALE). 54 overrun / 18 timeout.
       //
@@ -2264,11 +2280,30 @@ describe("the boss clock", () => {
   // the Special ever fires — a boss that also cast whenever it could afford
   // the magic would be a different fight on every retry.
 
-  it("every boss is on a 3-round clock", () => {
+  it("every boss is on a FIXED clock, and three is the house beat", () => {
+    // The promise is COUNTABILITY, not the number three: a puzzle needs a
+    // threat you can count, and any constant beat is countable. Three is the
+    // house rhythm and stays the default so a player learns one tempo across
+    // the tower — an exception has to earn itself and be named here.
+    //
+    // SKYBREAKER is the only one, at seven. Its Special IS its movement (Eye of
+    // the Storm teleports it), so the beat is not just "when does damage
+    // happen" but "how often does the boss relocate", and at three that made it
+    // the hardest fight on the tower by a distance. Measured at n=192:
+    // 3 -> 95.8% · 4 -> 95.8 · 5 -> 91.1 · 6 -> 90.1 · 7 -> 88.0 · 8 -> 90.6,
+    // against an 80-90 target. Every other lever available without touching a
+    // printed stat read as noise. A seven-round clock also suits it: each Eye
+    // of the Storm is an event the telegraph has been warning about for six
+    // rounds rather than a thing that happens constantly.
+    const BEAT: Record<string, number> = { boss_skybreaker: 7 };
     for (const b of BOSSES) {
-      expect(b.roundTick?.fireSpecialEveryN, `${b.id}`).toBe(3);
+      const want = BEAT[b.id] ?? 3;
+      expect(b.roundTick?.fireSpecialEveryN, `${b.id}`).toBe(want);
       expect(b.special, `${b.id} has a Special to fire`).toBeTruthy();
     }
+    // ...and the exception list is exactly one long. If a second boss wants off
+    // the house beat, that is a conversation, not a drive-by edit.
+    expect(Object.keys(BEAT).length, "one named exception").toBe(1);
   });
 
   it("no boss Special declares a cooldown — the clock owns the timing", () => {
