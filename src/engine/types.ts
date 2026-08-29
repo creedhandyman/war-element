@@ -376,6 +376,19 @@ export interface RoundTickDef {
    *  Gates the `advance`/`advanceTrample` ticks only — the lateral aim still
    *  runs, so the thing tracks its target along its own line while it waits. */
   advanceWhenWallsDown?: true;
+  /** Hold the home row until round N, whatever else is true.
+   *
+   *  A HARD FLOOR on the forward gaits, and it COMPOSES with
+   *  `advanceWhenWallsDown` rather than replacing it: a card carrying both
+   *  stays home until the later of the two is satisfied. Continental carries
+   *  both — it may not walk before round 15, and not until the player's walls
+   *  are down either.
+   *
+   *  Gates the walk only. The lateral aim keeps running, so the thing spends
+   *  the whole wait lining up on whatever hits hardest rather than idling —
+   *  which is what makes a long hold a threat being wound up rather than a
+   *  boss that is switched off. */
+  advanceFromRound?: number;
   rowAheadDmg?: number; // deal N DMG to enemies in the row directly ahead (Sweeping Flames)
   inRangeDmg?: number; // deal N DMG to EVERY opponent this card can reach (Smog's Black Smoke)
   /** Electrifying (Jolt): apply a status to every opponent this card can REACH

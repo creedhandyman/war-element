@@ -2243,14 +2243,19 @@ function doRoundTicks(draft: GameState): void {
     // A SIEGE ENGINE WAITS FOR THE WALL. Gates the forward gaits only: the
     // lateral aim below still runs, so the thing tracks its target along its
     // own line while the wall stands and then walks the moment it falls.
+    // TWO INDEPENDENT HOLDS on the forward gaits, and a card may carry both —
+    // Continental does. It walks when the LATER of them is satisfied: not
+    // before its round, and not while the enemy still has a wall up.
     const wallsUp = rt.advanceWhenWallsDown === true && enemyWallsStanding(draft, card.owner);
+    const tooEarly = rt.advanceFromRound != null && draft.round < rt.advanceFromRound;
+    const held = wallsUp || tooEarly;
     // `rollHeld`: a boulder loosed during THIS Cleanup must not also roll
     // during it, or it lands in the row in front of the giant and is already
     // past it before the player ever sees it there — which would make the
     // card's own text a lie. On the instance because step 4 clears
     // `summonedThisRound` just before these ticks run; see `roundTickFired`.
     if (rt.advanceTrample && card.rollHeld) card.rollHeld = false;
-    else if (rt.advanceTrample && card.pos && !wallsUp
+    else if (rt.advanceTrample && card.pos && !held
         && !bossHeldHome(draft, getDef(card.defId))) {
       // THROUGH, not up to. `chargeForward` shoves a TRAMPLE card past a
       // blocker and `applyShove` deals its CRUSH damage — the same pair the
@@ -2258,7 +2263,7 @@ function doRoundTicks(draft: GameState): void {
       // different rule than everything else that rolls.
       chargeForward(draft, card, rt.advanceTrample);
     }
-    if (rt.advance && card.pos && !wallsUp && !bossHeldHome(draft, getDef(card.defId))) {
+    if (rt.advance && card.pos && !held && !bossHeldHome(draft, getDef(card.defId))) {
       const dir = card.owner === "P1" ? -1 : 1;
       let rolled = 0;
       while (rolled < rt.advance && card.pos) {

@@ -243,7 +243,17 @@ describe("the roster", () => {
       // it the one fight you answer with one big swing instead of ten small
       // ones.
       //
-      // MEASURED: 99.0% bare, **75.0% with a tamed ally** (n=96, same harness
+      // ROUND-15 HOLD added (owner's call): 75.0 -> 74.0%, i.e. nothing. The
+      // reason is worth keeping — in a real tower fight the player starts
+      // behind FIVE Fortress Gates, and those rarely all fall before round 15
+      // anyway, so `advanceWhenWallsDown` was already holding this boss past
+      // that point in most matches. The round gate is largely redundant with
+      // the wall gate in practice; what it buys is a GUARANTEE (a player who
+      // clears the wall fast can no longer pull the giant out early) rather
+      // than a win-rate change. Timeouts drifted 18 -> 20, which is the shape
+      // you would expect from a boss that starts moving later.
+      //
+      // MEASURED: 99.0% bare, **74.0% with a tamed ally** (n=96, same harness
       // as Skybreaker: 8 cores x 12 seeds, 5x5, gates seated, voidTower on,
       // ally = Umbranova at TAME_SCALE). 54 overrun / 18 timeout.
       //

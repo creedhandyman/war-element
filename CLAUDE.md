@@ -2230,7 +2230,15 @@ Skybreaker). Body is not what decides a Floor-5 fight — this carries 551 point
 against Skybreaker's 366 and does not beat it. SP 1 makes it act last in every
 queue, and the wall gate parks it behind five gates for most of the clock.
 
-**FLOOR 5 IS NOW FLAT AT ~75-77.** It got there from the OTHER end: making the
+**A ROUND GATE ON TOP OF THE WALL GATE BUYS A GUARANTEE, NOT A NUMBER.**
+Continental also holds home until round 15 (`advanceFromRound`, which COMPOSES
+with `advanceWhenWallsDown` — the later hold wins). Measured: 75.0 -> 74.0%,
+nothing. In a real fight the player starts behind five Fortress Gates and those
+rarely all fall before round 15, so the wall gate was already doing this. What
+the round gate buys is that a player who clears the wall fast can no longer pull
+the giant out early.
+
+**FLOOR 5 IS NOW FLAT AT ~74-77.** It got there from the OTHER end: making the
 Thundering Hurricane melee at 75 HP moved Skybreaker 95.8 -> 75.0 in one edit
 (see below). A little under Floor 4's 80-90 band, and internally consistent,
 which the earlier 75.0-95.8 spread was not.

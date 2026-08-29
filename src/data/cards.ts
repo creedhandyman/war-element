@@ -11257,8 +11257,13 @@ export const CARDS: CardDef[] = [
       // siege engine actually asks.
       aimLateral: true,
       aimLateralBy: "topDmg",
-      // ...then it walks, and only then.
+      // ...then it walks, and only then. TWO holds, and it needs BOTH released:
+      // not a step before round 15 — half of the tower's 30-round clock — and
+      // not while a single Fortress Gate still stands. So the first half of
+      // this fight is fought entirely against its boulders and its reach, and
+      // the giant itself only ever arrives late.
       advance: 1,
+      advanceFromRound: 15,
       advanceWhenWallsDown: true,
       // ROCKFALL: a boulder every even round, in the row in front of it.
       spawnEveryN: { n: 2, token: "bore_rolling_boulder_tok", spawnMaxAlive: 3 },

@@ -108,9 +108,34 @@ describe("Continental Drift — it waits for the wall, then it walks", () => {
     expect(after().row, "not one step while the wall is up").toBe(0);
   });
 
-  it("walks the moment the last wall is gone", () => {
-    const { after } = roll(0);
-    expect(after().row, "the wall fell, so it comes").toBeGreaterThan(0);
+  it("holds it before round 15 even with every wall down", () => {
+    // TWO independent holds, and it needs BOTH released. Half the tower's
+    // 30-round clock is spent fighting its boulders and its reach; the giant
+    // itself only ever arrives late.
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 2);
+    s.round = 14;                                   // no gates at all
+    const n = advance(atCleanup(s));
+    expect(n.cards[boss.instanceId].pos!.row, "still too early").toBe(0);
+  });
+
+  it("walks once the round has come AND the last wall is gone", () => {
+    const { after } = roll(0);                      // roll() sets round 9...
+    expect(after().row, "round 9 is still too early").toBe(0);
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 2);
+    s.round = 15;
+    const n = advance(atCleanup(s));
+    expect(n.cards[boss.instanceId].pos!.row, "round 15, no walls: it comes").toBeGreaterThan(0);
+  });
+
+  it("a wall standing still stops it AFTER round 15 — the later hold wins", () => {
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 2);
+    place(s, VOID_GATE, "P1", s.boardSize - 2, 0);
+    s.round = 20;
+    const n = advance(atCleanup(s));
+    expect(n.cards[boss.instanceId].pos!.row, "the gate outlasts the clock").toBe(0);
   });
 
   it("but it still SLIDES while it waits — the aim is not gated, the walk is", () => {

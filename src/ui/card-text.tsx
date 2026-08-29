@@ -742,7 +742,8 @@ export function describePassives(def: CardDef): string[] {
       // THE WALL CLAUSE. A siege engine that will not move until your masonry
       // falls is telling the player what their gates are FOR, so it has to be
       // on the card rather than only in the log.
-      + `${def.roundTick.advanceWhenWallsDown ? " — and not at all while any of your walls still stand" : ""}.`);
+      + `${def.roundTick.advanceFromRound ? ` — not before round ${def.roundTick.advanceFromRound}` : ""}`
+      + `${def.roundTick.advanceWhenWallsDown ? `${def.roundTick.advanceFromRound ? "," : " —"} and not at all while any of your walls still stand` : ""}.`);
   if (def.advanceOnBasic)
     named("advanceOnBasic", `after each basic attack it rolls ${def.advanceOnBasic} slot${def.advanceOnBasic === 1 ? "" : "s"} further toward the enemy home.`);
   if (def.summonAdvance)
