@@ -2072,6 +2072,42 @@ LOCKED. Grid min is 140px, measured: a 375px phone leaves the grid 321px, so
 loop beyond the trials' first-clear pack, floors 2-10 content, board modifiers,
 the rule-breaking floor 10.
 
+## The boss panel's ✕ was under the mute button, and three bugs deep
+
+Reported as "the mute button is bigger than the x button in the boss menu".
+It was not a size problem — the ✕ is 32x32 and the mute is 28x28. Measuring
+the live DOM found three faults stacked on each other:
+
+1. **`.modal.bd-modal` had no `position: relative`**, so `.bd-close`'s
+   `position: absolute` escaped to `.bd-overlay` (fixed, inset 0) and pinned
+   itself to the VIEWPORT's top-left at 10,10 — directly under the fixed music
+   toggle at 6,6. The boxes overlapped by 24px and the mute wins the stack
+   (`--z-nav` 350 vs the panel's 3), so the ✕ was *behind the speaker icon*.
+   That is the whole of the report: the mute looked bigger because it was on
+   top of the thing it was being compared to.
+2. **`.bd-overlay { align-items: flex-start }` had never applied.** The base
+   `.overlay` sets `place-items: center`, a SHORTHAND that writes
+   `align-items`, and it is declared later at equal specificity — so it won.
+   The panel was vertically centred, its top edge sat at -20 on a short
+   screen, and the ✕ pinned to it rendered clipped at y=-9. Same trap the
+   comment above `.modal.bd-modal` already documents for padding; the overlay
+   half was missed. Qualified to `.overlay.bd-overlay` now.
+3. **Moving the ✕ into the panel would have stranded the player.** The panel
+   scrolls (815px of content in a 421px box) and — unlike the card panel,
+   whose `.cd-x` has the same shape — this overlay has NO backdrop-click
+   dismiss, so an absolutely-placed ✕ scrolls away and leaves no exit. It sits
+   in a zero-height `position: sticky` rail (`.bd-closebar`) instead.
+
+Moving the ✕ to the right then collided with `.bd-state` (the ENRAGED /
+CLEARED badge), which owned that corner — pushed to `right: 50px`. It cannot
+go to the LEFT edge instead: on a phone the panel is 96vw, so its left corner
+is back under the music toggle.
+
+VERIFIED IN A BROWSER at 800x450 and 375x812, at the top, middle and bottom of
+the scroll range: ✕ on screen at every position, and zero overlap between ✕,
+state badge, mute and the hero title. **Reading the CSS would not have found
+any of this** — every one of the three needed the computed box.
+
 ## Card Gallery — the screen that shows what the other grids hide
 
 `src/ui/CardGallery.tsx`. Every def in the game in one grid: **366 plates** —

@@ -615,18 +615,44 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    lore, then what the fight is actually made of, then the taming controls.
    Scrolls as one column; the art is the top of the document, not a banner
    pinned above it. */
-.bd-overlay { align-items: flex-start; }
+/* `.overlay.bd-overlay`, for the SAME reason `.modal.bd-modal` is qualified
+   below: the base `.overlay` sets `place-items: center` and is declared later
+   in this file, and `place-items` is a shorthand that writes `align-items`.
+   At equal specificity it won, so this rule had never applied and the boss
+   panel was vertically centred — which pushed its top edge (and the ✕ pinned
+   to it) above the viewport on a short screen. */
+.overlay.bd-overlay { align-items: start; }
 /* `.modal.bd-modal`, not `.bd-modal`. The base `.modal` rule declares its own
    26px padding and is declared LATER in this file, so at equal specificity it
    wins — and the hero art has to reach the modal's edges or it reads as a
    picture pasted into a dialog rather than the top of the page. */
 .modal.bd-modal {
+  /* POSITIONING CONTEXT. Without it `.bd-close` — the only way out of this
+     screen — escaped to `.bd-overlay` (fixed, inset 0) and pinned itself to
+     the VIEWPORT's top-left corner at 10,10, directly underneath the fixed
+     music toggle at 6,6. The two boxes overlapped by 24px and the mute wins
+     the stack (--z-nav 350 against this panel's 3), so the close button was
+     sitting behind the speaker icon: the mute read as an oversized button and
+     the ✕ read as broken. Measured in the browser, not guessed. */
+  position: relative;
   width: min(560px, 96vw); max-height: 94vh; overflow-y: auto; padding: 0 0 18px;
   border-color: color-mix(in srgb, var(--tint) 45%, var(--panel-line));
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.7), 0 0 40px color-mix(in srgb, var(--tint) 18%, transparent);
 }
+/* A zero-height sticky rail at the top of the panel's own scroll box. The ✕
+   used to be `position: absolute`, which scrolls away with the content — and
+   unlike the card panel (`.cd-x`, same shape) this overlay has NO
+   backdrop-click dismiss, so reading down to the lore left the screen with no
+   way out of it. Sticky keeps it on the panel's top-right at every scroll
+   position; `height: 0` keeps the rail itself out of the layout. */
+.bd-closebar {
+  position: sticky; top: 0; z-index: 4; height: 0;
+  display: flex; justify-content: flex-end;
+}
 .bd-close {
-  position: absolute; top: 10px; left: 10px; z-index: 3;
+  /* TOP-RIGHT, opposite the fixed music toggle, which lives at the viewport's
+     top-LEFT and is the corner this button must never share. */
+  position: relative; top: 10px; right: 10px; z-index: 3;
   display: grid; place-items: center; width: 32px; height: 32px; padding: 0;
   border-radius: 50%; border: 1px solid rgba(232, 236, 248, 0.35);
   background: rgba(8, 9, 14, 0.72); color: var(--ink); cursor: pointer;
@@ -647,7 +673,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .bd-tribe { color: var(--ink-dim); }
 .bd-floor { font-size: 11px; color: var(--ink-dim); letter-spacing: 0.06em; }
 .bd-state {
-  position: absolute; top: 10px; right: 10px; z-index: 3;
+  /* Clear of the ✕, which took this corner when it moved off the music
+     toggle: 10px inset + the button's 32px + an 8px gap. It cannot go to the
+     LEFT edge instead — on a phone the panel is 96vw, so its left corner sits
+     under the fixed music toggle at 6,6, which is the collision this whole
+     change exists to undo. */
+  position: absolute; top: 10px; right: 50px; z-index: 3;
   display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px;
   border-radius: 999px; font-size: 10px; font-weight: 900; letter-spacing: 0.08em;
   background: rgba(8, 9, 14, 0.82); border: 1px solid rgba(232, 236, 248, 0.3); color: var(--ink-dim);

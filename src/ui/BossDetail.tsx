@@ -72,9 +72,14 @@ export function BossDetail(props: {
   return (
     <div className="overlay on-top bd-overlay">
       <div className="modal bd-modal" style={{ ["--tint" as string]: tintA, ["--tint2" as string]: tintB }}>
-        <button className="bd-close" type="button" onClick={props.onClose} aria-label="Back to the tower">
-          <X size={18} aria-hidden="true" />
-        </button>
+        {/* Sticky rail, not a floating corner button: this panel scrolls and has
+            no backdrop-click dismiss, so an absolutely-placed ✕ scrolled away
+            and stranded the reader on the lore. */}
+        <div className="bd-closebar">
+          <button className="bd-close" type="button" onClick={props.onClose} aria-label="Back to the tower">
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
 
         {/* THE FACE, at the size the tower promised. The art fades into the
             page rather than ending on a line, so the text below reads as the
