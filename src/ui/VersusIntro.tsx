@@ -25,6 +25,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getDef } from "../data/cards";
 import type { GameState, PlayerId } from "../engine";
+import { seatsOf } from "../engine";
 import { DeckSeat } from "./DeckPickerSheet";
 
 /** How long the screen holds before the match begins. Short on purpose — this
@@ -72,11 +73,20 @@ export function VersusIntro(props: {
   onDone: () => void;
 }) {
   const { game, me, names, onDone } = props;
-  const foe: PlayerId = me === "P1" ? "P2" : "P1";
-  // Read ONCE at mount, so an opponent mulliganing while this is still up
-  // cannot re-shuffle the panels under the player.
+  // EVERY opponent, not "the" opponent. A free-for-all has up to three, and
+  // showing one of them picked arbitrarily is worse than showing none — it
+  // reads as a 1v1 against whichever seat happened to sort first.
+  //
+  // Read ONCE at mount, so a player mulliganing while this is still up cannot
+  // re-shuffle the panels under everyone.
   const [mine] = useState(() => readSide(game, me));
-  const [theirs] = useState(() => readSide(game, foe));
+  const [foes] = useState(() =>
+    seatsOf(game).filter((p) => p !== me).map((p) => ({ seat: p, cards: readSide(game, p) })));
+  // Two seats keep the big side-by-side reveal they have always had; three or
+  // four stack the opponents into a narrower column each, because four full
+  // panels do not fit and shrinking all of them would cost the 1v1 nothing to
+  // gain and everything to look at.
+  const many = foes.length > 1;
 
   // The dismiss timer is armed ONCE, on mount.
   //
@@ -95,21 +105,34 @@ export function VersusIntro(props: {
 
   return (
     <div className="overlay on-top pvi-wrap" onClick={onDone}>
-      <div className="pvi" onClick={(e) => e.stopPropagation()}>
+      <div className={`pvi${many ? " pvi-many" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="pvi-col">
           <DeckSeat side="mine" flag={`YOU · ${me}`} label={names?.[me] ?? "Your squad"} cards={mine} />
           <Detail cards={mine} />
         </div>
 
         <div className="pvi-mid">
-          <span className="pvi-vs">VS</span>
+          <span className="pvi-vs">{many ? `VS ${foes.length}` : "VS"}</span>
           <span className="pvi-bar" aria-hidden="true"><i /></span>
           <button className="pvi-skip" onClick={onDone}>tap to skip</button>
         </div>
 
-        <div className="pvi-col">
-          <DeckSeat side="foe" flag={`OPPONENT · ${foe}`} label={names?.[foe] ?? "Their deck"} cards={theirs} />
-          <Detail cards={theirs} />
+        <div className="pvi-foes">
+          {foes.map((f) => (
+            <div className="pvi-col" key={f.seat}>
+              <DeckSeat
+                side="foe"
+                flag={`${many ? "" : "OPPONENT · "}${f.seat}`}
+                label={names?.[f.seat] ?? "Their deck"}
+                cards={f.cards}
+              />
+              {/* The curve detail is what does not fit four across. In a
+                  free-for-all the seat and the deck name are what you need to
+                  tell three strangers apart; the lists are on the board in a
+                  minute either way. */}
+              {!many && <Detail cards={f.cards} />}
+            </div>
+          ))}
         </div>
       </div>
     </div>

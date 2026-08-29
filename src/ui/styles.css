@@ -6566,3 +6566,68 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   pointer-events: none;
   z-index: 0;
 }
+
+/* ── VERSUS: more than one opponent ──────────────────────────────────────
+   A 1v1 keeps the big side-by-side reveal it has always had. Three or four
+   seats stack the opponents into the right-hand column instead, because four
+   full panels do not fit across and shrinking all of them would cost the 1v1
+   everything to gain nothing. */
+.pvi-foes { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pvi-foes .pvi-col { min-width: 0; }
+/* Wider, because the right column now holds up to three seats — and the
+   opponents' cards shrink rather than the player's own. */
+.pvi.pvi-many { width: min(900px, 96vw); }
+.pvi.pvi-many .pvi-foes .ar-seat { padding: 6px 8px; }
+.pvi.pvi-many .pvi-foes .ar-seat .ar-seat-name { font-size: var(--fs-2); }
+.pvi-vs { white-space: nowrap; }
+
+@media (max-width: 640px) {
+  /* On a phone the three-column grid has no room for a stack beside it; the
+     whole thing becomes one column and the opponents follow underneath. */
+  .pvi.pvi-many { grid-template-columns: 1fr; }
+  .pvi.pvi-many .pvi-mid { flex-direction: row; gap: 10px; }
+}
+
+/* ── THE PREGAME LOBBY ───────────────────────────────────────────────────
+   Everyone in the room, what they are bringing, and whether they have agreed
+   to start. It sits in the seat the old "waiting for your buddy" box occupied,
+   because that is where players already look for the room. */
+.ar-seat.lobby { gap: 8px; }
+.lob-list { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.lob-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--panel-line);
+}
+.lob-row.open { opacity: 0.5; border-style: dashed; }
+.lob-row.me { border-color: rgba(126, 240, 176, 0.55); background: rgba(126, 240, 176, 0.08); }
+/* The seat chip takes the same four colours the board tints card names with,
+   so "I am P3" means the same thing in the lobby as it does in the match. */
+.lob-seat {
+  flex: none; width: 26px; text-align: center;
+  font-family: var(--head); font-size: var(--fs-1); font-weight: 800;
+  padding: 2px 0; border-radius: 4px; border: 1px solid currentColor;
+}
+.lob-seat.seat-p1 { color: #7ef0b0; }
+.lob-seat.seat-p2 { color: #ff9a90; }
+.lob-seat.seat-p3 { color: #d7a6ff; }
+.lob-seat.seat-p4 { color: #ffc75e; }
+.lob-name {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--fs-2); color: var(--ink);
+}
+.lob-tag {
+  font-style: normal; font-size: var(--fs-1); margin-left: 6px;
+  padding: 1px 5px; border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08); color: var(--ink-faint);
+}
+.lob-tag.you { background: rgba(126, 240, 176, 0.18); color: #7ef0b0; }
+.lob-ready {
+  flex: none; font-family: var(--head); font-size: var(--fs-1); letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+.lob-ready.on { color: #7ef0b0; }
+.lob-ready.open { opacity: 0.5; }
+.lob-actions { display: flex; gap: 6px; width: 100%; }
+.lob-actions button { flex: 1; }

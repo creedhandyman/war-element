@@ -48,7 +48,7 @@ import {
 import {
   afterMatch, recordLadderMatch, tierForStreak, winsToNextRung, WINS_PER_RUNG,
 } from "../data/matchmaker";
-import { joinRoom, onlineConfigured, type Role, type Room } from "../net/online";
+import { joinRoom, onlineConfigured, type LobbySeat, type Role, type Room } from "../net/online";
 import { Board } from "./Board";
 import { CardView } from "./CardView";
 import { autoPrefFor } from "./auto-prefs";
@@ -326,13 +326,29 @@ export function App() {
    *  arrival and the third player would overwrite the second. */
   const lobbyRef = useRef<{
     clientId: string; seat: PlayerId; cards: string[];
-    spells?: string[]; name?: string; foils: string[];
+    spells?: string[]; name?: string; foils: string[]; ready: boolean;
   }[]>([]);
   /** GUEST: this client's id, and the seat the host gave it. A two-seat room
    *  never needed either — the guest WAS P2 — and with four the host is the
    *  only side that knows the arrival order. */
   const clientIdRef = useRef<string>("");
   const mySeatRef = useRef<PlayerId>("P2");
+  /** THE PREGAME LOBBY, as everyone renders it. Host-authoritative: only the
+   *  host learns every arrival, so only the host builds this and the guests
+   *  receive it. Null until a room is open. */
+  const [lobby, setLobby] = useState<{ seats: LobbySeat[]; need: number } | null>(null);
+  const [iAmReady, setIAmReady] = useState(false);
+  const hostReadyRef = useRef(false);
+  const hostSeatCountRef = useRef(2);
+  const hostBoardRef = useRef(4);
+  /** The decks as they are RIGHT NOW, for the callbacks.
+   *
+   *  `onJoin` and the start button both fire from closures created when the
+   *  room opened, so reading the deck ids from there would deal whatever was
+   *  picked at that moment — which is the whole thing a lobby exists to let you
+   *  change. Refreshed every render, so it is never stale. */
+  const deckNowRef = useRef<{ cards: string[]; spells?: string[]; name: string }>(
+    { cards: [], name: "" });
   const onlineStartedRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [customDecks, setCustomDecks] = useState<Squad[]>(() => {
@@ -567,6 +583,7 @@ export function App() {
   // gave a spell-less deck the whole elemental set in battle.
   const resolveDeckSpells = (deckId: string): string[] | undefined =>
     (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).spells;
+
   // MOVED DOWN from the top of the component, because the Arena's battle
   // playlist is built from the decks in the seats and those are declared here.
   // Nothing else about it changed.
@@ -596,6 +613,13 @@ export function App() {
   const mySeatDeckId = onlineMode && onlineRole === "guest" ? p2DeckId : p1DeckId;
   const deckLabel = (deckId: string): string =>
     (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).name;
+  // Refreshed every render so the room callbacks never deal a stale deck — see
+  // `deckNowRef`. Cheap: three lookups against an array already in memory.
+  deckNowRef.current = {
+    cards: resolveDeckCards(mySeatDeckId),
+    spells: resolveDeckSpells(mySeatDeckId),
+    name: deckLabel(mySeatDeckId),
+  };
 
   /** The battlefield is the RUN's while one is live — it was dealt for a board
    *  and pays that board's rate. */
@@ -1331,6 +1355,36 @@ export function App() {
     if (!started) seenBigRef.current = new Set();
   }, [started]);
 
+  /** Tell the room what I am bringing.
+   *
+   *  The host updates its own roster directly; a guest re-sends its join, which
+   *  the host keys on `clientId` and treats as an update to that seat. Same
+   *  message either way, so there is one path for "this is my deck now". */
+  function announceMe(ready: boolean) {
+    if (!roomRef.current || onlineStartedRef.current) return;
+    if (onlineRole === "host") {
+      hostReadyRef.current = ready;
+      publishLobby();
+    } else {
+      roomRef.current.sendJoin(
+        clientIdRef.current, deckNowRef.current.cards, deckNowRef.current.spells,
+        deckNowRef.current.name, [...foilIds], ready);
+    }
+  }
+
+  // Changing deck in the lobby re-announces it AND un-readies you — agreeing to
+  // start and then swapping your list underneath everyone is exactly what a
+  // ready flag is there to prevent.
+  const lobbyDeckId = mySeatDeckId;
+  useEffect(() => {
+    if (!roomRef.current || onlineStartedRef.current || !lobby) return;
+    setIAmReady(false);
+    announceMe(false);
+    // announceMe reads refs that are fresh every render; re-running on the deck
+    // id alone is the intent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lobbyDeckId]);
+
   // ── online rooms ──────────────────────────────────────────────────────────
   function hostCreateRoom() {
     if (!onlineConfigured) {
@@ -1339,8 +1393,8 @@ export function App() {
     }
     const code = (roomCode.trim() || Math.random().toString(36).slice(2, 7)).toUpperCase();
     setRoomCode(code);
-    const hostCards = resolveDeckCards(p1DeckId);
-    const hostSpells = resolveDeckSpells(p1DeckId);
+    // NOT snapshotted any more: the lobby exists so the host can still change
+    // deck after opening the room, and `deckNowRef` is read when it deals.
     // Snapshotted like the deck above: onJoin fires much later, and reading
     // `boardSize` from the closure then would take whatever the picker showed
     // at join time rather than what the host actually opened the room with.
@@ -1350,6 +1404,10 @@ export function App() {
     // the Domination board can seat more than two.
     const hostSeatCount = hostBoardSize === DOMINATION_7X7.boardSize ? seatCount : 2;
     lobbyRef.current = [];
+    hostSeatCountRef.current = hostSeatCount;
+    hostBoardRef.current = hostBoardSize;
+    setIAmReady(false);
+    setLobby({ seats: [{ seat: "P1", name: hostName, ready: false, host: true }], need: hostSeatCount });
     setNetStatus(hostSeatCount > 2
       ? `Room ${code} open — share this code. 1 of ${hostSeatCount} seated…`
       : `Room ${code} open — share this code. Waiting for your buddy…`);
@@ -1357,7 +1415,7 @@ export function App() {
     roomRef.current = joinRoom(code, "host", {
       onState: (state) => setGame(state),
       onRematch: () => setRematchTheirs(true),
-      onJoin: (clientId, guestCards, guestSpells, guestName, guestFoils) => {
+      onJoin: (clientId, guestCards, guestSpells, guestName, guestFoils, guestReady) => {
         if (onlineStartedRef.current) return; // already playing — ignore re-joins
         const lobby = lobbyRef.current;
         // A REJOIN keeps its seat. `sendJoin` fires on every subscribe, and a
@@ -1367,58 +1425,94 @@ export function App() {
         const seat: PlayerId = already?.seat
           ?? (["P2", "P3", "P4"] as const)[lobby.length]
           ?? "P4";
-        if (!already) {
+        if (already) {
+          // A LOBBY UPDATE: this player changed deck or readiness. Same seat,
+          // new contents — which is what makes the lobby a lobby rather than a
+          // waiting room.
+          already.cards = guestCards;
+          already.spells = guestSpells;
+          already.name = guestName;
+          already.foils = guestFoils ?? [];
+          already.ready = !!guestReady;
+        } else {
           if (lobby.length >= hostSeatCount - 1) return; // room is full
           lobby.push({
             clientId, seat, cards: guestCards, spells: guestSpells,
-            name: guestName, foils: guestFoils ?? [],
+            name: guestName, foils: guestFoils ?? [], ready: !!guestReady,
           });
         }
         // Tell them which seat they are in, and how full the room is. Sent on a
         // rejoin too, so a guest that missed the first one still learns it.
         roomRef.current?.sendSeat(clientId, seat, lobby.length + 1, hostSeatCount);
         setNetStatus(`Room ${code} — ${lobby.length + 1} of ${hostSeatCount} seated…`);
-        if (lobby.length < hostSeatCount - 1) return; // still waiting on people
-
-        onlineStartedRef.current = true;
-        const seats: PlayerId[] = ["P1", ...lobby.map((e) => e.seat)];
-        const g = createInitialState(
-          newSeed(), hostCards, lobby[0].cards, seats,
-          hostSpells, lobby[0].spells, hostBoardSize,
-          undefined, undefined, undefined,
-          lobby.slice(1).map((e) => ({ id: e.seat, deck: e.cards, spells: e.spells })),
-        );
-        if (hostBoardSize === DOMINATION_7X7.boardSize) g.domination = newDomination(DOMINATION_7X7);
-        // The host is the only side that knows EVERY name, so it names the seats
-        // and relays them; the others read them off the state message.
-        const names: Partial<Record<PlayerId, string>> = { P1: hostName };
-        const foils: Partial<Record<PlayerId, string[]>> = { P1: [...foilIds] };
-        for (const e of lobby) {
-          names[e.seat] = e.name?.trim() || "Their deck";
-          foils[e.seat] = e.foils;
-        }
-        seatNamesRef.current = names;
-        setSeatNames(names);
-        seatFoilsRef.current = foils;
-        setSeatFoils(foils);
-        setupRef.current = {
-          p1: hostCards, p1s: hostSpells, p2: lobby[0].cards, p2s: lobby[0].spells,
-          board: hostBoardSize, humans: seats,
-        };
-        setRematchMine(false); setRematchTheirs(false);
-        setGame(g);
-        setViewSide("P1");
-        setSel(null); setPending(null); setPicks([]); setMullToss([]);
-        setHint(seats.length > 2
-          ? `All ${seats.length} seated! Mulligan: click cards to send back, then confirm.`
-          : "Buddy joined! Mulligan: click cards to send back, then confirm.");
-        setOnline({ role: "host", code, myId: "P1" });
-        setStarted(true);
-        setPvpIntro(true);
-        roomRef.current?.sendState(g, { names, foils }); // deal the opening state
+        publishLobby();
       },
     });
     setOnline({ role: "host", code, myId: "P1" });
+  }
+
+  /** HOST: publish the roster so every client renders the same lobby. */
+  function publishLobby() {
+    const seats: LobbySeat[] = [
+      { seat: "P1", name: deckNowRef.current.name, ready: hostReadyRef.current, host: true },
+      ...lobbyRef.current.map((e) => ({
+        seat: e.seat, name: e.name?.trim() || "Their deck", ready: e.ready,
+      })),
+    ];
+    setLobby({ seats, need: hostSeatCountRef.current });
+    roomRef.current?.sendLobby(seats, hostSeatCountRef.current);
+  }
+
+  /** HOST: deal the match everyone in the lobby agreed to.
+   *
+   *  Separated from `onJoin` on purpose. Dealing the instant the last seat
+   *  filled meant the room was never a lobby — nobody could change a deck,
+   *  because the game had already started by the time they saw who they were
+   *  playing. */
+  function hostStartMatch() {
+    const lobby = lobbyRef.current;
+    const code = roomCode;
+    const hostBoardSize = hostBoardRef.current;
+    if (onlineStartedRef.current || lobby.length < hostSeatCountRef.current - 1) return;
+    onlineStartedRef.current = true;
+    const hostCards = deckNowRef.current.cards;
+    const hostSpells = deckNowRef.current.spells;
+    const hostName = deckNowRef.current.name;
+    const seats: PlayerId[] = ["P1", ...lobby.map((e) => e.seat)];
+    const g = createInitialState(
+      newSeed(), hostCards, lobby[0].cards, seats,
+      hostSpells, lobby[0].spells, hostBoardSize,
+      undefined, undefined, undefined,
+      lobby.slice(1).map((e) => ({ id: e.seat, deck: e.cards, spells: e.spells })),
+    );
+    if (hostBoardSize === DOMINATION_7X7.boardSize) g.domination = newDomination(DOMINATION_7X7);
+    // The host is the only side that knows EVERY name, so it names the seats
+    // and relays them; the others read them off the state message.
+    const names: Partial<Record<PlayerId, string>> = { P1: hostName };
+    const foils: Partial<Record<PlayerId, string[]>> = { P1: [...foilIds] };
+    for (const e of lobby) {
+      names[e.seat] = e.name?.trim() || "Their deck";
+      foils[e.seat] = e.foils;
+    }
+    seatNamesRef.current = names;
+    setSeatNames(names);
+    seatFoilsRef.current = foils;
+    setSeatFoils(foils);
+    setupRef.current = {
+      p1: hostCards, p1s: hostSpells, p2: lobby[0].cards, p2s: lobby[0].spells,
+      board: hostBoardSize, humans: seats,
+    };
+    setRematchMine(false); setRematchTheirs(false);
+    setGame(g);
+    setViewSide("P1");
+    setSel(null); setPending(null); setPicks([]); setMullToss([]);
+    setHint(seats.length > 2
+      ? `All ${seats.length} seated! Mulligan: click cards to send back, then confirm.`
+      : "Buddy joined! Mulligan: click cards to send back, then confirm.");
+    setOnline({ role: "host", code, myId: "P1" });
+    setStarted(true);
+    setPvpIntro(true);
+    roomRef.current?.sendState(g, { names, foils }); // deal the opening state
   }
 
   function guestJoinRoom() {
@@ -1438,6 +1532,7 @@ export function App() {
     clientIdRef.current = Math.random().toString(36).slice(2) + Date.now().toString(36);
     mySeatRef.current = "P2";
     roomRef.current = joinRoom(code, "guest", {
+      onLobby: (seats, need) => setLobby({ seats, need }),
       onSeat: (clientId, seat, have, need) => {
         if (clientId !== clientIdRef.current) return; // somebody else's seat
         mySeatRef.current = seat;
@@ -1475,7 +1570,7 @@ export function App() {
       },
       onRematch: () => setRematchTheirs(true),
       onSubscribed: () => roomRef.current?.sendJoin(
-        clientIdRef.current, guestCards, guestSpells, guestName, [...foilIds]),
+        clientIdRef.current, guestCards, guestSpells, guestName, [...foilIds], false),
     });
     setOnline({ role: "guest", code, myId: "P2" });
   }
@@ -1484,6 +1579,10 @@ export function App() {
     roomRef.current?.close();
     roomRef.current = null;
     onlineStartedRef.current = false;
+    setLobby(null);
+    setIAmReady(false);
+    hostReadyRef.current = false;
+    lobbyRef.current = [];
     setOnline(null);
     setNetStatus("");
     setPvpIntro(false); // else it reappears over the next room's deal
@@ -3669,11 +3768,65 @@ export function App() {
                   </button>
                 </div>
               ) : onlineMode ? (
-                <div className="ar-seat empty live">
-                  <span className="ar-flag dim">{onlineRole === "host" ? "GUEST · P2" : "HOST · P1"}</span>
+                /* THE PREGAME LOBBY. Everyone in the room, what they are
+                   bringing, and whether they have agreed to start. The host
+                   builds this list and relays it, because it is the only side
+                   that learns every arrival. */
+                <div className="ar-seat empty live lobby">
+                  <span className="ar-flag dim">
+                    ROOM · {(lobby?.seats.length ?? 1)} of {lobby?.need ?? 2}
+                  </span>
                   <span className="ar-code live">{roomCode || "—"}</span>
-                  <span className="ar-codehint">{netStatus || "Waiting for your buddy to join…"}</span>
-                  <button className="ghost sm" onClick={leaveOnline}>Leave room</button>
+                  <div className="lob-list">
+                    {Array.from({ length: lobby?.need ?? 2 }, (_, i) => {
+                      const seat = (["P1", "P2", "P3", "P4"] as const)[i];
+                      const row = lobby?.seats.find((x) => x.seat === seat);
+                      const isMe = seat === (online?.myId ?? (onlineRole === "host" ? "P1" : null));
+                      return (
+                        <div key={seat} className={`lob-row${row ? "" : " open"}${isMe ? " me" : ""}`}>
+                          <span className={`lob-seat seat-${seat.toLowerCase()}`}>{seat}</span>
+                          <span className="lob-name">
+                            {row ? row.name : "waiting for a player…"}
+                            {row?.host && <i className="lob-tag">host</i>}
+                            {isMe && <i className="lob-tag you">you</i>}
+                          </span>
+                          {row
+                            ? <span className={`lob-ready${row.ready ? " on" : ""}`}>
+                                {row.ready ? "READY" : "picking"}
+                              </span>
+                            : <span className="lob-ready open">—</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <span className="ar-codehint">
+                    {netStatus || "Waiting for players to join…"}
+                  </span>
+                  <div className="lob-actions">
+                    <button
+                      className={iAmReady ? "ghost sm" : "lockin sm"}
+                      onClick={() => { const next = !iAmReady; setIAmReady(next); announceMe(next); }}
+                    >
+                      {iAmReady ? "Not ready" : "I'm ready"}
+                    </button>
+                    {onlineRole === "host" && (
+                      <button
+                        className="lockin sm"
+                        disabled={!lobby
+                          || lobby.seats.length < lobby.need
+                          || !lobby.seats.every((x) => x.ready)}
+                        title={!lobby || lobby.seats.length < lobby.need
+                          ? "Every seat has to be filled first"
+                          : !lobby.seats.every((x) => x.ready)
+                            ? "Everyone has to be ready"
+                            : undefined}
+                        onClick={hostStartMatch}
+                      >
+                        Start match
+                      </button>
+                    )}
+                    <button className="ghost sm" onClick={leaveOnline}>Leave</button>
+                  </div>
                 </div>
               ) : (
                 <DeckSeat

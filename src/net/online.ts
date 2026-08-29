@@ -21,6 +21,19 @@ const supabase = onlineConfigured ? createClient(URL!, ANON!) : null;
 
 export type Role = "host" | "guest";
 
+/** One line of the PREGAME LOBBY, as the host sees it and everyone renders it.
+ *
+ *  The roster is host-authoritative for the same reason the seating is: only the
+ *  host learns every arrival, so only the host can say who is in the room. A
+ *  guest never builds this, it only receives it. */
+export interface LobbySeat {
+  seat: PlayerId;
+  /** The deck this player currently has selected. */
+  name: string;
+  ready: boolean;
+  host?: boolean;
+}
+
 /** Table dressing that rides along with the state.
  *
  *  The deck NAMES, which the engine does not carry and cannot be derived: a
@@ -55,9 +68,15 @@ export interface Room {
    *  display name, and the card ids it holds in FOIL — the host is the only
    *  side that can see both collections, so it is the only side that can relay
    *  them back. */
+  /** Guest → host. Sent on arrival AND again whenever this player changes deck
+   *  or readiness in the lobby: the host keys on `clientId`, so a re-send
+   *  UPDATES that seat rather than taking another one. */
   sendJoin: (
     clientId: string, cards: string[], spells?: string[], name?: string, foils?: string[],
+    ready?: boolean,
   ) => void;
+  /** Host → the room: the whole lobby, every time it changes. */
+  sendLobby: (seats: LobbySeat[], need: number) => void;
   /** Host → the room: "the client with this id is sitting in this seat".
    *
    *  A two-seat room never needed this — the guest WAS P2 and could assume it.
@@ -88,7 +107,9 @@ export function joinRoom(
     onState: (state: GameState, meta?: StateMeta) => void;
     onJoin?: (
       clientId: string, cards: string[], spells?: string[], name?: string, foils?: string[],
+      ready?: boolean,
     ) => void; // host only
+    onLobby?: (seats: LobbySeat[], need: number) => void; // guests
     onSeat?: (clientId: string, seat: PlayerId, have: number, need: number) => void; // guests
     onRematch?: () => void;
     onSubscribed?: () => void;
@@ -143,10 +164,14 @@ export function joinRoom(
         payload.spells as string[] | undefined,
         payload.name as string | undefined,
         payload.foils as string[] | undefined,
+        payload.ready as boolean | undefined,
       ),
     );
   }
   if (role === "guest") {
+    channel.on("broadcast", { event: "lobby" }, ({ payload }) =>
+      handlers.onLobby?.(payload.seats as LobbySeat[], payload.need as number),
+    );
     channel.on("broadcast", { event: "seat" }, ({ payload }) =>
       handlers.onSeat?.(
         payload.clientId as string,
@@ -177,10 +202,13 @@ export function joinRoom(
     resend: () => {
       if (last) push(last.state, last.clock, last.meta);
     },
-    sendJoin: (clientId, cards, spells, name, foils) =>
+    sendJoin: (clientId, cards, spells, name, foils, ready) =>
       void channel.send({
-        type: "broadcast", event: "join", payload: { clientId, cards, spells, name, foils },
+        type: "broadcast", event: "join",
+        payload: { clientId, cards, spells, name, foils, ready },
       }),
+    sendLobby: (seats, need) =>
+      void channel.send({ type: "broadcast", event: "lobby", payload: { seats, need } }),
     sendSeat: (clientId, seat, have, need) =>
       void channel.send({
         type: "broadcast", event: "seat", payload: { clientId, seat, have, need },
