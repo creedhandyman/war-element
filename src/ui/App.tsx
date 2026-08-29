@@ -80,7 +80,7 @@ import { SpellTray } from "./SpellTray";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { WinScreen, type NextUp } from "./WinScreen";
-import { EL_COLOR, EL_ICON, type PendingBattle, type Selection } from "./shared";
+import { EL_COLOR, EL_ICON, type PendingBattle, type Selection, SEAT_SUIT } from "./shared";
 import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
 import { StoryRegions } from "./StoryRegions";
@@ -3802,7 +3802,9 @@ export function App() {
                       const isMe = seat === (online?.myId ?? (onlineRole === "host" ? "P1" : null));
                       return (
                         <div key={seat} className={`lob-row${row ? "" : " open"}${isMe ? " me" : ""}`}>
-                          <span className={`lob-seat seat-${seat.toLowerCase()}`}>{seat}</span>
+                          <span className={`lob-seat seat-${seat.toLowerCase()}`}>
+                            {SEAT_SUIT[seat].glyph} {seat}
+                          </span>
                           <span className="lob-name">
                             {row ? row.name : "waiting for a player…"}
                             {row?.host && <i className="lob-tag">host</i>}

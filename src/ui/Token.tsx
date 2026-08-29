@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CardInstance, GameState, PlayerId } from "../engine";
 import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, fieldFlag, getDef, hasTotemSpirit, isBloodfire, legalMoves } from "../engine";
-import { KEYWORD_STYLE, STATUS_STYLE } from "./shared";
+import { KEYWORD_STYLE, STATUS_STYLE, SEAT_SUIT } from "./shared";
 
 /** One letter, because the tile has no room for a word and the marker only has
  *  to distinguish two states you already chose deliberately. The names are the
@@ -433,6 +433,14 @@ export function Token(props: {
       {/* Name owns the entire top edge — no cost gem beside it. The cost is
           already paid by the time a card stands here; on the board it was only
           buying the name's first 17px, which is what forced "Rep…". */}
+      {/* WHOSE CARD, as a SHAPE. The name is already tinted by seat, but colour
+          alone is a single channel — it fails for a colour-blind player, and it
+          fails anyone glancing across a 49-slot board. A suit is the oldest
+          answer there is to "which of these four is mine": readable at this
+          size, and instantly countable when four seats share one board. */}
+      <span className={`tk-suit suit-${SEAT_SUIT[card.owner].key}`} title={`Player ${card.owner}`}>
+        {SEAT_SUIT[card.owner].glyph}
+      </span>
       <div className="tk-name">{def.name}</div>
       {/* Statuses as a left column, two deep, then a count. A wrapping strip
           across the middle of the art could grow to five chips and hide the

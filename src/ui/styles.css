@@ -6605,7 +6605,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* The seat chip takes the same four colours the board tints card names with,
    so "I am P3" means the same thing in the lobby as it does in the match. */
 .lob-seat {
-  flex: none; width: 26px; text-align: center;
+  flex: none; width: 40px; text-align: center;
   font-family: var(--head); font-size: var(--fs-1); font-weight: 800;
   padding: 2px 0; border-radius: 4px; border: 1px solid currentColor;
 }
@@ -6657,3 +6657,28 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .ar-table { padding: 5px 10px 2px; }
   .ar-table-seats { grid-template-columns: 1fr; }
 }
+
+/* ── WHOSE CARD: the seat's suit ─────────────────────────────────────────
+   Top-right, the corner a playing card has always put its suit in. Paired with
+   the seat tint on the name rather than replacing it — two channels for one
+   fact, so ownership still reads for a colour-blind player and at a glance
+   across a 49-slot board. */
+.tk-suit {
+  position: absolute;
+  top: 1px;
+  right: 3px;
+  z-index: 2;
+  font-size: var(--fs-2);
+  line-height: 13px;
+  pointer-events: none;
+  text-shadow: 0 1px 3px #000, 0 0 5px rgba(0, 0, 0, 0.9);
+}
+/* The suit takes the SEAT's colour, not the card-deck convention: here the
+   colour means which player, and the shape is the redundant half. */
+.token.seat-p1 > .tk-suit { color: #7ef0b0; }
+.token.seat-p2 > .tk-suit { color: #ff9a90; }
+.token.seat-p3 > .tk-suit { color: #d7a6ff; }
+.token.seat-p4 > .tk-suit { color: #ffc75e; }
+/* Make room, so a long card name ellipsises before it runs under the suit
+   instead of colliding with it. */
+.token > .tk-name { right: 16px; }

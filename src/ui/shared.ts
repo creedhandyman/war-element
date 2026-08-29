@@ -1,6 +1,6 @@
 // Tiny UI-shared bits (no game rules here).
 
-import type { Element, Keyword, StatusKind } from "../engine";
+import type { Element, Keyword, PlayerId, StatusKind } from "../engine";
 
 // Element colors — the redesign palette (brighter, reads on the cosmic board).
 /** THE element order, wherever a UI lists all eight.
@@ -148,3 +148,20 @@ export type Selection =
  *  cause than either: a Talent is free and once per game, so a stray tap spends
  *  the card's whole one-shot with nothing to undo it. */
 export type PendingBattle = "basic" | "special" | "talent" | null;
+
+/** One suit per seat, in the order they are dealt.
+ *
+ *  Paired with the seat COLOUR rather than replacing it: two channels for one
+ *  fact, so the board still reads when either is unavailable — a colour-blind
+ *  player has the shape, and a player squinting at a small token has the tint.
+ *
+ *  Deliberately NOT coloured by the card-deck convention (hearts red, spades
+ *  black): here the colour carries the SEAT and the shape carries the suit, so
+ *  giving the suit its traditional colour would put two meanings on one
+ *  channel and break the pairing above. */
+export const SEAT_SUIT: Record<PlayerId, { glyph: string; key: string }> = {
+  P1: { glyph: "♥", key: "heart" },
+  P2: { glyph: "♣", key: "club" },
+  P3: { glyph: "♦", key: "diamond" },
+  P4: { glyph: "♠", key: "spade" },
+};
