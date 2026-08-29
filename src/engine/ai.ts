@@ -11,8 +11,7 @@ import {
   effectiveMaxHp,
   homeSlotsHeld,
   isCaptured,
-  moveReachFor,
-} from "./state";
+  moveReachFor, enemyCards } from "./state";
 import { hasEvasion, TARGETLESS_HANDLERS } from "./combat";
 import {
   canCastSpell,
@@ -175,7 +174,7 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
   const book = p.spellbook.filter((s) => !s.used);
   if (book.length === 0) return null;
   const myHome = homeRow(player, state.boardSize);
-  const foes = boardCards(state, enemyOf(player)).filter((c) => c.curHp > 0);
+  const foes = enemyCards(state, player).filter((c) => c.curHp > 0);
   const mine = boardCards(state, player).filter((c) => c.curHp > 0);
   const affordable = book.filter((s) => p.magicPool >= getSpell(s.defId).cost);
   const of = (kind: string) => affordable.filter((s) => getSpell(s.defId).kind === kind);
@@ -215,7 +214,7 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
       const connects = ordered.filter((a) => {
         const row = Math.max(0, Math.min(state.boardSize - 1, a.pos!.row + step * dir));
         const ghost: CardInstance = { ...a, pos: { ...a.pos!, row } as Pos };
-        return boardCards(state, enemyOf(player)).some(
+        return enemyCards(state, player).some(
           (e) => e.curHp > 0 && canTarget(state, ghost, e),
         );
       }).length;
@@ -665,7 +664,7 @@ function findClosingMove(state: GameState, player: PlayerId): Intent | null {
 function threatAt(state: GameState, mover: CardInstance, pos: Pos): number {
   const ghost: CardInstance = { ...mover, pos: { ...pos } };
   let total = 0;
-  for (const enemy of boardCards(state, enemyOf(mover.owner))) {
+  for (const enemy of enemyCards(state, mover.owner)) {
     // forBasic: this models incoming BASIC volleys, so it must respect the same
     // queen-line reach the attacker would actually be held to.
     if (canTarget(state, enemy, ghost, false, true)) {
@@ -1018,7 +1017,7 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
       // the living enemies keeps those castable instead of silently unreachable.
       const reachable = specTargets.length > 0
         ? specTargets
-        : boardCards(state, enemyOf(card.owner)).filter((t) => t.curHp > 0);
+        : enemyCards(state, card.owner).filter((t) => t.curHp > 0);
 
       if (damages && reachable.length > 0) {
         // Same policy the strike/barrage branch uses: take a kill whenever one

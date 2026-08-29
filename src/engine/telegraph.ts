@@ -19,8 +19,7 @@
 // and the test suite fires each Special for real and checks that nothing was
 // damaged outside the lit cells.
 import type { CardDef, CardInstance, GameState, PlayerId, Pos, StatusKind } from "./types";
-import { enemyOf } from "./types";
-import { boardCards, hasStatus } from "./state";
+import { boardCards, hasStatus, enemyCards } from "./state";
 import { getDef } from "../data/cards";
 import { specialTargets } from "./rules";
 
@@ -76,7 +75,7 @@ function silencedWhenItFires(card: CardInstance): boolean {
 /** Every enemy of `card` still standing. The board-wide handlers ignore the
  *  target list they are passed and sweep this set themselves. */
 function livingFoes(state: GameState, card: CardInstance): CardInstance[] {
-  return boardCards(state, enemyOf(card.owner)).filter((e) => e.curHp > 0 && e.pos);
+  return enemyCards(state, card.owner).filter((e) => e.curHp > 0 && e.pos);
 }
 
 /** The cards a boss's Special will actually touch, per handler.

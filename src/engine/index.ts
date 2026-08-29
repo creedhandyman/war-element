@@ -5,6 +5,7 @@ export * from "./types";
 export {
   createInitialState,
   boardCards,
+  enemyCards,
   cardAt,
   isContested,
   isCaptured,

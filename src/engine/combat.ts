@@ -20,7 +20,7 @@ import { RANGED_REACH, canTarget, shoveTarget, validSpecialTargets, validTargets
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
-import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens, summonCard } from "./state";
+import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens, summonCard, enemyCards } from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -377,7 +377,7 @@ export function defeatCard(
     // it will ever be — which is exactly why the rise is worth answering.
     const burst = rise.burst;
     if (burst) {
-      const caught = boardCards(draft, enemyOf(card.owner)).filter(
+      const caught = enemyCards(draft, card.owner).filter(
         (e) => e.curHp > 0 && e.pos
           && Math.max(Math.abs(e.pos.row - card.pos!.row), Math.abs(e.pos.col - card.pos!.col)) <= burst.reach,
       );
@@ -547,7 +547,7 @@ export function defeatCard(
   // Unstable Core (Nitro): a final explosion across the whole enemy board, on
   // ANY death path (this is the one place every death funnels through).
   if (def.deathExplosion) {
-    const foes = boardCards(draft, enemyOf(card.owner)).filter((e) => e.curHp > 0);
+    const foes = enemyCards(draft, card.owner).filter((e) => e.curHp > 0);
     for (const e of foes) directDamage(draft, card, e, def.deathExplosion, false);
     draft.log.push(`${label(draft, card)}'s Unstable Core detonates — ${def.deathExplosion} DMG to all opponents!`);
   }
@@ -570,7 +570,7 @@ export function defeatCard(
     boardCards(draft, card.owner).some((c) => c.curHp > 0 && getDef(c.defId).contagionAura)
   ) {
     const dp = card.pos;
-    const near = boardCards(draft, enemyOf(card.owner)).filter(
+    const near = enemyCards(draft, card.owner).filter(
       (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, dp) <= 1,
     );
     for (const e of near) directDamage(draft, card, e, CONTAGION_SPLASH, false);
@@ -729,7 +729,7 @@ export function applyTimedBuff(
  *  the board. Shared by the Special (first shot) and the Cleanup tick. */
 export function fireElectrifiedVolley(draft: GameState, card: CardInstance, dmg: number): number {
   if (card.curHp <= 0 || dmg <= 0) return 0;
-  const zapped = boardCards(draft, enemyOf(card.owner)).filter((e) => e.curHp > 0 && hasStatus(e, "ELECTRIFIED"));
+  const zapped = enemyCards(draft, card.owner).filter((e) => e.curHp > 0 && hasStatus(e, "ELECTRIFIED"));
   for (const e of zapped) tickDamage(draft, card, e, dmg, false);
   if (zapped.length) draft.log.push(`${label(draft, card)}'s turret fires — ${zapped.length} Electrified opponent(s) take ${dmg}.`);
   return zapped.length;
@@ -848,7 +848,7 @@ export function checkLowHpTransform(draft: GameState, card: CardInstance): void 
     draft.log.push(`${label(draft, card)} dismounts — it fights on as a common skeleton.`);
     if (o.loseSp) card.spBonus -= o.loseSp;
     if (o.dmg) {
-      const foes = boardCards(draft, enemyOf(card.owner)).filter((c) => c.curHp > 0);
+      const foes = enemyCards(draft, card.owner).filter((c) => c.curHp > 0);
       const foe = card.pos
         ? foes.reduce<CardInstance | null>((best, c) => (c.pos && (!best || manhattan(card.pos!, c.pos) < manhattan(card.pos!, best.pos!)) ? c : best), null)
         : foes[0] ?? null;
@@ -966,7 +966,7 @@ export function resolveHit(
       || (draft.players[target.owner].foggedRounds ?? 0) > 0
       || draft.fields.some((f) => f.owner !== attacker.owner && f.enemyMissChance)
       || (attacker.attackMissRounds ?? 0) > 0
-      || boardCards(draft, enemyOf(attacker.owner)).some((e) => e.curHp > 0 && getDef(e.defId).blindingStar);
+      || enemyCards(draft, attacker.owner).some((e) => e.curHp > 0 && getDef(e.defId).blindingStar);
     if (wouldHaveMissed) {
       attacker.fxNeverMiss = (attacker.fxNeverMiss ?? 0) + 1;
       draft.log.push(
@@ -1064,7 +1064,7 @@ export function resolveHit(
     // when the attack is a basic that can miss at all.
     if (
       opts.kind === "basic" && !aDef.alwaysHit && !neverMiss &&
-      boardCards(draft, enemyOf(attacker.owner)).some((e) => e.curHp > 0 && getDef(e.defId).blindingStar) &&
+      enemyCards(draft, attacker.owner).some((e) => e.curHp > 0 && getDef(e.defId).blindingStar) &&
       pctChance(draft, BLINDING_STAR_MISS_PCT)
     ) {
       result.dodgedHits++;
@@ -1551,7 +1551,7 @@ export function resolveHit(
         draft.log.push(`${tDef.name}'s last waltz lifts ${kin.length} ${tribe}(s) (+${dmg} DMG, permanently).`);
     }
     if (tDef.onDeath?.frightenInRange && deathPos) {
-      const scared = boardCards(draft, enemyOf(deadOwner)).filter(
+      const scared = enemyCards(draft, deadOwner).filter(
         (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, deathPos) <= 1,
       );
       for (const e of scared)
@@ -1564,7 +1564,7 @@ export function resolveHit(
     // killing the crystal is not an escape from it.
     if (tDef.onDeath?.inRangeStatus && deathPos) {
       const st = tDef.onDeath.inRangeStatus;
-      const caught = boardCards(draft, enemyOf(deadOwner)).filter(
+      const caught = enemyCards(draft, deadOwner).filter(
         (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, deathPos) <= 1,
       );
       for (const e of caught) applyStatus(draft, e, st.kind, st.duration, st.power, tDef.element);
@@ -1576,7 +1576,7 @@ export function resolveHit(
     if (tDef.onDeath && opts.kind !== "reflect") {
       // Pop (Florence): an immediate burst across the whole enemy board.
       if (tDef.onDeath.aoeDmg) {
-        const foes = boardCards(draft, enemyOf(deadOwner)).filter((e) => e.curHp > 0);
+        const foes = enemyCards(draft, deadOwner).filter((e) => e.curHp > 0);
         for (const e of foes) directDamage(draft, target, e, tDef.onDeath.aoeDmg, false);
         draft.log.push(`${tDef.name} pops — ${tDef.onDeath.aoeDmg} DMG to every opponent.`);
       }
@@ -1584,7 +1584,7 @@ export function resolveHit(
       if (tDef.onDeath.farRowStatus) {
         const fr = tDef.onDeath.farRowStatus;
         const home = homeRow(enemyOf(deadOwner), draft.boardSize);
-        const back = boardCards(draft, enemyOf(deadOwner)).filter((e) => e.curHp > 0 && e.pos?.row === home);
+        const back = enemyCards(draft, deadOwner).filter((e) => e.curHp > 0 && e.pos?.row === home);
         for (const e of back) applyStatus(draft, e, fr.kind, fr.duration, fr.power, tDef.element);
         if (back.length) draft.log.push(`${tDef.name} goes out with a bang — ${fr.kind} on ${back.length} far-row foe(s).`);
       }
@@ -1595,7 +1595,7 @@ export function resolveHit(
       // otherwise), measured from the slot it fell on.
       if (tDef.onDeath.inRangeDmg && deathPos) {
         const reach = tDef.attackType === "Melee" ? 1 : RANGED_REACH;
-        const caught = boardCards(draft, enemyOf(deadOwner)).filter(
+        const caught = enemyCards(draft, deadOwner).filter(
           (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, deathPos) <= reach,
         );
         for (const e of caught)
@@ -2232,7 +2232,7 @@ export function basicAttack(
   ) {
     const primary = draft.cards[groups[0]?.targetId];
     if (primary?.pos) {
-      const neighbours = boardCards(draft, enemyOf(attacker.owner)).filter(
+      const neighbours = enemyCards(draft, attacker.owner).filter(
         (e) => e.curHp > 0 && e.instanceId !== primary.instanceId && e.pos != null && chebyshev(e.pos, primary.pos!) <= 1,
       );
       // Which holder is actually granting this decides both the log name and
@@ -2292,7 +2292,7 @@ export function basicAttack(
   if (aDef.basicSplash && agg.landedHits > 0 && attacker.curHp > 0) {
     const primary = draft.cards[groups[0]?.targetId];
     if (primary?.pos) {
-      const neighbours = boardCards(draft, enemyOf(attacker.owner)).filter(
+      const neighbours = enemyCards(draft, attacker.owner).filter(
         (e) => e.curHp > 0 && e.instanceId !== primary.instanceId && e.pos != null && chebyshev(e.pos, primary.pos!) <= 1,
       );
       for (const splash of aDef.splashAll ? neighbours : neighbours.slice(0, 1)) {
@@ -2307,7 +2307,7 @@ export function basicAttack(
     const primary = draft.cards[groups[0]?.targetId];
     if (primary?.pos && hasStatus(primary, "FREEZE")) {
       let hit = 0;
-      for (const e of boardCards(draft, enemyOf(attacker.owner)))
+      for (const e of enemyCards(draft, attacker.owner))
         if (e.curHp > 0 && e.instanceId !== primary.instanceId && e.pos && chebyshev(e.pos, primary.pos) <= 1) {
           directDamage(draft, attacker, e, aDef.shatterFrozen, false); hit++;
         }
@@ -2316,7 +2316,7 @@ export function basicAttack(
   }
   // Mega Push (Megair): a desperation nova while it's nearly dead.
   if (aDef.lowHpNova && agg.landedHits > 0 && attacker.curHp > 0 && attacker.curHp < aDef.lowHpNova.belowHp) {
-    const foes = boardCards(draft, enemyOf(attacker.owner)).filter((e) => e.curHp > 0);
+    const foes = enemyCards(draft, attacker.owner).filter((e) => e.curHp > 0);
     for (const e of foes) directDamage(draft, attacker, e, aDef.lowHpNova.dmg, false);
     for (const e of foes) pushBack(draft, e, aDef.lowHpNova.push, attacker.owner);
     if (foes.length) draft.log.push(`${label(draft, attacker)} unleashes Mega Push (${aDef.lowHpNova.dmg} + knockback to all).`);
@@ -2673,7 +2673,7 @@ function chargeToward(
     if (run) {
       // Collect as we go, damage after the ride — resolving mid-move could kill
       // a blocker and change the lane the rider is still walking.
-      for (const e of boardCards(draft, enemyOf(card.owner))) {
+      for (const e of enemyCards(draft, card.owner)) {
         if (!e.pos || (e.pos.row === dest.row && e.pos.col === dest.col)) continue;
         if (chebyshev(e.pos, card.pos) <= 1) run.add(e.instanceId);
       }
@@ -2859,7 +2859,7 @@ function onDeathRowAhead(
 ): void {
   const row = rowAhead(deadOwner, pos.row);
   if (row < 0 || row >= draft.boardSize) return;
-  const victims = boardCards(draft, enemyOf(deadOwner)).filter((c) => c.pos?.row === row);
+  const victims = enemyCards(draft, deadOwner).filter((c) => c.pos?.row === row);
   if (victims.length === 0) return;
   draft.log.push(`${getDef(dead.defId).name} erupts on death — ${dmg} DMG to the row ahead!`);
   for (const v of victims) directDamage(draft, dead, v, dmg, pen);
@@ -2909,7 +2909,7 @@ function applyOnHitZap(
   const zapped: CardInstance[] = [];
   if (attacker.curHp > 0 && draft.cards[attacker.instanceId]) zapped.push(attacker);
   if (defender.pos) {
-    for (const e of boardCards(draft, enemyOf(defender.owner))) {
+    for (const e of enemyCards(draft, defender.owner)) {
       if (!e.pos || e.curHp <= 0) continue;
       if (e.instanceId === attacker.instanceId) continue; // already in the list
       const dr = Math.abs(e.pos.row - defender.pos.row);
@@ -2948,7 +2948,7 @@ function applyHeavyHit(
   dealt: number,
 ): void {
   if (dealt <= def.over || !defender.pos) return;
-  const caught = boardCards(draft, enemyOf(defender.owner)).filter((e) => {
+  const caught = enemyCards(draft, defender.owner).filter((e) => {
     if (!e.pos || e.curHp <= 0) return false;
     return Math.max(Math.abs(e.pos.row - defender.pos!.row),
                     Math.abs(e.pos.col - defender.pos!.col)) <= def.reach;
@@ -3048,7 +3048,7 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
   }
   // Quadruple Strike (Birch): the kill flows into the nearest survivor.
   if (def.nearestVolley && killer.pos && killer.curHp > 0) {
-    const prey = boardCards(draft, enemyOf(killer.owner))
+    const prey = enemyCards(draft, killer.owner)
       .filter((e) => e.curHp > 0 && e.pos)
       .sort((a, b) => manhattan(killer.pos!, a.pos!) - manhattan(killer.pos!, b.pos!))[0];
     if (prey) {
@@ -3058,7 +3058,7 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
   }
   // Infinite Serpent (Hydrogon): the kill snaps to the weakest survivor.
   if (def.lowestHpDmg && killer.curHp > 0) {
-    const prey = boardCards(draft, enemyOf(killer.owner))
+    const prey = enemyCards(draft, killer.owner)
       .filter((e) => e.curHp > 0)
       .sort((a, b) => a.curHp - b.curHp)[0];
     if (prey) {
@@ -3115,7 +3115,7 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
   }
   // Star Blaster (Zenith): a kill BLINDs nearby opponents for the round.
   if (def.blindInRange && killer.pos) {
-    const near = boardCards(draft, enemyOf(killer.owner)).filter(
+    const near = enemyCards(draft, killer.owner).filter(
       (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, killer.pos!) <= 1,
     );
     for (const e of near) applyStatus(draft, e, "BLIND", def.blindInRange, 0, getDef(killer.defId).element);
@@ -3124,7 +3124,7 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
   if (def.extendStatus) {
     const { kind, rounds } = def.extendStatus;
     let n = 0;
-    for (const e of boardCards(draft, enemyOf(killer.owner))) {
+    for (const e of enemyCards(draft, killer.owner)) {
       const st = e.statuses.find((s) => s.kind === kind);
       if (st) { st.duration += rounds; n++; }
     }
@@ -3135,13 +3135,13 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
     draft.log.push(`${name} tightens its grip (King Me — Special costs ${def.reduceSpecialCost} less).`);
   }
   if (def.aoeDmg) {
-    for (const e of boardCards(draft, enemyOf(killer.owner)))
+    for (const e of enemyCards(draft, killer.owner))
       directDamage(draft, killer, e, def.aoeDmg, false);
     draft.log.push(`${name} discharges ${def.aoeDmg} to all enemies!`);
   }
   // Powertrip (Voltogon): once per round, jolt every ELECTRIFIED (statused) enemy.
   if (def.aoeDmgElectrified && !killer.onKillAoeFiredRound) {
-    const shocked = boardCards(draft, enemyOf(killer.owner)).filter((e) => e.statuses.length > 0);
+    const shocked = enemyCards(draft, killer.owner).filter((e) => e.statuses.length > 0);
     if (shocked.length > 0) {
       killer.onKillAoeFiredRound = true;
       for (const e of shocked) directDamage(draft, killer, e, def.aoeDmgElectrified, false);
@@ -3265,7 +3265,7 @@ function adjacentCasterStatus(
 ): void {
   const kind = params.adjStatusKind as StatusKind | undefined;
   if (!kind || !caster.pos) return;
-  for (const e of boardCards(draft, enemyOf(caster.owner))) {
+  for (const e of enemyCards(draft, caster.owner)) {
     if (!e.pos) continue;
     const dr = Math.abs(e.pos.row - caster.pos.row);
     const dc = Math.abs(e.pos.col - caster.pos.col);
@@ -3308,7 +3308,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const dmg = num(params, "dmg", 3);
     const rounds = num(params, "rounds", 3);
     const el = getDef(attacker.defId).element;
-    for (const e of boardCards(draft, enemyOf(attacker.owner)))
+    for (const e of enemyCards(draft, attacker.owner))
       if (e.curHp > 0) applyStatus(draft, e, "ELECTRIFIED", rounds, 0, el);
     attacker.turretDmg = dmg;
     fireElectrifiedVolley(draft, attacker, dmg); // round 1 fires immediately
@@ -3373,7 +3373,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       for (const id of roster) {
         const ally = draft.cards[id];
         if (!ally || ally.curHp <= 0 || !ally.pos) continue;
-        const foe = boardCards(draft, enemyOf(ally.owner))
+        const foe = enemyCards(draft, ally.owner)
           .filter((e) => e.curHp > 0 && e.pos && canTarget(draft, ally, e, false, true))
           .sort((a, b) => manhattan(ally.pos!, a.pos!) - manhattan(ally.pos!, b.pos!))[0];
         if (foe) basicAttack(draft, ally.instanceId, foe.instanceId);
@@ -3557,7 +3557,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // enemies adjacent (chess-king) to the struck slot.
     if (params.statusSplash && typeof params.statusKind === "string" && center) {
       const kind = params.statusKind as StatusKind;
-      for (const e of boardCards(draft, enemyOf(attacker.owner))) {
+      for (const e of enemyCards(draft, attacker.owner)) {
         if (e.instanceId === target.instanceId || !e.pos || e.curHp <= 0) continue;
         if (Math.max(Math.abs(e.pos.row - center.row), Math.abs(e.pos.col - center.col)) === 1)
           applyStatus(draft, e, kind, num(params, "statusDuration", 1), num(params, "statusPower"), getDef(attacker.defId).element);
@@ -3591,7 +3591,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // (Dive Bomb 11, Shadow Charge 9).
     const splash = num(params, "splash");
     if (splash > 0 && center) {
-      for (const e of boardCards(draft, enemyOf(attacker.owner))) {
+      for (const e of enemyCards(draft, attacker.owner)) {
         if (e.instanceId === target.instanceId || !e.pos) continue;
         if (Math.max(Math.abs(e.pos.row - center.row), Math.abs(e.pos.col - center.col)) === 1) {
           directDamage(draft, attacker, e, splash, num(params, "pen") > 0);
@@ -3607,7 +3607,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // opponent on the board, not just the ones adjacent to the primary.
     const splashAll = num(params, "splashAll");
     if (splashAll > 0) {
-      for (const e of boardCards(draft, enemyOf(attacker.owner)))
+      for (const e of enemyCards(draft, attacker.owner))
         if (e.instanceId !== target.instanceId && e.curHp > 0) directDamage(draft, attacker, e, splashAll, false);
     }
     const selfDamage = num(params, "selfDamage");
@@ -3666,7 +3666,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (num(params, "pounceAgain") > 0 && attacker.curHp > 0 && attacker.pos) {
       const here = attacker.pos;
       const first = targets[0]?.instanceId;
-      const next = boardCards(draft, enemyOf(attacker.owner))
+      const next = enemyCards(draft, attacker.owner)
         .filter((e) => e.curHp > 0 && e.pos && draft.cards[e.instanceId])
         // A FRESH victim outranks distance: two pounces onto the same card is
         // just a big single hit, and the whole read of the move is the cat
@@ -3697,7 +3697,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (!pos) return;
     const dir = attacker.owner === "P1" ? -1 : 1; // toward the enemy home row
     // Everything ahead in this column, nearest first.
-    const lane = boardCards(draft, enemyOf(attacker.owner))
+    const lane = enemyCards(draft, attacker.owner)
       .filter((e) => e.pos && e.pos.col === pos.col && (e.pos.row - pos.row) * dir > 0)
       .sort((a, b) => (a.pos!.row - pos.row) * dir - (b.pos!.row - pos.row) * dir);
     if (lane.length === 0) return;
@@ -3849,7 +3849,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const farStatusKind = typeof params.statusKind === "string" ? (params.statusKind as StatusKind) : null;
     if ((farRowDmg > 0 || (farRowStatus > 0 && farStatusKind)) && attacker.pos) {
       const far = rowAhead(attacker.owner, rowAhead(attacker.owner, attacker.pos.row));
-      for (const e of boardCards(draft, enemyOf(attacker.owner))) {
+      for (const e of enemyCards(draft, attacker.owner)) {
         if (e.curHp <= 0 || e.pos?.row !== far) continue;
         if (farRowDmg > 0) directDamage(draft, attacker, e, farRowDmg, false);
         if (farRowStatus > 0 && farStatusKind && draft.cards[e.instanceId] && e.curHp > 0)
@@ -3950,7 +3950,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const dmg = num(params, "dmg");
     const need = String(params.requireStatus ?? "");
     const pen = num(params, "pen") > 0;
-    const foes = boardCards(draft, enemyOf(attacker.owner)).filter(
+    const foes = enemyCards(draft, attacker.owner).filter(
       (e) => e.curHp > 0 && (!need || hasStatus(e, need as StatusKind)),
     );
     for (const f of foes) {
@@ -3966,7 +3966,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const splash = num(params, "splash");
     const primary = targets[0];
     if (primary && primary.curHp > 0) directDamage(draft, attacker, primary, dmg, false);
-    for (const e of boardCards(draft, enemyOf(attacker.owner))) {
+    for (const e of enemyCards(draft, attacker.owner)) {
       if (e.curHp > 0 && e.instanceId !== primary?.instanceId) directDamage(draft, attacker, e, splash, false);
     }
     draft.log.push(`${label(draft, attacker)}'s frag bursts (${dmg} to the target, ${splash} to the rest).`);
@@ -4021,7 +4021,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // this too and the two can never disagree.
     const wake = getDef(token).roundTick?.pushEnemies ?? 0;
     if (wake > 0) {
-      for (const e of boardCards(draft, enemyOf(attacker.owner)))
+      for (const e of enemyCards(draft, attacker.owner))
         if (e.curHp > 0) pushBack(draft, e, wake, attacker.owner);
       draft.log.push(`${getDef(token).name}'s wind wake breaks over the field.`);
     }
@@ -4030,7 +4030,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const reach = num(params, "reach", 1);
     const rounds = num(params, "statusDuration", 2);
     let caught = 0;
-    for (const e of boardCards(draft, enemyOf(attacker.owner))) {
+    for (const e of enemyCards(draft, attacker.owner)) {
       if (e.curHp <= 0 || !e.pos || !attacker.pos) continue;
       if (chebyshev(e.pos, attacker.pos) > reach) continue;
       resolveHit(draft, attacker, e, { kind: "special", dmg, hits: 1, pen: false, crit: false });
@@ -4062,7 +4062,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
    * is the same idea as a round-tick.
    */
   boulderThrow(draft, attacker, _targets, params) {
-    const live = boardCards(draft, enemyOf(attacker.owner)).filter((e) => e.curHp > 0 && e.pos);
+    const live = enemyCards(draft, attacker.owner).filter((e) => e.curHp > 0 && e.pos);
     if (!live.length) return;
     const victim = live[randInt(draft, live.length)];
     const dmg = num(params, "dmg");
@@ -4116,7 +4116,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const heal = num(params, "heal");
     if (attacker.pos) {
       const row = rowAhead(attacker.owner, attacker.pos.row);
-      for (const e of boardCards(draft, enemyOf(attacker.owner)))
+      for (const e of enemyCards(draft, attacker.owner))
         if (e.curHp > 0 && e.pos?.row === row)
           resolveHit(draft, attacker, e, { kind: "special", dmg, hits: 1, pen: false, crit: false });
     }
@@ -4163,7 +4163,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // nearest-N shape always finds a target while still rewarding position —
     // closing the distance is what decides who is caught.
     const n = num(_params, "targets", 3);
-    const foes = boardCards(draft, enemyOf(attacker.owner))
+    const foes = enemyCards(draft, attacker.owner)
       .filter((e) => e.curHp > 0 && e.pos)
       .sort((a, b) => manhattan(attacker.pos!, a.pos!) - manhattan(attacker.pos!, b.pos!))
       .slice(0, n);
@@ -4241,7 +4241,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
    *  locked Specials). */
   lacingKnots(draft, attacker, _targets, params) {
     const dmg = num(params, "dmg", 8);
-    const roped = boardCards(draft, enemyOf(attacker.owner)).filter((e) => e.curHp > 0 && (e.specialLockedRounds ?? 0) > 0);
+    const roped = enemyCards(draft, attacker.owner).filter((e) => e.curHp > 0 && (e.specialLockedRounds ?? 0) > 0);
     for (const e of roped) resolveHit(draft, attacker, e, { kind: "special", dmg, hits: 1, pen: false, crit: false });
     draft.log.push(`${label(draft, attacker)} yanks the knots — ${dmg} DMG to ${roped.length} bound foe(s).`);
   },
@@ -4274,7 +4274,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   lockSpecials(draft, attacker, targets, params) {
     const n = num(params, "count", 99);
     const rounds = num(params, "rounds", 1);
-    const pool = targets.length ? targets : boardCards(draft, enemyOf(attacker.owner));
+    const pool = targets.length ? targets : enemyCards(draft, attacker.owner);
     let locked = 0;
     for (const e of pool) {
       if (e.curHp > 0 && e.owner !== attacker.owner && locked < n) {
@@ -4346,7 +4346,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const os = newDef.onSummon;
     if (os?.handler) {
       const handler = SPECIAL_HANDLERS[os.handler];
-      if (handler) handler(draft, attacker, boardCards(draft, enemyOf(attacker.owner)).filter((e) => e.curHp > 0), os.params ?? {});
+      if (handler) handler(draft, attacker, enemyCards(draft, attacker.owner).filter((e) => e.curHp > 0), os.params ?? {});
     }
   },
   /** Grand Finally (Dynomight): a two-tier blast — big to the adjacent row,
@@ -4355,7 +4355,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const near = num(params, "nearDmg", 6);
     const far = num(params, "farDmg", 4);
     const row = attacker.pos ? rowAhead(attacker.owner, attacker.pos.row) : -99;
-    for (const e of boardCards(draft, enemyOf(attacker.owner))) {
+    for (const e of enemyCards(draft, attacker.owner)) {
       if (e.curHp <= 0) continue;
       resolveHit(draft, attacker, e, { kind: "special", dmg: e.pos?.row === row ? near : far, hits: 1, pen: false, crit: false });
     }
@@ -4384,7 +4384,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       num(params, "greegonBonus") > 0 && gtok && attacker.curHp > 0 &&
       boardCards(draft, attacker.owner).some((a) => a.curHp > 0 && a.defId === gtok)
     ) {
-      const foe = boardCards(draft, enemyOf(attacker.owner)).find((e) => e.curHp > 0);
+      const foe = enemyCards(draft, attacker.owner).find((e) => e.curHp > 0);
       if (foe) {
         draft.log.push(`${label(draft, attacker)}'s ancient protector strikes for ${num(params, "greegonBonus")}!`);
         directDamage(draft, attacker, foe, num(params, "greegonBonus"), false);
@@ -4455,7 +4455,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       // Arbitrary picks matter more now that the squad is twice the size, and
       // this is what the sibling mechanic (Imperator's commandAllies) already
       // does — two "order your army to swing" effects should aim alike.
-      const prey = boardCards(draft, enemyOf(attacker.owner))
+      const prey = enemyCards(draft, attacker.owner)
         .filter((e) => e.curHp > 0 && e.pos && canTarget(draft, a, e))
         .sort((x, y) => manhattan(a.pos!, x.pos!) - manhattan(a.pos!, y.pos!))[0];
       if (prey) { basicAttack(draft, a.instanceId, prey.instanceId); acted++; }
@@ -4493,7 +4493,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const underHp = num(params, "underHp", 4);
     const freezeR = num(params, "freeze", 2);
     const el = getDef(attacker.defId).element;
-    for (const e of boardCards(draft, enemyOf(attacker.owner)))
+    for (const e of enemyCards(draft, attacker.owner))
       if (e.curHp > 0 && e.curHp <= underHp) applyStatus(draft, e, "FREEZE", freezeR, 0, el);
     const shield = num(params, "allyShield", 1);
     for (const a of boardCards(draft, attacker.owner)) if (a.curHp > 0) a.curShields += shield;
@@ -4528,7 +4528,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const cells = [[row, col], [row, col + 1], [row + 1, col], [row + 1, col + 1]];
     const hit = new Set<string>();
     for (const [r, c] of cells) {
-      const victim = boardCards(draft, enemyOf(attacker.owner)).find(
+      const victim = enemyCards(draft, attacker.owner).find(
         (e) => e.curHp > 0 && e.pos?.row === r && e.pos?.col === c && !hit.has(e.instanceId),
       );
       if (!victim) continue;
@@ -4547,7 +4547,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const kind = String(params.status ?? "ROOT") as StatusKind;
     const add = num(params, "addRounds", 2);
     let n = 0;
-    for (const e of boardCards(draft, enemyOf(attacker.owner))) {
+    for (const e of enemyCards(draft, attacker.owner)) {
       const st = e.statuses.find((s) => s.kind === kind);
       if (st && e.curHp > 0) { st.duration += add; n++; }
     }
@@ -4558,7 +4558,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   /** Bloody Waters (Liquark): strike the lowest-HP opponent; a kill heals and
    *  slips Liquark back into Lurk (re-STEALTH). */
   bloodyWaters(draft, attacker, _targets, params) {
-    const prey = boardCards(draft, enemyOf(attacker.owner))
+    const prey = enemyCards(draft, attacker.owner)
       .filter((e) => e.curHp > 0)
       .sort((a, b) => a.curHp - b.curHp)[0];
     if (!prey) return;
@@ -4661,7 +4661,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     for (const sp of swarm) {
       if (sp.curHp <= 0) continue;
       const prey = targets.find((t) => t.curHp > 0 && canTarget(draft, sp, t))
-        ?? boardCards(draft, enemyOf(attacker.owner)).find((e) => e.curHp > 0 && canTarget(draft, sp, e));
+        ?? enemyCards(draft, attacker.owner).find((e) => e.curHp > 0 && canTarget(draft, sp, e));
       if (!prey) continue;
       const r = basicAttack(draft, sp.instanceId, prey.instanceId);
       if (r && r.landedHits > 0) {
@@ -4713,7 +4713,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (!from) break;
       // Next link: nearest un-hit opponent within one slot of where this one WAS
       // (it may have just been shoved by Wind Wake).
-      current = boardCards(draft, enemyOf(attacker.owner)).find(
+      current = enemyCards(draft, attacker.owner).find(
         (e) => !hit.has(e.instanceId) && e.curHp > 0 && e.pos != null && chebyshev(e.pos, from) <= 1,
       )!;
     }
@@ -4928,7 +4928,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
    *  the Special is worth nothing until BOLT has done its job first. */
   stormSwarm(draft, attacker, targets, params) {
     const token = String(params.token ?? "");
-    const marked = boardCards(draft, enemyOf(attacker.owner)).filter(
+    const marked = enemyCards(draft, attacker.owner).filter(
       (e) => e.curHp > 0 && e.statuses.length > 0,
     ).length;
     if (marked > 0 && token) spawnTokens(draft, attacker, token, marked);
@@ -4939,7 +4939,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     let stung = 0;
     for (const bot of swarm) {
       const prey = targets.find((t) => t.curHp > 0 && canTarget(draft, bot, t))
-        ?? boardCards(draft, enemyOf(attacker.owner)).find((e) => e.curHp > 0 && canTarget(draft, bot, e));
+        ?? enemyCards(draft, attacker.owner).find((e) => e.curHp > 0 && canTarget(draft, bot, e));
       if (!prey) continue;
       basicAttack(draft, bot.instanceId, prey.instanceId);
       stung++;

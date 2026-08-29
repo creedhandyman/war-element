@@ -255,6 +255,21 @@ export function boardCards(state: GameState, owner?: PlayerId): CardInstance[] {
   return owner ? all.filter((c) => c.owner === owner) : all;
 }
 
+/** Every board card that is NOT `player`'s.
+ *
+ *  This is `enemyCards(state, player)` written so it does not assume
+ *  there is exactly one opponent. Ninety-seven call sites asked that question
+ *  through `enemyOf`, and every one of them meant "the other side's cards"
+ *  rather than "seat P2's cards" — the two are the same sentence only while a
+ *  match has two seats in it.
+ *
+ *  Identical to the old expression in a two-player game, which is what lets the
+ *  substitution be made everywhere at once and checked against the existing
+ *  suite: nothing about a 1v1 changes. */
+export function enemyCards(state: GameState, player: PlayerId): CardInstance[] {
+  return Object.values(state.cards).filter((c) => c.pos !== null && c.owner !== player);
+}
+
 /** Contested = enemy card standing on an uncaptured home slot of `player`. */
 export function isContested(state: GameState, player: PlayerId, col: number): boolean {
   const row = homeRow(player, state.boardSize);
@@ -573,7 +588,7 @@ export function effectiveSp(state: GameState, card: CardInstance): number {
 function intimidationPenalty(state: GameState, card: CardInstance, ownDmg: number): number {
   if (!card.pos) return 0;
   let worst = 0;
-  for (const holder of boardCards(state, enemyOf(card.owner))) {
+  for (const holder of enemyCards(state, card.owner)) {
     const hDef = getDef(holder.defId);
     if (!hDef.intimidate || !holder.pos) continue;
     if (Math.abs(holder.pos.row - card.pos.row) > hDef.intimidate.rows) continue;

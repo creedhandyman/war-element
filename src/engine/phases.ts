@@ -29,8 +29,7 @@ import {
   isEliminated,
   manhattan,
   spawnTokens,
-  summonCard,
-} from "./state";
+  summonCard, enemyCards } from "./state";
 import {
   basicIsInert,
   canCastSpell,
@@ -215,7 +214,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
             // card in its OWN home row from targeting the enemy's at all, so
             // the normal list comes back empty and the effect never fired.
             Number(params.enemyHomeRow ?? 0) > 0
-              ? boardCards(draft, enemyOf(inst.owner)).filter(
+              ? enemyCards(draft, inst.owner).filter(
                   (e) => e.curHp > 0 && e.pos?.row === homeRow(enemyOf(inst.owner), draft.boardSize),
                 )
             // Back-ups (Saltjacks): a LINE down its own column, and the same
@@ -236,7 +235,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
             // barrage re-filters by column itself, so this is idempotent — it
             // widens what reaches the handler, it does not change what is hit.
             : Number(params.sameColumn ?? 0) > 0 && inst.pos
-              ? boardCards(draft, enemyOf(inst.owner)).filter(
+              ? enemyCards(draft, inst.owner).filter(
                   (e) => e.curHp > 0 && e.pos?.col === inst.pos!.col,
                 )
             : Number(params.spread ?? -1) >= 0
@@ -263,7 +262,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           // row and a big enemy is rarely sitting next to it at summon. Still
           // exists only when there IS something worth ambushing (the filter).
           const picked = Number(params.onlyVsTarget ?? 0) > 0
-            ? boardCards(draft, enemyOf(inst.owner))
+            ? enemyCards(draft, inst.owner)
                 .filter((t) => t.curHp > 0 && matchesVsTarget(def, t) && t.pos != null)
                 .sort((a, b) => manhattan(inst.pos!, a.pos!) - manhattan(inst.pos!, b.pos!))
           // reachNearest (Sticks' Boon Striker): pounce the NEAREST enemy
@@ -271,7 +270,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           // king's-reach it almost never fired — Sticks lands on its home row
           // and a foe is rarely adjacent, so the sap "did nothing" on summon.
             : Number(params.reachNearest ?? 0) > 0
-            ? boardCards(draft, enemyOf(inst.owner))
+            ? enemyCards(draft, inst.owner)
                 .filter((t) => t.curHp > 0 && t.pos != null)
                 .sort((a, b) => manhattan(inst.pos!, a.pos!) - manhattan(inst.pos!, b.pos!))
             : targets;
@@ -304,7 +303,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // Brightest Warrior (Radiance): scale off the strongest opponent on summon.
       if (arrived && def.summonScaleFromEnemy) {
         const cfg = def.summonScaleFromEnemy;
-        const topHp = boardCards(draft, enemyOf(inst.owner)).reduce(
+        const topHp = enemyCards(draft, inst.owner).reduce(
           (m, e) => Math.max(m, effectiveMaxHp(draft, e)),
           0,
         );
@@ -353,7 +352,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       if (arrived) applyElementSummonAura(draft, inst);
       // On-opponent-summon reactions: existing enemies zap the newcomer as it
       // enters the battlefield (Cave Guard, Shocker).
-      for (const guard of boardCards(draft, enemyOf(inst.owner))) {
+      for (const guard of enemyCards(draft, inst.owner)) {
         const gd = getDef(guard.defId);
         if (!gd.onOppSummon || guard.curHp <= 0 || !draft.cards[inst.instanceId]) continue;
         // Drone Sweep (Buzzard): one answer per round, not one per body.
@@ -458,7 +457,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       }
       // King of the Wild (Leo): existing cards steel themselves when a foe lands
       // — once per round, and the DMG is a one-round boost (no permanent stack).
-      for (const guard of boardCards(draft, enemyOf(inst.owner))) {
+      for (const guard of enemyCards(draft, inst.owner)) {
         const b = getDef(guard.defId).onOppSummonSelfBuff;
         if (b && guard.curHp > 0 && !guard.kingWildFiredRound) {
           guard.kingWildFiredRound = true;
@@ -540,7 +539,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       if (stomp && !wasOnEnemySide && card.curHp > 0 && onEnemySide(card, draft.boardSize)) {
         // The nearest opponent it can actually reach — a landing that finds
         // nobody simply does nothing.
-        const prey = closest(card, boardCards(draft, enemyOf(card.owner)).filter(
+        const prey = closest(card, enemyCards(draft, card.owner).filter(
           (e) => e.curHp > 0 && canTarget(draft, card, e),
         ));
         if (prey) {
@@ -724,7 +723,7 @@ function resolveSpell(
     draft.log.push(`${spell.name} rises across row ${row}.`);
     // The wall erupts immediately on the enemies already standing in that row
     // (FLYING cards are above it, same as the movement trigger).
-    for (const e of boardCards(draft, enemyOf(player))) {
+    for (const e of enemyCards(draft, player)) {
       if (!e.pos || e.pos.row !== row || getDef(e.defId).keywords.FLYING) continue;
       applyWall(draft, e, wall);
     }
@@ -778,7 +777,7 @@ function resolveSpell(
       for (const id of ids) {
         const a = draft.cards[id];
         if (!a || a.curHp <= 0 || !a.pos) continue;
-        const prey = boardCards(draft, enemyOf(player))
+        const prey = enemyCards(draft, player)
           .filter((e) => e.curHp > 0 && e.pos && canTarget(draft, a, e))
           .sort((x, y) => manhattan(a.pos!, x.pos!) - manhattan(a.pos!, y.pos!))[0];
         if (prey) { basicAttack(draft, a.instanceId, prey.instanceId); struck++; }
@@ -881,7 +880,7 @@ function resolveSpell(
       if (spell.area === "tworows") return e.pos.row === row || e.pos.row === row + 1;
       return e.pos.row === row;
     };
-    const targets = boardCards(draft, enemyOf(player)).filter((e) => e.curHp > 0 && inArea(e));
+    const targets = enemyCards(draft, player).filter((e) => e.curHp > 0 && inArea(e));
     let drained = 0;
     for (const t of targets) {
       if (spell.dmg) {
@@ -1030,7 +1029,7 @@ function resolveSpell(
       draft.log.push(`${spell.name} fizzles — no ${spell.element} ally.`);
       return;
     }
-    const rooted = boardCards(draft, enemyOf(player)).some((c) => hasStatus(c, "ROOT"));
+    const rooted = enemyCards(draft, player).some((c) => hasStatus(c, "ROOT"));
     const healAmt = rooted && spell.allyHealIfRooted ? spell.allyHealIfRooted : spell.allyHeal ?? 0;
     for (const ally of targets) {
       // Cleanse first, then heal — a BURNing card heals at 75% (the PYRO
@@ -1552,7 +1551,7 @@ function startBattle(draft: GameState): void {
     const st = getDef(card.defId).roundTick?.inRangeStatus;
     if (card.curHp <= 0 || !st) continue;
     const el = getDef(card.defId).element;
-    const marked = boardCards(draft, enemyOf(card.owner)).filter((e) => e.curHp > 0 && canTarget(draft, card, e));
+    const marked = enemyCards(draft, card.owner).filter((e) => e.curHp > 0 && canTarget(draft, card, e));
     for (const e of marked) applyStatus(draft, e, st.kind, st.duration, st.power, el);
     if (marked.length) draft.log.push(`${label(draft, card)} arcs — ${marked.length} opponent(s) ${st.kind}.`);
   }
@@ -1704,7 +1703,7 @@ function performBattleAction(
     draft.log.push(`${label(draft, card)} fires ${special.name}!`);
     const handler = SPECIAL_HANDLERS[special.handler];
     if (!handler) throw new Error(`Unknown special handler: ${special.handler}`);
-    const enemiesBefore = boardCards(draft, enemyOf(card.owner)).length;
+    const enemiesBefore = enemyCards(draft, card.owner).length;
     // Volcanic Fury (Valcana): firing the Special vents the accumulated ramp.
     if (getDef(card.defId).onHitRampUntilSpecial && (card.rampDmg ?? 0) > 0) {
       draft.log.push(`${label(draft, card)}'s Volcanic Fury vents (ramp reset).`);
@@ -1714,7 +1713,7 @@ function performBattleAction(
     // Bounty (Scallywag): an enemy card that reacts to the caster's Special answers
     // with a status on the caster (reactive burn).
     if (draft.cards[card.instanceId] && card.curHp > 0) {
-      for (const r of boardCards(draft, enemyOf(card.owner))) {
+      for (const r of enemyCards(draft, card.owner)) {
         const oes = getDef(r.defId).onEnemySpecial;
         if (r.curHp > 0 && oes) {
           const st = oes.status;
@@ -1745,7 +1744,7 @@ function performBattleAction(
       special.params?.freeRecastOnKill &&
       draft.cards[card.instanceId] &&
       card.curHp > 0 &&
-      boardCards(draft, enemyOf(card.owner)).length < enemiesBefore
+      enemyCards(draft, card.owner).length < enemiesBefore
     )
       card.freeSpecial = true;
     // Self-buff status on cast (Dive Bomb → STEALTH, Shadow Charge → EVASION,
@@ -2176,7 +2175,7 @@ function applyOneElementSummonAura(draft: GameState, inst: CardInstance, def: Ca
       // gold-discount routes were measured and abandoned.
       const dmg = Math.floor(def.dmg / DAWN_STRIKE_DIVISOR);
       if (dmg > 0) {
-        const foe = closest(inst, boardCards(draft, enemyOf(inst.owner)).filter((c) => c.curHp > 0));
+        const foe = closest(inst, enemyCards(draft, inst.owner).filter((c) => c.curHp > 0));
         if (foe) {
           draft.log.push(`${def.name} awakens — ${dmg} DMG to ${getDef(foe.defId).name}.`);
           // Telegraph it: this strike lands the moment the card is placed, with
@@ -2198,7 +2197,7 @@ function applyOneElementSummonAura(draft: GameState, inst: CardInstance, def: Ca
 function eruptRowAhead(draft: GameState, card: CardInstance, dmg: number): number {
   if (!card.pos || dmg <= 0) return 0;
   const ahead = card.pos.row + (card.owner === "P1" ? -1 : 1);
-  const caught = boardCards(draft, enemyOf(card.owner)).filter((e) => e.curHp > 0 && e.pos?.row === ahead);
+  const caught = enemyCards(draft, card.owner).filter((e) => e.curHp > 0 && e.pos?.row === ahead);
   for (const e of caught) tickDamage(draft, card, e, dmg, false);
   return caught.length;
 }
@@ -2208,7 +2207,7 @@ function eruptRowAhead(draft: GameState, card: CardInstance, dmg: number): numbe
  *  is packed around it and a Ranged one carries. Returns how many were caught. */
 function eruptInRange(draft: GameState, card: CardInstance, dmg: number): number {
   if (!card.pos || dmg <= 0) return 0;
-  const caught = boardCards(draft, enemyOf(card.owner)).filter(
+  const caught = enemyCards(draft, card.owner).filter(
     (e) => e.curHp > 0 && canTarget(draft, card, e),
   );
   for (const e of caught) tickDamage(draft, card, e, dmg, false);
@@ -2307,7 +2306,7 @@ function doRoundTicks(draft: GameState): void {
     if (boomDef) {
       card.boomTimer = (card.boomTimer ?? 0) + 1;
       if (card.boomTimer >= boomDef.afterRounds) {
-        const foes = boardCards(draft, enemyOf(card.owner)).filter((c) => c.curHp > 0);
+        const foes = enemyCards(draft, card.owner).filter((c) => c.curHp > 0);
         for (const e of foes) tickDamage(draft, card, e, boomDef.dmg, false);
         draft.log.push(`${label(draft, card)} goes BOOM — ${boomDef.dmg} DMG to all enemies!`);
         defeatCard(draft, card, "detonation");
@@ -2336,7 +2335,7 @@ function doRoundTicks(draft: GameState): void {
       card.roundTickFired = true;
     }
     const el = getDef(card.defId).element;
-    const enemies = () => boardCards(draft, enemyOf(card.owner)).filter((c) => c.curHp > 0);
+    const enemies = () => enemyCards(draft, card.owner).filter((c) => c.curHp > 0);
     const allies = () => boardCards(draft, card.owner).filter((c) => c.curHp > 0);
 
     // Seed Roll (Acorn): trundle forward toward the enemy home each round, one
@@ -2440,7 +2439,7 @@ function doRoundTicks(draft: GameState): void {
         // walking at the thing that will hurt it.
         const byTopDmg = rt.aimLateralBy === "topDmg";
         const counts = new Array<number>(draft.boardSize).fill(0);
-        for (const e of boardCards(draft, enemyOf(card.owner))) {
+        for (const e of enemyCards(draft, card.owner)) {
           if (e.curHp <= 0 || !e.pos) continue;
           // count: bodies in the column. topDmg: the biggest hitter IN it, so
           // three weak cards never outweigh the one thing worth walking at.
@@ -2522,7 +2521,7 @@ function doRoundTicks(draft: GameState): void {
       const home = homeRow(card.owner, draft.boardSize);
       if (card.pos.row === home) {
         const counts = new Array<number>(draft.boardSize).fill(0);
-        for (const e of boardCards(draft, enemyOf(card.owner)))
+        for (const e of enemyCards(draft, card.owner))
           if (e.curHp > 0 && e.pos) counts[e.pos.col] += 1;
         let want = -1, fewest = Infinity;
         for (let c = 0; c < counts.length; c++)
@@ -3076,7 +3075,7 @@ function doRoundTicks(draft: GameState): void {
     // once — the garden is the damage, not the wound.
     if (rt.rootedBleed) {
       let caught = 0;
-      for (const e of boardCards(draft, enemyOf(card.owner))) {
+      for (const e of enemyCards(draft, card.owner)) {
         if (e.curHp <= 0 || !hasStatus(e, "ROOT")) continue;
         applyStatus(draft, e, "BLEED", 1, rt.rootedBleed, el);
         caught++;
@@ -3219,7 +3218,7 @@ function doCleanupPhase(draft: GameState): void {
     const due = pend.filter((m) => m.round <= draft.round);
     draft.players[pl].pendingMeteors = pend.filter((m) => m.round > draft.round);
     for (const m of due) {
-      const foes = boardCards(draft, enemyOf(pl)).filter((c) => c.curHp > 0);
+      const foes = enemyCards(draft, pl).filter((c) => c.curHp > 0);
       for (const e of foes) tickDamage(draft, m.source, e, m.dmg, false);
       if (foes.length) draft.log.push(`A meteor crashes down — ${m.dmg} DMG to ${foes.length} opponent(s).`);
     }
@@ -3250,7 +3249,7 @@ function doCleanupPhase(draft: GameState): void {
     for (const r of dueRoots) {
       if (!r.source.pos || r.source.curHp <= 0) continue;
       const far = rowAhead(pl, rowAhead(pl, r.source.pos.row));
-      const targets = boardCards(draft, enemyOf(pl)).filter((e) => e.curHp > 0 && e.pos?.row === far).slice(0, r.count);
+      const targets = enemyCards(draft, pl).filter((e) => e.curHp > 0 && e.pos?.row === far).slice(0, r.count);
       for (const e of targets) applyStatus(draft, e, "ROOT", r.duration, 0, getDef(r.source.defId).element);
       if (targets.length) draft.log.push(`The creeping roots snare ${targets.length} in the far row.`);
     }
@@ -3350,7 +3349,7 @@ function doCleanupPhase(draft: GameState): void {
         const zap = Math.floor((effectiveDmg(draft, card) * effectiveBasicHits(card)) / ARC_DISCHARGE_DIVISOR);
         if (zap > 0) {
           const reach = def.attackType === "Melee" ? 1 : RANGED_REACH;
-          const caught = boardCards(draft, enemyOf(card.owner)).filter(
+          const caught = enemyCards(draft, card.owner).filter(
             (e) => e.curHp > 0 && e.pos && chebyshev(card.pos!, e.pos) <= reach,
           );
           for (const e of caught) tickDamage(draft, card, e, zap, false);
@@ -3366,7 +3365,7 @@ function doCleanupPhase(draft: GameState): void {
       // control half and the sustain half stop being separate cards' problems.
       // Naturally bounded by the board (there are only so many enemies to root),
       // so no cap is needed beyond that.
-      const rooted = boardCards(draft, enemyOf(card.owner))
+      const rooted = enemyCards(draft, card.owner)
         .filter((e) => e.curHp > 0 && hasStatus(e, "ROOT")).length;
       healCard(draft, card, 2 + rooted, card);
       if (rooted > 0)
@@ -3414,7 +3413,7 @@ function doCleanupPhase(draft: GameState): void {
     // board play differently on a re-run. Lowest-HP is also the choice a player
     // would make: the drain is worth most when it finishes something.
     if (hasElementAura(def, "DUSK") && card.pos && card.curHp > 0) {
-      const touching = boardCards(draft, enemyOf(card.owner))
+      const touching = enemyCards(draft, card.owner)
         .filter((e) => e.curHp > 0 && e.pos && chebyshev(card.pos!, e.pos) === 1)
         .sort((a, b) => a.curHp - b.curHp || a.instanceId.localeCompare(b.instanceId));
       const victim = touching[0];

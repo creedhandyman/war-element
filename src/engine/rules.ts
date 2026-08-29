@@ -18,8 +18,7 @@ import {
   effectiveSp,
   moveReachFor,
   movesLikeKing,
-  SP_MID_MAX,
-} from "./state";
+  SP_MID_MAX, enemyCards } from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -734,7 +733,7 @@ export function validTargets(
   // battle resolver). On-summon abilities borrow it for "everything in normal
   // range" and pass false — they are not basics and keep the old full reach,
   // same exemption the Specials get.
-  const enemies = boardCards(state, enemyOf(attacker.owner)).filter((t) =>
+  const enemies = enemyCards(state, attacker.owner).filter((t) =>
     canTarget(state, attacker, t, false, forBasic, extraReach),
   );
   // Morning Dew (Vernal): a healer aims its basic at hurt friends too. Only
@@ -783,7 +782,7 @@ export function validSpecialTargets(state: GameState, attackerId: string): CardI
   const ownReach = Math.max(0, Number(special?.params?.reach ?? 1) - 1);
   const ignoreHome = Number(special?.params?.ignoreHomeRule ?? 0) > 0;
   const antiAir = Number(special?.params?.antiAir ?? 0) > 0;
-  return boardCards(state, enemyOf(attacker.owner)).filter((t) =>
+  return enemyCards(state, attacker.owner).filter((t) =>
     canTarget(state, attacker, t, asRanged, false, Math.max(chargeReach, ownReach), ignoreHome, antiAir),
   );
 }
@@ -812,7 +811,7 @@ export function forwardAreaTargets(
   const maxDepth =
     depth ?? (def.attackType === "Ranged" ? Math.max(1, Math.abs(enemyHome - card.pos.row)) : 1);
   const out: CardInstance[] = [];
-  for (const enemy of boardCards(state, enemyOf(card.owner))) {
+  for (const enemy of enemyCards(state, card.owner)) {
     const dRow = (enemy.pos!.row - card.pos.row) * dir; // forward distance
     const dCol = Math.abs(enemy.pos!.col - card.pos.col);
     if (dRow < 1 || dRow > maxDepth || dCol > spread) continue;
@@ -874,7 +873,7 @@ export function previewOnSummonArea(
   }
   // No spread → normal targeting reach (king's move for Melee, full for Ranged).
   const ghost = { defId: def.id, owner, pos, attackedThisRound: false } as unknown as CardInstance;
-  for (const t of boardCards(state, enemyOf(owner))) {
+  for (const t of enemyCards(state, owner)) {
     if (t.pos && canTarget(state, ghost, t)) out.push({ ...t.pos });
   }
   return out;
@@ -911,7 +910,7 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
     const seen = new Set<string>();
     const out: CardInstance[] = [];
     for (const a of swarm)
-      for (const t of boardCards(state, enemyOf(card.owner)))
+      for (const t of enemyCards(state, card.owner))
         if (t.curHp > 0 && !seen.has(t.instanceId)
             && canTarget(state, a, t, getDef(a.defId).attackType === "Ranged", true)) {
           seen.add(t.instanceId);
@@ -1149,7 +1148,7 @@ export function canSpellHitEnemy(
 
 /** Enemy cards a given damage Spell may target this Prep. */
 export function spellEnemyTargets(state: GameState, player: PlayerId): CardInstance[] {
-  return boardCards(state, enemyOf(player)).filter((t) => canSpellHitEnemy(state, player, t));
+  return enemyCards(state, player).filter((t) => canSpellHitEnemy(state, player, t));
 }
 
 /** Can a wall Spell be laid on `row`? Own Home + both Mid rows only. The enemy
