@@ -2098,6 +2098,20 @@ A player could only see a boss or a token by meeting one mid-match.
   a token id, because there are at least five fields that can spawn one
   (`summonSpawn`, `special.params.spawnToken`, `transformOnDefeat.into`,
   `reviveAs`, `onHitSpawn.token`) and a hand-written field list goes stale.
+- **Tapping a tile opens the PAINTING, full screen** (`.gal-lightbox`), not a
+  panel about the painting — the abilities are one more tap from there. Every
+  other place this app draws a card uses `object-fit: cover` and crops it,
+  including `CardView`'s own `.cd-art` (a 122x150 box); this is the one place
+  the whole image is on screen. Arrow keys, swipe, and full-height tap columns
+  page it; Escape steps back one layer (rules → painting → grid) rather than
+  dumping you out and losing the filter.
+- **A `contain` image in a `place-items: center` grid needs a DEFINITE track.**
+  With `auto` rows the grid area sizes to its content, so the plate's own
+  `max-height: 100%` resolved against a track the plate had already stretched:
+  a 750x1000 card rendered at 750x1000 in a 720px viewport and hung off the
+  bottom of the screen. Fixed with `grid-template-rows: minmax(0, 1fr)` plus
+  viewport-unit maxes (`100dvh`, so a phone's retracting URL bar cannot crop
+  it). Caught by measuring the DOM in a browser, not by reading the CSS.
 - Perf for 366 tiles is `loading="lazy"` + `decoding="async"`, nothing more.
 - Routed like `RulesBook`: a top-level boolean in App.tsx, mounted beside it,
   and added to the `!rulesOpen` guard that hides `BottomNav`. Opened from a

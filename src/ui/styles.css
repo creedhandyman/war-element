@@ -5563,8 +5563,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    trapped in a slot's stacking context — both of which are real: .board is a
    stacking context at z-1, and the highlighted slot is another at z-3. */
 .wheel {
+  /* Geometry in ONE place. The ring, the chips and the two seat overhangs are
+     related numbers — four 52px chips fit a 132px circle without touching at
+     the corners only because those values agree — so resizing the wheel means
+     resizing all of them together. Custom properties inherit to the verbs, so
+     the desktop block below restates the set and nothing else has to change. */
+  --wheel-d: 132px;
+  --wheel-chip-w: 52px;
+  --wheel-chip-h: 26px;
+  --wheel-over-y: -4px;
+  --wheel-over-x: -10px;
   position: fixed; z-index: var(--z-board-overlay, 30);
-  width: 132px; height: 132px; transform: translate(-50%, -50%);
+  width: var(--wheel-d); height: var(--wheel-d); transform: translate(-50%, -50%);
   pointer-events: none;
 }
 /* The ring is a scrim, not a plate: it darkens the four neighbouring slots the
@@ -5578,7 +5588,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .wheel-verb {
   position: absolute; pointer-events: auto; cursor: pointer;
-  min-width: 52px; height: 26px; padding: 0 7px;
+  min-width: var(--wheel-chip-w); height: var(--wheel-chip-h); padding: 0 7px;
   display: grid; place-items: center; border-radius: 7px;
   font-family: var(--font-ui); font-size: var(--fs-2); font-weight: 700;
   letter-spacing: 0.02em; white-space: nowrap;
@@ -5595,10 +5605,33 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 /* Seats. Top and bottom overhang the ring slightly so four 52px chips fit a
    132px circle without touching at the corners. */
-.wheel-verb.seat-top { top: -4px; left: 50%; transform: translateX(-50%); }
-.wheel-verb.seat-bottom { bottom: -4px; left: 50%; transform: translateX(-50%); }
-.wheel-verb.seat-right { right: -10px; top: 50%; transform: translateY(-50%); }
-.wheel-verb.seat-left { left: -10px; top: 50%; transform: translateY(-50%); }
+.wheel-verb.seat-top { top: var(--wheel-over-y); left: 50%; transform: translateX(-50%); }
+.wheel-verb.seat-bottom { bottom: var(--wheel-over-y); left: 50%; transform: translateX(-50%); }
+.wheel-verb.seat-right { right: var(--wheel-over-x); top: 50%; transform: translateY(-50%); }
+.wheel-verb.seat-left { left: var(--wheel-over-x); top: 50%; transform: translateY(-50%); }
+
+/* BIGGER ON DESKTOP. The ring is a fixed 132px, which on a phone covers the
+   acting slot and reaches well into its neighbours — the scrim is sized for
+   that. A desktop slot is 146x128, so the same ring barely covered one square
+   and read as a small widget dropped on a big board rather than a control
+   wrapped around the card. Scaled ~1.36x, which puts it back over its
+   neighbours the way it sits on a phone.
+
+   1180px is the app's own desktop line: PORTRAIT_QUERY is max-width 1179px, so
+   this is exactly "not the portrait tier" rather than a second opinion about
+   where desktop starts. */
+@media (min-width: 1180px) {
+  .wheel {
+    --wheel-d: 180px;
+    --wheel-chip-w: 70px;
+    --wheel-chip-h: 34px;
+    --wheel-over-y: -6px;
+    --wheel-over-x: -14px;
+  }
+  /* --fs-3, not --fs-1: the scale runs SMALLEST to largest (10px..14px), so
+     --fs-1 would have put smaller text on a bigger chip. */
+  .wheel-verb { font-size: var(--fs-3); padding: 0 10px; border-radius: 9px; }
+}
 
 @media (prefers-reduced-motion: no-preference) {
   .wheel-verb { animation: wheelIn 140ms ease-out backwards; }
@@ -6101,4 +6134,97 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .gallery-modal { padding: 12px 10px 14px; }
   .gal-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
   .gal-card { height: 132px; }
+}
+
+/* ── Card Gallery · the plate, full screen ────────────────────────────────
+   THE POINT OF THE SCREEN. Everywhere else in this app a card is drawn with
+   `object-fit: cover` — correct for a 60px board token and for `.cd-art`'s
+   122x150 box, and wrong here, because it crops the painting. This is the one
+   place the whole image is on screen, uncropped, on a field dark enough that
+   nothing competes with it. */
+.gal-lightbox {
+  position: fixed; inset: 0; z-index: calc(var(--z-modal) + 1);
+  background: #05060a;
+  display: grid; place-items: center;
+  /* A DEFINITE track. With `auto` rows the grid area sizes to its content, so
+     the image's own `max-height: 100%` resolved against a track the image had
+     already stretched — a 750x1000 plate rendered at 750x1000 inside a 720px
+     viewport and hung off the bottom of the screen. Measured, not guessed. */
+  grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr);
+  overflow: hidden; cursor: zoom-in;
+  animation: gal-lb-in 0.16s ease-out both;
+}
+@keyframes gal-lb-in { from { opacity: 0; } to { opacity: 1; } }
+.gal-plate {
+  /* Viewport units as well as percentages: percentages depend on the track
+     above resolving, and these cannot fail regardless. `dvh` so a phone's
+     retracting URL bar does not crop the bottom of the painting. */
+  max-width: min(100%, 100vw); max-height: min(100%, 100dvh);
+  width: auto; height: auto;
+  object-fit: contain;               /* the WHOLE painting — never a crop */
+  display: block;
+  -webkit-user-select: none; user-select: none;
+}
+/* Tapping the art fills the screen with it — the trade the viewer makes
+   knowingly, having already seen the whole thing. */
+.gal-lightbox.zoomed { cursor: zoom-out; }
+.gal-lightbox.zoomed .gal-plate {
+  width: 100%; height: 100%; max-width: none; max-height: none;
+  object-fit: cover; object-position: 50% 32%;
+}
+
+/* Chrome rides in scrims at the two edges rather than in a frame around the
+   art: a gallery that boxes a picture inside a panel of buttons is showing you
+   the panel. */
+.gal-lb-top, .gal-lb-foot {
+  position: absolute; left: 0; right: 0; z-index: 2;
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  pointer-events: none;
+}
+.gal-lb-top > *, .gal-lb-foot > * { pointer-events: auto; }
+.gal-lb-top {
+  top: 0; justify-content: space-between;
+  background: linear-gradient(180deg, rgba(5,6,10,0.82), rgba(5,6,10,0));
+}
+.gal-lb-foot {
+  bottom: 0; justify-content: space-between;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  background: linear-gradient(0deg, rgba(5,6,10,0.9), rgba(5,6,10,0));
+}
+.gal-lb-count { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--ink-faint); }
+.gal-lb-btn {
+  width: 34px; height: 34px; border-radius: 50%; flex: none;
+  background: rgba(10,12,20,0.7); border: 1px solid var(--panel-line);
+  color: var(--ink); font-size: 14px; line-height: 1; cursor: pointer;
+}
+.gal-lb-btn:hover { border-color: var(--accent); }
+.gal-lb-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gal-lb-id b { font-size: 17px; font-weight: 800; line-height: 1.15; text-shadow: 0 2px 6px #000; }
+.gal-lb-id > span {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-dim); display: flex; align-items: center; gap: 6px;
+}
+/* The kind badge is reused from the tile; inside this row it must not push
+   itself to the far edge the way it does in the tile's top strip. */
+.gal-lb-id .gal-kind { margin-left: 0; font-style: normal; }
+.gal-lb-info { flex: none; }
+
+/* FULL-HEIGHT TAP COLUMNS down each side. A 40px chevron is not how anyone
+   pages through pictures on a phone; these are reachable without aiming, and
+   the glyph only shows on hover so it never sits on the artwork. */
+.gal-lb-nav {
+  position: absolute; top: 0; bottom: 0; width: 22%; max-width: 130px; z-index: 1;
+  background: none; border: none; cursor: pointer; padding: 0;
+  display: grid; place-items: center;
+  color: var(--ink); font-size: 34px; line-height: 1;
+}
+.gal-lb-nav.prev { left: 0; justify-items: start; padding-left: 10px; }
+.gal-lb-nav.next { right: 0; justify-items: end; padding-right: 10px; }
+.gal-lb-nav > span { opacity: 0; transition: opacity 0.12s; text-shadow: 0 2px 8px #000; }
+.gal-lb-nav:hover > span, .gal-lb-nav:focus-visible > span { opacity: 0.85; }
+
+/* No hover on a touch screen, so the chevrons would never appear. Show them
+   faintly instead — they are the only hint that the sides page at all. */
+@media (hover: none) {
+  .gal-lb-nav > span { opacity: 0.35; }
 }

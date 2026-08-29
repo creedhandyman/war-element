@@ -125,6 +125,14 @@ export function CardGallery(props: { onClose: () => void }) {
   // follows the player between all three grids instead of being set three times.
   const [filtersOpen, toggleFilters] = useFilterFold();
   const [detailId, setDetailId] = useState<string | null>(null);
+  // TAPPING A TILE OPENS THE PAINTING, not a panel about the painting. The
+  // rules are one more tap from there (`showInfo`), which is the right way
+  // round for a gallery — `CardView` crops the plate into a 122x150 box
+  // (`styles.css` `.cd-art`, `object-fit: cover`) because it is built to be
+  // read mid-match, and that box is the exact opposite of what this screen is
+  // for.
+  const [showInfo, setShowInfo] = useState(false);
+  const [zoom, setZoom] = useState(false);
 
   const filterSummary = [
     kind !== "ALL" ? kind[0].toUpperCase() + kind.slice(1) + "s" : null,
@@ -165,6 +173,11 @@ export function CardGallery(props: { onClose: () => void }) {
 
   const detail = detailId ? ALL.find((d) => d.id === detailId) ?? null : null;
   const at = detail ? shown.findIndex((d) => d.id === detail.id) : -1;
+  /** Open a card at the painting. `zoom` resets per card: a fill crop is a
+   *  choice about THIS image, and carrying it to the next one silently crops a
+   *  card the player has not looked at yet. */
+  const open = (id: string) => { setDetailId(id); setShowInfo(false); setZoom(false); };
+  const close = () => { setDetailId(null); setShowInfo(false); setZoom(false); };
 
   /** Step to the next/previous card WITHIN THE CURRENT FILTER.
    *
@@ -174,6 +187,7 @@ export function CardGallery(props: { onClose: () => void }) {
   const step = (dir: 1 | -1) => {
     if (at < 0 || shown.length === 0) return;
     setDetailId(shown[(at + dir + shown.length) % shown.length].id);
+    setZoom(false);
   };
 
   // Arrow keys drive the detail panel. A gallery you can only page with your
@@ -185,10 +199,30 @@ export function CardGallery(props: { onClose: () => void }) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
       else if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+      // Escape steps BACK one layer rather than dumping you out of the screen:
+      // rules -> painting -> grid. Closing the gallery from three layers deep
+      // loses the filter and the scroll position the player set.
+      else if (e.key === "Escape") {
+        e.preventDefault();
+        if (showInfo) setShowInfo(false); else close();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
+
+  // SWIPE, because this is a phone-first app and paging a gallery with a
+  // 40px chevron is not how anyone looks at pictures. Horizontal-only and
+  // past a threshold, so a vertical scroll or a tap never pages by accident.
+  const swipe = { x: 0, y: 0 };
+  const onTouchStart = (e: React.TouchEvent) => {
+    swipe.x = e.touches[0].clientX; swipe.y = e.touches[0].clientY;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - swipe.x;
+    const dy = e.changedTouches[0].clientY - swipe.y;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.4) step(dx < 0 ? 1 : -1);
+  };
 
   return (
     <div className="overlay gallery-overlay">
@@ -270,9 +304,9 @@ export function CardGallery(props: { onClose: () => void }) {
                   role="button"
                   tabIndex={0}
                   title={`${d.name} — ${d.element} ${d.cardClass}${rule ? ` · ${rule}` : ""}`}
-                  onClick={() => setDetailId(d.id)}
+                  onClick={() => open(d.id)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetailId(d.id); }
+                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(d.id); }
                   }}
                 >
                   {/* `loading="lazy"` is the whole performance story: 366 plates
@@ -322,11 +356,84 @@ export function CardGallery(props: { onClose: () => void }) {
         )}
       </div>
 
+      {/* ── THE PLATE, FULL SCREEN ────────────────────────────────────────
+          The reason the screen exists. `object-fit: contain` on a near-black
+          field, so the WHOLE painting is on screen and nothing is cropped —
+          every other place a card is drawn in this app uses `cover` and cuts
+          the edges off, which is correct for a 60px board token and wrong here.
+
+          Chrome is deliberately thin and sits in scrims at the two edges: a
+          gallery that frames a picture in a panel of buttons is showing you the
+          panel. */}
       {detail && (
+        <div
+          className={`gal-lightbox ${zoom ? "zoomed" : ""}`}
+          onClick={close}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+          role="dialog"
+          aria-label={`${detail.name} — full size`}
+        >
+          <img
+            className="gal-plate"
+            src={`/cards/${detail.art ?? detail.id}.webp`}
+            alt={detail.name}
+            // Tap the ART to fill the screen with it; tap the backdrop to
+            // leave. Two different targets for two different intentions, so
+            // neither one steals the other's tap.
+            onClick={(e) => { e.stopPropagation(); setZoom((z) => !z); }}
+          />
+
+          <div className="gal-lb-top" onClick={(e) => e.stopPropagation()}>
+            <span className="gal-lb-count">{at >= 0 ? `${at + 1} / ${shown.length}` : ""}</span>
+            <button className="gal-lb-btn" onClick={close} aria-label="Back to the grid">✕</button>
+          </div>
+
+          {/* The pager is on the ART, not under it — full-bleed tap columns
+              down each side, so a thumb reaches them without aiming. */}
+          {shown.length > 1 && (
+            <>
+              <button
+                className="gal-lb-nav prev"
+                onClick={(e) => { e.stopPropagation(); step(-1); }}
+                aria-label="Previous card"
+              ><span>‹</span></button>
+              <button
+                className="gal-lb-nav next"
+                onClick={(e) => { e.stopPropagation(); step(1); }}
+                aria-label="Next card"
+              ><span>›</span></button>
+            </>
+          )}
+
+          <div className="gal-lb-foot" onClick={(e) => e.stopPropagation()}>
+            <div className="gal-lb-id">
+              <b style={{ color: EL_COLOR[detail.element] }}>{detail.name}</b>
+              <span>
+                {detail.element} · {detail.cardClass}
+                {kindOf(detail) !== "card" && (
+                  <em className={`gal-kind ${kindOf(detail)}`}>
+                    {kindOf(detail) === "boss" ? "BOSS" : "TOKEN"}
+                  </em>
+                )}
+              </span>
+            </div>
+            {/* The abilities the request asked to stay viewable — one tap from
+                the painting rather than wrapped around it. */}
+            <button className="lockin sm gal-lb-info" onClick={() => setShowInfo(true)}>
+              Abilities
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* The full rules, over the painting. Same panel the board and the
+          collection open, so what you learn here you already know mid-match. */}
+      {detail && showInfo && (
         <CardView
           mode="browse"
           def={detail}
-          onClose={() => setDetailId(null)}
+          onClose={() => setShowInfo(false)}
           extra={
             <div className="gal-extra">
               <div className="gal-extra-line">
