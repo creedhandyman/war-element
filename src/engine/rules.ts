@@ -128,13 +128,6 @@ export function homeSlots(state: GameState, player: PlayerId): Pos[] {
   return m.shrines.map((sh) => ({ row: sh.row, col: sh.col }));
 }
 
-/** Every shrine on the map — neutral ground any seat may deploy onto. Empty on
- *  a board that has none, which is every board but Domination's. */
-export function neutralDeploySlots(state: GameState): Pos[] {
-  const m = domMap(state);
-  return m ? m.shrines.map((sh) => ({ row: sh.row, col: sh.col })) : [];
-}
-
 /** Whether a shrine square will take a summon from EITHER side.
  *
  *  Deliberately owner-blind: the four shrines are neutral ground, so the only

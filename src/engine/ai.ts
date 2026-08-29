@@ -27,8 +27,7 @@ import {
   validAllyTargets,
   specialTargets,
   validTargets,
-  homeSlots,
-  neutralDeploySlots,
+  homeSlots,
   domMap,
 } from "./rules";
 import type {
@@ -66,6 +65,27 @@ const HOME_RESERVE_LOOKAHEAD = 2;
 
 // ── prep ────────────────────────────────────────────────────────────────────
 
+
+/** The squares to try deploying into, BEST FIRST.
+ *
+ *  Outside Domination this is just the Home row, whose columns are equivalent.
+ *
+ *  Inside it, the four shrines are the only way onto the board and they are one
+ *  per edge of the road cross — so the one you take decides which Points you can
+ *  get to. Ordered by how close each is to a Point this side actually wants,
+ *  which stops every seat driving at the map's first-declared shrine and
+ *  crowding the top of the board regardless of where the fight is. */
+function deploySlots(state: GameState, player: PlayerId): Pos[] {
+  const slots = homeSlots(state, player);
+  const m = domMap(state);
+  if (!m) return slots;
+  const goals = pointGoals(state, player);
+  if (goals.length === 0) return slots;
+  const near = (p: Pos) =>
+    Math.min(...goals.map((g) => Math.max(Math.abs(g.row - p.row), Math.abs(g.col - p.col))));
+  return [...slots].sort((a, b) => near(a) - near(b));
+}
+
 /** One intent per call: summon > move > pass. */
 export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent {
   // 1. Summon the highest-cost affordable card into an open Home slot.
@@ -73,24 +93,27 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
     .slice()
     .sort((a, b) => getDef(b.defId).cost - getDef(a.defId).cost);
   for (const h of hand) {
-    // A seat's OWN deployment squares first. On a standard board those are the
-    // home-row columns this loop always walked; in Domination they are the
-    // seat's shrine, which is a square and so needs its row named. Without
-    // this a third or fourth seat has nowhere to play at all: `homeRow` gives
-    // both of them the row it gives P2, and that row is not theirs.
-    for (const slot of homeSlots(state, player)) {
+    // WHERE a card comes in. On a standard board these are the home-row columns
+    // this loop always walked and they are interchangeable back-line ground, so
+    // first-legal is a fine answer.
+    //
+    // In Domination they are the four shrines — the only deploy squares in the
+    // mode, shared by the whole table — and they are NOT interchangeable: each
+    // sits at a different end of the road cross, so which one you take decides
+    // which Points you can reach. `deploySlots` puts the useful one first.
+    //
+    // (There used to be a second loop over `neutralDeploySlots` here as a
+    // fallback. It was dead: since deployment became shrines-only both
+    // functions return the same four squares in the same order, so it re-tested
+    // a list that had just been tested. The "own shrine, then a neutral one"
+    // design it was written for no longer exists — every shrine is neutral.)
+    for (const slot of deploySlots(state, player)) {
       if (canSummon(state, player, h.handId, slot.col, state.domination ? slot.row : undefined).ok) {
         return {
           type: "SUMMON", player, handId: h.handId, col: slot.col,
           ...(state.domination ? { row: slot.row } : {}),
         };
       }
-    }
-    // ...then any NEUTRAL shrine, which anyone may use. A seat whose own shrine
-    // is occupied is not out of the game; it comes in somewhere else.
-    for (const slot of neutralDeploySlots(state)) {
-      if (canSummon(state, player, h.handId, slot.col, slot.row).ok)
-        return { type: "SUMMON", player, handId: h.handId, col: slot.col, row: slot.row };
     }
   }
 
