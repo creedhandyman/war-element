@@ -55,7 +55,7 @@ export interface BossTelegraph {
  *  handler fails the build here rather than quietly on the board. */
 export const TELEGRAPHED_HANDLERS: readonly string[] = [
   "barrage", "statusNova", "smite", "polarShift", "battleCharge", "strike", "spawn",
-  "stormCall",
+  "stormCall", "boulderThrow",
 ];
 
 /** Statuses that stop the clock. Mirrors the gate in `doRoundTicks`: MUTE, and
@@ -112,6 +112,15 @@ function reached(
     // reads "the boss is about to be standing there". Lighting the boss's
     // current position instead would have been worse than lighting nothing —
     // it would point at the one square the blast is guaranteed to leave.
+    // A ROCK, THROWN AT SOMEBODY. Board-wide and random, so the honest drawing
+    // is EVERY living opponent with `strikes: 1` — the whole board is at risk
+    // and exactly one square is actually hit. This is precisely the case
+    // `strikes` exists for: lighting nine cells and implying nine deaths would
+    // be a worse lie than not warning at all.
+    case "boulderThrow": {
+      const foes = livingFoes(state, card);
+      return { cards: foes, strikes: Math.min(1, foes.length) };
+    }
     case "stormCall": {
       const token = String(p.token ?? "");
       const storm = boardCards(state, card.owner)

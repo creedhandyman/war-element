@@ -155,6 +155,7 @@ export const CODE_IDS: readonly string[] = [
   // Floor 5. Appended, never inserted — every code ever shared points at these
   // indices by position.
   "boss_skybreaker", "gale_thundering_hurricane_tok",
+  "boss_continental", "bore_rolling_boulder_tok",
 ];
 
 const INDEX_OF = new Map<string, number>(CODE_IDS.map((id, i) => [id, i]));

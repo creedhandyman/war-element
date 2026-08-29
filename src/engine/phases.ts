@@ -2,7 +2,7 @@
 // All reducers clone the incoming state once and mutate only the clone.
 
 import { getDef } from "../data/cards";
-import { voidPlayerHeadStart } from "../data/void-tower";
+import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import {
   applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
@@ -2177,6 +2177,22 @@ export function chargeOnArrival(draft: GameState, card: CardInstance): void {
   else if (landed !== card.pos.row)
     draft.log.push(`${label(draft, card)} bolts for the far side.`);
 }
+/** Is the enemy still behind a wall?
+ *
+ *  Two kinds count, because a player can have either: the Void Tower's free
+ *  Fortress Gates (real token CARDS seated in the row before their home) and
+ *  any spell WALL they raised themselves. A siege engine that walked around
+ *  the second kind would be answering the wrong question.
+ *
+ *  Deliberately not "any card in the way" — that is every fight ever. It is
+ *  specifically masonry, which is the thing that falls and lets the giant move.
+ */
+function enemyWallsStanding(state: GameState, mover: PlayerId): boolean {
+  const foe = enemyOf(mover);
+  if (state.walls.some((w) => w.owner === foe)) return true;
+  return boardCards(state, foe).some((c) => c.curHp > 0 && c.defId === VOID_GATE);
+}
+
 
 function doRoundTicks(draft: GameState): void {
   for (const card of boardCards(draft)) {
@@ -2224,7 +2240,25 @@ function doRoundTicks(draft: GameState): void {
     // A boss holds still for the opening (BOSS_HOLD_ROUNDS) — the same gate the
     // Prep move reads, so the two ways off the home row cannot disagree about
     // when it is allowed to leave.
-    if (rt.advance && card.pos && !bossHeldHome(draft, getDef(card.defId))) {
+    // A SIEGE ENGINE WAITS FOR THE WALL. Gates the forward gaits only: the
+    // lateral aim below still runs, so the thing tracks its target along its
+    // own line while the wall stands and then walks the moment it falls.
+    const wallsUp = rt.advanceWhenWallsDown === true && enemyWallsStanding(draft, card.owner);
+    // `rollHeld`: a boulder loosed during THIS Cleanup must not also roll
+    // during it, or it lands in the row in front of the giant and is already
+    // past it before the player ever sees it there — which would make the
+    // card's own text a lie. On the instance because step 4 clears
+    // `summonedThisRound` just before these ticks run; see `roundTickFired`.
+    if (rt.advanceTrample && card.rollHeld) card.rollHeld = false;
+    else if (rt.advanceTrample && card.pos && !wallsUp
+        && !bossHeldHome(draft, getDef(card.defId))) {
+      // THROUGH, not up to. `chargeForward` shoves a TRAMPLE card past a
+      // blocker and `applyShove` deals its CRUSH damage — the same pair the
+      // Prep move and Hoarfell's gait use, so a boulder cannot roll by a
+      // different rule than everything else that rolls.
+      chargeForward(draft, card, rt.advanceTrample);
+    }
+    if (rt.advance && card.pos && !wallsUp && !bossHeldHome(draft, getDef(card.defId))) {
       const dir = card.owner === "P1" ? -1 : 1;
       let rolled = 0;
       while (rolled < rt.advance && card.pos) {
@@ -2290,9 +2324,20 @@ function doRoundTicks(draft: GameState): void {
     if (rt.aimLateral && card.pos && !bossHeldHome(draft, getDef(card.defId))) {
       const home = homeRow(card.owner, draft.boardSize);
       if (card.pos.row === home) {
+        // TWO QUESTIONS, one gait. "count" looks for the crowd (Helion,
+        // Skeleeze); "topDmg" looks for the single biggest hitter, which is the
+        // right question for a siege engine — it is not hunting a group, it is
+        // walking at the thing that will hurt it.
+        const byTopDmg = rt.aimLateralBy === "topDmg";
         const counts = new Array<number>(draft.boardSize).fill(0);
-        for (const e of boardCards(draft, enemyOf(card.owner)))
-          if (e.curHp > 0 && e.pos) counts[e.pos.col] += 1;
+        for (const e of boardCards(draft, enemyOf(card.owner))) {
+          if (e.curHp <= 0 || !e.pos) continue;
+          // count: bodies in the column. topDmg: the biggest hitter IN it, so
+          // three weak cards never outweigh the one thing worth walking at.
+          counts[e.pos.col] = byTopDmg
+            ? Math.max(counts[e.pos.col], effectiveDmg(draft, e))
+            : counts[e.pos.col] + 1;
+        }
         // Lowest column wins a tie — a telegraph broken at random is a lie.
         let want = -1, most = 0;
         for (let c = 0; c < counts.length; c++)
@@ -2608,6 +2653,36 @@ function doRoundTicks(draft: GameState): void {
         spun++;
       }
       if (spun) draft.log.push(`${label(draft, card)}'s cyclone spins ${spun} opponent(s) off their line.`);
+    }
+    // A PRODUCTION LINE. Continental's boulders: one every `n` rounds, dropped
+    // in the row directly in front of it and left to roll. `spawnMaxAlive` is
+    // what keeps it from burying the board — without a ceiling a repeating
+    // spawn is not a threat, it is a wall the player cannot get through.
+    if (rt.spawnEveryN && card.pos && draft.round > 0
+        && draft.round % rt.spawnEveryN.n === 0) {
+      const { token, spawnMaxAlive = 3 } = rt.spawnEveryN;
+      const alive = boardCards(draft, card.owner)
+        .filter((c) => c.curHp > 0 && c.defId === token).length;
+      if (alive < spawnMaxAlive) {
+        const dir = card.owner === "P1" ? -1 : 1;
+        const ahead = card.pos.row + dir;
+        if (ahead >= 0 && ahead < draft.boardSize) {
+          // The COLUMN is the seeded RNG's, which is deterministic per match —
+          // a replay replays. Only open squares are offered, so a full row
+          // simply produces nothing this round rather than throwing.
+          const open: number[] = [];
+          for (let c = 0; c < draft.boardSize; c++)
+            if (!cardAt(draft, ahead, c) && !draft.slots[ahead][c].capturedBy) open.push(c);
+          if (open.length) {
+            const col = open[randInt(draft, open.length)];
+            const born = summonCard(draft, card.owner, token, { row: ahead, col } as never);
+            // It arrives this round and rolls from the NEXT, so the row it is
+            // printed as arriving in is the row it is actually seen in.
+            born.rollHeld = true;
+            draft.log.push(`${label(draft, card)} looses a ${getDef(token).name}.`);
+          }
+        }
+      }
     }
     // A BODY ON A CLOCK. The round-6 hurricane: announced by the fight's own
     // pace rather than by a cast, so it is the one thing in the match a player

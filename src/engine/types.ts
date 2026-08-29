@@ -339,6 +339,30 @@ export interface RoundTickDef {
    *  time, so a hurricane killed before the clock comes round again is replaced
    *  and one already standing is not doubled. */
   spawnOnRound?: { round: number; token: string; minRow?: number; spawnMaxAlive?: number };
+  /** A body on a REPEATING clock (Continental's boulders): every `n` rounds,
+   *  drop `token` in the row directly in front of the holder.
+   *
+   *  Distinct from `spawnOnRound`, which fires from one round onward and is
+   *  bounded by a live-count. This one is a production line: it keeps arriving,
+   *  and `spawnMaxAlive` is what stops it burying the board. The column is
+   *  chosen by the seeded RNG — deterministic per match, so a replay is a
+   *  replay, and `chanceProblems` is untroubled because that rule is about a
+   *  card PRINTING a percentage, not about seeded selection. */
+  spawnEveryN?: { n: number; token: string; spawnMaxAlive?: number };
+  /** A trampling advance (the Rolling Boulder): roll one row forward THROUGH
+   *  whatever is in the way, rather than stopping at it.
+   *
+   *  `advance` stops dead at the first occupied slot — correct for Acorn's Seed
+   *  Roll and wrong for a boulder, whose whole point is what it rolls over.
+   *  Routes through `chargeForward`, so the shove and its CRUSH damage
+   *  (`trampleDmg`) are the same ones the Prep move and Hoarfell's gait use. */
+  advanceTrample?: number;
+  /** Hold the home row until the enemy's WALLS are gone, then advance.
+   *
+   *  A siege engine does not walk around a wall, it waits for the wall to fall.
+   *  Gates the `advance`/`advanceTrample` ticks only — the lateral aim still
+   *  runs, so the thing tracks its target along its own line while it waits. */
+  advanceWhenWallsDown?: true;
   rowAheadDmg?: number; // deal N DMG to enemies in the row directly ahead (Sweeping Flames)
   inRangeDmg?: number; // deal N DMG to EVERY opponent this card can reach (Smog's Black Smoke)
   /** Electrifying (Jolt): apply a status to every opponent this card can REACH
@@ -379,6 +403,13 @@ export interface RoundTickDef {
   /** How many columns `aimLateral` covers in one Cleanup. Default 1 (Helion's
    *  Traverse — a hundred tons of gold does not sidestep twice). */
   aimLateralSteps?: number;
+  /** WHAT the lateral aim aims AT. "count" (the default, Helion/Skeleeze)
+   *  slides toward the column holding the most opponents; "topDmg"
+   *  (Continental) slides toward the single biggest hitter on the board.
+   *
+   *  A different question, and for a siege engine the right one: it is not
+   *  looking for a crowd, it is looking for the thing that will hurt it. */
+  aimLateralBy?: "count" | "topDmg";
   /** Skeleeze's Swiftshooter: it does not stop for bodies, it TRADES with them.
    *  An occupied slot in its path swaps the two cards rather than halting the
    *  slide, so a screen parked in front of the archer relocates the archer's
@@ -780,6 +811,19 @@ export interface CardDef {
   /** Braced Stance (Stormhide Bison): immune to knockback / pull — it plants and
    *  the storms other GALE cards ride wash over it. */
   pushImmune?: boolean;
+  /** TRAMPLE WITHOUT THE WEIGHT CHECK (the Rolling Boulder).
+   *
+   *  An ordinary trample only shoves a LIGHTER body — `shoveTarget` refuses
+   *  when the victim's effective max HP is at least the trampler's, so a small
+   *  card cannot bull a big one aside. That is the right rule for a creature
+   *  and the wrong one for a rock: a 50-HP boulder would stop dead at almost
+   *  every real card, and "35 DMG to anything trampled" would be an ability
+   *  that never fired — this repo's whole "written but never read" bug class.
+   *
+   *  Narrow on purpose: it lifts the weight comparison and NOTHING else.
+   *  `pushImmune` still refuses, the destination must still be open, and it is
+   *  still one square. */
+  tramplesAnything?: boolean;
   /** Flying Arrow (Ollie): also fires at whatever the ally directly BEHIND it
    *  just struck with a basic attack — the bird flies point and answers the
    *  shot called from behind it. */
@@ -1467,6 +1511,14 @@ export interface CardInstance {
   tideTicks?: number;
   /** Which beat of the four-beat `prowl` cycle this card is on. */
   prowlStep?: number;
+  /** A boulder loosed during THIS Cleanup: hold its roll for one tick.
+   *
+   *  On the INSTANCE for the reason `roundTickFired` is — step 4 of Cleanup
+   *  clears `summonedThisRound` just BEFORE the round ticks run, so "was this
+   *  born a moment ago" cannot be asked of that flag. Without it a boulder
+   *  lands in the row in front of the giant and is already past it before the
+   *  player ever sees it there, which makes the card's own text a lie. */
+  rollHeld?: boolean;
   /** How much of this card's `dmgBonus` is JUGGERNAUT momentum right now, so a
    *  reset takes back exactly what the run put on and nothing else. */
   momentumDmg?: number;

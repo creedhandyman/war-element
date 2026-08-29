@@ -3291,7 +3291,9 @@ function adjacentCasterStatus(
 // `stormCall` picks its own victims from the boss's post-swap position, and in
 // its other branch has no victims at all — asking the caster to nominate one
 // would be asking about a slot the boss has not moved to yet.
-export const TARGETLESS_HANDLERS = new Set(["spawn", "surfsUp", "lockSpecials", "stormCall"]);
+// `boulderThrow` picks its own victim at random, board-wide — there is no
+// slot for a caster to nominate.
+export const TARGETLESS_HANDLERS = new Set(["spawn", "surfsUp", "lockSpecials", "stormCall", "boulderThrow"]);
 
 export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   /** Reroot (Oak): a pure reposition — advance up to `charge` open slots toward
@@ -4034,6 +4036,31 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       }
     }
     draft.log.push(`The eye passes — ${caught} opponent(s) held for ${rounds} round(s).`);
+  },
+
+  /**
+   * ROLLING BOULDER (Continental): lob a rock at ONE opponent, anywhere on the
+   * board, for `dmg`.
+   *
+   * Random rather than chosen, and range-free rather than aimed — which makes
+   * it the one thing in this fight the player cannot position against. Every
+   * other threat Continental carries is answered by standing somewhere: the
+   * boulders roll in straight lines, the giant walks at your biggest hitter,
+   * and both can be read a round ahead. This cannot, so a line that has solved
+   * the rest of the fight is still taking chip damage.
+   *
+   * The RNG is the match's seeded stream, so it is deterministic — a replay is
+   * a replay. `chanceProblems` is untroubled because that rule forbids a card
+   * PRINTING a percentage, not seeded selection; `randomEnemyDmg` (Elephlora)
+   * is the same idea as a round-tick.
+   */
+  boulderThrow(draft, attacker, _targets, params) {
+    const live = boardCards(draft, enemyOf(attacker.owner)).filter((e) => e.curHp > 0 && e.pos);
+    if (!live.length) return;
+    const victim = live[randInt(draft, live.length)];
+    const dmg = num(params, "dmg");
+    resolveHit(draft, attacker, victim, { kind: "special", dmg, hits: 1, pen: false, crit: false });
+    draft.log.push(`${label(draft, attacker)} hurls a boulder at ${label(draft, victim)} (${dmg}).`);
   },
 
   /** Search and Rescue (Stone's Talent): swap board positions with a chosen

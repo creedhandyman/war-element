@@ -202,4 +202,9 @@ export const BORE_LORE: Record<string, string> = {
 
   boss_kato_3:
     "Nothing left to armour. Nothing left to catch, either.",
+  boss_continental:
+    "It has not arrived anywhere. Things have simply ended up in front of it.",
+
+  bore_rolling_boulder_tok:
+    "It was part of something larger this morning, and it is in no hurry.",
 };

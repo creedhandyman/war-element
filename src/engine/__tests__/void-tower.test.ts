@@ -201,6 +201,29 @@ describe("the roster", () => {
       // wants to come down — this body is 366 against a 660 cap, so there is
       // room in both directions.
       boss_skybreaker: 366,
+      // FLOOR 5's second boss, and the heaviest body on the tower by a
+      // distance: 50 + 400 + 50x2 + 1. The owner's line. SP 1 is the
+      // counterweight — it acts near-last in every queue it is ever in — and
+      // 50 shields blocking PER HIT is the actual defence, which is what makes
+      // it the one fight you answer with one big swing instead of ten small
+      // ones.
+      //
+      // MEASURED: 99.0% bare, **75.0% with a tamed ally** (n=96, same harness
+      // as Skybreaker: 8 cores x 12 seeds, 5x5, gates seated, voidTower on,
+      // ally = Umbranova at TAME_SCALE). 54 overrun / 18 timeout.
+      //
+      // BELOW Skybreaker's 95.8% on the same floor, with 551 body points
+      // against its 366 — which is the useful lesson and the reason the number
+      // is recorded next to the other one. Body is NOT what decides a Floor-5
+      // fight: SP 1 makes this thing act last in every queue it is ever in, and
+      // `advanceWhenWallsDown` parks it on its home row behind five Fortress
+      // Gates for most of the clock. The two together are worth more than 185
+      // body points in the other direction.
+      //
+      // The floor currently spreads 75.0-95.8. If it wants tightening, the
+      // levers are Continental's SP (the single biggest one) and Skybreaker's
+      // HP — not either body's size on its own.
+      boss_continental: 551,
     };
     for (const v of VOID_BOSSES) {
       expect(bodyTotal(getDef(v.cardId)), v.cardId).toBe(MEASURED[v.cardId]);

@@ -1,0 +1,226 @@
+// CONTINENTAL — Floor 5's second boss, and the one you are not supposed to
+// out-damage.
+//
+// 400 HP behind 50 shields, and shields block PER HIT: the many-small-blows
+// answer that beats Kazehaya two floors down is the worst possible answer here.
+// SP 1 is the counterweight — it acts near-last in every queue it is ever in.
+//
+// The gait is the other half. It holds its home row while the player's walls
+// stand, sliding along it to line up on whatever hits HARDEST rather than on
+// whatever is most numerous; the round the last wall falls, it walks. So the
+// Fortress Gates are not merely cover, they are the clock — and the boulders
+// are what spend them.
+//
+// Four new round-ticks arrived with it and each is pinned here: `aimLateralBy`
+// ("topDmg" — a different question from the crowd-seeking default),
+// `advanceWhenWallsDown`, `advanceTrample`, and `spawnEveryN`.
+import { describe, expect, it } from "vitest";
+import { getDef } from "../../data/cards";
+import { VOID_GATE, voidBossById } from "../../data/void-tower";
+import { advance } from "../phases";
+import { boardCards } from "../state";
+import { canTarget } from "../rules";
+import { fireCardSpecial } from "../combat";
+import { atCleanup, bigPrepState, place } from "./helpers";
+
+const BOSS = "boss_continental";
+const ROCK = "bore_rolling_boulder_tok";
+
+const foeAt = (s: ReturnType<typeof bigPrepState>, row: number, col: number, hp = 400, def = "leaf_stickviper") =>
+  place(s, def, "P1", row, col, { curHp: hp, maxHp: hp, curShields: 0 });
+
+describe("the shape of the fight", () => {
+  it("is Floor 5's second boss, BORE bodied and LEAF mechanised", () => {
+    const b = voidBossById(BOSS)!;
+    expect(b.floor).toBe(5);
+    expect(b.tribeElement).toBe("BORE");
+    expect(b.mechanicElement).toBe("LEAF");
+    // Two elements. Floor 5 ALLOWS a third; it does not require one.
+    expect(b.thirdElement).toBeUndefined();
+  });
+
+  it("prints the owner's stat line exactly, and carries both auras", () => {
+    const d = getDef(BOSS);
+    expect([d.dmg, d.hits, d.hp, d.shields, d.sp]).toEqual([50, 1, 400, 50, 1]);
+    expect(d.elementAuras, "Bore AND Leaf").toEqual(["LEAF"]);
+    expect(d.keywords.TRAMPLE, "it does not go around").toBe(true);
+  });
+
+  it("the boulder is a body with no attack at all", () => {
+    const t = getDef(ROCK);
+    expect([t.dmg, t.hp, t.shields, t.sp]).toEqual([0, 50, 10, 0]);
+    // A 0-DMG body is normally a mistake; here it is the design. Everything it
+    // does happens by rolling, in the round tick.
+    expect(t.trampleDmg, "Crush").toBe(35);
+    expect(t.roundTick?.advanceTrample).toBe(1);
+  });
+});
+
+describe("A MELEE GIANT still reaches the whole board", () => {
+  it("swings clear across the board despite being melee", () => {
+    // Floor 5's rule is that its bosses reach all of it with a BASIC, and this
+    // one is Melee — a rule that only widened RANGED cards would be a rule
+    // about half the floor.
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 2);
+    const far = foeAt(s, 3, 4);
+    expect(canTarget(s, s.cards[boss.instanceId], s.cards[far.instanceId], false, true),
+      "three squares out, and it is melee").toBe(true);
+  });
+
+  it("...and a body in the lane still screens the swing", () => {
+    // Melee has no sight rule of its own because it never reaches past the next
+    // square, so the screen had to be stated for giants explicitly. Without it
+    // the giant rule would silently delete the player's Fortress Gates.
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 2);
+    const behind = foeAt(s, 3, 2);
+    foeAt(s, 2, 2);                       // in the lane
+    expect(canTarget(s, s.cards[boss.instanceId], s.cards[behind.instanceId], false, true),
+      "screened").toBe(false);
+  });
+
+  it("an ordinary melee card is NOT given the reach", () => {
+    const s = bigPrepState();
+    const me = place(s, "bore_bastion", "P2", 0, 2);
+    const far = foeAt(s, 3, 4);
+    expect(getDef("bore_bastion").fullBoardBasic).toBeUndefined();
+    expect(canTarget(s, s.cards[me.instanceId], s.cards[far.instanceId], false, true)).toBe(false);
+  });
+});
+
+describe("Continental Drift — it waits for the wall, then it walks", () => {
+  /** Run one Cleanup with `gates` Fortress Gates standing in front of P1. */
+  const roll = (gates: number, bossCol = 2) => {
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, bossCol);
+    s.round = 9;                       // past BOSS_HOLD_ROUNDS
+    for (let c = 0; c < gates; c++) place(s, VOID_GATE, "P1", s.boardSize - 2, c);
+    return { s, boss, after: (n = 1) => {
+      let g = s;
+      for (let i = 0; i < n; i++) g = advance(atCleanup(g));
+      return g.cards[boss.instanceId].pos!;
+    } };
+  };
+
+  it("holds its home row while a single gate still stands", () => {
+    const { after } = roll(1);
+    expect(after().row, "not one step while the wall is up").toBe(0);
+  });
+
+  it("walks the moment the last wall is gone", () => {
+    const { after } = roll(0);
+    expect(after().row, "the wall fell, so it comes").toBeGreaterThan(0);
+  });
+
+  it("but it still SLIDES while it waits — the aim is not gated, the walk is", () => {
+    // The distinction that makes the wall a clock rather than a pause button:
+    // it spends the wait lining up on you.
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 0);
+    s.round = 9;
+    place(s, VOID_GATE, "P1", s.boardSize - 2, 0);
+    foeAt(s, 3, 4, 400, "leaf_trinezer");   // the only body, far column
+    const n = advance(atCleanup(s));
+    const at = n.cards[boss.instanceId].pos!;
+    expect(at.row, "still home").toBe(0);
+    expect(at.col, "but tracking").toBeGreaterThan(0);
+  });
+
+  it("aims at the biggest HITTER, not at the biggest crowd", () => {
+    // The whole point of `aimLateralBy: "topDmg"`. Three weak bodies stacked in
+    // one column must not outweigh the single thing that will actually hurt it.
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 2);
+    s.round = 9;
+    place(s, VOID_GATE, "P1", s.boardSize - 2, 0);   // keep it home so only the slide moves it
+    for (const r of [2, 3, 4]) foeAt(s, r, 0, 400, "leaf_stickviper");  // a crowd, column 0
+    foeAt(s, 3, 4, 400, "leaf_oakgre");                                  // one big hitter, column 4
+    const n = advance(atCleanup(s));
+    expect(n.cards[boss.instanceId].pos!.col, "it walked toward the hitter").toBe(3);
+  });
+});
+
+describe("Rockfall — a boulder every even round", () => {
+  const run = (round: number) => {
+    const s = bigPrepState();
+    place(s, BOSS, "P2", 0, 2);
+    // A GATE STANDING, which is the real tower scenario and also what pins the
+    // row: without one the giant advances first and then looses the boulder
+    // ahead of its NEW slot, so "the row in front of him" measures one further
+    // out. That is correct behaviour and it made the first version of this test
+    // wrong rather than the code.
+    place(s, VOID_GATE, "P1", s.boardSize - 2, 0);
+    s.round = round;
+    const n = advance(atCleanup(s));
+    return boardCards(n, "P2").filter((c) => c.curHp > 0 && c.defId === ROCK);
+  };
+
+  it("looses one on an even round", () => {
+    expect(run(4).length, "round 4").toBeGreaterThan(0);
+  });
+
+  it("and none on an odd one", () => {
+    expect(run(5).length, "round 5").toBe(0);
+  });
+
+  it("drops it in the row directly IN FRONT of the giant", () => {
+    const rocks = run(4);
+    expect(rocks[0].pos!.row, "one row toward the player").toBe(1);
+  });
+
+  it("stops at its ceiling rather than burying the board", () => {
+    // A repeating spawn with no cap is not a threat, it is a wall the player
+    // cannot get through.
+    let g = bigPrepState();
+    place(g, BOSS, "P2", 0, 2);
+    place(g, VOID_GATE, "P1", g.boardSize - 2, 0);
+    g.round = 2;
+    for (let i = 0; i < 12; i++) { g.round = 2 + i * 2; g = advance(atCleanup(g)); }
+    const rocks = boardCards(g, "P2").filter((c) => c.curHp > 0 && c.defId === ROCK);
+    expect(rocks.length).toBeLessThanOrEqual(3);
+  });
+});
+
+describe("the boulder rolls THROUGH", () => {
+  it("moves one slot toward the player each round", () => {
+    const s = bigPrepState();
+    const rock = place(s, ROCK, "P2", 1, 2);
+    const n = advance(atCleanup(s));
+    expect(n.cards[rock.instanceId].pos!.row, "downhill").toBe(2);
+  });
+
+  it("crushes what it rolls over instead of stopping at it", () => {
+    // `advance` stops dead at the first occupied slot — right for a seed, wrong
+    // for a boulder. This is the difference.
+    const s = bigPrepState();
+    const rock = place(s, ROCK, "P2", 1, 2);
+    const victim = foeAt(s, 2, 2, 400);
+    const n = advance(atCleanup(s));
+    expect(400 - n.cards[victim.instanceId].curHp, "35 through it").toBe(35);
+    expect(n.cards[rock.instanceId].pos!.row, "and it took the square").toBe(2);
+  });
+
+  it("its crush PENETRATES shields — masonry is not armour to a boulder", () => {
+    // The reason a rockfall is an answer to a wall at all.
+    const s = bigPrepState();
+    place(s, ROCK, "P2", 1, 2);
+    const gate = place(s, VOID_GATE, "P1", 2, 2, { curHp: 40, maxHp: 40, curShields: 99 });
+    const n = advance(atCleanup(s));
+    expect(n.cards[gate.instanceId].curHp, "the shields did not stop it").toBeLessThan(40);
+  });
+});
+
+describe("Rolling Boulder, the Special", () => {
+  it("hits exactly one opponent, anywhere on the board", () => {
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 0);
+    const far = foeAt(s, 4, 4, 400);
+    const near = foeAt(s, 1, 0, 400);
+    const before = far.curHp + near.curHp;
+    // Fire it directly rather than waiting for the clock.
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    const after = s.cards[far.instanceId].curHp + s.cards[near.instanceId].curHp;
+    expect(before - after, "one rock, 35 damage, one victim").toBe(35);
+  });
+});

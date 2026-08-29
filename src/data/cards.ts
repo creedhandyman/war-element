@@ -11203,6 +11203,78 @@ export const CARDS: CardDef[] = [
     },
   },
   {
+    id: "boss_continental",
+    name: "Continental",
+    rarity: "mythic",
+    // BORE printed, LEAF carried — "Bore and Leaf auras", and `elementAuras` is
+    // how a card actually RUNS a second element's aura rather than being
+    // described as having it. Two elements, not three: Floor 5 ALLOWS a third,
+    // it does not require one.
+    element: "BORE",
+    elementAuras: ["LEAF"],
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 12,
+    // 50 + 400 + 50x2 + 1 = 551 body points against Floor 5's 660 cap. The
+    // heaviest body on the tower by a distance, and the stat line is the
+    // owner's. SP 1 is the counterweight: it acts near-last in every queue it
+    // is ever in, so everything on the board hits it before it hits back.
+    dmg: 50,
+    hits: 1,
+    hp: 400,
+    sp: 1,
+    shields: 50,
+    // TRAMPLE: it does not go around. Paired with the gait below, that is the
+    // whole body language of the card — it is not fast and it does not stop.
+    keywords: { TRAMPLE: true },
+    tribe: "Cavernous",
+    boss: true,
+    // A GIANT, and a MELEE one — which is why `fullBoardBasic` had to learn to
+    // lift melee adjacency and not only the ranged reach cap. A rule that
+    // reached half of Floor 5 would be a rule about half of Floor 5.
+    fullBoardBasic: true,
+    art: "boss_continental",
+    // FLOOR 5's second boss. BORE gives the tribe, LEAF gives the mechanic.
+    //
+    // THE LESSON: it is the only thing on the tower you are not supposed to
+    // out-damage. 400 HP behind 50 shields, and shields block PER HIT — so the
+    // multi-hit, many-small-blows answer that beats Kazehaya is the worst
+    // possible answer here, and the fight inverts the one two floors below it.
+    //
+    // AND IT COMES TO YOU, eventually. It holds its home row while your
+    // Fortress Gates stand, sliding along it to line up on whatever hits
+    // hardest; the round the last gate falls it starts walking. So the wall is
+    // not just cover, it is the clock — every gate you spend is time, and the
+    // boulders are what spend them for you.
+    passiveNames: {
+      fullBoardBasic: "Titan's Reach",
+      roundTick: "Continental Drift",
+      spawnEveryN: "Rockfall",
+    },
+    roundTick: {
+      // CONTINENTAL DRIFT. Lateral while the wall stands — and aimed at the
+      // biggest HITTER rather than the biggest crowd, which is the question a
+      // siege engine actually asks.
+      aimLateral: true,
+      aimLateralBy: "topDmg",
+      // ...then it walks, and only then.
+      advance: 1,
+      advanceWhenWallsDown: true,
+      // ROCKFALL: a boulder every even round, in the row in front of it.
+      spawnEveryN: { n: 2, token: "bore_rolling_boulder_tok", spawnMaxAlive: 3 },
+      fireSpecialEveryN: 3,
+    },
+    special: {
+      name: "Rolling Boulder",
+      cost: 4,
+      handler: "boulderThrow",
+      params: { dmg: 35 },
+      // "self": the handler picks its own victim, board-wide and at random.
+      targetSide: "self",
+      text: "Hurls a boulder at one random opponent anywhere on the board for 35 DMG.",
+    },
+  },
+  {
     id: "boss_kato",
     name: "Kato",
     rarity: "mythic",
@@ -11508,6 +11580,42 @@ export const CARDS: CardDef[] = [
 // them. (Reptilian and Heir used to live here — they are draftable now, but are
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
+  {
+    id: "bore_rolling_boulder_tok",
+    name: "Rolling Boulder",
+    rarity: "epic",
+    element: "BORE",
+    cardClass: "Tank",
+    attackType: "Melee",
+    // Costed as a body it would be fair to field: 0 damage and 70 body points
+    // of pure obstruction that happens to be moving toward you.
+    cost: 4,
+    // NO ATTACK AT ALL. It never takes a turn in the battle phase — everything
+    // it does happens in the round tick, by rolling. A 0-DMG body is normally a
+    // mistake; here it is the design, and SP 0 says the same thing twice.
+    dmg: 0,
+    hits: 1,
+    hp: 50,
+    sp: 0,
+    shields: 10,
+    keywords: { TRAMPLE: true },
+    // MASS IN MOTION. An ordinary trample only shoves something lighter than
+    // itself; a 50-HP rock would therefore stop dead at nearly every real card
+    // and its 35-damage crush would be an ability that never fired.
+    tramplesAnything: true,
+    tribe: "Cavernous",
+    art: "bore_rolling_boulder_tok",
+    passiveNames: { roundTick: "Rolling Start", trampleDmg: "Crush" },
+    // CRUSH: 35 to whatever it rolls over. The same `trampleDmg` Hoarfell
+    // carries, and it PENETRATES shields (`applyShove`) — masonry is not armour
+    // to a boulder, which is what lets a rockfall answer a wall.
+    trampleDmg: 35,
+    // It rolls THROUGH, not up to. `advance` stops dead at the first occupied
+    // slot, which is right for a seed and wrong for a boulder; `advanceTrample`
+    // routes through `chargeForward` so the shove and its crush damage are the
+    // ones every other trampling thing uses.
+    roundTick: { advanceTrample: 1 },
+  },
   {
     id: "gale_thundering_hurricane_tok",
     name: "Thundering Hurricane",

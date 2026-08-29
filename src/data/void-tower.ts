@@ -484,6 +484,31 @@ export const VOID_BOSSES: VoidBoss[] = [
     ],
     puzzle: "The storm has legs: kill the hurricane and it is stranded, leave it and it blinks into your line.",
   },
+  {
+    cardId: "boss_continental",
+    floor: 5,
+    tribeElement: "BORE",
+    mechanicElement: "LEAF",
+    // TWO elements, not three. Floor 5 ALLOWS a third; it does not require one,
+    // and a landmass with things growing on it is complete as two.
+    tribe: "Cavernous",
+    // 8 + 8 + 8 + 6 + 6 + 4x2 = 44, exact — Floor 5's budget.
+    //
+    // Sharing Cavernous with Kato is deliberate and not a clash: Kazehaya and
+    // Smolder already share Grove, and a tribe is what a boss IS rather than
+    // something it owns. The formation is drawn from the two ELEMENTS instead
+    // of from the tribe, so it does not restage Kato's list — this is masonry
+    // and old growth, the two things a continent is made of.
+    //
+    // It fields its own boulders, the way Skybreaker fields its own hurricane:
+    // the rockfall can be met already in progress rather than only on the clock.
+    summons: [
+      "bore_bastion", "bore_bearocks", "leaf_warden",
+      "bore_prism", "leaf_elderroot",
+      "bore_rolling_boulder_tok", "bore_rolling_boulder_tok",
+    ],
+    puzzle: "The one you cannot out-damage: shields block per hit, so bring one big swing, not ten small ones.",
+  },
 ];
 
 export const voidBossById = (cardId: string): VoidBoss | null =>

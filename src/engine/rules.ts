@@ -164,7 +164,9 @@ export function shoveTarget(
   // the single push in the game that ignores "it doesn't budge" — most visibly
   // in a Stormhide Bison mirror, where the same card carries both.
   if (getDef(victim.defId).pushImmune) return null;
-  if (effectiveMaxHp(state, victim) >= effectiveMaxHp(state, card)) return null;
+  // WEIGHT, unless the trampler is a falling rock. See `tramplesAnything`.
+  if (!getDef(card.defId).tramplesAnything
+      && effectiveMaxHp(state, victim) >= effectiveMaxHp(state, card)) return null;
   const open = (p: { row: number; col: number }) =>
     p.row >= 0 && p.row < state.boardSize && p.col >= 0 && p.col < state.boardSize
     && !state.slots[p.row][p.col].capturedBy && !cardAt(state, p.row, p.col);
@@ -556,7 +558,18 @@ export function canTarget(
   if (melee) {
     const dRow = Math.abs(attacker.pos.row - target.pos.row);
     const dCol = Math.abs(attacker.pos.col - target.pos.col);
-    const reach = 1 + extraReach;
+    // A MELEE GIANT still has arms the length of the board. Floor 5's rule is
+    // that its bosses reach all of it with a BASIC, and two of them are melee —
+    // a rule that only reached ranged cards would be a rule about half the
+    // floor. The sight screen still applies below, so a body in the lane still
+    // stops the swing and the player's Fortress Gates are still cover.
+    const reach = aDef.fullBoardBasic && forBasic ? state.boardSize : 1 + extraReach;
+    // Beyond a king-step, a giant's swing is screened exactly as a shot is:
+    // ordinary melee has no sight rule because it never reaches past the next
+    // square, so the rule has to be stated here rather than inherited.
+    if (aDef.fullBoardBasic && forBasic && Math.max(dRow, dCol) > 1
+        && !rangedCanSee(state, attacker.pos, target.pos, attacker.owner, reach))
+      return false;
     if (dRow > reach || dCol > reach) {
       // Long Reach (Shadow Horsemen): a BASIC may also strike along the four
       // straight lines out to `basicLineReach`. Everything off those lines stays

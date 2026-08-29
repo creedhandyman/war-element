@@ -396,11 +396,22 @@ export function describePassives(def: CardDef): string[] {
       t.pokeStatus && `${t.pokeStatus.kind} the closest opponent for ${forR(t.pokeStatus.duration)}`,
       t.pushEnemies && `push every opponent back ${t.pushEnemies} slot${t.pushEnemies > 1 ? "s" : ""}`,
       t.slowEnemies && `drag ${t.slowEnemies} SP off every opponent`,
+      t.advanceTrample && `roll ${t.advanceTrample} slot${t.advanceTrample > 1 ? "s" : ""} forward, THROUGH whatever is in the way`,
+      t.spawnEveryN &&
+        `every ${t.spawnEveryN.n} rounds, loose a ${getDef(t.spawnEveryN.token).name} into the row ahead`
+        + ` (up to ${t.spawnEveryN.spawnMaxAlive ?? 3} at once)`,
       t.cycloneSpin && `spin every opponent one slot around it`,
       t.spawnOnRound &&
         `from round ${t.spawnOnRound.round}, keep ${t.spawnOnRound.spawnMaxAlive ?? 1} ${getDef(t.spawnOnRound.token).name} on the field`,
       t.shiftLateral && `shift one slot along its home row (wrapping)`,
-      t.aimLateral && `slide ${t.aimLateralSteps ?? 1} slot${(t.aimLateralSteps ?? 1) > 1 ? "s" : ""} along its home row toward the column holding the most opponents${t.aimLateralSwap ? ", trading places with anything in the way" : ""}`,
+      // WHAT IT AIMS AT has to match what it does: Continental slides toward the
+      // biggest HITTER, and printing the crowd-seeking sentence on it was the
+      // card face telling the player the wrong rule.
+      t.aimLateral && `slide ${t.aimLateralSteps ?? 1} slot${(t.aimLateralSteps ?? 1) > 1 ? "s" : ""} along its home row toward `
+        + (t.aimLateralBy === "topDmg"
+            ? "the opponent with the highest DMG"
+            : "the column holding the most opponents")
+        + `${t.aimLateralSwap ? ", trading places with anything in the way" : ""}`,
       t.escortAdvance &&
         `advance one slot — but ONLY with ${t.escortAdvance.need} or more allies level with it or further forward`,
       t.kite && `give ground one slot once below ${t.kite.belowPct}% HP`,
@@ -726,7 +737,11 @@ export function describePassives(def: CardDef): string[] {
       `End of round: heals every other ally within range +${def.roundTick.healAlliesInRange} HP.`,
     );
   if (def.roundTick?.advance)
-    named("roundTick", `Seed Roll: rolls ${def.roundTick.advance} slot${def.roundTick.advance === 1 ? "" : "s"} forward toward the enemy home at the end of each round (until blocked).`);
+    named("roundTick", `Seed Roll: rolls ${def.roundTick.advance} slot${def.roundTick.advance === 1 ? "" : "s"} forward toward the enemy home at the end of each round (until blocked)`
+      // THE WALL CLAUSE. A siege engine that will not move until your masonry
+      // falls is telling the player what their gates are FOR, so it has to be
+      // on the card rather than only in the log.
+      + `${def.roundTick.advanceWhenWallsDown ? " — and not at all while any of your walls still stand" : ""}.`);
   if (def.advanceOnBasic)
     named("advanceOnBasic", `after each basic attack it rolls ${def.advanceOnBasic} slot${def.advanceOnBasic === 1 ? "" : "s"} further toward the enemy home.`);
   if (def.summonAdvance)

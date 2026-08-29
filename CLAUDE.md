@@ -2179,6 +2179,60 @@ rules are worth more than a third of its body. Win type moved too: overrun
 advancing wins more fights on the clock. Budget for this when authoring the
 rest of Floor 5: a giant needs LESS body than a Floor-4 boss, not more.
 
+## FLOOR 5 — Continental, the one you cannot out-damage
+
+`boss_continental` (50 DMG / 400 HP / **50 shields** / SP 1 = **551** body,
+against Floor 5's 660 cap — the heaviest on the tower) + `bore_rolling_boulder_tok`
+(0/50/10, SP 0). BORE tribe, LEAF mechanic, both auras via `elementAuras`.
+Owner-specified lines.
+
+THE DESIGN: shields block **per hit**, so the many-small-blows answer that beats
+Kazehaya two floors down is the WORST answer here — the fight inverts one the
+player has already solved. And it comes to you on a delay: `advanceWhenWallsDown`
+parks it on its home row while any Fortress Gate stands, sliding along that row
+to line up on whatever hits hardest, and it starts walking the round the last
+wall falls. **The wall is not just cover, it is the clock**, and the boulders
+are what spend it.
+
+Five new pieces, all small:
+- `roundTick.aimLateralBy: "count" | "topDmg"` — the default slides toward the
+  biggest CROWD (Helion, Skeleeze); "topDmg" slides toward the biggest HITTER,
+  which is the question a siege engine actually asks. The card-text describer
+  branches on it too — printing the crowd sentence on Continental was the card
+  face stating the wrong rule.
+- `roundTick.advanceWhenWallsDown` — gates the forward gaits ONLY. The lateral
+  aim still runs, so it spends the wait lining up on you rather than idling.
+  `enemyWallsStanding` counts both spell walls and VOID_GATE token cards.
+- `roundTick.advanceTrample` — rolls THROUGH via `chargeForward` rather than
+  stopping like `advance` does.
+- `roundTick.spawnEveryN` — a production line (every 2 rounds), `spawnMaxAlive`
+  bounded, column from the seeded RNG.
+- `CardDef.tramplesAnything` — **the important one**. `shoveTarget` only lets a
+  trample shove a LIGHTER body, so a 50-HP boulder would stop dead at nearly
+  every real card and "35 DMG to anything trampled" would have been an ability
+  that never fired — this repo's own "written but never read" bug class. It
+  lifts the weight comparison and nothing else; `pushImmune` still refuses.
+
+`CardInstance.rollHeld` exists because Cleanup step 4 clears `summonedThisRound`
+just BEFORE the round ticks run (the trap already documented beside
+`roundTickFired`), so "was this born a moment ago" cannot be asked of that flag.
+Without it a boulder lands in the row in front of the giant and is already past
+it before the player sees it there.
+
+`fullBoardBasic` had to learn MELEE. Continental is a melee giant, and a rule
+that only widened ranged cards would have been a rule about half the floor. The
+melee branch has no sight rule of its own (it never reaches past the next
+square), so the screen is stated explicitly for giants — otherwise the giant
+rule would silently delete the player's Gates.
+
+MEASURED: **99.0% bare, 75.0% with a tamed ally** (n=96, same harness as
+Skybreaker). **Below Skybreaker's 95.8% with 551 body against its 366** — the
+useful lesson of the floor so far: body is not what decides a Floor-5 fight.
+SP 1 makes it act last in every queue, and the wall gate parks it behind five
+gates for most of the clock; together those are worth more than 185 body points
+in the other direction. The floor spreads 75.0-95.8; if that wants tightening
+the levers are Continental's SP and Skybreaker's HP, not either body.
+
 ## FLOOR 5 — Skybreaker, the boss whose Special is its movement
 
 `boss_skybreaker` (3x16 DMG / 298 HP / 20 SP = **366** body against Floor 5's
