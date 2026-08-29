@@ -8332,7 +8332,7 @@ export const CARDS: CardDef[] = [
     // Icy Storm: 3 DMG to 2 opponents, then vanish into STEALTH for 2 rounds.
     special: {
       name: "Icy Storm",
-      cost: 3,
+      cost: 2,
       handler: "barrage",
       params: { dmg: 3, targets: 2, stealthRounds: 2 },
       targetSide: "enemy",
