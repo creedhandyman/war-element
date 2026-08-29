@@ -8,11 +8,11 @@
 import { describe, expect, it } from "vitest";
 import {
   DOMINATION_7X7, DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, dominationMap,
-  heldCount, isImpassable, isRoad, isShrine, newDomination, POI_GOLD, POI_MAGIC, poiAt, poiRing,
+  heldCount, isImpassable, isRoad, isShrine, isWell, newDomination, POI_GOLD, POI_MAGIC, poiAt, poiRing,
   resolveHolders, runsAlongRoad,
 } from "../../data/domination";
 import { advance, applyIntent, canMove, canSummon, createInitialState, legalMoves } from "../index";
-import { homeSlots, summonLandingRow } from "../rules";
+import { homeSlots, rangedCanSee, summonLandingRow, terrainBlocksPath } from "../rules";
 import { summonCard } from "../state";
 import { deckLimits } from "../../data/custom-decks";
 import type { GameState, PlayerId } from "../types";
@@ -95,7 +95,10 @@ describe("the map is a partition", () => {
     const dead: string[] = [];
     for (let r = 0; r < M.boardSize; r++)
       for (let c = 0; c < M.boardSize; c++) if (isImpassable(M, r, c)) dead.push(`${r},${c}`);
-    expect(dead.sort()).toEqual(["1,1", "1,5", "3,3", "5,1", "5,5"].sort());
+    // FOUR citadels. The crossroads is no longer among them — it is the Well,
+    // and a square nothing can stand on cannot heal anything.
+    expect(dead.sort()).toEqual(["1,1", "1,5", "5,1", "5,5"].sort());
+    expect(isImpassable(M, 3, 3), "the Well must be standable").toBe(false);
   });
 
   it("gives a 7×7 board a real deck size instead of the 4×4 default", () => {
@@ -107,11 +110,16 @@ describe("the map is a partition", () => {
 });
 
 describe("nothing stands on a closed slot", () => {
-  it("refuses a move onto a citadel or the crossroads", () => {
+  it("refuses a move onto a citadel", () => {
     const s = domState();
-    const c = put(s, "leaf_weeds", "P1", 3, 2);         // on the road, beside the centre
-    expect(canMove(s, "P1", c.instanceId, { row: 3, col: 3 }).ok, "walked into the crossroads").toBe(false);
-    expect(canMove(s, "P1", c.instanceId, { row: 3, col: 3 }).reason).toMatch(/stand/i);
+    const centre = M.pois[0].centre;                    // 1,1
+    const c = put(s, "leaf_weeds", "P1", centre.row, centre.col - 1);
+    expect(canMove(s, "P1", c.instanceId, centre).ok, "walked into a citadel").toBe(false);
+    expect(canMove(s, "P1", c.instanceId, centre).reason).toMatch(/stand/i);
+    // ...but the crossroads IS walkable now: it is the Well, and a square
+    // nothing can stand on cannot heal anything.
+    const w = put(s, "leaf_weeds", "P1", 3, 2);
+    expect(canMove(s, "P1", w.instanceId, { row: 3, col: 3 }).ok, "the Well is closed").toBe(true);
     // ...and legalMoves agrees, so no closed slot ever lights up.
     for (const m of legalMoves(s, "P1", c.instanceId))
       expect(isImpassable(M, m.row, m.col), `${m.row},${m.col} offered`).toBe(false);
@@ -137,11 +145,16 @@ describe("the roads are faster", () => {
     expect(canMove(s, "P1", c.instanceId, { row: 1, col: 0 }).ok, "two slots into a Point").toBe(false);
   });
 
-  it("will not carry a run THROUGH the closed crossroads", () => {
-    // The junction is shut, so the two lanes never join: a run down row D stops
-    // at the middle rather than continuing out the far side.
-    expect(runsAlongRoad(M, { row: 3, col: 2 }, { row: 3, col: 4 })).toBe(false);
-    expect(runsAlongRoad(M, { row: 2, col: 3 }, { row: 4, col: 3 })).toBe(false);
+  it("runs THROUGH the crossroads now that the Well stands there", () => {
+    // This used to be the opposite assertion. The junction was shut, so the two
+    // lanes never joined; opening it for the Well joins them, which is the
+    // trade — the middle is the fastest ground on the map AND the ground that
+    // mends you, so it is worth contesting rather than worth avoiding.
+    expect(runsAlongRoad(M, { row: 3, col: 2 }, { row: 3, col: 4 })).toBe(true);
+    expect(runsAlongRoad(M, { row: 2, col: 3 }, { row: 4, col: 3 })).toBe(true);
+    // A lane still stops at a Point — the roads are the leftover cross, and
+    // that has not changed.
+    expect(runsAlongRoad(M, { row: 3, col: 0 }, { row: 1, col: 0 })).toBe(false);
   });
 
   it("gives a pinned card nothing — a road is a faster way to move, not a way to move", () => {
@@ -399,5 +412,111 @@ describe("you deploy at the shrines and nowhere else", () => {
     }
     expect(out.slots.flat().filter((sl) => sl.capturedBy).length,
       "a slot was captured in Domination").toBe(0);
+  });
+});
+
+describe("a Point is a wall", () => {
+  it("stops a ranged shot that would pass straight through a citadel", () => {
+    // Cover is the whole point: the squares behind a citadel are somewhere a
+    // card can actually shelter, so taking a Point means fighting around its
+    // walls rather than shooting across them.
+    const s = domState();
+    const centre = M.pois[0].centre;                      // 1,1
+    const shooter = put(s, "pyro_flamehound", "P1", centre.row - 1, centre.col - 1);
+    const hidden = put(s, "leaf_weeds", "P2", centre.row + 1, centre.col + 1);
+    expect(isImpassable(M, centre.row, centre.col), "the square between them").toBe(true);
+    expect(rangedCanSee(s, shooter.pos!, hidden.pos!, "P1", 9),
+      "shot straight through the citadel").toBe(false);
+  });
+
+  it("still allows the shot when the line misses the citadel", () => {
+    // The guard on the rule: it screens what is BEHIND it, not the whole Point.
+    const s = domState();
+    const centre = M.pois[0].centre;
+    const shooter = put(s, "pyro_flamehound", "P1", centre.row - 1, centre.col - 1);
+    const beside = put(s, "leaf_weeds", "P2", centre.row + 1, centre.col - 1);
+    expect(rangedCanSee(s, shooter.pos!, beside.pos!, "P1", 9)).toBe(true);
+  });
+
+  it("screens EVERYONE — masonry does not care whose shot it is", () => {
+    const s = domState();
+    const centre = M.pois[1].centre;
+    const a = { row: centre.row - 1, col: centre.col - 1 };
+    const b = { row: centre.row + 1, col: centre.col + 1 };
+    expect(rangedCanSee(s, a as never, b as never, "P1", 9)).toBe(false);
+    expect(rangedCanSee(s, b as never, a as never, "P2", 9)).toBe(false);
+  });
+
+  it("cannot be walked through when it blocks every route", () => {
+    const s = domState();
+    const centre = M.pois[2].centre;                      // 5,1
+    // Straight across the citadel, two squares along its own row: the ONLY
+    // one-step route between the ends is the wall itself.
+    const c = put(s, "leaf_weeds", "P1", centre.row, centre.col - 1);
+    expect(terrainBlocksPath(s, s.cards[c.instanceId], { row: centre.row, col: centre.col + 1 }))
+      .toBe(true);
+  });
+
+  it("lets a card walk AROUND it when a route is open", () => {
+    const s = domState();
+    const centre = M.pois[2].centre;
+    const c = put(s, "leaf_weeds", "P1", centre.row - 1, centre.col - 1);
+    // Two squares along the row ABOVE the citadel — ordinary ground between.
+    expect(terrainBlocksPath(s, s.cards[c.instanceId], { row: centre.row - 1, col: centre.col + 1 }))
+      .toBe(false);
+  });
+});
+
+describe("the Well", () => {
+  const wellAt = M.well!.at;
+
+  it("mends a card standing on it, the round it arrives", () => {
+    const s = domState();
+    const c = put(s, "leaf_weeds", "P1", wellAt.row, wellAt.col);
+    s.cards[c.instanceId].maxHp = 40;
+    s.cards[c.instanceId].curHp = 10;
+    let out = s;
+    for (let i = 0; i < 400 && out.round < s.round + 1 && out.phase !== "gameover"; i++) {
+      const n = out.phase === "prep" && out.prep
+        ? applyIntent(out, { type: "PASS", player: out.prep.priority })
+        : advance(out);
+      if (n === out) break;
+      out = n;
+    }
+    expect(out.cards[c.instanceId].curHp, "the Well healed nothing").toBeGreaterThan(10);
+    expect(out.log.some((l) => /drinks from the Well/.test(l))).toBe(true);
+  });
+
+  it("keeps healing after the card steps off — 2 HP for 3 rounds", () => {
+    // The heal-over-time is what makes the Well worth a detour rather than
+    // worth camping on: you take a drink and carry it with you.
+    const s = domState();
+    const c = put(s, "leaf_weeds", "P1", wellAt.row, wellAt.col);
+    const inst = s.cards[c.instanceId];
+    inst.maxHp = 40;
+    inst.curHp = 10;
+    let out = s;
+    for (let i = 0; i < 400 && out.round < s.round + 1; i++) {
+      const n = out.phase === "prep" && out.prep
+        ? applyIntent(out, { type: "PASS", player: out.prep.priority })
+        : advance(out);
+      if (n === out) break;
+      out = n;
+    }
+    const after = out.cards[c.instanceId];
+    expect(after.regenPower).toBe(M.well!.hp);
+    expect(after.regenPower).toBe(2);
+    // One round of it has already been spent, so the rest travels with the card.
+    expect(after.regenRoundsLeft).toBe(M.well!.rounds - 1);
+    expect(M.well!.rounds).toBe(3);
+  });
+
+  it("is exactly one square, in the centre", () => {
+    expect(M.well).toBeTruthy();
+    expect(wellAt).toEqual({ row: 3, col: 3 });
+    let count = 0;
+    for (let r = 0; r < M.boardSize; r++)
+      for (let c = 0; c < M.boardSize; c++) if (isWell(M, r, c)) count++;
+    expect(count, "more than one Well").toBe(1);
   });
 });

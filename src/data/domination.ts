@@ -20,13 +20,13 @@
  *    A  [a] [a] [a]  *  [b] [b] [b]
  *    B  [a] (X) [a]  |  [b] (X) [b]
  *    C  [a] [a] [a]  |  [b] [b] [b]
- *    D   *   —   —  (X)  —   —   *
+ *    D   *   —   —  (W)  —   —   *
  *    E  [c] [c] [c]  |  [d] [d] [d]
  *    F  [c] (X) [c]  |  [d] (X) [d]
  *    G  [c] [c] [c]  *  [d] [d] [d]
  *
- *      [x] the eight ring slots of a Point   (X) impassable
- *       *  shrine (either side may summon)   — | road
+ *      [x] the eight ring slots of a Point   (X) impassable citadel
+ *       *  shrine (any seat may summon)      — | road   (W) the Well
  *
  *  A POINT IS ITS RING, NOT ITS MIDDLE. The centre of each 3×3 is impassable —
  *  the citadel itself, which nothing walks into — so a Point is the eight slots
@@ -44,8 +44,8 @@
  *  crossing from one corner to the far Point takes most of a match, which is how
  *  a 7×7 turns into two separate games happening at opposite ends. The cross
  *  gives every card +1 reach while it runs ALONG it, so the roads are the fast
- *  lanes between objectives — and they meet at the impassable centre, so the
- *  quickest way across the map is never quite a straight line.
+ *  lanes between objectives — and they meet at the WELL, which is the one square
+ *  on the map that mends you and the one every lane already leads to.
  */
 import type { PlayerId, Pos } from "../engine/types";
 
@@ -63,9 +63,17 @@ export interface DominationMap {
   name: string;
   boardSize: number;
   pois: PoiDef[];
-  /** Impassable slots that are NOT a Point's centre — here, the board's own
-   *  middle, where the roads cross and nothing may stand. */
+  /** Impassable slots that are NOT a Point's centre. None on the 7x7 now that
+   *  the crossroads is the Well; kept because a future map may want some. */
   deadSlots: Pos[];
+  /** THE WELL: one square at the crossroads that mends whoever holds it.
+   *
+   *  It sits where the board's middle used to be closed, and the swap is the
+   *  design: a dead centre made the map four corners with a hole in it, and the
+   *  one square every lane already leads to is the obvious thing to fight over.
+   *  Standing on it grants a heal-over-time that KEEPS RUNNING after you step
+   *  off, so taking the Well is worth a detour rather than worth camping. */
+  well?: { at: Pos; hp: number; rounds: number };
   /** Summon slots either player may use. All four sit on the road cross, in the
    *  gaps between the Points — so reinforcements always arrive on a lane. */
   shrines: Pos[];
@@ -84,7 +92,8 @@ export const DOMINATION_7X7: DominationMap = {
     { id: "C", name: "Ashen Port", centre: at(5, 1) },
     { id: "D", name: "Dragon's Lair", centre: at(5, 5) },
   ],
-  deadSlots: [at(3, 3)],
+  deadSlots: [],
+  well: { at: at(3, 3), hp: 2, rounds: 3 },
   shrines: [at(0, 3), at(3, 0), at(3, 6), at(6, 3)],
 };
 
@@ -123,6 +132,10 @@ export function isImpassable(map: DominationMap, row: number, col: number): bool
 
 export function isShrine(map: DominationMap, row: number, col: number): boolean {
   return map.shrines.some((s) => s.row === row && s.col === col);
+}
+
+export function isWell(map: DominationMap, row: number, col: number): boolean {
+  return !!map.well && map.well.at.row === row && map.well.at.col === col;
 }
 
 /** A road slot is any slot that belongs to no Point — the leftover cross. An

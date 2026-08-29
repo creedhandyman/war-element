@@ -345,6 +345,38 @@ const AROUND: readonly (readonly [number, number])[] = [
  *
  *  Allies never block: an ally in the way reads as a clear route, which is what
  *  it was before this function existed. The ask was to stop opponents. */
+/** Does MASONRY stand in every route this move could take?
+ *
+ *  A citadel is a wall, so a card may not walk through one. This is the passage
+ *  half of that; `rangedCanSee` is the sight half. Kept separate from
+ *  `pathBlocker` because that one answers "which enemy CARD is in the way" and
+ *  returns it for the refusal message — a wall is not a card and has nobody to
+ *  name.
+ *
+ *  A two-step move has up to two one-step routes between its ends. It is only
+ *  blocked when EVERY one of them runs through a wall: with a way round, there
+ *  is a way round. FLYING goes over, like it does over a body.
+ */
+export function terrainBlocksPath(state: GameState, card: CardInstance, to: Pos): boolean {
+  if (!card.pos) return false;
+  const def = getDef(card.defId);
+  if (def.keywords.FLYING) return false;
+  const sp = effectiveSp(state, card);
+  const step = movesLikeKing(def, card, sp) ? chebyshev : manhattan;
+  if (step(card.pos, to) !== 2) return false;
+  let routes = 0;
+  let walled = 0;
+  for (const [dr, dc] of AROUND) {
+    const mid = { row: card.pos.row + dr, col: card.pos.col + dc } as Pos;
+    if (mid.row < 0 || mid.row >= state.boardSize) continue;
+    if (mid.col < 0 || mid.col >= state.boardSize) continue;
+    if (step(card.pos, mid) !== 1 || step(mid, to) !== 1) continue;
+    routes++;
+    if (slotIsImpassable(state, mid.row, mid.col)) walled++;
+  }
+  return routes > 0 && walled === routes;
+}
+
 export function pathBlocker(
   state: GameState,
   card: CardInstance,
@@ -448,6 +480,10 @@ export function canMove(
   const wall = pathBlocker(state, card, to);
   if (wall)
     return { ok: false, reason: `${getDef(wall.defId).name} holds the way — too slow to slip past` };
+  // ...and the same question asked of the masonry: a citadel is a wall, and the
+  // only way past one is around it.
+  if (terrainBlocksPath(state, card, to))
+    return { ok: false, reason: "The citadel wall is in the way" };
   // Captured slots are locked: cards may pass through, but can't stop on one.
   if (isCaptured(state, to.row, to.col))
     return { ok: false, reason: "Slot is permanently captured (locked)" };
@@ -525,8 +561,17 @@ export function rangedCanSee(
     const sr = Math.sign(dr);
     const sc = Math.sign(dc);
     for (let i = 1; i < dist; i++) {
+      const r = from.row + sr * i;
+      const c = from.col + sc * i;
+      // A CITADEL is cover. The four Points are fortifications with a solid
+      // middle, and a shot that would pass straight through one is stopped by
+      // it — so the squares behind a citadel are somewhere a card can actually
+      // shelter, and taking a Point means fighting around its walls rather than
+      // shooting across them. Unlike a body, it screens EVERYONE: it is masonry,
+      // not a formation, so it does not care whose shot it is.
+      if (slotIsImpassable(state, r, c)) return false;
       // Stop BEFORE the target: a body between blocks, the target itself doesn't.
-      const between = cardAt(state, from.row + sr * i, from.col + sc * i);
+      const between = cardAt(state, r, c);
       if (between && between.owner !== shooter) return false;
     }
   }

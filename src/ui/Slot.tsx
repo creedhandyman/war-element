@@ -15,6 +15,7 @@ export function Slot(props: {
     closed?: boolean;
     road?: boolean;
     shrine?: boolean;
+    well?: boolean;
     poi?: string;
     poiOwner?: PlayerId | null;
   };
@@ -90,6 +91,7 @@ export function Slot(props: {
     props.terrain?.closed ? "dom-closed" : "",
     props.terrain?.road ? "dom-road" : "",
     props.terrain?.shrine ? "dom-shrine" : "",
+    props.terrain?.well ? "dom-well" : "",
     props.terrain?.poi ? "dom-poi" : "",
     // ONE vocabulary for every objective square on every board — see `objective`
     // in Board.tsx. Replaces the red/blue "whose row is this" tinting, which

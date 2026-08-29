@@ -3,7 +3,7 @@ import { cardAt, enemyOf, getSpell, homeRow, isContested } from "../engine";
 import { getDef } from "../data/cards";
 import { Slot } from "./Slot";
 import { EL_COLOR } from "./shared";
-import { dominationMap, isImpassable, isRoad, isShrine, poiAt, poiRing } from "../data/domination";
+import { dominationMap, isImpassable, isRoad, isShrine, isWell, poiAt, poiRing } from "../data/domination";
 
 /** Plain-language summary of a live Field's numeric bonuses. Used for terrain,
  *  whose printed spell text describes a stronger thing than it is running. */
@@ -40,6 +40,7 @@ function domTerrain(game: GameState, row: number, col: number) {
     closed: isImpassable(map, row, col),
     road: isRoad(map, row, col),
     shrine: isShrine(map, row, col),
+    well: isWell(map, row, col),
     poi: poi?.id,
     poiOwner: poi ? dom.held[poi.id] : null,
   };

@@ -3282,6 +3282,20 @@ function doCleanupPhase(draft: GameState): void {
     // Innate REGEN plus any GRANTED, timed heal-over-time (Gecko's Tail Drop
     // regrow), which ticks its own countdown down.
     let regen = Number(def.keywords.REGEN ?? 0);
+    // THE WELL (Domination): standing on the crossroads grants a heal-over-time.
+    // Granted BEFORE the tick below, so a card is mended the same round it
+    // arrives rather than a round later — and refreshed every round it stays,
+    // so holding the square is what keeps it topped up.
+    //
+    // The heal KEEPS RUNNING after the card steps off, which is what makes the
+    // Well worth a detour instead of worth camping on.
+    const wellMap = draft.domination ? dominationMap(draft.domination.mapId) : undefined;
+    if (wellMap?.well && card.pos && card.curHp > 0
+        && card.pos.row === wellMap.well.at.row && card.pos.col === wellMap.well.at.col) {
+      card.regenPower = Math.max(card.regenPower ?? 0, wellMap.well.hp);
+      card.regenRoundsLeft = Math.max(card.regenRoundsLeft ?? 0, wellMap.well.rounds);
+      draft.log.push(`${label(draft, card)} drinks from the Well (+${wellMap.well.hp} HP for ${wellMap.well.rounds} rounds).`);
+    }
     if ((card.regenRoundsLeft ?? 0) > 0) {
       regen += card.regenPower ?? 0;
       card.regenRoundsLeft = (card.regenRoundsLeft ?? 0) - 1;

@@ -6539,3 +6539,30 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   border-radius: 3px;
   padding: 0 2px;
 }
+
+/* THE WELL — the one square on the map that mends you, at the crossroads where
+   all four lanes meet. Green, because that is what healing reads as everywhere
+   else in this game, and pulsing so it is legible as a thing that DOES
+   something rather than another piece of terrain. */
+.slot.dom-well {
+  background: radial-gradient(circle at 50% 50%,
+    rgba(64, 210, 125, 0.30), rgba(64, 210, 125, 0.06) 72%);
+  border-color: rgba(90, 230, 150, 0.65);
+  animation: wellpulse 2.4s ease-in-out infinite;
+}
+@keyframes wellpulse {
+  0%, 100% { box-shadow: inset 0 0 12px rgba(64, 210, 125, 0.20); }
+  50%      { box-shadow: inset 0 0 22px rgba(64, 210, 125, 0.42); }
+}
+.slot.dom-well::before {
+  content: "✚";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: clamp(12px, 3vw, 20px);
+  color: rgba(150, 255, 195, 0.85);
+  text-shadow: 0 0 10px rgba(64, 210, 125, 0.7), 0 2px 4px #000;
+  pointer-events: none;
+  z-index: 0;
+}
