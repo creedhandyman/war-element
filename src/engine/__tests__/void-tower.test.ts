@@ -298,6 +298,17 @@ describe("the roster", () => {
       // means touching the HURRICANE, whose stats are the owner's.
       //
       // The floor at this point: Skybreaker 96.9, Continental 89.6 (n=192).
+      //
+      // THEN THE AI WAS FIXED (it could not fire 38 of the game's Specials —
+      // see CLAUDE.md), which re-based everything: Skybreaker 96.9 -> 91.7 and
+      // Continental 74.0 -> 94.8 at n=96. The player side got better, and so
+      // did Continental's own AI-piloted formation, by more.
+      //
+      // Trimming its boulders 50 -> 40 HP then took Continental to **92.7%**,
+      // with Skybreaker held at 91.7 as an unchanged control. Both still sit
+      // above the 80-90 band; the tuning done before the AI fix was measured
+      // against a different game and wants redoing in one pass rather than
+      // chased a point at a time.
       // That is a little under the 80-90 band Floor 4 was tuned to, and it is
       // internally consistent, which the 75.0-95.8 spread before it was not.
       // HP remains the lever in either direction (366 body against a 660 cap).

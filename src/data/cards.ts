@@ -11706,7 +11706,13 @@ export const TOKENS: CardDef[] = [
     // mistake; here it is the design, and SP 0 says the same thing twice.
     dmg: 0,
     hits: 1,
-    hp: 50,
+    // 50 -> 40 (owner's call). Its survivability is the whole of what a boulder
+    // costs the player: it has no attack, so the only question a rock asks is
+    // how many swings it takes to stop one before it rolls into somebody.
+    // `tramplesAnything` means the HP does NOT gate what it can crush — that
+    // weight check is lifted — so this is a pure durability trim and its 35
+    // damage is untouched.
+    hp: 40,
     sp: 0,
     shields: 10,
     keywords: { TRAMPLE: true },
