@@ -14,6 +14,7 @@ import {
 import { advance, applyIntent, canMove, canSummon, createInitialState, legalMoves } from "../index";
 import { homeSlots, rangedCanSee, specialTargets, summonLandingRow, terrainBlocksPath } from "../rules";
 import { cardAt, summonCard } from "../state";
+import { pushBack } from "../combat";
 import { pickBasicTarget } from "../phases";
 import { aiPrepIntent, pointGoals } from "../ai";
 import { atBattle } from "./helpers";
@@ -346,6 +347,27 @@ describe("the Points pay", () => {
     // winning the board. Asserted as a zero rather than dropped, because
     // "holding Points changes nothing about magic" is the actual rule.
     expect(b.magic - a.magic, "Points are still paying magic").toBe(0);
+  });
+
+  it("pays nothing for standing on a 'home row' — the Points ARE the economy", () => {
+    // The ordinary economy pays a gold per body standing on your own home row.
+    // On this map that row does not exist as a thing anyone owns: row 6 is six
+    // Point-ring slots and a shrine, so the bonus paid a SECOND time for the
+    // very bodies already earning POI_GOLD for holding the Point — and only for
+    // the two Points that happen to sit on rows 0 and 6, not the other two. It
+    // also paid P3 and P4 for standing on a row `homeRow` only has an answer
+    // for because it was asked about two seats.
+    const bare = domState();
+    const parked = domState();
+    // The shrine on row 6: on the home row, but on no Point's ring, so nothing
+    // else could be paying for it and the delta is the home-slot bonus alone.
+    put(parked, "leaf_weeds", "P1", homeRow("P1", M.boardSize), 3);
+    const run = (st: GameState) => {
+      st.phase = "resource";
+      st.players.P1.gold = 0;
+      return advance(st).players.P1.gold;
+    };
+    expect(run(parked) - run(bare), "a body parked on the home row still earns").toBe(0);
   });
 
   it("pays the holder and nobody else", () => {
@@ -843,6 +865,79 @@ describe("the trap and reroute spells aim at Points, not a Home row", () => {
     const intent = aiPrepIntent(s, "P2");
     if (intent.type === "CAST_SPELL" && intent.row !== undefined)
       expect(intent.row, "stopped defending its own Home row").toBe(homeRow("P2", 5));
+  });
+});
+
+describe("a shove is aimed by the shover, not by a home row", () => {
+  // pushBack used to walk a body toward its OWN home row. On this map that is
+  // not a direction: the objectives sit in four corners, an east-west
+  // engagement produced no displacement at all, and a card standing on the row
+  // that happened to be its home could not be shoved by anything. It is now the
+  // lasso run backwards — away from the pusher, along both axes, a king-step at
+  // a time, stepping around a blocked square rather than stopping dead at it.
+
+  it("drives the target directly away from the card that hit it", () => {
+    const s = domState();
+    const shover = put(s, "leaf_oak", "P1", 3, 2);
+    const victim = put(s, "leaf_weeds", "P2", 3, 3);   // due east of the shover
+    pushBack(s, s.cards[victim.instanceId], 2, s.cards[shover.instanceId]);
+    expect(s.cards[victim.instanceId].pos, "shoved east, away from the shover")
+      .toEqual({ row: 3, col: 5 });
+  });
+
+  it("shoves on the diagonal when it was hit on the diagonal", () => {
+    const s = domState();
+    const shover = put(s, "leaf_oak", "P1", 2, 3);
+    const victim = put(s, "leaf_weeds", "P2", 3, 4);
+    pushBack(s, s.cards[victim.instanceId], 2, s.cards[shover.instanceId]);
+    expect(s.cards[victim.instanceId].pos, "out along the line of the blow")
+      .toEqual({ row: 5, col: 6 });
+  });
+
+  it("bends around a citadel rather than stopping at it", () => {
+    // The four citadels sit on the board's main diagonals, so a diagonal shove
+    // from the centre runs into one almost immediately. Like the lasso, a push
+    // tries the straight line first and then each single axis, so an obstacle
+    // costs the diagonal rather than the rest of the push.
+    const s = domState();
+    const shover = put(s, "leaf_oak", "P1", 2, 2);
+    const victim = put(s, "leaf_weeds", "P2", 3, 3);
+    pushBack(s, s.cards[victim.instanceId], 2, s.cards[shover.instanceId]);
+    // (4,4) on the diagonal, then (5,5) is Point D's citadel — so it slides to
+    // (5,4) instead of stopping dead on (4,4).
+    expect(s.cards[victim.instanceId].pos, "stopped at the citadel instead of going around")
+      .toEqual({ row: 5, col: 4 });
+  });
+
+  it("will not shove a card onto a citadel", () => {
+    // The centre of a Point is impassable — nothing may STAND there. pushBack
+    // only ever checked for a captured slot or another body, so before this a
+    // shove could park a card inside a citadel, on a square the movement rules
+    // would never have let it walk to and (being impassable) may not be a legal
+    // place to stand at all.
+    const s = domState();
+    const poi = M.pois[0];                       // centre (1,1)
+    expect(isImpassable(M, poi.centre.row, poi.centre.col)).toBe(true);
+    const shover = put(s, "leaf_oak", "P1", poi.centre.row - 1, poi.centre.col - 1);
+    const victim = put(s, "leaf_weeds", "P2", poi.centre.row, poi.centre.col - 1);
+    const before = { ...s.cards[victim.instanceId].pos! };
+    pushBack(s, s.cards[victim.instanceId], 1, s.cards[shover.instanceId]);
+    const after = s.cards[victim.instanceId].pos!;
+    expect(isImpassable(M, after.row, after.col), "shoved into the citadel").toBe(false);
+    // It is pushed away from the shover on the row axis instead of the blocked
+    // diagonal — a body steps AROUND an obstacle rather than being stopped by it.
+    expect(after).not.toEqual(before);
+  });
+
+  it("a spell push, which has no shover on the board, still moves something", () => {
+    // A push with no pushing CARD — a spell, cast by a player from nowhere in
+    // particular — has no position to be away from, and keeps the old home-row
+    // behaviour rather than silently doing nothing.
+    const s = domState();
+    const victim = put(s, "leaf_weeds", "P2", 3, 3);
+    pushBack(s, s.cards[victim.instanceId], 1, "P1");
+    expect(s.cards[victim.instanceId].pos, "a seat-only push still resolves")
+      .not.toEqual({ row: 3, col: 3 });
   });
 });
 

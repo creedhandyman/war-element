@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, canTarget, shoveTarget, validSpecialTargets, validTargets, domMap } from "./rules";
+import { RANGED_REACH, canTarget, shoveTarget, slotIsImpassable, validSpecialTargets, validTargets, domMap } from "./rules";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
@@ -737,28 +737,74 @@ export function fireElectrifiedVolley(draft: GameState, card: CardInstance, dmg:
 
 /** Blow a card back toward its OWN home row up to `steps` open slots (Mighty
  *  Winds / Wind Guardian). Stops at its home row, a captured, or occupied slot. */
-/** Blow `card` back toward its own home. `pusher` is the side CAUSING the push
- *  (not the victim) — Jetstream adds +1 space to everything its owner shoves,
- *  and that bonus has to be read from the pusher's fields, never the target's. */
+/** Blow `card` away. `pusher` is the side or the CARD causing the push (never
+ *  the victim) — Jetstream adds +1 space to everything its owner shoves, and
+ *  that bonus has to be read from the pusher's fields, never the target's.
+ *
+ *  GIVEN A PUSHING CARD THIS IS `reelToCaster` RUN BACKWARDS: the target is
+ *  shoved directly away from the thing that hit it, along both axes, a king-step
+ *  at a time, stepping around a blocked square rather than stopping dead at it.
+ *
+ *  It used to walk the victim toward its own HOME ROW, which is a direction with
+ *  two problems. On a 7x7 Domination board there are no home rows — the
+ *  objectives sit in four corners — so "back" was a fiction, an east-west
+ *  engagement produced no push at all, and a card standing on the row that
+ *  happened to be its home could not be pushed by anything. And on every board
+ *  it pointed at the victim's home rather than away from the attacker, so a
+ *  shove could pull a card TOWARD the card that shoved it; Eagon's Special
+ *  carries a comment recording exactly that, having had to be rewritten as a
+ *  pull to do anything at all.
+ *
+ *  A push with no pushing card — a spell, cast by a player from nowhere in
+ *  particular — has no position to be away FROM, and keeps the old home-row
+ *  behaviour. */
 export function pushBack(
   draft: GameState,
   card: CardInstance,
   steps: number,
-  pusher?: PlayerId,
+  pusher?: PlayerId | CardInstance,
 ): void {
   if (getDef(card.defId).pushImmune) return; // Braced Stance: it doesn't budge
-  const dir = card.owner === "P1" ? 1 : -1; // toward own home (P1 = row 3, P2 = row 0)
-  const home = homeRow(card.owner, draft.boardSize);
-  const total = steps + (pusher ? fieldPushBonus(draft, pusher) : 0);
+  const from = pusher && typeof pusher !== "string" ? pusher.pos : undefined;
+  const side: PlayerId | undefined =
+    pusher == null ? undefined : typeof pusher === "string" ? pusher : pusher.owner;
+  const total = steps + (side ? fieldPushBonus(draft, side) : 0);
+  const blocked = (row: number, col: number) =>
+    row < 0 || row >= draft.boardSize || col < 0 || col >= draft.boardSize ||
+    draft.slots[row][col].capturedBy || !!cardAt(draft, row, col) ||
+    slotIsImpassable(draft, row, col);
   let moved = 0;
-  for (let i = 0; i < total; i++) {
-    const pos = card.pos;
-    if (!pos || pos.row === home) break;
-    const row: number = pos.row + dir;
-    if (row < 0 || row >= draft.boardSize) break;
-    if (draft.slots[row][pos.col].capturedBy || cardAt(draft, row, pos.col)) break;
-    card.pos = { row: row as Pos["row"], col: pos.col };
-    moved++;
+  if (from) {
+    for (let i = 0; i < total; i++) {
+      const pos = card.pos;
+      if (!pos) break;
+      // Recomputed every step, from the pusher's square: a shove radiates
+      // outward, so stepping around an obstacle on one axis bends the rest of
+      // the push rather than committing it to the original diagonal.
+      const dr = Math.sign(pos.row - from.row), dc = Math.sign(pos.col - from.col);
+      const tries: [number, number][] = [[dr, dc], [dr, 0], [0, dc]];
+      let stepped = false;
+      for (const [r, c] of tries) {
+        if (!r && !c) continue;
+        const row = pos.row + r, col = pos.col + c;
+        if (blocked(row, col)) continue;
+        card.pos = { row: row as Pos["row"], col: col as Pos["col"] };
+        stepped = true;
+        moved++;
+        break;
+      }
+      if (!stepped) break;
+    }
+  } else {
+    const dir = card.owner === "P1" ? 1 : -1; // toward own home (P1 = row 3, P2 = row 0)
+    const home = homeRow(card.owner, draft.boardSize);
+    for (let i = 0; i < total; i++) {
+      const pos = card.pos;
+      if (!pos || pos.row === home) break;
+      if (blocked(pos.row + dir, pos.col)) break;
+      card.pos = { row: (pos.row + dir) as Pos["row"], col: pos.col };
+      moved++;
+    }
   }
   if (moved > 0) draft.log.push(`${label(draft, card)} is blown back ${moved} slot(s).`);
 }
@@ -782,6 +828,7 @@ export function pullToward(
     const row: number = pos.row + dir;
     if (row < 0 || row >= draft.boardSize) break;
     if (draft.slots[row][pos.col].capturedBy || cardAt(draft, row, pos.col)) break;
+    if (slotIsImpassable(draft, row, pos.col)) break; // a citadel is not a slot
     card.pos = { row: row as Pos["row"], col: pos.col };
     moved++;
   }
@@ -821,6 +868,7 @@ export function reelToCaster(
       const row = pos.row + r, col = pos.col + c;
       if (row < 0 || row >= draft.boardSize || col < 0 || col >= draft.boardSize) continue;
       if (draft.slots[row][col].capturedBy || cardAt(draft, row, col)) continue;
+      if (slotIsImpassable(draft, row, col)) continue; // a citadel is not a slot
       card.pos = { row: row as Pos["row"], col: col as Pos["col"] };
       stepped = true;
       moved++;
@@ -1731,7 +1779,7 @@ export function resolveHit(
   // Wind Wake (Zephyra): every landed hit shoves the victim back a slot. Gated on
   // a real landed hit so a fully-dodged volley moves nobody.
   if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && aDef.onHitPush)
-    pushBack(draft, target, aDef.onHitPush, attacker.owner);
+    pushBack(draft, target, aDef.onHitPush, attacker);
   if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && tDef.onHitZap) {
     if (applyOnHitZap(draft, target, attacker, tDef.onHitZap)) result.attackerDied = true;
   }
@@ -2318,7 +2366,7 @@ export function basicAttack(
   if (aDef.lowHpNova && agg.landedHits > 0 && attacker.curHp > 0 && attacker.curHp < aDef.lowHpNova.belowHp) {
     const foes = enemyCards(draft, attacker.owner).filter((e) => e.curHp > 0);
     for (const e of foes) directDamage(draft, attacker, e, aDef.lowHpNova.dmg, false);
-    for (const e of foes) pushBack(draft, e, aDef.lowHpNova.push, attacker.owner);
+    for (const e of foes) pushBack(draft, e, aDef.lowHpNova.push, attacker);
     if (foes.length) draft.log.push(`${label(draft, attacker)} unleashes Mega Push (${aDef.lowHpNova.dmg} + knockback to all).`);
   }
   // Harpoon Hook (Harp) / Sucker Sword (Octoirate): reel each struck enemy in
@@ -2962,7 +3010,7 @@ function applyHeavyHit(
     // Pushed AFTER the status, so a shove that carries a card out of reach
     // cannot cost it the debuff it had already earned by standing there.
     if (def.push && def.push > 0 && draft.cards[e.instanceId] && e.curHp > 0)
-      pushBack(draft, e, def.push, defender.owner);
+      pushBack(draft, e, def.push, defender);
   }
 }
 
@@ -3239,7 +3287,7 @@ function applyDebuffRiders(
 ): void {
   if (!draft.cards[target.instanceId] || target.curHp <= 0) return;
   const push = num(params, "push");
-  if (push > 0) pushBack(draft, target, push, attacker?.owner);
+  if (push > 0) pushBack(draft, target, push, attacker);
   // The opposite direction, and the only one that can move a card standing on
   // its OWN home row: pushBack shoves a card toward its own home, so a Special
   // aimed at the enemy home row (Eagon's Dark Wind Wave) was shoving cards into
@@ -3718,7 +3766,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       // Shoved AFTER the damage — a victim that died is already gone, and the
       // survivor gets driven off the slot the charge just claimed.
       if (draft.cards[first.instanceId] && first.curHp > 0)
-        pushBack(draft, first, num(params, "push", 1), attacker.owner);
+        pushBack(draft, first, num(params, "push", 1), attacker);
     }
     draft.log.push(
       `${label(draft, attacker)} rumbles through ${run.length} opponent(s) in the lane.`,
@@ -4016,13 +4064,22 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     storm.pos = tmp;
     draft.log.push(`${label(draft, attacker)} steps into the eye — it and ${getDef(token).name} trade places.`);
 
-    // Wind Wake again, from the hurricane's new footing. Read off the token's
-    // own def rather than hardcoded here, so retuning the hurricane retunes
-    // this too and the two can never disagree.
+    // Wind Wake again, from THE HURRICANE's new footing — `storm`, which the
+    // swap above has just put where the boss was standing. Not the boss: a push
+    // now blows a body away from the card causing it, and the boss is standing
+    // on the blast centre, so waking from the boss scatters the field out of
+    // the very blast that follows and Eye of the Storm reliably hits nothing.
+    // That is the melee version's self-defeat, back again by another door.
+    //
+    // Waking from the hurricane is also just what the line always claimed to
+    // do. Under the old rule a push was aimed by the VICTIM's home row, so the
+    // pusher was only ever a source of Jetstream bonuses and the comment could
+    // not be wrong; now the pusher names a direction, and the two halves of the
+    // Special blow the field toward each other exactly as designed.
     const wake = getDef(token).roundTick?.pushEnemies ?? 0;
     if (wake > 0) {
       for (const e of enemyCards(draft, attacker.owner))
-        if (e.curHp > 0) pushBack(draft, e, wake, attacker.owner);
+        if (e.curHp > 0) pushBack(draft, e, wake, storm);
       draft.log.push(`${getDef(token).name}'s wind wake breaks over the field.`);
     }
 

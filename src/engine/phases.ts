@@ -1514,22 +1514,42 @@ function doResourcePhase(draft: GameState): void {
     // build-time budget and then charged for again at retail; this is what pays
     // the difference, so the formation actually reaches the board.
     const bossPurse = draft.voidTower && player === "P2" ? VOID_BOSS_INCOME : 0;
-    // DOMINATION: the Points pay. A held Point is worth POI_GOLD gold a round —
-    // GOLD ONLY — which is what turns holding one from a score into a position:
-    // the map funds the army that took it, and losing a Point costs you the
-    // income to retake it. It stacks ON TOP of the ordinary flow rather than
-    // replacing it (the Home-slot bonus still applies), so the mode is the
-    // normal economy plus the objectives.
+    // DOMINATION: the Points pay, and ONLY the Points. A held Point is worth
+    // POI_GOLD gold a round — gold only — which is what turns holding one from a
+    // score into a position: the map funds the army that took it, and losing a
+    // Point costs you the income to retake it.
+    //
+    // The Home-slot bonus does NOT stack on top of that here, though it used to.
+    // A home row is a thing a seat owns and defends on a board won by crossing
+    // it; on the 7x7 there is no such row. Rows 0 and 6 are six Point-ring slots
+    // and a shrine, so the bonus paid a second time for the very bodies already
+    // being paid for holding the Point — quietly doubling the leader's income
+    // from the two Points that happen to sit on those rows and paying nothing
+    // for the two that do not. It also paid P3 and P4 for standing on a row that
+    // means nothing to them, since homeRow only has an answer for two seats.
     const points = draft.domination ? heldCount(draft.domination.held, player) : 0;
     const gain =
-      goldBase + homeSlotsHeld(draft, player) + (player === "P1" ? headStart : 0) + bossPurse
+      goldBase + (draft.domination ? 0 : homeSlotsHeld(draft, player))
+      + (player === "P1" ? headStart : 0) + bossPurse
       + points * POI_GOLD;
     gains[player] = gain;
-    // Show the money being earned, on the card earning it.
-    const row = homeRow(player, draft.boardSize);
-    for (let col = 0; col < draft.boardSize; col++) {
-      const occ = cardAt(draft, row, col);
-      if (occ && occ.owner === player) occ.fxCoin = (occ.fxCoin ?? 0) + 1;
+    // Show the money being earned, on the card earning it — which in Domination
+    // is the bodies standing on the rings you hold, not a row.
+    const dm = draft.domination ? dominationMap(draft.domination.mapId) : undefined;
+    if (draft.domination && dm) {
+      for (const poi of dm.pois) {
+        if (draft.domination.held[poi.id] !== player) continue;
+        for (const slot of poiRing(poi)) {
+          const occ = cardAt(draft, slot.row, slot.col);
+          if (occ && occ.owner === player) occ.fxCoin = (occ.fxCoin ?? 0) + 1;
+        }
+      }
+    } else {
+      const row = homeRow(player, draft.boardSize);
+      for (let col = 0; col < draft.boardSize; col++) {
+        const occ = cardAt(draft, row, col);
+        if (occ && occ.owner === player) occ.fxCoin = (occ.fxCoin ?? 0) + 1;
+      }
     }
     p.gold = Math.min(p.gold, POOL_CARRYOVER_CAP) + gain;
     p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGain;
@@ -2794,7 +2814,7 @@ function doRoundTicks(draft: GameState): void {
     if (rt.pushEnemies
         && (!rt.pushEnemiesEveryN
             || (draft.round > 0 && draft.round % rt.pushEnemiesEveryN === 0))) {
-      for (const e of enemies()) pushBack(draft, e, rt.pushEnemies, card.owner);
+      for (const e of enemies()) pushBack(draft, e, rt.pushEnemies, card);
     }
     // THE STORM AURA. A timed −SP on every opponent, re-applied each round, so
     // it lapses on its own the round the holder stops ticking rather than

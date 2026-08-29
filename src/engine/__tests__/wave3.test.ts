@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getDef } from "../../data/cards";
 import { advance, applyIntent } from "../phases";
 import { boardCards, effectiveDmg, effectiveMaxHp } from "../state";
-import { atCleanup, place, prepState, statusOf } from "./helpers";
+import { atCleanup, place, prepState, statusOf, bigPrepState } from "./helpers";
 import type { GameState } from "../types";
 
 function battleWith(s: GameState, activeId: string): GameState {
@@ -29,12 +29,12 @@ describe("Bluejay", () => {
   });
 
   it("Twin Wind Strikes DOUBLE-tapped: 14 DMG, WEAKEN, and a 4-space shove", () => {
-    const s = prepState();
+    // A 5x5, because a push now travels away from the JAY rather than toward the
+    // victim's home row, and a genuine 4-space run needs board to run across.
+    const s = bigPrepState();
     s.players.P1.magicPool = 9;
-    const jay = place(s, "gale_bluejay", "P1", 3, 1);
-    // Deep in P1's territory, so there is room to be shoved back and the two
-    // aiming modes land the victim in different places.
-    const foe = place(s, "leaf_greegon", "P2", 3, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const jay = place(s, "gale_bluejay", "P1", 2, 0);
+    const foe = place(s, "leaf_greegon", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
     // Both strikes onto one target — the focus play.
     const next = applyIntent(battleWith(s, jay.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetIds: [foe.instanceId, foe.instanceId],
@@ -42,29 +42,37 @@ describe("Bluejay", () => {
     const hit = next.cards[foe.instanceId];
     expect(hit.curHp).toBe(40 - 14); // 7 + 7
     expect(statusOf(hit, "WEAKEN")).toBeTruthy();
-    // The push rides EACH strike, so focusing shoves 2 twice. P2 is pushed
-    // toward its own home row (0), and pushBack stops there rather than walking
-    // it off the board — from row 3 that is as far back as it goes.
-    expect(hit.pos!.row).toBe(0);
+    // The push rides EACH strike, so focusing shoves 2 twice — due east, away
+    // from the jay, until the wall stops it. Not even five squares is enough
+    // board to show all four, which is the honest shape of this Special: focus
+    // outruns split and then runs out of map.
+    expect(hit.pos!.row, "shoved along the row it was hit down").toBe(2);
+    expect(hit.pos!.col, "driven into the east wall").toBe(s.boardSize - 1);
   });
 
   it("...or SPLIT across two foes: 7 and a 2-space shove to each", () => {
     // The two ways to aim this are now genuinely different rather than one
     // simply larger: SPLIT moves two separate bodies back 2, FOCUS moves one
     // back 4 — which can put a card out of its own reach entirely.
-    const s = prepState();
+    const s = bigPrepState();
     s.players.P1.magicPool = 9;
-    const jay = place(s, "gale_bluejay", "P1", 3, 2);
-    const a = place(s, "leaf_greegon", "P2", 3, 0, { curHp: 40, maxHp: 40, curShields: 0 });
-    const b = place(s, "leaf_greegon", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const jay = place(s, "gale_bluejay", "P1", 2, 0);
+    // Placed on separate rows: two bodies in a line down the push would have the
+    // near one shoved into the far one and stopped, which is a true fact about
+    // pushes and a poor way to measure the shove.
+    const a = place(s, "leaf_greegon", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const b = place(s, "leaf_greegon", "P2", 0, 1, { curHp: 40, maxHp: 40, curShields: 0 });
     const next = applyIntent(battleWith(s, jay.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetIds: [a.instanceId, b.instanceId],
     });
     expect(next.cards[a.instanceId].curHp).toBe(40 - 7);
     expect(next.cards[b.instanceId].curHp).toBe(40 - 7);
-    // One strike each, so one 2-space shove each — 3 -> 1, not to the home row.
-    expect(next.cards[a.instanceId].pos!.row).toBe(1);
-    expect(next.cards[b.instanceId].pos!.row).toBe(1);
+    // One strike each, so one 2-space shove each — both away from the jay, and
+    // both a full two squares rather than the focus play's run to the wall.
+    expect(next.cards[a.instanceId].pos, "driven due east").toEqual({ row: 2, col: 3 });
+    // `b` is up and to the side, so the shove leaves on the diagonal and then
+    // slides along the one axis the board still allows.
+    expect(next.cards[b.instanceId].pos, "shoved out and around").toEqual({ row: 0, col: 3 });
   });
 });
 

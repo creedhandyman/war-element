@@ -48,12 +48,18 @@ describe("wave 4 — cost-1, one per element", () => {
     expect(landed).toBeLessThan(180); // roughly half whiff
   });
 
-  it("Sirocco: Windfist blows the target back to its Home row", () => {
+  it("Sirocco: Windfist blows the target straight away from the punch", () => {
+    // A push travels AWAY FROM THE PUSHER now, not toward the victim's own home
+    // row, so a punch thrown from the west sends the target east until it runs
+    // out of board. The old rule sent it north whichever side it was hit from —
+    // which on this setup meant a sideways blow moved a card backwards.
     const s = prepState();
     const siro = place(s, "gale_sirocco", "P1", 2, 0);
-    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 }); // mid row
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 }); // due east
     basicAttack(s, siro.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].pos?.row).toBe(0); // P2 home row
+    const at = s.cards[foe.instanceId].pos!;
+    expect(at.row, "it was hit along the row, so it travels along the row").toBe(2);
+    expect(at.col, "as far as open slots allow — the east wall").toBe(s.boardSize - 1);
   });
 
   it("Stingray: Piercing Pulse gives PEN vs an ELECTRIFIED foe", () => {
