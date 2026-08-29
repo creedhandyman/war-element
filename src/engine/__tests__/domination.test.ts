@@ -893,6 +893,36 @@ describe("corridor Specials can be aimed on the 7×7", () => {
     expect(out.cards[west.instanceId].curHp, "the blast went both ways").toBe(40);
   });
 
+  it("fires down one corridor even when handed the whole four-way list", () => {
+    // What the BOARD actually sent, and the reason this feature did nothing for
+    // the player who asked for it. Every corridor Special is printed
+    // `targets: 99`, which made the UI classify it as a fixed-area AoE: pressing
+    // Confirm passed EVERY victim in all four corridors at once, and the
+    // narrowing — which only ran when exactly one target arrived — sat the whole
+    // thing out. The aiming worked for the AI and for nobody else, and the human
+    // version of the Special was four lanes wide.
+    const { s, id } = withPyrogon();
+    const east = put(s, "leaf_weeds", "P2", 3, 4);
+    const west = put(s, "leaf_weeds", "P2", 3, 2);
+    const north = put(s, "leaf_weeds", "P2", 2, 3);
+    for (const c of [east, west, north]) {
+      s.cards[c.instanceId].curHp = 40; s.cards[c.instanceId].maxHp = 40;
+      s.cards[c.instanceId].curShields = 0;
+    }
+    const b = atBattle(s);
+    b.battle = { queue: [id], index: 0, awaitingInput: id };
+    // The whole legal list, with the caster's direction at the head — picks[0]
+    // aims, and everything after it is noise the engine has to ignore.
+    const all = specialTargets(b, id).map((t) => t.instanceId);
+    const out = applyIntent(b, {
+      type: "BATTLE_ACTION", player: "P1", action: "special",
+      targetIds: [east.instanceId, ...all.filter((x) => x !== east.instanceId)],
+    } as never);
+    expect(out.cards[east.instanceId].curHp, "the aimed target was missed").toBeLessThan(40);
+    expect(out.cards[west.instanceId].curHp, "the blast went west as well").toBe(40);
+    expect(out.cards[north.instanceId].curHp, "the blast went north as well").toBe(40);
+  });
+
   it("still carries its whole width and depth down that corridor", () => {
     // Aiming must not shrink it: spread 1, depth 2 means a 3-wide, 2-deep block.
     const { s, id } = withPyrogon();

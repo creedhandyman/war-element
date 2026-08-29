@@ -1674,7 +1674,33 @@ function performBattleAction(
     const special = def.special!;
     const valid = specialTargets(draft, instanceId);
     let targets: typeof valid;
-    if (picks && picks.length > 1) {
+    // AN AIMED CORRIDOR fires ONE way — the way the caster pointed it.
+    //
+    // `specialTargets` offers every victim in all four corridors on a Domination
+    // board so the caster can aim anywhere; firing that whole list is not a
+    // corridor, it is a nova down four lanes at once. The FIRST pick names the
+    // direction and the lane is rebuilt down it.
+    //
+    // Keyed on picks[0] and NOT on "exactly one pick arrived", which is how this
+    // was written and why it did nothing for the human player: `targets: 99`
+    // makes every corridor Special read as a fixed-area AoE in the UI, so the
+    // board sent the entire four-way list and sailed past a narrowing that only
+    // triggered on a single target. A rule the engine enforces only when it is
+    // handed the shape it likes is not a rule, it is a convention — and the AI
+    // was the only caller keeping it.
+    const fdp = Number(special.params?.forwardDepth ?? 0);
+    const aim =
+      picks && picks.length > 0 && fdp > 0 && domMap(draft) && card.pos
+        ? valid.find((t) => t.instanceId === picks[0])
+        : undefined;
+    if (aim?.pos && card.pos) {
+      const lane = forwardAreaTargets(
+        draft, card, Number(special.params?.spread ?? 0), fdp,
+        corridorDir(card.pos, aim.pos));
+      targets = lane.some((t) => t.instanceId === aim.instanceId)
+        ? [aim, ...lane.filter((t) => t.instanceId !== aim.instanceId)]
+        : [aim];
+    } else if (picks && picks.length > 1) {
       // Explicit multi-selection: one strike per entry, in order.
       const maxPicks = Number(special.params?.targets ?? 1);
       if (picks.length > maxPicks)
@@ -1688,23 +1714,7 @@ function performBattleAction(
       // Single pick: chosen first, then auto-spread over the rest (AI path).
       const chosen = valid.find((t) => t.instanceId === picks[0]);
       if (!chosen) throw new Error("Illegal Special target");
-      // AN AIMED CORRIDOR fires ONE way — the way the caster pointed it.
-      //
-      // `specialTargets` offers every victim in all four corridors on a
-      // Domination board so the caster can aim anywhere; without this the blast
-      // would then land on all four at once, which is not a corridor, it is a
-      // nova. The pick names the direction and the corridor is rebuilt down it.
-      const fdp = Number(special.params?.forwardDepth ?? 0);
-      if (fdp > 0 && domMap(draft) && card.pos && chosen.pos) {
-        const aimed = forwardAreaTargets(
-          draft, card, Number(special.params?.spread ?? 0), fdp,
-          corridorDir(card.pos, chosen.pos));
-        targets = aimed.some((t) => t.instanceId === chosen.instanceId)
-          ? [chosen, ...aimed.filter((t) => t.instanceId !== chosen.instanceId)]
-          : [chosen];
-      } else {
-        targets = [chosen, ...valid.filter((t) => t.instanceId !== picks[0])];
-      }
+      targets = [chosen, ...valid.filter((t) => t.instanceId !== picks[0])];
     } else {
       targets = valid;
     }

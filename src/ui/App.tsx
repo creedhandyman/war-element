@@ -2082,6 +2082,10 @@ export function App() {
     if (!awaitingId || !pending) return 1;
     const def = getDef(game.cards[awaitingId].defId);
     if (pending === "basic") return effectiveBasicHits(game.cards[awaitingId]);
+    // An aimed corridor takes exactly ONE pick, because the pick is a DIRECTION
+    // rather than a victim — the engine fills the rest of the lane in itself.
+    if (pending === "special" && game.domination &&
+        Number(def.special?.params?.forwardDepth ?? 0) > 0) return 1;
     const cap = Number(def.special?.params?.targets ?? 1);
     return Math.max(1, Math.min(cap, legalTargetIds.length));
   })();
@@ -2404,7 +2408,18 @@ export function App() {
         ? validAllyTargets(game, awaitingId)
         : specialTargets(game, awaitingId)
       : [];
+  // An AIMED CORRIDOR is not an area Special, however much `targets: 99` makes
+  // it look like one. On a Domination board `specialTargets` deliberately offers
+  // every victim in all FOUR corridors so the caster can point the blast; if the
+  // board then treats that list as a fixed zone and fires the lot, the aiming is
+  // not merely unreachable — the Special quadruples in size. One pick names the
+  // direction; the engine fills the lane in behind it.
+  const aimedCorridor =
+    !!game.domination &&
+    !!activeDef?.special &&
+    Number(activeDef.special.params?.forwardDepth ?? 0) > 0;
   const specialAoE =
+    !aimedCorridor &&
     !!activeDef?.special && Number(activeDef.special.params?.targets ?? 1) >= specialValid.length;
 
   /* ── the four battle verbs, in one place ──────────────────────────────────
@@ -2475,7 +2490,9 @@ export function App() {
     setHint(
       specialAoE
         ? `<b>${spec.name}</b> hits the glowing area — press <b>Confirm</b> to fire.`
-        : `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — pick up to ${cap} glowing target${cap > 1 ? "s (repeat to stack), or Fire early" : ""}.`,
+        : aimedCorridor
+          ? `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — pick a glowing target to <b>aim</b> it; the blast fires down that lane.`
+          : `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — pick up to ${cap} glowing target${cap > 1 ? "s (repeat to stack), or Fire early" : ""}.`,
     );
   }
 
