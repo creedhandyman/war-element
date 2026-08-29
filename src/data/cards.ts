@@ -473,6 +473,11 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 1,
     keywords: {},
+    // Fire Aegis (On Hit by Melee): 2 DMG straight back to the attacker, and it
+    // walks away BURNing 2 for 2 rounds. Same shape as Cactus's Needles, in
+    // PYRO's damage type — the ward answers the swing and then keeps answering.
+    passiveNames: { onHitByMelee: "Fire Aegis" },
+    onHitByMelee: { dmg: 2, status: { kind: "BURN", duration: 2, power: 2 } },
     special: {
       name: "Bluflame Slashing",
       cost: 3,
@@ -482,7 +487,11 @@ export const CARDS: CardDef[] = [
       // it's the only handler that honors sealRounds.
       params: { statusKind: "BURN", statusPower: 3, statusDuration: 2, spread: 1, forwardDepth: 1, targets: 99, sealRounds: 2 },
       targetSide: "enemy",
-      text: "Apply BURN 3 for 2 rounds to opponents in the row directly ahead, and Bluflame them (cannot be healed).",
+      // Names SEAL outright. The mark has always APPLIED the SEAL status, but
+      // the text only said "Bluflame them (cannot be healed)" — so the icon
+      // sitting on the board and the words on the card shared no vocabulary and
+      // a player had nothing to connect them with.
+      text: "Apply BURN 3 for 2 rounds to opponents in the row directly ahead, and Bluflame them — SEAL 2 rounds (cannot be healed).",
     },
   },
   {
