@@ -225,6 +225,39 @@ the ladder.
 **Not yet done:** the matchup table isn't surfaced in the card inspector the
 way `ELEMENT_AURA` is. Players feel these rules without being told them.
 
+## Arena shelf — four three-element archetypes
+
+`custom-decks.ts` gained Verdant Tide (LEAF/AQUA/DAWN), Stormfront
+(PYRO/BOLT/GALE), Deep Shade (DUSK/BORE/AQUA) and Eclipse Guard
+(DAWN/DUSK/BOLT), each as a 4x4 + 5x5 twin pair. The shelf had two
+three-element decks already (Tempest, Blight); it has six now.
+
+**UNTIERED ON PURPOSE.** The ladder's rungs hold exactly four decks each and
+the elite rung fields every element exactly once — a three-element build cannot
+join either without breaking a rule that is doing real work. `premade-decks.test`
+states outright that adding an archetype is legal and adding a fifth deck to a
+rung is not.
+
+The constraints a new pair has to satisfy: 18 cards / 5 spells on 4x4 and
+30 / 8 on 5x5, an `_5`-suffixed twin agreeing on name, note and tier, the same
+element SET across both, spells in-element and unrepeated, and an even split —
+6/6/6 and 10/10/10, which is the rule the element test already anticipated for
+three.
+
+**THE CURVE IS THE DECK, and this is worth remembering.** A second cut picked
+the highest-rarity card in each element instead, and produced decks whose
+CHEAPEST card cost 3. Gold starts at zero and accrues about one a round, so they
+could not play until round three: **9.7%**. The cost-spread version they replaced
+read 26-43%.
+
+**AND THE CONTROL SAVED THEM.** At 26-43% against the top six premades they
+looked weak enough to re-tune. Running the SAME harness over established decks
+first: Tempest 75.0 · Deeproot Ambush 61.1 · Nightfall 53.3 · Frostkeep 50.0 ·
+Inferno Blitz 46.7 · Blight 48.3 · **Radiant Host 26.7 · Scrapyard Reactor
+15.3**. The shelf spans 15-75, so the new decks are mid-pack, not broken. This
+file already warns that ablation needs a control group; the same is true of a
+bare win rate against a hand-picked field.
+
 ## Measuring balance
 
 There's no committed balance harness — build a disposable one, read it, delete

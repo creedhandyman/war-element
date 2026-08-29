@@ -841,6 +841,84 @@ const STANDARD_DECKS: PremadeDeck[] = [
     ],
     spells: ["aqua_chill", "aqua_steam_vent", "aqua_ice_wall", "bolt_power_rebate", "aqua_downpour"],
   },
+  // ── THREE-ELEMENT ARCHETYPES ────────────────────────────────────────────
+  // Untiered on purpose. The ladder's rungs hold exactly four decks each and
+  // the elite rung fields every element exactly once, so a three-element build
+  // cannot join either without breaking a rule that is doing real work. These
+  // are shelf decks — pickable, not laddered — which is what "hand-tuned
+  // archetype" has meant here all along.
+  //
+  // Split 6/6/6 on the standard board and 10/10/10 on the large one: the
+  // evenness rule the element test already anticipated for three.
+  {
+    id: "pre_verdant_tide",
+    name: "Verdant Tide",
+    note: "LEAF + AQUA + DAWN — heal, hold, and outlast.",
+    // THREE ELEMENTS, and the shell is the point: LEAF regrows, AQUA holds
+    // the line and DAWN puts the health back. Nothing here kills quickly and
+    // everything here refuses to die — a different question to answer than any
+    // two-element build on the shelf asks.
+    premade: true,
+    boardSize: 4,
+    cards: [
+      "leaf_birch", "leaf_leaf", "leaf_dartfrog", "leaf_walking_tree", "leaf_sumerose",
+      "leaf_efy", "aqua_anglerfish", "aqua_arctik", "aqua_bahari", "aqua_siphon",
+      "aqua_owlette", "aqua_driftwraith", "dawn_able", "dawn_glime", "dawn_lazor",
+      "dawn_raya", "dawn_drakonbane", "dawn_kosmos",
+    ],
+    spells: ["leaf_sprout", "aqua_chill", "dawn_sunbeam", "leaf_thorn_patch", "aqua_frost_patch"],
+  },
+  {
+    id: "pre_stormfront",
+    name: "Stormfront",
+    note: "PYRO + BOLT + GALE — speed and burst, nothing held back.",
+    // The opposite build. PYRO burns, BOLT paralyses and GALE moves the board
+    // out from under you, and none of the three has a plan past round eight. The
+    // fastest thing in the picker, and it loses to whatever it cannot finish.
+    premade: true,
+    boardSize: 4,
+    cards: [
+      "pyro_bbq", "pyro_baboom", "pyro_ash_boar", "pyro_wick", "pyro_tiki",
+      "pyro_aftermath", "bolt_junker", "bolt_drshock", "bolt_buzz", "bolt_sentry",
+      "bolt_zagphu", "bolt_jack_arc", "gale_gastly", "gale_breeze", "gale_buf",
+      "gale_windsor", "gale_vaga", "gale_dreamcatcher",
+    ],
+    spells: ["pyro_spark", "bolt_zap", "gale_gust", "pyro_ember_trap", "bolt_recon_ping"],
+  },
+  {
+    id: "pre_deep_shade",
+    name: "Deep Shade",
+    note: "DUSK + BORE + AQUA — grind them down in the dark.",
+    // Attrition from three directions: DUSK drains, BORE will not move and AQUA
+    // freezes whatever is left. The slowest deck on the shelf and the one most
+    // likely to still be standing on the last round.
+    premade: true,
+    boardSize: 4,
+    cards: [
+      "dusk_crow", "dusk_gravekeeper", "dusk_scarlett", "dusk_ghastly", "dusk_brute",
+      "dusk_aranea", "bore_cavedweller", "bore_clubber", "bore_ankylosaur", "bore_krysteel",
+      "bore_bolder", "bore_prism", "aqua_anglerfish", "aqua_arctik", "aqua_bahari",
+      "aqua_siphon", "aqua_owlette", "aqua_driftwraith",
+    ],
+    spells: ["dusk_chill_touch", "bore_pebble_toss", "aqua_chill", "dusk_bone_snare", "bore_sand_trap"],
+  },
+  {
+    id: "pre_eclipse_guard",
+    name: "Eclipse Guard",
+    note: "DAWN + DUSK + BOLT — light, shadow and the spark between.",
+    // The pair the game keeps apart, plus the element that does not care which
+    // wins. DAWN and DUSK counter each other card-for-card, so this build is
+    // deliberately at war with itself and BOLT is what settles the argument.
+    premade: true,
+    boardSize: 4,
+    cards: [
+      "dawn_able", "dawn_glime", "dawn_lazor", "dawn_raya", "dawn_drakonbane",
+      "dawn_kosmos", "dusk_crow", "dusk_gravekeeper", "dusk_scarlett", "dusk_ghastly",
+      "dusk_brute", "dusk_aranea", "bolt_junker", "bolt_drshock", "bolt_buzz",
+      "bolt_sentry", "bolt_zagphu", "bolt_jack_arc",
+    ],
+    spells: ["dawn_sunbeam", "dusk_chill_touch", "bolt_zap", "dawn_cleansing_light", "dusk_bone_snare"],
+  },
 ];
 
 
@@ -1319,6 +1397,92 @@ const LARGE_DECKS: PremadeDeck[] = [
       "bolt_volta", "bolt_velvolt_knight", "bolt_shock", "bolt_voltcher", "bolt_buzz",
     ],
     spells: ["aqua_chill", "aqua_steam_vent", "aqua_ice_wall", "aqua_downpour", "bolt_lightning_storm", "bolt_power_rebate", "aqua_tsunami", "bolt_total_network_control"],
+  },
+  // ── THREE-ELEMENT ARCHETYPES ────────────────────────────────────────────
+  // Untiered on purpose. The ladder's rungs hold exactly four decks each and
+  // the elite rung fields every element exactly once, so a three-element build
+  // cannot join either without breaking a rule that is doing real work. These
+  // are shelf decks — pickable, not laddered — which is what "hand-tuned
+  // archetype" has meant here all along.
+  //
+  // Split 6/6/6 on the standard board and 10/10/10 on the large one: the
+  // evenness rule the element test already anticipated for three.
+  {
+    id: "pre_verdant_tide_5",
+    name: "Verdant Tide",
+    note: "LEAF + AQUA + DAWN — heal, hold, and outlast.",
+    // THREE ELEMENTS, and the shell is the point: LEAF regrows, AQUA holds
+    // the line and DAWN puts the health back. Nothing here kills quickly and
+    // everything here refuses to die — a different question to answer than any
+    // two-element build on the shelf asks.
+    premade: true,
+    boardSize: 5,
+    cards: [
+      "leaf_birch", "leaf_weeds", "leaf_python", "leaf_dartfrog", "leaf_hunter",
+      "leaf_darth", "leaf_sumerose", "leaf_squanch", "leaf_snapmaw", "leaf_season",
+      "aqua_anglerfish", "aqua_piranha", "aqua_bulletshrimp", "aqua_bahari", "aqua_krakler",
+      "aqua_tide", "aqua_owlette", "aqua_sapphire", "aqua_polarking", "aqua_siren",
+      "dawn_able", "dawn_sparkle", "dawn_shine", "dawn_lazor", "dawn_ariel",
+      "dawn_solstice", "dawn_drakonbane", "dawn_warphant", "dawn_aurelion", "dawn_dawn",
+    ],
+    spells: ["leaf_sprout", "aqua_chill", "dawn_sunbeam", "leaf_thorn_patch", "aqua_frost_patch", "dawn_cleansing_light", "leaf_snare", "aqua_steam_vent"],
+  },
+  {
+    id: "pre_stormfront_5",
+    name: "Stormfront",
+    note: "PYRO + BOLT + GALE — speed and burst, nothing held back.",
+    // The opposite build. PYRO burns, BOLT paralyses and GALE moves the board
+    // out from under you, and none of the three has a plan past round eight. The
+    // fastest thing in the picker, and it loses to whatever it cannot finish.
+    premade: true,
+    boardSize: 5,
+    cards: [
+      "pyro_bbq", "pyro_sparky", "pyro_flamehound", "pyro_ash_boar", "pyro_slag_tortoise",
+      "pyro_fenix", "pyro_tiki", "pyro_sseerr", "pyro_sol", "pyro_infernus_rex",
+      "bolt_junker", "bolt_zap", "bolt_jolt", "bolt_buzz", "bolt_storm",
+      "bolt_striik", "bolt_zagphu", "bolt_thunder", "bolt_zoez", "bolt_stormcaller",
+      "gale_gastly", "gale_swillow", "gale_megair", "gale_buf", "gale_wailverine",
+      "gale_fano", "gale_vaga", "gale_wista", "gale_totem", "gale_kloud",
+    ],
+    spells: ["pyro_spark", "bolt_zap", "gale_gust", "pyro_ember_trap", "bolt_recon_ping", "gale_downdraft", "pyro_flare_push", "bolt_rewire"],
+  },
+  {
+    id: "pre_deep_shade_5",
+    name: "Deep Shade",
+    note: "DUSK + BORE + AQUA — grind them down in the dark.",
+    // Attrition from three directions: DUSK drains, BORE will not move and AQUA
+    // freezes whatever is left. The slowest deck on the shelf and the one most
+    // likely to still be standing on the last round.
+    premade: true,
+    boardSize: 5,
+    cards: [
+      "dusk_crow", "dusk_zombie_husk", "dusk_jackl", "dusk_scarlett", "dusk_widowbite",
+      "dusk_plaguecrow", "dusk_brute", "dusk_violet", "dusk_scar", "dusk_nightfang",
+      "bore_cavedweller", "bore_iron", "bore_rockgoblin", "bore_ankylosaur", "bore_ufo",
+      "bore_monger", "bore_bolder", "bore_shift", "bore_diam", "bore_bearocks",
+      "aqua_anglerfish", "aqua_piranha", "aqua_bulletshrimp", "aqua_bahari", "aqua_krakler",
+      "aqua_tide", "aqua_owlette", "aqua_sapphire", "aqua_polarking", "aqua_siren",
+    ],
+    spells: ["dusk_chill_touch", "bore_pebble_toss", "aqua_chill", "dusk_bone_snare", "bore_sand_trap", "aqua_frost_patch", "dusk_shadow_step", "bore_bulwark"],
+  },
+  {
+    id: "pre_eclipse_guard_5",
+    name: "Eclipse Guard",
+    note: "DAWN + DUSK + BOLT — light, shadow and the spark between.",
+    // The pair the game keeps apart, plus the element that does not care which
+    // wins. DAWN and DUSK counter each other card-for-card, so this build is
+    // deliberately at war with itself and BOLT is what settles the argument.
+    premade: true,
+    boardSize: 5,
+    cards: [
+      "dawn_able", "dawn_sparkle", "dawn_shine", "dawn_lazor", "dawn_ariel",
+      "dawn_solstice", "dawn_drakonbane", "dawn_warphant", "dawn_aurelion", "dawn_dawn",
+      "dusk_crow", "dusk_zombie_husk", "dusk_jackl", "dusk_scarlett", "dusk_widowbite",
+      "dusk_plaguecrow", "dusk_brute", "dusk_violet", "dusk_scar", "dusk_nightfang",
+      "bolt_junker", "bolt_zap", "bolt_jolt", "bolt_buzz", "bolt_storm",
+      "bolt_striik", "bolt_zagphu", "bolt_thunder", "bolt_zoez", "bolt_stormcaller",
+    ],
+    spells: ["dawn_sunbeam", "dusk_chill_touch", "bolt_zap", "dawn_cleansing_light", "dusk_bone_snare", "bolt_recon_ping", "dawn_grace", "dusk_shadow_step"],
   },
 ];
 
