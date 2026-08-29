@@ -62,6 +62,7 @@ import { VoidTower } from "./VoidTower";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
 import { CardGallery } from "./CardGallery";
+import { FIRST_NODE, ONBOARDING_SKIP } from "./Onboarding";
 import { TutorialCoach } from "./TutorialCoach";
 import {
   loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
@@ -3583,6 +3584,18 @@ export function App() {
           onBuilder={() => navDo({ t: "builder", open: true })}
           onCollection={() => setHomeCollection(true)}
           onGallery={() => setGalleryOpen(true)}
+          // The first-run guide's last step. Same jump the Collection's
+          // "where does it drop?" link makes — focus the node, then open the
+          // map on it — because landing on the region and leaving the player
+          // to find L1 is the exact hand-off this guide exists to close.
+          onFightFirst={() => {
+            navDo({ t: "goToNode", nodeId: FIRST_NODE, regionId: regionOfNode(FIRST_NODE)?.id });
+            navDo({ t: "open" });
+          }}
+          onSkipOnboarding={() => {
+            const next = { ...story, taught: [...new Set([...(story.taught ?? []), ONBOARDING_SKIP])] };
+            setStory(next); saveStory(next);
+          }}
           onAccount={() => setAccountOpen(true)}
           accountEmail={accountEmail}
         />

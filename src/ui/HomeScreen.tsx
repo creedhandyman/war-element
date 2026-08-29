@@ -36,6 +36,7 @@ import { boardOfRun, runOver, runReward } from "../data/gauntlet";
 import { decksForTier } from "../data/custom-decks";
 import { deckArtUrl, finisherOf } from "./DeckPickerSheet";
 import { EL_COLOR, EL_ICON } from "./shared";
+import { Onboarding } from "./Onboarding";
 
 /** One row in the middle band. `feature` promotes it to the big card at the
  *  top — only one thing can be the most urgent. */
@@ -83,6 +84,11 @@ export function HomeScreen(props: {
   onGallery: () => void;
   /** Open the account panel — email sign-in and the cloud save. */
   onAccount: () => void;
+  /** Open the story map on the FIRST node. The first-run guide's last step
+   *  needs to land on L1 specifically; `onStory` only opens a region. */
+  onFightFirst: () => void;
+  /** Hide the first-run guide for good. */
+  onSkipOnboarding: () => void;
   /** Signed-in address, or null. Only used to label the button, so the home
    *  screen never has to know how any of that works. */
   accountEmail: string | null;
@@ -165,6 +171,18 @@ export function HomeScreen(props: {
             <img src="/title.jpg" alt="War Element" />
           </picture>
         </div>
+
+        {/* FIRST THING ON THE SCREEN, above the live band. A new player's whole
+            problem is not knowing what to do next, and a guide placed under
+            the cards competing for that attention answers a question they have
+            already given up on. Renders nothing once the three steps are done. */}
+        <Onboarding
+          save={save}
+          onShop={() => props.onShop("packs")}
+          onBuilder={props.onBuilder}
+          onFightFirst={props.onFightFirst}
+          onSkip={props.onSkipOnboarding}
+        />
 
         <div className="home-you">
           <span className="home-av" aria-hidden="true">{(hero?.name ?? "?").slice(0, 1).toUpperCase()}</span>

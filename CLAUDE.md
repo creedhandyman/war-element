@@ -2072,6 +2072,43 @@ LOCKED. Grid min is 140px, measured: a 375px phone leaves the grid 321px, so
 loop beyond the trials' first-clear pack, floors 2-10 content, board modifiers,
 the rule-breaking floor 10.
 
+## The tutorial had the wrong half — `Onboarding.tsx`
+
+`TutorialCoach` explains the RULES well (goal / mulligan / summon / move /
+speed) but it only ever speaks **once a match has started**. Nothing told a new
+player how to REACH that match, and the path is not guessable:
+
+- A fresh save owns exactly ONE card (`STARTER_DECK`) and is owed one free pack.
+- **`applyPack` adds to `collection` and NOT to `deck`** (`story.ts:1664`).
+  Measured live: after opening the free pack the save reads
+  `freePacks 0 · collection 6 · deck 1` — six cards owned, squad still one card,
+  and the Home tile still says "1 CARD · CAP 6". Nothing in the app connected
+  the pack just opened to the squad about to fight. **That is the cliff.**
+- L1 Spring Village Outskirts was ALREADY the designed teaching fight
+  (`isFirstBattle` → free deployment, formation sized one-for-one against what
+  you field) and has carried the note "The tutorial" in its node data since it
+  was written. It was simply never pointed at.
+
+So `Onboarding.tsx` is the missing half — three steps on Home: open the pack →
+put the cards in your squad → fight L1. Then it is gone forever.
+
+- **DERIVED, NEVER STORED.** `onboardingStep(save)` recomputes from the save
+  every render; there is no cursor to desync. Doing a step early skips it, and
+  an existing mid-campaign save satisfies every condition and never sees the
+  guide — so there is **no migration**.
+- The squad step asks "are there cards benched?" (`collection` minus `deck`),
+  not `deck.length > 1` — the honest test for the state a pack leaves behind.
+- `ONBOARDING_SKIP` is a SEPARATE sentinel from the coach's `"SKIP"`: silencing
+  the in-match lessons and silencing the get-to-a-match guide are two different
+  decisions. `taught`'s sanitizer keeps any string, so no schema change.
+- It blocks nothing — a card with a button, same posture as the coach, because
+  the first node is a designed teaching fight rather than a rail.
+
+Verified live on a wiped save through the whole lifecycle: step 1 → Shop/packs,
+real pack open → step 2, squad built → step 3 → the map with L1 the only
+unlocked node, then `cleared:["L1"]` → the guide is gone and Home's first child
+is `home-logo` again.
+
 ## The boss panel's ✕ was under the mute button, and three bugs deep
 
 Reported as "the mute button is bigger than the x button in the boss menu".
