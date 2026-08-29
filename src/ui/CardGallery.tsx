@@ -332,7 +332,7 @@ export function CardGallery(props: { onClose: () => void }) {
                         unlabelled next to a 6-cost legendary reads as something
                         you could draft, and nothing else on the tile would
                         correct that. */}
-                    {k !== "card" && <span className={`gal-kind ${k}`}>{k === "boss" ? "BOSS" : "TOKEN"}</span>}
+                    {k !== "card" && <span className={`gal-kind k-${k}`}>{k === "boss" ? "BOSS" : "TOKEN"}</span>}
                   </div>
                   {rs && (
                     <span className="dt-rarity" style={{ color: rs.color, borderColor: rs.color }}>
@@ -367,7 +367,13 @@ export function CardGallery(props: { onClose: () => void }) {
           panel. */}
       {detail && (
         <div
-          className={`gal-lightbox ${zoom ? "zoomed" : ""}`}
+          /* `reading` drops the lightbox BELOW --z-modal while the abilities
+             panel is up. It normally sits at --z-modal + 1 so the painting
+             covers the gallery behind it — but the abilities panel IS a card
+             view, which lives at --z-modal, so that +1 meant tapping Abilities
+             opened the rules UNDERNEATH the painting: the button worked, the
+             state flipped, and nothing appeared. */
+          className={`gal-lightbox ${zoom ? "zoomed" : ""} ${showInfo ? "reading" : ""}`}
           onClick={close}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
@@ -411,8 +417,12 @@ export function CardGallery(props: { onClose: () => void }) {
               <b style={{ color: EL_COLOR[detail.element] }}>{detail.name}</b>
               <span>
                 {detail.element} · {detail.cardClass}
+                {/* `k-` PREFIXED. A bare `token` here also matched the BOARD's
+                    own .token class — `position: absolute; inset: 3%` — so this
+                    little chip inflated to fill the whole footer and swallowed
+                    every tap meant for the Abilities button beside it. */}
                 {kindOf(detail) !== "card" && (
-                  <em className={`gal-kind ${kindOf(detail)}`}>
+                  <em className={`gal-kind k-${kindOf(detail)}`}>
                     {kindOf(detail) === "boss" ? "BOSS" : "TOKEN"}
                   </em>
                 )}
