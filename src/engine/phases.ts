@@ -2547,6 +2547,102 @@ function doRoundTicks(draft: GameState): void {
     if (rt.pushEnemies) {
       for (const e of enemies()) pushBack(draft, e, rt.pushEnemies, card.owner);
     }
+    // THE STORM AURA. A timed −SP on every opponent, re-applied each round, so
+    // it lapses on its own the round the holder stops ticking rather than
+    // needing to be unwound on death. Clamped to what the target actually has:
+    // driving SP negative would bank several rounds of penalty a cleanse could
+    // not reach, and SP is already this game's tempo currency.
+    if (rt.slowEnemies) {
+      let slowed = 0;
+      for (const e of enemies()) {
+        const drop = Math.min(rt.slowEnemies, effectiveSp(draft, e));
+        if (drop <= 0) continue;
+        applyTimedBuff(e, 0, -drop, 1);
+        slowed++;
+      }
+      if (slowed)
+        draft.log.push(`${label(draft, card)}'s storm drags on ${slowed} opponent(s) (−${rt.slowEnemies} SP).`);
+    }
+    // HIGH-SPEED CYCLONE. Every opponent is carried one step CLOCKWISE around
+    // the holder, to the diagonal that continues the turn. Rotation rather than
+    // a shove: distance is preserved and the formation is not, which is the
+    // thing a player rebuilds with their one move a turn.
+    //
+    // Resolved against a snapshot of the occupied slots and applied only where
+    // the destination is on the board and empty, so two cards can never be
+    // spun onto the same square and nothing is displaced into a wall.
+    if (rt.cycloneSpin && card.pos) {
+      const eye = card.pos;
+      const taken = new Set(
+        boardCards(draft).filter((c) => c.pos).map((c) => `${c.pos!.row},${c.pos!.col}`),
+      );
+      let spun = 0;
+      for (const e of enemies()) {
+        if (!e.pos || getDef(e.defId).pushImmune) continue;
+        // THE CLOCKWISE STEP, derived rather than tabulated. The radius from
+        // the eye is (dr, dc); rotating it a quarter turn clockwise gives the
+        // tangent (dc, -dr), and the diagonal that best follows that tangent is
+        // its component signs. Where a component is zero the card sits square
+        // on an axis and the tangent says nothing about that axis — fill it by
+        // stepping INWARD on the axis it is offset along, which is what keeps
+        // the turn on the same ring instead of flinging it outward:
+        //
+        //   N(-1,0) -> E(0,1) -> S(1,0) -> W(0,-1) -> N   (distance preserved)
+        //
+        // Deterministic in every branch. `chanceProblems` fails the build on a
+        // boss that rolls dice, and a tie broken at random would be one.
+        const dr = Math.sign(e.pos.row - eye.row);
+        const dc = Math.sign(e.pos.col - eye.col);
+        if (dr === 0 && dc === 0) continue;       // standing on the eye: nothing to turn about
+        const mr = dc !== 0 ? dc : -dr;
+        const mc = dr !== 0 ? -dr : -dc;
+        const nr = e.pos.row + mr;
+        const nc = e.pos.col + mc;
+        if (nr === e.pos.row && nc === e.pos.col) continue;
+        if (nr < 0 || nr >= draft.boardSize || nc < 0 || nc >= draft.boardSize) continue;
+        const key = `${nr},${nc}`;
+        if (taken.has(key)) continue;
+        taken.delete(`${e.pos.row},${e.pos.col}`);
+        taken.add(key);
+        e.pos = { row: nr, col: nc };
+        spun++;
+      }
+      if (spun) draft.log.push(`${label(draft, card)}'s cyclone spins ${spun} opponent(s) off their line.`);
+    }
+    // A BODY ON A CLOCK. The round-6 hurricane: announced by the fight's own
+    // pace rather than by a cast, so it is the one thing in the match a player
+    // can plan around exactly.
+    if (rt.spawnOnRound && card.pos && draft.round >= rt.spawnOnRound.round) {
+      const { token, minRow, spawnMaxAlive = 1 } = rt.spawnOnRound;
+      const alive = boardCards(draft, card.owner).filter((c) => c.curHp > 0 && c.defId === token).length;
+      if (alive < spawnMaxAlive) {
+        const born = spawnTokens(draft, card, token, 1);
+        // `minRow` is counted FORWARD from the holder's own home row, so the
+        // storm forms out over the field instead of behind the boss that called
+        // it. Rows run 0..boardSize-1 with home at one end, so "forward" is
+        // whichever direction leads away from home.
+        const home = homeRow(card.owner, draft.boardSize);
+        const forward = home === 0 ? 1 : -1;
+        for (const b of born) {
+          if (minRow == null || !b.pos) continue;
+          const want = home + forward * minRow;
+          const far = forward > 0 ? b.pos.row >= want : b.pos.row <= want;
+          if (far) continue;
+          // Nudge it out to the first open slot at or beyond the line. If none
+          // is free it stays where it landed — a hurricane in the wrong row is
+          // better than no hurricane.
+          const open = (r: number, c: number) =>
+            r >= 0 && r < draft.boardSize && c >= 0 && c < draft.boardSize
+            && !boardCards(draft).some((x) => x.pos?.row === r && x.pos.col === c);
+          let placed = false;
+          for (let r = want; r >= 0 && r < draft.boardSize && !placed; r += forward)
+            for (let c = 0; c < draft.boardSize && !placed; c++)
+              if (open(r, c)) { b.pos = { row: r, col: c }; placed = true; }
+        }
+        if (born.length)
+          draft.log.push(`${label(draft, card)} calls the storm down — ${getDef(token).name} forms.`);
+      }
+    }
     // Scorched Fury: bleed 1, run 2 hotter next round. Floors at 1 HP so the
     // engine stalls rather than killing its own owner.
     if (rt.selfBurnForDmg) {

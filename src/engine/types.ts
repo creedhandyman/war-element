@@ -310,6 +310,35 @@ export interface RoundTickDef {
   scaldFrozen?: number; // apply SCALD N to FROZEN enemies (Freezer Burn)
   paralyzeOne?: number; // PARALYZE one un-paralyzed enemy for N rounds
   pushEnemies?: number; // blow every enemy back N slots (Wind Guardian)
+  /** THE STORM AURA (Skybreaker): every opponent on the board loses N SP at the
+   *  end of each round.
+   *
+   *  Not an `AuraBonusDef` — that shape buffs the holder's OWN side by
+   *  tribe/class/element and has no enemy scope at all. This is a per-round
+   *  timed debuff instead, applied through the same `applyTimedBuff` a −SP
+   *  spell uses, so it decays on its own and never has to be unwound when the
+   *  holder dies. Floored at the target's current SP: a card cannot be dragged
+   *  below zero and then need several clean rounds to climb back to it. */
+  slowEnemies?: number;
+  /** HIGH-SPEED CYCLONE (Skybreaker): at the end of each round every opponent
+   *  is dragged one slot AROUND the holder — to the diagonally adjacent slot
+   *  that continues a clockwise turn about it.
+   *
+   *  Rotation, not a shove. `pushEnemies` moves a line straight back and a
+   *  board answers it by walking forward again; this one keeps the distance and
+   *  destroys the FORMATION, which is what a player spends their one move a
+   *  turn rebuilding. Cards that cannot rotate (blocked, off-board, pushImmune)
+   *  simply stay — the storm is weather, not a guaranteed relocation. */
+  cycloneSpin?: number;
+  /** A body that arrives on a CLOCK rather than on a cast (Skybreaker's round-6
+   *  hurricane): at the end of round `round`, drop `token` on the holder's side.
+   *
+   *  `minRow` keeps it off the boss's own back line, counted from the holder's
+   *  home row — the storm forms out over the field, not behind the thing that
+   *  called it. Fires once: `spawnMaxAlive` bounds how many may stand at a
+   *  time, so a hurricane killed before the clock comes round again is replaced
+   *  and one already standing is not doubled. */
+  spawnOnRound?: { round: number; token: string; minRow?: number; spawnMaxAlive?: number };
   rowAheadDmg?: number; // deal N DMG to enemies in the row directly ahead (Sweeping Flames)
   inRangeDmg?: number; // deal N DMG to EVERY opponent this card can reach (Smog's Black Smoke)
   /** Electrifying (Jolt): apply a status to every opponent this card can REACH

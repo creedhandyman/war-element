@@ -3288,7 +3288,10 @@ function adjacentCasterStatus(
  *  treats them as a mere preference with a whole-board fallback (lockSpecials).
  *  A test asserts the first kind can't be forgotten.
  */
-export const TARGETLESS_HANDLERS = new Set(["spawn", "surfsUp", "lockSpecials"]);
+// `stormCall` picks its own victims from the boss's post-swap position, and in
+// its other branch has no victims at all — asking the caster to nominate one
+// would be asking about a slot the boss has not moved to yet.
+export const TARGETLESS_HANDLERS = new Set(["spawn", "surfsUp", "lockSpecials", "stormCall"]);
 
 export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   /** Reroot (Oak): a pure reposition — advance up to `charge` open slots toward
@@ -3959,6 +3962,80 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     draft.log.push(`${label(draft, attacker)}'s frag bursts (${dmg} to the target, ${splash} to the rest).`);
   },
+  /**
+   * STORM CALL / EYE OF THE STORM (Skybreaker): one Special with two faces,
+   * chosen by whether the storm is already on the board.
+   *
+   *   · no hurricane standing -> CALL one. It arrives and does what it does on
+   *     arrival; this handler does not duplicate that, it just puts it there.
+   *   · a hurricane standing  -> EYE OF THE STORM. Trade places with it, run
+   *     its Wind Wake again from wherever it now stands, and blast everything
+   *     within `reach` of Skybreaker's NEW slot for `dmg`, PARALYZED.
+   *
+   * The teleport is the whole design. Skybreaker never walks — it has no
+   * movement tick at all — so the hurricane IS its movement, and the player
+   * decides where the boss ends up by deciding where to let the storm sit.
+   * Killing the hurricane strands the boss at home; leaving it alive hands the
+   * boss a blink into your line. That is the puzzle, and both answers cost
+   * something, which is what keeps it from having a correct answer.
+   *
+   * `escalateIfPresent` on the stock `spawn` handler is the same SHAPE and not
+   * the same thing: that swaps which TOKEN is raised, and this swaps the whole
+   * effect.
+   */
+  stormCall(draft, attacker, _targets, params) {
+    const token = String(params.token ?? "");
+    if (!token) return;
+    const mine = boardCards(draft, attacker.owner);
+    const storm = mine.find((c) => c.curHp > 0 && c.defId === token && c.pos);
+
+    if (!storm) {
+      const born = spawnTokens(draft, attacker, token, 1);
+      draft.log.push(
+        born.length
+          ? `${label(draft, attacker)} calls the storm — ${getDef(token).name} forms.`
+          : `${label(draft, attacker)} reaches for the storm, but there is nowhere for it to form.`,
+      );
+      return;
+    }
+
+    // EYE OF THE STORM. Swap first: the blast is measured from where the boss
+    // ENDS UP, which is the entire reason to cast it.
+    if (!attacker.pos || !storm.pos) return;
+    const tmp = attacker.pos;
+    attacker.pos = storm.pos;
+    storm.pos = tmp;
+    draft.log.push(`${label(draft, attacker)} steps into the eye — it and ${getDef(token).name} trade places.`);
+
+    // Wind Wake again, from the hurricane's new footing. Read off the token's
+    // own def rather than hardcoded here, so retuning the hurricane retunes
+    // this too and the two can never disagree.
+    const wake = getDef(token).roundTick?.pushEnemies ?? 0;
+    if (wake > 0) {
+      for (const e of boardCards(draft, enemyOf(attacker.owner)))
+        if (e.curHp > 0) pushBack(draft, e, wake, attacker.owner);
+      draft.log.push(`${getDef(token).name}'s wind wake breaks over the field.`);
+    }
+
+    const dmg = num(params, "dmg");
+    const reach = num(params, "reach", 1);
+    const rounds = num(params, "statusDuration", 2);
+    let caught = 0;
+    for (const e of boardCards(draft, enemyOf(attacker.owner))) {
+      if (e.curHp <= 0 || !e.pos || !attacker.pos) continue;
+      if (chebyshev(e.pos, attacker.pos) > reach) continue;
+      resolveHit(draft, attacker, e, { kind: "special", dmg, hits: 1, pen: false, crit: false });
+      // Status AFTER the hit: a body that died to the blast is not paralysed,
+      // it is dead, and `applyStatus` on a corpse is a line in the log nobody
+      // can act on.
+      if (draft.cards[e.instanceId] && draft.cards[e.instanceId].curHp > 0) {
+        applyStatus(draft, draft.cards[e.instanceId], "PARALYZE", rounds, 0, getDef(attacker.defId).element);
+        caught++;
+      }
+    }
+    draft.log.push(`The eye passes — ${caught} opponent(s) held for ${rounds} round(s).`);
+  },
+
   /** Search and Rescue (Stone's Talent): swap board positions with a chosen
    *  ally — pull a hurt teammate out of the line, or dive in yourself. */
   swapAlly(draft, attacker, targets, _params) {

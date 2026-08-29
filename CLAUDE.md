@@ -2145,6 +2145,58 @@ the scroll range: ✕ on screen at every position, and zero overlap between ✕,
 state badge, mute and the hero title. **Reading the CSS would not have found
 any of this** — every one of the three needed the computed box.
 
+## FLOOR 5 — Skybreaker, the boss whose Special is its movement
+
+`boss_skybreaker` (3x16 DMG / 298 HP / 20 SP = **366** body against Floor 5's
+660 cap) + `gale_thundering_hurricane_tok` (20/100/15). Owner-specified line.
+GALE tribe, BOLT mechanic; the third element (AQUA) rides on the basics as
+SCALD rather than via `elementAuras`, which would have handed it two unmeasured
+element auras for what is a flavour note.
+
+**Floor 5 exists because that boss entry does** — `voidFloors()` is derived from
+`VOID_BOSSES`, so there was no constant to bump.
+
+THE DESIGN: it has **no gait at all** — no `advance`, `aimLateral`, anything. It
+sits on its home row and shoots. `stormCall` is one Special with two faces: no
+hurricane up, call one; hurricane up, **trade places with it**, re-break its
+Wind Wake, and blast reach-1 around where it LANDS for 25 + PARALYZE 2. So the
+token is the boss's legs, and killing it strands the boss at the back while
+leaving it hands the boss a blink into your line. Both answers cost something.
+
+Mostly built from machinery that already existed — `onHitPush` is literally
+already named "Wind Wake" (Zephyra), `pushEnemies` is Wind Guardian's,
+`pullToCaster` is Kazehaya's rope, SCALD/PARALYZE are stock statuses. FOUR new
+pieces:
+- `roundTick.slowEnemies` — an ENEMY-facing SP tax. `AuraBonusDef` only buffs
+  the holder's own side, so this is a per-round `applyTimedBuff`, clamped to the
+  target's current SP (a negative pool banks rounds no cleanse can reach).
+- `roundTick.cycloneSpin` — rotation, not a shove. The step is DERIVED from the
+  clockwise tangent `(dc, -dr)`; where a component is zero, fill it by stepping
+  inward on the offset axis, which is what preserves the ring:
+  `N->E->S->W->N` at constant distance. Deterministic in every branch —
+  `chanceProblems` fails the build on a boss that rolls dice, and a random
+  tie-break would be one. **Pinned by test, because a derivation is what gets
+  subtly wrong.**
+- `roundTick.spawnOnRound` — a body on a clock (round 6), `spawnMaxAlive`-bounded.
+- `SPECIAL_HANDLERS.stormCall` + `TARGETLESS_HANDLERS`.
+
+THE TELEGRAPH lights the squares around the **hurricane**, not the boss —
+because that is where the boss will be standing. Lighting its current slot would
+point at the one square the blast is guaranteed to leave.
+
+FOUR REGISTRIES caught it on the way in, each a real integration point:
+`MEASURED` (bodies), the still-boss list in the gait test, `TELEGRAPHED_HANDLERS`,
+and `CODE_IDS` in deck-code.ts (APPEND-ONLY). Adding a boss means all four.
+
+MEASURED, n=96 (8 cores x 12 seeds, 5x5, `humans: []`, encounter spells, gates
+seated, `voidTower` on): **100% bare, 85.4% with a tamed ally** (Umbranova at
+TAME_SCALE), 87 overrun / 9 timeout — it wins by taking the board. In the SAME
+run against the SAME ally the Floor-4 bosses read Kato 26.0 / Cryovex 4.2 /
+Kazehaya 0.0, so Floor 5 is decisively a step up. Those Floor-4 figures are NOT
+comparable to the taming table above (that used a Floor-3 ally); only the
+relative reading inside the one run is meaningful. And an AI sweep cannot read a
+telegraph, so all of these overstate a boss against a human who can.
+
 ## Card Gallery — the screen that shows what the other grids hide
 
 `src/ui/CardGallery.tsx`. Every def in the game in one grid: **366 plates** —

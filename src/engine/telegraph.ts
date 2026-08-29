@@ -55,6 +55,7 @@ export interface BossTelegraph {
  *  handler fails the build here rather than quietly on the board. */
 export const TELEGRAPHED_HANDLERS: readonly string[] = [
   "barrage", "statusNova", "smite", "polarShift", "battleCharge", "strike", "spawn",
+  "stormCall",
 ];
 
 /** Statuses that stop the clock. Mirrors the gate in `doRoundTicks`: MUTE, and
@@ -100,6 +101,29 @@ function reached(
     // counting — but there is no blast to draw.
     case "spawn":
       return { cards: [], strikes: 0 };
+    // EYE OF THE STORM, and this is the telegraph doing the most work anywhere
+    // on the tower. The Special has two faces (see `stormCall` in combat.ts):
+    // with no hurricane up it merely calls one and there is nothing to draw,
+    // exactly like `spawn`. With one standing, the boss TELEPORTS to it and
+    // blasts what is around it — so the squares to light are the ones around
+    // the HURRICANE, not the ones around the boss.
+    //
+    // That is the whole warning: the storm's neighbourhood glows and the player
+    // reads "the boss is about to be standing there". Lighting the boss's
+    // current position instead would have been worse than lighting nothing —
+    // it would point at the one square the blast is guaranteed to leave.
+    case "stormCall": {
+      const token = String(p.token ?? "");
+      const storm = boardCards(state, card.owner)
+        .find((c) => c.curHp > 0 && c.defId === token && c.pos);
+      if (!storm || !storm.pos) return { cards: [], strikes: 0 };
+      const reach = Number(p.reach ?? 1);
+      const at = storm.pos;
+      const caught = livingFoes(state, card).filter(
+        (e) => e.pos && Math.max(Math.abs(e.pos.row - at.row), Math.abs(e.pos.col - at.col)) <= reach,
+      );
+      return { cards: caught, strikes: caught.length };
+    }
     // Board-wide by design, and it says so: no reach, no filters, every foe.
     case "smite": {
       const foes = livingFoes(state, card).filter((e) => !need || hasStatus(e, need as StatusKind));

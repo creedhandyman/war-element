@@ -163,6 +163,26 @@ describe("the roster", () => {
       // everything, so vsStatus BURN at +6 and +10 both read 70.8%) and dying
       // was the actual problem. 70.8% -> 87.5%, leaner AND stronger.
       boss_vulcanyx: 337,
+      // FLOOR 5's first boss, and the stat line is the owner's: 3x16 + 298 + 20.
+      // Deliberately far under the floor's 660 cap — every boss ever built to
+      // its ceiling has measured 97-100%, and the threat here is the KIT (a
+      // boss that teleports via its own token, taxes SP every round and spins
+      // the board) rather than the meat.
+      //
+      // MEASURED at this body: 100% bare, 85.4% against a tamed ally, n=96
+      // (8 cores x 12 seeds, 5x5, humans [], spells from the encounter, gates
+      // seated, voidTower on, ally = Umbranova at TAME_SCALE). In the SAME run
+      // and against the SAME ally, the Floor-4 bosses read Kato 26.0%, Cryovex
+      // 4.2%, Kazehaya 0.0% — so this is decisively a step up from the floor
+      // below, which is what Floor 5 is for. Win type is 87 overrun / 9 timeout:
+      // it wins by taking the board, not by running out the clock.
+      //
+      // Those Floor-4 figures are NOT comparable to the ones recorded in
+      // CLAUDE.md's taming table, which used a Floor-3 ally; only the relative
+      // reading inside this one run is meaningful. And an AI-vs-AI sweep cannot
+      // read a telegraph, so every one of these overstates a boss against a
+      // human who can.
+      boss_skybreaker: 366,
     };
     for (const v of VOID_BOSSES) {
       expect(bodyTotal(getDef(v.cardId)), v.cardId).toBe(MEASURED[v.cardId]);
@@ -742,7 +762,12 @@ describe("every boss moves like itself", () => {
         && !rt.aimLateral && !rt.shiftLateral && !rt.escortAdvance
         && !rt.avoidLateral && !rt.kite;
     }).map((b) => b.cardId);
-    expect(still.sort()).toEqual(["boss_overclock", "boss_smolder"]);
+    // THREE now. Skybreaker joins deliberately and is the only one of the
+    // three whose stillness is the whole fight rather than a characterisation:
+    // it has no gait because its Special IS its gait — Eye of the Storm trades
+    // places with its own hurricane, so the token is the boss's legs and where
+    // the player lets that token stand is where the boss can appear.
+    expect(still.sort()).toEqual(["boss_overclock", "boss_skybreaker", "boss_smolder"]);
   });
 
   it("a prowler still holds its home row for the opening", () => {

@@ -11108,6 +11108,92 @@ export const CARDS: CardDef[] = [
     },
   },
   {
+    id: "boss_skybreaker",
+    name: "Skybreaker",
+    rarity: "mythic",
+    // GALE on the card, and that is the ONE element the engine reads. The
+    // design is a three-element idea — a hurricane is wind over warm water with
+    // lightning in it — and the other two are expressed through the KIT rather
+    // than through `elementAuras`: AQUA is the SCALD its basics leave, BOLT is
+    // the PARALYZE its Special lands. Declaring the extra elements would have
+    // handed it two more element auras' worth of unmeasured power for what is
+    // really a flavour note; the tower entry records the pairing as GALE/BOLT.
+    element: "GALE",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 12,
+    // 3 x 16 + 298 + 20 = 366 body points against Floor 5's 660 cap. Well
+    // under, like every boss that has ever been measured: building to the
+    // ceiling has read 97-100% every time it has been tried, and the number
+    // under it is the tuning. Owner-specified stat line.
+    dmg: 16,
+    hits: 3,
+    hp: 298,
+    sp: 20,
+    shields: 0,
+    keywords: {},
+    tribe: "Hurricane",
+    boss: true,
+    art: "boss_skybreaker",
+    // FLOOR 5, and the first boss on it. GALE gives the tribe, BOLT gives the
+    // mechanic.
+    //
+    // THE LESSON: it never moves, and it is never where you left it. Skybreaker
+    // has NO movement tick at all — no `advance`, no `aimLateral`, nothing — so
+    // it sits on its home row and shoots. Its only way forward is Eye of the
+    // Storm, which trades places with its own hurricane. That makes the token
+    // the boss's legs, and it turns the obvious instinct into a real decision:
+    // kill the hurricane and the boss is stranded at the back but you have
+    // spent your damage on a token; leave it standing and the boss can blink
+    // into the middle of your line whenever the clock comes round.
+    //
+    // Both answers cost something, which is what stops it having a right one.
+    passiveNames: {
+      onHitStatus: "Vapor Waves",
+      slowEnemies: "Storm Front",
+      cycloneSpin: "High-Speed Cyclone",
+      spawnOnRound: "Gathering Storm",
+    },
+    // VAPOR WAVES — the AQUA half, on the basics rather than in the elements.
+    onHitStatus: { kind: "SCALD", duration: 2, power: 2 },
+    roundTick: {
+      // THE CLOCK, and it is the one thing in this fight a player can plan
+      // around exactly: the hurricane forms on round 6, wherever the board is
+      // then. `minRow: 2` keeps it off the boss's own back line — the storm
+      // gathers out over the field, not behind the thing that called it.
+      spawnOnRound: { round: 6, token: "gale_thundering_hurricane_tok", minRow: 2, spawnMaxAlive: 1 },
+      // STORM FRONT: -2 SP to every opponent, every round. SP is this game's
+      // tempo currency — it is queue order AND move reach — so this is a tax on
+      // the two things a player uses to answer a stationary boss.
+      slowEnemies: 2,
+      // HIGH-SPEED CYCLONE: everything the player owns is carried one step
+      // clockwise around the boss each round. It preserves distance and
+      // destroys FORMATION, which is the resource a one-move-a-turn game is
+      // actually made of.
+      cycloneSpin: 1,
+      fireSpecialEveryN: 3,
+    },
+    special: {
+      name: "Eye of the Storm",
+      cost: 4,
+      handler: "stormCall",
+      // ONE SPECIAL, TWO FACES, picked by whether the storm is already up — see
+      // `stormCall` in combat.ts. No hurricane: call one. Hurricane standing:
+      // trade places with it, break its wind wake over the field again, and
+      // blast whatever is now next to the boss.
+      params: {
+        token: "gale_thundering_hurricane_tok",
+        dmg: 25, reach: 1, statusDuration: 2,
+      },
+      // "self": the handler picks its own victims from wherever the boss lands
+      // AFTER the swap, so there is no slot for the caster to nominate — the
+      // square it will be standing in does not exist yet at target-selection
+      // time. `stormCall` is in TARGETLESS_HANDLERS for the same reason.
+      targetSide: "self",
+      text: "No hurricane on the field: call one. Otherwise trade places with it, break its wind wake over the board, and deal 25 DMG to every opponent within 1 space of where Skybreaker lands, PARALYZING them for 2 rounds.",
+    },
+  },
+  {
     id: "boss_kato",
     name: "Kato",
     rarity: "mythic",
@@ -11413,6 +11499,47 @@ export const CARDS: CardDef[] = [
 // them. (Reptilian and Heir used to live here — they are draftable now, but are
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
+  {
+    id: "gale_thundering_hurricane_tok",
+    name: "Thundering Hurricane",
+    rarity: "epic",
+    element: "GALE",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    // Costed as a real body rather than as scenery: it is 135 body points and
+    // it is the thing Skybreaker's whole kit is built around, so a formation
+    // spending on one is spending on the fight's centrepiece.
+    cost: 6,
+    dmg: 20,
+    hits: 1,
+    hp: 100,
+    sp: 15,
+    shields: 0,
+    keywords: {},
+    tribe: "Hurricane",
+    art: "gale_thundering_hurricane_tok",
+    passiveNames: { roundTick: "Wind Wake" },
+    // WIND WAKE, the same name Zephyra's `onHitPush` carries, and deliberately
+    // the AoE version of it: this one does not need to land a hit. Everything
+    // the player owns is shoved a slot away at the end of every round, so a
+    // board trying to close on the hurricane loses ground just for standing
+    // near it.
+    roundTick: { pushEnemies: 1 },
+    // ON ARRIVAL it does the exact opposite — reels everything within 2 into
+    // contact, hits for 15 and holds it there for 2 rounds. The two halves
+    // fight each other on purpose: it drags you in once, then spends the rest
+    // of the fight pushing you back out, so the round it lands is the round
+    // your formation is worst and its damage is highest.
+    onSummon: {
+      handler: "barrage",
+      params: {
+        antiAir: 1,
+        dmg: 15, targets: 99, reach: 2, pullToCaster: 2,
+        statusKind: "PARALYZE", statusDuration: 2,
+      },
+      targetSide: "enemy",
+    },
+  },
   {
     id: "void_fortress_gate_tok",
     name: "Fortress Gate",

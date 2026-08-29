@@ -435,6 +435,38 @@ export const VOID_BOSSES: VoidBoss[] = [
     ],
     puzzle: "The bonfire: everything that touches it burns — fight it at range.",
   },
+  {
+    cardId: "boss_skybreaker",
+    // FLOOR 5, and the first boss to stand on it. `voidFloors()` is derived
+    // from this array, so the floor exists because this line does — there is no
+    // constant to bump and no gap to leave.
+    floor: 5,
+    tribeElement: "GALE",
+    // BOLT, not AQUA. The design names three elements and the card can only
+    // carry one, so the split is: GALE is the tribe (wind), BOLT is the
+    // MECHANIC the Special expresses (the PARALYZE in the eye), and AQUA rides
+    // on the basics as SCALD. `mechanicElement` is documented as "the element
+    // the Special and passives express", and that is the thunder.
+    mechanicElement: "BOLT",
+    tribe: "Hurricane",
+    // 7 + 6 + 6 + 5 + 5 + 7 + 5 + 1x3 = 44, exact — Floor 5's budget.
+    //
+    // A STORM FRONT, and the formation is chosen to rhyme with the boss rather
+    // than to pad it. Zephyra carries the ORIGINAL Wind Wake (`onHitPush`,
+    // named that on its own card) so the passive the fight is built on is
+    // already on the field in its small form. The Thundering Hurricane is in
+    // the formation as well as on the round-6 clock: the boss can be met by a
+    // storm it did not have to wait for. The three Siroccos are the cheap wind
+    // that fills the gaps a stationary boss cannot cover itself — Sirocco is
+    // rare, so x3 is exactly its cap.
+    summons: [
+      "bolt_stormcaller", "gale_klipso", "gale_tempest",
+      "gale_thundering_hurricane_tok",
+      "gale_wista", "bolt_thunder", "gale_rayfen",
+      "gale_sirocco", "gale_sirocco", "gale_sirocco",
+    ],
+    puzzle: "The storm has legs: kill the hurricane and it is stranded, leave it and it blinks into your line.",
+  },
 ];
 
 export const voidBossById = (cardId: string): VoidBoss | null =>

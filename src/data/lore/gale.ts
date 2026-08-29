@@ -207,4 +207,10 @@ export const GALE_LORE: Record<string, string> = {
 
   gale_whirlwind_warrior_tok:
     "Every leaf in it was somebody's cover.",
+
+  boss_skybreaker:
+    "It has not taken a step in living memory. It has been everywhere.",
+
+  gale_thundering_hurricane_tok:
+    "The calm is the middle. Everyone who reports one was standing in it.",
 };
