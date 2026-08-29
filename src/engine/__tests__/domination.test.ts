@@ -595,11 +595,15 @@ describe("the AI plays the objective", () => {
     expect(everOnRing, "never put a card on a Point").toBeGreaterThan(2);
   });
 
+  // Four seats playing a whole match to a decision is seconds of real work, not
+  // milliseconds — measured at 1.6-2.8s across runs against vitest's 5s default,
+  // so it was one slow run away from a red suite that had nothing to do with the
+  // code. Timed for what it actually does.
   it("does it in a four-way too", () => {
     const { end } = aiMatch(37, 4);
     expect(end.phase).toBe("gameover");
     expect(end.win?.by).toBe("domination");
-  });
+  }, 30_000);
 
   it("leaves the standard board's AI alone", () => {
     // The Domination branch is gated on `state.domination`; a 5x5 must still be
@@ -865,6 +869,85 @@ describe("the trap and reroute spells aim at Points, not a Home row", () => {
     const intent = aiPrepIntent(s, "P2");
     if (intent.type === "CAST_SPELL" && intent.row !== undefined)
       expect(intent.row, "stopped defending its own Home row").toBe(homeRow("P2", 5));
+  });
+});
+
+describe("blocking every door does not end the game for a seat", () => {
+  // A seat holding no Point deploys at the four shrines and nowhere else. Sit
+  // bodies on all four and it had no legal summon on any of the 49 squares —
+  // and with its own bodies gone, no legal action at all, while a non-empty
+  // deck kept it from being eliminated. It sat out to the round-50 timeout.
+  //
+  // Measured over four-seat AI mirrors before the fix: 18 of 80 games contained
+  // a round where a seat had bodies gone, cards in hand and nowhere to put
+  // them, the worst run six rounds long. Nobody was trying to do it.
+
+  /** Park an enemy body on every shrine. */
+  function shutEveryDoor(st: GameState) {
+    for (const sh of M.shrines) put(st, "leaf_weeds", "P2", sh.row, sh.col);
+  }
+
+  const legalFor = (st: GameState, p: PlayerId) => {
+    const hand = st.players[p].hand[0];
+    const out: { row: number; col: number }[] = [];
+    for (let r = 0; r < M.boardSize; r++)
+      for (let c = 0; c < M.boardSize; c++)
+        if (canSummon(st, p, hand.handId, c, r).ok) out.push({ row: r, col: c });
+    return out;
+  };
+
+  it("with all four shrines held, a Point-less seat can still deploy", () => {
+    const s = domState();
+    shutEveryDoor(s);
+    expect(heldCount(s.domination!.held, "P1"), "P1 holds no Point").toBe(0);
+    expect(legalFor(s, "P1").length, "locked out of the whole board").toBeGreaterThan(0);
+  });
+
+  it("...and only onto the ROAD — never onto a Point it does not hold", () => {
+    // The hatch must not hand out the win condition. Landing on a ring contests
+    // a Point, so an escape from a lockout would double as a free contest.
+    const s = domState();
+    shutEveryDoor(s);
+    for (const sq of legalFor(s, "P1")) {
+      expect(isRoad(M, sq.row, sq.col), `${sq.row},${sq.col} is not road`).toBe(true);
+      expect(poiAt(M, sq.row, sq.col), `${sq.row},${sq.col} belongs to a Point`).toBeUndefined();
+      expect(isImpassable(M, sq.row, sq.col)).toBe(false);
+    }
+  });
+
+  it("stays SHUT while even one door is open", () => {
+    // The discipline the Void Tower fallback got wrong first time round: a
+    // version that opened whenever the nearest slot was busy walked spawns
+    // steadily deeper into the board, which is what an opponent appearing where
+    // nothing should be able to deploy actually looks like.
+    const s = domState();
+    for (const sh of M.shrines.slice(1)) put(s, "leaf_weeds", "P2", sh.row, sh.col);
+    const open = M.shrines[0];
+    const legal = legalFor(s, "P1");
+    expect(legal, "the one free shrine and nothing else")
+      .toEqual([{ row: open.row, col: open.col }]);
+  });
+
+  it("shuts again as soon as a door frees up", () => {
+    const s = domState();
+    shutEveryDoor(s);
+    expect(legalFor(s, "P1").length).toBeGreaterThan(0);
+    // Clear one shrine: the road closes and the ordinary rule returns.
+    const sh = M.shrines[2];
+    const sitting = cardAt(s, sh.row, sh.col)!;
+    delete s.cards[sitting.instanceId];
+    expect(legalFor(s, "P1"), "the road stayed open with a door free")
+      .toEqual([{ row: sh.row, col: sh.col }]);
+  });
+
+  it("a seat holding a Point is never in the lockout at all", () => {
+    // Its own ring is eight more doors, so the hatch has no reason to open.
+    const s = domState();
+    shutEveryDoor(s);
+    s.domination!.held.C = "P1";
+    for (const sq of legalFor(s, "P1"))
+      expect(isRoad(M, sq.row, sq.col) && !poiAt(M, sq.row, sq.col),
+        "fell back to the road while holding a Point").toBe(false);
   });
 });
 

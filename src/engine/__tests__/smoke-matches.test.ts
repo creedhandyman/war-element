@@ -16,6 +16,9 @@ function playOut(p1: string[], p2: string[], board: number, seed: number) {
   return { s, steps };
 }
 
+// Each of these plays THIRTY whole matches to a decision. That is seconds of
+// real work against vitest's 5s default, so they sat one busy machine away from
+// a red suite that said nothing about the code. Timed for what they do.
 describe("smoke: whole matches run to completion", () => {
   const small = PREMADE_DECKS.filter((d) => (d.boardSize ?? 4) === 4);
 
@@ -28,7 +31,7 @@ describe("smoke: whole matches run to completion", () => {
       expect(s.round).toBeGreaterThan(0);
     }
     expect(small.length).toBeGreaterThan(0);
-  });
+  }, 60_000);
 
   it("plays 5x5 matchups without throwing", () => {
     const big = PREMADE_DECKS.filter((d) => (d.boardSize ?? 4) === 5);
@@ -58,5 +61,5 @@ describe("smoke: whole matches run to completion", () => {
       played += chunk;
     }
     expect(played).toBeGreaterThan(200);
-  });
+  }, 60_000);
 });

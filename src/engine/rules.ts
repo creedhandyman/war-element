@@ -31,7 +31,7 @@ import type {
 import { OPENING_COST_CAP, bossHeldHome, enemyOf, homeRow } from "./types";
 import { getSpell, spellPickKind } from "./spells";
 import { hasElementAura } from "./auras";
-import { dominationMap, isImpassable, isShrine, runsAlongRoad, poiRing} from "../data/domination";
+import { dominationMap, isImpassable, isRoad, isShrine, runsAlongRoad, poiRing} from "../data/domination";
 
 /** The map this match is played on, or undefined in every ordinary match.
  *  One lookup, so no rule below has to know how the mode is stored. */
@@ -139,7 +139,41 @@ export function homeSlots(state: GameState, player: PlayerId): Pos[] {
       .filter((s) => s.row >= 0 && s.row < n && s.col >= 0 && s.col < n
         && !isImpassable(m, s.row, s.col))
     : [];
-  return [...m.shrines.map((sh) => ({ row: sh.row, col: sh.col })), ...mine];
+  const doors = [...m.shrines.map((sh) => ({ row: sh.row, col: sh.col })), ...mine];
+
+  // THE DOOR IS NEVER COMPLETELY SHUT.
+  //
+  // Holding no Point leaves a seat the four shrines, and the reason this file
+  // once gave for switching off `summonLandingRow` here was that "a seat whose
+  // shrine is taken has three more, all neutral". True, until all four are
+  // taken. Then the list above is empty of anywhere to stand, and a seat with a
+  // full hand and thirty gold has no legal summon on any of the 49 squares —
+  // and if it has no bodies left either, no legal action at all, while its
+  // non-empty deck keeps it from being eliminated. It sits out to the round-50
+  // timeout. That is the same lockout `summonLandingRow` documents fixing for
+  // Void Tower with measured numbers, arrived at by the other door.
+  //
+  // It does not take an opponent trying: measured over four-seat AI mirrors,
+  // 18 of 80 games contained a round where a seat had bodies gone, cards in
+  // hand and nowhere to put them, the worst run six rounds long.
+  //
+  // So when every door is shut, the ROAD opens. Not the Point rings — landing
+  // on one contests a Point, and an escape hatch must not hand out the win
+  // condition — just the thirteen road squares, which is where a seat locked
+  // out of its own doors would be walking in from anyway.
+  //
+  // It opens ONLY on nothing-at-all, which is the discipline the Void Tower
+  // fallback got wrong the first time: a version that ran whenever the nearest
+  // slot was busy walked spawns steadily deeper into the board, and looked
+  // exactly like an opponent appearing where nothing should be able to deploy.
+  const usable = (r: number, c: number) =>
+    !isImpassable(m, r, c) && !cardAt(state, r, c) && !isCaptured(state, r, c);
+  if (doors.some((d) => usable(d.row, d.col))) return doors;
+  const road: Pos[] = [];
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++)
+      if (isRoad(m, r, c) && usable(r, c)) road.push({ row: r, col: c });
+  return [...doors, ...road];
 }
 
 /** Whether a shrine square will take a summon from EITHER side.
