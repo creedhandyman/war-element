@@ -2419,7 +2419,8 @@ export type Intent =
       row?: number;
       col?: number;
       mode?: "attack" | "shield";
-      /** Rewire / Full Reroute: the caster's own cards being moved. */
+      /** Rewire / Full Reroute: the caster's own cards being moved. Also the
+       *  allies named to carry out a CAPPED battle command. */
       targetIds?: string[];
       /** Full Reroute: where each of `targetIds` is going, index-matched. */
       slots?: Pos[];

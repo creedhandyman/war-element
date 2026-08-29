@@ -40,11 +40,13 @@ import {
   shoveTarget,
   canSummon,
   canTarget,
+  defaultCommandPicks,
   forwardAreaTargets,
   isActionBlocked,
   openHomeSlots,
   RANGED_REACH,
   specialTargets,
+  spellCommandTargets,
   talentTargets,
   summonLandingRow,
   validTargets,
@@ -742,13 +744,18 @@ function resolveSpell(
   // `command` doc in types.ts for why that order is fixed.
   if (spell.command) {
     const c = spell.command;
-    let army = boardCards(draft, player).filter((a) => a.curHp > 0 && a.pos);
-    if (c.sameElement) army = army.filter((a) => getDef(a.defId).element === spell.element);
-    // Nearest the enemy first, so a capped order goes to the cards already in
-    // the fight rather than to whoever happens to sit first in the array.
-    const home = homeRow(player, draft.boardSize);
-    army.sort((a, b) => Math.abs(b.pos!.row - home) - Math.abs(a.pos!.row - home));
-    if (c.max != null) army = army.slice(0, c.max);
+    // Whoever the caster NAMED, when they named anyone. A capped command is
+    // refused without picks (canCastSpell), so in practice this is the manual
+    // list; the nearest-first fallback stays for the uncapped orders, which
+    // have nothing to name, and as a floor for any path that reaches the
+    // reducer without them rather than resolving into a silent no-op.
+    const eligible = spellCommandTargets(draft, player, spell);
+    const named = (targetIds ?? [])
+      .map((id) => eligible.find((a) => a.instanceId === id))
+      .filter((a): a is CardInstance => !!a);
+    const army = named.length > 0
+      ? (c.max != null ? named.slice(0, c.max) : named)
+      : defaultCommandPicks(draft, player, spell);
     // Snapshot by id: a strike below can kill a body (REFLECT) or spawn one.
     const ids = army.map((a) => a.instanceId);
     let moved = 0;

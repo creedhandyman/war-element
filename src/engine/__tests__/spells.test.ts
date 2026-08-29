@@ -528,13 +528,69 @@ describe("cleanse + board wipes", () => {
       place(s, "dusk_gool", "P2", 0, 1, { curHp: 40, maxHp: 40, curShields: 0 }),
       place(s, "dusk_gool", "P2", 0, 2, { curHp: 40, maxHp: 40, curShields: 0 }),
     ];
-    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dawn_grace" });
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "dawn_grace",
+      targetIds: [fwd1.instanceId, fwd2.instanceId],
+    });
     const hurt = foes.filter((f) => next.cards[f.instanceId].curHp < 40).length;
     expect(hurt, "exactly two swings landed").toBe(2);
     // Nobody moved — Surprise Attack carries no step.
     expect(next.cards[fwd1.instanceId].pos!.row).toBe(1);
     expect(next.cards[back.instanceId].pos!.row).toBe(3);
+  });
+
+  it("Surprise Attack orders the allies the CASTER named, not the nearest two", () => {
+    // The whole point of the manual pick. `back` sits furthest from the enemy,
+    // so the old nearest-first auto-pick would never have chosen it; naming it
+    // has to actually send it.
+    const s = prepState();
+    armSpell(s, "dawn_grace", 3);
+    const fwd1 = place(s, "dawn_beam", "P1", 1, 0);
+    const fwd2 = place(s, "dawn_beam", "P1", 1, 1);
+    const back = place(s, "dawn_beam", "P1", 2, 2);
+    for (const [r, c] of [[0, 0], [0, 1], [0, 2]] as const)
+      place(s, "dusk_gool", "P2", r, c, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "dawn_grace",
+      targetIds: [back.instanceId, fwd1.instanceId],
+    });
+    // Two swings landed, and the one from the back rank is among them: the
+    // named card struck even though it is the last the engine would have picked.
+    const struck = next.log.filter((l) => l.includes("hits")).length;
+    expect(struck, "two named allies swung").toBe(2);
     void fwd2;
+  });
+
+  it("a capped command is refused with no picks, so the tray cannot fire it blind", () => {
+    // "Needs a pick" and "is refused without one" have to be the same statement,
+    // or the tray resolves it into whatever the engine felt like choosing.
+    const s = prepState();
+    armSpell(s, "dawn_grace", 3);
+    place(s, "dawn_beam", "P1", 1, 0);
+    place(s, "dawn_beam", "P1", 1, 1);
+    place(s, "dawn_beam", "P1", 2, 2);
+    expect(canCastSpell(s, "P1", "dawn_grace", {}).ok).toBe(false);
+    expect(spellPickKind(getSpell("dawn_grace"))).toBe("command");
+    // ...and it will not take more allies than the cap, or a card that is not
+    // the caster's own DAWN line.
+    const kin = boardCards(s, "P1").map((c) => c.instanceId);
+    expect(canCastSpell(s, "P1", "dawn_grace", { targetIds: kin }).ok, "3 > max 2").toBe(false);
+    expect(canCastSpell(s, "P1", "dawn_grace", { targetIds: [kin[0], kin[0]] }).ok, "same card twice").toBe(false);
+    expect(canCastSpell(s, "P1", "dawn_grace", { targetIds: [kin[0], kin[1]] }).ok).toBe(true);
+  });
+
+  it("an UNCAPPED command still fires on sight — a general order names nobody", () => {
+    // Charge and Retreat order the whole line, so there is no subset to choose
+    // and nothing for the caster to click. They must stay one tap.
+    const uncapped = SPELLS.filter((x) => x.command && x.command.max == null);
+    expect(uncapped.map((x) => x.name).sort()).toEqual(["Charge", "Retreat"]);
+    for (const sp of uncapped) {
+      expect(spellPickKind(sp), sp.id).toBe("none");
+      const s = prepState();
+      armSpell(s, sp.id, 9);
+      place(s, "dawn_beam", "P1", 2, 0);
+      expect(canCastSpell(s, "P1", sp.id, {}).ok, sp.id).toBe(true);
+    }
   });
 
   it("Lightning Storm: 8 to EVERY opponent + PARALYZE all", () => {
@@ -753,6 +809,15 @@ describe("every spell in the set actually resolves", () => {
         opts.row = spell.id === "bore_stone_wall" ? 3 : 1;
       }
       if (spell.kind === "trap") { opts.row = 0; opts.col = 3; }
+      // A capped BATTLE COMMAND names the allies who carry the order out. Built
+      // off spellPickKind for the same reason the ally branch is: the net keeps
+      // covering new commands without a hand-kept list.
+      if (spellPickKind(spell) === "command") {
+        opts.targetIds = boardCards(s, "P1")
+          .filter((c) => !spell.command?.sameElement || getDef(c.defId).element === spell.element)
+          .slice(0, spell.command?.max ?? 1)
+          .map((c) => c.instanceId);
+      }
       // Rewire / Full Reroute take CARD picks rather than a row or a target.
       if (spell.swapAllies || spell.rerouteCount) {
         const mine = boardCards(s, "P1").slice(0, 2);

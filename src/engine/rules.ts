@@ -1147,6 +1147,43 @@ export function spellAllyTargets(
   );
 }
 
+/** The living cards a BATTLE COMMAND may be given to: the caster's own side,
+ *  element-gated when the order is (all three DAWN commands are).
+ *
+ *  Same reason spellAllyTargets exists — which cards glow, which clicks are
+ *  accepted, which the AI picks between and which the resolver actually orders
+ *  are four answers that have to be one answer. The resolver used to build this
+ *  list itself, so anything that widened it in the UI would have silently
+ *  disagreed with what the reducer did. */
+export function spellCommandTargets(
+  state: GameState,
+  player: PlayerId,
+  spell: SpellDef,
+): CardInstance[] {
+  const c = spell.command;
+  if (!c) return [];
+  const army = boardCards(state, player).filter((a) => a.curHp > 0 && a.pos);
+  return c.sameElement
+    ? army.filter((a) => getDef(a.defId).element === spell.element)
+    : army;
+}
+
+/** Who receives a command when nobody named them: nearest the enemy first,
+ *  capped. The AI's pick and the reducer's fallback are the same order, so an
+ *  unpicked cast resolves exactly as it always did. */
+export function defaultCommandPicks(
+  state: GameState,
+  player: PlayerId,
+  spell: SpellDef,
+): CardInstance[] {
+  const home = homeRow(player, state.boardSize);
+  const army = [...spellCommandTargets(state, player, spell)].sort(
+    (a, b) => Math.abs(b.pos!.row - home) - Math.abs(a.pos!.row - home),
+  );
+  const max = spell.command?.max;
+  return max != null ? army.slice(0, max) : army;
+}
+
 export function canCastSpell(
   state: GameState,
   player: PlayerId,
@@ -1259,10 +1296,21 @@ export function canCastSpell(
   // tray colour ("damage" for Charge) and would otherwise be refused for want of
   // a target it never uses.
   if (spell.command) {
-    const army = boardCards(state, player).filter(
-      (a) => a.curHp > 0 && a.pos && (!spell.command!.sameElement || getDef(a.defId).element === spell.element),
-    );
+    const army = spellCommandTargets(state, player, spell);
     if (army.length === 0) return { ok: false, reason: `No ${spell.element} card to command` };
+    const max = spell.command.max;
+    // Uncapped: a general order, every kin obeys, nothing to name.
+    if (max == null) return { ok: true };
+    // Capped: the caster names who carries it out. REQUIRED, not optional —
+    // "this spell needs a pick" and "this spell is refused without one" have to
+    // be the same statement or the tray fires it into whatever the engine felt
+    // like choosing, which is the auto-pick this replaces.
+    const ids = opts.targetIds;
+    if (!ids || ids.length === 0) return { ok: false, reason: "Pick who carries out the order" };
+    if (ids.length > max) return { ok: false, reason: `Only ${max} can be ordered` };
+    if (new Set(ids).size !== ids.length) return { ok: false, reason: "Pick different cards" };
+    if (!ids.every((id) => army.some((a) => a.instanceId === id)))
+      return { ok: false, reason: `Pick your own ${spell.element} cards` };
     return { ok: true };
   }
   if (spell.kind === "convert") {

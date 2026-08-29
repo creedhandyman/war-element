@@ -199,6 +199,11 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
     const mineHome = homeRow(player, state.boardSize);
     army = [...army].sort((a, b) => Math.abs(b.pos!.row - mineHome) - Math.abs(a.pos!.row - mineHome));
     const ordered = c.max != null ? army.slice(0, c.max) : army;
+    // A capped command is now REFUSED without picks, so the AI names its own —
+    // the same nearest-first pair it was already judging the order on. Without
+    // this the check below starts failing and all three commands go dead to the
+    // AI again, which is the exact bug the comment above this loop records.
+    const cmdOpts = c.max != null ? { targetIds: ordered.map((a) => a.instanceId) } : {};
 
     if (c.strike) {
       // Worth the one-shot only when the order actually connects. Measured from
@@ -214,8 +219,8 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
           (e) => e.curHp > 0 && canTarget(state, ghost, e),
         );
       }).length;
-      if (connects >= 2 && canCastSpell(state, player, spell.id).ok)
-        return { type: "CAST_SPELL", player, spellId: spell.id };
+      if (connects >= 2 && canCastSpell(state, player, spell.id, cmdOpts).ok)
+        return { type: "CAST_SPELL", player, spellId: spell.id, ...cmdOpts };
       continue;
     }
 
@@ -225,8 +230,8 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
       const dying = ordered.filter(
         (a) => threatAt(state, a, a.pos!) >= a.curHp + a.curShields * 2,
       ).length;
-      if (dying >= 2 && canCastSpell(state, player, spell.id).ok)
-        return { type: "CAST_SPELL", player, spellId: spell.id };
+      if (dying >= 2 && canCastSpell(state, player, spell.id, cmdOpts).ok)
+        return { type: "CAST_SPELL", player, spellId: spell.id, ...cmdOpts };
     }
   }
 

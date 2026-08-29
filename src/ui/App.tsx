@@ -29,6 +29,7 @@ import {
   previewOnSummonArea,
   spellEnemyTargets,
   spellAllyTargets,
+  spellCommandTargets,
   specialTargets,
   validAllyTargets,
   validTargets,
@@ -1582,6 +1583,7 @@ export function App() {
     switch (spellPickKind(spell)) {
       case "enemy": return "enemy";
       case "ally":
+      case "command":
       case "cards": return "ally";
       // A modal spell asks for its mode first; the mode decides the side.
       case "mode": return sel.mode === "shield" ? "ally" : sel.mode ? "enemy" : null;
@@ -1599,6 +1601,12 @@ export function App() {
       if (spell.swapAllies || (spell.rerouteCount && spellPicks.ids.length === spellPicks.slots.length))
         return boardCards(game, view)
           .filter((c) => c.curHp > 0 && !spellPicks.ids.includes(c.instanceId))
+          .map((c) => c.instanceId);
+      // A capped battle command names its own: every kin that can still be
+      // given the order, minus the ones already holding it.
+      if (spell.command)
+        return spellCommandTargets(game, view, spell)
+          .filter((c) => !spellPicks.ids.includes(c.instanceId))
           .map((c) => c.instanceId);
       if (armedPickSide === "ally")
         return spellAllyTargets(game, view, spell).map((c) => c.instanceId);
@@ -1701,6 +1709,37 @@ export function App() {
     if (spell.kind === "choice") {
       setSpellChoice(spellId);
       setHint(`<b>${spell.name}</b> — choose how to cast.`);
+      return;
+    }
+    // A capped BATTLE COMMAND: the caster names who carries the order out.
+    //
+    // When the cap is at or above the number of kin actually standing, every one
+    // of them obeys and there is nothing to choose — fire on the spot rather
+    // than walk the player through a decision with exactly one outcome. That
+    // also keeps the common early-board case (one or two DAWN cards down) a
+    // single tap, the way it has always been.
+    if (spellPickKind(spell) === "command") {
+      const kin = spellCommandTargets(game, me, spell);
+      const max = spell.command?.max ?? kin.length;
+      if (kin.length === 0) {
+        setHint(`⚠ No ${spell.element} card to command.`);
+        return;
+      }
+      if (kin.length <= max) {
+        const ids = kin.map((c) => c.instanceId);
+        const chk = canCastSpell(game, me, spellId, { targetIds: ids });
+        if (chk.ok) {
+          castSpell({ type: "CAST_SPELL", player: me, spellId, targetIds: ids }, `Cast <b>${spell.name}</b>.`);
+        } else {
+          setHint(`⚠ ${chk.reason}`);
+        }
+        return;
+      }
+      setSel({ kind: "spell", spellId });
+      setPending(null);
+      setPicks([]);
+      setSpellPicks({ ids: [], slots: [] });
+      setHint(`Casting <b>${spell.name}</b> — click ${max} ${spell.element} allies to carry out the order.`);
       return;
     }
     // Anything that asks the player for nothing resolves on the spot. Read from
@@ -1838,6 +1877,37 @@ export function App() {
     // spells drop onto any slot of a glowing row (a wall occupies no slot).
     if (me && game.phase === "prep" && game.prep?.priority === me && sel?.kind === "spell") {
       const spell = getSpell(sel.spellId);
+      // BATTLE COMMAND: name the allies who obey, then it fires on the last
+      // pick — the same way Rewire fires on its second.
+      if (spell.command) {
+        const max = spell.command.max ?? 0;
+        const kin = spellCommandTargets(game, me, spell);
+        if (!clicked || !kin.some((c) => c.instanceId === clicked.instanceId)) {
+          setHint(`⚠ Pick one of your own ${spell.element} cards.`);
+          return;
+        }
+        if (spellPicks.ids.includes(clicked.instanceId)) {
+          setHint("⚠ That one already has the order — pick a different card.");
+          return;
+        }
+        const ids = [...spellPicks.ids, clicked.instanceId];
+        if (ids.length < max) {
+          setSpellPicks({ ids, slots: [] });
+          setHint(`<b>${getDef(clicked.defId).name}</b> has the order — pick ${max - ids.length} more.`);
+          return;
+        }
+        const chk = canCastSpell(game, me, sel.spellId, { targetIds: ids });
+        setSpellPicks({ ids: [], slots: [] });
+        if (chk.ok) {
+          castSpell(
+            { type: "CAST_SPELL", player: me, spellId: sel.spellId, targetIds: ids },
+            `${spell.name} cast. Keep going, or <b>Pass Priority</b>.`,
+          );
+        } else {
+          setHint(`⚠ ${chk.reason}`);
+        }
+        return;
+      }
       // Rewire: two of your own cards, then they trade squares.
       if (spell.swapAllies) {
         if (!clicked || clicked.owner !== me) {

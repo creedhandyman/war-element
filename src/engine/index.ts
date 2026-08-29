@@ -49,6 +49,8 @@ export {
   canSpellHitEnemy,
   spellEnemyTargets,
   spellAllyTargets,
+  spellCommandTargets,
+  defaultCommandPicks,
   canPlaceWallRow,
   legalWallRows,
   canAoeRow,

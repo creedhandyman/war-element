@@ -990,13 +990,21 @@ export function isSpell(id: string): boolean {
  */
 export function spellPickKind(
   spell: SpellDef,
-): "none" | "enemy" | "ally" | "row" | "slot" | "cards" | "mode" {
-  // BATTLE COMMANDS take no pick — they order your OWN line. Ahead of the kind
+): "none" | "enemy" | "ally" | "row" | "slot" | "cards" | "mode" | "command" {
+  // BATTLE COMMANDS order your OWN line, never an enemy. Ahead of the kind
   // checks because a command borrows a kind for its tray colour (Charge is
   // "damage"), and the tray would otherwise sit waiting for an enemy target
   // that the spell never reads. There is a whole-pool test asserting this
   // function and canCastSpell agree, and it is what caught the mismatch.
-  if (spell.command) return "none";
+  //
+  // The CAP decides whether there is anything to pick. An uncapped command is a
+  // general order — every kin on the board obeys, so the caster has no choice to
+  // make and it still fires the moment it is tapped. A CAPPED one is the engine
+  // choosing a subset of your army for you, and "the two standing nearest the
+  // enemy" is only ever the right two by accident: the pair you want swinging is
+  // the pair that can reach something worth hitting, or the two that are not
+  // holding STEALTH. Same argument that took auto-aim off the ally heals.
+  if (spell.command) return spell.command.max != null ? "command" : "none";
   if (spell.swapAllies || spell.rerouteCount) return "cards";
   if (spell.kind === "choice") return "mode";
   if (spell.kind === "trap") return "slot";
