@@ -11714,7 +11714,11 @@ export const TOKENS: CardDef[] = [
     // damage is untouched.
     hp: 40,
     sp: 0,
-    shields: 10,
+    // 10 -> 5 (owner's call), alongside the HP. Shields block PER HIT in this
+    // game, so on a body the player chips down this is the heavier half of the
+    // two cuts: it is not 5 fewer points of health, it is 5 fewer points off
+    // EVERY swing that lands. 70 body points at first writing, 50 now.
+    shields: 5,
     keywords: { TRAMPLE: true },
     // MASS IN MOTION. An ordinary trample only shoves something lighter than
     // itself; a 50-HP rock would therefore stop dead at nearly every real card

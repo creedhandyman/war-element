@@ -304,11 +304,17 @@ describe("the roster", () => {
       // Continental 74.0 -> 94.8 at n=96. The player side got better, and so
       // did Continental's own AI-piloted formation, by more.
       //
-      // Trimming its boulders 50 -> 40 HP then took Continental to **92.7%**,
-      // with Skybreaker held at 91.7 as an unchanged control. Both still sit
-      // above the 80-90 band; the tuning done before the AI fix was measured
-      // against a different game and wants redoing in one pass rather than
-      // chased a point at a time.
+      // Trimming its boulders then took Continental 94.8 -> 92.7 (50 -> 40 HP)
+      // -> **91.7%** (10 -> 5 shields), with Skybreaker held at 91.7 as an
+      // unchanged control throughout. The boulder is a 50-point body now,
+      // against 70 at first writing.
+      //
+      // TWO CUTS, THREE POINTS. That is the useful reading: the boulders are
+      // not what makes this fight hard. Both Floor-5 bosses sit at 91.7 and the
+      // cause is upstream — the AI fix re-based every number taken before it,
+      // and Continental alone moved twenty points on that change. The pre-fix
+      // tuning was measured against a different game and wants redoing in one
+      // deliberate pass rather than chased a point at a time.
       // That is a little under the 80-90 band Floor 4 was tuned to, and it is
       // internally consistent, which the 75.0-95.8 spread before it was not.
       // HP remains the lever in either direction (366 body against a 660 cap).

@@ -48,7 +48,7 @@ describe("the shape of the fight", () => {
 
   it("the boulder is a body with no attack at all", () => {
     const t = getDef(ROCK);
-    expect([t.dmg, t.hp, t.shields, t.sp]).toEqual([0, 40, 10, 0]);
+    expect([t.dmg, t.hp, t.shields, t.sp]).toEqual([0, 40, 5, 0]);
     // A 0-DMG body is normally a mistake; here it is the design. Everything it
     // does happens by rolling, in the round tick.
     expect(t.trampleDmg, "Crush").toBe(35);
