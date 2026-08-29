@@ -406,8 +406,17 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
     for (let row = 0; row < state.boardSize; row++) {
       for (let col = 0; col < state.boardSize; col++) {
         if (!canCastSpell(state, player, spell.id, { row, col }).ok) continue;
-        // An uncaptured home slot is the square the opponent is obliged to enter.
-        let score = row === home && !isCaptured(state, row, col) ? 6 : 0;
+        // A mine on ground nothing can ever step on is a wasted one-shot, and a
+        // citadel is empty enough to look like a fine square from here.
+        if (domMap(state) && isImpassable(domMap(state)!, row, col)) continue;
+        // The square the opponent is obliged to enter. On a standard board that
+        // is an uncaptured Home slot — an invader has to stand there to capture,
+        // and it is the one move it cannot decline. In Domination there is no
+        // capture and no Home row that means anything; the compelled squares are
+        // the Point rings, which is what `poiTraffic` scores.
+        let score = state.domination
+          ? poiTraffic(state, player, row, col)
+          : row === home && !isCaptured(state, row, col) ? 6 : 0;
         // ...otherwise, how many enemies could reach it on their next move?
         for (const e of foes) {
           const d = Math.max(Math.abs(e.pos!.row - row), Math.abs(e.pos!.col - col));
@@ -443,14 +452,35 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
       // Move it somewhere nothing can reach it; take an open enemy Home slot if
       // one is going spare, since that is the win condition itself.
       const enemyHome = homeRow(enemyOf(player), state.boardSize);
+      const dm = domMap(state);
       let best: Pos | null = null;
       let bestRisk = doomed.risk;
       for (let r = 0; r < state.boardSize; r++)
         for (let c = 0; c < state.boardSize; c++) {
           if (cardAt(state, r, c) || isCaptured(state, r, c)) continue;
+          // A citadel is empty and unreachable, so it scored like open ground
+          // and could win this scan outright — at which point `canCastSpell`
+          // refused the square below and the AI cast NOTHING. A wasted turn that
+          // looked like a decision.
+          if (dm && isImpassable(dm, r, c)) continue;
           const risk = threatAt(state, doomed.c, { row: r, col: c } as Pos) - (doomed.c.curHp + doomed.c.curShields * 2);
-          const capture = r === enemyHome ? -6 : 0; // treat a capture as worth taking
-          if (risk + capture < bestRisk) { bestRisk = risk + capture; best = { row: r, col: c } as Pos; }
+          // What the destination is WORTH, beyond being safe.
+          //
+          // On a standard board that is an enemy Home slot — the win condition
+          // itself. In Domination it is a Point we do not hold (dropping a body
+          // onto a ring contests it) and, for a card that is hurt, the Well:
+          // this spell is cast on something about to die, and the Well is the
+          // one square on the map that mends it.
+          let worth = 0;
+          if (state.domination && dm) {
+            const poi = poiAt(dm, r, c);
+            if (poi && state.domination.held[poi.id] !== player) worth -= 6;
+            const hurt = doomed.c.curHp * 2 <= effectiveMaxHp(state, doomed.c);
+            if (hurt && dm.well && dm.well.at.row === r && dm.well.at.col === c) worth -= 4;
+          } else if (r === enemyHome) {
+            worth -= 6; // treat a capture as worth taking
+          }
+          if (risk + worth < bestRisk) { bestRisk = risk + worth; best = { row: r, col: c } as Pos; }
         }
       if (best && canCastSpell(state, player, spell.id, { targetIds: [doomed.c.instanceId], slots: [best] }).ok)
         return { type: "CAST_SPELL", player, spellId: spell.id, targetIds: [doomed.c.instanceId], slots: [best] };
@@ -570,6 +600,28 @@ function holdingAPoint(state: GameState, card: CardInstance, player: PlayerId): 
     const occ = cardAt(state, s.row, s.col);
     return occ != null && occ.curHp > 0 && occ.owner !== player;
   });
+}
+
+/** How badly the OPPOSITION wants to stand on this square, in Domination.
+ *
+ *  Both the trap and the reroute used to answer this with a Home row — "the
+ *  square an invader is obliged to enter, because that is how it wins". On this
+ *  map nobody is obliged to enter a Home row; it is ordinary ground and the win
+ *  is elsewhere. The squares that are actually compelled are the Point RINGS:
+ *  you cannot hold a Point without a body standing on one, so that is where the
+ *  traffic is and where a mine is worth laying.
+ *
+ *  A ring we do NOT hold scores highest — that is ground they have to keep
+ *  walking onto, either to take it or to keep it. A ring we DO hold scores less
+ *  but not nothing, because they still have to come to us to break it. */
+function poiTraffic(state: GameState, player: PlayerId, row: number, col: number): number {
+  const m = domMap(state);
+  const dom = state.domination;
+  if (!m || !dom) return 0;
+  if (isImpassable(m, row, col)) return 0;
+  const poi = poiAt(m, row, col);
+  if (!poi) return 0;
+  return dom.held[poi.id] === player ? 3 : 6;
 }
 
 /** Step ONTO a Point. The Domination equivalent of the capture step: the square

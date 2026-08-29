@@ -15,8 +15,10 @@ import { advance, applyIntent, canMove, canSummon, createInitialState, legalMove
 import { homeSlots, rangedCanSee, summonLandingRow, terrainBlocksPath } from "../rules";
 import { cardAt, summonCard } from "../state";
 import { pickBasicTarget } from "../phases";
+import { aiPrepIntent } from "../ai";
 import { deckLimits } from "../../data/custom-decks";
 import type { GameState, PlayerId } from "../types";
+import { homeRow } from "../types";
 
 const M = DOMINATION_7X7;
 const DECK = [
@@ -787,5 +789,58 @@ describe("Point control counts EVERY seat", () => {
       out = n;
     }
     expect(out.domination!.held[poi.id], "P3 out-numbered 2-1 and did not take it").toBe("P3");
+  });
+});
+
+describe("the trap and reroute spells aim at Points, not a Home row", () => {
+  /** A Domination state where it is the AI's (P2's) prep turn. */
+  function aiTurn(spellId: string) {
+    const s = domState();
+    s.humans = ["P1"];
+    s.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    s.players.P2.hand = [];                        // no summon to prefer
+    s.players.P2.spellbook = [{ defId: spellId, used: false }];
+    s.players.P2.magicPool = 20;
+    return s;
+  }
+
+  it("never mines a citadel — a mine nothing can step on is a wasted one-shot", () => {
+    const s = aiTurn("pyro_ember_trap");
+    // Enemies on the board so the trap step engages at all.
+    for (const sq of poiRing(M.pois[0]).slice(0, 2)) put(s, "leaf_weeds", "P1", sq.row, sq.col);
+    put(s, "leaf_weeds", "P2", 3, 3);
+    const intent = aiPrepIntent(s, "P2");
+    if (intent.type === "CAST_SPELL" && intent.row !== undefined && intent.col !== undefined)
+      expect(isImpassable(M, intent.row, intent.col), "laid a trap on a citadel").toBe(false);
+  });
+
+  it("lays the trap on a Point's ring rather than a Home row", () => {
+    const s = aiTurn("pyro_ember_trap");
+    for (const sq of poiRing(M.pois[0]).slice(0, 3)) put(s, "leaf_weeds", "P1", sq.row, sq.col);
+    put(s, "leaf_weeds", "P2", 3, 3);
+    const intent = aiPrepIntent(s, "P2");
+    expect(intent.type).toBe("CAST_SPELL");
+    if (intent.type === "CAST_SPELL" && intent.row !== undefined && intent.col !== undefined) {
+      expect(poiAt(M, intent.row, intent.col), "mined open ground away from any Point").toBeTruthy();
+      // ...and NOT on its own Home row, which is what it used to prefer.
+      expect(intent.row).not.toBe(0);
+    }
+  });
+
+  it("keeps the standard board's Home-row trap exactly as it was", () => {
+    let s: GameState = createInitialState(5, DECK, DECK, ["P1"], undefined, [], 5);
+    s.players.P1.mulliganDone = true; s.players.P2.mulliganDone = true;
+    for (let i = 0; i < 40 && s.phase === "mulligan"; i++) s = advance(s);
+    s.phase = "prep";
+    s.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    s.players.P2.hand = [];
+    s.players.P2.spellbook = [{ defId: "pyro_ember_trap", used: false }];
+    s.players.P2.magicPool = 20;
+    expect(s.domination).toBeUndefined();
+    const a = summonCard(s, "P1", "leaf_weeds", { row: 3, col: 2 });
+    a.summonedThisRound = false;
+    const intent = aiPrepIntent(s, "P2");
+    if (intent.type === "CAST_SPELL" && intent.row !== undefined)
+      expect(intent.row, "stopped defending its own Home row").toBe(homeRow("P2", 5));
   });
 });
