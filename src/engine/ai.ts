@@ -38,7 +38,7 @@ import type {
   Pos,
   StatusKind,
 } from "./types";
-import { enemyOf, homeRow, NEGATIVE_STATUSES } from "./types";
+import { enemyOf, homeRow, NEGATIVE_STATUSES, seatsOf } from "./types";
 import { isImpassable, poiAt, poiRing, type PoiDef } from "../data/domination";
 
 // ── mulligan ────────────────────────────────────────────────────────────────
@@ -79,11 +79,24 @@ function deploySlots(state: GameState, player: PlayerId): Pos[] {
   const slots = homeSlots(state, player);
   const m = domMap(state);
   if (!m) return slots;
+  // ITS OWN DOOR FIRST. Sorting purely by distance to a wanted Point looks
+  // right and is not: every shrine sits on an edge between two Points, so the
+  // distances TIE, every tie fell to the map's declaration order, and all four
+  // AI seats walked in through the same shrine — the whole table queueing at
+  // one square while three stood empty.
+  //
+  // Each seat is anchored to the shrine at its own index, and the shrines are
+  // one per edge, so four seats enter from four sides. Distance to what it
+  // actually wants still orders the rest, which is what makes the fallback
+  // sensible when its own door is taken.
+  const seat = Math.max(0, seatsOf(state).indexOf(player));
+  const anchor = m.shrines[seat % m.shrines.length];
+  const isAnchor = (p: Pos) => !!anchor && p.row === anchor.row && p.col === anchor.col;
   const goals = pointGoals(state, player);
-  if (goals.length === 0) return slots;
-  const near = (p: Pos) =>
-    Math.min(...goals.map((g) => Math.max(Math.abs(g.row - p.row), Math.abs(g.col - p.col))));
-  return [...slots].sort((a, b) => near(a) - near(b));
+  const near = (p: Pos) => goals.length === 0 ? 0
+    : Math.min(...goals.map((g) => Math.max(Math.abs(g.row - p.row), Math.abs(g.col - p.col))));
+  return [...slots].sort((a, b) =>
+    (isAnchor(a) ? -1 : 0) - (isAnchor(b) ? -1 : 0) || near(a) - near(b));
 }
 
 /** One intent per call: summon > move > pass. */
@@ -568,14 +581,66 @@ function pointsWanted(state: GameState, player: PlayerId): PoiDef[] {
   });
   const notMine = m.pois.filter((p) => !mine(p));
   const underThreat = m.pois.filter((p) => mine(p) && contested(p));
-  const want = [...notMine, ...underThreat];
+
+  // EVERY SEAT WANTS SOMETHING DIFFERENT, or all of them walk at the same
+  // square. One brain plays all the AI seats, so without this they shared one
+  // preference order — the map's declaration order — and a four-player game was
+  // three opponents queueing for Point A while the other three stood empty.
+  //
+  // Two axes, both derived from the seat's own index so they need no new state
+  // and replay identically:
+  //
+  //   WHERE IT LIVES. Each seat is anchored to the shrine it comes in at, and
+  //   the shrines sit one per edge — so seat order maps to a corner and the
+  //   Points get sorted by distance from it. Four seats, four different first
+  //   choices, and each one's plan starts where its reinforcements arrive.
+  //
+  //   WHAT IT WANTS. Alternate seats are EXPANDERS or HOLDERS. An expander goes
+  //   for ground it does not have; a holder answers the fight on ground it does,
+  //   and only then looks outward. Two temperaments is enough to stop a table
+  //   playing in lockstep without inventing four scripted personalities.
+  const seat = Math.max(0, seatsOf(state).indexOf(player));
+  const anchor = m.shrines[seat % m.shrines.length];
+  const near = (p: PoiDef) => anchor
+    ? Math.max(Math.abs(p.centre.row - anchor.row), Math.abs(p.centre.col - anchor.col))
+    : 0;
+  // Distance alone is not enough to separate them. Each shrine is equidistant
+  // from TWO Points — it sits on an edge, between them — so every seat tied,
+  // every tie fell to declaration order, and the map's last Point was nobody's
+  // first choice and went uncontested.
+  //
+  // So the seats CLAIM in order: each takes the nearest Point no earlier seat
+  // has claimed. Greedy rather than optimal, and it does not need to be optimal
+  // — it needs to be different, and on this map it hands out all four.
+  const claimed = new Set<string>();
+  let primary: PoiDef | undefined;
+  const order = seatsOf(state);
+  for (let i = 0; i < order.length; i++) {
+    const a = m.shrines[i % m.shrines.length];
+    const pick = [...m.pois]
+      .filter((p) => !claimed.has(p.id))
+      .sort((x, y) =>
+        (Math.max(Math.abs(x.centre.row - a.row), Math.abs(x.centre.col - a.col))
+          - Math.max(Math.abs(y.centre.row - a.row), Math.abs(y.centre.col - a.col)))
+        || m.pois.indexOf(x) - m.pois.indexOf(y))[0];
+    if (!pick) break;
+    claimed.add(pick.id);
+    if (i === seat) primary = pick;
+  }
+  const byHome = (a: PoiDef, b: PoiDef) =>
+    (a.id === primary?.id ? -1 : 0) - (b.id === primary?.id ? -1 : 0) || near(a) - near(b);
+  const holder = seat % 2 === 1;
+  const want = holder
+    ? [...underThreat.sort(byHome), ...notMine.sort(byHome)]
+    : [...notMine.sort(byHome), ...underThreat.sort(byHome)];
   // Holding everything, uncontested: spread out rather than freeze. Standing
-  // still is how a side that is ahead lets the clock take it back.
-  return want.length > 0 ? want : m.pois;
+  // still is how a side that is ahead lets the clock take it back — and it
+  // spreads from its OWN corner, so the seats still do not overlap.
+  return want.length > 0 ? want : [...m.pois].sort(byHome);
 }
 
 /** Every square worth standing on: the rings of the Points worth having. */
-function pointGoals(state: GameState, player: PlayerId): Pos[] {
+export function pointGoals(state: GameState, player: PlayerId): Pos[] {
   const m = domMap(state);
   if (!m) return [];
   return pointsWanted(state, player)

@@ -15,7 +15,7 @@ import { advance, applyIntent, canMove, canSummon, createInitialState, legalMove
 import { homeSlots, rangedCanSee, specialTargets, summonLandingRow, terrainBlocksPath } from "../rules";
 import { cardAt, summonCard } from "../state";
 import { pickBasicTarget } from "../phases";
-import { aiPrepIntent } from "../ai";
+import { aiPrepIntent, pointGoals } from "../ai";
 import { atBattle } from "./helpers";
 import { deckLimits } from "../../data/custom-decks";
 import type { GameState, PlayerId } from "../types";
@@ -989,5 +989,43 @@ describe("Cryo's 2×2 falls the way it was thrown", () => {
     } as never);
     expect(40 - out.cards[at.instanceId].curHp).toBeGreaterThan(0);
     expect(40 - out.cards[below.instanceId].curHp, "the fixed quadrant changed").toBeGreaterThan(0);
+  });
+});
+
+describe("the AI seats do not all go for the same square", () => {
+  it("sends each seat in through its own shrine", () => {
+    // One brain plays every AI seat, so without a per-seat preference they
+    // shared one: the shrines all tie on distance to a wanted Point, every tie
+    // fell to the map's declaration order, and the whole table queued at the
+    // same door while three stood empty.
+    const s = domState();
+    s.humans = [];
+    s.seats = ["P1", "P2", "P3", "P4"];
+    for (const seat of s.seats) {
+      s.players[seat].gold = 30;
+      if (s.players[seat].hand.length === 0)
+        s.players[seat].hand = [{ handId: `h-${seat}`, defId: "leaf_weeds" }];
+    }
+    const doors = new Set<string>();
+    for (const seat of s.seats) {
+      s.prep = { priority: seat, consecutivePasses: 0, movedThisTurn: false };
+      const it = aiPrepIntent(s, seat);
+      expect(it.type, `${seat} did not deploy`).toBe("SUMMON");
+      if (it.type === "SUMMON") doors.add(`${it.row},${it.col}`);
+    }
+    expect(doors.size, `all four seats entered at ${[...doors]}`).toBe(4);
+  });
+
+  it("gives each seat a different Point to want first", () => {
+    const s = domState();
+    s.seats = ["P1", "P2", "P3", "P4"];
+    const firsts = s.seats.map((seat) => {
+      // The first Point in its wanted order, read through the goal squares the
+      // mover actually uses.
+      const goals = pointGoals(s, seat);
+      const poi = goals.length ? poiAt(M, goals[0].row, goals[0].col) : undefined;
+      return poi?.id;
+    });
+    expect(new Set(firsts).size, `seats want ${firsts.join(",")}`).toBe(4);
   });
 });
