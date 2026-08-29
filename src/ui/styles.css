@@ -6490,10 +6490,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    a captured slot is green-ringed AND visibly dead. */
 .slot.captured.obj { border-style: dashed; }
 
-/* The old red/blue end-tinting. Neutralised rather than deleted so the tokens,
-   sigils and every other rule that reads --tile keep working: all three rows now
-   take the mid tone, and the objective ring carries what the colour used to. */
-.slot.row-opp, .slot.row-your { --tile: var(--tile-mid); }
+/* The 4x4 / 5x5 boards keep their red/blue end-tinting exactly as it was — the
+   objective highlight below is Domination-only. */
 
 /* A Point's letter, on its citadel. The citadel is closed ground, so this is
    the one square in a Point that can never have a token drawn over it. */

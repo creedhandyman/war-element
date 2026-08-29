@@ -125,15 +125,13 @@ function objectiveAt(
     const who = dom.held[poi.id];
     return who === null ? "open" : who === viewer ? "yours" : "theirs";
   }
-  // Standard board: the two Home rows are the objectives.
-  const isHome = row === homeRow(viewer, game.boardSize)
-    || row === homeRow(enemyOf(viewer), game.boardSize);
-  if (!isHome) return undefined;
-  const capturedBy = game.slots[row][col].capturedBy;
-  if (capturedBy) return capturedBy === viewer ? "yours" : "theirs";
-  const owner: PlayerId = row === homeRow(viewer, game.boardSize) ? viewer : enemyOf(viewer);
-  if (isContested(game, owner, col)) return "contested";
-  return "open";
+  // DOMINATION ONLY (owner's call). The standard boards keep the colours they
+  // have always had: their Home rows stay red and blue, their captured slots
+  // keep the hazard stripes, and their contested slots keep the red pulse.
+  // Those boards have ONE objective row per side and you already know which is
+  // yours from its colour, so the highlight was answering a question that only
+  // gets asked on a map with four Points spread across it.
+  return undefined;
 }
 
 export function Board(props: {
