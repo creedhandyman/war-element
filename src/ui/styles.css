@@ -6528,10 +6528,22 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    Tinting the NAME rather than the frame on purpose: the token's border is
    already carrying the element colour, which is what you read a card's
    matchups by, and overloading it would cost more than it gave. */
-.token.seat-p1 > .tk-name { color: #ff9a90; }   /* P1 — red    */
-.token.seat-p2 > .tk-name { color: #7ef0b0; }   /* P2 — green  */
-.token.seat-p3 > .tk-name { color: #d7a6ff; }   /* P3 — violet */
-.token.seat-p4 > .tk-name { color: #ffc75e; }   /* P4 — amber  */
+/* ONE DEFINITION PER SEAT, and it is named by SUIT because that is what the
+   player sees. These four values were literals repeated twelve times across
+   three rules — the token name, the lobby chip and the suit glyph — so a colour
+   change meant three edits and any missed one split a seat's two channels
+   apart: an orange spade over a red name is two different players as far as a
+   glance is concerned. */
+:root {
+  --suit-spade:   #ffab6b;   /* P1 — orange */
+  --suit-club:    #7ef0b0;   /* P2 — green  */
+  --suit-diamond: #7ec4ff;   /* P3 — blue   */
+  --suit-heart:   #d7a6ff;   /* P4 — violet */
+}
+.token.seat-p1 > .tk-name { color: var(--suit-spade); }
+.token.seat-p2 > .tk-name { color: var(--suit-club); }
+.token.seat-p3 > .tk-name { color: var(--suit-diamond); }
+.token.seat-p4 > .tk-name { color: var(--suit-heart); }
 /* A faint plate behind it, so the tint survives whatever art is underneath —
    a pale portrait was washing the lighter two out. */
 .token > .tk-name {
@@ -6609,10 +6621,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   font-family: var(--head); font-size: var(--fs-1); font-weight: 800;
   padding: 2px 0; border-radius: 4px; border: 1px solid currentColor;
 }
-.lob-seat.seat-p1 { color: #ff9a90; }
-.lob-seat.seat-p2 { color: #7ef0b0; }
-.lob-seat.seat-p3 { color: #d7a6ff; }
-.lob-seat.seat-p4 { color: #ffc75e; }
+.lob-seat.seat-p1 { color: var(--suit-spade); }
+.lob-seat.seat-p2 { color: var(--suit-club); }
+.lob-seat.seat-p3 { color: var(--suit-diamond); }
+.lob-seat.seat-p4 { color: var(--suit-heart); }
 .lob-name {
   flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-size: var(--fs-2); color: var(--ink);
@@ -6673,12 +6685,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   pointer-events: none;
   text-shadow: 0 1px 3px #000, 0 0 5px rgba(0, 0, 0, 0.9);
 }
-/* The suit takes the SEAT's colour, not the card-deck convention: here the
-   colour means which player, and the shape is the redundant half. */
-.token.seat-p1 > .tk-suit { color: #ff9a90; }
-.token.seat-p2 > .tk-suit { color: #7ef0b0; }
-.token.seat-p3 > .tk-suit { color: #d7a6ff; }
-.token.seat-p4 > .tk-suit { color: #ffc75e; }
+/* Coloured BY SUIT rather than by seat number, using the `suit-*` class the
+   token already carried and nothing had ever styled. Same values either way —
+   suit and seat are one-to-one — but this is the way the colours are actually
+   spoken about ("diamonds are blue"), and it means the glyph cannot drift from
+   the name above it. Not the card-deck convention (hearts red, spades black):
+   here the colour means which PLAYER and the shape is the redundant half, so
+   traditional colours would put two meanings on one channel. */
+.tk-suit.suit-spade   { color: var(--suit-spade); }
+.tk-suit.suit-club    { color: var(--suit-club); }
+.tk-suit.suit-diamond { color: var(--suit-diamond); }
+.tk-suit.suit-heart   { color: var(--suit-heart); }
 /* Make room, so a long card name ellipsises before it runs under the suit
    instead of colliding with it. */
 .token > .tk-name { right: 16px; }
