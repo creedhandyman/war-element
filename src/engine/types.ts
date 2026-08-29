@@ -310,6 +310,19 @@ export interface RoundTickDef {
   scaldFrozen?: number; // apply SCALD N to FROZEN enemies (Freezer Burn)
   paralyzeOne?: number; // PARALYZE one un-paralyzed enemy for N rounds
   pushEnemies?: number; // blow every enemy back N slots (Wind Guardian)
+  /** A CADENCE on `pushEnemies` — fire it only when `round % n === 0`.
+   *
+   *  The Thundering Hurricane is why. A melee body that shoves the whole board
+   *  away EVERY Cleanup spends every round pushing off the things its own basic
+   *  needs to stand next to, so its attack never lands and nothing that scales
+   *  that attack can matter — measured: giving it splash moved the fight 1
+   *  point. On a two-beat it alternates instead: shove them off, then hit what
+   *  walked back in.
+   *
+   *  Same `round % n` shape as `advanceEveryN`, `buffDmgEveryN`,
+   *  `fireSpecialEveryN` and `spawnEveryN`, so every cadence in this file is
+   *  read the same way. Absent = every round, as before. */
+  pushEnemiesEveryN?: number;
   /** THE STORM AURA (Skybreaker): every opponent on the board loses N SP at the
    *  end of each round.
    *

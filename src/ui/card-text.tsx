@@ -394,7 +394,8 @@ export function describePassives(def: CardDef): string[] {
       t.randomEnemyDmg && `${t.randomEnemyDmg} DMG to a random opponent`,
       t.randomEnemyStatus && `${t.randomEnemyStatus.kind} a random opponent for ${t.randomEnemyStatus.duration} round${t.randomEnemyStatus.duration > 1 ? "s" : ""}`,
       t.pokeStatus && `${t.pokeStatus.kind} the closest opponent for ${forR(t.pokeStatus.duration)}`,
-      t.pushEnemies && `push every opponent back ${t.pushEnemies} slot${t.pushEnemies > 1 ? "s" : ""}`,
+      t.pushEnemies && `push every opponent back ${t.pushEnemies} slot${t.pushEnemies > 1 ? "s" : ""}`
+        + (t.pushEnemiesEveryN ? ` (every ${t.pushEnemiesEveryN} rounds)` : ""),
       t.slowEnemies && `drag ${t.slowEnemies} SP off every opponent`,
       t.advanceTrample && `roll ${t.advanceTrample} slot${t.advanceTrample > 1 ? "s" : ""} forward, THROUGH whatever is in the way`,
       t.spawnEveryN &&

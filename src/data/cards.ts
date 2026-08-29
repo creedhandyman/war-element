@@ -11658,13 +11658,13 @@ export const TOKENS: CardDef[] = [
     // board trying to close on the hurricane loses ground just for standing
     // near it.
     //
-    // NOW THAT IT IS MELEE, that passive also works against its own basic: it
-    // attacks in the Battle phase and shoves at Cleanup, so it spends each
-    // round pushing away the very bodies it needs to be adjacent to next round.
-    // Left as it is on purpose — this is a body that HOLDS GROUND and a slot
-    // for Skybreaker to teleport to, not a damage dealer. Its 20 DMG landing
-    // rarely is the trade for a board that can never settle next to it.
-    roundTick: { pushEnemies: 1 },
+    // ON A TWO-BEAT, and that is the fix for the problem being melee created.
+    // Shoving the whole board away every Cleanup meant this thing spent every
+    // round pushing off the bodies its own basic needed to reach: measured,
+    // giving it splash moved the fight one point, because the attack never
+    // landed. Alternating gives it both halves — shove them off on the even
+    // round, hit whatever walked back in on the odd one.
+    roundTick: { pushEnemies: 1, pushEnemiesEveryN: 2 },
     // ON ARRIVAL it does the exact opposite — reels everything within 2 into
     // contact, hits for 15 and holds it there for 2 rounds. The two halves
     // fight each other on purpose: it drags you in once, then spends the rest

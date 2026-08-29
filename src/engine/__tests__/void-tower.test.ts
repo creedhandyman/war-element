@@ -220,7 +220,18 @@ describe("the roster", () => {
       // 2-round hold). If the hurricane is ever meant to be an offensive
       // threat, the lever is Wind Wake, not the attack numbers.
       //
-      // The floor is FLAT at this point: Skybreaker 74.0, Continental 75.0.
+      // THEN WIND WAKE WENT TO A TWO-BEAT (owner's call): 74.0 -> **77.1%**.
+      // +3.1, which by this repo's OWN standard is not distinguishable from
+      // noise at n=96 — "a 3-point gap is noise" (see CLAUDE.md, Measuring
+      // balance). Do not bank it as a real gain without more seeds.
+      //
+      // Kept regardless, because the case for it is not the win rate: the card
+      // now PLAYS the way it reads. A melee body whose passive shoved every
+      // round could never use its own attack, and three separate edits to that
+      // attack (melee, splash, +HP) moved the fight by a point between them.
+      // The two-beat is what makes the attack reachable at all.
+      //
+      // The floor is FLAT at this point: Skybreaker 77.1, Continental 75.0.
       // That is a little under the 80-90 band Floor 4 was tuned to, and it is
       // internally consistent, which the 75.0-95.8 spread before it was not.
       // HP remains the lever in either direction (366 body against a 660 cap).

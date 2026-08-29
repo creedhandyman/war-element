@@ -91,24 +91,25 @@ describe("the shape of the fight", () => {
     expect(s.cards[away.instanceId].curHp, "but not the far corner").toBe(500);
   });
 
-  it("its Wind Wake works against its own reach — knowingly", () => {
-    // A melee body that shoves everything a slot away at Cleanup spends each
-    // round pushing off the things it needs to stand next to. Pinned as a
-    // DECISION rather than left to be discovered as a bug: this token is a
-    // ground-holder and a slot for Skybreaker to teleport into, and its damage
-    // landing rarely is the price of a board that can never settle beside it.
-    const s = bigPrepState();
-    const storm = place(s, STORM, "P2", 2, 2);
-    const foe = foeAt(s, 3, 2, 500);
-    const before = { ...s.cards[foe.instanceId].pos! };
-    const n = advance(atCleanup(s));
-    const after = n.cards[foe.instanceId].pos!;
-    expect(after, "shoved out of contact by its own passive").not.toEqual(before);
-    const cheb = Math.max(
-      Math.abs(after.row - n.cards[storm.instanceId].pos!.row),
-      Math.abs(after.col - n.cards[storm.instanceId].pos!.col),
-    );
-    expect(cheb, "and now out of melee reach").toBeGreaterThan(1);
+  it("Wind Wake shoves on the BEAT, and holds its ground between", () => {
+    // THE FIX FOR WHAT BEING MELEE CREATED. Shoving every Cleanup meant this
+    // thing spent every round pushing off the bodies its own basic needed to
+    // reach — measured, giving it splash was worth ONE point, because the
+    // attack never landed. On a two-beat it alternates instead: shove them off,
+    // then hit whatever walked back in.
+    const at = (round: number) => {
+      const s = bigPrepState();
+      place(s, STORM, "P2", 2, 2);
+      const foe = foeAt(s, 3, 2, 500);
+      const before = { ...s.cards[foe.instanceId].pos! };
+      s.round = round;
+      const n = advance(atCleanup(s));
+      return { before, after: n.cards[foe.instanceId].pos! };
+    };
+    const beat = at(4);
+    expect(beat.after, "on the beat: shoved").not.toEqual(beat.before);
+    const between = at(5);
+    expect(between.after, "between beats: it stands still and swings").toEqual(between.before);
   });
 });
 
@@ -377,13 +378,17 @@ describe("Gathering Storm — a body on a clock", () => {
 });
 
 describe("the hurricane itself", () => {
-  it("Wind Wake shoves the whole enemy line back each round", () => {
+  it("Wind Wake shoves the WHOLE enemy line back, on its beat", () => {
     const s = bigPrepState();
     const storm = place(s, STORM, "P2", 2, 2);
-    const foe = foeAt(s, 3, 2, 500);
-    const was = { ...s.cards[foe.instanceId].pos! };
+    const near = foeAt(s, 3, 2, 500);
+    const wide = foeAt(s, 3, 4, 500);   // nowhere near it — the wake is board-wide
+    const wasNear = { ...s.cards[near.instanceId].pos! };
+    const wasWide = { ...s.cards[wide.instanceId].pos! };
+    s.round = 4;                        // the beat
     const n = advance(atCleanup(s));
-    expect(n.cards[foe.instanceId].pos, "pushed away").not.toEqual(was);
+    expect(n.cards[near.instanceId].pos, "pushed away").not.toEqual(wasNear);
+    expect(n.cards[wide.instanceId].pos, "and so is the far one").not.toEqual(wasWide);
     expect(s.cards[storm.instanceId]).toBeTruthy();
   });
 

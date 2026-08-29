@@ -2589,7 +2589,12 @@ function doRoundTicks(draft: GameState): void {
       if (zapped.length)
         draft.log.push(`${label(draft, card)} discharges into ${zapped.length} Electrified opponent(s).`);
     }
-    if (rt.pushEnemies) {
+    // The wake can run on a BEAT rather than every round — see
+    // `pushEnemiesEveryN`. Round 0 is pre-match, so `round > 0` keeps a
+    // two-beat off the round before the first one.
+    if (rt.pushEnemies
+        && (!rt.pushEnemiesEveryN
+            || (draft.round > 0 && draft.round % rt.pushEnemiesEveryN === 0))) {
       for (const e of enemies()) pushBack(draft, e, rt.pushEnemies, card.owner);
     }
     // THE STORM AURA. A timed −SP on every opponent, re-applied each round, so

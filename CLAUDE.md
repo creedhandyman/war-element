@@ -2230,7 +2230,7 @@ Skybreaker). Body is not what decides a Floor-5 fight — this carries 551 point
 against Skybreaker's 366 and does not beat it. SP 1 makes it act last in every
 queue, and the wall gate parks it behind five gates for most of the clock.
 
-**FLOOR 5 IS NOW FLAT AT ~74-75.** It got there from the OTHER end: making the
+**FLOOR 5 IS NOW FLAT AT ~75-77.** It got there from the OTHER end: making the
 Thundering Hurricane melee at 75 HP moved Skybreaker 95.8 -> 75.0 in one edit
 (see below). A little under Floor 4's 80-90 band, and internally consistent,
 which the earlier 75.0-95.8 spread was not.
@@ -2286,6 +2286,13 @@ basic seldom lands and nothing scaling the basic can matter much. Its value is
 POSITIONAL (a slot for Skybreaker to teleport into) and ON ARRIVAL (the pull,
 15 damage, a 2-round hold). **If the hurricane is ever meant to be an offensive
 threat, the lever is Wind Wake — not the attack numbers.**
+
+**AND THEN IT WAS.** Wind Wake on a two-beat (`pushEnemiesEveryN: 2`) read
+74.0 -> 77.1%. +3.1 is MORE than splash was worth and is still, by this file's
+own standard, inside noise at n=96 — "a 3-point gap is noise". Do not bank it
+without more seeds. It is kept because the card now plays the way it reads: a
+melee body whose passive shoved every round could never use its own attack, and
+three edits to that attack moved the fight by a point between them.
 
 **THE TOKEN IS THE BOSS'S LEGS, and that makes it the biggest lever on the
 fight.** Skybreaker has no gait and reaches the board only by trading places
