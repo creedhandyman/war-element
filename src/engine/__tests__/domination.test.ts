@@ -679,3 +679,58 @@ describe("battle targeting goes for the Point holders", () => {
     expect(pick.instanceId).toBe(b.instanceId);
   });
 });
+
+describe("the Well pays on arrival", () => {
+  const wellAt = M.well!.at;
+
+  it("heals the moment a card steps onto it, not at Cleanup", () => {
+    // The Well used to pay only at Cleanup, so a card that walked onto the
+    // crossroads under fire could die before the square it fought for did
+    // anything for it.
+    const s = domState();
+    const c = put(s, "leaf_weeds", "P1", wellAt.row, wellAt.col - 1);
+    s.cards[c.instanceId].maxHp = 40;
+    s.cards[c.instanceId].curHp = 10;
+    const next = applyIntent(s, {
+      type: "MOVE", player: "P1", instanceId: c.instanceId, to: wellAt as never,
+    });
+    expect(next.cards[c.instanceId].curHp, "no instant heal on arrival")
+      .toBe(10 + M.well!.hp);
+    expect(next.log.some((l) => /drinks deep at the Well/.test(l))).toBe(true);
+  });
+
+  it("still grants the heal-over-time on top", () => {
+    // Both, not either: 2 now AND 2 a round for 3 rounds.
+    const s = domState();
+    const c = put(s, "leaf_weeds", "P1", wellAt.row, wellAt.col - 1);
+    s.cards[c.instanceId].maxHp = 40;
+    s.cards[c.instanceId].curHp = 10;
+    let out = applyIntent(s, {
+      type: "MOVE", player: "P1", instanceId: c.instanceId, to: wellAt as never,
+    });
+    const afterStep = out.cards[c.instanceId].curHp;
+    for (let i = 0; i < 400 && out.round < s.round + 1 && out.phase !== "gameover"; i++) {
+      const n = out.phase === "prep" && out.prep
+        ? applyIntent(out, { type: "PASS", player: out.prep.priority })
+        : advance(out);
+      if (n === out) break;
+      out = n;
+    }
+    expect(out.cards[c.instanceId].regenPower).toBe(M.well!.hp);
+    expect(out.cards[c.instanceId].curHp, "the regen stopped paying")
+      .toBeGreaterThan(afterStep);
+  });
+
+  it("heals nobody for standing anywhere else on the centre row", () => {
+    // The Well is ONE square, not the row. Guarding it because "centre row" is
+    // an easy thing to widen by accident.
+    const s = domState();
+    const c = put(s, "leaf_weeds", "P1", wellAt.row, 1);
+    s.cards[c.instanceId].maxHp = 40;
+    s.cards[c.instanceId].curHp = 10;
+    const next = applyIntent(s, {
+      type: "MOVE", player: "P1", instanceId: c.instanceId, to: { row: wellAt.row, col: 2 } as never,
+    });
+    expect(next.cards[c.instanceId].curHp).toBe(10);
+  });
+});

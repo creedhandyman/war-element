@@ -50,6 +50,7 @@ import {
   talentTargets,
   summonLandingRow,
   validTargets,
+  domMap,
 } from "./rules";
 import type {
   EnchantMode,
@@ -520,6 +521,21 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       draft.log.push(
         `${intent.player} moves ${getDef(card.defId).name} to r${intent.to.row}c${intent.to.col}.`,
       );
+      // THE WELL drinks the moment you reach it. It used to pay only at Cleanup,
+      // which meant a card that walked onto the crossroads under fire could die
+      // before the square it fought for did anything for it — the reward for
+      // taking the middle arrived after the round that decided whether you kept
+      // it. Now the step itself mends you, and the heal-over-time still runs on
+      // top (granted at Cleanup, see doCleanupPhase), so the Well pays twice for
+      // one visit: 2 now, and 2 a round for 3 rounds after.
+      {
+        const wm = domMap(draft);
+        if (wm?.well && card.curHp > 0
+            && intent.to.row === wm.well.at.row && intent.to.col === wm.well.at.col) {
+          const got = healCard(draft, card, wm.well.hp, card);
+          if (got > 0) draft.log.push(`${label(draft, card)} drinks deep at the Well (+${got} HP).`);
+        }
+      }
       triggerTrapOnMove(draft, card); // a hidden mine on the destination square
       triggerWallsOnMove(draft, card, fromRow); // crossing INTO/OVER an enemy Wall's row hurts
       // War Ready (WarPhant): armour plates up as it reaches the contested
