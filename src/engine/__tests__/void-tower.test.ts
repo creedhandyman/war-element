@@ -231,15 +231,38 @@ describe("the roster", () => {
       // attack (melee, splash, +HP) moved the fight by a point between them.
       // The two-beat is what makes the attack reachable at all.
       //
-      // FINAL for this pass, after the hurricane went back to a RANGED Mage
-      // (owner's call) and the clock moved to seven: **88.0%, n=192**, inside
-      // the 80-90 target. The range change alone was worth +18.7, and the
-      // reason is survival rather than damage — a ranged token lives where a
-      // melee one walks forward and dies, and this boss's mobility dies with
-      // it. Splash, the SP tax, where the hurricane forms and whether the
-      // formation starts with one all read as NOISE.
+      // CURRENT: **96.9% at n=192**, and OUT of the 80-90 target. Recorded as
+      // such rather than quietly left implied.
       //
-      // The floor at this point: Skybreaker 88.0, Continental 89.6 (n=192).
+      // It reached 88.0% on a seven-round clock; the clock was restored to the
+      // house three at the owner's call and the tuning moved to the Special's
+      // damage (25 -> 15) instead. That does not work, and the sweep says why —
+      // ALMOST NOTHING ON THIS SPECIAL IS LOAD-BEARING (all n=192):
+      //
+      //   Special damage   25 -> 95.8 · 18 -> 97.4 · 12 -> 97.4 · 6 -> 97.4 · 0 -> 97.4
+      //   PARALYZE         2r -> 95.8 · 1r -> 95.3 · 0r -> 95.3
+      //   the TELEPORT     swap off, hurricane intact -> 97.4
+      //   SP tax           2 -> 95.8 · 1 -> 96.9
+      //   splash 10/all    -> 95.8 · 6/all -> 96.9 · 10/one -> 96.9 · 4/one -> 96.9
+      //   formation with a hurricane -> 95.8 · without -> 95.8
+      //   a cap on hurricanes raised: 99/3/2/1 -> 96.9 across the board
+      //
+      // What IS load-bearing is the HURRICANE AS A BODY: replace it with a
+      // 1-cost wolf and the fight reads 87.0%. Every lever that has ever moved
+      // this boss traces to that — the token going Ranged was +18.7 (a ranged
+      // token survives where a melee one walks up and dies) and the seven-beat
+      // was -7.8 (fewer casts, so less hurricane).
+      //
+      // A CORRECTION worth keeping: an earlier reading called the teleport the
+      // whole boss on the strength of a "NO-SWAP -> 87.0%" run. That run
+      // pointed the Special AND the round-6 clock at a 1-cost wolf, so it did
+      // not isolate the swap — it deleted the hurricane. `maxSwaps: 0` with the
+      // hurricane left intact reads 97.4%. The ablation has to change ONE thing.
+      //
+      // So bringing this fight into band without touching its HP or its clock
+      // means touching the HURRICANE, whose stats are the owner's.
+      //
+      // The floor at this point: Skybreaker 96.9, Continental 89.6 (n=192).
       // That is a little under the 80-90 band Floor 4 was tuned to, and it is
       // internally consistent, which the 75.0-95.8 spread before it was not.
       // HP remains the lever in either direction (366 body against a 660 cap).
@@ -2280,30 +2303,16 @@ describe("the boss clock", () => {
   // the Special ever fires — a boss that also cast whenever it could afford
   // the magic would be a different fight on every retry.
 
-  it("every boss is on a FIXED clock, and three is the house beat", () => {
-    // The promise is COUNTABILITY, not the number three: a puzzle needs a
-    // threat you can count, and any constant beat is countable. Three is the
-    // house rhythm and stays the default so a player learns one tempo across
-    // the tower — an exception has to earn itself and be named here.
-    //
-    // SKYBREAKER is the only one, at seven. Its Special IS its movement (Eye of
-    // the Storm teleports it), so the beat is not just "when does damage
-    // happen" but "how often does the boss relocate", and at three that made it
-    // the hardest fight on the tower by a distance. Measured at n=192:
-    // 3 -> 95.8% · 4 -> 95.8 · 5 -> 91.1 · 6 -> 90.1 · 7 -> 88.0 · 8 -> 90.6,
-    // against an 80-90 target. Every other lever available without touching a
-    // printed stat read as noise. A seven-round clock also suits it: each Eye
-    // of the Storm is an event the telegraph has been warning about for six
-    // rounds rather than a thing that happens constantly.
-    const BEAT: Record<string, number> = { boss_skybreaker: 7 };
+  it("every boss is on a 3-round clock", () => {
+    // Restored to a flat three at the owner's call. It briefly carried a named
+    // exception (Skybreaker at seven, the one lever that moved that fight
+    // without touching a printed stat); the beat is uniform again and the
+    // tuning went to the Special's damage instead — see that card for the
+    // measurement showing the damage is inert.
     for (const b of BOSSES) {
-      const want = BEAT[b.id] ?? 3;
-      expect(b.roundTick?.fireSpecialEveryN, `${b.id}`).toBe(want);
+      expect(b.roundTick?.fireSpecialEveryN, `${b.id}`).toBe(3);
       expect(b.special, `${b.id} has a Special to fire`).toBeTruthy();
     }
-    // ...and the exception list is exactly one long. If a second boss wants off
-    // the house beat, that is a conversation, not a drive-by edit.
-    expect(Object.keys(BEAT).length, "one named exception").toBe(1);
   });
 
   it("no boss Special declares a cooldown — the clock owns the timing", () => {

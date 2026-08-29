@@ -11180,18 +11180,7 @@ export const CARDS: CardDef[] = [
       // destroys FORMATION, which is the resource a one-move-a-turn game is
       // actually made of.
       cycloneSpin: 1,
-      // SEVEN, not three, and this is the ONE lever that moved this fight without
-      // touching a printed stat. Measured at n=192: everyN 3 -> 95.8%, 4 ->
-      // 95.8, 5 -> 91.1, 6 -> 90.1, **7 -> 88.0**, 8 -> 90.6. Everything else
-      // under my control read as noise — the SP tax, the splash number and
-      // scope, where the hurricane forms, and whether the formation starts with
-      // one (the Special just calls one when there is none).
-      //
-      // A slow beat suits this boss anyway: the Special IS its movement, so a
-      // seven-round clock makes every Eye of the Storm an event the telegraph
-      // has been warning about for six rounds rather than a thing that happens
-      // constantly.
-      fireSpecialEveryN: 7,
+fireSpecialEveryN: 3,
     },
     special: {
       name: "Eye of the Storm",
@@ -11201,16 +11190,28 @@ export const CARDS: CardDef[] = [
       // `stormCall` in combat.ts. No hurricane: call one. Hurricane standing:
       // trade places with it, break its wind wake over the field again, and
       // blast whatever is now next to the boss.
+      // 25 -> 15 (owner's call). Worth stating plainly: this is a FLAVOUR
+      // change, not a balance one. Measured at n=192 with the clock at three,
+      // Eye of the Storm's damage is inert — 25 reads 95.8% and ZERO reads
+      // 97.4%, and its PARALYZE is the same story (2r / 1r / 0r → 95.8 / 95.3
+      // / 95.3). So is the teleport itself: swap off with the hurricane left
+      // intact reads 97.4%.
+      //
+      // What this fight is actually made of is the HURRICANE AS A BODY —
+      // replacing it with a 1-cost wolf reads 87.0%. Every lever that has ever
+      // moved this boss traces back to that: the token going Ranged (+18.7,
+      // because a ranged token survives where a melee one walks up and dies)
+      // and the clock at seven (-7.8, because a slower clock is fewer casts).
       params: {
         token: "gale_thundering_hurricane_tok",
-        dmg: 25, reach: 1, statusDuration: 2,
+        dmg: 15, reach: 1, statusDuration: 2,
       },
       // "self": the handler picks its own victims from wherever the boss lands
       // AFTER the swap, so there is no slot for the caster to nominate — the
       // square it will be standing in does not exist yet at target-selection
       // time. `stormCall` is in TARGETLESS_HANDLERS for the same reason.
       targetSide: "self",
-      text: "No hurricane on the field: call one. Otherwise trade places with it, break its wind wake over the board, and deal 25 DMG to every opponent within 1 space of where Skybreaker lands, PARALYZING them for 2 rounds.",
+      text: "No hurricane on the field: call one. Otherwise trade places with it, break its wind wake over the board, and deal 15 DMG to every opponent within 1 space of where Skybreaker lands, PARALYZING them for 2 rounds.",
     },
   },
   {

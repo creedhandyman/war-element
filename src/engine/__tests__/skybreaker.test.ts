@@ -250,7 +250,11 @@ describe("Eye of the Storm — one Special, two faces", () => {
       Math.max(Math.abs(a.row - b.row), Math.abs(a.col - b.col));
     expect(cheb(beganAt, landing), "out of reach when the cast begins").toBeGreaterThan(1);
     fireCardSpecial(s, s.cards[boss.instanceId]);
-    expect(500 - s.cards[drifted.instanceId].curHp, "shoved in, then hit").toBe(25);
+    // Read off the def rather than hardcoded: the Special's damage is a tuning
+    // number (25 -> 15 so far) and this test is about the ORDER of swap, wake
+    // and blast, not about what the blast happens to hit for today.
+    const blast = Number(getDef(BOSS).special!.params!.dmg);
+    expect(500 - s.cards[drifted.instanceId].curHp, "shoved in, then hit").toBe(blast);
   });
 
   it("what it catches is PARALYZED for two rounds", () => {

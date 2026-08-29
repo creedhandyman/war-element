@@ -2238,7 +2238,26 @@ rarely all fall before round 15, so the wall gate was already doing this. What
 the round gate buys is that a player who clears the wall fast can no longer pull
 the giant out early.
 
-**FLOOR 5 IS IN BAND: Skybreaker 88.0, Continental 89.6 (n=192).** Both reached
+**FLOOR 5: Continental 89.6 IN BAND, Skybreaker 96.9 OVER IT (n=192).**
+Skybreaker hit 88.0 on a seven-round clock; the clock was restored to the house
+three at the owner's call and the tuning moved to the Special's damage, which
+does not work — see below.
+
+**ALMOST NOTHING ON SKYBREAKER'S SPECIAL IS LOAD-BEARING** (all n=192): its
+damage (25 -> 95.8, ZERO -> 97.4), its PARALYZE (2r/1r/0r -> 95.8/95.3/95.3),
+the TELEPORT itself (swap off, hurricane intact -> 97.4), the SP tax, the splash
+number and scope, the formation, and a cap on hurricanes raised — all noise.
+What IS load-bearing is the **hurricane as a body**: swap it for a 1-cost wolf
+and the fight reads 87.0%. Every lever that ever moved this boss traces to that.
+
+**AND A MEASUREMENT LESSON.** An earlier reading called the teleport the whole
+boss on the strength of a "NO-SWAP -> 87.0%" run. That run pointed the Special
+AND the round-6 clock at a wolf, so it did not isolate the swap — it deleted the
+hurricane. Isolating properly (`maxSwaps: 0`, hurricane intact) reads 97.4%.
+**An ablation has to change exactly one thing**, and this file already says so
+about control groups; it now says it about single-variable isolation too.
+
+**PREVIOUSLY IN BAND AT: Skybreaker 88.0, Continental 89.6 (n=192).** Both reached
 WITHOUT touching a boss's HP, which was the constraint — and just as well for
 Continental, which HP could not have fixed: a sweep read 400 -> 74.0, 450 ->
 76.0, 500 -> 77.1, 550 -> 80.2, and 550 is a 701 body, over the floor's 660 cap.
