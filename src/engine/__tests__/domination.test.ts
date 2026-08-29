@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DOMINATION_7X7, DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, dominationMap,
-  heldCount, isImpassable, isRoad, isShrine, isWell, newDomination, POI_GOLD, POI_MAGIC, poiAt, poiRing,
+  heldCount, isImpassable, isRoad, isShrine, isWell, newDomination, POI_GOLD, poiAt, poiRing,
   resolveHolders, runsAlongRoad,
 } from "../../data/domination";
 import { advance, applyIntent, canMove, canSummon, createInitialState, legalMoves } from "../index";
@@ -317,7 +317,7 @@ describe("winning the map", () => {
 });
 
 describe("the Points pay", () => {
-  it("adds +2 gold and +1 magic per held Point, on top of the ordinary flow", () => {
+  it("adds +2 GOLD per held Point, on top of the ordinary flow", () => {
     // Measured as a DELTA against the same round with nothing held, so this
     // asserts the Point income and not the whole resource curve.
     const base = domState();
@@ -336,9 +336,13 @@ describe("the Points pay", () => {
     const a = run(base);
     const b = run(withPoints);
     expect(b.gold - a.gold, "two Points should pay 2 x POI_GOLD").toBe(2 * POI_GOLD);
-    expect(b.magic - a.magic, "two Points should pay 2 x POI_MAGIC").toBe(2 * POI_MAGIC);
     expect(POI_GOLD).toBe(2);
-    expect(POI_MAGIC).toBe(1);
+    // ...and NO MAGIC. Points used to pay a point of magic each, which was the
+    // wrong pool to compound: gold buys bodies, bodies hold rings, rings pay.
+    // Magic buys Specials — a second advantage stacked on a side already
+    // winning the board. Asserted as a zero rather than dropped, because
+    // "holding Points changes nothing about magic" is the actual rule.
+    expect(b.magic - a.magic, "Points are still paying magic").toBe(0);
   });
 
   it("pays the holder and nobody else", () => {

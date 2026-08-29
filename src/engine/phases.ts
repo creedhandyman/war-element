@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
-import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, POI_MAGIC, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
+import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
 import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import {
   applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
@@ -1474,7 +1474,6 @@ function doResourcePhase(draft: GameState): void {
   const magicGain = poolGainForRound(draft.round);
   const goldBase = poolGainForRound(draft.round);
   const gains = {} as Record<PlayerId, number>;
-  const poiMagic = { P1: 0, P2: 0 } as Record<PlayerId, number>;
   // THE VOID TOWER HEAD START. The boss is placed outside the economy — a
   // 12-cost body standing there on round one, for nothing — while the player is
   // still affording their first card. The player opens with the same gold the
@@ -1498,18 +1497,17 @@ function doResourcePhase(draft: GameState): void {
     // build-time budget and then charged for again at retail; this is what pays
     // the difference, so the formation actually reaches the board.
     const bossPurse = draft.voidTower && player === "P2" ? VOID_BOSS_INCOME : 0;
-    // DOMINATION: the Points pay. A held Point is worth POI_GOLD gold and
-    // POI_MAGIC magic every round, which is what turns holding one from a score
-    // into a position — the map funds the army that took it, and losing a Point
-    // costs you the income to retake it. It stacks ON TOP of the ordinary flow
-    // rather than replacing it (the Home-slot bonus still applies), so the mode
-    // is the normal economy plus the objectives.
+    // DOMINATION: the Points pay. A held Point is worth POI_GOLD gold a round —
+    // GOLD ONLY — which is what turns holding one from a score into a position:
+    // the map funds the army that took it, and losing a Point costs you the
+    // income to retake it. It stacks ON TOP of the ordinary flow rather than
+    // replacing it (the Home-slot bonus still applies), so the mode is the
+    // normal economy plus the objectives.
     const points = draft.domination ? heldCount(draft.domination.held, player) : 0;
     const gain =
       goldBase + homeSlotsHeld(draft, player) + (player === "P1" ? headStart : 0) + bossPurse
       + points * POI_GOLD;
     gains[player] = gain;
-    poiMagic[player] = points * POI_MAGIC;
     // Show the money being earned, on the card earning it.
     const row = homeRow(player, draft.boardSize);
     for (let col = 0; col < draft.boardSize; col++) {
@@ -1517,7 +1515,7 @@ function doResourcePhase(draft: GameState): void {
       if (occ && occ.owner === player) occ.fxCoin = (occ.fxCoin ?? 0) + 1;
     }
     p.gold = Math.min(p.gold, POOL_CARRYOVER_CAP) + gain;
-    p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGain + poiMagic[player];
+    p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGain;
   }
   // The two sides can now earn different amounts, so the log has to say whose.
   // Every SEAT, not the first two — a four-player round that only reported P1
@@ -1526,11 +1524,7 @@ function doResourcePhase(draft: GameState): void {
   draft.log.push(
     `— Round ${draft.round}: summon `
     + seats.map((p) => `${p} +${gains[p]}`).join(" / ")
-    + `, magic +${magicGain}`
-    + (seats.some((p) => poiMagic[p])
-      ? ` (Points: ${seats.filter((p) => poiMagic[p]).map((p) => `${p} +${poiMagic[p]}`).join(" / ")})`
-      : "")
-    + ". —",
+    + `, magic +${magicGain}. —`,
   );
   // Roll straight into the next round rather than playing an empty one. The
   // resources are NOT a gift — the round is spent, the clock moves, and the next

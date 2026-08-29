@@ -223,6 +223,11 @@ export function newDomination(map: DominationMap): {
  *  resource flow. This is what turns holding a Point from a score into a
  *  POSITION: the map funds the army that took it, so a side that is ahead on
  *  Points is also ahead on the money to stay ahead — and losing one costs you
- *  the income you would have retaken it with. */
+ *  the income you would have retaken it with.
+ *
+ *  GOLD ONLY. Points used to pay magic as well, and that was the wrong pool to
+ *  compound: gold buys bodies, bodies are what hold a ring, and holding rings is
+ *  what pays. Magic buys Specials, which is a second, separate advantage stacked
+ *  on a side that is already winning the board — the runaway had two engines
+ *  where it needed one. */
 export const POI_GOLD = 2;
-export const POI_MAGIC = 1;
