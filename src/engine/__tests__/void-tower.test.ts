@@ -196,10 +196,22 @@ describe("the roster", () => {
       // 87->67 and timeout 9->25: a boss that shoots across the board without
       // advancing wins more of its fights on the clock.
       //
-      // 95.8 is ABOVE the 80-90 band Floor 4 was tuned to and is left as the
-      // owner's specified stat line rather than trimmed. HP is the lever if it
-      // wants to come down — this body is 366 against a 660 cap, so there is
-      // room in both directions.
+      // THEN THE HURRICANE WENT MELEE at 75 HP (owner's call), and that ONE
+      // change took the fight **95.8% -> 75.0%** — a 20.8-point drop, the
+      // largest single move any edit has produced on this floor and larger than
+      // both Floor-5 rules combined were worth in the other direction.
+      //
+      // Why it is so big: the token is this boss's LEGS. Skybreaker has no gait
+      // and reaches the board only by trading places with the hurricane, so
+      // cutting the hurricane's survivability (100 -> 75) and forcing it to
+      // close to melee makes the boss's own mobility die sooner and stand
+      // nearer. Its Wind Wake now also shoves away the bodies its own basic
+      // needs — see the token's note.
+      //
+      // The floor is FLAT at this point: Skybreaker 75.0, Continental 75.0.
+      // That is a little under the 80-90 band Floor 4 was tuned to, and it is
+      // internally consistent, which the 75.0-95.8 spread before it was not.
+      // HP remains the lever in either direction (366 body against a 660 cap).
       boss_skybreaker: 366,
       // FLOOR 5's second boss, and the heaviest body on the tower by a
       // distance: 50 + 400 + 50x2 + 1. The owner's line. SP 1 is the

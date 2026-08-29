@@ -2226,12 +2226,14 @@ square), so the screen is stated explicitly for giants — otherwise the giant
 rule would silently delete the player's Gates.
 
 MEASURED: **99.0% bare, 75.0% with a tamed ally** (n=96, same harness as
-Skybreaker). **Below Skybreaker's 95.8% with 551 body against its 366** — the
-useful lesson of the floor so far: body is not what decides a Floor-5 fight.
-SP 1 makes it act last in every queue, and the wall gate parks it behind five
-gates for most of the clock; together those are worth more than 185 body points
-in the other direction. The floor spreads 75.0-95.8; if that wants tightening
-the levers are Continental's SP and Skybreaker's HP, not either body.
+Skybreaker). Body is not what decides a Floor-5 fight — this carries 551 points
+against Skybreaker's 366 and does not beat it. SP 1 makes it act last in every
+queue, and the wall gate parks it behind five gates for most of the clock.
+
+**FLOOR 5 IS NOW FLAT AT 75.0 / 75.0.** It got there from the OTHER end: making
+the Thundering Hurricane melee at 75 HP moved Skybreaker 95.8 -> 75.0 in one
+edit (see below). A little under Floor 4's 80-90 band, and internally
+consistent, which the earlier 75.0-95.8 spread was not.
 
 ## FLOOR 5 — Skybreaker, the boss whose Special is its movement
 
@@ -2275,6 +2277,15 @@ point at the one square the blast is guaranteed to leave.
 FOUR REGISTRIES caught it on the way in, each a real integration point:
 `MEASURED` (bodies), the still-boss list in the gait test, `TELEGRAPHED_HANDLERS`,
 and `CODE_IDS` in deck-code.ts (APPEND-ONLY). Adding a boss means all four.
+
+**THE TOKEN IS THE BOSS'S LEGS, and that makes it the biggest lever on the
+fight.** Skybreaker has no gait and reaches the board only by trading places
+with the hurricane. Making that token MELEE at 75 HP (from Ranged at 100) moved
+the fight **95.8% -> 75.0%** in a single edit — larger than both Floor-5 rules
+put together were worth in the other direction. Cut the legs and the boss stops
+arriving. Note also that a melee hurricane's own Wind Wake shoves away the
+bodies its basic needs to reach; that is knowingly kept, because the token is a
+ground-holder and a teleport anchor rather than a damage dealer.
 
 MEASURED, n=96 (8 cores x 12 seeds, 5x5, `humans: []`, encounter spells, gates
 seated, `voidTower` on): **100% bare, 85.4% with a tamed ally** (Umbranova at

@@ -55,10 +55,34 @@ describe("the shape of the fight", () => {
       expect(rt[gait], `${gait} would undo the puzzle`).toBeUndefined();
   });
 
-  it("the hurricane is a real body, not scenery", () => {
+  it("the hurricane is a real body, not scenery — and it is MELEE", () => {
     const t = getDef(STORM);
-    expect([t.dmg, t.hp, t.sp]).toEqual([20, 100, 15]);
+    expect([t.dmg, t.hp, t.sp]).toEqual([20, 75, 15]);
+    expect(t.attackType, "it has to close").toBe("Melee");
+    // Warrior rather than Mage: `attackType` is "derived from class" per
+    // CardDef, and this set has no other Melee Mage.
+    expect(t.cardClass).toBe("Warrior");
     expect(t.roundTick?.pushEnemies, "Wind Wake").toBe(1);
+  });
+
+  it("its Wind Wake works against its own reach — knowingly", () => {
+    // A melee body that shoves everything a slot away at Cleanup spends each
+    // round pushing off the things it needs to stand next to. Pinned as a
+    // DECISION rather than left to be discovered as a bug: this token is a
+    // ground-holder and a slot for Skybreaker to teleport into, and its damage
+    // landing rarely is the price of a board that can never settle beside it.
+    const s = bigPrepState();
+    const storm = place(s, STORM, "P2", 2, 2);
+    const foe = foeAt(s, 3, 2, 500);
+    const before = { ...s.cards[foe.instanceId].pos! };
+    const n = advance(atCleanup(s));
+    const after = n.cards[foe.instanceId].pos!;
+    expect(after, "shoved out of contact by its own passive").not.toEqual(before);
+    const cheb = Math.max(
+      Math.abs(after.row - n.cards[storm.instanceId].pos!.row),
+      Math.abs(after.col - n.cards[storm.instanceId].pos!.col),
+    );
+    expect(cheb, "and now out of melee reach").toBeGreaterThan(1);
   });
 });
 

@@ -11621,15 +11621,21 @@ export const TOKENS: CardDef[] = [
     name: "Thundering Hurricane",
     rarity: "epic",
     element: "GALE",
-    cardClass: "Mage",
-    attackType: "Ranged",
-    // Costed as a real body rather than as scenery: it is 135 body points and
-    // it is the thing Skybreaker's whole kit is built around, so a formation
-    // spending on one is spending on the fight's centrepiece.
+    // WARRIOR, not Mage, because it is MELEE. `attackType` is documented on
+    // CardDef as "derived from class", and the set had no Melee Mage in 366
+    // cards — one here would have been the first, and a contradiction of the
+    // field's own definition rather than a design. Mechanically near-inert:
+    // nothing in Skybreaker's formation carries a class-scoped aura.
+    cardClass: "Warrior",
+    attackType: "Melee",
+    // Cost held at 6 even though the body came down, and deliberately: it is
+    // priced for what it DOES on arrival — reeling the board in, 15 damage and
+    // a 2-round hold — not for its meat. It also keeps Skybreaker's formation
+    // on its exact 44-gold budget.
     cost: 6,
     dmg: 20,
     hits: 1,
-    hp: 100,
+    hp: 75,
     sp: 15,
     shields: 0,
     keywords: {},
@@ -11641,6 +11647,13 @@ export const TOKENS: CardDef[] = [
     // the player owns is shoved a slot away at the end of every round, so a
     // board trying to close on the hurricane loses ground just for standing
     // near it.
+    //
+    // NOW THAT IT IS MELEE, that passive also works against its own basic: it
+    // attacks in the Battle phase and shoves at Cleanup, so it spends each
+    // round pushing away the very bodies it needs to be adjacent to next round.
+    // Left as it is on purpose — this is a body that HOLDS GROUND and a slot
+    // for Skybreaker to teleport to, not a damage dealer. Its 20 DMG landing
+    // rarely is the trade for a board that can never settle next to it.
     roundTick: { pushEnemies: 1 },
     // ON ARRIVAL it does the exact opposite — reels everything within 2 into
     // contact, hits for 15 and holds it there for 2 rounds. The two halves
