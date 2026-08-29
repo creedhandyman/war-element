@@ -8286,12 +8286,18 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Forged Tech",
     // Demolition Charge (Talent, free, once per game): a bomb sized to the mark
-    // — 4 DMG plus half its current HP.
+    // — 4 DMG plus a fifth of its MAX HP.
+    //
+    // Was half the target's CURRENT HP, which made one free, once-per-game click
+    // the best opener in the game against anything large: 22 off a 40 HP body
+    // before it had acted. Reading MAX HP instead of current also settles what
+    // the charge is — a fixed demolition sized to the target, not an execute
+    // that shrinks as the target weakens.
     talent: {
       name: "Demolition Charge",
-      text: "Once per game, free: deal 4 DMG plus half the target's current HP.",
+      text: "Once per game, free: deal 4 DMG plus 20% of the target's max HP.",
       handler: "barrage",
-      params: { dmg: 4, targets: 1, pctHpDmg: 50 },
+      params: { dmg: 4, targets: 1, pctMaxHpDmg: 20 },
     },
   },
   {

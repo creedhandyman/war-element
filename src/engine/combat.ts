@@ -3796,11 +3796,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         incinerate: getDef(attacker.defId).incinerate,
         incinerateBase: attacker.struckThisRound[target.instanceId] ?? 0,
       });
-      // pctHpDmg (Dyna's Demolition Charge): a bomb sized to the target — extra
-      // damage equal to a % of its CURRENT HP.
-      const pctHp = num(params, "pctHpDmg");
+      // pctMaxHpDmg (Dyna's Demolition Charge): a bomb sized to the target —
+      // extra damage equal to a % of its MAX HP.
+      //
+      // MAX, not current, and the difference is the whole point. Off current HP
+      // this landed after the flat damage and so read a body that was already
+      // shrinking, which made it strongest against the healthiest target on the
+      // board and negligible against a finished one. Off max HP it is a constant
+      // the target cannot walk away from — the charge does not care how the
+      // demolition is going.
+      const pctHp = num(params, "pctMaxHpDmg");
       if (pctHp > 0 && draft.cards[target.instanceId] && target.curHp > 0)
-        directDamage(draft, attacker, target, Math.floor((target.curHp * pctHp) / 100), false);
+        directDamage(draft, attacker, target, Math.floor((target.maxHp * pctHp) / 100), false);
       if (!firstOnly || struck === 0) maybeStatus(draft, attacker, target, params);
       struck++;
       // Bat Swarm: the volley feeds. DRAIN the keyword only rides basics, so a

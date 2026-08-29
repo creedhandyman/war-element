@@ -1302,14 +1302,25 @@ describe("medium-tier passives (audit batch)", () => {
     expect(droneCount(summonZipp(s)), "the Drone found a slot anyway").toBe(1);
   });
 
-  it("Dyna's Demolition Charge deals 4 + half the target's current HP", () => {
+  it("Dyna's Demolition Charge deals 4 + 20% of the target's MAX HP", () => {
     const s = prepState();
     const dyna = place(s, "pyro_dyna", "P1", 3, 0);
     const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     SPECIAL_HANDLERS.barrage(s, s.cards[dyna.instanceId], [s.cards[foe.instanceId]],
-      { dmg: 4, targets: 1, pctHpDmg: 50 });
-    // 4 -> 36 left, then floor(36 * 50%) = 18 -> 18 left; 22 dealt total
-    expect(40 - s.cards[foe.instanceId].curHp).toBe(22);
+      { dmg: 4, targets: 1, pctMaxHpDmg: 20 });
+    // 4, then floor(40 * 20%) = 8; 12 dealt total (was 22 off current HP)
+    expect(40 - s.cards[foe.instanceId].curHp).toBe(12);
+  });
+
+  it("Demolition Charge reads MAX HP, so a wounded target takes the same bonus", () => {
+    // The point of the max-HP read: identical bonus on a full and a nearly-dead
+    // body. Off CURRENT HP the second number here would have been 4 + 3.
+    const s = prepState();
+    const dyna = place(s, "pyro_dyna", "P1", 3, 0);
+    const hurt = place(s, "dusk_gool", "P2", 2, 0, { curHp: 30, maxHp: 40, curShields: 0 });
+    SPECIAL_HANDLERS.barrage(s, s.cards[dyna.instanceId], [s.cards[hurt.instanceId]],
+      { dmg: 4, targets: 1, pctMaxHpDmg: 20 });
+    expect(30 - s.cards[hurt.instanceId].curHp).toBe(12);
   });
 
   it("Coilblade's Shatter splashes to neighbours when it hits a FROZEN target", () => {
