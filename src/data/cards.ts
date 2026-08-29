@@ -6523,19 +6523,28 @@ export const CARDS: CardDef[] = [
     hp: 20,
     sp: 3,
     shields: 3,
-    keywords: {},
+    keywords: { TRAMPLE: true },
+    // A third of attack, the same ratio every other carrier took.
+    trampleDmg: 2,
     // Iron Ore: take half damage (round down) from Ranger + Assassin attackers.
     passiveNames: { blockVsClasses: "Iron Ore" },
     blockVsClasses: ["Ranger", "Assassin"],
     // Vengeance: deal the damage Bolder took this round back (with PEN) and SLEEP
     // an opponent 2 rounds.
+    //
+    // `reach` because it is a RETALIATION, and Bolder is a melee wall whose whole
+    // job is being shot at — Iron Ore halves Ranger and Assassin damage, so the
+    // things that hurt it are usually the things standing furthest away. Gated on
+    // the ordinary melee square it could not answer any of them: the Special was
+    // refused for "No valid target" in exactly the situation the card is built
+    // for. 9 king-steps is the whole board, which is what "deal it back" means.
     special: {
       name: "Vengeance",
       cost: 2,
       handler: "vengeance",
-      params: { sleep: 2 },
+      params: { sleep: 2, reach: 9 },
       targetSide: "enemy",
-      text: "Deal PEN damage equal to what Bolder took this round, and SLEEP an opponent for 2 rounds.",
+      text: "Deal PEN damage equal to what Bolder took this round to any opponent, and SLEEP it for 2 rounds.",
     },
   },
   {

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { canFireSpecial, canMove, canSpellHitEnemy, canTarget, previewOnSummonArea, rangedCanSee, rangedReachFor, specialTargets, validSpecialTargets, validTargets } from "../rules";
-import { applyStatus } from "../combat";
+import { applyStatus, SPECIAL_HANDLERS } from "../combat";
 import { applyIntent } from "../phases";
 import { CARDS, getDef } from "../../data/cards";
 import { bigPrepState, place, prepState } from "./helpers";
@@ -511,5 +511,69 @@ describe("a lane weapon has to be able to reach the lane", () => {
       offenders.push(`${def.id} (${sp.name})`);
     }
     expect(offenders, "melee lane weapons that cannot reach their lane").toEqual([]);
+  });
+});
+
+
+// Reported together, and they turned out to be one bug: `specialTargets`
+// measured from the CASTER's reach even when the caster is not the one who has
+// to reach. A card whose Special is useful with nothing in its own range had
+// its turn skipped for "No valid target".
+describe("a Special is gated on who actually reaches — the swarm does the reaching", () => {
+  it("lets Sarachnid send the spiders that CAN reach, when she cannot", () => {
+    // Silk Chase says "every allied Spider attacks". Standing her a square too
+    // far back with her spiders already on top of somebody refused the ability
+    // and skipped her turn, with a board full of allies who could all have swung.
+    const s = prepState(5);
+    const sar = place(s, "dusk_sarachnid", "P1", 3, 0);
+    place(s, "dusk_spider", "P1", 1, 3);                        // beside the foe
+    place(s, "pyro_staph", "P2", 0, 3, { curHp: 90, maxHp: 90 });
+    s.players.P1.magicPool = 10;
+    expect(specialTargets(s, sar.instanceId).length, "the spider's reach counts").toBe(1);
+    expect(canFireSpecial(s, sar.instanceId).ok).toBe(true);
+  });
+
+  it("still refuses when NOBODY in the swarm can reach", () => {
+    // The control, and the reason this is a widening rather than a hole: with no
+    // spider on the board the ability is genuinely useless and must stay refused,
+    // or the card burns 2 magic to do nothing.
+    const s = prepState(5);
+    const sar = place(s, "dusk_sarachnid", "P1", 3, 0);
+    place(s, "pyro_staph", "P2", 0, 3, { curHp: 90, maxHp: 90 });
+    s.players.P1.magicPool = 10;
+    expect(specialTargets(s, sar.instanceId)).toEqual([]);
+    expect(canFireSpecial(s, sar.instanceId).ok).toBe(false);
+  });
+
+  it("lets Bolder's Vengeance answer the shooter that hurt it", () => {
+    // Iron Ore halves Ranger and Assassin damage, so what actually hurts Bolder
+    // is usually standing as far away as it can. Gated on the melee square, the
+    // retaliation was refused in exactly the situation the card exists for.
+    const s = prepState(5);
+    const b = place(s, "bore_bolder", "P1", 3, 1);
+    place(s, "pyro_staph", "P2", 1, 3, { curHp: 90, maxHp: 90, curShields: 0 });
+    b.dmgTakenThisRound = 9;
+    s.players.P1.magicPool = 10;
+    expect(specialTargets(s, b.instanceId).length).toBeGreaterThan(0);
+    expect(canFireSpecial(s, b.instanceId).ok).toBe(true);
+  });
+
+  it("reflects exactly what Bolder took this round", () => {
+    // The handler direct: there is no SPECIAL intent (it is BATTLE_ACTION, which
+    // needs a live battle phase already awaiting this card), and what is worth
+    // pinning here is the arithmetic, not the plumbing that reaches it.
+    const s = prepState(5);
+    const b = place(s, "bore_bolder", "P1", 3, 1);
+    const foe = place(s, "pyro_staph", "P2", 1, 3, { curHp: 90, maxHp: 90, curShields: 0 });
+    b.dmgTakenThisRound = 9;
+    SPECIAL_HANDLERS.vengeance(s, s.cards[b.instanceId], [s.cards[foe.instanceId]], { sleep: 2 });
+    expect(s.cards[foe.instanceId].curHp, "9 back, PEN").toBe(81);
+    expect((s.cards[foe.instanceId].statuses ?? []).map((x) => x.kind)).toContain("SLEEP");
+  });
+
+  it("gives Bolder the TRAMPLE it was asked for, with a crush like every carrier", () => {
+    const d = getDef("bore_bolder");
+    expect(d.keywords.TRAMPLE).toBe(true);
+    expect(d.trampleDmg, "a third of its 6 DMG, the ratio the others took").toBe(2);
   });
 });

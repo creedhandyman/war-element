@@ -821,6 +821,34 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   if (special.targetSide === "self") return [card];
   if (special.targetSide === "ally") return validAllyTargets(state, instanceId);
   const p = special.params ?? {};
+  /** A Special whose work is done by OTHER cards is not bound by the caster's
+   *  reach — the SWARM does the reaching.
+   *
+   *  Silk Chase says "every allied Spider attacks", and was gated on what
+   *  SARACHNID could touch: stand her one square too far back with her spiders
+   *  already on top of somebody and the ability was refused, her turn skipped,
+   *  and the board full of allies who could all have swung. The rule now asks
+   *  the actual actors. Caster included — she attacks in her own swarm.
+   *
+   *  Keyed on the `tribe` param, which is exactly the set the handler iterates,
+   *  so this cannot widen a Special the swarm does not carry out. */
+  if (typeof p.tribe === "string" && p.tribe) {
+    const tribe = p.tribe;
+    const swarm = boardCards(state, card.owner).filter(
+      (a) => a.curHp > 0 && a.pos
+        && (a.instanceId === card.instanceId || getDef(a.defId).tribe === tribe),
+    );
+    const seen = new Set<string>();
+    const out: CardInstance[] = [];
+    for (const a of swarm)
+      for (const t of boardCards(state, enemyOf(card.owner)))
+        if (t.curHp > 0 && !seen.has(t.instanceId)
+            && canTarget(state, a, t, getDef(a.defId).attackType === "Ranged", true)) {
+          seen.add(t.instanceId);
+          out.push(t);
+        }
+    return out;
+  }
   const fd = Number(p.forwardDepth ?? 0);
   let list =
     fd > 0
