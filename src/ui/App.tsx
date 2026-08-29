@@ -3454,7 +3454,7 @@ export function App() {
                 in from. */}
             {boardSize === DOMINATION_7X7.boardSize && (!onlineMode || onlineRole === "host") && (
               <div className="ar-field">
-                <span className="ar-flabel">PLAYERS</span>
+                <span className="ar-flabel">{onlineMode || twoPlayer ? "PLAYERS" : "OPPONENTS"}</span>
                 <div className="seg">
                   {([2, 3, 4] as const).map((n) => (
                     <button
@@ -3466,14 +3466,20 @@ export function App() {
                         : undefined}
                       onClick={() => setSeatCount(n)}
                     >
-                      {n} players
+                      {/* vs AI you are choosing how many OPPONENTS to face, and
+                          saying "4 players" for three of them is a counting
+                          puzzle in the middle of a lobby. Online and hot-seat
+                          really are seat counts, so those keep "players". */}
+                      {onlineMode || twoPlayer
+                        ? `${n} players`
+                        : `${n - 1} opponent${n - 1 === 1 ? "" : "s"}`}
                     </button>
                   ))}
                 </div>
                 {seatCount > 2 && (
                   <p className="ar-mode-note">
-                    Free-for-all: {seatCount - 1} AI opponents, every seat for itself.
-                    Everyone deploys at the four shrines.
+                    Free-for-all — every seat for itself, and everyone deploys at the
+                    four shrines.{onlineMode ? "" : ` You against ${seatCount - 1} AI.`}
                   </p>
                 )}
               </div>
