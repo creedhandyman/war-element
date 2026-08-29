@@ -2482,6 +2482,29 @@ comparable to the taming table above (that used a Floor-3 ally); only the
 relative reading inside the one run is meaningful. And an AI sweep cannot read a
 telegraph, so all of these overstate a boss against a human who can.
 
+## Card art — the convention is HEIGHT 1000, not a fixed 750x1000
+
+Measured across `public/cards` (384 plates): 750x1000 (117) · 800x1000 (92) ·
+667x1000 (59) · 706x1000 (23) · 666x1000 (18) · 714x1000 (11) · 701x1000 (9) ·
+1086x1448 (8). So the rule is **1000px tall, width whatever the source's aspect
+wants** — the widths vary because the ART varies, not because anything drifted.
+
+This bit once: replacing Halo, a flat resize to 750x1000 was applied to a
+1122x1402 source (aspect 0.80) and SQUASHED it. The right conversion is
+
+```py
+tw = round(w / h * 1000); im.resize((tw, 1000), Image.LANCZOS)
+```
+
+which put it at 800x1000 — a size 92 other plates already use. Sources that are
+1086x1448 are aspect 0.75 exactly, so a 750x1000 resize is lossless for those
+and that is why the boss plates came out right; it is luck, not the rule.
+
+Every renderer uses `object-fit: cover` (or `contain` in the gallery lightbox),
+so a wrong aspect does not error — it just quietly looks wrong. Nothing catches
+it: `art.test.ts` checks the FILE EXISTS and that the name is lowercase, not its
+shape.
+
 ## Card Gallery — the screen that shows what the other grids hide
 
 `src/ui/CardGallery.tsx`. Every def in the game in one grid: **366 plates** —
