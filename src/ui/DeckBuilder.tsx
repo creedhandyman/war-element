@@ -888,7 +888,14 @@ export function DeckBuilder(props: {
               summary={filterSummary}
               count={shown.length}
             />
-            {filtersOpen && (<>
+            {/* A real BOX around the rows, not a fragment. They are `flex: none`
+                on a phone, so they never shrink — and when an open deck rail
+                squeezes the pool, they spilled straight out of it and painted
+                over the rail, because .db-pool is overflow:visible. Measured at
+                466x860 with the rail open: 49px of overflow, SORT landing on top
+                of the deck handle. A box can be told to scroll instead. */}
+            {filtersOpen && (
+            <div className="db-filterbox">
             <ElementRow value={filter} onChange={setFilter} />
             <ClassRow
               all={CLASSES}
@@ -921,7 +928,8 @@ export function DeckBuilder(props: {
                 <button className="db-fl db-clear" onClick={clearFilters}>Clear</button>
               )}
             </div>
-            </>)}
+            </div>
+            )}
             <div className="db-grid">
               {shown.map((d) => {
                 const on = pickedSet.has(d.id);

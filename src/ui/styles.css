@@ -2429,6 +2429,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .sq-fromsquad option { color: var(--ink); background: var(--panel); }
 .sq-fromsquad option:disabled { color: var(--ink-faint); }
 
+/* The expanded filter rows, as ONE box.
+   They are `flex: none` on a phone so each row keeps its height and scrolls
+   sideways — which is right per row, and meant the block as a whole could not
+   give ground. Open the deck rail on a short screen and the pool is squeezed
+   below what the rows need; being overflow:visible, they painted straight over
+   the rail. Measured at 466x860 with 33 saved squads: 49px of spill, the SORT
+   row sitting on top of the deck handle, and the card grid crushed to 4px.
+
+   The box shrinks and scrolls instead, and the grid keeps a floor, so the two
+   share the squeeze rather than the filters taking it all and then some. */
+.db-filterbox { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+
 .db-filtoggle {
   display: flex; align-items: center; gap: 8px; width: 100%;
   padding: 7px 10px; border-radius: 9px; cursor: pointer; text-align: left;
@@ -2739,10 +2751,24 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .db-pool {
     order: 1; flex: 1 1 auto; min-height: 0; gap: 8px;
     border-left: none; padding-left: 0; padding-top: 0;
+    /* CLIPS. Everything above is about sharing the squeeze sensibly; this is the
+       guarantee that a miscalculation can never again paint the filter rows over
+       the deck rail below. Both children scroll on their own, so clipping the
+       pool costs nothing reachable. */
+    overflow: hidden;
   }
   /* Filters get their own single scrollable line each instead of wrapping to
      two rows — reclaims ~80px of vertical room for the card pool, and the
      chip-scroll is a familiar mobile pattern. */
+  /* The box gives ground before the grid does, and never spills — but it needs
+     a FLOOR of its own. Without one the shrink landed entirely on it (the grid
+     both grows and has a floor) and it collapsed to 7px: the overlap was gone,
+     and so were the filters. ~3 rows visible, the rest scrolled. */
+  .db-filterbox {
+    flex: 0 1 auto; min-height: 104px; overflow-y: auto;
+    overscroll-behavior: contain; scrollbar-width: none;
+  }
+  .db-filterbox::-webkit-scrollbar { display: none; }
   .db-filters, .db-sort {
     flex: none; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px;
@@ -2767,7 +2793,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   /* Tighten the meta stack so the pool sits higher. */
   .db-name { padding: 9px 12px; }
   .db-count { margin: 2px 0; }
-  .db-grid { flex: 1 1 auto; min-height: 0; max-height: none; } /* fills the pool + scrolls */
+  /* `flex-basis: 0`, and a FLOOR. With 320 cards the grid's auto basis is its
+     whole content height, so the flex shrink landed on the filter box instead
+     of here — six rows folded to three with a 500px grid under them. At basis 0
+     the grid takes only what is left over. The floor is because the opposite
+     also happened: with the deck rail open the grid was crushed to 4px, a card
+     pool showing no cards. */
+  .db-grid { flex: 1 1 0; min-height: 132px; max-height: none; } /* fills the pool + scrolls */
 }
 
 /* LANDSCAPE PHONE deck builder: a short viewport has width to spare and height
