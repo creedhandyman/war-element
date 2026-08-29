@@ -11635,13 +11635,23 @@ export const TOKENS: CardDef[] = [
     cost: 6,
     dmg: 20,
     hits: 1,
-    hp: 75,
+    hp: 85,
     sp: 15,
     shields: 0,
     keywords: {},
     tribe: "Hurricane",
     art: "gale_thundering_hurricane_tok",
-    passiveNames: { roundTick: "Wind Wake" },
+    passiveNames: { roundTick: "Wind Wake", basicSplash: "Storm Surge" },
+    // STORM SURGE — it does not hit one thing. `splashAll` rather than the
+    // single-neighbour default (Cloudburst's Rainstorm clips one): a hurricane
+    // that picked one card out of a cluster would be a lightning bolt.
+    //
+    // 10 is half its printed 20 — a real second hit rather than Rainstorm's
+    // 1-point chip, and the reason is this token specifically: Wind Wake shoves
+    // the board away from it every Cleanup, so its basic lands SELDOM. Splash
+    // is what makes the rounds it does connect worth the wait.
+    basicSplash: 10,
+    splashAll: true,
     // WIND WAKE, the same name Zephyra's `onHitPush` carries, and deliberately
     // the AoE version of it: this one does not need to land a hit. Everything
     // the player owns is shoved a slot away at the end of every round, so a

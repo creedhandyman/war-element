@@ -2230,10 +2230,10 @@ Skybreaker). Body is not what decides a Floor-5 fight — this carries 551 point
 against Skybreaker's 366 and does not beat it. SP 1 makes it act last in every
 queue, and the wall gate parks it behind five gates for most of the clock.
 
-**FLOOR 5 IS NOW FLAT AT 75.0 / 75.0.** It got there from the OTHER end: making
-the Thundering Hurricane melee at 75 HP moved Skybreaker 95.8 -> 75.0 in one
-edit (see below). A little under Floor 4's 80-90 band, and internally
-consistent, which the earlier 75.0-95.8 spread was not.
+**FLOOR 5 IS NOW FLAT AT ~74-75.** It got there from the OTHER end: making the
+Thundering Hurricane melee at 75 HP moved Skybreaker 95.8 -> 75.0 in one edit
+(see below). A little under Floor 4's 80-90 band, and internally consistent,
+which the earlier 75.0-95.8 spread was not.
 
 ## FLOOR 5 — Skybreaker, the boss whose Special is its movement
 
@@ -2277,6 +2277,15 @@ point at the one square the blast is guaranteed to leave.
 FOUR REGISTRIES caught it on the way in, each a real integration point:
 `MEASURED` (bodies), the still-boss list in the gait test, `TELEGRAPHED_HANDLERS`,
 and `CODE_IDS` in deck-code.ts (APPEND-ONLY). Adding a boss means all four.
+
+**THE HURRICANE'S ATTACK IS NEARLY IRRELEVANT — measured.** Giving it splash
+(`basicSplash: 10` + `splashAll`) and +10 HP moved the fight 75.0 -> 74.0%,
+i.e. nothing, inside noise at n=96. A null result worth keeping: the cause is
+the token's OWN Wind Wake, which shoves the board away every Cleanup, so its
+basic seldom lands and nothing scaling the basic can matter much. Its value is
+POSITIONAL (a slot for Skybreaker to teleport into) and ON ARRIVAL (the pull,
+15 damage, a 2-round hold). **If the hurricane is ever meant to be an offensive
+threat, the lever is Wind Wake — not the attack numbers.**
 
 **THE TOKEN IS THE BOSS'S LEGS, and that makes it the biggest lever on the
 fight.** Skybreaker has no gait and reaches the board only by trading places

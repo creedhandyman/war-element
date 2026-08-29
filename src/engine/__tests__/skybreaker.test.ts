@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
 import { CARDS, getDef } from "../../data/cards";
 import { VOID_BOSSES, bossElementSet, bossSummonPool, elementProblems, THIRD_ELEMENT_FROM_FLOOR, voidBossById } from "../../data/void-tower";
 import { advance } from "../phases";
-import { fireCardSpecial } from "../combat";
+import { basicAttack, fireCardSpecial } from "../combat";
 import { canTarget } from "../rules";
 import { bossTelegraphs } from "../telegraph";
 import { boardCards, effectiveSp } from "../state";
@@ -57,12 +57,38 @@ describe("the shape of the fight", () => {
 
   it("the hurricane is a real body, not scenery — and it is MELEE", () => {
     const t = getDef(STORM);
-    expect([t.dmg, t.hp, t.sp]).toEqual([20, 75, 15]);
+    expect([t.dmg, t.hp, t.sp]).toEqual([20, 85, 15]);
     expect(t.attackType, "it has to close").toBe("Melee");
     // Warrior rather than Mage: `attackType` is "derived from class" per
     // CardDef, and this set has no other Melee Mage.
     expect(t.cardClass).toBe("Warrior");
     expect(t.roundTick?.pushEnemies, "Wind Wake").toBe(1);
+  });
+
+  it("Storm Surge splashes EVERY neighbour, not one of them", () => {
+    // A hurricane that picked a single card out of a cluster would be a
+    // lightning bolt. `splashAll` is what makes it weather.
+    const t = getDef(STORM);
+    expect(t.basicSplash).toBe(10);
+    expect(t.splashAll, "the whole neighbourhood").toBe(true);
+  });
+
+  it("...and it lands on the bodies beside whatever it hit", () => {
+    const s = bigPrepState();
+    const storm = place(s, STORM, "P2", 2, 2);
+    const primary = foeAt(s, 3, 2, 500);
+    const beside = foeAt(s, 3, 3, 500);   // adjacent to the primary
+    const away = foeAt(s, 0, 0, 500);     // nowhere near it
+    basicAttack(s, storm.instanceId, primary.instanceId);
+    const onPrimary = 500 - s.cards[primary.instanceId].curHp;
+    const onNeighbour = 500 - s.cards[beside.instanceId].curHp;
+    // Relative, not absolute: the primary takes EFFECTIVE damage, which picks
+    // up the element aura and the mid-row bonus, so pinning "20" here would be
+    // pinning the aura table rather than the splash.
+    expect(onPrimary, "the one it swung at").toBeGreaterThanOrEqual(20);
+    expect(onNeighbour, "and its neighbour, for the flat splash").toBe(10);
+    expect(onNeighbour, "which is the smaller share").toBeLessThan(onPrimary);
+    expect(s.cards[away.instanceId].curHp, "but not the far corner").toBe(500);
   });
 
   it("its Wind Wake works against its own reach — knowingly", () => {

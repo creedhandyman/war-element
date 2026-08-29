@@ -208,7 +208,19 @@ describe("the roster", () => {
       // nearer. Its Wind Wake now also shoves away the bodies its own basic
       // needs — see the token's note.
       //
-      // The floor is FLAT at this point: Skybreaker 75.0, Continental 75.0.
+      // THEN SPLASH + 85 HP (owner's call) — and it measured 75.0 -> **74.0%**,
+      // i.e. NOTHING, inside sampling noise at n=96. Recorded because a null
+      // result is a finding: the hurricane's ATTACK is close to irrelevant to
+      // this fight's outcome, and buffing it does not move the number.
+      //
+      // The cause is the token's own Wind Wake, which shoves the board away
+      // every Cleanup — so its basic seldom lands and nothing that scales the
+      // basic can matter much. The token's value is POSITIONAL (a slot for
+      // Skybreaker to teleport into) and ON ARRIVAL (the pull, 15 damage and a
+      // 2-round hold). If the hurricane is ever meant to be an offensive
+      // threat, the lever is Wind Wake, not the attack numbers.
+      //
+      // The floor is FLAT at this point: Skybreaker 74.0, Continental 75.0.
       // That is a little under the 80-90 band Floor 4 was tuned to, and it is
       // internally consistent, which the 75.0-95.8 spread before it was not.
       // HP remains the lever in either direction (366 body against a 660 cap).
