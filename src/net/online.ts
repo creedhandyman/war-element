@@ -9,7 +9,7 @@
 // Get them from any free Supabase project → Settings → API. No tables needed.
 
 import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
-import type { GameState } from "../engine";
+import type { GameState, PlayerId } from "../engine";
 
 const URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -29,13 +29,13 @@ export type Role = "host" | "guest";
  *  needs them on BOTH clients, and only the host ever learns both (its own from
  *  its picker, the guest's from the join), so the host relays them. */
 export interface StateMeta {
-  names?: { P1: string; P2: string };
+  names?: Partial<Record<PlayerId, string>>;
   /** Which cards each SEAT holds in foil. Relayed for the same reason the names
    *  are: a foil lives in a player's collection, not in the GameState, so the
    *  other client has no way to know a card on the board is shiny. Without this
    *  every online board looked plain on both sides — you could not see your own
    *  foils in the one mode where somebody else is watching. */
-  foils?: { P1: string[]; P2: string[] };
+  foils?: Partial<Record<PlayerId, string[]>>;
   /** This state is a freshly dealt match, not a step within one. Set on a
    *  rematch so the guest knows to clear its rematch flags and replay the
    *  versus screen, rather than having to infer a new match from the shape of
@@ -55,7 +55,19 @@ export interface Room {
    *  display name, and the card ids it holds in FOIL — the host is the only
    *  side that can see both collections, so it is the only side that can relay
    *  them back. */
-  sendJoin: (cards: string[], spells?: string[], name?: string, foils?: string[]) => void;
+  sendJoin: (
+    clientId: string, cards: string[], spells?: string[], name?: string, foils?: string[],
+  ) => void;
+  /** Host → the room: "the client with this id is sitting in this seat".
+   *
+   *  A two-seat room never needed this — the guest WAS P2 and could assume it.
+   *  With up to four, only the host knows the arrival order, so it has to say.
+   *  Broadcast rather than addressed because the channel has no addressing;
+   *  each guest picks out its own id and ignores the rest.
+   *
+   *  `have`/`need` ride along so a waiting guest can show "3 of 4 seated"
+   *  without the host inventing a second message for it. */
+  sendSeat: (clientId: string, seat: PlayerId, have: number, need: number) => void;
   /** "I want to run it back." Both sides must ask before the host re-deals —
    *  a one-tap rematch would yank the other player off a result screen they
    *  are still reading. */
@@ -74,7 +86,10 @@ export function joinRoom(
   role: Role,
   handlers: {
     onState: (state: GameState, meta?: StateMeta) => void;
-    onJoin?: (cards: string[], spells?: string[], name?: string, foils?: string[]) => void; // host only
+    onJoin?: (
+      clientId: string, cards: string[], spells?: string[], name?: string, foils?: string[],
+    ) => void; // host only
+    onSeat?: (clientId: string, seat: PlayerId, have: number, need: number) => void; // guests
     onRematch?: () => void;
     onSubscribed?: () => void;
   },
@@ -123,10 +138,21 @@ export function joinRoom(
   if (role === "host") {
     channel.on("broadcast", { event: "join" }, ({ payload }) =>
       handlers.onJoin?.(
+        payload.clientId as string,
         payload.cards as string[],
         payload.spells as string[] | undefined,
         payload.name as string | undefined,
         payload.foils as string[] | undefined,
+      ),
+    );
+  }
+  if (role === "guest") {
+    channel.on("broadcast", { event: "seat" }, ({ payload }) =>
+      handlers.onSeat?.(
+        payload.clientId as string,
+        payload.seat as PlayerId,
+        payload.have as number,
+        payload.need as number,
       ),
     );
   }
@@ -151,8 +177,14 @@ export function joinRoom(
     resend: () => {
       if (last) push(last.state, last.clock, last.meta);
     },
-    sendJoin: (cards, spells, name, foils) =>
-      void channel.send({ type: "broadcast", event: "join", payload: { cards, spells, name, foils } }),
+    sendJoin: (clientId, cards, spells, name, foils) =>
+      void channel.send({
+        type: "broadcast", event: "join", payload: { clientId, cards, spells, name, foils },
+      }),
+    sendSeat: (clientId, seat, have, need) =>
+      void channel.send({
+        type: "broadcast", event: "seat", payload: { clientId, seat, have, need },
+      }),
     sendRematch: () => void channel.send({ type: "broadcast", event: "rematch", payload: {} }),
     close: () => void supabase.removeChannel(channel),
   };

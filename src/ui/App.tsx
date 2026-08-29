@@ -301,13 +301,13 @@ export function App() {
    *  so the host relays them and every broadcast carries them, which also means
    *  a client that missed the opening message still gets them on the next one.
    *  Held in a ref as well because `broadcast` reads it outside React's flow. */
-  const [seatNames, setSeatNames] = useState<{ P1: string; P2: string } | null>(null);
-  const seatNamesRef = useRef<{ P1: string; P2: string } | null>(null);
+  const [seatNames, setSeatNames] = useState<Partial<Record<PlayerId, string>> | null>(null);
+  const seatNamesRef = useRef<Partial<Record<PlayerId, string>> | null>(null);
   /** Both seats' foils, relayed exactly like the names above and for the same
    *  reason: a foil is a fact about a COLLECTION, and the GameState carries
    *  card ids. Null offline, where only the local player can have any. */
-  const [seatFoils, setSeatFoils] = useState<{ P1: string[]; P2: string[] } | null>(null);
-  const seatFoilsRef = useRef<{ P1: string[]; P2: string[] } | null>(null);
+  const [seatFoils, setSeatFoils] = useState<Partial<Record<PlayerId, string[]>> | null>(null);
+  const seatFoilsRef = useRef<Partial<Record<PlayerId, string[]>> | null>(null);
   /** What this match was dealt FROM, kept so a rematch can run the same two
    *  decks back. Not derivable from the finished state — by the end the decks
    *  are drawn down and the cards are dead or scattered. */
@@ -320,6 +320,19 @@ export function App() {
   const [rematchMine, setRematchMine] = useState(false);
   const [rematchTheirs, setRematchTheirs] = useState(false);
   const roomRef = useRef<Room | null>(null);
+  /** HOST: everyone who has joined, in arrival order — one entry per seat after
+   *  P1. Kept in a ref because `onJoin` fires from a channel callback that
+   *  closed over the first render, so React state would be stale by the second
+   *  arrival and the third player would overwrite the second. */
+  const lobbyRef = useRef<{
+    clientId: string; seat: PlayerId; cards: string[];
+    spells?: string[]; name?: string; foils: string[];
+  }[]>([]);
+  /** GUEST: this client's id, and the seat the host gave it. A two-seat room
+   *  never needed either — the guest WAS P2 — and with four the host is the
+   *  only side that knows the arrival order. */
+  const clientIdRef = useRef<string>("");
+  const mySeatRef = useRef<PlayerId>("P2");
   const onlineStartedRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [customDecks, setCustomDecks] = useState<Squad[]>(() => {
@@ -1333,37 +1346,76 @@ export function App() {
     // at join time rather than what the host actually opened the room with.
     const hostBoardSize = boardSize;
     const hostName = deckLabel(p1DeckId); // snapshotted with the deck, same reason
-    setNetStatus(`Room ${code} open — share this code. Waiting for your buddy…`);
+    // How many seats this room is for, snapshotted with everything else. Only
+    // the Domination board can seat more than two.
+    const hostSeatCount = hostBoardSize === DOMINATION_7X7.boardSize ? seatCount : 2;
+    lobbyRef.current = [];
+    setNetStatus(hostSeatCount > 2
+      ? `Room ${code} open — share this code. 1 of ${hostSeatCount} seated…`
+      : `Room ${code} open — share this code. Waiting for your buddy…`);
     onlineStartedRef.current = false;
     roomRef.current = joinRoom(code, "host", {
       onState: (state) => setGame(state),
       onRematch: () => setRematchTheirs(true),
-      onJoin: (guestCards, guestSpells, guestName, guestFoils) => {
+      onJoin: (clientId, guestCards, guestSpells, guestName, guestFoils) => {
         if (onlineStartedRef.current) return; // already playing — ignore re-joins
+        const lobby = lobbyRef.current;
+        // A REJOIN keeps its seat. `sendJoin` fires on every subscribe, and a
+        // flaky connection can subscribe twice — without this the same person
+        // would take two seats and the room would never fill.
+        const already = lobby.find((e) => e.clientId === clientId);
+        const seat: PlayerId = already?.seat
+          ?? (["P2", "P3", "P4"] as const)[lobby.length]
+          ?? "P4";
+        if (!already) {
+          if (lobby.length >= hostSeatCount - 1) return; // room is full
+          lobby.push({
+            clientId, seat, cards: guestCards, spells: guestSpells,
+            name: guestName, foils: guestFoils ?? [],
+          });
+        }
+        // Tell them which seat they are in, and how full the room is. Sent on a
+        // rejoin too, so a guest that missed the first one still learns it.
+        roomRef.current?.sendSeat(clientId, seat, lobby.length + 1, hostSeatCount);
+        setNetStatus(`Room ${code} — ${lobby.length + 1} of ${hostSeatCount} seated…`);
+        if (lobby.length < hostSeatCount - 1) return; // still waiting on people
+
         onlineStartedRef.current = true;
-        const g = createInitialState(newSeed(), hostCards, guestCards, ["P1", "P2"], hostSpells, guestSpells, hostBoardSize);
-        // The host is the only side that knows BOTH names, so it names the seats
-        // and relays them; the guest reads them off the state message.
-        const names = { P1: hostName, P2: guestName?.trim() || "Their deck" };
+        const seats: PlayerId[] = ["P1", ...lobby.map((e) => e.seat)];
+        const g = createInitialState(
+          newSeed(), hostCards, lobby[0].cards, seats,
+          hostSpells, lobby[0].spells, hostBoardSize,
+          undefined, undefined, undefined,
+          lobby.slice(1).map((e) => ({ id: e.seat, deck: e.cards, spells: e.spells })),
+        );
+        if (hostBoardSize === DOMINATION_7X7.boardSize) g.domination = newDomination(DOMINATION_7X7);
+        // The host is the only side that knows EVERY name, so it names the seats
+        // and relays them; the others read them off the state message.
+        const names: Partial<Record<PlayerId, string>> = { P1: hostName };
+        const foils: Partial<Record<PlayerId, string[]>> = { P1: [...foilIds] };
+        for (const e of lobby) {
+          names[e.seat] = e.name?.trim() || "Their deck";
+          foils[e.seat] = e.foils;
+        }
         seatNamesRef.current = names;
         setSeatNames(names);
-        // Only the host sees both collections, so only the host can pair them up.
-        const foils = { P1: [...foilIds], P2: guestFoils ?? [] };
         seatFoilsRef.current = foils;
         setSeatFoils(foils);
         setupRef.current = {
-          p1: hostCards, p1s: hostSpells, p2: guestCards, p2s: guestSpells,
-          board: hostBoardSize, humans: ["P1", "P2"],
+          p1: hostCards, p1s: hostSpells, p2: lobby[0].cards, p2s: lobby[0].spells,
+          board: hostBoardSize, humans: seats,
         };
         setRematchMine(false); setRematchTheirs(false);
         setGame(g);
         setViewSide("P1");
         setSel(null); setPending(null); setPicks([]); setMullToss([]);
-        setHint("Buddy joined! Mulligan: click cards to send back, then confirm.");
+        setHint(seats.length > 2
+          ? `All ${seats.length} seated! Mulligan: click cards to send back, then confirm.`
+          : "Buddy joined! Mulligan: click cards to send back, then confirm.");
         setOnline({ role: "host", code, myId: "P1" });
         setStarted(true);
         setPvpIntro(true);
-        roomRef.current?.sendState(g, { names, foils }); // deal the opening state to the guest
+        roomRef.current?.sendState(g, { names, foils }); // deal the opening state
       },
     });
     setOnline({ role: "host", code, myId: "P1" });
@@ -1381,7 +1433,19 @@ export function App() {
     const guestName = deckLabel(p2DeckId);
     setNetStatus(`Joining ${code}…`);
     onlineStartedRef.current = false;
+    // One id per join attempt. It is what lets the host hand this client a seat
+    // and recognise it again if the connection blips and it re-subscribes.
+    clientIdRef.current = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    mySeatRef.current = "P2";
     roomRef.current = joinRoom(code, "guest", {
+      onSeat: (clientId, seat, have, need) => {
+        if (clientId !== clientIdRef.current) return; // somebody else's seat
+        mySeatRef.current = seat;
+        setOnline({ role: "guest", code, myId: seat });
+        setNetStatus(need > 2
+          ? `Seated as ${seat} — ${have} of ${need} in the room…`
+          : `Seated as ${seat} — waiting for the host…`);
+      },
       onState: (state, meta) => {
         setGame(state);
         // Every state carries them, so a missed opening message is not a
@@ -1398,16 +1462,20 @@ export function App() {
         }
         if (!onlineStartedRef.current) {
           onlineStartedRef.current = true;
-          setViewSide("P2");
+          // The seat the host gave us, from the ref rather than state: `onSeat`
+          // and this callback both close over the same render, so the state set
+          // there is not visible here yet.
+          setViewSide(mySeatRef.current);
           setSel(null); setPending(null); setPicks([]); setMullToss([]);
           setHint("Connected! Mulligan: click cards to send back, then confirm.");
-          setOnline({ role: "guest", code, myId: "P2" });
+          setOnline({ role: "guest", code, myId: mySeatRef.current });
           setStarted(true);
           setPvpIntro(true);
         }
       },
       onRematch: () => setRematchTheirs(true),
-      onSubscribed: () => roomRef.current?.sendJoin(guestCards, guestSpells, guestName, [...foilIds]),
+      onSubscribed: () => roomRef.current?.sendJoin(
+        clientIdRef.current, guestCards, guestSpells, guestName, [...foilIds]),
     });
     setOnline({ role: "guest", code, myId: "P2" });
   }
@@ -3293,9 +3361,9 @@ export function App() {
                     <button
                       key={n}
                       className={seatCount === n ? "on" : ""}
-                      disabled={onlineMode && n > 2}
-                      title={onlineMode && n > 2
-                        ? "Online seats two — a free-for-all is local only for now"
+                      disabled={twoPlayer && n > 2}
+                      title={twoPlayer && n > 2
+                        ? "Hot-seat shares one device — a free-for-all is vs AI or online"
                         : undefined}
                       onClick={() => setSeatCount(n)}
                     >
