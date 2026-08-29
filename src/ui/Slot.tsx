@@ -8,6 +8,16 @@ export function Slot(props: {
   row: number;
   col: number;
   viewer: PlayerId; // the local player's side (threaded to Token for "mine")
+  /** DOMINATION terrain for this square, or undefined on every other
+   *  board. Derived from the map by the caller — a Slot should not have
+   *  to know which mode it is in, only what it is standing on. */
+  terrain?: {
+    closed?: boolean;
+    road?: boolean;
+    shrine?: boolean;
+    poi?: string;
+    poiOwner?: PlayerId | null;
+  };
   /** Each SEAT's foils, keyed by owner. Was a single "the local player's" set
    *  tested against `owner === viewer`, which is the same thing offline and
    *  wrong online: the opponent's shinies are theirs to show, and yours have to
@@ -67,6 +77,13 @@ export function Slot(props: {
     props.contested ? "contested" : "",
     props.captured ? "captured" : "",
     props.trap ? "trapped" : "",
+    // DOMINATION terrain. Absent on every ordinary board, so these add nothing
+    // to the class list of a 4x4 slot.
+    props.terrain?.closed ? "dom-closed" : "",
+    props.terrain?.road ? "dom-road" : "",
+    props.terrain?.shrine ? "dom-shrine" : "",
+    props.terrain?.poi ? "dom-poi" : "",
+    props.terrain?.poiOwner ? `dom-held-${props.terrain.poiOwner.toLowerCase()}` : "",
   ]
     .filter(Boolean)
     .join(" ");

@@ -52,6 +52,7 @@ import { Board } from "./Board";
 import { CardView } from "./CardView";
 import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
+import { DOMINATION_7X7, dominationMap, newDomination } from "../data/domination";
 import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { rawStoredLoadouts } from "../data/story";
@@ -177,7 +178,9 @@ export function App() {
   const [picks, setPicks] = useState<string[]>([]);
   // A summon awaiting confirmation: the chosen hand card + home column. While
   // set, the board previews the on-summon damage area (red) and shows a confirm.
-  const [staged, setStaged] = useState<{ handId: string; col: number } | null>(null);
+  // `row` is set ONLY for a Domination shrine — an ordinary summon is
+  // column-addressed with the row implied to be your Home row.
+  const [staged, setStaged] = useState<{ handId: string; col: number; row?: number } | null>(null);
   // Drag-to-summon: the hand card being dragged + the home column under the
   // cursor. Drives a LIVE on-summon area preview (red) as you drag over slots.
   const [drag, setDrag] = useState<string | null>(null);
@@ -685,7 +688,8 @@ export function App() {
       // the event opponent away between the tap and the match.
       if (EVENT_DECKS.some((d) => d.id === id)) return id;
       const base = id.endsWith("_5") ? id.slice(0, -2) : id;
-      const want = boardSize === 5 ? `${base}_5` : base;
+      // 7 shares the large board's builds — see premadeDecksFor.
+      const want = boardSize >= 5 ? `${base}_5` : base;
       return modePremades.some((d) => d.id === want) ? want : modePremades[0].id;
     };
     setP1DeckId(remap);
@@ -1089,6 +1093,11 @@ export function App() {
       // buys its difficulty the same way: an opening it cannot stumble on.
       scriptedP2 ? { P2: scriptedP2 } : undefined,
     );
+    // DOMINATION: the 7x7 is the map, so picking that battlefield IS picking
+    // the mode. Stamped here rather than plumbed through createInitialState
+    // because it is a scoring rule, not a board dimension — everything else
+    // about the match is built the ordinary way.
+    if (boardSize === DOMINATION_7X7.boardSize) fresh.domination = newDomination(DOMINATION_7X7);
     // A Void Trial seats its BOSS directly on the board, outside the economy —
     // the deck is only its summons. `summonCard` is the same door every card
     // enters through, so auras and on-summon hooks all fire; clearing
@@ -1424,7 +1433,7 @@ export function App() {
     if (!staged || me === null) return;
     const staging = game.players[me].hand.find((h) => h.handId === staged.handId);
     const intent: Intent = {
-      type: "SUMMON", player: me, handId: staged.handId, col: staged.col,
+      type: "SUMMON", player: me, handId: staged.handId, col: staged.col, row: staged.row,
       // The player's remembered default for this card, if they set one. Read
       // here and sent WITH the intent, so the engine stays pure and an online
       // peer replaying it lands on the same mode.
@@ -1477,6 +1486,13 @@ export function App() {
   }
   function onSlotDrop(_row: number, col: number) {
     if (drag === null || me === null) return;
+    // Try the square itself first (a Domination shrine), then the column.
+    if (game.domination && canSummon(game, me, drag, col, _row).ok) {
+      setStaged({ handId: drag, col, row: _row });
+      setDrag(null);
+      setDragCol(null);
+      return;
+    }
     const chk = canSummon(game, me, drag, col);
     if (!chk.ok) {
       setHint(`⚠ ${chk.reason ?? "Home row only."}`);
@@ -1524,6 +1540,13 @@ export function App() {
       for (let col = 0; col < game.boardSize; col++)
         if (canSummon(game, view, sel.handId, col).ok)
           out.push({ row: hr, col } as Pos);
+      // DOMINATION shrines: neutral squares either side may deploy onto, so
+      // they glow alongside your own Home row rather than instead of it.
+      const dmap = game.domination ? dominationMap(game.domination.mapId) : undefined;
+      if (dmap)
+        for (const sh of dmap.shrines)
+          if (canSummon(game, view, sel.handId, sh.col, sh.row).ok)
+            out.push({ row: sh.row, col: sh.col } as Pos);
       return out;
     }
     if (sel?.kind === "card") return legalMoves(game, view, sel.instanceId);
@@ -2023,6 +2046,9 @@ export function App() {
     if (me && game.phase === "prep" && game.prep?.priority === me && sel?.kind === "hand") {
       if (clicked) {
         setDetailId(clicked.instanceId);
+      } else if (game.domination && canSummon(game, me, sel.handId, col, row).ok) {
+        // A shrine names its own square, so the staged placement carries the row.
+        setStaged({ handId: sel.handId, col, row });
       } else if (canSummon(game, me, sel.handId, col).ok && row === homeRow(me, game.boardSize)) {
         setStaged({ handId: sel.handId, col });
         setHint("Confirm placement — <b>red</b> marks where its on-summon effect lands.");
@@ -3196,7 +3222,7 @@ export function App() {
                       switching underneath it would leave four 4x4 opponents
                       waiting on a 5x5 field, and your squad the wrong size for
                       both. The run owns this until it ends. */}
-                  {([4, 5] as const).map((sz) => (
+                  {([4, 5, 7] as const).map((sz) => (
                     <button
                       key={sz}
                       className={boardSize === sz ? "on" : ""}
@@ -3206,7 +3232,7 @@ export function App() {
                         : undefined}
                       onClick={() => setBoardSize(sz)}
                     >
-                      {sz}×{sz} · {sz === 4 ? "Standard" : "Large"}
+                      {sz}×{sz} · {sz === 4 ? "Standard" : sz === 5 ? "Large" : "Domination"}
                     </button>
                   ))}
                 </div>

@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DOMINATION_7X7, DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, dominationMap,
-  heldCount, isImpassable, isRoad, isShrine, newDomination, poiAt, poiRing,
+  heldCount, isImpassable, isRoad, isShrine, newDomination, POI_GOLD, POI_MAGIC, poiAt, poiRing,
   resolveHolders, runsAlongRoad,
 } from "../../data/domination";
 import { advance, applyIntent, canMove, canSummon, createInitialState, legalMoves } from "../index";
@@ -293,5 +293,54 @@ describe("winning the map", () => {
     const d = newDomination(M);
     expect(d.mapId).toBe("dom7");
     expect(heldCount(d.held as never, "P1")).toBe(0);
+  });
+});
+
+describe("the Points pay", () => {
+  it("adds +2 gold and +1 magic per held Point, on top of the ordinary flow", () => {
+    // Measured as a DELTA against the same round with nothing held, so this
+    // asserts the Point income and not the whole resource curve.
+    const base = domState();
+    const withPoints = domState();
+    for (const id of ["A", "B"]) {
+      withPoints.domination!.held[id] = "P1";
+    }
+    const run = (s: GameState) => {
+      s.phase = "resource";
+      const before = { g: s.players.P1.gold, m: s.players.P1.magicPool };
+      s.players.P1.gold = 0; s.players.P1.magicPool = 0;
+      const out = advance(s);
+      void before;
+      return { gold: out.players.P1.gold, magic: out.players.P1.magicPool };
+    };
+    const a = run(base);
+    const b = run(withPoints);
+    expect(b.gold - a.gold, "two Points should pay 2 x POI_GOLD").toBe(2 * POI_GOLD);
+    expect(b.magic - a.magic, "two Points should pay 2 x POI_MAGIC").toBe(2 * POI_MAGIC);
+    expect(POI_GOLD).toBe(2);
+    expect(POI_MAGIC).toBe(1);
+  });
+
+  it("pays the holder and nobody else", () => {
+    const s = domState();
+    s.domination!.held.A = "P2";
+    s.phase = "resource";
+    s.players.P1.gold = 0; s.players.P2.gold = 0;
+    const out = advance(s);
+    expect(out.players.P2.gold - out.players.P1.gold,
+      "P2 holds one Point, P1 holds none").toBe(POI_GOLD);
+  });
+
+  it("pays nothing in an ordinary match", () => {
+    // The income rides on `domination` alone, so a 5x5 must be untouched.
+    let s: GameState = createInitialState(4, DECK, DECK, [], undefined, [], 5);
+    s.players.P1.mulliganDone = true; s.players.P2.mulliganDone = true;
+    for (let i = 0; i < 40 && s.phase === "mulligan"; i++) s = advance(s);
+    expect(s.domination).toBeUndefined();
+    s.phase = "resource";
+    s.players.P1.gold = 0;
+    const out = advance(s);
+    // Round-1 base gain plus home slots held; no Point money can be in there.
+    expect(out.players.P1.gold).toBeLessThanOrEqual(1 + s.boardSize);
   });
 });

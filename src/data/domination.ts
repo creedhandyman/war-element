@@ -201,3 +201,11 @@ export function newDomination(map: DominationMap): {
   for (const p of map.pois) held[p.id] = null;
   return { mapId: map.id, held, streak: { P1: 0, P2: 0 } };
 }
+
+/** What a held Point pays its holder, every round, on top of the ordinary
+ *  resource flow. This is what turns holding a Point from a score into a
+ *  POSITION: the map funds the army that took it, so a side that is ahead on
+ *  Points is also ahead on the money to stay ahead — and losing one costs you
+ *  the income you would have retaken it with. */
+export const POI_GOLD = 2;
+export const POI_MAGIC = 1;

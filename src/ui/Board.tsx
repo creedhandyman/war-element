@@ -3,6 +3,7 @@ import { cardAt, enemyOf, getSpell, homeRow, isContested } from "../engine";
 import { getDef } from "../data/cards";
 import { Slot } from "./Slot";
 import { EL_COLOR } from "./shared";
+import { dominationMap, isImpassable, isRoad, isShrine, poiAt } from "../data/domination";
 
 /** Plain-language summary of a live Field's numeric bonuses. Used for terrain,
  *  whose printed spell text describes a stronger thing than it is running. */
@@ -24,6 +25,56 @@ function describeFieldBuff(f: FieldState): string {
     .filter(([k]) => typeof f[k] === "number" && (f[k] as number) > 0)
     .map(([k, label]) => label(f[k] as number));
   return parts.length ? `${parts.join(", ")} for its own element.` : "No standing bonus.";
+}
+
+
+/** What a square IS on a Domination map — closed ground, a lane, a shrine, or
+ *  part of a Point and who currently holds it. Undefined in every other match,
+ *  which is what keeps the ordinary board's markup unchanged. */
+function domTerrain(game: GameState, row: number, col: number) {
+  const dom = game.domination;
+  const map = dom && dominationMap(dom.mapId);
+  if (!dom || !map) return undefined;
+  const poi = poiAt(map, row, col);
+  return {
+    closed: isImpassable(map, row, col),
+    road: isRoad(map, row, col),
+    shrine: isShrine(map, row, col),
+    poi: poi?.id,
+    poiOwner: poi ? dom.held[poi.id] : null,
+  };
+}
+
+
+/** DOMINATION's scoreboard, in place of the "Opponent Home" crest — that crest
+ *  advertises a win condition this mode switches OFF, and the mode has no other
+ *  way to show who is ahead. Four pips, one per Point, in the holder's colour
+ *  and viewer-relative (yours is always the green one). Null in every other
+ *  match, which leaves the crest exactly as it was. */
+function domScore(game: GameState, viewer: PlayerId) {
+  const dom = game.domination;
+  const map = dom && dominationMap(dom.mapId);
+  if (!dom || !map) return null;
+  const mine = map.pois.filter((p) => dom.held[p.id] === viewer).length;
+  const theirs = map.pois.filter((p) => dom.held[p.id] && dom.held[p.id] !== viewer).length;
+  return (
+    <div className="crest dom-score">
+      <span className="crest-bar" />
+      <span className="dom-tally you">{mine}</span>
+      {map.pois.map((p) => {
+        const who = dom.held[p.id];
+        const cls = who === null ? "open" : who === viewer ? "you" : "foe";
+        return (
+          <span key={p.id} className={`dom-pip ${cls}`} title={`${p.name} — ${
+            who === null ? "unclaimed" : who === viewer ? "yours" : "held against you"}`}>
+            {p.id}
+          </span>
+        );
+      })}
+      <span className="dom-tally foe">{theirs}</span>
+      <span className="crest-bar" />
+    </div>
+  );
 }
 
 export function Board(props: {
@@ -109,13 +160,15 @@ export function Board(props: {
           <span className="opp-pip magic" title="Magic">✦ {opp.magicPool}</span>
         </div>
       </div>
-      <div className="crest opp" style={{ ["--c" as string]: foeGlow }}>
-        <span className="crest-bar" />
-        <span className="crest-shield">✦</span>
-        <span className="crest-text">Opponent Home</span>
-        <span className="crest-shield">✦</span>
-        <span className="crest-bar" />
-      </div>
+      {domScore(game, props.viewPlayer) ?? (
+        <div className="crest opp" style={{ ["--c" as string]: foeGlow }}>
+          <span className="crest-bar" />
+          <span className="crest-shield">✦</span>
+          <span className="crest-text">Opponent Home</span>
+          <span className="crest-shield">✦</span>
+          <span className="crest-bar" />
+        </div>
+      )}
       {/* `tight` = a board with more than four columns, where every tile is
           smaller and the tokens have to shed furniture to keep the stat row on
           one line. Keyed on the size, not on a literal 5, so a 6x6 inherits it. */}
@@ -234,6 +287,7 @@ export function Board(props: {
                   movable={card !== null && props.movableIds.has(card.instanceId)}
                   contested={contested}
                   captured={game.slots[row][col].capturedBy}
+                  terrain={domTerrain(game, row, col)}
                   trap={myTrap ?? null}
                   canDrop={isLegalSlot}
                   pickCount={card ? (props.pickCounts[card.instanceId] ?? 0) : 0}
@@ -251,7 +305,7 @@ export function Board(props: {
       <div className="crest your" style={{ ["--c" as string]: homeGlow }}>
         <span className="crest-bar" />
         <span className="crest-shield">✦</span>
-        <span className="crest-text">Your Home</span>
+        <span className="crest-text">{game.domination ? "Your Line" : "Your Home"}</span>
         <span className="crest-shield">✦</span>
         <span className="crest-bar" />
       </div>

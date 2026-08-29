@@ -1524,7 +1524,11 @@ export const PREMADE_DECKS: PremadeDeck[] = [...STANDARD_DECKS, ...LARGE_DECKS];
 
 /** The premade builds sized for a given battlefield. */
 export function premadeDecksFor(boardSize: number): PremadeDeck[] {
-  return PREMADE_DECKS.filter((d) => d.boardSize === (boardSize === 5 ? 5 : 4));
+  // >= 5, not === 5: Domination's 7x7 runs the large board's economy (30 cards,
+  // 8 spells — see DECK_LIMITS), so the large builds are legal there and are the
+  // only ones that are. Matching on 5 exactly sent a 7x7 to the 4x4 shelf and
+  // handed it an eighteen-card deck it could not legally field.
+  return PREMADE_DECKS.filter((d) => d.boardSize === (boardSize >= 5 ? 5 : 4));
 }
 
 /** The ladder's decks for one rung, sized for a battlefield. */
