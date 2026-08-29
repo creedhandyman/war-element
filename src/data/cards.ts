@@ -286,7 +286,7 @@ export const CARDS: CardDef[] = [
     hp: 18,
     sp: 9,
     shields: 3,
-    keywords: {},
+    keywords: { LIFESTEAL: true },
     tribe: "Grove",
     // Barbed Basics: every basic deepens the wound — BLEED 1 for 2 rounds that
     // STACKS (up to 6), onto its own prior hits AND onto the Special's BLEED.
