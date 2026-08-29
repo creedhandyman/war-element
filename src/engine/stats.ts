@@ -17,7 +17,12 @@ function zeroSide() {
 }
 
 export function emptyStats(): MatchStats {
-  return { byCard: {}, byPlayer: { P1: zeroSide(), P2: zeroSide() } };
+  return {
+    byCard: {},
+    // All four seats, so a three- or four-player match tallies without any
+    // caller having to know how many are seated.
+    byPlayer: { P1: zeroSide(), P2: zeroSide(), P3: zeroSide(), P4: zeroSide() },
+  };
 }
 
 /** Lazily create (and return) the per-card row for a card. */

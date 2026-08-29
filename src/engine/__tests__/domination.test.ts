@@ -12,6 +12,7 @@ import {
   resolveHolders, runsAlongRoad,
 } from "../../data/domination";
 import { advance, applyIntent, canMove, canSummon, createInitialState, legalMoves } from "../index";
+import { homeSlots, summonLandingRow } from "../rules";
 import { summonCard } from "../state";
 import { deckLimits } from "../../data/custom-decks";
 import type { GameState, PlayerId } from "../types";
@@ -239,15 +240,20 @@ describe("winning the map", () => {
     expect(s.log.some((l) => /TOTAL DOMINATION/.test(l))).toBe(true);
   });
 
-  it("does NOT end on a majority taken this round — it has to survive one", () => {
-    const s = holdPoints(["A", "B", "C"]);
-    const after1 = runRounds(s, 1);
-    expect(after1.win, "three Points won it immediately").toBeFalsy();
-    expect(after1.domination!.streak.P1).toBe(1);
-    const after2 = runRounds(after1, 1);
-    expect(after2.win?.by).toBe("domination");
-    expect(DOMINATION_HOLD_ROUNDS).toBe(2);
+  it("does NOT end on a majority taken this round — it has to survive three", () => {
+    // Three Points, three rounds in a row. Checked round by round rather than
+    // by running to the end, so a change to either number fails here loudly.
     expect(DOMINATION_MAJORITY).toBe(3);
+    expect(DOMINATION_HOLD_ROUNDS).toBe(3);
+    let s = holdPoints(["A", "B", "C"]);
+    for (let round = 1; round < DOMINATION_HOLD_ROUNDS; round++) {
+      s = runRounds(s, 1);
+      expect(s.win, `three Points won it after only ${round} round(s)`).toBeFalsy();
+      expect(s.domination!.streak.P1).toBe(round);
+    }
+    s = runRounds(s, 1);
+    expect(s.win?.by).toBe("domination");
+    expect(s.win?.winner).toBe("P1");
   });
 
   it("resets the streak when the majority slips", () => {
@@ -342,5 +348,56 @@ describe("the Points pay", () => {
     const out = advance(s);
     // Round-1 base gain plus home slots held; no Point money can be in there.
     expect(out.players.P1.gold).toBeLessThanOrEqual(1 + s.boardSize);
+  });
+});
+
+describe("you deploy at the shrines and nowhere else", () => {
+  it("refuses a column-addressed summon — there is no Home row here", () => {
+    const s = domState();
+    const hand = s.players.P1.hand[0];
+    for (let col = 0; col < M.boardSize; col++)
+      expect(canSummon(s, "P1", hand.handId, col).ok, `column ${col} was allowed`).toBe(false);
+    expect(canSummon(s, "P1", hand.handId, 0).reason).toMatch(/shrine/i);
+  });
+
+  it("offers every seat the same four squares", () => {
+    const s = domState();
+    const shrines = M.shrines.map((x) => `${x.row},${x.col}`).sort();
+    for (const seat of ["P1", "P2"] as PlayerId[])
+      expect(homeSlots(s, seat).map((x) => `${x.row},${x.col}`).sort(),
+        `${seat} deploys somewhere else`).toEqual(shrines);
+  });
+
+  it("never lands a summon deeper into the board when a shrine is taken", () => {
+    // The forward-creep fallback exists so a side whose Home row is overrun is
+    // not softlocked. Domination has no Home row and four neutral shrines, so
+    // there is nothing to escape — and letting it run walked a seat's spawn
+    // toward the enemy every time its own end filled up.
+    const s = domState();
+    for (const sh of M.shrines) put(s, "leaf_weeds", "P2", sh.row, sh.col);
+    expect(summonLandingRow(s, "P1", 3), "fell back to a deeper row").toBeNull();
+    const hand = s.players.P1.hand[0];
+    for (const sh of M.shrines)
+      expect(canSummon(s, "P1", hand.handId, sh.col, sh.row).ok).toBe(false);
+  });
+
+  it("never captures a Home slot, so a Point cannot be whittled away", () => {
+    // The end rows are part of Points C and D. A capture locks a slot for the
+    // rest of the match, so capture running here would permanently delete ring
+    // squares the objective is counted on.
+    const s = domState();
+    const home = M.boardSize - 1;
+    for (let col = 0; col < M.boardSize; col++)
+      if (!isImpassable(M, home, col)) put(s, "leaf_weeds", "P2", home, col);
+    let out = s;
+    for (let i = 0; i < 400 && out.phase !== "gameover" && out.round < s.round + 2; i++) {
+      const n = out.phase === "prep" && out.prep
+        ? applyIntent(out, { type: "PASS", player: out.prep.priority })
+        : advance(out);
+      if (n === out) break;
+      out = n;
+    }
+    expect(out.slots.flat().filter((sl) => sl.capturedBy).length,
+      "a slot was captured in Domination").toBe(0);
   });
 });

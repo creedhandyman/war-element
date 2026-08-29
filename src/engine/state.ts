@@ -18,7 +18,7 @@ import type {
   StatusKind,
   FieldBuff,
 } from "./types";
-import { BOARD_SIZE, HAND_CAP, OPENING_HAND, enemyOf, hillGivesHit, homeRow, isMidRow } from "./types";
+import { BOARD_SIZE, HAND_CAP, OPENING_HAND, enemyOf, hillGivesHit, homeRow, isMidRow, seatsOf } from "./types";
 import { getSpell } from "./spells";
 
 /** A deck is either a registered deck/core id, or an explicit list of card ids
@@ -78,18 +78,36 @@ export function createInitialState(
    *  card ids hoists exactly those, in order (`PlayerState.stackFirst`). Omit
    *  for an ordinary match. */
   stacked?: { P1?: number | readonly string[]; P2?: number | readonly string[] },
+  /** Extra seats beyond P1 and P2, each with its own deck. Omit for a 1v1,
+   *  which is every mode but Domination. */
+  extraSeats?: { id: PlayerId; deck: string | string[]; spells?: string[] }[],
 ): GameState {
+  const seats: PlayerId[] = ["P1", "P2", ...(extraSeats ?? []).map((e) => e.id)];
+  /** An extra seat's own deck and book, or an empty seat when it is not playing. */
+  const seatDeck = (id: PlayerId) => {
+    const e = (extraSeats ?? []).find((x) => x.id === id);
+    return emptyPlayer(
+      e ? resolveDeck(e.deck) : [], e?.spells, spellCapForBoard(boardSize));
+  };
   const state: GameState = {
     rngState: seed | 0,
     round: 0,
     phase: "mulligan",
     humans,
+    seats,
     firstPlayer: "P1",
     players: {
       // Spellbook cap follows the battlefield: 5 on the standard board, 8 on the
       // large one (the deeper deck gets a deeper book).
       P1: emptyPlayer(resolveDeck(p1Deck), p1Spells, spellCapForBoard(boardSize), stacked?.P1),
       P2: emptyPlayer(resolveDeck(p2Deck), p2Spells, spellCapForBoard(boardSize), stacked?.P2),
+      // The two seats that only Domination fills. Always PRESENT, even when
+      // unseated: `players` is a total Record and several hundred reads index
+      // it directly, so an absent seat would mean an undefined check at every
+      // one of them. An unseated player is simply never in `seats` — and gets
+      // an empty deck, so nothing can deal it a hand by accident.
+      P3: seatDeck("P3"),
+      P4: seatDeck("P4"),
     },
     cards: {},
     boardSize,
@@ -121,7 +139,7 @@ export function createInitialState(
     const terrain = getSpell(terrainSpellId);
     if (terrain?.kind === "field" && terrain.field) {
       const buff = terrainBuff(terrain.field);
-      for (const player of ["P1", "P2"] as PlayerId[])
+      for (const player of seatsOf(state))
         state.fields.push({
           owner: player, spellId: terrain.id, element: terrain.element,
           roundsLeft: 1, permanent: true, ...buff,
@@ -130,8 +148,10 @@ export function createInitialState(
     }
   }
 
-  drawCards(state, "P1", OPENING_HAND);
-  drawCards(state, "P2", OPENING_HAND);
+  // Every SEATED player, not the first two: a four-player match deals four
+  // opening hands. An unseated P3/P4 has an empty deck and is not in `seats`,
+  // so it is never reached here.
+  for (const seat of seats) drawCards(state, seat, OPENING_HAND);
   state.log.push(
     `Coin flip: ${state.firstPlayer} preps first. Opening hands dealt.`,
   );

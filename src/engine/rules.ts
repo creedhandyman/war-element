@@ -64,17 +64,26 @@ export function canSummon(
   if (state.opening) {
     // Free placement: slots are the currency, not gold — but the card still has
     // to be something you could plausibly lead with.
-    if (state.opening[player] <= 0) return { ok: false, reason: "No deployment slots left" };
+    if ((state.opening[player] ?? 0) <= 0) return { ok: false, reason: "No deployment slots left" };
     if (def.cost > OPENING_COST_CAP)
       return { ok: false, reason: `Opening placement is cost ${OPENING_COST_CAP} or less` };
   } else if (def.cost > state.players[player].gold) {
     return { ok: false, reason: "Not enough Gold" };
   }
-  // SHRINES (Domination): a named square either side may deploy onto, rather
-  // than a column landing on your own Home row. Gold and the opening cost cap
-  // above still apply — the shrine changes WHERE a summon may go, not what it
-  // costs or whether you can afford it.
-  if (row !== undefined) return shrineBlocker(state, row, col);
+  // A NAMED SQUARE rather than a column landing on your own Home row: a shrine,
+  // which anyone may use, or one of your own edge squares. Gold and the opening
+  // cost cap above still apply — naming a square changes WHERE a summon may go,
+  // not what it costs or whether you can afford it.
+  //
+  // Humans and the AI both come through here, which is the point: they were
+  // briefly reading two different lists, and an AI restricted to shrines while
+  // the player also had a Home row is an AI that appears to deploy in places
+  // nobody else can.
+  if (row !== undefined) return namedSquareBlocker(state, player, row, col);
+  // ...and in Domination there IS no other way in. A column-addressed summon
+  // means "my Home row, this column", and this mode has no Home row — refusing
+  // it here is what stops the board's two end rows quietly behaving like one.
+  if (domMap(state)) return { ok: false, reason: "Summon at a shrine" };
   const blocked = homeSlotBlocker(state, player, col);
   if (!blocked) return { ok: true };
   // The line falls back when the home row is gone entirely — see
@@ -84,23 +93,70 @@ export function canSummon(
   return { ok: false, reason: blocked };
 }
 
+/** The squares `player` may deploy onto.
+ *
+ *  `homeRow` answers this for a two-seat match and cannot answer it for more:
+ *  it returns a ROW, and a square board has two of those to hand out. A third
+ *  and fourth seat have to come in from the left and right EDGES, which is not
+ *  a row number at all.
+ *
+ *  So Domination hands each seat a SHRINE instead — the map has exactly four,
+ *  one per edge, in perfect rotational symmetry, which is what makes the map a
+ *  four-player map in the first place. A seat's own shrine is its foothold; the
+ *  other three stay neutral and anyone may still take them (see `shrineBlocker`),
+ *  so a foothold is a starting point rather than a safe back line.
+ *
+ *  Everything that is not Domination still gets its Home row, unchanged. */
+export function homeSlots(state: GameState, player: PlayerId): Pos[] {
+  const n = state.boardSize;
+  const m = domMap(state);
+  if (!m) {
+    const row = homeRow(player, n);
+    return Array.from({ length: n }, (_, col) => ({ row, col }));
+  }
+  // DOMINATION HAS NO HOME ROW. Every seat deploys at the four SHRINES and
+  // nowhere else, and all four are neutral — first there holds one.
+  //
+  // That is what lets a square board seat FOUR players: `homeRow` hands out
+  // rows and there are only two of those, so a third and fourth seat had
+  // nowhere of their own to come in. Shrines are squares, there are four, and
+  // they sit one per edge in the map's own rotational symmetry — the map was
+  // always shaped for this.
+  //
+  // It also removes the back line as a concept here, which is the point of an
+  // objective mode: there is no safe row to build behind, only ground to hold.
+  return m.shrines.map((sh) => ({ row: sh.row, col: sh.col }));
+}
+
+/** Every shrine on the map — neutral ground any seat may deploy onto. Empty on
+ *  a board that has none, which is every board but Domination's. */
+export function neutralDeploySlots(state: GameState): Pos[] {
+  const m = domMap(state);
+  return m ? m.shrines.map((sh) => ({ row: sh.row, col: sh.col })) : [];
+}
+
 /** Whether a shrine square will take a summon from EITHER side.
  *
  *  Deliberately owner-blind: the four shrines are neutral ground, so the only
  *  questions are whether the square is a shrine at all and whether anything is
  *  already standing on it. First there holds it — which is what makes the lanes
  *  between the Points worth contesting rather than just worth walking down. */
-function shrineBlocker(
+function namedSquareBlocker(
   state: GameState,
+  player: PlayerId,
   row: number,
   col: number,
 ): { ok: boolean; reason?: string } {
   const m = domMap(state);
-  if (!m) return { ok: false, reason: "No shrines on this battlefield" };
+  if (!m) return { ok: false, reason: "This battlefield deploys by column" };
   if (row < 0 || row >= state.boardSize || col < 0 || col >= state.boardSize)
     return { ok: false, reason: "Off the board" };
-  if (!isShrine(m, row, col)) return { ok: false, reason: "Not a shrine" };
-  if (cardAt(state, row, col)) return { ok: false, reason: "Shrine is occupied" };
+  // Either a neutral shrine, or a square on this seat's own edge.
+  const shrine = isShrine(m, row, col);
+  const mine = homeSlots(state, player).some((s) => s.row === row && s.col === col);
+  if (!shrine && !mine) return { ok: false, reason: "Not a shrine or your own edge" };
+  if (isImpassable(m, row, col)) return { ok: false, reason: "Nothing can stand there" };
+  if (cardAt(state, row, col)) return { ok: false, reason: shrine ? "Shrine is occupied" : "Slot is occupied" };
   if (isCaptured(state, row, col)) return { ok: false, reason: "Slot is permanently captured" };
   return { ok: true };
 }
@@ -144,6 +200,12 @@ export function summonLandingRow(
   player: PlayerId,
   col: number,
 ): number | null {
+  // Domination has no Home row to fall back FROM, and no lockout to escape: a
+  // seat whose shrine is taken has three more, all neutral. Letting the fallback
+  // run here would have walked its spawn deeper into the board every time its
+  // end filled up — which is exactly what it looks like when an opponent
+  // appears somewhere nothing should be able to deploy.
+  if (domMap(state)) return null;
   const home = homeRow(player, state.boardSize);
   if (homeSlotBlocker(state, player, col) === null) return home;
   // Only when the row is wholly unavailable — otherwise use the open slot.

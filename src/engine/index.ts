@@ -31,6 +31,9 @@ export {
 } from "./state";
 export {
   canSummon,
+  homeSlots,
+  neutralDeploySlots,
+  summonLandingRow,
   openHomeSlots,
   canMove,
   legalMoves,

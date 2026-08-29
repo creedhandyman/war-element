@@ -175,12 +175,16 @@ export const heldCount = (
   held: Record<PoiId, PlayerId | null>, player: PlayerId,
 ): number => (Object.values(held) as (PlayerId | null)[]).filter((h) => h === player).length;
 
-/** Points needed at the end of two consecutive rounds to win outright. Holding
- *  ALL FOUR wins on the spot; this is the majority that wins if you can keep it
- *  for a round after taking it — long enough that the opponent gets one full
- *  turn to break it, short enough that a real lead closes the game. */
+/** THREE Points held at the end of THREE consecutive rounds wins the map.
+ *
+ *  Holding all four still ends it on the spot. This is the majority you have to
+ *  keep, and keeping it is the point: three rounds means the table gets two full
+ *  turns to break your hold before it counts, which in a free-for-all is what
+ *  stops the first player to grab a majority from simply running out the game
+ *  while everyone else is still fighting each other. The streak resets the
+ *  moment the majority slips, so it has to be three rounds IN A ROW. */
 export const DOMINATION_MAJORITY = 3;
-export const DOMINATION_HOLD_ROUNDS = 2;
+export const DOMINATION_HOLD_ROUNDS = 3;
 
 /** The `domination` block a fresh match starts with: nobody holds anything.
  *
@@ -199,7 +203,7 @@ export function newDomination(map: DominationMap): {
 } {
   const held: Record<string, PlayerId | null> = {};
   for (const p of map.pois) held[p.id] = null;
-  return { mapId: map.id, held, streak: { P1: 0, P2: 0 } };
+  return { mapId: map.id, held, streak: { P1: 0, P2: 0, P3: 0, P4: 0 } };
 }
 
 /** What a held Point pays its holder, every round, on top of the ordinary

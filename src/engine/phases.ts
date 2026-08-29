@@ -76,6 +76,7 @@ import {
   poolGainForRound,
   POOL_CARRYOVER_CAP,
   enemyOf,
+  seatsOf,
   homeRow,
   VOID_BOSS_INCOME,
   OVERRUN_HOLD_ROUNDS,
@@ -134,7 +135,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // AI line on purpose: an AI-controlled seat is always full-auto and no
       // stored preference should be able to talk it out of that.
       else if (intent.autoMode) inst.autoMode = intent.autoMode;
-      if (draft.opening) draft.opening[intent.player] -= 1;
+      if (draft.opening) draft.opening[intent.player] = (draft.opening[intent.player] ?? 0) - 1;
       draft.prep!.consecutivePasses = 0;
       // Named from what LANDED, not from what was played. Both players read this
       // log, so a disguised card that announces its true name here is not
@@ -578,11 +579,15 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         throw new Error("Can't pass now");
       draft.prep.consecutivePasses++;
       draft.log.push(`${intent.player} passes.`);
-      if (draft.prep.consecutivePasses >= 2) {
+      // Prep ends when EVERY seat has passed in a row, not when two have. With
+      // two seats that is the same number it always was; with four it is the
+      // difference between a round ending and a round ending early because the
+      // two players sitting opposite each other happened to pass together.
+      if (draft.prep.consecutivePasses >= seatsOf(draft).length) {
         if (draft.opening) endDeployment(draft);
         else startBattle(draft);
       } else {
-        draft.prep.priority = enemyOf(intent.player);
+        draft.prep.priority = nextSeat(draft, intent.player);
         // Movement stays locked for the whole of deployment.
         draft.prep.movedThisTurn = !!draft.opening;
       }
@@ -1212,7 +1217,7 @@ function resolveDomination(draft: GameState): boolean {
   // be standing on it and it needs no special case here.
   const counts = {} as Record<string, { P1: number; P2: number }>;
   for (const poi of map.pois) {
-    const tally = { P1: 0, P2: 0 };
+    const tally = { P1: 0, P2: 0, P3: 0, P4: 0 } as Record<PlayerId, number>;
     for (const slot of poiRing(poi)) {
       const occ = cardAt(draft, slot.row, slot.col);
       if (occ && occ.curHp > 0) tally[occ.owner]++;
@@ -1226,7 +1231,7 @@ function resolveDomination(draft: GameState): boolean {
       draft.log.push(`${dom.held[poi.id]} takes ${poi.name}.`);
 
   // ALL FOUR ends it on the spot — no waiting, no second round to confirm.
-  for (const player of ["P1", "P2"] as PlayerId[]) {
+  for (const player of seatsOf(draft)) {
     if (heldCount(dom.held, player) === map.pois.length) {
       draft.win = { winner: player, by: "domination" };
       draft.phase = "gameover";
@@ -1239,7 +1244,7 @@ function resolveDomination(draft: GameState): boolean {
   // win; still holding three after the opponent has had a full turn to break it
   // does. The streak resets the moment the majority slips, so it is a lead that
   // has to be defended rather than a counter that only ever goes up.
-  for (const player of ["P1", "P2"] as PlayerId[]) {
+  for (const player of seatsOf(draft)) {
     const holds = heldCount(dom.held, player) >= DOMINATION_MAJORITY;
     dom.streak[player] = holds ? dom.streak[player] + 1 : 0;
     if (dom.streak[player] >= DOMINATION_HOLD_ROUNDS) {
@@ -1254,6 +1259,14 @@ function resolveDomination(draft: GameState): boolean {
       draft.log.push(`${player} holds the majority — one more round to take it.`);
   }
   return false;
+}
+
+/** The seat after `player` in turn order, wrapping. Two seats make this
+ *  `enemyOf`; more make it a rotation. */
+function nextSeat(state: GameState, player: PlayerId): PlayerId {
+  const order = seatsOf(state);
+  const i = order.indexOf(player);
+  return order[(i + 1) % order.length] ?? player;
 }
 
 /** The match hit MAX_ROUNDS. Decide it on progress toward the real win
@@ -1319,7 +1332,7 @@ export const OPENING_SLOTS = 1;
  *  slot that is free, uncaptured and uncontested (`openHomeSlots`, which is the
  *  same board check canSummon itself runs). */
 function anyoneCanDeploy(draft: GameState): boolean {
-  for (const player of ["P1", "P2"] as PlayerId[]) {
+  for (const player of seatsOf(draft)) {
     if ((draft.opening?.[player] ?? 0) <= 0) continue;
     const affordable = draft.players[player].hand
       .some((h) => getDef(h.defId).cost <= OPENING_COST_CAP);
@@ -1330,10 +1343,10 @@ function anyoneCanDeploy(draft: GameState): boolean {
 }
 
 function startDeployment(draft: GameState): void {
-  for (const player of ["P1", "P2"] as PlayerId[]) {
+  for (const player of seatsOf(draft)) {
     // A summon lands in the home row, which is exactly `boardSize` wide, so a
     // side can never place more than the board can hold.
-    draft.opening![player] = Math.min(draft.opening![player], draft.boardSize);
+    draft.opening![player] = Math.min(draft.opening![player] ?? 0, draft.boardSize);
     // The opening hand covers any slot count we grant, so no top-up is needed.
   }
   // Skip the whole phase when there is nothing anyone could do with it. Since
@@ -1360,7 +1373,7 @@ function endDeployment(draft: GameState): void {
   // Deployment spends no gold, but this stays as a guard: anything that ever
   // seeds gold here would be carried (capped) by the round-1 resource phase and
   // then have the round income added on top of it.
-  for (const player of ["P1", "P2"] as PlayerId[]) draft.players[player].gold = 0;
+  for (const player of seatsOf(draft)) draft.players[player].gold = 0;
   draft.opening = undefined;
   draft.log.push("— Deployment complete. —");
   startRound(draft);
@@ -1372,7 +1385,7 @@ function startRound(draft: GameState): void {
   // back up on their side. Resolved HERE rather than on death so the count is
   // final — a card that revived (Zombie Husk) and fell again should not pay out
   // twice, and the stats ledger already de-duplicates that for us.
-  for (const player of ["P1", "P2"] as PlayerId[]) {
+  for (const player of seatsOf(draft)) {
     const pending = draft.players[player].wakePending;
     if (!pending || pending.round >= draft.round) continue;
     // Re-arm while the effect that does the killing is still running, with a
@@ -1397,7 +1410,7 @@ function startRound(draft: GameState): void {
 function doDrawPhase(draft: GameState): void {
   // Draw 1 each round, with a +2 bonus refuel (draw 3) on rounds 10 and 15.
   const n = draft.round === 10 || draft.round === 15 ? 3 : 1;
-  for (const player of ["P1", "P2"] as PlayerId[]) {
+  for (const player of seatsOf(draft)) {
     const drawn = drawCards(draft, player, n);
     if (drawn > 0) draft.log.push(`${player} draws ${drawn}.`);
     // A draw cut short by a full hand (not an empty deck) — surface why.
@@ -1425,7 +1438,7 @@ function doDrawPhase(draft: GameState): void {
  */
 function nothingCanHappen(draft: GameState): boolean {
   if (boardCards(draft).length > 0) return false; // anyone on the board can act
-  for (const player of ["P1", "P2"] as PlayerId[]) {
+  for (const player of seatsOf(draft)) {
     const p = draft.players[player];
     if (p.hand.some((h) => getDef(h.defId).cost <= p.gold)) return false;
     const targetless = new Set(["wall", "field", "trap", "convert"]);
@@ -1479,7 +1492,7 @@ function doResourcePhase(draft: GameState): void {
         // seat, and a tamed ally could be it.
         getDef(boardCards(draft).find((c) => getDef(c.defId).boss && !c.tamed)?.defId ?? "").cost ?? 0)
     : 0;
-  for (const player of ["P1", "P2"] as PlayerId[]) {
+  for (const player of seatsOf(draft)) {
     const p = draft.players[player];
     // The boss's war chest — see VOID_BOSS_INCOME. Its army is priced as a
     // build-time budget and then charged for again at retail; this is what pays
@@ -1523,11 +1536,13 @@ function doResourcePhase(draft: GameState): void {
     doResourcePhase(draft);
     return;
   }
-  // Prep initiative alternates each round: the coin-flip winner preps first on
-  // odd rounds, the opponent on even ones — so neither side keeps the first-mover
-  // edge all game.
-  const firstThisRound =
-    draft.round % 2 === 1 ? draft.firstPlayer : enemyOf(draft.firstPlayer);
+  // Prep initiative ROTATES each round, so nobody keeps the first-mover edge all
+  // game. With two seats that is the old alternation exactly — the coin-flip
+  // winner on odd rounds, the other on even — and with three or four it walks
+  // the seating order instead of bouncing between the first two.
+  const order = seatsOf(draft);
+  const firstIdx = Math.max(0, order.indexOf(draft.firstPlayer));
+  const firstThisRound = order[(firstIdx + (draft.round - 1)) % order.length];
   draft.phase = "prep";
   // Downpour: the tide re-shapes your side every round. Opened HERE, at the top
   // of the round — Flow buffs are round-scoped and wiped in Cleanup, so a
@@ -2113,7 +2128,7 @@ function aiFlowChoice(cardClass: string): FlowMode {
  */
 export function openFlowRepick(draft: GameState): void {
   if (draft.pendingFlow) return; // a prompt is already up
-  for (const p of ["P1", "P2"] as PlayerId[]) {
+  for (const p of seatsOf(draft)) {
     const field = draft.fields.find((f) => f.owner === p && f.flowRepick);
     // One offer per player per round. This function is called again after a
     // choice resolves (to catch the other side in hot-seat), and without the
@@ -3167,7 +3182,7 @@ function doCleanupPhase(draft: GameState): void {
   //    Different DOT kinds coexist and each ticks (BLEED + BURN both hurt).
   //    BLEED damage is tallied per dealer side so Thorn's Transfusion can heal
   //    from the total BLEED its enemies took (its own BLEED + any teammate's).
-  const bleedDealtBy: Record<PlayerId, number> = { P1: 0, P2: 0 };
+  const bleedDealtBy: Record<PlayerId, number> = { P1: 0, P2: 0, P3: 0, P4: 0 };
   for (const card of boardCards(draft)) {
     // The board list is a snapshot taken once, and a card in it can die BEFORE
     // its turn in the loop comes round — killed by an earlier card's on-death
@@ -3212,7 +3227,7 @@ function doCleanupPhase(draft: GameState): void {
 
   // 1c. Meteor (Cosmic): pending round-end strikes land now — dmg to every
   // opponent of the owner. Fire those due this round, then drop them.
-  for (const pl of ["P1", "P2"] as PlayerId[]) {
+  for (const pl of seatsOf(draft)) {
     const pend = draft.players[pl].pendingMeteors;
     if (!pend?.length) continue;
     const due = pend.filter((m) => m.round <= draft.round);
@@ -3240,7 +3255,7 @@ function doCleanupPhase(draft: GameState): void {
   // Spiraling Root Coil follow-up (Evera): scheduled far-row ROOTs count down
   // and fire on their due Cleanup. Its own loop so a card with roots but no
   // meteors isn't skipped by the meteor guard above.
-  for (const pl of ["P1", "P2"] as PlayerId[]) {
+  for (const pl of seatsOf(draft)) {
     const roots = draft.players[pl].pendingFarRoots;
     if (!roots?.length) continue;
     for (const r of roots) r.roundsLeft -= 1;
@@ -3510,7 +3525,7 @@ function doCleanupPhase(draft: GameState): void {
   draft.walls = draft.walls.filter((w) => w.roundsLeft > 0);
 
   // 3c. Fields decay a round; expired ones lift.
-  for (const p of ["P1", "P2"] as PlayerId[]) {
+  for (const p of seatsOf(draft)) {
     const left = draft.players[p].burnBoostRounds ?? 0;
     if (left > 0) draft.players[p].burnBoostRounds = left - 1;
     const fog = draft.players[p].foggedRounds ?? 0;
@@ -3599,7 +3614,12 @@ function doCleanupPhase(draft: GameState): void {
   //    What is gone is the permanent lock, in both directions: the player
   //    cannot padlock the boss's summoning row either, because the fight is
   //    supposed to be decided by reaching the boss, not by walling it in.
-  if (!draft.voidTower) for (const player of ["P1", "P2"] as PlayerId[]) {
+  // ...and DOMINATION has no Home row to capture. Leaving this on there did
+  // real damage rather than nothing: the end rows are part of two Points, so a
+  // capture PERMANENTLY locked ring squares that the objective is counted on —
+  // nobody can stand on a captured slot ever again, so a Point could be quietly
+  // whittled down to something neither side can contest.
+  if (!draft.voidTower && !draft.domination) for (const player of seatsOf(draft)) {
     const row = homeRow(player, draft.boardSize);
     for (let col = 0; col < draft.boardSize; col++) {
       if (draft.slots[row][col].capturedBy) continue;
@@ -3654,7 +3674,7 @@ function doCleanupPhase(draft: GameState): void {
   if (resolveDomination(draft)) return;
 
   // 6. Win conditions — capture takes precedence if both trigger.
-  for (const player of ["P1", "P2"] as PlayerId[]) {
+  for (const player of seatsOf(draft)) {
     if (!draft.voidTower && !draft.domination && hasCaptureWin(draft, player)) {
       draft.win = { winner: player, by: "capture" };
       draft.phase = "gameover";
@@ -3662,7 +3682,7 @@ function doCleanupPhase(draft: GameState): void {
       return;
     }
   }
-  for (const player of ["P1", "P2"] as PlayerId[]) {
+  for (const player of seatsOf(draft)) {
     if (isEliminated(draft, enemyOf(player))) {
       draft.win = { winner: player, by: "elimination" };
       draft.phase = "gameover";
@@ -3763,7 +3783,7 @@ export function needsInput(state: GameState): PlayerId | null {
   const humans = state.humans ?? ["P1"];
   if (state.phase === "gameover") return null;
   if (state.phase === "mulligan") {
-    for (const p of ["P1", "P2"] as PlayerId[])
+    for (const p of seatsOf(state))
       if (humans.includes(p) && !state.players[p].mulliganDone) return p;
     return null;
   }
@@ -3798,7 +3818,7 @@ export function advance(state: GameState): GameState {
   switch (draft.phase) {
     case "mulligan": {
       // Auto-mulligan every AI (non-human) player that hasn't gone yet.
-      for (const p of ["P1", "P2"] as PlayerId[]) {
+      for (const p of seatsOf(draft)) {
         if (!draft.humans.includes(p) && !draft.players[p].mulliganDone) {
           applyMulligan(draft, p, aiMulligan(draft, p));
         }

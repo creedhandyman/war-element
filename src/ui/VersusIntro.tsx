@@ -68,7 +68,7 @@ export function VersusIntro(props: {
   me: PlayerId;
   /** Both seats' deck names, relayed by the host. Absent only if the opening
    *  message was missed entirely, hence the fallbacks. */
-  names: { P1: string; P2: string } | null;
+  names: Partial<Record<PlayerId, string>> | null;
   onDone: () => void;
 }) {
   const { game, me, names, onDone } = props;

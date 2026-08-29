@@ -30,7 +30,7 @@ export function Slot(props: {
    *  tested against `owner === viewer`, which is the same thing offline and
    *  wrong online: the opponent's shinies are theirs to show, and yours have to
    *  keep shining when somebody else is looking at them. */
-  foils?: { P1?: ReadonlySet<string>; P2?: ReadonlySet<string> };
+  foils?: Partial<Record<PlayerId, ReadonlySet<string>>>;
   card: CardInstance | null;
   legal: boolean;
   isTarget: boolean; // enemy attack/special target → red
@@ -44,7 +44,7 @@ export function Slot(props: {
   grayed: boolean;
   movable: boolean; // your card that can move this turn → a soft nudge ring
   contested: boolean;
-  captured: "P1" | "P2" | null;
+  captured: PlayerId | null;
   /** The viewer's OWN trap on this square, if any. Traps are concealed, so the
    *  caller passes one only when it belongs to the player looking at the board —
    *  never the opponent's, at any opacity. */

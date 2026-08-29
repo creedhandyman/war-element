@@ -27,6 +27,8 @@ import {
   validAllyTargets,
   specialTargets,
   validTargets,
+  homeSlots,
+  neutralDeploySlots,
 } from "./rules";
 import type {
   CardInstance,
@@ -69,10 +71,24 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
     .slice()
     .sort((a, b) => getDef(b.defId).cost - getDef(a.defId).cost);
   for (const h of hand) {
-    for (let col = 0; col < state.boardSize; col++) {
-      if (canSummon(state, player, h.handId, col).ok) {
-        return { type: "SUMMON", player, handId: h.handId, col };
+    // A seat's OWN deployment squares first. On a standard board those are the
+    // home-row columns this loop always walked; in Domination they are the
+    // seat's shrine, which is a square and so needs its row named. Without
+    // this a third or fourth seat has nowhere to play at all: `homeRow` gives
+    // both of them the row it gives P2, and that row is not theirs.
+    for (const slot of homeSlots(state, player)) {
+      if (canSummon(state, player, h.handId, slot.col, state.domination ? slot.row : undefined).ok) {
+        return {
+          type: "SUMMON", player, handId: h.handId, col: slot.col,
+          ...(state.domination ? { row: slot.row } : {}),
+        };
       }
+    }
+    // ...then any NEUTRAL shrine, which anyone may use. A seat whose own shrine
+    // is occupied is not out of the game; it comes in somewhere else.
+    for (const slot of neutralDeploySlots(state)) {
+      if (canSummon(state, player, h.handId, slot.col, slot.row).ok)
+        return { type: "SUMMON", player, handId: h.handId, col: slot.col, row: slot.row };
     }
   }
 

@@ -1,6 +1,17 @@
 // War Element — engine types. Pure data, no React.
 
-export type PlayerId = "P1" | "P2";
+/** Four seats exist; a match uses as many as it seats. `GameState.seats` is
+ *  the list actually playing, in turn order — two for every mode that shipped
+ *  before Domination, up to four for that one.
+ *
+ *  Widened rather than parameterised because a seat is an IDENTITY here, not an
+ *  index: cards, slots and captures all carry one, and they are compared, keyed
+ *  and serialised by it everywhere. */
+export type PlayerId = "P1" | "P2" | "P3" | "P4";
+
+/** Every seat that exists, in seating order. NOT the seats in a given match —
+ *  read `GameState.seats` (or `seatsOf`) for that. */
+export const ALL_SEATS: readonly PlayerId[] = ["P1", "P2", "P3", "P4"];
 
 export type Element =
   | "LEAF"
@@ -2360,11 +2371,14 @@ export interface GameState {
   /** Opening deployment (§10.6). Present only while it is RUNNING; the numbers
    *  are how many more cards each side may place. Absent = ordinary round flow,
    *  which is what every non-story battle uses. */
-  opening?: { P1: number; P2: number };
+  opening?: Partial<Record<PlayerId, number>>;
   /** Which players are human-controlled. ["P1"] = vs-AI (default); ["P1","P2"]
    *  = local hot-seat 2-player. The driver only auto-runs AI for players NOT
    *  in this list. */
   humans: PlayerId[];
+  /** The seats playing this match, in turn order. Absent on a state built
+   *  before seats existed, which `seatsOf` reads as the two-seat default. */
+  seats?: PlayerId[];
   firstPlayer: PlayerId; // coin-flip winner; preps first on ODD rounds (initiative alternates)
   players: Record<PlayerId, PlayerState>;
   /** All living board cards, keyed by instanceId. Board layout derived from pos. */
@@ -2641,6 +2655,32 @@ export function isMidRow(row: number): boolean {
   return row === 1 || row === 2;
 }
 
+/** THE other seat, in a two-seat match.
+ *
+ *  Still correct and still used wherever the question really is binary — a
+ *  contested Home slot, a hot-seat viewer, the two-seat online protocol. It is
+ *  NOT the way to ask "who am I fighting" any more: with three or four seats
+ *  there is no single answer, and `enemyCards` / `opponentsOf` are how that gets
+ *  asked. Kept honest by returning P1 for anything that is not P2, so a
+ *  three-seat match cannot silently get a plausible wrong answer from it —
+ *  callers that mattered were converted rather than left to find out. */
 export function enemyOf(player: PlayerId): PlayerId {
   return player === "P1" ? "P2" : "P1";
+}
+
+/** The seats actually playing this match, in turn order.
+ *
+ *  Falls back to the two-seat default so a state serialised before seats
+ *  existed — a saved match, an online payload from an older client — still
+ *  reads correctly rather than coming back with no players at all. */
+export function seatsOf(state: { seats?: readonly PlayerId[] }): readonly PlayerId[] {
+  return state.seats && state.seats.length > 0 ? state.seats : ["P1", "P2"];
+}
+
+/** Everyone in this match who is not `player`. One opponent in a 1v1, three in
+ *  a four-player free-for-all. */
+export function opponentsOf(
+  state: { seats?: readonly PlayerId[] }, player: PlayerId,
+): readonly PlayerId[] {
+  return seatsOf(state).filter((p) => p !== player);
 }
