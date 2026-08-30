@@ -84,6 +84,10 @@ export function HomeScreen(props: {
   onGallery: () => void;
   /** Open the account panel — email sign-in and the cloud save. */
   onAccount: () => void;
+  /** Open the rules book. Home needs its own route because the onboarding card
+   *  that renders HERE promises "you can still read How to play any time", and
+   *  until now the only entry point in the whole app was the Arena lobby. */
+  onRules: () => void;
   /** Open the story map on the FIRST node. The first-run guide's last step
    *  needs to land on L1 specifically; `onStory` only opens a region. */
   onFightFirst: () => void;
@@ -203,6 +207,18 @@ export function HomeScreen(props: {
           >
             {props.accountEmail ? "\u2601" : "\u2601\uFE0F"}
             <span>{props.accountEmail ? "Synced" : "Sign in"}</span>
+          </button>
+          {/* Beside the account button rather than in the tile grid: the tiles
+              are about what to DO next, and this is a reference you reach for
+              mid-thought. Small on purpose — a new player should be reading the
+              onboarding card above, not this. */}
+          <button
+            className="home-acct"
+            onClick={props.onRules}
+            title="The rules — win conditions, phases, keywords and statuses"
+          >
+            {"❓"}
+            <span>Rules</span>
           </button>
         </div>
 

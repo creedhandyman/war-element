@@ -3048,6 +3048,22 @@ export function App() {
                   {surrenderArmed ? "Confirm?" : twoPlayer ? `${me} surrender` : "Surrender"}
                 </button>
               )}
+              {/* HOW TO PLAY, in the match. It had exactly one entry point in the
+                  whole app — the Arena lobby — which is the one place you are
+                  NOT when the question comes up. Every rule it explains (the
+                  capture win, the SP queue, King of the Hill, what a status
+                  does) is asked mid-fight, and the onboarding card on Home
+                  promises "you can still read How to play any time" while
+                  offering no route to it. The sheet is already mounted at the
+                  top level and its `.overlay` sits at z 300, well clear of the
+                  in-match chrome's 62, so it opens over the board cleanly. */}
+              <button
+                className="ghost sm"
+                title="The rules — win conditions, phases, keywords and statuses"
+                onClick={() => { setBarMenu(false); setRulesOpen(true); }}
+              >
+                How to play
+              </button>
             </div>
           </div>
         </div>
@@ -4152,6 +4168,7 @@ export function App() {
             setStory(next); saveStory(next);
           }}
           onAccount={() => setAccountOpen(true)}
+          onRules={() => setRulesOpen(true)}
           accountEmail={accountEmail}
         />
       )}
