@@ -201,12 +201,40 @@ describe("THREE elements, which Floor 5 is the first floor to allow", () => {
 });
 
 describe("Eye of the Storm — one Special, two faces", () => {
-  it("with no hurricane up, it CALLS one", () => {
+  it("with no hurricane up, it CALLS one — but not before the storm gathers", () => {
     const s = bigPrepState();
+    s.round = getDef(BOSS).roundTick!.spawnOnRound!.round;   // the gathering round
     const boss = place(s, BOSS, "P2", 0, 2);
     expect(boardCards(s, "P2").some((c) => c.defId === STORM), "none yet").toBe(false);
     fireCardSpecial(s, s.cards[boss.instanceId]);
     expect(boardCards(s, "P2").some((c) => c.defId === STORM), "the storm forms").toBe(true);
+  });
+
+  it("...and the clock CANNOT pull the storm in early", () => {
+    // THE BUG THIS PINS. `fireSpecialEveryN` is 3 and Gathering Storm is 6, so
+    // the boss's first cast landed on round THREE, this face called a hurricane
+    // then, and the round-6 tick therefore never once found an empty field:
+    // measured, `spawnOnRound` fired 0 times across 48 fights while this handler
+    // ran 327. A named passive that never ran, a card text promising a round it
+    // did not keep, and a boss holding its legs three rounds early — worth 8.8
+    // points of win rate on its own (92.7% -> 83.9%, n=192).
+    const gathers = getDef(BOSS).roundTick!.spawnOnRound!.round;
+    const s = bigPrepState();
+    s.round = gathers - 1;
+    const boss = place(s, BOSS, "P2", 0, 2);
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    expect(boardCards(s, "P2").some((c) => c.defId === STORM),
+      "the storm has not gathered yet").toBe(false);
+  });
+
+  it("the gathering round is the one the round tick announces", () => {
+    // The gate reads the boss's OWN `spawnOnRound.round` rather than a param of
+    // its own, so the Special and the tick cannot drift apart into the state
+    // that caused the bug above. If someone re-adds a second number, this fails.
+    const rt = getDef(BOSS).roundTick!;
+    expect(rt.spawnOnRound?.round, "Gathering Storm").toBe(6);
+    expect(getDef(BOSS).special?.params?.minRound,
+      "no rival number — the gate reads the tick").toBeUndefined();
   });
 
   it("with one standing, it TRADES PLACES with it", () => {

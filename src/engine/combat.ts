@@ -4047,6 +4047,22 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const storm = mine.find((c) => c.curHp > 0 && c.defId === token && c.pos);
 
     if (!storm) {
+      // GATHERING STORM, and it has to be gated here or it never happens at all.
+      // The boss's `spawnOnRound` promises the hurricane forms on a named round
+      // — the card text calls it "the one thing in this fight a player can plan
+      // around exactly" — but the clock fires this Special on round THREE, this
+      // face called a storm then, and the round-6 tick therefore always found
+      // one already alive. Measured: `spawnOnRound` fired 0 times in 48 fights
+      // while this handler ran 327 times. A named passive that never once ran,
+      // and a boss that got its legs three rounds early.
+      //
+      // Read from the boss's OWN roundTick rather than a param, so the round
+      // lives in exactly one place and the two halves cannot drift apart again.
+      const gathersOn = getDef(attacker.defId).roundTick?.spawnOnRound?.round ?? 0;
+      if (draft.round < gathersOn) {
+        draft.log.push(`${label(draft, attacker)} reaches for the storm — it has not gathered yet.`);
+        return;
+      }
       const born = spawnTokens(draft, attacker, token, 1);
       draft.log.push(
         born.length
@@ -4141,7 +4157,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // something resolving first, would make this an overwrite.
     const spawn = String(params.spawnOnKill ?? "");
     const dead = !draft.cards[victim.instanceId] || draft.cards[victim.instanceId].curHp <= 0;
-    if (spawn && dead && where
+    // ...UP TO A CEILING. Rockfall prints `spawnMaxAlive` and the round tick
+    // honours it, but this rider never did, so the cap bound one of the two
+    // sources and the other poured rocks in over the top of it — which is why
+    // moving that cap 3 -> 1 measured nothing at all. `maxAlive` is its own
+    // param rather than a read of the tick's: the two are different taps and a
+    // shared number would tie them together by accident rather than on purpose.
+    // Absent = uncapped, so no other caller changes.
+    const cap = num(params, "maxAlive", 0);
+    const rolling = cap > 0
+      ? boardCards(draft, attacker.owner).filter((c) => c.curHp > 0 && c.defId === spawn).length
+      : 0;
+    if (spawn && dead && where && (cap <= 0 || rolling < cap)
         && !draft.slots[where.row][where.col].capturedBy
         && !boardCards(draft).some((c) => c.pos?.row === where.row && c.pos.col === where.col)) {
       const born = summonCard(draft, attacker.owner, spawn, where as never);

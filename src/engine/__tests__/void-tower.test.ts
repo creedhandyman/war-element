@@ -318,6 +318,23 @@ describe("the roster", () => {
       // That is a little under the 80-90 band Floor 4 was tuned to, and it is
       // internally consistent, which the 75.0-95.8 spread before it was not.
       // HP remains the lever in either direction (366 body against a 660 cap).
+      //
+      // AS SHIPPED: **84.9% (n=768, +/-2.5)**, in the 80-90 band. It got there
+      // from 92.7 on ONE change and that change was a BUG FIX, not a nerf —
+      // Gathering Storm never fired. `fireSpecialEveryN` is 3 and the storm
+      // gathers on 6, so Eye of the Storm's call-a-hurricane face ran on round
+      // THREE and the round-6 tick never once found an empty field: measured,
+      // `spawnOnRound` fired 0 times in 48 fights while the handler ran 327.
+      // The Special is gated on the boss's own gathering round now, the card's
+      // promise is true, and the boss no longer holds its legs three rounds
+      // early. Worth -8.8. Win type moved with it: player KILLS 14 -> 31 of
+      // 192, which is the healthiest direction a boss number can move.
+      //
+      // AND THE HURRICANE'S BODY READS BACKWARDS, which is worth knowing before
+      // anyone tunes it again: LOWERING the token's HP makes the boss STRONGER
+      // (85 -> 45 read 97.4%, 85 -> 30 read 97.9%, against 92.7). Killing it
+      // fires the call-a-hurricane face, and the fresh one re-runs its on-summon
+      // barrage. A fragile token is MORE barrages, not fewer.
       boss_skybreaker: 366,
       // FLOOR 5's second boss, and the heaviest body on the tower by a
       // distance: 50 + 400 + 50x2 + 1. The owner's line. SP 1 is the
@@ -359,6 +376,31 @@ describe("the roster", () => {
       // The floor currently spreads 75.0-95.8. If it wants tightening, the
       // levers are Continental's SP (the single biggest one) and Skybreaker's
       // HP — not either body's size on its own.
+      //
+      // AS SHIPPED: **85.8% (n=768, +/-2.5)**, in the 80-90 band. Nothing about
+      // this boss's BODY moved it — shields 50 -> 25 and dropping its second
+      // element both read exactly 0.0, and its own `advance` gait reads 0.0 as
+      // well (see the note on the dead holds below). What moved it was the
+      // BOULDER COUNT: Rockfall slowed 2 -> 3 rounds at 3 -> 2 alive, and the
+      // Special's on-kill rider given the `maxAlive` ceiling it never had. That
+      // rider was uncapped, so Rockfall's printed cap bound one of two taps
+      // while the other poured rocks over the top of it — which is why moving
+      // that cap 3 -> 1 had measured -1.0 and nothing else.
+      //
+      // THE BOULDERS WIN BY BODY, NOT DAMAGE. Crush set to ZERO still read
+      // 90.6% (from 95.3): they win by filling the player's home row for the
+      // overrun. So the crush is cheap to cut (35 -> 12) and the count is the
+      // real tuning.
+      //
+      // THE HOLDS ARE DEAD CONFIG — and must stay that way. `advance`,
+      // `advanceFromRound: 15`, `advanceWhenWallsDown` and `aimLateral` are all
+      // inert: the generic mover (`findClosingMove`) marches the giant down the
+      // board regardless, the same bug `holdsPosition` was invented for on
+      // Helion. Deleting `advance` entirely changes the fight by 0.0. DO NOT
+      // "fix" it by adding EMPLACED: measured, `holdsPosition` makes this boss
+      // 96.9% and Skybreaker 99.5%, because a giant with `fullBoardBasic` that
+      // never leaves its back row cannot be reached while it shoots the whole
+      // board. Walking down is what gets these two killed.
       boss_continental: 551,
     };
     for (const v of VOID_BOSSES) {

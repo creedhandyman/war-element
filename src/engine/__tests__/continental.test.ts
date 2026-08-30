@@ -51,7 +51,10 @@ describe("the shape of the fight", () => {
     expect([t.dmg, t.hp, t.shields, t.sp]).toEqual([0, 40, 5, 0]);
     // A 0-DMG body is normally a mistake; here it is the design. Everything it
     // does happens by rolling, in the round tick.
-    expect(t.trampleDmg, "Crush").toBe(35);
+    // Halved from 35 to bring Floor 5 into the 80-90 band. This is the ONE
+    // place the number is written down; the behaviour tests below read it off
+    // the def so a future tuning pass moves one line, not five.
+    expect(t.trampleDmg, "Crush").toBe(12);
     expect(t.roundTick?.advanceTrample).toBe(1);
   });
 });
@@ -166,7 +169,7 @@ describe("Continental Drift — it waits for the wall, then it walks", () => {
   });
 });
 
-describe("Rockfall — a boulder every even round", () => {
+describe("Rockfall — a boulder on the boss's own beat", () => {
   const run = (round: number) => {
     const s = bigPrepState();
     place(s, BOSS, "P2", 0, 2);
@@ -175,22 +178,31 @@ describe("Rockfall — a boulder every even round", () => {
     // ahead of its NEW slot, so "the row in front of him" measures one further
     // out. That is correct behaviour and it made the first version of this test
     // wrong rather than the code.
-    place(s, VOID_GATE, "P1", s.boardSize - 2, 0);
+    // ...and it has to SURVIVE the round. Rockfall now shares its beat with
+    // the boss clock (both 3), so on a spawn round the Special fires too — and
+    // a gate it kills leaves an ON-KILL boulder in the gate's own square, which
+    // is a second rock, in a different row, and not the one this measures.
+    place(s, VOID_GATE, "P1", s.boardSize - 2, 0, { curHp: 500, maxHp: 500, curShields: 0 });
     s.round = round;
     const n = advance(atCleanup(s));
     return boardCards(n, "P2").filter((c) => c.curHp > 0 && c.defId === ROCK);
   };
 
-  it("looses one on an even round", () => {
-    expect(run(4).length, "round 4").toBeGreaterThan(0);
+  // Read the cadence rather than restating it: Rockfall moved 2 -> 3 to bring
+  // Floor 5 into the 80-90 band, and a test that hard-codes "even" goes from
+  // pinning the rule to pinning the old tuning.
+  const EVERY = getDef(BOSS).roundTick!.spawnEveryN!.n;
+
+  it("looses one on the beat", () => {
+    expect(run(EVERY * 2).length, `round ${EVERY * 2}`).toBeGreaterThan(0);
   });
 
-  it("and none on an odd one", () => {
-    expect(run(5).length, "round 5").toBe(0);
+  it("and none off it", () => {
+    expect(run(EVERY * 2 + 1).length, `round ${EVERY * 2 + 1}`).toBe(0);
   });
 
   it("drops it in the row directly IN FRONT of the giant", () => {
-    const rocks = run(4);
+    const rocks = run(EVERY * 2);
     expect(rocks[0].pos!.row, "one row toward the player").toBe(1);
   });
 
@@ -222,7 +234,8 @@ describe("the boulder rolls THROUGH", () => {
     const rock = place(s, ROCK, "P2", 1, 2);
     const victim = foeAt(s, 2, 2, 400);
     const n = advance(atCleanup(s));
-    expect(400 - n.cards[victim.instanceId].curHp, "35 through it").toBe(35);
+    const crush = getDef(ROCK).trampleDmg!;
+    expect(400 - n.cards[victim.instanceId].curHp, "the crush, through it").toBe(crush);
     expect(n.cards[rock.instanceId].pos!.row, "and it took the square").toBe(2);
   });
 
@@ -260,6 +273,41 @@ describe("Rolling Boulder, the Special", () => {
       "no kill, no rock").toBe(false);
   });
 
+  it("...and stops leaving them once the cap is full", () => {
+    // THE BUG THIS PINS. Rockfall prints `spawnMaxAlive` and the round tick
+    // honours it, but this rider never checked anything, so the ceiling bound
+    // one of the two taps while the other poured rocks in over the top of it.
+    // Measured consequence: moving the tick's cap 3 -> 1 changed the fight by
+    // -1.0 points, because the cap was never what was producing the boulders.
+    const cap = Number(getDef(BOSS).special!.params!.maxAlive);
+    expect(cap, "the Special declares its own ceiling").toBeGreaterThan(0);
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 0);
+    // Fill the cap with rocks that are already rolling...
+    for (let i = 0; i < cap; i++) place(s, ROCK, "P2", 1, i);
+    // ...then hand it a guaranteed kill.
+    const frail = foeAt(s, 3, 3, 4);
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    expect(s.cards[frail.instanceId], "it still killed the thing").toBeFalsy();
+    expect(boardCards(s, "P2").filter((c) => c.curHp > 0 && c.defId === ROCK).length,
+      "but left no rock — the cap is full").toBe(cap);
+  });
+
+  it("the cap counts LIVING rocks, so a destroyed one frees a slot", () => {
+    // A ceiling that counted rocks ever created would turn a mechanic the owner
+    // asked for into a one-shot; clearing the board has to re-arm it.
+    const cap = Number(getDef(BOSS).special!.params!.maxAlive);
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P2", 0, 0);
+    for (let i = 0; i < cap; i++) place(s, ROCK, "P2", 1, i, { curHp: 0, maxHp: 40, curShields: 0 });
+    const frail = foeAt(s, 3, 3, 4);
+    const where = { ...s.cards[frail.instanceId].pos! };
+    fireCardSpecial(s, s.cards[boss.instanceId]);
+    const fresh = boardCards(s, "P2").find((c) => c.curHp > 0 && c.defId === ROCK);
+    expect(fresh, "the dead ones do not hold the slots").toBeTruthy();
+    expect(fresh!.pos).toEqual(where);
+  });
+
   it("the rock it leaves does not roll the round it lands", () => {
     // Same `rollHeld` rule every loosed boulder follows: a rock that appeared
     // and immediately moved would never be seen in the square it took.
@@ -282,6 +330,6 @@ describe("Rolling Boulder, the Special", () => {
     // Fire it directly rather than waiting for the clock.
     fireCardSpecial(s, s.cards[boss.instanceId]);
     const after = s.cards[far.instanceId].curHp + s.cards[near.instanceId].curHp;
-    expect(before - after, "one rock, 35 damage, one victim").toBe(35);
+    expect(before - after, "one throw, one victim").toBe(Number(getDef(BOSS).special!.params!.dmg));
   });
 });

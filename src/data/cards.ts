@@ -11263,7 +11263,7 @@ export const CARDS: CardDef[] = [
       // destroys FORMATION, which is the resource a one-move-a-turn game is
       // actually made of.
       cycloneSpin: 1,
-fireSpecialEveryN: 3,
+      fireSpecialEveryN: 3,
     },
     special: {
       name: "Eye of the Storm",
@@ -11361,7 +11361,12 @@ fireSpecialEveryN: 3,
       advanceFromRound: 15,
       advanceWhenWallsDown: true,
       // ROCKFALL: a boulder every even round, in the row in front of it.
-      spawnEveryN: { n: 2, token: "bore_rolling_boulder_tok", spawnMaxAlive: 3 },
+      // ROCKFALL, on the boss's own beat. Every 2 rounds at 3 alive was one tap
+      // of two and the smaller one: the Special's on-kill rider poured rocks in
+      // over the top of this cap without checking it, which is why moving this
+      // number 3 -> 1 measured -1.0 and nothing else. Capped on BOTH taps now,
+      // and slowed to the clock the rest of the boss runs on.
+      spawnEveryN: { n: 3, token: "bore_rolling_boulder_tok", spawnMaxAlive: 2 },
       fireSpecialEveryN: 3,
     },
     special: {
@@ -11371,10 +11376,13 @@ fireSpecialEveryN: 3,
       // ...and on a KILL the rock stays, in the square the body left. That is
       // what makes this Special more than chip damage: every kill it lands
       // converts into a rolling body the player then has to answer.
-      params: { dmg: 35, spawnOnKill: "bore_rolling_boulder_tok" },
+      // `maxAlive`: the rider is capped like Rockfall is. Uncapped, a kill every
+      // three rounds meant a board that only ever gained rocks, and the printed
+      // Rockfall ceiling was decorative — see the note on `spawnEveryN` above.
+      params: { dmg: 35, spawnOnKill: "bore_rolling_boulder_tok", maxAlive: 2 },
       // "self": the handler picks its own victim, board-wide and at random.
       targetSide: "self",
-      text: "Hurls a boulder at one random opponent anywhere on the board for 35 DMG. If that kills it, the boulder settles in its square and starts rolling.",
+      text: "Hurls a boulder at one random opponent anywhere on the board for 35 DMG. If that kills it, the boulder settles in its square and starts rolling — up to 2 rolling from this at a time.",
     },
   },
   {
@@ -11738,7 +11746,14 @@ export const TOKENS: CardDef[] = [
     // CRUSH: 35 to whatever it rolls over. The same `trampleDmg` Hoarfell
     // carries, and it PENETRATES shields (`applyShove`) — masonry is not armour
     // to a boulder, which is what lets a rockfall answer a wall.
-    trampleDmg: 35,
+    // CRUSH, 35 -> 12. A big cut that buys little, and BOTH halves of that are
+    // the point: set to ZERO the fight still read 90.6% (from 95.3), so the
+    // boulders were never winning on this number. They win by BODY — filling
+    // the player's home row for the overrun — which is why the count (Rockfall's
+    // cadence and the two caps) is the real tuning and this is only the share of
+    // it that happens to be damage. Cutting it is nearly free, so it is cut to
+    // where the fight lands mid-band rather than shaved to taste.
+    trampleDmg: 12,
     // It rolls THROUGH, not up to. `advance` stops dead at the first occupied
     // slot, which is right for a seed and wrong for a boulder; `advanceTrample`
     // routes through `chargeForward` so the shove and its crush damage are the
