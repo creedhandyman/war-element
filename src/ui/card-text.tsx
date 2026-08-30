@@ -13,7 +13,7 @@
  */
 import type { ReactNode } from "react";
 import type { CardDef, StatusKind } from "../engine";
-import { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, MISTY_FOG_MISS_PCT, WEAKEN_MAX_STACKS, WEAKEN_PCT_PER_STACK, getDef, hasArcDischarge } from "../engine";
+import { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, MISTY_FOG_MISS_PCT, SP_SLOW_MAX, WEAKEN_MAX_STACKS, WEAKEN_PCT_PER_STACK, getDef, hasArcDischarge } from "../engine";
 import { KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 
 // Colour lookup for keyword/status terms so they render as chips in card text.
@@ -1074,10 +1074,18 @@ export const STATUS_TEXT: Record<StatusKind, string> = {
   BURN: "Burning — loses a shield (then HP) each round.",
   SCALD: "Scalded — takes damage each round.",
   DOT: "Damaged over time each round.",
-  FREEZE: "Frozen — SP 0 and takes half damage dealt.",
+  // HALVES WHAT IT DEALS, not what it takes. This read "takes half damage
+  // dealt", which is the opposite AND reads as a benefit — the one status text
+  // a player might have been happy to see. `effectiveDmg` (state.ts) applies
+  // the halving to the frozen card's own output.
+  FREEZE: "Frozen — SP 0, and deals half damage.",
   STUN: "Stunned — can't act.",
   WEAKEN: `Weakened — deals ${WEAKEN_PCT_PER_STACK}% less damage per stack (compounding, max ${WEAKEN_MAX_STACKS}). Re-applying deepens it instead of refreshing.`,
-  PARALYZE: "Paralyzed — 50% chance to skip its action, and moves only 1 space (no effect on SP 7 and under).",
+  // The cutoff is SP_SLOW_MAX, not a hardcoded 7. It said 7 while the constant
+  // has been 5, so SP 6-7 cards were being slowed by a card that told the
+  // player they were immune. Derived now, so the next change to the SP curve
+  // cannot desync the text from it.
+  PARALYZE: `Paralyzed — 50% chance to skip its action, and moves only 1 space (no effect on SP ${SP_SLOW_MAX} and under).`,
   MUTED: "Muted — can't fire its Special.",
   SLEEP: "Asleep — can't act until it wakes.",
   FRIGHTEN: "Frightened — retreats and can't move forward.",

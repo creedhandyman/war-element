@@ -28,10 +28,12 @@ export {
   summonCard,
   // Boss taming / enrage: a body that is a fraction of its card.
   scaleInstance,
+  SP_SLOW_MAX,
 } from "./state";
 export {
   canSummon,
-  homeSlots,
+  homeSlots,
+
   summonLandingRow,
   openHomeSlots,
   canMove,
