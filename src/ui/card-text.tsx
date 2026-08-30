@@ -209,6 +209,21 @@ export function describeSharedPassives(def: CardDef): SharedPassive[] {
   if (kw.EVASION) shared.push({ kind: "keyword", label: "EVASION", desc: "~50% chance to dodge each incoming hit." });
   if (kw.TRAMPLE)
     shared.push({ kind: "keyword", label: "TRAMPLE", desc: "in Prep it can step onto an adjacent opponent with less max HP and take the square — in any direction. The victim is driven a slot straight back, or knocked aside into any free square further from you if the slot behind it is blocked." });
+  // THE FOUR THAT SAID NOTHING. This list stopped at TRAMPLE, so FLYING, CRIT,
+  // PEN and STEALTH rendered as dead grey chips — a word on the card and no
+  // rule anywhere on the surface a player reads mid-fight. FLYING is the
+  // MOST-PRINTED keyword in the game (31 cards) and CRIT the joint-second (14),
+  // and CRIT carries a precondition nothing told anyone: it does nothing at all
+  // against a shielded target. Prose lifted from the rules book, which has
+  // always had it right (`RulesBook.tsx:286-292`).
+  if (kw.FLYING)
+    shared.push({ kind: "keyword", label: "FLYING", desc: "dodges melee entirely — unless the attacker also flies, or a status has grounded it." });
+  if (kw.CRIT)
+    shared.push({ kind: "keyword", label: "CRIT", desc: "a basic has a ~50% chance to DOUBLE its damage — but only against an unshielded target, so armour switches it off." });
+  if (kw.PEN)
+    shared.push({ kind: "keyword", label: "PEN", desc: "attacks pierce shields and hit HP directly." });
+  if (kw.STEALTH)
+    shared.push({ kind: "keyword", label: "STEALTH", desc: "untargetable until it makes its first attack of the round." });
   return shared;
 }
 

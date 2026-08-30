@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { CARDS, TOKENS } from "../../data/cards";
 import { SPELLS } from "../spells";
-import { describePassives } from "../../ui/card-text";
+import { describeOwnPassives, describePassives } from "../../ui/card-text";
 import { KEYWORDS, KEYWORD_STYLE } from "../../ui/shared";
 import { cardHasKeyword } from "../../ui/filters";
 import { buildableCards } from "../../data/custom-decks";
@@ -216,7 +216,13 @@ describe("card text covers every mechanic", () => {
     const hasMechanic = (d: (typeof all)[number]) =>
       ABILITY_FIELDS.some((f) => (d as unknown as Record<string, unknown>)[f] != null) ||
       d.roundTick != null;
-    const silent = all.filter((d) => hasMechanic(d) && describePassives(d).length <= 1).map((d) => d.id);
+    // `describeOwnPassives`, not `describePassives(d).length <= 1`. The old form
+    // counted the SHARED lines too and assumed there was exactly one of them
+    // (the element aura), so every keyword added to `describeSharedPassives`
+    // raised the floor and quietly disarmed this guard for every card carrying
+    // that keyword — adding FLYING text alone would have excused 31 cards.
+    // Asking what the card says about ITSELF cannot drift that way.
+    const silent = all.filter((d) => hasMechanic(d) && describeOwnPassives(d).length === 0).map((d) => d.id);
     expect(silent, `cards with a hidden mechanic:\n  ${silent.join("\n  ")}`).toEqual([]);
   });
 });
