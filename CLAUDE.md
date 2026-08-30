@@ -861,6 +861,48 @@ Rollo / Zombination / Doom changes and everything since.
 - Commit messages: explain *why* the numbers moved and quote the measurement
   when there is one.
 
+## The card text was lying in four places — and how they got there
+
+A text audit found the game telling the player things the engine does not do.
+All four were one-to-three-line fixes; the interesting part is the SHAPE, since
+each will recur:
+
+1. **FREEZE said "takes half damage dealt"** — the engine halves what the frozen
+   card DEALS (`effectiveDmg`, state.ts:703). The one status text a player might
+   have been pleased to see was describing a drawback as a benefit. The rules
+   book had it right: TWO SURFACES DISAGREEING, with the wrong one on the panel
+   you read mid-fight.
+2. **PARALYZE quoted a dead threshold** — "no effect on SP 7 and under" against
+   `SP_SLOW_MAX = 5`. A hardcoded number that drifted when the constant moved.
+   It reads the constant now.
+3. **Four keywords rendered as silent chips** — `describeSharedPassives` stopped
+   at TRAMPLE, so FLYING (31 printings, the most-used keyword in the game), CRIT
+   (14), PEN and STEALTH had no rule on the card at all.
+4. **Six rules-book numbers had drifted**: the 5x5 deck (28 vs 30 — following
+   the book built an illegal deck), gold income (printed flat, actually ramps
+   1→5 on Magic's bracket), the Magic table (stopped at +4 of 5), the SP range
+   (15 vs `GALE_SP_CAP = 21`), and two "all four" phrasings that are board-size
+   driven (five on the large board).
+
+**THE GUARD HAD TO BE RE-ARMED IN THE SAME COMMIT AS (3).**
+`card-text.test.ts` flagged hidden mechanics with
+`describePassives(d).length <= 1` — a count over ALL lines that assumed exactly
+one shared line. Every keyword added to the shared list raises that floor, so
+adding FLYING text alone would have silently excused 31 cards from the check
+forever. It asks `describeOwnPassives(d).length === 0` now — what the card says
+about ITSELF — which cannot drift as the shared list grows. **A test that counts
+lines is a test that a new line disarms.**
+
+**AND A NEAR-MISS WORTH KEEPING.** The book's "Full-lane bonus: hold all four
+slots" looked fabricated — the only `midLaneFull` in the codebase is one card's
+`basicBonus` (cards.ts:655). The core rule is REAL, at state.ts:715-723, and
+only the count was wrong. Reading the engine before rewriting is the only reason
+that commit corrected a number instead of deleting a working mechanic.
+
+HOW TO PLAY now opens from the in-match `⋯` menu and from Home. It previously
+had ONE entry point in the whole app (the Arena lobby) while the onboarding card
+on Home promised "you can still read How to play any time".
+
 ## Open threads
 
 - Element balance: see "Where balance stands". Deliberately NOT restated here —
