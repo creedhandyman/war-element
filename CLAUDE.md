@@ -2399,7 +2399,11 @@ rarely all fall before round 15, so the wall gate was already doing this. What
 the round gate buys is that a player who clears the wall fast can no longer pull
 the giant out early.
 
-**FLOOR 5: Continental 89.6 IN BAND, Skybreaker 96.9 OVER IT (n=192).**
+**FLOOR 5 AS SHIPPED: Skybreaker 84.9%, Continental 85.8% (n=768, ±2.5) —
+both mid-band.** Everything below this line predates the AI fix, which re-based
+every number in it; treat the figures as history and the LESSONS as current.
+The two that got the floor into band are in "Floor 5 came into band on two bug
+fixes" further down. Previously (n=192):
 Skybreaker hit 88.0 on a seven-round clock; the clock was restored to the house
 three at the owner's call and the tuning moved to the Special's damage, which
 does not work — see below.
@@ -2435,17 +2439,94 @@ What actually moved each one:
   (the Special just calls one when there is none), and the Special's own
   cadence at 3/4 (95.8/95.8) before it broke at 5.
 
-**THE 3-ROUND BOSS CLOCK IS NOW "A FIXED BEAT, THREE BY DEFAULT".** The promise
-was countability, not the number, and Skybreaker earns the one named exception
-at seven: its Special IS its movement, so the beat decides how often the boss
-relocates rather than merely when damage lands. The exception list is
-test-asserted to be exactly one long — a second boss leaving the house beat is
-a conversation, not a drive-by edit.
+**THE 3-ROUND BOSS CLOCK IS A FLAT THREE, WITH NO EXCEPTIONS.** Skybreaker
+briefly held a named exception at seven; it was restored to the house three at
+the owner's call and `void-tower.test.ts` asserts every boss is on 3. (This
+paragraph said the opposite for a while — the code and the test were right and
+the prose was stale. Read `fireSpecialEveryN` before quoting this file on it.)
 
 **PREVIOUSLY, FLAT AT ~74-77.** It got there from the OTHER end: making the
 Thundering Hurricane melee at 75 HP moved Skybreaker 95.8 -> 75.0 in one edit
 (see below). A little under Floor 4's 80-90 band, and internally consistent,
 which the earlier 75.0-95.8 spread was not.
+
+## Floor 5 came into band on two bug fixes, not on a nerf
+
+Asked to put both Floor-5 bosses in the 80-90 band. They read **92.7** and
+**95.3** (n=192). They now read **84.9** and **85.8** (n=768, ±2.5), and almost
+all of that came from making two named mechanics actually run.
+
+**Harness, so the numbers are reproducible:** 8 CORES x N seeds, 5x5,
+`humans: []`, spells from `buildVoidEncounter`, `s.voidTower = true`, gates on
+`voidGateSeats`, boss seated at `voidBossSeat` outside the economy, ally =
+Umbranova at `TAME_SCALE` in the player's centre home slot — i.e. App.tsx's real
+Void Trial setup (App.tsx:1200-1258). The number is the BOSS's win rate. Four
+independent processes returned byte-identical controls, so comparisons are paired.
+
+**SKYBREAKER: Gathering Storm never once fired.** `fireSpecialEveryN` is 3 and
+the storm gathers on 6, so Eye of the Storm's call-a-hurricane face ran on round
+THREE and the round-6 tick never found an empty field. Instrumented: `spawnOnRound`
+fired **0 times in 48 fights** while the handler ran **327**. A named passive that
+never ran, a card text promising a round it did not keep, and a boss holding its
+legs three rounds early. Gating the Special on the boss's own gathering round
+took it **92.7 -> 83.9** and player kills from 14 to 31 of 192.
+
+**CONTINENTAL: Rockfall's cap bound one of two taps.** The round tick honoured
+`spawnMaxAlive`; the Special's on-kill rider checked nothing, so rocks poured in
+over the top of the ceiling — which is why moving that cap 3 -> 1 had measured
+-1.0. The rider has its own `maxAlive` now.
+
+**THREE THINGS THAT LOOK LIKE BUGS AND MUST NOT BE "FIXED".**
+
+1. **Continental's holds are dead and should stay dead.** `advance`,
+   `advanceFromRound: 15`, `advanceWhenWallsDown` and `aimLateral` are all
+   inert — the generic mover marches the giant down the board regardless (the
+   Helion bug). Deleting `advance` outright changes the fight by **0.0**. But
+   adding `holdsPosition` to fix it measures **Continental 96.9 and Skybreaker
+   99.5**: a giant with `fullBoardBasic` that never leaves its back row cannot
+   be reached while it shoots the whole board. Walking down is what gets these
+   two killed. **The bug is load-bearing.**
+2. **The hurricane's HP reads backwards.** LOWERING it makes Skybreaker
+   STRONGER (85 -> 45 reads 97.4, 85 -> 30 reads 97.9, control 92.7), because
+   killing the token fires the call face and the fresh one re-runs its
+   on-summon barrage. A fragile token is MORE barrages.
+3. **The barrage's `reach: 2` and `statusDuration: 2` are not read at all.**
+   `reach` is not a barrage param, and `statusKind`/`statusDuration` are only
+   read under `farRowStatus`, which the hurricane does not set — so its printed
+   radius is a board-wide volley and its PARALYZE never lands. Both measured
+   byte-identical to control. This is the SAME defect this file already records
+   for Specials ("every 'within 2 spaces' on the tower was a board-wide nova
+   wearing a radius in its text"); the fix landed on the Special path and never
+   reached `onSummon`. **Still open** — left alone because wiring it changes
+   every card using onSummon barrage, and the floor is in band without it.
+
+**WHAT DOES NOT TUNE CONTINENTAL, measured at n=192 against a paired control:**
+its shields (50 -> 25: **0.0**), its second element (**0.0**), its own advance
+(**0.0**), `advanceFromRound` 15 -> 22 (**0.0**), `aimLateral` (**+0.5**), its
+Special's damage (35 -> 20: **+1.1**, i.e. slightly stronger), `tramplesAnything`
+(**+0.5**), and its printed DMG (50 -> 38: **-1.0**). **The boulders win by BODY,
+not damage** — crush set to ZERO still read 90.6 — because they win by filling
+the player's home row for the overrun. So the COUNT is the tuning and the crush
+is cheap (35 -> 12).
+
+**THE SHAPE IS STILL BAD, and the aggregate hides it.** Per core, as shipped:
+
+    Skybreaker  gale 100 · bore 97.9 · pyro 95.8 · leaf 81.3 · bolt 80.2 ·
+                dusk 79.2 · aqua 72.9 · dawn 71.9
+    Continental leaf 100 · bolt 100 · bore 100 · aqua 97.9 · dusk 81.3 ·
+                dawn 75 · gale 51
+
+Four of the eight cores essentially cannot beat Continental. That is the same
+warning this file already gives about Nightshrike's 42%, and NO lever found in
+this pass fixes it: every one that lowered the aggregate did so by improving the
+decks that already had a chance. If the floor is to be fixed properly it is a
+matchup problem, not a number problem. Remember too that this harness OVERSTATES
+a boss — it plays the player's side with the AI, which cannot read a telegraph.
+
+**A SWEEP BUG WORTH NOT REPEATING.** One variant labelled "special dmg 20" was
+written as `special: undefined`, which DELETES the Special rather than re-costing
+it; it measured 77.1 and would have been read as "the Special's damage is worth
+18 points" if the label had been trusted. Labels are not evidence — the patch is.
 
 ## FLOOR 5 — Skybreaker, the boss whose Special is its movement
 
