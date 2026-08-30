@@ -1,3 +1,4 @@
+import { seatsOf } from "../engine";
 import type { CardStat, GameState, PlayerId } from "../engine";
 
 /** The end-of-match stat summary: an MVP, per-side totals, and a line for every
@@ -114,8 +115,11 @@ export function MatchReport({ game, heading, me = "P1" }: { game: GameState; hea
         </div>
       </div>
       <div className="mr-sides">
-        <SideCol p="P1" />
-        <SideCol p="P2" />
+        {/* Every seat. Two literal columns meant a 3-4 player report dropped
+            P3 and P4 entirely - and when one of them won, `win.winner === p`
+            was false for both columns rendered, so the report showed two losers
+            and marked no winner at all. */}
+        {seatsOf(game).map((p) => <SideCol key={p} p={p} />)}
       </div>
     </div>
   );

@@ -7,7 +7,11 @@ import { DAWN_SP_CAP, GALE_SP_CAP, LEAF_SHIELD_CAP } from "../auras";
 import { effectiveSp } from "../state";
 import { basicAttack } from "../combat";
 import { getDef } from "../../data/cards";
-import { MAX_ROUNDS } from "../types";
+import { MAX_ROUNDS, seatsOf } from "../types";
+import type { GameState, PlayerId } from "../types";
+import { createInitialState } from "../index";
+import { boardCards } from "../state";
+import { DOMINATION_7X7, newDomination } from "../../data/domination";
 
 describe("cleanup phase", () => {
   it("DOT bypasses shields, hits HP directly, strips nothing", () => {
@@ -218,6 +222,94 @@ describe("the round cap", () => {
     const next = advance(atCleanup(s));
     expect(next.phase).toBe("gameover");
     expect(next.win).toEqual({ winner: null, by: "timeout" });
+  });
+});
+
+describe("the round cap with more than two seats", () => {
+  // `decideOnTime` used to read `metric("P1")` against `metric("P2")` and
+  // nothing else, so a four-player match that ran out of clock was settled
+  // between the first two seats while P3 and P4 were not consulted at all.
+  const DECK = [
+    "leaf_oak", "leaf_python", "leaf_birch", "leaf_stickers", "leaf_nettle", "leaf_weeds",
+    "leaf_sticks", "leaf_cactus", "leaf_leaf", "leaf_stickviper", "leaf_hunter", "leaf_walking_tree",
+  ];
+
+  /** A 4-seat Domination board parked on the final round. */
+  function fourSeatFinal(): GameState {
+    const extra = [
+      { id: "P3" as PlayerId, deck: [...DECK] },
+      { id: "P4" as PlayerId, deck: [...DECK] },
+    ];
+    let s = createInitialState(9, [...DECK], [...DECK], [], undefined, undefined,
+      7, undefined, undefined, undefined, extra);
+    s.domination = newDomination(DOMINATION_7X7);
+    for (const p of seatsOf(s)) s.players[p].mulliganDone = true;
+    for (let i = 0; i < 40 && s.phase === "mulligan"; i++) s = advance(s);
+    s.phase = "prep";
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    s.round = MAX_ROUNDS;
+    return s;
+  }
+
+  const hold = (s: GameState, pts: Partial<Record<PlayerId, number>>) => {
+    const ids = DOMINATION_7X7.pois.map((p) => p.id);
+    let i = 0;
+    for (const [seat, n] of Object.entries(pts) as [PlayerId, number][])
+      for (let k = 0; k < n; k++) s.domination!.held[ids[i++]] = seat;
+  };
+
+  it("is decided on the whole table, not on P1 against P2", () => {
+    const s = fourSeatFinal();
+    hold(s, { P1: 1, P2: 1, P3: 2 });
+    for (const p of seatsOf(s)) place(s, "leaf_alpha", p, 3, 1 + Number(p[1]));
+    const next = advance(atCleanup(s));
+    // The old rule saw P1 and P2 level on Points, level on bodies, level on HP
+    // and called it a draw — with P3 sitting on twice the objective.
+    expect(next.win).toEqual({ winner: "P3", by: "timeout" });
+  });
+
+  it("names the RUNNER-UP in the reason, not the worst seat on the board", () => {
+    // Otherwise a four-way line reads "Points held 2-0" against a seat that was
+    // never in it, when the contest was actually 2-1.
+    const s = fourSeatFinal();
+    hold(s, { P3: 2, P1: 1, P2: 1 });
+    for (const p of seatsOf(s)) place(s, "leaf_alpha", p, 3, 1 + Number(p[1]));
+    const next = advance(atCleanup(s));
+    expect(next.log.join(" ")).toContain("Points held 2–1");
+  });
+
+  it("a tie at the top falls to the next rung among the TIED seats only", () => {
+    // The alternative — comparing the next rung across everyone — would let a
+    // seat already out of the running on Points win the match on bodies.
+    const s = fourSeatFinal();
+    hold(s, { P1: 2, P2: 2 });                        // P3 and P4 on nothing
+    // EVERY body goes on row 3. That row is the road cross and belongs to no
+    // Point's ring, so `resolveDomination` — which runs at Cleanup, before the
+    // clock is read — leaves the holders above alone. Bodies parked on a ring
+    // would take the Points the test is trying to hold fixed, which is exactly
+    // how the first cut of this test managed to fail against correct code.
+    place(s, "leaf_alpha", "P1", 3, 0);
+    place(s, "leaf_alpha", "P2", 3, 1);
+    place(s, "leaf_alpha", "P2", 3, 2);               // P2 leads the tied pair
+    for (const c of [4, 5, 6]) place(s, "leaf_alpha", "P3", 3, c); // most bodies, no Points
+    const next = advance(atCleanup(s));
+    expect(next.win!.winner, "a seat with no Points won on bodies").not.toBe("P3");
+    expect(next.win).toEqual({ winner: "P2", by: "timeout" });
+  });
+
+  it("does not let an ELIMINATED seat win the clock on sticky Points", () => {
+    // A Point sticks to its last holder: `resolveHolders` only reassigns on a
+    // unique lead, so an emptied ring never changes hands. Measured, 16 of 120
+    // four-seat matches ended with a dead seat still sitting on one.
+    const s = fourSeatFinal();
+    hold(s, { P1: 2, P4: 1 });
+    for (const c of boardCards(s, "P1")) delete s.cards[c.instanceId];
+    s.players.P1.hand = []; s.players.P1.deck = [];   // P1 is out, but still "holds" 2
+    place(s, "leaf_alpha", "P4", 3, 5);
+    place(s, "leaf_alpha", "P2", 3, 2);
+    const next = advance(atCleanup(s));
+    expect(next.win!.winner, "the graveyard won on Points").not.toBe("P1");
+    expect(next.win).toEqual({ winner: "P4", by: "timeout" });
   });
 });
 

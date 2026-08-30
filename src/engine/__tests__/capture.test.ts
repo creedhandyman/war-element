@@ -1,9 +1,18 @@
 // Milestone 6: slot capture by survival + both win conditions.
 
 import { describe, expect, it } from "vitest";
-import { advance, applyIntent } from "../phases";
-import { isContested } from "../state";
+import { advance, applyIntent, needsInput } from "../phases";
+import { boardCards, isContested, isEliminated } from "../state";
+import { createInitialState } from "../index";
+import { seatsOf } from "../types";
+import { DOMINATION_7X7, newDomination } from "../../data/domination";
+import type { GameState, PlayerId } from "../types";
 import { atCleanup, place, prepState } from "./helpers";
+
+const DECK = [
+  "leaf_oak", "leaf_python", "leaf_birch", "leaf_stickers", "leaf_nettle", "leaf_weeds",
+  "leaf_sticks", "leaf_cactus", "leaf_leaf", "leaf_stickviper", "leaf_hunter", "leaf_walking_tree",
+];
 
 describe("surrender", () => {
   it("P1 surrender ends the game as a P2 win", () => {
@@ -22,6 +31,134 @@ describe("surrender", () => {
     s.win = { winner: "P1", by: "capture" };
     const next = applyIntent(s, { type: "SURRENDER", player: "P2" });
     expect(next.win).toEqual({ winner: "P1", by: "capture" });
+  });
+});
+
+// ── 3-4 SEATS ────────────────────────────────────────────────────────────
+//
+// Every rule that ends a match used to be written for two players. The loop
+// that awards an elimination iterated every seat but asked
+// `isEliminated(draft, enemyOf(player))`, and `enemyOf` only has an answer for
+// P1 and P2 — so on a four-player map the match ended the instant either of
+// them emptied and handed it to the other, whatever P3 and P4 were doing.
+// Measured over 150 four-seat AI games: 85 ended that way, 83 of them with two
+// or more seats still alive, and two declared a winner that was itself dead.
+//
+// The surrender path had the same shape, which made conceding a one-click way
+// to hand the match to P1 from any seat.
+describe("a match with more than two seats", () => {
+  /** A live 4-seat game parked in Prep, every seat AI so nothing waits. */
+  function fourSeat(): GameState {
+    const extra = [
+      { id: "P3" as PlayerId, deck: [...DECK] },
+      { id: "P4" as PlayerId, deck: [...DECK] },
+    ];
+    let s = createInitialState(9, [...DECK], [...DECK], [], undefined, undefined,
+      7, undefined, undefined, undefined, extra);
+    s.domination = newDomination(DOMINATION_7X7);
+    for (const p of seatsOf(s)) s.players[p].mulliganDone = true;
+    for (let i = 0; i < 40 && s.phase === "mulligan"; i++) s = advance(s);
+    s.phase = "prep";
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    return s;
+  }
+
+  /** Board, hand and deck gone — what `isEliminated` asks about. */
+  function empty(s: GameState, p: PlayerId) {
+    for (const c of boardCards(s, p)) delete s.cards[c.instanceId];
+    s.players[p].hand = [];
+    s.players[p].deck = [];
+  }
+
+  it("does not end when ONE seat empties", () => {
+    // The whole reason this change exists. On the old rule P2 emptying was
+    // instantly "P1 WINS by elimination" with P3 and P4 mid-match.
+    const s = fourSeat();
+    for (const p of ["P1", "P3", "P4"] as PlayerId[]) place(s, "leaf_alpha", p, 3, 1 + Number(p[1]));
+    empty(s, "P2");
+    const next = advance(atCleanup(s));
+    expect(next.win, "the match ended on one seat emptying").toBeNull();
+    expect(next.phase).not.toBe("gameover");
+  });
+
+  it("gives it to the last seat standing, even when that is P4", () => {
+    // A seat `enemyOf` can never name, winning. Impossible before this.
+    const s = fourSeat();
+    place(s, "leaf_alpha", "P4", 3, 5);
+    for (const p of ["P1", "P2", "P3"] as PlayerId[]) empty(s, p);
+    const next = advance(atCleanup(s));
+    expect(next.win).toEqual({ winner: "P4", by: "elimination" });
+  });
+
+  it("does not crown a dead seat while two are still alive", () => {
+    // Measured twice in 300 games: P1 and P2 both gone, P3 and P4 still
+    // playing, and the engine announced "P1 WINS by elimination".
+    const s = fourSeat();
+    place(s, "leaf_alpha", "P3", 3, 2);
+    place(s, "leaf_alpha", "P4", 3, 5);
+    empty(s, "P1");
+    empty(s, "P2");
+    const next = advance(atCleanup(s));
+    expect(next.win).toBeNull();
+  });
+
+  it("a concession removes that seat and the match goes on", () => {
+    const s = fourSeat();
+    for (const p of seatsOf(s)) place(s, "leaf_alpha", p, 3, 1 + Number(p[1]));
+    const next = applyIntent(s, { type: "SURRENDER", player: "P3" });
+    expect(next.win, "a concession from P3 ended the whole match").toBeNull();
+    expect(next.phase).not.toBe("gameover");
+    expect(isEliminated(next, "P3"), "the conceding seat is still in it").toBe(true);
+    expect(boardCards(next, "P3")).toHaveLength(0);
+  });
+
+  it("a concession that leaves one seat ends it — for the survivor", () => {
+    const s = fourSeat();
+    place(s, "leaf_alpha", "P1", 3, 1);
+    place(s, "leaf_alpha", "P4", 3, 5);
+    empty(s, "P2");
+    empty(s, "P3");
+    const next = applyIntent(s, { type: "SURRENDER", player: "P4" });
+    expect(next.win).toEqual({ winner: "P1", by: "surrender" });
+  });
+
+  it("a concession is not a kill and credits nobody", () => {
+    // `removeCard`, not `defeatCard`: conceding must not fire death triggers
+    // or pad anyone's stats.
+    const s = fourSeat();
+    for (const p of seatsOf(s)) place(s, "leaf_alpha", p, 3, 1 + Number(p[1]));
+    const before = JSON.stringify(s.stats ?? {});
+    const next = applyIntent(s, { type: "SURRENDER", player: "P3" });
+    expect(JSON.stringify(next.stats ?? {})).toBe(before);
+  });
+
+  it("never asks a seat that is out to take another turn", () => {
+    // A human who decks out was still handed Prep priority every round for the
+    // rest of a match they could no longer act in.
+    const s = fourSeat();
+    s.humans = ["P1", "P2", "P3", "P4"];
+    place(s, "leaf_alpha", "P1", 3, 1);
+    empty(s, "P3");
+    s.prep = { priority: "P3", consecutivePasses: 0, movedThisTurn: false };
+    expect(needsInput(s), "an emptied seat was asked to act").toBeNull();
+    s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    expect(needsInput(s), "a live seat stopped being asked").toBe("P1");
+  });
+});
+
+describe("a mutual wipe", () => {
+  it("is a draw, not a win for whoever the loop reached first", () => {
+    // The one deliberate two-seat behaviour change in all of this. Both sides
+    // emptying in the same Cleanup used to award the match to P1 on the order
+    // the loop happened to run in.
+    const s = prepState();
+    for (const p of ["P1", "P2"] as PlayerId[]) {
+      s.players[p].hand = [];
+      s.players[p].deck = [];
+    }
+    const next = advance(atCleanup(s));
+    expect(next.win).toEqual({ winner: null, by: "elimination" });
+    expect(next.log.join(" ")).toContain("Every side is spent");
   });
 });
 

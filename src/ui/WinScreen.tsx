@@ -1,3 +1,4 @@
+import { seatsOf } from "../engine";
 import type { Element, GameState, PlayerId } from "../engine";
 import { MatchReport } from "./MatchReport";
 import { EL_COLOR, EL_ICON } from "./shared";
@@ -50,7 +51,13 @@ export function WinScreen(props: {
   const win = game.win;
   if (!win) return null;
   const youWon = win.winner === me;
-  const drawn = win.winner === null; // timeout with nothing to separate the sides
+  // A draw is no longer only a timeout: a mutual wipe ends the match with
+  // nobody standing, so `by` has to be consulted before the copy claims a
+  // clock ran out.
+  const drawn = win.winner === null;
+  // At two seats "the opponent" is unambiguous. At four it is a third of the
+  // table, and the screen would never say who actually took the map.
+  const them = seatsOf(game).length > 2 && win.winner ? win.winner : "The opponent";
 
   const r = props.rematch;
   const waiting = !!r?.online && r.mine && !r.theirs;
@@ -72,25 +79,35 @@ export function WinScreen(props: {
             win.winner === me
               ? <>The opponent surrendered on round {game.round}.</>
               : <>You surrendered the match on round {game.round}.</>
-          ) : drawn ? (
+          ) : drawn && win.by === "timeout" ? (
             <>
               Time ran out on round {game.round} with{" "}
               <b style={{ color: "var(--ink)" }}>nothing to separate you</b>.
             </>
+          ) : drawn ? (
+            // Not the clock: every remaining side emptied in the same Cleanup.
+            <>
+              Round {game.round} — <b style={{ color: "var(--ink)" }}>every side is spent</b>.
+              Nothing left standing anywhere.
+            </>
           ) : win.by === "timeout" ? (
             <>
               Time ran out on round {game.round}.{" "}
-              {youWon ? "You take it" : "The opponent takes it"} on{" "}
+              {youWon ? "You take it" : `${them} takes it`} on{" "}
               <b style={{ color: "var(--ink)" }}>the board</b> — captures first, then cards
               standing, then HP.
             </>
           ) : (
             <>
-              {youWon ? "You" : "The opponent"} won by{" "}
+              {youWon ? "You" : them} won by{" "}
               <b style={{ color: "var(--ink)" }}>
                 {win.by === "capture" ? "capturing all 4 Home slots"
                   : win.by === "slain" ? "slaying the boss"
                   : win.by === "overrun" ? "overrunning the whole Home row"
+                  // Domination has always been a `by`, and this ladder had no
+                  // branch for it — so the mode whose entire subject is holding
+                  // Points announced itself as a win by elimination.
+                  : win.by === "domination" ? "holding the Points"
                   : "elimination"}
               </b>{" "}
               on round {game.round}.

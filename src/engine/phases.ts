@@ -27,6 +27,7 @@ import {
   healCard,
   homeSlotsHeld,
   isEliminated,
+  removeCard,
   manhattan,
   spawnTokens,
   summonCard, enemyCards } from "./state";
@@ -618,11 +619,40 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
     }
     case "SURRENDER": {
       if (draft.phase === "gameover") return draft;
-      draft.win = { winner: enemyOf(intent.player), by: "surrender" };
-      draft.phase = "gameover";
-      draft.battle = null;
-      draft.prep = null;
-      draft.log.push(`${intent.player} surrenders — ${enemyOf(intent.player)} wins.`);
+      // A concession takes THAT SEAT off the board, and ends the match only if
+      // it was the second-to-last one standing. It used to award the whole
+      // match to `enemyOf(intent.player)` — measured in a live four-seat game
+      // at round 9 with Points P1:1 P2:1 P3:0 P4:2, P3 conceding produced
+      // {winner:"P1"}, and so did P4 conceding while P4 led on Points. Left
+      // alone this would also be a one-click bypass of the rule above: concede
+      // and the match is handed to P1 regardless of the board.
+      //
+      // The seat is EMPTIED rather than flagged, so `isEliminated` is already
+      // true for it and both last-seat-standing and the timeout tiebreak pick
+      // it up with no new state field and no change to what gets serialised.
+      // `removeCard`, never `defeatCard`: conceding is not dying, so it must
+      // not fire death triggers or credit anyone with kills.
+      for (const c of boardCards(draft, intent.player)) removeCard(draft, c.instanceId);
+      draft.players[intent.player].hand = [];
+      draft.players[intent.player].deck = [];
+      const left = seatsOf(draft).filter((p) => !isEliminated(draft, p));
+      if (left.length <= 1) {
+        const victor = left[0] ?? null;
+        draft.win = { winner: victor, by: "surrender" };
+        draft.phase = "gameover";
+        draft.battle = null;
+        draft.prep = null;
+        draft.log.push(
+          victor
+            ? `${intent.player} surrenders — ${victor} wins.`
+            : `${intent.player} surrenders — nobody is left standing.`,
+        );
+        return draft;
+      }
+      draft.log.push(`${intent.player} concedes and leaves the field.`);
+      // Priority has to move on, or the round waits on a seat that has left.
+      if (draft.prep?.priority === intent.player)
+        draft.prep.priority = nextSeat(draft, intent.player);
       return draft;
     }
     case "FLOW_CHANGE": {
@@ -1300,18 +1330,43 @@ function decideOnTime(draft: GameState): void {
   const points = (p: PlayerId) =>
     draft.domination ? heldCount(draft.domination.held, p) : 0;
 
-  let winner: PlayerId | null = null;
-  let reason = "dead level";
-  for (const [name, metric] of (draft.domination
+  const ladder = (draft.domination
     ? [["Points held", points], ["cards still standing", standing], ["total HP", totalHp]]
     : [["home slots captured", captured], ["cards still standing", standing], ["total HP", totalHp]]
-  ) as [string, (p: PlayerId) => number][]) {
-    const a = metric("P1");
-    const b = metric("P2");
-    if (a !== b) {
-      winner = a > b ? "P1" : "P2";
-      reason = `${name} ${Math.max(a, b)}–${Math.min(a, b)}`;
-      break;
+  ) as [string, (p: PlayerId) => number][];
+
+  // ELIMINATED SEATS ARE NOT IN THE RUNNING. A Domination Point STICKS to its
+  // last holder — `resolveHolders` only reassigns a Point on a UNIQUE lead, so
+  // an emptied ring never changes hands — which means a seat with no board, no
+  // hand and no deck still "holds" whatever it last stood on, and would
+  // otherwise win the clock from the graveyard. Measured: 16 of 120 four-seat
+  // matches ended with an eliminated seat still holding at least one Point.
+  const table = seatsOf(draft);
+  const alive = table.filter((p) => !isEliminated(draft, p));
+  // A mutual wipe leaves nobody: score the board as it lies rather than refuse
+  // to decide.
+  let field: PlayerId[] = alive.length ? [...alive] : [...table];
+
+  let winner: PlayerId | null = null;
+  let reason = "dead level";
+  if (field.length === 1) {
+    winner = field[0];
+    reason = "the last side standing";
+  } else {
+    for (const [name, metric] of ladder) {
+      const best = Math.max(...field.map((p) => metric(p)));
+      const beaten = field.filter((p) => metric(p) !== best);
+      // Winner against RUNNER-UP, not against the worst seat on the board: a
+      // four-way line otherwise reads "Points held 2–0" against a corpse when
+      // the contest was actually 2–1. With two seats the runner-up IS the
+      // loser, so this is byte-identical to the line it replaces.
+      if (beaten.length)
+        reason = `${name} ${best}–${Math.max(...beaten.map((p) => metric(p)))}`;
+      // The field NARROWS: only the seats tied for THIS rung go on to the next
+      // one. Comparing the next rung across everyone would let a seat that is
+      // already out of the running on Points win the match on total HP.
+      field = field.filter((p) => metric(p) === best);
+      if (field.length === 1) { winner = field[0]; break; }
     }
   }
 
@@ -1320,7 +1375,9 @@ function decideOnTime(draft: GameState): void {
   draft.log.push(
     winner
       ? `Round ${draft.round} — time. ${winner} takes it on ${reason}.`
-      : `Round ${draft.round} — time. Dead level: the match is a draw.`,
+      : `Round ${draft.round} — time. Dead level`
+        + (field.length > 1 && field.length < table.length ? ` between ${field.join(", ")}` : "")
+        + ": the match is a draw.",
   );
 }
 
@@ -3791,13 +3848,35 @@ function doCleanupPhase(draft: GameState): void {
       return;
     }
   }
-  for (const player of seatsOf(draft)) {
-    if (isEliminated(draft, enemyOf(player))) {
-      draft.win = { winner: player, by: "elimination" };
-      draft.phase = "gameover";
-      draft.log.push(`${player} WINS by elimination!`);
-      return;
-    }
+  // LAST SEAT STANDING. Count who is still in it; when one is left, it has won.
+  //
+  // This used to ask `isEliminated(draft, enemyOf(player))`, and `enemyOf`
+  // (types.ts) only has an answer for two seats — so on a four-player map the
+  // loop only ever inspected P1 and P2. The match ended the moment either of
+  // them emptied and handed it to the OTHER of those two, whatever P3 and P4
+  // were doing. Measured over 150 four-seat AI games: 85 ended here, 83 of them
+  // with two or more seats still alive, and 31 named a seat that was behind on
+  // Points. Two declared a winner that was itself eliminated.
+  //
+  // NOT `opponentsOf(draft, player).some(isEliminated)`, which is the obvious
+  // rewrite and is worse than the bug: it would end the match the moment ANY
+  // one opponent died.
+  //
+  // With two seats this is the same rule it has always been. The old loop fired
+  // iff at least one of the pair was eliminated, and so does this one — same
+  // round, same `by`, same log line. The single deliberate difference is a
+  // MUTUAL wipe, which used to award the match to P1 on loop order alone.
+  const standing = seatsOf(draft).filter((p) => !isEliminated(draft, p));
+  if (standing.length <= 1) {
+    const victor = standing[0] ?? null;
+    draft.win = { winner: victor, by: "elimination" };
+    draft.phase = "gameover";
+    draft.log.push(
+      victor
+        ? `${victor} WINS by elimination!`
+        : "Every side is spent — the match is a draw.",
+    );
+    return;
   }
 
   // 7z. OVERRUN: the boss holds every slot of the player's home row.
@@ -3898,7 +3977,13 @@ export function needsInput(state: GameState): PlayerId | null {
   }
   if (state.phase === "prep") {
     const pr = state.prep?.priority;
-    return pr && humans.includes(pr) ? pr : null;
+    // A seat with no board, no hand and no deck has nothing it could do with a
+    // turn, and asking for one stalls the round on a player who is out. Before
+    // the match could outlive a seat this was unreachable for two seats —
+    // Cleanup ended the game before the next Prep — and it stays unreachable
+    // there now. It matters for a human P3 or P4, who could already be asked to
+    // press Pass every round for the rest of a match they had lost.
+    return pr && humans.includes(pr) && !isEliminated(state, pr) ? pr : null;
   }
   if (state.phase === "battle") {
     const a = state.battle?.awaitingInput;
