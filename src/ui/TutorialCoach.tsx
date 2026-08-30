@@ -49,8 +49,9 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     id: "summon",
     title: "Gold, and your Home row",
     body: "Cards arrive in YOUR Home row, and only there — so a full Home row means you "
-      + "cannot summon until something moves forward. Income is one Gold a round, plus "
-      + "one for every Home square you are still standing on.",
+      + "cannot summon until something moves forward. Income starts at one Gold a round "
+      + "and climbs as the match runs, plus one for every Home square you are still "
+      + "standing on.",
   },
   {
     id: "move",

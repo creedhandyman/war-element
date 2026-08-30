@@ -33,7 +33,7 @@ export function RulesBook(props: { onClose: () => void }) {
                 on an enemy Home slot captures it <i>permanently</i>. A captured slot
                 is locked out for its owner and shows a <b>🔒 padlock</b>: nothing can
                 be summoned onto it or moved through it, and it can never be taken
-                back. Capture all four and you win.
+                back. Capture every slot in it — four on the standard board, five on the large one — and you win.
               </li>
             </ul>
           </section>
@@ -42,7 +42,7 @@ export function RulesBook(props: { onClose: () => void }) {
             <h3>🃏 Your squad</h3>
             <ul className="rules-defs">
               <li><b>4×4 Standard</b> — 18 cards, up to <b>5</b> spells.</li>
-              <li><b>5×5 Large</b> — 28 cards, up to <b>8</b> spells.</li>
+              <li><b>5×5 Large</b> — 30 cards, up to <b>8</b> spells.</li>
               <li>
                 Every card is <b>unique</b> — no duplicates. Build one in the Squad
                 Builder, then pick it before the match. (The <b>deck</b> is what that
@@ -55,7 +55,8 @@ export function RulesBook(props: { onClose: () => void }) {
             <h3>💠 Resources</h3>
             <p>
               <b>GOLD</b> (your summon pool) pays to <b>summon</b> cards. Each round you
-              gain <b>1 Gold, plus 1 for every Home slot you are standing in</b> — so your
+              gain <b>the same ramp Magic uses below (+1 rising to +5), plus 1 for every
+              Home slot you are standing in</b> — so your
               back line funds your front, and being pushed off your own Home row costs you
               the money to rebuild it. A card that advances out of Home stops paying, which
               is the trade. A card's cost is the number in its top corner.
@@ -68,7 +69,8 @@ export function RulesBook(props: { onClose: () => void }) {
               <li><b>Rounds 1–5</b> — +1 Magic per round</li>
               <li><b>Rounds 6–10</b> — +2</li>
               <li><b>Rounds 11–15</b> — +3</li>
-              <li><b>Rounds 16+</b> — +4</li>
+              <li><b>Rounds 16–20</b> — +4</li>
+              <li><b>Rounds 21+</b> — +5</li>
             </ul>
             <p>
               Unspent Gold and Magic carry over, but each pool only banks up to
@@ -91,7 +93,7 @@ export function RulesBook(props: { onClose: () => void }) {
                 the battle.
               </li>
               <li>
-                <b>Battle</b>: cards act in <b>SP order</b> (fastest first, 15 → 0;
+                <b>Battle</b>: cards act in <b>SP order</b> (fastest first, 21 → 0;
                 ties broken by a seeded coin). When one of yours is up, choose
                 <b> Basic / Special / Skip</b>, then click glowing targets.
               </li>
@@ -182,7 +184,7 @@ export function RulesBook(props: { onClose: () => void }) {
             <ul className="rules-defs">
               <li>
                 <b>Who acts first</b> — in battle every card takes its turn in
-                <b> SP order, fastest first</b> (the queue counts down 15 → 0). Exact
+                <b> SP order, fastest first</b> (the queue counts down 21 → 0). Exact
                 SP ties are broken by a seeded coin flip.
               </li>
               <li>
@@ -306,9 +308,11 @@ export function RulesBook(props: { onClose: () => void }) {
                 summoned onto or moved through it again, and it can never be won back.
                 Take all of an opponent's Home slots and you win outright.
               </li>
-              <li><b>King of the Hill</b>: a card standing in a middle row deals +1 DMG.</li>
+              <li><b>King of the Hill</b>: a card standing in a middle row deals +1 DMG —
+                or lands one <i>extra hit</i> instead, if it is a heavy multi-hit card.</li>
               <li>
-                <b>Full-lane bonus</b>: hold <i>all four slots</i> of a middle lane and
+                <b>Full-lane bonus</b>: hold <i>every slot</i> of a middle lane — four on
+                the standard board, five on the large one — and
                 your <b>entire board</b> gains +1 DMG — and there are two middle lanes
                 to seize, so a locked-down centre can stack +2 across your army.
               </li>
@@ -335,7 +339,7 @@ export function RulesBook(props: { onClose: () => void }) {
                 <b>The AI preps</b>, then passes. Two passes in a row → the Battle begins.
               </li>
               <li>
-                <b>Battle — fastest first.</b> Cards act in SP order (15 → 0). Your
+                <b>Battle — fastest first.</b> Cards act in SP order (21 → 0). Your
                 SP-11 Ranger acts early: choose <b>Basic</b>, click a glowing enemy, it
                 fires. Later your Tank (SP 5) comes up — choose <b>Special</b> to spend
                 Magic on a barrage, spreading picks across two foes, then <b>Fire</b>.
