@@ -56,6 +56,62 @@ export interface StateMeta {
   fresh?: boolean;
 }
 
+/** One line of BATTLE CHAT.
+ *
+ *  Deliberately NOT part of GameState, and this is the whole design. A lockstep
+ *  game desyncs when two clients disagree about the state, so the dangerous way
+ *  to build chat is to put messages in it: every line would advance the Lamport
+ *  clock, re-enter the state machine, and ride along in every heartbeat and
+ *  every replay. Chat gets its own broadcast event instead. A message cannot
+ *  affect the match, and a dropped message costs a line of banter rather than
+ *  the game. */
+export interface ChatMsg {
+  /** Sender-generated, so a duplicated delivery can be recognised and dropped. */
+  id: string;
+  seat: PlayerId;
+  /** The sender's display name, if it has one. */
+  name?: string;
+  text: string;
+  /** The sender's wall clock. For display order only — it is not authoritative
+   *  and is never compared across clients for anything that matters. */
+  at: number;
+}
+
+/** Longest single message. Short on purpose: this is table talk during a turn,
+ *  not a text box, and a cap is also the cheapest defence against one player
+ *  pushing everyone else's log off the screen. */
+export const CHAT_MAX = 160;
+
+const CHAT_SEATS: PlayerId[] = ["P1", "P2", "P3", "P4"];
+
+/** Strip a wire message down to something safe to render, or null.
+ *
+ *  Everything arriving here is another player's typing, so it is treated as
+ *  data and never as markup: React escapes it on render, and this pass fixes
+ *  the shape. It runs on RECEIPT rather than only on send, because the sender's
+ *  cap is a courtesy and the receiver's is the rule — the peer is a browser
+ *  somebody else controls, and the channel is joinable by anyone with the code.
+ *
+ *  Control characters and newlines collapse to spaces: one message is one line,
+ *  and a pasted thousand line breaks is a way to blank the log. */
+export function sanitizeChat(payload: unknown): ChatMsg | null {
+  if (!payload || typeof payload !== "object") return null;
+  const p = payload as Partial<ChatMsg>;
+  if (typeof p.seat !== "string" || !CHAT_SEATS.includes(p.seat)) return null;
+  const clean = (v: unknown, cap: number) =>
+    typeof v === "string" ? v.replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, cap) : "";
+  const text = clean(p.text, CHAT_MAX);
+  if (!text) return null;
+  const name = clean(p.name, 24);
+  return {
+    id: typeof p.id === "string" && p.id ? p.id.slice(0, 48) : `${p.seat}-${p.at ?? 0}-${text.length}`,
+    seat: p.seat,
+    name: name || undefined,
+    text,
+    at: typeof p.at === "number" && Number.isFinite(p.at) ? p.at : 0,
+  };
+}
+
 export interface Room {
   /** Broadcast a freshly-produced game state to the other client. Stamps it
    *  with the next clock tick — see `resend`. */
@@ -91,6 +147,10 @@ export interface Room {
    *  a one-tap rematch would yank the other player off a result screen they
    *  are still reading. */
   sendRematch: () => void;
+  /** Say something to the room. Fire-and-forget: chat has no acknowledgement,
+   *  no retry and no heartbeat, because a line that arrives late is worse than
+   *  one that never arrives. */
+  sendChat: (msg: ChatMsg) => void;
   /** Leave + tear down the channel. */
   close: () => void;
 }
@@ -112,6 +172,8 @@ export function joinRoom(
     onLobby?: (seats: LobbySeat[], need: number) => void; // guests
     onSeat?: (clientId: string, seat: PlayerId, have: number, need: number) => void; // guests
     onRematch?: () => void;
+    /** Everyone, both roles: the channel is a room, not a pair of pipes. */
+    onChat?: (msg: ChatMsg) => void;
     onSubscribed?: () => void;
   },
 ): Room {
@@ -182,6 +244,10 @@ export function joinRoom(
     );
   }
   channel.on("broadcast", { event: "rematch" }, () => handlers.onRematch?.());
+  channel.on("broadcast", { event: "chat" }, ({ payload }) => {
+    const msg = sanitizeChat(payload);
+    if (msg) handlers.onChat?.(msg);
+  });
   channel.subscribe((status) => {
     if (status === "SUBSCRIBED") handlers.onSubscribed?.();
   });
@@ -214,6 +280,12 @@ export function joinRoom(
         type: "broadcast", event: "seat", payload: { clientId, seat, have, need },
       }),
     sendRematch: () => void channel.send({ type: "broadcast", event: "rematch", payload: {} }),
+    // Sanitised on the way OUT as well, so a sender cannot put on the wire
+    // something its own client would refuse to render.
+    sendChat: (msg) => {
+      const safe = sanitizeChat(msg);
+      if (safe) void channel.send({ type: "broadcast", event: "chat", payload: safe });
+    },
     close: () => void supabase.removeChannel(channel),
   };
 }

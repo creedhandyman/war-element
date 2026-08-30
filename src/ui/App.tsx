@@ -50,7 +50,10 @@ import {
 import {
   afterMatch, recordLadderMatch, tierForStreak, winsToNextRung, WINS_PER_RUNG,
 } from "../data/matchmaker";
-import { joinRoom, onlineConfigured, type LobbySeat, type Role, type Room } from "../net/online";
+import {
+  joinRoom, onlineConfigured, type ChatMsg, type LobbySeat, type Role, type Room,
+} from "../net/online";
+import { ChatPanel } from "./ChatPanel";
 import { Board } from "./Board";
 import { CardView } from "./CardView";
 import { autoPrefFor } from "./auto-prefs";
@@ -323,6 +326,42 @@ export function App() {
   const [rematchMine, setRematchMine] = useState(false);
   const [rematchTheirs, setRematchTheirs] = useState(false);
   const roomRef = useRef<Room | null>(null);
+  // BATTLE CHAT. Held here and nowhere near the GameState: see ChatMsg. Capped
+  // so a long match cannot grow an unbounded array behind the panel.
+  const [chat, setChat] = useState<ChatMsg[]>([]);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
+  // Read by the room callbacks, which close over the render that created them
+  // and would otherwise test a permanently stale `chatOpen`.
+  const chatOpenRef = useRef(false);
+  useEffect(() => { chatOpenRef.current = chatOpen; }, [chatOpen]);
+
+  const CHAT_KEEP = 60;
+  /** Say something. The channel is `self:false`, so this never comes back to
+   *  us — the local copy is appended here or the sender would watch their own
+   *  messages vanish. */
+  function sendChat(text: string) {
+    const seat = online?.myId;
+    if (!roomRef.current || !seat) return;
+    const msg: ChatMsg = {
+      id: `${seat}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      seat,
+      name: seatNamesRef.current?.[seat],
+      text,
+      at: Date.now(),
+    };
+    roomRef.current.sendChat(msg);
+    receiveChat(msg);
+  }
+
+  /** One arrival, from either role. Deduped by id: the channel is
+   *  `broadcast.self:false`, so an echo means a genuine redelivery. */
+  function receiveChat(msg: ChatMsg) {
+    setChat((prev) => (prev.some((m) => m.id === msg.id)
+      ? prev
+      : [...prev, msg].slice(-CHAT_KEEP)));
+    if (!chatOpenRef.current) setChatUnread((n) => n + 1);
+  }
   /** HOST: everyone who has joined, in arrival order — one entry per seat after
    *  P1. Kept in a ref because `onJoin` fires from a channel callback that
    *  closed over the first render, so React state would be stale by the second
@@ -1450,6 +1489,7 @@ export function App() {
     roomRef.current = joinRoom(code, "host", {
       onState: (state) => setGame(state),
       onRematch: () => setRematchTheirs(true),
+      onChat: receiveChat,
       onJoin: (clientId, guestCards, guestSpells, guestName, guestFoils, guestReady) => {
         if (onlineStartedRef.current) return; // already playing — ignore re-joins
         const lobby = lobbyRef.current;
@@ -1604,6 +1644,7 @@ export function App() {
         }
       },
       onRematch: () => setRematchTheirs(true),
+      onChat: receiveChat,
       onSubscribed: () => roomRef.current?.sendJoin(
         clientIdRef.current, guestCards, guestSpells, guestName, [...foilIds], false),
     });
@@ -1613,6 +1654,9 @@ export function App() {
   function leaveOnline() {
     roomRef.current?.close();
     roomRef.current = null;
+    // The log belongs to the room, not to the app. Carrying it into the next
+    // match would show a stranger the last table's conversation.
+    setChat([]); setChatOpen(false); setChatUnread(0);
     onlineStartedRef.current = false;
     setLobby(null);
     setIAmReady(false);
@@ -3270,6 +3314,21 @@ export function App() {
 
       {castFlash && <SpellCastFlash spellId={castFlash.spellId} />}
       {announce && <SummonAnnounce defId={announce.defId} mine={announce.mine} />}
+
+      {/* BATTLE CHAT — online only, and only once there is a match to talk
+          about. There is nobody to talk to in a solo game, and an empty chat
+          button on every screen is clutter that has to be explained. */}
+      {online && started && (
+        <ChatPanel
+          messages={chat}
+          mySeat={online.myId}
+          seatNames={seatNames ?? undefined}
+          onSend={sendChat}
+          open={chatOpen}
+          onOpenChange={(v) => { setChatOpen(v); if (v) setChatUnread(0); }}
+          unread={chatUnread}
+        />
+      )}
 
       {/* Only during a match — New Match sets started=false, which hides this and
           reveals the deck picker (game.win stays set until Start Match resets it). */}
