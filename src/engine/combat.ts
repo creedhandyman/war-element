@@ -3042,6 +3042,22 @@ function registerKill(draft: GameState, killer: CardInstance): void {
   killer.curHp = Math.max(1, Math.min(killer.maxHp, hpWas + Math.max(0, killer.maxHp - maxWas)));
   const shieldsGained = Math.max(0, getDef(t.into).shields - getDef(killer.transformedFrom ?? "").shields);
   killer.curShields = Math.min(killer.curShields, shieldsWas + shieldsGained);
+  // AND IT IS NOT WEARING A DISGUISE. `transform` is shared with Siren's Sea
+  // Terror and stamps `transformedFrom`, which is that mechanic's flag and
+  // means "when this dies, revert to the original AT FULL HP". Growing into a
+  // second form is not a disguise, so leaving it set handed Thunderfangs a
+  // silent third life: killed as Stormform it reverted to form 1 at full HP,
+  // which re-armed Last Howl on top of it, so the player had to kill it THREE
+  // times and the first of those undid all their damage. Reported from the
+  // device as "keeps coming back to life" — the second, separate half of the
+  // report the wound-carrying fix above answered.
+  //
+  // `defeatCard`'s own comment says the two are kept apart because
+  // `transformOnDefeat` never sets this flag. True — and never true of the
+  // other road into the same body. Cleared AFTER the shield maths above, which
+  // reads it. Left alone in the handler, so a Special that transforms by cast
+  // keeps the revert it was written for.
+  killer.transformedFrom = undefined;
 }
 
 function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, deathPos?: Pos | null): void {
