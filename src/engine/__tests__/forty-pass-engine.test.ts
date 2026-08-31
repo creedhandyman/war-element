@@ -484,3 +484,32 @@ describe("Divebill scalds, Warkiln plates the forge", () => {
     expect(a.shields).toBe(2);
   });
 });
+
+// ─────────────────────────────────────── Hose Down (Firefighter)
+describe("Hose Down — the line is charged when it lands", () => {
+  it("shoves every opponent in range back a space, and damages none", () => {
+    const s = bigPrepState();
+    // Two foes inside a Ranged card's reach, one well outside it.
+    const near = place(s, "leaf_oak", "P2", 2, 2, { curHp: 30, maxHp: 30 });
+    const alsoNear = place(s, "leaf_oak", "P2", 2, 1, { curHp: 30, maxHp: 30 });
+    const far = place(s, "leaf_oak", "P2", 0, 4, { curHp: 30, maxHp: 30 });
+    const rows = {
+      near: near.pos!.row, alsoNear: alsoNear.pos!.row, far: far.pos!.row,
+    };
+    s.players.P1.gold = 20;
+    const handId = giveHand(s, "P1", "aqua_firefighter");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 2 });
+
+    const after = (id: string) => next.cards[id];
+    expect(after(near.instanceId).pos!.row, "the near foe was shoved")
+      .not.toBe(rows.near);
+    expect(after(alsoNear.instanceId).pos!.row, "and so was the other one in range")
+      .not.toBe(rows.alsoNear);
+    expect(after(far.instanceId).pos!.row, "the one out of reach was not touched")
+      .toBe(rows.far);
+    // A PURE shove: statusNova was chosen over a zero-damage barrage precisely
+    // so no card takes a "hit" for nothing.
+    for (const f of [near, alsoNear, far])
+      expect(after(f.instanceId).curHp, `${f.instanceId} took no damage`).toBe(30);
+  });
+});

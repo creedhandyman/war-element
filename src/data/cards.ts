@@ -12740,8 +12740,24 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 2,
     keywords: { BLOCK: 1 },
-    passiveNames: { roundTick: "First Response" },
+    passiveNames: { roundTick: "First Response", onSummon: "Hose Down" },
     roundTick: { healWoundedAllies: { underHp: 8, amount: 2 } },
+    // HOSE DOWN — it arrives with the line already charged and blows the front
+    // back a space. `statusNova` rather than a 0-damage `barrage`: nova runs
+    // `applyDebuffRiders` (which owns `push`) and `maybeStatus` no-ops without a
+    // statusKind, so this is a PURE shove. A barrage would have had to fake a
+    // hit for zero to reach the same rider, and a fake hit is a real event --
+    // it would trip Electrify, on-hit riders and every hit-taken counter on the
+    // board for no damage.
+    //
+    // `targets: 99` with no spread/column/row param, which the on-summon path
+    // reads as "every opponent in normal targeting range" -- a Ranged card's
+    // reach, so the blast covers what the hose could actually cover.
+    onSummon: {
+      handler: "statusNova",
+      params: { targets: 99, push: 1 },
+      targetSide: "enemy",
+    },
     special: {
       name: "Knock Down",
       cost: 3,

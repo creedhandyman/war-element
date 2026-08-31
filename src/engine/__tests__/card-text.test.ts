@@ -4,7 +4,7 @@
 // undescribed.
 
 import { describe, expect, it } from "vitest";
-import { CARDS, TOKENS } from "../../data/cards";
+import { CARDS, TOKENS, getDef } from "../../data/cards";
 import { SPELLS } from "../spells";
 import { describeOwnPassives, describePassives } from "../../ui/card-text";
 import { KEYWORDS, KEYWORD_STYLE } from "../../ui/shared";
@@ -390,5 +390,59 @@ describe("the keyword filter rows", () => {
       const n = buildableCards().filter((d) => !!d.keywords[k]).length;
       expect(n, `${k} matches no buildable card`).toBeGreaterThan(0);
     }
+  });
+});
+
+// A SHARED renderer must not weld ONE card's flavour into the line that every
+// card using that field gets. `spawnOnHitTaken` did exactly that: it opened
+// with a hard-coded "Acorn Drop:" and the verb "sprouts", invisible while Oak
+// was the only card carrying the field. The moment Police Car took it, its face
+// read "Call for Backup — Acorn Drop: ... sprouts 1 Officer" — a tree's ability
+// name and a tree's verb on a police car. `named()` strips a leading name only
+// when it matches the card's OWN passiveName, which is exactly why this shape
+// slips through: right for the first card, wrong for the second.
+//
+// Scoped to the spawn renderers rather than "no line may quote any other card's
+// passive name", which was tried and is WRONG: thirteen cards legitimately
+// carry a shared mechanic label (Hastened Assault, Regenerative, Diamond's
+// Edge, Unpredictable...) that some other card also picked as its own passive
+// name. Naming a shared mechanic is the convention; wearing another card's
+// FLAVOUR is the bug.
+describe("a spawn-on-hit line belongs to the card it is printed on", () => {
+  it("names its own token and no other card's ability", () => {
+    const spawners = CARDS.filter((c) => c.spawnOnHitTaken);
+    expect(spawners.length, "more than one card must share this renderer or the test proves nothing")
+      .toBeGreaterThan(1);
+    const otherNames = new Set(
+      spawners.map((c) => c.passiveNames?.spawnOnHitTaken).filter(Boolean) as string[],
+    );
+    for (const c of spawners) {
+      const mine = c.passiveNames?.spawnOnHitTaken;
+      const line = describeOwnPassives(c).find((l) => !mine || l.startsWith(mine));
+      expect(line, `${c.id} renders no spawn line`).toBeTruthy();
+      const token = getDef(c.spawnOnHitTaken!.token).name;
+      expect(line, `${c.id} must name the ${token} it actually spawns`).toContain(token);
+      for (const n of otherNames)
+        if (n !== mine)
+          expect(line, `${c.id} wears ${n}, which is another card's ability`).not.toContain(n);
+    }
+  });
+});
+
+// Cheap, and it would have caught a real one: a `statusNova` on-summon with no
+// statusKind rendered the literal words "apply undefined to all enemies in
+// range" onto Firefighter's face. Nothing failed -- the line was neither empty
+// nor the vague catch-all -- so the only thing that noticed was reading it.
+describe("no card face leaks a JS placeholder", () => {
+  it("never prints undefined, NaN or [object Object]", () => {
+    // BOTH renderers: the on-summon line lives in `describeOwnPassives` and not
+    // in `describePassives`, and the first cut of this test read only the
+    // latter -- so it passed against the exact bug it was written for.
+    const bad: string[] = [];
+    for (const c of CARDS)
+      for (const line of [...describePassives(c), ...describeOwnPassives(c)])
+        if (/undefined|NaN|\[object Object\]/.test(line))
+          bad.push(`${c.id}: ${line}`);
+    expect(bad, bad.join(" | ")).toEqual([]);
   });
 });

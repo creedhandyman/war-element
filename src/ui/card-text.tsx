@@ -121,8 +121,21 @@ function describeOnSummon(os: {
     }
     case "overload":
       return "On summon: fires its Special — already-PARALYZED opponents are held 1 round longer, everyone else is marked ELECTRIFIED.";
-    case "statusNova":
-      return `On summon: apply ${p.statusKind}${p.statusDuration ? ` for ${rounds(n("statusDuration"))}` : ""} to ${scope()}.`;
+    case "statusNova": {
+      // A nova with NO statusKind is legal and is a PURE displacement — nova
+      // runs `applyDebuffRiders`, which owns `push`, and `maybeStatus` no-ops
+      // without a kind (Firefighter's Hose Down). This branch assumed a status
+      // was always there and rendered the words "apply undefined to all enemies
+      // in range" onto the card face the moment one was not.
+      const nPush = n("push");
+      const nSt = statusParts();
+      const shove = nPush ? `push ${scope()} back ${nPush}` : "";
+      const apply = nSt.length ? `apply ${nSt.join(" + ")} to ${scope()}` : "";
+      if (shove && apply) return `On summon: ${apply}, and ${shove}.`;
+      if (shove) return `On summon: ${shove}.`;
+      if (apply) return `On summon: ${apply}.`;
+      return "";
+    }
     case "grantShield":
       return `On summon: give ${scope()} +${n("amount")} shield.`;
     case "buffSp":
@@ -719,11 +732,23 @@ export function describePassives(def: CardDef): string[] {
     named("boom", `Boom: a time bomb — after ${def.boom.afterRounds} rounds it detonates for ${def.boom.dmg} DMG to every enemy, then dies.`);
   if (def.deathExplosion)
     named("deathExplosion", `On death: a final explosion — ${def.deathExplosion} DMG to every opponent on the board.`);
-  if (def.spawnOnHitTaken)
+  if (def.spawnOnHitTaken) {
+    // NO HARD-CODED NAME, and no "sprouts". This read `Acorn Drop: ... sprouts
+    // N`, which is Oak's flavour welded into a SHARED renderer -- and `named`
+    // only strips a leading name when it matches the card's OWN passiveName, so
+    // the moment a second card took this field its face read "Call for Backup —
+    // Acorn Drop: the first hit it takes each round sprouts 1 Officer." A police
+    // car does not sprout, and it is not called Acorn Drop.
+    //
+    // The cap is stated too. `maxAlive` was silently missing here while the
+    // sibling `onAllyHitSpawn` line right above prints it, so the same ceiling
+    // was documented on one of Police Car's two spawn taps and not the other.
+    const sp = def.spawnOnHitTaken;
     named(
       "spawnOnHitTaken",
-      `Acorn Drop: ${def.spawnOnHitTaken.oncePerRound ? "the first hit it takes each round" : "every hit it takes"} sprouts ${def.spawnOnHitTaken.count} ${getDef(def.spawnOnHitTaken.token).name}.`,
+      `${sp.oncePerRound ? "the first hit it takes each round" : "every hit it takes"} puts ${sp.count} ${getDef(sp.token).name} on the board${sp.maxAlive ? `, up to ${sp.maxAlive} at a time` : ""}.`,
     );
+  }
   if (def.basicSplash)
     named(
       "basicSplash",
