@@ -126,8 +126,8 @@ export const GALE_LORE: Record<string, string> = {
   gale_megair:
     "It is at its worst nearly dead — one hit then, and the whole field takes a step back with it.",
 
-  gale_breeze:
-    "It carries the dust of the dry plains. Sometimes that is all it takes to make someone shoot at nothing.",
+  gale_breeze: // Nightwing — the id predates the card; see cards.ts
+    "It hunts the long way round, downwind and patient, and what it takes back it keeps.",
 
   gale_luna: // Wolf
     "The pack's youngest hunter. Every kill puts her back on her feet for the next one.",

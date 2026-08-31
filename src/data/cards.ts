@@ -9053,22 +9053,48 @@ export const CARDS: CardDef[] = [
     },
   },
   {
+    // THE ID STAYS `gale_breeze` though the card is now Nightwing, and that is
+    // deliberate. Card ids are persisted in save data — collections, saved
+    // squads, deck codes (which are INDICES into deck-code.ts's id list) and
+    // story rosters all store them. Renaming the id would not rename anyone's
+    // copy; it would delete it, silently, out of every existing collection.
+    // There is no id-alias mechanism in the codebase to migrate through, so the
+    // id is a permanent handle and the name is the thing that may change.
+    // The art file is named from the id too, so the plate at
+    // public/cards/gale_breeze.webp is Nightwing's.
     id: "gale_breeze",
-    name: "Breeze",
+    name: "Nightwing",
     rarity: "rare",
     element: "GALE",
     cardClass: "Support",
-    attackType: "Ranged",
+    attackType: "Melee",
     cost: 2,
-    dmg: 2,
+    // 5x1 + 8 + 0x2 + 7 = 20, which is exactly a cost-2's budget (5c + 10) —
+    // the same 20 Breeze spent, moved off SP and onto damage. It was a 2-DMG
+    // blinder with 10 SP; it is now a 5-DMG drainer with 7, which is a real
+    // card rather than a faster one.
+    dmg: 5,
     hits: 1,
     hp: 8,
-    sp: 10,
+    sp: 7,
     shields: 0,
-    keywords: { FLYING: true },
-    // Dust Gust: basics have a 30% chance to BLIND for the round.
-    passiveNames: { onHitStatus: "Dust Gust" },
-    onHitStatus: { kind: "BLIND", duration: 1, power: 0, chance: 30 },
+    // DRAIN and FLYING, replacing Dust Gust's 30% BLIND. The chance goes with
+    // it, which is no loss: a coin-flip blind on a 2-cost was the kind of
+    // passive you could not plan around in either direction.
+    keywords: { FLYING: true, DRAIN: true },
+    // Nightfeed exists because of a CONTRACT, and it is worth saying so. Every
+    // cost-1 and cost-2 Rare must carry a passive and not merely a keyword
+    // (`passives.test.ts` "a cheap Rare is never a blank body") — a cheap Rare
+    // cannot have a Talent, so a passive is the only thing it has to be
+    // interesting with, and `keywords` is deliberately excluded from what
+    // counts. DRAIN alone would have left this card technically blank.
+    //
+    // So rather than bolt on something unrelated, it is the same hunger on a
+    // second beat: DRAIN takes 1 max HP off whatever it HITS, and Nightfeed
+    // takes 1 more off whatever it is STANDING NEXT TO at end of round. One max
+    // HP, against Violet's three, because Violet costs what it costs.
+    passiveNames: { roundTick: "Nightfeed" },
+    roundTick: { drainMaxAdjacent: 1 },
   },
   {
     id: "aqua_hydrogon",
@@ -12016,8 +12042,13 @@ export const CARDS: CardDef[] = [
     },
   },
   {
+    // The id stays `dusk_tatterhand` though the card is now Scarecrow: ids are
+    // persisted in collections, saved squads, story rosters and deck codes
+    // (which are INDICES into deck-code.ts), and there is no id-alias mechanism
+    // to migrate through — renaming would delete the card out of every save
+    // rather than rename it. The art plate is named from the id too.
     id: "dusk_tatterhand",
-    name: "Tatterhand",
+    name: "Scarecrow",
     rarity: "legendary",
     element: "DUSK",
     cardClass: "Support",
