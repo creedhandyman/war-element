@@ -11787,17 +11787,21 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_sunspot",
     name: "Sunspot",
-    rarity: "rare",
+    rarity: "epic",
     element: "DAWN",
     cardClass: "Assassin",
     tribe: "Stars",
     attackType: "Melee",
-    cost: 2,
+    // Rarity is a cost band, so the mix and the curve are one decision: this
+    // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
+    // carries, and the stat line is re-cut to the budget that comes with it.
+    cost: 3,
     // 6 + 6 + 8 = 20 = 5*2+10.
+    // 6 + 8 + 11 = 25 = 5*3+10.
     dmg: 6,
     hits: 1,
-    hp: 6,
-    sp: 8,
+    hp: 8,
+    sp: 11,
     shields: 0,
     keywords: {},
     passiveNames: { vsStatus: "Blind Spot" },
@@ -11805,6 +11809,17 @@ export const CARDS: CardDef[] = [
     // Sunbanner all hand out BLIND, and until now nothing in the element
     // executed what it had blinded.
     vsStatus: { status: "BLIND", crit: true },
+    special: {
+      name: "Corona Flare",
+      cost: 2,
+      handler: "strike",
+      // Self-enabling, like Prestige's MUTE: Blind Spot CRITs a BLINDed target,
+      // and this is what blinds one. The Special sets up the passive rather than
+      // being a second, unrelated button.
+      params: { dmg: 7, statusKind: "BLIND", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "7 DMG to an adjacent opponent and BLIND it for 2 rounds — which its own basics then CRIT.",
+    },
   },
   {
     id: "dawn_quasar",
@@ -11837,18 +11852,20 @@ export const CARDS: CardDef[] = [
   {
     id: "dawn_meridian",
     name: "Meridian",
-    rarity: "legendary",
+    rarity: "epic",
     element: "DAWN",
     cardClass: "Assassin",
     tribe: "Stars",
     attackType: "Melee",
-    cost: 6,
-    // 11 + 16 + 1*2 + 11 = 40 = 5*6+10. SP 11 sits one under DAWN_SP_CAP on
-    // purpose, so First Light still has a point to give it.
+    // Rarity is a cost band, so the mix and the curve are one decision: this
+    // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
+    // carries, and the stat line is re-cut to the budget that comes with it.
+    cost: 5,
+    // 11 + 13 + 1*2 + 9 = 35 = 5*5+10.
     dmg: 11,
     hits: 1,
-    hp: 16,
-    sp: 11,
+    hp: 13,
+    sp: 9,
     shields: 1,
     keywords: { FLYING: true },
     passiveNames: { deathSave: "Second Sunrise" },
@@ -12052,16 +12069,19 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_aerostat",
     name: "Aerostat",
-    rarity: "legendary",
+    rarity: "epic",
     element: "GALE",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 6,
-    // 2 + 30 + 2*2 + 4 = 40 = 5*6+10. A 30 HP envelope on 2 DMG: it is a wall
+    // Rarity is a cost band, so the mix and the curve are one decision: this
+    // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
+    // carries, and the stat line is re-cut to the budget that comes with it.
+    cost: 5,
+    // 2 + 25 + 2*2 + 4 = 35 = 5*5+10. A 25 HP envelope on 2 DMG: still a wall
     // that happens to fly, not a threat.
     dmg: 2,
     hits: 1,
-    hp: 30,
+    hp: 25,
     sp: 4,
     shields: 2,
     keywords: { FLYING: true },
@@ -12082,16 +12102,19 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_gyre",
     name: "Gyre",
-    rarity: "legendary",
+    rarity: "rare",
     element: "GALE",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 6,
-    // 3*2 + 21 + 13 = 40 = 5*6+10.
+    // Rarity is a cost band, so the mix and the curve are one decision: this
+    // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
+    // carries, and the stat line is re-cut to the budget that comes with it.
+    cost: 3,
+    // 3*2 + 12 + 7 = 25 = 5*3+10.
     dmg: 3,
     hits: 2,
-    hp: 21,
-    sp: 13,
+    hp: 12,
+    sp: 7,
     shields: 0,
     keywords: {},
     passiveNames: { roundTick: "Wheeling Sky" },
@@ -12099,13 +12122,13 @@ export const CARDS: CardDef[] = [
     // TURNS it, which destroys formation while preserving distance. This is the
     // first player card to carry it.
     roundTick: { cycloneSpin: 1 },
-    special: {
+    talent: {
       name: "Eye of the Gyre",
-      cost: 3,
+      text: "Once per game, free: drag up to 3 opponents 2 spaces toward you, STUN them 1 round and -3 SP for 2.",
+      // The Special it had, at the rung that allows one. Cost 3 is the only rung
+      // a Talent may sit on, which is what made this the right card to drop.
       handler: "statusNova",
       params: { statusKind: "STUN", statusDuration: 1, targets: 3, pullToCaster: 2, spDebuff: 3, spDebuffRounds: 2 },
-      targetSide: "enemy",
-      text: "Drag up to 3 opponents 2 spaces toward you, STUN them 1 round and -3 SP for 2.",
     },
   },
 
@@ -12312,15 +12335,18 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_airship",
     name: "War Airship",
-    rarity: "legendary",
+    rarity: "epic",
     element: "BOLT",
     cardClass: "Support",
     attackType: "Ranged",
-    cost: 6,
-    // 6 + 20 + 3*2 + 8 = 40 = 5*6+10.
+    // Rarity is a cost band, so the mix and the curve are one decision: this
+    // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
+    // carries, and the stat line is re-cut to the budget that comes with it.
+    cost: 5,
+    // 6 + 15 + 3*2 + 8 = 35 = 5*5+10.
     dmg: 6,
     hits: 1,
-    hp: 20,
+    hp: 15,
     sp: 8,
     shields: 3,
     keywords: { FLYING: true },
@@ -12413,16 +12439,19 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_wintermoose",
     name: "Winter Moose",
-    rarity: "legendary",
+    rarity: "epic",
     element: "LEAF",
     cardClass: "Support",
     attackType: "Melee",
-    cost: 6,
-    // 6 + 23 + 3*2 + 5 = 40 = 5*6+10. Support/MELEE, which only a handful of
+    // Rarity is a cost band, so the mix and the curve are one decision: this
+    // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
+    // carries, and the stat line is re-cut to the budget that comes with it.
+    cost: 5,
+    // 6 + 18 + 3*2 + 5 = 35 = 5*5+10. Support/MELEE, which only a handful of
     // cards are -- legal and precedented, but off the beaten path.
     dmg: 6,
     hits: 1,
-    hp: 23,
+    hp: 18,
     sp: 5,
     shields: 3,
     keywords: {},
@@ -12477,62 +12506,62 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_komodo",
     name: "Komodo",
-    rarity: "epic",
+    rarity: "rare",
     element: "PYRO",
     cardClass: "Assassin",
     tribe: "Reptile",
     attackType: "Melee",
-    cost: 4,
-    // 6 + 14 + 10 = 30 = 5*4+10.
+    // Rarity is a cost band, so the mix and the curve are one decision: this
+    // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
+    // carries, and the stat line is re-cut to the budget that comes with it.
+    cost: 3,
+    // 6 + 12 + 7 = 25 = 5*3+10.
     dmg: 6,
     hits: 1,
-    hp: 14,
-    sp: 10,
+    hp: 12,
+    sp: 7,
     shields: 0,
     keywords: {},
     passiveNames: { onHitStatus: "Septic Bite", vsStatus: "Blood Scent" },
     // Self-enabling: the bite applies the BLEED that Blood Scent then cashes.
     onHitStatus: { kind: "BLEED", duration: 3, power: 2 },
     vsStatus: { status: "BLEED", bonusDmg: 4 },
-    special: {
+    talent: {
       name: "Death Roll",
-      cost: 3,
+      text: "Once per game, free: 8 DMG to an adjacent opponent and open it up — BLEED 4 for 3 rounds.",
       handler: "strike",
-      // Sets up its own payoff: Blood Scent pays +4 against a BLEEDing target,
-      // and this is what opens one up.
       params: { dmg: 8, statusKind: "BLEED", statusPower: 4, statusDuration: 3 },
-      targetSide: "enemy",
-      text: "8 DMG to an adjacent opponent and open it up — BLEED 4 for 3 rounds.",
     },
   },
   {
     id: "pyro_chopper",
     name: "Chopper",
-    rarity: "epic",
+    rarity: "rare",
     element: "PYRO",
     cardClass: "Support",
     tribe: "Forged Tech",
     attackType: "Ranged",
-    cost: 4,
-    // 3 + 15 + 12 = 30 = 5*4+10. PYRO's Supports were the element's thinnest
+    // Rarity is a cost band, so the mix and the curve are one decision: this
+    // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
+    // carries, and the stat line is re-cut to the budget that comes with it.
+    cost: 3,
+    // 3 + 12 + 10 = 25 = 5*3+10.
     // class at 5, and a board-effect Support matches its idiom (Smog, Canister
     // and Scorch are all effects, not healers) -- a PYRO healer would fight the
     // element's own anti-heal identity.
     dmg: 3,
     hits: 1,
-    hp: 15,
-    sp: 12,
+    hp: 12,
+    sp: 10,
     shields: 0,
     keywords: { FLYING: true },
     passiveNames: { roundTick: "Drip Torch" },
     roundTick: { inRangeStatus: { kind: "BURN", duration: 2, power: 1 } },
-    special: {
+    talent: {
       name: "Napalm Drop",
-      cost: 3,
+      text: "Once per game, free: dump the tanks on the row directly ahead — 4 DMG and BURN 3 for 3 rounds to everything in it.",
       handler: "barrage",
       params: { dmg: 4, targets: 99, rowAhead: 1, statusKind: "BURN", statusPower: 3, statusDuration: 3 },
-      targetSide: "enemy",
-      text: "Dump the tanks on the row directly ahead — 4 DMG and BURN 3 for 3 rounds to everything in it.",
     },
   },
   {
@@ -12574,18 +12603,20 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_bluewhale",
     name: "Blue Whale",
-    rarity: "epic",
+    rarity: "legendary",
     element: "AQUA",
     cardClass: "Tank",
     tribe: "SeaC",
     attackType: "Melee",
-    cost: 5,
-    // 3 + 28 + 1*2 + 2 = 35 = 5*5+10. Huge FOR ITS COST rather than in absolute
-    // terms -- Killer Whale is already the legendary cost-7 AQUA Tank, and two
-    // whales in one lane would have been the collision.
+    // Rarity is a cost band, so the mix and the curve are one decision: this
+    // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
+    // carries, and the stat line is re-cut to the budget that comes with it.
+    cost: 6,
+    // 3 + 33 + 1*2 + 2 = 40 = 5*6+10. Now huge in absolute terms too, and one
+    // cost under Killer Whale so the two legendary AQUA whales still separate.
     dmg: 3,
     hits: 1,
-    hp: 28,
+    hp: 33,
     sp: 2,
     shields: 1,
     keywords: {},
@@ -12608,34 +12639,31 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_divebill",
     name: "Divebill",
-    rarity: "epic",
+    rarity: "rare",
     element: "AQUA",
     cardClass: "Ranger",
     tribe: "Avian",
     attackType: "Ranged",
-    cost: 5,
-    // 7 + 16 + 1*2 + 10 = 35 = 5*5+10. Fills AQUA's thinnest cost slot (4) and
-    // one of its two class holes.
+    // Rarity is a cost band, so the mix and the curve are one decision: this
+    // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
+    // carries, and the stat line is re-cut to the budget that comes with it.
+    cost: 3,
+    // 7 + 10 + 1*2 + 6 = 25 = 5*3+10.
     dmg: 7,
     hits: 1,
-    hp: 16,
-    sp: 10,
+    hp: 10,
+    sp: 6,
     shields: 1,
     keywords: { FLYING: true },
     // Spearpoint: the dive lands hardest the first time it finds a given target,
     // once per opponent per game. Replaced its Talent under the cost-3 rule.
     passiveNames: { firstStrikeBonus: "Spearpoint" },
     firstStrikeBonus: 3,
-    special: {
+    talent: {
       name: "Spearpoint Dive",
-      cost: 3,
+      text: "Once per game, free: fold and drop — 10 DMG straight through shields (PEN) and FREEZE the target for 2 rounds.",
       handler: "strike",
-      // FREEZE, not ROOT. ROOT is LEAF's axis — Photosynthesis pays LEAF a heal
-      // for every ROOTed opponent, so putting it on an AQUA card feeds the wrong
-      // element. FREEZE is AQUA's alone.
       params: { dmg: 10, pen: 1, statusKind: "FREEZE", statusDuration: 2 },
-      targetSide: "enemy",
-      text: "Fold and drop — 10 DMG straight through shields (PEN) and ROOT the target for 2 rounds.",
     },
   },
   {
@@ -12812,16 +12840,19 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_pyrodactyl",
     name: "Pyrodactyl",
-    rarity: "legendary",
+    rarity: "epic",
     element: "PYRO",
     cardClass: "Mage",
     tribe: ["Avian", "Dragon"],
     attackType: "Ranged",
-    cost: 6,
-    // 5*2 + 18 + 12 = 40 = 5*6+10.
+    // Rarity is a cost band, so the mix and the curve are one decision: this
+    // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
+    // carries, and the stat line is re-cut to the budget that comes with it.
+    cost: 5,
+    // 5*2 + 13 + 12 = 35 = 5*5+10.
     dmg: 5,
     hits: 2,
-    hp: 18,
+    hp: 13,
     sp: 12,
     shields: 0,
     keywords: { FLYING: true },
