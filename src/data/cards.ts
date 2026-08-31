@@ -11976,16 +11976,24 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_goldspur",
     name: "Goldspur",
-    rarity: "epic",
+    rarity: "legendary",
     element: "GALE",
     cardClass: "Ranger",
     tribe: "Avian",
     attackType: "Ranged",
-    cost: 5,
+    // COST 5 -> 6, and with it Epic -> Legendary, because the rarity bands make
+    // those the same decision. The recost is the payment: a free Falcon is a
+    // 25-point body with FLYING and PLUMMET on it, and Kobra's note says plainly
+    // that shaving a few points off a printed line "nowhere near pays for" a
+    // free body — the extra gold is what does.
+    cost: 6,
     // 4*2 + 15 + 12 = 35 = 5*5+10.
     dmg: 4,
     hits: 2,
-    hp: 15,
+    // ...and six points under the cost-6 budget of 40 on top of the recost, the
+    // same shape as Kobra sitting four under at cost 7. Trimmed from HP rather
+    // than DMG so the guns still read as the card's point.
+    hp: 14,
     sp: 12,
     shields: 0,
     keywords: { CRIT: true },
@@ -11993,8 +12001,12 @@ export const CARDS: CardDef[] = [
     // This replaced a Talent when the set rule settled on "only cost-3 Rares get
     // one" — a Rare at any other cost earns its texture from passives, which is
     // what they were always for.
-    passiveNames: { onCritBonus: "Fan the Hammer" },
+    passiveNames: { onCritBonus: "Fan the Hammer", summonSpawn: "Falconer" },
     onCritBonus: { dmg: 4, hits: 1 },
+    // ONE Falcon, on arrival. The bird is a real card in its own right — a
+    // cost-3 Rare with FLYING and PLUMMET — which is the whole reason this
+    // needed paying for rather than printing as a rider.
+    summonSpawn: { token: "gale_falcon", count: 1, adjacentOnly: true },
     special: {
       name: "Both Barrels",
       cost: 3,
@@ -12002,7 +12014,9 @@ export const CARDS: CardDef[] = [
       // Two shots, two targets, and CRIT is printed on the card — so this is the
       // volley version of what its basic already does, which is what a
       // gunslinger's Special ought to be.
-      params: { dmg: 5, targets: 2, closest: 1, crit: 1 },
+      // The shove is the GALE half: Zephyr is speed and displacement, so the
+      // shots move the line as well as hurt it.
+      params: { dmg: 5, targets: 2, closest: 1, crit: 1, push: 1 },
       targetSide: "enemy",
       text: "5 DMG to the 2 nearest opponents, both shots rolling for a CRIT.",
     },
@@ -12057,7 +12071,10 @@ export const CARDS: CardDef[] = [
       name: "Sandbag Drop",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 6, targets: 99, rowAhead: 1, statusKind: "STUN", statusDuration: 1, selfShields: 2 },
+      // Ballast dropped from above lands as weight AND wind — the shove is what
+      // makes it read as GALE rather than as a generic row-nuke.
+      params: { dmg: 6, targets: 99, rowAhead: 1, statusKind: "STUN", statusDuration: 1,
+                push: 1, selfShields: 2 },
       targetSide: "enemy",
       text: "6 DMG and STUN 1 to every opponent in the row directly ahead; brace for +2 shields.",
     },
@@ -12199,7 +12216,7 @@ export const CARDS: CardDef[] = [
     // an 11-DMG body is the exact runaway that made enraged Apex Hunger a wall.
     onKill: { buffDmg: 2, buffDmgMax: 6 },
     special: {
-      name: "Death Roll",
+      name: "Riverjaw",
       cost: 4,
       handler: "strike",
       params: { dmg: 11, pen: 1, onKillSelfHeal: 6, takeSpotOnKill: 1 },
@@ -12383,13 +12400,14 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Canopy Crash",
       cost: 3,
-      handler: "fragBlast",
-      // NOTE fragBlast's splash loops enemyCards() directly, so it reaches into
-      // the enemy HOME row that ordinary targeting forbids. Existing handler
-      // behaviour (Dyna's Demolition has it too) -- priced knowing that.
-      params: { dmg: 6, splash: 3 },
+      // `barrage`, not `fragBlast`. fragBlast reads only dmg and splash, so it
+      // cannot carry a status — and the falling timber SHOULD pin. ROOT also
+      // feeds Photosynthesis, which is the element's whole engine, and it drops
+      // a shape Gorilla was sharing with Dyna's Demolition anyway.
+      handler: "barrage",
+      params: { dmg: 6, targets: 3, closest: 1, statusKind: "ROOT", statusDuration: 2 },
       targetSide: "enemy",
-      text: "6 DMG to a target and 3 DMG to every other opponent.",
+      text: "6 DMG to the 3 nearest opponents, pinning them (ROOT) for 2 rounds.",
     },
   },
   {
@@ -12412,12 +12430,12 @@ export const CARDS: CardDef[] = [
     pushImmune: true,
     roundTick: { healAlliesInRange: 3 },
     special: {
-      name: "Windbreak",
+      name: "Winter Coat",
       cost: 3,
       handler: "grantShield",
       params: { amount: 3, nearby: 1, heal: 4 },
       targetSide: "ally",
-      text: "+3 shields and 4 HP to itself and every ally in the 8 slots around it.",
+      text: "Shoulder in — +3 shields and 4 HP to itself and every ally in the 8 slots around it.",
     },
   },
   {
@@ -12445,7 +12463,11 @@ export const CARDS: CardDef[] = [
       name: "Maul",
       cost: 3,
       handler: "strike",
-      params: { dmg: 14, charge: 2, chargeFirst: 1, takeSpotOnKill: 1, onKillSelfHeal: 8 },
+      // The ROOT is not decoration: Photosynthesis heals EVERY LEAF card +1 per
+      // ROOTed opponent, so pinning what it mauls pays the whole board, not just
+      // the bear.
+      params: { dmg: 14, charge: 2, chargeFirst: 1, takeSpotOnKill: 1, onKillSelfHeal: 8,
+                statusKind: "ROOT", statusDuration: 2 },
       targetSide: "enemy",
       text: "Close up to 2 spaces and maul for 14. A kill heals it 8 and it takes the ground.",
     },
@@ -12576,7 +12598,9 @@ export const CARDS: CardDef[] = [
       // A shove rather than a self-buff. `empower` with `selfMaxHp` was the
       // Talent version and worked BECAUSE it fired once — repeatable, a
       // permanent +max HP every few rounds is a body that never stops growing.
-      params: { dmg: 9, push: 2 },
+      // The cold comes up with it. Damage and a shove was a shape any element
+      // could have printed; FREEZE is what makes it AQUA's.
+      params: { dmg: 8, push: 2, statusKind: "FREEZE", statusDuration: 2 },
       targetSide: "enemy",
       text: "Surface under an opponent for 9 DMG and shove it back 2 spaces.",
     },
@@ -12606,7 +12630,10 @@ export const CARDS: CardDef[] = [
       name: "Spearpoint Dive",
       cost: 3,
       handler: "strike",
-      params: { dmg: 10, pen: 1, statusKind: "ROOT", statusDuration: 2 },
+      // FREEZE, not ROOT. ROOT is LEAF's axis — Photosynthesis pays LEAF a heal
+      // for every ROOTed opponent, so putting it on an AQUA card feeds the wrong
+      // element. FREEZE is AQUA's alone.
+      params: { dmg: 10, pen: 1, statusKind: "FREEZE", statusDuration: 2 },
       targetSide: "enemy",
       text: "Fold and drop — 10 DMG straight through shields (PEN) and ROOT the target for 2 rounds.",
     },

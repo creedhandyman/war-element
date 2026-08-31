@@ -12,7 +12,7 @@ import { SPECIAL_HANDLERS, basicAttack } from "../combat";
 import { effectiveDmg } from "../state";
 import { applyIntent } from "../phases";
 import { canPlummet, plummetTargets, canTarget, validTargets, rangedReachFor, RANGED_REACH } from "../rules";
-import { bigPrepState, place, prepState } from "./helpers";
+import { bigPrepState, giveHand, place, prepState } from "./helpers";
 
 function battleWith(s: GameState, activeId: string): GameState {
   s.phase = "battle";
@@ -291,5 +291,46 @@ describe("the held-back eight are on the curve like everything else", () => {
 describe("harness", () => {
   it("prepState is the small board", () => {
     expect(prepState().boardSize).toBeLessThan(bigPrepState().boardSize);
+  });
+});
+
+// ─────────────────────────────────────────── Falconer (Goldspur -> Falcon)
+describe("Falconer — the bird comes with the cowboy", () => {
+  it("puts one Falcon on the board on arrival", () => {
+    // Through the SUMMON INTENT, not `summonCard` and not `place`. This is the
+    // whole point of the test: `summonSpawn` fires in the summon path in
+    // phases.ts, so both shortcuts leave the falcon un-hatched while the data
+    // still reads perfectly — the first version of this test used summonCard and
+    // reported zero falcons on a card that works.
+    const s = prepState();
+    s.players.P1.gold = 12;
+    const before = Object.values(s.cards).filter((c) => c.defId === "gale_falcon").length;
+    const handId = giveHand(s, "P1", "gale_goldspur");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    const after = Object.values(next.cards).filter((c) => c.defId === "gale_falcon" && c.curHp > 0);
+    expect(after.length - before, "one falcon, on the fist").toBe(1);
+    expect(after[0].owner, "and it is his").toBe("P1");
+  });
+
+  it("the falcon it brings is the real card, not a stripped token", () => {
+    // gale_falcon is a draftable cost-3 Rare. Kobra spawns a draftable card the
+    // same way, and dawn_heir_tok is draftable despite its id — so a summoned
+    // body being a full card is precedent, not a special case. It matters here
+    // because the thing arriving carries PLUMMET.
+    const d = getDef("gale_falcon");
+    expect(d.rarity).toBe("rare");
+    expect(d.cost).toBe(3);
+    expect(d.plummet, "and it can still dive").toBeTruthy();
+  });
+
+  it("Goldspur is paid for: under budget AND recosted", () => {
+    // The stat-budget formula cannot see a summon, so a free body has to be paid
+    // for deliberately or the card is simply undercosted. Both halves, the way
+    // Kobra's note prescribes.
+    const d = getDef("gale_goldspur");
+    const body = d.dmg * d.hits + d.hp + d.shields * 2 + d.sp;
+    expect(body, "six under").toBeLessThan(5 * d.cost + 10);
+    expect(d.cost, "and recosted into the Legendary band").toBe(6);
+    expect(d.rarity).toBe("legendary");
   });
 });

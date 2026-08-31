@@ -92,6 +92,15 @@ describe("setup", () => {
       // was trimmed (HP 16 -> 15) rather than raised to the new ceiling so the
       // extra gold is not handed straight back.
       "bore_kobra",
+      // Ability-carried, downward: 34 against a Cost-6 budget of 40. Falconer
+      // puts a FALCON on the board the moment Goldspur lands — a cost-3 Rare
+      // worth 25 points of body, carrying FLYING and PLUMMET, which is a finisher
+      // that deletes anything under its DMG outright. Six points off the printed
+      // line does not pay for that on its own; the recost 5 -> 6 (and with it
+      // Epic -> Legendary, since the bands tie those together) is what does,
+      // exactly as Kobra's note above describes.
+      "gale_goldspur",
+
       // (Sparkle and ToxHawk both used to sit here as "SP-heavy glass cannons"
       // running past the ±2 band. Sparkle traded SP 14 -> 9 to pay for cost 1,
       // and ToxHawk dropped 2 HP to land 2 over at cost 2. Both are inside the

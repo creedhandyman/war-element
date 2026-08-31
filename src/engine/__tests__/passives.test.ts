@@ -4659,3 +4659,33 @@ describe("rarity is a cost band, not a mood", () => {
     expect(rareSpecial, "a Rare with a repeatable Special").toEqual([]);
   });
 });
+
+describe("an ability name means one thing", () => {
+  // Nothing checked this, and two names shipped twice in one pass: "Windbreak"
+  // on a GALE Tank and a LEAF Support, and "Death Roll" on a BORE Warrior and a
+  // PYRO Assassin. Both read as the same card in the log, the gallery and the
+  // action wheel, which is exactly the confusion `state.test.ts` already refuses
+  // to allow for card NAMES.
+  const SHARED_ON_PURPOSE = new Map<string, string[]>([
+    // One boss, two forms. Stormform keeps the move it grew out of.
+    ["Thunder Run", ["boss_thunderfangs", "boss_thunderfangs_2"]],
+    // Pre-dates the rule: Buzz and Surge both print Surge's signature. Listed
+    // rather than silently allowed — if it was a copy-paste it is visible here.
+    ["Electro Surge", ["bolt_buzz", "bolt_surge"]],
+  ]);
+
+  it("no two cards print the same Special or Talent name", () => {
+    const seen = new Map<string, string[]>();
+    for (const c of [...CARDS, ...TOKENS])
+      for (const n of [c.special?.name, c.talent?.name])
+        if (n) seen.set(n, [...(seen.get(n) ?? []), c.id]);
+    const clashes = [...seen]
+      .filter(([, ids]) => ids.length > 1)
+      .filter(([name, ids]) => {
+        const allowed = SHARED_ON_PURPOSE.get(name);
+        return !allowed || [...ids].sort().join() !== [...allowed].sort().join();
+      })
+      .map(([name, ids]) => `"${name}" on ${ids.join(" + ")}`);
+    expect(clashes, "two cards claiming one ability name").toEqual([]);
+  });
+});
