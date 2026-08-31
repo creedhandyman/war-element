@@ -11820,32 +11820,44 @@ export const CARDS: CardDef[] = [
       // name sails straight through it -- checked against every `name:` in
       // cards.ts and spells.ts this time.
       name: "Total Eclipse",
-      cost: 3,
+      // COST 2, down from 3. Measured: over 124 rounds with Sunspot alive, P1
+      // could afford 3 magic in only 32% of them. On a body this cheap and this
+      // short-lived, the magic cost was a second gate stacked on top of the
+      // status gate below.
+      cost: 2,
       handler: "barrage",
-      // IT NO LONGER BLINDS ITS OWN TARGET, and that is the point. Corona Flare
-      // was self-enabling -- blind one, then crit it -- which made Sunspot a
-      // closed loop that needed nothing and gave nothing. Measured, that loop
-      // essentially never closed: 69 Sunspots reached the board across 336
-      // matches and Blind Spot crit exactly twice, because the AI cast Corona
-      // Flare 15 times in 69 summons. Forcing Sunspot into DAWN's opening COST
-      // the element 6.7 points.
+      // UNCONDITIONAL, and the `requireStatus: "BLIND"` gate that used to be here
+      // is gone. Two reworks of this card have now been measured and the second
+      // was WORSE than the first:
       //
-      // Eclipse is the opposite shape: it does NOTHING on its own and scales
-      // with how much BLIND is already on the board -- Quasar's basics, plus
-      // Beam, Star, Kosmos, Zenith, Solara and Sunbanner, all of which hand out
-      // BLIND and none of which had a payoff before this card.
+      //   Corona Flare (self-blinding)   0.22 casts per Sunspot summon
+      //   Total Eclipse (BLIND-gated)    0.038
       //
-      // `requireStatus` is safe against the AI wasting a cast: `specialTargets`
-      // filters the list by it (rules.ts), so an unblinded board offers Sunspot
-      // no targets and the Special is simply not offered.
+      // The gate was not the AI misplaying it -- the AI cast it every single
+      // time it was legal, 3 for 3. The window simply never opened: across 124
+      // rounds with Sunspot alive, an opponent was BLIND in 7.3% of them, and
+      // everything lined up in 2.4%.
       //
-      // `ranged: true` because Sunspot is MELEE and a payoff it cannot reach is
-      // the dead card all over again -- the marks are wherever the blinders
-      // put them.
-      params: { dmg: 7, targets: 99, requireStatus: "BLIND", pen: 1 },
+      // THE REAL LESSON IS ABOUT WHICH CARDS CAN AFFORD A CONDITION. Sunspot is
+      // summoned 0.24 times a match and is an 8 HP body that does not last;
+      // `aiPrepIntent` buys the dearest card it can afford, so a cost-3 rarely
+      // gets bought at all. A card that is seldom on the board needs
+      // UNCONDITIONAL value. Conditions belong on cards you reliably draw and
+      // keep -- the setup cost is only payable if there are turns to pay it in.
+      //
+      // Blind Spot (above) is still the BLIND payoff, and it is the right place
+      // for one: it rides the BASIC, so it costs no magic and needs no window.
+      // Quasar's synergy is untouched.
+      //
+      // Sized against its peers rather than left at 99 targets: Gorilla and
+      // Mortar both pay 3 magic for ~6 damage over 2-3 targets plus a rider,
+      // and both sit on cost-5 bodies. This is 6 over 2 with PEN on a cost-3
+      // body for 2 magic. `ranged: true` stays -- a MELEE assassin with 8 HP
+      // diving into three adjacent enemies is not a play anyone makes.
+      params: { dmg: 6, targets: 2, closest: 1, pen: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "Strike EVERY BLINDED opponent for 7, straight through shields (PEN). Blinds nothing itself — someone has to have put the lights out.",
+      text: "Strike the 2 nearest opponents for 6, straight through shields (PEN).",
     },
   },
   {

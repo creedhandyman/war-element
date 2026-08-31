@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 import type { GameState } from "../types";
 import { getDef } from "../../data/cards";
-import { SPECIAL_HANDLERS, applyStatus, basicAttack } from "../combat";
+import { SPECIAL_HANDLERS, basicAttack } from "../combat";
 import { effectiveDmg } from "../state";
 import { applyIntent } from "../phases";
 import { canPlummet, plummetTargets, canTarget, validTargets, rangedReachFor, RANGED_REACH, specialTargets } from "../rules";
@@ -529,35 +529,39 @@ describe("Sunspot and Quasar are a pair, not a copy", () => {
     expect(s.cards[foe.instanceId].statuses.some((x) => x.kind === "BLIND")).toBe(true);
   });
 
-  it("Sunspot is the EXECUTIONER — it blinds nothing itself", () => {
-    const sp = getDef("dawn_sunspot").special!;
-    const p = sp.params as Record<string, unknown>;
-    expect(p.statusKind, "it must not set up its own payoff any more").toBeUndefined();
-    expect(p.requireStatus).toBe("BLIND");
+  it("Sunspot still does not blind — Quasar is the only enabler", () => {
+    const p = getDef("dawn_sunspot").special!.params as Record<string, unknown>;
+    expect(p.statusKind, "it must not set up its own payoff").toBeUndefined();
+    // Blind Spot is where the BLIND payoff lives, and it is the right place for
+    // one: it rides the BASIC, so it costs no magic and waits on no window.
     expect(getDef("dawn_sunspot").vsStatus?.status).toBe("BLIND");
   });
 
-  it("Total Eclipse offers NO targets on a board with nothing blinded", () => {
+  it("Total Eclipse is UNCONDITIONAL — it is offered on a board with nothing blinded", () => {
+    // It used to carry `requireStatus: "BLIND"`, and that gate was measured as
+    // the thing killing the card: over 124 rounds with Sunspot alive an opponent
+    // was BLIND in 7.3% of them, and it fired in 2.4%. Casts per summon went
+    // 0.22 -> 0.038 when the gate went on. A card summoned 0.24 times a match
+    // cannot pay a setup cost.
+    const p = getDef("dawn_sunspot").special!.params as Record<string, unknown>;
+    expect(p.requireStatus, "no status gate").toBeUndefined();
     const s = bigPrepState();
     const sun = place(s, "dawn_sunspot", "P1", 2, 2, { curHp: 30, maxHp: 30 });
     place(s, "leaf_oak", "P2", 1, 2, { curHp: 40, maxHp: 40 });
-    place(s, "leaf_oak", "P2", 1, 3, { curHp: 40, maxHp: 40 });
-    // requireStatus is honoured by specialTargets, which is what keeps the AI
-    // from spending magic into an empty board.
-    expect(specialTargets(s, sun.instanceId)).toEqual([]);
+    place(s, "leaf_oak", "P2", 0, 4, { curHp: 40, maxHp: 40 });
+    expect(specialTargets(s, sun.instanceId).length,
+      "nothing is blinded and it is still castable").toBeGreaterThan(0);
   });
 
-  it("...and reaches every blinded one once Quasar has been to work", () => {
+  it("...and reaches past its own melee square to do it", () => {
+    // `ranged: true`: an 8 HP assassin diving into three adjacent enemies is not
+    // a play anyone makes, so the Special reaches even though the card is MELEE.
+    // NOT on its own home row, and not aimed at the enemy's: the Home Slot rule
+    // forbids that pairing outright, so a test placed there measures that rule
+    // rather than the card's reach.
     const s = bigPrepState();
-    const sun = place(s, "dawn_sunspot", "P1", 2, 2, { curHp: 30, maxHp: 30 });
-    const a = place(s, "leaf_oak", "P2", 1, 2, { curHp: 40, maxHp: 40 });
-    const b = place(s, "leaf_oak", "P2", 0, 4, { curHp: 40, maxHp: 40 });
-    const clean = place(s, "leaf_oak", "P2", 1, 1, { curHp: 40, maxHp: 40 });
-    for (const t of [a, b]) applyStatus(s, t, "BLIND", 2, 0, "DAWN");
-    const picked = specialTargets(s, sun.instanceId).map((t) => t.instanceId);
-    expect(picked).toContain(a.instanceId);
-    // `ranged: true` — a MELEE payoff it cannot reach is a dead card.
-    expect(picked, "the far blinded one is still a mark").toContain(b.instanceId);
-    expect(picked, "the one that can still see is not").not.toContain(clean.instanceId);
+    const sun = place(s, "dawn_sunspot", "P1", 3, 2, { curHp: 30, maxHp: 30 });
+    const far = place(s, "leaf_oak", "P2", 1, 4, { curHp: 40, maxHp: 40 });
+    expect(specialTargets(s, sun.instanceId).map((t) => t.instanceId)).toContain(far.instanceId);
   });
 });
