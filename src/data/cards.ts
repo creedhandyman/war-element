@@ -8959,7 +8959,15 @@ export const CARDS: CardDef[] = [
     hp: 18,
     sp: 10,
     shields: 2,
-    keywords: {},
+    // FLYING (owner's call). Free against the stat budget — the formula counts
+    // only dmg/hp/shields/sp — so the printed line is unchanged and no exception
+    // is needed. What it buys is SURVIVAL: melee cannot reach it unless the
+    // attacker also flies or a status grounds it. That matters on THIS card in
+    // particular — it is the element's only board-wide heal-and-cleanse, so it
+    // is the thing the other side most wants dead. DAWN already carries the most
+    // FLYING outside GALE (5 cards), so this sits inside the element's identity
+    // rather than borrowing GALE's.
+    keywords: { FLYING: true },
     // Blessed Light (End of Round): heal allies on the home row +1 HP.
     passiveNames: { roundTick: "Blessed Light", purelightAura: "Purelight" },
     roundTick: { healHomeRow: 1 },
