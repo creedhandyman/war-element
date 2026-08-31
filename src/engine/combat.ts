@@ -3084,8 +3084,23 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
     draft.log.push(`${name} hides a trap where its prey fell.`);
   }
   if (def.buffDmg) {
-    killer.dmgBonus += def.buffDmg;
-    draft.log.push(`${name} grows stronger (+${def.buffDmg} DMG) on the kill.`);
+    // ...UP TO ITS CEILING. Measured on Vulcanyx, whose Apex Hunger is +3 a
+    // kill against the next-biggest ramp's +2: across real fights it reached a
+    // mean PEAK bonus of +36 on a printed 41, worst +81, and a highest swing of
+    // 122 — and it carries LIFESTEAL, so every one of those points is also
+    // healing. Enraged it is worse than 1.5x, because `statScale` multiplies
+    // the TOTAL including this bonus: mean peak +54, worst +108, top swing 223
+    // into a 366 HP pool. Reported from the device as enraged Vulcanyx being
+    // too powerful, and the win rate did NOT show it — 75% bare, the easiest
+    // enraged boss on its floor. The number was the wrong instrument.
+    const room = Math.max(0, (def.buffDmgMax ?? Infinity) - killer.dmgBonus);
+    const gain = Math.min(def.buffDmg, room);
+    if (gain > 0) {
+      killer.dmgBonus += gain;
+      draft.log.push(`${name} grows stronger (+${gain} DMG) on the kill.`);
+    } else {
+      draft.log.push(`${name} is already as strong as it gets.`);
+    }
   }
   if (def.buffDmgRound) killer.dmgBonusRound += def.buffDmgRound;
   if (def.buffSp) killer.spBonus += def.buffSp;

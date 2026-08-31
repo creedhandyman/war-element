@@ -141,6 +141,13 @@ export interface OnHitByMeleeDef {
 /** Fires when this card's basic/special attack KILLS an enemy (per kill). */
 export interface OnKillDef {
   buffDmg?: number; // permanent +DMG (stacks)
+  /** CEILING on that stack. Every other ramp in this file has one — `packDmg`,
+   *  `momentum`, `vsFrozenRamp`, `onHitSpawn`, `spawnToken.maxAlive` — and an
+   *  uncapped +DMG per kill was the odd one out rather than a decision. Absent
+   *  = uncapped, so the fourteen cards carrying buffDmg 1-2 are unchanged.
+   *  Counted against `dmgBonus`, the permanent-stack field, so auras and
+   *  round-scoped buffs neither fill the cap nor are limited by it. */
+  buffDmgMax?: number;
   buffDmgRound?: number; // +DMG for the rest of the round
   buffSp?: number; // permanent +SP
   buffHits?: number; // permanent +1 basic hit (stacks)

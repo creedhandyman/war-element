@@ -10643,7 +10643,21 @@ export const CARDS: CardDef[] = [
     // the blocker IS the cost, twice, because it comes back as teeth. Kill it
     // or starve it; there is no third thing.
     passiveNames: { onKill: "Apex Hunger", roundTick: "Magma Tread" },
-    onKill: { buffDmg: 3, healSelf: 10 },
+    // APEX HUNGER, now with a ceiling. +3 a kill is the biggest on-kill ramp in
+    // the set (the next is +2) and it was uncapped, on the only boss that also
+    // carries LIFESTEAL — so every point of it is healing too. Measured across
+    // real fights it reached a mean PEAK of +36 on a printed 41 (worst +81,
+    // top swing 122); ENRAGED, where `statScale` multiplies the total including
+    // this bonus, mean peak +54, worst +108, top swing 223 into a 366 HP pool.
+    // A swing that heals 61% of its own bar is not a snowball, it is a wall.
+    //
+    // 18 is six kills of growth, and it costs the fight NOTHING where it
+    // matters: bare 66.7 -> 64.6 and bare-enraged 75 -> 75 (n=96), because the
+    // ramp was overkill in the fights it already won. What it removes is the
+    // long grind where the ramp turned a losing position around — with a tamed
+    // ally, enraged 59.4 -> 40.6. The lesson the card is built on (chump-block
+    // it and you feed it) survives; it just stops being unbounded.
+    onKill: { buffDmg: 3, buffDmgMax: 18, healSelf: 10 },
     roundTick: { fireSpecialEveryN: 3, advance: 1 },
     special: {
       name: "Fissure",
