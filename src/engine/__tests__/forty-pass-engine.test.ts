@@ -340,3 +340,55 @@ describe("Falconer — the bird comes with the cowboy", () => {
     expect(d.rarity).toBe("legendary");
   });
 });
+
+// ─────────────────────────────────────── Hot Pursuit (Police Car)
+// Shot from range, the car closes. The mirror of `onHitByMelee`: that answers
+// an attacker where it stands, this one refuses to stay shot at.
+describe("Hot Pursuit — the car chases whoever shoots it", () => {
+  const CAR = "bolt_policecar";
+  const RANGED = "bolt_hacker";   // attackType "Ranged"
+  const MELEE = "leaf_alpha";     // attackType "Melee"
+
+  it("is declared as a once-a-round, 2-space chase", () => {
+    const hp = getDef(CAR).onHitByRangedAdvance!;
+    expect(hp, "the passive is printed on the card").toBeTruthy();
+    expect(hp.steps).toBe(2);
+    // Per hit-EVENT a multi-hit volley would tow the car once per shot, so the
+    // gate is the whole reason this is safe to print.
+    expect(hp.oncePerRound, "a volley must not drag it once per shot").toBe(true);
+  });
+
+  it("closes on a RANGED attacker that hits it", () => {
+    const s = bigPrepState();
+    const car = place(s, CAR, "P2", 0, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const shooter = place(s, RANGED, "P1", 4, 0, { curHp: 40, maxHp: 40 });
+    const before = { ...car.pos! };
+    basicAttack(s, shooter.instanceId, car.instanceId);
+    const after = s.cards[car.instanceId].pos!;
+    expect(s.cards[car.instanceId].curHp, "it has to survive to give chase").toBeGreaterThan(0);
+    const closed = Math.abs(before.row - shooter.pos!.row) - Math.abs(after.row - shooter.pos!.row);
+    expect(closed, "it drove toward the shooter").toBeGreaterThan(0);
+    expect(closed, "and no further than its printed 2").toBeLessThanOrEqual(2);
+  });
+
+  it("does NOT chase a MELEE attacker — it is already in its face", () => {
+    const s = bigPrepState();
+    const car = place(s, CAR, "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const brawler = place(s, MELEE, "P1", 3, 0, { curHp: 40, maxHp: 40 });
+    const before = { ...car.pos! };
+    basicAttack(s, brawler.instanceId, car.instanceId);
+    expect(s.cards[car.instanceId].pos).toEqual(before);
+  });
+
+  it("chases once a round, however many shots land", () => {
+    const s = bigPrepState();
+    const car = place(s, CAR, "P2", 0, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    const a = place(s, RANGED, "P1", 4, 0, { curHp: 40, maxHp: 40 });
+    const b = place(s, RANGED, "P1", 4, 2, { curHp: 40, maxHp: 40 });
+    basicAttack(s, a.instanceId, car.instanceId);
+    const afterFirst = { ...s.cards[car.instanceId].pos! };
+    basicAttack(s, b.instanceId, car.instanceId);
+    expect(s.cards[car.instanceId].pos, "the second shot this round moves it nothing")
+      .toEqual(afterFirst);
+  });
+});

@@ -3779,6 +3779,7 @@ function doCleanupPhase(draft: GameState): void {
     card.twinStrikeFiredRound = false; // Twin Strike (Twinbolt): one bonus volley per round
     card.oppSummonFiredRound = false;  // Drone Sweep (Buzzard): one answer per round
     card.hitSpawnFiredRound = false;   // Acorn Drop (Oak): one sprout per round
+    card.hotPursuitFiredRound = false; // Hot Pursuit (Police Car): one chase per round
     card.allyHitSpawnFiredRound = false; // Officer Down (Police Car): one call per round
     card.onKillAoeFiredRound = false; // Powertrip re-arms each round
     card.dmgBonusRound = 0;

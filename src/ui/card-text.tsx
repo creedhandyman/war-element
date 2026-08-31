@@ -334,6 +334,12 @@ export function describePassives(def: CardDef): string[] {
       `When hit${m.anyAttacker ? " (melee or ranged)" : " by melee"}${m.chance ? ` (${m.chance}%)` : ""}: retaliate — ${bits}.`,
     );
   }
+  if (def.onHitByRangedAdvance) {
+    const hp = def.onHitByRangedAdvance;
+    named("onHitByRangedAdvance",
+      `When a RANGED attacker hits it: drives up to ${hp.steps} space${hp.steps === 1 ? "" : "s"} toward whoever fired${hp.oncePerRound ? ", once a round" : ""}.`,
+    );
+  }
   if (def.guardsHomeRow)
     named("guardsHomeRow", "While it stands, opponents cannot target the home square directly behind it — fliers and ranged attackers included. They have to break it first.");
   if (def.trampleDmg)

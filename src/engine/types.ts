@@ -663,6 +663,20 @@ export interface CardDef {
   onHitSpawn?: { token: string; chance: number; max: number };
   /** Thorns: retaliate when hit by a melee attacker. */
   onHitByMelee?: OnHitByMeleeDef;
+  /** HOT PURSUIT (Police Car): shot from range, it CLOSES. When a RANGED
+   *  attacker lands a hit on this card and it survives, it drives up to
+   *  `steps` slots toward whoever fired.
+   *
+   *  The mirror of `onHitByMelee` — that one answers a melee attacker where it
+   *  stands, this one answers a shooter by refusing to stay shot at. It deals
+   *  no damage of its own: the whole effect is POSITION, which is the axis this
+   *  game actually pays for.
+   *
+   *  `oncePerRound` is strongly recommended and is why this is an object rather
+   *  than a bare number. Without it the move is per hit-EVENT, so a four-hit
+   *  volley would drag the car four times in one attack and a focused back line
+   *  could walk it across the whole board on someone else's turn. */
+  onHitByRangedAdvance?: { steps: number; oncePerRound?: boolean };
   /** Gale Riposte (Kazehaya): a HEAVY blow answers itself. When one attack puts
    *  more than `over` damage on this card and it is still standing, every enemy
    *  within `reach` is shoved back `push` slots and takes `status`.
@@ -1699,6 +1713,9 @@ export interface CardInstance {
    *  reads it. Absent = never. */
   lastBasicRound?: number;
   hitSpawnFiredRound?: boolean;
+  /** Hot Pursuit fired this round — see `onHitByRangedAdvance`. Reset in
+   *  Cleanup alongside `hitSpawnFiredRound`. */
+  hotPursuitFiredRound?: boolean;
   /** `onAllyHitSpawn`'s per-round gate. On the HOLDER, not the ally: two
    *  allies taking a hit in the same round must not fire it twice. */
   allyHitSpawnFiredRound?: boolean;

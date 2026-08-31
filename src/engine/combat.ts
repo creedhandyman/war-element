@@ -1752,6 +1752,32 @@ export function resolveHit(
     }
   }
 
+  // HOT PURSUIT (Police Car): shot from range, it closes the distance.
+  //
+  // Gated on the ATTACKER's printed attackType, exactly like `onHitByMelee`
+  // above reads "Melee" — so a melee attacker gets no free tow, and a Ranged
+  // card standing next to it simply moves the car zero (chargeToward stops the
+  // moment it is adjacent to a living body).
+  //
+  // AFTER the spawn tap on purpose: the Officers arrive at the slot the car was
+  // shot in, then the car drives off toward the shooter. Spawning around the
+  // NEW position would put the squad in the enemy's lap instead of holding the
+  // ground the car just left.
+  if (
+    opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 &&
+    attacker.curHp > 0 && aDef.attackType === "Ranged" &&
+    tDef.onHitByRangedAdvance && target.pos && attacker.pos
+  ) {
+    const hp = tDef.onHitByRangedAdvance;
+    if (!hp.oncePerRound || !target.hotPursuitFiredRound) {
+      if (hp.oncePerRound) target.hotPursuitFiredRound = true;
+      const from = { ...target.pos };
+      chargeToward(draft, target, hp.steps, attacker.pos);
+      if (target.pos && (target.pos.row !== from.row || target.pos.col !== from.col))
+        draft.log.push(`${label(draft, target)} gives chase — closing on ${label(draft, attacker)}.`);
+    }
+  }
+
   // Electro Surge (Surge): being hit while armed discharges — PARALYZE the
   // attacker, deal damage back, and deactivate. Any attacker, once per charge.
   if (

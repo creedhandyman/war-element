@@ -12821,20 +12821,36 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     tribe: "ARC",
     attackType: "Melee",
-    cost: 3,
-    // 3 + 14 + 3*2 + 2 = 25 = 5*3+10.
+    cost: 4,
+    // 3 + 15 + 3*2 + 6 = 30 = 5*4+10.
+    //
+    // The five points the recost buys go to HP and SPEED rather than damage,
+    // because Hot Pursuit only means anything on a car that survives the shot
+    // and can actually cover ground. SP 2 -> 6 is the load-bearing half: 6 is
+    // where `moveReach` switches a card from one slot a move to two, so the
+    // pursuit passive and the car's own legs finally agree about what this
+    // thing is. It is still a Tank at 3 damage — it catches you, it does not
+    // kill you.
     dmg: 3,
     hits: 1,
-    hp: 14,
-    sp: 2,
+    hp: 15,
+    sp: 6,
     shields: 3,
     keywords: { BLOCK: 1 },
-    passiveNames: { spawnOnHitTaken: "Call for Backup", onAllyHitSpawn: "Officer Down" },
+    passiveNames: { spawnOnHitTaken: "Call for Backup", onAllyHitSpawn: "Officer Down", onHitByRangedAdvance: "Hot Pursuit" },
     // BOTH taps capped at 3, and the cap is the point: this is a free body per
     // hit on a cost-3 card, which is the shape that buries a board. The tick's
     // ceiling had to be BUILT (spawnOnHitTaken called spawnTokens uncapped).
     spawnOnHitTaken: { token: "bolt_police_tok", count: 1, oncePerRound: true, maxAlive: 3 },
     onAllyHitSpawn: { token: "bolt_police_tok", count: 1, oncePerRound: true, maxAlive: 3 },
+    // HOT PURSUIT — shoot it and it comes for you. Ranged attackers only: a
+    // melee card is already in its face and has nothing to close.
+    //
+    // ONCE PER ROUND, like both taps above and for the same reason. Per
+    // hit-event a four-shot volley would tow the car four times in one attack,
+    // and a back line taking turns on it could walk it across the board on the
+    // opponent's turn — the two spaces are a threat, not a leash.
+    onHitByRangedAdvance: { steps: 2, oncePerRound: true },
     special: {
       name: "All Units Respond",
       cost: 3,
