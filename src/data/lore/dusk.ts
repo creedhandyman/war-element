@@ -214,8 +214,6 @@ export const DUSK_LORE: Record<string, string> = {
   boss_xilty: "The first blow finds silk. The web decides about the second.",
 
   // -- the forty-card pass --
-  dusk_monstrous_spider:
-    "The web was finished a week ago. It has only been waiting for the ledger to fill.",
   dusk_grafft:
     "The batch was labelled wrong. He wrote that down too, and used it anyway.",
   dusk_duet:

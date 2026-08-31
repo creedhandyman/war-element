@@ -800,7 +800,7 @@ const BORE: StoryRegion = {
     },
     { id: "R7", name: "Faultline", kind: "warden", at: { x: 30, y: 38 },
       requires: ["R5"], roster: ["bore_shift", "bore_rhe", "bore_sheish", "bore_kobra"],
-      adds: ["bore_cosmic", "bore_crock", "bore_kingcobra_tok"],
+      adds: ["bore_cosmic", "bore_crock"],
       lore: "The stonework is set without mortar on purpose: the ground can shift a hand's width and the wall goes with it. Building rigid was tried once, and Shift is what the ground does about it."
      },
     { id: "R8", name: "Crystal Seam", kind: "warden", at: { x: 9, y: 38 },
@@ -827,7 +827,7 @@ const BORE: StoryRegion = {
       lore: "The Diamond Mine carves its stronghold out of rock too patient to notice the excavation. Beauty that simply accumulates, given centuries, and Adamant is what accumulating looks like finished."
     },
     { id: "R12", name: "The Unbroken Wall", kind: "landmark", at: { x: 79, y: 58 },
-      requires: ["R6", "R10"], roster: ["bore_dunebuggy", "bore_kingcobra", "bore_rhino", "bore_badlands_bandits", "bore_spinosaur", "bore_bastion", "bore_bearocks", "bore_steel"], adds: [],
+      requires: ["R6", "R10"], roster: ["bore_dunebuggy", "bore_kingcobra_tok", "bore_rhino", "bore_badlands_bandits", "bore_spinosaur", "bore_bastion", "bore_bearocks", "bore_steel"], adds: [],
       note: "Bore Fortress — stone guardians. The campaign's hardest Landmark to out-damage rather than out-think, and Ironclad is immune to every status and DOT in the game. Bring PEN or bring a plan.",
       lore: "Bore Fortress is held by the Stone Guardians, and held is the correct word rather than ruled. A mountain is handed to whoever will keep living on it, and Bastion has kept living on it."
     },
@@ -946,7 +946,7 @@ const DUSK: StoryRegion = {
       lore: "Nobody is carried up the stones from the Landing. Whatever condition an arrival is in, DUSK holds the last stretch of a journey belongs to the one making it, and Vesper only counts them in."
      },
     { id: "D11", name: "Death Island: The Barrows", kind: "landmark", at: { x: 66, y: 64 },
-      requires: ["D7"], roster: ["dusk_duet", "dusk_grafft", "dusk_monstrous_spider", "dusk_prestige", "dusk_tatterhand", "dusk_zombination", "dusk_skelider", "dusk_destro"],
+      requires: ["D7"], roster: ["dusk_duet", "dusk_grafft", "dusk_monstrous_spider_tok", "dusk_prestige", "dusk_tatterhand", "dusk_zombination", "dusk_skelider", "dusk_destro"],
       adds: ["dusk_skeleton_tok"],
       lore: "The mounds are numbered, swept, and reopened as needed, the way a street keeps its houses. The families who do the upkeep are mostly buried in the same row, and Zombination works both shifts."
      },

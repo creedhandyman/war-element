@@ -83,11 +83,12 @@ describe("setup", () => {
       "bolt_havoc",
       // Ability-carried, downward: 41 (10x1 + 15hp + 2sh x2 + 12sp) vs a Cost-7
       // budget of 45. Ambush Coil spawns a KING COBRA on summon — 31 points of
-      // its own (5 + 8 + 4x2 + 10) — and the pair hunt together: Venom Strike
+      // its own (5 + 8 + 2x2 + 8, restatted from 31 when the snake became a
+      // draftable cost-3 Rare) — and the pair hunt together: Venom Strike
       // puts a target under and BOTH snakes then double into it, the token
       // carrying `vsStatus` written on itself so it keeps doing so after Kobra
       // dies. Four points off the printed line nowhere near pays for a free
-      // 31-point body; the recost 6 -> 7 is what pays for it, and the stat line
+      // 25-point body; the recost 6 -> 7 is what pays for it, and the stat line
       // was trimmed (HP 16 -> 15) rather than raised to the new ceiling so the
       // extra gold is not handed straight back.
       "bore_kobra",

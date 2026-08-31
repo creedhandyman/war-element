@@ -200,6 +200,12 @@ export const CODE_IDS: readonly string[] = [
   "pyro_mortar",
   "pyro_pyrodactyl",
   "aqua_sonarping",
+  // Promoted from TOKENS to draftable cards. `bore_kingcobra` and
+  // `dusk_monstrous_spider` above are now ORPHANS -- deliberately left in
+  // place, because this list is read by INDEX and deleting an entry rewrites
+  // every deck code anyone has saved.
+  "bore_kingcobra_tok",
+  "dusk_monstrous_spider_tok",
 ];
 
 const INDEX_OF = new Map<string, number>(CODE_IDS.map((id, i) => [id, i]));

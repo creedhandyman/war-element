@@ -11854,34 +11854,6 @@ export const CARDS: CardDef[] = [
 
   // ── DUSK ──────────────────────────────────────────────────
   {
-    id: "dusk_monstrous_spider",
-    name: "Monstrous Spider",
-    rarity: "rare",
-    element: "DUSK",
-    cardClass: "Warrior",
-    tribe: "Spider",
-    attackType: "Melee",
-    cost: 3,
-    // 6 + 12 + 7 = 25 = 5*3+10.
-    dmg: 6,
-    hits: 1,
-    hp: 12,
-    sp: 7,
-    shields: 0,
-    // DRAIN is DUSK-exclusive across the whole set — it costs nothing against
-    // the budget and it is the element's own identity rather than a borrowed one.
-    keywords: { DRAIN: true },
-    talent: {
-      name: "Wrapping Web",
-      text: "Once per game, free: ROOT every opponent in range for 2 rounds.",
-      handler: "statusNova",
-      // Duration 2, not 1, for the off-by-one this file documents on FRIGHTEN:
-      // a status applied in BATTLE is ticked away at Cleanup before Prep, so at
-      // 1 the move-lock never actually lands on anybody.
-      params: { targets: 99, statusKind: "ROOT", statusDuration: 2 },
-    },
-  },
-  {
     id: "dusk_grafft",
     name: "Grafft",
     rarity: "rare",
@@ -12107,28 +12079,6 @@ export const CARDS: CardDef[] = [
     passiveNames: { trampleDmg: "Trample Through", onHitPush: "Horn Toss" },
     trampleDmg: 3,
     onHitPush: 1,
-  },
-  {
-    id: "bore_kingcobra",
-    name: "King Cobra",
-    rarity: "rare",
-    element: "BORE",
-    cardClass: "Ranger",
-    attackType: "Ranged",
-    cost: 2,
-    // 4 + 5 + 1*2 + 9 = 20 = 5*2+10.
-    dmg: 4,
-    hits: 1,
-    hp: 5,
-    sp: 9,
-    shields: 1,
-    keywords: {},
-    passiveNames: { onHitStatus: "Venom Spit", vsStatus: "Strike the Blind" },
-    // Ranged and BLIND-based on purpose: the Sand Cobra token Kobra spawns is
-    // Melee and SLEEP-based, so the two are not a stat-and-mechanic reskin of
-    // each other even though both can stand on the board at once.
-    onHitStatus: { kind: "BLIND", duration: 2, power: 0, chance: 40 },
-    vsStatus: { status: "BLIND", bonusDmg: 3 },
   },
   {
     id: "bore_dunebuggy",
@@ -12804,6 +12754,77 @@ export const CARDS: CardDef[] = [
     revealsStealth: true,
   },
 
+
+  // -- PROMOTED: both were TOKENS with real kits and real art, spawned by Kobra
+  // and Aranea and otherwise unobtainable. They are draftable cards now, the way
+  // `dawn_heir_tok` already is, and they keep their ids so both summoners go on
+  // working untouched.
+  //
+  // Cost 4 Epic -> cost 3 RARE, because the set's two rules point at the same
+  // slot: a Talent belongs to a cost-3 Rare, and an Epic owes a repeatable
+  // Special these have never had. Rare at 3 satisfies both and is where the
+  // Talent the owner asked for can actually live. Restatted to the cost-3
+  // budget, which costs each summoner a little body — Kobra's cobra loses 6
+  // points and Aranea's spider 2.
+  {
+    id: "bore_kingcobra_tok",
+    art: "bore_kingcobra_tok",
+    name: "King Cobra",
+    rarity: "rare",
+    element: "BORE",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 3,
+    // 5 + 8 + 2*2 + 8 = 25 = 5*3+10.
+    dmg: 5,
+    hits: 1,
+    hp: 8,
+    sp: 8,
+    shields: 2,
+    keywords: {},
+    tribe: "Sand Village",
+    passiveNames: { vsStatus: "Ambush Coil", onHitStatus: "Sleeping Venom" },
+    onHitStatus: { kind: "SLEEP", duration: 2, power: 0, chance: 30 },
+    vsStatus: { status: "SLEEP", dmgMult: 2 },
+    talent: {
+      name: "Hood Flare",
+      text: "Once per game, free: rear up and put 2 opponents to SLEEP for 2 rounds.",
+      // SLEEP, not the BLIND the shelved duplicate used: this card's whole
+      // payoff is Ambush Coil doubling into a SLEEPING body, so the Talent sets
+      // up its own kit instead of importing a status nothing here reads.
+      handler: "statusNova",
+      params: { statusKind: "SLEEP", statusDuration: 2, targets: 2 },
+    },
+  },
+  {
+    id: "dusk_monstrous_spider_tok",
+    art: "dusk_monstrous_spider_tok",
+    name: "Monstrous Spider",
+    rarity: "rare",
+    element: "DUSK",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 3,
+    // 5 + 12 + 2*2 + 4 = 25 = 5*3+10.
+    dmg: 5,
+    hits: 1,
+    hp: 12,
+    sp: 4,
+    shields: 2,
+    keywords: {},
+    tribe: "Spider",
+    passiveNames: { onDeath: "Bursting Brood" },
+    onDeath: { dmg: 0, spawnToken: { token: "dusk_spider", count: 2 } },
+    talent: {
+      name: "Wrapping Web",
+      text: "Once per game, free: ROOT every opponent in range for 2 rounds.",
+      // Duration 2, not 1: a status applied in BATTLE is ticked away at Cleanup
+      // before Prep, so at 1 the move-lock never actually lands on anybody.
+      handler: "statusNova",
+      params: { targets: 99, statusKind: "ROOT", statusDuration: 2 },
+    },
+  },
+
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
@@ -13161,78 +13182,6 @@ export const TOKENS: CardDef[] = [
     // to stand with the people it keeps alive.
     passiveNames: { roundTick: "Butler's Service" },
     roundTick: { healAlliesInRange: 4 },
-  },
-  {
-    // Ambush Coil's second half (Kobra). A TOKEN, not a draftable card: it is
-    // spawned or it does not exist, so it never enters a deck and the
-    // cost-formula test never sees it. Cost 4 is display only — what the Kobra
-    // that raised it is worth a piece of.
-    id: "bore_kingcobra_tok",
-    art: "bore_kingcobra_tok",
-    // Renamed off "King Cobra" for the same reason as Brood Spider: the name
-    // now belongs to the draftable BORE Ranger. Kobra spawns this token, so
-    // both can stand on the board at once and label() was genuinely ambiguous.
-    name: "Sand Cobra",
-    rarity: "epic",
-    element: "BORE",
-    cardClass: "Assassin",
-    attackType: "Melee",
-    cost: 4,
-    dmg: 5,
-    hits: 1,
-    hp: 8,
-    sp: 10,
-    shields: 4,
-    keywords: {},
-    tribe: "Sand Village",
-    passiveNames: { vsStatus: "Ambush Coil", onHitStatus: "Sleeping Venom" },
-    // Sleeping Venom: it makes its OWN openings. A 30% bite closes the loop
-    // Ambush Coil below only half-opens — the Cobra no longer needs the Kobra
-    // to have gone first, it can put something under and then double into it on
-    // the next swing. Chance rather than certainty because a guaranteed 2-round
-    // SLEEP on every landed basic is a lock, not a passive.
-    onHitStatus: { kind: "SLEEP", duration: 2, power: 0, chance: 30 },
-    // The same instinct as the Kobra that raised it, and the reason the pair
-    // reads as a hunting team rather than two bodies that happen to arrive
-    // together: Venom Strike puts a target to sleep, and then BOTH of them hit
-    // it for double. Inherited rather than granted — it is written on the snake,
-    // so it keeps hunting after the Kobra is dead.
-    vsStatus: { status: "SLEEP", dmgMult: 2 },
-  },
-  {
-    // Aranea's brood. A TOKEN — spawned or it does not exist — so it never
-    // enters a deck and the cost-formula test never weighs it.
-    //
-    // It is the two Spiders, delivered with a body in front of them: kill it and
-    // they arrive anyway. That is what makes it worth more than the pair it
-    // becomes, and why Brood Summon raises ONE of these rather than two — two
-    // would be four more on death, six bodies off a single 3-magic cast.
-    //
-    // Tagged Spider, so Broodmother's aura covers it, and so do its own
-    // children after it falls.
-    id: "dusk_monstrous_spider_tok",
-    art: "dusk_monstrous_spider_tok",
-    // Renamed off "Monstrous Spider": that name now belongs to the draftable
-    // DUSK Warrior from the forty-card pass, and state.test.ts enforces
-    // case-insensitive name uniqueness. This token is referenced by ID
-    // (Aranea's Brood Summon params and a passives test), so its DISPLAY name
-    // is the free side of the collision to move.
-    name: "Brood Spider",
-    rarity: "epic",
-    element: "DUSK",
-    cardClass: "Warrior",
-    attackType: "Melee",
-    cost: 4,
-    dmg: 5,
-    hits: 1,
-    hp: 12,
-    sp: 6,
-    shields: 2,
-    keywords: {},
-    tribe: "Spider",
-    passiveNames: { onDeath: "Bursting Brood" },
-    // Bursting Brood: it does not die so much as divide.
-    onDeath: { dmg: 0, spawnToken: { token: "dusk_spider", count: 2 } },
   },
   {
     id: "gale_ollie",

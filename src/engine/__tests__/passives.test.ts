@@ -4577,7 +4577,7 @@ describe("a Talent is a cost-3 Rare's trick, and nothing else's", () => {
       "attackEveryOtherRound", "reachBonus", "revealsStealth", "onAllyHitSpawn",
       "spawnOnHitTaken"];
     const FROM_THE_PASS = ["dawn_sunspot", "dusk_grafft", "gale_goldspur", "gale_leeward",
-      "bore_rhino", "bore_kingcobra", "leaf_forestdeer", "leaf_monkey", "pyro_komodo",
+      "bore_rhino", "leaf_forestdeer", "leaf_monkey", "pyro_komodo",
       "pyro_chopper", "aqua_bluewhale", "aqua_divebill", "dawn_ballista", "aqua_sonarping"];
     const blank = FROM_THE_PASS.filter((id) => {
       const d = getDef(id) as unknown as Record<string, unknown>;

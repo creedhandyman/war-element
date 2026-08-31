@@ -211,8 +211,6 @@ export const BORE_LORE: Record<string, string> = {
   // -- the forty-card pass --
   bore_rhino:
     "It set off some time ago. Whatever is in the way will be dealt with on arrival.",
-  bore_kingcobra:
-    "It does not need to reach you. Eventually you will not see it coming either way.",
   bore_dunebuggy:
     "The dust arrives first, and it is in no hurry to settle.",
   bore_badlands_bandits:
