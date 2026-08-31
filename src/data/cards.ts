@@ -12822,12 +12822,28 @@ export const CARDS: CardDef[] = [
     tribe: "Stars",
     attackType: "Ranged",
     cost: 2,
-    // 8 + 10 + 2 = 20 = 5*2+10. The owner's stat line, verbatim.
+    // 8 + 8 + 2*2 + 0 = 20 = 5*2+10.
+    //
+    // SP -2 / SHIELDS +2 IS NOT AN EVEN SWAP, which is why the HP moved too:
+    // shields cost DOUBLE in the budget and SP costs single, so the trade as
+    // asked lands at 22 against a 20 line. The general guard tolerates +/-2, but
+    // the cards from this pass are held EXACT by forty-pass-engine.test.ts, so
+    // two points had to come off -- and HP is the only place they could, with
+    // 8 DMG PEN being the card's whole identity and the shields being the point
+    // of the change.
+    //
+    // IN PLAY IT IS PROBABLY STILL A NERF, which is the more interesting half.
+    // SP 2 -> 0 does not cost two points of speed, it costs ALL of it:
+    // `moveReach` reads 0 as "cannot move at all", so the Ballista is now an
+    // emplacement like Mortar -- where you set it down is the whole decision,
+    // and it is a 2-cost body that can be walked around rather than one that
+    // can reposition. Two shields on something that can never move is worth
+    // less than two shields on something that can.
     dmg: 8,
     hits: 1,
-    hp: 10,
-    sp: 2,
-    shields: 0,
+    hp: 8,
+    sp: 0,
+    shields: 2,
     keywords: { PEN: true },
     passiveNames: { reachBonus: "Crank and Loose", attackEveryOtherRound: "Crank and Loose" },
     // RANGED_REACH is 2, so +1 prints as the card's "3 spaces". It stacks with
