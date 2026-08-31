@@ -257,12 +257,12 @@ const LEAF: StoryRegion = {
       lore: "Sentinels of Rest — not dormant, on duty. Winter holds that a forest which never stops to sleep forgets how to grow, and Squanch has stood the village gate through four of them."
     },
     { id: "L11", name: "Heart of Nature: Outer Roots", kind: "landmark", at: { x: 40, y: 60 },
-      requires: ["L3", "L8"], roster: ["leaf_season", "leaf_thorn", "leaf_elderroot"], adds: [],
+      requires: ["L3", "L8"], roster: ["leaf_forestdeer", "leaf_monkey", "leaf_gorilla", "leaf_season", "leaf_thorn", "leaf_elderroot"], adds: [],
       note: "Elderroot is the game's only melee Support.",
       lore: "The weathered stones around the Tree are not markers but graves. The first Keepers of every tribe chose the roots over their own season's ground, and Elderroot has not left them since."
     },
     { id: "L12", name: "Heart of Nature: The Spirit Tree", kind: "landmark", at: { x: 56, y: 56 },
-      requires: ["L11"], roster: ["leaf_warden", "leaf_efy", "leaf_fallow"], adds: [] ,
+      requires: ["L11"], roster: ["leaf_wintermoose", "leaf_grizzly", "leaf_warden", "leaf_efy", "leaf_fallow"], adds: [] ,
       lore: "Elders whisper that the roots reach further down than any Keeper has followed — to something already here when the first tribe arrived. Hartwood does not whisper it, and does not deny it."
     },
     { id: "L13", name: "Jungle Throne", kind: "throne", at: { x: 67, y: 81 },
@@ -376,7 +376,7 @@ const PYRO: StoryRegion = {
       lore: "The heaviest walls face inward, a detail visitors notice and the garrison declines to explain. Ember Fortress was raised around Infernus Rex, not against anything that might arrive."
      },
     { id: "P11", name: "Sunfall Watch", kind: "landmark", at: { x: 62, y: 72 },
-      requires: ["P2", "P10"], roster: ["pyro_magmaw", "pyro_sol", "pyro_aftermath", "pyro_dynomight"], adds: [],
+      requires: ["P2", "P10"], roster: ["pyro_chopper", "pyro_komodo", "pyro_warkiln", "pyro_magmaw", "pyro_sol", "pyro_aftermath", "pyro_dynomight"], adds: [],
       note: "The long watch — Sol and Magmaw counting the mountain's days, plus the loose Legendaries that answer to no tribe.",
       lore: "Sunfall Watch counts the days the Firespine has left before it opens again. Sol has never revised that number downward, and Aftermath is the name given to being wrong about it."
      },
@@ -484,7 +484,7 @@ const AQUA: StoryRegion = {
       lore: "Three nations claim the Frozen Citadel and the Polar King has confirmed none of them: diplomacy, or the oldest joke in Concord, depending entirely on who is doing the asking."
     },
     { id: "A11", name: "Atlantis Outer Ring", kind: "landmark", tribe: "SeaC", at: { x: 65, y: 55 },
-      requires: ["A6", "A9"], roster: ["aqua_siren", "aqua_rain", "aqua_driftwraith", "aqua_magalogoon", "aqua_killerwhale"], adds: [],
+      requires: ["A6", "A9"], roster: ["aqua_divebill", "aqua_bluewhale", "aqua_firefighter", "aqua_siren", "aqua_rain", "aqua_driftwraith", "aqua_magalogoon", "aqua_killerwhale"], adds: [],
       note: "Four Legendaries — the richest node in the first three acts. Both arms of the sea have to be yours first.",
       lore: "Everything the sea carries stops at the outer ring, and almost none of it was invited. Atlantis does not refuse arrivals — it lets the ring decide, and the Siren does the deciding."
      },
@@ -618,7 +618,7 @@ const GALE: StoryRegion = {
      },
     { id: "G12", name: "The Eye of the Storm", kind: "landmark", tribe: "Avian", at: { x: 60, y: 80 },
       requires: ["G5", "G9"],
-      roster: ["gale_bluejay", "gale_galeon", "gale_klipso", "gale_kloud"], adds: [],
+      roster: ["gale_leeward", "gale_goldspur", "gale_aerostat", "gale_gyre", "gale_bluejay", "gale_galeon", "gale_klipso", "gale_kloud"], adds: [],
       note: "The whole Cost-7 Legendary band on one node — the richest recruit in Act IV.",
       lore: "The only still air in GALE and the least trusted: a people who read wind for warning have never settled what to make of a place with nothing to read. Galeon keeps the eye regardless."
      },
@@ -718,7 +718,7 @@ const BOLT: StoryRegion = {
       lore: "GearHollow's dwarves sign nothing they build: in the tunnels a name on a diagram reads as an admission that one person could have got the whole thing wrong. Jack Arc signs nothing either."
      },
     { id: "B12", name: "Stormcaller's Spire", kind: "landmark", at: { x: 66, y: 18 },
-      requires: ["B4", "B10"], roster: ["bolt_stormcaller", "bolt_shock", "bolt_voltogon"],
+      requires: ["B4", "B10"], roster: ["bolt_handyman", "bolt_hacker", "bolt_kingpin", "bolt_airship", "bolt_stormcaller", "bolt_shock", "bolt_voltogon"],
       adds: ["bolt_static_wisp_tok"],
       note: "By the airship docks. The machines stay below — this is the storm itself, and Voltogon rides it in.",
       lore: "GALE's storms are sacred and untamed. BOLT's engineers look at the same lightning and ask what it is for — Stormcaller is the answer they built, and nothing here is struck by accident."
@@ -827,7 +827,7 @@ const BORE: StoryRegion = {
       lore: "The Diamond Mine carves its stronghold out of rock too patient to notice the excavation. Beauty that simply accumulates, given centuries, and Adamant is what accumulating looks like finished."
     },
     { id: "R12", name: "The Unbroken Wall", kind: "landmark", at: { x: 79, y: 58 },
-      requires: ["R6", "R10"], roster: ["bore_bastion", "bore_bearocks", "bore_steel"], adds: [],
+      requires: ["R6", "R10"], roster: ["bore_dunebuggy", "bore_kingcobra", "bore_rhino", "bore_badlands_bandits", "bore_spinosaur", "bore_bastion", "bore_bearocks", "bore_steel"], adds: [],
       note: "Bore Fortress — stone guardians. The campaign's hardest Landmark to out-damage rather than out-think, and Ironclad is immune to every status and DOT in the game. Bring PEN or bring a plan.",
       lore: "Bore Fortress is held by the Stone Guardians, and held is the correct word rather than ruled. A mountain is handed to whoever will keep living on it, and Bastion has kept living on it."
     },
@@ -946,7 +946,7 @@ const DUSK: StoryRegion = {
       lore: "Nobody is carried up the stones from the Landing. Whatever condition an arrival is in, DUSK holds the last stretch of a journey belongs to the one making it, and Vesper only counts them in."
      },
     { id: "D11", name: "Death Island: The Barrows", kind: "landmark", at: { x: 66, y: 64 },
-      requires: ["D7"], roster: ["dusk_zombination", "dusk_skelider", "dusk_destro"],
+      requires: ["D7"], roster: ["dusk_duet", "dusk_grafft", "dusk_monstrous_spider", "dusk_prestige", "dusk_tatterhand", "dusk_zombination", "dusk_skelider", "dusk_destro"],
       adds: ["dusk_skeleton_tok"],
       lore: "The mounds are numbered, swept, and reopened as needed, the way a street keeps its houses. The families who do the upkeep are mostly buried in the same row, and Zombination works both shifts."
      },
@@ -1048,7 +1048,7 @@ const DAWN: StoryRegion = {
       lore: "An heir is named in these yards rather than in the Court above them, so whoever stands watch that morning is a witness. DAWN crowns nobody in private, and Reveille sounds the hour."
      },
     { id: "W10", name: "The Golden Court", kind: "landmark", tribe: "Suns", at: { x: 50, y: 41 },
-      requires: ["W8", "W9"], roster: ["dawn_commander", "dawn_leo", "dawn_dawn"],
+      requires: ["W8", "W9"], roster: ["dawn_sunspot", "dawn_riflemen", "dawn_meridian", "dawn_quasar", "dawn_commander", "dawn_leo", "dawn_dawn"],
       adds: ["dawn_radiant_guardian"] ,
       lore: "DAWN's nobility is a chess hierarchy every child learns before reading: King, Queen, Bishop, Rook, Knight — and Pawn, which is most of DAWN. Leo stands where the board says to stand."
     },

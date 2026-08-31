@@ -213,4 +213,14 @@ export const GALE_LORE: Record<string, string> = {
 
   gale_thundering_hurricane_tok:
     "The calm is the middle. Everyone who reports one was standing in it.",
+
+  // -- the forty-card pass --
+  gale_goldspur:
+    "Both hammers were back before the challenge was finished.",
+  gale_leeward:
+    "It read the gust already. Hit it hard and the answer is on its way out.",
+  gale_aerostat:
+    "It was over you before the horizon changed. What comes down was always coming down.",
+  gale_gyre:
+    "The line did not break. It simply is not standing where it was.",
 };

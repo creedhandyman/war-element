@@ -1648,7 +1648,13 @@ describe("medium-tier passives (audit batch)", () => {
     const other = place(s, "dawn_heir_tok", "P1", 3, 0);
     expect(cost()).toBe(printed);
     for (let i = 0; i < 2; i++) {
-      const prey = place(s, "dusk_gool", "P2", 1, i, { curHp: 1, curShields: 0 });
+      // BORE prey, deliberately. A DUSK one made this test a COIN FLIP: Midnight
+      // Shade hands every DUSK card dodge per FALLEN DUSK ally, so the first kill
+      // armed the second victim, and whether the second attack landed depended on
+      // where the shared seeded RNG happened to be. Adding cards to the default
+      // decks moves that stream, so the test failed for a reason that had nothing
+      // to do with Heir. The prey's element was always incidental here.
+      const prey = place(s, "bore_rockgoblin", "P2", 1, i, { curHp: 1, curShields: 0 });
       place(s, "dusk_vamp", "P2", 0, i); // keep P2's board alive
       basicAttack(s, heir.instanceId, prey.instanceId);
       expect(s.cards[prey.instanceId]).toBeUndefined();
@@ -1846,7 +1852,11 @@ describe("medium-tier passives (audit batch)", () => {
 
   it("Windsor's Right Through Me WEAKENs even a RANGED attacker", () => {
     const s = prepState();
-    const windsor = place(s, "gale_windsor", "P1", 3, 0);
+    // spBonus -9 zeroes its effective SP, and with it Slipstream: a GALE card's
+    // dodge chance is read off its own speed, so this assertion used to ride an
+    // ~18% coin on the shared RNG stream and broke the moment the default decks
+    // changed size. The dodge is not what is under test — the thorns are.
+    const windsor = place(s, "gale_windsor", "P1", 3, 0, { spBonus: -9 });
     // Ranged: classic melee-only thorns would never answer this one.
     const shooter = place(s, "dusk_gool", "P2", 1, 0);
     basicAttack(s, shooter.instanceId, windsor.instanceId);

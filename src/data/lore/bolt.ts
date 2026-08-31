@@ -197,4 +197,14 @@ export const BOLT_LORE: Record<string, string> = {
   // ── Void Tower bosses ──
   bolt_firebolt_tok: "Shipped with a warranty. The warranty is the explosion.",
   boss_overclock: "The line does not stop for losses. Losses are a scheduled output.",
+
+  // -- the forty-card pass --
+  bolt_hacker:
+    "Their Specials are still listed. They just do not resolve.",
+  bolt_handyman:
+    "Fault found, part replaced, twelve seconds. Next.",
+  bolt_kingpin:
+    "The contract names one card and one outcome. Both are already filed.",
+  bolt_airship:
+    "Lift capacity: one ally, anywhere on the board. Measured, not estimated.",
 };

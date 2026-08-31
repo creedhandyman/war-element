@@ -1683,11 +1683,16 @@ describe("Cryovex — Deep Freeze and the crystals", () => {
   });
 
 describe("Kazehaya — the duellist", () => {
+  // spBonus -99 on every placement below: Kazehaya is GALE, and Slipstream
+  // reads a GALE card's dodge chance off its own effective SP. Left alone,
+  // each of these assertions rides that coin on the shared seeded RNG — they
+  // broke the moment the default decks changed size, for a reason that has
+  // nothing to do with Right Back At You. The dodge is not under test here.
   const OVER = getDef("boss_kazehaya").onHeavyHit!.over;
 
   it("a BIG swing throws the line back and WEAKENs it", () => {
     const s = bigPrepState();
-    const boss = place(s, "boss_kazehaya", "P2", 0, 2, { curHp: 200, maxHp: 200, curShields: 0 });
+    const boss = place(s, "boss_kazehaya", "P2", 0, 2, { curHp: 200, maxHp: 200, curShields: 0, spBonus: -99 });
     // The hitter and a bystander, both inside the 2-space answer.
     const hitter = place(s, "leaf_stickviper", "P1", 1, 2, { curHp: 90, maxHp: 90, dmgBonusRound: 99 });
     const nearby = place(s, "leaf_stickviper", "P1", 1, 3, { curHp: 90, maxHp: 90 });
@@ -1702,7 +1707,7 @@ describe("Kazehaya — the duellist", () => {
 
   it("CHIP damage slips under it — which is the whole answer to this fight", () => {
     const s = bigPrepState();
-    const boss = place(s, "boss_kazehaya", "P2", 0, 2, { curHp: 200, maxHp: 200, curShields: 0 });
+    const boss = place(s, "boss_kazehaya", "P2", 0, 2, { curHp: 200, maxHp: 200, curShields: 0, spBonus: -99 });
     const pecker = place(s, "leaf_stickviper", "P1", 1, 2, { curHp: 90, maxHp: 90 });
     expect(getDef("leaf_stickviper").dmg, "a small hitter").toBeLessThanOrEqual(OVER);
     basicAttack(s, pecker.instanceId, boss.instanceId);
@@ -1715,7 +1720,7 @@ describe("Kazehaya — the duellist", () => {
     // Gating on HP damage alone would have made stacking shields onto the
     // carrier the way to switch its own passive off.
     const s = bigPrepState();
-    const boss = place(s, "boss_kazehaya", "P2", 0, 2, { curHp: 200, maxHp: 200, curShields: 99 });
+    const boss = place(s, "boss_kazehaya", "P2", 0, 2, { curHp: 200, maxHp: 200, curShields: 99, spBonus: -99 });
     const hitter = place(s, "leaf_stickviper", "P1", 1, 2, { curHp: 90, maxHp: 90, dmgBonusRound: 99 });
     basicAttack(s, hitter.instanceId, boss.instanceId);
     // Almost the whole swing went into shields: the HP loss on its own is
@@ -1727,7 +1732,7 @@ describe("Kazehaya — the duellist", () => {
 
   it("a killing blow gets no answer — it has to SURVIVE", () => {
     const s = bigPrepState();
-    const boss = place(s, "boss_kazehaya", "P2", 0, 2, { curHp: 1, maxHp: 200, curShields: 0 });
+    const boss = place(s, "boss_kazehaya", "P2", 0, 2, { curHp: 1, maxHp: 200, curShields: 0, spBonus: -99 });
     const hitter = place(s, "leaf_stickviper", "P1", 1, 2, { curHp: 90, maxHp: 90, dmgBonusRound: 99 });
     basicAttack(s, hitter.instanceId, boss.instanceId);
     expect(s.cards[boss.instanceId]?.curHp ?? 0, "down").toBeLessThanOrEqual(0);

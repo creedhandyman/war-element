@@ -212,4 +212,16 @@ export const DUSK_LORE: Record<string, string> = {
   boss_rotroot: "It does not raise the dead. It declines their resignation.",
   boss_skeleeze: "One slot to the right, every round, forever. You have been told.",
   boss_xilty: "The first blow finds silk. The web decides about the second.",
+
+  // -- the forty-card pass --
+  dusk_monstrous_spider:
+    "The web was finished a week ago. It has only been waiting for the ledger to fill.",
+  dusk_grafft:
+    "The batch was labelled wrong. He wrote that down too, and used it anyway.",
+  dusk_duet:
+    "They have not missed a step since the hall burned down. Neither has stopped counting.",
+  dusk_prestige:
+    "The trick is not the quicker hand. It is that the record says the card was never there.",
+  dusk_tatterhand:
+    "Every string is accounted for. So is everyone who ever cut one.",
 };

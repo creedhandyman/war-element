@@ -622,7 +622,10 @@ describe("Elecdroid — Light Slasher combo", () => {
     s.players.P1.magicPool = 5;
     const elec = place(s, "bolt_elecdroid", "P1", 2, 0);
     const weak = place(s, "dusk_gool", "P2", 1, 0, { curHp: 5, maxHp: 5, curShields: 0 }); // dies to hit 1
-    const chained = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    // BORE, not DUSK: Midnight Shade gives DUSK cards dodge per FALLEN DUSK
+    // ally, so the first kill armed the second body and this assertion rode a
+    // coin on the shared RNG stream. The victim's element is incidental here.
+    const chained = place(s, "bore_rockgoblin", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
     const next = applyIntent(battleWith(s, elec.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: weak.instanceId,
     });

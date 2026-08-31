@@ -9,7 +9,10 @@ describe("wave 4 — cost-1, one per element", () => {
     const s = prepState();
     const birch = place(s, "leaf_birch", "P1", 2, 0, { autoMode: "manual" });
     const dying = place(s, "dusk_gool", "P2", 2, 1, { curHp: 1, maxHp: 20, curShields: 0 });
-    const next = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 3 });
+    // BORE, not DUSK: Midnight Shade gives DUSK cards dodge per FALLEN DUSK
+    // ally, so the first kill armed the second body and this assertion rode a
+    // coin on the shared RNG stream. The victim's element is incidental here.
+    const next = place(s, "bore_rockgoblin", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 3 });
     basicAttack(s, birch.instanceId, dying.instanceId);
     expect(s.cards[dying.instanceId]?.curHp ?? 0).toBeLessThanOrEqual(0); // killed
     // 4 separate 1-DMG hits into the survivor: strips its 3 shields, then 1 to HP.

@@ -195,4 +195,16 @@ export const LEAF_LORE: Record<string, string> = {
 
   leaf_leafwind_guardian_tok:
     "It does not catch you. It decides where you will be standing.",
+
+  // -- the forty-card pass --
+  leaf_forestdeer:
+    "It heard you decide. That was several minutes ago.",
+  leaf_monkey:
+    "It watched which way you looked, and left something there for you.",
+  leaf_gorilla:
+    "It has not stood up yet. There has not been a reason to.",
+  leaf_wintermoose:
+    "The herd keeps its own weather. It can stand in this until spring.",
+  leaf_grizzly:
+    "It has been in this thicket the whole time. You will know when that stops being true.",
 };

@@ -11721,6 +11721,963 @@ export const CARDS: CardDef[] = [
       text: "8 DMG to every opponent within 2 spaces, setting them alight — BURN 3 for 3 rounds — and ROOTing them for 2, so they burn where they stand.",
     },
   },
+
+  // ══════════════════ THE FORTY-CARD PASS ══════════════════
+  //
+  // Five per element, drafted against the measured holes in the set rather than
+  // by feel. Three numbers drove every choice here:
+  //   - 132 of 319 cards were Rare, and only 17 carried a Talent — the design
+  //     doc says "a Rare gets a Talent" and 87% of them did not. A Talent costs
+  //     NOTHING against the stat budget, so it is the only way to give a Rare
+  //     texture without re-cutting its body. Most of the Rares below have one.
+  //   - class counts per element, filled at the deficits (DAWN's Assassins were
+  //     4 against a mean of 6.7 — the single biggest hole in the matrix).
+  //   - the cost curve, which cliffed between 5 (41 cards) and 6 (24).
+  //
+  // Every line below is EXACT on `dmg*hits + hp + shields*2 + sp === 5*cost+10`,
+  // so none of them needs an entry in state.test.ts's exceptions.
+
+  // ── DAWN ──────────────────────────────────────────────────
+  {
+    id: "dawn_riflemen",
+    name: "Cowboy Riflemen",
+    rarity: "legendary",
+    element: "DAWN",
+    cardClass: "Mage",
+    tribe: "Stars",
+    attackType: "Ranged",
+    cost: 6,
+    // 3*4 + 16 + 2*2 + 8 = 40 = 5*6+10.
+    dmg: 3,
+    hits: 4,
+    hp: 16,
+    sp: 8,
+    shields: 2,
+    keywords: { PEN: true },
+    passiveNames: { firstStrikeBonus: "Opening Volley" },
+    firstStrikeBonus: 1,
+    special: {
+      name: "Volley Fire",
+      cost: 3,
+      handler: "barrage",
+      // `closest` + `alwaysHit`: DAWN's other volleys (Star, Kosmos, Eclipse)
+      // all rake the whole board. A firing LINE picks its shots, so this one is
+      // deliberately narrow and cannot miss — it ignores EVASION and its own
+      // BLIND, which is the point of a rank of riflemen taking aim.
+      params: { dmg: 3, hits: 2, targets: 3, closest: 1, alwaysHit: 1 },
+      targetSide: "enemy",
+      text: "3 DMG x2 to the 3 NEAREST opponents in range. Aimed — it cannot miss.",
+    },
+  },
+  {
+    id: "dawn_sunspot",
+    name: "Sunspot",
+    rarity: "rare",
+    element: "DAWN",
+    cardClass: "Assassin",
+    tribe: "Stars",
+    attackType: "Melee",
+    cost: 2,
+    // 6 + 6 + 8 = 20 = 5*2+10.
+    dmg: 6,
+    hits: 1,
+    hp: 6,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    passiveNames: { vsStatus: "Blind Spot" },
+    // THE PAYOFF DAWN NEVER CASHED. Beam, Star, Kosmos, Zenith, Solara and
+    // Sunbanner all hand out BLIND, and until now nothing in the element
+    // executed what it had blinded.
+    vsStatus: { status: "BLIND", crit: true },
+    talent: {
+      name: "Corona Flare",
+      text: "Once per game, free: +4 DMG and +3 SP for 2 rounds.",
+      // `empower` is one of the two talent handlers routed explicitly in
+      // phases.ts, so it needs no targeting — which matters, because a Melee
+      // Rare's Talent can otherwise only reach an adjacent square (talentTargets
+      // falls through to validSpecialTargets, which reads a `special` a Rare
+      // does not have).
+      handler: "empower",
+      params: { selfDmg: 4, selfSp: 3, buffRounds: 2 },
+    },
+  },
+  {
+    id: "dawn_quasar",
+    name: "Quasar",
+    rarity: "rare",
+    element: "DAWN",
+    cardClass: "Assassin",
+    tribe: "Stars",
+    attackType: "Melee",
+    cost: 3,
+    // 7 + 9 + 9 = 25 = 5*3+10.
+    dmg: 7,
+    hits: 1,
+    hp: 9,
+    sp: 9,
+    shields: 0,
+    keywords: {},
+    passiveNames: { critIfFaster: "Outshine" },
+    critIfFaster: true,
+    talent: {
+      name: "Starfall",
+      text: "Once per game, free: 7 DMG (PEN) to an adjacent opponent and BLIND it for 2 rounds.",
+      // BLINDs on purpose: it hands Sunspot's Blind Spot a target, so the two
+      // cheap Assassins in this pass talk to each other instead of both being
+      // generic knives.
+      handler: "strike",
+      params: { dmg: 7, pen: 1, statusKind: "BLIND", statusDuration: 2 },
+    },
+  },
+  {
+    id: "dawn_meridian",
+    name: "Meridian",
+    rarity: "legendary",
+    element: "DAWN",
+    cardClass: "Assassin",
+    tribe: "Stars",
+    attackType: "Melee",
+    cost: 6,
+    // 11 + 16 + 1*2 + 11 = 40 = 5*6+10. SP 11 sits one under DAWN_SP_CAP on
+    // purpose, so First Light still has a point to give it.
+    dmg: 11,
+    hits: 1,
+    hp: 16,
+    sp: 11,
+    shields: 1,
+    keywords: { FLYING: true },
+    passiveNames: { deathSave: "Second Sunrise" },
+    deathSave: { stealth: 2, regen: { power: 3, rounds: 3 } },
+    special: {
+      name: "Solar Pounce",
+      cost: 3,
+      handler: "strike",
+      // `chargeFirst` is what makes the leap legal from range on a MELEE card —
+      // validSpecialTargets reads chargeReach. Without it the pounce could only
+      // be cast at something already touching it, which is not a pounce.
+      params: { dmg: 9, charge: 3, chargeFirst: 1, takeSpotOnKill: 1, onKillSelfHeal: 4, pounceAgain: 1 },
+      targetSide: "enemy",
+      text: "Leap up to 3 spaces and strike for 9. A kill heals it 4, it takes the ground it cleared, and it springs again.",
+    },
+  },
+
+
+  // ── DUSK ──────────────────────────────────────────────────
+  {
+    id: "dusk_monstrous_spider",
+    name: "Monstrous Spider",
+    rarity: "rare",
+    element: "DUSK",
+    cardClass: "Warrior",
+    tribe: "Spider",
+    attackType: "Melee",
+    cost: 3,
+    // 6 + 12 + 7 = 25 = 5*3+10.
+    dmg: 6,
+    hits: 1,
+    hp: 12,
+    sp: 7,
+    shields: 0,
+    // DRAIN is DUSK-exclusive across the whole set — it costs nothing against
+    // the budget and it is the element's own identity rather than a borrowed one.
+    keywords: { DRAIN: true },
+    talent: {
+      name: "Wrapping Web",
+      text: "Once per game, free: ROOT every opponent in range for 2 rounds.",
+      handler: "statusNova",
+      // Duration 2, not 1, for the off-by-one this file documents on FRIGHTEN:
+      // a status applied in BATTLE is ticked away at Cleanup before Prep, so at
+      // 1 the move-lock never actually lands on anybody.
+      params: { targets: 99, statusKind: "ROOT", statusDuration: 2 },
+    },
+  },
+  {
+    id: "dusk_grafft",
+    name: "Grafft",
+    rarity: "rare",
+    element: "DUSK",
+    cardClass: "Mage",
+    tribe: "Ghost",
+    attackType: "Ranged",
+    cost: 1,
+    // 3 + 5 + 7 = 15 = 5*1+10.
+    dmg: 3,
+    hits: 1,
+    hp: 5,
+    sp: 7,
+    shields: 0,
+    keywords: {},
+    passiveNames: { onHitStatus: "Bad Batch" },
+    onHitStatus: { kind: "WEAKEN", duration: 2, power: 1 },
+    talent: {
+      name: "Adrenaline Serum",
+      text: "Once per game, free: gain 1 shield and give every ally +3 DMG for 2 rounds.",
+      handler: "warCry",
+      params: { selfShields: 1, buffDmg: 3, buffRounds: 2 },
+    },
+  },
+  {
+    id: "dusk_duet",
+    name: "Duet",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Support",
+    tribe: "Ghost",
+    attackType: "Ranged",
+    cost: 3,
+    // 2*2 + 11 + 10 = 25 = 5*3+10. `hits: 2` is the pair — two dancers landing
+    // two blows, which is also why the card reads as one body and not two.
+    dmg: 2,
+    hits: 2,
+    hp: 11,
+    sp: 10,
+    shields: 0,
+    keywords: { EVASION: true },
+    passiveNames: { aura: "Ballroom Light" },
+    aura: { scope: "tribe", match: "Ghost", dmg: 1 },
+    special: {
+      name: "Partner Dance",
+      cost: 2,
+      handler: "grantShield",
+      params: { amount: 3, buffDmg: 3, buffRounds: 2 },
+      targetSide: "ally",
+      text: "Take one ally as a partner — +3 shields and +3 DMG for 2 rounds.",
+    },
+  },
+  {
+    id: "dusk_prestige",
+    name: "Prestige",
+    rarity: "epic",
+    element: "DUSK",
+    cardClass: "Mage",
+    tribe: "Ghost",
+    attackType: "Ranged",
+    cost: 5,
+    // 6 + 15 + 1*2 + 12 = 35 = 5*5+10.
+    dmg: 6,
+    hits: 1,
+    hp: 15,
+    sp: 12,
+    shields: 1,
+    keywords: {},
+    passiveNames: { vsStatus: "Now You Don't" },
+    // The Special sets up its own payoff, which is the whole card: MUTE, then
+    // hit the muted thing twice as hard.
+    vsStatus: { status: "MUTED", dmgMult: 2 },
+    special: {
+      name: "Sleight of Hand",
+      cost: 2,
+      handler: "statusNova",
+      params: { targets: 2, statusKind: "MUTED", statusDuration: 2, debuffStatus: "WEAKEN", debuffStatusRounds: 2 },
+      targetSide: "enemy",
+      text: "MUTE up to 2 opponents for 2 rounds and WEAKEN them.",
+    },
+  },
+  {
+    id: "dusk_tatterhand",
+    name: "Tatterhand",
+    rarity: "legendary",
+    element: "DUSK",
+    cardClass: "Support",
+    tribe: "Ghost",
+    attackType: "Ranged",
+    cost: 6,
+    // 5 + 20 + 2*2 + 11 = 40 = 5*6+10.
+    dmg: 5,
+    hits: 1,
+    hp: 20,
+    sp: 11,
+    shields: 2,
+    keywords: {},
+    passiveNames: { aura: "Taut Strings" },
+    aura: { scope: "all", sp: 2 },
+    special: {
+      name: "Curtain Call",
+      cost: 4,
+      handler: "flashSquad",
+      params: {},
+      targetSide: "self",
+      text: "Command allies in this row and the row ahead to each make their basic attack.",
+    },
+  },
+
+  // ── GALE ──────────────────────────────────────────────────
+  {
+    id: "gale_goldspur",
+    name: "Goldspur",
+    rarity: "rare",
+    element: "GALE",
+    cardClass: "Ranger",
+    tribe: "Avian",
+    attackType: "Ranged",
+    cost: 5,
+    // 4*2 + 15 + 12 = 35 = 5*5+10.
+    dmg: 4,
+    hits: 2,
+    hp: 15,
+    sp: 12,
+    shields: 0,
+    keywords: { CRIT: true },
+    talent: {
+      name: "Fan the Hammer",
+      text: "Once per game, free: thumb back both hammers — the next basic fires as 4 shots.",
+      handler: "loadHits",
+      params: { hits: 2 },
+    },
+  },
+  {
+    id: "gale_leeward",
+    name: "Leeward",
+    rarity: "rare",
+    element: "GALE",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 5,
+    // 3 + 24 + 2*2 + 4 = 35 = 5*5+10.
+    dmg: 3,
+    hits: 1,
+    hp: 24,
+    sp: 4,
+    shields: 2,
+    keywords: {},
+    passiveNames: { onHeavyHit: "Backdraft" },
+    // Hit it small and often, or don't hit it at all — a big single blow answers
+    // itself. Fills GALE's Tank hole (6, joint-lowest) without another flier.
+    onHeavyHit: { over: 6, reach: 1, push: 1, status: "WEAKEN", statusDuration: 2 },
+    talent: {
+      name: "Windbreak",
+      text: "Once per game, free: +3 shields to itself and every adjacent ally.",
+      handler: "grantShield",
+      params: { amount: 3, nearby: 1 },
+    },
+  },
+  {
+    id: "gale_aerostat",
+    name: "Aerostat",
+    rarity: "epic",
+    element: "GALE",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 6,
+    // 2 + 30 + 2*2 + 4 = 40 = 5*6+10. A 30 HP envelope on 2 DMG: it is a wall
+    // that happens to fly, not a threat.
+    dmg: 2,
+    hits: 1,
+    hp: 30,
+    sp: 4,
+    shields: 2,
+    keywords: { FLYING: true },
+    passiveNames: { onDeath: "Burst" },
+    onDeath: { dmg: 6, inRangeOnly: true, inRangeStatus: { kind: "STUN", duration: 1, power: 0 } },
+    special: {
+      name: "Sandbag Drop",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 6, targets: 99, rowAhead: 1, statusKind: "STUN", statusDuration: 1, selfShields: 2 },
+      targetSide: "enemy",
+      text: "6 DMG and STUN 1 to every opponent in the row directly ahead; brace for +2 shields.",
+    },
+  },
+  {
+    id: "gale_gyre",
+    name: "Gyre",
+    rarity: "epic",
+    element: "GALE",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 6,
+    // 3*2 + 21 + 13 = 40 = 5*6+10.
+    dmg: 3,
+    hits: 2,
+    hp: 21,
+    sp: 13,
+    shields: 0,
+    keywords: {},
+    passiveNames: { roundTick: "Wheeling Sky" },
+    // `cycloneSpin` is Skybreaker's — the storm does not push the line back, it
+    // TURNS it, which destroys formation while preserving distance. This is the
+    // first player card to carry it.
+    roundTick: { cycloneSpin: 1 },
+    special: {
+      name: "Eye of the Gyre",
+      cost: 3,
+      handler: "statusNova",
+      params: { statusKind: "STUN", statusDuration: 1, targets: 3, pullToCaster: 2, spDebuff: 3, spDebuffRounds: 2 },
+      targetSide: "enemy",
+      text: "Drag up to 3 opponents 2 spaces toward you, STUN them 1 round and -3 SP for 2.",
+    },
+  },
+
+
+  // -- BORE --------------------------------------------------
+  {
+    id: "bore_rhino",
+    name: "Rhino",
+    rarity: "rare",
+    element: "BORE",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 4,
+    // 9 + 13 + 2*2 + 4 = 30 = 5*4+10. Warrior, NOT Tank: BORE's Tanks were the
+    // element's surplus at 8, and a rhino is the obvious card to get that wrong.
+    dmg: 9,
+    hits: 1,
+    hp: 13,
+    sp: 4,
+    shields: 2,
+    keywords: { TRAMPLE: true },
+    passiveNames: { trampleDmg: "Trample Through", onHitPush: "Horn Toss" },
+    trampleDmg: 3,
+    onHitPush: 1,
+    talent: {
+      name: "Full Charge",
+      text: "Once per game, free: rumble up to 2 slots up the column, crush what is packed behind the front rank, and gore what it reaches.",
+      handler: "battleCharge",
+      params: { charge: 2, dmg: 9, chainDmg: 3, push: 2 },
+    },
+  },
+  {
+    id: "bore_kingcobra",
+    name: "King Cobra",
+    rarity: "rare",
+    element: "BORE",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 2,
+    // 4 + 5 + 1*2 + 9 = 20 = 5*2+10.
+    dmg: 4,
+    hits: 1,
+    hp: 5,
+    sp: 9,
+    shields: 1,
+    keywords: {},
+    passiveNames: { onHitStatus: "Venom Spit", vsStatus: "Strike the Blind" },
+    // Ranged and BLIND-based on purpose: the Sand Cobra token Kobra spawns is
+    // Melee and SLEEP-based, so the two are not a stat-and-mechanic reskin of
+    // each other even though both can stand on the board at once.
+    onHitStatus: { kind: "BLIND", duration: 2, power: 0, chance: 40 },
+    vsStatus: { status: "BLIND", bonusDmg: 3 },
+    talent: {
+      name: "Hood Flare",
+      text: "Once per game, free: rear up and BLIND up to 2 opponents for 2 rounds.",
+      handler: "statusNova",
+      params: { statusKind: "BLIND", statusDuration: 2, targets: 2 },
+    },
+  },
+  {
+    id: "bore_dunebuggy",
+    name: "Dune Buggy",
+    rarity: "rare",
+    element: "BORE",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 3,
+    // 3*2 + 6 + 1*2 + 11 = 25 = 5*3+10.
+    dmg: 3,
+    hits: 2,
+    hp: 6,
+    sp: 11,
+    shields: 1,
+    keywords: {},
+    passiveNames: { firstStrikeBonus: "Hit and Run" },
+    firstStrikeBonus: 2,
+    talent: {
+      name: "Redline",
+      text: "Once per game, free: floor it -- +2 DMG and +4 SP for 2 rounds.",
+      handler: "empower",
+      params: { selfDmg: 2, selfSp: 4, buffRounds: 2 },
+    },
+  },
+  {
+    id: "bore_badlands_bandits",
+    name: "Badlands Bandits",
+    rarity: "epic",
+    element: "BORE",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 5,
+    // 3*3 + 12 + 2*2 + 10 = 35 = 5*5+10. Three guns, each rolling CRIT
+    // separately -- the gang is MULTI-HIT rather than a token spawner, which
+    // keeps it one card instead of a card plus a token plus a second render.
+    dmg: 3,
+    hits: 3,
+    hp: 12,
+    sp: 10,
+    shields: 2,
+    keywords: { CRIT: true },
+    passiveNames: { onKill: "Bounty" },
+    onKill: { buffDmg: 1, buffDmgMax: 3, gainShields: 2 },
+    special: {
+      name: "Dust Devil",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 4, targets: 3, closest: 1, statusKind: "BLIND", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "4 DMG to the 3 nearest opponents and BLIND them for 2 rounds.",
+    },
+  },
+  {
+    id: "bore_spinosaur",
+    name: "Spinosaur",
+    rarity: "epic",
+    element: "BORE",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 6,
+    // 11 + 18 + 2*2 + 7 = 40 = 5*6+10. Fills the thinnest cost slot in the set
+    // -- BORE had only 2 cards at cost 6.
+    dmg: 11,
+    hits: 1,
+    hp: 18,
+    sp: 7,
+    shields: 2,
+    keywords: {},
+    passiveNames: { onKill: "Gorge" },
+    // CAPPED, using the ceiling added for Vulcanyx. An uncapped +DMG per kill on
+    // an 11-DMG body is the exact runaway that made enraged Apex Hunger a wall.
+    onKill: { buffDmg: 2, buffDmgMax: 6 },
+    special: {
+      name: "Death Roll",
+      cost: 4,
+      handler: "strike",
+      params: { dmg: 11, pen: 1, onKillSelfHeal: 6, takeSpotOnKill: 1 },
+      targetSide: "enemy",
+      text: "11 DMG (PEN). On a kill, heal 6 and take the ground it cleared.",
+    },
+  },
+
+  // -- BOLT --------------------------------------------------
+  {
+    id: "bolt_hacker",
+    name: "Hacker",
+    rarity: "rare",
+    element: "BOLT",
+    cardClass: "Assassin",
+    attackType: "Ranged",
+    cost: 3,
+    // 5 + 8 + 1*2 + 10 = 25 = 5*3+10.
+    dmg: 5,
+    hits: 1,
+    hp: 8,
+    sp: 10,
+    shields: 1,
+    // STEALTH was on TWO cards in the entire 319-card set, and BOLT carried
+    // three keyword instances in total -- the most barren element in the game.
+    keywords: { STEALTH: true },
+    passiveNames: { onHitStatus: "Signal Jam" },
+    onHitStatus: { kind: "MUTED", duration: 2, power: 0, chance: 50 },
+    talent: {
+      name: "Kill Switch",
+      text: "Once per game, free: quarantine every opponent out of their Specials for 2 rounds.",
+      handler: "lockSpecials",
+      params: { count: 99, rounds: 2 },
+    },
+  },
+  {
+    id: "bolt_handyman",
+    name: "Handyman",
+    rarity: "epic",
+    element: "BOLT",
+    cardClass: "Support",
+    tribe: "ARC",
+    attackType: "Ranged",
+    cost: 5,
+    // 4 + 16 + 3*2 + 9 = 35 = 5*5+10.
+    dmg: 4,
+    hits: 1,
+    hp: 16,
+    sp: 9,
+    shields: 3,
+    keywords: {},
+    passiveNames: { aura: "Preventive Maintenance" },
+    aura: { scope: "tribe", match: "ARC", shields: 1 },
+    special: {
+      name: "Patch Job",
+      cost: 2,
+      handler: "grantShield",
+      params: { amount: 2, heal: 4, nearby: 1 },
+      targetSide: "ally",
+      text: "Plate every nearby ally -- itself included -- with +2 shields and repair 4 HP.",
+    },
+  },
+  {
+    id: "bolt_kingpin",
+    name: "Kingpin",
+    rarity: "legendary",
+    element: "BOLT",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    cost: 6,
+    // 7 + 21 + 2*2 + 8 = 40 = 5*6+10.
+    dmg: 7,
+    hits: 1,
+    hp: 21,
+    sp: 8,
+    shields: 2,
+    keywords: { PEN: true },
+    passiveNames: { onKill: "Made Man" },
+    onKill: { buffDmg: 2, buffDmgMax: 6, gainShields: 1 },
+    special: {
+      name: "Contract Out",
+      cost: 3,
+      handler: "markTarget",
+      // markTarget brands the victim so every basic against it CRITs, then puts
+      // the rider through the shared status path -- so the PARALYZE is declared
+      // here on the card rather than hard-coded inside the handler.
+      params: { statusKind: "PARALYZE", statusDuration: 2 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Mark one opponent anywhere on the board and PARALYZE it 2 rounds -- while marked, every basic against it is a guaranteed CRIT.",
+    },
+  },
+  {
+    id: "bolt_airship",
+    name: "War Airship",
+    rarity: "legendary",
+    element: "BOLT",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 6,
+    // 6 + 20 + 3*2 + 8 = 40 = 5*6+10.
+    dmg: 6,
+    hits: 1,
+    hp: 20,
+    sp: 8,
+    shields: 3,
+    keywords: { FLYING: true },
+    passiveNames: { aura: "Tailwind", onSummon: "Deploy" },
+    aura: { scope: "all", sp: 1 },
+    onSummon: { handler: "grantShield", params: { amount: 2, nearby: 1 }, targetSide: "ally" },
+    special: {
+      name: "Airlift",
+      cost: 2,
+      // swapAlly reads NO params -- its signature is (draft, attacker, targets,
+      // _params), so anything passed here would be decoration.
+      handler: "swapAlly",
+      params: {},
+      targetSide: "ally",
+      text: "Trade board positions with an ally -- lift it out of the line and drop into its place.",
+    },
+  },
+
+
+  // -- LEAF --------------------------------------------------
+  {
+    id: "leaf_forestdeer",
+    name: "Forest Deer",
+    rarity: "rare",
+    element: "LEAF",
+    cardClass: "Mage",
+    attackType: "Ranged",
+    cost: 2,
+    // 3 + 8 + 9 = 20 = 5*2+10.
+    dmg: 3,
+    hits: 1,
+    hp: 8,
+    sp: 9,
+    shields: 0,
+    keywords: {},
+    passiveNames: { evadeVsSlower: "Startle" },
+    evadeVsSlower: true,
+    talent: {
+      name: "Antler Bloom",
+      text: "Once per game, free: 2 DMG to all opponents and ROOT them for 2 rounds.",
+      // The strongest thing in this pass and the first to trim if it measures
+      // hot: ROOT has four separate payoffs in LEAF (Photosynthesis heals per
+      // ROOTed opponent, Fallow ticks them, Snapmaw bleeds them, Hibernal
+      // extends them). Cut `targets` before cutting the duration -- a 1-round
+      // ROOT applied in Battle is ticked away at Cleanup and never stops a move.
+      handler: "barrage",
+      params: { dmg: 2, targets: 99, statusKind: "ROOT", statusDuration: 2 },
+    },
+  },
+  {
+    id: "leaf_monkey",
+    name: "Monkey",
+    rarity: "rare",
+    element: "LEAF",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 1,
+    // 2 + 8 + 1*2 + 3 = 15 = 5*1+10.
+    dmg: 2,
+    hits: 1,
+    hp: 8,
+    sp: 3,
+    shields: 1,
+    keywords: {},
+    passiveNames: { falseHead: "Fake Out" },
+    falseHead: true,
+    talent: {
+      name: "Alarm Call",
+      text: "Once per game, free: this Monkey and every ally in the row behind it gain EVASION for 2 rounds.",
+      handler: "veilBehind",
+      params: { rounds: 2 },
+    },
+  },
+  {
+    id: "leaf_gorilla",
+    name: "Gorilla",
+    rarity: "epic",
+    element: "LEAF",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 5,
+    // 7 + 18 + 1*2 + 8 = 35 = 5*5+10. RANGER is a push -- a gorilla reads melee
+    // -- but Ranger was one of LEAF's four holes at 6 while Warrior and Tank sat
+    // at 8. Read the basic as a thrown log. Flip it to Warrior/Melee if the
+    // picture matters more than the count.
+    dmg: 7,
+    hits: 1,
+    hp: 18,
+    sp: 8,
+    shields: 1,
+    keywords: {},
+    passiveNames: { onHitPush: "Timber Toss" },
+    onHitPush: 1,
+    special: {
+      name: "Canopy Crash",
+      cost: 3,
+      handler: "fragBlast",
+      // NOTE fragBlast's splash loops enemyCards() directly, so it reaches into
+      // the enemy HOME row that ordinary targeting forbids. Existing handler
+      // behaviour (Dyna's Demolition has it too) -- priced knowing that.
+      params: { dmg: 6, splash: 3 },
+      targetSide: "enemy",
+      text: "6 DMG to a target and 3 DMG to every other opponent.",
+    },
+  },
+  {
+    id: "leaf_wintermoose",
+    name: "Winter Moose",
+    rarity: "epic",
+    element: "LEAF",
+    cardClass: "Support",
+    attackType: "Melee",
+    cost: 6,
+    // 6 + 23 + 3*2 + 5 = 40 = 5*6+10. Support/MELEE, which only a handful of
+    // cards are -- legal and precedented, but off the beaten path.
+    dmg: 6,
+    hits: 1,
+    hp: 23,
+    sp: 5,
+    shields: 3,
+    keywords: {},
+    passiveNames: { pushImmune: "Planted Hooves", roundTick: "Herd Warmth" },
+    pushImmune: true,
+    roundTick: { healAlliesInRange: 3 },
+    special: {
+      name: "Windbreak",
+      cost: 3,
+      handler: "grantShield",
+      params: { amount: 3, nearby: 1, heal: 4 },
+      targetSide: "ally",
+      text: "+3 shields and 4 HP to itself and every ally in the 8 slots around it.",
+    },
+  },
+  {
+    id: "leaf_grizzly",
+    name: "Grizzly",
+    rarity: "legendary",
+    element: "LEAF",
+    cardClass: "Assassin",
+    attackType: "Melee",
+    cost: 7,
+    // 12 + 22 + 1*2 + 9 = 45 = 5*7+10.
+    dmg: 12,
+    hits: 1,
+    hp: 22,
+    sp: 9,
+    shields: 1,
+    keywords: {},
+    passiveNames: { stealthWhenIdle: "Thicket Ambush", firstStrikeBonus: "First Blood" },
+    // `stealthWhenIdle` is Magalogoon's rule, NOT the STEALTH keyword: hidden
+    // only while it has neither moved nor attacked this round, so it is never
+    // "always" cloaked.
+    stealthWhenIdle: true,
+    firstStrikeBonus: 4,
+    special: {
+      name: "Maul",
+      cost: 3,
+      handler: "strike",
+      params: { dmg: 14, charge: 2, chargeFirst: 1, takeSpotOnKill: 1, onKillSelfHeal: 8 },
+      targetSide: "enemy",
+      text: "Close up to 2 spaces and maul for 14. A kill heals it 8 and it takes the ground.",
+    },
+  },
+
+  // -- PYRO --------------------------------------------------
+  {
+    id: "pyro_komodo",
+    name: "Komodo",
+    rarity: "rare",
+    element: "PYRO",
+    cardClass: "Assassin",
+    tribe: "Reptile",
+    attackType: "Melee",
+    cost: 4,
+    // 6 + 14 + 10 = 30 = 5*4+10.
+    dmg: 6,
+    hits: 1,
+    hp: 14,
+    sp: 10,
+    shields: 0,
+    keywords: {},
+    passiveNames: { onHitStatus: "Septic Bite", vsStatus: "Blood Scent" },
+    // Self-enabling: the bite applies the BLEED that Blood Scent then cashes.
+    onHitStatus: { kind: "BLEED", duration: 3, power: 2 },
+    vsStatus: { status: "BLEED", bonusDmg: 4 },
+    talent: {
+      name: "Death Roll",
+      text: "Once per game, free: 8 DMG to an adjacent opponent and open it up -- BLEED 4 for 3 rounds.",
+      handler: "strike",
+      params: { dmg: 8, statusKind: "BLEED", statusPower: 4, statusDuration: 3 },
+    },
+  },
+  {
+    id: "pyro_chopper",
+    name: "Chopper",
+    rarity: "rare",
+    element: "PYRO",
+    cardClass: "Support",
+    tribe: "Forged Tech",
+    attackType: "Ranged",
+    cost: 4,
+    // 3 + 15 + 12 = 30 = 5*4+10. PYRO's Supports were the element's thinnest
+    // class at 5, and a board-effect Support matches its idiom (Smog, Canister
+    // and Scorch are all effects, not healers) -- a PYRO healer would fight the
+    // element's own anti-heal identity.
+    dmg: 3,
+    hits: 1,
+    hp: 15,
+    sp: 12,
+    shields: 0,
+    keywords: { FLYING: true },
+    passiveNames: { roundTick: "Drip Torch" },
+    roundTick: { inRangeStatus: { kind: "BURN", duration: 2, power: 1 } },
+    talent: {
+      name: "Napalm Drop",
+      text: "Once per game, free: dump the tanks on the row ahead -- 4 DMG and BURN 3 for 3 rounds to everything in it.",
+      handler: "barrage",
+      params: { dmg: 4, targets: 99, rowAhead: 1, statusKind: "BURN", statusPower: 3, statusDuration: 3 },
+    },
+  },
+  {
+    id: "pyro_warkiln",
+    name: "Warkiln",
+    rarity: "epic",
+    element: "PYRO",
+    cardClass: "Tank",
+    tribe: "Forged Tech",
+    attackType: "Melee",
+    cost: 6,
+    // 4*2 + 22 + 3*2 + 4 = 40 = 5*6+10.
+    dmg: 4,
+    hits: 2,
+    hp: 22,
+    sp: 4,
+    shields: 3,
+    // BLOCK is flat per-hit reduction applied BEFORE shields and even to PEN, so
+    // it is brutal against this set's multi-hit style. Precedented (Ice Wall,
+    // Granite Armadillo), but this is the number to cut first if the batch runs hot.
+    keywords: { BLOCK: 2 },
+    passiveNames: { onShieldBreak: "Blowout" },
+    onShieldBreak: { status: { kind: "BURN", duration: 3, power: 3 } },
+    special: {
+      name: "Breakthrough",
+      cost: 3,
+      handler: "battleCharge",
+      params: { charge: 2, dmg: 10, chainDmg: 5, push: 1 },
+      targetSide: "enemy",
+      // `ranged: true` is REQUIRED and is the WarPhant fix: without it a MELEE
+      // charger can only cast at something already touching it, so there is
+      // never a lane left to charge down.
+      ranged: true,
+      text: "Roll up to 2 slots forward, then grind the lane: 10 DMG to the first opponent ahead and 5 to each one packed behind it.",
+    },
+  },
+
+  // -- AQUA --------------------------------------------------
+  {
+    id: "aqua_bluewhale",
+    name: "Blue Whale",
+    rarity: "rare",
+    element: "AQUA",
+    cardClass: "Tank",
+    tribe: "SeaC",
+    attackType: "Melee",
+    cost: 5,
+    // 3 + 28 + 1*2 + 2 = 35 = 5*5+10. Huge FOR ITS COST rather than in absolute
+    // terms -- Killer Whale is already the legendary cost-7 AQUA Tank, and two
+    // whales in one lane would have been the collision.
+    dmg: 3,
+    hits: 1,
+    hp: 28,
+    sp: 2,
+    shields: 1,
+    keywords: {},
+    passiveNames: { pushImmune: "Deep Ballast" },
+    pushImmune: true,
+    talent: {
+      name: "Sounding",
+      text: "Once per game, free: fill its lungs -- permanently +8 max HP (healed for it) and +2 SP.",
+      handler: "empower",
+      params: { selfMaxHp: 8, selfSp: 2 },
+    },
+  },
+  {
+    id: "aqua_divebill",
+    name: "Divebill",
+    rarity: "rare",
+    element: "AQUA",
+    cardClass: "Ranger",
+    tribe: "Avian",
+    attackType: "Ranged",
+    cost: 5,
+    // 7 + 16 + 1*2 + 10 = 35 = 5*5+10. Fills AQUA's thinnest cost slot (4) and
+    // one of its two class holes.
+    dmg: 7,
+    hits: 1,
+    hp: 16,
+    sp: 10,
+    shields: 1,
+    keywords: { FLYING: true },
+    talent: {
+      name: "Spearpoint Dive",
+      text: "Once per game, free: fold and drop -- 10 DMG straight through shields (PEN) and ROOT the target for 2 rounds.",
+      handler: "strike",
+      params: { dmg: 10, pen: 1, statusKind: "ROOT", statusDuration: 2 },
+    },
+  },
+  {
+    id: "aqua_firefighter",
+    name: "Firefighter",
+    rarity: "epic",
+    element: "AQUA",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 5,
+    // 4 + 18 + 2*2 + 9 = 35 = 5*5+10. AQUA healed for ZERO before this card, and
+    // it is deliberately a hard counter to PYRO's BURN/SCALD.
+    dmg: 4,
+    hits: 1,
+    hp: 18,
+    sp: 9,
+    shields: 2,
+    keywords: { BLOCK: 1 },
+    passiveNames: { roundTick: "First Response" },
+    roundTick: { healWoundedAllies: { underHp: 8, amount: 2 } },
+    special: {
+      name: "Knock Down",
+      cost: 3,
+      handler: "heal",
+      params: { targets: 99, amount: 5, cleanseNegatives: 1 },
+      targetSide: "ally",
+      text: "Heal every ally 5 HP and strip every negative status and debuff off them.",
+    },
+  },
+
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
@@ -12086,7 +13043,10 @@ export const TOKENS: CardDef[] = [
     // that raised it is worth a piece of.
     id: "bore_kingcobra_tok",
     art: "bore_kingcobra_tok",
-    name: "King Cobra",
+    // Renamed off "King Cobra" for the same reason as Brood Spider: the name
+    // now belongs to the draftable BORE Ranger. Kobra spawns this token, so
+    // both can stand on the board at once and label() was genuinely ambiguous.
+    name: "Sand Cobra",
     rarity: "epic",
     element: "BORE",
     cardClass: "Assassin",
@@ -12126,7 +13086,12 @@ export const TOKENS: CardDef[] = [
     // children after it falls.
     id: "dusk_monstrous_spider_tok",
     art: "dusk_monstrous_spider_tok",
-    name: "Monstrous Spider",
+    // Renamed off "Monstrous Spider": that name now belongs to the draftable
+    // DUSK Warrior from the forty-card pass, and state.test.ts enforces
+    // case-insensitive name uniqueness. This token is referenced by ID
+    // (Aranea's Brood Summon params and a passives test), so its DISPLAY name
+    // is the free side of the collision to move.
+    name: "Brood Spider",
     rarity: "epic",
     element: "DUSK",
     cardClass: "Warrior",

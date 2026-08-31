@@ -721,8 +721,14 @@ export function describePassives(def: CardDef): string[] {
     namedAny(["rowAheadDmg", "roundTick"],
       `End of round: deals ${def.roundTick.rowAheadDmg} DMG to opponents in the row directly ahead.`,
     );
+  // `namedAny`, not a raw push: this was the one roundTick branch that appended
+  // its line directly, so a card declaring `passiveNames.roundTick` for it had
+  // that name silently dropped. Jolt was the only carrier, and Jolt does not
+  // name it — so nothing surfaced until a second card did. The timing wording is
+  // right and deliberate: `startBattle` applies this, not the Cleanup tick (see
+  // the note beside `aoeStatus` in phases.ts).
   if (def.roundTick?.inRangeStatus)
-    passives.push(
+    namedAny(["inRangeStatus", "roundTick"],
       `When battle begins: applies ${def.roundTick.inRangeStatus.kind} for ${def.roundTick.inRangeStatus.duration} round(s) to every opponent in range.`,
     );
   if (def.roundTick?.inRangeDmg)

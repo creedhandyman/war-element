@@ -181,5 +181,13 @@ export const PYRO_LORE: Record<string, string> = {
     "It does not stop at the target. Stopping is a separate system it was not given.",
 
   // ── Void Tower bosses ──
-  boss_umbranova: "It is not aiming. There is nowhere it is not aiming."
+  boss_umbranova: "It is not aiming. There is nowhere it is not aiming.",
+
+  // -- the forty-card pass --
+  pyro_komodo:
+    "One bite. The rest is just a matter of following you.",
+  pyro_chopper:
+    "The line goes in here. Everything inside it is already burning.",
+  pyro_warkiln:
+    "It does not stop for the rank in front. That is what the rank in front is for.",
 };

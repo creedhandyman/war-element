@@ -362,7 +362,12 @@ describe("multi-hit auto-basic — spread, don't overkill", () => {
     const s = prepState();
     const alpha = place(s, "leaf_alpha", "P1", 3, 0);
     const weak = place(s, "dusk_gool", "P2", 2, 0, { curHp: 1, maxHp: 20, curShields: 0 });
-    const tough = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    // BORE for the survivor, deliberately. With a second DUSK body here the
+    // surplus hits rode a coin: Midnight Shade grants DUSK cards dodge per
+    // FALLEN DUSK ally, so killing `weak` armed `tough` mid-volley and one of
+    // the three follow-ups was dodged. The distribution is what is under test,
+    // not the dodge, and the survivor's element was always incidental.
+    const tough = place(s, "bore_rockgoblin", "P2", 2, 1, { curHp: 40, maxHp: 40, curShields: 0 });
     basicAttack(s, alpha.instanceId, distributeBasicHits(s, alpha, [weak, tough]));
     expect(s.cards[weak.instanceId]?.curHp ?? 0).toBeLessThanOrEqual(0); // dead on one hit
     // The surplus hits land on the tough one: (hits - 1) at its printed DMG.

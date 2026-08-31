@@ -156,6 +156,42 @@ export const CODE_IDS: readonly string[] = [
   // indices by position.
   "boss_skybreaker", "gale_thundering_hurricane_tok",
   "boss_continental", "bore_rolling_boulder_tok",
+  // The forty-card pass. APPENDED, never inserted: a deck code is a list of
+  // INDICES into this array, so re-ordering it silently rewrites every code
+  // anyone has ever saved or shared.
+  "dawn_riflemen",
+  "dawn_sunspot",
+  "dawn_quasar",
+  "dawn_meridian",
+  "dusk_monstrous_spider",
+  "dusk_grafft",
+  "dusk_duet",
+  "dusk_prestige",
+  "dusk_tatterhand",
+  "gale_goldspur",
+  "gale_leeward",
+  "gale_aerostat",
+  "gale_gyre",
+  "bore_rhino",
+  "bore_kingcobra",
+  "bore_dunebuggy",
+  "bore_badlands_bandits",
+  "bore_spinosaur",
+  "bolt_hacker",
+  "bolt_handyman",
+  "bolt_kingpin",
+  "bolt_airship",
+  "leaf_forestdeer",
+  "leaf_monkey",
+  "leaf_gorilla",
+  "leaf_wintermoose",
+  "leaf_grizzly",
+  "pyro_komodo",
+  "pyro_chopper",
+  "pyro_warkiln",
+  "aqua_bluewhale",
+  "aqua_divebill",
+  "aqua_firefighter",
 ];
 
 const INDEX_OF = new Map<string, number>(CODE_IDS.map((id, i) => [id, i]));

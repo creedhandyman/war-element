@@ -199,4 +199,12 @@ export const AQUA_LORE: Record<string, string> = {
 
   aqua_blackice_crystal_tok:
     "It grows where something stopped moving.",
+
+  // -- the forty-card pass --
+  aqua_bluewhale:
+    "It chose this depth. Nothing that arrives here changes that.",
+  aqua_divebill:
+    "It picked the spot from four hundred feet and did not adjust.",
+  aqua_firefighter:
+    "The fire had terms. She declined them.",
 };

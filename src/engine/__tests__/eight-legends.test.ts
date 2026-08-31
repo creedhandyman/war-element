@@ -264,7 +264,10 @@ describe("Burnout — King of the Streets", () => {
     const s = prepState();
     const burn = place(s, "pyro_burnout", "P1", 3, 0);
     for (const col of [1, 2]) {
-      const prey = place(s, "dusk_gool", "P2", 3, col, { curHp: 1, maxHp: 1, curShields: 0 });
+    // BORE, not DUSK: Midnight Shade gives DUSK cards dodge per FALLEN DUSK
+    // ally, so the first kill armed the second body and this assertion rode a
+    // coin on the shared RNG stream. The victim's element is incidental here.
+      const prey = place(s, "bore_rockgoblin", "P2", 3, col, { curHp: 1, maxHp: 1, curShields: 0 });
       basicAttack(s, burn.instanceId, prey.instanceId);
     }
     expect(s.cards[burn.instanceId].dmgBonus).toBe(2);

@@ -196,4 +196,14 @@ export const DAWN_LORE: Record<string, string> = {
   boss_helion: "It has already chosen your lane. Walking there was the courtesy.",
 
   dawn_golden_bull_tok: "The rope did not tame it. It only pointed it.",
+
+  // -- the forty-card pass --
+  dawn_riflemen:
+    "Every rifle is already laid on a man. The word to fire is a formality.",
+  dawn_sunspot:
+    "Look at the sun long enough and there is a place you cannot see. It waits there.",
+  dawn_quasar:
+    "It arrives ahead of the light that announced it. Nothing slower was ever going to be quick enough.",
+  dawn_meridian:
+    "It has gone down once. The post was still held when it got back up.",
 };
