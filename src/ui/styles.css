@@ -2912,7 +2912,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      * have on every screen this tier now covers. Take the smaller of the two
      * as the WIDTH and derive the height from it, and the board is always the
      * right shape and as big as it can be. */
-    --board-size: min(calc(100vw - 12px), calc((100dvh - var(--hud-budget)) * 70 / 87));
+    /* FLOORED. Every term here is viewport-derived and the HUD reserve is a
+       big fixed subtraction, so any transient shrink of `dvh` — an on-screen
+       keyboard above all — drives this toward zero and takes the match with
+       it: measured at a 510px viewport, a 363px board became 39x39 with 7px
+       slots and the cards overflowed the top of the screen. Reported as "tried
+       chat in battle and it broke the game", which is exactly what tapping a
+       chat input did. `index.html` stops the keyboard resizing the layout at
+       all; this is the belt to that pair of braces, and it also covers small
+       screens and landscape flips where the same arithmetic goes negative.
+       240px is five 46px slots plus gaps — the smallest board still tappable.
+       Below that the page overflows and scrolls, which is recoverable; a 39px
+       board is not. */
+    --board-size: max(240px, min(calc(100vw - 12px), calc((100dvh - var(--hud-budget)) * 70 / 87)));
     --board-h: calc(var(--board-size) * 87 / 70);
   }
 
@@ -3446,10 +3458,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
        which is its whole bottom row. The extra 66 is the fan's own height.
        Landscape is the one place this bites: there is width to spare and no
        height at all, so the board is height-bound and takes everything it can. */
-    --board-size: min(
+    /* Floored for the same reason as the portrait rule above — landscape is
+       the tighter of the two on height, so it goes negative sooner. */
+    --board-size: max(200px, min(
       calc(100dvh - 186px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)),
       calc(100vw - var(--hreserve))
-    );
+    ));
     padding: calc(5px + env(safe-area-inset-top)) calc(6px + env(safe-area-inset-right))
              calc(5px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
   }

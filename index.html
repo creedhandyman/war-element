@@ -2,7 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- `interactive-widget=resizes-visual`: the on-screen KEYBOARD must not
+         resize the layout viewport. The board is sized from `100dvh` minus a
+         fixed HUD reserve, so under the default `resizes-content` every
+         keyboard open shrank `dvh` by the keyboard's height and the board
+         collapsed with it — measured at a 510px viewport the 363px board
+         became 39x39 with 7px slots, i.e. the match became unplayable the
+         moment anyone tapped the chat input. Reported from the device as
+         "tried chat in battle and it broke the game".
+         With this, the keyboard overlays the visual viewport and the layout
+         underneath is left alone. `styles.css` also floors `--board-size`, so
+         a browser that ignores this hint still cannot collapse the board. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual" />
     <title>War Element — Alpha</title>
     <!-- Install to home screen → runs fullscreen (no browser URL bar). Orientation
          is unlocked ("any") so the deck builder can be used in landscape for more room. -->
