@@ -11976,7 +11976,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_goldspur",
     name: "Goldspur",
-    rarity: "rare",
+    rarity: "epic",
     element: "GALE",
     cardClass: "Ranger",
     tribe: "Avian",
@@ -11995,11 +11995,22 @@ export const CARDS: CardDef[] = [
     // what they were always for.
     passiveNames: { onCritBonus: "Fan the Hammer" },
     onCritBonus: { dmg: 4, hits: 1 },
+    special: {
+      name: "Both Barrels",
+      cost: 3,
+      handler: "barrage",
+      // Two shots, two targets, and CRIT is printed on the card — so this is the
+      // volley version of what its basic already does, which is what a
+      // gunslinger's Special ought to be.
+      params: { dmg: 5, targets: 2, closest: 1, crit: 1 },
+      targetSide: "enemy",
+      text: "5 DMG to the 2 nearest opponents, both shots rolling for a CRIT.",
+    },
   },
   {
     id: "gale_leeward",
     name: "Leeward",
-    rarity: "rare",
+    rarity: "epic",
     element: "GALE",
     cardClass: "Tank",
     attackType: "Melee",
@@ -12015,6 +12026,14 @@ export const CARDS: CardDef[] = [
     // Hit it small and often, or don't hit it at all — a big single blow answers
     // itself. Fills GALE's Tank hole (6, joint-lowest) without another flier.
     onHeavyHit: { over: 6, reach: 1, push: 1, status: "WEAKEN", statusDuration: 2 },
+    special: {
+      name: "Windbreak",
+      cost: 3,
+      handler: "grantShield",
+      params: { amount: 3, nearby: 1 },
+      targetSide: "ally",
+      text: "+3 shields to itself and every adjacent ally.",
+    },
   },
   {
     id: "gale_aerostat",
@@ -12078,7 +12097,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_rhino",
     name: "Rhino",
-    rarity: "rare",
+    rarity: "epic",
     element: "BORE",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -12094,6 +12113,18 @@ export const CARDS: CardDef[] = [
     passiveNames: { trampleDmg: "Trample Through", onHitPush: "Horn Toss" },
     trampleDmg: 3,
     onHitPush: 1,
+    special: {
+      name: "Full Charge",
+      cost: 3,
+      handler: "battleCharge",
+      // `ranged: true` is the WarPhant fix: without it a MELEE charger can only
+      // cast at something already touching it, so there is never a lane left to
+      // charge down.
+      params: { charge: 2, dmg: 9, chainDmg: 3, push: 2 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Rumble up to 2 slots up the column, crush what is packed behind the front rank, and gore what it reaches.",
+    },
   },
   {
     id: "bore_dunebuggy",
@@ -12424,7 +12455,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_komodo",
     name: "Komodo",
-    rarity: "rare",
+    rarity: "epic",
     element: "PYRO",
     cardClass: "Assassin",
     tribe: "Reptile",
@@ -12441,11 +12472,21 @@ export const CARDS: CardDef[] = [
     // Self-enabling: the bite applies the BLEED that Blood Scent then cashes.
     onHitStatus: { kind: "BLEED", duration: 3, power: 2 },
     vsStatus: { status: "BLEED", bonusDmg: 4 },
+    special: {
+      name: "Death Roll",
+      cost: 3,
+      handler: "strike",
+      // Sets up its own payoff: Blood Scent pays +4 against a BLEEDing target,
+      // and this is what opens one up.
+      params: { dmg: 8, statusKind: "BLEED", statusPower: 4, statusDuration: 3 },
+      targetSide: "enemy",
+      text: "8 DMG to an adjacent opponent and open it up — BLEED 4 for 3 rounds.",
+    },
   },
   {
     id: "pyro_chopper",
     name: "Chopper",
-    rarity: "rare",
+    rarity: "epic",
     element: "PYRO",
     cardClass: "Support",
     tribe: "Forged Tech",
@@ -12463,6 +12504,14 @@ export const CARDS: CardDef[] = [
     keywords: { FLYING: true },
     passiveNames: { roundTick: "Drip Torch" },
     roundTick: { inRangeStatus: { kind: "BURN", duration: 2, power: 1 } },
+    special: {
+      name: "Napalm Drop",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 4, targets: 99, rowAhead: 1, statusKind: "BURN", statusPower: 3, statusDuration: 3 },
+      targetSide: "enemy",
+      text: "Dump the tanks on the row directly ahead — 4 DMG and BURN 3 for 3 rounds to everything in it.",
+    },
   },
   {
     id: "pyro_warkiln",
@@ -12503,7 +12552,7 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_bluewhale",
     name: "Blue Whale",
-    rarity: "rare",
+    rarity: "epic",
     element: "AQUA",
     cardClass: "Tank",
     tribe: "SeaC",
@@ -12520,11 +12569,22 @@ export const CARDS: CardDef[] = [
     keywords: {},
     passiveNames: { pushImmune: "Deep Ballast" },
     pushImmune: true,
+    special: {
+      name: "Breach",
+      cost: 3,
+      handler: "strike",
+      // A shove rather than a self-buff. `empower` with `selfMaxHp` was the
+      // Talent version and worked BECAUSE it fired once — repeatable, a
+      // permanent +max HP every few rounds is a body that never stops growing.
+      params: { dmg: 9, push: 2 },
+      targetSide: "enemy",
+      text: "Surface under an opponent for 9 DMG and shove it back 2 spaces.",
+    },
   },
   {
     id: "aqua_divebill",
     name: "Divebill",
-    rarity: "rare",
+    rarity: "epic",
     element: "AQUA",
     cardClass: "Ranger",
     tribe: "Avian",
@@ -12542,6 +12602,14 @@ export const CARDS: CardDef[] = [
     // once per opponent per game. Replaced its Talent under the cost-3 rule.
     passiveNames: { firstStrikeBonus: "Spearpoint" },
     firstStrikeBonus: 3,
+    special: {
+      name: "Spearpoint Dive",
+      cost: 3,
+      handler: "strike",
+      params: { dmg: 10, pen: 1, statusKind: "ROOT", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "Fold and drop — 10 DMG straight through shields (PEN) and ROOT the target for 2 rounds.",
+    },
   },
   {
     id: "aqua_firefighter",

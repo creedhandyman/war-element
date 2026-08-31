@@ -4587,31 +4587,7 @@ describe("a Talent is a cost-3 Rare's trick, and nothing else's", () => {
   });
 });
 
-describe("the top of the curve is Legendary", () => {
-  // Owner's call: every cost 6, 7 and 8 card is a Legendary. Mythics sit above
-  // it at 9-10 and the rungs below are Rare/Epic, so this is the band that says
-  // "one of these per deck, and you feel it".
-  //
-  // The set already held to this everywhere: when the rule was written down, the
-  // ONLY six cards breaking it were six cost-6 Epics from the forty-card pass.
-  // That is worth recording — the guard is pinning an existing convention, not
-  // imposing a new one.
-  it("nothing at cost 6-8 is below Legendary", () => {
-    const band = CARDS.filter((c) => !c.boss && !c.id.endsWith("_tok") && c.cost >= 6 && c.cost <= 8);
-    expect(band.length, "the band is populated").toBeGreaterThan(50);
-    const wrong = band.filter((c) => c.rarity !== "legendary")
-      .map((c) => `${c.id} (${c.rarity} cost ${c.cost})`);
-    expect(wrong, "cost 6-8 must be Legendary").toEqual([]);
-  });
 
-  it("...and a Legendary still owes a repeatable Special", () => {
-    // The rarity contract does not get a pass just because the cost band moved a
-    // card up into it.
-    const missing = CARDS.filter((c) => !c.boss && c.rarity === "legendary" && !c.special)
-      .map((c) => c.id);
-    expect(missing).toEqual([]);
-  });
-});
 
 describe("a cheap Rare is never a blank body", () => {
   // A Rare below cost 3 cannot have a Talent — that slot belongs to the 3-drop —
@@ -4637,5 +4613,49 @@ describe("a cheap Rare is never a blank body", () => {
       return !Object.keys(d).some((k) => !CORE.has(k) && d[k] != null);
     }).map((c) => `${c.id} (cost ${c.cost})`);
     expect(bare, "a cheap Rare with nothing but a stat line and maybe a keyword").toEqual([]);
+  });
+});
+
+describe("rarity is a cost band, not a mood", () => {
+  // Owner's ladder. Rare and Epic OVERLAP at 3 on purpose — that is the rung
+  // where the set can offer either a cheap trick or a real Special, and it is
+  // also the only rung a Talent may sit on.
+  //
+  //   rare 1-3 · epic 3-5 · legendary 6-8 · mythic 9-10
+  //
+  // Every one of these was already true across the set when it was written down;
+  // the only cards ever out of band were from the forty-card pass. So this guard
+  // pins a convention rather than imposing one.
+  const BAND: Record<string, [number, number]> = {
+    rare: [1, 3], epic: [3, 5], legendary: [6, 8], mythic: [9, 10],
+  };
+
+  it("every card's cost sits inside its rarity's band", () => {
+    const out = CARDS.filter((c) => !c.boss).filter((c) => {
+      const b = BAND[c.rarity ?? ""];
+      return b && (c.cost < b[0] || c.cost > b[1]);
+    }).map((c) => `${c.id} (${c.rarity} cost ${c.cost})`);
+    expect(out, "out of band").toEqual([]);
+  });
+
+  it("the bands cover the whole curve with no gap", () => {
+    // A cost with no legal rarity would be a card nobody could print.
+    const costs = new Set(CARDS.filter((c) => !c.boss).map((c) => c.cost));
+    for (const cost of [...costs].sort((a, b) => a - b)) {
+      const legal = Object.entries(BAND).filter(([, [lo, hi]]) => cost >= lo && cost <= hi);
+      expect(legal.length, `cost ${cost} has no legal rarity`).toBeGreaterThan(0);
+    }
+  });
+
+  it("...and the rarity contract survives the promotion", () => {
+    // Moving a card UP a band is not free: Epic and above owe a repeatable
+    // Special, and a Rare may never have one. Seven cards crossed that line when
+    // the bands were written down and each had to be given an ability to cross it.
+    const noSpecial = CARDS.filter((c) => !c.boss
+      && ["epic", "legendary", "mythic"].includes(c.rarity ?? "") && !c.special).map((c) => c.id);
+    expect(noSpecial, "epic+ without a Special").toEqual([]);
+    const rareSpecial = CARDS.filter((c) => !c.boss && c.rarity === "rare" && c.special)
+      .map((c) => c.id);
+    expect(rareSpecial, "a Rare with a repeatable Special").toEqual([]);
   });
 });
