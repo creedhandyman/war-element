@@ -49,6 +49,8 @@ import {
   specialTargets,
   spellCommandTargets,
   talentTargets,
+  canPlummet,
+  plummetTargets,
   summonLandingRow,
   validTargets,
   domMap,
@@ -1695,7 +1697,7 @@ function startBattle(draft: GameState): void {
 function performBattleAction(
   draft: GameState,
   instanceId: string,
-  action: "basic" | "special" | "skip" | "talent",
+  action: "basic" | "special" | "skip" | "talent" | "plummet",
   picks?: string[],
   mode?: EnchantMode,
 ): void {
@@ -1703,6 +1705,29 @@ function performBattleAction(
   if (!card) return;
   if (action === "skip") {
     draft.log.push(`${label(draft, card)} waits.`);
+    return;
+  }
+  if (action === "plummet") {
+    const check = canPlummet(draft, instanceId);
+    if (!check.ok) throw new Error(`Can't plummet: ${check.reason}`);
+    const pd = getDef(card.defId).plummet!;
+    const valid = plummetTargets(draft, instanceId);
+    const victim = (picks?.[0] ? valid.find((v) => v.instanceId === picks[0]) : undefined) ?? valid[0];
+    const landing = { ...victim.pos! };
+    card.attackedThisRound = true; // the dive is this turn's action
+    draft.log.push(`${label(draft, card)} folds and drops on ${label(draft, victim)}.`);
+    // Kill FIRST, then take the ground — the slot has to be empty before the
+    // diver can stand in it, and `defeatCard` is the same door every other death
+    // goes through, so on-death riders and the slay-to-win check all still fire.
+    const removed = defeatCard(draft, victim, "dive", card);
+    if (removed && !cardAt(draft, landing.row, landing.col)
+        && !draft.slots[landing.row][landing.col].capturedBy) {
+      card.pos = { row: landing.row as Pos["row"], col: landing.col as Pos["col"] };
+    }
+    // The landing, and it is UNPREVENTABLE: straight off curHp, so shields and
+    // BLOCK do not absorb it. The damage is the ground, not the enemy.
+    card.curHp = Math.max(1, card.curHp - pd.selfDmg);
+    draft.log.push(`${label(draft, card)} takes ${pd.selfDmg} from the landing.`);
     return;
   }
   if (action === "talent") {
@@ -3739,6 +3764,7 @@ function doCleanupPhase(draft: GameState): void {
     card.twinStrikeFiredRound = false; // Twin Strike (Twinbolt): one bonus volley per round
     card.oppSummonFiredRound = false;  // Drone Sweep (Buzzard): one answer per round
     card.hitSpawnFiredRound = false;   // Acorn Drop (Oak): one sprout per round
+    card.allyHitSpawnFiredRound = false; // Officer Down (Police Car): one call per round
     card.onKillAoeFiredRound = false; // Powertrip re-arms each round
     card.dmgBonusRound = 0;
     card.spBonusRound = 0;

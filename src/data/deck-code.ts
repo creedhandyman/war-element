@@ -192,6 +192,14 @@ export const CODE_IDS: readonly string[] = [
   "aqua_bluewhale",
   "aqua_divebill",
   "aqua_firefighter",
+  // ...and the eight that waited on engine work.
+  "dawn_ballista",
+  "gale_falcon",
+  "aqua_surferdude",
+  "bolt_policecar",
+  "pyro_mortar",
+  "pyro_pyrodactyl",
+  "aqua_sonarping",
 ];
 
 const INDEX_OF = new Map<string, number>(CODE_IDS.map((id, i) => [id, i]));

@@ -15,6 +15,9 @@ import { hasArcDischarge } from "../auras";
 /** Card-def fields that carry a real ability the player should be told about.
  *  Purely structural fields (art, rarity, stats, tribe) are not listed. */
 const ABILITY_FIELDS = [
+  // The forty-card pass's new fields. Registered here so a card carrying one
+  // without a describer fails loudly instead of shipping an invisible passive.
+  "plummet", "attackEveryOtherRound", "reachBonus", "revealsStealth", "onAllyHitSpawn",
   "onHitStatus", "onHitByMelee", "onKill", "vsStatus", "onRevive", "onLowHp",
   "onOppSummon", "ignoresSleepWake", "firstStrikeBonus", "basicBonus",
   "attackTrade", "summonSpawn", "summonScaleFromEnemy", "onHitSelfBuff",

@@ -1,0 +1,13 @@
+import { runBatch, shelfFor } from "./__bal_harness";
+import { line } from "./__bal_lib";
+const S = (i: number) => i * 7919 + 13;
+const s7 = shelfFor(7), s5 = shelfFor(5), s4 = shelfFor(4);
+console.log("=== A cont: 4th mirror deck, DOM 7x7 ===");
+const d = s7[3];
+line(`DOM ${d.id}`, runBatch(2000, (i) => ({ seed: S(i), boardSize: 7, seats: 2, decks: [d.cards], spells: [d.spells, d.spells], trackPoints: false })));
+console.log("=== B. SAME 7x7 board, objective OFF (control) ===");
+for (const dd of s7) line(`PLAIN7 ${dd.id}`, runBatch(500, (i) => ({ seed: S(i), boardSize: 7, mode: "plain", seats: 2, decks: [dd.cards], spells: [dd.spells, dd.spells], trackPoints: false })));
+console.log("=== C. 5x5 plain mirrors ===");
+for (const dd of s5) line(`5x5 ${dd.id}`, runBatch(1500, (i) => ({ seed: S(i), boardSize: 5, seats: 2, decks: [dd.cards], spells: [dd.spells, dd.spells], trackPoints: false })));
+console.log("=== D. 4x4 plain mirrors ===");
+for (const dd of s4) line(`4x4 ${dd.id}`, runBatch(1500, (i) => ({ seed: S(i), boardSize: 4, seats: 2, decks: [dd.cards], spells: [dd.spells, dd.spells], trackPoints: false })));

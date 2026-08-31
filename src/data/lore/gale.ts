@@ -223,4 +223,6 @@ export const GALE_LORE: Record<string, string> = {
     "It was over you before the horizon changed. What comes down was always coming down.",
   gale_gyre:
     "The line did not break. It simply is not standing where it was.",
+  gale_falcon:
+    "It was above you a moment ago. The moment is the whole of the warning.",
 };

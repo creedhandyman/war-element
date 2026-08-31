@@ -376,7 +376,7 @@ const PYRO: StoryRegion = {
       lore: "The heaviest walls face inward, a detail visitors notice and the garrison declines to explain. Ember Fortress was raised around Infernus Rex, not against anything that might arrive."
      },
     { id: "P11", name: "Sunfall Watch", kind: "landmark", at: { x: 62, y: 72 },
-      requires: ["P2", "P10"], roster: ["pyro_chopper", "pyro_komodo", "pyro_warkiln", "pyro_magmaw", "pyro_sol", "pyro_aftermath", "pyro_dynomight"], adds: [],
+      requires: ["P2", "P10"], roster: ["pyro_mortar", "pyro_pyrodactyl", "pyro_chopper", "pyro_komodo", "pyro_warkiln", "pyro_magmaw", "pyro_sol", "pyro_aftermath", "pyro_dynomight"], adds: [],
       note: "The long watch — Sol and Magmaw counting the mountain's days, plus the loose Legendaries that answer to no tribe.",
       lore: "Sunfall Watch counts the days the Firespine has left before it opens again. Sol has never revised that number downward, and Aftermath is the name given to being wrong about it."
      },
@@ -484,7 +484,7 @@ const AQUA: StoryRegion = {
       lore: "Three nations claim the Frozen Citadel and the Polar King has confirmed none of them: diplomacy, or the oldest joke in Concord, depending entirely on who is doing the asking."
     },
     { id: "A11", name: "Atlantis Outer Ring", kind: "landmark", tribe: "SeaC", at: { x: 65, y: 55 },
-      requires: ["A6", "A9"], roster: ["aqua_divebill", "aqua_bluewhale", "aqua_firefighter", "aqua_siren", "aqua_rain", "aqua_driftwraith", "aqua_magalogoon", "aqua_killerwhale"], adds: [],
+      requires: ["A6", "A9"], roster: ["aqua_surferdude", "aqua_sonarping", "aqua_divebill", "aqua_bluewhale", "aqua_firefighter", "aqua_siren", "aqua_rain", "aqua_driftwraith", "aqua_magalogoon", "aqua_killerwhale"], adds: [],
       note: "Four Legendaries — the richest node in the first three acts. Both arms of the sea have to be yours first.",
       lore: "Everything the sea carries stops at the outer ring, and almost none of it was invited. Atlantis does not refuse arrivals — it lets the ring decide, and the Siren does the deciding."
      },
@@ -618,7 +618,7 @@ const GALE: StoryRegion = {
      },
     { id: "G12", name: "The Eye of the Storm", kind: "landmark", tribe: "Avian", at: { x: 60, y: 80 },
       requires: ["G5", "G9"],
-      roster: ["gale_leeward", "gale_goldspur", "gale_aerostat", "gale_gyre", "gale_bluejay", "gale_galeon", "gale_klipso", "gale_kloud"], adds: [],
+      roster: ["gale_falcon", "gale_leeward", "gale_goldspur", "gale_aerostat", "gale_gyre", "gale_bluejay", "gale_galeon", "gale_klipso", "gale_kloud"], adds: [],
       note: "The whole Cost-7 Legendary band on one node — the richest recruit in Act IV.",
       lore: "The only still air in GALE and the least trusted: a people who read wind for warning have never settled what to make of a place with nothing to read. Galeon keeps the eye regardless."
      },
@@ -718,7 +718,7 @@ const BOLT: StoryRegion = {
       lore: "GearHollow's dwarves sign nothing they build: in the tunnels a name on a diagram reads as an admission that one person could have got the whole thing wrong. Jack Arc signs nothing either."
      },
     { id: "B12", name: "Stormcaller's Spire", kind: "landmark", at: { x: 66, y: 18 },
-      requires: ["B4", "B10"], roster: ["bolt_handyman", "bolt_hacker", "bolt_kingpin", "bolt_airship", "bolt_stormcaller", "bolt_shock", "bolt_voltogon"],
+      requires: ["B4", "B10"], roster: ["bolt_policecar", "bolt_handyman", "bolt_hacker", "bolt_kingpin", "bolt_airship", "bolt_stormcaller", "bolt_shock", "bolt_voltogon"],
       adds: ["bolt_static_wisp_tok"],
       note: "By the airship docks. The machines stay below — this is the storm itself, and Voltogon rides it in.",
       lore: "GALE's storms are sacred and untamed. BOLT's engineers look at the same lightning and ask what it is for — Stormcaller is the answer they built, and nothing here is struck by accident."
@@ -1048,7 +1048,7 @@ const DAWN: StoryRegion = {
       lore: "An heir is named in these yards rather than in the Court above them, so whoever stands watch that morning is a witness. DAWN crowns nobody in private, and Reveille sounds the hour."
      },
     { id: "W10", name: "The Golden Court", kind: "landmark", tribe: "Suns", at: { x: 50, y: 41 },
-      requires: ["W8", "W9"], roster: ["dawn_sunspot", "dawn_riflemen", "dawn_meridian", "dawn_quasar", "dawn_commander", "dawn_leo", "dawn_dawn"],
+      requires: ["W8", "W9"], roster: ["dawn_ballista", "dawn_sunspot", "dawn_riflemen", "dawn_meridian", "dawn_quasar", "dawn_commander", "dawn_leo", "dawn_dawn"],
       adds: ["dawn_radiant_guardian"] ,
       lore: "DAWN's nobility is a chess hierarchy every child learns before reading: King, Queen, Bishop, Rook, Knight — and Pawn, which is most of DAWN. Leo stands where the board says to stand."
     },

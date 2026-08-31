@@ -190,4 +190,8 @@ export const PYRO_LORE: Record<string, string> = {
     "The line goes in here. Everything inside it is already burning.",
   pyro_warkiln:
     "It does not stop for the rank in front. That is what the rank in front is for.",
+  pyro_mortar:
+    "It does not aim at the flier. It aims at where the flier stops being one.",
+  pyro_pyrodactyl:
+    "It comes down the line once. There is no second pass, and there does not need to be.",
 };

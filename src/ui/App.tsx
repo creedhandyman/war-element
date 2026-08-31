@@ -7,6 +7,8 @@ import {
   canCastSpell,
   canFireSpecial,
   canFireTalent,
+  canPlummet,
+  plummetTargets,
   canMove,
   canSummon,
   cardAt,
@@ -2448,6 +2450,7 @@ export function App() {
   const specCost =
     activeCard && activeDef?.special ? effectiveSpecialCost(game, activeCard, activeDef.special.cost) : 0;
   const talentCheck = awaitingId ? canFireTalent(game, awaitingId) : { ok: false };
+  const plummetCheck = awaitingId ? canPlummet(game, awaitingId) : { ok: false };
   const basicOk = awaitingId ? validTargets(game, awaitingId).length > 0 : false;
   // An area Special with no manual pick to make (hits everything it reaches):
   // it's previewed on the first click and fired on a Confirm.
@@ -2542,6 +2545,32 @@ export function App() {
         : aimedCorridor
           ? `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — pick a glowing target to <b>aim</b> it; the blast fires down that lane.`
           : `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — pick up to ${cap} glowing target${cap > 1 ? "s (repeat to stack), or Fire early" : ""}.`,
+    );
+  }
+
+  function actPlummet() {
+    if (!activeCard || !activeDef?.plummet) return;
+    // Two presses, like the Talent and the Special beside it. A dive KILLS
+    // outright and moves the card, so a misfire is a body and a position — not
+    // something to hand to a single tap.
+    if (pending === "plummet") {
+      dispatch({
+        type: "BATTLE_ACTION", player: activeCard.owner, action: "plummet",
+        targetId: picks[0],
+      });
+      setPending(null);
+      setPicks([]);
+      return;
+    }
+    setPending("plummet");
+    setPicks([]);
+    const prey = plummetTargets(game, activeCard.instanceId);
+    setHint(
+      `<b>Plummet</b> — drop on a glowing opponent and destroy it outright, taking its square. ` +
+      `Costs ${activeDef.plummet.selfDmg} HP, which shields do not absorb. ` +
+      (prey.length === 1
+        ? "One target in reach; press <b>Confirm</b>."
+        : `Pick one of ${prey.length}, then <b>Confirm</b>.`),
     );
   }
 
@@ -2663,11 +2692,21 @@ export function App() {
         { key: "basic", short: pending === "basic" ? (picks.length > 0 ? `FIRE ${picks.length}` : "AUTO") : "ATTACK",
           tone: "#e5533d", disabled: !basicOk, armed: pending === "basic", onClick: actBasic,
           title: basicOk ? "Basic attack" : "Nothing in reach" },
-        { key: "special", short: pending === "special" ? (specialAoE ? "CONFIRM" : picks.length > 0 ? `FIRE ${picks.length}` : "SPECIAL") : "SPECIAL",
-          tone: "#c9a24b", disabled: !specialCheck.ok, armed: pending === "special", onClick: actSpecial,
-          title: activeDef.special
-            ? `${activeDef.special.name}: ${activeDef.special.text}`
-            : "No special" },
+        // PLUMMET takes the SPECIAL seat, and only on a card that has no Special
+        // to be displaced — the ring holds four and the Talent is not the one to
+        // give up. On a diving Rare that seat was a permanently disabled
+        // "SPECIAL" doing nothing anyway.
+        activeDef.plummet && !activeDef.special
+          ? { key: "plummet", short: pending === "plummet" ? "CONFIRM" : "DIVE", tone: "#4fb0c6",
+              disabled: !plummetCheck.ok, armed: pending === "plummet", onClick: actPlummet,
+              title: plummetCheck.ok
+                ? `Plummet: destroy an opponent under ${activeDef.dmg} HP and take its square (costs ${activeDef.plummet.selfDmg} HP)`
+                : plummetCheck.reason ?? "Cannot dive" }
+          : { key: "special", short: pending === "special" ? (specialAoE ? "CONFIRM" : picks.length > 0 ? `FIRE ${picks.length}` : "SPECIAL") : "SPECIAL",
+              tone: "#c9a24b", disabled: !specialCheck.ok, armed: pending === "special", onClick: actSpecial,
+              title: activeDef.special
+                ? `${activeDef.special.name}: ${activeDef.special.text}`
+                : "No special" },
         activeDef.talent
           ? { key: "talent", short: pending === "talent" ? "CONFIRM" : "TALENT", tone: "#9575ff",
               disabled: !talentCheck.ok, armed: pending === "talent", onClick: actTalent,

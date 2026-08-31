@@ -207,4 +207,8 @@ export const BOLT_LORE: Record<string, string> = {
     "The contract names one card and one outcome. Both are already filed.",
   bolt_airship:
     "Lift capacity: one ally, anywhere on the board. Measured, not estimated.",
+  bolt_policecar:
+    "Unit responding. Units responding. The count is not a boast, it is a dispatch log.",
+  bolt_police_tok:
+    "Badge, taser, twelve weeks of training. Sufficient.",
 };

@@ -638,6 +638,19 @@ export function describePassives(def: CardDef): string[] {
     named("boomer", `Boomer: base damage the first strike on a target, then double on every strike after.`);
   if (def.pushImmune)
     named("pushImmune", `immune to knockback, push, and pull effects — planted where it stands.`);
+  if (def.plummet)
+    named("plummet",
+      `instead of attacking, it may DROP on an opponent within ${def.plummet.reach ?? 1} space whose CURRENT HP is under this card's DMG — the opponent is destroyed and this card takes its square, at the cost of ${def.plummet.selfDmg} HP (shields do not absorb the landing).`);
+  if (def.attackEveryOtherRound)
+    named("attackEveryOtherRound",
+      "it can only make a basic attack every OTHER round — the round between is spent reloading. Moving, Specials and Talents are unaffected.");
+  if (def.reachBonus)
+    named("reachBonus", `its basic attacks reach ${def.reachBonus} space(s) further than an ordinary ranged card.`);
+  if (def.revealsStealth)
+    named("revealsStealth", "while it lives, your side ignores STEALTH — nothing on the other side can hide.");
+  if (def.onAllyHitSpawn)
+    named("onAllyHitSpawn",
+      `when an ally is hit and survives, it calls in ${def.onAllyHitSpawn.count} ${getDef(def.onAllyHitSpawn.token).name}${def.onAllyHitSpawn.oncePerRound ? " (once per round)" : ""}${def.onAllyHitSpawn.maxAlive ? `, up to ${def.onAllyHitSpawn.maxAlive} at a time` : ""}.`);
   if (def.falseHead)
     named("falseHead", `once per game, the first BASIC attack against it hits a decoy head and deals no damage. Specials go through.`);
   if (def.flyingArrow)

@@ -1738,9 +1738,16 @@ export function resolveHit(
     const once = tDef.spawnOnHitTaken.oncePerRound;
     if (!once || !target.hitSpawnFiredRound) {
       if (once) target.hitSpawnFiredRound = true;
-      spawnTokens(
+      // CAPPED. This called `spawnTokens` with no ceiling while `spawn` and the
+      // roundTick both go through `spawnCapped` — so a cheap card with a body
+      // engine on it could bury the board, which is the Buzzard problem this
+      // file already documents. Absent `maxAlive` = Infinity, so Oak's Acorns
+      // are unchanged.
+      spawnCapped(
         draft, target, tDef.spawnOnHitTaken.token,
         once ? tDef.spawnOnHitTaken.count : tDef.spawnOnHitTaken.count * result.landedHits,
+        undefined,
+        tDef.spawnOnHitTaken.maxAlive ?? Infinity,
       );
     }
   }
@@ -1770,6 +1777,23 @@ export function resolveHit(
       target.guardedByPride = true;
       target.curShields += n;
       draft.log.push(`${label(draft, guardian)} shields ${label(draft, target)} (+${n}).`);
+    }
+  }
+
+  // Officer Down (Police Car): when a LIVING ALLY takes a landed hit and
+  // survives, the holder calls in bodies. The mirror of `onAllyHitShield`
+  // directly above, with two deliberate differences: the per-round gate lives on
+  // the HOLDER, not the ally (two allies being hit must not fire it twice), and
+  // it is capped, because an uncapped body engine on a cheap card is the exact
+  // shape this file keeps having to fix.
+  if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0) {
+    for (const holder of boardCards(draft, target.owner)) {
+      const hDef = getDef(holder.defId).onAllyHitSpawn;
+      if (!hDef || holder.instanceId === target.instanceId || holder.curHp <= 0 || !holder.pos) continue;
+      if (hDef.oncePerRound && holder.allyHitSpawnFiredRound) continue;
+      if (hDef.oncePerRound) holder.allyHitSpawnFiredRound = true;
+      spawnCapped(draft, holder, hDef.token, hDef.count, 1, hDef.maxAlive ?? Infinity);
+      draft.log.push(`${label(draft, holder)} calls it in.`);
     }
   }
 
@@ -1888,6 +1912,7 @@ export function basicAttack(
   if (picks.length === 0) return null;
   const aDef = getDef(attacker.defId);
   attacker.attackedThisRound = true; // STEALTH breaks even on a miss
+  attacker.lastBasicRound = draft.round; // Crank and Loose: the reload clock
   // Spend a pocketed ranged shot — but ONLY if the shot is what reached.
   //
   // It used to spend on any basic at all, which meant charging Surge and then
@@ -3856,12 +3881,19 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       num(params, "closest") > 0 && attacker.pos
         ? [...pool].sort((a, b) => manhattan(attacker.pos!, a.pos!) - manhattan(attacker.pos!, b.pos!))
         : pool;
+    // `vsFlyingDmg`: extra damage against a FLYING target, PER TARGET rather
+    // than per volley, so a mixed volley only pays it where it applies. Reads
+    // `isFlying`, not the printed keyword, so granted temporary flight (FireFly's
+    // BlastOff) is caught too. NOTE this is the real anti-air lever: `antiAir` is
+    // a TARGETING lift that lets a MELEE swing pick a flier at all, and is a
+    // no-op on a Ranged caster.
+    const vsFly = num(params, "vsFlyingDmg");
     let struck = 0;
     for (const target of ordered.slice(0, n)) {
       if (!draft.cards[target.instanceId]) continue;
       resolveHit(draft, attacker, target, {
         kind: "special",
-        dmg,
+        dmg: dmg + (vsFly > 0 && isFlying(target) ? vsFly : 0),
         hits: num(params, "hits", 1),
         pen: num(params, "pen") > 0,
         crit: num(params, "crit") > 0,
@@ -4229,11 +4261,19 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   surfsUp(draft, attacker, _targets, params) {
     const dmg = num(params, "dmg");
     const heal = num(params, "heal");
+    // `push`: the wave SHOVES. Tide has always been described as sending a wave
+    // ahead and this handler only ever dealt damage, so a card printing "pushed
+    // back N" had that half silently do nothing. Applied after the hit and
+    // guarded on the victim surviving, so a wave that kills does not also shove
+    // a corpse. `pushBack` honours `pushImmune` for us.
+    const push = num(params, "push");
     if (attacker.pos) {
       const row = rowAhead(attacker.owner, attacker.pos.row);
       for (const e of enemyCards(draft, attacker.owner))
-        if (e.curHp > 0 && e.pos?.row === row)
+        if (e.curHp > 0 && e.pos?.row === row) {
           resolveHit(draft, attacker, e, { kind: "special", dmg, hits: 1, pen: false, crit: false });
+          if (push > 0 && draft.cards[e.instanceId] && e.curHp > 0) pushBack(draft, e, push, attacker);
+        }
     }
     if (heal > 0) for (const a of boardCards(draft, attacker.owner)) if (a.curHp > 0) healCard(draft, a, heal, attacker);
     draft.log.push(`${label(draft, attacker)} sends a wave ahead (${dmg}) and buoys the crew (+${heal} HP).`);

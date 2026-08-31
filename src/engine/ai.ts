@@ -18,6 +18,8 @@ import {
   spellAllyTargets,
   canFireSpecial,
   canFireTalent,
+  canPlummet,
+  plummetTargets,
   canMove,
   canSummon,
   canTarget,
@@ -27,7 +29,8 @@ import {
   validAllyTargets,
   specialTargets,
   validTargets,
-  homeSlots,
+  homeSlots,
+
   domMap,
 } from "./rules";
 import type {
@@ -1105,7 +1108,7 @@ function findAdvance(
 // ── battle ──────────────────────────────────────────────────────────────────
 
 export interface BattleChoice {
-  action: "basic" | "special" | "skip" | "talent";
+  action: "basic" | "special" | "skip" | "talent" | "plummet";
   targetId?: string;
 }
 
@@ -1347,6 +1350,19 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
           return { action: "special", targetId: specTargets.length ? specTargets[0].instanceId : undefined };
       }
     }
+  }
+
+  // PLUMMET (Falcon): a guaranteed kill AND the ground it was standing on, for a
+  // couple of HP. Checked BEFORE the basic, because a basic that can also kill
+  // still leaves the diver where it started — the slot is the half of the dive
+  // the damage numbers do not show. `canPlummet` already refuses when the dive
+  // would leave it too hurt to survive the landing.
+  if (getDef(card.defId).plummet && canPlummet(state, instanceId).ok) {
+    const prey = plummetTargets(state, instanceId);
+    // Take the fattest thing it can finish — the dive kills outright whatever
+    // the victim's HP, so the biggest body is strictly the best use of it.
+    const best = [...prey].sort((a, b) => b.curHp - a.curHp)[0];
+    return { action: "plummet", targetId: best.instanceId };
   }
 
   // Talent (Dart Frog's Bleed Out): trade this turn's attack to load the darts

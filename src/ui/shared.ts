@@ -147,7 +147,7 @@ export type Selection =
  *  press. "talent" is here for the same reason as the other two, and with more
  *  cause than either: a Talent is free and once per game, so a stray tap spends
  *  the card's whole one-shot with nothing to undo it. */
-export type PendingBattle = "basic" | "special" | "talent" | null;
+export type PendingBattle = "basic" | "special" | "talent" | "plummet" | null;
 
 /** One suit per seat, in the order they are dealt.
  *

@@ -206,4 +206,6 @@ export const DAWN_LORE: Record<string, string> = {
     "It arrives ahead of the light that announced it. Nothing slower was ever going to be quick enough.",
   dawn_meridian:
     "It has gone down once. The post was still held when it got back up.",
+  dawn_ballista:
+    "It fires once, and then it is wound back. Both halves are the drill.",
 };

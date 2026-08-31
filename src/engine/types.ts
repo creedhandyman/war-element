@@ -836,6 +836,41 @@ export interface CardDef {
    *  standing keyword. The card is hidden ONLY while it has neither moved nor
    *  attacked this round — so it is never "always" stealthed the way the STEALTH
    *  keyword is. Read exclusively through isStealthed(). */
+  /** Sonar Ping: while a living card carrying this is on a side's board, that
+   *  side ignores the STEALTH screen when picking targets. Read in `canTarget`,
+   *  not `isStealthed` — the latter has no `state` and so cannot see a third
+   *  card's flag. */
+  revealsStealth?: boolean;
+  /** Ballista: extra king-steps of BASIC ranged reach. Ranged cards only (the
+   *  melee branch never consults `rangedReachFor`), basics only — a Special
+   *  carries its own reach through `validSpecialTargets`. Additive with the
+   *  King-of-the-Hill +1. */
+  /** Crank and Loose (Ballista): it may make a BASIC attack only on a round it
+   *  did not attack on the round before — the off round is a reload.
+   *
+   *  Gated in `validTargets`, which is the one door the UI, the AI and
+   *  `canBasicAttack` all go through, so nothing has to learn about it
+   *  separately. It bounds BASICS ONLY: the card can still move, cast, use a
+   *  Talent and take arrival strikes while reloading, so it keeps its battle
+   *  turn (`noBattleTurn` would be wrong — that is for scenery that can NEVER
+   *  act). */
+  /** PLUMMET (Falcon): a fourth BATTLE ACTION, taken instead of a basic attack.
+   *
+   *  Drop onto an enemy within `reach` (default 1) whose CURRENT HP is strictly
+   *  under this card's effective basic DMG, destroy it outright and take the
+   *  slot it was standing in. The dive then costs `selfDmg` HP, unpreventable —
+   *  shields and BLOCK do not absorb it, because the damage is the ground, not
+   *  the enemy.
+   *
+   *  Deliberately NOT the TRAMPLE keyword, which is a different rule wearing a
+   *  similar picture: TRAMPLE compares MAX-HP weight and SHOVES the victim aside,
+   *  and needs `tramplesAnything` to ignore weight at all. This compares DMG to
+   *  CURRENT HP and KILLS. Current, not max, on purpose — off max HP a 5-DMG
+   *  cost-3 body could delete any 4-max-HP card on the board on sight, which is
+   *  a far scarier card than a finisher that has to soften its prey first. */
+  plummet?: { selfDmg: number; reach?: number };
+  attackEveryOtherRound?: boolean;
+  reachBonus?: number;
   stealthWhenIdle?: boolean;
   /** Stinger Buzz (Beebot): a one-shot. The round it ATTACKS, it dies at that
    *  round's Cleanup — the sting is spent and the bee is gone. Its on-hit DOT
@@ -1048,8 +1083,7 @@ export interface CardDef {
     /** Sprout at most ONE volley per round, however many hits land. Without it
      *  the spawn scales with `landedHits`, so a single four-hit attacker sprouts
      *  four — the card punishes being swung at, not being ground down. */
-    oncePerRound?: boolean;
-  };
+    oncePerRound?: boolean; /** Living-token ceiling. Absent = uncapped. */ maxAlive?: number };
   /** Rainstorm (Cloudburst): a landed basic also splashes N DMG to an enemy
    *  adjacent to the primary target — one of them, or ALL of them with
    *  `splashAll`. */
@@ -1298,6 +1332,14 @@ export interface CardDef {
   /** Pride Guardian (Monger): the first time each ALLY takes a hit, this card
    *  throws it `shields`. Once per ally, tracked on the ally itself. */
   onAllyHitShield?: number;
+  /** Officer Down (Police Car): when a living ALLY takes a landed hit and
+   *  survives, this card spawns `count` tokens beside itself.
+   *
+   *  The mirror of `onAllyHitShield` above. `oncePerRound` is gated on the
+   *  HOLDER rather than the ally — two allies being hit in a round must not fire
+   *  it twice — and `maxAlive` is a real ceiling, because a free body per ally
+   *  hit is otherwise unbounded on a cheap card. */
+  onAllyHitSpawn?: { token: string; count: number; oncePerRound?: boolean; maxAlive?: number };
   /** Morning Dew (Vernal): its basic attack may be aimed at an ALLY, healing
    *  them for its DMG instead of striking. Allies become legal basic targets. */
   basicHealsAllies?: boolean;
@@ -1653,7 +1695,13 @@ export interface CardInstance {
    *  opponent summons. Reset in Cleanup with the others. */
   oppSummonFiredRound?: boolean;
   /** Per-round guard for a `oncePerRound` spawnOnHitTaken (Oak's Acorn Drop). */
+  /** The round this card last made a basic attack — `attackEveryOtherRound`
+   *  reads it. Absent = never. */
+  lastBasicRound?: number;
   hitSpawnFiredRound?: boolean;
+  /** `onAllyHitSpawn`'s per-round gate. On the HOLDER, not the ally: two
+   *  allies taking a hit in the same round must not fire it twice. */
+  allyHitSpawnFiredRound?: boolean;
   /** Permanent DMG already taken from a capped `onHitSelfBuff` (Bad Temper).
    *  Never reset — the growth is permanent, so its ceiling has to be too. */
   selfBuffGained?: number;
@@ -2475,7 +2523,7 @@ export type Intent =
   | {
       type: "BATTLE_ACTION";
       player: PlayerId;
-      action: "basic" | "special" | "skip" | "talent";
+      action: "basic" | "special" | "skip" | "talent" | "plummet";
       /** Prism's Enchantment: which of the four buffs the caster picked. */
       mode?: EnchantMode;
       /** Single target: the full volley lands on it. */

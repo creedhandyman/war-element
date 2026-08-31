@@ -12678,6 +12678,220 @@ export const CARDS: CardDef[] = [
     },
   },
 
+
+  // -- the eight that needed engine work first ---------------
+  {
+    id: "dawn_ballista",
+    name: "Ballista",
+    rarity: "rare",
+    element: "DAWN",
+    cardClass: "Ranger",
+    tribe: "Stars",
+    attackType: "Ranged",
+    cost: 2,
+    // 8 + 10 + 2 = 20 = 5*2+10. The owner's stat line, verbatim.
+    dmg: 8,
+    hits: 1,
+    hp: 10,
+    sp: 2,
+    shields: 0,
+    keywords: { PEN: true },
+    passiveNames: { reachBonus: "Crank and Loose", attackEveryOtherRound: "Crank and Loose" },
+    // RANGED_REACH is 2, so +1 prints as the card's "3 spaces". It stacks with
+    // the King-of-the-Hill +1 like every other reach modifier.
+    reachBonus: 1,
+    // ...and the price of that range. Note what it does NOT restrain: DAWN's
+    // Awakening aura strikes for full DMG the instant the card lands, and that
+    // is not this card's turn, so 8 PEN still arrives free on a 2-cost body.
+    attackEveryOtherRound: true,
+    talent: {
+      name: "Wheel the Carriage",
+      text: "Once per game, free: roll the carriage up to 2 slots toward the enemy home.",
+      // Movement, not damage, deliberately. At SP 2 this is the last thing on the
+      // board to move, so without a shove it spends the game on its home row and
+      // the printed range is wasted. A damage Talent on top of 8 PEN at cost 2
+      // would have been the wrong lever entirely.
+      handler: "reposition",
+      params: { charge: 2 },
+    },
+  },
+  {
+    id: "gale_falcon",
+    name: "Falcon",
+    rarity: "rare",
+    element: "GALE",
+    cardClass: "Assassin",
+    tribe: "Avian",
+    attackType: "Melee",
+    cost: 3,
+    // 5 + 5 + 15 = 25 = 5*3+10. The owner's stat line, verbatim.
+    dmg: 5,
+    hits: 1,
+    hp: 5,
+    sp: 15,
+    shields: 0,
+    keywords: { FLYING: true },
+    passiveNames: { plummet: "Plummet" },
+    // 1 HP a dive on a 5 HP body: four dives and it is out of bird, which is the
+    // whole restraint. See the field's own note for why this is not TRAMPLE.
+    plummet: { selfDmg: 1, reach: 1 },
+    talent: {
+      name: "Falcon Punch",
+      text: "Once per game, free: 10 DMG (PEN) to an adjacent opponent, taking its square on a kill.",
+      handler: "strike",
+      params: { dmg: 10, pen: 1, takeSpotOnKill: 1 },
+    },
+  },
+  {
+    id: "aqua_surferdude",
+    name: "Surfer Dude",
+    rarity: "epic",
+    element: "AQUA",
+    cardClass: "Ranger",
+    attackType: "Ranged",
+    cost: 4,
+    // 5 + 15 + 1*2 + 8 = 30 = 5*4+10.
+    dmg: 5,
+    hits: 1,
+    hp: 15,
+    sp: 8,
+    shields: 1,
+    keywords: {},
+    passiveNames: { advanceOnBasic: "Riding It In" },
+    // The wave breaks on the row DIRECTLY AHEAD, so a Ranger parked at the back
+    // would fire it into an empty row. `advanceOnBasic` walks it into range as it
+    // shoots, which is what makes the Special reachable at all on this class.
+    advanceOnBasic: 1,
+    special: {
+      name: "Surfs Up",
+      cost: 2,
+      handler: "surfsUp",
+      params: { dmg: 5, heal: 3, push: 2 },
+      targetSide: "enemy",
+      text: "Send a wave through the row directly ahead — 5 DMG, shoved back 2 — and buoy the crew for 3 HP.",
+    },
+  },
+  {
+    id: "bolt_policecar",
+    name: "Police Car",
+    rarity: "rare",
+    element: "BOLT",
+    cardClass: "Tank",
+    tribe: "ARC",
+    attackType: "Melee",
+    cost: 3,
+    // 3 + 14 + 3*2 + 2 = 25 = 5*3+10.
+    dmg: 3,
+    hits: 1,
+    hp: 14,
+    sp: 2,
+    shields: 3,
+    keywords: { BLOCK: 1 },
+    passiveNames: { spawnOnHitTaken: "Call for Backup", onAllyHitSpawn: "Officer Down" },
+    // BOTH taps capped at 3, and the cap is the point: this is a free body per
+    // hit on a cost-3 card, which is the shape that buries a board. The tick's
+    // ceiling had to be BUILT (spawnOnHitTaken called spawnTokens uncapped).
+    spawnOnHitTaken: { token: "bolt_police_tok", count: 1, oncePerRound: true, maxAlive: 3 },
+    onAllyHitSpawn: { token: "bolt_police_tok", count: 1, oncePerRound: true, maxAlive: 3 },
+    talent: {
+      name: "All Units Respond",
+      text: "Once per game, free: call in 2 Officers beside it.",
+      handler: "spawn",
+      params: { token: "bolt_police_tok", count: 2, radius: 1, maxAlive: 3 },
+    },
+  },
+  {
+    id: "pyro_mortar",
+    name: "Mortar",
+    rarity: "epic",
+    element: "PYRO",
+    cardClass: "Support",
+    tribe: "Forged Tech",
+    attackType: "Ranged",
+    cost: 5,
+    // 3 + 20 + 3*2 + 6 = 35 = 5*5+10.
+    dmg: 3,
+    hits: 1,
+    hp: 20,
+    sp: 6,
+    shields: 3,
+    keywords: {},
+    passiveNames: { vsStatus: "Ranging Shot" },
+    vsStatus: { status: "ROOT", bonusDmg: 4 },
+    special: {
+      name: "Airburst Shell",
+      cost: 3,
+      handler: "barrage",
+      // `vsFlyingDmg`, NOT `antiAir`. antiAir is a TARGETING lift that lets a
+      // MELEE swing pick a flier through the dodge, and is a complete no-op on a
+      // Ranged caster like this one — printing it here would have been a param
+      // that costs magic and silently does nothing.
+      params: { dmg: 6, targets: 2, vsFlyingDmg: 4, statusKind: "ROOT", statusDuration: 2 },
+      targetSide: "enemy",
+      text: "6 DMG to up to 2 opponents and ROOT them 2 rounds — 10 instead against anything FLYING, which the shell brings down.",
+    },
+  },
+  {
+    id: "pyro_pyrodactyl",
+    name: "Pyrodactyl",
+    rarity: "epic",
+    element: "PYRO",
+    cardClass: "Mage",
+    tribe: ["Avian", "Dragon"],
+    attackType: "Ranged",
+    cost: 6,
+    // 5*2 + 18 + 12 = 40 = 5*6+10.
+    dmg: 5,
+    hits: 2,
+    hp: 18,
+    sp: 12,
+    shields: 0,
+    keywords: { FLYING: true },
+    special: {
+      name: "Firestorm Pass",
+      cost: 3,
+      handler: "barrage",
+      // `closest`, not `enemyHomeRow`. The back-line version needed an
+      // `ignoreHomeRule` param to reach cards the home-slot rule protects, and
+      // punching a hole in that rule for one card is a bad trade — the rule is
+      // what stops every board-wide volley reaching the summon row. A pass over
+      // the three nearest is the same card without the hole.
+      params: { dmg: 5, targets: 3, closest: 1, statusKind: "BURN", statusPower: 2, statusDuration: 2 },
+      targetSide: "enemy",
+      text: "Fly the line: 5 DMG and BURN 2 for 2 rounds to the 3 nearest opponents.",
+    },
+  },
+  {
+    id: "aqua_sonarping",
+    name: "Sonar Ping",
+    rarity: "rare",
+    element: "AQUA",
+    cardClass: "Support",
+    attackType: "Ranged",
+    cost: 2,
+    // 3 + 9 + 8 = 20 = 5*2+10.
+    dmg: 3,
+    hits: 1,
+    hp: 9,
+    sp: 8,
+    shields: 0,
+    keywords: {},
+    passiveNames: { onOppSummon: "Contact Ping", revealsStealth: "Echo Return" },
+    // The ALWAYS-useful half is the ping, not the reveal: STEALTH-as-keyword is
+    // on three cards in the whole set, so a pure anti-stealth body would answer
+    // almost nothing. `boardWide` because arrivals land in the summoner's home
+    // row, which the home-slot rule puts outside ordinary reach — a range-gated
+    // summon reaction is a reaction to nothing.
+    onOppSummon: { dmg: 2, boardWide: true, oncePerRound: true },
+    revealsStealth: true,
+    talent: {
+      name: "Full Sweep",
+      text: "Once per game, free: 3 DMG to every opponent — aimed, so nothing dodges it.",
+      handler: "barrage",
+      params: { dmg: 3, targets: 99, alwaysHit: 1 },
+    },
+  },
+
 ];
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
@@ -13519,6 +13733,25 @@ export const TOKENS: CardDef[] = [
     // Toxic Talons: basics leave DOT 1 for 2 rounds.
     passiveNames: { onHitStatus: "Toxic Talons" },
     onHitStatus: { kind: "DOT", duration: 2, power: 1 },
+  },
+  {
+    id: "bolt_police_tok",
+    name: "Officer",
+    rarity: "rare",
+    element: "BOLT",
+    cardClass: "Ranger",
+    tribe: "ARC",
+    attackType: "Ranged",
+    cost: 1,
+    // 2 + 5 + 1*2 + 6 = 15 = 5*1+10 — on the curve even though nothing buys it.
+    dmg: 2,
+    hits: 1,
+    hp: 5,
+    sp: 6,
+    shields: 1,
+    keywords: {},
+    passiveNames: { onHitStatus: "Taser" },
+    onHitStatus: { kind: "PARALYZE", duration: 2, power: 0, chance: 50 },
   },
 ];
 

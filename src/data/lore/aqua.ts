@@ -207,4 +207,8 @@ export const AQUA_LORE: Record<string, string> = {
     "It picked the spot from four hundred feet and did not adjust.",
   aqua_firefighter:
     "The fire had terms. She declined them.",
+  aqua_surferdude:
+    "He read the set before it formed. Everything after that was paddling.",
+  aqua_sonarping:
+    "One ping out, one back. Whatever is hiding is now a number on a page.",
 };

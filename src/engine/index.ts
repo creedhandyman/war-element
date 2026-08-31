@@ -44,6 +44,8 @@ export {
   canBasicAttack,
   canFireSpecial,
   canFireTalent,
+  canPlummet,
+  plummetTargets,
   effectiveSpecialCost,
   plannedAction,
   isActionBlocked,

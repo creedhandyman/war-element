@@ -633,7 +633,12 @@ export function rangedCanSee(
  */
 export function rangedReachFor(state: GameState, card: CardInstance): number {
   const advanced = card.pos != null && card.pos.row !== homeRow(card.owner, state.boardSize);
-  return RANGED_REACH + (advanced ? 1 : 0);
+  // `reachBonus` (Ballista): extra king-steps of BASIC ranged reach, printed on
+  // the card. STACKS with the King-of-the-Hill +1 above rather than overriding
+  // it — a siege engine that walked forward should still see further, and every
+  // other reach modifier in the game is additive.
+  const printed = getDef(card.defId).reachBonus ?? 0;
+  return RANGED_REACH + printed + (advanced ? 1 : 0);
 }
 
 /** Is `card` currently hidden by stealth — untargetable by an ordinary attack?
@@ -729,13 +734,22 @@ export function canTarget(
   const pocketShot = forBasic && (attacker.rangedShotsLeft ?? 0) > 0;
   const melee = aDef.attackType === "Melee" && !asRanged && !pocketShot;
 
-  // STEALTH: untargetable — unless the attacker stands in its own Blazing Sun, or
-  // a Totem stands on its side. Those are the two effects in the game that reveal
-  // cloaked cards.
+  // STEALTH: untargetable — unless the attacker stands in its own Blazing Sun, a
+  // Totem stands on its side, or a card carrying `revealsStealth` (Sonar Ping) is
+  // alive on that side. Those are the effects in the game that reveal cloaked
+  // cards.
+  //
+  // Read HERE and not in `isStealthed`: that takes `(def, card)` and has no
+  // `state`, so it cannot see a third card's flag. canTarget is the single door
+  // every attack, Special and spell passes through, and is where `guardsHomeRow`
+  // is read for the same reason.
   if (
     isStealthed(tDef, target) &&
     !fieldFlag(state, attacker, "seeStealth") &&
-    !hasTotemSpirit(state, attacker)
+    !hasTotemSpirit(state, attacker) &&
+    !boardCards(state, attacker.owner).some(
+      (c) => c.curHp > 0 && getDef(c.defId).revealsStealth,
+    )
   )
     return false;
   // FLYING dodges melee — but a flying attacker can still strike other fliers,
@@ -877,6 +891,13 @@ export function validTargets(
 ): CardInstance[] {
   const attacker = state.cards[attackerId];
   if (!attacker || !attacker.pos) return [];
+  // RELOADING (Ballista's Crank and Loose). Gated HERE rather than in
+  // `canBasicAttack` because the AI reads this list directly and would otherwise
+  // swing anyway — this is the one door the UI, the AI and canBasicAttack all
+  // pass through. Basics only: an on-summon or charge borrow passes
+  // forBasic=false and is not a shot the crew has to wind back.
+  if (forBasic && getDef(attacker.defId).attackEveryOtherRound
+      && attacker.lastBasicRound === state.round - 1) return [];
   // forBasic defaults TRUE: this is the basic-attack target list (UI, AI, the
   // battle resolver). On-summon abilities borrow it for "everything in normal
   // range" and pass false — they are not basics and keep the old full reach,
@@ -1195,6 +1216,50 @@ export function canBasicAttack(state: GameState, instanceId: string): boolean {
   if (!card) return false;
   if (isActionBlocked(card)) return false;
   return validTargets(state, instanceId).length > 0;
+}
+
+/** PLUMMET's legal victims: enemies inside the dive's reach that the card can
+ *  actually finish — CURRENT HP strictly under its effective basic DMG.
+ *
+ *  Routed through `canTarget` with `forBasic=false` so the dive obeys the same
+ *  screens everything else does (STEALTH, the home-slot rule, sight) without
+ *  being measured as a basic — it is a drop, not a swing, and gating it on the
+ *  basic path would let a melee reach rule decide how far a bird can fall. */
+export function plummetTargets(state: GameState, instanceId: string): CardInstance[] {
+  const card = state.cards[instanceId];
+  const def = card && getDef(card.defId).plummet;
+  if (!card || !card.pos || !def) return [];
+  const reach = def.reach ?? 1;
+  const dmg = effectiveDmg(state, card);
+  return enemyCards(state, card.owner).filter((e) => {
+    if (e.curHp <= 0 || !e.pos) return false;
+    const step = Math.max(Math.abs(e.pos.row - card.pos!.row), Math.abs(e.pos.col - card.pos!.col));
+    if (step > reach) return false;
+    // Strictly under: a body on exactly the dive's damage survives it, which is
+    // what keeps this a FINISHER rather than a same-cost trade.
+    if (e.curHp >= dmg) return false;
+    // The square has to be somewhere it can actually land.
+    if (state.slots[e.pos.row][e.pos.col].capturedBy) return false;
+    return canTarget(state, card, e, false, false);
+  });
+}
+
+/** Can this card dive right now? */
+export function canPlummet(
+  state: GameState,
+  instanceId: string,
+): { ok: boolean; reason?: string } {
+  const card = state.cards[instanceId];
+  if (!card) return { ok: false, reason: "No such card" };
+  const def = getDef(card.defId).plummet;
+  if (!def) return { ok: false, reason: "Cannot plummet" };
+  if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
+  // It must SURVIVE the landing. A dive that kills the diver is a trade the card
+  // was never sold as, and `curHp` is checked before the victim so the refusal
+  // reads the same whether or not there is prey.
+  if (card.curHp <= def.selfDmg) return { ok: false, reason: "Too hurt to dive" };
+  if (!plummetTargets(state, instanceId).length) return { ok: false, reason: "Nothing in reach it can finish" };
+  return { ok: true };
 }
 
 /** A Talent is free and once-per-game; it fires in the Battle Phase instead of
