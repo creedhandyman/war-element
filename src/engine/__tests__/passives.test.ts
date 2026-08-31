@@ -4529,3 +4529,86 @@ describe("Mark of Hoax brands and seals", () => {
     expect(p.statusKind).toBe("SEAL");
   });
 });
+
+describe("a Talent is a cost-3 Rare's trick, and nothing else's", () => {
+  // The set rule, owner's call: only a cost-3 Rare carries a Talent.
+  //
+  // It is a real design line rather than bookkeeping. A Talent is FREE and fires
+  // once per game, so it costs nothing against the stat budget — which makes it
+  // the cheapest possible way to bolt interest onto any card, and therefore the
+  // one that most needs a home. Pinning it to the 3-drop Rare makes "what does
+  // this 3-cost do?" a question with a real answer, and stops the mechanic
+  // becoming a free rider on every rarity and every rung of the curve.
+  //
+  // Rares at other costs are NOT meant to be blank: they earn their texture from
+  // PASSIVES, which is what passives were always for and which the budget prices
+  // the same way.
+  const talented = [...CARDS, ...TOKENS].filter((c) => c.talent);
+
+  // Three cards pre-date the rule. Listed rather than waived silently, so the
+  // decision to keep them stays visible and arguable.
+  const GRANDFATHERED = new Set(["gale_tumbleweed", "leaf_oak", "pyro_canister"]);
+
+  it("every Talent sits on a cost-3 Rare", () => {
+    const wrong = talented
+      .filter((c) => !GRANDFATHERED.has(c.id))
+      .filter((c) => c.rarity !== "rare" || c.cost !== 3)
+      .map((c) => `${c.id} (${c.rarity} cost ${c.cost})`);
+    expect(wrong, "a Talent outside the cost-3 Rare slot").toEqual([]);
+  });
+
+  it("...and the grandfathered three are still the only exceptions", () => {
+    // If one of them is ever re-costed or loses its Talent, this fails and the
+    // list shrinks — an exception set that cannot quietly grow.
+    const stillWrong = [...GRANDFATHERED].filter((id) => {
+      const d = CARDS.find((c) => c.id === id);
+      return d && d.talent && (d.rarity !== "rare" || d.cost !== 3);
+    });
+    expect(stillWrong.sort()).toEqual([...GRANDFATHERED].sort());
+  });
+
+  it("a Rare that gave up its Talent did not become a blank body", () => {
+    // The point of the pass was that 115 of 132 Rares had no ability at all.
+    // Moving a Talent off a card must not put it back in that pile.
+    const ABIL = ["onHitStatus", "onKill", "vsStatus", "onDeath", "roundTick", "onHitPush",
+      "trampleDmg", "aura", "onHeavyHit", "pushImmune", "falseHead", "stealthWhenIdle",
+      "evadeVsSlower", "onShieldBreak", "onOppSummon", "onSummon", "advanceOnBasic",
+      "firstStrikeBonus", "critIfFaster", "onCritBonus", "deathSave", "plummet",
+      "attackEveryOtherRound", "reachBonus", "revealsStealth", "onAllyHitSpawn",
+      "spawnOnHitTaken"];
+    const FROM_THE_PASS = ["dawn_sunspot", "dusk_grafft", "gale_goldspur", "gale_leeward",
+      "bore_rhino", "bore_kingcobra", "leaf_forestdeer", "leaf_monkey", "pyro_komodo",
+      "pyro_chopper", "aqua_bluewhale", "aqua_divebill", "dawn_ballista", "aqua_sonarping"];
+    const blank = FROM_THE_PASS.filter((id) => {
+      const d = getDef(id) as unknown as Record<string, unknown>;
+      return !ABIL.some((k) => d[k] != null);
+    });
+    expect(blank, "gave up a Talent and got nothing back").toEqual([]);
+  });
+});
+
+describe("the top of the curve is Legendary", () => {
+  // Owner's call: every cost 6, 7 and 8 card is a Legendary. Mythics sit above
+  // it at 9-10 and the rungs below are Rare/Epic, so this is the band that says
+  // "one of these per deck, and you feel it".
+  //
+  // The set already held to this everywhere: when the rule was written down, the
+  // ONLY six cards breaking it were six cost-6 Epics from the forty-card pass.
+  // That is worth recording — the guard is pinning an existing convention, not
+  // imposing a new one.
+  it("nothing at cost 6-8 is below Legendary", () => {
+    const band = CARDS.filter((c) => !c.boss && !c.id.endsWith("_tok") && c.cost >= 6 && c.cost <= 8);
+    expect(band.length, "the band is populated").toBeGreaterThan(50);
+    const wrong = band.filter((c) => c.rarity !== "legendary")
+      .map((c) => `${c.id} (${c.rarity} cost ${c.cost})`);
+    expect(wrong, "cost 6-8 must be Legendary").toEqual([]);
+  });
+
+  it("...and a Legendary still owes a repeatable Special", () => {
+    // The rarity contract does not get a pass just because the cost band moved a
+    // card up into it.
+    const missing = CARDS.filter((c) => !c.boss && c.rarity === "legendary" && !c.special)
+      .map((c) => c.id);
+    expect(missing).toEqual([]);
+  });
+});

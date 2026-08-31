@@ -11790,17 +11790,6 @@ export const CARDS: CardDef[] = [
     // Sunbanner all hand out BLIND, and until now nothing in the element
     // executed what it had blinded.
     vsStatus: { status: "BLIND", crit: true },
-    talent: {
-      name: "Corona Flare",
-      text: "Once per game, free: +4 DMG and +3 SP for 2 rounds.",
-      // `empower` is one of the two talent handlers routed explicitly in
-      // phases.ts, so it needs no targeting — which matters, because a Melee
-      // Rare's Talent can otherwise only reach an adjacent square (talentTargets
-      // falls through to validSpecialTargets, which reads a `special` a Rare
-      // does not have).
-      handler: "empower",
-      params: { selfDmg: 4, selfSp: 3, buffRounds: 2 },
-    },
   },
   {
     id: "dawn_quasar",
@@ -11910,12 +11899,6 @@ export const CARDS: CardDef[] = [
     keywords: {},
     passiveNames: { onHitStatus: "Bad Batch" },
     onHitStatus: { kind: "WEAKEN", duration: 2, power: 1 },
-    talent: {
-      name: "Adrenaline Serum",
-      text: "Once per game, free: gain 1 shield and give every ally +3 DMG for 2 rounds.",
-      handler: "warCry",
-      params: { selfShields: 1, buffDmg: 3, buffRounds: 2 },
-    },
   },
   {
     id: "dusk_duet",
@@ -12019,12 +12002,12 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 0,
     keywords: { CRIT: true },
-    talent: {
-      name: "Fan the Hammer",
-      text: "Once per game, free: thumb back both hammers — the next basic fires as 4 shots.",
-      handler: "loadHits",
-      params: { hits: 2 },
-    },
+    // Twin Golden Pistols: the CRIT is the card, so the payoff hangs off it.
+    // This replaced a Talent when the set rule settled on "only cost-3 Rares get
+    // one" — a Rare at any other cost earns its texture from passives, which is
+    // what they were always for.
+    passiveNames: { onCritBonus: "Fan the Hammer" },
+    onCritBonus: { dmg: 4, hits: 1 },
   },
   {
     id: "gale_leeward",
@@ -12045,17 +12028,11 @@ export const CARDS: CardDef[] = [
     // Hit it small and often, or don't hit it at all — a big single blow answers
     // itself. Fills GALE's Tank hole (6, joint-lowest) without another flier.
     onHeavyHit: { over: 6, reach: 1, push: 1, status: "WEAKEN", statusDuration: 2 },
-    talent: {
-      name: "Windbreak",
-      text: "Once per game, free: +3 shields to itself and every adjacent ally.",
-      handler: "grantShield",
-      params: { amount: 3, nearby: 1 },
-    },
   },
   {
     id: "gale_aerostat",
     name: "Aerostat",
-    rarity: "epic",
+    rarity: "legendary",
     element: "GALE",
     cardClass: "Tank",
     attackType: "Melee",
@@ -12082,7 +12059,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_gyre",
     name: "Gyre",
-    rarity: "epic",
+    rarity: "legendary",
     element: "GALE",
     cardClass: "Mage",
     attackType: "Ranged",
@@ -12130,12 +12107,6 @@ export const CARDS: CardDef[] = [
     passiveNames: { trampleDmg: "Trample Through", onHitPush: "Horn Toss" },
     trampleDmg: 3,
     onHitPush: 1,
-    talent: {
-      name: "Full Charge",
-      text: "Once per game, free: rumble up to 2 slots up the column, crush what is packed behind the front rank, and gore what it reaches.",
-      handler: "battleCharge",
-      params: { charge: 2, dmg: 9, chainDmg: 3, push: 2 },
-    },
   },
   {
     id: "bore_kingcobra",
@@ -12158,12 +12129,6 @@ export const CARDS: CardDef[] = [
     // each other even though both can stand on the board at once.
     onHitStatus: { kind: "BLIND", duration: 2, power: 0, chance: 40 },
     vsStatus: { status: "BLIND", bonusDmg: 3 },
-    talent: {
-      name: "Hood Flare",
-      text: "Once per game, free: rear up and BLIND up to 2 opponents for 2 rounds.",
-      handler: "statusNova",
-      params: { statusKind: "BLIND", statusDuration: 2, targets: 2 },
-    },
   },
   {
     id: "bore_dunebuggy",
@@ -12220,7 +12185,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_spinosaur",
     name: "Spinosaur",
-    rarity: "epic",
+    rarity: "legendary",
     element: "BORE",
     cardClass: "Warrior",
     attackType: "Melee",
@@ -12380,17 +12345,6 @@ export const CARDS: CardDef[] = [
     keywords: {},
     passiveNames: { evadeVsSlower: "Startle" },
     evadeVsSlower: true,
-    talent: {
-      name: "Antler Bloom",
-      text: "Once per game, free: 2 DMG to all opponents and ROOT them for 2 rounds.",
-      // The strongest thing in this pass and the first to trim if it measures
-      // hot: ROOT has four separate payoffs in LEAF (Photosynthesis heals per
-      // ROOTed opponent, Fallow ticks them, Snapmaw bleeds them, Hibernal
-      // extends them). Cut `targets` before cutting the duration -- a 1-round
-      // ROOT applied in Battle is ticked away at Cleanup and never stops a move.
-      handler: "barrage",
-      params: { dmg: 2, targets: 99, statusKind: "ROOT", statusDuration: 2 },
-    },
   },
   {
     id: "leaf_monkey",
@@ -12409,12 +12363,6 @@ export const CARDS: CardDef[] = [
     keywords: {},
     passiveNames: { falseHead: "Fake Out" },
     falseHead: true,
-    talent: {
-      name: "Alarm Call",
-      text: "Once per game, free: this Monkey and every ally in the row behind it gain EVASION for 2 rounds.",
-      handler: "veilBehind",
-      params: { rounds: 2 },
-    },
   },
   {
     id: "leaf_gorilla",
@@ -12451,7 +12399,7 @@ export const CARDS: CardDef[] = [
   {
     id: "leaf_wintermoose",
     name: "Winter Moose",
-    rarity: "epic",
+    rarity: "legendary",
     element: "LEAF",
     cardClass: "Support",
     attackType: "Melee",
@@ -12528,12 +12476,6 @@ export const CARDS: CardDef[] = [
     // Self-enabling: the bite applies the BLEED that Blood Scent then cashes.
     onHitStatus: { kind: "BLEED", duration: 3, power: 2 },
     vsStatus: { status: "BLEED", bonusDmg: 4 },
-    talent: {
-      name: "Death Roll",
-      text: "Once per game, free: 8 DMG to an adjacent opponent and open it up -- BLEED 4 for 3 rounds.",
-      handler: "strike",
-      params: { dmg: 8, statusKind: "BLEED", statusPower: 4, statusDuration: 3 },
-    },
   },
   {
     id: "pyro_chopper",
@@ -12556,17 +12498,11 @@ export const CARDS: CardDef[] = [
     keywords: { FLYING: true },
     passiveNames: { roundTick: "Drip Torch" },
     roundTick: { inRangeStatus: { kind: "BURN", duration: 2, power: 1 } },
-    talent: {
-      name: "Napalm Drop",
-      text: "Once per game, free: dump the tanks on the row ahead -- 4 DMG and BURN 3 for 3 rounds to everything in it.",
-      handler: "barrage",
-      params: { dmg: 4, targets: 99, rowAhead: 1, statusKind: "BURN", statusPower: 3, statusDuration: 3 },
-    },
   },
   {
     id: "pyro_warkiln",
     name: "Warkiln",
-    rarity: "epic",
+    rarity: "legendary",
     element: "PYRO",
     cardClass: "Tank",
     tribe: "Forged Tech",
@@ -12619,12 +12555,6 @@ export const CARDS: CardDef[] = [
     keywords: {},
     passiveNames: { pushImmune: "Deep Ballast" },
     pushImmune: true,
-    talent: {
-      name: "Sounding",
-      text: "Once per game, free: fill its lungs -- permanently +8 max HP (healed for it) and +2 SP.",
-      handler: "empower",
-      params: { selfMaxHp: 8, selfSp: 2 },
-    },
   },
   {
     id: "aqua_divebill",
@@ -12643,12 +12573,10 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 1,
     keywords: { FLYING: true },
-    talent: {
-      name: "Spearpoint Dive",
-      text: "Once per game, free: fold and drop -- 10 DMG straight through shields (PEN) and ROOT the target for 2 rounds.",
-      handler: "strike",
-      params: { dmg: 10, pen: 1, statusKind: "ROOT", statusDuration: 2 },
-    },
+    // Spearpoint: the dive lands hardest the first time it finds a given target,
+    // once per opponent per game. Replaced its Talent under the cost-3 rule.
+    passiveNames: { firstStrikeBonus: "Spearpoint" },
+    firstStrikeBonus: 3,
   },
   {
     id: "aqua_firefighter",
@@ -12704,16 +12632,6 @@ export const CARDS: CardDef[] = [
     // Awakening aura strikes for full DMG the instant the card lands, and that
     // is not this card's turn, so 8 PEN still arrives free on a 2-cost body.
     attackEveryOtherRound: true,
-    talent: {
-      name: "Wheel the Carriage",
-      text: "Once per game, free: roll the carriage up to 2 slots toward the enemy home.",
-      // Movement, not damage, deliberately. At SP 2 this is the last thing on the
-      // board to move, so without a shove it spends the game on its home row and
-      // the printed range is wasted. A damage Talent on top of 8 PEN at cost 2
-      // would have been the wrong lever entirely.
-      handler: "reposition",
-      params: { charge: 2 },
-    },
   },
   {
     id: "gale_falcon",
@@ -12834,7 +12752,7 @@ export const CARDS: CardDef[] = [
   {
     id: "pyro_pyrodactyl",
     name: "Pyrodactyl",
-    rarity: "epic",
+    rarity: "legendary",
     element: "PYRO",
     cardClass: "Mage",
     tribe: ["Avian", "Dragon"],
@@ -12884,12 +12802,6 @@ export const CARDS: CardDef[] = [
     // summon reaction is a reaction to nothing.
     onOppSummon: { dmg: 2, boardWide: true, oncePerRound: true },
     revealsStealth: true,
-    talent: {
-      name: "Full Sweep",
-      text: "Once per game, free: 3 DMG to every opponent — aimed, so nothing dodges it.",
-      handler: "barrage",
-      params: { dmg: 3, targets: 99, alwaysHit: 1 },
-    },
   },
 
 ];

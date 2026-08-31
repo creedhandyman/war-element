@@ -125,9 +125,12 @@ describe("Crank and Loose — a basic every OTHER round", () => {
     s.cards[b.instanceId].lastBasicRound = 4;
     place(s, "leaf_stickviper", "P2", 3, 2, { curHp: 99, maxHp: 99, curShields: 0 });
     expect(validTargets(s, b.instanceId), "no shot").toEqual([]);
-    // Not scenery: it keeps its battle turn, so it can still do everything else.
+    // Not scenery: it keeps its battle turn, so it can still MOVE on the round it
+    // cannot shoot, which is the whole point of the gate being basics-only. (It
+    // carries no Talent — the set rule puts those on cost-3 Rares and this is a
+    // 2-drop — so the reload round is spent repositioning, not casting.)
     expect(getDef(BALLISTA).noBattleTurn).toBeFalsy();
-    expect(getDef(BALLISTA).talent, "and it has something to do with the turn").toBeTruthy();
+    expect(getDef(BALLISTA).talent, "a 2-cost Rare gets no Talent").toBeUndefined();
   });
 });
 
