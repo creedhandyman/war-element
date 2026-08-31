@@ -9,7 +9,7 @@ import { applyFlow, DUSK_DRAIN, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS,
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire, spawnTokens } from "../state";
-import { CARDS, TOKENS, getDef } from "../../data/cards";
+import { CARDS, CORES, TOKENS, getDef } from "../../data/cards";
 import { DEFAULT_SPECIAL_COOLDOWN } from "../types";
 import { announces } from "../../ui/SummonAnnounce";
 import { atBattle, atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
@@ -4687,5 +4687,36 @@ describe("an ability name means one thing", () => {
       })
       .map(([name, ids]) => `"${name}" on ${ids.join(" + ")}`);
     expect(clashes, "two cards claiming one ability name").toEqual([]);
+  });
+});
+
+describe("the set is even across the eight elements", () => {
+  // 45 draftable cards per element, 360 in total. The forty-card pass added
+  // exactly five to each, and even-ness is the invariant worth pinning — the
+  // TOTAL will grow, but an element quietly drifting ahead of the others is a
+  // deck-building advantage nobody chose to give it.
+  //
+  // "Draftable" means non-boss cards in CARDS, and it deliberately INCLUDES the
+  // three token-shaped ids that live there (dawn_heir_tok, bore_kingcobra_tok,
+  // dusk_monstrous_spider_tok). Filtering on the `_tok` suffix is what made an
+  // earlier audit report 319 cards and call DAWN one short when it never was.
+  const draftable = CARDS.filter((c) => !c.boss);
+
+  it("every element has the same number of cards", () => {
+    const ELS = ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK", "BORE"];
+    const counts = ELS.map((e) => [e, draftable.filter((c) => c.element === e).length] as const);
+    const first = counts[0][1];
+    expect(Object.fromEntries(counts.filter(([, n]) => n !== first)),
+      "an element has drifted ahead of the others").toEqual({});
+    expect(first * ELS.length, "and the total follows from it").toBe(draftable.length);
+  });
+
+  it("every element's deck pool is the whole element", () => {
+    // `deckFor` returns every non-boss card of an element, so the pools and the
+    // counts above cannot disagree — this is the check that they don't.
+    for (const core of CORES) {
+      const own = draftable.filter((c) => c.element === core.element).length;
+      expect(core.cards.length, `${core.id} pool`).toBe(own);
+    }
   });
 });
