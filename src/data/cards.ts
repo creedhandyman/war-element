@@ -11755,10 +11755,14 @@ export const CARDS: CardDef[] = [
   // ── DAWN ──────────────────────────────────────────────────
   {
     id: "dawn_riflemen",
-    name: "Cowboy Riflemen",
+    name: "Bailey",
     rarity: "legendary",
     element: "DAWN",
-    cardClass: "Mage",
+    // RANGER, not Mage. A rank of riflemen taking aim is the Ranger read, and
+    // the swap is free of the DAWN tribe rule: Suns is Tank/Warrior/Support and
+    // Stars is Assassin/Mage/Ranger, so a Stars card moving Mage -> Ranger stays
+    // inside its own half.
+    cardClass: "Ranger",
     tribe: "Stars",
     attackType: "Ranged",
     cost: 6,
