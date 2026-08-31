@@ -12428,11 +12428,12 @@ export const CARDS: CardDef[] = [
     // 6 and Tank climbs to 10, against a 7-to-9 spread everywhere else. Stated
     // rather than discovered later.
     //
-    // RANGED IS KEPT on purpose. Only the class was asked for, and a Ranged Tank
-    // is precedented (Sphere, Bastion, Gigavolt, Ice Wall, Helion -- 5 of 73), so
-    // the thrown-log read still stands and the card's reach does not change.
+    // MELEE too, so the card finally reads the way the original note wanted: a
+    // silverback that hits what it can reach, not one lobbing timber from the
+    // back rank. Its basic loses board-wide reach, which is the real cost and
+    // the point -- an 18 HP Tank should have to walk into the fight.
     cardClass: "Tank",
-    attackType: "Ranged",
+    attackType: "Melee",
     cost: 5,
     // 7 + 18 + 1*2 + 8 = 35 = 5*5+10.
     dmg: 7,
@@ -12453,6 +12454,12 @@ export const CARDS: CardDef[] = [
       handler: "barrage",
       params: { dmg: 6, targets: 3, closest: 1, statusKind: "ROOT", statusDuration: 2 },
       targetSide: "enemy",
+      // REQUIRED once the card went Melee, and it is the same WarPhant fix
+      // Rhino carries. `validSpecialTargets` gates a Melee caster to what it is
+      // already touching, so without this the "3 NEAREST opponents" this text
+      // promises would collapse to "up to 3 opponents already adjacent" — the
+      // basic is what got shorter here, not the canopy coming down.
+      ranged: true,
       text: "6 DMG to the 3 nearest opponents, pinning them (ROOT) for 2 rounds.",
     },
   },
