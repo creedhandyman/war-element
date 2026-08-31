@@ -12540,26 +12540,35 @@ export const CARDS: CardDef[] = [
     element: "PYRO",
     cardClass: "Support",
     tribe: "Forged Tech",
-    attackType: "Ranged",
-    // Rarity is a cost band, so the mix and the curve are one decision: this
-    // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
-    // carries, and the stat line is re-cut to the budget that comes with it.
+    // A MOTORCYCLE, not a helicopter — which is what it was built as first, and
+    // the difference is the whole card. No FLYING, it closes on the ground, and
+    // the fire it lays is a trail behind it rather than a load dropped from
+    // above. Melee: a chopper rides you down.
+    attackType: "Melee",
     cost: 3,
-    // 3 + 12 + 10 = 25 = 5*3+10.
-    // class at 5, and a board-effect Support matches its idiom (Smog, Canister
-    // and Scorch are all effects, not healers) -- a PYRO healer would fight the
-    // element's own anti-heal identity.
+    // 3 + 9 + 13 = 25 = 5*3+10. Re-cut toward SPEED, which is what a bike is:
+    // SP 13 on a cost-3 body makes it one of the first things to move each
+    // round, and it is frail enough that being fast is the only defence it has.
     dmg: 3,
     hits: 1,
-    hp: 12,
-    sp: 10,
+    hp: 9,
+    sp: 13,
     shields: 0,
-    keywords: { FLYING: true },
-    passiveNames: { roundTick: "Drip Torch" },
+    keywords: {},
+    passiveNames: { roundTick: "Drip Torch", advanceOnBasic: "Throttle" },
+    // Drip Torch survives the rewrite unchanged, because a drip torch is
+    // literally the tool you lay a fire LINE with — it fitted a bike better than
+    // it ever fitted the helicopter.
     roundTick: { inRangeStatus: { kind: "BURN", duration: 2, power: 1 } },
+    // ...and it does not stop after it swings. Rolls a slot further in on every
+    // basic, which is what carries the burning trail up the board.
+    advanceOnBasic: 1,
     talent: {
-      name: "Napalm Drop",
-      text: "Once per game, free: dump the tanks on the row directly ahead — 4 DMG and BURN 3 for 3 rounds to everything in it.",
+      name: "Peel Out",
+      text: "Once per game, free: open the throttle — 4 DMG and BURN 3 for 3 rounds to every opponent in the row directly ahead.",
+      // Same shape as before and a better fit for it: `rowAhead` is a bike
+      // running the length of a line, where it used to be a payload dropped on
+      // one.
       handler: "barrage",
       params: { dmg: 4, targets: 99, rowAhead: 1, statusKind: "BURN", statusPower: 3, statusDuration: 3 },
     },

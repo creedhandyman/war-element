@@ -187,7 +187,7 @@ export const PYRO_LORE: Record<string, string> = {
   pyro_komodo:
     "One bite. The rest is just a matter of following you.",
   pyro_chopper:
-    "The line goes in here. Everything inside it is already burning.",
+    "It lays the line at sixty. Everything inside it is already burning.",
   pyro_warkiln:
     "It does not stop for the rank in front. That is what the rank in front is for.",
   pyro_mortar:
