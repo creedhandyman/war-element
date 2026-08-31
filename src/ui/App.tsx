@@ -141,10 +141,15 @@ function lastRegionId(save: StorySave): string {
  *  tapping it did nothing at all. `styles.test.ts` compares the two literals
  *  now, because a comment saying "keep these in step" demonstrably did not.
  *
+ *  The `or` arm carries the SHORT-AND-NARROW case: a phone with its keyboard up
+ *  is still stacked, because the three-column grid has never fit 375px however
+ *  short the screen gets. Without it that viewport fell into the landscape tier
+ *  and the board rendered at 39x39.
+ *
  *  Subscribed, not read once: the app is one page and a rotation has to move
  *  the affordance with the layout. (App's own `logCollapsed` initializer reads
  *  matchMedia without a listener, which is why THAT one goes stale on rotate.) */
-export const PORTRAIT_QUERY = "(max-width: 1179px) and (min-height: 541px)";
+export const PORTRAIT_QUERY = "(max-width: 1179px) and ((min-height: 541px) or (max-width: 499px))";
 function usePortraitPhone(): boolean {
   const [on, setOn] = useState(
     () => typeof window !== "undefined" && (window.matchMedia?.(PORTRAIT_QUERY).matches ?? false),

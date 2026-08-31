@@ -2807,7 +2807,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    column and the card pool BACK side-by-side — a compact two-column build bench
    that fills the wide, short screen. Ordered after the max-width:720px block so
    it wins for a small landscape phone that matches both. */
-@media (max-height: 540px) {
+/* SHORT **AND WIDE** — see the battle tier's note below on why the width bound
+   is not optional. A 200px fixed side column beside a pool needs somewhere to
+   put both. */
+@media (max-height: 540px) and (min-width: 500px) {
   .deck-builder { width: 100%; height: calc(100dvh - 12px); max-height: none; padding: 10px 12px; }
   .db-head { margin-bottom: 4px; }
   .db-body { flex-direction: row; align-items: stretch; gap: 12px; }
@@ -2837,9 +2840,29 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
  * 761px to 1179px was in that dead band, phones and small windows alike.
  *
  * The bound is the grid's own requirement now. Below it, stack; the stacked
- * layout is a column and works at any width. `min-height: 541px` still hands
- * short landscape screens to their own tier below. */
-@media (max-width: 1179px) and (min-height: 541px) {
+ * layout is a column and works at any width.
+ *
+ * SHORT SCREENS go to the landscape tier below — but only if they are also
+ * WIDE. "Short" was taken to mean "landscape" and it does not: an on-screen
+ * keyboard takes an 812pt phone to about 510 without changing its width, and
+ * that dropped a 375px-wide portrait phone into a three-column grid whose side
+ * rails alone want 308px. Measured: the board came out 39x39 with 7px slots
+ * and the cards overflowed the top of the screen. Reported as "tried chat in
+ * battle and it broke the game".
+ *
+ * So the `or` — narrow screens stack no matter how short they get, which is
+ * what the line above already promises ("works at any width"). The two tiers
+ * partition cleanly rather than overlapping: below 500px this one owns every
+ * height, at 500px and up the short tier owns <=540 and this one owns the
+ * rest. Nothing needs source order to break a tie.
+ *
+ * 500 is where the three-column grid stops fitting, not a round number: its
+ * side rails want 214px with the log collapsed, so below ~460 there is no
+ * board left to speak of. It also clears every phone in PORTRAIT (the widest
+ * is 430pt), which is the case that has to land here, while leaving genuinely
+ * wide-but-short windows on the grid — at 599x500 the grid still gives a
+ * 314px board and this tier would give 180. */
+@media (max-width: 1179px) and ((min-height: 541px) or (max-width: 499px)) {
   /* Max the battlefield: it fills the full width between the side rails (log /
      speed queue) and grows down to the top of the hand. The height term is the
      binding one on a normal phone — it's tuned to the compacted panel below so
@@ -3440,7 +3463,62 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    min-height:541, so the two can never collide: short viewport → this PC view;
    tall+narrow → mobile stack (only ever seen under the rotate overlay on phones,
    or on a narrow desktop window); tall+wide → untouched desktop layout. */
-@media (max-height: 540px) {
+/* ══════════ NARROW **AND** SHORT — the stacked layout, compacted ══════════
+   A phone with its on-screen keyboard up: still ~375 wide, but ~510 tall. It
+   belongs to the stacked tier (the three-column grid cannot fit 375px), and
+   the tier above now sends it there — but that tier's `--hud-budget` is 356px,
+   measured against a TALL phone where the chrome it reserves for really is
+   that tall. At 510 the formula leaves 124px of board, the 240px floor wins,
+   and the page overflows by ~110px.
+
+   So this tier re-budgets rather than re-lays-out: the chrome that actually
+   sits in the flow here is ribbon 35 + log bar 24 + queue strip 26 + action
+   bar 91, about 176, plus the 45px `.board-area` spends on its own frame and
+   HOME labels. 250 covers that with room for the safe-area insets, and the
+   floor drops to 150 so the arithmetic — not the floor — is what decides, and
+   that is what stops the overflow. 280 is measured, not guessed: at 375x510 it
+   is the largest budget that still fits the page exactly (250 overflows by 27,
+   265 by 12, 280 by 0), and it lands a 185x230 board with ~42px slots. The
+   floor is 150 for the same reason: at 180 it was the floor rather than the
+   budget deciding on a 430x470 phone, which put the action bar off the bottom
+   of the screen. Below about 455 tall the floor does start to bind and the
+   page scrolls a little — recoverable, and a phone cannot get there at all now
+   that the keyboard no longer resizes the layout.
+
+   Reachable other ways too: a small desktop window, and a landscape flip on a
+   narrow phone. It should be playable in all of them, not just survivable. */
+@media (max-width: 499px) and (max-height: 540px) {
+  /* ON `:root`, like the tier it is overriding — and BOTH properties, which is
+     the trap here. `--board-h` is a separate declaration that substitutes
+     `--board-size` at the point it is written, so overriding the width alone on
+     a nearer element (`.wrap`) left the HEIGHT still computed from the tall
+     tier's 240px floor: the board came out 209 wide and 298 tall, and no value
+     of the budget moved it, because the thing overflowing was never the width. */
+  :root {
+    --hud-budget: 280px;
+    --board-size: max(150px, min(calc(100vw - 12px), calc((100dvh - var(--hud-budget)) * 70 / 87)));
+    --board-h: calc(var(--board-size) * 87 / 70);
+  }
+  /* The opponent's fanned cards are decoration, and the first thing to go when
+     the screen is this short — the landscape tier drops them for the same
+     reason. The card COUNT stays; it is information. */
+  /* The opponent's fanned cards are decoration, and the first thing to go when
+     the screen is this short — the landscape tier drops them for the same
+     reason. The card COUNT stays; it is information. */
+  .opp-fan { display: none; }
+  .opp-hidden { display: none; }
+  /* Every pixel taken back here is a pixel of BOARD, since the board is what
+     the budget above hands the remainder to. The stacked tier pins the ribbon
+     at 35px for a tall phone; 26 is enough for one row of pills. */
+  .phase-ribbon { height: 26px; padding: 0; }
+  .phase { padding: 2px 6px; font-size: 8px; }
+  .phase-pills { padding: 1px 3px; }
+  .crest-text, .crest-shield { display: none; }
+  .bottom, .bottom.compact { max-height: 74px; padding-top: 2px; }
+  .board-area { padding: 0; gap: 2px; }
+}
+
+@media (max-height: 540px) and (min-width: 500px) {
   /* THIN the side rails + maximize the battlefield. --board-size is set on .wrap
      (not :root) so it can read the collapse-aware horizontal reserve --hreserve.
      Height reserve 150 ≈ wrap vpad 10 + ribbon ~22 + 2 row-gaps 12 + board-area

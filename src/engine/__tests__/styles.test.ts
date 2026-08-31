@@ -158,7 +158,10 @@ describe("the CSS tier and the JS that mirrors it", () => {
 
     // The stacked tier is the one media block that sets --hud-budget.
     const queries = [...css.matchAll(/@media ([^{]+)\{/g)].map((m) => m[1].trim());
-    const stacked = queries.filter((q) => /max-width:\s*\d+px\)?\s+and\s+\(min-height:\s*541px/.test(q));
+    // `\(*` rather than `\(`: the tier gained a grouping paren when the
+    // short-and-narrow arm was added — `and ((min-height: 541px) or ...)`. The
+    // finder locates the block; the assertion below is what pins its text.
+    const stacked = queries.filter((q) => /max-width:\s*\d+px\)?\s+and\s+\(*min-height:\s*541px/.test(q));
     expect(stacked, "no stacked-tier @media found").toHaveLength(1);
 
     expect(stacked[0], `CSS tier "${stacked[0]}" vs JS "${fromJs}"`).toBe(fromJs);
