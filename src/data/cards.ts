@@ -12416,13 +12416,25 @@ export const CARDS: CardDef[] = [
     name: "Gorilla",
     rarity: "epic",
     element: "LEAF",
-    cardClass: "Ranger",
+    // TANK, and this is the note above resolving itself. It was Ranger purely to
+    // fill a class hole -- LEAF's Ranger count sat at 6 where Warrior and Tank
+    // sat at 8 -- with the file itself admitting "a gorilla reads melee" and
+    // inviting the flip if the picture mattered more than the count. It does:
+    // an 18 HP body that shoves what it hits (Timber Toss) and pins the three
+    // nearest with falling canopy is a Tank doing Tank things, and now it has
+    // art of a silverback to argue the point.
+    //
+    // The cost is that LEAF's classes get LESS even, not more -- Ranger drops to
+    // 6 and Tank climbs to 10, against a 7-to-9 spread everywhere else. Stated
+    // rather than discovered later.
+    //
+    // RANGED IS KEPT on purpose. Only the class was asked for, and a Ranged Tank
+    // is precedented (Sphere, Bastion, Gigavolt, Ice Wall, Helion -- 5 of 73), so
+    // the thrown-log read still stands and the card's reach does not change.
+    cardClass: "Tank",
     attackType: "Ranged",
     cost: 5,
-    // 7 + 18 + 1*2 + 8 = 35 = 5*5+10. RANGER is a push -- a gorilla reads melee
-    // -- but Ranger was one of LEAF's four holes at 6 while Warrior and Tank sat
-    // at 8. Read the basic as a thrown log. Flip it to Warrior/Melee if the
-    // picture matters more than the count.
+    // 7 + 18 + 1*2 + 8 = 35 = 5*5+10.
     dmg: 7,
     hits: 1,
     hp: 18,
