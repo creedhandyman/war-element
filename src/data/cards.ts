@@ -11813,15 +11813,39 @@ export const CARDS: CardDef[] = [
     // executed what it had blinded.
     vsStatus: { status: "BLIND", crit: true },
     special: {
-      name: "Corona Flare",
-      cost: 2,
-      handler: "strike",
-      // Self-enabling, like Prestige's MUTE: Blind Spot CRITs a BLINDed target,
-      // and this is what blinds one. The Special sets up the passive rather than
-      // being a second, unrelated button.
-      params: { dmg: 7, statusKind: "BLIND", statusDuration: 2 },
+      // TOTAL ECLIPSE, after two collisions caught by hand rather than by the
+      // suite: "Eclipse" is already the DAWN card `dawn_clipsey`, and "Blackout"
+      // is already the BOLT card `bolt_shock`. The ability-name guard compares
+      // abilities to abilities only, so a Special wearing an existing CARD's
+      // name sails straight through it -- checked against every `name:` in
+      // cards.ts and spells.ts this time.
+      name: "Total Eclipse",
+      cost: 3,
+      handler: "barrage",
+      // IT NO LONGER BLINDS ITS OWN TARGET, and that is the point. Corona Flare
+      // was self-enabling -- blind one, then crit it -- which made Sunspot a
+      // closed loop that needed nothing and gave nothing. Measured, that loop
+      // essentially never closed: 69 Sunspots reached the board across 336
+      // matches and Blind Spot crit exactly twice, because the AI cast Corona
+      // Flare 15 times in 69 summons. Forcing Sunspot into DAWN's opening COST
+      // the element 6.7 points.
+      //
+      // Eclipse is the opposite shape: it does NOTHING on its own and scales
+      // with how much BLIND is already on the board -- Quasar's basics, plus
+      // Beam, Star, Kosmos, Zenith, Solara and Sunbanner, all of which hand out
+      // BLIND and none of which had a payoff before this card.
+      //
+      // `requireStatus` is safe against the AI wasting a cast: `specialTargets`
+      // filters the list by it (rules.ts), so an unblinded board offers Sunspot
+      // no targets and the Special is simply not offered.
+      //
+      // `ranged: true` because Sunspot is MELEE and a payoff it cannot reach is
+      // the dead card all over again -- the marks are wherever the blinders
+      // put them.
+      params: { dmg: 7, targets: 99, requireStatus: "BLIND", pen: 1 },
       targetSide: "enemy",
-      text: "7 DMG to an adjacent opponent and BLIND it for 2 rounds — which its own basics then CRIT.",
+      ranged: true,
+      text: "Strike EVERY BLINDED opponent for 7, straight through shields (PEN). Blinds nothing itself — someone has to have put the lights out.",
     },
   },
   {
@@ -11840,21 +11864,36 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
-    passiveNames: { critIfFaster: "Outshine" },
-    critIfFaster: true,
+    // OUTSHINE, and it is now a BLIND rather than a CRIT. Quasar and Sunspot
+    // were the same card twice: both cost-3 DAWN melee Assassins in Stars, both
+    // applying BLIND with their ability and both paying themselves off with a
+    // crit. Two knives that happened to share a keyword is not a pair.
+    //
+    // So they split along the line their own names already drew. A quasar is
+    // the brightest thing there is, so this one BLINDS -- every basic, not once
+    // a game -- and it gives up the crit entirely. `critIfFaster` was the
+    // redundant half: Sunspot owns crit, and it owns it CONDITIONALLY, which is
+    // the more interesting of the two.
+    passiveNames: { onHitStatus: "Outshine" },
+    onHitStatus: { kind: "BLIND", duration: 2, power: 0 },
     talent: {
       name: "Starfall",
       text: "Once per game, free: 7 DMG (PEN) to an adjacent opponent and BLIND it for 2 rounds.",
-      // BLINDs on purpose: it hands Sunspot's Blind Spot a target, so the two
-      // cheap Assassins in this pass talk to each other instead of both being
-      // generic knives.
+      // BLINDs, like its basic now does -- Starfall is the same job done at
+      // PEN and at range, for the turn you need the mark to land through armour.
       handler: "strike",
       params: { dmg: 7, pen: 1, statusKind: "BLIND", statusDuration: 2 },
     },
   },
   {
     id: "dawn_meridian",
-    name: "Meridian",
+    // SUNSTALKER. "Meridian" is a line on a chart -- it named the noon point of
+    // the sun's path and said nothing about the card, which is a black panther
+    // with golden wings that leaps, kills, takes the ground and springs again.
+    // The new name carries the two halves the art actually shows: the sun, and
+    // a big cat hunting. It also stops colliding conceptually with Zenith, an
+    // existing DAWN card whose name means very nearly the same thing.
+    name: "Sunstalker",
     rarity: "epic",
     element: "DAWN",
     cardClass: "Assassin",

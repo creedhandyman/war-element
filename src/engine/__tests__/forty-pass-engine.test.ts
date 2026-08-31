@@ -8,10 +8,10 @@
 import { describe, expect, it } from "vitest";
 import type { GameState } from "../types";
 import { getDef } from "../../data/cards";
-import { SPECIAL_HANDLERS, basicAttack } from "../combat";
+import { SPECIAL_HANDLERS, applyStatus, basicAttack } from "../combat";
 import { effectiveDmg } from "../state";
 import { applyIntent } from "../phases";
-import { canPlummet, plummetTargets, canTarget, validTargets, rangedReachFor, RANGED_REACH } from "../rules";
+import { canPlummet, plummetTargets, canTarget, validTargets, rangedReachFor, RANGED_REACH, specialTargets } from "../rules";
 import { bigPrepState, giveHand, place, prepState } from "./helpers";
 
 function battleWith(s: GameState, activeId: string): GameState {
@@ -511,5 +511,53 @@ describe("Hose Down — the line is charged when it lands", () => {
     // so no card takes a "hit" for nothing.
     for (const f of [near, alsoNear, far])
       expect(after(f.instanceId).curHp, `${f.instanceId} took no damage`).toBe(30);
+  });
+});
+
+// ─────────────────────────────────────── Quasar enables, Sunspot executes
+// They used to be the same card twice: both cost-3 DAWN melee Assassins in
+// Stars, both applying BLIND with their ability and both paying themselves off
+// with a crit. Now one hands out the mark and the other cashes it.
+describe("Sunspot and Quasar are a pair, not a copy", () => {
+  it("Quasar is the ENABLER — its basic blinds, and it no longer crits itself", () => {
+    expect(getDef("dawn_quasar").critIfFaster, "the redundant self-crit is gone").toBeFalsy();
+    expect(getDef("dawn_quasar").onHitStatus?.kind).toBe("BLIND");
+    const s = bigPrepState();
+    const q = place(s, "dawn_quasar", "P1", 2, 2, { curHp: 30, maxHp: 30 });
+    const foe = place(s, "leaf_oak", "P2", 1, 2, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, q.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].statuses.some((x) => x.kind === "BLIND")).toBe(true);
+  });
+
+  it("Sunspot is the EXECUTIONER — it blinds nothing itself", () => {
+    const sp = getDef("dawn_sunspot").special!;
+    const p = sp.params as Record<string, unknown>;
+    expect(p.statusKind, "it must not set up its own payoff any more").toBeUndefined();
+    expect(p.requireStatus).toBe("BLIND");
+    expect(getDef("dawn_sunspot").vsStatus?.status).toBe("BLIND");
+  });
+
+  it("Total Eclipse offers NO targets on a board with nothing blinded", () => {
+    const s = bigPrepState();
+    const sun = place(s, "dawn_sunspot", "P1", 2, 2, { curHp: 30, maxHp: 30 });
+    place(s, "leaf_oak", "P2", 1, 2, { curHp: 40, maxHp: 40 });
+    place(s, "leaf_oak", "P2", 1, 3, { curHp: 40, maxHp: 40 });
+    // requireStatus is honoured by specialTargets, which is what keeps the AI
+    // from spending magic into an empty board.
+    expect(specialTargets(s, sun.instanceId)).toEqual([]);
+  });
+
+  it("...and reaches every blinded one once Quasar has been to work", () => {
+    const s = bigPrepState();
+    const sun = place(s, "dawn_sunspot", "P1", 2, 2, { curHp: 30, maxHp: 30 });
+    const a = place(s, "leaf_oak", "P2", 1, 2, { curHp: 40, maxHp: 40 });
+    const b = place(s, "leaf_oak", "P2", 0, 4, { curHp: 40, maxHp: 40 });
+    const clean = place(s, "leaf_oak", "P2", 1, 1, { curHp: 40, maxHp: 40 });
+    for (const t of [a, b]) applyStatus(s, t, "BLIND", 2, 0, "DAWN");
+    const picked = specialTargets(s, sun.instanceId).map((t) => t.instanceId);
+    expect(picked).toContain(a.instanceId);
+    // `ranged: true` — a MELEE payoff it cannot reach is a dead card.
+    expect(picked, "the far blinded one is still a mark").toContain(b.instanceId);
+    expect(picked, "the one that can still see is not").not.toContain(clean.instanceId);
   });
 });
