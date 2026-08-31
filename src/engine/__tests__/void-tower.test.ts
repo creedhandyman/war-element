@@ -449,6 +449,38 @@ describe("the 12-Gold summon budget", () => {
     }
   });
 
+  it("but a boss never DRAFTS a token it did not ask for", () => {
+    // Reported from a real fight: Kato was fielding two Fortress Gates and a
+    // Rolling Boulder on its own side. Neither is in its formation. The gates
+    // are the wall the PLAYER stands behind and the boulder is Continental's
+    // rockfall, one floor up.
+    //
+    // `reinforcementPool` pads the deck from `tribePool`, which returns tokens
+    // alongside real cards, sorted cheapest first — so Cavernous, the tribe
+    // Kato and Continental share, put Continental's 4-gold Boulder at the head
+    // of Kato's bench, and the element top-up then reached into BORE for the
+    // 0-gold Fortress Gate. Measured before the fix: 3 boulders and 2 gates in
+    // a 12-card deck.
+    //
+    // The rule is not "no tokens" — the test above depends on authored ones —
+    // it is that padding may only draw what the boss actually asked for.
+    const tokenIds = new Set(TOKENS.map((t) => t.id));
+    for (const v of VOID_BOSSES) {
+      const authored = new Set(v.summons);
+      const strays = [...new Set(buildVoidEncounter(v).deck
+        .filter((id) => tokenIds.has(id) && !authored.has(id)))];
+      expect(strays, `${v.cardId} drafted a token it never asked for`).toEqual([]);
+    }
+  });
+
+  it("and every boss still has a full bench to reinforce from", () => {
+    // The guard against fixing the above by emptying the pool: a boss that runs
+    // out of cards stands there doing nothing, which is the exact failure
+    // `paddedFormation` exists to prevent.
+    for (const v of VOID_BOSSES)
+      expect(reinforcementPool(v).length, `${v.cardId}`).toBeGreaterThanOrEqual(2);
+  });
+
   it("tokens are legal summons, and one boss actually uses one", () => {
     // The rule is stated, not accidental: Skeleeze's cost-2 "Skeleton" is
     // dusk_skeleton_tok. If this ever stops being exercised the rule is dead
@@ -842,12 +874,20 @@ describe("deck depth", () => {
 
   it("the bench leads with the TRIBE and only then fills from the elements", () => {
     // Identity first: what you see most of should be the brood the boss is
-    // named for. Rotroot is the case that proves it — Zombie is three cards, so
-    // its bench is the whole tribe's cheap end plus one outsider, in that
-    // order, rather than four cheap DUSK cards with no zombies in them.
+    // named for. Rotroot is the case that proves it — its bench opens with the
+    // cheap end of Zombie and only then reaches outside, rather than being four
+    // cheap DUSK cards with no zombies in them.
     const rot = VOID_BOSSES.find((b) => b.cardId === "boss_rotroot")!;
     const bench = reinforcementPool(rot);
-    const tribeCheap = tribePool(rot.tribe).slice(0, 2);
+    // The DRAFTABLE tribe, not the raw pool. `tribePool` also returns tokens,
+    // and Zombie's second-cheapest entry is `dusk_zombie_tok`, which Rotroot
+    // does not author and so may not pad its deck with. Comparing against the
+    // raw list is what this test used to do, which meant it asserted the
+    // stray-token bug as though it were the rule.
+    const tokenIds = new Set(TOKENS.map((t) => t.id));
+    const tribeCheap = tribePool(rot.tribe)
+      .filter((id) => !tokenIds.has(id) || rot.summons.includes(id))
+      .slice(0, 2);
     expect(bench.slice(0, tribeCheap.length), "tribe first").toEqual(tribeCheap);
     expect(bench.length, "then filled").toBe(4);
   });

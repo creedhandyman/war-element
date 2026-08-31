@@ -36,7 +36,7 @@
  *  randomness whose deterministic ANSWER is buildable, e.g. PARALYZE, because
  *  cleanse and immunity are real cards.
  */
-import { CARD_INDEX, getDef } from "./cards";
+import { CARD_INDEX, TOKENS, getDef } from "./cards";
 import { DUPLICATE_CAP } from "./story";
 import { deckSizeFor } from "./custom-decks";
 import type { CardDef, Element } from "../engine/types";
@@ -763,13 +763,32 @@ export function tribePool(tribe: string): string[] {
  *  Duplicate caps deliberately do not apply here. They are a deckbuilding rule
  *  about variety; this is one tribe throwing bodies at you, and several tribes
  *  are too small to fill 30 slots without repeats anyway (Zombie has five). */
+/** Ids of everything that is SPAWNED rather than drafted. */
+const TOKEN_IDS = new Set(TOKENS.map((t) => t.id));
+
 export function reinforcementPool(boss: VoidBoss): string[] {
-  const pool = tribePool(boss.tribe);
+  // A TOKEN IS NOT A REINFORCEMENT unless the boss asked for it by name.
+  //
+  // Tokens are what other cards PUT on the board — Continental's rockfall, the
+  // tower's own Fortress Gates — and `tribePool` returns them alongside real
+  // cards, cheapest first. Cavernous is Kato's tribe and Continental's, so its
+  // cheapest member is Continental's 4-gold Rolling Boulder, which sat at the
+  // front of Kato's bench; the element top-up below then reached into BORE and
+  // added `void_fortress_gate_tok`, which is the wall the PLAYER stands behind.
+  // Both were padded into the deck and duly summoned, on Kato's side, in a
+  // fight that has nothing to do with either — measured at 3 boulders and 2
+  // gates in a 12-card deck.
+  //
+  // Authored tokens still count: Skeleeze's cost-2 Skeleton is in its `summons`
+  // on purpose, and reinforcing with more of them is the fight working.
+  const authored = new Set<string>(boss.summons);
+  const drafted = (id: string) => !TOKEN_IDS.has(id) || authored.has(id);
+  const pool = tribePool(boss.tribe).filter(drafted);
   const bench = pool.slice(0, Math.max(2, Math.min(4, Math.ceil(pool.length / 2))));
   if (bench.length < 4) {
     for (const id of bossSummonPool(boss)) {
       if (bench.length >= 4) break;
-      if (!bench.includes(id)) bench.push(id);
+      if (!bench.includes(id) && drafted(id)) bench.push(id);
     }
   }
   return bench;
