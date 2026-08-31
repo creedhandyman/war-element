@@ -677,6 +677,14 @@ export interface CardDef {
    *  volley would drag the car four times in one attack and a focused back line
    *  could walk it across the whole board on someone else's turn. */
   onHitByRangedAdvance?: { steps: number; oncePerRound?: boolean };
+  /** PAYOUT (Kingpin): this many GOLD to its owner whenever a MARKED opponent
+   *  dies — the brand `markTarget` leaves (`hoaxMarked`), which is what makes
+   *  this the second half of Contract Out rather than a bare on-kill rider.
+   *
+   *  Deliberately not tied to who lands the blow: any ally may fill the
+   *  contract and the money still goes to the player. It does require the
+   *  carrier to be alive when it is filled — no boss, no payroll. */
+  contractPayout?: number;
   /** Gale Riposte (Kazehaya): a HEAVY blow answers itself. When one attack puts
    *  more than `over` damage on this card and it is still standing, every enemy
    *  within `reach` is shoved back `push` slots and takes `status`.

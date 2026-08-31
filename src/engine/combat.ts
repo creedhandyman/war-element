@@ -1539,6 +1539,21 @@ export function resolveHit(
     if ((opts.kind === "basic" || opts.kind === "special") && attacker.curHp > 0 && feeds) {
       if (aDef.onKill) applyOnKill(draft, attacker, aDef.onKill, deathPos);
       registerKill(draft, attacker);
+      // PAYOUT (Kingpin): the contract is filled. Keyed on the brand the victim
+      // was carrying, so it pays for a CONTRACT kill and not for kills in
+      // general, and paid to whoever is holding the card rather than to the
+      // ally that happened to land it. Inside the `feeds` guard with every
+      // other on-kill reward, so a `noKillReward` body cannot be farmed for
+      // gold either.
+      if (target.hoaxMarked) {
+        for (const boss of boardCards(draft, attacker.owner)) {
+          const pay = getDef(boss.defId).contractPayout;
+          if (boss.curHp > 0 && pay) {
+            draft.players[attacker.owner].gold += pay;
+            draft.log.push(`${label(draft, boss)} collects on the contract (+${pay} gold).`);
+          }
+        }
+      }
       // Gaslighting (Liza): an allied enabler spurs whoever lands the kill.
       for (const gl of boardCards(draft, attacker.owner)) {
         const akb = getDef(gl.defId).allyKillBuff;

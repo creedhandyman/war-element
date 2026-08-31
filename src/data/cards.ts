@@ -12315,17 +12315,28 @@ export const CARDS: CardDef[] = [
     rarity: "legendary",
     element: "BOLT",
     cardClass: "Warrior",
-    attackType: "Melee",
-    cost: 6,
-    // 7 + 21 + 2*2 + 8 = 40 = 5*6+10.
-    dmg: 7,
+    // RANGED, and that is the character rather than a stat: a Kingpin does not
+    // walk across the board to hit you. He stays at the table and the work
+    // reaches you.
+    attackType: "Ranged",
+    cost: 8,
+    // 11 + 26 + 4*2 + 5 = 50 = 5*8+10.
+    dmg: 11,
     hits: 1,
-    hp: 21,
-    sp: 8,
-    shields: 2,
+    hp: 26,
+    sp: 5,
+    shields: 4,
     keywords: { PEN: true },
-    passiveNames: { onKill: "Made Man" },
+    passiveNames: { onKill: "Made Man", contractPayout: "Payout" },
     onKill: { buffDmg: 2, buffDmgMax: 6, gainShields: 1 },
+    // PAYOUT — the contract pays when it is FILLED, not when it is signed.
+    // Reads the brand Contract Out already leaves (`hoaxMarked`), so the two
+    // halves of the card are one loop: mark a target, collect when it dies.
+    //
+    // ANY ally may fill it and the money still goes to the player, which is the
+    // whole fantasy — he is not the one doing the killing. It does require
+    // Kingpin to still be standing: no boss, no payroll.
+    contractPayout: 1,
     special: {
       name: "Contract Out",
       cost: 3,
@@ -12608,19 +12619,24 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     tribe: "Forged Tech",
     attackType: "Melee",
-    cost: 6,
-    // 4*2 + 22 + 3*2 + 4 = 40 = 5*6+10.
+    cost: 8,
+    // 4*2 + 32 + 3*2 + 4 = 50 = 5*8+10. The +10 HP the recost buys IS the whole
+    // recost -- it lands the budget exactly, with nothing left over.
     dmg: 4,
     hits: 2,
-    hp: 22,
+    hp: 32,
     sp: 4,
     shields: 3,
     // BLOCK is flat per-hit reduction applied BEFORE shields and even to PEN, so
     // it is brutal against this set's multi-hit style. Precedented (Ice Wall,
     // Granite Armadillo), but this is the number to cut first if the batch runs hot.
     keywords: { BLOCK: 2 },
-    passiveNames: { onShieldBreak: "Blowout" },
+    passiveNames: { onShieldBreak: "Blowout", aura: "Forge Plating" },
     onShieldBreak: { status: { kind: "BURN", duration: 3, power: 3 } },
+    // FORGE PLATING — the kiln armours its own. Tribe-scoped, so it reaches the
+    // eleven Forged Tech cards and nothing else; a flat board-wide +2 on a
+    // legendary would have been a different card.
+    aura: { scope: "tribe", match: "Forged Tech", shields: 2 },
     special: {
       name: "Breakthrough",
       cost: 3,
@@ -12697,9 +12713,15 @@ export const CARDS: CardDef[] = [
     firstStrikeBonus: 3,
     talent: {
       name: "Spearpoint Dive",
-      text: "Once per game, free: fold and drop — 10 DMG straight through shields (PEN) and FREEZE the target for 2 rounds.",
+      text: "Once per game, free: fold and drop — 10 DMG straight through shields (PEN) and leave the target SCALDED 3 for 2 rounds.",
       handler: "strike",
-      params: { dmg: 10, pen: 1, statusKind: "FREEZE", statusDuration: 2 },
+      // SCALD rather than FREEZE. Both are AQUA's own -- SCALD is already the
+      // element's word for water that has been made a weapon (Steam Vent lands
+      // it on anything FROZEN) -- but they are opposite tools: FREEZE is a LOCK
+      // and SCALD is a DOT, so this stops being crowd control and starts being
+      // damage that keeps arriving. It needs `statusPower`, which FREEZE never
+      // did: a scald with no power is a status that burns for nothing.
+      params: { dmg: 10, pen: 1, statusKind: "SCALD", statusPower: 3, statusDuration: 2 },
     },
   },
   {
@@ -12874,15 +12896,35 @@ export const CARDS: CardDef[] = [
     tribe: "Forged Tech",
     attackType: "Ranged",
     cost: 5,
-    // 3 + 20 + 3*2 + 6 = 35 = 5*5+10.
-    dmg: 3,
+    // 6 + 23 + 3*2 + 0 = 35 = 5*5+10.
+    //
+    // SP 0 -- IT DOES NOT MOVE. `moveReach` reads 0 as "cannot move at all",
+    // which is the correct shape for a mortar: you emplace it, and where you
+    // put it is the decision. The six points that bought speed it was never
+    // going to use went into the two stats an emplacement actually wants, +3
+    // damage and +3 HP, and the budget still lands exactly.
+    dmg: 6,
     hits: 1,
-    hp: 20,
-    sp: 6,
+    hp: 23,
+    sp: 0,
     shields: 3,
     keywords: {},
-    passiveNames: { vsStatus: "Ranging Shot" },
+    passiveNames: { vsStatus: "Ranging Shot", attackEveryOtherRound: "Reload", onHitStatus: "Concussive Impact", reachBonus: "Long Tube" },
+    // RANGE 3. `rangedReachFor` is RANGED_REACH(2) + this + 1 for standing off
+    // your own home row -- and the mortar can never collect that last one,
+    // because SP 0 means it never leaves the row it was emplaced on. So this
+    // reads as a flat 3 in play rather than the 3-or-4 the same field gives
+    // Ballista, which can walk.
+    reachBonus: 1,
     vsStatus: { status: "ROOT", bonusDmg: 4 },
+    // RELOAD + CONCUSSIVE IMPACT, and they are one trade rather than two
+    // abilities: the tube fires every OTHER round, and in exchange the shell
+    // that does land rattles what it hits. Same shape Ballista buys its 8 PEN
+    // with. STUN 1 -- long enough to cost the target its turn, short enough
+    // that the mortar cannot chain it, since it is reloading on the round the
+    // stun would have to be refreshed.
+    attackEveryOtherRound: true,
+    onHitStatus: { kind: "STUN", duration: 1, power: 0 },
     special: {
       name: "Airburst Shell",
       cost: 3,

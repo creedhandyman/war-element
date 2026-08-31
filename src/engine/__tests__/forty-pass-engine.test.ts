@@ -392,3 +392,95 @@ describe("Hot Pursuit — the car chases whoever shoots it", () => {
       .toEqual(afterFirst);
   });
 });
+
+// ─────────────────────────────────────── Payout (Kingpin)
+describe("Payout — the contract pays when it is filled", () => {
+  const BOSS = "bolt_kingpin";
+  const GOON = "bolt_hacker";
+  const MARK = "leaf_oak";
+
+  function scene() {
+    const s = bigPrepState();
+    const boss = place(s, BOSS, "P1", 0, 0, { curHp: 40, maxHp: 40 });
+    const goon = place(s, GOON, "P1", 2, 2, { curHp: 40, maxHp: 40, dmgBonus: 99 });
+    const victim = place(s, MARK, "P2", 2, 3, { curHp: 1, maxHp: 20, curShields: 0 });
+    s.players.P1.gold = 0;
+    return { s, boss, goon, victim };
+  }
+
+  it("pays the player when a MARKED opponent dies", () => {
+    const { s, goon, victim } = scene();
+    victim.hoaxMarked = true;
+    basicAttack(s, goon.instanceId, victim.instanceId);
+    expect(s.cards[victim.instanceId], "the mark has to actually die").toBeUndefined();
+    expect(s.players.P1.gold).toBe(getDef(BOSS).contractPayout);
+  });
+
+  it("pays nothing for a kill that was never under contract", () => {
+    const { s, goon, victim } = scene();
+    basicAttack(s, goon.instanceId, victim.instanceId);
+    expect(s.cards[victim.instanceId]).toBeUndefined();
+    expect(s.players.P1.gold, "an ordinary kill is not a contract").toBe(0);
+  });
+
+  it("pays nothing with no boss left standing — no boss, no payroll", () => {
+    const { s, boss, goon, victim } = scene();
+    victim.hoaxMarked = true;
+    delete s.cards[boss.instanceId];
+    basicAttack(s, goon.instanceId, victim.instanceId);
+    expect(s.players.P1.gold).toBe(0);
+  });
+});
+
+// ─────────────────────────────────────── Mortar, the emplacement
+describe("Mortar is an emplacement", () => {
+  const M = "pyro_mortar";
+
+  it("cannot move at all, and reaches 3 because of it", () => {
+    const d = getDef(M);
+    expect(d.sp, "SP 0 is the tier moveReach reads as immobile").toBe(0);
+    const s = bigPrepState();
+    const m = place(s, M, "P1", 4, 2);
+    // Emplaced on its own home row and unable to leave it, so it never earns
+    // the +1 that standing forward would give a mobile ranged card.
+    expect(rangedReachFor(s, m)).toBe(3);
+  });
+
+  it("reloads — it cannot fire on consecutive rounds", () => {
+    const s = bigPrepState();
+    const m = place(s, M, "P1", 4, 2);
+    place(s, "leaf_oak", "P2", 2, 2, { curHp: 30, maxHp: 30 });
+    expect(getDef(M).attackEveryOtherRound).toBe(true);
+    s.round = 5;
+    expect(validTargets(s, m.instanceId).length, "round it fires").toBeGreaterThan(0);
+    m.lastBasicRound = 5;
+    s.round = 6;
+    expect(validTargets(s, m.instanceId).length, "the round after, it is reloading").toBe(0);
+    s.round = 7;
+    expect(validTargets(s, m.instanceId).length, "and it is back").toBeGreaterThan(0);
+  });
+
+  it("its shell STUNS what it lands on", () => {
+    const s = bigPrepState();
+    const m = place(s, M, "P1", 4, 2);
+    const foe = place(s, "leaf_oak", "P2", 2, 2, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, m.instanceId, foe.instanceId);
+    expect(s.cards[foe.instanceId].statuses.some((x) => x.kind === "STUN")).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────── the two smaller retunes
+describe("Divebill scalds, Warkiln plates the forge", () => {
+  it("Spearpoint Dive leaves SCALD with real power, not FREEZE", () => {
+    const p = getDef("aqua_divebill").talent!.params as Record<string, unknown>;
+    expect(p.statusKind).toBe("SCALD");
+    expect(p.statusPower, "a scald with no power burns for nothing").toBeGreaterThan(0);
+  });
+
+  it("Warkiln plates Forged Tech and nothing else", () => {
+    const a = getDef("pyro_warkiln").aura!;
+    expect(a.scope).toBe("tribe");
+    expect(a.match).toBe("Forged Tech");
+    expect(a.shields).toBe(2);
+  });
+});

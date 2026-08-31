@@ -340,6 +340,9 @@ export function describePassives(def: CardDef): string[] {
       `When a RANGED attacker hits it: drives up to ${hp.steps} space${hp.steps === 1 ? "" : "s"} toward whoever fired${hp.oncePerRound ? ", once a round" : ""}.`,
     );
   }
+  if (def.contractPayout)
+    named("contractPayout",
+      `Whenever a MARKED opponent dies, you collect ${def.contractPayout} gold — whoever fills the contract.`);
   if (def.guardsHomeRow)
     named("guardsHomeRow", "While it stands, opponents cannot target the home square directly behind it — fliers and ranged attackers included. They have to break it first.");
   if (def.trampleDmg)
