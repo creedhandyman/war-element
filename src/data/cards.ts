@@ -629,6 +629,11 @@ export const CARDS: CardDef[] = [
     shields: 2,
     // Adapted for alpha: HomeRun (50% reflect ranged) → REFLECT 1.
     keywords: { REFLECT: 1 },
+    // A club knocks you off your feet. At SP 3 this thing gets ONE swing in
+    // before anything else moves, so the shove is what makes being slow
+    // survivable — it buys back the distance the low speed costs it.
+    passiveNames: { onHitPush: "Haymaker" },
+    onHitPush: 1,
   },
   {
     id: "bore_sandman",
@@ -892,6 +897,11 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { DRAIN: true }, // DUSK's lifesteal-equivalent
     tribe: "Vamp",
+    // Two bites that DRAIN, and a kill is a full meal. Small numbers on purpose:
+    // this is a cost-1 body and the heal is meant to keep it alive one more
+    // swing, not to make it a lifesteal engine.
+    passiveNames: { onKill: "First Blood" },
+    onKill: { healSelf: 3 },
   },
   {
     id: "dusk_gool",
@@ -5489,6 +5499,11 @@ export const CARDS: CardDef[] = [
     // Rocking Chair: patches itself up each round from that porch rocker (REGEN).
     // (Doc's self-cleanse omitted — kept as the plain heal it reads as.)
     keywords: { REGEN: 2 },
+    // He is not going anywhere, and that is the joke and the mechanic. REGEN 2
+    // on a body nothing can shove is a rock that quietly refills — and at SP 3
+    // being immovable is worth more than being fast.
+    passiveNames: { pushImmune: "Set In His Ways" },
+    pushImmune: true,
   },
   {
     id: "dusk_soul_wisp",

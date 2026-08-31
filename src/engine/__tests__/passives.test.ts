@@ -4612,3 +4612,30 @@ describe("the top of the curve is Legendary", () => {
     expect(missing).toEqual([]);
   });
 });
+
+describe("a cheap Rare is never a blank body", () => {
+  // A Rare below cost 3 cannot have a Talent — that slot belongs to the 3-drop —
+  // so a passive is the ONLY thing it has to be interesting with. This asserts
+  // every cost-1 and cost-2 Rare carries one.
+  //
+  // The check is INVERTED on purpose: anything outside the core stat/identity
+  // fields counts as an ability. A hand-kept list of ability names silently goes
+  // stale — the first version of this audit missed `onHitSpawn` and `summonFog`
+  // and reported ten blank cards that were not blank at all.
+  const CORE = new Set(["id", "name", "rarity", "element", "cardClass", "tribe", "attackType",
+    "cost", "dmg", "hits", "hp", "sp", "shields", "keywords", "art", "lore", "passiveNames",
+    "boss"]);
+  // NOTE `special` and `talent` are NOT in CORE: a card carrying either is not a
+  // blank body. Leaving `talent` in there made this fail on gale_tumbleweed, a
+  // grandfathered cost-2 Rare whose whole point is the Talent it has.
+
+  it("every cost-1 and cost-2 Rare has a passive, not just a keyword", () => {
+    const cheap = CARDS.filter((c) => !c.boss && c.rarity === "rare" && c.cost <= 2);
+    expect(cheap.length, "the band is populated").toBeGreaterThan(50);
+    const bare = cheap.filter((c) => {
+      const d = c as unknown as Record<string, unknown>;
+      return !Object.keys(d).some((k) => !CORE.has(k) && d[k] != null);
+    }).map((c) => `${c.id} (cost ${c.cost})`);
+    expect(bare, "a cheap Rare with nothing but a stat line and maybe a keyword").toEqual([]);
+  });
+});
