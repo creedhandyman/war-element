@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CardClass, Element, Keyword } from "../engine";
-import { getDef, SPELLS, spellCopyCap } from "../engine";
+import { getDef, getSpell, SPELLS, spellCostCap } from "../engine";
 import {
   buildableCards,
   deckLimits,
@@ -394,16 +394,27 @@ export function DeckBuilder(props: {
   // castable once in a match — so two copies of a spell really are two casts.
   //
   // CYCLES rather than toggles, because a toggle cannot express a count. Tap
-  // adds a copy; tapping past the spell's own cap clears it back to none. That
-  // keeps one control per spell (the grid is already dense on a phone) and
-  // makes "how do I remove this" the same gesture as "how do I add another",
-  // which is the thing a +/- pair would have cost two targets to say.
+  // adds a copy; tapping at the ceiling clears it back to none. That keeps one
+  // control per spell (the grid is already dense on a phone) and makes "how do
+  // I remove this" the same gesture as "how do I add another", which is the
+  // thing a +/- pair would have cost two targets to say.
+  //
+  // The ceiling is now the COST TIER's, not this spell's own, so it can be
+  // reached by a DIFFERENT spell that costs the same — see `spellCostCap`.
+  // That splits the old single branch in two: a spell already in the book still
+  // clears on the next tap, but one that is NOT in the book and whose tier is
+  // full has to be inert, because clearing something the player never added is
+  // not a sensible answer to tapping it.
   function toggleSpell(id: string) {
     setPickedSpells((cur) => {
       const have = cur.filter((x) => x === id).length;
-      if (have > 0 && (have >= spellCopyCap(id) || cur.length >= limits.spells))
+      const { cost } = getSpell(id);
+      const atCost = cur.filter((x) => getSpell(x).cost === cost).length;
+      const tierFull = atCost >= spellCostCap(cost);
+      if (have > 0 && (tierFull || cur.length >= limits.spells))
         return cur.filter((x) => x !== id); // at its ceiling — next tap clears
       if (cur.length >= limits.spells) return cur; // full book, and this is a NEW spell
+      if (tierFull) return cur;                   // tier spent on another spell of this cost
       return [...cur, id];
     });
   }
@@ -509,18 +520,24 @@ export function DeckBuilder(props: {
                   ? "No spells unlocked for these elements yet — clear nodes in their regions to earn them."
                   : pickedSpells.length === 0
                   ? "None picked — auto-filled from your deck's elements at match start."
-                  : "Tap to add. Cheap spells stack — tap again for a second copy, and past its limit to clear it."}
+                  : "Tap to add. One spell of each cost 6-10, two of each cost 3-5, and as many cheap ones as fit."}
               </div>
               {deckSpells.length > 0 && (
               <div className="db-spell-grid">
                 {deckSpells.map((s) => {
                   const copies = pickedSpells.filter((x) => x === s.id).length;
                   const on = copies > 0;
-                  const capped = copies >= spellCopyCap(s.id);
+                  const tierCap = spellCostCap(s.cost);
+                  const atCost = pickedSpells.filter((x) => getSpell(x).cost === s.cost).length;
+                  const capped = atCost >= tierCap;
                   // Only truly unusable when it is not IN the book — a picked
                   // spell must stay tappable, because tapping is now also how
                   // you take it back out.
-                  const full = !on && pickedSpells.length >= limits.spells;
+                  // Unusable when the book is full OR this cost rung is spent
+                  // on something else — and only while it is not already IN the
+                  // book, because a picked spell must stay tappable: tapping is
+                  // also how you take it back out.
+                  const full = !on && (pickedSpells.length >= limits.spells || capped);
                   return (
                     /* WHAT IT DOES, on the tile.
                        The effect text lived in a `title` and nowhere else — a
@@ -537,12 +554,15 @@ export function DeckBuilder(props: {
                       data-el={s.element}
                       disabled={full}
                       title={
-                        full ? "Book is full — remove one first"
+                        full
+                          ? pickedSpells.length >= limits.spells
+                            ? "Book is full — remove one first"
+                            : `Cost ${s.cost} is full — you already have ${atCost} spell${atCost === 1 ? "" : "s"} of this cost`
                           : `${s.name} · cost ${s.cost} — ${
-                              spellCopyCap(s.id) === Infinity
-                                ? "as many copies as the book holds"
-                                : `up to ${spellCopyCap(s.id)} cop${spellCopyCap(s.id) === 1 ? "y" : "ies"}`
-                            }${copies ? ` · you have ${copies}${capped ? " (its limit — tap to clear)" : ""}` : ""}`
+                              tierCap === Infinity
+                                ? "as many as the book holds"
+                                : `up to ${tierCap} spell${tierCap === 1 ? "" : "s"} of cost ${s.cost}`
+                            }${copies ? ` · you have ${copies}${capped ? " (limit — tap to clear)" : ""}` : ""}`
                       }
                       onClick={() => toggleSpell(s.id)}
                     >

@@ -1039,11 +1039,17 @@ export function spellbookFor(deck: string[], cap: number = MAX_SPELLBOOK): Spell
   // damage,damage,wall,wall,wall and the later kinds could never appear at all
   // (the game's only `convert` spell is declared at index 42 and was
   // unreachable). Deriving a book should sample the element, not the file.
+  //
+  // AND IT OBEYS THE COST-TIER LAW, which it did not used to. This branch took
+  // one of each KIND and then filled in declaration order with no cap of any
+  // sort, so a derived book could arrive holding three 6-costs -- a book the
+  // deck builder would have refused to let anyone assemble by hand. An
+  // auto-filled book must be a book the player could have built.
   const pool = SPELLS.filter((s) => elements.has(s.element));
   const seen = new Set<string>();
   const spread = pool.filter((s) => (seen.has(s.kind) ? false : (seen.add(s.kind), true)));
-  const book = [...spread, ...pool.filter((s) => !spread.includes(s))].slice(0, cap);
-  return book.map((s) => ({ defId: s.id, used: false }));
+  const ordered = [...spread, ...pool.filter((s) => !spread.includes(s))];
+  return spellbookFromIds(ordered.map((s) => s.id), cap);
 }
 
 /** Build a spellbook from an explicit, ordered list of spell ids (a deck's
@@ -1052,45 +1058,83 @@ export function spellbookFor(deck: string[], cap: number = MAX_SPELLBOOK): Spell
  *  match setup. The cap is board-size dependent (5 standard / 8 large), passed
  *  in by the caller; a flat MAX_SPELLBOOK here would cut a legal large-board
  *  book of 8 down to 5 at match setup. */
-/** How many COPIES of a spell one book may hold, by its Magic cost.
+/** THE SPELLBOOK LAW — how many spells of a given Magic COST one book may hold.
  *
- *  Cheap spells are the ones you want to lean on and the ones that cost you a
- *  turn's magic to cast twice; expensive ones are the swing, and a book holding
- *  two Cataclysms is not a deck decision, it is the same decision printed
- *  twice. So the limit tightens as the cost climbs:
+ *  PER COST TIER, not per spell, and that distinction is the whole rule. The
+ *  cap counts every spell sharing a cost rung against one allowance, so a book
+ *  may not answer the same question twice by naming two different spells that
+ *  cost the same. It used to be a per-SPELL copy cap, which stopped two
+ *  Cataclysms and happily allowed Cataclysm plus a second, third and fourth
+ *  distinct 6-cost — eight of them on the large board, which is a book with no
+ *  curve in it at all.
  *
- *    cost 6-10  ->  1 copy      the finishers, once each
- *    cost 3-5   ->  2 copies
- *    cost 1-2   ->  unlimited   (the book's own size is the only cap)
+ *    cost 6-10  ->  1 of each cost    the finishers: one six, one seven,
+ *                                     one eight, one nine, one ten
+ *    cost 3-5   ->  2 of each cost
+ *    cost 1-2   ->  unlimited         the book's own size is the only cap
  *
- *  Books were fully DEDUPED before this — one of anything, always — so the
- *  cheap end had no way to be doubled down on at all. */
-export const SPELL_COPY_CAPS: readonly { minCost: number; copies: number }[] = [
-  { minCost: 6, copies: 1 },
-  { minCost: 3, copies: 2 },
-  { minCost: 0, copies: Infinity },
+ *  The per-tier form STRICTLY SUBSUMES the copy cap it replaced — two copies of
+ *  one spell are also two spells of that cost — so this is one rule where there
+ *  were two, and there is no case the old one caught that this one does not.
+ *
+ *  It bites hardest where the set is shaped to make it bite: there are exactly
+ *  80 spells, TEN PER ELEMENT, one per cost rung 1 through 10. So a cost tier
+ *  offers a mono-element deck exactly one spell and a dual-element deck exactly
+ *  two, and at the top of the curve the rule is therefore a genuine choice
+ *  between the two elements' finishers rather than a formality. At the cheap
+ *  end "unlimited" means unlimited copies of the SAME spell, since that is all
+ *  an element has at that cost. */
+export const SPELL_COST_CAPS: readonly { minCost: number; perCost: number }[] = [
+  { minCost: 6, perCost: 1 },
+  { minCost: 3, perCost: 2 },
+  { minCost: 0, perCost: Infinity },
 ];
 
-export function spellCopyCap(spellId: string): number {
+/** How many spells of this COST a book may hold. */
+export function spellCostCap(cost: number): number {
+  return SPELL_COST_CAPS.find((t) => cost >= t.minCost)!.perCost;
+}
+
+/** The same allowance, addressed by a spell id. Unknown ids get 0 so a bad id
+ *  can never be added rather than being treated as unlimited. */
+export function spellCapForId(spellId: string): number {
   const sp = SPELL_INDEX[spellId];
-  if (!sp) return 0;
-  return SPELL_COPY_CAPS.find((t) => sp.cost >= t.minCost)!.copies;
+  return sp ? spellCostCap(sp.cost) : 0;
+}
+
+/** THE ONE IMPLEMENTATION. Trim a list of spell ids to a legal book: real
+ *  spells only, cost-tier caps applied in order, then the book's size cap.
+ *
+ *  Every path that builds or loads a book goes through this — the deck
+ *  builder, the deck sanitiser, match setup, the derived book, and the
+ *  campaign save. It is a single function ON PURPOSE: the rule it replaced was
+ *  hand-copied as the same six-line counting loop into four different files,
+ *  and they had already drifted (the derived book in `spellbookFor` applied no
+ *  cap at all, so an auto-filled book could walk in with three 6-costs while
+ *  the deck builder refused to let anyone pick them by hand).
+ *
+ *  Order is preserved and earlier entries win, so a book trimmed on load keeps
+ *  the front of what the player chose rather than an arbitrary subset. */
+export function legalSpellIds(ids: readonly string[], cap: number = MAX_SPELLBOOK): string[] {
+  const perCost = new Map<number, number>();
+  const out: string[] = [];
+  for (const id of ids) {
+    if (out.length >= cap) break;
+    if (typeof id !== "string" || !isSpell(id)) continue;
+    const sp = SPELL_INDEX[id];
+    if (!sp) continue;
+    const taken = perCost.get(sp.cost) ?? 0;
+    if (taken >= spellCostCap(sp.cost)) continue;
+    perCost.set(sp.cost, taken + 1);
+    out.push(id);
+  }
+  return out;
 }
 
 export function spellbookFromIds(ids: string[], cap = MAX_SPELLBOOK): SpellSlot[] {
-  // COUNTS copies rather than deduping — see `spellCopyCap`. Each slot is its
-  // own `used` flag, so two copies of a cheap spell really are two casts.
-  const taken = new Map<string, number>();
-  const book: SpellSlot[] = [];
-  for (const id of ids) {
-    if (!isSpell(id)) continue;
-    const have = taken.get(id) ?? 0;
-    if (have >= spellCopyCap(id)) continue;
-    taken.set(id, have + 1);
-    book.push({ defId: id, used: false });
-    if (book.length >= cap) break;
-  }
-  return book;
+  // Each slot carries its own `used` flag, so two legal copies of a cheap spell
+  // really are two casts.
+  return legalSpellIds(ids, cap).map((id) => ({ defId: id, used: false }));
 }
 
 // Flavour text, attached the same way cards get theirs — see data/lore/index.ts.

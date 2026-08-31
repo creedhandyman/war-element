@@ -2,7 +2,7 @@
 // fresh game (explicit book wins; empty falls back to auto-from-elements).
 
 import { describe, expect, it } from "vitest";
-import { SPELLS, spellbookFromIds, spellbookFor, getSpell, spellPickKind, MAX_SPELLBOOK, MAX_SPELLBOOK_LARGE, spellCapForBoard, spellCopyCap } from "../spells";
+import { SPELLS, spellbookFromIds, spellbookFor, getSpell, spellPickKind, MAX_SPELLBOOK, MAX_SPELLBOOK_LARGE, spellCapForBoard, spellCostCap, spellCapForId, legalSpellIds } from "../spells";
 import { CORES, deckById } from "../../data/cards";
 import { createInitialState } from "../state";
 import { canCastSpell } from "../rules";
@@ -10,9 +10,9 @@ import { applyIntent } from "../phases";
 import { place, prepState } from "./helpers";
 
 describe("spellbookFromIds", () => {
-  it("keeps order, drops unknowns, HONOURS COPY CAPS, and caps at MAX_SPELLBOOK", () => {
+  it("keeps order, drops unknowns, HONOURS COST-TIER CAPS, and caps at MAX_SPELLBOOK", () => {
     // Books used to be deduped outright — one of anything, always. Copies are
-    // allowed now by COST tier (see `spellCopyCap`), so a cheap spell listed
+    // allowed now by COST tier (see `spellCostCap`), so a cheap spell listed
     // twice is two slots and two casts.
     const ids = [
       "pyro_spark", "not_a_spell", "aqua_chill", "pyro_spark",
@@ -21,7 +21,7 @@ describe("spellbookFromIds", () => {
     const book = spellbookFromIds(ids);
     expect(book.length).toBe(MAX_SPELLBOOK);
     expect(book.every((s) => s.used === false), "every slot casts on its own").toBe(true);
-    const sparkCap = spellCopyCap("pyro_spark");
+    const sparkCap = spellCapForId("pyro_spark");
     const sparks = book.filter((s) => s.defId === "pyro_spark").length;
     expect(sparks, "the second Spark survives if its cost allows it")
       .toBe(Math.min(2, sparkCap));
@@ -29,9 +29,9 @@ describe("spellbookFromIds", () => {
     expect(book.some((s) => s.defId === "not_a_spell"), "unknowns dropped").toBe(false);
   });
 
-  it("the copy cap is a COST tier, and the tiers are the printed ones", () => {
+  it("the cap is a COST tier, and the tiers are the printed ones", () => {
     for (const sp of SPELLS) {
-      const cap = spellCopyCap(sp.id);
+      const cap = spellCapForId(sp.id);
       if (sp.cost >= 6) expect(cap, `${sp.id} costs ${sp.cost}`).toBe(1);
       else if (sp.cost >= 3) expect(cap, `${sp.id} costs ${sp.cost}`).toBe(2);
       else expect(cap, `${sp.id} costs ${sp.cost}`).toBe(Infinity);
@@ -52,9 +52,68 @@ describe("spellbookFromIds", () => {
 
   it("a cheap spell is limited only by the size of the book", () => {
     const cheap = SPELLS.find((sp) => sp.cost <= 2)!;
-    expect(spellCopyCap(cheap.id)).toBe(Infinity);
+    expect(spellCapForId(cheap.id)).toBe(Infinity);
     const book = spellbookFromIds(Array(20).fill(cheap.id), 8);
     expect(book.length, "the book's own cap is the only limit").toBe(8);
+  });
+
+  // ── what the PER-TIER law adds over the per-spell cap it replaced ──────
+  // Every test above passes under either rule, because two copies of one spell
+  // are also two spells of that cost. These are the cases that separate them.
+
+  it("TWO DIFFERENT spells of the same expensive cost: only the first is kept", () => {
+    // The whole point of the change. The old per-spell cap saw two distinct ids
+    // and allowed both, so a book could hold as many 6-costs as it had slots.
+    const dear = SPELLS.filter((sp) => sp.cost >= 6);
+    const cost = dear.find((a) => dear.some((b) => b.cost === a.cost && b.id !== a.id))!.cost;
+    const pair = dear.filter((sp) => sp.cost === cost).slice(0, 2);
+    expect(pair.length, "the set should offer more than one spell at this cost").toBe(2);
+    const book = spellbookFromIds([pair[0].id, pair[1].id], 8);
+    expect(book.length, `two different cost-${cost} spells`).toBe(1);
+    expect(book[0].defId, "the first listed wins").toBe(pair[0].id);
+  });
+
+  it("one of EACH expensive cost is legal — the cap is per rung, not per band", () => {
+    // 6,7,8,9,10 taken one apiece is a full five-spell book and entirely legal;
+    // the rule is not "one expensive spell".
+    const ids = [6, 7, 8, 9, 10].map((c) => SPELLS.find((sp) => sp.cost === c)!.id);
+    expect(spellbookFromIds(ids, 8).length).toBe(5);
+  });
+
+  it("THREE different spells of one mid cost: the third is dropped", () => {
+    const mids = SPELLS.filter((sp) => sp.cost === 4);
+    expect(mids.length, "the set has several cost-4 spells").toBeGreaterThanOrEqual(3);
+    const book = spellbookFromIds(mids.slice(0, 3).map((sp) => sp.id), 8);
+    expect(book.length).toBe(2);
+  });
+
+  it("cheap spells are unlimited ACROSS ids too, not just as copies", () => {
+    const cheap = SPELLS.filter((sp) => sp.cost <= 2).slice(0, 6);
+    expect(legalSpellIds(cheap.map((sp) => sp.id), 8).length).toBe(cheap.length);
+  });
+
+  it("the DERIVED book obeys the same law as a hand-picked one", () => {
+    // This is the path that had no cap at all: `spellbookFor` took one of each
+    // KIND and then filled in declaration order, so an auto-filled book could
+    // arrive holding several 6-costs that the deck builder would have refused.
+    // MULTI-ELEMENT decks are the ones that can break it, and a single-element
+    // one cannot: the set holds exactly one spell per element per cost rung, so
+    // a mono deck has nothing to double up WITH. Every pair of cores is checked
+    // so the case actually gets exercised rather than passing vacuously.
+    for (const a of CORES) {
+      for (const b of CORES) {
+        if (a.id === b.id) continue;
+        const book = spellbookFor([...a.cards, ...b.cards], MAX_SPELLBOOK_LARGE);
+        const perCost = new Map<number, number>();
+        for (const slot of book) {
+          const c = getSpell(slot.defId).cost;
+          perCost.set(c, (perCost.get(c) ?? 0) + 1);
+        }
+        for (const [cost, n] of perCost)
+          expect(n, `${a.id}+${b.id}: ${n} spells of cost ${cost}`)
+            .toBeLessThanOrEqual(spellCostCap(cost));
+      }
+    }
   });
 
   it("empty input yields an empty book", () => {

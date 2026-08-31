@@ -16,8 +16,17 @@ const DECK = [
 
 const lushfield = SPELLS.find((s) => s.name === "Lushfield")!.id;
 /** Some other element's Field, so "cast one of your own" is actually testable —
- *  a spellbook derived from an all-LEAF deck would only ever hold LEAF spells. */
-const otherField = SPELLS.find((s) => s.kind === "field" && s.id !== lushfield)!;
+ *  a spellbook derived from an all-LEAF deck would only ever hold LEAF spells.
+ *
+ *  A DIFFERENT COST RUNG as well as a different id, and that is not fussiness:
+ *  a book may hold only one spell of each cost from 6 up (see `spellCostCap`),
+ *  and the Fields are expensive. Picking the first non-Lushfield Field found one
+ *  that cost the same 6, so the two-spell book this file hands to
+ *  `createInitialState` came back holding one — and every cast here failed with
+ *  "Not in your spellbook" for a reason that had nothing to do with terrain. */
+const otherField = SPELLS.find(
+  (s) => s.kind === "field" && s.id !== lushfield && s.cost !== getSpell(lushfield)!.cost,
+)!;
 
 describe("standing terrain", () => {
   it("is absent from a battle that never asked for one", () => {

@@ -12,7 +12,7 @@
 // duplicate of it here that could drift.
 
 import { CARDS, CARD_INDEX, getDef } from "./cards";
-import { SPELLS, getSpell, spellCapForBoard, spellCopyCap } from "../engine/spells";
+import { SPELLS, getSpell, legalSpellIds, spellCapForBoard } from "../engine/spells";
 import { DECK_TIERS } from "./custom-decks";
 import type { GauntletState } from "./gauntlet";
 import type { LadderState } from "./matchmaker";
@@ -1393,7 +1393,11 @@ export const heroSpellShelf = (save: StorySave): string[] =>
 export function heroBookFor(save: StorySave, boardSize: number): string[] {
   const shelf = heroSpellShelf(save);
   const chosen = (save.hero?.spells ?? []).filter((id) => shelf.includes(id));
-  return (chosen.length ? chosen : shelf).slice(0, spellCapForBoard(boardSize));
+  // legalSpellIds, not slice: the shelf is every spell the hero has EARNED, and
+  // a campaign deep into two regions has earned both of their cost-9s. A plain
+  // slice handed that straight to the engine, so the automatic book broke the
+  // cost-tier law the deck builder enforces on a hand-picked one.
+  return legalSpellIds(chosen.length ? chosen : shelf, spellCapForBoard(boardSize));
 }
 
 /** Bank the essence a clear is worth, in the element of the region it was in. */
@@ -2731,21 +2735,16 @@ export function loadStory(): StorySave {
               element: typeof l.element === "string" ? l.element : undefined,
               cards: known(l.cards).filter((id) => collection.includes(id)),
               // A book naming a spell that no longer exists must not reach the
-              // engine; an absent one keeps meaning "use the shelf". COPIES of
-              // a cheap spell are legal now, so this trims to each spell's cost
-              // cap rather than deduping — a flat `new Set` quietly threw away
-              // the player's second copy every time the save was reopened.
+              // engine; an absent one keeps meaning "use the shelf". Trimmed
+              // by the shared cost-tier law, NOT by a local loop and not by a
+              // flat `new Set` (which quietly threw away the player's second
+              // copy of a cheap spell every time the save was reopened).
+              //
+              // No SIZE cap here on purpose: the shelf is trimmed to the
+              // board's allowance later, in `heroBookFor`, and a save should
+              // keep everything the player legally owns.
               spells: Array.isArray(l.spells)
-                ? (() => {
-                    const seen = new Map<string, number>();
-                    return l.spells.filter((id) => {
-                      if (!SPELLS.some((sp) => sp.id === id)) return false;
-                      const have = seen.get(id) ?? 0;
-                      if (have >= spellCopyCap(id)) return false;
-                      seen.set(id, have + 1);
-                      return true;
-                    });
-                  })()
+                ? legalSpellIds(l.spells, Infinity)
                 : undefined,
             }))
             .filter((l) => l.cards.length > 0)

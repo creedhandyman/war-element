@@ -63,7 +63,7 @@ export {
   canAoeRow,
 } from "./rules";
 export type { PlannedAction } from "./rules";
-export { SPELLS, SPELL_INDEX, getSpell, isSpell, spellPickKind, spellbookFor, spellbookFromIds, MAX_SPELLBOOK, spellCopyCap, SPELL_COPY_CAPS } from "./spells";
+export { SPELLS, SPELL_INDEX, getSpell, isSpell, spellPickKind, spellbookFor, spellbookFromIds, MAX_SPELLBOOK, spellCostCap, spellCapForId, legalSpellIds, SPELL_COST_CAPS } from "./spells";
 export { applyIntent, advance, advanceUntilInput, needsP1Input, needsInput, distributeBasicHits } from "./phases";
 export { effectiveBasicHits } from "./combat";
 export { aiMulligan, aiPrepIntent, chooseBattleAction } from "./ai";

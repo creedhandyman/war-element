@@ -6776,6 +6776,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   line-height: 13px;
   pointer-events: none;
   text-shadow: 0 1px 3px #000, 0 0 5px rgba(0, 0, 0, 0.9);
+  /* SEE-THROUGH, so the name may pass beneath it. The suit answers "whose card
+     is this", which is a question you ask once when you glance at the board and
+     never again; the NAME is what you are reading the tile for. At full opacity
+     it had to be given a 13px no-go strip of a ~55px tile, and a quarter of the
+     width is the difference between "Sphere" and "Sph…". It stays legible at
+     this alpha because it is a solid high-contrast glyph over a dark plate. */
+  opacity: 0.5;
 }
 /* Coloured BY SUIT rather than by seat number, using the `suit-*` class the
    token already carried and nothing had ever styled. Same values either way —
@@ -6788,9 +6795,25 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .tk-suit.suit-club    { color: var(--suit-club); }
 .tk-suit.suit-diamond { color: var(--suit-diamond); }
 .tk-suit.suit-heart   { color: var(--suit-heart); }
-/* Make room, so a long card name ellipsises before it runs under the suit
-   instead of colliding with it. */
-.token > .tk-name { right: 16px; }
+/* THE NAME TAKES THE WHOLE TOP EDGE BACK.
+   This reserved 16px for the suit, so every name was measured against a tile
+   13px narrower than it looks — and at ~55px per slot on a phone that is a
+   quarter of the line. "Sphere", "Reflection" and "Submerged" all ellipsised
+   with the room to spell them sitting empty under a card-suit glyph.
+   Rather than shortening the name to clear the suit, the suit went translucent
+   (above) and the name now runs underneath it, fading out over the last few
+   pixels instead of stopping dead. The fade is what keeps the overlap from
+   reading as a collision: letters thin away as they reach the glyph, so a name
+   that genuinely does not fit still LOOKS cut off on purpose, while every name
+   that fits in the reclaimed space is simply readable in full.
+   Cut at 17px/9px rather than a smooth 0-100% ramp so the first two thirds of
+   the name are at full strength — a gradient across the whole label would dim
+   text that has no reason to be dim. */
+.token > .tk-name {
+  right: 3px;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 17px), rgba(0, 0, 0, 0.55) calc(100% - 9px), rgba(0, 0, 0, 0.12) 100%);
+          mask-image: linear-gradient(90deg, #000 calc(100% - 17px), rgba(0, 0, 0, 0.55) calc(100% - 9px), rgba(0, 0, 0, 0.12) 100%);
+}
 
 /* ── BATTLE CHAT ──────────────────────────────────────────────────────────
    Online matches only. It has to sit over the board without taking any of it:
