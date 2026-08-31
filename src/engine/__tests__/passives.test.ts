@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, shadeDodgePct, SPECIAL_HANDLERS, TARGETLESS_HANDLERS } from "../combat";
 import { weakenStacks } from "../auras";
-import { applyFlow, DUSK_DRAIN, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
+import { applyFlow, DAWN_STRIKE_PCT, DUSK_DRAIN, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire, spawnTokens } from "../state";
@@ -2983,15 +2983,18 @@ describe("element auras", () => {
     expect(shaded).toBeLessThan(200);
   });
 
-  it("Awakening (DAWN): summoning strikes the nearest enemy for its full DMG", () => {
+  it("Awakening (DAWN): summoning strikes the nearest enemy for a share of its DMG", () => {
     const s = prepState();
     s.players.P1.gold = 5;
     const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 15 });
     const handId = giveHand(s, "P1", "dawn_solstice"); // DMG 5
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
-    // 5 printed, then the DAWN->DUSK matchup bonus (x1.25, floored) = 6. The
-    // strike is a real attack and takes the matchup like one.
-    expect(next.cards[foe.instanceId].curHp).toBe(9);
+    // 5 printed, cut to DAWN_STRIKE_PCT and floored, THEN the DAWN->DUSK matchup
+    // bonus (x1.25, floored). The strike is a real attack and takes the matchup
+    // like one. DERIVED rather than written out, because the dial moves: it was
+    // a flat 100% until DAWN measured 61.0/68.7 and ran away with both boards.
+    const struck = Math.floor(Math.floor((5 * DAWN_STRIKE_PCT) / 100) * 1.25);
+    expect(next.cards[foe.instanceId].curHp).toBe(15 - struck);
   });
 
   it("Flow Change (AQUA): a human summon defers the choice; Liquid grants +2 DMG for good", () => {
@@ -3152,8 +3155,9 @@ describe("element-aura telegraphs (fx counters)", () => {
     const handId = giveHand(s, "P1", "dawn_musk_ox"); // DAWN, 5 DMG
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const summoned = boardCards(next, "P1").find((c) => c.defId === "dawn_musk_ox")!;
-    // 5 printed, +25% into DUSK = 6. It really struck.
-    expect(next.cards[foe.instanceId].curHp).toBe(34);
+    // 5 printed, cut to DAWN_STRIKE_PCT, then +25% into DUSK. It really struck.
+    const struck = Math.floor(Math.floor((5 * DAWN_STRIKE_PCT) / 100) * 1.25);
+    expect(next.cards[foe.instanceId].curHp).toBe(40 - struck);
     expect(summoned.fxLunge ?? 0).toBe(1);
   });
 
@@ -3243,16 +3247,21 @@ describe("Sphere — a 2-DMG PEN Tank", () => {
     expect(40 - s.cards[armour.instanceId].curHp).toBe(0);
   });
 
-  it("its DAWN Awakening strike on summon is the full PRINTED DMG", () => {
+  it("its DAWN Awakening strike on summon is a share of the PRINTED DMG", () => {
     // Awakening reads printed DMG, not dmg x hits. Measured against a NON-DUSK
     // foe on purpose: Daybreak's +25% is DAWN's only matchup, and including it
     // would make this test assert the matchup table as much as the strike.
+    //
+    // Sphere is the sharpest case for the FLOOR, which is why it earns its own
+    // test: at 2 printed DMG on a 75% dial it strikes for 1, so the cheapest
+    // DAWN bodies pay proportionally more of the cut than the big ones do.
     const s = prepState();
     s.players.P1.gold = 6;
     const foe = place(s, "bore_clubber", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     const handId = giveHand(s, "P1", "dawn_sphere");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
-    expect(40 - next.cards[foe.instanceId].curHp).toBe(getDef("dawn_sphere").dmg);
+    expect(40 - next.cards[foe.instanceId].curHp)
+      .toBe(Math.floor((getDef("dawn_sphere").dmg * DAWN_STRIKE_PCT) / 100));
   });
 
   it("lands behind its own 2-shield barrier", () => {

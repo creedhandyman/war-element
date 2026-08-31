@@ -277,12 +277,18 @@ describe("the held-back eight are on the curve like everything else", () => {
   });
 
   it("and they kept the rarity contract", () => {
-    for (const id of ["dawn_ballista", "gale_falcon", "aqua_sonarping", "bolt_policecar"]) {
+    // bolt_policecar MOVED to epic (owner's call), and the contract follows it
+    // rather than being relaxed: it now has to HAVE the repeatable Special its
+    // Talent became, and it must no longer carry a Talent at all -- those are
+    // legal only on a cost-3 Rare. bolt_handyman came the other way, epic cost
+    // 5 -> rare cost 3, so it is checked on the Rare side for the mirror.
+    for (const id of ["dawn_ballista", "gale_falcon", "aqua_sonarping", "bolt_handyman"]) {
       expect(getDef(id).rarity, id).toBe("rare");
       expect(getDef(id).special, `${id}: a Rare gets no repeatable Special`).toBeUndefined();
     }
-    for (const id of ["aqua_surferdude", "pyro_mortar", "pyro_pyrodactyl"]) {
+    for (const id of ["aqua_surferdude", "pyro_mortar", "pyro_pyrodactyl", "bolt_policecar"]) {
       expect(getDef(id).special, `${id} is epic+ and must have one`).toBeTruthy();
+      expect(getDef(id).talent, `${id}: a Talent is cost-3-Rare only`).toBeUndefined();
     }
   });
 });

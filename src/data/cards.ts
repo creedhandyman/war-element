@@ -11796,7 +11796,6 @@ export const CARDS: CardDef[] = [
     // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
     // carries, and the stat line is re-cut to the budget that comes with it.
     cost: 3,
-    // 6 + 6 + 8 = 20 = 5*2+10.
     // 6 + 8 + 11 = 25 = 5*3+10.
     dmg: 6,
     hits: 1,
@@ -12239,12 +12238,16 @@ export const CARDS: CardDef[] = [
     // an 11-DMG body is the exact runaway that made enraged Apex Hunger a wall.
     onKill: { buffDmg: 2, buffDmgMax: 6 },
     special: {
-      name: "Riverjaw",
+      name: "Tail Spin",
       cost: 4,
-      handler: "strike",
-      params: { dmg: 11, pen: 1, onKillSelfHeal: 6, takeSpotOnKill: 1 },
+      handler: "barrage",
+      // A SWEEP, so `targets: 99` -- every foe the swing can reach, which on a
+      // MELEE body is everything adjacent. `push` rides applyDebuffRiders, and
+      // barrage calls that PER TARGET, so each one is knocked a space back
+      // rather than the volley shoving a single card.
+      params: { dmg: 6, pen: 1, push: 1, targets: 99 },
       targetSide: "enemy",
-      text: "11 DMG (PEN). On a kill, heal 6 and take the ground it cleared.",
+      text: "Sweep the tail through everything in reach — 6 DMG (PEN) each, and every one of them is knocked back a space.",
     },
   },
 
@@ -12278,28 +12281,32 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_handyman",
     name: "Handyman",
-    rarity: "epic",
+    rarity: "rare",
     element: "BOLT",
     cardClass: "Support",
     tribe: "ARC",
     attackType: "Ranged",
-    cost: 5,
-    // 4 + 16 + 3*2 + 9 = 35 = 5*5+10.
-    dmg: 4,
+    // Epic cost 5 -> Rare cost 3: rarity is a cost band here, so the demotion
+    // and the recost are one decision, and the line is re-cut to the budget
+    // that comes with it.
+    cost: 3,
+    // 3 + 10 + 3*2 + 6 = 25 = 5*3+10.
+    dmg: 3,
     hits: 1,
-    hp: 16,
-    sp: 9,
+    hp: 10,
+    sp: 6,
     shields: 3,
     keywords: {},
     passiveNames: { aura: "Preventive Maintenance" },
     aura: { scope: "tribe", match: "ARC", shields: 1 },
-    special: {
+    talent: {
       name: "Patch Job",
-      cost: 2,
+      // The Special it had, at the rung that allows one. A Rare carries no
+      // repeatable Special; cost 3 is the only rung a Talent may sit on, and
+      // Preventive Maintenance above is the passive that keeps it from blank.
+      text: "Once per game, free: plate every nearby ally — itself included — with +2 shields and repair 4 HP.",
       handler: "grantShield",
       params: { amount: 2, heal: 4, nearby: 1 },
-      targetSide: "ally",
-      text: "Plate every nearby ally -- itself included -- with +2 shields and repair 4 HP.",
     },
   },
   {
@@ -12334,10 +12341,11 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "bolt_airship",
-    name: "War Airship",
+    name: "Police Helicopter",
     rarity: "epic",
     element: "BOLT",
     cardClass: "Support",
+    tribe: "ARC",
     attackType: "Ranged",
     // Rarity is a cost band, so the mix and the curve are one decision: this
     // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
@@ -12350,7 +12358,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 3,
     keywords: { FLYING: true },
-    passiveNames: { aura: "Tailwind", onSummon: "Deploy" },
+    passiveNames: { aura: "Rotor Wash", onSummon: "Deploy" },
     aura: { scope: "all", sp: 1 },
     onSummon: { handler: "grantShield", params: { amount: 2, nearby: 1 }, targetSide: "ally" },
     special: {
@@ -12789,7 +12797,7 @@ export const CARDS: CardDef[] = [
   {
     id: "bolt_policecar",
     name: "Police Car",
-    rarity: "rare",
+    rarity: "epic",
     element: "BOLT",
     cardClass: "Tank",
     tribe: "ARC",
@@ -12808,11 +12816,18 @@ export const CARDS: CardDef[] = [
     // ceiling had to be BUILT (spawnOnHitTaken called spawnTokens uncapped).
     spawnOnHitTaken: { token: "bolt_police_tok", count: 1, oncePerRound: true, maxAlive: 3 },
     onAllyHitSpawn: { token: "bolt_police_tok", count: 1, oncePerRound: true, maxAlive: 3 },
-    talent: {
+    special: {
       name: "All Units Respond",
-      text: "Once per game, free: call in 2 Officers beside it.",
+      cost: 3,
+      cooldown: 2,
+      // Repeatable now rather than once-per-game, which is what an Epic owes.
+      // It needs no new restraint: `maxAlive: 3` is the SAME ceiling the two
+      // passives above answer to, so all three taps share one cap of three
+      // Officers and a re-cast just tops the squad back up.
       handler: "spawn",
       params: { token: "bolt_police_tok", count: 2, radius: 1, maxAlive: 3 },
+      targetSide: "self",
+      text: "Call in 2 Officers beside it, up to 3 on the board. 2-round cooldown.",
     },
   },
   {

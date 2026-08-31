@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getDef } from "../../data/cards";
+import { DAWN_STRIKE_PCT } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { boardCards, effectiveDmg, effectiveMaxHp } from "../state";
 import { atCleanup, place, prepState, statusOf, bigPrepState } from "./helpers";
@@ -22,10 +23,14 @@ describe("Bluejay", () => {
     s.players.P2.hand = [{ handId: "h99", defId: "leaf_greegon" }];
     const next = applyIntent(s, { type: "SUMMON", player: "P2", handId: "h99", col: 0 });
     const newcomer = boardCards(next, "P2").find((c) => c.defId === "leaf_greegon")!;
-    // Compared against the DEF's HP, not a literal. This used to say 15, which was
-    // Greegon's max HP written out by hand — so re-cutting an unrelated LEAF card
-    // failed a Bluejay test. What is under test is only that arriving cost it HP.
-    expect(newcomer.curHp).toBeLessThan(getDef("leaf_greegon").hp);
+    // Compared against the DEF's stats, not a literal. This used to say 15, which
+    // was Greegon's max HP written out by hand — so re-cutting an unrelated LEAF
+    // card failed a Bluejay test. Measured across the whole health pool, HP plus
+    // shields, so it stays honest no matter which half the damage comes out of:
+    // a LEAF arrival-armour aura was trialled here and would have absorbed this
+    // arrow entirely, leaving curHp untouched at full.
+    const greegon = getDef("leaf_greegon");
+    expect(newcomer.curHp + newcomer.curShields).toBeLessThan(greegon.hp + greegon.shields);
   });
 
   it("Twin Wind Strikes DOUBLE-tapped: 14 DMG, WEAKEN, and a 4-space shove", () => {
@@ -133,7 +138,11 @@ describe("Drakonbane", () => {
     place(worthy, "leaf_greegon", "P2", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
     worthy.players.P1.hand = [{ handId: "h1", defId: "dawn_drakonbane" }];
     const w = applyIntent(worthy, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });
-    expect(boardCards(w, "P2")[0].curHp).toBe(30 - 7 - 9); // 7 ambush + 9 Awakening (its full DMG)
+    // 7 ambush + Awakening, which is a SHARE of its printed 9 rather than all of
+    // it — derived from the dial so this does not have to be re-cut by hand the
+    // next time DAWN is tuned.
+    const awaken = Math.floor((getDef("dawn_drakonbane").dmg * DAWN_STRIKE_PCT) / 100);
+    expect(boardCards(w, "P2")[0].curHp).toBe(30 - 7 - awaken);
 
     // Small by MAX HP, not merely wounded — a hurt giant is still a giant now,
     // and this used to place one at 10/30 and expect to be spared.
@@ -142,7 +151,7 @@ describe("Drakonbane", () => {
     place(spared, "leaf_greegon", "P2", 2, 0, { curHp: 24, maxHp: 24, curShields: 0 });
     spared.players.P1.hand = [{ handId: "h1", defId: "dawn_drakonbane" }];
     const sp = applyIntent(spared, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });
-    expect(boardCards(sp, "P2")[0].curHp).toBe(24 - 9); // Awakening only (its full 9) — no ambush
+    expect(boardCards(sp, "P2")[0].curHp).toBe(24 - awaken); // Awakening only — no ambush
   });
 
   it("Sunlight Strike pays a kill in shields AND health", () => {

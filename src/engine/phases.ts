@@ -4,7 +4,7 @@
 import { getDef } from "../data/cards";
 import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
-import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_CAP, DAWN_STRIKE_DIVISOR, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
+import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_CAP, DAWN_STRIKE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import {
   applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
@@ -2363,9 +2363,9 @@ function applyOneElementSummonAura(draft: GameState, inst: CardInstance, def: Ca
     case "DAWN": { // Awakening — strike the nearest enemy as it lands.
       // Full DMG, not half. DAWN measured lowest in the game on damage dealt
       // (56 a match against a field of 85-95), and this is the aura that was
-      // already pointed at that number. See DAWN_STRIKE_DIVISOR for why the
+      // already pointed at that number. See DAWN_STRIKE_PCT for why the
       // gold-discount routes were measured and abandoned.
-      const dmg = Math.floor(def.dmg / DAWN_STRIKE_DIVISOR);
+      const dmg = Math.floor((def.dmg * DAWN_STRIKE_PCT) / 100);
       if (dmg > 0) {
         const foe = closest(inst, enemyCards(draft, inst.owner).filter((c) => c.curHp > 0));
         if (foe) {
@@ -2375,6 +2375,21 @@ function applyOneElementSummonAura(draft: GameState, inst: CardInstance, def: Ca
           // HP for no visible reason.
           inst.fxLunge = (inst.fxLunge ?? 0) + 1;
           directDamage(draft, inst, foe, dmg, false);
+          // THE FREE SHOT STARTS THE RELOAD CLOCK. `attackEveryOtherRound` is
+          // priced as a card's whole drawback — Ballista buys 8 DMG and PEN on
+          // a 2-cost body with it — and this strike was landing that full
+          // printed damage OUTSIDE the clock, then letting the card swing again
+          // the very next round. Two back-to-back shots from a body that is
+          // supposed to fire every other one, and the discount paid for
+          // neither. Stamping the round here means the arrival shot IS the
+          // first shot, which is what the card already says it costs.
+          //
+          // Measured: Ballista was the highest damage-per-gold card in the set
+          // (9.98 against a 2.30 field median), 40% of it this free hit, and
+          // forcing it into DAWN's opening was worth +9.2 points over its own
+          // cost band at 6.2 sigma. Nothing else in the game reads this flag,
+          // so no other card is touched.
+          if (def.attackEveryOtherRound) inst.lastBasicRound = draft.round;
         }
       }
       break;

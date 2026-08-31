@@ -465,9 +465,91 @@ which matters at 5,600 matches.
 Harness above, verbatim. 5,600 matches, n=1,400 per element, ±2.6 at 95%:
 
 ```
-bolt 57.8 · dawn 56.0 · gale 52.6 · leaf 49.7
-bore 48.4 · pyro 45.5 · aqua 45.1 · dusk 44.8     spread 13.0
+bolt 56.2 · dusk 54.9 · aqua 54.7 · dawn 53.9
+leaf 49.1 · gale 48.7 · pyro 42.5 · bore 39.9     spread 16.3
 ```
+
+**AND THE 7x7 IS NOW MEASURED TOO**, because it is a different game and it was
+never being read. n=700 per element, ±3.7. A 7x7 is only DOMINATION if the mode
+is stamped on — `s.domination = newDomination(DOMINATION_7X7)`, exactly what
+App.tsx does — and without that line the harness measures an oversized duel:
+
+```
+bore 62.0 · dawn 61.6 · dusk 53.7 · gale 50.4
+pyro 47.9 · bolt 45.7 · aqua 45.3 · leaf 33.4     spread 28.6
+```
+
+100% of those 2,800 games ended BY DOMINATION; not one ended by elimination.
+The two boards disagree violently and that is the mode working: BORE swings
++22.1 from last in the duel to first here (slow plated bodies are ideal ring
+holders and hopeless in a race), BOLT and AQUA each drop ~10.
+
+**THE FORTY-CARD PASS COST 8.5 POINTS OF SPREAD AND IT WAS PAID BACK.** The set
+went 320 → 360 and the duel spread went 13.0 → 21.5, with DAWN running away at
+61.0/68.7. Restoring it took ONE constant — `DAWN_STRIKE_PCT` 100 → 75 — which
+brought duel 21.5 → 16.3 and domination 36.3 → 28.6. Pooled across both boards
+the field is now `dawn 56.5 · dusk 54.5 · bolt 52.7 · aqua 51.6 · gale 49.3 ·
+bore 47.3 · pyro 44.3 · leaf 43.9`, spread 12.6.
+
+DAWN still leads POOLED at 56.5, which is the identity below. It reads 4th in
+the duel at 53.9, but the top four span 2.3 points against a ±2.6 band — that
+is a cluster, not an ordering, and no single run can rank it.
+
+**TWO CARD-LEVEL FINDINGS THAT MEASURED AS NOTHING**, both worth keeping because
+they are the cheap thing to reach for:
+
+- `dawn_ballista` is a real outlier — 9.98 damage-per-gold against a 2.30 field
+  median, and forcing it into DAWN's opening is worth +9.2 over its own cost
+  band at 6.2σ. Its `attackEveryOtherRound` clock was also genuinely broken:
+  Awakening paid its full printed 8 OUTSIDE the reload gate and then let it
+  swing again next round. Repairing that moved the ELEMENT by 0.1 (61.0 → 61.1
+  duel, 68.6 → 68.7 domination). **One card in a 45-card pool is drawn too
+  rarely to move an element however broken it is on its own terms.**
+- `dawn_sunspot` is the opposite and is still open: its Corona Flare → Blind
+  Spot loop fires 0.03 times per summon (2 CRITs in 336 matches — the AI almost
+  never casts it), and forcing it into the opening COSTS dawn 6.7 points. It is
+  11.1 under its cost band. A dead card, not an overpowered one.
+
+### LEAF on the 7x7 is a MODE problem, not an element problem
+
+LEAF is fine in the duel (49.1) and last by twelve points on the 7x7 (33.4),
+holding the highest average HP in the game (15.67) and the highest printed
+damage (6.53). **There is no leaf-side dial.** A 7x7 ends in 8.9 rounds against
+the duel's 13.3, so every LEAF lever converts at ~0.55x there — the whole
+Photosynthesis aura is worth +19.6 on board 4 and +10.7 on the 7x7 for
+near-identical output. An ARRIVAL half was built and measured on the theory that
+paying per-card instead of per-round would escape that ratio (LEAF summons 1.18
+bodies a round on the 7x7 against 0.83 in the duel); it does not — see the
+rejected `LEAF_ROOTING_SHIELDS` note in auras.ts, which measures +9.6 on the
+board LEAF is already correct on for +6.3 on the one it is losing.
+
+What the 7x7 actually measures, and the reason a card fix cannot reach it:
+**68.3% of matches end on the instant all-four win**, the winner holds 3.68/4
+Points at that moment, 23.8% of those Points have no body of theirs on the ring,
+and **52.3% of them the loser never stood on once all match.** `resolveHolders`
+never releases a Point whose ring is empty, so control taken once is kept for
+free. The single metric that tracks 7x7 win rate is Point ACQUISITIONS per
+match — not combat, not bodies, not economy. Balancing cards against this board
+is balancing them against a footrace against an uncontested clock.
+
+Two untested candidates, in order of surgicality, **both of which change the
+mode for all eight elements and neither of which is validated**: (1) in
+`resolveHolders`, when `best === 0` set the Point to `null` instead of leaving
+it with its last holder — one line, kills the uncontested-Point effect at
+source, but contradicts the "CONTROL IS STICKY" design note; (2) drop the
+instant all-four win at phases.ts:1284 so four Points must also survive
+`DOMINATION_HOLD_ROUNDS`. Re-measure the full eight-element table after either;
+do not assume it helps LEAF, whose deficit is in acquisitions (2.27 against the
+field's 2.6).
+
+Also ruled out, with numbers: LEAF's mobility (its bodies reach a ring in 0.13
+rounds — 32 of 49 slots ARE ring slots, and every shrine is one step from two
+rings), and the AI (it has a dedicated ~200-line Domination block; three policy
+rewrites moved LEAF less than +2.9 and reordered nothing).
+
+The reading this replaced, same harness, before the 40-card pass: `bolt 57.8 ·
+dawn 56.0 · gale 52.6 · leaf 49.7 · bore 48.4 · pyro 45.5 · aqua 45.1 · dusk
+44.8`, spread 13.0.
 
 Measured after permanent Flow Change, Polar King back to 6, Havoc ranged at
 85%, Surge's stored shot and Kobra's recost. Previous reading, same harness:

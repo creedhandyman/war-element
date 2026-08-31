@@ -173,7 +173,48 @@ export const slipstreamPct = (sp: number): number =>
  *  So gold has no granularity to offer: every shape of discount is worth 40+
  *  points and DAWN needs about 13. A damage aura is the right size — it is the
  *  size GALE's was. */
-export const DAWN_STRIKE_DIVISOR = 1;
+/** A PERCENTAGE, not a divisor, and the shape change is the point.
+ *
+ *  This was `DAWN_STRIKE_DIVISOR`, an integer, so the only settings it could
+ *  ever hold were 100%, 50%, 33%. Measured, that granularity is useless here:
+ *  DAWN sits at 61.0 in the duel and 68.6 on the 7x7, and ablation puts the two
+ *  reachable steps at 100% = 61.0/68.6 and 50% = ~49/58.6. One is the problem
+ *  and the other overshoots the duel by seven points, taking DAWN from first to
+ *  fourth — and DAWN LEADING IS DELIBERATE (see "Where balance stands" in
+ *  CLAUDE.md: it is the campaign's final region and is meant to read as the
+ *  final boss). The brief was to stop it running away, not to bury it.
+ *
+ *  So the knob gets a finer thread. Nothing else about the aura changes: the
+ *  arrival strike is still the whole of DAWN's damage identity, still the
+ *  reason it climbed off 37.3% when this went from a half to a whole, and the
+ *  gold routes are still the wrong lever for the reasons recorded below. */
+/** SEVENTY-FIVE, measured. DAWN's own P1 slice, 700 duel / 350 domination
+ *  matches per setting:
+ *
+ *      pct    duel [4,5]   7x7 domination
+ *      100       60.6           66.9      <- the runaway
+ *       85       57.0           64.3
+ *       75       56.4           63.4      <- here
+ *       65       54.3           60.9
+ *
+ *  75 puts DAWN back where the file says it belongs: FIRST, by a normal margin
+ *  rather than by seven points. BOLT is the next element at 55.4, so DAWN still
+ *  leads the duel table, and on the 7x7 it stops being a runaway over BORE
+ *  (61.3) and becomes a race. 65 was rejected for landing DAWN level with BOLT,
+ *  which trades the outlier for the loss of an identity the owner has twice
+ *  confirmed on purpose.
+ *
+ *  NOTE what did NOT work, because it is the cheaper thing to reach for and it
+ *  measures as nothing. dawn_ballista is a genuine per-card outlier — the
+ *  highest damage-per-gold in the set at 9.98 against a 2.30 field median, and
+ *  forcing it into DAWN's opening is worth +9.2 points over its own cost band
+ *  at 6.2 sigma — and repairing it (see the reload-clock note at the Awakening
+ *  call site in phases.ts) moved the ELEMENT by 0.1: 61.0 -> 61.1 duel, 68.6 ->
+ *  68.7 domination. One card in a forty-five card pool is drawn too rarely to
+ *  shift an element however broken it is on its own terms. This file has said
+ *  for a long time that auras and element-wide rules are the only levers that
+ *  have ever moved a number here; that is now measured twice more. */
+export const DAWN_STRIKE_PCT = 75;
 
 /** Where First Light (DAWN) stops quickening — an ABSOLUTE ceiling, and that
  *  shape is the owner's call, made twice. It was 14; a relative +5 was tried
@@ -201,6 +242,56 @@ export const DAWN_SP_CAP = 12;
  *  aura. That was the reason the +3 bonus existed. It is the owner's call which
  *  end of the roster to favour, and this is the end that stops the stall. */
 export const LEAF_SHIELD_CAP = 3;
+
+/** TAKING ROOT — TRIED, MEASURED, REJECTED. Recorded because the finding
+ *  generalises and the next person will otherwise reach for it again.
+ *
+ *  LEAF sits at 48.2% on the standard boards and 32.6% on the 7x7 objective
+ *  map, last of eight by nine points. Two separate diagnostics pointed at
+ *  TIMING rather than power: LEAF holds the highest average HP in the game
+ *  (15.67) and the highest printed damage (6.53), and it is already BEHIND on
+ *  bodies at round 2 (-0.15 against the opponent, where BORE is +0.20 and DAWN
+ *  +0.14). The two elements that are positive there both have an aura that
+ *  pays AT ARRIVAL — Exostone plates as a card enters, Awakening strikes as it
+ *  lands — while Photosynthesis is an END-OF-ROUND tick that only ever pays a
+ *  body which already survived the round it arrived in.
+ *
+ *  So the fix looked obvious: give Photosynthesis an arrival half, a shield
+ *  floor a LEAF card lands with. The argument for why it would land HARDER on
+ *  the 7x7 was that an arrival payment is made once per CARD instead of once
+ *  per round, and LEAF summons denser on the short map (1.18 bodies a round
+ *  against the duel's 0.83), so the same effect should fire ~1.4x as often per
+ *  round of game exactly where LEAF is losing.
+ *
+ *  IT MEASURES THE OTHER WAY ROUND. LEAF's own P1 slice, 700 duel / 350
+ *  domination matches per value:
+ *
+ *      floor   duel [4,5]   7x7 domination
+ *        0        49.7           29.4
+ *        1        59.3           35.7
+ *        2        68.7           41.7
+ *        3        76.4           48.0
+ *
+ *  Every point of armour is worth +9.6 on the board LEAF is already correct on
+ *  and only +6.3 on the board it is losing. There is no value in the table that
+ *  fixes domination without making the duel far worse: at a floor of 1, LEAF is
+ *  already an eleven-point outlier at 59.3 while still sitting near the bottom
+ *  of the 7x7 at 35.7.
+ *
+ *  The generalisation, which is the part worth keeping: ARRIVAL DENSITY DOES
+ *  NOT BEAT ROUND COUNT. A 7x7 match ends in 8.9 rounds against the duel's
+ *  13.3, and an independent ablation had already measured that EVERY leaf lever
+ *  converts at ~0.55x there — the whole aura is worth +19.6 on board 4 and
+ *  +10.7 on the 7x7 for near-identical output. Moving a payment from
+ *  end-of-round to arrival does not escape that ratio, it just buys more of the
+ *  same currency, and armour bought at 0.55x is still armour bought at 0.55x.
+ *
+ *  Which means there is no LEAF-SIDE dial at all. Raising LEAF_SHIELD_CAP 3->6
+ *  measures +1.9 on BOTH boards; this measures +9.6/+6.3; both have the same
+ *  problem. LEAF's 32.6% is a property of the MODE, not of the element — 68.3%
+ *  of 7x7 matches end on the instant all-four win, 23.8% of the winner's Points
+ *  have no body of theirs on the ring, and 52.3% of them the loser never stood
+ *  on once. Fix that and re-measure before buffing LEAF a single point. */
 
 
 /** ELECTRIFY's damage rider: what a BOLT card adds against an opponent already
