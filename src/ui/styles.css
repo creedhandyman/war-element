@@ -220,7 +220,10 @@
    var(--gold)` — so every Void card, token, spell flash and versus chip drew
    itself in DAWN's gold. CSS is not type-checked and styles.test.ts mirrors
    only the --rar-* tokens, so nothing else would have caught it. */
-[data-el="VOID"] { --el-rim: #b14dff; --el: var(--el-rim); --el-stripe-a: #2b0d4a; --el-stripe-b: #160526; }
+/* BLACK where it fills, pale where it edges — mirrored from EL_COLOR/EL_STRIPE
+   in shared.ts, and the DUSK rule two lines up is the reason: a rim the colour
+   of the board is not a dark rim, it is no rim. Change both or neither. */
+[data-el="VOID"] { --el-rim: #c2c8d8; --el: var(--el-rim); --el-stripe-a: #0a0a0d; --el-stripe-b: #000000; }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; }

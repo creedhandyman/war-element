@@ -32,10 +32,19 @@ export const EL_COLOR: Record<Element, string> = {
   // [data-el="DUSK"] rule in styles.css; change both or neither.
   DUSK: "#7b4fb0",
   DAWN: "#ffd54f",
-  // The art's violet. Deliberately cooler and more saturated than BOLT's
-  // lavender and DUSK's plum: all three are purples, and the board has to stay
-  // readable when a VOID boss fields BOLT reinforcements beside it.
-  VOID: "#b14dff",
+  // VOID IS THE BLACK ELEMENT, and the RIM is the one part of it that cannot be
+  // black. This is DUSK's lesson applied before it costs anything: the note
+  // above records that #2c1547 "reads as the dark element when it fills
+  // something, and as nothing at all when it is a 1.5px rim on a near-black
+  // board" -- the board is #040406, so a black border is not a dark border, it
+  // is an absent one.
+  //
+  // So black goes where black is legible (the stripes below, which FILL) and
+  // the rim is a cold pale silver -- the edge of a black card rather than a
+  // colour of its own. It is also the only unsaturated rim in the set, which
+  // solves the other half of the old note: VOID no longer has to compete with
+  // BOLT's lavender and DUSK's plum for which purple it is.
+  VOID: "#c2c8d8",
 };
 
 // Collector rarity → badge color + short label. Undefined rarity shows nothing.
@@ -98,7 +107,9 @@ export const EL_STRIPE: Record<Element, [string, string]> = {
   BOLT: ["#241a44", "#181030"],
   DUSK: ["#2a1440", "#1c0d2e"],
   DAWN: ["#3d3210", "#2b230a"],
-  VOID: ["#2b0d4a", "#160526"],
+  // Actually black, not a very dark purple. This is the half of the element
+  // that fills, so it is where "black" is a thing you can see.
+  VOID: ["#0a0a0d", "#000000"],
 };
 
 // Status icon language — a unique glyph + color per status (redesign spec).
