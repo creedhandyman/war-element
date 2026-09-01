@@ -1663,8 +1663,22 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 5,
     keywords: { FLYING: true },
+    // War Maiden was named only in this comment, so the card face showed the
+    // heal with no name on it. Declared properly now, alongside the new one.
+    passiveNames: { roundTick: "War Maiden", onSummon: "Standard Raised" },
     // War Maiden (End of Round): heal all allies +3 HP.
     roundTick: { healAllies: 3 },
+    // STANDARD RAISED — Golden Courage fires FREE the moment Empyrean lands.
+    // `castsOwnSpecial` is the existing hook for this and Killer Whale is the
+    // precedent: a costly body that "needed a whole turn and 3 magic before it
+    // did anything" now does its job on arrival.
+    //
+    // It reads as the card's whole point rather than a bonus. Empyrean is a
+    // cost-8 Support whose Special heals the team, cleanses it and hands it +1
+    // DMG for two rounds — an army-wide rally that arrived a turn late and only
+    // once the magic was banked. A standard is raised when the reinforcement
+    // gets there, not a round afterwards.
+    onSummon: { castsOwnSpecial: true },
     special: {
       name: "Golden Courage",
       cost: 3,
@@ -11344,6 +11358,63 @@ export const CARDS: CardDef[] = [
     },
   },
   {
+    id: "boss_kheiringer",
+    name: "Princess Kheiringer",
+    rarity: "mythic",
+    // PYRO gives the tribe, BORE gives the mechanic — she is fire, and what she
+    // stands on and behind is obsidian. Floor 5 allows a third element; she does
+    // not take one, because two is what the picture has in it.
+    element: "PYRO",
+    elementAuras: ["BORE"],
+    cardClass: "Mage",
+    attackType: "Ranged",
+    tribe: "Volcanic",
+    boss: true,
+    cost: 12,
+    // 20x2 + 230 + 18x2 + 12 = 318 body against Floor 5's 660 cap, and the
+    // LIGHTEST body on the floor by a distance (Spindle 290hp, Skybreaker 269,
+    // Continental 360). Deliberately: she is not the wall, the wall is the wall.
+    // What she is, is the reason standing behind it is a problem.
+    dmg: 20,
+    hits: 2,
+    hp: 230,
+    sp: 12,
+    shields: 18,
+    keywords: {},
+    // A GIANT's reach, like the rest of Floor 5 — she rains fire on the board
+    // rather than on whatever is nearest, and a stationary ranged boss without
+    // the reach cannot answer anything that stays two squares away.
+    fullBoardBasic: true,
+    art: "boss_kheiringer",
+    passiveNames: { avoidLateral: "Highborn", spawn: "Call the Deep" },
+    // SHE DOES NOT COME TO YOU. `avoidLateral` slides her along the row toward
+    // the emptiest column — away from whatever is closing — which is what a
+    // caster with a fortress in front of her and giants in front of that would
+    // actually do. It is also the one gait that reads as "stays back" without
+    // making a fourth boss that never moves at all, which the roster spread
+    // would refuse.
+    //
+    // ...and the giants keep coming: one every round, to a ceiling of two
+    // standing at once, so killing one is progress rather than a treadmill.
+    roundTick: {
+      fireSpecialEveryN: 3,
+      avoidLateral: true,
+      spawn: { token: "pyro_fire_giant_tok", count: 1 },
+      spawnMaxAlive: 2,
+    },
+    special: {
+      name: "Rain of Fire",
+      cost: 4,
+      handler: "barrage",
+      // Both hands are up and open on the plate and the sky is already alight.
+      // It does not pick a target; it lands on the board.
+      params: { dmg: 12, targets: 99, statusKind: "BURN", statusPower: 3, statusDuration: 3 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "12 DMG to every opponent and BURN 3 for 3 rounds. 3-round cooldown.",
+    },
+  },
+  {
     id: "boss_skybreaker",
     name: "Skybreaker",
     rarity: "mythic",
@@ -13739,6 +13810,69 @@ export const TOKENS: CardDef[] = [
       },
       targetSide: "enemy",
     },
+  },
+  {
+    id: "pyro_fire_giant_tok",
+    name: "Fire Giant",
+    rarity: "epic",
+    element: "PYRO",
+    cardClass: "Warrior",
+    attackType: "Melee",
+    tribe: "Volcanic",
+    cost: 8,
+    // 12 + 34 + 5x2 + 5 = 61 against a cost-8's ordinary 50. Boss brood, and
+    // the same tier above the curve Spindle's Occulith sits at.
+    dmg: 12,
+    hits: 1,
+    hp: 34,
+    sp: 5,
+    shields: 5,
+    // TRAMPLE, because the plate is a thing that does not go around. It is also
+    // the keyword the Lava Gate deliberately answers rather than deletes — a
+    // giant shoves a gate ASIDE and opens a lane, which is the interaction the
+    // void gate's own note argues for.
+    keywords: { TRAMPLE: true },
+    passiveNames: { onHitStatus: "Molten Fists" },
+    // Everything it touches catches: its hands are lava on the plate.
+    onHitStatus: { kind: "BURN", duration: 2, power: 2 },
+    special: {
+      name: "Magma Fist",
+      cost: 3,
+      handler: "strike",
+      params: { dmg: 18, charge: 1, chargeFirst: 1, statusKind: "BURN", statusPower: 3, statusDuration: 2 },
+      targetSide: "enemy",
+      text: "Wade in a space and hammer one opponent for 18, BURNing it 3 for 2 rounds.",
+    },
+  },
+  {
+    id: "pyro_lava_gate_tok",
+    name: "Lava Fortress Gate",
+    rarity: "rare",
+    element: "PYRO",
+    cardClass: "Tank",
+    attackType: "Melee",
+    cost: 0,
+    // Masonry, on the Fortress Gate's pattern — but HERS, and hotter: 24 HP
+    // behind 12 plates against the void gate's 20 behind 10.
+    dmg: 0,
+    hits: 1,
+    hp: 24,
+    sp: 0, // it is a wall — it does not move, and moveReach(0) is 0
+    shields: 12,
+    keywords: {},
+    passiveNames: {
+      noKillReward: "Nothing to Gain", guardsHomeRow: "Hold the Line",
+      noBattleTurn: "Masonry", onHitByMelee: "Molten Stone",
+    },
+    // A PIECE, not a combatant — it never takes a battle turn and never enters
+    // the speed queue, exactly like the wall the player gets.
+    noBattleTurn: true,
+    guardsHomeRow: true,
+    noKillReward: true,
+    // ...but this one is still molten. Hitting it with your hands burns them,
+    // which is the difference between her wall and the player's: theirs is
+    // cold stone, hers has not finished cooling.
+    onHitByMelee: { dmg: 3, status: { kind: "BURN", duration: 2, power: 2 } },
   },
   {
     id: "void_fortress_gate_tok",
