@@ -12672,10 +12672,25 @@ export const CARDS: CardDef[] = [
     cardClass: "Support",
     tribe: "Forged Tech",
     // A MOTORCYCLE, not a helicopter — which is what it was built as first, and
-    // the difference is the whole card. No FLYING, it closes on the ground, and
-    // the fire it lays is a trail behind it rather than a load dropped from
-    // above. Melee: a chopper rides you down.
-    attackType: "Melee",
+    // the difference is most of the card. No FLYING, it closes on the ground,
+    // and the fire it lays is a trail behind it rather than a load dropped from
+    // above.
+    //
+    // RANGED, though, which this comment used to argue against ("a chopper
+    // rides you down"). It throws fire; it does not have to be on top of you.
+    //
+    // THAT CHANGES DRIP TORCH, and by far more than it changes the basic. The
+    // round-tick burn marks everything `canTarget` can see (phases.ts), so its
+    // radius is the card's own attack reach — 1 while this was Melee, and
+    // RANGED_REACH now. MEASURED on a 5x5, one lone target at a time so nothing
+    // screened anything: from its home row it went from 5 squares to 19 of 24,
+    // and from the middle of the board from 8 to ALL 24. A cost-3 body that
+    // BURNs the entire board every round, for free, is the real edit here; the
+    // attack type is only how it is spelled.
+    //
+    // Left as it stands because it was asked for, and noted at this length
+    // because nothing else in the card says it.
+    attackType: "Ranged",
     cost: 3,
     // 3 + 9 + 13 = 25 = 5*3+10. Re-cut toward SPEED, which is what a bike is:
     // SP 13 on a cost-3 body makes it one of the first things to move each
@@ -12696,12 +12711,20 @@ export const CARDS: CardDef[] = [
     advanceOnBasic: 1,
     talent: {
       name: "Peel Out",
-      text: "Once per game, free: open the throttle — 4 DMG and BURN 3 for 3 rounds to every opponent in the row directly ahead.",
-      // Same shape as before and a better fit for it: `rowAhead` is a bike
-      // running the length of a line, where it used to be a payload dropped on
-      // one.
+      text: "Once per game, free: open the throttle — 4 DMG and BURN 3 for 3 rounds to every opponent in the two spaces directly ahead.",
+      // THE COLUMN AHEAD, TWO DEEP — `spread: 0` is one column wide (its own),
+      // `forwardDepth: 2` is how far up it runs. It was `rowAhead: 1`, the whole
+      // rank ACROSS the board, which is a strange thing for a motorcycle to do:
+      // a bike lays its fire in the direction it is travelling, not sideways
+      // through everything beside it. This is the same trail, pointed the way
+      // the card is already facing.
+      //
+      // Not `sameColumn`, which is the other way to say "straight ahead" here:
+      // that one is unbounded up the board and the branch that reads it
+      // (phases.ts) is checked BEFORE `spread`, so setting both would silently
+      // ignore the depth.
       handler: "barrage",
-      params: { dmg: 4, targets: 99, rowAhead: 1, statusKind: "BURN", statusPower: 3, statusDuration: 3 },
+      params: { dmg: 4, targets: 99, spread: 0, forwardDepth: 2, statusKind: "BURN", statusPower: 3, statusDuration: 3 },
     },
   },
   {
