@@ -84,6 +84,38 @@ describe("summoning", () => {
     expect(summonLandingRow(s, "P1", 1)).toBe(2);
   });
 
+  it("...but never past the halfway line, and never into their back line", () => {
+    // The escape hatch used to walk the WHOLE column. On a 5x5 that meant a side
+    // whose home row had been captured could land a reinforcement on the
+    // OPPONENT'S home row — behind everything they own, and one survived round
+    // from capturing their slots. Losing your own line should not hand you a
+    // teleport into the place the game is won.
+    //
+    // Measured before the bound: as column 1 filled, the landing walked 1, 2, 3,
+    // then 4 — P1's home row on a 5x5.
+    const s = prepState();
+    s.players.P2.gold = 99;
+    const handId = giveHand(s, "P2", "leaf_greegon");
+    // P2's home row is gone entirely — captured, so P2 cannot clear it.
+    for (let col = 0; col < s.boardSize; col++) s.slots[0][col].capturedBy = "P1";
+    expect(openHomeSlots(s, "P2"), "the row is gone").toEqual([]);
+    const mid = Math.floor((s.boardSize - 1) / 2);
+    const seen: (number | null)[] = [];
+    for (let r = 1; r < s.boardSize; r++) {
+      seen.push(summonLandingRow(s, "P2", 1));
+      place(s, "leaf_weeds", "P1", r, 1); // fill the column, one row at a time
+    }
+    // Every landing it ever offers is inside P2's own half...
+    for (const row of seen)
+      if (row !== null) expect(row, "landed past the halfway line").toBeLessThanOrEqual(mid);
+    // ...and P1's home row is never one of them.
+    expect(seen).not.toContain(s.boardSize - 1);
+    // Once its own half is full the hatch simply closes, rather than reaching
+    // deeper: that is a lost line, which is a fair thing to lose.
+    expect(summonLandingRow(s, "P2", 1), "still found somewhere to land").toBeNull();
+    expect(canSummon(s, "P2", handId, 1).ok).toBe(false);
+  });
+
   it("...but a row full of your OWN cards still refuses — you can move those", () => {
     // The distinction that keeps this from changing ordinary tempo: your own
     // card can step forward and free the slot, so it was never a lockout, and

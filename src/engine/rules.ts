@@ -262,7 +262,23 @@ export function summonLandingRow(
     if (sitting && sitting.owner === player) return null;
   }
   const dir = player === "P1" ? -1 : 1; // away from home, into the board
+  // ...AND IT STOPS AT THE HALFWAY LINE. The walk used to run the whole column,
+  // which on a 5x5 meant a side whose home row had been captured could land a
+  // reinforcement on row 4 — INSIDE THE OPPONENT'S BACK LINE, behind everything
+  // they own, one survived round away from capturing their home slots. That is
+  // not an escape hatch, it is a teleport into the place the game is won, handed
+  // out for having lost your own line.
+  //
+  // Measured before this: with P2's home row captured and column 2 filled in
+  // front of it, `summonLandingRow(P2, 2)` returned 1, then 2, then 3, then 4 —
+  // P1's home row.
+  //
+  // Half the board is the bound because it is the one that needs no judgement:
+  // reinforcements arrive on ground you could plausibly still call yours. Past
+  // the middle you are not reinforcing, you are landing behind them.
+  const lastOwnHalf = home + dir * Math.floor((state.boardSize - 1) / 2);
   for (let row = home + dir; row >= 0 && row < state.boardSize; row += dir) {
+    if (dir > 0 ? row > lastOwnHalf : row < lastOwnHalf) break;
     if (isCaptured(state, row, col)) continue;
     if (cardAt(state, row, col)) continue;
     return row;
