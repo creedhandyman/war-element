@@ -33,7 +33,7 @@ export {
 export {
   canSummon,
   homeSlots,
-
+  summonSquare,
   summonLandingRow,
   openHomeSlots,
   canMove,

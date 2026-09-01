@@ -1,10 +1,12 @@
 // Milestone 2: prep priority loop — summon / move / pass, two-pass exit.
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
-import { canMove, canSummon, openHomeSlots, summonLandingRow } from "../rules";
+import { canMove, canSummon, openHomeSlots, summonLandingRow, summonSquare } from "../rules";
 import { boardCards, cardAt, moveReach, SP_MID_MAX, SP_SLOW_MAX } from "../state";
-import { freshGame, giveHand, place, prepState } from "./helpers";
+import { bigPrepState, freshGame, giveHand, place, prepState } from "./helpers";
 import { CARDS, getDef } from "../../data/cards";
 import type { GameState } from "../types";
 
@@ -549,5 +551,139 @@ describe("a body holds its square against a slow enemy", () => {
     // adjacent to you was never the thing being stopped.
     expect(round.pos).toEqual({ row: 2, col: 0 });
     expect(canMove(s, "P1", mover.instanceId, { row: 2, col: 3 }).ok).toBe(false); // too far, unrelated
+  });
+});
+
+// ONE CAPTURED SQUARE MUST NOT LOCK THE HAND.
+//
+// The UI asks "can this card go anywhere?" in three places — the tap that arms
+// a summon, the drag, and the lit/draggable set in the hand strip — and each
+// used to work it out for itself. The tap asked about a single square: the
+// first with no CARD standing on it. A captured Home slot holds no card once
+// its captor walks off, so it passed that filter, sorted first by column, and
+// answered "Slot is permanently captured" for every card in hand while the rest
+// of the Home row stood wide open. The card lit up, dragged, and refused the
+// tap — for the rest of the match, since a capture is permanent.
+//
+// It could only ever happen on the DUEL boards: Void Tower and Domination both
+// switch capture off, so 4x4 and 5x5 are the only places a slot is ever locked.
+// On a four-wide Home row one lost square is a quarter of the deployment.
+//
+// `summonSquare` is now the single answer all three read, so these pin the
+// property rather than the call site: if any square will take the card, the
+// authority says so.
+describe("a captured Home slot does not lock the rest of the row", () => {
+  for (const [label, mk, n] of [
+    ["4x4", prepState, 4],
+    ["5x5", bigPrepState, 5],
+  ] as const) {
+    it(`${label}: a captured column leaves every other column summonable`, () => {
+      const s = mk();
+      const home = n - 1;                       // P1's home row
+      s.players.P1.gold = 20;
+      s.slots[home][0].capturedBy = "P2";       // the captor has since walked off
+      const handId = giveHand(s, "P1", "leaf_greegon"); // cost 3
+
+      // The engine's own view: the captured column refuses, the others do not.
+      expect(canSummon(s, "P1", handId, 0).ok).toBe(false);
+      expect(openHomeSlots(s, "P1")).toEqual(
+        Array.from({ length: n - 1 }, (_, i) => i + 1));
+
+      // ...so the card IS playable, and the authority points at a real square.
+      const sq = summonSquare(s, "P1", handId);
+      expect(sq, "one captured slot must not make the card unplayable").not.toBeNull();
+      expect(sq!.col).not.toBe(0);
+      expect(canSummon(s, "P1", handId, sq!.col).ok).toBe(true);
+
+      // And it actually goes down.
+      const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: sq!.col });
+      expect(cardAt(next, home, sq!.col)?.defId).toBe("leaf_greegon");
+    });
+
+    it(`${label}: still refuses when the card itself is the problem`, () => {
+      const s = mk();
+      s.players.P1.gold = 0;                    // board wide open, no Gold
+      const handId = giveHand(s, "P1", "leaf_greegon");
+      expect(summonSquare(s, "P1", handId)).toBeNull();
+      expect(canSummon(s, "P1", handId, 1).reason).toBe("Not enough Gold");
+    });
+
+    it(`${label}: a Home row full of my own cards is a board problem, not a lock`, () => {
+      const s = mk();
+      const home = n - 1;
+      s.players.P1.gold = 20;
+      for (let c = 0; c < n; c++) place(s, "leaf_greegon", "P1", home, c);
+      const handId = giveHand(s, "P1", "leaf_greegon");
+      // No square, and no forward fallback either — moving one of them clears it.
+      expect(summonSquare(s, "P1", handId)).toBeNull();
+      expect(summonLandingRow(s, "P1", 0)).toBeNull();
+    });
+
+    it(`${label}: the whole Home row captured opens the forward fallback`, () => {
+      const s = mk();
+      const home = n - 1;
+      s.players.P1.gold = 20;
+      for (let c = 0; c < n; c++) s.slots[home][c].capturedBy = "P2";
+      const handId = giveHand(s, "P1", "leaf_greegon");
+      const sq = summonSquare(s, "P1", handId);
+      expect(sq, "a wholly captured row must not be a softlock").not.toBeNull();
+      // It lands FORWARD, and never past the halfway line.
+      const landing = summonLandingRow(s, "P1", sq!.col)!;
+      expect(landing).toBeLessThan(home);
+      expect(landing).toBeGreaterThanOrEqual(home - Math.floor((n - 1) / 2));
+      const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: sq!.col });
+      expect(cardAt(next, landing, sq!.col)?.defId).toBe("leaf_greegon");
+    });
+    it(`${label}: an off-board column refuses, it does not throw`, () => {
+      const s = mk();
+      const home = n - 1;
+      s.players.P1.gold = 20;
+      for (let c = 0; c < n; c++) s.slots[home][c].capturedBy = "P2";  // fallback open
+      const handId = giveHand(s, "P1", "leaf_greegon");
+      // The fallback used to walk the column without checking it was ON the
+      // board, indexing past the end of the row — a TypeError out of a function
+      // whose contract is to return a reason. Online, that is a desync.
+      expect(() => canSummon(s, "P1", handId, n)).not.toThrow();
+      expect(canSummon(s, "P1", handId, n)).toEqual({ ok: false, reason: "Bad column" });
+      expect(summonLandingRow(s, "P1", n)).toBeNull();
+      expect(summonLandingRow(s, "P1", -1)).toBeNull();
+    });
+  }
+
+  // ...and the UI keeps asking THIS, rather than growing a fourth private copy.
+  // The tests above pin the rule; this pins the wiring, which is the half that
+  // actually broke — the rule was right the whole time and one call site was
+  // asking it about a single square. Same shape as the PORTRAIT_QUERY guard in
+  // styles.test.ts: a comment saying "use the shared one" did not prevent it.
+  it("all four UI gates read the one authority", () => {
+    const app = readFileSync(join(__dirname, "../../ui/App.tsx"), "utf8");
+    for (const call of [
+      "summonSquare(game, me, handId)",       // tap to arm, and the drag
+      "summonSquare(game, view, h.handId)",   // the hand strip's lit/draggable set
+      "summonSquare(game, me, h.handId)",     // hasAnyPlay, which nudges Pass
+    ]) expect(app, `App.tsx no longer calls ${call}`).toContain(call);
+    // The tap and the drag are two separate gates and both must be on it.
+    expect((app.match(/summonSquare\(game, me, handId\)/g) ?? []).length,
+      "the tap gate and the drag gate should both call summonSquare").toBe(2);
+    // And nothing may go back to deciding "open" from occupancy alone: a
+    // captured slot holds no card, which is the whole of what went wrong.
+    expect(app, "a gate is filtering summon squares by !cardAt again")
+      .not.toContain("homeSlots(game, me).filter((sq) => !cardAt(");
+  });
+
+  it("agrees with the hand strip: lit means placeable, on both duel boards", () => {
+    for (const [mk, n] of [[prepState, 4], [bigPrepState, 5]] as const) {
+      const s = mk();
+      const home = n - 1;
+      s.players.P1.gold = 20;
+      s.slots[home][0].capturedBy = "P2";
+      place(s, "leaf_greegon", "P1", home, 1);   // and one column of my own
+      for (const h of s.players.P1.hand) {
+        const sq = summonSquare(s, "P1", h.handId);
+        // The set the hand lights IS this call, so the only thing left to pin is
+        // that a square it names is one the engine will actually accept.
+        if (sq) expect(canSummon(s, "P1", h.handId, sq.col).ok, `${n}x${n} ${h.defId}`).toBe(true);
+      }
+    }
   });
 });

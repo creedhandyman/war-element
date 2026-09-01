@@ -247,6 +247,14 @@ export function summonLandingRow(
   // end filled up — which is exactly what it looks like when an opponent
   // appears somewhere nothing should be able to deploy.
   if (domMap(state)) return null;
+  // An off-board column has no landing row, and saying so HERE is what keeps
+  // `canSummon` to its contract. `homeSlotBlocker` already answers "Bad column"
+  // for one — but this treated that verdict as just another blocked slot and
+  // walked the column anyway, indexing `state.slots[row][col]` past the end of
+  // the row. A malformed intent got a TypeError out of a function whose whole
+  // job is to return a reason, and in a lockstep online match a throw where a
+  // refusal belongs is a desync rather than a rejected move.
+  if (col < 0 || col >= state.boardSize) return null;
   const home = homeRow(player, state.boardSize);
   if (homeSlotBlocker(state, player, col) === null) return home;
   // Only when the row is wholly unavailable — otherwise use the open slot.
@@ -283,6 +291,45 @@ export function summonLandingRow(
     if (cardAt(state, row, col)) continue;
     return row;
   }
+  return null;
+}
+
+/** The first square that will actually TAKE this card from the hand right now,
+ *  or null if not one of them will — "is this card playable at all", asked once.
+ *
+ *  FOUR places in the UI needed that answer and each worked it out for itself:
+ *  the tap-to-arm gate, the drag gate, the hand strip's lit/draggable set, and
+ *  the idle-turn check that nudges Pass. They disagreed, in both directions,
+ *  and both ways round it looked like the game was broken rather than like a
+ *  rule:
+ *
+ *    - the TAP gate asked about one square, the first with no card standing on
+ *      it. A CAPTURED Home slot holds no card once its captor walks off, so on
+ *      a duel board one captured square at a low column answered "Slot is
+ *      permanently captured" for every card in hand while the rest of the Home
+ *      row stood open. The card lit up, dragged, and refused the tap.
+ *
+ *    - the hand strip and the idle-turn check asked by COLUMN, which Domination
+ *      refuses outright — it deploys at named squares — so on the 7x7 every
+ *      card in hand read as unsummonable, `draggable` was false for the whole
+ *      hand, and the game nudged the player toward Pass with four open shrines
+ *      and the gold to use them.
+ *
+ *  Both are the same mistake: a question about the WHOLE board answered from
+ *  one square, or in one mode's addressing. Asking here, once, is what keeps
+ *  the lit card, the draggable card and the card the tap accepts the same card.
+ *
+ *  Deliberately returns the SQUARE rather than a boolean: a caller that has to
+ *  explain a refusal needs somewhere legal to point at, and the two modes name
+ *  their squares differently. */
+export function summonSquare(
+  state: GameState,
+  player: PlayerId,
+  handId: string,
+): Pos | null {
+  const dom = !!domMap(state);
+  for (const sq of homeSlots(state, player))
+    if (canSummon(state, player, handId, sq.col, dom ? sq.row : undefined).ok) return sq;
   return null;
 }
 

@@ -29,6 +29,8 @@ import {
   needsP1Input,
   homeSlots,
   openHomeSlots,
+  summonLandingRow,
+  summonSquare,
   previewOnSummonArea,
   spellEnemyTargets,
   spellAllyTargets,
@@ -199,6 +201,10 @@ export function App() {
   // cursor. Drives a LIVE on-summon area preview (red) as you drag over slots.
   const [drag, setDrag] = useState<string | null>(null);
   const [dragCol, setDragCol] = useState<number | null>(null);
+  // ...and the ROW it was over. A column was enough while every summon landed
+  // on the Home row; Domination deploys at named squares, and a Home row that
+  // has been captured end to end lands the card forward of it.
+  const [dragRow, setDragRow] = useState<number | null>(null);
   // Mobile: which edge panel is open (Battle Log left / Spells right). Desktop
   // shows both inline, so this stays null there.
   const [mobilePanel, setMobilePanel] = useState<"log" | "spells" | null>(null);
@@ -1757,23 +1763,24 @@ export function App() {
   // drop to stage it for confirm.
   function onDragStartCard(handId: string) {
     if (me === null || game.phase !== "prep" || game.prep?.priority !== me) return;
-    // Same gate as the tap: some SQUARE has to be willing to take the card,
-    // otherwise the drag arms a summon with nowhere to drop it. Squares, not
-    // columns — Domination deploys at shrines and has no Home row to ask about.
-    const dom = !!game.domination;
-    if (!homeSlots(game, me).some((sq) =>
-      canSummon(game, me, handId, sq.col, dom ? sq.row : undefined).ok)) return;
+    // Same gate as the tap, and now literally the same call: some SQUARE has to
+    // be willing to take the card, otherwise the drag arms a summon with nowhere
+    // to drop it.
+    if (!summonSquare(game, me, handId)) return;
     setSel({ kind: "hand", handId }); // arm so the legal home slots light up
     setStaged(null);
     setDrag(handId);
     setDragCol(null);
+    setDragRow(null);
   }
   function onDragEndCard() {
     setDrag(null);
     setDragCol(null);
+    setDragRow(null);
   }
-  function onSlotDragOver(_row: number, col: number) {
+  function onSlotDragOver(row: number, col: number) {
     if (dragCol !== col) setDragCol(col);
+    if (dragRow !== row) setDragRow(row);
   }
   function onSlotDrop(_row: number, col: number) {
     if (drag === null || me === null) return;
@@ -1782,6 +1789,7 @@ export function App() {
       setStaged({ handId: drag, col, row: _row });
       setDrag(null);
       setDragCol(null);
+      setDragRow(null);
       return;
     }
     const chk = canSummon(game, me, drag, col);
@@ -1789,11 +1797,13 @@ export function App() {
       setHint(`⚠ ${chk.reason ?? "Home row only."}`);
       setDrag(null);
       setDragCol(null);
+      setDragRow(null);
       return;
     }
     setStaged({ handId: drag, col });
     setDrag(null);
     setDragCol(null);
+    setDragRow(null);
     setHint("Confirm placement — <b>red</b> marks where its on-summon effect lands.");
   }
 
@@ -1818,14 +1828,8 @@ export function App() {
    *  — where Gold is 0 and slots are the currency — every card read as broke. */
   const summonableHandIds = useMemo(() => {
     const out = new Set<string>();
-    for (const h of game.players[view].hand) {
-      for (let col = 0; col < game.boardSize; col++) {
-        if (canSummon(game, view, h.handId, col).ok) {
-          out.add(h.handId);
-          break;
-        }
-      }
-    }
+    for (const h of game.players[view].hand)
+      if (summonSquare(game, view, h.handId)) out.add(h.handId);
     return out;
   }, [game, view]);
 
@@ -1836,7 +1840,11 @@ export function App() {
       const out: Pos[] = [];
       for (let col = 0; col < game.boardSize; col++)
         if (canSummon(game, view, sel.handId, col).ok)
-          out.push({ row: hr, col } as Pos);
+          // The LANDING square, which is the Home row until the Home row has
+          // been captured out from under this side — then it is forward of it,
+          // and lighting the padlocked square instead sent the player clicking
+          // at a slot nothing can stand on.
+          out.push({ row: summonLandingRow(game, view, col) ?? hr, col } as Pos);
       // DOMINATION deploy squares: the four neutral shrines, plus the rings of
       // any Point this side holds. Read from `homeSlots` rather than the map's
       // shrine list, so a Point that flips takes its landing squares with it
@@ -1965,16 +1973,35 @@ export function App() {
   // on-summon area preview + green "place here" slot.
   const activeHandId = staged?.handId ?? drag ?? null;
   const activeCol = staged ? staged.col : dragCol;
-  const stagedSlot: Pos | null = useMemo(
-    () => (activeHandId !== null && activeCol !== null && me !== null ? ({ row: homeRow(me, game.boardSize), col: activeCol } as Pos) : null),
-    [activeHandId, activeCol, me],
-  );
+  // WHERE THE CARD ACTUALLY ARRIVES — resolved exactly as the reducer resolves
+  // it, rather than assumed to be the Home row. Both of the places that assumed
+  // it drew the ghost and the red on-summon area on the wrong square:
+  //
+  //   • a Domination summon names its own SQUARE (a shrine, or a ring of a Point
+  //     this side holds) and the ghost appeared on the Home row — a row that mode
+  //     does not even use.
+  //   • a Home row captured end to end lands the card FORWARD of it
+  //     (`summonLandingRow`), and the preview still pointed at the padlocked
+  //     square the card could not occupy.
+  //
+  // A staged square names its own row; a drag reads the square it is hovering.
+  const activeRow = staged?.row ?? dragRow ?? null;
+  const stagedSlot: Pos | null = useMemo(() => {
+    if (activeHandId === null || activeCol === null || me === null) return null;
+    if (game.domination) {
+      // No Home row to fall back to — the square is the address, so an unknown
+      // one means there is nothing honest to draw.
+      return activeRow === null ? null : ({ row: activeRow, col: activeCol } as Pos);
+    }
+    const row = summonLandingRow(game, me, activeCol) ?? homeRow(me, game.boardSize);
+    return { row, col: activeCol } as Pos;
+  }, [activeHandId, activeCol, activeRow, me, game]);
   const previewArea: Pos[] = useMemo(() => {
-    if (activeHandId === null || activeCol === null || me === null) return [];
+    if (activeHandId === null || stagedSlot === null || me === null) return [];
     const h = game.players[me].hand.find((c) => c.handId === activeHandId);
     if (!h) return [];
-    return previewOnSummonArea(game, getDef(h.defId), me, { row: homeRow(me, game.boardSize), col: activeCol } as Pos);
-  }, [activeHandId, activeCol, me, game]);
+    return previewOnSummonArea(game, getDef(h.defId), me, stagedSlot);
+  }, [activeHandId, stagedSlot, me, game]);
   // THE BOSS TELEGRAPH — the countdown badges, and the red zone under the
   // Special that lands at the end of this round. Both come back empty for any
   // fight without a boss clock in it, so every other mode is untouched.
@@ -2009,15 +2036,39 @@ export function App() {
     // is a hand you cannot play at all.
     const dom = !!game.domination;
     const spots = homeSlots(game, me);
-    const open = spots.filter((sq) => !cardAt(game, sq.row, sq.col));
-    if (open.length === 0) {
-      setHint(dom
-        ? "⚠ All four shrines are taken — move a card off one, or wait."
-        : "⚠ Your Home row is full — move a card forward, or wait for a slot to clear.");
-      return;
-    }
-    const chk = canSummon(game, me, handId, open[0].col, dom ? open[0].row : undefined);
-    if (!chk.ok) {
+    // ONE CAPTURED SQUARE USED TO LOCK THE WHOLE HAND. "Open" was read as
+    // `!cardAt` — occupancy and nothing else — and the engine was then asked
+    // about `open[0]` ALONE. A captured Home slot holds no card once its captor
+    // walks off, so it passed that filter, sorted first by column, and answered
+    // "Slot is permanently captured" for every card the player tapped, with the
+    // rest of the Home row standing wide open. Measured on both duel boards:
+    // one captured slot at column 0, engine says yes on columns 1..n-1, the
+    // hand strip lights the card as playable — and tapping it is refused.
+    //
+    // It only ever bit HERE, which is why it looked so arbitrary: the drag path
+    // and `summonableHandIds` both loop every square already, so the card lit
+    // up, dragged fine, and refused the tap. And it only bit in the 4x4/5x5
+    // duel, because that is the only mode where slots are captured at all
+    // (Void Tower and Domination both switch capture off) — on a four-wide
+    // Home row, one lost square is a quarter of the deployment.
+    //
+    // So ask about EVERY square and arm if any one of them will take the card.
+    if (!summonSquare(game, me, handId)) {
+      // Nothing takes it. To say WHY, ask a square that is genuinely free —
+      // `openHomeSlots` is the engine's own answer to that, capture and contest
+      // included — because canSummon tests the card before it tests the square,
+      // so a free square's refusal is about the card (Gold, the opening
+      // ceiling). No free square at all means the board is the problem.
+      const free = dom
+        ? spots.find((sq) => !cardAt(game, sq.row, sq.col) && !isCaptured(game, sq.row, sq.col))
+        : openHomeSlots(game, me).map((col) => ({ row: homeRow(me, game.boardSize), col }))[0];
+      if (!free) {
+        setHint(dom
+          ? "⚠ All four shrines are taken — move a card off one, or wait."
+          : "⚠ Your Home row is full — move a card forward, or wait for a slot to clear.");
+        return;
+      }
+      const chk = canSummon(game, me, handId, free.col, dom ? free.row : undefined);
       setHint(
         chk.reason === "Not enough Gold"
           ? `⚠ Not enough Gold for ${def.name} (costs ${def.cost}).`
@@ -2360,11 +2411,14 @@ export function App() {
       } else if (game.domination && canSummon(game, me, sel.handId, col, row).ok) {
         // A shrine names its own square, so the staged placement carries the row.
         setStaged({ handId: sel.handId, col, row });
-      } else if (canSummon(game, me, sel.handId, col).ok && row === homeRow(me, game.boardSize)) {
+      } else if (canSummon(game, me, sel.handId, col).ok
+        && row === (summonLandingRow(game, me, col) ?? homeRow(me, game.boardSize))) {
         setStaged({ handId: sel.handId, col });
         setHint("Confirm placement — <b>red</b> marks where its on-summon effect lands.");
       } else {
-        setHint(`⚠ ${canSummon(game, me, sel.handId, col).reason ?? "Home row only."}`);
+        // No reason means the COLUMN is fine and the square is not — the card
+        // lands somewhere else in it, and the glow is already showing where.
+        setHint(`⚠ ${canSummon(game, me, sel.handId, col).reason ?? "Tap a glowing slot."}`);
       }
       return;
     }
@@ -2639,9 +2693,14 @@ export function App() {
     if (!game.prep?.movedThisTurn)
       for (const c of Object.values(game.cards))
         if (c.owner === me && c.pos && legalMoves(game, me, c.instanceId).length > 0) return true;
+    // ...through the same authority as the other three. Asked by COLUMN, this
+    // was a fourth private copy of the question and it got Domination wrong in
+    // the other direction from the hand strip: `canSummon` refuses every
+    // column-addressed request on that map ("Summon at a shrine"), so the
+    // summon leg could never return true and the 7x7 nudged the player toward
+    // Pass while a full hand of affordable cards had four open shrines.
     for (const h of game.players[me].hand)
-      for (let col = 0; col < game.boardSize; col++)
-        if (canSummon(game, me, h.handId, col).ok) return true;
+      if (summonSquare(game, me, h.handId)) return true;
     for (const s of game.players[me].spellbook ?? [])
       if (!s.used && game.players[me].magicPool >= getSpell(s.defId).cost) return true;
     return false;
