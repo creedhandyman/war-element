@@ -4850,12 +4850,28 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   extendStatusAll(draft, attacker, _targets, params) {
     const kind = String(params.status ?? "ROOT") as StatusKind;
     const add = num(params, "addRounds", 2);
-    let n = 0;
+    // `applyRounds` (Winter's Bundle): opponents NOT already carrying the status
+    // pick it up fresh for this many rounds, instead of being passed over.
+    //
+    // The deepening alone needed someone else to have done the rooting first,
+    // which was fine while Hibernal's own passive supplied it and became a dead
+    // cast the moment that passive started freezing instead. Now the Special
+    // seeds the ROOT and deepens it: cast once and the board is held briefly,
+    // cast again and everything still standing in it is held for much longer.
+    const fresh = num(params, "applyRounds");
+    const el = getDef(attacker.defId).element;
+    let deepened = 0;
+    let seeded = 0;
     for (const e of enemyCards(draft, attacker.owner)) {
+      if (e.curHp <= 0) continue;
       const st = e.statuses.find((s) => s.kind === kind);
-      if (st && e.curHp > 0) { st.duration += add; n++; }
+      if (st) { st.duration += add; deepened++; }
+      else if (fresh > 0) { applyStatus(draft, e, kind, fresh, 0, el); seeded++; }
     }
-    draft.log.push(`${label(draft, attacker)} deepens the ${kind} on ${n} opponent(s) (+${add}r).`);
+    draft.log.push(
+      `${label(draft, attacker)} deepens the ${kind} on ${deepened} opponent(s) (+${add}r)`
+      + (seeded ? ` and sets it on ${seeded} more (${fresh}r).` : "."),
+    );
   },
   /** War Cry (Gilden): a rallying shout — the caster plates up and the whole team
    *  hits harder for the round. */

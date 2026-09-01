@@ -6348,25 +6348,24 @@ export const CARDS: CardDef[] = [
     // the card moving, and FREEZE takes half its damage on top.
     passiveNames: { freezeZeroSp: "Frosty Bites" },
     roundTick: { freezeZeroSp: 2 },
-    // Winter's Bundle: ROOT every opponent for one round.
+    // Winter's Bundle: still the DEEPENING it always was — +2 rounds on every
+    // opponent already ROOTed — and now a one-round ROOT on everyone who is not,
+    // rather than passing them over.
     //
-    // It used to EXTEND the ROOT on already-ROOTed opponents by 2, which only
-    // worked because the passive above was the thing supplying those ROOTs.
-    // Freezing instead would have left the Special with nothing to extend and
-    // the card with no second half at all, so the ROOT moves here — and this is
-    // now where all of this card's rooting comes from.
-    //
-    // Unconditional where it used to need setup, and one round where it used to
-    // add two. Cheaper to fire and easier to fire, in exchange for not being
-    // able to build a long lock out of it.
+    // The deepening on its own needed someone else to have done the rooting
+    // first. That was fine while the passive above supplied the ROOTs, and
+    // became a dead cast the moment it started freezing instead. Seeding and
+    // deepening in the same breath is what keeps the Special working off its own
+    // card: cast once and the board is briefly held, cast again and everything
+    // still standing in it is held for far longer.
     special: {
       name: "Winter's Bundle",
       cost: 2,
-      handler: "statusNova",
-      params: { statusKind: "ROOT", statusDuration: 1, targets: 99 },
+      handler: "extendStatusAll",
+      params: { status: "ROOT", addRounds: 2, applyRounds: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "ROOT every opponent for 1 round.",
+      text: "ROOT every opponent for 1 round — and every opponent already ROOTed is held for 2 rounds longer instead.",
     },
   },
   {
