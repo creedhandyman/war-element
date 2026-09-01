@@ -13489,11 +13489,12 @@ export const TOKENS: CardDef[] = [
     cost: 2,
     // 5 + 9 + 6 = 20 = 5*2+10. On the curve like everything else, even though
     // nothing buys these -- a token off the curve is a boss budget that lies.
-    // 6 + 12 + 8 = 26 against a cost-2's ordinary 20. Boss brood, not a common.
-    dmg: 6,
+    // 5 + 12 + 6 = 23 against a cost-2's ordinary 20. Still above a common,
+    // pulled back from 26 — see the note on Spindle's clear rate.
+    dmg: 5,
     hits: 1,
     hp: 12,
-    sp: 8,
+    sp: 6,
     shields: 0,
     keywords: {},
     // THE PLATE IS A SWARM — a dozen identical bodies coming over the rubble
@@ -13529,11 +13530,11 @@ export const TOKENS: CardDef[] = [
     attackType: "Ranged",
     cost: 3,
     // 6 + 10 + 1*2 + 7 = 25 = 5*3+10.
-    // 8 + 13 + 1x2 + 9 = 32 against a cost-3's 25.
-    dmg: 8,
+    // 7 + 12 + 1x2 + 7 = 28 against a cost-3's 25. Back from 32.
+    dmg: 7,
     hits: 1,
-    hp: 13,
-    sp: 9,
+    hp: 12,
+    sp: 7,
     shields: 1,
     // IT HAS WINGS AND IT IS IN THE AIR — the plate is a flier banking over the
     // spires, which is the one thing a Ranger token can say with a keyword.
@@ -13561,11 +13562,11 @@ export const TOKENS: CardDef[] = [
     attackType: "Ranged",
     cost: 4,
     // 7 + 13 + 1*2 + 8 = 30 = 5*4+10.
-    // 9 + 18 + 1x2 + 9 = 38 against a cost-4's 30.
-    dmg: 9,
+    // 8 + 16 + 1x2 + 8 = 34 against a cost-4's 30. Back from 38.
+    dmg: 8,
     hits: 1,
-    hp: 18,
-    sp: 9,
+    hp: 16,
+    sp: 8,
     shields: 1,
     keywords: {},
     // A LIDLESS EYE, open in the middle of the face and impossible to look away
@@ -13596,11 +13597,11 @@ export const TOKENS: CardDef[] = [
     attackType: "Ranged",
     cost: 5,
     // 6 + 18 + 2*2 + 7 = 35 = 5*5+10.
-    // 7 + 24 + 2x2 + 8 = 43 against a cost-5's 35.
-    dmg: 7,
+    // 6 + 22 + 2x2 + 7 = 39 against a cost-5's 35. Back from 43.
+    dmg: 6,
     hits: 1,
-    hp: 24,
-    sp: 8,
+    hp: 22,
+    sp: 7,
     shields: 2,
     keywords: {},
     // IT CARRIES A STAFF OF THREE EYES and holds a hand out over the brood —
@@ -13631,11 +13632,12 @@ export const TOKENS: CardDef[] = [
     attackType: "Melee",
     cost: 6,
     // 6 + 24 + 3*2 + 4 = 40 = 5*6+10.
-    // 8 + 29 + 4x2 + 4 = 49 against a cost-6's 40. It is a wall that answers.
-    dmg: 8,
+    // 7 + 26 + 4x2 + 3 = 44 against a cost-6's 40. Back from 49; still a wall
+    // that answers, just not one that also wins the exchange.
+    dmg: 7,
     hits: 1,
-    hp: 29,
-    sp: 4,
+    hp: 26,
+    sp: 3,
     shields: 4,
     // ARMOUR WITH EYES SET INTO IT, greatsword planted point-down in the
     // ground: a thing standing watch rather than advancing. BLOCK 2 is the
@@ -13673,10 +13675,10 @@ export const TOKENS: CardDef[] = [
     // Twelve total rather than eleven, and every point of it goes through
     // shields — which is what a wall of scythes should feel like to stand in
     // front of.
-    // 5x3 + 31 + 4x2 + 6 = 60 against a cost-8's 50.
+    // 5x3 + 26 + 4x2 + 6 = 55 against a cost-8's 50. Back from 60.
     dmg: 5,
     hits: 3,
-    hp: 31,
+    hp: 26,
     sp: 6,
     shields: 4,
     keywords: { PEN: true },
