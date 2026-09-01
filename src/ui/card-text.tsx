@@ -466,7 +466,7 @@ export function describePassives(def: CardDef): string[] {
       t.pokeAheadAdvance && `gore the enemy directly ahead for ${t.pokeAheadAdvance} (advance into its slot on a kill)`,
       t.overheatDmg && `${t.overheatDmg} DMG to the closest opponent (2× on a repeat target)`,
       t.healWoundedAllies && `heal allies under ${t.healWoundedAllies.underHp} HP by +${t.healWoundedAllies.amount}`,
-      t.rootZeroSp && `ROOT an opponent with 0 SP for ${t.rootZeroSp} rounds`,
+      t.freezeZeroSp && `FREEZE an opponent with 0 SP for ${t.freezeZeroSp} rounds`,
       t.lockEnemySpecials && `bind ${t.lockEnemySpecials} opponents — their Specials are disabled next round`,
       t.drainMaxAdjacent && `DRAIN ${t.drainMaxAdjacent} max HP from every adjacent opponent`,
       t.rootFastest && `ROOT the fastest opponent for ${t.rootFastest} rounds`,

@@ -3143,14 +3143,17 @@ function doRoundTicks(draft: GameState): void {
       const rs = rt.rootedStatus;
       for (const e of enemies()) if (hasStatus(e, "ROOT")) applyStatus(draft, e, rs.kind, rs.duration, rs.power, getDef(card.defId).element);
     }
-    if (rt.rootZeroSp) {
+    if (rt.freezeZeroSp) {
       // Frosty Bites (Hibernal): the winter cold seizes a spent, motionless foe.
+      // Skips one already FROZEN rather than one already ROOTed — the point is
+      // not to spend the tick re-applying what is there, and a rooted foe is
+      // still worth freezing because FREEZE takes half its damage as well.
       const stuck = enemies().find(
-        (e) => e.curHp > 0 && effectiveSp(draft, e) <= 0 && !hasStatus(e, "ROOT"),
+        (e) => e.curHp > 0 && effectiveSp(draft, e) <= 0 && !hasStatus(e, "FREEZE"),
       );
       if (stuck) {
-        applyStatus(draft, stuck, "ROOT", rt.rootZeroSp, 0, getDef(card.defId).element);
-        draft.log.push(`${label(draft, card)}'s frost roots ${label(draft, stuck)} (${rt.rootZeroSp}r).`);
+        applyStatus(draft, stuck, "FREEZE", rt.freezeZeroSp, 0, getDef(card.defId).element);
+        draft.log.push(`${label(draft, card)}'s frost freezes ${label(draft, stuck)} (${rt.freezeZeroSp}r).`);
       }
     }
     if (rt.drainMaxAdjacent) {

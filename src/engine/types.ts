@@ -264,9 +264,13 @@ export interface RoundTickDef {
   /** Emergency Support (Vigil) / Rescue Pack (St. Bernard): heal every ally whose
    *  curHp is under `underHp` by `amount` at end of round. */
   healWoundedAllies?: { underHp: number; amount: number };
-  /** Frosty Bites (Hibernal): at end of round, ROOT one opponent whose effective
-   *  SP is 0 for this many rounds. */
-  rootZeroSp?: number;
+  /** Frosty Bites (Hibernal): at end of round, FREEZE one opponent whose
+   *  effective SP is 0 for this many rounds.
+   *
+   *  It ROOTed until now, and the rename is the honest half of the change:
+   *  FREEZE is a strictly heavier pin. Both hold SP at 0, so both stop a card
+   *  moving; FREEZE also halves its damage. */
+  freezeZeroSp?: number;
   /** Magic Ropes (Tether): each round, lock this many in-range opponents out of
    *  their Specials for the coming round. */
   lockEnemySpecials?: number;

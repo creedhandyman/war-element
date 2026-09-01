@@ -6343,18 +6343,30 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // Frosty Bites (End of Round): ROOT an opponent with 0 SP for 2 rounds.
-    passiveNames: { rootZeroSp: "Frosty Bites" },
-    roundTick: { rootZeroSp: 2 },
-    // Winter's Bundle: extend the ROOT on every already-ROOTed opponent by 2.
+    // Frosty Bites (End of Round): FREEZE an opponent with 0 SP for 2 rounds.
+    // It ROOTed before. FREEZE is the heavier pin — both hold SP at 0 and stop
+    // the card moving, and FREEZE takes half its damage on top.
+    passiveNames: { freezeZeroSp: "Frosty Bites" },
+    roundTick: { freezeZeroSp: 2 },
+    // Winter's Bundle: ROOT every opponent for one round.
+    //
+    // It used to EXTEND the ROOT on already-ROOTed opponents by 2, which only
+    // worked because the passive above was the thing supplying those ROOTs.
+    // Freezing instead would have left the Special with nothing to extend and
+    // the card with no second half at all, so the ROOT moves here — and this is
+    // now where all of this card's rooting comes from.
+    //
+    // Unconditional where it used to need setup, and one round where it used to
+    // add two. Cheaper to fire and easier to fire, in exchange for not being
+    // able to build a long lock out of it.
     special: {
       name: "Winter's Bundle",
       cost: 2,
-      handler: "extendStatusAll",
-      params: { status: "ROOT", addRounds: 2 },
+      handler: "statusNova",
+      params: { statusKind: "ROOT", statusDuration: 1, targets: 99 },
       targetSide: "enemy",
       ranged: true,
-      text: "ROOT every already-ROOTed opponent for 2 additional rounds.",
+      text: "ROOT every opponent for 1 round.",
     },
   },
   {
