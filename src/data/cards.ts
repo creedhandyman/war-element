@@ -6208,9 +6208,15 @@ export const CARDS: CardDef[] = [
       // BATTLE and Cleanup follows immediately, so a 1-round FRIGHTEN was gone
       // before it could pin anything. The card text still reads "1 round"
       // because that is what 2 ticks buys: one Prep turn where they cannot move.
-      params: { tribe: "Spider", frighten: 2, healPerHit: 2, spawnOnKill: "dusk_spider" },
+      // spawnCount 2: the cast nests two Spiders outright, on top of the one per
+      // KILL it already paid. The kill spawns are the reward for a good hunt;
+      // these are the floor, so a Silk Chase that finds nothing still leaves the
+      // web wider than it found it — which is the half of this card that was
+      // missing when the board was empty in front of her.
+      params: { tribe: "Spider", frighten: 2, healPerHit: 2, spawnOnKill: "dusk_spider",
+                spawn: "dusk_spider", spawnCount: 2 },
       targetSide: "enemy",
-      text: "Every allied Spider attacks; each opponent hit is FRIGHTENed 1 round and Sarachnid heals 2 HP per hit. Every opponent killed nests another Spider.",
+      text: "Every allied Spider attacks; each opponent hit is FRIGHTENed 1 round and Sarachnid heals 2 HP per hit. Nests 2 Spiders, plus another for every opponent killed.",
     },
   },
   {

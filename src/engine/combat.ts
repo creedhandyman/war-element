@@ -4996,6 +4996,21 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       const born = spawnTokens(draft, attacker, nestToken, kills);
       if (born.length) draft.log.push(`The hunt feeds the nest — ${born.length} more ${tribe || "body"}(s) hatch.`);
     }
+    // `spawnCount` (Silk Chase): the cast nests this many outright, whether or
+    // not the hunt killed anything. Separate from `spawnOnKill` on purpose —
+    // that one is the reward for a good hunt and this one is the floor, so a
+    // swarm that finds nothing still leaves the board wider than it found it.
+    //
+    // AFTER the swarm, deliberately: spawning first would have the new bodies
+    // join the same hunt, which turns one cast into a compounding wave. These
+    // are reinforcements for the NEXT one.
+    const nest = String(params.spawn ?? params.spawnOnKill ?? "");
+    const nestN = num(params, "spawnCount");
+    if (nest && nestN > 0 && attacker.curHp > 0) {
+      const laid = spawnTokens(draft, attacker, nest, nestN);
+      if (laid.length)
+        draft.log.push(`${label(draft, attacker)} nests ${laid.length} more ${tribe || "body"}(s).`);
+    }
     draft.log.push(`Silk Chase: ${swarm.length} ${tribe || "ally"}(s) strike (${hits} hit(s)).`);
   },
   /** Opaque Realm (Spectra): cloak the caster and whoever stands directly behind
