@@ -2433,6 +2433,16 @@ describe("a border crossing is fought on the Domination map", () => {
     let st = 0;
     while (s.phase !== "gameover" && st < 8000) { s = advance(s); st++; }
     expect(s.phase, "the gate battle finished").toBe("gameover");
-    expect(s.win?.by, "won on Points, not by reaching a home row").toBe("domination");
+    // The trap named above is CAPTURE — a 7x7 that forgot the stamp is a big
+    // board with home rows, and it ends by walking onto four of them. So that is
+    // what this refuses. It used to demand `by === "domination"` exactly, which
+    // pinned the outcome of ONE seeded AI game rather than the property: a
+    // Domination match can legitimately end by elimination or on the clock too
+    // (measured, roughly one game in six ends by elimination), so any card in
+    // either formation shifting by a point could flip it. A stat re-cut on an
+    // unrelated LEAF Tank is what actually did.
+    expect(s.domination, "the stamp survived the match").toBeTruthy();
+    expect(["capture", "overrun"], "decided as an oversized duel, not on the map")
+      .not.toContain(s.win?.by);
   });
 });

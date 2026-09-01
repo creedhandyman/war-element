@@ -12547,11 +12547,19 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     attackType: "Melee",
     cost: 5,
-    // 7 + 18 + 1*2 + 8 = 35 = 5*5+10.
-    dmg: 7,
+    // 6 + 21 + 1*2 + 6 = 35 = 5*5+10. Re-cut from 7/18/8: a point of damage and
+    // two of speed traded for three of HP, which lands on the same 35 exactly.
+    // More silverback, less sprinter — it hits slightly softer and stands up
+    // rather longer, which is the Tank the notes above argue it should be.
+    //
+    // SP 6 KEEPS ITS STRIDE. `moveReach` is 2 for anything above SP_SLOW_MAX
+    // (5), so 8 -> 6 costs no movement at all, and it was never in the FAST
+    // tier (SP > 10) to fall out of. What it does lose is margin: at 8 it took
+    // a 3-point SP debuff to halve its stride, and at 6 it takes a single point.
+    dmg: 6,
     hits: 1,
-    hp: 18,
-    sp: 8,
+    hp: 21,
+    sp: 6,
     shields: 1,
     keywords: {},
     passiveNames: { onHitPush: "Timber Toss" },
