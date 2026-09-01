@@ -2632,6 +2632,18 @@ function stackStatus(
   }
 }
 
+/** CLEANSE, as this game means it: negative statuses and negative timed stat
+ *  changes come off, ally buffs stay on. Extracted from `heal` when a second
+ *  handler needed it — two copies of this filter would have been two copies of
+ *  the list of what counts as negative, and they would have drifted the first
+ *  time a status was added. */
+function stripNegatives(card: CardInstance): void {
+  card.statuses = card.statuses.filter((st) => !NEGATIVE_STATUSES.includes(st.kind));
+  card.buffs = card.buffs.filter((b) => b.dmg >= 0 && b.sp >= 0);
+  if (card.dmgBonusRound < 0) card.dmgBonusRound = 0;
+  if (card.spBonusRound < 0) card.spBonusRound = 0;
+}
+
 function maybeStatus(
   draft: GameState,
   attacker: CardInstance,
@@ -4177,6 +4189,19 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (sealR > 0 && target.curHp > 0 && draft.cards[target.instanceId])
         applyStatus(draft, target, "SEAL", sealR, 0, getDef(attacker.defId).element);
     }
+    // CLEANSE THE CASTER'S OWN SIDE. Deliberately NOT named `cleanseAllies`:
+    // barrage already has a param by that name and it wipes statuses
+    // INDISCRIMINATELY (Siphon's Cyclone), buffs included. This one strips only
+    // what is negative, which is what "cleanse" means everywhere else in the
+    // game -- the same `stripNegatives` the heal handler uses. Two params one
+    // word apart doing different things is the kind of trap that is only found
+    // by a card behaving oddly in play.
+    if (num(params, "cleanseAlliesNegatives") > 0) {
+      let cleaned = 0;
+      for (const a of boardCards(draft, attacker.owner))
+        if (a.curHp > 0 && (a.statuses.length || a.buffs.length)) { stripNegatives(a); cleaned++; }
+      if (cleaned) draft.log.push(`${label(draft, attacker)} washes the team down (${cleaned} ally(ies) cleansed).`);
+    }
     // Solara's Blinding Sunrise also calls another Radiant Guardian to her side.
     const spawnTok = typeof params.spawnToken === "string" ? params.spawnToken : "";
     if (spawnTok && attacker.curHp > 0)
@@ -5175,12 +5200,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       // by the burn it is in the middle of removing — put the fire out, then
       // treat the wound.
       if (doCleanse && ally.statuses.length) ally.statuses = [];
-      else if (cleanseNeg) {
-        ally.statuses = ally.statuses.filter((st) => !NEGATIVE_STATUSES.includes(st.kind));
-        ally.buffs = ally.buffs.filter((b) => b.dmg >= 0 && b.sp >= 0);
-        if (ally.dmgBonusRound < 0) ally.dmgBonusRound = 0;
-        if (ally.spBonusRound < 0) ally.spBonusRound = 0;
-      }
+      else if (cleanseNeg) stripNegatives(ally);
       if (amount > 0 && healCard(draft, ally, amount, attacker) > 0) healed++;
       if (buffDmg > 0 || buffSp > 0) applyTimedBuff(ally, buffDmg, buffSp, buffRounds);
     }

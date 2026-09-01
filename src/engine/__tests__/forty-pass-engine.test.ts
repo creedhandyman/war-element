@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 import type { GameState } from "../types";
 import { getDef } from "../../data/cards";
-import { SPECIAL_HANDLERS, basicAttack } from "../combat";
+import { SPECIAL_HANDLERS, applyStatus, basicAttack } from "../combat";
 import { effectiveDmg } from "../state";
 import { applyIntent } from "../phases";
 import { canPlummet, plummetTargets, canTarget, validTargets, rangedReachFor, RANGED_REACH, specialTargets } from "../rules";
@@ -563,5 +563,35 @@ describe("Sunspot and Quasar are a pair, not a copy", () => {
     const sun = place(s, "dawn_sunspot", "P1", 3, 2, { curHp: 30, maxHp: 30 });
     const far = place(s, "leaf_oak", "P2", 1, 4, { curHp: 40, maxHp: 40 });
     expect(specialTargets(s, sun.instanceId).map((t) => t.instanceId)).toContain(far.instanceId);
+  });
+});
+
+// ─────────────────────────────────────── Hose Down also cleanses
+describe("Hose Down washes the team as it lands", () => {
+  it("strips negatives off allies but leaves their buffs alone", () => {
+    const s = bigPrepState();
+    const ally = place(s, "leaf_oak", "P1", 3, 1, { curHp: 40, maxHp: 40 });
+    applyStatus(s, ally, "BURN", 3, 3, "PYRO");
+    ally.buffs.push({ dmg: 2, sp: 0, rounds: 3 });   // a POSITIVE buff
+    ally.buffs.push({ dmg: -3, sp: 0, rounds: 3 });  // ...and a debuff
+    place(s, "leaf_oak", "P2", 2, 2, { curHp: 40, maxHp: 40 });
+    s.players.P1.gold = 20;
+    const handId = giveHand(s, "P1", "aqua_firefighter");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    const after = next.cards[ally.instanceId];
+    expect(after.statuses.some((x) => x.kind === "BURN"), "the burn is out").toBe(false);
+    expect(after.buffs.some((b) => b.dmg > 0), "the ally keeps what helped it").toBe(true);
+    expect(after.buffs.some((b) => b.dmg < 0), "and loses what did not").toBe(false);
+  });
+
+  it("cleanses only the caster's side", () => {
+    const s = bigPrepState();
+    const foe = place(s, "leaf_oak", "P2", 2, 2, { curHp: 40, maxHp: 40 });
+    applyStatus(s, foe, "BURN", 3, 3, "PYRO");
+    s.players.P1.gold = 20;
+    const handId = giveHand(s, "P1", "aqua_firefighter");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 2 });
+    expect(next.cards[foe.instanceId].statuses.some((x) => x.kind === "BURN"),
+      "the enemy is not put out for them").toBe(true);
   });
 });

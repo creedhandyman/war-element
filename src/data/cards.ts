@@ -13013,9 +13013,21 @@ export const CARDS: CardDef[] = [
     // `targets: 99` with no spread/column/row param, which the on-summon path
     // reads as "every opponent in normal targeting range" -- a Ranged card's
     // reach, so the blast covers what the hose could actually cover.
+    // ...AND IT CLEANSES ON THE WAY IN. `cleanseAlliesNegatives` rather than
+    // barrage's `cleanseAllies`, which wipes buffs too -- this strips only what
+    // is negative, the same rule the card's own Knock Down already follows.
+    //
+    // One `onSummon` carries both halves because it has to: the hook runs a
+    // SINGLE handler with a SINGLE targetSide, so an enemy push and an ally
+    // cleanse cannot be two entries. statusNova targets the enemy and the
+    // cleanse rides along as a rider on the caster's own side.
+    //
+    // It is also the card finally doing what its stat comment always claimed --
+    // "a hard counter to PYRO's BURN/SCALD" -- from the moment it lands, rather
+    // than only once it has 3 magic for Knock Down.
     onSummon: {
       handler: "statusNova",
-      params: { targets: 99, push: 1 },
+      params: { targets: 99, push: 1, cleanseAlliesNegatives: 1 },
       targetSide: "enemy",
     },
     special: {

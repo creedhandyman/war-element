@@ -131,10 +131,12 @@ function describeOnSummon(os: {
       const nSt = statusParts();
       const shove = nPush ? `push ${scope()} back ${nPush}` : "";
       const apply = nSt.length ? `apply ${nSt.join(" + ")} to ${scope()}` : "";
-      if (shove && apply) return `On summon: ${apply}, and ${shove}.`;
-      if (shove) return `On summon: ${shove}.`;
-      if (apply) return `On summon: ${apply}.`;
-      return "";
+      const wash = n("cleanseAlliesNegatives")
+        ? "strip every negative status and debuff off your side" : "";
+      const bits = [apply, shove, wash].filter(Boolean);
+      if (!bits.length) return "";
+      const last = bits.pop()!;
+      return `On summon: ${bits.length ? `${bits.join(", ")}, and ` : ""}${last}.`;
     }
     case "grantShield":
       return `On summon: give ${scope()} +${n("amount")} shield.`;
