@@ -244,9 +244,6 @@ describe("the roster", () => {
       // needs — see the token's note.
       //
       // THEN SPLASH + 85 HP (owner's call) — and it measured 75.0 -> **74.0%**,
-      // (the hurricane is on 55 HP now; this figure was taken at 85 and has not
-      // been re-measured, though the finding below is about its ATTACK and is
-      // untouched by its body)
       // i.e. NOTHING, inside sampling noise at n=96. Recorded because a null
       // result is a finding: the hurricane's ATTACK is close to irrelevant to
       // this fight's outcome, and buffing it does not move the number.
@@ -321,8 +318,14 @@ describe("the roster", () => {
       // That is a little under the 80-90 band Floor 4 was tuned to, and it is
       // internally consistent, which the 75.0-95.8 spread before it was not.
       // HP remains the lever in either direction (366 body against a 660 cap at
-      // the time; 337 now, after HP 298 -> 269 — so the 84.9% below is stale in
-      // the direction of being too high).
+      // the time; 337 now, after HP 298 -> 269).
+      //
+      // RE-MEASURED at the new body, whole tower in one sweep, same recipe
+      // (8 cores x 12 seeds = n=96 per cell): **70.8% with a tamed ally**, down
+      // from 86.5% measured at the old 298 on this same run. So 29 points of HP
+      // bought about 16 points of clear rate — and that is worth recording
+      // against the claim two notes down that body is NOT what decides a
+      // Floor-5 fight. On this evidence it substantially is.
       //
       // AS SHIPPED: **84.9% (n=768, +/-2.5)**, in the 80-90 band. It got there
       // from 92.7 on ONE change and that change was a BUG FIX, not a nerf —
@@ -340,8 +343,7 @@ describe("the roster", () => {
       // (85 -> 45 read 97.4%, 85 -> 30 read 97.9%, against 92.7). Killing it
       // fires the call-a-hurricane face, and the fresh one re-runs its on-summon
       // barrage. A fragile token is MORE barrages, not fewer.
-      // 337 since HP came down from 298 to 269. The measured clear rates above
-      // were taken at 366 body and have not been re-run.
+      // 337 since HP came down from 298 to 269.
       boss_skybreaker: 337,
       // FLOOR 5's second boss, and the heaviest body on the tower by a
       // distance: 50 + 400 + 50x2 + 1. The owner's line. SP 1 is the
@@ -373,7 +375,14 @@ describe("the roster", () => {
       // ally = Umbranova at TAME_SCALE). 54 overrun / 18 timeout.
       //
       // BELOW Skybreaker's 95.8% on the same floor, with 551 body points at the
-      // time (511 now, after HP 400 -> 360)
+      // time (511 now, after HP 400 -> 360).
+      //
+      // RE-MEASURED after that reduction, same sweep and recipe as Skybreaker's
+      // note above (n=96): **100% bare, 87.5% with a tamed ally** — UP from
+      // 74.0%, despite losing 40 HP. Several things moved in the same session
+      // (this body, Skybreaker's, and the hurricane token's), so the sweep
+      // cannot attribute that to any one of them; what it does say is that this
+      // fight did not get easier
       // against its 366 (both since reduced: 511 and 337) — which is the useful
       // lesson and the reason the number
       // is recorded next to the other one. Body is NOT what decides a Floor-5
@@ -410,10 +419,7 @@ describe("the roster", () => {
       // 96.9% and Skybreaker 99.5%, because a giant with `fullBoardBasic` that
       // never leaves its back row cannot be reached while it shoots the whole
       // board. Walking down is what gets these two killed.
-      // 511 since HP came down from 400 to 360. The win-rate note above was
-      // measured at 551 and has NOT been re-measured — the number it argues
-      // about (body is not what decides a Floor-5 fight) is if anything made
-      // more true by taking 40 HP off, but the 99.0% itself is now stale.
+      // 511 since HP came down from 400 to 360.
       boss_continental: 511,
     };
     for (const v of VOID_BOSSES) {
