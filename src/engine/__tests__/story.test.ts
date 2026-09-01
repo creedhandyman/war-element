@@ -23,6 +23,10 @@ import {
 } from "../../data/story";
 import { finisherOf } from "../../ui/DeckPickerSheet";
 import { spellCapForBoard } from "../spells";
+import { CORES } from "../../data/cards";
+import { DOMINATION_7X7, newDomination } from "../../data/domination";
+import { createInitialState } from "../state";
+import { advance } from "../phases";
 
 const leaf = REGIONS.find((r) => r.id === "leaf")!;
 /** Real cards, by element. The squad pool reads each card's element, so a
@@ -1667,8 +1671,12 @@ describe("story: board size is welded to deck size", () => {
       for (const n of r.nodes) {
         const board = boardForNode(r, n);
         const big = BIG_BATTLE_KINDS.includes(n.kind);
-        expect(board, `${n.id} (${n.kind})`).toBe(n.board ?? (big ? 5 : r.board));
-        expect([4, 5], `${n.id} board ${board}`).toContain(board);
+        // A GATE IS A THIRD CASE, and it outranks the region: a border crossing
+        // is fought on the 7x7 Domination map wherever it sits, so a gate in a
+        // 4x4 region is 7 and so is a gate in DAWN.
+        expect(board, `${n.id} (${n.kind})`)
+          .toBe(n.board ?? (isGate(n) ? 7 : big ? 5 : r.board));
+        expect([4, 5, 7], `${n.id} board ${board}`).toContain(board);
       }
     }
     // And the two that do it are named, so a third region joining them is a
@@ -2078,18 +2086,37 @@ describe("a gate asks for the size it actually enforces", () => {
     // This asserts the two are not interchangeable, so a future call site that
     // reaches for the ladder number is testing against a real difference rather
     // than a coincidence.
-    const cleared = ALL_NODES.map((n) => n.id);          // everything: ladder at its max
-    const ladder = deckCapFor(cleared);
+    // SWEPT ACROSS CLEAR DEPTHS rather than only at a full clear. Gates are
+    // fought on the 7x7 now, so every one of them ceilings at BIG_BOARD_CAP —
+    // which is exactly the ladder's own maximum, and at a full clear the two
+    // numbers agree everywhere and the divergence check below had nothing left
+    // to find. The divergence is real, it just lives mid-campaign now: the
+    // ladder ramps with what you have cleared while a gate's cap is set by its
+    // board.
+    const allIds = ALL_NODES.map((n) => n.id);
     let differed = 0;
-    for (const region of REGIONS) {
+    for (const depth of [0, 8, 20, allIds.length]) {
+      const cleared = allIds.slice(0, depth);
+      const ladder = deckCapFor(cleared);
+      for (const region of REGIONS) {
       for (const node of region.nodes) {
-        if (!isGate(node)) continue;
         const save: StorySave = {
           cleared, collection: [], pity: {}, deck: [], blight: {},
         };
+        // DIVERGENCE IS COUNTED OVER EVERY NODE, not just gates, and that is
+        // the change this rework forced. `fightCap` is min(ladder, the node's
+        // board ceiling); a gate now sits on the 7x7 and so ceilings at
+        // BIG_BOARD_CAP, which IS the ladder's own maximum -- so at a gate the
+        // two can no longer disagree, and the old check counted zero and
+        // declared itself untestable.
+        //
+        // The two are still different quantities, and the bug is still live
+        // anywhere a 4x4 node sits in a region whose ladder has run past 18.
+        // So the non-vacuity is proved there instead, and the per-gate size
+        // assertions below are unchanged.
+        if (fightCap(save, region, node) !== ladder) differed++;
+        if (!isGate(node)) continue;
         const cap = fightCap(save, region, node);
-        // A 4x4 gate in a region whose ladder has run past the standard size.
-        if (cap !== ladder) differed++;
         // Whatever it is, a deck of exactly that size passes the size half and
         // one card either side does not.
         // Real ids: gateCheck runs `demandMet`, which looks every card up.
@@ -2100,6 +2127,7 @@ describe("a gate asks for the size it actually enforces", () => {
           gateCheck(s, node).reasons.some((r) => r.includes("Your deck is"));
         expect(sizeFail(exact), `${node.id} rejects its own fightCap ${cap}`).toBe(false);
         expect(sizeFail(over), `${node.id} accepts ${cap + 1}`).toBe(true);
+      }
       }
     }
     // If these never diverged the test would pass on a coincidence.
@@ -2371,5 +2399,40 @@ describe("the booster box", () => {
     }
     expect(save.hero!.freePacks, "every owed pack spent").toBe(0);
     expect(canOpenPack(save), "and then it is empty, with no shards").toBe(false);
+  });
+});
+
+// ── border crossings are Domination ─────────────────────────────────────────
+describe("a border crossing is fought on the Domination map", () => {
+  it("every gate is a 7x7, wherever it sits", () => {
+    const gates = REGIONS.flatMap((r) => r.nodes.filter(isGate).map((n) => [r, n] as const));
+    expect(gates.length, "the campaign has border gates").toBeGreaterThan(0);
+    for (const [r, n] of gates)
+      expect(boardForNode(r, n), `${n.id} in ${r.id} (region board ${r.board})`).toBe(7);
+  });
+
+  it("a gate fields the BIG squad cap, not the standard one", () => {
+    // `capForNode` tested board size with `=== 5`, so a 7 fell through to
+    // STANDARD_CAP — eighteen cards across forty-nine slots, on the largest
+    // board in the game.
+    const cleared = ALL_NODES.map((n) => n.id);
+    for (const r of REGIONS)
+      for (const n of r.nodes.filter(isGate))
+        expect(capForNode(cleared, r, n), `${n.id}`).toBe(BIG_BOARD_CAP);
+  });
+
+  it("and it really resolves BY DOMINATION, not as an oversized duel", () => {
+    // The whole trap: a 7x7 without `domination` stamped on is a big board with
+    // home rows and a capture win. This mirrors what App.tsx builds for a gate.
+    const [region, node] = REGIONS.flatMap(
+      (r) => r.nodes.filter(isGate).map((n) => [r, n] as const))[0];
+    const board = boardForNode(region, node);
+    const squad = buildFormation(newSave(), region, node);
+    let s = createInitialState(7, CORES[0].cards, squad, [], undefined, undefined, board);
+    s.domination = newDomination(DOMINATION_7X7);
+    let st = 0;
+    while (s.phase !== "gameover" && st < 8000) { s = advance(s); st++; }
+    expect(s.phase, "the gate battle finished").toBe("gameover");
+    expect(s.win?.by, "won on Points, not by reaching a home row").toBe("domination");
   });
 });

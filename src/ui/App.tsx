@@ -3530,9 +3530,15 @@ export function App() {
             // A Throne opens on its cheapest cards so the region's climax can
             // actually act while gold is tight — see `THRONE_OPENING_STACK`.
             // Only the ENEMY seat; the player's own draw is never touched.
-            setGame(createInitialState(newSeed(), deck, squad, ["P1"], heroBook, foeBook, board,
+            const fresh = createInitialState(newSeed(), deck, squad, ["P1"], heroBook, foeBook, board,
               deploy, terrain,
-              node.kind === "throne" ? { P2: THRONE_OPENING_STACK } : undefined));
+              node.kind === "throne" ? { P2: THRONE_OPENING_STACK } : undefined);
+            // A 7x7 is only DOMINATION if the mode is stamped on. Without this
+            // line a border gate is an oversized duel on a map whose middle is
+            // impassable and whose home rows are not the win condition -- the
+            // same trap the balance harness hit.
+            if (board === DOMINATION_7X7.boardSize) fresh.domination = newDomination(DOMINATION_7X7);
+            setGame(fresh);
             navDo({ t: "fight", node });
             setViewSide("P1");
             setSel(null);

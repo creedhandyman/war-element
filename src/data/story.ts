@@ -13,6 +13,7 @@
 
 import { CARDS, CARD_INDEX, getDef } from "./cards";
 import { SPELLS, getSpell, legalSpellIds, spellCapForBoard } from "../engine/spells";
+import { DOMINATION_7X7 } from "./domination";
 import { DECK_TIERS } from "./custom-decks";
 import type { GauntletState } from "./gauntlet";
 import type { LadderState } from "./matchmaker";
@@ -1852,7 +1853,10 @@ export function capForNode(
   region: StoryRegion,
   node: StoryNode,
 ): number {
-  const ceiling = boardForNode(region, node) === 5 ? BIG_BOARD_CAP : STANDARD_CAP;
+  // `>= 5`, not `=== 5`. A gate is fought on the 7x7 now, and an equality test
+  // dropped it straight through to STANDARD_CAP -- eighteen cards spread across
+  // forty-nine slots, on the biggest board in the game.
+  const ceiling = boardForNode(region, node) >= 5 ? BIG_BOARD_CAP : STANDARD_CAP;
   // A SET PIECE IS ALWAYS A FULL FIGHT. The ladder's two opening rungs exist to
   // ramp the first few skirmishes of the campaign (see CAP_LADDER) and a
   // Landmark or a Throne is the opposite of that — the boss has to arrive with
@@ -2026,6 +2030,11 @@ export const fieldedBy = (node: StoryNode): string[] =>
 
 // ── board size ──────────────────────────────────────────────────────────────
 
+/** Declared HERE rather than with the other gate helpers below, because
+ *  `boardForNode` reads it and both are `const` -- a gate predicate defined
+ *  after its own use is a TDZ crash at module load, not a lint nit. */
+export const isGate = (n: StoryNode): boolean => n.kind === "gate";
+
 /** Node kinds fought on the LARGE board. Everything else is 4x4.
  *
  *  The campaign is a 4x4 game that opens up for its set pieces: a Landmark or a
@@ -2075,12 +2084,26 @@ export const THRONE_OPENING_STACK = 5;
  *  it, and both sides bring the same count (`formationSize(cap) === cap`), so
  *  the fight stays symmetric. It just means a set piece is a smaller army on a
  *  wider field, which is the manoeuvring the big board exists for. */
+/** A BORDER CROSSING IS A DOMINATION MAP. A gate is not another skirmish with a
+ *  composition requirement bolted on -- it is the moment the campaign leaves one
+ *  region for the next, and the 7x7 makes it play like one: four Points to
+ *  contest instead of a home row to reach, and no capture win at all.
+ *
+ *  It also puts the mode somewhere other than a menu. Domination shipped as an
+ *  arena option, which means most players meet it by choosing it; this makes the
+ *  campaign hand it to them seven times, at the exact moments a change of ground
+ *  reads as the story rather than as a setting.
+ *
+ *  The economy is already built for it: DECK_LIMITS[7] is 30 cards and 8 spells,
+ *  the same pair the large board uses, so a gate asks for the deck a Landmark
+ *  already asks for and no new format appears. `node.board` still overrides, so
+ *  a single gate can be pulled back to a duel without touching this. */
 export const boardForNode = (region: StoryRegion, node: StoryNode): number =>
-  node.board ?? (BIG_BATTLE_KINDS.includes(node.kind) ? 5 : region.board);
+  node.board ?? (isGate(node) ? DOMINATION_7X7.boardSize
+    : BIG_BATTLE_KINDS.includes(node.kind) ? 5 : region.board);
 
 // ── border gates (§7) ───────────────────────────────────────────────────────
 
-export const isGate = (n: StoryNode): boolean => n.kind === "gate";
 
 export interface GateCheck {
   ok: boolean;
