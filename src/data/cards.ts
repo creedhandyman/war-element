@@ -12719,7 +12719,7 @@ export const CARDS: CardDef[] = [
     advanceOnBasic: 1,
     talent: {
       name: "Peel Out",
-      text: "Once per game, free: open the throttle — 4 DMG and BURN 3 for 3 rounds to every opponent in the two spaces directly ahead.",
+      text: "Once per game, free: open the throttle — 4 DMG and BURN 3 for 3 rounds to every opponent in the two spaces directly ahead, then roll two spaces forward.",
       // THE COLUMN AHEAD, TWO DEEP — `spread: 0` is one column wide (its own),
       // `forwardDepth: 2` is how far up it runs. It was `rowAhead: 1`, the whole
       // rank ACROSS the board, which is a strange thing for a motorcycle to do:
@@ -12732,7 +12732,15 @@ export const CARDS: CardDef[] = [
       // (phases.ts) is checked BEFORE `spread`, so setting both would silently
       // ignore the depth.
       handler: "barrage",
-      params: { dmg: 4, targets: 99, spread: 0, forwardDepth: 2, statusKind: "BURN", statusPower: 3, statusDuration: 3 },
+      // ...and it does not stop where it burned. `rollThrough: 2` carries the
+      // bike two slots up its own column afterwards — the same primitive
+      // Tumbleweed rolls on, and the same one `advanceOnBasic` already gives
+      // this card on every ordinary swing. A talent called Peel Out that left
+      // the bike parked was the odd part.
+      params: {
+        dmg: 4, targets: 99, spread: 0, forwardDepth: 2,
+        statusKind: "BURN", statusPower: 3, statusDuration: 3, rollThrough: 2,
+      },
     },
   },
   {

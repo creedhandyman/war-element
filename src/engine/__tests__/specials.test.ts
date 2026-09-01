@@ -1418,9 +1418,10 @@ describe("Rumbler — Rover rolls in FIRST, then bashes", () => {
   });
 
   it("...but the two cards whose text says otherwise still hit FIRST", () => {
-    // Tumbleweed's reads "deal 5 DMG, THEN roll 1 slot", and Ash Boar's charge is
-    // an ON-SUMMON that tramples through. Both deliberately skip chargeFirst, so
-    // this pins the divergence as a choice rather than an oversight.
+    // Tumbleweed's reads "deal 5 DMG, THEN roll two spaces", and Ash Boar's
+    // charge is an ON-SUMMON that tramples through. Both deliberately skip
+    // chargeFirst, so this pins the divergence as a choice rather than an
+    // oversight.
     const s = prepState();
     s.players.P1.magicPool = 9;
     // Its roll rides a TALENT, not a Special — hence the different action here.
@@ -1430,7 +1431,9 @@ describe("Rumbler — Rover rolls in FIRST, then bashes", () => {
       type: "BATTLE_ACTION", player: "P1", action: "talent", targetId: doomed.instanceId,
     });
     expect(n.cards[doomed.instanceId]).toBeUndefined();
-    expect(n.cards[weed.instanceId].pos).toEqual({ row: 2, col: 1 }); // rolled onto it
+    // TWO spaces, so it rolls PAST the square it just emptied rather than
+    // settling into it — `rollThrough` is a minimum step count.
+    expect(n.cards[weed.instanceId].pos).toEqual({ row: 1, col: 1 });
   });
 });
 
