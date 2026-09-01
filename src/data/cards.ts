@@ -13123,11 +13123,24 @@ export const CARDS: CardDef[] = [
     // RELOAD + CONCUSSIVE IMPACT, and they are one trade rather than two
     // abilities: the tube fires every OTHER round, and in exchange the shell
     // that does land rattles what it hits. Same shape Ballista buys its 8 PEN
-    // with. STUN 1 -- long enough to cost the target its turn, short enough
-    // that the mortar cannot chain it, since it is reloading on the round the
-    // stun would have to be refreshed.
+    // with.
+    //
+    // STUN 2, RAISED FROM 1 -- and the 1 was load-bearing. This comment used to
+    // read "short enough that the mortar cannot chain it, since it is reloading
+    // on the round the stun would have to be refreshed". At 2 the stun now
+    // covers the reload round, so the next shell lands while the target is
+    // still held and refreshes it: one mortar can keep a single body stunned
+    // for as long as it keeps hitting the same one. Measured: the shell lands
+    // STUN 2, and after a full round -- the mortar's reload -- the target is
+    // still held at 1, so the next shell refreshes it before it ever gets a
+    // turn back.
+    //
+    // Deliberate, and left here in full so it is a choice rather than a
+    // discovery. If it wants breaking, the cheapest lever is `attackEveryOtherRound`
+    // -- a mortar that fires EVERY round with STUN 2 would not lock, because
+    // the target gets its turn back between refreshes.
     attackEveryOtherRound: true,
-    onHitStatus: { kind: "STUN", duration: 1, power: 0 },
+    onHitStatus: { kind: "STUN", duration: 2, power: 0 },
     special: {
       name: "Airburst Shell",
       cost: 3,
@@ -13136,9 +13149,14 @@ export const CARDS: CardDef[] = [
       // MELEE swing pick a flier through the dodge, and is a complete no-op on a
       // Ranged caster like this one — printing it here would have been a param
       // that costs magic and silently does nothing.
-      params: { dmg: 6, targets: 2, vsFlyingDmg: 4, statusKind: "ROOT", statusDuration: 2 },
+      // A 4x4 BURST rather than two picked bodies. `blastSize` anchors the
+      // square on the target and grows it AWAY from the mortar, so the card you
+      // aim at is the near corner and the shell bursts onward through what is
+      // behind it. `targets: 99` because the square decides the count now, not
+      // the cap.
+      params: { dmg: 6, targets: 99, blastSize: 4, vsFlyingDmg: 4, statusKind: "ROOT", statusDuration: 2 },
       targetSide: "enemy",
-      text: "6 DMG to up to 2 opponents and ROOT them 2 rounds — 10 instead against anything FLYING, which the shell brings down.",
+      text: "6 DMG and ROOT 2 rounds to every opponent in a 4×4 burst — 10 instead against anything FLYING, which the shell brings down.",
     },
   },
   {

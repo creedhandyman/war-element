@@ -3963,6 +3963,30 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       const row = rowAhead(attacker.owner, attacker.pos.row);
       targets = targets.filter((t) => t.pos?.row === row);
     }
+    // blastSize (Airburst Shell): the volley covers an N x N SQUARE anchored on
+    // the first target rather than a hand-picked list. Everything the caster
+    // owns downstream of here — vsFlyingDmg, the status riders, PEN, the
+    // doubling — then applies per victim exactly as it already did, which is
+    // the whole reason this is a filter on `barrage` and not a move to
+    // `areaBlast`: that handler carries no status and no flier bonus, so
+    // switching Airburst over would have quietly dropped both.
+    //
+    // The square is anchored at the target and grows AWAY from the caster, the
+    // same rule `areaBlast` uses: the victim you pick is the near corner and the
+    // shell bursts onward through the squares behind it. Predictable, and it is
+    // the half of the area a shooter can actually see.
+    const blast = num(params, "blastSize");
+    if (blast > 1 && targets[0]?.pos) {
+      const { row, col } = targets[0].pos;
+      const rStep = attacker.pos ? (Math.sign(row - attacker.pos.row) || 1) : 1;
+      const cStep = attacker.pos ? (Math.sign(col - attacker.pos.col) || 1) : 1;
+      const inSquare = (p: { row: number; col: number }) => {
+        const dr = (p.row - row) * rStep;
+        const dc = (p.col - col) * cStep;
+        return dr >= 0 && dr < blast && dc >= 0 && dc < blast;
+      };
+      targets = enemyCards(draft, attacker.owner).filter((e) => e.curHp > 0 && e.pos && inSquare(e.pos));
+    }
     // requireStatus (Sentry's Static Blaster): only foes carrying the named
     // status are eligible — a paralyze-payoff nuke, not an unconditional AoE.
     const req = typeof params.requireStatus === "string" ? params.requireStatus : "";
