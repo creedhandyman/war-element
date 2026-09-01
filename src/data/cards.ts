@@ -12157,14 +12157,21 @@ export const CARDS: CardDef[] = [
     rarity: "epic",
     element: "GALE",
     cardClass: "Tank",
-    attackType: "Melee",
+    // RANGED, which is what a balloon dropping ballast was always doing. It
+    // also widens Burst below: `onDeath.inRangeOnly` measures reach as
+    // `Melee ? 1 : RANGED_REACH` (combat.ts), so the death blast goes from
+    // catching what is adjacent to catching everything within 2. That is a real
+    // buff riding along with a targeting change, not a side effect of the
+    // damage — worth knowing before the 6 DMG + STUN is judged.
+    attackType: "Ranged",
     // Rarity is a cost band, so the mix and the curve are one decision: this
     // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
     // carries, and the stat line is re-cut to the budget that comes with it.
     cost: 5,
-    // 2 + 25 + 2*2 + 4 = 35 = 5*5+10. A 25 HP envelope on 2 DMG: still a wall
-    // that happens to fly, not a threat.
-    dmg: 2,
+    // 3 + 25 + 2*2 + 4 = 36, one over a cost-5's 35 and inside the +/-2 the
+    // curve allows. A 25 HP envelope on 3 DMG: still much more wall than
+    // threat, but it can now answer something without closing on it.
+    dmg: 3,
     hits: 1,
     hp: 25,
     sp: 4,
