@@ -12713,11 +12713,19 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 7,
-    // 12 + 22 + 1*2 + 9 = 45 = 5*7+10.
+    // 12 + 25 + 1*2 + 6 = 45 = 5*7+10. Three points of speed traded straight
+    // across for three of HP, so the budget does not move.
+    //
+    // It stays in the SAME movement tier: `moveReach` reads 6+ as two slots a
+    // move, so 9 -> 6 sits on the threshold rather than crossing it and the
+    // bear covers exactly as much ground as before. What it loses is TURN
+    // ORDER -- it acts later in the round now, which for an ambusher that wants
+    // to be struck first (Thicket Ambush hides it while it is idle, First Blood
+    // pays on the opening wound) is closer to what the card is doing anyway.
     dmg: 12,
     hits: 1,
-    hp: 22,
-    sp: 9,
+    hp: 25,
+    sp: 6,
     shields: 1,
     keywords: {},
     passiveNames: { stealthWhenIdle: "Thicket Ambush", onHitStatus: "First Blood" },
