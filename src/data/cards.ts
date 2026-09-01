@@ -13388,10 +13388,11 @@ export const TOKENS: CardDef[] = [
     cost: 2,
     // 5 + 9 + 6 = 20 = 5*2+10. On the curve like everything else, even though
     // nothing buys these -- a token off the curve is a boss budget that lies.
-    dmg: 5,
+    // 6 + 12 + 8 = 26 against a cost-2's ordinary 20. Boss brood, not a common.
+    dmg: 6,
     hits: 1,
-    hp: 9,
-    sp: 6,
+    hp: 12,
+    sp: 8,
     shields: 0,
     keywords: {},
     // THE PLATE IS A SWARM — a dozen identical bodies coming over the rubble
@@ -13405,6 +13406,17 @@ export const TOKENS: CardDef[] = [
     // front of you.
     passiveNames: { roundTick: "Swarm Sense" },
     roundTick: { packDmg: { tribe: "Watcher", per: 1, max: 3 } },
+    // A mote is a splinter off the eye, and the plate shows a dozen of them —
+    // so what it does with a moment of magic is BE more of them.
+    special: {
+      name: "Split",
+      cost: 2,
+      handler: "spawn",
+      params: { token: "void_mote_tok", count: 1, radius: 2 },
+      targetSide: "self",
+      cooldown: 3, // a self-replicating token needs a leash
+      text: "Split off another Mote nearby. 3-round cooldown.",
+    },
   },
   {
     id: "void_watcher_tok",
@@ -13416,14 +13428,27 @@ export const TOKENS: CardDef[] = [
     attackType: "Ranged",
     cost: 3,
     // 6 + 10 + 1*2 + 7 = 25 = 5*3+10.
-    dmg: 6,
+    // 8 + 13 + 1x2 + 9 = 32 against a cost-3's 25.
+    dmg: 8,
     hits: 1,
-    hp: 10,
-    sp: 7,
+    hp: 13,
+    sp: 9,
     shields: 1,
     // IT HAS WINGS AND IT IS IN THE AIR — the plate is a flier banking over the
     // spires, which is the one thing a Ranger token can say with a keyword.
     keywords: { FLYING: true },
+    // It is already in the air on its plate; the Special is the part where it
+    // stops circling. Two targets, because a stoop picks one and the wings
+    // carry it through a second.
+    special: {
+      name: "Stoop",
+      cost: 2,
+      handler: "barrage",
+      params: { dmg: 7, targets: 2 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Dive on up to 2 opponents for 7 DMG each.",
+    },
   },
   {
     id: "void_lidless_tok",
@@ -13435,10 +13460,11 @@ export const TOKENS: CardDef[] = [
     attackType: "Ranged",
     cost: 4,
     // 7 + 13 + 1*2 + 8 = 30 = 5*4+10.
-    dmg: 7,
+    // 9 + 18 + 1x2 + 9 = 38 against a cost-4's 30.
+    dmg: 9,
     hits: 1,
-    hp: 13,
-    sp: 8,
+    hp: 18,
+    sp: 9,
     shields: 1,
     keywords: {},
     // A LIDLESS EYE, open in the middle of the face and impossible to look away
@@ -13447,6 +13473,17 @@ export const TOKENS: CardDef[] = [
     // the thing it looks at stops being able to.
     passiveNames: { onHitStatus: "Unblinking" },
     onHitStatus: { kind: "BLIND", duration: 2, power: 0 },
+    // The basic takes one opponent's sight. The Special is the eye opening
+    // properly: three of them at once, and it hurts to be looked at.
+    special: {
+      name: "Regard",
+      cost: 3,
+      handler: "barrage",
+      params: { dmg: 8, targets: 3, statusKind: "BLIND", statusDuration: 2 },
+      targetSide: "enemy",
+      ranged: true,
+      text: "Look at up to 3 opponents: 8 DMG each and BLIND for 2 rounds.",
+    },
   },
   {
     id: "void_scryer_tok",
@@ -13458,10 +13495,11 @@ export const TOKENS: CardDef[] = [
     attackType: "Ranged",
     cost: 5,
     // 6 + 18 + 2*2 + 7 = 35 = 5*5+10.
-    dmg: 6,
+    // 7 + 24 + 2x2 + 8 = 43 against a cost-5's 35.
+    dmg: 7,
     hits: 1,
-    hp: 18,
-    sp: 7,
+    hp: 24,
+    sp: 8,
     shields: 2,
     keywords: {},
     // IT CARRIES A STAFF OF THREE EYES and holds a hand out over the brood —
@@ -13470,6 +13508,17 @@ export const TOKENS: CardDef[] = [
     // lives, itself included, and killing it takes that back off all of them.
     passiveNames: { aura: "Farsight" },
     aura: { scope: "tribe", match: "Watcher", dmg: 1 },
+    // The staff has three eyes and the free hand is held OUT, over the brood.
+    // A Support's Special should be the thing the picture is already doing:
+    // seeing what is coming and putting something between it and the line.
+    special: {
+      name: "Foresight",
+      cost: 3,
+      handler: "grantShield",
+      params: { amount: 4, nearby: 1, buffDmg: 1, buffRounds: 2 },
+      targetSide: "ally",
+      text: "Shield an ally and its neighbours for 4, and give them +1 DMG for 2 rounds.",
+    },
   },
   {
     id: "void_sentinel_tok",
@@ -13481,11 +13530,12 @@ export const TOKENS: CardDef[] = [
     attackType: "Melee",
     cost: 6,
     // 6 + 24 + 3*2 + 4 = 40 = 5*6+10.
-    dmg: 6,
+    // 8 + 29 + 4x2 + 4 = 49 against a cost-6's 40. It is a wall that answers.
+    dmg: 8,
     hits: 1,
-    hp: 24,
+    hp: 29,
     sp: 4,
-    shields: 3,
+    shields: 4,
     // ARMOUR WITH EYES SET INTO IT, greatsword planted point-down in the
     // ground: a thing standing watch rather than advancing. BLOCK 2 is the
     // plate, flat off every hit rather than a pool that runs out...
@@ -13495,6 +13545,17 @@ export const TOKENS: CardDef[] = [
     // or you go through it.
     passiveNames: { guardsHomeRow: "Vigil" },
     guardsHomeRow: true,
+    // The greatsword is planted point-down and it has not moved. What a thing
+    // like that does under pressure is dig in harder — plate for itself and for
+    // whatever is standing behind it.
+    special: {
+      name: "Bulwark",
+      cost: 3,
+      handler: "grantShield",
+      params: { amount: 5, nearby: 2, heal: 5 },
+      targetSide: "ally",
+      text: "Plate an ally and up to 2 neighbours for 5 shields and heal them 5.",
+    },
   },
   {
     id: "void_occulith_tok",
@@ -13511,12 +13572,23 @@ export const TOKENS: CardDef[] = [
     // Twelve total rather than eleven, and every point of it goes through
     // shields — which is what a wall of scythes should feel like to stand in
     // front of.
-    dmg: 4,
+    // 5x3 + 31 + 4x2 + 6 = 60 against a cost-8's 50.
+    dmg: 5,
     hits: 3,
-    hp: 26,
-    sp: 5,
+    hp: 31,
+    sp: 6,
     shields: 4,
     keywords: { PEN: true },
+    // Six scythes on the plate. The basic swings three of them; this is all of
+    // them at once, through the rank in front and through their shields.
+    special: {
+      name: "Reap",
+      cost: 4,
+      handler: "barrage",
+      params: { dmg: 9, targets: 99, spread: 1, forwardDepth: 1, pen: 1 },
+      targetSide: "enemy",
+      text: "Sweep every opponent in the row directly ahead for 9 DMG, ignoring shields.",
+    },
   },
   {
     id: "bore_rolling_boulder_tok",
