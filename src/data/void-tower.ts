@@ -99,6 +99,16 @@ export interface VoidBoss {
    *  Optional and floor-gated, so nothing below Floor 5 can quietly acquire a
    *  third element — `elementProblems` fails the build if one does. */
   thirdElement?: Element;
+  /** A WALL this boss opens standing behind: a token pre-placed in the row in
+   *  front of its own home row, the mirror of the Fortress Gates the player
+   *  gets. Placed at SETUP and not summoned.
+   *
+   *  It has to be setup rather than a `summons` entry, and that is the whole
+   *  reason this field exists: a summon lands on the summoner's HOME ROW, which
+   *  is the row the boss is already standing in. She would have played her own
+   *  gates beside herself instead of in front, which is not a wall, it is
+   *  company. */
+  wall?: string;
   /** The boss's tribe — its identity, what the brood is called, and what the
    *  reinforcement bench leads with. NOT the whole roster: a formation may also
    *  draw on either of the boss's two elements (see `bossSummonPool`). */
@@ -543,6 +553,29 @@ export const VOID_BOSSES: VoidBoss[] = [
     ],
     puzzle: "The one you cannot out-damage: shields block per hit, so bring one big swing, not ten small ones.",
   },
+  {
+    cardId: "boss_kheiringer",
+    floor: 5,
+    tribeElement: "PYRO",
+    mechanicElement: "BORE",
+    tribe: "Volcanic",
+    // 8x2 + 8 + 7 + 7 + 6 = 44, exact — Floor 5's budget.
+    //
+    // The WALL IS NOT IN HERE, and that is deliberate twice over. It costs her
+    // nothing, the same way the player's Fortress Gates cost them nothing; and
+    // it is placed at SETUP rather than summoned, because a summon lands on the
+    // summoner's home row — the row she is already standing in. Carried in the
+    // deck she would have played her gates BESIDE herself, which is not a wall.
+    //
+    // She opens standing behind masonry with giants in front of it and does not
+    // come out. Killing her means getting through, around, or over.
+    wall: "pyro_lava_gate_tok",
+    summons: [
+      "pyro_fire_giant_tok", "pyro_fire_giant_tok",
+      "pyro_magmadon", "pyro_volcanon", "pyro_magmaw", "pyro_aftermath",
+    ],
+    puzzle: "The queen behind the wall: she never comes to you, so bring the wall down or go over it.",
+  },
 ];
 
 export const voidBossById = (cardId: string): VoidBoss | null =>
@@ -928,6 +961,18 @@ export const voidPlayerHeadStart = (_bossCost: number): number => VOID_PLAYER_HE
 export function voidBossSeat(boardSize: number): { row: number; col: number } {
   return { row: 0, col: Math.floor(boardSize / 2) };
 }
+/** Where a boss's own WALL stands: the three centre columns of the row directly
+ *  in front of its home row — the mirror of `voidGateSeats`, narrower on
+ *  purpose. Five would seal the board and a boss that cannot be reached at all
+ *  is not a puzzle; three is wide enough to have to answer and narrow enough
+ *  that going around the end is a real line of play. */
+export function bossWallSeats(boardSize: number): { row: number; col: number }[] {
+  const mid = Math.floor(boardSize / 2);
+  return [mid - 1, mid, mid + 1]
+    .filter((col) => col >= 0 && col < boardSize)
+    .map((col) => ({ row: 1, col })); // the boss's home row is 0; this is in front of it
+}
+
 /** The id of the wall that stands in front of the player when a floor opens. */
 export const VOID_GATE = "void_fortress_gate_tok";
 

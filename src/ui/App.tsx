@@ -66,7 +66,8 @@ import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
 import {
-  ENRAGE_SCALE, TAME_SCALE, VOID_GATE, voidBossElements, voidBossSeat, voidGateSeats,
+  ENRAGE_SCALE, TAME_SCALE, VOID_GATE, bossWallSeats, voidBossById, voidBossElements,
+  voidBossSeat, voidGateSeats,
 } from "../data/void-tower";
 import { VoidTower } from "./VoidTower";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
@@ -1238,6 +1239,19 @@ export function App() {
       // one multiplier the whole feature runs on, so its Special is stronger
       // too and not just its body.
       if (bossRun?.enraged) scaleInstance(inst, ENRAGE_SCALE);
+      // ...and SOME BOSSES HAVE A WALL OF THEIR OWN. Kheiringer opens behind
+      // three Lava Gates: placed here, at setup, because a summon lands on the
+      // summoner's home row and she would otherwise have played her gates
+      // beside herself instead of in front. Read off the boss entry rather than
+      // keyed to her id, so the next one that wants a wall declares it.
+      const wallBoss = voidBossById(eventRun.bossId);
+      if (wallBoss?.wall) {
+        for (const wseat of bossWallSeats(fresh.boardSize)) {
+          if (cardAt(fresh, wseat.row, wseat.col)) continue;
+          const brick = summonCard(fresh, "P2", wallBoss.wall, wseat as never);
+          brick.summonedThisRound = false;
+        }
+      }
       // ...and the player gets a WALL. Fortress Gates fill the row directly in
       // front of their home row, one per column, and cost them nothing — they
       // are there so the opening rounds are not decided before the player has a

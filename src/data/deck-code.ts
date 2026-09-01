@@ -156,6 +156,10 @@ export const CODE_IDS: readonly string[] = [
   // indices by position.
   "boss_skybreaker", "gale_thundering_hurricane_tok",
   "boss_continental", "bore_rolling_boulder_tok",
+  // Floor 5's last boss and her two tokens. APPENDED, never inserted — a deck
+  // code is a list of INDICES into this array, so a name anywhere but the end
+  // re-points every code ever shared.
+  "boss_kheiringer", "pyro_fire_giant_tok", "pyro_lava_gate_tok",
   // The forty-card pass. APPENDED, never inserted: a deck code is a list of
   // INDICES into this array, so re-ordering it silently rewrites every code
   // anyone has ever saved or shared.

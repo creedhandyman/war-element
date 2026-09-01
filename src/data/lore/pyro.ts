@@ -77,6 +77,12 @@ export const PYRO_LORE: Record<string, string> = {
   pyro_fenix:
     "Kill it and it stands up with one point left and nothing else to lose. The second life is the dangerous one.",
 
+  boss_kheiringer: // Princess Kheiringer
+    "She has never once walked to a fight. The fights are brought to her, and what is left of them is swept out in the morning.",
+  pyro_fire_giant_tok:
+    "It was a mountain until she asked it to stand up. It has not been told it may sit down.",
+  pyro_lava_gate_tok:
+    "Poured, not built. The masons were told to hurry and the gate has been cooling ever since.",
   pyro_sseerr: // Emberclaw
     "Plated like a wyrm and edged like one — the blades are its own claws, kept longer than anything needs them. The fire it opens with is only ever the distraction.",
 

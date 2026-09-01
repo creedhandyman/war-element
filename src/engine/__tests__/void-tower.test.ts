@@ -427,6 +427,9 @@ describe("the roster", () => {
       // board. Walking down is what gets these two killed.
       // 511 since HP came down from 400 to 360.
       boss_continental: 511,
+      // Floor 5's last boss, and the LIGHTEST body on the floor on purpose —
+      // she is not the wall, she is the reason standing behind it is a problem.
+      boss_kheiringer: 318,
     };
     for (const v of VOID_BOSSES) {
       expect(bodyTotal(getDef(v.cardId)), v.cardId).toBe(MEASURED[v.cardId]);
@@ -1704,7 +1707,13 @@ describe("Cryovex — Deep Freeze and the crystals", () => {
     // are hazards that act, not masonry. Smog is a player card and PYRO burns on
     // contact, so it is not scenery either.
     const scenery = [...CARDS, ...TOKENS].filter((c) => c.noBattleTurn).map((c) => c.id).sort();
-    expect(scenery).toEqual(["aqua_blackice_crystal_tok", "void_fortress_gate_tok"]);
+    // Kheiringer's Lava Fortress Gate joins on exactly the same reasoning as the
+    // player's: it is masonry with no basic worth taking a turn for. It burns
+    // what punches it, which is a REACTION and not an action — a hazard that
+    // acts would keep its turn, the way Overclock's wisps do.
+    expect(scenery).toEqual([
+      "aqua_blackice_crystal_tok", "pyro_lava_gate_tok", "void_fortress_gate_tok",
+    ]);
     for (const id of ["bolt_static_wisp_tok", "bolt_staticcloud", "pyro_smog_card"])
       expect(getDef(id).noBattleTurn, `${id} acts — it keeps its turn`).toBeUndefined();
   });
