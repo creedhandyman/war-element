@@ -14,7 +14,10 @@ import type { Element, Keyword, PlayerId, StatusKind } from "../engine";
  *  stats, the rules book, the collection and the squad picker each had their
  *  own, so a reorder meant finding all five or shipping screens that disagreed
  *  about where DAWN goes. */
-export const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "GALE", "BOLT", "BORE", "DAWN", "DUSK"];
+// VOID goes LAST and on purpose: it is the Tower's element, not one of the
+// eight the game is played with, and every screen that iterates this list reads
+// as "the eight, and then the other thing".
+export const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "GALE", "BOLT", "BORE", "DAWN", "DUSK", "VOID"];
 
 export const EL_COLOR: Record<Element, string> = {
   LEAF: "#4caf6d",
@@ -29,6 +32,10 @@ export const EL_COLOR: Record<Element, string> = {
   // [data-el="DUSK"] rule in styles.css; change both or neither.
   DUSK: "#7b4fb0",
   DAWN: "#ffd54f",
+  // The art's violet. Deliberately cooler and more saturated than BOLT's
+  // lavender and DUSK's plum: all three are purples, and the board has to stay
+  // readable when a VOID boss fields BOLT reinforcements beside it.
+  VOID: "#b14dff",
 };
 
 // Collector rarity → badge color + short label. Undefined rarity shows nothing.
@@ -56,6 +63,8 @@ export const EL_SIGIL: Record<Element, string> = {
   BOLT: "⚡",
   DUSK: "☽",
   DAWN: "☀",
+  // The one eye, which is the whole design of the element.
+  VOID: "◉",
 };
 
 // Spell art lives at public/spells/<spellId>.webp (LFS-tracked, like card art).
@@ -76,6 +85,7 @@ export const EL_ICON: Record<Element, string> = {
   BOLT: "/elements/bolt.png",
   DUSK: "/elements/dusk.png",
   DAWN: "/elements/dawn.png",
+  VOID: "/elements/void.png",
 };
 
 // Per-element dark stripe pair — the card-token backdrop when art is missing.
@@ -88,6 +98,7 @@ export const EL_STRIPE: Record<Element, [string, string]> = {
   BOLT: ["#241a44", "#181030"],
   DUSK: ["#2a1440", "#1c0d2e"],
   DAWN: ["#3d3210", "#2b230a"],
+  VOID: ["#2b0d4a", "#160526"],
 };
 
 // Status icon language — a unique glyph + color per status (redesign spec).

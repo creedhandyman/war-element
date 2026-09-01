@@ -21,7 +21,10 @@ export type Element =
   | "GALE"
   | "BOLT"
   | "DUSK"
-  | "DAWN";
+  | "DAWN"
+  // The ninth, and the only one that is not a force of nature: VOID is what is
+  // left when one is taken away. Black, one-eyed, and native to the Tower.
+  | "VOID";
 
 export type CardClass =
   | "Assassin"
@@ -1792,6 +1795,14 @@ export interface CardInstance {
   blockPower?: number;
   /** Volcanic Fury (Valcana): DMG accumulated from on-hit ramp, reset on Special. */
   rampDmg?: number;
+  /** ONE EYES (VOID aura), the thief's half: how much DMG this card has taken
+   *  off other cards. Tracked separately from `dmgBonus` because the cap is on
+   *  what was STOLEN, not on the card's total buffs — a Void card that is also
+   *  being buffed by an ally has not thereby stolen more. */
+  voidStolen?: number;
+  /** ONE EYES, the eye's half: incoming hits taken, counted so every Nth can be
+   *  deflected. A COUNT and not a die roll — see VOID_DEFLECT_EVERY. */
+  voidHitsTaken?: number;
   /** Magnetic Shield (Magnetite): a granted, timed REFLECT — while `reflectRoundsLeft`
    *  > 0 this card reflects `reflectPower` back at attackers. Counts down at Cleanup. */
   reflectRoundsLeft?: number;

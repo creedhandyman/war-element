@@ -51,6 +51,39 @@ export interface AuraDef {
 export const AQUA_TIDE_EVERY = 2;
 export const AQUA_TIDE_MAX = 4;
 
+/** VOID'S STEAL — the −1/+1 on hit, and where it stops.
+ *
+ *  Every aura in this game is bounded: GALE's tailwind caps at +3, DUSK's shade
+ *  at 25%, AQUA's tide at 4 deepenings. An unbounded steal on a card that
+ *  strikes more than once would not be an aura, it would be a timer — the
+ *  Stinger alone would take a card's whole attack away inside three rounds and
+ *  then keep going into the negative.
+ *
+ *  So: the THIEF may carry at most +VOID_STEAL_CAP stolen damage, and the
+ *  VICTIM cannot be robbed below VOID_STEAL_FLOOR. A card with 1 DMG left still
+ *  has an attack; a card with 0 has been deleted, and deleting a card is what
+ *  damage is for. */
+/** PER ATTACK, not per hit — the hook sits after `resolveHit` returns, beside
+ *  PYRO's Scorch, so a 3-hit volley steals once and not three times. That is
+ *  the correct behaviour and matches DRAIN; the name is spelled this way
+ *  because the first one said PER_HIT and was simply wrong about its own code. */
+export const VOID_STEAL_PER_ATTACK = 1;
+export const VOID_STEAL_CAP = 4;
+export const VOID_STEAL_FLOOR = 1;
+
+/** VOID'S DEFLECT — every Nth hit, not a die roll.
+ *
+ *  Written as a 25% chance first. The Void Tower's own rule (§6, pinned by
+ *  `chanceProblems` in void-tower.test.ts) is that a floor must be a puzzle
+ *  with a deterministic answer, and a boss element that flips a coin on every
+ *  incoming hit is the opposite of that — it makes the same line of play win or
+ *  lose on the roll. Every FOURTH hit is the same frequency and none of the
+ *  variance: you can count it, and counting it is the counter-play. */
+export const VOID_DEFLECT_EVERY = 4;
+/** Halved to the wearer, and the other half thrown back at the attacker. */
+export const VOID_DEFLECT_TAKE_PCT = 50;
+export const VOID_DEFLECT_RETURN_PCT = 50;
+
 export const ELEMENT_AURA: Record<Element, AuraDef> = {
   LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP — plus 1 more for every ROOTed opponent — and regrow +1 shield per hit they took that round, up to 3 shields total." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
@@ -60,6 +93,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for its full DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 12)." },
   GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21); the first time it passes SP 15, a one-time +1 DMG." },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +1 DMG to any opponent carrying a status." },
+  VOID: { name: "One Eyes", desc: `Takes what it hits: each landed strike steals ${VOID_STEAL_PER_ATTACK} DMG from the target and keeps it (up to +${VOID_STEAL_CAP}; nothing is robbed below ${VOID_STEAL_FLOOR} DMG). And it watches — every ${VOID_DEFLECT_EVERY}th hit against it is deflected, taking half and returning half to the attacker.` },
 };
 
 /** Exostone's arrival plating, by rarity. It was a flat +2 for every BORE card,

@@ -216,6 +216,11 @@
 [data-el="BOLT"] { --el-rim: #9575ff; --el: var(--el-rim); --el-stripe-a: #241a44; --el-stripe-b: #181030; }
 [data-el="DUSK"] { --el-rim: #7b4fb0; --el: var(--el-rim); --el-stripe-a: #2a1440; --el-stripe-b: #1c0d2e; }
 [data-el="DAWN"] { --el-rim: #ffd54f; --el: var(--el-rim); --el-stripe-a: #3d3210; --el-stripe-b: #2b230a; }
+/* Without this VOID falls through to the :root default, which is `--el-rim:
+   var(--gold)` — so every Void card, token, spell flash and versus chip drew
+   itself in DAWN's gold. CSS is not type-checked and styles.test.ts mirrors
+   only the --rar-* tokens, so nothing else would have caught it. */
+[data-el="VOID"] { --el-rim: #b14dff; --el: var(--el-rim); --el-stripe-a: #2b0d4a; --el-stripe-b: #160526; }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; }
