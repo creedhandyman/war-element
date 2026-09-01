@@ -320,7 +320,9 @@ describe("the roster", () => {
       // deliberate pass rather than chased a point at a time.
       // That is a little under the 80-90 band Floor 4 was tuned to, and it is
       // internally consistent, which the 75.0-95.8 spread before it was not.
-      // HP remains the lever in either direction (366 body against a 660 cap).
+      // HP remains the lever in either direction (366 body against a 660 cap at
+      // the time; 337 now, after HP 298 -> 269 — so the 84.9% below is stale in
+      // the direction of being too high).
       //
       // AS SHIPPED: **84.9% (n=768, +/-2.5)**, in the 80-90 band. It got there
       // from 92.7 on ONE change and that change was a BUG FIX, not a nerf —
@@ -338,7 +340,9 @@ describe("the roster", () => {
       // (85 -> 45 read 97.4%, 85 -> 30 read 97.9%, against 92.7). Killing it
       // fires the call-a-hurricane face, and the fresh one re-runs its on-summon
       // barrage. A fragile token is MORE barrages, not fewer.
-      boss_skybreaker: 366,
+      // 337 since HP came down from 298 to 269. The measured clear rates above
+      // were taken at 366 body and have not been re-run.
+      boss_skybreaker: 337,
       // FLOOR 5's second boss, and the heaviest body on the tower by a
       // distance: 50 + 400 + 50x2 + 1. The owner's line. SP 1 is the
       // counterweight — it acts near-last in every queue it is ever in — and
@@ -370,7 +374,8 @@ describe("the roster", () => {
       //
       // BELOW Skybreaker's 95.8% on the same floor, with 551 body points at the
       // time (511 now, after HP 400 -> 360)
-      // against its 366 — which is the useful lesson and the reason the number
+      // against its 366 (both since reduced: 511 and 337) — which is the useful
+      // lesson and the reason the number
       // is recorded next to the other one. Body is NOT what decides a Floor-5
       // fight: SP 1 makes this thing act last in every queue it is ever in, and
       // `advanceWhenWallsDown` parks it on its home row behind five Fortress
