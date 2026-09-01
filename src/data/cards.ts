@@ -12944,7 +12944,17 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "AQUA",
     cardClass: "Ranger",
-    tribe: "Avian",
+    // SEAC, not Avian. Divebill was the ONLY AQUA card in Avian, a tribe that is
+    // otherwise entirely GALE (Galeon, Vvulture, Goldspur, Falcon) — so the one
+    // aura keyed on it, +1 DMG and +3 SP to Avian allies, was a bonus this card
+    // could only ever collect in a mixed GALE/AQUA deck, and never in its own
+    // element's.
+    //
+    // SeaC is Kraken's school and pays +4 max HP to its members, which Divebill
+    // can actually reach from an AQUA deck. It keeps FLYING and it is still a
+    // diving seabird; what changes is whose school it belongs to, and a bird
+    // that hunts by going underwater belongs to the water.
+    tribe: "SeaC",
     attackType: "Ranged",
     // Rarity is a cost band, so the mix and the curve are one decision: this
     // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
