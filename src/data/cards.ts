@@ -4956,11 +4956,19 @@ export const CARDS: CardDef[] = [
     talent: {
       name: "Roll Through",
       handler: "strike",
-      params: { dmg: 5, rollThrough: 1 },
-      // Hits, THEN rolls THROUGH — past the struck body to the first open slot
-      // toward the enemy home. Plain charge stalled on the target it just hit,
-      // which made a talent named Roll Through do nothing in the common case.
-      text: "Once per game: deal 5 DMG, then roll through to the first open slot toward the enemy home.",
+      // TWO spaces, not one. `rollThrough` is a MINIMUM step count, so this
+      // clears the slot in front rather than settling into it, and keeps going
+      // if that landing is occupied.
+      params: { dmg: 5, rollThrough: 2 },
+      // Hits, THEN rolls THROUGH — past the struck body toward the enemy home.
+      // Plain charge stalled on the target it just hit, which made a talent
+      // named Roll Through do nothing in the common case.
+      //
+      // AND IT ROLLS WITH NOTHING TO HIT. The `strike` handler used to return
+      // the moment it had no target, so a Tumbleweed with an empty board ahead
+      // of it burned its once-per-game Talent standing still — the case where
+      // rolling is the only thing you wanted from it.
+      text: "Once per game: deal 5 DMG, then roll two spaces toward the enemy home — and roll even with nothing to hit.",
     },
   },
   {

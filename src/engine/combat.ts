@@ -17,6 +17,7 @@
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, canTarget, shoveTarget, slotIsImpassable, validSpecialTargets, validTargets, domMap } from "./rules";
+import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK } from "./auras";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
@@ -1304,7 +1305,38 @@ export function resolveHit(
     // Iron Ore (Bolder): half damage (round down) from Ranger/Assassin attackers.
     if (tDef.blockVsClasses?.includes(getDef(attacker.defId).cardClass)) remaining = Math.floor(remaining / 2);
     // Vision Guard (Eagon): a coin-flip deflect — take half, throw half back.
-    if (tDef.onHitDeflect && opts.kind !== "reflect" && remaining > 0 && pctChance(draft, tDef.onHitDeflect)) {
+    //
+    // ONE EYES (VOID aura) is the same effect on a COUNT rather than a coin:
+    // every VOID_DEFLECT_EVERY-th hit taken is deflected. Deterministic on
+    // purpose. This element belongs to the Void Tower, whose stated rule is
+    // that a floor is a puzzle with an answer you can play toward — and a
+    // die roll on every incoming hit is the opposite of that, because the same
+    // line of play then wins or loses on the roll. Counting to four IS the
+    // counter-play: you can see the deflect coming and spend it on a cheap hit.
+    //
+    // The counter only advances on a real incoming hit, so a reflect cannot
+    // walk it forward and two Void cards cannot ping-pong (the `kind` guard is
+    // what already stops Eagon's version looping, and it covers this too).
+    let deflects = false;
+    if (opts.kind !== "reflect" && remaining > 0) {
+      if (tDef.onHitDeflect && pctChance(draft, tDef.onHitDeflect)) deflects = true;
+      else if (hasElementAura(tDef, "VOID")) {
+        target.voidHitsTaken = (target.voidHitsTaken ?? 0) + 1;
+        // PHASED TO THE FIRST HIT — 1st, 5th, 9th — and not the 4th, 8th, 12th.
+        //
+        // Same one-in-four rate over a long fight, and the same countability.
+        // The difference is everything at the short end, which is the end this
+        // game is played at: measured across 321 VOID bodies, only 9 of them
+        // (2.8%) ever took a FOURTH hit before dying. Deflecting on the 4th
+        // meant the eye never opened for ninety-seven cards in a hundred — a
+        // whole half of the aura that read as text on the card and never once
+        // happened. The version this replaced (a 25% roll) fired from the first
+        // hit on every card, so starting at 1 is what keeps the promise the
+        // roll made, while still being a count you can see coming.
+        deflects = target.voidHitsTaken % VOID_DEFLECT_EVERY === 1;
+      }
+    }
+    if (deflects) {
       remaining = Math.floor(remaining / 2);
       draft.log.push(`${label(draft, target)} deflects ${aDef.name}'s blow.`);
       if (remaining > 0 && attacker.curHp > 0 && directDamage(draft, target, attacker, remaining, false)) result.attackerDied = true;
@@ -2213,6 +2245,26 @@ export function basicAttack(
       // overwrites a real debuff with an inert marker.
       if (hasElementAura(aDef, "BOLT") && t.curHp > 0 && t.statuses.length === 0) {
         applyStatus(draft, t, "ELECTRIFIED", 1, 0, "BOLT");
+      }
+      // One Eyes (VOID aura), the thief's half: it takes what it hits. Each
+      // landed strike moves DMG from the target onto the attacker — a STEAL
+      // rather than a debuff, so the swing is double and the board's total
+      // damage is conserved.
+      //
+      // Bounded at BOTH ends, like every other aura in this file. The thief
+      // keeps at most VOID_STEAL_CAP, so a Stinger cannot ride one victim into
+      // the twenties over a long floor; and nothing is robbed below
+      // VOID_STEAL_FLOOR, because a card on 0 DMG has been deleted, and
+      // deleting cards is what damage is already for.
+      if (hasElementAura(aDef, "VOID") && t.curHp > 0 && attacker.curHp > 0) {
+        const stolen = attacker.voidStolen ?? 0;
+        if (stolen < VOID_STEAL_CAP && effectiveDmg(draft, t) > VOID_STEAL_FLOOR) {
+          t.dmgBonus = (t.dmgBonus ?? 0) - VOID_STEAL_PER_ATTACK;
+          attacker.dmgBonus = (attacker.dmgBonus ?? 0) + VOID_STEAL_PER_ATTACK;
+          attacker.voidStolen = stolen + VOID_STEAL_PER_ATTACK;
+          draft.log.push(
+            `${label(draft, attacker)} takes ${VOID_STEAL_PER_ATTACK} DMG from ${getDef(t.defId).name}.`);
+        }
       }
       // Magic Potion (Hexvial): a landed basic hurls a random flask at the target.
       if (aDef.potionOnHit && t.curHp > 0 && draft.cards[t.instanceId]) {
@@ -3557,7 +3609,20 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   /** Single-target damage w/ optional pen, self-damage, self-heal, status. */
   strike(draft, attacker, targets, params) {
     const target = targets[0];
-    if (!target) return;
+    if (!target) {
+      // NOTHING IN REACH STILL ROLLS. A card whose ability is "hit something and
+      // keep going" has two halves, and only one of them needs an opponent —
+      // but this returned before either, so Tumbleweed with an empty board in
+      // front of it spent its once-per-game Talent and did not move an inch.
+      //
+      // Guarded on `rollThrough` so it is only the cards that actually roll:
+      // every other `strike` Special is a hit and nothing else, and firing one
+      // of those at nobody should still do nothing.
+      if (num(params, "rollThrough") > 0 && attacker.curHp > 0) {
+        chargeThrough(draft, attacker, num(params, "rollThrough"));
+      }
+      return;
+    }
     // Devour (Snapmaw): a Special that only bites what is already held. barrage
     // has filtered on `requireStatus` for a long time; strike could not, so a
     // single-target conditional had to be written as a passive instead of as
