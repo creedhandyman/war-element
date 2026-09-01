@@ -12637,12 +12637,23 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 1,
     keywords: {},
-    passiveNames: { stealthWhenIdle: "Thicket Ambush", firstStrikeBonus: "First Blood" },
+    passiveNames: { stealthWhenIdle: "Thicket Ambush", onHitStatus: "First Blood" },
     // `stealthWhenIdle` is Magalogoon's rule, NOT the STEALTH keyword: hidden
     // only while it has neither moved nor attacked this round, so it is never
     // "always" cloaked.
     stealthWhenIdle: true,
-    firstStrikeBonus: 4,
+    // FIRST BLOOD IS A WOUND NOW, not a bonus. It was `firstStrikeBonus: 4`:
+    // +4 DMG on the first basic against each DISTINCT opponent, once per
+    // opponent for the game — a burst of opening damage that could never be
+    // collected twice from the same target.
+    //
+    // BLEED 2 for 2 rounds on every basic is the opposite shape, and stronger
+    // in the fight this card actually wants. Against a fresh target it is the
+    // same four damage; against one it keeps mauling it is four MORE every
+    // swing, refreshed each time. And BLEED bypasses shields (it ticks straight
+    // to HP at Cleanup, like BURN and DOT), so the plated bodies that used to
+    // blunt a bear's opening swing no longer do.
+    onHitStatus: { kind: "BLEED", duration: 2, power: 2 },
     special: {
       name: "Maul",
       cost: 3,
