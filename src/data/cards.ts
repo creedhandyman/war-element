@@ -13385,6 +13385,17 @@ export const TOKENS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
+    // THE PLATE IS A SWARM — a dozen identical bodies coming over the rubble
+    // together, not one creature. So the card is worth what the brood around it
+    // is worth: +1 DMG for every other Watcher still standing, to +3. Kill the
+    // motes and the motes get weaker, which is the read the picture gives you
+    // before any text does.
+    // `packDmg` lives on roundTick, not on the def — it is recomputed each round
+    // from who is still standing rather than accumulated, which is exactly the
+    // behaviour this art wants: the number falls as the swarm is thinned, in
+    // front of you.
+    passiveNames: { roundTick: "Swarm Sense" },
+    roundTick: { packDmg: { tribe: "Watcher", per: 1, max: 3 } },
   },
   {
     id: "void_watcher_tok",
@@ -13401,7 +13412,9 @@ export const TOKENS: CardDef[] = [
     hp: 10,
     sp: 7,
     shields: 1,
-    keywords: {},
+    // IT HAS WINGS AND IT IS IN THE AIR — the plate is a flier banking over the
+    // spires, which is the one thing a Ranger token can say with a keyword.
+    keywords: { FLYING: true },
   },
   {
     id: "void_lidless_tok",
@@ -13419,6 +13432,12 @@ export const TOKENS: CardDef[] = [
     sp: 8,
     shields: 1,
     keywords: {},
+    // A LIDLESS EYE, open in the middle of the face and impossible to look away
+    // from. What it does to what it looks at is take its sight: BLIND for 2.
+    // The name is the ability — this is the card that is always looking, and
+    // the thing it looks at stops being able to.
+    passiveNames: { onHitStatus: "Unblinking" },
+    onHitStatus: { kind: "BLIND", duration: 2, power: 0 },
   },
   {
     id: "void_scryer_tok",
@@ -13436,6 +13455,12 @@ export const TOKENS: CardDef[] = [
     sp: 7,
     shields: 2,
     keywords: {},
+    // IT CARRIES A STAFF OF THREE EYES and holds a hand out over the brood —
+    // it is not fighting, it is directing. A Support that sharpens the whole
+    // Watcher line rather than swinging: +1 DMG to every Watcher while it
+    // lives, itself included, and killing it takes that back off all of them.
+    passiveNames: { aura: "Farsight" },
+    aura: { scope: "tribe", match: "Watcher", dmg: 1 },
   },
   {
     id: "void_sentinel_tok",
@@ -13452,7 +13477,15 @@ export const TOKENS: CardDef[] = [
     hp: 24,
     sp: 4,
     shields: 3,
-    keywords: {},
+    // ARMOUR WITH EYES SET INTO IT, greatsword planted point-down in the
+    // ground: a thing standing watch rather than advancing. BLOCK 2 is the
+    // plate, flat off every hit rather than a pool that runs out...
+    keywords: { BLOCK: 2 },
+    // ...and this is the stance. It screens the three columns of its own home
+    // row, which is what a sentinel with a planted sword IS — you go around it
+    // or you go through it.
+    passiveNames: { guardsHomeRow: "Vigil" },
+    guardsHomeRow: true,
   },
   {
     id: "void_occulith_tok",
@@ -13464,8 +13497,13 @@ export const TOKENS: CardDef[] = [
     attackType: "Melee",
     cost: 8,
     // 11 + 26 + 4*2 + 5 = 50 = 5*8+10.
-    dmg: 11,
-    hits: 1,
+    // SIX BLADED LIMBS on the plate, so it strikes like six and not like one:
+    // 3 x 4 with PEN, against the single 11-damage swing it printed before.
+    // Twelve total rather than eleven, and every point of it goes through
+    // shields — which is what a wall of scythes should feel like to stand in
+    // front of.
+    dmg: 4,
+    hits: 3,
     hp: 26,
     sp: 5,
     shields: 4,
