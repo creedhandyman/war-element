@@ -11431,13 +11431,15 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 12,
-    // 3 x 16 + 269 + 20 = 337 body points against Floor 5's 660 cap. Well
+    // 3 x 16 + 288 + 20 = 356 body points against Floor 5's 660 cap. Well
     // under, like every boss that has ever been measured: building to the
     // ceiling has read 97-100% every time it has been tried, and the number
-    // under it is the tuning. Owner-specified stat line — HP 298 -> 269.
+    // under it is the tuning. Owner-specified stat line — 298 -> 269 -> 288,
+    // the last step because it measured as the floor's outlier at 70.8% where
+    // the other three sat between 82 and 91.
     dmg: 16,
     hits: 3,
-    hp: 269,
+    hp: 288,
     sp: 20,
     shields: 0,
     keywords: {},

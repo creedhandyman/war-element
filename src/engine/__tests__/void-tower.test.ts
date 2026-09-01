@@ -349,8 +349,9 @@ describe("the roster", () => {
       // (85 -> 45 read 97.4%, 85 -> 30 read 97.9%, against 92.7). Killing it
       // fires the call-a-hurricane face, and the fresh one re-runs its on-summon
       // barrage. A fragile token is MORE barrages, not fewer.
-      // 337 since HP came down from 298 to 269.
-      boss_skybreaker: 337,
+      // 356: HP went 298 -> 269 -> 288, the last step to lift the floor's
+      // outlier back toward its neighbours.
+      boss_skybreaker: 356,
       // FLOOR 5's second boss, and the heaviest body on the tower by a
       // distance: 50 + 400 + 50x2 + 1. The owner's line. SP 1 is the
       // counterweight — it acts near-last in every queue it is ever in — and

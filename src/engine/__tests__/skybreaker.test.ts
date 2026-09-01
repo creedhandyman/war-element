@@ -42,7 +42,7 @@ describe("the shape of the fight", () => {
 
   it("prints the owner's stat line exactly", () => {
     const d = getDef(BOSS);
-    expect([d.dmg, d.hits, d.hp, d.sp]).toEqual([16, 3, 269, 20]);
+    expect([d.dmg, d.hits, d.hp, d.sp]).toEqual([16, 3, 288, 20]);
   });
 
   it("has NO gait — the Special is how it moves", () => {
