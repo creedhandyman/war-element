@@ -41,7 +41,8 @@ describe("the shape of the fight", () => {
 
   it("prints the owner's stat line exactly, and carries both auras", () => {
     const d = getDef(BOSS);
-    expect([d.dmg, d.hits, d.hp, d.shields, d.sp]).toEqual([50, 1, 400, 50, 1]);
+    // HP 400 -> 360 by the owner's call; everything else is unchanged.
+    expect([d.dmg, d.hits, d.hp, d.shields, d.sp]).toEqual([50, 1, 360, 50, 1]);
     expect(d.elementAuras, "Bore AND Leaf").toEqual(["LEAF"]);
     expect(d.keywords.TRAMPLE, "it does not go around").toBe(true);
   });

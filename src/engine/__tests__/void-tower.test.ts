@@ -365,7 +365,8 @@ describe("the roster", () => {
       // as Skybreaker: 8 cores x 12 seeds, 5x5, gates seated, voidTower on,
       // ally = Umbranova at TAME_SCALE). 54 overrun / 18 timeout.
       //
-      // BELOW Skybreaker's 95.8% on the same floor, with 551 body points
+      // BELOW Skybreaker's 95.8% on the same floor, with 551 body points at the
+      // time (511 now, after HP 400 -> 360)
       // against its 366 — which is the useful lesson and the reason the number
       // is recorded next to the other one. Body is NOT what decides a Floor-5
       // fight: SP 1 makes this thing act last in every queue it is ever in, and
@@ -401,7 +402,11 @@ describe("the roster", () => {
       // 96.9% and Skybreaker 99.5%, because a giant with `fullBoardBasic` that
       // never leaves its back row cannot be reached while it shoots the whole
       // board. Walking down is what gets these two killed.
-      boss_continental: 551,
+      // 511 since HP came down from 400 to 360. The win-rate note above was
+      // measured at 551 and has NOT been re-measured — the number it argues
+      // about (body is not what decides a Floor-5 fight) is if anything made
+      // more true by taking 40 HP off, but the 99.0% itself is now stale.
+      boss_continental: 511,
     };
     for (const v of VOID_BOSSES) {
       expect(bodyTotal(getDef(v.cardId)), v.cardId).toBe(MEASURED[v.cardId]);

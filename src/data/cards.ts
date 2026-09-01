@@ -11398,13 +11398,14 @@ export const CARDS: CardDef[] = [
     cardClass: "Tank",
     attackType: "Melee",
     cost: 12,
-    // 50 + 400 + 50x2 + 1 = 551 body points against Floor 5's 660 cap. The
+    // 50 + 360 + 50x2 + 1 = 511 body points against Floor 5's 660 cap. Still the
     // heaviest body on the tower by a distance, and the stat line is the
-    // owner's. SP 1 is the counterweight: it acts near-last in every queue it
-    // is ever in, so everything on the board hits it before it hits back.
+    // owner's — HP came down from 400. SP 1 is the counterweight: it acts
+    // near-last in every queue it is ever in, so everything on the board hits it
+    // before it hits back.
     dmg: 50,
     hits: 1,
-    hp: 400,
+    hp: 360,
     sp: 1,
     shields: 50,
     // TRAMPLE: it does not go around. Paired with the gait below, that is the
