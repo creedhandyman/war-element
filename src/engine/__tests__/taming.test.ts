@@ -16,7 +16,9 @@ import {
   ENRAGE_SCALE, TAME_SCALE, TAME_USES, VOID_BOSSES,
   bossEnraged, tameUsesLeft, tamedRoster, tamedStats, trialEventId,
 } from "../../data/void-tower";
-import { loadStory, newSave, spendTame, tameBoss, type StorySave } from "../../data/story";
+import {
+  GIFTS, applyGifts, loadStory, newSave, saveStory, spendTame, tameBoss, type StorySave,
+} from "../../data/story";
 import { effectiveDmg, effectiveSp, scaleInstance, summonCard } from "../state";
 import { fireCardSpecial } from "../combat";
 import { advance } from "../phases";
@@ -263,8 +265,18 @@ describe("enraged, and the taming loop", () => {
 
 describe("the taming survives a save round-trip", () => {
   const KEY = "we_story_v1";
+  /** Load a raw save back through `loadStory`.
+   *
+   *  The ledger is PRE-STAMPED with every gift, because these tests are about
+   *  the loader's normalisation and a one-time gift landing mid-load would
+   *  otherwise show up in every assertion about the stable — and would do so
+   *  again for each new gift ever added. Gifts have their own tests below.
+   *  Callers that pass their own `gifts` keep it. */
   const roundTrip = (raw: unknown): StorySave => {
-    localStorage.setItem(KEY, JSON.stringify(raw));
+    const stamped = raw && typeof raw === "object" && !Array.isArray(raw)
+      ? { gifts: GIFTS.map((g) => g.id), ...(raw as Record<string, unknown>) }
+      : raw;
+    localStorage.setItem(KEY, JSON.stringify(stamped));
     try { return loadStory(); } finally { localStorage.removeItem(KEY); }
   };
 
@@ -316,5 +328,72 @@ describe("taming is not ownership", () => {
     scaleInstance(ally, TAME_SCALE);
     expect(s.players.P1.gold, "outside the economy, like the enemy boss").toBe(goldBefore);
     expect(getDef(ally.defId).boss, "it is still a boss").toBe(true);
+  });
+});
+
+describe("one-time gifts", () => {
+  /** A localStorage that behaves like the browser's, per test. */
+  function withStore<T>(run: () => T): T {
+    const mem = new Map<string, string>();
+    const had = (globalThis as { localStorage?: unknown }).localStorage;
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: (k: string) => (mem.has(k) ? mem.get(k)! : null),
+      setItem: (k: string, v: string) => void mem.set(k, v),
+      removeItem: (k: string) => void mem.delete(k),
+      clear: () => mem.clear(),
+    };
+    try { return run(); } finally { (globalThis as { localStorage?: unknown }).localStorage = had; }
+  }
+
+  const CONT = "boss_continental";
+  const uses = (s: StorySave) => Math.floor(s.tamed?.[CONT] ?? 0);
+
+  it("hands an existing save its gift, once", () => {
+    withStore(() => {
+      // A save written before gifts existed: no ledger at all.
+      const legacy = { ...newSave() } as Record<string, unknown>;
+      delete legacy.gifts;
+      saveStory(legacy as never);
+      const first = loadStory();
+      expect(uses(first), "the tamed Continental arrived").toBe(3);
+      expect(first.gifts, "and the ledger records it").toContain("tame-continental-1");
+    });
+  });
+
+  it("does NOT re-grant on reload — the ledger has to survive the load", () => {
+    // THE BUG THIS PINS. `loadStory` builds its result by enumerating fields,
+    // and a field it forgets is a field that comes back undefined. `applyGifts`
+    // reads a missing ledger as "never given", so forgetting `gifts` there does
+    // not merely lose a record — it re-grants every gift on every single load,
+    // which for a taming is one that silently refills instead of running down.
+    withStore(() => {
+      const legacy = { ...newSave() } as Record<string, unknown>;
+      delete legacy.gifts;
+      saveStory(legacy as never);
+      const granted = loadStory();
+      // Spend it down to its last battle and put it back.
+      saveStory({ ...granted, tamed: { ...(granted.tamed ?? {}), [CONT]: 1 } });
+      expect(uses(loadStory()), "reloading refilled the taming").toBe(1);
+      expect(uses(loadStory()), "and again on a second reload").toBe(1);
+    });
+  });
+
+  it("gives a brand-new player nothing — it is compensation, not a bonus", () => {
+    withStore(() => {
+      const fresh = loadStory();                       // nothing in the store
+      expect(uses(fresh)).toBe(0);
+      expect(fresh.gifts, "but the ledger is pre-stamped so it never arrives later")
+        .toEqual(GIFTS.map((g) => g.id));
+    });
+  });
+
+  it("is idempotent on a save that already has the ledger", () => {
+    const once = applyGifts(newSave());
+    const twice = applyGifts(once.save);
+    expect(twice.granted, "nothing new the second time").toEqual([]);
+  });
+
+  it("every gift id is unique — a reused id would re-grant to everyone", () => {
+    expect(new Set(GIFTS.map((g) => g.id)).size).toBe(GIFTS.length);
   });
 });

@@ -2495,6 +2495,13 @@ export interface StorySave {
    *  holds. Absent on every save written before taming existed, which correctly
    *  reads as "nothing tamed". */
   tamed?: Record<string, number>;
+  /** One-time GIFTS already handed to this save, by id.
+   *
+   *  A ledger and not a flag per gift: the point is that a gift lands exactly
+   *  once for a player who was already here, and never again however many times
+   *  the app reloads. A NEW save starts with every past gift marked as given —
+   *  it is compensation for something that happened, not a starter bonus. */
+  gifts?: string[];
   /** Region id -> Blight earned from world progress. The region's own baseline
    *  is applied on read, so it can never be saved away. */
   blight: Record<string, number>;
@@ -2668,10 +2675,41 @@ export function rawStoredLoadouts(): Loadout[] {
   }
 }
 
+/** One-time grants, oldest first. Append only — an id that has been shipped
+ *  must never be reused or removed, because the ledger below is what stops a
+ *  gift landing twice and a recycled id would re-grant it to everyone. */
+export const GIFTS: { id: string; apply: (s: StorySave) => StorySave }[] = [
+  // ON THE HOUSE. Taming Continental did not hand it over for the players who
+  // earned it, so it is given directly. `tameBoss` REFILLS rather than adds, so
+  // a player who already has one is topped back up to full rather than
+  // double-credited.
+  { id: "tame-continental-1", apply: (s) => tameBoss(s, "boss_continental") },
+];
+
+/** Hand over anything in `GIFTS` this save has not had yet. Idempotent by the
+ *  ledger, so calling it on every load is safe. */
+export function applyGifts(save: StorySave): { save: StorySave; granted: string[] } {
+  const had = new Set(save.gifts ?? []);
+  const granted: string[] = [];
+  let out = save;
+  for (const g of GIFTS) {
+    if (had.has(g.id)) continue;
+    out = g.apply(out);
+    had.add(g.id);
+    granted.push(g.id);
+  }
+  // Spread, never enumerate — see `tameBoss`. Writing the ledger back on a save
+  // that got nothing is harmless and keeps the field present.
+  return { save: { ...out, gifts: [...had] }, granted };
+}
+
 export function loadStory(): StorySave {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return newSave();
+    // A brand-new player is not "a current player": they start with every past
+    // gift already marked given, so compensation for something they never
+    // experienced is not also a welcome bonus.
+    if (!raw) return { ...newSave(), gifts: GIFTS.map((g) => g.id) };
     const p = JSON.parse(raw) as Partial<StorySave>;
     const known = (ids: unknown): string[] =>
       Array.isArray(ids) ? ids.filter((i): i is string => typeof i === "string" && !!CARD_INDEX[i]) : [];
@@ -2705,6 +2743,14 @@ export function loadStory(): StorySave {
               .filter(([, v]) => v > 0),
           )
         : {},
+      // THE GIFT LEDGER, and it has to be read back or the whole mechanism
+      // inverts: `applyGifts` treats a missing ledger as "never given", so a
+      // loader that forgets this field re-grants every gift on every single
+      // load — which for a taming means one that silently refills instead of
+      // running down. Caught by a test that spent one and reloaded.
+      gifts: Array.isArray(p.gifts)
+        ? [...new Set(p.gifts.filter((x): x is string => typeof x === "string"))]
+        : undefined,
       // A deck can only hold cards you own — a stale entry silently drops out.
       deck: known(p.deck).filter((id) => collection.includes(id)),
       blight: p.blight && typeof p.blight === "object" ? (p.blight as Record<string, number>) : {},
@@ -2827,7 +2873,13 @@ export function loadStory(): StorySave {
         !save.squads![legacy.region] && REGIONS.some((r) => r.id === legacy.region))
       save.squads![legacy.region] = known(legacy.cards).filter((c) => collection.includes(c));
     if (!save.deck.length) save.deck = save.collection.slice(0, deckCapFor(save.cleared));
-    return save;
+    // GIFTS, last: an existing save gets anything it has not had yet, and the
+    // ledger is written back IMMEDIATELY. Without that write the gift is
+    // re-granted on every single load until something else happens to save —
+    // harmless for a refill, but it would mean a taming that never runs down.
+    const gifted = applyGifts(save);
+    if (gifted.granted.length) saveStory(gifted.save);
+    return gifted.save;
   } catch {
     return newSave();
   }
