@@ -11314,6 +11314,15 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 28,
     keywords: { PEN: true },
+    // A GIANT, like the rest of Floor 5 — and the plate is the argument. The
+    // eye is the middle of the card and the LEGS are the rest of it: they come
+    // down through the spires on both sides and out past the frame, so the
+    // thing is not standing somewhere on the board, it is standing OVER it.
+    // Skybreaker and Continental both reach the whole board on the same
+    // reasoning; this was the Floor-5 boss that did not, which was an oversight
+    // rather than a decision. The sight screen still applies, so the player's
+    // free wall of Fortress Gates is still cover.
+    fullBoardBasic: true,
     // THE 3-ROUND CLOCK every boss is on, plus a gait. `kite` because a giant
     // eye keeps its sight lines: it backs off as the board closes rather than
     // standing to be hit. Deliberately not "still" -- that list is NAMED
