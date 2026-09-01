@@ -144,6 +144,12 @@ describe("the roster", () => {
       // the number under it is the tuning, and building to the ceiling is how
       // you get a boss nobody reaches.
       boss_helion: 248, boss_hoarfell: 346,
+      // OCULUS, the VOID boss, deliberately the smaller kind of Floor 5 next to
+      // Skybreaker's 337 and Continental's 511. Its threat is the brood: nine
+      // Watchers, every one running One Eyes, so the side steals a point of
+      // damage per landed swing and deflects every fourth blow. A big body on
+      // top of that would be two bosses.
+      boss_spindle: 400,
       // Thunderfangs is the smallest body on the top floor ON PURPOSE:
       // most of its damage is borrowed from the pack and handed back as
       // the pack dies, so a Floor-3 body on top of that is two bosses'

@@ -11279,6 +11279,62 @@ export const CARDS: CardDef[] = [
     },
   },
   {
+    id: "boss_spindle",
+    name: "Spindle",
+    rarity: "mythic",
+    element: "VOID",
+    // Floor 5 is a THREE-element design, and VOID can only print one of them.
+    // VOID is the tribe (the brood of eyes), DUSK is the mechanic its Special
+    // expresses (the gaze that blinds), BOLT is the lock it puts on a Special
+    // it does not like. `elementAuras` must list exactly the two it does NOT
+    // print -- void-tower.test.ts asserts the card and its VOID_BOSSES entry
+    // agree, which is how sixteen bosses were caught running one element while
+    // their entry described two.
+    elementAuras: ["BOLT", "DUSK"],
+    cardClass: "Mage",
+    tribe: "Watcher",
+    attackType: "Ranged",
+    boss: true,
+    cost: 12,
+    // 22*2 + 290 + 28*2 + 10 = 400.
+    //
+    // NOT the 660 the Floor-5 cap allows, and the cap is the trap here: it is a
+    // CEILING and the spread underneath it is the tuning. Its floor-mates are
+    // measured at 337 (Skybreaker) and 511 (Continental), so 400 sits between
+    // them -- and this boss should be the SMALLER kind of Floor 5, because the
+    // threat is not the body. It brings nine Watchers, every one of them running
+    // One Eyes, so the fight is a brood stealing a point of damage per swing and
+    // deflecting every fourth blow back. Meat on top of that is two bosses.
+    //
+    // It needs no printed steal or deflect for the same reason: One Eyes is
+    // VOID's ELEMENT aura, so the boss and all nine spawns run it for free.
+    dmg: 22,
+    hits: 2,
+    hp: 290,
+    sp: 10,
+    shields: 28,
+    keywords: { PEN: true },
+    // THE 3-ROUND CLOCK every boss is on, plus a gait. `kite` because a giant
+    // eye keeps its sight lines: it backs off as the board closes rather than
+    // standing to be hit. Deliberately not "still" -- that list is NAMED
+    // (Overclock is a production line, Smolder is a tree) and a third cannot
+    // join it by accident.
+    roundTick: { fireSpecialEveryN: 3, kite: { belowPct: 50 } },
+    special: {
+      name: "Unblinking Gaze",
+      cost: 4,
+      // NO `cooldown`. The boss clock owns boss timing -- `fireSpecialEveryN`
+      // above is the beat, and void-tower.test.ts fails a boss Special that
+      // declares its own.
+      handler: "statusNova",
+      // The two borrowed elements, in one button: BOLT's lock and DUSK's dark.
+      params: { targets: 3, statusKind: "MUTED", statusDuration: 2,
+                debuffStatus: "BLIND", debuffStatusRounds: 2 },
+      targetSide: "enemy",
+      text: "It looks at three of you: MUTED for 2 rounds, and BLIND for 2. 3-round cooldown.",
+    },
+  },
+  {
     id: "boss_skybreaker",
     name: "Skybreaker",
     rarity: "mythic",
@@ -13302,6 +13358,119 @@ export const CARDS: CardDef[] = [
 // them. (Reptilian and Heir used to live here — they are draftable now, but are
 // still spawned by Trinezer and Imperator exactly as before.)
 export const TOKENS: CardDef[] = [
+  // ── VOID — the Watcher brood ────────────────────────────────────────
+  // One Eyes is VOID's aura and every one of these carries it by element: each
+  // landed strike steals a point of damage from what it hits, and every fourth
+  // hit against it is deflected. That is the whole tribe's identity, so the
+  // spawns need no printed passive to express it -- the swarm IS the mechanic,
+  // and a board of nine of them is nine small thefts a round.
+  //
+  // In TOKENS rather than CARDS on purpose: the set's evenness invariant is
+  // `45 draftable x 8 elements = 360`, and a ninth element with draftable cards
+  // breaks it. VOID is the tower's element, not a ninth deck.
+  {
+    id: "void_mote_tok",
+    name: "Mote",
+    rarity: "rare",
+    element: "VOID",
+    cardClass: "Assassin",
+    tribe: "Watcher",
+    attackType: "Melee",
+    cost: 2,
+    // 5 + 9 + 6 = 20 = 5*2+10. On the curve like everything else, even though
+    // nothing buys these -- a token off the curve is a boss budget that lies.
+    dmg: 5,
+    hits: 1,
+    hp: 9,
+    sp: 6,
+    shields: 0,
+    keywords: {},
+  },
+  {
+    id: "void_watcher_tok",
+    name: "Watcher",
+    rarity: "rare",
+    element: "VOID",
+    cardClass: "Ranger",
+    tribe: "Watcher",
+    attackType: "Ranged",
+    cost: 3,
+    // 6 + 10 + 1*2 + 7 = 25 = 5*3+10.
+    dmg: 6,
+    hits: 1,
+    hp: 10,
+    sp: 7,
+    shields: 1,
+    keywords: {},
+  },
+  {
+    id: "void_lidless_tok",
+    name: "Lidless",
+    rarity: "rare",
+    element: "VOID",
+    cardClass: "Mage",
+    tribe: "Watcher",
+    attackType: "Ranged",
+    cost: 4,
+    // 7 + 13 + 1*2 + 8 = 30 = 5*4+10.
+    dmg: 7,
+    hits: 1,
+    hp: 13,
+    sp: 8,
+    shields: 1,
+    keywords: {},
+  },
+  {
+    id: "void_scryer_tok",
+    name: "Scryer",
+    rarity: "epic",
+    element: "VOID",
+    cardClass: "Support",
+    tribe: "Watcher",
+    attackType: "Ranged",
+    cost: 5,
+    // 6 + 18 + 2*2 + 7 = 35 = 5*5+10.
+    dmg: 6,
+    hits: 1,
+    hp: 18,
+    sp: 7,
+    shields: 2,
+    keywords: {},
+  },
+  {
+    id: "void_sentinel_tok",
+    name: "Sentinel Eye",
+    rarity: "epic",
+    element: "VOID",
+    cardClass: "Tank",
+    tribe: "Watcher",
+    attackType: "Melee",
+    cost: 6,
+    // 6 + 24 + 3*2 + 4 = 40 = 5*6+10.
+    dmg: 6,
+    hits: 1,
+    hp: 24,
+    sp: 4,
+    shields: 3,
+    keywords: {},
+  },
+  {
+    id: "void_occulith_tok",
+    name: "Occulith",
+    rarity: "legendary",
+    element: "VOID",
+    cardClass: "Warrior",
+    tribe: "Watcher",
+    attackType: "Melee",
+    cost: 8,
+    // 11 + 26 + 4*2 + 5 = 50 = 5*8+10.
+    dmg: 11,
+    hits: 1,
+    hp: 26,
+    sp: 5,
+    shields: 4,
+    keywords: { PEN: true },
+  },
   {
     id: "bore_rolling_boulder_tok",
     name: "Rolling Boulder",

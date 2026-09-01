@@ -447,6 +447,40 @@ export const VOID_BOSSES: VoidBoss[] = [
     puzzle: "The bonfire: everything that touches it burns — fight it at range.",
   },
   {
+    cardId: "boss_spindle",
+    // FLOOR 5. The tower's own element finally stands in it: every other boss
+    // borrows two of the eight, and this one IS the ninth -- the thing the
+    // building is named after, kept for the top.
+    floor: 5,
+    // VOID is the tribe, which is what makes `boss_oculus` the first card in
+    // the game printed VOID and closes the auras.test.ts hole ("an element with
+    // no cards is incomplete"). Its brood are the six Watcher tokens.
+    tribeElement: "VOID",
+    // DUSK is the mechanic the Special expresses -- Unblinking Gaze is a stare
+    // that blinds.
+    mechanicElement: "DUSK",
+    // ...and BOLT is the lock in it. Three elements, which Floor 5 allows and
+    // `elementProblems` enforces below it.
+    thirdElement: "BOLT",
+    tribe: "Watcher",
+    // 8 + 6 + 6 + 5 + 5 + 4 + 4 + 3 + 3 = 44, exact -- Floor 5's budget.
+    // Entirely its own brood, which no other boss can say: the Watchers are the
+    // only VOID cards that exist, so the formation is the element.
+    //
+    // Duplicates are inside the formation caps (Rare x3, Epic x2,
+    // Legendary/Mythic x1): Watcher and Lidless are Rare and appear twice,
+    // Scryer and Sentinel are Epic and appear twice, Occulith is Legendary and
+    // appears once.
+    summons: [
+      "void_occulith_tok",
+      "void_sentinel_tok", "void_sentinel_tok",
+      "void_scryer_tok", "void_scryer_tok",
+      "void_lidless_tok", "void_lidless_tok",
+      "void_watcher_tok", "void_watcher_tok",
+    ],
+    puzzle: "Attrition inverted: every swing you take feeds them. Kill the brood, not the eye.",
+  },
+  {
     cardId: "boss_skybreaker",
     // FLOOR 5, and the first boss to stand on it. `voidFloors()` is derived
     // from this array, so the floor exists because this line does — there is no
@@ -785,6 +819,26 @@ export function reinforcementPool(boss: VoidBoss): string[] {
   const drafted = (id: string) => !TOKEN_IDS.has(id) || authored.has(id);
   const pool = tribePool(boss.tribe).filter(drafted);
   const bench = pool.slice(0, Math.max(2, Math.min(4, Math.ceil(pool.length / 2))));
+  // THE TRIBE FIRST, TO EXHAUSTION. The bench wants four names and the slice
+  // above takes only half the tribe, so a six-member tribe handed over three
+  // and then went shopping in another element for the fourth while three of its
+  // own stood unused. Reaching outside a tribe that is not empty is the bug,
+  // and it is most visible on Spindle: VOID's entire existence is six Watchers,
+  // and the bench pulled a BOLT card into a fight whose whole point is that the
+  // brood has no allies.
+  // ...but the bench is the CHEAP END, and that rule outranks this one. Kato's
+  // tribe holds a card as dear as anything it can field, so exhausting the
+  // tribe blindly promoted the elite onto the reinforcement bench -- which is
+  // the exact failure the padding rule exists to stop (Rotroot with fifteen
+  // Zombinations). Anything at or above the dearest thing the boss may field is
+  // not rank and file, whoever it is related to.
+  const dearest = Math.max(...bossSummonPool(boss).map((id) => getDef(id).cost));
+  for (const id of pool) {
+    if (bench.length >= 4) break;
+    if (!bench.includes(id) && getDef(id).cost < dearest) bench.push(id);
+  }
+  // ...and only then outside it, for the tribes genuinely too small to field a
+  // bench of four on their own.
   if (bench.length < 4) {
     for (const id of bossSummonPool(boss)) {
       if (bench.length >= 4) break;

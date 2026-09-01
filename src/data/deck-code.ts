@@ -206,6 +206,9 @@ export const CODE_IDS: readonly string[] = [
   // every deck code anyone has saved.
   "bore_kingcobra_tok",
   "dusk_monstrous_spider_tok",
+  // APPENDED, never inserted: a code is an index into this list, so a new id
+  // goes on the end or every deck code in the wild changes meaning.
+  "boss_spindle",
 ];
 
 const INDEX_OF = new Map<string, number>(CODE_IDS.map((id, i) => [id, i]));
