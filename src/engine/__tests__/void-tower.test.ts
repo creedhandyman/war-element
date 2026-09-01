@@ -244,6 +244,9 @@ describe("the roster", () => {
       // needs — see the token's note.
       //
       // THEN SPLASH + 85 HP (owner's call) — and it measured 75.0 -> **74.0%**,
+      // (the hurricane is on 55 HP now; this figure was taken at 85 and has not
+      // been re-measured, though the finding below is about its ATTACK and is
+      // untouched by its body)
       // i.e. NOTHING, inside sampling noise at n=96. Recorded because a null
       // result is a finding: the hurricane's ATTACK is close to irrelevant to
       // this fight's outcome, and buffing it does not move the number.

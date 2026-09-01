@@ -13374,7 +13374,11 @@ export const TOKENS: CardDef[] = [
     cost: 6,
     dmg: 20,
     hits: 1,
-    hp: 85,
+    // 85 -> 55 (owner's call). Cost stays 6 for the reason above — this body is
+    // priced for what it does on ARRIVAL, not for its meat — and holding the
+    // cost is also what keeps Skybreaker's formation on its exact 44-gold
+    // budget, which a re-cost would break.
+    hp: 55,
     sp: 15,
     shields: 0,
     keywords: {},

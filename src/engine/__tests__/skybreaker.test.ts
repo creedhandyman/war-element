@@ -57,7 +57,7 @@ describe("the shape of the fight", () => {
 
   it("the hurricane is a real body, not scenery — a RANGED mage", () => {
     const t = getDef(STORM);
-    expect([t.dmg, t.hp, t.sp]).toEqual([20, 85, 15]);
+    expect([t.dmg, t.hp, t.sp]).toEqual([20, 55, 15]);
     // It spent a spell as a melee Warrior and came back to range (owner's
     // call). Ranged also resolves the tension melee created: a body whose
     // passive shoves the board away could never reach what it had pushed.
