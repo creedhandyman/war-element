@@ -78,7 +78,7 @@ export const PYRO_LORE: Record<string, string> = {
     "Kill it and it stands up with one point left and nothing else to lose. The second life is the dangerous one.",
 
   pyro_sseerr: // Emberclaw
-    "Young, quick, and worse every other round. The Dragons let it hunt early so it learns while it is still small.",
+    "Plated like a wyrm and edged like one — the blades are its own claws, kept longer than anything needs them. The fire it opens with is only ever the distraction.",
 
   pyro_fenrir:
     "Three bloodlines, one appetite. Every throat it closes teaches it to open two at once.",
