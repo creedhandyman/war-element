@@ -12594,12 +12594,20 @@ export const CARDS: CardDef[] = [
     // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
     // carries, and the stat line is re-cut to the budget that comes with it.
     cost: 5,
-    // 6 + 18 + 3*2 + 5 = 35 = 5*5+10. Support/MELEE, which only a handful of
-    // cards are -- legal and precedented, but off the beaten path.
-    dmg: 6,
+    // 5 + 22 + 3*2 + 3 = 36, one over a cost-5's 35 and inside the +/-2 the
+    // curve allows. Re-cut from 6/18/5: a point of damage and two of speed for
+    // four of HP. Support/MELEE, which only a handful of cards are -- legal and
+    // precedented, but off the beaten path.
+    //
+    // SP 3 COSTS IT NO MOVEMENT. It was already in the slow tier at 5 --
+    // `moveReach` is 1 for anything at or below SP_SLOW_MAX -- so it strode one
+    // slot before and strides one now. What it buys is a later slot in the
+    // speed queue: this thing plants itself, heals the herd and is in no hurry,
+    // which is the card the passives already describe.
+    dmg: 5,
     hits: 1,
-    hp: 18,
-    sp: 5,
+    hp: 22,
+    sp: 3,
     shields: 3,
     keywords: {},
     passiveNames: { pushImmune: "Planted Hooves", roundTick: "Herd Warmth" },
