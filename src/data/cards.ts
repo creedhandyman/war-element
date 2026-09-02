@@ -5845,11 +5845,19 @@ export const CARDS: CardDef[] = [
     attackType: "Ranged",
     // Dropped 2→1 (swapped with Oak): a cheap, disposable body that keeps coming
     // back.
+    //
+    // 3 + 7 + 6 = 16, the same total it carried at 9 HP and 4 SP — a straight
+    // swap of two points of body for two of speed, one over 5*1+10 and inside
+    // the +/-2 either way. What the budget does NOT price is the tier: SP_SLOW_MAX
+    // is 5, so 4 was a one-step mover and 6 is a two-step one. That is the real
+    // change here, and it is the right one for this card — Spread puts copies
+    // wherever Weeds is standing, so a Weeds that can reach further is a Weeds
+    // that seeds further, and the thing being bought is spread rather than legs.
     cost: 1,
     dmg: 3,
     hits: 1,
-    hp: 9,
-    sp: 4,
+    hp: 7,
+    sp: 6,
     shields: 0,
     keywords: {},
     tribe: "Grove",
@@ -12153,7 +12161,16 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "DUSK",
     cardClass: "Mage",
-    tribe: "Ghost",
+    // NO TRIBE. It was in Ghost and never read as one — Bad Batch is a WEAKEN
+    // off a mislabelled dose, and the lore is a man who wrote the error down and
+    // used the batch anyway. That is an apothecary, not a haunting. Ghost is
+    // DUSK's largest tribe and Duet's aura pays every member of it, so a card
+    // sitting in it for want of anywhere else was collecting +1 DMG on the
+    // strength of a tag nothing else about it supports.
+    //
+    // Untribed is a real state here rather than a gap: plenty of cards carry no
+    // tribe, and the only thing lost is the Ballroom Light buff — which is the
+    // point.
     attackType: "Ranged",
     cost: 1,
     // 3 + 5 + 7 = 15 = 5*1+10.

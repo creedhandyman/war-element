@@ -13,12 +13,13 @@ import {
 } from "../../data/domination";
 import { advance, applyIntent, canMove, canSummon, createInitialState, legalMoves } from "../index";
 import { homeSlots, rangedCanSee, specialTargets, summonLandingRow, terrainBlocksPath } from "../rules";
-import { cardAt, summonCard } from "../state";
+import { cardAt, moveReach, summonCard } from "../state";
 import { pushBack } from "../combat";
 import { pickBasicTarget } from "../phases";
 import { aiPrepIntent, pointGoals } from "../ai";
 import { atBattle } from "./helpers";
 import { deckLimits } from "../../data/custom-decks";
+import { getDef } from "../../data/cards";
 import type { GameState, PlayerId } from "../types";
 import { homeRow } from "../types";
 
@@ -140,8 +141,16 @@ describe("nothing stands on a closed slot", () => {
 describe("the roads are faster", () => {
   it("gives +1 reach along a lane and nothing off it", () => {
     const s = domState();
-    // Weeds is a slow card: reach 1 normally.
-    const c = put(s, "leaf_weeds", "P1", 3, 0);   // the west shrine, on row D
+    // A SLOW card — and the test now SAYS so rather than trusting a stat line to
+    // stay where it was. Weeds was the subject until it was re-cut SP 4 -> 6,
+    // which is reach 2 (SP_SLOW_MAX is 5): the off-road half below then passed
+    // because the card could make the move on its own legs, which is the exact
+    // opposite of what this is checking. Asserting the premise means the next
+    // re-cut fails here saying "your subject is no longer slow" instead of
+    // quietly proving nothing.
+    const SLOW = "leaf_greegon";
+    expect(moveReach(getDef(SLOW).sp), `${SLOW} is no longer a reach-1 card`).toBe(1);
+    const c = put(s, SLOW, "P1", 3, 0);   // the west shrine, on row D
     expect(runsAlongRoad(M, { row: 3, col: 0 }, { row: 3, col: 2 })).toBe(true);
     expect(canMove(s, "P1", c.instanceId, { row: 3, col: 2 }).ok, "two slots down the lane").toBe(true);
     // The same distance OFF the road is refused — this is the road doing it,
