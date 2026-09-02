@@ -1,5 +1,6 @@
 // Tiny UI-shared bits (no game rules here).
 
+import { buildableCards } from "../data/custom-decks";
 import type { Element, Keyword, PlayerId, StatusKind } from "../engine";
 
 // Element colors — the redesign palette (brighter, reads on the cosmic board).
@@ -18,6 +19,27 @@ import type { Element, Keyword, PlayerId, StatusKind } from "../engine";
 // eight the game is played with, and every screen that iterates this list reads
 // as "the eight, and then the other thing".
 export const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "GALE", "BOLT", "BORE", "DAWN", "DUSK", "VOID"];
+
+/** The elements you can actually BUILD a deck out of — the eight, today.
+ *
+ *  VOID is the Tower's element and nothing in it is draftable: it is one boss
+ *  and six of its brood, so every VOID def is a token or `boss: true`, and both
+ *  are outside `buildableCards()` by construction. That left the deck builder
+ *  with a ninth filter chip that could only ever return an EMPTY grid — a
+ *  control that looks like content you have not unlocked and is in fact a
+ *  control with nothing behind it.
+ *
+ *  The gallery keeps all nine, which is its whole job: it is the screen that
+ *  exists so finished art has somewhere to be looked at, bosses and tokens
+ *  included. This list is only for the grids you DEPLOY from.
+ *
+ *  DERIVED rather than a second hand-written list, so it cannot drift: the day
+ *  VOID gets a real draftable card the chip comes back on its own, and the day
+ *  an element loses its last one it goes away on its own. That is the same
+ *  mistake this file's own header describes — five copies of the element order
+ *  that disagreed — and a hardcoded "the eight" here would have been the sixth. */
+export const BUILDABLE_ELEMENTS: Element[] =
+  ELEMENTS.filter((el) => buildableCards().some((c) => c.element === el));
 
 export const EL_COLOR: Record<Element, string> = {
   LEAF: "#4caf6d",

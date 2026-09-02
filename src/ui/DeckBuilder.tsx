@@ -10,7 +10,7 @@ import {
 import { STANDARD_CAP, autoDeck } from "../data/story";
 import { deleteSquad, loadSquads, saveSquad, squadNamed, squadUsableIn, type Squad } from "../data/squads";
 import { deckLinkFor, decodeDeck, encodeDeck } from "../data/deck-code";
-import { EL_COLOR, EL_ICON, RARITY_STYLE, spellArtSrc } from "./shared";
+import { BUILDABLE_ELEMENTS, EL_COLOR, EL_ICON, RARITY_STYLE, spellArtSrc } from "./shared";
 import {
   ClassRow, CostRow, ElementRow, FilterToggle, KeywordRow, RarityRow,
   cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter,
@@ -922,7 +922,7 @@ export function DeckBuilder(props: {
                 of the deck handle. A box can be told to scroll instead. */}
             {filtersOpen && (
             <div className="db-filterbox">
-            <ElementRow value={filter} onChange={setFilter} />
+            <ElementRow value={filter} onChange={setFilter} elements={BUILDABLE_ELEMENTS} />
             <ClassRow
               all={CLASSES}
               value={classFilter}

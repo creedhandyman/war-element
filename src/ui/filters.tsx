@@ -216,13 +216,19 @@ export function CostRow(props: {
 export function ElementRow(props: {
   value: Element | "ALL";
   onChange: (v: Element | "ALL") => void;
+  /** Which elements to offer. Defaults to all nine — the gallery wants that,
+   *  because it shows bosses and tokens too. A grid you DEPLOY from passes
+   *  `BUILDABLE_ELEMENTS` instead, so it never offers a chip with an empty
+   *  grid behind it. */
+  elements?: Element[];
 }) {
+  const list = props.elements ?? ELEMENTS;
   return (
     <div className="db-filters">
       <button className={`db-fl ${props.value === "ALL" ? "on" : ""}`} onClick={() => props.onChange("ALL")}>
         All
       </button>
-      {ELEMENTS.map((el) => (
+      {list.map((el) => (
         <button
           key={el}
           className={`db-fl el-fl ${props.value === el ? "on" : ""}`}

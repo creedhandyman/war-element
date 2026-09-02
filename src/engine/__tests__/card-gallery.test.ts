@@ -14,6 +14,8 @@
 import { describe, expect, it } from "vitest";
 import { CARDS, TOKENS } from "../../data/cards";
 import { GALLERY_DEFS, SPAWNED_BY, kindOf, tileRule } from "../../ui/CardGallery";
+import { BUILDABLE_ELEMENTS, ELEMENTS } from "../../ui/shared";
+import { buildableCards } from "../../data/custom-decks";
 
 describe("the gallery shows EVERYTHING", () => {
   it("covers every card and every token, with nothing invented", () => {
@@ -98,5 +100,42 @@ describe("a token says what puts it on the board", () => {
       const self = GALLERY_DEFS.find((d) => d.id === tokenId);
       if (self) expect(names, `${tokenId} lists itself`).not.toContain(self.name);
     }
+  });
+});
+
+// ...AND THE BUILDER SHOWS ONLY WHAT YOU CAN DEPLOY, which is the other half of
+// the same promise. The gallery filters nothing; a grid you build a deck out of
+// filters plenty, and its CONTROLS have to agree with its contents.
+//
+// VOID is what made the two come apart. It is the Tower's element — one boss
+// and six of its brood — so every VOID def is a token or `boss: true`, and both
+// sit outside `buildableCards()` by construction. The deck builder still drew a
+// ninth element chip from the shared nine-element list, and tapping it returned
+// an empty grid: a control that reads as content you have not unlocked, and is
+// in fact a control with nothing behind it.
+describe("the builder offers no chip it cannot fill", () => {
+  it("every element the builder lists has draftable cards behind it", () => {
+    const empty = BUILDABLE_ELEMENTS
+      .filter((el) => !buildableCards().some((c) => c.element === el));
+    expect(empty, `builder chips with an empty grid behind them: ${empty.join(", ")}`).toEqual([]);
+  });
+
+  it("...and it drops no element that DOES have them", () => {
+    // The list is derived, so this is the other direction: an element with
+    // draftable cards must never fall out of the builder.
+    const missing = ELEMENTS
+      .filter((el) => buildableCards().some((c) => c.element === el))
+      .filter((el) => !BUILDABLE_ELEMENTS.includes(el));
+    expect(missing, `draftable elements the builder hides: ${missing.join(", ")}`).toEqual([]);
+  });
+
+  it("VOID is gallery-only, today", () => {
+    // Pinned as a FACT about the current set rather than as a rule: if VOID is
+    // ever given a draftable card this fails, and the right response is to
+    // delete this test, not to special-case VOID. The two above are the rule.
+    expect(buildableCards().some((c) => c.element === "VOID")).toBe(false);
+    expect(BUILDABLE_ELEMENTS).not.toContain("VOID");
+    expect(GALLERY_DEFS.filter((d) => d.element === "VOID").length).toBeGreaterThan(0);
+    expect(ELEMENTS).toContain("VOID");
   });
 });
