@@ -32,6 +32,7 @@ import {
   spawnTokens,
   summonCard, enemyCards } from "./state";
 import {
+  aoeRowsHit,
   basicIsInert,
   canCastSpell,
   canFireSpecial,
@@ -927,12 +928,15 @@ function resolveSpell(
 
   if (spell.kind === "aoe") {
     // Area damage/status: the whole board, one picked row, or the picked row +
-    // the one behind it (targeting was validated by canCastSpell).
+    // the one behind it. `aoeRowsHit` is the SAME shape canCastSpell validates
+    // — it used to be spelled out again here, and the two disagreed: the rule
+    // gated the pick and this hit the spill row as well, so a P2 sweep aimed at
+    // the row in front of P1's Home reached a Home row the rule had refused.
+    const rows = row == null ? [] : aoeRowsHit(spell, row);
     const inArea = (e: CardInstance): boolean => {
       if (spell.area === "board") return true;
-      if (row == null || !e.pos) return false;
-      if (spell.area === "tworows") return e.pos.row === row || e.pos.row === row + 1;
-      return e.pos.row === row;
+      if (!e.pos) return false;
+      return rows.includes(e.pos.row);
     };
     const targets = enemyCards(draft, player).filter((e) => e.curHp > 0 && inArea(e));
     let drained = 0;
@@ -1712,7 +1716,18 @@ function performBattleAction(
     if (!check.ok) throw new Error(`Can't plummet: ${check.reason}`);
     const pd = getDef(card.defId).plummet!;
     const valid = plummetTargets(draft, instanceId);
-    const victim = (picks?.[0] ? valid.find((v) => v.instanceId === picks[0]) : undefined) ?? valid[0];
+    // An ABSENT pick means no choice was made — the UI's single-target flow and
+    // scripted casts both dispatch bare, and `canPlummet` has already promised
+    // there is at least one legal victim, so `valid[0]` IS the answer there.
+    // A pick that is PRESENT but not legal is a different animal: it is a
+    // disagreement between what the player was shown and what the rules allow.
+    // This used to fall through to `valid[0]` too, which does not refuse the
+    // illegal pick so much as silently re-aim it — tap the body the dive cannot
+    // finish and it killed a different one. Refuse it, exactly as the
+    // basic-attack path below refuses its own.
+    const named = picks?.[0];
+    const victim = named ? valid.find((v) => v.instanceId === named) : valid[0];
+    if (!victim) throw new Error("Illegal plummet target");
     const landing = { ...victim.pos! };
     card.attackedThisRound = true; // the dive is this turn's action
     draft.log.push(`${label(draft, card)} folds and drops on ${label(draft, victim)}.`);

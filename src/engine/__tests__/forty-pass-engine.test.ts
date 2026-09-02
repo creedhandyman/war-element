@@ -86,6 +86,73 @@ describe("PLUMMET — a fourth battle action", () => {
     expect(plummetTargets(s, falcon.instanceId)).toEqual([]);
   });
 
+  // THE WRONG-KILL BUG. The dive list is a strict SUBSET of the basic-attack
+  // list — same reach, same screens, minus every body too fat to finish — so a
+  // caller that reaches for `validTargets` gets a menu with illegal entries on
+  // it and no error to say so. The UI did exactly that (it lit the basic list
+  // while a dive was armed), and the engine met it halfway by re-aiming the
+  // illegal pick at `valid[0]` instead of refusing it. Two soft failures that
+  // composed into a hard one: the player tapped the body it could not kill and
+  // watched a DIFFERENT card die.
+  describe("an illegal named victim is REFUSED, not quietly re-aimed", () => {
+    // Falcon hits for 5. A is too fat to finish, B is not; both sit inside
+    // reach 1, so `canPlummet` is happy and the DIVE button is live.
+    function twoBodies() {
+      const s = bigPrepState();
+      const falcon = place(s, FALCON, "P1", 3, 2);
+      const fat = place(s, "leaf_stickviper", "P2", 2, 1, { curHp: 12, maxHp: 30, curShields: 0 });
+      const frail = place(s, "leaf_stickviper", "P2", 2, 2, { curHp: 3, maxHp: 30, curShields: 0 });
+      return { s, falcon, fat, frail };
+    }
+
+    it("the basic list is the SUPERSET that made the bad menu — they are not interchangeable", () => {
+      const { s, falcon, fat, frail } = twoBodies();
+      const dmg = effectiveDmg(s, s.cards[falcon.instanceId]);
+      expect(s.cards[fat.instanceId].curHp, "A survives the dive").toBeGreaterThanOrEqual(dmg);
+      expect(s.cards[frail.instanceId].curHp, "B does not").toBeLessThan(dmg);
+
+      const basic = validTargets(s, falcon.instanceId).map((t) => t.instanceId);
+      const dive = plummetTargets(s, falcon.instanceId).map((t) => t.instanceId);
+      expect(basic, "the swing can reach the fat body").toContain(fat.instanceId);
+      expect(dive, "the drop cannot finish it").not.toContain(fat.instanceId);
+      expect(dive, "and B is the only thing it can").toEqual([frail.instanceId]);
+      // Subset, strictly. If this ever inverts, anything showing the basic list
+      // for a dive is offering targets the dive will not honour.
+      for (const id of dive) expect(basic).toContain(id);
+    });
+
+    it("naming the body it cannot finish throws — and kills nobody", () => {
+      const { s, falcon, fat, frail } = twoBodies();
+      expect(() =>
+        applyIntent(battleWith(s, falcon.instanceId), {
+          type: "BATTLE_ACTION", player: "P1", action: "plummet", targetId: fat.instanceId,
+        }),
+      ).toThrow(/illegal plummet target/i);
+      // The refusal is the whole point: the frail body beside it must NOT have
+      // been taken as a consolation prize.
+      expect(s.cards[frail.instanceId], "B is untouched").toBeDefined();
+      expect(s.cards[fat.instanceId], "and so is A").toBeDefined();
+    });
+
+    it("a BARE dispatch still takes the one legal victim — the fallback that earns its keep", () => {
+      const { s, falcon, fat, frail } = twoBodies();
+      const next = applyIntent(battleWith(s, falcon.instanceId), {
+        type: "BATTLE_ACTION", player: "P1", action: "plummet",
+      });
+      expect(next.cards[frail.instanceId], "no pick named, so the only legal prey dies").toBeUndefined();
+      expect(next.cards[fat.instanceId], "never the one it could not finish").toBeDefined();
+    });
+
+    it("naming the legal victim still works", () => {
+      const { s, falcon, fat, frail } = twoBodies();
+      const next = applyIntent(battleWith(s, falcon.instanceId), {
+        type: "BATTLE_ACTION", player: "P1", action: "plummet", targetId: frail.instanceId,
+      });
+      expect(next.cards[frail.instanceId]).toBeUndefined();
+      expect(next.cards[fat.instanceId]).toBeDefined();
+    });
+  });
+
   it("only cards that print it can do it", () => {
     const s = bigPrepState();
     const plain = place(s, "leaf_stickviper", "P1", 3, 2);

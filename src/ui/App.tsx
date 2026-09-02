@@ -3,7 +3,6 @@ import type { AutoMode, EnchantMode, GameState, Intent, PlayerId, Pos } from "..
 import {
   advance,
   applyIntent,
-  canAoeRow,
   canCastSpell,
   canFireSpecial,
   canFireTalent,
@@ -1889,11 +1888,13 @@ export function App() {
         return out;
       }
       if (spell.kind === "aoe" && spell.area !== "board") {
-        // Row / two-row AoE: glow every legal target row.
+        // Row / two-row AoE: glow every legal target row. Asking canCastSpell
+        // rather than re-deriving the rule here is the point — a two-row sweep
+        // has to clear the Home-slot gate on the row it SPILLS into as well,
+        // and a second copy of that check is a second chance to get it wrong.
         const out: Pos[] = [];
         for (let r = 0; r < game.boardSize; r++) {
-          if (!canAoeRow(game, view, r)) continue;
-          if (spell.area === "tworows" && r + 1 >= game.boardSize) continue;
+          if (!canCastSpell(game, view, spell.id, { row: r }).ok) continue;
           for (let col = 0; col < game.boardSize; col++) out.push({ row: r, col } as Pos);
         }
         return out;
@@ -1953,6 +1954,14 @@ export function App() {
           : specialTargets(game, awaitingId);
       return list.map((t) => t.instanceId);
     }
+    // A DIVE is not a swing. `plummetTargets` keeps only the bodies the drop can
+    // actually FINISH (curHp strictly under the dive’s DMG), and the basic list
+    // is by construction a strict SUPERSET of it. Falling through to
+    // `validTargets` here lit up every enemy in reach — including the fat ones
+    // the dive cannot kill — and the engine then slid the pick onto the first
+    // legal victim, so tapping the 12 HP body killed the 3 HP one beside it.
+    if (pending === "plummet")
+      return plummetTargets(game, awaitingId).map((t) => t.instanceId);
     return validTargets(game, awaitingId).map((t) => t.instanceId);
   }, [game, awaitingId, pending, sel, view, armedPickSide, spellPicks]);
 
