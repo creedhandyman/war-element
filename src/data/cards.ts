@@ -2111,10 +2111,17 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 1,
+    // 5 + 4 + 8 = 17, unchanged from 5/2/10 — a straight swap of two points of
+    // speed for two of body, and it sits at the +2 ceiling of the curve either
+    // way. The speed is the cheap side: moveReach is 2 anywhere above
+    // SP_SLOW_MAX (5) and the king-move tier starts strictly ABOVE SP_MID_MAX
+    // (10), which 10 itself does not clear, so 10 and 8 are the same card to
+    // every rule that reads SP. The body is not cheap at all — at 2 HP Zap
+    // fired Stuck once and was traded off by the next basic that touched it.
     dmg: 5,
     hits: 1,
-    hp: 2,
-    sp: 10,
+    hp: 4,
+    sp: 8,
     shields: 0,
     keywords: {},
     // Stuck (On Summon): 5 DMG to one opponent in range.
@@ -5596,18 +5603,36 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 1,
+    // 2*3 + 1 + 8 = 15 = 5*1+10, exactly, down from 2*4 + 3 + 5 = 16. A jab and
+    // two points of body are sold for three points of speed, and EVASION is
+    // bought with nothing at all — keywords sit outside the budget.
+    //
+    // That is the whole card now: it cannot be hit reliably, and it dies the
+    // moment it is. EVASION is ~50% a hit, so 1 HP is not the liability it
+    // reads as — but it IS one hit, so nothing here is a mistake to be
+    // forgiven. SP 5 -> 8 also crosses a real line: SP_SLOW_MAX is 5, so this
+    // goes from a one-step body to a two-step one, which is what lets a
+    // one-hit-point Assassin pick its fight instead of taking whichever one
+    // walks up to it. (The same line makes it feel PARALYZE, which caps reach
+    // at 1 and did nothing to it before.)
     dmg: 2,
-    hits: 4,
-    hp: 3,
-    sp: 5,
+    hits: 3,
+    hp: 1,
+    sp: 8,
     shields: 0,
-    keywords: {},
-    // Sticky: the four little jabs BUILD one wound rather than overwriting it —
-    // BLEED stacks to 4, for 2 rounds. It used to apply BLEED 1 for 1 round per
-    // hit, which (since a status REPLACES a same-kind one) meant four jabs left
+    keywords: { EVASION: true },
+    // Sticky: the little jabs BUILD one wound rather than overwriting it —
+    // BLEED stacks, to 4, for 2 rounds. It used to apply BLEED 1 for 1 round per
+    // hit, which (since a status REPLACES a same-kind one) meant the jabs left
     // exactly 1 damage of bleed total. Stickers measured 0.1 DMG a game and a
     // 22% win rate, the worst card in the set, on a card whose own comment
     // called it a BLEED feeder.
+    //
+    // THREE jabs against a cap of 4, so one attack no longer caps the wound on
+    // its own: it lands 3 and the fourth comes next round. Deliberate rather
+    // than an oversight of the re-cut — the cap is what Sticky is worth, and
+    // making Stickers survive a round to collect it is the fee for a body that
+    // dodges half of what is thrown at it.
     passiveNames: { onHitStatus: "Sticky" },
     onHitStatus: { kind: "BLEED", duration: 2, power: 1, stack: true, stackCap: 4 },
   },
@@ -7553,16 +7578,15 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 1,
-    // 3 + 4 + 1*2 + 8 = 17 against 5*1+10, which is the +2 CEILING and not the
-    // middle of the band — worth saying out loud, because the next point of
-    // anything on this card fails the curve outright. SP was already 8 and is
-    // untouched; the one point is HP 3 -> 4, which is the difference between
-    // dying to a 3-damage basic and surviving it, and Zipp's whole job is to
-    // land, deploy a Drone, and still be there to be a body afterwards.
+    // 3 + 3 + 1*2 + 7 = 15 = 5*1+10, exactly, from 16 at SP 8. The point comes
+    // off the legs and costs nothing that shows: moveReach is 2 anywhere above
+    // SP_SLOW_MAX (5), so 8 and 7 are the same two-step body. What it buys is
+    // the middle of the band instead of the edge of it — room to give this card
+    // something later without the curve refusing it.
     dmg: 3,
     hits: 1,
-    hp: 4,
-    sp: 8,
+    hp: 3,
+    sp: 7,
     shields: 1,
     keywords: {},
     // ARC, not Forged Tech: every other Forged Tech card is PYRO, and Zipp
