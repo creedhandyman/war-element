@@ -3,6 +3,8 @@
 // did was to read the source. That is exactly how ~19 of them ended up
 // undescribed.
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CARDS, TOKENS, getDef } from "../../data/cards";
 import { SPELLS } from "../spells";
@@ -11,6 +13,7 @@ import { KEYWORDS, KEYWORD_STYLE } from "../../ui/shared";
 import { cardHasKeyword } from "../../ui/filters";
 import { buildableCards } from "../../data/custom-decks";
 import { hasArcDischarge } from "../auras";
+import { NEGATIVE_STATUSES } from "../types";
 
 /** Card-def fields that carry a real ability the player should be told about.
  *  Purely structural fields (art, rarity, stats, tribe) are not listed. */
@@ -295,6 +298,30 @@ describe("every keyword is either self-evident or explained", () => {
         if (v && EXPLAINED.has(k) && !text.includes(k)) missing.push(`${def.id}: ${k}`);
     }
     expect(missing, `carried but never described: ${missing.join(", ")}`).toEqual([]);
+  });
+
+  // ...AND THE RULES BOOK HAS TO NAME THEM TOO. This is the guard that was
+  // missing: TRAMPLE shipped as a keyword, got its card-text line, and never
+  // reached "How to play" — so the one screen a new player opens to learn the
+  // rules listed ten of the eleven keywords and said nothing about the one that
+  // lets a card walk THROUGH another. The card inspector and the rules book are
+  // two different surfaces and only one of them was being checked.
+  it("the rules book names every keyword in the game", () => {
+    const book = readFileSync(join(__dirname, "../../ui/RulesBook.tsx"), "utf8");
+    const inUse = new Set<string>();
+    for (const def of [...CARDS, ...TOKENS])
+      for (const [k, v] of Object.entries(def.keywords)) if (v) inUse.add(k);
+    const unnamed = [...inUse].filter((k) => !book.includes(k));
+    expect(unnamed, `keywords a player cannot look up: ${unnamed.join(", ")}`).toEqual([]);
+  });
+
+  it("...and every status a card can apply", () => {
+    // Same failure mode, other half of the vocabulary: a status with no entry is
+    // a word on the board with no rule behind it.
+    const book = readFileSync(join(__dirname, "../../ui/RulesBook.tsx"), "utf8");
+    const kinds = [...NEGATIVE_STATUSES, "STEALTH", "EVASION"];
+    const unnamed = kinds.filter((k) => !book.includes(k));
+    expect(unnamed, `statuses a player cannot look up: ${unnamed.join(", ")}`).toEqual([]);
   });
 
   it("TRAMPLE survived the move from a def field to a keyword", () => {

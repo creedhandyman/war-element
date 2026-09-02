@@ -22,7 +22,7 @@ export function RulesBook(props: { onClose: () => void }) {
         <div className="rules-body">
           <section>
             <h3>🎯 The goal</h3>
-            <p>Command an elemental army on a 4×4 (or 5×5) grid. Win two ways:</p>
+            <p>Command an elemental army on a 4×4 (or 5×5) grid. Win three ways:</p>
             <ul className="rules-defs">
               <li>
                 <b>Elimination</b> — leave the opponent with no cards on the board,
@@ -35,7 +35,24 @@ export function RulesBook(props: { onClose: () => void }) {
                 be summoned onto it or moved through it, and it can never be taken
                 back. Capture every slot in it — four on the standard board, five on the large one — and you win.
               </li>
+              <li>
+                <b>The clock</b> — a match that reaches <b>round 50</b> is decided on the
+                spot: most Home slots captured, then most cards still standing, then most
+                total HP. Level on all three and it is a <b>draw</b>.
+              </li>
             </ul>
+            <p>
+              With three or four seats it is <b>last seat standing</b> — emptying one
+              opponent does not end it, and conceding empties only your own seat while the
+              others fight on. A mutual wipe is a draw.
+            </p>
+            <p>
+              Two modes change these rules outright. <b>Domination</b> (the 7×7) has no
+              Home row to capture — see below. In the <b>Void Tower</b>, Home-slot capture
+              is switched off entirely: you win the moment no untamed boss is left
+              standing, and the boss wins by wiping you out, by holding your whole Home
+              row for two rounds running, or by outlasting its own 30-round clock.
+            </p>
           </section>
 
           <section>
@@ -43,6 +60,7 @@ export function RulesBook(props: { onClose: () => void }) {
             <ul className="rules-defs">
               <li><b>4×4 Standard</b> — 18 cards, up to <b>5</b> spells.</li>
               <li><b>5×5 Large</b> — 30 cards, up to <b>8</b> spells.</li>
+              <li><b>7×7 Domination</b> — builds as the Large squad (30 cards, 8 spells), and it is the only board that seats more than two players.</li>
               <li>
                 Every card is <b>unique</b> — no duplicates. Build one in the Squad
                 Builder, then pick it before the match. (The <b>deck</b> is what that
@@ -76,6 +94,11 @@ export function RulesBook(props: { onClose: () => void }) {
               Unspent Gold and Magic carry over, but each pool only banks up to
               <b> 10</b> between rounds — sitting on a huge reserve doesn't work.
             </p>
+            <p>
+              <b>In Domination the Home-slot bonus does not exist</b> — the 7×7 has no
+              Home row. Each <b>Point</b> you hold pays <b>2</b> Gold a round instead, so
+              the map itself is the income.
+            </p>
           </section>
 
           <section>
@@ -84,6 +107,11 @@ export function RulesBook(props: { onClose: () => void }) {
               <li>
                 <b>Mulligan</b> (first round): click opening-hand cards to send back,
                 confirm, and redraw.
+              </li>
+              <li>
+                <b>Deployment</b>: before round one, each side places one card
+                <b> free</b> — no Gold spent — onto a Home slot. Cost 3 or less only, so
+                the head start is a body rather than a bomb.
               </li>
               <li>
                 <b>Prep</b>: glowing hand cards are affordable — click one, then a
@@ -113,8 +141,27 @@ export function RulesBook(props: { onClose: () => void }) {
                 <b> PEN</b> ignores shields.
               </li>
               <li>
-                <b>Melee</b> hits adjacent slots; <b>Ranged</b> reaches farther and
-                Specials reach the whole board.
+                <b>Melee</b> hits the eight adjacent slots. A <b>Ranged</b> basic reaches
+                <b> 2</b> slots, and <b>3</b> once it has left its own Home row — not the
+                whole board. On a straight line (row, column or true diagonal) a single
+                enemy body <b>screens</b> the shot; knight-shaped shots have no line to
+                block. Allies never get in the way.
+              </li>
+              <li>
+                <b>Specials do not reach the whole board either.</b> A ranged card's
+                Special is free of melee range; a <b>melee</b> card's Special still only
+                reaches its own adjacent square unless the Special itself says otherwise.
+              </li>
+              <li>
+                <b>The Home rule</b> — while you are standing on your <i>own</i> Home
+                row you cannot attack anything standing on <i>theirs</i>, basic or
+                Special. Step off your line and it lifts. This is why a back-line shooter
+                can read "no valid action" with enemies plainly in front of it.
+              </li>
+              <li>
+                <b>Specials recharge</b> — firing one puts it on cooldown, usually 2
+                rounds. A card that was <b>summoned this round</b> can basic-attack in the
+                battle but cannot fire its Special until the next one.
               </li>
               <li>
                 Multi-hit and barrage Specials take several target picks — spread them
@@ -203,6 +250,16 @@ export function RulesBook(props: { onClose: () => void }) {
                 a single step; ROOT and FREEZE stop it dead.
               </li>
               <li>
+                <b>Bodies hold the way</b> — an enemy standing between the two ends of a
+                two-step move blocks it. FLYING cards and the SP 11+ tier slip past
+                anyway, which is the second thing that tier buys. Allies never block, and
+                a captured slot can be <i>passed through</i> — you just can't stop on it.
+              </li>
+              <li>
+                <b>What stops a move outright</b> — STUN, SLEEP and FRIGHTEN refuse it
+                before reach is even counted, and an emplaced card never moves at all.
+              </li>
+              <li>
                 <b>No teleporting home</b> — a card can't jump straight from your Home
                 row to the enemy's in one move. Push up the middle to threaten a
                 Home-slot capture.
@@ -247,9 +304,15 @@ export function RulesBook(props: { onClose: () => void }) {
 
           <section>
             <h3>🔥 Statuses — damage over time</h3>
-            <p>DOTs tick at the end of every round until they wear off.</p>
+            <p>
+              DOTs tick at the end of every round until they wear off, and <b>every one
+              of them ignores shields</b> — armour soaks attacks, never poison.
+              Re-applying one keeps the <i>better</i> of the two, power and duration
+              judged separately, so a fresh application can never shorten or weaken
+              what is already running.
+            </p>
             <ul className="rules-defs">
-              <li><b>BURN</b> — burns HP each round <i>through shields</i>, and melts a shield every tick. Stacks up to 5 (Pyro's Scorch).</li>
+              <li><b>BURN</b> — burns HP each round, and melts <b>2</b> shields every tick. Stacks up to 5 (Pyro's Scorch).</li>
               <li><b>BLEED</b> — loses HP each round; stacks (Leaf).</li>
               <li><b>SCALD</b> — scalding damage each round.</li>
               <li><b>DOT / Poison</b> — generic damage each round.</li>
@@ -262,18 +325,18 @@ export function RulesBook(props: { onClose: () => void }) {
             <ul className="rules-defs">
               <li><b>STUN</b> — skips its whole turn.</li>
               <li><b>SLEEP</b> — skips its turn until any hit wakes it.</li>
-              <li><b>PARALYZE</b> — 50% chance to skip its turn, rolled each turn (Bolt).</li>
-              <li><b>FREEZE</b> — SP drops to 0 <i>and</i> its damage is halved.</li>
+              <li><b>PARALYZE</b> — 50% chance its <i>basic attack</i> fizzles, rolled each time (Bolt). It does not cost the turn: a paralysed card still fires its Special normally, and it still moves — capped to a single step.</li>
+              <li><b>FREEZE</b> — SP drops to 0 <i>and</i> its <b>basic</b> damage is halved. Specials print their own number and are unaffected.</li>
               <li><b>ROOT</b> — SP drops to 0: it can't move and acts last.</li>
               <li><b>MUTED</b> — can't fire its Special.</li>
-              <li><b>FRIGHTEN</b> — a fear effect that throws off its positioning.</li>
+              <li><b>FRIGHTEN</b> — the card is shoved a slot back toward its own Home row the moment it lands (if that slot is open), and then cannot move at all while it lasts. It is how you repel an invader off your line without killing it.</li>
             </ul>
           </section>
 
           <section>
             <h3>📉 Statuses — debuffs & marks</h3>
             <ul className="rules-defs">
-              <li><b>WEAKEN</b> — deals 25% less damage, and <i>stacks</i>: each new application compounds (25% / 44% / 58%) up to three deep, rather than just refreshing the timer.</li>
+              <li><b>WEAKEN</b> — <b>basic</b> damage down 25%, and it <i>stacks</i>: each new application compounds (25% / 44% / 58%) up to three deep rather than just refreshing the timer. Specials print their own number and shrug it off.</li>
               <li><b>BLIND</b> — its basic attacks have a ~50% chance to miss.</li>
               <li><b>SEAL</b> — cannot be healed while sealed.</li>
               <li><b>ELECTRIFIED</b> — harmless on its own, but Bolt cards deal +1 DMG to <i>any</i> statused foe.</li>
@@ -283,18 +346,57 @@ export function RulesBook(props: { onClose: () => void }) {
 
           <section>
             <h3>🏷 Keywords</h3>
-            <p>Printed on the card; always on unless a status suppresses them.</p>
+            <p>
+              Mostly printed on the card — but auras, timed buffs and Specials
+              <i>grant</i> these too, and a granted one works exactly like a printed one.
+            </p>
             <ul className="rules-defs">
-              <li><b>CRIT</b> — a basic has a ~50% chance to <i>double</i> its damage (the target must be unshielded).</li>
-              <li><b>PEN</b> — attacks pierce shields and hit HP directly.</li>
+              <li><b>CRIT</b> — each hit has a ~50% chance to <i>double</i> its damage. The coin is rolled per hit, so a multi-hit basic rolls once for each. The target must be unshielded — and a <b>piercing</b> attack never crits at all, so PEN and CRIT on the same swing cancel.</li>
+              <li><b>PEN</b> — attacks pierce shields and hit HP directly (and never strip them).</li>
               <li><b>BLOCK N</b> — every incoming hit is reduced by N — before shields, and even against PEN.</li>
-              <li><b>REFLECT N</b> — returns N damage to whoever attacks it.</li>
+              <li><b>REFLECT N</b> — returns N to the attacker <i>per hit landed</i>, so a four-hit volley bounces 4×N. A hit your shields fully soaked still bounces. The whole sum is paid back once at the end of the volley, runs through the attacker's own BLOCK and shields, and can kill it mid-attack — which stops the rest of the volley.</li>
               <li><b>EVASION</b> — ~50% chance to dodge each incoming hit.</li>
-              <li><b>FLYING</b> — dodges melee entirely (unless the attacker also flies, or a status grounds it).</li>
-              <li><b>STEALTH</b> — untargetable until it makes its first attack of the round.</li>
+              <li><b>FLYING</b> — dodges melee entirely (unless the attacker also flies, or a status grounds it — ROOT, FREEZE, STUN, SLEEP or PARALYZE). It also ignores the ground: no enemy body blocks its path, and it soars over walls instead of setting them off.</li>
+              <li><b>TRAMPLE</b> — in Prep it may step onto an <i>adjacent enemy with less max HP</i> and take the slot, in any direction. The victim is driven a slot straight back, or shoved aside into a free square beside it when the slot behind is blocked; a card that crushes also deals its trample damage <i>through shields</i> on the way past. An enemy with nowhere to be driven, or one that cannot be pushed at all, cannot be trampled.</li>
+              <li><b>STEALTH</b> — untargetable until it makes its first attack of the round. The cloak breaks on the <i>attempt</i>, so a basic that misses still uncovers it. Some cards and fields can see through it for their whole side.</li>
               <li><b>LIFESTEAL</b> — basic attacks heal it for the damage dealt.</li>
-              <li><b>DRAIN</b> — LIFESTEAL, and it also steals 1 max HP from the target as it feeds (Dusk).</li>
+              <li><b>DRAIN</b> — steals 1 max HP from the target and adds it to its own, but heals for only <i>half</i> the damage dealt, rounded down — so a 1-damage drain heals nothing. A card carrying LIFESTEAL as well heals at the full rate (Dusk).</li>
               <li><b>REGEN N</b> — heals N HP at the end of each round.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>🏳 Domination (7×7)</h3>
+            <p>
+              A different game on a bigger board, and the only one that seats three or
+              four players. There is no Home row here — nothing to capture and nothing to
+              defend — so the map replaces it entirely.
+            </p>
+            <ul className="rules-defs">
+              <li>
+                <b>Four Points</b> — Fire Citadel, Volcanic Bastion, Ashen Port and
+                Dragon's Lair. You hold a Point by having more live bodies on its ring
+                than anyone else — a <i>tie</i> changes nothing, so whoever held it keeps
+                it until someone breaks the deadlock. Each one pays <b>2</b> Gold a round.
+              </li>
+              <li>
+                <b>Winning</b> — hold <b>all four</b> and the match ends on the spot. Or
+                hold <b>three</b> at the end of <b>three rounds running</b>: taking three
+                does not win, still having three after the table has had its turn to
+                break you does. Lose the majority for one round and the count restarts.
+              </li>
+              <li>
+                <b>Deploying</b> — with no Home row you summon onto the four
+                <b> shrines</b> on the road cross, which belong to nobody: first there
+                holds one. You may also summon onto the ring of any Point you
+                <i> currently</i> hold, so ground taken is ground you can land on — and a
+                Point that flips takes its landing squares with it.
+              </li>
+              <li>
+                <b>The terrain</b> — a Point's citadel and the closed centre of the cross
+                cannot be stood on, though cards may cross them. The roads themselves are
+                faster: a move that runs along a lane gets one extra step.
+              </li>
             </ul>
           </section>
 
