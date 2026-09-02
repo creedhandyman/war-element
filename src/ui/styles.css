@@ -6472,9 +6472,22 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .gd-mid { animation: none; }
 
 .gd-head { display: flex; align-items: center; gap: 9px; }
-.gd-tag {
-  font-size: 9px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase;
+/* THE TEACHER. Sakuroot is `STARTER_DECK` — on a new save this is the only card
+   the player owns, so the tutorial is delivered by something already in their
+   squad rather than by a disembodied tag. */
+.gd-face {
+  width: 46px; height: 46px; flex: none; border-radius: 50%; object-fit: cover;
+  object-position: 50% 22%;      /* the face, not the middle of the crop */
+  border: 1px solid color-mix(in srgb, var(--gold-lit) 55%, transparent);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 0 14px rgba(201, 162, 75, 0.28);
+}
+.gd-who { display: flex; flex-direction: column; line-height: 1.25; }
+.gd-who b {
+  font-size: 11px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--gold-lit);
+}
+.gd-who i {
+  font-style: normal; font-size: 9px; letter-spacing: 0.04em; color: var(--ink-faint);
 }
 /* Pips, not "3 of 7": a filled pip says "done" in a way a numerator cannot, and
    it shows how much is left without making the player do the subtraction. */
