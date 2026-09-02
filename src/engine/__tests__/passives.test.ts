@@ -4554,26 +4554,34 @@ describe("a Talent is a cost-3 Rare's trick, and nothing else's", () => {
   // the same way.
   const talented = [...CARDS, ...TOKENS].filter((c) => c.talent);
 
-  // Three cards pre-date the rule. Listed rather than waived silently, so the
-  // decision to keep them stays visible and arguable.
-  const GRANDFATHERED = new Set(["gale_tumbleweed", "leaf_oak", "pyro_canister"]);
+  // The cards the rule does not cover. Listed rather than waived silently, so
+  // the decision to keep each one stays visible and arguable.
+  //
+  //   gale_tumbleweed, leaf_oak, pyro_canister — three that PRE-DATE the rule.
+  //   dawn_quasar — an owner's call taken AFTER it, and the first of its kind:
+  //     Quasar was re-costed 3 -> 2 and keeps Starfall anyway, because the
+  //     Talent is worth more on that card than the gold was. Noted apart from
+  //     the other three on purpose — "it was here first" and "we decided to"
+  //     are different arguments, and only the second one can be made again.
+  const EXCEPTIONS = new Set(["gale_tumbleweed", "leaf_oak", "pyro_canister", "dawn_quasar"]);
 
   it("every Talent sits on a cost-3 Rare", () => {
     const wrong = talented
-      .filter((c) => !GRANDFATHERED.has(c.id))
+      .filter((c) => !EXCEPTIONS.has(c.id))
       .filter((c) => c.rarity !== "rare" || c.cost !== 3)
       .map((c) => `${c.id} (${c.rarity} cost ${c.cost})`);
     expect(wrong, "a Talent outside the cost-3 Rare slot").toEqual([]);
   });
 
-  it("...and the grandfathered three are still the only exceptions", () => {
-    // If one of them is ever re-costed or loses its Talent, this fails and the
-    // list shrinks — an exception set that cannot quietly grow.
-    const stillWrong = [...GRANDFATHERED].filter((id) => {
+  it("...and the listed exceptions are still the only ones", () => {
+    // If one of them is ever re-costed onto the 3-drop or loses its Talent,
+    // this fails and the list shrinks — an exception set that cannot quietly
+    // grow, and cannot quietly keep a name it has stopped earning either.
+    const stillWrong = [...EXCEPTIONS].filter((id) => {
       const d = CARDS.find((c) => c.id === id);
       return d && d.talent && (d.rarity !== "rare" || d.cost !== 3);
     });
-    expect(stillWrong.sort()).toEqual([...GRANDFATHERED].sort());
+    expect(stillWrong.sort()).toEqual([...EXCEPTIONS].sort());
   });
 
   it("a Rare that gave up its Talent did not become a blank body", () => {

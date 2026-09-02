@@ -12072,6 +12072,11 @@ export const CARDS: CardDef[] = [
     // rather than the hit, and SP stops at 7 on purpose — SP_SLOW_MAX is 5, so
     // anything above it still strides 2, and dropping to 4 would have cost a
     // whole movement tier for one budget point.
+    //
+    // AND IT KEEPS STARFALL, which the "a Talent is a cost-3 Rare's trick" rule
+    // would otherwise refuse. Owner's call, taken after the re-cost and written
+    // down in that test's exception list rather than waived quietly — the
+    // Talent is worth more on this card than the gold was.
     cost: 2,
     dmg: 5,
     hits: 1,
@@ -12091,16 +12096,14 @@ export const CARDS: CardDef[] = [
     // the more interesting of the two.
     passiveNames: { onHitStatus: "Outshine" },
     onHitStatus: { kind: "BLIND", duration: 2, power: 0 },
-    // STARFALL IS GONE, and the re-cost is why: a Talent is a cost-3 Rare's
-    // trick and nothing else's (passives.test.ts), because a Talent is free
-    // against the stat budget and pinning it to the 3-drop is what stops it
-    // becoming a rider on every rung of the curve. The grandfathered list is
-    // three cards and deliberately closed, so a cost-2 Quasar cannot keep one.
-    //
-    // Outshine is what it keeps, which is the same test's other half: a Rare
-    // off the 3-drop earns its texture from PASSIVES. That is the better half
-    // anyway — Starfall was one PEN strike per game, Outshine is a BLIND on
-    // every basic for the whole match, and it was always the card's identity.
+    talent: {
+      name: "Starfall",
+      text: "Once per game, free: 7 DMG (PEN) to an adjacent opponent and BLIND it for 2 rounds.",
+      // BLINDs, like its basic now does -- Starfall is the same job done at
+      // PEN and at range, for the turn you need the mark to land through armour.
+      handler: "strike",
+      params: { dmg: 7, pen: 1, statusKind: "BLIND", statusDuration: 2 },
+    },
   },
   {
     id: "dawn_meridian",
