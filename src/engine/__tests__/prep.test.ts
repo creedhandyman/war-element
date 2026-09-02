@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
 import { canMove, canSummon, openHomeSlots, summonLandingRow, summonSquare } from "../rules";
 import { boardCards, cardAt, moveReach, SP_MID_MAX, SP_SLOW_MAX } from "../state";
+import { hasCaptureWin } from "../state";
 import { bigPrepState, freshGame, giveHand, place, prepState } from "./helpers";
 import { CARDS, getDef } from "../../data/cards";
 import type { GameState } from "../types";
@@ -68,15 +69,15 @@ describe("summoning", () => {
       expect(canSummon(s, "P1", handId, col).ok).toBe(false);
   });
 
-  it("a home row taken by the ENEMY falls back — it is not a softlock", () => {
+  it("a home row taken by the ENEMY falls back IN THE TOWER — it is not a softlock", () => {
     // THE BUG. Summoning is column-addressed with the row implied to be your
     // home row, so a side whose home row is entirely enemy-held could not play a
-    // card at all. An ordinary match hides it — holding every enemy home slot IS
-    // the capture win, so the state ends the game at once — but Void Tower turns
-    // capture off and it persisted: measured, at the moment an overrun fired the
-    // player held 6.92 cards in hand and 23.79 in deck, with 0.00 open home
-    // slots and 0% of them playable. Thirty-one cards and no legal move.
+    // card at all. Void Tower turns capture off and it persisted: measured, at
+    // the moment an overrun fired the player held 6.92 cards in hand and 23.79
+    // in deck, with 0.00 open home slots and 0% of them playable. Thirty-one
+    // cards and no legal move.
     const s = prepState();
+    s.voidTower = true;                       // where the hatch belongs
     s.players.P1.gold = 99;
     const handId = giveHand(s, "P1", "leaf_greegon");
     for (let col = 0; col < s.boardSize; col++) place(s, "dusk_vamp", "P2", 3, col);
@@ -84,6 +85,34 @@ describe("summoning", () => {
     expect(canSummon(s, "P1", handId, 1).ok, "and yet there is a play").toBe(true);
     // It lands FORWARD, toward whatever took the back line — dangerous ground.
     expect(summonLandingRow(s, "P1", 1)).toBe(2);
+  });
+
+  it("...and NOT in a duel, where that row is a lost game rather than a stuck one", () => {
+    // Owner-reported, on the AI: fill an opponent's home row on a 4x4 or 5x5 and
+    // they answered by summoning onto their SECOND row — a fresh body in front of
+    // the line that had just taken their back row, in time to kill the occupiers
+    // before Cleanup could score them. The reward for taking a home row was a
+    // wall of new cards between you and it.
+    //
+    // The hatch was never for this. Work out when it can be reached in a duel:
+    // every home column blocked by something the seat cannot clear, and none of
+    // them holding one of its own cards — so every one is captured by the
+    // opponent or standing under them, which IS `hasCaptureWin` for the
+    // opponent. Not stuck; lost, and over at the next Cleanup.
+    for (const [label, mk, n] of [["4x4", prepState, 4], ["5x5", bigPrepState, 5]] as const) {
+      const s = mk();
+      s.players.P1.gold = 99;
+      const handId = giveHand(s, "P1", "leaf_greegon");
+      for (let col = 0; col < n; col++) place(s, "dusk_vamp", "P2", n - 1, col);
+      expect(openHomeSlots(s, "P1"), `${label}: the row is gone`).toEqual([]);
+      // The state the hatch would have rescued is a won game for the other side.
+      expect(hasCaptureWin(s, "P2"), `${label}: not actually a capture win`).toBe(true);
+      // So it stays shut, at every column.
+      for (let col = 0; col < n; col++) {
+        expect(summonLandingRow(s, "P1", col), `${label}: hatch open at ${col}`).toBeNull();
+        expect(canSummon(s, "P1", handId, col).ok, `${label}: summon allowed at ${col}`).toBe(false);
+      }
+    }
   });
 
   it("...but never past the halfway line, and never into their back line", () => {
@@ -96,6 +125,7 @@ describe("summoning", () => {
     // Measured before the bound: as column 1 filled, the landing walked 1, 2, 3,
     // then 4 — P1's home row on a 5x5.
     const s = prepState();
+    s.voidTower = true;                       // the only mode the hatch opens in
     s.players.P2.gold = 99;
     const handId = giveHand(s, "P2", "leaf_greegon");
     // P2's home row is gone entirely — captured, so P2 cannot clear it.
@@ -619,14 +649,28 @@ describe("a captured Home slot does not lock the rest of the row", () => {
       expect(summonLandingRow(s, "P1", 0)).toBeNull();
     });
 
-    it(`${label}: the whole Home row captured opens the forward fallback`, () => {
+    it(`${label}: a wholly captured Home row does NOT open a forward fallback`, () => {
+      // It used to. See the Tower/duel split above: on a duel board this state is
+      // the opponent's capture win, and letting the loser answer it by summoning
+      // onto its second row is what the owner reported as the AI cheating.
       const s = mk();
       const home = n - 1;
       s.players.P1.gold = 20;
       for (let c = 0; c < n; c++) s.slots[home][c].capturedBy = "P2";
       const handId = giveHand(s, "P1", "leaf_greegon");
+      expect(summonSquare(s, "P1", handId), "the hatch opened in a duel").toBeNull();
+      expect(summonLandingRow(s, "P1", 0)).toBeNull();
+    });
+
+    it(`${label}: ...but the Tower still gets its escape hatch`, () => {
+      const s = mk();
+      s.voidTower = true;
+      const home = n - 1;
+      s.players.P1.gold = 20;
+      for (let c = 0; c < n; c++) s.slots[home][c].capturedBy = "P2";
+      const handId = giveHand(s, "P1", "leaf_greegon");
       const sq = summonSquare(s, "P1", handId);
-      expect(sq, "a wholly captured row must not be a softlock").not.toBeNull();
+      expect(sq, "a wholly captured row must not be a softlock in the Tower").not.toBeNull();
       // It lands FORWARD, and never past the halfway line.
       const landing = summonLandingRow(s, "P1", sq!.col)!;
       expect(landing).toBeLessThan(home);

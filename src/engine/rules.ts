@@ -257,6 +257,33 @@ export function summonLandingRow(
   if (col < 0 || col >= state.boardSize) return null;
   const home = homeRow(player, state.boardSize);
   if (homeSlotBlocker(state, player, col) === null) return home;
+
+  // THE HATCH BELONGS TO VOID TOWER, and to nothing else.
+  //
+  // It was written for the Tower and measured there, and the reason is the one
+  // stated above: capture is switched OFF in a Tower fight, so a home row taken
+  // by the boss's brood is a state that PERSISTS — thirty more rounds of a full
+  // hand and no legal move. That is a softlock and it needs a door.
+  //
+  // A DUEL IS NOT THAT. Work out when this code can even be reached on a 4x4 or
+  // 5x5: every home column must be blocked by something this side cannot clear,
+  // and the loop below establishes none of them holds one of its OWN cards. So
+  // every one of them is captured by the opponent or standing under an opponent
+  // — which is `hasCaptureWin` for them, exactly (state.ts: a slot counts as
+  // theirs if they have captured it OR are standing on it). The position is not
+  // stuck, it is LOST, and the very next Cleanup ends the match.
+  //
+  // What the hatch did there was let the losing side answer the capture by
+  // summoning a fresh body onto its second row — in FRONT of the line that had
+  // just taken its home row, where it could kill the occupiers before Cleanup
+  // could score them. The reward for taking a home row was a wall of new cards
+  // between you and it. Owner-reported, on the AI, and it reads as cheating
+  // because from the outside it is indistinguishable from it.
+  //
+  // So: no fallback outside the Tower. Nothing is softlocked by this — the
+  // state it refuses to rescue is one Cleanup from being over.
+  if (!state.voidTower) return null;
+
   // Only when the row is wholly unavailable — otherwise use the open slot.
   if (openHomeSlots(state, player).length > 0) return null;
   // ...and only when it is blocked by things this side CANNOT clear. A home row
