@@ -41,6 +41,21 @@ export const ELEMENTS: Element[] = ["LEAF", "PYRO", "AQUA", "GALE", "BOLT", "BOR
 export const BUILDABLE_ELEMENTS: Element[] =
   ELEMENTS.filter((el) => buildableCards().some((c) => c.element === el));
 
+/** THE TEACHER, and there is only one of her.
+ *
+ *  `STARTER_DECK` is a single id and it is Sakuroot's, so on a brand-new save
+ *  this is a portrait of the only card the player owns. Both tutorials use it —
+ *  the first-run walkthrough on the menus (`GuideOverlay`) and the in-fight
+ *  coach (`TutorialCoach`) — because they are one voice teaching one game, and
+ *  a player who meets a face on the menus and a nameless blue box in the battle
+ *  has met two tutorials.
+ *
+ *  A SEPARATE ASSET from `cards/leaf_sakuroot.webp`: the card art in a fight is
+ *  not changing, and a portrait cropped to read at 46px is the wrong picture for
+ *  a card face anyway. */
+export const TEACHER_ART = "/teacher-sakuroot.webp";
+export const TEACHER_NAME = "Sakuroot";
+
 export const EL_COLOR: Record<Element, string> = {
   LEAF: "#4caf6d",
   AQUA: "#4d94e8",

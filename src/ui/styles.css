@@ -4723,7 +4723,24 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
   background: linear-gradient(150deg, #3a3358, #1b1830); border: 1px solid var(--gold-line);
   font-size: 12px; font-weight: 600; color: var(--gold-lit);
+  padding: 0; overflow: hidden; cursor: pointer; flex: none;
 }
+/* No trophies yet: it is still the initial, and it must not look tappable. */
+.home-av:disabled { cursor: default; }
+/* WEARING A HEAD. The plate is a full 750x1000 card, so it is scaled up and
+   pulled to the TOP of the frame — a boss's face is in the upper third of its
+   art and `object-fit: cover` alone would centre on its chest. */
+.home-av.has-head { background: #000; border-color: var(--gold-lit); }
+.home-av img {
+  width: 100%; height: 100%; object-fit: cover; object-position: 50% 14%;
+  display: block; transform: scale(1.35);
+}
+.home-lvl {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: var(--ink-dim);
+  border: 1px solid var(--panel-line); border-radius: 999px; padding: 1px 6px;
+  white-space: nowrap; flex: none;
+}
+.home-lvl b { color: var(--gold-lit); font-size: 11px; }
 .home-name { font-size: 13px; font-weight: 600; color: var(--ink); }
 /* `p-shard` / `p-ess`, NOT `shard` / `ess`: those are the global currency GLYPHS
    (9px, clip-pathed to a diamond) and putting one on the pill turned the whole
@@ -5919,19 +5936,50 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* THE TUTORIAL COACH. Sits above the hint row in the action panel, styled as a
    note rather than a modal: it must never look like something blocking the
    game, because it never is. */
+/* IT FLOATS, AND IT MOVES. This lived in the `.controls` column, which on a
+   phone reflows into the bottom band — so the coach sat directly on top of the
+   hand, i.e. on the exact cards the lesson was telling the player to play.
+   Fixed takes it out of that flow entirely, and each step names the end of the
+   screen that is clear of its own subject (`TutorialStep.place`): hand lessons
+   go up, the far-row lesson goes down, and the middle of the board is never
+   covered by either. The arrow in the header flips it when a board says
+   otherwise. */
 .tut-coach {
-  margin: 0 0 8px; padding: 9px 11px; border-radius: 10px;
+  position: fixed; z-index: var(--z-hud);
+  left: 50%; transform: translateX(-50%);
+  width: min(420px, calc(100vw - 20px));
+  padding: 9px 11px; border-radius: 12px;
   border: 1px solid rgba(120, 160, 255, .3);
-  background: linear-gradient(180deg, rgba(120, 160, 255, .12), rgba(10, 10, 17, .6));
+  /* Nearly opaque, unlike the old in-flow card: a floating panel over a busy
+     board has to be readable without the board reading through it. */
+  background: linear-gradient(180deg, rgba(22, 28, 48, .97), rgba(10, 10, 17, .97));
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .55), 0 0 0 1px rgba(0, 0, 0, .4);
   text-align: left;
+  animation: tut-slide 200ms ease-out both;
 }
-.tut-head { display: flex; align-items: baseline; gap: 8px; }
+.tut-top { top: max(8px, env(safe-area-inset-top)); }
+.tut-bottom { bottom: max(8px, env(safe-area-inset-bottom)); }
+@keyframes tut-slide { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tut-coach { animation: none; } }
+.tut-face {
+  width: 34px; height: 34px; flex: none; border-radius: 50%; object-fit: cover;
+  object-position: 50% 22%;
+  border: 1px solid rgba(120, 160, 255, .45);
+}
+/* One tap to send it to the other end, for the board this step did not expect. */
+.tut-move {
+  cursor: pointer; background: none; border: 1px solid rgba(120, 160, 255, .3);
+  border-radius: 7px; padding: 1px 7px; font-size: 12px; line-height: 1.4;
+  color: #9fb8e8; margin-left: auto;
+}
+.tut-move:hover { background: rgba(120, 160, 255, .18); }
+.tut-head { display: flex; align-items: center; gap: 8px; }
 .tut-step {
   font-family: var(--head); font-size: 9.5px; letter-spacing: .12em;
   text-transform: uppercase; color: #9fb8e8;
 }
 .tut-skip {
-  margin-left: auto; cursor: pointer; background: none; border: none; padding: 0;
+  cursor: pointer; background: none; border: none; padding: 0;
   font-size: 10px; color: var(--ink-faint); text-decoration: underline;
 }
 .tut-skip:hover { color: var(--ink); }

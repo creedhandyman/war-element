@@ -27,6 +27,7 @@
  *  screen.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { TEACHER_ART, TEACHER_NAME } from "./shared";
 
 /** A measured target: viewport coordinates, or null when we cannot find it. */
 interface Hole {
@@ -40,19 +41,7 @@ interface Hole {
  *  reads as a border the element grew rather than as an annotation about it. */
 const PAD = 8;
 
-/** THE TEACHER IS THE PLAYER'S OWN FIRST CARD.
- *
- *  `STARTER_DECK` is one id and it is Sakuroot's, so on a brand-new save this is
- *  a portrait of the only card they own — which is the point. A disembodied
- *  "GETTING STARTED" tag teaches from nowhere; a face that is also sitting in
- *  their squad, and that they are about to walk into the first fight with, makes
- *  the tutorial part of the world rather than chrome laid over it.
- *
- *  A SEPARATE ASSET from `cards/leaf_sakuroot.webp`, deliberately: the card art
- *  in a fight is not changing, and a portrait cropped to read at 46px is the
- *  wrong picture for a card face anyway. */
-const TEACHER_ART = "/teacher-sakuroot.webp";
-const TEACHER_NAME = "Sakuroot";
+
 
 export function guideTarget(id: string): HTMLElement | null {
   if (typeof document === "undefined") return null;

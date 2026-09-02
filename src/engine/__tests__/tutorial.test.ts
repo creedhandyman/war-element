@@ -35,6 +35,70 @@ describe("the tutorial curriculum", () => {
     }
   });
 
+  // THE ADVICE USED TO BE WRONG, and wrong in the expensive direction. "Play
+  // like it is a race, because it is one" was the whole of the opening lesson,
+  // and a new player who took it at face value emptied their Home row in the
+  // first two rounds — which is exactly how you go broke, because income is
+  // `goldBase + homeSlotsHeld` (phases.ts, doResourcePhase): one Gold a round
+  // per Home square you are STANDING on. Rushing does not merely risk the
+  // bodies, it switches off the money that buys the next ones.
+  describe("it teaches the economy before it teaches the march", () => {
+    const byId = (id: string) => TUTORIAL_STEPS.find((s) => s.id === id);
+    const at = (id: string) => TUTORIAL_STEPS.findIndex((s) => s.id === id);
+
+    it("has a lesson about holding the Home row for income", () => {
+      const income = byId("income");
+      expect(income, "no income lesson").toBeTruthy();
+      const body = income!.body.toLowerCase();
+      expect(body).toContain("gold");
+      // The specific fact a rushing player is missing: advancing COSTS income.
+      expect(body, "does not say that advancing stops the money")
+        .toMatch(/stops paying|stop paying|stops earning|stop earning/);
+    });
+
+    it("says it BEFORE the lesson that invites marching", () => {
+      // "You may move one card a turn" is an invitation to start walking. Until
+      // the player knows what the back line pays, walking is how they lose.
+      expect(at("income")).toBeGreaterThan(-1);
+      expect(at("move")).toBeGreaterThan(-1);
+      expect(at("income"), "income must come first").toBeLessThan(at("move"));
+    });
+
+    it("no longer tells a new player to sprint", () => {
+      const all = TUTORIAL_STEPS.map((s) => s.body).join(" ").toLowerCase();
+      expect(all, "still coaching a rush").not.toContain("play like it is a race");
+    });
+  });
+
+  // It used to sit in the `.controls` column, which on a phone reflows into the
+  // bottom band — on top of the hand, i.e. on the cards the lesson was telling
+  // the player to play. Each step now names the end of the screen that is clear
+  // of its OWN subject.
+  describe("it sits somewhere that is not in the way", () => {
+    it("every step picks an end of the screen", () => {
+      for (const s of TUTORIAL_STEPS) expect(["top", "bottom"], s.id).toContain(s.place);
+    });
+
+    it("hand lessons go up, so the fan stays visible", () => {
+      // Both of these ask the player to use cards in hand.
+      for (const id of ["mulligan", "summon"]) {
+        const s = TUTORIAL_STEPS.find((x) => x.id === id);
+        expect(s, id).toBeTruthy();
+        expect(s!.place, `${id} would cover the hand`).toBe("top");
+      }
+    });
+
+    it("the far-row lesson goes down, so the far row stays visible", () => {
+      expect(TUTORIAL_STEPS.find((s) => s.id === "goal")!.place).toBe("bottom");
+    });
+
+    it("...and it does not always sit in the same place", () => {
+      // The point of the field: if every step picked one end it would be a
+      // constant, not a placement, and this file would be lying about why.
+      expect(new Set(TUTORIAL_STEPS.map((s) => s.place)).size).toBe(2);
+    });
+  });
+
   it("starts a fresh save with nothing taught, and survives a round trip", () => {
     expect(newSave().taught ?? []).toEqual([]);
     // Same storage stub the shiny round-trip test uses — no DOM in this env.
