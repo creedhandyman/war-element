@@ -1496,10 +1496,17 @@ export const CARDS: CardDef[] = [
     tribe: "Stars",
     attackType: "Melee",
     cost: 1,
+    // 3 + 4 + 9 = 16, one over 5*1+10 and inside the +/-2. Up from 2 HP and
+    // SP 10: it buys a second point of body with a point of speed, and the
+    // speed is the cheaper of the two here because it changes nothing. Both
+    // tiers sit either side of nothing — moveReach is 2 anywhere above SP 5,
+    // and the king-move tier starts ABOVE SP_MID_MAX (10), which 10 itself
+    // does not clear. So 10 and 9 are the same card to the rules, while 2 HP
+    // and 4 HP are the difference between dying to a 3-damage basic and not.
     dmg: 3,
     hits: 1,
-    hp: 2,
-    sp: 10,
+    hp: 4,
+    sp: 9,
     shields: 0,
     keywords: {},
     onHitStatus: { kind: "BLIND", duration: 1, power: 0 }, // Speed Flash
@@ -7546,9 +7553,15 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 1,
+    // 3 + 4 + 1*2 + 8 = 17 against 5*1+10, which is the +2 CEILING and not the
+    // middle of the band — worth saying out loud, because the next point of
+    // anything on this card fails the curve outright. SP was already 8 and is
+    // untouched; the one point is HP 3 -> 4, which is the difference between
+    // dying to a 3-damage basic and surviving it, and Zipp's whole job is to
+    // land, deploy a Drone, and still be there to be a body afterwards.
     dmg: 3,
     hits: 1,
-    hp: 3,
+    hp: 4,
     sp: 8,
     shields: 1,
     keywords: {},
