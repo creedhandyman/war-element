@@ -36,7 +36,6 @@ import { boardOfRun, runOver, runReward } from "../data/gauntlet";
 import { decksForTier } from "../data/custom-decks";
 import { deckArtUrl, finisherOf } from "./DeckPickerSheet";
 import { EL_COLOR, EL_ICON } from "./shared";
-import { Onboarding } from "./Onboarding";
 
 /** One row in the middle band. `feature` promotes it to the big card at the
  *  top — only one thing can be the most urgent. */
@@ -176,26 +175,21 @@ export function HomeScreen(props: {
           </picture>
         </div>
 
-        {/* FIRST THING ON THE SCREEN, above the live band. A new player's whole
-            problem is not knowing what to do next, and a guide placed under
-            the cards competing for that attention answers a question they have
-            already given up on. Renders nothing once the three steps are done. */}
-        <Onboarding
-          save={save}
-          onShop={() => props.onShop("packs")}
-          onBuilder={props.onBuilder}
-          onFightFirst={props.onFightFirst}
-          onSkip={props.onSkipOnboarding}
-        />
-
         <div className="home-you">
           <span className="home-av" aria-hidden="true">{(hero?.name ?? "?").slice(0, 1).toUpperCase()}</span>
           <span className="home-name">{hero?.name ?? "Keeper"}</span>
-          <span className="home-purse p-shard" title={`${shards} shards`}>
-            <i className="shard" aria-hidden="true" /><b>{shards}</b>
-          </span>
-          <span className="home-purse p-ess" title={`${totalEssence} essence, across every element`}>
-            <i className="ess" aria-hidden="true" /><b>{totalEssence}</b>
+          {/* Wrapped so the walkthrough can spotlight the two currencies as the
+              one idea they are. `display: contents` on the wrapper keeps the
+              flex row laid out exactly as before — but a contents box has no
+              rect of its own to measure, so the guide anchor goes on the shard
+              purse and the ring's padding covers the essence beside it. */}
+          <span className="home-purses">
+            <span className="home-purse p-shard" data-guide="home-purse" title={`${shards} shards`}>
+              <i className="shard" aria-hidden="true" /><b>{shards}</b>
+            </span>
+            <span className="home-purse p-ess" title={`${totalEssence} essence, across every element`}>
+              <i className="ess" aria-hidden="true" /><b>{totalEssence}</b>
+            </span>
           </span>
           {/* Beside the purse because it belongs to the HERO — it is what says
               which account all of this hangs off — rather than in the tile grid
@@ -325,7 +319,7 @@ export function HomeScreen(props: {
         {live.length > 0 && <div className="home-gap" />}
 
         <div className="home-prep">
-          <button className="home-tile deck" onClick={props.onBuilder}>
+          <button className="home-tile deck" data-guide="home-builder" onClick={props.onBuilder}>
             <span className="home-tile-name">Squad builder</span>
             <span className="home-tile-sub">{teamName ?? "No squad saved"}</span>
             <span className={`home-tile-num ${deckEmpty ? "warn" : "ok"}`}>

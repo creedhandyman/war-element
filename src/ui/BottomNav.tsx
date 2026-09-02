@@ -41,6 +41,10 @@ export function BottomNav(props: {
             key={id}
             className={`bnav-btn ${on ? "on" : ""}`}
             aria-current={on ? "page" : undefined}
+            // The walkthrough spotlights these by name (`GuideOverlay`). Put on
+            // every tab rather than the three it currently points at, so adding
+            // a tour step never means coming back here to tag one.
+            data-guide={`nav-${id}`}
             onClick={() => props.onTab(id)}
           >
             <span className="bnav-ico">

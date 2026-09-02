@@ -163,6 +163,10 @@
   --z-overlay: 300; /* navigable full-screen surfaces: menus, Shop, story map */
   --z-nav: 350;     /* the bottom nav. ABOVE every navigable surface.         */
   --z-toast: 400;   /* transient, non-interactive: cast flash, summon announce */
+  --z-guide: 450;   /* the first-run walkthrough. ABOVE the nav, because it
+                       spotlights nav buttons; BELOW modal, because it is the
+                       one full-screen layer that deliberately does NOT trap
+                       input — every dim panel is pointer-events:none.        */
   --z-modal: 500;   /* traps input: card view, win screen, spell choice        */
 
   /* ── element identity ─── declared here so anything carrying an element can
@@ -6415,46 +6419,95 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 
 /* ── First-run guide ──────────────────────────────────────────────────────
-   Three steps between a fresh save and the tutorial battle. It sits at the
-   very top of Home because a new player's whole problem is not knowing what
-   to do next, and a guide placed under the cards competing for that attention
-   answers a question they have already given up on. Gone for good once L1 is
-   cleared — see `onboardingStep`. */
-.onb {
-  flex: none; margin: 0 16px 10px; padding: 12px 14px 13px;
-  border-radius: 13px; text-align: left;
-  border: 1px solid color-mix(in srgb, var(--gold-lit) 42%, var(--panel-line));
-  background:
-    linear-gradient(160deg, rgba(201, 162, 75, 0.16), rgba(10, 10, 17, 0.72));
-  box-shadow: 0 0 0 1px rgba(201, 162, 75, 0.12), 0 8px 26px rgba(0, 0, 0, 0.45);
+   The first-run walkthrough. It used to be a card at the top of Home; it is
+   now a spotlight on the control the step is about, because "open your free
+   pack" is only useful next to the pack — and the pack is on another tab.
+
+   NOTHING HERE EATS A TAP. Every dim panel is pointer-events:none and so is
+   the ring; only the bubble takes input. The guide directs attention and never
+   takes the controls, which is the same posture TutorialCoach documents: this
+   game's first node is a designed teaching fight, not a rail. */
+.gd-wrap { position: fixed; inset: 0; z-index: var(--z-guide); pointer-events: none; }
+.gd-dim {
+  position: fixed; pointer-events: none;
+  background: rgba(4, 4, 9, 0.72);
+  /* Fades in rather than slamming: the step changes while the player is looking
+     at the screen, and a hard cut reads as a bug. */
+  animation: gd-fade 220ms ease-out both;
 }
-.onb-head { display: flex; align-items: center; gap: 9px; }
-.onb-tag {
+.gd-dim-all { inset: 0; }
+@keyframes gd-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* The ring is drawn OUTSIDE the hole (the four panels stop at its edges), so it
+   annotates the control instead of restyling it. */
+.gd-ring {
+  position: fixed; pointer-events: none; border-radius: 12px;
+  border: 2px solid var(--gold-lit);
+  box-shadow: 0 0 0 3px rgba(201, 162, 75, 0.18), 0 0 26px 6px rgba(201, 162, 75, 0.32);
+  animation: gd-pulse 1.9s ease-in-out infinite;
+}
+@keyframes gd-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(201, 162, 75, 0.16), 0 0 20px 4px rgba(201, 162, 75, 0.26); }
+  50%      { box-shadow: 0 0 0 5px rgba(201, 162, 75, 0.24), 0 0 32px 9px rgba(201, 162, 75, 0.42); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gd-ring { animation: none; }
+  .gd-dim { animation: none; }
+}
+
+.gd-tip {
+  position: fixed; pointer-events: auto;
+  width: 320px; max-width: calc(100vw - 24px);
+  padding: 12px 14px 13px; border-radius: 13px; text-align: left;
+  border: 1px solid color-mix(in srgb, var(--gold-lit) 42%, var(--panel-line));
+  background: linear-gradient(160deg, rgba(201, 162, 75, 0.16), rgba(10, 10, 17, 0.94));
+  box-shadow: 0 0 0 1px rgba(201, 162, 75, 0.12), 0 12px 34px rgba(0, 0, 0, 0.6);
+  animation: gd-rise 220ms ease-out both;
+}
+/* No anchor on screen — the step's control is on another tab and its own button
+   is what goes there. Centred, so it reads as a card rather than as a spotlight
+   pointing confidently at nothing. */
+.gd-mid { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+@keyframes gd-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.gd-mid { animation: none; }
+
+.gd-head { display: flex; align-items: center; gap: 9px; }
+.gd-tag {
   font-size: 9px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--gold-lit);
 }
-/* Pips, not "1 of 3": three is few enough to SHOW, and a filled pip says
-   "done" in a way a numerator cannot. */
-.onb-pips { display: flex; align-items: center; gap: 4px; margin-right: auto; }
-.onb-pips i {
+/* Pips, not "3 of 7": a filled pip says "done" in a way a numerator cannot, and
+   it shows how much is left without making the player do the subtraction. */
+.gd-pips { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.gd-pips i {
   width: 6px; height: 6px; border-radius: 50%;
   background: rgba(233, 226, 210, 0.22);
 }
-.onb-pips i.done { background: var(--gold-lit); opacity: 0.55; }
-.onb-pips i.on { background: var(--gold-lit); width: 16px; border-radius: 3px; }
-.onb-skip {
+.gd-pips i.done { background: var(--gold-lit); opacity: 0.55; }
+.gd-pips i.on { background: var(--gold-lit); width: 16px; border-radius: 3px; }
+.gd-title { margin-top: 6px; font-size: 15px; font-weight: 800; color: var(--ink); }
+.gd-body { margin: 4px 0 0; font-size: 11px; line-height: 1.5; color: var(--ink-dim); }
+.gd-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.gd-go { flex: 1; }
+.gd-skip {
   background: none; border: none; padding: 2px 4px; cursor: pointer; font: inherit;
-  font-size: 10px; letter-spacing: 0.04em; color: var(--ink-faint);
+  font-size: 10px; letter-spacing: 0.04em; color: var(--ink-faint); white-space: nowrap;
 }
-.onb-skip:hover { color: var(--ink-dim); }
-.onb-title { margin-top: 6px; font-size: 15px; font-weight: 800; color: var(--ink); }
-.onb-body { margin: 4px 0 0; font-size: 11px; line-height: 1.5; color: var(--ink-dim); }
-.onb-go { margin-top: 10px; width: 100%; }
+.gd-skip:hover { color: var(--ink-dim); }
+/* Stands where Skip will be, and says WHICH milestone is outstanding. A missing
+   button with no explanation reads as a broken screen. */
+.gd-locked {
+  font-size: 9px; line-height: 1.35; color: var(--ink-faint); max-width: 132px;
+}
 
 @media (max-width: 560px) {
-  .onb { margin: 0 10px 9px; padding: 11px 12px 12px; }
-  .onb-title { font-size: 14px; }
+  .gd-tip { width: 300px; padding: 11px 12px 12px; }
+  .gd-title { font-size: 14px; }
 }
+
+/* The two purses read as one idea, and the walkthrough rings them together.
+   `display: contents` so the flex row lays out exactly as it did before. */
+.home-purses { display: contents; }
 
 /* ── DOMINATION terrain ──────────────────────────────────────────────────
    Painted on the slot itself rather than as an overlay, so it sits UNDER the

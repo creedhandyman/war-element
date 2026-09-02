@@ -306,6 +306,7 @@ export function Shop(props: {
               gift has to be unmistakable — "Open for 40" over a pack you were
               given reads as being charged for it. */}
           <button className={`pack-open ${canOpenPack(save) ? "can" : ""} ${owedPacks > 0 ? "free" : ""}`}
+            data-guide="shop-pack"
             disabled={!canOpenPack(save)} onClick={tearOpen}>
             {owedPacks > 0 ? "Open your free pack" : <>Open for {PACK_COST}<i className="shard" /></>}
           </button>

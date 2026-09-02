@@ -74,7 +74,11 @@ import { VoidTower } from "./VoidTower";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { RulesBook } from "./RulesBook";
 import { CardGallery } from "./CardGallery";
-import { FIRST_NODE, ONBOARDING_SKIP } from "./Onboarding";
+import {
+  FIRST_NODE, ONBOARDING_COUNT, ONBOARDING_SKIP,
+  canSkipGuide, onboardingIndex, onboardingStep, skipLockedNote,
+} from "./Onboarding";
+import { GuideOverlay } from "./GuideOverlay";
 import { TutorialCoach } from "./TutorialCoach";
 import {
   loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
@@ -2806,6 +2810,58 @@ export function App() {
     ((game.phase === "prep" && game.prep?.priority === oppId) ||
       (activeCard !== null && activeCard.owner === oppId));
 
+  // ── the first-run walkthrough ─────────────────────────────────────────────
+  // The step is DERIVED from the save (see `Onboarding.tsx`), so there is no
+  // cursor here to fall out of sync — doing a step's deed by any route simply
+  // makes the next one due on the following render.
+  const guideStep = onboardingStep(story);
+  /** Is the step's anchor on the surface that is currently up? A spotlight is
+   *  only honest when the thing it rings is visible, and the guide's CTA is what
+   *  changes tabs — so until it is pressed the card shows centred with no ring
+   *  rather than pointing confidently at nothing. */
+  const guideOnTab = guideStep
+    ? guideStep.tab === (storyOpen ? "story" : tab) && !homeCollection
+    : false;
+
+  /** Acknowledge a tour step, into the same `taught` list the coach uses. */
+  const teach = (id: string) => {
+    const next = { ...story, taught: [...new Set([...(story.taught ?? []), id])] };
+    setStory(next); saveStory(next);
+  };
+  const skipGuide = () => teach(ONBOARDING_SKIP);
+
+  /** The step's button. It GOES there rather than merely pointing: the whole
+   *  complaint about the old guide was that it named a control on another
+   *  screen and left the player to find it. */
+  const runGuideStep = () => {
+    if (!guideStep) return;
+    switch (guideStep.id) {
+      case "pack":
+        setShopTab("packs"); setHomeCollection(false); navDo({ t: "close" }); setTab("shop");
+        break;
+      case "squad":
+        // Straight into the builder. The anchor is the Home tile, but the tile
+        // is a door and standing in front of it is not the step.
+        navDo({ t: "builder", open: true });
+        break;
+      case "fight":
+        // Focus the node, then open the map on it — landing on the region and
+        // leaving the player to find L1 is the exact hand-off this closes.
+        navDo({ t: "goToNode", nodeId: FIRST_NODE, regionId: regionOfNode(FIRST_NODE)?.id });
+        navDo({ t: "open" });
+        break;
+      default:
+        // Tour steps: show me the tab this is about, then mark it taught. Both,
+        // in that order, so the last thing the player sees is the place rather
+        // than the card that described it.
+        setHomeCollection(false);
+        navDo({ t: guideStep.tab === "story" ? "open" : "close" });
+        setTab(guideStep.tab as Tab);
+        teach(guideStep.id);
+        break;
+    }
+  };
+
   return (
     // `pre-match`: the battle chrome renders unconditionally — it always has —
     // so before a match there was an empty board, an empty log and an idle
@@ -4435,6 +4491,27 @@ export function App() {
             // it is a real transition rather than just a tab swap.
             navDo({ t: t === "story" ? "open" : "close" });
           }}
+        />
+      )}
+
+      {/* THE WALKTHROUGH, over whatever shell is up. Mounted here rather than
+          inside Home because that is the point of the rewrite: the step that
+          says "open your free pack" now points at the pack, which is on another
+          tab, and a guide that only exists on Home cannot do that.
+          Suppressed during a match and behind the full-screen surfaces for the
+          same reason the nav is — there is nothing to walk you through mid-fight,
+          and a spotlight over a board covers the board. */}
+      {!started && !builderOpen && !rulesOpen && !galleryOpen && guideStep && (
+        <GuideOverlay
+          anchor={guideOnTab ? guideStep.anchor : null}
+          title={guideStep.title}
+          body={guideStep.body}
+          cta={guideStep.cta}
+          onCta={runGuideStep}
+          onSkip={canSkipGuide(story) ? skipGuide : undefined}
+          skipLockedNote={skipLockedNote(story)}
+          stepIndex={onboardingIndex(guideStep)}
+          stepCount={ONBOARDING_COUNT}
         />
       )}
     </MatchLayout>

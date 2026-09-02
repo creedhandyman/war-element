@@ -9,7 +9,9 @@
 // is where a regression would hide.
 import { describe, expect, it } from "vitest";
 import {
-  FIRST_NODE, ONBOARDING_SKIP, ONBOARDING_STEPS, onboardingIndex, onboardingStep,
+  FIRST_NODE, ONBOARDING_CORE_COUNT, ONBOARDING_SKIP, ONBOARDING_STEPS,
+  canSkipGuide, firstFightWon, onboardingIndex, onboardingStep,
+  packOpened as packIsOpened, skipLockedNote,
 } from "../../ui/Onboarding";
 import { CARDS } from "../../data/cards";
 import { REGIONS, STARTER_DECK, deckCapFor, isFirstBattle, newSave, type StorySave } from "../../data/story";
@@ -45,18 +47,31 @@ describe("the three steps, in the order a fresh save meets them", () => {
     expect(onboardingStep(built)?.id).toBe("fight");
   });
 
-  it("clearing the first battle ends the guide for good", () => {
+  it("clearing the first battle ends the CORE arc and opens the tour", () => {
+    // It used to end the guide outright. The tour is what makes "skippable
+    // after the first fight" mean anything — there has to be something left to
+    // skip — so the first battle now hands over rather than closing up.
     const s = { ...packOpened(newSave()), cleared: [FIRST_NODE] };
-    expect(onboardingStep(s)).toBeNull();
-    // ...and it stays null however the rest of the save looks.
-    expect(onboardingStep({ ...s, deck: [], collection: [] })).toBeNull();
+    const next = onboardingStep(s);
+    expect(next?.core, "the core arc is done").toBe(false);
+    expect(next?.id).toBe("purse");
   });
 
-  it("Skip silences it immediately, from any step", () => {
+  it("Skip does NOT silence the core arc — that is the point of it", () => {
+    // The owner's rule: mandatory through the first pack and the first fight.
+    // Enforced HERE and not only by withholding the button, because a rule kept
+    // by a hidden control is one that any stale sentinel walks through, and
+    // `taught` is written from three places.
     for (const base of [newSave(), packOpened(newSave()), withBench(packOpened(newSave()), 3)]) {
       const skipped = { ...base, taught: [ONBOARDING_SKIP] };
-      expect(onboardingStep(skipped)).toBeNull();
+      expect(onboardingStep(skipped)?.core, "still on the core arc").toBe(true);
     }
+  });
+
+  it("...and silences the tour, which is what it is for", () => {
+    const done = { ...packOpened(newSave()), cleared: [FIRST_NODE] };
+    expect(onboardingStep(done)?.core).toBe(false);
+    expect(onboardingStep({ ...done, taught: [ONBOARDING_SKIP] })).toBeNull();
   });
 
   it("the coach's SKIP and the guide's are DIFFERENT decisions", () => {
@@ -68,16 +83,78 @@ describe("the three steps, in the order a fresh save meets them", () => {
   });
 });
 
+// THE SKIP GATE, which is the rule this rewrite was asked for: the walkthrough
+// is mandatory through the first pack opening and the first story fight, and
+// free afterwards. Both milestones, not either.
+describe("when the player is allowed to dismiss it", () => {
+  const fresh = newSave();
+  const packed = packOpened(fresh);
+  const fought = { ...fresh, cleared: [FIRST_NODE] };
+  const both = { ...packed, cleared: [FIRST_NODE] };
+
+  it("needs BOTH milestones, not one", () => {
+    expect(canSkipGuide(fresh), "fresh save").toBe(false);
+    expect(canSkipGuide(packed), "pack opened, never fought").toBe(false);
+    expect(canSkipGuide(fought), "fought, but the pack is still owed").toBe(false);
+    expect(canSkipGuide(both), "both done").toBe(true);
+  });
+
+  it("the two milestones read the save, not a flag", () => {
+    expect(packIsOpened(fresh)).toBe(false);
+    expect(packIsOpened(packed)).toBe(true);
+    expect(firstFightWon(fresh)).toBe(false);
+    expect(firstFightWon(fought)).toBe(true);
+  });
+
+  it("says which milestone is outstanding while Skip is missing", () => {
+    // A button that is simply absent, with nothing in its place, reads as a
+    // broken screen rather than as a rule.
+    expect(skipLockedNote(fresh)).toMatch(/pack/i);
+    expect(skipLockedNote(packed)).toMatch(/battle/i);
+    expect(skipLockedNote(both), "nothing to say once it is unlocked").toBe("");
+  });
+});
+
+// Every step names a control by `data-guide`. The elements live in four other
+// components and cannot be asserted here (no DOM), but the CURRICULUM's half of
+// the contract can be: a step with no anchor, or two steps fighting over one,
+// is a spotlight that lands on the wrong thing.
+describe("every step points somewhere", () => {
+  it("names an anchor and a tab", () => {
+    for (const s of ONBOARDING_STEPS) {
+      expect(s.anchor, `${s.id} has no anchor`).toBeTruthy();
+      expect(["home", "shop", "story", "arena", "tower"]).toContain(s.tab);
+    }
+  });
+
+  it("no two steps spotlight the same control", () => {
+    const anchors = ONBOARDING_STEPS.map((s) => s.anchor);
+    expect(new Set(anchors).size, anchors.join(", ")).toBe(anchors.length);
+  });
+});
+
 describe("it never nags an established player", () => {
   it("a mid-campaign save made before this existed sees nothing", () => {
-    // No stored cursor means no migration: every condition is already
-    // satisfied, so the guide is silent on an old save without being told.
+    // No stored cursor means no migration for the CORE arc: every condition is
+    // already satisfied, so it is silent on an old save without being told.
+    //
+    // The TOUR needed the rule stated, because it has no deed to satisfy — its
+    // ids are simply absent from `taught` on every save that predates it, so
+    // without a window it would have walked thirty-node veterans through "this
+    // is the Arena" the day it shipped. Clearing anything beyond the first
+    // battle closes it.
     const s: StorySave = {
       ...packOpened(newSave()),
       cleared: [FIRST_NODE, "L2", "L3"],
       collection: CARDS.slice(0, 20).map((c) => c.id),
     };
     expect(onboardingStep(s)).toBeNull();
+  });
+
+  it("...and the tour closes the moment a second node falls", () => {
+    const justWon = { ...packOpened(newSave()), cleared: [FIRST_NODE] };
+    expect(onboardingStep(justWon), "the window is open right after the tutorial").toBeTruthy();
+    expect(onboardingStep({ ...justWon, cleared: [FIRST_NODE, "L2"] })).toBeNull();
   });
 
   it("a player who opened the pack unprompted simply skips that step", () => {
@@ -94,8 +171,15 @@ describe("it never nags an established player", () => {
 });
 
 describe("the curriculum is coherent", () => {
-  it("is three steps with unique ids, each saying something", () => {
-    expect(ONBOARDING_STEPS.length).toBe(3);
+  it("is a core arc plus a tour, with unique ids, each saying something", () => {
+    expect(ONBOARDING_CORE_COUNT, "pack, squad, fight").toBe(3);
+    expect(ONBOARDING_STEPS.filter((s) => s.core).length).toBe(ONBOARDING_CORE_COUNT);
+    expect(ONBOARDING_STEPS.length, "and a tour after them").toBeGreaterThan(ONBOARDING_CORE_COUNT);
+    // The core arc comes FIRST in the list, so the pips count up rather than
+    // jumping about when the guide crosses from one arc to the other.
+    const firstTour = ONBOARDING_STEPS.findIndex((s) => !s.core);
+    expect(ONBOARDING_STEPS.slice(0, firstTour).every((s) => s.core)).toBe(true);
+    expect(ONBOARDING_STEPS.slice(firstTour).every((s) => !s.core)).toBe(true);
     const ids = ONBOARDING_STEPS.map((s) => s.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const s of ONBOARDING_STEPS) {
