@@ -810,10 +810,41 @@ export function pushBack(
   if (moved > 0) draft.log.push(`${label(draft, card)} is blown back ${moved} slot(s).`);
 }
 
+/** The row a pull may not step a card ONTO: the puller's own home row, or
+ *  `-1` when there is nothing to guard.
+ *
+ *  The predicate is deliberately the SAME ONE Cleanup captures on — the pulled
+ *  card is owned by somebody other than the puller (phases.ts, "capture by
+ *  survival": `occ.owner !== player`). Written that way the guard cannot drift
+ *  away from the rule it exists to protect against.
+ *
+ *  So it is NOT a blanket ban on the back row. Hauling your OWN card home is
+ *  still legal, because an ally standing on your home slot is captured by
+ *  nobody — `targetSide: "ally"` specials exist, and a future rally that drags
+ *  friends back to your line is a card whose whole point is reaching its own
+ *  back row. Only the enemy is stopped in front of it.
+ *
+ *  Mode-independent on purpose. Capture is off in Void Tower and Domination, so
+ *  this could have been gated on it — but "a pull cannot put an enemy on your
+ *  own back row" is a rule a player can hold in their head, and one that quietly
+ *  changes meaning per mode is not. Parking an enemy body on your own summoning
+ *  row is a bad trade in every mode anyway. */
+function stopsAtOwnHomeRow(draft: GameState, card: CardInstance, puller: PlayerId): number {
+  return card.owner === puller ? -1 : homeRow(puller, draft.boardSize);
+}
+
 /** The inverse of pushBack: drag `card` toward the puller's home row (i.e.
  *  toward the attacker), one column-aligned step at a time. Stops at the board
  *  edge or the first occupied/captured slot — so it reels a target in until it
- *  bumps up against the puller's line. Used by Harpoon Hook / Sucker Sword. */
+ *  bumps up against the puller's line. Used by Harpoon Hook / Sucker Sword.
+ *
+ *  IT STOPS IN FRONT OF THE PULLER'S OWN HOME ROW, and that line is the whole
+ *  reason this reads `pullerHome`. The walk used to end only at the board edge,
+ *  and the puller's home row IS that edge — so a Sucker Sword swing on the
+ *  invasion square dragged the enemy the last step onto P1's own home slot, and
+ *  Cleanup captures a home slot on bare occupancy in the SAME round. Using your
+ *  own ability handed the opponent a permanent capture, unanswerable because it
+ *  resolved and captured before anyone could act. See `stopsAtOwnHomeRow`. */
 export function pullToward(
   draft: GameState,
   card: CardInstance,
@@ -822,12 +853,14 @@ export function pullToward(
 ): void {
   if (getDef(card.defId).pushImmune) return; // Braced Stance: can't be reeled either
   const dir = puller === "P1" ? 1 : -1; // toward the puller's home (P1 = row 3, P2 = row 0)
+  const pullerHome = stopsAtOwnHomeRow(draft, card, puller);
   let moved = 0;
   for (let i = 0; i < steps; i++) {
     const pos = card.pos;
     if (!pos) break;
     const row: number = pos.row + dir;
     if (row < 0 || row >= draft.boardSize) break;
+    if (row === pullerHome) break; // your own back line is not a place to put an enemy
     if (draft.slots[row][pos.col].capturedBy || cardAt(draft, row, pos.col)) break;
     if (slotIsImpassable(draft, row, pos.col)) break; // a citadel is not a slot
     card.pos = { row: row as Pos["row"], col: pos.col };
@@ -848,7 +881,14 @@ export function pullToward(
  *  Stops when it is standing beside the puller (chebyshev 1) — it is reeled in,
  *  not dragged through. Blocked squares are stepped AROUND: the straight line is
  *  tried first, then each single axis, so a body in the way costs the diagonal
- *  rather than the whole pull. Braced Stance still refuses, like every push. */
+ *  rather than the whole pull. Braced Stance still refuses, like every push.
+ *
+ *  The puller's OWN home row is one of those blocked squares (`stopsAtOwnHomeRow`)
+ *  — a rope thrown from your back line could otherwise finish the pull ALONG it
+ *  and leave the enemy on a home slot for Cleanup to capture, the same self-
+ *  inflicted capture `pullToward` had. It is skipped rather than a hard stop, so
+ *  the rope bends around the back row exactly the way it bends around a body.
+ *  Stepping OFF the home row is untouched: only the destination is checked. */
 export function reelToCaster(
   draft: GameState,
   card: CardInstance,
@@ -856,6 +896,7 @@ export function reelToCaster(
   puller: CardInstance,
 ): void {
   if (getDef(card.defId).pushImmune) return;
+  const pullerHome = stopsAtOwnHomeRow(draft, card, puller.owner);
   let moved = 0;
   for (let i = 0; i < steps; i++) {
     const pos = card.pos, to = puller.pos;
@@ -868,6 +909,7 @@ export function reelToCaster(
       if (!r && !c) continue;
       const row = pos.row + r, col = pos.col + c;
       if (row < 0 || row >= draft.boardSize || col < 0 || col >= draft.boardSize) continue;
+      if (row === pullerHome) continue; // your own back line is not a place to put an enemy
       if (draft.slots[row][col].capturedBy || cardAt(draft, row, col)) continue;
       if (slotIsImpassable(draft, row, col)) continue; // a citadel is not a slot
       card.pos = { row: row as Pos["row"], col: col as Pos["col"] };
