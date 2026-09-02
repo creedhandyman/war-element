@@ -13283,7 +13283,13 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "aqua_surferdude",
-    name: "Surfer Dude",
+    // THE ID STAYS `aqua_surferdude`. Card ids are persisted -- collections,
+    // saved squads, story rosters, and deck codes, which are INDICES into
+    // deck-code.ts's list -- so renaming one would not rename anyone's copy, it
+    // would delete it out of every existing collection. Same rule Nightwing
+    // follows at `gale_breeze`. The art is named from the id too, so the plate
+    // stays public/cards/aqua_surferdude.webp.
+    name: "Kauai",
     rarity: "epic",
     element: "AQUA",
     cardClass: "Ranger",
