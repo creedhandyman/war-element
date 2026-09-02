@@ -4,12 +4,12 @@ import { describe, expect, it } from "vitest";
 import { aiMulligan, aiPrepIntent, chooseBattleAction } from "../ai";
 import { getSpell } from "../spells";
 import { advance, applyIntent, needsP1Input } from "../phases";
-import { canFireSpecial, validTargets } from "../rules";
-import { boardCards, createInitialState } from "../state";
+import { canFireSpecial, canSummon, openHomeSlots, validTargets } from "../rules";
+import { boardCards, cardAt, createInitialState, homeSlotsHeld } from "../state";
 import type { GameState } from "../types";
 import { MAX_ROUNDS, homeRow } from "../types";
 import { getDef } from "../../data/cards";
-import { place, prepState } from "./helpers";
+import { bigPrepState, giveHand, place, prepState } from "./helpers";
 
 describe("AI heuristics", () => {
   it("mulligans away only cost > 4 cards", () => {
@@ -458,5 +458,78 @@ describe("the AI reads battle commands", () => {
     expect(aiPrepIntent(doomed, "P1")).toMatchObject({
       type: "CAST_SPELL", spellId: "dawn_cleansing_light",
     });
+  });
+});
+
+describe("the home reserve yields to a jammed home row", () => {
+  // THE DEADLOCK. Two guards, each sound alone, that between them stopped the
+  // AI playing at all on the duel boards:
+  //
+  //   1. `summonLandingRow` keeps its forward-landing hatch shut while the seat
+  //      owns ANY home-row card, on the stated ground that a card of your own
+  //      is not a lockout — move it forward and the slot is yours again.
+  //   2. `findAdvance`'s HOME_RESERVE guard skipped any mover standing on its
+  //      own home row while `held <= HOME_RESERVE`, so that card never moved.
+  //
+  // Rule 1's escape clause was exactly what rule 2 guaranteed would not happen.
+  // 4x4 and 5x5 are the only modes that capture slots, so it bit only there.
+  const jam = (boardSize: number) => {
+    // P1 walked bodies onto P2's home row and survived a Cleanup, so those
+    // slots are captured for good. P2's last body still holds column 0 — which
+    // is why the match has NOT ended: the defender still holds a slot, so
+    // `hasCaptureWin(P1)` is false.
+    const s = boardSize === 4 ? prepState(42, "P2") : bigPrepState(42, "P2");
+    s.players.P2.gold = 99;
+    giveHand(s, "P2", "leaf_greegon");
+    for (let col = 1; col < boardSize; col++) s.slots[0][col].capturedBy = "P1";
+    place(s, "leaf_alpha", "P2", 0, 0);
+    // An enemy in reach, so the standoff stall-breaker (which ignores the
+    // reserve outright) does NOT fire and the reserve is genuinely load-bearing.
+    place(s, "dusk_vamp", "P1", 1, 1);
+    return s;
+  };
+
+  for (const boardSize of [4, 5]) {
+    it(`${boardSize}x${boardSize}: it moves the blocking body instead of passing`, () => {
+      const s = jam(boardSize);
+
+      // The lockout is real: nowhere to summon, from any column.
+      expect(openHomeSlots(s, "P2"), "no open home slot").toEqual([]);
+      for (let col = 0; col < boardSize; col++)
+        expect(canSummon(s, "P2", s.players.P2.hand[0].handId, col).ok, `col ${col}`).toBe(false);
+      // ...and it still holds one, so this is not a finished game.
+      expect(homeSlotsHeld(s, "P2")).toBe(1);
+
+      // It used to PASS here, on 99 gold, with a playable hand and a legal move.
+      const intent = aiPrepIntent(s, "P2");
+      expect(intent.type, "passed while locked out of summoning").toBe("MOVE");
+      const moved = boardCards(s, "P2").find((c) => c.instanceId === (intent as { instanceId: string }).instanceId)!;
+      expect(moved.pos!.row, "the body it moves is the one blocking the slot").toBe(0);
+
+      // ...and the move is what unjams it: the vacated square is summonable.
+      const after = applyIntent(s, intent);
+      expect(openHomeSlots(after, "P2"), "vacating re-opened the slot").toContain(0);
+      expect(canSummon(after, "P2", after.players.P2.hand[0].handId, 0).ok).toBe(true);
+    });
+  }
+
+  it("but an ordinary full home row still holds the last slot back for income", () => {
+    // The reserve's own job, unchanged: with a slot open there is no jam, so
+    // the last home body stays put and keeps paying 1 gold a round. Losing this
+    // is what the reserve was measured to prevent (0.7 slots held, 31% of turns
+    // with nothing at home), so it is the half that must NOT move.
+    const s = prepState(42, "P2");
+    s.players.P2.gold = 99;
+    giveHand(s, "P2", "leaf_greegon");
+    place(s, "leaf_alpha", "P2", 0, 0); // holds one slot...
+    place(s, "dusk_vamp", "P1", 1, 1);
+    expect(openHomeSlots(s, "P2").length, "...and the rest of the row is open").toBeGreaterThan(0);
+    expect(homeSlotsHeld(s, "P2")).toBe(1);
+
+    // It summons rather than moving, and the held body stays home.
+    const intent = aiPrepIntent(s, "P2");
+    expect(intent.type).toBe("SUMMON");
+    const after = applyIntent(s, intent);
+    expect(cardAt(after, 0, 0)?.defId, "the reserve body did not walk off").toBe("leaf_alpha");
   });
 });

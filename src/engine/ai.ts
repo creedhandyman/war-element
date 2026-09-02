@@ -1072,8 +1072,48 @@ function findAdvance(
     // Hold the last slot back while there is still something to buy with it.
     // Anything above the reserve advances as before, and `desperate` ignores it
     // outright — a total standoff is a guaranteed loss and outranks income.
+    //
+    // ...AND `homeFirst` OVERRIDES IT, because when the row is jammed the held
+    // slot is not income, it is the blockage. The reserve exists to fund the
+    // summon; a summon that cannot happen from any column makes the gold it
+    // protects unspendable, and the one body standing at home is the reason.
+    // Vacating it always re-opens that square — a slot is only ever captured
+    // with an ENEMY on it, so an own card on its own home row is always on an
+    // uncaptured, uncontested one, and every candidate below leaves the row.
+    //
+    // Without this the two rules deadlocked. `summonLandingRow` keeps its
+    // forward-landing hatch shut whenever the seat owns a home-row card, on the
+    // stated ground that you can move it forward and take the slot back — and
+    // this guard is what guaranteed you never would. So a duel seat whose other
+    // home slots were captured sat on its hand: nowhere to summon, and the one
+    // card that could fix it pinned in place. It also made `homeFirst` dead code
+    // in exactly the case it was written for, since sorting the home-row card to
+    // the front only to `continue` past it does nothing at `held === 1`.
+    //
+    // MEASURED over 672 AI duels (8 cores, both seats, 4x4 + 5x5, 6 seeds),
+    // counting turns where the seat could afford a card, had nowhere at all to
+    // put it, owned a card that could legally move, and passed anyway:
+    //
+    //                          before      after
+    //   matches with one       64.6%       48.8%
+    //   turns                  3,006       1,833      (longest run 8 -> 7)
+    //
+    // NOT to zero, and the remainder is two OTHER faults rather than this one
+    // half-fixed — both measured on the after-tree, so neither is speculative:
+    //
+    //   35.5% (651 turns) the home body cannot leave AT ALL — STUN/SLEEP/
+    //     FRIGHTEN, reach 0 from ROOT/FREEZE, `holdsPosition`, `bossHeldHome`.
+    //     No reserve rule can help: there is no move to release. The repair is
+    //     on the other side, in `summonLandingRow`, whose own-card veto assumes
+    //     an own body can always step forward and free the slot. It should ask.
+    //
+    //   64.4% (1,181 turns) a forward move exists and the survivability test
+    //     below rejects every one of them. Passing is then a considered choice,
+    //     not a deadlock — but it is a choice made without knowing the seat is
+    //     locked out of summoning entirely, which is a threat-model question
+    //     and a wider change than this one.
     if (
-      !desperate && wantIncome &&
+      !desperate && wantIncome && !homeFirst &&
       mover.pos!.row === homeRowMine && held <= HOME_RESERVE
     ) continue;
     const reach = moveReachFor(state, mover);
